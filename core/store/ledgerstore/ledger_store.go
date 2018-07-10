@@ -27,11 +27,14 @@ import (
 	"strings"
 	"sync"
 
+	"strconv"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -49,7 +52,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	"strconv"
 )
 
 const (
@@ -67,23 +69,27 @@ var (
 
 //LedgerStoreImp is main store struct fo ledger
 type LedgerStoreImp struct {
-	blockStore       *BlockStore                      //BlockStore for saving block & transaction data
-	stateStore       *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
-	eventStore       *EventStore                      //EventStore for saving log those gen after smart contract executed.
-	storedIndexCount uint32                           //record the count of have saved block index
-	currBlockHeight  uint32                           //Current block height
-	currBlockHash    common.Uint256                   //Current block hash
-	headerCache      map[common.Uint256]*types.Header //BlockHash => Header
-	headerIndex      map[uint32]common.Uint256        //Header index, Mapping header height => block hash
-	savingBlock      bool                             //is saving block now
-	lock             sync.RWMutex
+	blockStore         *BlockStore                      //BlockStore for saving block & transaction data
+	stateStore         *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
+	eventStore         *EventStore                      //EventStore for saving log those gen after smart contract executed.
+	storedIndexCount   uint32                           //record the count of have saved block index
+	currBlockHeight    uint32                           //Current block height
+	currBlockHash      common.Uint256                   //Current block hash
+	headerCache        map[common.Uint256]*types.Header //BlockHash => Header
+	headerIndex        map[uint32]common.Uint256        //Header index, Mapping header height => block hash
+	savingBlock        bool                             //is saving block now
+	vbftPeerInfoheader map[string]uint32                //pubInfo save pubkey,peerindex
+	vbftPeerInfoblock  map[string]uint32                //pubInfo save pubkey,peerindex
+	lock               sync.RWMutex
 }
 
 //NewLedgerStore return LedgerStoreImp instance
 func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
-		headerIndex: make(map[uint32]common.Uint256),
-		headerCache: make(map[common.Uint256]*types.Header, 0),
+		headerIndex:        make(map[uint32]common.Uint256),
+		headerCache:        make(map[common.Uint256]*types.Header, 0),
+		vbftPeerInfoheader: make(map[string]uint32),
+		vbftPeerInfoblock:  make(map[string]uint32),
 	}
 
 	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
@@ -159,6 +165,43 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("init error %s", err)
 		}
+	}
+	//load vbft peerInfo
+	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
+	if consensusType == "vbft" {
+		blk, err := this.GetBlockByHeight(this.currBlockHeight)
+		if err != nil {
+			return err
+		}
+		blkInfo, err := vconfig.VbftBlock(blk.Header)
+		if err != nil {
+			return err
+		}
+		var cfg *vconfig.ChainConfig
+		if blkInfo.NewChainConfig != nil {
+			cfg = blkInfo.NewChainConfig
+		} else {
+			cfgBlock, err := this.GetBlockByHeight(blkInfo.LastConfigBlockNum)
+			if err != nil {
+				return err
+			}
+			Info, err := vconfig.VbftBlock(cfgBlock.Header)
+			if err != nil {
+				return err
+			}
+			if Info.NewChainConfig == nil {
+				return fmt.Errorf("getNewChainConfig error block num:%d", blkInfo.LastConfigBlockNum)
+			}
+			cfg = Info.NewChainConfig
+		}
+		this.lock.Lock()
+		this.vbftPeerInfoheader = make(map[string]uint32)
+		this.vbftPeerInfoblock = make(map[string]uint32)
+		for _, p := range cfg.Peers {
+			this.vbftPeerInfoheader[p.ID] = p.Index
+			this.vbftPeerInfoblock[p.ID] = p.Index
+		}
+		this.lock.Unlock()
 	}
 	return nil
 }
@@ -370,46 +413,77 @@ func (this *LedgerStoreImp) getHeaderCache(blockHash common.Uint256) *types.Head
 	return header
 }
 
-func (this *LedgerStoreImp) verifyHeader(header *types.Header) error {
+func (this *LedgerStoreImp) verifyHeader(header *types.Header, vbftPeerInfo map[string]uint32) (map[string]uint32, error) {
 	if header.Height == 0 {
-		return nil
+		return vbftPeerInfo, nil
 	}
-
 	var prevHeader *types.Header
 	prevHeaderHash := header.PrevBlockHash
 	prevHeader, err := this.GetHeaderByHash(prevHeaderHash)
 	if err != nil && err != scom.ErrNotFound {
-		return fmt.Errorf("get prev header error %s", err)
+		return vbftPeerInfo, fmt.Errorf("get prev header error %s", err)
 	}
 	if prevHeader == nil {
-		return fmt.Errorf("cannot find pre header by blockHash %s", prevHeaderHash.ToHexString())
+		return vbftPeerInfo, fmt.Errorf("cannot find pre header by blockHash %s", prevHeaderHash.ToHexString())
 	}
 
 	if prevHeader.Height+1 != header.Height {
-		return fmt.Errorf("block height is incorrect")
+		return vbftPeerInfo, fmt.Errorf("block height is incorrect")
 	}
 
 	if prevHeader.Timestamp >= header.Timestamp {
-		return fmt.Errorf("block timestamp is incorrect")
+		return vbftPeerInfo, fmt.Errorf("block timestamp is incorrect")
 	}
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	if consensusType != "vbft" {
+	if consensusType == "vbft" {
+		//check bookkeeppers
+		m := len(header.Bookkeepers) - (len(header.Bookkeepers)-1)/3
+		if len(header.Bookkeepers) < m {
+			return vbftPeerInfo, fmt.Errorf("header Bookkeepers %d less than 2/3 len vbftPeerInfo%d", len(header.Bookkeepers), len(vbftPeerInfo))
+		}
+		for _, bookkeeper := range header.Bookkeepers {
+			pubkey := vconfig.PubkeyID(bookkeeper)
+			_, present := vbftPeerInfo[pubkey]
+			if !present {
+				log.Errorf("invalid pubkey :%v,height:%d", pubkey, header.Height)
+				return vbftPeerInfo, fmt.Errorf("invalid pubkey :%v", pubkey)
+			}
+		}
+		hash := header.Hash()
+		err = signature.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
+		if err != nil {
+			log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,heigh:%d", err, len(header.Bookkeepers), len(vbftPeerInfo), header.Height)
+			return vbftPeerInfo, err
+		}
+		blkInfo, err := vconfig.VbftBlock(header)
+		if err != nil {
+			return vbftPeerInfo, err
+		}
+		if blkInfo.NewChainConfig != nil {
+			peerInfo := make(map[string]uint32)
+			for _, p := range blkInfo.NewChainConfig.Peers {
+				peerInfo[p.ID] = p.Index
+			}
+			return peerInfo, nil
+		}
+		return vbftPeerInfo, nil
+	} else {
 		address, err := types.AddressFromBookkeepers(header.Bookkeepers)
 		if err != nil {
-			return err
+			return vbftPeerInfo, err
 		}
 		if prevHeader.NextBookkeeper != address {
-			return fmt.Errorf("bookkeeper address error")
+			return vbftPeerInfo, fmt.Errorf("bookkeeper address error")
 		}
 
 		m := len(header.Bookkeepers) - (len(header.Bookkeepers)-1)/3
 		hash := header.Hash()
 		err = signature.VerifyMultiSignature(hash[:], header.Bookkeepers, m, header.SigData)
 		if err != nil {
-			return err
+			return vbftPeerInfo, err
 		}
 	}
-	return nil
+	return vbftPeerInfo, nil
 }
 
 //AddHeader add header to cache, and add the mapping of block height to block hash. Using in block sync
@@ -418,7 +492,8 @@ func (this *LedgerStoreImp) AddHeader(header *types.Header) error {
 	if header.Height != nextHeaderHeight {
 		return fmt.Errorf("header height %d not equal next header height %d", header.Height, nextHeaderHeight)
 	}
-	err := this.verifyHeader(header)
+	var err error
+	this.vbftPeerInfoheader, err = this.verifyHeader(header, this.vbftPeerInfoheader)
 	if err != nil {
 		return fmt.Errorf("verifyHeader error %s", err)
 	}
@@ -454,8 +529,8 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
 	if blockHeight != nextBlockHeight {
 		return fmt.Errorf("block height %d not equal next block height %d", blockHeight, nextBlockHeight)
 	}
-
-	err := this.verifyHeader(block.Header)
+	var err error
+	this.vbftPeerInfoblock, err = this.verifyHeader(block.Header, this.vbftPeerInfoblock)
 	if err != nil {
 		return fmt.Errorf("verifyHeader error %s", err)
 	}
