@@ -76,14 +76,14 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if context == nil {
 		return errors.NewErr("[ContractDestory] current contract context invalid!")
 	}
-	item, err := service.CloneCache.Store.TryGet(scommon.ST_CONTRACT, context.ContractAddress[:])
+	item, err := service.CloneCache.Get(scommon.ST_CONTRACT, context.ContractAddress[:])
 
 	if err != nil || item == nil {
 		return errors.NewErr("[ContractDestory] get current contract fail!")
 	}
 
 	service.CloneCache.Delete(scommon.ST_CONTRACT, context.ContractAddress[:])
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, context.ContractAddress[:])
+	stateValues, err := service.CloneCache.Find(scommon.ST_CONTRACT, context.ContractAddress[:])
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractDestory] find error!")
 	}
@@ -110,7 +110,7 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 		return errors.NewErr("[GetStorageContext] Pop data not contract!")
 	}
 	address := types.AddressFromVmCode(contractState.Code)
-	item, err := service.CloneCache.Store.TryGet(scommon.ST_CONTRACT, address[:])
+	item, err := service.CloneCache.Get(scommon.ST_CONTRACT, address[:])
 	if err != nil || item == nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get StorageContext nil")
 	}
@@ -203,7 +203,7 @@ func isContractExist(service *NeoVmService, contractAddress common.Address) erro
 }
 
 func storeMigration(service *NeoVmService, oldAddr common.Address, newAddr common.Address) ([]*scommon.StateItem, error) {
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_STORAGE, oldAddr[:])
+	stateValues, err := service.CloneCache.Find(scommon.ST_STORAGE, oldAddr[:])
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
 	}

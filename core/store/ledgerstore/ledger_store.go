@@ -39,7 +39,6 @@ import (
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
@@ -581,9 +580,22 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 			return err
 		}
 	}
+	createGasPrice, ok := neovm.GAS_TABLE.Load(neovm.CONTRACT_CREATE_NAME)
+	if ok == false {
+		return errors.NewErr("get gas price error")
+	}
+	deployUintCodePrice, ok := neovm.GAS_TABLE.Load(neovm.UINT_DEPLOY_CODE_LEN_NAME)
+	if ok == false {
+		return errors.NewErr("get gas price error")
+	}
+	invokeUintCodeGasPrice, ok := neovm.GAS_TABLE.Load(neovm.UINT_INVOKE_CODE_LEN_NAME)
+	if ok == false {
+		return errors.NewErr("get gas price error")
+	}
 
 	for _, tx := range block.Transactions {
-		err := this.handleTransaction(stateBatch, block, tx)
+		err := handleTransaction(this, stateBatch, block, tx, this.eventStore,
+			createGasPrice.(uint64), deployUintCodePrice.(uint64), invokeUintCodeGasPrice.(uint64))
 		if err != nil {
 			return fmt.Errorf("handleTransaction error %s", err)
 		}
@@ -695,31 +707,35 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	return nil
 }
 
-func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch, block *types.Block, tx *types.Transaction) error {
-	txHash := tx.Hash()
-	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
-	switch tx.TxType {
-	case types.Deploy:
-		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, notify)
-		if stateBatch.Error() != nil {
-			return fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
-		}
-		if err != nil {
-			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
-		}
-		SaveNotify(this.eventStore, txHash, notify)
-	case types.Invoke:
-		err := this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, notify)
-		if stateBatch.Error() != nil {
-			return fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
-		}
-		if err != nil {
-			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
-		}
-		SaveNotify(this.eventStore, txHash, notify)
-	}
-	return nil
-}
+//func (this *LedgerStoreImp) handleTransaction(stateBatch *statestore.StateBatch, block *types.Block, tx *types.Transaction) error {
+//	txHash := tx.Hash()
+//	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
+//
+//	handleTransaction(this, stateBatch, block, tx)
+//
+//	switch tx.TxType {
+//	case types.Deploy:
+//		err := this.stateStore.HandleDeployTransaction(this, stateBatch, tx, block, notify)
+//		if stateBatch.Error() != nil {
+//			return fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
+//		}
+//		if err != nil {
+//			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
+//		}
+//		SaveNotify(this.eventStore, txHash, notify)
+//	case types.Invoke:
+//		txDB := stateBatch.
+//		err := this.stateStore.HandleInvokeTransaction(this, stateBatch, tx, block, notify)
+//		if stateBatch.Error() != nil {
+//			return fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), stateBatch.Error())
+//		}
+//		if err != nil {
+//			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
+//		}
+//		SaveNotify(this.eventStore, txHash, notify)
+//	}
+//	return nil
+//}
 
 func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	this.lock.RLock()

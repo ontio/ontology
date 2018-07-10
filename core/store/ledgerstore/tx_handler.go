@@ -79,13 +79,13 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 		gasLimit := createGasPrice.(uint64) + calcGasByCodeLen(len(deploy.Code), uintCodePrice.(uint64))
 		balance, err := isBalanceSufficient(tx.Payer, cache, config, store, gasLimit*tx.GasPrice)
 		if err != nil {
-			if err := costInvalidGas(tx.Payer, balance, config, stateBatch, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, balance, config, cache, store, notify); err != nil {
 				return err
 			}
 			return err
 		}
 		if tx.GasLimit < gasLimit {
-			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, stateBatch, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, cache, store, notify); err != nil {
 				return err
 			}
 			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
@@ -111,6 +111,276 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, stateBa
 	return nil
 }
 
+func handleDeployTransaction(store store.LedgerStore, txDB *storage.CloneCache,
+	tx *types.Transaction, block *types.Block, createGasPrice, deployUintCodePrice uint64) ExecutionResult {
+	var result ExecutionResult
+	deploy := tx.Payload.(*payload.DeployCode)
+	address := types.AddressFromVmCode(deploy.Code)
+
+	result.charge = tx.GasPrice != 0
+
+	if result.charge {
+		// init smart contract configuration info
+		config := &smartcontract.Config{
+			Time:   block.Header.Timestamp,
+			Height: block.Header.Height,
+			Tx:     tx,
+		}
+
+		gasLimit := createGasPrice + calcGasByCodeLen(len(deploy.Code), deployUintCodePrice)
+		balance, err := getBalanceFromNative(config, txDB, store, tx.Payer)
+		if err != nil {
+			result.status = ExecSystemError
+			return result
+		}
+
+		if balance < gasLimit*tx.GasPrice {
+			result.gas = balance
+			result.status = ExecBalanceNotEnough
+			return result
+		}
+
+		if tx.GasLimit < gasLimit {
+			result.gas = tx.GasLimit * tx.GasPrice
+			result.status = ExecGasLimitTooLow
+			return result
+		}
+		result.gas = gasLimit * tx.GasPrice
+	}
+
+	log.Infof("deploy contract address:%s", address.ToHexString())
+	// store contract message
+	val, err := txDB.Get(scommon.ST_CONTRACT, address[:])
+	if err != nil {
+		result.status = ExecSystemError
+		return result
+	}
+	if val == nil {
+		txDB.Add(scommon.ST_CONTRACT, address[:], deploy)
+	}
+
+	result.status = ExecSuccess
+	return result
+}
+
+type ExecutionStatus byte
+
+const (
+	ExecSuccess = ExecutionStatus(0) // execution suceess
+	//ExecNeedSerial       = iota               // need serial execution, `find` api detected
+	//ExecHaveGlobalLock   = iota               // global param has changed, so follow-up transaction can not execute parallel
+	ExecSystemError      = iota
+	ExecGasLimitTooLow   = iota
+	ExecContractError    = iota
+	ExecBalanceNotEnough = iota
+)
+
+type ExecutionResult struct {
+	status   ExecutionStatus
+	gas      uint64
+	charge   bool
+	notifies []*event.NotifyEventInfo
+}
+
+func handleInvokeTransaction(store store.LedgerStore, txDB *storage.CloneCache,
+	tx *types.Transaction, block *types.Block, invokeUintCodeGasPrice uint64) ExecutionResult {
+	var result ExecutionResult
+	invoke := tx.Payload.(*payload.InvokeCode)
+	code := invoke.Code
+	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
+
+	isCharge := !sysTransFlag && tx.GasPrice != 0
+	result.charge = isCharge
+
+	// init smart contract configuration info
+	config := &smartcontract.Config{
+		Time:   block.Header.Timestamp,
+		Height: block.Header.Height,
+		Tx:     tx,
+	}
+
+	var (
+		oldBalance      uint64
+		newBalance      uint64
+		codeLenGasLimit uint64
+		err             error
+	)
+
+	availableGasLimit := tx.GasLimit
+	if isCharge {
+		oldBalance, err = getBalanceFromNative(config, txDB, store, tx.Payer)
+		if err != nil {
+			// this must be system error
+			result.status = ExecSystemError
+			return result
+		}
+
+		minGas := neovm.MIN_TRANSACTION_GAS * tx.GasPrice
+
+		if oldBalance < minGas {
+			result.gas = oldBalance
+			result.status = ExecBalanceNotEnough
+			return result
+			//if err := costInvalidGas(tx.Payer, oldBalance, config, txDB, store, notify); err != nil {
+			//	return err
+			//}
+			//return fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
+		}
+
+		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), invokeUintCodeGasPrice)
+
+		if oldBalance < codeLenGasLimit*tx.GasPrice {
+			result.gas = oldBalance
+			result.status = ExecBalanceNotEnough
+			return result
+			//if err := costInvalidGas(tx.Payer, oldBalance, config, txDB, store, notify); err != nil {
+			//	return err
+			//}
+			//return fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
+		}
+
+		if tx.GasLimit < codeLenGasLimit {
+			result.gas = oldBalance
+			result.status = ExecGasLimitTooLow
+			return result
+			//if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, txDB, store, notify); err != nil {
+			//	return err
+			//}
+			//return fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
+		}
+
+		maxAvaGasLimit := oldBalance / tx.GasPrice
+		if availableGasLimit > maxAvaGasLimit {
+			availableGasLimit = maxAvaGasLimit
+		}
+	}
+
+	//init smart contract info
+	sc := smartcontract.SmartContract{
+		Config:     config,
+		CloneCache: txDB,
+		Store:      store,
+		Gas:        availableGasLimit - codeLenGasLimit,
+	}
+
+	//start the smart contract executive function
+	engine, _ := sc.NewExecuteEngine(invoke.Code)
+
+	_, err = engine.Invoke()
+
+	costGasLimit := availableGasLimit - sc.Gas
+	if costGasLimit < neovm.MIN_TRANSACTION_GAS {
+		costGasLimit = neovm.MIN_TRANSACTION_GAS
+	}
+
+	costGas := costGasLimit * tx.GasPrice
+	if err != nil {
+		if isCharge {
+			result.gas = costGas
+			//if err := costInvalidGas(tx.Payer, costGas, config, txDB, store, notify); err != nil {
+			//	return err
+			//}
+		}
+		result.status = ExecContractError
+		return result
+	}
+
+	if isCharge {
+		newBalance, err = getBalanceFromNative(config, txDB, store, tx.Payer)
+		if err != nil {
+			// this must be system error
+			result.status = ExecSystemError
+			return result
+		}
+
+		if newBalance < costGas {
+			result.gas = costGas
+			result.status = ExecBalanceNotEnough
+			//if err := costInvalidGas(tx.Payer, costGas, config, txDB, store, notify); err != nil {
+			//	return err
+			//}
+			//return fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
+		}
+
+		result.gas = costGas
+		//notifies, err = chargeCostGas(tx.Payer, costGas, config, sc.CloneCache, store)
+		//if err != nil {
+		//	return err
+		//}
+	}
+
+	result.status = ExecSuccess
+	result.notifies = append(result.notifies, sc.Notifications...)
+
+	return result
+}
+
+func handleTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch, block *types.Block, tx *types.Transaction,
+	eventStore *EventStore, createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice uint64) error {
+	txHash := tx.Hash()
+	overlay := statestore.NewOverlayDB(stateBatch)
+	txDB := storage.NewCloneCache(overlay)
+	var result ExecutionResult
+	switch tx.TxType {
+	case types.Deploy:
+		result = handleDeployTransaction(store, txDB, tx, block, createGasPrice, deployUintCodePrice)
+	case types.Invoke:
+		result = handleInvokeTransaction(store, txDB, tx, block, invokeUintCodeGasPrice)
+	}
+
+	if stateBatch.Error() != nil || result.status == ExecSystemError {
+		return fmt.Errorf("handle transaction error. tx %s error %v", txHash.ToHexString(), stateBatch.Error())
+	}
+	needRedo := false
+	//if result.status == ExecNeedSerial {
+	//	needRedo = true
+	//} else {
+	// todo: check conflict
+	// and set needRedo
+	//}
+
+	if needRedo {
+		// re execute
+	}
+
+	config := &smartcontract.Config{
+		Time:   block.Header.Timestamp,
+		Height: block.Header.Height,
+		Tx:     tx,
+	}
+
+	if result.status != ExecSuccess {
+		txDB.Reset()
+		result.notifies = nil
+
+		log.Debugf("handle transaction error. tx: %s, status:%d", txHash.ToHexString(), result.status)
+	}
+	if result.charge {
+		notifies, err := chargeCostGas(tx.Payer, result.gas, config, txDB, store)
+		if err != nil {
+			return fmt.Errorf("charge gas error. tx: %s, error: %s", txHash.ToHexString(), err.Error())
+		}
+		result.notifies = append(result.notifies, notifies...)
+	}
+
+	txDB.Commit()
+	overlay.CommitTo()
+
+	eventNotify := &event.ExecuteNotify{
+		TxHash:      txHash,
+		GasConsumed: result.gas,
+		Notify:      result.notifies,
+	}
+	if result.status == ExecSuccess {
+		eventNotify.State = event.CONTRACT_STATE_SUCCESS
+	} else {
+		eventNotify.State = event.CONTRACT_STATE_FAIL
+	}
+
+	SaveNotify(eventStore, txHash, eventNotify)
+	return nil
+}
+
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
@@ -128,17 +398,13 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 	}
 
 	var (
-		costGasLimit      uint64
-		costGas           uint64
-		oldBalance        uint64
-		newBalance        uint64
-		codeLenGasLimit   uint64
-		availableGasLimit uint64
-		minGas            uint64
-		err               error
+		oldBalance      uint64
+		newBalance      uint64
+		codeLenGasLimit uint64
+		err             error
 	)
 	cache := storage.NewCloneCache(stateBatch)
-	availableGasLimit = tx.GasLimit
+	availableGasLimit := tx.GasLimit
 	if isCharge {
 		uintCodeGasPrice, ok := neovm.GAS_TABLE.Load(neovm.UINT_INVOKE_CODE_LEN_NAME)
 		if !ok {
@@ -151,10 +417,10 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 			return err
 		}
 
-		minGas = neovm.MIN_TRANSACTION_GAS * tx.GasPrice
+		minGas := neovm.MIN_TRANSACTION_GAS * tx.GasPrice
 
 		if oldBalance < minGas {
-			if err := costInvalidGas(tx.Payer, oldBalance, config, stateBatch, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, oldBalance, config, cache, store, notify); err != nil {
 				return err
 			}
 			return fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
@@ -163,14 +429,14 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), uintCodeGasPrice.(uint64))
 
 		if oldBalance < codeLenGasLimit*tx.GasPrice {
-			if err := costInvalidGas(tx.Payer, oldBalance, config, stateBatch, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, oldBalance, config, cache, store, notify); err != nil {
 				return err
 			}
 			return fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
 		}
 
 		if tx.GasLimit < codeLenGasLimit {
-			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, stateBatch, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, cache, store, notify); err != nil {
 				return err
 			}
 			return fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
@@ -195,15 +461,15 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 
 	_, err = engine.Invoke()
 
-	costGasLimit = availableGasLimit - sc.Gas
+	costGasLimit := availableGasLimit - sc.Gas
 	if costGasLimit < neovm.MIN_TRANSACTION_GAS {
 		costGasLimit = neovm.MIN_TRANSACTION_GAS
 	}
 
-	costGas = costGasLimit * tx.GasPrice
+	costGas := costGasLimit * tx.GasPrice
 	if err != nil {
 		if isCharge {
-			if err := costInvalidGas(tx.Payer, costGas, config, stateBatch, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, costGas, config, cache, store, notify); err != nil {
 				return err
 			}
 		}
@@ -218,7 +484,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, stateBa
 		}
 
 		if newBalance < costGas {
-			if err := costInvalidGas(tx.Payer, costGas, config, stateBatch, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, costGas, config, cache, store, notify); err != nil {
 				return err
 			}
 			return fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
@@ -350,14 +616,14 @@ func getBalanceFromNative(config *smartcontract.Config, cache *storage.CloneCach
 	return ntypes.BigIntFromBytes(result.([]byte)).Uint64(), nil
 }
 
-func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Config, stateBatch *statestore.StateBatch,
+func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Config, txDB *storage.CloneCache,
 	store store.LedgerStore, notify *event.ExecuteNotify) error {
-	cache := storage.NewCloneCache(stateBatch)
-	notifies, err := chargeCostGas(address, gas, config, cache, store)
+	txDB.Reset()
+	notifies, err := chargeCostGas(address, gas, config, txDB, store)
 	if err != nil {
 		return err
 	}
-	cache.Commit()
+	txDB.Commit()
 	notify.GasConsumed = gas
 	notify.Notify = append(notify.Notify, notifies...)
 	return nil
