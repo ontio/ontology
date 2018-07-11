@@ -25,7 +25,6 @@ import (
 	"hash/crc64"
 	"strconv"
 	"strings"
-	//"github.com/ontio/ontology/common"
 )
 
 const NODE_ID_BITS = 64

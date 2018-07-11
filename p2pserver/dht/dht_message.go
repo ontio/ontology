@@ -3,6 +3,7 @@ package dht
 import (
 	"bytes"
 	"errors"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
@@ -172,6 +173,19 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	// query routing table
 	nodes := this.routingTable.getClosestNodes(types.BUCKET_SIZE, targetId)
+
+	maskPeers := config.DefConfig.P2PNode.ReservedCfg.MaskPeers
+	if config.DefConfig.P2PNode.ReservedPeersOnly && len(maskPeers) > 0 {
+		for i := 0; i < len(nodes); i++ {
+			for j := 0; j < len(maskPeers); j++ {
+				if nodes[i].IP == maskPeers[j] {
+					nodes = append(nodes[:i], nodes[i+1:]...)
+					i--
+					break
+				}
+			}
+		}
+	}
 
 	neighborsMsg := msgpack.NewNeighbors(this.nodeID, nodes)
 	bf := new(bytes.Buffer)
