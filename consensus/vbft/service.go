@@ -1755,8 +1755,16 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		}
 
 	case EventPeerHeartbeat:
-		self.heartbeat()
-
+		msg, err := self.constructHeartbeatMsg()
+		if err != nil {
+			log.Errorf("failed to build heartbeat msg: %s", err)
+			return err
+		}
+		for _, p := range self.config.Peers {
+			if p.Index != self.Index {
+				self.heartbeatToPeer(p.Index, msg)
+			}
+		}
 	case EventTxPool:
 		self.timer.stopTxTicker(evt.blockNum)
 		if self.completedBlockNum+1 == evt.blockNum {

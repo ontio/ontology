@@ -361,6 +361,15 @@ func (self *Server) heartbeat() {
 	}
 }
 
+func (self *Server) heartbeatToPeer(peerIdx uint32, msg *peerHeartbeatMsg) {
+	//	build heartbeat msg
+	//	send to peer
+	self.msgSendC <- &SendMsgEvent{
+		ToPeer: peerIdx,
+		Msg:    msg,
+	}
+}
+
 func (self *Server) receiveFromPeer(peerIdx uint32) (uint32, []byte, error) {
 	if C, present := self.msgRecvC[peerIdx]; present {
 		select {
