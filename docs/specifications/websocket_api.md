@@ -531,8 +531,7 @@ Return the balance of base58 account address.
     "Error": 0,
     "Result": {
         "ont": "2500",
-        "ong": "0",
-        "ong_appove": "0"
+        "ong": "0"
     },
     "Version": "1.0.0"
 }
