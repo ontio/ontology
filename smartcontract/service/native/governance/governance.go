@@ -16,6 +16,9 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+//Governance contract:
+//Users can apply for a candidate node to join consensus selection, deposit ONT to vote for candidate nodes, quit selection and unVote for candidate nodes through this contract.
+//ONT deposited in the contract can get ONG bonus which come from transaction fee of the network.
 package governance
 
 import (
@@ -100,10 +103,12 @@ var Xi = []uint32{
 	9300000, 9400000, 9500000, 9600000, 9700000, 9800000, 9900000, 10000000,
 }
 
+//Init governance contract address
 func InitGovernance() {
 	native.Contracts[utils.GovernanceContractAddress] = RegisterGovernanceContract
 }
 
+//Register methods of governance contract
 func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(REGISTER_CANDIDATE, RegisterCandidate)
 	native.Register(REGISTER_CANDIDATE_TRANSFER_FROM, RegisterCandidateTransferFrom)
@@ -128,6 +133,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(TRANSFER_PENALTY, TransferPenalty)
 }
 
+//Init governance contract, include vbft config, global param and ontid admin.
 func InitConfig(native *native.NativeService) ([]byte, error) {
 	configuration := new(config.VBFTConfig)
 	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
@@ -280,6 +286,10 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Register a candidate node, used by users.
+//Users can register a candidate node with a authorized ontid.
+//Candidate node can be voted and become consensus node according to their pos.
+//Candidate node can get ong bonus according to their pos.
 func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	err := registerCandidate(native, "transfer")
 	if err != nil {
@@ -288,6 +298,10 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Register a candidate node, used by contracts.
+//Contracts can register a candidate node with a authorized ontid after approving ont to governance contract before invoke this function.
+//Candidate node can be voted and become consensus node according to their pos.
+//Candidate node can get ong bonus according to their pos.
 func RegisterCandidateTransferFrom(native *native.NativeService) ([]byte, error) {
 	err := registerCandidate(native, "transferFrom")
 	if err != nil {
@@ -296,6 +310,7 @@ func RegisterCandidateTransferFrom(native *native.NativeService) ([]byte, error)
 	return utils.BYTE_TRUE, nil
 }
 
+//Unregister a registered candidate node, will remove node from pool, and unfreeze deposit ont.
 func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(UnRegisterCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -357,6 +372,8 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Approve a registered candidate node, used by admin.
+//Only approved candidate node can participate in consensus selection and get ong bonus.
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(ApproveCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -469,6 +486,8 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Reject a registered candidate node, remove node from pool and unfreeze deposit ont, used by admin.
+//Only approved candidate node can participate in consensus selection and get ong bonus.
 func RejectCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(RejectCandidateParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -530,6 +549,9 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Put a node into black list, remove node from pool, used by admin.
+//Whole of initPos of black node will be punished, and several percent of vote deposit will be punished too.
+//Node in black list can't be registered.
 func BlackNode(native *native.NativeService) ([]byte, error) {
 	params := new(BlackNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -615,6 +637,7 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Remove a node from black list, allow it to be registered, used by admin.
 func WhiteNode(native *native.NativeService) ([]byte, error) {
 	params := new(WhiteNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -655,6 +678,8 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Quit a registered node, used by node owner.
+//Remove node from pool and unfreeze deposit next epoch(candidate node) / next next epoch(consensus node)
 func QuitNode(native *native.NativeService) ([]byte, error) {
 	params := new(QuitNodeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -726,6 +751,7 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Vote for a node by depositing ONT in this governance contract, used by users
 func VoteForPeer(native *native.NativeService) ([]byte, error) {
 	err := voteForPeer(native, "transfer")
 	if err != nil {
@@ -734,6 +760,7 @@ func VoteForPeer(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Vote for a node by depositing ONT in this governance contract, used by contracts
 func VoteForPeerTransferFrom(native *native.NativeService) ([]byte, error) {
 	err := voteForPeer(native, "transferFrom")
 	if err != nil {
@@ -742,6 +769,7 @@ func VoteForPeerTransferFrom(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//UnVote for a node by redeeming ONT from this governance contract
 func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 	params := &VoteForPeerParam{
 		PeerPubkeyList: make([]string, 0),
@@ -834,6 +862,7 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Withdraw unfreezed ONT deposited in this governance contract.
 func Withdraw(native *native.NativeService) ([]byte, error) {
 	params := &WithdrawParam{
 		PeerPubkeyList: make([]string, 0),
@@ -895,6 +924,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Go to next consensus epoch
 func CommitDpos(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
@@ -934,6 +964,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Update VBFT config
 func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
@@ -1013,6 +1044,7 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Update global params of this governance contract
 func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
@@ -1066,6 +1098,7 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Update split curve
 func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
@@ -1094,6 +1127,7 @@ func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Trigger fee split
 func CallSplit(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
@@ -1130,6 +1164,7 @@ func CallSplit(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Transfer all punished ONT of a black node to a certain address
 func TransferPenalty(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
@@ -1158,6 +1193,7 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+//Withdraw unbounded ONG according to deposit ONT in this governance contract
 func WithdrawOng(native *native.NativeService) ([]byte, error) {
 	param := new(WithdrawOngParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
