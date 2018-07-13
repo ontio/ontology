@@ -161,7 +161,7 @@ wsport 参数用于指定Web socket服务器绑定的端口号。默认值为203
 #### 1.1.8 测试模式参数
 
 --testmode
-testmode 参数用于启动单节点的测试网络，便于开发和调试。使用testmode启动测试网络时，会同时启动rpc、rest以及ws服务器，同时会删除上一次使用testmode时创建的区块数据。
+testmode 参数用于启动单节点的测试网络，便于开发和调试。使用testmode启动测试网络时，会同时启动rpc、rest以及ws服务器，同时把gasprice设置为0。
 
 --testmodegenblocktime
 testmodegenblocktime 参数用于设置测试模式下的出块时间，时间单位为秒，最小出块时间为2秒，默认值为6秒。
@@ -169,10 +169,10 @@ testmodegenblocktime 参数用于设置测试模式下的出块时间，时间�
 #### 1.1.9 交易参数
 
 --gasprice
-gasprice 参数用于设定当前节点交易池接受交易的最低gasprice，低于这个gasprice的交易将会被丢弃。在交易池有交易排队等待打包进区块时，交易池根据gas price的高低来排序交易，gas price高的交易将会被优先处理。默认值为0。
+gasprice 参数用于设定当前节点交易池接受交易的最低gasprice，低于这个gasprice的交易将会被丢弃。在交易池有交易排队等待打包进区块时，交易池根据gas price的高低来排序交易，gas price高的交易将会被优先处理。默认值为500（在testmode模型下为0）。
 
 --gaslimit
-gaslimit 参数用于设置当前节点交易池接受交易的最低gaslimit，低于这个gaslimit的交易将被丢弃。默认值为30000。
+gaslimit 参数用于设置当前节点交易池接受交易的最低gaslimit，低于这个gaslimit的交易将被丢弃。默认值为20000。
 
 --enabletxpoolpreexec
 enabletxpoolpreexec 参数用于在交易池中打开预执行，对来自网络的交易检查付款方账户余额，余额不足的交易将被丢弃。Ontology节点在启动时交易池默认关闭预执行。
@@ -479,10 +479,10 @@ ontology account import --wif --source key.txt
 wallet指定转出账户钱包路径，默认值为:"./wallet.dat"
 
 --gasprice
-gasprice参数指定转账交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为0。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
+gasprice参数指定转账交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为500（在testmode模型下为0）。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
 
 --gaslimit
-gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。 默认值为30000。
+gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。 默认值为20000。
 
 --asset
 asset参数指定转账的资产类型，ont表示ONT，ong表示ONG。默认值为ont。
@@ -511,10 +511,10 @@ amount参数指定转账金额。注意：由于ONT的精度是1，因此如果�
 wallet指定授权转出账户钱包路径，默认值为:"./wallet.dat"
 
 --gasprice
-gasprice参数指定转账交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为0。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
+gasprice参数指定转账交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为500（在testmode模型下为0）。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
 
 --gaslimit
-gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。 默认值为30000。
+gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。 默认值为20000。
 
 --asset
 asset参数指定转账的资产类型，ont表示ONT，ong表示ONG。默认值为ont。
@@ -567,10 +567,10 @@ to参数指定授权转入账户地址。
 wallet指定执行授权转账账户的钱包路径，默认值为:"./wallet.dat"
 
 --gasprice
-gasprice参数指定转账交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为0。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
+gasprice参数指定转账交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为500（在testmode模型下为0）。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
 
 --gaslimit
-gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。 默认值为30000。
+gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。 默认值为20000。
 
 --asset
 asset参数指定转账的资产类型，ont表示ONT，ong表示ONG。默认值为ont。
@@ -610,10 +610,10 @@ ONG采用定时解绑策略解除绑定在ONT上的ONG。使用如下命令可�
 wallet参数指定提取账户的钱包路径，默认值为:"./wallet.dat"
 
 --gasprice
-gasprice参数指定转账交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为0。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
+gasprice参数指定转账交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为500（在testmode模型下为0）。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
 
 --gaslimit
-gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。 默认值为30000。
+gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。 默认值为20000。
 
 **提取解绑的ONG**
 ```
@@ -681,12 +681,12 @@ wallet参数指定部署智能合约的账户钱包路径。默认值："./walle
 account参数指定部署合约的账户。
 
 --gasprice
-gasprice参数指定部署合约交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为0。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
+gasprice参数指定部署合约交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为500（在testmode模型下为0）。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
 
 --gaslimit
 gaslimit参数指定部署合约交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。
 
-**对于合约部署，gaslimit 值必须大于10000000，同时账户中必须保有足够的ONG余额。**
+**对于合约部署，gaslimit 值必须大于20000000，同时账户中必须保有足够的ONG余额。**
 
 --needstore
 needstore参数指定智能合约属否需要使用持久化存储，如果需要使用则需要带上该参数。默认为不使用。
@@ -763,7 +763,7 @@ wallet参数指定智能合约执行的账户钱包路径。默认值："./walle
 account参数指定执行合约的账户。
 
 --gasprice
-gasprice参数指定部署合约交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为0。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
+gasprice参数指定部署合约交易的gas price。交易的gas price不能小于接收节点交易池设置的最低gas price，否则交易会被拒绝。默认值为500（在testmode模型下为0）。当交易池中有交易在排队等待打包进区块时，交易池会按照gas price由高到低排序，gas price高的交易会被优先处理。
 
 --gaslimit
 gaslimit参数指定部署合约交易的gas limit。交易的gas limit不能小于接收节点交易池设置的最低gas limit，否则交易会被拒绝。gasprice * gaslimit 为账户实际支付的ONG 费用。
@@ -789,7 +789,7 @@ return参数用于配合--prepare参数使用，在预执行时通过--return参
 
 ```
 Contract invoke successfully
-Gas consumed:30000
+Gas consumed:20000
 Return:0
 ```
 **智能合约执行**
