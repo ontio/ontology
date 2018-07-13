@@ -37,7 +37,7 @@ func (this *NbrPeers) Broadcast(msg types.Message, isConsensus bool) {
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
-		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
+		if node.GetSyncState() == common.ESTABLISH && node.GetRelay() == true {
 			node.Send(msg, isConsensus)
 		}
 	}
@@ -100,7 +100,7 @@ func (this *NbrPeers) NodeEstablished(id uint64) bool {
 		return false
 	}
 
-	if n.syncState != common.ESTABLISH {
+	if n.GetSyncState() != common.ESTABLISH {
 		return false
 	}
 
