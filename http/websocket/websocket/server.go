@@ -202,6 +202,7 @@ func (self *WsServer) registryMethod() {
 		"getmempooltxcount":         {handler: rest.GetMemPoolTxCount},
 		"getmempooltxstate":         {handler: rest.GetMemPoolTxState},
 		"getversion":                {handler: rest.GetNodeVersion},
+		"getnetworkid":              {handler: rest.GetNetworkId},
 
 		"getsessioncount": {handler: getsessioncount},
 	}

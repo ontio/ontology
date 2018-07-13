@@ -50,6 +50,7 @@
 | [getmempooltxstate](#23-getmempooltxstate) | hash | 通过交易哈希得到内存中该交易的状态 |
 | [getmempooltxcount](#24-getmempooltxcount) |  | 得到内存中的交易的数量 |
 | [getversion](#25-getversion) |  | 得到版本信息 |
+| [getnetworkid](#26-getnetworkid) |  | 得到network id |
 
 ###  1. heartbeat
 
@@ -914,6 +915,29 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
     "Result": "0.9"
 }
 ```
+
+### 26. getnetworkid
+
+获取 network id
+
+#### Request Example:
+```
+{
+    "Action": "getnetworkid",
+    "Version": "1.0.0"
+}
+```
+#### Response Example
+```
+{
+    "Action": "getnetworkid",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 1
+}
+```
+
 
 ## 错误代码
 

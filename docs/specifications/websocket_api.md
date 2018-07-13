@@ -50,7 +50,7 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | [getmempooltxstate](#23-getmempooltxstate) | hash | query the transaction state in the memory pool |
 | [getmempooltxcount](#24-getmempooltxcount) |  | query the transaction count in the memory pool |
 | [getversion](#25-getversion) |  | get the version information of the node |
-
+| [getnetworkid](#26-getnetworkid) |  | get the network id |
 
 ###  1. heartbeat
 If don't send heartbeat, the session expire after 5min.
@@ -911,6 +911,27 @@ Get the version information of the node.
 }
 ```
 
+### 26. getnetworkid
+
+Get the network id
+
+#### Request Example:
+```
+{
+    "Action": "getnetworkid",
+    "Version": "1.0.0"
+}
+```
+#### Response Example
+```
+{
+    "Action": "getnetworkid",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 1
+}
+```
 
 ## Error Code
 

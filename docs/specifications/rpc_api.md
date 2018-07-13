@@ -96,6 +96,7 @@ There are some description of parameter used in rpc:
 | [getallowance](#19-getallowance) | asset, from, to | return the allowance from transfer-from accout to transfer-to account |  |
 | [getunboundong](#20-getunboundong) | address | return unbound ong |  |
 | [getblocktxsbyheight](#21-getblocktxsbyheight) | height | return transaction hashes |  |
+| [getnetworkid](#22-getnetworkid) |  | Get the network id |  |
 
 ### 1. getbestblockhash
 
@@ -1076,6 +1077,35 @@ Response:
             "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
         ]
     }
+}
+```
+
+#### 22. getnetworkid
+
+Get the network id.
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getnetworkid",
+  "params": [],
+  "id": 3
+}
+```
+
+Response:
+
+```
+{
+  "desc":"SUCCESS",
+  "error":0,
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": 1
 }
 ```
 
