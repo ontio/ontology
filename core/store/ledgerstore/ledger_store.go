@@ -574,7 +574,7 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 			Tx:     &types.Transaction{},
 		}
 
-		if err := refreshGlobalParam(config, storage.NewCloneCache(this.stateStore.NewStateBatch()), this); err != nil {
+		if err := refreshGlobalParam(config, storage.NewCloneCache(this.stateStore.NewStateBatch(), false), this); err != nil {
 			return err
 		}
 	}
@@ -868,7 +868,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		Tx:     tx,
 	}
 
-	cache := storage.NewCloneCache(this.stateStore.NewStateBatch())
+	cache := storage.NewCloneCache(this.stateStore.NewStateBatch(), false)
 	preGas, err := this.getPreGas(config, cache)
 	if err != nil {
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}, err

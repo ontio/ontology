@@ -19,6 +19,7 @@
 package storage
 
 import (
+	"github.com/kataras/go-errors"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"sort"
@@ -28,16 +29,19 @@ import (
 // CloneCache is smart contract execute cache, it contain transaction cache and block cache
 // When smart contract execute finish, need to commit transaction cache to block cache
 type CloneCache struct {
-	ReadSet []string
-	Cache   map[string]states.StateValue
-	store   common.StateStore
+	ReadSet      []string
+	Cache        map[string]states.StateValue
+	store        common.StateStore
+	disableFind  bool
+	FindDetected bool
 }
 
 // NewCloneCache return a new contract cache
-func NewCloneCache(store common.StateStore) *CloneCache {
+func NewCloneCache(store common.StateStore, disableFind bool) *CloneCache {
 	return &CloneCache{
-		Cache: make(map[string]states.StateValue),
-		store: store,
+		Cache:       make(map[string]states.StateValue),
+		store:       store,
+		disableFind: disableFind,
 	}
 }
 
@@ -99,6 +103,11 @@ func (self *CloneCache) Delete(prefix common.DataEntryPrefix, key []byte) {
 }
 
 func (self *CloneCache) Find(prefix common.DataEntryPrefix, key []byte) ([]*common.StateItem, error) {
+	if self.disableFind {
+		self.FindDetected = true
+		return nil, errors.New("find api is disabled")
+	}
+
 	stats, err := self.store.Find(prefix, key)
 	if err != nil {
 		return nil, err
