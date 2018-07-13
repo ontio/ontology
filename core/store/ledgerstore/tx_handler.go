@@ -315,11 +315,76 @@ func handleInvokeTransaction(store store.LedgerStore, txDB *storage.CloneCache,
 	return result
 }
 
-func handleTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch, block *types.Block, tx *types.Transaction,
+func handleBlockTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch, block *types.Block,
 	eventStore *EventStore, createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice uint64) error {
-	txHash := tx.Hash()
 	overlay := statestore.NewOverlayDB(stateBatch)
-	txDB := storage.NewCloneCache(overlay)
+	eventNotifies := make([]*event.ExecuteNotify, 0, len(block.Transactions))
+	for _, tx := range block.Transactions {
+		txHash := tx.Hash()
+		txDB := storage.NewCloneCache(overlay)
+		result := handleTransaction(store, txDB, block, tx,
+			createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice)
+		if stateBatch.Error() != nil || result.status == ExecSystemError {
+			return fmt.Errorf("handle transaction error. tx %s error %v", txHash.ToHexString(), stateBatch.Error())
+		}
+		needRedo := false
+		//if result.status == ExecNeedSerial {
+		//	needRedo = true
+		//} else {
+		// todo: check conflict
+		// and set needRedo
+		//}
+
+		if needRedo {
+			// re execute
+		}
+
+		config := &smartcontract.Config{
+			Time:   block.Header.Timestamp,
+			Height: block.Header.Height,
+			Tx:     tx,
+		}
+
+		if result.status != ExecSuccess {
+			txDB.Reset()
+			result.notifies = nil
+
+			log.Debugf("handle transaction error. tx: %s, status:%d", txHash.ToHexString(), result.status)
+		}
+		if result.charge {
+			notifies, err := chargeCostGas(tx.Payer, result.gas, config, txDB, store)
+			if err != nil {
+				return fmt.Errorf("charge gas error. tx: %s, error: %s", txHash.ToHexString(), err.Error())
+			}
+			result.notifies = append(result.notifies, notifies...)
+		}
+
+		txDB.Commit()
+
+		eventNotify := &event.ExecuteNotify{
+			TxHash:      txHash,
+			GasConsumed: result.gas,
+			Notify:      result.notifies,
+		}
+		if result.status == ExecSuccess {
+			eventNotify.State = event.CONTRACT_STATE_SUCCESS
+		} else {
+			eventNotify.State = event.CONTRACT_STATE_FAIL
+		}
+
+		eventNotifies = append(eventNotifies, eventNotify)
+	}
+
+	overlay.CommitTo()
+
+	for _, notify := range eventNotifies {
+		SaveNotify(eventStore, notify.TxHash, notify)
+	}
+	return nil
+}
+
+func handleTransaction(store store.LedgerStore, txDB *storage.CloneCache, block *types.Block, tx *types.Transaction,
+	createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice uint64) ExecutionResult {
 	var result ExecutionResult
 	switch tx.TxType {
 	case types.Deploy:
@@ -328,57 +393,8 @@ func handleTransaction(store store.LedgerStore, stateBatch *statestore.StateBatc
 		result = handleInvokeTransaction(store, txDB, tx, block, invokeUintCodeGasPrice)
 	}
 
-	if stateBatch.Error() != nil || result.status == ExecSystemError {
-		return fmt.Errorf("handle transaction error. tx %s error %v", txHash.ToHexString(), stateBatch.Error())
-	}
-	needRedo := false
-	//if result.status == ExecNeedSerial {
-	//	needRedo = true
-	//} else {
-	// todo: check conflict
-	// and set needRedo
-	//}
+	return result
 
-	if needRedo {
-		// re execute
-	}
-
-	config := &smartcontract.Config{
-		Time:   block.Header.Timestamp,
-		Height: block.Header.Height,
-		Tx:     tx,
-	}
-
-	if result.status != ExecSuccess {
-		txDB.Reset()
-		result.notifies = nil
-
-		log.Debugf("handle transaction error. tx: %s, status:%d", txHash.ToHexString(), result.status)
-	}
-	if result.charge {
-		notifies, err := chargeCostGas(tx.Payer, result.gas, config, txDB, store)
-		if err != nil {
-			return fmt.Errorf("charge gas error. tx: %s, error: %s", txHash.ToHexString(), err.Error())
-		}
-		result.notifies = append(result.notifies, notifies...)
-	}
-
-	txDB.Commit()
-	overlay.CommitTo()
-
-	eventNotify := &event.ExecuteNotify{
-		TxHash:      txHash,
-		GasConsumed: result.gas,
-		Notify:      result.notifies,
-	}
-	if result.status == ExecSuccess {
-		eventNotify.State = event.CONTRACT_STATE_SUCCESS
-	} else {
-		eventNotify.State = event.CONTRACT_STATE_FAIL
-	}
-
-	SaveNotify(eventStore, txHash, eventNotify)
-	return nil
 }
 
 //HandleInvokeTransaction deal with smart contract invoke transaction

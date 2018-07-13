@@ -567,8 +567,6 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 
-	stateBatch := this.stateStore.NewStateBatch()
-
 	if block.Header.Height != 0 {
 		config := &smartcontract.Config{
 			Time:   block.Header.Timestamp,
@@ -593,15 +591,18 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 		return errors.NewErr("get gas price error")
 	}
 
-	for _, tx := range block.Transactions {
-		err := handleTransaction(this, stateBatch, block, tx, this.eventStore,
-			createGasPrice.(uint64), deployUintCodePrice.(uint64), invokeUintCodeGasPrice.(uint64))
-		if err != nil {
-			return fmt.Errorf("handleTransaction error %s", err)
-		}
+	stateBatch := this.stateStore.NewStateBatch()
+	err := handleBlockTransaction(this, stateBatch, block, this.eventStore,
+		createGasPrice.(uint64), deployUintCodePrice.(uint64), invokeUintCodeGasPrice.(uint64))
+	if err != nil {
+		return fmt.Errorf("handle block transaction error %s", err)
+	}
+	err = stateBatch.CommitTo()
+	if err != nil {
+		return fmt.Errorf("stateBatch.CommitTo error %s", err)
 	}
 
-	err := this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
+	err = this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
 	if err != nil {
 		return fmt.Errorf("AddMerkleTreeRoot error %s", err)
 	}
@@ -609,10 +610,6 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
-	}
-	err = stateBatch.CommitTo()
-	if err != nil {
-		return fmt.Errorf("stateBatch.CommitTo error %s", err)
 	}
 	return nil
 }

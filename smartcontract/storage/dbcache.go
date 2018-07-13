@@ -89,11 +89,7 @@ func (self *CloneCache) Get(prefix common.DataEntryPrefix, key []byte) (states.S
 	}
 
 	self.ReadSet = append(self.ReadSet, k)
-	item, err := self.store.TryGet(prefix, key)
-	if item == nil || err != nil {
-		return nil, err
-	}
-	return item, err
+	return self.store.TryGet(prefix, key)
 }
 
 // Delete item from cache
