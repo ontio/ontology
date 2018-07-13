@@ -45,8 +45,9 @@ func AddTransaction(transaction *types.Transaction) {
 		return
 	}
 	txReq := &tc.TxReq{
-		Tx:     transaction,
-		Sender: tc.NetSender,
+		Tx:         transaction,
+		Sender:     tc.NetSender,
+		TxResultCh: nil,
 	}
 	txnPoolPid.Tell(txReq)
 }
