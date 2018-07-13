@@ -23,14 +23,15 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type BlocksReq struct {
 	HeaderHashCount uint8
-	HashStart       [common.HASH_LEN]byte
-	HashStop        [common.HASH_LEN]byte
+	HashStart       comm.Uint256
+	HashStop        comm.Uint256
 }
 
 //Serialize message payload

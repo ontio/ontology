@@ -80,14 +80,12 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 
 	headersReq := data.Payload.(*msgTypes.HeadersReq)
 
-	var startHash [msgCommon.HASH_LEN]byte
-	var stopHash [msgCommon.HASH_LEN]byte
-	startHash = headersReq.HashStart
-	stopHash = headersReq.HashEnd
+	startHash := headersReq.HashStart
+	stopHash := headersReq.HashEnd
 
 	headers, err := GetHeadersFromHash(startHash, stopHash)
 	if err != nil {
-		log.Errorf("get headers in HeadersReqHandle error: %s,startHash:%x,stopHash:%x", err.Error(), common.ToArrayReverse(startHash[:]), common.ToArrayReverse(stopHash[:]))
+		log.Errorf("get headers in HeadersReqHandle error: %s,startHash:%s,stopHash:%s", err.Error(), startHash.ToHexString(), stopHash.ToHexString())
 		return
 	}
 	remotePeer := p2p.GetPeer(data.Id)
@@ -636,13 +634,12 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 //get blk hdrs from starthash to stophash
 func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*types.Header, error) {
 	var count uint32 = 0
-	var empty [msgCommon.HASH_LEN]byte
 	headers := []*types.Header{}
 	var startHeight uint32
 	var stopHeight uint32
 	curHeight := ledger.DefLedger.GetCurrentHeaderHeight()
-	if startHash == empty {
-		if stopHash == empty {
+	if startHash == common.UINT256_EMPTY {
+		if stopHash == common.UINT256_EMPTY {
 			if curHeight > msgCommon.MAX_BLK_HDR_CNT {
 				count = msgCommon.MAX_BLK_HDR_CNT
 			} else {
@@ -665,7 +662,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 			return nil, err
 		}
 		startHeight = bkStart.Height
-		if stopHash != empty {
+		if stopHash != common.UINT256_EMPTY {
 			bkStop, err := ledger.DefLedger.GetHeaderByHash(stopHash)
 			if err != nil || bkStop == nil {
 				return nil, err

@@ -65,8 +65,7 @@ func NewHeaders(headers []*ct.Header) mt.Message {
 func NewHeadersReq(curHdrHash common.Uint256) mt.Message {
 	var h mt.HeadersReq
 	h.Len = 1
-	buf := curHdrHash
-	copy(h.HashEnd[:], buf[:])
+	h.HashEnd = curHdrHash
 
 	return &h
 }
