@@ -277,19 +277,12 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 			}
 			return resp
 		}
-		//prepare execution check
-		if !bcomn.DisableLocalPreExec {
-			err := bcomn.PreExecCheck(&txn)
-			if err != nil {
-				resp["Result"] = err.Error()
-				return ResponsePack(berr.PRE_EXEC_ERROR)
-			}
-		}
 	}
 	var hash common.Uint256
 	hash = txn.Hash()
-	if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
+	if errCode, desc := bcomn.SendTxToPool(&txn); errCode != ontErrors.ErrNoError {
 		resp["Error"] = int64(errCode)
+		resp["Result"] = desc
 		return resp
 	}
 	resp["Result"] = hash.ToHexString()

@@ -102,12 +102,18 @@ type TxStatus struct {
 	Hash  common.Uint256 // transaction hash
 	Attrs []*TXAttr      // transaction's status
 }
+type TxResult struct {
+	Err  errors.ErrCode
+	Hash common.Uint256
+	Desc string
+}
 
 // TxReq specifies the api that how to submit a new transaction.
 // Input: transacton and submitter type
 type TxReq struct {
-	Tx     *types.Transaction
-	Sender SenderType
+	Tx         *types.Transaction
+	Sender     SenderType
+	TxResultCh chan *TxResult
 }
 
 // TxRsp returns the result of submitting tx, including

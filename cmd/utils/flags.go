@@ -428,9 +428,9 @@ var (
 	}
 
 	//local PreExecute switcher
-	LocalPreExecDisableFlag = cli.BoolFlag{
-		Name:  "disablelocalpreexec",
-		Usage: "Disable local preExecute in interface",
+	DisableSyncVerifyTxFlag = cli.BoolFlag{
+		Name:  "disablesyncverifytx",
+		Usage: "Disable sync verify transaction in interface",
 	}
 
 	NonOptionFlag = cli.StringFlag{

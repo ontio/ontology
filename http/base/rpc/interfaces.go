@@ -306,18 +306,11 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 					return responseSuccess(result)
 				}
 			}
-			//prepare execution check
-			if !bcomn.DisableLocalPreExec {
-				err = bcomn.PreExecCheck(&txn)
-				if err != nil {
-					return responsePack(berr.PRE_EXEC_ERROR, err.Error())
-				}
-			}
 		}
 
 		hash = txn.Hash()
-		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
-			return responseSuccess(errCode.Error())
+		if errCode, desc := bcomn.SendTxToPool(&txn); errCode != ontErrors.ErrNoError {
+			return responsePack(berr.INVALID_TRANSACTION, desc)
 		}
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
