@@ -19,11 +19,7 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -34,15 +30,7 @@ import (
 
 func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	cfg := config.DefConfig
-	netWorkId := ctx.GlobalInt(utils.GetFlagName(utils.NetworkIdFlag))
-	switch netWorkId {
-	case config.NETWORK_ID_MAIN_NET:
-		cfg.Genesis = config.MainNetConfig
-	case config.NETWORK_ID_POLARIS_NET:
-		cfg.Genesis = config.PolarisConfig
-	}
-
-	err := setGenesis(ctx, cfg.Genesis)
+	err := setGenesis(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("setGenesis error:%s", err)
 	}
@@ -60,15 +48,35 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 		cfg.P2PNode.NetworkName = config.GetNetworkName(cfg.P2PNode.NetworkId)
 		cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(cfg.P2PNode.NetworkId)
 	}
+	if cfg.P2PNode.NetworkId == config.NETWORK_ID_MAIN_NET ||
+		cfg.P2PNode.NetworkId == config.NETWORK_ID_POLARIS_NET {
+		defNetworkId, err := cfg.GetDefaultNetworkId()
+		if err != nil {
+			return nil, fmt.Errorf("GetDefaultNetworkId error:%s", err)
+		}
+		if defNetworkId != cfg.P2PNode.NetworkId {
+			cfg.P2PNode.NetworkId = defNetworkId
+			cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(defNetworkId)
+			cfg.P2PNode.NetworkName = config.GetNetworkName(defNetworkId)
+		}
+	}
 	return cfg, nil
 }
 
-func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
+func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
+	netWorkId := ctx.GlobalInt(utils.GetFlagName(utils.NetworkIdFlag))
+	switch netWorkId {
+	case config.NETWORK_ID_MAIN_NET:
+		cfg.Genesis = config.MainNetConfig
+	case config.NETWORK_ID_POLARIS_NET:
+		cfg.Genesis = config.PolarisConfig
+	}
+
 	if ctx.GlobalBool(utils.GetFlagName(utils.EnableTestModeFlag)) {
-		cfg.ConsensusType = config.CONSENSUS_TYPE_SOLO
-		cfg.SOLO.GenBlockTime = ctx.Uint(utils.GetFlagName(utils.TestModeGenBlockTimeFlag))
-		if cfg.SOLO.GenBlockTime <= 1 {
-			cfg.SOLO.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
+		cfg.Genesis.ConsensusType = config.CONSENSUS_TYPE_SOLO
+		cfg.Genesis.SOLO.GenBlockTime = ctx.Uint(utils.GetFlagName(utils.TestModeGenBlockTimeFlag))
+		if cfg.Genesis.SOLO.GenBlockTime <= 1 {
+			cfg.Genesis.SOLO.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
 		}
 		return nil
 	}
@@ -82,37 +90,32 @@ func setGenesis(ctx *cli.Context, cfg *config.GenesisConfig) error {
 		return nil
 	}
 
+	newGenesisCfg := config.NewGenesisConfig()
+	err := utils.GetJsonObjectFromFile(genesisFile, newGenesisCfg)
+	if err != nil {
+		return err
+	}
+	cfg.Genesis = newGenesisCfg
 	log.Infof("Load genesis config:%s", genesisFile)
-	data, err := ioutil.ReadFile(genesisFile)
-	if err != nil {
-		return fmt.Errorf("ioutil.ReadFile:%s error:%s", genesisFile, err)
-	}
-	// Remove the UTF-8 Byte Order Mark
-	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 
-	cfg.Reset()
-	err = json.Unmarshal(data, cfg)
-	if err != nil {
-		return fmt.Errorf("json.Unmarshal GenesisConfig:%s error:%s", data, err)
-	}
-	switch cfg.ConsensusType {
+	switch cfg.Genesis.ConsensusType {
 	case config.CONSENSUS_TYPE_DBFT:
-		if len(cfg.DBFT.Bookkeepers) < config.DBFT_MIN_NODE_NUM {
+		if len(cfg.Genesis.DBFT.Bookkeepers) < config.DBFT_MIN_NODE_NUM {
 			return fmt.Errorf("DBFT consensus at least need %d bookkeepers in config", config.DBFT_MIN_NODE_NUM)
 		}
-		if cfg.DBFT.GenBlockTime <= 0 {
-			cfg.DBFT.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
+		if cfg.Genesis.DBFT.GenBlockTime <= 0 {
+			cfg.Genesis.DBFT.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
 		}
 	case config.CONSENSUS_TYPE_VBFT:
-		err = governance.CheckVBFTConfig(cfg.VBFT)
+		err = governance.CheckVBFTConfig(cfg.Genesis.VBFT)
 		if err != nil {
 			return fmt.Errorf("VBFT config error %v", err)
 		}
-		if len(cfg.VBFT.Peers) < config.VBFT_MIN_NODE_NUM {
+		if len(cfg.Genesis.VBFT.Peers) < config.VBFT_MIN_NODE_NUM {
 			return fmt.Errorf("VBFT consensus at least need %d peers in config", config.VBFT_MIN_NODE_NUM)
 		}
 	default:
-		return fmt.Errorf("Unknow consensus:%s", cfg.ConsensusType)
+		return fmt.Errorf("Unknow consensus:%s", cfg.Genesis.ConsensusType)
 	}
 
 	return nil
@@ -149,16 +152,9 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 			log.Infof("file %s not exist\n", rsvfile)
 			return
 		}
-		peers, err := ioutil.ReadFile(rsvfile)
+		err := utils.GetJsonObjectFromFile(rsvfile, &cfg.ReservedCfg)
 		if err != nil {
-			log.Errorf("ioutil.ReadFile:%s error:%s", rsvfile, err)
-			return
-		}
-		peers = bytes.TrimPrefix(peers, []byte("\xef\xbb\xbf"))
-
-		err = json.Unmarshal(peers, &cfg.ReservedCfg)
-		if err != nil {
-			log.Errorf("json.Unmarshal reserved peers:%s error:%s", peers, err)
+			log.Errorf("Get ReservedCfg error:%s", err)
 			return
 		}
 		for i := 0; i < len(cfg.ReservedCfg.ReservedPeers); i++ {
