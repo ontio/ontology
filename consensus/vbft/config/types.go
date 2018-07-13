@@ -20,9 +20,11 @@ package vconfig
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/core/types"
 )
 
 // PubkeyID returns a marshaled representation of the given public key.
@@ -41,4 +43,12 @@ func Pubkey(nodeid string) (keypair.PublicKey, error) {
 		return nil, fmt.Errorf("deserialize failed: %s", err)
 	}
 	return pk, err
+}
+
+func VbftBlock(header *types.Header) (*VbftBlockInfo, error) {
+	blkInfo := &VbftBlockInfo{}
+	if err := json.Unmarshal(header.ConsensusPayload, blkInfo); err != nil {
+		return nil, fmt.Errorf("unmarshal blockInfo: %s", err)
+	}
+	return blkInfo, nil
 }

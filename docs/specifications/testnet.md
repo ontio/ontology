@@ -14,7 +14,7 @@ English | [中文](testnet_CN.md)
 To run Ontology successfully,  nodes can be deployed by four ways:
 
 - [Mainnet sync node deployment](#mainnet-sync-node-deployment)
-- [Public test network(Polaris) sync node deployment](#public-test-network(polaris)-sync-node-deployment)
+- [Public test network Polaris sync node deployment](#public-test-network-polaris-sync-node-deployment)
 - [Single-host deployment](#single-host-deployment-configuration)
 - [Multi-hosts deployment](#multi-hosts-deployment-configuration)
 
@@ -26,7 +26,7 @@ Run ontology straightly
 	./ontology --networkid 1
    ```
 
-#### Public test network(Polaris) sync node deployment   
+#### Public test network Polaris sync node deployment   
      
 Run ontology straightly
 
