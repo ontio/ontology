@@ -42,8 +42,8 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
+	bactor "github.com/ontio/ontology/http/base/actor"
 	hserver "github.com/ontio/ontology/http/base/actor"
-	bcom "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/http/jsonrpc"
 	"github.com/ontio/ontology/http/localrpc"
 	"github.com/ontio/ontology/http/nodeinfo"
@@ -93,7 +93,7 @@ func setupAPP() *cli.App {
 		utils.GasPriceFlag,
 		utils.GasLimitFlag,
 		utils.TxpoolPreExecEnableFlag,
-		utils.LocalPreExecDisableFlag,
+		utils.DisableSyncVerifyTxFlag,
 		//p2p setting
 		utils.ReservedPeersOnlyFlag,
 		utils.ReservedPeersFileFlag,
@@ -271,7 +271,7 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 
 func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	preExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecEnableFlag))
-	bcom.DisableLocalPreExec = ctx.GlobalBool(utils.GetFlagName(utils.LocalPreExecDisableFlag))
+	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
 	txPoolServer, err := txnpool.StartTxnPoolServer(preExec)
 	if err != nil {
 		return nil, fmt.Errorf("Init txpool error:%s", err)

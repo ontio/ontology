@@ -47,8 +47,9 @@ type txStats struct {
 }
 
 type serverPendingTx struct {
-	tx     *tx.Transaction // Pending tx
-	sender tc.SenderType   // Indicate which sender tx is from
+	tx     *tx.Transaction   // Pending tx
+	sender tc.SenderType     // Indicate which sender tx is from
+	ch     chan *tc.TxResult // channel to send tx result
 }
 
 type pendingBlock struct {
@@ -266,6 +267,10 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 		}
 	}
 
+	if pt.sender == tc.HttpSender && pt.ch != nil {
+		replyTxResult(pt.ch, hash, err, err.Error())
+	}
+
 	delete(s.allPendingTxs, hash)
 
 	if len(s.allPendingTxs) < tc.MAX_LIMITATION {
@@ -286,7 +291,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 // setPendingTx adds a transaction to the pending list, if the
 // transaction is already in the pending list, just return false.
 func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
-	sender tc.SenderType) bool {
+	sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -299,6 +304,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 	pt := &serverPendingTx{
 		tx:     tx,
 		sender: sender,
+		ch:     txResultCh,
 	}
 
 	s.allPendingTxs[tx.Hash()] = pt
@@ -307,14 +313,18 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 
 // assignTxToWorker assigns a new transaction to a worker by LB
 func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
-	sender tc.SenderType) bool {
+	sender tc.SenderType, txResultCh chan *tc.TxResult) bool {
 
 	if tx == nil {
 		return false
 	}
 
-	if ok := s.setPendingTx(tx, sender); !ok {
+	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
 		s.increaseStats(tc.DuplicateStats)
+		if sender == tc.HttpSender && txResultCh != nil {
+			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput,
+				"duplicated transaction input detected")
+		}
 		return false
 	}
 	// Add the rcvTxn to the worker
@@ -601,7 +611,7 @@ func (s *TXPoolServer) getTransactionCount() int {
 
 // reVerifyStateful re-verify a transaction's stateful data.
 func (s *TXPoolServer) reVerifyStateful(tx *tx.Transaction, sender tc.SenderType) {
-	if ok := s.setPendingTx(tx, sender); !ok {
+	if ok := s.setPendingTx(tx, sender, nil); !ok {
 		s.increaseStats(tc.DuplicateStats)
 		return
 	}
@@ -678,7 +688,7 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	checkBlkResult := s.txPool.GetUnverifiedTxs(req.Txs, req.Height)
 
 	for _, t := range checkBlkResult.UnverifiedTxs {
-		s.assignTxToWorker(t, tc.NilSender)
+		s.assignTxToWorker(t, tc.NilSender, nil)
 		s.pendingBlock.unProcessedTxs[t.Hash()] = t
 	}
 

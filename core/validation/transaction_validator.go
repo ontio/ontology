@@ -36,7 +36,7 @@ import (
 func VerifyTransaction(tx *types.Transaction) ontErrors.ErrCode {
 	if err := checkTransactionSignatures(tx); err != nil {
 		log.Info("transaction verify error:", err)
-		return ontErrors.ErrTransactionContracts
+		return ontErrors.ErrVerifySignature
 	}
 
 	if err := checkTransactionPayload(tx); err != nil {

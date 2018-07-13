@@ -174,8 +174,8 @@ The gaslimit parameter is used to set the gaslimit of the current node transacti
 --enabletxpoolpreexec
 The enabletxpoolpreexec parameter is used to enable preExecute in the transaction pool, which checks whether a transactor has sufficient balance to cover transaction cost. For those who have insufficient balance, the transactions from network will be discarded by the transaction pool. By default, preExecute is disabled when ontology bootstrap.
 
---disablelocalpreexec
-The disablelocalpreexec is used to disable prepare execution in send transaction,include rpc restful websocket.
+--disablesyncverifytx
+The disablesyncverifytx is used to disable sync verify transaction in send transaction,include rpc restful websocket.
 
 ### 1.2 Node Deployment
 

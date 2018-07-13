@@ -177,8 +177,8 @@ gaslimit 参数用于设置当前节点交易池接受交易的最低gaslimit，
 --enabletxpoolpreexec
 enabletxpoolpreexec 参数用于在交易池中打开预执行，对来自网络的交易检查付款方账户余额，余额不足的交易将被丢弃。Ontology节点在启动时交易池默认关闭预执行。
 
---disablelocalpreexec
-disablelocalpreexec 参数用于关闭rpc、restful、websocket中发送交易接口的预执行校验
+--disablesyncverifytx
+disablesyncverifytx 参数用于关闭rpc、restful、websocket中同步验证交易
 
 ### 1.2 节点部署
 
