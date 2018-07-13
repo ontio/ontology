@@ -451,8 +451,7 @@ curl -i http://localhost:20334/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
     "Error": 0,
     "Result": {
         "ont": "2500",
-        "ong": "0",
-        "ong_appove": "0"
+        "ong": "0"
     },
     "Version": "1.0.0"
 }

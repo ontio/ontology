@@ -76,6 +76,7 @@ type VoteInfo struct {
 	Voter   string
 }
 
+//get tranasction payload data
 func TransPayloadToHex(p types.Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.Bookkeeper:

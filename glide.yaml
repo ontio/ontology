@@ -3,7 +3,7 @@ import:
 - package: github.com/ontio/ontology-eventbus
   version: v0.9.1
 - package: github.com/ontio/ontology-crypto
-  version: v0.9
+  version: v1.0.1
 - package: github.com/howeyc/gopass
 - package: github.com/gorilla/websocket
   version: v1.2.0

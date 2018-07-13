@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package restful privides restful server router and handler
 package restful
 
 import (
@@ -45,8 +46,8 @@ type restServer struct {
 	router   *Router
 	listener net.Listener
 	server   *http.Server
-	postMap  map[string]Action
-	getMap   map[string]Action
+	postMap  map[string]Action //post method map
+	getMap   map[string]Action //get method map
 }
 
 const (
@@ -75,6 +76,7 @@ const (
 	POST_RAW_TX = "/api/v1/transaction"
 )
 
+//init restful server
 func InitRestServer() rest.ApiServer {
 	rt := &restServer{}
 
@@ -85,6 +87,7 @@ func InitRestServer() rest.ApiServer {
 	return rt
 }
 
+//start server
 func (this *restServer) Start() error {
 	retPort := int(cfg.DefConfig.Restful.HttpRestPort)
 	if retPort == 0 {
@@ -119,6 +122,7 @@ func (this *restServer) Start() error {
 	return nil
 }
 
+//resigtry handler method
 func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
@@ -186,6 +190,8 @@ func (this *restServer) getPath(url string) string {
 	}
 	return url
 }
+
+//get request params
 func (this *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
 	case GET_GEN_BLK_TIME:
@@ -228,6 +234,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	}
 	return req
 }
+
+//init get handler
 func (this *restServer) initGetHandler() {
 
 	for k, _ := range this.getMap {
@@ -248,6 +256,8 @@ func (this *restServer) initGetHandler() {
 		})
 	}
 }
+
+//init post handler
 func (this *restServer) initPostHandler() {
 	for k, _ := range this.postMap {
 		this.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
@@ -288,6 +298,8 @@ func (this *restServer) write(w http.ResponseWriter, data []byte) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }
+
+//response
 func (this *restServer) response(w http.ResponseWriter, resp map[string]interface{}) {
 	resp["Desc"] = berr.ErrMap[resp["Error"].(int64)]
 	data, err := json.Marshal(resp)
@@ -297,12 +309,16 @@ func (this *restServer) response(w http.ResponseWriter, resp map[string]interfac
 	}
 	this.write(w, data)
 }
+
+//stop restful server
 func (this *restServer) Stop() {
 	if this.server != nil {
 		this.server.Shutdown(context.Background())
 		log.Error("Close restful ")
 	}
 }
+
+//restart server
 func (this *restServer) Restart(cmd map[string]interface{}) map[string]interface{} {
 	go func() {
 		time.Sleep(time.Second)
@@ -314,6 +330,8 @@ func (this *restServer) Restart(cmd map[string]interface{}) map[string]interface
 	var resp = rest.ResponsePack(berr.SUCCESS)
 	return resp
 }
+
+//init tls
 func (this *restServer) initTlsListen() (net.Listener, error) {
 
 	certPath := cfg.DefConfig.Restful.HttpCertPath

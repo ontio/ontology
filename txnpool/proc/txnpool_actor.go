@@ -113,7 +113,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 			return
 		}
 
-		if ta.server.preExec {
+		if ta.server.preExec && sender != tc.HttpSender {
 			result, err := ledger.DefLedger.PreExecuteContract(txn)
 			if err != nil {
 				log.Debugf("handleTransaction: failed to preExecuteContract tx %x err %v",

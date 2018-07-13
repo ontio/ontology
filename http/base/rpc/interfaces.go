@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+//get generate block time
 func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
 	var genBlockTime interface{}
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_DBFT {
@@ -46,11 +47,13 @@ func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
 	return responseSuccess(genBlockTime)
 }
 
+//get best block hash
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
 	hash := bactor.CurrentBlockHash()
 	return responseSuccess(hash.ToHexString())
 }
 
+// get block by height or hash
 // Input JSON string examples for getblock method as following:
 //   {"jsonrpc": "2.0", "method": "getblock", "params": [1], "id": 0}
 //   {"jsonrpc": "2.0", "method": "getblock", "params": ["aabbcc.."], "id": 0}
@@ -98,11 +101,13 @@ func GetBlock(params []interface{}) map[string]interface{} {
 	return responseSuccess(common.ToHexString(w.Bytes()))
 }
 
+//get block height
 func GetBlockCount(params []interface{}) map[string]interface{} {
 	height := bactor.GetCurrentBlockHeight()
 	return responseSuccess(height + 1)
 }
 
+//get block hash
 // A JSON example for getblockhash method as following:
 //   {"jsonrpc": "2.0", "method": "getblockhash", "params": [1], "id": 0}
 func GetBlockHash(params []interface{}) map[string]interface{} {
@@ -122,6 +127,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 	}
 }
 
+//get node connection count
 func GetConnectionCount(params []interface{}) map[string]interface{} {
 	count, err := bactor.GetConnectionCnt()
 	if err != nil {
@@ -143,6 +149,7 @@ func GetRawMemPool(params []interface{}) map[string]interface{} {
 	return responseSuccess(txs)
 }
 
+//get memory pool transaction count
 func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
 	count, err := bactor.GetTxnCount()
 	if err != nil {
@@ -151,6 +158,7 @@ func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
 	return responseSuccess(count)
 }
 
+//get memory pool transaction state
 func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
@@ -177,6 +185,7 @@ func GetMemPoolTxState(params []interface{}) map[string]interface{} {
 	}
 }
 
+// get raw transaction in raw or json
 // A JSON example for getrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "getrawtransaction", "params": ["transactioin hash in hex"], "id": 0}
 func GetRawTransaction(params []interface{}) map[string]interface{} {
@@ -184,6 +193,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
 	var tx *types.Transaction
+	var height uint32
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
@@ -191,10 +201,11 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		t, err := bactor.GetTransaction(hash)
+		h, t, err := bactor.GetTxnWithHeightByTxHash(hash)
 		if err != nil {
 			return responsePack(berr.UNKNOWN_TRANSACTION, "unknown transaction")
 		}
+		height = h
 		tx = t
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -205,7 +216,9 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 		case float64:
 			json := uint32(params[1].(float64))
 			if json == 1 {
-				return responseSuccess(bcomn.TransArryByteToHexString(tx))
+				txinfo := bcomn.TransArryByteToHexString(tx)
+				txinfo.Height = height
+				return responseSuccess(txinfo)
 			}
 		default:
 			return responsePack(berr.INVALID_PARAMS, "")
@@ -216,6 +229,7 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 	return responseSuccess(common.ToHexString(w.Bytes()))
 }
 
+//get storage from contract
 //   {"jsonrpc": "2.0", "method": "getstorage", "params": ["code hash", "key"], "id": 0}
 func GetStorage(params []interface{}) map[string]interface{} {
 	if len(params) < 2 {
@@ -261,6 +275,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	return responseSuccess(common.ToHexString(value))
 }
 
+//send raw transaction
 // A JSON example for sendrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "sendrawtransaction", "params": ["raw transactioin in hex"], "id": 0}
 func SendRawTransaction(params []interface{}) map[string]interface{} {
@@ -279,9 +294,9 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
-		if len(params) > 1 {
-			preExec, ok := params[1].(float64)
-			if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+		if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+			if len(params) > 1 {
+				preExec, ok := params[1].(float64)
 				if ok && preExec == 1 {
 					result, err := bactor.PreExecuteContract(&txn)
 					if err != nil {
@@ -291,7 +306,15 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 					return responseSuccess(result)
 				}
 			}
+			//prepare execution check
+			if !bcomn.DisableLocalPreExec {
+				err = bcomn.PreExecCheck(&txn)
+				if err != nil {
+					return responsePack(berr.PRE_EXEC_ERROR, err.Error())
+				}
+			}
 		}
+
 		hash = txn.Hash()
 		if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
 			return responseSuccess(errCode.Error())
@@ -302,10 +325,12 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 	return responseSuccess(hash.ToHexString())
 }
 
+//get node version
 func GetNodeVersion(params []interface{}) map[string]interface{} {
 	return responseSuccess(config.Version)
 }
 
+//get contract state
 func GetContractState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
@@ -348,6 +373,7 @@ func GetContractState(params []interface{}) map[string]interface{} {
 	return responseSuccess(common.ToHexString(w.Bytes()))
 }
 
+//get smartconstract event
 func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	if !config.DefConfig.Common.EnableEventLog {
 		return responsePack(berr.INVALID_METHOD, "")
@@ -395,6 +421,7 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	return responsePack(berr.INVALID_PARAMS, "")
 }
 
+//get block height by transaction hash
 func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
@@ -419,6 +446,7 @@ func GetBlockHeightByTxHash(params []interface{}) map[string]interface{} {
 	return responsePack(berr.INVALID_PARAMS, "")
 }
 
+//get balance of address
 func GetBalance(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -438,6 +466,7 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	return responseSuccess(rsp)
 }
 
+//get allowance
 func GetAllowance(params []interface{}) map[string]interface{} {
 	if len(params) < 3 {
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -469,6 +498,7 @@ func GetAllowance(params []interface{}) map[string]interface{} {
 	return responseSuccess(rsp)
 }
 
+//get merkle proof by transaction hash
 func GetMerkleProof(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -507,6 +537,7 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 		curHeader.BlockRoot.ToHexString(), curHeight, hashes})
 }
 
+//get block transactions by height
 func GetBlockTxsByHeight(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
@@ -528,6 +559,7 @@ func GetBlockTxsByHeight(params []interface{}) map[string]interface{} {
 	}
 }
 
+//get gas price in block
 func GetGasPrice(params []interface{}) map[string]interface{} {
 	result, err := bcomn.GetGasPrice()
 	if err != nil {
@@ -536,6 +568,7 @@ func GetGasPrice(params []interface{}) map[string]interface{} {
 	return responseSuccess(result)
 }
 
+// get unbound ong of address
 func GetUnboundOng(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")

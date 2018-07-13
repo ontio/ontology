@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package rpc privides functions to for rpc server call
 package rpc
 
 import (

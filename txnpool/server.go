@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Package txnpool privides a function to start micro service txPool for
+// Package txnpool provides a function to start micro service txPool for
 // external process
 package txnpool
 

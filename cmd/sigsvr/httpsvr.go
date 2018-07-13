@@ -74,6 +74,9 @@ func (this *CliRpcServer) GetHandler(method string) func(req *common.CliRpcReque
 func (this *CliRpcServer) Handler(w http.ResponseWriter, r *http.Request) {
 	resp := &common.CliRpcResponse{}
 	defer func() {
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("content-type", "application/json;charset=utf-8")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 
 		if resp.ErrorInfo == "" {

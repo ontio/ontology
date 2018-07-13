@@ -79,7 +79,7 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 
 	paramCache = new(ParamCache)
 	paramCache.Params = make([]Param, 0)
-	initParams := new(Params)
+	initParams := Params{}
 	args, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, read native input failed!")
@@ -172,17 +172,18 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 	if !native.ContextRef.CheckWitness(operator) {
 		return utils.BYTE_FALSE, errors.NewErr("set param, authentication failed!")
 	}
-	params := new(Params)
+	params := Params{}
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("set param, deserialize failed!")
 	}
 	// read old param from database
 	storageParams, err := getStorageParam(native, generateParamKey(contract, PREPARE_VALUE))
 	if err != nil {
-		return utils.BYTE_FALSE, err
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode,
+			"set param, read storage prepare param error!")
 	}
 	// update param
-	for _, param := range *params {
+	for _, param := range params {
 		storageParams.SetParam(param)
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, PREPARE_VALUE),
@@ -218,9 +219,10 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	storageParams, err := getStorageParam(native, generateParamKey(contract, CURRENT_VALUE))
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, storage error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode,
+			"get param, read storage current param error!")
 	}
-	if len(*storageParams) == 0 {
+	if len(storageParams) == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("get param, there are no params!")
 	}
 	setCache(storageParams)                     // set param to cache
@@ -250,9 +252,10 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	// read prepare param
 	prepareParam, err := getStorageParam(native, generateParamKey(contract, PREPARE_VALUE))
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "create snapshot, storage error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode,
+			"create snapshot, read storage prepare param error!")
 	}
-	if len(*prepareParam) == 0 {
+	if len(prepareParam) == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("create snapshot, prepare param doesn't exist!")
 	}
 	// set prepare value to current value, make it effective
@@ -270,10 +273,10 @@ func clearCache() {
 	paramCache.Params = make([]Param, 0)
 }
 
-func setCache(params *Params) {
+func setCache(params Params) {
 	paramCache.lock.Lock()
 	defer paramCache.lock.Unlock()
-	paramCache.Params = *params
+	paramCache.Params = params
 }
 
 func getParamFromCache(key string) (int, Param) {

@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package websocket privides a function to start websocket server
 package websocket
 
 import (
