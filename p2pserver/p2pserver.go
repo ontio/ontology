@@ -333,6 +333,10 @@ func (this *P2PServer) connectSeeds() {
 
 //reachMinConnection return whether net layer have enough link under different config
 func (this *P2PServer) reachMinConnection() bool {
+	if config.DefConfig.Consensus.EnableConsensus == false {
+		//just sync
+		return true
+	}
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType == "" {
 		consensusType = "dbft"
