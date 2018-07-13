@@ -47,6 +47,13 @@ func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+// get networkid
+func GetNetworkId(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	resp["Result"] = config.DefConfig.P2PNode.NetworkId
+	return resp
+}
+
 //get generate block time
 func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)

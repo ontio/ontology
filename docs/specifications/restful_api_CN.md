@@ -46,7 +46,7 @@
 | [get_mempooltxstate](#20-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | 通过交易哈希得到内存中该交易的状态 |
 | [get_version](#21-get_version) |  GET /api/v1/version | 得到版本信息 |
 | [post_raw_tx](#22-post_raw_tx) | post /api/v1/transaction?preExec=0 | 向ontology网络发送交易 |
-
+| [get_networkid](#23-get_networkid) |  GET /api/v1/networkid | 得到network id |
 
 ### 1. get_gen_blk_time
 
@@ -848,6 +848,30 @@ curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransac
 }
 ```
 > Result: 交易哈希
+
+
+### 23 get_networkid
+
+获取 network id.
+
+GET
+```
+/api/v1/networkid
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/networkid
+```
+#### Response
+```
+{
+    "Action": "getnetworkid",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 1
+}
+```
 
 ## 错误代码
 

@@ -46,7 +46,7 @@ This document describes the restful api format for the http/https used in the On
 | [get_mempooltxstate](#20-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | return the state of transaction locate in memory |
 | [get_version](#21-get_version) |  GET /api/v1/version | return the version of ontology |
 | [post_raw_tx](#22-post_raw_tx) | post /api/v1/transaction?preExec=0 | send transaction to ontology network |
-
+| [get_networkid](#23-get_networkid) |  GET /api/v1/networkid | return the networkid |
 
 ### 1. get_gen_blk_time
 
@@ -849,6 +849,30 @@ You can use the ontology-go-sdk to generate hex code, reference to [example](rpc
 }
 ```
 > Result: transaction hash
+
+
+### 23 get_networkid
+
+Get the network id.
+
+GET
+```
+/api/v1/networkid
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/networkid
+```
+#### Response
+```
+{
+    "Action": "getnetworkid",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 1
+}
+```
 
 ## Error Code
 

@@ -323,6 +323,11 @@ func GetNodeVersion(params []interface{}) map[string]interface{} {
 	return responseSuccess(config.Version)
 }
 
+// get networkid
+func GetNetworkId(params []interface{}) map[string]interface{} {
+	return responseSuccess(config.DefConfig.P2PNode.NetworkId)
+}
+
 //get contract state
 func GetContractState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
