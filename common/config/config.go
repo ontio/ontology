@@ -19,7 +19,10 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -255,14 +258,6 @@ func NewGenesisConfig() *GenesisConfig {
 		DBFT:          &DBFTConfig{},
 		SOLO:          &SOLOConfig{},
 	}
-}
-
-func (this *GenesisConfig) Reset() {
-	this.ConsensusType = CONSENSUS_TYPE_DBFT
-	this.SeedList = make([]string, 0)
-	this.VBFT = &VBFTConfig{}
-	this.DBFT = &DBFTConfig{}
-	this.SOLO = &SOLOConfig{}
 }
 
 //
@@ -617,4 +612,46 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 	}
 	keypair.SortPublicKeys(pubKeys)
 	return pubKeys, nil
+}
+
+func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
+	defaultNetworkId, err := this.getDefNetworkIDFromGenesisConfig(this.Genesis)
+	if err != nil {
+		return 0, err
+	}
+	mainNetId, err := this.getDefNetworkIDFromGenesisConfig(MainNetConfig)
+	if err != nil {
+		return 0, err
+	}
+	polaridId, err := this.getDefNetworkIDFromGenesisConfig(PolarisConfig)
+	if err != nil {
+		return 0, err
+	}
+	switch defaultNetworkId {
+	case mainNetId:
+		return NETWORK_ID_MAIN_NET, nil
+	case polaridId:
+		return NETWORK_ID_POLARIS_NET, nil
+	}
+	return defaultNetworkId, nil
+}
+
+func (this *OntologyConfig) getDefNetworkIDFromGenesisConfig(genCfg *GenesisConfig) (uint32, error) {
+	var configData []byte
+	var err error
+	switch this.Genesis.ConsensusType {
+	case CONSENSUS_TYPE_VBFT:
+		configData, err = json.Marshal(genCfg.VBFT)
+	case CONSENSUS_TYPE_DBFT:
+		configData, err = json.Marshal(genCfg.DBFT)
+	case CONSENSUS_TYPE_SOLO:
+		return NETWORK_ID_SOLO_NET, nil
+	default:
+		return 0, fmt.Errorf("unknown consensus type:%s", this.Genesis.ConsensusType)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("json.Marshal error:%s", err)
+	}
+	data := sha256.Sum256(configData)
+	return binary.LittleEndian.Uint32(data[0:4]), nil
 }

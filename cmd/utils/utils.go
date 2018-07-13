@@ -19,8 +19,11 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common/constants"
+	"io/ioutil"
 	"math"
 	"math/big"
 	"strings"
@@ -89,6 +92,21 @@ func CheckAssetAmount(asset string, amount uint64) error {
 		}
 	default:
 		return fmt.Errorf("unknown asset:%s", asset)
+	}
+	return nil
+}
+
+func GetJsonObjectFromFile(filePath string, jsonObject interface{}) error {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+	// Remove the UTF-8 Byte Order Mark
+	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
+
+	err = json.Unmarshal(data, jsonObject)
+	if err != nil {
+		return fmt.Errorf("json.Unmarshal %s error:%s", data, err)
 	}
 	return nil
 }
