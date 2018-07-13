@@ -890,8 +890,7 @@ Response:
    "jsonrpc":"2.0",
    "result":{
         "ont": "2500",
-        "ong": "0",
-        "ong_appove": "0"
+        "ong": "0"
        }
 }
 ```
