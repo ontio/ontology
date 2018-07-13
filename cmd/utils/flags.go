@@ -88,14 +88,14 @@ var (
 	}
 	GasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",
-		Usage: "Using to set the lowest gasprice of the current node transaction pool to accept transactions. Transactions below this gasprice will be discarded",
+		Usage: "Using to set the lowest gasprice of the current node transaction pool to accept transactions. Transactions below this gasprice will be discarded.(default:0 in testmode)",
 		Value: config.DEFAULT_GAS_PRICE,
 	}
 
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{
 		Name:  "testmode",
-		Usage: "Using to start a single node test network for ease of development and debug. In testmode, Ontology will start rpc, rest and web socket server",
+		Usage: "Using to start a single node test network for ease of development and debug. In testmode, Ontology will start rpc, rest and web socket server, and set default gasprice to 0",
 	}
 	TestModeGenBlockTimeFlag = cli.UintFlag{
 		Name:  "testmodegenblocktime",
@@ -356,8 +356,8 @@ var (
 	}
 	TransactionGasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",
-		Usage: "Using to specifies the gas price of transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized",
-		Value: 0,
+		Usage: "Using to specifies the gas price of transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.(default:0 in testmode)",
+		Value: config.DEFAULT_GAS_PRICE,
 	}
 	TransactionGasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",

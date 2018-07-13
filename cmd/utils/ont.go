@@ -344,6 +344,19 @@ func GetBlock(hashOrHeight interface{}) ([]byte, error) {
 	return sendRpcRequest("getblock", []interface{}{hashOrHeight, 1})
 }
 
+func GetNetworkId() (uint32, error) {
+	data, err := sendRpcRequest("getnetworkid", []interface{}{})
+	if err != nil {
+		return 0, err
+	}
+	var networkId uint32
+	err = json.Unmarshal(data, &networkId)
+	if err != nil {
+		return 0, fmt.Errorf("json.Unmarshal networkId error:%s", err)
+	}
+	return networkId, nil
+}
+
 func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
 	data, err := sendRpcRequest("getblock", []interface{}{hashOrHeight})
 	if err != nil {

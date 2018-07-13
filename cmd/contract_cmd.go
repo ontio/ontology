@@ -24,6 +24,7 @@ import (
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
@@ -124,6 +125,14 @@ func deployContract(ctx *cli.Context) error {
 	code := strings.TrimSpace(string(codeStr))
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
+	networkId, err := utils.GetNetworkId()
+	if err != nil {
+		return err
+	}
+	if networkId == config.NETWORK_ID_SOLO_NET {
+		gasPrice = 0
+	}
+
 	cversion := fmt.Sprintf("%s", version)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareDeployFlag)) {
@@ -212,6 +221,13 @@ func invokeCodeContract(ctx *cli.Context) error {
 	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
+	networkId, err := utils.GetNetworkId()
+	if err != nil {
+		return err
+	}
+	if networkId == config.NETWORK_ID_SOLO_NET {
+		gasPrice = 0
+	}
 
 	invokeTx, err := httpcom.NewSmartContractTransaction(gasPrice, gasLimit, c)
 	if err != nil {
@@ -296,6 +312,13 @@ func invokeContract(ctx *cli.Context) error {
 	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
+	networkId, err := utils.GetNetworkId()
+	if err != nil {
+		return err
+	}
+	if networkId == config.NETWORK_ID_SOLO_NET {
+		gasPrice = 0
+	}
 
 	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
 	if err != nil {
