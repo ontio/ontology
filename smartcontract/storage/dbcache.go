@@ -19,11 +19,12 @@
 package storage
 
 import (
-	"github.com/kataras/go-errors"
-	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/store/common"
+	"errors"
 	"sort"
 	"strings"
+
+	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store/common"
 )
 
 // CloneCache is smart contract execute cache, it contain transaction cache and block cache

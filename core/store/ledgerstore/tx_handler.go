@@ -302,6 +302,12 @@ func handleBlockTransaction(store store.LedgerStore, stateBatch *statestore.Stat
 				needRedo = true
 			} else if i != 0 {
 				// check conflict
+				for _, key := range txDB.ReadSet {
+					if overlay.Changed(key) {
+						needRedo = true
+						break
+					}
+				}
 			}
 
 			if needRedo {
@@ -313,20 +319,20 @@ func handleBlockTransaction(store store.LedgerStore, stateBatch *statestore.Stat
 				}
 			}
 
-			config := &smartcontract.Config{
-				Time:   block.Header.Timestamp,
-				Height: block.Header.Height,
-				Tx:     tx,
-			}
-
 			if result.status != ExecSuccess {
 				txDB.Reset()
 				result.notifies = nil
 
 				log.Debugf("handle transaction error. tx: %s, status:%d", txHash.ToHexString(), result.status)
 			}
+
 			if result.charge {
-				notifies, err := chargeCostGas(tx.Payer, result.gas, config, txDB, store)
+				conf := &smartcontract.Config{
+					Time:   block.Header.Timestamp,
+					Height: block.Header.Height,
+					Tx:     tx,
+				}
+				notifies, err := chargeCostGas(tx.Payer, result.gas, conf, txDB, store)
 				if err != nil {
 					return fmt.Errorf("charge gas error. tx: %s, error: %s", txHash.ToHexString(), err.Error())
 				}

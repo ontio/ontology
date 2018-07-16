@@ -38,6 +38,11 @@ func NewOverlayDB(store common.StateStore) *OverlayDB {
 	}
 }
 
+func (self *OverlayDB) Changed(key string) bool {
+	_, ok := self.memory[key]
+	return ok
+}
+
 func (self *OverlayDB) Find(prefix common.DataEntryPrefix, key []byte) ([]*common.StateItem, error) {
 	stats, err := self.store.Find(prefix, key)
 	if err != nil {
