@@ -592,7 +592,7 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 	}
 
 	stateBatch := this.stateStore.NewStateBatch()
-	err := handleBlockTransaction(this, stateBatch, block, this.eventStore,
+	err := handleBlockTransactionParallel(this, stateBatch, block, this.eventStore,
 		createGasPrice.(uint64), deployUintCodePrice.(uint64), invokeUintCodeGasPrice.(uint64))
 	if err != nil {
 		return fmt.Errorf("handle block transaction error %s", err)

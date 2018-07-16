@@ -283,76 +283,161 @@ func partitionTransactions(txs []*types.Transaction) [][]*types.Transaction {
 	return batches
 }
 
-func handleBlockTransaction(store store.LedgerStore, stateBatch *statestore.StateBatch, block *types.Block,
+func handleBlockTransactionSerial(store store.LedgerStore, stateBatch *statestore.StateBatch, block *types.Block,
+	eventStore *EventStore, createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice uint64) error {
+	eventNotifies := make([]*event.ExecuteNotify, 0, len(block.Transactions))
+	for _, tx := range block.Transactions {
+		txHash := tx.Hash()
+		txDB := storage.NewCloneCache(stateBatch, false) // todo: set to true when in parallel mode
+		result := handleTransaction(store, txDB, block, tx,
+			createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice)
+		if stateBatch.Error() != nil || result.status == ExecSystemError {
+			return fmt.Errorf("handle transaction error. tx %s error %v", txHash.ToHexString(), stateBatch.Error())
+		}
+
+		if result.status != ExecSuccess {
+			txDB.Reset()
+			result.notifies = nil
+
+			log.Debugf("handle transaction error. tx: %s, status:%d", txHash.ToHexString(), result.status)
+		}
+
+		if result.charge {
+			conf := &smartcontract.Config{
+				Time:   block.Header.Timestamp,
+				Height: block.Header.Height,
+				Tx:     tx,
+			}
+			notifies, err := chargeCostGas(tx.Payer, result.gas, conf, txDB, store)
+			if err != nil {
+				return fmt.Errorf("charge gas error. tx: %s, error: %s", txHash.ToHexString(), err.Error())
+			}
+			result.notifies = append(result.notifies, notifies...)
+		}
+
+		txDB.Commit()
+
+		eventNotify := &event.ExecuteNotify{
+			TxHash:      txHash,
+			GasConsumed: result.gas,
+			Notify:      result.notifies,
+		}
+		if result.status == ExecSuccess {
+			eventNotify.State = event.CONTRACT_STATE_SUCCESS
+		} else {
+			eventNotify.State = event.CONTRACT_STATE_FAIL
+		}
+
+		eventNotifies = append(eventNotifies, eventNotify)
+	}
+
+	for _, notify := range eventNotifies {
+		SaveNotify(eventStore, notify.TxHash, notify)
+	}
+	return nil
+}
+
+type execResult struct {
+	index int
+	tx    *types.Transaction
+	txDB  *storage.CloneCache
+	res   ExecutionResult
+}
+
+func handleBlockTransactionParallel(store store.LedgerStore, stateBatch *statestore.StateBatch, block *types.Block,
 	eventStore *EventStore, createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice uint64) error {
 	batches := partitionTransactions(block.Transactions)
 	eventNotifies := make([]*event.ExecuteNotify, 0, len(block.Transactions))
 	for _, batchTxs := range batches {
+		resultChan := make(chan execResult, len(batchTxs))
 		overlay := statestore.NewOverlayDB(stateBatch)
 		for i, tx := range batchTxs {
-			txHash := tx.Hash()
-			txDB := storage.NewCloneCache(overlay, false) // todo: set to true when in parallel mode
-			result := handleTransaction(store, txDB, block, tx,
-				createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice)
-			if stateBatch.Error() != nil || result.status == ExecSystemError {
-				return fmt.Errorf("handle transaction error. tx %s error %v", txHash.ToHexString(), stateBatch.Error())
-			}
-			needRedo := false
-			if txDB.FindDetected {
-				needRedo = true
-			} else if i != 0 {
-				// check conflict
-				for _, key := range txDB.ReadSet {
-					if overlay.Changed(key) {
-						needRedo = true
-						break
-					}
-				}
-			}
-
-			if needRedo {
-				txDB := storage.NewCloneCache(overlay, false)
+			txDB := storage.NewCloneCache(overlay, true)
+			go func(index int, tx *types.Transaction) {
 				result := handleTransaction(store, txDB, block, tx,
 					createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice)
+				resultChan <- execResult{
+					index: index,
+					tx:    tx,
+					txDB:  txDB,
+					res:   result,
+				}
+			}(i, tx)
+		}
+
+		results := make(map[int]execResult)
+		curr := 0
+		for curr < len(batchTxs) {
+			res := <-resultChan
+			results[res.index] = res
+
+			for execResult, ok := results[curr]; ok; curr += 1 {
+				result := execResult.res
+				tx := execResult.tx
+				txDB := execResult.txDB
+				txHash := tx.Hash()
+
 				if stateBatch.Error() != nil || result.status == ExecSystemError {
 					return fmt.Errorf("handle transaction error. tx %s error %v", txHash.ToHexString(), stateBatch.Error())
 				}
-			}
 
-			if result.status != ExecSuccess {
-				txDB.Reset()
-				result.notifies = nil
-
-				log.Debugf("handle transaction error. tx: %s, status:%d", txHash.ToHexString(), result.status)
-			}
-
-			if result.charge {
-				conf := &smartcontract.Config{
-					Time:   block.Header.Timestamp,
-					Height: block.Header.Height,
-					Tx:     tx,
+				needRedo := false
+				if txDB.FindDetected {
+					needRedo = true
+				} else if curr != 0 {
+					// check conflict
+					for _, key := range txDB.ReadSet {
+						if overlay.Changed(key) {
+							needRedo = true
+							break
+						}
+					}
 				}
-				notifies, err := chargeCostGas(tx.Payer, result.gas, conf, txDB, store)
-				if err != nil {
-					return fmt.Errorf("charge gas error. tx: %s, error: %s", txHash.ToHexString(), err.Error())
+
+				if needRedo {
+					txDB = storage.NewCloneCache(overlay, false)
+					result := handleTransaction(store, txDB, block, tx,
+						createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice)
+					if stateBatch.Error() != nil || result.status == ExecSystemError {
+						return fmt.Errorf("handle transaction error. tx %s error %v", txHash.ToHexString(), stateBatch.Error())
+					}
 				}
-				result.notifies = append(result.notifies, notifies...)
-			}
 
-			txDB.Commit()
+				if result.status != ExecSuccess {
+					txDB.Reset()
+					result.notifies = nil
 
-			eventNotify := &event.ExecuteNotify{
-				TxHash:      txHash,
-				GasConsumed: result.gas,
-				Notify:      result.notifies,
-			}
-			if result.status == ExecSuccess {
-				eventNotify.State = event.CONTRACT_STATE_SUCCESS
-			} else {
-				eventNotify.State = event.CONTRACT_STATE_FAIL
-			}
+					log.Debugf("handle transaction error. tx: %s, status:%d", txHash.ToHexString(), result.status)
+				}
 
-			eventNotifies = append(eventNotifies, eventNotify)
+				if result.charge {
+					conf := &smartcontract.Config{
+						Time:   block.Header.Timestamp,
+						Height: block.Header.Height,
+						Tx:     tx,
+					}
+					notifies, err := chargeCostGas(tx.Payer, result.gas, conf, txDB, store)
+					if err != nil {
+						return fmt.Errorf("charge gas error. tx: %s, error: %s", txHash.ToHexString(), err.Error())
+					}
+					result.notifies = append(result.notifies, notifies...)
+				}
+
+				txDB.Commit()
+
+				eventNotify := &event.ExecuteNotify{
+					TxHash:      txHash,
+					GasConsumed: result.gas,
+					Notify:      result.notifies,
+				}
+				if result.status == ExecSuccess {
+					eventNotify.State = event.CONTRACT_STATE_SUCCESS
+				} else {
+					eventNotify.State = event.CONTRACT_STATE_FAIL
+				}
+
+				eventNotifies = append(eventNotifies, eventNotify)
+			}
 		}
 
 		overlay.CommitTo()
