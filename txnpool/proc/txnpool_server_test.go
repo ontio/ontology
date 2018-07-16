@@ -80,7 +80,7 @@ func startActor(obj interface{}) *actor.PID {
 func TestTxn(t *testing.T) {
 	t.Log("Starting test tx")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -129,7 +129,7 @@ func TestTxn(t *testing.T) {
 func TestAssignRsp2Worker(t *testing.T) {
 	t.Log("Starting assign response to the worker testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -172,7 +172,7 @@ func TestAssignRsp2Worker(t *testing.T) {
 func TestActor(t *testing.T) {
 	t.Log("Starting actor testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -240,7 +240,7 @@ func TestActor(t *testing.T) {
 func TestValidator(t *testing.T) {
 	t.Log("Starting validator testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return

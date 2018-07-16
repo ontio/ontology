@@ -85,6 +85,35 @@ func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256,
 	}
 }
 
+// preExecCheck checks whether preExec pass
+func preExecCheck(txn *tx.Transaction) (bool, string) {
+	result, err := ledger.DefLedger.PreExecuteContract(txn)
+	if err != nil {
+		log.Debugf("preExecCheck: failed to preExecuteContract tx %x err %v",
+			txn.Hash(), err)
+	}
+	if txn.GasLimit < result.Gas {
+		log.Debugf("preExecCheck: transaction's gasLimit %d is less than preExec gasLimit %d",
+			txn.GasLimit, result.Gas)
+		return false, fmt.Sprintf("transaction's gasLimit %d is less than preExec gasLimit %d",
+			txn.GasLimit, result.Gas)
+	}
+	gas, overflow := common.SafeMul(txn.GasPrice, result.Gas)
+	if overflow {
+		log.Debugf("preExecCheck: gasPrice %d preExec gasLimit %d overflow",
+			txn.GasPrice, result.Gas)
+		return false, fmt.Sprintf("gasPrice %d preExec gasLimit %d overflow",
+			txn.GasPrice, result.Gas)
+	}
+	if !isBalanceEnough(txn.Payer, gas) {
+		log.Debugf("preExecCheck: transactor %s has no balance enough to cover gas cost %d",
+			txn.Payer.ToHexString(), gas)
+		return false, fmt.Sprintf("transactor %s has no balance enough to cover gas cost %d",
+			txn.Payer.ToHexString(), gas)
+	}
+	return true, ""
+}
+
 // TxnActor: Handle the low priority msg from P2P and API
 type TxActor struct {
 	server *TXPoolServer
@@ -156,43 +185,15 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 			return
 		}
 
-		if ta.server.preExec {
-			result, err := ledger.DefLedger.PreExecuteContract(txn)
-			if err != nil {
-				log.Debugf("handleTransaction: failed to preExecuteContract tx %x err %v",
-					txn.Hash(), err)
-			}
-			if txn.GasLimit < result.Gas {
-				log.Debugf("handleTransaction: transaction's gasLimit %d is less than preExec gasLimit %d",
-					txn.GasLimit, result.Gas)
+		if !ta.server.disablePreExec {
+			if ok, desc := preExecCheck(txn); !ok {
+				log.Debugf("handleTransaction: preExecCheck tx %x failed", txn.Hash())
 				if sender == tc.HttpSender && txResultCh != nil {
-					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
-						fmt.Sprintf("transaction's gasLimit %d is less than preExec gasLimit %d",
-							txn.GasLimit, result.Gas))
+					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, desc)
 				}
 				return
 			}
-			gas, overflow := common.SafeMul(txn.GasPrice, result.Gas)
-			if overflow {
-				log.Debugf("handleTransaction: gasPrice %d preExec gasLimit %d overflow",
-					txn.GasPrice, result.Gas)
-				if sender == tc.HttpSender && txResultCh != nil {
-					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
-						fmt.Sprintf("gasPrice %d * preExec gasLimit %d overflow",
-							txn.GasPrice, result.Gas))
-				}
-				return
-			}
-			if !isBalanceEnough(txn.Payer, gas) {
-				log.Debugf("handleTransaction: transactor %s has no balance enough to cover gas cost %d",
-					txn.Payer.ToHexString(), gas)
-				if sender == tc.HttpSender && txResultCh != nil {
-					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
-						fmt.Sprintf("insufficient balance to cover gas cost %d", gas))
-				}
-				return
-			}
-			log.Debugf("handleTransaction: tx %x preExec success", txn.Hash())
+			log.Debugf("handleTransaction: preExecCheck tx %x passed", txn.Hash())
 		}
 		<-ta.server.slots
 		ta.server.assignTxToWorker(txn, sender, txResultCh)
