@@ -189,7 +189,7 @@ To deploy Ontology test network with dBFT consensus algorithm requires a minimum
 
 An example of a genesis block configuration file using the VBFT consensus algorithm:
 
-```json
+```
 {
   "SeedList": [
     "192.168.0.1:20338"             //Seed node list
@@ -258,7 +258,7 @@ An example of a genesis block configuration file using the VBFT consensus algori
 
 An example of a genesis block configuration file using the dBFT consensus algorithm:
 
-```json
+```
 {
   "SeedList": [
     "192.168.0.1:20338"               //Seed node list
