@@ -275,6 +275,9 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
+	var hash common.Uint256
+	hash = txn.Hash()
+	log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
 	if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
 			resp["Result"], err = bactor.PreExecuteContract(&txn)
@@ -285,15 +288,15 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 			return resp
 		}
 	}
-	var hash common.Uint256
-	hash = txn.Hash()
+	log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
 	if errCode, desc := bcomn.SendTxToPool(&txn); errCode != ontErrors.ErrNoError {
 		resp["Error"] = int64(errCode)
 		resp["Result"] = desc
+		log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 		return resp
 	}
+	log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
 	resp["Result"] = hash.ToHexString()
-
 	return resp
 }
 
