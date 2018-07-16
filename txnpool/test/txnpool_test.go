@@ -95,7 +95,7 @@ func Test_RCV(t *testing.T) {
 	}
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
-	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, true)
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tp.NewVerifyRspActor(s)

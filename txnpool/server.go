@@ -47,13 +47,13 @@ func startActor(obj interface{}, id string) (*actor.PID, error) {
 // StartTxnPoolServer starts the txnpool server and registers
 // actors to handle the msgs from the network, http, consensus
 // and validators. Meanwhile subscribes the block complete  event.
-func StartTxnPoolServer(preExec bool) (*tp.TXPoolServer, error) {
+func StartTxnPoolServer(disablePreExec bool) (*tp.TXPoolServer, error) {
 	var s *tp.TXPoolServer
 
 	/* Start txnpool server to receive msgs from p2p,
 	 * consensus and valdiators
 	 */
-	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, preExec)
+	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, disablePreExec)
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tp.NewVerifyRspActor(s)

@@ -72,26 +72,26 @@ type registerValidators struct {
 
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
-	mu            sync.RWMutex                        // Sync mutex
-	wg            sync.WaitGroup                      // Worker sync
-	workers       []txPoolWorker                      // Worker pool
-	txPool        *tc.TXPool                          // The tx pool that holds the valid transaction
-	allPendingTxs map[common.Uint256]*serverPendingTx // The txs that server is processing
-	pendingBlock  *pendingBlock                       // The block that server is processing
-	actors        map[tc.ActorType]*actor.PID         // The actors running in the server
-	validators    *registerValidators                 // The registered validators
-	stats         txStats                             // The transaction statstics
-	slots         chan struct{}                       // The limited slots for the new transaction
-	height        uint32                              // The current block height
-	gasPrice      uint64                              // Gas price to enforce for acceptance into the pool
-	preExec       bool                                // PreExecute a transaction
+	mu             sync.RWMutex                        // Sync mutex
+	wg             sync.WaitGroup                      // Worker sync
+	workers        []txPoolWorker                      // Worker pool
+	txPool         *tc.TXPool                          // The tx pool that holds the valid transaction
+	allPendingTxs  map[common.Uint256]*serverPendingTx // The txs that server is processing
+	pendingBlock   *pendingBlock                       // The block that server is processing
+	actors         map[tc.ActorType]*actor.PID         // The actors running in the server
+	validators     *registerValidators                 // The registered validators
+	stats          txStats                             // The transaction statstics
+	slots          chan struct{}                       // The limited slots for the new transaction
+	height         uint32                              // The current block height
+	gasPrice       uint64                              // Gas price to enforce for acceptance into the pool
+	disablePreExec bool                                // Disbale PreExecute a transaction
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
 // handle and filter inbound transactions from the network, http, and consensus.
-func NewTxPoolServer(num uint8, preExec bool) *TXPoolServer {
+func NewTxPoolServer(num uint8, disablePreExec bool) *TXPoolServer {
 	s := &TXPoolServer{}
-	s.init(num, preExec)
+	s.init(num, disablePreExec)
 	return s
 }
 
@@ -144,7 +144,7 @@ func getGasPriceConfig() uint64 {
 }
 
 // init initializes the server with the configured settings
-func (s *TXPoolServer) init(num uint8, preExec bool) {
+func (s *TXPoolServer) init(num uint8, disablePreExec bool) {
 	// Initial txnPool
 	s.txPool = &tc.TXPool{}
 	s.txPool.Init()
@@ -173,7 +173,7 @@ func (s *TXPoolServer) init(num uint8, preExec bool) {
 	s.gasPrice = getGasPriceConfig()
 	log.Infof("tx pool: the current local gas price is %d", s.gasPrice)
 
-	s.preExec = preExec
+	s.disablePreExec = disablePreExec
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
 	// Initial and start the workers
@@ -537,6 +537,17 @@ func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32
 
 		if oldGasPrice < gasPrice {
 			s.txPool.RemoveTxsBelowGasPrice(gasPrice)
+		}
+	}
+	// Cleanup tx pool
+	if !s.disablePreExec {
+		remain := s.txPool.Remain()
+		for _, t := range remain {
+			if ok, _ := preExecCheck(t); !ok {
+				log.Debugf("cleanTransactionList: preExecCheck tx %x failed", t.Hash())
+				continue
+			}
+			s.reVerifyStateful(t, tc.NilSender)
 		}
 	}
 }

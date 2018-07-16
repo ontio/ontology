@@ -92,7 +92,7 @@ func setupAPP() *cli.App {
 		//txpool setting
 		utils.GasPriceFlag,
 		utils.GasLimitFlag,
-		utils.TxpoolPreExecEnableFlag,
+		utils.TxpoolPreExecDisableFlag,
 		utils.DisableSyncVerifyTxFlag,
 		//p2p setting
 		utils.ReservedPeersOnlyFlag,
@@ -270,9 +270,9 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 }
 
 func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
-	preExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecEnableFlag))
+	disablePreExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecDisableFlag))
 	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
-	txPoolServer, err := txnpool.StartTxnPoolServer(preExec)
+	txPoolServer, err := txnpool.StartTxnPoolServer(disablePreExec)
 	if err != nil {
 		return nil, fmt.Errorf("Init txpool error:%s", err)
 	}

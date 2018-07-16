@@ -174,8 +174,8 @@ gasprice 参数用于设定当前节点交易池接受交易的最低gasprice，
 --gaslimit
 gaslimit 参数用于设置当前节点交易池接受交易的最低gaslimit，低于这个gaslimit的交易将被丢弃。默认值为20000。
 
---enabletxpoolpreexec
-enabletxpoolpreexec 参数用于在交易池中打开预执行，对来自网络的交易检查付款方账户余额，余额不足的交易将被丢弃。Ontology节点在启动时交易池默认关闭预执行。
+--disabletxpoolpreexec
+disabletxpoolpreexec 参数用于关闭交易池中对来自网络的交易预执行校验。Ontology节点在启动时交易池默认打开预执行。
 
 --disablesyncverifytx
 disablesyncverifytx 参数用于关闭rpc、restful、websocket中同步验证交易
