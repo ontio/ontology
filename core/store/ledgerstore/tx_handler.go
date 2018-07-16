@@ -154,10 +154,6 @@ func handleInvokeTransaction(store store.LedgerStore, txDB *storage.CloneCache,
 			result.gas = oldBalance
 			result.status = ExecBalanceNotEnough
 			return result
-			//if err := costInvalidGas(tx.Payer, oldBalance, config, txDB, store, notify); err != nil {
-			//	return err
-			//}
-			//return fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
 		}
 
 		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), invokeUintCodeGasPrice)
@@ -166,20 +162,12 @@ func handleInvokeTransaction(store store.LedgerStore, txDB *storage.CloneCache,
 			result.gas = oldBalance
 			result.status = ExecBalanceNotEnough
 			return result
-			//if err := costInvalidGas(tx.Payer, oldBalance, config, txDB, store, notify); err != nil {
-			//	return err
-			//}
-			//return fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
 		}
 
 		if tx.GasLimit < codeLenGasLimit {
 			result.gas = oldBalance
 			result.status = ExecGasLimitTooLow
 			return result
-			//if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, txDB, store, notify); err != nil {
-			//	return err
-			//}
-			//return fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
 		}
 
 		maxAvaGasLimit := oldBalance / tx.GasPrice
@@ -210,9 +198,6 @@ func handleInvokeTransaction(store store.LedgerStore, txDB *storage.CloneCache,
 	if err != nil {
 		if isCharge {
 			result.gas = costGas
-			//if err := costInvalidGas(tx.Payer, costGas, config, txDB, store, notify); err != nil {
-			//	return err
-			//}
 		}
 		result.status = ExecContractError
 		return result
@@ -229,17 +214,9 @@ func handleInvokeTransaction(store store.LedgerStore, txDB *storage.CloneCache,
 		if newBalance < costGas {
 			result.gas = costGas
 			result.status = ExecBalanceNotEnough
-			//if err := costInvalidGas(tx.Payer, costGas, config, txDB, store, notify); err != nil {
-			//	return err
-			//}
-			//return fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
 		}
 
 		result.gas = costGas
-		//notifies, err = chargeCostGas(tx.Payer, costGas, config, sc.CloneCache, store)
-		//if err != nil {
-		//	return err
-		//}
 	}
 
 	result.status = ExecSuccess
@@ -480,18 +457,6 @@ func genNativeTransferCode(from, to common.Address, value uint64) []byte {
 	return tr.Bytes()
 }
 
-// check whether payer ong balance sufficient
-func isBalanceSufficient(payer common.Address, cache *storage.CloneCache, config *smartcontract.Config, store store.LedgerStore, gas uint64) (uint64, error) {
-	balance, err := getBalanceFromNative(config, cache, store, payer)
-	if err != nil {
-		return 0, err
-	}
-	if balance < gas {
-		return 0, fmt.Errorf("payer gas insufficient, need %d , only have %d", gas, balance)
-	}
-	return balance, nil
-}
-
 func chargeCostGas(payer common.Address, gas uint64, config *smartcontract.Config,
 	cache *storage.CloneCache, store store.LedgerStore) ([]*event.NotifyEventInfo, error) {
 
@@ -573,19 +538,6 @@ func getBalanceFromNative(config *smartcontract.Config, cache *storage.CloneCach
 		return 0, err
 	}
 	return ntypes.BigIntFromBytes(result.([]byte)).Uint64(), nil
-}
-
-func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Config, txDB *storage.CloneCache,
-	store store.LedgerStore, notify *event.ExecuteNotify) error {
-	txDB.Reset()
-	notifies, err := chargeCostGas(address, gas, config, txDB, store)
-	if err != nil {
-		return err
-	}
-	txDB.Commit()
-	notify.GasConsumed = gas
-	notify.Notify = append(notify.Notify, notifies...)
-	return nil
 }
 
 func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
