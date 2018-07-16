@@ -27,7 +27,6 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | :---| :---| :---|
 | [heartbeat](#1-heartbeat) |  | send heart beat info |
 | [subscribe](#2-subscribe) | [ConstractsFilter],[SubscribeEvent],[SubscribeJsonBlock],[SubscribeRawBlock],[SubscribeBlockTxHashs] | subscribe service |
-| [getgenerateblocktime](#3-getgenerateblocktime) | | return the time required to create a new block. |
 | [getconnectioncount](#4-getconnectioncount) |  | get the current number of connections for the node |
 | [getblocktxsbyheight](#5-getblocktxsbyheight) | height | return all transaction hash contained in the block corresponding to this height |
 | [getblockbyheight](#6-getblockbyheight) | height | return block details based on block height |
@@ -116,30 +115,9 @@ Subscribe service.
 }
 ```
 
-### 3. getgenerateblocktime
-Return the time required to create a new block.
+### 3.
 
 
-#### Request Example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Version": "1.0.0"
-}
-```
-
-#### Response example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Desc": "SUCCESS",
-    "Error": 0,
-    "Result": 6,
-    "Version": "1.0.0"
-}
-```
 ### 4 getconnectioncount
 
 Get the current number of connections for the node.

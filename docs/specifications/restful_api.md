@@ -24,7 +24,6 @@ This document describes the restful api format for the http/https used in the On
 
 | Method | URL | Description |
 | :---| :---| :---|
-| [get_gen_blk_time](#1-get_gen_blk_time) | GET /api/v1/node/generateblocktime | return time required to create a new block |
 | [get_conn_count](#2-get_conn_count) | GET /api/v1/node/connectioncount | return the number of node connect to the network |
 | [get_blk_txs_by_height](#3-get_blk_txs_by_height) | GET /api/v1/block/transactions/height/:height | return whole transaction hash of the block |
 | [get_blk_by_height](#4-get_blk_by_height) | GET /api/v1/block/details/height/:height?raw=0 | return block info of the height |
@@ -48,32 +47,10 @@ This document describes the restful api format for the http/https used in the On
 | [post_raw_tx](#22-post_raw_tx) | post /api/v1/transaction?preExec=0 | send transaction to ontology network |
 | [get_networkid](#23-get_networkid) |  GET /api/v1/networkid | return the networkid |
 
-### 1. get_gen_blk_time
+### 1.
 
-Get the generate block time.
 
-##### GET
 
-```
-/api/v1/node/generateblocktime
-```
-#### Request Example:
-
-```
-curl -i http://server:port/api/v1/node/generateblocktime
-```
-
-#### Response example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Desc": "SUCCESS"
-    "Error": 0,
-    "Result": 6,
-    "Version": "1.0.0"
-}
-```
 ### 2 get_conn_count
 
 Get the number of connected node.

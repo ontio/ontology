@@ -54,19 +54,6 @@ func GetNetworkId(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//get generate block time
-func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(berr.SUCCESS)
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_DBFT {
-		resp["Result"] = config.DefConfig.Genesis.DBFT.GenBlockTime
-	} else if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-		resp["Result"] = config.DefConfig.Genesis.SOLO.GenBlockTime
-	} else {
-		resp["Result"] = nil
-	}
-	return resp
-}
-
 //get connection node count
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)

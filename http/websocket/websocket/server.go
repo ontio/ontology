@@ -188,7 +188,6 @@ func (self *WsServer) registryMethod() {
 		"getblockhash":              {handler: rest.GetBlockHash},
 		"getblockbyhash":            {handler: rest.GetBlockByHash},
 		"getblockheight":            {handler: rest.GetBlockHeight},
-		"getgenerateblocktime":      {handler: rest.GetGenerateBlockTime},
 		"gettransaction":            {handler: rest.GetTransactionByHash},
 		"sendrawtransaction":        {handler: rest.SendRawTransaction, pushFlag: true},
 		"heartbeat":                 {handler: heartbeat},

@@ -80,7 +80,6 @@ There are some description of parameter used in rpc:
 | [getblockcount](#3-getblockcount) |  | get the number of blocks |  |
 | [getblockhash](#4-getblockhash) | height | get block hash by block height |  |
 | [getconnectioncount](#5-getconnectioncount)|  | get the current number of connections for the node |  |
-| [getgenerateblocktime](#6-getgenerateblocktime)|  | The time required to create a new block |  |
 | [getrawtransaction](#7-getrawtransaction) | transactionhash | Returns the corresponding transaction information based on the specified hash value. |  |
 | [sendrawtransaction](#8-sendrawtransaction) | hex,preExec | Broadcast transaction. | Serialized signed transactions constructed in the program into hexadecimal strings |
 | [getstorage](#9-getstorage) | script_hash, key | Returns the stored value according to the contract address hash and stored key. |  |
@@ -321,34 +320,8 @@ Response:
 }
 ```
 
-#### 6. getgenerateblocktime
+#### 6.
 
-The time required to create a new block
-
-#### Example
-
-Request:
-
-```
-{
-  "jsonrpc": "2.0",
-  "method": "getgenerateblocktime",
-  "params": [],
-  "id": 1
-}
-```
-
-Reponse:
-
-```
-{
-  "desc":"SUCCESS",
-  "error":0,
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": 6
-}
-```
 
 #### 7. getrawtransaction
 

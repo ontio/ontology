@@ -80,7 +80,6 @@
 | [getblockcount](#3-getblockcount) |  | 得到区块的数量 |  |
 | [getblockhash](#4-getblockhash) | height | 得到对应高度的区块的哈希 |  |
 | [getconnectioncount](#5-getconnectioncount)|  | 得到当前网络上连接的节点数 |  |
-| [getgenerateblocktime](#6-getgenerateblocktime)|  | 每个区块的生成时间间隔|  |
 | [getrawtransaction](#7-getrawtransaction) | transactionhash | 通过交易哈希得到交易详情 |  |
 | [sendrawtransaction](#8-sendrawtransaction) | hex,preExec | 向网络中发送交易 | 发送的数据为签过名的交易序列化后的十六进制字符串 |
 | [getstorage](#9-getstorage) | script_hash, key |根据合约地址和存储的键，得到对应的值 |  |
@@ -322,34 +321,9 @@ Response:
 }
 ```
 
-#### 6. getgenerateblocktime
+#### 6.
 
-得到区块生成时间。
 
-#### Example
-
-Request:
-
-```
-{
-  "jsonrpc": "2.0",
-  "method": "getgenerateblocktime",
-  "params": [],
-  "id": 1
-}
-```
-
-Reponse:
-
-```
-{
-  "desc":"SUCCESS",
-  "error":0,
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": 6
-}
-```
 
 #### 7. getrawtransaction
 

@@ -27,7 +27,6 @@
 | :---| :---| :---|
 | [heartbeat](#1-heartbeat) |  | 发送心跳信号 |
 | [subscribe](#2-subscribe) | [ConstractsFilter],[SubscribeEvent],[SubscribeJsonBlock],[SubscribeRawBlock],[SubscribeBlockTxHashs] | 订阅某个服务 |
-| [getgenerateblocktime](#3-getgenerateblocktime) | | 返回区块生成间隔 |
 | [getconnectioncount](#4-getconnectioncount) |  | 得到当前连接的节点数量 |
 | [getblocktxsbyheight](#5-getblocktxsbyheight) | height | 返回对应高度的区块中落账的所有交易哈希 |
 | [getblockbyheight](#6-getblockbyheight) | height | 得到该高度的区块的详细信息 |
@@ -117,30 +116,9 @@
 }
 ```
 
-### 3. getgenerateblocktime
+### 3.
 
-返回区块生成间隔。
 
-#### Request Example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Version": "1.0.0"
-}
-```
-
-#### Response example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Desc": "SUCCESS",
-    "Error": 0,
-    "Result": 6,
-    "Version": "1.0.0"
-}
-```
 ### 4 getconnectioncount
 
 得到当前连接的节点数量。
