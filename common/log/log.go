@@ -87,6 +87,11 @@ func GetGID() uint64 {
 
 var Log *Logger
 
+func init() {
+	//Default print to console
+	InitLog(InfoLog, Stdout)
+}
+
 func LevelName(level int) string {
 	if name, ok := levels[level]; ok {
 		return name
