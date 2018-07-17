@@ -20,7 +20,6 @@ package server
 
 import (
 	types "github.com/ontio/ontology/p2pserver/common"
-	ptypes "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 //stop net server
@@ -126,9 +125,4 @@ type GetNeighborAddrsReq struct {
 //response of all nbr`s address
 type GetNeighborAddrsRsp struct {
 	Addrs []types.PeerAddr
-}
-
-type TransmitConsensusMsgReq struct {
-	Target uint64
-	Msg    ptypes.Message
 }

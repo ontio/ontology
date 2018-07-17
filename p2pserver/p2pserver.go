@@ -174,6 +174,10 @@ func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.network.GetNeighborAddrs()
 }
 
+func (this *P2PServer) GetDHT() *dht.DHT {
+	return this.dht
+}
+
 //Xmit called by other module to broadcast msg
 func (this *P2PServer) Xmit(message interface{}) error {
 	log.Debug()
@@ -194,6 +198,7 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	case *msgtypes.ConsensusPayload:
 		log.Debug("[p2p]TX consensus message")
 		consensusPayload := message.(*msgtypes.ConsensusPayload)
+		consensusPayload.SrcID = this.network.GetID()
 		msg = msgpack.NewConsensus(consensusPayload)
 		isConsensus = true
 		msgHash = consensusPayload.Hash()

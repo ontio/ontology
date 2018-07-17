@@ -452,3 +452,20 @@ func (this *DHT) DisplayRoutingTable() {
 		}
 	}
 }
+
+func (this *DHT) Resolve(id uint64) []*types.Node {
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, id)
+	var nodeID types.NodeID
+	copy(nodeID[:], b[:])
+
+	bucket, _ := this.routingTable.locateBucket(nodeID)
+	node, ret := this.routingTable.isNodeInBucket(nodeID, bucket)
+	if ret == true {
+		log.Infof("targetID %s is in the bucket %d", nodeID.String(), bucket)
+		return []*types.Node{node}
+	}
+
+	closestNodes := this.routingTable.getClosestNodes(types.FACTOR, nodeID)
+	return closestNodes
+}

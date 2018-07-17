@@ -19,12 +19,14 @@
 package server
 
 import (
+	"encoding/binary"
 	"reflect"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
 type P2PActor struct {
@@ -84,7 +86,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.handleGetRelayStateReq(ctx, msg)
 	case *GetNodeTypeReq:
 		this.handleGetNodeTypeReq(ctx, msg)
-	case *TransmitConsensusMsgReq:
+	case *common.TransmitConsensusMsgReq:
 		this.handleTransmitConsensusMsgReq(ctx, msg)
 	case *common.AppendPeerID:
 		this.server.OnAddNode(msg.ID)
@@ -235,11 +237,30 @@ func (this *P2PActor) handleGetNodeTypeReq(ctx actor.Context, req *GetNodeTypeRe
 	}
 }
 
-func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context, req *TransmitConsensusMsgReq) {
+func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context,
+	req *common.TransmitConsensusMsgReq) {
+	msg := req.Msg.(*types.Consensus)
 	peer := this.server.GetNetWork().GetPeer(req.Target)
 	if peer != nil {
-		this.server.Send(peer, req.Msg, true)
+		this.server.Send(peer, msg, true)
 	} else {
-		log.Warnf("[p2p]can`t transmit consensus msg:no valid neighbor peer: %d\n", req.Target)
+
+		dht := this.server.GetDHT()
+		if dht == nil {
+			return
+		}
+		neighbors := dht.Resolve(req.Target)
+		if len(neighbors) == 0 {
+			log.Warnf("[p2p]can`t transmit consensus msg:no valid neighbor peer: %d\n", req.Target)
+			return
+		}
+		for _, neighbor := range neighbors {
+			id := binary.LittleEndian.Uint64(neighbor.ID[:])
+			peer := this.server.GetNetWork().GetPeer(id)
+			if peer == nil {
+				continue
+			}
+			this.server.Send(peer, msg, true)
+		}
 	}
 }

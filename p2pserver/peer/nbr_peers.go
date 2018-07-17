@@ -45,7 +45,7 @@ func (this *NbrPeers) Broadcast(msg types.Message, hash oc.Uint256, isConsensus 
 	for _, node := range this.List {
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
 			if !node.IsHashContained(hash) || (consensus != nil &&
-				consensus.Cons.GetDataType() == uint8(types.PeerHeartbeatMessage)) {
+				consensus.Cons.DestID != 0) {
 				node.MarkHashAsSeen(hash)
 				node.Send(msg, isConsensus)
 			}

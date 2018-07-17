@@ -55,11 +55,11 @@ type ConsensusPayload struct {
 	Height          uint32
 	BookkeeperIndex uint16
 	Timestamp       uint32
+	DestID          uint64
+	SrcID           uint64
 	Data            []byte
-	DataType        uint8
 	Owner           keypair.PublicKey
 	Signature       []byte
-	PeerId          uint64
 	hash            *common.Uint256
 }
 
@@ -111,10 +111,6 @@ func (this *ConsensusPayload) GetMessage() []byte {
 	//TODO: GetMessage
 	//return sig.GetHashData(cp)
 	return []byte{}
-}
-
-func (this *ConsensusPayload) GetDataType() uint8 {
-	return this.DataType
 }
 
 func (this *ConsensusPayload) Type() common.InventoryType {
@@ -244,14 +240,19 @@ func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Timestamp:%v", this.Timestamp))
 	}
+	err = serialization.WriteUint64(w, this.DestID)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. DestID:%v", this.DestID))
+	}
+	err = serialization.WriteUint64(w, this.SrcID)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. SrcID:%v", this.DestID))
+	}
 	err = serialization.WriteVarBytes(w, this.Data)
 	if err != nil {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Data:%v", this.Data))
-	}
-	err = serialization.WriteUint8(w, this.DataType)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. DataType:%v", this.DataType))
 	}
 	return nil
 }
@@ -309,15 +310,22 @@ func (this *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Timestamp error")
 	}
 
+	this.DestID, err = serialization.ReadUint64(r)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read DestID error")
+	}
+
+	this.SrcID, err = serialization.ReadUint64(r)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read SrcID error")
+	}
+
 	this.Data, err = serialization.ReadVarBytes(r)
 	if err != nil {
 
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Data error")
-	}
-
-	this.DataType, err = serialization.ReadUint8(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read DataType error")
 	}
 	return nil
 }
