@@ -93,6 +93,7 @@ func (pool *PeerPool) addPeer(config *vconfig.PeerConfig) error {
 	}
 	pool.configs[config.Index] = config
 	pool.IDMap[config.ID] = config.Index
+	pool.P2pMap[config.Index] = config.NetWorkID
 	pool.peers[config.Index] = &Peer{
 		Index:          config.Index,
 		PubKey:         peerPK,
