@@ -235,12 +235,7 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	if self.peerPool.isNewPeer(peerIdx) {
 		self.peerPool.peerConnected(peerIdx)
 	}
-	/*
-		p2pid, present := self.peerPool.getP2pId(peerIdx)
-		if !present || p2pid != payload.PeerId {
-			self.peerPool.addP2pId(peerIdx, payload.PeerId)
-		}
-	*/
+
 	if C, present := self.msgRecvC[peerIdx]; present {
 		C <- &p2pMsgPayload{
 			fromPeer: peerIdx,

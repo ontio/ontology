@@ -391,25 +391,26 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte, msgType MsgType) err
 	if peer == nil {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
 	}
-	msg := &p2pmsg.ConsensusPayload{
-		Data:  data,
-		Owner: self.account.PublicKey,
-	}
-
-	buf := new(bytes.Buffer)
-	if err := msg.SerializeUnsigned(buf); err != nil {
-		return fmt.Errorf("failed to serialize consensus msg: %s", err)
-	}
-	msg.Signature, _ = signature.Sign(self.account, buf.Bytes())
-
-	cons := msgpack.NewConsensus(msg)
 	p2pid, present := self.peerPool.getP2pId(peerIdx)
 	if present {
-		msg.DestID = p2pid
+		msg := &p2pmsg.ConsensusPayload{
+			Data:   data,
+			Owner:  self.account.PublicKey,
+			DestID: p2pid,
+		}
+
+		buf := new(bytes.Buffer)
+		if err := msg.SerializeUnsigned(buf); err != nil {
+			return fmt.Errorf("failed to serialize consensus msg: %s", err)
+		}
+		msg.Signature, _ = signature.Sign(self.account, buf.Bytes())
+
+		cons := msgpack.NewConsensus(msg)
 		self.p2p.Transmit(p2pid, cons)
 	} else {
 		log.Errorf("sendToPeer transmit failed index:%d", peerIdx)
 	}
+
 	return nil
 }
 

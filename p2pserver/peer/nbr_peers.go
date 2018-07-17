@@ -35,17 +35,15 @@ type NbrPeers struct {
 
 //Broadcast tranfer msg buffer to all establish peer
 func (this *NbrPeers) Broadcast(msg types.Message, hash oc.Uint256, isConsensus bool) {
-	var consensus *types.Consensus
-	if msg.CmdType() == common.CONSENSUS_TYPE {
-		consensus = msg.(*types.Consensus)
-	}
-
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-			if !node.IsHashContained(hash) || (consensus != nil &&
-				consensus.Cons.DestID != 0) {
+			if !node.IsHashContained(hash) {
+				if msg.CmdType() == common.CONSENSUS_TYPE &&
+					node.GetServices() != common.VERIFY_NODE {
+					continue
+				}
 				node.MarkHashAsSeen(hash)
 				node.Send(msg, isConsensus)
 			}

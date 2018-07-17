@@ -198,7 +198,6 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	case *msgtypes.ConsensusPayload:
 		log.Debug("[p2p]TX consensus message")
 		consensusPayload := message.(*msgtypes.ConsensusPayload)
-		consensusPayload.SrcID = this.network.GetID()
 		msg = msgpack.NewConsensus(consensusPayload)
 		isConsensus = true
 		msgHash = consensusPayload.Hash()
