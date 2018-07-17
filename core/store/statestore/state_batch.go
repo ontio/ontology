@@ -30,17 +30,17 @@ import (
 )
 
 type StateBatch struct {
-	store     common.PersistStore
-	memory    map[string]states.StateValue
-	readCache map[string]states.StateValue
-	dbErr     error
+	store  common.PersistStore
+	memory map[string]states.StateValue
+	//readCache map[string]states.StateValue
+	dbErr error
 }
 
 func NewStateStoreBatch(store common.PersistStore) *StateBatch {
 	return &StateBatch{
-		store:     store,
-		memory:    make(map[string]states.StateValue),
-		readCache: make(map[string]states.StateValue),
+		store:  store,
+		memory: make(map[string]states.StateValue),
+		//readCache: make(map[string]states.StateValue),
 	}
 }
 
@@ -73,7 +73,7 @@ func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*comm
 func (self *StateBatch) TryAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
 	pkey := append([]byte{byte(prefix)}, key...)
 	self.memory[string(pkey)] = value
-	delete(self.readCache, string(pkey))
+	//delete(self.readCache, string(pkey))
 }
 
 func (self *StateBatch) TryGetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) error {
@@ -92,9 +92,9 @@ func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (state
 	if state, ok := self.memory[string(pkey)]; ok {
 		return state, nil
 	}
-	if state, ok := self.readCache[string(pkey)]; ok {
-		return state, nil
-	}
+	//if state, ok := self.readCache[string(pkey)]; ok {
+	//	return state, nil
+	//}
 	enc, err := self.store.Get(pkey)
 	if err != nil {
 		if err == common.ErrNotFound {
@@ -109,14 +109,14 @@ func (self *StateBatch) TryGet(prefix common.DataEntryPrefix, key []byte) (state
 	if err != nil {
 		return nil, err
 	}
-	self.readCache[string(pkey)] = stateVal
+	//self.readCache[string(pkey)] = stateVal
 	return stateVal, nil
 }
 
 func (self *StateBatch) TryDelete(prefix common.DataEntryPrefix, key []byte) {
 	pkey := append([]byte{byte(prefix)}, key...)
 	self.memory[string(pkey)] = nil
-	delete(self.readCache, string(pkey))
+	//delete(self.readCache, string(pkey))
 }
 
 func (self *StateBatch) CommitTo() error {

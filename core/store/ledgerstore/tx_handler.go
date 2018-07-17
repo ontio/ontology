@@ -325,11 +325,11 @@ func handleBlockTransactionParallel(store store.LedgerStore, stateBatch *statest
 	eventStore *EventStore, createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice uint64) error {
 	batches := partitionTransactions(block.Transactions)
 	eventNotifies := make([]*event.ExecuteNotify, 0, len(block.Transactions))
+	conflict := 0
 	for _, batchTxs := range batches {
 		resultChan := make(chan execResult, len(batchTxs))
-		overlay := statestore.NewOverlayDB(stateBatch)
 		for i, tx := range batchTxs {
-			txDB := storage.NewCloneCache(overlay, true)
+			txDB := storage.NewCloneCache(stateBatch, true)
 			go func(index int, tx *types.Transaction) {
 				result := handleTransaction(store, txDB, block, tx,
 					createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice)
@@ -344,11 +344,13 @@ func handleBlockTransactionParallel(store store.LedgerStore, stateBatch *statest
 
 		results := make(map[int]execResult)
 		curr := 0
+		overlay := statestore.NewOverlayDB(stateBatch)
 		for curr < len(batchTxs) {
 			res := <-resultChan
 			results[res.index] = res
 
-			for execResult, ok := results[curr]; ok; curr += 1 {
+			execResult, ok := results[curr]
+			for ok {
 				result := execResult.res
 				tx := execResult.tx
 				txDB := execResult.txDB
@@ -372,6 +374,7 @@ func handleBlockTransactionParallel(store store.LedgerStore, stateBatch *statest
 				}
 
 				if needRedo {
+					conflict += 1
 					txDB = storage.NewCloneCache(overlay, false)
 					result := handleTransaction(store, txDB, block, tx,
 						createGasPrice, deployUintCodePrice, invokeUintCodeGasPrice)
@@ -400,7 +403,14 @@ func handleBlockTransactionParallel(store store.LedgerStore, stateBatch *statest
 					result.notifies = append(result.notifies, notifies...)
 				}
 
-				txDB.Commit()
+				for k, v := range txDB.Cache {
+					key := []byte(k)
+					if v == nil {
+						overlay.TryDelete(scommon.DataEntryPrefix(key[0]), key[1:])
+					} else {
+						overlay.TryAdd(scommon.DataEntryPrefix(key[0]), key[1:], v)
+					}
+				}
 
 				eventNotify := &event.ExecuteNotify{
 					TxHash:      txHash,
@@ -414,11 +424,16 @@ func handleBlockTransactionParallel(store store.LedgerStore, stateBatch *statest
 				}
 
 				eventNotifies = append(eventNotifies, eventNotify)
+
+				curr += 1
+				execResult, ok = results[curr]
 			}
 		}
 
 		overlay.CommitTo()
 	}
+
+	log.Infof("parallel execution stats: %d tx, %d batch, %d conflict\n", len(block.Transactions), len(batches), conflict)
 
 	for _, notify := range eventNotifies {
 		SaveNotify(eventStore, notify.TxHash, notify)
