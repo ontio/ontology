@@ -292,15 +292,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	this.connectLock.Lock()
 	if added := this.AddOutConnectingList(addr); added == false {
-		p := this.GetPeerFromAddr(addr)
-		if p != nil {
-			if p.SyncLink.Valid() {
-				log.Info("node exist in connecting list", addr)
-				this.connectLock.Unlock()
-				return errors.New("node exist in connecting list")
-			}
-		}
-		this.RemoveFromConnectingList(addr)
+		log.Info("node exist in connecting list", addr)
 	}
 	this.connectLock.Unlock()
 
