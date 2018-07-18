@@ -95,6 +95,7 @@ var (
 	VM_EXEC_STEP_EXCEED   = errors.NewErr("[NeoVmService] vm execute step exceed!")
 	CONTRACT_NOT_EXIST    = errors.NewErr("[NeoVmService] Get contract code from db fail")
 	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[NeoVmService] DeployCode type error!")
+	VM_EXEC_FAULT         = errors.NewErr("[NeoVmService] vm execute state fault!")
 )
 
 type (
@@ -131,6 +132,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		//check the execution step count
 		if !this.ContextRef.CheckExecStep() {
 			return nil, VM_EXEC_STEP_EXCEED
+		}
+		if this.Engine.State == vm.FAULT {
+			return nil, VM_EXEC_FAULT
 		}
 		if len(this.Engine.Contexts) == 0 || this.Engine.Context == nil {
 			break
