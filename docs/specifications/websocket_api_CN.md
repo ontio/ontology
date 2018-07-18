@@ -19,7 +19,7 @@
 | Error | int64 | 错误代码 |
 | Result | object | 执行结果 |
 | Version | string | 版本号 |
-| Id | int | 请求id|
+| Id | int64 | 请求id|
 
 ## Websocket接口列表
 
@@ -60,6 +60,7 @@
 ```
 {
     "Action": "heartbeat",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
@@ -90,6 +91,7 @@
 {
     "Action": "subscribe",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "ConstractsFilter":["constractAddress"], //optional
     "SubscribeEvent":false, //optional
     "SubscribeJsonBlock":true, //optional
@@ -129,6 +131,7 @@
 ```
 {
     "Action": "getconnectioncount",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
@@ -155,6 +158,7 @@
 {
     "Action": "getblocktxsbyheight",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Height": 100
 }
 ```
@@ -189,6 +193,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getblockbyheight",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Raw": "0",
     "Height": 100
 }
@@ -262,6 +267,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getblockbyhash",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Raw": "0",
     "Hash": "7c3e38afb62db28c7360af7ef3c1baa66aeec27d7d2f60cd22c13ca85b2fd4f3"
 }
@@ -333,6 +339,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getblockheight",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
@@ -360,6 +367,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getblockhash",
+    "Id":12345, //optional
     "Version": "1.0.0",
     "Height": 100
 }
@@ -390,6 +398,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "gettransaction",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "3b90ddc4d33c4954c3d87736120e94915f963546861987757f358c9376422255",
     "Raw": "0"
 }
@@ -441,6 +450,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action":"sendrawtransaction",
     "Version":"1.0.0",
+    "Id":12345, //optional
     "PreExec": 0,
     "Data":"80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
 }
@@ -476,6 +486,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getstorage",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "0144587c1094f6929ed7362d6328cffff4fb4da2",
     "Key" : "4587c1094f6"
 }
@@ -502,6 +513,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getbalance",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Addr": "TA63xZXqdPLtDeznWQ6Ns4UsbqprLrrLJk"
 }
 ```
@@ -530,6 +542,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getcontract",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "fff49c809d302a2956e9dc0012619a452d4b846c"
 }
 ```
@@ -566,6 +579,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getsmartcodeeventbyheight",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Height": 100
 }
 ```
@@ -624,6 +638,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getsmartcodeeventbyhash",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "20046da68ef6a91f6959caa798a5ac7660cc80cf4098921bc63604d93208a8ac"
 }
 ```
@@ -661,6 +676,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getblockheightbytxhash",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8"
 }
 ```
@@ -685,6 +701,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 {
     "Action": "getmerkleproof",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "0087217323d87284d21c3539f216dd030bf9da480372456d1fa02eec74c3226d"
 }
 
@@ -729,7 +746,8 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getsessioncount",
-    "Version": "1.0.0"
+    "Version": "1.0.0",
+    "Id":12345, //optional
 }
 ```
 #### Response Example
@@ -751,7 +769,8 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getgasprice",
-    "Version": "1.0.0"
+    "Version": "1.0.0",
+    "Id":12345, //optional
 }
 ```
 #### Response Example
@@ -776,6 +795,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getallowance",
+    "Id":12345, //optional
     "Asset": "ont",
     "From" :  "A9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
     "To"   :  "AA4WVfUB1ipHL8s3PRSYgeV1HhAU3KcKTq",
@@ -801,6 +821,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getunboundong",
+    "Id":12345, //optional
     "Addr": "ANH5bHrrt111XwNEnuPZj6u95Dd6u7G4D6",
     "Version": "1.0.0"
 }
@@ -824,6 +845,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getmempooltxstate",
+    "Id":12345, //optional
     "Hash": "0b437771a42d18d292741c5d4f1300a135fa6e65b0594e39dc299e7f8279221a",
     "Version": "1.0.0"
 }
@@ -857,6 +879,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getmempooltxcount",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
@@ -880,6 +903,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getversion",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
@@ -902,6 +926,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
 ```
 {
     "Action": "getnetworkid",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
