@@ -133,9 +133,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		if !this.ContextRef.CheckExecStep() {
 			return nil, VM_EXEC_STEP_EXCEED
 		}
-		if this.Engine.State == vm.FAULT {
-			return nil, VM_EXEC_FAULT
-		}
 		if len(this.Engine.Contexts) == 0 || this.Engine.Context == nil {
 			break
 		}
@@ -217,6 +214,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		default:
 			if err := this.Engine.StepInto(); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] vm execute error!")
+			}
+			if this.Engine.State == vm.FAULT {
+				return nil, VM_EXEC_FAULT
 			}
 		}
 	}
