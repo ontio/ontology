@@ -143,6 +143,7 @@ func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 	if pid != nil {
 		var blkHeader = data.Payload.(*msgTypes.BlkHeader)
 		input := &msgCommon.AppendHeaders{
+			FromID:  data.Id,
 			Headers: blkHeader.BlkHdr,
 		}
 		pid.Tell(input)
@@ -156,7 +157,8 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	if pid != nil {
 		var block = data.Payload.(*msgTypes.Block)
 		input := &msgCommon.AppendBlock{
-			Block: &block.Blk,
+			FromID: data.Id,
+			Block:  &block.Blk,
 		}
 		pid.Tell(input)
 	}

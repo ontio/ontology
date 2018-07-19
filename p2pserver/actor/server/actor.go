@@ -91,9 +91,9 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	case *common.RemovePeerID:
 		this.server.OnDelNode(msg.ID)
 	case *common.AppendHeaders:
-		this.server.OnHeaderReceive(msg.Headers)
+		this.server.OnHeaderReceive(msg.FromID, msg.Headers)
 	case *common.AppendBlock:
-		this.server.OnBlockReceive(msg.Block)
+		this.server.OnBlockReceive(msg.FromID, msg.Block)
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {

@@ -201,13 +201,13 @@ func (this *P2PServer) OnDelNode(id uint64) {
 }
 
 // OnHeaderReceive adds the header list from network
-func (this *P2PServer) OnHeaderReceive(headers []*types.Header) {
-	this.blockSync.OnHeaderReceive(headers)
+func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
+	this.blockSync.OnHeaderReceive(fromID, headers)
 }
 
 // OnBlockReceive adds the block from network
-func (this *P2PServer) OnBlockReceive(block *types.Block) {
-	this.blockSync.OnBlockReceive(block)
+func (this *P2PServer) OnBlockReceive(fromID uint64, block *types.Block) {
+	this.blockSync.OnBlockReceive(fromID, block)
 }
 
 // Todo: remove it if no use
