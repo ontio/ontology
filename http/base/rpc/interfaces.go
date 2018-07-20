@@ -294,6 +294,8 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
+		hash = txn.Hash()
+		log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
 		if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
 			if len(params) > 1 {
 				preExec, ok := params[1].(float64)
@@ -308,10 +310,12 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 			}
 		}
 
-		hash = txn.Hash()
+		log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
 		if errCode, desc := bcomn.SendTxToPool(&txn); errCode != ontErrors.ErrNoError {
+			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 			return responsePack(berr.INVALID_TRANSACTION, desc)
 		}
+		log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}

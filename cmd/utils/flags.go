@@ -422,9 +422,9 @@ var (
 	}
 
 	//PreExecute switcher
-	TxpoolPreExecEnableFlag = cli.BoolFlag{
-		Name:  "enabletxpoolpreexec",
-		Usage: "Enable preExecute in tx pool",
+	TxpoolPreExecDisableFlag = cli.BoolFlag{
+		Name:  "disabletxpoolpreexec",
+		Usage: "Disable preExecute in tx pool",
 	}
 
 	//local PreExecute switcher

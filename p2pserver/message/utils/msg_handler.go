@@ -475,7 +475,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 		if p2p.IsAddrFromConnecting(address) {
 			continue
 		}
-		log.Info("connect ip address:", address)
+		log.Debug("connect ip address:", address)
 		go p2p.Connect(address, false)
 	}
 }
