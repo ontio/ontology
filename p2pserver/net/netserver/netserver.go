@@ -312,14 +312,14 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		conn, err = TLSDial(addr)
 		if err != nil {
 			this.RemoveFromConnectingList(addr)
-			log.Error("connect failed: ", err)
+			log.Debug("connect failed: ", err)
 			return err
 		}
 	} else {
 		conn, err = nonTLSDial(addr)
 		if err != nil {
 			this.RemoveFromConnectingList(addr)
-			log.Error("connect failed: ", err)
+			log.Debug("connect failed: ", err)
 			return err
 		}
 	}

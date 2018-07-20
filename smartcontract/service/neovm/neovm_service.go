@@ -95,6 +95,7 @@ var (
 	VM_EXEC_STEP_EXCEED   = errors.NewErr("[NeoVmService] vm execute step exceed!")
 	CONTRACT_NOT_EXIST    = errors.NewErr("[NeoVmService] Get contract code from db fail")
 	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[NeoVmService] DeployCode type error!")
+	VM_EXEC_FAULT         = errors.NewErr("[NeoVmService] vm execute state fault!")
 )
 
 type (
@@ -213,6 +214,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		default:
 			if err := this.Engine.StepInto(); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] vm execute error!")
+			}
+			if this.Engine.State == vm.FAULT {
+				return nil, VM_EXEC_FAULT
 			}
 		}
 	}

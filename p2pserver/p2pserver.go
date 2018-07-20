@@ -54,7 +54,7 @@ type P2PServer struct {
 	blockSync *BlockSyncMgr
 	ledger    *ledger.Ledger
 	ReconnectAddrs
-	recentPeers    []string
+	recentPeers    map[uint32][]string
 	quitSyncRecent chan bool
 	quitOnline     chan bool
 	quitHeartBeat  chan bool
@@ -77,7 +77,7 @@ func NewServer() *P2PServer {
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.blockSync = NewBlockSyncMgr(p)
-	p.recentPeers = make([]string, common.RECENT_LIMIT)
+	p.recentPeers = make(map[uint32][]string)
 	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
@@ -546,6 +546,7 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 
 //tryRecentPeers try connect recent contact peer when service start
 func (this *P2PServer) tryRecentPeers() {
+	netID := config.DefConfig.P2PNode.NetworkMagic
 	if comm.FileExisted(common.RECENT_FILE_NAME) {
 		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
 		if err != nil {
@@ -558,10 +559,10 @@ func (this *P2PServer) tryRecentPeers() {
 			log.Error("parse recent peer file fail: ", err)
 			return
 		}
-		if len(this.recentPeers) > 0 {
+		if len(this.recentPeers[netID]) > 0 {
 			log.Info("try to connect recent peer")
 		}
-		for _, v := range this.recentPeers {
+		for _, v := range this.recentPeers[netID] {
 			go this.network.Connect(v, false)
 		}
 
@@ -581,20 +582,22 @@ func (this *P2PServer) syncUpRecentPeers() {
 			break
 		}
 	}
+
 }
 
 //syncPeerAddr compare snapshot of recent peer with current link,then persist the list
 func (this *P2PServer) syncPeerAddr() {
 	changed := false
-	for i := 0; i < len(this.recentPeers); i++ {
-		p := this.network.GetPeerFromAddr(this.recentPeers[i])
+	netID := config.DefConfig.P2PNode.NetworkMagic
+	for i := 0; i < len(this.recentPeers[netID]); i++ {
+		p := this.network.GetPeerFromAddr(this.recentPeers[netID][i])
 		if p == nil || (p != nil && p.GetSyncState() != common.ESTABLISH) {
-			this.recentPeers = append(this.recentPeers[:i], this.recentPeers[i+1:]...)
+			this.recentPeers[netID] = append(this.recentPeers[netID][:i], this.recentPeers[netID][i+1:]...)
 			changed = true
 			i--
 		}
 	}
-	left := common.RECENT_LIMIT - len(this.recentPeers)
+	left := common.RECENT_LIMIT - len(this.recentPeers[netID])
 	if left > 0 {
 		np := this.network.GetNp()
 		np.Lock()
@@ -605,14 +608,14 @@ func (this *P2PServer) syncPeerAddr() {
 			nodeAddr := ip.To16().String() + ":" +
 				strconv.Itoa(int(p.GetSyncPort()))
 			found := false
-			for i := 0; i < len(this.recentPeers); i++ {
-				if nodeAddr == this.recentPeers[i] {
+			for i := 0; i < len(this.recentPeers[netID]); i++ {
+				if nodeAddr == this.recentPeers[netID][i] {
 					found = true
 					break
 				}
 			}
 			if !found {
-				this.recentPeers = append(this.recentPeers, nodeAddr)
+				this.recentPeers[netID] = append(this.recentPeers[netID], nodeAddr)
 				left--
 				changed = true
 				if left == 0 {
@@ -621,6 +624,13 @@ func (this *P2PServer) syncPeerAddr() {
 			}
 		}
 		np.Unlock()
+	} else {
+		if left < 0 {
+			left = -left
+			this.recentPeers[netID] = append(this.recentPeers[netID][:0], this.recentPeers[netID][0+left:]...)
+			changed = true
+		}
+
 	}
 	if changed {
 		buf, err := json.Marshal(this.recentPeers)
