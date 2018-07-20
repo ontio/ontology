@@ -1454,7 +1454,7 @@ func (self *Server) actionLoop() {
 						self.Index, blkNum, proposal.Block.getProposer())
 
 					// fastforward the block
-					if err := self.sealBlock(proposal.Block, forEmpty); err != nil {
+					if err := self.sealBlock(proposal.Block, forEmpty, true); err != nil {
 						log.Errorf("server %d fastforward stopped at blk %d, seal failed: %s",
 							self.Index, blkNum, err)
 						break
@@ -1938,7 +1938,7 @@ func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error
 //
 func (self *Server) sealProposal(proposal *blockProposalMsg, empty bool) error {
 	// for each round, we can only seal one block
-	if err := self.sealBlock(proposal.Block, empty); err != nil {
+	if err := self.sealBlock(proposal.Block, empty, true); err != nil {
 		return err
 	}
 
@@ -1963,13 +1963,17 @@ func (self *Server) fastForwardBlock(block *Block) error {
 	}
 	if self.GetCurrentBlockNo() == block.getBlockNum() {
 		// block from peer syncer, there should only one candidate block
-		return self.sealBlock(block, false)
+		flag := false
+		if len(block.Block.Header.SigData) == 0 {
+			flag = true
+		}
+		return self.sealBlock(block, false, flag)
 	}
 	return fmt.Errorf("server %d: fastforward blk %d failed, current blkNum: %d",
 		self.Index, block.getBlockNum(), self.GetCurrentBlockNo())
 }
 
-func (self *Server) sealBlock(block *Block, empty bool) error {
+func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 	sealedBlkNum := block.getBlockNum()
 	if sealedBlkNum < self.GetCurrentBlockNo() {
 		// we already in future round
@@ -1981,7 +1985,7 @@ func (self *Server) sealBlock(block *Block, empty bool) error {
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 
-	if err := self.blockPool.setBlockSealed(block, empty); err != nil {
+	if err := self.blockPool.setBlockSealed(block, empty, sigdata); err != nil {
 		return fmt.Errorf("failed to seal proposal: %s", err)
 	}
 
