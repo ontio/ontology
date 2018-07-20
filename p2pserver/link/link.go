@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"errors"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -37,13 +38,26 @@ type Link struct {
 	conn     net.Conn  // Connect socket with the peer node
 	port     uint16    // The server port of the node
 	time     time.Time // The latest time the node activity
+	state    uint32    // The link state
 	recvChan chan *types.MsgPayload
 }
 
 func NewLink() *Link {
-	link := &Link{}
+	link := &Link{
+		state: common.INIT,
+	}
 
 	return link
+}
+
+//SetState set peer state to link
+func (this *Link) SetState(state uint32) {
+	atomic.StoreUint32(&(this.state), state)
+}
+
+//GetState return link state
+func (this *Link) GetState() uint32 {
+	return this.state
 }
 
 //SetID set peer id to link
@@ -51,7 +65,7 @@ func (this *Link) SetID(id uint64) {
 	this.id = id
 }
 
-//GetID return if from peer
+//GetID return id from peer
 func (this *Link) GetID() uint64 {
 	return this.id
 }
@@ -115,13 +129,33 @@ func (this *Link) Rx() {
 			log.Error("read connection error ", err)
 			break
 		}
-
 		t := time.Now()
 		this.UpdateRXTime(t)
-		this.recvChan <- &types.MsgPayload{
-			Id:      this.id,
-			Addr:    this.addr,
-			Payload: msg,
+		msgType := msg.CmdType()
+		if msgType == common.VERSION_TYPE || msgType == common.VERACK_TYPE ||
+			this.state == common.ESTABLISH {
+			this.recvChan <- &types.MsgPayload{
+				Id:      this.id,
+				Addr:    this.addr,
+				Payload: msg,
+			}
+
+		} else {
+			//may be version or verack being processed
+			<-time.After(common.CONN_MONITOR * time.Second)
+			if this.state == common.ESTABLISH {
+				this.recvChan <- &types.MsgPayload{
+					Id:      this.id,
+					Addr:    this.addr,
+					Payload: msg,
+				}
+			} else {
+				//link still valid
+				if this.state != common.INACTIVITY {
+					log.Warnf("receive unrecognize (%s) peer`s msg (%s), close it", this.addr, msgType)
+					break
+				}
+			}
 		}
 
 	}

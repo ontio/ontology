@@ -24,7 +24,6 @@ import (
 	"net"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -127,23 +126,18 @@ func (this *PeerCom) GetHeight() uint64 {
 
 //Peer represent the node in p2p
 type Peer struct {
-	base      PeerCom
-	cap       [32]byte
-	SyncLink  *conn.Link
-	ConsLink  *conn.Link
-	syncState uint32
-	consState uint32
-	txnCnt    uint64
-	rxTxnCnt  uint64
-	connLock  sync.RWMutex
+	base     PeerCom
+	cap      [32]byte
+	SyncLink *conn.Link
+	ConsLink *conn.Link
+	txnCnt   uint64
+	rxTxnCnt uint64
+	connLock sync.RWMutex
 }
 
 //NewPeer return new peer without publickey initial
 func NewPeer() *Peer {
-	p := &Peer{
-		syncState: common.INIT,
-		consState: common.INIT,
-	}
+	p := &Peer{}
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()
 	runtime.SetFinalizer(p, rmPeer)
@@ -158,8 +152,8 @@ func rmPeer(p *Peer) {
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo() {
 	log.Info("Node info:")
-	log.Info("\t syncState = ", this.syncState)
-	log.Info("\t consState = ", this.consState)
+	log.Info("\t syncState = ", this.SyncLink.GetState())
+	log.Info("\t consState = ", this.ConsLink.GetState())
 	log.Info("\t id = ", this.GetID())
 	log.Info("\t addr = ", this.SyncLink.GetAddr())
 	log.Info("\t cap = ", this.cap)
@@ -198,22 +192,22 @@ func (this *Peer) SetConsConn(consLink *conn.Link) {
 
 //GetSyncState return sync state
 func (this *Peer) GetSyncState() uint32 {
-	return this.syncState
+	return this.SyncLink.GetState()
 }
 
 //SetSyncState set sync state to peer
 func (this *Peer) SetSyncState(state uint32) {
-	atomic.StoreUint32(&(this.syncState), state)
+	this.SyncLink.SetState(state)
 }
 
 //GetConsState return peer`s consensus state
 func (this *Peer) GetConsState() uint32 {
-	return this.consState
+	return this.ConsLink.GetState()
 }
 
 //SetConsState set consensus state to peer
 func (this *Peer) SetConsState(state uint32) {
-	atomic.StoreUint32(&(this.consState), state)
+	this.ConsLink.SetState(state)
 }
 
 //GetSyncPort return peer`s sync port
