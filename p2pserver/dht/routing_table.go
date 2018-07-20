@@ -30,11 +30,12 @@ type bucket struct {
 
 type routingTable struct {
 	mu      sync.RWMutex
-	id      types.NodeID
-	buckets []*bucket
-	feedCh  chan *types.FeedEvent
+	id      types.NodeID          // Local node id
+	buckets []*bucket             // Hold routing table
+	feedCh  chan *types.FeedEvent // The channel between dht and netserver
 }
 
+// init initializes a routing table
 func (this *routingTable) init(id types.NodeID, ch chan *types.FeedEvent) {
 	this.buckets = make([]*bucket, types.BUCKET_NUM)
 	for i := range this.buckets {
@@ -47,6 +48,7 @@ func (this *routingTable) init(id types.NodeID, ch chan *types.FeedEvent) {
 	this.feedCh = ch
 }
 
+// locateBucket locates the bucket with a given id
 func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 	dist := logdist(this.id, id)
 	if dist == 0 {
@@ -55,6 +57,7 @@ func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 	return dist - 1, this.buckets[dist-1]
 }
 
+// queryNode checks whether exist a node with a given id
 func (this *routingTable) queryNode(id types.NodeID) *types.Node {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
@@ -77,7 +80,7 @@ func (this *routingTable) addNode(node *types.Node, bucketIndex int) bool {
 		if entry.ID == node.ID {
 			copy(bucket.entries[1:], bucket.entries[:i])
 			bucket.entries[0] = node
-			return false
+			return true
 		}
 	}
 
@@ -91,14 +94,18 @@ func (this *routingTable) addNode(node *types.Node, bucketIndex int) bool {
 
 	copy(bucket.entries[1:], bucket.entries[:])
 	bucket.entries[0] = node
-	feed := &types.FeedEvent{
-		EvtType: types.Add,
-		Event:   node,
+	if this.feedCh != nil {
+		feed := &types.FeedEvent{
+			EvtType: types.Add,
+			Event:   node,
+		}
+		this.feedCh <- feed
 	}
-	this.feedCh <- feed
+
 	return true
 }
 
+// removeNode removes a node with a given id
 func (this *routingTable) removeNode(id types.NodeID) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
@@ -115,7 +122,7 @@ func (this *routingTable) removeNode(id types.NodeID) {
 	}
 	bucket.entries = entries
 
-	if node != nil {
+	if node != nil && this.feedCh != nil {
 		feed := &types.FeedEvent{
 			EvtType: types.Del,
 			Event:   node,
@@ -124,6 +131,7 @@ func (this *routingTable) removeNode(id types.NodeID) {
 	}
 }
 
+// getClosestNodes returns the num nodes in the table that are closest to a given id
 func (this *routingTable) getClosestNodes(num int, targetID types.NodeID) []*types.Node {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
@@ -156,6 +164,7 @@ func (this *routingTable) getClosestNodes(num int, targetID types.NodeID) []*typ
 	return closestList
 }
 
+// getTotalNodeNumInBukcet returns the number of node in a specified bucket
 func (this *routingTable) getTotalNodeNumInBukcet(bucket int) int {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
@@ -167,6 +176,7 @@ func (this *routingTable) getTotalNodeNumInBukcet(bucket int) int {
 	return len(b.entries)
 }
 
+// getLastNodeInBucket returns last node in a specified bucket
 func (this *routingTable) getLastNodeInBucket(bucket int) *types.Node {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
@@ -178,6 +188,7 @@ func (this *routingTable) getLastNodeInBucket(bucket int) *types.Node {
 	return b.entries[len(b.entries)-1]
 }
 
+// getDistance returns the distance between nodes
 func (this *routingTable) getDistance(id1, id2 types.NodeID) int {
 	dist := logdist(id1, id2)
 	return dist
@@ -193,6 +204,7 @@ func (this *routingTable) totalNodes() int {
 	return num
 }
 
+// isNodeInBucket checks whether a given node is in the specified bucket
 func (this *routingTable) isNodeInBucket(id types.NodeID, bucket int) (*types.Node, bool) {
 	this.mu.RLock()
 	defer this.mu.RUnlock()

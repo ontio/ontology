@@ -1,16 +1,35 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package dht
 
 import (
 	"bytes"
 	"errors"
+	"net"
+	"strings"
+	"sync"
+
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
-	"net"
-	"strconv"
-	"sync"
 )
 
 // findNodeHandle handles a find node message from UDP network
@@ -22,14 +41,12 @@ func (this *DHT) findNodeHandle(from *net.UDPAddr, msg mt.Message) {
 	}
 
 	if node := this.routingTable.queryNode(findNode.FromID); node == nil {
+		// findnode must be after ping/pong, in case of DoS attack
 		return
 	}
 
 	this.updateNode(findNode.FromID)
 	this.findNodeReply(from, findNode.TargetID)
-
-	requestId := types.ConstructRequestId(findNode.FromID, types.DHT_FIND_NODE_REQUEST)
-	log.Info("receive find_node of", requestId)
 }
 
 // neighborsHandle handles a neighbors message from UDP network
@@ -51,11 +68,26 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 	waitGroup := new(sync.WaitGroup)
 	for i := 0; i < len(neighbors.Nodes); i++ {
 		node := &neighbors.Nodes[i]
-		nodeAddress := node.IP + ":" + strconv.Itoa(int(node.UDPPort))
-		if this.isInBlackList(nodeAddress) {
+		if this.isInBlackList(node.IP) {
 			continue
 		}
 		if node.ID == this.nodeID {
+			continue
+		}
+		found := false
+		if config.DefConfig.P2PNode.ReservedPeersOnly &&
+			len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
+			for _, ip := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
+				if strings.HasPrefix(node.IP, ip) {
+					found = true
+					break
+				}
+			}
+		} else {
+			found = true
+		}
+
+		if found == false {
 			continue
 		}
 		// ping this node
@@ -80,14 +112,12 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 	this.messagePool.SetResults(liveNodes)
 
 	this.updateNode(neighbors.FromID)
-	log.Info("receive neighbors of", requestId)
 }
 
 // pingHandle handles a ping message from UDP network
 func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 	// black list detect
-	nodeAddress := string(from.IP) + ":" + strconv.Itoa(from.Port)
-	if this.isInBlackList(nodeAddress) {
+	if this.isInBlackList(string(from.IP)) {
 		return
 	}
 	ping, ok := msg.(*mt.DHTPing)
@@ -113,9 +143,6 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 	}
 	this.addNode(node)
 	this.pong(from)
-	this.DisplayRoutingTable()
-	requestId := types.ConstructRequestId(ping.FromID, types.DHT_PING_REQUEST)
-	log.Info("receive ping of", requestId)
 }
 
 // pongHandle handles a pong message from UDP network
@@ -143,7 +170,6 @@ func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
 	this.addNode(node)
 	// remove node from request pool
 	this.messagePool.DeleteRequest(requestId)
-	log.Info("receive pong of", requestId)
 }
 
 // update the node to bucket when receive message from the node
@@ -169,7 +195,7 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 	return nil
 }
 
-// findNodeReply reply remote node when receiving find node
+// findNodeReply replies remote node when receiving find node
 func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	// query routing table
 	nodes := this.routingTable.getClosestNodes(types.BUCKET_SIZE, targetId)
@@ -229,7 +255,6 @@ func (this *DHT) pong(addr *net.UDPAddr) error {
 func (this *DHT) onRequestTimeOut(requestId types.RequestId) {
 	reqType := types.GetReqTypeFromReqId(requestId)
 	this.messagePool.DeleteRequest(requestId)
-	log.Info("request", requestId, "timeout!")
 	if reqType == types.DHT_FIND_NODE_REQUEST {
 		results := make([]*types.Node, 0)
 		this.messagePool.SetResults(results)

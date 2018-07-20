@@ -16,24 +16,25 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package common privides DHT/Kad protocol
 package dht
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"net"
+	"strconv"
 	"sync"
 	"time"
 
-	"bytes"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
-	"strconv"
 )
 
 const (
@@ -77,6 +78,7 @@ func NewDHT(id types.NodeID) *DHT {
 	return dht
 }
 
+// loadSeeds load seed nodes as initial nodes to contact
 func loadSeeds() []*types.Node {
 	seeds := make([]*types.Node, 0, len(config.DefConfig.Genesis.DHT.Seeds))
 	for i := 0; i < len(config.DefConfig.Genesis.DHT.Seeds); i++ {
@@ -86,7 +88,6 @@ func loadSeeds() []*types.Node {
 			UDPPort: node.UDPPort,
 			TCPPort: node.TCPPort,
 		}
-		log.Infof("loadSeeds: ip %s port %d", seed.IP, seed.UDPPort)
 		id := types.ConstructID(seed.IP, seed.UDPPort)
 		b := make([]byte, 8)
 		binary.LittleEndian.PutUint64(b, id)
@@ -94,11 +95,6 @@ func loadSeeds() []*types.Node {
 		seeds = append(seeds, seed)
 	}
 	return seeds
-}
-
-func (this *DHT) SetPort(tcpPort uint16, udpPort uint16) {
-	this.tcpPort = tcpPort
-	this.udpPort = udpPort
 }
 
 // init initializes an instance of DHT
@@ -157,7 +153,7 @@ func (this *DHT) bootstrap() {
 	this.syncAddNodes(this.bootstrapNodes)
 	this.DisplayRoutingTable()
 
-	log.Info("start lookup")
+	log.Info("DHT starts lookup")
 	this.lookup(this.nodeID)
 }
 
@@ -196,6 +192,7 @@ func (this *DHT) loop() {
 				go this.processPacket(pk.From, pk.Payload)
 			}
 		case <-this.stopCh:
+			refresh.Stop()
 			return
 		case <-refresh.C:
 			go this.refreshRoutingTable()
@@ -205,7 +202,7 @@ func (this *DHT) loop() {
 
 // refreshRoutingTable refresh k bucket
 func (this *DHT) refreshRoutingTable() {
-	log.Info("refreshRoutingTable start")
+	log.Info("DHT refreshRoutingTable start")
 	// Todo:
 	this.syncAddNodes(this.bootstrapNodes)
 	results := this.lookup(this.nodeID)
@@ -215,7 +212,7 @@ func (this *DHT) refreshRoutingTable() {
 
 	var targetID types.NodeID
 	rand.Read(targetID[:])
-	log.Infof("refreshRoutingTable: %s", targetID.String())
+	log.Infof("DHT refreshRoutingTable: target id %s", targetID.String())
 	this.lookup(targetID)
 }
 
@@ -225,7 +222,6 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 	bucket, _ := this.routingTable.locateBucket(targetID)
 	node, ret := this.routingTable.isNodeInBucket(targetID, bucket)
 	if ret == true {
-		log.Infof("targetID %s is in the bucket %d", targetID.String(), bucket)
 		return []*types.Node{node}
 	}
 
@@ -310,8 +306,7 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 		return
 	}
 
-	nodeAddress := remotePeer.IP + ":" + strconv.Itoa(int(remotePeer.UDPPort))
-	if !this.isInWhiteList(nodeAddress) {
+	if !this.isInWhiteList(remotePeer.IP) {
 		return
 	}
 
@@ -347,11 +342,11 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 	msg, err := mt.ReadMessage(bytes.NewBuffer(packet))
 	if err != nil {
-		log.Info("receive dht message error:", err)
+		log.Infof("processPacket: receive dht message error: %v", err)
 		return
 	}
 	msgType := msg.CmdType()
-	log.Infof("Recv UDP msg %s %v", msgType, from)
+	log.Debugf("processPacket: UDP msg %s from %v", msgType, from)
 	switch msgType {
 	case common.DHT_PING:
 		this.pingHandle(from, msg)
@@ -373,10 +368,16 @@ func (this *DHT) recvUDPMsg() {
 	for {
 		nbytes, from, err := this.conn.ReadFromUDP(buf)
 		if err != nil {
-			log.Error("ReadFromUDP error:", err)
+			log.Errorf("recvUDPMsg: ReadFromUDP error: %v", err)
 			return
 		}
-		// Todo:
+
+		if this.isInBlackList(string(from.IP)) {
+			log.Infof("recvUDPMsg: receive a msg from %v in blacklist",
+				from)
+			continue
+		}
+
 		pk := &types.DHTMessage{
 			From:    from,
 			Payload: make([]byte, 0, nbytes),
@@ -390,12 +391,13 @@ func (this *DHT) recvUDPMsg() {
 func (this *DHT) listenUDP(laddr string) error {
 	addr, err := net.ResolveUDPAddr("udp", laddr)
 	if err != nil {
-		log.Error("failed to resolve udp address", laddr, "error: ", err)
+		log.Errorf("listenUDP: failed to resolve udp address %s, err %v",
+			laddr, err)
 		return err
 	}
 	this.conn, err = net.ListenUDP("udp", addr)
 	if err != nil {
-		log.Error("failed to listen udp on", addr, "error: ", err)
+		log.Errorf("listenUDP: failed to listen udp on %s err %v", addr, err)
 		return err
 	}
 	log.Infof("DHT is listening on %s", laddr)
@@ -407,33 +409,38 @@ func (this *DHT) listenUDP(laddr string) error {
 func (this *DHT) send(addr *net.UDPAddr, msg []byte) error {
 	_, err := this.conn.WriteToUDP(msg, addr)
 	if err != nil {
-		log.Error("failed to send msg", err)
+		log.Errorf("DHT failed to send msg to addr %v. err %v", addr, err)
 		return err
 	}
 	return nil
 }
 
+// AddBlackList adds a node to blacklist
 func (this *DHT) AddBlackList(addr string) {
 	this.blackList = append(this.blackList, addr)
 }
 
+// AddWhiteList adds a node to whitelist
 func (this *DHT) AddWhiteList(addr string) {
 	this.whiteList = append(this.whiteList, addr)
 }
 
+// SaveBlackListToFile saves blacklist to a local file
 func (this *DHT) SaveBlackListToFile() {
 	this.saveListToFile(this.blackList, DHT_BLACK_LIST_FILE)
 }
 
+// SaveWhiteListToFile saves whitelist to a local file
 func (this *DHT) SaveWhiteListToFile() {
 	this.saveListToFile(this.whiteList, DHT_WHITE_LIST_FILE)
 }
 
+// getNodeUDPAddr returns UDP address with a given node
 func getNodeUDPAddr(node *types.Node) (*net.UDPAddr, error) {
 	addr := new(net.UDPAddr)
 	addr.IP = net.ParseIP(node.IP).To16()
 	if addr.IP == nil {
-		log.Error("Parse IP address error\n", node.IP)
+		log.Errorf("getNodeUDPAddr: failed to parse IP %s", node.IP)
 		return nil, errors.New("Parse IP address error")
 	}
 	addr.Port = int(node.UDPPort)
@@ -453,6 +460,7 @@ func (this *DHT) DisplayRoutingTable() {
 	}
 }
 
+// Resolve searches for a specific node with the given ID.
 func (this *DHT) Resolve(id uint64) []*types.Node {
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, id)
@@ -462,7 +470,6 @@ func (this *DHT) Resolve(id uint64) []*types.Node {
 	bucket, _ := this.routingTable.locateBucket(nodeID)
 	node, ret := this.routingTable.isNodeInBucket(nodeID, bucket)
 	if ret == true {
-		log.Infof("targetID %s is in the bucket %d", nodeID.String(), bucket)
 		return []*types.Node{node}
 	}
 

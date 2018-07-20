@@ -263,7 +263,6 @@ func NewNeighbors(nodeID types.NodeID, nodes []*types.Node) mt.Message {
 		Nodes:  make([]types.Node, 0, len(nodes)),
 	}
 	for _, node := range nodes {
-		log.Infof("ReturnNeightbors: %s:%d", node.IP, node.UDPPort)
 		neighbors.Nodes = append(neighbors.Nodes, *node)
 	}
 
