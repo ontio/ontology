@@ -420,7 +420,6 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 
 type VBFTPeerStakeInfo struct {
 	Index      uint32 `json:"index"`
-	NetWorkId  uint64 `json:"networkId`
 	PeerPubkey string `json:"peerPubkey"`
 	Address    string `json:"address"`
 	InitPos    uint64 `json:"initPos"`
