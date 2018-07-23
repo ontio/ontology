@@ -126,7 +126,7 @@ func (this *NetServer) init(id uint64) error {
 		this.base.SetConsPort(0)
 	}
 
-	this.base.SetUDPPort(config.DefConfig.Genesis.DHT.UDPPort)
+	this.base.SetUDPPort(config.DefConfig.P2PNode.NetworkMgrCfg.DHT.UDPPort)
 	this.base.SetRelay(true)
 
 	/*rand.Seed(time.Now().UnixNano())

@@ -102,6 +102,11 @@ var (
 	}
 
 	//P2P setting
+	NetworkMgrFlag = cli.StringFlag{
+		Name:  "networkmgrfile",
+		Usage: "network manager file",
+		Value: config.DEFAULT_NETWORK_MGR_FILE,
+	}
 	ReservedPeersOnlyFlag = cli.BoolFlag{
 		Name:  "reserved-only",
 		Usage: "Connect reserved peers `<address>` only",

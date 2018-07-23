@@ -67,8 +67,8 @@ type DHT struct {
 func NewDHT(id types.NodeID) *DHT {
 	dht := &DHT{
 		nodeID:         id,
-		addr:           config.DefConfig.Genesis.DHT.IP,
-		udpPort:        uint16(config.DefConfig.Genesis.DHT.UDPPort),
+		addr:           config.DefConfig.P2PNode.NetworkMgrCfg.DHT.IP,
+		udpPort:        uint16(config.DefConfig.P2PNode.NetworkMgrCfg.DHT.UDPPort),
 		tcpPort:        uint16(config.DefConfig.P2PNode.NodePort),
 		routingTable:   &routingTable{},
 		bootstrapNodes: make(map[types.NodeID]*types.Node, 0),
@@ -80,9 +80,9 @@ func NewDHT(id types.NodeID) *DHT {
 
 // loadSeeds load seed nodes as initial nodes to contact
 func loadSeeds() []*types.Node {
-	seeds := make([]*types.Node, 0, len(config.DefConfig.Genesis.DHT.Seeds))
-	for i := 0; i < len(config.DefConfig.Genesis.DHT.Seeds); i++ {
-		node := config.DefConfig.Genesis.DHT.Seeds[i]
+	seeds := make([]*types.Node, 0, len(config.DefConfig.P2PNode.NetworkMgrCfg.DHT.Seeds))
+	for i := 0; i < len(config.DefConfig.P2PNode.NetworkMgrCfg.DHT.Seeds); i++ {
+		node := config.DefConfig.P2PNode.NetworkMgrCfg.DHT.Seeds[i]
 		seed := &types.Node{
 			IP:      node.IP,
 			UDPPort: node.UDPPort,
@@ -116,13 +116,13 @@ func (this *DHT) Start() {
 	for _, seed := range seeds {
 		this.bootstrapNodes[seed.ID] = seed
 	}
-
-	go this.loop()
-
 	err := this.listenUDP(":" + strconv.Itoa(int(this.udpPort)))
 	if err != nil {
 		log.Errorf("listen udp failed.")
+		return
 	}
+
+	go this.loop()
 
 	this.bootstrap()
 }
@@ -325,6 +325,7 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 			lastNode := this.routingTable.getLastNodeInBucket(bucketIndex)
 			addr, err := getNodeUDPAddr(lastNode)
 			if err != nil {
+				log.Infof("addnode: node ip %s, udp %d, tcp %d", remoteNode.IP, remoteNode.UDPPort, remoteNode.TCPPort)
 				this.routingTable.removeNode(lastNode.ID)
 				this.routingTable.addNode(remoteNode, bucketIndex)
 				return

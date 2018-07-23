@@ -166,6 +166,35 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 		}
 	}
 
+	// load network manage config
+	networkMgrFile := ctx.GlobalString(utils.GetFlagName(utils.NetworkMgrFlag))
+	if !common.FileExisted(networkMgrFile) {
+		log.Infof("file %s not exist\n", networkMgrFile)
+		return
+	}
+	data, err := ioutil.ReadFile(networkMgrFile)
+	if err != nil {
+		log.Errorf("ioutil.ReadFile:%s error:%s", networkMgrFile, err)
+		return
+	}
+	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
+
+	err = json.Unmarshal(data, &cfg.NetworkMgrCfg)
+	if err != nil {
+		log.Errorf("json.Unmarshal network mgr config:%s error:%s", data, err)
+		return
+	}
+	for i := 0; i < len(cfg.NetworkMgrCfg.Peers); i++ {
+		log.Infof("Peer nodeId %d, pubkey %s", cfg.NetworkMgrCfg.Peers[i].NodeId,
+			cfg.NetworkMgrCfg.Peers[i].PubKey)
+	}
+	log.Infof("Local node IP: %s, UDPPort: %d", cfg.NetworkMgrCfg.DHT.IP,
+		cfg.NetworkMgrCfg.DHT.UDPPort)
+
+	for i := 0; i < len(cfg.NetworkMgrCfg.DHT.Seeds); i++ {
+		seed := cfg.NetworkMgrCfg.DHT.Seeds[i]
+		log.Infof("seed IP: %s, udp: %d, tcp: %d", seed.IP, seed.UDPPort, seed.TCPPort)
+	}
 }
 
 func setRpcConfig(ctx *cli.Context, cfg *config.RpcConfig) {

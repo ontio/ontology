@@ -100,6 +100,7 @@ func setupAPP() *cli.App {
 		utils.DisableSyncVerifyTxFlag,
 		utils.BroadcastNetTxEnableFlag,
 		//p2p setting
+		utils.NetworkMgrFlag,
 		utils.ReservedPeersOnlyFlag,
 		utils.ReservedPeersFileFlag,
 		utils.NetworkIdFlag,

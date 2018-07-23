@@ -162,6 +162,7 @@ func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
 	node, ok := this.messagePool.GetRequestData(requestId)
 	if !ok {
 		// request pool doesn't contain the node, ping timeout
+		log.Infof("pongHandle: from %v ", from)
 		this.routingTable.removeNode(pong.FromID)
 		return
 	}

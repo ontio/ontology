@@ -72,8 +72,8 @@ type ReconnectAddrs struct {
 
 //NewServer return a new p2pserver according to the pubkey
 func NewServer() *P2PServer {
-	id := dt.ConstructID(config.DefConfig.Genesis.DHT.IP,
-		config.DefConfig.Genesis.DHT.UDPPort)
+	id := dt.ConstructID(config.DefConfig.P2PNode.NetworkMgrCfg.DHT.IP,
+		config.DefConfig.P2PNode.NetworkMgrCfg.DHT.UDPPort)
 	n := netserver.NewNetServer(id)
 
 	p := &P2PServer{

@@ -71,8 +71,9 @@ const (
 	DEFAULT_GAS_LIMIT                       = 20000
 	DEFAULT_GAS_PRICE                       = 500
 
-	DEFAULT_DATA_DIR      = "./Chain"
-	DEFAULT_RESERVED_FILE = "./peers.rsv"
+	DEFAULT_DATA_DIR         = "./Chain"
+	DEFAULT_RESERVED_FILE    = "./peers.rsv"
+	DEFAULT_NETWORK_MGR_FILE = "./networkmgr.json"
 )
 
 const (
@@ -179,30 +180,6 @@ var PolarisConfig = &GenesisConfig{
 	},
 	DBFT: &DBFTConfig{},
 	SOLO: &SOLOConfig{},
-	DHT: &DHTConfig{
-		UDPPort: uint16(DEAFAULT_DHT_UTP_PORT),
-		IP:      "127.0.0.1",
-		Seeds: []DHTNode{
-			{
-				IP:      "127.0.0.1",
-				UDPPort: 20010,
-				TCPPort: 20011,
-			},
-			{
-				IP:      "127.0.0.1",
-				UDPPort: 30010,
-				TCPPort: 30011},
-			{
-				IP:      "127.0.0.1",
-				UDPPort: 40010,
-				TCPPort: 40011},
-			{
-				IP:      "127.0.0.1",
-				UDPPort: 50010,
-				TCPPort: 50011,
-			},
-		},
-	},
 }
 
 var MainNetConfig = &GenesisConfig{
@@ -266,30 +243,6 @@ var MainNetConfig = &GenesisConfig{
 	},
 	DBFT: &DBFTConfig{},
 	SOLO: &SOLOConfig{},
-	DHT: &DHTConfig{
-		UDPPort: uint16(DEAFAULT_DHT_UTP_PORT),
-		IP:      "127.0.0.1",
-		Seeds: []DHTNode{
-			{
-				IP:      "127.0.0.1",
-				UDPPort: 20010,
-				TCPPort: 20011,
-			},
-			{
-				IP:      "127.0.0.1",
-				UDPPort: 30010,
-				TCPPort: 30011},
-			{
-				IP:      "127.0.0.1",
-				UDPPort: 40010,
-				TCPPort: 40011},
-			{
-				IP:      "127.0.0.1",
-				UDPPort: 50010,
-				TCPPort: 50011,
-			},
-		},
-	},
 }
 
 var DefConfig = NewOntologyConfig()
@@ -300,7 +253,6 @@ type GenesisConfig struct {
 	VBFT          *VBFTConfig
 	DBFT          *DBFTConfig
 	SOLO          *SOLOConfig
-	DHT           *DHTConfig
 }
 
 func NewGenesisConfig() *GenesisConfig {
@@ -310,7 +262,6 @@ func NewGenesisConfig() *GenesisConfig {
 		VBFT:          &VBFTConfig{},
 		DBFT:          &DBFTConfig{},
 		SOLO:          &SOLOConfig{},
-		DHT:           &DHTConfig{},
 	}
 }
 
@@ -320,7 +271,6 @@ func (this *GenesisConfig) Reset() {
 	this.VBFT = &VBFTConfig{}
 	this.DBFT = &DBFTConfig{}
 	this.SOLO = &SOLOConfig{}
-	this.DHT = &DHTConfig{}
 }
 
 //
@@ -531,6 +481,16 @@ type SOLOConfig struct {
 	Bookkeepers  []string
 }
 
+type NetworkMgrCfg struct {
+	Peers []PeerIDPubKey `json:"peers"`
+	DHT   DHTConfig      `json:"DHT"`
+}
+
+type PeerIDPubKey struct {
+	NodeId uint64 `json:"networkId`
+	PubKey string `json:"peerPubkey"`
+}
+
 type DHTConfig struct {
 	UDPPort uint16    `json:"UDPPort"`
 	IP      string    `json:"IP"`
@@ -566,6 +526,7 @@ type P2PRsvConfig struct {
 type P2PNodeConfig struct {
 	ReservedPeersOnly         bool
 	ReservedCfg               *P2PRsvConfig
+	NetworkMgrCfg             *NetworkMgrCfg
 	NetworkMagic              uint32
 	NetworkId                 uint32
 	NetworkName               string
@@ -630,6 +591,7 @@ func NewOntologyConfig() *OntologyConfig {
 		P2PNode: &P2PNodeConfig{
 			ReservedCfg:               &P2PRsvConfig{},
 			ReservedPeersOnly:         false,
+			NetworkMgrCfg:             &NetworkMgrCfg{},
 			NetworkId:                 NETWORK_ID_MAIN_NET,
 			NetworkName:               GetNetworkName(NETWORK_ID_MAIN_NET),
 			NetworkMagic:              GetNetworkMagic(NETWORK_ID_MAIN_NET),
