@@ -31,23 +31,31 @@ The public test network is described below. We sincerely welcome and hope more d
 
 ## Contents
 
-* [Build development environment](#build-development-environment)
-* [Get Ontology](#get-ontology)
-	* [Get from source code](#get-from-source-code)
-	* [get from release](#get-from-release)
-* [Server deployment](#server-deployment)
-	* [Select network](#select-network)
-		* [Mainnet sync node deployment](#mainnet-sync-node-deployment)
-		* [Public test network Polaris sync node deployment](#public-test-network-polaris-sync-node-deployment)
-		* [Single-host deployment configuration](#single-host-deployment-configuration)
-		* [Multi-hosts deployment configuration](#multi-hosts-deployment-configuration)
-	* [Implement](#implement)
-	* [ONT transfer sample](#ont-transfer-sample)
-* [Contributions](#contributions)
-* [Open source community](#open-source-community)
-	* [Site](#site)
-	* [Developer Discord Group](#developer-discord-group)
-* [License](#license)
+- [Features](#features)
+- [Contents](#contents)
+- [Build development environment](#build-development-environment)
+- [Get Ontology](#get-ontology)
+    - [Get from source code](#get-from-source-code)
+    - [get from release](#get-from-release)
+- [Server deployment](#server-deployment)
+    - [Select network](#select-network)
+        - [Mainnet sync node deployment](#mainnet-sync-node-deployment)
+        - [Public test network Polaris sync node deployment](#public-test-network-polaris-sync-node-deployment)
+        - [Single-host deployment configuration](#single-host-deployment-configuration)
+        - [Multi-hosts deployment configuration](#multi-hosts-deployment-configuration)
+            - [VBFT Deployment](#vbft-deployment)
+            - [DBFT Deployment](#dbft-deployment)
+        - [Deploy Completed](#deploy-completed)
+    - [Implement](#implement)
+        - [Run in docker](#run-in-docker)
+    - [ONT transfer sample](#ont-transfer-sample)
+    - [Query transfer status sample](#query-transfer-status-sample)
+    - [Query account balance sample](#query-account-balance-sample)
+- [Contributions](#contributions)
+- [Open source community](#open-source-community)
+    - [Site](#site)
+    - [Developer Discord Group](#developer-discord-group)
+- [License](#license)
 
 ## Build development environment
 The requirements to build Ontology are:
@@ -88,7 +96,9 @@ After building the source code sucessfully, you should see two executable progra
 - `tools/sigsvr`: (optional)Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirement.detail docs can be reference at [link](./docs/specifications/sigsvr.md)
 
 ### get from release
-You can download at [release page](https://github.com/ontio/ontology/releases).
+- You can download latest ontology binary file with  curl  https://dev.ont.io/ontology_install  | sh .
+
+- You can download other version at [release page](https://github.com/ontio/ontology/releases).
 
 ## Server deployment
 ### Select network
