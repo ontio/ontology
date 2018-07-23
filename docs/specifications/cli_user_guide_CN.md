@@ -81,7 +81,7 @@ Ontology cli有很多启动参数，用于配置很管理Ontology节点的一些
 #### 1.1.1 Ontology 系统参数
 
 --config
-config 参数用于指定当前Ontology节点创世区块配置文件的路径。如果不指定，将使用Polaris测试网的创世块配置。注意，同一个网络所有节点的创世区块配置必须一致，否则会因为区块数据不兼容导致无法启动节点或同步区块数据。
+config 参数用于指定当前Ontology节点创世区块配置文件的路径。如果不指定，将使用Ontology主网的创世块配置。注意，同一个网络所有节点的创世区块配置必须一致，否则会因为区块数据不兼容导致无法启动节点或同步区块数据。
 
 --loglevel
 loglevel 参数用于设置Ontology输出的日志级别。Ontology支持从0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel 的7级日志，日志等级由低到高，输出的日志量由多到少。默认值是1，即只输出info级及其之上级别的日志。
@@ -91,15 +91,6 @@ disableeventlog 参数用于关闭智能合约执行时输出的event log，以�
 
 --datadir
 datadir 参数用于指定区块数据的存放目录。默认值为"./Chain"。
-
---import
-import 参数用于启动Ontology节点的区块导入功能，通过导入本地文件的方式来提高区块同步速度。
-
---importheight
-importheight 参数配合--import使用，用于指定导入的终止区块高度。如果importheight指定的区块高度小于区块文件的最大高度时，只导入到importheight指定的高度，剩余的区块会停止导入。默认值为0，表示导入所有的区块。
-
---importfile
-importfile 参数配合--import使用，用于区块导入时指定导入文件的路径。默认值为"./blocks.dat"。
 
 #### 1.1.2 账户参数
 
@@ -838,14 +829,20 @@ Ontology Cli支持导出本地节点的区块数据到一个压缩文件中，�
 
 #### 6.1.1 导出区块参数
 
---file
-file参数指定导出的文件路径。默认值为：blocks.dat
+--rpcport
+rpcport 参数用于指定Ontology节点的rpc端口号，默认值为20336。
 
---height
-height参数指定导出的终止区块高度。当本地节点的当前区块高度大于导出的终止高度，大于的部分不会被导出。height等于0，表示导出当前节点的所有区块。默认值为0。
+--exportfile
+exportfile 参数指定导出的文件路径。默认值为：./OntBlocks.dat
+
+--startheight
+startheight 参数指定导出区块的起始高度。默认值为0。
+
+--endheight
+endheight 参数用于指定导出区块的终止高度。默认值为0，表示导出所有区块。
 
 --speed
-speed参数指定导出速度。分别用h表示high，m表示middle，l表示low。默认值为m。
+speed 参数指定导出速度。分别用h表示high，m表示middle，l表示low。默认值为m。
 
 区块导出
 
@@ -857,14 +854,26 @@ speed参数指定导出速度。分别用h表示high，m表示middle，l表示lo
 
 #### 6.2.1 导入区块参数
 
---importheight
-importheight 参数指定导入的目标区块高度。如果importheight指定的区块高度小于区块文件的最大高度时，只导入到importheight指定的高度，剩余的区块会停止导入。默认值为0，表示导入所有的区块。
+--datadir
+datadir 参数用于指定区块数据存储目录
+
+--config
+config 参数用于指定当前Ontology节点创世区块配置文件的路径。如果不指定，将使用Ontolog主网的创世块配置。
+
+--disableeventlog
+disableeventlog 参数用于关闭导入区块时生成合约日志功能。
+
+--networkid
+networkid 参数用于指定需要导入的网路ID。默认值为主网networkid。
+
+--endheight
+endheight 参数指定导入的目标区块高度。如果importheight指定的区块高度小于区块文件的最大高度时，只导入到importheight指定的高度，剩余的区块会停止导入。默认值为0，表示导入所有的区块。
 
 --importfile
-importfile 参数配合--import使用，用于区块导入时指定导入文件的路径。默认值为"./blocks.dat"。
+importfile 参数用于指定导入文件的路径。默认值为"./OntBlocks.dat"。
 
 导入区块
 
 ```
-./ontology import
+./ontology import --importfile=./OntBlocks.dat
 ```

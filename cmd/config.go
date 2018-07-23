@@ -65,7 +65,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 }
 
 func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
-	netWorkId := ctx.GlobalInt(utils.GetFlagName(utils.NetworkIdFlag))
+	netWorkId := ctx.Int(utils.GetFlagName(utils.NetworkIdFlag))
 	switch netWorkId {
 	case config.NETWORK_ID_MAIN_NET:
 		cfg.Genesis = config.MainNetConfig
@@ -73,7 +73,7 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 		cfg.Genesis = config.PolarisConfig
 	}
 
-	if ctx.GlobalBool(utils.GetFlagName(utils.EnableTestModeFlag)) {
+	if ctx.Bool(utils.GetFlagName(utils.EnableTestModeFlag)) {
 		cfg.Genesis.ConsensusType = config.CONSENSUS_TYPE_SOLO
 		cfg.Genesis.SOLO.GenBlockTime = ctx.Uint(utils.GetFlagName(utils.TestModeGenBlockTimeFlag))
 		if cfg.Genesis.SOLO.GenBlockTime <= 1 {
@@ -86,7 +86,7 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 		return nil
 	}
 
-	genesisFile := ctx.GlobalString(utils.GetFlagName(utils.ConfigFlag))
+	genesisFile := ctx.String(utils.GetFlagName(utils.ConfigFlag))
 	if !common.FileExisted(genesisFile) {
 		return nil
 	}
@@ -123,31 +123,31 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 }
 
 func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
-	cfg.LogLevel = ctx.GlobalUint(utils.GetFlagName(utils.LogLevelFlag))
-	cfg.EnableEventLog = !ctx.GlobalBool(utils.GetFlagName(utils.DisableEventLogFlag))
-	cfg.GasLimit = ctx.GlobalUint64(utils.GetFlagName(utils.GasLimitFlag))
-	cfg.GasPrice = ctx.GlobalUint64(utils.GetFlagName(utils.GasPriceFlag))
-	cfg.DataDir = ctx.GlobalString(utils.GetFlagName(utils.DataDirFlag))
+	cfg.LogLevel = ctx.Uint(utils.GetFlagName(utils.LogLevelFlag))
+	cfg.EnableEventLog = !ctx.Bool(utils.GetFlagName(utils.DisableEventLogFlag))
+	cfg.GasLimit = ctx.Uint64(utils.GetFlagName(utils.GasLimitFlag))
+	cfg.GasPrice = ctx.Uint64(utils.GetFlagName(utils.GasPriceFlag))
+	cfg.DataDir = ctx.String(utils.GetFlagName(utils.DataDirFlag))
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
-	cfg.EnableConsensus = ctx.GlobalBool(utils.GetFlagName(utils.EnableConsensusFlag))
-	cfg.MaxTxInBlock = ctx.GlobalUint(utils.GetFlagName(utils.MaxTxInBlockFlag))
+	cfg.EnableConsensus = ctx.Bool(utils.GetFlagName(utils.EnableConsensusFlag))
+	cfg.MaxTxInBlock = ctx.Uint(utils.GetFlagName(utils.MaxTxInBlockFlag))
 }
 
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
-	cfg.NetworkId = uint32(ctx.GlobalUint(utils.GetFlagName(utils.NetworkIdFlag)))
+	cfg.NetworkId = uint32(ctx.Uint(utils.GetFlagName(utils.NetworkIdFlag)))
 	cfg.NetworkMagic = config.GetNetworkMagic(cfg.NetworkId)
 	cfg.NetworkName = config.GetNetworkName(cfg.NetworkId)
-	cfg.NodePort = ctx.GlobalUint(utils.GetFlagName(utils.NodePortFlag))
-	cfg.NodeConsensusPort = ctx.GlobalUint(utils.GetFlagName(utils.ConsensusPortFlag))
-	cfg.DualPortSupport = ctx.GlobalBool(utils.GetFlagName(utils.DualPortSupportFlag))
-	cfg.ReservedPeersOnly = ctx.GlobalBool(utils.GetFlagName(utils.ReservedPeersOnlyFlag))
-	cfg.MaxConnInBound = ctx.GlobalUint(utils.GetFlagName(utils.MaxConnInBoundFlag))
-	cfg.MaxConnOutBound = ctx.GlobalUint(utils.GetFlagName(utils.MaxConnOutBoundFlag))
-	cfg.MaxConnInBoundForSingleIP = ctx.GlobalUint(utils.GetFlagName(utils.MaxConnInBoundForSingleIPFlag))
+	cfg.NodePort = ctx.Uint(utils.GetFlagName(utils.NodePortFlag))
+	cfg.NodeConsensusPort = ctx.Uint(utils.GetFlagName(utils.ConsensusPortFlag))
+	cfg.DualPortSupport = ctx.Bool(utils.GetFlagName(utils.DualPortSupportFlag))
+	cfg.ReservedPeersOnly = ctx.Bool(utils.GetFlagName(utils.ReservedPeersOnlyFlag))
+	cfg.MaxConnInBound = ctx.Uint(utils.GetFlagName(utils.MaxConnInBoundFlag))
+	cfg.MaxConnOutBound = ctx.Uint(utils.GetFlagName(utils.MaxConnOutBoundFlag))
+	cfg.MaxConnInBoundForSingleIP = ctx.Uint(utils.GetFlagName(utils.MaxConnInBoundForSingleIPFlag))
 
-	rsvfile := ctx.GlobalString(utils.GetFlagName(utils.ReservedPeersFileFlag))
+	rsvfile := ctx.String(utils.GetFlagName(utils.ReservedPeersFileFlag))
 	if cfg.ReservedPeersOnly {
 		if !common.FileExisted(rsvfile) {
 			log.Infof("file %s not exist\n", rsvfile)
@@ -170,18 +170,18 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 
 func setRpcConfig(ctx *cli.Context, cfg *config.RpcConfig) {
 	cfg.EnableHttpJsonRpc = !ctx.Bool(utils.GetFlagName(utils.RPCDisabledFlag))
-	cfg.HttpJsonPort = ctx.GlobalUint(utils.GetFlagName(utils.RPCPortFlag))
-	cfg.HttpLocalPort = ctx.GlobalUint(utils.GetFlagName(utils.RPCLocalProtFlag))
+	cfg.HttpJsonPort = ctx.Uint(utils.GetFlagName(utils.RPCPortFlag))
+	cfg.HttpLocalPort = ctx.Uint(utils.GetFlagName(utils.RPCLocalProtFlag))
 }
 
 func setRestfulConfig(ctx *cli.Context, cfg *config.RestfulConfig) {
-	cfg.EnableHttpRestful = ctx.GlobalBool(utils.GetFlagName(utils.RestfulEnableFlag))
-	cfg.HttpRestPort = ctx.GlobalUint(utils.GetFlagName(utils.RestfulPortFlag))
+	cfg.EnableHttpRestful = ctx.Bool(utils.GetFlagName(utils.RestfulEnableFlag))
+	cfg.HttpRestPort = ctx.Uint(utils.GetFlagName(utils.RestfulPortFlag))
 }
 
 func setWebSocketConfig(ctx *cli.Context, cfg *config.WebSocketConfig) {
-	cfg.EnableHttpWs = ctx.GlobalBool(utils.GetFlagName(utils.WsEnabledFlag))
-	cfg.HttpWsPort = ctx.GlobalUint(utils.GetFlagName(utils.WsPortFlag))
+	cfg.EnableHttpWs = ctx.Bool(utils.GetFlagName(utils.WsEnabledFlag))
+	cfg.HttpWsPort = ctx.Uint(utils.GetFlagName(utils.WsPortFlag))
 }
 
 func SetRpcPort(ctx *cli.Context) {

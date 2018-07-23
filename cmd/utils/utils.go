@@ -26,6 +26,7 @@ import (
 	"io/ioutil"
 	"math"
 	"math/big"
+	"os"
 	"strings"
 )
 
@@ -109,4 +110,27 @@ func GetJsonObjectFromFile(filePath string, jsonObject interface{}) error {
 		return fmt.Errorf("json.Unmarshal %s error:%s", data, err)
 	}
 	return nil
+}
+
+func GetStoreDirPath(dataDir, networkName string) string {
+	return dataDir + string(os.PathSeparator) + networkName
+}
+
+func GenExportBlocksFileName(name string, start, end uint32) string {
+	index := strings.LastIndex(name, ".")
+	fileName := ""
+	fileExt := ""
+	if index < 0 {
+		fileName = name
+	} else {
+		fileName = name[0:index]
+		if index < len(name)-1 {
+			fileExt = name[index+1:]
+		}
+	}
+	fileName = fmt.Sprintf("%s_%d_%d", fileName, start, end)
+	if index > 0 {
+		fileName = fileName + "." + fileExt
+	}
+	return fileName
 }

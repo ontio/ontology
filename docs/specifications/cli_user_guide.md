@@ -86,17 +86,6 @@ The disableeventlog parameter is used to disable the event log output when the s
 --datadir
 The datadir parameter specifies the storage path of the block data. The default value is "./Chain".
 
---import
-The import parameter is used to start the block import function of the Ontology node and increase the block synchronization speed by importing local files.
-
-
---importheight
-The importheight parameter is used with --import to specify the height of the imported target block. If the height of the block specified by importheight is less than the maximum height of the block file, it will import all blocks whose height is less than the importheight value. The default value is 0, which means import all the blocks.
-
-
---importfile
-The importfile parameter is used with --import to specify the imported file path. The default value is "./blocks.dat".
-
 #### 1.1.2 Account Parameters
 
 --wallet, -w
@@ -181,7 +170,7 @@ The disablesyncverifytx is used to disable sync verify transaction in send trans
 
 #### 1.2.1 Genesis Block Configuration File
 
-For deploying node, we need to provide the genesis block configuration file for initializing the genesis block. Ontology supports the VBFT and dBFT consensus algorithms. A blockchain network must use the same consensus algorithm, otherwise nodes will not work properly. Because of Ontology  built-in the config of Polaris test net, if you start Ontology without specifies any  config of genesis, will access Polaris test net. However, if you need to build an Ontology private chain, you need to provide the config of genesis block via --config flag.
+For deploying node, we need to provide the genesis block configuration file for initializing the genesis block. Ontology supports the VBFT and dBFT consensus algorithms. A blockchain network must use the same consensus algorithm, otherwise nodes will not work properly. Because of Ontology  built-in the config of main net, if you start Ontology without specifies any config of genesis, will access Ontology main net. However, if you need to build an Ontology private chain, you need to provide the config of genesis block via --config flag.
 
 To deploy Ontology test network with dBFT consensus algorithm requires a minimum of 4 nodes, and to deploy Ontology test network with the VBFT consensus algorithm requires a minimum of 7 nodes.
 
@@ -847,11 +836,17 @@ Ontology CLI supports exporting the local node's block data to a compressed file
 
 #### 6.1.1 Export Block Parameters
 
---file
-The file parameter specifies the exported file path. The default value is: blocks.dat
+--rpcport
+The rpcport parameter specifies the port number to which the rpc server is bound. The default is 20336.
 
---height
-The height parameter specifies the height of the exported block. When height of the local node's current block is greater than the height required for export, the greater part will not be exported. Height is equal to 0, which means exporting all the blocks of the current node. The default value is 0.
+--exportfile
+The exportfile parameter specifies the exported file path. The default value is: ./OntBlocks.dat
+
+--startheight
+The startheight parameter specifies the start height of the exported block.Default value is 0.
+
+--endheight
+The endheight parameter specifies the end height of the exported block. When height of the local node's current block is greater than the end height required for export, the greater part will not be exported. Height is equal to 0, which means exporting all the blocks of the current node. The default value is 0.
 
 --speed
 The speed parameter specifies the export speed. Respectively, h denotes high, m denotes middle, and l denotes low. The default value is m.
@@ -866,14 +861,26 @@ Block export
 
 #### 6.2.1 Importing Block Parameters
 
---importheight
-The importheight parameter specifies the height of the imported target block. If the block height specified by importheight is less than the maximum height of the block file, it will only be imported to the height specified by importheight and the rest blocks will stop importing. The default value is 0, which means import all the blocks.
+--datadir
+The datadir parameter specifies the storage path of the block data. The default value is "./Chain".
+
+--networkid
+The networkid parameter is used to specify the network ID. Default value is 1, means main net network id.
+
+--config
+The config parameter specifies the file path of the genesis block for the current Ontolgy node. Default value is main net config.
+
+--disableeventlog
+The disableeventlog parameter is used to disable the event log output when the smart contract is executed to improve the node transaction execution performance. The Ontology node enables the event log output function by default.
+
+--endheight
+The endheight parameter specifies the end height of the imported block. If the block height specified by --endheight is less than the maximum height of the block file, it will only be imported to the height specified by --endheight and the rest blocks will stop importing. The default value is 0, which means import all the blocks.
 
 --importfile
-The importfile parameter is used with --import to specify the path to the import file when importing blocks. The default value is "./blocks.dat".
+The importfile parameter is used with --importfile to specify the path to the import file when importing blocks. The default value is "./OntBlocks.dat".
 
 Import block
 
 ```
-./Ontology import
+./ontology import --importfile=./OntBlocks.dat
 ```

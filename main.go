@@ -71,6 +71,7 @@ func setupAPP() *cli.App {
 		cmd.InfoCommand,
 		cmd.AssetCommand,
 		cmd.ContractCommand,
+		cmd.ImportCommand,
 		cmd.ExportCommand,
 	}
 	app.Flags = []cli.Flag{
@@ -79,9 +80,6 @@ func setupAPP() *cli.App {
 		utils.LogLevelFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
-		utils.ImportEnableFlag,
-		utils.ImportHeightFlag,
-		utils.ImportFileFlag,
 		//account setting
 		utils.WalletFileFlag,
 		utils.AccountAddressFlag,
@@ -153,11 +151,6 @@ func startOntology(ctx *cli.Context) {
 		return
 	}
 	defer ldg.Close()
-	err = importBlocks(ctx)
-	if err != nil {
-		log.Errorf("importBlocks error:%s", err)
-		return
-	}
 	txpool, err := initTxPool(ctx)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
@@ -239,8 +232,7 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 	events.Init() //Init event hub
 
 	var err error
-	dbDir := config.DefConfig.Common.DataDir + string(os.PathSeparator) + config.DefConfig.P2PNode.NetworkName
-
+	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
 	if ctx.GlobalBool(utils.GetFlagName(utils.EnableTestModeFlag)) && ctx.GlobalBool(utils.GetFlagName(utils.ClearTestModeDataFlag)) {
 		err = os.RemoveAll(dbDir)
 		if err != nil {
@@ -408,18 +400,6 @@ func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 	go nodeinfo.StartServer(p2pSvr.GetNetWork())
 
 	log.Infof("Nodeinfo init success")
-}
-
-func importBlocks(ctx *cli.Context) error {
-	if !ctx.GlobalBool(utils.GetFlagName(utils.ImportEnableFlag)) {
-		return nil
-	}
-	importFile := ctx.GlobalString(utils.GetFlagName(utils.ImportFileFlag))
-	if importFile == "" {
-		return fmt.Errorf("missing import file argument")
-	}
-	height := ctx.GlobalUint(utils.GetFlagName(utils.ImportHeightFlag))
-	return utils.ImportBlocks(importFile, uint32(height))
 }
 
 func logCurrBlockHeight() {
