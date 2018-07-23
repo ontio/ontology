@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
@@ -444,6 +445,14 @@ func (self *Server) initialize() error {
 			return fmt.Errorf("failed to add peer %d: %s", p.Index, err)
 		}
 		log.Infof("added peer: %s", p.ID)
+	}
+	for _, p := range config.DefConfig.P2PNode.NetworkMgrCfg.Peers {
+		peerIdx, present := self.peerPool.GetPeerIndex(p.PubKey)
+		if present {
+			self.peerPool.addP2pId(peerIdx, p.NodeId)
+		} else {
+			return fmt.Errorf("failed to add networkid peer:%d", peerIdx)
+		}
 	}
 
 	//index equal math.MaxUint32  is noconsensus node

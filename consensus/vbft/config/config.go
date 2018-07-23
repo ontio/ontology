@@ -35,9 +35,8 @@ var (
 )
 
 type PeerConfig struct {
-	Index     uint32 `json:"index"`
-	ID        string `json:"id"`
-	NetWorkID uint64 `json:"networkId"`
+	Index uint32 `json:"index"`
+	ID    string `json:"id"`
 }
 
 type ChainConfig struct {
@@ -123,10 +122,6 @@ func (pc *PeerConfig) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, pc.ID); err != nil {
 		return fmt.Errorf("ChainConfig peer ID length serialization failed %s", err)
 	}
-	if err := serialization.WriteUint64(w, pc.NetWorkID); err != nil {
-		return fmt.Errorf("ChainConfig peer NetWorkID length serialization failed %s", err)
-	}
-
 	return nil
 }
 
@@ -136,8 +131,6 @@ func (pc *PeerConfig) Deserialize(r io.Reader) error {
 
 	nodeid, _ := serialization.ReadString(r)
 	pc.ID = nodeid
-	networkid, _ := serialization.ReadUint64(r)
-	pc.NetWorkID = networkid
 	return nil
 }
 

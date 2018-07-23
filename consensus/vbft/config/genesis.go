@@ -136,11 +136,9 @@ func GenesisChainConfig(config *config.VBFTConfig, peersinfo []*config.VBFTPeerS
 	posTable := make([]uint32, 0)
 	for i := 0; i < int(config.K); i++ {
 		nodeId := peers[i].PeerPubkey
-		networkid := peers[i].NetWorkId
 		chainPeers[peers[i].Index] = &PeerConfig{
-			Index:     peers[i].Index,
-			ID:        nodeId,
-			NetWorkID: networkid,
+			Index: peers[i].Index,
+			ID:    nodeId,
 		}
 		for j := uint64(0); j < peerRanks[i]; j++ {
 			posTable = append(posTable, peers[i].Index)
