@@ -416,66 +416,124 @@ func accountImport(ctx *cli.Context) error {
 		return err
 	}
 
-	if ctx.Bool(utils.GetFlagName(utils.AccountWIFFlag)) {
-		// import WIF keys
-		err := importWIF(source, wallet)
-		return err
-	}
-
-	ctx.Set(utils.GetFlagName(utils.WalletFileFlag), source)
-	sourceWallet, err := common.OpenWallet(ctx)
-	if err != nil {
-		return fmt.Errorf("Open source wallet to import error:%s", err)
-	}
-	accountNum := sourceWallet.GetAccountNum()
-	if accountNum == 0 {
-		fmt.Printf("No account to import\n")
-		return nil
-	}
-	accList := make(map[string]string, ctx.NArg())
-	for i := 0; i < ctx.NArg(); i++ {
-		addr := ctx.Args().Get(i)
-		accMeta := common.GetAccountMetadataMulti(sourceWallet, addr)
-		if accMeta == nil {
-			fmt.Printf("Cannot find account by:%s in wallet:%s\n", addr, source)
-			continue
-		}
-		accList[accMeta.Address] = ""
-	}
-
 	succ := 0
 	fail := 0
 	skip := 0
 	total := 0
-	for i := 1; i <= accountNum; i++ {
-		accMeta := sourceWallet.GetAccountMetadataByIndex(i)
-		if accMeta == nil {
-			continue
+
+	if ctx.Bool(utils.GetFlagName(utils.AccountWIFFlag)) {
+		// import WIF keys
+		file, err := os.Open(source)
+		if err != nil {
+			return err
 		}
-		if len(accList) > 0 {
-			_, ok := accList[accMeta.Address]
-			if !ok {
-				//Account not in import list, skip
+		f := bufio.NewScanner(file)
+		keys := make([]keypair.PrivateKey, 0)
+		for f.Scan() {
+			wif := f.Bytes()
+			pri, err := keypair.GetP256KeyPairFromWIF(wif)
+			common.ClearPasswd(wif)
+			if err != nil {
+				return err
+			}
+			keys = append(keys, pri)
+		}
+		total = len(keys)
+		fmt.Println("Please input a password to encrypt the imported key(s)")
+		pwd, err := password.GetConfirmedPassword()
+		if err != nil {
+			return err
+		}
+		for _, v := range keys {
+			pub := v.Public()
+			addr := types.AddressFromPubKey(pub)
+			b58addr := addr.ToBase58()
+			old := wallet.GetAccountMetadataByAddress(b58addr)
+			if old != nil {
+				fmt.Printf("Account %s already exists.\n", b58addr)
+				skip += 1
 				continue
 			}
+			fmt.Println("Import account", b58addr)
+			k, err := keypair.EncryptPrivateKey(v, b58addr, pwd)
+			if err != nil {
+				fmt.Println("Import error,", err)
+				fail += 1
+				continue
+			}
+			var accMeta account.AccountMetadata
+			accMeta.Address = k.Address
+			accMeta.KeyType = k.Alg
+			accMeta.EncAlg = k.EncAlg
+			accMeta.Hash = k.Hash
+			accMeta.Key = k.Key
+			accMeta.Curve = k.Param["curve"]
+			accMeta.Salt = k.Salt
+			accMeta.Label = ""
+			accMeta.PubKey = hex.EncodeToString(keypair.SerializePublicKey(v.Public()))
+			accMeta.SigSch = signature.SHA256withECDSA.Name()
+			err = wallet.ImportAccount(&accMeta)
+			if err != nil {
+				fmt.Println("Import error,", err)
+				fail += 1
+				continue
+			}
+			succ += 1
 		}
-		total++
-		old := wallet.GetAccountMetadataByAddress(accMeta.Address)
-		if old != nil {
-			skip++
-			fmt.Printf("Account:%s label:%s has already in wallet, skip.\n", accMeta.Address, accMeta.Label)
-			continue
-		}
-		err = wallet.ImportAccount(accMeta)
+		common.ClearPasswd(pwd)
+	} else {
+		ctx.Set(utils.GetFlagName(utils.WalletFileFlag), source)
+		sourceWallet, err := common.OpenWallet(ctx)
 		if err != nil {
-			fail++
-			fmt.Printf("Import account:%s label:%s failed, %s\n", accMeta.Address, accMeta.Label, err)
-			continue
+			return fmt.Errorf("Open source wallet to import error: %s\n", err)
 		}
-		succ++
-		fmt.Printf("Import account:%s label:%s successfully.\n", accMeta.Address, accMeta.Label)
+		accountNum := sourceWallet.GetAccountNum()
+		if accountNum == 0 {
+			fmt.Printf("No account to import\n")
+			return nil
+		}
+		accList := make(map[string]string, ctx.NArg())
+		for i := 0; i < ctx.NArg(); i++ {
+			addr := ctx.Args().Get(i)
+			accMeta := common.GetAccountMetadataMulti(sourceWallet, addr)
+			if accMeta == nil {
+				fmt.Printf("Cannot find account %s in wallet %s\n", addr, source)
+				continue
+			}
+			accList[accMeta.Address] = ""
+		}
+
+		for i := 1; i <= accountNum; i++ {
+			accMeta := sourceWallet.GetAccountMetadataByIndex(i)
+			if accMeta == nil {
+				continue
+			}
+			if len(accList) > 0 {
+				_, ok := accList[accMeta.Address]
+				if !ok {
+					//Account not in import list, skip
+					continue
+				}
+			}
+			total++
+			old := wallet.GetAccountMetadataByAddress(accMeta.Address)
+			if old != nil {
+				skip++
+				fmt.Printf("Account: %s (label: %s) already exists in wallet, skip.\n", accMeta.Address, accMeta.Label)
+				continue
+			}
+			err = wallet.ImportAccount(accMeta)
+			if err != nil {
+				fail++
+				fmt.Printf("Import account: %s (label: %s) failed, %s\n", accMeta.Address, accMeta.Label, err)
+				continue
+			}
+			succ++
+			fmt.Printf("Import account: %s (label: %s) successfully.\n", accMeta.Address, accMeta.Label)
+		}
 	}
-	fmt.Printf("\nImport wallet:%s to %s complete, total:%d success:%d failed:%d skip:%d\n", source, target, total, succ, fail, skip)
+
+	fmt.Printf("\nImport from %s to %s complete, total: %d, success: %d, failed: %d, skip: %d\n", source, target, total, succ, fail, skip)
 	return nil
 }
 
@@ -519,60 +577,6 @@ func accountExport(ctx *cli.Context) error {
 		return fmt.Errorf("save wallet file error: %s", err)
 	}
 
-	return nil
-}
-
-func importWIF(filepath string, wallet account.Client) error {
-	file, err := os.Open(filepath)
-	if err != nil {
-		return err
-	}
-	f := bufio.NewScanner(file)
-	keys := make([]keypair.PrivateKey, 0)
-	for f.Scan() {
-		wif := f.Bytes()
-		pri, err := keypair.GetP256KeyPairFromWIF(wif)
-		common.ClearPasswd(wif)
-		if err != nil {
-			return err
-		}
-		keys = append(keys, pri)
-	}
-	fmt.Println("Please input a password to encrypt the imported key(s)")
-	pwd, err := password.GetConfirmedPassword()
-	if err != nil {
-		return err
-	}
-	for _, v := range keys {
-		pub := v.Public()
-		addr := types.AddressFromPubKey(pub)
-		b58addr := addr.ToBase58()
-		fmt.Println("Import account", b58addr)
-		k, err := keypair.EncryptPrivateKey(v, b58addr, pwd)
-		if err != nil {
-			fmt.Println("import error,", err)
-			continue
-		}
-		var accMeta account.AccountMetadata
-		accMeta.Address = k.Address
-		accMeta.KeyType = k.Alg
-		accMeta.EncAlg = k.EncAlg
-		accMeta.Hash = k.Hash
-		accMeta.Key = k.Key
-		accMeta.Curve = k.Param["curve"]
-		accMeta.Salt = k.Salt
-		accMeta.Label = ""
-		accMeta.PubKey = hex.EncodeToString(keypair.SerializePublicKey(v.Public()))
-		accMeta.SigSch = signature.SHA256withECDSA.Name()
-		err = wallet.ImportAccount(&accMeta)
-		if err != nil {
-			fmt.Println("import error,", err)
-			continue
-		}
-	}
-	common.ClearPasswd(pwd)
-
-	fmt.Println("Import completed")
 	return nil
 }
 
