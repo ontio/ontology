@@ -20,11 +20,13 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
+	lru "github.com/hashicorp/golang-lru"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -37,6 +39,9 @@ import (
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 )
+
+//respCache cache for some response data
+var respCache *lru.ARCCache
 
 // AddrReqHandle handles the neighbor address request from peer
 func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
@@ -497,17 +502,30 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	hash := dataReq.Hash
 	switch reqType {
 	case common.BLOCK:
-		block, err := ledger.DefLedger.GetBlockByHash(hash)
-		if err != nil || block == nil || block.Header == nil {
-			log.Debug("can't get block by hash: ", hash,
-				" ,send not found message")
-			msg := msgpack.NewNotFound(hash)
-			err := p2p.Send(remotePeer, msg, false)
-			if err != nil {
-				log.Error(err)
+		reqID := fmt.Sprintf("%x%s", reqType, hash.ToHexString())
+		data := getRespCacheValue(reqID)
+		var block *types.Block
+		var err error
+		if data != nil {
+			switch data.(type) {
+			case *types.Block:
+				block = data.(*types.Block)
+			}
+		}
+		if block == nil {
+			block, err = ledger.DefLedger.GetBlockByHash(hash)
+			if err != nil || block == nil || block.Header == nil {
+				log.Debug("can't get block by hash: ", hash,
+					" ,send not found message")
+				msg := msgpack.NewNotFound(hash)
+				err := p2p.Send(remotePeer, msg, false)
+				if err != nil {
+					log.Error(err)
+					return
+				}
 				return
 			}
-			return
+			saveRespCache(reqID, block)
 		}
 		log.Debug("block height is ", block.Header.Height,
 			" ,hash is ", hash)
@@ -703,4 +721,29 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 	}
 
 	return headers, nil
+}
+
+//getRespCacheValue get response data from cache
+func getRespCacheValue(key string) interface{} {
+	if respCache == nil {
+		return nil
+	}
+	data, ok := respCache.Get(key)
+	if ok {
+		return data
+	}
+	return nil
+}
+
+//saveRespCache save response msg to cache
+func saveRespCache(key string, value interface{}) bool {
+	if respCache == nil {
+		var err error
+		respCache, err = lru.NewARC(msgCommon.MAX_RESP_CACHE_SIZE)
+		if err != nil {
+			return false
+		}
+	}
+	respCache.Add(key, value)
+	return true
 }

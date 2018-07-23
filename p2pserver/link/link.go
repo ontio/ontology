@@ -26,8 +26,6 @@ import (
 	"net"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
-	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -42,14 +40,12 @@ type Link struct {
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
-	respCache *lru.ARCCache          //Cache used for save response data, avoid legder operation
 }
 
 func NewLink() *Link {
 	link := &Link{
 		reqRecord: make(map[string]int64, 0),
 	}
-	link.respCache, _ = lru.NewARC(common.MAX_RESP_CACHE_SIZE)
 	return link
 }
 
@@ -131,11 +127,6 @@ func (this *Link) Rx() {
 			continue
 		}
 		this.addReqRecord(msg)
-		respMsg := this.getCacheMsg(msg)
-		if respMsg != nil {
-			go this.Tx(respMsg)
-			continue
-		}
 		this.recvChan <- &types.MsgPayload{
 			Id:      this.id,
 			Addr:    this.addr,
@@ -173,7 +164,6 @@ func (this *Link) Tx(msg types.Message) error {
 	if conn == nil {
 		return errors.New("tx link invalid")
 	}
-	this.saveCacheMsg(msg)
 	buf := bytes.NewBuffer(nil)
 	err := types.WriteMessage(buf, msg)
 	if err != nil {
@@ -236,35 +226,4 @@ func (this *Link) addReqRecord(msg types.Message) {
 	var dataReq = msg.(*types.DataReq)
 	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
 	this.reqRecord[reqID] = now
-}
-
-//getCacheMsg get response msg from cache
-func (this *Link) getCacheMsg(reqMsg types.Message) types.Message {
-	if this.respCache == nil {
-		return nil
-	}
-	if reqMsg.CmdType() != common.GET_DATA_TYPE {
-		return nil
-	}
-	var dataReq = reqMsg.(*types.DataReq)
-	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
-	respMsg, ok := this.respCache.Get(reqID)
-	if ok {
-		return respMsg.(types.Message)
-	}
-	return nil
-}
-
-//saveCacheMsg save response msg to cache
-func (this *Link) saveCacheMsg(respMsg types.Message) {
-	if this.respCache == nil {
-		return
-	}
-	if respMsg.CmdType() != common.BLOCK_TYPE {
-		return
-	}
-	var block = respMsg.(*types.Block)
-	blkHash := block.Blk.Header.Hash()
-	key := fmt.Sprintf("%x%s", com.BLOCK, blkHash.ToHexString())
-	this.respCache.Add(key, respMsg)
 }
