@@ -64,7 +64,6 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				}
 			}
 		}
-
 	}
 	msg := msgpack.NewAddrs(addrStr)
 	err := p2p.Send(remotePeer, msg, false)
