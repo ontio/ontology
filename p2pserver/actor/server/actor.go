@@ -93,7 +93,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	case *common.AppendHeaders:
 		this.server.OnHeaderReceive(msg.FromID, msg.Headers)
 	case *common.AppendBlock:
-		this.server.OnBlockReceive(msg.FromID, msg.Block)
+		this.server.OnBlockReceive(msg.FromID, msg.BlockSize, msg.Block)
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {

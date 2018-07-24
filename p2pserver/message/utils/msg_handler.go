@@ -162,8 +162,9 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	if pid != nil {
 		var block = data.Payload.(*msgTypes.Block)
 		input := &msgCommon.AppendBlock{
-			FromID: data.Id,
-			Block:  &block.Blk,
+			FromID:    data.Id,
+			BlockSize: data.PayloadSize,
+			Block:     &block.Blk,
 		}
 		pid.Tell(input)
 	}

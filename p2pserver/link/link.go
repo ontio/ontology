@@ -113,7 +113,7 @@ func (this *Link) Rx() {
 	reader := bufio.NewReaderSize(this.conn, common.MAX_BUF_LEN)
 
 	for {
-		msg, err := types.ReadMessage(reader)
+		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
 			log.Error("read connection error ", err)
 			break
@@ -128,9 +128,10 @@ func (this *Link) Rx() {
 		}
 		this.addReqRecord(msg)
 		this.recvChan <- &types.MsgPayload{
-			Id:      this.id,
-			Addr:    this.addr,
-			Payload: msg,
+			Id:          this.id,
+			Addr:        this.addr,
+			PayloadSize: payloadSize,
+			Payload:     msg,
 		}
 
 	}
@@ -214,14 +215,12 @@ func (this *Link) addReqRecord(msg types.Message) {
 	}
 	now := time.Now().Unix()
 	if len(this.reqRecord) >= common.MAX_REQ_RECORD_SIZE-1 {
-		newRecord := make(map[string]int64, 0)
 		for id := range this.reqRecord {
 			t := this.reqRecord[id]
-			if int(now-t) < common.REQ_INTERVAL {
-				newRecord[id] = t
+			if int(now-t) > common.REQ_INTERVAL {
+				delete(this.reqRecord, id)
 			}
 		}
-		this.reqRecord = newRecord
 	}
 	var dataReq = msg.(*types.DataReq)
 	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
