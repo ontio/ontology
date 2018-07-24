@@ -486,7 +486,7 @@ type NetworkMgrCfg struct {
 }
 
 type PeerIDPubKey struct {
-	NodeId uint64 `json:"networkId`
+	NodeId uint64 `json:"networkId"`
 	PubKey string `json:"peerPubkey"`
 }
 

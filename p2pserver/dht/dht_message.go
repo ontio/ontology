@@ -63,8 +63,6 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 	requestId := types.ConstructRequestId(neighbors.FromID, types.DHT_FIND_NODE_REQUEST)
 	this.messagePool.DeleteRequest(requestId)
 
-	pingReqIds := make([]types.RequestId, 0)
-
 	waitGroup := new(sync.WaitGroup)
 	for i := 0; i < len(neighbors.Nodes); i++ {
 		node := &neighbors.Nodes[i]
@@ -95,11 +93,10 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 		if err != nil {
 			continue
 		}
-		reqId, isNewRequest := this.messagePool.AddRequest(node, types.DHT_PING_REQUEST, nil, waitGroup)
+		_, isNewRequest := this.messagePool.AddRequest(node, types.DHT_PING_REQUEST, nil, waitGroup)
 		if isNewRequest {
 			this.ping(addr)
 		}
-		pingReqIds = append(pingReqIds, reqId)
 	}
 	waitGroup.Wait()
 	liveNodes := make([]*types.Node, 0)
@@ -229,7 +226,8 @@ func (this *DHT) ping(addr *net.UDPAddr) error {
 		log.Error("Parse IP address error\n", this.addr)
 		return errors.New("Parse IP address error")
 	}
-	pingMsg := msgpack.NewDHTPing(this.nodeID, this.udpPort, this.tcpPort, ip, addr)
+	pingMsg := msgpack.NewDHTPing(this.nodeID, this.udpPort,
+		this.tcpPort, ip, addr, this.version)
 	bf := new(bytes.Buffer)
 	mt.WriteMessage(bf, pingMsg)
 	this.send(addr, bf.Bytes())
@@ -245,7 +243,8 @@ func (this *DHT) pong(addr *net.UDPAddr) error {
 		return errors.New("Parse IP address error")
 	}
 
-	pongMsg := msgpack.NewDHTPong(this.nodeID, this.udpPort, this.tcpPort, ip, addr)
+	pongMsg := msgpack.NewDHTPong(this.nodeID, this.udpPort,
+		this.tcpPort, ip, addr, this.version)
 	bf := new(bytes.Buffer)
 	mt.WriteMessage(bf, pongMsg)
 	this.send(addr, bf.Bytes())

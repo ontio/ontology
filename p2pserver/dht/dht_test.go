@@ -75,10 +75,13 @@ func TestDHT(t *testing.T) {
 	tempID := binary.LittleEndian.Uint64(dht.nodeID[:])
 	assert.Equal(t, id, tempID)
 
+	dht.addr = "127.0.0.1"
+	dht.udpPort = 20332
+
 	go dht.Start()
 
 	time.Sleep(1 * time.Second)
-	assert.NotEmpty(t, dht.bootstrapNodes)
+	assert.Empty(t, dht.bootstrapNodes)
 	assert.NotNil(t, dht.conn)
 	assert.Empty(t, dht.routingTable.totalNodes())
 

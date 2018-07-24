@@ -213,8 +213,9 @@ func NewConsensusDataReq(hash common.Uint256) mt.Message {
 }
 
 //DHT ping message packet
-func NewDHTPing(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAddr *net.UDPAddr) mt.Message {
+func NewDHTPing(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAddr *net.UDPAddr, version uint16) mt.Message {
 	ping := new(mt.DHTPing)
+	ping.Version = version
 	copy(ping.FromID[:], nodeID[:])
 
 	ping.SrcEndPoint.UDPPort = udpPort
@@ -231,8 +232,9 @@ func NewDHTPing(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAdd
 }
 
 //DHT pong message packet
-func NewDHTPong(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAddr *net.UDPAddr) mt.Message {
+func NewDHTPong(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAddr *net.UDPAddr, version uint16) mt.Message {
 	pong := new(mt.DHTPong)
+	pong.Version = version
 	copy(pong.FromID[:], nodeID[:])
 	pong.SrcEndPoint.UDPPort = udpPort
 	pong.SrcEndPoint.TCPPort = tcpPort

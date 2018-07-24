@@ -1,0 +1,58 @@
+{
+	"Peers":[
+	  {
+	  	"nodeId":1234,
+		"peerPubkey":"0345912e9e3a8cb57228017003f2683364dbc59eb37e61518a6c9a2cf53f466404"
+	  },
+	  {
+	  	"nodeId":2345,
+		"peerPubkey":"033a76bcbcc77f2eec9645d3b337a707b02d23733e128e8e69139a4ea72fd05fa4"
+	  },
+	  {
+	  	"nodeId":3456,
+		"peerPubkey":"0360434d718213d977c43619167e3360cd65c02db493079493a8affe612bd8b9a3"
+	  },
+	  {
+	  	"nodeId":4567,
+		"peerPubkey":"035cf8427ba77ab0b765ceef9ac496c9dc24375eb7e124a6abd9dcb670ff5ee2ca"
+	  },
+	  {
+	  	"nodeId":5678,
+		"peerPubkey":"0205acb1727236ada7a10cb4b72fa96de2493f51a1d3f0bf10a1eac48737b373ff"
+	  },
+	  {
+	  	"nodeId":6789,
+		"peerPubkey":"02b54e2093e26d06208fcc7423b34f0a575f0645ce1712effe478c17c2ae0d7635"
+	  },
+	  {
+	  	"nodeId":7890,
+		"peerPubkey":"0251a276e4e25c440307910ab7c1371c606d33ca47a44067d2d6253fa46cb15be0"
+	  }
+	],
+	"DHT":{
+    "UDPPort": 20390,
+    "IP":"127.0.0.1",
+    "Seeds":[
+      {
+        "IP": "127.0.0.1",
+        "UDPPort": 20010,
+        "TCPPort": 20011
+      },
+      {
+        "IP": "127.0.0.1",
+        "UDPPort": 30010,
+        "TCPPort": 30011
+      },
+      {
+        "IP": "127.0.0.1",
+        "UDPPort": 40010,
+        "TCPPort": 40011
+      },
+      {
+        "IP": "127.0.0.1",
+        "UDPPort": 50010,
+        "TCPPort": 50011
+      }
+    ]
+  }
+}

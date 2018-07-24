@@ -177,6 +177,9 @@ func (this *NetServer) handleFeed(event *dt.FeedEvent) {
 }
 
 func (this *NetServer) disconnectPeer(address string) {
+	this.RemoveFromInConnRecord(address)
+	this.RemoveFromOutConnRecord(address)
+
 	peer := this.GetPeerFromAddr(address)
 	if peer == nil {
 		return

@@ -83,8 +83,14 @@ func loadSeeds() []*types.Node {
 	seeds := make([]*types.Node, 0, len(config.DefConfig.P2PNode.NetworkMgrCfg.DHT.Seeds))
 	for i := 0; i < len(config.DefConfig.P2PNode.NetworkMgrCfg.DHT.Seeds); i++ {
 		node := config.DefConfig.P2PNode.NetworkMgrCfg.DHT.Seeds[i]
+		ns, err := net.LookupHost(node.IP)
+		if err != nil {
+			log.Warnf("resolve ip %s err %s", node.IP, err.Error())
+			continue
+		}
+
 		seed := &types.Node{
-			IP:      node.IP,
+			IP:      ns[0],
 			UDPPort: node.UDPPort,
 			TCPPort: node.TCPPort,
 		}
@@ -159,7 +165,6 @@ func (this *DHT) bootstrap() {
 
 // add node to routing table in synchronize
 func (this *DHT) syncAddNodes(nodes map[types.NodeID]*types.Node) {
-	waitRequestIds := make([]types.RequestId, 0)
 	waitGroup := new(sync.WaitGroup)
 	for _, node := range nodes {
 		addr, err := getNodeUDPAddr(node)
@@ -167,12 +172,11 @@ func (this *DHT) syncAddNodes(nodes map[types.NodeID]*types.Node) {
 			log.Infof("node %s address is error!", node.ID)
 			continue
 		}
-		requestId, isNewRequest := this.messagePool.AddRequest(node,
+		_, isNewRequest := this.messagePool.AddRequest(node,
 			types.DHT_PING_REQUEST, nil, waitGroup)
 		if isNewRequest {
 			this.ping(addr)
 		}
-		waitRequestIds = append(waitRequestIds, requestId)
 	}
 	waitGroup.Wait()
 }

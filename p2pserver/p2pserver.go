@@ -152,6 +152,7 @@ func (this *P2PServer) Stop() {
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
 	this.blockSync.Close()
+	this.dht.Stop()
 }
 
 // GetNetWork returns the low level netserver
