@@ -199,12 +199,19 @@ func (tx *Transaction) SerializeUnsigned(w io.Writer) error {
 }
 
 // deserialize the Transaction
-func (tx *Transaction) Deserialize(r io.Reader) error {
+func (tx *Transaction) Deserialize(reader io.Reader) error {
+	hasher := sha256.New()
+	r := io.TeeReader(reader, hasher)
 	// tx deserialize
 	err := tx.DeserializeUnsigned(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[Deserialize], Transaction deserializeUnsigned error.")
 	}
+	temp := hasher.Sum(nil)
+	f := common.Uint256(sha256.Sum256(temp[:]))
+	tx.hash = &f
+	//reset r back to origin reader, it is ok because TeeReader has no internal bufffer
+	r = reader
 
 	// tx sigs
 	length, err := serialization.ReadVarUint(r, 0)

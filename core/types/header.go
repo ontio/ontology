@@ -49,26 +49,26 @@ type Header struct {
 }
 
 //Serialize the blockheader
-func (bd *Header) Serialize(w io.Writer) error {
-	bd.SerializeUnsigned(w)
+func (self *Header) Serialize(w io.Writer) error {
+	self.SerializeUnsigned(w)
 
-	err := serialization.WriteVarUint(w, uint64(len(bd.Bookkeepers)))
+	err := serialization.WriteVarUint(w, uint64(len(self.Bookkeepers)))
 	if err != nil {
 		return errors.New("serialize sig pubkey length failed")
 	}
-	for _, pubkey := range bd.Bookkeepers {
+	for _, pubkey := range self.Bookkeepers {
 		err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(pubkey))
 		if err != nil {
 			return err
 		}
 	}
 
-	err = serialization.WriteVarUint(w, uint64(len(bd.SigData)))
+	err = serialization.WriteVarUint(w, uint64(len(self.SigData)))
 	if err != nil {
 		return errors.New("serialize sig pubkey length failed")
 	}
 
-	for _, sig := range bd.SigData {
+	for _, sig := range self.SigData {
 		err = serialization.WriteVarBytes(w, sig)
 		if err != nil {
 			return err
@@ -79,51 +79,60 @@ func (bd *Header) Serialize(w io.Writer) error {
 }
 
 //Serialize the blockheader data without program
-func (bd *Header) SerializeUnsigned(w io.Writer) error {
-	err := serialization.WriteUint32(w, bd.Version)
+func (self *Header) SerializeUnsigned(w io.Writer) error {
+	err := serialization.WriteUint32(w, self.Version)
 	if err != nil {
 		return err
 	}
-	err = bd.PrevBlockHash.Serialize(w)
+	err = self.PrevBlockHash.Serialize(w)
 	if err != nil {
 		return err
 	}
-	err = bd.TransactionsRoot.Serialize(w)
+	err = self.TransactionsRoot.Serialize(w)
 	if err != nil {
 		return err
 	}
-	err = bd.BlockRoot.Serialize(w)
+	err = self.BlockRoot.Serialize(w)
 	if err != nil {
 		return err
 	}
-	err = serialization.WriteUint32(w, bd.Timestamp)
+	err = serialization.WriteUint32(w, self.Timestamp)
 	if err != nil {
 		return err
 	}
-	err = serialization.WriteUint32(w, bd.Height)
+	err = serialization.WriteUint32(w, self.Height)
 	if err != nil {
 		return err
 	}
-	err = serialization.WriteUint64(w, bd.ConsensusData)
+	err = serialization.WriteUint64(w, self.ConsensusData)
 	if err != nil {
 		return err
 	}
-	err = serialization.WriteVarBytes(w, bd.ConsensusPayload)
+	err = serialization.WriteVarBytes(w, self.ConsensusPayload)
 	if err != nil {
 		return err
 	}
-	err = bd.NextBookkeeper.Serialize(w)
+	err = self.NextBookkeeper.Serialize(w)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (bd *Header) Deserialize(r io.Reader) error {
-	err := bd.DeserializeUnsigned(r)
+func (self *Header) Deserialize(reader io.Reader) error {
+	hasher := sha256.New()
+	r := io.TeeReader(reader, hasher)
+
+	err := self.DeserializeUnsigned(r)
 	if err != nil {
 		return err
 	}
+
+	temp := hasher.Sum(nil)
+	f := common.Uint256(sha256.Sum256(temp[:]))
+	self.hash = &f
+	//reset r back to origin reader, it is ok because TeeReader has no internal bufffer
+	r = reader
 
 	n, err := serialization.ReadVarUint(r, 0)
 	if err != nil {
@@ -139,7 +148,7 @@ func (bd *Header) Deserialize(r io.Reader) error {
 		if err != nil {
 			return err
 		}
-		bd.Bookkeepers = append(bd.Bookkeepers, pubkey)
+		self.Bookkeepers = append(self.Bookkeepers, pubkey)
 	}
 
 	m, err := serialization.ReadVarUint(r, 0)
@@ -152,80 +161,80 @@ func (bd *Header) Deserialize(r io.Reader) error {
 		if err != nil {
 			return err
 		}
-		bd.SigData = append(bd.SigData, sig)
+		self.SigData = append(self.SigData, sig)
 	}
 
 	return nil
 }
 
-func (bd *Header) DeserializeUnsigned(r io.Reader) error {
+func (self *Header) DeserializeUnsigned(r io.Reader) error {
 	var err error
-	bd.Version, err = serialization.ReadUint32(r)
+	self.Version, err = serialization.ReadUint32(r)
 	if err != nil {
 		return fmt.Errorf("Header item Version Deserialize failed: %s", err)
 	}
 
-	err = bd.PrevBlockHash.Deserialize(r)
+	err = self.PrevBlockHash.Deserialize(r)
 	if err != nil {
 		return fmt.Errorf("Header item preBlock Deserialize failed: %s", err)
 	}
 
-	err = bd.TransactionsRoot.Deserialize(r)
+	err = self.TransactionsRoot.Deserialize(r)
 	if err != nil {
 		return err
 	}
 
-	err = bd.BlockRoot.Deserialize(r)
+	err = self.BlockRoot.Deserialize(r)
 	if err != nil {
 		return err
 	}
 
-	bd.Timestamp, err = serialization.ReadUint32(r)
+	self.Timestamp, err = serialization.ReadUint32(r)
 	if err != nil {
 		return err
 	}
 
-	bd.Height, err = serialization.ReadUint32(r)
+	self.Height, err = serialization.ReadUint32(r)
 	if err != nil {
 		return err
 	}
 
-	bd.ConsensusData, err = serialization.ReadUint64(r)
+	self.ConsensusData, err = serialization.ReadUint64(r)
 	if err != nil {
 		return err
 	}
 
-	bd.ConsensusPayload, err = serialization.ReadVarBytes(r)
+	self.ConsensusPayload, err = serialization.ReadVarBytes(r)
 	if err != nil {
 		return err
 	}
 
-	err = bd.NextBookkeeper.Deserialize(r)
+	err = self.NextBookkeeper.Deserialize(r)
 
 	return err
 }
 
-func (bd *Header) Hash() common.Uint256 {
-	if bd.hash != nil {
-		return *bd.hash
+func (self *Header) Hash() common.Uint256 {
+	if self.hash != nil {
+		return *self.hash
 	}
 	buf := new(bytes.Buffer)
-	bd.SerializeUnsigned(buf)
+	self.SerializeUnsigned(buf)
 	temp := sha256.Sum256(buf.Bytes())
 	hash := common.Uint256(sha256.Sum256(temp[:]))
 
-	bd.hash = &hash
+	self.hash = &hash
 	return hash
 }
 
-func (bd *Header) GetMessage() []byte {
+func (self *Header) GetMessage() []byte {
 	bf := new(bytes.Buffer)
-	bd.SerializeUnsigned(bf)
+	self.SerializeUnsigned(bf)
 	return bf.Bytes()
 }
 
-func (bd *Header) ToArray() []byte {
+func (self *Header) ToArray() []byte {
 	bf := new(bytes.Buffer)
-	bd.Serialize(bf)
+	self.Serialize(bf)
 	return bf.Bytes()
 }
