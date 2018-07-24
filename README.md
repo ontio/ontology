@@ -9,11 +9,11 @@
 
 English | [中文](README_CN.md)
 
-Welcome to Ontology's source code library!
+Welcome to Ontology's source code repository!
 
 Ontology is dedicated to creating a modularized, freely configurable, interoperable cross-chain, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and invoking decentralized applications easier.
 
-The code is currently alpha quality, but is in the process of rapid development. The master code may be unstable; stable versions can be downloaded in the release page.
+The code is currently alpha quality, but it is in the process of rapid development. The master code may be unstable; stable versions can be downloaded in the release page.
 
 The public test network is described below. We sincerely welcome and hope more developers join Ontology.
 
