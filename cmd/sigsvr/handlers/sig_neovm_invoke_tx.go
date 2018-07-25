@@ -34,6 +34,7 @@ type SigNeoVMInvokeTxReq struct {
 	GasPrice uint64        `json:"gas_price"`
 	GasLimit uint64        `json:"gas_limit"`
 	Address  string        `json:"address"`
+	Payer    string        `json:"payer"`
 	Params   []interface{} `json:"params"`
 }
 
@@ -66,6 +67,15 @@ func SigNeoVMInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespon
 		log.Infof("Cli Qid:%s SigNeoVMInvokeTx InvokeNeoVMContractTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
+	}
+	if rawReq.Payer != "" {
+		payerAddress, err := common.AddressFromBase58(rawReq.Payer)
+		if err != nil {
+			log.Infof("Cli Qid:%s SigNeoVMInvokeTx AddressFromBase58 error:%s", req.Qid, err)
+			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+			return
+		}
+		tx.Payer = payerAddress
 	}
 	signer := clisvrcom.DefAccount
 	err = cliutil.SignTransaction(signer, tx)

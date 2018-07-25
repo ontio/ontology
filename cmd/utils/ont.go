@@ -270,18 +270,23 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 }
 
 func SignTransaction(signer *account.Account, tx *types.Transaction) error {
-	tx.Payer = signer.Address
+	if tx.Payer == common.ADDRESS_EMPTY {
+		tx.Payer = signer.Address
+	}
 	txHash := tx.Hash()
 	sigData, err := Sign(txHash.ToArray(), signer)
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
+	}
+	if tx.Sigs == nil {
+		tx.Sigs = make([]*types.Sig, 0)
 	}
 	sig := &types.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},
 		M:       1,
 		SigData: [][]byte{sigData},
 	}
-	tx.Sigs = []*types.Sig{sig}
+	tx.Sigs = append(tx.Sigs, sig)
 	return nil
 }
 

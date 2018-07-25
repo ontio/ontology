@@ -47,6 +47,7 @@ func setupSigSvr() *cli.App {
 		utils.AccountAddressFlag,
 		utils.AccountPassFlag,
 		//cli setting
+		utils.CliAddressFlag,
 		utils.CliRpcPortFlag,
 		utils.CliABIPathFlag,
 	}
@@ -77,19 +78,20 @@ func startSigSvr(ctx *cli.Context) {
 	}
 	log.Infof("Using account:%s", acc.Address.ToBase58())
 
+	rpcAddress := ctx.String(utils.GetFlagName(utils.CliAddressFlag))
 	rpcPort := ctx.Uint(utils.GetFlagName(utils.CliRpcPortFlag))
 	if rpcPort == 0 {
 		log.Infof("Please using sig server port by --%s flag", utils.GetFlagName(utils.CliRpcPortFlag))
 		return
 	}
 	cmdsvrcom.DefAccount = acc
-	go cmdsvr.DefCliRpcSvr.Start(rpcPort)
+	go cmdsvr.DefCliRpcSvr.Start(rpcAddress, rpcPort)
 
 	abiPath := ctx.GlobalString(utils.GetFlagName(utils.CliABIPathFlag))
 	abi.DefAbiMgr.Init(abiPath)
 
 	log.Infof("Sig server init success")
-	log.Infof("Sig server listing on: %d", rpcPort)
+	log.Infof("Sig server listing on: %s:%d", rpcAddress, rpcPort)
 
 	exit := make(chan bool, 0)
 	sc := make(chan os.Signal, 1)

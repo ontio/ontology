@@ -35,6 +35,7 @@ type SigNativeInvokeTxReq struct {
 	Address  string        `json:"address"`
 	Method   string        `json:"method"`
 	Params   []interface{} `json:"params"`
+	Payer    string        `json:"payer"`
 	Version  byte          `json:"version"`
 }
 
@@ -72,10 +73,14 @@ func SigNativeInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorInfo = err.Error()
 		return
 	}
-	if err != nil {
-		log.Infof("Cli Qid:%s SigNativeInvokeTx InvokeNativeContractTx error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
-		return
+	if rawReq.Payer != "" {
+		payerAddress, err := common.AddressFromBase58(rawReq.Payer)
+		if err != nil {
+			log.Infof("Cli Qid:%s SigNativeInvokeTx AddressFromBase58 error:%s", req.Qid, err)
+			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+			return
+		}
+		tx.Payer = payerAddress
 	}
 	signer := clisvrcom.DefAccount
 	err = cliutil.SignTransaction(signer, tx)
