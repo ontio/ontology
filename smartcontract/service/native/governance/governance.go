@@ -1143,19 +1143,12 @@ func CallSplit(native *native.NativeService) ([]byte, error) {
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	//get current view
-	cView, err := GetView(native, contract)
+	view, err := GetView(native, contract)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "callSplit, get view error!")
 	}
-	view := cView - 1
 
-	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "callSplit, get peerPoolMap error!")
-	}
-
-	err = executeSplit(native, contract, peerPoolMap)
+	err = executeSplit(native, contract, view)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "executeSplit, executeSplitp error!")
 	}
