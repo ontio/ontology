@@ -120,7 +120,9 @@ func (this *DHT) init() {
 func (this *DHT) Start() {
 	seeds := loadSeeds()
 	for _, seed := range seeds {
-		this.bootstrapNodes[seed.ID] = seed
+		if seed.ID != this.nodeID {
+			this.bootstrapNodes[seed.ID] = seed
+		}
 	}
 	err := this.listenUDP(":" + strconv.Itoa(int(this.udpPort)))
 	if err != nil {
@@ -453,16 +455,18 @@ func getNodeUDPAddr(node *types.Node) (*net.UDPAddr, error) {
 }
 
 func (this *DHT) DisplayRoutingTable() {
+	logString := ""
 	for bucketIndex, bucket := range this.routingTable.buckets {
 		if this.routingTable.getTotalNodeNumInBukcet(bucketIndex) == 0 {
 			continue
 		}
-		fmt.Println("[", bucketIndex, "]: ")
+		logString += "[" + strconv.Itoa(bucketIndex) + "]: "
 		for i := 0; i < this.routingTable.getTotalNodeNumInBukcet(bucketIndex); i++ {
-			fmt.Printf("%s %d %d\n", bucket.entries[i].IP,
+			logString += fmt.Sprintf("%s %d %d\n", bucket.entries[i].IP,
 				bucket.entries[i].UDPPort, bucket.entries[i].TCPPort)
 		}
 	}
+	log.Info(logString)
 }
 
 // Resolve searches for a specific node with the given ID.

@@ -64,7 +64,7 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 	this.messagePool.DeleteRequest(requestId)
 
 	waitGroup := new(sync.WaitGroup)
-	for i := 0; i < len(neighbors.Nodes); i++ {
+	for i := 0; i < len(neighbors.Nodes) && i < types.BUCKET_SIZE; i++ {
 		node := &neighbors.Nodes[i]
 		if this.isInBlackList(node.IP) {
 			continue
@@ -72,21 +72,19 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 		if node.ID == this.nodeID {
 			continue
 		}
-		found := false
-		if config.DefConfig.P2PNode.ReservedPeersOnly &&
-			len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
-			for _, ip := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
+
+		whiteListLen := len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers)
+		if config.DefConfig.P2PNode.ReservedPeersOnly && whiteListLen > 0 {
+			var index = 0
+			for ; index < whiteListLen; index++ {
+				ip := config.DefConfig.P2PNode.ReservedCfg.ReservedPeers[index]
 				if strings.HasPrefix(node.IP, ip) {
-					found = true
 					break
 				}
 			}
-		} else {
-			found = true
-		}
-
-		if found == false {
-			continue
+			if index == whiteListLen {
+				continue
+			}
 		}
 		// ping this node
 		addr, err := getNodeUDPAddr(node)
@@ -144,6 +142,10 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 
 // pongHandle handles a pong message from UDP network
 func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
+	// black list detect
+	if this.isInBlackList(string(from.IP)) {
+		return
+	}
 	pong, ok := msg.(*mt.DHTPong)
 	if !ok {
 		log.Error("pong handle detected error message type!")

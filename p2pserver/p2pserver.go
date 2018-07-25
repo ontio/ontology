@@ -218,7 +218,7 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	return nil
 }
 
-//Send tranfer buffer to peer
+//Send transfer buffer to peer
 func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 	isConsensus bool) error {
 	if this.network.IsPeerEstablished(p) {
@@ -309,7 +309,7 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 			break
 		}
 
-		<-time.After(time.Second * (time.Duration(common.SYNC_BLK_WAIT)))
+		<-time.After(time.Second * common.SYNC_BLK_WAIT)
 	}
 }
 

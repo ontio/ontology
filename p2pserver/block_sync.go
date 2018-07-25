@@ -139,9 +139,9 @@ func (nws NodeWeights) Less(i, j int) bool {
 	return ni.Weight() < nj.Weight() && ni.errorRespCnt >= nj.errorRespCnt && ni.timeoutCnt >= nj.timeoutCnt
 }
 
-//SyncFlightInfo record the info of fight object(header or block)
+//SyncFlightInfo record the info of flight object(header or block)
 type SyncFlightInfo struct {
-	Height      uint32         //BlockHeight of HeaderHeight
+	Height      uint32         //BlockHeight or HeaderHeight
 	nodeId      uint64         //The current node to send msg
 	startTime   time.Time      //Request start time
 	failedNodes map[uint64]int //Map nodeId => timeout times
@@ -293,7 +293,9 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 		flightInfo.ResetStartTime()
 		flightInfo.MarkFailedNode()
-		log.Tracef("[p2p]checkTimeout sync headers from id:%d :%d timeout after:%d s Times:%d", flightInfo.GetNodeId(), height, SYNC_HEADER_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+		log.Tracef("[p2p]checkTimeout sync headers from id:%d :%d timeout after:%d s Times:%d",
+			flightInfo.GetNodeId(), height, SYNC_HEADER_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+
 		reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 		if reqNode == nil {
 			break
@@ -318,7 +320,8 @@ func (this *BlockSyncMgr) checkTimeout() {
 			}
 			flightInfo.ResetStartTime()
 			flightInfo.MarkFailedNode()
-			log.Tracef("[p2p]checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+			log.Tracef("[p2p]checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d",
+				flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
 			reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 			if reqNode == nil {
 				break
@@ -460,7 +463,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 	height := headers[0].Height
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 
-	//Means another gorountinue is adding header
+	//Means another goroutine is adding header
 	if height <= curHeaderHeight {
 		return
 	}
@@ -774,6 +777,7 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 			return nil
 		}
 		_, ok := triedNode[nextNodeId]
+		// after a round, not found the node meet the requirements
 		if ok {
 			return nil
 		}

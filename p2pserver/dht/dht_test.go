@@ -118,7 +118,7 @@ func TestDHT(t *testing.T) {
 		targetAddr.Port = int(dht.udpPort)
 
 		// Ping
-		pingMsg := msgpack.NewDHTPing(node.ID, node.UDPPort, node.TCPPort, srcAddr.IP, targetAddr)
+		pingMsg := msgpack.NewDHTPing(node.ID, node.UDPPort, node.TCPPort, srcAddr.IP, targetAddr, 1)
 		pingBuffer := new(bytes.Buffer)
 		mt.WriteMessage(pingBuffer, pingMsg)
 
@@ -141,7 +141,7 @@ func TestDHT(t *testing.T) {
 		dht.recvCh <- findNode
 
 		// Pong
-		pongMsg := msgpack.NewDHTPong(node.ID, node.UDPPort, node.TCPPort, srcAddr.IP, targetAddr)
+		pongMsg := msgpack.NewDHTPong(node.ID, node.UDPPort, node.TCPPort, srcAddr.IP, targetAddr, 1)
 		pongBuffer := new(bytes.Buffer)
 		mt.WriteMessage(pongBuffer, pongMsg)
 		pong := &types.DHTMessage{

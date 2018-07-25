@@ -63,3 +63,14 @@ func TestMsgPool(t *testing.T) {
 	resultCh := messagePool.GetResultChan()
 	assert.NotNil(t, resultCh)
 }
+
+func TestReqType(t *testing.T) {
+	id := ConstructID("127.0.0.1", uint16(18888))
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, id)
+	var nodeID NodeID
+	copy(nodeID[:], b[:])
+	reqId := ConstructRequestId(nodeID, DHT_FIND_NODE_REQUEST)
+	reqType := GetReqTypeFromReqId(reqId)
+	assert.Equal(t, reqType, DHT_FIND_NODE_REQUEST)
+}
