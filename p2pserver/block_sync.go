@@ -223,7 +223,6 @@ type BlockSyncMgr struct {
 	flightBlocks   map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
 	flightHeaders  map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
 	blocksCache    map[uint32]*BlockInfo                //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
-	nodeList       []uint64                             //Holder all of nodes that can be used
 	server         *P2PServer                           //Pointer to the local node
 	syncBlockLock  bool                                 //Help to avoid send block sync request duplicate
 	syncHeaderLock bool                                 //Help to avoid send header sync request duplicate
@@ -240,7 +239,6 @@ func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo, 0),
 		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
 		blocksCache:   make(map[uint32]*BlockInfo, 0),
-		nodeList:      make([]uint64, 0),
 		server:        server,
 		ledger:        server.ledger,
 		exitCh:        make(chan interface{}, 1),
@@ -522,7 +520,6 @@ func (this *BlockSyncMgr) OnAddNode(nodeId uint64) {
 	log.Infof("OnAddNode:%d", nodeId)
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.nodeList = append(this.nodeList, nodeId)
 	w := NewNodeWeight(nodeId)
 	this.nodeWeights[nodeId] = w
 }
@@ -537,20 +534,9 @@ func (this *BlockSyncMgr) OnDelNode(nodeId uint64) {
 func (this *BlockSyncMgr) delNode(nodeId uint64) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	index := -1
-	for i, id := range this.nodeList {
-		if nodeId == id {
-			index = i
-			break
-		}
-	}
-	if index == -1 {
-		return
-	}
-	this.nodeList = append(this.nodeList[:index], this.nodeList[index+1:]...)
-	log.Infof("delNode:%d", nodeId)
 	delete(this.nodeWeights, nodeId)
-	if len(this.nodeList) == 0 {
+	log.Infof("delNode:%d", nodeId)
+	if len(this.nodeWeights) == 0 {
 		log.Warnf("no sync nodes")
 	}
 }
