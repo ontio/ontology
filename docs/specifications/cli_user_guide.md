@@ -177,6 +177,9 @@ The disabletxpoolpreexec parameter is used to disable preExecution of a transact
 --disablesyncverifytx
 The disablesyncverifytx is used to disable sync verify transaction in send transaction,include rpc restful websocket.
 
+--enablebroadcastnettx
+The enablebroadcastnettx is used to enable broadcast a transaction from network in the transaction pool. By default, this function is disabled when ontology bootstrap.
+
 ### 1.2 Node Deployment
 
 #### 1.2.1 Genesis Block Configuration File

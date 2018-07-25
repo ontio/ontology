@@ -124,6 +124,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.GasLimitFlag,
 			utils.TxpoolPreExecDisableFlag,
 			utils.DisableSyncVerifyTxFlag,
+			utils.BroadcastNetTxEnableFlag,
 		},
 	},
 	{

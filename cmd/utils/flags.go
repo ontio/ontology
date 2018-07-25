@@ -433,6 +433,11 @@ var (
 		Usage: "Disable sync verify transaction in interface",
 	}
 
+	BroadcastNetTxEnableFlag = cli.BoolFlag{
+		Name:  "enablebroadcastnettx",
+		Usage: "Enable broadcast tx from network in tx pool",
+	}
+
 	NonOptionFlag = cli.StringFlag{
 		Name:  "option",
 		Usage: "this command does not need option, please run directly",
