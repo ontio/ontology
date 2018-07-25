@@ -133,9 +133,6 @@ func (nws NodeWeights) Swap(i, j int) {
 	nws[i], nws[j] = nws[j], nws[i]
 }
 func (nws NodeWeights) Less(i, j int) bool {
-	if nws[i] == nil || nws[j] == nil {
-		return false
-	}
 	ni := nws[i]
 	nj := nws[j]
 	return ni.Weight() < nj.Weight() && ni.errorRespCnt >= nj.errorRespCnt && ni.timeoutCnt >= nj.timeoutCnt
@@ -479,6 +476,10 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 	this.delFlightHeader(height)
 	if err != nil {
 		this.addErrorRespCnt(fromID)
+		n := this.getNodeWeight(fromID)
+		if n != nil && n.GetErrorRespCnt() >= SYNC_MAX_ERROR_RESP_TIMES {
+			this.delNode(fromID)
+		}
 		log.Errorf("OnHeaderReceive AddHeaders error:%s", err)
 		return
 	}
@@ -652,6 +653,10 @@ func (this *BlockSyncMgr) saveBlock() {
 		this.delBlockCache(nextBlockHeight)
 		if err != nil {
 			this.addErrorRespCnt(fromID)
+			n := this.getNodeWeight(fromID)
+			if n != nil && n.GetErrorRespCnt() >= SYNC_MAX_ERROR_RESP_TIMES {
+				this.delNode(fromID)
+			}
 			log.Warnf("saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
 			reqNode := this.getNextNode(nextBlockHeight)
 			if reqNode == nil {
@@ -768,27 +773,8 @@ func (this *BlockSyncMgr) isBlockOnFlight(blockHash common.Uint256) bool {
 	return false
 }
 
-//Using polling for load balance
-func (this *BlockSyncMgr) getNextNodeId(nextNodeIndex int, nodeList []uint64) (int, uint64) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	num := len(nodeList)
-	if num == 0 {
-		return 0, 0
-	}
-	if nextNodeIndex >= num {
-		nextNodeIndex = 0
-	}
-	index := nextNodeIndex
-	nextNodeIndex++
-	return nextNodeIndex, nodeList[index]
-}
-
 func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
-	weights := make(NodeWeights, 0, len(this.nodeWeights))
-	for _, w := range this.nodeWeights {
-		weights = append(weights, w)
-	}
+	weights := this.getAllNodeWeights()
 	sort.Sort(sort.Reverse(weights))
 	nodelist := make([]uint64, 0)
 	for _, n := range weights {
@@ -798,7 +784,7 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 	triedNode := make(map[uint64]bool, 0)
 	for {
 		var nextNodeId uint64
-		nextNodeIndex, nextNodeId = this.getNextNodeId(nextNodeIndex, nodelist)
+		nextNodeIndex, nextNodeId = getNextNodeId(nextNodeIndex, nodelist)
 		if nextNodeId == 0 {
 			return nil
 		}
@@ -851,34 +837,66 @@ func (this *BlockSyncMgr) Close() {
 	close(this.exitCh)
 }
 
+//getNodeWeight get nodeweight by id
+func (this *BlockSyncMgr) getNodeWeight(nodeId uint64) *NodeWeight {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	return this.nodeWeights[nodeId]
+}
+
+//getAllNodeWeights get all nodeweight and return a slice
+func (this *BlockSyncMgr) getAllNodeWeights() NodeWeights {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	weights := make(NodeWeights, 0, len(this.nodeWeights))
+	for _, w := range this.nodeWeights {
+		weights = append(weights, w)
+	}
+	return weights
+}
+
 //addTimeoutCnt incre a node's timeout count
 func (this *BlockSyncMgr) addTimeoutCnt(nodeId uint64) {
-	ns := this.nodeWeights[nodeId]
-	if ns != nil {
-		ns.AddTimeoutCnt()
+	n := this.getNodeWeight(nodeId)
+	if n != nil {
+		n.AddTimeoutCnt()
 	}
 }
 
 //addErrorRespCnt incre a node's error resp count
 func (this *BlockSyncMgr) addErrorRespCnt(nodeId uint64) {
-	ns := this.nodeWeights[nodeId]
-	if ns != nil {
-		ns.AddErrorRespCnt()
+	n := this.getNodeWeight(nodeId)
+	if n != nil {
+		n.AddErrorRespCnt()
 	}
 }
 
 //appendReqTime append a node's request time
 func (this *BlockSyncMgr) appendReqTime(nodeId uint64) {
-	ns := this.nodeWeights[nodeId]
-	if ns != nil {
-		ns.AppendNewReqtime()
+	n := this.getNodeWeight(nodeId)
+	if n != nil {
+		n.AppendNewReqtime()
 	}
 }
 
 //addNewSpeed apend the new speed to tail, remove the oldest one
 func (this *BlockSyncMgr) addNewSpeed(nodeId uint64, speed float32) {
-	ns := this.nodeWeights[nodeId]
-	if ns != nil {
-		ns.AppendNewSpeed(speed)
+	n := this.getNodeWeight(nodeId)
+	if n != nil {
+		n.AppendNewSpeed(speed)
 	}
+}
+
+//Using polling for load balance
+func getNextNodeId(nextNodeIndex int, nodeList []uint64) (int, uint64) {
+	num := len(nodeList)
+	if num == 0 {
+		return 0, 0
+	}
+	if nextNodeIndex >= num {
+		nextNodeIndex = 0
+	}
+	index := nextNodeIndex
+	nextNodeIndex++
+	return nextNodeIndex, nodeList[index]
 }
