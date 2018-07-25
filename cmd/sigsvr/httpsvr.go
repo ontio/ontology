@@ -30,6 +30,7 @@ import (
 var DefCliRpcSvr = NewCliRpcServer()
 
 type CliRpcServer struct {
+	address    string
 	port       uint
 	handlers   map[string]func(req *common.CliRpcRequest, resp *common.CliRpcResponse)
 	httpSvr    *http.Server
@@ -42,11 +43,12 @@ func NewCliRpcServer() *CliRpcServer {
 	}
 }
 
-func (this *CliRpcServer) Start(port uint) {
+func (this *CliRpcServer) Start(address string, port uint) {
+	this.address = address
 	this.port = port
 	this.httpSvtMux = http.NewServeMux()
 	this.httpSvr = &http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%d", port),
+		Addr:    fmt.Sprintf("%s:%d", address, port),
 		Handler: this.httpSvtMux,
 	}
 	this.httpSvtMux.HandleFunc("/cli", this.Handler)
