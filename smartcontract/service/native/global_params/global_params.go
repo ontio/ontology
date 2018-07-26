@@ -164,6 +164,9 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("set param, deserialize failed!")
 	}
+	if len(params) == 0 {
+		return utils.BYTE_FALSE, errors.NewErr("set param, params is nil!")
+	}
 	// read old param from database
 	storageParams, err := getStorageParam(native, generateParamKey(contract, PREPARE_VALUE))
 	if err != nil {
@@ -186,14 +189,8 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	if err := paramNameList.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("get param, deserialize failed!")
 	}
-	params := new(Params)
-
-	result := new(bytes.Buffer)
-	if len(paramNameList) == 0 { // all request param exist in cache
-		if err := params.Serialize(result); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results seriealize error!")
-		}
-		return result.Bytes(), nil
+	if len(paramNameList) == 0 {
+		return utils.BYTE_FALSE, errors.NewErr("get param, required params is nil!")
 	}
 	// read from db
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -205,6 +202,7 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	if len(storageParams) == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("get param, there are no params!")
 	}
+	params := new(Params)
 	for _, paramName := range paramNameList { // read param not in cache
 		if index, value := storageParams.GetParam(paramName); index >= 0 {
 			params.SetParam(value)
@@ -212,9 +210,10 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 			params.SetParam(Param{Key: paramName, Value: ""})
 		}
 	}
+	result := new(bytes.Buffer)
 	err = params.Serialize(result)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results to json error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, serialize result error!")
 	}
 	return result.Bytes(), nil
 }
