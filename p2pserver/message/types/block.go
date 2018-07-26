@@ -19,9 +19,8 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
-
+	common2 "github.com/ontio/ontology/common"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -32,14 +31,13 @@ type Block struct {
 }
 
 //Serialize message payload
-func (this Block) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	err := this.Blk.Serialize(p)
+func (this *Block) Serialization(sink *common2.ZeroCopySink) error {
+	err := this.Blk.Serialization(sink)
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. Blk:%v", this.Blk))
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. err:%v", err))
 	}
 
-	return p.Bytes(), nil
+	return nil
 }
 
 func (this *Block) CmdType() string {
@@ -47,12 +45,12 @@ func (this *Block) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *Block) Deserialization(p []byte) error {
-	blk, err := ct.BlockFromRawBytes(p)
+func (this *Block) Deserialization(source *common2.ZeroCopySource) error {
+	this.Blk = new(ct.Block)
+	err := this.Blk.Deserialization(source)
 	if err != nil {
-		return err
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Blk error. err:%v", err))
 	}
-	this.Blk = blk
 
 	return nil
 }

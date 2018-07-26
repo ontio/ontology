@@ -19,14 +19,15 @@
 package types
 
 import (
+	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type Disconnected struct{}
 
 //Serialize message payload
-func (this Disconnected) Serialization() ([]byte, error) {
-	return nil, nil
+func (this Disconnected) Serialization(sink *common2.ZeroCopySink) error {
+	return nil
 }
 
 func (this Disconnected) CmdType() string {
@@ -34,6 +35,6 @@ func (this Disconnected) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *Disconnected) Deserialization(p []byte) error {
+func (this *Disconnected) Deserialization(source *common2.ZeroCopySource) error {
 	return nil
 }

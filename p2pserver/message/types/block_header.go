@@ -19,14 +19,11 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
-
-	"github.com/ontio/ontology/common/serialization"
+	common2 "github.com/ontio/ontology/common"
 	ct "github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/p2pserver/common"
+	"io"
 )
 
 type BlkHeader struct {
@@ -34,17 +31,17 @@ type BlkHeader struct {
 }
 
 //Serialize message payload
-func (this BlkHeader) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	serialization.WriteUint32(p, uint32(len(this.BlkHdr)))
+func (this BlkHeader) Serialization(sink *common2.ZeroCopySink) error {
+	sink.WriteUint32(uint32(len(this.BlkHdr)))
+
 	for _, header := range this.BlkHdr {
-		err := header.Serialize(p)
+		err := header.Serialization(sink)
 		if err != nil {
-			return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. header:%v", header))
+			return err
 		}
 	}
 
-	return p.Bytes(), nil
+	return nil
 }
 
 func (this *BlkHeader) CmdType() string {
@@ -52,20 +49,18 @@ func (this *BlkHeader) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *BlkHeader) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
+func (this *BlkHeader) Deserialization(source *common2.ZeroCopySource) error {
 	var count uint32
-
-	err := binary.Read(buf, binary.LittleEndian, &count)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Cnt error. buf:%v", buf))
+	count, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
 	for i := 0; i < int(count); i++ {
 		var headers ct.Header
-		err := headers.Deserialize(buf)
+		err := headers.Deserialization(source)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize headers error. buf:%v", buf))
+			return fmt.Errorf("deserialze BlkHeader error: %v", err)
 		}
 		this.BlkHdr = append(this.BlkHdr, &headers)
 	}

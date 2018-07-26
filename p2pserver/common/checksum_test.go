@@ -15,39 +15,20 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package types
+package common
 
 import (
-	common2 "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/p2pserver/common"
-	"io"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-type VerACK struct {
-	IsConsensus bool
-}
+func TestChecksum(t *testing.T) {
+	data := []byte{1, 2, 3}
+	cs := Checksum(data)
 
-//Serialize message payload
-func (this *VerACK) Serialization(sink *common2.ZeroCopySink) error {
-	sink.WriteBool(this.IsConsensus)
-	return nil
-}
+	writer := NewChecksum()
+	writer.Write(data)
+	checksum2 := writer.Sum(nil)
+	assert.Equal(t, cs[:], checksum2)
 
-func (this *VerACK) CmdType() string {
-	return common.VERACK_TYPE
-}
-
-//Deserialize message payload
-func (this *VerACK) Deserialization(source *common2.ZeroCopySource) error {
-	var irregular, eof bool
-	this.IsConsensus, irregular, eof = source.NextBool()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	if irregular {
-		return common2.ErrIrregularData
-	}
-
-	return nil
 }

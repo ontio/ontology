@@ -15,39 +15,39 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package types
+package common
 
 import (
-	common2 "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/p2pserver/common"
-	"io"
+	"crypto/sha256"
+	"hash"
 )
 
-type VerACK struct {
-	IsConsensus bool
+// checksum implement hash.Hash interface and io.Writer
+type checksum struct {
+	hash.Hash
 }
 
-//Serialize message payload
-func (this *VerACK) Serialization(sink *common2.ZeroCopySink) error {
-	sink.WriteBool(this.IsConsensus)
-	return nil
+func (self *checksum) Size() int {
+	return CHECKSUM_LEN
 }
 
-func (this *VerACK) CmdType() string {
-	return common.VERACK_TYPE
+func (self *checksum) Sum(b []byte) []byte {
+	temp := self.Hash.Sum(nil)
+	h := sha256.Sum256(temp)
+
+	return append(b, h[:CHECKSUM_LEN]...)
 }
 
-//Deserialize message payload
-func (this *VerACK) Deserialization(source *common2.ZeroCopySource) error {
-	var irregular, eof bool
-	this.IsConsensus, irregular, eof = source.NextBool()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	if irregular {
-		return common2.ErrIrregularData
-	}
+func NewChecksum() hash.Hash {
+	return &checksum{sha256.New()}
+}
 
-	return nil
+func Checksum(data []byte) [CHECKSUM_LEN]byte {
+	var checksum [CHECKSUM_LEN]byte
+	t := sha256.Sum256(data)
+	s := sha256.Sum256(t[:])
+
+	copy(checksum[:], s[:])
+
+	return checksum
 }

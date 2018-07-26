@@ -20,19 +20,18 @@ package types
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"io"
-
+	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/p2pserver/common"
+	"io"
 )
 
 type Message interface {
-	Serialization() ([]byte, error)
-	Deserialization([]byte) error
+	Serialization(sink *common2.ZeroCopySink) error
+	Deserialization(source *common2.ZeroCopySource) error
 	CmdType() string
 }
 
@@ -57,6 +56,13 @@ func readMessageHeader(reader io.Reader) (messageHeader, error) {
 	return msgh, err
 }
 
+func writeMessageHeaderInto(sink *common2.ZeroCopySink, msgh messageHeader) {
+	sink.WriteUint32(msgh.Magic)
+	sink.WriteBytes(msgh.CMD[:])
+	sink.WriteUint32(msgh.Length)
+	sink.WriteBytes(msgh.Checksum[:])
+}
+
 func writeMessageHeader(writer io.Writer, msgh messageHeader) error {
 	return binary.Write(writer, binary.LittleEndian, msgh)
 }
@@ -70,21 +76,26 @@ func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]b
 	return msgh
 }
 
-func WriteMessage(writer io.Writer, msg Message) error {
-	buf, err := msg.Serialization()
+func WriteMessage(sink *common2.ZeroCopySink, msg Message) error {
+	pstart := sink.Size()
+	sink.NextBytes(common.MSG_HDR_LEN) // can not save the buf, since it may reallocate in sink
+	err := msg.Serialization(sink)
 	if err != nil {
 		return err
 	}
-	checksum := CheckSum(buf)
+	pend := sink.Size()
+	total := pend - pstart
+	payLen := total - common.MSG_HDR_LEN
 
-	hdr := newMessageHeader(msg.CmdType(), uint32(len(buf)), checksum)
+	sink.BackUp(total)
+	buf := sink.NextBytes(total)
+	checksum := common.Checksum(buf[common.MSG_HDR_LEN:])
+	hdr := newMessageHeader(msg.CmdType(), uint32(payLen), checksum)
 
-	err = writeMessageHeader(writer, hdr)
-	if err != nil {
-		return err
-	}
+	sink.BackUp(total)
+	writeMessageHeaderInto(sink, hdr)
+	sink.NextBytes(payLen)
 
-	_, err = writer.Write(buf)
 	return err
 }
 
@@ -110,7 +121,7 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 		return nil, 0, err
 	}
 
-	checksum := CheckSum(buf)
+	checksum := common.Checksum(buf)
 	if checksum != hdr.Checksum {
 		return nil, 0, fmt.Errorf("message checksum mismatch: %x != %x ", hdr.Checksum, checksum)
 	}
@@ -121,7 +132,9 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 		return nil, 0, err
 	}
 
-	err = msg.Deserialization(buf)
+	// the buf is referenced by msg to avoid reallocation, so can not reused
+	source := common2.NewZeroCopySource(buf)
+	err = msg.Deserialization(source)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -167,15 +180,4 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}
 
-}
-
-//caculate checksum value
-func CheckSum(p []byte) [common.CHECKSUM_LEN]byte {
-	var checksum [common.CHECKSUM_LEN]byte
-	t := sha256.Sum256(p)
-	s := sha256.Sum256(t[:])
-
-	copy(checksum[:], s[:])
-
-	return checksum
 }
