@@ -393,6 +393,11 @@ var (
 	}
 
 	//Cli setting
+	CliAddressFlag = cli.StringFlag{
+		Name:  "cliaddress",
+		Usage: "Cli rpc address",
+		Value: config.DEFUALT_CLI_RPC_ADDRESS,
+	}
 	CliRpcPortFlag = cli.UintFlag{
 		Name:  "cliport",
 		Usage: "Cli rpc port",

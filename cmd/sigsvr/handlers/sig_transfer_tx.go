@@ -24,7 +24,9 @@ import (
 	"encoding/json"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"strconv"
 )
 
 type SigTransferTransactionReq struct {
@@ -33,7 +35,8 @@ type SigTransferTransactionReq struct {
 	Asset    string `json:"asset"`
 	From     string `json:"from"`
 	To       string `json:"to"`
-	Amount   uint64 `json:"amount"`
+	Amount   string `json:"amount"`
+	Payer    string `json:"payer"`
 }
 
 type SinTransferTransactionRsp struct {
@@ -47,10 +50,29 @@ func SigTransferTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	transferTx, err := cliutil.TransferTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Asset, rawReq.From, rawReq.To, rawReq.Amount)
+	amount, err := strconv.ParseInt(rawReq.Amount, 10, 64)
+	if err != nil {
+		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+		resp.ErrorInfo = "amount should be string type"
+		return
+	}
+	if amount < 0 {
+		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+		return
+	}
+	transferTx, err := cliutil.TransferTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Asset, rawReq.From, rawReq.To, uint64(amount))
 	if err != nil {
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
+	}
+	if rawReq.Payer != "" {
+		payerAddress, err := common.AddressFromBase58(rawReq.Payer)
+		if err != nil {
+			log.Infof("Cli Qid:%s SigNeoVMInvokeAbiTx AddressFromBase58 error:%s", req.Qid, err)
+			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+			return
+		}
+		transferTx.Payer = payerAddress
 	}
 	signer := clisvrcom.DefAccount
 	if signer == nil {

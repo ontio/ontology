@@ -34,6 +34,7 @@ type SigNeoVMInvokeTxAbiReq struct {
 	Address     string          `json:"address"`
 	Method      string          `json:"method"`
 	Params      []string        `json:"params"`
+	Payer       string          `json:"payer"`
 	ContractAbi json.RawMessage `json:"contract_abi"`
 }
 
@@ -77,6 +78,15 @@ func SigNeoVMInvokeAbiTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRes
 		log.Infof("Cli Qid:%s SigNeoVMInvokeAbiTx InvokeNeoVMContractTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
+	}
+	if rawReq.Payer != "" {
+		payerAddress, err := common.AddressFromBase58(rawReq.Payer)
+		if err != nil {
+			log.Infof("Cli Qid:%s SigNeoVMInvokeAbiTx AddressFromBase58 error:%s", req.Qid, err)
+			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+			return
+		}
+		tx.Payer = payerAddress
 	}
 	signer := clisvrcom.DefAccount
 	err = cliutil.SignTransaction(signer, tx)

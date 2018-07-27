@@ -31,6 +31,9 @@ wallet 参数用于指定sigsvr启动时的钱包文件路径。默认值为"./w
 --account, -a
 account 参数用于指定sigsvr启动时加载的账户地址。不填则使用钱包默认账户。
 
+--cliaddress
+cliaddress 参数用于指定sigsvr启动时绑定的地址。默认值为127.0.0.1，仅接受本机的请求。如果需要被网络中的其他机器访问，可以指定网卡地址，或者0.0.0.0。
+
 --cliport
 签名服务器绑定的端口号。默认值为20000。
 
@@ -246,7 +249,7 @@ http://localhost:20000/cli
 	"asset":"ont",    //asset: ont or ong
 	"from":"XXX",     //付款账户
 	"to":"XXX",       //收款地址
-	"amount":XXX      //转账金额。注意，由于ong的精度是9，应该在进行ong转账时，需要在实际的转账金额上乘以1000000000。
+	"amount":"XXX"      //转账金额。注意，由于ong的精度是9，应该在进行ong转账时，需要在实际的转账金额上乘以1000000000。
 }
 ```
 应答结果：
@@ -270,7 +273,7 @@ http://localhost:20000/cli
 		"asset":"ont",
 		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
 		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
-		"amount":10
+		"amount":"10"
 	}
 }
 ```
@@ -288,6 +291,27 @@ http://localhost:20000/cli
     "error_info": ""
 }
 ```
+
+sigtransfertx方法默认使用签名账户作为手续费支付方，如果需要使用其他账户作为手续费的付费账户，可以使用payer参数指定。
+注意：如果指定了手续费付费账户，还需要调用sigrawtx方法，使用手续费账户对sigtransfertx方法生成的交易进行签名，否则会导致交易执行失败。
+
+举例
+```
+{
+	"qid":"t",
+	"method":"sigtransfertx",
+	"params":{
+		"gas_price":0,
+		"gas_limit":20000,
+		"asset":"ont",
+		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
+		"amount":"10",
+		"payer":"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48"
+	}
+}
+```
+
 
 ### 2.6 Native合约调用签名
 
@@ -356,6 +380,35 @@ sigsvr启动时，默认会在当前目录下查找"./abi"下的native合约abi�
     "error_info": ""
 }
 ```
+
+signativeinvoketx 方法默认使用签名账户作为手续费支付方，如果需要使用其他账户作为手续费的付费账户，可以使用payer参数指定。
+注意：如果指定了手续费付费账户，还需要调用sigrawtx方法，使用手续费账户对 signativeinvoketx 方法生成的交易进行签名，否则会导致交易执行失败。
+
+举例
+```
+{
+	"Qid":"t",
+	"Method":"signativeinvoketx",
+	"Params":{
+		"gas_price":0,
+		"gas_limit":20000,
+		"address":"0100000000000000000000000000000000000000",
+		"method":"transfer",
+		"version":0,
+		"payer":"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48",
+		"params":[
+			[
+				[
+				"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+				"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
+				"1000"
+				]
+			]
+		]
+	}
+}
+```
+
 ### 2.7 NeoVM合约调用签名
 
 NeoVM合约调用根据要调用的NeoVM合约构造调用交易，并签名。
@@ -422,6 +475,22 @@ NeoVM参数合约支持array、bytearray、string、int以及bool类型，构造
     },
     "error_code": 0,
     "error_info": ""
+}
+```
+
+signeovminvoketx 方法默认使用签名账户作为手续费支付方，如果需要使用其他账户作为手续费的付费账户，可以使用payer参数指定。
+注意：如果指定了手续费付费账户，还需要调用sigrawtx方法，使用手续费账户对 signeovminvoketx 方法生成的交易进行签名，否则会导致交易执行失败。
+
+举例
+```
+{
+    "gas_price":XXX,    //gasprice
+    "gas_limit":XXX,    //gaslimit
+    "address":"XXX",    //调用Neovm合约的地址
+    "payer":"XXX",      //手续费付费地址
+    "params":[
+        //具体合约 Neovm合约调用的参数，根据需要调用的具体合约构造。所有值都使用字符串类型。
+    ]
 }
 ```
 
@@ -514,4 +583,19 @@ NeoVM合约ABI调用签名，需要提供合约的abi，以及合约调用的参
     "error_info": ""
 }
 ```
+signeovminvokeabitx 方法默认使用签名账户作为手续费支付方，如果需要使用其他账户作为手续费的付费账户，可以使用payer参数指定。
+注意：如果指定了手续费付费账户，还需要调用sigrawtx方法，使用手续费账户对 signeovminvokeabitx 方法生成的交易进行签名，否则会导致交易执行失败。
+
+举例
+```
+{
+    "gas_price":XXX,    //gasprice
+    "gas_limit":XXX,    //gaslimit
+    "address":"XXX",    //调用Neovm合约的地址
+    "params":[XXX],     //调用参数（所有的参数都是字符串类型）
+    "payer":"XXX",      //手续费付费地址
+    "contract_abi":XXX, //合约ABI
+}
+```
+
 
