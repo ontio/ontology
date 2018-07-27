@@ -80,22 +80,22 @@ There are some description of parameter used in rpc:
 | [getblockcount](#3-getblockcount) |  | get the number of blocks |  |
 | [getblockhash](#4-getblockhash) | height | get block hash by block height |  |
 | [getconnectioncount](#5-getconnectioncount)|  | get the current number of connections for the node |  |
-| [getrawtransaction](#7-getrawtransaction) | transactionhash | Returns the corresponding transaction information based on the specified hash value. |  |
-| [sendrawtransaction](#8-sendrawtransaction) | hex,preExec | Broadcast transaction. | Serialized signed transactions constructed in the program into hexadecimal strings |
-| [getstorage](#9-getstorage) | script_hash, key | Returns the stored value according to the contract address hash and stored key. |  |
-| [getversion](#10-getversion) |  | Get the version information of the node |  |
-| [getcontractstate](#11-getcontractstate) | script_hash,[verbose] | According to the contract address hash, query the contract information. |  |
-| [getmempooltxcount](#12-getmempooltxcount) |         | Query the transaction count in the memory pool. |  |
-| [getmempooltxstate](#13-getmempooltxstate) | tx_hash | Query the transaction state in the memory pool. |  |
-| [getsmartcodeevent](#14-getsmartcodeevent) |  | Get smartcode event |  |
-| [getblockheightbytxhash](#15-getblockheightbytxhash) | tx_hash | get blockheight of transaction hash|  |
-| [getbalance](#16-getbalance) | address | return balance of base58 account address. |  |
-| [getmerkleproof](#17-getmerkleproof) | tx_hash | return merkle proof |  |
-| [getgasprice](#18-getgasprice) |  | return gasprice |  |
-| [getallowance](#19-getallowance) | asset, from, to | return the allowance from transfer-from accout to transfer-to account |  |
-| [getunboundong](#20-getunboundong) | address | return unbound ong |  |
-| [getblocktxsbyheight](#21-getblocktxsbyheight) | height | return transaction hashes |  |
-| [getnetworkid](#22-getnetworkid) |  | Get the network id |  |
+| [getrawtransaction](#6-getrawtransaction) | transactionhash | Returns the corresponding transaction information based on the specified hash value. |  |
+| [sendrawtransaction](#7-sendrawtransaction) | hex,preExec | Broadcast transaction. | Serialized signed transactions constructed in the program into hexadecimal strings |
+| [getstorage](#8-getstorage) | script_hash, key | Returns the stored value according to the contract address hash and stored key. |  |
+| [getversion](#9-getversion) |  | Get the version information of the node |  |
+| [getcontractstate](#10-getcontractstate) | script_hash,[verbose] | According to the contract address hash, query the contract information. |  |
+| [getmempooltxcount](#11-getmempooltxcount) |         | Query the transaction count in the memory pool. |  |
+| [getmempooltxstate](#12-getmempooltxstate) | tx_hash | Query the transaction state in the memory pool. |  |
+| [getsmartcodeevent](#13-getsmartcodeevent) |  | Get smartcode event |  |
+| [getblockheightbytxhash](#14-getblockheightbytxhash) | tx_hash | get blockheight of transaction hash|  |
+| [getbalance](#15-getbalance) | address | return balance of base58 account address. |  |
+| [getmerkleproof](#16-getmerkleproof) | tx_hash | return merkle proof |  |
+| [getgasprice](#17-getgasprice) |  | return gasprice |  |
+| [getallowance](#18-getallowance) | asset, from, to | return the allowance from transfer-from accout to transfer-to account |  |
+| [getunboundong](#19-getunboundong) | address | return unbound ong |  |
+| [getblocktxsbyheight](#20-getblocktxsbyheight) | height | return transaction hashes |  |
+| [getnetworkid](#21-getnetworkid) |  | Get the network id |  |
 
 ### 1. getbestblockhash
 
@@ -320,10 +320,8 @@ Response:
 }
 ```
 
-#### 6.
 
-
-#### 7. getrawtransaction
+#### 6. getrawtransaction
 
 Returns the corresponding transaction information based on the specified hash value.
 
@@ -421,7 +419,7 @@ Response:
 
 
 
-#### 8. sendrawtransaction
+#### 7. sendrawtransaction
 
 send transaction.
 
@@ -509,7 +507,7 @@ Reponse
 
 > Note:result is transaction hash
 
-#### 9. getstorage
+#### 8. getstorage
 
 Return the stored value according to the contract address hash and stored key.
 
@@ -551,7 +549,7 @@ Response:
 ```
 > result: Hexadecimal string
 
-#### 10. getversion
+#### 9. getversion
 
 Get the version information of the node.
 
@@ -580,7 +578,7 @@ Response:
 }
 ```
 
-#### 11. getcontractstate
+#### 10. getcontractstate
 
 According to the contract address hash, query the contract information.
 
@@ -624,7 +622,7 @@ Response:
 }
 ```
 
-#### 12. getmempooltxcount
+#### 11. getmempooltxcount
 
 Query the transaction count in the memory pool.
 
@@ -653,7 +651,7 @@ Response:
 }
 ```
 
-#### 13. getmempooltxstate
+#### 12. getmempooltxstate
 
 Query the transaction state in the memory pool.
 
@@ -696,7 +694,7 @@ Response:
 }
 ```
 
-#### 14. getsmartcodeevent
+#### 13. getsmartcodeevent
 
 Get smartcode event.
 
@@ -802,7 +800,7 @@ or
 
 > Note: If params is a number, the response result will be the smartcode list. If params is transaction hash, the response result will be smartcode event.
 
-#### 15. getblockheightbytxhash
+#### 14. getblockheightbytxhash
 
 get blockheight by transaction hash
 
@@ -834,7 +832,7 @@ Response:
 }
 ```
 
-#### 16. getbalance
+#### 15. getbalance
 
 return balance of base58 account address.
 
@@ -870,7 +868,7 @@ Response:
 }
 ```
 
-#### 17. getmerkleproof
+#### 16. getmerkleproof
 
 return merkle proof
 
@@ -924,7 +922,7 @@ Response:
 }
 ```
 
-#### 18. getgasprice
+#### 17. getgasprice
 
 return gas price.
 
@@ -957,7 +955,7 @@ Response:
 }
 ```
 
-#### 19. getallowance
+#### 18. getallowance
 
 return allowance.
 
@@ -987,7 +985,7 @@ Response:
 }
 ```
 
-#### 20. getunboundong
+#### 19. getunboundong
 
 return unbound ong.
 
@@ -1017,7 +1015,7 @@ Response:
 }
 ```
 
-#### 21 getblocktxsbyheight
+#### 20. getblocktxsbyheight
 
 Get transactions by block height
 return all transaction hash contained in the block corresponding to this height
@@ -1053,7 +1051,7 @@ Response:
 }
 ```
 
-#### 22. getnetworkid
+#### 21. getnetworkid
 
 Get the network id.
 

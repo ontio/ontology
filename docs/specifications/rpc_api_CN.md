@@ -80,22 +80,22 @@
 | [getblockcount](#3-getblockcount) |  | 得到区块的数量 |  |
 | [getblockhash](#4-getblockhash) | height | 得到对应高度的区块的哈希 |  |
 | [getconnectioncount](#5-getconnectioncount)|  | 得到当前网络上连接的节点数 |  |
-| [getrawtransaction](#7-getrawtransaction) | transactionhash | 通过交易哈希得到交易详情 |  |
-| [sendrawtransaction](#8-sendrawtransaction) | hex,preExec | 向网络中发送交易 | 发送的数据为签过名的交易序列化后的十六进制字符串 |
-| [getstorage](#9-getstorage) | script_hash, key |根据合约地址和存储的键，得到对应的值 |  |
-| [getversion](#10-getversion) |  | 得到运行的ontology版本 |  |
-| [getcontractstate](#11-getcontractstate) | script_hash,[verbose] | 根据合约地址，得到合约信息 |  |
-| [getmempooltxcount](#12-getmempooltxcount) |         | 查询内存中的交易的数量 |  |
-| [getmempooltxstate](#13-getmempooltxstate) | tx_hash | 查询内存中的交易的状态 |  |
-| [getsmartcodeevent](#14-getsmartcodeevent) |  | 得到智能合约执行的结果 |  |
-| [getblockheightbytxhash](#15-getblockheightbytxhash) | tx_hash | 得到该交易哈希所落账的区块的高度 |  |
-| [getbalance](#16-getbalance) | address | 返回base58地址的余额 |  |
-| [getmerkleproof](#17-getmerkleproof) | tx_hash | 返回merkle证明 |  |
-| [getgasprice](#18-getgasprice) |  | 返回gas的价格 |  |
-| [getallowance](#19-getallowance) | asset, from, to | 返回允许从from转出到to账户的额度 |  |
-| [getunboundong](#20-getunboundong) | address | 返回该账户未提取的ong |  |
-| [getblocktxsbyheight](#21-getblocktxsbyheight) | height | 返回该高度对应的区块落账的交易的哈希 |  |
-| [getnetworkid](#22-getnetworkid) |  | 获取 network id |  |
+| [getrawtransaction](#6-getrawtransaction) | transactionhash | 通过交易哈希得到交易详情 |  |
+| [sendrawtransaction](#7-sendrawtransaction) | hex,preExec | 向网络中发送交易 | 发送的数据为签过名的交易序列化后的十六进制字符串 |
+| [getstorage](#8-getstorage) | script_hash, key |根据合约地址和存储的键，得到对应的值 |  |
+| [getversion](#9-getversion) |  | 得到运行的ontology版本 |  |
+| [getcontractstate](#10-getcontractstate) | script_hash,[verbose] | 根据合约地址，得到合约信息 |  |
+| [getmempooltxcount](#11-getmempooltxcount) |         | 查询内存中的交易的数量 |  |
+| [getmempooltxstate](#12-getmempooltxstate) | tx_hash | 查询内存中的交易的状态 |  |
+| [getsmartcodeevent](#13-getsmartcodeevent) |  | 得到智能合约执行的结果 |  |
+| [getblockheightbytxhash](#14-getblockheightbytxhash) | tx_hash | 得到该交易哈希所落账的区块的高度 |  |
+| [getbalance](#15-getbalance) | address | 返回base58地址的余额 |  |
+| [getmerkleproof](#16-getmerkleproof) | tx_hash | 返回merkle证明 |  |
+| [getgasprice](#17-getgasprice) |  | 返回gas的价格 |  |
+| [getallowance](#18-getallowance) | asset, from, to | 返回允许从from转出到to账户的额度 |  |
+| [getunboundong](#19-getunboundong) | address | 返回该账户未提取的ong |  |
+| [getblocktxsbyheight](#20-getblocktxsbyheight) | height | 返回该高度对应的区块落账的交易的哈希 |  |
+| [getnetworkid](#21-getnetworkid) |  | 获取 network id |  |
 
 ### 1. getbestblockhash
 
@@ -321,11 +321,8 @@ Response:
 }
 ```
 
-#### 6.
 
-
-
-#### 7. getrawtransaction
+#### 6. getrawtransaction
 
 通过交易哈希得到交易详情。
 
@@ -424,7 +421,7 @@ Response:
 
 
 
-#### 8. sendrawtransaction
+#### 7. sendrawtransaction
 
 发送交易。
 
@@ -510,7 +507,7 @@ Reponse
 
 > 注意：返回的结果是交易哈希
 
-#### 9. getstorage
+#### 8. getstorage
 
 根据合约地址和存储的键，得到对应的值。
 
@@ -552,7 +549,7 @@ Response:
 ```
 > 返回结果为十六进制字符串
 
-#### 10. getversion
+#### 9. getversion
 
 得到运行的ontology版本。
 
@@ -581,7 +578,7 @@ Response:
 }
 ```
 
-#### 11. getcontractstate
+#### 10. getcontractstate
 
 根据合约地址，得到对应的合约信息。
 
@@ -626,7 +623,7 @@ Response:
 }
 ```
 
-#### 12. getmempooltxcount
+#### 11. getmempooltxcount
 
 查询内存中的交易的数量。
 
@@ -655,7 +652,7 @@ Response:
 }
 ```
 
-#### 13. getmempooltxstate
+#### 12. getmempooltxstate
 
 查询内存中的交易的状态
 
@@ -698,7 +695,7 @@ Response:
 }
 ```
 
-#### 14. getsmartcodeevent
+#### 13. getsmartcodeevent
 
 得到智能合约执行的结果。
 
@@ -802,7 +799,7 @@ or
 
 > 注意： 如果参数是区块高度，则返回执行结果的集合；如果是交易哈希，则返回该交易对应的结果。
 
-#### 15. getblockheightbytxhash
+#### 14. getblockheightbytxhash
 
 得到该交易哈希所落账的区块的高度。
 
@@ -834,7 +831,7 @@ Response:
 }
 ```
 
-#### 16. getbalance
+#### 15. getbalance
 
 返回base58地址的余额
 
@@ -870,7 +867,7 @@ Response:
 }
 ```
 
-#### 17. getmerkleproof
+#### 16. getmerkleproof
 
 返回对应交易的merkle证明
 
@@ -924,7 +921,7 @@ Response:
 }
 ```
 
-#### 18. getgasprice
+#### 17. getgasprice
 
 返回gas价格
 
@@ -957,7 +954,7 @@ Response:
 }
 ```
 
-#### 19. getallowance
+#### 18. getallowance
 
 返回允许从from转出到to账户的额度
 
@@ -994,7 +991,7 @@ Response:
 }
 ```
 
-#### 20. getunboundong
+#### 19. getunboundong
 
 返回可以提取的ong。
 
@@ -1027,7 +1024,7 @@ Response:
 }
 ```
 
-#### 21 getblocktxsbyheight
+#### 20. getblocktxsbyheight
 
 返回该高度对应的区块落账的所有交易的哈希
 
@@ -1066,7 +1063,7 @@ Response:
 }
 ```
 
-#### 22. getnetworkid
+#### 21. getnetworkid
 
 获取 network id.
 
