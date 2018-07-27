@@ -31,6 +31,9 @@ The wallet parameter specifies the wallet file path when sigsvr starts. The defa
 --account, -a
 The account parameter specifies the account address when sigsvr starts. If the account is null, it uses the wallet default account.
 
+--cliaddress
+The cliaddress parameter specifies which address is bound。The default value is 127.0.0.1, means only local machine's request can be accessed。If sigsvr need be accessed by other machine, please use local network address or 0.0.0.0。
+
 --cliport
 The port number to which the signature server is bound. The default value is 20000.
 
@@ -252,7 +255,7 @@ Request parameters:
 	"asset":"ont",    //asset: ont or ong
 	"from":"XXX",     //Payment account
 	"to":"XXX",       //Receipt address
-	"amount":XXX      //transfer amount. Note that since the precision of ong is 9, it is necessary to multiply the actual transfer amount by 1000000000 when making ong transfer.
+	"amount":"XXX"    //transfer amount. Note that since the precision of ong is 9, it is necessary to multiply the actual transfer amount by 1000000000 when making ong transfer.
 }
 ```
 Response result:
@@ -276,7 +279,7 @@ Request:
 		"asset":"ont",
 		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
 		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
-		"amount":10
+		"amount":"10"
 	}
 }
 ```
@@ -292,6 +295,22 @@ Response:
     },
     "error_code": 0,
     "error_info": ""
+}
+```
+
+sigtransfertx method use the signer account to pay network fee by default, if you want to use other account to payer the fee, please use payer parameter to specifies。
+Note that if specifies payer parameter, don't forget to use sigrawtx method to sign the transaction output by sigtransfertx with the fee payer's account.
+
+Examples:
+```
+{
+	"gas_price":XXX,  //gasprice
+	"gas_limit":XXX,  //gaslimit
+	"asset":"ont",    //asset: ont or ong
+	"from":"XXX",     //Payment account
+	"to":"XXX",       //Receipt address
+	"payer":"XXX",    //The fee payer's account address
+	"amount":XXX      //transfer amount. Note that since the precision of ong is 9, it is necessary to multiply the actual transfer amount by 1000000000 when making ong transfer.
 }
 ```
 
@@ -367,6 +386,23 @@ Response:
 }
 ```
 
+signativeinvoketx method use the signer account to pay network fee by default, if you want to use other account to payer the fee, please use payer parameter to specifies。
+Note that if specifies payer parameter, don't forget to use sigrawtx method to sign the transaction output by signativeinvoketx with the fee payer's account.
+
+Examples:
+
+```
+{
+    "gas_price":XXX,    //gasprice
+    "gas_limit":XXX,    //gaslimit
+    "address":"XXX",    //The address that invokes NeoVM contract
+    "payer":"XXX",      //The fee payer's account address
+    "params":[
+        //The parameters of the Native contract. All values ​​are string type.
+    ]
+}
+```
+
 ### 2.7 NeoVM Contract Invokes Signature
 
 The NeoVM parameter contract supports array, bytearray, string, int, and bool types. When constructing parameters, it is necessary to provide parameter types and parameter values. The parameter values ​​use string types. Array is an array of objects and supports all types and quantities of NeoVM supported parameters.
@@ -432,6 +468,24 @@ Response:
     },
     "error_code": 0,
     "error_info": ""
+}
+```
+
+signeovminvoketx method use the signer account to pay network fee by default, if you want to use other account to payer the fee, please use payer parameter to specifies。
+Note that if specifies payer parameter, don't forget to use sigrawtx method to sign the transaction output by signeovminvoketx with the fee payer's account.
+
+Examples:
+```
+{
+    "gas_price":XXX,    //gasprice
+    "gas_limit":XXX,    //gaslimit
+    "address":"XXX",    //The address that invokes native contract
+    "method":"XXX",     //The method that invokes native contract
+    "version":0,        //The version that invokes native contract
+    "payer":"XXX",      //The fee payer's account address
+    "params":[
+        //The parameters of the Native contract are constructed according to the ABI of calling method. All values ​​are string type.
+    ]
 }
 ```
 
@@ -524,3 +578,19 @@ Response:
     "error_info": ""
 }
 ```
+signeovminvokeabitx method use the signer account to pay network fee, if you want to use other account to payer the fee, please use payer parameter to specifies。
+Note that if specifies payer parameter, don't forget to use sigrawtx method to sign the transaction output by signeovminvokeabitx with the fee payer's account.
+
+Examples:
+```
+{
+    "gas_price":XXX,    //gasprice
+    "gas_limit":XXX,    //gaslimit
+    "address":"XXX",    //The NeoVM contract address
+    "params":[XXX],     //The parameters of the NeoVM contract are constructed according to the ABI of calling method. All values ​​are string type.
+    "payer":"XXX",      //The fee payer's account address
+    "contract_abi":XXX, //The ABI of contract
+}
+```
+
+

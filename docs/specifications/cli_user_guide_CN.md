@@ -180,6 +180,9 @@ disabletxpoolpreexec 参数用于关闭交易池中对来自网络的交易预�
 --disablesyncverifytx
 disablesyncverifytx 参数用于关闭rpc、restful、websocket中同步验证交易
 
+--enablebroadcastnettx
+enablebroadcastnettx 参数用于打开交易池广播来自网络的交易。Ontology节点在启动时交易池默认关闭广播来自网络的交易功能的。
+
 ### 1.2 节点部署
 
 #### 1.2.1 创世区块配置文件
@@ -192,7 +195,7 @@ Ontology支持VBFT和dBFT共识算法，一个区块链网络必须使用同一�
 
 使用VBFT共识算法的创世块配置文件示例：
 
-```json
+```
 {
   "SeedList": [
     "192.168.0.1:20338"             //种子节点列表
@@ -261,7 +264,7 @@ Ontology支持VBFT和dBFT共识算法，一个区块链网络必须使用同一�
 
 使用dBFT共识算法的创世块配置文件示例：
 
-```json
+```
 {
   "SeedList": [
     "192.168.0.1:20338"               //种子节点列表

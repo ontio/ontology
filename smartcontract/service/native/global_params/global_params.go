@@ -21,7 +21,6 @@ package global_params
 import (
 	"bytes"
 	"fmt"
-	"sync"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -30,11 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
-
-type ParamCache struct {
-	lock   sync.RWMutex
-	Params Params
-}
 
 type paramType byte
 
@@ -51,12 +45,8 @@ const (
 	CREATE_SNAPSHOT_NAME                     = "createSnapshot"
 )
 
-var paramCache *ParamCache
-
 func InitGlobalParams() {
 	native.Contracts[utils.ParamContractAddress] = RegisterParamContract
-	paramCache = new(ParamCache)
-	paramCache.Params = make([]Param, 0)
 }
 
 func RegisterParamContract(native *native.NativeService) {
@@ -77,8 +67,6 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("init param, admin or operator has already existed!")
 	}
 
-	paramCache = new(ParamCache)
-	paramCache.Params = make([]Param, 0)
 	initParams := Params{}
 	args, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
 	if err != nil {
@@ -176,6 +164,9 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("set param, deserialize failed!")
 	}
+	if len(params) == 0 {
+		return utils.BYTE_FALSE, errors.NewErr("set param, params is nil!")
+	}
 	// read old param from database
 	storageParams, err := getStorageParam(native, generateParamKey(contract, PREPARE_VALUE))
 	if err != nil {
@@ -194,26 +185,12 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 }
 
 func GetGlobalParam(native *native.NativeService) ([]byte, error) {
-	paramNameList := new(ParamNameList)
+	var paramNameList ParamNameList
 	if err := paramNameList.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("get param, deserialize failed!")
 	}
-	params := new(Params)
-	var paramNotInCache = make([]string, 0)
-	// read from cache
-	for _, paramName := range *paramNameList {
-		if index, value := getParamFromCache(paramName); index >= 0 {
-			params.SetParam(value)
-		} else {
-			paramNotInCache = append(paramNotInCache, paramName)
-		}
-	}
-	result := new(bytes.Buffer)
-	if len(paramNotInCache) == 0 { // all request param exist in cache
-		if err := params.Serialize(result); err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results seriealize error!")
-		}
-		return result.Bytes(), nil
+	if len(paramNameList) == 0 {
+		return utils.BYTE_FALSE, errors.NewErr("get param, required params is nil!")
 	}
 	// read from db
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -225,17 +202,18 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	if len(storageParams) == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("get param, there are no params!")
 	}
-	setCache(storageParams)                     // set param to cache
-	for _, paramName := range paramNotInCache { // read param not in cache
+	params := new(Params)
+	for _, paramName := range paramNameList { // read param not in cache
 		if index, value := storageParams.GetParam(paramName); index >= 0 {
 			params.SetParam(value)
 		} else {
 			params.SetParam(Param{Key: paramName, Value: ""})
 		}
 	}
+	result := new(bytes.Buffer)
 	err = params.Serialize(result)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, results to json error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, serialize result error!")
 	}
 	return result.Bytes(), nil
 }
@@ -260,27 +238,7 @@ func CreateSnapshot(native *native.NativeService) ([]byte, error) {
 	}
 	// set prepare value to current value, make it effective
 	native.CloneCache.Add(scommon.ST_STORAGE, generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(prepareParam))
-	// clear memory cache
-	clearCache()
 
 	NotifyParamChange(native, contract, CREATE_SNAPSHOT_NAME, prepareParam)
 	return utils.BYTE_TRUE, nil
-}
-
-func clearCache() {
-	paramCache.lock.Lock()
-	defer paramCache.lock.Unlock()
-	paramCache.Params = make([]Param, 0)
-}
-
-func setCache(params Params) {
-	paramCache.lock.Lock()
-	defer paramCache.lock.Unlock()
-	paramCache.Params = params
-}
-
-func getParamFromCache(key string) (int, Param) {
-	paramCache.lock.RLock()
-	defer paramCache.lock.RUnlock()
-	return paramCache.Params.GetParam(key)
 }

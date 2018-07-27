@@ -393,6 +393,11 @@ var (
 	}
 
 	//Cli setting
+	CliAddressFlag = cli.StringFlag{
+		Name:  "cliaddress",
+		Usage: "Cli rpc address",
+		Value: config.DEFUALT_CLI_RPC_ADDRESS,
+	}
 	CliRpcPortFlag = cli.UintFlag{
 		Name:  "cliport",
 		Usage: "Cli rpc port",
@@ -431,6 +436,11 @@ var (
 	DisableSyncVerifyTxFlag = cli.BoolFlag{
 		Name:  "disablesyncverifytx",
 		Usage: "Disable sync verify transaction in interface",
+	}
+
+	BroadcastNetTxEnableFlag = cli.BoolFlag{
+		Name:  "enablebroadcastnettx",
+		Usage: "Enable broadcast tx from network in tx pool",
 	}
 
 	NonOptionFlag = cli.StringFlag{

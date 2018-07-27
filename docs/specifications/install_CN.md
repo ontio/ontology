@@ -48,4 +48,6 @@ $ make all
 * `tools/sigsvr`: (可选)签名服务 - sigsvr是一个签名服务的server以满足一些特殊的需求。详细的文档可以在[这里](sigsvr_CN.md)参考。
 
 ### 从release获取
-你可以从[下载页面](https://github.com/ontio/ontology/releases)获取.
+
+- 你可以通过命令 `curl https://dev.ont.io/ontology_install | sh ` 获取最新的ontology版本
+- 你也可以从[下载页面](https://github.com/ontio/ontology/releases)获取.
