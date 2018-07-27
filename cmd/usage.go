@@ -82,9 +82,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.LogLevelFlag,
 			utils.DisableEventLogFlag,
 			utils.DataDirFlag,
-			utils.ImportEnableFlag,
-			utils.ImportHeightFlag,
-			utils.ImportFileFlag,
 		},
 	},
 	{
@@ -218,7 +215,15 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.ExportFileFlag,
 			utils.ExportSpeedFlag,
-			utils.ExportHeightFlag,
+			utils.ExportStartHeightFlag,
+			utils.ExportEndHeightFlag,
+		},
+	},
+	{
+		Name: "IMPORT",
+		Flags: []cli.Flag{
+			utils.ImportFileFlag,
+			utils.ImportEndHeightFlag,
 		},
 	},
 	{
@@ -250,7 +255,7 @@ func (a byCategory) Less(i, j int) bool {
 func flagCategory(flag cli.Flag) string {
 	for _, category := range AppHelpFlagGroups {
 		for _, flg := range category.Flags {
-			if flg.GetName() == flag.GetName() {
+			if flg.String() == flag.String() {
 				return category.Name
 			}
 		}
