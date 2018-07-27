@@ -33,7 +33,6 @@ func StartRPCServer() error {
 	log.Debug()
 	http.HandleFunc("/", rpc.Handle)
 
-	rpc.HandleFunc("getgenerateblocktime", rpc.GetGenerateBlockTime)
 	rpc.HandleFunc("getbestblockhash", rpc.GetBestBlockHash)
 	rpc.HandleFunc("getblock", rpc.GetBlock)
 	rpc.HandleFunc("getblockcount", rpc.GetBlockCount)

@@ -34,19 +34,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-//get generate block time
-func GetGenerateBlockTime(params []interface{}) map[string]interface{} {
-	var genBlockTime interface{}
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_DBFT {
-		genBlockTime = config.DefConfig.Genesis.DBFT.GenBlockTime
-	} else if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-		genBlockTime = config.DefConfig.Genesis.SOLO.GenBlockTime
-	} else {
-		genBlockTime = nil
-	}
-	return responseSuccess(genBlockTime)
-}
-
 //get best block hash
 func GetBestBlockHash(params []interface{}) map[string]interface{} {
 	hash := bactor.CurrentBlockHash()

@@ -51,7 +51,6 @@ type restServer struct {
 }
 
 const (
-	GET_GEN_BLK_TIME      = "/api/v1/node/generateblocktime"
 	GET_CONN_COUNT        = "/api/v1/node/connectioncount"
 	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
 	GET_BLK_BY_HEIGHT     = "/api/v1/block/details/height/:height"
@@ -127,7 +126,6 @@ func (this *restServer) Start() error {
 func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
-		GET_GEN_BLK_TIME:      {name: "getgenerateblocktime", handler: rest.GetGenerateBlockTime},
 		GET_CONN_COUNT:        {name: "getconnectioncount", handler: rest.GetConnectionCount},
 		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
 		GET_BLK_BY_HEIGHT:     {name: "getblockbyheight", handler: rest.GetBlockByHeight},
@@ -196,7 +194,6 @@ func (this *restServer) getPath(url string) string {
 //get request params
 func (this *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
-	case GET_GEN_BLK_TIME:
 	case GET_CONN_COUNT:
 	case GET_BLK_TXS_BY_HEIGHT:
 		req["Height"] = getParam(r, "height")

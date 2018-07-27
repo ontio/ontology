@@ -24,57 +24,31 @@
 
 | Method | URL | Description |
 | :---| :---| :---|
-| [get_gen_blk_time](#1-get_gen_blk_time) | GET /api/v1/node/generateblocktime | 得到区块生成间隔 |
-| [get_conn_count](#2-get_conn_count) | GET /api/v1/node/connectioncount | 得到当前连接的节点数量 |
-| [get_blk_txs_by_height](#3-get_blk_txs_by_height) | GET /api/v1/block/transactions/height/:height | 得到该高度的区块的所有交易哈希 |
-| [get_blk_by_height](#4-get_blk_by_height) | GET /api/v1/block/details/height/:height?raw=0 | 得到该高度的区块信息 |
-| [get_blk_by_hash](#5-get_blk_by_hash) | GET /api/v1/block/details/hash/:hash?raw=1 | 通过区块哈希得到区块信息 |
-| [get_blk_height](#6-get_blk_height) | GET /api/v1/block/height | 得到当前网络上的区块高度 |
-| [get_blk_hash](#7-get_blk_hash) | GET /api/v1/block/hash/:height | 得到该高度的区块哈希 |
-| [get_tx](#8-get_tx) | GET /api/v1/transaction/:hash | 通过交易哈希得到该交易的信息 |
-| [get_storage](#9-get_storage) | GET /api/v1/storage/:hash/:key| 通过合约地址哈希和键得到对应的值 |
-| [get_balance](#10-get_balance) | GET /api/v1/balance/:addr | 得到该地址的账户的余额 |
-| [get_contract_state](#11-get_contract_state) | GET /api/v1/contract/:hash | 得到合约状态 |
-| [get_smtcode_evt_txs](#12-get_smtcode_evt_txs) | GET /api/v1/smartcode/event/transactions/:height | 得到该高度区块上的智能合约执行结果 |
-| [get_smtcode_evts](#13-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | 通过交易哈希得到该交易的执行结果 |
-| [get_blk_hgt_by_txhash](#14-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | 通过交易哈希得到该交易落账的区块高度 |
-| [get_merkle_proof](#15-get_merkle_proof) | GET /api/v1/merkleproof/:hash| 通过交易哈希得到该交易的merkle证明 |
-| [get_gasprice](#16-get_gasprice) | GET /api/v1/gasprice| 得到gas的价格 |
-| [get_allowance](#17-get_allowance) | GET /api/v1/allowance/:asset/:from/:to | 返回允许从from账户转出到to账户的额度 |
-| [get_unboundong](#18-get_unboundong) | GET /api/v1/unboundong/:addr | 返回该账户未提取的ong数量 |
-| [get_mempooltxcount](#19-get_mempooltxcount) | GET /api/v1/mempool/txcount | 得到内存中的交易的数量 |
-| [get_mempooltxstate](#20-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | 通过交易哈希得到内存中该交易的状态 |
-| [get_version](#21-get_version) |  GET /api/v1/version | 得到版本信息 |
-| [post_raw_tx](#22-post_raw_tx) | post /api/v1/transaction?preExec=0 | 向ontology网络发送交易 |
-| [get_networkid](#23-get_networkid) |  GET /api/v1/networkid | 得到network id |
+| [get_conn_count](#1-get_conn_count) | GET /api/v1/node/connectioncount | 得到当前连接的节点数量 |
+| [get_blk_txs_by_height](#2-get_blk_txs_by_height) | GET /api/v1/block/transactions/height/:height | 得到该高度的区块的所有交易哈希 |
+| [get_blk_by_height](#3-get_blk_by_height) | GET /api/v1/block/details/height/:height?raw=0 | 得到该高度的区块信息 |
+| [get_blk_by_hash](#4-get_blk_by_hash) | GET /api/v1/block/details/hash/:hash?raw=1 | 通过区块哈希得到区块信息 |
+| [get_blk_height](#5-get_blk_height) | GET /api/v1/block/height | 得到当前网络上的区块高度 |
+| [get_blk_hash](#6-get_blk_hash) | GET /api/v1/block/hash/:height | 得到该高度的区块哈希 |
+| [get_tx](#7-get_tx) | GET /api/v1/transaction/:hash | 通过交易哈希得到该交易的信息 |
+| [get_storage](#8-get_storage) | GET /api/v1/storage/:hash/:key| 通过合约地址哈希和键得到对应的值 |
+| [get_balance](#9-get_balance) | GET /api/v1/balance/:addr | 得到该地址的账户的余额 |
+| [get_contract_state](#10-get_contract_state) | GET /api/v1/contract/:hash | 得到合约状态 |
+| [get_smtcode_evt_txs](#11-get_smtcode_evt_txs) | GET /api/v1/smartcode/event/transactions/:height | 得到该高度区块上的智能合约执行结果 |
+| [get_smtcode_evts](#12-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | 通过交易哈希得到该交易的执行结果 |
+| [get_blk_hgt_by_txhash](#13-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | 通过交易哈希得到该交易落账的区块高度 |
+| [get_merkle_proof](#14-get_merkle_proof) | GET /api/v1/merkleproof/:hash| 通过交易哈希得到该交易的merkle证明 |
+| [get_gasprice](#15-get_gasprice) | GET /api/v1/gasprice| 得到gas的价格 |
+| [get_allowance](#16-get_allowance) | GET /api/v1/allowance/:asset/:from/:to | 返回允许从from账户转出到to账户的额度 |
+| [get_unboundong](#17-get_unboundong) | GET /api/v1/unboundong/:addr | 返回该账户未提取的ong数量 |
+| [get_mempooltxcount](#18-get_mempooltxcount) | GET /api/v1/mempool/txcount | 得到内存中的交易的数量 |
+| [get_mempooltxstate](#19-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | 通过交易哈希得到内存中该交易的状态 |
+| [get_version](#20-get_version) |  GET /api/v1/version | 得到版本信息 |
+| [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | 向ontology网络发送交易 |
+| [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | 得到network id |
 
-### 1. get_gen_blk_time
 
-得到区块生成间隔。
-
-##### GET
-
-```
-/api/v1/node/generateblocktime
-```
-#### Request Example:
-
-```
-curl -i http://server:port/api/v1/node/generateblocktime
-```
-
-#### Response example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Desc": "SUCCESS"
-    "Error": 0,
-    "Result": 6,
-    "Version": "1.0.0"
-}
-```
-### 2 get_conn_count
+### 1 get_conn_count
 
 得到当前连接的节点数量。
 
@@ -102,7 +76,7 @@ curl -i http://server:port/api/v1/node/connectioncount
     "Version": "1.0.0"
 }
 ```
-### 3 get_blk_txs_by_height
+### 2 get_blk_txs_by_height
 
 得到该高度的区块的所有交易哈希。
 
@@ -135,7 +109,7 @@ curl -i http://server:port/api/v1/block/transactions/height/100
     "Version": "1.0.0"
 }
 ```
-### 4 get_blk_by_height
+### 3 get_blk_by_height
 
 得到该高度的详细的区块信息。
 
@@ -209,7 +183,7 @@ curl -i http://server:port/api/v1/block/details/height/22
     "Version": "1.0.0"
 }
 ```
-### 5 get_blk_by_hash
+### 4 get_blk_by_hash
 
 通过区块哈希得到区块信息。
 
@@ -284,7 +258,7 @@ curl -i http://server:port/api/v1/block/details/hash/ea5e5219d2f1591f4feef89885c
 }
 ```
 
-### 6 get_blk_height
+### 5 get_blk_height
 
 得到当前网络上的区块高度。
 
@@ -314,7 +288,7 @@ curl -i http://server:port/api/v1/block/height
 }
 ```
 
-### 7 get_blk_hash
+### 6 get_blk_hash
 
 得到该高度的区块哈希。
 
@@ -342,7 +316,7 @@ curl -i http://server:port/api/v1/block/hash/100
 }
 ```
 
-### 8 get_tx
+### 7 get_tx
 
 通过交易哈希得到该交易的信息。
 
@@ -394,7 +368,7 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
 }
 ```
 
-### 9 get_storage
+### 8 get_storage
 
 通过合约地址哈希和键得到对应的值。
 
@@ -427,7 +401,7 @@ curl -i http://localhost:20334/api/v1/storage/ff00000000000000000000000000000000
 ```
 > 注意: 返回的值和传入的key参数均是十六进制。
 
-### 10 get_balance
+### 9 get_balance
 
 得到该地址的账户的余额。
 
@@ -455,7 +429,7 @@ curl -i http://localhost:20334/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
     "Version": "1.0.0"
 }
 ```
-### 11 get_contract_state
+### 10 get_contract_state
 
 根据合约地址哈希得到合约信息。
 
@@ -492,7 +466,7 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 }
 ```
 
-#### 12 get_smtcode_evt_txs
+#### 11 get_smtcode_evt_txs
 
 得到该高度区块上的智能合约执行结果。
 
@@ -553,7 +527,7 @@ curl -i http://localhost:20334/api/v1/smartcode/event/transactions/900
 ```
 > 注意: 返回的结果是交易简略信息的集合，并不是完整的交易信息。
 
-### 13 get_smtcode_evts
+### 12 get_smtcode_evts
 
 通过交易哈希得到该交易的执行结果。
 
@@ -590,7 +564,7 @@ curl -i http://localhost:20334/api/v1/smartcode/event/txhash/20046da68ef6a91f695
     }
 }
 ```
-### 14 get_blk_hgt_by_txhash
+### 13 get_blk_hgt_by_txhash
 
 通过交易哈希得到该交易落账的区块高度。
 
@@ -613,7 +587,7 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
 }
 ```
 
-### 15 get_merkle_proof
+### 14 get_merkle_proof
 
 通过交易哈希得到该交易的merkle证明。
 
@@ -657,7 +631,7 @@ curl -i http://localhost:20334/api/v1/merkleproof/3e23cf222a47739d4141255da617cd
 }
 ```
 
-### 16 get_gasprice
+### 15 get_gasprice
 
 得到gas的价格。
 
@@ -683,7 +657,7 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
 }
 ```
 
-### 17 get_allowance
+### 16 get_allowance
 
 得到允许从from账户转出到to账户的额度。
 
@@ -706,7 +680,7 @@ curl -i http://localhost:20334/api/v1/allowance/:asset/:from/:to
 }
 ```
 
-### 18 get_unboundong
+### 17 get_unboundong
 
 得到该账户未提取的ong数量。
 
@@ -729,7 +703,7 @@ curl -i http://localhost:20334/api/v1/unboundong/:addr
 }
 ```
 
-### 19 get_mempooltxcount
+### 18 get_mempooltxcount
 
 得到内存中的交易的数量。
 
@@ -752,7 +726,7 @@ curl -i http://localhost:20334/api/v1/mempool/txcount
 }
 ```
 
-### 20 get_mempooltxstate
+### 19 get_mempooltxstate
 
 通过交易哈希得到内存中该交易的状态。
 
@@ -785,7 +759,7 @@ curl -i http://localhost:20334/api/v1/mempool/txstate/:hash
 }
 ```
 
-### 21 get_version
+### 20 get_version
 
 得到版本信息。
 
@@ -808,7 +782,7 @@ curl -i http://localhost:20334/api/v1/version
 }
 ```
 
-### 22 post_raw_tx
+### 21 post_raw_tx
 
 向ontology网络发送交易。
 
@@ -850,7 +824,7 @@ curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransac
 > Result: 交易哈希
 
 
-### 23 get_networkid
+### 22 get_networkid
 
 获取 network id.
 

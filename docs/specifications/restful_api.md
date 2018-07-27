@@ -24,57 +24,31 @@ This document describes the restful api format for the http/https used in the On
 
 | Method | URL | Description |
 | :---| :---| :---|
-| [get_gen_blk_time](#1-get_gen_blk_time) | GET /api/v1/node/generateblocktime | return time required to create a new block |
-| [get_conn_count](#2-get_conn_count) | GET /api/v1/node/connectioncount | return the number of node connect to the network |
-| [get_blk_txs_by_height](#3-get_blk_txs_by_height) | GET /api/v1/block/transactions/height/:height | return whole transaction hash of the block |
-| [get_blk_by_height](#4-get_blk_by_height) | GET /api/v1/block/details/height/:height?raw=0 | return block info of the height |
-| [get_blk_by_hash](#5-get_blk_by_hash) | GET /api/v1/block/details/hash/:hash?raw=1 | return block info of the block hash |
-| [get_blk_height](#6-get_blk_height) | GET /api/v1/block/height | return current block height of main net |
-| [get_blk_hash](#7-get_blk_hash) | GET /api/v1/block/hash/:height | return block hash of the height |
-| [get_tx](#8-get_tx) | GET /api/v1/transaction/:hash | return transaction info by transaction hash |
-| [get_storage](#9-get_storage) | GET /api/v1/storage/:hash/:key| return the stored value according to the contract address hash and stored key|
-| [get_balance](#10-get_balance) | GET /api/v1/balance/:addr | return balance of the account address |
-| [get_contract_state](#11-get_contract_state) | GET /api/v1/contract/:hash | return contract state according to the contract address hash |
-| [get_smtcode_evt_txs](#12-get_smtcode_evt_txs) | GET /api/v1/smartcode/event/transactions/:height | return the smartcode event in the block at the height |
-| [get_smtcode_evts](#13-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | return smartcode event by transaction hash |
-| [get_blk_hgt_by_txhash](#14-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | return the block height where transaction at |
-| [get_merkle_proof](#15-get_merkle_proof) | GET /api/v1/merkleproof/:hash| return merkle proof of the transaction |
-| [get_gasprice](#16-get_gasprice) | GET /api/v1/gasprice| return gas price |
-| [get_allowance](#17-get_allowance) | GET /api/v1/allowance/:asset/:from/:to | return the allowance from transfer-from accout to transfer-to account |
-| [get_unboundong](#18-get_unboundong) | GET /api/v1/unboundong/:addr | return the number of unbound ong of given address |
-| [get_mempooltxcount](#19-get_mempooltxcount) | GET /api/v1/mempool/txcount | return the number of transaction locate in memory |
-| [get_mempooltxstate](#20-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | return the state of transaction locate in memory |
-| [get_version](#21-get_version) |  GET /api/v1/version | return the version of ontology |
-| [post_raw_tx](#22-post_raw_tx) | post /api/v1/transaction?preExec=0 | send transaction to ontology network |
-| [get_networkid](#23-get_networkid) |  GET /api/v1/networkid | return the networkid |
+| [get_conn_count](#1-get_conn_count) | GET /api/v1/node/connectioncount | return the number of node connect to the network |
+| [get_blk_txs_by_height](#2-get_blk_txs_by_height) | GET /api/v1/block/transactions/height/:height | return whole transaction hash of the block |
+| [get_blk_by_height](#3-get_blk_by_height) | GET /api/v1/block/details/height/:height?raw=0 | return block info of the height |
+| [get_blk_by_hash](#4-get_blk_by_hash) | GET /api/v1/block/details/hash/:hash?raw=1 | return block info of the block hash |
+| [get_blk_height](#5-get_blk_height) | GET /api/v1/block/height | return current block height of main net |
+| [get_blk_hash](#6-get_blk_hash) | GET /api/v1/block/hash/:height | return block hash of the height |
+| [get_tx](#7-get_tx) | GET /api/v1/transaction/:hash | return transaction info by transaction hash |
+| [get_storage](#8-get_storage) | GET /api/v1/storage/:hash/:key| return the stored value according to the contract address hash and stored key|
+| [get_balance](#9-get_balance) | GET /api/v1/balance/:addr | return balance of the account address |
+| [get_contract_state](#10-get_contract_state) | GET /api/v1/contract/:hash | return contract state according to the contract address hash |
+| [get_smtcode_evt_txs](#11-get_smtcode_evt_txs) | GET /api/v1/smartcode/event/transactions/:height | return the smartcode event in the block at the height |
+| [get_smtcode_evts](#12-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | return smartcode event by transaction hash |
+| [get_blk_hgt_by_txhash](#13-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | return the block height where transaction at |
+| [get_merkle_proof](#14-get_merkle_proof) | GET /api/v1/merkleproof/:hash| return merkle proof of the transaction |
+| [get_gasprice](#15-get_gasprice) | GET /api/v1/gasprice| return gas price |
+| [get_allowance](#16-get_allowance) | GET /api/v1/allowance/:asset/:from/:to | return the allowance from transfer-from accout to transfer-to account |
+| [get_unboundong](#17-get_unboundong) | GET /api/v1/unboundong/:addr | return the number of unbound ong of given address |
+| [get_mempooltxcount](#18-get_mempooltxcount) | GET /api/v1/mempool/txcount | return the number of transaction locate in memory |
+| [get_mempooltxstate](#19-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | return the state of transaction locate in memory |
+| [get_version](#20-get_version) |  GET /api/v1/version | return the version of ontology |
+| [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | send transaction to ontology network |
+| [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | return the networkid |
 
-### 1. get_gen_blk_time
 
-Get the generate block time.
-
-##### GET
-
-```
-/api/v1/node/generateblocktime
-```
-#### Request Example:
-
-```
-curl -i http://server:port/api/v1/node/generateblocktime
-```
-
-#### Response example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Desc": "SUCCESS"
-    "Error": 0,
-    "Result": 6,
-    "Version": "1.0.0"
-}
-```
-### 2 get_conn_count
+### 1 get_conn_count
 
 Get the number of connected node.
 
@@ -102,7 +76,7 @@ curl -i http://server:port/api/v1/node/connectioncount
     "Version": "1.0.0"
 }
 ```
-### 3 get_blk_txs_by_height
+### 2 get_blk_txs_by_height
 
 Get transactions by block height.
 
@@ -137,7 +111,7 @@ curl -i http://server:port/api/v1/block/transactions/height/100
     "Version": "1.0.0"
 }
 ```
-### 4 get_blk_by_height
+### 3 get_blk_by_height
 
 Get the block by block height.
 
@@ -212,7 +186,7 @@ curl -i http://server:port/api/v1/block/details/height/22
     "Version": "1.0.0"
 }
 ```
-### 5 get_blk_by_hash
+### 4 get_blk_by_hash
 
 Get block by blockhash.
 
@@ -286,7 +260,7 @@ curl -i http://server:port/api/v1/block/details/hash/ea5e5219d2f1591f4feef89885c
 }
 ```
 
-### 6 get_blk_height
+### 5 get_blk_height
 
 Get the current block height.
 
@@ -316,7 +290,7 @@ curl -i http://server:port/api/v1/block/height
 }
 ```
 
-### 7 get_blk_hash
+### 6 get_blk_hash
 
 Get blockhash by block height.
 
@@ -344,7 +318,7 @@ curl -i http://server:port/api/v1/block/hash/100
 }
 ```
 
-### 8 get_tx
+### 7 get_tx
 
 Get transaction by transaction hash.
 
@@ -396,7 +370,7 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
 }
 ```
 
-### 9 get_storage
+### 8 get_storage
 
 Returns the stored value according to the contract address hash and stored key.
 
@@ -428,7 +402,7 @@ curl -i http://localhost:20334/api/v1/storage/ff00000000000000000000000000000000
 ```
 > Note: result and key are hex code string.
 
-### 10 get_balance
+### 9 get_balance
 
 Return balance of base58 account address.
 
@@ -456,7 +430,7 @@ curl -i http://localhost:20334/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
     "Version": "1.0.0"
 }
 ```
-### 11 get_contract_state
+### 10 get_contract_state
 
 According to the contract address hash, query the contract information.
 
@@ -493,7 +467,7 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 }
 ```
 
-#### 12 get_smtcode_evt_txs
+#### 11 get_smtcode_evt_txs
 
 Get smart contract event list by height.
 
@@ -556,7 +530,7 @@ curl -i http://localhost:20334/api/v1/smartcode/event/transactions/900
 ```
 > Note: result is the smart contract event list.
 
-### 13 get_smtcode_evts
+### 12 get_smtcode_evts
 
 Get contract event by transaction hash.
 
@@ -593,7 +567,7 @@ curl -i http://localhost:20334/api/v1/smartcode/event/txhash/20046da68ef6a91f695
     }
 }
 ```
-### 14 get_blk_hgt_by_txhash
+### 13 get_blk_hgt_by_txhash
 
 Get block height by transaction hash.
 
@@ -616,7 +590,7 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
 }
 ```
 
-### 15 get_merkle_proof
+### 14 get_merkle_proof
 
 Get merkle proof.
 
@@ -660,7 +634,7 @@ curl -i http://localhost:20334/api/v1/merkleproof/3e23cf222a47739d4141255da617cd
 }
 ```
 
-### 16 get_gasprice
+### 15 get_gasprice
 
 Get gas price.
 
@@ -686,7 +660,7 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
 }
 ```
 
-### 17 get_allowance
+### 16 get_allowance
 
 Get allowance.
 
@@ -709,7 +683,7 @@ curl -i http://localhost:20334/api/v1/allowance/:asset/:from/:to
 }
 ```
 
-### 18 get_unboundong
+### 17 get_unboundong
 
 Get unbound ong.
 
@@ -732,7 +706,7 @@ curl -i http://localhost:20334/api/v1/unboundong/:addr
 }
 ```
 
-### 19 get_mempooltxcount
+### 18 get_mempooltxcount
 
 Query the transaction count in the memory pool.
 
@@ -755,7 +729,7 @@ curl -i http://localhost:20334/api/v1/mempool/txcount
 }
 ```
 
-### 20 get_mempooltxstate
+### 19 get_mempooltxstate
 
 Query the transaction state in the memory pool.
 
@@ -788,7 +762,7 @@ curl -i http://localhost:20334/api/v1/mempool/txstate/:hash
 }
 ```
 
-### 21 get_version
+### 20 get_version
 
 Get the version information of the node.
 
@@ -811,7 +785,7 @@ curl -i http://localhost:20334/api/v1/version
 }
 ```
 
-### 22 post_raw_tx
+### 21 post_raw_tx
 
 Send transaction. Set preExec=1 if want prepare exec smartcontract.
 
@@ -851,7 +825,7 @@ You can use the ontology-go-sdk to generate hex code, reference to [example](rpc
 > Result: transaction hash
 
 
-### 23 get_networkid
+### 22 get_networkid
 
 Get the network id.
 
