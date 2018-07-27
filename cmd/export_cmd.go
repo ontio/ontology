@@ -38,7 +38,8 @@ var ExportCommand = cli.Command{
 	Flags: []cli.Flag{
 		utils.RPCPortFlag,
 		utils.ExportFileFlag,
-		utils.ExportHeightFlag,
+		utils.ExportStartHeightFlag,
+		utils.ExportEndHeightFlag,
 		utils.ExportSpeedFlag,
 	},
 	Description: "",
@@ -48,21 +49,31 @@ func exportBlocks(ctx *cli.Context) error {
 	SetRpcPort(ctx)
 	exportFile := ctx.String(utils.GetFlagName(utils.ExportFileFlag))
 	if exportFile == "" {
-		fmt.Printf("Missing file argumen\n")
+		fmt.Printf("Missing file argument\n")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
 	if common.FileExisted(exportFile) {
 		return fmt.Errorf("File:%s has already exist", exportFile)
 	}
-	endHeight := ctx.Uint(utils.GetFlagName(utils.ExportHeightFlag))
+
+	startHeight := ctx.Uint(utils.GetFlagName(utils.ExportStartHeightFlag))
+	endHeight := ctx.Uint(utils.GetFlagName(utils.ExportEndHeightFlag))
+	if endHeight > 0 && startHeight > endHeight {
+		return fmt.Errorf("Export error: start height should smaller than end height\n")
+	}
 	blockCount, err := utils.GetBlockCount()
 	if err != nil {
 		return fmt.Errorf("GetBlockCount error:%s", err)
 	}
-	if endHeight == 0 || endHeight >= uint(blockCount) {
-		endHeight = uint(blockCount) - 1
+	currentBlockHeight := uint(blockCount - 1)
+	if startHeight > currentBlockHeight {
+		return fmt.Errorf("StartBlockHeight:%d larger than CurrentBlockHeight:%d, No blocks to export", startHeight, currentBlockHeight)
 	}
+	if endHeight == 0 || endHeight > currentBlockHeight {
+		endHeight = currentBlockHeight
+	}
+
 	speed := ctx.String(utils.GetFlagName(utils.ExportSpeedFlag))
 	var sleepTime time.Duration
 	switch speed {
@@ -74,6 +85,7 @@ func exportBlocks(ctx *cli.Context) error {
 		sleepTime = time.Millisecond * 5
 	}
 
+	exportFile = utils.GenExportBlocksFileName(exportFile, uint32(startHeight), uint32(endHeight))
 	ef, err := os.OpenFile(exportFile, os.O_RDWR|os.O_CREATE, 0664)
 	if err != nil {
 		return fmt.Errorf("Open file:%s error:%s", exportFile, err)
@@ -82,7 +94,8 @@ func exportBlocks(ctx *cli.Context) error {
 	fWriter := bufio.NewWriter(ef)
 
 	metadata := utils.NewExportBlockMetadata()
-	metadata.BlockHeight = uint32(endHeight)
+	metadata.StartBlockHeight = uint32(startHeight)
+	metadata.EndBlockHeight = uint32(endHeight)
 	err = metadata.Serialize(fWriter)
 	if err != nil {
 		return fmt.Errorf("Write export metadata error:%s", err)
@@ -90,15 +103,15 @@ func exportBlocks(ctx *cli.Context) error {
 
 	//progress bar
 	uiprogress.Start()
-	bar := uiprogress.AddBar(int(endHeight)).
+	bar := uiprogress.AddBar(int(endHeight - startHeight + 1)).
 		AppendCompleted().
 		AppendElapsed().
 		PrependFunc(func(b *uiprogress.Bar) string {
-			return fmt.Sprintf("Block(%d/%d)", b.Current(), int(endHeight))
+			return fmt.Sprintf("Block(%d/%d)", b.Current()+int(startHeight), int(endHeight))
 		})
 
 	fmt.Printf("Start export.\n")
-	for i := uint32(0); i <= uint32(endHeight); i++ {
+	for i := uint32(startHeight); i <= uint32(endHeight); i++ {
 		blockData, err := utils.GetBlockData(i)
 		if err != nil {
 			return fmt.Errorf("Get block:%d error:%s", i, err)
@@ -127,7 +140,8 @@ func exportBlocks(ctx *cli.Context) error {
 		return fmt.Errorf("Export flush file error:%s", err)
 	}
 	fmt.Printf("Export blocks successfully.\n")
-	fmt.Printf("Total blocks:%d\n", endHeight+1)
+	fmt.Printf("StartBlockHeight:%d\n", startHeight)
+	fmt.Printf("EndBlockHeight:%d\n", endHeight)
 	fmt.Printf("Export file:%s\n", exportFile)
 	return nil
 }

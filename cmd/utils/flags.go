@@ -28,8 +28,9 @@ import (
 )
 
 const (
-	DEFAULT_EXPORT_FILE = "./blocks.dat"
-	DEFAULT_ABI_PATH    = "./abi"
+	DEFAULT_EXPORT_FILE   = "./OntBlocks.dat"
+	DEFAULT_ABI_PATH      = "./abi"
+	DEFAULT_EXPORT_HEIGHT = 0
 )
 
 var (
@@ -52,18 +53,15 @@ var (
 		Value: config.DEFAULT_WALLET_FILE_NAME,
 		Usage: "Use `<filename>` as the wallet",
 	}
-	ImportEnableFlag = cli.BoolFlag{
-		Name:  "import",
-		Usage: "Import blocks for file",
-	}
 	ImportFileFlag = cli.StringFlag{
 		Name:  "importfile",
-		Usage: "Path of import file",
+		Usage: "Path of import `<file>`",
 		Value: DEFAULT_EXPORT_FILE,
 	}
-	ImportHeightFlag = cli.UintFlag{
-		Name:  "importheight",
-		Usage: "Using to specifies the height of the imported target block. If the block height specified by importheight is less than the maximum height of the block file, it will only be imported to the height specified by importheight and the rest blocks will stop importing. The default value is 0, which means import all the blocks",
+	ImportEndHeightFlag = cli.UintFlag{
+		Name:  "endheight",
+		Usage: "Using to specifies the `<height>` of the imported target block. The default value is 0, which means import all the blocks of import file",
+		Value: DEFAULT_EXPORT_HEIGHT,
 	}
 	DataDirFlag = cli.StringFlag{
 		Name:  "datadir",
@@ -411,14 +409,19 @@ var (
 
 	//Export setting
 	ExportFileFlag = cli.StringFlag{
-		Name:  "file",
-		Usage: "Path of export file",
+		Name:  "exportfile",
+		Usage: "Path of export `<file>`",
 		Value: DEFAULT_EXPORT_FILE,
 	}
-	ExportHeightFlag = cli.UintFlag{
-		Name:  "height",
-		Usage: "Using to specifies the height of the exported block. When height of the local node's current block is greater than the height required for export, the greater part will not be exported. Height is equal to 0, which means exporting all the blocks of the current node.",
-		Value: 0,
+	ExportStartHeightFlag = cli.UintFlag{
+		Name:  "startheight",
+		Usage: "Using to specifis the start `<height>` of the exported block.",
+		Value: DEFAULT_EXPORT_HEIGHT,
+	}
+	ExportEndHeightFlag = cli.UintFlag{
+		Name:  "endheight",
+		Usage: "Using to specifies the end `<height>` of the exported block. Default value is 0, which means exporting all the blocks of the current node.",
+		Value: DEFAULT_EXPORT_HEIGHT,
 	}
 	ExportSpeedFlag = cli.StringFlag{
 		Name:  "speed",
