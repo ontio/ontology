@@ -100,7 +100,7 @@ After building the source code sucessfully, you should see two executable progra
 
 ## Server deployment
 ### Select network
-To run Ontology successfully,  nodes can be deployed by three ways:
+To run Ontology successfully,  nodes can be deployed by four ways:
 
 - Mainnet sync node deployment
 - Public test network Polaris sync node deployment
