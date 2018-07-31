@@ -18,107 +18,42 @@ package common
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 import (
-	"bytes"
 	"crypto/sha256"
-	"errors"
 )
 
-func doubleSha256(s []Uint256) Uint256 {
-	b := new(bytes.Buffer)
-	for _, d := range s {
-		d.Serialize(b)
-	}
-	temp := sha256.Sum256(b.Bytes())
-	f := sha256.Sum256(temp[:])
-	return Uint256(f)
-}
-
-type merkleTree struct {
-	Depth uint
-	Root  *merkleTreeNode
-}
-
-type merkleTreeNode struct {
-	Hash  Uint256
-	Left  *merkleTreeNode
-	Right *merkleTreeNode
-}
-
-func (t *merkleTreeNode) IsLeaf() bool {
-	return t.Left == nil && t.Right == nil
-}
-
-//use []Uint256 to create a new merkleTree
-func newMerkleTree(hashes []Uint256) (*merkleTree, error) {
-	if len(hashes) == 0 {
-		return nil, errors.New("NewMerkleTree input no item error.")
-	}
-	var height uint
-
-	height = 1
-	nodes := generateLeaves(hashes)
-	for len(nodes) > 1 {
-		nodes = levelUp(nodes)
-		height += 1
-	}
-	mt := &merkleTree{
-		Root:  nodes[0],
-		Depth: height,
-	}
-	return mt, nil
-
-}
-
-//Generate the leaves nodes
-func generateLeaves(hashes []Uint256) []*merkleTreeNode {
-	var leaves []*merkleTreeNode
-	for _, d := range hashes {
-		node := &merkleTreeNode{
-			Hash: d,
-		}
-		leaves = append(leaves, node)
-	}
-	return leaves
-}
-
-//calc the next level's hash use double sha256
-func levelUp(nodes []*merkleTreeNode) []*merkleTreeNode {
-	var nextLevel []*merkleTreeNode
-	for i := 0; i < len(nodes)/2; i++ {
-		var data []Uint256
-		data = append(data, nodes[i*2].Hash)
-		data = append(data, nodes[i*2+1].Hash)
-		hash := doubleSha256(data)
-		node := &merkleTreeNode{
-			Hash:  hash,
-			Left:  nodes[i*2],
-			Right: nodes[i*2+1],
-		}
-		nextLevel = append(nextLevel, node)
-	}
-	if len(nodes)%2 == 1 {
-		var data []Uint256
-		data = append(data, nodes[len(nodes)-1].Hash)
-		data = append(data, nodes[len(nodes)-1].Hash)
-		hash := doubleSha256(data)
-		node := &merkleTreeNode{
-			Hash:  hash,
-			Left:  nodes[len(nodes)-1],
-			Right: nodes[len(nodes)-1],
-		}
-		nextLevel = append(nextLevel, node)
-	}
-	return nextLevel
-}
-
-//input a []uint256, create a merkleTree & calc the root hash
+// param hashes will be used as workspace
 func ComputeMerkleRoot(hashes []Uint256) Uint256 {
 	if len(hashes) == 0 {
 		return Uint256{}
 	}
-	if len(hashes) == 1 {
-		return hashes[0]
+	sha := sha256.New()
+	var temp Uint256
+	for len(hashes) != 1 {
+		n := len(hashes) / 2
+		for i := 0; i < n; i++ {
+			sha.Reset()
+			sha.Write(hashes[2*i][:])
+			sha.Write(hashes[2*i+1][:])
+			sha.Sum(temp[:0])
+			sha.Reset()
+			sha.Write(temp[:])
+			sha.Sum(hashes[i][:0])
+		}
+		if len(hashes) == 2*n+1 {
+			sha.Reset()
+			sha.Write(hashes[2*n][:])
+			sha.Write(hashes[2*n][:])
+
+			sha.Sum(temp[:0])
+			sha.Reset()
+			sha.Write(temp[:])
+			sha.Sum(hashes[n][:0])
+
+			hashes = hashes[:n+1]
+		} else {
+			hashes = hashes[:n]
+		}
 	}
-	tree, _ := newMerkleTree(hashes)
-	return tree.Root.Hash
+
+	return hashes[0]
 }
