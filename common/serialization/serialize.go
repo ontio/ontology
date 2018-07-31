@@ -266,24 +266,24 @@ func byteXReader(reader io.Reader, x uint64) ([]byte, error) {
 	if x == 0 {
 		return nil, nil
 	}
-	const LEN = 2048
-	var p []byte
-	var tmp [LEN]byte
-	for x > LEN {
-		_, err := io.ReadFull(reader, tmp[:])
+	//fast path to avoid buffer reallocation
+	if x < 2*1024*1024 {
+		p := make([]byte, x)
+		_, err := io.ReadFull(reader, p)
 		if err != nil {
-			return nil, ErrEof
+			return nil, err
 		}
-		p = append(p, tmp[:]...)
-		x -= LEN
+		return p, nil
 	}
 
-	_, err := io.ReadFull(reader, tmp[:x])
-	if err != nil {
-		return nil, ErrEof
+	// normal path to avoid attack
+	limited := io.LimitReader(reader, int64(x))
+	buf := &bytes.Buffer{}
+	n, _ := buf.ReadFrom(limited)
+	if n == int64(x) {
+		return buf.Bytes(), nil
 	}
-	p = append(p, tmp[:x]...)
-	return p, nil
+	return nil, ErrEof
 }
 
 func WriteBool(writer io.Writer, val bool) error {
