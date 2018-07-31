@@ -66,7 +66,7 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 	waitGroup := new(sync.WaitGroup)
 	for i := 0; i < len(neighbors.Nodes) && i < types.BUCKET_SIZE; i++ {
 		node := &neighbors.Nodes[i]
-		if this.isInBlackList(node.IP) {
+		if this.isInBlackList(node.IP) || !this.isInWhiteList(node.IP) {
 			continue
 		}
 		if node.ID == this.nodeID {
@@ -111,10 +111,6 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 
 // pingHandle handles a ping message from UDP network
 func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
-	// black list detect
-	if this.isInBlackList(string(from.IP)) {
-		return
-	}
 	ping, ok := msg.(*mt.DHTPing)
 	if !ok {
 		log.Error("ping handle detected error message type!")
@@ -132,7 +128,7 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 		node = &types.Node{
 			ID:      ping.FromID,
 			IP:      from.IP.String(),
-			UDPPort: uint16(from.Port),
+			UDPPort: uint16(ping.SrcEndPoint.UDPPort),
 			TCPPort: uint16(ping.SrcEndPoint.TCPPort),
 		}
 	}
@@ -142,10 +138,6 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 
 // pongHandle handles a pong message from UDP network
 func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
-	// black list detect
-	if this.isInBlackList(string(from.IP)) {
-		return
-	}
 	pong, ok := msg.(*mt.DHTPong)
 	if !ok {
 		log.Error("pong handle detected error message type!")

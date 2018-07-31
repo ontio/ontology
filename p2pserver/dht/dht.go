@@ -312,10 +312,6 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 		return
 	}
 
-	if !this.isInWhiteList(remotePeer.IP) {
-		return
-	}
-
 	// find node in own bucket
 	bucketIndex, _ := this.routingTable.locateBucket(remotePeer.ID)
 	remoteNode, isInBucket := this.routingTable.isNodeInBucket(remotePeer.ID, bucketIndex)
@@ -379,8 +375,14 @@ func (this *DHT) recvUDPMsg() {
 			return
 		}
 
-		if this.isInBlackList(string(from.IP)) {
+		if this.isInBlackList(from.IP.String()) {
 			log.Infof("recvUDPMsg: receive a msg from %v in blacklist",
+				from)
+			continue
+		}
+
+		if !this.isInWhiteList(from.IP.String()) {
+			log.Infof("recvUDPMsg: receive a msg from %v is not in whitelist",
 				from)
 			continue
 		}
