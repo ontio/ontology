@@ -26,6 +26,9 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/urfave/cli"
+	"io/ioutil"
+	"bytes"
+	"encoding/json"
 )
 
 func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {

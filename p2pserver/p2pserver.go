@@ -611,7 +611,6 @@ func (this *P2PServer) syncUpRecentPeers() {
 			break
 		}
 	}
-
 }
 
 //syncPeerAddr compare snapshot of recent peer with current link,then persist the list
