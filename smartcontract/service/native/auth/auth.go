@@ -637,12 +637,12 @@ func VerifyToken(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[verifyToken] verifyToken failed: %v", err)
 	}
-	if !ret {
-		pushEvent(native, failState)
-		return utils.BYTE_FALSE, nil
+	if ret {
+		pushEvent(native, sucState)
+		return utils.BYTE_TRUE, nil
 	}
-	pushEvent(native, sucState)
-	return utils.BYTE_TRUE, nil
+	pushEvent(native, failState)
+	return utils.BYTE_FALSE, nil
 }
 
 func verifySig(native *native.NativeService, ontID []byte, keyNo uint64) (bool, error) {
