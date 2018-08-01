@@ -29,20 +29,16 @@ import (
 	"sync"
 	"time"
 
+	"bytes"
 	"github.com/gorilla/websocket"
 	"github.com/ontio/ontology/common"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
+	bcomn "github.com/ontio/ontology/http/base/common"
 	Err "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
 	"github.com/ontio/ontology/http/websocket/session"
-)
-
-const (
-	WSTOPIC_EVENT      = 1
-	WSTOPIC_JSON_BLOCK = 2
-	WSTOPIC_RAW_BLOCK  = 3
-	WSTOPIC_TXHASHS    = 4
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -412,23 +408,37 @@ func (self *WsServer) PushTxResult(contractAddrs map[string]bool, txHashStr stri
 		s.Send(marshalResp(resp))
 	}
 }
-func (self *WsServer) BroadcastToSubscribers(contractAddrs map[string]bool, sub int, resp map[string]interface{}) {
+func (self *WsServer) BroadcastToSubscribers(contractAddrs map[string]bool, resp map[string]interface{}, block types.Block) {
 	// broadcast SubscribeMap
 	self.Lock()
 	defer self.Unlock()
-	data := marshalResp(resp)
 	for sid, v := range self.SubscribeMap {
 		s := self.SessionList.GetSessionById(sid)
 		if s == nil {
 			continue
 		}
-		if sub == WSTOPIC_JSON_BLOCK && v.SubscribeJsonBlock {
+		if v.SubscribeJsonBlock {
+			resp["Action"] = "sendjsonblock"
+			resp["Result"] = bcomn.GetBlockInfo(&block)
+			data := marshalResp(resp)
 			s.Send(data)
-		} else if sub == WSTOPIC_RAW_BLOCK && v.SubscribeRawBlock {
+		}
+		if v.SubscribeRawBlock {
+			resp["Action"] = "sendrawblock"
+			w := bytes.NewBuffer(nil)
+			block.Serialize(w)
+			resp["Result"] = common.ToHexString(w.Bytes())
+			data := marshalResp(resp)
 			s.Send(data)
-		} else if sub == WSTOPIC_TXHASHS && v.SubscribeBlockTxHashs {
+		}
+		if v.SubscribeBlockTxHashs {
+			resp["Action"] = "sendblocktxhashs"
+			resp["Result"] = bcomn.GetBlockTransactions(&block)
+			data := marshalResp(resp)
 			s.Send(data)
-		} else if sub == WSTOPIC_EVENT && v.SubscribeEvent {
+		}
+		if v.SubscribeEvent {
+			data := marshalResp(resp)
 			if len(v.ConstractsFilter) == 0 {
 				s.Send(data)
 				continue

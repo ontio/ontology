@@ -20,8 +20,6 @@
 package websocket
 
 import (
-	"bytes"
-	"github.com/ontio/ontology/common"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
@@ -46,10 +44,7 @@ func StartServer() {
 }
 func sendBlock2WSclient(v interface{}) {
 	if cfg.DefConfig.Ws.HttpWsPort != 0 {
-		go func() {
-			pushBlock(v)
-			pushBlockTransactions(v)
-		}()
+		pushBlock(v)
 	}
 }
 func Stop() {
@@ -76,17 +71,15 @@ func pushSmartCodeEvent(v interface{}) {
 		log.Errorf("[PushSmartCodeEvent]", "SmartCodeEvent err")
 		return
 	}
-	go func() {
-		switch object := rs.Result.(type) {
-		case *event.LogEventArgs:
-			contractAddrs, evts := bcomn.GetLogEvent(object)
-			pushEvent(contractAddrs, rs.TxHash.ToHexString(), rs.Error, rs.Action, evts)
-		case *event.ExecuteNotify:
-			contractAddrs, notify := bcomn.GetExecuteNotify(object)
-			pushEvent(contractAddrs, rs.TxHash.ToHexString(), rs.Error, rs.Action, notify)
-		default:
-		}
-	}()
+	switch object := rs.Result.(type) {
+	case *event.LogEventArgs:
+		contractAddrs, evts := bcomn.GetLogEvent(object)
+		pushEvent(contractAddrs, rs.TxHash.ToHexString(), rs.Error, rs.Action, evts)
+	case *event.ExecuteNotify:
+		contractAddrs, notify := bcomn.GetExecuteNotify(object)
+		pushEvent(contractAddrs, rs.TxHash.ToHexString(), rs.Error, rs.Action, notify)
+	default:
+	}
 }
 
 func pushEvent(contractAddrs map[string]bool, txHash string, errcode int64, action string, result interface{}) {
@@ -97,7 +90,7 @@ func pushEvent(contractAddrs map[string]bool, txHash string, errcode int64, acti
 		resp["Action"] = action
 		resp["Desc"] = Err.ErrMap[resp["Error"].(int64)]
 		ws.PushTxResult(contractAddrs, txHash, resp)
-		ws.BroadcastToSubscribers(contractAddrs, websocket.WSTOPIC_EVENT, resp)
+		ws.BroadcastToSubscribers(contractAddrs, resp, types.Block{})
 	}
 }
 
@@ -105,27 +98,8 @@ func pushBlock(v interface{}) {
 	if ws == nil {
 		return
 	}
-	resp := rest.ResponsePack(Err.SUCCESS)
 	if block, ok := v.(types.Block); ok {
-		resp["Action"] = "sendrawblock"
-		w := bytes.NewBuffer(nil)
-		block.Serialize(w)
-		resp["Result"] = common.ToHexString(w.Bytes())
-		ws.BroadcastToSubscribers(nil, websocket.WSTOPIC_RAW_BLOCK, resp)
-
-		resp["Action"] = "sendjsonblock"
-		resp["Result"] = bcomn.GetBlockInfo(&block)
-		ws.BroadcastToSubscribers(nil, websocket.WSTOPIC_JSON_BLOCK, resp)
-	}
-}
-func pushBlockTransactions(v interface{}) {
-	if ws == nil {
-		return
-	}
-	resp := rest.ResponsePack(Err.SUCCESS)
-	if block, ok := v.(types.Block); ok {
-		resp["Result"] = bcomn.GetBlockTransactions(&block)
-		resp["Action"] = "sendblocktxhashs"
-		ws.BroadcastToSubscribers(nil, websocket.WSTOPIC_TXHASHS, resp)
+		resp := rest.ResponsePack(Err.SUCCESS)
+		ws.BroadcastToSubscribers(nil, resp, block)
 	}
 }
