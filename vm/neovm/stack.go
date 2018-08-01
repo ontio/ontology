@@ -22,13 +22,15 @@ import (
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
+const initStackCap = 16 // to avoid reallocation
+
 type RandomAccessStack struct {
 	e []types.StackItems
 }
 
 func NewRandAccessStack() *RandomAccessStack {
 	var ras RandomAccessStack
-	ras.e = make([]types.StackItems, 0)
+	ras.e = make([]types.StackItems, 0, initStackCap)
 	return &ras
 }
 
@@ -44,12 +46,10 @@ func (r *RandomAccessStack) Insert(index int, t types.StackItems) {
 	if index > l {
 		return
 	}
-	var array []types.StackItems
 	index = l - index
-	array = append(array, r.e[:index]...)
-	array = append(array, t)
-	array = append(array, r.e[index:]...)
-	r.e = array
+	r.e = append(r.e, r.e[l-1])
+	copy(r.e[index+1:l], r.e[index:])
+	r.e[index] = t
 }
 
 func (r *RandomAccessStack) Peek(index int) types.StackItems {
@@ -68,9 +68,7 @@ func (r *RandomAccessStack) Remove(index int) types.StackItems {
 	}
 	index = l - index
 	e := r.e[index-1]
-	var si []types.StackItems
-	si = append(r.e[:index-1], r.e[index:]...)
-	r.e = si
+	r.e = append(r.e[:index-1], r.e[index:]...)
 	return e
 }
 
@@ -83,11 +81,17 @@ func (r *RandomAccessStack) Set(index int, t types.StackItems) {
 }
 
 func (r *RandomAccessStack) Push(t types.StackItems) {
-	r.Insert(0, t)
+	r.e = append(r.e, t)
 }
 
 func (r *RandomAccessStack) Pop() types.StackItems {
-	return r.Remove(0)
+	var res types.StackItems
+	num := len(r.e)
+	if num > 0 {
+		res = r.e[num-1]
+		r.e = r.e[:num-1]
+	}
+	return res
 }
 
 func (r *RandomAccessStack) Swap(i, j int) {
