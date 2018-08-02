@@ -20,46 +20,39 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	//"errors"
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
-type NeighborsPayload struct {
+type Neighbors struct {
 	FromID types.NodeID
 	Nodes  []types.Node
 }
 
-type Neighbors struct {
-	Hdr MsgHdr
-	P   NeighborsPayload
-}
-
-//Check whether header is correct
-func (this Neighbors) Verify(buf []byte) error {
-	err := this.Hdr.Verify(buf)
-	return err
+func (this *Neighbors) CmdType() string {
+	return common.DHT_NEIGHBORS
 }
 
 //Serialize message payload
 func (this Neighbors) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	err := serialization.WriteVarBytes(p, this.P.FromID[:])
+	err := serialization.WriteVarBytes(p, this.FromID[:])
 	if err != nil {
-		log.Errorf("failed to serialize from id %v. FromID %x", err, this.P.FromID)
+		log.Errorf("failed to serialize from id %v. FromID %x", err, this.FromID)
 		return nil, err
 	}
 
-	err = serialization.WriteVarUint(p, uint64(len(this.P.Nodes)))
+	err = serialization.WriteVarUint(p, uint64(len(this.Nodes)))
 	if err != nil {
-		log.Errorf("failed to serialize the length of nodes %v. len %d", err, len(this.P.Nodes))
+		log.Errorf("failed to serialize the length of nodes %v. len %d", err, len(this.Nodes))
 		return nil, err
 	}
 
-	for _, node := range this.P.Nodes {
+	for _, node := range this.Nodes {
 		err := serialization.WriteVarBytes(p, node.ID[:])
 		if err != nil {
 			log.Errorf("failed to serialize node id %v. ID %x", err, node.ID)
@@ -81,38 +74,23 @@ func (this Neighbors) Serialization() ([]byte, error) {
 			return nil, err
 		}
 	}
-
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Hdr.Init("neighbors", checkSumBuf, uint32(len(p.Bytes())))
-
-	hdrBuf, err := this.Hdr.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+	return p.Bytes(), nil
 }
 
 //Deserialize message payload
 func (this *Neighbors) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
-	if err != nil {
-		return err
-	}
-
 	id, err := serialization.ReadVarBytes(buf)
 	if err != nil {
 		return err
 	}
-	copy(this.P.FromID[:], id)
+	copy(this.FromID[:], id)
 
 	num, err := serialization.ReadVarUint(buf, 0)
 	if err != nil {
 		return err
 	}
-	this.P.Nodes = make([]types.Node, 0, num)
+	this.Nodes = make([]types.Node, 0, num)
 	for i := 0; i < int(num); i++ {
 		node := new(types.Node)
 		id, err := serialization.ReadVarBytes(buf)
@@ -135,7 +113,7 @@ func (this *Neighbors) Deserialization(p []byte) error {
 			log.Errorf("failed to deserialize node tcp port %v", err)
 			return err
 		}
-		this.P.Nodes = append(this.P.Nodes, *node)
+		this.Nodes = append(this.Nodes, *node)
 	}
 
 	return nil

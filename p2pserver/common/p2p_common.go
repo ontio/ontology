@@ -132,6 +132,10 @@ const (
 	GET_BLOCKS_TYPE  = "getblocks"  //req blks from peer
 	NOT_FOUND_TYPE   = "notfound"   //peer can`t find blk according to the hash
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
+	DHT_PING         = "dht_ping"
+	DHT_PONG         = "dht_pong"
+	DHT_FIND_NODE    = "find_node" // length cannot exceed common.MSG_CMD_LEN
+	DHT_NEIGHBORS    = "neighbors" // length cannot exceed common.MSG_CMD_LEN
 )
 
 type AppendPeerID struct {

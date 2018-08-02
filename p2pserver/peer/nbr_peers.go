@@ -40,9 +40,8 @@ func (this *NbrPeers) Broadcast(msg types.Message, hash oc.Uint256, isConsensus 
 	for _, node := range this.List {
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
 			if !node.IsHashContained(hash) {
-				fmt.Printf("Broadcast: hash %x, peer id %x\n", hash, node.GetID())
 				node.MarkHashAsSeen(hash)
-				node.Send(buf, isConsensus)
+				node.Send(msg, isConsensus)
 			}
 		}
 	}

@@ -20,14 +20,16 @@ package types
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
-	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 )
 
-const NODE_ID_BITS = 296
+const NODE_ID_BITS = 256
 
 // NodeID is a unique identifier for each node.
 // The node identifier is a marshaled elliptic curve public key.
@@ -61,19 +63,16 @@ func StringID(in string) (NodeID, error) {
 	return id, nil
 }
 
-// PubkeyID returns a marshaled representation of the given public key.
-func PubkeyID(pub keypair.PublicKey) (NodeID, error) {
-	keyData := keypair.SerializePublicKey(pub)
+// ConstructID returns a marshaled representation of the given address:port.
+func ConstructID(ip string, port uint16) NodeID {
+	var buffer bytes.Buffer
+	buffer.WriteString(ip)
+	buffer.WriteString(":")
+	buffer.WriteString(strconv.Itoa(int(port)))
+
+	temp := sha256.Sum256(buffer.Bytes())
+	hash := common.Uint256(sha256.Sum256(temp[:]))
 	var id NodeID
-	copy(id[:], keyData)
-	return id, nil
-}
-
-func (id NodeID) Pubkey() (keypair.PublicKey, error) {
-	pk, err := keypair.DeserializePublicKey(id[:])
-	if err != nil {
-		return nil, fmt.Errorf("deserialize failed: %s", err)
-	}
-
-	return pk, err
+	copy(id[:], hash[:])
+	return id
 }

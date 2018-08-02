@@ -26,8 +26,10 @@ import (
 	"github.com/ontio/ontology/common/log"
 	ct "github.com/ontio/ontology/core/types"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/dht/types"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 	p2pnet "github.com/ontio/ontology/p2pserver/net/protocol"
+	"net"
 )
 
 //Peer address package
@@ -206,62 +208,60 @@ func NewConsensusDataReq(hash common.Uint256) mt.Message {
 	return &dataReq
 }
 
-func NewDHTPingPayload() mt.DHTPingPayload {
-	return mt.DHTPingPayload{}
-}
-
 //DHT ping message packet
-func NewDHTPing(p mt.DHTPingPayload) ([]byte, error) {
-	var ping mt.DHTPing
-	ping.P = p
+func NewDHTPing(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAddr *net.UDPAddr) mt.Message {
+	ping := new(mt.DHTPing)
+	copy(ping.FromID[:], nodeID[:])
 
-	buf, err := ping.Serialization()
-	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return nil, err
-	}
+	ping.SrcEndPoint.UDPPort = udpPort
+	ping.SrcEndPoint.TCPPort = tcpPort
 
-	return buf, nil
+	copy(ping.SrcEndPoint.Addr[:], ip[:16])
+
+	ping.DestEndPoint.UDPPort = uint16(destAddr.Port)
+
+	destIP := destAddr.IP.To16()
+	copy(ping.DestEndPoint.Addr[:], destIP[:16])
+
+	return ping
 }
 
 //DHT pong message packet
-func NewDHTPong(p mt.DHTPongPayload) ([]byte, error) {
-	var pong mt.DHTPong
-	pong.P = p
+func NewDHTPong(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAddr *net.UDPAddr) mt.Message {
+	pong := new(mt.DHTPong)
+	copy(pong.FromID[:], nodeID[:])
+	pong.SrcEndPoint.UDPPort = udpPort
+	pong.SrcEndPoint.TCPPort = tcpPort
 
-	buf, err := pong.Serialization()
-	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return nil, err
-	}
+	copy(pong.SrcEndPoint.Addr[:], ip[:16])
 
-	return buf, nil
+	pong.DestEndPoint.UDPPort = uint16(destAddr.Port)
+	destIP := destAddr.IP.To16()
+	copy(pong.DestEndPoint.Addr[:], destIP[:16])
+
+	return pong
 }
 
 //DHT findNode message packet
-func NewFindNode(p mt.FindNodePayload) ([]byte, error) {
-	var findNode mt.FindNode
-	findNode.P = p
-
-	buf, err := findNode.Serialization()
-	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return nil, err
+func NewFindNode(nodeID types.NodeID, targetID types.NodeID) mt.Message {
+	findNode := &mt.FindNode{
+		FromID:   nodeID,
+		TargetID: targetID,
 	}
 
-	return buf, nil
+	return findNode
 }
 
 //DHT neighbors message packet
-func NewNeighbors(p mt.NeighborsPayload) ([]byte, error) {
-	var neighbors mt.Neighbors
-	neighbors.P = p
-
-	buf, err := neighbors.Serialization()
-	if err != nil {
-		log.Error("Error Convert net message ", err.Error())
-		return nil, err
+func NewNeighbors(nodeID types.NodeID, nodes []*types.Node) mt.Message {
+	neighbors := &mt.Neighbors{
+		FromID: nodeID,
+		Nodes:  make([]types.Node, 0, len(nodes)),
+	}
+	for _, node := range nodes {
+		log.Infof("ReturnNeightbors: %s:%d", node.IP, node.UDPPort)
+		neighbors.Nodes = append(neighbors.Nodes, *node)
 	}
 
-	return buf, nil
+	return neighbors
 }

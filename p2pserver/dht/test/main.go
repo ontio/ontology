@@ -47,7 +47,7 @@ func main() {
 	}
 	acct, err = client.GetDefaultAccount([]byte("passwordtest"))
 	if acct == nil || err != nil {
-		log.Fatal("can not get default account")
+		log.Fatal("can not get default account, ", err)
 		return
 	}
 

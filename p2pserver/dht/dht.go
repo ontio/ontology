@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"bytes"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -62,7 +63,7 @@ func NewDHT(id types.NodeID, seeds []*types.Node) *DHT {
 
 	dht := &DHT{
 		nodeID:       id,
-		addr:         "127.0.0.1",
+		addr:         config.DefConfig.Genesis.DHT.IP,
 		udpPort:      uint16(config.DefConfig.Genesis.DHT.UDPPort),
 		tcpPort:      uint16(config.DefConfig.P2PNode.NodePort),
 		routingTable: &routingTable{},
@@ -283,16 +284,10 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 	if err != nil {
 		return err
 	}
-	findNodePayload := mt.FindNodePayload{
-		FromID:   this.nodeID,
-		TargetID: targetID,
-	}
-	findNodePacket, err := msgpack.NewFindNode(findNodePayload)
-	if err != nil {
-		log.Error("failed to new dht find node packet", err)
-		return err
-	}
-	this.send(addr, findNodePacket)
+	findNodeMsg := msgpack.NewFindNode(this.nodeID, targetID)
+	bf := new(bytes.Buffer)
+	mt.WriteMessage(bf, findNodeMsg)
+	this.send(addr, bf.Bytes())
 	return nil
 }
 
@@ -334,61 +329,35 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 
 // ping the remote node
 func (this *DHT) ping(addr *net.UDPAddr) error {
-	pingPayload := mt.DHTPingPayload{
-		Version: this.version,
-	}
-	copy(pingPayload.FromID[:], this.nodeID[:])
-
-	pingPayload.SrcEndPoint.UDPPort = this.udpPort
-	pingPayload.SrcEndPoint.TCPPort = this.tcpPort
-
 	ip := net.ParseIP(this.addr).To16()
 	if ip == nil {
 		log.Error("Parse IP address error\n", this.addr)
 		return errors.New("Parse IP address error")
 	}
-	copy(pingPayload.SrcEndPoint.Addr[:], ip[:16])
-
-	pingPayload.DestEndPoint.UDPPort = uint16(addr.Port)
-
-	destIP := addr.IP.To16()
-	copy(pingPayload.DestEndPoint.Addr[:], destIP[:16])
-
-	pingPacket, err := msgpack.NewDHTPing(pingPayload)
+	pingMsg := msgpack.NewDHTPing(this.nodeID, this.udpPort, this.tcpPort, ip, addr)
+	bf := new(bytes.Buffer)
+	err := mt.WriteMessage(bf, pingMsg)
 	if err != nil {
-		log.Error("failed to new dht ping packet", err)
+		log.Info(err)
 		return err
 	}
-	this.send(addr, pingPacket)
+	this.send(addr, bf.Bytes())
 	return nil
 }
 
 // pong reply remote node when receiving ping
 func (this *DHT) pong(addr *net.UDPAddr) error {
-	PongPayload := mt.DHTPongPayload{
-		Version: this.version,
-	}
-	copy(PongPayload.FromID[:], this.nodeID[:])
-	PongPayload.SrcEndPoint.UDPPort = this.udpPort
-	PongPayload.SrcEndPoint.TCPPort = this.tcpPort
 
 	ip := net.ParseIP(this.addr).To16()
 	if ip == nil {
 		log.Error("Parse IP address error\n", this.addr)
 		return errors.New("Parse IP address error")
 	}
-	copy(PongPayload.SrcEndPoint.Addr[:], ip[:16])
 
-	PongPayload.DestEndPoint.UDPPort = uint16(addr.Port)
-	destIP := addr.IP.To16()
-	copy(PongPayload.DestEndPoint.Addr[:], destIP[:16])
-
-	pongPacket, err := msgpack.NewDHTPong(PongPayload)
-	if err != nil {
-		log.Error("failed to new dht pong packet", err)
-		return err
-	}
-	this.send(addr, pongPacket)
+	pongMsg := msgpack.NewDHTPong(this.nodeID, this.udpPort, this.tcpPort, ip, addr)
+	bf := new(bytes.Buffer)
+	mt.WriteMessage(bf, pongMsg)
+	this.send(addr, bf.Bytes())
 	return nil
 }
 
@@ -396,41 +365,33 @@ func (this *DHT) pong(addr *net.UDPAddr) error {
 func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	// query routing table
 	nodes := this.routingTable.getClosestNodes(types.BUCKET_SIZE, targetId)
-	neighborsPayload := mt.NeighborsPayload{
-		FromID: this.nodeID,
-		Nodes:  make([]types.Node, 0, len(nodes)),
-	}
-	for _, node := range nodes {
-		log.Infof("ReturnNeightbors: %s:%d", node.IP, node.UDPPort)
-		neighborsPayload.Nodes = append(neighborsPayload.Nodes, *node)
-	}
-	neighborsPacket, err := msgpack.NewNeighbors(neighborsPayload)
-	if err != nil {
-		log.Error("failed to new dht neighbors packet", err)
-		return err
-	}
-	this.send(addr, neighborsPacket)
+
+	neighborsMsg := msgpack.NewNeighbors(this.nodeID, nodes)
+	bf := new(bytes.Buffer)
+	mt.WriteMessage(bf, neighborsMsg)
+	this.send(addr, bf.Bytes())
+
 	return nil
 }
 
 // processPacket invokes the related handler to process the packet
 func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
-	msgType, err := mt.MsgType(packet)
+	msg, err := mt.ReadMessage(bytes.NewBuffer(packet))
 	if err != nil {
-		log.Info("failed to get msg type")
+		log.Info("receive dht message error:", err)
 		return
 	}
-
+	msgType := msg.CmdType()
 	log.Infof("Recv UDP msg %s %v", msgType, from)
 	switch msgType {
-	case "DHTPing":
-		this.pingHandle(from, packet)
-	case "DHTPong":
-		this.pongHandle(from, packet)
-	case "findnode":
-		this.findNodeHandle(from, packet)
-	case "neighbors":
-		this.neighborsHandle(from, packet)
+	case common.DHT_PING:
+		this.pingHandle(from, msg)
+	case common.DHT_PONG:
+		this.pongHandle(from, msg)
+	case common.DHT_FIND_NODE:
+		this.findNodeHandle(from, msg)
+	case common.DHT_NEIGHBORS:
+		this.neighborsHandle(from, msg)
 	default:
 		log.Infof("processPacket: unknown msg %s", msgType)
 	}

@@ -177,6 +177,14 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &Disconnected{}, nil
 	case common.GET_BLOCKS_TYPE:
 		return &BlocksReq{}, nil
+	case common.DHT_PING:
+		return &DHTPing{}, nil
+	case common.DHT_PONG:
+		return &DHTPong{}, nil
+	case common.DHT_FIND_NODE:
+		return &FindNode{}, nil
+	case common.DHT_NEIGHBORS:
+		return &Neighbors{}, nil
 	default:
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}

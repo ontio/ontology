@@ -21,9 +21,7 @@ package dht
 import (
 	"sync"
 
-	//"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
-	"github.com/ontio/ontology/common/log"
 )
 
 type bucket struct {
@@ -50,8 +48,6 @@ func (this *routingTable) init(id types.NodeID, ch chan *types.FeedEvent) {
 }
 
 func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
-	//id1 := sha256.Sum256(this.id[:])
-	//id2 := sha256.Sum256(id[:])
 	dist := logdist(this.id, id)
 	if dist == 0 {
 		return 0, this.buckets[0]
@@ -108,17 +104,23 @@ func (this *routingTable) removeNode(id types.NodeID) {
 	defer this.mu.Unlock()
 	_, bucket := this.locateBucket(id)
 
-	for i, entry := range bucket.entries {
-		if entry.ID == id {
-			log.Infof("remove node id %s ", id.String())
-			bucket.entries = append(bucket.entries[:i], bucket.entries[i+1:]...)
-			feed := &types.FeedEvent{
-				EvtType: types.Del,
-				Event:   id,
-			}
-			this.feedCh <- feed
-			return
+	entries := bucket.entries[:0]
+	var node *types.Node
+	for _, entry := range bucket.entries {
+		if entry.ID != id {
+			entries = append(entries, entry)
+		} else {
+			node = entry
 		}
+	}
+	bucket.entries = entries
+
+	if node != nil {
+		feed := &types.FeedEvent{
+			EvtType: types.Del,
+			Event:   node,
+		}
+		this.feedCh <- feed
 	}
 }
 
@@ -177,8 +179,6 @@ func (this *routingTable) getLastNodeInBucket(bucket int) *types.Node {
 }
 
 func (this *routingTable) getDistance(id1, id2 types.NodeID) int {
-	//sha1 := sha256.Sum256(id1[:])
-	//sha2 := sha256.Sum256(id2[:])
 	dist := logdist(id1, id2)
 	return dist
 }

@@ -19,7 +19,6 @@
 package types
 
 import (
-	//"github.com/ontio/ontology/common"
 	"net"
 	"time"
 )

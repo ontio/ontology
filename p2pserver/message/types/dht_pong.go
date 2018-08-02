@@ -20,113 +20,90 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
-
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
-type DHTPongPayload struct {
+type DHTPong struct {
 	Version      uint16
 	FromID       types.NodeID
 	SrcEndPoint  EndPoint
 	DestEndPoint EndPoint
 }
 
-type DHTPong struct {
-	Hdr MsgHdr
-	P   DHTPongPayload
+func (this *DHTPong) CmdType() string {
+	return common.DHT_PONG
 }
 
-//Check whether header is correct
-func (this DHTPong) Verify(buf []byte) error {
-	err := this.Hdr.Verify(buf)
-	return err
-}
-
-//Serialize message payload
+//Serialize message
 func (this DHTPong) Serialization() ([]byte, error) {
 	p := bytes.NewBuffer([]byte{})
-	payload := this.P
-	err := serialization.WriteUint16(p, payload.Version)
+	err := serialization.WriteUint16(p, this.Version)
 	if err != nil {
 		log.Errorf("failed to serialize version %v. version %x",
-			err, payload.Version)
+			err, this.Version)
 		return nil, err
 	}
 
-	err = serialization.WriteVarBytes(p, payload.FromID[:])
+	err = serialization.WriteVarBytes(p, this.FromID[:])
 	if err != nil {
 		log.Errorf("failed to serialize node id %v. ID %x",
-			err, payload.FromID)
+			err, this.FromID)
 		return nil, err
 	}
 
-	err = serialization.WriteVarBytes(p, payload.SrcEndPoint.Addr[:])
+	err = serialization.WriteVarBytes(p, this.SrcEndPoint.Addr[:])
 	if err != nil {
 		log.Errorf("failed to serialize src addr %v. addr %s",
-			err, payload.SrcEndPoint.Addr)
+			err, this.SrcEndPoint.Addr)
 		return nil, err
 	}
 
-	err = serialization.WriteUint16(p, payload.SrcEndPoint.UDPPort)
+	err = serialization.WriteUint16(p, this.SrcEndPoint.UDPPort)
 	if err != nil {
 		log.Errorf("failed to serialize src udp port %v. UDPPort %d",
-			err, payload.SrcEndPoint.UDPPort)
+			err, this.SrcEndPoint.UDPPort)
 		return nil, err
 	}
 
-	err = serialization.WriteUint16(p, payload.SrcEndPoint.TCPPort)
+	err = serialization.WriteUint16(p, this.SrcEndPoint.TCPPort)
 	if err != nil {
 		log.Errorf("failed to serialize src tcp port %v. TCPPort %d",
-			err, payload.SrcEndPoint.TCPPort)
+			err, this.SrcEndPoint.TCPPort)
 		return nil, err
 	}
 
-	err = serialization.WriteVarBytes(p, payload.DestEndPoint.Addr[:])
+	err = serialization.WriteVarBytes(p, this.DestEndPoint.Addr[:])
 	if err != nil {
 		log.Errorf("failed to serialize dest addr %v. addr %s",
-			err, payload.SrcEndPoint.Addr)
+			err, this.SrcEndPoint.Addr)
 		return nil, err
 	}
 
-	err = serialization.WriteUint16(p, payload.DestEndPoint.UDPPort)
+	err = serialization.WriteUint16(p, this.DestEndPoint.UDPPort)
 	if err != nil {
 		log.Errorf("failed to serialize dest udp port %v. UDPPort %d",
-			err, payload.SrcEndPoint.UDPPort)
+			err, this.SrcEndPoint.UDPPort)
 		return nil, err
 	}
 
-	err = serialization.WriteUint16(p, payload.DestEndPoint.TCPPort)
+	err = serialization.WriteUint16(p, this.DestEndPoint.TCPPort)
 	if err != nil {
 		log.Errorf("failed to serialize dest tcp port %v. TCPPort %d",
-			err, payload.SrcEndPoint.TCPPort)
+			err, this.SrcEndPoint.TCPPort)
 		return nil, err
 	}
 
-	checkSumBuf := CheckSum(p.Bytes())
-	this.Hdr.Init("DHTPong", checkSumBuf, uint32(len(p.Bytes())))
-
-	hdrBuf, err := this.Hdr.Serialization()
-	if err != nil {
-		return nil, err
-	}
-	buf := bytes.NewBuffer(hdrBuf)
-	data := append(buf.Bytes(), p.Bytes()...)
-	return data, nil
+	return p.Bytes(), nil
 }
 
-//Deserialize message payload
+//Deserialize message
 func (this *DHTPong) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.Hdr))
-	if err != nil {
-		log.Errorf("failed to deserialize pong header %v", err)
-		return err
-	}
-
-	this.P.Version, err = serialization.ReadUint16(buf)
+	var err error
+	this.Version, err = serialization.ReadUint16(buf)
 	if err != nil {
 		log.Errorf("failed to deserialize pong version %v", err)
 		return err
@@ -137,22 +114,22 @@ func (this *DHTPong) Deserialization(p []byte) error {
 		log.Errorf("failed to deserialize pong  id %v", err)
 		return err
 	}
-	copy(this.P.FromID[:], id)
+	copy(this.FromID[:], id)
 
 	addr, err := serialization.ReadVarBytes(buf)
 	if err != nil {
 		log.Errorf("failed to deserialize node ip %v", err)
 		return err
 	}
-	copy(this.P.SrcEndPoint.Addr[:], addr)
+	copy(this.SrcEndPoint.Addr[:], addr)
 
-	this.P.SrcEndPoint.UDPPort, err = serialization.ReadUint16(buf)
+	this.SrcEndPoint.UDPPort, err = serialization.ReadUint16(buf)
 	if err != nil {
 		log.Errorf("failed to deserialize pong src udp port %v", err)
 		return err
 	}
 
-	this.P.SrcEndPoint.TCPPort, err = serialization.ReadUint16(buf)
+	this.SrcEndPoint.TCPPort, err = serialization.ReadUint16(buf)
 	if err != nil {
 		log.Errorf("failed to deserialize pong src tcp port %v", err)
 		return err
@@ -163,15 +140,15 @@ func (this *DHTPong) Deserialization(p []byte) error {
 		log.Errorf("failed to deserialize pong dest  address  %v", err)
 		return err
 	}
-	copy(this.P.DestEndPoint.Addr[:], addr)
+	copy(this.DestEndPoint.Addr[:], addr)
 
-	this.P.DestEndPoint.UDPPort, err = serialization.ReadUint16(buf)
+	this.DestEndPoint.UDPPort, err = serialization.ReadUint16(buf)
 	if err != nil {
 		log.Errorf("failed to deserialize pong dest udp port %v", err)
 		return err
 	}
 
-	this.P.DestEndPoint.TCPPort, err = serialization.ReadUint16(buf)
+	this.DestEndPoint.TCPPort, err = serialization.ReadUint16(buf)
 	if err != nil {
 		log.Errorf("failed to deserialize ping dest tcp port %v", err)
 		return err
