@@ -20,18 +20,26 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/cmd/abi"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
-	"github.com/ontio/ontology/common"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"testing"
 )
 
 func TestSigNativeInvokeTx(t *testing.T) {
-	addr1 := common.Address([20]byte{1})
-	address1 := addr1.ToBase58()
-	addr2 := common.Address([20]byte{2})
-	address2 := addr2.ToBase58()
+	defAcc, err := testWallet.GetDefaultAccount(pwd)
+	if err != nil {
+		t.Errorf("GetDefaultAccount error:%s", err)
+		return
+	}
+	acc1, err := clisvrcom.DefWalletStore.NewAccountData(keypair.PK_ECDSA, keypair.P256, signature.SHA256withECDSA, pwd)
+	if err != nil {
+		t.Errorf("wallet.NewAccount error:%s", err)
+		return
+	}
+	clisvrcom.DefWalletStore.AddAccountData(acc1)
 	invokeReq := &SigNativeInvokeTxReq{
 		GasPrice: 0,
 		GasLimit: 40000,
@@ -41,8 +49,8 @@ func TestSigNativeInvokeTx(t *testing.T) {
 		Params: []interface{}{
 			[]interface{}{
 				[]interface{}{
-					address1,
-					address2,
+					defAcc.Address.ToBase58(),
+					acc1.Address,
 					"10000000000",
 				},
 			},
@@ -54,12 +62,14 @@ func TestSigNativeInvokeTx(t *testing.T) {
 		return
 	}
 	req := &clisvrcom.CliRpcRequest{
-		Qid:    "t",
-		Method: "signativeinvoketx",
-		Params: data,
+		Qid:     "t",
+		Method:  "signativeinvoketx",
+		Params:  data,
+		Account: acc1.Address,
+		Pwd:     string(pwd),
 	}
 	rsp := &clisvrcom.CliRpcResponse{}
-	abiPath := "../../abi"
+	abiPath := "../../abi/native_abi_script"
 	abi.DefAbiMgr.Init(abiPath)
 	SigNativeInvokeTx(req, rsp)
 	if rsp.ErrorCode != 0 {

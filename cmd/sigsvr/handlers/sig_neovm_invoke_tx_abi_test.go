@@ -60,6 +60,12 @@ var testNeovmAbi = `{
 }`
 
 func TestSigNeoVMInvokeAbiTx(t *testing.T) {
+	defAcc, err := testWallet.GetDefaultAccount(pwd)
+	if err != nil {
+		t.Errorf("GetDefaultAccount error:%s", err)
+		return
+	}
+
 	invokeReq := &SigNeoVMInvokeTxAbiReq{
 		GasPrice: 0,
 		GasLimit: 0,
@@ -77,9 +83,11 @@ func TestSigNeoVMInvokeAbiTx(t *testing.T) {
 		return
 	}
 	req := &clisvrcom.CliRpcRequest{
-		Qid:    "t",
-		Method: "signeovminvokeabitx",
-		Params: data,
+		Qid:     "t",
+		Method:  "signeovminvokeabitx",
+		Params:  data,
+		Account: defAcc.Address.ToBase58(),
+		Pwd:     string(pwd),
 	}
 	rsp := &clisvrcom.CliRpcResponse{}
 	SigNeoVMInvokeAbiTx(req, rsp)
