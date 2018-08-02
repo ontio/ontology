@@ -15,46 +15,45 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package handlers
 
 import (
 	"encoding/json"
 	"github.com/ontio/ontology/account"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
+	"os"
 	"testing"
 )
 
-func TestSigTransferTransaction(t *testing.T) {
-	acc := account.NewAccount("")
-	defAcc, err := testWallet.GetDefaultAccount(pwd)
-	if err != nil {
-		t.Errorf("GetDefaultAccount error:%s", err)
-		return
-	}
-	sigReq := &SigTransferTransactionReq{
-		GasLimit: 0,
-		GasPrice: 0,
-		Asset:    "ont",
-		From:     defAcc.Address.ToBase58(),
-		To:       acc.Address.ToBase58(),
-		Amount:   "10",
-	}
-	data, err := json.Marshal(sigReq)
-	if err != nil {
-		t.Errorf("json.Marshal SigTransferTransactionReq error:%s", err)
-	}
+func TestExportWallet(t *testing.T) {
+	exportReq := &ExportAccountRep{}
+	data, _ := json.Marshal(exportReq)
 	req := &clisvrcom.CliRpcRequest{
-		Qid:     "t",
-		Method:  "sigtransfertx",
-		Params:  data,
-		Account: defAcc.Address.ToBase58(),
-		Pwd:     string(pwd),
+		Qid:    "t",
+		Method: "exportaccount",
+		Pwd:    string(pwd),
+		Params: data,
 	}
-	rsp := &clisvrcom.CliRpcResponse{}
-	SigTransferTransaction(req, rsp)
-	if rsp.ErrorCode != 0 {
-		t.Errorf("SigTransferTransaction failed. ErrorCode:%d", rsp.ErrorCode)
+	resp := &clisvrcom.CliRpcResponse{}
+	ExportAccount(req, resp)
+	if resp.ErrorCode != 0 {
+		t.Errorf("ExportAccount failed. ErrorCode:%d", resp.ErrorCode)
 		return
 	}
+	exportRsp, ok := resp.Result.(*ExportAccountResp)
+	if !ok {
+		t.Errorf("TestExportWallet resp asset to ExportAccountResp failed")
+		return
+	}
+
+	wallet, err := account.Open(exportRsp.WalletFile)
+	if err != nil {
+		t.Errorf("TestExportWallet failed, OpenWallet error:%s", err)
+		return
+	}
+	if wallet.GetAccountNum() != exportRsp.AccountNumber {
+		t.Errorf("TestExportWallet failed, account number %d != %d", wallet.GetAccountNum(), exportRsp.AccountNumber)
+		return
+	}
+	os.Remove(exportRsp.WalletFile)
 }

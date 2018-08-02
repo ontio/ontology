@@ -15,46 +15,34 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package handlers
 
 import (
-	"encoding/json"
-	"github.com/ontio/ontology/account"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"testing"
 )
 
-func TestSigTransferTransaction(t *testing.T) {
-	acc := account.NewAccount("")
-	defAcc, err := testWallet.GetDefaultAccount(pwd)
-	if err != nil {
-		t.Errorf("GetDefaultAccount error:%s", err)
+func TestCreateAccount(t *testing.T) {
+	walletStore := clisvrcom.DefWalletStore
+	req := &clisvrcom.CliRpcRequest{
+		Qid:    "t",
+		Method: "createaccount",
+		Pwd:    string(pwd),
+	}
+	resp := &clisvrcom.CliRpcResponse{}
+	CreateAccount(req, resp)
+	if resp.ErrorCode != 0 {
+		t.Errorf("CreateAccount failed. ErrorCode:%d", resp.ErrorCode)
 		return
 	}
-	sigReq := &SigTransferTransactionReq{
-		GasLimit: 0,
-		GasPrice: 0,
-		Asset:    "ont",
-		From:     defAcc.Address.ToBase58(),
-		To:       acc.Address.ToBase58(),
-		Amount:   "10",
+	createRsp, ok := resp.Result.(*CreateAccountRsp)
+	if !ok {
+		t.Errorf("CreateAccount resp asset to CreateAccountRsp failed")
+		return
 	}
-	data, err := json.Marshal(sigReq)
+	_, err := walletStore.GetAccountByAddress(createRsp.Account, pwd)
 	if err != nil {
-		t.Errorf("json.Marshal SigTransferTransactionReq error:%s", err)
-	}
-	req := &clisvrcom.CliRpcRequest{
-		Qid:     "t",
-		Method:  "sigtransfertx",
-		Params:  data,
-		Account: defAcc.Address.ToBase58(),
-		Pwd:     string(pwd),
-	}
-	rsp := &clisvrcom.CliRpcResponse{}
-	SigTransferTransaction(req, rsp)
-	if rsp.ErrorCode != 0 {
-		t.Errorf("SigTransferTransaction failed. ErrorCode:%d", rsp.ErrorCode)
+		t.Errorf("Test CreateAccount failed GetAccountByAddress error:%s", err)
 		return
 	}
 }
