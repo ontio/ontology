@@ -58,7 +58,12 @@ func SigRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_TX
 		return
 	}
-	signer := clisvrcom.DefAccount
+	signer, err := req.GetAccount()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigRawTransaction GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
+		return
+	}
 	var emptyAddress = common.Address{}
 	if rawTx.Payer == emptyAddress {
 		rawTx.Payer = signer.Address
