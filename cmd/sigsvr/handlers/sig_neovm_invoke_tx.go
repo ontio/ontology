@@ -77,7 +77,12 @@ func SigNeoVMInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespon
 		}
 		tx.Payer = payerAddress
 	}
-	signer := clisvrcom.DefAccount
+	signer, err := req.GetAccount()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigNeoVMInvokeTx GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
+		return
+	}
 	err = cliutil.SignTransaction(signer, tx)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNeoVMInvokeTx SignTransaction error:%s", req.Qid, err)

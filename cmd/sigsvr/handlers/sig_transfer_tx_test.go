@@ -27,7 +27,11 @@ import (
 
 func TestSigTransferTransaction(t *testing.T) {
 	acc := account.NewAccount("")
-	defAcc := clisvrcom.DefAccount
+	defAcc, err := testWallet.GetDefaultAccount(pwd)
+	if err != nil {
+		t.Errorf("GetDefaultAccount error:%s", err)
+		return
+	}
 	sigReq := &SigTransferTransactionReq{
 		GasLimit: 0,
 		GasPrice: 0,
@@ -41,9 +45,12 @@ func TestSigTransferTransaction(t *testing.T) {
 		t.Errorf("json.Marshal SigTransferTransactionReq error:%s", err)
 	}
 	req := &clisvrcom.CliRpcRequest{
-		Qid:    "t",
-		Method: "sigtransfertx",
-		Params: data,
+		Qid:     "t",
+		Method:  "sigtransfertx",
+		Params:  data,
+		Wallet:  testWalletPath,
+		Account: defAcc.Address.ToBase58(),
+		Pwd:     string(pwd),
 	}
 	rsp := &clisvrcom.CliRpcResponse{}
 	SigTransferTransaction(req, rsp)
