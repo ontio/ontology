@@ -22,7 +22,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology-crypto/signature"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/types"
@@ -30,8 +30,17 @@ import (
 )
 
 func TestSigMutilRawTransaction(t *testing.T) {
-	acc1 := account.NewAccount("")
-	acc2 := account.NewAccount("")
+	acc1, err := testWallet.NewAccount("", keypair.PK_ECDSA, keypair.P256, signature.SHA256withECDSA, pwd)
+	if err != nil {
+		t.Errorf("wallet.NewAccount error:%s", err)
+		return
+	}
+	acc2, err := testWallet.NewAccount("", keypair.PK_ECDSA, keypair.P256, signature.SHA256withECDSA, pwd)
+	if err != nil {
+		t.Errorf("wallet.NewAccount error:%s", err)
+		return
+	}
+
 	pubKeys := []keypair.PublicKey{acc1.PublicKey, acc2.PublicKey}
 	m := 2
 	fromAddr, err := types.AddressFromMultiPubKeys(pubKeys, m)
@@ -39,8 +48,7 @@ func TestSigMutilRawTransaction(t *testing.T) {
 		t.Errorf("TestSigMutilRawTransaction AddressFromMultiPubKeys error:%s", err)
 		return
 	}
-	defAcc := clisvrcom.DefAccount
-	tx, err := utils.TransferTx(0, 0, "ont", fromAddr.ToBase58(), defAcc.Address.ToBase58(), 10)
+	tx, err := utils.TransferTx(0, 0, "ont", fromAddr.ToBase58(), acc1.Address.ToBase58(), 10)
 	if err != nil {
 		t.Errorf("TransferTx error:%s", err)
 		return
@@ -63,19 +71,21 @@ func TestSigMutilRawTransaction(t *testing.T) {
 		return
 	}
 	req := &clisvrcom.CliRpcRequest{
-		Qid:    "t",
-		Method: "sigmutilrawtx",
-		Params: data,
+		Qid:     "t",
+		Method:  "sigmutilrawtx",
+		Wallet:  testWalletPath,
+		Params:  data,
+		Account: acc1.Address.ToBase58(),
+		Pwd:     string(pwd),
 	}
 	resp := &clisvrcom.CliRpcResponse{}
-	clisvrcom.DefAccount = acc1
 	SigMutilRawTransaction(req, resp)
 	if resp.ErrorCode != clisvrcom.CLIERR_OK {
 		t.Errorf("SigMutilRawTransaction failed,ErrorCode:%d ErrorString:%s", resp.ErrorCode, resp.ErrorInfo)
 		return
 	}
 
-	clisvrcom.DefAccount = acc2
+	req.Account = acc2.Address.ToBase58()
 	SigMutilRawTransaction(req, resp)
 	if resp.ErrorCode != clisvrcom.CLIERR_OK {
 		t.Errorf("SigMutilRawTransaction failed,ErrorCode:%d ErrorString:%s", resp.ErrorCode, resp.ErrorInfo)

@@ -19,10 +19,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/abi"
-	cmdcom "github.com/ontio/ontology/cmd/common"
 	cmdsvr "github.com/ontio/ontology/cmd/sigsvr"
-	cmdsvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -42,10 +42,7 @@ func setupSigSvr() *cli.App {
 	app.Copyright = "Copyright in 2018 The Ontology Authors"
 	app.Flags = []cli.Flag{
 		utils.LogLevelFlag,
-		//account setting
 		utils.WalletFileFlag,
-		utils.AccountAddressFlag,
-		utils.AccountPassFlag,
 		//cli setting
 		utils.CliAddressFlag,
 		utils.CliRpcPortFlag,
@@ -62,21 +59,16 @@ func startSigSvr(ctx *cli.Context) {
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	log.InitLog(logLevel, log.PATH, log.Stdout)
 
-	walletFile := ctx.GlobalString(utils.GetFlagName(utils.WalletFileFlag))
-	if walletFile == "" {
-		log.Infof("Please specificed wallet file using --wallet flag")
-		return
+	var err error
+	walletPath := ctx.String(utils.GetFlagName(utils.WalletFileFlag))
+	if walletPath != "" && common.FileExisted(walletPath) {
+		clisvrcom.DefWallet, err = account.Open(walletPath)
+		if err != nil {
+			log.Errorf("Load wallet:%s error:%s", walletPath, err)
+			return
+		}
+		log.Infof("Load wallet:%s success", walletPath)
 	}
-	if !common.FileExisted(walletFile) {
-		log.Infof("Cannot find wallet file:%s. Please create wallet first", walletFile)
-		return
-	}
-	acc, err := cmdcom.GetAccount(ctx)
-	if err != nil {
-		log.Infof("GetAccount error:%s", err)
-		return
-	}
-	log.Infof("Using account:%s", acc.Address.ToBase58())
 
 	rpcAddress := ctx.String(utils.GetFlagName(utils.CliAddressFlag))
 	rpcPort := ctx.Uint(utils.GetFlagName(utils.CliRpcPortFlag))
@@ -84,7 +76,6 @@ func startSigSvr(ctx *cli.Context) {
 		log.Infof("Please using sig server port by --%s flag", utils.GetFlagName(utils.CliRpcPortFlag))
 		return
 	}
-	cmdsvrcom.DefAccount = acc
 	go cmdsvr.DefCliRpcSvr.Start(rpcAddress, rpcPort)
 
 	abiPath := ctx.GlobalString(utils.GetFlagName(utils.CliABIPathFlag))

@@ -20,15 +20,62 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 )
 
-var DefAccount *account.Account
+var DefWallet account.Client
 
 type CliRpcRequest struct {
-	Qid    string          `json:"qid"`
-	Params json.RawMessage `json:"params"`
-	Method string          `json:"method"`
+	Qid     string          `json:"qid"`
+	Params  json.RawMessage `json:"params"`
+	Wallet  string          `json:"wallet"`
+	Account string          `json:"account"`
+	Pwd     string          `json:"pwd"`
+	Method  string          `json:"method"`
+}
+
+func (this *CliRpcRequest) GetAccount() (*account.Account, error) {
+	var wallet account.Client
+	var acc *account.Account
+	var err error
+	if this.Wallet != "" {
+		if !common.FileExisted(this.Wallet) {
+			return nil, fmt.Errorf("wallet doesnot exist")
+		}
+		wallet, err = account.Open(this.Wallet)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		wallet = DefWallet
+	}
+	if wallet == nil {
+		return nil, fmt.Errorf("no wallet to sig")
+	}
+	pwd := []byte(this.Pwd)
+	if this.Pwd == "" {
+		return nil, fmt.Errorf("pwd cannot empty")
+	}
+	if this.Account == "" {
+		return nil, fmt.Errorf("account cannot empty")
+	}
+	acc, err = wallet.GetAccountByAddress(this.Account, pwd)
+	if err != nil {
+		return nil, err
+	}
+	if acc != nil {
+		return acc, nil
+	}
+	acc, err = wallet.GetAccountByLabel(this.Account, pwd)
+	if err != nil {
+		return nil, err
+	}
+	if acc != nil {
+		return acc, nil
+	}
+	return nil, fmt.Errorf("cannot find account by %s", this.Account)
 }
 
 type CliRpcResponse struct {
