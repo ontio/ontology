@@ -29,7 +29,14 @@ type CreateAccountReq struct {
 }
 
 type CreateAccountRsp struct {
-	Account string `json:"account"`
+	KeyType string `json:"key_type"` //KeyType ECDSA,SM2 or EDDSA
+	Curve   string `json:"curve"`    //Curve of key type
+	Address string `json:"address"`  //Address(base58) of account
+	PubKey  string `json:"pub_key"`  //Public  key
+	SigSch  string `json:"sig_sch"`  //Signature scheme
+	Salt    []byte `json:"salt"`     //Salt
+	Key     []byte `json:"key"`      //PrivateKey in encrypted
+	EncAlg  string `json:"enc_alg"`  //Encrypt alg of private key
 }
 
 func CreateAccount(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse) {
@@ -66,8 +73,21 @@ func CreateAccount(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse)
 		log.Errorf("CreateAccount Qid:%s create account  error:%s", req.Qid, err)
 		return
 	}
-
+	metaData := wallet.GetAccountMetadataByAddress(acc.Address.ToBase58())
+	if metaData == nil {
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		resp.ErrorInfo = "create wallet failed"
+		log.Errorf("CreateAccount Qid:%s create account failed cannot found account metadata", req.Qid)
+		return
+	}
 	resp.Result = &CreateAccountRsp{
-		Account: acc.Address.ToBase58(),
+		KeyType: metaData.KeyType,
+		Curve:   metaData.Curve,
+		Address: metaData.Address,
+		PubKey:  metaData.PubKey,
+		SigSch:  metaData.SigSch,
+		Salt:    metaData.Salt,
+		Key:     metaData.Key,
+		EncAlg:  metaData.EncAlg,
 	}
 }
