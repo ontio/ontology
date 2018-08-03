@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/utils"
@@ -31,21 +33,39 @@ import (
 )
 
 var (
-	wallet *account.ClientImpl
-	passwd = []byte("123456")
+	pwd            = []byte("123456")
+	testWalletPath = "wallet.tmp.dat"
+	testWallet     account.Client
 )
 
 func TestMain(m *testing.M) {
 	log.InitLog(0, os.Stdout)
-	clisvrcom.DefAccount = account.NewAccount("")
+	var err error
+	testWallet, err = account.Open(testWalletPath)
+	if err != nil {
+		log.Errorf("account.Open :%s error:%s", testWalletPath)
+		return
+	}
+
+	_, err = testWallet.NewAccount("", keypair.PK_ECDSA, keypair.P256, signature.SHA256withECDSA, pwd)
+	if err != nil {
+		log.Errorf("wallet.NewAccount error:%s", err)
+		return
+	}
+
 	m.Run()
 	os.RemoveAll("./ActorLog")
 	os.RemoveAll("./Log")
+	os.RemoveAll(testWalletPath)
 }
 
 func TestSigRawTx(t *testing.T) {
 	acc := account.NewAccount("")
-	defAcc := clisvrcom.DefAccount
+	defAcc, err := testWallet.GetDefaultAccount(pwd)
+	if err != nil {
+		t.Errorf("GetDefaultAccount error:%s", err)
+		return
+	}
 	tx, err := utils.TransferTx(0, 0, "ont", defAcc.Address.ToBase58(), acc.Address.ToBase58(), 10)
 	if err != nil {
 		t.Errorf("TransferTx error:%s", err)
@@ -66,9 +86,12 @@ func TestSigRawTx(t *testing.T) {
 		return
 	}
 	req := &clisvrcom.CliRpcRequest{
-		Qid:    "t",
-		Method: "sigrawtx",
-		Params: data,
+		Qid:     "t",
+		Method:  "sigrawtx",
+		Params:  data,
+		Wallet:  testWalletPath,
+		Account: defAcc.Address.ToBase58(),
+		Pwd:     string(pwd),
 	}
 	resp := &clisvrcom.CliRpcResponse{}
 	SigRawTransaction(req, resp)

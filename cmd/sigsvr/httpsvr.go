@@ -110,15 +110,20 @@ func (this *CliRpcServer) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	log.Infof("[CliRpcRequest]%s", data)
 	req := &common.CliRpcRequest{}
 	err = json.Unmarshal(data, req)
 	if err != nil {
-		log.Errorf("CliRpcServer json.Unmarshal JsonRpcRequest:%s error:%s", data, err)
+		log.Errorf("CliRpcServer json.Unmarshal JsonRpcRequest error:%s", err)
 		resp.ErrorCode = common.CLIERR_INVALID_PARAMS
 		return
 	}
 
+	pwd := req.Pwd
+	req.Pwd = "*"
+	logData, _ := json.Marshal(req)
+	log.Infof("[CliRpcRequest]%s", logData)
+
+	req.Pwd = pwd
 	resp.Method = req.Method
 	resp.Qid = req.Qid
 
