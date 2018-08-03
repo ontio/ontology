@@ -195,7 +195,7 @@ func (this *PeerPoolItem) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type VoteInfo struct {
+type AuthorizeInfo struct {
 	PeerPubkey          string
 	Address             common.Address
 	ConsensusPos        uint64
@@ -206,7 +206,7 @@ type VoteInfo struct {
 	WithdrawUnfreezePos uint64
 }
 
-func (this *VoteInfo) Serialize(w io.Writer) error {
+func (this *AuthorizeInfo) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, request peerPubkey error!")
 	}
@@ -234,7 +234,7 @@ func (this *VoteInfo) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *VoteInfo) Deserialize(r io.Reader) error {
+func (this *AuthorizeInfo) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
@@ -363,11 +363,11 @@ func (this *TotalStake) Deserialize(r io.Reader) error {
 }
 
 type PenaltyStake struct {
-	PeerPubkey string
-	InitPos    uint64
-	VotePos    uint64
-	TimeOffset uint32
-	Amount     uint64
+	PeerPubkey   string
+	InitPos      uint64
+	AuthorizePos uint64
+	TimeOffset   uint32
+	Amount       uint64
 }
 
 func (this *PenaltyStake) Serialize(w io.Writer) error {
@@ -377,8 +377,8 @@ func (this *PenaltyStake) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize initPos error!")
 	}
-	if err := serialization.WriteUint64(w, this.VotePos); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize votePos error!")
+	if err := serialization.WriteUint64(w, this.AuthorizePos); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint64, serialize authorizePos error!")
 	}
 	if err := serialization.WriteUint32(w, this.TimeOffset); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize timeOffset error!")
@@ -398,9 +398,9 @@ func (this *PenaltyStake) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize initPos error!")
 	}
-	votePos, err := serialization.ReadUint64(r)
+	authorizePos, err := serialization.ReadUint64(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize votePos error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint64. deserialize authorizePos error!")
 	}
 	timeOffset, err := serialization.ReadUint32(r)
 	if err != nil {
@@ -412,7 +412,7 @@ func (this *PenaltyStake) Deserialize(r io.Reader) error {
 	}
 	this.PeerPubkey = peerPubkey
 	this.InitPos = initPos
-	this.VotePos = votePos
+	this.AuthorizePos = authorizePos
 	this.TimeOffset = timeOffset
 	this.Amount = amount
 	return nil

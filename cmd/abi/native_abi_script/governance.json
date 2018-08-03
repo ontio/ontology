@@ -145,7 +145,7 @@
       "returnType":"Bool"
     },
     {
-      "name":"voteForPeer",
+      "name":"authorizeForPeer",
       "parameters":
       [
         {
@@ -178,7 +178,7 @@
       "returnType":"Bool"
     },
     {
-      "name":"voteForPeerTransferFrom",
+      "name":"authorizeForPeerTransferFrom",
       "parameters":
       [
         {
@@ -211,7 +211,7 @@
       "returnType":"Bool"
     },
     {
-      "name":"unVoteForPeer",
+      "name":"unAuthorizeForPeer",
       "parameters":
       [
         {
