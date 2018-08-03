@@ -27,6 +27,8 @@ func bytesReverse(u []byte) []byte {
 	return u
 }
 
+var bigOne = big.NewInt(1)
+
 func BigIntToNeoBytes(data *big.Int) []byte {
 	bs := data.Bytes()
 	if len(bs) == 0 {
@@ -39,9 +41,8 @@ func BigIntToNeoBytes(data *big.Int) []byte {
 		}
 		temp := big.NewInt(0)
 		temp.SetBytes(bs)
-		temp2 := big.NewInt(0)
-		temp2.Add(temp, big.NewInt(1))
-		bs = temp2.Bytes()
+		temp.Add(temp, bigOne)
+		bs = temp.Bytes()
 		bytesReverse(bs)
 		if b>>7 == 1 {
 			bs = append(bs, 255)
@@ -73,9 +74,8 @@ func BigIntFromNeoBytes(ba []byte) *big.Int {
 
 		temp := big.NewInt(0)
 		temp.SetBytes(bytes)
-		temp2 := big.NewInt(0)
-		temp2.Add(temp, big.NewInt(1))
-		bytes = temp2.Bytes()
+		temp.Add(temp, bigOne)
+		bytes = temp.Bytes()
 		res.SetBytes(bytes)
 		return res.Neg(res)
 	}
