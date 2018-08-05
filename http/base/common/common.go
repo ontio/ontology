@@ -506,12 +506,11 @@ func BuildNeoVMParam(builder *neovm.ParamsBuilder, smartContractParams []interfa
 				builder.Emit(neovm.TOALTSTACK)
 				for i := 0; i < object.NumField(); i++ {
 					field := object.Field(i)
+					builder.Emit(neovm.DUPFROMALTSTACK)
 					err := BuildNeoVMParam(builder, []interface{}{field.Interface()})
 					if err != nil {
 						return err
 					}
-					builder.Emit(neovm.DUPFROMALTSTACK)
-					builder.Emit(neovm.SWAP)
 					builder.Emit(neovm.APPEND)
 				}
 				builder.Emit(neovm.FROMALTSTACK)
