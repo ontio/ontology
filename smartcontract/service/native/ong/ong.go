@@ -19,7 +19,6 @@
 package ong
 
 import (
-	"bytes"
 	"math/big"
 
 	"fmt"
@@ -30,6 +29,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/common"
 )
 
 func InitOng() {
@@ -68,8 +68,9 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 }
 
 func OngTransfer(native *native.NativeService) ([]byte, error) {
-	transfers := new(ont.Transfers)
-	if err := transfers.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	var transfers ont.Transfers
+	source := common.NewZeroCopySource(native.Input)
+	if err := transfers.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngTransfer] Transfers deserialize error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -80,17 +81,18 @@ func OngTransfer(native *native.NativeService) ([]byte, error) {
 		if v.Value > constants.ONG_TOTAL_SUPPLY {
 			return utils.BYTE_FALSE, fmt.Errorf("transfer ong amount:%d over totalSupply:%d", v.Value, constants.ONG_TOTAL_SUPPLY)
 		}
-		if _, _, err := ont.Transfer(native, contract, v); err != nil {
+		if _, _, err := ont.Transfer(native, contract, &v); err != nil {
 			return utils.BYTE_FALSE, err
 		}
-		ont.AddNotifications(native, contract, v)
+		ont.AddNotifications(native, contract, &v)
 	}
 	return utils.BYTE_TRUE, nil
 }
 
 func OngApprove(native *native.NativeService) ([]byte, error) {
-	state := new(ont.State)
-	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	var state ont.State
+	source := common.NewZeroCopySource(native.Input)
+	if err := state.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
 	if state.Value == 0 {
@@ -108,8 +110,9 @@ func OngApprove(native *native.NativeService) ([]byte, error) {
 }
 
 func OngTransferFrom(native *native.NativeService) ([]byte, error) {
-	state := new(ont.TransferFrom)
-	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	var state ont.TransferFrom
+	source := common.NewZeroCopySource(native.Input)
+	if err := state.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTransferFrom] State deserialize error!")
 	}
 	if state.Value == 0 {
@@ -119,7 +122,7 @@ func OngTransferFrom(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	if _, _, err := ont.TransferedFrom(native, contract, state); err != nil {
+	if _, _, err := ont.TransferedFrom(native, contract, &state); err != nil {
 		return utils.BYTE_FALSE, err
 	}
 	ont.AddNotifications(native, contract, &ont.State{From: state.From, To: state.To, Value: state.Value})

@@ -130,13 +130,13 @@ func appCallTransferOng(native *native.NativeService, from common.Address, to co
 
 func appCallTransfer(native *native.NativeService, contract common.Address, from common.Address, to common.Address, amount uint64) error {
 	bf := new(bytes.Buffer)
-	var sts []*ont.State
-	sts = append(sts, &ont.State{
+	var sts []ont.State
+	sts = append(sts, ont.State{
 		From:  from,
 		To:    to,
 		Value: amount,
 	})
-	transfers := &ont.Transfers{
+	transfers := ont.Transfers{
 		States: sts,
 	}
 	err := transfers.Serialize(bf)

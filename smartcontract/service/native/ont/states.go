@@ -29,7 +29,7 @@ import (
 
 // Transfers
 type Transfers struct {
-	States []*State
+	States []State
 }
 
 func (this *Transfers) Serialize(w io.Writer) error {
@@ -50,9 +50,24 @@ func (this *Transfers) Deserialize(r io.Reader) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Deserialize states length error!")
 	}
 	for i := 0; uint64(i) < n; i++ {
-		state := new(State)
+		var state State
 		if err := state.Deserialize(r); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[TokenTransfer] Deserialize states error!")
+		}
+		this.States = append(this.States, state)
+	}
+	return nil
+}
+
+func (this *Transfers) Deserialization(source *common.ZeroCopySource) error {
+	n, err := utils.NextVarUint(source)
+	if err != nil {
+		return err
+	}
+	for i := 0; uint64(i) < n; i++ {
+		var state State
+		if err := state.Deserialization(source); err != nil {
+			return err
 		}
 		this.States = append(this.States, state)
 	}
@@ -94,6 +109,15 @@ func (this *State) Deserialize(r io.Reader) error {
 		return err
 	}
 	return nil
+}
+
+func (this *State) Deserialization(source *common.ZeroCopySource) error {
+	var err error
+	this.From, err = utils.NextAddress(source)
+	this.To, err = utils.NextAddress(source)
+	this.Value, err = utils.NextVarUint(source)
+
+	return err
 }
 
 type TransferFrom struct {
@@ -141,4 +165,14 @@ func (this *TransferFrom) Deserialize(r io.Reader) error {
 		return err
 	}
 	return nil
+}
+
+func (this *TransferFrom) Deserialization(source *common.ZeroCopySource) error {
+	var err error
+	this.Sender, err = utils.NextAddress(source)
+	this.From, err = utils.NextAddress(source)
+	this.To, err = utils.NextAddress(source)
+	this.Value, err = utils.NextVarUint(source)
+
+	return err
 }

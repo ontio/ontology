@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -68,23 +67,27 @@ func OntInit(native *native.NativeService) ([]byte, error) {
 	}
 
 	distribute := make(map[common.Address]uint64)
-	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
-	if err != nil {
+	source := common.NewZeroCopySource(native.Input)
+	buf, _, irregular, eof := source.NextVarBytes()
+	if eof {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarBytes, contract params deserialize error!")
 	}
-	input := bytes.NewBuffer(buf)
-	num, err := utils.ReadVarUint(input)
+	if irregular {
+		return utils.BYTE_FALSE, common.ErrIrregularData
+	}
+	input := common.NewZeroCopySource(buf)
+	num, err := utils.NextVarUint(input)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("read number error:%v", err)
 	}
 	sum := uint64(0)
 	overflow := false
 	for i := uint64(0); i < num; i++ {
-		addr, err := utils.ReadAddress(input)
+		addr, err := utils.NextAddress(input)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("read address error:%v", err)
 		}
-		value, err := utils.ReadVarUint(input)
+		value, err := utils.NextVarUint(input)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("read value error:%v", err)
 		}
@@ -110,8 +113,9 @@ func OntInit(native *native.NativeService) ([]byte, error) {
 }
 
 func OntTransfer(native *native.NativeService) ([]byte, error) {
-	transfers := new(Transfers)
-	if err := transfers.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	var transfers Transfers
+	source := common.NewZeroCopySource(native.Input)
+	if err := transfers.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[Transfer] Transfers deserialize error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -122,7 +126,7 @@ func OntTransfer(native *native.NativeService) ([]byte, error) {
 		if v.Value > constants.ONT_TOTAL_SUPPLY {
 			return utils.BYTE_FALSE, fmt.Errorf("transfer ont amount:%d over totalSupply:%d", v.Value, constants.ONT_TOTAL_SUPPLY)
 		}
-		fromBalance, toBalance, err := Transfer(native, contract, v)
+		fromBalance, toBalance, err := Transfer(native, contract, &v)
 		if err != nil {
 			return utils.BYTE_FALSE, err
 		}
@@ -135,14 +139,15 @@ func OntTransfer(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, err
 		}
 
-		AddNotifications(native, contract, v)
+		AddNotifications(native, contract, &v)
 	}
 	return utils.BYTE_TRUE, nil
 }
 
 func OntTransferFrom(native *native.NativeService) ([]byte, error) {
-	state := new(TransferFrom)
-	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	var state TransferFrom
+	source := common.NewZeroCopySource(native.Input)
+	if err := state.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTransferFrom] State deserialize error!")
 	}
 	if state.Value == 0 {
@@ -152,7 +157,7 @@ func OntTransferFrom(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("transferFrom ont amount:%d over totalSupply:%d", state.Value, constants.ONT_TOTAL_SUPPLY)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	fromBalance, toBalance, err := TransferedFrom(native, contract, state)
+	fromBalance, toBalance, err := TransferedFrom(native, contract, &state)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
@@ -167,8 +172,9 @@ func OntTransferFrom(native *native.NativeService) ([]byte, error) {
 }
 
 func OntApprove(native *native.NativeService) ([]byte, error) {
-	state := new(State)
-	if err := state.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	var state State
+	source := common.NewZeroCopySource(native.Input)
+	if err := state.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
 	if state.Value == 0 {
@@ -215,15 +221,15 @@ func OntAllowance(native *native.NativeService) ([]byte, error) {
 }
 
 func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
-	var key []byte
-	buf := bytes.NewBuffer(native.Input)
-	from, err := utils.ReadAddress(buf)
+	source := common.NewZeroCopySource(native.Input)
+	from, err := utils.NextAddress(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get from address error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
+	var key []byte
 	if flag == APPROVE_FLAG {
-		to, err := utils.ReadAddress(buf)
+		to, err := utils.NextAddress(source)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get from address error!")
 		}
@@ -274,7 +280,7 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 
 func getApproveArgs(native *native.NativeService, contract, ongContract, address common.Address, value uint64) ([]byte, error) {
 	bf := new(bytes.Buffer)
-	approve := &State{
+	approve := State{
 		From:  contract,
 		To:    address,
 		Value: value,
