@@ -31,6 +31,7 @@ const (
 	DEFAULT_EXPORT_FILE   = "./OntBlocks.dat"
 	DEFAULT_ABI_PATH      = "./abi"
 	DEFAULT_EXPORT_HEIGHT = 0
+	DEFAULT_WALLET_PATH   = "./wallet_data"
 )
 
 var (
@@ -405,6 +406,11 @@ var (
 		Name:  "abi",
 		Usage: "Abi path",
 		Value: DEFAULT_ABI_PATH,
+	}
+	CliWalletDirFlag = cli.StringFlag{
+		Name:  "walletdir",
+		Usage: "Path of Wallet data",
+		Value: DEFAULT_WALLET_PATH,
 	}
 
 	//Export setting
