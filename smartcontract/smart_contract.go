@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (
@@ -163,7 +164,11 @@ func (this *SmartContract) CheckWitness(address common.Address) bool {
 }
 
 func (this *SmartContract) checkAccountAddress(address common.Address) bool {
-	addresses := this.Config.Tx.GetSignatureAddresses()
+	addresses, err := this.Config.Tx.GetSignatureAddresses()
+	if err != nil {
+		log.Errorf("get signature address error:%v", err)
+		return false
+	}
 	for _, v := range addresses {
 		if v == address {
 			return true

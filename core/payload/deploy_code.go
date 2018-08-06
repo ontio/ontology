@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 )
 
@@ -122,4 +123,61 @@ func (dc *DeployCode) ToArray() []byte {
 	b := new(bytes.Buffer)
 	dc.Serialize(b)
 	return b.Bytes()
+}
+
+func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteVarBytes(dc.Code)
+	sink.WriteBool(dc.NeedStorage)
+	sink.WriteString(dc.Name)
+	sink.WriteString(dc.Version)
+	sink.WriteString(dc.Author)
+	sink.WriteString(dc.Email)
+	sink.WriteString(dc.Description)
+
+	return nil
+}
+
+//note: DeployCode.Code has data reference of param source
+func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
+	var eof, irregular bool
+	dc.Code, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	dc.NeedStorage, irregular, eof = source.NextBool()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	dc.Name, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	dc.Version, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	dc.Author, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	dc.Email, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	dc.Description, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	return nil
 }

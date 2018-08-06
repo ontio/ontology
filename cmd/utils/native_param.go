@@ -34,7 +34,8 @@ import (
 	"strings"
 )
 
-func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.Address, version byte, params []interface{}, funcAbi *abi.NativeContractFunctionAbi) (*types.Transaction, error) {
+func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.Address, version byte,
+	params []interface{}, funcAbi *abi.NativeContractFunctionAbi) (*types.MutableTransaction, error) {
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
 	err := ParseNativeFuncParam(builder, funcAbi.Name, params, funcAbi.Parameters)
 	if err != nil {

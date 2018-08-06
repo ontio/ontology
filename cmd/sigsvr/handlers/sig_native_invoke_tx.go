@@ -95,8 +95,15 @@ func SigNativeInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
+	immutable, err := tx.IntoImmutable()
+	if err != nil {
+		log.Infof("convert to immutable transaction error:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		return
+	}
+
 	buf := bytes.NewBuffer(nil)
-	err = tx.Serialize(buf)
+	err = immutable.Serialize(buf)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNativeInvokeTx tx Serialize error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
