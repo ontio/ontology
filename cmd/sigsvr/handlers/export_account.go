@@ -29,7 +29,7 @@ import (
 	"time"
 )
 
-type ExportAccountRep struct {
+type ExportAccountReq struct {
 	WalletPath string `json:"wallet_path"`
 }
 
@@ -39,11 +39,11 @@ type ExportAccountResp struct {
 }
 
 func ExportAccount(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse) {
-	expReq := &ExportAccountRep{}
+	expReq := &ExportAccountReq{}
 	err := json.Unmarshal(req.Params, expReq)
 	if err != nil {
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
-		log.Infof("ExportAccount Qid:%s json.Unmarshal ExportAccountRep error:%s", req.Qid, err)
+		log.Infof("ExportAccount Qid:%s json.Unmarshal ExportAccountReq error:%s", req.Qid, err)
 		return
 	}
 	walletPath := expReq.WalletPath

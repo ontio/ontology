@@ -26,7 +26,7 @@ import (
 )
 
 func TestExportWallet(t *testing.T) {
-	exportReq := &ExportAccountRep{}
+	exportReq := &ExportAccountReq{}
 	data, _ := json.Marshal(exportReq)
 	req := &clisvrcom.CliRpcRequest{
 		Qid:    "t",
