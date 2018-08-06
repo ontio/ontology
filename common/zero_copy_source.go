@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package common
 
 import (
@@ -33,7 +51,7 @@ func (self *ZeroCopySource) Size() uint64 { return uint64(len(self.s)) }
 func (self *ZeroCopySource) NextBytes(n uint64) (data []byte, eof bool) {
 	m := uint64(len(self.s))
 	end, overflow := SafeAdd(self.off, n)
-	if overflow || end > m{
+	if overflow || end > m {
 		end = m
 		eof = true
 	}
@@ -66,6 +84,19 @@ func (self *ZeroCopySource) NextByte() (data byte, eof bool) {
 	return b, false
 }
 
+func (self *ZeroCopySource) NextBool() (data bool, irregular bool, eof bool) {
+	val, eof := self.NextByte()
+	if val == 0 {
+		data = false
+	} else if val == 1 {
+		data = true
+	} else {
+		data = true
+		irregular = true
+	}
+
+	return
+}
 
 // Backs up a number of bytes, so that the next call to NextXXX() returns data again
 // that was already returned by the last call to NextXXX().
@@ -107,19 +138,26 @@ func (self *ZeroCopySource) NextInt16() (data int16, eof bool) {
 	var val uint16
 	val, eof = self.NextUint16()
 	return int16(val), eof
-
 }
 
-func (self *ZeroCopySource) NextVarBytes() (data []byte, size uint64, eof bool) {
+func (self *ZeroCopySource) NextVarBytes() (data []byte, size uint64, irregular bool, eof bool) {
 	var count uint64
-	count, size, eof = self.NextVarUint()
+	count, size, irregular, eof = self.NextVarUint()
+	size += count
 
 	data, eof = self.NextBytes(count)
 
-	return data, size + count, eof
+	return
 }
 
-func (self *ZeroCopySource) NextVarUint() (data uint64, size uint64, eof bool) {
+func (self *ZeroCopySource) NextString() (data string, size uint64, irregular bool, eof bool) {
+	var val []byte
+	val, size, irregular, eof = self.NextVarBytes()
+	data = string(val)
+	return
+}
+
+func (self *ZeroCopySource) NextVarUint() (data uint64, size uint64, irregular bool, eof bool) {
 	var fb byte
 	fb, eof = self.NextByte()
 	if eof {
@@ -153,7 +191,21 @@ func (self *ZeroCopySource) NextVarUint() (data uint64, size uint64, eof bool) {
 		size = 1
 	}
 
+	irregular = size != getVarUintSize(data)
+
 	return
+}
+
+func getVarUintSize(value uint64) uint64 {
+	if value < 0xfd {
+		return 1
+	} else if value <= 0xffff {
+		return 3
+	} else if value <= 0xFFFFFFFF {
+		return 5
+	} else {
+		return 9
+	}
 }
 
 // NewReader returns a new ZeroCopySource reading from b.
