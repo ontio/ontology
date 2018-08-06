@@ -17,7 +17,7 @@
  */
 
 //Governance contract:
-//Users can apply for a candidate node to join consensus selection, deposit ONT to vote for candidate nodes, quit selection and unVote for candidate nodes through this contract.
+//Users can apply for a candidate node to join consensus selection, deposit ONT to authorize for candidate nodes, quit selection and unAuthorize for candidate nodes through this contract.
 //ONT deposited in the contract can get ONG bonus which come from transaction fee of the network.
 package governance
 
@@ -60,9 +60,6 @@ const (
 	BLACK_NODE                       = "blackNode"
 	WHITE_NODE                       = "whiteNode"
 	QUIT_NODE                        = "quitNode"
-	VOTE_FOR_PEER                    = "voteForPeer"
-	VOTE_FOR_PEER_TRANSFER_FROM      = "voteForPeerTransferFrom"
-	UNVOTE_FOR_PEER                  = "unVoteForPeer"
 	WITHDRAW                         = "withdraw"
 	COMMIT_DPOS                      = "commitDpos"
 	UPDATE_CONFIG                    = "updateConfig"
@@ -78,7 +75,6 @@ const (
 	GOVERNANCE_VIEW = "governanceView"
 	CANDIDITE_INDEX = "candidateIndex"
 	PEER_POOL       = "peerPool"
-	VOTE_INFO_POOL  = "voteInfoPool"
 	PEER_INDEX      = "peerIndex"
 	BLACK_LIST      = "blackList"
 	TOTAL_STAKE     = "totalStake"
@@ -90,8 +86,11 @@ const (
 )
 
 // candidate fee must >= 1 ONG
-var MinCandidateFee = uint64(math.Pow(10, constants.ONG_DECIMALS))
-
+var MIN_CANDIDATE_FEE = uint64(math.Pow(10, constants.ONG_DECIMALS))
+var AUTHORIZE_INFO_POOL = []byte{118, 111, 116, 101, 73, 110, 102, 111, 80, 111, 111, 108}
+var AUTHORIZE_FOR_PEER = string([]byte{118, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114})
+var AUTHORIZE_FOR_PEER_TRANSFER_FROM = string([]byte{118, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114, 84, 114, 97, 110, 115, 102, 101, 114, 70, 114, 111, 109})
+var UNAUTHORIZE_FOR_PEER = string([]byte{117, 110, 86, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114})
 var Xi = []uint32{
 	0, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1100000, 1200000, 1300000, 1400000,
 	1500000, 1600000, 1700000, 1800000, 1900000, 2000000, 2100000, 2200000, 2300000, 2400000, 2500000, 2600000, 2700000,
@@ -113,9 +112,9 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(REGISTER_CANDIDATE, RegisterCandidate)
 	native.Register(REGISTER_CANDIDATE_TRANSFER_FROM, RegisterCandidateTransferFrom)
 	native.Register(UNREGISTER_CANDIDATE, UnRegisterCandidate)
-	native.Register(VOTE_FOR_PEER, VoteForPeer)
-	native.Register(VOTE_FOR_PEER_TRANSFER_FROM, VoteForPeerTransferFrom)
-	native.Register(UNVOTE_FOR_PEER, UnVoteForPeer)
+	native.Register(AUTHORIZE_FOR_PEER, AuthorizeForPeer)
+	native.Register(AUTHORIZE_FOR_PEER_TRANSFER_FROM, AuthorizeForPeerTransferFrom)
+	native.Register(UNAUTHORIZE_FOR_PEER, UnAuthorizeForPeer)
 	native.Register(WITHDRAW, Withdraw)
 	native.Register(QUIT_NODE, QuitNode)
 	native.Register(WITHDRAW_ONG, WithdrawOng)
@@ -288,7 +287,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 
 //Register a candidate node, used by users.
 //Users can register a candidate node with a authorized ontid.
-//Candidate node can be voted and become consensus node according to their pos.
+//Candidate node can be authorized and become consensus node according to their pos.
 //Candidate node can get ong bonus according to their pos.
 func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 	err := registerCandidate(native, "transfer")
@@ -300,7 +299,7 @@ func RegisterCandidate(native *native.NativeService) ([]byte, error) {
 
 //Register a candidate node, used by contracts.
 //Contracts can register a candidate node with a authorized ontid after approving ont to governance contract before invoke this function.
-//Candidate node can be voted and become consensus node according to their pos.
+//Candidate node can be authorized and become consensus node according to their pos.
 //Candidate node can get ong bonus according to their pos.
 func RegisterCandidateTransferFrom(native *native.NativeService) ([]byte, error) {
 	err := registerCandidate(native, "transferFrom")
@@ -353,14 +352,14 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//unfreeze initPos
-	voteInfo := &VoteInfo{
+	authorizeInfo := &AuthorizeInfo{
 		PeerPubkey:          peerPoolItem.PeerPubkey,
 		Address:             peerPoolItem.Address,
 		WithdrawUnfreezePos: peerPoolItem.InitPos,
 	}
-	err = putVoteInfo(native, contract, voteInfo)
+	err = putAuthorizeInfo(native, contract, authorizeInfo)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putAuthorizeInfo, put authorizeInfo error!")
 	}
 
 	delete(peerPoolMap.PeerPoolMap, params.PeerPubkey)
@@ -529,14 +528,14 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("rejectCandidate, peerPubkey is not RegisterCandidateStatus!")
 	}
 	address := peerPoolItem.Address
-	voteInfo, err := getVoteInfo(native, contract, params.PeerPubkey, address)
+	authorizeInfo, err := getAuthorizeInfo(native, contract, params.PeerPubkey, address)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAuthorizeInfo, get authorizeInfo error!")
 	}
-	voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + peerPoolItem.InitPos
-	err = putVoteInfo(native, contract, voteInfo)
+	authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + peerPoolItem.InitPos
+	err = putAuthorizeInfo(native, contract, authorizeInfo)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putAuthorizeInfo, put authorizeInfo error!")
 	}
 
 	//remove peerPubkey from peerPool
@@ -550,7 +549,7 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 }
 
 //Put a node into black list, remove node from pool, used by admin.
-//Whole of initPos of black node will be punished, and several percent of vote deposit will be punished too.
+//Whole of initPos of black node will be punished, and several percent of authorize deposit will be punished too.
 //Node in black list can't be registered.
 func BlackNode(native *native.NativeService) ([]byte, error) {
 	params := new(BlackNodeParam)
@@ -751,27 +750,27 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-//Vote for a node by depositing ONT in this governance contract, used by users
-func VoteForPeer(native *native.NativeService) ([]byte, error) {
-	err := voteForPeer(native, "transfer")
+//Authorize for a node by depositing ONT in this governance contract, used by users
+func AuthorizeForPeer(native *native.NativeService) ([]byte, error) {
+	err := authorizeForPeer(native, "transfer")
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "voteForPeer error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "authorizeForPeer error!")
 	}
 	return utils.BYTE_TRUE, nil
 }
 
-//Vote for a node by depositing ONT in this governance contract, used by contracts
-func VoteForPeerTransferFrom(native *native.NativeService) ([]byte, error) {
-	err := voteForPeer(native, "transferFrom")
+//Authorize for a node by depositing ONT in this governance contract, used by contracts
+func AuthorizeForPeerTransferFrom(native *native.NativeService) ([]byte, error) {
+	err := authorizeForPeer(native, "transferFrom")
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "voteForPeerTransferFrom error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "authorizeForPeerTransferFrom error!")
 	}
 	return utils.BYTE_TRUE, nil
 }
 
-//UnVote for a node by redeeming ONT from this governance contract
-func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
-	params := &VoteForPeerParam{
+//UnAuthorize for a node by redeeming ONT from this governance contract
+func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
+	params := &AuthorizeForPeerParam{
 		PeerPubkeyList: make([]string, 0),
 		PosList:        make([]uint32, 0),
 	}
@@ -805,53 +804,53 @@ func UnVoteForPeer(native *native.NativeService) ([]byte, error) {
 
 		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
 		if !ok {
-			return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, peerPubkey is not in peerPoolMap!")
+			return utils.BYTE_FALSE, errors.NewErr("unAuthorizeForPeer, peerPubkey is not in peerPoolMap!")
 		}
 
 		if peerPoolItem.Status != CandidateStatus && peerPoolItem.Status != ConsensusStatus {
-			return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, peerPubkey is not candidate and can not be voted!")
+			return utils.BYTE_FALSE, errors.NewErr("unAuthorizeForPeer, peerPubkey is not candidate and can not be authorized!")
 		}
 
-		voteInfo, err := getVoteInfo(native, contract, peerPubkey, address)
+		authorizeInfo, err := getAuthorizeInfo(native, contract, peerPubkey, address)
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAuthorizeInfo, get authorizeInfo error!")
 		}
-		if voteInfo.NewPos < uint64(pos) {
+		if authorizeInfo.NewPos < uint64(pos) {
 			if peerPoolItem.Status == ConsensusStatus {
-				if voteInfo.ConsensusPos < (uint64(pos) - voteInfo.NewPos) {
-					return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, your pos of this peerPubkey is not enough!")
+				if authorizeInfo.ConsensusPos < (uint64(pos) - authorizeInfo.NewPos) {
+					return utils.BYTE_FALSE, errors.NewErr("unAuthorizeForPeer, your pos of this peerPubkey is not enough!")
 				}
-				consensusPos := voteInfo.ConsensusPos + voteInfo.NewPos - uint64(pos)
-				newPos := voteInfo.NewPos
-				voteInfo.NewPos = 0
-				voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + newPos
-				voteInfo.ConsensusPos = consensusPos
-				voteInfo.WithdrawPos = voteInfo.WithdrawPos + uint64(pos) - voteInfo.NewPos
+				consensusPos := authorizeInfo.ConsensusPos + authorizeInfo.NewPos - uint64(pos)
+				newPos := authorizeInfo.NewPos
+				authorizeInfo.NewPos = 0
+				authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + newPos
+				authorizeInfo.ConsensusPos = consensusPos
+				authorizeInfo.WithdrawPos = authorizeInfo.WithdrawPos + uint64(pos) - authorizeInfo.NewPos
 				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 			}
 			if peerPoolItem.Status == CandidateStatus {
-				if voteInfo.FreezePos < (uint64(pos) - voteInfo.NewPos) {
-					return utils.BYTE_FALSE, errors.NewErr("unVoteForPeer, your pos of this peerPubkey is not enough!")
+				if authorizeInfo.FreezePos < (uint64(pos) - authorizeInfo.NewPos) {
+					return utils.BYTE_FALSE, errors.NewErr("unAuthorizeForPeer, your pos of this peerPubkey is not enough!")
 				}
-				freezePos := voteInfo.FreezePos + voteInfo.NewPos - uint64(pos)
-				newPos := voteInfo.NewPos
-				voteInfo.NewPos = 0
-				voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + newPos
-				voteInfo.FreezePos = freezePos
-				voteInfo.WithdrawFreezePos = voteInfo.WithdrawFreezePos + uint64(pos) - voteInfo.NewPos
+				freezePos := authorizeInfo.FreezePos + authorizeInfo.NewPos - uint64(pos)
+				newPos := authorizeInfo.NewPos
+				authorizeInfo.NewPos = 0
+				authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + newPos
+				authorizeInfo.FreezePos = freezePos
+				authorizeInfo.WithdrawFreezePos = authorizeInfo.WithdrawFreezePos + uint64(pos) - authorizeInfo.NewPos
 				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 			}
 		} else {
-			temp := voteInfo.NewPos - uint64(pos)
-			voteInfo.NewPos = temp
-			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos + uint64(pos)
+			temp := authorizeInfo.NewPos - uint64(pos)
+			authorizeInfo.NewPos = temp
+			authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + uint64(pos)
 			peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 		}
 
 		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
-		err = putVoteInfo(native, contract, voteInfo)
+		err = putAuthorizeInfo(native, contract, authorizeInfo)
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putAuthorizeInfo, put authorizeInfo error!")
 		}
 	}
 	err = putPeerPoolMap(native, contract, view, peerPoolMap)
@@ -889,23 +888,23 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 		}
 
-		voteInfo, err := getVoteInfo(native, contract, peerPubkey, address)
+		authorizeInfo, err := getAuthorizeInfo(native, contract, peerPubkey, address)
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getVoteInfo, get voteInfo error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "getAuthorizeInfo, get authorizeInfo error!")
 		}
-		if voteInfo.WithdrawUnfreezePos < uint64(pos) {
+		if authorizeInfo.WithdrawUnfreezePos < uint64(pos) {
 			return utils.BYTE_FALSE, errors.NewErr("withdraw, your unfreeze withdraw pos of this peerPubkey is not enough!")
 		} else {
-			voteInfo.WithdrawUnfreezePos = voteInfo.WithdrawUnfreezePos - uint64(pos)
+			authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos - uint64(pos)
 			total = total + uint64(pos)
-			err = putVoteInfo(native, contract, voteInfo)
+			err = putAuthorizeInfo(native, contract, authorizeInfo)
 			if err != nil {
-				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putVoteInfo, put voteInfo error!")
+				return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "putAuthorizeInfo, put authorizeInfo error!")
 			}
 		}
-		if voteInfo.ConsensusPos == 0 && voteInfo.FreezePos == 0 && voteInfo.NewPos == 0 &&
-			voteInfo.WithdrawPos == 0 && voteInfo.WithdrawFreezePos == 0 && voteInfo.WithdrawUnfreezePos == 0 {
-			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix, address[:]))
+		if authorizeInfo.ConsensusPos == 0 && authorizeInfo.FreezePos == 0 && authorizeInfo.NewPos == 0 &&
+			authorizeInfo.WithdrawPos == 0 && authorizeInfo.WithdrawFreezePos == 0 && authorizeInfo.WithdrawUnfreezePos == 0 {
+			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix, address[:]))
 		}
 	}
 
@@ -1087,8 +1086,8 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	if globalParam.CandidateNum < 4*config.K {
 		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. CandidateNum must >= 4*K!")
 	}
-	if globalParam.CandidateFee != 0 && globalParam.CandidateFee < MinCandidateFee {
-		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam. CandidateFee must >= %d", MinCandidateFee)
+	if globalParam.CandidateFee != 0 && globalParam.CandidateFee < MIN_CANDIDATE_FEE {
+		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam. CandidateFee must >= %d", MIN_CANDIDATE_FEE)
 	}
 	err = putGlobalParam(native, contract, globalParam)
 	if err != nil {
