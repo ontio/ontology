@@ -402,7 +402,7 @@ func getAuthorizeInfo(native *native.NativeService, contract common.Address, pee
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 	}
-	authorizeInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, AuthorizeInfoPool,
+	authorizeInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL,
 		peerPubkeyPrefix, address[:]))
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "get authorizeInfoBytes error!")
@@ -432,7 +432,7 @@ func putAuthorizeInfo(native *native.NativeService, contract common.Address, aut
 	if err := authorizeInfo.Serialize(bf); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize authorizeInfo error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, AuthorizeInfoPool, peerPubkeyPrefix,
+	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix,
 		authorizeInfo.Address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	return nil
 }

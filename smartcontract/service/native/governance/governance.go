@@ -86,8 +86,8 @@ const (
 )
 
 // candidate fee must >= 1 ONG
-var MinCandidateFee = uint64(math.Pow(10, constants.ONG_DECIMALS))
-var AuthorizeInfoPool = []byte{118, 111, 116, 101, 73, 110, 102, 111, 80, 111, 111, 108}
+var MIN_CANDIDATE_FEE = uint64(math.Pow(10, constants.ONG_DECIMALS))
+var AUTHORIZE_INFO_POOL = []byte{118, 111, 116, 101, 73, 110, 102, 111, 80, 111, 111, 108}
 var AUTHORIZE_FOR_PEER = string([]byte{118, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114})
 var AUTHORIZE_FOR_PEER_TRANSFER_FROM = string([]byte{118, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114, 84, 114, 97, 110, 115, 102, 101, 114, 70, 114, 111, 109})
 var UNAUTHORIZE_FOR_PEER = string([]byte{117, 110, 86, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114})
@@ -904,7 +904,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 		}
 		if authorizeInfo.ConsensusPos == 0 && authorizeInfo.FreezePos == 0 && authorizeInfo.NewPos == 0 &&
 			authorizeInfo.WithdrawPos == 0 && authorizeInfo.WithdrawFreezePos == 0 && authorizeInfo.WithdrawUnfreezePos == 0 {
-			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, AuthorizeInfoPool, peerPubkeyPrefix, address[:]))
+			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix, address[:]))
 		}
 	}
 
@@ -1086,8 +1086,8 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	if globalParam.CandidateNum < 4*config.K {
 		return utils.BYTE_FALSE, errors.NewErr("updateGlobalParam. CandidateNum must >= 4*K!")
 	}
-	if globalParam.CandidateFee != 0 && globalParam.CandidateFee < MinCandidateFee {
-		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam. CandidateFee must >= %d", MinCandidateFee)
+	if globalParam.CandidateFee != 0 && globalParam.CandidateFee < MIN_CANDIDATE_FEE {
+		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam. CandidateFee must >= %d", MIN_CANDIDATE_FEE)
 	}
 	err = putGlobalParam(native, contract, globalParam)
 	if err != nil {
