@@ -27,3 +27,4 @@ cscope*
 neosnapshot/*
 glide.lock
 *.iml
+docker/payload
