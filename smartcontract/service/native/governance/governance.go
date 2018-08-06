@@ -60,9 +60,6 @@ const (
 	BLACK_NODE                       = "blackNode"
 	WHITE_NODE                       = "whiteNode"
 	QUIT_NODE                        = "quitNode"
-	AUTHORIZE_FOR_PEER               = "authorizeForPeer"
-	AUTHORIZE_FOR_PEER_TRANSFER_FROM = "authorizeForPeerTransferFrom"
-	UNAUTHORIZE_FOR_PEER             = "unAuthorizeForPeer"
 	WITHDRAW                         = "withdraw"
 	COMMIT_DPOS                      = "commitDpos"
 	UPDATE_CONFIG                    = "updateConfig"
@@ -91,6 +88,9 @@ const (
 // candidate fee must >= 1 ONG
 var MinCandidateFee = uint64(math.Pow(10, constants.ONG_DECIMALS))
 var AuthorizeInfoPool = []byte{118, 111, 116, 101, 73, 110, 102, 111, 80, 111, 111, 108}
+var AUTHORIZE_FOR_PEER = string([]byte{118, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114})
+var AUTHORIZE_FOR_PEER_TRANSFER_FROM = string([]byte{118, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114, 84, 114, 97, 110, 115, 102, 101, 114, 70, 114, 111, 109})
+var UNAUTHORIZE_FOR_PEER = string([]byte{117, 110, 86, 111, 116, 101, 70, 111, 114, 80, 101, 101, 114})
 var Xi = []uint32{
 	0, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1100000, 1200000, 1300000, 1400000,
 	1500000, 1600000, 1700000, 1800000, 1900000, 2000000, 2100000, 2200000, 2300000, 2400000, 2500000, 2600000, 2700000,
