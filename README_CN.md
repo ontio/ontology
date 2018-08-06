@@ -120,7 +120,7 @@ ontology的运行支持以下4种方式
 
 在单机上创建一个目录，在目录下存放以下文件：
 - 节点程序 + 节点控制程序 `ontology`
-- 钱包文件`wallet.dat`
+- 钱包文件`wallet.dat` （注：`wallet.dat`可通过`./ontology account add`生成）
 
 使用命令 `$ ./ontology --testmode --networkid 3` 即可启动单机版的测试网络。
 
