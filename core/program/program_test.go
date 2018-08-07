@@ -26,7 +26,7 @@ import (
 
 func TestProgramBuilder_PushBytes(t *testing.T) {
 	N := 20000
-	builder := ProgramBuilder{}
+	builder := NewProgramBuilder()
 	for i := 0; i < N; i++ {
 		builder.PushNum(uint16(i))
 	}
