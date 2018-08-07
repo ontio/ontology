@@ -28,7 +28,7 @@ import (
 )
 
 type Block struct {
-	Blk ct.Block
+	Blk *ct.Block
 }
 
 //Serialize message payload
@@ -48,11 +48,11 @@ func (this *Block) CmdType() string {
 
 //Deserialize message payload
 func (this *Block) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := this.Blk.Deserialize(buf)
+	blk, err := ct.BlockFromRawBytes(p)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Blk error. buf:%v", buf))
+		return err
 	}
+	this.Blk = blk
 
 	return nil
 }

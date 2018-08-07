@@ -50,7 +50,7 @@ func NewAddrReq() mt.Message {
 func NewBlock(bk *ct.Block) mt.Message {
 	log.Trace()
 	var blk mt.Block
-	blk.Blk = *bk
+	blk.Blk = bk
 
 	return &blk
 }

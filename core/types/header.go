@@ -187,6 +187,16 @@ func (bd *Header) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func HeaderFromRawBytes(raw []byte) (*Header, error ) {
+	source := common.NewZeroCopySource(raw)
+	header := &Header{}
+	err := header.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return header, nil
+
+}
 func (bd *Header) Deserialization(source *common.ZeroCopySource) error {
 	err := bd.deserializationUnsigned(source)
 	if err != nil {

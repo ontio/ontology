@@ -51,12 +51,11 @@ func (this *Trn) CmdType() string {
 func (this *Trn) Deserialization(p []byte) error {
 	buf := bytes.NewBuffer(p)
 
-	tx := types.Transaction{}
-	err := tx.Deserialize(buf)
+	tx, err := types.TransactionFromRawBytes(p)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read txn error. buf:%v", buf))
 	}
 
-	this.Txn = &tx
+	this.Txn = tx
 	return nil
 }
