@@ -62,7 +62,15 @@ func ReadAddress(r io.Reader) (common.Address, error) {
 	return common.AddressParseFromBytes(from)
 }
 
-func NextVarUint(source *common.ZeroCopySource) (uint64, error) {
+func EncodeAddress(sink *common.ZeroCopySink, addr common.Address) (size uint64) {
+	return sink.WriteVarBytes(addr[:])
+}
+
+func EncodeVarUint(sink *common.ZeroCopySink, value uint64) (size uint64) {
+	return sink.WriteVarBytes(types.BigIntToBytes(big.NewInt(int64(value))))
+}
+
+func DecodeVarUint(source *common.ZeroCopySource) (uint64, error) {
 	value, _, irregular, eof := source.NextVarBytes()
 	if eof {
 		return 0, io.ErrUnexpectedEOF
@@ -77,7 +85,7 @@ func NextVarUint(source *common.ZeroCopySource) (uint64, error) {
 	return v.Uint64(), nil
 }
 
-func NextAddress(source *common.ZeroCopySource) (common.Address, error) {
+func DecodeAddress(source *common.ZeroCopySource) (common.Address, error) {
 	from, _, irregular, eof := source.NextVarBytes()
 	if eof {
 		return common.Address{}, io.ErrUnexpectedEOF

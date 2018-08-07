@@ -44,6 +44,13 @@ func (this *Transfers) Serialize(w io.Writer) error {
 	return nil
 }
 
+func (this *Transfers) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarUint(sink, uint64(len(this.States)))
+	for _, v := range this.States {
+		v.Serialization(sink)
+	}
+}
+
 func (this *Transfers) Deserialize(r io.Reader) error {
 	n, err := utils.ReadVarUint(r)
 	if err != nil {
@@ -60,7 +67,7 @@ func (this *Transfers) Deserialize(r io.Reader) error {
 }
 
 func (this *Transfers) Deserialization(source *common.ZeroCopySource) error {
-	n, err := utils.NextVarUint(source)
+	n, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
@@ -93,6 +100,12 @@ func (this *State) Serialize(w io.Writer) error {
 	return nil
 }
 
+func (this *State) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeAddress(sink, this.From)
+	utils.EncodeAddress(sink, this.To)
+	utils.EncodeVarUint(sink, this.Value)
+}
+
 func (this *State) Deserialize(r io.Reader) error {
 	var err error
 	this.From, err = utils.ReadAddress(r)
@@ -113,9 +126,9 @@ func (this *State) Deserialize(r io.Reader) error {
 
 func (this *State) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	this.From, err = utils.NextAddress(source)
-	this.To, err = utils.NextAddress(source)
-	this.Value, err = utils.NextVarUint(source)
+	this.From, err = utils.DecodeAddress(source)
+	this.To, err = utils.DecodeAddress(source)
+	this.Value, err = utils.DecodeVarUint(source)
 
 	return err
 }
@@ -141,6 +154,13 @@ func (this *TransferFrom) Serialize(w io.Writer) error {
 		return fmt.Errorf("[TransferFrom] serialize value error:%v", err)
 	}
 	return nil
+}
+
+func (this *TransferFrom) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeAddress(sink, this.Sender)
+	utils.EncodeAddress(sink, this.From)
+	utils.EncodeAddress(sink, this.To)
+	utils.EncodeVarUint(sink, this.Value)
 }
 
 func (this *TransferFrom) Deserialize(r io.Reader) error {
@@ -169,10 +189,10 @@ func (this *TransferFrom) Deserialize(r io.Reader) error {
 
 func (this *TransferFrom) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	this.Sender, err = utils.NextAddress(source)
-	this.From, err = utils.NextAddress(source)
-	this.To, err = utils.NextAddress(source)
-	this.Value, err = utils.NextVarUint(source)
+	this.Sender, err = utils.DecodeAddress(source)
+	this.From, err = utils.DecodeAddress(source)
+	this.To, err = utils.DecodeAddress(source)
+	this.Value, err = utils.DecodeVarUint(source)
 
 	return err
 }

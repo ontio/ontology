@@ -22,6 +22,7 @@ import (
 	"math/big"
 
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
@@ -29,7 +30,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm/types"
-	"github.com/ontio/ontology/common"
 )
 
 func InitOng() {

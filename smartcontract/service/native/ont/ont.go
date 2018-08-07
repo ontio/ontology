@@ -76,18 +76,18 @@ func OntInit(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, common.ErrIrregularData
 	}
 	input := common.NewZeroCopySource(buf)
-	num, err := utils.NextVarUint(input)
+	num, err := utils.DecodeVarUint(input)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("read number error:%v", err)
 	}
 	sum := uint64(0)
 	overflow := false
 	for i := uint64(0); i < num; i++ {
-		addr, err := utils.NextAddress(input)
+		addr, err := utils.DecodeAddress(input)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("read address error:%v", err)
 		}
-		value, err := utils.NextVarUint(input)
+		value, err := utils.DecodeVarUint(input)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("read value error:%v", err)
 		}
@@ -222,14 +222,14 @@ func OntAllowance(native *native.NativeService) ([]byte, error) {
 
 func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 	source := common.NewZeroCopySource(native.Input)
-	from, err := utils.NextAddress(source)
+	from, err := utils.DecodeAddress(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get from address error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	var key []byte
 	if flag == APPROVE_FLAG {
-		to, err := utils.NextAddress(source)
+		to, err := utils.DecodeAddress(source)
 		if err != nil {
 			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get from address error!")
 		}
