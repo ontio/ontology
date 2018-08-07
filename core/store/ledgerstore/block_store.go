@@ -28,6 +28,7 @@ import (
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
+	"io"
 )
 
 //Block store save the data of block & transaction
@@ -379,13 +380,14 @@ func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transacti
 	if err != nil {
 		return nil, 0, err
 	}
-	reader := bytes.NewBuffer(value)
-	height, err = serialization.ReadUint32(reader)
-	if err != nil {
-		return nil, 0, fmt.Errorf("ReadUint32 error %s", err)
+	source := common.NewZeroCopySource(value)
+	var eof bool
+	height, eof = source.NextUint32()
+	if eof {
+		return nil, 0, io.ErrUnexpectedEOF
 	}
 	tx = new(types.Transaction)
-	err = tx.Deserialize(reader)
+	err = tx.Deserialization(source)
 	if err != nil {
 		return nil, 0, fmt.Errorf("transaction deserialize error %s", err)
 	}

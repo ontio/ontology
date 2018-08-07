@@ -258,8 +258,9 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var txn types.Transaction
-	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
+
+	txn, err := types.TransactionFromRawBytes(bys)
+	if err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
 	var hash common.Uint256
@@ -267,7 +268,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
 	if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
-			resp["Result"], err = bactor.PreExecuteContract(&txn)
+			resp["Result"], err = bactor.PreExecuteContract(txn)
 			if err != nil {
 				log.Infof("PreExec: ", err)
 				resp["Result"] = err.Error()
@@ -277,7 +278,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		}
 	}
 	log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
-	if errCode, desc := bcomn.SendTxToPool(&txn); errCode != ontErrors.ErrNoError {
+	if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 		resp["Error"] = int64(errCode)
 		resp["Result"] = desc
 		log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)

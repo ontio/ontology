@@ -19,7 +19,6 @@
 package db
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -77,9 +76,7 @@ func (self *Store) init() error {
 			return nil
 		}
 
-		self.genesisBlock = new(types.Block)
-		buf := bytes.NewBuffer(genesis)
-		err = self.genesisBlock.Deserialize(buf)
+		self.genesisBlock, err = tx.BlockFromRawBytes(genesis)
 		if err != nil {
 			return errors.New(fmt.Sprint("inconsist db: genesis block deserialize failed. cause of:\n ", err.Error()))
 		}
@@ -89,9 +86,7 @@ func (self *Store) init() error {
 			return errors.New("inconsist db: best blockheader not in db")
 		}
 
-		self.bestBlockHeader = new(types.Header)
-		buf = bytes.NewBuffer(best)
-		err = self.bestBlockHeader.Deserialize(buf)
+		self.bestBlockHeader, err = tx.HeaderFromRawBytes(best)
 		if err != nil {
 			return errors.New(fmt.Sprint("inconsist db: best blockheader deserialize failed. cause of:\n ", err.Error()))
 		}
@@ -153,8 +148,7 @@ func (self *Store) GetTransaction(hash common.Uint256) (*tx.Transaction, error) 
 	if err != nil {
 		return nil, err
 	}
-	txn := new(tx.Transaction)
-	err = txn.Deserialize(bytes.NewBuffer(buf))
+	txn, err := tx.TransactionFromRawBytes(buf)
 	if err != nil {
 		return nil, err
 	}

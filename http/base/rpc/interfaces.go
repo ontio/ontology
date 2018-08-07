@@ -269,12 +269,12 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
-		hex, err := common.HexToBytes(str)
+		raw, err := common.HexToBytes(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		var txn types.Transaction
-		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
+		txn, err := types.TransactionFromRawBytes(raw)
+		if err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
 		hash = txn.Hash()
@@ -283,7 +283,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 			if len(params) > 1 {
 				preExec, ok := params[1].(float64)
 				if ok && preExec == 1 {
-					result, err := bactor.PreExecuteContract(&txn)
+					result, err := bactor.PreExecuteContract(txn)
 					if err != nil {
 						log.Infof("PreExec: ", err)
 						return responsePack(berr.SMARTCODE_ERROR, err.Error())
@@ -294,7 +294,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 
 		log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
-		if errCode, desc := bcomn.SendTxToPool(&txn); errCode != ontErrors.ErrNoError {
+		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 			return responsePack(berr.INVALID_TRANSACTION, desc)
 		}
