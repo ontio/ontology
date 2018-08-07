@@ -18,47 +18,45 @@
 package handlers
 
 import (
-	"encoding/hex"
 	"encoding/json"
+	"github.com/ontio/ontology-crypto/keypair"
+	s "github.com/ontio/ontology-crypto/signature"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
-	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/log"
 )
 
-type SigDataReq struct {
-	RawData string `json:"raw_data"`
+type CreateAccountReq struct {
 }
 
-type SigDataRsp struct {
-	SignedData string `json:"signed_data"`
+type CreateAccountRsp struct {
+	Account string `json:"account"`
 }
 
-func SigData(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse) {
-	rawReq := &SigDataReq{}
-	err := json.Unmarshal(req.Params, rawReq)
-	if err != nil {
+func CreateAccount(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse) {
+	pwd := req.Pwd
+	if pwd == "" {
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+		resp.ErrorInfo = "pwd cannot empty"
 		return
 	}
-	rawData, err := hex.DecodeString(rawReq.RawData)
+	accData, err := clisvrcom.DefWalletStore.NewAccountData(keypair.PK_ECDSA, keypair.P256, s.SHA256withECDSA, []byte(pwd))
 	if err != nil {
-		log.Infof("Cli Qid:%s SigData hex.DecodeString error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
-		return
-	}
-	signer, err := req.GetAccount()
-	if err != nil {
-		log.Infof("Cli Qid:%s SigData GetAccount:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
-		return
-	}
-	sigData, err := cliutil.Sign(rawData, signer)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigData Sign error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		resp.ErrorInfo = "create wallet failed"
+		log.Errorf("CreateAccount Qid:%s NewAccountData error:%s", req.Qid, err)
 		return
 	}
-	resp.Result = &SigDataRsp{
-		SignedData: hex.EncodeToString(sigData),
+	err = clisvrcom.DefWalletStore.AddAccountData(accData)
+	if err != nil {
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		resp.ErrorInfo = "create wallet failed"
+		log.Errorf("CreateAccount Qid:%s AddAccountData error:%s", req.Qid, err)
+		return
 	}
+	resp.Result = &CreateAccountRsp{
+		Account: accData.Address,
+	}
+
+	data, _ := json.Marshal(accData)
+	log.Infof("[CreateAccount]%s", data)
 }

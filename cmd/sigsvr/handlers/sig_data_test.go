@@ -25,6 +25,12 @@ import (
 )
 
 func TestSigData(t *testing.T) {
+	defAcc, err := testWallet.GetDefaultAccount(pwd)
+	if err != nil {
+		t.Errorf("GetDefaultAccount error:%s", err)
+		return
+	}
+
 	rawData := []byte("HelloWorld")
 	rawReq := &SigDataReq{
 		RawData: hex.EncodeToString(rawData),
@@ -35,9 +41,11 @@ func TestSigData(t *testing.T) {
 		return
 	}
 	req := &clisvrcom.CliRpcRequest{
-		Qid:    "t",
-		Method: "sigdata",
-		Params: data,
+		Qid:     "t",
+		Method:  "sigdata",
+		Params:  data,
+		Account: defAcc.Address.ToBase58(),
+		Pwd:     string(pwd),
 	}
 	resp := &clisvrcom.CliRpcResponse{}
 	SigData(req, resp)

@@ -82,7 +82,13 @@ func SigNativeInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		}
 		tx.Payer = payerAddress
 	}
-	signer := clisvrcom.DefAccount
+
+	signer, err := req.GetAccount()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigNativeInvokeTx GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
+		return
+	}
 	err = cliutil.SignTransaction(signer, tx)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNativeInvokeTx SignTransaction error:%s", req.Qid, err)

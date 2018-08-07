@@ -62,19 +62,26 @@ func SigTransferTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 	}
 	transferTx, err := cliutil.TransferTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Asset, rawReq.From, rawReq.To, uint64(amount))
 	if err != nil {
+		log.Infof("Cli Qid:%s SigTransferTransaction TransferTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
 	if rawReq.Payer != "" {
 		payerAddress, err := common.AddressFromBase58(rawReq.Payer)
 		if err != nil {
-			log.Infof("Cli Qid:%s SigNeoVMInvokeAbiTx AddressFromBase58 error:%s", req.Qid, err)
+			log.Infof("Cli Qid:%s SigTransferTransaction AddressFromBase58 error:%s", req.Qid, err)
 			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 			return
 		}
 		transferTx.Payer = payerAddress
 	}
-	signer := clisvrcom.DefAccount
+
+	signer, err := req.GetAccount()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigTransferTransaction GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
+		return
+	}
 	if signer == nil {
 		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
 		return
