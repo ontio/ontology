@@ -22,6 +22,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"net"
 	"time"
 
@@ -32,17 +33,19 @@ import (
 
 //Link used to establish
 type Link struct {
-	id       uint64
-	addr     string    // The address of the node
-	conn     net.Conn  // Connect socket with the peer node
-	port     uint16    // The server port of the node
-	time     time.Time // The latest time the node activity
-	recvChan chan *types.MsgPayload
+	id        uint64
+	addr      string                 // The address of the node
+	conn      net.Conn               // Connect socket with the peer node
+	port      uint16                 // The server port of the node
+	time      time.Time              // The latest time the node activity
+	recvChan  chan *types.MsgPayload //msgpayload channel
+	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
 }
 
 func NewLink() *Link {
-	link := &Link{}
-
+	link := &Link{
+		reqRecord: make(map[string]int64, 0),
+	}
 	return link
 }
 
@@ -110,7 +113,7 @@ func (this *Link) Rx() {
 	reader := bufio.NewReaderSize(this.conn, common.MAX_BUF_LEN)
 
 	for {
-		msg, err := types.ReadMessage(reader)
+		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
 			log.Error("read connection error ", err)
 			break
@@ -118,10 +121,17 @@ func (this *Link) Rx() {
 
 		t := time.Now()
 		this.UpdateRXTime(t)
+
+		if !this.needSendMsg(msg) {
+			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+			continue
+		}
+		this.addReqRecord(msg)
 		this.recvChan <- &types.MsgPayload{
-			Id:      this.id,
-			Addr:    this.addr,
-			Payload: msg,
+			Id:          this.id,
+			Addr:        this.addr,
+			PayloadSize: payloadSize,
+			Payload:     msg,
 		}
 
 	}
@@ -179,4 +189,40 @@ func (this *Link) Tx(msg types.Message) error {
 	}
 
 	return nil
+}
+
+//needSendMsg check whether the msg is needed to push to channel
+func (this *Link) needSendMsg(msg types.Message) bool {
+	if msg.CmdType() != common.GET_DATA_TYPE {
+		return true
+	}
+	var dataReq = msg.(*types.DataReq)
+	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
+	now := time.Now().Unix()
+
+	if t, ok := this.reqRecord[reqID]; ok {
+		if int(now-t) < common.REQ_INTERVAL {
+			return false
+		}
+	}
+	return true
+}
+
+//addReqRecord add request record by removing outdated request records
+func (this *Link) addReqRecord(msg types.Message) {
+	if msg.CmdType() != common.GET_DATA_TYPE {
+		return
+	}
+	now := time.Now().Unix()
+	if len(this.reqRecord) >= common.MAX_REQ_RECORD_SIZE-1 {
+		for id := range this.reqRecord {
+			t := this.reqRecord[id]
+			if int(now-t) > common.REQ_INTERVAL {
+				delete(this.reqRecord, id)
+			}
+		}
+	}
+	var dataReq = msg.(*types.DataReq)
+	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
+	this.reqRecord[reqID] = now
 }

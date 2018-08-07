@@ -33,9 +33,12 @@ const (
 
 //link and concurrent const
 const (
-	PER_SEND_LEN   = 1024 * 256 //byte len per conn write
-	MAX_BUF_LEN    = 1024 * 256 //the maximum buffer to receive message
-	WRITE_DEADLINE = 5          //deadline of conn write
+	PER_SEND_LEN        = 1024 * 256 //byte len per conn write
+	MAX_BUF_LEN         = 1024 * 256 //the maximum buffer to receive message
+	WRITE_DEADLINE      = 5          //deadline of conn write
+	REQ_INTERVAL        = 3          //single request max interval in second
+	MAX_REQ_RECORD_SIZE = 1000       //the maximum request record size
+	MAX_RESP_CACHE_SIZE = 50         //the maximum response cache
 )
 
 //msg cmd const
@@ -60,7 +63,7 @@ const (
 //info update const
 const (
 	PROTOCOL_VERSION      = 0     //protocol version
-	UPDATE_RATE_PER_BLOCK = 2     //info update rate in one generate block period
+	UPDATE_RATE_PER_BLOCK = 6     //info update rate in one generate block period
 	KEEPALIVE_TIMEOUT     = 15    //contact timeout in sec
 	DIAL_TIMEOUT          = 6     //connect timeout in sec
 	CONN_MONITOR          = 6     //time to retry connect in sec
@@ -136,11 +139,14 @@ type RemovePeerID struct {
 }
 
 type AppendHeaders struct {
+	FromID  uint64          // The peer id
 	Headers []*types.Header // Headers to be added to the ledger
 }
 
 type AppendBlock struct {
-	Block *types.Block // Block to be added to the ledger
+	FromID    uint64       // The peer id
+	BlockSize uint32       // Block size
+	Block     *types.Block // Block to be added to the ledger
 }
 
 //ParseIPAddr return ip address
