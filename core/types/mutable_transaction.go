@@ -19,7 +19,6 @@
 package types
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -88,15 +87,12 @@ func (tx *MutableTransaction) serialize(sink *common.ZeroCopySink) error {
 	}
 
 	sink.WriteVarUint(uint64(len(tx.Sigs)))
-	// todo : remove allocation
-	buf := bytes.NewBuffer(nil)
 	for _, sig := range tx.Sigs {
-		err = sig.Serialize(buf)
+		err = sig.Serialization(sink)
 		if err != nil {
 			return err
 		}
 	}
-	sink.WriteBytes(buf.Bytes())
 
 	return nil
 }

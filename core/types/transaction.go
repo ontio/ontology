@@ -284,6 +284,27 @@ func (self *RawSig) GetSig() (Sig, error) {
 	return Sig{SigData: sigs, M: info.M, PubKeys: info.PubKeys}, nil
 }
 
+func (self *Sig) Serialization(sink *common.ZeroCopySink) error {
+	temp := common.NewZeroCopySink(nil)
+	program.EncodeParamProgramInto(temp, self.SigData)
+	sink.WriteVarBytes(temp.Bytes())
+
+	temp.Reset()
+	if len(self.PubKeys) == 0 {
+		return errors.New("no pubkeys in sig")
+	} else if len(self.PubKeys) == 1 {
+		program.EncodeSinglePubKeyProgramInto(temp, self.PubKeys[0])
+	} else {
+		err := program.EncodeMultiPubKeyProgramInto(temp, self.PubKeys, int(self.M))
+		if err != nil {
+			return err
+		}
+	}
+	sink.WriteVarBytes(temp.Bytes())
+
+	return nil
+}
+
 func (self *Sig) Serialize(w io.Writer) error {
 	invocationScript := program.ProgramFromParams(self.SigData)
 	var verificationScript []byte
