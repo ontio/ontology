@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	ser "github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -36,56 +35,59 @@ type PrepareRequest struct {
 	Signature      []byte
 }
 
-func (pr *PrepareRequest) Serialize(w io.Writer) error {
-	log.Debug()
-
-	pr.msgData.Serialize(w)
-	if err := ser.WriteVarUint(w, pr.Nonce); err != nil {
-		return fmt.Errorf("[PrepareRequest] nonce serialization failed: %s", err)
-	}
-	if err := pr.NextBookkeeper.Serialize(w); err != nil {
-		return fmt.Errorf("[PrepareRequest] nextbookkeeper serialization failed: %s", err)
-	}
-	if err := ser.WriteVarUint(w, uint64(len(pr.Transactions))); err != nil {
-		return fmt.Errorf("[PrepareRequest] length serialization failed: %s", err)
-	}
+func (pr *PrepareRequest) Serialization(sink *common.ZeroCopySink) error {
+	pr.msgData.Serialization(sink)
+	sink.WriteVarUint(pr.Nonce)
+	sink.WriteAddress(pr.NextBookkeeper)
+	sink.WriteVarUint(uint64(len(pr.Transactions)))
 	for _, t := range pr.Transactions {
-		if err := t.Serialize(w); err != nil {
+		if err := t.Serialization(sink); err != nil {
 			return fmt.Errorf("[PrepareRequest] transactions serialization failed: %s", err)
 		}
 	}
-	if err := ser.WriteVarBytes(w, pr.Signature); err != nil {
-		return fmt.Errorf("[PrepareRequest] signature serialization failed: %s", err)
-	}
+	sink.WriteVarBytes(pr.Signature)
+
 	return nil
 }
 
-func (pr *PrepareRequest) Deserialize(r io.Reader) error {
+func (pr *PrepareRequest) Deserialization(source *common.ZeroCopySource) error {
 	pr.msgData = ConsensusMessageData{}
-	pr.msgData.Deserialize(r)
-	pr.Nonce, _ = ser.ReadVarUint(r, 0)
-
-	if err := pr.NextBookkeeper.Deserialize(r); err != nil {
-		return fmt.Errorf("[PrepareRequest] nextbookkeeper deserialization failed: %s", err)
-	}
-
-	length, err := ser.ReadVarUint(r, 0)
+	err := pr.msgData.Deserialization(source)
 	if err != nil {
-		return fmt.Errorf("[PrepareRequest] length deserialization failed: %s", err)
+		return err
 	}
 
-	pr.Transactions = make([]*types.Transaction, length)
-	for i := 0; i < len(pr.Transactions); i++ {
+	nonce, _, irregular, eof := source.NextVarUint()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	pr.Nonce = nonce
+	pr.NextBookkeeper, eof = source.NextAddress()
+
+	var length uint64
+	length, _, irregular, eof = source.NextVarUint()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	for i := 0; i < int(length); i++ {
 		var t types.Transaction
-		if err := t.Deserialize(r); err != nil {
+		if err := t.Deserialization(source); err != nil {
 			return fmt.Errorf("[PrepareRequest] transactions deserialization failed: %s", err)
 		}
-		pr.Transactions[i] = &t
+		pr.Transactions = append(pr.Transactions, &t)
 	}
 
-	pr.Signature, err = ser.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("[PrepareRequest] signature deserialization failed: %s", err)
+	pr.Signature, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
 	return nil

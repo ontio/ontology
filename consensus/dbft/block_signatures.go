@@ -19,10 +19,9 @@
 package dbft
 
 import (
-	"errors"
 	"io"
 
-	ser "github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 )
 
 type BlockSignatures struct {
@@ -35,45 +34,43 @@ type SignaturesData struct {
 	Index     uint16
 }
 
-func (self *BlockSignatures) Serialize(w io.Writer) error {
-	self.msgData.Serialize(w)
-	if err := ser.WriteVarUint(w, uint64(len(self.Signatures))); err != nil {
-		return errors.New("[BlockSignatures] serialization failed")
-	}
+func (self *BlockSignatures) Serialization(sink *common.ZeroCopySink) error {
+	self.msgData.Serialization(sink)
+	sink.WriteVarUint(uint64(len(self.Signatures)))
 
-	for i := 0; i < len(self.Signatures); i++ {
-		if err := ser.WriteVarBytes(w, self.Signatures[i].Signature); err != nil {
-			return errors.New("[BlockSignatures] serialization sig failed")
-		}
-		if err := ser.WriteUint16(w, self.Signatures[i].Index); err != nil {
-			return errors.New("[BlockSignatures] serialization sig index failed")
-		}
+	for _, sign := range self.Signatures {
+		sink.WriteVarBytes(sign.Signature)
+		sink.WriteUint16(sign.Index)
 	}
 
 	return nil
 }
 
-func (self *BlockSignatures) Deserialize(r io.Reader) error {
-	err := self.msgData.Deserialize(r)
+func (self *BlockSignatures) Deserialization(source *common.ZeroCopySource) error {
+	err := self.msgData.Deserialization(source)
 	if err != nil {
 		return err
 	}
 
-	length, err := ser.ReadVarUint(r, 0)
-	if err != nil {
-		return err
+	length, _, irregular, eof := source.NextVarUint()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
 	for i := uint64(0); i < length; i++ {
 		sig := SignaturesData{}
 
-		sig.Signature, err = ser.ReadVarBytes(r)
-		if err != nil {
-			return err
+		sig.Signature, _, irregular, eof = source.NextVarBytes()
+		if irregular {
+			return common.ErrIrregularData
 		}
-		sig.Index, err = ser.ReadUint16(r)
-		if err != nil {
-			return err
+
+		sig.Index, eof = source.NextUint16()
+		if eof {
+			return io.ErrUnexpectedEOF
 		}
 
 		self.Signatures = append(self.Signatures, sig)

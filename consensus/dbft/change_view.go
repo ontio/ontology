@@ -21,7 +21,7 @@ package dbft
 import (
 	"io"
 
-	ser "github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 )
 
 type ChangeView struct {
@@ -29,20 +29,25 @@ type ChangeView struct {
 	NewViewNumber byte
 }
 
-func (cv *ChangeView) Serialize(w io.Writer) error {
-	cv.msgData.Serialize(w)
-	w.Write([]byte{cv.NewViewNumber})
+func (cv *ChangeView) Serialization(sink *common.ZeroCopySink) error {
+	cv.msgData.Serialization(sink)
+	sink.WriteByte(cv.NewViewNumber)
 	return nil
 }
 
 //read data to reader
-func (cv *ChangeView) Deserialize(r io.Reader) error {
-	cv.msgData.Deserialize(r)
-	viewNum, err := ser.ReadBytes(r, 1)
+func (cv *ChangeView) Deserialization(source *common.ZeroCopySource) error {
+	err := cv.msgData.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	cv.NewViewNumber = viewNum[0]
+
+	viewNum, eof := source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	cv.NewViewNumber = viewNum
+
 	return nil
 }
 
