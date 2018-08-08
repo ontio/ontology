@@ -127,7 +127,7 @@ func (b *Block) Type() common.InventoryType {
 
 func (b *Block) RebuildMerkleRoot() {
 	txs := b.Transactions
-	hashes := []common.Uint256{}
+	hashes := make([]common.Uint256, 0, len(txs))
 	for _, tx := range txs {
 		hashes = append(hashes, tx.Hash())
 	}

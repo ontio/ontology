@@ -187,7 +187,7 @@ func (bd *Header) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func HeaderFromRawBytes(raw []byte) (*Header, error ) {
+func HeaderFromRawBytes(raw []byte) (*Header, error) {
 	source := common.NewZeroCopySource(raw)
 	header := &Header{}
 	err := header.Deserialization(source)

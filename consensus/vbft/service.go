@@ -2049,7 +2049,6 @@ func (self *Server) creategovernaceTransaction(blkNum uint32) (*types.Transactio
 	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
 	mutable.Nonce = blkNum
 	tx, err := mutable.IntoImmutable()
-
 	return tx, err
 }
 
@@ -2126,7 +2125,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		if self.checkNeedUpdateChainConfig(blkNum) {
 			tx, err := self.creategovernaceTransaction(blkNum)
 			if err != nil {
-				return err
+				return fmt.Errorf("construct governace transaction error: %v", err)
 			}
 			sysTxs = append(sysTxs, tx)
 			chainconfig.View++
