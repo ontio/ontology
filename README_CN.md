@@ -32,8 +32,8 @@ Ontology致力于创建一个组件化、可自由配置、跨链支持、高性
 
 * [构建开发环境](#构建开发环境)
 * [获取ontology](#获取ontology)
-    * [从源码获取](#从源码获取)
     * [从release获取](#从release获取)
+    * [从源码获取](#从源码获取)
 * [运行ontology](#运行ontology)
     * [主网同步节点](#主网同步节点)
     * [公开测试网Polaris同步节点](#公开测试网polaris同步节点)
@@ -58,6 +58,11 @@ Ontology致力于创建一个组件化、可自由配置、跨链支持、高性
 * Golang所支持的操作系统
 
 ## 获取ontology
+
+### 从release获取
+- 你可以通过命令 ` curl https://dev.ont.io/ontology_install | sh ` 获取最新的ontology版本
+- 你也可以从[下载页面](https://github.com/ontio/ontology/releases)获取.
+
 ### 从源码获取
 克隆ontology仓库到 **$GOPATH/src/github.com/ontio** 目录
 
@@ -87,19 +92,14 @@ $ make all
 * `ontology`: 节点程序/以命令行方式提供的节点控制程序
 * `tools/sigsvr`: (可选)签名服务 - sigsvr是一个签名服务的server以满足一些特殊的需求。详细的文档可以在[这里](./docs/specifications/sigsvr_CN.md)参考
 
-### 从release获取
-- 你可以通过命令 ` curl https://dev.ont.io/ontology_install | sh ` 获取最新的ontology版本
-- 你也可以从[下载页面](https://github.com/ontio/ontology/releases)获取.
-
 ## 运行ontology
-
 
 ### 主网同步节点
 
 直接启动Ontology
 
    ```
-	./ontology --networkid 1
+	./ontology
    ```
 然后你可以连接上主网了。
 
@@ -118,7 +118,7 @@ $ make all
 - 节点程序 + 节点控制程序 `ontology`
 - 钱包文件`wallet.dat` （注：`wallet.dat`可通过`./ontology account add`生成）
 
-使用命令 `$ ./ontology --testmode --networkid 3` 即可启动单机版的测试网络。
+使用命令 `$ ./ontology --testmode` 即可启动单机版的测试网络。
 
 单机配置的例子如下：
 - 目录结构
@@ -199,6 +199,8 @@ ONT:10
 ONG:0
 ONGApprove:0
 ```
+
+进一步的示例可以参考[文档中心](https://ontio.github.io/documentation/)
 
 ## 贡献代码
 
