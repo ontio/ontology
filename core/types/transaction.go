@@ -336,9 +336,16 @@ func (self *Sig) Deserialize(r io.Reader) error {
 }
 
 func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
-	if len(self.SignedAddr) != len(self.Sigs) {
-		return nil, errors.New("mismatched sigs and signed address")
+	if len(self.SignedAddr) == 0 {
+		addrs := make([]common.Address, 0, len(self.Sigs))
+		for _, prog := range self.Sigs {
+			addrs = append(addrs, AddressFromVmCode(prog.Verify))
+		}
+		self.SignedAddr = addrs
 	}
+	//if len(self.SignedAddr) != len(self.Sigs) {
+	//	return nil, errors.New("mismatched sigs and signed address")
+	//}
 	return self.SignedAddr, nil
 }
 
