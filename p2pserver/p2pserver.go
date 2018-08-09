@@ -94,12 +94,12 @@ func (this *P2PServer) Start() error {
 	if this.network != nil {
 		this.network.Start()
 	} else {
-		return errors.New("p2p network invalid")
+		return errors.New("[p2p]network invalid")
 	}
 	if this.msgRouter != nil {
 		this.msgRouter.Start()
 	} else {
-		return errors.New("p2p msg router invalid")
+		return errors.New("[p2p]msg router invalid")
 	}
 	this.tryRecentPeers()
 	go this.connectSeedService()
@@ -147,28 +147,28 @@ func (this *P2PServer) Xmit(message interface{}) error {
 	isConsensus := false
 	switch message.(type) {
 	case *types.Transaction:
-		log.Debug("TX transaction message")
+		log.Debug("[p2p]TX transaction message")
 		txn := message.(*types.Transaction)
 		msg = msgpack.NewTxn(txn)
 	case *types.Block:
-		log.Debug("TX block message")
+		log.Debug("[p2p]TX block message")
 		block := message.(*types.Block)
 		msg = msgpack.NewBlock(block)
 	case *msgtypes.ConsensusPayload:
-		log.Debug("TX consensus message")
+		log.Debug("[p2p]TX consensus message")
 		consensusPayload := message.(*msgtypes.ConsensusPayload)
 		msg = msgpack.NewConsensus(consensusPayload)
 		isConsensus = true
 	case comm.Uint256:
-		log.Debug("TX block hash message")
+		log.Debug("[p2p]TX block hash message")
 		hash := message.(comm.Uint256)
 		// construct inv message
 		invPayload := msgpack.NewInvPayload(comm.BLOCK, []comm.Uint256{hash})
 		msg = msgpack.NewInv(invPayload)
 	default:
-		log.Warnf("Unknown Xmit message %v , type %v", message,
+		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))
-		return errors.New("Unknown Xmit message type")
+		return errors.New("[p2p]Unknown Xmit message type")
 	}
 	this.network.Xmit(msg, isConsensus)
 	return nil
@@ -180,9 +180,9 @@ func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 	if this.network.IsPeerEstablished(p) {
 		return this.network.Send(p, msg, isConsensus)
 	}
-	log.Errorf("P2PServer send to a not ESTABLISH peer %d",
+	log.Warnf("[p2p]send to a not ESTABLISH peer %d",
 		p.GetID())
-	return errors.New("send to a not ESTABLISH peer")
+	return errors.New("[p2p]send to a not ESTABLISH peer")
 }
 
 // GetID returns local node id
@@ -258,7 +258,7 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 	for {
 		headerHeight := this.ledger.GetCurrentHeaderHeight()
 		currentBlkHeight := this.ledger.GetCurrentBlockHeight()
-		log.Info("WaitForSyncBlkFinish... current block height is ",
+		log.Info("[p2p]WaitForSyncBlkFinish... current block height is ",
 			currentBlkHeight, " ,current header height is ", headerHeight)
 
 		if this.blockSyncFinished() {
@@ -273,7 +273,7 @@ func (this *P2PServer) WaitForSyncBlkFinish() {
 func (this *P2PServer) WaitForPeersStart() {
 	periodTime := config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	for {
-		log.Info("Wait for minimum connection...")
+		log.Info("[p2p]Wait for minimum connection...")
 		if this.reachMinConnection() {
 			break
 		}
@@ -289,17 +289,17 @@ func (this *P2PServer) connectSeeds() {
 	for _, n := range config.DefConfig.Genesis.SeedList {
 		ip, err := common.ParseIPAddr(n)
 		if err != nil {
-			log.Warnf("seed peer %s address format is wrong", n)
+			log.Warnf("[p2p]seed peer %s address format is wrong", n)
 			continue
 		}
 		ns, err := net.LookupHost(ip)
 		if err != nil {
-			log.Warnf("resolve err: %s", err.Error())
+			log.Warnf("[p2p]resolve err: %s", err.Error())
 			continue
 		}
 		port, err := common.ParseIPPort(n)
 		if err != nil {
-			log.Warnf("seed peer %s address format is wrong", n)
+			log.Warnf("[p2p]seed peer %s address format is wrong", n)
 			continue
 		}
 		seedNodes = append(seedNodes, ns[0]+port)
@@ -366,7 +366,7 @@ func (this *P2PServer) retryInactivePeer() {
 		nodeAddr := ip.To16().String() + ":" +
 			strconv.Itoa(int(p.GetSyncPort()))
 		if p.GetSyncState() == common.INACTIVITY {
-			log.Infof(" try reconnect %s", nodeAddr)
+			log.Debugf("[p2p] try reconnect %s", nodeAddr)
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
 			p.CloseSync()
@@ -383,7 +383,7 @@ func (this *P2PServer) retryInactivePeer() {
 
 	connCount := uint(this.network.GetOutConnRecordLen())
 	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
-		log.Warnf("Connect: out connections(%d) reach the max limit(%d)", connCount,
+		log.Warnf("[p2p]Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
 		return
 	}
@@ -420,9 +420,9 @@ func (this *P2PServer) retryInactivePeer() {
 		this.ReconnectAddrs.Unlock()
 		for _, addr := range addrs {
 			rand.Seed(time.Now().UnixNano())
-			log.Info("Try to reconnect peer, peer addr is ", addr)
+			log.Debug("[p2p]Try to reconnect peer, peer addr is ", addr)
 			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
-			log.Info("Back off time`s up, start connect node")
+			log.Debug("[p2p]Back off time`s up, start connect node")
 			this.network.Connect(addr, false)
 		}
 
@@ -511,7 +511,7 @@ func (this *P2PServer) timeout() {
 			t := p.GetContactTime()
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
-				log.Warnf("keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
+				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
 				p.CloseSync()
 				p.CloseCons()
 			}
@@ -550,17 +550,17 @@ func (this *P2PServer) tryRecentPeers() {
 	if comm.FileExisted(common.RECENT_FILE_NAME) {
 		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
 		if err != nil {
-			log.Error("read %s fail:%s, connect recent peers cancel", common.RECENT_FILE_NAME, err.Error())
+			log.Warn("[p2p]read %s fail:%s, connect recent peers cancel", common.RECENT_FILE_NAME, err.Error())
 			return
 		}
 
 		err = json.Unmarshal(buf, &this.recentPeers)
 		if err != nil {
-			log.Error("parse recent peer file fail: ", err)
+			log.Warn("[p2p]parse recent peer file fail: ", err)
 			return
 		}
 		if len(this.recentPeers[netID]) > 0 {
-			log.Info("try to connect recent peer")
+			log.Info("[p2p]try to connect recent peer")
 		}
 		for _, v := range this.recentPeers[netID] {
 			go this.network.Connect(v, false)
@@ -635,12 +635,12 @@ func (this *P2PServer) syncPeerAddr() {
 	if changed {
 		buf, err := json.Marshal(this.recentPeers)
 		if err != nil {
-			log.Error("package recent peer fail: ", err)
+			log.Warn("[p2p]package recent peer fail: ", err)
 			return
 		}
 		err = ioutil.WriteFile(common.RECENT_FILE_NAME, buf, os.ModePerm)
 		if err != nil {
-			log.Error("write recent peer fail: ", err)
+			log.Warn("[p2p]write recent peer fail: ", err)
 		}
 	}
 }

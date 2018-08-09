@@ -20,6 +20,7 @@ package common
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/ontio/ontology/core/types"
@@ -153,7 +154,7 @@ type AppendBlock struct {
 func ParseIPAddr(s string) (string, error) {
 	i := strings.Index(s, ":")
 	if i < 0 {
-		return s, errors.New("split ip address error")
+		return "", errors.New("[p2p]split ip address error")
 	}
 	return s[:i], nil
 }
@@ -162,7 +163,14 @@ func ParseIPAddr(s string) (string, error) {
 func ParseIPPort(s string) (string, error) {
 	i := strings.Index(s, ":")
 	if i < 0 {
-		return s, errors.New("split ip port error")
+		return "", errors.New("[p2p]split ip port error")
+	}
+	port, err := strconv.Atoi(s[i+1:])
+	if err != nil {
+		return "", errors.New("[p2p]parse port error")
+	}
+	if port <= 0 || port >= 65535 {
+		return "", errors.New("[p2p]port out of bound")
 	}
 	return s[i:], nil
 }
