@@ -104,12 +104,17 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
 		return
 	}
-	if request["method"] == nil {
+	if request["method"] == nil{
 		log.Error("HTTP JSON RPC Handle - method not found: ")
 		return
 	}
+	method,ok := request["method"].(string)
+	if !ok {
+		log.Error("HTTP JSON RPC Handle - method is not string: ")
+		return
+	}
 	//get the corresponding function
-	function, ok := mainMux.m[request["method"].(string)]
+	function, ok := mainMux.m[method]
 	if ok {
 		response := function(request["params"].([]interface{}))
 		data, err := json.Marshal(map[string]interface{}{
