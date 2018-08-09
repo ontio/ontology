@@ -168,7 +168,6 @@ func TestOpRemove(t *testing.T) {
 	var e1 ExecutionEngine
 	e1.EvaluationStack = NewRandAccessStack()
 
-
 	items := make([]vtypes.StackItems, 0)
 	items = append(items, vtypes.NewByteArray([]byte("aaa")))
 	items = append(items, vtypes.NewByteArray([]byte("bbb")))
@@ -182,7 +181,7 @@ func TestOpRemove(t *testing.T) {
 
 	opRemove(&e1)
 
-	arr1  , err := PeekArray(&e1)
+	arr1, err := PeekArray(&e1)
 	if err != nil {
 		t.Fatal("NeoVM OpRemove test failed.")
 	}

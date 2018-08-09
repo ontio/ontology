@@ -90,4 +90,3 @@ func (this *Boolean) GetMap() (map[StackItems]StackItems, error) {
 func (this *Boolean) IsMapKey() bool {
 	return true
 }
-

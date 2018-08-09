@@ -87,4 +87,3 @@ func (this *ByteArray) GetMap() (map[StackItems]StackItems, error) {
 func (this *ByteArray) IsMapKey() bool {
 	return true
 }
-

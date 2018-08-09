@@ -24,6 +24,7 @@ import (
 	"math/big"
 
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"

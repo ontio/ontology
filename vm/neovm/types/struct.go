@@ -144,4 +144,3 @@ func (this *Struct) Count() int {
 func (this *Struct) IsMapKey() bool {
 	return false
 }
-
