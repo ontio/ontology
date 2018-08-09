@@ -98,3 +98,7 @@ func (this *Map) TryGetValue(key StackItems) StackItems {
 	}
 	return nil
 }
+
+func (this *Map) IsMapKey() bool {
+	return false
+}

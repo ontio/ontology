@@ -163,3 +163,41 @@ func TestOpReverse(t *testing.T) {
 		t.Fatalf("NeoVM OpReverse test failed, expect ccc, get %s.", string(v))
 	}
 }
+
+func TestOpRemove(t *testing.T) {
+	var e1 ExecutionEngine
+	e1.EvaluationStack = NewRandAccessStack()
+
+
+	items := make([]vtypes.StackItems, 0)
+	items = append(items, vtypes.NewByteArray([]byte("aaa")))
+	items = append(items, vtypes.NewByteArray([]byte("bbb")))
+	items = append(items, vtypes.NewByteArray([]byte("ccc")))
+
+	arr := vtypes.NewArray(items)
+	PushData(&e1, arr)
+	opDup(&e1)
+
+	PushData(&e1, vtypes.NewInteger(big.NewInt(1)))
+
+	opRemove(&e1)
+
+	arr1  , err := PeekArray(&e1)
+	if err != nil {
+		t.Fatal("NeoVM OpRemove test failed.")
+	}
+
+	if len(arr1) != 2 {
+		t.Fatal("NeoVM OpRemove test failed. expect len 2, get %v", len(arr1))
+	}
+
+	v, err := arr1[0].GetByteArray()
+
+	if err != nil {
+		t.Fatal("NeoVM OpRemove test failed.")
+	}
+
+	if string(v) != "bbb" {
+		t.Fatalf("NeoVM OpRemove test failed, expect bbb, get %s.", string(v))
+	}
+}

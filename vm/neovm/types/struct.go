@@ -133,6 +133,15 @@ func (this *Struct) Add(item StackItems) {
 	this._array = append(this._array, item)
 }
 
+func (this *Struct) RemoveAt(index int) {
+	this._array = append(this._array[:index-1], this._array[index:]...)
+}
+
 func (this *Struct) Count() int {
 	return len(this._array)
 }
+
+func (this *Struct) IsMapKey() bool {
+	return false
+}
+

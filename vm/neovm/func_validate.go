@@ -452,6 +452,9 @@ func validatePickItem(e *ExecutionEngine) error {
 		if key == nil {
 			return errors.ERR_BAD_VALUE
 		}
+		if !key.IsMapKey() {
+			return errors.ERR_NOT_MAP_KEY
+		}
 		if v := item.(*types.Map).TryGetValue(key); v == nil {
 			return errors.ERR_MAP_NOT_EXIST
 		}
@@ -495,6 +498,9 @@ func validatorSetItem(e *ExecutionEngine) error {
 		key := PeekNStackItem(1, e)
 		if key == nil {
 			return errors.ERR_BAD_VALUE
+		}
+		if !key.IsMapKey() {
+			return errors.ERR_NOT_MAP_KEY
 		}
 	default:
 		return fmt.Errorf("validatePickItem error: %s", errors.ERR_NOT_SUPPORT_TYPE)
@@ -561,6 +567,32 @@ func validatorReverse(e *ExecutionEngine) error {
 	if !ok1 && !ok2 {
 		return fmt.Errorf("validatorReverse error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
+	return nil
+}
+
+func validatorRemove(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 2, "[validatorRemove]"); err != nil {
+		return err
+	}
+
+	value := PeekNStackItem(0, e)
+	if value == nil {
+		return errors.ERR_BAD_VALUE
+	}
+
+	if !value.IsMapKey() {
+		return errors.ERR_NOT_MAP_KEY
+	}
+
+	item := PeekNStackItem(1, e)
+	if item == nil {
+		return errors.ERR_BAD_VALUE
+	}
+
+	if _, ok := item.(*types.Map); !ok {
+		return errors.ERR_REMOVE_NOT_SUPPORT
+	}
+
 	return nil
 }
 

@@ -21,7 +21,6 @@ package neovm
 import (
 	"math/big"
 
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -79,22 +78,14 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 		bi, _ := index.GetBigInteger()
 		i := int(bi.Int64())
 		a, _ := items.GetArray()
-		if i < 0 || i >= len(a) {
-			return FAULT, errors.NewErr("opPickItem invalid array.")
-		}
 		PushData(e, a[i])
 	case *types.Struct:
 		bi, _ := index.GetBigInteger()
 		i := int(bi.Int64())
 		s, _ := items.GetStruct()
-		if i < 0 || i >= len(s) {
-			return FAULT, errors.NewErr("opPickItem invalid array.")
-		}
 		PushData(e, s[i])
 	case *types.Map:
 		PushData(e, items.(*types.Map).TryGetValue(index))
-	default:
-		return FAULT, errors.NewErr("opPickItem unknown item type.")
 	}
 
 	return NONE, nil
@@ -121,20 +112,12 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 		items, _ := item.GetArray()
 		bi, _ := index.GetBigInteger()
 		i := int(bi.Int64())
-		if i < 0 || i >= len(items) {
-			return FAULT, errors.NewErr("opSetItem invalid array.")
-		}
 		items[i] = newItem
 	case *types.Struct:
 		items, _ := item.GetStruct()
 		bi, _ := index.GetBigInteger()
 		i := int(bi.Int64())
-		if i < 0 || i >= len(items) {
-			return FAULT, errors.NewErr("opSetItem invalid array.")
-		}
 		items[i] = newItem
-	default:
-		return FAULT, errors.NewErr("opSetItem unknown item type.")
 	}
 
 	return NONE, nil
@@ -189,5 +172,13 @@ func opReverse(e *ExecutionEngine) (VMState, error) {
 	for i, j := 0, len(itemArr)-1; i < j; i, j = i+1, j-1 {
 		itemArr[i], itemArr[j] = itemArr[j], itemArr[i]
 	}
+	return NONE, nil
+}
+
+func opRemove(e *ExecutionEngine) (VMState, error) {
+	index := PopStackItem(e)
+	item := PopStackItem(e)
+	m := item.(*types.Map)
+	m.Remove(index)
 	return NONE, nil
 }
