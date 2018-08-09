@@ -19,13 +19,13 @@
 package governance
 
 import (
+	"fmt"
 	"io"
+	"math"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"math"
 )
 
 type RegisterCandidateParam struct {
@@ -38,19 +38,19 @@ type RegisterCandidateParam struct {
 
 func (this *RegisterCandidateParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, request peerPubkey error!")
+		return fmt.Errorf("serialization.WriteString, request peerPubkey error: %v", err)
 	}
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.InitPos)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize initPos error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize initPos error: %v", err)
 	}
 	if err := serialization.WriteVarBytes(w, this.Caller); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, serialize caller error!")
+		return fmt.Errorf("serialization.WriteVarBytes, serialize caller error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.KeyNo)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize keyNo error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize keyNo error: %v", err)
 	}
 	return nil
 }
@@ -58,29 +58,29 @@ func (this *RegisterCandidateParam) Serialize(w io.Writer) error {
 func (this *RegisterCandidateParam) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
 	initPos, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize initPos error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize initPos error: %v", err)
 	}
 	if initPos > math.MaxUint32 {
-		return errors.NewErr("initPos larger than max of uint32!")
+		return fmt.Errorf("initPos larger than max of uint32")
 	}
 	caller, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarBytes, deserialize caller error!")
+		return fmt.Errorf("serialization.ReadVarBytes, deserialize caller error: %v", err)
 	}
 	keyNo, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize keyNo error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize keyNo error: %v", err)
 	}
 	if keyNo > math.MaxUint32 {
-		return errors.NewErr("initPos larger than max of uint32!")
+		return fmt.Errorf("initPos larger than max of uint32")
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = address
@@ -97,10 +97,10 @@ type UnRegisterCandidateParam struct {
 
 func (this *UnRegisterCandidateParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, request peerPubkey error!")
+		return fmt.Errorf("serialization.WriteString, request peerPubkey error: %v", err)
 	}
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
 	}
 	return nil
 }
@@ -108,11 +108,11 @@ func (this *UnRegisterCandidateParam) Serialize(w io.Writer) error {
 func (this *UnRegisterCandidateParam) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = address
@@ -126,10 +126,10 @@ type QuitNodeParam struct {
 
 func (this *QuitNodeParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.WriteString, deserialize peerPubkey error: %v", err)
 	}
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
 	}
 	return nil
 }
@@ -137,11 +137,11 @@ func (this *QuitNodeParam) Serialize(w io.Writer) error {
 func (this *QuitNodeParam) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = address
@@ -154,7 +154,7 @@ type ApproveCandidateParam struct {
 
 func (this *ApproveCandidateParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 	}
 	return nil
 }
@@ -162,7 +162,7 @@ func (this *ApproveCandidateParam) Serialize(w io.Writer) error {
 func (this *ApproveCandidateParam) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	return nil
@@ -174,7 +174,7 @@ type RejectCandidateParam struct {
 
 func (this *RejectCandidateParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 	}
 	return nil
 }
@@ -182,7 +182,7 @@ func (this *RejectCandidateParam) Serialize(w io.Writer) error {
 func (this *RejectCandidateParam) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	return nil
@@ -194,11 +194,11 @@ type BlackNodeParam struct {
 
 func (this *BlackNodeParam) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize peerPubkeyList length error!")
+		return fmt.Errorf("serialization.WriteVarUint, serialize peerPubkeyList length error: %v", err)
 	}
 	for _, v := range this.PeerPubkeyList {
 		if err := serialization.WriteString(w, v); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
+			return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 		}
 	}
 	return nil
@@ -207,13 +207,13 @@ func (this *BlackNodeParam) Serialize(w io.Writer) error {
 func (this *BlackNodeParam) Deserialize(r io.Reader) error {
 	n, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize peerPubkeyList length error!")
+		return fmt.Errorf("serialization.ReadVarUint, deserialize peerPubkeyList length error: %v", err)
 	}
 	peerPubkeyList := make([]string, 0)
 	for i := 0; uint64(i) < n; i++ {
 		k, err := serialization.ReadString(r)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+			return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 		}
 		peerPubkeyList = append(peerPubkeyList, k)
 	}
@@ -227,7 +227,7 @@ type WhiteNodeParam struct {
 
 func (this *WhiteNodeParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 	}
 	return nil
 }
@@ -235,7 +235,7 @@ func (this *WhiteNodeParam) Serialize(w io.Writer) error {
 func (this *WhiteNodeParam) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	return nil
@@ -249,28 +249,28 @@ type AuthorizeForPeerParam struct {
 
 func (this *AuthorizeForPeerParam) Serialize(w io.Writer) error {
 	if len(this.PeerPubkeyList) > 1024 {
-		return errors.NewErr("length of input list > 1024!")
+		return fmt.Errorf("length of input list > 1024")
 	}
 	if len(this.PeerPubkeyList) != len(this.PosList) {
-		return errors.NewErr("length of PeerPubkeyList != length of PosList!")
+		return fmt.Errorf("length of PeerPubkeyList != length of PosList")
 	}
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize peerPubkeyList length error!")
+		return fmt.Errorf("serialization.WriteVarUint, serialize peerPubkeyList length error: %v", err)
 	}
 	for _, v := range this.PeerPubkeyList {
 		if err := serialization.WriteString(w, v); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
+			return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 		}
 	}
 	if err := utils.WriteVarUint(w, uint64(len(this.PosList))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize posList length error!")
+		return fmt.Errorf("serialization.WriteVarUint, serialize posList length error: %v", err)
 	}
 	for _, v := range this.PosList {
 		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize pos error!")
+			return fmt.Errorf("utils.WriteVarUint, serialize pos error: %v", err)
 		}
 	}
 	return nil
@@ -279,40 +279,40 @@ func (this *AuthorizeForPeerParam) Serialize(w io.Writer) error {
 func (this *AuthorizeForPeerParam) Deserialize(r io.Reader) error {
 	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
 	n, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize peerPubkeyList length error!")
+		return fmt.Errorf("serialization.ReadVarUint, deserialize peerPubkeyList length error: %v", err)
 	}
 	if n > 1024 {
-		return errors.NewErr("length of input list > 1024!")
+		return fmt.Errorf("length of input list > 1024")
 	}
 	peerPubkeyList := make([]string, 0)
 	for i := 0; uint64(i) < n; i++ {
 		k, err := serialization.ReadString(r)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+			return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 		}
 		peerPubkeyList = append(peerPubkeyList, k)
 	}
 	m, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize posList length error!")
+		return fmt.Errorf("serialization.ReadVarUint, deserialize posList length error: %v", err)
 	}
 	posList := make([]uint32, 0)
 	for i := 0; uint64(i) < m; i++ {
 		k, err := utils.ReadVarUint(r)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize pos error!")
+			return fmt.Errorf("utils.ReadVarUint, deserialize pos error: %v", err)
 		}
 		if k > math.MaxUint32 {
-			return errors.NewErr("pos larger than max of uint32!")
+			return fmt.Errorf("pos larger than max of uint32")
 		}
 		posList = append(posList, uint32(k))
 	}
 	if m != n {
-		return errors.NewErr("length of PeerPubkeyList != length of PosList!")
+		return fmt.Errorf("length of PeerPubkeyList != length of PosList")
 	}
 	this.Address = address
 	this.PeerPubkeyList = peerPubkeyList
@@ -328,28 +328,28 @@ type WithdrawParam struct {
 
 func (this *WithdrawParam) Serialize(w io.Writer) error {
 	if len(this.PeerPubkeyList) > 1024 {
-		return errors.NewErr("length of input list > 1024!")
+		return fmt.Errorf("length of input list > 1024")
 	}
 	if len(this.PeerPubkeyList) != len(this.WithdrawList) {
-		return errors.NewErr("length of PeerPubkeyList != length of WithdrawList, contract params error!")
+		return fmt.Errorf("length of PeerPubkeyList != length of WithdrawList, contract params error")
 	}
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize peerPubkeyList length error!")
+		return fmt.Errorf("serialization.WriteVarUint, serialize peerPubkeyList length error: %v", err)
 	}
 	for _, v := range this.PeerPubkeyList {
 		if err := serialization.WriteString(w, v); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize peerPubkey error!")
+			return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 		}
 	}
 	if err := utils.WriteVarUint(w, uint64(len(this.WithdrawList))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize withdrawList length error!")
+		return fmt.Errorf("serialization.WriteVarUint, serialize withdrawList length error: %v", err)
 	}
 	for _, v := range this.WithdrawList {
 		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize withdraw error!")
+			return fmt.Errorf("utils.WriteVarUint, serialize withdraw error: %v", err)
 		}
 	}
 	return nil
@@ -358,40 +358,40 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 func (this *WithdrawParam) Deserialize(r io.Reader) error {
 	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
 	n, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize peerPubkeyList length error!")
+		return fmt.Errorf("serialization.ReadVarUint, deserialize peerPubkeyList length error: %v", err)
 	}
 	if n > 1024 {
-		return errors.NewErr("length of input list > 1024!")
+		return fmt.Errorf("length of input list > 1024")
 	}
 	peerPubkeyList := make([]string, 0)
 	for i := 0; uint64(i) < n; i++ {
 		k, err := serialization.ReadString(r)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+			return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 		}
 		peerPubkeyList = append(peerPubkeyList, k)
 	}
 	m, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize withdrawList length error!")
+		return fmt.Errorf("serialization.ReadVarUint, deserialize withdrawList length error: %v", err)
 	}
 	withdrawList := make([]uint32, 0)
 	for i := 0; uint64(i) < m; i++ {
 		k, err := utils.ReadVarUint(r)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize withdraw error!")
+			return fmt.Errorf("utils.ReadVarUint, deserialize withdraw error: %v", err)
 		}
 		if k > math.MaxUint32 {
-			return errors.NewErr("pos larger than max of uint32!")
+			return fmt.Errorf("pos larger than max of uint32")
 		}
 		withdrawList = append(withdrawList, uint32(k))
 	}
 	if m != n {
-		return errors.NewErr("length of PeerPubkeyList != length of WithdrawList, contract params error!")
+		return fmt.Errorf("length of PeerPubkeyList != length of WithdrawList, contract params error")
 	}
 	this.Address = address
 	this.PeerPubkeyList = peerPubkeyList
@@ -412,28 +412,28 @@ type Configuration struct {
 
 func (this *Configuration) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, uint64(this.N)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize n error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize n error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.C)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize c error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize c error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.K)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize k error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize k error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.L)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize l error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize l error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.BlockMsgDelay)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize block_msg_delay error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize block_msg_delay error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.HashMsgDelay)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize hash_msg_delay error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize hash_msg_delay error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.PeerHandshakeTimeout)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize peer_handshake_timeout error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize peer_handshake_timeout error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.MaxBlockChangeView)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize max_block_change_view error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize max_block_change_view error: %v", err)
 	}
 	return nil
 }
@@ -441,59 +441,59 @@ func (this *Configuration) Serialize(w io.Writer) error {
 func (this *Configuration) Deserialize(r io.Reader) error {
 	n, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize n error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize n error: %v", err)
 	}
 	c, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize c error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize c error: %v", err)
 	}
 	k, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize k error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize k error: %v", err)
 	}
 	l, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize l error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize l error: %v", err)
 	}
 	blockMsgDelay, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize blockMsgDelay error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize blockMsgDelay error: %v", err)
 	}
 	hashMsgDelay, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize hashMsgDelay error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize hashMsgDelay error: %v", err)
 	}
 	peerHandshakeTimeout, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize peerHandshakeTimeout error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize peerHandshakeTimeout error: %v", err)
 	}
 	maxBlockChangeView, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize maxBlockChangeView error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize maxBlockChangeView error: %v", err)
 	}
 	if n > math.MaxUint32 {
-		return errors.NewErr("n larger than max of uint32!")
+		return fmt.Errorf("n larger than max of uint32")
 	}
 	if c > math.MaxUint32 {
-		return errors.NewErr("c larger than max of uint32!")
+		return fmt.Errorf("c larger than max of uint32")
 	}
 	if k > math.MaxUint32 {
-		return errors.NewErr("k larger than max of uint32!")
+		return fmt.Errorf("k larger than max of uint32")
 	}
 	if l > math.MaxUint32 {
-		return errors.NewErr("l larger than max of uint32!")
+		return fmt.Errorf("l larger than max of uint32")
 	}
 	if blockMsgDelay > math.MaxUint32 {
-		return errors.NewErr("blockMsgDelay larger than max of uint32!")
+		return fmt.Errorf("blockMsgDelay larger than max of uint32")
 	}
 	if hashMsgDelay > math.MaxUint32 {
-		return errors.NewErr("hashMsgDelay larger than max of uint32!")
+		return fmt.Errorf("hashMsgDelay larger than max of uint32")
 	}
 	if peerHandshakeTimeout > math.MaxUint32 {
-		return errors.NewErr("peerHandshakeTimeout larger than max of uint32!")
+		return fmt.Errorf("peerHandshakeTimeout larger than max of uint32")
 	}
 	if maxBlockChangeView > math.MaxUint32 {
-		return errors.NewErr("maxBlockChangeView larger than max of uint32!")
+		return fmt.Errorf("maxBlockChangeView larger than max of uint32")
 	}
 	this.N = uint32(n)
 	this.C = uint32(c)
@@ -519,28 +519,28 @@ type GlobalParam struct {
 
 func (this *GlobalParam) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, this.CandidateFee); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize candidateFee error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize candidateFee error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.MinInitStake)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize minInitStake error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize minInitStake error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.CandidateNum)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize candidateNum error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize candidateNum error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.PosLimit)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize posLimit error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize posLimit error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.A)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize a error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize a error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.B)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize b error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize b error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.Yita)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize yita error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize yita error: %v", err)
 	}
 	if err := utils.WriteVarUint(w, uint64(this.Penalty)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize penalty error!")
+		return fmt.Errorf("utils.WriteVarUint, serialize penalty error: %v", err)
 	}
 	return nil
 }
@@ -548,56 +548,56 @@ func (this *GlobalParam) Serialize(w io.Writer) error {
 func (this *GlobalParam) Deserialize(r io.Reader) error {
 	candidateFee, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize candidateFee error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize candidateFee error: %v", err)
 	}
 	minInitStake, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize minInitStake error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize minInitStake error: %v", err)
 	}
 	candidateNum, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize candidateNum error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize candidateNum error: %v", err)
 	}
 	posLimit, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize posLimit error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize posLimit error: %v", err)
 	}
 	a, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize a error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize a error: %v", err)
 	}
 	b, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize b error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize b error: %v", err)
 	}
 	yita, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize yita error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize yita error: %v", err)
 	}
 	penalty, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize penalty error!")
+		return fmt.Errorf("utils.ReadVarUint, deserialize penalty error: %v", err)
 	}
 	if minInitStake > math.MaxUint32 {
-		return errors.NewErr("minInitStake larger than max of uint32!")
+		return fmt.Errorf("minInitStake larger than max of uint32")
 	}
 	if candidateNum > math.MaxUint32 {
-		return errors.NewErr("candidateNum larger than max of uint32!")
+		return fmt.Errorf("candidateNum larger than max of uint32")
 	}
 	if posLimit > math.MaxUint32 {
-		return errors.NewErr("posLimit larger than max of uint32!")
+		return fmt.Errorf("posLimit larger than max of uint32")
 	}
 	if a > math.MaxUint32 {
-		return errors.NewErr("a larger than max of uint32!")
+		return fmt.Errorf("a larger than max of uint32")
 	}
 	if b > math.MaxUint32 {
-		return errors.NewErr("b larger than max of uint32!")
+		return fmt.Errorf("b larger than max of uint32")
 	}
 	if yita > math.MaxUint32 {
-		return errors.NewErr("yita larger than max of uint32!")
+		return fmt.Errorf("yita larger than max of uint32")
 	}
 	if penalty > math.MaxUint32 {
-		return errors.NewErr("penalty larger than max of uint32!")
+		return fmt.Errorf("penalty larger than max of uint32")
 	}
 	this.CandidateFee = candidateFee
 	this.MinInitStake = uint32(minInitStake)
@@ -616,14 +616,14 @@ type SplitCurve struct {
 
 func (this *SplitCurve) Serialize(w io.Writer) error {
 	if len(this.Yi) != 101 {
-		return errors.NewErr("length of split curve != 101!")
+		return fmt.Errorf("length of split curve != 101")
 	}
 	if err := utils.WriteVarUint(w, uint64(len(this.Yi))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize Yi length error!")
+		return fmt.Errorf("serialization.WriteVarUint, serialize Yi length error: %v", err)
 	}
 	for _, v := range this.Yi {
 		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize splitCurve error!")
+			return fmt.Errorf("utils.WriteVarUint, serialize splitCurve error: %v", err)
 		}
 	}
 	return nil
@@ -632,16 +632,16 @@ func (this *SplitCurve) Serialize(w io.Writer) error {
 func (this *SplitCurve) Deserialize(r io.Reader) error {
 	n, err := utils.ReadVarUint(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize Yi length error!")
+		return fmt.Errorf("serialization.ReadVarUint, deserialize Yi length error: %v", err)
 	}
 	yi := make([]uint32, 0)
 	for i := 0; uint64(i) < n; i++ {
 		k, err := utils.ReadVarUint(r)
 		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize splitCurve error!")
+			return fmt.Errorf("utils.ReadVarUint, deserialize splitCurve error: %v", err)
 		}
 		if k > math.MaxUint32 {
-			return errors.NewErr("yi larger than max of uint32!")
+			return fmt.Errorf("yi larger than max of uint32")
 		}
 		yi = append(yi, uint32(k))
 	}
@@ -656,10 +656,10 @@ type TransferPenaltyParam struct {
 
 func (this *TransferPenaltyParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 	}
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
 	}
 	return nil
 }
@@ -667,11 +667,11 @@ func (this *TransferPenaltyParam) Serialize(w io.Writer) error {
 func (this *TransferPenaltyParam) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize peerPubkey error!")
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = address
@@ -684,7 +684,7 @@ type WithdrawOngParam struct {
 
 func (this *WithdrawOngParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
+		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
 	}
 	return nil
 }
@@ -692,8 +692,30 @@ func (this *WithdrawOngParam) Serialize(w io.Writer) error {
 func (this *WithdrawOngParam) Deserialize(r io.Reader) error {
 	address, err := utils.ReadAddress(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
 	this.Address = address
+	return nil
+}
+
+type ChangeAuthorizationParam struct {
+	PeerPubkey  string
+	Address     common.Address
+	IfAuthorize bool
+}
+
+func (this *ChangeAuthorizationParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteBool(w, this.IfAuthorize); err != nil {
+		return fmt.Errorf("serialization.WriteBool, serialize ifAuthorize error: %v", err)
+	}
+	return nil
+}
+
+func (this *ChangeAuthorizationParam) Deserialize(r io.Reader) error {
+	ifAuthorize, err := serialization.ReadBool(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadBool, deserialize ifAuthorize error: %v", err)
+	}
+	this.IfAuthorize = ifAuthorize
 	return nil
 }
