@@ -705,6 +705,12 @@ type ChangeAuthorizationParam struct {
 }
 
 func (this *ChangeAuthorizationParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
+	}
 	if err := serialization.WriteBool(w, this.IfAuthorize); err != nil {
 		return fmt.Errorf("serialization.WriteBool, serialize ifAuthorize error: %v", err)
 	}
@@ -712,10 +718,61 @@ func (this *ChangeAuthorizationParam) Serialize(w io.Writer) error {
 }
 
 func (this *ChangeAuthorizationParam) Deserialize(r io.Reader) error {
+	peerPubkey, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+	}
+	address, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+	}
 	ifAuthorize, err := serialization.ReadBool(r)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadBool, deserialize ifAuthorize error: %v", err)
 	}
+	this.PeerPubkey = peerPubkey
+	this.Address = address
 	this.IfAuthorize = ifAuthorize
+	return nil
+}
+
+type SetPeerCostParam struct {
+	PeerPubkey string
+	Address    common.Address
+	PeerCost   uint32
+}
+
+func (this *SetPeerCostParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.PeerCost)); err != nil {
+		return fmt.Errorf("serialization.WriteBool, serialize peerCost error: %v", err)
+	}
+	return nil
+}
+
+func (this *SetPeerCostParam) Deserialize(r io.Reader) error {
+	peerPubkey, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+	}
+	address, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+	}
+	peerCost, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadBool, deserialize ifAuthorize error: %v", err)
+	}
+	if peerCost > math.MaxUint32 {
+		return fmt.Errorf("peerCost larger than max of uint32")
+	}
+	this.PeerPubkey = peerPubkey
+	this.Address = address
+	this.PeerCost = uint32(peerCost)
 	return nil
 }

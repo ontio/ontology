@@ -584,6 +584,9 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 	peerAttributes := &PeerAttributes{
 		PeerPubkey:  peerPubkey,
 		IfAuthorize: false,
+		OldPeerCost: 0,
+		NewPeerCost: 0,
+		SetCostView: 0,
 	}
 	if peerAttributesBytes != nil {
 		peerAttributesStore, ok := peerAttributesBytes.(*cstates.StorageItem)

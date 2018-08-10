@@ -71,6 +71,7 @@ const (
 	TRANSFER_PENALTY                 = "transferPenalty"
 	WITHDRAW_ONG                     = "withdrawOng"
 	CHANGE_AUTHORIZATION             = "changeAuthorization"
+	SET_PEER_COST                    = "setPeerCost"
 
 	//key prefix
 	GLOBAL_PARAM    = "globalParam"
@@ -120,6 +121,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(QUIT_NODE, QuitNode)
 	native.Register(WITHDRAW_ONG, WithdrawOng)
 	native.Register(CHANGE_AUTHORIZATION, ChangeAuthorization)
+	native.Register(SET_PEER_COST, SetPeerCost)
 
 	native.Register(INIT_CONFIG, InitConfig)
 	native.Register(APPROVE_CANDIDATE, ApproveCandidate)
@@ -1266,6 +1268,54 @@ func ChangeAuthorization(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
 	peerAttributes.IfAuthorize = param.IfAuthorize
+
+	err = putPeerAttributes(native, contract, peerAttributes)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putPeerAttributes error: %v", err)
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
+//Set node cost, node can take some percentage of fee before split
+func SetPeerCost(native *native.NativeService) ([]byte, error) {
+	param := new(SetPeerCostParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize setPeerCostParam error: %v", err)
+	}
+
+	//check witness
+	err := utils.ValidateOwner(native, param.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("validateOwner, checkWitness error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//check if is peer owner
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
+	}
+
+	if peerPoolMap.PeerPoolMap[param.PeerPubkey].Address != param.Address {
+		return utils.BYTE_FALSE, fmt.Errorf("address is not peer owner")
+	}
+
+	peerAttributes, err := getPeerAttributes(native, contract, param.PeerPubkey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
+	}
+	newPeerCost := peerAttributes.NewPeerCost
+	peerAttributes.OldPeerCost = newPeerCost
+	peerAttributes.NewPeerCost = uint64(param.PeerCost)
+	peerAttributes.SetCostView = view
 
 	err = putPeerAttributes(native, contract, peerAttributes)
 	if err != nil {
