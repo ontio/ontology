@@ -21,42 +21,25 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/stretchr/testify/assert"
-	"reflect"
 )
 
-func TestHeader_Serialize(t *testing.T) {
-	header := Header{}
-	header.Height = 321
-	buf := bytes.NewBuffer(nil)
-	err := header.Serialize(buf)
-	bs := buf.Bytes()
-	assert.Nil(t, err)
-
-	var h2 Header
-	h2.Deserialize(buf)
-	_ = header.Hash() // calculate hash for equal assert
-	assert.True(t, reflect.DeepEqual(header, h2))
-
-	buf = bytes.NewBuffer(bs[:len(bs)-1])
-	err = h2.Deserialize(buf)
-
-	assert.NotNil(t, err)
-}
-
-func TestHeader_Deserialize_Hash(t *testing.T) {
-	header := Header{}
-	header.Height = 321
-	header.Bookkeepers = make([]keypair.PublicKey, 0)
-	header.SigData = make([][]byte, 0)
-	hash := header.Hash()
+func TestTransaction_Deserialize_Hash(t *testing.T) {
+	invoke := &payload.InvokeCode{Code: []byte{1, 2, 3}}
+	tx := Transaction{
+		TxType:  Invoke,
+		Payload: invoke,
+	}
+	assert.Nil(t, tx.hash)
+	hash := tx.Hash()
 
 	buf := bytes.NewBuffer(nil)
-	err := header.Serialize(buf)
+	err := tx.Serialize(buf)
 	assert.Nil(t, err)
 
-	var h2 Header
-	h2.Deserialize(buf)
-	assert.Equal(t, hash, *h2.hash)
+	var tx2 Transaction
+	err = tx2.Deserialize(buf)
+	assert.Nil(t, err)
+	assert.Equal(t, hash, *tx2.hash)
 }
