@@ -14,10 +14,12 @@ curl  <https://dev.ont.io/ontology_install>  | sh`
 ```
    或者可以自行在这里下载：<https://github.com/ontio/ontology/releases> 
 
-3、后台运行 `./ontology --rest `  
+3、把生成的钱包文件 wallet.dat拷贝到ontology二进制目录下，执行命令 ./ontology account list -v  确认Public key和之前提交的保持一致。注意：不能用同一个钱包开启2条链。
+
+4、后台运行 `./ontology --rest `  
     ※如果希望指定rest端口可以通过 `--restport 20334`指定，默认为20334端口)
    对应的防火墙策略：20334、20338 面向all。如果是基于云服务，同时还要确保云服务的网络安全配置上打开了20338,20334端口。
-   
+
    如果后台运行,可以构建如下的shell脚本，命名为start.sh：
 ```
 #! /bin/bash
@@ -28,5 +30,5 @@ eof >log &
 然后用以下命令启动
 nohup ./start.sh >/dev/null 2>log &
 
-4、验证节点运行
+5、验证节点运行
     可以在浏览器中输入, http://your server ip:30334/api/v1/block/height 查看当前节点的区块高度，是否和主网上https://explorer.ont.io/  高度保持一致。
