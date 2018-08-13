@@ -20,7 +20,10 @@ package common
 
 import (
 	"encoding/binary"
+	"errors"
 )
+
+var ErrIrregularData = errors.New("irregular data")
 
 type ZeroCopySource struct {
 	s   []byte
@@ -84,6 +87,12 @@ func (self *ZeroCopySource) NextByte() (data byte, eof bool) {
 	return b, false
 }
 
+func (self *ZeroCopySource) NextUint8() (data uint8, eof bool) {
+	var val byte
+	val, eof = self.NextByte()
+	return uint8(val), eof
+}
+
 func (self *ZeroCopySource) NextBool() (data bool, irregular bool, eof bool) {
 	val, eof := self.NextByte()
 	if val == 0 {
@@ -134,6 +143,18 @@ func (self *ZeroCopySource) NextUint64() (data uint64, eof bool) {
 	return binary.LittleEndian.Uint64(buf), eof
 }
 
+func (self *ZeroCopySource) NextInt32() (data int32, eof bool) {
+	var val uint32
+	val, eof = self.NextUint32()
+	return int32(val), eof
+}
+
+func (self *ZeroCopySource) NextInt64() (data int64, eof bool) {
+	var val uint64
+	val, eof = self.NextUint64()
+	return int64(val), eof
+}
+
 func (self *ZeroCopySource) NextInt16() (data int16, eof bool) {
 	var val uint16
 	val, eof = self.NextUint16()
@@ -146,6 +167,28 @@ func (self *ZeroCopySource) NextVarBytes() (data []byte, size uint64, irregular 
 	size += count
 
 	data, eof = self.NextBytes(count)
+
+	return
+}
+
+func (self *ZeroCopySource) NextAddress() (data Address, eof bool) {
+	var buf []byte
+	buf, eof = self.NextBytes(ADDR_LEN)
+	if eof {
+		return
+	}
+	copy(data[:], buf)
+
+	return
+}
+
+func (self *ZeroCopySource) NextHash() (data Uint256, eof bool) {
+	var buf []byte
+	buf, eof = self.NextBytes(UINT256_SIZE)
+	if eof {
+		return
+	}
+	copy(data[:], buf)
 
 	return
 }
