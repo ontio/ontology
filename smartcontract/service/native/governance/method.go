@@ -174,10 +174,21 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		return fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
 	}
 
+	//get globalParam2
+	globalParam2, err := getGlobalParam2(native, contract)
+	if err != nil {
+		return fmt.Errorf("getGlobalParam2, getGlobalParam2 error: %v", err)
+	}
+
 	var total uint64
 	for i := 0; i < len(params.PeerPubkeyList); i++ {
 		peerPubkey := params.PeerPubkeyList[i]
 		pos := params.PosList[i]
+
+		//check pos
+		if pos < globalParam2.MinAuthorizePos || pos%globalParam2.MinAuthorizePos != 0 {
+			return fmt.Errorf("authorizeForPeer, pos must be times of %d", globalParam2.MinAuthorizePos)
+		}
 
 		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
 		if !ok {

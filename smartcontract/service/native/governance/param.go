@@ -610,6 +610,84 @@ func (this *GlobalParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
+type GlobalParam2 struct {
+	MinAuthorizePos uint32
+	Field1          []byte
+	Field2          []byte
+	Field3          []byte
+	Field4          []byte
+	Field5          []byte
+	Field6          []byte
+}
+
+func (this *GlobalParam2) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, uint64(this.MinAuthorizePos)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize minAuthorizePos error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Field1); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize field1 error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Field2); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize field2 error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Field3); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize field3 error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Field4); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize field4 error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Field5); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize field5 error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Field6); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize field6 error: %v", err)
+	}
+	return nil
+}
+
+func (this *GlobalParam2) Deserialize(r io.Reader) error {
+	minAuthorizePos, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize minAuthorizePos error: %v", err)
+	}
+	field1, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize field1 error: %v", err)
+	}
+	field2, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize field2 error: %v", err)
+	}
+	field3, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize field3 error: %v", err)
+	}
+	field4, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize field4 error: %v", err)
+	}
+	field5, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize field5 error: %v", err)
+	}
+	field6, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize field6 error: %v", err)
+	}
+	if minAuthorizePos > math.MaxUint32 {
+		return fmt.Errorf("minAuthorizePos larger than max of uint32")
+	}
+
+	this.MinAuthorizePos = uint32(minAuthorizePos)
+	this.Field1 = field1
+	this.Field2 = field2
+	this.Field3 = field3
+	this.Field4 = field4
+	this.Field5 = field5
+	this.Field6 = field6
+	return nil
+}
+
 type SplitCurve struct {
 	Yi []uint32
 }

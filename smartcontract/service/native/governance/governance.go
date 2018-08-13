@@ -66,6 +66,7 @@ const (
 	COMMIT_DPOS                      = "commitDpos"
 	UPDATE_CONFIG                    = "updateConfig"
 	UPDATE_GLOBAL_PARAM              = "updateGlobalParam"
+	UPDATE_GLOBAL_PARAM2             = "updateGlobalParam2"
 	UPDATE_SPLIT_CURVE               = "updateSplitCurve"
 	CALL_SPLIT                       = "callSplit"
 	TRANSFER_PENALTY                 = "transferPenalty"
@@ -75,6 +76,7 @@ const (
 
 	//key prefix
 	GLOBAL_PARAM    = "globalParam"
+	GLOBAL_PARAM2   = "globalParam2"
 	VBFT_CONFIG     = "vbftConfig"
 	GOVERNANCE_VIEW = "governanceView"
 	CANDIDITE_INDEX = "candidateIndex"
@@ -131,6 +133,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(UPDATE_CONFIG, UpdateConfig)
 	native.Register(UPDATE_GLOBAL_PARAM, UpdateGlobalParam)
+	native.Register(UPDATE_GLOBAL_PARAM2, UpdateGlobalParam2)
 	native.Register(UPDATE_SPLIT_CURVE, UpdateSplitCurve)
 	native.Register(CALL_SPLIT, CallSplit)
 	native.Register(TRANSFER_PENALTY, TransferPenalty)
@@ -802,9 +805,20 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
 
+	//get globalParam2
+	globalParam2, err := getGlobalParam2(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getGlobalParam2, getGlobalParam2 error: %v", err)
+	}
+
 	for i := 0; i < len(params.PeerPubkeyList); i++ {
 		peerPubkey := params.PeerPubkeyList[i]
 		pos := params.PosList[i]
+
+		//check pos
+		if pos < globalParam2.MinAuthorizePos || pos%globalParam2.MinAuthorizePos != 0 {
+			return utils.BYTE_FALSE, fmt.Errorf("unAuthorizeForPeer, pos must be times of %d", globalParam2.MinAuthorizePos)
+		}
 
 		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peerPubkey]
 		if !ok {
@@ -1096,6 +1110,37 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	err = putGlobalParam(native, contract, globalParam)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putGlobalParam, put globalParam error: %v", err)
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
+//Update global params of this governance contract
+func UpdateGlobalParam2(native *native.NativeService) ([]byte, error) {
+	// get admin from database
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getAdmin, get admin error: %v", err)
+	}
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam, checkWitness error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	globalParam2 := new(GlobalParam2)
+	if err := globalParam2.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize globalParam2 error: %v", err)
+	}
+
+	//check the globalParam
+
+	err = putGlobalParam2(native, contract, globalParam2)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putGlobalParam2, put globalParam2 error: %v", err)
 	}
 
 	return utils.BYTE_TRUE, nil

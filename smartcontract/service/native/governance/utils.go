@@ -259,6 +259,33 @@ func putGlobalParam(native *native.NativeService, contract common.Address, globa
 	return nil
 }
 
+func getGlobalParam2(native *native.NativeService, contract common.Address) (*GlobalParam2, error) {
+	globalParam2Bytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)))
+	if err != nil {
+		return nil, fmt.Errorf("getGlobalParam2, get globalParam2Bytes error: %v", err)
+	}
+	globalParam2 := new(GlobalParam2)
+	if globalParam2Bytes != nil {
+		globalParam2Store, ok := globalParam2Bytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, fmt.Errorf("getGlobalParam2, globalParam2Bytes is not available")
+		}
+		if err := globalParam2.Deserialize(bytes.NewBuffer(globalParam2Store.Value)); err != nil {
+			return nil, fmt.Errorf("deserialize, deserialize getGlobalParam2 error: %v", err)
+		}
+	}
+	return globalParam2, nil
+}
+
+func putGlobalParam2(native *native.NativeService, contract common.Address, globalParam2 *GlobalParam2) error {
+	bf := new(bytes.Buffer)
+	if err := globalParam2.Serialize(bf); err != nil {
+		return fmt.Errorf("serialize, serialize globalParam2 error: %v", err)
+	}
+	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)), &cstates.StorageItem{Value: bf.Bytes()})
+	return nil
+}
+
 func validatePeerPubKeyFormat(pubkey string) error {
 	pk, err := vbftconfig.Pubkey(pubkey)
 	if err != nil {
@@ -593,7 +620,7 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 		if !ok {
 			return nil, fmt.Errorf("getPeerAttributes, peerAttributesStore is not available")
 		}
-		if err := peerAttributesStore.Deserialize(bytes.NewBuffer(peerAttributesStore.Value)); err != nil {
+		if err := peerAttributes.Deserialize(bytes.NewBuffer(peerAttributesStore.Value)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize peerAttributes error: %v", err)
 		}
 	}
