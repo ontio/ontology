@@ -230,6 +230,22 @@ func GetBytesUint32(b []byte) (uint32, error) {
 	return num, nil
 }
 
+func GetUint64Bytes(num uint64) ([]byte, error) {
+	bf := new(bytes.Buffer)
+	if err := serialization.WriteUint64(bf, num); err != nil {
+		return nil, fmt.Errorf("serialization.WriteUint64, serialize uint64 error: %v", err)
+	}
+	return bf.Bytes(), nil
+}
+
+func GetBytesUint64(b []byte) (uint64, error) {
+	num, err := serialization.ReadUint64(bytes.NewBuffer(b))
+	if err != nil {
+		return 0, fmt.Errorf("serialization.ReadUint64, deserialize uint64 error: %v", err)
+	}
+	return num, nil
+}
+
 func getGlobalParam(native *native.NativeService, contract common.Address) (*GlobalParam, error) {
 	globalParamBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM)))
 	if err != nil {
@@ -396,7 +412,7 @@ func getCandidateIndex(native *native.NativeService, contract common.Address) (u
 		return 0, fmt.Errorf("native.CloneCache.Get, get candidateIndex error: %v", err)
 	}
 	if candidateIndexBytes == nil {
-		return 0, fmt.Errorf("approveCandidate, candidateIndex is not init")
+		return 0, fmt.Errorf("getCandidateIndex, candidateIndex is not init")
 	} else {
 		candidateIndexStore, ok := candidateIndexBytes.(*cstates.StorageItem)
 		if !ok {
@@ -413,10 +429,68 @@ func getCandidateIndex(native *native.NativeService, contract common.Address) (u
 func putCandidateIndex(native *native.NativeService, contract common.Address, candidateIndex uint32) error {
 	candidateIndexBytes, err := GetUint32Bytes(candidateIndex)
 	if err != nil {
-		return fmt.Errorf("GetUint32Bytes, get newCandidateIndexBytes error: %v", err)
+		return fmt.Errorf("GetUint32Bytes, get candidateIndexBytes error: %v", err)
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)),
 		&cstates.StorageItem{Value: candidateIndexBytes})
+	return nil
+}
+
+func getSplitFee(native *native.NativeService, contract common.Address) (uint64, error) {
+	splitFeeBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE)))
+	if err != nil {
+		return 0, fmt.Errorf("native.CloneCache.Get, get splitFeeBytes error: %v", err)
+	}
+	var splitFee uint64 = 0
+	if splitFeeBytes != nil {
+		splitFeeStore, ok := splitFeeBytes.(*cstates.StorageItem)
+		if !ok {
+			return 0, fmt.Errorf("getSplitFee, splitFeeBytes is not available")
+		}
+		splitFee, err = GetBytesUint64(splitFeeStore.Value)
+		if err != nil {
+			return 0, fmt.Errorf("GetBytesUint64, get splitFee error: %v", err)
+		}
+	}
+	return splitFee, nil
+}
+
+func putSplitFee(native *native.NativeService, contract common.Address, splitFee uint64) error {
+	splitFeeBytes, err := GetUint64Bytes(splitFee)
+	if err != nil {
+		return fmt.Errorf("GetUint64Bytes, get splitFeeBytes error: %v", err)
+	}
+	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE)),
+		&cstates.StorageItem{Value: splitFeeBytes})
+	return nil
+}
+
+func getSplitFeeAddress(native *native.NativeService, contract common.Address, address common.Address) (*SplitFeeAddress, error) {
+	splitFeeAddressBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), address[:]))
+	if err != nil {
+		return nil, fmt.Errorf("native.CloneCache.Get, get splitFeeAddressBytes error: %v", err)
+	}
+	splitFeeAddress := new(SplitFeeAddress)
+	if splitFeeAddressBytes != nil {
+		splitFeeAddressStore, ok := splitFeeAddressBytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, fmt.Errorf("getSplitFeeAddress, splitFeeAddressBytes is not available")
+		}
+		err = splitFeeAddress.Deserialize(bytes.NewBuffer(splitFeeAddressStore.Value))
+		if err != nil {
+			return nil, fmt.Errorf("deserialize, deserialize splitFeeAddress error: %v", err)
+		}
+	}
+	return splitFeeAddress, nil
+}
+
+func putSplitFeeAddress(native *native.NativeService, contract common.Address, address common.Address, splitFeeAddress *SplitFeeAddress) error {
+	bf := new(bytes.Buffer)
+	if err := splitFeeAddress.Serialize(bf); err != nil {
+		return fmt.Errorf("serialize, serialize splitFeeAddress error: %v", err)
+	}
+	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), address[:]),
+		&cstates.StorageItem{Value: bf.Bytes()})
 	return nil
 }
 

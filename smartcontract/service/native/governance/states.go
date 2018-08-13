@@ -524,3 +524,33 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 	this.Field4 = field4
 	return nil
 }
+
+type SplitFeeAddress struct {
+	Address common.Address
+	Amount  uint64
+}
+
+func (this *SplitFeeAddress) Serialize(w io.Writer) error {
+	if err := this.Address.Serialize(w); err != nil {
+		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
+	}
+	if err := serialization.WriteUint64(w, this.Amount); err != nil {
+		return fmt.Errorf("serialization.WriteUint64, serialize amount error: %v", err)
+	}
+	return nil
+}
+
+func (this *SplitFeeAddress) Deserialize(r io.Reader) error {
+	address := new(common.Address)
+	err := address.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
+	}
+	amount, err := serialization.ReadUint64(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint64, deserialize amount error: %v", err)
+	}
+	this.Address = *address
+	this.Amount = amount
+	return nil
+}

@@ -68,25 +68,26 @@ const (
 	UPDATE_GLOBAL_PARAM              = "updateGlobalParam"
 	UPDATE_GLOBAL_PARAM2             = "updateGlobalParam2"
 	UPDATE_SPLIT_CURVE               = "updateSplitCurve"
-	CALL_SPLIT                       = "callSplit"
 	TRANSFER_PENALTY                 = "transferPenalty"
 	WITHDRAW_ONG                     = "withdrawOng"
 	CHANGE_AUTHORIZATION             = "changeAuthorization"
 	SET_PEER_COST                    = "setPeerCost"
 
 	//key prefix
-	GLOBAL_PARAM    = "globalParam"
-	GLOBAL_PARAM2   = "globalParam2"
-	VBFT_CONFIG     = "vbftConfig"
-	GOVERNANCE_VIEW = "governanceView"
-	CANDIDITE_INDEX = "candidateIndex"
-	PEER_POOL       = "peerPool"
-	PEER_INDEX      = "peerIndex"
-	BLACK_LIST      = "blackList"
-	TOTAL_STAKE     = "totalStake"
-	PENALTY_STAKE   = "penaltyStake"
-	SPLIT_CURVE     = "splitCurve"
-	PEER_ATTRIBUTES = "PeerAttributes"
+	GLOBAL_PARAM      = "globalParam"
+	GLOBAL_PARAM2     = "globalParam2"
+	VBFT_CONFIG       = "vbftConfig"
+	GOVERNANCE_VIEW   = "governanceView"
+	CANDIDITE_INDEX   = "candidateIndex"
+	PEER_POOL         = "peerPool"
+	PEER_INDEX        = "peerIndex"
+	BLACK_LIST        = "blackList"
+	TOTAL_STAKE       = "totalStake"
+	PENALTY_STAKE     = "penaltyStake"
+	SPLIT_CURVE       = "splitCurve"
+	PEER_ATTRIBUTES   = "peerAttributes"
+	SPLIT_FEE         = "splitFee"
+	SPLIT_FEE_ADDRESS = "splitFeeAddress"
 
 	//global
 	PRECISE = 1000000
@@ -135,7 +136,6 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(UPDATE_GLOBAL_PARAM, UpdateGlobalParam)
 	native.Register(UPDATE_GLOBAL_PARAM2, UpdateGlobalParam2)
 	native.Register(UPDATE_SPLIT_CURVE, UpdateSplitCurve)
-	native.Register(CALL_SPLIT, CallSplit)
 	native.Register(TRANSFER_PENALTY, TransferPenalty)
 }
 
@@ -1170,36 +1170,6 @@ func UpdateSplitCurve(native *native.NativeService) ([]byte, error) {
 	err = putSplitCurve(native, contract, splitCurve)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putSplitCurve, put splitCurve error: %v", err)
-	}
-
-	return utils.BYTE_TRUE, nil
-}
-
-//Trigger fee split
-func CallSplit(native *native.NativeService) ([]byte, error) {
-	// get admin from database
-	adminAddress, err := global_params.GetStorageRole(native,
-		global_params.GenerateOperatorKey(utils.ParamContractAddress))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("getAdmin, get admin error: %v", err)
-	}
-
-	//check witness
-	err = utils.ValidateOwner(native, adminAddress)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("callSplit, checkWitness error: %v", err)
-	}
-
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	//get current view
-	view, err := GetView(native, contract)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("callSplit, get view error: %v", err)
-	}
-
-	err = executeSplit(native, contract, view)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("executeSplit, executeSplitp error: %v", err)
 	}
 
 	return utils.BYTE_TRUE, nil
