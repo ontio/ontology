@@ -184,7 +184,8 @@ func TestOpRemove(t *testing.T) {
 		t.Fatal("NeoVM OpRemove test failed.")
 	}
 
-	_, ok := mm[vtypes.NewByteArray([]byte("aaa"))]; if ok {
+	_, ok := mm[vtypes.NewByteArray([]byte("aaa"))]
+	if ok {
 		t.Fatal("NeoVM OpRemove remove map failed.")
 	}
 }
