@@ -303,14 +303,14 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		conn, err = TLSDial(addr)
 		if err != nil {
 			this.RemoveFromConnectingList(addr)
-			log.Debugf("[p2p]connect %s failed:%s \n", addr, err.Error())
+			log.Debugf("[p2p]connect %s failed:%s", addr, err.Error())
 			return err
 		}
 	} else {
 		conn, err = nonTLSDial(addr)
 		if err != nil {
 			this.RemoveFromConnectingList(addr)
-			log.Debugf("[p2p]connect %s failed:%s \n", addr, err.Error())
+			log.Debugf("[p2p]connect %s failed:%s", addr, err.Error())
 			return err
 		}
 	}
@@ -534,7 +534,7 @@ func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
 			return false
 		}
 	}
-	log.Debug("[p2p]add to out connecting list", addr)
+	log.Trace("[p2p]add to out connecting list", addr)
 	this.ConnectingAddrs = append(this.ConnectingAddrs, addr)
 	return true
 }
@@ -549,7 +549,7 @@ func (this *NetServer) RemoveFromConnectingList(addr string) {
 			addrs = append(addrs, a)
 		}
 	}
-	log.Debug("[p2p]remove from out connecting list", addr)
+	log.Trace("[p2p]remove from out connecting list", addr)
 	this.ConnectingAddrs = addrs
 }
 
@@ -614,7 +614,7 @@ func (this *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
 func (this *NetServer) AddPeerSyncAddress(addr string, p *peer.Peer) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
-	log.Debugf("[p2p]AddPeerSyncAddress %s\n", addr)
+	log.Debugf("[p2p]AddPeerSyncAddress %s", addr)
 	this.PeerSyncAddress[addr] = p
 }
 
@@ -622,7 +622,7 @@ func (this *NetServer) AddPeerSyncAddress(addr string, p *peer.Peer) {
 func (this *NetServer) AddPeerConsAddress(addr string, p *peer.Peer) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
-	log.Debugf("[p2p]AddPeerConsAddress %s\n", addr)
+	log.Debugf("[p2p]AddPeerConsAddress %s", addr)
 	this.PeerConsAddress[addr] = p
 }
 
@@ -632,7 +632,7 @@ func (this *NetServer) RemovePeerSyncAddress(addr string) {
 	defer this.PeerAddrMap.Unlock()
 	if _, ok := this.PeerSyncAddress[addr]; ok {
 		delete(this.PeerSyncAddress, addr)
-		log.Debugf("[p2p]delete Sync Address %s\n", addr)
+		log.Debugf("[p2p]delete Sync Address %s", addr)
 	}
 }
 
@@ -642,7 +642,7 @@ func (this *NetServer) RemovePeerConsAddress(addr string) {
 	defer this.PeerAddrMap.Unlock()
 	if _, ok := this.PeerConsAddress[addr]; ok {
 		delete(this.PeerConsAddress, addr)
-		log.Debugf("[p2p]delete Cons Address %s\n", addr)
+		log.Debugf("[p2p]delete Cons Address %s", addr)
 	}
 }
 
@@ -663,7 +663,7 @@ func (this *NetServer) AddInConnRecord(addr string) {
 		}
 	}
 	this.inConnRecord.InConnectingAddrs = append(this.inConnRecord.InConnectingAddrs, addr)
-	log.Debugf("[p2p]add in record  %s\n", addr)
+	log.Debugf("[p2p]add in record  %s", addr)
 }
 
 //IsAddrInInConnRecord return result whether addr is in inConnRecordList
@@ -702,7 +702,7 @@ func (this *NetServer) RemoveFromInConnRecord(addr string) {
 			addrs = append(addrs, a)
 		}
 	}
-	log.Debugf("[p2p]remove in record  %s\n", addr)
+	log.Debugf("[p2p]remove in record  %s", addr)
 	this.inConnRecord.InConnectingAddrs = addrs
 }
 
@@ -738,7 +738,7 @@ func (this *NetServer) AddOutConnRecord(addr string) {
 		}
 	}
 	this.outConnRecord.OutConnectingAddrs = append(this.outConnRecord.OutConnectingAddrs, addr)
-	log.Debugf("[p2p]add out record  %s\n", addr)
+	log.Debugf("[p2p]add out record  %s", addr)
 }
 
 //IsAddrInOutConnRecord return result whether addr is in outConnRecord
@@ -763,7 +763,7 @@ func (this *NetServer) RemoveFromOutConnRecord(addr string) {
 			addrs = append(addrs, a)
 		}
 	}
-	log.Debugf("[p2p]remove out record  %s\n", addr)
+	log.Debugf("[p2p]remove out record  %s", addr)
 	this.outConnRecord.OutConnectingAddrs = addrs
 }
 

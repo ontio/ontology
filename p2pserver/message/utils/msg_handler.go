@@ -45,7 +45,7 @@ var respCache *lru.ARCCache
 
 // AddrReqHandle handles the neighbor address request from peer
 func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive addr request message", data.Addr, data.Id)
+	log.Trace("[p2p]receive addr request message", data.Addr, data.Id)
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Debug("[p2p]remotePeer invalid in AddrReqHandle")
@@ -81,7 +81,7 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 // HeaderReqHandle handles the header sync req from peer
 func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive headers request message", data.Addr, data.Id)
+	log.Trace("[p2p]receive headers request message", data.Addr, data.Id)
 
 	headersReq := data.Payload.(*msgTypes.HeadersReq)
 
@@ -108,7 +108,7 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 
 //PingHandle handle ping msg from peer
 func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive ping message", data.Addr, data.Id)
+	log.Trace("[p2p]receive ping message", data.Addr, data.Id)
 
 	ping := data.Payload.(*msgTypes.Ping)
 	remotePeer := p2p.GetPeer(data.Id)
@@ -130,7 +130,7 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 
 ///PongHandle handle pong msg from peer
 func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive pong message", data.Addr, data.Id)
+	log.Trace("[p2p]receive pong message", data.Addr, data.Id)
 
 	pong := data.Payload.(*msgTypes.Pong)
 
@@ -144,7 +144,7 @@ func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 
 // BlkHeaderHandle handles the sync headers from peer
 func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive block header message", data.Addr, data.Id)
+	log.Trace("[p2p]receive block header message", data.Addr, data.Id)
 	if pid != nil {
 		var blkHeader = data.Payload.(*msgTypes.BlkHeader)
 		input := &msgCommon.AppendHeaders{
@@ -157,7 +157,7 @@ func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 
 // BlockHandle handles the block message from peer
 func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive block message from ", data.Addr, data.Id)
+	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
 	if pid != nil {
 		var block = data.Payload.(*msgTypes.Block)
@@ -193,17 +193,17 @@ func NotFoundHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, a
 
 // TransactionHandle handles the transaction message from peer
 func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive transaction message", data.Addr, data.Id)
+	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
 	var trn = data.Payload.(*msgTypes.Trn)
 	actor.AddTransaction(trn.Txn)
-	log.Debug("[p2p]receive Transaction message hash", trn.Txn.Hash())
+	log.Trace("[p2p]receive Transaction message hash", trn.Txn.Hash())
 
 }
 
 // VersionHandle handles version handshake protocol from peer
 func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive version message", data.Addr, data.Id)
+	log.Trace("[p2p]receive version message", data.Addr, data.Id)
 
 	version := data.Payload.(*msgTypes.Version)
 
@@ -390,7 +390,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 // VerAckHandle handles the version ack from peer
 func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive verAck message from ", data.Addr, data.Id)
+	log.Trace("[p2p]receive verAck message from ", data.Addr, data.Id)
 
 	verAck := data.Payload.(*msgTypes.VerACK)
 	remotePeer := p2p.GetPeer(data.Id)
@@ -457,7 +457,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 
 // AddrHandle handles the neighbor address response message from peer
 func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]handle addr message", data.Addr, data.Id)
+	log.Trace("[p2p]handle addr message", data.Addr, data.Id)
 
 	var msg = data.Payload.(*msgTypes.Addr)
 	for _, v := range msg.NodeAddrs {
@@ -490,7 +490,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 
 // DataReqHandle handles the data req(block/Transaction) from peer
 func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive data req message", data.Addr, data.Id)
+	log.Trace("[p2p]receive data req message", data.Addr, data.Id)
 
 	var dataReq = data.Payload.(*msgTypes.DataReq)
 
@@ -561,7 +561,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 // InvHandle handles the inventory message(block,
 // transaction and consensus) from peer.
 func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Debug("[p2p]receive inv message", data.Addr, data.Id)
+	log.Trace("[p2p]receive inv message", data.Addr, data.Id)
 	var inv = data.Payload.(*msgTypes.Inv)
 
 	remotePeer := p2p.GetPeer(data.Id)

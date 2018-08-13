@@ -141,7 +141,7 @@ func (this *Link) Rx() {
 
 //disconnectNotify push disconnect msg to channel
 func (this *Link) disconnectNotify() {
-	log.Debugf("[p2p]call disconnectNotify for %s\n", this.GetAddr())
+	log.Debugf("[p2p]call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
 
 	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
@@ -175,7 +175,7 @@ func (this *Link) Tx(msg types.Message) error {
 
 	payload := buf.Bytes()
 	nByteCnt := len(payload)
-	log.Debugf("[p2p]TX buf length: %d\n", nByteCnt)
+	log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
 
 	nCount := nByteCnt / common.PER_SEND_LEN
 	if nCount == 0 {
