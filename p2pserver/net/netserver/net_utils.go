@@ -56,7 +56,7 @@ func createListener(port uint16) (net.Listener, error) {
 
 //nonTLSDial return net.Conn with nonTls
 func nonTLSDial(addr string) (net.Conn, error) {
-	log.Debug()
+	log.Trace()
 	conn, err := net.DialTimeout("tcp", addr, time.Second*common.DIAL_TIMEOUT)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 
 //initNonTlsListen return net.Listener with nonTls mode
 func initNonTlsListen(port uint16) (net.Listener, error) {
-	log.Debug()
+	log.Trace()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 	if err != nil {
 		log.Error("[p2p]Error listening\n", err.Error())

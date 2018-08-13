@@ -47,12 +47,12 @@ func Color(code, msg string) string {
 }
 
 const (
-	DebugLog = iota
+	TraceLog = iota
+	DebugLog
 	InfoLog
 	WarnLog
 	ErrorLog
 	FatalLog
-	TraceLog
 	MaxLevelLog
 )
 
