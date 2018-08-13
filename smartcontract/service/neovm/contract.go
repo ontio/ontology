@@ -83,7 +83,7 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 
 	service.CloneCache.Delete(scommon.ST_CONTRACT, context.ContractAddress[:])
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_CONTRACT, context.ContractAddress[:])
+	stateValues, err := service.CloneCache.Store.Find(scommon.ST_STORAGE, context.ContractAddress[:])
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractDestory] find error!")
 	}

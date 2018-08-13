@@ -168,35 +168,23 @@ func TestOpRemove(t *testing.T) {
 	var e1 ExecutionEngine
 	e1.EvaluationStack = NewRandAccessStack()
 
-	items := make([]vtypes.StackItems, 0)
-	items = append(items, vtypes.NewByteArray([]byte("aaa")))
-	items = append(items, vtypes.NewByteArray([]byte("bbb")))
-	items = append(items, vtypes.NewByteArray([]byte("ccc")))
+	m1 := vtypes.NewMap()
 
-	arr := vtypes.NewArray(items)
-	PushData(&e1, arr)
+	m1.Add(vtypes.NewByteArray([]byte("aaa")), vtypes.NewByteArray([]byte("aaa")))
+	m1.Add(vtypes.NewByteArray([]byte("bbb")), vtypes.NewByteArray([]byte("bbb")))
+	m1.Add(vtypes.NewByteArray([]byte("ccc")), vtypes.NewByteArray([]byte("ccc")))
+
+	PushData(&e1, m1)
 	opDup(&e1)
-
-	PushData(&e1, vtypes.NewInteger(big.NewInt(1)))
-
+	PushData(&e1, vtypes.NewByteArray([]byte("aaa")))
 	opRemove(&e1)
 
-	arr1, err := PeekArray(&e1)
+	mm, err := e1.EvaluationStack.Peek(0).GetMap()
 	if err != nil {
 		t.Fatal("NeoVM OpRemove test failed.")
 	}
 
-	if len(arr1) != 2 {
-		t.Fatal("NeoVM OpRemove test failed. expect len 2, get %v", len(arr1))
-	}
-
-	v, err := arr1[0].GetByteArray()
-
-	if err != nil {
-		t.Fatal("NeoVM OpRemove test failed.")
-	}
-
-	if string(v) != "bbb" {
-		t.Fatalf("NeoVM OpRemove test failed, expect bbb, get %s.", string(v))
+	_, ok := mm[vtypes.NewByteArray([]byte("aaa"))]; if ok {
+		t.Fatal("NeoVM OpRemove remove map failed.")
 	}
 }
