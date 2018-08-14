@@ -63,13 +63,14 @@ const (
 	WHITE_NODE                       = "whiteNode"
 	QUIT_NODE                        = "quitNode"
 	WITHDRAW                         = "withdraw"
+	WITHDRAW_ONG                     = "withdrawOng"
+	WITHDRAW_FEE                     = "withdrawFee"
 	COMMIT_DPOS                      = "commitDpos"
 	UPDATE_CONFIG                    = "updateConfig"
 	UPDATE_GLOBAL_PARAM              = "updateGlobalParam"
 	UPDATE_GLOBAL_PARAM2             = "updateGlobalParam2"
 	UPDATE_SPLIT_CURVE               = "updateSplitCurve"
 	TRANSFER_PENALTY                 = "transferPenalty"
-	WITHDRAW_ONG                     = "withdrawOng"
 	CHANGE_AUTHORIZATION             = "changeAuthorization"
 	SET_PEER_COST                    = "setPeerCost"
 
@@ -125,6 +126,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(WITHDRAW_ONG, WithdrawOng)
 	native.Register(CHANGE_AUTHORIZATION, ChangeAuthorization)
 	native.Register(SET_PEER_COST, SetPeerCost)
+	native.Register(WITHDRAW_FEE, WithdrawFee)
 
 	native.Register(INIT_CONFIG, InitConfig)
 	native.Register(APPROVE_CANDIDATE, ApproveCandidate)
@@ -1206,14 +1208,14 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 
 //Withdraw unbounded ONG according to deposit ONT in this governance contract
 func WithdrawOng(native *native.NativeService) ([]byte, error) {
-	param := new(WithdrawOngParam)
-	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	params := new(WithdrawOngParam)
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize transferPenaltyParam error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//check witness
-	err := utils.ValidateOwner(native, param.Address)
+	err := utils.ValidateOwner(native, params.Address)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("withdrawOng, checkWitness error: %v", err)
 	}
@@ -1224,7 +1226,7 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("appCallTransferOnt, ont transfer error: %v", err)
 	}
 
-	totalStake, err := getTotalStake(native, contract, param.Address)
+	totalStake, err := getTotalStake(native, contract, params.Address)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getTotalStake, get totalStake error: %v", err)
 	}
@@ -1249,13 +1251,13 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 
 //Change the status if node can receive authorization from ont holders
 func ChangeAuthorization(native *native.NativeService) ([]byte, error) {
-	param := new(ChangeAuthorizationParam)
-	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	params := new(ChangeAuthorizationParam)
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize changeAuthorizationParam error: %v", err)
 	}
 
 	//check witness
-	err := utils.ValidateOwner(native, param.Address)
+	err := utils.ValidateOwner(native, params.Address)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("validateOwner, checkWitness error: %v", err)
 	}
@@ -1274,15 +1276,15 @@ func ChangeAuthorization(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
 
-	if peerPoolMap.PeerPoolMap[param.PeerPubkey].Address != param.Address {
+	if peerPoolMap.PeerPoolMap[params.PeerPubkey].Address != params.Address {
 		return utils.BYTE_FALSE, fmt.Errorf("address is not peer owner")
 	}
 
-	peerAttributes, err := getPeerAttributes(native, contract, param.PeerPubkey)
+	peerAttributes, err := getPeerAttributes(native, contract, params.PeerPubkey)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
-	peerAttributes.IfAuthorize = param.IfAuthorize
+	peerAttributes.IfAuthorize = params.IfAuthorize
 
 	err = putPeerAttributes(native, contract, peerAttributes)
 	if err != nil {
@@ -1294,13 +1296,16 @@ func ChangeAuthorization(native *native.NativeService) ([]byte, error) {
 
 //Set node cost, node can take some percentage of fee before split
 func SetPeerCost(native *native.NativeService) ([]byte, error) {
-	param := new(SetPeerCostParam)
-	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	params := new(SetPeerCostParam)
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize setPeerCostParam error: %v", err)
+	}
+	if params.PeerCost >= 100 {
+		return utils.BYTE_FALSE, fmt.Errorf("peerCost must >= 0 and <= 100")
 	}
 
 	//check witness
-	err := utils.ValidateOwner(native, param.Address)
+	err := utils.ValidateOwner(native, params.Address)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("validateOwner, checkWitness error: %v", err)
 	}
@@ -1319,22 +1324,51 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
 
-	if peerPoolMap.PeerPoolMap[param.PeerPubkey].Address != param.Address {
+	if peerPoolMap.PeerPoolMap[params.PeerPubkey].Address != params.Address {
 		return utils.BYTE_FALSE, fmt.Errorf("address is not peer owner")
 	}
 
-	peerAttributes, err := getPeerAttributes(native, contract, param.PeerPubkey)
+	peerAttributes, err := getPeerAttributes(native, contract, params.PeerPubkey)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
 	newPeerCost := peerAttributes.NewPeerCost
 	peerAttributes.OldPeerCost = newPeerCost
-	peerAttributes.NewPeerCost = uint64(param.PeerCost)
+	peerAttributes.NewPeerCost = uint64(params.PeerCost)
 	peerAttributes.SetCostView = view
 
 	err = putPeerAttributes(native, contract, peerAttributes)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerAttributes error: %v", err)
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
+//Withdraw split fee of address
+func WithdrawFee(native *native.NativeService) ([]byte, error) {
+	params := new(WithdrawFeeParam)
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize withdrawFeeParam error: %v", err)
+	}
+
+	//check witness
+	err := utils.ValidateOwner(native, params.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("validateOwner, checkWitness error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	splitFeeAddress, err := getSplitFeeAddress(native, contract, params.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
+	}
+	splitFee := splitFeeAddress.Amount
+
+	//ong transfer
+	err = appCallTransferOng(native, params.Address, utils.GovernanceContractAddress, splitFee)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("appCallTransferOng, ong transfer error: %v", err)
 	}
 
 	return utils.BYTE_TRUE, nil

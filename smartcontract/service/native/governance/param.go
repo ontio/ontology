@@ -854,3 +854,23 @@ func (this *SetPeerCostParam) Deserialize(r io.Reader) error {
 	this.PeerCost = uint32(peerCost)
 	return nil
 }
+
+type WithdrawFeeParam struct {
+	Address common.Address
+}
+
+func (this *WithdrawFeeParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
+	}
+	return nil
+}
+
+func (this *WithdrawFeeParam) Deserialize(r io.Reader) error {
+	address, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+	}
+	this.Address = address
+	return nil
+}
