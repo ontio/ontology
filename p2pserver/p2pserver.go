@@ -492,6 +492,11 @@ func (this *P2PServer) heartBeatService() {
 //ping send pkg to get pong msg from others
 func (this *P2PServer) ping() {
 	peers := this.network.GetNeighbors()
+	this.pingTo(peers)
+}
+
+//pings send pkgs to get pong msg from others
+func (this *P2PServer) pingTo(peers []*peer.Peer) {
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			height := this.ledger.GetCurrentBlockHeight()

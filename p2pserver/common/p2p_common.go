@@ -64,7 +64,7 @@ const (
 //info update const
 const (
 	PROTOCOL_VERSION      = 0     //protocol version
-	UPDATE_RATE_PER_BLOCK = 6     //info update rate in one generate block period
+	UPDATE_RATE_PER_BLOCK = 2     //info update rate in one generate block period
 	KEEPALIVE_TIMEOUT     = 15    //contact timeout in sec
 	DIAL_TIMEOUT          = 6     //connect timeout in sec
 	CONN_MONITOR          = 6     //time to retry connect in sec
