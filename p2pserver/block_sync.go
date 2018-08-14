@@ -259,7 +259,6 @@ func (this *BlockSyncMgr) Start() {
 			go this.checkTimeout()
 			go this.sync()
 			go this.saveBlock()
-			go this.pingOutsyncNodes()
 		}
 	}
 }
@@ -659,6 +658,7 @@ func (this *BlockSyncMgr) saveBlock() {
 			return
 		}
 		nextBlockHeight++
+		this.pingOutsyncNodes()
 	}
 }
 
