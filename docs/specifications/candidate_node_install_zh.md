@@ -16,7 +16,7 @@ curl  <https://dev.ont.io/ontology_install>  | sh`
 
 3、把生成的钱包文件 wallet.dat拷贝到ontology二进制目录下，执行命令 ./ontology account list -v  确认Public key和之前提交的保持一致。注意：不能用同一个钱包开启2条链。
 
-4、后台运行 `./ontology --rest `  
+4、后台运行 `./ontology --rest --enableconsensus`  
     ※如果希望指定rest端口可以通过 `--restport 20334`指定，默认为20334端口)
    对应的防火墙策略：20334、20338 面向all。如果是基于云服务，同时还要确保云服务的网络安全配置上打开了20338,20334端口。
 
