@@ -472,7 +472,9 @@ func getSplitFeeAddress(native *native.NativeService, contract common.Address, a
 	if err != nil {
 		return nil, fmt.Errorf("native.CloneCache.Get, get splitFeeAddressBytes error: %v", err)
 	}
-	splitFeeAddress := new(SplitFeeAddress)
+	splitFeeAddress := &SplitFeeAddress{
+		Address: address,
+	}
 	if splitFeeAddressBytes != nil {
 		splitFeeAddressStore, ok := splitFeeAddressBytes.(*cstates.StorageItem)
 		if !ok {
@@ -688,7 +690,7 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 		PeerPubkey:  peerPubkey,
 		IfAuthorize: false,
 		OldPeerCost: 100,
-		NewPeerCost: 0,
+		NewPeerCost: 100,
 		SetCostView: 0,
 	}
 	if peerAttributesBytes != nil {

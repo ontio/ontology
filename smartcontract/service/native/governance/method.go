@@ -474,7 +474,7 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 	return splitAmount, nil
 }
 
-func consensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
+func consensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, remainAmount uint64) (uint64, error) {
 	var splitAmount uint64 = 0
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
@@ -499,7 +499,7 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 		}
 
 		//fee split
-		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, totalAmount)
+		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, remainAmount)
 		if err != nil {
 			return 0, fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}
@@ -523,7 +523,7 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 	return splitAmount, nil
 }
 
-func unConsensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
+func unConsensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, remainAmount uint64) (uint64, error) {
 	var splitAmount uint64 = 0
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
@@ -548,14 +548,11 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 		}
 
 		//fee split
-		validatePos := authorizeInfo.ConsensusPos + authorizeInfo.FreezePos
-		if validatePos != 0 {
-			amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, totalAmount)
-			if err != nil {
-				return 0, fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
-			}
-			splitAmount = splitAmount + amount
+		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, remainAmount)
+		if err != nil {
+			return 0, fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}
+		splitAmount = splitAmount + amount
 
 		//update status
 		newPos := authorizeInfo.NewPos
@@ -691,6 +688,416 @@ func withdrawPenaltyStake(native *native.NativeService, contract common.Address,
 }
 
 func executeCommitDpos(native *native.NativeService, contract common.Address, config *Configuration) error {
+	//get current view
+	view, err := GetView(native, contract)
+	if err != nil {
+		return fmt.Errorf("getView, get view error: %v", err)
+	}
+	if view <= 0 {
+		return executeCommitDpos1(native, contract, config)
+	} else {
+		return executeCommitDpos2(native, contract, config)
+	}
+}
+
+func executeSplit(native *native.NativeService, contract common.Address, view uint32) error {
+	//get peerPoolMapC
+	peerPoolMapC, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return fmt.Errorf("executeSplit, get peerPoolMapC error: %v", err)
+	}
+	K := 0
+	for _, peerPoolItem := range peerPoolMapC.PeerPoolMap {
+		if peerPoolItem.Status == ConsensusStatus {
+			K = K + 1
+		}
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view-1)
+	if err != nil {
+		return fmt.Errorf("executeSplit, get peerPoolMap error: %v", err)
+	}
+
+	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
+	if err != nil {
+		return fmt.Errorf("executeSplit, getOngBalance error: %v", err)
+	}
+	//get globalParam
+	globalParam, err := getGlobalParam(native, contract)
+	if err != nil {
+		return fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
+	}
+
+	peersCandidate := []*CandidateSplitInfo{}
+
+	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+		if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
+			stake := peerPoolItem.TotalPos + peerPoolItem.InitPos
+			peersCandidate = append(peersCandidate, &CandidateSplitInfo{
+				PeerPubkey: peerPoolItem.PeerPubkey,
+				InitPos:    peerPoolItem.InitPos,
+				Address:    peerPoolItem.Address,
+				Stake:      stake,
+			})
+		}
+	}
+
+	// sort peers by stake
+	sort.SliceStable(peersCandidate, func(i, j int) bool {
+		if peersCandidate[i].Stake > peersCandidate[j].Stake {
+			return true
+		} else if peersCandidate[i].Stake == peersCandidate[j].Stake {
+			return peersCandidate[i].PeerPubkey > peersCandidate[j].PeerPubkey
+		}
+		return false
+	})
+
+	// cal s of each consensus node
+	var sum uint64
+	for i := 0; i < K; i++ {
+		sum += peersCandidate[i].Stake
+	}
+	// if sum = 0, means consensus peer in config, do not split
+	if sum < uint64(K) {
+		return nil
+	}
+	avg := sum / uint64(K)
+	var sumS uint64
+	for i := 0; i < K; i++ {
+		peersCandidate[i].S, err = splitCurve(native, contract, peersCandidate[i].Stake, avg, uint64(globalParam.Yita))
+		if err != nil {
+			return fmt.Errorf("splitCurve, calculate splitCurve error: %v", err)
+		}
+		sumS += peersCandidate[i].S
+	}
+	if sumS == 0 {
+		return fmt.Errorf("executeSplit, sumS is 0")
+	}
+
+	//fee split of consensus peer
+	for i := K - 1; i >= 0; i-- {
+		nodeAmount := balance * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
+		address := peersCandidate[i].Address
+		err = appCallTransferOng(native, utils.GovernanceContractAddress, address, nodeAmount)
+		if err != nil {
+			return fmt.Errorf("executeSplit, ong transfer error: %v", err)
+		}
+	}
+
+	//fee split of candidate peer
+	// cal s of each candidate node
+	sum = 0
+	for i := K; i < len(peersCandidate); i++ {
+		sum += peersCandidate[i].Stake
+	}
+	if sum == 0 {
+		return nil
+	}
+	for i := K; i < len(peersCandidate); i++ {
+		nodeAmount := balance * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
+		address := peersCandidate[i].Address
+		err = appCallTransferOng(native, utils.GovernanceContractAddress, address, nodeAmount)
+		if err != nil {
+			return fmt.Errorf("executeSplit, ong transfer error: %v", err)
+		}
+	}
+
+	return nil
+}
+
+func executeNodeSplit(native *native.NativeService, contract common.Address, view uint32) (map[string]uint64, error) {
+	nodeSplit := make(map[string]uint64)
+	//get peerPoolMapC
+	peerPoolMapC, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return nil, fmt.Errorf("executeSplit, get peerPoolMapC error: %v", err)
+	}
+	K := 0
+	for _, peerPoolItem := range peerPoolMapC.PeerPoolMap {
+		if peerPoolItem.Status == ConsensusStatus {
+			K = K + 1
+		}
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view-1)
+	if err != nil {
+		return nil, fmt.Errorf("executeSplit, get peerPoolMap error: %v", err)
+	}
+
+	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
+	if err != nil {
+		return nil, fmt.Errorf("executeSplit, getOngBalance error: %v", err)
+	}
+	splitFee, err := getSplitFee(native, contract)
+	if err != nil {
+		return nil, fmt.Errorf("getSplitFee, getSplitFee error: %v", err)
+	}
+	income := balance - splitFee
+	//get globalParam
+	globalParam, err := getGlobalParam(native, contract)
+	if err != nil {
+		return nil, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
+	}
+
+	peersCandidate := []*CandidateSplitInfo{}
+
+	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+		if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
+			stake := peerPoolItem.TotalPos + peerPoolItem.InitPos
+			peersCandidate = append(peersCandidate, &CandidateSplitInfo{
+				PeerPubkey: peerPoolItem.PeerPubkey,
+				InitPos:    peerPoolItem.InitPos,
+				Address:    peerPoolItem.Address,
+				Stake:      stake,
+			})
+		}
+	}
+
+	// sort peers by stake
+	sort.SliceStable(peersCandidate, func(i, j int) bool {
+		if peersCandidate[i].Stake > peersCandidate[j].Stake {
+			return true
+		} else if peersCandidate[i].Stake == peersCandidate[j].Stake {
+			return peersCandidate[i].PeerPubkey > peersCandidate[j].PeerPubkey
+		}
+		return false
+	})
+
+	// cal s of each consensus node
+	var sum uint64
+	for i := 0; i < K; i++ {
+		sum += peersCandidate[i].Stake
+	}
+	// if sum = 0, means consensus peer in config, do not split
+	if sum < uint64(K) {
+		return nil, nil
+	}
+	avg := sum / uint64(K)
+	var sumS uint64
+	for i := 0; i < K; i++ {
+		peersCandidate[i].S, err = splitCurve(native, contract, peersCandidate[i].Stake, avg, uint64(globalParam.Yita))
+		if err != nil {
+			return nil, fmt.Errorf("splitCurve, calculate splitCurve error: %v", err)
+		}
+		sumS += peersCandidate[i].S
+	}
+	if sumS == 0 {
+		return nil, fmt.Errorf("executeSplit, sumS is 0")
+	}
+
+	//fee split of consensus peer
+	for i := K - 1; i >= 0; i-- {
+		nodeAmount := income * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
+		nodeSplit[peersCandidate[i].PeerPubkey] = nodeAmount
+	}
+
+	//fee split of candidate peer
+	// cal s of each candidate node
+	sum = 0
+	for i := K; i < len(peersCandidate); i++ {
+		sum += peersCandidate[i].Stake
+	}
+	if sum == 0 {
+		return nil, nil
+	}
+	for i := K; i < len(peersCandidate); i++ {
+		nodeAmount := income * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
+		nodeSplit[peersCandidate[i].PeerPubkey] = nodeAmount
+	}
+
+	return nodeSplit, nil
+}
+
+func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
+	validatePos := authorizeInfo.ConsensusPos + authorizeInfo.FreezePos
+	if validatePos == 0 {
+		return 0, nil
+	}
+	amount := validatePos * totalAmount / peerPoolItem.TotalPos
+	splitFeeAddress, err := getSplitFeeAddress(native, contract, authorizeInfo.Address)
+	if err != nil {
+		return 0, fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
+	}
+	splitFeeAddress.Amount = splitFeeAddress.Amount + amount
+	err = putSplitFeeAddress(native, contract, authorizeInfo.Address, splitFeeAddress)
+	if err != nil {
+		return 0, fmt.Errorf("putSplitFeeAddress, putSplitFeeAddress error: %v", err)
+	}
+	return amount, nil
+}
+
+func executePeerSplit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
+	//get peerAttributes
+	peerAttributes, err := getPeerAttributes(native, contract, peerPoolItem.PeerPubkey)
+	if err != nil {
+		return 0, fmt.Errorf("getPeerAttributes error: %v", err)
+	}
+
+	//get current view
+	governanceView, err := GetGovernanceView(native, contract)
+	if err != nil {
+		return 0, fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
+	}
+	view := governanceView.View
+
+	var peerCost uint64
+	//check set cost view
+	if view-peerAttributes.SetCostView == 0 {
+		peerCost = peerAttributes.OldPeerCost
+	}
+	peerCost = peerAttributes.NewPeerCost
+	peerAmount := peerCost * totalAmount / 100
+
+	splitFeeAddress, err := getSplitFeeAddress(native, contract, peerPoolItem.Address)
+	if err != nil {
+		return 0, fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
+	}
+	splitFeeAddress.Amount = splitFeeAddress.Amount + peerAmount
+	err = putSplitFeeAddress(native, contract, peerPoolItem.Address, splitFeeAddress)
+	if err != nil {
+		return 0, fmt.Errorf("putSplitFeeAddress, putSplitFeeAddress error: %v", err)
+	}
+	return peerAmount, nil
+}
+
+func executeCommitDpos1(native *native.NativeService, contract common.Address, config *Configuration) error {
+	//get governace view
+	governanceView, err := GetGovernanceView(native, contract)
+	if err != nil {
+		return fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
+	}
+
+	//get current view
+	view := governanceView.View
+	newView := view + 1
+
+	//feeSplit first
+	err = executeSplit(native, contract, view)
+	if err != nil {
+		return fmt.Errorf("executeSplit, executeSplit error: %v", err)
+	}
+
+	//get peerPoolMap
+	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
+	}
+
+	var peers []*PeerStakeInfo
+	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+		if peerPoolItem.Status == QuitingStatus {
+			err = normalQuit(native, contract, peerPoolItem)
+			if err != nil {
+				return fmt.Errorf("normalQuit, normalQuit error: %v", err)
+			}
+			delete(peerPoolMap.PeerPoolMap, peerPoolItem.PeerPubkey)
+		}
+		if peerPoolItem.Status == BlackStatus {
+			err = blackQuit(native, contract, peerPoolItem)
+			if err != nil {
+				return fmt.Errorf("blackQuit, blackQuit error: %v", err)
+			}
+			delete(peerPoolMap.PeerPoolMap, peerPoolItem.PeerPubkey)
+		}
+		if peerPoolItem.Status == QuitConsensusStatus {
+			peerPoolItem.Status = QuitingStatus
+			peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
+		}
+
+		if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
+			stake := peerPoolItem.TotalPos + peerPoolItem.InitPos
+			peers = append(peers, &PeerStakeInfo{
+				Index:      peerPoolItem.Index,
+				PeerPubkey: peerPoolItem.PeerPubkey,
+				Stake:      stake,
+			})
+		}
+	}
+	if len(peers) < int(config.K) {
+		return fmt.Errorf("commitDpos, num of peers is less than K")
+	}
+
+	// sort peers by stake
+	sort.SliceStable(peers, func(i, j int) bool {
+		if peers[i].Stake > peers[j].Stake {
+			return true
+		} else if peers[i].Stake == peers[j].Stake {
+			return peers[i].PeerPubkey > peers[j].PeerPubkey
+		}
+		return false
+	})
+
+	// consensus peers
+	for i := 0; i < int(config.K); i++ {
+		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
+		if !ok {
+			return fmt.Errorf("commitDpos, peerPubkey is not in peerPoolMap")
+		}
+
+		if peerPoolItem.Status == ConsensusStatus {
+			_, err = consensusToConsensus(native, contract, peerPoolItem, 0)
+			if err != nil {
+				return fmt.Errorf("consensusToConsensus, consensusToConsensus error: %v", err)
+			}
+		} else {
+			_, err = unConsensusToConsensus(native, contract, peerPoolItem, 0)
+			if err != nil {
+				return fmt.Errorf("unConsensusToConsensus, unConsensusToConsensus error: %v", err)
+			}
+		}
+		peerPoolItem.Status = ConsensusStatus
+		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
+	}
+
+	//non consensus peers
+	for i := int(config.K); i < len(peers); i++ {
+		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
+		if !ok {
+			return fmt.Errorf("authorizeForPeer, peerPubkey is not in peerPoolMap")
+		}
+
+		if peerPoolItem.Status == ConsensusStatus {
+			_, err = consensusToUnConsensus(native, contract, peerPoolItem, 0)
+			if err != nil {
+				return fmt.Errorf("consensusToUnConsensus, consensusToUnConsensus error: %v", err)
+			}
+		} else {
+			_, err = unConsensusToUnConsensus(native, contract, peerPoolItem, 0)
+			if err != nil {
+				return fmt.Errorf("unConsensusToUnConsensus, unConsensusToUnConsensus error: %v", err)
+			}
+		}
+		peerPoolItem.Status = CandidateStatus
+		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
+	}
+	err = putPeerPoolMap(native, contract, newView, peerPoolMap)
+	if err != nil {
+		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
+	}
+	oldView := view - 1
+	oldViewBytes, err := GetUint32Bytes(oldView)
+	if err != nil {
+		return fmt.Errorf("GetUint32Bytes, get oldViewBytes error: %v", err)
+	}
+	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), oldViewBytes))
+
+	//update view
+	governanceView = &GovernanceView{
+		View:   newView,
+		Height: native.Height,
+		TxHash: native.Tx.Hash(),
+	}
+	err = putGovernanceView(native, contract, governanceView)
+	if err != nil {
+		return fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
+	}
+
+	return nil
+}
+
+func executeCommitDpos2(native *native.NativeService, contract common.Address, config *Configuration) error {
 	//get governace view
 	governanceView, err := GetGovernanceView(native, contract)
 	if err != nil {
@@ -837,7 +1244,10 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 	if err != nil {
 		return fmt.Errorf("getSplitFee, getSplitFee error: %v", err)
 	}
-	putSplitFee(native, contract, splitSum+splitFee)
+	err = putSplitFee(native, contract, splitSum+splitFee)
+	if err != nil {
+		return fmt.Errorf("putSplitFee, put splitFee error: %v", err)
+	}
 
 	//update view
 	governanceView = &GovernanceView{
@@ -849,160 +1259,5 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 	if err != nil {
 		return fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
 	}
-
 	return nil
-}
-
-func executeNodeSplit(native *native.NativeService, contract common.Address, view uint32) (map[string]uint64, error) {
-	nodeSplit := make(map[string]uint64)
-	//get peerPoolMapC
-	peerPoolMapC, err := GetPeerPoolMap(native, contract, view)
-	if err != nil {
-		return nil, fmt.Errorf("executeSplit, get peerPoolMapC error: %v", err)
-	}
-	K := 0
-	for _, peerPoolItem := range peerPoolMapC.PeerPoolMap {
-		if peerPoolItem.Status == ConsensusStatus {
-			K = K + 1
-		}
-	}
-
-	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view-1)
-	if err != nil {
-		return nil, fmt.Errorf("executeSplit, get peerPoolMap error: %v", err)
-	}
-
-	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
-	if err != nil {
-		return nil, fmt.Errorf("executeSplit, getOngBalance error: %v", err)
-	}
-	splitFee, err := getSplitFee(native, contract)
-	if err != nil {
-		return nil, fmt.Errorf("getSplitFee, getSplitFee error: %v", err)
-	}
-	income := balance - splitFee
-	//get globalParam
-	globalParam, err := getGlobalParam(native, contract)
-	if err != nil {
-		return nil, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
-	}
-
-	peersCandidate := []*CandidateSplitInfo{}
-
-	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
-		if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
-			stake := peerPoolItem.TotalPos + peerPoolItem.InitPos
-			peersCandidate = append(peersCandidate, &CandidateSplitInfo{
-				PeerPubkey: peerPoolItem.PeerPubkey,
-				InitPos:    peerPoolItem.InitPos,
-				Address:    peerPoolItem.Address,
-				Stake:      stake,
-			})
-		}
-	}
-
-	// sort peers by stake
-	sort.SliceStable(peersCandidate, func(i, j int) bool {
-		if peersCandidate[i].Stake > peersCandidate[j].Stake {
-			return true
-		} else if peersCandidate[i].Stake == peersCandidate[j].Stake {
-			return peersCandidate[i].PeerPubkey > peersCandidate[j].PeerPubkey
-		}
-		return false
-	})
-
-	// cal s of each consensus node
-	var sum uint64
-	for i := 0; i < K; i++ {
-		sum += peersCandidate[i].Stake
-	}
-	// if sum = 0, means consensus peer in config, do not split
-	if sum < uint64(K) {
-		return nil, nil
-	}
-	avg := sum / uint64(K)
-	var sumS uint64
-	for i := 0; i < K; i++ {
-		peersCandidate[i].S, err = splitCurve(native, contract, peersCandidate[i].Stake, avg, uint64(globalParam.Yita))
-		if err != nil {
-			return nil, fmt.Errorf("splitCurve, calculate splitCurve error: %v", err)
-		}
-		sumS += peersCandidate[i].S
-	}
-	if sumS == 0 {
-		return nil, fmt.Errorf("executeSplit, sumS is 0")
-	}
-
-	//fee split of consensus peer
-	for i := K - 1; i >= 0; i-- {
-		nodeAmount := income * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
-		nodeSplit[peersCandidate[i].PeerPubkey] = nodeAmount
-	}
-
-	//fee split of candidate peer
-	// cal s of each candidate node
-	sum = 0
-	for i := K; i < len(peersCandidate); i++ {
-		sum += peersCandidate[i].Stake
-	}
-	if sum == 0 {
-		return nil, nil
-	}
-	for i := K; i < len(peersCandidate); i++ {
-		nodeAmount := income * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
-		nodeSplit[peersCandidate[i].PeerPubkey] = nodeAmount
-	}
-
-	return nodeSplit, nil
-}
-
-func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
-	validatePos := authorizeInfo.ConsensusPos + authorizeInfo.FreezePos
-	amount := validatePos * totalAmount / peerPoolItem.TotalPos
-	splitFeeAddress, err := getSplitFeeAddress(native, contract, authorizeInfo.Address)
-	if err != nil {
-		return 0, fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
-	}
-	splitFeeAddress.Amount = splitFeeAddress.Amount + amount
-	err = putSplitFeeAddress(native, contract, contract, splitFeeAddress)
-	if err != nil {
-		return 0, fmt.Errorf("putSplitFeeAddress, putSplitFeeAddress error: %v", err)
-	}
-	return amount, nil
-}
-
-func executePeerSplit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
-	//get peerAttributes
-	peerAttributes, err := getPeerAttributes(native, contract, peerPoolItem.PeerPubkey)
-	if err != nil {
-		return 0, fmt.Errorf("getPeerAttributes error: %v", err)
-	}
-
-	//get current view
-	governanceView, err := GetGovernanceView(native, contract)
-	if err != nil {
-		return 0, fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
-	}
-	view := governanceView.View
-
-	var peerCost uint64
-	//check set cost view
-	if view-peerAttributes.SetCostView == 0 {
-		peerCost = peerAttributes.OldPeerCost
-	}
-	peerCost = peerAttributes.NewPeerCost
-	peerAmount := peerCost * totalAmount / 100
-
-	splitFeeAddress, err := getSplitFeeAddress(native, contract, peerPoolItem.Address)
-	if err != nil {
-		return 0, fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
-	}
-	splitFeeAddress.Amount = splitFeeAddress.Amount + peerCost
-	err = putSplitFeeAddress(native, contract, contract, splitFeeAddress)
-	if err != nil {
-		return 0, fmt.Errorf("putSplitFeeAddress, putSplitFeeAddress error: %v", err)
-	}
-
-	return peerAmount, nil
 }

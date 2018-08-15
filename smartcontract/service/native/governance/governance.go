@@ -1279,7 +1279,11 @@ func ChangeAuthorization(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
 
-	if peerPoolMap.PeerPoolMap[params.PeerPubkey].Address != params.Address {
+	peerPoolItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubkey]
+	if !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("authorizeForPeer, peerPubkey is not in peerPoolMap")
+	}
+	if peerPoolItem.Address != params.Address {
 		return utils.BYTE_FALSE, fmt.Errorf("address is not peer owner")
 	}
 
@@ -1369,7 +1373,7 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	splitFee := splitFeeAddress.Amount
 
 	//ong transfer
-	err = appCallTransferOng(native, params.Address, utils.GovernanceContractAddress, splitFee)
+	err = appCallTransferOng(native, utils.GovernanceContractAddress, params.Address, splitFee)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("appCallTransferOng, ong transfer error: %v", err)
 	}
