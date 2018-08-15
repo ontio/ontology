@@ -100,8 +100,8 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
-		log.Debugf("handleRsp: validator %d transaction %x invalid: %s",
-			rsp.Type, rsp.Hash, rsp.ErrCode.Error())
+		log.Debugf("handleRsp: validator %d transaction %s invalid: %s",
+			rsp.Type, rsp.Hash.ToHexString(), rsp.ErrCode.Error())
 		delete(worker.pendingTxList, rsp.Hash)
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
 		return

@@ -201,7 +201,8 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 		consensus.Hop--
 
 		// Relay msg to other remote peers
-		if consensus.Hop > 0 {
+		// TODO open relay of consensus node
+		if consensus.Hop > 0 && p2p.GetServices() != msgCommon.VERIFY_NODE {
 			if consensus.Cons.DestID == 0 {
 				p2p.Xmit(consensus, consensus.Cons.Hash(), true)
 			} else if consensus.Cons.DestID != p2p.GetID() {
@@ -236,7 +237,8 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	}
 	remotePeer.MarkHashAsSeen(trn.Txn.Hash())
 	trn.Hop--
-	if trn.Hop > 0 {
+	// TODO open relay of consensus node
+	if trn.Hop > 0 && p2p.GetServices() != msgCommon.VERIFY_NODE {
 		p2p.Xmit(trn, trn.Txn.Hash(), false)
 	}
 }
