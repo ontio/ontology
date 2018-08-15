@@ -39,7 +39,7 @@ var (
 	//Ontology setting
 	ConfigFlag = cli.StringFlag{
 		Name:  "config",
-		Usage: "Use `<filename>` to specifies the genesis block config file. If doesn't specifies the genesis block config, Ontology will use Polaris config with VBFT consensus as default.",
+		Usage: "Genesis block config `<file>`. If doesn't specifies, use main net config as default.",
 	}
 	LogLevelFlag = cli.UintFlag{
 		Name:  "loglevel",
@@ -47,118 +47,114 @@ var (
 		Value: config.DEFAULT_LOG_LEVEL,
 	}
 	DisableEventLogFlag = cli.BoolFlag{
-		Name:  "disableeventlog",
-		Usage: "If set disableeventlog flag, Ontology will not record event log output by smart contract",
+		Name:  "disable-event-log",
+		Usage: "Discard event log output by smart contract execution",
 	}
 	WalletFileFlag = cli.StringFlag{
 		Name:  "wallet,w",
 		Value: config.DEFAULT_WALLET_FILE_NAME,
-		Usage: "Use `<filename>` as the wallet",
+		Usage: "Wallet `<file>`",
 	}
 	ImportFileFlag = cli.StringFlag{
-		Name:  "importfile",
+		Name:  "import-file",
 		Usage: "Path of import `<file>`",
 		Value: DEFAULT_EXPORT_FILE,
 	}
 	ImportEndHeightFlag = cli.UintFlag{
-		Name:  "endheight",
-		Usage: "Using to specifies the `<height>` of the imported target block. The default value is 0, which means import all the blocks of import file",
+		Name:  "end-height",
+		Usage: "Stop import block `<height>` of the import.",
 		Value: DEFAULT_EXPORT_HEIGHT,
 	}
 	DataDirFlag = cli.StringFlag{
-		Name:  "datadir",
-		Usage: "Using dir `<path>` to storage block data",
+		Name:  "data-dir",
+		Usage: "Block data storage `<path>`",
 		Value: config.DEFAULT_DATA_DIR,
 	}
 
 	//Consensus setting
 	EnableConsensusFlag = cli.BoolFlag{
-		Name:  "enableconsensus",
-		Usage: "If set enableconsensus, will start consensus module",
+		Name:  "enable-consensus",
+		Usage: "Start consensus module",
 	}
 	MaxTxInBlockFlag = cli.IntFlag{
-		Name:  "maxtxinblock",
-		Usage: "Using maxtxinblock to set the max transaction number in block",
+		Name:  "max-tx-in-block",
+		Usage: "Max transaction `<number>` in block",
 		Value: config.DEFAULT_MAX_TX_IN_BLOCK,
 	}
 	GasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
-		Usage: "Using to set the gaslimit of the current node transaction pool to accept transactions. Transactions below this gaslimit will be discarded",
+		Usage: "Min gas limit `<value>` of transaction to be accepted by tx pool.",
 		Value: neovm.MIN_TRANSACTION_GAS,
 	}
 	GasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",
-		Usage: "Using to set the lowest gasprice of the current node transaction pool to accept transactions. Transactions below this gasprice will be discarded.(default:0 in testmode)",
+		Usage: "Min gas price `<value>` of transaction to be accepted by tx pool.",
 		Value: config.DEFAULT_GAS_PRICE,
 	}
 
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{
 		Name:  "testmode",
-		Usage: "Using to start a single node test network for ease of development and debug. In testmode, Ontology will start rpc, rest and web socket server, and set default gasprice to 0",
+		Usage: "Single node network for testing. In test mode, will start rpc, rest, web socket server, and set default gasprice to 0",
 	}
 	TestModeGenBlockTimeFlag = cli.UintFlag{
-		Name:  "testmodegenblocktime",
-		Usage: "Using to set the block-out time in test mode. The time unit is in seconds, and the minimum block-out time is 2 seconds.",
+		Name:  "testmode-gen-block-time",
+		Usage: "Block-out `<time>`(s) in test mode.",
 		Value: config.DEFAULT_GEN_BLOCK_TIME,
-	}
-	ClearTestModeDataFlag = cli.BoolFlag{
-		Name:  "cleartestmodedata",
-		Usage: "Clear test mode block data",
 	}
 
 	//P2P setting
 	ReservedPeersOnlyFlag = cli.BoolFlag{
-		Name:  "reservedonly",
-		Usage: "connect reserved peers only",
+		Name:  "reserved-only",
+		Usage: "Connect reserved peers `<address>` only",
 	}
 	ReservedPeersFileFlag = cli.StringFlag{
-		Name:  "reservedfile",
-		Usage: "reserved peers file",
+		Name:  "reserved-file",
+		Usage: "Reserved peers `<file>`",
 		Value: config.DEFAULT_RESERVED_FILE,
 	}
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
-		Usage: "Using to specify the network ID. Different networkids cannot connect to the blockchain network. 1=ontology main net, 2=polaris test net, 3=testmode, and other for custom network",
+		Usage: "Network id `<number>`. 1=ontology main net, 2=polaris test net, 3=testmode, and other for custom network",
 		Value: config.NETWORK_ID_MAIN_NET,
 	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",
-		Usage: "Using to specify the P2P network port number",
+		Usage: "P2P network port `<number>`",
 		Value: config.DEFAULT_NODE_PORT,
 	}
 	DualPortSupportFlag = cli.BoolFlag{
-		Name:  "dualport",
-		Usage: "Using to initiates a dual network, i.e. a P2P network for processing transaction messages and a consensus network for consensus messages. ",
+		Name:  "dual-port",
+		Usage: "Enable a dual network, P2P network for transaction messages and for consensus messages.",
 	}
 	ConsensusPortFlag = cli.UintFlag{
-		Name:  "consensusport",
-		Usage: "Using to specifies the consensus network port number. By default, the consensus network reuses the P2P network, so it is not necessary to specify a consensus network port. After the dual network is enabled with the --dualport parameter, the consensus network port number must be set separately.",
+		Name:  "consensus-port",
+		Usage: "Consensus network port `<number>`. Effectively after set --dual-port parameter",
 		Value: config.DEFAULT_CONSENSUS_PORT,
 	}
 	MaxConnInBoundFlag = cli.UintFlag{
-		Name:  "maxconninbound",
-		Usage: "Max connection in bound",
+		Name:  "max-conn-in-bound",
+		Usage: "Max connection `<number>` in bound",
 		Value: config.DEFAULT_MAX_CONN_IN_BOUND,
 	}
 	MaxConnOutBoundFlag = cli.UintFlag{
-		Name:  "maxconnoutbound",
-		Usage: "Max connection out bound",
+		Name:  "max-conn-out-bound",
+		Usage: "Max connection `<number>` out bound",
 		Value: config.DEFAULT_MAX_CONN_OUT_BOUND,
 	}
 	MaxConnInBoundForSingleIPFlag = cli.UintFlag{
-		Name:  "maxconninboundforsingleip",
-		Usage: "Max connection in bound for single ip",
+		Name:  "max-conn-in-bound-single-ip",
+		Usage: "Max connection `<number>` in bound for single ip",
 		Value: config.DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
 	}
 	// RPC settings
 	RPCDisabledFlag = cli.BoolFlag{
-		Name:  "disablerpc",
-		Usage: "Using to shut down the rpc server. The Ontology node starts the rpc server by default at startup.",
+		Name:  "disable-rpc",
+		Usage: "Shut down the rpc server.",
 	}
 	RPCPortFlag = cli.UintFlag{
 		Name:  "rpcport",
-		Usage: "Json rpc server listening port",
+		Usage: "Json rpc server listening port `<number>`",
 		Value: config.DEFAULT_RPC_PORT,
 	}
 	RPCLocalEnableFlag = cli.BoolFlag{
@@ -166,19 +162,19 @@ var (
 		Usage: "Enable local rpc server",
 	}
 	RPCLocalProtFlag = cli.UintFlag{
-		Name:  "rpclocalport",
-		Usage: "Json rpc local server listening port",
+		Name:  "localrpcport",
+		Usage: "Json rpc local server listening port `<number>`",
 		Value: config.DEFAULT_RPC_LOCAL_PORT,
 	}
 
 	//Websocket setting
 	WsEnabledFlag = cli.BoolFlag{
 		Name:  "ws",
-		Usage: "Enable websocket server",
+		Usage: "Enable web socket server",
 	}
 	WsPortFlag = cli.UintFlag{
 		Name:  "wsport",
-		Usage: "Ws server listening port",
+		Usage: "Ws server listening port `<number>`",
 		Value: config.DEFAULT_WS_PORT,
 	}
 
@@ -189,7 +185,7 @@ var (
 	}
 	RestfulPortFlag = cli.UintFlag{
 		Name:  "restport",
-		Usage: "Restful server listening port",
+		Usage: "Restful server listening port `<number>`",
 		Value: config.DEFAULT_REST_PORT,
 	}
 
@@ -197,15 +193,15 @@ var (
 	AccountPassFlag = cli.StringFlag{
 		Name:   "password,p",
 		Hidden: true,
-		Usage:  "Using to specify the account `<password>` when Ontology node starts. Because the account password entered in the command line is saved in the log, it is easy to leak the password. Therefore, it is not recommended to use this parameter in a production environment.",
+		Usage:  "Account `<password>` when Ontology node starts.",
 	}
 	AccountAddressFlag = cli.StringFlag{
 		Name:  "account,a",
-		Usage: "Using to specify the account `<address|label|index>` when the Ontology node starts. If the account is null, it uses the wallet default account",
+		Usage: "Account `<address>` when the Ontology node starts. If not specific, using default account instead",
 	}
 	AccountDefaultFlag = cli.BoolFlag{
 		Name:  "default,d",
-		Usage: "Use default settings to create a new account (equal to '-t ecdsa -b 256 -s SHA256withECDSA')",
+		Usage: "Default settings to create a new account (equal to '-t ecdsa -b 256 -s SHA256withECDSA')",
 	}
 	AccountTypeFlag = cli.StringFlag{
 		Name:  "type,t",
@@ -221,7 +217,7 @@ var (
 	}
 	AccountSetDefaultFlag = cli.BoolFlag{
 		Name:  "as-default,d",
-		Usage: "Set the specified account to default account",
+		Usage: "Set the specified account to default account of wallet",
 	}
 	AccountQuantityFlag = cli.UintFlag{
 		Name:  "number,n",
@@ -230,22 +226,22 @@ var (
 	}
 	AccountSourceFileFlag = cli.StringFlag{
 		Name:  "source,s",
-		Usage: "Use `<filename>` as the source wallet file to import",
+		Usage: "Source wallet `<file>` to import",
 	}
 	AccountLabelFlag = cli.StringFlag{
 		Name:  "label,l",
-		Usage: "Use `<label>` for newly created accounts for easy and fast use of accounts. Note that duplicate label names cannot appear in the same wallet file. An account with no label is an empty string.",
+		Usage: "Set account `<label>` for easy and fast use of accounts.",
 	}
 	AccountKeyFlag = cli.StringFlag{
 		Name:  "key,k",
-		Usage: "Use `<private key(hex encoding)>` of the account",
+		Usage: "Use `<private key>` (hex encoding) of the account",
 	}
 	AccountVerboseFlag = cli.BoolFlag{
 		Name:  "verbose,v",
 		Usage: "Display accounts with details",
 	}
 	AccountChangePasswdFlag = cli.BoolFlag{
-		Name:  "changepasswd",
+		Name:  "change-passwd",
 		Usage: "Change account password",
 	}
 	AccountLowSecurityFlag = cli.BoolFlag{
@@ -258,11 +254,11 @@ var (
 	}
 	AccountMultiMFlag = cli.UintFlag{
 		Name:  "m",
-		Usage: fmt.Sprintf("M of multi signature address. m must > 0 and <= %d, and m must <= number of pub key", constants.MULTI_SIG_MAX_PUBKEY_SIZE),
+		Usage: fmt.Sprintf("Min signature `<number>` of multi signature address.", constants.MULTI_SIG_MAX_PUBKEY_SIZE),
 	}
 	AccountMultiPubKeyFlag = cli.StringFlag{
 		Name:  "pubkey",
-		Usage: fmt.Sprintf("Pub key list of multi address, split pub key with `,`. Number of pub key must > 0 and <= %d", constants.MULTI_SIG_MAX_PUBKEY_SIZE),
+		Usage: fmt.Sprintf("Pub key list of multi `<addresses>`, separate addreses with comma `,`", constants.MULTI_SIG_MAX_PUBKEY_SIZE),
 	}
 	IdentityFlag = cli.BoolFlag{
 		Name:  "ontid",
@@ -272,7 +268,7 @@ var (
 	//SmartContract setting
 	ContractAddrFlag = cli.StringFlag{
 		Name:  "address",
-		Usage: "Contract address",
+		Usage: "Contract `<address>`",
 	}
 	ContractStorageFlag = cli.BoolFlag{
 		Name:  "needstore",
@@ -307,7 +303,7 @@ var (
 	}
 	ContractParamsFlag = cli.StringFlag{
 		Name:  "params",
-		Usage: "Invoke contract parameters list. use comma ',' to split params, and must add type prefix to params. Param type support bytearray(hexstring), string, integer, boolean,For example: string:foo,int:0,bool:true; If parameter is an object array, enclose array with '[]'. For example:  string:foo,[int:0,bool:true]",
+		Usage: "Contract parameters list to invoke. separate params with comma ','",
 	}
 	ContractPrepareDeployFlag = cli.BoolFlag{
 		Name:  "prepare,p",
@@ -319,7 +315,7 @@ var (
 	}
 	ContractReturnTypeFlag = cli.StringFlag{
 		Name:  "return",
-		Usage: "Return type of contract.Return type support bytearray(hexstring), string, integer, boolean. If return type is object array, enclose array with '[]'. For example [string,int,bool,string]. Only prepare invoke need this flag.",
+		Usage: "Return `<type>` of contract. bytearray(hexstring), string, integer, boolean.",
 	}
 
 	//information cmd settings
@@ -335,121 +331,121 @@ var (
 	//Transfer setting
 	TransactionAssetFlag = cli.StringFlag{
 		Name:  "asset",
-		Usage: "Using to specifies the transfer asset `<ont|ong>`",
+		Usage: "Asset of ONT or ONG",
 		Value: ASSET_ONT,
 	}
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
-		Usage: "Using to specifies the transfer-out account `<address|label|index>`",
+		Usage: "Transfer-out account `<address>`",
 	}
 	TransactionToFlag = cli.StringFlag{
 		Name:  "to",
-		Usage: "Using to specifies the transfer-in account `<address|label|index>`",
+		Usage: "Transfer-in account `<address>`",
 	}
 	TransactionAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Using to specifies the transfer amount",
+		Usage: "Transfer `<amount>`",
 	}
 	TransactionHashFlag = cli.StringFlag{
 		Name:  "hash",
-		Usage: "Transaction <hash>",
+		Usage: "Transaction `<hash>`",
 	}
 	TransactionGasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",
-		Usage: "Using to specifies the gas price of transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.(default:0 in testmode)",
+		Usage: "Gas price of transaction.",
 		Value: config.DEFAULT_GAS_PRICE,
 	}
 	TransactionGasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
-		Usage: "Using to specifies the gas limit of the transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs.",
+		Usage: "Gas limit of the transaction.",
 		Value: neovm.MIN_TRANSACTION_GAS,
 	}
 
 	//Asset setting
 	ApproveAssetFromFlag = cli.StringFlag{
 		Name:  "from",
-		Usage: "Using to specifies the transfer-out account `<address|label|index>`",
+		Usage: "Transfer-out account `<address>`",
 	}
 	ApproveAssetToFlag = cli.StringFlag{
 		Name:  "to",
-		Usage: "Using to specifies the transfer-in account `<address|label|index>`",
+		Usage: "Transfer-in account `<address>`",
 	}
 	ApproveAssetFlag = cli.StringFlag{
 		Name:  "asset",
-		Usage: "Using to specifies the transfer asset <ont|ong> for approve",
+		Usage: "Asset of ONT of ONG to approve",
 		Value: "ont",
 	}
 	ApproveAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Using to specifies the transfer amount for approve",
+		Usage: "Amount of approve",
 	}
 	TransferFromAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Using to specifies the transfer from amount",
+		Usage: "Amount of transfer from",
 	}
 	TransferFromSenderFlag = cli.StringFlag{
 		Name:  "sender",
-		Usage: "Using to specifies the sender account `<address|label|index>` of transfer from transaction, if empty sender is to account",
+		Usage: "Sender account `<address>` of transfer from transaction, if not specific, using transfer-to account instead",
 	}
 
 	//Cli setting
 	CliAddressFlag = cli.StringFlag{
 		Name:  "cliaddress",
-		Usage: "Cli rpc address",
+		Usage: "Rpc bind `<address>`",
 		Value: config.DEFUALT_CLI_RPC_ADDRESS,
 	}
 	CliRpcPortFlag = cli.UintFlag{
 		Name:  "cliport",
-		Usage: "Cli rpc port",
+		Usage: "Rpc bind port `<number>`",
 		Value: config.DEFAULT_CLI_RPC_PORT,
 	}
 	CliABIPathFlag = cli.StringFlag{
 		Name:  "abi",
-		Usage: "Abi path",
+		Usage: "Abi `<file>` path",
 		Value: DEFAULT_ABI_PATH,
 	}
 	CliWalletDirFlag = cli.StringFlag{
 		Name:  "walletdir",
-		Usage: "Path of Wallet data",
+		Usage: "Wallet data `<path>`",
 		Value: DEFAULT_WALLET_PATH,
 	}
 
 	//Export setting
 	ExportFileFlag = cli.StringFlag{
-		Name:  "exportfile",
-		Usage: "Path of export `<file>`",
+		Name:  "export-file",
+		Usage: "Export `<file>` path",
 		Value: DEFAULT_EXPORT_FILE,
 	}
 	ExportStartHeightFlag = cli.UintFlag{
-		Name:  "startheight",
-		Usage: "Using to specifis the start `<height>` of the exported block.",
+		Name:  "start-height",
+		Usage: "Start block height `<number>` to export",
 		Value: DEFAULT_EXPORT_HEIGHT,
 	}
 	ExportEndHeightFlag = cli.UintFlag{
-		Name:  "endheight",
-		Usage: "Using to specifies the end `<height>` of the exported block. Default value is 0, which means exporting all the blocks of the current node.",
+		Name:  "end-height",
+		Usage: "Stop block height `<number>` to export",
 		Value: DEFAULT_EXPORT_HEIGHT,
 	}
 	ExportSpeedFlag = cli.StringFlag{
-		Name:  "speed",
-		Usage: "Export block speed, `<h|m|l>` h for high speed, m for middle speed and l for low speed",
+		Name:  "export-speed",
+		Usage: "Export block speed `<level>` (h|m|l), h for high speed, m for middle speed and l for low speed",
 		Value: "m",
 	}
 
 	//PreExecute switcher
 	TxpoolPreExecDisableFlag = cli.BoolFlag{
-		Name:  "disabletxpoolpreexec",
+		Name:  "disable-tx-pool-pre-exec",
 		Usage: "Disable preExecute in tx pool",
 	}
 
 	//local PreExecute switcher
 	DisableSyncVerifyTxFlag = cli.BoolFlag{
-		Name:  "disablesyncverifytx",
+		Name:  "disable-sync-verify-tx",
 		Usage: "Disable sync verify transaction in interface",
 	}
 
 	BroadcastNetTxEnableFlag = cli.BoolFlag{
-		Name:  "enablebroadcastnettx",
+		Name:  "enable-broadcast-net-tx",
 		Usage: "Enable broadcast tx from network in tx pool",
 	}
 

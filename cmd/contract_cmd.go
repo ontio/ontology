@@ -62,10 +62,23 @@ var (
 				},
 			},
 			{
-				Action:    invokeContract,
-				Name:      "invoke",
-				Usage:     "Invoke smart contract",
-				ArgsUsage: " ",
+				Action: invokeContract,
+				Name:   "invoke",
+				Usage:  "Invoke smart contract",
+				ArgsUsage: `NeoVM contract support bytearray(need encode to hex string), string, integer, boolean parameter type.
+
+  Parameter 
+     Contract parameters separate with comma ',' to split params. and must add type prefix to params.
+     For example:string:foo,int:0,bool:true 
+     If parameter is an object array, enclose array with '[]'. 
+     For example: string:foo,[int:0,bool:true]
+
+  Return type
+     When invoke contract with --prepare flag, you need specifies return type by --return flag, to decode the return value.
+     Return type support bytearray(encoded to hex string), string, integer, boolean. 
+     If return type is object array, enclose array with '[]'. 
+     For example: [string,int,bool,string]
+`,
 				Flags: []cli.Flag{
 					utils.RPCPortFlag,
 					utils.TransactionGasPriceFlag,
@@ -81,7 +94,7 @@ var (
 			},
 			{
 				Action:    invokeCodeContract,
-				Name:      "invokeCode",
+				Name:      "invokecode",
 				Usage:     "Invoke smart contract by code",
 				ArgsUsage: " ",
 				Flags: []cli.Flag{

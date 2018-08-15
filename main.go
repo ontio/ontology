@@ -106,7 +106,6 @@ func setupAPP() *cli.App {
 		//test mode setting
 		utils.EnableTestModeFlag,
 		utils.TestModeGenBlockTimeFlag,
-		utils.ClearTestModeDataFlag,
 		//rpc setting
 		utils.RPCDisabledFlag,
 		utils.RPCPortFlag,
@@ -234,12 +233,6 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 
 	var err error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	if ctx.GlobalBool(utils.GetFlagName(utils.EnableTestModeFlag)) && ctx.GlobalBool(utils.GetFlagName(utils.ClearTestModeDataFlag)) {
-		err = os.RemoveAll(dbDir)
-		if err != nil {
-			log.Warnf("InitLedger remove:%s error:%s", dbDir, err)
-		}
-	}
 	ledger.DefLedger, err = ledger.NewLedger(dbDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
