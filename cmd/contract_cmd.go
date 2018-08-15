@@ -134,6 +134,27 @@ func deployContract(ctx *cli.Context) error {
 	}
 
 	cversion := fmt.Sprintf("%s", version)
+	c, _ := common.HexToBytes(code)
+	address := types.AddressFromVmCode(c)
+
+	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareDeployFlag)) {
+		preResult, err := utils.PrepareDeployContract(store, code, name, cversion, author, email, desc)
+		if err != nil {
+			return fmt.Errorf("PrepareDeployContract error:%s", err)
+		}
+		if preResult.State == 0 {
+			return fmt.Errorf("Contract pre-deploy failed\n")
+		}
+		fmt.Printf("Contract pre-deploy successfully\n")
+		fmt.Printf("Gas consumed:%d\n", preResult.Gas)
+		fmt.Printf("Contract Address:%s\n", address.ToHexString())
+		return nil
+	}
+
+	signer, err := cmdcom.GetAccount(ctx)
+	if err != nil {
+		return fmt.Errorf("Get signer account error:%s", err)
+	}
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareDeployFlag)) {
 		preResult, err := utils.PrepareDeployContract(store, code, name, cversion, author, email, desc)
@@ -157,8 +178,7 @@ func deployContract(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
-	c, _ := common.HexToBytes(code)
-	address := types.AddressFromVmCode(c)
+
 	fmt.Printf("Deploy contract:\n")
 	fmt.Printf("  Contract Address:%s\n", address.ToHexString())
 	fmt.Printf("  TxHash:%s\n", txHash)
