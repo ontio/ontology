@@ -280,7 +280,9 @@ func getGlobalParam2(native *native.NativeService, contract common.Address) (*Gl
 	if err != nil {
 		return nil, fmt.Errorf("getGlobalParam2, get globalParam2Bytes error: %v", err)
 	}
-	globalParam2 := new(GlobalParam2)
+	globalParam2 := &GlobalParam2{
+		MinAuthorizePos: 500,
+	}
 	if globalParam2Bytes != nil {
 		globalParam2Store, ok := globalParam2Bytes.(*cstates.StorageItem)
 		if !ok {
@@ -685,7 +687,7 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 	peerAttributes := &PeerAttributes{
 		PeerPubkey:  peerPubkey,
 		IfAuthorize: false,
-		OldPeerCost: 0,
+		OldPeerCost: 100,
 		NewPeerCost: 0,
 		SetCostView: 0,
 	}

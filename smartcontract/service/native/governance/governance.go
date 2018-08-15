@@ -1139,6 +1139,9 @@ func UpdateGlobalParam2(native *native.NativeService) ([]byte, error) {
 	}
 
 	//check the globalParam
+	if globalParam2.MinAuthorizePos == 0 {
+		return utils.BYTE_FALSE, fmt.Errorf("globalParam2.MinAuthorizePos can not be 0")
+	}
 
 	err = putGlobalParam2(native, contract, globalParam2)
 	if err != nil {
