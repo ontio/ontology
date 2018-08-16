@@ -151,10 +151,6 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &Version{}, nil
 	case common.VERACK_TYPE:
 		return &VerACK{}, nil
-	case common.ADDR_TYPE:
-		return &Addr{}, nil
-	case common.GetADDR_TYPE:
-		return &AddrReq{}, nil
 	case common.PONG_TYPE:
 		return &Pong{}, nil
 	case common.GET_HEADERS_TYPE:

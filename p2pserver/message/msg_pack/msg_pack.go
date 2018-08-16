@@ -32,22 +32,6 @@ import (
 	"net"
 )
 
-//Peer address package
-func NewAddrs(nodeAddrs []msgCommon.PeerAddr) mt.Message {
-	log.Trace()
-	var addr mt.Addr
-	addr.NodeAddrs = nodeAddrs
-
-	return &addr
-}
-
-//Peer address request package
-func NewAddrReq() mt.Message {
-	log.Trace()
-	var msg mt.AddrReq
-	return &msg
-}
-
 ///block package
 func NewBlock(bk *ct.Block) mt.Message {
 	log.Trace()

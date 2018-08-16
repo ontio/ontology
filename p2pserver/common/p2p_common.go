@@ -119,8 +119,6 @@ type PeerAddr struct {
 const (
 	VERSION_TYPE     = "version"    //peer`s information
 	VERACK_TYPE      = "verack"     //ack msg after version recv
-	GetADDR_TYPE     = "getaddr"    //req nbr address from peer
-	ADDR_TYPE        = "addr"       //nbr address
 	PING_TYPE        = "ping"       //ping  sync height
 	PONG_TYPE        = "pong"       //pong  recv nbr height
 	GET_HEADERS_TYPE = "getheaders" //req blk hdr

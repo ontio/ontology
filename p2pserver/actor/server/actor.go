@@ -247,6 +247,7 @@ func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context,
 
 		dht := this.server.GetDHT()
 		if dht == nil {
+			log.Warnf("[p2p]can`t transmit consensus msg: no dht object")
 			return
 		}
 		neighbors := dht.Resolve(req.Target)

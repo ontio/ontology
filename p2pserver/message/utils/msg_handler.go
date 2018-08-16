@@ -21,12 +21,11 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -42,42 +41,6 @@ import (
 
 //respCache cache for some response data
 var respCache *lru.ARCCache
-
-// AddrReqHandle handles the neighbor address request from peer
-func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Trace("[p2p]receive addr request message", data.Addr, data.Id)
-	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil {
-		log.Debug("[p2p]remotePeer invalid in AddrReqHandle")
-		return
-	}
-
-	var addrStr []msgCommon.PeerAddr
-	addrStr = p2p.GetNeighborAddrs()
-	//check mask peers
-	mskPeers := config.DefConfig.P2PNode.ReservedCfg.MaskPeers
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(mskPeers) > 0 {
-		for i := 0; i < len(addrStr); i++ {
-			var ip net.IP
-			ip = addrStr[i].IpAddr[:]
-			address := ip.To16().String()
-			for j := 0; j < len(mskPeers); j++ {
-				if address == mskPeers[j] {
-					addrStr = append(addrStr[:i], addrStr[i+1:]...)
-					i--
-					break
-				}
-			}
-		}
-
-	}
-	msg := msgpack.NewAddrs(addrStr)
-	err := p2p.Send(remotePeer, msg, false)
-	if err != nil {
-		log.Warn(err)
-		return
-	}
-}
 
 // HeaderReqHandle handles the header sync req from peer
 func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
@@ -375,7 +338,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				//same id and same ip
 				n, ret := p2p.DelNbrNode(version.P.Nonce)
 				if ret == true {
-					log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
+					log.Infof("[p2p]peer reconnect %d, addr is %s", version.P.Nonce, data.Addr)
 					// Close the connection and release the node source
 					n.CloseSync()
 					n.CloseCons()
