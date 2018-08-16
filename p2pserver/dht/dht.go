@@ -343,7 +343,7 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 
 // processPacket invokes the related handler to process the packet
 func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
-	msg, err := mt.ReadMessage(bytes.NewBuffer(packet))
+	msg, _, err := mt.ReadMessage(bytes.NewBuffer(packet))
 	if err != nil {
 		log.Infof("processPacket: receive dht message error: %v", err)
 		return

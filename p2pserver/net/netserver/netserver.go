@@ -20,8 +20,6 @@ package netserver
 
 import (
 	"errors"
-	"math/rand"
-	"fmt"
 	"net"
 	"strconv"
 	"strings"

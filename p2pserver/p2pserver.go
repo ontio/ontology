@@ -575,7 +575,6 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 
 //tryRecentPeers try connect recent contact peer when service start
 func (this *P2PServer) tryRecentPeers() {
-	netID := config.DefConfig.P2PNode.NetworkMagic
 	if comm.FileExisted(common.RECENT_FILE_NAME) {
 		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
 		if err != nil {
@@ -588,11 +587,10 @@ func (this *P2PServer) tryRecentPeers() {
 			log.Warn("[p2p]parse recent peer file fail: ", err)
 			return
 		}
-		if len(this.recentPeers[netID]) > 0 {
+		for _, node := range this.recentPeers {
 			log.Info("[p2p]try to connect recent peer")
-		}
-		for _, v := range this.recentPeers[netID] {
-			go this.network.Connect(v, false)
+			addr := node.IP + ":" + strconv.Itoa(int(node.TCPPort))
+			go this.network.Connect(addr, false)
 		}
 
 	}
