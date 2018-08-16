@@ -101,7 +101,12 @@ func SigMutilRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		rawTx.Sigs = make([]*types.Sig, 0)
 	}
 
-	signer := clisvrcom.DefAccount
+	signer, err := req.GetAccount()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigMutilRawTransaction GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
+		return
+	}
 	txHash := rawTx.Hash()
 	sigData, err := cliutil.Sign(txHash.ToArray(), signer)
 	if err != nil {

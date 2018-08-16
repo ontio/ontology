@@ -51,15 +51,15 @@ func (this *P2PActor) Start() (*actor.PID, error) {
 func (this *P2PActor) Receive(ctx actor.Context) {
 	switch msg := ctx.Message().(type) {
 	case *actor.Restarting:
-		log.Info("p2p actor restarting")
+		log.Warn("[p2p]actor restarting")
 	case *actor.Stopping:
-		log.Info("p2p actor stopping")
+		log.Warn("[p2p]actor stopping")
 	case *actor.Stopped:
-		log.Info("p2p actor stopped")
+		log.Warn("[p2p]actor stopped")
 	case *actor.Started:
-		log.Info("p2p actor started")
+		log.Debug("[p2p]actor started")
 	case *actor.Restart:
-		log.Info("p2p actor restart")
+		log.Warn("[p2p]actor restart")
 	case *StopServerReq:
 		this.handleStopServerReq(ctx, msg)
 	case *GetPortReq:
@@ -91,13 +91,13 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	case *common.RemovePeerID:
 		this.server.OnDelNode(msg.ID)
 	case *common.AppendHeaders:
-		this.server.OnHeaderReceive(msg.Headers)
+		this.server.OnHeaderReceive(msg.FromID, msg.Headers)
 	case *common.AppendBlock:
-		this.server.OnBlockReceive(msg.Block)
+		this.server.OnBlockReceive(msg.FromID, msg.BlockSize, msg.Block)
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {
-			log.Error("error xmit message ", err.Error(), reflect.TypeOf(ctx.Message()))
+			log.Warn("[p2p]error xmit message ", err.Error(), reflect.TypeOf(ctx.Message()))
 		}
 	}
 }
@@ -240,6 +240,6 @@ func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context, req *Tran
 	if peer != nil {
 		this.server.Send(peer, req.Msg, true)
 	} else {
-		log.Errorf("handleTransmit consensus msg failed:%d", req.Target)
+		log.Warnf("[p2p]can`t transmit consensus msg:no valid neighbor peer: %d\n", req.Target)
 	}
 }

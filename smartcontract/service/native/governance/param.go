@@ -241,13 +241,13 @@ func (this *WhiteNodeParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type VoteForPeerParam struct {
+type AuthorizeForPeerParam struct {
 	Address        common.Address
 	PeerPubkeyList []string
 	PosList        []uint32
 }
 
-func (this *VoteForPeerParam) Serialize(w io.Writer) error {
+func (this *AuthorizeForPeerParam) Serialize(w io.Writer) error {
 	if len(this.PeerPubkeyList) > 1024 {
 		return errors.NewErr("length of input list > 1024!")
 	}
@@ -276,7 +276,7 @@ func (this *VoteForPeerParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
+func (this *AuthorizeForPeerParam) Deserialize(r io.Reader) error {
 	address, err := utils.ReadAddress(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")

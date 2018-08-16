@@ -35,10 +35,6 @@ func NewVmReader(b []byte) *VmReader {
 	return &vmreader
 }
 
-func (r *VmReader) Reader() *bytes.Reader {
-	return r.reader
-}
-
 func (r *VmReader) ReadByte() (byte, error) {
 	byte, err := r.reader.ReadByte()
 	return byte, err

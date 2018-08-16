@@ -2,7 +2,7 @@
 
 [[English](sigsvr.md)|中文]
 
-Ontology签名服务器sigsvr是一个用于对交易进行签名的rpc服务器。签名服务器绑定在127.0.0.1地址上，只支持本机发送的签名请求。
+Ontology签名服务器sigsvr是一个用于对交易进行签名的rpc服务器。
 
 * [Ontology 签名服务器使用说明](#ontology-签名服务器使用说明)
 	* [1、签名服务启动](#1-签名服务启动)
@@ -17,6 +17,8 @@ Ontology签名服务器sigsvr是一个用于对交易进行签名的rpc服务器
 		* [2.6 Native合约调用签名](#26-native合约调用签名)
 		* [2.7 NeoVM合约调用签名](#27-neovm合约调用签名)
 		* [2.8 NeoVM合约ABI调用签名](#28-neovm合约abi调用签名)
+		* [2.9 创建账户命令](#29-创建账户)
+		* [2.10 导出钱包账户命令](210-导出钱包账户)
 
 ## 1、签名服务启动
 
@@ -25,11 +27,8 @@ Ontology签名服务器sigsvr是一个用于对交易进行签名的rpc服务器
 --loglevel
 loglevel 参数用于设置sigsvr输出的日志级别。sigsvr支持从0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel 的7级日志，日志等级由低到高，输出的日志量由多到少。默认值是1，即只输出info级及其之上级别的日志。
 
---wallet, -w
-wallet 参数用于指定sigsvr启动时的钱包文件路径。默认值为"./wallet.dat"。
-
---account, -a
-account 参数用于指定sigsvr启动时加载的账户地址。不填则使用钱包默认账户。
+--walletdir
+walletdir 参数用于设置钱包数据存储目录。默认值为:"./wallet_data"。
 
 --cliaddress
 cliaddress 参数用于指定sigsvr启动时绑定的地址。默认值为127.0.0.1，仅接受本机的请求。如果需要被网络中的其他机器访问，可以指定网卡地址，或者0.0.0.0。
@@ -40,7 +39,25 @@ cliaddress 参数用于指定sigsvr启动时绑定的地址。默认值为127.0.
 --abi
 abi 参数用于指定签名服务所使用的native合约abi目录，默认值为./abi
 
-### 1.2 启动
+### 1.2 导入钱包账户
+
+签名服务在启动前，应该先导入钱包账户。
+
+#### 1.2.1 导入钱包账户参数
+
+--walletdir
+walletdir 参数用于设置钱包数据存储目录。默认值为:"./wallet_data"。
+
+--wallet
+待导入钱包路径。默认值为："./wallet.dat"。
+
+**导入钱包账户命令**
+
+```
+./sigsvr import
+```
+
+### 1.3 启动
 
 ```
 ./sigsvr
@@ -63,6 +80,8 @@ http://localhost:20000/cli
 {
 	"qid":"XXX",    //请求ID，同一个应答会带上相同的qid
 	"method":"XXX", //请求的方法名
+	"account":"XXX",//签名账户
+	"pwd":"XXX",    //账户解锁密码
 	"params":{
 		//具体方法的请求参数,按照调用的请求方法要求填写
 	}
@@ -125,6 +144,8 @@ http://localhost:20000/cli
 {
 	"qid":"t",
 	"method":"sigdata",
+    "account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"raw_data":"48656C6C6F20776F726C64" //Hello world
 	}
@@ -169,6 +190,8 @@ http://localhost:20000/cli
 {
 	"qid":"1",
 	"method":"sigrawtx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"raw_tx":"00d14150175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a0101d4054faaf30a43841335a2fbc4e8400f1c44540163d551fe47ba12ec6524b67734796daaf87f7d0a0000"
 	}
@@ -214,6 +237,8 @@ http://localhost:20000/cli
 {
 	"qid":"1",
 	"method":"sigmutilrawtx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"raw_tx":"00d12454175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a01024ce71f6cc6c0819191e9ec9419928b183d6570012fb5cfb78c651669fac98d8f62b5143ab091e70a0000",
 		"m":2,
@@ -267,6 +292,8 @@ http://localhost:20000/cli
 {
 	"qid":"t",
 	"method":"sigtransfertx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"gas_price":0,
 		"gas_limit":20000,
@@ -300,6 +327,8 @@ sigtransfertx方法默认使用签名账户作为手续费支付方，如果需�
 {
 	"qid":"t",
 	"method":"sigtransfertx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"gas_price":0,
 		"gas_limit":20000,
@@ -349,6 +378,8 @@ sigsvr启动时，默认会在当前目录下查找"./abi"下的native合约abi�
 {
 	"Qid":"t",
 	"Method":"signativeinvoketx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"Params":{
 		"gas_price":0,
 		"gas_limit":20000,
@@ -389,6 +420,8 @@ signativeinvoketx 方法默认使用签名账户作为手续费支付方，如�
 {
 	"Qid":"t",
 	"Method":"signativeinvoketx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"Params":{
 		"gas_price":0,
 		"gas_limit":20000,
@@ -441,6 +474,8 @@ NeoVM参数合约支持array、bytearray、string、int以及bool类型，构造
 {
 	"qid": "t",
 	"method": "signeovminvoketx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params": {
 		"gas_price": 0,
 		"gas_limit": 50000,
@@ -526,6 +561,8 @@ NeoVM合约ABI调用签名，需要提供合约的abi，以及合约调用的参
 {
   "qid": "t",
   "method": "signeovminvokeabitx",
+  "account":"XXX",
+  "pwd":"XXX",
   "params": {
     "gas_price": 0,
     "gas_limit": 50000,
@@ -598,4 +635,94 @@ signeovminvokeabitx 方法默认使用签名账户作为手续费支付方，如
 }
 ```
 
+### 2.9 创建账户
+
+可以通过签名服务创建新账户。新创建的账户使用256位的ECDSA密钥，并使用SHA256withECDSA作为签名模式。
+
+注意：使用签名服务创建密码后，为了安全起见，需要及时备份账户密钥，以防丢失；同时保留好备份后的签名服务运行日志，日志中记录最新创建的密钥信息。
+
+方法名称：createaccount
+
+请求参数：无
+
+应答
+
+```
+{
+    "account":XXX     //新创建的账户地址
+}
+```
+举例
+请求：
+
+```
+{
+	"qid":"t",
+	"method":"createaccount",
+	"pwd":"XXXX",     //新创建账户的解锁密码
+	"params":{}
+}
+```
+应答：
+
+```
+{
+    "qid": "t",
+    "method": "createaccount",
+    "result": {
+        "account": "AG9nms6VMc5dGpbCgrutsAVZbpCAtMcB3W"
+    },
+    "error_code": 0,
+    "error_info": ""
+}
+```
+
+### 2.10 导出钱包账户
+
+导出钱包账户命令可以把钱包数据中的账户导出到一个钱包文件，作为账户密钥备份使用。
+
+方法名称：exportaccount
+
+请求参数:
+
+```
+{
+    "wallet_path":"XXX" //导出钱包文件存储目录, 如果填，则默认存储于签名服务运行时的当前目录下。
+}
+```
+
+应答:
+
+```
+{
+   "wallet_file": "XXX",//导出的钱包文件路径及名称
+   "account_num": XXX   //导出的账户数量
+}
+```
+
+举例
+
+请求：
+
+```
+{
+	"qid":"t",
+	"method":"exportaccount",
+	"params":{}
+}
+```
+
+应答：
+```
+{
+    "qid": "t",
+    "method": "exportaccount",
+    "result": {
+        "wallet_file": "./wallet_2018_08_03_23_20_12.dat",
+        "account_num": 9
+    },
+    "error_code": 0,
+    "error_info": ""
+}
+```
 

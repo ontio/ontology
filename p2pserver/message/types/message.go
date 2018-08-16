@@ -38,9 +38,10 @@ type Message interface {
 
 //MsgPayload in link channel
 type MsgPayload struct {
-	Id      uint64  //peer ID
-	Addr    string  //link address
-	Payload Message //msg payload
+	Id          uint64  //peer ID
+	Addr        string  //link address
+	PayloadSize uint32  //payload size
+	Payload     Message //msg payload
 }
 
 type messageHeader struct {
@@ -87,45 +88,45 @@ func WriteMessage(writer io.Writer, msg Message) error {
 	return err
 }
 
-func ReadMessage(reader io.Reader) (Message, error) {
+func ReadMessage(reader io.Reader) (Message, uint32, error) {
 	hdr, err := readMessageHeader(reader)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	magic := config.DefConfig.P2PNode.NetworkMagic
 	if hdr.Magic != magic {
-		return nil, fmt.Errorf("unmatched magic number %d, expected %d", hdr.Magic, magic)
+		return nil, 0, fmt.Errorf("unmatched magic number %d, expected %d", hdr.Magic, magic)
 	}
 
 	if int(hdr.Length) > common.MAX_PAYLOAD_LEN {
-		return nil, fmt.Errorf("msg payload length:%d exceed max payload size: %d",
+		return nil, 0, fmt.Errorf("msg payload length:%d exceed max payload size: %d",
 			hdr.Length, common.MAX_PAYLOAD_LEN)
 	}
 
 	buf := make([]byte, hdr.Length)
 	_, err = io.ReadFull(reader, buf)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	checksum := CheckSum(buf)
 	if checksum != hdr.Checksum {
-		return nil, fmt.Errorf("message checksum mismatch: %x != %x ", hdr.Checksum, checksum)
+		return nil, 0, fmt.Errorf("message checksum mismatch: %x != %x ", hdr.Checksum, checksum)
 	}
 
 	cmdType := string(bytes.TrimRight(hdr.CMD[:], string(0)))
 	msg, err := MakeEmptyMessage(cmdType)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	err = msg.Deserialization(buf)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return msg, nil
+	return msg, hdr.Length, nil
 }
 
 func MakeEmptyMessage(cmdType string) (Message, error) {

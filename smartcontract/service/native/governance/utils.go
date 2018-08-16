@@ -397,43 +397,43 @@ func putCandidateIndex(native *native.NativeService, contract common.Address, ca
 	return nil
 }
 
-func getVoteInfo(native *native.NativeService, contract common.Address, peerPubkey string, address common.Address) (*VoteInfo, error) {
+func getAuthorizeInfo(native *native.NativeService, contract common.Address, peerPubkey string, address common.Address) (*AuthorizeInfo, error) {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 	}
-	voteInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL),
+	authorizeInfoBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL,
 		peerPubkeyPrefix, address[:]))
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "get voteInfoBytes error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "get authorizeInfoBytes error!")
 	}
-	voteInfo := &VoteInfo{
+	authorizeInfo := &AuthorizeInfo{
 		PeerPubkey: peerPubkey,
 		Address:    address,
 	}
-	if voteInfoBytes != nil {
-		voteInfoStore, ok := voteInfoBytes.(*cstates.StorageItem)
+	if authorizeInfoBytes != nil {
+		authorizeInfoStore, ok := authorizeInfoBytes.(*cstates.StorageItem)
 		if !ok {
-			return nil, errors.NewErr("getVoteInfo, voteInfoBytes is not available!")
+			return nil, errors.NewErr("getAuthorizeInfo, authorizeInfoBytes is not available!")
 		}
-		if err := voteInfo.Deserialize(bytes.NewBuffer(voteInfoStore.Value)); err != nil {
-			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
+		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
+			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize authorizeInfo error!")
 		}
 	}
-	return voteInfo, nil
+	return authorizeInfo, nil
 }
 
-func putVoteInfo(native *native.NativeService, contract common.Address, voteInfo *VoteInfo) error {
-	peerPubkeyPrefix, err := hex.DecodeString(voteInfo.PeerPubkey)
+func putAuthorizeInfo(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo) error {
+	peerPubkeyPrefix, err := hex.DecodeString(authorizeInfo.PeerPubkey)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "hex.DecodeString, peerPubkey format error!")
 	}
 	bf := new(bytes.Buffer)
-	if err := voteInfo.Serialize(bf); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+	if err := authorizeInfo.Serialize(bf); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize authorizeInfo error!")
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VOTE_INFO_POOL), peerPubkeyPrefix,
-		voteInfo.Address[:]), &cstates.StorageItem{Value: bf.Bytes()})
+	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix,
+		authorizeInfo.Address[:]), &cstates.StorageItem{Value: bf.Bytes()})
 	return nil
 }
 
@@ -445,7 +445,7 @@ func getPenaltyStake(native *native.NativeService, contract common.Address, peer
 	penaltyStakeBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PENALTY_STAKE),
 		peerPubkeyPrefix))
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "get voteInfoBytes error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "get authorizeInfoBytes error!")
 	}
 	penaltyStake := &PenaltyStake{
 		PeerPubkey: peerPubkey,
@@ -456,7 +456,7 @@ func getPenaltyStake(native *native.NativeService, contract common.Address, peer
 			return nil, errors.NewErr("getPenaltyStake, penaltyStakeBytes is not available!")
 		}
 		if err := penaltyStake.Deserialize(bytes.NewBuffer(penaltyStakeStore.Value)); err != nil {
-			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
+			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize authorizeInfo error!")
 		}
 	}
 	return penaltyStake, nil
@@ -469,7 +469,7 @@ func putPenaltyStake(native *native.NativeService, contract common.Address, pena
 	}
 	bf := new(bytes.Buffer)
 	if err := penaltyStake.Serialize(bf); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize authorizeInfo error!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PENALTY_STAKE), peerPubkeyPrefix),
 		&cstates.StorageItem{Value: bf.Bytes()})
@@ -480,7 +480,7 @@ func getTotalStake(native *native.NativeService, contract common.Address, addres
 	totalStakeBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE),
 		address[:]))
 	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "get voteInfoBytes error!")
+		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "get authorizeInfoBytes error!")
 	}
 	totalStake := &TotalStake{
 		Address: address,
@@ -491,7 +491,7 @@ func getTotalStake(native *native.NativeService, contract common.Address, addres
 			return nil, errors.NewErr("getTotalStake, totalStakeStore is not available!")
 		}
 		if err := totalStake.Deserialize(bytes.NewBuffer(totalStakeStore.Value)); err != nil {
-			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize voteInfo error!")
+			return nil, errors.NewDetailErr(err, errors.ErrNoCode, "deserialize, deserialize authorizeInfo error!")
 		}
 	}
 	return totalStake, nil
@@ -500,7 +500,7 @@ func getTotalStake(native *native.NativeService, contract common.Address, addres
 func putTotalStake(native *native.NativeService, contract common.Address, totalStake *TotalStake) error {
 	bf := new(bytes.Buffer)
 	if err := totalStake.Serialize(bf); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize voteInfo error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialize, serialize authorizeInfo error!")
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(TOTAL_STAKE), totalStake.Address[:]),
 		&cstates.StorageItem{Value: bf.Bytes()})

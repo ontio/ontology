@@ -299,7 +299,7 @@ func (s *TXPoolServer) setPendingTx(tx *tx.Transaction,
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if ok := s.allPendingTxs[tx.Hash()]; ok != nil {
-		log.Infof("setPendingTx: transaction %x already in the verifying process",
+		log.Debugf("setPendingTx: transaction %x already in the verifying process",
 			tx.Hash())
 		return false
 	}

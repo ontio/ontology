@@ -66,7 +66,7 @@ func (this *NbrPeers) AddNbrNode(p *Peer) {
 	defer this.Unlock()
 
 	if this.NodeExisted(p.GetID()) {
-		fmt.Printf("insert an existed node\n")
+		fmt.Printf("[p2p]insert an existed node\n")
 	} else {
 		this.List[p.GetID()] = p
 	}

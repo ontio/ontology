@@ -2,7 +2,7 @@
 
 [English|[中文](sigsvr_CN.md)]
 
-Ontology Signature Server - sigsvr is a rpc server for signing transactions. The signature server is bound to the 127.0.0.1 address and only supports signature requests sent by the local machine.
+Ontology Signature Server - sigsvr is a rpc server for signing transactions.
 
 * [Ontology Signature Server Tutorials](#ontology-signature-server-tutorials)
 	* [1. Signature Service Startup](#1-signature-service-startup)
@@ -17,6 +17,8 @@ Ontology Signature Server - sigsvr is a rpc server for signing transactions. The
 		* [2.6 Native Contract Invokes Signature](#26-native-contract-invokes-signature)
 		* [2.7 NeoVM Contract Invokes Signature](#27-neovm-contract-invokes-signature)
 		* [2.8 NeoVM Contract Invokes By ABI Signature](#28-neovm-contract-invokes-by-abi-signature)
+		* [2.9 Create Account](#29-Create-Account)
+		* [2.10 Export Account](#210-Export-Account)
 
 ## 1. Signature Service Startup
 
@@ -25,11 +27,8 @@ Ontology Signature Server - sigsvr is a rpc server for signing transactions. The
 --loglevel
 The loglevel parameter is used to set the log level for the sigsvr output. Sigsvr supports 7 different log levels - 0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel. The log level is from low to high, and the output log volume is from high to low. The default value is 1, which means that only output logs at the info level or higher level.
 
---wallet, -w
-The wallet parameter specifies the wallet file path when sigsvr starts. The default value is "./wallet.dat".
-
---account, -a
-The account parameter specifies the account address when sigsvr starts. If the account is null, it uses the wallet default account.
+--walletdir
+walletdir parameter specifies the directory for wallet data. The default value is "./wallet_data".
 
 --cliaddress
 The cliaddress parameter specifies which address is bound。The default value is 127.0.0.1, means only local machine's request can be accessed。If sigsvr need be accessed by other machine, please use local network address or 0.0.0.0。
@@ -40,7 +39,25 @@ The port number to which the signature server is bound. The default value is 200
 --abi
 abi parameter specifies the abi file path when sigsvr starts. The default value is "./abi".
 
-### 1.2 Startup
+### 1.2 Import wallet account
+
+Before startup sigsvr, should import wallet account.
+
+#### 1.2.1 Import wallet account parameters
+
+--walletdir
+walletdir parameter specifies the directory for wallet data. The default value is "./wallet_data".
+
+--wallet
+wallet parameter specifies the path of wallet to import. The default value is "./wallet.dat".
+
+**Import wallet account**
+
+```
+./sigsvr import
+```
+
+### 1.3 Startup
 
 ```
 ./sigsvr
@@ -63,6 +80,8 @@ Request structure:
 {
 	"qid":"XXX",    //Request ID， the response will bring the same qid
 	"method":"XXX", //Requested method name
+	"account":"XXX",//account for sign
+	"pwd":"XXX",    //unlock password
 	"params":{
 		//The request parameters that are filled in according to the request method
 	}
@@ -124,6 +143,8 @@ Request:
 {
 	"qid":"t",
 	"method":"sigdata",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"raw_data":"48656C6C6F20776F726C64" //Hello world
 	}
@@ -168,6 +189,8 @@ Request:
 {
 	"qid":"1",
 	"method":"sigrawtx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"raw_tx":"00d14150175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a0101d4054faaf30a43841335a2fbc4e8400f1c44540163d551fe47ba12ec6524b67734796daaf87f7d0a0000"
 	}
@@ -218,6 +241,8 @@ Request:
 {
 	"qid":"1",
 	"method":"sigmutilrawtx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"raw_tx":"00d12454175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a01024ce71f6cc6c0819191e9ec9419928b183d6570012fb5cfb78c651669fac98d8f62b5143ab091e70a0000",
 		"m":2,
@@ -273,6 +298,8 @@ Request:
 {
 	"qid":"t",
 	"method":"sigtransfertx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params":{
 		"gas_price":0,
 		"gas_limit":20000,
@@ -354,6 +381,8 @@ Request:
 {
 	"Qid":"t",
 	"Method":"signativeinvoketx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"Params":{
 		"gas_price":0,
 		"gas_limit":20000,
@@ -434,6 +463,8 @@ Request:
 {
 	"qid": "t",
 	"method": "signeovminvoketx",
+	"account":"XXX",
+    "pwd":"XXX",
 	"params": {
 		"gas_price": 0,
 		"gas_limit": 50000,
@@ -494,9 +525,9 @@ Examples:
 NeoVM contract invoke by abi transaction is constructed and signed according to the ABI, need the ABI of contract and invoke parameters.
 Note that all value of parameters are string type.
 
-Method Name: signativeinvoketx
+Method Name: signeovminvokeabitx
 
-Request parameters: signeovminvokeabitx
+Request parameters:
 
 ```
 {
@@ -521,6 +552,8 @@ Request:
 {
   "qid": "t",
   "method": "signeovminvokeabitx",
+  "account":"XXX",
+  "pwd":"XXX",
   "params": {
     "gas_price": 0,
     "gas_limit": 50000,
@@ -593,4 +626,93 @@ Examples:
 }
 ```
 
+### 2.9 Create Account
+
+Sigsvr can also create account. The account created by sigsvr is ECDSA with 256 bits key pair, and using SHA256withECDSA as signature scheme.
+
+Note than in order wont lose the account created by sigsvr, please backup wallet data on time, and backup sigsvr log.
+
+Method Name: createaccount
+
+Request parameters: null
+
+Reponse:
+```
+{
+    "account":XXX     //The address of account created by sigsvr
+}
+```
+
+Examples
+
+Request:
+```
+{
+	"qid":"t",
+	"method":"createaccount",
+	"pwd":"XXXX",     //The unlock password of account created by sigsvr
+	"params":{}
+}
+```
+
+Response:
+```
+{
+    "qid": "t",
+    "method": "createaccount",
+    "result": {
+        "account": "AG9nms6VMc5dGpbCgrutsAVZbpCAtMcB3W"
+    },
+    "error_code": 0,
+    "error_info": ""
+}
+```
+
+### 2.10 ExportAccount
+
+Export account method can export accounts in wallet data into a wallet file, as backup of accounts
+
+Method Name: exportaccount
+
+Request parameters:
+
+```
+{
+    "wallet_path": "XXX"    //Save directory path of exported wallet file. If don't specifics, will use sigsvr's current path.
+}
+```
+
+Response result:
+```
+{
+     "wallet_file": "XXX"   //Full path of exported wallet file.
+     "account_num": XXX     //Account number of exported wallet.
+}
+```
+
+
+Examples
+
+Request:
+```
+{
+	"qid":"t",
+	"method":"exportaccount",
+	"params":{}
+}
+```
+
+Response:
+```
+{
+    "qid": "t",
+    "method": "exportaccount",
+    "result": {
+        "wallet_file": "./wallet_2018_08_03_23_20_12.dat",
+        "account_num": 9
+    },
+    "error_code": 0,
+    "error_info": ""
+}
+```
 

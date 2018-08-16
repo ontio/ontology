@@ -15,41 +15,34 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package p2pserver
+package handlers
 
 import (
-	"fmt"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"testing"
-
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/common"
 )
 
-func init() {
-	log.InitLog(log.InfoLog)
-	fmt.Println("Start test the netserver...")
-
-}
-func TestNewP2PServer(t *testing.T) {
-	log.Init(log.Stdout)
-	fmt.Println("Start test new p2pserver...")
-
-	p2p := NewServer()
-
-	if p2p.GetVersion() != common.PROTOCOL_VERSION {
-		t.Error("TestNewP2PServer p2p version error", p2p.GetVersion())
+func TestCreateAccount(t *testing.T) {
+	walletStore := clisvrcom.DefWalletStore
+	req := &clisvrcom.CliRpcRequest{
+		Qid:    "t",
+		Method: "createaccount",
+		Pwd:    string(pwd),
 	}
-
-	if p2p.GetVersion() != common.PROTOCOL_VERSION {
-		t.Error("TestNewP2PServer p2p version error")
+	resp := &clisvrcom.CliRpcResponse{}
+	CreateAccount(req, resp)
+	if resp.ErrorCode != 0 {
+		t.Errorf("CreateAccount failed. ErrorCode:%d", resp.ErrorCode)
+		return
 	}
-	sync, cons := p2p.GetPort()
-	if sync != 20338 {
-		t.Error("TestNewP2PServer sync port error")
+	createRsp, ok := resp.Result.(*CreateAccountRsp)
+	if !ok {
+		t.Errorf("CreateAccount resp asset to CreateAccountRsp failed")
+		return
 	}
-
-	if cons != 20339 {
-		t.Error("TestNewP2PServer consensus port error")
+	_, err := walletStore.GetAccountByAddress(createRsp.Account, pwd)
+	if err != nil {
+		t.Errorf("Test CreateAccount failed GetAccountByAddress error:%s", err)
+		return
 	}
 }
