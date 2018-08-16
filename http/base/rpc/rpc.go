@@ -104,11 +104,11 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
 		return
 	}
-	if request["method"] == nil{
+	if request["method"] == nil {
 		log.Error("HTTP JSON RPC Handle - method not found: ")
 		return
 	}
-	method,ok := request["method"].(string)
+	method, ok := request["method"].(string)
 	if !ok {
 		log.Error("HTTP JSON RPC Handle - method is not string: ")
 		return
