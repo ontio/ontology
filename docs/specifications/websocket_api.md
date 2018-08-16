@@ -406,26 +406,28 @@ raw: Optional parameter, the default value of raw is 0. When raw is 1, it return
     "Error": 0,
     "Result": {
         "Version": 0,
-        "Nonce": 0,
-        "TxType": 0,
+        "Nonce": 3743545316,
+        "GasPrice": 500,
+        "GasLimit": 20000,
+        "Payer": "AWM9vmGpAhFyiXxg8r5Cx4H3mS2zrtSkUF",
+        "TxType": 209,
         "Payload": {
-            "Nonce": 1522313652068190000
+            "Code": "00c66b149fdd13f41303beb7771ddd0aad6b2d815dcd62916a7cc81400000000000000000000000000000000000000016a7cc8149fdd13f41303beb7771ddd0aad6b2d815dcd62916a7cc8085da07645000000006a7cc86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b65"
         },
         "Attributes": [],
-        "Fee": [],
-        "NetworkFee": 0,
         "Sigs": [
             {
                 "PubKeys": [
-                    "120203fe4f9ba2022b68595dd163f4a92ac80f918919674de2d6e2a7e04a10c59d0066"
+                    "03e9ac636107c8d5a22e87bf6ae76a5e7a1394930972db72e0c3bebf54e8210a37"
                 ],
                 "M": 1,
                 "SigData": [
-                    "017d3641607c894dd85f455c71a94afaea2661acbe372ff8f3f4c7921b0c768756e3a6e9308a4c4c8b1b58e717f1486a2f10f5bc809b803a27c10a2cd579778a54"
+                    "01dfcf5328a6587b2e2b30d6fae73bc18343ce7e5db2c00b3c92415a7274cfb1367d74604121dfd2eb8aef95b1a5e688bdde5633f1bde0fe85881db55ea2fd112d"
                 ]
             }
         ],
-        "Hash": "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
+        "Hash": "5623dbd283a99ff1cd78068cba474a22bed97fceba4a56a9d38ab0fbc178c4ab",
+        "Height": 175888
     },
     "Version": "1.0.0"
 }

@@ -32,8 +32,7 @@ type BookKeepingInfo struct {
 }
 
 type InvokeCodeInfo struct {
-	Code     string
-	GasLimit uint64
+	Code string
 }
 type DeployCodeInfo struct {
 	Code        string
