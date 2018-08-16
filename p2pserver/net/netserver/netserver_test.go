@@ -19,27 +19,18 @@
 package netserver
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
-var key keypair.PublicKey
-
 func init() {
 	log.Init(log.Stdout)
 	fmt.Println("Start test the netserver...")
-	acct := account.NewAccount("SHA256withECDSA")
-	key = acct.PubKey()
-
 }
 
 func creatPeers(cnt uint16) []*peer.Peer {
@@ -65,7 +56,7 @@ func creatPeers(cnt uint16) []*peer.Peer {
 
 }
 func TestNewNetServer(t *testing.T) {
-	server := NewNetServer(key)
+	server := NewNetServer()
 	server.Start()
 	defer server.Halt()
 
@@ -73,20 +64,11 @@ func TestNewNetServer(t *testing.T) {
 	if server.GetHeight() != 1000 {
 		t.Error("TestNewNetServer set server height error")
 	}
-	var id uint64
-	k := keypair.SerializePublicKey(key)
-	err := binary.Read(bytes.NewBuffer(k[:8]), binary.LittleEndian, &(id))
-	if err != nil {
-		t.Error(err)
-	}
-	if server.GetID() != id {
-		t.Error("TestNewNetServer server id error")
-	}
+
 	if server.GetRelay() != true {
 		t.Error("TestNewNetServer server relay state error", server.GetRelay())
 	}
-	//not exsit in default config
-	if server.GetServices() != 0 {
+	if server.GetServices() != 1 {
 		t.Error("TestNewNetServer server service state error", server.GetServices())
 	}
 	if server.GetVersion() != common.PROTOCOL_VERSION {
@@ -98,16 +80,14 @@ func TestNewNetServer(t *testing.T) {
 	if server.GetConsPort() != 20339 {
 		t.Error("TestNewNetServer sync port error", server.GetConsPort())
 	}
-	if server.GetPubKey() != key {
-		t.Error("TestNewNetServer public key error")
-	}
+
 	fmt.Printf("lastest server time is %s\n", time.Unix(server.GetTime()/1e9, 0).String())
 
 }
 
 func TestNetServerNbrPeer(t *testing.T) {
 	log.Init(log.Stdout)
-	server := NewNetServer(key)
+	server := NewNetServer()
 	server.Start()
 	defer server.Halt()
 
@@ -120,7 +100,7 @@ func TestNetServerNbrPeer(t *testing.T) {
 	if server.GetConnectionCnt() != 5 {
 		t.Error("TestNetServerNbrPeer GetConnectionCnt error", server.GetConnectionCnt())
 	}
-	addrs, _ := server.GetNeighborAddrs()
+	addrs := server.GetNeighborAddrs()
 	if len(addrs) != 5 {
 		t.Error("TestNetServerNbrPeer GetNeighborAddrs error")
 	}

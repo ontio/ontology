@@ -115,7 +115,7 @@ func (this *Link) Rx() {
 	for {
 		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
-			log.Error("read connection error ", err)
+			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
 			break
 		}
 
@@ -141,6 +141,7 @@ func (this *Link) Rx() {
 
 //disconnectNotify push disconnect msg to channel
 func (this *Link) disconnectNotify() {
+	log.Debugf("[p2p]call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
 
 	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
@@ -163,18 +164,18 @@ func (this *Link) CloseConn() {
 func (this *Link) Tx(msg types.Message) error {
 	conn := this.conn
 	if conn == nil {
-		return errors.New("tx link invalid")
+		return errors.New("[p2p]tx link invalid")
 	}
 	buf := bytes.NewBuffer(nil)
 	err := types.WriteMessage(buf, msg)
 	if err != nil {
-		log.Error("error serialize messge ", err.Error())
+		log.Debugf("[p2p]error serialize messge ", err.Error())
 		return err
 	}
 
 	payload := buf.Bytes()
 	nByteCnt := len(payload)
-	log.Debugf("TX buf length: %d\n", nByteCnt)
+	log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
 
 	nCount := nByteCnt / common.PER_SEND_LEN
 	if nCount == 0 {
@@ -183,7 +184,7 @@ func (this *Link) Tx(msg types.Message) error {
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err = conn.Write(payload)
 	if err != nil {
-		log.Error("error sending messge to peer node ", err.Error())
+		log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())
 		this.disconnectNotify()
 		return err
 	}

@@ -2,7 +2,7 @@
 
 [English|[中文](sigsvr_CN.md)]
 
-Ontology Signature Server - sigsvr is a rpc server for signing transactions. The signature server is bound to the 127.0.0.1 address and only supports signature requests sent by the local machine.
+Ontology Signature Server - sigsvr is a rpc server for signing transactions.
 
 * [Ontology Signature Server Tutorials](#ontology-signature-server-tutorials)
 	* [1. Signature Service Startup](#1-signature-service-startup)
