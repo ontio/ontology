@@ -17,23 +17,20 @@ Ontology CLI is an Ontology node command line Client for starting and managing O
 			* [1.1.8 Test Mode Parameters](#118-test-mode-parameters)
 			* [1.1.9 Transaction Parameter](#119-transaction-parameter)
 		* [1.2 Node Deployment](#12-node-deployment)
-			* [1.2.1 Genesis Block Configuration File](#121-genesis-block-configuration-file)
-				* [1.2.1.1 VBFT Configuration File](#1211-vbft-configuration-file)
-				* [1.2.1.2 dBFT Configuration File](#1212-dbft-configuration-file)
-			* [1.2.2 Bookkeeping Node Deployment](#122-bookkeeping-node-deployment)
-			* [1.2.3 Synchronization Node Deployment](#123-synchronization-node-deployment)
-			* [1.2.4 Deploying a Multi-node Test Network on a Single Computer](#124-deploying-a-multi-node-test-network-on-a-single-computer)
-			* [1.2.5 Single-Node Test Network Deployment](#125-single-node-test-network-deployment)
+			* [1.2.1 Mainnet Bookkeeping Node Deployment](#121-mainnet-bookkeeping-node-deployment)
+			* [1.2.2 Mainnet Synchronization Node Deployment](#122-mainnet-synchronization-node-deployment)
+			* [1.2.3 Deploying on public test network Polaris sync node](#123-deploying-on-public-test-network-polaris-sync-node)
+			* [1.2.4 Single-Node Test Network Deployment](#124-single-node-test-network-deployment)
 	* [2. Wallet Management](#2-wallet-management)
 		* [2.1. Add Account](#21-add-account)
 			* [2.1.1 Add Account Parameters](#211-add-account-parameters)
-		* [2.2. View Account](#22-view-account)
+		* [2.2 View Account](#22-view-account)
 		* [2.3 Modify Account](#23-modify-account)
 			* [2.3.1 Modifying Account Parameters](#231-modifying-account-parameters)
 		* [2.4 Delete Account](#24-delete-account)
 		* [2.5 Import Account](#25-import-account)
 			* [2.5.1 Import Account Parameters](#251-import-account-parameters)
-			* [2.5.2 WIF account import](#252-import-account-by-wif)
+			* [2.5.2 Import Account by WIF](#252-import-account-by-wif)
 	* [3. Asset Management](#3-asset-management)
 		* [3.1 Check Your Account Balance](#31-check-your-account-balance)
 		* [3.2 ONT/ONG Transfers](#32-ontong-transfers)
@@ -47,7 +44,7 @@ Ontology CLI is an Ontology node command line Client for starting and managing O
 		* [3.6 View Unlocked ONG Balance](#36-view-unlocked-ong-balance)
 		* [3.7 Extract Unlocked ONG](#37-extract-unlocked-ong)
 			* [3.7.1 Extracting Unlocked ONG Parameters](#371-extracting-unlocked-ong-parameters)
-	* [4. Query Information](#4-query-information)
+	* [4 Query Information](#4-query-information)
 		* [4.1 Query Block Information](#41-query-block-information)
 		* [4.2 Query Transaction Information](#42-query-transaction-information)
 		* [4.3 Query Transaction Execution Information](#43-query-transaction-execution-information)
@@ -171,104 +168,7 @@ The enablebroadcastnettx is used to enable broadcast a transaction from network 
 
 ### 1.2 Node Deployment
 
-#### 1.2.1 Genesis Block Configuration File
-
-For deploying node, we need to provide the genesis block configuration file for initializing the genesis block. Ontology supports the VBFT and dBFT consensus algorithms. A blockchain network must use the same consensus algorithm, otherwise nodes will not work properly. Because of Ontology  built-in the config of main net, if you start Ontology without specifies any config of genesis, will access Ontology main net. However, if you need to build an Ontology private chain, you need to provide the config of genesis block via --config flag.
-
-To deploy Ontology test network with dBFT consensus algorithm requires a minimum of 4 nodes, and to deploy Ontology test network with the VBFT consensus algorithm requires a minimum of 7 nodes.
-
-##### 1.2.1.1 VBFT Configuration File
-
-An example of a genesis block configuration file using the VBFT consensus algorithm:
-
-```
-{
-  "SeedList": [
-    "192.168.0.1:20338"             //Seed node list
-  ],
-  "ConsensusType":"vbft",           //Specify the current network to use VBFT algorithm
-  "VBFT":{                          //VBFT algorithm configuration
-    "n":7,                          //Network size (temporarily unused)
-    "c":2,                          //The number of fault-tolerant nodes
-    "k":7,                          //The number of consensus nodes
-    "l":112,                        //Length of POS table
-    "block_msg_delay":10000,        //Maximum broadcast delay for block messages (ms)
-    "hash_msg_delay":10000,         //Maximum broadcast delay for hash messages (ms)
-    "peer_handshake_timeout":10,    //Node handshake timeout (s)
-    "max_block_change_view":1000,   //Consensus period
-    "vrf_value":"1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
-    "vrf_proof":"c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
-    "peers":[                       //Bookkeeping node configuration
-      {
-        "index":1,                  //Bookkeeping node index
-        "peerPubkey":"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087527",  //Bookkeeping node public key
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",                                         //Bookkeeping node account address
-        "initPos":1000              // initial ONT mortgage value
-      },
-      {
-        "index":2,
-        "peerPubkey":"120202dfb161f757921898ec2e30e3618d5c6646d993153b89312bac36d7688912c0ce",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":2000
-      },
-      {
-        "index":3,
-        "peerPubkey":"1202039dab38326268fe82fb7967fe2e7f5f6eaced6ec711148a66fbb8480c321c19dd",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":3000
-      },
-      {
-        "index":4,
-        "peerPubkey":"12020384f2729bc5d9b14dcbf17aba108261dc7ad867127e413d3c8bfb4731739687b3",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":4000
-      },
-      {
-        "index":5,
-        "peerPubkey":"120203362f99284daa9f581fab596516f75475fc61a5f80de0e268a68430dc7589859c",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":3000
-      },
-      {
-        "index":6,
-        "peerPubkey":"120203db6e37a2d897f2d61b42dcd478323a8a20c3444af4ee29653849f38d0bdb67f4",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":2000
-      },
-      {
-        "index":7,
-        "peerPubkey":"12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":1000
-      }
-    ]
-  }
-}
-```
-
-##### 1.2.1.2 dBFT Configuration File
-
-An example of a genesis block configuration file using the dBFT consensus algorithm:
-
-```
-{
-  "SeedList": [
-    "192.168.0.1:20338"               //Seed node list
-  ],
-  "ConsensusType":"dbft",             //Specify the current network to use dBFT algorithm
-  "DBFT":{                            //dBFT consensus algorithm configuration
-    "Bookkeepers": [                  //Bookkeeping node public key list
-      "1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087527",
-      "120202dfb161f757921898ec2e30e3618d5c6646d993153b89312bac36d7688912c0ce",
-      "1202039dab38326268fe82fb7967fe2e7f5f6eaced6ec711148a66fbb8480c321c19dd",
-      "12020384f2729bc5d9b14dcbf17aba108261dc7ad867127e413d3c8bfb4731739687b3"
-    ],
-    "GenBlockTime":6                  //block-out time interval, in seconds
-  }
-}
-```
-
-#### 1.2.2 Bookkeeping Node Deployment
+#### 1.2.1 Mainnet Bookkeeping Node Deployment
 
 According to different roles of nodes, they can be divided into bookkeeping nodes and synchronization nodes. Bookkeeping nodes participate in the network consensus, and synchronization nodes only synchronize the blocks generated by the bookkeeping nodes. Since Ontology node wont't start consensus by default, must turn consensus on by the --enableconsensus parameter. The Ontology node will start the Rpc server by default and output the Event Log of the smart contract. Therefore, if there is no special requirement, you can use the --disablerpc and --disableeventlog command line parameters to turn off the rpc and eventlog modules.
 
@@ -277,11 +177,13 @@ Recommended bookkeeping node startup parameters:
 ```
 ./Ontology --enbaleconsensus --disablerpc --disableeventlog
 ```
-
+    - `enbaleconsensus` is use to start the consensus
+    - `disablerpc` is to close the rpc services for the safe concerns.
+    - `disableeventlog` is to disable the event log for high performance.
 If the node does not use the default genesis block configuration file and wallet account, the node can specify them with the --config, --wallet, --account parameters.
 At the same time, if the bookkeeping node needs to modify the default minimum gas price and gas limit of the transaction pool, it can set the parameters by --gasprice and --gaslimit.
 
-#### 1.2.3 Synchronization Node Deployment
+#### 1.2.2 Mainnet Synchronization Node Deployment
 
 Since the synchronization node only synchronizes the blocks generated by the bookkeeping node and does not participate in the network consensus.
 
@@ -291,14 +193,14 @@ Since the synchronization node only synchronizes the blocks generated by the boo
 
 If the node does not use the default genesis block configuration file, it can be specified with the --config parameter. Since wont't turn consensus on, don't need wallet when startup a synchronization node.
 
-#### 1.2.4 Deploying a Multi-node Test Network on a Single Computer
+#### 1.2.3 Deploying on public test network Polaris sync node
 
-You can deploy Ontology's test network on a single machine, which is essentially no different from deploying multiple nodes on multiple machines, but note that you need to use different port numbers:
+Run ontology straightly
 
 ```
-./Ontology --nodeport=XXX --rpcport=XXX
+./Ontology --networkid 2
 ```
-#### 1.2.5 Single-Node Test Network Deployment
+#### 1.2.4 Single-Node Test Network Deployment
 
 Ontology supports single-node network deployment for the development of test environments. To start a single-node test network, you only need to add the --testmode command line parameter.
 
@@ -309,7 +211,7 @@ Ontology supports single-node network deployment for the development of test env
 If the node does not use the default genesis block configuration file and wallet account, the node can specify them with the --config, --wallet, --account parameters.
 At the same time, if the bookkeeping node needs to modify the default minimum gas price and gas limit of the transaction pool, it can set the parameters by --gasprice and --gaslimit.
 
-Note that, Ontology will turn consensus rpc, rest and web socket server on in testmode.
+Note that, Ontology will turn consensus rpc, rest and web socket server on in test mode.
 
 ## 2. Wallet Management
 
@@ -366,7 +268,7 @@ The parameter is used to create ONT ID instead of account.
 
 You can view the help information by ./Ontology account add --help.
 
-### 2.2. View Account
+### 2.2 View Account
 
 Command：
 

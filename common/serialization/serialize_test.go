@@ -25,6 +25,7 @@ import (
 	"math"
 	"testing"
 
+	"crypto/rand"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -197,4 +198,15 @@ func TestReadVarBytesRead(t *testing.T) {
 	read, err := byteXReader(buff, uint64(len(bs)))
 	assert.Nil(t, err)
 	assert.Equal(t, bs, read)
+}
+
+const N = 24829*1 + 1
+
+func BenchmarkBytesXReader(b *testing.B) {
+	bs := make([]byte, N)
+	rand.Read(bs)
+	for i := 0; i < b.N; i++ {
+		buff := bytes.NewBuffer(bs)
+		byteXReader(buff, uint64(len(bs)))
+	}
 }

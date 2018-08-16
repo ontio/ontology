@@ -8,8 +8,6 @@ DBUILD=docker build
 DRUN=docker run
 DOCKER_NS ?= ontio
 DOCKER_TAG=$(ARCH)-$(VERSION)
-ONT_CFG_IN_DOCKER=config.json
-WALLET_FILE=wallet.dat
 
 SRC_FILES = $(shell git ls-files | grep -e .go$ | grep -v _test.go)
 TOOLS=./tools
@@ -65,17 +63,11 @@ all-cross: ontology-cross tools-cross abi
 format:
 	$(GOFMT) -w main.go
 
-$(WALLET_FILE):
-	@if [ ! -e $(WALLET_FILE) ]; then $(error Please create wallet file first) ; fi
-
-docker/payload: docker/build/bin/ontology docker/Dockerfile $(ONT_CFG_IN_DOCKER) $(WALLET_FILE)
+docker/payload: docker/build/bin/ontology docker/Dockerfile
 	@echo "Building ontology payload"
 	@mkdir -p $@
 	@cp docker/Dockerfile $@
 	@cp docker/build/bin/ontology $@
-	@cp -f $(ONT_CFG_IN_DOCKER) $@/config.json
-	@cp -f $(WALLET_FILE) $@
-	@tar czf $@/config.tgz -C $@ config.json $(WALLET_FILE)
 	@touch $@
 
 docker/build/bin/%: Makefile

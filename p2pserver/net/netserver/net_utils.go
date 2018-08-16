@@ -41,14 +41,14 @@ func createListener(port uint16) (net.Listener, error) {
 	if isTls {
 		listener, err = initTlsListen(port)
 		if err != nil {
-			log.Error("initTlslisten failed")
-			return nil, errors.New("initTlslisten failed")
+			log.Error("[p2p]initTlslisten failed")
+			return nil, errors.New("[p2p]initTlslisten failed")
 		}
 	} else {
 		listener, err = initNonTlsListen(port)
 		if err != nil {
-			log.Error("initNonTlsListen failed")
-			return nil, errors.New("initNonTlsListen failed")
+			log.Error("[p2p]initNonTlsListen failed")
+			return nil, errors.New("[p2p]initNonTlsListen failed")
 		}
 	}
 	return listener, nil
@@ -56,7 +56,7 @@ func createListener(port uint16) (net.Listener, error) {
 
 //nonTLSDial return net.Conn with nonTls
 func nonTLSDial(addr string) (net.Conn, error) {
-	log.Debug()
+	log.Trace()
 	conn, err := net.DialTimeout("tcp", addr, time.Second*common.DIAL_TIMEOUT)
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 
 	cacert, err := ioutil.ReadFile(CAPath)
 	if err != nil {
-		log.Error("load CA file fail", err)
+		log.Error("[p2p]load CA file fail", err)
 		return nil, err
 	}
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
@@ -84,7 +84,7 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 
 	ret := clientCertPool.AppendCertsFromPEM(cacert)
 	if !ret {
-		return nil, errors.New("failed to parse root certificate")
+		return nil, errors.New("[p2p]failed to parse root certificate")
 	}
 
 	conf := &tls.Config{
@@ -103,10 +103,10 @@ func TLSDial(nodeAddr string) (net.Conn, error) {
 
 //initNonTlsListen return net.Listener with nonTls mode
 func initNonTlsListen(port uint16) (net.Listener, error) {
-	log.Debug()
+	log.Trace()
 	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 	if err != nil {
-		log.Error("Error listening\n", err.Error())
+		log.Error("[p2p]Error listening\n", err.Error())
 		return nil, err
 	}
 	return listener, nil
@@ -121,19 +121,19 @@ func initTlsListen(port uint16) (net.Listener, error) {
 	// load cert
 	cert, err := tls.LoadX509KeyPair(CertPath, KeyPath)
 	if err != nil {
-		log.Error("load keys fail", err)
+		log.Error("[p2p]load keys fail", err)
 		return nil, err
 	}
 	// load root ca
 	caData, err := ioutil.ReadFile(CAPath)
 	if err != nil {
-		log.Error("read ca fail", err)
+		log.Error("[p2p]read ca fail", err)
 		return nil, err
 	}
 	pool := x509.NewCertPool()
 	ret := pool.AppendCertsFromPEM(caData)
 	if !ret {
-		return nil, errors.New("failed to parse root certificate")
+		return nil, errors.New("[p2p]failed to parse root certificate")
 	}
 
 	tlsConfig := &tls.Config{
@@ -143,7 +143,7 @@ func initTlsListen(port uint16) (net.Listener, error) {
 		ClientCAs:    pool,
 	}
 
-	log.Info("TLS listen port is ", strconv.Itoa(int(port)))
+	log.Info("[p2p]TLS listen port is ", strconv.Itoa(int(port)))
 	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(int(port)), tlsConfig)
 	if err != nil {
 		log.Error(err)

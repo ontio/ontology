@@ -21,6 +21,8 @@ package sigsvr
 import "github.com/ontio/ontology/cmd/sigsvr/handlers"
 
 func init() {
+	DefCliRpcSvr.RegHandler("createaccount", handlers.CreateAccount)
+	DefCliRpcSvr.RegHandler("exportaccount", handlers.ExportAccount)
 	DefCliRpcSvr.RegHandler("sigdata", handlers.SigData)
 	DefCliRpcSvr.RegHandler("sigrawtx", handlers.SigRawTransaction)
 	DefCliRpcSvr.RegHandler("sigmutilrawtx", handlers.SigMutilRawTransaction)

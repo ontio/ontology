@@ -22,13 +22,17 @@ import (
 	"encoding/json"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
 	"testing"
 )
 
 func TestSigNeoVMInvokeTx(t *testing.T) {
-	addr1 := common.Address([20]byte{1})
-	address1 := addr1.ToHexString()
+	defAcc, err := testWallet.GetDefaultAccount(pwd)
+	if err != nil {
+		t.Errorf("GetDefaultAccount error:%s", err)
+		return
+	}
+
+	address1 := defAcc.Address.ToHexString()
 	invokeReq := &SigNeoVMInvokeTxReq{
 		GasPrice: 0,
 		GasLimit: 0,
@@ -59,9 +63,11 @@ func TestSigNeoVMInvokeTx(t *testing.T) {
 		return
 	}
 	req := &clisvrcom.CliRpcRequest{
-		Qid:    "t",
-		Method: "signeovminvoketx",
-		Params: data,
+		Qid:     "t",
+		Method:  "signeovminvoketx",
+		Params:  data,
+		Account: defAcc.Address.ToBase58(),
+		Pwd:     string(pwd),
 	}
 	rsp := &clisvrcom.CliRpcResponse{}
 	SigNeoVMInvokeTx(req, rsp)

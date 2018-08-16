@@ -100,7 +100,7 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 	}
 	if rsp.ErrCode != errors.ErrNoError {
 		//Verify fail
-		log.Infof("handleRsp: validator %d transaction %x invalid: %s",
+		log.Debugf("handleRsp: validator %d transaction %x invalid: %s",
 			rsp.Type, rsp.Hash, rsp.ErrCode.Error())
 		delete(worker.pendingTxList, rsp.Hash)
 		worker.server.removePendingTx(rsp.Hash, rsp.ErrCode)
@@ -150,7 +150,7 @@ func (worker *txPoolWorker) handleTimeoutEvent() {
 				worker.reVerifyTx(k)
 				v.retries++
 			} else {
-				log.Infof("retry to verify transaction exhausted %x", k.ToArray())
+				log.Debugf("retry to verify transaction exhausted %x", k.ToArray())
 				worker.mu.Lock()
 				delete(worker.pendingTxList, k)
 				worker.mu.Unlock()
@@ -175,14 +175,14 @@ func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
 // verifyTx prepares a check request and sends it to the validators.
 func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	if tx := worker.server.getTransaction(tx.Hash()); tx != nil {
-		log.Infof("verifyTx: transaction %x already in the txn pool",
+		log.Debugf("verifyTx: transaction %x already in the txn pool",
 			tx.Hash())
 		worker.server.removePendingTx(tx.Hash(), errors.ErrDuplicateInput)
 		return
 	}
 
 	if _, ok := worker.pendingTxList[tx.Hash()]; ok {
-		log.Infof("verifyTx: transaction %x already in the verifying process",
+		log.Debugf("verifyTx: transaction %x already in the verifying process",
 			tx.Hash())
 		return
 	}
