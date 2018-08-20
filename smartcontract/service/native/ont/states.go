@@ -127,7 +127,15 @@ func (this *State) Deserialize(r io.Reader) error {
 func (this *State) Deserialization(source *common.ZeroCopySource) error {
 	var err error
 	this.From, err = utils.DecodeAddress(source)
+	if err != nil {
+		return err
+	}
+
 	this.To, err = utils.DecodeAddress(source)
+	if err != nil {
+		return err
+	}
+
 	this.Value, err = utils.DecodeVarUint(source)
 
 	return err
@@ -190,8 +198,17 @@ func (this *TransferFrom) Deserialize(r io.Reader) error {
 func (this *TransferFrom) Deserialization(source *common.ZeroCopySource) error {
 	var err error
 	this.Sender, err = utils.DecodeAddress(source)
+	if err != nil {
+		return err
+	}
 	this.From, err = utils.DecodeAddress(source)
+	if err != nil {
+		return err
+	}
 	this.To, err = utils.DecodeAddress(source)
+	if err != nil {
+		return err
+	}
 	this.Value, err = utils.DecodeVarUint(source)
 
 	return err
