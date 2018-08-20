@@ -384,6 +384,17 @@ func (p *MemDB) Find(key []byte) (rkey, value []byte, err error) {
 	return
 }
 
+func (p *MemDB) ForEach(f func(key, val []byte)) {
+	for node := p.nodeData[nNext]; node != 0; node = p.nodeData[node+nNext] {
+		n := p.nodeData[node]
+		m := n + p.nodeData[node+nKey]
+		key := p.kvData[n:m]
+		val := p.kvData[m : m+p.nodeData[node+nVal]]
+		f(key, val)
+	}
+
+}
+
 // NewIterator returns an iterator of the MemDB.
 // The returned iterator is not safe for concurrent use, but it is safe to use
 // multiple iterators concurrently, with each in a dedicated goroutine.

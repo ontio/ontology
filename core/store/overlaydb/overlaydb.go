@@ -87,6 +87,17 @@ func (self *OverlayDB) Delete(prefix byte, key []byte) {
 	self.memdb.Delete(self.keyScratch)
 }
 
+func (self *OverlayDB) CommitTo() error {
+	self.memdb.ForEach(func(key, val []byte) {
+		if len(val) == 0 {
+			self.store.BatchDelete(key)
+		} else {
+			self.store.BatchPut(key, val)
+		}
+	})
+	return nil
+}
+
 type KeyOrigin byte
 
 const (
@@ -252,69 +263,3 @@ func (self *OverlayDB) NewIterator(prefix byte, key []byte) common.StoreIterator
 	}
 
 }
-
-/*
-func (self *OverlayDB) Find(prefix common.DataEntryPrefix, key []byte) ([]*common.StateItem, error) {
-	stats, err := self.store.Find(prefix, key)
-	if err != nil {
-		return nil, err
-	}
-	var sts []*common.StateItem
-	pkey := append([]byte{byte(prefix)}, key...)
-
-	index := make(map[string]int)
-	for i, v := range stats {
-		index[v.Key] = i
-	}
-
-	deleted := make([]int, 0)
-	for k, v := range self.memdb {
-		if strings.HasPrefix(k, string(pkey)) {
-			if v == nil { // deleted but in inner db, need remove
-				if i, ok := index[k]; ok {
-					deleted = append(deleted, i)
-				}
-			} else {
-				if i, ok := index[k]; ok {
-					sts[i] = &common.StateItem{Key: k, Value: v}
-				} else {
-					sts = append(sts, &common.StateItem{Key: k, Value: v})
-				}
-			}
-		}
-	}
-
-	sort.Ints(deleted)
-	for i := len(deleted) - 1; i >= 0; i-- {
-		sts = append(sts[:deleted[i]], sts[deleted[i]+1:]...)
-	}
-
-	return sts, nil
-}
-
-func (self *OverlayDB) TryAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
-	pkey := append([]byte{byte(prefix)}, key...)
-	self.memdb[string(pkey)] = value
-}
-
-func (self *OverlayDB) TryGet(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
-	pkey := append([]byte{byte(prefix)}, key...)
-	if state, ok := self.memdb[string(pkey)]; ok {
-		return state, nil
-	}
-	return self.store.TryGet(prefix, key)
-}
-
-func (self *OverlayDB) TryDelete(prefix common.DataEntryPrefix, key []byte) {
-	pkey := append([]byte{byte(prefix)}, key...)
-	self.memdb[string(pkey)] = nil
-}
-
-func (self *OverlayDB) CommitTo() error {
-	for k, v := range self.memdb {
-		pkey := []byte(k)
-		self.store.TryAdd(common.DataEntryPrefix(pkey[0]), pkey[1:], v)
-	}
-	return nil
-}
-*/
