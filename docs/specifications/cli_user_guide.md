@@ -75,7 +75,7 @@ The following are the command line parameters supported by Ontology CLI:
 The config parameter specifies the file path of the genesis block for the current Ontolgy node. If doesn't specify, Ontology will use the config of Polaris test net. Note that the genesis block configuration must be the same for all nodes in the same network, otherwise it will not be able to synchronize blocks or start nodes due to block data incompatibility.
 
 --loglevel
-The loglevel parameter is used to set the log level the Ontology outputs. Ontology supports 7 different log levels, i.e. 0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel. The logs are logged from low to high, and the log output volume is from high to low. The default value is 1, which means that only logs at the info level or higher level.
+The loglevel parameter is used to set the log level the Ontology outputs. Ontology supports 7 different log levels, i.e. 0:Trace 1:Debug 2:Info 3:Warn 4:Error 5:Fatal 6:MaxLevel. The logs are logged from low to high, and the log output volume is from high to low. The default value is 2, which means that only logs at the info level or higher level.
 
 --disableeventlog
 The disableeventlog parameter is used to disable the event log output when the smart contract is executed to improve the node transaction execution performance. The Ontology node enables the event log output function by default.
