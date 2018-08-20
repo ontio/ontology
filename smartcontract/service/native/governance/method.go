@@ -894,15 +894,26 @@ func executeNodeSplit(native *native.NativeService, contract common.Address, vie
 	}
 
 	//fee split of candidate peer
-	// cal s of each candidate node
+	//cal s of each candidate node
+	//get globalParam2
+	globalParam2, err := getGlobalParam2(native, contract)
+	if err != nil {
+		return nil, fmt.Errorf("getGlobalParam2, getGlobalParam2 error: %v", err)
+	}
+	var length int
+	if int(globalParam2.CandidateFeeSplitNum) >= len(peersCandidate) {
+		length = len(peersCandidate)
+	} else {
+		length = int(globalParam2.CandidateFeeSplitNum)
+	}
 	sum = 0
-	for i := K; i < len(peersCandidate); i++ {
+	for i := K; i < length; i++ {
 		sum += peersCandidate[i].Stake
 	}
 	if sum == 0 {
 		return nil, nil
 	}
-	for i := K; i < len(peersCandidate); i++ {
+	for i := K; i < length; i++ {
 		nodeAmount := income * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
 		nodeSplit[peersCandidate[i].PeerPubkey] = nodeAmount
 	}

@@ -1129,7 +1129,7 @@ func UpdateGlobalParam2(native *native.NativeService) ([]byte, error) {
 	//check witness
 	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam, checkWitness error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam2, checkWitness error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
@@ -1370,12 +1370,26 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
 	}
-	splitFee := splitFeeAddress.Amount
+	fee := splitFeeAddress.Amount
 
 	//ong transfer
-	err = appCallTransferOng(native, utils.GovernanceContractAddress, params.Address, splitFee)
+	err = appCallTransferOng(native, utils.GovernanceContractAddress, params.Address, fee)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("appCallTransferOng, ong transfer error: %v", err)
+	}
+
+	//delete from splitFeeAddress
+	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), params.Address[:]))
+
+	//update splitFee
+	splitFee, err := getSplitFee(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getSplitFee, getSplitFee error: %v", err)
+	}
+	newSplitFee := splitFee - fee
+	err = putSplitFee(native, contract, newSplitFee)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putSplitFee, put splitFee error: %v", err)
 	}
 
 	return utils.BYTE_TRUE, nil

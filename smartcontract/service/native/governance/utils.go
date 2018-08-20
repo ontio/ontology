@@ -276,12 +276,19 @@ func putGlobalParam(native *native.NativeService, contract common.Address, globa
 }
 
 func getGlobalParam2(native *native.NativeService, contract common.Address) (*GlobalParam2, error) {
+	//get globalParam
+	globalParam, err := getGlobalParam(native, contract)
+	if err != nil {
+		return nil, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
+	}
+
 	globalParam2Bytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)))
 	if err != nil {
 		return nil, fmt.Errorf("getGlobalParam2, get globalParam2Bytes error: %v", err)
 	}
 	globalParam2 := &GlobalParam2{
-		MinAuthorizePos: 500,
+		MinAuthorizePos:      500,
+		CandidateFeeSplitNum: globalParam.CandidateNum,
 	}
 	if globalParam2Bytes != nil {
 		globalParam2Store, ok := globalParam2Bytes.(*cstates.StorageItem)

@@ -611,18 +611,22 @@ func (this *GlobalParam) Deserialize(r io.Reader) error {
 }
 
 type GlobalParam2 struct {
-	MinAuthorizePos uint32
-	Field1          []byte
-	Field2          []byte
-	Field3          []byte
-	Field4          []byte
-	Field5          []byte
-	Field6          []byte
+	MinAuthorizePos      uint32
+	CandidateFeeSplitNum uint32
+	Field1               []byte
+	Field2               []byte
+	Field3               []byte
+	Field4               []byte
+	Field5               []byte
+	Field6               []byte
 }
 
 func (this *GlobalParam2) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, uint64(this.MinAuthorizePos)); err != nil {
 		return fmt.Errorf("utils.WriteVarUint, serialize minAuthorizePos error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.CandidateFeeSplitNum)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize candidateFeeSplitNum error: %v", err)
 	}
 	if err := serialization.WriteVarBytes(w, this.Field1); err != nil {
 		return fmt.Errorf("serialization.WriteVarBytes, serialize field1 error: %v", err)
@@ -649,6 +653,10 @@ func (this *GlobalParam2) Deserialize(r io.Reader) error {
 	minAuthorizePos, err := utils.ReadVarUint(r)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize minAuthorizePos error: %v", err)
+	}
+	candidateFeeSplitNum, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize candidateFeeSplitNum error: %v", err)
 	}
 	field1, err := serialization.ReadVarBytes(r)
 	if err != nil {
@@ -677,8 +685,12 @@ func (this *GlobalParam2) Deserialize(r io.Reader) error {
 	if minAuthorizePos > math.MaxUint32 {
 		return fmt.Errorf("minAuthorizePos larger than max of uint32")
 	}
+	if candidateFeeSplitNum > math.MaxUint32 {
+		return fmt.Errorf("candidateFeeSplitNum larger than max of uint32")
+	}
 
 	this.MinAuthorizePos = uint32(minAuthorizePos)
+	this.CandidateFeeSplitNum = uint32(candidateFeeSplitNum)
 	this.Field1 = field1
 	this.Field2 = field2
 	this.Field3 = field3
