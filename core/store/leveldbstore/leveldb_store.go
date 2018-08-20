@@ -24,6 +24,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
+	"github.com/syndtr/goleveldb/leveldb/storage"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
@@ -52,6 +53,24 @@ func NewLevelDBStore(file string) (*LevelDBStore, error) {
 		db, err = leveldb.RecoverFile(file, nil)
 	}
 
+	if err != nil {
+		return nil, err
+	}
+
+	return &LevelDBStore{
+		db:    db,
+		batch: nil,
+	}, nil
+}
+
+func NewMemLevelDBStore() (*LevelDBStore, error) {
+	store := storage.NewMemStorage()
+	// default Options
+	o := opt.Options{
+		NoSync: false,
+		Filter: filter.NewBloomFilter(BITSPERKEY),
+	}
+	db, err := leveldb.Open(store, &o)
 	if err != nil {
 		return nil, err
 	}

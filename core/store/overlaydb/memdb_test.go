@@ -31,7 +31,7 @@ func TestIter(t *testing.T) {
 	assert.Equal(t, iter.Last(), true)
 	db.Delete([]byte("aaa"))
 	assert.Equal(t, iter.First(), true)
-	assert.Equal(t, iter.Value(), nil)
+	assert.Equal(t, len(iter.Value()), 0)
 	assert.Equal(t, iter.Last(), true)
-	assert.Equal(t, iter.Value(), nil)
+	assert.Equal(t, len(iter.Value()), 0)
 }

@@ -39,9 +39,9 @@ func TestDot(t *testing.T) {
 		db.Put([]byte(k), []byte(v))
 	}
 
-	dot := db.DumpToDot()
+	//dot := db.DumpToDot()
 
-	fmt.Println(dot)
+	//fmt.Println(dot)
 }
 
 func TestDB(t *testing.T) {
@@ -56,12 +56,12 @@ func TestDB(t *testing.T) {
 	}
 
 	for i := range buf {
-		val, err := db.Get(buf[i][:])
-		assert.Nil(t, err)
+		val, unknown := db.Get(buf[i][:])
+		assert.False(t, unknown)
 		assert.Equal(t, len(val), 0)
 	}
 
-	fmt.Println(db.nodeData)
+	//fmt.Println(db.nodeData)
 }
 
 func BenchmarkPut(b *testing.B) {

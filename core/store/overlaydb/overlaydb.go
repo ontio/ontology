@@ -38,6 +38,10 @@ func NewOverlayDB(store common.PersistStore) *OverlayDB {
 	}
 }
 
+func (self *OverlayDB) Reset() {
+	self.memdb.Reset()
+}
+
 func makePrefixedKey(dst []byte, prefix byte, key []byte) []byte {
 	dst = ensureBuffer(dst, len(key)+1)
 	dst[0] = prefix
