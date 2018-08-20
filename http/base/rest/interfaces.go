@@ -357,13 +357,7 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var address common.Address
-	var err error
-	if len(str) == common.ADDR_LEN*2 {
-		address, err = common.AddressFromHexString(str)
-	} else {
-		address, err = common.AddressFromBase58(str)
-	}
+	address, err := bcomn.GetAddress(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -391,13 +385,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var address common.Address
-	var err error
-	if len(str) == common.ADDR_LEN*2 {
-		address, err = common.AddressFromHexString(str)
-	} else {
-		address, err = common.AddressFromBase58(str)
-	}
+	address, err := bcomn.GetAddress(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -503,11 +491,11 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	fromAddr, err := common.AddressFromBase58(fromAddrStr)
+	fromAddr, err := bcomn.GetAddress(fromAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	toAddr, err := common.AddressFromBase58(toAddrStr)
+	toAddr, err := bcomn.GetAddress(toAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -526,7 +514,7 @@ func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	toAddr, err := common.AddressFromBase58(toAddrStr)
+	toAddr, err := bcomn.GetAddress(toAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}

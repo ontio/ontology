@@ -521,3 +521,14 @@ func BuildNeoVMParam(builder *neovm.ParamsBuilder, smartContractParams []interfa
 	}
 	return nil
 }
+
+func GetAddress(str string) (common.Address, error) {
+	var address common.Address
+	var err error
+	if len(str) == common.ADDR_LEN*2 {
+		address, err = common.AddressFromHexString(str)
+	} else {
+		address, err = common.AddressFromBase58(str)
+	}
+	return address, err
+}
