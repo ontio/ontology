@@ -125,7 +125,5 @@ func (self *LevelDBStore) NewIterator(prefix []byte) common.StoreIterator {
 
 	iter := self.db.NewIterator(util.BytesPrefix(prefix), nil)
 
-	return &Iterator{
-		iter: iter,
-	}
+	return iter
 }
