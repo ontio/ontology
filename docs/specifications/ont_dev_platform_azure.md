@@ -19,7 +19,9 @@
 
 ## Using(IP:External network IP of VM)
 * smartx:http://IP
+ ![avatar](azure_image/smartx.png)
 * explorer:http://IP:8000
+ ![avatar](azure_image/explorer.png)
 
 ## Software infomation
 ### 1.mysql
