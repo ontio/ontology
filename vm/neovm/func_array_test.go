@@ -25,6 +25,7 @@ import (
 	"math/big"
 
 	vtypes "github.com/ontio/ontology/vm/neovm/types"
+	"fmt"
 )
 
 func TestOpArraySize(t *testing.T) {
@@ -179,13 +180,11 @@ func TestOpRemove(t *testing.T) {
 	PushData(&e1, vtypes.NewByteArray([]byte("aaa")))
 	opRemove(&e1)
 
-	mm, err := e1.EvaluationStack.Peek(0).GetMap()
-	if err != nil {
-		t.Fatal("NeoVM OpRemove test failed.")
-	}
+	mm := e1.EvaluationStack.Peek(0)
 
-	_, ok := mm[vtypes.NewByteArray([]byte("aaa"))]
-	if ok {
+	v := mm.(*vtypes.Map).TryGetValue(vtypes.NewByteArray([]byte("aaa")))
+
+	if v != nil {
 		t.Fatal("NeoVM OpRemove remove map failed.")
 	}
 }
