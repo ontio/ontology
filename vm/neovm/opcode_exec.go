@@ -64,9 +64,9 @@ var (
 		SYSCALL: {Opcode: SYSCALL, Name: "SYSCALL"},
 
 		//Stack ops
-		DUPFROMALTSTACK: {Opcode: DUPFROMALTSTACK, Name: "DUPFROMALTSTACK", Exec: opToDupFromAltStack},
-		TOALTSTACK:      {Opcode: TOALTSTACK, Name: "TOALTSTACK", Exec: opToAltStack},
-		FROMALTSTACK:    {Opcode: FROMALTSTACK, Name: "FROMALTSTACK", Exec: opFromAltStack},
+		DUPFROMALTSTACK: {Opcode: DUPFROMALTSTACK, Name: "DUPFROMALTSTACK", Exec: opToDupFromAltStack, Validator: validateAltStackCount1},
+		TOALTSTACK:      {Opcode: TOALTSTACK, Name: "TOALTSTACK", Exec: opToAltStack, Validator: validateCount1},
+		FROMALTSTACK:    {Opcode: FROMALTSTACK, Name: "FROMALTSTACK", Exec: opFromAltStack, Validator: validateAltStackCount1},
 		XDROP:           {Opcode: XDROP, Name: "XDROP", Exec: opXDrop, Validator: validateXDrop},
 		XSWAP:           {Opcode: XSWAP, Name: "XSWAP", Exec: opXSwap, Validator: validateXSwap},
 		XTUCK:           {Opcode: XTUCK, Name: "XTUCK", Exec: opXTuck, Validator: validateXTuck},
