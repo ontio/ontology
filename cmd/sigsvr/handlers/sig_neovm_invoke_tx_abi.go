@@ -73,7 +73,7 @@ func SigNeoVMInvokeAbiTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRes
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	tx, err := httpcom.NewNeovmInvokeTransaction(rawReq.GasPrice, rawReq.GasLimit, contAddr, invokParams)
+	mutable, err := httpcom.NewNeovmInvokeTransaction(rawReq.GasPrice, rawReq.GasLimit, contAddr, invokParams)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNeoVMInvokeAbiTx InvokeNeoVMContractTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
@@ -86,7 +86,7 @@ func SigNeoVMInvokeAbiTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRes
 			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 			return
 		}
-		tx.Payer = payerAddress
+		mutable.Payer = payerAddress
 	}
 	signer, err := req.GetAccount()
 	if err != nil {
@@ -94,12 +94,21 @@ func SigNeoVMInvokeAbiTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRes
 		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
 		return
 	}
-	err = cliutil.SignTransaction(signer, tx)
+	err = cliutil.SignTransaction(signer, mutable)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNeoVMInvokeAbiTx SignTransaction error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
+
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigNeoVMInvokeAbiTx tx Serialize error:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		return
+	}
+	sink := common.ZeroCopySink{}
+	err = tx.Serialization(&sink)
 	buf := bytes.NewBuffer(nil)
 	err = tx.Serialize(buf)
 	if err != nil {
