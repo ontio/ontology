@@ -67,7 +67,7 @@ func (self *validator) Receive(context actor.Context) {
 	case *vatypes.CheckTx:
 		log.Debugf("stateless-validator receive tx %x", msg.Tx.Hash())
 		sender := context.Sender()
-		errCode := validation.VerifyTransaction(&msg.Tx)
+		errCode := validation.VerifyTransaction(msg.Tx)
 
 		response := &vatypes.CheckResponse{
 			WorkerId: msg.WorkerId,

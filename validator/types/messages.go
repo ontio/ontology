@@ -44,7 +44,7 @@ type UnRegisterAck struct {
 
 type CheckTx struct {
 	WorkerId uint8
-	Tx       types.Transaction
+	Tx       *types.Transaction
 }
 
 type CheckResponse struct {
