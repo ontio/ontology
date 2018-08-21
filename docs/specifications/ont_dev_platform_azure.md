@@ -4,8 +4,10 @@
   * chmod +x /opt/gopath/test/start.sh
 * initialize httpd settings and restart httpd service
   * sh /opt/start.sh IP (IP:External network IP of VM)
+  ![avatar](azure_image/initialize.png)
 * start ontology testmode service
   * cd /opt/gopath/test && nohup ./start.sh &
+  ![avatar](azure_image/ontology.png)
 
 ### 2.NetworkSecurityGroup
 * VM->SETTINGS->Networking->Inbound port rules
@@ -13,6 +15,7 @@
   * 8000
   * 3306（Optional）
   * 8080
+  ![avatar](azure_image/securityGroup.png)
 
 ## Using(IP:External network IP of VM)
 * smartx:http://IP
