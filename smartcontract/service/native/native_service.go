@@ -19,7 +19,6 @@
 package native
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
@@ -60,9 +59,9 @@ func (this *NativeService) Register(methodName string, handler Handler) {
 }
 
 func (this *NativeService) Invoke() (interface{}, error) {
-	bf := bytes.NewBuffer(this.Code)
-	contract := new(sstates.Contract)
-	if err := contract.Deserialize(bf); err != nil {
+	source := common.NewZeroCopySource(this.Code)
+	var contract sstates.Contract
+	if err := contract.Deserialization(source); err != nil {
 		return false, err
 	}
 	services, ok := Contracts[contract.Address]
@@ -92,15 +91,13 @@ func (this *NativeService) Invoke() (interface{}, error) {
 }
 
 func (this *NativeService) NativeCall(address common.Address, method string, args []byte) (interface{}, error) {
-	bf := new(bytes.Buffer)
 	c := states.Contract{
 		Address: address,
 		Method:  method,
 		Args:    args,
 	}
-	if err := c.Serialize(bf); err != nil {
-		return nil, err
-	}
-	this.Code = bf.Bytes()
+	sink := common.ZeroCopySink{}
+	c.Serialization(&sink)
+	this.Code = sink.Bytes()
 	return this.Invoke()
 }
