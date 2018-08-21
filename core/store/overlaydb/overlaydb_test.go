@@ -44,26 +44,26 @@ func TestNewOverlayDB(t *testing.T) {
 
 	overlay := NewOverlayDB(store)
 	for i := 0; i < N; i++ {
-		overlay.Put(byte(1), makeKey(i), []byte("val"+strconv.Itoa(i)))
+		overlay.Put(makeKey(i), []byte("val"+strconv.Itoa(i)))
 	}
 
 	for i := 0; i < N; i++ {
-		val, err := overlay.Get(byte(1), makeKey(i))
+		val, err := overlay.Get(makeKey(i))
 		assert.Nil(t, err)
 		assert.Equal(t, val, []byte("val"+strconv.Itoa(i)))
 	}
 
 	for i := 0; i < N; i += 2 {
-		overlay.Delete(byte(1), makeKey(i))
+		overlay.Delete(makeKey(i))
 	}
 
-	iter := overlay.NewIterator(byte(1), []byte("key"))
+	iter := overlay.NewIterator([]byte("key"))
 	hasfirst := iter.First()
 	assert.True(t, hasfirst)
 	for i := 1; i < N; i += 2 {
 		key := iter.Key()
 		val := iter.Value()
-		assert.Equal(t, key, append([]byte{1}, makeKey(i)...))
+		assert.Equal(t, key, makeKey(i))
 		assert.Equal(t, val, []byte("val"+strconv.Itoa(i)))
 		n := iter.Next()
 		assert.True(t, n || i+2 >= N)
@@ -78,7 +78,7 @@ func BenchmarkOverlayDBSerialPut(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		overlay.Reset()
 		for i := 0; i < N; i++ {
-			overlay.Put(byte(1), makeKey(i), []byte("val"+strconv.Itoa(i)))
+			overlay.Put(makeKey(i), []byte("val"+strconv.Itoa(i)))
 		}
 
 	}
@@ -116,7 +116,7 @@ func BenchmarkOverlayDBRandomPut(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		overlay.Reset()
 		for i := 0; i < N; i++ {
-			overlay.Put(byte(1), makeKey(i), []byte("val"+strconv.Itoa(keys[i])))
+			overlay.Put(makeKey(i), []byte("val"+strconv.Itoa(keys[i])))
 		}
 
 	}
