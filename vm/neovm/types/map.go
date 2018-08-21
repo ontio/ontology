@@ -53,6 +53,7 @@ func (this *Map) Remove(key StackItems) {
 	for k := range this._map {
 		if k.Equals(key) {
 			delete(this._map, k)
+			break
 		}
 	}
 }

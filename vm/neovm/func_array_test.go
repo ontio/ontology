@@ -25,7 +25,6 @@ import (
 	"math/big"
 
 	vtypes "github.com/ontio/ontology/vm/neovm/types"
-	"fmt"
 )
 
 func TestOpArraySize(t *testing.T) {
