@@ -37,6 +37,14 @@ func validateCount1(e *ExecutionEngine) error {
 	return nil
 }
 
+func validateAltStackCount1(e *ExecutionEngine) error {
+	stackCount := e.AltStack.Count()
+	if stackCount < 1 {
+		return errors.ERR_UNDER_STACK_LEN
+	}
+	return nil
+}
+
 func validateCount2(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validateCount2]"); err != nil {
 		return err
