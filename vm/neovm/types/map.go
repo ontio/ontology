@@ -36,7 +36,7 @@ func NewMap() *Map {
 }
 
 func (this *Map) Add(key StackItems, value StackItems) {
-	for k, _ := range this._map {
+	for k := range this._map {
 		if k.Equals(key) {
 			delete(this._map, k)
 			break
