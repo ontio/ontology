@@ -71,6 +71,14 @@ func (this *Array) Add(item StackItems) {
 	this._array = append(this._array, item)
 }
 
+func (this *Array) RemoveAt(index int) {
+	this._array = append(this._array[:index-1], this._array[index:]...)
+}
+
 func (this *Array) Count() int {
 	return len(this._array)
+}
+
+func (this *Array) IsMapKey() bool {
+	return false
 }

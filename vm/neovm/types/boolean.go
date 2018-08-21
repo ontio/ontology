@@ -86,3 +86,7 @@ func (this *Boolean) GetStruct() ([]StackItems, error) {
 func (this *Boolean) GetMap() (map[StackItems]StackItems, error) {
 	return nil, fmt.Errorf("%s", "Not support boolean to map")
 }
+
+func (this *Boolean) IsMapKey() bool {
+	return true
+}

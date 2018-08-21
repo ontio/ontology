@@ -80,3 +80,7 @@ func (this *Interop) GetStruct() ([]StackItems, error) {
 func (this *Interop) GetMap() (map[StackItems]StackItems, error) {
 	return nil, fmt.Errorf("%s", "Not support interface to map")
 }
+
+func (this *Interop) IsMapKey() bool {
+	return false
+}
