@@ -80,6 +80,13 @@ func (this *routingTable) addNode(node *types.Node, bucketIndex int) bool {
 		if entry.ID == node.ID {
 			copy(bucket.entries[1:], bucket.entries[:i])
 			bucket.entries[0] = node
+			if this.feedCh != nil {
+				feed := &types.FeedEvent{
+					EvtType: types.Add,
+					Event:   node,
+				}
+				this.feedCh <- feed
+			}
 			return true
 		}
 	}

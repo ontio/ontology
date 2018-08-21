@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	oc "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
@@ -45,7 +46,11 @@ func (this *NbrPeers) Broadcast(msg types.Message, hash oc.Uint256, isConsensus 
 					continue
 				}
 				node.MarkHashAsSeen(hash)
-				node.Send(msg, isConsensus)
+				err := node.Send(msg, isConsensus)
+				if err != nil {
+					log.Infof("fail to send msg to peer %s, err %v ",
+						node.GetAddr(), err)
+				}
 			}
 		}
 	}

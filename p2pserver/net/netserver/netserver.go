@@ -19,6 +19,7 @@
 package netserver
 
 import (
+	"encoding/binary"
 	"errors"
 	"net"
 	"strconv"
@@ -150,7 +151,7 @@ func (this *NetServer) loop() {
 		select {
 		case event, ok := <-this.feedCh:
 			if ok {
-				log.Infof("EvtType %d, content %v", event.EvtType, event.Event)
+				log.Debugf("EvtType %d, content %v", event.EvtType, event.Event)
 				this.handleFeed(event)
 			}
 		case <-this.stopLoop:
@@ -164,6 +165,19 @@ func (this *NetServer) handleFeed(event *dt.FeedEvent) {
 	case dt.Add:
 		node := event.Event.(*dt.Node)
 		address := node.IP + ":" + strconv.Itoa(int(node.TCPPort))
+		id := binary.LittleEndian.Uint64(node.ID.Bytes())
+		if this.GetID() == id {
+			return
+		}
+		if this.NodeEstablished(id) {
+			return
+		}
+		if this.GetPeerFromAddr(address) != nil {
+			return
+		}
+		if this.IsAddrFromConnecting(address) {
+			return
+		}
 		this.Connect(address, false)
 	case dt.Del:
 		node := event.Event.(*dt.Node)

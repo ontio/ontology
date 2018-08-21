@@ -326,55 +326,6 @@ func (this *P2PServer) WaitForPeersStart() {
 	}
 }
 
-//connectSeeds connect the seeds in seedlist and call for nbr list
-func (this *P2PServer) connectSeeds() {
-	seedNodes := make([]string, 0)
-	pList := make([]*peer.Peer, 0)
-	for _, n := range config.DefConfig.Genesis.SeedList {
-		ip, err := common.ParseIPAddr(n)
-		if err != nil {
-			log.Warnf("[p2p]seed peer %s address format is wrong", n)
-			continue
-		}
-		ns, err := net.LookupHost(ip)
-		if err != nil {
-			log.Warnf("[p2p]resolve err: %s", err.Error())
-			continue
-		}
-		port, err := common.ParseIPPort(n)
-		if err != nil {
-			log.Warnf("[p2p]seed peer %s address format is wrong", n)
-			continue
-		}
-		seedNodes = append(seedNodes, ns[0]+port)
-	}
-
-	for _, nodeAddr := range seedNodes {
-		var ip net.IP
-		np := this.network.GetNp()
-		np.Lock()
-		for _, tn := range np.List {
-			ipAddr, _ := tn.GetAddr16()
-			ip = ipAddr[:]
-			addrString := ip.To16().String() + ":" +
-				strconv.Itoa(int(tn.GetSyncPort()))
-			if nodeAddr == addrString && tn.GetSyncState() == common.ESTABLISH {
-				pList = append(pList, tn)
-			}
-		}
-		np.Unlock()
-	}
-	if len(pList) > 0 {
-		rand.Seed(time.Now().UnixNano())
-		index := rand.Intn(len(pList))
-		this.reqNbrList(pList[index])
-	} else { //not found
-		for _, nodeAddr := range seedNodes {
-			go this.network.Connect(nodeAddr, false)
-		}
-	}
-}
-
 //reachMinConnection return whether net layer have enough link under different config
 func (this *P2PServer) reachMinConnection() bool {
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
@@ -487,12 +438,6 @@ func (this *P2PServer) keepOnlineService() {
 			break
 		}
 	}
-}
-
-//reqNbrList ask the peer for its neighbor list
-func (this *P2PServer) reqNbrList(p *peer.Peer) {
-	msg := msgpack.NewAddrReq()
-	go this.Send(p, msg, false)
 }
 
 //heartBeat send ping to nbr peers and check the timeout

@@ -444,6 +444,12 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		return
 	}
 
+	if remotePeer.GetAddr() != data.Addr {
+		log.Warnf("[p2p]address doesn't match, input %s, expected %s",
+			data.Addr, remotePeer.GetAddr())
+		return
+	}
+
 	if verAck.IsConsensus == true {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
 			log.Warn("[p2p]consensus port not surpport")
@@ -492,44 +498,8 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 				go p2p.Connect(nodeConsensusAddr, true)
 			}
 		}
-
-		msg := msgpack.NewAddrReq()
-		go p2p.Send(remotePeer, msg, false)
 	}
 
-}
-
-// AddrHandle handles the neighbor address response message from peer
-func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Trace("[p2p]handle addr message", data.Addr, data.Id)
-
-	var msg = data.Payload.(*msgTypes.Addr)
-	for _, v := range msg.NodeAddrs {
-		var ip net.IP
-		ip = v.IpAddr[:]
-		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
-
-		if v.ID == p2p.GetID() {
-			continue
-		}
-
-		if p2p.NodeEstablished(v.ID) {
-			continue
-		}
-
-		if ret := p2p.GetPeerFromAddr(address); ret != nil {
-			continue
-		}
-
-		if v.Port == 0 {
-			continue
-		}
-		if p2p.IsAddrFromConnecting(address) {
-			continue
-		}
-		log.Debug("[p2p]connect ip address:", address)
-		go p2p.Connect(address, false)
-	}
 }
 
 // DataReqHandle handles the data req(block/Transaction) from peer
