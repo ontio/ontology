@@ -791,7 +791,7 @@ func (this *WithdrawOngParam) Deserialize(r io.Reader) error {
 type ChangeAuthorizationParam struct {
 	PeerPubkey  string
 	Address     common.Address
-	IfAuthorize bool
+	IfAuthorize uint32
 }
 
 func (this *ChangeAuthorizationParam) Serialize(w io.Writer) error {
@@ -801,8 +801,8 @@ func (this *ChangeAuthorizationParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
 		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
 	}
-	if err := serialization.WriteBool(w, this.IfAuthorize); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize ifAuthorize error: %v", err)
+	if err := utils.WriteVarUint(w, uint64(this.IfAuthorize)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize ifAuthorize error: %v", err)
 	}
 	return nil
 }
@@ -816,13 +816,16 @@ func (this *ChangeAuthorizationParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	ifAuthorize, err := serialization.ReadBool(r)
+	ifAuthorize, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadBool, deserialize ifAuthorize error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize ifAuthorize error: %v", err)
+	}
+	if ifAuthorize > math.MaxUint32 {
+		return fmt.Errorf("peerCost larger than max of uint32")
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = address
-	this.IfAuthorize = ifAuthorize
+	this.IfAuthorize = uint32(ifAuthorize)
 	return nil
 }
 

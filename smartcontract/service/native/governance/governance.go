@@ -1142,6 +1142,14 @@ func UpdateGlobalParam2(native *native.NativeService) ([]byte, error) {
 	if globalParam2.MinAuthorizePos == 0 {
 		return utils.BYTE_FALSE, fmt.Errorf("globalParam2.MinAuthorizePos can not be 0")
 	}
+	// get config
+	config, err := getConfig(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getConfig, get config error: %v", err)
+	}
+	if globalParam2.CandidateFeeSplitNum < config.K {
+		return utils.BYTE_FALSE, fmt.Errorf("globalParam2.CandidateFeeSplitNum can not be less than config.K")
+	}
 
 	err = putGlobalParam2(native, contract, globalParam2)
 	if err != nil {

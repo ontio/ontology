@@ -204,8 +204,12 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		if err != nil {
 			return fmt.Errorf("getPeerAttributes error: %v", err)
 		}
-		if !peerAttributes.IfAuthorize {
+		switch peerAttributes.IfAuthorize {
+		case 0:
 			return fmt.Errorf("this peer do not receive authorization")
+		case 1:
+		default:
+			return fmt.Errorf("ifAuthorize of this peer is error")
 		}
 
 		authorizeInfo, err := getAuthorizeInfo(native, contract, peerPubkey, params.Address)
@@ -872,7 +876,7 @@ func executeNodeSplit(native *native.NativeService, contract common.Address, vie
 	}
 	// if sum = 0, means consensus peer in config, do not split
 	if sum < uint64(K) {
-		return nil, nil
+		return nodeSplit, nil
 	}
 	avg := sum / uint64(K)
 	var sumS uint64
@@ -911,7 +915,7 @@ func executeNodeSplit(native *native.NativeService, contract common.Address, vie
 		sum += peersCandidate[i].Stake
 	}
 	if sum == 0 {
-		return nil, nil
+		return nodeSplit, nil
 	}
 	for i := K; i < length; i++ {
 		nodeAmount := income * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
@@ -955,7 +959,7 @@ func executePeerSplit(native *native.NativeService, contract common.Address, pee
 
 	var peerCost uint64
 	//check set cost view
-	if view-peerAttributes.SetCostView == 0 {
+	if view-peerAttributes.SetCostView <= 1 {
 		peerCost = peerAttributes.OldPeerCost
 	}
 	peerCost = peerAttributes.NewPeerCost

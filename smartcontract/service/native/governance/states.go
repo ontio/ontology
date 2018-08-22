@@ -435,7 +435,7 @@ type SyncNodeSplitInfo struct {
 
 type PeerAttributes struct {
 	PeerPubkey  string
-	IfAuthorize bool
+	IfAuthorize uint32
 	OldPeerCost uint64
 	NewPeerCost uint64
 	SetCostView uint32
@@ -449,8 +449,8 @@ func (this *PeerAttributes) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return fmt.Errorf("serialization.WriteBool, serialize peerPubkey error: %v", err)
 	}
-	if err := serialization.WriteBool(w, this.IfAuthorize); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize ifAuthorize error: %v", err)
+	if err := serialization.WriteUint32(w, this.IfAuthorize); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize ifAuthorize error: %v", err)
 	}
 	if err := serialization.WriteUint64(w, this.OldPeerCost); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize oldPeerCost error: %v", err)
@@ -481,7 +481,7 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	ifAuthorize, err := serialization.ReadBool(r)
+	ifAuthorize, err := serialization.ReadUint32(r)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadBool, deserialize ifAuthorize error: %v", err)
 	}
