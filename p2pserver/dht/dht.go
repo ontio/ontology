@@ -171,7 +171,7 @@ func (this *DHT) syncAddNodes(nodes map[types.NodeID]*types.Node) {
 	for _, node := range nodes {
 		addr, err := getNodeUDPAddr(node)
 		if err != nil {
-			log.Infof("node %s address is error!", node.ID)
+			log.Infof("[dht]node %s address is error!", node.ID)
 			continue
 		}
 		_, isNewRequest := this.messagePool.AddRequest(node,
@@ -208,7 +208,7 @@ func (this *DHT) loop() {
 
 // refreshRoutingTable refresh k bucket
 func (this *DHT) refreshRoutingTable() {
-	log.Info("DHT refreshRoutingTable start")
+	log.Info("[dht]refreshRoutingTable start")
 	// Todo:
 	this.syncAddNodes(this.bootstrapNodes)
 	results := this.lookup(this.nodeID)
@@ -218,7 +218,7 @@ func (this *DHT) refreshRoutingTable() {
 
 	var targetID types.NodeID
 	rand.Read(targetID[:])
-	log.Infof("DHT refreshRoutingTable: target id %s", targetID.String())
+	log.Infof("[dht]refreshRoutingTable: target id %s", targetID.String())
 	this.lookup(targetID)
 }
 
@@ -327,7 +327,7 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 			lastNode := this.routingTable.getLastNodeInBucket(bucketIndex)
 			addr, err := getNodeUDPAddr(lastNode)
 			if err != nil {
-				log.Infof("addnode: node ip %s, udp %d, tcp %d", remoteNode.IP, remoteNode.UDPPort, remoteNode.TCPPort)
+				log.Infof("[dht]addnode: node ip %s, udp %d, tcp %d", remoteNode.IP, remoteNode.UDPPort, remoteNode.TCPPort)
 				this.routingTable.removeNode(lastNode.ID)
 				this.routingTable.addNode(remoteNode, bucketIndex)
 				return
@@ -345,11 +345,11 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 	msg, _, err := mt.ReadMessage(bytes.NewBuffer(packet))
 	if err != nil {
-		log.Infof("processPacket: receive dht message error: %v", err)
+		log.Infof("[dht]processPacket: receive dht message error: %v", err)
 		return
 	}
 	msgType := msg.CmdType()
-	log.Debugf("processPacket: UDP msg %s from %v", msgType, from)
+	log.Infof("[dht]processPacket: UDP msg %s from %v", msgType, from)
 	switch msgType {
 	case common.DHT_PING:
 		this.pingHandle(from, msg)
@@ -360,7 +360,7 @@ func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 	case common.DHT_NEIGHBORS:
 		this.neighborsHandle(from, msg)
 	default:
-		log.Infof("processPacket: unknown msg %s", msgType)
+		log.Infof("[dht]processPacket: unknown msg %s", msgType)
 	}
 }
 
