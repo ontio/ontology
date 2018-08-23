@@ -19,6 +19,7 @@
 package neovm
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -96,6 +97,10 @@ var (
 	CONTRACT_NOT_EXIST    = errors.NewErr("[NeoVmService] Get contract code from db fail")
 	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[NeoVmService] DeployCode type error!")
 	VM_EXEC_FAULT         = errors.NewErr("[NeoVmService] vm execute state fault!")
+)
+
+var (
+	BYTE_ZERO_20 = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
 type (
@@ -194,7 +199,17 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
 			}
 		case vm.APPCALL, vm.TAILCALL:
+			var err error
 			address := this.Engine.Context.OpReader.ReadBytes(20)
+			if bytes.Compare(address, BYTE_ZERO_20) == 0 {
+				if vm.EvaluationStackCount(this.Engine) < 1 {
+					return nil, fmt.Errorf("[Appcall] Too few input parameters:%d", vm.EvaluationStackCount(this.Engine))
+				}
+				address, err = vm.PopByteArray(this.Engine)
+				if err != nil {
+					return nil, fmt.Errorf("[Appcall] pop contract address error:%v", err)
+				}
+			}
 			code, err := this.getContract(address)
 			if err != nil {
 				return nil, err
