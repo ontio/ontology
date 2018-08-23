@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	MAX_STRUCT_DEPTH  = 10
+	MAX_STRUCT_DEPTH = 10
 	MAX_CLONE_LENGTH = 1024
 )
 
