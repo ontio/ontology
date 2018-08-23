@@ -1348,7 +1348,10 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
 	newPeerCost := peerAttributes.NewPeerCost
-	peerAttributes.OldPeerCost = newPeerCost
+	//check set cost view
+	if view-peerAttributes.SetCostView >= 2 {
+		peerAttributes.OldPeerCost = newPeerCost
+	}
 	peerAttributes.NewPeerCost = uint64(params.PeerCost)
 	peerAttributes.SetCostView = view
 
@@ -1393,6 +1396,9 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	splitFee, err := getSplitFee(native, contract)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getSplitFee, getSplitFee error: %v", err)
+	}
+	if splitFee < fee {
+		return utils.BYTE_FALSE, fmt.Errorf("withdrawFee, splitFee is not enough")
 	}
 	newSplitFee := splitFee - fee
 	err = putSplitFee(native, contract, newSplitFee)

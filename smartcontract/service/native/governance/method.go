@@ -959,10 +959,11 @@ func executePeerSplit(native *native.NativeService, contract common.Address, pee
 
 	var peerCost uint64
 	//check set cost view
-	if view-peerAttributes.SetCostView <= 1 {
+	if view-peerAttributes.SetCostView < 2 {
 		peerCost = peerAttributes.OldPeerCost
+	} else {
+		peerCost = peerAttributes.NewPeerCost
 	}
-	peerCost = peerAttributes.NewPeerCost
 	peerAmount := peerCost * totalAmount / 100
 
 	splitFeeAddress, err := getSplitFeeAddress(native, contract, peerPoolItem.Address)
