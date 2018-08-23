@@ -208,11 +208,10 @@ func (this *DHT) loop() {
 
 // refreshRoutingTable refresh k bucket
 func (this *DHT) refreshRoutingTable() {
-	log.Info("[dht]refreshRoutingTable start")
+	log.Info("[dht]refreshRoutingTable start, add bootstrapNodes")
 	// Todo:
 	this.syncAddNodes(this.bootstrapNodes)
 	this.lookup(this.nodeID)
-
 	var targetID types.NodeID
 	rand.Read(targetID[:])
 	log.Infof("[dht]refreshRoutingTable: target id %s", targetID.String())

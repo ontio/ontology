@@ -271,15 +271,19 @@ func (this *DHT) pong(addr *net.UDPAddr) error {
 // onRequestTimeOut handles a timeout event of request
 func (this *DHT) onRequestTimeOut(requestId types.RequestId) {
 	reqType := types.GetReqTypeFromReqId(requestId)
-	this.messagePool.DeleteRequest(requestId)
 	if reqType == types.DHT_FIND_NODE_REQUEST {
 		results := make([]*types.Node, 0)
 		this.messagePool.SetResults(results)
 	} else if reqType == types.DHT_PING_REQUEST {
 		replaceNode, ok := this.messagePool.GetReplaceNode(requestId)
+		destNode, ok := this.messagePool.GetRequestData(requestId)
+		if ok && destNode != nil{
+			this.routingTable.removeNode(destNode.ID)
+		}
 		if ok && replaceNode != nil {
 			bucketIndex, _ := this.routingTable.locateBucket(replaceNode.ID)
 			this.routingTable.addNode(replaceNode, bucketIndex)
 		}
 	}
+	this.messagePool.DeleteRequest(requestId)
 }

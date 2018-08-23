@@ -420,7 +420,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		if !isConsensus {
 			this.RemoveFromOutConnRecord(addr)
 		}
-		log.Warn(err)
+		log.Warn("[p2p]connect to %s, is consensus %s, send version msg err: %s", addr, isConsensus, err)
 		return err
 	}
 	return nil

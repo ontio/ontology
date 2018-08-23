@@ -64,7 +64,7 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 	msg := msgpack.NewHeaders(headers)
 	err = p2p.Send(remotePeer, msg, false)
 	if err != nil {
-		log.Warn(err)
+		log.Warnf("[p2p]HeadersReqHandle for headers err: %s, data addr is %s", err, data.Addr)
 		return
 	}
 }
@@ -87,7 +87,7 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 
 	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
-		log.Warn(err)
+		log.Warnf("[p2p]PingHandle err: %s, data addr is %s", err, data.Addr)
 	}
 }
 
@@ -195,7 +195,7 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
-		log.Error("remotePeer invalid in TransactionHandle")
+		log.Errorf("remotePeer %d, addr is %s, invalid in TransactionHandle", data.Id, data.Addr)
 		return
 	}
 	remotePeer.MarkHashAsSeen(trn.Txn.Hash())
@@ -244,7 +244,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 	}
 
-	if version.P.IsConsensus == true {
+	if version.P.IsConsensus {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
 			log.Warn("[p2p]consensus port not surpport", data.Addr)
 			remotePeer.CloseCons()
@@ -300,7 +300,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 		err := p2p.Send(remotePeer, msg, true)
 		if err != nil {
-			log.Warn(err)
+			log.Warnf("[p2p]VersionHandle err: %s, is consensus: true, data addr is %s", err, data.Addr)
 			return
 		}
 	} else {
@@ -389,7 +389,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 		err := p2p.Send(remotePeer, msg, false)
 		if err != nil {
-			log.Warn(err)
+			log.Warnf("[p2p]VersionHandle err: %s, is consensus: false, data addr is %s", err, data.Addr)
 			return
 		}
 	}
@@ -413,7 +413,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		return
 	}
 
-	if verAck.IsConsensus == true {
+	if verAck.IsConsensus {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
 			log.Warn("[p2p]consensus port not surpport")
 			return
@@ -430,7 +430,10 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 
 		if s == msgCommon.HAND_SHAKE {
 			msg := msgpack.NewVerAck(true)
-			p2p.Send(remotePeer, msg, true)
+			err := p2p.Send(remotePeer, msg, true)
+			if err != nil {
+				log.Warnf("[p2p]VerAckHandle err: %s, is consensus: true, data addr is %s", err, data.Addr)
+			}
 		}
 	} else {
 		s := remotePeer.GetSyncState()
@@ -447,7 +450,10 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 
 		if s == msgCommon.HAND_SHAKE {
 			msg := msgpack.NewVerAck(false)
-			p2p.Send(remotePeer, msg, false)
+			err := p2p.Send(remotePeer, msg, false)
+			if err != nil {
+				log.Warnf("[p2p]VerAckHandle err: %s, is consensus: false, data addr is %s", err, data.Addr)
+			}
 		} else {
 			//consensus port connect
 			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort() > 0 {
@@ -498,7 +504,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				msg := msgpack.NewNotFound(hash)
 				err := p2p.Send(remotePeer, msg, false)
 				if err != nil {
-					log.Warn(err)
+					log.Warnf("[p2p]DataReqHandle for block nil err: %s, data addr is %s", err, remotePeer.GetAddr())
 					return
 				}
 				return
@@ -510,7 +516,8 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		msg := msgpack.NewBlock(block)
 		err = p2p.Send(remotePeer, msg, false)
 		if err != nil {
-			log.Warn(err)
+			hash := block.Hash()
+			log.Warnf("[p2p]DataReqHandle for block %s err: %s, data addr is %s", hash.ToHexString(), err, remotePeer.GetAddr())
 			return
 		}
 
@@ -522,13 +529,15 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			msg := msgpack.NewNotFound(hash)
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
-				log.Warn(err)
+				log.Warnf("[p2p]DataReqHandle for tx nil err: %s, data addr is %s", err, data.Addr)
 				return
 			}
 		}
 		msg := msgpack.NewTxn(txn)
 		err = p2p.Send(remotePeer, msg, false)
 		if err != nil {
+			hash := txn.Hash()
+			log.Warnf("[p2p]DataReqHandle for tx %s err: %s, data addr is %s", hash.ToHexString(), err, data.Addr)
 			log.Warn(err)
 			return
 		}
@@ -566,7 +575,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 			msg := msgpack.NewTxnDataReq(id)
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
-				log.Warn(err)
+				log.Warnf("[p2p]InvHandle for tx err: %s, data addr is %s", err, data.Addr)
 				return
 			}
 		}
@@ -589,7 +598,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 				msg := msgpack.NewBlkDataReq(id)
 				err = p2p.Send(remotePeer, msg, false)
 				if err != nil {
-					log.Warn(err)
+					log.Warnf("[p2p]InvHandle for block err: %s, data addr is %s", err, data.Addr)
 					return
 				}
 			}
@@ -605,7 +614,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		msg := msgpack.NewConsensusDataReq(id)
 		err := p2p.Send(remotePeer, msg, true)
 		if err != nil {
-			log.Warn(err)
+			log.Warnf("[p2p]InvHandle for consensus err: %s, data addr is %s", err, data.Addr)
 			return
 		}
 	default:

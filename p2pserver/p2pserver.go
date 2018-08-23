@@ -224,8 +224,8 @@ func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 	if this.network.IsPeerEstablished(p) {
 		return this.network.Send(p, msg, isConsensus)
 	}
-	log.Warnf("[p2p]send to a not ESTABLISH peer %d",
-		p.GetID())
+	log.Warnf("[p2p]send msg %s to a not ESTABLISH peer %d",
+		msg.CmdType(), p.GetID())
 	return errors.New("[p2p]send to a not ESTABLISH peer")
 }
 

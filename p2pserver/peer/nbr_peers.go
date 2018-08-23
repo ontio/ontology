@@ -48,8 +48,8 @@ func (this *NbrPeers) Broadcast(msg types.Message, hash oc.Uint256, isConsensus 
 				node.MarkHashAsSeen(hash)
 				err := node.Send(msg, isConsensus)
 				if err != nil {
-					log.Infof("fail to send msg to peer %s, err %v ",
-						node.GetAddr(), err)
+					log.Infof("fail to send msg %s to peer %s, err %v ",
+						msg.CmdType(), node.GetAddr(), err)
 				}
 			}
 		}
