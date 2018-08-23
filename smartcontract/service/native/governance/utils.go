@@ -142,7 +142,7 @@ func appCallTransfer(native *native.NativeService, contract common.Address, from
 	transfers.Serialization(sink)
 
 	if _, err := native.NativeCall(contract, "transfer", sink.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransfer, appCall error!")
+		return fmt.Errorf("appCallTransfer, appCall error: %v", err)
 	}
 	return nil
 }
@@ -174,7 +174,7 @@ func appCallTransferFrom(native *native.NativeService, contract common.Address, 
 	params.Serialization(sink)
 
 	if _, err := native.NativeCall(contract, "transferFrom", sink.Bytes()); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFrom, appCall error!")
+		return fmt.Errorf("appCallTransferFrom, appCall error: %v", err)
 	}
 	return nil
 }
