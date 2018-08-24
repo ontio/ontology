@@ -725,3 +725,41 @@ func putPeerAttributes(native *native.NativeService, contract common.Address, pe
 		&cstates.StorageItem{Value: bf.Bytes()})
 	return nil
 }
+
+func getPromisePos(native *native.NativeService, contract common.Address, peerPubkey string) (*PromisePos, error) {
+	peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
+	if err != nil {
+		return nil, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
+	}
+	promisePosBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PROMISE_POS),
+		peerPubkeyPrefix))
+	if err != nil {
+		return nil, fmt.Errorf("get promisePosBytes error: %v", err)
+	}
+	if promisePosBytes == nil {
+		return nil, fmt.Errorf("promisePosBytes is nil")
+	}
+	promisePos := new(PromisePos)
+	promisePosStore, ok := promisePosBytes.(*cstates.StorageItem)
+	if !ok {
+		return nil, fmt.Errorf("getPromisePos, promisePosBytes is not available")
+	}
+	if err := promisePos.Deserialize(bytes.NewBuffer(promisePosStore.Value)); err != nil {
+		return nil, fmt.Errorf("deserialize, deserialize promisePos error: %v", err)
+	}
+	return promisePos, nil
+}
+
+func putPromisePos(native *native.NativeService, contract common.Address, promisePos *PromisePos) error {
+	peerPubkeyPrefix, err := hex.DecodeString(promisePos.PeerPubkey)
+	if err != nil {
+		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
+	}
+	bf := new(bytes.Buffer)
+	if err := promisePos.Serialize(bf); err != nil {
+		return fmt.Errorf("serialize, serialize promisePos error: %v", err)
+	}
+	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PROMISE_POS), peerPubkeyPrefix),
+		&cstates.StorageItem{Value: bf.Bytes()})
+	return nil
+}

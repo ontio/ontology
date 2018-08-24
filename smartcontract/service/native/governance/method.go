@@ -87,6 +87,16 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("registerCandidate, peerPubkey is already in peerPoolMap")
 	}
 
+	//update promise pos
+	promisePos := &PromisePos{
+		PeerPubkey: params.PeerPubkey,
+		PromisePos: params.InitPos,
+	}
+	err = putPromisePos(native, contract, promisePos)
+	if err != nil {
+		return fmt.Errorf("putPromisePos, put promisePos error: %v", err)
+	}
+
 	peerPoolItem := &PeerPoolItem{
 		PeerPubkey: params.PeerPubkey,
 		Address:    params.Address,
@@ -693,7 +703,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 	if err != nil {
 		return fmt.Errorf("getView, get view error: %v", err)
 	}
-	if view <= 0 {
+	if view <= 4 {
 		return executeCommitDpos1(native, contract, config)
 	} else {
 		return executeCommitDpos2(native, contract, config)

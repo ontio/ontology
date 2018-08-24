@@ -788,13 +788,13 @@ func (this *WithdrawOngParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type ChangeAuthorizationParam struct {
+type ChangeMaxAuthorizationParam struct {
 	PeerPubkey   string
 	Address      common.Address
 	MaxAuthorize uint32
 }
 
-func (this *ChangeAuthorizationParam) Serialize(w io.Writer) error {
+func (this *ChangeMaxAuthorizationParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 	}
@@ -807,7 +807,7 @@ func (this *ChangeAuthorizationParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *ChangeAuthorizationParam) Deserialize(r io.Reader) error {
+func (this *ChangeMaxAuthorizationParam) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
@@ -859,7 +859,7 @@ func (this *SetPeerCostParam) Deserialize(r io.Reader) error {
 	}
 	peerCost, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadBool, deserialize ifAuthorize error: %v", err)
+		return fmt.Errorf("serialization.ReadBool, deserialize peerCost error: %v", err)
 	}
 	if peerCost > math.MaxUint32 {
 		return fmt.Errorf("peerCost larger than max of uint32")
@@ -887,5 +887,78 @@ func (this *WithdrawFeeParam) Deserialize(r io.Reader) error {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
 	this.Address = address
+	return nil
+}
+
+type PromisePos struct {
+	PeerPubkey string
+	PromisePos uint32
+}
+
+func (this *PromisePos) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.PromisePos)); err != nil {
+		return fmt.Errorf("serialization.WriteBool, serialize promisePos error: %v", err)
+	}
+	return nil
+}
+
+func (this *PromisePos) Deserialize(r io.Reader) error {
+	peerPubkey, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+	}
+	promisePos, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadBool, deserialize promisePos error: %v", err)
+	}
+	if promisePos > math.MaxUint32 {
+		return fmt.Errorf("promisePos larger than max of uint32")
+	}
+	this.PeerPubkey = peerPubkey
+	this.PromisePos = uint32(promisePos)
+	return nil
+}
+
+type ChangeInitPosParam struct {
+	PeerPubkey string
+	Address    common.Address
+	Pos        uint32
+}
+
+func (this *ChangeInitPosParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.Pos)); err != nil {
+		return fmt.Errorf("serialization.WriteBool, serialize pos error: %v", err)
+	}
+	return nil
+}
+
+func (this *ChangeInitPosParam) Deserialize(r io.Reader) error {
+	peerPubkey, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+	}
+	address, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+	}
+	pos, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadBool, deserialize pos error: %v", err)
+	}
+	if pos > math.MaxUint32 {
+		return fmt.Errorf("pos larger than max of uint32")
+	}
+	this.PeerPubkey = peerPubkey
+	this.Address = address
+	this.Pos = uint32(pos)
 	return nil
 }
