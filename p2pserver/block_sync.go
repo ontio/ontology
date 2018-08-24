@@ -658,7 +658,7 @@ func (this *BlockSyncMgr) saveBlock() {
 			return
 		}
 		nextBlockHeight++
-		this.pingOutsyncNodes()
+		this.pingOutsyncNodes(curBlockHeight)
 	}
 }
 
@@ -873,8 +873,7 @@ func (this *BlockSyncMgr) addNewSpeed(nodeId uint64, speed float32) {
 }
 
 //pingOutsyncNodes send ping msg to lower height nodes for syncing
-func (this *BlockSyncMgr) pingOutsyncNodes() {
-	curHeight := this.ledger.GetCurrentBlockHeight()
+func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 	peers := make([]*peer.Peer, 0)
 	maxHeight := curHeight
 	for id := range this.nodeWeights {
