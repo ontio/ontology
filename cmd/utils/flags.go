@@ -253,6 +253,7 @@ var (
 	AccountMultiMFlag = cli.UintFlag{
 		Name:  "m",
 		Usage: "Min signature `<number>` of multi signature address",
+		Value: 1,
 	}
 	AccountMultiPubKeyFlag = cli.StringFlag{
 		Name:  "pubkey",
@@ -412,6 +413,10 @@ var (
 	WithdrawONGAmountFlag = cli.StringFlag{
 		Name:  "amount",
 		Usage: "Withdraw amount `<number>`, Float number. Default withdraw all",
+	}
+	ForceTxFlag = cli.BoolFlag{
+		Name:  "force,f",
+		Usage: "Force to send transaction",
 	}
 
 	//Cli setting

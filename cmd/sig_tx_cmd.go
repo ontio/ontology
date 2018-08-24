@@ -48,6 +48,7 @@ var MultiSigTxCommand = cli.Command{
 	Description: "Sign to multi-signature transaction.",
 	Action:      multiSigToTx,
 	Flags: []cli.Flag{
+		utils.RPCPortFlag,
 		utils.WalletFileFlag,
 		utils.AccountMultiMFlag,
 		utils.AccountMultiPubKeyFlag,
@@ -64,6 +65,7 @@ var SigTxCommand = cli.Command{
 	Description: "Sign to transaction.",
 	Action:      sigToTx,
 	Flags: []cli.Flag{
+		utils.RPCPortFlag,
 		utils.WalletFileFlag,
 		utils.AccountAddressFlag,
 		utils.SendTxFlag,
@@ -119,6 +121,7 @@ func genMultiSigAddress(ctx *cli.Context) error {
 }
 
 func multiSigToTx(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	pkstr := strings.TrimSpace(strings.Trim(ctx.String(utils.GetFlagName(utils.AccountMultiPubKeyFlag)), ","))
 	m := ctx.Uint(utils.GetFlagName(utils.AccountMultiMFlag))
 	if pkstr == "" || m == 0 {
@@ -224,6 +227,7 @@ func multiSigToTx(ctx *cli.Context) error {
 }
 
 func sigToTx(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
 		PrintErrorMsg("Missing <rawtx> argument.")
 		cli.ShowSubcommandHelp(ctx)
