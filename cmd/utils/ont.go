@@ -28,8 +28,10 @@ import (
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	rpccommon "github.com/ontio/ontology/http/base/common"
@@ -38,6 +40,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -69,6 +72,26 @@ func GetBalance(address string) (*httpcom.BalanceOfRsp, error) {
 	err := json.Unmarshal(result, balance)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	return balance, nil
+}
+
+func GetAccountBalance(address, asset string) (uint64, error) {
+	balances, err := GetBalance(address)
+	if err != nil {
+		return 0, err
+	}
+	var balance uint64
+	switch strings.ToLower(asset) {
+	case "ont":
+		balance, err = strconv.ParseUint(balances.Ont, 10, 64)
+	case "ong":
+		balance, err = strconv.ParseUint(balances.Ong, 10, 64)
+	default:
+		return 0, fmt.Errorf("unsupport asset:%s", asset)
+	}
+	if err != nil {
+		return 0, err
 	}
 	return balance, nil
 }
@@ -248,7 +271,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	}
 	toAddr, err := common.AddressFromBase58(to)
 	if err != nil {
-		return nil, fmt.Errorf("To address:%s invalid:%s", to, err)
+		return nil, fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
 	transferFrom := &ont.TransferFrom{
 		Sender: senderAddr,
@@ -266,7 +289,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
 	default:
-		return nil, fmt.Errorf("Unsupport asset:%s", asset)
+		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
 	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER_FROM, []interface{}{transferFrom})
 	if err != nil {
@@ -295,16 +318,118 @@ func SignTransaction(signer *account.Account, tx *types.MutableTransaction) erro
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
 	}
-	if tx.Sigs == nil {
-		tx.Sigs = make([]types.Sig, 0)
+	hasSig := false
+	for i, sig := range tx.Sigs {
+		if len(sig.PubKeys) == 1 && pubKeysEqual(sig.PubKeys, []keypair.PublicKey{signer.PublicKey}) {
+			if hasAlreadySig(txHash.ToArray(), signer.PublicKey, sig.SigData) {
+				//has already signed
+				return nil
+			}
+			hasSig = true
+			//replace
+			tx.Sigs[i].SigData = [][]byte{sigData}
+		}
 	}
-	sig := types.Sig{
-		PubKeys: []keypair.PublicKey{signer.PublicKey},
-		M:       1,
-		SigData: [][]byte{sigData},
+	if !hasSig {
+		tx.Sigs = append(tx.Sigs, types.Sig{
+			PubKeys: []keypair.PublicKey{signer.PublicKey},
+			M:       1,
+			SigData: [][]byte{sigData},
+		})
 	}
-	tx.Sigs = append(tx.Sigs, sig)
 	return nil
+}
+
+func MultiSigTransaction(mutTx *types.MutableTransaction, m uint16, pubKeys []keypair.PublicKey, signer *account.Account) error {
+	pkSize := len(pubKeys)
+	if m == 0 || int(m) > pkSize || pkSize > constants.MULTI_SIG_MAX_PUBKEY_SIZE {
+		return fmt.Errorf("invalid params")
+	}
+	validPubKey := false
+	for _, pk := range pubKeys {
+		if keypair.ComparePublicKey(pk, signer.PublicKey) {
+			validPubKey = true
+			break
+		}
+	}
+	if !validPubKey {
+		return fmt.Errorf("invalid signer")
+	}
+	if mutTx.Payer == common.ADDRESS_EMPTY {
+		payer, err := types.AddressFromMultiPubKeys(pubKeys, int(m))
+		if err != nil {
+			return fmt.Errorf("AddressFromMultiPubKeys error:%s", err)
+		}
+		mutTx.Payer = payer
+	}
+
+	if len(mutTx.Sigs) == 0 {
+		mutTx.Sigs = make([]types.Sig, 0)
+	}
+
+	txHash := mutTx.Hash()
+	sigData, err := Sign(txHash.ToArray(), signer)
+	if err != nil {
+		return fmt.Errorf("sign error:%s", err)
+	}
+
+	hasMutilSig := false
+	for i, sigs := range mutTx.Sigs {
+		if !pubKeysEqual(sigs.PubKeys, pubKeys) {
+			continue
+		}
+		hasMutilSig = true
+		if hasAlreadySig(txHash.ToArray(), signer.PublicKey, sigs.SigData) {
+			break
+		}
+		sigs.SigData = append(sigs.SigData, sigData)
+		mutTx.Sigs[i] = sigs
+		break
+	}
+	if !hasMutilSig {
+		mutTx.Sigs = append(mutTx.Sigs, types.Sig{
+			PubKeys: pubKeys,
+			M:       uint16(m),
+			SigData: [][]byte{sigData},
+		})
+	}
+	return nil
+}
+
+func hasAlreadySig(data []byte, pk keypair.PublicKey, sigDatas [][]byte) bool {
+	for _, sigData := range sigDatas {
+		err := signature.Verify(pk, data, sigData)
+		if err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func pubKeysEqual(pks1, pks2 []keypair.PublicKey) bool {
+	if len(pks1) != len(pks2) {
+		return false
+	}
+	size := len(pks1)
+	if size == 0 {
+		return true
+	}
+	pkstr1 := make([]string, 0, size)
+	for _, pk := range pks1 {
+		pkstr1 = append(pkstr1, hex.EncodeToString(keypair.SerializePublicKey(pk)))
+	}
+	pkstr2 := make([]string, 0, size)
+	for _, pk := range pks2 {
+		pkstr2 = append(pkstr2, hex.EncodeToString(keypair.SerializePublicKey(pk)))
+	}
+	sort.Strings(pkstr1)
+	sort.Strings(pkstr2)
+	for i := 0; i < size; i++ {
+		if pkstr1[i] != pkstr2[i] {
+			return false
+		}
+	}
+	return true
 }
 
 //Sign sign return the signature to the data of private key
@@ -439,6 +564,23 @@ func GetBlockCount() (uint32, error) {
 		return 0, fmt.Errorf("json.Unmarshal:%s error:%s", data, err)
 	}
 	return num, nil
+}
+
+func GetTxHeight(txHash string) (uint32, error) {
+	data, ontErr := sendRpcRequest("getblockheightbytxhash", []interface{}{txHash})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return 0, fmt.Errorf("cannot find tx by:%s", txHash)
+		}
+		return 0, ontErr.Error
+	}
+	height := uint32(0)
+	err := json.Unmarshal(data, &height)
+	if err != nil {
+		return 0, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	return height, nil
 }
 
 func DeployContract(

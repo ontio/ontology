@@ -219,6 +219,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ApproveAssetFromFlag,
 			utils.ApproveAssetToFlag,
 			utils.ApproveAmountFlag,
+			utils.ForceTxFlag,
 		},
 	},
 	{

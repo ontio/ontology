@@ -73,6 +73,9 @@ var (
      If parameter is an object array, enclose array with '[]'. 
      For example: string:foo,[int:0,bool:true]
 
+  Note that if string contain some special char like :,[,] and so one, please use '/' char to escape. 
+  For example: string:did/:ed1e25c9dccae0c694ee892231407afa20b76008
+
   Return type
      When invoke contract with --prepare flag, you need specifies return type by --return flag, to decode the return value.
      Return type support bytearray(encoded to hex string), string, integer, boolean. 
@@ -344,7 +347,7 @@ func invokeContract(ctx *cli.Context) error {
 	}
 
 	PrintInfoMsg("  TxHash:%s", txHash)
-	PrintInfoMsg("\nTip:")
+	PrintInfoMsg("\nTips:")
 	PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
 	return nil
 }

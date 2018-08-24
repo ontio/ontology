@@ -19,11 +19,9 @@
 package utils
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/urfave/cli"
 )
@@ -254,11 +252,11 @@ var (
 	}
 	AccountMultiMFlag = cli.UintFlag{
 		Name:  "m",
-		Usage: fmt.Sprintf("Min signature `<number>` of multi signature address.", constants.MULTI_SIG_MAX_PUBKEY_SIZE),
+		Usage: "Min signature `<number>` of multi signature address",
 	}
 	AccountMultiPubKeyFlag = cli.StringFlag{
 		Name:  "pubkey",
-		Usage: fmt.Sprintf("Pub key list of multi `<addresses>`, separate addreses with comma `,`", constants.MULTI_SIG_MAX_PUBKEY_SIZE),
+		Usage: "Pub key list of multi `<addresses>`, separate addreses with comma `,`",
 	}
 	IdentityFlag = cli.BoolFlag{
 		Name:  "ontid",
@@ -386,6 +384,14 @@ var (
 	TransferFromSenderFlag = cli.StringFlag{
 		Name:  "sender",
 		Usage: "Sender account `<address>` of transfer from transaction, if not specific, using transfer-to account instead",
+	}
+	ForceTxFlag = cli.BoolFlag{
+		Name:  "force,f",
+		Usage: "Force to send transaction",
+	}
+	RawTransactionFlag = cli.StringFlag{
+		Name:  "raw-tx",
+		Usage: "Raw `<transaction>` encode with hex string",
 	}
 
 	//Cli setting

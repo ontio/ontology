@@ -27,12 +27,10 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/core/types"
 	"github.com/urfave/cli"
 	"os"
-	"strings"
 )
 
 var (
@@ -145,17 +143,6 @@ You can use ./Ontology account --help command to view help information of wallet
 				Flags: []cli.Flag{
 					utils.WalletFileFlag,
 					utils.AccountLowSecurityFlag,
-				},
-			},
-			{
-				Action:    genMultiAddress,
-				Name:      "multisigaddr",
-				Usage:     "Gen multi-signature address",
-				ArgsUsage: "",
-				Flags: []cli.Flag{
-					utils.WalletFileFlag,
-					utils.AccountMultiMFlag,
-					utils.AccountMultiPubKeyFlag,
 				},
 			},
 		},
@@ -581,68 +568,5 @@ func accountExport(ctx *cli.Context) error {
 	}
 
 	PrintInfoMsg("Export wallet success.")
-	return nil
-}
-
-func genMultiAddress(ctx *cli.Context) error {
-	pkstr := strings.TrimSpace(strings.Trim(ctx.String(utils.GetFlagName(utils.AccountMultiPubKeyFlag)), ","))
-	m := ctx.Uint(utils.GetFlagName(utils.AccountMultiMFlag))
-	if pkstr == "" || m == 0 {
-		PrintErrorMsg("Missing argument. %s or %s expected.",
-			utils.GetFlagName(utils.AccountMultiMFlag),
-			utils.GetFlagName(utils.AccountMultiPubKeyFlag))
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
-
-	var err error
-	var wallet account.Client
-	walletPath := ctx.String(utils.GetFlagName(utils.WalletFileFlag))
-	if walletPath != "" {
-		wallet, err = account.Open(walletPath)
-		if err != nil {
-			return fmt.Errorf("cannot open wallet:%s", walletPath)
-		}
-	}
-
-	pks := strings.Split(pkstr, ",")
-	pubKeys := make([]keypair.PublicKey, 0, len(pks))
-	for _, pk := range pks {
-		pk := strings.TrimSpace(pk)
-		if pk == "" {
-			continue
-		}
-
-		accMeta := common.GetAccountMetadataMulti(wallet, pk)
-		if accMeta != nil {
-			pk = accMeta.PubKey
-		}
-
-		data, err := hex.DecodeString(pk)
-		pubKey, err := keypair.DeserializePublicKey(data)
-		if err != nil {
-			return fmt.Errorf("invalid pub key:%s", pk)
-		}
-		pubKeys = append(pubKeys, pubKey)
-	}
-	pkSize := len(pubKeys)
-	if !(1 <= m && int(m) <= pkSize && pkSize > 1 && pkSize <= constants.MULTI_SIG_MAX_PUBKEY_SIZE) {
-		PrintErrorMsg("Invalid argument. %s must > 1 and <= %d, and m must > 0 and < number of pub key.",
-			utils.GetFlagName(utils.AccountMultiPubKeyFlag),
-			constants.MULTI_SIG_MAX_PUBKEY_SIZE)
-		cli.ShowSubcommandHelp(ctx)
-		return nil
-	}
-	addr, err := types.AddressFromMultiPubKeys(pubKeys, int(m))
-	if err != nil {
-		return err
-	}
-
-	PrintInfoMsg("Pub key list:")
-	for i, pubKey := range pubKeys {
-		addr := types.AddressFromPubKey(pubKey)
-		fmt.Printf("  Index %d Pubkey:%x Address:%s\n", i+1, keypair.SerializePublicKey(pubKey), addr.ToBase58())
-	}
-	PrintInfoMsg("  MultiSigAddress:%s", addr.ToBase58())
 	return nil
 }

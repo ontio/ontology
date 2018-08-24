@@ -36,6 +36,12 @@ const (
 	PARAM_TYPE_BOOLEAN    = "bool"
 	PARAM_LEFT_BRACKET    = "["
 	PARAM_RIGHT_BRACKET   = "]"
+	PARAM_ESC_CHAR        = `/`
+)
+
+var (
+	PARAM_TYPE_SPLIT_INC = string([]byte{0})
+	PARAM_SPLIT_INC      = string([]byte{1})
 )
 
 //ParseParams return interface{} array of encode params item.
@@ -43,6 +49,7 @@ const (
 //Param type and param value split with ":", such as int:10
 //Param array can be express with "[]", such [int:10,string:foo], param array can be nested, such as [int:10,[int:12,bool:true]]
 //A raw params example: string:foo,[int:0,[bool:true,string:bar],bool:false]
+//Note that if string contain some special char like :,[,] and so one, please '/' char to escape. For example: string:did/:ed1e25c9dccae0c694ee892231407afa20b76008
 func ParseParams(rawParamStr string) ([]interface{}, error) {
 	rawParams, _, err := parseRawParamsString(rawParamStr)
 	if err != nil {
@@ -59,9 +66,28 @@ func parseRawParamsString(rawParamStr string) ([]interface{}, int, error) {
 	curRawParam := ""
 	index := 0
 	totalSize := len(rawParamStr)
+	isEscMode := false
 	for i := 0; i < totalSize; i++ {
 		s := string(rawParamStr[i])
+		if s == PARAM_ESC_CHAR {
+			if isEscMode {
+				isEscMode = false
+				curRawParam += s
+			} else {
+				isEscMode = true
+			}
+			continue
+		} else {
+			if isEscMode {
+				isEscMode = false
+				curRawParam += s
+				continue
+			}
+		}
+
 		switch s {
+		case PARAM_TYPE_SPLIT:
+			curRawParam += PARAM_TYPE_SPLIT_INC
 		case PARAMS_SPLIT:
 			curRawParam = strings.TrimSpace(curRawParam)
 			if len(curRawParam) > 0 {
@@ -89,7 +115,7 @@ func parseRawParamsString(rawParamStr string) ([]interface{}, int, error) {
 			}
 			return rawParamItems, i + 1, nil
 		default:
-			curRawParam = fmt.Sprintf("%s%s", curRawParam, string(s))
+			curRawParam += s
 		}
 	}
 	curRawParam = strings.TrimSpace(curRawParam)
@@ -127,11 +153,11 @@ func parseRawParams(rawParams []interface{}) ([]interface{}, error) {
 
 func parseRawParam(rawParam string) (interface{}, error) {
 	rawParam = strings.TrimSpace(rawParam)
-	rawParam = strings.Trim(rawParam, PARAMS_SPLIT)
+	//rawParam = strings.Trim(rawParam, PARAMS_SPLIT)
 	if len(rawParam) == 0 {
 		return nil, nil
 	}
-	ps := strings.Split(rawParam, PARAM_TYPE_SPLIT)
+	ps := strings.Split(rawParam, PARAM_TYPE_SPLIT_INC)
 	if len(ps) != 2 {
 		return nil, fmt.Errorf("invalid param:%s", rawParam)
 	}
@@ -180,7 +206,7 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 func ParseReturnValue(rawValue interface{}, rawReturnTypeStr string) ([]interface{}, error) {
 	returnTypes, _, err := parseRawParamsString(rawReturnTypeStr)
 	if err != nil {
-		return nil, fmt.Errorf("Parse raw return types:%s error:%s", rawReturnTypeStr, err)
+		return nil, fmt.Errorf("parse raw return types:%s error:%s", rawReturnTypeStr, err)
 	}
 	var rawValues []interface{}
 	rawValues, ok := rawValue.([]interface{})
@@ -218,16 +244,16 @@ func parseReturnValueArray(rawValues []interface{}, returnTypes []interface{}) (
 			}
 			values = append(values, value)
 			if err != nil {
-				return nil, fmt.Errorf("Parse return value:%s type:byte array error:%s", v, err)
+				return nil, fmt.Errorf("parse return value:%s type:byte array error:%s", v, err)
 			}
 		case []interface{}:
 			valueTypes, ok := valueType.([]interface{})
 			if !ok {
-				return nil, fmt.Errorf("Parse return value:%+v types:%s failed, types doesnot match", v, valueType)
+				return nil, fmt.Errorf("parse return value:%+v types:%s failed, types doesnot match", v, valueType)
 			}
 			values, err := parseReturnValueArray(v, valueTypes)
 			if err != nil {
-				return nil, fmt.Errorf("Parese return values:%+v types:%s error:%s", values, valueType, err)
+				return nil, fmt.Errorf("parese return values:%+v types:%s error:%s", values, valueType, err)
 			}
 		default:
 			return nil, fmt.Errorf("unknown return type:%s", reflect.TypeOf(rawValue))

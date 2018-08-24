@@ -19,29 +19,34 @@
 package cmd
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/core/types"
+	httpcom "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
 	"strconv"
 )
 
 var InfoCommand = cli.Command{
 	Name:  "info",
-	Usage: "Display informations about the chain",
+	Usage: "Display information about the chain",
 	Subcommands: []cli.Command{
 		{
-			Action: txInfo,
-			Name:   "tx",
-			Usage:  "Display transaction information",
+			Action:    txInfo,
+			Name:      "tx",
+			Usage:     "Display transaction information",
+			ArgsUsage: "txHash",
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 			},
 			Description: "Display transaction information",
 		},
 		{
-			Action: blockInfo,
-			Name:   "block",
-			Usage:  "Display block information",
+			Action:    blockInfo,
+			Name:      "block",
+			Usage:     "Display block information",
+			ArgsUsage: "<blochHash|height>",
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 			},
@@ -66,6 +71,16 @@ var InfoCommand = cli.Command{
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 			},
+		},
+		{
+			Action:    showTx,
+			Name:      "showtx",
+			Usage:     "Show info of raw transaction.",
+			ArgsUsage: "<rawtx>",
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
+			Description: "Show info of raw transaction.",
 		},
 	},
 	Description: `Query information command can query information such as blocks, transactions, and transaction executions. 
@@ -146,5 +161,30 @@ func curBlockHeight(ctx *cli.Context) error {
 		return err
 	}
 	PrintInfoMsg("CurrentBlockHeight:%d", count-1)
+	return nil
+}
+
+func showTx(ctx *cli.Context) error {
+	SetRpcPort(ctx)
+	if ctx.NArg() < 1 {
+		PrintErrorMsg("Missing %s flag.", utils.GetFlagName(utils.RawTransactionFlag))
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	rawTx := ctx.Args().First()
+	txData, err := hex.DecodeString(rawTx)
+	if err != nil {
+		return fmt.Errorf("RawTx hex decode error:%s", err)
+	}
+	tx, err := types.TransactionFromRawBytes(txData)
+	if err != nil {
+		return fmt.Errorf("TransactionFromRawBytes error:%s", err)
+	}
+	txInfo := httpcom.TransArryByteToHexString(tx)
+
+	txHash := tx.Hash()
+	height, _ := utils.GetTxHeight(txHash.ToHexString())
+	txInfo.Height = height
+	PrintJsonObject(txInfo)
 	return nil
 }
