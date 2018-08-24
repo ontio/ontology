@@ -198,7 +198,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err := this.SystemCall(this.Engine); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
 			}
-		case vm.APPCALL, vm.TAILCALL:
+		case vm.APPCALL:
 			var err error
 			address := this.Engine.Context.OpReader.ReadBytes(20)
 			if bytes.Compare(address, BYTE_ZERO_20) == 0 {
@@ -208,6 +208,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				address, err = vm.PopByteArray(this.Engine)
 				if err != nil {
 					return nil, fmt.Errorf("[Appcall] pop contract address error:%v", err)
+				}
+				if len(address) != 20 {
+					return nil, fmt.Errorf("[Appcall] pop contract address len != 20:%x", address)
 				}
 			}
 			code, err := this.getContract(address)
