@@ -694,11 +694,11 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 		return nil, fmt.Errorf("get authorizeInfoBytes error: %v", err)
 	}
 	peerAttributes := &PeerAttributes{
-		PeerPubkey:  peerPubkey,
-		IfAuthorize: 0,
-		OldPeerCost: 100,
-		NewPeerCost: 100,
-		SetCostView: 0,
+		PeerPubkey:   peerPubkey,
+		MaxAuthorize: 0,
+		OldPeerCost:  100,
+		NewPeerCost:  100,
+		SetCostView:  0,
 	}
 	if peerAttributesBytes != nil {
 		peerAttributesStore, ok := peerAttributesBytes.(*cstates.StorageItem)

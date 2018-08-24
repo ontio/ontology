@@ -434,23 +434,23 @@ type SyncNodeSplitInfo struct {
 }
 
 type PeerAttributes struct {
-	PeerPubkey  string
-	IfAuthorize uint32
-	OldPeerCost uint64
-	NewPeerCost uint64
-	SetCostView uint32
-	Field1      []byte
-	Field2      []byte
-	Field3      []byte
-	Field4      []byte
+	PeerPubkey   string
+	MaxAuthorize uint32
+	OldPeerCost  uint64
+	NewPeerCost  uint64
+	SetCostView  uint32
+	Field1       []byte
+	Field2       []byte
+	Field3       []byte
+	Field4       []byte
 }
 
 func (this *PeerAttributes) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return fmt.Errorf("serialization.WriteBool, serialize peerPubkey error: %v", err)
 	}
-	if err := serialization.WriteUint32(w, this.IfAuthorize); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize ifAuthorize error: %v", err)
+	if err := serialization.WriteUint32(w, this.MaxAuthorize); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize maxAuthorize error: %v", err)
 	}
 	if err := serialization.WriteUint64(w, this.OldPeerCost); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize oldPeerCost error: %v", err)
@@ -481,9 +481,9 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	ifAuthorize, err := serialization.ReadUint32(r)
+	maxAuthorize, err := serialization.ReadUint32(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadBool, deserialize ifAuthorize error: %v", err)
+		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", err)
 	}
 	oldPeerCost, err := serialization.ReadUint64(r)
 	if err != nil {
@@ -514,7 +514,7 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 		return fmt.Errorf("serialization.ReadVarBytes. deserialize field4 error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
-	this.IfAuthorize = ifAuthorize
+	this.MaxAuthorize = maxAuthorize
 	this.OldPeerCost = oldPeerCost
 	this.NewPeerCost = newPeerCost
 	this.SetCostView = setCostView

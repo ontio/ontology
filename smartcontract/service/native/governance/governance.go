@@ -71,7 +71,7 @@ const (
 	UPDATE_GLOBAL_PARAM2             = "updateGlobalParam2"
 	UPDATE_SPLIT_CURVE               = "updateSplitCurve"
 	TRANSFER_PENALTY                 = "transferPenalty"
-	CHANGE_AUTHORIZATION             = "changeAuthorization"
+	CHANGE_MAX_AUTHORIZATION         = "changeMaxAuthorization"
 	SET_PEER_COST                    = "setPeerCost"
 
 	//key prefix
@@ -124,7 +124,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(WITHDRAW, Withdraw)
 	native.Register(QUIT_NODE, QuitNode)
 	native.Register(WITHDRAW_ONG, WithdrawOng)
-	native.Register(CHANGE_AUTHORIZATION, ChangeAuthorization)
+	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
 	native.Register(SET_PEER_COST, SetPeerCost)
 	native.Register(WITHDRAW_FEE, WithdrawFee)
 
@@ -1261,7 +1261,7 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 }
 
 //Change the status if node can receive authorization from ont holders
-func ChangeAuthorization(native *native.NativeService) ([]byte, error) {
+func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
 	params := new(ChangeAuthorizationParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize changeAuthorizationParam error: %v", err)
@@ -1299,7 +1299,7 @@ func ChangeAuthorization(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
-	peerAttributes.IfAuthorize = params.IfAuthorize
+	peerAttributes.MaxAuthorize = params.MaxAuthorize
 
 	err = putPeerAttributes(native, contract, peerAttributes)
 	if err != nil {

@@ -204,13 +204,6 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		if err != nil {
 			return fmt.Errorf("getPeerAttributes error: %v", err)
 		}
-		switch peerAttributes.IfAuthorize {
-		case 0:
-			return fmt.Errorf("this peer do not receive authorization")
-		case 1:
-		default:
-			return fmt.Errorf("ifAuthorize of this peer is error")
-		}
 
 		authorizeInfo, err := getAuthorizeInfo(native, contract, peerPubkey, params.Address)
 		if err != nil {
@@ -221,6 +214,9 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		peerPoolItem.TotalPos = peerPoolItem.TotalPos + uint64(pos)
 		if peerPoolItem.TotalPos > uint64(globalParam.PosLimit)*peerPoolItem.InitPos {
 			return fmt.Errorf("authorizeForPeer, pos of this peer is full")
+		}
+		if peerPoolItem.TotalPos > uint64(peerAttributes.MaxAuthorize) {
+			return fmt.Errorf("authorizeForPeer, pos of this peer is more than peerAttributes.MaxAuthorize")
 		}
 
 		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
