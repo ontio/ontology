@@ -80,7 +80,7 @@ var (
 		STORAGE_DELETE_NAME:                  {Execute: StorageDelete},
 		STORAGE_GETCONTEXT_NAME:              {Execute: StorageGetContext},
 		STORAGE_GETREADONLYCONTEXT_NAME:      {Execute: StorageGetReadOnlyContext},
-		STORAGECONTEXT_ASREADONLY_NAME:       {Execute: StorageContextAsReadOnly},
+		STORAGECONTEXT_ASREADONLY_NAME:       {Execute: StorageContextAsReadOnly, Validator: validatorContextAsReadOnly},
 		GETSCRIPTCONTAINER_NAME:              {Execute: GetCodeContainer},
 		GETEXECUTINGSCRIPTHASH_NAME:          {Execute: GetExecutingAddress},
 		GETCALLINGSCRIPTHASH_NAME:            {Execute: GetCallingAddress},

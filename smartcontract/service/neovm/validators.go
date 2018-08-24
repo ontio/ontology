@@ -188,6 +188,13 @@ func validatorDeserialize(engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+func validatorContextAsReadOnly(engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 1 {
+		return errors.NewErr("[validatorContextAsReadOnly] Too few input parameters ")
+	}
+	return nil
+}
+
 func peekBlock(engine *vm.ExecutionEngine) (*types.Block, error) {
 	d, err := vm.PeekInteropInterface(engine)
 	if err != nil {
