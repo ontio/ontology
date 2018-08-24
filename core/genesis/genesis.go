@@ -118,41 +118,49 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	return genesisBlock, nil
 }
 
+func checkConvert(tx *types.MutableTransaction) *types.Transaction {
+	txn, err := tx.IntoImmutable()
+	if err != nil {
+		panic(err)
+	}
+	return txn
+}
+
 func newGoverningToken() *types.Transaction {
 	tx := utils.NewDeployTransaction(nutils.OntContractAddress[:], "ONT", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", true)
-	return tx
+	return checkConvert(tx)
 }
 
 func newUtilityToken() *types.Transaction {
 	tx := utils.NewDeployTransaction(nutils.OngContractAddress[:], "ONG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", true)
-	return tx
+	return checkConvert(tx)
 }
 
 func newParamContract() *types.Transaction {
 	tx := utils.NewDeployTransaction(nutils.ParamContractAddress[:],
 		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
 		"Chain Global Environment Variables Manager ", true)
-	return tx
+	return checkConvert(tx)
 }
 
 func newConfig() *types.Transaction {
 	tx := utils.NewDeployTransaction(nutils.GovernanceContractAddress[:], "CONFIG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Consensus Config", true)
-	return tx
+	return checkConvert(tx)
 }
 
 func deployAuthContract() *types.Transaction {
 	tx := utils.NewDeployTransaction(nutils.AuthContractAddress[:], "AuthContract", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Authorization Contract", true)
-	return tx
+	return checkConvert(tx)
 }
 
 func deployOntIDContract() *types.Transaction {
 	tx := utils.NewDeployTransaction(nutils.OntIDContractAddress[:], "OID", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT ID", true)
-	return tx
+	return checkConvert(tx)
 }
 
 func newGoverningInit() *types.Transaction {
@@ -182,17 +190,19 @@ func newGoverningInit() *types.Transaction {
 		nutils.WriteVarUint(args, part.value)
 	}
 
-	return utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())
+	tx := utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())
+	return checkConvert(tx)
 }
 
 func newUtilityInit() *types.Transaction {
-	return utils.BuildNativeTransaction(nutils.OngContractAddress, ont.INIT_NAME, []byte{})
+	tx := utils.BuildNativeTransaction(nutils.OngContractAddress, ont.INIT_NAME, []byte{})
+	return checkConvert(tx)
 }
 
 func newParamInit() *types.Transaction {
 	params := new(global_params.Params)
 	var s []string
-	for k, _ := range INIT_PARAM {
+	for k := range INIT_PARAM {
 		s = append(s, k)
 	}
 
@@ -223,9 +233,11 @@ func newParamInit() *types.Transaction {
 	}
 	nutils.WriteAddress(bf, addr)
 
-	return utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
+	tx := utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
+	return checkConvert(tx)
 }
 
 func newGoverConfigInit(config []byte) *types.Transaction {
-	return utils.BuildNativeTransaction(nutils.GovernanceContractAddress, governance.INIT_CONFIG, config)
+	tx := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, governance.INIT_CONFIG, config)
+	return checkConvert(tx)
 }

@@ -98,9 +98,13 @@ func NewTxPoolServer(num uint8, disablePreExec, enableBroadcastNetTx bool) *TXPo
 
 // getGlobalGasPrice returns a global gas price
 func getGlobalGasPrice() (uint64, error) {
-	tx, err := httpcom.NewNativeInvokeTransaction(0, 0, nutils.ParamContractAddress, 0, "getGlobalParam", []interface{}{[]interface{}{"gasPrice"}})
+	mutable, err := httpcom.NewNativeInvokeTransaction(0, 0, nutils.ParamContractAddress, 0, "getGlobalParam", []interface{}{[]interface{}{"gasPrice"}})
 	if err != nil {
 		return 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
+	}
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return 0, err
 	}
 	result, err := ledger.DefLedger.PreExecuteContract(tx)
 	if err != nil {

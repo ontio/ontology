@@ -20,6 +20,7 @@ package utils
 
 import (
 	"bytes"
+	"math"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
@@ -27,11 +28,10 @@ import (
 	"github.com/ontio/ontology/core/types"
 	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	vm "github.com/ontio/ontology/vm/neovm"
-	"math"
 )
 
 // NewDeployTransaction returns a deploy Transaction
-func NewDeployTransaction(code []byte, name, version, author, email, desp string, needStorage bool) *types.Transaction {
+func NewDeployTransaction(code []byte, name, version, author, email, desp string, needStorage bool) *types.MutableTransaction {
 	//TODO: check arguments
 	DeployCodePayload := &payload.DeployCode{
 		Code:        code,
@@ -43,26 +43,26 @@ func NewDeployTransaction(code []byte, name, version, author, email, desp string
 		Description: desp,
 	}
 
-	return &types.Transaction{
+	return &types.MutableTransaction{
 		TxType:  types.Deploy,
 		Payload: DeployCodePayload,
 	}
 }
 
 // NewInvokeTransaction returns an invoke Transaction
-func NewInvokeTransaction(code []byte) *types.Transaction {
+func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 	//TODO: check arguments
 	invokeCodePayload := &payload.InvokeCode{
 		Code: code,
 	}
 
-	return &types.Transaction{
+	return &types.MutableTransaction{
 		TxType:  types.Invoke,
 		Payload: invokeCodePayload,
 	}
 }
 
-func BuildNativeTransaction(addr common.Address, initMethod string, args []byte) *types.Transaction {
+func BuildNativeTransaction(addr common.Address, initMethod string, args []byte) *types.MutableTransaction {
 	bf := new(bytes.Buffer)
 	builder := vm.NewParamsBuilder(bf)
 	builder.EmitPushByteArray(args)

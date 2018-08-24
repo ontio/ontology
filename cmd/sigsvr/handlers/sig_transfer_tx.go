@@ -19,7 +19,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
@@ -60,7 +59,7 @@ func SigTransferTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	transferTx, err := cliutil.TransferTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Asset, rawReq.From, rawReq.To, uint64(amount))
+	mutable, err := cliutil.TransferTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Asset, rawReq.From, rawReq.To, uint64(amount))
 	if err != nil {
 		log.Infof("Cli Qid:%s SigTransferTransaction TransferTx error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
@@ -73,7 +72,7 @@ func SigTransferTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 			return
 		}
-		transferTx.Payer = payerAddress
+		mutable.Payer = payerAddress
 	}
 
 	signer, err := req.GetAccount()
@@ -86,20 +85,26 @@ func SigTransferTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
 		return
 	}
-	err = cliutil.SignTransaction(signer, transferTx)
+	err = cliutil.SignTransaction(signer, mutable)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigTransferTransaction SignTransaction error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
-	buf := bytes.NewBuffer(nil)
-	err = transferTx.Serialize(buf)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigTransferTransaction tx IntoInmmutable error:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		return
+	}
+	sink := common.ZeroCopySink{}
+	err = tx.Serialization(&sink)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigTransferTransaction tx Serialize error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
 	resp.Result = &SinTransferTransactionRsp{
-		SignedTx: hex.EncodeToString(buf.Bytes()),
+		SignedTx: hex.EncodeToString(sink.Bytes()),
 	}
 }
