@@ -137,7 +137,7 @@ func transfer(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.GetFlagName(utils.TransactionToFlag)) ||
 		!ctx.IsSet(utils.GetFlagName(utils.TransactionFromFlag)) ||
 		!ctx.IsSet(utils.GetFlagName(utils.TransactionAmountFlag)) {
-		fmt.Println("Missing from, to or amount flag\n")
+		PrintErrorMsg("Missing %s %s or %s argument.", utils.TransactionToFlag.Name, utils.TransactionFromFlag.Name, utils.TransactionAmountFlag.Name)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -149,12 +149,12 @@ func transfer(ctx *cli.Context) error {
 	from := ctx.String(utils.TransactionFromFlag.Name)
 	fromAddr, err := cmdcom.ParseAddress(from, ctx)
 	if err != nil {
-		return fmt.Errorf("Parse from address:%s error:%s", from, err)
+		return err
 	}
 	to := ctx.String(utils.TransactionToFlag.Name)
 	toAddr, err := cmdcom.ParseAddress(to, ctx)
 	if err != nil {
-		return fmt.Errorf("Parse to address:%s error:%s", to, err)
+		return err
 	}
 
 	var amount uint64
@@ -189,26 +189,26 @@ func transfer(ctx *cli.Context) error {
 	var signer *account.Account
 	signer, err = cmdcom.GetAccount(ctx, fromAddr)
 	if err != nil {
-		return fmt.Errorf("GetAccount error:%s", err)
+		return err
 	}
 	txHash, err := utils.Transfer(gasPrice, gasLimit, signer, asset, fromAddr, toAddr, amount)
 	if err != nil {
-		return fmt.Errorf("Transfer error:%s", err)
+		return fmt.Errorf("transfer error:%s", err)
 	}
-	fmt.Printf("Transfer %s\n", strings.ToUpper(asset))
-	fmt.Printf("  From:%s\n", fromAddr)
-	fmt.Printf("  To:%s\n", toAddr)
-	fmt.Printf("  Amount:%s\n", amountStr)
-	fmt.Printf("  TxHash:%s\n", txHash)
-	fmt.Printf("\nTip:\n")
-	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
+	PrintInfoMsg("Transfer %s", strings.ToUpper(asset))
+	PrintInfoMsg("  From:%s", fromAddr)
+	PrintInfoMsg("  To:%s", toAddr)
+	PrintInfoMsg("  Amount:%s", amountStr)
+	PrintInfoMsg("  TxHash:%s", txHash)
+	PrintInfoMsg("\nTip:")
+	PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
 	return nil
 }
 
 func getBalance(ctx *cli.Context) error {
 	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
-		fmt.Println("Missing argument. Account address, label or index expected.\n")
+		PrintErrorMsg("Missing account argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -227,9 +227,9 @@ func getBalance(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("BalanceOf:%s\n", accAddr)
-	fmt.Printf("  ONT:%s\n", balance.Ont)
-	fmt.Printf("  ONG:%s\n", utils.FormatOng(ong))
+	PrintInfoMsg("BalanceOf:%s", accAddr)
+	PrintInfoMsg("  ONT:%s", balance.Ont)
+	PrintInfoMsg("  ONG:%s", utils.FormatOng(ong))
 	return nil
 }
 
@@ -238,7 +238,7 @@ func getAllowance(ctx *cli.Context) error {
 	from := ctx.String(utils.GetFlagName(utils.ApproveAssetFromFlag))
 	to := ctx.String(utils.GetFlagName(utils.ApproveAssetToFlag))
 	if from == "" || to == "" {
-		fmt.Printf("Missing approve from or to argument\n")
+		PrintErrorMsg("Missing %s or %s argument.", utils.ApproveAssetFromFlag.Name, utils.ApproveAssetToFlag.Name)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -269,10 +269,10 @@ func getAllowance(ctx *cli.Context) error {
 	default:
 		return fmt.Errorf("unsupport asset:%s", asset)
 	}
-	fmt.Printf("Allowance:%s\n", asset)
-	fmt.Printf("  From:%s\n", fromAddr)
-	fmt.Printf("  To:%s\n", toAddr)
-	fmt.Printf("  Balance:%s\n", balanceStr)
+	PrintInfoMsg("Allowance:%s", asset)
+	PrintInfoMsg("  From:%s", fromAddr)
+	PrintInfoMsg("  To:%s", toAddr)
+	PrintInfoMsg("  Balance:%s", balanceStr)
 	return nil
 }
 
@@ -286,7 +286,7 @@ func approve(ctx *cli.Context) error {
 		from == "" ||
 		to == "" ||
 		amountStr == "" {
-		fmt.Printf("Missing asset, from, to, or amount argument\n")
+		PrintErrorMsg("Missing %s %s %s or %s argument.", utils.ApproveAssetFlag.Name, utils.ApproveAssetFromFlag.Name, utils.ApproveAssetToFlag.Name, utils.ApproveAmountFlag.Name)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -328,7 +328,7 @@ func approve(ctx *cli.Context) error {
 	var signer *account.Account
 	signer, err = cmdcom.GetAccount(ctx, fromAddr)
 	if err != nil {
-		return fmt.Errorf("GetAccount error:%s", err)
+		return err
 	}
 
 	txHash, err := utils.Approve(gasPrice, gasLimit, signer, asset, fromAddr, toAddr, amount)
@@ -336,14 +336,14 @@ func approve(ctx *cli.Context) error {
 		return fmt.Errorf("approve error:%s", err)
 	}
 
-	fmt.Printf("Approve:\n")
-	fmt.Printf("  Asset:%s\n", asset)
-	fmt.Printf("  From:%s\n", fromAddr)
-	fmt.Printf("  To:%s\n", toAddr)
-	fmt.Printf("  Amount:%s\n", amountStr)
-	fmt.Printf("  TxHash:%s\n", txHash)
-	fmt.Printf("\nTip:\n")
-	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
+	PrintInfoMsg("Approve:")
+	PrintInfoMsg("  Asset:%s", asset)
+	PrintInfoMsg("  From:%s", fromAddr)
+	PrintInfoMsg("  To:%s", toAddr)
+	PrintInfoMsg("  Amount:%s", amountStr)
+	PrintInfoMsg("  TxHash:%s", txHash)
+	PrintInfoMsg("\nTip:")
+	PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
 	return nil
 }
 
@@ -357,7 +357,7 @@ func transferFrom(ctx *cli.Context) error {
 		from == "" ||
 		to == "" ||
 		amountStr == "" {
-		fmt.Printf("Missing asset, from, to, or amount argument\n")
+		PrintErrorMsg("Missing %s %s %s or %s argument.", utils.ApproveAssetFlag.Name, utils.ApproveAssetFromFlag.Name, utils.ApproveAssetToFlag.Name, utils.TransferFromAmountFlag.Name)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -384,7 +384,7 @@ func transferFrom(ctx *cli.Context) error {
 	var signer *account.Account
 	signer, err = cmdcom.GetAccount(ctx, sendAddr)
 	if err != nil {
-		return fmt.Errorf("GetAccount error:%s", err)
+		return err
 	}
 
 	var amount uint64
@@ -419,22 +419,22 @@ func transferFrom(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Transfer from:\n")
-	fmt.Printf("  Asset:%s\n", asset)
-	fmt.Printf("  Sender:%s\n", sendAddr)
-	fmt.Printf("  From:%s\n", fromAddr)
-	fmt.Printf("  To:%s\n", toAddr)
-	fmt.Printf("  Amount:%s\n", amountStr)
-	fmt.Printf("  TxHash:%s\n", txHash)
-	fmt.Printf("\nTip:\n")
-	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
+	PrintInfoMsg("Transfer from:")
+	PrintInfoMsg("  Asset:%s", asset)
+	PrintInfoMsg("  Sender:%s", sendAddr)
+	PrintInfoMsg("  From:%s", fromAddr)
+	PrintInfoMsg("  To:%s", toAddr)
+	PrintInfoMsg("  Amount:%s", amountStr)
+	PrintInfoMsg("  TxHash:%s", txHash)
+	PrintInfoMsg("\nTip:")
+	PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
 	return nil
 }
 
 func unboundOng(ctx *cli.Context) error {
 	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
-		fmt.Println("Missing argument. Account address, label or index expected.\n")
+		PrintErrorMsg("Missing account argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -453,16 +453,16 @@ func unboundOng(ctx *cli.Context) error {
 		return err
 	}
 	balanceStr = utils.FormatOng(balance)
-	fmt.Printf("Unbound ONG:\n")
-	fmt.Printf("  Account:%s\n", accAddr)
-	fmt.Printf("  ONG:%s\n", balanceStr)
+	PrintInfoMsg("Unbound ONG:")
+	PrintInfoMsg("  Account:%s", accAddr)
+	PrintInfoMsg("  ONG:%s", balanceStr)
 	return nil
 }
 
 func withdrawOng(ctx *cli.Context) error {
 	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
-		fmt.Println("Missing argument. Account address, label or index expected.\n")
+		PrintErrorMsg("Missing account argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -482,13 +482,13 @@ func withdrawOng(ctx *cli.Context) error {
 		return err
 	}
 	if amount <= 0 {
-		return fmt.Errorf("Don't have unbound ong\n")
+		return fmt.Errorf("haven't unbound ong\n")
 	}
 
 	var signer *account.Account
 	signer, err = cmdcom.GetAccount(ctx, accAddr)
 	if err != nil {
-		return fmt.Errorf("GetAccount error:%s", err)
+		return err
 	}
 
 	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
@@ -506,11 +506,11 @@ func withdrawOng(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Withdraw ONG:\n")
-	fmt.Printf("  Account:%s\n", accAddr)
-	fmt.Printf("  Amount:%s\n", utils.FormatOng(amount))
-	fmt.Printf("  TxHash:%s\n", txHash)
-	fmt.Printf("\nTip:\n")
-	fmt.Printf("  Using './ontology info status %s' to query transaction status\n", txHash)
+	PrintInfoMsg("Withdraw ONG:")
+	PrintInfoMsg("  Account:%s", accAddr)
+	PrintInfoMsg("  Amount:%s", utils.FormatOng(amount))
+	PrintInfoMsg("  TxHash:%s", txHash)
+	PrintInfoMsg("\nTip:")
+	PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
 	return nil
 }

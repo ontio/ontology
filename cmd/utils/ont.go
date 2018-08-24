@@ -57,12 +57,16 @@ const (
 
 //Return balance of address in base58 code
 func GetBalance(address string) (*httpcom.BalanceOfRsp, error) {
-	result, err := sendRpcRequest("getbalance", []interface{}{address})
-	if err != nil {
-		return nil, fmt.Errorf("sendRpcRequest error:%s", err)
+	result, ontErr := sendRpcRequest("getbalance", []interface{}{address})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("invalid address:%s", address)
+		}
+		return nil, ontErr.Error
 	}
 	balance := &httpcom.BalanceOfRsp{}
-	err = json.Unmarshal(result, balance)
+	err := json.Unmarshal(result, balance)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
 	}
@@ -70,12 +74,12 @@ func GetBalance(address string) (*httpcom.BalanceOfRsp, error) {
 }
 
 func GetAllowance(asset, from, to string) (string, error) {
-	result, err := sendRpcRequest("getallowance", []interface{}{asset, from, to})
-	if err != nil {
-		return "", fmt.Errorf("sendRpcRequest error:%s", err)
+	result, ontErr := sendRpcRequest("getallowance", []interface{}{asset, from, to})
+	if ontErr != nil {
+		return "", ontErr.Error
 	}
 	balance := ""
-	err = json.Unmarshal(result, &balance)
+	err := json.Unmarshal(result, &balance)
 	if err != nil {
 		return "", fmt.Errorf("json.Unmarshal error:%s", err)
 	}
@@ -324,9 +328,9 @@ func SendRawTransaction(tx *types.Transaction) (string, error) {
 		return "", fmt.Errorf("Serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData})
-	if err != nil {
-		return "", err
+	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData})
+	if ontErr != nil {
+		return "", ontErr.Error
 	}
 	hexHash := ""
 	err = json.Unmarshal(data, &hexHash)
@@ -338,12 +342,16 @@ func SendRawTransaction(tx *types.Transaction) (string, error) {
 
 //GetSmartContractEvent return smart contract event execute by invoke transaction by hex string code
 func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
-	data, err := sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
-	if err != nil {
-		return nil, fmt.Errorf("sendRpcRequest error:%s", err)
+	data, ontErr := sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("invalid TxHash:%s", txHash)
+		}
+		return nil, ontErr.Error
 	}
 	notifies := &rpccommon.ExecuteNotify{}
-	err = json.Unmarshal(data, &notifies)
+	err := json.Unmarshal(data, &notifies)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal SmartContactEvent:%s error:%s", data, err)
 	}
@@ -351,24 +359,48 @@ func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
 }
 
 func GetSmartContractEventInfo(txHash string) ([]byte, error) {
-	return sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
+	data, ontErr := sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
+	if ontErr == nil {
+		return data, nil
+	}
+	switch ontErr.ErrorCode {
+	case ERROR_INVALID_PARAMS:
+		return nil, fmt.Errorf("invalid TxHash:%s", txHash)
+	}
+	return nil, ontErr.Error
 }
 
 func GetRawTransaction(txHash string) ([]byte, error) {
-	return sendRpcRequest("getrawtransaction", []interface{}{txHash, 1})
+	data, ontErr := sendRpcRequest("getrawtransaction", []interface{}{txHash, 1})
+	if ontErr == nil {
+		return data, nil
+	}
+	switch ontErr.ErrorCode {
+	case ERROR_INVALID_PARAMS:
+		return nil, fmt.Errorf("invalid TxHash:%s", txHash)
+	}
+	return nil, ontErr.Error
 }
 
 func GetBlock(hashOrHeight interface{}) ([]byte, error) {
-	return sendRpcRequest("getblock", []interface{}{hashOrHeight, 1})
+	data, ontErr := sendRpcRequest("getblock", []interface{}{hashOrHeight, 1})
+	if ontErr == nil {
+		return data, nil
+	}
+	switch ontErr.ErrorCode {
+	case ERROR_INVALID_PARAMS:
+		return nil, fmt.Errorf("invalid block hash or block height:%v", hashOrHeight)
+	}
+	return nil, ontErr.Error
 }
 
 func GetNetworkId() (uint32, error) {
-	data, err := sendRpcRequest("getnetworkid", []interface{}{})
-	if err != nil {
-		return 0, err
+	data, ontErr := sendRpcRequest("getnetworkid", []interface{}{})
+	if ontErr != nil {
+		return 0, ontErr.Error
 	}
 	var networkId uint32
-	err = json.Unmarshal(data, &networkId)
+	err := json.Unmarshal(data, &networkId)
 	if err != nil {
 		return 0, fmt.Errorf("json.Unmarshal networkId error:%s", err)
 	}
@@ -376,12 +408,16 @@ func GetNetworkId() (uint32, error) {
 }
 
 func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
-	data, err := sendRpcRequest("getblock", []interface{}{hashOrHeight})
-	if err != nil {
-		return nil, err
+	data, ontErr := sendRpcRequest("getblock", []interface{}{hashOrHeight})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("invalid block hash or block height:%v", hashOrHeight)
+		}
+		return nil, ontErr.Error
 	}
 	hexStr := ""
-	err = json.Unmarshal(data, &hexStr)
+	err := json.Unmarshal(data, &hexStr)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
 	}
@@ -393,12 +429,12 @@ func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
 }
 
 func GetBlockCount() (uint32, error) {
-	data, err := sendRpcRequest("getblockcount", []interface{}{})
-	if err != nil {
-		return 0, err
+	data, ontErr := sendRpcRequest("getblockcount", []interface{}{})
+	if ontErr != nil {
+		return 0, ontErr.Error
 	}
 	num := uint32(0)
-	err = json.Unmarshal(data, &num)
+	err := json.Unmarshal(data, &num)
 	if err != nil {
 		return 0, fmt.Errorf("json.Unmarshal:%s error:%s", data, err)
 	}
@@ -455,12 +491,12 @@ func PrepareDeployContract(
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if err != nil {
-		return nil, err
+	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
+	if ontErr != nil {
+		return nil, ontErr.Error
 	}
 	preResult := &cstates.PreExecResult{}
 	err = json.Unmarshal(data, &preResult)
@@ -559,12 +595,12 @@ func PrepareInvokeNeoVMContract(
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if err != nil {
-		return nil, err
+	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
+	if ontErr != nil {
+		return nil, ontErr.Error
 	}
 	preResult := &cstates.PreExecResult{}
 	err = json.Unmarshal(data, &preResult)
@@ -586,12 +622,12 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error)
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if err != nil {
-		return nil, err
+	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
+	if ontErr != nil {
+		return nil, ontErr.Error
 	}
 	preResult := &cstates.PreExecResult{}
 	err = json.Unmarshal(data, &preResult)
@@ -617,12 +653,12 @@ func PrepareInvokeNativeContract(
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if err != nil {
-		return nil, err
+	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
+	if ontErr != nil {
+		return nil, ontErr.Error
 	}
 	preResult := &cstates.PreExecResult{}
 	err = json.Unmarshal(data, &preResult)

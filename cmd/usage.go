@@ -18,6 +18,9 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/urfave/cli"
 	"io"
@@ -318,4 +321,37 @@ func init() {
 
 	//Override the default global app help printer
 	cli.HelpPrinter = cusHelpPrinter
+}
+
+func PrintErrorMsg(format string, a ...interface{}) {
+	format = fmt.Sprintf("\033[31m[ERROR] %s\033[0m\n", format) //Print error msg with red color
+	fmt.Printf(format, a...)
+}
+
+func PrintWarnMsg(format string, a ...interface{}) {
+	format = fmt.Sprintf("\033[33m[WARN] %s\033[0m\n", format) //Print error msg with yellow color
+	fmt.Printf(format, a...)
+}
+
+func PrintInfoMsg(format string, a ...interface{}) {
+	fmt.Printf(format+"\n", a...)
+}
+
+func PrintJsonData(data []byte) {
+	var out bytes.Buffer
+	err := json.Indent(&out, data, "", "   ")
+	if err != nil {
+		PrintErrorMsg("json.Indent error:%s", err)
+		return
+	}
+	PrintInfoMsg(out.String())
+}
+
+func PrintJsonObject(obj interface{}) {
+	data, err := json.Marshal(obj)
+	if err != nil {
+		PrintErrorMsg("json.Marshal error:%s", err)
+		return
+	}
+	PrintJsonData(data)
 }

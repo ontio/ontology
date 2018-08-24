@@ -18,7 +18,7 @@
 package main
 
 import (
-	"fmt"
+	"github.com/ontio/ontology/cmd"
 	"github.com/ontio/ontology/cmd/abi"
 	cmdsvr "github.com/ontio/ontology/cmd/sigsvr"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
@@ -105,7 +105,7 @@ func startSigSvr(ctx *cli.Context) {
 
 func main() {
 	if err := setupSigSvr().Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)
 	}
 }

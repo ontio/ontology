@@ -128,7 +128,7 @@ func setupAPP() *cli.App {
 
 func main() {
 	if err := setupAPP().Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)
 	}
 }

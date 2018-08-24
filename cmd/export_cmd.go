@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"github.com/gosuri/uiprogress"
 	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/urfave/cli"
 	"os"
@@ -49,18 +48,15 @@ func exportBlocks(ctx *cli.Context) error {
 	SetRpcPort(ctx)
 	exportFile := ctx.String(utils.GetFlagName(utils.ExportFileFlag))
 	if exportFile == "" {
-		fmt.Printf("Missing file argument\n")
+		PrintErrorMsg("Missing %s argument.", utils.ExportFileFlag.Name)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
-	}
-	if common.FileExisted(exportFile) {
-		return fmt.Errorf("File:%s has already exist", exportFile)
 	}
 
 	startHeight := ctx.Uint(utils.GetFlagName(utils.ExportStartHeightFlag))
 	endHeight := ctx.Uint(utils.GetFlagName(utils.ExportEndHeightFlag))
 	if endHeight > 0 && startHeight > endHeight {
-		return fmt.Errorf("Export error: start height should smaller than end height\n")
+		return fmt.Errorf("export error: start height should smaller than end height")
 	}
 	blockCount, err := utils.GetBlockCount()
 	if err != nil {
@@ -68,7 +64,8 @@ func exportBlocks(ctx *cli.Context) error {
 	}
 	currentBlockHeight := uint(blockCount - 1)
 	if startHeight > currentBlockHeight {
-		return fmt.Errorf("StartBlockHeight:%d larger than CurrentBlockHeight:%d, No blocks to export", startHeight, currentBlockHeight)
+		PrintWarnMsg("StartBlockHeight:%d larger than CurrentBlockHeight:%d, No blocks to export.", startHeight, currentBlockHeight)
+		return nil
 	}
 	if endHeight == 0 || endHeight > currentBlockHeight {
 		endHeight = currentBlockHeight
@@ -88,7 +85,7 @@ func exportBlocks(ctx *cli.Context) error {
 	exportFile = utils.GenExportBlocksFileName(exportFile, uint32(startHeight), uint32(endHeight))
 	ef, err := os.OpenFile(exportFile, os.O_RDWR|os.O_CREATE, 0664)
 	if err != nil {
-		return fmt.Errorf("Open file:%s error:%s", exportFile, err)
+		return fmt.Errorf("open file:%s error:%s", exportFile, err)
 	}
 	defer ef.Close()
 	fWriter := bufio.NewWriter(ef)
@@ -98,7 +95,7 @@ func exportBlocks(ctx *cli.Context) error {
 	metadata.EndBlockHeight = uint32(endHeight)
 	err = metadata.Serialize(fWriter)
 	if err != nil {
-		return fmt.Errorf("Write export metadata error:%s", err)
+		return fmt.Errorf("write export metadata error:%s", err)
 	}
 
 	//progress bar
@@ -110,15 +107,15 @@ func exportBlocks(ctx *cli.Context) error {
 			return fmt.Sprintf("Block(%d/%d)", b.Current()+int(startHeight), int(endHeight))
 		})
 
-	fmt.Printf("Start export.\n")
+	PrintInfoMsg("Start export.")
 	for i := uint32(startHeight); i <= uint32(endHeight); i++ {
 		blockData, err := utils.GetBlockData(i)
 		if err != nil {
-			return fmt.Errorf("Get block:%d error:%s", i, err)
+			return fmt.Errorf("GetBlockData:%d error:%s", i, err)
 		}
 		data, err := utils.CompressBlockData(blockData, metadata.CompressType)
 		if err != nil {
-			return fmt.Errorf("Compress block height:%d error:%s", i, err)
+			return fmt.Errorf("CompressBlockData height:%d error:%s", i, err)
 		}
 		err = serialization.WriteUint32(fWriter, uint32(len(data)))
 		if err != nil {
@@ -137,11 +134,11 @@ func exportBlocks(ctx *cli.Context) error {
 
 	err = fWriter.Flush()
 	if err != nil {
-		return fmt.Errorf("Export flush file error:%s", err)
+		return fmt.Errorf("export flush file error:%s", err)
 	}
-	fmt.Printf("Export blocks successfully.\n")
-	fmt.Printf("StartBlockHeight:%d\n", startHeight)
-	fmt.Printf("EndBlockHeight:%d\n", endHeight)
-	fmt.Printf("Export file:%s\n", exportFile)
+	PrintInfoMsg("Export blocks successfully.")
+	PrintInfoMsg("StartBlockHeight:%d", startHeight)
+	PrintInfoMsg("EndBlockHeight:%d", endHeight)
+	PrintInfoMsg("Export file:%s", exportFile)
 	return nil
 }

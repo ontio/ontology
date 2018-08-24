@@ -174,10 +174,10 @@ func accountCreate(ctx *cli.Context) error {
 		optionCurve = checkCurve(ctx, reader, &optionType)
 		optionScheme = checkScheme(ctx, reader, &optionType)
 	} else {
-		fmt.Printf("Use default setting '-t ecdsa -b 256 -s SHA256withECDSA' \n")
-		fmt.Printf("	signature algorithm: %s \n", keyTypeMap[optionType].name)
-		fmt.Printf("	curve: %s \n", curveMap[optionCurve].name)
-		fmt.Printf("	signature scheme: %s \n", schemeMap[optionScheme].name)
+		PrintInfoMsg("Use default setting '-t ecdsa -b 256 -s SHA256withECDSA'")
+		PrintInfoMsg("	signature algorithm: %s", keyTypeMap[optionType].name)
+		PrintInfoMsg("	curve: %s", curveMap[optionCurve].name)
+		PrintInfoMsg("	signature scheme: %s", schemeMap[optionScheme].name)
 	}
 	optionFile := checkFileName(ctx)
 	optionNumber := checkNumber(ctx)
@@ -188,7 +188,7 @@ func accountCreate(ctx *cli.Context) error {
 	scheme := schemeMap[optionScheme].code
 	wallet, err := account.Open(optionFile)
 	if err != nil {
-		return fmt.Errorf("Open wallet error:%s", err)
+		return fmt.Errorf("open wallet error:%s", err)
 	}
 	defer common.ClearPasswd(pass)
 	if ctx.Bool(utils.IdentityFlag.Name) {
@@ -196,16 +196,15 @@ func accountCreate(ctx *cli.Context) error {
 		wd := wallet.GetWalletData()
 		id, err := account.NewIdentity(optionLabel, keyType, curve, pass)
 		if err != nil {
-			return fmt.Errorf("Create ONT ID error: %s", err)
+			return fmt.Errorf("create ONT ID error: %s", err)
 		}
 		wd.AddIdentity(id)
 		err = wd.Save(optionFile)
 		if err != nil {
-			return fmt.Errorf("Save to %s error: %s", optionFile, err)
+			return fmt.Errorf("save to %s error: %s", optionFile, err)
 		}
-		fmt.Println("")
-		fmt.Println("ONT ID created:", id.ID)
-		fmt.Println("Bind public key:", id.Control[0].Public)
+		PrintInfoMsg("ONT ID created:%s", id.ID)
+		PrintInfoMsg("Bind public key:%s", id.Control[0].Public)
 		return nil
 	}
 	for i := 0; i < optionNumber; i++ {
@@ -217,15 +216,14 @@ func accountCreate(ctx *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("new account error:%s", err)
 		}
-		fmt.Println()
-		fmt.Println("Index:", wallet.GetAccountNum())
-		fmt.Println("Label:", label)
-		fmt.Println("Address:", acc.Address.ToBase58())
-		fmt.Println("Public key:", hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)))
-		fmt.Println("Signature scheme:", acc.SigScheme.Name())
+		PrintInfoMsg("Index:%d", wallet.GetAccountNum())
+		PrintInfoMsg("Label:%s", label)
+		PrintInfoMsg("Address:%s", acc.Address.ToBase58())
+		PrintInfoMsg("Public key:%s", hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)))
+		PrintInfoMsg("Signature scheme:%s", acc.SigScheme.Name())
 	}
 
-	fmt.Println("\nCreate account successfully.")
+	PrintInfoMsg("Create account successfully.")
 	return nil
 }
 
@@ -233,11 +231,11 @@ func accountList(ctx *cli.Context) error {
 	optionFile := checkFileName(ctx)
 	wallet, err := account.Open(optionFile)
 	if err != nil {
-		return fmt.Errorf("Open wallet:%s error:%s", optionFile, err)
+		return fmt.Errorf("open wallet:%s error:%s", optionFile, err)
 	}
 	accNum := wallet.GetAccountNum()
 	if accNum == 0 {
-		fmt.Println("No account")
+		PrintInfoMsg("No account.")
 		return nil
 	}
 	accList := make(map[string]string, ctx.NArg())
@@ -245,7 +243,7 @@ func accountList(ctx *cli.Context) error {
 		addr := ctx.Args().Get(i)
 		accMeta := common.GetAccountMetadataMulti(wallet, addr)
 		if accMeta == nil {
-			fmt.Printf("Cannot find account by:%s in wallet:%s\n", addr, utils.GetFlagName(utils.WalletFileFlag))
+			PrintWarnMsg("Cannot find account by:%s in wallet:%s", addr, utils.GetFlagName(utils.WalletFileFlag))
 			continue
 		}
 		accList[accMeta.Address] = ""
@@ -263,24 +261,23 @@ func accountList(ctx *cli.Context) error {
 		}
 		if !ctx.Bool(utils.GetFlagName(utils.AccountVerboseFlag)) {
 			if accMeta.IsDefault {
-				fmt.Printf("Index:%-4d Address:%s  Label:%s (default)\n", i, accMeta.Address, accMeta.Label)
+				PrintInfoMsg("Index:%-4d Address:%s  Label:%s (default)", i, accMeta.Address, accMeta.Label)
 			} else {
-				fmt.Printf("Index:%-4d Address:%s  Label:%s\n", i, accMeta.Address, accMeta.Label)
+				PrintInfoMsg("Index:%-4d Address:%s  Label:%s", i, accMeta.Address, accMeta.Label)
 			}
 			continue
 		}
 		if accMeta.IsDefault {
-			fmt.Printf("%v\t%v (default)\n", i, accMeta.Address)
+			PrintInfoMsg("%v\t%v (default)", i, accMeta.Address)
 		} else {
-			fmt.Printf("%v\t%v\n", i, accMeta.Address)
+			PrintInfoMsg("%v\t%v", i, accMeta.Address)
 		}
-		fmt.Printf("	Label: %v\n", accMeta.Label)
-		fmt.Printf("	Signature algorithm: %v\n", accMeta.KeyType)
-		fmt.Printf("	Curve: %v\n", accMeta.Curve)
-		fmt.Printf("	Key length: %v bits\n", len(accMeta.Key)*8)
-		fmt.Printf("	Public key: %v\n", accMeta.PubKey)
-		fmt.Printf("	Signature scheme: %v\n", accMeta.SigSch)
-		fmt.Println()
+		PrintInfoMsg("	Label: %v", accMeta.Label)
+		PrintInfoMsg("	Signature algorithm: %v", accMeta.KeyType)
+		PrintInfoMsg("	Curve: %v", accMeta.Curve)
+		PrintInfoMsg("	Key length: %v bits", len(accMeta.Key)*8)
+		PrintInfoMsg("	Public key: %v", accMeta.PubKey)
+		PrintInfoMsg("	Signature scheme: %v\n", accMeta.SigSch)
 	}
 	return nil
 }
@@ -288,7 +285,7 @@ func accountList(ctx *cli.Context) error {
 //set signature scheme for an account
 func accountSet(ctx *cli.Context) error {
 	if ctx.NArg() < 1 {
-		fmt.Println("Missing account argument. Account address, lable or index expected.\n")
+		PrintErrorMsg("Missing account argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -299,30 +296,25 @@ func accountSet(ctx *cli.Context) error {
 	}
 	accMeta := common.GetAccountMetadataMulti(wallet, address)
 	if accMeta == nil {
-		return fmt.Errorf("Cannot find account info by:%s", address)
+		return fmt.Errorf("cannot find account info by:%s", address)
 	}
 	address = accMeta.Address
 	label := accMeta.Label
-	passwd, err := common.GetPasswd(ctx)
-	if err != nil {
-		return err
-	}
-	defer common.ClearPasswd(passwd)
 	if ctx.Bool(utils.GetFlagName(utils.AccountSetDefaultFlag)) {
-		err = wallet.SetDefaultAccount(address, passwd)
+		err = wallet.SetDefaultAccount(address)
 		if err != nil {
-			fmt.Printf("Set Label:%s Account:%s as default failed, %s\n", label, address, err)
+			PrintErrorMsg("Set Label:%s Account:%s as default failed, %s", label, address, err)
 		} else {
-			fmt.Printf("Set Label:%s Account:%s as default successfully\n", label, address)
+			PrintInfoMsg("Set Label:%s Account:%s as default successfully", label, address)
 		}
 	}
 	if ctx.IsSet(utils.GetFlagName(utils.AccountLabelFlag)) {
 		newLabel := ctx.String(utils.GetFlagName(utils.AccountLabelFlag))
-		err = wallet.SetLabel(address, newLabel, passwd)
+		err = wallet.SetLabel(address, newLabel)
 		if err != nil {
-			fmt.Printf("Set Account:%s Label:%s to %s failed, %s\n", address, label, newLabel, err)
+			PrintErrorMsg("Set Account:%s Label:%s to %s failed, %s", address, label, newLabel, err)
 		} else {
-			fmt.Printf("Set Account:%s Label:%s to %s successfully.\n", address, label, newLabel)
+			PrintInfoMsg("Set Account:%s Label:%s to %s successfully.", address, label, newLabel)
 			label = newLabel
 		}
 	}
@@ -343,28 +335,33 @@ func accountSet(ctx *cli.Context) error {
 			}
 		}
 		if find {
-			err = wallet.ChangeSigScheme(address, sigSch, passwd)
+			err = wallet.ChangeSigScheme(address, sigSch)
 			if err != nil {
-				fmt.Printf("Set Label:%s Account:%s SigScheme to: %s failed, %s\n", accMeta.Label, accMeta.Address, sigSch.Name(), err)
+				PrintErrorMsg("Set Label:%s Account:%s SigScheme to: %s failed, %s", accMeta.Label, accMeta.Address, sigSch.Name(), err)
 			} else {
-				fmt.Printf("Set Label:%s Account:%s SigScheme to: %s successfully\n", accMeta.Label, accMeta.Address, sigSch.Name())
+				PrintInfoMsg("Set Label:%s Account:%s SigScheme to: %s successfully.", accMeta.Label, accMeta.Address, sigSch.Name())
 			}
 		} else {
-			fmt.Printf("%s is not a valid content for option -s \n", sigScheme)
+			PrintInfoMsg("%s is not a valid content for option -s", sigScheme)
 		}
 	}
+
 	if ctx.Bool(utils.GetFlagName(utils.AccountChangePasswdFlag)) {
-		fmt.Printf("Please input new password:\n")
+		passwd, err := common.GetPasswd(ctx)
+		if err != nil {
+			return err
+		}
+		defer common.ClearPasswd(passwd)
+		PrintInfoMsg("Please input new password:")
 		newPass, err := password.GetConfirmedPassword()
 		if err != nil {
-			return fmt.Errorf("Input password error:%s", err)
+			return fmt.Errorf("input password error:%s", err)
 		}
-		defer common.ClearPasswd(newPass)
 		err = wallet.ChangePassword(address, passwd, newPass)
 		if err != nil {
-			fmt.Printf("Change password label:%s account:%s failed, %s\n", accMeta.Label, address, err)
+			PrintErrorMsg("Change password label:%s account:%s failed, %s", accMeta.Label, address, err)
 		} else {
-			fmt.Printf("Change password label:%s account:%s successfully\n", accMeta.Label, address)
+			PrintInfoMsg("Change password label:%s account:%s successfully", accMeta.Label, address)
 		}
 	}
 	return nil
@@ -373,7 +370,7 @@ func accountSet(ctx *cli.Context) error {
 //delete an account by index from 'list'
 func accountDelete(ctx *cli.Context) error {
 	if ctx.NArg() < 1 {
-		fmt.Println("Missing account argument. Account address, lable or index expected.\n")
+		PrintErrorMsg("Missing account argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -385,7 +382,7 @@ func accountDelete(ctx *cli.Context) error {
 	}
 	accMeta := common.GetAccountMetadataMulti(wallet, address)
 	if accMeta == nil {
-		return fmt.Errorf("Cannot get account by address:%s", address)
+		return fmt.Errorf("cannot get account by address:%s", address)
 	}
 	passwd, err := common.GetPasswd(ctx)
 	if err != nil {
@@ -394,9 +391,9 @@ func accountDelete(ctx *cli.Context) error {
 	defer common.ClearPasswd(passwd)
 	_, err = wallet.DeleteAccount(accMeta.Address, passwd)
 	if err != nil {
-		fmt.Printf("Delete account label:%s address:%s failed, %s\n", accMeta.Label, accMeta.Address, err)
+		PrintErrorMsg("Delete account label:%s address:%s failed, %s", accMeta.Label, accMeta.Address, err)
 	} else {
-		fmt.Printf("Delete account label:%s address:%s successfully.\n", accMeta.Label, accMeta.Address)
+		PrintInfoMsg("Delete account label:%s address:%s successfully.", accMeta.Label, accMeta.Address)
 	}
 	return nil
 }
@@ -404,7 +401,7 @@ func accountDelete(ctx *cli.Context) error {
 func accountImport(ctx *cli.Context) error {
 	source := ctx.String(utils.GetFlagName(utils.AccountSourceFileFlag))
 	if source == "" {
-		fmt.Printf("Missing source wallet path to import!\n")
+		PrintErrorMsg("Missing source wallet path argument to import.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -439,7 +436,7 @@ func accountImport(ctx *cli.Context) error {
 			keys = append(keys, pri)
 		}
 		total = len(keys)
-		fmt.Println("Please input a password to encrypt the imported key(s)")
+		PrintInfoMsg("Please input a password to encrypt the imported key(s)")
 		pwd, err := password.GetConfirmedPassword()
 		if err != nil {
 			return err
@@ -450,14 +447,14 @@ func accountImport(ctx *cli.Context) error {
 			b58addr := addr.ToBase58()
 			old := wallet.GetAccountMetadataByAddress(b58addr)
 			if old != nil {
-				fmt.Printf("Account %s already exists.\n", b58addr)
+				PrintWarnMsg("Account %s already exists.", b58addr)
 				skip += 1
 				continue
 			}
-			fmt.Println("Import account", b58addr)
+			PrintInfoMsg("Import account %s", b58addr)
 			k, err := keypair.EncryptPrivateKey(v, b58addr, pwd)
 			if err != nil {
-				fmt.Println("Import error,", err)
+				PrintWarnMsg("Import account:%s error %s", b58addr, err)
 				fail += 1
 				continue
 			}
@@ -474,7 +471,7 @@ func accountImport(ctx *cli.Context) error {
 			accMeta.SigSch = signature.SHA256withECDSA.Name()
 			err = wallet.ImportAccount(&accMeta)
 			if err != nil {
-				fmt.Println("Import error,", err)
+				PrintWarnMsg("Import account:%s error:%s", accMeta.Address, err)
 				fail += 1
 				continue
 			}
@@ -485,11 +482,11 @@ func accountImport(ctx *cli.Context) error {
 		ctx.Set(utils.GetFlagName(utils.WalletFileFlag), source)
 		sourceWallet, err := common.OpenWallet(ctx)
 		if err != nil {
-			return fmt.Errorf("Open source wallet to import error: %s\n", err)
+			return fmt.Errorf("open source wallet to import error: %s", err)
 		}
 		accountNum := sourceWallet.GetAccountNum()
 		if accountNum == 0 {
-			fmt.Printf("No account to import\n")
+			PrintWarnMsg("No account to import.")
 			return nil
 		}
 		accList := make(map[string]string, ctx.NArg())
@@ -497,7 +494,7 @@ func accountImport(ctx *cli.Context) error {
 			addr := ctx.Args().Get(i)
 			accMeta := common.GetAccountMetadataMulti(sourceWallet, addr)
 			if accMeta == nil {
-				fmt.Printf("Cannot find account %s in wallet %s\n", addr, source)
+				PrintWarnMsg("Cannot find account %s in wallet %s.", addr, source)
 				continue
 			}
 			accList[accMeta.Address] = ""
@@ -519,27 +516,33 @@ func accountImport(ctx *cli.Context) error {
 			old := wallet.GetAccountMetadataByAddress(accMeta.Address)
 			if old != nil {
 				skip++
-				fmt.Printf("Account: %s (label: %s) already exists in wallet, skip.\n", accMeta.Address, accMeta.Label)
+				PrintWarnMsg("Account: %s (label: %s) already exists in wallet, skip.", accMeta.Address, accMeta.Label)
 				continue
 			}
 			err = wallet.ImportAccount(accMeta)
 			if err != nil {
 				fail++
-				fmt.Printf("Import account: %s (label: %s) failed, %s\n", accMeta.Address, accMeta.Label, err)
+				PrintWarnMsg("Import account: %s (label: %s) failed, %s", accMeta.Address, accMeta.Label, err)
 				continue
 			}
 			succ++
-			fmt.Printf("Import account: %s (label: %s) successfully.\n", accMeta.Address, accMeta.Label)
+			PrintInfoMsg("Import account: %s (label: %s) successfully.", accMeta.Address, accMeta.Label)
 		}
 	}
 
-	fmt.Printf("\nImport from %s to %s complete, total: %d, success: %d, failed: %d, skip: %d\n", source, target, total, succ, fail, skip)
+	PrintInfoMsg("Import from %s to %s complete.", source, target)
+	PrintInfoMsg("Total:\t%d", total)
+	PrintInfoMsg("Success:%d", succ)
+	PrintInfoMsg("Failed:\t%d", fail)
+	PrintInfoMsg("Skip:\t%d", skip)
 	return nil
 }
 
 func accountExport(ctx *cli.Context) error {
 	if ctx.NArg() <= 0 {
-		return fmt.Errorf("Missing target file name")
+		PrintErrorMsg("Missing target file argument to export.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
 	}
 	target := ctx.Args().First()
 	client, err := common.OpenWallet(ctx)
@@ -552,7 +555,7 @@ func accountExport(ctx *cli.Context) error {
 		passwords := make([][]byte, n)
 		for i := 0; i < n; i++ {
 			ac := client.GetAccountMetadataByIndex(i + 1)
-			fmt.Printf("Account %d %s: %s", i+1, ac.Label, ac.Address)
+			PrintInfoMsg("Account %d %s: %s", i+1, ac.Label, ac.Address)
 			for j := 0; j < 3; j++ {
 				pwd, err := password.GetPassword()
 				if err != nil {
@@ -577,6 +580,7 @@ func accountExport(ctx *cli.Context) error {
 		return fmt.Errorf("save wallet file error: %s", err)
 	}
 
+	PrintInfoMsg("Export wallet success.")
 	return nil
 }
 
@@ -584,7 +588,7 @@ func genMultiAddress(ctx *cli.Context) error {
 	pkstr := strings.TrimSpace(strings.Trim(ctx.String(utils.GetFlagName(utils.AccountMultiPubKeyFlag)), ","))
 	m := ctx.Uint(utils.GetFlagName(utils.AccountMultiMFlag))
 	if pkstr == "" || m == 0 {
-		fmt.Printf("Missing argument. %s or %s expected.\n",
+		PrintErrorMsg("Missing argument. %s or %s expected.",
 			utils.GetFlagName(utils.AccountMultiMFlag),
 			utils.GetFlagName(utils.AccountMultiPubKeyFlag))
 		cli.ShowSubcommandHelp(ctx)
@@ -597,7 +601,7 @@ func genMultiAddress(ctx *cli.Context) error {
 	if walletPath != "" {
 		wallet, err = account.Open(walletPath)
 		if err != nil {
-			return fmt.Errorf("Cannot open wallet:%s", walletPath)
+			return fmt.Errorf("cannot open wallet:%s", walletPath)
 		}
 	}
 
@@ -617,13 +621,13 @@ func genMultiAddress(ctx *cli.Context) error {
 		data, err := hex.DecodeString(pk)
 		pubKey, err := keypair.DeserializePublicKey(data)
 		if err != nil {
-			return fmt.Errorf("invalid pk:%s", pk)
+			return fmt.Errorf("invalid pub key:%s", pk)
 		}
 		pubKeys = append(pubKeys, pubKey)
 	}
 	pkSize := len(pubKeys)
 	if !(1 <= m && int(m) <= pkSize && pkSize > 1 && pkSize <= constants.MULTI_SIG_MAX_PUBKEY_SIZE) {
-		fmt.Printf("Invaid argument. %s must > 1 and <= %d, and m must > 0 and < number of pubkey.\n",
+		PrintErrorMsg("Invalid argument. %s must > 1 and <= %d, and m must > 0 and < number of pub key.",
 			utils.GetFlagName(utils.AccountMultiPubKeyFlag),
 			constants.MULTI_SIG_MAX_PUBKEY_SIZE)
 		cli.ShowSubcommandHelp(ctx)
@@ -634,11 +638,11 @@ func genMultiAddress(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Printf("Pubkey list:\n")
+	PrintInfoMsg("Pub key list:")
 	for i, pubKey := range pubKeys {
 		addr := types.AddressFromPubKey(pubKey)
 		fmt.Printf("  Index %d Pubkey:%x Address:%s\n", i+1, keypair.SerializePublicKey(pubKey), addr.ToBase58())
 	}
-	fmt.Printf("\n  MultiSigAddress:%s\n", addr.ToBase58())
+	PrintInfoMsg("  MultiSigAddress:%s", addr.ToBase58())
 	return nil
 }
