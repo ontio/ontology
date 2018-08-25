@@ -80,16 +80,17 @@ func (s *Struct) GetStruct() ([]StackItems, error) {
 }
 
 func (s *Struct) Clone() (StackItems, error) {
-	return clone(s, 0)
+	var i int
+	return clone(s, &i)
 }
 
-func clone(s *Struct, length int) (StackItems, error) {
-	if length > MAX_CLONE_LENGTH {
+func clone(s *Struct, length *int) (StackItems, error) {
+	if *length > MAX_CLONE_LENGTH {
 		return nil, fmt.Errorf("%s", "over max struct clone length")
 	}
 	var arr []StackItems
 	for _, v := range s._array {
-		length++
+		*length++
 		if value, ok := v.(*Struct); ok {
 			vc, err := clone(value, length)
 			if err != nil {
