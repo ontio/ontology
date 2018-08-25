@@ -658,7 +658,7 @@ func (this *BlockSyncMgr) saveBlock() {
 			return
 		}
 		nextBlockHeight++
-		this.pingOutsyncNodes(curBlockHeight)
+		this.pingOutsyncNodes(nextBlockHeight - 1)
 	}
 }
 
