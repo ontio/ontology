@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	MAX_STRCUT_DEPTH = 10
+	MAX_STRUCT_DEPTH = 10
+	MAX_CLONE_LENGTH = 1024
 )
 
 type Struct struct {
@@ -79,17 +80,19 @@ func (s *Struct) GetStruct() ([]StackItems, error) {
 }
 
 func (s *Struct) Clone() (StackItems, error) {
-	if checkStructRef(s, make(map[uintptr]bool), 0) {
-		return nil, fmt.Errorf("%s", "struct contain self reference or over max depth!")
-	}
-	return clone(s)
+	var i int
+	return clone(s, &i)
 }
 
-func clone(s *Struct) (StackItems, error) {
+func clone(s *Struct, length *int) (StackItems, error) {
+	if *length > MAX_CLONE_LENGTH {
+		return nil, fmt.Errorf("%s", "over max struct clone length")
+	}
 	var arr []StackItems
 	for _, v := range s._array {
+		*length++
 		if value, ok := v.(*Struct); ok {
-			vc, err := clone(value)
+			vc, err := clone(value, length)
 			if err != nil {
 				return nil, err
 			}
@@ -102,7 +105,7 @@ func clone(s *Struct) (StackItems, error) {
 }
 
 func checkStructRef(item StackItems, visited map[uintptr]bool, depth int) bool {
-	if depth > MAX_STRCUT_DEPTH {
+	if depth > MAX_STRUCT_DEPTH {
 		return true
 	}
 	switch item.(type) {

@@ -187,3 +187,23 @@ func TestOpRemove(t *testing.T) {
 		t.Fatal("NeoVM OpRemove remove map failed.")
 	}
 }
+
+func TestStruct_Clone(t *testing.T) {
+	var e1 ExecutionEngine
+	e1.EvaluationStack = NewRandAccessStack()
+	a := vtypes.NewStruct(nil)
+	for i := 0; i < 1024; i++ {
+		a.Add(vtypes.NewStruct(nil))
+	}
+	b := vtypes.NewStruct(nil)
+	for i := 0; i < 1024; i++ {
+		b.Add(a)
+	}
+	PushData(&e1, b)
+	for i := 0; i < 1024; i++ {
+		opDup(&e1)
+		opDup(&e1)
+		opAppend(&e1)
+	}
+
+}
