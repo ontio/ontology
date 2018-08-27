@@ -22,7 +22,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	common2 "github.com/ontio/ontology/p2pserver/common"
+	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type NotFound struct {
@@ -36,7 +36,7 @@ func (this NotFound) Serialization(sink *common.ZeroCopySink) error {
 }
 
 func (this NotFound) CmdType() string {
-	return common2.NOT_FOUND_TYPE
+	return comm.NOT_FOUND_TYPE
 }
 
 //Deserialize message payload

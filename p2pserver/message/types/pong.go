@@ -21,7 +21,7 @@ package types
 import (
 	"io"
 
-	common2 "github.com/ontio/ontology/common"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -30,7 +30,7 @@ type Pong struct {
 }
 
 //Serialize message payload
-func (this Pong) Serialization(sink *common2.ZeroCopySink) error {
+func (this Pong) Serialization(sink *comm.ZeroCopySink) error {
 	sink.WriteUint64(this.Height)
 	return nil
 }
@@ -40,7 +40,7 @@ func (this Pong) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *Pong) Deserialization(source *common2.ZeroCopySource) error {
+func (this *Pong) Deserialization(source *comm.ZeroCopySource) error {
 	var eof bool
 	this.Height, eof = source.NextUint64()
 	if eof {

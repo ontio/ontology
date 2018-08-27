@@ -23,15 +23,16 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	common2 "github.com/ontio/ontology/common"
+	"io"
+
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/p2pserver/common"
-	"io"
 )
 
 type Message interface {
-	Serialization(sink *common2.ZeroCopySink) error
-	Deserialization(source *common2.ZeroCopySource) error
+	Serialization(sink *comm.ZeroCopySink) error
+	Deserialization(source *comm.ZeroCopySource) error
 	CmdType() string
 }
 
@@ -56,7 +57,7 @@ func readMessageHeader(reader io.Reader) (messageHeader, error) {
 	return msgh, err
 }
 
-func writeMessageHeaderInto(sink *common2.ZeroCopySink, msgh messageHeader) {
+func writeMessageHeaderInto(sink *comm.ZeroCopySink, msgh messageHeader) {
 	sink.WriteUint32(msgh.Magic)
 	sink.WriteBytes(msgh.CMD[:])
 	sink.WriteUint32(msgh.Length)
@@ -76,7 +77,7 @@ func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]b
 	return msgh
 }
 
-func WriteMessage(sink *common2.ZeroCopySink, msg Message) error {
+func WriteMessage(sink *comm.ZeroCopySink, msg Message) error {
 	pstart := sink.Size()
 	sink.NextBytes(common.MSG_HDR_LEN) // can not save the buf, since it may reallocate in sink
 	err := msg.Serialization(sink)
@@ -133,7 +134,7 @@ func ReadMessage(reader io.Reader) (Message, uint32, error) {
 	}
 
 	// the buf is referenced by msg to avoid reallocation, so can not reused
-	source := common2.NewZeroCopySource(buf)
+	source := comm.NewZeroCopySource(buf)
 	err = msg.Deserialization(source)
 	if err != nil {
 		return nil, 0, err

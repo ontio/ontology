@@ -22,7 +22,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	common2 "github.com/ontio/ontology/p2pserver/common"
+	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type DataReq struct {
@@ -39,7 +39,7 @@ func (this DataReq) Serialization(sink *common.ZeroCopySink) error {
 }
 
 func (this *DataReq) CmdType() string {
-	return common2.GET_DATA_TYPE
+	return comm.GET_DATA_TYPE
 }
 
 //Deserialize message payload

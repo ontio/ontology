@@ -19,7 +19,7 @@
 package types
 
 import (
-	common2 "github.com/ontio/ontology/common"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 )
@@ -30,7 +30,7 @@ type Trn struct {
 }
 
 //Serialize message payload
-func (this Trn) Serialization(sink *common2.ZeroCopySink) error {
+func (this Trn) Serialization(sink *comm.ZeroCopySink) error {
 	return this.Txn.Serialization(sink)
 }
 
@@ -39,7 +39,7 @@ func (this *Trn) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *Trn) Deserialization(source *common2.ZeroCopySource) error {
+func (this *Trn) Deserialization(source *comm.ZeroCopySource) error {
 	tx := &types.Transaction{}
 	err := tx.Deserialization(source)
 	if err != nil {

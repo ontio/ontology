@@ -20,10 +20,11 @@ package types
 
 import (
 	"fmt"
-	common2 "github.com/ontio/ontology/common"
-	ct "github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/p2pserver/common"
 	"io"
+
+	"github.com/ontio/ontology/common"
+	ct "github.com/ontio/ontology/core/types"
+	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type BlkHeader struct {
@@ -31,7 +32,7 @@ type BlkHeader struct {
 }
 
 //Serialize message payload
-func (this BlkHeader) Serialization(sink *common2.ZeroCopySink) error {
+func (this BlkHeader) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteUint32(uint32(len(this.BlkHdr)))
 
 	for _, header := range this.BlkHdr {
@@ -45,11 +46,11 @@ func (this BlkHeader) Serialization(sink *common2.ZeroCopySink) error {
 }
 
 func (this *BlkHeader) CmdType() string {
-	return common.HEADERS_TYPE
+	return comm.HEADERS_TYPE
 }
 
 //Deserialize message payload
-func (this *BlkHeader) Deserialization(source *common2.ZeroCopySource) error {
+func (this *BlkHeader) Deserialization(source *common.ZeroCopySource) error {
 	var count uint32
 	count, eof := source.NextUint32()
 	if eof {

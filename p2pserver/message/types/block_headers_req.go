@@ -21,18 +21,18 @@ package types
 import (
 	"io"
 
-	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/common"
+	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type HeadersReq struct {
 	Len       uint8
-	HashStart comm.Uint256
-	HashEnd   comm.Uint256
+	HashStart common.Uint256
+	HashEnd   common.Uint256
 }
 
 //Serialize message payload
-func (this *HeadersReq) Serialization(sink *comm.ZeroCopySink) error {
+func (this *HeadersReq) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteUint8(this.Len)
 	sink.WriteHash(this.HashStart)
 	sink.WriteHash(this.HashEnd)
@@ -40,11 +40,11 @@ func (this *HeadersReq) Serialization(sink *comm.ZeroCopySink) error {
 }
 
 func (this *HeadersReq) CmdType() string {
-	return common.GET_HEADERS_TYPE
+	return comm.GET_HEADERS_TYPE
 }
 
 //Deserialize message payload
-func (this *HeadersReq) Deserialization(source *comm.ZeroCopySource) error {
+func (this *HeadersReq) Deserialization(source *common.ZeroCopySource) error {
 	var eof bool
 	this.Len, eof = source.NextUint8()
 	this.HashStart, eof = source.NextHash()

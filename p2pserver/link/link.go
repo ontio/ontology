@@ -25,7 +25,7 @@ import (
 	"net"
 	"time"
 
-	common2 "github.com/ontio/ontology/common"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -167,7 +167,7 @@ func (this *Link) Tx(msg types.Message) error {
 		return errors.New("[p2p]tx link invalid")
 	}
 
-	sink := common2.NewZeroCopySink(nil)
+	sink := comm.NewZeroCopySink(nil)
 	err := types.WriteMessage(sink, msg)
 	if err != nil {
 		log.Debugf("[p2p]error serialize messge ", err.Error())

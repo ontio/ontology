@@ -19,9 +19,10 @@
 package types
 
 import (
-	common2 "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/p2pserver/common"
 	"io"
+
+	comm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type VerACK struct {
@@ -29,7 +30,7 @@ type VerACK struct {
 }
 
 //Serialize message payload
-func (this *VerACK) Serialization(sink *common2.ZeroCopySink) error {
+func (this *VerACK) Serialization(sink *comm.ZeroCopySink) error {
 	sink.WriteBool(this.IsConsensus)
 	return nil
 }
@@ -39,14 +40,14 @@ func (this *VerACK) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *VerACK) Deserialization(source *common2.ZeroCopySource) error {
+func (this *VerACK) Deserialization(source *comm.ZeroCopySource) error {
 	var irregular, eof bool
 	this.IsConsensus, irregular, eof = source.NextBool()
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
 	if irregular {
-		return common2.ErrIrregularData
+		return comm.ErrIrregularData
 	}
 
 	return nil

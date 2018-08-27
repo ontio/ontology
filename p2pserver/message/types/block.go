@@ -20,10 +20,11 @@ package types
 
 import (
 	"fmt"
-	common2 "github.com/ontio/ontology/common"
+
+	"github.com/ontio/ontology/common"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/p2pserver/common"
+	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type Block struct {
@@ -31,7 +32,7 @@ type Block struct {
 }
 
 //Serialize message payload
-func (this *Block) Serialization(sink *common2.ZeroCopySink) error {
+func (this *Block) Serialization(sink *common.ZeroCopySink) error {
 	err := this.Blk.Serialization(sink)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. err:%v", err))
@@ -41,11 +42,11 @@ func (this *Block) Serialization(sink *common2.ZeroCopySink) error {
 }
 
 func (this *Block) CmdType() string {
-	return common.BLOCK_TYPE
+	return comm.BLOCK_TYPE
 }
 
 //Deserialize message payload
-func (this *Block) Deserialization(source *common2.ZeroCopySource) error {
+func (this *Block) Deserialization(source *common.ZeroCopySource) error {
 	this.Blk = new(ct.Block)
 	err := this.Blk.Deserialization(source)
 	if err != nil {

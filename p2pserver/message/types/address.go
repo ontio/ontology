@@ -19,12 +19,9 @@
 package types
 
 import (
-	"encoding/binary"
-	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/errors"
 	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -78,27 +75,5 @@ func (this *Addr) Deserialization(source *common.ZeroCopySource) error {
 	}
 	this.NodeAddrs = this.NodeAddrs[:count]
 
-	return nil
-}
-
-//Deserialize message payload
-func (this *Addr) Deserialize(r io.Reader) error {
-	var NodeCnt uint64
-	err := binary.Read(r, binary.LittleEndian, &NodeCnt)
-	if NodeCnt > comm.MAX_ADDR_NODE_CNT {
-		NodeCnt = comm.MAX_ADDR_NODE_CNT
-	}
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read NodeCnt error. %v ", err))
-	}
-
-	for i := 0; i < int(NodeCnt); i++ {
-		var addr comm.PeerAddr
-		err := binary.Read(r, binary.LittleEndian, &addr)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read NodeAddrs error. err:%v", err))
-		}
-		this.NodeAddrs = append(this.NodeAddrs, addr)
-	}
 	return nil
 }

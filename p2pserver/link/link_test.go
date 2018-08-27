@@ -26,7 +26,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
-	common2 "github.com/ontio/ontology/common"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	ct "github.com/ontio/ontology/core/types"
@@ -95,7 +95,7 @@ func TestNewLink(t *testing.T) {
 	msg := &mt.MsgPayload{
 		Id:      cliLink.id,
 		Addr:    cliLink.addr,
-		Payload: &mt.NotFound{common2.UINT256_EMPTY},
+		Payload: &mt.NotFound{comm.UINT256_EMPTY},
 	}
 	go func() {
 		time.Sleep(5000000)

@@ -21,7 +21,7 @@ package types
 import (
 	"io"
 
-	common2 "github.com/ontio/ontology/common"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -44,7 +44,7 @@ type Version struct {
 }
 
 //Serialize message payload
-func (this *Version) Serialization(sink *common2.ZeroCopySink) error {
+func (this *Version) Serialization(sink *comm.ZeroCopySink) error {
 	sink.WriteUint32(this.P.Version)
 	sink.WriteUint64(this.P.Services)
 	sink.WriteInt64(this.P.TimeStamp)
@@ -65,7 +65,7 @@ func (this *Version) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *Version) Deserialization(source *common2.ZeroCopySource) error {
+func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 	var irregular, eof bool
 	this.P.Version, eof = source.NextUint32()
 	this.P.Services, eof = source.NextUint64()
@@ -85,7 +85,7 @@ func (this *Version) Deserialization(source *common2.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 	if irregular {
-		return common2.ErrIrregularData
+		return comm.ErrIrregularData
 	}
 
 	return nil
