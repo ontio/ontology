@@ -2045,10 +2045,11 @@ func (self *Server) msgSendLoop() {
 }
 
 //creategovernaceTransaction invoke governance native contract commit_pos
-func (self *Server) creategovernaceTransaction(blkNum uint32) *types.Transaction {
-	tx := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
-	tx.Nonce = blkNum
-	return tx
+func (self *Server) creategovernaceTransaction(blkNum uint32) (*types.Transaction, error) {
+	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
+	mutable.Nonce = blkNum
+	tx, err := mutable.IntoImmutable()
+	return tx, err
 }
 
 //checkNeedUpdateChainConfig use blockcount
@@ -2122,7 +2123,11 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		}
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(blkNum) {
-			sysTxs = append(sysTxs, self.creategovernaceTransaction(blkNum))
+			tx, err := self.creategovernaceTransaction(blkNum)
+			if err != nil {
+				return fmt.Errorf("construct governace transaction error: %v", err)
+			}
+			sysTxs = append(sysTxs, tx)
 			chainconfig.View++
 		}
 		forEmpty = true

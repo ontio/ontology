@@ -76,8 +76,8 @@ func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 //get block hash by height
 func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	param := cmd["Height"].(string)
-	if len(param) == 0 {
+	param, ok := cmd["Height"].(string)
+	if !ok || len(param) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
@@ -134,8 +134,8 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 //get block height by transaction hash
 func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	str := cmd["Hash"].(string)
-	if len(str) == 0 {
+	str, ok := cmd["Hash"].(string)
+	if !ok || len(str) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	hash, err := common.Uint256FromHexString(str)
@@ -157,8 +157,8 @@ func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	param := cmd["Height"].(string)
-	if len(param) == 0 {
+	param, ok := cmd["Height"].(string)
+	if !ok || len(param) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
@@ -258,8 +258,9 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var txn types.Transaction
-	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
+
+	txn, err := types.TransactionFromRawBytes(bys)
+	if err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
 	var hash common.Uint256
@@ -267,16 +268,17 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
 	if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
-			resp["Result"], err = bactor.PreExecuteContract(&txn)
+			resp["Result"], err = bactor.PreExecuteContract(txn)
 			if err != nil {
 				log.Infof("PreExec: ", err)
+				resp["Result"] = err.Error()
 				return ResponsePack(berr.SMARTCODE_ERROR)
 			}
 			return resp
 		}
 	}
 	log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
-	if errCode, desc := bcomn.SendTxToPool(&txn); errCode != ontErrors.ErrNoError {
+	if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 		resp["Error"] = int64(errCode)
 		resp["Result"] = desc
 		log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
@@ -357,13 +359,7 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var address common.Address
-	var err error
-	if len(str) == common.ADDR_LEN*2 {
-		address, err = common.AddressFromHexString(str)
-	} else {
-		address, err = common.AddressFromBase58(str)
-	}
+	address, err := bcomn.GetAddress(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -391,13 +387,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var address common.Address
-	var err error
-	if len(str) == common.ADDR_LEN*2 {
-		address, err = common.AddressFromHexString(str)
-	} else {
-		address, err = common.AddressFromBase58(str)
-	}
+	address, err := bcomn.GetAddress(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -503,11 +493,11 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	fromAddr, err := common.AddressFromBase58(fromAddrStr)
+	fromAddr, err := bcomn.GetAddress(fromAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	toAddr, err := common.AddressFromBase58(toAddrStr)
+	toAddr, err := bcomn.GetAddress(toAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -526,7 +516,7 @@ func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	toAddr, err := common.AddressFromBase58(toAddrStr)
+	toAddr, err := bcomn.GetAddress(toAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}

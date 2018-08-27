@@ -83,3 +83,7 @@ func (this *ByteArray) GetStruct() ([]StackItems, error) {
 func (this *ByteArray) GetMap() (map[StackItems]StackItems, error) {
 	return nil, fmt.Errorf("%s", "Not support byte array to map")
 }
+
+func (this *ByteArray) IsMapKey() bool {
+	return true
+}

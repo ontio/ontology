@@ -36,7 +36,7 @@ func NewMap() *Map {
 }
 
 func (this *Map) Add(key StackItems, value StackItems) {
-	for k, _ := range this._map {
+	for k := range this._map {
 		if k.Equals(key) {
 			delete(this._map, k)
 			break
@@ -49,13 +49,13 @@ func (this *Map) Clear() {
 	this._map = make(map[StackItems]StackItems)
 }
 
-func (this *Map) ContainsKey(key StackItems) bool {
-	_, ok := this._map[key]
-	return ok
-}
-
 func (this *Map) Remove(key StackItems) {
-	delete(this._map, key)
+	for k := range this._map {
+		if k.Equals(key) {
+			delete(this._map, k)
+			break
+		}
+	}
 }
 
 func (this *Map) Equals(that StackItems) bool {
@@ -97,4 +97,8 @@ func (this *Map) TryGetValue(key StackItems) StackItems {
 		}
 	}
 	return nil
+}
+
+func (this *Map) IsMapKey() bool {
+	return false
 }

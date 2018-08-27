@@ -78,6 +78,35 @@ func (bd *Header) Serialize(w io.Writer) error {
 	return nil
 }
 
+func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
+	bd.serializationUnsigned(sink)
+	sink.WriteVarUint(uint64(len(bd.Bookkeepers)))
+
+	for _, pubkey := range bd.Bookkeepers {
+		sink.WriteVarBytes(keypair.SerializePublicKey(pubkey))
+	}
+
+	sink.WriteVarUint(uint64(len(bd.SigData)))
+	for _, sig := range bd.SigData {
+		sink.WriteVarBytes(sig)
+	}
+
+	return nil
+}
+
+//Serialize the blockheader data without program
+func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
+	sink.WriteUint32(bd.Version)
+	sink.WriteBytes(bd.PrevBlockHash[:])
+	sink.WriteBytes(bd.TransactionsRoot[:])
+	sink.WriteBytes(bd.BlockRoot[:])
+	sink.WriteUint32(bd.Timestamp)
+	sink.WriteUint32(bd.Height)
+	sink.WriteUint64(bd.ConsensusData)
+	sink.WriteVarBytes(bd.ConsensusPayload)
+	sink.WriteBytes(bd.NextBookkeeper[:])
+}
+
 //Serialize the blockheader data without program
 func (bd *Header) SerializeUnsigned(w io.Writer) error {
 	err := serialization.WriteUint32(w, bd.Version)
@@ -155,6 +184,90 @@ func (bd *Header) Deserialize(r io.Reader) error {
 		bd.SigData = append(bd.SigData, sig)
 	}
 
+	return nil
+}
+
+func HeaderFromRawBytes(raw []byte) (*Header, error) {
+	source := common.NewZeroCopySource(raw)
+	header := &Header{}
+	err := header.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return header, nil
+
+}
+func (bd *Header) Deserialization(source *common.ZeroCopySource) error {
+	err := bd.deserializationUnsigned(source)
+	if err != nil {
+		return err
+	}
+
+	n, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	for i := 0; i < int(n); i++ {
+		buf, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		pubkey, err := keypair.DeserializePublicKey(buf)
+		if err != nil {
+			return err
+		}
+		bd.Bookkeepers = append(bd.Bookkeepers, pubkey)
+	}
+
+	m, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	for i := 0; i < int(m); i++ {
+		sig, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		bd.SigData = append(bd.SigData, sig)
+	}
+
+	return nil
+}
+
+func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+
+	bd.Version, eof = source.NextUint32()
+	bd.PrevBlockHash, eof = source.NextHash()
+	bd.TransactionsRoot, eof = source.NextHash()
+	bd.BlockRoot, eof = source.NextHash()
+	bd.Timestamp, eof = source.NextUint32()
+	bd.Height, eof = source.NextUint32()
+	bd.ConsensusData, eof = source.NextUint64()
+
+	bd.ConsensusPayload, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	bd.NextBookkeeper, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	return nil
 }
 

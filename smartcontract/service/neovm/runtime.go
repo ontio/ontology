@@ -330,7 +330,7 @@ func CircularRefAndDepthDetection(value vmtypes.StackItems) bool {
 }
 
 func circularRefAndDepthDetection(value vmtypes.StackItems, visited map[uintptr]bool, depth int) bool {
-	if depth > vmtypes.MAX_STRCUT_DEPTH {
+	if depth > vmtypes.MAX_STRUCT_DEPTH {
 		return true
 	}
 	switch value.(type) {

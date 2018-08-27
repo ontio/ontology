@@ -129,22 +129,19 @@ func appCallTransferOng(native *native.NativeService, from common.Address, to co
 }
 
 func appCallTransfer(native *native.NativeService, contract common.Address, from common.Address, to common.Address, amount uint64) error {
-	bf := new(bytes.Buffer)
-	var sts []*ont.State
-	sts = append(sts, &ont.State{
+	var sts []ont.State
+	sts = append(sts, ont.State{
 		From:  from,
 		To:    to,
 		Value: amount,
 	})
-	transfers := &ont.Transfers{
+	transfers := ont.Transfers{
 		States: sts,
 	}
-	err := transfers.Serialize(bf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransfer, transfers.Serialize error!")
-	}
+	sink := common.NewZeroCopySink(nil)
+	transfers.Serialization(sink)
 
-	if _, err := native.NativeCall(contract, "transfer", bf.Bytes()); err != nil {
+	if _, err := native.NativeCall(contract, "transfer", sink.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransfer, appCall error!")
 	}
 	return nil
@@ -167,32 +164,26 @@ func appCallTransferFromOng(native *native.NativeService, sender common.Address,
 }
 
 func appCallTransferFrom(native *native.NativeService, contract common.Address, sender common.Address, from common.Address, to common.Address, amount uint64) error {
-	bf := new(bytes.Buffer)
 	params := &ont.TransferFrom{
 		Sender: sender,
 		From:   from,
 		To:     to,
 		Value:  amount,
 	}
-	err := params.Serialize(bf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFrom, params serialize error!")
-	}
+	sink := common.NewZeroCopySink(nil)
+	params.Serialization(sink)
 
-	if _, err := native.NativeCall(contract, "transferFrom", bf.Bytes()); err != nil {
+	if _, err := native.NativeCall(contract, "transferFrom", sink.Bytes()); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "appCallTransferFrom, appCall error!")
 	}
 	return nil
 }
 
 func getOngBalance(native *native.NativeService, address common.Address) (uint64, error) {
-	bf := new(bytes.Buffer)
-	err := utils.WriteAddress(bf, address)
-	if err != nil {
-		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getOngBalance, utils.WriteAddress error!")
-	}
+	sink := common.ZeroCopySink{}
+	utils.EncodeAddress(&sink, address)
 
-	value, err := native.NativeCall(utils.OngContractAddress, "balanceOf", bf.Bytes())
+	value, err := native.NativeCall(utils.OngContractAddress, "balanceOf", sink.Bytes())
 	if err != nil {
 		return 0, errors.NewDetailErr(err, errors.ErrNoCode, "getOngBalance, appCall error!")
 	}

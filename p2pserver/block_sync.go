@@ -46,6 +46,7 @@ const (
 	SYNC_NODE_RECORD_TIME_CNT    = 3          //Record request time  for accuracy
 	SYNC_NODE_SPEED_INIT         = 100 * 1024 //Init a big speed (100MB/s) for every node in first round
 	SYNC_MAX_ERROR_RESP_TIMES    = 5          //Max error headers/blocks response times, if reaches, delete it
+	SYNC_MAX_HEIGHT_OFFSET       = 5          //Offset of the max height and current height
 )
 
 //NodeWeight record some params of node, using for sort
@@ -657,6 +658,7 @@ func (this *BlockSyncMgr) saveBlock() {
 			return
 		}
 		nextBlockHeight++
+		this.pingOutsyncNodes(nextBlockHeight - 1)
 	}
 }
 
@@ -867,6 +869,28 @@ func (this *BlockSyncMgr) addNewSpeed(nodeId uint64, speed float32) {
 	n := this.getNodeWeight(nodeId)
 	if n != nil {
 		n.AppendNewSpeed(speed)
+	}
+}
+
+//pingOutsyncNodes send ping msg to lower height nodes for syncing
+func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
+	peers := make([]*peer.Peer, 0)
+	maxHeight := curHeight
+	for id := range this.nodeWeights {
+		peer := this.server.getNode(id)
+		if peer == nil {
+			continue
+		}
+		peerHeight := uint32(peer.GetHeight())
+		if peerHeight >= maxHeight {
+			maxHeight = peerHeight
+		}
+		if peerHeight < curHeight {
+			peers = append(peers, peer)
+		}
+	}
+	if curHeight > maxHeight-SYNC_MAX_HEIGHT_OFFSET && len(peers) > 0 {
+		this.server.pingTo(peers)
 	}
 }
 

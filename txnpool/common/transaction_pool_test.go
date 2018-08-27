@@ -19,13 +19,12 @@
 package common
 
 import (
-	"bytes"
-	"encoding/hex"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 var (
@@ -35,17 +34,13 @@ var (
 func init() {
 	log.Init(log.PATH, log.Stdout)
 
-	txn = &types.Transaction{
-		Version: 0,
-		TxType:  types.Bookkeeper,
-		Payload: nil,
+	mutable := &types.MutableTransaction{
+		TxType:  types.Invoke,
+		Nonce:   uint32(time.Now().Unix()),
+		Payload: &payload.InvokeCode{Code: []byte{}},
 	}
 
-	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"
-	hex, _ := hex.DecodeString(tempStr)
-	var hash common.Uint256
-	hash.Deserialize(bytes.NewReader(hex))
-	txn.SetHash(hash)
+	txn, _ = mutable.IntoImmutable()
 }
 
 func TestTxPool(t *testing.T) {

@@ -19,7 +19,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -28,7 +27,9 @@ import (
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/sigsvr/store"
 	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
@@ -79,19 +80,18 @@ func TestSigRawTx(t *testing.T) {
 		t.Errorf("GetDefaultAccount error:%s", err)
 		return
 	}
-	tx, err := utils.TransferTx(0, 0, "ont", defAcc.Address.ToBase58(), acc.Address.ToBase58(), 10)
+	mutable, err := utils.TransferTx(0, 0, "ont", defAcc.Address.ToBase58(), acc.Address.ToBase58(), 10)
 	if err != nil {
 		t.Errorf("TransferTx error:%s", err)
 		return
 	}
-	buf := bytes.NewBuffer(nil)
-	err = tx.Serialize(buf)
-	if err != nil {
-		t.Errorf("tx.Serialize error:%s", err)
-		return
-	}
+	tx, err := mutable.IntoImmutable()
+	assert.Nil(t, err)
+	sink := common.ZeroCopySink{}
+	err = tx.Serialization(&sink)
+	assert.Nil(t, err)
 	rawReq := &SigRawTransactionReq{
-		RawTx: hex.EncodeToString(buf.Bytes()),
+		RawTx: hex.EncodeToString(sink.Bytes()),
 	}
 	data, err := json.Marshal(rawReq)
 	if err != nil {

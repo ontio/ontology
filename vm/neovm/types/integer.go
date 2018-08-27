@@ -97,3 +97,7 @@ func (this *Integer) GetStruct() ([]StackItems, error) {
 func (this *Integer) GetMap() (map[StackItems]StackItems, error) {
 	return nil, fmt.Errorf("%s", "Not support integer to map")
 }
+
+func (this *Integer) IsMapKey() bool {
+	return true
+}

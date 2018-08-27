@@ -163,3 +163,47 @@ func TestOpReverse(t *testing.T) {
 		t.Fatalf("NeoVM OpReverse test failed, expect ccc, get %s.", string(v))
 	}
 }
+
+func TestOpRemove(t *testing.T) {
+	var e1 ExecutionEngine
+	e1.EvaluationStack = NewRandAccessStack()
+
+	m1 := vtypes.NewMap()
+
+	m1.Add(vtypes.NewByteArray([]byte("aaa")), vtypes.NewByteArray([]byte("aaa")))
+	m1.Add(vtypes.NewByteArray([]byte("bbb")), vtypes.NewByteArray([]byte("bbb")))
+	m1.Add(vtypes.NewByteArray([]byte("ccc")), vtypes.NewByteArray([]byte("ccc")))
+
+	PushData(&e1, m1)
+	opDup(&e1)
+	PushData(&e1, vtypes.NewByteArray([]byte("aaa")))
+	opRemove(&e1)
+
+	mm := e1.EvaluationStack.Peek(0)
+
+	v := mm.(*vtypes.Map).TryGetValue(vtypes.NewByteArray([]byte("aaa")))
+
+	if v != nil {
+		t.Fatal("NeoVM OpRemove remove map failed.")
+	}
+}
+
+func TestStruct_Clone(t *testing.T) {
+	var e1 ExecutionEngine
+	e1.EvaluationStack = NewRandAccessStack()
+	a := vtypes.NewStruct(nil)
+	for i := 0; i < 1024; i++ {
+		a.Add(vtypes.NewStruct(nil))
+	}
+	b := vtypes.NewStruct(nil)
+	for i := 0; i < 1024; i++ {
+		b.Add(a)
+	}
+	PushData(&e1, b)
+	for i := 0; i < 1024; i++ {
+		opDup(&e1)
+		opDup(&e1)
+		opAppend(&e1)
+	}
+
+}

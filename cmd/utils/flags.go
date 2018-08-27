@@ -20,11 +20,12 @@ package utils
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/urfave/cli"
-	"strings"
 )
 
 const (
@@ -42,7 +43,7 @@ var (
 	}
 	LogLevelFlag = cli.UintFlag{
 		Name:  "loglevel",
-		Usage: "Set the log level to `<level>` (0~6). 0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel",
+		Usage: "Set the log level to `<level>` (0~6). 0:Trace 1:Debug 2:Info 3:Warn 4:Error 5:Fatal 6:MaxLevel",
 		Value: config.DEFAULT_LOG_LEVEL,
 	}
 	DisableEventLogFlag = cli.BoolFlag{

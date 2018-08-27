@@ -52,87 +52,61 @@ func (b *Block) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (b *Block) Deserialize(r io.Reader) error {
-	if b.Header == nil {
-		b.Header = new(Header)
-	}
-	err := b.Header.Deserialize(r)
+func (b *Block) Serialization(sink *common.ZeroCopySink) error {
+	err := b.Header.Serialization(sink)
 	if err != nil {
 		return err
 	}
 
-	//Transactions
-	length, err := serialization.ReadUint32(r)
+	sink.WriteUint32(uint32(len(b.Transactions)))
+	for _, transaction := range b.Transactions {
+		err := transaction.Serialization(sink)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// if no error, ownership of param raw is transfered to Transaction
+func BlockFromRawBytes(raw []byte) (*Block, error) {
+	source := common.NewZeroCopySource(raw)
+	block := &Block{}
+	err := block.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
+func (self *Block) Deserialization(source *common.ZeroCopySource) error {
+	if self.Header == nil {
+		self.Header = new(Header)
+	}
+	err := self.Header.Deserialization(source)
 	if err != nil {
 		return err
 	}
 
-	var hashes = make([]common.Uint256, 0, length)
+	length, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	var hashes []common.Uint256
 	for i := uint32(0); i < length; i++ {
 		transaction := new(Transaction)
-		err := transaction.Deserialize(r)
+		// note currently all transaction in the block shared the same source
+		err := transaction.Deserialization(source)
 		if err != nil {
 			return err
 		}
 		txhash := transaction.Hash()
-		b.Transactions = append(b.Transactions, transaction)
 		hashes = append(hashes, txhash)
+		self.Transactions = append(self.Transactions, transaction)
 	}
 
-	b.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
-
-	return nil
-}
-
-func (b *Block) Trim(w io.Writer) error {
-	err := b.Header.Serialize(w)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteUint32(w, uint32(len(b.Transactions)))
-	if err != nil {
-		return fmt.Errorf("block item transaction length serialization failed: %s", err)
-	}
-	for _, tx := range b.Transactions {
-		hash := tx.Hash()
-		err := hash.Serialize(w)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (b *Block) FromTrimmedData(r io.Reader) error {
-	if b.Header == nil {
-		b.Header = new(Header)
-	}
-	err := b.Header.Deserialize(r)
-	if err != nil {
-		return err
-	}
-
-	//Transactions
-	var i uint32
-	Len, err := serialization.ReadUint32(r)
-	if err != nil {
-		return err
-	}
-	var txhash common.Uint256
-	var hashes []common.Uint256
-	for i = 0; i < Len; i++ {
-		err := txhash.Deserialize(r)
-		if err != nil {
-			return err
-		}
-		transaction := new(Transaction)
-		transaction.SetHash(txhash)
-		b.Transactions = append(b.Transactions, transaction)
-		hashes = append(hashes, txhash)
-	}
-
-	b.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
+	self.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
 
 	return nil
 }
@@ -153,14 +127,10 @@ func (b *Block) Type() common.InventoryType {
 
 func (b *Block) RebuildMerkleRoot() {
 	txs := b.Transactions
-	hashes := []common.Uint256{}
+	hashes := make([]common.Uint256, 0, len(txs))
 	for _, tx := range txs {
 		hashes = append(hashes, tx.Hash())
 	}
 	hash := common.ComputeMerkleRoot(hashes)
 	b.Header.TransactionsRoot = hash
-}
-
-func (bd *Block) SerializeUnsigned(w io.Writer) error {
-	return bd.Header.SerializeUnsigned(w)
 }

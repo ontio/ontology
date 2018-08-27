@@ -164,7 +164,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 		input := &msgCommon.AppendBlock{
 			FromID:    data.Id,
 			BlockSize: data.PayloadSize,
-			Block:     &block.Blk,
+			Block:     block.Blk,
 		}
 		pid.Tell(input)
 	}

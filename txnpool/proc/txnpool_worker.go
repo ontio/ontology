@@ -189,7 +189,7 @@ func (worker *txPoolWorker) verifyTx(tx *tx.Transaction) {
 	// Construct the request and send it to each validator server to verify
 	req := &types.CheckTx{
 		WorkerId: worker.workId,
-		Tx:       *tx,
+		Tx:       tx,
 	}
 
 	worker.sendReq2Validator(req)
@@ -266,7 +266,7 @@ func (worker *txPoolWorker) sendReq2StatefulV(req *types.CheckTx) {
 func (worker *txPoolWorker) verifyStateful(tx *tx.Transaction) {
 	req := &types.CheckTx{
 		WorkerId: worker.workId,
-		Tx:       *tx,
+		Tx:       tx,
 	}
 
 	// Construct the pending transaction

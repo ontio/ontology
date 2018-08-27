@@ -46,4 +46,6 @@ var (
 	ERR_APPEND_NOT_ARRAY         = errors.New("append not array")
 	ERR_NOT_SUPPORT_TYPE         = errors.New("not a supported type")
 	ERR_MAP_NOT_EXIST            = errors.New("map not contain key")
+	ERR_NOT_MAP_KEY              = errors.New("type cann't as map key")
+	ERR_REMOVE_NOT_SUPPORT       = errors.New("type don't support remove")
 )

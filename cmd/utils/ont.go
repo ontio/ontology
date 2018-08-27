@@ -84,15 +84,19 @@ func GetAllowance(asset, from, to string) (string, error) {
 
 //Transfer ont|ong from account to another account
 func Transfer(gasPrice, gasLimit uint64, signer *account.Account, asset, from, to string, amount uint64) (string, error) {
-	transferTx, err := TransferTx(gasPrice, gasLimit, asset, signer.Address.ToBase58(), to, amount)
+	mutable, err := TransferTx(gasPrice, gasLimit, asset, signer.Address.ToBase58(), to, amount)
 	if err != nil {
 		return "", err
 	}
-	err = SignTransaction(signer, transferTx)
+	err = SignTransaction(signer, mutable)
 	if err != nil {
 		return "", fmt.Errorf("SignTransaction error:%s", err)
 	}
-	txHash, err := SendRawTransaction(transferTx)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return "", fmt.Errorf("convert immutable transaction error:%s", err)
+	}
+	txHash, err := SendRawTransaction(tx)
 	if err != nil {
 		return "", fmt.Errorf("SendTransaction error:%s", err)
 	}
@@ -100,15 +104,20 @@ func Transfer(gasPrice, gasLimit uint64, signer *account.Account, asset, from, t
 }
 
 func TransferFrom(gasPrice, gasLimit uint64, signer *account.Account, asset, sender, from, to string, amount uint64) (string, error) {
-	transferFromTx, err := TransferFromTx(gasPrice, gasLimit, asset, sender, from, to, amount)
+	mutable, err := TransferFromTx(gasPrice, gasLimit, asset, sender, from, to, amount)
 	if err != nil {
 		return "", err
 	}
-	err = SignTransaction(signer, transferFromTx)
+	err = SignTransaction(signer, mutable)
 	if err != nil {
 		return "", fmt.Errorf("SignTransaction error:%s", err)
 	}
-	txHash, err := SendRawTransaction(transferFromTx)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return "", fmt.Errorf("convert to immutable transaction error:%s", err)
+	}
+
+	txHash, err := SendRawTransaction(tx)
 	if err != nil {
 		return "", fmt.Errorf("SendTransaction error:%s", err)
 	}
@@ -116,22 +125,26 @@ func TransferFrom(gasPrice, gasLimit uint64, signer *account.Account, asset, sen
 }
 
 func Approve(gasPrice, gasLimit uint64, signer *account.Account, asset, from, to string, amount uint64) (string, error) {
-	approveTx, err := ApproveTx(gasPrice, gasLimit, asset, from, to, amount)
+	mutable, err := ApproveTx(gasPrice, gasLimit, asset, from, to, amount)
 	if err != nil {
 		return "", err
 	}
-	err = SignTransaction(signer, approveTx)
+	err = SignTransaction(signer, mutable)
 	if err != nil {
 		return "", fmt.Errorf("SignTransaction error:%s", err)
 	}
-	txHash, err := SendRawTransaction(approveTx)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return "", fmt.Errorf("convert to immutable transaction error:%s", err)
+	}
+	txHash, err := SendRawTransaction(tx)
 	if err != nil {
 		return "", fmt.Errorf("SendTransaction error:%s", err)
 	}
 	return txHash, nil
 }
 
-func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount uint64) (*types.Transaction, error) {
+func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount uint64) (*types.MutableTransaction, error) {
 	fromAddr, err := common.AddressFromBase58(from)
 	if err != nil {
 		return nil, fmt.Errorf("from address:%s invalid:%s", from, err)
@@ -164,18 +177,18 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	invokePayload := &payload.InvokeCode{
 		Code: invokeCode,
 	}
-	tx := &types.Transaction{
+	tx := &types.MutableTransaction{
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.Invoke,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
-		Sigs:     make([]*types.Sig, 0, 0),
+		Sigs:     make([]types.Sig, 0, 0),
 	}
 	return tx, nil
 }
 
-func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64) (*types.Transaction, error) {
+func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64) (*types.MutableTransaction, error) {
 	fromAddr, err := common.AddressFromBase58(from)
 	if err != nil {
 		return nil, fmt.Errorf("from address:%s invalid:%s", from, err)
@@ -209,18 +222,18 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	invokePayload := &payload.InvokeCode{
 		Code: invokeCode,
 	}
-	tx := &types.Transaction{
+	tx := &types.MutableTransaction{
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.Invoke,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
-		Sigs:     make([]*types.Sig, 0, 0),
+		Sigs:     make([]types.Sig, 0, 0),
 	}
 	return tx, nil
 }
 
-func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, amount uint64) (*types.Transaction, error) {
+func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, amount uint64) (*types.MutableTransaction, error) {
 	senderAddr, err := common.AddressFromBase58(sender)
 	if err != nil {
 		return nil, fmt.Errorf("sender address:%s invalid:%s", to, err)
@@ -258,18 +271,18 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	invokePayload := &payload.InvokeCode{
 		Code: invokeCode,
 	}
-	tx := &types.Transaction{
+	mutable := &types.MutableTransaction{
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.Invoke,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
-		Sigs:     make([]*types.Sig, 0, 0),
+		Sigs:     make([]types.Sig, 0, 0),
 	}
-	return tx, nil
+	return mutable, nil
 }
 
-func SignTransaction(signer *account.Account, tx *types.Transaction) error {
+func SignTransaction(signer *account.Account, tx *types.MutableTransaction) error {
 	if tx.Payer == common.ADDRESS_EMPTY {
 		tx.Payer = signer.Address
 	}
@@ -279,9 +292,9 @@ func SignTransaction(signer *account.Account, tx *types.Transaction) error {
 		return fmt.Errorf("sign error:%s", err)
 	}
 	if tx.Sigs == nil {
-		tx.Sigs = make([]*types.Sig, 0)
+		tx.Sigs = make([]types.Sig, 0)
 	}
-	sig := &types.Sig{
+	sig := types.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},
 		M:       1,
 		SigData: [][]byte{sigData},
@@ -408,11 +421,15 @@ func DeployContract(
 	if err != nil {
 		return "", fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	tx := NewDeployCodeTransaction(gasPrice, gasLimit, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
+	mutable := NewDeployCodeTransaction(gasPrice, gasLimit, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
 
-	err = SignTransaction(signer, tx)
+	err = SignTransaction(signer, mutable)
 	if err != nil {
 		return "", err
+	}
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return "", fmt.Errorf("convert to immutable transation error:%v", err)
 	}
 	txHash, err := SendRawTransaction(tx)
 	if err != nil {
@@ -433,7 +450,8 @@ func PrepareDeployContract(
 	if err != nil {
 		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	tx := NewDeployCodeTransaction(0, 0, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
+	mutable := NewDeployCodeTransaction(0, 0, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
+	tx, _ := mutable.IntoImmutable()
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
@@ -508,12 +526,16 @@ func InvokeNeoVMContract(
 }
 
 //InvokeSmartContract is low level method to invoke contact.
-func InvokeSmartContract(signer *account.Account, tx *types.Transaction) (string, error) {
+func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) (string, error) {
 	err := SignTransaction(signer, tx)
 	if err != nil {
 		return "", fmt.Errorf("SignTransaction error:%s", err)
 	}
-	txHash, err := SendRawTransaction(tx)
+	immut, err := tx.IntoImmutable()
+	if err != nil {
+		return "", err
+	}
+	txHash, err := SendRawTransaction(immut)
 	if err != nil {
 		return "", fmt.Errorf("SendTransaction error:%s", err)
 	}
@@ -524,10 +546,16 @@ func PrepareInvokeNeoVMContract(
 	contractAddress common.Address,
 	params []interface{},
 ) (*cstates.PreExecResult, error) {
-	tx, err := httpcom.NewNeovmInvokeTransaction(0, 0, contractAddress, params)
+	mutable, err := httpcom.NewNeovmInvokeTransaction(0, 0, contractAddress, params)
 	if err != nil {
 		return nil, err
 	}
+
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return nil, err
+	}
+
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
@@ -547,7 +575,11 @@ func PrepareInvokeNeoVMContract(
 }
 
 func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error) {
-	tx, err := httpcom.NewSmartContractTransaction(0, 0, code)
+	mutable, err := httpcom.NewSmartContractTransaction(0, 0, code)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		return nil, err
 	}
@@ -574,7 +606,11 @@ func PrepareInvokeNativeContract(
 	version byte,
 	method string,
 	params []interface{}) (*cstates.PreExecResult, error) {
-	tx, err := httpcom.NewNativeInvokeTransaction(0, 0, contractAddress, version, method, params)
+	mutable, err := httpcom.NewNativeInvokeTransaction(0, 0, contractAddress, version, method, params)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		return nil, err
 	}
@@ -598,7 +634,7 @@ func PrepareInvokeNativeContract(
 
 //NewDeployCodeTransaction return a smart contract deploy transaction instance
 func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorage bool,
-	cname, cversion, cauthor, cemail, cdesc string) *types.Transaction {
+	cname, cversion, cauthor, cemail, cdesc string) *types.MutableTransaction {
 
 	deployPayload := &payload.DeployCode{
 		Code:        code,
@@ -609,14 +645,14 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorag
 		Email:       cemail,
 		Description: cdesc,
 	}
-	tx := &types.Transaction{
+	tx := &types.MutableTransaction{
 		Version:  VERSION_TRANSACTION,
 		TxType:   types.Deploy,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  deployPayload,
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
-		Sigs:     make([]*types.Sig, 0, 0),
+		Sigs:     make([]types.Sig, 0, 0),
 	}
 	return tx
 }

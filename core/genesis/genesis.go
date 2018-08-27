@@ -119,39 +119,63 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 }
 
 func newGoverningToken() *types.Transaction {
-	tx := utils.NewDeployTransaction(nutils.OntContractAddress[:], "ONT", "1.0",
+	mutable := utils.NewDeployTransaction(nutils.OntContractAddress[:], "ONT", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis governing token transaction error ")
+	}
 	return tx
 }
 
 func newUtilityToken() *types.Transaction {
-	tx := utils.NewDeployTransaction(nutils.OngContractAddress[:], "ONG", "1.0",
+	mutable := utils.NewDeployTransaction(nutils.OngContractAddress[:], "ONG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis utility token transaction error ")
+	}
 	return tx
 }
 
 func newParamContract() *types.Transaction {
-	tx := utils.NewDeployTransaction(nutils.ParamContractAddress[:],
+	mutable := utils.NewDeployTransaction(nutils.ParamContractAddress[:],
 		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
 		"Chain Global Environment Variables Manager ", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis param transaction error ")
+	}
 	return tx
 }
 
 func newConfig() *types.Transaction {
-	tx := utils.NewDeployTransaction(nutils.GovernanceContractAddress[:], "CONFIG", "1.0",
+	mutable := utils.NewDeployTransaction(nutils.GovernanceContractAddress[:], "CONFIG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Consensus Config", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis config transaction error ")
+	}
 	return tx
 }
 
 func deployAuthContract() *types.Transaction {
-	tx := utils.NewDeployTransaction(nutils.AuthContractAddress[:], "AuthContract", "1.0",
+	mutable := utils.NewDeployTransaction(nutils.AuthContractAddress[:], "AuthContract", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Authorization Contract", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis auth transaction error ")
+	}
 	return tx
 }
 
 func deployOntIDContract() *types.Transaction {
-	tx := utils.NewDeployTransaction(nutils.OntIDContractAddress[:], "OID", "1.0",
+	mutable := utils.NewDeployTransaction(nutils.OntIDContractAddress[:], "OID", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT ID", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis ontid transaction error ")
+	}
 	return tx
 }
 
@@ -182,17 +206,28 @@ func newGoverningInit() *types.Transaction {
 		nutils.WriteVarUint(args, part.value)
 	}
 
-	return utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())
+	mutable := utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis governing token transaction error ")
+	}
+	return tx
 }
 
 func newUtilityInit() *types.Transaction {
-	return utils.BuildNativeTransaction(nutils.OngContractAddress, ont.INIT_NAME, []byte{})
+	mutable := utils.BuildNativeTransaction(nutils.OngContractAddress, ont.INIT_NAME, []byte{})
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis governing token transaction error ")
+	}
+
+	return tx
 }
 
 func newParamInit() *types.Transaction {
 	params := new(global_params.Params)
 	var s []string
-	for k, _ := range INIT_PARAM {
+	for k := range INIT_PARAM {
 		s = append(s, k)
 	}
 
@@ -223,9 +258,19 @@ func newParamInit() *types.Transaction {
 	}
 	nutils.WriteAddress(bf, addr)
 
-	return utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
+	mutable := utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis governing token transaction error ")
+	}
+	return tx
 }
 
 func newGoverConfigInit(config []byte) *types.Transaction {
-	return utils.BuildNativeTransaction(nutils.GovernanceContractAddress, governance.INIT_CONFIG, config)
+	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, governance.INIT_CONFIG, config)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("constract genesis governing token transaction error ")
+	}
+	return tx
 }

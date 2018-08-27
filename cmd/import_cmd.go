@@ -20,7 +20,6 @@ package cmd
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"github.com/gosuri/uiprogress"
 	"github.com/ontio/ontology/cmd/utils"
@@ -156,8 +155,7 @@ func importBlocks(ctx *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("block height:%d decompress error:%s", i, err)
 		}
-		block := &types.Block{}
-		err = block.Deserialize(bytes.NewReader(blockData))
+		block, err := types.BlockFromRawBytes(blockData)
 		if err != nil {
 			return fmt.Errorf("block height:%d deserialize error:%s", i, err)
 		}

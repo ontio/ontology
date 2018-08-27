@@ -229,11 +229,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 	case string:
 		str := params[0].(string)
 		var err error
-		if len(str) == common.ADDR_LEN*2 {
-			address, err = common.AddressFromHexString(str)
-		} else {
-			address, err = common.AddressFromBase58(str)
-		}
+		address, err = bcomn.GetAddress(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -273,12 +269,12 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
-		hex, err := common.HexToBytes(str)
+		raw, err := common.HexToBytes(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
-		var txn types.Transaction
-		if err := txn.Deserialize(bytes.NewReader(hex)); err != nil {
+		txn, err := types.TransactionFromRawBytes(raw)
+		if err != nil {
 			return responsePack(berr.INVALID_TRANSACTION, "")
 		}
 		hash = txn.Hash()
@@ -287,10 +283,10 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 			if len(params) > 1 {
 				preExec, ok := params[1].(float64)
 				if ok && preExec == 1 {
-					result, err := bactor.PreExecuteContract(&txn)
+					result, err := bactor.PreExecuteContract(txn)
 					if err != nil {
 						log.Infof("PreExec: ", err)
-						return responsePack(berr.SMARTCODE_ERROR, "")
+						return responsePack(berr.SMARTCODE_ERROR, err.Error())
 					}
 					return responseSuccess(result)
 				}
@@ -298,7 +294,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 
 		log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
-		if errCode, desc := bcomn.SendTxToPool(&txn); errCode != ontErrors.ErrNoError {
+		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 			return responsePack(berr.INVALID_TRANSACTION, desc)
 		}
@@ -328,13 +324,7 @@ func GetContractState(params []interface{}) map[string]interface{} {
 	switch params[0].(type) {
 	case string:
 		str := params[0].(string)
-		var address common.Address
-		var err error
-		if len(str) == (common.ADDR_LEN * 2) {
-			address, err = common.AddressFromHexString(str)
-		} else {
-			address, err = common.AddressFromBase58(str)
-		}
+		address, err := bcomn.GetAddress(str)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
@@ -468,7 +458,7 @@ func GetAllowance(params []interface{}) map[string]interface{} {
 	if !ok {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	fromAddr, err := common.AddressFromBase58(fromAddrStr)
+	fromAddr, err := bcomn.GetAddress(fromAddrStr)
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
@@ -476,7 +466,7 @@ func GetAllowance(params []interface{}) map[string]interface{} {
 	if !ok {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	toAddr, err := common.AddressFromBase58(toAddrStr)
+	toAddr, err := bcomn.GetAddress(toAddrStr)
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
