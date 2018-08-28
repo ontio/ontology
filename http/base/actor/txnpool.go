@@ -49,6 +49,11 @@ func AppendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
 		txnPid.Tell(txReq)
 		return ontErrors.ErrNoError, ""
 	}
+	//add Pre Execute Contract
+	_, err := PreExecuteContract(txn)
+	if err != nil {
+		return ontErrors.ErrUnknown, err.Error()
+	}
 	ch := make(chan *tcomn.TxResult, 1)
 	txReq := &tcomn.TxReq{txn, tcomn.HttpSender, ch}
 	txnPid.Tell(txReq)
