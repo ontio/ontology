@@ -23,7 +23,6 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/core/types"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
@@ -91,7 +90,7 @@ func (self *CacheDB) put(prefix common.DataEntryPrefix, key []byte, value []byte
 	self.memdb.Put(self.keyScratch, value)
 }
 
-func (self *CacheDB) GetContractCode(addr comm.Address) (*payload.DeployCode, error) {
+func (self *CacheDB) GetContract(addr comm.Address) (*payload.DeployCode, error) {
 	value, err := self.get(common.ST_CONTRACT, addr[:])
 	if err != nil {
 		return nil, err
@@ -108,8 +107,8 @@ func (self *CacheDB) GetContractCode(addr comm.Address) (*payload.DeployCode, er
 	return contract, nil
 }
 
-func (self *CacheDB) PutContractCode(contract *payload.DeployCode) error {
-	address := types.AddressFromVmCode(contract.Code)
+func (self *CacheDB) PutContract(contract *payload.DeployCode) error {
+	address := contract.Address()
 
 	sink := comm.NewZeroCopySink(nil)
 	err := contract.Serialization(sink)
@@ -122,7 +121,7 @@ func (self *CacheDB) PutContractCode(contract *payload.DeployCode) error {
 	return nil
 }
 
-func (self *CacheDB) DeleteContractCode(address comm.Address) {
+func (self *CacheDB) DeleteContract(address comm.Address) {
 	self.delete(common.ST_CONTRACT, address[:])
 }
 

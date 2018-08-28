@@ -43,7 +43,7 @@ var (
 // Native service struct
 // Invoke a native smart contract, new a native service
 type NativeService struct {
-	CloneCache    *storage.CloneCache
+	CacheDB       *storage.CacheDB
 	ServiceMap    map[string]Handler
 	Notifications []*event.NotifyEventInfo
 	Code          []byte

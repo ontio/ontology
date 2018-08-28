@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/merkle"
 )
@@ -148,6 +149,10 @@ func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common
 //NewStateBatch return state commit bathe. Usually using in smart contract execution
 func (self *StateStore) NewStateBatch() *statestore.StateBatch {
 	return statestore.NewStateStoreBatch(statestore.NewMemDatabase(), self.store)
+}
+
+func (self *StateStore) NewOverlayDB() *overlaydb.OverlayDB {
+	return overlaydb.NewOverlayDB(self.store)
 }
 
 //CommitTo commit state batch to state store

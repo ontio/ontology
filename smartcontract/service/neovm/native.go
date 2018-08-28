@@ -75,7 +75,7 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	contract.Serialization(&sink)
 
 	native := &native.NativeService{
-		CloneCache: service.CloneCache,
+		CacheDB:    service.CacheDB,
 		Code:       sink.Bytes(),
 		Tx:         service.Tx,
 		Height:     service.Height,

@@ -45,9 +45,9 @@ func TestInfiniteLoopCrash(t *testing.T) {
 	}
 	//cache := storage.NewCloneCache(testBatch)
 	sc := SmartContract{
-		Config:     config,
-		Gas:        10000,
-		CloneCache: nil,
+		Config:  config,
+		Gas:     10000,
+		CacheDB: nil,
 	}
 	engine, err := sc.NewExecuteEngine(evilBytecode)
 	if err != nil {

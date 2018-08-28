@@ -25,7 +25,6 @@ import (
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/types"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
 	"io/ioutil"
@@ -174,7 +173,7 @@ func deployContract(ctx *cli.Context) error {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
 	c, _ := common.HexToBytes(code)
-	address := types.AddressFromVmCode(c)
+	address := common.AddressFromVmCode(c)
 	PrintInfoMsg("Deploy contract:")
 	PrintInfoMsg("  Contract Address:%s", address.ToHexString())
 	PrintInfoMsg("  TxHash:%s", txHash)

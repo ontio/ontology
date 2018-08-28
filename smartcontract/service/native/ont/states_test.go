@@ -22,14 +22,14 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/magiconair/properties/assert"
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/common"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestState_Serialize(t *testing.T) {
 	state := State{
-		From:  types.AddressFromVmCode([]byte{1, 2, 3}),
-		To:    types.AddressFromVmCode([]byte{4, 5, 6}),
+		From:  common.AddressFromVmCode([]byte{1, 2, 3}),
+		To:    common.AddressFromVmCode([]byte{4, 5, 6}),
 		Value: 1,
 	}
 	bf := new(bytes.Buffer)

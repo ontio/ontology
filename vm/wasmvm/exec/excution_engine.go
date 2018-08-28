@@ -27,7 +27,6 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
@@ -392,7 +391,7 @@ func (e *ExecutionEngine) call(caller common.Address,
 		vm.Caller = caller
 
 		vm.VMCode = code
-		vm.ContractAddress = types.AddressFromVmCode(code)
+		vm.ContractAddress = common.AddressFromVmCode(code)
 
 		entry, ok := m.Export.Entries[methodName]
 

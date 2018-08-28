@@ -24,7 +24,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -33,11 +32,11 @@ import (
 const flag_exist = 0x01
 
 func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
-	val, err := srvc.CloneCache.Get(common.ST_STORAGE, encID)
+	val, err := srvc.CacheDB.Get(encID)
 	if err == nil {
-		t, ok := val.(*states.StorageItem)
-		if ok {
-			if len(t.Value) > 0 && t.Value[0] == flag_exist {
+		val, err := states.GetValueFromRawStorageItem(val)
+		if err == nil {
+			if len(val) > 0 && val[0] == flag_exist {
 				return true
 			}
 		}
@@ -70,8 +69,8 @@ func decodeID(data []byte) ([]byte, error) {
 
 func setRecovery(srvc *native.NativeService, encID []byte, recovery com.Address) error {
 	key := append(encID, FIELD_RECOVERY)
-	val := &states.StorageItem{Value: recovery[:]}
-	srvc.CloneCache.Add(common.ST_STORAGE, key, val)
+	val := states.StorageItem{Value: recovery[:]}
+	srvc.CacheDB.Put(key, val.ToArray())
 	return nil
 }
 

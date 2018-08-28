@@ -59,9 +59,9 @@ func TestPackCrash(t *testing.T) {
 	}
 	//cache := storage.NewCloneCache(testBatch)
 	sc := smartcontract.SmartContract{
-		Config:     config,
-		Gas:        200,
-		CloneCache: nil,
+		Config:  config,
+		Gas:     200,
+		CacheDB: nil,
 	}
 	engine, err := sc.NewExecuteEngine(byteCode)
 	if err != nil {

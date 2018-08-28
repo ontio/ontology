@@ -23,21 +23,21 @@ import (
 
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
 func GetStorageItem(native *native.NativeService, key []byte) (*cstates.StorageItem, error) {
-	store, err := native.CloneCache.Get(scommon.ST_STORAGE, key)
+	store, err := native.CacheDB.Get(key)
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageItem] storage error!")
 	}
 	if store == nil {
 		return nil, nil
 	}
-	item, ok := store.(*cstates.StorageItem)
-	if !ok {
+	item := new(cstates.StorageItem)
+	err = item.Deserialize(bytes.NewBuffer(store))
+	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageItem] instance doesn't StorageItem!")
 	}
 	return item, nil
@@ -86,5 +86,5 @@ func GenUInt32StorageItem(value uint32) *cstates.StorageItem {
 }
 
 func PutBytes(native *native.NativeService, key []byte, value []byte) {
-	native.CloneCache.Add(scommon.ST_STORAGE, key, &cstates.StorageItem{Value: value})
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
 }

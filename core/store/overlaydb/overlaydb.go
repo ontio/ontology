@@ -40,6 +40,14 @@ func (self *OverlayDB) Reset() {
 	self.memdb.Reset()
 }
 
+func (self *OverlayDB) Error() error {
+	return self.dbErr
+}
+
+func (self *OverlayDB) SetError(err error) {
+	self.dbErr = err
+}
+
 // if key is deleted, value == nil
 func (self *OverlayDB) Get(key []byte) (value []byte, err error) {
 	var unknown bool

@@ -75,9 +75,9 @@ func TestMap(t *testing.T) {
 		}
 		//cache := storage.NewCloneCache(testBatch)
 		sc := smartcontract.SmartContract{
-			Config:     config,
-			Gas:        100,
-			CloneCache: nil,
+			Config:  config,
+			Gas:     100,
+			CacheDB: nil,
 		}
 		engine, err := sc.NewExecuteEngine(byteCode)
 

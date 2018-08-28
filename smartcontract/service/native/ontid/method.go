@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -88,7 +87,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
 	}
 	// set flags
-	srvc.CloneCache.Add(common.ST_STORAGE, key, &states.StorageItem{Value: []byte{flag_exist}})
+	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_exist}))
 
 	triggerRegisterEvent(srvc, arg0)
 
@@ -158,7 +157,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: insert attribute error: " + err.Error())
 	}
 
-	srvc.CloneCache.Add(common.ST_STORAGE, key, &states.StorageItem{Value: []byte{flag_exist}})
+	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_exist}))
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -254,7 +253,7 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 	if !checkIDExistence(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("remove key failed: ID not registered")
 	}
-	var auth bool = false
+	var auth = false
 	rec, err := getRecovery(srvc, key)
 	if len(rec) > 0 {
 		auth = bytes.Equal(rec, arg2)

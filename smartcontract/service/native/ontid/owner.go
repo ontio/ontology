@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -91,7 +90,7 @@ func putAllPk(srvc *native.NativeService, key []byte, val []*owner) error {
 	}
 	var v states.StorageItem
 	v.Value = buf.Bytes()
-	srvc.CloneCache.Add(common.ST_STORAGE, key, &v)
+	srvc.CacheDB.Put(key, v.ToArray())
 	return nil
 }
 

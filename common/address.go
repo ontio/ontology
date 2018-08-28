@@ -26,6 +26,7 @@ import (
 	"math/big"
 
 	"github.com/itchyny/base58-go"
+	"golang.org/x/crypto/ripemd160"
 )
 
 const ADDR_LEN = 20
@@ -117,4 +118,14 @@ func AddressFromBase58(encoded string) (Address, error) {
 	}
 
 	return ph, nil
+}
+
+func AddressFromVmCode(code []byte) Address {
+	var addr Address
+	temp := sha256.Sum256(code)
+	md := ripemd160.New()
+	md.Write(temp[:])
+	md.Sum(addr[:0])
+
+	return addr
 }

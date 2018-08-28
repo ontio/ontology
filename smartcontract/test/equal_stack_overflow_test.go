@@ -53,9 +53,9 @@ func TestEqualStackOverflow(t *testing.T) {
 		Tx:     &types.Transaction{},
 	}
 	sc := SmartContract{
-		Config:     config,
-		Gas:        10000,
-		CloneCache: nil,
+		Config:  config,
+		Gas:     10000,
+		CacheDB: nil,
 	}
 	engine, _ := sc.NewExecuteEngine(code)
 	_, err := engine.Invoke()

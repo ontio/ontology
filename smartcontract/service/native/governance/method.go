@@ -24,10 +24,10 @@ import (
 	"fmt"
 	"sort"
 
+	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	cstates "github.com/ontio/ontology/core/states"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -67,9 +67,9 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
 	//get black list
-	blackList, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
+	blackList, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
 	if err != nil {
-		return fmt.Errorf("native.CloneCache.Get, get BlackList error: %v", err)
+		return fmt.Errorf("native.CacheDB.Get, get BlackList error: %v", err)
 	}
 	if blackList != nil {
 		return fmt.Errorf("registerCandidate, this Peer is in BlackList")
@@ -260,18 +260,17 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
 	flag := false
+
 	//draw back authorize pos
-	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
-	if err != nil {
-		return fmt.Errorf("native.CloneCache.Store.Find, get all peerPool error: %v", err)
-	}
-	authorizeInfo := new(AuthorizeInfo)
-	for _, v := range stateValues {
-		authorizeInfoStore, ok := v.Value.(*cstates.StorageItem)
-		if !ok {
-			return fmt.Errorf("authorizeInfoStore is not available")
+	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
+	defer iter.Release()
+	for has := iter.First(); has; has = iter.Next() {
+		authorizeInfoStore, err := cstates.GetValueFromRawStorageItem(iter.Value())
+		if err != nil {
+			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
+		var authorizeInfo AuthorizeInfo
+		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos +
@@ -285,7 +284,7 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 			flag = true
 			authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + peerPoolItem.InitPos
 		}
-		err = putAuthorizeInfo(native, contract, authorizeInfo)
+		err = putAuthorizeInfo(native, contract, &authorizeInfo)
 		if err != nil {
 			return fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 		}
@@ -331,17 +330,15 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
 	//draw back authorize pos
-	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
-	if err != nil {
-		return fmt.Errorf("native.CloneCache.Store.Find, get all peerPool error: %v", err)
-	}
-	authorizeInfo := new(AuthorizeInfo)
-	for _, v := range stateValues {
-		authorizeInfoStore, ok := v.Value.(*cstates.StorageItem)
-		if !ok {
-			return fmt.Errorf("authorizeInfoStore is not available")
+	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
+	defer iter.Release()
+	for has := iter.First(); has; has = iter.Next() {
+		authorizeInfoStore, err := cstates.GetValueFromRawStorageItem(iter.Value())
+		if err != nil {
+			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
+		var authorizeInfo AuthorizeInfo
+		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		total := authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos + authorizeInfo.WithdrawConsensusPos +
@@ -354,7 +351,7 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 		authorizeInfo.WithdrawConsensusPos = 0
 		authorizeInfo.WithdrawCandidatePos = 0
 		address := authorizeInfo.Address
-		err = putAuthorizeInfo(native, contract, authorizeInfo)
+		err = putAuthorizeInfo(native, contract, &authorizeInfo)
 		if err != nil {
 			return fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 		}
@@ -382,17 +379,15 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 	}
 
 	//update authorizeInfoPool
-	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
-	if err != nil {
-		return fmt.Errorf("native.CloneCache.Store.Find, get all peerPool error: %v", err)
-	}
-	authorizeInfo := new(AuthorizeInfo)
-	for _, v := range stateValues {
-		authorizeInfoStore, ok := v.Value.(*cstates.StorageItem)
-		if !ok {
-			return fmt.Errorf("authorizeInfoStore is not available")
+	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
+	defer iter.Release()
+	for has := iter.First(); has; has = iter.Next() {
+		authorizeInfoStore, err := cstates.GetValueFromRawStorageItem(iter.Value())
+		if err != nil {
+			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
+		var authorizeInfo AuthorizeInfo
+		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.CandidatePos != 0 {
@@ -409,7 +404,7 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawFCandidatePos
 		authorizeInfo.WithdrawConsensusPos = 0
 
-		err = putAuthorizeInfo(native, contract, authorizeInfo)
+		err = putAuthorizeInfo(native, contract, &authorizeInfo)
 		if err != nil {
 			return fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 		}
@@ -424,17 +419,15 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 	}
 
 	//update authorizeInfoPool
-	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
-	if err != nil {
-		return fmt.Errorf("native.CloneCache.Store.Find, get all peerPool error: %v", err)
-	}
-	authorizeInfo := new(AuthorizeInfo)
-	for _, v := range stateValues {
-		authorizeInfoStore, ok := v.Value.(*cstates.StorageItem)
-		if !ok {
-			return fmt.Errorf("authorizeInfoStore is not available")
+	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
+	defer iter.Release()
+	for has := iter.First(); has; has = iter.Next() {
+		authorizeInfoStore, err := cstates.GetValueFromRawStorageItem(iter.Value())
+		if err != nil {
+			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
+		var authorizeInfo AuthorizeInfo
+		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.ConsensusPos != 0 {
@@ -451,7 +444,7 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawCandidatePos
 		authorizeInfo.WithdrawConsensusPos = 0
 
-		err = putAuthorizeInfo(native, contract, authorizeInfo)
+		err = putAuthorizeInfo(native, contract, &authorizeInfo)
 		if err != nil {
 			return fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 		}
@@ -466,17 +459,15 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 	}
 
 	//update authorizeInfoPool
-	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
-	if err != nil {
-		return fmt.Errorf("native.CloneCache.Store.Find, get all peerPool error: %v", err)
-	}
-	authorizeInfo := new(AuthorizeInfo)
-	for _, v := range stateValues {
-		authorizeInfoStore, ok := v.Value.(*cstates.StorageItem)
-		if !ok {
-			return fmt.Errorf("authorizeInfoStore is not available")
+	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
+	defer iter.Release()
+	for has := iter.First(); has; has = iter.Next() {
+		authorizeInfoStore, err := cstates.GetValueFromRawStorageItem(iter.Value())
+		if err != nil {
+			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
+		var authorizeInfo AuthorizeInfo
+		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.CandidatePos != 0 {
@@ -493,7 +484,7 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawCandidatePos
 		authorizeInfo.WithdrawConsensusPos = 0
 
-		err = putAuthorizeInfo(native, contract, authorizeInfo)
+		err = putAuthorizeInfo(native, contract, &authorizeInfo)
 		if err != nil {
 			return fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 		}
@@ -508,17 +499,15 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 	}
 
 	//update authorizeInfoPool
-	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
-	if err != nil {
-		return fmt.Errorf("native.CloneCache.Store.Find, get all peerPool error: %v", err)
-	}
-	authorizeInfo := new(AuthorizeInfo)
-	for _, v := range stateValues {
-		authorizeInfoStore, ok := v.Value.(*cstates.StorageItem)
-		if !ok {
-			return fmt.Errorf("authorizeInfoStore is not available")
+	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
+	defer iter.Release()
+	for has := iter.First(); has; has = iter.Next() {
+		authorizeInfoStore, err := cstates.GetValueFromRawStorageItem(iter.Value())
+		if err != nil {
+			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
+		var authorizeInfo AuthorizeInfo
+		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.ConsensusPos != 0 {
@@ -536,7 +525,7 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawCandidatePos
 		authorizeInfo.WithdrawConsensusPos = 0
 
-		err = putAuthorizeInfo(native, contract, authorizeInfo)
+		err = putAuthorizeInfo(native, contract, &authorizeInfo)
 		if err != nil {
 			return fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 		}
@@ -654,7 +643,7 @@ func withdrawPenaltyStake(native *native.NativeService, contract common.Address,
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
-	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PENALTY_STAKE), peerPubkeyPrefix))
+	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(PENALTY_STAKE), peerPubkeyPrefix))
 	return nil
 }
 
@@ -1087,7 +1076,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 	if err != nil {
 		return fmt.Errorf("GetUint32Bytes, get oldViewBytes error: %v", err)
 	}
-	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_POOL), oldViewBytes))
+	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(PEER_POOL), oldViewBytes))
 
 	return nil
 }
