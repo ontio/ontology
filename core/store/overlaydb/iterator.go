@@ -40,7 +40,7 @@ type JoinIter struct {
 	cmp         comparer.BasicComparer
 }
 
-func NewJoinIter(memIter, backendIter common.StoreIterator) common.StoreIterator {
+func NewJoinIter(memIter, backendIter common.StoreIterator) *JoinIter {
 	return &JoinIter{
 		backend: backendIter,
 		memdb:   memIter,

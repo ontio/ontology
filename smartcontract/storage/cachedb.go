@@ -19,13 +19,11 @@
 package storage
 
 import (
-	"bytes"
-
-	common2 "github.com/ontio/ontology/common"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/core/types"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
@@ -70,49 +68,69 @@ func (self *CacheDB) Commit() {
 	})
 }
 
-// Add item to cache
-func (self *CacheDB) Add(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
-	data := new(bytes.Buffer)
-	// todo: remove error or return to caller
-	err := value.Serialize(data)
-	if err != nil {
-		panic(err)
-	}
+//
+//// Add item to cache
+//func (self *CacheDB) Add(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
+//	data := new(bytes.Buffer)
+//	// todo: remove error or return to caller
+//	err := value.Serialize(data)
+//	if err != nil {
+//		panic(err)
+//	}
+//
+//	self.keyScratch = makePrefixedKey(self.keyScratch, byte(prefix), key)
+//	self.memdb.Put(self.keyScratch, data.Bytes())
+//}
 
+func (self *CacheDB) Put(key []byte, value []byte) {
+	self.put(common.ST_STORAGE, key, value)
+}
+
+func (self *CacheDB) put(prefix common.DataEntryPrefix, key []byte, value []byte) {
 	self.keyScratch = makePrefixedKey(self.keyScratch, byte(prefix), key)
-	self.memdb.Put(self.keyScratch, data.Bytes())
+	self.memdb.Put(self.keyScratch, value)
 }
 
-// GetOrAdd item
-// If item has existed, return it
-// Else add it to cache
-func (self *CacheDB) GetOrAdd(prefix common.DataEntryPrefix, key []byte, value states.StateValue) (states.StateValue, error) {
-	val, err := self.Get(prefix, key)
+func (self *CacheDB) GetContractCode(addr comm.Address) (*payload.DeployCode, error) {
+	value, err := self.get(common.ST_CONTRACT, addr[:])
 	if err != nil {
 		return nil, err
 	}
-	if val != nil {
-		return val, nil
-	}
 
-	self.Add(prefix, key, value)
-
-	return value, nil
-}
-
-func (self *CacheDB) GetContractCode(addr common2.Address) ([]byte, error) {
-	dep, err := self.Get(common.ST_CONTRACT, addr[:])
-	if err != nil {
-		return nil, err
-	}
-	if dep == nil {
+	if len(value) == 0 {
 		return nil, nil
 	}
-	return dep.(*payload.DeployCode).Code, nil
+
+	contract := new(payload.DeployCode)
+	if err := contract.Deserialization(comm.NewZeroCopySource(value)); err != nil {
+		return nil, err
+	}
+	return contract, nil
 }
 
-// Get item by key
-func (self *CacheDB) Get(prefix common.DataEntryPrefix, key []byte) (states.StateValue, error) {
+func (self *CacheDB) PutContractCode(contract *payload.DeployCode) error {
+	address := types.AddressFromVmCode(contract.Code)
+
+	sink := comm.NewZeroCopySink(nil)
+	err := contract.Serialization(sink)
+	if err != nil {
+		return err
+	}
+
+	value := sink.Bytes()
+	self.put(common.ST_CONTRACT, address[:], value)
+	return nil
+}
+
+func (self *CacheDB) DeleteContractCode(address comm.Address) {
+	self.delete(common.ST_CONTRACT, address[:])
+}
+
+func (self *CacheDB) Get(key []byte) ([]byte, error) {
+	return self.get(common.ST_STORAGE, key)
+}
+
+func (self *CacheDB) get(prefix common.DataEntryPrefix, key []byte) ([]byte, error) {
 	self.keyScratch = makePrefixedKey(self.keyScratch, byte(prefix), key)
 	value, unknown := self.memdb.Get(self.keyScratch)
 	if unknown {
@@ -123,52 +141,38 @@ func (self *CacheDB) Get(prefix common.DataEntryPrefix, key []byte) (states.Stat
 		value = v
 	}
 
-	if len(value) == 0 {
-		return nil, nil
-	}
-
-	return decodeStateObject(prefix, value)
+	return value, nil
 }
 
-func decodeStateObject(prefix common.DataEntryPrefix, enc []byte) (states.StateValue, error) {
-	reader := bytes.NewBuffer(enc)
-	switch prefix {
-	case common.ST_BOOKKEEPER:
-		bookkeeper := new(payload.Bookkeeper)
-		if err := bookkeeper.Deserialize(reader); err != nil {
-			return nil, err
-		}
-		return bookkeeper, nil
-	case common.ST_CONTRACT:
-		contract := new(payload.DeployCode)
-		if err := contract.Deserialize(reader); err != nil {
-			return nil, err
-		}
-		return contract, nil
-	case common.ST_STORAGE:
-		storage := new(states.StorageItem)
-		if err := storage.Deserialize(reader); err != nil {
-			return nil, err
-		}
-		return storage, nil
-	default:
-		panic("[decodeStateObject] invalid state type!")
-	}
+func (self *CacheDB) Delete(key []byte) {
+	self.delete(common.ST_STORAGE, key)
 }
 
 // Delete item from cache
-func (self *CacheDB) Delete(prefix common.DataEntryPrefix, key []byte) {
+func (self *CacheDB) delete(prefix common.DataEntryPrefix, key []byte) {
 	self.keyScratch = makePrefixedKey(self.keyScratch, byte(prefix), key)
 	self.memdb.Delete(self.keyScratch)
 }
 
-func (self *CacheDB) NewIterator(prefix common.DataEntryPrefix, key []byte) common.StoreIterator {
+func (self *CacheDB) NewIterator(key []byte) common.StoreIterator {
 	pkey := make([]byte, 1+len(key))
-	pkey[0] = byte(prefix)
+	pkey[0] = byte(common.ST_STORAGE)
 	copy(pkey[1:], key)
 	prefixRange := util.BytesPrefix(pkey)
 	backIter := self.backend.NewIterator(pkey)
 	memIter := self.memdb.NewIterator(prefixRange)
 
 	return overlaydb.NewJoinIter(memIter, backIter)
+}
+
+type Iter struct {
+	*overlaydb.JoinIter
+}
+
+func (self *Iter) Key() []byte {
+	key := self.JoinIter.Key()
+	if len(key) != 0 {
+		key = key[1:] // remove the first prefix
+	}
+	return key
 }

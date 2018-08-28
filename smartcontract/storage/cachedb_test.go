@@ -18,8 +18,6 @@
 package storage
 
 import (
-	"bytes"
-	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -39,7 +37,6 @@ func genRandKeyVal() (string, string) {
 
 func TestCacheDB(t *testing.T) {
 	N := 10000
-	prefix := common.ST_STORAGE
 	mem := make(map[string]string)
 	memback, _ := leveldbstore.NewMemLevelDBStore()
 	overlay := overlaydb.NewOverlayDB(memback)
@@ -47,8 +44,7 @@ func TestCacheDB(t *testing.T) {
 	cache := NewCacheDB(overlay)
 	for i := 0; i < N; i++ {
 		key, val := genRandKeyVal()
-		item := &states.StorageItem{Value: []byte(val)}
-		cache.Add(prefix, []byte(key), item)
+		cache.Put([]byte(key), []byte(val))
 		mem[key] = val
 	}
 
@@ -57,33 +53,32 @@ func TestCacheDB(t *testing.T) {
 		if op == 0 {
 			//delete
 			delete(mem, key)
-			cache.Delete(prefix, []byte(key))
+			cache.Delete([]byte(key))
 		} else if op == 1 {
 			//update
 			_, val := genRandKeyVal()
 			mem[key] = val
-			item := &states.StorageItem{Value: []byte(val)}
-			cache.Add(prefix, []byte(key), item)
+			cache.Put([]byte(key), []byte(val))
 		}
 	}
 
 	for key, val := range mem {
-		item, err := cache.Get(prefix, []byte(key))
+		value, err := cache.Get([]byte(key))
 		assert.Nil(t, err)
-		assert.NotNil(t, item)
-		v := item.(*states.StorageItem).Value
-		assert.Equal(t, []byte(val), v)
+		assert.NotNil(t, value)
+		assert.Equal(t, []byte(val), value)
 	}
 	cache.Commit()
 
+	prefix := common.ST_STORAGE
 	for key, val := range mem {
-		raw, err := overlay.Get(append([]byte{byte(prefix)}, key...))
+		pkey := make([]byte, 1+len(key))
+		pkey[0] = byte(prefix)
+		copy(pkey[1:], key)
+		raw, err := overlay.Get(pkey)
 		assert.Nil(t, err)
 		assert.NotNil(t, raw)
-		item := new(states.StorageItem)
-		item.Deserialize(bytes.NewBuffer(raw))
-
-		assert.Equal(t, []byte(val), item.Value)
+		assert.Equal(t, []byte(val), raw)
 	}
 
 }
