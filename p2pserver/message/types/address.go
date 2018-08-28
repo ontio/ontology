@@ -19,11 +19,9 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
+	"io"
 
-	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/common"
 	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -32,46 +30,50 @@ type Addr struct {
 }
 
 //Serialize message payload
-func (this Addr) Serialization() ([]byte, error) {
-	p := new(bytes.Buffer)
+func (this Addr) Serialization(sink *common.ZeroCopySink) error {
 	num := uint64(len(this.NodeAddrs))
-	err := binary.Write(p, binary.LittleEndian, num)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. num:%v", num))
+	sink.WriteUint64(num)
+
+	for _, addr := range this.NodeAddrs {
+		sink.WriteInt64(addr.Time)
+		sink.WriteUint64(addr.Services)
+		sink.WriteBytes(addr.IpAddr[:])
+		sink.WriteUint16(addr.Port)
+		sink.WriteUint64(addr.ID)
 	}
 
-	err = binary.Write(p, binary.LittleEndian, this.NodeAddrs)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. NodeAddrs:%v", this.NodeAddrs))
-	}
-
-	return p.Bytes(), nil
+	return nil
 }
 
 func (this *Addr) CmdType() string {
 	return comm.ADDR_TYPE
 }
 
-//Deserialize message payload
-func (this *Addr) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-
-	var NodeCnt uint64
-	err := binary.Read(buf, binary.LittleEndian, &NodeCnt)
-	if NodeCnt > comm.MAX_ADDR_NODE_CNT {
-		NodeCnt = comm.MAX_ADDR_NODE_CNT
-	}
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read NodeCnt error. buf:%v", buf))
+func (this *Addr) Deserialization(source *common.ZeroCopySource) error {
+	count, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
-	for i := 0; i < int(NodeCnt); i++ {
+	for i := 0; i < int(count); i++ {
 		var addr comm.PeerAddr
-		err := binary.Read(buf, binary.LittleEndian, &addr)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read NodeAddrs error. buf:%v", buf))
+		addr.Time, eof = source.NextInt64()
+		addr.Services, eof = source.NextUint64()
+		buf, _ := source.NextBytes(uint64(len(addr.IpAddr[:])))
+		copy(addr.IpAddr[:], buf)
+		addr.Port, eof = source.NextUint16()
+		addr.ID, eof = source.NextUint64()
+		if eof {
+			return io.ErrUnexpectedEOF
 		}
+
 		this.NodeAddrs = append(this.NodeAddrs, addr)
 	}
+
+	if count > comm.MAX_ADDR_NODE_CNT {
+		count = comm.MAX_ADDR_NODE_CNT
+	}
+	this.NodeAddrs = this.NodeAddrs[:count]
+
 	return nil
 }

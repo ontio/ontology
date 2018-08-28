@@ -21,11 +21,12 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMsgHdrSerializationDeserialization(t *testing.T) {
-	hdr := newMessageHeader("hdrtest", 0, CheckSum(nil))
+	hdr := newMessageHeader("hdrtest", 0, common.Checksum(nil))
 
 	buf := bytes.NewBuffer(nil)
 	err := writeMessageHeader(buf, hdr)

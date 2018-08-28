@@ -15,28 +15,20 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package types
+package common
 
 import (
-	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-type Consensus struct {
-	Cons ConsensusPayload
-}
+func TestChecksum(t *testing.T) {
+	data := []byte{1, 2, 3}
+	cs := Checksum(data)
 
-//Serialize message payload
-func (this *Consensus) Serialization(sink *comm.ZeroCopySink) error {
-	return this.Cons.Serialization(sink)
-}
+	writer := NewChecksum()
+	writer.Write(data)
+	checksum2 := writer.Sum(nil)
+	assert.Equal(t, cs[:], checksum2)
 
-func (this *Consensus) CmdType() string {
-	return common.CONSENSUS_TYPE
-}
-
-//Deserialize message payload
-func (this *Consensus) Deserialization(source *comm.ZeroCopySource) error {
-	return this.Cons.Deserialization(source)
 }

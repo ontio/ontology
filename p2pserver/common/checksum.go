@@ -15,28 +15,39 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package types
+package common
 
 import (
-	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/p2pserver/common"
+	"crypto/sha256"
+	"hash"
 )
 
-type Consensus struct {
-	Cons ConsensusPayload
+// checksum implement hash.Hash interface and io.Writer
+type checksum struct {
+	hash.Hash
 }
 
-//Serialize message payload
-func (this *Consensus) Serialization(sink *comm.ZeroCopySink) error {
-	return this.Cons.Serialization(sink)
+func (self *checksum) Size() int {
+	return CHECKSUM_LEN
 }
 
-func (this *Consensus) CmdType() string {
-	return common.CONSENSUS_TYPE
+func (self *checksum) Sum(b []byte) []byte {
+	temp := self.Hash.Sum(nil)
+	h := sha256.Sum256(temp)
+
+	return append(b, h[:CHECKSUM_LEN]...)
 }
 
-//Deserialize message payload
-func (this *Consensus) Deserialization(source *comm.ZeroCopySource) error {
-	return this.Cons.Deserialization(source)
+func NewChecksum() hash.Hash {
+	return &checksum{sha256.New()}
+}
+
+func Checksum(data []byte) [CHECKSUM_LEN]byte {
+	var checksum [CHECKSUM_LEN]byte
+	t := sha256.Sum256(data)
+	s := sha256.Sum256(t[:])
+
+	copy(checksum[:], s[:])
+
+	return checksum
 }

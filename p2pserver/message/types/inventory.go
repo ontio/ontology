@@ -19,13 +19,9 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/errors"
 	p2pCommon "github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -49,47 +45,40 @@ func (this *Inv) CmdType() string {
 }
 
 //Serialize message payload
-func (this Inv) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	err := serialization.WriteUint8(p, uint8(this.P.InvType))
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. InvType:%v", this.P.InvType))
-	}
+func (this Inv) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteUint8(uint8(this.P.InvType))
+
 	blkCnt := uint32(len(this.P.Blk))
-	err = serialization.WriteUint32(p, blkCnt)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Cnt:%v", blkCnt))
-	}
-	err = binary.Write(p, binary.LittleEndian, this.P.Blk)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Blk:%v", this.P.Blk))
+	sink.WriteUint32(blkCnt)
+	for _, hash := range this.P.Blk {
+		sink.WriteHash(hash)
 	}
 
-	return p.Bytes(), nil
+	return nil
 }
 
 //Deserialize message payload
-func (this *Inv) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	invType, err := serialization.ReadUint8(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read invType error. buf:%v", buf))
-	}
+func (this *Inv) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	invType, eof := source.NextUint8()
 	this.P.InvType = common.InventoryType(invType)
-	blkCnt, err := serialization.ReadUint32(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Cnt error. buf:%v", buf))
+	blkCnt, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
+
+	for i := 0; i < int(blkCnt); i++ {
+		hash, eof := source.NextHash()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+
+		this.P.Blk = append(this.P.Blk, hash)
+	}
+
 	if blkCnt > p2pCommon.MAX_INV_BLK_CNT {
 		blkCnt = p2pCommon.MAX_INV_BLK_CNT
 	}
-	for i := 0; i < int(blkCnt); i++ {
-		var blk common.Uint256
-		err := binary.Read(buf, binary.LittleEndian, &blk)
-		if err != nil {
-			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read inv blk error. buf:%v", buf))
-		}
-		this.P.Blk = append(this.P.Blk, blk)
-	}
+	this.P.Blk = this.P.Blk[:blkCnt]
 	return nil
 }

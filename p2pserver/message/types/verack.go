@@ -19,11 +19,9 @@
 package types
 
 import (
-	"bytes"
-	"fmt"
+	"io"
 
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/errors"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -32,29 +30,25 @@ type VerACK struct {
 }
 
 //Serialize message payload
-func (this VerACK) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	err := serialization.WriteBool(p, this.IsConsensus)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. IsConsensus:%v", this.IsConsensus))
-	}
-
-	return p.Bytes(), nil
+func (this *VerACK) Serialization(sink *comm.ZeroCopySink) error {
+	sink.WriteBool(this.IsConsensus)
+	return nil
 }
 
-func (this VerACK) CmdType() string {
+func (this *VerACK) CmdType() string {
 	return common.VERACK_TYPE
 }
 
 //Deserialize message payload
-func (this *VerACK) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-
-	isConsensus, err := serialization.ReadBool(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read IsConsensus error. buf:%v", buf))
+func (this *VerACK) Deserialization(source *comm.ZeroCopySource) error {
+	var irregular, eof bool
+	this.IsConsensus, irregular, eof = source.NextBool()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return comm.ErrIrregularData
 	}
 
-	this.IsConsensus = isConsensus
 	return nil
 }

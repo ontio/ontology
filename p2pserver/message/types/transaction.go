@@ -19,11 +19,8 @@
 package types
 
 import (
-	"bytes"
-	"fmt"
-
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -33,14 +30,8 @@ type Trn struct {
 }
 
 //Serialize message payload
-func (this Trn) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer(nil)
-	err := this.Txn.Serialize(p)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. Txn:%v", this.Txn))
-	}
-
-	return p.Bytes(), nil
+func (this Trn) Serialization(sink *comm.ZeroCopySink) error {
+	return this.Txn.Serialization(sink)
 }
 
 func (this *Trn) CmdType() string {
@@ -48,12 +39,11 @@ func (this *Trn) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *Trn) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-
-	tx, err := types.TransactionFromRawBytes(p)
+func (this *Trn) Deserialization(source *comm.ZeroCopySource) error {
+	tx := &types.Transaction{}
+	err := tx.Deserialization(source)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read txn error. buf:%v", buf))
+		return err
 	}
 
 	this.Txn = tx
