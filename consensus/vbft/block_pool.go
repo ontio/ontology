@@ -620,7 +620,7 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 	return nil
 }
 
-func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool) error {
+func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool) error {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -636,11 +636,11 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool) error {
 		}
 		return fmt.Errorf("double seal for block %d", blkNum)
 	}
-
-	if err := pool.addSignaturesToBlockLocked(block, forEmpty); err != nil {
-		return fmt.Errorf("failed to add sig to block: %s", err)
+	if sigdata {
+		if err := pool.addSignaturesToBlockLocked(block, forEmpty); err != nil {
+			return fmt.Errorf("failed to add sig to block: %s", err)
+		}
 	}
-
 	if !forEmpty {
 		// remove empty block
 		c.SealedBlock = &Block{
