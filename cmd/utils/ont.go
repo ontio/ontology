@@ -222,7 +222,7 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	}
 	toAddr, err := common.AddressFromBase58(to)
 	if err != nil {
-		return nil, fmt.Errorf("To address:%s invalid:%s", to, err)
+		return nil, fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
 	var sts []*ont.State
 	sts = append(sts, &ont.State{
@@ -240,7 +240,7 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
 	default:
-		return nil, fmt.Errorf("Unsupport asset:%s", asset)
+		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
 	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER, []interface{}{sts})
 	if err != nil {
@@ -450,19 +450,36 @@ func SendRawTransaction(tx *types.Transaction) (string, error) {
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {
-		return "", fmt.Errorf("Serialize error:%s", err)
+		return "", fmt.Errorf("serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
+	return SendRawTransactionData(txData)
+}
+
+func SendRawTransactionData(txData string) (string, error) {
 	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData})
 	if ontErr != nil {
 		return "", ontErr.Error
 	}
 	hexHash := ""
-	err = json.Unmarshal(data, &hexHash)
+	err := json.Unmarshal(data, &hexHash)
 	if err != nil {
 		return "", fmt.Errorf("json.Unmarshal hash:%s error:%s", data, err)
 	}
 	return hexHash, nil
+}
+
+func PrepareSendRawTransaction(txData string) (*cstates.PreExecResult, error) {
+	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
+	if ontErr != nil {
+		return nil, ontErr.Error
+	}
+	preResult := &cstates.PreExecResult{}
+	err := json.Unmarshal(data, &preResult)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
+	}
+	return preResult, nil
 }
 
 //GetSmartContractEvent return smart contract event execute by invoke transaction by hex string code
@@ -636,16 +653,7 @@ func PrepareDeployContract(
 		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if ontErr != nil {
-		return nil, ontErr.Error
-	}
-	preResult := &cstates.PreExecResult{}
-	err = json.Unmarshal(data, &preResult)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
-	}
-	return preResult, nil
+	return PrepareSendRawTransaction(txData)
 }
 
 func InvokeNativeContract(
@@ -740,16 +748,7 @@ func PrepareInvokeNeoVMContract(
 		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if ontErr != nil {
-		return nil, ontErr.Error
-	}
-	preResult := &cstates.PreExecResult{}
-	err = json.Unmarshal(data, &preResult)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
-	}
-	return preResult, nil
+	return PrepareSendRawTransaction(txData)
 }
 
 func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error) {
@@ -767,16 +766,7 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error)
 		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if ontErr != nil {
-		return nil, ontErr.Error
-	}
-	preResult := &cstates.PreExecResult{}
-	err = json.Unmarshal(data, &preResult)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
-	}
-	return preResult, nil
+	return PrepareSendRawTransaction(txData)
 }
 
 func PrepareInvokeNativeContract(
@@ -798,16 +788,7 @@ func PrepareInvokeNativeContract(
 		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if ontErr != nil {
-		return nil, ontErr.Error
-	}
-	preResult := &cstates.PreExecResult{}
-	err = json.Unmarshal(data, &preResult)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
-	}
-	return preResult, nil
+	return PrepareSendRawTransaction(txData)
 }
 
 //NewDeployCodeTransaction return a smart contract deploy transaction instance

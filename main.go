@@ -73,7 +73,12 @@ func setupAPP() *cli.App {
 		cmd.ContractCommand,
 		cmd.ImportCommand,
 		cmd.ExportCommand,
-		cmd.MultiSigCommand,
+		cmd.TxCommond,
+		cmd.SigTxCommand,
+		cmd.MultiSigAddrCommand,
+		cmd.MultiSigTxCommand,
+		cmd.SendTxCommand,
+		cmd.ShowTxCommand,
 	}
 	app.Flags = []cli.Flag{
 		//common setting

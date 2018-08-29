@@ -49,7 +49,7 @@ var AssetCommand = cli.Command{
 				utils.TransactionFromFlag,
 				utils.TransactionToFlag,
 				utils.TransactionAmountFlag,
-				utils.ForceTxFlag,
+				utils.ForceSendTxFlag,
 				utils.WalletFileFlag,
 			},
 		},
@@ -83,7 +83,7 @@ var AssetCommand = cli.Command{
 				utils.ApproveAssetFromFlag,
 				utils.ApproveAssetToFlag,
 				utils.TransferFromAmountFlag,
-				utils.ForceTxFlag,
+				utils.ForceSendTxFlag,
 				utils.WalletFileFlag,
 			},
 		},
@@ -177,7 +177,7 @@ func transfer(ctx *cli.Context) error {
 		return err
 	}
 
-	force := ctx.Bool(utils.GetFlagName(utils.ForceTxFlag))
+	force := ctx.Bool(utils.GetFlagName(utils.ForceSendTxFlag))
 	if !force {
 		balance, err := utils.GetAccountBalance(fromAddr, asset)
 		if err != nil {
@@ -186,7 +186,7 @@ func transfer(ctx *cli.Context) error {
 		if balance < amount {
 			PrintErrorMsg("Account:%s balance not enough.", fromAddr)
 			PrintInfoMsg("\nTip:")
-			PrintInfoMsg("  If you want to send transaction compulsively, please using %s flag.", utils.GetFlagName(utils.ForceTxFlag))
+			PrintInfoMsg("  If you want to send transaction compulsively, please using %s flag.", utils.GetFlagName(utils.ForceSendTxFlag))
 			return nil
 		}
 	}
@@ -420,7 +420,7 @@ func transferFrom(ctx *cli.Context) error {
 		return err
 	}
 
-	force := ctx.Bool(utils.GetFlagName(utils.ForceTxFlag))
+	force := ctx.Bool(utils.GetFlagName(utils.ForceSendTxFlag))
 	if !force {
 		balance, err := utils.GetAccountBalance(fromAddr, asset)
 		if err != nil {
@@ -429,7 +429,7 @@ func transferFrom(ctx *cli.Context) error {
 		if balance < amount {
 			PrintErrorMsg("Account:%s balance not enough.", fromAddr)
 			PrintInfoMsg("\nTip:")
-			PrintInfoMsg("  If you want to send transaction compulsively, please using %s flag.", utils.GetFlagName(utils.ForceTxFlag))
+			PrintInfoMsg("  If you want to send transaction compulsively, please using %s flag.", utils.GetFlagName(utils.ForceSendTxFlag))
 			return nil
 		}
 	}

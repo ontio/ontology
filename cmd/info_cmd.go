@@ -72,19 +72,20 @@ var InfoCommand = cli.Command{
 				utils.RPCPortFlag,
 			},
 		},
-		{
-			Action:    showTx,
-			Name:      "showtx",
-			Usage:     "Show info of raw transaction.",
-			ArgsUsage: "<rawtx>",
-			Flags: []cli.Flag{
-				utils.RPCPortFlag,
-			},
-			Description: "Show info of raw transaction.",
-		},
 	},
 	Description: `Query information command can query information such as blocks, transactions, and transaction executions. 
 You can use the ./Ontology info block --help command to view help information.`,
+}
+
+var ShowTxCommand = cli.Command{
+	Action:    showTx,
+	Name:      "showtx",
+	Usage:     "Show info of raw transaction.",
+	ArgsUsage: "<rawtx>",
+	Flags: []cli.Flag{
+		utils.RPCPortFlag,
+	},
+	Description: "Show info of raw transaction.",
 }
 
 func blockInfo(ctx *cli.Context) error {
@@ -167,7 +168,7 @@ func curBlockHeight(ctx *cli.Context) error {
 func showTx(ctx *cli.Context) error {
 	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
-		PrintErrorMsg("Missing %s flag.", utils.GetFlagName(utils.RawTransactionFlag))
+		PrintErrorMsg("Missing raw tx argument.")
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}

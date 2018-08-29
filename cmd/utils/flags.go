@@ -313,7 +313,7 @@ var (
 	}
 	ContractReturnTypeFlag = cli.StringFlag{
 		Name:  "return",
-		Usage: "Return `<type>` of contract. bytearray(hexstring), string, integer, boolean.",
+		Usage: "Return `<type>` of contract. bytearray(hexstring), string, integer, boolean",
 	}
 
 	//information cmd settings
@@ -342,7 +342,7 @@ var (
 	}
 	TransactionAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Transfer `<amount>`",
+		Usage: "Transfer `<amount>`. Float number",
 	}
 	TransactionHashFlag = cli.StringFlag{
 		Name:  "hash",
@@ -350,13 +350,17 @@ var (
 	}
 	TransactionGasPriceFlag = cli.Uint64Flag{
 		Name:  "gasprice",
-		Usage: "Gas price of transaction.",
+		Usage: "Gas price of transaction",
 		Value: config.DEFAULT_GAS_PRICE,
 	}
 	TransactionGasLimitFlag = cli.Uint64Flag{
 		Name:  "gaslimit",
-		Usage: "Gas limit of the transaction.",
+		Usage: "Gas limit of the transaction",
 		Value: neovm.MIN_TRANSACTION_GAS,
+	}
+	TransactionPayerFlag = cli.StringFlag{
+		Name:  "payer",
+		Usage: "Transaction fee payer `<address>`,Default is the signer address",
 	}
 
 	//Asset setting
@@ -375,23 +379,39 @@ var (
 	}
 	ApproveAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Amount of approve",
+		Usage: "Amount of approve. Float number",
 	}
 	TransferFromAmountFlag = cli.StringFlag{
 		Name:  "amount",
-		Usage: "Amount of transfer from",
+		Usage: "Amount of transfer from. Float number",
 	}
 	TransferFromSenderFlag = cli.StringFlag{
 		Name:  "sender",
-		Usage: "Sender account `<address>` of transfer from transaction, if not specific, using transfer-to account instead",
+		Usage: "Sender account `<address>` of transfer from transaction, Default is transfer-to account",
 	}
-	ForceTxFlag = cli.BoolFlag{
+	SendTxFlag = cli.BoolFlag{
+		Name:  "send,s",
+		Usage: "Send raw transaction to Ontology",
+	}
+	ForceSendTxFlag = cli.BoolFlag{
 		Name:  "force,f",
 		Usage: "Force to send transaction",
 	}
 	RawTransactionFlag = cli.StringFlag{
 		Name:  "raw-tx",
 		Usage: "Raw `<transaction>` encode with hex string",
+	}
+	PrepareExecTransactionFlag = cli.BoolFlag{
+		Name:  "prepare,p",
+		Usage: "Prepare execute transaction, without commit to ledger",
+	}
+	WithdrawONGReceiveAccountFlag = cli.StringFlag{
+		Name:  "receive",
+		Usage: "ONG receive `<address>`，Default the same with owner account",
+	}
+	WithdrawONGAmountFlag = cli.StringFlag{
+		Name:  "amount",
+		Usage: "Withdraw amount `<number>`, Float number. Default withdraw all",
 	}
 
 	//Cli setting
