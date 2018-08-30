@@ -95,7 +95,8 @@ const (
 	PROMISE_POS       = "promisPos"
 
 	//global
-	PRECISE = 1000000
+	PRECISE           = 1000000
+	NEW_VERSION_BLOCK = 257700
 )
 
 // candidate fee must >= 1 ONG
@@ -1126,6 +1127,9 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 
 //Update global params of this governance contract
 func UpdateGlobalParam2(native *native.NativeService) ([]byte, error) {
+	if native.Height < NEW_VERSION_BLOCK {
+		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
+	}
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
 		global_params.GenerateOperatorKey(utils.ParamContractAddress))
@@ -1269,6 +1273,9 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 
 //Change the status if node can receive authorization from ont holders
 func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
+	if native.Height < NEW_VERSION_BLOCK {
+		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
+	}
 	params := new(ChangeMaxAuthorizationParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize changeMaxAuthorizationParam error: %v", err)
@@ -1318,6 +1325,9 @@ func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
 
 //Set node cost, node can take some percentage of fee before split
 func SetPeerCost(native *native.NativeService) ([]byte, error) {
+	if native.Height < NEW_VERSION_BLOCK {
+		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
+	}
 	params := new(SetPeerCostParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize setPeerCostParam error: %v", err)
@@ -1375,6 +1385,9 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 
 //Withdraw split fee of address
 func WithdrawFee(native *native.NativeService) ([]byte, error) {
+	if native.Height < NEW_VERSION_BLOCK {
+		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
+	}
 	params := new(WithdrawFeeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize withdrawFeeParam error: %v", err)
@@ -1421,6 +1434,9 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 
 //add init pos of a node
 func AddInitPos(native *native.NativeService) ([]byte, error) {
+	if native.Height < NEW_VERSION_BLOCK {
+		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
+	}
 	params := new(ChangeInitPosParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize changeInitPosParam error: %v", err)
@@ -1476,6 +1492,9 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 
 //reduce init pos of a node
 func ReduceInitPos(native *native.NativeService) ([]byte, error) {
+	if native.Height < NEW_VERSION_BLOCK {
+		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
+	}
 	params := new(ChangeInitPosParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize changeInitPosParam error: %v", err)
@@ -1536,6 +1555,9 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 
 //set promise pos of a node
 func SetPromisePos(native *native.NativeService) ([]byte, error) {
+	if native.Height < NEW_VERSION_BLOCK {
+		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
+	}
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
 		global_params.GenerateOperatorKey(utils.ParamContractAddress))
