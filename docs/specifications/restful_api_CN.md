@@ -34,7 +34,7 @@
 | [get_storage](#8-get_storage) | GET /api/v1/storage/:hash/:key| 通过合约地址哈希和键得到对应的值 |
 | [get_balance](#9-get_balance) | GET /api/v1/balance/:addr | 得到该地址的账户的余额 |
 | [get_contract_state](#10-get_contract_state) | GET /api/v1/contract/:hash | 得到合约状态 |
-| [get_smtcode_evt_txs](#11-get_smtcode_evt_txs) | GET /api/v1/smartcode/event/transactions/:height | 得到该高度区块上的智能合约执行结果 |
+| [get_sc_event_by_height](#11-get_sc_event_by_height) | GET /api/v1/smartcode/event/transactions/:height | 得到该高度区块上的智能合约执行结果 |
 | [get_smtcode_evts](#12-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | 通过交易哈希得到该交易的执行结果 |
 | [get_blk_hgt_by_txhash](#13-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | 通过交易哈希得到该交易落账的区块高度 |
 | [get_merkle_proof](#14-get_merkle_proof) | GET /api/v1/merkleproof/:hash| 通过交易哈希得到该交易的merkle证明 |
@@ -466,7 +466,7 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 }
 ```
 
-#### 11 get_smtcode_evt_txs
+#### 11 get_sc_event_by_height
 
 得到该高度区块上的智能合约执行结果。
 

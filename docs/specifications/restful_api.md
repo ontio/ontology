@@ -34,7 +34,7 @@ This document describes the restful api format for the http/https used in the On
 | [get_storage](#8-get_storage) | GET /api/v1/storage/:hash/:key| return the stored value according to the contract address hash and stored key|
 | [get_balance](#9-get_balance) | GET /api/v1/balance/:addr | return balance of the account address |
 | [get_contract_state](#10-get_contract_state) | GET /api/v1/contract/:hash | return contract state according to the contract address hash |
-| [get_smtcode_evt_txs](#11-get_smtcode_evt_txs) | GET /api/v1/smartcode/event/transactions/:height | return the smartcode event in the block at the height |
+| [get_sc_event_by_height](#11-get_sc_event_by_height) | GET /api/v1/smartcode/event/transactions/:height | return the smartcode event in the block at the height |
 | [get_smtcode_evts](#12-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | return smartcode event by transaction hash |
 | [get_blk_hgt_by_txhash](#13-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | return the block height where transaction at |
 | [get_merkle_proof](#14-get_merkle_proof) | GET /api/v1/merkleproof/:hash| return merkle proof of the transaction |
@@ -467,7 +467,7 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 }
 ```
 
-#### 11 get_smtcode_evt_txs
+#### 11 get_sc_event_by_height
 
 Get smart contract event list by height.
 
