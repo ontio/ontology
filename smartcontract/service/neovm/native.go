@@ -58,6 +58,10 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 	args := vm.PopStackItem(engine)
 
+	if CircularRefAndDepthDetection(args) {
+		return fmt.Errorf("%s", "invoke native circular reference!")
+	}
+
 	buf := new(bytes.Buffer)
 	if err := BuildParamToNative(buf, args); err != nil {
 		return err
