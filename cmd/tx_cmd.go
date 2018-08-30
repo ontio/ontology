@@ -91,7 +91,7 @@ var TransferTxCommond = cli.Command{
 	Name:        "transfer",
 	Usage:       "Build transfer transaction",
 	Description: "Build transfer transaction.",
-	Action:      tranferTx,
+	Action:      transferTx,
 	Flags: []cli.Flag{
 		utils.WalletFileFlag,
 		utils.TransactionGasPriceFlag,
@@ -156,7 +156,7 @@ var WithdrawONGTxCommond = cli.Command{
 	},
 }
 
-func tranferTx(ctx *cli.Context) error {
+func transferTx(ctx *cli.Context) error {
 	if !ctx.IsSet(utils.GetFlagName(utils.TransactionToFlag)) ||
 		!ctx.IsSet(utils.GetFlagName(utils.TransactionFromFlag)) ||
 		!ctx.IsSet(utils.GetFlagName(utils.TransactionAmountFlag)) {
@@ -405,6 +405,7 @@ func transferFromTx(ctx *cli.Context) error {
 }
 
 func withdrawONGTx(ctx *cli.Context) error {
+	SetRpcPort(ctx)
 	if ctx.NArg() < 1 {
 		PrintErrorMsg("Missing account argument.")
 		cli.ShowSubcommandHelp(ctx)
@@ -470,8 +471,9 @@ func withdrawONGTx(ctx *cli.Context) error {
 	gasPrice := ctx.Uint64(utils.TransactionGasPriceFlag.Name)
 	gasLimit := ctx.Uint64(utils.TransactionGasLimitFlag.Name)
 
-	fmt.Printf("%s %s %s amount:%v\n", accAddr, fromAddr, receiveAddr, amount)
-
+	PrintInfoMsg("Withdraw account:%s", accAddr)
+	PrintInfoMsg("Receive account:%s", receiveAddr)
+	PrintInfoMsg("Withdraw ONG amount:%v", amount)
 	mutTx, err := utils.TransferFromTx(gasPrice, gasLimit, "ong", accAddr, fromAddr, receiveAddr, amount)
 	if err != nil {
 		return err

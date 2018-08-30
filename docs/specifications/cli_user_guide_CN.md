@@ -61,6 +61,24 @@ Ontology cli 是Ontology命令行客户端，用于启动和管理Ontology节点
 			* [6.1.1 导出区块参数](#611-导出区块参数)
 		* [6.2 导入区块](#62-导入区块)
 			* [6.2.1 导入区块参数](#621-导入区块参数)
+	* [7、构造交易](#7-构造交易)
+		* [7.1 构造转账交易](#71-构造转账交易)
+			* [7.1.1 构造转账交易参数](#711-构造转账交易参数)
+		* [7.2 构造授权转账交易](#72-构造授权转账交易)
+			* [7.2.1 构造授权转账交易参数](#721-构造授权转账交易参数)
+		* [7.3 构造从授权账户中转账交易](#73-构造从授权账户中转账交易)
+			* [7.3.1 构造从授权账户中转账交易参数](#731-构造从授权账户中转账交易参数)
+		* [7.4 构造提取ONG交易](#74-构造提取ong交易)
+			* [7.4.1 构造提取ONG交易参数](#741-构造提取ong交易参数)
+	* [8、对交易签名](#8-对交易签名)
+		* [8.1 交易签名命令参数](#81-交易签名命令参数)
+	* [9、生成多重签名地址](#9-生成多重签名地址)
+		* [9.1 生成多重签名地址参数](#91-生成多重签名地址参数)
+	* [10、对交易多重签名](#10-对交易多重签名)
+		* [10.1 对交易多重签名参数](#101-对交易多重签名参数)
+	* [11、发送交易](#11-发送交易)
+		* [11.1 发送交易](#111-发送交易)
+	* [12、查看交易信息](#12-查看交易信息)
 
 ## 1、启动和管理Ontology节点
 
@@ -83,11 +101,11 @@ config 参数用于指定当前Ontology节点创世区块配置文件的路径�
 --loglevel
 loglevel 参数用于设置Ontology输出的日志级别。Ontology支持从0:Trace 1:Debug 2:Info 3:Warn 4:Error 5:Fatal 6:MaxLevel 的7级日志，日志等级由低到高，输出的日志量由多到少。默认值是2，即只输出info级及其之上级别的日志。
 
---disableeventlog
-disableeventlog 参数用于关闭智能合约执行时输出的event log，以提升节点交易执行性能。Ontology 节点默认会开启智能合约执行时的event log输出功能。
+--disable-event-log
+disable-event-log 参数用于关闭智能合约执行时输出的event log，以提升节点交易执行性能。Ontology 节点默认会开启智能合约执行时的event log输出功能。
 
---datadir
-datadir 参数用于指定区块数据的存放目录。默认值为"./Chain"。
+--data-dir
+data-dir 参数用于指定区块数据的存放目录。默认值为"./Chain"。
 
 #### 1.1.2 账户参数
 
@@ -102,11 +120,11 @@ password 参数用于指定Ontology节点启动的账户密码。因为在命令
 
 #### 1.1.3 共识参数
 
---enableconsensus
-enableconsensus 参数用于启动网络共识。如果当前节点是作为记账节点的，请开启此参数。默认是关闭网络共识的。
+--enable-consensus
+enable-consensus 参数用于启动网络共识。如果当前节点是作为记账节点的，请开启此参数。默认是关闭网络共识的。
 
---maxtxinblock
-maxtxinblock 参数用于设置区块最大的交易数量。默认值是50000。
+--max-tx-in-block
+max-tx-in-block 参数用于设置区块最大的交易数量。默认值是50000。
 
 #### 1.1.4 P2P网络参数
 
@@ -116,15 +134,15 @@ networkid 参数用于指定网络ID，networkid不同将无法连接到区块�
 --nodeport
 nodeport 参数用于指定P2P网络端口号，默认值为20338。
 
---consensusport
-consensusport 参数用于指定共识网络端口号。默认情况下，共识网络复用P2P网络，因此不需要指定共识网络端口，在通过--dualport参数启动双网络后，则需要单独设置共识网络端口号。默认值为20339。
+--consensus-port
+consensus-port 参数用于指定共识网络端口号。默认情况下，共识网络复用P2P网络，因此不需要指定共识网络端口，在通过--dualport参数启动双网络后，则需要单独设置共识网络端口号。默认值为20339。
 
---dualport
-dualport 参数启动双网络，即用于处理交易消息的P2P网络，和用于共识消息的共识网络。默认不开启。
+--dual-port
+dual-port 参数启动双网络，即用于处理交易消息的P2P网络，和用于共识消息的共识网络。默认不开启。
 
 #### 1.1.5 RPC 服务器参数
 
---disablerpc
+--disable-rpc
 disablerpc 参数用于关闭rpc服务器。Ontology节点在启动时会默认启动rpc服务器。
 
 --rpcport
@@ -151,8 +169,8 @@ wsport 参数用于指定Web socket服务器绑定的端口号。默认值为203
 --testmode
 testmode 参数用于启动单节点的测试网络，便于开发和调试。使用testmode启动测试网络时，会同时启动rpc、rest以及ws服务器，同时把gasprice设置为0。
 
---testmodegenblocktime
-testmodegenblocktime 参数用于设置测试模式下的出块时间，时间单位为秒，最小出块时间为2秒，默认值为6秒。
+--testmode-gen-block-time
+testmode-gen-block-time 参数用于设置测试模式下的出块时间，时间单位为秒，最小出块时间为2秒，默认值为6秒。
 
 #### 1.1.9 交易参数
 
@@ -162,14 +180,14 @@ gasprice 参数用于设定当前节点交易池接受交易的最低gasprice，
 --gaslimit
 gaslimit 参数用于设置当前节点交易池接受交易的最低gaslimit，低于这个gaslimit的交易将被丢弃。默认值为20000。
 
---disabletxpoolpreexec
-disabletxpoolpreexec 参数用于关闭交易池中对来自网络的交易预执行校验。Ontology节点在启动时交易池默认打开预执行。
+--disable-tx-pool-pre-exec
+disable-tx-pool-pre-exec 参数用于关闭交易池中对来自网络的交易预执行校验。Ontology节点在启动时交易池默认打开预执行。
 
---disablesyncverifytx
-disablesyncverifytx 参数用于关闭rpc、restful、websocket中同步验证交易
+--disable-sync-verify-tx
+disable-sync-verify-tx 参数用于关闭rpc、restful、websocket中同步验证交易
 
---enablebroadcastnettx
-enablebroadcastnettx 参数用于打开交易池广播来自网络的交易。Ontology节点在启动时交易池默认关闭广播来自网络的交易功能的。
+--enable-broadcast-net-tx
+enable-broadcast-net-tx 参数用于打开交易池广播来自网络的交易。Ontology节点在启动时交易池默认关闭广播来自网络的交易功能的。
 
 ### 1.2 节点部署
 
@@ -180,11 +198,11 @@ enablebroadcastnettx 参数用于打开交易池广播来自网络的交易。On
 推荐记账节点启动参数：
 
 ```
-./ontology --enableconsensus --disablerpc --disableeventlog
+./ontology --enable-consensus --disable-rpc --disable-event-log
 ```
- - `enableconsensus` 是用来开启节点共识
- - `disablerpc` 是处于节点安全考虑关闭rpc服务
- - `disableeventlog` 是关闭日志服务，这样可以提供更高的性能
+ - `enable-consensus` 是用来开启节点共识
+ - `disable-rpc` 是处于节点安全考虑关闭rpc服务
+ - `disable-event-log` 是关闭日志服务，这样可以提供更高的性能
 如果节点没有使用默认的创世块配置文件和钱包账户，可以通过--config参数和--wallet、--account参数指定。
 同时，如果记账节点需要修改交易池默认的最低gas price和gas limit，可以通过--gasprice和--gaslimit参数来设定。
 
@@ -306,8 +324,8 @@ wallet参数指定当前操作的钱包路径，默认值为"./wallet.dat"。
 --label, -l
 label参数用于给账户设置新的标签。注意一个钱包文件中，不能有两个相同的lable。
 
---changepasswd
-changepasswd参数用于修改账户密码。
+--change-passwd
+change-passwd参数用于修改账户密码。
 
 --signature-scheme, -s
 signature-scheme参数用于修改账户签名方案。如果账户使用的是ECDSA密钥，则可以修改如下ECDSA支持的签名方案：SHA224withECDSA、SHA256withECDSA、SHA384withECDSA、SHA512withEdDSA、SHA3-224withECDSA、SHA3-256withECDSA、SHA3-384withECDSA、SHA3-512withECDSA、RIPEMD160withECDSA。
@@ -393,6 +411,9 @@ to参数指定转入账户地址。
 
 --amount
 amount参数指定转账金额。注意：由于ONT的精度是1，因此如果输入的是个浮点值，那么小数部分的值会被丢弃；ONG的精度为9，因此超出9位的小数部分将会被丢弃。
+
+--force, -f
+转账的时候如果账户余额小于转账金额, 转账交易会被终止，如果此时仍想把交易发送出去，则可使用改参数强行提交交易。
 
 **转账**
 
@@ -783,4 +804,343 @@ importfile 参数用于指定导入文件的路径。默认值为"./OntBlocks.da
 
 ```
 ./ontology import --importfile=./OntBlocks.dat
+```
+
+## 7、构造交易
+
+构造交易命令用于构造各种交易的交易内容，如转账交易，授权转账交易等，构造出来的交易在发送到Ontology上之前，还需要用户的私钥签名。
+
+### 7.1 构造转账交易
+
+#### 7.1.1 构造转账交易参数
+
+--gasprice
+gasprice 参数用于设定交易执行的gasprice。默认值为500。
+
+--gaslimit
+gaslimit 参数用于设定交易执行的gaslimit。默认值为20000。
+
+--payer
+payer 参数用于设置交易手续费的付款账户。如果不设定，默认使用付款人账户(账户可以用地址、索引、标签表示)。
+
+--asset
+asset 参数用于设置资产类型，如ONT，ONG。
+
+--from
+from 参数用于设置转账扣款账户(账户可以用地址、索引、标签表示)。
+
+--to
+to参数用于设置转账收款人账户(账户可以用地址、索引、标签表示)。
+
+--amount
+amount参数用于设定转账金额。浮点类型，如果0.001个ong
+
+--wallet
+wallet 钱包路径。wallet参数用于解析账户的索引或者标签。如果账户使用的都是地址，则不需要此参数。
+
+```
+./ontology buildtx transfer --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce --amount=10
+```
+
+返回如下：
+
+```
+Transfer raw tx:
+00d1d376865bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f6e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+### 7.2 构造授权转账交易
+
+#### 7.2.1 构造授权转账交易参数
+
+--gasprice
+gasprice 参数用于设定交易执行的gasprice。默认值为500。
+
+--gaslimit
+gaslimit 参数用于设定交易执行的gaslimit。默认值为20000。
+
+--payer
+payer 参数用于设置交易手续费的付款账户。如果不设定，默认使用付款人账户(账户可以用地址、索引、标签表示)。
+
+--asset
+asset 参数用于设置资产类型，如ONT，ONG。
+
+--from
+from 参数用于设置转账的扣款账户(账户可以用地址、索引、标签表示)。
+
+--to
+to参数用于设置转账收款人账户(账户可以用地址、索引、标签表示)。
+
+--amount
+amount参数用于设定转账金额。浮点类型，如果0.001个ong
+
+--wallet
+wallet 钱包路径。wallet参数用于解析账户的索引或者标签。如果账户使用的都是地址，则不需要此参数。
+
+```
+./ontology buildtx approve  --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce --amount=10
+```
+返回如下：
+
+```
+Approve raw tx:
+00d12178865bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f6b00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c07617070726f76651400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+### 7.3 构造从授权账户中转账交易
+
+#### 7.3.1 构造从授权账户中转账交易参数
+
+--gasprice
+gasprice 参数用于设定交易执行的gasprice。默认值为500。
+
+--gaslimit
+gaslimit 参数用于设定交易执行的gaslimit。默认值为20000。
+
+--payer
+payer 参数用于设置交易手续费的付款账户。如果不设定，默认使用付款人账户(账户可以用地址、索引、标签表示)。
+
+--asset
+asset 参数用于设置资产类型，如ONT，ONG。
+
+--sender
+sender 参数用于设定交易发送账户，也就是被授权账户(账户可以用地址、索引、标签表示)。如果不设定，默认使用收款人账户。
+
+--from
+from 参数用于设置转账的扣款账户，也就是授权账户(账户可以用地址、索引、标签表示)。
+
+--to
+to参数用于设置转账收款人账户(账户可以用地址、索引、标签表示)。
+
+--amount
+amount参数用于设定转账金额。浮点类型，如0.001个ong
+
+--wallet
+wallet 钱包路径。wallet参数用于解析账户的索引或者标签。如果账户使用的都是地址，则不需要此参数。
+
+```
+./ontology buildtx transferfrom --sender=AMFrW7hrSRw1Azz6hQohni8BdStZDvectW --from=Aaxjf7utmjSstmTD1LjtYfhZ3CoWaxC7Tt --to=AMFrW7hrSRw1Azz6hQohni8BdStZDvectW --amount=10
+```
+
+返回如下：
+
+```
+00d10754875bf401000000000000204e0000000000003c2352095b7428debfd1c1519f5a8f45a474a4218700c66b6a143c2352095b7428debfd1c1519f5a8f45a474a421c86a14d2784bddeac73d20124f20f4fa9528f3365a4dd4c86a143c2352095b7428debfd1c1519f5a8f45a474a421c86a5ac86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+### 7.4 构造提取ONG交易
+
+#### 7.4.1 构造提取ONG交易参数
+
+--gasprice
+gasprice 参数用于设定交易执行的gasprice。默认值为500。
+
+--gaslimit
+gaslimit 参数用于设定交易执行的gaslimit。默认值为20000。
+
+--payer
+payer 参数用于设置交易手续费的付款账户。如果不设定，默认使用付款人账户(账户可以用地址、索引、标签表示)。
+
+--receive
+receive 参数用于设定提取的ONG接收账户。如果不设置，默认使用ONG提取账户。
+
+--amount
+amount参数用于设定提取的ONG金额。浮点类型，如0.001个ong。如果不填，默认提取该账户下的所有可以提取ONG。
+
+--wallet
+wallet 钱包路径。wallet参数用于解析账户的索引或者标签。如果账户使用的都是地址，则不需要此参数。
+
+--rpcport
+rpcport 参数用于设置RPC服务器的端口号。默认值为20336。
+
+```
+./ontology buildtx withdrawong ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+```
+
+返回如下：
+
+```
+Withdraw account:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+Receive account:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+Withdraw ONG amount:2321499191858975
+Withdraw raw tx:
+00d11b56875bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f8e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a140000000000000000000000000000000000000001c86a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a071f57ad26643f08c86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+## 8、对交易签名
+
+使用buildtx 命令构造的交易，需要通过相关账户签名后，才是有效的交易。注意，如果交易手续费账户和付款账户不是同一个账户，则该交易需要付款人账户和手续费账户都签名。
+
+### 8.1 交易签名命令参数
+
+--wallet
+wallet 参数用于指定钱包路径。
+
+--account
+account 参数用于指定签名账户，如果不设置，使用钱包默认账户。
+
+--send
+send 参数用于指定，交易签名后是否直接发送到Ontology网络上。
+
+--prepare
+prepare 参数用于指定，交易签名后是否本地预执行交易。
+
+--rpcport
+rpcport 参数用于指定RPC服务器端口号。默认值为20336。
+
+
+```
+./ontology sigtx --account=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 00d11b56875bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f8e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a140000000000000000000000000000000000000001c86a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a071f57ad26643f08c86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+返回如下：
+
+```
+RawTx after signed:
+00d11b56875bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f8e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a140000000000000000000000000000000000000001c86a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a071f57ad26643f08c86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b65000141407331b7ba2a7708187ad4cb14146d2080185e42f0a39d572f58d25fa2e20f3066711b64f2b91d958683f7bfb904badeb0d6bc733506e665028a2c2968b77d5958232103c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56ac
+```
+
+## 9、生成多重签名地址
+
+生成多重签名地址需要指定公钥列表PubKey，以及在公钥列表中的所需要的最少签名数量M。
+
+### 9.1 生成多重签名地址参数
+--pubkey
+pubkey 参数用于指定多重签名的公钥列表，公钥之间用逗号','分隔。
+账户公钥可以通过命令：
+
+```
+./ontology account list -v
+```
+查看。
+
+目前多重签名支持的最大公钥数为16。
+
+-m
+m 参数用于指定所以的最少签名数。默认值为1。
+
+```
+./ontology multisigaddr --pubkey=03c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56,02b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c0158231 -m=1
+```
+返回如下：
+
+```
+Pub key list:
+Index 1 Address:AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce PubKey:02b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c0158231
+Index 2 Address:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 PubKey:03c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56
+
+MultiSigAddress:Ae4cxJiubmgueAVtNbjpmm2AGNgdKP6Ea7
+```
+
+## 10、对交易多重签名
+
+多重签名需要不同的账户对同一个交易签名，一个账户签名后，返回的交易需要作为下一个账户签名的输入，直到满足m指定的交易签名数。
+
+### 10.1 对交易多重签名参数
+
+--wallet
+wallet 参数用于指定钱包路径。
+
+--account
+account 参数用于指定签名账户，如果不设置，使用钱包默认账户。
+
+--pubkey
+pubkey 参数用于指定多重签名的公钥列表，公钥之间用逗号','分隔。
+
+-m
+m 参数用于指定所以的最少签名数。默认值为1。
+
+--send
+send 参数用于指定，交易签名后是否直接发送到Ontology网络上。
+
+--prepare
+prepare 参数用于指定，交易签名后是否本地预执行交易。
+
+--rpcport
+rpcport 参数用于指定RPC服务器端口号。默认值为20336。
+
+
+```
+./ontology multisigtx --account=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --pubkey=03c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56,02b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c0158231 -m=1 00d1045f875bf401000000000000204e000000000000f47d92d27d02b93d21f8af16c9f05a99d128dd5a6e00c66b6a14f47d92d27d02b93d21f8af16c9f05a99d128dd5ac86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+返回如下：
+
+```
+RawTx after multi signed:
+00d1045f875bf401000000000000204e000000000000f47d92d27d02b93d21f8af16c9f05a99d128dd5a6e00c66b6a14f47d92d27d02b93d21f8af16c9f05a99d128dd5ac86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b65000141409dd2a46277f96566b9e9b4fc354be90b61776c58125cfbf36e770b1b1d50a16febad4bfadfc966fa575e90acf3b8308d7a0f637260b31321cb7ef6f741364d0e47512102b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c01582312103c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a5652ae
+```
+
+## 11、发送交易
+
+用户签好名后的交易可以通过发送交易命令提交到Ontology网络上。
+
+### 11.1 发送交易参数
+
+--rpcport
+rpcport 参数用于设置RPC服务器的端口号。
+
+--prepare
+prepare 参数用于指定是否本地预执行该交易。预执行在本地执行，不会把交易发送到Ontology网路上，也不会提交到账户中。
+
+```
+./ontology sendtx 00d17c61875bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f6e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b65000141409f32f1fd170d174959da26cb9df8f4a15049d255ed3953d92870d5739c4e8b8158ec3bde1e9ae9b4d9621b09311b5e49ed91dcbc64d3b5f74cf011eaa616c403232103c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56ac
+```
+
+返回如下：
+
+```
+  TxHash:f8ea91da985af249e808913b6398150079cdfb02273146e4eb69c43947a42db2
+
+Tip:
+  Using './ontology info status f8ea91da985af249e808913b6398150079cdfb02273146e4eb69c43947a42db2' to query transaction status.
+```
+
+如果是预执行返回如下：
+
+```
+Prepare execute transaction success.
+Gas limit:20000
+Result:01
+```
+
+## 12、查看交易信息
+
+查看交易信息命令可以查看构造好的原始交易的字段信息。
+
+如:
+
+```
+./ontology showtx 00d1045f875bf401000000000000204e000000000000f47d92d27d02b93d21f8af16c9f05a99d128dd5a6e00c66b6a14f47d92d27d02b93d21f8af16c9f05a99d128dd5ac86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b65000141409dd2a46277f96566b9e9b4fc354be90b61776c58125cfbf36e770b1b1d50a16febad4bfadfc966fa575e90acf3b8308d7a0f637260b31321cb7ef6f741364d0e47512102b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c01582312103c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a5652ae
+```
+返回如下：
+
+```
+{
+   "Version": 0,
+   "Nonce": 1535598340,
+   "GasPrice": 500,
+   "GasLimit": 20000,
+   "Payer": "Ae4cxJiubmgueAVtNbjpmm2AGNgdKP6Ea7",
+   "TxType": 209,
+   "Payload": {
+      "Code": "00c66b6a14f47d92d27d02b93d21f8af16c9f05a99d128dd5ac86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b65",
+      "GasLimit": 0
+   },
+   "Attributes": [],
+   "Sigs": [
+      {
+         "PubKeys": [
+            "02b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c0158231",
+            "03c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56"
+         ],
+         "M": 1,
+         "SigData": [
+            "9dd2a46277f96566b9e9b4fc354be90b61776c58125cfbf36e770b1b1d50a16febad4bfadfc966fa575e90acf3b8308d7a0f637260b31321cb7ef6f741364d0e"
+         ]
+      }
+   ],
+   "Hash": "34559b63187d7ddf5a17ac7a2dabb8fcaa1bea6676eba78a174d038ff3c66f15",
+   "Height": 0
+}
 ```
