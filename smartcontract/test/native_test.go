@@ -22,6 +22,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract"
 	"testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestBuildParamToNative(t *testing.T) {
@@ -47,7 +48,6 @@ func TestBuildParamToNative(t *testing.T) {
 	engine, err := sc.NewExecuteEngine(hex)
 
 	_, err = engine.Invoke()
-	if err != nil {
-		t.Fatal("invoke smart contract err:", err)
-	}
+
+	assert.Error(t, err, "invoke smart contract err: [NeoVmService] service system call error!: [SystemCall] service execute error!: invoke native circular reference!")
 }
