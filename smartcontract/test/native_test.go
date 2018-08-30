@@ -41,9 +41,8 @@ func TestBuildParamToNative(t *testing.T) {
 	}
 	//cache := storage.NewCloneCache(testBatch)
 	sc := smartcontract.SmartContract{
-		Config:     config,
-		Gas:        100000,
-		CloneCache: nil,
+		Config: config,
+		Gas:    100000,
 	}
 	engine, err := sc.NewExecuteEngine(hex)
 
