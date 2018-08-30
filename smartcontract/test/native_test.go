@@ -21,8 +21,8 @@ package test
 import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract"
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestBuildParamToNative(t *testing.T) {
