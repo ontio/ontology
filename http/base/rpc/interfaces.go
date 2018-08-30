@@ -296,7 +296,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
 		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
-			return responsePack(berr.INVALID_TRANSACTION, desc)
+			return responsePack(int64(errCode), desc)
 		}
 		log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
 	default:
