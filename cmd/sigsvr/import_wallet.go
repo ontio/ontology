@@ -20,6 +20,7 @@ package sigsvr
 import (
 	"fmt"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/cmd"
 	"github.com/ontio/ontology/cmd/sigsvr/store"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
@@ -42,37 +43,32 @@ func importWallet(ctx *cli.Context) error {
 	walletDirPath := ctx.String(utils.GetFlagName(utils.CliWalletDirFlag))
 	walletFilePath := ctx.String(utils.GetFlagName(utils.WalletFileFlag))
 	if walletDirPath == "" || walletFilePath == "" {
-		fmt.Printf("walletdir or wallet flag cannot empty\n")
+		cmd.PrintErrorMsg("Missing %s or %s flag.", utils.CliWalletDirFlag.Name, utils.WalletFileFlag.Name)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
 	if !common.FileExisted(walletFilePath) {
-		fmt.Printf("wallet file:%s doesnot exist\n", walletFilePath)
-		return nil
+		return fmt.Errorf("wallet file:%s does not exist", walletFilePath)
 	}
 	walletStore, err := store.NewWalletStore(walletDirPath)
 	if err != nil {
-		fmt.Printf("NewWalletStore dir path:%s error:%s", walletDirPath, err)
-		return nil
+		return fmt.Errorf("NewWalletStore dir path:%s error:%s", walletDirPath, err)
 	}
 	wallet, err := account.Open(walletFilePath)
 	if err != nil {
-		fmt.Printf("Open wallet:%s error:%s\n", walletFilePath, err)
-		return nil
+		return fmt.Errorf("open wallet:%s error:%s", walletFilePath, err)
 	}
 	walletData := wallet.GetWalletData()
 	if *walletStore.WalletScrypt != *walletData.Scrypt {
-		fmt.Printf("Import account failed, wallet scrypt:%+v != %+v\n", walletData.Scrypt, walletStore.WalletScrypt)
-		return nil
+		return fmt.Errorf("import account failed, wallet scrypt:%+v != %+v", walletData.Scrypt, walletStore.WalletScrypt)
 	}
 	for i := 0; i < len(walletData.Accounts); i++ {
 		err = walletStore.AddAccountData(walletData.Accounts[i])
 		if err != nil {
-			fmt.Printf("Import account address:%s error:%s\n", walletData.Accounts[i].Address, err)
-			return nil
+			return fmt.Errorf("import account address:%s error:%s", walletData.Accounts[i].Address, err)
 		}
 	}
-	fmt.Printf("Import account success\n")
-	fmt.Printf("Account number:%d\n", len(walletData.Accounts))
+	cmd.PrintInfoMsg("Import account success.")
+	cmd.PrintInfoMsg("Account number:%d", len(walletData.Accounts))
 	return nil
 }

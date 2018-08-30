@@ -55,7 +55,7 @@ func importBlocks(ctx *cli.Context) error {
 
 	_, err := SetOntologyConfig(ctx)
 	if err != nil {
-		fmt.Printf("SetOntologyConfig error:%s\n", err)
+		PrintErrorMsg("SetOntologyConfig error:%s", err)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -72,22 +72,22 @@ func importBlocks(ctx *cli.Context) error {
 	genesisConfig := config.DefConfig.Genesis
 	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
 	if err != nil {
-		return fmt.Errorf("genesisBlock error %s", err)
+		return fmt.Errorf("BuildGenesisBlock error %s", err)
 	}
 	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
 	if err != nil {
-		return fmt.Errorf("Init ledger error:%s", err)
+		return fmt.Errorf("init ledger error:%s", err)
 	}
 
 	dataDir := ctx.String(utils.GetFlagName(utils.DataDirFlag))
 	if dataDir == "" {
-		fmt.Printf("missing datadir argument\n")
+		PrintErrorMsg("Missing %s argument.", utils.DataDirFlag.Name)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
 	importFile := ctx.String(utils.GetFlagName(utils.ImportFileFlag))
 	if importFile == "" {
-		fmt.Printf("missing import file argument\n")
+		PrintErrorMsg("Missing %s argument.", utils.ImportFileFlag.Name)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
@@ -95,13 +95,13 @@ func importBlocks(ctx *cli.Context) error {
 	currBlockHeight := ledger.DefLedger.GetCurrentBlockHeight()
 
 	if endBlockHeight > 0 && currBlockHeight >= endBlockHeight {
-		fmt.Printf("CurrentBlockHeight:%d larger than or equal to EndBlockHeight:%d, No blocks to import.\n", currBlockHeight, endBlockHeight)
+		PrintWarnMsg("CurrentBlockHeight:%d larger than or equal to EndBlockHeight:%d, No blocks to import.", currBlockHeight, endBlockHeight)
 		return nil
 	}
 
 	ifile, err := os.OpenFile(importFile, os.O_RDONLY, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("OpenFile error:%s", err)
 	}
 	defer ifile.Close()
 	fReader := bufio.NewReader(ifile)
@@ -109,11 +109,10 @@ func importBlocks(ctx *cli.Context) error {
 	metadata := utils.NewExportBlockMetadata()
 	err = metadata.Deserialize(fReader)
 	if err != nil {
-		fmt.Printf("Metadata deserialize error:%s", err)
-		return nil
+		return fmt.Errorf("block data file metadata deserialize error:%s", err)
 	}
 	if metadata.EndBlockHeight <= currBlockHeight {
-		fmt.Printf("CurrentBlockHeight:%d larger than or equal to EndBlockHeight:%d, No blocks to import.\n", currBlockHeight, endBlockHeight)
+		PrintWarnMsg("CurrentBlockHeight:%d larger than or equal to EndBlockHeight:%d, No blocks to import.", currBlockHeight, endBlockHeight)
 		return nil
 	}
 	if endBlockHeight == 0 || endBlockHeight > metadata.EndBlockHeight {
@@ -122,8 +121,7 @@ func importBlocks(ctx *cli.Context) error {
 
 	startBlockHeight := metadata.StartBlockHeight
 	if startBlockHeight > (currBlockHeight + 1) {
-		fmt.Printf("Import block error: StartBlockHeight:%d larger than NextBlockHeight:%d\n", startBlockHeight, currBlockHeight+1)
-		return nil
+		return fmt.Errorf("import block error: StartBlockHeight:%d larger than NextBlockHeight:%d", startBlockHeight, currBlockHeight+1)
 	}
 	//progress bar
 	uiprogress.Start()
@@ -134,17 +132,17 @@ func importBlocks(ctx *cli.Context) error {
 			return fmt.Sprintf("Block(%d/%d)", b.Current()+int(currBlockHeight), int(endBlockHeight))
 		})
 
-	fmt.Printf("Start import blocks\n")
+	PrintInfoMsg("Start import blocks.")
 
 	for i := uint32(startBlockHeight); i <= endBlockHeight; i++ {
 		size, err := serialization.ReadUint32(fReader)
 		if err != nil {
-			return fmt.Errorf("Read block height:%d error:%s", i, err)
+			return fmt.Errorf("read block height:%d error:%s", i, err)
 		}
 		compressData := make([]byte, size)
 		_, err = io.ReadFull(fReader, compressData)
 		if err != nil {
-			return fmt.Errorf("Read block data height:%d error:%s", i, err)
+			return fmt.Errorf("read block data height:%d error:%s", i, err)
 		}
 
 		if i <= currBlockHeight {
@@ -166,6 +164,6 @@ func importBlocks(ctx *cli.Context) error {
 		bar.Incr()
 	}
 	uiprogress.Stop()
-	fmt.Printf("Import block complete, current block height:%d\n", ledger.DefLedger.GetCurrentBlockHeight())
+	PrintInfoMsg("Import block completed, current block height:%d.", ledger.DefLedger.GetCurrentBlockHeight())
 	return nil
 }

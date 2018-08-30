@@ -28,8 +28,10 @@ import (
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	rpccommon "github.com/ontio/ontology/http/base/common"
@@ -38,6 +40,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -57,25 +60,49 @@ const (
 
 //Return balance of address in base58 code
 func GetBalance(address string) (*httpcom.BalanceOfRsp, error) {
-	result, err := sendRpcRequest("getbalance", []interface{}{address})
-	if err != nil {
-		return nil, fmt.Errorf("sendRpcRequest error:%s", err)
+	result, ontErr := sendRpcRequest("getbalance", []interface{}{address})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("invalid address:%s", address)
+		}
+		return nil, ontErr.Error
 	}
 	balance := &httpcom.BalanceOfRsp{}
-	err = json.Unmarshal(result, balance)
+	err := json.Unmarshal(result, balance)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
 	}
 	return balance, nil
 }
 
-func GetAllowance(asset, from, to string) (string, error) {
-	result, err := sendRpcRequest("getallowance", []interface{}{asset, from, to})
+func GetAccountBalance(address, asset string) (uint64, error) {
+	balances, err := GetBalance(address)
 	if err != nil {
-		return "", fmt.Errorf("sendRpcRequest error:%s", err)
+		return 0, err
+	}
+	var balance uint64
+	switch strings.ToLower(asset) {
+	case "ont":
+		balance, err = strconv.ParseUint(balances.Ont, 10, 64)
+	case "ong":
+		balance, err = strconv.ParseUint(balances.Ong, 10, 64)
+	default:
+		return 0, fmt.Errorf("unsupport asset:%s", asset)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return balance, nil
+}
+
+func GetAllowance(asset, from, to string) (string, error) {
+	result, ontErr := sendRpcRequest("getallowance", []interface{}{asset, from, to})
+	if ontErr != nil {
+		return "", ontErr.Error
 	}
 	balance := ""
-	err = json.Unmarshal(result, &balance)
+	err := json.Unmarshal(result, &balance)
 	if err != nil {
 		return "", fmt.Errorf("json.Unmarshal error:%s", err)
 	}
@@ -195,7 +222,7 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	}
 	toAddr, err := common.AddressFromBase58(to)
 	if err != nil {
-		return nil, fmt.Errorf("To address:%s invalid:%s", to, err)
+		return nil, fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
 	var sts []*ont.State
 	sts = append(sts, &ont.State{
@@ -213,7 +240,7 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
 	default:
-		return nil, fmt.Errorf("Unsupport asset:%s", asset)
+		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
 	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER, []interface{}{sts})
 	if err != nil {
@@ -244,7 +271,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	}
 	toAddr, err := common.AddressFromBase58(to)
 	if err != nil {
-		return nil, fmt.Errorf("To address:%s invalid:%s", to, err)
+		return nil, fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
 	transferFrom := &ont.TransferFrom{
 		Sender: senderAddr,
@@ -262,7 +289,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
 	default:
-		return nil, fmt.Errorf("Unsupport asset:%s", asset)
+		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
 	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER_FROM, []interface{}{transferFrom})
 	if err != nil {
@@ -291,16 +318,118 @@ func SignTransaction(signer *account.Account, tx *types.MutableTransaction) erro
 	if err != nil {
 		return fmt.Errorf("sign error:%s", err)
 	}
-	if tx.Sigs == nil {
-		tx.Sigs = make([]types.Sig, 0)
+	hasSig := false
+	for i, sig := range tx.Sigs {
+		if len(sig.PubKeys) == 1 && pubKeysEqual(sig.PubKeys, []keypair.PublicKey{signer.PublicKey}) {
+			if hasAlreadySig(txHash.ToArray(), signer.PublicKey, sig.SigData) {
+				//has already signed
+				return nil
+			}
+			hasSig = true
+			//replace
+			tx.Sigs[i].SigData = [][]byte{sigData}
+		}
 	}
-	sig := types.Sig{
-		PubKeys: []keypair.PublicKey{signer.PublicKey},
-		M:       1,
-		SigData: [][]byte{sigData},
+	if !hasSig {
+		tx.Sigs = append(tx.Sigs, types.Sig{
+			PubKeys: []keypair.PublicKey{signer.PublicKey},
+			M:       1,
+			SigData: [][]byte{sigData},
+		})
 	}
-	tx.Sigs = append(tx.Sigs, sig)
 	return nil
+}
+
+func MultiSigTransaction(mutTx *types.MutableTransaction, m uint16, pubKeys []keypair.PublicKey, signer *account.Account) error {
+	pkSize := len(pubKeys)
+	if m == 0 || int(m) > pkSize || pkSize > constants.MULTI_SIG_MAX_PUBKEY_SIZE {
+		return fmt.Errorf("invalid params")
+	}
+	validPubKey := false
+	for _, pk := range pubKeys {
+		if keypair.ComparePublicKey(pk, signer.PublicKey) {
+			validPubKey = true
+			break
+		}
+	}
+	if !validPubKey {
+		return fmt.Errorf("invalid signer")
+	}
+	if mutTx.Payer == common.ADDRESS_EMPTY {
+		payer, err := types.AddressFromMultiPubKeys(pubKeys, int(m))
+		if err != nil {
+			return fmt.Errorf("AddressFromMultiPubKeys error:%s", err)
+		}
+		mutTx.Payer = payer
+	}
+
+	if len(mutTx.Sigs) == 0 {
+		mutTx.Sigs = make([]types.Sig, 0)
+	}
+
+	txHash := mutTx.Hash()
+	sigData, err := Sign(txHash.ToArray(), signer)
+	if err != nil {
+		return fmt.Errorf("sign error:%s", err)
+	}
+
+	hasMutilSig := false
+	for i, sigs := range mutTx.Sigs {
+		if !pubKeysEqual(sigs.PubKeys, pubKeys) {
+			continue
+		}
+		hasMutilSig = true
+		if hasAlreadySig(txHash.ToArray(), signer.PublicKey, sigs.SigData) {
+			break
+		}
+		sigs.SigData = append(sigs.SigData, sigData)
+		mutTx.Sigs[i] = sigs
+		break
+	}
+	if !hasMutilSig {
+		mutTx.Sigs = append(mutTx.Sigs, types.Sig{
+			PubKeys: pubKeys,
+			M:       uint16(m),
+			SigData: [][]byte{sigData},
+		})
+	}
+	return nil
+}
+
+func hasAlreadySig(data []byte, pk keypair.PublicKey, sigDatas [][]byte) bool {
+	for _, sigData := range sigDatas {
+		err := signature.Verify(pk, data, sigData)
+		if err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func pubKeysEqual(pks1, pks2 []keypair.PublicKey) bool {
+	if len(pks1) != len(pks2) {
+		return false
+	}
+	size := len(pks1)
+	if size == 0 {
+		return true
+	}
+	pkstr1 := make([]string, 0, size)
+	for _, pk := range pks1 {
+		pkstr1 = append(pkstr1, hex.EncodeToString(keypair.SerializePublicKey(pk)))
+	}
+	pkstr2 := make([]string, 0, size)
+	for _, pk := range pks2 {
+		pkstr2 = append(pkstr2, hex.EncodeToString(keypair.SerializePublicKey(pk)))
+	}
+	sort.Strings(pkstr1)
+	sort.Strings(pkstr2)
+	for i := 0; i < size; i++ {
+		if pkstr1[i] != pkstr2[i] {
+			return false
+		}
+	}
+	return true
 }
 
 //Sign sign return the signature to the data of private key
@@ -321,29 +450,50 @@ func SendRawTransaction(tx *types.Transaction) (string, error) {
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {
-		return "", fmt.Errorf("Serialize error:%s", err)
+		return "", fmt.Errorf("serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData})
-	if err != nil {
-		return "", err
+	return SendRawTransactionData(txData)
+}
+
+func SendRawTransactionData(txData string) (string, error) {
+	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData})
+	if ontErr != nil {
+		return "", ontErr.Error
 	}
 	hexHash := ""
-	err = json.Unmarshal(data, &hexHash)
+	err := json.Unmarshal(data, &hexHash)
 	if err != nil {
 		return "", fmt.Errorf("json.Unmarshal hash:%s error:%s", data, err)
 	}
 	return hexHash, nil
 }
 
+func PrepareSendRawTransaction(txData string) (*cstates.PreExecResult, error) {
+	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
+	if ontErr != nil {
+		return nil, ontErr.Error
+	}
+	preResult := &cstates.PreExecResult{}
+	err := json.Unmarshal(data, &preResult)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
+	}
+	return preResult, nil
+}
+
 //GetSmartContractEvent return smart contract event execute by invoke transaction by hex string code
 func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
-	data, err := sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
-	if err != nil {
-		return nil, fmt.Errorf("sendRpcRequest error:%s", err)
+	data, ontErr := sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("invalid TxHash:%s", txHash)
+		}
+		return nil, ontErr.Error
 	}
 	notifies := &rpccommon.ExecuteNotify{}
-	err = json.Unmarshal(data, &notifies)
+	err := json.Unmarshal(data, &notifies)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal SmartContactEvent:%s error:%s", data, err)
 	}
@@ -351,24 +501,48 @@ func GetSmartContractEvent(txHash string) (*rpccommon.ExecuteNotify, error) {
 }
 
 func GetSmartContractEventInfo(txHash string) ([]byte, error) {
-	return sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
+	data, ontErr := sendRpcRequest("getsmartcodeevent", []interface{}{txHash})
+	if ontErr == nil {
+		return data, nil
+	}
+	switch ontErr.ErrorCode {
+	case ERROR_INVALID_PARAMS:
+		return nil, fmt.Errorf("invalid TxHash:%s", txHash)
+	}
+	return nil, ontErr.Error
 }
 
 func GetRawTransaction(txHash string) ([]byte, error) {
-	return sendRpcRequest("getrawtransaction", []interface{}{txHash, 1})
+	data, ontErr := sendRpcRequest("getrawtransaction", []interface{}{txHash, 1})
+	if ontErr == nil {
+		return data, nil
+	}
+	switch ontErr.ErrorCode {
+	case ERROR_INVALID_PARAMS:
+		return nil, fmt.Errorf("invalid TxHash:%s", txHash)
+	}
+	return nil, ontErr.Error
 }
 
 func GetBlock(hashOrHeight interface{}) ([]byte, error) {
-	return sendRpcRequest("getblock", []interface{}{hashOrHeight, 1})
+	data, ontErr := sendRpcRequest("getblock", []interface{}{hashOrHeight, 1})
+	if ontErr == nil {
+		return data, nil
+	}
+	switch ontErr.ErrorCode {
+	case ERROR_INVALID_PARAMS:
+		return nil, fmt.Errorf("invalid block hash or block height:%v", hashOrHeight)
+	}
+	return nil, ontErr.Error
 }
 
 func GetNetworkId() (uint32, error) {
-	data, err := sendRpcRequest("getnetworkid", []interface{}{})
-	if err != nil {
-		return 0, err
+	data, ontErr := sendRpcRequest("getnetworkid", []interface{}{})
+	if ontErr != nil {
+		return 0, ontErr.Error
 	}
 	var networkId uint32
-	err = json.Unmarshal(data, &networkId)
+	err := json.Unmarshal(data, &networkId)
 	if err != nil {
 		return 0, fmt.Errorf("json.Unmarshal networkId error:%s", err)
 	}
@@ -376,12 +550,16 @@ func GetNetworkId() (uint32, error) {
 }
 
 func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
-	data, err := sendRpcRequest("getblock", []interface{}{hashOrHeight})
-	if err != nil {
-		return nil, err
+	data, ontErr := sendRpcRequest("getblock", []interface{}{hashOrHeight})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("invalid block hash or block height:%v", hashOrHeight)
+		}
+		return nil, ontErr.Error
 	}
 	hexStr := ""
-	err = json.Unmarshal(data, &hexStr)
+	err := json.Unmarshal(data, &hexStr)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
 	}
@@ -393,16 +571,33 @@ func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
 }
 
 func GetBlockCount() (uint32, error) {
-	data, err := sendRpcRequest("getblockcount", []interface{}{})
-	if err != nil {
-		return 0, err
+	data, ontErr := sendRpcRequest("getblockcount", []interface{}{})
+	if ontErr != nil {
+		return 0, ontErr.Error
 	}
 	num := uint32(0)
-	err = json.Unmarshal(data, &num)
+	err := json.Unmarshal(data, &num)
 	if err != nil {
 		return 0, fmt.Errorf("json.Unmarshal:%s error:%s", data, err)
 	}
 	return num, nil
+}
+
+func GetTxHeight(txHash string) (uint32, error) {
+	data, ontErr := sendRpcRequest("getblockheightbytxhash", []interface{}{txHash})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return 0, fmt.Errorf("cannot find tx by:%s", txHash)
+		}
+		return 0, ontErr.Error
+	}
+	height := uint32(0)
+	err := json.Unmarshal(data, &height)
+	if err != nil {
+		return 0, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	return height, nil
 }
 
 func DeployContract(
@@ -455,19 +650,10 @@ func PrepareDeployContract(
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if err != nil {
-		return nil, err
-	}
-	preResult := &cstates.PreExecResult{}
-	err = json.Unmarshal(data, &preResult)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
-	}
-	return preResult, nil
+	return PrepareSendRawTransaction(txData)
 }
 
 func InvokeNativeContract(
@@ -559,19 +745,10 @@ func PrepareInvokeNeoVMContract(
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if err != nil {
-		return nil, err
-	}
-	preResult := &cstates.PreExecResult{}
-	err = json.Unmarshal(data, &preResult)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
-	}
-	return preResult, nil
+	return PrepareSendRawTransaction(txData)
 }
 
 func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error) {
@@ -586,19 +763,10 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error)
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if err != nil {
-		return nil, err
-	}
-	preResult := &cstates.PreExecResult{}
-	err = json.Unmarshal(data, &preResult)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
-	}
-	return preResult, nil
+	return PrepareSendRawTransaction(txData)
 }
 
 func PrepareInvokeNativeContract(
@@ -617,19 +785,10 @@ func PrepareInvokeNativeContract(
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
-		return nil, fmt.Errorf("Serialize error:%s", err)
+		return nil, fmt.Errorf("tx serialize error:%s", err)
 	}
 	txData := hex.EncodeToString(buffer.Bytes())
-	data, err := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
-	if err != nil {
-		return nil, err
-	}
-	preResult := &cstates.PreExecResult{}
-	err = json.Unmarshal(data, &preResult)
-	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
-	}
-	return preResult, nil
+	return PrepareSendRawTransaction(txData)
 }
 
 //NewDeployCodeTransaction return a smart contract deploy transaction instance

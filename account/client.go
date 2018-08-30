@@ -65,13 +65,13 @@ type Client interface {
 	//GetUnlockAccount return account which was unlock and in expired time
 	GetUnlockAccount(address string) *Account
 	//Set a new account to default account
-	SetDefaultAccount(address string, passwd []byte) error
+	SetDefaultAccount(address string) error
 	//Set a new label to accont
-	SetLabel(address, label string, passwd []byte) error
+	SetLabel(address, label string) error
 	//Change pasword to account
 	ChangePassword(address string, oldPasswd, newPasswd []byte) error
 	//Change sig scheme to account
-	ChangeSigScheme(address string, sigScheme s.SignatureScheme, passwd []byte) error
+	ChangeSigScheme(address string, sigScheme s.SignatureScheme) error
 	//Get the underlying wallet data
 	GetWalletData() *WalletData
 }
@@ -312,7 +312,7 @@ func (this *ClientImpl) GetDefaultAccountMetadata() *AccountMetadata {
 func (this *ClientImpl) getAccount(accData *AccountData, passwd []byte) (*Account, error) {
 	privateKey, err := keypair.DecryptWithCustomScrypt(&accData.ProtectedKey, passwd, this.walletData.Scrypt)
 	if err != nil {
-		return nil, fmt.Errorf("decrypt PrivateKey error:%s", err)
+		return nil, err
 	}
 	publicKey := privateKey.Public()
 	addr := types.AddressFromPubKey(publicKey)
@@ -422,7 +422,7 @@ func (this *ClientImpl) GetUnlockAccount(address string) *Account {
 	return accInfo.acc
 }
 
-func (this *ClientImpl) SetDefaultAccount(address string, passwd []byte) error {
+func (this *ClientImpl) SetDefaultAccount(address string) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	if this.defaultAcc != nil && this.defaultAcc.Address == address {
@@ -450,7 +450,7 @@ func (this *ClientImpl) SetDefaultAccount(address string, passwd []byte) error {
 	return nil
 }
 
-func (this *ClientImpl) SetLabel(address, label string, passwd []byte) error {
+func (this *ClientImpl) SetLabel(address, label string) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	_, ok := this.accLabels[label]
@@ -505,7 +505,7 @@ func (this *ClientImpl) ChangePassword(address string, oldPasswd, newPasswd []by
 	return nil
 }
 
-func (this *ClientImpl) ChangeSigScheme(address string, sigScheme s.SignatureScheme, passwd []byte) error {
+func (this *ClientImpl) ChangeSigScheme(address string, sigScheme s.SignatureScheme) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	accData, ok := this.accAddrs[address]

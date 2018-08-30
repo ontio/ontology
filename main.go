@@ -73,6 +73,12 @@ func setupAPP() *cli.App {
 		cmd.ContractCommand,
 		cmd.ImportCommand,
 		cmd.ExportCommand,
+		cmd.TxCommond,
+		cmd.SigTxCommand,
+		cmd.MultiSigAddrCommand,
+		cmd.MultiSigTxCommand,
+		cmd.SendTxCommand,
+		cmd.ShowTxCommand,
 	}
 	app.Flags = []cli.Flag{
 		//common setting
@@ -106,7 +112,6 @@ func setupAPP() *cli.App {
 		//test mode setting
 		utils.EnableTestModeFlag,
 		utils.TestModeGenBlockTimeFlag,
-		utils.ClearTestModeDataFlag,
 		//rpc setting
 		utils.RPCDisabledFlag,
 		utils.RPCPortFlag,
@@ -128,7 +133,7 @@ func setupAPP() *cli.App {
 
 func main() {
 	if err := setupAPP().Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)
 	}
 }
@@ -234,12 +239,6 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 
 	var err error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	if ctx.GlobalBool(utils.GetFlagName(utils.EnableTestModeFlag)) && ctx.GlobalBool(utils.GetFlagName(utils.ClearTestModeDataFlag)) {
-		err = os.RemoveAll(dbDir)
-		if err != nil {
-			log.Warnf("InitLedger remove:%s error:%s", dbDir, err)
-		}
-	}
 	ledger.DefLedger, err = ledger.NewLedger(dbDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
