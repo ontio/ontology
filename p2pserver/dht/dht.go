@@ -211,10 +211,7 @@ func (this *DHT) refreshRoutingTable() {
 	log.Info("[dht]refreshRoutingTable start")
 	// Todo:
 	this.syncAddNodes(this.bootstrapNodes)
-	results := this.lookup(this.nodeID)
-	if results != nil && len(results) > 0 {
-		return
-	}
+	this.lookup(this.nodeID)
 
 	var targetID types.NodeID
 	rand.Read(targetID[:])

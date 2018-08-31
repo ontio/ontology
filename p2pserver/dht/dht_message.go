@@ -125,6 +125,12 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 		return
 	}
 
+	if ping.DestEndPoint.UDPPort != this.udpPort {
+		log.Errorf("[dht]pingHandle: udp port mismatch. input %d expected %d",
+			ping.DestEndPoint.UDPPort, this.udpPort)
+		return
+	}
+
 	// add the node to routing table
 	var node *types.Node
 	if node = this.routingTable.queryNode(ping.FromID); node == nil {
@@ -159,6 +165,14 @@ func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
 		// request pool doesn't contain the node, ping timeout
 		log.Infof("[dht]pongHandle: from %v timeout", from)
 		this.routingTable.removeNode(pong.FromID)
+		return
+	}
+
+	if pong.SrcEndPoint.UDPPort != node.UDPPort ||
+		pong.SrcEndPoint.TCPPort != node.TCPPort {
+		log.Errorf("[dht]pongHandle: mismatch port: input: udp %d tcp %d, expected: udp %d tcp %d",
+			pong.SrcEndPoint.UDPPort, pong.SrcEndPoint.TCPPort,
+			node.UDPPort, node.TCPPort)
 		return
 	}
 
