@@ -227,7 +227,7 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		if peerPoolItem.TotalPos > uint64(globalParam.PosLimit)*peerPoolItem.InitPos {
 			return fmt.Errorf("authorizeForPeer, pos of this peer is full")
 		}
-		if peerPoolItem.TotalPos > uint64(peerAttributes.MaxAuthorize) {
+		if peerPoolItem.TotalPos > peerAttributes.MaxAuthorize {
 			return fmt.Errorf("authorizeForPeer, pos of this peer is more than peerAttributes.MaxAuthorize")
 		}
 
@@ -386,12 +386,19 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 	return nil
 }
 
-func consensusToConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, remainAmount uint64) (uint64, error) {
+func consensusToConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
 	var splitAmount uint64 = 0
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
+
+	//get peerCost
+	peerCost, err := getPeerCost(native, contract, peerPoolItem.PeerPubkey)
+	if err != nil {
+		return 0, fmt.Errorf("getPeerCost, getPeerCost error: %v", err)
+	}
+	amount := totalAmount * (100 - peerCost) / 100
 
 	//update authorizeInfoPool
 	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
@@ -412,7 +419,7 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 		}
 
 		//fee split
-		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, remainAmount)
+		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, amount)
 		if err != nil {
 			return 0, fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}
@@ -436,12 +443,19 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 	return splitAmount, nil
 }
 
-func unConsensusToConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, remainAmount uint64) (uint64, error) {
+func unConsensusToConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
 	var splitAmount uint64 = 0
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
+
+	//get peerCost
+	peerCost, err := getPeerCost(native, contract, peerPoolItem.PeerPubkey)
+	if err != nil {
+		return 0, fmt.Errorf("getPeerCost, getPeerCost error: %v", err)
+	}
+	amount := totalAmount * (100 - peerCost) / 100
 
 	//update authorizeInfoPool
 	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
@@ -462,7 +476,7 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 		}
 
 		//fee split
-		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, remainAmount)
+		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, amount)
 		if err != nil {
 			return 0, fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}
@@ -486,12 +500,20 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 	return splitAmount, nil
 }
 
-func consensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, remainAmount uint64) (uint64, error) {
+func consensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
 	var splitAmount uint64 = 0
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
+
+	//get peerCost
+	peerCost, err := getPeerCost(native, contract, peerPoolItem.PeerPubkey)
+	if err != nil {
+		return 0, fmt.Errorf("getPeerCost, getPeerCost error: %v", err)
+	}
+	amount := totalAmount * (100 - peerCost) / 100
+
 	//update authorizeInfoPool
 	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
 	if err != nil {
@@ -511,7 +533,7 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 		}
 
 		//fee split
-		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, remainAmount)
+		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, amount)
 		if err != nil {
 			return 0, fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}
@@ -535,12 +557,20 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 	return splitAmount, nil
 }
 
-func unConsensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, remainAmount uint64) (uint64, error) {
+func unConsensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
 	var splitAmount uint64 = 0
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
+
+	//get peerCost
+	peerCost, err := getPeerCost(native, contract, peerPoolItem.PeerPubkey)
+	if err != nil {
+		return 0, fmt.Errorf("getPeerCost, getPeerCost error: %v", err)
+	}
+	amount := totalAmount * (100 - peerCost) / 100
+
 	//update authorizeInfoPool
 	stateValues, err := native.CloneCache.Store.Find(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix))
 	if err != nil {
@@ -560,7 +590,7 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 		}
 
 		//fee split
-		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, remainAmount)
+		amount, err := executeAddressSplit(native, contract, authorizeInfo, peerPoolItem, amount)
 		if err != nil {
 			return 0, fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}
@@ -951,39 +981,17 @@ func executeAddressSplit(native *native.NativeService, contract common.Address, 
 	return amount, nil
 }
 
-func executePeerSplit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) (uint64, error) {
-	//get peerAttributes
-	peerAttributes, err := getPeerAttributes(native, contract, peerPoolItem.PeerPubkey)
-	if err != nil {
-		return 0, fmt.Errorf("getPeerAttributes error: %v", err)
-	}
-
-	//get current view
-	governanceView, err := GetGovernanceView(native, contract)
-	if err != nil {
-		return 0, fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
-	}
-	view := governanceView.View
-
-	var peerCost uint64
-	//check set cost view
-	if view-peerAttributes.SetCostView < 2 {
-		peerCost = peerAttributes.OldPeerCost
-	} else {
-		peerCost = peerAttributes.NewPeerCost
-	}
-	peerAmount := peerCost * totalAmount / 100
-
+func executePeerSplit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem, totalAmount uint64) error {
 	splitFeeAddress, err := getSplitFeeAddress(native, contract, peerPoolItem.Address)
 	if err != nil {
-		return 0, fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
+		return fmt.Errorf("getSplitFeeAddress, getSplitFeeAddress error: %v", err)
 	}
-	splitFeeAddress.Amount = splitFeeAddress.Amount + peerAmount
+	splitFeeAddress.Amount = splitFeeAddress.Amount + totalAmount
 	err = putSplitFeeAddress(native, contract, peerPoolItem.Address, splitFeeAddress)
 	if err != nil {
-		return 0, fmt.Errorf("putSplitFeeAddress, putSplitFeeAddress error: %v", err)
+		return fmt.Errorf("putSplitFeeAddress, putSplitFeeAddress error: %v", err)
 	}
-	return peerAmount, nil
+	return nil
 }
 
 func executeCommitDpos1(native *native.NativeService, contract common.Address, config *Configuration) error {
@@ -1191,64 +1199,65 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address, c
 	var splitSum uint64 = 0
 	// consensus peers
 	for i := 0; i < int(config.K); i++ {
+		var splitAmount uint64 = 0
 		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
 		if !ok {
 			return fmt.Errorf("commitDpos, peerPubkey is not in peerPoolMap")
 		}
 
-		//split fee to peer
-		peerAmount, err := executePeerSplit(native, contract, peerPoolItem, nodeSplit[peerPoolItem.PeerPubkey])
-		if err != nil {
-			return fmt.Errorf("excutePeerSplit, excutePeerSplit error: %v", err)
-		}
-		splitSum = splitSum + peerAmount
-		remainAmount := nodeSplit[peerPoolItem.PeerPubkey] - peerAmount
-
+		//split fee to authorize address
 		if peerPoolItem.Status == ConsensusStatus {
-			splitAmount, err := consensusToConsensus(native, contract, peerPoolItem, remainAmount)
+			splitAmount, err = consensusToConsensus(native, contract, peerPoolItem, nodeSplit[peerPoolItem.PeerPubkey])
 			if err != nil {
 				return fmt.Errorf("consensusToConsensus, consensusToConsensus error: %v", err)
 			}
-			splitSum = splitSum + splitAmount
 		} else {
-			splitAmount, err := unConsensusToConsensus(native, contract, peerPoolItem, remainAmount)
+			splitAmount, err = unConsensusToConsensus(native, contract, peerPoolItem, nodeSplit[peerPoolItem.PeerPubkey])
 			if err != nil {
 				return fmt.Errorf("unConsensusToConsensus, unConsensusToConsensus error: %v", err)
 			}
-			splitSum = splitSum + splitAmount
 		}
+
+		//split fee to peer
+		remainAmount := nodeSplit[peerPoolItem.PeerPubkey] - splitAmount
+		err := executePeerSplit(native, contract, peerPoolItem, remainAmount)
+		if err != nil {
+			return fmt.Errorf("excutePeerSplit, excutePeerSplit error: %v", err)
+		}
+		splitSum = splitSum + nodeSplit[peerPoolItem.PeerPubkey]
+
 		peerPoolItem.Status = ConsensusStatus
 		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
 	}
 
 	//non consensus peers
 	for i := int(config.K); i < len(peers); i++ {
+		var splitAmount uint64 = 0
 		peerPoolItem, ok := peerPoolMap.PeerPoolMap[peers[i].PeerPubkey]
 		if !ok {
 			return fmt.Errorf("authorizeForPeer, peerPubkey is not in peerPoolMap")
 		}
 
-		//split fee to peer
-		peerAmount, err := executePeerSplit(native, contract, peerPoolItem, nodeSplit[peerPoolItem.PeerPubkey])
-		if err != nil {
-			return fmt.Errorf("excutePeerSplit, excutePeerSplit error: %v", err)
-		}
-		splitSum = splitSum + peerAmount
-		remainAmount := nodeSplit[peerPoolItem.PeerPubkey] - peerAmount
-
 		if peerPoolItem.Status == ConsensusStatus {
-			splitAmount, err := consensusToUnConsensus(native, contract, peerPoolItem, remainAmount)
+			splitAmount, err = consensusToUnConsensus(native, contract, peerPoolItem, nodeSplit[peerPoolItem.PeerPubkey])
 			if err != nil {
 				return fmt.Errorf("consensusToUnConsensus, consensusToUnConsensus error: %v", err)
 			}
-			splitSum = splitSum + splitAmount
 		} else {
-			splitAmount, err := unConsensusToUnConsensus(native, contract, peerPoolItem, remainAmount)
+			splitAmount, err = unConsensusToUnConsensus(native, contract, peerPoolItem, nodeSplit[peerPoolItem.PeerPubkey])
 			if err != nil {
 				return fmt.Errorf("unConsensusToUnConsensus, unConsensusToUnConsensus error: %v", err)
 			}
-			splitSum = splitSum + splitAmount
 		}
+
+		//split fee to peer
+		remainAmount := nodeSplit[peerPoolItem.PeerPubkey] - splitAmount
+		err := executePeerSplit(native, contract, peerPoolItem, remainAmount)
+		if err != nil {
+			return fmt.Errorf("excutePeerSplit, excutePeerSplit error: %v", err)
+		}
+		splitSum = splitSum + nodeSplit[peerPoolItem.PeerPubkey]
+
 		peerPoolItem.Status = CandidateStatus
 		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
 	}

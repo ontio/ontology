@@ -853,7 +853,7 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 				authorizeInfo.NewPos = 0
 				authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + newPos
 				authorizeInfo.ConsensusPos = consensusPos
-				authorizeInfo.WithdrawPos = authorizeInfo.WithdrawPos + uint64(pos) - authorizeInfo.NewPos
+				authorizeInfo.WithdrawPos = authorizeInfo.WithdrawPos + uint64(pos) - newPos
 				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 			}
 			if peerPoolItem.Status == CandidateStatus {
@@ -865,7 +865,7 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 				authorizeInfo.NewPos = 0
 				authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + newPos
 				authorizeInfo.FreezePos = freezePos
-				authorizeInfo.WithdrawFreezePos = authorizeInfo.WithdrawFreezePos + uint64(pos) - authorizeInfo.NewPos
+				authorizeInfo.WithdrawFreezePos = authorizeInfo.WithdrawFreezePos + uint64(pos) - newPos
 				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 			}
 		} else {
@@ -1313,7 +1313,7 @@ func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
-	peerAttributes.MaxAuthorize = params.MaxAuthorize
+	peerAttributes.MaxAuthorize = uint64(params.MaxAuthorize)
 
 	err = putPeerAttributes(native, contract, peerAttributes)
 	if err != nil {

@@ -198,12 +198,12 @@ func (this *PeerPoolItem) Deserialize(r io.Reader) error {
 type AuthorizeInfo struct {
 	PeerPubkey          string
 	Address             common.Address
-	ConsensusPos        uint64			//pos deposit in consensus node
-	FreezePos           uint64			//pos deposit in candidate node
-	NewPos              uint64			//pos deposit in this epoch, is not effective
-	WithdrawPos         uint64			//unAuthorized pos, frozen until next next epoch
-	WithdrawFreezePos   uint64			//unAuthorized pos, frozen until next epoch
-	WithdrawUnfreezePos uint64			//unAuthorized pos, unFrozen, can withdraw
+	ConsensusPos        uint64 //pos deposit in consensus node
+	FreezePos           uint64 //pos deposit in candidate node
+	NewPos              uint64 //pos deposit in this epoch, is not effective
+	WithdrawPos         uint64 //unAuthorized pos, frozen until next next epoch
+	WithdrawFreezePos   uint64 //unAuthorized pos, frozen until next epoch
+	WithdrawUnfreezePos uint64 //unAuthorized pos, unFrozen, can withdraw
 }
 
 func (this *AuthorizeInfo) Serialize(w io.Writer) error {
@@ -435,7 +435,7 @@ type SyncNodeSplitInfo struct {
 
 type PeerAttributes struct {
 	PeerPubkey   string
-	MaxAuthorize uint32
+	MaxAuthorize uint64
 	OldPeerCost  uint64
 	NewPeerCost  uint64
 	SetCostView  uint32
@@ -449,8 +449,8 @@ func (this *PeerAttributes) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return fmt.Errorf("serialization.WriteBool, serialize peerPubkey error: %v", err)
 	}
-	if err := serialization.WriteUint32(w, this.MaxAuthorize); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize maxAuthorize error: %v", err)
+	if err := serialization.WriteUint64(w, this.MaxAuthorize); err != nil {
+		return fmt.Errorf("serialization.WriteUint64, serialize maxAuthorize error: %v", err)
 	}
 	if err := serialization.WriteUint64(w, this.OldPeerCost); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize oldPeerCost error: %v", err)
@@ -481,7 +481,7 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	maxAuthorize, err := serialization.ReadUint32(r)
+	maxAuthorize, err := serialization.ReadUint64(r)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", err)
 	}

@@ -712,6 +712,30 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 	return peerAttributes, nil
 }
 
+func getPeerCost(native *native.NativeService, contract common.Address, peerPubkey string) (uint64, error) {
+	//get peerAttributes
+	peerAttributes, err := getPeerAttributes(native, contract, peerPubkey)
+	if err != nil {
+		return 0, fmt.Errorf("getPeerAttributes error: %v", err)
+	}
+
+	//get current view
+	governanceView, err := GetGovernanceView(native, contract)
+	if err != nil {
+		return 0, fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
+	}
+	view := governanceView.View
+
+	var peerCost uint64
+	//check set cost view
+	if view-peerAttributes.SetCostView < 2 {
+		peerCost = peerAttributes.OldPeerCost
+	} else {
+		peerCost = peerAttributes.NewPeerCost
+	}
+	return peerCost, nil
+}
+
 func putPeerAttributes(native *native.NativeService, contract common.Address, peerAttributes *PeerAttributes) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerAttributes.PeerPubkey)
 	if err != nil {
