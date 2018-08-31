@@ -46,9 +46,9 @@ func (this *Status) Deserialize(r io.Reader) error {
 }
 
 type BlackListItem struct {
-	PeerPubkey string
-	Address    common.Address
-	InitPos    uint64
+	PeerPubkey string         //peerPubkey in black list
+	Address    common.Address //the owner of this peer
+	InitPos    uint64         //initPos of this peer
 }
 
 func (this *BlackListItem) Serialize(w io.Writer) error {
@@ -129,12 +129,12 @@ func (this *PeerPoolMap) Deserialize(r io.Reader) error {
 }
 
 type PeerPoolItem struct {
-	Index      uint32
-	PeerPubkey string
-	Address    common.Address
-	Status     Status
-	InitPos    uint64
-	TotalPos   uint64
+	Index      uint32         //peer index
+	PeerPubkey string         //peer pubkey
+	Address    common.Address //peer owner
+	Status     Status         //peer status
+	InitPos    uint64         //peer initPos
+	TotalPos   uint64         //total authorize pos this peer received
 }
 
 func (this *PeerPoolItem) Serialize(w io.Writer) error {
@@ -323,7 +323,7 @@ func (this *GovernanceView) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type TotalStake struct {
+type TotalStake struct { //table record each address's total stake in this contract
 	Address    common.Address
 	Stake      uint64
 	TimeOffset uint32
@@ -362,12 +362,12 @@ func (this *TotalStake) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type PenaltyStake struct {
-	PeerPubkey   string
-	InitPos      uint64
-	AuthorizePos uint64
-	TimeOffset   uint32
-	Amount       uint64
+type PenaltyStake struct { //table record penalty stake of peer
+	PeerPubkey   string //peer pubKey of penalty stake
+	InitPos      uint64 //initPos penalty
+	AuthorizePos uint64 //authorize pos penalty
+	TimeOffset   uint32 //time used for calculate unbound ong
+	Amount       uint64 //unbound ong that this penalty unbounded
 }
 
 func (this *PenaltyStake) Serialize(w io.Writer) error {
@@ -435,10 +435,10 @@ type SyncNodeSplitInfo struct {
 
 type PeerAttributes struct {
 	PeerPubkey   string
-	MaxAuthorize uint64
-	OldPeerCost  uint64
-	NewPeerCost  uint64
-	SetCostView  uint32
+	MaxAuthorize uint64 //max authorzie pos this peer can receive
+	OldPeerCost  uint64 //old peer cost, active when current view - SetCostView < 2
+	NewPeerCost  uint64 //new peer cost, active when current view - SetCostView >= 2
+	SetCostView  uint32 //the view when when set new peer cost
 	Field1       []byte
 	Field2       []byte
 	Field3       []byte
@@ -525,7 +525,7 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type SplitFeeAddress struct {
+type SplitFeeAddress struct { //table record each address's ong motivation
 	Address common.Address
 	Amount  uint64
 }

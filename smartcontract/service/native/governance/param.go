@@ -508,13 +508,13 @@ func (this *Configuration) Deserialize(r io.Reader) error {
 
 type GlobalParam struct {
 	CandidateFee uint64 //unit: 10^-9 ong
-	MinInitStake uint32
-	CandidateNum uint32
-	PosLimit     uint32
-	A            uint32
-	B            uint32
-	Yita         uint32
-	Penalty      uint32
+	MinInitStake uint32 //min init pos
+	CandidateNum uint32 //num of candidate and consensus node
+	PosLimit     uint32 //authorize pos limit is initPos*posLimit
+	A            uint32 //fee split to all consensus node
+	B            uint32 //fee split to all candidate node
+	Yita         uint32 //split curve coefficient
+	Penalty      uint32 //authorize pos penalty percentage
 }
 
 func (this *GlobalParam) Serialize(w io.Writer) error {
@@ -611,8 +611,8 @@ func (this *GlobalParam) Deserialize(r io.Reader) error {
 }
 
 type GlobalParam2 struct {
-	MinAuthorizePos      uint32
-	CandidateFeeSplitNum uint32
+	MinAuthorizePos      uint32 //min ONT of each authorization, 500 default
+	CandidateFeeSplitNum uint32 //num of peer can receive motivation(include consensus and candidate)
 	Field1               []byte
 	Field2               []byte
 	Field3               []byte
