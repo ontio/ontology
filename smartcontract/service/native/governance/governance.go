@@ -1526,6 +1526,9 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 	if peerPoolItem.Address != params.Address {
 		return utils.BYTE_FALSE, fmt.Errorf("address is not peer owner")
 	}
+	if peerPoolItem.InitPos < uint64(params.Pos) {
+		return utils.BYTE_FALSE, fmt.Errorf("reduceInitPos, initPos can not be negative")
+	}
 	newInitPos := peerPoolItem.InitPos - uint64(params.Pos)
 	//get globalParam
 	globalParam, err := getGlobalParam(native, contract)
