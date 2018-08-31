@@ -20,7 +20,9 @@ package neovm
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 
 	"github.com/ontio/ontology/common"
@@ -29,7 +31,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/types"
-	"math/big"
 )
 
 func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
@@ -92,6 +93,13 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 }
 
 func BuildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
+	if CircularRefAndDepthDetection(item) {
+		return errors.New("invoke native circular reference!")
+	}
+	return buildParamToNative(bf, item)
+}
+
+func buildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
 	switch item.(type) {
 	case *types.ByteArray:
 		a, _ := item.GetByteArray()
@@ -114,14 +122,14 @@ func BuildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
 			return err
 		}
 		for _, v := range arr {
-			if err := BuildParamToNative(bf, v); err != nil {
+			if err := buildParamToNative(bf, v); err != nil {
 				return err
 			}
 		}
 	case *types.Struct:
 		st, _ := item.GetStruct()
 		for _, v := range st {
-			if err := BuildParamToNative(bf, v); err != nil {
+			if err := buildParamToNative(bf, v); err != nil {
 				return err
 			}
 		}
