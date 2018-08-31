@@ -198,12 +198,12 @@ func (this *PeerPoolItem) Deserialize(r io.Reader) error {
 type AuthorizeInfo struct {
 	PeerPubkey          string
 	Address             common.Address
-	ConsensusPos        uint64
-	FreezePos           uint64
-	NewPos              uint64
-	WithdrawPos         uint64
-	WithdrawFreezePos   uint64
-	WithdrawUnfreezePos uint64
+	ConsensusPos        uint64			//pos deposit in consensus node
+	FreezePos           uint64			//pos deposit in candidate node
+	NewPos              uint64			//pos deposit in this epoch, is not effective
+	WithdrawPos         uint64			//unAuthorized pos, frozen until next next epoch
+	WithdrawFreezePos   uint64			//unAuthorized pos, frozen until next epoch
+	WithdrawUnfreezePos uint64			//unAuthorized pos, unFrozen, can withdraw
 }
 
 func (this *AuthorizeInfo) Serialize(w io.Writer) error {
