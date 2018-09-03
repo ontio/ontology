@@ -46,7 +46,7 @@ var (
 
 	PER_UNIT_CODE_LEN   int = 1024
 	METHOD_LENGTH_LIMIT int = 1024
-	MAX_STACK_SIZE      int = 1024
+	MAX_STACK_SIZE      int = 1024 * 2
 	VM_STEP_LIMIT       int = 400000
 
 	// API Name
