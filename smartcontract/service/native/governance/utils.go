@@ -691,7 +691,7 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 	peerAttributesBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_ATTRIBUTES),
 		peerPubkeyPrefix))
 	if err != nil {
-		return nil, fmt.Errorf("get authorizeInfoBytes error: %v", err)
+		return nil, fmt.Errorf("getPeerAttributes, native.CloneCache.Get error: %v", err)
 	}
 	peerAttributes := &PeerAttributes{
 		PeerPubkey:   peerPubkey,

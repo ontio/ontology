@@ -1468,6 +1468,9 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 	if peerPoolItem.Address != params.Address {
 		return utils.BYTE_FALSE, fmt.Errorf("address is not peer owner")
 	}
+	if peerPoolItem.Status != CandidateStatus && peerPoolItem.Status != ConsensusStatus && peerPoolItem.Status != RegisterCandidateStatus {
+		return utils.BYTE_FALSE, fmt.Errorf("addInitPos, peerPubkey is not candidate")
+	}
 
 	peerPoolMap.PeerPoolMap[params.PeerPubkey].InitPos = peerPoolItem.InitPos + uint64(params.Pos)
 	err = putPeerPoolMap(native, contract, view, peerPoolMap)
@@ -1551,6 +1554,26 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 	err = putPeerPoolMap(native, contract, view, peerPoolMap)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap error: %v", err)
+	}
+
+	//update authorize info of peer owner
+	authorizeInfo, err := getAuthorizeInfo(native, contract, params.PeerPubkey, params.Address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getAuthorizeInfo, get authorizeInfo error: %v", err)
+	}
+	switch peerPoolItem.Status {
+	case ConsensusStatus:
+		authorizeInfo.WithdrawPos = authorizeInfo.WithdrawPos + uint64(params.Pos)
+	case CandidateStatus:
+		authorizeInfo.WithdrawFreezePos = authorizeInfo.WithdrawFreezePos + uint64(params.Pos)
+	case RegisterCandidateStatus:
+		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + uint64(params.Pos)
+	default:
+		return utils.BYTE_FALSE, fmt.Errorf("reduceInitPos, peerPubkey is not candidate")
+	}
+	err = putAuthorizeInfo(native, contract, authorizeInfo)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 	}
 
 	return utils.BYTE_TRUE, nil
