@@ -32,6 +32,7 @@ import (
 const (
 	MAX_COUNT = 1024
 )
+
 func ConvertNeoVmTypeHexString(item interface{}) (interface{}, error) {
 	var count int
 	return convertNeoVmTypeHexString(item, &count)
