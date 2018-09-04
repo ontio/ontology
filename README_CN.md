@@ -115,8 +115,8 @@ $ make all
 ### 测试模式
 
 在单机上创建一个目录，在目录下存放以下文件：
-- 节点程序 + 节点控制程序 `ontology`
-- 钱包文件`wallet.dat` （注：`wallet.dat`可通过`./ontology account add`生成）
+- 节点程序`ontology`
+- 钱包文件`wallet.dat` （注：`wallet.dat`可通过`./ontology account add -d`生成）
 
 使用命令 `$ ./ontology --testmode` 即可启动单机版的测试网络。
 
@@ -156,48 +156,95 @@ $ make all
       from参数可以不指定，如果不指定则使用默认账户。
 
 ```shell
-  ./ontology asset transfer  --to=TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op --amount=10
+  ./ontology asset transfer  --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce --amount=10
 ```
 
 执行完后会输出：
 
-```
+```shell
 Transfer ONT
-From:TA6edvwgNy3c1nBHgmFj8KrgQ1JCJNhM3o
-To:TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op
-Amount:10
-TxHash:10dede8b57ce0b272b4d51ab282aaf0988a4005e980d25bd49685005cc76ba7f
+  From:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+  To:AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce
+  Amount:10
+  TxHash:437bff5dee9a1894ad421d55b8c70a2b7f34c574de0225046531e32faa1f94ce
 ```
 其中TxHash是转账交易的交易HASH，可以通过这个HASH查询转账交易的直接结果。
 出于区块链出块时间的限制，提交的转账请求不会马上执行，需要等待至少一个区块时间，等待记账节点打包交易。
 
+如果需要转ONG，可以使用参数 -- asset = ong。注意，ONT最少单位是1，而ONG则有9位小数点。
+
+```shell
+./ontology asset transfer --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --amount=95.479777254 --asset=ong
+```
+执行完后会输出：
+
+```shell
+Transfer ONG
+  From:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+  To:AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce
+  Amount:95.479777254
+  TxHash:e4245d83607e6644c360b6007045017b5c5d89d9f0f5a9c3b37801018f789cc3
+```
+
+注意，Ontology cli中，所有用到账户的地址的地方，都支持账户索引和账户标签。账户索引是账户在钱包中的序号，从1开始。标签是可以在创建账户的时候指定一个唯一的别名。如：
+
+```shell
+./ontology asset transfer --from=1 --to=2 --amount=10
+```
+
 ### 查询转账结果示例
 
---hash:指定查询的转账交易hash
 ```shell
-./ontology asset status --hash=10dede8b57ce0b272b4d51ab282aaf0988a4005e980d25bd49685005cc76ba7f
+./ontology info status <TxHash>
 ```
+
+如：
+
+```shell
+./ontology info status e4245d83607e6644c360b6007045017b5c5d89d9f0f5a9c3b37801018f789cc3
+```
+
 查询结果：
 ```shell
-Transaction:transfer success
-From:TA6edvwgNy3c1nBHgmFj8KrgQ1JCJNhM3o
-To:TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op
-Amount:10
+Transaction states:
+{
+   "TxHash": "e4245d83607e6644c360b6007045017b5c5d89d9f0f5a9c3b37801018f789cc3",
+   "State": 1,
+   "GasConsumed": 0,
+   "Notify": [
+      {
+         "ContractAddress": "0200000000000000000000000000000000000000",
+         "States": [
+            "transfer",
+            "ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48",
+            "AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce",
+            95479777254
+         ]
+      }
+   ]
+}
 ```
 
 ### 查询账户余额示例
 
---address:账户地址
+```shell
+./ontology asset balance <address|index|label>
+```
+如：
 
 ```shell
-./ontology asset balance --address=TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op
+./ontology asset balance ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+```
+或者
+
+```shell
+./ontology asset balance 1
 ```
 查询结果：
 ```shell
-BalanceOf:TA4Xe9j8VbU4m3T1zEa1uRiMTauiAT88op
-ONT:10
-ONG:0
-ONGApprove:0
+BalanceOf:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+  ONT:989979697
+  ONG:28165900
 ```
 
 进一步的示例可以参考[文档中心](https://ontio.github.io/documentation/)
