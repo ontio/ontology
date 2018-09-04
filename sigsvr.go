@@ -63,23 +63,28 @@ func startSigSvr(ctx *cli.Context) {
 
 	walletDirPath := ctx.String(utils.GetFlagName(utils.CliWalletDirFlag))
 	if walletDirPath == "" {
-		log.Infof("Please using --walletdir flag to specific wallet saving path")
+		log.Errorf("Please using --walletdir flag to specific wallet saving path")
 		return
 	}
 
 	walletStore, err := store.NewWalletStore(walletDirPath)
 	if err != nil {
-		log.Infof("NewWalletStore error:%s", err)
+		log.Errorf("NewWalletStore error:%s", err)
 		return
 	}
 	clisvrcom.DefWalletStore = walletStore
 
-	log.Infof("Load wallet data success. Account number:%d", walletStore.GetNextAccountIndex())
+	accountNum, err := walletStore.GetAccountNumber()
+	if err != nil {
+		log.Errorf("GetAccountNumber error:%s", err)
+		return
+	}
+	log.Infof("Load wallet data success. Account number:%d", accountNum)
 
 	rpcAddress := ctx.String(utils.GetFlagName(utils.CliAddressFlag))
 	rpcPort := ctx.Uint(utils.GetFlagName(utils.CliRpcPortFlag))
 	if rpcPort == 0 {
-		log.Infof("Please using sig server port by --%s flag", utils.GetFlagName(utils.CliRpcPortFlag))
+		log.Errorf("Please using sig server port by --%s flag", utils.GetFlagName(utils.CliRpcPortFlag))
 		return
 	}
 	go cmdsvr.DefCliRpcSvr.Start(rpcAddress, rpcPort)

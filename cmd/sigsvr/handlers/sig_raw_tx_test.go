@@ -61,7 +61,7 @@ func TestMain(m *testing.M) {
 		log.Errorf("NewWalletStore error:%s", err)
 		return
 	}
-	err = clisvrcom.DefWalletStore.AddAccountData(testWallet.GetWalletData().Accounts[0])
+	_, err = clisvrcom.DefWalletStore.AddAccountData(testWallet.GetWalletData().Accounts[0])
 	if err != nil {
 		log.Errorf("AddAccountData error:%s", err)
 		return

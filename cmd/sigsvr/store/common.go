@@ -34,6 +34,7 @@ const (
 	WALLET_ACCOUNT_INDEX_PREFIX      = 0x05
 	WALLET_ACCOUNT_PREFIX            = 0x06
 	WALLET_EXTRA_PREFIX              = 0x07
+	WALLET_ACCOUNT_NUMBER            = 0x08
 )
 
 func GetWalletInitKey() []byte {
@@ -68,4 +69,8 @@ func GetAccountKey(address string) []byte {
 
 func GetWalletExtraKey() []byte {
 	return []byte{WALLET_EXTRA_PREFIX}
+}
+
+func GetWalletAccountNumberKey() []byte {
+	return []byte{WALLET_ACCOUNT_NUMBER}
 }
