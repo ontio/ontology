@@ -1154,6 +1154,21 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address, c
 
 	var peers []*PeerStakeInfo
 	for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+		//update peer attributes
+		peerAttributes, err := getPeerAttributes(native, contract, peerPoolItem.PeerPubkey)
+		if err != nil {
+			return fmt.Errorf("getPeerAttributes error: %v", err)
+		}
+		t2PeerCost := peerAttributes.T2PeerCost
+		t1PeerCost := peerAttributes.T1PeerCost
+		peerAttributes.TPeerCost = t1PeerCost
+		peerAttributes.T1PeerCost = t2PeerCost
+		err = putPeerAttributes(native, contract, peerAttributes)
+		if err != nil {
+			return fmt.Errorf("putPeerAttributes error: %v", err)
+		}
+
+		//update peer status
 		if peerPoolItem.Status == QuitingStatus {
 			err = normalQuit(native, contract, peerPoolItem)
 			if err != nil {

@@ -436,9 +436,9 @@ type SyncNodeSplitInfo struct {
 type PeerAttributes struct {
 	PeerPubkey   string
 	MaxAuthorize uint64 //max authorzie pos this peer can receive
-	OldPeerCost  uint64 //old peer cost, active when current view - SetCostView < 2
-	NewPeerCost  uint64 //new peer cost, active when current view - SetCostView >= 2
-	SetCostView  uint32 //the view when when set new peer cost
+	T2PeerCost   uint64 //peer cost, active in view T + 2
+	T1PeerCost   uint64 //peer cost, active in view T + 1
+	TPeerCost    uint64 //peer cost, active in view T
 	Field1       []byte
 	Field2       []byte
 	Field3       []byte
@@ -452,14 +452,14 @@ func (this *PeerAttributes) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint64(w, this.MaxAuthorize); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize maxAuthorize error: %v", err)
 	}
-	if err := serialization.WriteUint64(w, this.OldPeerCost); err != nil {
+	if err := serialization.WriteUint64(w, this.T2PeerCost); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize oldPeerCost error: %v", err)
 	}
-	if err := serialization.WriteUint64(w, this.NewPeerCost); err != nil {
+	if err := serialization.WriteUint64(w, this.T1PeerCost); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize newPeerCost error: %v", err)
 	}
-	if err := serialization.WriteUint32(w, this.SetCostView); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize setCostView error: %v", err)
+	if err := serialization.WriteUint64(w, this.TPeerCost); err != nil {
+		return fmt.Errorf("serialization.WriteUint64, serialize newPeerCost error: %v", err)
 	}
 	if err := serialization.WriteVarBytes(w, this.Field1); err != nil {
 		return fmt.Errorf("serialization.WriteVarBytes, serialize field1 error: %v", err)
@@ -485,17 +485,17 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", err)
 	}
-	oldPeerCost, err := serialization.ReadUint64(r)
+	t2PeerCost, err := serialization.ReadUint64(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize oldPeerCost error: %v", err)
+		return fmt.Errorf("serialization.ReadUint64, deserialize t2PeerCost error: %v", err)
 	}
-	newPeerCost, err := serialization.ReadUint64(r)
+	t1PeerCost, err := serialization.ReadUint64(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize newPeerCost error: %v", err)
+		return fmt.Errorf("serialization.ReadUint64, deserialize t1PeerCost error: %v", err)
 	}
-	setCostView, err := serialization.ReadUint32(r)
+	tPeerCost, err := serialization.ReadUint64(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint32, deserialize setCostView error: %v", err)
+		return fmt.Errorf("serialization.ReadUint64, deserialize tPeerCost error: %v", err)
 	}
 	field1, err := serialization.ReadVarBytes(r)
 	if err != nil {
@@ -515,9 +515,9 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 	}
 	this.PeerPubkey = peerPubkey
 	this.MaxAuthorize = maxAuthorize
-	this.OldPeerCost = oldPeerCost
-	this.NewPeerCost = newPeerCost
-	this.SetCostView = setCostView
+	this.T2PeerCost = t2PeerCost
+	this.T1PeerCost = t1PeerCost
+	this.TPeerCost = tPeerCost
 	this.Field1 = field1
 	this.Field2 = field2
 	this.Field3 = field3

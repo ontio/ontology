@@ -696,9 +696,9 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 	peerAttributes := &PeerAttributes{
 		PeerPubkey:   peerPubkey,
 		MaxAuthorize: 0,
-		OldPeerCost:  100,
-		NewPeerCost:  100,
-		SetCostView:  0,
+		T2PeerCost:   100,
+		T1PeerCost:   100,
+		TPeerCost:    100,
 	}
 	if peerAttributesBytes != nil {
 		peerAttributesStore, ok := peerAttributesBytes.(*cstates.StorageItem)
@@ -719,21 +719,7 @@ func getPeerCost(native *native.NativeService, contract common.Address, peerPubk
 		return 0, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
 
-	//get current view
-	governanceView, err := GetGovernanceView(native, contract)
-	if err != nil {
-		return 0, fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
-	}
-	view := governanceView.View
-
-	var peerCost uint64
-	//check set cost view
-	if view-peerAttributes.SetCostView < 2 {
-		peerCost = peerAttributes.OldPeerCost
-	} else {
-		peerCost = peerAttributes.NewPeerCost
-	}
-	return peerCost, nil
+	return peerAttributes.TPeerCost, nil
 }
 
 func putPeerAttributes(native *native.NativeService, contract common.Address, peerAttributes *PeerAttributes) error {

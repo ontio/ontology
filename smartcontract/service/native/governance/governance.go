@@ -92,11 +92,11 @@ const (
 	PEER_ATTRIBUTES   = "peerAttributes"
 	SPLIT_FEE         = "splitFee"
 	SPLIT_FEE_ADDRESS = "splitFeeAddress"
-	PROMISE_POS       = "promisPos"
+	PROMISE_POS       = "promisePos"
 
 	//global
 	PRECISE           = 1000000
-	NEW_VERSION_BLOCK = 257700
+	NEW_VERSION_BLOCK = 357700
 )
 
 // candidate fee must >= 1 ONG
@@ -1367,13 +1367,7 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
 	}
-	newPeerCost := peerAttributes.NewPeerCost
-	//check set cost view
-	if view-peerAttributes.SetCostView >= 2 {
-		peerAttributes.OldPeerCost = newPeerCost
-	}
-	peerAttributes.NewPeerCost = uint64(params.PeerCost)
-	peerAttributes.SetCostView = view
+	peerAttributes.T2PeerCost = uint64(params.PeerCost)
 
 	err = putPeerAttributes(native, contract, peerAttributes)
 	if err != nil {
