@@ -258,10 +258,6 @@ func (this *WalletStore) NewAccountData(typeCode keypair.KeyType, curveCode byte
 }
 
 func (this *WalletStore) AddAccountData(accData *account.AccountData) (bool, error) {
-	data, err := json.Marshal(accData)
-	if err != nil {
-		return false, err
-	}
 	isExist, err := this.IsAccountExist(accData.Address)
 	if err != nil {
 		return false, err
@@ -270,20 +266,24 @@ func (this *WalletStore) AddAccountData(accData *account.AccountData) (bool, err
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	if this.nextAccountIndex == 0 {
+	accountNum, err := this.GetAccountNumber()
+	if err != nil {
+		return false, fmt.Errorf("GetAccountNumber error:%s", err)
+	}
+	if accountNum == 0 {
 		accData.IsDefault = true
 	} else {
 		accData.IsDefault = false
+	}
+	data, err := json.Marshal(accData)
+	if err != nil {
+		return false, err
 	}
 
 	batch := &leveldb.Batch{}
 	//Put account
 	batch.Put(GetAccountKey(accData.Address), data)
 
-	accountNum, err := this.GetAccountNumber()
-	if err != nil {
-		return false, fmt.Errorf("GetAccountNumber error:%s", err)
-	}
 	nextIndex := this.nextAccountIndex
 	if !isExist {
 		accountIndex := nextIndex
@@ -309,7 +309,9 @@ func (this *WalletStore) AddAccountData(accData *account.AccountData) (bool, err
 		return false, err
 	}
 	this.nextAccountIndex = nextIndex
-	return !isExist, nil
+
+	isAdd := !isExist
+	return isAdd, nil
 }
 
 func (this *WalletStore) getNextAccountIndex() (uint32, error) {
