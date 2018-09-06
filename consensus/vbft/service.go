@@ -65,7 +65,7 @@ const (
 )
 
 const (
-	LESS_THAN_ONE_THOUSAND_TXNUM = 1000
+	PROPOSER_TRANSACTION_THRESHOLD = 1000
 )
 
 type BftAction struct {
@@ -1766,7 +1766,7 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		self.timer.stopTxTicker(evt.blockNum)
 		if self.completedBlockNum+1 == evt.blockNum {
 			txpool := self.poolActor.GetTxnPool(true, self.validHeight(evt.blockNum))
-			if len(txpool) != 0 && uint32(len(txpool)) > LESS_THAN_ONE_THOUSAND_TXNUM {
+			if len(txpool) != 0 && uint32(len(txpool)) > PROPOSER_TRANSACTION_THRESHOLD {
 				self.timer.stopLessTxTicker(evt.blockNum)
 				self.timer.CancelTxBlockTimeout(evt.blockNum)
 				self.startNewProposal(evt.blockNum)
