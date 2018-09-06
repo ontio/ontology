@@ -7,7 +7,9 @@ Ontology Signature Server - sigsvr is a rpc server for signing transactions.
 * [Ontology Signature Server Tutorials](#ontology-signature-server-tutorials)
 	* [1. Signature Service Startup](#1-signature-service-startup)
 		* [1.1 The Parameters of Signature Service Startup](#11-the-parameters-of-signature-service-startup)
-		* [1.2 Startup](#12-startup)
+		* [1.2 Import wallet account](#12-import-wallet-account)
+			* [1.2.1 Import wallet account parameters](#121-import-wallet-account-parameters)
+		* [1.3 Startup](#13-startup)
 	* [2. Signature Service Method](#2-signature-service-method)
 		* [2.1  Signature Service Calling Method](#21-signature-service-calling-method)
 		* [2.2 Signature for Data](#22-signature-for-data)
@@ -17,8 +19,8 @@ Ontology Signature Server - sigsvr is a rpc server for signing transactions.
 		* [2.6 Native Contract Invokes Signature](#26-native-contract-invokes-signature)
 		* [2.7 NeoVM Contract Invokes Signature](#27-neovm-contract-invokes-signature)
 		* [2.8 NeoVM Contract Invokes By ABI Signature](#28-neovm-contract-invokes-by-abi-signature)
-		* [2.9 Create Account](#29-Create-Account)
-		* [2.10 Export Account](#210-Export-Account)
+		* [2.9 Create Account](#29-create-account)
+		* [2.10 ExportAccount](#210-exportaccount)
 
 ## 1. Signature Service Startup
 
@@ -78,13 +80,13 @@ Request structure:
 
 ```
 {
-	"qid":"XXX",    //Request ID， the response will bring the same qid
-	"method":"XXX", //Requested method name
-	"account":"XXX",//account for sign
-	"pwd":"XXX",    //unlock password
-	"params":{
-		//The request parameters that are filled in according to the request method
-	}
+    "qid":"XXX",    //Request ID， the response will bring the same qid
+    "method":"XXX", //Requested method name
+    "account":"XXX",//account for sign
+    "pwd":"XXX",    //unlock password
+    "params":{
+    	//The request parameters that are filled in according to the request method
+    }
 }
 ```
 Response structure:
@@ -137,20 +139,20 @@ Response result:
 ```
 Examples:
 
-Request: 
+Request:
 
 ```
 {
-	"qid":"t",
-	"method":"sigdata",
-	"account":"XXX",
+    "qid":"t",
+    "method":"sigdata",
+    "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"raw_data":"48656C6C6F20776F726C64" //Hello world
-	}
+    "params":{
+    	"raw_data":"48656C6C6F20776F726C64" //Hello world
+    }
 }
 ```
-Response: 
+Response:
 
 ```
 {
@@ -187,13 +189,13 @@ Examples:
 Request:
 ```
 {
-	"qid":"1",
-	"method":"sigrawtx",
-	"account":"XXX",
+    "qid":"1",
+    "method":"sigrawtx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"raw_tx":"00d14150175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a0101d4054faaf30a43841335a2fbc4e8400f1c44540163d551fe47ba12ec6524b67734796daaf87f7d0a0000"
-	}
+    "params":{
+    	"raw_tx":"00d14150175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a0101d4054faaf30a43841335a2fbc4e8400f1c44540163d551fe47ba12ec6524b67734796daaf87f7d0a0000"
+    }
 }
 ```
 Response:
@@ -239,18 +241,18 @@ Request:
 
 ```
 {
-	"qid":"1",
-	"method":"sigmutilrawtx",
-	"account":"XXX",
+    "qid":"1",
+    "method":"sigmutilrawtx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"raw_tx":"00d12454175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a01024ce71f6cc6c0819191e9ec9419928b183d6570012fb5cfb78c651669fac98d8f62b5143ab091e70a0000",
-		"m":2,
-		"pub_keys":[
-		    "1202039b196d5ed74a4d771ade78752734957346597b31384c3047c1946ce96211c2a7",
-		    "120203428daa06375b8dd40a5fc249f1d8032e578b5ebb5c62368fc6c5206d8798a966"
-		]
-	}
+    "params":{
+    	"raw_tx":"00d12454175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a01024ce71f6cc6c0819191e9ec9419928b183d6570012fb5cfb78c651669fac98d8f62b5143ab091e70a0000",
+    	"m":2,
+    	"pub_keys":[
+    	    "1202039b196d5ed74a4d771ade78752734957346597b31384c3047c1946ce96211c2a7",
+    	    "120203428daa06375b8dd40a5fc249f1d8032e578b5ebb5c62368fc6c5206d8798a966"
+    	]
+    }
 }
 ```
 
@@ -275,12 +277,12 @@ Method Name: sigtransfertx
 Request parameters:
 ```
 {
-	"gas_price":XXX,  //gasprice
-	"gas_limit":XXX,  //gaslimit
-	"asset":"ont",    //asset: ont or ong
-	"from":"XXX",     //Payment account
-	"to":"XXX",       //Receipt address
-	"amount":"XXX"    //transfer amount. Note that since the precision of ong is 9, it is necessary to multiply the actual transfer amount by 1000000000 when making ong transfer.
+    "gas_price":XXX,  //gasprice
+    "gas_limit":XXX,  //gaslimit
+    "asset":"ont",    //asset: ont or ong
+    "from":"XXX",     //Payment account
+    "to":"XXX",       //Receipt address
+    "amount":"XXX"    //transfer amount. Note that since the precision of ong is 9, it is necessary to multiply the actual transfer amount by 1000000000 when making ong transfer.
 }
 ```
 Response result:
@@ -296,18 +298,18 @@ Examples:
 Request:
 ```
 {
-	"qid":"t",
-	"method":"sigtransfertx",
-	"account":"XXX",
+    "qid":"t",
+    "method":"sigtransfertx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"gas_price":0,
-		"gas_limit":20000,
-		"asset":"ont",
-		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
-		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
-		"amount":"10"
-	}
+    "params":{
+    	"gas_price":0,
+    	"gas_limit":20000,
+    	"asset":"ont",
+    	"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+    	"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
+    	"amount":"10"
+    }
 }
 ```
 
@@ -331,13 +333,13 @@ Note that if specifies payer parameter, don't forget to use sigrawtx method to s
 Examples:
 ```
 {
-	"gas_price":XXX,  //gasprice
-	"gas_limit":XXX,  //gaslimit
-	"asset":"ont",    //asset: ont or ong
-	"from":"XXX",     //Payment account
-	"to":"XXX",       //Receipt address
-	"payer":"XXX",    //The fee payer's account address
-	"amount":XXX      //transfer amount. Note that since the precision of ong is 9, it is necessary to multiply the actual transfer amount by 1000000000 when making ong transfer.
+    "gas_price":XXX,  //gasprice
+    "gas_limit":XXX,  //gaslimit
+    "asset":"ont",    //asset: ont or ong
+    "from":"XXX",     //Payment account
+    "to":"XXX",       //Receipt address
+    "payer":"XXX",    //The fee payer's account address
+    "amount":XXX      //transfer amount. Note that since the precision of ong is 9, it is necessary to multiply the actual transfer amount by 1000000000 when making ong transfer.
 }
 ```
 
@@ -379,26 +381,26 @@ Request:
 
 ```
 {
-	"Qid":"t",
-	"Method":"signativeinvoketx",
-	"account":"XXX",
+    "Qid":"t",
+    "Method":"signativeinvoketx",
+    "account":"XXX",
     "pwd":"XXX",
-	"Params":{
-		"gas_price":0,
-		"gas_limit":20000,
-		"address":"0100000000000000000000000000000000000000",
-		"method":"transfer",
-		"version":0,
-		"params":[
-			[
-				[
-				"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
-				"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
-				"1000"
-				]
-			]
-		]
-	}
+    "Params":{
+    	"gas_price":0,
+    	"gas_limit":20000,
+    	"address":"0100000000000000000000000000000000000000",
+    	"method":"transfer",
+    	"version":0,
+    	"params":[
+    		[
+    			[
+    			"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+    			"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
+    			"1000"
+    			]
+    		]
+    	]
+    }
 }
 ```
 Response:
@@ -427,14 +429,14 @@ Examples:
     "address":"XXX",    //The address that invokes NeoVM contract
     "payer":"XXX",      //The fee payer's account address
     "params":[
-        //The parameters of the Native contract. All values ​​are string type.
+        //The parameters of the Native contract. All values are string type.
     ]
 }
 ```
 
 ### 2.7 NeoVM Contract Invokes Signature
 
-The NeoVM parameter contract supports array, bytearray, string, int, and bool types. When constructing parameters, it is necessary to provide parameter types and parameter values. The parameter values ​​use string types. Array is an array of objects and supports all types and quantities of NeoVM supported parameters.
+The NeoVM parameter contract supports array, bytearray, string, int, and bool types. When constructing parameters, it is necessary to provide parameter types and parameter values. The parameter values use string types. Array is an array of objects and supports all types and quantities of NeoVM supported parameters.
 
 Method Name: signeovminvoketx
 
@@ -445,7 +447,7 @@ Request parameters:
     "gas_limit":XXX,    //gaslimit
     "address":"XXX",    //The address that invokes NeoVM contract
     "params":[
-        //The parameters of the Native contract. All values ​​are string type.
+        //The parameters of the Native contract. All values are string type.
     ]
 }
 ```
@@ -461,31 +463,31 @@ Request:
 
 ```
 {
-	"qid": "t",
-	"method": "signeovminvoketx",
-	"account":"XXX",
+    "qid": "t",
+    "method": "signeovminvoketx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params": {
-		"gas_price": 0,
-		"gas_limit": 50000,
-		"address": "8074775331499ebc81ff785e299d406f55224a4c",
-		"version": 0,
-		"params": [
-			{
-				"type": "string",
-				"value": "Time"
-			},
-			{
-				"type": "array",
-				"value": [
-					{
-						"type": "string",
-						"value": ""
-					}
-				]
-			}
-		]
-	}
+    "params": {
+    	"gas_price": 0,
+    	"gas_limit": 50000,
+    	"address": "8074775331499ebc81ff785e299d406f55224a4c",
+    	"version": 0,
+    	"params": [
+    		{
+    			"type": "string",
+    			"value": "Time"
+    		},
+    		{
+    			"type": "array",
+    			"value": [
+    				{
+    					"type": "string",
+    					"value": ""
+    				}
+    			]
+    		}
+    	]
+    }
 }
 ```
 Response:
@@ -515,7 +517,7 @@ Examples:
     "version":0,        //The version that invokes native contract
     "payer":"XXX",      //The fee payer's account address
     "params":[
-        //The parameters of the Native contract are constructed according to the ABI of calling method. All values ​​are string type.
+        //The parameters of the Native contract are constructed according to the ABI of calling method. All values are string type.
     ]
 }
 ```
@@ -534,7 +536,7 @@ Request parameters:
     "gas_price":XXX,    //gasprice
     "gas_limit":XXX,    //gaslimit
     "address":"XXX",    //The NeoVM contract address
-    "params":[XXX],     //The parameters of the NeoVM contract are constructed according to the ABI of calling method. All values ​​are string type.
+    "params":[XXX],     //The parameters of the NeoVM contract are constructed according to the ABI of calling method. All values are string type.
     "contract_abi":XXX, //The ABI of contract
 }
 ```
@@ -550,52 +552,52 @@ Request:
 
 ```
 {
-  "qid": "t",
-  "method": "signeovminvokeabitx",
-  "account":"XXX",
-  "pwd":"XXX",
-  "params": {
+    "qid": "t",
+    "method": "signeovminvokeabitx",
+    "account":"XXX",
+    "pwd":"XXX",
+    "params": {
     "gas_price": 0,
     "gas_limit": 50000,
     "address": "80b82b5e31ad8b7b750207ad80579b5296bf27e8",
     "method": "add",
     "params": ["10","10"],
     "contract_abi": {
-      "hash": "0xe827bf96529b5780ad0702757b8bad315e2bb8ce",
-      "entrypoint": "Main",
-      "functions": [
-        {
-          "name": "Main",
-          "parameters": [
+        "hash": "0xe827bf96529b5780ad0702757b8bad315e2bb8ce",
+        "entrypoint": "Main",
+        "functions": [
             {
-              "name": "operation",
-              "type": "String"
+                "name": "Main",
+                "parameters": [
+                    {
+                        "name": "operation",
+                        "type": "String"
+                    },
+                    {
+                        "name": "args",
+                        "type": "Array"
+                    }
+                ],
+                "returntype": "Any"
             },
             {
-              "name": "args",
-              "type": "Array"
+                "name": "Add",
+                "parameters": [
+                    {
+                        "name": "a",
+                        "type": "Integer"
+                    },
+                    {
+                        "name": "b",
+                        "type": "Integer"
+                    }
+                ],
+                "returntype": "Integer"
             }
-          ],
-          "returntype": "Any"
-        },
-        {
-          "name": "Add",
-          "parameters": [
-            {
-              "name": "a",
-              "type": "Integer"
-            },
-            {
-              "name": "b",
-              "type": "Integer"
-            }
-          ],
-          "returntype": "Integer"
+        ],
+        "events": []
         }
-      ],
-      "events": []
     }
-  }
 }
 ```
 
@@ -620,7 +622,7 @@ Examples:
     "gas_price":XXX,    //gasprice
     "gas_limit":XXX,    //gaslimit
     "address":"XXX",    //The NeoVM contract address
-    "params":[XXX],     //The parameters of the NeoVM contract are constructed according to the ABI of calling method. All values ​​are string type.
+    "params":[XXX],     //The parameters of the NeoVM contract are constructed according to the ABI of calling method. All values are string type.
     "payer":"XXX",      //The fee payer's account address
     "contract_abi":XXX, //The ABI of contract
 }
@@ -648,10 +650,10 @@ Examples
 Request:
 ```
 {
-	"qid":"t",
-	"method":"createaccount",
-	"pwd":"XXXX",     //The unlock password of account created by sigsvr
-	"params":{}
+    "qid":"t",
+    "method":"createaccount",
+    "pwd":"XXXX",     //The unlock password of account created by sigsvr
+    "params":{}
 }
 ```
 

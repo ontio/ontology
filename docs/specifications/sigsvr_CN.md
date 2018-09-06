@@ -7,7 +7,9 @@ Ontology签名服务器sigsvr是一个用于对交易进行签名的rpc服务器
 * [Ontology 签名服务器使用说明](#ontology-签名服务器使用说明)
 	* [1、签名服务启动](#1-签名服务启动)
 		* [1.1 签名服务启动参数：](#11-签名服务启动参数)
-		* [1.2 启动](#12-启动)
+		* [1.2 导入钱包账户](#12-导入钱包账户)
+			* [1.2.1 导入钱包账户参数](#121-导入钱包账户参数)
+		* [1.3 启动](#13-启动)
 	* [2、签名服务方法](#2-签名服务方法)
 		* [2.1 签名服务调用方法](#21-签名服务调用方法)
 		* [2.2 对数据签名](#22-对数据签名)
@@ -17,8 +19,8 @@ Ontology签名服务器sigsvr是一个用于对交易进行签名的rpc服务器
 		* [2.6 Native合约调用签名](#26-native合约调用签名)
 		* [2.7 NeoVM合约调用签名](#27-neovm合约调用签名)
 		* [2.8 NeoVM合约ABI调用签名](#28-neovm合约abi调用签名)
-		* [2.9 创建账户命令](#29-创建账户)
-		* [2.10 导出钱包账户命令](210-导出钱包账户)
+		* [2.9 创建账户](#29-创建账户)
+		* [2.10 导出钱包账户](#210-导出钱包账户)
 
 ## 1、签名服务启动
 
@@ -78,13 +80,13 @@ http://localhost:20000/cli
 
 ```
 {
-	"qid":"XXX",    //请求ID，同一个应答会带上相同的qid
-	"method":"XXX", //请求的方法名
-	"account":"XXX",//签名账户
-	"pwd":"XXX",    //账户解锁密码
-	"params":{
-		//具体方法的请求参数,按照调用的请求方法要求填写
-	}
+    "qid":"XXX",    //请求ID，同一个应答会带上相同的qid
+    "method":"XXX", //请求的方法名
+    "account":"XXX",//签名账户
+    "pwd":"XXX",    //账户解锁密码
+    "params":{
+    	//具体方法的请求参数,按照调用的请求方法要求填写
+    }
 }
 ```
 应答结构：
@@ -125,7 +127,7 @@ http://localhost:20000/cli
 
 ```
 {
-	"raw_data":"XXX"    //待签名的数据（用16进制编码后的数据）
+    "raw_data":"XXX"    //待签名的数据（用16进制编码后的数据）
 }
 ```
 应答结果：
@@ -142,13 +144,13 @@ http://localhost:20000/cli
 
 ```
 {
-	"qid":"t",
-	"method":"sigdata",
+    "qid":"t",
+    "method":"sigdata",
     "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"raw_data":"48656C6C6F20776F726C64" //Hello world
-	}
+    "params":{
+    	"raw_data":"48656C6C6F20776F726C64" //Hello world
+    }
 }
 ```
 应答：
@@ -188,13 +190,13 @@ http://localhost:20000/cli
 请求：
 ```
 {
-	"qid":"1",
-	"method":"sigrawtx",
-	"account":"XXX",
+    "qid":"1",
+    "method":"sigrawtx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"raw_tx":"00d14150175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a0101d4054faaf30a43841335a2fbc4e8400f1c44540163d551fe47ba12ec6524b67734796daaf87f7d0a0000"
-	}
+    "params":{
+    	"raw_tx":"00d14150175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a0101d4054faaf30a43841335a2fbc4e8400f1c44540163d551fe47ba12ec6524b67734796daaf87f7d0a0000"
+    }
 }
 ```
 应答：
@@ -235,18 +237,18 @@ http://localhost:20000/cli
 
 ```
 {
-	"qid":"1",
-	"method":"sigmutilrawtx",
-	"account":"XXX",
+    "qid":"1",
+    "method":"sigmutilrawtx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"raw_tx":"00d12454175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a01024ce71f6cc6c0819191e9ec9419928b183d6570012fb5cfb78c651669fac98d8f62b5143ab091e70a0000",
-		"m":2,
-		"pub_keys":[
-		    "1202039b196d5ed74a4d771ade78752734957346597b31384c3047c1946ce96211c2a7",
-		    "120203428daa06375b8dd40a5fc249f1d8032e578b5ebb5c62368fc6c5206d8798a966"
-		]
-	}
+    "params":{
+    	"raw_tx":"00d12454175b000000000000000000000000000000000000000000000000000000000000000000000000ff4a0000ff00000000000000000000000000000000000001087472616e736665722a01024ce71f6cc6c0819191e9ec9419928b183d6570012fb5cfb78c651669fac98d8f62b5143ab091e70a0000",
+    	"m":2,
+    	"pub_keys":[
+    	    "1202039b196d5ed74a4d771ade78752734957346597b31384c3047c1946ce96211c2a7",
+    	    "120203428daa06375b8dd40a5fc249f1d8032e578b5ebb5c62368fc6c5206d8798a966"
+    	]
+    }
 }
 ```
 应答：
@@ -290,18 +292,18 @@ http://localhost:20000/cli
 
 ```
 {
-	"qid":"t",
-	"method":"sigtransfertx",
-	"account":"XXX",
+    "qid":"t",
+    "method":"sigtransfertx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"gas_price":0,
-		"gas_limit":20000,
-		"asset":"ont",
-		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
-		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
-		"amount":"10"
-	}
+    "params":{
+    	"gas_price":0,
+    	"gas_limit":20000,
+    	"asset":"ont",
+    	"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+    	"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
+    	"amount":"10"
+    }
 }
 ```
 
@@ -325,19 +327,19 @@ sigtransfertx方法默认使用签名账户作为手续费支付方，如果需�
 举例
 ```
 {
-	"qid":"t",
-	"method":"sigtransfertx",
-	"account":"XXX",
+    "qid":"t",
+    "method":"sigtransfertx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params":{
-		"gas_price":0,
-		"gas_limit":20000,
-		"asset":"ont",
-		"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
-		"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
-		"amount":"10",
-		"payer":"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48"
-	}
+    "params":{
+    	"gas_price":0,
+    	"gas_limit":20000,
+    	"asset":"ont",
+    	"from":"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+    	"to":"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
+    	"amount":"10",
+    	"payer":"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48"
+    }
 }
 ```
 
@@ -376,26 +378,26 @@ sigsvr启动时，默认会在当前目录下查找"./abi"下的native合约abi�
 
 ```
 {
-	"Qid":"t",
-	"Method":"signativeinvoketx",
-	"account":"XXX",
+    "Qid":"t",
+    "Method":"signativeinvoketx",
+    "account":"XXX",
     "pwd":"XXX",
-	"Params":{
-		"gas_price":0,
-		"gas_limit":20000,
-		"address":"0100000000000000000000000000000000000000",
-		"method":"transfer",
-		"version":0,
-		"params":[
-			[
-				[
-				"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
-				"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
-				"1000"
-				]
-			]
-		]
-	}
+    "Params":{
+    	"gas_price":0,
+    	"gas_limit":20000,
+    	"address":"0100000000000000000000000000000000000000",
+    	"method":"transfer",
+    	"version":0,
+    	"params":[
+    		[
+    			[
+    			"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+    			"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
+    			"1000"
+    			]
+    		]
+    	]
+    }
 }
 ```
 应答：
@@ -418,27 +420,27 @@ signativeinvoketx 方法默认使用签名账户作为手续费支付方，如�
 举例
 ```
 {
-	"Qid":"t",
-	"Method":"signativeinvoketx",
-	"account":"XXX",
+    "Qid":"t",
+    "Method":"signativeinvoketx",
+    "account":"XXX",
     "pwd":"XXX",
-	"Params":{
-		"gas_price":0,
-		"gas_limit":20000,
-		"address":"0100000000000000000000000000000000000000",
-		"method":"transfer",
-		"version":0,
-		"payer":"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48",
-		"params":[
-			[
-				[
-				"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
-				"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
-				"1000"
-				]
-			]
-		]
-	}
+    "Params":{
+    	"gas_price":0,
+    	"gas_limit":20000,
+    	"address":"0100000000000000000000000000000000000000",
+    	"method":"transfer",
+    	"version":0,
+    	"payer":"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48",
+    	"params":[
+    		[
+    			[
+    			"ATACcJPZ8eECdWS4ashaMdqzhywpRTq3oN",
+    			"AeoBhZtS8AmGp3Zt4LxvCqhdU4eSGiK44M",
+    			"1000"
+    			]
+    		]
+    	]
+    }
 }
 ```
 
@@ -472,31 +474,31 @@ NeoVM参数合约支持array、bytearray、string、int以及bool类型，构造
 
 ```
 {
-	"qid": "t",
-	"method": "signeovminvoketx",
-	"account":"XXX",
+    "qid": "t",
+    "method": "signeovminvoketx",
+    "account":"XXX",
     "pwd":"XXX",
-	"params": {
-		"gas_price": 0,
-		"gas_limit": 50000,
-		"address": "8074775331499ebc81ff785e299d406f55224a4c",
-		"version": 0,
-		"params": [
-			{
-				"type": "string",
-				"value": "Time"
-			},
-			{
-				"type": "array",
-				"value": [
-					{
-						"type": "string",
-						"value": ""
-					}
-				]
-			}
-		]
-	}
+    "params": {
+    	"gas_price": 0,
+    	"gas_limit": 50000,
+    	"address": "8074775331499ebc81ff785e299d406f55224a4c",
+    	"version": 0,
+    	"params": [
+    		{
+    			"type": "string",
+    			"value": "Time"
+    		},
+    		{
+    			"type": "array",
+    			"value": [
+    				{
+    					"type": "string",
+    					"value": ""
+    				}
+    			]
+    		}
+    	]
+    }
 }
 ```
 应答：
@@ -559,52 +561,52 @@ NeoVM合约ABI调用签名，需要提供合约的abi，以及合约调用的参
 
 ```
 {
-  "qid": "t",
-  "method": "signeovminvokeabitx",
-  "account":"XXX",
-  "pwd":"XXX",
-  "params": {
+    "qid": "t",
+    "method": "signeovminvokeabitx",
+    "account":"XXX",
+    "pwd":"XXX",
+    "params": {
     "gas_price": 0,
     "gas_limit": 50000,
     "address": "80b82b5e31ad8b7b750207ad80579b5296bf27e8",
     "method": "add",
     "params": ["10","10"],
     "contract_abi": {
-      "hash": "0xe827bf96529b5780ad0702757b8bad315e2bb8ce",
-      "entrypoint": "Main",
-      "functions": [
-        {
-          "name": "Main",
-          "parameters": [
+        "hash": "0xe827bf96529b5780ad0702757b8bad315e2bb8ce",
+        "entrypoint": "Main",
+        "functions": [
             {
-              "name": "operation",
-              "type": "String"
+                "name": "Main",
+                "parameters": [
+                    {
+                        "name": "operation",
+                        "type": "String"
+                    },
+                    {
+                        "name": "args",
+                        "type": "Array"
+                    }
+                ],
+                "returntype": "Any"
             },
             {
-              "name": "args",
-              "type": "Array"
+                "name": "Add",
+                "parameters": [
+                    {
+                        "name": "a",
+                        "type": "Integer"
+                    },
+                    {
+                        "name": "b",
+                        "type": "Integer"
+                    }
+                ],
+                "returntype": "Integer"
             }
-          ],
-          "returntype": "Any"
-        },
-        {
-          "name": "Add",
-          "parameters": [
-            {
-              "name": "a",
-              "type": "Integer"
-            },
-            {
-              "name": "b",
-              "type": "Integer"
-            }
-          ],
-          "returntype": "Integer"
+        ],
+        "events": []
         }
-      ],
-      "events": []
     }
-  }
 }
 ```
 应答:
