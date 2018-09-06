@@ -66,6 +66,10 @@ func (iter *JoinIter) first() bool {
 	var bkey, bval, mkey, mval []byte
 	back := iter.backend.First()
 	mem := iter.memdb.First()
+	// check error
+	if iter.Error() != nil {
+		return false
+	}
 	if back {
 		bkey = iter.backend.Key()
 		bval = iter.backend.Value()
@@ -133,6 +137,12 @@ func (iter *JoinIter) next() bool {
 	if (iter.keyOrigin == FromBack || iter.keyOrigin == FromBoth) && iter.nextBackEnd == false {
 		iter.nextBackEnd = !iter.backend.Next()
 	}
+
+	// check error
+	if iter.Error() != nil {
+		return false
+	}
+
 	if iter.nextBackEnd {
 		if iter.nextMemEnd {
 			iter.key = nil
@@ -177,4 +187,13 @@ func (iter *JoinIter) next() bool {
 func (iter *JoinIter) Release() {
 	iter.memdb.Release()
 	iter.backend.Release()
+}
+
+func (iter *JoinIter) Error() error {
+	if iter.backend.Error() != nil {
+		return iter.backend.Error()
+	} else if iter.memdb.Error() != nil {
+		return iter.memdb.Error()
+	}
+	return nil
 }

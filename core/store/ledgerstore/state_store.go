@@ -308,6 +308,10 @@ func (self *StateStore) ClearAll() error {
 		self.store.BatchDelete(iter.Key())
 	}
 	iter.Release()
+	if err := iter.Error(); err != nil {
+		self.store.NewBatch() // reset the batch
+		return err
+	}
 	return self.store.BatchCommit()
 }
 

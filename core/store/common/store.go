@@ -37,6 +37,7 @@ type StoreIterator interface {
 	Key() []byte   //Return the current item key
 	Value() []byte //Return the current item value
 	Release()      //Close iterator
+	Error() error  // Error returns any accumulated error.
 }
 
 //PersistStore of ledger

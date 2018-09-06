@@ -64,17 +64,17 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	service.CacheDB.DeleteContract(oldAddr)
 
 	iter := service.CacheDB.NewIterator(oldAddr[:])
-	defer iter.Release()
-	has := iter.First()
-	for has {
+	for has := iter.First(); has; has = iter.Next() {
 		key := iter.Key()
 		val := iter.Value()
 
 		newKey := genStorageKey(newAddr, key[20:])
 		service.CacheDB.Put(newKey, val)
 		service.CacheDB.Delete(key)
-
-		has = iter.Next()
+	}
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
 	}
 
 	vm.PushData(engine, contract)
@@ -96,13 +96,13 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	service.CacheDB.DeleteContract(addr)
 
 	iter := service.CacheDB.NewIterator(addr[:])
-	defer iter.Release()
-	has := iter.First()
-	for has {
+	for has := iter.First(); has; has = iter.Next() {
 		key := iter.Key()
 		service.CacheDB.Delete(key)
-
-		has = iter.Next()
+	}
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
 	}
 
 	return nil

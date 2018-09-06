@@ -295,6 +295,9 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) 
 			result[height] = blockHash
 		}
 	}
+	if err := iter.Error(); err != nil {
+		return nil, err
+	}
 	return result, nil
 }
 
@@ -438,6 +441,9 @@ func (this *BlockStore) ClearAll() error {
 		this.store.BatchDelete(iter.Key())
 	}
 	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
+	}
 	return this.CommitTo()
 }
 
