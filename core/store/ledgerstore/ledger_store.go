@@ -845,8 +845,9 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.Execu
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
 	header, err := this.GetHeaderByHeight(this.GetCurrentBlockHeight())
+	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 	if err != nil {
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}, err
+		return stf, err
 	}
 
 	config := &smartcontract.Config{
@@ -858,7 +859,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	cache := storage.NewCloneCache(this.stateStore.NewStateBatch())
 	preGas, err := this.getPreGas(config, cache)
 	if err != nil {
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}, err
+		return stf, err
 	}
 
 	if tx.TxType == types.Invoke {
@@ -875,19 +876,23 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		engine, _ := sc.NewExecuteEngine(invoke.Code)
 		result, err := engine.Invoke()
 		if err != nil {
-			return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}, err
+			return stf, err
 		}
 		gasCost := math.MaxUint64 - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
 		if gasCost < mixGas {
 			gasCost = mixGas
 		}
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: scommon.ConvertNeoVmTypeHexString(result)}, nil
+		cv, err := scommon.ConvertNeoVmTypeHexString(result)
+		if err != nil {
+			return stf, err
+		}
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv}, nil
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: preGas[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), preGas[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
 	} else {
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}, errors.NewErr("transaction type error")
+		return stf, errors.NewErr("transaction type error")
 	}
 }
 

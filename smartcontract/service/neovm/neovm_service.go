@@ -310,7 +310,7 @@ func checkStackSize(engine *vm.ExecutionEngine) bool {
 		}
 	}
 	size += engine.EvaluationStack.Count() + engine.AltStack.Count()
-	if size > MAX_STACK_SIZE {
+	if size > DUPLICATE_STACK_SIZE {
 		return false
 	}
 	return true
