@@ -46,7 +46,7 @@ func CreateAccount(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse)
 		log.Errorf("CreateAccount Qid:%s NewAccountData error:%s", req.Qid, err)
 		return
 	}
-	err = clisvrcom.DefWalletStore.AddAccountData(accData)
+	_, err = clisvrcom.DefWalletStore.AddAccountData(accData)
 	if err != nil {
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		resp.ErrorInfo = "create wallet failed"

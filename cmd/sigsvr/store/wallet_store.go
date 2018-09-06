@@ -257,41 +257,61 @@ func (this *WalletStore) NewAccountData(typeCode keypair.KeyType, curveCode byte
 	return accData, nil
 }
 
-func (this *WalletStore) AddAccountData(accData *account.AccountData) error {
+func (this *WalletStore) AddAccountData(accData *account.AccountData) (bool, error) {
+	isExist, err := this.IsAccountExist(accData.Address)
+	if err != nil {
+		return false, err
+	}
+
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	if this.nextAccountIndex == 0 {
+	accountNum, err := this.GetAccountNumber()
+	if err != nil {
+		return false, fmt.Errorf("GetAccountNumber error:%s", err)
+	}
+	if accountNum == 0 {
 		accData.IsDefault = true
 	} else {
 		accData.IsDefault = false
 	}
-
-	batch := &leveldb.Batch{}
 	data, err := json.Marshal(accData)
 	if err != nil {
-		return err
+		return false, err
 	}
+
+	batch := &leveldb.Batch{}
 	//Put account
 	batch.Put(GetAccountKey(accData.Address), data)
 
-	accountIndex := this.nextAccountIndex
-	//Put account index
-	batch.Put(GetAccountIndexKey(accountIndex), []byte(accData.Address))
+	nextIndex := this.nextAccountIndex
+	if !isExist {
+		accountIndex := nextIndex
+		//Put account index
+		batch.Put(GetAccountIndexKey(accountIndex), []byte(accData.Address))
 
-	nextIndex := accountIndex + 1
-	data = make([]byte, 4, 4)
-	binary.LittleEndian.PutUint32(data, nextIndex)
+		nextIndex++
+		data = make([]byte, 4, 4)
+		binary.LittleEndian.PutUint32(data, nextIndex)
 
-	//Put next account index
-	batch.Put(GetNextAccountIndexKey(), data)
+		//Put next account index
+		batch.Put(GetNextAccountIndexKey(), data)
+
+		accountNum++
+		binary.LittleEndian.PutUint32(data, accountNum)
+
+		//Put account number
+		batch.Put(GetWalletAccountNumberKey(), data)
+	}
 
 	err = this.db.Write(batch, nil)
 	if err != nil {
-		return err
+		return false, err
 	}
 	this.nextAccountIndex = nextIndex
-	return nil
+
+	isAdd := !isExist
+	return isAdd, nil
 }
 
 func (this *WalletStore) getNextAccountIndex() (uint32, error) {
@@ -321,6 +341,17 @@ func (this *WalletStore) GetAccountDataByAddress(address string) (*account.Accou
 	return accData, nil
 }
 
+func (this *WalletStore) IsAccountExist(address string) (bool, error) {
+	data, err := this.db.Get(GetAccountKey(address), nil)
+	if err != nil {
+		if err == leveldb.ErrNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return len(data) != 0, nil
+}
+
 func (this *WalletStore) GetAccountDataByIndex(index uint32) (*account.AccountData, error) {
 	address, err := this.GetAccountAddress(index)
 	if err != nil {
@@ -341,4 +372,45 @@ func (this *WalletStore) GetAccountAddress(index uint32) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+func (this *WalletStore) setAccountNumber(number uint32) error {
+	data := make([]byte, 4, 4)
+	binary.LittleEndian.PutUint32(data, number)
+	return this.db.Put(GetWalletAccountNumberKey(), data, nil)
+}
+
+func (this *WalletStore) GetAccountNumber() (uint32, error) {
+	data, err := this.db.Get(GetWalletAccountNumberKey(), nil)
+	if err == nil {
+		return binary.LittleEndian.Uint32(data), nil
+	}
+	if err != leveldb.ErrNotFound {
+		return 0, err
+	}
+	//Keep downward compatible
+	nextIndex, err := this.getNextAccountIndex()
+	if err != nil {
+		return 0, fmt.Errorf("getNextAccountIndex error:%s", err)
+	}
+	if nextIndex == 0 {
+		return 0, nil
+	}
+	addresses := make(map[string]string, 0)
+	for i := uint32(0); i < nextIndex; i++ {
+		address, err := this.GetAccountAddress(i)
+		if err != nil {
+			return 0, fmt.Errorf("GetAccountAddress Index:%d error:%s", i, err)
+		}
+		if address == "" {
+			continue
+		}
+		addresses[address] = ""
+	}
+	accNum := uint32(len(addresses))
+	err = this.setAccountNumber(accNum)
+	if err != nil {
+		return 0, fmt.Errorf("setAccountNumber error")
+	}
+	return accNum, nil
 }

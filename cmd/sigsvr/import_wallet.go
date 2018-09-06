@@ -62,13 +62,22 @@ func importWallet(ctx *cli.Context) error {
 	if *walletStore.WalletScrypt != *walletData.Scrypt {
 		return fmt.Errorf("import account failed, wallet scrypt:%+v != %+v", walletData.Scrypt, walletStore.WalletScrypt)
 	}
+	addNum := 0
+	updateNum := 0
 	for i := 0; i < len(walletData.Accounts); i++ {
-		err = walletStore.AddAccountData(walletData.Accounts[i])
+		ok, err := walletStore.AddAccountData(walletData.Accounts[i])
 		if err != nil {
 			return fmt.Errorf("import account address:%s error:%s", walletData.Accounts[i].Address, err)
 		}
+		if ok {
+			addNum++
+		} else {
+			updateNum++
+		}
 	}
 	cmd.PrintInfoMsg("Import account success.")
-	cmd.PrintInfoMsg("Account number:%d", len(walletData.Accounts))
+	cmd.PrintInfoMsg("Total account number:%d", len(walletData.Accounts))
+	cmd.PrintInfoMsg("Add account number:%d", addNum)
+	cmd.PrintInfoMsg("Update account number:%d", updateNum)
 	return nil
 }
