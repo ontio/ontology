@@ -369,7 +369,7 @@ Request:
 {
   "jsonrpc": "2.0",
   "method": "getrawtransaction",
-  "params": ["f4250dab094c38d8265acc15c366dc508d2e14bf5699e12d9df26577ed74d657", 1],
+  "params": ["5623dbd283a99ff1cd78068cba474a22bed97fceba4a56a9d38ab0fbc178c4ab", 1],
   "id": 1
 }
 ```
@@ -383,38 +383,28 @@ Response:
     "jsonrpc": "2.0",
     "result": {
         "Version": 0,
-        "Nonce": 3377520203,
+        "Nonce": 3743545316,
+        "GasPrice": 500,
+        "GasLimit": 20000,
+        "Payer": "AWM9vmGpAhFyiXxg8r5Cx4H3mS2zrtSkUF",
         "TxType": 209,
         "Payload": {
-            "Code": "00ff00000000000000000000000000000000000001087472616e736665722d000100017d439492af400d014c2b0cc4975d7252868d8001c484de9cde9d10c3bf49362e6d66a6c3b196b70164",
-            "GasLimit": 0,
-            "VmType": 255
+            "Code": "00c66b149fdd13f41303beb7771ddd0aad6b2d815dcd62916a7cc81400000000000000000000000000000000000000016a7cc8149fdd13f41303beb7771ddd0aad6b2d815dcd62916a7cc8085da07645000000006a7cc86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b65"
         },
-        "Attributes": [
-            {
-                "Usage": 0,
-                "Data": "34336234663163352d373764392d346634342d626262662d326539396136656538376237"
-            }
-        ],
-        "Fee": [
-            {
-                "Amount": 0,
-                "Payer": "017d439492af400d014c2b0cc4975d7252868d80"
-            }
-        ],
-        "NetworkFee": 0,
+        "Attributes": [],
         "Sigs": [
             {
                 "PubKeys": [
-                    "12020206b47806887dfb13679ae884e7843ef263f54a861792502100f6bb3f5bd896cc"
+                    "03e9ac636107c8d5a22e87bf6ae76a5e7a1394930972db72e0c3bebf54e8210a37"
                 ],
                 "M": 1,
                 "SigData": [
-                    "012a0623b31b681c74866c9e72c255ac026a1fcc61867b3f1dc7a25266939e73a24c87c2aceda41174b85a872b11dbf7020a4d52dffbbfefdb704406738dd042bf"
+                    "01dfcf5328a6587b2e2b30d6fae73bc18343ce7e5db2c00b3c92415a7274cfb1367d74604121dfd2eb8aef95b1a5e688bdde5633f1bde0fe85881db55ea2fd112d"
                 ]
             }
         ],
-        "Hash": "a724c0215afa1aeb31be857f2fc69038cf557b4748941bfed8281473b39152e7"
+        "Hash": "5623dbd283a99ff1cd78068cba474a22bed97fceba4a56a9d38ab0fbc178c4ab",
+        "Height": 175888
     }
 }
 ```
