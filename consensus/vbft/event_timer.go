@@ -41,6 +41,7 @@ const (
 	EventPeerHeartbeat
 	EventTxPool
 	EventTxBlockTimeout
+	EventLessTxPool //txnum less than one thousand
 	EventMax
 )
 
@@ -52,6 +53,7 @@ var (
 	peerHandshakeTimeout   = 10 * time.Second
 	txPooltimeout          = 1 * time.Second
 	zeroTxBlockTimeout     = 10 * time.Second
+	lesstxPooltimeout      = 10 * time.Second
 )
 
 type SendMsgEvent struct {
@@ -182,6 +184,8 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 		return txPooltimeout
 	case EventTxBlockTimeout:
 		return zeroTxBlockTimeout
+	case EventLessTxPool:
+		return lesstxPooltimeout
 	}
 
 	return 0
@@ -399,6 +403,20 @@ func (self *EventTimer) stopTxTicker(blockNum uint32) error {
 	defer self.lock.Unlock()
 
 	return self.cancelEventTimer(EventTxPool, blockNum)
+}
+
+func (self *EventTimer) startLessTxTicker(blockNum uint32) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	return self.startEventTimer(EventLessTxPool, blockNum)
+}
+
+func (self *EventTimer) stopLessTxTicker(blockNum uint32) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+
+	return self.cancelEventTimer(EventLessTxPool, blockNum)
 }
 
 ///////////////////////////////////////////////////////////

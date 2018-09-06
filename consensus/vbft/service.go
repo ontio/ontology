@@ -64,6 +64,10 @@ const (
 	CAP_MSG_SEND_CHANNEL = 16
 )
 
+const (
+	LESS_THAN_ONE_THOUSAND_TXNUM = 1000
+)
+
 type BftAction struct {
 	Type     BftActionType
 	BlockNum uint32
@@ -717,6 +721,7 @@ func (self *Server) startNewRound() error {
 		return nil
 	}
 	self.timer.startTxTicker(blkNum)
+	self.timer.startLessTxTicker(blkNum)
 	self.timer.StartTxBlockTimeout(blkNum)
 	return nil
 }
@@ -1761,7 +1766,8 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		self.timer.stopTxTicker(evt.blockNum)
 		if self.completedBlockNum+1 == evt.blockNum {
 			txpool := self.poolActor.GetTxnPool(true, self.validHeight(evt.blockNum))
-			if len(txpool) != 0 {
+			if len(txpool) != 0 && uint32(len(txpool)) > LESS_THAN_ONE_THOUSAND_TXNUM {
+				self.timer.stopLessTxTicker(evt.blockNum)
 				self.timer.CancelTxBlockTimeout(evt.blockNum)
 				self.startNewProposal(evt.blockNum)
 			} else {
@@ -1771,8 +1777,24 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		} else {
 			self.timer.startTxTicker(evt.blockNum)
 		}
+	case EventLessTxPool:
+		self.timer.stopLessTxTicker(evt.blockNum)
+		if self.completedBlockNum+1 == evt.blockNum {
+			txpool := self.poolActor.GetTxnPool(true, self.validHeight(evt.blockNum))
+			if len(txpool) != 0 {
+				self.timer.stopTxTicker(evt.blockNum)
+				self.timer.CancelTxBlockTimeout(evt.blockNum)
+				self.startNewProposal(evt.blockNum)
+			} else {
+				//reset timer, continue waiting txs from txnpool
+				self.timer.startLessTxTicker(evt.blockNum)
+			}
+		} else {
+			self.timer.startLessTxTicker(evt.blockNum)
+		}
 	case EventTxBlockTimeout:
 		self.timer.stopTxTicker(evt.blockNum)
+		self.timer.stopLessTxTicker(evt.blockNum)
 		self.timer.CancelTxBlockTimeout(evt.blockNum)
 		self.startNewProposal(evt.blockNum)
 	}
