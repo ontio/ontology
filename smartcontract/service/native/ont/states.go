@@ -110,7 +110,12 @@ func (this *State) Deserialize(r io.Reader) error {
 	var err error
 	this.From, err = utils.ReadAddress(r)
 	if err != nil {
-		return fmt.Errorf("[State] deserialize from error:%v", err)
+		//for array case, the first element is count
+		//so from is the second element
+		this.From, err = utils.ReadAddress(r)
+		if err != nil {
+			return fmt.Errorf("[State] deserialize from error:%v", err)
+		}
 	}
 	this.To, err = utils.ReadAddress(r)
 	if err != nil {
