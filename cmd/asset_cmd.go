@@ -211,7 +211,7 @@ func transfer(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("transfer error:%s", err)
 	}
-	PrintInfoMsg("Transfer %s", strings.ToUpper(asset))
+	PrintHighLightMsg("Transfer %s", strings.ToUpper(asset))
 	PrintInfoMsg("  From:%s", fromAddr)
 	PrintInfoMsg("  To:%s", toAddr)
 	PrintInfoMsg("  Amount:%s", amountStr)
@@ -243,7 +243,7 @@ func getBalance(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	PrintInfoMsg("BalanceOf:%s", accAddr)
+	PrintHighLightMsg("BalanceOf:%s", accAddr)
 	PrintInfoMsg("  ONT:%s", balance.Ont)
 	PrintInfoMsg("  ONG:%s", utils.FormatOng(ong))
 	return nil
@@ -285,7 +285,7 @@ func getAllowance(ctx *cli.Context) error {
 	default:
 		return fmt.Errorf("unsupport asset:%s", asset)
 	}
-	PrintInfoMsg("Allowance:%s", asset)
+	PrintHighLightMsg("Allowance:%s", asset)
 	PrintInfoMsg("  From:%s", fromAddr)
 	PrintInfoMsg("  To:%s", toAddr)
 	PrintInfoMsg("  Balance:%s", balanceStr)
@@ -352,7 +352,7 @@ func approve(ctx *cli.Context) error {
 		return fmt.Errorf("approve error:%s", err)
 	}
 
-	PrintInfoMsg("Approve:")
+	PrintHighLightMsg("Approve:")
 	PrintInfoMsg("  Asset:%s", asset)
 	PrintInfoMsg("  From:%s", fromAddr)
 	PrintInfoMsg("  To:%s", toAddr)
@@ -449,7 +449,7 @@ func transferFrom(ctx *cli.Context) error {
 		return err
 	}
 
-	PrintInfoMsg("Transfer from:")
+	PrintHighLightMsg("Transfer from:")
 	PrintInfoMsg("  Asset:%s", asset)
 	PrintInfoMsg("  Sender:%s", sendAddr)
 	PrintInfoMsg("  From:%s", fromAddr)
@@ -483,7 +483,7 @@ func unboundOng(ctx *cli.Context) error {
 		return err
 	}
 	balanceStr = utils.FormatOng(balance)
-	PrintInfoMsg("Unbound ONG:")
+	PrintHighLightMsg("Unbound ONG:")
 	PrintInfoMsg("  Account:%s", accAddr)
 	PrintInfoMsg("  ONG:%s", balanceStr)
 	return nil
@@ -536,7 +536,7 @@ func withdrawOng(ctx *cli.Context) error {
 		return err
 	}
 
-	PrintInfoMsg("Withdraw ONG:")
+	PrintHighLightMsg("Withdraw ONG:")
 	PrintInfoMsg("  Account:%s", accAddr)
 	PrintInfoMsg("  Amount:%s", utils.FormatOng(amount))
 	PrintInfoMsg("  TxHash:%s", txHash)

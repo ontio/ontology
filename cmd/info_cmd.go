@@ -22,8 +22,11 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	httpcom "github.com/ontio/ontology/http/base/common"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	navuitls "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/urfave/cli"
 	"strconv"
 )
@@ -115,6 +118,7 @@ func blockInfo(ctx *cli.Context) error {
 			return fmt.Errorf("GetBlock error:%s", err)
 		}
 	}
+	PrintHighLightMsg("Block info:")
 	PrintJsonData(data)
 	return nil
 }
@@ -126,11 +130,15 @@ func txInfo(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	txInfo, err := utils.GetRawTransaction(ctx.Args().First())
+	tx, err := utils.GetRawTransaction(ctx.Args().First())
 	if err != nil {
 		return fmt.Errorf("GetRawTransaction error:%s", err)
 	}
-	PrintJsonData(txInfo)
+	txInfo := httpcom.TransArryByteToHexString(tx)
+	PrintHighLightMsg("Transaction info:")
+	PrintJsonObject(txInfo)
+
+	PrintTransactionDetail(tx)
 	return nil
 }
 
@@ -147,10 +155,9 @@ func txStatus(ctx *cli.Context) error {
 		return fmt.Errorf("GetSmartContractEvent error:%s", err)
 	}
 	if string(evtInfos) == "null" {
-		PrintInfoMsg("Cannot get SmartContractEvent by TxHash:%s.", txHash)
-		return nil
+		return fmt.Errorf("cannot get SmartContractEvent by TxHash:%s", txHash)
 	}
-	PrintInfoMsg("Transaction states:")
+	PrintHighLightMsg("Transaction states:")
 	PrintJsonData(evtInfos)
 	return nil
 }
@@ -186,6 +193,118 @@ func showTx(ctx *cli.Context) error {
 	txHash := tx.Hash()
 	height, _ := utils.GetTxHeight(txHash.ToHexString())
 	txInfo.Height = height
+	PrintHighLightMsg("Transaction info:")
 	PrintJsonObject(txInfo)
+
+	PrintTransactionDetail(tx)
 	return nil
+}
+
+func PrintTransactionDetail(tx *types.Transaction) {
+	invoke, ok := tx.Payload.(*payload.InvokeCode)
+	if !ok {
+		return
+	}
+	invokeInfo, err := utils.ParseInvokeCode(hex.EncodeToString(invoke.Code))
+	if err != nil {
+		return
+	}
+	switch invokeInfo.Method {
+	case ont.TRANSFER_NAME:
+		PrintNativeTransferTxInfo(invokeInfo)
+	case ont.APPROVE_NAME:
+		PrintNativeApproveTxInfo(invokeInfo)
+	case ont.TRANSFERFROM_NAME:
+		PrintTransferFromTxInfo(invokeInfo)
+	}
+}
+
+func PrintNativeTransferTxInfo(invokeInfo *utils.InvokeCodeInfo) {
+	PrintInfoMsg("")
+	PrintHighLightMsg("Transaction detail:")
+	PrintInfoMsg("Method:Transfer")
+	isOnt := false
+	isOng := false
+	switch invokeInfo.Contract {
+	case navuitls.OntContractAddress.ToHexString():
+		PrintInfoMsg("Asset:ONT")
+		isOnt = true
+	case navuitls.OngContractAddress.ToHexString():
+		PrintInfoMsg("Asset:ONG")
+		isOng = true
+	default:
+		PrintInfoMsg("Contract:%s", invokeInfo.Contract)
+	}
+	states := invokeInfo.Params[0].([]*utils.NativeTransferState)
+	for _, state := range states {
+		PrintInfoMsg("From:%s", state.From)
+		PrintInfoMsg("To:%s", state.To)
+		if isOnt {
+			PrintInfoMsg("Value:%s", utils.FormatOnt(state.Value))
+		} else if isOng {
+			PrintInfoMsg("Value:%s", utils.FormatOng(state.Value))
+		}
+	}
+	PrintInfoMsg("")
+}
+
+func PrintNativeApproveTxInfo(invokeInfo *utils.InvokeCodeInfo) {
+	PrintInfoMsg("")
+	PrintHighLightMsg("Transaction detail:")
+	PrintInfoMsg("Method:Approve")
+	isOnt := false
+	isOng := false
+	switch invokeInfo.Contract {
+	case navuitls.OntContractAddress.ToHexString():
+		PrintInfoMsg("Asset:ONT")
+		isOnt = true
+	case navuitls.OngContractAddress.ToHexString():
+		PrintInfoMsg("Asset:ONG")
+		isOng = true
+	default:
+		PrintInfoMsg("Contract:%s", invokeInfo.Contract)
+	}
+	state := invokeInfo.Params[0].(*utils.NativeTransferState)
+	PrintInfoMsg("From:%s", state.From)
+	PrintInfoMsg("To:%s", state.To)
+	if isOnt {
+		PrintInfoMsg("Value:%s", utils.FormatOnt(state.Value))
+	} else if isOng {
+		PrintInfoMsg("Value:%s", utils.FormatOng(state.Value))
+	}
+	PrintInfoMsg("")
+}
+
+func PrintTransferFromTxInfo(invokeInfo *utils.InvokeCodeInfo) {
+	PrintInfoMsg("")
+	PrintHighLightMsg("Transaction detail:")
+
+	isOnt := false
+	isOng := false
+	switch invokeInfo.Contract {
+	case navuitls.OntContractAddress.ToHexString():
+		isOnt = true
+	case navuitls.OngContractAddress.ToHexString():
+		isOng = true
+	}
+	state := invokeInfo.Params[0].(*utils.NativeTransferFromState)
+
+	if isOng && state.From == navuitls.OntContractAddress.ToBase58() {
+		PrintInfoMsg("Method:WithdrawONG")
+		PrintInfoMsg("Account:%s", state.Sender)
+		PrintInfoMsg("Receive:%s", state.To)
+		PrintInfoMsg("Value:%s", utils.FormatOng(state.Value))
+		PrintInfoMsg("")
+		return
+	}
+	PrintInfoMsg("Method:TransferFrom")
+	PrintInfoMsg("Sender:%s", state.Sender)
+	PrintInfoMsg("From:%s", state.From)
+	PrintInfoMsg("To:%s", state.To)
+	if isOnt {
+		PrintInfoMsg("Value:%s", utils.FormatOnt(state.Value))
+	} else if isOng {
+		PrintInfoMsg("Value:%s", utils.FormatOng(state.Value))
+	}
+	PrintInfoMsg("")
 }

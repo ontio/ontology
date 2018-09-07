@@ -440,6 +440,11 @@ func PrintInfoMsg(format string, a ...interface{}) {
 	fmt.Printf(format+"\n", a...)
 }
 
+func PrintHighLightMsg(format string, a ...interface{}) {
+	format = fmt.Sprintf("\033[34m%s\033[0m\n", format) //Print error msg with yellow color
+	fmt.Printf(format, a...)
+}
+
 func PrintJsonData(data []byte) {
 	var out bytes.Buffer
 	err := json.Indent(&out, data, "", "   ")

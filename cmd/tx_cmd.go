@@ -59,7 +59,7 @@ func sendTx(ctx *cli.Context) error {
 		if preResult.State == 0 {
 			return fmt.Errorf("prepare execute transaction failed. %v", preResult)
 		}
-		PrintInfoMsg("Prepare execute transaction success.")
+		PrintHighLightMsg("Prepare execute transaction success.")
 		PrintInfoMsg("Gas limit:%d", preResult.Gas)
 		PrintInfoMsg("Result:%v", preResult.Result)
 		return nil
@@ -68,7 +68,7 @@ func sendTx(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	PrintInfoMsg("Send transaction success.")
+	PrintHighLightMsg("Send transaction success.")
 	PrintInfoMsg("  TxHash:%s", txHash)
 	PrintInfoMsg("\nTip:")
 	PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
@@ -232,7 +232,7 @@ func transferTx(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("tx serialization error:%s", err)
 	}
-	PrintInfoMsg("Transfer raw tx:")
+	PrintHighLightMsg("Transfer raw tx:")
 	PrintInfoMsg(hex.EncodeToString(sink.Bytes()))
 	return nil
 }
@@ -310,7 +310,7 @@ func approveTx(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("tx serialization error:%s", err)
 	}
-	PrintInfoMsg("Approve raw tx:")
+	PrintHighLightMsg("Approve raw tx:")
 	PrintInfoMsg(hex.EncodeToString(sink.Bytes()))
 	return nil
 }
@@ -399,7 +399,7 @@ func transferFromTx(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("tx serialization error:%s", err)
 	}
-	PrintInfoMsg("TransferFrom raw tx:")
+	PrintHighLightMsg("TransferFrom raw tx:")
 	PrintInfoMsg(hex.EncodeToString(sink.Bytes()))
 	return nil
 }
@@ -489,7 +489,7 @@ func withdrawONGTx(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("tx serialization error:%s", err)
 	}
-	PrintInfoMsg("Withdraw raw tx:")
+	PrintHighLightMsg("Withdraw raw tx:")
 	PrintInfoMsg(hex.EncodeToString(sink.Bytes()))
 	return nil
 }
