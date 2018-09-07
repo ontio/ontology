@@ -27,7 +27,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 )
 
-type Status int
+type Status uint8
 
 func (this *Status) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint8(w, uint8(*this)); err != nil {
@@ -422,15 +422,8 @@ type CandidateSplitInfo struct {
 	PeerPubkey string
 	Address    common.Address
 	InitPos    uint64
-	Stake      uint64
-	S          uint64
-}
-
-type SyncNodeSplitInfo struct {
-	PeerPubkey string
-	Address    common.Address
-	InitPos    uint64
-	S          uint64
+	Stake      uint64 //total stake, init pos + total pos
+	S          uint64 //fee split weight of this peer
 }
 
 type PeerAttributes struct {

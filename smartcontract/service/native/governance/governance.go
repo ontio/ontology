@@ -1332,7 +1332,7 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize setPeerCostParam error: %v", err)
 	}
-	if params.PeerCost >= 100 {
+	if params.PeerCost > 100 {
 		return utils.BYTE_FALSE, fmt.Errorf("peerCost must >= 0 and <= 100")
 	}
 
