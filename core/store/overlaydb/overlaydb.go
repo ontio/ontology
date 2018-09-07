@@ -19,6 +19,9 @@
 package overlaydb
 
 import (
+	"crypto/sha256"
+
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
@@ -84,6 +87,18 @@ func (self *OverlayDB) CommitTo() {
 			self.store.BatchPut(key, val)
 		}
 	})
+}
+
+func (self *OverlayDB) ChangeHash() comm.Uint256 {
+	stateDiff := sha256.New()
+	self.memdb.ForEach(func(key, val []byte) {
+		stateDiff.Write(key)
+		stateDiff.Write(val)
+	})
+
+	var hash comm.Uint256
+	stateDiff.Sum(hash[:0])
+	return hash
 }
 
 // param key is referenced by iterator

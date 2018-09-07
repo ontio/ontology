@@ -599,6 +599,9 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}
+
+	stateHash := overlay.ChangeHash()
+	log.Debugf("the state transition hash of block %d is:%s", blockHeight, stateHash.ToHexString())
 	overlay.CommitTo()
 
 	return nil
