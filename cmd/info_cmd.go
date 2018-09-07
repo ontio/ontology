@@ -209,6 +209,9 @@ func PrintTransactionDetail(tx *types.Transaction) {
 	if err != nil {
 		return
 	}
+	if invokeInfo == nil {
+		return
+	}
 	switch invokeInfo.Method {
 	case ont.TRANSFER_NAME:
 		PrintNativeTransferTxInfo(invokeInfo)
