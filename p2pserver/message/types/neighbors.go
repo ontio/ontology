@@ -19,12 +19,10 @@
 package types
 
 import (
-	"bytes"
-	//"errors"
+	"io"
 
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/common"
+	pCom "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
@@ -34,84 +32,73 @@ type Neighbors struct {
 }
 
 func (this *Neighbors) CmdType() string {
-	return common.DHT_NEIGHBORS
+	return pCom.DHT_NEIGHBORS
 }
 
 //Serialize message payload
-func (this Neighbors) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	err := serialization.WriteVarBytes(p, this.FromID[:])
-	if err != nil {
-		log.Errorf("failed to serialize from id %v. FromID %x", err, this.FromID)
-		return nil, err
-	}
-
-	err = serialization.WriteVarUint(p, uint64(len(this.Nodes)))
-	if err != nil {
-		log.Errorf("failed to serialize the length of nodes %v. len %d", err, len(this.Nodes))
-		return nil, err
-	}
+func (this Neighbors) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteVarBytes(this.FromID[:])
+	sink.WriteUint32(uint32(len(this.Nodes)))
 
 	for _, node := range this.Nodes {
-		err := serialization.WriteVarBytes(p, node.ID[:])
-		if err != nil {
-			log.Errorf("failed to serialize node id %v. ID %x", err, node.ID)
-			return nil, err
-		}
-		err = serialization.WriteString(p, node.IP)
-		if err != nil {
-			log.Errorf("failed to serialize node ip %v. ip %s", err, node.IP)
-			return nil, err
-		}
-		err = serialization.WriteUint16(p, node.UDPPort)
-		if err != nil {
-			log.Errorf("failed to serialize node udp port %v. udp port %s", err, node.UDPPort)
-			return nil, err
-		}
-		err = serialization.WriteUint16(p, node.TCPPort)
-		if err != nil {
-			log.Errorf("failed to serialize node udp port %v. tcp port %s", err, node.TCPPort)
-			return nil, err
-		}
+		sink.WriteVarBytes(node.ID[:])
+		sink.WriteString(node.IP)
+		sink.WriteUint16(node.UDPPort)
+		sink.WriteUint16(node.TCPPort)
 	}
-	return p.Bytes(), nil
+	return nil
 }
 
 //Deserialize message payload
-func (this *Neighbors) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	id, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return err
-	}
-	copy(this.FromID[:], id)
+func (this *Neighbors) Deserialization(source *common.ZeroCopySource) error {
+	var (
+		eof       bool
+		irregular bool
+		buf       []byte
+	)
 
-	num, err := serialization.ReadVarUint(buf, 0)
-	if err != nil {
-		return err
+	buf, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+	copy(this.FromID[:], buf)
+
+	num, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	this.Nodes = make([]types.Node, 0, num)
 	for i := 0; i < int(num); i++ {
 		node := new(types.Node)
-		id, err := serialization.ReadVarBytes(buf)
-		if err != nil {
-			return err
+
+		buf, _, irregular, eof = source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
 		}
-		copy(node.ID[:], id)
-		node.IP, err = serialization.ReadString(buf)
-		if err != nil {
-			log.Errorf("failed to deserialize node ip %v", err)
-			return err
+		if irregular {
+			return common.ErrIrregularData
 		}
-		node.UDPPort, err = serialization.ReadUint16(buf)
-		if err != nil {
-			log.Errorf("failed to deserialize node udp port %v", err)
-			return err
+		copy(node.ID[:], buf)
+
+		node.IP, _, irregular, eof = source.NextString()
+		if eof {
+			return io.ErrUnexpectedEOF
 		}
-		node.TCPPort, err = serialization.ReadUint16(buf)
-		if err != nil {
-			log.Errorf("failed to deserialize node tcp port %v", err)
-			return err
+		if irregular {
+			return common.ErrIrregularData
+		}
+
+		node.UDPPort, eof = source.NextUint16()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		node.TCPPort, eof = source.NextUint16()
+		if eof {
+			return io.ErrUnexpectedEOF
 		}
 		this.Nodes = append(this.Nodes, *node)
 	}

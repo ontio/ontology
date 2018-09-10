@@ -19,12 +19,10 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
-	"errors"
+	"io"
 
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/common"
+	pCom "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 )
 
@@ -34,40 +32,40 @@ type FindNode struct {
 }
 
 func (this *FindNode) CmdType() string {
-	return common.DHT_FIND_NODE
+	return pCom.DHT_FIND_NODE
 }
 
 //Serialize message payload
-func (this FindNode) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, this.FromID)
-	if err != nil {
-		log.Error("failed to write DHT findnode from id failed")
-		return nil, err
-	}
-	err = binary.Write(p, binary.LittleEndian, this.TargetID)
-	if err != nil {
-		log.Error("failed to write DHT findnode target id failed")
-		return nil, err
-	}
-
-	return p.Bytes(), nil
+func (this FindNode) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteVarBytes(this.FromID[:])
+	sink.WriteVarBytes(this.TargetID[:])
+	return nil
 }
 
 //Deserialize message payload
-func (this *FindNode) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-
-	err := binary.Read(buf, binary.LittleEndian, &this.FromID)
-	if err != nil {
-		log.Error("Parse DHT findnode message error", err)
-		return errors.New("Parse DHT findnode from id message error")
+func (this *FindNode) Deserialization(source *common.ZeroCopySource) error {
+	var (
+		eof       bool
+		irregular bool
+		buf       []byte
+	)
+	buf, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	err = binary.Read(buf, binary.LittleEndian, &this.TargetID)
-	if err != nil {
-		log.Error("Parse DHT findnode message error", err)
-		return errors.New("Parse DHT findnode target id message error")
+	if irregular {
+		return common.ErrIrregularData
 	}
+	copy(this.FromID[:], buf)
 
-	return err
+	buf, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+	copy(this.TargetID[:], buf)
+
+	return nil
 }

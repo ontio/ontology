@@ -147,7 +147,7 @@ type Peer struct {
 	consState uint32
 	txnCnt    uint64
 	rxTxnCnt  uint64
-	knownHash *set.Set
+	knownHash set.Interface
 	connLock  sync.RWMutex
 }
 
@@ -156,7 +156,7 @@ func NewPeer() *Peer {
 	p := &Peer{
 		syncState: common.INIT,
 		consState: common.INIT,
-		knownHash: set.New(),
+		knownHash: set.New(set.ThreadSafe),
 	}
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()

@@ -68,8 +68,8 @@ func (this *ConsensusPayload) Hash() common.Uint256 {
 		return *this.hash
 	}
 
-	sink := comm.NewZeroCopySink(nil)
-	this.serializeUnsigned(sink)
+	sink := common.NewZeroCopySink(nil)
+	this.serializationUnsigned(sink)
 	buf := keypair.SerializePublicKey(this.Owner)
 	sink.WriteVarBytes(buf)
 

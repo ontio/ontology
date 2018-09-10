@@ -19,12 +19,12 @@
 package dht
 
 import (
-	"bytes"
 	"errors"
 	"net"
 	"strings"
 	"sync"
 
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -200,9 +200,9 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 		return err
 	}
 	findNodeMsg := msgpack.NewFindNode(this.nodeID, targetID)
-	bf := new(bytes.Buffer)
-	mt.WriteMessage(bf, findNodeMsg)
-	this.send(addr, bf.Bytes())
+	sink := comm.NewZeroCopySink(nil)
+	mt.WriteMessage(sink, findNodeMsg)
+	this.send(addr, sink.Bytes())
 	log.Infof("[dht]findNode to %s", addr.String())
 	return nil
 }
@@ -226,9 +226,9 @@ func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	}
 
 	neighborsMsg := msgpack.NewNeighbors(this.nodeID, nodes)
-	bf := new(bytes.Buffer)
-	mt.WriteMessage(bf, neighborsMsg)
-	this.send(addr, bf.Bytes())
+	sink := comm.NewZeroCopySink(nil)
+	mt.WriteMessage(sink, neighborsMsg)
+	this.send(addr, sink.Bytes())
 	log.Infof("[dht]findNodeReply to %s", addr.String())
 
 	return nil
@@ -243,9 +243,9 @@ func (this *DHT) ping(addr *net.UDPAddr) error {
 	}
 	pingMsg := msgpack.NewDHTPing(this.nodeID, this.udpPort,
 		this.tcpPort, ip, addr, this.version)
-	bf := new(bytes.Buffer)
-	mt.WriteMessage(bf, pingMsg)
-	this.send(addr, bf.Bytes())
+	sink := comm.NewZeroCopySink(nil)
+	mt.WriteMessage(sink, pingMsg)
+	this.send(addr, sink.Bytes())
 	log.Infof("[dht]ping to %s", addr.String())
 	return nil
 }
@@ -261,9 +261,9 @@ func (this *DHT) pong(addr *net.UDPAddr) error {
 
 	pongMsg := msgpack.NewDHTPong(this.nodeID, this.udpPort,
 		this.tcpPort, ip, addr, this.version)
-	bf := new(bytes.Buffer)
-	mt.WriteMessage(bf, pongMsg)
-	this.send(addr, bf.Bytes())
+	sink := comm.NewZeroCopySink(nil)
+	mt.WriteMessage(sink, pongMsg)
+	this.send(addr, sink.Bytes())
 	log.Infof("[dht]pong to %s", addr.String())
 	return nil
 }
@@ -277,7 +277,7 @@ func (this *DHT) onRequestTimeOut(requestId types.RequestId) {
 	} else if reqType == types.DHT_PING_REQUEST {
 		replaceNode, ok := this.messagePool.GetReplaceNode(requestId)
 		destNode, ok := this.messagePool.GetRequestData(requestId)
-		if ok && destNode != nil{
+		if ok && destNode != nil {
 			this.routingTable.removeNode(destNode.ID)
 		}
 		if ok && replaceNode != nil {

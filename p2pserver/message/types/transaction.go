@@ -19,6 +19,8 @@
 package types
 
 import (
+	"io"
+
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
