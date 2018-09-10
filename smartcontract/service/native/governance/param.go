@@ -892,14 +892,14 @@ func (this *WithdrawFeeParam) Deserialize(r io.Reader) error {
 
 type PromisePos struct {
 	PeerPubkey string
-	PromisePos uint32
+	PromisePos uint64
 }
 
 func (this *PromisePos) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
 		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
 	}
-	if err := utils.WriteVarUint(w, uint64(this.PromisePos)); err != nil {
+	if err := utils.WriteVarUint(w, this.PromisePos); err != nil {
 		return fmt.Errorf("serialization.WriteBool, serialize promisePos error: %v", err)
 	}
 	return nil
@@ -914,11 +914,8 @@ func (this *PromisePos) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("serialization.ReadBool, deserialize promisePos error: %v", err)
 	}
-	if promisePos > math.MaxUint32 {
-		return fmt.Errorf("promisePos larger than max of uint32")
-	}
 	this.PeerPubkey = peerPubkey
-	this.PromisePos = uint32(promisePos)
+	this.PromisePos = promisePos
 	return nil
 }
 

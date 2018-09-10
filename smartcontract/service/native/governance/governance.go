@@ -454,6 +454,18 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("approveCandidate, peer status is not RegisterCandidateStatus")
 	}
 
+	if native.Height >= NEW_VERSION_BLOCK {
+		//update promise pos
+		promisePos := &PromisePos{
+			PeerPubkey: peerPoolItem.PeerPubkey,
+			PromisePos: peerPoolItem.InitPos,
+		}
+		err = putPromisePos(native, contract, promisePos)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("putPromisePos, put promisePos error: %v", err)
+		}
+	}
+
 	peerPoolItem.Status = CandidateStatus
 	peerPoolItem.TotalPos = 0
 
@@ -622,22 +634,16 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix), &cstates.StorageItem{Value: bf.Bytes()})
 		//change peerPool status
 		if peerPoolItem.Status == ConsensusStatus {
-			peerPoolItem.Status = BlackStatus
-			peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
-			err = putPeerPoolMap(native, contract, view, peerPoolMap)
-			if err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
-			}
 			commit = true
-		} else {
-			peerPoolItem.Status = BlackStatus
-			peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
-			err = putPeerPoolMap(native, contract, view, peerPoolMap)
-			if err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
-			}
 		}
+		peerPoolItem.Status = BlackStatus
+		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
 	}
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
+	}
+
 	//commitDpos
 	if commit {
 		// get config

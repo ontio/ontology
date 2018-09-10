@@ -87,18 +87,6 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("registerCandidate, peerPubkey is already in peerPoolMap")
 	}
 
-	if native.Height >= NEW_VERSION_BLOCK {
-		//update promise pos
-		promisePos := &PromisePos{
-			PeerPubkey: params.PeerPubkey,
-			PromisePos: params.InitPos,
-		}
-		err = putPromisePos(native, contract, promisePos)
-		if err != nil {
-			return fmt.Errorf("putPromisePos, put promisePos error: %v", err)
-		}
-	}
-
 	peerPoolItem := &PeerPoolItem{
 		PeerPubkey: params.PeerPubkey,
 		Address:    params.Address,
