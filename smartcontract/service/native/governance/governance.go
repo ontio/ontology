@@ -369,11 +369,11 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//unfreeze initPos
-	authorizeInfo := &AuthorizeInfo{
-		PeerPubkey:          peerPoolItem.PeerPubkey,
-		Address:             peerPoolItem.Address,
-		WithdrawUnfreezePos: peerPoolItem.InitPos,
+	authorizeInfo, err := getAuthorizeInfo(native, contract, params.PeerPubkey, address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getAuthorizeInfo, get authorizeInfo error: %v", err)
 	}
+	authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + peerPoolItem.InitPos
 	err = putAuthorizeInfo(native, contract, authorizeInfo)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
