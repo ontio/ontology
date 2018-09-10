@@ -24,7 +24,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"net"
 	"strconv"
 	"sync"
@@ -159,9 +158,8 @@ func (this *DHT) SetFallbackNodes(nodes []types.Node) {
 func (this *DHT) bootstrap() {
 	// Todo:
 	this.syncAddNodes(this.bootstrapNodes)
-	this.DisplayRoutingTable()
 
-	log.Info("DHT starts lookup")
+	log.Debug("DHT starts lookup")
 	this.lookup(this.nodeID)
 }
 
@@ -171,7 +169,7 @@ func (this *DHT) syncAddNodes(nodes map[types.NodeID]*types.Node) {
 	for _, node := range nodes {
 		addr, err := getNodeUDPAddr(node)
 		if err != nil {
-			log.Infof("[dht]node %s address is error!", node.ID)
+			log.Debugf("[dht]node %s address is error!", node.ID)
 			continue
 		}
 		_, isNewRequest := this.messagePool.AddRequest(node,
@@ -208,13 +206,13 @@ func (this *DHT) loop() {
 
 // refreshRoutingTable refresh k bucket
 func (this *DHT) refreshRoutingTable() {
-	log.Info("[dht]refreshRoutingTable start, add bootstrapNodes")
+	log.Debug("[dht]refreshRoutingTable start, add bootstrapNodes")
 	// Todo:
 	this.syncAddNodes(this.bootstrapNodes)
 	this.lookup(this.nodeID)
 	var targetID types.NodeID
 	rand.Read(targetID[:])
-	log.Infof("[dht]refreshRoutingTable: target id %s", targetID.String())
+	log.Debugf("[dht]refreshRoutingTable: target id %s", targetID.String())
 	this.lookup(targetID)
 }
 
@@ -323,7 +321,7 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 			lastNode := this.routingTable.getLastNodeInBucket(bucketIndex)
 			addr, err := getNodeUDPAddr(lastNode)
 			if err != nil {
-				log.Infof("[dht]addnode: node ip %s, udp %d, tcp %d", remoteNode.IP, remoteNode.UDPPort, remoteNode.TCPPort)
+				log.Debugf("[dht]addnode: node ip %s, udp %d, tcp %d", remoteNode.IP, remoteNode.UDPPort, remoteNode.TCPPort)
 				this.routingTable.removeNode(lastNode.ID)
 				this.routingTable.addNode(remoteNode, bucketIndex)
 				return
@@ -341,11 +339,11 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 	msg, _, err := mt.ReadMessage(bytes.NewBuffer(packet))
 	if err != nil {
-		log.Infof("[dht]processPacket: receive dht message error: %v", err)
+		log.Debugf("[dht]processPacket: receive dht message error: %v", err)
 		return
 	}
 	msgType := msg.CmdType()
-	log.Infof("[dht]processPacket: UDP msg %s from %v", msgType, from)
+	log.Debugf("[dht]processPacket: UDP msg %s from %v", msgType, from)
 	switch msgType {
 	case common.DHT_PING:
 		this.pingHandle(from, msg)
@@ -356,7 +354,7 @@ func (this *DHT) processPacket(from *net.UDPAddr, packet []byte) {
 	case common.DHT_NEIGHBORS:
 		this.neighborsHandle(from, msg)
 	default:
-		log.Infof("[dht]processPacket: unknown msg %s", msgType)
+		log.Debugf("[dht]processPacket: unknown msg %s", msgType)
 	}
 }
 
@@ -372,13 +370,13 @@ func (this *DHT) recvUDPMsg() {
 		}
 
 		if this.isInBlackList(from.IP.String()) {
-			log.Infof("recvUDPMsg: receive a msg from %v in blacklist",
+			log.Debugf("recvUDPMsg: receive a msg from %v in blacklist",
 				from)
 			continue
 		}
 
 		if !this.isInWhiteList(from.IP.String()) {
-			log.Infof("recvUDPMsg: receive a msg from %v is not in whitelist",
+			log.Debugf("recvUDPMsg: receive a msg from %v is not in whitelist",
 				from)
 			continue
 		}
@@ -405,7 +403,7 @@ func (this *DHT) listenUDP(laddr string) error {
 		log.Errorf("listenUDP: failed to listen udp on %s err %v", addr, err)
 		return err
 	}
-	log.Infof("DHT is listening on %s", laddr)
+	log.Debugf("DHT is listening on %s", laddr)
 	go this.recvUDPMsg()
 	return nil
 }
@@ -450,21 +448,6 @@ func getNodeUDPAddr(node *types.Node) (*net.UDPAddr, error) {
 	}
 	addr.Port = int(node.UDPPort)
 	return addr, nil
-}
-
-func (this *DHT) DisplayRoutingTable() {
-	logString := ""
-	for bucketIndex, bucket := range this.routingTable.buckets {
-		if this.routingTable.getTotalNodeNumInBukcet(bucketIndex) == 0 {
-			continue
-		}
-		logString += "[" + strconv.Itoa(bucketIndex) + "]: "
-		for i := 0; i < this.routingTable.getTotalNodeNumInBukcet(bucketIndex); i++ {
-			logString += fmt.Sprintf("%s %d %d\n", bucket.entries[i].IP,
-				bucket.entries[i].UDPPort, bucket.entries[i].TCPPort)
-		}
-	}
-	log.Info(logString)
 }
 
 // Resolve searches for a specific node with the given ID.

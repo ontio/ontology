@@ -121,27 +121,7 @@ func (this *P2PServer) Start() error {
 	go this.heartBeatService()
 	go this.blockSync.Start()
 	go this.dht.Start()
-	go this.DisplayDHT()
 	return nil
-}
-
-func (this *P2PServer) DisplayDHT() {
-	timer := time.NewTicker(10 * time.Second)
-	for {
-		select {
-		case <-timer.C:
-			log.Info("DHT table is:")
-			this.dht.DisplayRoutingTable()
-			log.Info("Neighbor peers: ", this.GetConnectionCnt())
-			peers := this.GetNeighborAddrs()
-			for i, peer := range peers {
-				var ip net.IP
-				ip = peer.IpAddr[:]
-				address := ip.To16().String() + ":" + strconv.Itoa(int(peer.Port))
-				log.Infof("peer %d address is %s", i, address)
-			}
-		}
-	}
 }
 
 //Stop halt all service by send signal to channels

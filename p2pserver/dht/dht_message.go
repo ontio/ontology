@@ -42,13 +42,13 @@ func (this *DHT) findNodeHandle(from *net.UDPAddr, msg mt.Message) {
 
 	if node := this.routingTable.queryNode(findNode.FromID); node == nil {
 		// findnode must be after ping/pong, in case of DoS attack
-		log.Infof("[dht]findNodeHandle: from %v, local doesn't content the request node!", from)
+		log.Debugf("[dht]findNodeHandle: from %v, local doesn't content the request node!", from)
 		return
 	}
 
 	this.updateNode(findNode.FromID)
 	this.findNodeReply(from, findNode.TargetID)
-	log.Infof("[dht]findNodeHandle: from %v ", from)
+	log.Debugf("[dht]findNodeHandle: from %v ", from)
 }
 
 // neighborsHandle handles a neighbors message from UDP network
@@ -109,7 +109,7 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 	this.messagePool.SetResults(liveNodes)
 
 	this.updateNode(neighbors.FromID)
-	log.Infof("[dht]neighborsHandle: from %v ", from)
+	log.Debugf("[dht]neighborsHandle: from %v ", from)
 }
 
 // pingHandle handles a ping message from UDP network
@@ -143,7 +143,7 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 	}
 	this.addNode(node)
 	this.pong(from)
-	log.Infof("[dht]pingHandle: from %v ", from)
+	log.Debugf("[dht]pingHandle: from %v ", from)
 }
 
 // pongHandle handles a pong message from UDP network
@@ -163,7 +163,7 @@ func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
 	node, ok := this.messagePool.GetRequestData(requestId)
 	if !ok {
 		// request pool doesn't contain the node, ping timeout
-		log.Infof("[dht]pongHandle: from %v timeout", from)
+		log.Debugf("[dht]pongHandle: from %v timeout", from)
 		this.routingTable.removeNode(pong.FromID)
 		return
 	}
@@ -180,7 +180,7 @@ func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
 	this.addNode(node)
 	// remove node from request pool
 	this.messagePool.DeleteRequest(requestId)
-	log.Infof("[dht]pongHandle: from %v ", from)
+	log.Debugf("[dht]pongHandle: from %v ", from)
 }
 
 // update the node to bucket when receive message from the node
@@ -203,7 +203,7 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 	sink := comm.NewZeroCopySink(nil)
 	mt.WriteMessage(sink, findNodeMsg)
 	this.send(addr, sink.Bytes())
-	log.Infof("[dht]findNode to %s", addr.String())
+	log.Debugf("[dht]findNode to %s", addr.String())
 	return nil
 }
 
@@ -229,7 +229,7 @@ func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	sink := comm.NewZeroCopySink(nil)
 	mt.WriteMessage(sink, neighborsMsg)
 	this.send(addr, sink.Bytes())
-	log.Infof("[dht]findNodeReply to %s", addr.String())
+	log.Debugf("[dht]findNodeReply to %s", addr.String())
 
 	return nil
 }
@@ -246,7 +246,7 @@ func (this *DHT) ping(addr *net.UDPAddr) error {
 	sink := comm.NewZeroCopySink(nil)
 	mt.WriteMessage(sink, pingMsg)
 	this.send(addr, sink.Bytes())
-	log.Infof("[dht]ping to %s", addr.String())
+	log.Debugf("[dht]ping to %s", addr.String())
 	return nil
 }
 
@@ -264,7 +264,7 @@ func (this *DHT) pong(addr *net.UDPAddr) error {
 	sink := comm.NewZeroCopySink(nil)
 	mt.WriteMessage(sink, pongMsg)
 	this.send(addr, sink.Bytes())
-	log.Infof("[dht]pong to %s", addr.String())
+	log.Debugf("[dht]pong to %s", addr.String())
 	return nil
 }
 
