@@ -241,8 +241,8 @@ func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context,
 	req *common.TransmitConsensusMsgReq) {
 	msg := req.Msg.(*types.Consensus)
 	peer := this.server.GetNetWork().GetPeer(req.Target)
-	if peer != nil && this.server.GetNetWork().IsPeerEstablished(peer){
-		err :=  this.server.Send(peer, msg, true)
+	if peer != nil && this.server.GetNetWork().IsPeerEstablished(peer) {
+		err := this.server.Send(peer, msg, true)
 		if err != nil {
 			log.Warnf("[p2p]can`t transmit consensus msg to %s, send msg err: %s", peer.GetAddr(), err)
 		}

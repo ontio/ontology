@@ -19,6 +19,8 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
@@ -27,8 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/urfave/cli"
 	"io/ioutil"
-	"bytes"
-	"encoding/json"
 )
 
 func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {

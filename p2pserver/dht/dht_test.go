@@ -19,13 +19,13 @@
 package dht
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"net"
 	"testing"
 	"time"
 
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht/types"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
@@ -118,13 +118,13 @@ func TestDHT(t *testing.T) {
 		targetAddr.Port = int(dht.udpPort)
 
 		// Ping
-		pingMsg := msgpack.NewDHTPing(node.ID, node.UDPPort, node.TCPPort, srcAddr.IP, targetAddr, 1)
-		pingBuffer := new(bytes.Buffer)
-		mt.WriteMessage(pingBuffer, pingMsg)
+		pingMsg := msgpack.NewDHTPing(node.ID, node.UDPPort, node.TCPPort, srcAddr.IP, targetAddr, 0)
+		sink := comm.NewZeroCopySink(nil)
+		mt.WriteMessage(sink, pingMsg)
 
 		ping := &types.DHTMessage{
 			From:    srcAddr,
-			Payload: pingBuffer.Bytes(),
+			Payload: sink.Bytes(),
 		}
 		dht.recvCh <- ping
 
@@ -132,21 +132,22 @@ func TestDHT(t *testing.T) {
 		var targetID types.NodeID
 		rand.Read(targetID[:])
 		findNodeMsg := msgpack.NewFindNode(node.ID, targetID)
-		findNodeBuffer := new(bytes.Buffer)
-		mt.WriteMessage(findNodeBuffer, findNodeMsg)
+		sink2 := comm.NewZeroCopySink(nil)
+		mt.WriteMessage(sink2, findNodeMsg)
+
 		findNode := &types.DHTMessage{
 			From:    srcAddr,
-			Payload: findNodeBuffer.Bytes(),
+			Payload: sink2.Bytes(),
 		}
 		dht.recvCh <- findNode
 
 		// Pong
-		pongMsg := msgpack.NewDHTPong(node.ID, node.UDPPort, node.TCPPort, srcAddr.IP, targetAddr, 1)
-		pongBuffer := new(bytes.Buffer)
-		mt.WriteMessage(pongBuffer, pongMsg)
+		pongMsg := msgpack.NewDHTPong(node.ID, node.UDPPort, node.TCPPort, srcAddr.IP, targetAddr, 0)
+		sink3 := comm.NewZeroCopySink(nil)
+		mt.WriteMessage(sink3, pongMsg)
 		pong := &types.DHTMessage{
 			From:    srcAddr,
-			Payload: pongBuffer.Bytes(),
+			Payload: sink3.Bytes(),
 		}
 		dht.recvCh <- pong
 	}

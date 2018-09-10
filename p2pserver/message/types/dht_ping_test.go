@@ -29,7 +29,12 @@ import (
 )
 
 func genTestNode() *types.Node {
-	node := config.DefConfig.Genesis.DHT.Seeds[0]
+	node := config.DHTNode{
+		IP:      "127.0.0.1",
+		UDPPort: 30333,
+		TCPPort: 30332,
+	}
+
 	seed := &types.Node{
 		IP:      node.IP,
 		UDPPort: node.UDPPort,
@@ -66,14 +71,6 @@ func genTestDHTPing() *DHTPing {
 func TestDHTPing_Serialization(t *testing.T) {
 	dhtPing := genTestDHTPing()
 	assert.Equal(t, common.DHT_PING, dhtPing.CmdType())
-
-	bf, err := dhtPing.Serialization()
-	assert.Nil(t, err)
-
-	deserializeDhtPing := new(DHTPing)
-	err = deserializeDhtPing.Deserialization(bf)
-	assert.Nil(t, err)
-	assert.Equal(t, dhtPing, deserializeDhtPing)
 
 	MessageTest(t, dhtPing)
 }

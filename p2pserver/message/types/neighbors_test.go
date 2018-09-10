@@ -37,13 +37,5 @@ func genTestNeighbors() *Neighbors {
 func TestNeighbors(t *testing.T) {
 	neighbors := genTestNeighbors()
 	assert.Equal(t, common.DHT_NEIGHBORS, neighbors.CmdType())
-	bf, err := neighbors.Serialization()
-	assert.Nil(t, err)
-
-	deseNeighbors := new(Neighbors)
-	err = deseNeighbors.Deserialization(bf)
-	assert.Nil(t, err)
-	assert.Equal(t, neighbors, deseNeighbors)
-
 	MessageTest(t, neighbors)
 }

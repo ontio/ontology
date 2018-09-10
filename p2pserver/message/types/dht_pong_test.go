@@ -46,13 +46,5 @@ func genTestDHTPong() *DHTPong {
 func TestDHTPong_Serialization(t *testing.T) {
 	dhtPong := genTestDHTPong()
 	assert.Equal(t, common.DHT_PONG, dhtPong.CmdType())
-	bf, err := dhtPong.Serialization()
-	assert.Nil(t, err)
-
-	deserializeDhtPong := new(DHTPong)
-	err = deserializeDhtPong.Deserialization(bf)
-	assert.Nil(t, err)
-	assert.Equal(t, dhtPong, deserializeDhtPong)
-
 	MessageTest(t, dhtPong)
 }

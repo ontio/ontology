@@ -18,10 +18,23 @@
 package types
 
 import (
+	"bytes"
 	"testing"
 
 	cm "github.com/ontio/ontology/common"
+	"github.com/stretchr/testify/assert"
 )
+
+func MessageTest(t *testing.T, msg Message) {
+	sink := cm.NewZeroCopySink(nil)
+	err := WriteMessage(sink, msg)
+	assert.Nil(t, err)
+
+	demsg, _, err := ReadMessage(bytes.NewBuffer(sink.Bytes()))
+	assert.Nil(t, err)
+
+	assert.Equal(t, msg, demsg)
+}
 
 func TestBlkHdrReqSerializationDeserialization(t *testing.T) {
 	var msg HeadersReq
