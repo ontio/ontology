@@ -860,19 +860,19 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 				authorizeInfo.NewPos = 0
 				authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + newPos
 				authorizeInfo.ConsensusPos = consensusPos
-				authorizeInfo.WithdrawPos = authorizeInfo.WithdrawPos + uint64(pos) - newPos
+				authorizeInfo.WithdrawConsensusPos = authorizeInfo.WithdrawConsensusPos + uint64(pos) - newPos
 				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 			}
 			if peerPoolItem.Status == CandidateStatus {
-				if authorizeInfo.FreezePos < (uint64(pos) - authorizeInfo.NewPos) {
+				if authorizeInfo.CandidatePos < (uint64(pos) - authorizeInfo.NewPos) {
 					return utils.BYTE_FALSE, fmt.Errorf("unAuthorizeForPeer, your pos of this peerPubkey is not enough")
 				}
-				freezePos := authorizeInfo.FreezePos + authorizeInfo.NewPos - uint64(pos)
+				candidatePos := authorizeInfo.CandidatePos + authorizeInfo.NewPos - uint64(pos)
 				newPos := authorizeInfo.NewPos
 				authorizeInfo.NewPos = 0
 				authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + newPos
-				authorizeInfo.FreezePos = freezePos
-				authorizeInfo.WithdrawFreezePos = authorizeInfo.WithdrawFreezePos + uint64(pos) - newPos
+				authorizeInfo.CandidatePos = candidatePos
+				authorizeInfo.WithdrawCandidatePos = authorizeInfo.WithdrawCandidatePos + uint64(pos) - newPos
 				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
 			}
 		} else {
@@ -937,8 +937,8 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 				return utils.BYTE_FALSE, fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 			}
 		}
-		if authorizeInfo.ConsensusPos == 0 && authorizeInfo.FreezePos == 0 && authorizeInfo.NewPos == 0 &&
-			authorizeInfo.WithdrawPos == 0 && authorizeInfo.WithdrawFreezePos == 0 && authorizeInfo.WithdrawUnfreezePos == 0 {
+		if authorizeInfo.ConsensusPos == 0 && authorizeInfo.CandidatePos == 0 && authorizeInfo.NewPos == 0 &&
+			authorizeInfo.WithdrawConsensusPos == 0 && authorizeInfo.WithdrawCandidatePos == 0 && authorizeInfo.WithdrawUnfreezePos == 0 {
 			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix, address[:]))
 		}
 	}
@@ -1569,9 +1569,9 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 	}
 	switch peerPoolItem.Status {
 	case ConsensusStatus:
-		authorizeInfo.WithdrawPos = authorizeInfo.WithdrawPos + uint64(params.Pos)
+		authorizeInfo.WithdrawConsensusPos = authorizeInfo.WithdrawConsensusPos + uint64(params.Pos)
 	case CandidateStatus:
-		authorizeInfo.WithdrawFreezePos = authorizeInfo.WithdrawFreezePos + uint64(params.Pos)
+		authorizeInfo.WithdrawCandidatePos = authorizeInfo.WithdrawCandidatePos + uint64(params.Pos)
 	case RegisterCandidateStatus:
 		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + uint64(params.Pos)
 	default:

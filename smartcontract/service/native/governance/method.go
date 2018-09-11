@@ -274,13 +274,13 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
-		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.ConsensusPos + authorizeInfo.FreezePos + authorizeInfo.NewPos + authorizeInfo.WithdrawPos +
-			authorizeInfo.WithdrawFreezePos + authorizeInfo.WithdrawUnfreezePos
+		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos +
+			authorizeInfo.WithdrawConsensusPos + authorizeInfo.WithdrawCandidatePos + authorizeInfo.WithdrawUnfreezePos
 		authorizeInfo.ConsensusPos = 0
-		authorizeInfo.FreezePos = 0
+		authorizeInfo.CandidatePos = 0
 		authorizeInfo.NewPos = 0
-		authorizeInfo.WithdrawPos = 0
-		authorizeInfo.WithdrawFreezePos = 0
+		authorizeInfo.WithdrawConsensusPos = 0
+		authorizeInfo.WithdrawCandidatePos = 0
 		if authorizeInfo.Address == peerPoolItem.Address {
 			flag = true
 			authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + peerPoolItem.InitPos
@@ -344,14 +344,15 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
-		total := authorizeInfo.ConsensusPos + authorizeInfo.FreezePos + authorizeInfo.NewPos + authorizeInfo.WithdrawPos + authorizeInfo.WithdrawFreezePos
+		total := authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos + authorizeInfo.WithdrawConsensusPos +
+			authorizeInfo.WithdrawCandidatePos
 		penalty := (uint64(globalParam.Penalty)*total + 99) / 100
 		authorizeInfo.WithdrawUnfreezePos = total - penalty + authorizeInfo.WithdrawUnfreezePos
 		authorizeInfo.ConsensusPos = 0
-		authorizeInfo.FreezePos = 0
+		authorizeInfo.CandidatePos = 0
 		authorizeInfo.NewPos = 0
-		authorizeInfo.WithdrawPos = 0
-		authorizeInfo.WithdrawFreezePos = 0
+		authorizeInfo.WithdrawConsensusPos = 0
+		authorizeInfo.WithdrawCandidatePos = 0
 		address := authorizeInfo.Address
 		err = putAuthorizeInfo(native, contract, authorizeInfo)
 		if err != nil {
@@ -394,19 +395,19 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
-		if authorizeInfo.FreezePos != 0 {
-			return fmt.Errorf("commitPos, freezePos should be 0")
+		if authorizeInfo.CandidatePos != 0 {
+			return fmt.Errorf("commitPos, candidatePos should be 0")
 		}
 
 		//update status
 		newPos := authorizeInfo.NewPos
 		authorizeInfo.ConsensusPos = authorizeInfo.ConsensusPos + newPos
 		authorizeInfo.NewPos = 0
-		withdrawPos := authorizeInfo.WithdrawPos
-		withdrawFreezePos := authorizeInfo.WithdrawFreezePos
-		authorizeInfo.WithdrawFreezePos = withdrawPos
-		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawFreezePos
-		authorizeInfo.WithdrawPos = 0
+		withdrawConsensusPos := authorizeInfo.WithdrawConsensusPos
+		withdrawFCandidatePos := authorizeInfo.WithdrawCandidatePos
+		authorizeInfo.WithdrawCandidatePos = withdrawConsensusPos
+		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawFCandidatePos
+		authorizeInfo.WithdrawConsensusPos = 0
 
 		err = putAuthorizeInfo(native, contract, authorizeInfo)
 		if err != nil {
@@ -437,18 +438,18 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.ConsensusPos != 0 {
-			return fmt.Errorf("consensusPos, freezePos should be 0")
+			return fmt.Errorf("commitPos, consensusPos should be 0")
 		}
 
 		//update status
-		authorizeInfo.ConsensusPos = authorizeInfo.ConsensusPos + authorizeInfo.FreezePos + authorizeInfo.NewPos
+		authorizeInfo.ConsensusPos = authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos
 		authorizeInfo.NewPos = 0
-		authorizeInfo.FreezePos = 0
-		withdrawPos := authorizeInfo.WithdrawPos
-		withdrawFreezePos := authorizeInfo.WithdrawFreezePos
-		authorizeInfo.WithdrawFreezePos = withdrawPos
-		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawFreezePos
-		authorizeInfo.WithdrawPos = 0
+		authorizeInfo.CandidatePos = 0
+		withdrawConsensusPos := authorizeInfo.WithdrawConsensusPos
+		withdrawCandidatePos := authorizeInfo.WithdrawCandidatePos
+		authorizeInfo.WithdrawCandidatePos = withdrawConsensusPos
+		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawCandidatePos
+		authorizeInfo.WithdrawConsensusPos = 0
 
 		err = putAuthorizeInfo(native, contract, authorizeInfo)
 		if err != nil {
@@ -478,19 +479,19 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore.Value)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
-		if authorizeInfo.FreezePos != 0 {
-			return fmt.Errorf("commitPos, freezePos should be 0")
+		if authorizeInfo.CandidatePos != 0 {
+			return fmt.Errorf("commitPos, candidatePos should be 0")
 		}
 
 		//update status
-		authorizeInfo.FreezePos = authorizeInfo.ConsensusPos + authorizeInfo.NewPos
+		authorizeInfo.CandidatePos = authorizeInfo.ConsensusPos + authorizeInfo.NewPos
 		authorizeInfo.NewPos = 0
 		authorizeInfo.ConsensusPos = 0
-		withdrawPos := authorizeInfo.WithdrawPos
-		withdrawFreezePos := authorizeInfo.WithdrawFreezePos
-		authorizeInfo.WithdrawFreezePos = withdrawPos
-		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawFreezePos
-		authorizeInfo.WithdrawPos = 0
+		withdrawConsensusPos := authorizeInfo.WithdrawConsensusPos
+		withdrawCandidatePos := authorizeInfo.WithdrawCandidatePos
+		authorizeInfo.WithdrawCandidatePos = withdrawConsensusPos
+		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawCandidatePos
+		authorizeInfo.WithdrawConsensusPos = 0
 
 		err = putAuthorizeInfo(native, contract, authorizeInfo)
 		if err != nil {
@@ -521,19 +522,19 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.ConsensusPos != 0 {
-			return fmt.Errorf("consensusPos, freezePos should be 0")
+			return fmt.Errorf("commitPos, consensusPos should be 0")
 		}
 
 		//update status
 		newPos := authorizeInfo.NewPos
-		freezePos := authorizeInfo.FreezePos
+		candidatePos := authorizeInfo.CandidatePos
 		authorizeInfo.NewPos = 0
-		authorizeInfo.FreezePos = newPos + freezePos
-		withdrawPos := authorizeInfo.WithdrawPos
-		withdrawFreezePos := authorizeInfo.WithdrawFreezePos
-		authorizeInfo.WithdrawFreezePos = withdrawPos
-		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawFreezePos
-		authorizeInfo.WithdrawPos = 0
+		authorizeInfo.CandidatePos = newPos + candidatePos
+		withdrawConsensusPos := authorizeInfo.WithdrawConsensusPos
+		withdrawCandidatePos := authorizeInfo.WithdrawCandidatePos
+		authorizeInfo.WithdrawCandidatePos = withdrawConsensusPos
+		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + withdrawCandidatePos
+		authorizeInfo.WithdrawConsensusPos = 0
 
 		err = putAuthorizeInfo(native, contract, authorizeInfo)
 		if err != nil {
@@ -920,7 +921,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 }
 
 func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, totalPos uint64, totalAmount uint64) (uint64, error) {
-	validatePos := authorizeInfo.ConsensusPos + authorizeInfo.FreezePos
+	validatePos := authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos
 	if validatePos == 0 {
 		return 0, nil
 	}

@@ -196,14 +196,14 @@ func (this *PeerPoolItem) Deserialize(r io.Reader) error {
 }
 
 type AuthorizeInfo struct {
-	PeerPubkey          string
-	Address             common.Address
-	ConsensusPos        uint64 //pos deposit in consensus node
-	FreezePos           uint64 //pos deposit in candidate node
-	NewPos              uint64 //pos deposit in this epoch, is not effective
-	WithdrawPos         uint64 //unAuthorized pos, frozen until next next epoch
-	WithdrawFreezePos   uint64 //unAuthorized pos, frozen until next epoch
-	WithdrawUnfreezePos uint64 //unAuthorized pos, unFrozen, can withdraw
+	PeerPubkey           string
+	Address              common.Address
+	ConsensusPos         uint64 //pos deposit in consensus node
+	CandidatePos         uint64 //pos deposit in candidate node
+	NewPos               uint64 //pos deposit in this epoch, is not effective
+	WithdrawConsensusPos uint64 //unAuthorized pos, frozen until next next epoch
+	WithdrawCandidatePos uint64 //unAuthorized pos, frozen until next epoch
+	WithdrawUnfreezePos  uint64 //unAuthorized pos, unFrozen, can withdraw
 }
 
 func (this *AuthorizeInfo) Serialize(w io.Writer) error {
@@ -216,17 +216,17 @@ func (this *AuthorizeInfo) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint64(w, this.ConsensusPos); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize consensusPos error: %v", err)
 	}
-	if err := serialization.WriteUint64(w, this.FreezePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize freezePos error: %v", err)
+	if err := serialization.WriteUint64(w, this.CandidatePos); err != nil {
+		return fmt.Errorf("serialization.WriteUint64, serialize candidatePos error: %v", err)
 	}
 	if err := serialization.WriteUint64(w, this.NewPos); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize newPos error: %v", err)
 	}
-	if err := serialization.WriteUint64(w, this.WithdrawPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize withDrawPos error: %v", err)
+	if err := serialization.WriteUint64(w, this.WithdrawConsensusPos); err != nil {
+		return fmt.Errorf("serialization.WriteUint64, serialize withdrawConsensusPos error: %v", err)
 	}
-	if err := serialization.WriteUint64(w, this.WithdrawFreezePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize withDrawFreezePos error: %v", err)
+	if err := serialization.WriteUint64(w, this.WithdrawCandidatePos); err != nil {
+		return fmt.Errorf("serialization.WriteUint64, serialize withdrawCandidatePos error: %v", err)
 	}
 	if err := serialization.WriteUint64(w, this.WithdrawUnfreezePos); err != nil {
 		return fmt.Errorf("serialization.WriteUint64, serialize withDrawUnfreezePos error: %v", err)
@@ -248,21 +248,21 @@ func (this *AuthorizeInfo) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize consensusPos error: %v", err)
 	}
-	freezePos, err := serialization.ReadUint64(r)
+	candidatePos, err := serialization.ReadUint64(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize freezePos error: %v", err)
+		return fmt.Errorf("serialization.ReadUint64. deserialize candidatePos error: %v", err)
 	}
 	newPos, err := serialization.ReadUint64(r)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize newPos error: %v", err)
 	}
-	withDrawPos, err := serialization.ReadUint64(r)
+	withDrawConsensusPos, err := serialization.ReadUint64(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawPos error: %v", err)
+		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawConsensusPos error: %v", err)
 	}
-	withDrawFreezePos, err := serialization.ReadUint64(r)
+	withDrawCandidatePos, err := serialization.ReadUint64(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawFreezePos error: %v", err)
+		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawCandidatePos error: %v", err)
 	}
 	withDrawUnfreezePos, err := serialization.ReadUint64(r)
 	if err != nil {
@@ -271,10 +271,10 @@ func (this *AuthorizeInfo) Deserialize(r io.Reader) error {
 	this.PeerPubkey = peerPubkey
 	this.Address = *address
 	this.ConsensusPos = consensusPos
-	this.FreezePos = freezePos
+	this.CandidatePos = candidatePos
 	this.NewPos = newPos
-	this.WithdrawPos = withDrawPos
-	this.WithdrawFreezePos = withDrawFreezePos
+	this.WithdrawConsensusPos = withDrawConsensusPos
+	this.WithdrawCandidatePos = withDrawCandidatePos
 	this.WithdrawUnfreezePos = withDrawUnfreezePos
 	return nil
 }
