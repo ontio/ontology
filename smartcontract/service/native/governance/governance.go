@@ -830,10 +830,17 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 
 	for i := 0; i < len(params.PeerPubkeyList); i++ {
 		peerPubkey := params.PeerPubkeyList[i]
-		pos := params.PosList[i]
+		pos := uint64(params.PosList[i])
+
+		authorizeInfo, err := getAuthorizeInfo(native, contract, peerPubkey, address)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("getAuthorizeInfo, get authorizeInfo error: %v", err)
+		}
 
 		//check pos
-		if pos < globalParam2.MinAuthorizePos || pos%globalParam2.MinAuthorizePos != 0 {
+		if authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos < uint64(globalParam2.MinAuthorizePos) {
+			pos = authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos
+		} else if pos < uint64(globalParam2.MinAuthorizePos) || pos%uint64(globalParam2.MinAuthorizePos) != 0 {
 			return utils.BYTE_FALSE, fmt.Errorf("unAuthorizeForPeer, pos must be times of %d", globalParam2.MinAuthorizePos)
 		}
 
@@ -846,40 +853,36 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("unAuthorizeForPeer, peerPubkey is not candidate and can not be authorized")
 		}
 
-		authorizeInfo, err := getAuthorizeInfo(native, contract, peerPubkey, address)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("getAuthorizeInfo, get authorizeInfo error: %v", err)
-		}
-		if authorizeInfo.NewPos < uint64(pos) {
+		if authorizeInfo.NewPos < pos {
 			if peerPoolItem.Status == ConsensusStatus {
-				if authorizeInfo.ConsensusPos < (uint64(pos) - authorizeInfo.NewPos) {
+				if authorizeInfo.ConsensusPos < (pos - authorizeInfo.NewPos) {
 					return utils.BYTE_FALSE, fmt.Errorf("unAuthorizeForPeer, your pos of this peerPubkey is not enough")
 				}
-				consensusPos := authorizeInfo.ConsensusPos + authorizeInfo.NewPos - uint64(pos)
+				consensusPos := authorizeInfo.ConsensusPos + authorizeInfo.NewPos - pos
 				newPos := authorizeInfo.NewPos
 				authorizeInfo.NewPos = 0
 				authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + newPos
 				authorizeInfo.ConsensusPos = consensusPos
-				authorizeInfo.WithdrawConsensusPos = authorizeInfo.WithdrawConsensusPos + uint64(pos) - newPos
-				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
+				authorizeInfo.WithdrawConsensusPos = authorizeInfo.WithdrawConsensusPos + pos - newPos
+				peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
 			}
 			if peerPoolItem.Status == CandidateStatus {
-				if authorizeInfo.CandidatePos < (uint64(pos) - authorizeInfo.NewPos) {
+				if authorizeInfo.CandidatePos < (pos - authorizeInfo.NewPos) {
 					return utils.BYTE_FALSE, fmt.Errorf("unAuthorizeForPeer, your pos of this peerPubkey is not enough")
 				}
-				candidatePos := authorizeInfo.CandidatePos + authorizeInfo.NewPos - uint64(pos)
+				candidatePos := authorizeInfo.CandidatePos + authorizeInfo.NewPos - pos
 				newPos := authorizeInfo.NewPos
 				authorizeInfo.NewPos = 0
 				authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + newPos
 				authorizeInfo.CandidatePos = candidatePos
-				authorizeInfo.WithdrawCandidatePos = authorizeInfo.WithdrawCandidatePos + uint64(pos) - newPos
-				peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
+				authorizeInfo.WithdrawCandidatePos = authorizeInfo.WithdrawCandidatePos + pos - newPos
+				peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
 			}
 		} else {
-			temp := authorizeInfo.NewPos - uint64(pos)
+			temp := authorizeInfo.NewPos - pos
 			authorizeInfo.NewPos = temp
-			authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + uint64(pos)
-			peerPoolItem.TotalPos = peerPoolItem.TotalPos - uint64(pos)
+			authorizeInfo.WithdrawUnfreezePos = authorizeInfo.WithdrawUnfreezePos + pos
+			peerPoolItem.TotalPos = peerPoolItem.TotalPos - pos
 		}
 
 		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
