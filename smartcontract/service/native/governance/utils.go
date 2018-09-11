@@ -394,7 +394,7 @@ func getConfig(native *native.NativeService, contract common.Address) (*Configur
 		return nil, fmt.Errorf("native.CloneCache.Get, get configBytes error: %v", err)
 	}
 	if configBytes == nil {
-		return nil, fmt.Errorf("commitDpos, configBytes is nil")
+		return nil, fmt.Errorf("getConfig, configBytes is nil")
 	}
 	configStore, ok := configBytes.(*cstates.StorageItem)
 	if !ok {
@@ -412,6 +412,33 @@ func putConfig(native *native.NativeService, contract common.Address, config *Co
 		return fmt.Errorf("serialize, serialize config error: %v", err)
 	}
 	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(VBFT_CONFIG)), &cstates.StorageItem{Value: bf.Bytes()})
+	return nil
+}
+
+func getPreConfig(native *native.NativeService, contract common.Address) (*PreConfig, error) {
+	preConfig := new(PreConfig)
+	preConfigBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PRE_CONFIG)))
+	if err != nil {
+		return nil, fmt.Errorf("native.CloneCache.Get, get preConfigBytes error: %v", err)
+	}
+	if preConfigBytes != nil {
+		preConfigStore, ok := preConfigBytes.(*cstates.StorageItem)
+		if !ok {
+			return nil, fmt.Errorf("getConfig, preConfigBytes is not available")
+		}
+		if err := preConfig.Deserialize(bytes.NewBuffer(preConfigStore.Value)); err != nil {
+			return nil, fmt.Errorf("deserialize, deserialize preConfig error: %v", err)
+		}
+	}
+	return preConfig, nil
+}
+
+func putPreConfig(native *native.NativeService, contract common.Address, preConfig *PreConfig) error {
+	bf := new(bytes.Buffer)
+	if err := preConfig.Serialize(bf); err != nil {
+		return fmt.Errorf("serialize, serialize preConfig error: %v", err)
+	}
+	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PRE_CONFIG)), &cstates.StorageItem{Value: bf.Bytes()})
 	return nil
 }
 

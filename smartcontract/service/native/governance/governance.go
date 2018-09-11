@@ -93,6 +93,7 @@ const (
 	SPLIT_FEE         = "splitFee"
 	SPLIT_FEE_ADDRESS = "splitFeeAddress"
 	PROMISE_POS       = "promisePos"
+	PRE_CONFIG        = "preConfig"
 
 	//global
 	PRECISE           = 1000000
@@ -1069,9 +1070,14 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if configuration.PeerHandshakeTimeout < 10 {
 		return utils.BYTE_FALSE, fmt.Errorf("updateConfig. PeerHandshakeTimeout must >= 10")
 	}
-	err = putConfig(native, contract, configuration)
+
+	preConfig := &PreConfig{
+		Configuration: configuration,
+		SetView:       view,
+	}
+	err = putPreConfig(native, contract, preConfig)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("putConfig, put config error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("putPreConfig, put preConfig error: %v", err)
 	}
 
 	return utils.BYTE_TRUE, nil

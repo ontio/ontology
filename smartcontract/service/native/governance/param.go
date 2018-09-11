@@ -506,6 +506,39 @@ func (this *Configuration) Deserialize(r io.Reader) error {
 	return nil
 }
 
+type PreConfig struct {
+	Configuration *Configuration
+	SetView       uint32
+}
+
+func (this *PreConfig) Serialize(w io.Writer) error {
+	if err := this.Configuration.Serialize(w); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize configuration error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.SetView)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize setView error: %v", err)
+	}
+	return nil
+}
+
+func (this *PreConfig) Deserialize(r io.Reader) error {
+	config := new(Configuration)
+	err := config.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize configuration error: %v", err)
+	}
+	setView, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize setView error: %v", err)
+	}
+	if setView > math.MaxUint32 {
+		return fmt.Errorf("setView larger than max of uint32")
+	}
+	this.Configuration = config
+	this.SetView = uint32(setView)
+	return nil
+}
+
 type GlobalParam struct {
 	CandidateFee uint64 //unit: 10^-9 ong
 	MinInitStake uint32 //min init pos
