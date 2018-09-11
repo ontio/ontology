@@ -46,7 +46,7 @@ This document describes the restful api format for the http/https used in the On
 | [get_version](#20-get_version) |  GET /api/v1/version | return the version of ontology |
 | [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | send transaction to ontology network |
 | [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | return the networkid |
-
+| [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | get grant ong |
 
 ### 1 get_conn_count
 
@@ -847,6 +847,29 @@ curl -i http://localhost:20334/api/v1/networkid
     "Error": 0,
     "Version": "1.0.0",
     "Result": 1
+}
+```
+
+### 23 get_grantong
+
+get grant ong.
+
+GET
+```
+/api/v1/grantong/:addr
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/grantong/AKDFapcoUhewN9Kaj6XhHusurfHzUiZqUA
+```
+#### Response
+```
+{
+    "Action": "getgrantong",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 4995625
 }
 ```
 

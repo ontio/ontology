@@ -68,6 +68,7 @@ const (
 	GET_GAS_PRICE         = "/api/v1/gasprice"
 	GET_ALLOWANCE         = "/api/v1/allowance/:asset/:from/:to"
 	GET_UNBOUNDONG        = "/api/v1/unboundong/:addr"
+	GET_GRANTONG          = "/api/v1/grantong/:addr"
 	GET_MEMPOOL_TXCOUNT   = "/api/v1/mempool/txcount"
 	GET_MEMPOOL_TXSTATE   = "/api/v1/mempool/txstate/:hash"
 	GET_VERSION           = "/api/v1/version"
@@ -143,6 +144,7 @@ func (this *restServer) registryMethod() {
 		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
 		GET_GAS_PRICE:         {name: "getgasprice", handler: rest.GetGasPrice},
 		GET_UNBOUNDONG:        {name: "getunboundong", handler: rest.GetUnboundOng},
+		GET_GRANTONG:          {name: "getgrantong", handler: rest.GetGrantOng},
 		GET_MEMPOOL_TXCOUNT:   {name: "getmempooltxcount", handler: rest.GetMemPoolTxCount},
 		GET_MEMPOOL_TXSTATE:   {name: "getmempooltxstate", handler: rest.GetMemPoolTxState},
 		GET_VERSION:           {name: "getversion", handler: rest.GetNodeVersion},
@@ -185,6 +187,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_ALLOWANCE
 	} else if strings.Contains(url, strings.TrimRight(GET_UNBOUNDONG, ":addr")) {
 		return GET_UNBOUNDONG
+	} else if strings.Contains(url, strings.TrimRight(GET_GRANTONG, ":addr")) {
+		return GET_GRANTONG
 	} else if strings.Contains(url, strings.TrimRight(GET_MEMPOOL_TXSTATE, ":hash")) {
 		return GET_MEMPOOL_TXSTATE
 	}
@@ -226,6 +230,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Asset"] = getParam(r, "asset")
 		req["From"], req["To"] = getParam(r, "from"), getParam(r, "to")
 	case GET_UNBOUNDONG:
+		req["Addr"] = getParam(r, "addr")
+	case GET_GRANTONG:
 		req["Addr"] = getParam(r, "addr")
 	case GET_MEMPOOL_TXSTATE:
 		req["Hash"] = getParam(r, "hash")

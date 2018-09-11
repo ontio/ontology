@@ -46,7 +46,7 @@
 | [get_version](#20-get_version) |  GET /api/v1/version | 得到版本信息 |
 | [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | 向ontology网络发送交易 |
 | [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | 得到network id |
-
+| [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | 得到grant ong |
 
 ### 1 get_conn_count
 
@@ -846,6 +846,29 @@ curl -i http://localhost:20334/api/v1/networkid
     "Error": 0,
     "Version": "1.0.0",
     "Result": 1
+}
+```
+
+### 23 get_grantong
+
+获取 grant ong.
+
+GET
+```
+/api/v1/grantong/:addr
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/grantong/AKDFapcoUhewN9Kaj6XhHusurfHzUiZqUA
+```
+#### Response
+```
+{
+    "Action": "getgrantong",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 4995625
 }
 ```
 

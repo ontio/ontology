@@ -50,6 +50,7 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | [getmempooltxcount](#23-getmempooltxcount) |  | query the transaction count in the memory pool |
 | [getversion](#24-getversion) |  | get the version information of the node |
 | [getnetworkid](#25-getnetworkid) |  | get the network id |
+| [getgrantong](#26-getgrantong) |  | get grant ong |
 
 ###  1. heartbeat
 If don't send heartbeat, the session expire after 5min.
@@ -933,6 +934,30 @@ Get the network id
     "Error": 0,
     "Version": "1.0.0",
     "Result": 1
+}
+```
+
+### 26. getgrantong
+
+get grant ong
+
+#### Request Example:
+```
+{
+    "Action": "getgrantong",
+    "Id":12345, //optional
+    "Addr":"AKDFapcoUhewN9Kaj6XhHusurfHzUiZqUA",
+    "Version": "1.0.0"
+}
+```
+#### Response Example
+```
+{
+    "Action": "getgrantong",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 4995625
 }
 ```
 

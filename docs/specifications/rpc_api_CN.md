@@ -96,6 +96,7 @@
 | [getunboundong](#19-getunboundong) | address | 返回该账户未提取的ong |  |
 | [getblocktxsbyheight](#20-getblocktxsbyheight) | height | 返回该高度对应的区块落账的交易的哈希 |  |
 | [getnetworkid](#21-getnetworkid) |  | 获取 network id |  |
+| [getgrantong](#22-getgrantong) |  | 获取 grant ong |  |
 
 ### 1. getbestblockhash
 
@@ -1079,6 +1080,35 @@ Response:
   "jsonrpc": "2.0",
   "id": 3,
   "result": 1
+}
+```
+
+#### 22. getgrantong
+
+获取 grant ong.
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getgrantong",
+  "params": ["AKDFapcoUhewN9Kaj6XhHusurfHzUiZqUA"],
+  "id": 3
+}
+```
+
+Response:
+
+```
+{
+  "desc":"SUCCESS",
+  "error":0,
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": 4995625
 }
 ```
 
