@@ -543,7 +543,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
     "Action": "getcontract",
     "Version": "1.0.0",
     "Id":12345, //optional
-    "Hash": "fff49c809d302a2956e9dc0012619a452d4b846c"
+    "Hash": "0100000000000000000000000000000000000000"
 }
 ```
 
@@ -556,8 +556,7 @@ raw：可选参数，默认值为零，不设置时为默认值。当值为1时�
     "Error": 0,
     "Version": "1.0.0",
     "Result": {
-        "VmType": 255,
-        "Code": "4f4e5420546f6b656e",
+        "Code": "0000000000000000000000000000000000000001",
         "NeedStorage": true,
         "Name": "ONT",
         "CodeVersion": "1.0",
