@@ -19,13 +19,11 @@
 package actor
 
 import (
-	"bytes"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstate "github.com/ontio/ontology/smartcontract/states"
 )
 
@@ -76,19 +74,7 @@ func GetStorageItem(address common.Address, key []byte) ([]byte, error) {
 
 //GetContractStateFromStore from ledger
 func GetContractStateFromStore(hash common.Address) (*payload.DeployCode, error) {
-	if hash == utils.OntContractAddress || bytes.Equal(common.ToArrayReverse(hash[:]), utils.OntContractAddress[:]) {
-		hash = types.AddressFromVmCode(utils.OntContractAddress[:])
-	} else if hash == utils.OngContractAddress || bytes.Equal(common.ToArrayReverse(hash[:]), utils.OngContractAddress[:]) {
-		hash = types.AddressFromVmCode(utils.OngContractAddress[:])
-	} else if hash == utils.OntIDContractAddress || bytes.Equal(common.ToArrayReverse(hash[:]), utils.OntIDContractAddress[:]) {
-		hash = types.AddressFromVmCode(utils.OntIDContractAddress[:])
-	} else if hash == utils.ParamContractAddress || bytes.Equal(common.ToArrayReverse(hash[:]), utils.ParamContractAddress[:]) {
-		hash = types.AddressFromVmCode(utils.ParamContractAddress[:])
-	} else if hash == utils.AuthContractAddress || bytes.Equal(common.ToArrayReverse(hash[:]), utils.AuthContractAddress[:]) {
-		hash = types.AddressFromVmCode(utils.AuthContractAddress[:])
-	} else if hash == utils.GovernanceContractAddress || bytes.Equal(common.ToArrayReverse(hash[:]), utils.GovernanceContractAddress[:]) {
-		hash = types.AddressFromVmCode(utils.GovernanceContractAddress[:])
-	}
+	hash = updateNativeSCAddr(hash)
 	return ledger.DefLedger.GetContractState(hash)
 }
 
