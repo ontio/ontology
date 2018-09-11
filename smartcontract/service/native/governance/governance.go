@@ -647,12 +647,7 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 
 	//commitDpos
 	if commit {
-		// get config
-		config, err := getConfig(native, contract)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("getConfig, get config error: %v", err)
-		}
-		err = executeCommitDpos(native, contract, config)
+		err = executeCommitDpos(native, contract)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("executeCommitDpos, executeCommitDpos error: %v", err)
 		}
@@ -838,7 +833,7 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 		}
 
 		//check pos
-		if authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos < uint64(globalParam2.MinAuthorizePos) {
+		if authorizeInfo.ConsensusPos+authorizeInfo.CandidatePos+authorizeInfo.NewPos < uint64(globalParam2.MinAuthorizePos) {
 			pos = authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos
 		} else if pos < uint64(globalParam2.MinAuthorizePos) || pos%uint64(globalParam2.MinAuthorizePos) != 0 {
 			return utils.BYTE_FALSE, fmt.Errorf("unAuthorizeForPeer, pos must be times of %d", globalParam2.MinAuthorizePos)
@@ -993,7 +988,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		}
 	}
 
-	err = executeCommitDpos(native, contract, config)
+	err = executeCommitDpos(native, contract)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("executeCommitDpos, executeCommitDpos error: %v", err)
 	}

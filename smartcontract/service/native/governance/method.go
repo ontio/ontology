@@ -658,19 +658,19 @@ func withdrawPenaltyStake(native *native.NativeService, contract common.Address,
 	return nil
 }
 
-func executeCommitDpos(native *native.NativeService, contract common.Address, config *Configuration) error {
+func executeCommitDpos(native *native.NativeService, contract common.Address) error {
 	//get current view
 	view, err := GetView(native, contract)
 	if err != nil {
 		return fmt.Errorf("getView, get view error: %v", err)
 	}
 	if view <= 4 {
-		err = executeCommitDpos1(native, contract, config)
+		err = executeCommitDpos1(native, contract)
 		if err != nil {
 			return fmt.Errorf("executeCommitDpos1 error: %v", err)
 		}
 	} else {
-		err = executeCommitDpos2(native, contract, config)
+		err = executeCommitDpos2(native, contract)
 		if err != nil {
 			return fmt.Errorf("executeCommitDpos2 error: %v", err)
 		}
@@ -687,17 +687,6 @@ func executeCommitDpos(native *native.NativeService, contract common.Address, co
 		return fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
 	}
 
-	//update config
-	preConfig, err := getPreConfig(native, contract)
-	if err != nil {
-		return fmt.Errorf("getPreConfig, get preConfig error: %v", err)
-	}
-	if preConfig.SetView == view {
-		err = putConfig(native, contract, preConfig.Configuration)
-		if err != nil {
-			return fmt.Errorf("putConfig, put config error: %v", err)
-		}
-	}
 	return nil
 }
 
@@ -951,7 +940,7 @@ func executePeerSplit(native *native.NativeService, contract common.Address, pee
 	return nil
 }
 
-func executeCommitDpos1(native *native.NativeService, contract common.Address, config *Configuration) error {
+func executeCommitDpos1(native *native.NativeService, contract common.Address) error {
 	//get governace view
 	governanceView, err := GetGovernanceView(native, contract)
 	if err != nil {
@@ -966,6 +955,18 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address, c
 	err = executeSplit(native, contract, view)
 	if err != nil {
 		return fmt.Errorf("executeSplit, executeSplit error: %v", err)
+	}
+
+	//update config
+	preConfig, err := getPreConfig(native, contract)
+	if err != nil {
+		return fmt.Errorf("getPreConfig, get preConfig error: %v", err)
+	}
+	if preConfig.SetView == view {
+		err = putConfig(native, contract, preConfig.Configuration)
+		if err != nil {
+			return fmt.Errorf("putConfig, put config error: %v", err)
+		}
 	}
 
 	//get peerPoolMap
@@ -1003,6 +1004,11 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address, c
 				Stake:      stake,
 			})
 		}
+	}
+	// get config
+	config, err := getConfig(native, contract)
+	if err != nil {
+		return fmt.Errorf("getConfig, get config error: %v", err)
 	}
 	if len(peers) < int(config.K) {
 		return fmt.Errorf("commitDpos, num of peers is less than K")
@@ -1075,7 +1081,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address, c
 	return nil
 }
 
-func executeCommitDpos2(native *native.NativeService, contract common.Address, config *Configuration) error {
+func executeCommitDpos2(native *native.NativeService, contract common.Address) error {
 	//get governace view
 	governanceView, err := GetGovernanceView(native, contract)
 	if err != nil {
@@ -1090,6 +1096,18 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address, c
 	splitSum, err := executeSplit2(native, contract, view)
 	if err != nil {
 		return fmt.Errorf("executeNodeSplit2, executeNodeSplit2 error: %v", err)
+	}
+
+	//update config
+	preConfig, err := getPreConfig(native, contract)
+	if err != nil {
+		return fmt.Errorf("getPreConfig, get preConfig error: %v", err)
+	}
+	if preConfig.SetView == view {
+		err = putConfig(native, contract, preConfig.Configuration)
+		if err != nil {
+			return fmt.Errorf("putConfig, put config error: %v", err)
+		}
 	}
 
 	//get peerPoolMap
@@ -1143,6 +1161,11 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address, c
 			})
 		}
 	}
+	// get config
+	config, err := getConfig(native, contract)
+	if err != nil {
+		return fmt.Errorf("getConfig, get config error: %v", err)
+	}
 	if len(peers) < int(config.K) {
 		return fmt.Errorf("commitDpos, num of peers is less than K")
 	}
@@ -1164,7 +1187,6 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address, c
 			return fmt.Errorf("commitDpos, peerPubkey is not in peerPoolMap")
 		}
 
-		//split fee to authorize address
 		if peerPoolItem.Status == ConsensusStatus {
 			err = consensusToConsensus(native, contract, peerPoolItem)
 			if err != nil {
