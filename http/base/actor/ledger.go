@@ -74,6 +74,7 @@ func GetStorageItem(address common.Address, key []byte) ([]byte, error) {
 
 //GetContractStateFromStore from ledger
 func GetContractStateFromStore(hash common.Address) (*payload.DeployCode, error) {
+	hash = updateNativeSCAddr(hash)
 	return ledger.DefLedger.GetContractState(hash)
 }
 
