@@ -11,9 +11,19 @@ English | [中文](README_CN.md)
 
 Welcome to Ontology's source code repository!
 
-Ontology is dedicated to creating a modularized, freely configurable, interoperable cross-chain, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and invoking decentralized applications easier.
+Ontology is dedicated to develop a high-performance blockchain infrastructure which is customizable to different business requirements.  , cross-chain interoperable, and horizontally scalable modularized,
 
-The code is currently alpha quality, but it is in the process of rapid development. The master code may be unstable; stable versions can be downloaded in the release page.
+Prerequisites for getting started with development on the Ontology networks are:
+
+- Mainstream coding and development experience
+- Understanding of your business scenario/requirements
+- NO need for Blockchain Engineer experence
+
+The Ontology core tech team, the community and the ecosystem can all support you in development. MainNet, TestNet, SmartX and a Docker imange for Ontology, SmartX and Ontology Explorer combined makes it easy to start.
+
+Ontology makes getting started easier!
+
+The code is currently Alpha phase of the release life cycle, but rapidly under development for Beta. The master code may be unstable, but stable versions can be found under the [release page](https://github.com/ontio/ontology/releases).
 
 The public test network is described below. We sincerely welcome and hope more developers join Ontology.
 
