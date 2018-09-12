@@ -875,6 +875,7 @@ func (this *BlockSyncMgr) addNewSpeed(nodeId uint64, speed float32) {
 //pingOutsyncNodes send ping msg to lower height nodes for syncing
 func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 	peers := make([]*peer.Peer, 0)
+	this.lock.RLock()
 	maxHeight := curHeight
 	for id := range this.nodeWeights {
 		peer := this.server.getNode(id)
@@ -889,6 +890,7 @@ func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 			peers = append(peers, peer)
 		}
 	}
+	this.lock.RUnlock()
 	if curHeight > maxHeight-SYNC_MAX_HEIGHT_OFFSET && len(peers) > 0 {
 		this.server.pingTo(peers)
 	}
