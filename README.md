@@ -72,7 +72,7 @@ The requirements to build Ontology are:
 ### Get from release
 - You can download latest ontology binary file with ` curl https://dev.ont.io/ontology_install | sh `.
 
-- You can download other version at [release page](https://github.com/ontio/ontology/releases).
+- You can download other versions at [release page](https://github.com/ontio/ontology/releases).
 
 ### Get from source code
 
@@ -101,9 +101,9 @@ $ make all
 After building the source code sucessfully, you should see two executable programs:
 
 - `ontology`: the node program/command line program for node control
-- `tools/sigsvr`: (optional)Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirement.detail docs can be reference at [link](./docs/specifications/sigsvr.md)
+- `tools/sigsvr`: (optional) Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirements. Detailed docs can be found at [link](https://github.com/ontio/documentation/blob/master/docs/pages/doc_en/Ontology/sigsvr_en.md)
 
-## Run ontology
+## Run ontology (CONT.)
 
 ### Mainnet sync node
 
