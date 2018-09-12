@@ -445,7 +445,7 @@ GET
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/contract/0239dcf9b4a46f15c5f23f20d52fac916a0bac0d
+curl -i http://server:port/api/v1/contract/0100000000000000000000000000000000000000
 ```
 
 #### Response Example:
@@ -457,7 +457,7 @@ curl -i http://server:port/api/v1/contract/0239dcf9b4a46f15c5f23f20d52fac916a0ba
     "Error": 0,
     "Version": "1.0.0",
     "Result": {
-        "Code": "0100000000000000000000000000000000000000",
+        "Code": "0000000000000000000000000000000000000001",
         "NeedStorage": true,
         "Name": "ONT",
         "CodeVersion": "1.0",

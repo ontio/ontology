@@ -587,7 +587,7 @@ Request:
 {
   "jsonrpc": "2.0",
   "method": "getcontractstate",
-  "params": ["0239dcf9b4a46f15c5f23f20d52fac916a0bac0d",1],
+  "params": ["0100000000000000000000000000000000000000",1],
   "id": 1
 }
 ```
@@ -601,7 +601,7 @@ Response:
     "id": 1,
     "jsonrpc": "2.0",
     "result": {
-        "Code": "0100000000000000000000000000000000000000",
+        "Code": "0000000000000000000000000000000000000001",
         "NeedStorage": true,
         "Name": "ONT",
         "CodeVersion": "1.0",
