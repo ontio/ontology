@@ -659,6 +659,14 @@ func withdrawPenaltyStake(native *native.NativeService, contract common.Address,
 }
 
 func executeCommitDpos(native *native.NativeService, contract common.Address) error {
+	governanceView, err := GetGovernanceView(native, contract)
+	if err != nil {
+		return fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
+	}
+	if native.Height == governanceView.Height {
+		return fmt.Errorf("commitDpos, can not do commitDpos twice in one block")
+	}
+
 	//get current view
 	view, err := GetView(native, contract)
 	if err != nil {
@@ -677,7 +685,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address) er
 	}
 
 	//update view
-	governanceView := &GovernanceView{
+	governanceView = &GovernanceView{
 		View:   view + 1,
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
