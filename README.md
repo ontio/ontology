@@ -27,7 +27,7 @@ The code is currently Alpha phase of the release life cycle, but rapidly under d
 
 We sincerely welcome developers to Ontology.
 
-## Features
+## Features 
 
 - Scalable lightweight universal smart contract
 - Scalable WASM contract support
