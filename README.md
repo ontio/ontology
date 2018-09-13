@@ -69,6 +69,7 @@ The requirements to build Ontology are:
 - Golang supported operating system
 
 ## Get Ontology
+
 ### Get from release
 - You can download latest ontology binary file with ` curl https://dev.ont.io/ontology_install | sh `.
 
@@ -103,18 +104,18 @@ After building the source code sucessfully, you should see two executable progra
 - `ontology`: the node program/command line program for node control
 - `tools/sigsvr`: (optional) Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirements. Detailed docs can be found at [link](https://github.com/ontio/documentation/blob/master/docs/pages/doc_en/Ontology/sigsvr_en.md)
 
-## Run ontology (CONT.)
+## Run ontology
 
-### Mainnet sync node
+### MainNet sync node
 
-Run ontology straightly
+Run ontology directly
 
    ```
 	./ontology
    ```
-Then you can connect to ontology mainnet.
+Then you can connect to ontology MainNet.
 
-### Public test network Polaris sync node
+### Public test network Polaris sync node (TestNet)
 
 Run ontology straightly
 
@@ -123,7 +124,6 @@ Run ontology straightly
    ```
    
 Then you can connect to ontology public test network.
-
 
 ### Testmode
 
@@ -146,15 +146,15 @@ Here's a example of single-host configuration:
 
 ### Run in docker
 
-Please ensure there are docker environment in your machine.
+Please ensure there is a docker environment in your machine.
 
 1. make docker image
 
-    - In the root directory of source code，run`make docker`, it will make ontology image in docker.
+    - In the root directory of source code, run `make docker`, it will make ontology image in docker.
 
 2. run ontology image
 
-    - Use command `docker run ontio/ontology`to run ontology；
+    - Use command `docker run ontio/ontology` to run ontology；
 
     - If you need to allow interactive keyboard input while the image is running, you can use the `docker run -ti ontio/ontology` command to start the image;
 
