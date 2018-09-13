@@ -200,10 +200,10 @@ type AuthorizeInfo struct {
 	Address              common.Address
 	ConsensusPos         uint64 //pos deposit in consensus node
 	CandidatePos         uint64 //pos deposit in candidate node
-	NewPos               uint64 //pos deposit in this epoch, is not effective
-	WithdrawConsensusPos uint64 //unAuthorized pos, frozen until next next epoch
-	WithdrawCandidatePos uint64 //unAuthorized pos, frozen until next epoch
-	WithdrawUnfreezePos  uint64 //unAuthorized pos, unFrozen, can withdraw
+	NewPos               uint64 //deposit new pos to consensus or candidate node, it will be calculated in next epoch, you can withdrawal it at any time
+	WithdrawConsensusPos uint64 //unAuthorized pos from consensus pos, frozen until next next epoch
+	WithdrawCandidatePos uint64 //unAuthorized pos from candidate pos, frozen until next epoch
+	WithdrawUnfreezePos  uint64 //unfrozen pos, can withdraw at any time
 }
 
 func (this *AuthorizeInfo) Serialize(w io.Writer) error {
@@ -428,14 +428,14 @@ type CandidateSplitInfo struct {
 
 type PeerAttributes struct {
 	PeerPubkey   string
-	MaxAuthorize uint64 //max authorzie pos this peer can receive
+	MaxAuthorize uint64 //max authorzie pos this peer can receive(number of ont), set by peer owner
 	T2PeerCost   uint64 //peer cost, active in view T + 2
 	T1PeerCost   uint64 //peer cost, active in view T + 1
 	TPeerCost    uint64 //peer cost, active in view T
-	Field1       []byte
-	Field2       []byte
-	Field3       []byte
-	Field4       []byte
+	Field1       []byte //reserved field
+	Field2       []byte //reserved field
+	Field3       []byte //reserved field
+	Field4       []byte //reserved field
 }
 
 func (this *PeerAttributes) Serialize(w io.Writer) error {

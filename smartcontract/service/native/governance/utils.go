@@ -275,6 +275,7 @@ func putGlobalParam(native *native.NativeService, contract common.Address, globa
 	return nil
 }
 
+//get extends global params, for avoiding change default global param struct in store, add GlobalParam2 as extends struct
 func getGlobalParam2(native *native.NativeService, contract common.Address) (*GlobalParam2, error) {
 	//get globalParam
 	globalParam, err := getGlobalParam(native, contract)

@@ -646,12 +646,12 @@ func (this *GlobalParam) Deserialize(r io.Reader) error {
 type GlobalParam2 struct {
 	MinAuthorizePos      uint32 //min ONT of each authorization, 500 default
 	CandidateFeeSplitNum uint32 //num of peer can receive motivation(include consensus and candidate)
-	Field1               []byte
-	Field2               []byte
-	Field3               []byte
-	Field4               []byte
-	Field5               []byte
-	Field6               []byte
+	Field1               []byte //reserved field
+	Field2               []byte //reserved field
+	Field3               []byte //reserved field
+	Field4               []byte //reserved field
+	Field5               []byte //reserved field
+	Field6               []byte //reserved field
 }
 
 func (this *GlobalParam2) Serialize(w io.Writer) error {

@@ -666,13 +666,10 @@ func executeCommitDpos(native *native.NativeService, contract common.Address) er
 	if native.Height == governanceView.Height {
 		return fmt.Errorf("commitDpos, can not do commitDpos twice in one block")
 	}
-
 	//get current view
-	view, err := GetView(native, contract)
-	if err != nil {
-		return fmt.Errorf("getView, get view error: %v", err)
-	}
-	if view <= 4 {
+	view := governanceView.View
+
+	if view <= NEW_VERSION_VIEW {
 		err = executeCommitDpos1(native, contract)
 		if err != nil {
 			return fmt.Errorf("executeCommitDpos1 error: %v", err)
