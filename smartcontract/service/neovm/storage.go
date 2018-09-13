@@ -156,9 +156,8 @@ func getContext(engine *vm.ExecutionEngine) (*StorageContext, error) {
 }
 
 func genStorageKey(address common.Address, key []byte) []byte {
-	res := make([]byte, len(address[:])+len(key))
-	buf := bytes.NewBuffer(res)
-	buf.Write(address[:])
-	buf.Write(key)
-	return buf.Bytes()
+	res := make([]byte, 0, len(address[:])+len(key))
+	res = append(res, address[:]...)
+	res = append(res, key...)
+	return res
 }
