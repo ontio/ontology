@@ -106,6 +106,15 @@ After building the source code sucessfully, you should see two executable progra
 
 ## Run ontology
 
+You can run Ontology in four different modes:
+
+1) MainNet (./ontology)
+2) TestNet (./ontology --networkid 2)
+3) Testmode (./ontology --testmode)
+4) Docker
+
+E.g. for Windows (64-bit), use command promt and cd to the dirctory where you installed the Ontology release, then type `start ontology-windows-amd64.exe --networkid 2`. This will sync to TestNet and you can explore further by the help command `ontology-windows-amd64.exe --networkid 2 help`.
+
 ### MainNet sync node
 
 Run ontology directly
@@ -117,13 +126,13 @@ Then you can connect to ontology MainNet.
 
 ### Public test network Polaris sync node (TestNet)
 
-Run ontology straightly
+Run ontology directly
 
    ```
 	./ontology --networkid 2
    ```
    
-Then you can connect to ontology public test network.
+Then you can connect to ontology TestNet
 
 ### Testmode
 
