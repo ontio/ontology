@@ -188,17 +188,17 @@ Transfer ONT
   Amount:10
   TxHash:437bff5dee9a1894ad421d55b8c70a2b7f34c574de0225046531e32faa1f94ce
 ```
-TxHash is the transfer transaction hash, we can query transfer result by txhash.
-Because of generate block time, the transfer transaction will not execute befer at least generate one block.
+TxHash is the transfer transaction hash, and we can query a transfer result by the TxHash.
+Due to block time, the transfer transaction will not be executed before the block is generated and added.
 
 If you want to transfer ONG, just add --asset=ong flag.
 
-Note that ONT hasn't decimal, and ONG has 9 decimal.
+Note that ONT is an integer and has no decimals, whereas ONG has 9 decimals. For detailed info please read [Everything you need to know about ONG](https://medium.com/ontologynetwork/everything-you-need-to-know-about-ong-582ed216b870)
 
 ```shell
 ./ontology asset transfer --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --amount=95.479777254 --asset=ong
 ```
-If transfer asset successd, the result will show as follow:
+If transfer of the asset succeed, the result will show as following:
 
 ```shell
 Transfer ONG
