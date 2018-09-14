@@ -198,7 +198,7 @@ Note that ONT is an integer and has no decimals, whereas ONG has 9 decimals. For
 ```shell
 ./ontology asset transfer --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --amount=95.479777254 --asset=ong
 ```
-If transfer of the asset succeed, the result will show as following:
+If transfer of the asset succeed, the result will show as follow:
 
 ```shell
 Transfer ONG
@@ -208,7 +208,7 @@ Transfer ONG
   TxHash:e4245d83607e6644c360b6007045017b5c5d89d9f0f5a9c3b37801018f789cc3
 ```
 
-Note that all the place that use address of account, can use index or label of account. Index is the sequence number of account in the wallet, and the index start from 1. Label is the unique alias of account in wallet.
+Please note, when you use the address of an account, you can use index or label of the account instead. Index is the sequence number of a particular account in the wallet. The index starts from 1, and the label is the unique alias of an account in the wallet.
 
 ```shell
 ./ontology asset transfer --from=1 --to=2 --amount=10
@@ -226,7 +226,7 @@ For Example:
 ./ontology asset status --hash=10dede8b57ce0b272b4d51ab282aaf0988a4005e980d25bd49685005cc76ba7f
 ```
 
-result：
+Result:
 
 ```shell
 Transaction:transfer success
