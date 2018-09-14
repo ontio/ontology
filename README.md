@@ -259,11 +259,11 @@ BalanceOf:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
   ONG:28165900
 ```
 
-Further examples you can reference at [documentation](https://ontio.github.io/documentation/)
+For further examples, please refer to [CLI user guide](https://ontio.github.io/documentation/cli_user_guide_en.html)
 
 ## Contributions
 
-Please open a pull request with a signed commit. We appreciate your help! You can also send your code as emails to the developer mailing list. You're welcome to join the Ontology mailing list or developer forum.
+Please open a pull request with a signed commit. We appreciate your help! You can also send your code as email to the developer mailing list. You're welcome to join the Ontology mailing list or developer forum.
 
 Please provide detailed submission information when you want to contribute code for this project. The format is as follows:
 
