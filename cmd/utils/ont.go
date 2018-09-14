@@ -40,6 +40,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
+	"math/rand"
 	"sort"
 	"strconv"
 	"strings"
@@ -201,18 +202,8 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
-	invokePayload := &payload.InvokeCode{
-		Code: invokeCode,
-	}
-	tx := &types.MutableTransaction{
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		TxType:   types.Invoke,
-		Nonce:    uint32(time.Now().Unix()),
-		Payload:  invokePayload,
-		Sigs:     make([]types.Sig, 0, 0),
-	}
-	return tx, nil
+	mutableTx := NewInvokeTransaction(gasPrice, gasLimit, invokeCode)
+	return mutableTx, nil
 }
 
 func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64) (*types.MutableTransaction, error) {
@@ -246,18 +237,8 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
-	invokePayload := &payload.InvokeCode{
-		Code: invokeCode,
-	}
-	tx := &types.MutableTransaction{
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		TxType:   types.Invoke,
-		Nonce:    uint32(time.Now().Unix()),
-		Payload:  invokePayload,
-		Sigs:     make([]types.Sig, 0, 0),
-	}
-	return tx, nil
+	mutableTx := NewInvokeTransaction(gasPrice, gasLimit, invokeCode)
+	return mutableTx, nil
 }
 
 func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, amount uint64) (*types.MutableTransaction, error) {
@@ -295,18 +276,24 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
+	mutableTx := NewInvokeTransaction(gasPrice, gasLimit, invokeCode)
+	return mutableTx, nil
+}
+
+//NewInvokeTransaction return smart contract invoke transaction
+func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.MutableTransaction {
 	invokePayload := &payload.InvokeCode{
 		Code: invokeCode,
 	}
-	mutable := &types.MutableTransaction{
+	tx := &types.MutableTransaction{
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.Invoke,
-		Nonce:    uint32(time.Now().Unix()),
+		Nonce:    rand.Uint32(),
 		Payload:  invokePayload,
 		Sigs:     make([]types.Sig, 0, 0),
 	}
-	return mutable, nil
+	return tx
 }
 
 func SignTransaction(signer *account.Account, tx *types.MutableTransaction) error {
