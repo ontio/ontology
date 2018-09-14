@@ -223,7 +223,7 @@ Please note, when you use the address of an account, you can use index or label 
 For Example:
 
 ```shell
-./ontology asset status --hash=10dede8b57ce0b272b4d51ab282aaf0988a4005e980d25bd49685005cc76ba7f
+./ontology info status 10dede8b57ce0b272b4d51ab282aaf0988a4005e980d25bd49685005cc76ba7f
 ```
 
 Result:
