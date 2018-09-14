@@ -96,6 +96,7 @@ There are some description of parameter used in rpc:
 | [getunboundong](#19-getunboundong) | address | return unbound ong |  |
 | [getblocktxsbyheight](#20-getblocktxsbyheight) | height | return transaction hashes |  |
 | [getnetworkid](#21-getnetworkid) |  | Get the network id |  |
+| [getgrantong](#22-getgrantong) |  | Get grant ong |  |
 
 ### 1. getbestblockhash
 
@@ -1066,6 +1067,35 @@ Response:
   "jsonrpc": "2.0",
   "id": 3,
   "result": 1
+}
+```
+
+#### 22. getgrantong
+
+get grant ong.
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getgrantong",
+  "params": ["AKDFapcoUhewN9Kaj6XhHusurfHzUiZqUA"],
+  "id": 3
+}
+```
+
+Response:
+
+```
+{
+  "desc":"SUCCESS",
+  "error":0,
+  "jsonrpc": "2.0",
+  "id": 3,
+  "result": 4995625
 }
 ```
 

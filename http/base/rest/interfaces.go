@@ -526,6 +526,26 @@ func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
+	bcomn.GetGrantOng(toAddr)
+	resp["Result"] = rsp
+	return resp
+}
+
+//get grant ong
+func GetGrantOng(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	toAddrStr, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	toAddr, err := bcomn.GetAddress(toAddrStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	rsp, err := bcomn.GetGrantOng(toAddr)
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
 	resp["Result"] = rsp
 	return resp
 }
