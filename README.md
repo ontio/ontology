@@ -11,13 +11,23 @@ English | [中文](README_CN.md)
 
 Welcome to Ontology's source code repository!
 
-Ontology is dedicated to creating a modularized, freely configurable, interoperable cross-chain, high-performance, and horizontally scalable blockchain infrastructure system. Ontology makes deploying and invoking decentralized applications easier.
+Ontology is dedicated to develop a high-performance blockchain infrastructure which is customizable to different business requirements. 
 
-The code is currently alpha quality, but it is in the process of rapid development. The master code may be unstable; stable versions can be downloaded in the release page.
+Prerequisites for getting started with development on the Ontology networks are:
 
-The public test network is described below. We sincerely welcome and hope more developers join Ontology.
+- Mainstream coding and development experience
+- Understanding of your business scenario/requirements
+- NO need for previous Blockchain Engineer experience
 
-## Features
+The Ontology core tech team, the community and the ecosystem can all support you in development. MainNet, TestNet, SmartX and a Docker imange for Ontology, SmartX and Ontology Explorer combined makes it easy to start.
+
+Ontology makes getting started easier!
+
+The code is currently Alpha phase of the release life cycle, but rapidly under development for Beta. The master code may be unstable, but stable versions can be found under the [release page](https://github.com/ontio/ontology/releases).
+
+We sincerely welcome developers to Ontology.
+
+## Features 
 
 - Scalable lightweight universal smart contract
 - Scalable WASM contract support
@@ -59,10 +69,11 @@ The requirements to build Ontology are:
 - Golang supported operating system
 
 ## Get Ontology
+
 ### Get from release
 - You can download latest ontology binary file with ` curl https://dev.ont.io/ontology_install | sh `.
 
-- You can download other version at [release page](https://github.com/ontio/ontology/releases).
+- You can download other versions at [release page](https://github.com/ontio/ontology/releases).
 
 ### Get from source code
 
@@ -91,29 +102,37 @@ $ make all
 After building the source code sucessfully, you should see two executable programs:
 
 - `ontology`: the node program/command line program for node control
-- `tools/sigsvr`: (optional)Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirement.detail docs can be reference at [link](./docs/specifications/sigsvr.md)
+- `tools/sigsvr`: (optional) Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirements. Detailed docs can be found at [link](https://github.com/ontio/documentation/blob/master/docs/pages/doc_en/Ontology/sigsvr_en.md)
 
 ## Run ontology
 
-### Mainnet sync node
+You can run Ontology in four different modes:
 
-Run ontology straightly
+1) MainNet (./ontology)
+2) TestNet (./ontology --networkid 2)
+3) Testmode (./ontology --testmode)
+4) Docker
+
+E.g. for Windows (64-bit), use command promt and cd to the dirctory where you installed the Ontology release, then type `start ontology-windows-amd64.exe --networkid 2`. This will sync to TestNet and you can explore further by the help command `ontology-windows-amd64.exe --networkid 2 help`.
+
+### MainNet sync node
+
+Run ontology directly
 
    ```
 	./ontology
    ```
-Then you can connect to ontology mainnet.
+Then you can connect to ontology MainNet.
 
-### Public test network Polaris sync node
+### Public test network Polaris sync node (TestNet)
 
-Run ontology straightly
+Run ontology directly
 
    ```
 	./ontology --networkid 2
    ```
    
-Then you can connect to ontology public test network.
-
+Then you can connect to ontology TestNet
 
 ### Testmode
 
@@ -136,15 +155,15 @@ Here's a example of single-host configuration:
 
 ### Run in docker
 
-Please ensure there are docker environment in your machine.
+Please ensure there is a docker environment in your machine.
 
 1. make docker image
 
-    - In the root directory of source code，run`make docker`, it will make ontology image in docker.
+    - In the root directory of source code, run `make docker`, it will make ontology image in docker.
 
 2. run ontology image
 
-    - Use command `docker run ontio/ontology`to run ontology；
+    - Use command `docker run ontio/ontology` to run ontology；
 
     - If you need to allow interactive keyboard input while the image is running, you can use the `docker run -ti ontio/ontology` command to start the image;
 
@@ -169,17 +188,17 @@ Transfer ONT
   Amount:10
   TxHash:437bff5dee9a1894ad421d55b8c70a2b7f34c574de0225046531e32faa1f94ce
 ```
-TxHash is the transfer transaction hash, we can query transfer result by txhash.
-Because of generate block time, the transfer transaction will not execute befer at least generate one block.
+TxHash is the transfer transaction hash, and we can query a transfer result by the TxHash.
+Due to block time, the transfer transaction will not be executed before the block is generated and added.
 
 If you want to transfer ONG, just add --asset=ong flag.
 
-Note that ONT hasn't decimal, and ONG has 9 decimal.
+Note that ONT is an integer and has no decimals, whereas ONG has 9 decimals. For detailed info please read [Everything you need to know about ONG](https://medium.com/ontologynetwork/everything-you-need-to-know-about-ong-582ed216b870)
 
 ```shell
 ./ontology asset transfer --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --amount=95.479777254 --asset=ong
 ```
-If transfer asset successd, the result will show as follow:
+If transfer of the asset succeed, the result will show as follow:
 
 ```shell
 Transfer ONG
@@ -189,7 +208,7 @@ Transfer ONG
   TxHash:e4245d83607e6644c360b6007045017b5c5d89d9f0f5a9c3b37801018f789cc3
 ```
 
-Note that all the place that use address of account, can use index or label of account. Index is the sequence number of account in the wallet, and the index start from 1. Label is the unique alias of account in wallet.
+Please note, when you use the address of an account, you can use index or label of the account instead. Index is the sequence number of a particular account in the wallet. The index starts from 1, and the label is the unique alias of an account in the wallet.
 
 ```shell
 ./ontology asset transfer --from=1 --to=2 --amount=10
@@ -204,10 +223,10 @@ Note that all the place that use address of account, can use index or label of a
 For Example:
 
 ```shell
-./ontology asset status --hash=10dede8b57ce0b272b4d51ab282aaf0988a4005e980d25bd49685005cc76ba7f
+./ontology info status 10dede8b57ce0b272b4d51ab282aaf0988a4005e980d25bd49685005cc76ba7f
 ```
 
-result：
+Result:
 
 ```shell
 Transaction:transfer success
@@ -240,11 +259,11 @@ BalanceOf:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
   ONG:28165900
 ```
 
-Further examples you can reference at [documentation](https://ontio.github.io/documentation/)
+For further examples, please refer to [CLI user guide](https://ontio.github.io/documentation/cli_user_guide_en.html)
 
 ## Contributions
 
-Please open a pull request with a signed commit. We appreciate your help! You can also send your code as emails to the developer mailing list. You're welcome to join the Ontology mailing list or developer forum.
+Please open a pull request with a signed commit. We appreciate your help! You can also send your code as email to the developer mailing list. You're welcome to join the Ontology mailing list or developer forum.
 
 Please provide detailed submission information when you want to contribute code for this project. The format is as follows:
 
