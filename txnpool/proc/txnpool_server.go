@@ -72,27 +72,27 @@ type registerValidators struct {
 
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
-	mu                   sync.RWMutex                        // Sync mutex
-	wg                   sync.WaitGroup                      // Worker sync
-	workers              []txPoolWorker                      // Worker pool
-	txPool               *tc.TXPool                          // The tx pool that holds the valid transaction
-	allPendingTxs        map[common.Uint256]*serverPendingTx // The txs that server is processing
-	pendingBlock         *pendingBlock                       // The block that server is processing
-	actors               map[tc.ActorType]*actor.PID         // The actors running in the server
-	validators           *registerValidators                 // The registered validators
-	stats                txStats                             // The transaction statstics
-	slots                chan struct{}                       // The limited slots for the new transaction
-	height               uint32                              // The current block height
-	gasPrice             uint64                              // Gas price to enforce for acceptance into the pool
-	disablePreExec       bool                                // Disbale PreExecute a transaction
-	enableBroadcastNetTx bool                                // Enable broadcast tx from network
+	mu                    sync.RWMutex                        // Sync mutex
+	wg                    sync.WaitGroup                      // Worker sync
+	workers               []txPoolWorker                      // Worker pool
+	txPool                *tc.TXPool                          // The tx pool that holds the valid transaction
+	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
+	pendingBlock          *pendingBlock                       // The block that server is processing
+	actors                map[tc.ActorType]*actor.PID         // The actors running in the server
+	validators            *registerValidators                 // The registered validators
+	stats                 txStats                             // The transaction statstics
+	slots                 chan struct{}                       // The limited slots for the new transaction
+	height                uint32                              // The current block height
+	gasPrice              uint64                              // Gas price to enforce for acceptance into the pool
+	disablePreExec        bool                                // Disbale PreExecute a transaction
+	disableBroadcastNetTx bool                                // Disable broadcast tx from network
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
 // handle and filter inbound transactions from the network, http, and consensus.
-func NewTxPoolServer(num uint8, disablePreExec, enableBroadcastNetTx bool) *TXPoolServer {
+func NewTxPoolServer(num uint8, disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
 	s := &TXPoolServer{}
-	s.init(num, disablePreExec, enableBroadcastNetTx)
+	s.init(num, disablePreExec, disableBroadcastNetTx)
 	return s
 }
 
@@ -149,7 +149,7 @@ func getGasPriceConfig() uint64 {
 }
 
 // init initializes the server with the configured settings
-func (s *TXPoolServer) init(num uint8, disablePreExec, enableBroadcastNetTx bool) {
+func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx bool) {
 	// Initial txnPool
 	s.txPool = &tc.TXPool{}
 	s.txPool.Init()
@@ -179,7 +179,7 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, enableBroadcastNetTx bool
 	log.Infof("tx pool: the current local gas price is %d", s.gasPrice)
 
 	s.disablePreExec = disablePreExec
-	s.enableBroadcastNetTx = enableBroadcastNetTx
+	s.disableBroadcastNetTx = disableBroadcastNetTx
 	// Create the given concurrent workers
 	s.workers = make([]txPoolWorker, num)
 	// Initial and start the workers
@@ -267,7 +267,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 	}
 
 	if err == errors.ErrNoError && ((pt.sender == tc.HttpSender) ||
-		(pt.sender == tc.NetSender && s.enableBroadcastNetTx)) {
+		(pt.sender == tc.NetSender && !s.disableBroadcastNetTx)) {
 		pid := s.GetPID(tc.NetActor)
 		if pid != nil {
 			pid.Tell(pt.tx)
