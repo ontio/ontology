@@ -22,6 +22,13 @@
  ![avatar](azure_image/smartx.png)
 * explorer:http://IP:8000
  ![avatar](azure_image/explorer.png)
+ 
+## ONG acquisition mode ：
+* ./ontology account list -v (View your wallet address,for example:ATcB3KHaC28dGgVPwU3DYUuXf5iBo1TLug)
+* ./ontology asset transfer --from ATcB3KHaC28dGgVPwU3DYUuXf5iBo1TLug --to ATcB3KHaC28dGgVPwU3DYUuXf5iBo1TLug --asset=ont --amount=10000(Transfer your account to yourself)
+* ./ontology asset unboundong 1(View the number of ong that can be transferred )
+* ./ontology asset withdrawong 1(extract ong )
+* ./ontology asset balance 1(Check the ong in your wallet. succeed)
 
 ## Software infomation
 ### 1.mysql
