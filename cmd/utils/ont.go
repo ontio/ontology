@@ -59,6 +59,10 @@ const (
 	ASSET_ONG = "ong"
 )
 
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
 //Return balance of address in base58 code
 func GetBalance(address string) (*httpcom.BalanceOfRsp, error) {
 	result, ontErr := sendRpcRequest("getbalance", []interface{}{address})
