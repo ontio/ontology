@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/merkle"
 )
@@ -46,14 +45,9 @@ type StateStore struct {
 }
 
 //NewStateStore return state store instance
-func NewStateStore(dbDir, merklePath string) (*StateStore, error) {
+func NewStateStore(store scom.PersistStore, merklePath string) (*StateStore, error) {
 	var err error
-	store, err := leveldbstore.NewLevelDBStore(dbDir)
-	if err != nil {
-		return nil, err
-	}
 	stateStore := &StateStore{
-		dbDir:      dbDir,
 		store:      store,
 		merklePath: merklePath,
 	}

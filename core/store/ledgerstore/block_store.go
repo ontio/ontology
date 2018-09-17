@@ -26,21 +26,20 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
 	"io"
 )
 
 //Block store save the data of block & transaction
 type BlockStore struct {
-	enableCache bool                       //Is enable lru cache
-	dbDir       string                     //The path of store file
-	cache       *BlockCache                //The cache of block, if have.
-	store       *leveldbstore.LevelDBStore //block store handler
+	enableCache bool              //Is enable lru cache
+	dbDir       string            //The path of store file
+	cache       *BlockCache       //The cache of block, if have.
+	store       scom.PersistStore //block store handler
 }
 
 //NewBlockStore return the block store instance
-func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
+func NewBlockStore(store scom.PersistStore, enableCache bool) (*BlockStore, error) {
 	var cache *BlockCache
 	var err error
 	if enableCache {
@@ -49,13 +48,7 @@ func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
 			return nil, fmt.Errorf("NewBlockCache error %s", err)
 		}
 	}
-
-	store, err := leveldbstore.NewLevelDBStore(dbDir)
-	if err != nil {
-		return nil, err
-	}
 	blockStore := &BlockStore{
-		dbDir:       dbDir,
 		enableCache: enableCache,
 		store:       store,
 		cache:       cache,

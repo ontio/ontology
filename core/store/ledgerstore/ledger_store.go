@@ -21,14 +21,6 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
-	"math"
-	"os"
-	"sort"
-	"strings"
-	"sync"
-
-	"strconv"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -39,6 +31,7 @@ import (
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/rocksdbstore"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -52,6 +45,12 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"math"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
 )
 
 const (
@@ -91,24 +90,34 @@ func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
 		vbftPeerInfoheader: make(map[string]uint32),
 		vbftPeerInfoblock:  make(map[string]uint32),
 	}
+	blockDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock)
+	stateDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState)
+	eventDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirEvent)
+	merklePath := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath)
 
-	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
+	bStore, err := rocksdbstore.NewRocksDBStore(blockDir)
+	if err != nil {
+		return nil, err
+	}
+	sStore, err := rocksdbstore.NewRocksDBStore(stateDir)
+	if err != nil {
+		return nil, err
+	}
+	eStore, err := rocksdbstore.NewRocksDBStore(eventDir)
+	if err != nil {
+		return nil, err
+	}
+	blockStore, err := NewBlockStore(bStore, true)
 	if err != nil {
 		return nil, fmt.Errorf("NewBlockStore error %s", err)
 	}
-	ledgerStore.blockStore = blockStore
-
-	stateStore, err := NewStateStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState),
-		fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath))
+	stateStore, err := NewStateStore(sStore, merklePath)
 	if err != nil {
 		return nil, fmt.Errorf("NewStateStore error %s", err)
 	}
+	eventState := NewEventStore(eStore)
+	ledgerStore.blockStore = blockStore
 	ledgerStore.stateStore = stateStore
-
-	eventState, err := NewEventStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirEvent))
-	if err != nil {
-		return nil, fmt.Errorf("NewEventStore error %s", err)
-	}
 	ledgerStore.eventStore = eventState
 
 	return ledgerStore, nil
