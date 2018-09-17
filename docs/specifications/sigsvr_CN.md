@@ -17,6 +17,8 @@ Ontology签名服务器sigsvr是一个用于对交易进行签名的rpc服务器
 		* [2.4 对普通方法多重签名](#24-对普通方法多重签名)
 		* [2.5 转账交易签名](#25-转账交易签名)
 		* [2.6 Native合约调用签名](#26-native合约调用签名)
+			* [举例1: 构造普通转账交易](#举例1-构造普通转账交易)
+			* [举例2: 构造提取ONG交易](#举例2-构造提取ong交易)
 		* [2.7 NeoVM合约调用签名](#27-neovm合约调用签名)
 		* [2.8 NeoVM合约ABI调用签名](#28-neovm合约abi调用签名)
 		* [2.9 创建账户](#29-创建账户)
@@ -417,7 +419,7 @@ sigsvr启动时，默认会在当前目录下查找"./abi"下的native合约abi�
 signativeinvoketx 方法默认使用签名账户作为手续费支付方，如果需要使用其他账户作为手续费的付费账户，可以使用payer参数指定。
 注意：如果指定了手续费付费账户，还需要调用sigrawtx方法，使用手续费账户对 signativeinvoketx 方法生成的交易进行签名，否则会导致交易执行失败。
 
-举例
+#### 举例1: 构造普通转账交易
 ```
 {
     "Qid":"t",
@@ -441,6 +443,30 @@ signativeinvoketx 方法默认使用签名账户作为手续费支付方，如�
     		]
     	]
     }
+}
+```
+
+#### 举例2: 构造提取ONG交易
+
+``` json
+{
+	"Qid":"t",
+	"Method":"signativeinvoketx",
+	"account":"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48",	  //提取账户
+	"pwd":"XXX",
+	"Params":{
+		"gas_price":5000,
+		"gas_limit":20000,
+		"address":"0200000000000000000000000000000000000000",
+		"method":"transferFrom",
+		"version":0,
+		"params":[
+			"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48",	//提取账户
+			"AFmseVrdL9f9oyCzZefL9tG6UbvhUMqNMV",   //ONT合约地址(base58格式)
+			"ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48",  //ONG接受地址，可以于提取地址不一样
+			"310860000000000"												//提取金额(需要在实际金额上乘以10的9次方)
+		]
+	}
 }
 ```
 
