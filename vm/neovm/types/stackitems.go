@@ -33,6 +33,7 @@ type StackItems interface {
 	GetArray() ([]StackItems, error)
 	GetStruct() ([]StackItems, error)
 	GetMap() (map[StackItems]StackItems, error)
+	IsMapKey() bool
 }
 
 const (

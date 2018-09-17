@@ -28,7 +28,7 @@ func TestUint256_Serialize(t *testing.T) {
 	val[1] = 245
 	buf := bytes.NewBuffer(nil)
 	err := val.Serialize(buf)
-	assert.NotNil(t, err)
+	assert.Nil(t, err)
 }
 
 func TestUint256_Deserialize(t *testing.T) {

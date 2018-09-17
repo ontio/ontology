@@ -19,29 +19,25 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
+	"io"
 
-	"github.com/ontio/ontology/errors"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
 type BlocksReq struct {
 	HeaderHashCount uint8
-	HashStart       [common.HASH_LEN]byte
-	HashStop        [common.HASH_LEN]byte
+	HashStart       comm.Uint256
+	HashStop        comm.Uint256
 }
 
 //Serialize message payload
-func (this *BlocksReq) Serialization() ([]byte, error) {
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, this)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write  error. payload:%v", this))
-	}
+func (this *BlocksReq) Serialization(sink *comm.ZeroCopySink) error {
+	sink.WriteUint8(this.HeaderHashCount)
+	sink.WriteHash(this.HashStart)
+	sink.WriteHash(this.HashStop)
 
-	return p.Bytes(), nil
+	return nil
 }
 
 func (this *BlocksReq) CmdType() string {
@@ -49,11 +45,14 @@ func (this *BlocksReq) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *BlocksReq) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, this)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read BlocksReq error. buf:%v", buf))
+func (this *BlocksReq) Deserialization(source *comm.ZeroCopySource) error {
+	var eof bool
+	this.HeaderHashCount, eof = source.NextUint8()
+	this.HashStart, eof = source.NextHash()
+	this.HashStop, eof = source.NextHash()
+
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	return nil
 }

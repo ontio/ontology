@@ -29,20 +29,22 @@ import (
 )
 
 type TxHashInfo struct {
-	TxHash    string
-	StartTime int64
+	TxHash    string //transaction hash
+	StartTime int64  //recv tranasction time
 }
 
+//websocket session
 type Session struct {
 	sync.Mutex
 	mConnection *websocket.Conn
-	nLastActive int64
-	sessionId   string
-	TxHashArr   []TxHashInfo
+	nLastActive int64        //last active time
+	sessionId   string       //session id
+	TxHashArr   []TxHashInfo //transaction hashes in this session
 }
 
 const SESSION_TIMEOUT int64 = 300
 
+//create new session
 func newSession(wsConn *websocket.Conn) *Session {
 	sessionid := uuid.NewUUID().String()
 	session := &Session{
@@ -58,6 +60,7 @@ func (self *Session) GetSessionId() string {
 	return self.sessionId
 }
 
+//close session
 func (self *Session) Close() {
 	self.Lock()
 	defer self.Unlock()
@@ -68,12 +71,14 @@ func (self *Session) Close() {
 	self.sessionId = ""
 }
 
+//update active time
 func (self *Session) UpdateActiveTime() {
 	self.Lock()
 	defer self.Unlock()
 	self.nLastActive = time.Now().Unix()
 }
 
+//send to client
 func (self *Session) Send(data []byte) error {
 	if len(data) == 0 {
 		return nil
@@ -87,6 +92,7 @@ func (self *Session) Send(data []byte) error {
 	return self.mConnection.WriteMessage(websocket.TextMessage, data)
 }
 
+//sesseion time over check
 func (self *Session) SessionTimeoverCheck() bool {
 	nCurTime := time.Now().Unix()
 	if nCurTime-self.nLastActive > SESSION_TIMEOUT {
@@ -96,6 +102,7 @@ func (self *Session) SessionTimeoverCheck() bool {
 	return false
 }
 
+//remove timew over transaction hashes
 func (self *Session) RemoveTimeoverTxHashes() (remove []TxHashInfo) {
 	self.Lock()
 	defer self.Unlock()
@@ -112,6 +119,7 @@ func (self *Session) RemoveTimeoverTxHashes() (remove []TxHashInfo) {
 	return remove
 }
 
+//append transaction hash
 func (self *Session) AppendTxHash(txhash string) {
 	self.Lock()
 	defer self.Unlock()

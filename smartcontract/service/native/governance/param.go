@@ -25,14 +25,15 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"math"
 )
 
 type RegisterCandidateParam struct {
 	PeerPubkey string
 	Address    common.Address
-	InitPos    uint64
+	InitPos    uint32
 	Caller     []byte
-	KeyNo      uint64
+	KeyNo      uint32
 }
 
 func (this *RegisterCandidateParam) Serialize(w io.Writer) error {
@@ -42,13 +43,13 @@ func (this *RegisterCandidateParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, address address error!")
 	}
-	if err := utils.WriteVarUint(w, this.InitPos); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.InitPos)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize initPos error!")
 	}
 	if err := serialization.WriteVarBytes(w, this.Caller); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarBytes, serialize caller error!")
 	}
-	if err := utils.WriteVarUint(w, this.KeyNo); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.KeyNo)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize keyNo error!")
 	}
 	return nil
@@ -67,6 +68,9 @@ func (this *RegisterCandidateParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize initPos error!")
 	}
+	if initPos > math.MaxUint32 {
+		return errors.NewErr("initPos larger than max of uint32!")
+	}
 	caller, err := serialization.ReadVarBytes(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarBytes, deserialize caller error!")
@@ -75,11 +79,14 @@ func (this *RegisterCandidateParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize keyNo error!")
 	}
+	if keyNo > math.MaxUint32 {
+		return errors.NewErr("initPos larger than max of uint32!")
+	}
 	this.PeerPubkey = peerPubkey
 	this.Address = address
-	this.InitPos = initPos
+	this.InitPos = uint32(initPos)
 	this.Caller = caller
-	this.KeyNo = keyNo
+	this.KeyNo = uint32(keyNo)
 	return nil
 }
 
@@ -234,13 +241,13 @@ func (this *WhiteNodeParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type VoteForPeerParam struct {
+type AuthorizeForPeerParam struct {
 	Address        common.Address
 	PeerPubkeyList []string
-	PosList        []uint64
+	PosList        []uint32
 }
 
-func (this *VoteForPeerParam) Serialize(w io.Writer) error {
+func (this *AuthorizeForPeerParam) Serialize(w io.Writer) error {
 	if len(this.PeerPubkeyList) > 1024 {
 		return errors.NewErr("length of input list > 1024!")
 	}
@@ -262,14 +269,14 @@ func (this *VoteForPeerParam) Serialize(w io.Writer) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize posList length error!")
 	}
 	for _, v := range this.PosList {
-		if err := utils.WriteVarUint(w, v); err != nil {
+		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize pos error!")
 		}
 	}
 	return nil
 }
 
-func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
+func (this *AuthorizeForPeerParam) Deserialize(r io.Reader) error {
 	address, err := utils.ReadAddress(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadAddress, deserialize address error!")
@@ -293,13 +300,16 @@ func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize posList length error!")
 	}
-	posList := make([]uint64, 0)
+	posList := make([]uint32, 0)
 	for i := 0; uint64(i) < m; i++ {
 		k, err := utils.ReadVarUint(r)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize pos error!")
 		}
-		posList = append(posList, k)
+		if k > math.MaxUint32 {
+			return errors.NewErr("pos larger than max of uint32!")
+		}
+		posList = append(posList, uint32(k))
 	}
 	if m != n {
 		return errors.NewErr("length of PeerPubkeyList != length of PosList!")
@@ -313,7 +323,7 @@ func (this *VoteForPeerParam) Deserialize(r io.Reader) error {
 type WithdrawParam struct {
 	Address        common.Address
 	PeerPubkeyList []string
-	WithdrawList   []uint64
+	WithdrawList   []uint32
 }
 
 func (this *WithdrawParam) Serialize(w io.Writer) error {
@@ -338,7 +348,7 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize withdrawList length error!")
 	}
 	for _, v := range this.WithdrawList {
-		if err := utils.WriteVarUint(w, v); err != nil {
+		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize withdraw error!")
 		}
 	}
@@ -369,13 +379,16 @@ func (this *WithdrawParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize withdrawList length error!")
 	}
-	withdrawList := make([]uint64, 0)
+	withdrawList := make([]uint32, 0)
 	for i := 0; uint64(i) < m; i++ {
 		k, err := utils.ReadVarUint(r)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize withdraw error!")
 		}
-		withdrawList = append(withdrawList, k)
+		if k > math.MaxUint32 {
+			return errors.NewErr("pos larger than max of uint32!")
+		}
+		withdrawList = append(withdrawList, uint32(k))
 	}
 	if m != n {
 		return errors.NewErr("length of PeerPubkeyList != length of WithdrawList, contract params error!")
@@ -458,6 +471,30 @@ func (this *Configuration) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize maxBlockChangeView error!")
 	}
+	if n > math.MaxUint32 {
+		return errors.NewErr("n larger than max of uint32!")
+	}
+	if c > math.MaxUint32 {
+		return errors.NewErr("c larger than max of uint32!")
+	}
+	if k > math.MaxUint32 {
+		return errors.NewErr("k larger than max of uint32!")
+	}
+	if l > math.MaxUint32 {
+		return errors.NewErr("l larger than max of uint32!")
+	}
+	if blockMsgDelay > math.MaxUint32 {
+		return errors.NewErr("blockMsgDelay larger than max of uint32!")
+	}
+	if hashMsgDelay > math.MaxUint32 {
+		return errors.NewErr("hashMsgDelay larger than max of uint32!")
+	}
+	if peerHandshakeTimeout > math.MaxUint32 {
+		return errors.NewErr("peerHandshakeTimeout larger than max of uint32!")
+	}
+	if maxBlockChangeView > math.MaxUint32 {
+		return errors.NewErr("maxBlockChangeView larger than max of uint32!")
+	}
 	this.N = uint32(n)
 	this.C = uint32(c)
 	this.K = uint32(k)
@@ -471,38 +508,38 @@ func (this *Configuration) Deserialize(r io.Reader) error {
 
 type GlobalParam struct {
 	CandidateFee uint64 //unit: 10^-9 ong
-	MinInitStake uint64
-	CandidateNum uint64
-	PosLimit     uint64
-	A            uint64
-	B            uint64
-	Yita         uint64
-	Penalty      uint64
+	MinInitStake uint32
+	CandidateNum uint32
+	PosLimit     uint32
+	A            uint32
+	B            uint32
+	Yita         uint32
+	Penalty      uint32
 }
 
 func (this *GlobalParam) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, this.CandidateFee); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize candidateFee error!")
 	}
-	if err := utils.WriteVarUint(w, this.MinInitStake); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.MinInitStake)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize minInitStake error!")
 	}
-	if err := utils.WriteVarUint(w, this.CandidateNum); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.CandidateNum)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize candidateNum error!")
 	}
-	if err := utils.WriteVarUint(w, this.PosLimit); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.PosLimit)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize posLimit error!")
 	}
-	if err := utils.WriteVarUint(w, this.A); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.A)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize a error!")
 	}
-	if err := utils.WriteVarUint(w, this.B); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.B)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize b error!")
 	}
-	if err := utils.WriteVarUint(w, this.Yita); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.Yita)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize yita error!")
 	}
-	if err := utils.WriteVarUint(w, this.Penalty); err != nil {
+	if err := utils.WriteVarUint(w, uint64(this.Penalty)); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize penalty error!")
 	}
 	return nil
@@ -541,19 +578,40 @@ func (this *GlobalParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize penalty error!")
 	}
+	if minInitStake > math.MaxUint32 {
+		return errors.NewErr("minInitStake larger than max of uint32!")
+	}
+	if candidateNum > math.MaxUint32 {
+		return errors.NewErr("candidateNum larger than max of uint32!")
+	}
+	if posLimit > math.MaxUint32 {
+		return errors.NewErr("posLimit larger than max of uint32!")
+	}
+	if a > math.MaxUint32 {
+		return errors.NewErr("a larger than max of uint32!")
+	}
+	if b > math.MaxUint32 {
+		return errors.NewErr("b larger than max of uint32!")
+	}
+	if yita > math.MaxUint32 {
+		return errors.NewErr("yita larger than max of uint32!")
+	}
+	if penalty > math.MaxUint32 {
+		return errors.NewErr("penalty larger than max of uint32!")
+	}
 	this.CandidateFee = candidateFee
-	this.MinInitStake = minInitStake
-	this.CandidateNum = candidateNum
-	this.PosLimit = posLimit
-	this.A = a
-	this.B = b
-	this.Yita = yita
-	this.Penalty = penalty
+	this.MinInitStake = uint32(minInitStake)
+	this.CandidateNum = uint32(candidateNum)
+	this.PosLimit = uint32(posLimit)
+	this.A = uint32(a)
+	this.B = uint32(b)
+	this.Yita = uint32(yita)
+	this.Penalty = uint32(penalty)
 	return nil
 }
 
 type SplitCurve struct {
-	Yi []uint64
+	Yi []uint32
 }
 
 func (this *SplitCurve) Serialize(w io.Writer) error {
@@ -564,7 +622,7 @@ func (this *SplitCurve) Serialize(w io.Writer) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize Yi length error!")
 	}
 	for _, v := range this.Yi {
-		if err := utils.WriteVarUint(w, v); err != nil {
+		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.WriteVarUint, serialize splitCurve error!")
 		}
 	}
@@ -576,13 +634,16 @@ func (this *SplitCurve) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarUint, deserialize Yi length error!")
 	}
-	yi := make([]uint64, 0)
+	yi := make([]uint32, 0)
 	for i := 0; uint64(i) < n; i++ {
 		k, err := utils.ReadVarUint(r)
 		if err != nil {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "utils.ReadVarUint, deserialize splitCurve error!")
 		}
-		yi = append(yi, k)
+		if k > math.MaxUint32 {
+			return errors.NewErr("yi larger than max of uint32!")
+		}
+		yi = append(yi, uint32(k))
 	}
 	this.Yi = yi
 	return nil

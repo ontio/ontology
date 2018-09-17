@@ -19,6 +19,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -36,17 +37,20 @@ func NewBoolean(value bool) *Boolean {
 }
 
 func (this *Boolean) Equals(other StackItems) bool {
-	if _, ok := other.(*Boolean); !ok {
-		return false
+	if this == other {
+		return true
 	}
-	b, err := other.GetBoolean()
+	b, err := other.GetByteArray()
 	if err != nil {
 		return false
 	}
-	if this.value != b {
+
+	tb, err := this.GetByteArray()
+	if err != nil {
 		return false
 	}
-	return true
+
+	return bytes.Equal(tb, b)
 }
 
 func (this *Boolean) GetBigInteger() (*big.Int, error) {
@@ -81,4 +85,8 @@ func (this *Boolean) GetStruct() ([]StackItems, error) {
 
 func (this *Boolean) GetMap() (map[StackItems]StackItems, error) {
 	return nil, fmt.Errorf("%s", "Not support boolean to map")
+}
+
+func (this *Boolean) IsMapKey() bool {
+	return true
 }

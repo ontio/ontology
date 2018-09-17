@@ -24,6 +24,7 @@ import (
 	"math/big"
 
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
@@ -32,6 +33,14 @@ import (
 func validateCount1(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 1, "[validateCount1]"); err != nil {
 		return err
+	}
+	return nil
+}
+
+func validateAltStackCount1(e *ExecutionEngine) error {
+	stackCount := e.AltStack.Count()
+	if stackCount < 1 {
+		return errors.ERR_UNDER_STACK_LEN
 	}
 	return nil
 }
@@ -102,7 +111,7 @@ func validatorPushData4(e *ExecutionEngine) error {
 	bytesBuffer := bytes.NewBuffer(e.Context.Code[index : index+4])
 	var l uint32
 	binary.Read(bytesBuffer, binary.LittleEndian, &l)
-	if l > MAX_ITEM_SIZE {
+	if l > MAX_BYTEARRAY_SIZE {
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
 	return nil
@@ -172,7 +181,7 @@ func validateCat(e *ExecutionEngine) error {
 		return err
 	}
 	l := len(p0) + len(p1)
-	if uint32(l) > MAX_ITEM_SIZE {
+	if uint32(l) > MAX_BYTEARRAY_SIZE {
 		return errors.ERR_OVER_MAX_ITEM_SIZE
 	}
 	return nil
@@ -452,6 +461,9 @@ func validatePickItem(e *ExecutionEngine) error {
 		if key == nil {
 			return errors.ERR_BAD_VALUE
 		}
+		if !key.IsMapKey() {
+			return errors.ERR_NOT_MAP_KEY
+		}
 		if v := item.(*types.Map).TryGetValue(key); v == nil {
 			return errors.ERR_MAP_NOT_EXIST
 		}
@@ -495,6 +507,9 @@ func validatorSetItem(e *ExecutionEngine) error {
 		key := PeekNStackItem(1, e)
 		if key == nil {
 			return errors.ERR_BAD_VALUE
+		}
+		if !key.IsMapKey() {
+			return errors.ERR_NOT_MAP_KEY
 		}
 	default:
 		return fmt.Errorf("validatePickItem error: %s", errors.ERR_NOT_SUPPORT_TYPE)
@@ -561,6 +576,32 @@ func validatorReverse(e *ExecutionEngine) error {
 	if !ok1 && !ok2 {
 		return fmt.Errorf("validatorReverse error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
+	return nil
+}
+
+func validatorRemove(e *ExecutionEngine) error {
+	if err := LogStackTrace(e, 2, "[validatorRemove]"); err != nil {
+		return err
+	}
+
+	value := PeekNStackItem(0, e)
+	if value == nil {
+		return errors.ERR_BAD_VALUE
+	}
+
+	if !value.IsMapKey() {
+		return errors.ERR_NOT_MAP_KEY
+	}
+
+	item := PeekNStackItem(1, e)
+	if item == nil {
+		return errors.ERR_BAD_VALUE
+	}
+
+	if _, ok := item.(*types.Map); !ok {
+		return errors.ERR_REMOVE_NOT_SUPPORT
+	}
+
 	return nil
 }
 

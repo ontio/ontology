@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package jsonrpc privides a function to start json rpc server
 package jsonrpc
 
 import (
@@ -32,7 +33,6 @@ func StartRPCServer() error {
 	log.Debug()
 	http.HandleFunc("/", rpc.Handle)
 
-	rpc.HandleFunc("getgenerateblocktime", rpc.GetGenerateBlockTime)
 	rpc.HandleFunc("getbestblockhash", rpc.GetBestBlockHash)
 	rpc.HandleFunc("getblock", rpc.GetBlock)
 	rpc.HandleFunc("getblockcount", rpc.GetBlockCount)
@@ -44,6 +44,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("sendrawtransaction", rpc.SendRawTransaction)
 	rpc.HandleFunc("getstorage", rpc.GetStorage)
 	rpc.HandleFunc("getversion", rpc.GetNodeVersion)
+	rpc.HandleFunc("getnetworkid", rpc.GetNetworkId)
 
 	rpc.HandleFunc("getcontractstate", rpc.GetContractState)
 	rpc.HandleFunc("getmempooltxcount", rpc.GetMemPoolTxCount)
@@ -57,6 +58,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getblocktxsbyheight", rpc.GetBlockTxsByHeight)
 	rpc.HandleFunc("getgasprice", rpc.GetGasPrice)
 	rpc.HandleFunc("getunboundong", rpc.GetUnboundOng)
+	rpc.HandleFunc("getgrantong", rpc.GetGrantOng)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {

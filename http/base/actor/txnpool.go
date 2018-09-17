@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package actor privides communication with other actor
 package actor
 
 import (
@@ -32,6 +33,7 @@ import (
 
 var txnPid *actor.PID
 var txnPoolPid *actor.PID
+var DisableSyncVerifyTx = false
 
 func SetTxPid(actr *actor.PID) {
 	txnPid = actr
@@ -39,15 +41,29 @@ func SetTxPid(actr *actor.PID) {
 func SetTxnPoolPid(actr *actor.PID) {
 	txnPoolPid = actr
 }
-func AppendTxToPool(txn *types.Transaction) ontErrors.ErrCode {
-	txReq := &tcomn.TxReq{
-		Tx:     txn,
-		Sender: tcomn.HttpSender,
+
+//append transaction to pool to txpool actor
+func AppendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
+	if DisableSyncVerifyTx {
+		txReq := &tcomn.TxReq{txn, tcomn.HttpSender, nil}
+		txnPid.Tell(txReq)
+		return ontErrors.ErrNoError, ""
 	}
+	//add Pre Execute Contract
+	_, err := PreExecuteContract(txn)
+	if err != nil {
+		return ontErrors.ErrUnknown, err.Error()
+	}
+	ch := make(chan *tcomn.TxResult, 1)
+	txReq := &tcomn.TxReq{txn, tcomn.HttpSender, ch}
 	txnPid.Tell(txReq)
-	return ontErrors.ErrNoError
+	if msg, ok := <-ch; ok {
+		return msg.Err, msg.Desc
+	}
+	return ontErrors.ErrUnknown, ""
 }
 
+//GetTxsFromPool from txpool actor
 func GetTxsFromPool(byCount bool) map[common.Uint256]*types.Transaction {
 	future := txnPoolPid.RequestFuture(&tcomn.GetTxnPoolReq{ByCount: byCount}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
@@ -67,6 +83,7 @@ func GetTxsFromPool(byCount bool) map[common.Uint256]*types.Transaction {
 
 }
 
+//GetTxFromPool from txpool actor
 func GetTxFromPool(hash common.Uint256) (tcomn.TXEntry, error) {
 
 	future := txnPid.RequestFuture(&tcomn.GetTxnReq{hash}, REQ_TIMEOUT*time.Second)
@@ -97,6 +114,7 @@ func GetTxFromPool(hash common.Uint256) (tcomn.TXEntry, error) {
 	return txnEntry, nil
 }
 
+//GetTxnCount from txpool actor
 func GetTxnCount() ([]uint32, error) {
 	future := txnPid.RequestFuture(&tcomn.GetTxnCountReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()

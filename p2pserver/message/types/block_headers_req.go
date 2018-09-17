@@ -19,39 +19,39 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
+	"io"
 
-	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/common"
+	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type HeadersReq struct {
 	Len       uint8
-	HashStart [common.HASH_LEN]byte
-	HashEnd   [common.HASH_LEN]byte
+	HashStart common.Uint256
+	HashEnd   common.Uint256
 }
 
 //Serialize message payload
-func (this *HeadersReq) Serialization() ([]byte, error) {
-	p := new(bytes.Buffer)
-	err := binary.Write(p, binary.LittleEndian, this)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("binary.Write payload error. payload:%v", this))
-	}
-
-	return p.Bytes(), nil
+func (this *HeadersReq) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteUint8(this.Len)
+	sink.WriteHash(this.HashStart)
+	sink.WriteHash(this.HashEnd)
+	return nil
 }
 
 func (this *HeadersReq) CmdType() string {
-	return common.GET_HEADERS_TYPE
+	return comm.GET_HEADERS_TYPE
 }
 
 //Deserialize message payload
-func (this *HeadersReq) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, this)
+func (this *HeadersReq) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.Len, eof = source.NextUint8()
+	this.HashStart, eof = source.NextHash()
+	this.HashEnd, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 
-	return err
+	return nil
 }

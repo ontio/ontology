@@ -61,10 +61,11 @@ func validatorBlockTransaction(engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[validatorBlockTransaction] Validate block fail!")
 	}
-	index, err := vm.PeekInt(engine)
+	item, err := vm.PeekNBigInt(1, engine)
 	if err != nil {
 		return err
 	}
+	index := int(item.Int64())
 	if index < 0 {
 		return errors.NewErr("[validatorBlockTransaction] Pop index invalid!")
 	}
@@ -183,6 +184,13 @@ func validatorSerialize(engine *vm.ExecutionEngine) error {
 func validatorDeserialize(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorDeSerialize] Too few input parameters ")
+	}
+	return nil
+}
+
+func validatorContextAsReadOnly(engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 1 {
+		return errors.NewErr("[validatorContextAsReadOnly] Too few input parameters ")
 	}
 	return nil
 }

@@ -91,6 +91,15 @@ func (this *ConsensusPayload) Type() common.InventoryType {
 	return common.CONSENSUS
 }
 
+func (this *ConsensusPayload) Serialization(sink *common.ZeroCopySink) error {
+	this.serializationUnsigned(sink)
+	buf := keypair.SerializePublicKey(this.Owner)
+	sink.WriteVarBytes(buf)
+	sink.WriteVarBytes(this.Signature)
+
+	return nil
+}
+
 //Serialize message payload
 func (this *ConsensusPayload) Serialize(w io.Writer) error {
 	err := this.SerializeUnsigned(w)
@@ -106,6 +115,36 @@ func (this *ConsensusPayload) Serialize(w io.Writer) error {
 	err = serialization.WriteVarBytes(w, this.Signature)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write Signature error. Signature:%v", this.Signature))
+	}
+
+	return nil
+}
+
+//Deserialize message payload
+func (this *ConsensusPayload) Deserialization(source *common.ZeroCopySource) error {
+	err := this.deserializationUnsigned(source)
+	if err != nil {
+		return err
+	}
+	buf, _, irregular, eof := source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	this.Owner, err = keypair.DeserializePublicKey(buf)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "deserialize publickey error")
+	}
+
+	this.Signature, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
 	return nil
@@ -135,6 +174,15 @@ func (this *ConsensusPayload) Deserialize(r io.Reader) error {
 	}
 
 	return err
+}
+
+func (this *ConsensusPayload) serializationUnsigned(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.Version)
+	sink.WriteHash(this.PrevHash)
+	sink.WriteUint32(this.Height)
+	sink.WriteUint16(this.BookkeeperIndex)
+	sink.WriteUint32(this.Timestamp)
+	sink.WriteVarBytes(this.Data)
 }
 
 //Serialize message payload
@@ -169,6 +217,24 @@ func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Data:%v", this.Data))
 	}
+	return nil
+}
+
+func (this *ConsensusPayload) deserializationUnsigned(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	this.Version, eof = source.NextUint32()
+	this.PrevHash, eof = source.NextHash()
+	this.Height, eof = source.NextUint32()
+	this.BookkeeperIndex, eof = source.NextUint16()
+	this.Timestamp, eof = source.NextUint32()
+	this.Data, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
 	return nil
 }
 

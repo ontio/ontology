@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package common privides functions for http handler call
 package common
 
 import (
@@ -24,12 +25,16 @@ import (
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	svrneovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/vm/neovm"
@@ -104,6 +109,7 @@ type Transactions struct {
 	Attributes []TxAttributeInfo
 	Sigs       []Sig
 	Hash       string
+	Height     uint32
 }
 
 type BlockHead struct {
@@ -125,6 +131,7 @@ type BlockHead struct {
 
 type BlockInfo struct {
 	Hash         string
+	Size         int
 	Header       *BlockHead
 	Transactions []*Transactions
 }
@@ -180,12 +187,13 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans.Nonce = ptx.Nonce
 	trans.GasLimit = ptx.GasLimit
 	trans.GasPrice = ptx.GasPrice
-	trans.Payer = ptx.Payer.ToHexString()
+	trans.Payer = ptx.Payer.ToBase58()
 	trans.Payload = TransPayloadToHex(ptx.Payload)
 
 	trans.Attributes = make([]TxAttributeInfo, 0)
 	trans.Sigs = []Sig{}
-	for _, sig := range ptx.Sigs {
+	for _, sigdata := range ptx.Sigs {
+		sig, _ := sigdata.GetSig()
 		e := Sig{M: sig.M}
 		for i := 0; i < len(sig.PubKeys); i++ {
 			key := keypair.SerializePublicKey(sig.PubKeys[i])
@@ -202,13 +210,12 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	return trans
 }
 
-func VerifyAndSendTx(txn *types.Transaction) ontErrors.ErrCode {
-	// if transaction is verified unsuccessfully then will not put it into transaction pool
-	if errCode := bactor.AppendTxToPool(txn); errCode != ontErrors.ErrNoError {
-		log.Warn("Can NOT add the transaction to TxnPool")
-		return errCode
+func SendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
+	if errCode, desc := bactor.AppendTxToPool(txn); errCode != ontErrors.ErrNoError {
+		log.Warn("TxnPool verify error:", errCode.Error())
+		return errCode, desc
 	}
-	return ontErrors.ErrNoError
+	return ontErrors.ErrNoError, ""
 }
 
 func GetBlockInfo(block *types.Block) BlockInfo {
@@ -247,6 +254,7 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 
 	b := BlockInfo{
 		Hash:         hash.ToHexString(),
+		Size:         len(block.ToArray()),
 		Header:       blockHead,
 		Transactions: trans,
 	}
@@ -268,6 +276,24 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 	}, nil
 }
 
+func GetGrantOng(addr common.Address) (string, error) {
+	key := append([]byte(ont.UNBOUND_TIME_OFFSET), addr[:]...)
+	value, err := ledger.DefLedger.GetStorageItem(utils.OntContractAddress, key)
+	if err != nil {
+		value = []byte{0, 0, 0, 0}
+	}
+	v, err := serialization.ReadUint32(bytes.NewBuffer(value))
+	if err != nil {
+		return fmt.Sprintf("%v", 0), err
+	}
+	ont, err := GetContractBalance(0, utils.OntContractAddress, addr)
+	if err != nil {
+		return fmt.Sprintf("%v", 0), err
+	}
+	boundong := utils.CalcUnbindOng(ont, v, uint32(time.Now().Unix())-constants.GENESIS_BLOCK_TIMESTAMP)
+	return fmt.Sprintf("%v", boundong), nil
+}
+
 func GetAllowance(asset string, from, to common.Address) (string, error) {
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
@@ -286,9 +312,13 @@ func GetAllowance(asset string, from, to common.Address) (string, error) {
 }
 
 func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (uint64, error) {
-	tx, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr[:]})
+	mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr[:]})
 	if err != nil {
 		return 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
+	}
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return 0, err
 	}
 	result, err := bactor.PreExecuteContract(tx)
 	if err != nil {
@@ -301,7 +331,8 @@ func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (ui
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	balance := new(big.Int).SetBytes(data)
+
+	balance := common.BigIntFromNeoBytes(data)
 	return balance.Uint64(), nil
 }
 
@@ -310,7 +341,7 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 		From common.Address
 		To   common.Address
 	}
-	tx, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "allowance",
+	mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "allowance",
 		[]interface{}{&allowanceStruct{
 			From: fromAddr,
 			To:   toAddr,
@@ -318,6 +349,12 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	if err != nil {
 		return 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
 	}
+
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return 0, err
+	}
+
 	result, err := bactor.PreExecuteContract(tx)
 	if err != nil {
 		return 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
@@ -329,7 +366,7 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 	if err != nil {
 		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	allowance := new(big.Int).SetBytes(data)
+	allowance := common.BigIntFromNeoBytes(data)
 	return allowance.Uint64(), nil
 }
 
@@ -363,8 +400,8 @@ func GetGasPrice() (map[string]interface{}, error) {
 func GetBlockTransactions(block *types.Block) interface{} {
 	trans := make([]string, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
-		h := block.Transactions[i].Hash()
-		trans[i] = common.ToHexString(h.ToArray())
+		t := block.Transactions[i].Hash()
+		trans[i] = t.ToHexString()
 	}
 	hash := block.Hash()
 	type BlockTransactions struct {
@@ -373,7 +410,7 @@ func GetBlockTransactions(block *types.Block) interface{} {
 		Transactions []string
 	}
 	b := BlockTransactions{
-		Hash:         common.ToHexString(hash.ToArray()),
+		Hash:         hash.ToHexString(),
 		Height:       block.Header.Height,
 		Transactions: trans,
 	}
@@ -381,15 +418,16 @@ func GetBlockTransactions(block *types.Block) interface{} {
 }
 
 //NewNativeInvokeTransaction return native contract invoke transaction
-func NewNativeInvokeTransaction(gasPirce, gasLimit uint64, contractAddress common.Address, verison byte, method string, params []interface{}) (*types.Transaction, error) {
-	invokeCode, err := BuildNativeInvokeCode(contractAddress, verison, method, params)
+func NewNativeInvokeTransaction(gasPirce, gasLimit uint64, contractAddress common.Address, version byte,
+	method string, params []interface{}) (*types.MutableTransaction, error) {
+	invokeCode, err := BuildNativeInvokeCode(contractAddress, version, method, params)
 	if err != nil {
 		return nil, err
 	}
 	return NewSmartContractTransaction(gasPirce, gasLimit, invokeCode)
 }
 
-func NewNeovmInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common.Address, params []interface{}) (*types.Transaction, error) {
+func NewNeovmInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common.Address, params []interface{}) (*types.MutableTransaction, error) {
 	invokeCode, err := BuildNeoVMInvokeCode(contractAddress, params)
 	if err != nil {
 		return nil, err
@@ -397,17 +435,17 @@ func NewNeovmInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common
 	return NewSmartContractTransaction(gasPrice, gasLimit, invokeCode)
 }
 
-func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (*types.Transaction, error) {
+func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (*types.MutableTransaction, error) {
 	invokePayload := &payload.InvokeCode{
 		Code: invokeCode,
 	}
-	tx := &types.Transaction{
+	tx := &types.MutableTransaction{
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.Invoke,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
-		Sigs:     make([]*types.Sig, 0, 0),
+		Sigs:     nil,
 	}
 	return tx, nil
 }
@@ -502,12 +540,11 @@ func BuildNeoVMParam(builder *neovm.ParamsBuilder, smartContractParams []interfa
 				builder.Emit(neovm.TOALTSTACK)
 				for i := 0; i < object.NumField(); i++ {
 					field := object.Field(i)
+					builder.Emit(neovm.DUPFROMALTSTACK)
 					err := BuildNeoVMParam(builder, []interface{}{field.Interface()})
 					if err != nil {
 						return err
 					}
-					builder.Emit(neovm.DUPFROMALTSTACK)
-					builder.Emit(neovm.SWAP)
 					builder.Emit(neovm.APPEND)
 				}
 				builder.Emit(neovm.FROMALTSTACK)
@@ -517,4 +554,15 @@ func BuildNeoVMParam(builder *neovm.ParamsBuilder, smartContractParams []interfa
 		}
 	}
 	return nil
+}
+
+func GetAddress(str string) (common.Address, error) {
+	var address common.Address
+	var err error
+	if len(str) == common.ADDR_LEN*2 {
+		address, err = common.AddressFromHexString(str)
+	} else {
+		address, err = common.AddressFromBase58(str)
+	}
+	return address, err
 }

@@ -23,7 +23,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/payload"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -41,18 +40,21 @@ type ApiServer interface {
 	Stop()
 }
 
+// get node verison
 func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	resp["Result"] = config.Version
 	return resp
 }
 
-//Node
-func GetGenerateBlockTime(cmd map[string]interface{}) map[string]interface{} {
+// get networkid
+func GetNetworkId(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	resp["Result"] = config.DEFAULT_GEN_BLOCK_TIME
+	resp["Result"] = config.DefConfig.P2PNode.NetworkId
 	return resp
 }
+
+//get connection node count
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	count, err := bactor.GetConnectionCnt()
@@ -63,17 +65,19 @@ func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//Block
+//get block height
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	height := bactor.GetCurrentBlockHeight()
 	resp["Result"] = height
 	return resp
 }
+
+//get block hash by height
 func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	param := cmd["Height"].(string)
-	if len(param) == 0 {
+	param, ok := cmd["Height"].(string)
+	if !ok || len(param) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
@@ -81,6 +85,9 @@ func GetBlockHash(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	hash := bactor.GetBlockHashFromStore(uint32(height))
+	if hash == common.UINT256_EMPTY {
+		return ResponsePack(berr.UNKNOWN_BLOCK)
+	}
 	resp["Result"] = hash.ToHexString()
 	return resp
 }
@@ -103,6 +110,8 @@ func getBlock(hash common.Uint256, getTxBytes bool) (interface{}, int64) {
 	}
 	return bcomn.GetBlockInfo(block), berr.SUCCESS
 }
+
+//get block by hash
 func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str := cmd["Hash"].(string)
@@ -122,10 +131,11 @@ func GetBlockByHash(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get block height by transaction hash
 func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	str := cmd["Hash"].(string)
-	if len(str) == 0 {
+	str, ok := cmd["Hash"].(string)
+	if !ok || len(str) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	hash, err := common.Uint256FromHexString(str)
@@ -142,11 +152,13 @@ func GetBlockHeightByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = height
 	return resp
 }
+
+//get block transaction hashes by height
 func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
-	param := cmd["Height"].(string)
-	if len(param) == 0 {
+	param, ok := cmd["Height"].(string)
+	if !ok || len(param) == 0 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	height, err := strconv.ParseInt(param, 10, 64)
@@ -165,6 +177,8 @@ func GetBlockTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = bcomn.GetBlockTransactions(block)
 	return resp
 }
+
+//get block by height
 func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -198,7 +212,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
-//Transaction
+//get transaction by hash
 func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -210,7 +224,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	tx, err := bactor.GetTransaction(hash)
+	height, tx, err := bactor.GetTxnWithHeightByTxHash(hash)
 	if tx == nil {
 		return ResponsePack(berr.UNKNOWN_TRANSACTION)
 	}
@@ -227,9 +241,12 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 	tran := bcomn.TransArryByteToHexString(tx)
+	tran.Height = height
 	resp["Result"] = tran
 	return resp
 }
+
+//send raw transaction
 func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -241,33 +258,39 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var txn types.Transaction
-	if err := txn.Deserialize(bytes.NewReader(bys)); err != nil {
+
+	txn, err := types.TransactionFromRawBytes(bys)
+	if err != nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
-	}
-	if txn.TxType == types.Invoke {
-		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
-			if _, ok := txn.Payload.(*payload.InvokeCode); ok {
-				resp["Result"], err = bactor.PreExecuteContract(&txn)
-				if err != nil {
-					log.Infof("PreExec: ", err)
-					return ResponsePack(berr.SMARTCODE_ERROR)
-				}
-				return resp
-			}
-		}
 	}
 	var hash common.Uint256
 	hash = txn.Hash()
-	if errCode := bcomn.VerifyAndSendTx(&txn); errCode != ontErrors.ErrNoError {
+	log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
+	if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
+			resp["Result"], err = bactor.PreExecuteContract(txn)
+			if err != nil {
+				log.Infof("PreExec: ", err)
+				resp = ResponsePack(berr.SMARTCODE_ERROR)
+				resp["Result"] = err.Error()
+				return resp
+			}
+			return resp
+		}
+	}
+	log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
+	if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 		resp["Error"] = int64(errCode)
+		resp["Result"] = desc
+		log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 		return resp
 	}
+	log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
 	resp["Result"] = hash.ToHexString()
-
 	return resp
 }
 
+//get smartcontract event by height
 func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 
@@ -288,7 +311,7 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 		if scom.ErrNotFound == err {
 			return ResponsePack(berr.SUCCESS)
 		}
-		return ResponsePack(berr.INVALID_PARAMS)
+		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))
 	for _, eventInfo := range eventInfos {
@@ -299,6 +322,7 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 	return resp
 }
 
+//get smartcontract event by transaction hash
 func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	if !config.DefConfig.Common.EnableEventLog {
 		return ResponsePack(berr.INVALID_METHOD)
@@ -316,7 +340,10 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	}
 	eventInfo, err := bactor.GetEventNotifyByTxHash(hash)
 	if err != nil {
-		return ResponsePack(berr.INVALID_PARAMS)
+		if scom.ErrNotFound == err {
+			return ResponsePack(berr.SUCCESS)
+		}
+		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	if eventInfo == nil {
 		return ResponsePack(berr.INVALID_TRANSACTION)
@@ -326,19 +353,14 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	return resp
 }
 
+//get contract state
 func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var address common.Address
-	var err error
-	if len(str) == common.ADDR_LEN*2 {
-		address, err = common.AddressFromHexString(str)
-	} else {
-		address, err = common.AddressFromBase58(str)
-	}
+	address, err := bcomn.GetAddress(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -359,19 +381,14 @@ func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get storage from contract
 func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	var address common.Address
-	var err error
-	if len(str) == common.ADDR_LEN*2 {
-		address, err = common.AddressFromHexString(str)
-	} else {
-		address, err = common.AddressFromBase58(str)
-	}
+	address, err := bcomn.GetAddress(str)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -391,6 +408,7 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get balance of address
 func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	addrBase58, ok := cmd["Addr"].(string)
@@ -409,6 +427,7 @@ func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get merkle proof by transaction hash
 func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)
@@ -449,6 +468,7 @@ func GetMerkleProof(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get avg gas price in block
 func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
 	result, err := bcomn.GetGasPrice()
 	if err != nil {
@@ -459,6 +479,7 @@ func GetGasPrice(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get allowance
 func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	asset, ok := cmd["Asset"].(string)
@@ -473,11 +494,11 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	fromAddr, err := common.AddressFromBase58(fromAddrStr)
+	fromAddr, err := bcomn.GetAddress(fromAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	toAddr, err := common.AddressFromBase58(toAddrStr)
+	toAddr, err := bcomn.GetAddress(toAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -489,13 +510,14 @@ func GetAllowance(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+//get unbound ong
 func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	toAddrStr, ok := cmd["Addr"].(string)
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	toAddr, err := common.AddressFromBase58(toAddrStr)
+	toAddr, err := bcomn.GetAddress(toAddrStr)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -504,10 +526,31 @@ func GetUnboundOng(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
+	bcomn.GetGrantOng(toAddr)
 	resp["Result"] = rsp
 	return resp
 }
 
+//get grant ong
+func GetGrantOng(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	toAddrStr, ok := cmd["Addr"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	toAddr, err := bcomn.GetAddress(toAddrStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	rsp, err := bcomn.GetGrantOng(toAddr)
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = rsp
+	return resp
+}
+
+//get memory pool transaction count
 func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	count, err := bactor.GetTxnCount()
@@ -517,6 +560,8 @@ func GetMemPoolTxCount(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = count
 	return resp
 }
+
+//get memory poll transaction state
 func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
 	str, ok := cmd["Hash"].(string)

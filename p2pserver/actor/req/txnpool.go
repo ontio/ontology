@@ -41,12 +41,13 @@ func SetTxnPoolPid(txnPid *actor.PID) {
 //add txn to txnpool
 func AddTransaction(transaction *types.Transaction) {
 	if txnPoolPid == nil {
-		log.Error("net_server AddTransaction(): txnpool pid is nil")
+		log.Error("[p2p]net_server AddTransaction(): txnpool pid is nil")
 		return
 	}
 	txReq := &tc.TxReq{
-		Tx:     transaction,
-		Sender: tc.NetSender,
+		Tx:         transaction,
+		Sender:     tc.NetSender,
+		TxResultCh: nil,
 	}
 	txnPoolPid.Tell(txReq)
 }
@@ -54,13 +55,13 @@ func AddTransaction(transaction *types.Transaction) {
 //get txn according to hash
 func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 	if txnPoolPid == nil {
-		log.Error("net_server tx pool pid is nil")
-		return nil, errors.NewErr("net_server tx pool pid is nil")
+		log.Warn("[p2p]net_server tx pool pid is nil")
+		return nil, errors.NewErr("[p2p]net_server tx pool pid is nil")
 	}
 	future := txnPoolPid.RequestFuture(&tc.GetTxnReq{Hash: hash}, txnPoolReqTimeout)
 	result, err := future.Result()
 	if err != nil {
-		log.Errorf("net_server GetTransaction error: %v\n", err)
+		log.Warnf("[p2p]net_server GetTransaction error: %v\n", err)
 		return nil, err
 	}
 	return result.(tc.GetTxnRsp).Txn, nil

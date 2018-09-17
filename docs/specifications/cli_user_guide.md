@@ -1,10 +1,87 @@
 # Ontology CLI Instruction
 
+[English|[中文](cli_user_guide_CN.md)]
+
 Ontology CLI is an Ontology node command line Client for starting and managing Ontology nodes, managing user wallets, sending transactions, and deploying and invoking contracts.
+
+* [Ontology CLI Instruction](#ontology-cli-instruction)
+	* [1. Start and Manage Ontology Nodes](#1-start-and-manage-ontology-nodes)
+		* [1.1 Startup Parameters](#11-startup-parameters)
+			* [1.1.1 Ontology System Parameters](#111-ontology-system-parameters)
+			* [1.1.2 Account Parameters](#112-account-parameters)
+			* [1.1.3 Consensus Parameters](#113-consensus-parameters)
+			* [1.1.4 P2P Network Parameters](#114-p2p-network-parameters)
+			* [1.1.5 RPC Server Parameters](#115-rpc-server-parameters)
+			* [1.1.6 Restful Server Parameters](#116-restful-server-parameters)
+			* [1.1.7 Web Socket Server Parameters](#117-web-socket-server-parameters)
+			* [1.1.8 Test Mode Parameters](#118-test-mode-parameters)
+			* [1.1.9 Transaction Parameter](#119-transaction-parameter)
+		* [1.2 Node Deployment](#12-node-deployment)
+			* [1.2.1 Mainnet Bookkeeping Node Deployment](#121-mainnet-bookkeeping-node-deployment)
+			* [1.2.2 Mainnet Synchronization Node Deployment](#122-mainnet-synchronization-node-deployment)
+			* [1.2.3 Deploying on public test network Polaris sync node](#123-deploying-on-public-test-network-polaris-sync-node)
+			* [1.2.4 Single-Node Test Network Deployment](#124-single-node-test-network-deployment)
+	* [2. Wallet Management](#2-wallet-management)
+		* [2.1. Add Account](#21-add-account)
+			* [2.1.1 Add Account Parameters](#211-add-account-parameters)
+		* [2.2 View Account](#22-view-account)
+		* [2.3 Modify Account](#23-modify-account)
+			* [2.3.1 Modifying Account Parameters](#231-modifying-account-parameters)
+		* [2.4 Delete Account](#24-delete-account)
+		* [2.5 Import Account](#25-import-account)
+			* [2.5.1 Import Account Parameters](#251-import-account-parameters)
+			* [2.5.2 Import Account by WIF](#252-import-account-by-wif)
+	* [3. Asset Management](#3-asset-management)
+		* [3.1 Check Your Account Balance](#31-check-your-account-balance)
+		* [3.2 ONT/ONG Transfers](#32-ontong-transfers)
+			* [3.2.1 Transfer Arguments](#321-transfer-arguments)
+		* [3.3 Authorize Transfer](#33-authorize-transfer)
+			* [3.3.1 Authorize Transfer Parameter](#331-authorize-transfer-parameter)
+		* [3.4 View Authorized Transfer Balance](#34-view-authorized-transfer-balance)
+			* [3.4.1 View Authorized Transfer Balance Parameters](#341-view-authorized-transfer-balance-parameters)
+		* [3.5 Transferring Fund from Authorized Accounts](#35-transferring-fund-from-authorized-accounts)
+			* [3.5.1 Transferring Fund from Authorized Accounts Parameters](#351-transferring-fund-from-authorized-accounts-parameters)
+		* [3.6 View Unlocked ONG Balance](#36-view-unlocked-ong-balance)
+		* [3.7 Extract Unlocked ONG](#37-extract-unlocked-ong)
+			* [3.7.1 Extracting Unlocked ONG Parameters](#371-extracting-unlocked-ong-parameters)
+	* [4 Query Information](#4-query-information)
+		* [4.1 Query Block Information](#41-query-block-information)
+		* [4.2 Query Transaction Information](#42-query-transaction-information)
+		* [4.3 Query Transaction Execution Information](#43-query-transaction-execution-information)
+	* [5. Smart Contract](#5-smart-contract)
+		* [5.1 Smart Contract Deployment](#51-smart-contract-deployment)
+			* [5.1.1 Smart Contract Deployment Parameters](#511-smart-contract-deployment-parameters)
+		* [5.2 Smart Contract Execution](#52-smart-contract-execution)
+			* [5.2.1 Smart Contract Execution Parameters](#521-smart-contract-execution-parameters)
+		* [5.3 Smart Contract Code Execution Directly](#53-smart-contract-code-execution-directly)
+			* [5.3.1 Smart Contract Code Execution Directly Parameters](#531-smart-contract-code-execution-directly-parameters)
+	* [6. Block Import and Export](#6-block-import-and-export)
+		* [6.1 Export Blocks](#61-export-blocks)
+			* [6.1.1 Export Block Parameters](#611-export-block-parameters)
+		* [6.2 Import Blocks](#62-import-blocks)
+			* [6.2.1 Importing Block Parameters](#621-importing-block-parameters)
+	* [7、Build Transaction](#7-build-transaction)
+		* [7.1 Build Transfer Transaction](#71-build-transfer-transaction)
+			* [7.1.1 Build Transfer Transaction Params](#711-build-transfer-transaction-params)
+		* [7.2 Build Authorize Transfer](#72-build-authorize-transfer)
+			* [7.2.1 Build Authorize Transfer Params](#721-build-authorize-transfer-params)
+		* [7.3 Build Transfer From Authorize Account Transaction](#73-build-transfer-from-authorize-account-transaction)
+			* [7.3.1 Build Transfer From Authorize Account Transaction Params](#731-build-transfer-from-authorize-account-transaction-params)
+		* [7.4 Build Withdraw ONG Transaction](#74-build-withdraw-ong-transaction)
+			* [7.4.1 Build Withdraw ONG Transaction Params](#741-build-withdraw-ong-transaction-params)
+	* [8、Sign To Transaction](#8-sign-to-transaction)
+		* [8.1 Sign To Transaction Parameters](#81-sign-to-transaction-parameters)
+	* [9、Generate Multi-Signature Address](#9-generate-multi-signature-address)
+		* [9.1 Generate Multi-Signature Address Parameters](#91-generate-multi-signature-address-parameters)
+	* [10、Multi-Signature To Transaction](#10-multi-signature-to-transaction)
+		* [10.1 对交易多重签名参数](#101-对交易多重签名参数)
+	* [11、Send Transaction](#11-send-transaction)
+		* [11.1 Send Transaction Parameters](#111-send-transaction-parameters)
+	* [12、Show Transaction Infomation](#12-show-transaction-infomation)
 
 ## 1. Start and Manage Ontology Nodes
 
-Ontology CLI has a lot of startup parameters for configuring some of the Ontology node's behavior. Use ./Ontology -help to see all startup parameters supported by the Ontology CLI node. If Ontology CLI is started without any parameters, it will access the Ontology Polaris test network as a synchronous node by default.
+Ontology CLI has a lot of startup parameters for configuring some of the Ontology node's behavior. Use ./Ontology -help to see all startup parameters supported by the Ontology CLI node. If Ontology CLI is started without any parameters, it will access the Ontology main network as a synchronous node by default.
 
 ### 1.1 Startup Parameters
 
@@ -16,24 +93,13 @@ The following are the command line parameters supported by Ontology CLI:
 The config parameter specifies the file path of the genesis block for the current Ontolgy node. If doesn't specify, Ontology will use the config of Polaris test net. Note that the genesis block configuration must be the same for all nodes in the same network, otherwise it will not be able to synchronize blocks or start nodes due to block data incompatibility.
 
 --loglevel
-The loglevel parameter is used to set the log level the Ontology outputs. Ontology supports 7 different log levels, i.e. 0:Debug 1:Info 2:Warn 3:Error 4:Fatal 5:Trace 6:MaxLevel. The logs are logged from low to high, and the log output volume is from high to low. The default value is 1, which means that only logs at the info level or higher level.
+The loglevel parameter is used to set the log level the Ontology outputs. Ontology supports 7 different log levels, i.e. 0:Trace 1:Debug 2:Info 3:Warn 4:Error 5:Fatal 6:MaxLevel. The logs are logged from low to high, and the log output volume is from high to low. The default value is 2, which means that only logs at the info level or higher level.
 
---disableeventlog
-The disableeventlog parameter is used to disable the event log output when the smart contract is executed to improve the node transaction execution performance. The Ontology node enables the event log output function by default.
+--disable-event-log
+The disable-event-log parameter is used to disable the event log output when the smart contract is executed to improve the node transaction execution performance. The Ontology node enables the event log output function by default.
 
---datadir
-The datadir parameter specifies the storage path of the block data. The default value is "./Chain".
-
---import
-The import parameter is used to start the block import function of the Ontology node and increase the block synchronization speed by importing local files.
-
-
---importheight
-The importheight parameter is used with --import to specify the height of the imported target block. If the height of the block specified by importheight is less than the maximum height of the block file, it will import all blocks whose height is less than the importheight value. The default value is 0, which means import all the blocks.
-
-
---importfile
-The importfile parameter is used with --import to specify the imported file path. The default value is "./blocks.dat".
+--data-dir
+The data-dir parameter specifies the storage path of the block data. The default value is "./Chain".
 
 #### 1.1.2 Account Parameters
 
@@ -48,11 +114,11 @@ The password parameter is used to specify the account password when Ontology nod
 
 #### 1.1.3 Consensus Parameters
 
---disableconsensus
-The disableconsensus parameter is used to shut down the network consensus. When starting the synchronization node, it is recommended to turn this parameter on and turn off the network consensus. The default is to enable network consensus.
+--enable-consensus
+The enable-consensus parameter is used to turn the consensus on. If the current node will startup as a bookkeeper node, must enable this flag. The default is disable.
 
---maxtxinblock
-The maxtxinblock parameter is used to set the maximum transaction number of a block. The default value is 50000.
+--max-tx-in-block
+The max-tx-in-block parameter is used to set the maximum transaction number of a block. The default value is 50000.
 
 #### 1.1.4 P2P Network Parameters
 
@@ -65,14 +131,14 @@ The nodeport parameter is used to specify the P2P network port number. The defau
 --consensusport
 The consensusport parameter specifies the consensus network port number. By default, the consensus network reuses the P2P network, so it is not necessary to specify a consensus network port. After the dual network is enabled with the --dualport parameter, the consensus network port number must be set separately. The default is 20339.
 
---dualport
-The dualport parameter initiates a dual network, i.e. a P2P network for processing transaction messages and a consensus network for consensus messages. The parameter disables by default.
+--dual-port
+The dual-port parameter initiates a dual network, i.e. a P2P network for processing transaction messages and a consensus network for consensus messages. The parameter disables by default.
 
 
 #### 1.1.5 RPC Server Parameters
 
---disablerpc
-The disablerpc parameter is used to shut down the rpc server. The Ontology node starts the rpc server by default at startup.
+--disable-rpc
+The disable-rpc parameter is used to shut down the rpc server. The Ontology node starts the rpc server by default at startup.
 
 --rpcport
 The rpcport parameter specifies the port number to which the rpc server is bound. The default is 20336.
@@ -98,149 +164,61 @@ The wsport parameter specifies the port number to which the web socket server is
 --testmode
 The testmode parameter is used to start a single node test network for ease of development and debug. In testmode, Ontology will start rpc, rest and web socket server, and block chain data will be clear generated by last start in testmode.
 
---testmodegenblocktime
-The testmodegenblocktime parameter is used to set the block-out time in test mode. The time unit is in seconds, and the minimum block-out time is 2 seconds.
+--testmode-gen-block-time
+The testmode-gen-block-time parameter is used to set the block-out time in test mode. The time unit is in seconds, and the minimum block-out time is 2 seconds.
 
 #### 1.1.9 Transaction Parameter
 
 --gasprice
-The gasprice parameter is used to set the lowest gasprice of the current node transaction pool to accept transactions. Transactions below this gasprice will be discarded. The default value is 0.
+The gasprice parameter is used to set the lowest gasprice of the current node transaction pool to accept transactions. Transactions below this gasprice will be discarded. The default value is 500(0 in testmode).
 
 --gaslimit
-The gaslimit parameter is used to set the gaslimit of the current node transaction pool to accept transactions. Transactions below this gaslimit will be discarded. The default value is 30000.
+The gaslimit parameter is used to set the gaslimit of the current node transaction pool to accept transactions. Transactions below this gaslimit will be discarded. The default value is 20000.
+
+--disable-tx-pool-pre-exec
+The disable-tx-pool-pre-exec parameter is used to disable preExecution of a transaction from network in the transaction pool. By default, preExecution is enabled when ontology bootstrap.
+
+--disable-sync-verify-tx
+The disable-sync-verify-tx is used to disable sync verify transaction in send transaction,include rpc restful websocket.
+
+--enable-broadcast-net-tx
+The enable-broadcast-net-tx is used to enable broadcast a transaction from network in the transaction pool. By default, this function is disabled when ontology bootstrap.
 
 ### 1.2 Node Deployment
 
-#### 1.2.1 Genesis Block Configuration File
+#### 1.2.1 Mainnet Bookkeeping Node Deployment
 
-For deploying node, we need to provide the genesis block configuration file for initializing the genesis block. Ontology supports the VBFT and dBFT consensus algorithms. A blockchain network must use the same consensus algorithm, otherwise nodes will not work properly. Because of Ontology  built-in the config of Polaris test net, if you start Ontology without specifies any  config of genesis, will access Polaris test net. However, if you need to build an Ontology private chain, you need to provide the config of genesis block via --config flag.
-
-To deploy Ontology test network with dBFT consensus algorithm requires a minimum of 4 nodes, and to deploy Ontology test network with the VBFT consensus algorithm requires a minimum of 7 nodes.
-
-##### 1.2.1.1 VBFT Configuration File
-
-An example of a genesis block configuration file using the VBFT consensus algorithm:
-
-```json
-{
-  "SeedList": [
-    "192.168.0.1:20338"             //Seed node list
-  ],
-  "ConsensusType":"vbft",           //Specify the current network to use VBFT algorithm
-  "VBFT":{                          //VBFT algorithm configuration
-    "n":7,                          //Network size (temporarily unused)
-    "c":2,                          //The number of fault-tolerant nodes
-    "k":7,                          //The number of consensus nodes
-    "l":112,                        //Length of POS table
-    "block_msg_delay":10000,        //Maximum broadcast delay for block messages (ms)
-    "hash_msg_delay":10000,         //Maximum broadcast delay for hash messages (ms)
-    "peer_handshake_timeout":10,    //Node handshake timeout (s)
-    "max_block_change_view":1000,   //Consensus period
-    "vrf_value":"1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
-    "vrf_proof":"c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
-    "peers":[                       //Bookkeeping node configuration
-      {
-        "index":1,                  //Bookkeeping node index
-        "peerPubkey":"1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087527",  //Bookkeeping node public key
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",                                         //Bookkeeping node account address
-        "initPos":1000              // initial ONT mortgage value
-      },
-      {
-        "index":2,
-        "peerPubkey":"120202dfb161f757921898ec2e30e3618d5c6646d993153b89312bac36d7688912c0ce",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":2000
-      },
-      {
-        "index":3,
-        "peerPubkey":"1202039dab38326268fe82fb7967fe2e7f5f6eaced6ec711148a66fbb8480c321c19dd",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":3000
-      },
-      {
-        "index":4,
-        "peerPubkey":"12020384f2729bc5d9b14dcbf17aba108261dc7ad867127e413d3c8bfb4731739687b3",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":4000
-      },
-      {
-        "index":5,
-        "peerPubkey":"120203362f99284daa9f581fab596516f75475fc61a5f80de0e268a68430dc7589859c",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":3000
-      },
-      {
-        "index":6,
-        "peerPubkey":"120203db6e37a2d897f2d61b42dcd478323a8a20c3444af4ee29653849f38d0bdb67f4",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":2000
-      },
-      {
-        "index":7,
-        "peerPubkey":"12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2",
-        "address":"TA9TVuR4Ynn4VotfpExY5SaEy8a99obFPr",
-        "initPos":1000
-      }
-    ]
-  }
-}
-```
-
-##### 1.2.1.2 dBFT Configuration File
-
-An example of a genesis block configuration file using the dBFT consensus algorithm:
-
-```json
-{
-  "SeedList": [
-    "192.168.0.1:20338"               //Seed node list
-  ],
-  "ConsensusType":"dbft",             //Specify the current network to use dBFT algorithm
-  "DBFT":{                            //dBFT consensus algorithm configuration
-    "Bookkeepers": [                  //Bookkeeping node public key list
-      "1202028541d32f3b09180b00affe67a40516846c16663ccb916fd2db8106619f087527",
-      "120202dfb161f757921898ec2e30e3618d5c6646d993153b89312bac36d7688912c0ce",
-      "1202039dab38326268fe82fb7967fe2e7f5f6eaced6ec711148a66fbb8480c321c19dd",
-      "12020384f2729bc5d9b14dcbf17aba108261dc7ad867127e413d3c8bfb4731739687b3"
-    ],
-    "GenBlockTime":6                  //block-out time interval, in seconds
-  }
-}
-```
-
-#### 1.2.2 Bookkeeping Node Deployment
-
-According to different roles of nodes, they can be divided into bookkeeping nodes and synchronization nodes. Bookkeeping nodes participate in the network consensus, and synchronization nodes only synchronize the blocks generated by the bookkeeping nodes. The Ontology node will start the Rpc server by default and output the Event Log of the smart contract. Therefore, if there is no special requirement, you can use the --disablerpc and --disableeventlog command line parameters to turn off the rpc and eventlog modules.
+According to different roles of nodes, they can be divided into bookkeeping nodes and synchronization nodes. Bookkeeping nodes participate in the network consensus, and synchronization nodes only synchronize the blocks generated by the bookkeeping nodes. Since Ontology node wont't start consensus by default, must turn consensus on by the --enableconsensus parameter. The Ontology node will start the Rpc server by default and output the Event Log of the smart contract. Therefore, if there is no special requirement, you can use the --disablerpc and --disableeventlog command line parameters to turn off the rpc and eventlog modules.
 
 Recommended bookkeeping node startup parameters:
 
 ```
-./Ontology --disablerpc --disableeventlog
+./Ontology --enbale-consensus --disable-rpc --disable-event-log
 ```
-
+    - `enbale-consensus` is use to start the consensus
+    - `disable-rpc` is to close the rpc services for the safe concerns.
+    - `disable-event-log` is to disable the event log for high performance.
 If the node does not use the default genesis block configuration file and wallet account, the node can specify them with the --config, --wallet, --account parameters.
 At the same time, if the bookkeeping node needs to modify the default minimum gas price and gas limit of the transaction pool, it can set the parameters by --gasprice and --gaslimit.
 
-#### 1.2.3 Synchronization Node Deployment
+#### 1.2.2 Mainnet Synchronization Node Deployment
 
-Since the synchronization node only synchronizes the blocks generated by the bookkeeping node and does not participate in the network consensus, the network consensus module can be turned off by the --disableconsensus parameter.
-
-Recommended synchronous node startup parameters:
+Since the synchronization node only synchronizes the blocks generated by the bookkeeping node and does not participate in the network consensus.
 
 ```
-./Ontology --disableconsensus
+./Ontology
 ```
 
-If the node does not use the default genesis block configuration file and wallet account, it can be specified with the --config parameter and the --wallet, --account parameters.
+If the node does not use the default genesis block configuration file, it can be specified with the --config parameter. Since wont't turn consensus on, don't need wallet when startup a synchronization node.
 
-#### 1.2.4 Deploying a Multi-node Test Network on a Single Computer
+#### 1.2.3 Deploying on public test network Polaris sync node
 
-You can deploy Ontology's test network on a single machine, which is essentially no different from deploying multiple nodes on multiple machines, but note that you need to use different port numbers:
+Run ontology straightly
 
 ```
-./Ontology --nodeport=XXX --rpcport=XXX
+./Ontology --networkid 2
 ```
-#### 1.2.5 Single-Node Test Network Deployment
+#### 1.2.4 Single-Node Test Network Deployment
 
 Ontology supports single-node network deployment for the development of test environments. To start a single-node test network, you only need to add the --testmode command line parameter.
 
@@ -251,7 +229,7 @@ Ontology supports single-node network deployment for the development of test env
 If the node does not use the default genesis block configuration file and wallet account, the node can specify them with the --config, --wallet, --account parameters.
 At the same time, if the bookkeeping node needs to modify the default minimum gas price and gas limit of the transaction pool, it can set the parameters by --gasprice and --gaslimit.
 
-Note that, Ontology will start rpc, rest and web socket server in testmode, and will clear the data generated by last start in testmode.
+Note that, Ontology will turn consensus rpc, rest and web socket server on in test mode.
 
 ## 2. Wallet Management
 
@@ -297,6 +275,9 @@ The wallet parameter specifies the wallet file path. If the wallet file does not
 --number
 The number parameter specifies the number of accounts that need to be created. You can batch create accounts by number parameter. The default value is 1.
 
+--ontid
+The parameter is used to create ONT ID instead of account.
+
 **Add account**
 
 ```
@@ -305,7 +286,7 @@ The number parameter specifies the number of accounts that need to be created. Y
 
 You can view the help information by ./Ontology account add --help.
 
-### 2.2. View Account
+### 2.2 View Account
 
 Command：
 
@@ -342,8 +323,8 @@ The wallet parameter specifies the wallet path. The default value is "./wallet.d
 --label, -l
 The label parameter is used to set a new label for the account. Note that a wallet file cannot have the same label.
 
---changepasswd
-The changepasswd parameter is used to modify the account password.
+--change-passwd
+The change-passwd parameter is used to modify the account password.
 
 --signature-scheme, -s
 The signature-scheme parameter is used to modify the account signature scheme. If the account uses an ECDSA key, the following ECDSA-supported signature schemes can be modified: SHA224withECDSA, SHA256withECDSA, SHA384withECDSA, SHA512withEdDSA, SHA3-224withECDSA, SHA3-256withECDSA, SHA3-384withECDSA, SHA3-512withECDSA, RIPEMD160withECDSA.
@@ -392,6 +373,10 @@ The source parameter specifies the imported wallet path
 ./Ontology account import -s=./source_wallet.dat
 ```
 
+#### 2.5.2 Import Account by WIF
+fill the WIF into a text file, and use the cmd below to import the key
+ontology account import --wif --source key.txt
+
 ## 3. Asset Management
 
 Asset management commands can check account balance, ONT/ONG transfers, extract ONGs, and view unbound ONGs.
@@ -409,10 +394,10 @@ Asset management commands can check account balance, ONT/ONG transfers, extract 
 Wallet specifies the transfer-out account wallet path. The default value is: "./wallet.dat".
 
 --gasprice
-The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 0. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
 
 --gaslimit
-The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 30000.
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
 
 --asset
 The asset parameter specifies the asset type of the transfer. Ont indicates the ONT and ong indicates the ONG. The default value is ont.
@@ -442,10 +427,10 @@ A user may authorize others to transfer money from his account, and he can speci
 Wallet specifies the transfer-out account wallet path. The default value is: "./wallet.dat".
 
 --gasprice
-The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 0. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
 
 --gaslimit
-The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 30000.
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
 
 --asset
 The asset parameter specifies the asset type of the transfer. Ont indicates the ONT and ong indicates the ONG. The default value is ont.
@@ -499,10 +484,10 @@ After user authorization, the transfer can be made from the authorized account.
 Wallet specifies the wallet path of authorized account. The default value is: "./wallet.dat".
 
 --gasprice
-The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 0. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
 
 --gaslimit
-The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 30000.
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
 
 --asset
 The asset parameter specifies the asset type of the transfer. Ont indicates the ONT and ong indicates the ONG. The default value is ont.
@@ -543,10 +528,10 @@ Use the following command to extract all unlocked ONG.
 Wallet specifies the wallet path of extracted account. The default value is: "./wallet.dat".
 
 --gasprice
-The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 0. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
 
 --gaslimit
-The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 30000.
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
 
 **Extract Unlocked ONG**
 ```
@@ -616,12 +601,12 @@ The wallet parameter specifies the wallet path of account for deploying smart co
 The account parameter specifies the account that a contract deploys.
 
 --gasprice
-The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 0. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
 
 --gaslimit
-The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 30000.
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
 
-**For contract deployments, the gaslimit value must be greater than 10000000, and there must be sufficient ONG balance in the account.**
+**For contract deployments, the gaslimit value must be greater than 20000000, and there must be sufficient ONG balance in the account.**
 
 --needstore
 The needstore parameter specifies whether the smart contract needs to use persistent storage. If needed, this parameter is required. The default is not used.
@@ -644,6 +629,9 @@ The email parameter specifies the contact email of a smart contract.
 
 --desc
 The desc parameter specifies the description of a smart contract.
+
+--prepare, -p
+The prepare parameter indicates that the current deploy is a pre-deploy contract. The transactions executed will not be packaged into blocks, nor will they consume any ONG. Via pre-deploy contract, user can known the the gas limit required for the current deploy.
 
 **Smart Contract Deployment**
 
@@ -695,10 +683,10 @@ The wallet parameter specifies the account wallet path for smart contract execut
 The account parameter specifies the account that will execute the contract.
 
 --gasprice
-The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 0. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
 
 --gaslimit
-The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 30000.
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
 
 --address
 The address parameter specifies the calling contract address
@@ -722,7 +710,7 @@ Return example：
 
 ```
 Contract invoke successfully
-Gas consumed:30000
+Gas consumed:20000
 Return:0
 ```
 **Smart Contract Execution**
@@ -746,10 +734,10 @@ The wallet parameter specifies the account wallet path for smart contract execut
 The account parameter specifies the account that will execute the contract.
 
 --gasprice
-The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 0. When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
 
 --gaslimit
-The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 30000.
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
 
 --prepare, -p
 The prepare parameter indicates that the current execution is a pre-executed contract. The transactions executed will not be packaged into blocks, nor will they consume any ONG. Pre-execution will return the contract method's return value, as well as the gas limit required for the current call.
@@ -763,7 +751,7 @@ The code parameter specifies the code path of a smart contract.
 ./Ontology contract invokeCode --code=XXX --gaslimit=XXX
 ```
 
-## 6、Block Import and Export
+## 6. Block Import and Export
 
 Ontology CLI supports exporting the local node's block data to a compressed file. The generated compressed file can be imported into the Ontology node. For security reasons, the imported block data file must be obtained from a trusted source.
 
@@ -771,11 +759,17 @@ Ontology CLI supports exporting the local node's block data to a compressed file
 
 #### 6.1.1 Export Block Parameters
 
---file
-The file parameter specifies the exported file path. The default value is: blocks.dat
+--rpcport
+The rpcport parameter specifies the port number to which the rpc server is bound. The default is 20336.
 
---height
-The height parameter specifies the height of the exported block. When height of the local node's current block is greater than the height required for export, the greater part will not be exported. Height is equal to 0, which means exporting all the blocks of the current node. The default value is 0.
+--exportfile
+The exportfile parameter specifies the exported file path. The default value is: ./OntBlocks.dat
+
+--startheight
+The startheight parameter specifies the start height of the exported block.Default value is 0.
+
+--endheight
+The endheight parameter specifies the end height of the exported block. When height of the local node's current block is greater than the end height required for export, the greater part will not be exported. Height is equal to 0, which means exporting all the blocks of the current node. The default value is 0.
 
 --speed
 The speed parameter specifies the export speed. Respectively, h denotes high, m denotes middle, and l denotes low. The default value is m.
@@ -790,14 +784,371 @@ Block export
 
 #### 6.2.1 Importing Block Parameters
 
---importheight
-The importheight parameter specifies the height of the imported target block. If the block height specified by importheight is less than the maximum height of the block file, it will only be imported to the height specified by importheight and the rest blocks will stop importing. The default value is 0, which means import all the blocks.
+--datadir
+The datadir parameter specifies the storage path of the block data. The default value is "./Chain".
+
+--networkid
+The networkid parameter is used to specify the network ID. Default value is 1, means main net network id.
+
+--config
+The config parameter specifies the file path of the genesis block for the current Ontolgy node. Default value is main net config.
+
+--disableeventlog
+The disableeventlog parameter is used to disable the event log output when the smart contract is executed to improve the node transaction execution performance. The Ontology node enables the event log output function by default.
+
+--endheight
+The endheight parameter specifies the end height of the imported block. If the block height specified by --endheight is less than the maximum height of the block file, it will only be imported to the height specified by --endheight and the rest blocks will stop importing. The default value is 0, which means import all the blocks.
 
 --importfile
-The importfile parameter is used with --import to specify the path to the import file when importing blocks. The default value is "./blocks.dat".
+The importfile parameter is used with --importfile to specify the path to the import file when importing blocks. The default value is "./OntBlocks.dat".
 
 Import block
 
 ```
-./Ontology import
+./ontology import --importfile=./OntBlocks.dat
+```
+
+## 7、Build Transaction
+
+Build transaction command can build transaction raw data, such as transfer transaction, approve tansaction, and so on. Note that before send to Ontology, the transaction after built should be signed by private key.
+
+### 7.1 Build Transfer Transaction
+
+#### 7.1.1 Build Transfer Transaction Params
+
+--wallet, -w
+Wallet specifies the transfer-out account wallet path. The default value is: "./wallet.dat".
+
+--gasprice
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+
+--gaslimit
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
+
+--asset
+The asset parameter specifies the asset type of the transfer. Ont indicates the ONT and ong indicates the ONG. The default value is ont.
+
+--from
+The from parameter specifies the transfer-out account address.
+
+--to
+The to parameter specifies the transfer-in account address.
+
+--amount
+The amount parameter specifies the transfer amount. Note: Since the precision of the ONT is 1, if the input is a floating-point value, then the value of the fractional part will be discarded; the precision of the ONG is 9, so the fractional part beyond 9 bits will be discarded.
+
+--payer
+payer parameter specifies the transaction fee payer. If don't specifies, using signer account default.
+
+```
+./ontology buildtx transfer --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce --amount=10
+```
+
+Return example:
+
+```
+Transfer raw tx:
+00d1d376865bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f6e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+### 7.2 Build Authorize Transfer
+
+#### 7.2.1 Build Authorize Transfer Params
+
+--wallet, -w
+Wallet specifies the transfer-out account wallet path. The default value is: "./wallet.dat".
+
+--gasprice
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+
+--gaslimit
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
+
+--asset
+The asset parameter specifies the asset type of the transfer. Ont indicates the ONT and ong indicates the ONG. The default value is ont.
+
+--from
+The from parameter specifies the transfer-out account address.
+
+--to
+The to parameter specifies the transfer-in account address.
+
+--amount
+The amount parameter specifies the transfer amount. Note: Since the precision of the ONT is 1, if the input is a floating-point value, then the value of the fractional part will be discarded; the precision of the ONG is 9, so the fractional part beyond 9 bits will be discarded.
+
+--payer
+payer parameter specifies the transaction fee payer. If don't specifies, using signer account default.
+
+```
+./ontology buildtx approve  --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce --amount=10
+```
+Return example:
+
+```
+Approve raw tx:
+00d12178865bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f6b00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c07617070726f76651400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+### 7.3 Build Transfer From Authorize Account Transaction
+
+#### 7.3.1 Build Transfer From Authorize Account Transaction Params
+
+--wallet, -w
+Wallet specifies the wallet path of authorized account. The default value is: "./wallet.dat".
+
+--gasprice
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+
+--gaslimit
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
+
+--asset
+The asset parameter specifies the asset type of the transfer. Ont indicates the ONT and ong indicates the ONG. The default value is ont.
+
+--from
+The from parameter specifies the transfer-out account address.
+
+--to
+The to parameter specifies the transfer-in account address.
+
+--sender
+The sender parameter specifies the account address that actually operates the authorized transfer. If no sender parameter is specified, the sender parameter defaults to the value of the to parameter.
+
+--amount
+The amount parameter specifies the transfer amount and the transfer amount cannot be greater than the authorized transfer balance. Otherwise, the transaction will be rejected. Note: Since the precision of the ONT is 1, if the input is a floating-point value, then the value of the fractional part will be discarded; the precision of the ONG is 9, so the fractional part beyond 9 bits will be discarded.
+
+--payer
+payer parameter specifies the transaction fee payer. If don't specifies, using signer account default.
+
+```
+./ontology buildtx transferfrom --sender=AMFrW7hrSRw1Azz6hQohni8BdStZDvectW --from=Aaxjf7utmjSstmTD1LjtYfhZ3CoWaxC7Tt --to=AMFrW7hrSRw1Azz6hQohni8BdStZDvectW --amount=10
+```
+
+Return example:
+
+```
+00d10754875bf401000000000000204e0000000000003c2352095b7428debfd1c1519f5a8f45a474a4218700c66b6a143c2352095b7428debfd1c1519f5a8f45a474a421c86a14d2784bddeac73d20124f20f4fa9528f3365a4dd4c86a143c2352095b7428debfd1c1519f5a8f45a474a421c86a5ac86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+### 7.4 Build Withdraw ONG Transaction
+
+#### 7.4.1 Build Withdraw ONG Transaction Params
+
+--wallet, -w
+Wallet specifies the wallet path of authorized account. The default value is: "./wallet.dat".
+
+--gasprice
+The gasprice parameter specifies the gas price of the transfer transaction. The gas price of the transaction cannot be less than the lowest gas price set by node's transaction pool, otherwise the transaction will be rejected. The default value is 500(0 in testmode). When there are transactions that are queued for packing into the block in the transaction pool, the transaction pool will deal with transactions according to the gas price and transactions with high gas prices will be prioritized.
+
+--gaslimit
+The gaslimit parameter specifies the gas limit of the transfer transaction. The gas limit of the transaction cannot be less than the minimum gas limit set by the node's transaction pool, otherwise the transaction will be rejected. Gasprice * gaslimit is actual ONG costs. The default value is 20000.
+
+--amount
+The amount parameter specifies the transfer amount and the transfer amount cannot be greater than the authorized transfer balance. Otherwise, the transaction will be rejected. Note: Since the precision of the ONT is 1, if the input is a floating-point value, then the value of the fractional part will be discarded; the precision of the ONG is 9, so the fractional part beyond 9 bits will be discarded.
+If don't specifies withdraw all unbound ONG as default.
+
+--receive
+receive params specifies the ONG receive account. If don't specifies, using withdraw account default.
+
+--payer
+payer parameter specifies the transaction fee payer. If don't specifies, using signer account default.
+
+--rpcport
+The rpcport parameter specifies the port number to which the rpc server is bound. The default is 20336.
+
+```
+./ontology buildtx withdrawong ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+```
+
+Return example:
+
+```
+Withdraw account:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+Receive account:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
+Withdraw ONG amount:2321499191858975
+Withdraw raw tx:
+00d11b56875bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f8e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a140000000000000000000000000000000000000001c86a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a071f57ad26643f08c86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+## 8、Sign To Transaction
+
+The transaction build by buildtx command, should be signed before send to Ontology. Note that if transction fee payer is different with transfer from, both account should sign to the transaction.
+
+### 8.1 Sign To Transaction Parameters
+
+--wallet, -w
+Wallet specifies the wallet path of authorized account. The default value is: "./wallet.dat".
+
+--account, a
+account parameter specifies signature account, if don't specifies, using default account of walelt.
+
+--send
+--send parameter specifies whether send transaction to Ontology after signed.
+
+--prepare
+prepare parameter specifies whether prepare execute transaction, without send to Ontology.
+
+--rpcport
+The rpcport parameter specifies the port number to which the rpc server is bound. The default is 20336.
+
+```
+./ontology sigtx --account=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 00d11b56875bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f8e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a140000000000000000000000000000000000000001c86a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a071f57ad26643f08c86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+Return example:
+
+```
+RawTx after signed:
+00d11b56875bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f8e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a140000000000000000000000000000000000000001c86a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a071f57ad26643f08c86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b65000141407331b7ba2a7708187ad4cb14146d2080185e42f0a39d572f58d25fa2e20f3066711b64f2b91d958683f7bfb904badeb0d6bc733506e665028a2c2968b77d5958232103c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56ac
+```
+
+## 9、Generate Multi-Signature Address
+
+Generate Multi-Signature address need Public keys and the signature number at least.
+
+### 9.1 Generate Multi-Signature Address Parameters
+
+--pubkey
+pubkey parameter specifies the range of signature of public key.
+The public key of account can get by commond:
+
+```
+./ontology account list -v
+```
+The max number of public key support by Ontology is 16 at present.
+
+-m
+m parameter specifies the least number of signature. Default value is 1.
+
+```
+./ontology multisigaddr --pubkey=03c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56,02b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c0158231 -m=1
+```
+Return example:
+
+```
+Pub key list:
+Index 1 Address:AaCe8nVkMRABnp5YgEjYZ9E5KYCxks2uce PubKey:02b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c0158231
+Index 2 Address:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 PubKey:03c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56
+
+MultiSigAddress:Ae4cxJiubmgueAVtNbjpmm2AGNgdKP6Ea7
+```
+
+## 10、Multi-Signature To Transaction
+
+Multi-Signature need multiple account sign to transaction one by one. The output of signature as input of another signature, until signature number upto M.
+
+### 10.1 对交易多重签名参数
+
+--pubkey
+pubkey 参数用于指定多重签名的公钥列表，公钥之间用逗号','分隔。
+账户公钥可以通过命令：
+
+pubkey parameter specifies the range of signature of public key.
+The public key of account can get by commond:
+
+```
+./ontology account list -v
+```
+The max number of public key support by Ontology is 16 at present.
+
+-m
+m parameter specifies the least number of signature. Default value is 1.
+
+--wallet, -w
+Wallet specifies the wallet path of authorized account. The default value is: "./wallet.dat".
+
+--account, a
+account parameter specifies signature account, if don't specifies, using default account of walelt.
+
+--send
+--send parameter specifies whether send transaction to Ontology after signed.
+
+--prepare
+prepare parameter specifies whether prepare execute transaction, without send to Ontology.
+
+--rpcport
+The rpcport parameter specifies the port number to which the rpc server is bound. The default is 20336.
+
+```
+./ontology multisigtx --account=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --pubkey=03c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56,02b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c0158231 -m=1 00d1045f875bf401000000000000204e000000000000f47d92d27d02b93d21f8af16c9f05a99d128dd5a6e00c66b6a14f47d92d27d02b93d21f8af16c9f05a99d128dd5ac86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000
+```
+
+Return example:
+
+```
+RawTx after multi signed:
+00d1045f875bf401000000000000204e000000000000f47d92d27d02b93d21f8af16c9f05a99d128dd5a6e00c66b6a14f47d92d27d02b93d21f8af16c9f05a99d128dd5ac86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b65000141409dd2a46277f96566b9e9b4fc354be90b61776c58125cfbf36e770b1b1d50a16febad4bfadfc966fa575e90acf3b8308d7a0f637260b31321cb7ef6f741364d0e47512102b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c01582312103c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a5652ae
+```
+
+## 11、Send Transaction
+
+The transaction after signed can be sent to Ontology via sendtx command.
+
+### 11.1 Send Transaction Parameters
+
+--rpcport
+The rpcport parameter specifies the port number to which the rpc server is bound. The default is 20336.
+
+--prepare
+prepare parameter specifies whether prepare execute transaction, without send to Ontology.
+
+```
+./ontology sendtx 00d17c61875bf401000000000000204e0000000000006a987e044e01e3b71f9bb60df57ab0458215ef0f6e00c66b6a146a987e044e01e3b71f9bb60df57ab0458215ef0fc86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b65000141409f32f1fd170d174959da26cb9df8f4a15049d255ed3953d92870d5739c4e8b8158ec3bde1e9ae9b4d9621b09311b5e49ed91dcbc64d3b5f74cf011eaa616c403232103c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56ac
+```
+
+Return example:
+
+```
+  TxHash:f8ea91da985af249e808913b6398150079cdfb02273146e4eb69c43947a42db2
+
+Tip:
+  Using './ontology info status f8ea91da985af249e808913b6398150079cdfb02273146e4eb69c43947a42db2' to query transaction status.
+```
+
+If prepare execute return:
+
+```
+Prepare execute transaction success.
+Gas limit:20000
+Result:01
+```
+
+## 12、Show Transaction Infomation
+
+The information of transaction field can be show via showtx command.
+
+Example:
+
+```
+./ontology showtx 00d1045f875bf401000000000000204e000000000000f47d92d27d02b93d21f8af16c9f05a99d128dd5a6e00c66b6a14f47d92d27d02b93d21f8af16c9f05a99d128dd5ac86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b65000141409dd2a46277f96566b9e9b4fc354be90b61776c58125cfbf36e770b1b1d50a16febad4bfadfc966fa575e90acf3b8308d7a0f637260b31321cb7ef6f741364d0e47512102b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c01582312103c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a5652ae
+```
+Return：
+
+```
+{
+   "Version": 0,
+   "Nonce": 1535598340,
+   "GasPrice": 500,
+   "GasLimit": 20000,
+   "Payer": "Ae4cxJiubmgueAVtNbjpmm2AGNgdKP6Ea7",
+   "TxType": 209,
+   "Payload": {
+      "Code": "00c66b6a14f47d92d27d02b93d21f8af16c9f05a99d128dd5ac86a14ca216237583e7c32ba82ca352ecc30782f5a902dc86a5ac86c51c1087472616e736665721400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b65",
+      "GasLimit": 0
+   },
+   "Attributes": [],
+   "Sigs": [
+      {
+         "PubKeys": [
+            "02b2b9fb60a0add9ef6715ffbac8bc7e81cb47cd06c157c19e6a858859c0158231",
+            "03c0c30f11c7fc1396e8595bf2e339d553d728ea6f21ae831e8ab704ca14fe8a56"
+         ],
+         "M": 1,
+         "SigData": [
+            "9dd2a46277f96566b9e9b4fc354be90b61776c58125cfbf36e770b1b1d50a16febad4bfadfc966fa575e90acf3b8308d7a0f637260b31321cb7ef6f741364d0e"
+         ]
+      }
+   ],
+   "Hash": "34559b63187d7ddf5a17ac7a2dabb8fcaa1bea6676eba78a174d038ff3c66f15",
+   "Height": 0
+}
 ```

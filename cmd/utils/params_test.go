@@ -36,7 +36,7 @@ func TestParseRawParamsArray(t *testing.T) {
 		t.Errorf("TestParseArrayParams size:%d != %d", size, len(rawParamStr))
 		return
 	}
-	expect := []interface{}{"string:foo", []interface{}{"int:0", []interface{}{"bool:true", "string:bar"}, "bool:false"}}
+	expect := []interface{}{"string" + PARAM_TYPE_SPLIT_INC + "foo", []interface{}{"int" + PARAM_TYPE_SPLIT_INC + "0", []interface{}{"bool" + PARAM_TYPE_SPLIT_INC + "true", "string" + PARAM_TYPE_SPLIT_INC + "bar"}, "bool" + PARAM_TYPE_SPLIT_INC + "false"}}
 	ok, err := arrayEqual(res, expect)
 	if err != nil {
 		t.Errorf("TestParseArrayParams error:%s", err)

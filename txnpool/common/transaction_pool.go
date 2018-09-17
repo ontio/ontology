@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Package common privides constants, common types for other packages
+// Package common provides constants, common types for other packages
 package common
 
 import (
@@ -245,4 +245,18 @@ func (tp *TXPool) RemoveTxsBelowGasPrice(gasPrice uint64) {
 			delete(tp.txList, txEntry.Tx.Hash())
 		}
 	}
+}
+
+// Remain returns the remaining tx list to cleanup
+func (tp *TXPool) Remain() []*types.Transaction {
+	tp.Lock()
+	defer tp.Unlock()
+
+	txList := make([]*types.Transaction, 0, len(tp.txList))
+	for _, txEntry := range tp.txList {
+		txList = append(txList, txEntry.Tx)
+		delete(tp.txList, txEntry.Tx.Hash())
+	}
+
+	return txList
 }

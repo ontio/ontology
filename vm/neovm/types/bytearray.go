@@ -38,9 +38,10 @@ func NewByteArray(value []byte) *ByteArray {
 }
 
 func (this *ByteArray) Equals(other StackItems) bool {
-	if _, ok := other.(*ByteArray); !ok {
-		return false
+	if this == other {
+		return true
 	}
+
 	a1 := this.value
 	a2, err := other.GetByteArray()
 	if err != nil {
@@ -81,4 +82,8 @@ func (this *ByteArray) GetStruct() ([]StackItems, error) {
 
 func (this *ByteArray) GetMap() (map[StackItems]StackItems, error) {
 	return nil, fmt.Errorf("%s", "Not support byte array to map")
+}
+
+func (this *ByteArray) IsMapKey() bool {
+	return true
 }

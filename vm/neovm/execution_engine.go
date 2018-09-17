@@ -94,8 +94,8 @@ func (this *ExecutionEngine) ValidateOp() error {
 
 func (this *ExecutionEngine) StepInto() error {
 	state, err := this.ExecuteOp()
+	this.State = state
 	if err != nil {
-		this.State = state
 		return err
 	}
 	return nil

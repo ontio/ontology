@@ -8,24 +8,25 @@ DBUILD=docker build
 DRUN=docker run
 DOCKER_NS ?= ontio
 DOCKER_TAG=$(ARCH)-$(VERSION)
-ONT_CFG_IN_DOCKER=config-solo.json
-WALLET_FILE=wallet.dat
 
 SRC_FILES = $(shell git ls-files | grep -e .go$ | grep -v _test.go)
 TOOLS=./tools
-NATIVE_ABI=$(TOOLS)/abi/native
+ABI=$(TOOLS)/abi
+NATIVE_ABI_SCRIPT=./cmd/abi/native_abi_script
 
 ontology: $(SRC_FILES)
 	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
-
-sigsvr: $(SRC_FILES)
+ 
+sigsvr: $(SRC_FILES) abi 
 	$(GC)  $(BUILD_NODE_PAR) -o sigsvr sigsvr.go
-	@if [ ! -d $(TOOLS)/sigsvr ];then mkdir -p $(TOOLS)/sigsvr ;fi
-	@mv sigsvr $(TOOLS)/sigsvr
-	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
-	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
+	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
+	@mv sigsvr $(TOOLS)
 
-tools: sigsvr
+abi: 
+	@if [ ! -d $(ABI) ];then mkdir -p $(ABI) ;fi
+	@cp $(NATIVE_ABI_SCRIPT)/*.json $(ABI)
+
+tools: sigsvr abi
 
 all: ontology tools
 
@@ -42,43 +43,31 @@ ontology-darwin:
 
 tools-cross: tools-windows tools-linux tools-darwin
 
-tools-windows:
+tools-windows: abi 
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-windows-amd64.exe sigsvr.go
-	@if [ ! -d $(TOOLS)/sigsvr ];then mkdir -p $(TOOLS)/sigsvr ;fi
-	@mv sigsvr-windows-amd64.exe $(TOOLS)/sigsvr
-	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
-	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
+	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
+	@mv sigsvr-windows-amd64.exe $(TOOLS)
 
-tools-linux:
+tools-linux: abi 
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-linux-amd64 sigsvr.go
-	@if [ ! -d $(TOOLS)/sigsvr ];then mkdir -p $(TOOLS)/sigsvr ;fi
-	@mv sigsvr-linux-amd64 $(TOOLS)/sigsvr
-	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
-	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
+	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
+	@mv sigsvr-linux-amd64 $(TOOLS)
 
-tools-darwin:
+tools-darwin: abi 
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 sigsvr.go
-	@if [ ! -d $(TOOLS)/sigsvr ];then mkdir -p $(TOOLS)/sigsvr ;fi
-	@mv sigsvr-darwin-amd64 $(TOOLS)/sigsvr
-	@if [ ! -d $(NATIVE_ABI) ];then mkdir -p $(NATIVE_ABI) ;fi
-	@cp ./cmd/abi/native/*.json $(NATIVE_ABI)
+	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
+	@mv sigsvr-darwin-amd64 $(TOOLS)
 
-all-cross: ontology-cross tools-cross
+all-cross: ontology-cross tools-cross abi
 
 format:
 	$(GOFMT) -w main.go
 
-$(WALLET_FILE):
-	@if [ ! -e $(WALLET_FILE) ]; then $(error Please create wallet file first) ; fi
-
-docker/payload: docker/build/bin/ontology docker/Dockerfile $(ONT_CFG_IN_DOCKER) $(WALLET_FILE)
+docker/payload: docker/build/bin/ontology docker/Dockerfile
 	@echo "Building ontology payload"
 	@mkdir -p $@
 	@cp docker/Dockerfile $@
 	@cp docker/build/bin/ontology $@
-	@cp -f $(ONT_CFG_IN_DOCKER) $@/config.json
-	@cp -f $(WALLET_FILE) $@
-	@tar czf $@/config.tgz -C $@ config.json $(WALLET_FILE)
 	@touch $@
 
 docker/build/bin/%: Makefile

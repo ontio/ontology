@@ -20,9 +20,9 @@ package peer
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"runtime"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -134,6 +134,7 @@ type Peer struct {
 	consState uint32
 	txnCnt    uint64
 	rxTxnCnt  uint64
+	connLock  sync.RWMutex
 }
 
 //NewPeer return new peer without publickey initial
@@ -150,23 +151,23 @@ func NewPeer() *Peer {
 
 //rmPeer print a debug log when peer be finalized by system
 func rmPeer(p *Peer) {
-	log.Debug(fmt.Sprintf("Remove unused peer: %d", p.GetID()))
+	log.Debugf("[p2p]Remove unused peer: %d", p.GetID())
 }
 
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo() {
-	log.Info("Node info:")
-	log.Info("\t syncState = ", this.syncState)
-	log.Info("\t consState = ", this.consState)
-	log.Info("\t id = ", this.GetID())
-	log.Info("\t addr = ", this.SyncLink.GetAddr())
-	log.Info("\t cap = ", this.cap)
-	log.Info("\t version = ", this.GetVersion())
-	log.Info("\t services = ", this.GetServices())
-	log.Info("\t syncPort = ", this.GetSyncPort())
-	log.Info("\t consPort = ", this.GetConsPort())
-	log.Info("\t relay = ", this.GetRelay())
-	log.Info("\t height = ", this.GetHeight())
+	log.Debug("[p2p]Node info:")
+	log.Debug("[p2p]\t syncState = ", this.syncState)
+	log.Debug("[p2p]\t consState = ", this.consState)
+	log.Debug("[p2p]\t id = ", this.GetID())
+	log.Debug("[p2p]\t addr = ", this.SyncLink.GetAddr())
+	log.Debug("[p2p]\t cap = ", this.cap)
+	log.Debug("[p2p]\t version = ", this.GetVersion())
+	log.Debug("[p2p]\t services = ", this.GetServices())
+	log.Debug("[p2p]\t syncPort = ", this.GetSyncPort())
+	log.Debug("[p2p]\t consPort = ", this.GetConsPort())
+	log.Debug("[p2p]\t relay = ", this.GetRelay())
+	log.Debug("[p2p]\t height = ", this.GetHeight())
 }
 
 //GetVersion return peer`s version
@@ -234,7 +235,7 @@ func (this *Peer) SendToSync(msg types.Message) error {
 	if this.SyncLink != nil && this.SyncLink.Valid() {
 		return this.SyncLink.Tx(msg)
 	}
-	return errors.New("sync link invalid")
+	return errors.New("[p2p]sync link invalid")
 }
 
 //SendToCons call consensus link to send buffer
@@ -242,27 +243,30 @@ func (this *Peer) SendToCons(msg types.Message) error {
 	if this.ConsLink != nil && this.ConsLink.Valid() {
 		return this.ConsLink.Tx(msg)
 	}
-	return errors.New("cons link invalid")
+	return errors.New("[p2p]cons link invalid")
 }
 
 //CloseSync halt sync connection
 func (this *Peer) CloseSync() {
 	this.SetSyncState(common.INACTIVITY)
 	conn := this.SyncLink.GetConn()
+	this.connLock.Lock()
 	if conn != nil {
 		conn.Close()
 	}
-
+	this.connLock.Unlock()
 }
 
 //CloseCons halt consensus connection
 func (this *Peer) CloseCons() {
 	this.SetConsState(common.INACTIVITY)
 	conn := this.ConsLink.GetConn()
+	this.connLock.Lock()
 	if conn != nil {
 		conn.Close()
 
 	}
+	this.connLock.Unlock()
 }
 
 //GetID return peer`s id
@@ -304,8 +308,8 @@ func (this *Peer) GetAddr16() ([16]byte, error) {
 	}
 	ip := net.ParseIP(addrIp).To16()
 	if ip == nil {
-		log.Error("parse ip address error\n", this.GetAddr())
-		return result, errors.New("parse ip address error")
+		log.Warn("[p2p]parse ip address error\n", this.GetAddr())
+		return result, errors.New("[p2p]parse ip address error")
 	}
 
 	copy(result[:], ip[:16])

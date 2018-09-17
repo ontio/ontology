@@ -19,7 +19,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -51,42 +50,59 @@ func SigRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	rawTx := &types.Transaction{}
-	err = rawTx.Deserialize(bytes.NewBuffer(rawTxData))
+	tmpTx, err := types.TransactionFromRawBytes(rawTxData)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigRawTransaction tx Deserialize error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_TX
 		return
 	}
-	signer := clisvrcom.DefAccount
+	mutable, err := tmpTx.IntoMutable()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigRawTransaction tx IntoMutable error:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_INVALID_TX
+		return
+	}
+	signer, err := req.GetAccount()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigRawTransaction GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
+		return
+	}
 	var emptyAddress = common.Address{}
-	if rawTx.Payer == emptyAddress {
-		rawTx.Payer = signer.Address
+	if mutable.Payer == emptyAddress {
+		mutable.Payer = signer.Address
 	}
 
-	txHash := rawTx.Hash()
+	txHash := mutable.Hash()
 	sigData, err := cliutil.Sign(txHash.ToArray(), signer)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigRawTransaction Sign error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
-	if len(rawTx.Sigs) == 0 {
-		rawTx.Sigs = make([]*types.Sig, 0)
+	if len(mutable.Sigs) == 0 {
+		mutable.Sigs = make([]types.Sig, 0)
 	}
-	rawTx.Sigs = append(rawTx.Sigs, &types.Sig{
+	mutable.Sigs = append(mutable.Sigs, types.Sig{
 		PubKeys: []keypair.PublicKey{signer.PublicKey},
 		M:       1,
 		SigData: [][]byte{sigData},
 	})
-	buf := bytes.NewBuffer(nil)
-	err = rawTx.Serialize(buf)
+
+	rawTx, err := mutable.IntoImmutable()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigRawTransaction tx IntoImmutable error:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		return
+	}
+	sink := common.ZeroCopySink{}
+	err = rawTx.Serialization(&sink)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigRawTransaction tx Serialize error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
 	resp.Result = &SigRawTransactionRsp{
-		SignedTx: hex.EncodeToString(buf.Bytes()),
+		SignedTx: hex.EncodeToString(sink.Bytes()),
 	}
 }

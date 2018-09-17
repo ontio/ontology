@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Package websocket privides websocket server handler
 package websocket
 
 import (
@@ -49,6 +50,8 @@ type Handler struct {
 	handler  handler
 	pushFlag bool
 }
+
+//subscribe event for client
 type subscribe struct {
 	ConstractsFilter      []string `json:"ConstractsFilter"`
 	SubscribeEvent        bool     `json:"SubscribeEvent"`
@@ -61,12 +64,13 @@ type WsServer struct {
 	Upgrader     websocket.Upgrader
 	listener     net.Listener
 	server       *http.Server
-	SessionList  *session.SessionList
-	ActionMap    map[string]Handler
-	TxHashMap    map[string]string //key: txHash   value:sessionid
-	SubscribeMap map[string]subscribe
+	SessionList  *session.SessionList // websocket sesseionlist
+	ActionMap    map[string]Handler   //handler functions
+	TxHashMap    map[string]string    //key: txHash   value:sessionid
+	SubscribeMap map[string]subscribe //key: sessionId   value:subscribeInfo
 }
 
+//init websocket server
 func InitWsServer() *WsServer {
 	ws := &WsServer{
 		Upgrader:     websocket.Upgrader{},
@@ -77,6 +81,7 @@ func InitWsServer() *WsServer {
 	return ws
 }
 
+//start websocket server
 func (self *WsServer) Start() error {
 	wsPort := int(cfg.DefConfig.Ws.HttpWsPort)
 	if wsPort == 0 {
@@ -119,6 +124,7 @@ func (self *WsServer) Start() error {
 
 }
 
+//registry handler method
 func (self *WsServer) registryMethod() {
 
 	heartbeat := func(cmd map[string]interface{}) map[string]interface{} {
@@ -182,7 +188,6 @@ func (self *WsServer) registryMethod() {
 		"getblockhash":              {handler: rest.GetBlockHash},
 		"getblockbyhash":            {handler: rest.GetBlockByHash},
 		"getblockheight":            {handler: rest.GetBlockHeight},
-		"getgenerateblocktime":      {handler: rest.GetGenerateBlockTime},
 		"gettransaction":            {handler: rest.GetTransactionByHash},
 		"sendrawtransaction":        {handler: rest.SendRawTransaction, pushFlag: true},
 		"heartbeat":                 {handler: heartbeat},
@@ -193,9 +198,11 @@ func (self *WsServer) registryMethod() {
 		"getblocktxsbyheight":       {handler: rest.GetBlockTxsByHeight},
 		"getgasprice":               {handler: rest.GetGasPrice},
 		"getunboundong":             {handler: rest.GetUnboundOng},
+		"getgrantong":               {handler: rest.GetGrantOng},
 		"getmempooltxcount":         {handler: rest.GetMemPoolTxCount},
 		"getmempooltxstate":         {handler: rest.GetMemPoolTxState},
 		"getversion":                {handler: rest.GetNodeVersion},
+		"getnetworkid":              {handler: rest.GetNetworkId},
 
 		"getsessioncount": {handler: getsessioncount},
 	}
@@ -217,6 +224,7 @@ func (self *WsServer) Restart() {
 	}()
 }
 
+//check sessions timeout,if expire close the session
 func (self *WsServer) checkSessionsTimeout(done chan bool) {
 	ticker := time.NewTicker(time.Second * 10)
 	defer ticker.Stop()

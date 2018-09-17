@@ -38,9 +38,10 @@ const (
 )
 
 type ExportBlockMetadata struct {
-	Version      byte
-	CompressType byte
-	BlockHeight  uint32
+	Version          byte
+	CompressType     byte
+	StartBlockHeight uint32
+	EndBlockHeight   uint32
 }
 
 func NewExportBlockMetadata() *ExportBlockMetadata {
@@ -61,7 +62,14 @@ func (this *ExportBlockMetadata) Serialize(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	err = serialization.WriteUint32(buf, this.BlockHeight)
+	err = serialization.WriteUint32(buf, this.StartBlockHeight)
+	if err != nil {
+		return err
+	}
+	err = serialization.WriteUint32(buf, this.EndBlockHeight)
+	if err != nil {
+		return err
+	}
 	data := buf.Bytes()
 	if len(data) > EXPORT_BLOCK_METADATA_LEN {
 		return fmt.Errorf("metata len size larger than %d", EXPORT_BLOCK_METADATA_LEN)
@@ -95,7 +103,12 @@ func (this *ExportBlockMetadata) Deserialize(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	this.BlockHeight = height
+	this.StartBlockHeight = height
+	height, err = serialization.ReadUint32(reader)
+	if err != nil {
+		return err
+	}
+	this.EndBlockHeight = height
 	return nil
 }
 

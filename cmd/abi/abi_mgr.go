@@ -53,8 +53,7 @@ func (this *AbiMgr) Init(path string) {
 }
 
 func (this *AbiMgr) loadNativeAbi() {
-	dirName := this.Path + "/native"
-	nativeAbiFiles, err := ioutil.ReadDir(dirName)
+	nativeAbiFiles, err := ioutil.ReadDir(this.Path)
 	if err != nil {
 		log.Errorf("AbiMgr loadNativeAbi read dir:./native error:%s", err)
 		return
@@ -67,7 +66,7 @@ func (this *AbiMgr) loadNativeAbi() {
 		if !strings.HasSuffix(fileName, ".json") {
 			continue
 		}
-		data, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", dirName, fileName))
+		data, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", this.Path, fileName))
 		if err != nil {
 			log.Errorf("AbiMgr loadNativeAbi name:%s error:%s", fileName, err)
 			continue

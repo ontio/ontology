@@ -47,12 +47,12 @@ func Color(code, msg string) string {
 }
 
 const (
-	DebugLog = iota
+	TraceLog = iota
+	DebugLog
 	InfoLog
 	WarnLog
 	ErrorLog
 	FatalLog
-	TraceLog
 	MaxLevelLog
 )
 
@@ -86,6 +86,11 @@ func GetGID() uint64 {
 }
 
 var Log *Logger
+
+func init() {
+	//Default print to console
+	InitLog(InfoLog, Stdout)
+}
 
 func LevelName(level int) string {
 	if name, ok := levels[level]; ok {

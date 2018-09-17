@@ -19,12 +19,10 @@
 package types
 
 import (
-	"bytes"
-	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/errors"
-	common2 "github.com/ontio/ontology/p2pserver/common"
+	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type NotFound struct {
@@ -32,21 +30,22 @@ type NotFound struct {
 }
 
 //Serialize message payload
-func (this NotFound) Serialization() ([]byte, error) {
-	return this.Hash[:], nil
+func (this NotFound) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteHash(this.Hash)
+	return nil
 }
 
 func (this NotFound) CmdType() string {
-	return common2.NOT_FOUND_TYPE
+	return comm.NOT_FOUND_TYPE
 }
 
 //Deserialize message payload
-func (this *NotFound) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-
-	err := this.Hash.Deserialize(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize Hash error. buf:%v", buf))
+func (this *NotFound) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.Hash, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
+
 	return nil
 }

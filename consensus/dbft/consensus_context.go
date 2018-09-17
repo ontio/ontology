@@ -25,7 +25,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	ser "github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/vote"
@@ -95,12 +94,8 @@ func (ctx *ConsensusContext) MakeChangeView() *msg.ConsensusPayload {
 }
 
 func (ctx *ConsensusContext) MakeHeader() *types.Block {
-	log.Debug()
-	if ctx.Transactions == nil {
-		return nil
-	}
 	if ctx.header == nil {
-		txHash := []common.Uint256{}
+		txHash := make([]common.Uint256, 0, len(ctx.Transactions))
 		for _, t := range ctx.Transactions {
 			txHash = append(txHash, t.Hash())
 		}
@@ -127,13 +122,15 @@ func (ctx *ConsensusContext) MakeHeader() *types.Block {
 func (ctx *ConsensusContext) MakePayload(message ConsensusMessage) *msg.ConsensusPayload {
 	log.Debug()
 	message.ConsensusMessageData().ViewNumber = ctx.ViewNumber
+	sink := common.NewZeroCopySink(nil)
+	message.Serialization(sink)
 	return &msg.ConsensusPayload{
 		Version:         ContextVersion,
 		PrevHash:        ctx.PrevHash,
 		Height:          ctx.Height,
 		BookkeeperIndex: uint16(ctx.BookkeeperIndex),
 		Timestamp:       ctx.Timestamp,
-		Data:            ser.ToArray(message),
+		Data:            sink.Bytes(),
 		Owner:           ctx.Owner,
 	}
 }

@@ -20,6 +20,7 @@ package common
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/ontio/ontology/core/types"
@@ -33,9 +34,12 @@ const (
 
 //link and concurrent const
 const (
-	PER_SEND_LEN   = 1024 * 256 //byte len per conn write
-	MAX_BUF_LEN    = 1024 * 256 //the maximum buffer to receive message
-	WRITE_DEADLINE = 5          //deadline of conn write
+	PER_SEND_LEN        = 1024 * 256 //byte len per conn write
+	MAX_BUF_LEN         = 1024 * 256 //the maximum buffer to receive message
+	WRITE_DEADLINE      = 5          //deadline of conn write
+	REQ_INTERVAL        = 3          //single request max interval in second
+	MAX_REQ_RECORD_SIZE = 1000       //the maximum request record size
+	MAX_RESP_CACHE_SIZE = 50         //the maximum response cache
 )
 
 //msg cmd const
@@ -43,7 +47,6 @@ const (
 	MSG_CMD_LEN      = 12               //msg type length in byte
 	CMD_OFFSET       = 4                //cmd type offet in msg hdr
 	CHECKSUM_LEN     = 4                //checksum length in byte
-	HASH_LEN         = 32               // hash length in byte
 	MSG_HDR_LEN      = 24               //msg hdr length in byte
 	MAX_BLK_HDR_CNT  = 500              //hdr count once when sync header
 	MAX_INV_HDR_CNT  = 500              //inventory count once when req inv
@@ -137,18 +140,37 @@ type RemovePeerID struct {
 }
 
 type AppendHeaders struct {
+	FromID  uint64          // The peer id
 	Headers []*types.Header // Headers to be added to the ledger
 }
 
 type AppendBlock struct {
-	Block *types.Block // Block to be added to the ledger
+	FromID    uint64       // The peer id
+	BlockSize uint32       // Block size
+	Block     *types.Block // Block to be added to the ledger
 }
 
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {
 	i := strings.Index(s, ":")
 	if i < 0 {
-		return s, errors.New("split ip address error")
+		return "", errors.New("[p2p]split ip address error")
 	}
 	return s[:i], nil
+}
+
+//ParseIPPort return ip port
+func ParseIPPort(s string) (string, error) {
+	i := strings.Index(s, ":")
+	if i < 0 {
+		return "", errors.New("[p2p]split ip port error")
+	}
+	port, err := strconv.Atoi(s[i+1:])
+	if err != nil {
+		return "", errors.New("[p2p]parse port error")
+	}
+	if port <= 0 || port >= 65535 {
+		return "", errors.New("[p2p]port out of bound")
+	}
+	return s[i:], nil
 }

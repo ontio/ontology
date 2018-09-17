@@ -34,7 +34,7 @@ import (
 
 func TestWorker(t *testing.T) {
 	t.Log("Starting worker test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return

@@ -32,6 +32,7 @@ import (
 
 //Peer address package
 func NewAddrs(nodeAddrs []msgCommon.PeerAddr) mt.Message {
+	log.Trace()
 	var addr mt.Addr
 	addr.NodeAddrs = nodeAddrs
 
@@ -40,21 +41,23 @@ func NewAddrs(nodeAddrs []msgCommon.PeerAddr) mt.Message {
 
 //Peer address request package
 func NewAddrReq() mt.Message {
+	log.Trace()
 	var msg mt.AddrReq
 	return &msg
 }
 
 ///block package
 func NewBlock(bk *ct.Block) mt.Message {
-	log.Debug()
+	log.Trace()
 	var blk mt.Block
-	blk.Blk = *bk
+	blk.Blk = bk
 
 	return &blk
 }
 
 //blk hdr package
 func NewHeaders(headers []*ct.Header) mt.Message {
+	log.Trace()
 	var blkHdr mt.BlkHeader
 	blkHdr.BlkHdr = headers
 
@@ -63,17 +66,17 @@ func NewHeaders(headers []*ct.Header) mt.Message {
 
 //blk hdr req package
 func NewHeadersReq(curHdrHash common.Uint256) mt.Message {
+	log.Trace()
 	var h mt.HeadersReq
 	h.Len = 1
-	buf := curHdrHash
-	copy(h.HashEnd[:], buf[:])
+	h.HashEnd = curHdrHash
 
 	return &h
 }
 
 ////Consensus info package
 func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
-	log.Debug()
+	log.Trace()
 	var cons mt.Consensus
 	cons.Cons = *cp
 
@@ -82,6 +85,7 @@ func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
 
 //InvPayload
 func NewInvPayload(invType common.InventoryType, msg []common.Uint256) *mt.InvPayload {
+	log.Trace()
 	return &mt.InvPayload{
 		InvType: invType,
 		Blk:     msg,
@@ -90,6 +94,7 @@ func NewInvPayload(invType common.InventoryType, msg []common.Uint256) *mt.InvPa
 
 //Inv request package
 func NewInv(invPayload *mt.InvPayload) mt.Message {
+	log.Trace()
 	var inv mt.Inv
 	inv.P.Blk = invPayload.Blk
 	inv.P.InvType = invPayload.InvType
@@ -99,7 +104,7 @@ func NewInv(invPayload *mt.InvPayload) mt.Message {
 
 //NotFound package
 func NewNotFound(hash common.Uint256) mt.Message {
-	log.Debug()
+	log.Trace()
 	var notFound mt.NotFound
 	notFound.Hash = hash
 
@@ -108,7 +113,7 @@ func NewNotFound(hash common.Uint256) mt.Message {
 
 //ping msg package
 func NewPingMsg(height uint64) *mt.Ping {
-	log.Debug()
+	log.Trace()
 	var ping mt.Ping
 	ping.Height = uint64(height)
 
@@ -117,7 +122,7 @@ func NewPingMsg(height uint64) *mt.Ping {
 
 //pong msg package
 func NewPongMsg(height uint64) *mt.Pong {
-	log.Debug()
+	log.Trace()
 	var pong mt.Pong
 	pong.Height = uint64(height)
 
@@ -126,7 +131,7 @@ func NewPongMsg(height uint64) *mt.Pong {
 
 //Transaction package
 func NewTxn(txn *ct.Transaction) mt.Message {
-	log.Debug()
+	log.Trace()
 	var trn mt.Trn
 	trn.Txn = txn
 
@@ -135,6 +140,7 @@ func NewTxn(txn *ct.Transaction) mt.Message {
 
 //version ack package
 func NewVerAck(isConsensus bool) mt.Message {
+	log.Trace()
 	var verAck mt.VerACK
 	verAck.IsConsensus = isConsensus
 
@@ -143,6 +149,7 @@ func NewVerAck(isConsensus bool) mt.Message {
 
 //Version package
 func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
+	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{
 		Version:      n.GetVersion(),
@@ -171,6 +178,7 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 
 //transaction request package
 func NewTxnDataReq(hash common.Uint256) mt.Message {
+	log.Trace()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.TRANSACTION
 	dataReq.Hash = hash
@@ -180,6 +188,7 @@ func NewTxnDataReq(hash common.Uint256) mt.Message {
 
 //block request package
 func NewBlkDataReq(hash common.Uint256) mt.Message {
+	log.Trace()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.BLOCK
 	dataReq.Hash = hash
@@ -189,6 +198,7 @@ func NewBlkDataReq(hash common.Uint256) mt.Message {
 
 //consensus request package
 func NewConsensusDataReq(hash common.Uint256) mt.Message {
+	log.Trace()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.CONSENSUS
 	dataReq.Hash = hash

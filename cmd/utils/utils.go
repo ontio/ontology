@@ -19,9 +19,15 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common/constants"
+	"io/ioutil"
 	"math"
 	"math/big"
+	"os"
+	"strings"
 )
 
 const (
@@ -73,4 +79,58 @@ func FormatOnt(amount uint64) string {
 
 func ParseOnt(rawAmount string) uint64 {
 	return ParseAssetAmount(rawAmount, PRECISION_ONT)
+}
+
+func CheckAssetAmount(asset string, amount uint64) error {
+	switch strings.ToLower(asset) {
+	case "ont":
+		if amount > constants.ONT_TOTAL_SUPPLY {
+			return fmt.Errorf("amount:%d larger than ONT total supply:%d", amount, constants.ONT_TOTAL_SUPPLY)
+		}
+	case "ong":
+		if amount > constants.ONG_TOTAL_SUPPLY {
+			return fmt.Errorf("amount:%d larger than ONG total supply:%d", amount, constants.ONG_TOTAL_SUPPLY)
+		}
+	default:
+		return fmt.Errorf("unknown asset:%s", asset)
+	}
+	return nil
+}
+
+func GetJsonObjectFromFile(filePath string, jsonObject interface{}) error {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+	// Remove the UTF-8 Byte Order Mark
+	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
+
+	err = json.Unmarshal(data, jsonObject)
+	if err != nil {
+		return fmt.Errorf("json.Unmarshal %s error:%s", data, err)
+	}
+	return nil
+}
+
+func GetStoreDirPath(dataDir, networkName string) string {
+	return dataDir + string(os.PathSeparator) + networkName
+}
+
+func GenExportBlocksFileName(name string, start, end uint32) string {
+	index := strings.LastIndex(name, ".")
+	fileName := ""
+	fileExt := ""
+	if index < 0 {
+		fileName = name
+	} else {
+		fileName = name[0:index]
+		if index < len(name)-1 {
+			fileExt = name[index+1:]
+		}
+	}
+	fileName = fmt.Sprintf("%s_%d_%d", fileName, start, end)
+	if index > 0 {
+		fileName = fileName + "." + fileExt
+	}
+	return fileName
 }

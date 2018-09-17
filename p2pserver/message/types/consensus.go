@@ -19,11 +19,7 @@
 package types
 
 import (
-	"bytes"
-	"fmt"
-
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/errors"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -32,13 +28,8 @@ type Consensus struct {
 }
 
 //Serialize message payload
-func (this *Consensus) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	err := this.Cons.Serialize(p)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. consensus:%v", this.Cons))
-	}
-	return p.Bytes(), nil
+func (this *Consensus) Serialization(sink *comm.ZeroCopySink) error {
+	return this.Cons.Serialization(sink)
 }
 
 func (this *Consensus) CmdType() string {
@@ -46,12 +37,6 @@ func (this *Consensus) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *Consensus) Deserialization(p []byte) error {
-	log.Debug()
-	buf := bytes.NewBuffer(p)
-	err := this.Cons.Deserialize(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize Cons error. buf:%v", buf))
-	}
-	return nil
+func (this *Consensus) Deserialization(source *comm.ZeroCopySource) error {
+	return this.Cons.Deserialization(source)
 }

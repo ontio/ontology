@@ -19,6 +19,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -37,17 +38,33 @@ func NewInteger(value *big.Int) *Integer {
 }
 
 func (this *Integer) Equals(other StackItems) bool {
-	if _, ok := other.(*Integer); !ok {
+	if this == other {
+		return true
+	}
+	if other == nil {
 		return false
 	}
+
 	v, err := other.GetBigInteger()
+	if err == nil {
+		if this.value.Cmp(v) == 0 {
+			return true
+		} else {
+			return false
+		}
+	}
+
+	b, err := other.GetByteArray()
 	if err != nil {
 		return false
 	}
-	if this.value.Cmp(v) != 0 {
+
+	tb, err := this.GetByteArray()
+	if err != nil {
 		return false
 	}
-	return true
+
+	return bytes.Equal(tb, b)
 }
 
 func (this *Integer) GetBigInteger() (*big.Int, error) {
@@ -79,4 +96,8 @@ func (this *Integer) GetStruct() ([]StackItems, error) {
 
 func (this *Integer) GetMap() (map[StackItems]StackItems, error) {
 	return nil, fmt.Errorf("%s", "Not support integer to map")
+}
+
+func (this *Integer) IsMapKey() bool {
+	return true
 }

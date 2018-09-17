@@ -107,6 +107,7 @@ type Server struct {
 	metaLock                 sync.RWMutex
 	completedBlockNum        uint32 // ledger SaveBlockCompleted block num
 	currentBlockNum          uint32
+	LastConfigBlockNum       uint32
 	config                   *vconfig.ChainConfig
 	currentParticipantConfig *BlockParticipantConfig
 
@@ -204,6 +205,14 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 
 	if block.Header.Height > self.completedBlockNum {
 		self.completedBlockNum = block.Header.Height
+		if self.nonConsensusNode() {
+			self.chainStore.ReloadFromLedger()
+			self.metaLock.Lock()
+			if self.GetCommittedBlockNo() >= self.currentBlockNum {
+				self.currentBlockNum = self.GetCommittedBlockNo() + 1
+			}
+			self.metaLock.Unlock()
+		}
 	} else {
 		log.Errorf("server %d, persist block %d, vs completed %d",
 			self.Index, block.Header.Height, self.completedBlockNum)
@@ -220,7 +229,7 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	peerID := vconfig.PubkeyID(payload.Owner)
 	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
 	if !present {
-		log.Errorf("invalid consensus node: %s", peerID)
+		log.Debugf("invalid consensus node: %s", peerID)
 		return
 	}
 	if self.peerPool.isNewPeer(peerIdx) {
@@ -252,6 +261,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	var cfg vconfig.ChainConfig
 	if block.getNewChainConfig() != nil {
 		cfg = *block.getNewChainConfig()
+		self.LastConfigBlockNum = block.getLastConfigBlockNum()
 	} else {
 		cfgBlock := block
 		if block.getLastConfigBlockNum() != math.MaxUint32 {
@@ -264,6 +274,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 			panic("failed to get chain config from config block")
 		}
 		cfg = *cfgBlock.getNewChainConfig()
+		self.LastConfigBlockNum = cfgBlock.getLastConfigBlockNum()
 	}
 	self.metaLock.Lock()
 	self.config = &cfg
@@ -319,6 +330,7 @@ func (self *Server) updateChainConfig() error {
 	log.Infof("updateChainConfig blkNum:%d", self.completedBlockNum)
 	self.metaLock.Lock()
 	self.config = block.Info.NewChainConfig
+	self.LastConfigBlockNum = block.getLastConfigBlockNum()
 	self.metaLock.Unlock()
 
 	self.metaLock.RLock()
@@ -1045,6 +1057,11 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		log.Errorf("BlockPrposalMessage check blocknum:%d,prevhash:%s,msg prevhash:%s", msg.GetBlockNum(), prevBlkHash.ToHexString(), msgPrevBlkHash.ToHexString())
 		return
 	}
+	if self.LastConfigBlockNum != math.MaxUint32 && blk.Info.LastConfigBlockNum != self.LastConfigBlockNum {
+		log.Errorf("BlockPrposalMessage  check LastConfigBlockNum blocknum:%d,prvLastConfigBlockNum:%d,self LastConfigBlockNum:%d", msg.GetBlockNum(), blk.Info.LastConfigBlockNum, self.LastConfigBlockNum)
+		return
+	}
+
 	cfg := vconfig.ChainConfig{}
 	if blk.getNewChainConfig() != nil {
 		cfg = *blk.getNewChainConfig()
@@ -2028,10 +2045,11 @@ func (self *Server) msgSendLoop() {
 }
 
 //creategovernaceTransaction invoke governance native contract commit_pos
-func (self *Server) creategovernaceTransaction(blkNum uint32) *types.Transaction {
-	tx := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
-	tx.Nonce = blkNum
-	return tx
+func (self *Server) creategovernaceTransaction(blkNum uint32) (*types.Transaction, error) {
+	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
+	mutable.Nonce = blkNum
+	tx, err := mutable.IntoImmutable()
+	return tx, err
 }
 
 //checkNeedUpdateChainConfig use blockcount
@@ -2105,7 +2123,11 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		}
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(blkNum) {
-			sysTxs = append(sysTxs, self.creategovernaceTransaction(blkNum))
+			tx, err := self.creategovernaceTransaction(blkNum)
+			if err != nil {
+				return fmt.Errorf("construct governace transaction error: %v", err)
+			}
+			sysTxs = append(sysTxs, tx)
 			chainconfig.View++
 		}
 		forEmpty = true

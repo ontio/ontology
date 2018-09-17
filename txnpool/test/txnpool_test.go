@@ -19,18 +19,16 @@
 package txnpool
 
 import (
-	"bytes"
-	"encoding/hex"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	tc "github.com/ontio/ontology/txnpool/common"
 	tp "github.com/ontio/ontology/txnpool/proc"
@@ -47,15 +45,13 @@ func init() {
 	log.Init(log.PATH, log.Stdout)
 	topic = "TXN"
 
-	tx = &types.Transaction{
-		Version: 0,
+	mutable := &types.MutableTransaction{
+		TxType:  types.Invoke,
+		Nonce:   uint32(time.Now().Unix()),
+		Payload: &payload.InvokeCode{Code: []byte{}},
 	}
 
-	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"
-	hex, _ := hex.DecodeString(tempStr)
-	var hash common.Uint256
-	hash.Deserialize(bytes.NewReader(hex))
-	tx.SetHash(hash)
+	tx, _ = mutable.IntoImmutable()
 }
 
 func startActor(obj interface{}) *actor.PID {
@@ -95,7 +91,7 @@ func Test_RCV(t *testing.T) {
 	}
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
-	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tp.NewVerifyRspActor(s)

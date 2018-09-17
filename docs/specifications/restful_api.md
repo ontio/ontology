@@ -1,44 +1,16 @@
 # Ontology Restful API
 
+English|[中文](restful_api_CN.md)
+
 * [Introduction](#introduction)
 * [Restful Api List](#restful-api-list)
 * [Error Code](#error-code)
-
-Restful Api List
-
-| Method | url |
-| :---| :---|
-| get_gen_blk_time | GET /api/v1/node/generateblocktime |
-| get_conn_count | GET /api/v1/node/connectioncount |
-| get_blk_txs_by_height | GET /api/v1/block/transactions/height/:height |
-| get_blk_by_height | GET /api/v1/block/details/height/:height?raw=0 |
-| get_blk_by_hash | GET /api/v1/block/details/hash/:hash?raw=1 |
-| get_blk_height | GET /api/v1/block/height |
-| get_blk_hash | GET /api/v1/block/hash/:height |
-| get_tx | GET /api/v1/transaction/:hash |
-| get_storage | GET /api/v1/storage/:hash/:key|
-| get_balance | GET /api/v1/balance/:addr |
-| get_contract_state | GET /api/v1/contract/:hash |
-| get_smtcode_evt_txs | GET /api/v1/smartcode/event/transactions/:height |
-| get_smtcode_evts | GET /api/v1/smartcode/event/txhash/:hash |
-| get_blk_hgt_by_txhash | GET /api/v1/block/height/txhash/:hash |
-| get_merkle_proof | GET /api/v1/merkleproof/:hash|
-| get_gasprice | GET /api/v1/gasprice|
-| get_allowance | GET /api/v1/allowance/:asset/:from/:to |
-| get_unboundong | GET /api/v1/unboundong/:addr |
-| get_mempooltxcount | GET /api/v1/mempool/txcount |
-| get_mempooltxstate | GET /api/v1/mempool/txstate/:hash |
-| get_version |  GET /api/v1/version |
-| post_raw_tx | post /api/v1/transaction?preExec=0 |
-
 
 ## Introduction
 
 This document describes the restful api format for the http/https used in the Onchain Ontology.
 
-## Restful Api List
-
-### Response parameters descri
+### Response parameters description
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -48,35 +20,37 @@ This document describes the restful api format for the http/https used in the On
 | Result | object | execute result |
 | Version | string | version information |
 
-### 1. get_gen_blk_time
+## Restful Api List
 
-Get the generate block time
+| Method | URL | Description |
+| :---| :---| :---|
+| [get_conn_count](#1-get_conn_count) | GET /api/v1/node/connectioncount | return the number of node connect to the network |
+| [get_blk_txs_by_height](#2-get_blk_txs_by_height) | GET /api/v1/block/transactions/height/:height | return whole transaction hash of the block |
+| [get_blk_by_height](#3-get_blk_by_height) | GET /api/v1/block/details/height/:height?raw=0 | return block info of the height |
+| [get_blk_by_hash](#4-get_blk_by_hash) | GET /api/v1/block/details/hash/:hash?raw=1 | return block info of the block hash |
+| [get_blk_height](#5-get_blk_height) | GET /api/v1/block/height | return current block height of main net |
+| [get_blk_hash](#6-get_blk_hash) | GET /api/v1/block/hash/:height | return block hash of the height |
+| [get_tx](#7-get_tx) | GET /api/v1/transaction/:hash | return transaction info by transaction hash |
+| [get_storage](#8-get_storage) | GET /api/v1/storage/:hash/:key| return the stored value according to the contract address hash and stored key|
+| [get_balance](#9-get_balance) | GET /api/v1/balance/:addr | return balance of the account address |
+| [get_contract_state](#10-get_contract_state) | GET /api/v1/contract/:hash | return contract state according to the contract address hash |
+| [get_sc_event_by_height](#11-get_sc_event_by_height) | GET /api/v1/smartcode/event/transactions/:height | return the smartcode event in the block at the height |
+| [get_smtcode_evts](#12-get_smtcode_evts) | GET /api/v1/smartcode/event/txhash/:hash | return smartcode event by transaction hash |
+| [get_blk_hgt_by_txhash](#13-get_blk_hgt_by_txhash) | GET /api/v1/block/height/txhash/:hash | return the block height where transaction at |
+| [get_merkle_proof](#14-get_merkle_proof) | GET /api/v1/merkleproof/:hash| return merkle proof of the transaction |
+| [get_gasprice](#15-get_gasprice) | GET /api/v1/gasprice| return gas price |
+| [get_allowance](#16-get_allowance) | GET /api/v1/allowance/:asset/:from/:to | return the allowance from transfer-from accout to transfer-to account |
+| [get_unboundong](#17-get_unboundong) | GET /api/v1/unboundong/:addr | return the number of unbound ong of given address |
+| [get_mempooltxcount](#18-get_mempooltxcount) | GET /api/v1/mempool/txcount | return the number of transaction locate in memory |
+| [get_mempooltxstate](#19-get_mempooltxstate) | GET /api/v1/mempool/txstate/:hash | return the state of transaction locate in memory |
+| [get_version](#20-get_version) |  GET /api/v1/version | return the version of ontology |
+| [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | send transaction to ontology network |
+| [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | return the networkid |
+| [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | get grant ong |
 
-##### GET
+### 1 get_conn_count
 
-```
-/api/v1/node/generateblocktime
-```
-#### Request Example:
-
-```
-curl -i http://server:port/api/v1/node/generateblocktime
-```
-
-#### Response example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Desc": "SUCCESS"
-    "Error": 0,
-    "Result": 6,
-    "Version": "1.0.0"
-}
-```
-### 2 get_conn_count
-
-Get the number of connected node
+Get the number of connected node.
 
 
 GET
@@ -102,10 +76,11 @@ curl -i http://server:port/api/v1/node/connectioncount
     "Version": "1.0.0"
 }
 ```
-### 3 get_blk_txs_by_height
+### 2 get_blk_txs_by_height
 
-Get transactions by block height
-return all transaction hash contained in the block corresponding to this height
+Get transactions by block height.
+
+Return all transaction hash contained in the block corresponding to this height.
 
 GET
 
@@ -136,11 +111,14 @@ curl -i http://server:port/api/v1/block/transactions/height/100
     "Version": "1.0.0"
 }
 ```
-### 4 get_blk_by_height
+### 3 get_blk_by_height
 
-Get the block by block height
-return block details based on block height
-if raw=1 return serialized block
+Get the block by block height.
+
+Return block details based on block height.
+
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
+
 GET
 
 ```
@@ -208,10 +186,11 @@ curl -i http://server:port/api/v1/block/details/height/22
     "Version": "1.0.0"
 }
 ```
-### 5 get_blk_by_hash
+### 4 get_blk_by_hash
 
-Get block by blockhash
-return block details based on block hash,if raw=1 return serialized block
+Get block by blockhash.
+
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
 
 GET
 
@@ -281,9 +260,9 @@ curl -i http://server:port/api/v1/block/details/hash/ea5e5219d2f1591f4feef89885c
 }
 ```
 
-### 6 get_blk_height
+### 5 get_blk_height
 
-Get the current block height
+Get the current block height.
 
 
 GET
@@ -311,9 +290,9 @@ curl -i http://server:port/api/v1/block/height
 }
 ```
 
-### 7 get_blk_hash
+### 6 get_blk_hash
 
-Get blockhash by block height
+Get blockhash by block height.
 
 GET
 
@@ -339,9 +318,12 @@ curl -i http://server:port/api/v1/block/hash/100
 }
 ```
 
-### 8 get_tx
+### 7 get_tx
 
-get transaction by transaction hash,if raw=1 return serialized transaction
+Get transaction by transaction hash.
+
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the transaction serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding transaction is returned, which is represented by a JSON format string.
+
 
 GET
 
@@ -349,10 +331,10 @@ GET
 /api/v1/transaction/:hash?raw=0
 ```
 
-####Request Example:
+#### Request Example:
 
 ```
-curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9fe7f22f16c7b7703d4a93a28370baa
+curl -i http://server:port/api/v1/transaction/5623dbd283a99ff1cd78068cba474a22bed97fceba4a56a9d38ab0fbc178c4ab
 ```
 #### Response Example:
 
@@ -363,157 +345,50 @@ curl -i http://server:port/api/v1/transaction/c5e0d387c6a97aef12f1750840d24b53d9
     "Error": 0,
     "Result": {
         "Version": 0,
-        "Nonce": 0,
-        "TxType": 0,
+        "Nonce": 3743545316,
+        "GasPrice": 500,
+        "GasLimit": 20000,
+        "Payer": "AWM9vmGpAhFyiXxg8r5Cx4H3mS2zrtSkUF",
+        "TxType": 209,
         "Payload": {
-            "Nonce": 1522313652068190000
+            "Code": "00c66b149fdd13f41303beb7771ddd0aad6b2d815dcd62916a7cc81400000000000000000000000000000000000000016a7cc8149fdd13f41303beb7771ddd0aad6b2d815dcd62916a7cc8085da07645000000006a7cc86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b65"
         },
         "Attributes": [],
-        "Fee": [],
-        "NetworkFee": 0,
         "Sigs": [
             {
                 "PubKeys": [
-                    "120203fe4f9ba2022b68595dd163f4a92ac80f918919674de2d6e2a7e04a10c59d0066"
+                    "03e9ac636107c8d5a22e87bf6ae76a5e7a1394930972db72e0c3bebf54e8210a37"
                 ],
                 "M": 1,
                 "SigData": [
-                    "017d3641607c894dd85f455c71a94afaea2661acbe372ff8f3f4c7921b0c768756e3a6e9308a4c4c8b1b58e717f1486a2f10f5bc809b803a27c10a2cd579778a54"
+                    "01dfcf5328a6587b2e2b30d6fae73bc18343ce7e5db2c00b3c92415a7274cfb1367d74604121dfd2eb8aef95b1a5e688bdde5633f1bde0fe85881db55ea2fd112d"
                 ]
             }
         ],
-        "Hash": "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
+        "Hash": "5623dbd283a99ff1cd78068cba474a22bed97fceba4a56a9d38ab0fbc178c4ab",
+        "Height": 175888
     },
     "Version": "1.0.0"
 }
 ```
 
-### 9 post_raw_tx
+### 8 get_storage
 
-send transaction. set preExec=1 if want prepare exec smartcontract
+Returns the stored value according to the contract address hash and stored key.
 
-POST
-
-```
-/api/v1/transaction?preExec=0
-```
-
-#### Request Example:
+contract address hash could be generated by follow function
 
 ```
-curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransaction", "Version":"1.0.0","Data":"00d00000000080fdcf2b0138c56b6c766b00527ac46c766b51527ac46151c56c766b52527ac46c766b00c31052656749644279507..."}'  http://server:port/api/v1/transaction
+    addr := types.AddressFromVmCode([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
+    fmt.Println(addr.ToHexString())
 ```
-
-#### Post Params:
-
-```
-{
-    "Action":"sendrawtransaction",
-    "Version":"1.0.0",
-    "Data":"80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
-}
-```
-Take the "AddAttribute" in the IdContract contract as an example
-
-1. build parameter
-
-```
-acct := account.Open(account.WALLET_FILENAME, []byte("passwordtest"))
-acc, err := acct.GetDefaultAccount()
-pubkey := keypair.SerializePublicKey(acc.PubKey())
-funcName := "AddAttribute"
-paras := []interface{}{[]byte("did:ont:" + acc.Address.ToBase58()),[]byte("key1"),[]byte("bytes"),[]byte("value1"),pubkey}
-builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-err = BuildSmartContractParamInter(builder, []interface{}{funcName, params})
-codeParams := builder.ToArray()
-op_verify,_ := common.HexToBytes("69")
-codeaddress,_ := common.HexToBytes("8055b362904715fd84536e754868f4c8d27ca3f6")
-codeParams = BytesCombine(codeParams,op_verify)
-codeParams = BytesCombine(codeParams,codeaddress)
-
-func BytesCombine(pBytes ...[]byte) []byte {
-	len := len(pBytes)
-	s := make([][]byte, len)
-	for index := 0; index < len; index++ {
-		s[index] = pBytes[index]
-	}
-	sep := []byte("")
-	return bytes.Join(s, sep)
-}
-```
-funcName:the smartcontract function name to be called, params: contract function required parameters, codeAddress: smartcontract address
-
-2. build transaction
-```
-tx := utils.NewInvokeTransaction(vmtypes.VmCode{
-		VmType: vmtypes.NEOVM,
-		Code:   codeParams,
-	})
-	tx.Nonce = uint32(time.Now().Unix())
-```
-
-3. sign transaction
-
-```
-hash := tx.Hash()
-sign, _ := signature.Sign(acc.PrivateKey, hash[:])
-tx.Sigs = append(tx.Sigs, &ctypes.Sig{
-    PubKeys: []keypair.PublicKey{acc.PublicKey},
-    M:       1,
-    SigData: [][]byte{sign},
-})
-```
-
-4. Convert transactions to hexadecimal strings
-```
-txbf := new(bytes.Buffer)
-err = tx.Serialize(txbf);
-common.ToHexString(txbf.Bytes())
-```
-
-Related struct
-```
-type Transaction struct {
-	Version    byte
-	TxType     TransactionType
-	Nonce      uint32
-	Payload    Payload
-	Attributes []*TxAttribute
-	Fee        []*Fee
-	NetWorkFee common.Fixed64
-	Sigs       []*Sig
-
-	hash *common.Uint256
-}
-
-type Sig struct {
-	PubKeys []keypair.PublicKey
-	M       uint8
-	SigData [][]byte
-}
-```
-
-#### Response
-```
-{
-    "Action": "sendrawtransaction",
-    "Desc": "SUCCESS",
-    "Error": 0,
-    "Result": "22471ab3f4b4307a99f00c9a717dbf8b26f5bf63bf47f9c560477da8181de777",
-    "Version": "1.0.0"
-}
-```
-> Result: txhash
-
-### 10 get_storage
-
-Returns the stored value according to the contract script hashes and stored key.
 
 GET
 ```
 /api/v1/storage/:hash/:key
 ```
-Request Example
+#### Request Example
 ```
 curl -i http://localhost:20334/api/v1/storage/ff00000000000000000000000000000000000001/0144587c1094f6929ed7362d6328cffff4fb4da2
 ```
@@ -527,11 +402,11 @@ curl -i http://localhost:20334/api/v1/storage/ff00000000000000000000000000000000
     "Version": "1.0.0"
 }
 ```
-> Result:Returns the stored value according to the contract script hashes and stored key.
+> Note: result and key are hex code string.
 
-### 11 get_balance
+### 9 get_balance
 
-return balance of base58 account address.
+Return balance of base58 account address.
 
 GET
 ```
@@ -539,7 +414,7 @@ GET
 ```
 > addr: Base58 encoded account address
 
-Request Example
+#### Request Example
 ```
 curl -i http://localhost:20334/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
 ```
@@ -552,15 +427,14 @@ curl -i http://localhost:20334/api/v1/balance/TA5uYzLU2vBvvfCMxyV2sdzc9kPqJzGZWq
     "Error": 0,
     "Result": {
         "ont": "2500",
-        "ong": "0",
-        "ong_appove": "0"
+        "ong": "0"
     },
     "Version": "1.0.0"
 }
 ```
-### 12 get_contract_state
+### 10 get_contract_state
 
-According to the contract script hash, query the contract information.
+According to the contract address hash, query the contract information.
 
 GET
 
@@ -571,7 +445,7 @@ GET
 #### Request Example:
 
 ```
-curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b846c
+curl -i http://server:port/api/v1/contract/0100000000000000000000000000000000000000
 ```
 
 #### Response Example:
@@ -583,8 +457,7 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
     "Error": 0,
     "Version": "1.0.0",
     "Result": {
-        "VmType": 255,
-        "Code": "4f4e5420546f6b656e",
+        "Code": "0000000000000000000000000000000000000001",
         "NeedStorage": true,
         "Name": "ONT",
         "CodeVersion": "1.0",
@@ -595,10 +468,11 @@ curl -i http://server:port/api/v1/contract/fff49c809d302a2956e9dc0012619a452d4b8
 }
 ```
 
-#### 13 get_smtcode_evt_txs
+#### 11 get_sc_event_by_height
 
-get smart contract event txhash list by height
-Get a list of transaction with smartecontract event based on height
+Get smart contract event list by height.
+
+Get a list of transaction with smarte contract event based on height.
 
 GET
 
@@ -655,11 +529,11 @@ curl -i http://localhost:20334/api/v1/smartcode/event/transactions/900
     "Version": "1.0.0"
 }
 ```
-> Note: result is the txHash list.
+> Note: result is the smart contract event list.
 
-### 14 get_smtcode_evts
+### 12 get_smtcode_evts
 
-get contract event by txhash
+Get contract event by transaction hash.
 
 GET
 ```
@@ -694,9 +568,9 @@ curl -i http://localhost:20334/api/v1/smartcode/event/txhash/20046da68ef6a91f695
     }
 }
 ```
-### 15 get_blk_hgt_by_txhash
+### 13 get_blk_hgt_by_txhash
 
-Get block height by transaction hash
+Get block height by transaction hash.
 
 GET
 ```
@@ -717,9 +591,9 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
 }
 ```
 
-### 16 get_merkle_proof
+### 14 get_merkle_proof
 
-get merkle proof
+Get merkle proof.
 
 GET
 ```
@@ -761,9 +635,9 @@ curl -i http://localhost:20334/api/v1/merkleproof/3e23cf222a47739d4141255da617cd
 }
 ```
 
-### 17 get_gasprice
+### 15 get_gasprice
 
-Get gasprice
+Get gas price.
 
 GET
 ```
@@ -787,9 +661,9 @@ curl -i http://localhost:20334/api/v1/block/height/txhash/3e23cf222a47739d414125
 }
 ```
 
-### 18 get_allowance
+### 16 get_allowance
 
-Get allowance
+Get allowance.
 
 GET
 ```
@@ -810,9 +684,9 @@ curl -i http://localhost:20334/api/v1/allowance/:asset/:from/:to
 }
 ```
 
-### 18 get_unboundong
+### 17 get_unboundong
 
-Get unboundong
+Get unbound ong.
 
 GET
 ```
@@ -830,6 +704,29 @@ curl -i http://localhost:20334/api/v1/unboundong/:addr
     "Error": 0,
     "Result": "204957950400000",
     "Version": "1.0.0"
+}
+```
+
+### 18 get_mempooltxcount
+
+Query the transaction count in the memory pool.
+
+GET
+```
+/api/v1/mempool/txcount
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/mempool/txcount
+```
+#### Response
+```
+{
+    "Action": "getmempooltxcount",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": [100,50]
 }
 ```
 
@@ -866,31 +763,7 @@ curl -i http://localhost:20334/api/v1/mempool/txstate/:hash
 }
 ```
 
-
-### 20 get_mempooltxcount
-
-Query the transaction count in the memory pool.
-
-GET
-```
-/api/v1/mempool/txcount
-```
-#### Request Example:
-```
-curl -i http://localhost:20334/api/v1/mempool/txcount
-```
-#### Response
-```
-{
-    "Action": "getmempooltxcount",
-    "Desc": "SUCCESS",
-    "Error": 0,
-    "Version": "1.0.0",
-    "Result": [100,50]
-}
-```
-
-### 21 get_version
+### 20 get_version
 
 Get the version information of the node.
 
@@ -910,6 +783,92 @@ curl -i http://localhost:20334/api/v1/version
     "Error": 0,
     "Version": "1.0.0",
     "Result": "0.9"
+}
+```
+
+### 21 post_raw_tx
+
+Send transaction. Set preExec=1 if want prepare exec smartcontract.
+
+POST
+
+```
+/api/v1/transaction?preExec=0
+```
+
+#### Request Example:
+
+```
+curl  -H "Content-Type: application/json"  -X POST -d '{"Action":"sendrawtransaction", "Version":"1.0.0","Data":"00d00000000080fdcf2b0138c56b6c766b00527ac46c766b51527ac46151c56c766b52527ac46c766b00c31052656749644279507..."}'  http://server:port/api/v1/transaction
+```
+
+#### Post Params:
+
+```
+{
+    "Action":"sendrawtransaction",
+    "Version":"1.0.0",
+    "Data":"80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
+}
+```
+You can use the ontology-go-sdk to generate hex code, reference to [example](rpc_api.md#8-sendrawtransaction)
+
+#### Response
+```
+{
+    "Action": "sendrawtransaction",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": "22471ab3f4b4307a99f00c9a717dbf8b26f5bf63bf47f9c560477da8181de777",
+    "Version": "1.0.0"
+}
+```
+> Result: transaction hash
+
+
+### 22 get_networkid
+
+Get the network id.
+
+GET
+```
+/api/v1/networkid
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/networkid
+```
+#### Response
+```
+{
+    "Action": "getnetworkid",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 1
+}
+```
+
+### 23 get_grantong
+
+get grant ong.
+
+GET
+```
+/api/v1/grantong/:addr
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/grantong/AKDFapcoUhewN9Kaj6XhHusurfHzUiZqUA
+```
+#### Response
+```
+{
+    "Action": "getgrantong",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 4995625
 }
 ```
 

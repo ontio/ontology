@@ -22,16 +22,17 @@ import (
 	"net"
 	"testing"
 
+	"github.com/ontio/ontology/common"
 	comm "github.com/ontio/ontology/p2pserver/common"
 	"github.com/stretchr/testify/assert"
 )
 
 func MessageTest(t *testing.T, msg Message) {
-	p := new(bytes.Buffer)
-	err := WriteMessage(p, msg)
+	sink := common.NewZeroCopySink(nil)
+	err := WriteMessage(sink, msg)
 	assert.Nil(t, err)
 
-	demsg, err := ReadMessage(p)
+	demsg, _, err := ReadMessage(bytes.NewBuffer(sink.Bytes()))
 	assert.Nil(t, err)
 
 	assert.Equal(t, msg, demsg)

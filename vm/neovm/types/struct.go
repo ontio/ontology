@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	MAX_STRCUT_DEPTH = 1024
+	MAX_STRUCT_DEPTH = 10
+	MAX_CLONE_LENGTH = 1024
 )
 
 type Struct struct {
@@ -41,7 +42,17 @@ func NewStruct(value []StackItems) *Struct {
 }
 
 func (this *Struct) Equals(other StackItems) bool {
-	return reflect.DeepEqual(this, other)
+
+	if this == other {
+		return true
+	}
+
+	oa, err := other.GetStruct()
+	if err != nil {
+		return false
+	}
+
+	return reflect.DeepEqual(this._array, oa)
 }
 
 func (this *Struct) GetBigInteger() (*big.Int, error) {
@@ -69,17 +80,19 @@ func (s *Struct) GetStruct() ([]StackItems, error) {
 }
 
 func (s *Struct) Clone() (StackItems, error) {
-	if checkStructRef(s, make(map[uintptr]bool), 0) {
-		return nil, fmt.Errorf("%s", "struct contain self reference or over max depth!")
-	}
-	return clone(s)
+	var i int
+	return clone(s, &i)
 }
 
-func clone(s *Struct) (StackItems, error) {
+func clone(s *Struct, length *int) (StackItems, error) {
+	if *length > MAX_CLONE_LENGTH {
+		return nil, fmt.Errorf("%s", "over max struct clone length")
+	}
 	var arr []StackItems
 	for _, v := range s._array {
+		*length++
 		if value, ok := v.(*Struct); ok {
-			vc, err := clone(value)
+			vc, err := clone(value, length)
 			if err != nil {
 				return nil, err
 			}
@@ -92,7 +105,7 @@ func clone(s *Struct) (StackItems, error) {
 }
 
 func checkStructRef(item StackItems, visited map[uintptr]bool, depth int) bool {
-	if depth > MAX_STRCUT_DEPTH {
+	if depth > MAX_STRUCT_DEPTH {
 		return true
 	}
 	switch item.(type) {
@@ -123,6 +136,14 @@ func (this *Struct) Add(item StackItems) {
 	this._array = append(this._array, item)
 }
 
+func (this *Struct) RemoveAt(index int) {
+	this._array = append(this._array[:index-1], this._array[index:]...)
+}
+
 func (this *Struct) Count() int {
 	return len(this._array)
+}
+
+func (this *Struct) IsMapKey() bool {
+	return false
 }

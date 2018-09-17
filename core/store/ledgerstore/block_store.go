@@ -26,20 +26,20 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
+	"io"
 )
 
 //Block store save the data of block & transaction
 type BlockStore struct {
-	enableCache bool                       //Is enable lru cache
-	dbDir       string                     //The path of store file
-	cache       *BlockCache                //The cache of block, if have.
-	store       *leveldbstore.LevelDBStore //block store handler
+	enableCache bool              //Is enable lru cache
+	dbDir       string            //The path of store file
+	cache       *BlockCache       //The cache of block, if have.
+	store       scom.PersistStore //block store handler
 }
 
 //NewBlockStore return the block store instance
-func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
+func NewBlockStore(store scom.PersistStore, enableCache bool) (*BlockStore, error) {
 	var cache *BlockCache
 	var err error
 	if enableCache {
@@ -48,13 +48,7 @@ func NewBlockStore(dbDir string, enableCache bool) (*BlockStore, error) {
 			return nil, fmt.Errorf("NewBlockCache error %s", err)
 		}
 	}
-
-	store, err := leveldbstore.NewLevelDBStore(dbDir)
-	if err != nil {
-		return nil, err
-	}
 	blockStore := &BlockStore{
-		dbDir:       dbDir,
 		enableCache: enableCache,
 		store:       store,
 		cache:       cache,
@@ -81,7 +75,8 @@ func (this *BlockStore) SaveBlock(block *types.Block) error {
 	for _, tx := range block.Transactions {
 		err = this.SaveTransaction(tx, blockHeight)
 		if err != nil {
-			return fmt.Errorf("SaveTransaction block height %d tx %x err %s", blockHeight, tx.Hash(), err)
+			txHash := tx.Hash()
+			return fmt.Errorf("SaveTransaction block height %d tx %s err %s", blockHeight, txHash.ToHexString(), err)
 		}
 	}
 	return nil
@@ -122,10 +117,10 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 	for _, txHash := range txHashes {
 		tx, _, err := this.GetTransaction(txHash)
 		if err != nil {
-			return nil, fmt.Errorf("GetTransaction %x error %s", txHash, err)
+			return nil, fmt.Errorf("GetTransaction %s error %s", txHash.ToHexString(), err)
 		}
 		if tx == nil {
-			return nil, fmt.Errorf("cannot get transaction %x", txHash)
+			return nil, fmt.Errorf("cannot get transaction %s", txHash.ToHexString())
 		}
 		txList = append(txList, tx)
 	}
@@ -378,13 +373,14 @@ func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transacti
 	if err != nil {
 		return nil, 0, err
 	}
-	reader := bytes.NewBuffer(value)
-	height, err = serialization.ReadUint32(reader)
-	if err != nil {
-		return nil, 0, fmt.Errorf("ReadUint32 error %s", err)
+	source := common.NewZeroCopySource(value)
+	var eof bool
+	height, eof = source.NextUint32()
+	if eof {
+		return nil, 0, io.ErrUnexpectedEOF
 	}
 	tx = new(types.Transaction)
-	err = tx.Deserialize(reader)
+	err = tx.Deserialization(source)
 	if err != nil {
 		return nil, 0, fmt.Errorf("transaction deserialize error %s", err)
 	}

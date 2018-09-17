@@ -19,16 +19,16 @@
 package dbft
 
 import (
-	"bytes"
 	"errors"
 	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	ser "github.com/ontio/ontology/common/serialization"
 )
 
 type ConsensusMessage interface {
-	ser.SerializableData
+	Serialization(sink *common.ZeroCopySink) error
+	Deserialization(source *common.ZeroCopySource) error
 	Type() ConsensusMessageType
 	ViewNumber() byte
 	ConsensusMessageData() *ConsensusMessageData
@@ -40,14 +40,17 @@ type ConsensusMessageData struct {
 }
 
 func DeserializeMessage(data []byte) (ConsensusMessage, error) {
-	log.Debug()
+	if len(data) == 0 {
+		return nil, io.ErrUnexpectedEOF
+	}
+
 	msgType := ConsensusMessageType(data[0])
 
-	r := bytes.NewReader(data)
+	source := common.NewZeroCopySource(data)
 	switch msgType {
 	case PrepareRequestMsg:
 		prMsg := &PrepareRequest{}
-		err := prMsg.Deserialize(r)
+		err := prMsg.Deserialization(source)
 		if err != nil {
 			log.Error("[DeserializeMessage] PrepareRequestMsg Deserialize Error: ", err.Error())
 			return nil, err
@@ -56,7 +59,7 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error) {
 
 	case PrepareResponseMsg:
 		presMsg := &PrepareResponse{}
-		err := presMsg.Deserialize(r)
+		err := presMsg.Deserialization(source)
 		if err != nil {
 			log.Error("[DeserializeMessage] PrepareResponseMsg Deserialize Error: ", err.Error())
 			return nil, err
@@ -64,7 +67,7 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error) {
 		return presMsg, nil
 	case ChangeViewMsg:
 		cv := &ChangeView{}
-		err := cv.Deserialize(r)
+		err := cv.Deserialization(source)
 		if err != nil {
 			log.Error("[DeserializeMessage] ChangeViewMsg Deserialize Error: ", err.Error())
 			return nil, err
@@ -73,7 +76,7 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error) {
 
 	case BlockSignaturesMsg:
 		blockSigs := &BlockSignatures{}
-		err := blockSigs.Deserialize(r)
+		err := blockSigs.Deserialization(source)
 		if err != nil {
 			log.Error("[DeserializeMessage] BlockSignaturesMsg Deserialize Error: ", err.Error())
 			return nil, err
@@ -85,33 +88,21 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error) {
 	return nil, errors.New("The message is invalid.")
 }
 
-func (cd *ConsensusMessageData) Serialize(w io.Writer) {
-	//ConsensusMessageType
-	w.Write([]byte{byte(cd.Type)})
-
-	//ViewNumber
-	w.Write([]byte{byte(cd.ViewNumber)})
-
+func (cd *ConsensusMessageData) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteByte(byte(cd.Type))
+	sink.WriteByte(byte(cd.ViewNumber))
 }
 
 //read data to reader
-func (cd *ConsensusMessageData) Deserialize(r io.Reader) error {
-	log.Debug()
-	//ConsensusMessageType
-	var msgType [1]byte
-	_, err := io.ReadFull(r, msgType[:])
-	if err != nil {
-		return err
+func (cd *ConsensusMessageData) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	var temp byte
+	temp, eof = source.NextByte()
+	cd.Type = ConsensusMessageType(temp)
+	cd.ViewNumber, eof = source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	cd.Type = ConsensusMessageType(msgType[0])
-
-	//ViewNumber
-	var vNumber [1]byte
-	_, err = io.ReadFull(r, vNumber[:])
-	if err != nil {
-		return err
-	}
-	cd.ViewNumber = vNumber[0]
 
 	return nil
 }

@@ -27,7 +27,7 @@ func TestStruct_Clone(t *testing.T) {
 	s := NewStruct(nil)
 	//d := NewStruct([]StackItems{s})
 	k := NewStruct([]StackItems{NewInteger(big.NewInt(1))})
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < MAX_STRUCT_DEPTH-2; i++ {
 		k = NewStruct([]StackItems{k})
 	}
 	//k.Add(d)

@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 )
 
@@ -43,5 +44,24 @@ func (self *InvokeCode) Deserialize(r io.Reader) error {
 		return fmt.Errorf("InvokeCode Code Deserialize failed: %s", err)
 	}
 	self.Code = code
+	return nil
+}
+
+//note: InvokeCode.Code has data reference of param source
+func (self *InvokeCode) Deserialization(source *common.ZeroCopySource) error {
+	code, _, irregular, eof := source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	self.Code = code
+	return nil
+}
+
+func (self *InvokeCode) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteVarBytes(self.Code)
 	return nil
 }

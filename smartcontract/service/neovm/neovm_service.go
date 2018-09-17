@@ -19,6 +19,7 @@
 package neovm
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -80,7 +81,7 @@ var (
 		STORAGE_DELETE_NAME:                  {Execute: StorageDelete},
 		STORAGE_GETCONTEXT_NAME:              {Execute: StorageGetContext},
 		STORAGE_GETREADONLYCONTEXT_NAME:      {Execute: StorageGetReadOnlyContext},
-		STORAGECONTEXT_ASREADONLY_NAME:       {Execute: StorageContextAsReadOnly},
+		STORAGECONTEXT_ASREADONLY_NAME:       {Execute: StorageContextAsReadOnly, Validator: validatorContextAsReadOnly},
 		GETSCRIPTCONTAINER_NAME:              {Execute: GetCodeContainer},
 		GETEXECUTINGSCRIPTHASH_NAME:          {Execute: GetExecutingAddress},
 		GETCALLINGSCRIPTHASH_NAME:            {Execute: GetCallingAddress},
@@ -95,6 +96,11 @@ var (
 	VM_EXEC_STEP_EXCEED   = errors.NewErr("[NeoVmService] vm execute step exceed!")
 	CONTRACT_NOT_EXIST    = errors.NewErr("[NeoVmService] Get contract code from db fail")
 	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[NeoVmService] DeployCode type error!")
+	VM_EXEC_FAULT         = errors.NewErr("[NeoVmService] vm execute state fault!")
+)
+
+var (
+	BYTE_ZERO_20 = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 )
 
 type (
@@ -192,8 +198,21 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err := this.SystemCall(this.Engine); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
 			}
-		case vm.APPCALL, vm.TAILCALL:
+		case vm.APPCALL:
+			var err error
 			address := this.Engine.Context.OpReader.ReadBytes(20)
+			if bytes.Compare(address, BYTE_ZERO_20) == 0 {
+				if vm.EvaluationStackCount(this.Engine) < 1 {
+					return nil, fmt.Errorf("[Appcall] Too few input parameters:%d", vm.EvaluationStackCount(this.Engine))
+				}
+				address, err = vm.PopByteArray(this.Engine)
+				if err != nil {
+					return nil, fmt.Errorf("[Appcall] pop contract address error:%v", err)
+				}
+				if len(address) != 20 {
+					return nil, fmt.Errorf("[Appcall] pop contract address len != 20:%x", address)
+				}
+			}
 			code, err := this.getContract(address)
 			if err != nil {
 				return nil, err
@@ -214,6 +233,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err := this.Engine.StepInto(); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] vm execute error!")
 			}
+			if this.Engine.State == vm.FAULT {
+				return nil, VM_EXEC_FAULT
+			}
 		}
 	}
 	this.ContextRef.PopContext()
@@ -226,7 +248,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 
 // SystemCall provide register service for smart contract to interaction with blockchain
 func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
-	serviceName := engine.Context.OpReader.ReadVarString()
+	serviceName := engine.Context.OpReader.ReadVarString(vm.MAX_BYTEARRAY_SIZE)
 	service, ok := ServiceMap[serviceName]
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))
@@ -255,7 +277,7 @@ func (this *NeoVmService) getContract(address []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.NewErr("[getContract] Get contract context error!")
 	}
-	log.Infof("invoke contract address:%x", scommon.ToArrayReverse(address))
+	log.Debugf("invoke contract address:%x", scommon.ToArrayReverse(address))
 	if item == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}
@@ -288,7 +310,7 @@ func checkStackSize(engine *vm.ExecutionEngine) bool {
 		}
 	}
 	size += engine.EvaluationStack.Count() + engine.AltStack.Count()
-	if size > MAX_STACK_SIZE {
+	if size > DUPLICATE_STACK_SIZE {
 		return false
 	}
 	return true

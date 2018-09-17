@@ -20,11 +20,12 @@ package link
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
+	"fmt"
 	"net"
 	"time"
 
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -32,17 +33,19 @@ import (
 
 //Link used to establish
 type Link struct {
-	id       uint64
-	addr     string    // The address of the node
-	conn     net.Conn  // Connect socket with the peer node
-	port     uint16    // The server port of the node
-	time     time.Time // The latest time the node activity
-	recvChan chan *types.MsgPayload
+	id        uint64
+	addr      string                 // The address of the node
+	conn      net.Conn               // Connect socket with the peer node
+	port      uint16                 // The server port of the node
+	time      time.Time              // The latest time the node activity
+	recvChan  chan *types.MsgPayload //msgpayload channel
+	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
 }
 
 func NewLink() *Link {
-	link := &Link{}
-
+	link := &Link{
+		reqRecord: make(map[string]int64, 0),
+	}
 	return link
 }
 
@@ -110,18 +113,25 @@ func (this *Link) Rx() {
 	reader := bufio.NewReaderSize(this.conn, common.MAX_BUF_LEN)
 
 	for {
-		msg, err := types.ReadMessage(reader)
+		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
-			log.Error("read connection error ", err)
+			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
 			break
 		}
 
 		t := time.Now()
 		this.UpdateRXTime(t)
+
+		if !this.needSendMsg(msg) {
+			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+			continue
+		}
+		this.addReqRecord(msg)
 		this.recvChan <- &types.MsgPayload{
-			Id:      this.id,
-			Addr:    this.addr,
-			Payload: msg,
+			Id:          this.id,
+			Addr:        this.addr,
+			PayloadSize: payloadSize,
+			Payload:     msg,
 		}
 
 	}
@@ -131,6 +141,7 @@ func (this *Link) Rx() {
 
 //disconnectNotify push disconnect msg to channel
 func (this *Link) disconnectNotify() {
+	log.Debugf("[p2p]call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
 
 	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
@@ -153,17 +164,19 @@ func (this *Link) CloseConn() {
 func (this *Link) Tx(msg types.Message) error {
 	conn := this.conn
 	if conn == nil {
-		return errors.New("tx link invalid")
-	}
-	buf := bytes.NewBuffer(nil)
-	err := types.WriteMessage(buf, msg)
-	if err != nil {
-		log.Error("error serialize messge ", err.Error())
+		return errors.New("[p2p]tx link invalid")
 	}
 
-	payload := buf.Bytes()
+	sink := comm.NewZeroCopySink(nil)
+	err := types.WriteMessage(sink, msg)
+	if err != nil {
+		log.Debugf("[p2p]error serialize messge ", err.Error())
+		return err
+	}
+
+	payload := sink.Bytes()
 	nByteCnt := len(payload)
-	log.Debugf("TX buf length: %d\n", nByteCnt)
+	log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
 
 	nCount := nByteCnt / common.PER_SEND_LEN
 	if nCount == 0 {
@@ -172,10 +185,46 @@ func (this *Link) Tx(msg types.Message) error {
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err = conn.Write(payload)
 	if err != nil {
-		log.Error("error sending messge to peer node ", err.Error())
+		log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())
 		this.disconnectNotify()
 		return err
 	}
 
 	return nil
+}
+
+//needSendMsg check whether the msg is needed to push to channel
+func (this *Link) needSendMsg(msg types.Message) bool {
+	if msg.CmdType() != common.GET_DATA_TYPE {
+		return true
+	}
+	var dataReq = msg.(*types.DataReq)
+	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
+	now := time.Now().Unix()
+
+	if t, ok := this.reqRecord[reqID]; ok {
+		if int(now-t) < common.REQ_INTERVAL {
+			return false
+		}
+	}
+	return true
+}
+
+//addReqRecord add request record by removing outdated request records
+func (this *Link) addReqRecord(msg types.Message) {
+	if msg.CmdType() != common.GET_DATA_TYPE {
+		return
+	}
+	now := time.Now().Unix()
+	if len(this.reqRecord) >= common.MAX_REQ_RECORD_SIZE-1 {
+		for id := range this.reqRecord {
+			t := this.reqRecord[id]
+			if int(now-t) > common.REQ_INTERVAL {
+				delete(this.reqRecord, id)
+			}
+		}
+	}
+	var dataReq = msg.(*types.DataReq)
+	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
+	this.reqRecord[reqID] = now
 }

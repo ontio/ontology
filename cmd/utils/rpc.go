@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common/config"
+	rpcerr "github.com/ontio/ontology/http/base/error"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -29,6 +30,30 @@ import (
 
 //JsonRpc version
 const JSON_RPC_VERSION = "2.0"
+
+const (
+	ERROR_INVALID_PARAMS   = rpcerr.INVALID_PARAMS
+	ERROR_ONTOLOGY_COMMON  = 10000
+	ERROR_ONTOLOGY_SUCCESS = 0
+)
+
+type OntologyError struct {
+	ErrorCode int64
+	Error     error
+}
+
+func NewOntologyError(err error, errCode ...int64) *OntologyError {
+	ontErr := &OntologyError{Error: err}
+	if len(errCode) > 0 {
+		ontErr.ErrorCode = errCode[0]
+	} else {
+		ontErr.ErrorCode = ERROR_ONTOLOGY_COMMON
+	}
+	if err == nil {
+		ontErr.ErrorCode = ERROR_ONTOLOGY_SUCCESS
+	}
+	return ontErr
+}
 
 //JsonRpcRequest object in rpc
 type JsonRpcRequest struct {
@@ -45,7 +70,7 @@ type JsonRpcResponse struct {
 	Result json.RawMessage `json:"result"`
 }
 
-func sendRpcRequest(method string, params []interface{}) ([]byte, error) {
+func sendRpcRequest(method string, params []interface{}) ([]byte, *OntologyError) {
 	rpcReq := &JsonRpcRequest{
 		Version: JSON_RPC_VERSION,
 		Id:      "cli",
@@ -54,27 +79,27 @@ func sendRpcRequest(method string, params []interface{}) ([]byte, error) {
 	}
 	data, err := json.Marshal(rpcReq)
 	if err != nil {
-		return nil, fmt.Errorf("JsonRpcRequest json.Marsha error:%s", err)
+		return nil, NewOntologyError(fmt.Errorf("JsonRpcRequest json.Marshal error:%s", err))
 	}
 
 	addr := fmt.Sprintf("http://localhost:%d", config.DefConfig.Rpc.HttpJsonPort)
 	resp, err := http.Post(addr, "application/json", strings.NewReader(string(data)))
 	if err != nil {
-		return nil, fmt.Errorf("http post request:%s error:%s", data, err)
+		return nil, NewOntologyError(err)
 	}
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("read rpc response body error:%s", err)
+		return nil, NewOntologyError(fmt.Errorf("read rpc response body error:%s", err))
 	}
 	rpcRsp := &JsonRpcResponse{}
 	err = json.Unmarshal(body, rpcRsp)
 	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal JsonRpcResponse:%s error:%s", body, err)
+		return nil, NewOntologyError(fmt.Errorf("json.Unmarshal JsonRpcResponse:%s error:%s", body, err))
 	}
 	if rpcRsp.Error != 0 {
-		return nil, fmt.Errorf("error code:%d desc:%s", rpcRsp.Error, rpcRsp.Desc)
+		return nil, NewOntologyError(fmt.Errorf("%s", strings.ToLower(rpcRsp.Desc)), rpcRsp.Error)
 	}
 	return rpcRsp.Result, nil
 }

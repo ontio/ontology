@@ -3,8 +3,7 @@ FROM tianon/ubuntu-core:14.04
 ENV ONTOLOGY_PATH /var/ontology
 RUN mkdir -p $ONTOLOGY_PATH
 COPY ontology $ONTOLOGY_PATH
-ADD config.tgz $ONTOLOGY_PATH
 EXPOSE 20334 20335 20336 20337 20338 20339
 WORKDIR $ONTOLOGY_PATH
-CMD ["/bin/sh", "-c", "echo passwordtest | ./ontology"]
+ENTRYPOINT ["./ontology"]
 

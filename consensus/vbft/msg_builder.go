@@ -201,7 +201,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	blkHash := blk.Hash()
 	sig, err := signature.Sign(self.account, blkHash[:])
 	if err != nil {
-		return nil, fmt.Errorf("sign block failed, block hash：%x, error: %s", blkHash, err)
+		return nil, fmt.Errorf("sign block failed, block hash:%s, error: %s", blkHash.ToHexString(), err)
 	}
 	blkHeader.Bookkeepers = []keypair.PublicKey{self.account.PublicKey}
 	blkHeader.SigData = [][]byte{sig}

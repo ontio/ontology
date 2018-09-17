@@ -35,6 +35,7 @@ type SigNativeInvokeTxReq struct {
 	Address  string        `json:"address"`
 	Method   string        `json:"method"`
 	Params   []interface{} `json:"params"`
+	Payer    string        `json:"payer"`
 	Version  byte          `json:"version"`
 }
 
@@ -72,20 +73,37 @@ func SigNativeInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		resp.ErrorInfo = err.Error()
 		return
 	}
+	if rawReq.Payer != "" {
+		payerAddress, err := common.AddressFromBase58(rawReq.Payer)
+		if err != nil {
+			log.Infof("Cli Qid:%s SigNativeInvokeTx AddressFromBase58 error:%s", req.Qid, err)
+			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+			return
+		}
+		tx.Payer = payerAddress
+	}
+
+	signer, err := req.GetAccount()
 	if err != nil {
-		log.Infof("Cli Qid:%s SigNativeInvokeTx InvokeNativeContractTx error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		log.Infof("Cli Qid:%s SigNativeInvokeTx GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
 		return
 	}
-	signer := clisvrcom.DefAccount
 	err = cliutil.SignTransaction(signer, tx)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNativeInvokeTx SignTransaction error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
+	immutable, err := tx.IntoImmutable()
+	if err != nil {
+		log.Infof("convert to immutable transaction error:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		return
+	}
+
 	buf := bytes.NewBuffer(nil)
-	err = tx.Serialize(buf)
+	err = immutable.Serialize(buf)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigNativeInvokeTx tx Serialize error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR

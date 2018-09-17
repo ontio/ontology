@@ -19,12 +19,13 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"strconv"
 )
 
 type SigTransferTransactionReq struct {
@@ -33,7 +34,8 @@ type SigTransferTransactionReq struct {
 	Asset    string `json:"asset"`
 	From     string `json:"from"`
 	To       string `json:"to"`
-	Amount   uint64 `json:"amount"`
+	Amount   string `json:"amount"`
+	Payer    string `json:"payer"`
 }
 
 type SinTransferTransactionRsp struct {
@@ -47,30 +49,62 @@ func SigTransferTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	transferTx, err := cliutil.TransferTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Asset, rawReq.From, rawReq.To, rawReq.Amount)
+	amount, err := strconv.ParseInt(rawReq.Amount, 10, 64)
 	if err != nil {
+		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+		resp.ErrorInfo = "amount should be string type"
+		return
+	}
+	if amount < 0 {
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	signer := clisvrcom.DefAccount
+	mutable, err := cliutil.TransferTx(rawReq.GasPrice, rawReq.GasLimit, rawReq.Asset, rawReq.From, rawReq.To, uint64(amount))
+	if err != nil {
+		log.Infof("Cli Qid:%s SigTransferTransaction TransferTx error:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+		return
+	}
+	if rawReq.Payer != "" {
+		payerAddress, err := common.AddressFromBase58(rawReq.Payer)
+		if err != nil {
+			log.Infof("Cli Qid:%s SigTransferTransaction AddressFromBase58 error:%s", req.Qid, err)
+			resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
+			return
+		}
+		mutable.Payer = payerAddress
+	}
+
+	signer, err := req.GetAccount()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigTransferTransaction GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
+		return
+	}
 	if signer == nil {
 		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
 		return
 	}
-	err = cliutil.SignTransaction(signer, transferTx)
+	err = cliutil.SignTransaction(signer, mutable)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigTransferTransaction SignTransaction error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
-	buf := bytes.NewBuffer(nil)
-	err = transferTx.Serialize(buf)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigTransferTransaction tx IntoInmmutable error:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
+		return
+	}
+	sink := common.ZeroCopySink{}
+	err = tx.Serialization(&sink)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigTransferTransaction tx Serialize error:%s", req.Qid, err)
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
 	resp.Result = &SinTransferTransactionRsp{
-		SignedTx: hex.EncodeToString(buf.Bytes()),
+		SignedTx: hex.EncodeToString(sink.Bytes()),
 	}
 }

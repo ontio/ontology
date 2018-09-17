@@ -23,30 +23,23 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
 //Saving event notifies gen by smart contract execution
 type EventStore struct {
-	dbDir string                     //Store path
-	store *leveldbstore.LevelDBStore //Store handler
+	store scom.PersistStore //Store handler
 }
 
 //NewEventStore return event store instance
-func NewEventStore(dbDir string) (*EventStore, error) {
-	store, err := leveldbstore.NewLevelDBStore(dbDir)
-	if err != nil {
-		return nil, err
-	}
+func NewEventStore(store scom.PersistStore) *EventStore {
 	return &EventStore{
-		dbDir: dbDir,
 		store: store,
-	}, nil
+	}
 }
 
 //NewBatch start event commit batch
@@ -126,7 +119,8 @@ func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNo
 		}
 		evtNotify, err := this.GetEventNotifyByTx(txHash)
 		if err != nil {
-			return nil, fmt.Errorf("getEventNotifyByTx by txhash:%x error:%s", txHash, err)
+			log.Errorf("getEventNotifyByTx Height:%d by txhash:%s error:%s", height, txHash.ToHexString(), err)
+			continue
 		}
 		evtNotifies = append(evtNotifies, evtNotify)
 	}

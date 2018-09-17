@@ -19,13 +19,10 @@
 package types
 
 import (
-	"bytes"
-	"encoding/binary"
-	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/errors"
-	common2 "github.com/ontio/ontology/p2pserver/common"
+	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type DataReq struct {
@@ -34,35 +31,26 @@ type DataReq struct {
 }
 
 //Serialize message payload
-func (this DataReq) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	err := binary.Write(p, binary.LittleEndian, &(this.DataType))
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. DataType:%v", this.DataType))
-	}
-	err = this.Hash.Serialize(p)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialization error. Hash:%v", this.Hash))
-	}
+func (this DataReq) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteByte(byte(this.DataType))
+	sink.WriteHash(this.Hash)
 
-	return p.Bytes(), nil
+	return nil
 }
 
 func (this *DataReq) CmdType() string {
-	return common2.GET_DATA_TYPE
+	return comm.GET_DATA_TYPE
 }
 
 //Deserialize message payload
-func (this *DataReq) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-	err := binary.Read(buf, binary.LittleEndian, &(this.DataType))
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read DataType error. buf:%v", buf))
+func (this *DataReq) Deserialization(source *common.ZeroCopySource) error {
+	ty, eof := source.NextByte()
+	this.DataType = common.InventoryType(ty)
+
+	this.Hash, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
-	err = this.Hash.Deserialize(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("deserialize Hash error. buf:%v", buf))
-	}
 	return nil
 }

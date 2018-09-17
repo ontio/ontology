@@ -19,13 +19,10 @@
 package proc
 
 import (
-	"bytes"
-	"encoding/hex"
 	"testing"
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -52,17 +49,13 @@ func init() {
 		Code: code,
 	}
 
-	txn = &types.Transaction{
-		Version: 0,
+	mutable := &types.MutableTransaction{
 		TxType:  types.Invoke,
+		Nonce:   uint32(time.Now().Unix()),
 		Payload: invokeCodePayload,
 	}
 
-	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"
-	hex, _ := hex.DecodeString(tempStr)
-	var hash common.Uint256
-	hash.Deserialize(bytes.NewReader(hex))
-	txn.SetHash(hash)
+	txn, _ = mutable.IntoImmutable()
 
 	sender = tc.NilSender
 }
@@ -80,7 +73,7 @@ func startActor(obj interface{}) *actor.PID {
 func TestTxn(t *testing.T) {
 	t.Log("Starting test tx")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -88,18 +81,18 @@ func TestTxn(t *testing.T) {
 	defer s.Stop()
 
 	// Case 1: Send nil txn to the server, server should reject it
-	s.assignTxToWorker(nil, sender)
+	s.assignTxToWorker(nil, sender, nil)
 	/* Case 2: send non-nil txn to the server, server should assign
 	 * it to the worker
 	 */
-	s.assignTxToWorker(txn, sender)
+	s.assignTxToWorker(txn, sender, nil)
 
 	/* Case 3: Duplicate input the tx, server should reject the second
 	 * one
 	 */
 	time.Sleep(10 * time.Second)
-	s.assignTxToWorker(txn, sender)
-	s.assignTxToWorker(txn, sender)
+	s.assignTxToWorker(txn, sender, nil)
+	s.assignTxToWorker(txn, sender, nil)
 
 	/* Case 4: Given the tx is in the tx pool, server can get the tx
 	 * with the invalid hash
@@ -129,7 +122,7 @@ func TestTxn(t *testing.T) {
 func TestAssignRsp2Worker(t *testing.T) {
 	t.Log("Starting assign response to the worker testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -172,7 +165,7 @@ func TestAssignRsp2Worker(t *testing.T) {
 func TestActor(t *testing.T) {
 	t.Log("Starting actor testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -240,7 +233,7 @@ func TestActor(t *testing.T) {
 func TestValidator(t *testing.T) {
 	t.Log("Starting validator testing")
 	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, false)
+	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return

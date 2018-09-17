@@ -22,9 +22,13 @@ import (
 	"testing"
 )
 
-func TestCompactUint(t *testing.T) {
-	a := uint64(1200000)
-	compactValue := SetCompactUint(a)
-	unCompactValue, _ := GetCompactUint(compactValue)
-	assert.Equal(t, unCompactValue, a)
+func TestChecksum(t *testing.T) {
+	data := []byte{1, 2, 3}
+	cs := Checksum(data)
+
+	writer := NewChecksum()
+	writer.Write(data)
+	checksum2 := writer.Sum(nil)
+	assert.Equal(t, cs[:], checksum2)
+
 }

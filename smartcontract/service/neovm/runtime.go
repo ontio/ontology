@@ -101,7 +101,11 @@ func RuntimeDeserialize(service *NeoVmService, engine *vm.ExecutionEngine) error
 func RuntimeNotify(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	item := vm.PopStackItem(engine)
 	context := service.ContextRef.CurrentContext()
-	service.Notifications = append(service.Notifications, &event.NotifyEventInfo{ContractAddress: context.ContractAddress, States: scommon.ConvertNeoVmTypeHexString(item)})
+	states, err := scommon.ConvertNeoVmTypeHexString(item)
+	if err != nil {
+		return err
+	}
+	service.Notifications = append(service.Notifications, &event.NotifyEventInfo{ContractAddress: context.ContractAddress, States: states})
 	return nil
 }
 
@@ -123,12 +127,12 @@ func RuntimeGetTrigger(service *NeoVmService, engine *vm.ExecutionEngine) error 
 }
 
 func SerializeStackItem(item vmtypes.StackItems) ([]byte, error) {
-	if CircularRefDetection(item) {
+	if CircularRefAndDepthDetection(item) {
 		return nil, errors.NewErr("runtime serialize: can not serialize circular reference data")
 	}
 
 	bf := new(bytes.Buffer)
-	err := serializeStackItem(item, bf)
+	err := serializeStackItem(item, common.NewLimitedWriter(bf, uint64(vm.MAX_BYTEARRAY_SIZE)))
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +179,10 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		}
 
 		for _, v := range a {
-			serializeStackItem(v, w)
+			err := serializeStackItem(v, w)
+			if err != nil {
+				return err
+			}
 		}
 
 	case *vmtypes.Struct:
@@ -188,7 +195,10 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		}
 
 		for _, v := range s {
-			serializeStackItem(v, w)
+			err := serializeStackItem(v, w)
+			if err != nil {
+				return err
+			}
 		}
 
 	case *vmtypes.Map:
@@ -203,7 +213,7 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 			return errors.NewErr("Serialize Map stackItems error: " + err.Error())
 		}
 
-		for k, _ := range mp {
+		for k := range mp {
 			switch k.(type) {
 			case *vmtypes.ByteArray, *vmtypes.Integer:
 				ba, _ := k.GetByteArray()
@@ -222,8 +232,14 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 		sort.Strings(unsortKey)
 		for _, v := range unsortKey {
 			key := keyMap[v]
-			serializeStackItem(key, w)
-			serializeStackItem(mp[key], w)
+			err := serializeStackItem(key, w)
+			if err != nil {
+				return err
+			}
+			err = serializeStackItem(mp[key], w)
+			if err != nil {
+				return err
+			}
 		}
 
 	default:
@@ -313,11 +329,14 @@ func DeserializeStackItem(r io.Reader) (items vmtypes.StackItems, err error) {
 	return nil, nil
 }
 
-func CircularRefDetection(value vmtypes.StackItems) bool {
-	return circularRefDetection(value, make(map[uintptr]bool), 0)
+func CircularRefAndDepthDetection(value vmtypes.StackItems) bool {
+	return circularRefAndDepthDetection(value, make(map[uintptr]bool), 0)
 }
 
-func circularRefDetection(value vmtypes.StackItems, visited map[uintptr]bool, depth int) bool {
+func circularRefAndDepthDetection(value vmtypes.StackItems, visited map[uintptr]bool, depth int) bool {
+	if depth > vmtypes.MAX_STRUCT_DEPTH {
+		return true
+	}
 	switch value.(type) {
 	case *vmtypes.Array:
 		a, _ := value.GetArray()
@@ -332,7 +351,7 @@ func circularRefDetection(value vmtypes.StackItems, visited map[uintptr]bool, de
 		visited[p] = true
 
 		for _, v := range a {
-			if circularRefDetection(v, visited, depth+1) {
+			if circularRefAndDepthDetection(v, visited, depth+1) {
 				return true
 			}
 		}
@@ -352,7 +371,7 @@ func circularRefDetection(value vmtypes.StackItems, visited map[uintptr]bool, de
 		visited[p] = true
 
 		for _, v := range s {
-			if circularRefDetection(v, visited, depth+1) {
+			if circularRefAndDepthDetection(v, visited, depth+1) {
 				return true
 			}
 		}
@@ -369,10 +388,10 @@ func circularRefDetection(value vmtypes.StackItems, visited map[uintptr]bool, de
 		visited[p] = true
 
 		for k, v := range mp {
-			if circularRefDetection(k, visited, depth+1) {
+			if circularRefAndDepthDetection(k, visited, depth+1) {
 				return true
 			}
-			if circularRefDetection(v, visited, depth+1) {
+			if circularRefAndDepthDetection(v, visited, depth+1) {
 				return true
 			}
 		}

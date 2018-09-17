@@ -19,11 +19,9 @@
 package types
 
 import (
-	"bytes"
-	"fmt"
+	"io"
 
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/errors"
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -32,14 +30,9 @@ type Ping struct {
 }
 
 //Serialize message payload
-func (this Ping) Serialization() ([]byte, error) {
-	p := bytes.NewBuffer([]byte{})
-	err := serialization.WriteUint64(p, this.Height)
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Height:%v", this.Height))
-	}
-
-	return p.Bytes(), nil
+func (this Ping) Serialization(sink *comm.ZeroCopySink) error {
+	sink.WriteUint64(this.Height)
+	return nil
 }
 
 func (this *Ping) CmdType() string {
@@ -47,13 +40,12 @@ func (this *Ping) CmdType() string {
 }
 
 //Deserialize message payload
-func (this *Ping) Deserialization(p []byte) error {
-	buf := bytes.NewBuffer(p)
-
-	height, err := serialization.ReadUint64(buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Height error. buf:%v", buf))
+func (this *Ping) Deserialization(source *comm.ZeroCopySource) error {
+	var eof bool
+	this.Height, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	this.Height = height
+
 	return nil
 }

@@ -42,6 +42,7 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
+	bactor "github.com/ontio/ontology/http/base/actor"
 	hserver "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/http/jsonrpc"
 	"github.com/ontio/ontology/http/localrpc"
@@ -70,7 +71,14 @@ func setupAPP() *cli.App {
 		cmd.InfoCommand,
 		cmd.AssetCommand,
 		cmd.ContractCommand,
+		cmd.ImportCommand,
 		cmd.ExportCommand,
+		cmd.TxCommond,
+		cmd.SigTxCommand,
+		cmd.MultiSigAddrCommand,
+		cmd.MultiSigTxCommand,
+		cmd.SendTxCommand,
+		cmd.ShowTxCommand,
 	}
 	app.Flags = []cli.Flag{
 		//common setting
@@ -78,19 +86,19 @@ func setupAPP() *cli.App {
 		utils.LogLevelFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
-		utils.ImportEnableFlag,
-		utils.ImportHeightFlag,
-		utils.ImportFileFlag,
 		//account setting
 		utils.WalletFileFlag,
 		utils.AccountAddressFlag,
 		utils.AccountPassFlag,
 		//consensus setting
-		utils.DisableConsensusFlag,
+		utils.EnableConsensusFlag,
 		utils.MaxTxInBlockFlag,
 		//txpool setting
 		utils.GasPriceFlag,
 		utils.GasLimitFlag,
+		utils.TxpoolPreExecDisableFlag,
+		utils.DisableSyncVerifyTxFlag,
+		utils.BroadcastNetTxEnableFlag,
 		//p2p setting
 		utils.ReservedPeersOnlyFlag,
 		utils.ReservedPeersFileFlag,
@@ -104,7 +112,6 @@ func setupAPP() *cli.App {
 		//test mode setting
 		utils.EnableTestModeFlag,
 		utils.TestModeGenBlockTimeFlag,
-		utils.ClearTestModeDataFlag,
 		//rpc setting
 		utils.RPCDisabledFlag,
 		utils.RPCPortFlag,
@@ -126,7 +133,7 @@ func setupAPP() *cli.App {
 
 func main() {
 	if err := setupAPP().Run(os.Args); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)
 	}
 }
@@ -150,11 +157,6 @@ func startOntology(ctx *cli.Context) {
 		return
 	}
 	defer ldg.Close()
-	err = importBlocks(ctx)
-	if err != nil {
-		log.Errorf("importBlocks error:%s", err)
-		return
-	}
 	txpool, err := initTxPool(ctx)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
@@ -206,6 +208,9 @@ func initConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 }
 
 func initAccount(ctx *cli.Context) (*account.Account, error) {
+	if !config.DefConfig.Consensus.EnableConsensus {
+		return nil, nil
+	}
 	walletFile := ctx.GlobalString(utils.GetFlagName(utils.WalletFileFlag))
 	if walletFile == "" {
 		return nil, fmt.Errorf("Please config wallet file using --wallet flag")
@@ -233,14 +238,7 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 	events.Init() //Init event hub
 
 	var err error
-	dbDir := config.DefConfig.Common.DataDir + string(os.PathSeparator) + config.DefConfig.P2PNode.NetworkName
-
-	if ctx.GlobalBool(utils.GetFlagName(utils.EnableTestModeFlag)) && ctx.GlobalBool(utils.GetFlagName(utils.ClearTestModeDataFlag)) {
-		err = os.RemoveAll(dbDir)
-		if err != nil {
-			log.Warnf("InitLedger remove:%s error:%s", dbDir, err)
-		}
-	}
+	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
 	ledger.DefLedger, err = ledger.NewLedger(dbDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
@@ -264,12 +262,10 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 }
 
 func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
-	preExec := false
-	if !config.DefConfig.Consensus.EnableConsensus {
-		preExec = true
-	}
-
-	txPoolServer, err := txnpool.StartTxnPoolServer(preExec)
+	disablePreExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecDisableFlag))
+	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
+	enableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.BroadcastNetTxEnableFlag))
+	txPoolServer, err := txnpool.StartTxnPoolServer(disablePreExec, enableBroadcastNetTx)
 	if err != nil {
 		return nil, fmt.Errorf("Init txpool error:%s", err)
 	}
@@ -307,7 +303,7 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2P
 	txpoolSvr.RegisterActor(tc.NetActor, p2pPID)
 	hserver.SetNetServerPID(p2pPID)
 	p2p.WaitForPeersStart()
-	log.Infof("P2P node init success")
+	log.Infof("P2P init success")
 	return p2p, p2pPID, nil
 }
 
@@ -405,18 +401,6 @@ func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 	go nodeinfo.StartServer(p2pSvr.GetNetWork())
 
 	log.Infof("Nodeinfo init success")
-}
-
-func importBlocks(ctx *cli.Context) error {
-	if !ctx.GlobalBool(utils.GetFlagName(utils.ImportEnableFlag)) {
-		return nil
-	}
-	importFile := ctx.GlobalString(utils.GetFlagName(utils.ImportFileFlag))
-	if importFile == "" {
-		return fmt.Errorf("missing import file argument")
-	}
-	height := ctx.GlobalUint(utils.GetFlagName(utils.ImportHeightFlag))
-	return utils.ImportBlocks(importFile, uint32(height))
 }
 
 func logCurrBlockHeight() {

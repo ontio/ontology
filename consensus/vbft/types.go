@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
+	"io"
 )
 
 type Block struct {
@@ -91,14 +92,18 @@ func (blk *Block) Serialize() ([]byte, error) {
 }
 
 func (blk *Block) Deserialize(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	buf1, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return fmt.Errorf("deserialize block buffer: %s", err)
+	source := common.NewZeroCopySource(data)
+	//buf := bytes.NewBuffer(data)
+	buf1, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
-	block := &types.Block{}
-	if err := block.Deserialize(bytes.NewBuffer(buf1)); err != nil {
+	block, err := types.BlockFromRawBytes(buf1)
+	if err != nil {
 		return fmt.Errorf("deserialize block: %s", err)
 	}
 
@@ -108,10 +113,11 @@ func (blk *Block) Deserialize(data []byte) error {
 	}
 
 	var emptyBlock *types.Block
-	if buf.Len() > 0 {
-		if buf2, err := serialization.ReadVarBytes(buf); err == nil {
-			block2 := &types.Block{}
-			if err := block2.Deserialize(bytes.NewBuffer(buf2)); err == nil {
+	if source.Len() > 0 {
+		buf2, _, irregular, eof := source.NextVarBytes()
+		if irregular == false && eof == false {
+			block2, err := types.BlockFromRawBytes(buf2)
+			if err == nil {
 				emptyBlock = block2
 			}
 		}

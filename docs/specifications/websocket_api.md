@@ -1,5 +1,7 @@
 # Ontology Websocket API
 
+English|[中文](websocket_api_CN.md)
+
 * [Introduction](#introduction)
 * [Websocket Api List](#websocket-api-list)
 * [Error Code](#error-code)
@@ -8,9 +10,7 @@
 
 This document describes the Websocket api format for the ws/wss used in the Onchain Ontology.
 
-## Websocket Api List
-
-### Response parameters descri
+### Response parameters description
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -19,16 +19,48 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | Error | int64 | error code |
 | Result | object | execute result |
 | Version | string | version information |
-| Id | int | req Id|
+| Id | int64 | req Id|
+
+## Websocket Api List
+
+| Method | Parameter | Description |
+| :---| :---| :---|
+| [heartbeat](#1-heartbeat) |  | send heart beat info |
+| [subscribe](#2-subscribe) | [ConstractsFilter],[SubscribeEvent],[SubscribeJsonBlock],[SubscribeRawBlock],[SubscribeBlockTxHashs] | subscribe service |
+| [getconnectioncount](#3-getconnectioncount) |  | get the current number of connections for the node |
+| [getblocktxsbyheight](#4-getblocktxsbyheight) | height | return all transaction hash contained in the block corresponding to this height |
+| [getblockbyheight](#5-getblockbyheight) | height | return block details based on block height |
+| [getblockbyhash](#6-getblockbyhash) | hash | return block details based on block hash |
+| [getblockheight](#7-getblockheight) |  | return the current block height |
+| [getblockhash](#8-getblockhash) | height | return block hash based on block height|
+| [gettransaction](#9-gettransaction) | hash,[raw] | get transaction details based on transaction hash |
+| [sendrawtransaction](#10-sendrawtransaction) | data,[PreExec] | Send transaction. Set PreExec=1 if want prepare exec smart contract |
+| [getstorage](#11-getstorage) | hash,key | return the stored value according to the contract script hashes and stored key |
+| [getbalance](#12-getbalance) | address | return the balance of base58 account address |
+| [getcontract](#13-getcontract) | hash | According to the contract address hash, query the contract information |
+| [getsmartcodeeventbyheight](#14-getsmartcodeeventbyheight) | height | return smart contract event list by height |
+| [getsmartcodeeventbyhash](#15-getsmartcodeeventbyhash) | hash | return contract event by transaction hash |
+| [getblockheightbytxhash](#16-getblockheightbytxhash) | hash | return block height of transaction hash |
+| [getmerkleproof](#17-getmerkleproof) | hash | return merkle proof of given hash |
+| [getsessioncount](#18-getsessioncount) |  | return gas price |
+| [getgasprice](#19-getgasprice) |  | return the state of transaction locate in memory |
+| [getallowance](#20-getallowance) | asset, from, to | return the allowance from transfer-from accout to transfer-to account |
+| [getunboundong](#21-getunboundong) | address | get unbound ong of this address |
+| [getmempooltxstate](#22-getmempooltxstate) | hash | query the transaction state in the memory pool |
+| [getmempooltxcount](#23-getmempooltxcount) |  | query the transaction count in the memory pool |
+| [getversion](#24-getversion) |  | get the version information of the node |
+| [getnetworkid](#25-getnetworkid) |  | get the network id |
+| [getgrantong](#26-getgrantong) |  | get grant ong |
 
 ###  1. heartbeat
-if don't send heartbeat, the session expire after 5min
+If don't send heartbeat, the session expire after 5min.
 
 #### Request Example:
 
 ```
 {
     "Action": "heartbeat",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
@@ -51,7 +83,7 @@ if don't send heartbeat, the session expire after 5min
 ```
 
 ###  2. subscribe
-subscribe service
+Subscribe service.
 
 #### Request Example:
 
@@ -59,6 +91,7 @@ subscribe service
 {
     "Action": "subscribe",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "ConstractsFilter":["constractAddress"], //optional
     "SubscribeEvent":false, //optional
     "SubscribeJsonBlock":true, //optional
@@ -85,33 +118,10 @@ subscribe service
 }
 ```
 
-### 3. Get the generate block time
-return the time required to create a new block
 
+### 3. getconnectioncount
 
-#### Request Example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Version": "1.0.0"
-}
-```
-
-#### Response example:
-
-```
-{
-    "Action": "getgenerateblocktime",
-    "Desc": "SUCCESS",
-    "Error": 0,
-    "Result": 6,
-    "Version": "1.0.0"
-}
-```
-### 4 Get the number of connected node
-
-get the current number of connections for the node
+Get the current number of connections for the node.
 
 
 #### Request Example:
@@ -119,6 +129,7 @@ get the current number of connections for the node
 ```
 {
     "Action": "getconnectioncount",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
@@ -134,9 +145,9 @@ get the current number of connections for the node
     "Version": "1.0.0"
 }
 ```
-### 5 Get transactions by block height
+### 4. getblocktxsbyheight
 
-return all transaction hash contained in the block corresponding to this height
+Return all transaction hash contained in the block corresponding to this height.
 
 
 #### Request Example:
@@ -145,6 +156,7 @@ return all transaction hash contained in the block corresponding to this height
 {
     "Action": "getblocktxsbyheight",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Height": 100
 }
 ```
@@ -166,10 +178,11 @@ return all transaction hash contained in the block corresponding to this height
     "Version": "1.0.0"
 }
 ```
-### 6. Get the block by block height
+### 5. getblockbyheight
 
-return block details based on block height
-if raw=1 return serialized block
+Return block details based on block height.
+
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
 
 #### Request Example:
 
@@ -177,6 +190,7 @@ if raw=1 return serialized block
 {
     "Action": "getblockbyheight",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Raw": "0",
     "Height": 100
 }
@@ -237,10 +251,11 @@ if raw=1 return serialized block
     "Version": "1.0.0"
 }
 ```
-### 7. Get block by blockhash
+### 6. getblockbyhash
 
-return block details based on block hash
-if raw=1 return serialized block
+Return block details based on block hash.
+
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the block serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding block is returned, which is represented by a JSON format string.
 
 #### Request Example:
 
@@ -248,6 +263,7 @@ if raw=1 return serialized block
 {
     "Action": "getblockbyhash",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Raw": "0",
     "Hash": "7c3e38afb62db28c7360af7ef3c1baa66aeec27d7d2f60cd22c13ca85b2fd4f3"
 }
@@ -309,9 +325,9 @@ if raw=1 return serialized block
 }
 ```
 
-### 8. Get the current block height
+### 7. getblockheight
 
-return the current block height
+Return the current block height.
 
 
 #### Request Example:
@@ -319,6 +335,7 @@ return the current block height
 ```
 {
     "Action": "getblockheight",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
@@ -336,9 +353,9 @@ return the current block height
 }
 ```
 
-### 9. Get blockhash by block height
+### 8. getblockhash
 
-return block hash based on block height
+Return block hash based on block height.
 
 
 #### Request Example:
@@ -347,6 +364,7 @@ return block hash based on block height
 {
     "Action": "getblockhash",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Height": 100
 }
 ```
@@ -363,10 +381,11 @@ return block hash based on block height
 }
 ```
 
-### 10. get transaction by transaction hash
+### 9. gettransaction
 
-get transaction details based on transaction hash
-if raw=1 return serialized transaction
+Get transaction details based on transaction hash.
+
+raw: Optional parameter, the default value of raw is 0. When raw is 1, it returns the transaction serialized information, which is represented by a hexadecimal string. To get detailed information from it, you need to call the SDK to deserialize. When raw is 0, the detailed information of the corresponding transaction is returned, which is represented by a JSON format string.
 
 #### Request Example:
 
@@ -374,6 +393,7 @@ if raw=1 return serialized transaction
 {
     "Action": "gettransaction",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "3b90ddc4d33c4954c3d87736120e94915f963546861987757f358c9376422255",
     "Raw": "0"
 }
@@ -387,34 +407,36 @@ if raw=1 return serialized transaction
     "Error": 0,
     "Result": {
         "Version": 0,
-        "Nonce": 0,
-        "TxType": 0,
+        "Nonce": 3743545316,
+        "GasPrice": 500,
+        "GasLimit": 20000,
+        "Payer": "AWM9vmGpAhFyiXxg8r5Cx4H3mS2zrtSkUF",
+        "TxType": 209,
         "Payload": {
-            "Nonce": 1522313652068190000
+            "Code": "00c66b149fdd13f41303beb7771ddd0aad6b2d815dcd62916a7cc81400000000000000000000000000000000000000016a7cc8149fdd13f41303beb7771ddd0aad6b2d815dcd62916a7cc8085da07645000000006a7cc86c0c7472616e7366657246726f6d1400000000000000000000000000000000000000020068164f6e746f6c6f67792e4e61746976652e496e766f6b65"
         },
         "Attributes": [],
-        "Fee": [],
-        "NetworkFee": 0,
         "Sigs": [
             {
                 "PubKeys": [
-                    "120203fe4f9ba2022b68595dd163f4a92ac80f918919674de2d6e2a7e04a10c59d0066"
+                    "03e9ac636107c8d5a22e87bf6ae76a5e7a1394930972db72e0c3bebf54e8210a37"
                 ],
                 "M": 1,
                 "SigData": [
-                    "017d3641607c894dd85f455c71a94afaea2661acbe372ff8f3f4c7921b0c768756e3a6e9308a4c4c8b1b58e717f1486a2f10f5bc809b803a27c10a2cd579778a54"
+                    "01dfcf5328a6587b2e2b30d6fae73bc18343ce7e5db2c00b3c92415a7274cfb1367d74604121dfd2eb8aef95b1a5e688bdde5633f1bde0fe85881db55ea2fd112d"
                 ]
             }
         ],
-        "Hash": "37e017cb9de93aa93ef817e82c555812a0a6d5c3f7d6c521c7808a5a77fc93c7"
+        "Hash": "5623dbd283a99ff1cd78068cba474a22bed97fceba4a56a9d38ab0fbc178c4ab",
+        "Height": 175888
     },
     "Version": "1.0.0"
 }
 ```
 
-### 11. send transaction
+### 10. sendrawtransaction
 
-send transaction.set PreExec=1 if want prepare exec smartcontract
+Send transaction. Set PreExec=1 if want prepare exec smart contract.
 
 
 #### Request Example:
@@ -423,10 +445,13 @@ send transaction.set PreExec=1 if want prepare exec smartcontract
 {
     "Action":"sendrawtransaction",
     "Version":"1.0.0",
+    "Id":12345, //optional
     "PreExec": 0,
     "Data":"80000001195876cb34364dc38b730077156c6bc3a7fc570044a66fbfeeea56f71327e8ab0000029b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc500c65eaf440000000f9a23e06f74cf86b8827a9108ec2e0f89ad956c9b7cffdaa674beae0f930ebe6085af9093e5fe56b34a5c220ccdcf6efc336fc50092e14b5e00000030aab52ad93f6ce17ca07fa88fc191828c58cb71014140915467ecd359684b2dc358024ca750609591aa731a0b309c7fb3cab5cd0836ad3992aa0a24da431f43b68883ea5651d548feb6bd3c8e16376e6e426f91f84c58232103322f35c7819267e721335948d385fae5be66e7ba8c748ac15467dcca0693692dac"
 }
 ```
+
+You can use the ontology-go-sdk to generate hex code, reference to [example](rpc_api.md#8-sendrawtransaction)
 
 #### Response Example:
 ```
@@ -438,17 +463,26 @@ send transaction.set PreExec=1 if want prepare exec smartcontract
     "Version": "1.0.0"
 }
 ```
-> Result: txhash
+> Result: transaction hash
 
-### 12. getStorage
+### 11. getstorage
 
-Returns the stored value according to the contract script hashes and stored key.
+Returns the stored value according to the contract address hash and stored key.
 
-Request Example
+contract address hash could be generated by follow function
+
+```
+    addr := types.AddressFromVmCode([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04})
+    fmt.Println(addr.ToHexString())
+```
+
+#### Request Example
 ```
 {
     "Action": "getstorage",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "0144587c1094f6929ed7362d6328cffff4fb4da2",
     "Key" : "4587c1094f6"
 }
@@ -463,18 +497,19 @@ Request Example
     "Version": "1.0.0"
 }
 ```
-> Result:Returns the stored value according to the contract script hashes and stored key.
+> Result: result and key are hex code string.
 
-### 13. GetBalanceByAddr
+### 12. getbalance
 
-return the balance of base58 account address.
+Return the balance of base58 account address.
 
 
-Request Example
+#### Request Example
 ```
 {
     "Action": "getbalance",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Addr": "TA63xZXqdPLtDeznWQ6Ns4UsbqprLrrLJk"
 }
 ```
@@ -487,15 +522,14 @@ Request Example
     "Error": 0,
     "Result": {
         "ont": "2500",
-        "ong": "0",
-        "ong_appove": "0"
+        "ong": "0"
     },
     "Version": "1.0.0"
 }
 ```
-### 14. get contractstate
+### 13. getcontract
 
-According to the contract script hash, query the contract information.
+According to the contract address hash, query the contract information.
 
 
 #### Request Example:
@@ -504,7 +538,8 @@ According to the contract script hash, query the contract information.
 {
     "Action": "getcontract",
     "Version": "1.0.0",
-    "Hash": "fff49c809d302a2956e9dc0012619a452d4b846c"
+    "Id":12345, //optional
+    "Hash": "0100000000000000000000000000000000000000"
 }
 ```
 
@@ -517,8 +552,7 @@ According to the contract script hash, query the contract information.
     "Error": 0,
     "Version": "1.0.0",
     "Result": {
-        "VmType": 255,
-        "Code": "4f4e5420546f6b656e",
+        "Code": "0000000000000000000000000000000000000001",
         "NeedStorage": true,
         "Name": "ONT",
         "CodeVersion": "1.0",
@@ -529,22 +563,24 @@ According to the contract script hash, query the contract information.
 }
 ```
 
-#### 15. get smart contract event txhash list by height
+### 14. getsmartcodeeventbyheight
 
-Get a list of transaction  with smartcontract event based on height
+Get smart contract event list by height.
 
+Get a list of transaction with smarte contract event based on height.
 
-#### Example usage:
+#### Request Example
 
 ```
 {
     "Action": "getsmartcodeeventbyheight",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Height": 100
 }
 ```
 
-#### response
+#### Response Example:
 ```
 {
     "Action": "getsmartcodeeventbyheight",
@@ -587,20 +623,22 @@ Get a list of transaction  with smartcontract event based on height
     "Version": "1.0.0"
 }
 ```
-> Note: result is the txHash list.
+> Note: result is the transaction hash list.
 
-### 16. get smart contract event by txhash
+### 15. getsmartcodeeventbyhash
 
+Get contract event by transaction hash.
 
 #### Request Example:
 ```
 {
     "Action": "getsmartcodeeventbyhash",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "20046da68ef6a91f6959caa798a5ac7660cc80cf4098921bc63604d93208a8ac"
 }
 ```
-#### Response:
+#### Response Example:
 ```
 {
     "Action": "getsmartcodeeventbyhash",
@@ -625,18 +663,20 @@ Get a list of transaction  with smartcontract event based on height
     }
 }
 ```
-### 17. Get block height by transaction hash
-get blockheight of txhash
+### 16. getblockheightbytxhash
+
+Get block height of transaction hash.
 
 #### Request Example:
 ```
 {
     "Action": "getblockheightbytxhash",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "3e23cf222a47739d4141255da617cd42925a12638ac19cadcc85501f907972c8"
 }
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getblockheightbytxhash",
@@ -648,20 +688,21 @@ get blockheight of txhash
 ```
 
 
-### 18. getmerkleproof
+### 17. getmerkleproof
 
-get merkle proof
+Get merkle proof.
 
 #### Request Example:
 ```
 {
     "Action": "getmerkleproof",
     "Version": "1.0.0",
+    "Id":12345, //optional
     "Hash": "0087217323d87284d21c3539f216dd030bf9da480372456d1fa02eec74c3226d"
 }
 
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getmerkleproof",
@@ -693,17 +734,19 @@ get merkle proof
 }
 ```
 
-### 19. Get session count
-get session count
+### 18. getsessioncount
+
+Get session count.
 
 #### Request Example:
 ```
 {
     "Action": "getsessioncount",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getsessioncount",
@@ -714,17 +757,19 @@ get session count
 }
 ```
 
-### 20. Get gasprice
-get gasprice
+### 19. getgasprice
+
+Get gas price.
 
 #### Request Example:
 ```
 {
     "Action": "getgasprice",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getgasprice",
@@ -738,20 +783,22 @@ get gasprice
 }
 ```
 
-### 21. Get allowance
-get allowance
+### 20. getallowance
+
+Get allowance.
 
 #### Request Example:
 ```
 {
     "Action": "getallowance",
+    "Id":12345, //optional
     "Asset": "ont",
     "From" :  "A9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
     "To"   :  "AA4WVfUB1ipHL8s3PRSYgeV1HhAU3KcKTq",
     "Version": "1.0.0"
 }
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getallowance",
@@ -762,18 +809,20 @@ get allowance
 }
 ```
 
-### 22. Get unboundong
-get unboundong
+### 21. getunboundong
+
+Get unbound ong.
 
 #### Request Example:
 ```
 {
     "Action": "getunboundong",
+    "Id":12345, //optional
     "Addr": "ANH5bHrrt111XwNEnuPZj6u95Dd6u7G4D6",
     "Version": "1.0.0"
 }
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getunboundong",
@@ -784,18 +833,19 @@ get unboundong
 }
 ```
 
-### 23. Get mempooltxstate
+### 22. getmempooltxstate
 Query the transaction state in the memory pool.
 
 #### Request Example:
 ```
 {
     "Action": "getmempooltxstate",
+    "Id":12345, //optional
     "Hash": "0b437771a42d18d292741c5d4f1300a135fa6e65b0594e39dc299e7f8279221a",
     "Version": "1.0.0"
 }
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getmempooltxstate",
@@ -816,17 +866,19 @@ Query the transaction state in the memory pool.
 }
 ```
 
-### 24. Get mempooltxcount
+### 23. getmempooltxcount
+
 Query the transaction count in the memory pool.
 
 #### Request Example:
 ```
 {
     "Action": "getmempooltxcount",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getmempooltxcount",
@@ -838,17 +890,19 @@ Query the transaction count in the memory pool.
 ```
 
 
-### 25. Get version
+### 24. getversion
+
 Get the version information of the node.
 
 #### Request Example:
 ```
 {
     "Action": "getversion",
+    "Id":12345, //optional
     "Version": "1.0.0"
 }
 ```
-#### Response
+#### Response Example
 ```
 {
     "Action": "getversion",
@@ -859,6 +913,52 @@ Get the version information of the node.
 }
 ```
 
+### 25. getnetworkid
+
+Get the network id
+
+#### Request Example:
+```
+{
+    "Action": "getnetworkid",
+    "Id":12345, //optional
+    "Version": "1.0.0"
+}
+```
+#### Response Example
+```
+{
+    "Action": "getnetworkid",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 1
+}
+```
+
+### 26. getgrantong
+
+get grant ong
+
+#### Request Example:
+```
+{
+    "Action": "getgrantong",
+    "Id":12345, //optional
+    "Addr":"AKDFapcoUhewN9Kaj6XhHusurfHzUiZqUA",
+    "Version": "1.0.0"
+}
+```
+#### Response Example
+```
+{
+    "Action": "getgrantong",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": 4995625
+}
+```
 
 ## Error Code
 

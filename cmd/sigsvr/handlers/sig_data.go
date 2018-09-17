@@ -46,7 +46,12 @@ func SigData(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcResponse) {
 		resp.ErrorCode = clisvrcom.CLIERR_INVALID_PARAMS
 		return
 	}
-	signer := clisvrcom.DefAccount
+	signer, err := req.GetAccount()
+	if err != nil {
+		log.Infof("Cli Qid:%s SigData GetAccount:%s", req.Qid, err)
+		resp.ErrorCode = clisvrcom.CLIERR_ACCOUNT_UNLOCK
+		return
+	}
 	sigData, err := cliutil.Sign(rawData, signer)
 	if err != nil {
 		log.Infof("Cli Qid:%s SigData Sign error:%s", req.Qid, err)

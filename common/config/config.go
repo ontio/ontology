@@ -19,14 +19,19 @@
 package config
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"io"
 )
 
 var Version = "" //Set value when build project
@@ -44,7 +49,7 @@ const (
 	CONSENSUS_TYPE_SOLO = "solo"
 	CONSENSUS_TYPE_VBFT = "vbft"
 
-	DEFAULT_LOG_LEVEL                       = 1
+	DEFAULT_LOG_LEVEL                       = log.InfoLog
 	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
 	DEFAULT_NODE_PORT                       = uint(20338)
 	DEFAULT_CONSENSUS_PORT                  = uint(20339)
@@ -61,8 +66,9 @@ const (
 	DEFAULT_ENABLE_CONSENSUS                = true
 	DEFAULT_ENABLE_EVENT_LOG                = true
 	DEFAULT_CLI_RPC_PORT                    = uint(20000)
-	DEFAULT_GAS_LIMIT                       = 30000
-	DEFAULT_GAS_PRICE                       = 0
+	DEFUALT_CLI_RPC_ADDRESS                 = "127.0.0.1"
+	DEFAULT_GAS_LIMIT                       = 20000
+	DEFAULT_GAS_PRICE                       = 500
 
 	DEFAULT_DATA_DIR      = "./Chain"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
@@ -121,7 +127,7 @@ var PolarisConfig = &GenesisConfig{
 		HashMsgDelay:         10000,
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   3000,
-		AdminOntID:           "did:ont:AVaSGN1ugQJBS7R7ZcVwAoWLVK6onBgfyg",
+		AdminOntID:           "did:ont:AMAx993nE6NEqZjwBssUfopxnnvTdob9ij",
 		MinInitStake:         10000,
 		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
 		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
@@ -167,6 +173,69 @@ var PolarisConfig = &GenesisConfig{
 				PeerPubkey: "03aa4d52b200fd91ca12deff46505c4608a0f66d28d9ae68a342c8a8c1266de0f9",
 				Address:    "AQNpGWz4oHHFBejtBbakeR43DHfen7cm8L",
 				InitPos:    10000,
+			},
+		},
+	},
+	DBFT: &DBFTConfig{},
+	SOLO: &SOLOConfig{},
+}
+
+var MainNetConfig = &GenesisConfig{
+	SeedList: []string{
+		"seed1.ont.io:20338",
+		"seed2.ont.io:20338",
+		"seed3.ont.io:20338",
+		"seed4.ont.io:20338",
+		"seed5.ont.io:20338"},
+	ConsensusType: CONSENSUS_TYPE_VBFT,
+	VBFT: &VBFTConfig{
+		N:                    7,
+		C:                    2,
+		K:                    7,
+		L:                    112,
+		BlockMsgDelay:        10000,
+		HashMsgDelay:         10000,
+		PeerHandshakeTimeout: 10,
+		MaxBlockChangeView:   120000,
+		AdminOntID:           "did:ont:AdjfcJgwru2FD8kotCPvLDXYzRjqFjc9Tb",
+		MinInitStake:         100000,
+		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
+		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
+		Peers: []*VBFTPeerStakeInfo{
+			{
+				Index:      1,
+				PeerPubkey: "03348c8fe64e1defb408676b6e320038bd2e592c802e27c3d7e88e68270076c2f7",
+				Address:    "AZavFr7sQ4em2NmqWDjLMY34tHMQzATWgx",
+			},
+			{
+				Index:      2,
+				PeerPubkey: "03afd920a3b4ce2e7175a32c0d092153d1a11ef5e0dcc14e71c85101b95518d5d7",
+				Address:    "AM9jHMV7xY4HWH2dWmzyxrtnbi6ErNt7oL",
+			},
+			{
+				Index:      3,
+				PeerPubkey: "03e818b65a66d983a99497e06c6552ee5067229e85ba1cec60c5477dc3d568ed43",
+				Address:    "ATECwFPNRZFydFR1yUjb6RTLfVcKGKWRmp",
+			},
+			{
+				Index:      4,
+				PeerPubkey: "02375e44e500f9cfe8bd2f4afa4a016a8a902567996c919b9d1ce4f5d4f930f145",
+				Address:    "AKMxTuHQtt5YspXNPwkQNP5ZY66c4LY5BR",
+			},
+			{
+				Index:      5,
+				PeerPubkey: "03af040c09af5e06cf966f73fc99e8f4372f1510fe6e4376824452a99b85695a9c",
+				Address:    "AT4fXp36Ui22Lbh5ZJUCRBFDJ7axkLyUFM",
+			},
+			{
+				Index:      6,
+				PeerPubkey: "034ee2a4368e999fc7c04e7e3a9073162d47712382f1690d6a67e7e1c475cd0ff3",
+				Address:    "ANLRokqieUtrUMave66FcNy2cxV7Whf4UN",
+			},
+			{
+				Index:      7,
+				PeerPubkey: "0327f9e0fb3b894027c52caf3d31d9ac5f676d3cf892c933ac107ed7447fb6e65b",
+				Address:    "AVRD9QmkYNq8n8DXc9AqpZnUEYhjg1aq5L",
 			},
 		},
 	},
@@ -424,7 +493,7 @@ type P2PRsvConfig struct {
 type P2PNodeConfig struct {
 	ReservedPeersOnly         bool
 	ReservedCfg               *P2PRsvConfig
-	NetworkMaigc              uint32
+	NetworkMagic              uint32
 	NetworkId                 uint32
 	NetworkName               string
 	NodePort                  uint
@@ -473,7 +542,7 @@ type OntologyConfig struct {
 
 func NewOntologyConfig() *OntologyConfig {
 	return &OntologyConfig{
-		Genesis: PolarisConfig,
+		Genesis: MainNetConfig,
 		Common: &CommonConfig{
 			LogLevel:       DEFAULT_LOG_LEVEL,
 			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
@@ -489,8 +558,8 @@ func NewOntologyConfig() *OntologyConfig {
 			ReservedCfg:               &P2PRsvConfig{},
 			ReservedPeersOnly:         false,
 			NetworkId:                 NETWORK_ID_MAIN_NET,
-			NetworkName:               GetNetworkName(NETWORK_ID_POLARIS_NET),
-			NetworkMaigc:              GetNetworkMagic(NETWORK_ID_POLARIS_NET),
+			NetworkName:               GetNetworkName(NETWORK_ID_MAIN_NET),
+			NetworkMagic:              GetNetworkMagic(NETWORK_ID_MAIN_NET),
 			NodePort:                  DEFAULT_NODE_PORT,
 			NodeConsensusPort:         DEFAULT_CONSENSUS_PORT,
 			DualPortSupport:           true,
@@ -546,4 +615,46 @@ func (this *OntologyConfig) GetBookkeepers() ([]keypair.PublicKey, error) {
 	}
 	keypair.SortPublicKeys(pubKeys)
 	return pubKeys, nil
+}
+
+func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
+	defaultNetworkId, err := this.getDefNetworkIDFromGenesisConfig(this.Genesis)
+	if err != nil {
+		return 0, err
+	}
+	mainNetId, err := this.getDefNetworkIDFromGenesisConfig(MainNetConfig)
+	if err != nil {
+		return 0, err
+	}
+	polaridId, err := this.getDefNetworkIDFromGenesisConfig(PolarisConfig)
+	if err != nil {
+		return 0, err
+	}
+	switch defaultNetworkId {
+	case mainNetId:
+		return NETWORK_ID_MAIN_NET, nil
+	case polaridId:
+		return NETWORK_ID_POLARIS_NET, nil
+	}
+	return defaultNetworkId, nil
+}
+
+func (this *OntologyConfig) getDefNetworkIDFromGenesisConfig(genCfg *GenesisConfig) (uint32, error) {
+	var configData []byte
+	var err error
+	switch this.Genesis.ConsensusType {
+	case CONSENSUS_TYPE_VBFT:
+		configData, err = json.Marshal(genCfg.VBFT)
+	case CONSENSUS_TYPE_DBFT:
+		configData, err = json.Marshal(genCfg.DBFT)
+	case CONSENSUS_TYPE_SOLO:
+		return NETWORK_ID_SOLO_NET, nil
+	default:
+		return 0, fmt.Errorf("unknown consensus type:%s", this.Genesis.ConsensusType)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("json.Marshal error:%s", err)
+	}
+	data := sha256.Sum256(configData)
+	return binary.LittleEndian.Uint32(data[0:4]), nil
 }

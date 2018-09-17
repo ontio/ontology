@@ -32,8 +32,7 @@ type BookKeepingInfo struct {
 }
 
 type InvokeCodeInfo struct {
-	Code     string
-	GasLimit uint64
+	Code string
 }
 type DeployCodeInfo struct {
 	Code        string
@@ -76,6 +75,7 @@ type VoteInfo struct {
 	Voter   string
 }
 
+//get tranasction payload data
 func TransPayloadToHex(p types.Payload) PayloadInfo {
 	switch object := p.(type) {
 	case *payload.Bookkeeper:

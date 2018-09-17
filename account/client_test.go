@@ -183,7 +183,7 @@ func TestClientSetLabel(t *testing.T) {
 	newLabel := fmt.Sprintf("%s-%d", oldLabel, testAccIndex)
 
 	accountNum = testWallet.GetAccountNum()
-	err := testWallet.SetLabel(testAcc.Address, newLabel, testPasswd)
+	err := testWallet.SetLabel(testAcc.Address, newLabel)
 	if err != nil {
 		t.Errorf("TestClientSetLabel SetLabel error:%s", err)
 		return
@@ -249,7 +249,7 @@ func TestClientSetDefault(t *testing.T) {
 		return
 	}
 
-	err = testWallet.SetDefaultAccount(testAcc.Address.ToBase58(), testPasswd)
+	err = testWallet.SetDefaultAccount(testAcc.Address.ToBase58())
 	if err != nil {
 		t.Errorf("TestClientSetDefault SetDefaultAccount error:%s", err)
 		return

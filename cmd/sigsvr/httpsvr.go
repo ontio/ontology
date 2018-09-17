@@ -30,6 +30,7 @@ import (
 var DefCliRpcSvr = NewCliRpcServer()
 
 type CliRpcServer struct {
+	address    string
 	port       uint
 	handlers   map[string]func(req *common.CliRpcRequest, resp *common.CliRpcResponse)
 	httpSvr    *http.Server
@@ -42,11 +43,12 @@ func NewCliRpcServer() *CliRpcServer {
 	}
 }
 
-func (this *CliRpcServer) Start(port uint) {
+func (this *CliRpcServer) Start(address string, port uint) {
+	this.address = address
 	this.port = port
 	this.httpSvtMux = http.NewServeMux()
 	this.httpSvr = &http.Server{
-		Addr:    fmt.Sprintf("127.0.0.1:%d", port),
+		Addr:    fmt.Sprintf("%s:%d", address, port),
 		Handler: this.httpSvtMux,
 	}
 	this.httpSvtMux.HandleFunc("/cli", this.Handler)
@@ -74,6 +76,9 @@ func (this *CliRpcServer) GetHandler(method string) func(req *common.CliRpcReque
 func (this *CliRpcServer) Handler(w http.ResponseWriter, r *http.Request) {
 	resp := &common.CliRpcResponse{}
 	defer func() {
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Set("content-type", "application/json;charset=utf-8")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 
 		if resp.ErrorInfo == "" {
@@ -105,15 +110,20 @@ func (this *CliRpcServer) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	log.Infof("[CliRpcRequest]%s", data)
 	req := &common.CliRpcRequest{}
 	err = json.Unmarshal(data, req)
 	if err != nil {
-		log.Errorf("CliRpcServer json.Unmarshal JsonRpcRequest:%s error:%s", data, err)
+		log.Errorf("CliRpcServer json.Unmarshal JsonRpcRequest error:%s", err)
 		resp.ErrorCode = common.CLIERR_INVALID_PARAMS
 		return
 	}
 
+	pwd := req.Pwd
+	req.Pwd = "*"
+	logData, _ := json.Marshal(req)
+	log.Infof("[CliRpcRequest]%s", logData)
+
+	req.Pwd = pwd
 	resp.Method = req.Method
 	resp.Qid = req.Qid
 

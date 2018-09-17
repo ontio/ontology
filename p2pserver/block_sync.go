@@ -20,6 +20,7 @@ package p2pserver
 
 import (
 	"math"
+	"sort"
 	"sync"
 	"time"
 
@@ -33,13 +34,110 @@ import (
 )
 
 const (
-	SYNC_MAX_HEADER_FORWARD_SIZE = 5000 //keep CurrentHeaderHeight - CurrentBlockHeight <= SYNC_MAX_HEADER_FORWARD_SIZE
-	SYNC_MAX_FLIGHT_HEADER_SIZE  = 1    //Number of headers on flight
-	SYNC_MAX_FLIGHT_BLOCK_SIZE   = 50   //Number of blocks on flight
-	SYNC_MAX_BLOCK_CACHE_SIZE    = 500  //Cache size of block wait to commit to ledger
-	SYNC_HEADER_REQUEST_TIMEOUT  = 10   //s, Request header timeout time. If header haven't receive after SYNC_HEADER_REQUEST_TIMEOUT second, retry
-	SYNC_BLOCK_REQUEST_TIMEOUT   = 15   //s, Request block timeout time. If block haven't received after SYNC_BLOCK_REQUEST_TIMEOUT second, retry
+	SYNC_MAX_HEADER_FORWARD_SIZE = 5000       //keep CurrentHeaderHeight - CurrentBlockHeight <= SYNC_MAX_HEADER_FORWARD_SIZE
+	SYNC_MAX_FLIGHT_HEADER_SIZE  = 1          //Number of headers on flight
+	SYNC_MAX_FLIGHT_BLOCK_SIZE   = 50         //Number of blocks on flight
+	SYNC_MAX_BLOCK_CACHE_SIZE    = 500        //Cache size of block wait to commit to ledger
+	SYNC_HEADER_REQUEST_TIMEOUT  = 2          //s, Request header timeout time. If header haven't receive after SYNC_HEADER_REQUEST_TIMEOUT second, retry
+	SYNC_BLOCK_REQUEST_TIMEOUT   = 2          //s, Request block timeout time. If block haven't received after SYNC_BLOCK_REQUEST_TIMEOUT second, retry
+	SYNC_NEXT_BLOCK_TIMES        = 3          //Request times of next height block
+	SYNC_NEXT_BLOCKS_HEIGHT      = 2          //for current block height plus next
+	SYNC_NODE_RECORD_SPEED_CNT   = 3          //Record speed count for accuracy
+	SYNC_NODE_RECORD_TIME_CNT    = 3          //Record request time  for accuracy
+	SYNC_NODE_SPEED_INIT         = 100 * 1024 //Init a big speed (100MB/s) for every node in first round
+	SYNC_MAX_ERROR_RESP_TIMES    = 5          //Max error headers/blocks response times, if reaches, delete it
+	SYNC_MAX_HEIGHT_OFFSET       = 5          //Offset of the max height and current height
 )
+
+//NodeWeight record some params of node, using for sort
+type NodeWeight struct {
+	id           uint64    //NodeID
+	speed        []float32 //Record node request-response speed, using for calc the avg speed, unit kB/s
+	timeoutCnt   int       //Node response timeout count
+	errorRespCnt int       //Node response error data count
+	reqTime      []int64   //Record request time, using for calc the avg req time interval, unit millisecond
+}
+
+//NewNodeWeight new a nodeweight
+func NewNodeWeight(id uint64) *NodeWeight {
+	s := make([]float32, 0, SYNC_NODE_RECORD_SPEED_CNT)
+	for i := 0; i < SYNC_NODE_RECORD_SPEED_CNT; i++ {
+		s = append(s, float32(SYNC_NODE_SPEED_INIT))
+	}
+	r := make([]int64, 0, SYNC_NODE_RECORD_TIME_CNT)
+	now := time.Now().UnixNano() / int64(time.Millisecond)
+	for i := 0; i < SYNC_NODE_RECORD_TIME_CNT; i++ {
+		r = append(r, now)
+	}
+	return &NodeWeight{
+		id:           id,
+		speed:        s,
+		timeoutCnt:   0,
+		errorRespCnt: 0,
+		reqTime:      r,
+	}
+}
+
+//AddTimeoutCnt incre timeout count
+func (this *NodeWeight) AddTimeoutCnt() {
+	this.timeoutCnt++
+}
+
+//AddErrorRespCnt incre receive error header/block count
+func (this *NodeWeight) AddErrorRespCnt() {
+	this.errorRespCnt++
+}
+
+//GetErrorRespCnt get the error response count
+func (this *NodeWeight) GetErrorRespCnt() int {
+	return this.errorRespCnt
+}
+
+//AppendNewReqTime append new request time
+func (this *NodeWeight) AppendNewReqtime() {
+	copy(this.reqTime[0:SYNC_NODE_RECORD_TIME_CNT-1], this.reqTime[1:])
+	this.reqTime[SYNC_NODE_RECORD_TIME_CNT-1] = time.Now().UnixNano() / int64(time.Millisecond)
+}
+
+//addNewSpeed apend the new speed to tail, remove the oldest one
+func (this *NodeWeight) AppendNewSpeed(s float32) {
+	copy(this.speed[0:SYNC_NODE_RECORD_SPEED_CNT-1], this.speed[1:])
+	this.speed[SYNC_NODE_RECORD_SPEED_CNT-1] = s
+}
+
+//Weight calculate node's weight for sort. Highest weight node will be accessed first for next request.
+func (this *NodeWeight) Weight() float32 {
+	avgSpeed := float32(0.0)
+	for _, s := range this.speed {
+		avgSpeed += s
+	}
+	avgSpeed = avgSpeed / float32(len(this.speed))
+
+	avgInterval := float32(0.0)
+	now := time.Now().UnixNano() / int64(time.Millisecond)
+	for _, t := range this.reqTime {
+		avgInterval += float32(now - t)
+	}
+	avgInterval = avgInterval / float32(len(this.reqTime))
+	w := avgSpeed + avgInterval
+	return w
+}
+
+//NodeWeights implement sorting
+type NodeWeights []*NodeWeight
+
+func (nws NodeWeights) Len() int {
+	return len(nws)
+}
+
+func (nws NodeWeights) Swap(i, j int) {
+	nws[i], nws[j] = nws[j], nws[i]
+}
+func (nws NodeWeights) Less(i, j int) bool {
+	ni := nws[i]
+	nj := nws[j]
+	return ni.Weight() < nj.Weight() && ni.errorRespCnt >= nj.errorRespCnt && ni.timeoutCnt >= nj.timeoutCnt
+}
 
 //SyncFlightInfo record the info of fight object(header or block)
 type SyncFlightInfo struct {
@@ -115,32 +213,37 @@ func (this *SyncFlightInfo) GetStartTime() time.Time {
 	return this.startTime
 }
 
+//BlockInfo is used for saving block information in cache
+type BlockInfo struct {
+	nodeID uint64
+	block  *types.Block
+}
+
 //BlockSyncMgr is the manager class to deal with block sync
 type BlockSyncMgr struct {
-	flightBlocks   map[common.Uint256]*SyncFlightInfo //Map BlockHash => SyncFlightInfo, using for manager all of those block flights
-	flightHeaders  map[uint32]*SyncFlightInfo         //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
-	blocksCache    map[uint32]*types.Block            //Map BlockHash => block, using for cache the blocks receive from net, and waiting for commit to ledger
-	nodeList       []uint64                           //Holder all of nodes that can be used
-	nextNodeIndex  int                                //Index for polling nodes
-	server         *P2PServer                         //Pointer to the local node
-	syncBlockLock  bool                               //Help to avoid send block sync request duplicate
-	syncHeaderLock bool                               //Help to avoid send header sync request duplicate
-	saveBlockLock  bool                               //Help to avoid saving block concurrently
-	exitCh         chan interface{}                   //ExitCh to receive exit signal
-	ledger         *ledger.Ledger
-	lock           sync.RWMutex
+	flightBlocks   map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
+	flightHeaders  map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
+	blocksCache    map[uint32]*BlockInfo                //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
+	server         *P2PServer                           //Pointer to the local node
+	syncBlockLock  bool                                 //Help to avoid send block sync request duplicate
+	syncHeaderLock bool                                 //Help to avoid send header sync request duplicate
+	saveBlockLock  bool                                 //Help to avoid saving block concurrently
+	exitCh         chan interface{}                     //ExitCh to receive exit signal
+	ledger         *ledger.Ledger                       //ledger
+	lock           sync.RWMutex                         //lock
+	nodeWeights    map[uint64]*NodeWeight               //Map NodeID => NodeStatus, using for getNextNode
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
 func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 	return &BlockSyncMgr{
-		flightBlocks:  make(map[common.Uint256]*SyncFlightInfo, 0),
+		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo, 0),
 		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
-		blocksCache:   make(map[uint32]*types.Block, 0),
-		nodeList:      make([]uint64, 0),
+		blocksCache:   make(map[uint32]*BlockInfo, 0),
 		server:        server,
 		ledger:        server.ledger,
 		exitCh:        make(chan interface{}, 1),
+		nodeWeights:   make(map[uint64]*NodeWeight, 0),
 	}
 }
 
@@ -163,16 +266,18 @@ func (this *BlockSyncMgr) Start() {
 func (this *BlockSyncMgr) checkTimeout() {
 	now := time.Now()
 	headerTimeoutFlights := make(map[uint32]*SyncFlightInfo, 0)
-	blockTimeoutFlights := make(map[common.Uint256]*SyncFlightInfo, 0)
+	blockTimeoutFlights := make(map[common.Uint256][]*SyncFlightInfo, 0)
 	this.lock.RLock()
 	for height, flightInfo := range this.flightHeaders {
 		if int(now.Sub(flightInfo.startTime).Seconds()) >= SYNC_HEADER_REQUEST_TIMEOUT {
 			headerTimeoutFlights[height] = flightInfo
 		}
 	}
-	for blockHash, flightInfo := range this.flightBlocks {
-		if int(now.Sub(flightInfo.startTime).Seconds()) >= SYNC_BLOCK_REQUEST_TIMEOUT {
-			blockTimeoutFlights[blockHash] = flightInfo
+	for blockHash, flightInfos := range this.flightBlocks {
+		for _, flightInfo := range flightInfos {
+			if int(now.Sub(flightInfo.startTime).Seconds()) >= SYNC_BLOCK_REQUEST_TIMEOUT {
+				blockTimeoutFlights[blockHash] = append(blockTimeoutFlights[blockHash], flightInfo)
+			}
 		}
 	}
 	this.lock.RUnlock()
@@ -181,13 +286,14 @@ func (this *BlockSyncMgr) checkTimeout() {
 	curBlockHeight := this.ledger.GetCurrentBlockHeight()
 
 	for height, flightInfo := range headerTimeoutFlights {
+		this.addTimeoutCnt(flightInfo.GetNodeId())
 		if height <= curHeaderHeight {
 			this.delFlightHeader(height)
 			continue
 		}
 		flightInfo.ResetStartTime()
 		flightInfo.MarkFailedNode()
-		log.Infof("checkTimeout sync headers:%d timeout after:%d s Times:%d", height, SYNC_HEADER_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+		log.Tracef("[p2p]checkTimeout sync headers from id:%d :%d timeout after:%d s Times:%d", flightInfo.GetNodeId(), height, SYNC_HEADER_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
 		reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
 		if reqNode == nil {
 			break
@@ -198,32 +304,35 @@ func (this *BlockSyncMgr) checkTimeout() {
 		msg := msgpack.NewHeadersReq(headerHash)
 		err := this.server.Send(reqNode, msg, false)
 		if err != nil {
-			log.Error("checkTimeout failed build a new headersReq")
+			log.Warn("[p2p]checkTimeout failed to send a new headersReq:s", err)
+		} else {
+			this.appendReqTime(reqNode.GetID())
 		}
 	}
-	for blockHash, flightInfo := range blockTimeoutFlights {
-		if flightInfo.Height <= curBlockHeight {
-			this.delFlightBlock(blockHash)
-			continue
-		}
-		flightInfo.ResetStartTime()
-		flightInfo.MarkFailedNode()
-		log.Infof("checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
-		reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
-		if reqNode == nil {
-			break
-		}
-		flightInfo.SetNodeId(reqNode.GetID())
+	for blockHash, flightInfos := range blockTimeoutFlights {
+		for _, flightInfo := range flightInfos {
+			this.addTimeoutCnt(flightInfo.GetNodeId())
+			if flightInfo.Height <= curBlockHeight {
+				this.delFlightBlock(blockHash)
+				continue
+			}
+			flightInfo.ResetStartTime()
+			flightInfo.MarkFailedNode()
+			log.Tracef("[p2p]checkTimeout sync height:%d block:0x%x timeout after:%d s times:%d", flightInfo.Height, blockHash, SYNC_BLOCK_REQUEST_TIMEOUT, flightInfo.GetTotalFailedTimes())
+			reqNode := this.getNodeWithMinFailedTimes(flightInfo, curBlockHeight)
+			if reqNode == nil {
+				break
+			}
+			flightInfo.SetNodeId(reqNode.GetID())
 
-		msg := msgpack.NewBlkDataReq(blockHash)
-		err := this.server.Send(reqNode, msg, false)
-		if err != nil {
-			log.Error("checkTimeout NewBlkDataReq error:", err)
-		}
-
-		if err != nil {
-			log.Errorf("checkTimeout reqNode ID:%d Send error:%s", reqNode.GetID(), err)
-			continue
+			msg := msgpack.NewBlkDataReq(blockHash)
+			err := this.server.Send(reqNode, msg, false)
+			if err != nil {
+				log.Warnf("[p2p]checkTimeout reqNode ID:%d Send error:%s", reqNode.GetID(), err)
+				continue
+			} else {
+				this.appendReqTime(reqNode.GetID())
+			}
 		}
 	}
 }
@@ -263,10 +372,12 @@ func (this *BlockSyncMgr) syncHeader() {
 	msg := msgpack.NewHeadersReq(headerHash)
 	err := this.server.Send(reqNode, msg, false)
 	if err != nil {
-		log.Error("syncHeader failed build a new headersReq")
+		log.Warn("[p2p]syncHeader failed to send a new headersReq")
+	} else {
+		this.appendReqTime(reqNode.GetID())
 	}
 
-	log.Infof("syncHeader request Height:%d", NextHeaderId)
+	log.Infof("Header sync request height:%d", NextHeaderId)
 }
 
 func (this *BlockSyncMgr) syncBlock() {
@@ -295,6 +406,7 @@ func (this *BlockSyncMgr) syncBlock() {
 
 	counter := 1
 	i := uint32(0)
+	reqTimes := 1
 	for {
 		if counter > count {
 			break
@@ -306,32 +418,45 @@ func (this *BlockSyncMgr) syncBlock() {
 			return
 		}
 		if this.isBlockOnFlight(nextBlockHash) {
-			continue
+			if nextBlockHeight <= curBlockHeight+SYNC_NEXT_BLOCKS_HEIGHT {
+				//request more nodes for next block height
+				reqTimes = SYNC_NEXT_BLOCK_TIMES
+			} else {
+				continue
+			}
 		}
 		if this.isInBlockCache(nextBlockHeight) {
 			continue
 		}
-		reqNode := this.getNextNode(nextBlockHeight)
-		if reqNode == nil {
-			return
+		if nextBlockHeight <= curBlockHeight+SYNC_NEXT_BLOCKS_HEIGHT {
+			reqTimes = SYNC_NEXT_BLOCK_TIMES
 		}
-		this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlockHash)
-		msg := msgpack.NewBlkDataReq(nextBlockHash)
-		err := this.server.Send(reqNode, msg, false)
-		if err != nil {
-			log.Errorf("syncBlock Height:%d ReqBlkData error:%s", nextBlockHeight, err)
-			return
+		for t := 0; t < reqTimes; t++ {
+			reqNode := this.getNextNode(nextBlockHeight)
+			if reqNode == nil {
+				return
+			}
+			this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlockHash)
+			msg := msgpack.NewBlkDataReq(nextBlockHash)
+			err := this.server.Send(reqNode, msg, false)
+			if err != nil {
+				log.Warnf("[p2p]syncBlock Height:%d ReqBlkData error:%s", nextBlockHeight, err)
+				return
+			} else {
+				this.appendReqTime(reqNode.GetID())
+			}
 		}
 		counter++
+		reqTimes = 1
 	}
 }
 
 //OnHeaderReceive receive header from net
-func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
+func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header) {
 	if len(headers) == 0 {
 		return
 	}
-	log.Infof("OnHeaderReceive Height:%d - %d", headers[0].Height, headers[len(headers)-1].Height)
+	log.Infof("Header receive height:%d - %d", headers[0].Height, headers[len(headers)-1].Height)
 	height := headers[0].Height
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 
@@ -345,17 +470,31 @@ func (this *BlockSyncMgr) OnHeaderReceive(headers []*types.Header) {
 	err := this.ledger.AddHeaders(headers)
 	this.delFlightHeader(height)
 	if err != nil {
-		log.Errorf("OnHeaderReceive AddHeaders error:%s", err)
+		this.addErrorRespCnt(fromID)
+		n := this.getNodeWeight(fromID)
+		if n != nil && n.GetErrorRespCnt() >= SYNC_MAX_ERROR_RESP_TIMES {
+			this.delNode(fromID)
+		}
+		log.Warnf("[p2p]OnHeaderReceive AddHeaders error:%s", err)
 		return
 	}
 	this.syncHeader()
 }
 
 //OnBlockReceive receive block from net
-func (this *BlockSyncMgr) OnBlockReceive(block *types.Block) {
+func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block *types.Block) {
 	height := block.Header.Height
 	blockHash := block.Hash()
-	log.Debugf("OnBlockReceive Height:%d", height)
+	log.Trace("[p2p]OnBlockReceive Height:%d", height)
+	flightInfos := this.flightBlocks[blockHash]
+	for _, flightInfo := range flightInfos {
+		if flightInfo.GetNodeId() == fromID {
+			t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
+			s := float32(blockSize) / float32(t) * 1000.0 / 1024.0
+			this.addNewSpeed(fromID, s)
+			break
+		}
+	}
 
 	this.delFlightBlock(blockHash)
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
@@ -367,34 +506,36 @@ func (this *BlockSyncMgr) OnBlockReceive(block *types.Block) {
 	if height <= curBlockHeight {
 		return
 	}
-	this.addBlockCache(block)
+
+	this.addBlockCache(fromID, block)
 	go this.saveBlock()
 	this.syncBlock()
 }
 
 //OnAddNode to node list when a new node added
 func (this *BlockSyncMgr) OnAddNode(nodeId uint64) {
-	log.Infof("OnAddNode:%d", nodeId)
+	log.Debugf("[p2p]OnAddNode:%d", nodeId)
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.nodeList = append(this.nodeList, nodeId)
+	w := NewNodeWeight(nodeId)
+	this.nodeWeights[nodeId] = w
 }
 
 //OnDelNode remove from node list. When the node disconnect
 func (this *BlockSyncMgr) OnDelNode(nodeId uint64) {
+	this.delNode(nodeId)
+	log.Infof("OnDelNode:%d", nodeId)
+}
+
+//delNode remove from node list
+func (this *BlockSyncMgr) delNode(nodeId uint64) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	index := -1
-	for i, id := range this.nodeList {
-		if nodeId == id {
-			index = i
-			break
-		}
+	delete(this.nodeWeights, nodeId)
+	log.Infof("delNode:%d", nodeId)
+	if len(this.nodeWeights) == 0 {
+		log.Warnf("no sync nodes")
 	}
-	if index == -1 {
-		return
-	}
-	this.nodeList = append(this.nodeList[:index], this.nodeList[index+1:]...)
 	log.Infof("OnDelNode:%d", nodeId)
 }
 
@@ -430,21 +571,25 @@ func (this *BlockSyncMgr) releaseSyncBlockLock() {
 	this.syncBlockLock = false
 }
 
-func (this *BlockSyncMgr) addBlockCache(block *types.Block) bool {
+func (this *BlockSyncMgr) addBlockCache(nodeID uint64, block *types.Block) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.blocksCache[block.Header.Height] = block
+	blockInfo := &BlockInfo{
+		nodeID: nodeID,
+		block:  block,
+	}
+	this.blocksCache[block.Header.Height] = blockInfo
 	return true
 }
 
-func (this *BlockSyncMgr) getBlockCache(blockHeight uint32) *types.Block {
+func (this *BlockSyncMgr) getBlockCache(blockHeight uint32) (uint64, *types.Block) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	block, ok := this.blocksCache[blockHeight]
+	blockInfo, ok := this.blocksCache[blockHeight]
 	if !ok {
-		return nil
+		return 0, nil
 	}
-	return block
+	return blockInfo.nodeID, blockInfo.block
 }
 
 func (this *BlockSyncMgr) delBlockCache(blockHeight uint32) {
@@ -484,14 +629,19 @@ func (this *BlockSyncMgr) saveBlock() {
 	}
 	this.lock.Unlock()
 	for {
-		nextBlock := this.getBlockCache(nextBlockHeight)
+		fromID, nextBlock := this.getBlockCache(nextBlockHeight)
 		if nextBlock == nil {
 			return
 		}
 		err := this.ledger.AddBlock(nextBlock)
 		this.delBlockCache(nextBlockHeight)
 		if err != nil {
-			log.Warnf("saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
+			this.addErrorRespCnt(fromID)
+			n := this.getNodeWeight(fromID)
+			if n != nil && n.GetErrorRespCnt() >= SYNC_MAX_ERROR_RESP_TIMES {
+				this.delNode(fromID)
+			}
+			log.Warnf("[p2p]saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
 			reqNode := this.getNextNode(nextBlockHeight)
 			if reqNode == nil {
 				return
@@ -500,12 +650,15 @@ func (this *BlockSyncMgr) saveBlock() {
 			msg := msgpack.NewBlkDataReq(nextBlock.Hash())
 			err := this.server.Send(reqNode, msg, false)
 			if err != nil {
-				log.Error("syncBlock error:", err)
+				log.Warn("[p2p]require new block error:", err)
 				return
+			} else {
+				this.appendReqTime(reqNode.GetID())
 			}
 			return
 		}
 		nextBlockHeight++
+		this.pingOutsyncNodes(nextBlockHeight - 1)
 	}
 }
 
@@ -563,10 +716,10 @@ func (this *BlockSyncMgr) isHeaderOnFlight(height uint32) bool {
 func (this *BlockSyncMgr) addFlightBlock(nodeId uint64, height uint32, blockHash common.Uint256) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.flightBlocks[blockHash] = NewSyncFlightInfo(height, nodeId)
+	this.flightBlocks[blockHash] = append(this.flightBlocks[blockHash], NewSyncFlightInfo(height, nodeId))
 }
 
-func (this *BlockSyncMgr) getFlightBlock(blockHash common.Uint256) *SyncFlightInfo {
+func (this *BlockSyncMgr) getFlightBlock(blockHash common.Uint256) []*SyncFlightInfo {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	info, ok := this.flightBlocks[blockHash]
@@ -590,34 +743,33 @@ func (this *BlockSyncMgr) delFlightBlock(blockHash common.Uint256) bool {
 func (this *BlockSyncMgr) getFlightBlockCount() int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	return len(this.flightBlocks)
+	cnt := 0
+	for hash := range this.flightBlocks {
+		cnt += len(this.flightBlocks[hash])
+	}
+	return cnt
 }
 
 func (this *BlockSyncMgr) isBlockOnFlight(blockHash common.Uint256) bool {
-	flightInfo := this.getFlightBlock(blockHash)
-	return flightInfo != nil
-}
-
-//Using polling for load balance
-func (this *BlockSyncMgr) getNextNodeId() uint64 {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	num := len(this.nodeList)
-	if num == 0 {
-		return 0
+	flightInfos := this.getFlightBlock(blockHash)
+	if len(flightInfos) != 0 {
+		return true
 	}
-	if this.nextNodeIndex >= num {
-		this.nextNodeIndex = 0
-	}
-	index := this.nextNodeIndex
-	this.nextNodeIndex++
-	return this.nodeList[index]
+	return false
 }
 
 func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
+	weights := this.getAllNodeWeights()
+	sort.Sort(sort.Reverse(weights))
+	nodelist := make([]uint64, 0)
+	for _, n := range weights {
+		nodelist = append(nodelist, n.id)
+	}
+	nextNodeIndex := 0
 	triedNode := make(map[uint64]bool, 0)
 	for {
-		nextNodeId := this.getNextNodeId()
+		var nextNodeId uint64
+		nextNodeIndex, nextNodeId = getNextNodeId(nextNodeIndex, nodelist)
 		if nextNodeId == 0 {
 			return nil
 		}
@@ -668,4 +820,92 @@ func (this *BlockSyncMgr) getNodeWithMinFailedTimes(flightInfo *SyncFlightInfo, 
 //Stop to sync
 func (this *BlockSyncMgr) Close() {
 	close(this.exitCh)
+}
+
+//getNodeWeight get nodeweight by id
+func (this *BlockSyncMgr) getNodeWeight(nodeId uint64) *NodeWeight {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	return this.nodeWeights[nodeId]
+}
+
+//getAllNodeWeights get all nodeweight and return a slice
+func (this *BlockSyncMgr) getAllNodeWeights() NodeWeights {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	weights := make(NodeWeights, 0, len(this.nodeWeights))
+	for _, w := range this.nodeWeights {
+		weights = append(weights, w)
+	}
+	return weights
+}
+
+//addTimeoutCnt incre a node's timeout count
+func (this *BlockSyncMgr) addTimeoutCnt(nodeId uint64) {
+	n := this.getNodeWeight(nodeId)
+	if n != nil {
+		n.AddTimeoutCnt()
+	}
+}
+
+//addErrorRespCnt incre a node's error resp count
+func (this *BlockSyncMgr) addErrorRespCnt(nodeId uint64) {
+	n := this.getNodeWeight(nodeId)
+	if n != nil {
+		n.AddErrorRespCnt()
+	}
+}
+
+//appendReqTime append a node's request time
+func (this *BlockSyncMgr) appendReqTime(nodeId uint64) {
+	n := this.getNodeWeight(nodeId)
+	if n != nil {
+		n.AppendNewReqtime()
+	}
+}
+
+//addNewSpeed apend the new speed to tail, remove the oldest one
+func (this *BlockSyncMgr) addNewSpeed(nodeId uint64, speed float32) {
+	n := this.getNodeWeight(nodeId)
+	if n != nil {
+		n.AppendNewSpeed(speed)
+	}
+}
+
+//pingOutsyncNodes send ping msg to lower height nodes for syncing
+func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
+	peers := make([]*peer.Peer, 0)
+	this.lock.RLock()
+	maxHeight := curHeight
+	for id := range this.nodeWeights {
+		peer := this.server.getNode(id)
+		if peer == nil {
+			continue
+		}
+		peerHeight := uint32(peer.GetHeight())
+		if peerHeight >= maxHeight {
+			maxHeight = peerHeight
+		}
+		if peerHeight < curHeight {
+			peers = append(peers, peer)
+		}
+	}
+	this.lock.RUnlock()
+	if curHeight > maxHeight-SYNC_MAX_HEIGHT_OFFSET && len(peers) > 0 {
+		this.server.pingTo(peers)
+	}
+}
+
+//Using polling for load balance
+func getNextNodeId(nextNodeIndex int, nodeList []uint64) (int, uint64) {
+	num := len(nodeList)
+	if num == 0 {
+		return 0, 0
+	}
+	if nextNodeIndex >= num {
+		nextNodeIndex = 0
+	}
+	index := nextNodeIndex
+	nextNodeIndex++
+	return nextNodeIndex, nodeList[index]
 }

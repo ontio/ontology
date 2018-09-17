@@ -36,7 +36,7 @@ import (
 func VerifyTransaction(tx *types.Transaction) ontErrors.ErrCode {
 	if err := checkTransactionSignatures(tx); err != nil {
 		log.Info("transaction verify error:", err)
-		return ontErrors.ErrTransactionContracts
+		return ontErrors.ErrVerifySignature
 	}
 
 	if err := checkTransactionPayload(tx); err != nil {
@@ -61,7 +61,12 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 	}
 
 	address := make(map[common.Address]bool, len(tx.Sigs))
-	for _, sig := range tx.Sigs {
+	for _, sigdata := range tx.Sigs {
+		sig, err := sigdata.GetSig()
+		if err != nil {
+			return err
+		}
+
 		m := int(sig.M)
 		kn := len(sig.PubKeys)
 		sn := len(sig.SigData)
@@ -94,6 +99,13 @@ func checkTransactionSignatures(tx *types.Transaction) error {
 	if address[tx.Payer] == false {
 		return errors.New("signature missing for payer: " + tx.Payer.ToBase58())
 	}
+
+	addrList := make([]common.Address, 0, len(address))
+	for addr := range address {
+		addrList = append(addrList, addr)
+	}
+
+	tx.SignedAddr = addrList
 
 	return nil
 }
