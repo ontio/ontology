@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
+	scommon "github.com/ontio/ontology/core/store/common"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -137,14 +138,16 @@ func GetVbftConfigInfo() (*config.VBFTConfig, error) {
 		ContractAddress: nutils.GovernanceContractAddress,
 		Key:             append([]byte(gov.PRE_CONFIG)),
 	}
+	preCfg := new(gov.PreConfig)
 	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
-	if err != nil {
+	if err != nil && err != scommon.ErrNotFound {
 		return nil, err
 	}
-	preCfg := new(gov.PreConfig)
-	err = preCfg.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return nil, err
+	if data != nil {
+		err = preCfg.Deserialize(bytes.NewBuffer(data))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	chainconfig := new(config.VBFTConfig)
