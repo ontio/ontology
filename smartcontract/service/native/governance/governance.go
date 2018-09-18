@@ -1320,6 +1320,15 @@ func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("address is not peer owner")
 	}
 
+	//get globalParam
+	globalParam, err := getGlobalParam(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
+	}
+	if uint64(params.MaxAuthorize) > uint64(globalParam.PosLimit)*peerPoolItem.InitPos {
+		return utils.BYTE_FALSE, fmt.Errorf("changeMaxAuthorization, maxAuthorize is out of limit")
+	}
+
 	peerAttributes, err := getPeerAttributes(native, contract, params.PeerPubkey)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerAttributes error: %v", err)
