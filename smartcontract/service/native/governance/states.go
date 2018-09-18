@@ -429,9 +429,9 @@ type CandidateSplitInfo struct {
 type PeerAttributes struct {
 	PeerPubkey   string
 	MaxAuthorize uint64 //max authorzie pos this peer can receive(number of ont), set by peer owner
-	T2PeerCost   uint64 //peer cost, active in view T + 2
-	T1PeerCost   uint64 //peer cost, active in view T + 1
-	TPeerCost    uint64 //peer cost, active in view T
+	T2PeerCost   uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T + 2
+	T1PeerCost   uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T + 1
+	TPeerCost    uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T
 	Field1       []byte //reserved field
 	Field2       []byte //reserved field
 	Field3       []byte //reserved field
