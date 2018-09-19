@@ -21,6 +21,9 @@ package neovm
 import (
 	"testing"
 
+	"errors"
+	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -103,4 +106,87 @@ func TestStructRef(t *testing.T) {
 	map8.Add(ba1, map7)
 
 	assert.False(t, CircularRefAndDepthDetection(map8))
+}
+
+func TestRuntimeBase58ToAddress(t *testing.T) {
+	vm := neovm.NewExecutionEngine()
+
+	acc := account.NewAccount("")
+	addr := acc.Address
+	base58 := acc.Address.ToBase58()
+
+	err := RuntimeBase58ToAddress(nil, vm)
+
+	if assert.Error(t, err) {
+		assert.Equal(t, errors.New("[RuntimeBase58ToAddress] Too few input parameters"), err)
+	}
+
+	vm.EvaluationStack.Push(types.NewByteArray([]byte(base58)))
+
+	err = RuntimeBase58ToAddress(nil, vm)
+
+	assert.NoError(t, err)
+
+	result, err := vm.EvaluationStack.Pop().GetByteArray()
+	assert.NoError(t, err)
+	assert.Equal(t, addr[:], result)
+}
+
+func TestRuntimeAddressToBase58(t *testing.T) {
+	vm := neovm.NewExecutionEngine()
+
+	acc := account.NewAccount("")
+	addr := acc.Address
+	base58 := acc.Address.ToBase58()
+
+	err := RuntimeAddressToBase58(nil, vm)
+
+	if assert.Error(t, err) {
+		assert.Equal(t, errors.New("[RuntimeAddressToBase58] Too few input parameters"), err)
+	}
+
+	vm.EvaluationStack.Push(types.NewByteArray(addr[:]))
+
+	err = RuntimeAddressToBase58(nil, vm)
+
+	assert.NoError(t, err)
+
+	result, err := vm.EvaluationStack.Pop().GetByteArray()
+
+	assert.NoError(t, err)
+	assert.Equal(t, base58, string(result))
+}
+
+func TestRuntimeVerifyBase58(t *testing.T) {
+	vm := neovm.NewExecutionEngine()
+
+	acc := account.NewAccount("")
+	base58 := acc.Address.ToBase58()
+
+	base := []byte(base58)
+	err := RuntimeVerifyBase58(nil, vm)
+
+	if assert.Error(t, err) {
+		assert.Equal(t, errors.New("[RuntimeVerifyBase58] Too few input parameters"), err)
+	}
+
+	vm.EvaluationStack.Push(types.NewByteArray(base))
+
+	err = RuntimeVerifyBase58(nil, vm)
+	assert.NoError(t, err)
+
+	result, err := vm.EvaluationStack.Pop().GetBoolean()
+	assert.NoError(t, err)
+
+	assert.True(t, result)
+
+	base[0] = 's'
+	vm.EvaluationStack.Push(types.NewByteArray(base))
+	err = RuntimeVerifyBase58(nil, vm)
+	assert.NoError(t, err)
+
+	result, err = vm.EvaluationStack.Pop().GetBoolean()
+	assert.NoError(t, err)
+
+	assert.False(t, result)
 }
