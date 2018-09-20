@@ -106,10 +106,6 @@ func AddressFromBase58(encoded string) (Address, error) {
 		return ADDRESS_EMPTY, errors.New("wrong encoded address")
 	}
 
-	if err != nil {
-		return ADDRESS_EMPTY, err
-	}
-
 	ph, err := AddressParseFromBytes(buf[1:21])
 	if err != nil {
 		return ADDRESS_EMPTY, err
