@@ -89,7 +89,6 @@ var (
 
 		RUNTIME_BASE58TOADDRESS_NAME: {Execute: RuntimeBase58ToAddress},
 		RUNTIME_ADDRESSTOBASE58_NAME: {Execute: RuntimeAddressToBase58},
-		RUNTIME_VERIFYBASE58_NAME:    {Execute: RuntimeVerifyBase58},
 	}
 )
 

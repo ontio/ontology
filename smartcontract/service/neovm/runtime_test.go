@@ -156,37 +156,3 @@ func TestRuntimeAddressToBase58(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, base58, string(result))
 }
-
-func TestRuntimeVerifyBase58(t *testing.T) {
-	vm := neovm.NewExecutionEngine()
-
-	acc := account.NewAccount("")
-	base58 := acc.Address.ToBase58()
-
-	base := []byte(base58)
-	err := RuntimeVerifyBase58(nil, vm)
-
-	if assert.Error(t, err) {
-		assert.Equal(t, errors.New("[RuntimeVerifyBase58] Too few input parameters"), err)
-	}
-
-	vm.EvaluationStack.Push(types.NewByteArray(base))
-
-	err = RuntimeVerifyBase58(nil, vm)
-	assert.NoError(t, err)
-
-	result, err := vm.EvaluationStack.Pop().GetBoolean()
-	assert.NoError(t, err)
-
-	assert.True(t, result)
-
-	base[0] = 's'
-	vm.EvaluationStack.Push(types.NewByteArray(base))
-	err = RuntimeVerifyBase58(nil, vm)
-	assert.NoError(t, err)
-
-	result, err = vm.EvaluationStack.Pop().GetBoolean()
-	assert.NoError(t, err)
-
-	assert.False(t, result)
-}

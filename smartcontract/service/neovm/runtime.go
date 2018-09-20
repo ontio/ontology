@@ -27,7 +27,6 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -156,24 +155,6 @@ func RuntimeAddressToBase58(service *NeoVmService, engine *vm.ExecutionEngine) e
 		return err
 	}
 	vm.PushData(engine, []byte(address.ToBase58()))
-	return nil
-}
-
-func RuntimeVerifyBase58(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[RuntimeVerifyBase58] Too few input parameters")
-	}
-	item, err := vm.PopByteArray(engine)
-	if err != nil {
-		return err
-	}
-	_, err = common.VerifyBase58(string(item))
-	if err != nil {
-		log.Info("[RuntimeVerifyBase58] error:", err)
-		vm.PushData(engine, false)
-		return nil
-	}
-	vm.PushData(engine, true)
 	return nil
 }
 
