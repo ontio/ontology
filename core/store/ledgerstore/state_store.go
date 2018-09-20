@@ -21,6 +21,7 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
+	"os"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -31,6 +32,8 @@ import (
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/merkle"
+	"github.com/ontio/ontology/smartcontract/service/native/ontid"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 var (
@@ -318,4 +321,47 @@ func (self *StateStore) ClearAll() error {
 //Close state store
 func (self *StateStore) Close() error {
 	return self.store.Close()
+}
+
+func CheckStorage(dir string) error {
+	path := dir + string(os.PathSeparator) + DBDirState
+	db, err := leveldbstore.NewLevelDBStore(path)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	prefix := append([]byte{byte(scom.ST_STORAGE)}, utils.OntIDContractAddress[:]...) //prefix of new storage key
+	flag := append(prefix, ontid.FIELD_VERSION)
+	val, err := db.Get(flag)
+	if err == nil {
+		item := &states.StorageItem{}
+		buf := bytes.NewBuffer(val)
+		err := item.Deserialize(buf)
+		if err == nil && item.Value[0] == ontid.FLAG_VERSION {
+			return nil
+		} else {
+			return err
+		}
+	}
+
+	prefix1 := []byte{byte(scom.ST_STORAGE), 0x2a, 0x64, 0x69, 0x64} //prefix of old storage key
+
+	iter := db.NewIterator(prefix1)
+	db.NewBatch()
+	for ok := iter.First(); ok; ok = iter.Next() {
+		key := append(prefix, iter.Key()[1:]...)
+		db.BatchPut(key, iter.Value())
+		db.BatchDelete(iter.Key())
+	}
+	iter.Release()
+
+	tag := states.StorageItem{}
+	tag.Value = []byte{ontid.FLAG_VERSION}
+	buf := bytes.NewBuffer(nil)
+	tag.Serialize(buf)
+	db.BatchPut(flag, buf.Bytes())
+	db.BatchCommit()
+
+	return nil
 }

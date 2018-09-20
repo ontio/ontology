@@ -46,10 +46,11 @@ const (
 	flag_exist = 0x01
 
 	FIELD_VERSION byte = 0
+	FLAG_VERSION  byte = 0x01
 
-	FIELD_PK byte = 1 + iota
-	FIELD_ATTR
-	FIELD_RECOVERY
+	FIELD_PK       byte = 1
+	FIELD_ATTR     byte = 2
+	FIELD_RECOVERY byte = 3
 )
 
 func encodeID(id []byte) ([]byte, error) {
