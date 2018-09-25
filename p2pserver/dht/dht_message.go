@@ -42,7 +42,7 @@ func (this *DHT) findNodeHandle(from *net.UDPAddr, msg mt.Message) {
 
 	if node := this.routingTable.queryNode(findNode.FromID); node == nil {
 		// findnode must be after ping/pong, in case of DoS attack
-		log.Debugf("[dht]findNodeHandle: from %v, local doesn't content the request node!", from)
+		log.Debugf("[dht]findNodeHandle: from %v, local doesn't contain the request node!", from)
 		return
 	}
 

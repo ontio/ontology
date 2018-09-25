@@ -81,11 +81,16 @@ func (this *DHT) isInBlackList(destString string) bool {
 
 // saveListToFile save list to a file
 func (this *DHT) saveListToFile(list []string, fileName string) {
+	if len(list) == 0 {
+		return
+	}
 	file, err := os.Create(fileName)
 	if err != nil {
 		log.Errorf("create list file %s failed!", fileName)
 		return
 	}
+	defer file.Close()
+
 	saveContent := ""
 	for _, addr := range list {
 		saveContent += addr + "\n"
