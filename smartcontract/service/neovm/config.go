@@ -38,7 +38,6 @@ var (
 	RUNTIME_CHECKWITNESS_GAS      uint64 = 200
 	RUNTIME_ADDRESSTOBASE58_GAS   uint64 = 400
 	RUNTIME_BASE58TOADDRESS_GAS   uint64 = 300
-	RUNTIME_VERIFYBASE58_GAS      uint64 = 200
 	APPCALL_GAS                   uint64 = 10
 	TAILCALL_GAS                  uint64 = 10
 	SHA1_GAS                      uint64 = 10
@@ -102,7 +101,7 @@ var (
 	RUNTIME_DESERIALIZE_NAME     = "System.Runtime.Deserialize"
 	RUNTIME_BASE58TOADDRESS_NAME = "Ontology.Runtime.Base58ToAddress"
 	RUNTIME_ADDRESSTOBASE58_NAME = "Ontology.Runtime.AddressToBase58"
-	RUNTIME_VERIFYBASE58_NAME    = "Ontology.Runtime.VerifyBase58"
+	RUNTIME_GETHASH_NAME         = "Ontology.Runtime.GetHash"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
 
@@ -191,7 +190,6 @@ func initGAS_TABLE() *sync.Map {
 
 	m.Store(RUNTIME_BASE58TOADDRESS_NAME, RUNTIME_BASE58TOADDRESS_GAS)
 	m.Store(RUNTIME_ADDRESSTOBASE58_NAME, RUNTIME_ADDRESSTOBASE58_GAS)
-	m.Store(RUNTIME_VERIFYBASE58_NAME, RUNTIME_VERIFYBASE58_GAS)
 
 	return &m
 }
