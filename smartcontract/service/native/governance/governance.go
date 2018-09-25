@@ -97,8 +97,8 @@ const (
 
 	//global
 	PRECISE           = 1000000
-	NEW_VERSION_BLOCK = 357700
-	NEW_VERSION_VIEW  = 5
+	NEW_VERSION_BLOCK = 414100
+	NEW_VERSION_VIEW  = 6
 )
 
 // candidate fee must >= 1 ONG
