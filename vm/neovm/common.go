@@ -22,10 +22,12 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"hash"
+	"io"
 	"math/big"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/neovm/types"
+	"golang.org/x/crypto/ripemd160"
 )
 
 type BigIntSorter []big.Int
@@ -233,6 +235,15 @@ func Hash(b []byte, e *ExecutionEngine) []byte {
 		sh = sha256.New()
 		sh.Write(b)
 		bt = sh.Sum(nil)
+	case HASH160:
+		temp := sha256.Sum256(b)
+		md := ripemd160.New()
+		io.WriteString(md, string(temp[:]))
+		bt = md.Sum(nil)
+	case HASH256:
+		temp := sha256.Sum256(b)
+		data := sha256.Sum256(temp[:])
+		bt = data[:]
 	}
 	return bt
 }
