@@ -99,7 +99,7 @@ func sendRpcRequest(method string, params []interface{}) ([]byte, *OntologyError
 		return nil, NewOntologyError(fmt.Errorf("json.Unmarshal JsonRpcResponse:%s error:%s", body, err))
 	}
 	if rpcRsp.Error != 0 {
-		return nil, NewOntologyError(fmt.Errorf("%s", strings.ToLower(rpcRsp.Desc)), rpcRsp.Error)
+		return nil, NewOntologyError(fmt.Errorf("\n %s ", string(body)), rpcRsp.Error)
 	}
 	return rpcRsp.Result, nil
 }
