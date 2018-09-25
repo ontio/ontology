@@ -22,7 +22,6 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"hash"
-	"io"
 	"math/big"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
@@ -238,7 +237,7 @@ func Hash(b []byte, e *ExecutionEngine) []byte {
 	case HASH160:
 		temp := sha256.Sum256(b)
 		md := ripemd160.New()
-		io.WriteString(md, string(temp[:]))
+		md.Write(temp[:])
 		bt = md.Sum(nil)
 	case HASH256:
 		temp := sha256.Sum256(b)
