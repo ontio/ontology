@@ -54,5 +54,5 @@
   * description:Provide page logic API 
 * sync servicde 
   * path: /root/ontsynhandler 
-  * port:10010
+  * port: 10010
   * description:Synchronization block chain information
