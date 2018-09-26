@@ -110,30 +110,32 @@ func (this *Link) GetRXTime() time.Time {
 }
 
 func (this *Link) Rx() {
-	reader := bufio.NewReaderSize(this.conn, common.MAX_BUF_LEN)
+	if this.conn != nil {
+		reader := bufio.NewReaderSize(this.conn, common.MAX_BUF_LEN)
 
-	for {
-		msg, payloadSize, err := types.ReadMessage(reader)
-		if err != nil {
-			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
-			break
+		for {
+			msg, payloadSize, err := types.ReadMessage(reader)
+			if err != nil {
+				log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+				break
+			}
+
+			t := time.Now()
+			this.UpdateRXTime(t)
+
+			if !this.needSendMsg(msg) {
+				log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+				continue
+			}
+			this.addReqRecord(msg)
+			this.recvChan <- &types.MsgPayload{
+				Id:          this.id,
+				Addr:        this.addr,
+				PayloadSize: payloadSize,
+				Payload:     msg,
+			}
+
 		}
-
-		t := time.Now()
-		this.UpdateRXTime(t)
-
-		if !this.needSendMsg(msg) {
-			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
-			continue
-		}
-		this.addReqRecord(msg)
-		this.recvChan <- &types.MsgPayload{
-			Id:          this.id,
-			Addr:        this.addr,
-			PayloadSize: payloadSize,
-			Payload:     msg,
-		}
-
 	}
 
 	this.disconnectNotify()
