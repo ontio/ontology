@@ -145,7 +145,7 @@
       "returnType":"Bool"
     },
     {
-      "name":"voteForPeer",
+      "name":"authorizeForPeer",
       "parameters":
       [
         {
@@ -178,7 +178,7 @@
       "returnType":"Bool"
     },
     {
-      "name":"voteForPeerTransferFrom",
+      "name":"authorizeForPeerTransferFrom",
       "parameters":
       [
         {
@@ -211,7 +211,7 @@
       "returnType":"Bool"
     },
     {
-      "name":"unVoteForPeer",
+      "name":"unAuthorizeForPeer",
       "parameters":
       [
         {
@@ -408,6 +408,147 @@
         {
           "name":"Address",
           "type":"Address"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"changeMaxAuthorizations",
+      "parameters":
+      [
+        {
+          "name":"PeerPubkey",
+          "type":"String"
+        },
+        {
+          "name":"Address",
+          "type":"Address"
+        },
+        {
+          "name":"MaxAuthorize",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setPeerCost",
+      "parameters":
+      [
+        {
+          "name":"PeerPubkey",
+          "type":"String"
+        },
+        {
+          "name":"Address",
+          "type":"Address"
+        },
+        {
+          "name":"PeerCost",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"withdrawFee",
+      "parameters":
+      [
+        {
+          "name":"Address",
+          "type":"Address"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addInitPos",
+      "parameters":
+      [
+        {
+          "name":"PeerPubkey",
+          "type":"String"
+        },
+        {
+          "name":"Address",
+          "type":"Address"
+        },
+        {
+          "name":"Pos",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"reduceInitPos",
+      "parameters":
+      [
+        {
+          "name":"PeerPubkey",
+          "type":"String"
+        },
+        {
+          "name":"Address",
+          "type":"Address"
+        },
+        {
+          "name":"Pos",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"updateGlobalParam2",
+      "parameters":
+      [
+        {
+          "name":"MinAuthorizePos",
+          "type":"Int"
+        },
+        {
+          "name":"CandidateFeeSplitNum",
+          "type":"Int"
+        },
+        {
+          "name":"Field1",
+          "type":"ByteArray"
+        },
+        {
+          "name":"Field2",
+          "type":"ByteArray"
+        },
+        {
+          "name":"Field3",
+          "type":"ByteArray"
+        },
+        {
+          "name":"Field4",
+          "type":"ByteArray"
+        },
+        {
+          "name":"Field5",
+          "type":"ByteArray"
+        },
+        {
+          "name":"Field6",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setPromisePos",
+      "parameters":
+      [
+        {
+          "name":"PeerPubkey",
+          "type":"String"
+        },
+        {
+          "name":"Pos",
+          "type":"Int"
         }
       ],
       "returnType":"Bool"
