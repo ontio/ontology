@@ -235,36 +235,30 @@ func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 }
 
 // ping the remote node
-func (this *DHT) ping(addr *net.UDPAddr) error {
-	ip := net.ParseIP(this.addr).To16()
-	if ip == nil {
-		log.Error("[dht]Parse IP address error\n", this.addr)
-		return errors.New("[dht]Parse IP address error")
-	}
+func (this *DHT) ping(destAddr *net.UDPAddr) error {
 	pingMsg := msgpack.NewDHTPing(this.nodeID, this.udpPort,
-		this.tcpPort, ip, addr, this.version)
+		this.tcpPort, this.addr, destAddr, this.version)
+	if pingMsg == nil {
+		return errors.New("[dht] faile to new dht ping")
+	}
 	sink := comm.NewZeroCopySink(nil)
 	mt.WriteMessage(sink, pingMsg)
-	this.send(addr, sink.Bytes())
-	log.Debugf("[dht]ping to %s", addr.String())
+	this.send(destAddr, sink.Bytes())
+	log.Debugf("[dht]ping to %s", destAddr.String())
 	return nil
 }
 
 // pong reply remote node when receiving ping
-func (this *DHT) pong(addr *net.UDPAddr) error {
-
-	ip := net.ParseIP(this.addr).To16()
-	if ip == nil {
-		log.Error("[dht]Parse IP address error\n", this.addr)
-		return errors.New("[dht]Parse IP address error")
-	}
-
+func (this *DHT) pong(destAddr *net.UDPAddr) error {
 	pongMsg := msgpack.NewDHTPong(this.nodeID, this.udpPort,
-		this.tcpPort, ip, addr, this.version)
+		this.tcpPort, this.addr, destAddr, this.version)
+	if pongMsg == nil {
+		return errors.New("[dht] faile to new dht pong")
+	}
 	sink := comm.NewZeroCopySink(nil)
 	mt.WriteMessage(sink, pongMsg)
-	this.send(addr, sink.Bytes())
-	log.Debugf("[dht]pong to %s", addr.String())
+	this.send(destAddr, sink.Bytes())
+	log.Debugf("[dht]pong to %s", destAddr.String())
 	return nil
 }
 

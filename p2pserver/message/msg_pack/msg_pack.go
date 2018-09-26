@@ -197,7 +197,8 @@ func NewConsensusDataReq(hash common.Uint256) mt.Message {
 }
 
 //DHT ping message packet
-func NewDHTPing(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAddr *net.UDPAddr, version uint16) mt.Message {
+func NewDHTPing(nodeID types.NodeID, udpPort, tcpPort uint16, srcAddr string,
+	destAddr *net.UDPAddr, version uint16) mt.Message {
 	ping := new(mt.DHTPing)
 	ping.Version = version
 	copy(ping.FromID[:], nodeID[:])
@@ -205,29 +206,49 @@ func NewDHTPing(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAdd
 	ping.SrcEndPoint.UDPPort = udpPort
 	ping.SrcEndPoint.TCPPort = tcpPort
 
-	copy(ping.SrcEndPoint.Addr[:], ip[:16])
+	srcIP := net.ParseIP(srcAddr).To16()
+	if srcIP == nil {
+		log.Errorf("NewDHTPing: Parse IP address %s error", srcAddr)
+		return nil
+	}
+	copy(ping.SrcEndPoint.Addr[:], srcIP[:])
 
 	ping.DestEndPoint.UDPPort = uint16(destAddr.Port)
-
 	destIP := destAddr.IP.To16()
-	copy(ping.DestEndPoint.Addr[:], destIP[:16])
+	if destIP == nil {
+		log.Errorf("NewDHTPing: failed to convert dest ip %v to 16-byte representation",
+			destAddr.IP)
+		return nil
+	}
+	copy(ping.DestEndPoint.Addr[:], destIP[:])
 
 	return ping
 }
 
 //DHT pong message packet
-func NewDHTPong(nodeID types.NodeID, udpPort, tcpPort uint16, ip net.IP, destAddr *net.UDPAddr, version uint16) mt.Message {
+func NewDHTPong(nodeID types.NodeID, udpPort, tcpPort uint16, srcAddr string,
+	destAddr *net.UDPAddr, version uint16) mt.Message {
 	pong := new(mt.DHTPong)
 	pong.Version = version
 	copy(pong.FromID[:], nodeID[:])
 	pong.SrcEndPoint.UDPPort = udpPort
 	pong.SrcEndPoint.TCPPort = tcpPort
 
-	copy(pong.SrcEndPoint.Addr[:], ip[:16])
+	srcIP := net.ParseIP(srcAddr).To16()
+	if srcIP == nil {
+		log.Errorf("NewDHTPong: Parse IP address %s error", srcAddr)
+		return nil
+	}
+	copy(pong.SrcEndPoint.Addr[:], srcIP[:])
 
 	pong.DestEndPoint.UDPPort = uint16(destAddr.Port)
 	destIP := destAddr.IP.To16()
-	copy(pong.DestEndPoint.Addr[:], destIP[:16])
+	if destIP == nil {
+		log.Info("NewDHTPong: failed to convert dest ip %v to 16-byte representation",
+			destAddr.IP)
+		return nil
+	}
+	copy(pong.DestEndPoint.Addr[:], destIP[:])
 
 	return pong
 }

@@ -160,7 +160,7 @@ func (this *routingTable) getClosestNodes(num int, targetID types.NodeID) []*typ
 		j++
 	}
 
-	for index := range buckets {
+	for _, index := range buckets {
 		for _, entry := range this.buckets[index].entries {
 			closestList = append(closestList, entry)
 			if len(closestList) >= num {
@@ -188,7 +188,7 @@ func (this *routingTable) getLastNodeInBucket(bucket int) *types.Node {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
 	b := this.buckets[bucket]
-	if b == nil {
+	if b == nil || len(b.entries) == 0 {
 		return nil
 	}
 
