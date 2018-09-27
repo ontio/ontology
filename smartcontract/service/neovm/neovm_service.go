@@ -89,7 +89,7 @@ var (
 
 		RUNTIME_BASE58TOADDRESS_NAME: {Execute: RuntimeBase58ToAddress},
 		RUNTIME_ADDRESSTOBASE58_NAME: {Execute: RuntimeAddressToBase58},
-		RUNTIME_GETHASH_NAME:         {Execute: RuntimeGetHash},
+		RUNTIME_GETRANDOMHASH_NAME:   {Execute: RuntimeGetRandomHash},
 	}
 )
 
@@ -127,6 +127,7 @@ type NeoVmService struct {
 	Tx            *types.Transaction
 	Time          uint32
 	Height        uint32
+	RandomHash    scommon.Uint256
 	Engine        *vm.ExecutionEngine
 }
 

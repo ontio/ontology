@@ -36,8 +36,8 @@ var (
 	STORAGE_PUT_GAS               uint64 = 4000
 	STORAGE_DELETE_GAS            uint64 = 100
 	RUNTIME_CHECKWITNESS_GAS      uint64 = 200
-	RUNTIME_ADDRESSTOBASE58_GAS   uint64 = 400
-	RUNTIME_BASE58TOADDRESS_GAS   uint64 = 300
+	RUNTIME_ADDRESSTOBASE58_GAS   uint64 = 40
+	RUNTIME_BASE58TOADDRESS_GAS   uint64 = 30
 	APPCALL_GAS                   uint64 = 10
 	TAILCALL_GAS                  uint64 = 10
 	SHA1_GAS                      uint64 = 10
@@ -101,7 +101,7 @@ var (
 	RUNTIME_DESERIALIZE_NAME     = "System.Runtime.Deserialize"
 	RUNTIME_BASE58TOADDRESS_NAME = "Ontology.Runtime.Base58ToAddress"
 	RUNTIME_ADDRESSTOBASE58_NAME = "Ontology.Runtime.AddressToBase58"
-	RUNTIME_GETHASH_NAME         = "Ontology.Runtime.GetHash"
+	RUNTIME_GETRANDOMHASH_NAME   = "Ontology.Runtime.GetRandomHash"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
 
