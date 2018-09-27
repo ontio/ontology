@@ -253,6 +253,11 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))
 	}
+	if service.Validator != nil {
+		if err := service.Validator(engine); err != nil {
+			return errors.NewDetailErr(err, errors.ErrNoCode, "[SystemCall] service validator error!")
+		}
+	}
 	price, err := GasPrice(engine, serviceName)
 	if err != nil {
 		return err
@@ -260,12 +265,6 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	if !this.ContextRef.CheckUseGas(price) {
 		return ERR_GAS_INSUFFICIENT
 	}
-	if service.Validator != nil {
-		if err := service.Validator(engine); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[SystemCall] service validator error!")
-		}
-	}
-
 	if err := service.Execute(this, engine); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[SystemCall] service execute error!")
 	}
