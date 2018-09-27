@@ -110,7 +110,12 @@ func (this *Link) GetRXTime() time.Time {
 }
 
 func (this *Link) Rx() {
-	reader := bufio.NewReaderSize(this.conn, common.MAX_BUF_LEN)
+	conn := this.conn
+	if conn == nil {
+		return
+	}
+
+	reader := bufio.NewReaderSize(conn, common.MAX_BUF_LEN)
 
 	for {
 		msg, payloadSize, err := types.ReadMessage(reader)
