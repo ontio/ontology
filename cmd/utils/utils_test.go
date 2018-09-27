@@ -30,6 +30,7 @@ func TestFormatOng(t *testing.T) {
 	assert.Equal(t, "1000000000.123456789", FormatOng(1000000000123456789))
 	assert.Equal(t, "1000000000.000001", FormatOng(1000000000000001000))
 	assert.Equal(t, "1000000000.000000001", FormatOng(1000000000000000001))
+	assert.Equal(t, "2.578", FormatOng(2578000000))
 }
 
 func TestParseOng(t *testing.T) {
@@ -39,6 +40,7 @@ func TestParseOng(t *testing.T) {
 	assert.Equal(t, uint64(1000000000000000100), ParseOng("1000000000.0000001"))
 	assert.Equal(t, uint64(1000000000000000001), ParseOng("1000000000.000000001"))
 	assert.Equal(t, uint64(1000000000000000001), ParseOng("1000000000.000000001123"))
+	assert.Equal(t, uint64(2578000000), ParseOng("2.578"))
 }
 
 func TestFormatOnt(t *testing.T) {

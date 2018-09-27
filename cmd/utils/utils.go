@@ -41,15 +41,8 @@ func FormatAssetAmount(amount uint64, precision byte) string {
 	if precision == 0 {
 		return fmt.Sprintf("%d", amount)
 	}
-	divisor := math.Pow10(int(precision))
-	intPart := amount / uint64(divisor)
-	fracPart := amount - intPart*uint64(divisor)
-	if fracPart == 0 {
-		return fmt.Sprintf("%d", intPart)
-	}
-	bf := new(big.Float).SetUint64(fracPart)
+	bf := new(big.Float).SetUint64(amount)
 	bf.Quo(bf, new(big.Float).SetFloat64(math.Pow10(int(precision))))
-	bf.Add(bf, new(big.Float).SetUint64(intPart))
 	return bf.Text('f', -1)
 }
 
