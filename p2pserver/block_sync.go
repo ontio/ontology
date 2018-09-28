@@ -47,15 +47,17 @@ const (
 	SYNC_NODE_SPEED_INIT         = 100 * 1024 //Init a big speed (100MB/s) for every node in first round
 	SYNC_MAX_ERROR_RESP_TIMES    = 5          //Max error headers/blocks response times, if reaches, delete it
 	SYNC_MAX_HEIGHT_OFFSET       = 5          //Offset of the max height and current height
+	SYNC_HEIGHT_FIRST_OFFSET     = 50         //Offset of block height, used for switch to height-first sync mode
 )
 
 //NodeWeight record some params of node, using for sort
 type NodeWeight struct {
 	id           uint64    //NodeID
-	speed        []float32 //Record node request-response speed, using for calc the avg speed, unit kB/s
+	speed        []float32 //Record node request-response speed, using for calc the avg speed, unit B/s
 	timeoutCnt   int       //Node response timeout count
 	errorRespCnt int       //Node response error data count
 	reqTime      []int64   //Record request time, using for calc the avg req time interval, unit millisecond
+	height       int32     //Node height
 }
 
 //NewNodeWeight new a nodeweight
@@ -75,6 +77,7 @@ func NewNodeWeight(id uint64) *NodeWeight {
 		timeoutCnt:   0,
 		errorRespCnt: 0,
 		reqTime:      r,
+		height:       -1,
 	}
 }
 
@@ -105,22 +108,29 @@ func (this *NodeWeight) AppendNewSpeed(s float32) {
 	this.speed[SYNC_NODE_RECORD_SPEED_CNT-1] = s
 }
 
+//SetNodeHeight set the node's height
+func (this *NodeWeight) SetNodeHeight(h int32) {
+	this.height = h
+}
+
 //Weight calculate node's weight for sort. Highest weight node will be accessed first for next request.
 func (this *NodeWeight) Weight() float32 {
-	avgSpeed := float32(0.0)
-	for _, s := range this.speed {
-		avgSpeed += s
-	}
-	avgSpeed = avgSpeed / float32(len(this.speed))
-
 	avgInterval := float32(0.0)
 	now := time.Now().UnixNano() / int64(time.Millisecond)
 	for _, t := range this.reqTime {
 		avgInterval += float32(now - t)
 	}
 	avgInterval = avgInterval / float32(len(this.reqTime))
-	w := avgSpeed + avgInterval
-	return w
+
+	if this.height >= 0 {
+		return float32(this.height) + avgInterval
+	}
+	avgSpeed := float32(0.0)
+	for _, s := range this.speed {
+		avgSpeed += s
+	}
+	avgSpeed = avgSpeed / float32(len(this.speed))
+	return avgSpeed + avgInterval
 }
 
 //NodeWeights implement sorting
@@ -136,7 +146,11 @@ func (nws NodeWeights) Swap(i, j int) {
 func (nws NodeWeights) Less(i, j int) bool {
 	ni := nws[i]
 	nj := nws[j]
-	return ni.Weight() < nj.Weight() && ni.errorRespCnt >= nj.errorRespCnt && ni.timeoutCnt >= nj.timeoutCnt
+
+	if ni.errorRespCnt+ni.timeoutCnt == nj.errorRespCnt+nj.timeoutCnt {
+		return ni.Weight() < nj.Weight()
+	}
+	return ni.errorRespCnt+ni.timeoutCnt > nj.errorRespCnt+nj.timeoutCnt
 }
 
 //SyncFlightInfo record the info of fight object(header or block)
@@ -490,7 +504,7 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 	for _, flightInfo := range flightInfos {
 		if flightInfo.GetNodeId() == fromID {
 			t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
-			s := float32(blockSize) / float32(t) * 1000.0 / 1024.0
+			s := float32(blockSize) / float32(t) * 1000.0
 			this.addNewSpeed(fromID, s)
 			break
 		}
@@ -759,6 +773,8 @@ func (this *BlockSyncMgr) isBlockOnFlight(blockHash common.Uint256) bool {
 }
 
 func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
+	this.updateNodeWeightHeight(nextBlockHeight)
+
 	weights := this.getAllNodeWeights()
 	sort.Sort(sort.Reverse(weights))
 	nodelist := make([]uint64, 0)
@@ -827,6 +843,34 @@ func (this *BlockSyncMgr) getNodeWeight(nodeId uint64) *NodeWeight {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.nodeWeights[nodeId]
+}
+
+//updateNodeWeightHeight set nodeweight's height when the heights reach conditions
+func (this *BlockSyncMgr) updateNodeWeightHeight(nextBlockHeight uint32) {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+
+	count := 0
+
+	for id, nw := range this.nodeWeights {
+		node := this.server.getNode(id)
+		if node != nil {
+			nodeNextHeight := uint32(node.GetHeight()) + 1
+			if nodeNextHeight >= nextBlockHeight && nodeNextHeight-nextBlockHeight <= SYNC_HEIGHT_FIRST_OFFSET {
+				nw.SetNodeHeight(int32(nodeNextHeight))
+				count++
+			} else {
+				nw.SetNodeHeight(0)
+			}
+		}
+	}
+
+	if count < len(this.nodeWeights)/2 {
+		// too little, reset all
+		for _, nw := range this.nodeWeights {
+			nw.SetNodeHeight(-1)
+		}
+	}
 }
 
 //getAllNodeWeights get all nodeweight and return a slice
