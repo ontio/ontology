@@ -30,6 +30,7 @@ var (
 	ERR_NOT_SUPPORT_SERVICE      = errors.New("the service is not registered")
 	ERR_NOT_SUPPORT_OPCODE       = errors.New("does not support the operation code")
 	ERR_OVER_LIMIT_STACK         = errors.New("the stack over max size")
+	ERR_INDEX_OUT_OF_BOUND         = errors.New("the index out of bound")
 	ERR_OVER_MAX_ITEM_SIZE       = errors.New("the item over max size")
 	ERR_OVER_MAX_ARRAY_SIZE      = errors.New("the array over max size")
 	ERR_OVER_MAX_BIGINTEGER_SIZE = errors.New("the biginteger over max size 32bit")
