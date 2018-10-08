@@ -23,7 +23,6 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"fmt"
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -285,7 +284,7 @@ func getGlobalParam2(native *native.NativeService, contract common.Address) (*Gl
 		return nil, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
 	}
 
-	globalParam2Bytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)))
+	globalParam2Bytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)))
 	if err != nil {
 		return nil, fmt.Errorf("getGlobalParam2, get globalParam2Bytes error: %v", err)
 	}
@@ -294,11 +293,11 @@ func getGlobalParam2(native *native.NativeService, contract common.Address) (*Gl
 		CandidateFeeSplitNum: globalParam.CandidateNum,
 	}
 	if globalParam2Bytes != nil {
-		globalParam2Store, ok := globalParam2Bytes.(*cstates.StorageItem)
-		if !ok {
+		value, err := cstates.GetValueFromRawStorageItem(globalParam2Bytes)
+		if err != nil {
 			return nil, fmt.Errorf("getGlobalParam2, globalParam2Bytes is not available")
 		}
-		if err := globalParam2.Deserialize(bytes.NewBuffer(globalParam2Store.Value)); err != nil {
+		if err := globalParam2.Deserialize(bytes.NewBuffer(value)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize getGlobalParam2 error: %v", err)
 		}
 	}
@@ -310,7 +309,7 @@ func putGlobalParam2(native *native.NativeService, contract common.Address, glob
 	if err := globalParam2.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize globalParam2 error: %v", err)
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)), &cstates.StorageItem{Value: bf.Bytes()})
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
 
@@ -420,16 +419,16 @@ func putConfig(native *native.NativeService, contract common.Address, config *Co
 
 func getPreConfig(native *native.NativeService, contract common.Address) (*PreConfig, error) {
 	preConfig := new(PreConfig)
-	preConfigBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PRE_CONFIG)))
+	preConfigBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(PRE_CONFIG)))
 	if err != nil {
 		return nil, fmt.Errorf("native.CloneCache.Get, get preConfigBytes error: %v", err)
 	}
 	if preConfigBytes != nil {
-		preConfigStore, ok := preConfigBytes.(*cstates.StorageItem)
-		if !ok {
+		preConfigStore, err := cstates.GetValueFromRawStorageItem(preConfigBytes)
+		if err != nil {
 			return nil, fmt.Errorf("getConfig, preConfigBytes is not available")
 		}
-		if err := preConfig.Deserialize(bytes.NewBuffer(preConfigStore.Value)); err != nil {
+		if err := preConfig.Deserialize(bytes.NewBuffer(preConfigStore)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize preConfig error: %v", err)
 		}
 	}
@@ -441,7 +440,7 @@ func putPreConfig(native *native.NativeService, contract common.Address, preConf
 	if err := preConfig.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize preConfig error: %v", err)
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PRE_CONFIG)), &cstates.StorageItem{Value: bf.Bytes()})
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(PRE_CONFIG)), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
 
@@ -475,17 +474,17 @@ func putCandidateIndex(native *native.NativeService, contract common.Address, ca
 }
 
 func getSplitFee(native *native.NativeService, contract common.Address) (uint64, error) {
-	splitFeeBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE)))
+	splitFeeBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(SPLIT_FEE)))
 	if err != nil {
 		return 0, fmt.Errorf("native.CloneCache.Get, get splitFeeBytes error: %v", err)
 	}
 	var splitFee uint64 = 0
 	if splitFeeBytes != nil {
-		splitFeeStore, ok := splitFeeBytes.(*cstates.StorageItem)
-		if !ok {
+		splitFeeStore, err := cstates.GetValueFromRawStorageItem(splitFeeBytes)
+		if err != nil {
 			return 0, fmt.Errorf("getSplitFee, splitFeeBytes is not available")
 		}
-		splitFee, err = GetBytesUint64(splitFeeStore.Value)
+		splitFee, err = GetBytesUint64(splitFeeStore)
 		if err != nil {
 			return 0, fmt.Errorf("GetBytesUint64, get splitFee error: %v", err)
 		}
@@ -498,13 +497,12 @@ func putSplitFee(native *native.NativeService, contract common.Address, splitFee
 	if err != nil {
 		return fmt.Errorf("GetUint64Bytes, get splitFeeBytes error: %v", err)
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE)),
-		&cstates.StorageItem{Value: splitFeeBytes})
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(SPLIT_FEE)), cstates.GenRawStorageItem(splitFeeBytes))
 	return nil
 }
 
 func getSplitFeeAddress(native *native.NativeService, contract common.Address, address common.Address) (*SplitFeeAddress, error) {
-	splitFeeAddressBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), address[:]))
+	splitFeeAddressBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), address[:]))
 	if err != nil {
 		return nil, fmt.Errorf("native.CloneCache.Get, get splitFeeAddressBytes error: %v", err)
 	}
@@ -512,11 +510,11 @@ func getSplitFeeAddress(native *native.NativeService, contract common.Address, a
 		Address: address,
 	}
 	if splitFeeAddressBytes != nil {
-		splitFeeAddressStore, ok := splitFeeAddressBytes.(*cstates.StorageItem)
-		if !ok {
+		splitFeeAddressStore, err := cstates.GetValueFromRawStorageItem(splitFeeAddressBytes)
+		if err != nil {
 			return nil, fmt.Errorf("getSplitFeeAddress, splitFeeAddressBytes is not available")
 		}
-		err = splitFeeAddress.Deserialize(bytes.NewBuffer(splitFeeAddressStore.Value))
+		err = splitFeeAddress.Deserialize(bytes.NewBuffer(splitFeeAddressStore))
 		if err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize splitFeeAddress error: %v", err)
 		}
@@ -529,8 +527,8 @@ func putSplitFeeAddress(native *native.NativeService, contract common.Address, a
 	if err := splitFeeAddress.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize splitFeeAddress error: %v", err)
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), address[:]),
-		&cstates.StorageItem{Value: bf.Bytes()})
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), address[:]),
+		cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
 
@@ -717,8 +715,7 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 	if err != nil {
 		return nil, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
-	peerAttributesBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_ATTRIBUTES),
-		peerPubkeyPrefix))
+	peerAttributesBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(PEER_ATTRIBUTES), peerPubkeyPrefix))
 	if err != nil {
 		return nil, fmt.Errorf("getPeerAttributes, native.CloneCache.Get error: %v", err)
 	}
@@ -730,11 +727,11 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 		TPeerCost:    100,
 	}
 	if peerAttributesBytes != nil {
-		peerAttributesStore, ok := peerAttributesBytes.(*cstates.StorageItem)
-		if !ok {
+		peerAttributesStore, err := cstates.GetValueFromRawStorageItem(peerAttributesBytes)
+		if err != nil {
 			return nil, fmt.Errorf("getPeerAttributes, peerAttributesStore is not available")
 		}
-		if err := peerAttributes.Deserialize(bytes.NewBuffer(peerAttributesStore.Value)); err != nil {
+		if err := peerAttributes.Deserialize(bytes.NewBuffer(peerAttributesStore)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize peerAttributes error: %v", err)
 		}
 	}
@@ -760,8 +757,7 @@ func putPeerAttributes(native *native.NativeService, contract common.Address, pe
 	if err := peerAttributes.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize peerAttributes error: %v", err)
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_ATTRIBUTES), peerPubkeyPrefix),
-		&cstates.StorageItem{Value: bf.Bytes()})
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_ATTRIBUTES), peerPubkeyPrefix), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
 
@@ -770,20 +766,16 @@ func getPromisePos(native *native.NativeService, contract common.Address, peerPu
 	if err != nil {
 		return nil, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
-	promisePosBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PROMISE_POS),
-		peerPubkeyPrefix))
+	promisePosBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(PROMISE_POS), peerPubkeyPrefix))
 	if err != nil {
 		return nil, fmt.Errorf("get promisePosBytes error: %v", err)
 	}
-	if promisePosBytes == nil {
-		return nil, fmt.Errorf("promisePosBytes is nil")
+	promisePosStore, err := cstates.GetValueFromRawStorageItem(promisePosBytes)
+	if err != nil {
+		return nil, fmt.Errorf("get value from promisePosBytes err:%v", err)
 	}
 	promisePos := new(PromisePos)
-	promisePosStore, ok := promisePosBytes.(*cstates.StorageItem)
-	if !ok {
-		return nil, fmt.Errorf("getPromisePos, promisePosBytes is not available")
-	}
-	if err := promisePos.Deserialize(bytes.NewBuffer(promisePosStore.Value)); err != nil {
+	if err := promisePos.Deserialize(bytes.NewBuffer(promisePosStore)); err != nil {
 		return nil, fmt.Errorf("deserialize, deserialize promisePos error: %v", err)
 	}
 	return promisePos, nil
@@ -798,7 +790,7 @@ func putPromisePos(native *native.NativeService, contract common.Address, promis
 	if err := promisePos.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize promisePos error: %v", err)
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PROMISE_POS), peerPubkeyPrefix),
-		&cstates.StorageItem{Value: bf.Bytes()})
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(PROMISE_POS), peerPubkeyPrefix),
+		cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }

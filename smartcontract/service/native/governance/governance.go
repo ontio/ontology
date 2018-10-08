@@ -1430,7 +1430,7 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	}
 
 	//delete from splitFeeAddress
-	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), params.Address[:]))
+	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), params.Address[:]))
 
 	//update splitFee
 	splitFee, err := getSplitFee(native, contract)
