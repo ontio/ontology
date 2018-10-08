@@ -481,7 +481,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 	this.syncHeader()
 }
 
-//OnBlockReceive receive block from net
+// OnBlockReceive receive block from net
 func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block *types.Block) {
 	height := block.Header.Height
 	blockHash := block.Hash()
