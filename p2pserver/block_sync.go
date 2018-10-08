@@ -481,19 +481,16 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 	this.syncHeader()
 }
 
-//OnBlockReceive receive block from net
+// OnBlockReceive receive block from net
 func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block *types.Block) {
 	height := block.Header.Height
 	blockHash := block.Hash()
 	log.Trace("[p2p]OnBlockReceive Height:%d", height)
-	flightInfos := this.flightBlocks[blockHash]
-	for _, flightInfo := range flightInfos {
-		if flightInfo.GetNodeId() == fromID {
-			t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
-			s := float32(blockSize) / float32(t) * 1000.0 / 1024.0
-			this.addNewSpeed(fromID, s)
-			break
-		}
+	flightInfo := this.getFlightBlock(blockHash, fromID)
+	if flightInfo != nil {
+		t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
+		s := float32(blockSize) / float32(t) * 1000.0 / 1024.0
+		this.addNewSpeed(fromID, s)
 	}
 
 	this.delFlightBlock(blockHash)
@@ -719,7 +716,7 @@ func (this *BlockSyncMgr) addFlightBlock(nodeId uint64, height uint32, blockHash
 	this.flightBlocks[blockHash] = append(this.flightBlocks[blockHash], NewSyncFlightInfo(height, nodeId))
 }
 
-func (this *BlockSyncMgr) getFlightBlock(blockHash common.Uint256) []*SyncFlightInfo {
+func (this *BlockSyncMgr) getFlightBlocks(blockHash common.Uint256) []*SyncFlightInfo {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	info, ok := this.flightBlocks[blockHash]
@@ -727,6 +724,21 @@ func (this *BlockSyncMgr) getFlightBlock(blockHash common.Uint256) []*SyncFlight
 		return nil
 	}
 	return info
+}
+
+func (this *BlockSyncMgr) getFlightBlock(blockHash common.Uint256, nodeId uint64) *SyncFlightInfo {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	infos, ok := this.flightBlocks[blockHash]
+	if !ok {
+		return nil
+	}
+	for _, info := range infos {
+		if info.GetNodeId() == nodeId {
+			return info
+		}
+	}
+	return nil
 }
 
 func (this *BlockSyncMgr) delFlightBlock(blockHash common.Uint256) bool {
@@ -751,7 +763,7 @@ func (this *BlockSyncMgr) getFlightBlockCount() int {
 }
 
 func (this *BlockSyncMgr) isBlockOnFlight(blockHash common.Uint256) bool {
-	flightInfos := this.getFlightBlock(blockHash)
+	flightInfos := this.getFlightBlocks(blockHash)
 	if len(flightInfos) != 0 {
 		return true
 	}
