@@ -225,6 +225,10 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 		To:    toAddr,
 		Value: amount,
 	})
+	return MultiTransferTx(gasPrice, gasLimit, asset, sts)
+}
+
+func MultiTransferTx(gasPrice, gasLimit uint64, asset string, states []*ont.State) (*types.MutableTransaction, error) {
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
@@ -237,7 +241,7 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	default:
 		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
-	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER, []interface{}{sts})
+	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER, []interface{}{states})
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
@@ -503,10 +507,23 @@ func GetSmartContractEventInfo(txHash string) ([]byte, error) {
 	return nil, ontErr.Error
 }
 
-func GetRawTransaction(txHash string) ([]byte, error) {
-	data, ontErr := sendRpcRequest("getrawtransaction", []interface{}{txHash, 1})
+func GetRawTransaction(txHash string) (*types.Transaction, error) {
+	data, ontErr := sendRpcRequest("getrawtransaction", []interface{}{txHash})
 	if ontErr == nil {
-		return data, nil
+		var rawTx string
+		err := json.Unmarshal(data, &rawTx)
+		if err != nil {
+			return nil, fmt.Errorf("json.Unmarshal error:%s", err)
+		}
+		rawData, err := hex.DecodeString(rawTx)
+		if err != nil {
+			return nil, fmt.Errorf("raw data hex decode error:%s", err)
+		}
+		tx, err := types.TransactionFromRawBytes(rawData)
+		if err != nil {
+			return nil, fmt.Errorf("TransactionFromRawBytes error:%s", err)
+		}
+		return tx, nil
 	}
 	switch ontErr.ErrorCode {
 	case ERROR_INVALID_PARAMS:

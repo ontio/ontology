@@ -175,7 +175,7 @@ func deployContract(ctx *cli.Context) error {
 	}
 	c, _ := common.HexToBytes(code)
 	address := types.AddressFromVmCode(c)
-	PrintInfoMsg("Deploy contract:")
+	PrintHighLightMsg("Deploy contract:")
 	PrintInfoMsg("  Contract Address:%s", address.ToHexString())
 	PrintInfoMsg("  TxHash:%s", txHash)
 	PrintInfoMsg("\nTip:")
@@ -305,7 +305,7 @@ func invokeContract(ctx *cli.Context) error {
 		if preResult.State == 0 {
 			return fmt.Errorf("contract invoke failed")
 		}
-		PrintInfoMsg("Contract invoke successfully")
+		PrintHighLightMsg("Contract invoke successfully")
 		PrintInfoMsg("  Gas limit:%d", preResult.Gas)
 
 		rawReturnTypes := ctx.String(utils.GetFlagName(utils.ContractReturnTypeFlag))

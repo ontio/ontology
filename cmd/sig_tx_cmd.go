@@ -116,7 +116,7 @@ func genMultiSigAddress(ctx *cli.Context) error {
 		addr := types.AddressFromPubKey(pubKey)
 		PrintInfoMsg("Index %d Address:%s PubKey:%x ", i+1, addr.ToBase58(), keypair.SerializePublicKey(pubKey))
 	}
-	PrintInfoMsg("\nMultiSigAddress:%s", addr.ToBase58())
+	PrintHighLightMsg("\nMultiSigAddress:%s", addr.ToBase58())
 	return nil
 }
 
@@ -195,7 +195,7 @@ func multiSigToTx(ctx *cli.Context) error {
 	}
 
 	rawTx = hex.EncodeToString(sink.Bytes())
-	PrintInfoMsg("RawTx after multi signed:")
+	PrintHighLightMsg("RawTx after multi signed:")
 	PrintInfoMsg(rawTx)
 	PrintInfoMsg("")
 
@@ -207,7 +207,7 @@ func multiSigToTx(ctx *cli.Context) error {
 		if preResult.State == 0 {
 			return fmt.Errorf("prepare execute transaction failed. %v", preResult)
 		}
-		PrintInfoMsg("Prepare execute transaction success.")
+		PrintHighLightMsg("Prepare execute transaction success.")
 		PrintInfoMsg("Gas limit:%d", preResult.Gas)
 		PrintInfoMsg("Result:%v", preResult.Result)
 		return nil
@@ -218,7 +218,7 @@ func multiSigToTx(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		PrintInfoMsg("Send transaction success.")
+		PrintHighLightMsg("Send transaction success.")
 		PrintInfoMsg("  TxHash:%s", txHash)
 		PrintInfoMsg("\nTip:")
 		PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
@@ -269,7 +269,7 @@ func sigToTx(ctx *cli.Context) error {
 	}
 
 	rawTx = hex.EncodeToString(sink.Bytes())
-	PrintInfoMsg("RawTx after signed:")
+	PrintHighLightMsg("RawTx after signed:")
 	PrintInfoMsg(rawTx)
 	PrintInfoMsg("")
 
@@ -281,7 +281,7 @@ func sigToTx(ctx *cli.Context) error {
 		if preResult.State == 0 {
 			return fmt.Errorf("prepare execute transaction failed. %v", preResult)
 		}
-		PrintInfoMsg("Prepare execute transaction success.")
+		PrintHighLightMsg("Prepare execute transaction success.")
 		PrintInfoMsg("Gas limit:%d", preResult.Gas)
 		PrintInfoMsg("Result:%v", preResult.Result)
 		return nil
@@ -292,7 +292,7 @@ func sigToTx(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		PrintInfoMsg("Send transaction success.")
+		PrintHighLightMsg("Send transaction success.")
 		PrintInfoMsg("  TxHash:%s", txHash)
 		PrintInfoMsg("\nTip:")
 		PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
