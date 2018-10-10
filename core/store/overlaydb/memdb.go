@@ -322,29 +322,6 @@ func (p *MemDB) Delete(key []byte) {
 	p.Put(key, nil)
 }
 
-/*
-func (p *MemDB) Delete(key []byte) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	node, exact := p.findGE(key, true)
-	if !exact {
-		return ErrNotFound
-	}
-
-	h := p.nodeData[node+nHeight]
-	for i, n := range p.prevNode[:h] {
-		m := n + nNext + i
-		// p.nodeData[m] == node
-		p.nodeData[m] = p.nodeData[p.nodeData[m]+nNext+i]
-	}
-
-	p.kvSize -= p.nodeData[node+nKey] + p.nodeData[node+nVal]
-	p.n--
-	return nil
-}
-*/
-
 // Get gets the value for the given key. It returns unkown == true if the
 // MemDB does not contain the key. It returns nil, false if MemDB has deleted the key
 //

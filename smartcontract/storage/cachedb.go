@@ -67,20 +67,6 @@ func (self *CacheDB) Commit() {
 	})
 }
 
-//
-//// Add item to cache
-//func (self *CacheDB) Add(prefix common.DataEntryPrefix, key []byte, value states.StateValue) {
-//	data := new(bytes.Buffer)
-//	// todo: remove error or return to caller
-//	err := value.Serialize(data)
-//	if err != nil {
-//		panic(err)
-//	}
-//
-//	self.keyScratch = makePrefixedKey(self.keyScratch, byte(prefix), key)
-//	self.memdb.Put(self.keyScratch, data.Bytes())
-//}
-
 func (self *CacheDB) Put(key []byte, value []byte) {
 	self.put(common.ST_STORAGE, key, value)
 }
