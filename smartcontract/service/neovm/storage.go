@@ -19,8 +19,6 @@
 package neovm
 
 import (
-	"bytes"
-
 	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
@@ -57,9 +55,7 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return err
 	}
 
-	item := states.StorageItem{Value: value}
-	item.ToArray()
-	service.CacheDB.Put(genStorageKey(context.Address, key), item.ToArray())
+	service.CacheDB.Put(genStorageKey(context.Address, key), states.GenRawStorageItem(value))
 	return nil
 }
 
@@ -109,12 +105,11 @@ func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if len(raw) == 0 {
 		vm.PushData(engine, []byte{})
 	} else {
-		item := states.StorageItem{}
-		err := item.Deserialize(bytes.NewBuffer(raw))
+		value, err := states.GetValueFromRawStorageItem(raw)
 		if err != nil {
 			return err
 		}
-		vm.PushData(engine, item.Value)
+		vm.PushData(engine, value)
 	}
 	return nil
 }
