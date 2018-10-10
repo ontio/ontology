@@ -1,12 +1,14 @@
 package types
 
 import (
+	"bytes"
 	"math"
 	"math/big"
+	"reflect"
 
-	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/constants"
+	"github.com/ontio/ontology/vm/neovm/errors"
 )
 
 type NeoVmValueType uint8
@@ -27,9 +29,10 @@ type VmValue struct {
 	integer   int64
 	bigInt    *big.Int
 	byteArray []byte
-	array     *[]VmValue // array or struct, since array is mutable, need use pointer here
-	mapval    map[string]VmValue
-	interop   interface{}
+	structval StructValue
+	array     *ArrayValue // array or struct, since array is mutable, need use pointer here
+	mapval    *MapValue
+	interop   InteropValue
 }
 
 func VmValueFromInt64(val int64) VmValue {
@@ -37,7 +40,7 @@ func VmValueFromInt64(val int64) VmValue {
 }
 
 func VmValueFromBytes(val []byte) (result VmValue, err error) {
-	if len(val) > constants.MAX_INT_SIZE{
+	if len(val) > constants.MAX_INT_SIZE {
 		err = errors.ERR_OVER_MAX_ITEM_SIZE
 		return
 	}
@@ -58,12 +61,16 @@ func VmValueFromUint64(val uint64) VmValue {
 
 func VmValueFromBigInt(val *big.Int) (result VmValue, err error) {
 	value, e := IntValFromBigInt(val)
-	if e!= nil {
+	if e != nil {
 		err = e
 		return
 	}
 
 	return VmValueFromIntValue(value), nil
+}
+
+func NewMapVmValue() VmValue {
+	return VmValue{valType: mapType, mapval: NewMapValue()}
 }
 
 func VmValueFromIntValue(val IntValue) VmValue {
@@ -122,14 +129,68 @@ func (self *VmValue) AsBool() (bool, error) {
 	case arrayType:
 		return false, errors.ERR_BAD_TYPE
 	case interopType:
-		return self.interop != nil, nil
+		return self.interop != InteropValue{}, nil
+	default:
+		panic("unreachable!")
+	}
+}
+
+func (self *VmValue) AsMapValue() (*MapValue, error) {
+	switch self.valType {
+	case mapType:
+		return self.mapval, nil
+	default:
+		return nil, errors.ERR_BAD_TYPE
+	}
+}
+
+func (self *VmValue) AsStructValue() (StructValue, error) {
+	switch self.valType {
+	case structType:
+		return self.structval, nil
+	default:
+		return StructValue{}, errors.ERR_BAD_TYPE
+	}
+}
+
+func (self *VmValue) AsArrayValue() (*ArrayValue, error) {
+	switch self.valType {
+	case arrayType:
+		return self.array, nil
+	default:
+		return nil, errors.ERR_BAD_TYPE
+	}
+}
+
+func (self *VmValue) Equals(other VmValue) bool {
+	v1, e1 := self.AsBytes()
+	v2, e2 := other.AsBytes()
+	if e1 == nil && e2 == nil { // both are primitive type
+		return bytes.Equal(v1, v2)
+	}
+
+	// here more than one are compound type
+	if self.valType != other.valType {
+		return false
+	}
+
+	switch self.valType {
+	case mapType:
+		return self.mapval == other.mapval
+	case structType:
+		// todo: fix inconsistence
+		return reflect.DeepEqual(self.structval, other.structval)
+	case arrayType:
+		return self.array == other.array
+	case interopType:
+		return self.interop.Equals(other.interop)
 	default:
 		panic("unreachable!")
 	}
 }
 
 func (self *VmValue) GetMapKey() (string, error) {
-	val , err := self.AsBytes()
+	val, err := self.AsBytes()
 	if err != nil {
 		return "", err
 	}
