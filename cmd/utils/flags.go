@@ -475,9 +475,9 @@ var (
 		Usage: "Disable sync verify transaction in interface",
 	}
 
-	BroadcastNetTxEnableFlag = cli.BoolFlag{
-		Name:  "enable-broadcast-net-tx",
-		Usage: "Enable broadcast tx from network in tx pool",
+	DisableBroadcastNetTxFlag = cli.BoolFlag{
+		Name:  "disable-broadcast-net-tx",
+		Usage: "Disable broadcast tx from network in tx pool",
 	}
 
 	NonOptionFlag = cli.StringFlag{

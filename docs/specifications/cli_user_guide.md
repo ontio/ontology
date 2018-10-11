@@ -181,8 +181,8 @@ The disable-tx-pool-pre-exec parameter is used to disable preExecution of a tran
 --disable-sync-verify-tx
 The disable-sync-verify-tx is used to disable sync verify transaction in send transaction,include rpc restful websocket.
 
---enable-broadcast-net-tx
-The enable-broadcast-net-tx is used to enable broadcast a transaction from network in the transaction pool. By default, this function is disabled when ontology bootstrap.
+--disable-broadcast-net-tx
+The disable-broadcast-net-tx is used to disable broadcast a transaction from network in the transaction pool. By default, this function is enabled when ontology bootstrap.
 
 ### 1.2 Node Deployment
 
