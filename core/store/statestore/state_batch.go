@@ -59,6 +59,9 @@ func (self *StateBatch) Find(prefix common.DataEntryPrefix, key []byte) ([]*comm
 			sts = append(sts, &common.StateItem{Key: string(kv), Value: state})
 		}
 	}
+	if err := iter.Error(); err != nil {
+		return nil, err
+	}
 	keyP := string(append(bp, key...))
 	for _, v := range self.memoryStore.Find() {
 		if v.State != common.Deleted && strings.HasPrefix(v.Key, keyP) {

@@ -33,7 +33,7 @@ type StateItem struct {
 
 type Memory map[string]*StateItem
 
-// CloneCache is smart contract execute cache, it contain transaction cache and block cache
+// CacheDB is smart contract execute cache, it contain transaction cache and block cache
 // When smart contract execute finish, need to commit transaction cache to block cache
 type CloneCache struct {
 	Memory Memory

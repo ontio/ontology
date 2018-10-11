@@ -32,7 +32,6 @@ import (
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -164,7 +163,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	// check if initConfig is already execute
-	governanceViewBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(GOVERNANCE_VIEW)))
+	governanceViewBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(GOVERNANCE_VIEW)))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getGovernanceView, get governanceViewBytes error: %v", err)
 	}
@@ -227,7 +226,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("getUint32Bytes, getUint32Bytes error: %v", err)
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), &cstates.StorageItem{Value: indexBytes})
+		native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
 
 		//update total stake
 		err = depositTotalStake(native, contract, address, peerPoolItem.InitPos)
@@ -249,7 +248,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getUint32Bytes, get indexBytes error: %v", err)
 	}
-	native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)), &cstates.StorageItem{Value: indexBytes})
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)), cstates.GenRawStorageItem(indexBytes))
 
 	//init governance view
 	governanceView := &GovernanceView{
@@ -476,12 +475,16 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 	}
-	indexBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix))
+	indexBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix))
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("native.CloneCache.Get, get indexBytes error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("native.CacheDB.Get, get indexBytes error: %v", err)
 	}
 	if indexBytes != nil {
-		index, err := GetBytesUint32(indexBytes.(*cstates.StorageItem).Value)
+		value, err := cstates.GetValueFromRawStorageItem(indexBytes)
+		if err != nil {
+			return nil, fmt.Errorf("get value from raw storage item error:%v", err)
+		}
+		index, err := GetBytesUint32(value)
 		if err != nil {
 			return nil, fmt.Errorf("GetBytesUint32, get index error: %v", err)
 		}
@@ -505,7 +508,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("GetUint32Bytes, get indexBytes error: %v", err)
 		}
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), &cstates.StorageItem{Value: indexBytes})
+		native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
 	}
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
 	err = putPeerPoolMap(native, contract, view, peerPoolMap)
@@ -633,7 +636,7 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("serialize, serialize blackListItem error: %v", err)
 		}
 		//put peer into black list
-		native.CloneCache.Add(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix), &cstates.StorageItem{Value: bf.Bytes()})
+		native.CacheDB.Put(utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix), cstates.GenRawStorageItem(bf.Bytes()))
 		//change peerPool status
 		if peerPoolItem.Status == ConsensusStatus {
 			commit = true
@@ -683,16 +686,16 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 	}
 
 	//check black list
-	blackListBytes, err := native.CloneCache.Get(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
+	blackListBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("native.CloneCache.Get, get BlackList error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("native.CacheDB.Get, get BlackList error: %v", err)
 	}
 	if blackListBytes == nil {
 		return utils.BYTE_FALSE, fmt.Errorf("whiteNode, this Peer is not in BlackList: %v", err)
 	}
 
 	//remove peer from black list
-	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
+	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix))
 
 	return utils.BYTE_TRUE, nil
 }
@@ -938,7 +941,7 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 		}
 		if authorizeInfo.ConsensusPos == 0 && authorizeInfo.CandidatePos == 0 && authorizeInfo.NewPos == 0 &&
 			authorizeInfo.WithdrawConsensusPos == 0 && authorizeInfo.WithdrawCandidatePos == 0 && authorizeInfo.WithdrawUnfreezePos == 0 {
-			native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix, address[:]))
+			native.CacheDB.Delete(utils.ConcatKey(contract, AUTHORIZE_INFO_POOL, peerPubkeyPrefix, address[:]))
 		}
 	}
 
@@ -1427,7 +1430,7 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	}
 
 	//delete from splitFeeAddress
-	native.CloneCache.Delete(scommon.ST_STORAGE, utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), params.Address[:]))
+	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), params.Address[:]))
 
 	//update splitFee
 	splitFee, err := getSplitFee(native, contract)

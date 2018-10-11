@@ -25,10 +25,8 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	scommon "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/store"
-	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -116,7 +114,7 @@ type Service struct {
 // NeoVmService is a struct for smart contract provide interop service
 type NeoVmService struct {
 	Store         store.LedgerStore
-	CloneCache    *storage.CloneCache
+	CacheDB       *storage.CacheDB
 	ContextRef    context.ContextRef
 	Notifications []*event.NotifyEventInfo
 	Code          []byte
@@ -131,7 +129,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
-	this.ContextRef.PushContext(&context.Context{ContractAddress: types.AddressFromVmCode(this.Code), Code: this.Code})
+	this.ContextRef.PushContext(&context.Context{ContractAddress: scommon.AddressFromVmCode(this.Code), Code: this.Code})
 	this.Engine.PushContext(vm.NewExecutionContext(this.Engine, this.Code))
 	for {
 		//check the execution step count
@@ -213,7 +211,11 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 					return nil, fmt.Errorf("[Appcall] pop contract address len != 20:%x", address)
 				}
 			}
-			code, err := this.getContract(address)
+			addr, err := scommon.AddressParseFromBytes(address)
+			if err != nil {
+				return nil, err
+			}
+			code, err := this.getContract(addr)
 			if err != nil {
 				return nil, err
 			}
@@ -271,20 +273,16 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-func (this *NeoVmService) getContract(address []byte) ([]byte, error) {
-	item, err := this.CloneCache.Store.TryGet(common.ST_CONTRACT, address)
+func (this *NeoVmService) getContract(address scommon.Address) ([]byte, error) {
+	dep, err := this.CacheDB.GetContract(address)
 	if err != nil {
 		return nil, errors.NewErr("[getContract] Get contract context error!")
 	}
-	log.Debugf("invoke contract address:%x", scommon.ToArrayReverse(address))
-	if item == nil {
+	log.Debugf("invoke contract address:%s", address.ToHexString())
+	if dep == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}
-	contract, ok := item.Value.(*payload.DeployCode)
-	if !ok {
-		return nil, DEPLOYCODE_TYPE_ERROR
-	}
-	return contract.Code, nil
+	return dep.Code, nil
 }
 
 func checkStackSize(engine *vm.ExecutionEngine) bool {

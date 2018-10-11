@@ -152,6 +152,9 @@ func (this *EventStore) ClearAll() error {
 		this.store.BatchDelete(iter.Key())
 	}
 	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
+	}
 	return this.CommitTo()
 }
 

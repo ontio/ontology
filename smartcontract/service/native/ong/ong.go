@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -61,8 +60,8 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 	}
 
 	item := utils.GenUInt64StorageItem(constants.ONG_TOTAL_SUPPLY)
-	native.CloneCache.Add(scommon.ST_STORAGE, ont.GenTotalSupplyKey(contract), item)
-	native.CloneCache.Add(scommon.ST_STORAGE, append(contract[:], utils.OntContractAddress[:]...), item)
+	native.CacheDB.Put(ont.GenTotalSupplyKey(contract), item.ToArray())
+	native.CacheDB.Put(append(contract[:], utils.OntContractAddress[:]...), item.ToArray())
 	ont.AddNotifications(native, contract, &ont.State{To: utils.OntContractAddress, Value: constants.ONG_TOTAL_SUPPLY})
 	return utils.BYTE_TRUE, nil
 }
@@ -105,7 +104,7 @@ func OngApprove(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("authentication failed!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	native.CloneCache.Add(scommon.ST_STORAGE, ont.GenApproveKey(contract, state.From, state.To), utils.GenUInt64StorageItem(state.Value))
+	native.CacheDB.Put(ont.GenApproveKey(contract, state.From, state.To), utils.GenUInt64StorageItem(state.Value).ToArray())
 	return utils.BYTE_TRUE, nil
 }
 

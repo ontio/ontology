@@ -360,7 +360,7 @@ func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
 	if len(self.SignedAddr) == 0 {
 		addrs := make([]common.Address, 0, len(self.Sigs))
 		for _, prog := range self.Sigs {
-			addrs = append(addrs, AddressFromVmCode(prog.Verify))
+			addrs = append(addrs, common.AddressFromVmCode(prog.Verify))
 		}
 		self.SignedAddr = addrs
 	}

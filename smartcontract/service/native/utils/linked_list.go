@@ -20,9 +20,9 @@ package utils
 import (
 	"bytes"
 
+	"fmt"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
@@ -88,40 +88,37 @@ func (this *LinkedlistNode) Deserialize(r []byte) error {
 }
 
 func getListHead(native *native.NativeService, index []byte) ([]byte, error) {
-	head, err := native.CloneCache.Get(scommon.ST_STORAGE, index)
+	head, err := native.CacheDB.Get(index)
 	if err != nil {
 		return nil, err
 	}
 	if head == nil {
 		return nil, nil
 	}
-	item, ok := head.(*cstates.StorageItem)
-	if !ok {
-		err := errors.NewErr("")
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[linked list] get header error")
+	value, err := cstates.GetValueFromRawStorageItem(head)
+	if err != nil {
+		return nil, fmt.Errorf("[linked list] get header error:%v", err)
 	}
-	return item.Value, nil
+	return value, nil
 }
 
 func getListNode(native *native.NativeService, index []byte, item []byte) (*LinkedlistNode, error) {
 	node := new(LinkedlistNode)
-	data, err := native.CloneCache.Get(scommon.ST_STORAGE, append(index, item...))
+	data, err := native.CacheDB.Get(append(index, item...))
 	if err != nil {
-		//log.Trace(err)
 		return nil, err
 	}
 	if data == nil {
 		return nil, nil
 	}
-	raw_node, ok := data.(*cstates.StorageItem)
-	if !ok {
-		err := errors.NewErr("")
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[linked list] get list node error")
+	rawNode, err := cstates.GetValueFromRawStorageItem(data)
+	if err != nil {
+		return nil, fmt.Errorf("[linked list] get list node error:%v", err)
 	}
-	if raw_node.Value == nil || len(raw_node.Value) == 0 {
+	if len(rawNode) == 0 {
 		return nil, nil
 	}
-	err = node.Deserialize(raw_node.Value)
+	err = node.Deserialize(rawNode)
 	if err != nil {
 		//log.Tracef("[index: %s, item: %s] error %s", hex.EncodeToString(index), hex.EncodeToString(item), err)
 		return nil, err
@@ -207,7 +204,7 @@ func LinkedlistDelete(native *native.NativeService, index []byte, item []byte) (
 	if prev == nil {
 		if next == nil {
 			//clear linked list
-			native.CloneCache.Delete(scommon.ST_STORAGE, index)
+			native.CacheDB.Delete(index)
 		} else {
 			qnext, err := getListNode(native, index, next)
 			if err != nil {
@@ -252,7 +249,7 @@ func LinkedlistDelete(native *native.NativeService, index []byte, item []byte) (
 			PutBytes(native, append(index, next...), node_next)
 		}
 	}
-	native.CloneCache.Delete(scommon.ST_STORAGE, append(index, item...))
+	native.CacheDB.Delete(append(index, item...))
 	return true, nil
 }
 

@@ -55,3 +55,19 @@ func (storageItem *StorageItem) ToArray() []byte {
 	storageItem.Serialize(b)
 	return b.Bytes()
 }
+
+func GetValueFromRawStorageItem(raw []byte) ([]byte, error) {
+	item := StorageItem{}
+	err := item.Deserialize(bytes.NewBuffer(raw))
+	if err != nil {
+		return nil, err
+	}
+
+	return item.Value, nil
+}
+
+func GenRawStorageItem(value []byte) []byte {
+	item := StorageItem{}
+	item.Value = value
+	return item.ToArray()
+}

@@ -29,14 +29,15 @@ var ErrNotFound = errors.New("not found")
 
 //Store iterator for iterate store
 type StoreIterator interface {
-	Next() bool           //Next item. If item available return true, otherwise return false
-	Prev() bool           //previous item. If item available return true, otherwise return false
-	First() bool          //First item. If item available return true, otherwise return false
-	Last() bool           //Last item. If item available return true, otherwise return false
-	Seek(key []byte) bool //Seek key. If item available return true, otherwise return false
-	Key() []byte          //Return the current item key
-	Value() []byte        //Return the current item value
-	Release()             //Close iterator
+	Next() bool //Next item. If item available return true, otherwise return false
+	//Prev() bool           //previous item. If item available return true, otherwise return false
+	First() bool //First item. If item available return true, otherwise return false
+	//Last() bool           //Last item. If item available return true, otherwise return false
+	//Seek(key []byte) bool //Seek key. If item available return true, otherwise return false
+	Key() []byte   //Return the current item key
+	Value() []byte //Return the current item value
+	Release()      //Close iterator
+	Error() error  // Error returns any accumulated error.
 }
 
 //PersistStore of ledger

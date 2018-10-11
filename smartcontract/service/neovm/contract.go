@@ -23,8 +23,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
-	scommon "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
@@ -35,12 +33,16 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
 	}
-	contractAddress := types.AddressFromVmCode(contract.Code)
-	state, err := service.CloneCache.GetOrAdd(scommon.ST_CONTRACT, contractAddress[:], contract)
+	contractAddress := contract.Address()
+	dep, err := service.CacheDB.GetContract(contractAddress)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
-	vm.PushData(engine, state)
+	if dep == nil {
+		service.CacheDB.PutContract(contract)
+		dep = contract
+	}
+	vm.PushData(engine, dep)
 	return nil
 }
 
@@ -50,22 +52,31 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract parameters invalid!")
 	}
-	contractAddress := types.AddressFromVmCode(contract.Code)
+	newAddr := contract.Address()
 
-	if err := isContractExist(service, contractAddress); err != nil {
+	if err := isContractExist(service, newAddr); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract invalid!")
 	}
 	context := service.ContextRef.CurrentContext()
+	oldAddr := context.ContractAddress
 
-	service.CloneCache.Add(scommon.ST_CONTRACT, contractAddress[:], contract)
-	items, err := storeMigration(service, context.ContractAddress, contractAddress)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract store migration error!")
+	service.CacheDB.PutContract(contract)
+	service.CacheDB.DeleteContract(oldAddr)
+
+	iter := service.CacheDB.NewIterator(oldAddr[:])
+	for has := iter.First(); has; has = iter.Next() {
+		key := iter.Key()
+		val := iter.Value()
+
+		newKey := genStorageKey(newAddr, key[20:])
+		service.CacheDB.Put(newKey, val)
+		service.CacheDB.Delete(key)
 	}
-	service.CloneCache.Delete(scommon.ST_CONTRACT, context.ContractAddress[:])
-	for _, v := range items {
-		service.CloneCache.Delete(scommon.ST_STORAGE, []byte(v.Key))
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
 	}
+
 	vm.PushData(engine, contract)
 	return nil
 }
@@ -76,20 +87,24 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if context == nil {
 		return errors.NewErr("[ContractDestory] current contract context invalid!")
 	}
-	item, err := service.CloneCache.Store.TryGet(scommon.ST_CONTRACT, context.ContractAddress[:])
-
-	if err != nil || item == nil {
+	addr := context.ContractAddress
+	contract, err := service.CacheDB.GetContract(addr)
+	if err != nil || contract == nil {
 		return errors.NewErr("[ContractDestory] get current contract fail!")
 	}
 
-	service.CloneCache.Delete(scommon.ST_CONTRACT, context.ContractAddress[:])
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_STORAGE, context.ContractAddress[:])
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractDestory] find error!")
+	service.CacheDB.DeleteContract(addr)
+
+	iter := service.CacheDB.NewIterator(addr[:])
+	for has := iter.First(); has; has = iter.Next() {
+		key := iter.Key()
+		service.CacheDB.Delete(key)
 	}
-	for _, v := range stateValues {
-		service.CloneCache.Delete(scommon.ST_STORAGE, []byte(v.Key))
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
 	}
+
 	return nil
 }
 
@@ -109,8 +124,8 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 	if !ok {
 		return errors.NewErr("[GetStorageContext] Pop data not contract!")
 	}
-	address := types.AddressFromVmCode(contractState.Code)
-	item, err := service.CloneCache.Store.TryGet(scommon.ST_CONTRACT, address[:])
+	address := contractState.Address()
+	item, err := service.CacheDB.GetContract(address)
 	if err != nil || item == nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageContext] Get StorageContext nil")
 	}
@@ -194,21 +209,10 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 }
 
 func isContractExist(service *NeoVmService, contractAddress common.Address) error {
-	item, err := service.CloneCache.Get(scommon.ST_CONTRACT, contractAddress[:])
+	item, err := service.CacheDB.GetContract(contractAddress)
 
 	if err != nil || item != nil {
 		return fmt.Errorf("[Contract] Get contract %x error or contract exist!", contractAddress)
 	}
 	return nil
-}
-
-func storeMigration(service *NeoVmService, oldAddr common.Address, newAddr common.Address) ([]*scommon.StateItem, error) {
-	stateValues, err := service.CloneCache.Store.Find(scommon.ST_STORAGE, oldAddr[:])
-	if err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[Contract] Find error!")
-	}
-	for _, v := range stateValues {
-		service.CloneCache.Add(scommon.ST_STORAGE, getStorageKey(newAddr, []byte(v.Key)[20:]), v.Value)
-	}
-	return stateValues, nil
 }

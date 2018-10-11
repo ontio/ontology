@@ -23,11 +23,11 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/statestore"
-	"github.com/ontio/ontology/core/types"
 )
 
 func TestContractState(t *testing.T) {
@@ -48,7 +48,7 @@ func TestContractState(t *testing.T) {
 		Description: "",
 	}
 
-	address := types.AddressFromVmCode(testCode)
+	address := common.AddressFromVmCode(testCode)
 	err = batch.TryGetOrAdd(
 		scommon.ST_CONTRACT,
 		address[:],

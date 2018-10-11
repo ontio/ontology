@@ -36,6 +36,15 @@ type DeployCode struct {
 	Author      string
 	Email       string
 	Description string
+
+	address common.Address
+}
+
+func (dc *DeployCode) Address() common.Address {
+	if dc.address == common.ADDRESS_EMPTY {
+		dc.address = common.AddressFromVmCode(dc.Code)
+	}
+	return dc.address
 }
 
 func (dc *DeployCode) Serialize(w io.Writer) error {

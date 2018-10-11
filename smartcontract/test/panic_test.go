@@ -61,9 +61,9 @@ func TestRandomCodeCrash(t *testing.T) {
 
 			//cache := storage.NewCloneCache(testBatch)
 			sc := SmartContract{
-				Config:     config,
-				Gas:        10000,
-				CloneCache: nil,
+				Config:  config,
+				Gas:     10000,
+				CacheDB: nil,
 			}
 			engine, _ := sc.NewExecuteEngine(code)
 			engine.Invoke()
@@ -86,9 +86,9 @@ func TestOpCodeDUP(t *testing.T) {
 	var code = []byte{byte(neovm.DUP)}
 
 	sc := SmartContract{
-		Config:     config,
-		Gas:        10000,
-		CloneCache: nil,
+		Config:  config,
+		Gas:     10000,
+		CacheDB: nil,
 	}
 	engine, _ := sc.NewExecuteEngine(code)
 	_, err := engine.Invoke()
@@ -119,9 +119,9 @@ func TestOpReadMemAttack(t *testing.T) {
 	bs.Write(b)
 
 	sc := SmartContract{
-		Config:     config,
-		Gas:        100000,
-		CloneCache: nil,
+		Config:  config,
+		Gas:     100000,
+		CacheDB: nil,
 	}
 	engine, _ := sc.NewExecuteEngine(bs.Bytes())
 	_, err := engine.Invoke()
