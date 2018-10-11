@@ -46,7 +46,7 @@ type NativeService struct {
 	CacheDB       *storage.CacheDB
 	ServiceMap    map[string]Handler
 	Notifications []*event.NotifyEventInfo
-	Code          []byte
+	InvokeParam   sstates.ContractInvokeParam
 	Input         []byte
 	Tx            *types.Transaction
 	Height        uint32
@@ -59,11 +59,7 @@ func (this *NativeService) Register(methodName string, handler Handler) {
 }
 
 func (this *NativeService) Invoke() (interface{}, error) {
-	source := common.NewZeroCopySource(this.Code)
-	var contract sstates.Contract
-	if err := contract.Deserialization(source); err != nil {
-		return false, err
-	}
+	contract := this.InvokeParam
 	services, ok := Contracts[contract.Address]
 	if !ok {
 		return false, fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
@@ -91,13 +87,11 @@ func (this *NativeService) Invoke() (interface{}, error) {
 }
 
 func (this *NativeService) NativeCall(address common.Address, method string, args []byte) (interface{}, error) {
-	c := states.Contract{
+	c := states.ContractInvokeParam{
 		Address: address,
 		Method:  method,
 		Args:    args,
 	}
-	sink := common.ZeroCopySink{}
-	c.Serialization(&sink)
-	this.Code = sink.Bytes()
+	this.InvokeParam = c
 	return this.Invoke()
 }

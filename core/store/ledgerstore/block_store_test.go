@@ -379,7 +379,7 @@ func invokeSmartContractTx(gasPrice,
 	contractAddress common.Address,
 	method string,
 	args []byte) (*types.Transaction, error) {
-	crt := &cstates.Contract{
+	crt := &cstates.ContractInvokeParam{
 		Version: cversion,
 		Address: contractAddress,
 		Method:  method,
