@@ -64,24 +64,21 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return err
 	}
 
-	contract := &states.Contract{
+	contract := states.ContractInvokeParam{
 		Version: byte(version),
 		Address: addr,
 		Method:  string(method),
 		Args:    buf.Bytes(),
 	}
 
-	sink := common.ZeroCopySink{}
-	contract.Serialization(&sink)
-
 	native := &native.NativeService{
-		CacheDB:    service.CacheDB,
-		Code:       sink.Bytes(),
-		Tx:         service.Tx,
-		Height:     service.Height,
-		Time:       service.Time,
-		ContextRef: service.ContextRef,
-		ServiceMap: make(map[string]native.Handler),
+		CacheDB:     service.CacheDB,
+		InvokeParam: contract,
+		Tx:          service.Tx,
+		Height:      service.Height,
+		Time:        service.Time,
+		ContextRef:  service.ContextRef,
+		ServiceMap:  make(map[string]native.Handler),
 	}
 
 	result, err := native.Invoke()

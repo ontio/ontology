@@ -888,7 +888,7 @@ func buildWasmContractParam(params []interface{}, paramType wasmvm.ParamType) ([
 
 //BuildWasmVMInvokeCode return wasn vm invoke code
 func BuildWasmVMInvokeCode(smartcodeAddress common.Address, methodName string, paramType wasmvm.ParamType, version byte, params []interface{}) ([]byte, error) {
-	contract := &cstates.Contract{}
+	contract := &cstates.ContractInvokeParam{}
 	contract.Address = smartcodeAddress
 	contract.Method = methodName
 	contract.Version = version

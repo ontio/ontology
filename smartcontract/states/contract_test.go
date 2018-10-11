@@ -27,7 +27,7 @@ import (
 func TestContract_Serialize_Deserialize(t *testing.T) {
 	addr := common.AddressFromVmCode([]byte{1})
 
-	c := &Contract{
+	c := &ContractInvokeParam{
 		Version: 0,
 		Address: addr,
 		Method:  "init",
@@ -35,11 +35,11 @@ func TestContract_Serialize_Deserialize(t *testing.T) {
 	}
 	bf := new(bytes.Buffer)
 	if err := c.Serialize(bf); err != nil {
-		t.Fatalf("Contract serialize error: %v", err)
+		t.Fatalf("ContractInvokeParam serialize error: %v", err)
 	}
 
-	v := new(Contract)
+	v := new(ContractInvokeParam)
 	if err := v.Deserialize(bf); err != nil {
-		t.Fatalf("Contract deserialize error: %v", err)
+		t.Fatalf("ContractInvokeParam deserialize error: %v", err)
 	}
 }
