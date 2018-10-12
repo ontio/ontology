@@ -46,36 +46,34 @@ func (r *VmReader) ReadBytes(count int) []byte {
 	return b
 }
 
+func (r *VmReader) ReadBytesInto(b []byte) {
+	r.reader.Read(b)
+}
+
 func (r *VmReader) ReadUint16() uint16 {
-	b := r.ReadBytes(2)
-	return binary.LittleEndian.Uint16(b)
+	var b [2]byte
+	r.ReadBytesInto(b[:])
+	return binary.LittleEndian.Uint16(b[:])
 }
 
-func (r *VmReader) ReadUInt32() uint32 {
-	b := r.ReadBytes(4)
-	return binary.LittleEndian.Uint32(b)
+func (r *VmReader) ReadUint32() uint32 {
+	var b [4]byte
+	r.ReadBytesInto(b[:])
+	return binary.LittleEndian.Uint32(b[:])
 }
 
-func (r *VmReader) ReadUInt64() uint64 {
-	b := r.ReadBytes(8)
-	return binary.LittleEndian.Uint64(b)
+func (r *VmReader) ReadUint64() uint64 {
+	var b [8]byte
+	r.ReadBytesInto(b[:])
+	return binary.LittleEndian.Uint64(b[:])
 }
 
 func (r *VmReader) ReadInt16() int16 {
-	b := r.ReadBytes(2)
-	bytesBuffer := bytes.NewBuffer(b)
-	var vi int16
-	binary.Read(bytesBuffer, binary.LittleEndian, &vi)
-	return vi
-
+	return int16(r.ReadUint16())
 }
 
 func (r *VmReader) ReadInt32() int32 {
-	b := r.ReadBytes(4)
-	bytesBuffer := bytes.NewBuffer(b)
-	var vi int32
-	binary.Read(bytesBuffer, binary.LittleEndian, &vi)
-	return vi
+	return int32(r.ReadUint32())
 }
 
 func (r *VmReader) Position() int {
@@ -103,9 +101,9 @@ func (r *VmReader) ReadVarInt(max uint64) uint64 {
 	case 0xFD:
 		value = uint64(r.ReadInt16())
 	case 0xFE:
-		value = uint64(r.ReadUInt32())
+		value = uint64(r.ReadUint32())
 	case 0xFF:
-		value = uint64(r.ReadUInt64())
+		value = uint64(r.ReadUint64())
 	default:
 		value = uint64(fb)
 	}
