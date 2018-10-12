@@ -84,6 +84,10 @@ var (
 		GETEXECUTINGSCRIPTHASH_NAME:          {Execute: GetExecutingAddress},
 		GETCALLINGSCRIPTHASH_NAME:            {Execute: GetCallingAddress},
 		GETENTRYSCRIPTHASH_NAME:              {Execute: GetEntryAddress},
+
+		RUNTIME_BASE58TOADDRESS_NAME: {Execute: RuntimeBase58ToAddress},
+		RUNTIME_ADDRESSTOBASE58_NAME: {Execute: RuntimeAddressToBase58},
+		RUNTIME_GETRANDOMHASH_NAME:   {Execute: RuntimeGetRandomHash},
 	}
 )
 
@@ -121,6 +125,7 @@ type NeoVmService struct {
 	Tx            *types.Transaction
 	Time          uint32
 	Height        uint32
+	RandomHash    scommon.Uint256
 	Engine        *vm.ExecutionEngine
 }
 

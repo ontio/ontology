@@ -90,7 +90,7 @@ func AddressFromHexString(s string) (Address, error) {
 // AddressFromBase58 returns Address from encoded base58 string
 func AddressFromBase58(encoded string) (Address, error) {
 	if encoded == "" {
-		return ADDRESS_EMPTY, fmt.Errorf("invalid address")
+		return ADDRESS_EMPTY, errors.New("invalid address")
 	}
 	decoded, err := base58.BitcoinEncoding.Decode([]byte(encoded))
 	if err != nil {
@@ -99,13 +99,14 @@ func AddressFromBase58(encoded string) (Address, error) {
 
 	x, ok := new(big.Int).SetString(string(decoded), 10)
 	if !ok {
-		return ADDRESS_EMPTY, fmt.Errorf("invalid address")
+		return ADDRESS_EMPTY, errors.New("invalid address")
 	}
 
 	buf := x.Bytes()
 	if len(buf) != 1+ADDR_LEN+4 || buf[0] != byte(23) {
 		return ADDRESS_EMPTY, errors.New("wrong encoded address")
 	}
+
 	ph, err := AddressParseFromBytes(buf[1:21])
 	if err != nil {
 		return ADDRESS_EMPTY, err

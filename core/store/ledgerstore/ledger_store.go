@@ -24,10 +24,10 @@ import (
 	"math"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
-
-	"strconv"
+	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -52,7 +52,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	"time"
 )
 
 const (
@@ -846,12 +845,14 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.Execu
 
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
+	height := this.GetCurrentBlockHeight()
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
 	config := &smartcontract.Config{
-		Time:   uint32(time.Now().Unix()),
-		Height: this.GetCurrentBlockHeight() + 1,
-		Tx:     tx,
+		Time:       uint32(time.Now().Unix()),
+		Height:     height + 1,
+		Tx:         tx,
+		RandomHash: this.GetBlockHash(height),
 	}
 
 	overlay := this.stateStore.NewOverlayDB()

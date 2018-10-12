@@ -231,11 +231,10 @@ func newParamInit() *types.Transaction {
 		s = append(s, k)
 	}
 
-	neovm.GAS_TABLE.Range(func(key, value interface{}) bool {
-		INIT_PARAM[key.(string)] = strconv.FormatUint(value.(uint64), 10)
-		s = append(s, key.(string))
-		return true
-	})
+	for k, v := range neovm.INIT_GAS_TABLE {
+		INIT_PARAM[k] = strconv.FormatUint(v, 10)
+		s = append(s, k)
+	}
 
 	sort.Strings(s)
 	for _, v := range s {
