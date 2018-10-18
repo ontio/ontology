@@ -58,16 +58,16 @@ func (this *routingTable) locateBucket(id types.NodeID) (int, *bucket) {
 }
 
 // queryNode checks whether exist a node with a given id
-func (this *routingTable) queryNode(id types.NodeID) *types.Node {
+func (this *routingTable) queryNode(id types.NodeID) (*types.Node, int) {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
-	_, bucket := this.locateBucket(id)
+	index, bucket := this.locateBucket(id)
 	for _, node := range bucket.entries {
-		if (*node).ID == id {
-			return node
+		if node.ID == id {
+			return node, index
 		}
 	}
-	return nil
+	return nil, index
 }
 
 // add node to bucket, if bucket contains the node, move it to bucket head
@@ -209,24 +209,6 @@ func (this *routingTable) totalNodes() int {
 		num += len(bucket.entries)
 	}
 	return num
-}
-
-// isNodeInBucket checks whether a given node is in the specified bucket
-func (this *routingTable) isNodeInBucket(id types.NodeID, bucket int) (*types.Node, bool) {
-	this.mu.RLock()
-	defer this.mu.RUnlock()
-
-	b := this.buckets[bucket]
-	if b == nil {
-		return nil, false
-	}
-
-	for _, entry := range b.entries {
-		if entry.ID == id {
-			return entry, true
-		}
-	}
-	return nil, false
 }
 
 // table of leading zero counts for bytes [0..255]

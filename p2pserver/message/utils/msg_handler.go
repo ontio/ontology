@@ -169,7 +169,7 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 			if consensus.Cons.DestID == 0 {
 				p2p.Xmit(consensus, consensus.Cons.Hash(), true)
 			} else if consensus.Cons.DestID != p2p.GetID() {
-				msg := &msgCommon.TransmitConsensusMsgReq{
+				msg := &msgTypes.TransmitConsensusMsgReq{
 					Target: consensus.Cons.DestID,
 					Msg:    consensus,
 				}

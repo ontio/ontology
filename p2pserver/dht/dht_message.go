@@ -24,7 +24,6 @@ import (
 	"strings"
 	"sync"
 
-	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -40,7 +39,7 @@ func (this *DHT) findNodeHandle(from *net.UDPAddr, msg mt.Message) {
 		return
 	}
 
-	if node := this.routingTable.queryNode(findNode.FromID); node == nil {
+	if node, _ := this.routingTable.queryNode(findNode.FromID); node == nil {
 		// findnode must be after ping/pong, in case of DoS attack
 		log.Debugf("[dht]findNodeHandle: from %v, local doesn't contain the request node!", from)
 		return
@@ -58,7 +57,7 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 		log.Error("[dht]neighbors handle detected error message type!")
 		return
 	}
-	if node := this.routingTable.queryNode(neighbors.FromID); node == nil {
+	if node, _ := this.routingTable.queryNode(neighbors.FromID); node == nil {
 		return
 	}
 
@@ -102,7 +101,7 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 	liveNodes := make([]*types.Node, 0)
 	for i := 0; i < len(neighbors.Nodes); i++ {
 		node := &neighbors.Nodes[i]
-		if queryResult := this.routingTable.queryNode(node.ID); queryResult != nil {
+		if queryResult, _ := this.routingTable.queryNode(node.ID); queryResult != nil {
 			liveNodes = append(liveNodes, node)
 		}
 	}
@@ -133,7 +132,7 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 
 	// add the node to routing table
 	var node *types.Node
-	if node = this.routingTable.queryNode(ping.FromID); node == nil {
+	if node, _ = this.routingTable.queryNode(ping.FromID); node == nil {
 		node = &types.Node{
 			ID:      ping.FromID,
 			IP:      from.IP.String(),
@@ -185,10 +184,9 @@ func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
 
 // update the node to bucket when receive message from the node
 func (this *DHT) updateNode(fromId types.NodeID) {
-	node := this.routingTable.queryNode(fromId)
+	node, bucketIndex := this.routingTable.queryNode(fromId)
 	if node != nil {
 		// add node to bucket
-		bucketIndex, _ := this.routingTable.locateBucket(fromId)
 		this.routingTable.addNode(node, bucketIndex)
 	}
 }
@@ -200,9 +198,7 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 		return err
 	}
 	findNodeMsg := msgpack.NewFindNode(this.nodeID, targetID)
-	sink := comm.NewZeroCopySink(nil)
-	mt.WriteMessage(sink, findNodeMsg)
-	this.send(addr, sink.Bytes())
+	this.send(addr, findNodeMsg)
 	log.Debugf("[dht]findNode to %s", addr.String())
 	return nil
 }
@@ -226,9 +222,7 @@ func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	}
 
 	neighborsMsg := msgpack.NewNeighbors(this.nodeID, nodes)
-	sink := comm.NewZeroCopySink(nil)
-	mt.WriteMessage(sink, neighborsMsg)
-	this.send(addr, sink.Bytes())
+	this.send(addr, neighborsMsg)
 	log.Debugf("[dht]findNodeReply to %s", addr.String())
 
 	return nil
@@ -241,9 +235,7 @@ func (this *DHT) ping(destAddr *net.UDPAddr) error {
 	if pingMsg == nil {
 		return errors.New("[dht] faile to new dht ping")
 	}
-	sink := comm.NewZeroCopySink(nil)
-	mt.WriteMessage(sink, pingMsg)
-	this.send(destAddr, sink.Bytes())
+	this.send(destAddr, pingMsg)
 	log.Debugf("[dht]ping to %s", destAddr.String())
 	return nil
 }
@@ -255,9 +247,7 @@ func (this *DHT) pong(destAddr *net.UDPAddr) error {
 	if pongMsg == nil {
 		return errors.New("[dht] faile to new dht pong")
 	}
-	sink := comm.NewZeroCopySink(nil)
-	mt.WriteMessage(sink, pongMsg)
-	this.send(destAddr, sink.Bytes())
+	this.send(destAddr, pongMsg)
 	log.Debugf("[dht]pong to %s", destAddr.String())
 	return nil
 }

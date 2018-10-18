@@ -35,15 +35,6 @@ const (
 	REFRESH_INTERVAL  = 1 * time.Hour
 )
 
-type ptype uint8
-
-const (
-	ping_rpc ptype = iota
-	pong_rpc
-	find_node_rpc
-	neighbors_rpc
-)
-
 type DHTMessage struct {
 	From    *net.UDPAddr
 	Payload []byte

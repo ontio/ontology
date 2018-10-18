@@ -61,7 +61,7 @@ func NewHeadersReq(curHdrHash common.Uint256) mt.Message {
 }
 
 ////Consensus info package
-func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
+func NewConsensus(cp *mt.ConsensusPayload) *mt.Consensus {
 	log.Trace()
 	var cons mt.Consensus
 	cons.Cons = *cp

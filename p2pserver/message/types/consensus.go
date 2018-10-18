@@ -25,6 +25,11 @@ import (
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
+type TransmitConsensusMsgReq struct {
+	Target uint64
+	Msg    *Consensus
+}
+
 type Consensus struct {
 	Cons ConsensusPayload
 	Hop  uint8

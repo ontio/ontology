@@ -86,7 +86,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.handleGetRelayStateReq(ctx, msg)
 	case *GetNodeTypeReq:
 		this.handleGetNodeTypeReq(ctx, msg)
-	case *common.TransmitConsensusMsgReq:
+	case *types.TransmitConsensusMsgReq:
 		this.handleTransmitConsensusMsgReq(ctx, msg)
 	case *common.AppendPeerID:
 		this.server.OnAddNode(msg.ID)
@@ -238,11 +238,10 @@ func (this *P2PActor) handleGetNodeTypeReq(ctx actor.Context, req *GetNodeTypeRe
 }
 
 func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context,
-	req *common.TransmitConsensusMsgReq) {
-	msg := req.Msg.(*types.Consensus)
+	req *types.TransmitConsensusMsgReq) {
 	peer := this.server.GetNetWork().GetPeer(req.Target)
 	if peer != nil && this.server.GetNetWork().IsPeerEstablished(peer) {
-		err := this.server.Send(peer, msg, true)
+		err := this.server.Send(peer, req.Msg, true)
 		if err != nil {
 			log.Warnf("[p2p]can`t transmit consensus msg to %s, send msg err: %s", peer.GetAddr(), err)
 		}
@@ -264,7 +263,7 @@ func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context,
 			if peer == nil || !this.server.GetNetWork().IsPeerEstablished(peer) {
 				continue
 			}
-			err := this.server.Send(peer, msg, true)
+			err := this.server.Send(peer, req.Msg, true)
 			if err != nil {
 				log.Warnf("[p2p]can`t transmit consensus msg to %s, send msg err: %s", peer.GetAddr(), err)
 			}

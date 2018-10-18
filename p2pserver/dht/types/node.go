@@ -46,7 +46,7 @@ func (n NodeID) String() string {
 var NilID = NodeID{}
 
 func (n NodeID) IsNil() bool {
-	return bytes.Compare(n.Bytes(), NilID.Bytes()) == 0
+	return n == NilID
 }
 
 func StringID(in string) (NodeID, error) {

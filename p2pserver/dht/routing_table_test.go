@@ -55,8 +55,7 @@ func TestRoutingTable(t *testing.T) {
 
 	// Add nodes to buckets
 	for _, node := range nodes {
-		bucketIndex, _ := routingTable.locateBucket(node.ID)
-		remoteNode, _ := routingTable.isNodeInBucket(node.ID, bucketIndex)
+		remoteNode, bucketIndex := routingTable.queryNode(node.ID)
 		assert.Nil(t, remoteNode)
 
 		num := routingTable.getTotalNodeNumInBukcet(bucketIndex)
@@ -64,12 +63,12 @@ func TestRoutingTable(t *testing.T) {
 		added := routingTable.addNode(node, bucketIndex)
 		if num >= types.BUCKET_SIZE {
 			assert.Equal(t, false, added)
-			_, ok := routingTable.isNodeInBucket(node.ID, bucketIndex)
-			assert.Equal(t, false, ok)
+			tempRemoteNode, _ := routingTable.queryNode(node.ID)
+			assert.Nil(t, tempRemoteNode)
 		} else {
 			assert.Equal(t, true, added)
-			_, ok := routingTable.isNodeInBucket(node.ID, bucketIndex)
-			assert.Equal(t, true, ok)
+			tempRemoteNode, _ := routingTable.queryNode(node.ID)
+			assert.NotNil(t, tempRemoteNode)
 
 			frontNode := routingTable.buckets[bucketIndex].entries[0]
 			assert.NotNil(t, frontNode)

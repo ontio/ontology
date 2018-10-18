@@ -25,7 +25,6 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/p2pserver/common"
 	ptypes "github.com/ontio/ontology/p2pserver/message/types"
 	txpool "github.com/ontio/ontology/txnpool/common"
 )
@@ -72,8 +71,8 @@ func (self *P2PActor) Broadcast(msg interface{}) {
 	self.P2P.Tell(msg)
 }
 
-func (self *P2PActor) Transmit(target uint64, msg ptypes.Message) {
-	self.P2P.Tell(&common.TransmitConsensusMsgReq{
+func (self *P2PActor) Transmit(target uint64, msg *ptypes.Consensus) {
+	self.P2P.Tell(&ptypes.TransmitConsensusMsgReq{
 		Target: target,
 		Msg:    msg,
 	})

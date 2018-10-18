@@ -53,9 +53,7 @@ const (
 	MAX_REQ_BLK_ONCE = 16               //req blk count once from one peer when sync blk
 	MAX_MSG_LEN      = 30 * 1024 * 1024 //the maximum message length
 	MAX_PAYLOAD_LEN  = MAX_MSG_LEN - MSG_HDR_LEN
-	HASH_LEN         = 32         // hash length in byte
-	NETMAGIC         = 0x74746e41 //network magic number
-	MAX_CACHE_SIZE   = 65536      // Max hash cache
+	MAX_CACHE_SIZE   = 65536 // Max hash cache
 )
 
 //msg type const
@@ -154,11 +152,6 @@ type AppendBlock struct {
 	FromID    uint64       // The peer id
 	BlockSize uint32       // Block size
 	Block     *types.Block // Block to be added to the ledger
-}
-
-type TransmitConsensusMsgReq struct {
-	Target uint64
-	Msg    interface{}
 }
 
 //ParseIPAddr return ip address

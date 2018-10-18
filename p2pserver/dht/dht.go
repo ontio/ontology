@@ -29,6 +29,7 @@ import (
 	"sync"
 	"time"
 
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -219,9 +220,8 @@ func (this *DHT) refreshRoutingTable() {
 // lookup executes a network search for nodes closest to the given
 // target and setup k bucket
 func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
-	bucket, _ := this.routingTable.locateBucket(targetID)
-	node, ret := this.routingTable.isNodeInBucket(targetID, bucket)
-	if ret == true {
+	node, _ := this.routingTable.queryNode(targetID)
+	if node != nil {
 		return []*types.Node{node}
 	}
 
@@ -307,13 +307,15 @@ func (this *DHT) addNode(remotePeer *types.Node) {
 	}
 
 	// find node in own bucket
-	bucketIndex, _ := this.routingTable.locateBucket(remotePeer.ID)
-	remoteNode, isInBucket := this.routingTable.isNodeInBucket(remotePeer.ID, bucketIndex)
-	// update peer info in local bucket
-	remoteNode = remotePeer
-	if isInBucket {
+	remoteNode, bucketIndex := this.routingTable.queryNode(remotePeer.ID)
+
+	if remoteNode != nil {
+		// update peer info in local bucket
+		remoteNode = remotePeer
 		this.routingTable.addNode(remoteNode, bucketIndex)
 	} else {
+		// add new peer in local bucket
+		remoteNode = remotePeer
 		bucketNodeNum := this.routingTable.getTotalNodeNumInBukcet(bucketIndex)
 		if bucketNodeNum < types.BUCKET_SIZE { // bucket is not full
 			this.routingTable.addNode(remoteNode, bucketIndex)
@@ -409,8 +411,10 @@ func (this *DHT) listenUDP(laddr string) error {
 }
 
 // send a msg to the remote node
-func (this *DHT) send(addr *net.UDPAddr, msg []byte) error {
-	_, err := this.conn.WriteToUDP(msg, addr)
+func (this *DHT) send(addr *net.UDPAddr, msg mt.Message) error {
+	sink := comm.NewZeroCopySink(nil)
+	mt.WriteMessage(sink, msg)
+	_, err := this.conn.WriteToUDP(sink.Bytes(), addr)
 	if err != nil {
 		log.Errorf("DHT failed to send msg to addr %v. err %v", addr, err)
 		return err
@@ -457,9 +461,8 @@ func (this *DHT) Resolve(id uint64) []*types.Node {
 	var nodeID types.NodeID
 	copy(nodeID[:], b[:])
 
-	bucket, _ := this.routingTable.locateBucket(nodeID)
-	node, ret := this.routingTable.isNodeInBucket(nodeID, bucket)
-	if ret == true {
+	node, _ := this.routingTable.queryNode(nodeID)
+	if node != nil {
 		return []*types.Node{node}
 	}
 
