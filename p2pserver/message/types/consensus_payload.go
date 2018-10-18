@@ -34,20 +34,6 @@ import (
 
 type Datatype uint8
 
-const (
-	BlockProposalMessage Datatype = iota
-	BlockEndorseMessage
-	BlockCommitMessage
-
-	PeerHandshakeMessage
-	PeerHeartbeatMessage
-
-	BlockInfoFetchMessage
-	BlockInfoFetchRespMessage
-	ProposalFetchMessage
-	BlockFetchMessage
-	BlockFetchRespMessage
-)
 
 type ConsensusPayload struct {
 	Version         uint32
