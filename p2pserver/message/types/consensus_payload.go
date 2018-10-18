@@ -34,7 +34,6 @@ import (
 
 type Datatype uint8
 
-
 type ConsensusPayload struct {
 	Version         uint32
 	PrevHash        common.Uint256
