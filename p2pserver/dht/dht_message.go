@@ -33,6 +33,7 @@ import (
 
 // findNodeHandle handles a find node message from UDP network
 func (this *DHT) findNodeHandle(from *net.UDPAddr, msg mt.Message) {
+	log.Debugf("[dht]findNodeHandle: from %v ", from)
 	findNode, ok := msg.(*mt.FindNode)
 	if !ok {
 		log.Error("[dht]find node handle detected error message type!")
@@ -41,17 +42,18 @@ func (this *DHT) findNodeHandle(from *net.UDPAddr, msg mt.Message) {
 
 	if node, _ := this.routingTable.queryNode(findNode.FromID); node == nil {
 		// findnode must be after ping/pong, in case of DoS attack
-		log.Debugf("[dht]findNodeHandle: from %v, local doesn't contain the request node!", from)
+		log.Debugf("[dht]findNodeHandle: from %v, local doesn't contain the request node %v!",
+			from, findNode.FromID)
 		return
 	}
 
 	this.updateNode(findNode.FromID)
 	this.findNodeReply(from, findNode.TargetID)
-	log.Debugf("[dht]findNodeHandle: from %v ", from)
 }
 
 // neighborsHandle handles a neighbors message from UDP network
 func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
+	log.Debugf("[dht]neighborsHandle: from %v ", from)
 	neighbors, ok := msg.(*mt.Neighbors)
 	if !ok {
 		log.Error("[dht]neighbors handle detected error message type!")
@@ -108,11 +110,11 @@ func (this *DHT) neighborsHandle(from *net.UDPAddr, msg mt.Message) {
 	this.messagePool.SetResults(liveNodes)
 
 	this.updateNode(neighbors.FromID)
-	log.Debugf("[dht]neighborsHandle: from %v ", from)
 }
 
 // pingHandle handles a ping message from UDP network
 func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
+	log.Debugf("[dht]pingHandle: from %v ", from)
 	ping, ok := msg.(*mt.DHTPing)
 	if !ok {
 		log.Error("[dht]ping handle detected error message type!")
@@ -148,11 +150,11 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 	if _, ok = this.messagePool.GetRequestData(requestId); ok {
 		this.messagePool.DeleteRequest(requestId)
 	}
-	log.Debugf("[dht]pingHandle: from %v ", from)
 }
 
 // pongHandle handles a pong message from UDP network
 func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
+	log.Debugf("[dht]pongHandle: from %v ", from)
 	pong, ok := msg.(*mt.DHTPong)
 	if !ok {
 		log.Error("[dht]pong handle detected error message type!")
@@ -168,7 +170,7 @@ func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
 	node, ok := this.messagePool.GetRequestData(requestId)
 	if !ok {
 		// request pool doesn't contain the node, ping timeout
-		log.Debugf("[dht]pongHandle: from %v timeout", from)
+		log.Errorf("[dht]pongHandle: from %v timeout", from)
 		this.routingTable.removeNode(pong.FromID)
 		return
 	}
@@ -185,7 +187,6 @@ func (this *DHT) pongHandle(from *net.UDPAddr, msg mt.Message) {
 	this.addNode(node)
 	// remove node from request pool
 	this.messagePool.DeleteRequest(requestId)
-	log.Debugf("[dht]pongHandle: from %v ", from)
 }
 
 // update the node to bucket when receive message from the node

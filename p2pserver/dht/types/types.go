@@ -25,14 +25,14 @@ import (
 )
 
 const (
-	BUCKET_NUM        = NODE_ID_BITS
-	BUCKET_SIZE       = 8
-	FACTOR            = 3
-	MSG_CACHE         = 10240
-	PING_TIMEOUT      = 10 * time.Second
-	FIND_NODE_TIMEOUT = 10 * time.Second
-	DEFAULT_TIMEOUT   = 1 * time.Second
-	REFRESH_INTERVAL  = 1 * time.Hour
+	BUCKET_NUM        = NODE_ID_BITS     // Number of buckets
+	BUCKET_SIZE       = 8                // Kademlia bucket size
+	FACTOR            = 3                // Kademlia concurrency factor
+	MSG_CACHE         = 10240            // Max receive message cache
+	PING_TIMEOUT      = 10 * time.Second // Ping timeout
+	FIND_NODE_TIMEOUT = 10 * time.Second // Find node timeout
+	DEFAULT_TIMEOUT   = 20 * time.Second // Default timeout
+	REFRESH_INTERVAL  = 1 * time.Hour    // Refresh interval
 )
 
 type DHTMessage struct {

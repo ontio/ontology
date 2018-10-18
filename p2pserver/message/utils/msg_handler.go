@@ -363,7 +363,6 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			remotePeer.SetHttpInfoState(false)
 		}
 		remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
-
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.UDPPort,

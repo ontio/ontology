@@ -74,7 +74,6 @@ func (this *routingTable) queryNode(id types.NodeID) (*types.Node, int) {
 func (this *routingTable) addNode(node *types.Node, bucketIndex int) bool {
 	this.mu.Lock()
 	defer this.mu.Unlock()
-
 	bucket := this.buckets[bucketIndex]
 	for i, entry := range bucket.entries {
 		if entry.ID == node.ID {
@@ -117,7 +116,6 @@ func (this *routingTable) removeNode(id types.NodeID) {
 	this.mu.Lock()
 	defer this.mu.Unlock()
 	_, bucket := this.locateBucket(id)
-
 	entries := bucket.entries[:0]
 	var node *types.Node
 	for _, entry := range bucket.entries {

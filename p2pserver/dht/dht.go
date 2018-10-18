@@ -264,33 +264,31 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestNodes []*types.Node,
 	targetID types.NodeID) {
 	responseCh := this.messagePool.GetResultChan()
-	select {
-	case entries, ok := <-responseCh:
-		if ok {
-			for _, n := range entries {
-				// Todo:
-				if knownNode[n.ID] == true || n.ID == this.nodeID {
-					continue
-				}
-				knownNode[n.ID] = true
-				if len(closestNodes) < types.BUCKET_SIZE {
-					closestNodes = append(closestNodes, n)
-				} else {
-					index := len(closestNodes)
-					for i, entry := range closestNodes {
-						for j := range targetID {
-							da := entry.ID[j] ^ targetID[j]
-							db := n.ID[j] ^ targetID[j]
-							if da > db {
-								index = i
-								break
-							}
+	entries, ok := <-responseCh
+	if ok {
+		for _, n := range entries {
+			// Todo:
+			if knownNode[n.ID] == true || n.ID == this.nodeID {
+				continue
+			}
+			knownNode[n.ID] = true
+			if len(closestNodes) < types.BUCKET_SIZE {
+				closestNodes = append(closestNodes, n)
+			} else {
+				index := len(closestNodes)
+				for i, entry := range closestNodes {
+					for j := range targetID {
+						da := entry.ID[j] ^ targetID[j]
+						db := n.ID[j] ^ targetID[j]
+						if da > db {
+							index = i
+							break
 						}
 					}
+				}
 
-					if index < len(closestNodes) {
-						closestNodes[index] = n
-					}
+				if index < len(closestNodes) {
+					closestNodes[index] = n
 				}
 			}
 		}

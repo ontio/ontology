@@ -152,7 +152,6 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 		StartHeight:  uint64(height),
 		TimeStamp:    time.Now().UnixNano(),
 	}
-
 	if n.GetRelay() {
 		version.P.Relay = 1
 	} else {
