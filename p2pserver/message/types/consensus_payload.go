@@ -213,6 +213,7 @@ func (this *ConsensusPayload) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.Height)
 	sink.WriteUint16(this.BookkeeperIndex)
 	sink.WriteUint32(this.Timestamp)
+	sink.WriteUint64(this.DestID)
 	sink.WriteVarBytes(this.Data)
 }
 
@@ -262,6 +263,7 @@ func (this *ConsensusPayload) deserializationUnsigned(source *common.ZeroCopySou
 	this.Height, eof = source.NextUint32()
 	this.BookkeeperIndex, eof = source.NextUint16()
 	this.Timestamp, eof = source.NextUint32()
+	this.DestID, eof = source.NextUint64()
 	this.Data, _, irregular, eof = source.NextVarBytes()
 	if eof {
 		return io.ErrUnexpectedEOF
