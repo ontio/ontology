@@ -48,18 +48,21 @@ func GetReqTypeFromReqId(reqId RequestId) DHTRequestType {
 }
 
 type DHTMessagePool struct {
-	requestCtx *requestContext
-
-	onTimeOut func(id RequestId) // time out event should be handled by dht
+	request         map[RequestId]*reqContext
+	timeoutListener chan RequestId
+	onTimeOut       func(id RequestId) // time out event should be handled by dht
 
 	resultChan chan []*Node
+
+	lock sync.RWMutex
 }
 
 func NewRequestPool(onTimeOut func(id RequestId)) *DHTMessagePool {
 	msgPool := new(DHTMessagePool)
 	msgPool.onTimeOut = onTimeOut
 	msgPool.resultChan = make(chan []*Node, MESSAGE_POOL_BUFFER_SIZE)
-	msgPool.requestCtx = newRequestContext()
+	msgPool.request = make(map[RequestId]*reqContext)
+	msgPool.timeoutListener = make(chan RequestId)
 	go msgPool.start()
 	return msgPool
 }
@@ -68,7 +71,7 @@ func (this *DHTMessagePool) start() {
 	for {
 		select {
 		// time out
-		case requestId := <-this.requestCtx.getTimeOutRequest():
+		case requestId := <-this.timeoutListener:
 			this.onTimeOut(requestId)
 		}
 	}
@@ -78,8 +81,12 @@ func (this *DHTMessagePool) start() {
 // destinateNode: request to the node
 // replaceNode: should be replaced node
 // reqType: request type
+// return the request is new request
 func (this *DHTMessagePool) AddRequest(destinateNode *Node, reqType DHTRequestType, replaceNode *Node,
-	waitGroup *sync.WaitGroup) (RequestId, bool) {
+	waitGroup *sync.WaitGroup) (id RequestId, isNewRequest bool) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
 	requestId := ConstructRequestId(destinateNode.ID, reqType)
 	var timeout time.Duration
 	if reqType == DHT_FIND_NODE_REQUEST {
@@ -89,20 +96,49 @@ func (this *DHTMessagePool) AddRequest(destinateNode *Node, reqType DHTRequestTy
 	} else {
 		timeout = DEFAULT_TIMEOUT
 	}
-	isNewRequest := this.requestCtx.addRequest(requestId, destinateNode, replaceNode, waitGroup, timeout)
+	req, ok := this.request[requestId]
+	isNewRequest = !ok
+	if ok {
+		req.reset(timeout)
+	} else {
+		this.request[requestId] = newReqContext(requestId, destinateNode, replaceNode, waitGroup,
+			this.timeoutListener, timeout)
+	}
 	return requestId, isNewRequest
 }
 
 func (this *DHTMessagePool) GetReplaceNode(id RequestId) (*Node, bool) {
-	return this.requestCtx.getReplaceNode(id)
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+
+	var destNode *Node
+	req, ok := this.request[id]
+	if ok {
+		destNode = req.replaceNode
+	}
+	return destNode, ok
 }
 
 func (this *DHTMessagePool) GetRequestData(id RequestId) (*Node, bool) {
-	return this.requestCtx.getDestNode(id)
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+
+	var replaceNode *Node
+	req, ok := this.request[id]
+	if ok {
+		replaceNode = req.destNode
+	}
+	return replaceNode, ok
 }
 
 func (this *DHTMessagePool) DeleteRequest(requestId RequestId) {
-	this.requestCtx.deleteRequest(requestId)
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	if req, ok := this.request[requestId]; ok {
+		req.clean()
+		delete(this.request, requestId)
+	}
 }
 
 // push result
