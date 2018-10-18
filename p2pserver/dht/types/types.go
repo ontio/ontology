@@ -29,8 +29,8 @@ const (
 	BUCKET_SIZE       = 8
 	FACTOR            = 3
 	MSG_CACHE         = 10240
-	PING_TIMEOUT      = 500 * time.Millisecond
-	FIND_NODE_TIMEOUT = 500 * time.Millisecond
+	PING_TIMEOUT      = 10 * time.Second
+	FIND_NODE_TIMEOUT = 10 * time.Second
 	DEFAULT_TIMEOUT   = 1 * time.Second
 	REFRESH_INTERVAL  = 1 * time.Hour
 )

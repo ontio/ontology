@@ -142,6 +142,12 @@ func (this *DHT) pingHandle(from *net.UDPAddr, msg mt.Message) {
 	}
 	this.addNode(node)
 	this.pong(from)
+	// if already ping the from node, cancel the request in case of ping timeout
+	// ping time out will delete ping request node
+	requestId := types.ConstructRequestId(ping.FromID, types.DHT_PING_REQUEST)
+	if _, ok = this.messagePool.GetRequestData(requestId); ok {
+		this.messagePool.DeleteRequest(requestId)
+	}
 	log.Debugf("[dht]pingHandle: from %v ", from)
 }
 
