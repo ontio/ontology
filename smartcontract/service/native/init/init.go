@@ -26,21 +26,14 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
-	"github.com/ontio/ontology/smartcontract/service/native/ong"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
-var (
-	COMMIT_DPOS_BYTES = InitBytes(utils.GovernanceContractAddress, governance.COMMIT_DPOS)
-)
-
 func init() {
-	ong.InitOng()
-	ont.InitOnt()
+	ongx.InitOngx()
 	params.InitGlobalParams()
 	ontid.Init()
 	auth.Init()

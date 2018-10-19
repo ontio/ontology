@@ -21,10 +21,12 @@ package governance
 import (
 	"fmt"
 	"io"
+	"math"
 	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type Status uint8
@@ -43,49 +45,6 @@ func (this *Status) Deserialize(r io.Reader) error {
 	}
 	*this = Status(status)
 	return nil
-}
-
-type BlackListItem struct {
-	PeerPubkey string         //peerPubkey in black list
-	Address    common.Address //the owner of this peer
-	InitPos    uint64         //initPos of this peer
-}
-
-func (this *BlackListItem) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize initPos error: %v", err)
-	}
-	return nil
-}
-
-func (this *BlackListItem) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
-	}
-	address := new(common.Address)
-	err = address.Deserialize(r)
-	if err != nil {
-		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
-	}
-	initPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", err)
-	}
-	this.PeerPubkey = peerPubkey
-	this.Address = *address
-	this.InitPos = initPos
-	return nil
-}
-
-type PeerPoolList struct {
-	Peers []*PeerPoolItem
 }
 
 type PeerPoolMap struct {
@@ -195,96 +154,6 @@ func (this *PeerPoolItem) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type AuthorizeInfo struct {
-	PeerPubkey           string
-	Address              common.Address
-	ConsensusPos         uint64 //pos deposit in consensus node
-	CandidatePos         uint64 //pos deposit in candidate node
-	NewPos               uint64 //deposit new pos to consensus or candidate node, it will be calculated in next epoch, you can withdrawal it at any time
-	WithdrawConsensusPos uint64 //unAuthorized pos from consensus pos, frozen until next next epoch
-	WithdrawCandidatePos uint64 //unAuthorized pos from candidate pos, frozen until next epoch
-	WithdrawUnfreezePos  uint64 //unfrozen pos, can withdraw at any time
-}
-
-func (this *AuthorizeInfo) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, request peerPubkey error: %v", err)
-	}
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.ConsensusPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize consensusPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.CandidatePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize candidatePos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.NewPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize newPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.WithdrawConsensusPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize withdrawConsensusPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.WithdrawCandidatePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize withdrawCandidatePos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.WithdrawUnfreezePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize withDrawUnfreezePos error: %v", err)
-	}
-	return nil
-}
-
-func (this *AuthorizeInfo) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
-	}
-	address := new(common.Address)
-	err = address.Deserialize(r)
-	if err != nil {
-		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
-	}
-	consensusPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize consensusPos error: %v", err)
-	}
-	candidatePos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize candidatePos error: %v", err)
-	}
-	newPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize newPos error: %v", err)
-	}
-	withDrawConsensusPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawConsensusPos error: %v", err)
-	}
-	withDrawCandidatePos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawCandidatePos error: %v", err)
-	}
-	withDrawUnfreezePos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawUnfreezePos error: %v", err)
-	}
-	this.PeerPubkey = peerPubkey
-	this.Address = *address
-	this.ConsensusPos = consensusPos
-	this.CandidatePos = candidatePos
-	this.NewPos = newPos
-	this.WithdrawConsensusPos = withDrawConsensusPos
-	this.WithdrawCandidatePos = withDrawCandidatePos
-	this.WithdrawUnfreezePos = withDrawUnfreezePos
-	return nil
-}
-
-type PeerStakeInfo struct {
-	Index      uint32
-	PeerPubkey string
-	Stake      uint64
-}
-
 type GovernanceView struct {
 	View   uint32
 	Height uint32
@@ -323,98 +192,208 @@ func (this *GovernanceView) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type TotalStake struct { //table record each address's total stake in this contract
-	Address    common.Address
-	Stake      uint64
-	TimeOffset uint32
+type Configuration struct {
+	N                    uint32
+	C                    uint32
+	K                    uint32
+	L                    uint32
+	BlockMsgDelay        uint32
+	HashMsgDelay         uint32
+	PeerHandshakeTimeout uint32
+	MaxBlockChangeView   uint32
 }
 
-func (this *TotalStake) Serialize(w io.Writer) error {
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
+func (this *Configuration) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, uint64(this.N)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize n error: %v", err)
 	}
-	if err := serialization.WriteUint64(w, this.Stake); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize stake error: %v", err)
+	if err := utils.WriteVarUint(w, uint64(this.C)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize c error: %v", err)
 	}
-	if err := serialization.WriteUint32(w, this.TimeOffset); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize timeOffset error: %v", err)
+	if err := utils.WriteVarUint(w, uint64(this.K)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize k error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.L)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize l error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.BlockMsgDelay)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize block_msg_delay error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.HashMsgDelay)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize hash_msg_delay error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.PeerHandshakeTimeout)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize peer_handshake_timeout error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.MaxBlockChangeView)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize max_block_change_view error: %v", err)
 	}
 	return nil
 }
 
-func (this *TotalStake) Deserialize(r io.Reader) error {
-	address := new(common.Address)
-	err := address.Deserialize(r)
+func (this *Configuration) Deserialize(r io.Reader) error {
+	n, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize n error: %v", err)
 	}
-	stake, err := serialization.ReadUint64(r)
+	c, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize stake error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize c error: %v", err)
 	}
-	timeOffset, err := serialization.ReadUint32(r)
+	k, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize timeOffset error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize k error: %v", err)
 	}
-	this.Address = *address
-	this.Stake = stake
-	this.TimeOffset = timeOffset
+	l, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize l error: %v", err)
+	}
+	blockMsgDelay, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize blockMsgDelay error: %v", err)
+	}
+	hashMsgDelay, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize hashMsgDelay error: %v", err)
+	}
+	peerHandshakeTimeout, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize peerHandshakeTimeout error: %v", err)
+	}
+	maxBlockChangeView, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadVarUint, deserialize maxBlockChangeView error: %v", err)
+	}
+	if n > math.MaxUint32 {
+		return fmt.Errorf("n larger than max of uint32")
+	}
+	if c > math.MaxUint32 {
+		return fmt.Errorf("c larger than max of uint32")
+	}
+	if k > math.MaxUint32 {
+		return fmt.Errorf("k larger than max of uint32")
+	}
+	if l > math.MaxUint32 {
+		return fmt.Errorf("l larger than max of uint32")
+	}
+	if blockMsgDelay > math.MaxUint32 {
+		return fmt.Errorf("blockMsgDelay larger than max of uint32")
+	}
+	if hashMsgDelay > math.MaxUint32 {
+		return fmt.Errorf("hashMsgDelay larger than max of uint32")
+	}
+	if peerHandshakeTimeout > math.MaxUint32 {
+		return fmt.Errorf("peerHandshakeTimeout larger than max of uint32")
+	}
+	if maxBlockChangeView > math.MaxUint32 {
+		return fmt.Errorf("maxBlockChangeView larger than max of uint32")
+	}
+	this.N = uint32(n)
+	this.C = uint32(c)
+	this.K = uint32(k)
+	this.L = uint32(l)
+	this.BlockMsgDelay = uint32(blockMsgDelay)
+	this.HashMsgDelay = uint32(hashMsgDelay)
+	this.PeerHandshakeTimeout = uint32(peerHandshakeTimeout)
+	this.MaxBlockChangeView = uint32(maxBlockChangeView)
 	return nil
 }
 
-type PenaltyStake struct { //table record penalty stake of peer
-	PeerPubkey   string //peer pubKey of penalty stake
-	InitPos      uint64 //initPos penalty
-	AuthorizePos uint64 //authorize pos penalty
-	TimeOffset   uint32 //time used for calculate unbound ong
-	Amount       uint64 //unbound ong that this penalty unbounded
+type SplitCurve struct {
+	Yi []uint32
 }
 
-func (this *PenaltyStake) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
+func (this *SplitCurve) Serialize(w io.Writer) error {
+	if len(this.Yi) != 101 {
+		return fmt.Errorf("length of split curve != 101")
 	}
-	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize initPos error: %v", err)
+	if err := utils.WriteVarUint(w, uint64(len(this.Yi))); err != nil {
+		return fmt.Errorf("serialization.WriteVarUint, serialize Yi length error: %v", err)
 	}
-	if err := serialization.WriteUint64(w, this.AuthorizePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize authorizePos error: %v", err)
-	}
-	if err := serialization.WriteUint32(w, this.TimeOffset); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize timeOffset error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.Amount); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize amount error: %v", err)
+	for _, v := range this.Yi {
+		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
+			return fmt.Errorf("utils.WriteVarUint, serialize splitCurve error: %v", err)
+		}
 	}
 	return nil
 }
 
-func (this *PenaltyStake) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *SplitCurve) Deserialize(r io.Reader) error {
+	n, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+		return fmt.Errorf("serialization.ReadVarUint, deserialize Yi length error: %v", err)
 	}
-	initPos, err := serialization.ReadUint64(r)
+	yi := make([]uint32, 0)
+	for i := 0; uint64(i) < n; i++ {
+		k, err := utils.ReadVarUint(r)
+		if err != nil {
+			return fmt.Errorf("utils.ReadVarUint, deserialize splitCurve error: %v", err)
+		}
+		if k > math.MaxUint32 {
+			return fmt.Errorf("yi larger than max of uint32")
+		}
+		yi = append(yi, uint32(k))
+	}
+	this.Yi = yi
+	return nil
+}
+
+type GlobalParam struct {
+	CandidateFeeSplitNum uint32 //num of peer can receive motivation(include consensus and candidate)
+	A                    uint32 //fee split to all consensus node
+	B                    uint32 //fee split to all candidate node
+	Yita                 uint32 //split curve coefficient
+}
+
+func (this *GlobalParam) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, uint64(this.CandidateFeeSplitNum)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize candidateFeeSplitNum error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.A)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize a error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.B)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize b error: %v", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.Yita)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize yita error: %v", err)
+	}
+	return nil
+}
+
+func (this *GlobalParam) Deserialize(r io.Reader) error {
+	candidateFeeSplitNum, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize initPos error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize candidateFeeSplitNum error: %v", err)
 	}
-	authorizePos, err := serialization.ReadUint64(r)
+	a, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize authorizePos error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize a error: %v", err)
 	}
-	timeOffset, err := serialization.ReadUint32(r)
+	b, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize timeOffset error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize b error: %v", err)
 	}
-	amount, err := serialization.ReadUint64(r)
+	yita, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64. deserialize amount error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize yita error: %v", err)
 	}
-	this.PeerPubkey = peerPubkey
-	this.InitPos = initPos
-	this.AuthorizePos = authorizePos
-	this.TimeOffset = timeOffset
-	this.Amount = amount
+	if candidateFeeSplitNum > math.MaxUint32 {
+		return fmt.Errorf("minInitStake larger than max of uint32")
+	}
+	if a > math.MaxUint32 {
+		return fmt.Errorf("a larger than max of uint32")
+	}
+	if b > math.MaxUint32 {
+		return fmt.Errorf("b larger than max of uint32")
+	}
+	if yita > math.MaxUint32 {
+		return fmt.Errorf("yita larger than max of uint32")
+	}
+	this.CandidateFeeSplitNum = uint32(candidateFeeSplitNum)
+	this.A = uint32(a)
+	this.B = uint32(b)
+	this.Yita = uint32(yita)
 	return nil
 }
 
@@ -424,126 +403,4 @@ type CandidateSplitInfo struct {
 	InitPos    uint64
 	Stake      uint64 //total stake, init pos + total pos
 	S          uint64 //fee split weight of this peer
-}
-
-type PeerAttributes struct {
-	PeerPubkey   string
-	MaxAuthorize uint64 //max authorzie pos this peer can receive(number of ont), set by peer owner
-	T2PeerCost   uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T + 2
-	T1PeerCost   uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T + 1
-	TPeerCost    uint64 //candidate or consensus node doesn't share income percent with authorize users, 100 means node will take all incomes, it will take effect in view T
-	Field1       []byte //reserved field
-	Field2       []byte //reserved field
-	Field3       []byte //reserved field
-	Field4       []byte //reserved field
-}
-
-func (this *PeerAttributes) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.MaxAuthorize); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize maxAuthorize error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.T2PeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize oldPeerCost error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.T1PeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize newPeerCost error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.TPeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize newPeerCost error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field1); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field1 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field2); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field2 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field3); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field3 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field4); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field4 error: %v", err)
-	}
-	return nil
-}
-
-func (this *PeerAttributes) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
-	}
-	maxAuthorize, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", err)
-	}
-	t2PeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize t2PeerCost error: %v", err)
-	}
-	t1PeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize t1PeerCost error: %v", err)
-	}
-	tPeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize tPeerCost error: %v", err)
-	}
-	field1, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes. deserialize field1 error: %v", err)
-	}
-	field2, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes. deserialize field2 error: %v", err)
-	}
-	field3, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes, deserialize field3 error: %v", err)
-	}
-	field4, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes. deserialize field4 error: %v", err)
-	}
-	this.PeerPubkey = peerPubkey
-	this.MaxAuthorize = maxAuthorize
-	this.T2PeerCost = t2PeerCost
-	this.T1PeerCost = t1PeerCost
-	this.TPeerCost = tPeerCost
-	this.Field1 = field1
-	this.Field2 = field2
-	this.Field3 = field3
-	this.Field4 = field4
-	return nil
-}
-
-type SplitFeeAddress struct { //table record each address's ong motivation
-	Address common.Address
-	Amount  uint64
-}
-
-func (this *SplitFeeAddress) Serialize(w io.Writer) error {
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.Amount); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize amount error: %v", err)
-	}
-	return nil
-}
-
-func (this *SplitFeeAddress) Deserialize(r io.Reader) error {
-	address := new(common.Address)
-	err := address.Deserialize(r)
-	if err != nil {
-		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
-	}
-	amount, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize amount error: %v", err)
-	}
-	this.Address = *address
-	this.Amount = amount
-	return nil
 }

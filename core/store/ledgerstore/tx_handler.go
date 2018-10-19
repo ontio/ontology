@@ -37,8 +37,8 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
-	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	_ "github.com/ontio/ontology/smartcontract/service/native/init"
+	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -120,8 +120,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
-	code := invoke.Code
-	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
+	sysTransFlag := block.Header.Height == 0
 
 	isCharge := !sysTransFlag && tx.GasPrice != 0
 
@@ -255,7 +254,7 @@ func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *ev
 }
 
 func genNativeTransferCode(from, to common.Address, value uint64) []byte {
-	transfer := ont.Transfers{States: []ont.State{{From: from, To: to, Value: value}}}
+	transfer := ongx.Transfers{States: []ongx.State{{From: from, To: to, Value: value}}}
 	tr := new(bytes.Buffer)
 	transfer.Serialize(tr)
 	return tr.Bytes()
@@ -349,7 +348,7 @@ func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, 
 	}
 
 	service, _ := sc.NewNativeService()
-	result, err := service.NativeCall(utils.OngContractAddress, ont.BALANCEOF_NAME, bf.Bytes())
+	result, err := service.NativeCall(utils.OngContractAddress, ongx.BALANCEOF_NAME, bf.Bytes())
 	if err != nil {
 		return 0, err
 	}

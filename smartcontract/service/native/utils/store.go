@@ -79,12 +79,6 @@ func GenUInt64StorageItem(value uint64) *cstates.StorageItem {
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
-func GenUInt32StorageItem(value uint32) *cstates.StorageItem {
-	bf := new(bytes.Buffer)
-	serialization.WriteUint32(bf, value)
-	return &cstates.StorageItem{Value: bf.Bytes()}
-}
-
 func PutBytes(native *native.NativeService, key []byte, value []byte) {
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
 }
