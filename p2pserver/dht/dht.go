@@ -272,25 +272,7 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 				continue
 			}
 			knownNode[n.ID] = true
-			if len(closestNodes) < types.BUCKET_SIZE {
-				closestNodes = append(closestNodes, n)
-			} else {
-				index := len(closestNodes)
-				for i, entry := range closestNodes {
-					for j := range targetID {
-						da := entry.ID[j] ^ targetID[j]
-						db := n.ID[j] ^ targetID[j]
-						if da > db {
-							index = i
-							break
-						}
-					}
-				}
-
-				if index < len(closestNodes) {
-					closestNodes[index] = n
-				}
-			}
+			push(n, targetID, closestNodes, types.BUCKET_SIZE)
 		}
 	}
 

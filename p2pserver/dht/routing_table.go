@@ -19,6 +19,7 @@
 package dht
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -160,7 +161,7 @@ func (this *routingTable) getClosestNodes(num int, targetID types.NodeID) []*typ
 
 	for _, index := range buckets {
 		for _, entry := range this.buckets[index].entries {
-			closestList = append(closestList, entry)
+			push(entry, targetID, closestList, num)
 			if len(closestList) >= num {
 				return closestList
 			}
@@ -207,6 +208,42 @@ func (this *routingTable) totalNodes() int {
 		num += len(bucket.entries)
 	}
 	return num
+}
+
+// distcmp compares the distances a->target and b->target.
+// Returns -1 if a is closer to target, 1 if b is closer to target
+// and 0 if they are equal.
+func distcmp(target, a, b types.NodeID) int {
+	for i := range target {
+		da := a[i] ^ target[i]
+		db := b[i] ^ target[i]
+		if da > db {
+			return 1
+		} else if da < db {
+			return -1
+		}
+	}
+	return 0
+}
+
+// push adds the given node to the list, keeping the total size below maxElems
+func push(n *types.Node, targetID types.NodeID, closestNodes []*types.Node, maxElems int) {
+	idx := sort.Search(len(closestNodes), func(i int) bool {
+		return distcmp(targetID, closestNodes[i].ID, n.ID) > 0
+	})
+
+	if len(closestNodes) < maxElems {
+		closestNodes = append(closestNodes, n)
+	}
+	if idx == len(closestNodes) {
+		// farther away than all nodes we already have.
+		// if there was room for it, the node is now the last element.
+	} else {
+		// slide existing entries down to make room
+		// this will overwirte the entry we just appended
+		copy(closestNodes[idx+1:], closestNodes[idx:])
+		closestNodes[idx] = n
+	}
 }
 
 // table of leading zero counts for bytes [0..255]
