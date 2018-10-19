@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ont
+package ongx
 
 import (
 	"bytes"
@@ -43,4 +43,23 @@ func TestState_Serialize(t *testing.T) {
 	}
 
 	assert.Equal(t, state, state2)
+}
+
+func TestInflations_Serialize(t *testing.T) {
+	inflation := Swap {
+		Addr: common.AddressFromVmCode([]byte{1,2,3}),
+		Value: 123,
+	}
+	inflations := Inflations{
+		Inflations: []Swap{inflation},
+	}
+	link := common.NewZeroCopySink(nil)
+	inflations.Serialize(link)
+
+	var infs Inflations
+	source := common.NewZeroCopySource(link.Bytes())
+	err := infs.Deserialize(source)
+	assert.Nil(t, err)
+
+	assert.Equal(t, inflations, infs)
 }
