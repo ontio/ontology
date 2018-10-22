@@ -71,7 +71,10 @@ func (this *Neighbors) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 
-	this.Nodes = make([]types.Node, 0, num)
+	if num > types.BUCKET_SIZE {
+		num = types.BUCKET_SIZE
+	}
+
 	for i := 0; i < int(num); i++ {
 		node := new(types.Node)
 
