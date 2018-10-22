@@ -33,14 +33,22 @@ func TestGetPushData(t *testing.T) {
 	e.Context = NewExecutionContext(&e, nil)
 
 	e.OpCode = PUSH0
-	iRet, ok := getPushData(&e).(int8)
+	val, err := getPushData(&e)
+	if err != nil {
+		t.Error("NeoVM getPushData PUSH0 execute failed.")
+	}
+	iRet, ok := val.(int8)
 	if !ok || iRet != 0 {
 		t.Error("NeoVM getPushData PUSH0 execute failed.")
 	}
 
 	e.OpCode = PUSHDATA1
 	e.Context.OpReader = utils.NewVmReader([]byte{4, 1, 1, 1, 1})
-	ret, ok = getPushData(&e).([]byte)
+	val, err = getPushData(&e)
+	if err != nil {
+		t.Error("NeoVM getPushData PUSH0 execute failed.")
+	}
+	ret, ok = val.([]byte)
 	if !ok || !bytes.Equal(ret, []byte{1, 1, 1, 1}) {
 		t.Fatal("NeoVM getPushData PUSHDATA1 execute failed.")
 	}
@@ -50,7 +58,12 @@ func TestGetPushData(t *testing.T) {
 	binary.LittleEndian.PutUint16(b, 4)
 	b = append(b, []byte{1, 1, 1, 1}...)
 	e.Context.OpReader = utils.NewVmReader(b)
-	ret, ok = getPushData(&e).([]byte)
+
+	val, err = getPushData(&e)
+	if err != nil {
+		t.Error("NeoVM getPushData PUSH0 execute failed.")
+	}
+	ret, ok = val.([]byte)
 	if !ok || !bytes.Equal(ret, []byte{1, 1, 1, 1}) {
 		t.Fatal("NeoVM getPushData PUSHDATA2 execute failed.")
 	}
@@ -60,7 +73,12 @@ func TestGetPushData(t *testing.T) {
 	binary.LittleEndian.PutUint32(b, 4)
 	b = append(b, []byte{1, 1, 1, 1}...)
 	e.Context.OpReader = utils.NewVmReader(b)
-	ret, ok = getPushData(&e).([]byte)
+
+	val, err = getPushData(&e)
+	if err != nil {
+		t.Error("NeoVM getPushData PUSH0 execute failed.")
+	}
+	ret, ok = val.([]byte)
 	if !ok || !bytes.Equal(ret, []byte{1, 1, 1, 1}) {
 		t.Fatal("NeoVM getPushData PUSHDATA4 execute failed.")
 	}
@@ -69,7 +87,12 @@ func TestGetPushData(t *testing.T) {
 		PUSH8, PUSH9, PUSH10, PUSH11, PUSH12, PUSH13, PUSH14, PUSH15, PUSH16} {
 		e.OpCode = opCode
 		expect := int8(opCode - PUSH1 + 1)
-		iRet, ok = getPushData(&e).(int8)
+
+		val, err = getPushData(&e)
+		if err != nil {
+			t.Error("NeoVM getPushData PUSH0 execute failed.")
+		}
+		iRet, ok = val.(int8)
 		if !ok || expect != iRet {
 			t.Fatal("NeoVM getPushData execute failed.")
 		}

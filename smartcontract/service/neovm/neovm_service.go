@@ -202,8 +202,10 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
 			}
 		case vm.APPCALL:
-			var err error
-			address := this.Engine.Context.OpReader.ReadBytes(20)
+			address, err := this.Engine.Context.OpReader.ReadBytes(20)
+			if err != nil {
+				return nil, fmt.Errorf("[Appcall] read contract address error:%v", err)
+			}
 			if bytes.Compare(address, BYTE_ZERO_20) == 0 {
 				if vm.EvaluationStackCount(this.Engine) < 1 {
 					return nil, fmt.Errorf("[Appcall] Too few input parameters:%d", vm.EvaluationStackCount(this.Engine))
@@ -255,7 +257,10 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 
 // SystemCall provide register service for smart contract to interaction with blockchain
 func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
-	serviceName := engine.Context.OpReader.ReadVarString(vm.MAX_BYTEARRAY_SIZE)
+	serviceName, err := engine.Context.OpReader.ReadVarString(vm.MAX_BYTEARRAY_SIZE)
+	if err != nil {
+		return err
+	}
 	service, ok := ServiceMap[serviceName]
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] service not support: %s", serviceName))
