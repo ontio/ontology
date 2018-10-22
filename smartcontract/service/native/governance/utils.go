@@ -299,6 +299,35 @@ func putGlobalParam(native *native.NativeService, contract common.Address, globa
 	return nil
 }
 
+func getSideChainID(native *native.NativeService, contract common.Address) (*SideChainID, error) {
+	sideChainIDBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(SIDE_CHAIN_ID)))
+	if err != nil {
+		return nil, fmt.Errorf("getSideChainID, get sideChainIDBytes error: %v", err)
+	}
+	sideChainID := new(SideChainID)
+	if sideChainIDBytes == nil {
+		return nil, fmt.Errorf("getSideChainID, get nil sideChainIDBytes")
+	} else {
+		value, err := cstates.GetValueFromRawStorageItem(sideChainIDBytes)
+		if err != nil {
+			return nil, fmt.Errorf("getSideChainID, deserialize from raw storage item err:%v", err)
+		}
+		if err := sideChainID.Deserialize(bytes.NewBuffer(value)); err != nil {
+			return nil, fmt.Errorf("deserialize, deserialize sideChainID error: %v", err)
+		}
+	}
+	return sideChainID, nil
+}
+
+func putSideChainID(native *native.NativeService, contract common.Address, sideChainID *SideChainID) error {
+	bf := new(bytes.Buffer)
+	if err := sideChainID.Serialize(bf); err != nil {
+		return fmt.Errorf("serialize, serialize sideChainID error: %v", err)
+	}
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(SIDE_CHAIN_ID)), cstates.GenRawStorageItem(bf.Bytes()))
+	return nil
+}
+
 func appCallTransferOng(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
 	err := appCallTransfer(native, utils.OngContractAddress, from, to, amount)
 	if err != nil {

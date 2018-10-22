@@ -45,7 +45,7 @@ func RegisterOngContract(native *native.NativeService) {
 	native.Register(TOTALSUPPLY_NAME, OngxTotalSupply)
 	native.Register(BALANCEOF_NAME, OngxBalanceOf)
 	native.Register(ALLOWANCE_NAME, OngxAllowance)
-	native.Register(INFLATION_NAME, OngxInflation)
+	native.Register(INFLATION_NAME, OngSwap)
 	native.Register(SWAP_NAME, OngxSwap)
 	native.Register(SET_SYNC_ADDR_NAME, OngxSetSyncAddr)
 }
@@ -172,35 +172,35 @@ func OngxSetSyncAddr(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func OngxInflation(native *native.NativeService) ([]byte, error) {
+func OngSwap(native *native.NativeService) ([]byte, error) {
 	context := native.ContextRef.CurrentContext().ContractAddress
 	key := append(context[:], SYNC_ADDRESS...)
 	result, err := native.CacheDB.Get(key)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngxInflation] get address from cache error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] get address from cache error:%s", err)
 	}
 	addr, err := common.AddressParseFromBytes(result)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngxInflation] address from bytes error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] address from bytes error:%s", err)
 	}
 	if !native.ContextRef.CheckWitness(addr) {
-		return utils.BYTE_FALSE, errors.NewErr("[OngxInflation] authentication failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[OngSwap] authentication failed!")
 	}
 	source := common.NewZeroCopySource(native.Input)
 	var infs Inflations
 	if err := infs.Deserialize(source); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngxInflation] error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
 	}
 	totalSupplyKey := GenTotalSupplyKey(context)
 	amount, err := utils.GetStorageUInt64(native, totalSupplyKey)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngxInflation] error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
 	}
-	for _, v:= range infs.Inflations {
+	for _, v := range infs.Inflations {
 		key := append(context[:], v.Addr[:]...)
 		balance, err := utils.GetStorageUInt64(native, key)
 		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("[OngxInflation] error:%s", err)
+			return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
 		}
 		native.CacheDB.Put(key, GetToUInt64StorageItem(balance, v.Value).ToArray())
 		amount += v.Value

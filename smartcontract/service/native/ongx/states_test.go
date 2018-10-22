@@ -46,8 +46,8 @@ func TestState_Serialize(t *testing.T) {
 }
 
 func TestInflations_Serialize(t *testing.T) {
-	inflation := Swap {
-		Addr: common.AddressFromVmCode([]byte{1,2,3}),
+	inflation := Swap{
+		Addr:  common.AddressFromVmCode([]byte{1, 2, 3}),
 		Value: 123,
 	}
 	inflations := Inflations{

@@ -56,8 +56,8 @@ const (
 )
 
 var (
-	ONGX_ADDRESS        = []byte("ongxAddress")
-	SYNC_ADDRESS        = []byte("syncAddress")
+	ONGX_ADDRESS = []byte("ongxAddress")
+	SYNC_ADDRESS = []byte("syncAddress")
 )
 
 func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
