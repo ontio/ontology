@@ -241,7 +241,7 @@ func (this *Inflations) Deserialize(source *common.ZeroCopySource) error {
 }
 
 type Swap struct {
-	Addr    common.Address
+	Addr  common.Address
 	Value uint64
 }
 
@@ -262,5 +262,3 @@ func (this *Swap) Deserialize(source *common.ZeroCopySource) error {
 	}
 	return nil
 }
-
-

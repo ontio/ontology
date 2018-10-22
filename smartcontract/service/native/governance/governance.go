@@ -21,12 +21,13 @@ package governance
 import (
 	"bytes"
 	"fmt"
+	"sort"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"sort"
 )
 
 const (
@@ -49,6 +50,7 @@ const (
 	INPUT_GOVERNANCE_VIEW = "inputGovernanceView"
 
 	//key prefix
+	SIDE_CHAIN_ID   = "sideChainID"
 	PEER_POOL       = "peerPool"
 	VBFT_CONFIG     = "vbftConfig"
 	GLOBAL_PARAM    = "globalParam"
@@ -78,11 +80,11 @@ func InitGovernance() {
 //Register methods of governance contract
 func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(INIT_CONFIG, InitConfig)
-	native.Register(INPUT_PEER_POOL_MAP, InputPeerPoolMap)
+	native.Register(INPUT_GOVERNANCE_VIEW, InputGovernanceView)
 	native.Register(INPUT_CONFIG, InputConfig)
 	native.Register(INPUT_GLOBAL_PARAM, InputGlobalParam)
 	native.Register(INPUT_SPLIT_CURVE, InputSplitCurve)
-	native.Register(INPUT_GOVERNANCE_VIEW, InputGovernanceView)
+	native.Register(INPUT_PEER_POOL_MAP, InputPeerPoolMap)
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
@@ -130,6 +132,12 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		peerPoolItem.TotalPos = 0
 		peerPoolItem.Status = ConsensusStatus
 		peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
+	}
+
+	//init side chain id
+	err = putSideChainID(native, contract, &SideChainID{configuration.SideChainID})
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putSideChainID, put sideChainID error: %v", err)
 	}
 
 	//init peer pool
@@ -196,20 +204,6 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func InputPeerPoolMap(native *native.NativeService) ([]byte, error) {
-	peerPoolMap := new(PeerPoolMap)
-	if err := peerPoolMap.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
-	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	err := putPeerPoolMap(native, contract, peerPoolMap)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
-	}
-	return utils.BYTE_TRUE, nil
-}
-
 func InputConfig(native *native.NativeService) ([]byte, error) {
 	configuration := new(Configuration)
 	if err := configuration.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -248,6 +242,37 @@ func InputSplitCurve(native *native.NativeService) ([]byte, error) {
 	err := putSplitCurve(native, contract, splitCurve)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putSplitCurve, put splitCurve error: %v", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
+func InputPeerPoolMap(native *native.NativeService) ([]byte, error) {
+	params := new(InputPeerPoolMapParam)
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	peerPoolMap := &PeerPoolMap{}
+	nodeList := params.NodeInfoMap
+	for k := range params.PeerPoolMap {
+		if _, ok := nodeList[k]; ok {
+			//exist
+			peerPoolMap.PeerPoolMap[k] = params.PeerPoolMap[k]
+		}
+	}
+	// get config
+	config, err := getConfig(native, contract)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getConfig, get config error: %v", err)
+	}
+	if len(peerPoolMap.PeerPoolMap) < int(config.K) {
+		return utils.BYTE_FALSE, fmt.Errorf("length of peer pool map is less than config.K")
+	}
+
+	err = putPeerPoolMap(native, contract, peerPoolMap)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
 	return utils.BYTE_TRUE, nil
 }

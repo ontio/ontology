@@ -404,3 +404,132 @@ type CandidateSplitInfo struct {
 	Stake      uint64 //total stake, init pos + total pos
 	S          uint64 //fee split weight of this peer
 }
+
+type InputPeerPoolMapParam struct {
+	PeerPoolMap map[string]*PeerPoolItem
+	NodeInfoMap map[string]*NodeToSideChainParams
+}
+
+func (this *InputPeerPoolMapParam) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint32(w, uint32(len(this.PeerPoolMap))); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize PeerPoolMap length error: %v", err)
+	}
+	var peerPoolItemList []*PeerPoolItem
+	for _, v := range this.PeerPoolMap {
+		peerPoolItemList = append(peerPoolItemList, v)
+	}
+	sort.SliceStable(peerPoolItemList, func(i, j int) bool {
+		return peerPoolItemList[i].PeerPubkey > peerPoolItemList[j].PeerPubkey
+	})
+	for _, v := range peerPoolItemList {
+		if err := v.Serialize(w); err != nil {
+			return fmt.Errorf("serialize peerPool error: %v", err)
+		}
+	}
+
+	if err := serialization.WriteUint32(w, uint32(len(this.NodeInfoMap))); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize PeerPoolMap length error: %v", err)
+	}
+	var nodeInfoMapList []*NodeToSideChainParams
+	for _, v := range this.NodeInfoMap {
+		nodeInfoMapList = append(nodeInfoMapList, v)
+	}
+	sort.SliceStable(nodeInfoMapList, func(i, j int) bool {
+		return nodeInfoMapList[i].PeerPubkey > nodeInfoMapList[j].PeerPubkey
+	})
+	for _, v := range nodeInfoMapList {
+		if err := v.Serialize(w); err != nil {
+			return fmt.Errorf("serialize peerPool error: %v", err)
+		}
+	}
+	return nil
+}
+
+func (this *InputPeerPoolMapParam) Deserialize(r io.Reader) error {
+	m, err := serialization.ReadUint32(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint32, deserialize PeerPoolMap length error: %v", err)
+	}
+	peerPoolMap := make(map[string]*PeerPoolItem)
+	for i := 0; uint32(i) < m; i++ {
+		peerPoolItem := new(PeerPoolItem)
+		if err := peerPoolItem.Deserialize(r); err != nil {
+			return fmt.Errorf("deserialize peerPool error: %v", err)
+		}
+		peerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
+	}
+
+	n, err := serialization.ReadUint32(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint32, deserialize PeerPoolMap length error: %v", err)
+	}
+	nodeInfoMap := make(map[string]*NodeToSideChainParams)
+	for i := 0; uint32(i) < n; i++ {
+		nodeInfo := new(NodeToSideChainParams)
+		if err := nodeInfo.Deserialize(r); err != nil {
+			return fmt.Errorf("deserialize peerPool error: %v", err)
+		}
+		nodeInfoMap[nodeInfo.PeerPubkey] = nodeInfo
+	}
+	this.PeerPoolMap = peerPoolMap
+	this.NodeInfoMap = nodeInfoMap
+	return nil
+}
+
+type NodeToSideChainParams struct {
+	PeerPubkey  string
+	Address     common.Address
+	SideChainID string
+}
+
+func (this *NodeToSideChainParams) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
+	}
+	if err := serialization.WriteString(w, this.SideChainID); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize sideChainID error: %v", err)
+	}
+	return nil
+}
+
+func (this *NodeToSideChainParams) Deserialize(r io.Reader) error {
+	peerPubkey, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+	}
+	address, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+	}
+	sideChainID, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize sideChainID error: %v", err)
+	}
+	this.PeerPubkey = peerPubkey
+	this.Address = address
+	this.SideChainID = sideChainID
+	return nil
+}
+
+type SideChainID struct {
+	SideChainID string
+}
+
+func (this *SideChainID) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.SideChainID); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize sideChainID error: %v", err)
+	}
+	return nil
+}
+
+func (this *SideChainID) Deserialize(r io.Reader) error {
+	sideChainID, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize sideChainID error: %v", err)
+	}
+	this.SideChainID = sideChainID
+	return nil
+}
