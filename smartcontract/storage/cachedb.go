@@ -147,7 +147,7 @@ func (self *CacheDB) NewIterator(key []byte) common.StoreIterator {
 	backIter := self.backend.NewIterator(pkey)
 	memIter := self.memdb.NewIterator(prefixRange)
 
-	return overlaydb.NewJoinIter(memIter, backIter)
+	return &Iter{overlaydb.NewJoinIter(memIter, backIter)}
 }
 
 type Iter struct {
