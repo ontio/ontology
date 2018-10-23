@@ -42,18 +42,15 @@ const (
 
 const (
 	//function name
-	INIT_CONFIG           = "initConfig"
-	INPUT_PEER_POOL_MAP   = "inputPeerPoolMap"
-	INPUT_CONFIG          = "inputConfig"
-	INPUT_GLOBAL_PARAM    = "inputGlobalParam"
-	INPUT_SPLIT_CURVE     = "inputSplitCurve"
-	INPUT_GOVERNANCE_VIEW = "inputGovernanceView"
+	INIT_CONFIG = "initConfig"
+	COMMIT_DPOS = "commitDpos"
 
 	//key prefix
 	SIDE_CHAIN_ID   = "sideChainID"
 	PEER_POOL       = "peerPool"
 	VBFT_CONFIG     = "vbftConfig"
 	GLOBAL_PARAM    = "globalParam"
+	GLOBAL_PARAM2   = "globalParam2"
 	SPLIT_CURVE     = "splitCurve"
 	GOVERNANCE_VIEW = "governanceView"
 
@@ -80,11 +77,7 @@ func InitGovernance() {
 //Register methods of governance contract
 func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(INIT_CONFIG, InitConfig)
-	native.Register(INPUT_GOVERNANCE_VIEW, InputGovernanceView)
-	native.Register(INPUT_CONFIG, InputConfig)
-	native.Register(INPUT_GLOBAL_PARAM, InputGlobalParam)
-	native.Register(INPUT_SPLIT_CURVE, InputSplitCurve)
-	native.Register(INPUT_PEER_POOL_MAP, InputPeerPoolMap)
+	native.Register(COMMIT_DPOS, CommitDpos)
 }
 
 func InitConfig(native *native.NativeService) ([]byte, error) {
@@ -148,10 +141,14 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 
 	//init globalParam
 	globalParam := &GlobalParam{
-		CandidateFeeSplitNum: 49,
-		A:                    50,
-		B:                    50,
-		Yita:                 5,
+		CandidateFee: 500000000000,
+		MinInitStake: configuration.MinInitStake,
+		CandidateNum: 7 * 7,
+		PosLimit:     20,
+		A:            50,
+		B:            50,
+		Yita:         5,
+		Penalty:      5,
 	}
 	err = putGlobalParam(native, contract, globalParam)
 	if err != nil {
@@ -204,61 +201,68 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func InputConfig(native *native.NativeService) ([]byte, error) {
-	configuration := new(Configuration)
-	if err := configuration.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
-	}
+func CommitDpos(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
-	err := putConfig(native, contract, configuration)
+	address, err := getSyncAddress(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getSyncAddress, get syncAddress error: %v", err)
+	}
+	//check witness
+	err = utils.ValidateOwner(native, address)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("validateOwner, checkWitness error: %v", err)
+	}
+	splitFee(native, contract)
+
+	commitDposParam := new(CommitDposParam)
+	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("serialization.ReadVarBytes, contract params deserialize error: %v", err)
+	}
+	if err := commitDposParam.Deserialize(bytes.NewBuffer(buf)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
+	}
+
+	//input governance view
+	err = putGovernanceView(native, contract, commitDposParam.GovernanceView)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
+	}
+
+	//input configuration
+	err = putConfig(native, contract, commitDposParam.Configuration)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putConfig, put config error: %v", err)
 	}
-	return utils.BYTE_TRUE, nil
-}
 
-func InputGlobalParam(native *native.NativeService) ([]byte, error) {
-	globalParam := new(GlobalParam)
-	if err := globalParam.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
-	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	err := putGlobalParam(native, contract, globalParam)
+	//input global param
+	err = putGlobalParam(native, contract, commitDposParam.GlobalParam)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putGlobalParam, put globalParam error: %v", err)
 	}
-	return utils.BYTE_TRUE, nil
-}
 
-func InputSplitCurve(native *native.NativeService) ([]byte, error) {
-	splitCurve := new(SplitCurve)
-	if err := splitCurve.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
+	//input global param2
+	err = putGlobalParam2(native, contract, commitDposParam.GlobalParam2)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("putGlobalParam2, put globalParam2 error: %v", err)
 	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
 
-	err := putSplitCurve(native, contract, splitCurve)
+	//input split curve
+	err = putSplitCurve(native, contract, commitDposParam.SplitCurve)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putSplitCurve, put splitCurve error: %v", err)
 	}
-	return utils.BYTE_TRUE, nil
-}
 
-func InputPeerPoolMap(native *native.NativeService) ([]byte, error) {
-	params := new(InputPeerPoolMapParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
+	//input peer pool map
+	peerPoolMap := &PeerPoolMap{
+		PeerPoolMap: make(map[string]*PeerPoolItem),
 	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	peerPoolMap := &PeerPoolMap{}
-	nodeList := params.NodeInfoMap
-	for k := range params.PeerPoolMap {
+	nodeList := commitDposParam.SideChainNodeInfo.NodeInfoMap
+	for k := range commitDposParam.PeerPoolMap.PeerPoolMap {
 		if _, ok := nodeList[k]; ok {
 			//exist
-			peerPoolMap.PeerPoolMap[k] = params.PeerPoolMap[k]
+			peerPoolMap.PeerPoolMap[k] = commitDposParam.PeerPoolMap.PeerPoolMap[k]
 		}
 	}
 	// get config
@@ -269,28 +273,9 @@ func InputPeerPoolMap(native *native.NativeService) ([]byte, error) {
 	if len(peerPoolMap.PeerPoolMap) < int(config.K) {
 		return utils.BYTE_FALSE, fmt.Errorf("length of peer pool map is less than config.K")
 	}
-
 	err = putPeerPoolMap(native, contract, peerPoolMap)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
-	}
-	return utils.BYTE_TRUE, nil
-}
-
-func InputGovernanceView(native *native.NativeService) ([]byte, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	splitFee(native, contract)
-
-	//input governance view
-	governanceView := new(GovernanceView)
-	if err := governanceView.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
-	}
-
-	err := putGovernanceView(native, contract, governanceView)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
 	}
 	return utils.BYTE_TRUE, nil
 }
@@ -377,11 +362,16 @@ func splitFee(native *native.NativeService, contract common.Address) error {
 
 	//fee split of candidate peer
 	//cal s of each candidate node
+	//get globalParam2
+	globalParam2, err := getGlobalParam2(native, contract)
+	if err != nil {
+		return fmt.Errorf("getGlobalParam2, getGlobalParam2 error: %v", err)
+	}
 	var length int
-	if int(globalParam.CandidateFeeSplitNum) >= len(peersCandidate) {
+	if int(globalParam2.CandidateFeeSplitNum) >= len(peersCandidate) {
 		length = len(peersCandidate)
 	} else {
-		length = int(globalParam.CandidateFeeSplitNum)
+		length = int(globalParam2.CandidateFeeSplitNum)
 	}
 	sum = 0
 	for i := int(config.K); i < length; i++ {

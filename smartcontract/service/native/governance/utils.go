@@ -86,7 +86,7 @@ func GetGovernanceView(native *native.NativeService, contract common.Address) (*
 }
 
 func putGovernanceView(native *native.NativeService, contract common.Address, governanceView *GovernanceView) error {
-	bf := new(bytes.Buffer)
+	bf := bytes.NewBuffer(nil)
 	if err := governanceView.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize governanceView error: %v", err)
 	}
@@ -299,6 +299,43 @@ func putGlobalParam(native *native.NativeService, contract common.Address, globa
 	return nil
 }
 
+//get extends global params, for avoiding change default global param struct in store, add GlobalParam2 as extends struct
+func getGlobalParam2(native *native.NativeService, contract common.Address) (*GlobalParam2, error) {
+	//get globalParam
+	globalParam, err := getGlobalParam(native, contract)
+	if err != nil {
+		return nil, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
+	}
+
+	globalParam2Bytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)))
+	if err != nil {
+		return nil, fmt.Errorf("getGlobalParam2, get globalParam2Bytes error: %v", err)
+	}
+	globalParam2 := &GlobalParam2{
+		MinAuthorizePos:      500,
+		CandidateFeeSplitNum: globalParam.CandidateNum,
+	}
+	if globalParam2Bytes != nil {
+		value, err := cstates.GetValueFromRawStorageItem(globalParam2Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("getGlobalParam2, globalParam2Bytes is not available")
+		}
+		if err := globalParam2.Deserialize(bytes.NewBuffer(value)); err != nil {
+			return nil, fmt.Errorf("deserialize, deserialize getGlobalParam2 error: %v", err)
+		}
+	}
+	return globalParam2, nil
+}
+
+func putGlobalParam2(native *native.NativeService, contract common.Address, globalParam2 *GlobalParam2) error {
+	bf := new(bytes.Buffer)
+	if err := globalParam2.Serialize(bf); err != nil {
+		return fmt.Errorf("serialize, serialize globalParam2 error: %v", err)
+	}
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)), cstates.GenRawStorageItem(bf.Bytes()))
+	return nil
+}
+
 func getSideChainID(native *native.NativeService, contract common.Address) (*SideChainID, error) {
 	sideChainIDBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(SIDE_CHAIN_ID)))
 	if err != nil {
@@ -326,6 +363,27 @@ func putSideChainID(native *native.NativeService, contract common.Address, sideC
 	}
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(SIDE_CHAIN_ID)), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
+}
+
+func getSyncAddress(native *native.NativeService) (common.Address, error) {
+	key := append(utils.OngContractAddress[:], ongx.SYNC_ADDRESS...)
+	syncAddressBytes, err := native.CacheDB.Get(key)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("getSyncAddress, get address from cache error:%s", err)
+	}
+	if syncAddressBytes == nil {
+		return common.Address{}, fmt.Errorf("getSyncAddress, get nil syncAddressBytes")
+	}
+	syncAddressStore, err := cstates.GetValueFromRawStorageItem(syncAddressBytes)
+	if err != nil {
+		return common.Address{}, fmt.Errorf("getSyncAddress, deserialize from raw storage item err:%v", err)
+	}
+
+	syncAddress := new(SyncAddress)
+	if err := syncAddress.Deserialize(common.NewZeroCopySource(syncAddressStore)); err != nil {
+		return common.Address{}, fmt.Errorf("getSyncAddress, deserialize syncAddress error: %v", err)
+	}
+	return syncAddress.SyncAddress, nil
 }
 
 func appCallTransferOng(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {

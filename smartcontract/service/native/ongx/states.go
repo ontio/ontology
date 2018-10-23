@@ -214,32 +214,6 @@ func (this *TransferFrom) Deserialization(source *common.ZeroCopySource) error {
 	return err
 }
 
-type Inflations struct {
-	Inflations []Swap
-}
-
-func (this *Inflations) Serialize(sink *common.ZeroCopySink) {
-	utils.EncodeVarUint(sink, uint64(len(this.Inflations)))
-	for _, v := range this.Inflations {
-		v.Serialize(sink)
-	}
-}
-
-func (this *Inflations) Deserialize(source *common.ZeroCopySource) error {
-	n, err := utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("Inflations deserialize count error:%s", err)
-	}
-	for i := 0; uint64(i) < n; i++ {
-		var swap Swap
-		if err := swap.Deserialize(source); err != nil {
-			return err
-		}
-		this.Inflations = append(this.Inflations, swap)
-	}
-	return nil
-}
-
 type Swap struct {
 	Addr  common.Address
 	Value uint64
@@ -254,11 +228,28 @@ func (this *Swap) Deserialize(source *common.ZeroCopySource) error {
 	var err error
 	this.Addr, err = utils.DecodeAddress(source)
 	if err != nil {
-		return fmt.Errorf("Inflation deserialize to error:%s", err)
+		return fmt.Errorf("swap deserialize to error:%s", err)
 	}
 	this.Value, err = utils.DecodeVarUint(source)
 	if err != nil {
-		fmt.Errorf("Inflation deserialize value error:%s", err)
+		fmt.Errorf("swap deserialize value error:%s", err)
+	}
+	return nil
+}
+
+type SyncAddress struct {
+	SyncAddress common.Address
+}
+
+func (this *SyncAddress) Serialize(sink *common.ZeroCopySink) {
+	utils.EncodeAddress(sink, this.SyncAddress)
+}
+
+func (this *SyncAddress) Deserialize(source *common.ZeroCopySource) error {
+	var err error
+	this.SyncAddress, err = utils.DecodeAddress(source)
+	if err != nil {
+		return fmt.Errorf("deserialize address error:%s", err)
 	}
 	return nil
 }
