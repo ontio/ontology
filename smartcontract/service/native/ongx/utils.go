@@ -46,8 +46,8 @@ const (
 	TOTALSUPPLY_NAME    = "totalSupply"
 	BALANCEOF_NAME      = "balanceOf"
 	ALLOWANCE_NAME      = "allowance"
-	INFLATION_NAME      = "inflation"
-	SWAP_NAME           = "swap"
+	ONG_SWAP            = "ongSwap"
+	ONGX_SWAP           = "ongxSwap"
 	SET_SYNC_ADDR_NAME  = "setSyncAddr"
 
 	TRANSFER_FLAG byte = 1
@@ -90,6 +90,17 @@ func AddNotifications(native *native.NativeService, contract common.Address, sta
 		&event.NotifyEventInfo{
 			ContractAddress: contract,
 			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
+		})
+}
+
+func AddOngxSwapNotifications(native *native.NativeService, contract common.Address, state *State) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          []interface{}{ONGX_SWAP, state.From.ToBase58(), state.Value},
 		})
 }
 
