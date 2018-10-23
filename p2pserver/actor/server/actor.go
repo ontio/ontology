@@ -246,19 +246,18 @@ func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context,
 			log.Warnf("[p2p]can`t transmit consensus msg to %s, send msg err: %s", peer.GetAddr(), err)
 		}
 	} else {
-
 		dht := this.server.GetDHT()
 		if dht == nil {
 			log.Warnf("[p2p]can`t transmit consensus msg: no dht object")
 			return
 		}
-		neighbors := dht.Resolve(req.Target)
-		if len(neighbors) == 0 {
+		closestList := dht.Resolve(req.Target)
+		if closestList.Len() == 0 {
 			log.Warnf("[p2p]can`t transmit consensus msg:no valid neighbor peer: %d\n", req.Target)
 			return
 		}
-		for _, neighbor := range neighbors {
-			id := binary.LittleEndian.Uint64(neighbor.ID[:])
+		for _, item := range closestList {
+			id := binary.LittleEndian.Uint64(item.Entry.ID[:])
 			peer := this.server.GetNetWork().GetPeer(id)
 			if peer == nil || !this.server.GetNetWork().IsPeerEstablished(peer) {
 				continue

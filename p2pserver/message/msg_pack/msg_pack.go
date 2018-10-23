@@ -263,13 +263,13 @@ func NewFindNode(nodeID types.NodeID, targetID types.NodeID) mt.Message {
 }
 
 //DHT neighbors message packet
-func NewNeighbors(nodeID types.NodeID, nodes []*types.Node) mt.Message {
+func NewNeighbors(nodeID types.NodeID, cl types.ClosestList) mt.Message {
 	neighbors := &mt.Neighbors{
 		FromID: nodeID,
-		Nodes:  make([]types.Node, 0, len(nodes)),
+		Nodes:  make([]types.Node, 0, cl.Len()),
 	}
-	for _, node := range nodes {
-		neighbors.Nodes = append(neighbors.Nodes, *node)
+	for _, item := range cl {
+		neighbors.Nodes = append(neighbors.Nodes, *item.Entry)
 	}
 
 	return neighbors

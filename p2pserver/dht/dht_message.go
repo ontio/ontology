@@ -213,14 +213,14 @@ func (this *DHT) findNode(remotePeer *types.Node, targetID types.NodeID) error {
 // findNodeReply replies remote node when receiving find node
 func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 	// query routing table
-	nodes := this.routingTable.getClosestNodes(types.BUCKET_SIZE, targetId)
+	closestList := this.routingTable.getClosestNodes(types.BUCKET_SIZE, targetId)
 
 	maskPeers := config.DefConfig.P2PNode.ReservedCfg.MaskPeers
 	if config.DefConfig.P2PNode.ReservedPeersOnly && len(maskPeers) > 0 {
-		for i := 0; i < len(nodes); i++ {
+		for i := 0; i < closestList.Len(); i++ {
 			for j := 0; j < len(maskPeers); j++ {
-				if nodes[i].IP == maskPeers[j] {
-					nodes = append(nodes[:i], nodes[i+1:]...)
+				if closestList[i].Entry.IP == maskPeers[j] {
+					closestList = append(closestList[:i], closestList[i+1:]...)
 					i--
 					break
 				}
@@ -228,7 +228,7 @@ func (this *DHT) findNodeReply(addr *net.UDPAddr, targetId types.NodeID) error {
 		}
 	}
 
-	neighborsMsg := msgpack.NewNeighbors(this.nodeID, nodes)
+	neighborsMsg := msgpack.NewNeighbors(this.nodeID, closestList)
 	this.send(addr, neighborsMsg)
 	log.Debugf("[dht]findNodeReply to %s", addr.String())
 

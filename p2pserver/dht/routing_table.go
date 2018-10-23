@@ -19,7 +19,7 @@
 package dht
 
 import (
-	"sort"
+	"container/heap"
 	"sync"
 
 	"github.com/ontio/ontology/p2pserver/dht/types"
@@ -138,11 +138,11 @@ func (this *routingTable) removeNode(id types.NodeID) {
 }
 
 // getClosestNodes returns the num nodes in the table that are closest to a given id
-func (this *routingTable) getClosestNodes(num int, targetID types.NodeID) []*types.Node {
+func (this *routingTable) getClosestNodes(num int, targetID types.NodeID) types.ClosestList {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
-	closestList := make([]*types.Node, 0, num)
-
+	closestList := make(types.ClosestList, 0, num)
+	heap.Init(&closestList)
 	index, _ := this.locateBucket(targetID)
 	buckets := []int{index}
 	i := index - 1
@@ -162,7 +162,7 @@ func (this *routingTable) getClosestNodes(num int, targetID types.NodeID) []*typ
 	for _, index := range buckets {
 		for _, entry := range this.buckets[index].entries {
 			push(entry, targetID, closestList, num)
-			if len(closestList) >= num {
+			if closestList.Len() >= num {
 				return closestList
 			}
 		}
@@ -194,12 +194,6 @@ func (this *routingTable) getLastNodeInBucket(bucket int) *types.Node {
 	return b.entries[len(b.entries)-1]
 }
 
-// getDistance returns the distance between nodes
-func (this *routingTable) getDistance(id1, id2 types.NodeID) int {
-	dist := logdist(id1, id2)
-	return dist
-}
-
 func (this *routingTable) totalNodes() int {
 	this.mu.RLock()
 	defer this.mu.RUnlock()
@@ -210,40 +204,27 @@ func (this *routingTable) totalNodes() int {
 	return num
 }
 
-// distcmp compares the distances a->target and b->target.
-// Returns -1 if a is closer to target, 1 if b is closer to target
-// and 0 if they are equal.
-func distcmp(target, a, b types.NodeID) int {
-	for i := range target {
-		da := a[i] ^ target[i]
-		db := b[i] ^ target[i]
-		if da > db {
-			return 1
-		} else if da < db {
-			return -1
+// push adds the given node to the list, keeping the total size below maxElems
+func push(n *types.Node, targetID types.NodeID, closestList types.ClosestList, maxElems int) {
+	distance := getDistance(targetID, n.ID)
+	if closestList.Len() < maxElems {
+		item := &types.Item{
+			Entry:    n,
+			Distance: distance,
 		}
+		heap.Push(&closestList, item)
+	} else {
+		if closestList[0].Distance <= distance {
+			return
+		}
+		closestList.Update(closestList[0], n, distance)
 	}
-	return 0
 }
 
-// push adds the given node to the list, keeping the total size below maxElems
-func push(n *types.Node, targetID types.NodeID, closestNodes []*types.Node, maxElems int) {
-	idx := sort.Search(len(closestNodes), func(i int) bool {
-		return distcmp(targetID, closestNodes[i].ID, n.ID) > 0
-	})
-
-	if len(closestNodes) < maxElems {
-		closestNodes = append(closestNodes, n)
-	}
-	if idx == len(closestNodes) {
-		// farther away than all nodes we already have.
-		// if there was room for it, the node is now the last element.
-	} else {
-		// slide existing entries down to make room
-		// this will overwirte the entry we just appended
-		copy(closestNodes[idx+1:], closestNodes[idx:])
-		closestNodes[idx] = n
-	}
+// getDistance returns the distance between nodes
+func getDistance(id1, id2 types.NodeID) int {
+	dist := logdist(id1, id2)
+	return dist
 }
 
 // table of leading zero counts for bytes [0..255]

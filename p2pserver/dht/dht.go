@@ -219,14 +219,20 @@ func (this *DHT) refreshRoutingTable() {
 
 // lookup executes a network search for nodes closest to the given
 // target and setup k bucket
-func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
+func (this *DHT) lookup(targetID types.NodeID) types.ClosestList {
 	node, _ := this.routingTable.queryNode(targetID)
 	if node != nil {
-		return []*types.Node{node}
+		closestList := make(types.ClosestList, 1)
+		item := &types.Item{
+			Entry:    node,
+			Distance: getDistance(targetID, node.ID),
+		}
+		closestList[0] = item
+		return closestList
 	}
 
-	closestNodes := this.routingTable.getClosestNodes(types.BUCKET_SIZE, targetID)
-	if len(closestNodes) == 0 {
+	closestList := this.routingTable.getClosestNodes(types.BUCKET_SIZE, targetID)
+	if closestList.Len() == 0 {
 		return nil
 	}
 
@@ -237,16 +243,16 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 	visited[this.nodeID] = true
 
 	for {
-		for i := 0; i < len(closestNodes) && pendingQueries < types.FACTOR; i++ {
-			node := closestNodes[i]
-			if visited[node.ID] == true {
+		for i := 0; i < closestList.Len() && pendingQueries < types.FACTOR; i++ {
+			item := closestList[i]
+			if visited[item.Entry.ID] == true {
 				continue
 			}
-			visited[node.ID] = true
+			visited[item.Entry.ID] = true
 			pendingQueries++
 			go func() {
-				this.findNode(node, targetID)
-				this.messagePool.AddRequest(node, types.DHT_FIND_NODE_REQUEST, nil, nil)
+				this.findNode(item.Entry, targetID)
+				this.messagePool.AddRequest(item.Entry, types.DHT_FIND_NODE_REQUEST, nil, nil)
 			}()
 		}
 
@@ -254,14 +260,14 @@ func (this *DHT) lookup(targetID types.NodeID) []*types.Node {
 			break
 		}
 
-		this.waitAndHandleResponse(knownNode, closestNodes, targetID)
+		this.waitAndHandleResponse(knownNode, closestList, targetID)
 		pendingQueries--
 	}
-	return closestNodes
+	return closestList
 }
 
 // waitAndHandleResponse waits for the result
-func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestNodes []*types.Node,
+func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestList types.ClosestList,
 	targetID types.NodeID) {
 	responseCh := this.messagePool.GetResultChan()
 	entries, ok := <-responseCh
@@ -272,7 +278,7 @@ func (this *DHT) waitAndHandleResponse(knownNode map[types.NodeID]bool, closestN
 				continue
 			}
 			knownNode[n.ID] = true
-			push(n, targetID, closestNodes, types.BUCKET_SIZE)
+			push(n, targetID, closestList, types.BUCKET_SIZE)
 		}
 	}
 
@@ -435,7 +441,7 @@ func getNodeUDPAddr(node *types.Node) (*net.UDPAddr, error) {
 }
 
 // Resolve searches for a specific node with the given ID.
-func (this *DHT) Resolve(id uint64) []*types.Node {
+func (this *DHT) Resolve(id uint64) types.ClosestList {
 	b := make([]byte, 8)
 	binary.LittleEndian.PutUint64(b, id)
 	var nodeID types.NodeID
@@ -443,9 +449,15 @@ func (this *DHT) Resolve(id uint64) []*types.Node {
 
 	node, _ := this.routingTable.queryNode(nodeID)
 	if node != nil {
-		return []*types.Node{node}
+		closestList := make(types.ClosestList, 1)
+		item := &types.Item{
+			Entry:    node,
+			Distance: getDistance(nodeID, node.ID),
+		}
+		closestList[0] = item
+		return closestList
 	}
 
-	closestNodes := this.routingTable.getClosestNodes(types.FACTOR, nodeID)
-	return closestNodes
+	closestList := this.routingTable.getClosestNodes(types.FACTOR, nodeID)
+	return closestList
 }

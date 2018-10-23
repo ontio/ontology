@@ -20,6 +20,7 @@ package types
 
 import (
 	"bytes"
+	"container/heap"
 	"encoding/hex"
 	"fmt"
 	"hash/crc64"
@@ -71,4 +72,46 @@ func ConstructID(ip string, port uint16) uint64 {
 	crcTable := crc64.MakeTable(crc64.ECMA)
 	id := crc64.Checksum(buffer.Bytes(), crcTable)
 	return id
+}
+
+type Item struct {
+	Entry    *Node
+	Distance int
+	Index    int
+}
+
+type ClosestList []*Item
+
+func (cl ClosestList) Len() int { return len(cl) }
+
+func (cl ClosestList) Less(i, j int) bool {
+	return cl[i].Distance > cl[j].Distance
+}
+
+func (cl ClosestList) Swap(i, j int) {
+	cl[i], cl[j] = cl[j], cl[i]
+	cl[i].Index = i
+	cl[j].Index = j
+}
+
+func (cl *ClosestList) Push(x interface{}) {
+	n := len(*cl)
+	item := x.(*Item)
+	item.Index = n
+	*cl = append(*cl, item)
+}
+
+func (cl *ClosestList) Pop() interface{} {
+	old := *cl
+	n := len(old)
+	item := old[n-1]
+	item.Index = -1
+	*cl = old[0 : n-1]
+	return item
+}
+
+func (cl *ClosestList) Update(item *Item, entry *Node, distance int) {
+	item.Entry = entry
+	item.Distance = distance
+	heap.Fix(cl, item.Index)
 }

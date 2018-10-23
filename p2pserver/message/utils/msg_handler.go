@@ -156,7 +156,7 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 			log.Warn(err)
 			return
 		}
-		if consensus.Hop > msgCommon.MAX_HOP {
+		if consensus.Hop > msgCommon.MAX_HOP || consensus.Hop == 0 {
 			log.Errorf("[p2p]receive consensus hop unexpected from %v %d", data.Addr, data.Id)
 			return
 		}
@@ -203,13 +203,14 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 		log.Errorf("remotePeer %d, addr is %s, invalid in TransactionHandle", data.Id, data.Addr)
 		return
 	}
-	if trn.Hop > msgCommon.MAX_HOP {
+	if trn.Hop > msgCommon.MAX_HOP || trn.Hop == 0 {
 		log.Errorf("[p2p]receive transaction hop unexpected from %v %d", data.Addr, data.Id)
 		return
 	}
 
 	remotePeer.MarkHashAsSeen(trn.Txn.Hash())
 	trn.Hop--
+
 	// TODO open relay of consensus node
 	if trn.Hop > 0 && p2p.GetServices() != msgCommon.VERIFY_NODE {
 		p2p.Xmit(trn, trn.Txn.Hash(), false)
@@ -568,7 +569,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		log.Debug("[p2p]empty inv payload in InvHandle")
 		return
 	}
-	if inv.Hop > msgCommon.MAX_HOP {
+	if inv.Hop > msgCommon.MAX_HOP || inv.Hop == 0 {
 		log.Errorf("[p2p]receive inv hop unexpected from %v %v", data.Addr, data.Id)
 		return
 	}
@@ -616,6 +617,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 				}
 			}
 		}
+
 		inv.Hop--
 		if inv.Hop > 0 {
 			p2p.Xmit(inv, inv.P.Blk[0], false)
