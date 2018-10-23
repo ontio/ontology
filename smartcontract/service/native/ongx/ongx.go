@@ -24,8 +24,10 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
@@ -35,7 +37,6 @@ func InitOngx() {
 }
 
 func RegisterOngContract(native *native.NativeService) {
-	native.Register(INIT_NAME, OngxInit)
 	native.Register(TRANSFER_NAME, OngxTransfer)
 	native.Register(APPROVE_NAME, OngxApprove)
 	native.Register(TRANSFERFROM_NAME, OngxTransferFrom)
@@ -48,19 +49,6 @@ func RegisterOngContract(native *native.NativeService) {
 	native.Register(INFLATION_NAME, OngSwap)
 	native.Register(SWAP_NAME, OngxSwap)
 	native.Register(SET_SYNC_ADDR_NAME, OngxSetSyncAddr)
-}
-
-func OngxInit(native *native.NativeService) ([]byte, error) {
-	key := append(native.ContextRef.CurrentContext().ContractAddress[:], ONGX_ADDRESS...)
-	result, err := native.CacheDB.Get(key)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngxInit] get address from cache error:%s", err)
-	}
-	if len(result) != 0 {
-		return utils.BYTE_FALSE, errors.NewErr("[OngxInit] ongx address has existed!")
-	}
-	native.CacheDB.Put(key, native.Input)
-	return utils.BYTE_TRUE, nil
 }
 
 func OngxTransfer(native *native.NativeService) ([]byte, error) {
@@ -156,19 +144,19 @@ func OngxAllowance(native *native.NativeService) ([]byte, error) {
 
 func OngxSetSyncAddr(native *native.NativeService) ([]byte, error) {
 	context := native.ContextRef.CurrentContext().ContractAddress[:]
-	key := append(context, ONGX_ADDRESS...)
-	result, err := native.CacheDB.Get(key)
+	// get admin from database
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngxSyncAddress] get address from cache error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("getAdmin, get admin error: %v", err)
 	}
-	addr, err := common.AddressParseFromBytes(result)
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngxSyncAddress] address from bytes error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ongxSetSyncAddr, checkWitness error: %v", err)
 	}
-	if !native.ContextRef.CheckWitness(addr) {
-		return utils.BYTE_FALSE, errors.NewErr("[OngxSyncAddress] authentication failed!")
-	}
-	native.CacheDB.Put(append(context, SYNC_ADDRESS...), native.Input)
+	native.CacheDB.Put(append(context, SYNC_ADDRESS...), states.GenRawStorageItem(native.Input))
 	return utils.BYTE_TRUE, nil
 }
 
@@ -179,7 +167,11 @@ func OngSwap(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] get address from cache error:%s", err)
 	}
-	addr, err := common.AddressParseFromBytes(result)
+	addrBytes, err := states.GetValueFromRawStorageItem(result)
+	if err != nil {
+		return nil, fmt.Errorf("[OngSwap], deserialize from raw storage item err:%v", err)
+	}
+	addr, err := common.AddressParseFromBytes(addrBytes)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] address from bytes error:%s", err)
 	}

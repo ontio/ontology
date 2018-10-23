@@ -34,7 +34,6 @@ import (
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
-	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
@@ -104,7 +103,6 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 			oid,
 			auth,
 			config,
-			newUtilityInit(),
 			newParamInit(),
 			govConfig,
 		},
@@ -161,19 +159,6 @@ func deployOntIDContract() *types.Transaction {
 	if err != nil {
 		panic("constract genesis ontid transaction error ")
 	}
-	return tx
-}
-
-func newUtilityInit() *types.Transaction {
-	bf := new(bytes.Buffer)
-	nutils.WriteAddress(bf, genAdminAddress())
-	mutable := utils.BuildNativeTransaction(nutils.OngContractAddress, ongx.INIT_NAME, bf.Bytes())
-
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		panic("constract genesis governing token transaction error ")
-	}
-
 	return tx
 }
 
