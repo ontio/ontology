@@ -37,7 +37,6 @@ import (
 const (
 	UNBOUND_TIME_OFFSET = "unboundTimeOffset"
 	TOTAL_SUPPLY_NAME   = "totalSupply"
-	INIT_NAME           = "init"
 	TRANSFER_NAME       = "transfer"
 	APPROVE_NAME        = "approve"
 	TRANSFERFROM_NAME   = "transferFrom"
@@ -56,7 +55,6 @@ const (
 )
 
 var (
-	ONGX_ADDRESS = []byte("ongxAddress")
 	SYNC_ADDRESS = []byte("syncAddress")
 )
 
