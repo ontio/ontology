@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/vm/neovm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,4 +50,36 @@ func TestConvertNeoVmTypeHexString(t *testing.T) {
 	_, err = engine.Invoke()
 
 	assert.Error(t, err, "over max parameters convert length")
+}
+
+func BenchmarkExecuteAdd(b *testing.B) {
+	code := []byte{byte(neovm.PUSH1)}
+
+	N := 50000
+	for i := 0; i < N; i++ {
+		code = append(code, byte(neovm.PUSH1), byte(neovm.ADD))
+	}
+	code = append(code, byte(neovm.RET))
+
+	config := &smartcontract.Config{
+		Time:   10,
+		Height: 10,
+		Tx:     nil,
+	}
+
+	for i := 0; i < b.N; i++ {
+		sc := smartcontract.SmartContract{
+			Config: config,
+			Gas:    1000000,
+		}
+		engine, err := sc.NewExecuteEngine(code)
+		if err != nil {
+			panic(err)
+		}
+		_, err = engine.Invoke()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 }

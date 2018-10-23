@@ -2,6 +2,14 @@ package neovm
 
 import "github.com/ontio/ontology/vm/neovm/types"
 
+func (self *ValueStack) PushBool(val bool) error {
+	if val {
+		return self.Push(types.VmValueFromInt64(1))
+	} else {
+		return self.Push(types.VmValueFromInt64(0))
+	}
+}
+
 func (self *ValueStack) PopAsBool() (bool, error) {
 	val, err := self.Pop()
 	if err != nil {
@@ -11,12 +19,32 @@ func (self *ValueStack) PopAsBool() (bool, error) {
 	return val.AsBool()
 }
 
+func (self *ValueStack) PushInt64(val int64) error {
+	return self.Push(types.VmValueFromInt64(val))
+}
+
+func (self *ValueStack) PopAsInt64() (int64, error) {
+	val, err := self.Pop()
+	if err != nil {
+		return 0, err
+	}
+	return val.AsInt64()
+}
+
 func (self *ValueStack) PopAsIntValue() (types.IntValue, error) {
 	val, err := self.Pop()
 	if err != nil {
 		return types.IntValue{}, err
 	}
 	return val.AsIntValue()
+}
+
+func (self *ValueStack) PushBytes(val []byte) error {
+	v, err := types.VmValueFromBytes(val)
+	if err != nil {
+		return err
+	}
+	return self.Push(v)
 }
 
 func (self *ValueStack) PopAsBytes() ([]byte, error) {
@@ -42,6 +70,15 @@ func (self *ValueStack) PopPairAsBool() (left, right bool, err error) {
 		return
 	}
 	left, err = self.PopAsBool()
+	return
+}
+
+func (self *ValueStack) PopPairAsInt64() (left, right int64, err error) {
+	right, err = self.PopAsInt64()
+	if err != nil {
+		return
+	}
+	left, err = self.PopAsInt64()
 	return
 }
 
