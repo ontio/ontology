@@ -19,6 +19,8 @@
 package neovm
 
 import (
+	"bytes"
+	"math/big"
 	"testing"
 
 	"errors"
@@ -35,6 +37,23 @@ func TestRuntimeSerialize(t *testing.T) {
 
 	_, err := SerializeStackItem(a)
 	assert.NotNil(t, err)
+}
+
+func TestRuntimeDeserializeBigInteger(t *testing.T) {
+	i := big.NewInt(123)
+	a := types.NewInteger(i)
+
+	b, err := SerializeStackItem(a)
+	assert.Nil(t, err)
+
+	item, err := DeserializeStackItem(bytes.NewReader(b))
+	assert.Nil(t, err)
+
+	result, err := item.GetBigInteger()
+	assert.Nil(t, err)
+
+	assert.Equal(t, result, i)
+
 }
 
 func TestArrayRef(t *testing.T) {
