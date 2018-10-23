@@ -30,7 +30,7 @@ type VmValue struct {
 	bigInt    *big.Int
 	byteArray []byte
 	structval StructValue
-	array     *ArrayValue // array or struct, since array is mutable, need use pointer here
+	array     *ArrayValue
 	mapval    *MapValue
 	interop   InteropValue
 }
@@ -40,7 +40,7 @@ func VmValueFromInt64(val int64) VmValue {
 }
 
 func VmValueFromBytes(val []byte) (result VmValue, err error) {
-	if len(val) > constants.MAX_INT_SIZE {
+	if len(val) > constants.MAX_BYTEARRAY_SIZE {
 		err = errors.ERR_OVER_MAX_ITEM_SIZE
 		return
 	}
@@ -94,6 +94,21 @@ func (self *VmValue) AsBytes() ([]byte, error) {
 	default:
 		panic("unreacheable!")
 	}
+}
+
+func (self *VmValue) AsInt64() (int64, error) {
+	val, err := self.AsIntValue()
+	if err != nil {
+		return 0, err
+	}
+	if val.isbig {
+		if val.bigint.IsInt64() == false {
+			return 0, err
+		}
+		return val.bigint.Int64(), nil
+	}
+
+	return val.integer, nil
 }
 
 func (self *VmValue) AsIntValue() (IntValue, error) {

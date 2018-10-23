@@ -7,6 +7,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
+	"math"
 )
 
 type IntValue struct {
@@ -100,6 +101,15 @@ func IntValFromNeoBytes(val []byte) (IntValue, error) {
 	return IntValFromBigInt(value)
 }
 
+func (self *IntValue) ToNeoBytes() []byte {
+	val := self.bigint
+	if self.isbig == false {
+		val = big.NewInt(self.integer)
+	}
+	value := common.BigIntToNeoBytes(val)
+	return value
+}
+
 func IntValFromInt(val int64) IntValue {
 	return IntValue{isbig: false, integer: val}
 }
@@ -184,6 +194,59 @@ func (self IntValue) Or(other IntValue) (IntValue, error) {
 	}, func(a, b *big.Int) (IntValue, error) {
 		return IntValFromBigInt(new(big.Int).Or(a, b))
 	})
+}
+
+func (self IntValue) Cmp(other IntValue) int {
+	if self.isbig == false && other.isbig == false {
+		if self.integer < other.integer {
+			return -1
+		} else if self.integer == other.integer {
+			return 0
+		} else {
+			return 1
+		}
+	}
+	var left, right *big.Int
+	if self.isbig == false {
+		left = big.NewInt(self.integer)
+	} else {
+		left = self.bigint
+	}
+	if other.isbig == false {
+		right = big.NewInt(other.integer)
+	} else {
+		right = other.bigint
+	}
+
+	return left.Cmp(right)
+}
+
+func (self IntValue) Not() (val IntValue) {
+	if self.isbig {
+		val.isbig = true
+		val.bigint = big.NewInt(0)
+		val.bigint.Not(self.bigint)
+	} else {
+		val.integer = ^self.integer
+	}
+	return
+}
+
+func (self IntValue) Abs() (val IntValue) {
+	if self.isbig {
+		val.isbig = true
+		val.bigint = big.NewInt(0)
+		val.bigint.Abs(self.bigint)
+	} else {
+		if self.integer == math.MinInt64 {
+			val.isbig = true
+			val.bigint = big.NewInt(self.integer)
+			val.bigint.Abs(val.bigint)
+		} else {
+			val.integer = -self.integer
+		}
+	}
+	return
 }
 
 // todo: check negative value with big.Int
