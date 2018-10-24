@@ -50,6 +50,16 @@ func (ec *ExecutionContext) NextInstruction() OpCode {
 	return OpCode(ec.Code[ec.OpReader.Position()])
 }
 
+func (self *ExecutionContext) ReadOpCode() (val OpCode, eof bool) {
+	code, err := self.OpReader.ReadByte()
+	if err != nil {
+		eof = true
+		return
+	}
+	val = OpCode(code)
+	return val, false
+}
+
 func (ec *ExecutionContext) Clone() *ExecutionContext {
 	executionContext := NewExecutionContext(ec.Code)
 	executionContext.InstructionPointer = ec.InstructionPointer
