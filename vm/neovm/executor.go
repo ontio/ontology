@@ -21,6 +21,7 @@ package neovm
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/vm/neovm/errors"
@@ -32,9 +33,9 @@ func NewExecutor(code []byte) *Executor {
 	var engine Executor
 	engine.EvalStack = NewValueStack(STACK_LIMIT)
 	engine.AltStack = NewValueStack(STACK_LIMIT)
-	engine.Context = NewExecutionContext(code)
+	context := NewExecutionContext(code)
+	engine.Context = context
 	engine.State = BREAK
-	engine.OpCode = 0
 	return &engine
 }
 
@@ -42,41 +43,37 @@ type Executor struct {
 	EvalStack *ValueStack
 	AltStack  *ValueStack
 	State     VMState
-	//Contexts  []*ExecutionContext
-	Context *ExecutionContext
-	OpCode  OpCode
-	OpExec  OpExec
+	Callers   []*ExecutionContext
+	Context   *ExecutionContext
 }
 
-//func (this *Executor) CurrentContext() *ExecutionContext {
-//	return this.Contexts[len(this.Contexts)-1]
-//}
-//
-//func (this *Executor) PopContext() (*ExecutionContext, error) {
-//	if len(this.Contexts) != 0 {
-//		this.Contexts = this.Contexts[:len(this.Contexts)-1]
-//	}
-//	if len(this.Contexts) != 0 {
-//		this.Context = this.CurrentContext()
-//	}
-//}
+func (self *Executor) PopContext() (*ExecutionContext, error) {
+	total := len(self.Callers)
+	if total == 0 {
+		return nil, errors.ERR_INDEX_OUT_OF_BOUND
+	}
+	context := self.Callers[total-1]
+	self.Callers = self.Callers[:total-1]
+	return context, nil
+}
 
-//func (this *Executor) PushContext(context *ExecutionContext) {
-//	this.Contexts = append(this.Contexts, context)
-//	this.Context = this.CurrentContext()
-//}
+func (self *Executor) PushContext(context *ExecutionContext) {
+	//todo : check limit
+	self.Callers = append(self.Callers, context)
+}
 
 func (self *Executor) Execute() error {
 	self.State = self.State & (^BREAK)
-	for {
-		_, eof := self.ReadOpCode()
-		if eof {
-			break
-		}
+	for self.Context != nil {
 		if self.State == FAULT || self.State == HALT || self.State == BREAK {
 			break
 		}
-		err := self.StepInto()
+		opcode, eof := self.Context.ReadOpCode()
+		if eof {
+			break
+		}
+		var err error
+		self.State, err = self.ExecuteOp(opcode, self.Context)
 		if err != nil {
 			return err
 		}
@@ -84,38 +81,12 @@ func (self *Executor) Execute() error {
 	return nil
 }
 
-func (self *Executor) ReadOpCode() (val OpCode, eof bool) {
-	code, err := self.Context.OpReader.ReadByte()
-	if err != nil {
-		eof = true
-		return
-	}
-	val = OpCode(code)
-	self.OpCode = OpCode(code)
-	return val, false
-}
-
-func (self *Executor) ValidateOp() error {
-	opExec := OpExecList[self.OpCode]
-	if opExec.Name == "" {
-		return errors.ERR_NOT_SUPPORT_OPCODE
-	}
-	self.OpExec = opExec
-	return nil
-}
-
-func (self *Executor) StepInto() error {
-	state, err := self.ExecuteOp(self.OpCode, self.Context)
-	self.State = state
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMState, error) {
 	if opcode >= PUSHBYTES1 && opcode <= PUSHBYTES75 {
-		buf := context.OpReader.ReadBytes(int(opcode))
+		buf, err := context.OpReader.ReadBytes(int(opcode))
+		if err != nil {
+			return FAULT, err
+		}
 		val, err := types.VmValueFromBytes(buf)
 		if err != nil {
 			return FAULT, err
@@ -143,12 +114,20 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 
 			numBytes = int(d)
 		} else if opcode == PUSHDATA2 {
-			numBytes = int(context.OpReader.ReadUint16())
+			num, err := context.OpReader.ReadUint16()
+			if err != nil {
+				return FAULT, err
+			}
+			numBytes = int(num)
 		} else {
-			numBytes = int(context.OpReader.ReadInt32())
+			num, err := context.OpReader.ReadUint32()
+			if err != nil {
+				return FAULT, err
+			}
+			numBytes = int(num)
 		}
 
-		data := context.OpReader.ReadBytes(numBytes)
+		data, err := context.OpReader.ReadBytes(numBytes)
 		val, err := types.VmValueFromBytes(data)
 		if err != nil {
 			return FAULT, err
@@ -158,11 +137,55 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			return FAULT, err
 		}
 	case PUSHM1, PUSH1, PUSH2, PUSH3, PUSH4, PUSH5, PUSH6, PUSH7, PUSH8, PUSH9, PUSH10, PUSH11, PUSH12, PUSH13, PUSH14, PUSH15, PUSH16:
-		val := int64(self.OpCode - PUSH1 + 1)
+		val := int64(opcode - PUSH1 + 1)
 		err := self.EvalStack.Push(types.VmValueFromInt64(val))
 		if err != nil {
 			return FAULT, err
 		}
+		// Flow control
+	case NOP:
+		return NONE, nil
+	case JMP, JMPIF, JMPIFNOT, CALL:
+		if opcode == CALL {
+			caller := context.Clone()
+			caller.SetInstructionPointer(int64(caller.GetInstructionPointer() + 2))
+			self.PushContext(caller)
+			opcode = JMP
+		}
+
+		num, err := context.OpReader.ReadInt16()
+		if err != nil {
+			return FAULT, err
+		}
+		offset := int(num)
+		offset = context.GetInstructionPointer() + offset - 3
+
+		if offset < 0 || offset > len(context.Code) {
+			return FAULT, errors.ERR_FAULT
+		}
+		var needJmp = true
+		if opcode != JMP {
+			val, err := self.EvalStack.PopAsBool()
+			if err != nil {
+				return FAULT, err
+			}
+			if opcode == JMPIF {
+				needJmp = val
+			} else {
+				needJmp = !val
+			}
+		}
+
+		if needJmp {
+			context.SetInstructionPointer(int64(offset))
+		}
+	case RET:
+		self.Context, _ = self.PopContext()
+		/*
+			//todo
+				APPCALL  OpCode = 0x67
+				SYSCALL  OpCode = 0x68
+		*/
 		// Stack
 	case DUPFROMALTSTACK:
 		val, err := self.AltStack.Peek(0)
@@ -639,7 +662,16 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 
 		verErr := signature.Verify(key, data, sig)
 		err = self.EvalStack.PushBool(verErr == nil)
-
+	case THROW:
+		return FAULT, nil
+	case THROWIFNOT:
+		val, err := self.EvalStack.PopAsBool()
+		if err != nil {
+			return FAULT, err
+		}
+		if !val {
+			return FAULT, nil
+		}
 	default:
 		panic("unimplemented!")
 	}
