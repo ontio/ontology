@@ -119,9 +119,9 @@ func BigIntZip(ints1 *big.Int, ints2 *big.Int, op OpCode) *big.Int {
 	case MUL:
 		nb.Mul(ints1, ints2)
 	case DIV:
-		nb.Quo(ints1, ints2)
+		nb.Div(ints1, ints2)
 	case MOD:
-		nb.Rem(ints1, ints2)
+		nb.Mod(ints1, ints2)
 	case SHL:
 		nb.Lsh(ints1, uint(ints2.Int64()))
 	case SHR:
