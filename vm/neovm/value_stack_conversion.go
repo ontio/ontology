@@ -55,6 +55,30 @@ func (self *ValueStack) PopAsBytes() ([]byte, error) {
 	return val.AsBytes()
 }
 
+func (self *ValueStack) PopAsArray() (*types.ArrayValue, error) {
+	val, err := self.Pop()
+	if err != nil {
+		return nil, err
+	}
+	return val.AsArrayValue()
+}
+
+func (self *ValueStack) PopAsMap() (*types.MapValue, error) {
+	val, err := self.Pop()
+	if err != nil {
+		return nil, err
+	}
+	return val.AsMapValue()
+}
+
+func (self *ValueStack) PopAsStruct() (types.StructValue, error) {
+	val, err := self.Pop()
+	if err != nil {
+		return types.StructValue{}, err
+	}
+	return val.AsStructValue()
+}
+
 func (self *ValueStack) PopPairAsBytes() (left, right []byte, err error) {
 	right, err = self.PopAsBytes()
 	if err != nil {

@@ -69,6 +69,14 @@ func VmValueFromBigInt(val *big.Int) (result VmValue, err error) {
 	return VmValueFromIntValue(value), nil
 }
 
+func VmValueFromArrayVal(array *ArrayValue) VmValue {
+	return VmValue{valType: arrayType, array: array}
+}
+
+func VmValueFromStructVal(val StructValue) VmValue {
+	return VmValue{valType: structType, structval: val}
+}
+
 func NewMapVmValue() VmValue {
 	return VmValue{valType: mapType, mapval: NewMapValue()}
 }
