@@ -124,6 +124,15 @@ func (self *ValueStack) PopPair() (left, right types.VmValue, err error) {
 	return
 }
 
+func (self *ValueStack) PopTriple() (left, middle, right types.VmValue, err error) {
+	middle, right, err = self.PopPair()
+	if err != nil {
+		return
+	}
+	left, err = self.Pop()
+	return
+}
+
 func (self *ValueStack) Swap(i, j int64) error {
 	l := int64(len(self.data))
 	if i >= l || i < 0 {
