@@ -22,19 +22,21 @@ func (this *MapValue) Reset() {
 	this.data = make(map[string]VmValue)
 }
 
-func (this *MapValue) Remove(key VmValue) {
+func (this *MapValue) Remove(key VmValue) error {
 	skey, err := key.GetMapKey()
 	if err != nil {
-		return
+		return err
 	}
 
 	delete(this.data, skey)
+
+	return nil
 }
 
-func (this *MapValue) Get(key VmValue) (value VmValue, ok bool) {
+func (this *MapValue) Get(key VmValue) (value VmValue, ok bool, err error) {
 	skey, e := key.GetMapKey()
 	if e != nil {
-		ok = false
+		err = e
 		return
 	}
 
