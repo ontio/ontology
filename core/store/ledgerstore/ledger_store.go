@@ -285,31 +285,12 @@ func (this *LedgerStoreImp) initStore() error {
 		if err != nil {
 			return fmt.Errorf("blockStore.GetBlock height:%d error:%s", i, err)
 		}
+		this.eventStore.NewBatch()
 		this.stateStore.NewBatch()
 		err = this.saveBlockToStateStore(block)
 		if err != nil {
 			return fmt.Errorf("save to state store height:%d error:%s", i, err)
 		}
-		err = this.stateStore.CommitTo()
-		if err != nil {
-			return fmt.Errorf("stateStore.CommitTo height:%d error %s", i, err)
-		}
-	}
-
-	_, eventHeight, err := this.eventStore.GetCurrentBlock()
-	if err != nil {
-		return fmt.Errorf("eventStore.GetCurrentBlock error:%s", err)
-	}
-	for i := eventHeight; i < blockHeight; i++ {
-		blockHash, err := this.blockStore.GetBlockHash(i)
-		if err != nil {
-			return fmt.Errorf("blockStore.GetBlockHash height:%d error:%s", i, err)
-		}
-		block, err := this.blockStore.GetBlock(blockHash)
-		if err != nil {
-			return fmt.Errorf("blockStore.GetBlock height:%d error:%s", i, err)
-		}
-		this.eventStore.NewBatch()
 		err = this.saveBlockToEventStore(block)
 		if err != nil {
 			return fmt.Errorf("save to event store height:%d error:%s", i, err)
@@ -317,6 +298,10 @@ func (this *LedgerStoreImp) initStore() error {
 		err = this.eventStore.CommitTo()
 		if err != nil {
 			return fmt.Errorf("eventStore.CommitTo height:%d error %s", i, err)
+		}
+		err = this.stateStore.CommitTo()
+		if err != nil {
+			return fmt.Errorf("stateStore.CommitTo height:%d error %s", i, err)
 		}
 	}
 	return nil
@@ -676,13 +661,14 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("blockStore.CommitTo height:%d error %s", blockHeight, err)
 	}
-	err = this.stateStore.CommitTo()
-	if err != nil {
-		return fmt.Errorf("stateStore.CommitTo height:%d error %s", blockHeight, err)
-	}
+	// event store is idempotent to re-save when in recovering process, so save first before stateStore
 	err = this.eventStore.CommitTo()
 	if err != nil {
 		return fmt.Errorf("eventStore.CommitTo height:%d error %s", blockHeight, err)
+	}
+	err = this.stateStore.CommitTo()
+	if err != nil {
+		return fmt.Errorf("stateStore.CommitTo height:%d error %s", blockHeight, err)
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
 
