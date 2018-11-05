@@ -45,6 +45,7 @@ type SmartContract struct {
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 	Gas           uint64
 	ExecStep      int
+	PreExec       bool
 }
 
 // Config describe smart contract need parameters configuration
@@ -135,6 +136,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		Height:     this.Config.Height,
 		RandomHash: this.Config.RandomHash,
 		Engine:     vm.NewExecutionEngine(),
+		PreExec:    this.PreExec,
 	}
 	return service, nil
 }
