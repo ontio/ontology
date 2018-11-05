@@ -127,6 +127,7 @@ type NeoVmService struct {
 	Height        uint32
 	RandomHash    scommon.Uint256
 	Engine        *vm.ExecutionEngine
+	PreExec       bool
 }
 
 // Invoke a smart contract
@@ -138,7 +139,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	this.Engine.PushContext(vm.NewExecutionContext(this.Engine, this.Code))
 	for {
 		//check the execution step count
-		if !this.ContextRef.CheckExecStep() {
+		if this.PreExec && !this.ContextRef.CheckExecStep() {
 			return nil, VM_EXEC_STEP_EXCEED
 		}
 		if len(this.Engine.Contexts) == 0 || this.Engine.Context == nil {
