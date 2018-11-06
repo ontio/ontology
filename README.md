@@ -17,13 +17,13 @@ Prerequisites for getting started with development on the Ontology networks are:
 
 - Mainstream coding and development experience
 - Understanding of your business scenario/requirements
-- NO need for previous Blockchain Engineer experience
+- No need for previous blockchain engineering experience
 
-The Ontology core tech team, the community, and the ecosystem can all support you in development. MainNet, TestNet, SmartX and a Docker image for Ontology, SmartX and Ontology Explorer combined makes it easy to start.
+The Ontology core tech team, the community, and the ecosystem can all support you in development. MainNet, TestNet, SmartX and a Docker image for Ontology, SmartX, and Ontology Explorer combined make it easy to start.
 
 Ontology makes getting started easier!
 
-The code is currently in Alpha phase of the release life cycle, but rapidly under development for Beta. The master code may be unstable, but stable versions can be found under the [release page](https://github.com/ontio/ontology/releases).
+The code is currently in Alpha phase of the release life cycle, but is rapidly under development towards Beta. The master code may be unstable, but stable versions can be found under the [release page](https://github.com/ontio/ontology/releases).
 
 We openly welcome developers to Ontology.
 
@@ -45,12 +45,12 @@ We openly welcome developers to Ontology.
 - [Get Ontology](#get-ontology)
     - [Get from release](#get-from-release)
     - [Get from source code](#get-from-source-code)
-- [Run ontology](#run-ontology)
-    - [Mainnet sync node](#mainnet-sync-node)
+- [Run Ontology](#run-ontology)
+    - [MainNet sync node](#mainnet-sync-node)
     - [Public test network Polaris sync node](#public-test-network-polaris-sync-node)
     - [Testmode](#testmode)
     - [Run in docker](#run-in-docker)
-- [Some example](#some-example)
+- [Some examples](#some-example)
     - [ONT transfer sample](#ont-transfer-sample)
     - [Query transfer status sample](#query-transfer-status-sample)
     - [Query account balance sample](#query-account-balance-sample)
@@ -101,10 +101,10 @@ $ make all
 
 After building the source code sucessfully, you should see two executable programs:
 
-- `ontology`: the node program/command line program for node control
-- `tools/sigsvr`: (optional) Ontology Signature Server - sigsvr is a rpc server for signing transactions for some special requirements. Detailed docs can be found at [link](https://github.com/ontio/documentation/blob/master/docs/pages/doc_en/Ontology/sigsvr_en.md)
+- `ontology`: the node program/command line program for node control.
+- `tools/sigsvr`: (optional) Ontology Signature Server - sigsvr is a RPC server for signing transactions for some special requirements. Detailed docs can be found [here](https://github.com/ontio/documentation/blob/master/docs/pages/doc_en/Ontology/sigsvr_en.md).
 
-## Run ontology
+## Run Ontology
 
 You can run Ontology in four different modes:
 
@@ -122,7 +122,7 @@ Run ontology directly
    ```
 	./ontology
    ```
-Then you can connect to ontology MainNet.
+then you can connect to Ontology MainNet.
 
 ### Public test network Polaris sync node (TestNet)
 
@@ -157,11 +157,11 @@ Here's a example of a single-host configuration:
 
 Please ensure there is a docker environment in your machine.
 
-1. make docker image
+1. Make docker image
 
-    - In the root directory of source code, run `make docker`, it will make ontology image in docker.
+    - In the root directory of source code, run `make docker`, it will make an Ontology image in docker.
 
-2. run Ontology image
+2. Run Ontology image
 
     - Use command `docker run ontio/ontology` to run Ontology；
 
@@ -172,7 +172,7 @@ Please ensure there is a docker environment in your machine.
     - If you need to add Ontology parameters, you can add them directly after `docker run ontio/ontology` such as `docker run ontio/ontology --networkid 2`.
      The parameters of ontology command line refer to [here](./docs/specifications/cli_user_guide.md).
 
-## Some example
+## Some examples
 
 ### ONT transfer sample
  -- from: transfer from； -- to: transfer to； -- amount: ONT amount；
@@ -193,7 +193,7 @@ Due to block time, the transfer transaction will not be executed before the bloc
 
 If you want to transfer ONG, just add --asset=ong flag.
 
-Note that ONT is an integer and has no decimals, whereas ONG has 9 decimals. For detailed info please read [Everything you need to know about ONG](https://medium.com/ontologynetwork/everything-you-need-to-know-about-ong-582ed216b870)
+Note that ONT is an integer and has no decimals, whereas ONG has 9 decimals. For detailed info please read [Everything you need to know about ONG](https://medium.com/ontologynetwork/everything-you-need-to-know-about-ong-582ed216b870).
 
 ```shell
 ./ontology asset transfer --from=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --to=ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48 --amount=95.479777254 --asset=ong
@@ -252,14 +252,14 @@ or
 ```shell
 ./ontology asset balance 1
 ```
-result：
+Result:
 ```shell
 BalanceOf:ARVVxBPGySL56CvSSWfjRVVyZYpNZ7zp48
   ONT:989979697
   ONG:28165900
 ```
 
-For further examples, please refer to [CLI user guide](https://ontio.github.io/documentation/cli_user_guide_en.html)
+For further examples, please refer to the [CLI User Guide](https://ontio.github.io/documentation/cli_user_guide_en.html).
 
 ## Contributions
 
@@ -267,7 +267,7 @@ Please open a pull request with a signed commit. We appreciate your help! You ca
 
 Please provide a detailed submission information when you want to contribute code for this project. The format is as follows:
 
-Header line: explain the commit in one line (use the imperative).
+Header line: Explain the commit in one line (use the imperative).
 
 Body of commit message is a few lines of text, explaining things in more detail, possibly giving some background about the issue being fixed, etc.
 
@@ -275,7 +275,7 @@ The body of the commit message can be several paragraphs. Please do proper word-
 
 Make sure you explain your solution and why you are doing what you are doing, as opposed to describing what you are doing. Reviewers and your future self can read the patch, but might not understand why a particular solution was implemented.
 
-Reported-by: whoever-reported-it &
+Reported-by: whoever-reported-it +
 Signed-off-by: Your Name [youremail@yourhost.com](mailto:youremail@yourhost.com)
 
 ## Open source community
