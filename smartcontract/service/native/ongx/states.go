@@ -214,6 +214,32 @@ func (this *TransferFrom) Deserialization(source *common.ZeroCopySource) error {
 	return err
 }
 
+type OngSwapParam struct {
+	Swap []Swap
+}
+
+func (this *OngSwapParam) Serialize(sink *common.ZeroCopySink) {
+	utils.EncodeVarUint(sink, uint64(len(this.Swap)))
+	for _, v := range this.Swap {
+		v.Serialize(sink)
+	}
+}
+
+func (this *OngSwapParam) Deserialize(source *common.ZeroCopySource) error {
+	n, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("ongSwapParam deserialize count error:%s", err)
+	}
+	for i := 0; uint64(i) < n; i++ {
+		var swap Swap
+		if err := swap.Deserialize(source); err != nil {
+			return err
+		}
+		this.Swap = append(this.Swap, swap)
+	}
+	return nil
+}
+
 type Swap struct {
 	Addr  common.Address
 	Value uint64
