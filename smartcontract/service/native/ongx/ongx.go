@@ -174,7 +174,6 @@ func OngSwap(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("[OngSwap], deserialize from raw storage item err:%v", err)
 	}
-
 	syncAddr := new(SyncAddress)
 	if err := syncAddr.Deserialize(common.NewZeroCopySource(syncAddrBytes)); err != nil {
 		return nil, fmt.Errorf("deserialize, deserialize syncAddr error: %v", err)
@@ -183,25 +182,26 @@ func OngSwap(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[OngSwap] authentication failed!")
 	}
 	source := common.NewZeroCopySource(native.Input)
-	var swap Swap
-	if err := swap.Deserialize(source); err != nil {
+	var ongSwapParam OngSwapParam
+	if err := ongSwapParam.Deserialize(source); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
 	}
-
-	key = append(context[:], swap.Addr[:]...)
-	balance, err := utils.GetStorageUInt64(native, key)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
-	}
-	native.CacheDB.Put(key, utils.GenUInt64StorageItem(balance+swap.Value).ToArray())
-	AddNotifications(native, context, &State{To: swap.Addr, Value: swap.Value})
-
 	totalSupplyKey := GenTotalSupplyKey(context)
 	amount, err := utils.GetStorageUInt64(native, totalSupplyKey)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
 	}
-	native.CacheDB.Put(totalSupplyKey, utils.GenUInt64StorageItem(amount+swap.Value).ToArray())
+	for _, v := range ongSwapParam.Swap {
+		key := append(context[:], v.Addr[:]...)
+		balance, err := utils.GetStorageUInt64(native, key)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
+		}
+		native.CacheDB.Put(key, GetToUInt64StorageItem(balance, v.Value).ToArray())
+		amount += v.Value
+		AddNotifications(native, context, &State{To: v.Addr, Value: v.Value})
+	}
+	native.CacheDB.Put(totalSupplyKey, utils.GenUInt64StorageItem(amount).ToArray())
 	return utils.BYTE_TRUE, nil
 }
 
