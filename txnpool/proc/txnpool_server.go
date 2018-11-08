@@ -688,6 +688,8 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	s.pendingBlock.processedTxs = make(map[common.Uint256]*tc.VerifyTxResult, len(req.Txs))
 	s.pendingBlock.unProcessedTxs = make(map[common.Uint256]*tx.Transaction, 0)
 
+	txs := make(map[common.Uint256]bool, len(req.Txs))
+
 	// Check whether a tx's gas price is lower than the required, if yes,
 	// just return error
 	for _, t := range req.Txs {
@@ -701,6 +703,18 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 			s.sendBlkResult2Consensus()
 			return
 		}
+		// Check whether double spent
+		if _, ok := txs[t.Hash()]; ok {
+			entry := &tc.VerifyTxResult{
+				Height:  s.pendingBlock.height,
+				Tx:      t,
+				ErrCode: errors.ErrDoubleSpend,
+			}
+			s.pendingBlock.processedTxs[t.Hash()] = entry
+			s.sendBlkResult2Consensus()
+			return
+		}
+		txs[t.Hash()] = true
 	}
 
 	checkBlkResult := s.txPool.GetUnverifiedTxs(req.Txs, req.Height)
