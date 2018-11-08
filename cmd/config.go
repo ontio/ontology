@@ -22,13 +22,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/urfave/cli"
-	"io/ioutil"
 )
 
 func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
@@ -186,10 +187,6 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 	if err != nil {
 		log.Errorf("json.Unmarshal network mgr config:%s error:%s", data, err)
 		return
-	}
-	for i := 0; i < len(cfg.NetworkMgrCfg.Peers); i++ {
-		log.Infof("Peer nodeId %d, pubkey %s", cfg.NetworkMgrCfg.Peers[i].NodeId,
-			cfg.NetworkMgrCfg.Peers[i].PubKey)
 	}
 	log.Infof("Local node IP: %s, UDPPort: %d", cfg.NetworkMgrCfg.DHT.IP,
 		cfg.NetworkMgrCfg.DHT.UDPPort)

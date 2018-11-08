@@ -168,7 +168,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initP2PNode error:%s", err)
 		return
 	}
-	_, err = initConsensus(ctx, p2pPid, txpool, acc)
+	_, err = initConsensus(ctx, p2pPid, txpool, acc, p2pSvr.GetID())
 	if err != nil {
 		log.Errorf("initConsensus error:%s", err)
 		return
@@ -308,14 +308,14 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2P
 	return p2p, p2pPID, nil
 }
 
-func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolServer, acc *account.Account) (consensus.ConsensusService, error) {
+func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolServer, acc *account.Account, nodeID uint64) (consensus.ConsensusService, error) {
 	if !config.DefConfig.Consensus.EnableConsensus {
 		return nil, nil
 	}
 	pool := txpoolSvr.GetPID(tc.TxPoolActor)
 
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	consensusService, err := consensus.NewConsensusService(consensusType, acc, pool, nil, p2pPid)
+	consensusService, err := consensus.NewConsensusService(consensusType, acc, pool, nil, p2pPid, nodeID)
 	if err != nil {
 		return nil, fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
 	}

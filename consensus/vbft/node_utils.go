@@ -397,6 +397,7 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte, msgType MsgType) err
 			Data:   data,
 			Owner:  self.account.PublicKey,
 			DestID: p2pid,
+			PeerId: self.NodeID,
 		}
 
 		buf := new(bytes.Buffer)
@@ -427,6 +428,7 @@ func (self *Server) broadcastToAll(data []byte, msgType MsgType) error {
 		Data:   data,
 		Owner:  self.account.PublicKey,
 		DestID: 0,
+		PeerId: self.NodeID,
 	}
 
 	buf := new(bytes.Buffer)

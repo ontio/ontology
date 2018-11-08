@@ -39,7 +39,7 @@ const (
 	CONSENSUS_VBFT = "vbft"
 )
 
-func NewConsensusService(consensusType string, account *account.Account, txpool *actor.PID, ledger *actor.PID, p2p *actor.PID) (ConsensusService, error) {
+func NewConsensusService(consensusType string, account *account.Account, txpool *actor.PID, ledger *actor.PID, p2p *actor.PID, nodeID uint64) (ConsensusService, error) {
 	if consensusType == "" {
 		consensusType = CONSENSUS_DBFT
 	}
@@ -51,7 +51,7 @@ func NewConsensusService(consensusType string, account *account.Account, txpool 
 	case CONSENSUS_SOLO:
 		consensus, err = solo.NewSoloService(account, txpool)
 	case CONSENSUS_VBFT:
-		consensus, err = vbft.NewVbftServer(account, txpool, p2p)
+		consensus, err = vbft.NewVbftServer(account, txpool, p2p, nodeID)
 	}
 	log.Infof("ConsensusType:%s", consensusType)
 	return consensus, err

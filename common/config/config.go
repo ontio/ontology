@@ -473,13 +473,7 @@ type SOLOConfig struct {
 }
 
 type NetworkMgrCfg struct {
-	Peers []PeerIDPubKey `json:"peers"`
-	DHT   DHTConfig      `json:"DHT"`
-}
-
-type PeerIDPubKey struct {
-	NodeId uint64 `json:"nodeId"`
-	PubKey string `json:"peerPubkey"`
+	DHT DHTConfig `json:"DHT"`
 }
 
 type DHTConfig struct {

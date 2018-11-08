@@ -511,8 +511,8 @@ func (this *P2PServer) tryRecentPeers() {
 			log.Warn("[p2p]parse recent peer file fail: ", err)
 			return
 		}
+		log.Info("[p2p]try to connect recent peer")
 		for _, node := range this.recentPeers {
-			log.Info("[p2p]try to connect recent peer")
 			addr := node.IP + ":" + strconv.Itoa(int(node.TCPPort))
 			go this.network.Connect(addr, false)
 		}

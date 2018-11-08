@@ -31,7 +31,6 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
@@ -109,6 +108,7 @@ type Server struct {
 	completedBlockNum        uint32 // ledger SaveBlockCompleted block num
 	currentBlockNum          uint32
 	LastConfigBlockNum       uint32
+	NodeID                   uint64
 	config                   *vconfig.ChainConfig
 	currentParticipantConfig *BlockParticipantConfig
 
@@ -130,9 +130,10 @@ type Server struct {
 	quitWg     sync.WaitGroup
 }
 
-func NewVbftServer(account *account.Account, txpool, p2p *actor.PID) (*Server, error) {
+func NewVbftServer(account *account.Account, txpool, p2p *actor.PID, nodeID uint64) (*Server, error) {
 	server := &Server{
 		msgHistoryDuration: 64,
+		NodeID:             nodeID,
 		account:            account,
 		poolActor:          &actorTypes.TxPoolActor{Pool: txpool},
 		p2p:                &actorTypes.P2PActor{P2P: p2p},
@@ -236,7 +237,10 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	if self.peerPool.isNewPeer(peerIdx) {
 		self.peerPool.peerConnected(peerIdx)
 	}
-
+	p2pid, present := self.peerPool.getP2pId(peerIdx)
+	if !present || p2pid != payload.PeerId {
+		self.peerPool.addP2pId(peerIdx, payload.PeerId)
+	}
 	if C, present := self.msgRecvC[peerIdx]; present {
 		C <- &p2pMsgPayload{
 			fromPeer: peerIdx,
@@ -446,15 +450,6 @@ func (self *Server) initialize() error {
 		}
 		log.Infof("added peer: %s", p.ID)
 	}
-	for _, p := range config.DefConfig.P2PNode.NetworkMgrCfg.Peers {
-		peerIdx, present := self.peerPool.GetPeerIndex(p.PubKey)
-		if present {
-			self.peerPool.addP2pId(peerIdx, p.NodeId)
-		} else {
-			return fmt.Errorf("failed to add networkid peer:%d", peerIdx)
-		}
-	}
-
 	//index equal math.MaxUint32  is noconsensus node
 	id := vconfig.PubkeyID(self.account.PublicKey)
 	index, present := self.peerPool.GetPeerIndex(id)

@@ -40,6 +40,7 @@ type ConsensusPayload struct {
 	Height          uint32
 	BookkeeperIndex uint16
 	Timestamp       uint32
+	PeerId          uint64
 	DestID          uint64
 	Data            []byte
 	Owner           keypair.PublicKey
@@ -198,6 +199,7 @@ func (this *ConsensusPayload) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.Height)
 	sink.WriteUint16(this.BookkeeperIndex)
 	sink.WriteUint32(this.Timestamp)
+	sink.WriteUint64(this.PeerId)
 	sink.WriteUint64(this.DestID)
 	sink.WriteVarBytes(this.Data)
 }
@@ -229,6 +231,10 @@ func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Timestamp:%v", this.Timestamp))
 	}
+	err = serialization.WriteUint64(w, this.PeerId)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. PeerId:%v", this.PeerId))
+	}
 	err = serialization.WriteUint64(w, this.DestID)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. DestID:%v", this.DestID))
@@ -248,6 +254,7 @@ func (this *ConsensusPayload) deserializationUnsigned(source *common.ZeroCopySou
 	this.Height, eof = source.NextUint32()
 	this.BookkeeperIndex, eof = source.NextUint16()
 	this.Timestamp, eof = source.NextUint32()
+	this.PeerId, eof = source.NextUint64()
 	this.DestID, eof = source.NextUint64()
 	this.Data, _, irregular, eof = source.NextVarBytes()
 	if eof {
@@ -293,6 +300,12 @@ func (this *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Timestamp error")
+	}
+
+	this.PeerId, err = serialization.ReadUint64(r)
+	if err != nil {
+
+		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read PeerId error")
 	}
 
 	this.DestID, err = serialization.ReadUint64(r)
