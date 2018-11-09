@@ -193,7 +193,7 @@ disable-broadcast-net-tx 参数用于关闭交易池广播来自网络的交易�
 
 #### 1.2.1 主网记账节点部署
 
-按照角色不同，节点可以分为记账节点和同步节点，记账节点参与网络共识，而同步节点只同步记账节点生成的区块。由于Ontology默认是不启动共识模块的，因此部署记账节点需要通过--enableconsensus命令行参数开启共。此外，Ontology节点默认会启动Rpc服务器，同时会输出智能合约输出的Event Log，因此如果没有特殊要求，可以使用--disablerpc和--disableeventlog命令行参数关闭rpc和eventlog模块。
+按照角色不同，节点可以分为记账节点和同步节点，记账节点参与网络共识，而同步节点只同步记账节点生成的区块。由于Ontology默认是不启动共识模块的，因此部署记账节点需要通过--enableconsensus命令行参数开启共识。此外，Ontology节点默认会启动Rpc服务器，同时会输出智能合约输出的Event Log，因此如果没有特殊要求，可以使用--disablerpc和--disableeventlog命令行参数关闭rpc和eventlog模块。
 
 推荐记账节点启动参数：
 
