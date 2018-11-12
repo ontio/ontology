@@ -37,7 +37,7 @@ func constructPeerPool(connect bool) *PeerPool {
 	peerpool := &PeerPool{
 		maxSize: int(3),
 		configs: make(map[uint32]*vconfig.PeerConfig),
-		IDMap:   make(map[vconfig.NodeID]uint32),
+		IDMap:   make(map[string]uint32),
 		peers:   peers,
 	}
 	return peerpool
@@ -49,7 +49,7 @@ func TestIsNewPeer(t *testing.T) {
 }
 
 func TestAddPeer(t *testing.T) {
-	nodeId, _ := vconfig.StringID("120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81")
+	nodeId := "120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81"
 	peerconfig := &vconfig.PeerConfig{
 		Index: uint32(1),
 		ID:    nodeId,
@@ -78,7 +78,7 @@ func TestPeerDisconnected(t *testing.T) {
 }
 
 func TestPeerHandshake(t *testing.T) {
-	nodeId, _ := vconfig.StringID("120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81")
+	nodeId := "120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81"
 	peerconfig := &vconfig.PeerConfig{
 		Index: uint32(1),
 		ID:    nodeId,
@@ -95,7 +95,7 @@ func TestPeerHandshake(t *testing.T) {
 }
 
 func TestPeerHeartbeat(t *testing.T) {
-	nodeId, _ := vconfig.StringID("120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81")
+	nodeId := "120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81"
 	peerconfig := &vconfig.PeerConfig{
 		Index: uint32(1),
 		ID:    nodeId,
@@ -119,7 +119,7 @@ func TestGetNeighbours(t *testing.T) {
 }
 
 func TestGetPeerIndex(t *testing.T) {
-	nodeId, _ := vconfig.StringID("12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2")
+	nodeId := "12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2"
 	peerconfig := &vconfig.PeerConfig{
 		Index: uint32(1),
 		ID:    nodeId,
@@ -135,7 +135,7 @@ func TestGetPeerIndex(t *testing.T) {
 }
 
 func TestGetPeer(t *testing.T) {
-	nodeId, _ := vconfig.StringID("12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2")
+	nodeId := "12020298fe9f22e9df64f6bfcc1c2a14418846cffdbbf510d261bbc3fa6d47073df9a2"
 	peerconfig := &vconfig.PeerConfig{
 		Index: uint32(1),
 		ID:    nodeId,
