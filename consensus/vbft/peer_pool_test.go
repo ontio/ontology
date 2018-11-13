@@ -45,7 +45,7 @@ func constructPeerPool(connect bool) *PeerPool {
 func TestIsNewPeer(t *testing.T) {
 	peerpool := constructPeerPool(false)
 	isnew := peerpool.isNewPeer(uint32(2))
-	t.Logf("TestIsNewPeer: %v\n", isnew)
+	t.Logf("TestIsNewPeer: %v", isnew)
 }
 
 func TestAddPeer(t *testing.T) {
