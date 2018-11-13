@@ -220,7 +220,7 @@ disable-broadcast-net-tx 参数用于关闭交易池广播来自网络的交易�
 可以直接通过以下命令连接测试网
 
 ```
-./Ontology --networkid 2
+./ontology --networkid 2
 ```
 
 #### 1.2.4 本地测试网部署
