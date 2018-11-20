@@ -92,6 +92,10 @@ func (self *OverlayDB) CommitTo() {
 	})
 }
 
+func (self *OverlayDB) GetWriteSet() *MemDB {
+	return self.memdb
+}
+
 func (self *OverlayDB) ChangeHash() comm.Uint256 {
 	stateDiff := sha256.New()
 	self.memdb.ForEach(func(key, val []byte) {

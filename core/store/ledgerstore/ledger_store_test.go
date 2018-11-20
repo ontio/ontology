@@ -51,7 +51,7 @@ func TestMain(m *testing.M) {
 	}
 	testStateDir := "test/state"
 	merklePath := "test/" + MerkleTreeStorePath
-	testStateStore, err = NewStateStore(testStateDir, merklePath)
+	testStateStore, err = NewStateStore(testStateDir, merklePath, 1000)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewStateStore error %s\n", err)
 		return

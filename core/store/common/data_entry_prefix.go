@@ -23,9 +23,10 @@ type DataEntryPrefix byte
 
 const (
 	// DATA
-	DATA_BLOCK       DataEntryPrefix = 0x00 //Block height => block hash key prefix
-	DATA_HEADER                      = 0x01 //Block hash => block hash key prefix
-	DATA_TRANSACTION                 = 0x02 //Transction hash = > transaction key prefix
+	DATA_BLOCK             DataEntryPrefix = 0x00 //Block height => block hash key prefix
+	DATA_HEADER                            = 0x01 //Block hash => block hash key prefix
+	DATA_TRANSACTION                       = 0x02 //Transction hash = > transaction key prefix
+	DATA_STATE_MERKLE_ROOT                 = 0x21 // block height => write set hash + state merkle root
 
 	// Transaction
 	ST_BOOKKEEPER DataEntryPrefix = 0x03 //BookKeeper state key prefix
@@ -41,6 +42,7 @@ const (
 	SYS_VERSION            DataEntryPrefix = 0x11 //Store version key prefix
 	SYS_CURRENT_STATE_ROOT DataEntryPrefix = 0x12 //no use
 	SYS_BLOCK_MERKLE_TREE  DataEntryPrefix = 0x13 // Block merkle tree root key prefix
+	SYS_STATE_MERKLE_TREE  DataEntryPrefix = 0x20 // state merkle tree root key prefix
 
 	EVENT_NOTIFY DataEntryPrefix = 0x14 //Event notify key prefix
 )

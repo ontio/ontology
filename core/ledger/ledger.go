@@ -64,12 +64,24 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 	return self.ldgStore.AddHeaders(headers)
 }
 
-func (self *Ledger) AddBlock(block *types.Block) error {
-	err := self.ldgStore.AddBlock(block)
+func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
+	err := self.ldgStore.AddBlock(block, stateMerkleRoot)
 	if err != nil {
 		log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
 	}
 	return err
+}
+
+func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
+	return self.ldgStore.ExecuteBlock(b)
+}
+
+func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
+	return self.ldgStore.SubmitBlock(b, exec)
+}
+
+func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, err error) {
+	return self.ldgStore.GetStateMerkleRoot(height)
 }
 
 func (self *Ledger) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
