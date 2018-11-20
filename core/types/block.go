@@ -20,6 +20,7 @@ package types
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -94,6 +95,7 @@ func (self *Block) Deserialization(source *common.ZeroCopySource) error {
 	}
 
 	var hashes []common.Uint256
+	mask := make(map[common.Uint256]bool)
 	for i := uint32(0); i < length; i++ {
 		transaction := new(Transaction)
 		// note currently all transaction in the block shared the same source
@@ -102,11 +104,18 @@ func (self *Block) Deserialization(source *common.ZeroCopySource) error {
 			return err
 		}
 		txhash := transaction.Hash()
+		if mask[txhash] {
+			return errors.New("duplicated transaction in block")
+		}
+		mask[txhash] = true
 		hashes = append(hashes, txhash)
 		self.Transactions = append(self.Transactions, transaction)
 	}
 
-	self.Header.TransactionsRoot = common.ComputeMerkleRoot(hashes)
+	root := common.ComputeMerkleRoot(hashes)
+	if self.Header.TransactionsRoot != root {
+		return errors.New("mismatched transaction root")
+	}
 
 	return nil
 }
