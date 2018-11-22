@@ -135,7 +135,7 @@ networkid 参数用于指定网络ID，networkid不同将无法连接到区块�
 nodeport 参数用于指定P2P网络端口号，默认值为20338。
 
 --consensus-port
-consensus-port 参数用于指定共识网络端口号。默认情况下，共识网络复用P2P网络，因此不需要指定共识网络端口，在通过--dualport参数启动双网络后，则需要单独设置共识网络端口号。默认值为20339。
+consensus-port 参数用于指定共识网络端口号。默认情况下，共识网络复用P2P网络，因此不需要指定共识网络端口，在通过--dual-port参数启动双网络后，则需要单独设置共识网络端口号。默认值为20339。
 
 --dual-port
 dual-port 参数启动双网络，即用于处理交易消息的P2P网络，和用于共识消息的共识网络。默认不开启。
@@ -143,7 +143,7 @@ dual-port 参数启动双网络，即用于处理交易消息的P2P网络，和�
 #### 1.1.5 RPC 服务器参数
 
 --disable-rpc
-disablerpc 参数用于关闭rpc服务器。Ontology节点在启动时会默认启动rpc服务器。
+disable-rpc 参数用于关闭rpc服务器。Ontology节点在启动时会默认启动rpc服务器。
 
 --rpcport
 rpcport 参数用指定rpc服务器绑定的端口号。默认值为20336。
@@ -193,7 +193,7 @@ disable-broadcast-net-tx 参数用于关闭交易池广播来自网络的交易�
 
 #### 1.2.1 主网记账节点部署
 
-按照角色不同，节点可以分为记账节点和同步节点，记账节点参与网络共识，而同步节点只同步记账节点生成的区块。由于Ontology默认是不启动共识模块的，因此部署记账节点需要通过--enableconsensus命令行参数开启共。此外，Ontology节点默认会启动Rpc服务器，同时会输出智能合约输出的Event Log，因此如果没有特殊要求，可以使用--disablerpc和--disableeventlog命令行参数关闭rpc和eventlog模块。
+按照角色不同，节点可以分为记账节点和同步节点，记账节点参与网络共识，而同步节点只同步记账节点生成的区块。由于Ontology默认是不启动共识模块的，因此部署记账节点需要通过--enable-consensus命令行参数开启共识。此外，Ontology节点默认会启动Rpc服务器，同时会输出智能合约输出的Event Log，因此如果没有特殊要求，可以使用--disable-rpc和--disable-event-log命令行参数关闭rpc和eventlog模块。
 
 推荐记账节点启动参数：
 
@@ -782,14 +782,14 @@ speed 参数指定导出速度。分别用h表示high，m表示middle，l表示l
 
 #### 6.2.1 导入区块参数
 
---datadir
-datadir 参数用于指定区块数据存储目录
+--data-dir
+data-dir 参数用于指定区块数据存储目录
 
 --config
 config 参数用于指定当前Ontology节点创世区块配置文件的路径。如果不指定，将使用Ontolog主网的创世块配置。
 
---disableeventlog
-disableeventlog 参数用于关闭导入区块时生成合约日志功能。
+--disable-event-log
+disable-event-log 参数用于关闭导入区块时生成合约日志功能。
 
 --networkid
 networkid 参数用于指定需要导入的网路ID。默认值为主网networkid。
