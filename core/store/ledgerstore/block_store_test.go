@@ -25,10 +25,10 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"testing"
 	"time"
@@ -109,10 +109,11 @@ func TestBlockHash(t *testing.T) {
 
 func TestSaveTransaction(t *testing.T) {
 	invoke := &payload.InvokeCode{}
-	tx := &types.Transaction{
+	txTemp := &types.MutableTransaction{
 		TxType:  types.Invoke,
 		Payload: invoke,
 	}
+	tx,err := txTemp.IntoImmutable()
 	blockHeight := uint32(1)
 	txHash := tx.Hash()
 
@@ -309,6 +310,7 @@ func TestBlock(t *testing.T) {
 	blockHash := block.Hash()
 	tx1Hash := tx1.Hash()
 
+
 	testBlockStore.NewBatch()
 
 	err = testBlockStore.SaveBlock(block)
@@ -355,8 +357,8 @@ func TestBlock(t *testing.T) {
 
 func transferTx(from, to common.Address, amount uint64) (*types.Transaction, error) {
 	buf := bytes.NewBuffer(nil)
-	var sts []*ont.State
-	sts = append(sts, &ont.State{
+	var sts []ont.State
+	sts = append(sts, ont.State{
 		From:  from,
 		To:    to,
 		Value: amount,
@@ -369,12 +371,11 @@ func transferTx(from, to common.Address, amount uint64) (*types.Transaction, err
 		return nil, fmt.Errorf("transfers.Serialize error %s", err)
 	}
 	var cversion byte
-	return invokeSmartContractTx(0, 30000, vmtypes.Native, cversion, genesis.OntContractAddress, "transfer", buf.Bytes())
+	return invokeSmartContractTx(0, 30000, cversion, nutils.OntContractAddress, "transfer", buf.Bytes())
 }
 
 func invokeSmartContractTx(gasPrice,
 	gasLimit uint64,
-	vmType vmtypes.VmType,
 	cversion byte,
 	contractAddress common.Address,
 	method string,
@@ -391,27 +392,26 @@ func invokeSmartContractTx(gasPrice,
 		return nil, fmt.Errorf("Serialize contract error:%s", err)
 	}
 	invokCode := buf.Bytes()
-	if vmType == vmtypes.NEOVM {
-		invokCode = append([]byte{0x67}, invokCode[:]...)
-	}
-	return newInvokeTransaction(gasPrice, gasLimit, vmType, invokCode), nil
+
+	return newInvokeTransaction(gasPrice, gasLimit, invokCode), nil
 }
 
-func newInvokeTransaction(gasPirce, gasLimit uint64, vmType vmtypes.VmType, code []byte) *types.Transaction {
+func newInvokeTransaction(gasPirce, gasLimit uint64, code []byte) *types.Transaction {
 	invokePayload := &payload.InvokeCode{
-		Code: vmtypes.VmCode{
-			VmType: vmType,
-			Code:   code,
-		},
+		Code: code,
 	}
-	tx := &types.Transaction{
+	tx := &types.MutableTransaction{
 		Version:  0,
 		GasPrice: gasPirce,
 		GasLimit: gasLimit,
 		TxType:   types.Invoke,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
-		Sigs:     make([]*types.Sig, 0, 0),
+		Sigs:     make([]types.Sig, 0, 0),
 	}
-	return tx
+	res, err := tx.IntoImmutable()
+	if err != nil{
+		return nil
+	}
+	return res
 }
