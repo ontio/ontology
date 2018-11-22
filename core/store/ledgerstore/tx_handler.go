@@ -59,10 +59,10 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	if tx.GasPrice != 0 {
 		// init smart contract configuration info
 		config := &smartcontract.Config{
-			Time:       block.Header.Timestamp,
-			Height:     block.Header.Height,
-			Tx:         tx,
-			RandomHash: block.Hash(),
+			Time:      block.Header.Timestamp,
+			Height:    block.Header.Height,
+			Tx:        tx,
+			BlockHash: block.Hash(),
 		}
 		createGasPrice, ok := neovm.GAS_TABLE.Load(neovm.CONTRACT_CREATE_NAME)
 		if !ok {
@@ -128,10 +128,10 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 
 	// init smart contract configuration info
 	config := &smartcontract.Config{
-		Time:       block.Header.Timestamp,
-		Height:     block.Header.Height,
-		Tx:         tx,
-		RandomHash: block.Hash(),
+		Time:      block.Header.Timestamp,
+		Height:    block.Header.Height,
+		Tx:        tx,
+		BlockHash: block.Hash(),
 	}
 
 	var (
