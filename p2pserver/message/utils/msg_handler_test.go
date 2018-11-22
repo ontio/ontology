@@ -373,7 +373,10 @@ func TestBlockHandle(t *testing.T) {
 	block, err := ledger.DefLedger.GetBlockByHash(hash)
 	assert.Nil(t, err)
 
-	buf, err := msgpack.NewBlock(block)
+	merkelRoot, err := ledger.DefLedger.GetStateMerkleRoot(block.Header.Height)
+	assert.Nil(t, err)
+
+	buf, err := msgpack.NewBlock(block, merkelRoot)
 	assert.Nil(t, err)
 
 	msg := &msgCommon.MsgPayload{

@@ -162,9 +162,10 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 	if pid != nil {
 		var block = data.Payload.(*msgTypes.Block)
 		input := &msgCommon.AppendBlock{
-			FromID:    data.Id,
-			BlockSize: data.PayloadSize,
-			Block:     block.Blk,
+			FromID:     data.Id,
+			BlockSize:  data.PayloadSize,
+			Block:      block.Blk,
+			MerkleRoot: block.MerkleRoot,
 		}
 		pid.Tell(input)
 	}
@@ -505,16 +506,16 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	case common.BLOCK:
 		reqID := fmt.Sprintf("%x%s", reqType, hash.ToHexString())
 		data := getRespCacheValue(reqID)
-		var block *types.Block
-		var err error
+		var msg msgTypes.Message
 		if data != nil {
 			switch data.(type) {
-			case *types.Block:
-				block = data.(*types.Block)
+			case *msgTypes.Block:
+				msg = data.(*msgTypes.Block)
 			}
 		}
-		if block == nil {
-			block, err = ledger.DefLedger.GetBlockByHash(hash)
+		if msg == nil {
+			var merkleRoot common.Uint256
+			block, err := ledger.DefLedger.GetBlockByHash(hash)
 			if err != nil || block == nil || block.Header == nil {
 				log.Debug("[p2p]can't get block by hash: ", hash,
 					" ,send not found message")
@@ -526,12 +527,22 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				}
 				return
 			}
-			saveRespCache(reqID, block)
+			merkleRoot, err = ledger.DefLedger.GetStateMerkleRoot(block.Header.Height)
+			if err != nil {
+				log.Debugf("[p2p]failed to get state merkel root at height %v, err %v",
+					block.Header.Height, err)
+				msg := msgpack.NewNotFound(hash)
+				err := p2p.Send(remotePeer, msg, false)
+				if err != nil {
+					log.Warn(err)
+					return
+				}
+				return
+			}
+			msg = msgpack.NewBlock(block, merkleRoot)
+			saveRespCache(reqID, msg)
 		}
-		log.Debug("[p2p]block height is ", block.Header.Height,
-			" ,hash is ", hash)
-		msg := msgpack.NewBlock(block)
-		err = p2p.Send(remotePeer, msg, false)
+		err := p2p.Send(remotePeer, msg, false)
 		if err != nil {
 			log.Warn(err)
 			return

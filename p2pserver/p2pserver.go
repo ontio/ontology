@@ -150,10 +150,6 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		log.Debug("[p2p]TX transaction message")
 		txn := message.(*types.Transaction)
 		msg = msgpack.NewTxn(txn)
-	case *types.Block:
-		log.Debug("[p2p]TX block message")
-		block := message.(*types.Block)
-		msg = msgpack.NewBlock(block)
 	case *msgtypes.ConsensusPayload:
 		log.Debug("[p2p]TX consensus message")
 		consensusPayload := message.(*msgtypes.ConsensusPayload)
@@ -206,8 +202,9 @@ func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
 }
 
 // OnBlockReceive adds the block from network
-func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32, block *types.Block) {
-	this.blockSync.OnBlockReceive(fromID, blockSize, block)
+func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32,
+	block *types.Block, merkleRoot comm.Uint256) {
+	this.blockSync.OnBlockReceive(fromID, blockSize, block, merkleRoot)
 }
 
 // Todo: remove it if no use
