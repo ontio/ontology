@@ -87,7 +87,7 @@ var (
 
 		RUNTIME_BASE58TOADDRESS_NAME: {Execute: RuntimeBase58ToAddress},
 		RUNTIME_ADDRESSTOBASE58_NAME: {Execute: RuntimeAddressToBase58},
-		RUNTIME_GETRANDOMHASH_NAME:   {Execute: RuntimeGetRandomHash},
+		RUNTIME_GETCURRENTBLOCKHASH_NAME:   {Execute: RuntimeGetCurrentBlockHash},
 	}
 )
 

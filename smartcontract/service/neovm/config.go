@@ -101,7 +101,7 @@ var (
 	RUNTIME_DESERIALIZE_NAME     = "System.Runtime.Deserialize"
 	RUNTIME_BASE58TOADDRESS_NAME = "Ontology.Runtime.Base58ToAddress"
 	RUNTIME_ADDRESSTOBASE58_NAME = "Ontology.Runtime.AddressToBase58"
-	RUNTIME_GETRANDOMHASH_NAME   = "Ontology.Runtime.GetRandomHash"
+	RUNTIME_GETCURRENTBLOCKHASH_NAME   = "Ontology.Runtime.GetCurrentBlockHash"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
 
