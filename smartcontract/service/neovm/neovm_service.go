@@ -85,9 +85,9 @@ var (
 		GETCALLINGSCRIPTHASH_NAME:            {Execute: GetCallingAddress},
 		GETENTRYSCRIPTHASH_NAME:              {Execute: GetEntryAddress},
 
-		RUNTIME_BASE58TOADDRESS_NAME: {Execute: RuntimeBase58ToAddress},
-		RUNTIME_ADDRESSTOBASE58_NAME: {Execute: RuntimeAddressToBase58},
-		RUNTIME_GETCURRENTBLOCKHASH_NAME:   {Execute: RuntimeGetCurrentBlockHash},
+		RUNTIME_BASE58TOADDRESS_NAME:     {Execute: RuntimeBase58ToAddress},
+		RUNTIME_ADDRESSTOBASE58_NAME:     {Execute: RuntimeAddressToBase58},
+		RUNTIME_GETCURRENTBLOCKHASH_NAME: {Execute: RuntimeGetCurrentBlockHash},
 	}
 )
 
