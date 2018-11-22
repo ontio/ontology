@@ -29,7 +29,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
-	cstates "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/core/utils"
 	"testing"
 	"time"
 )
@@ -371,7 +371,7 @@ func transferTx(from, to common.Address, amount uint64) (*types.Transaction, err
 		return nil, fmt.Errorf("transfers.Serialize error %s", err)
 	}
 	var cversion byte
-	return invokeSmartContractTx(0, 30000, cversion, nutils.OntContractAddress, "transfer", buf.Bytes())
+	return invokeSmartContractTx(0, 30000, cversion, nutils.OntContractAddress, "transfer", []interface{}{sts})
 }
 
 func invokeSmartContractTx(gasPrice,
@@ -379,20 +379,12 @@ func invokeSmartContractTx(gasPrice,
 	cversion byte,
 	contractAddress common.Address,
 	method string,
-	args []byte) (*types.Transaction, error) {
-	crt := &cstates.ContractInvokeParam{
-		Version: cversion,
-		Address: contractAddress,
-		Method:  method,
-		Args:    args,
-	}
-	buf := bytes.NewBuffer(nil)
-	err := crt.Serialize(buf)
-	if err != nil {
-		return nil, fmt.Errorf("Serialize contract error:%s", err)
-	}
-	invokCode := buf.Bytes()
+	args []interface{}) (*types.Transaction, error) {
 
+	invokCode,err := utils.BuildNativeInvokeCode(contractAddress,cversion,method,args)
+	if err != nil{
+		return nil, err
+	}
 	return newInvokeTransaction(gasPrice, gasLimit, invokCode), nil
 }
 

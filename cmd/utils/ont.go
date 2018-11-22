@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
+	cutils "github.com/ontio/ontology/core/utils"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	rpccommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -202,7 +203,7 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	default:
 		return nil, fmt.Errorf("Unsupport asset:%s", asset)
 	}
-	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_APPROVE, []interface{}{state})
+	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddr, version, CONTRACT_APPROVE, []interface{}{state})
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
@@ -237,7 +238,7 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	default:
 		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
-	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER, []interface{}{sts})
+	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER, []interface{}{sts})
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
@@ -276,7 +277,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	default:
 		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
-	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER_FROM, []interface{}{transferFrom})
+	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER_FROM, []interface{}{transferFrom})
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
