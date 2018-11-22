@@ -27,9 +27,9 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/core/utils"
 	"testing"
 	"time"
 )
@@ -113,7 +113,7 @@ func TestSaveTransaction(t *testing.T) {
 		TxType:  types.Invoke,
 		Payload: invoke,
 	}
-	tx,err := txTemp.IntoImmutable()
+	tx, err := txTemp.IntoImmutable()
 	blockHeight := uint32(1)
 	txHash := tx.Hash()
 
@@ -310,7 +310,6 @@ func TestBlock(t *testing.T) {
 	blockHash := block.Hash()
 	tx1Hash := tx1.Hash()
 
-
 	testBlockStore.NewBatch()
 
 	err = testBlockStore.SaveBlock(block)
@@ -381,8 +380,8 @@ func invokeSmartContractTx(gasPrice,
 	method string,
 	args []interface{}) (*types.Transaction, error) {
 
-	invokCode,err := utils.BuildNativeInvokeCode(contractAddress,cversion,method,args)
-	if err != nil{
+	invokCode, err := utils.BuildNativeInvokeCode(contractAddress, cversion, method, args)
+	if err != nil {
 		return nil, err
 	}
 	return newInvokeTransaction(gasPrice, gasLimit, invokCode), nil
@@ -402,7 +401,7 @@ func newInvokeTransaction(gasPirce, gasLimit uint64, code []byte) *types.Transac
 		Sigs:     make([]types.Sig, 0, 0),
 	}
 	res, err := tx.IntoImmutable()
-	if err != nil{
+	if err != nil {
 		return nil
 	}
 	return res
