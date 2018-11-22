@@ -157,8 +157,8 @@ func RuntimeAddressToBase58(service *NeoVmService, engine *vm.ExecutionEngine) e
 	return nil
 }
 
-func RuntimeGetRandomHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, service.RandomHash.ToArray())
+func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	vm.PushData(engine, service.BlockHash.ToArray())
 	return nil
 }
 

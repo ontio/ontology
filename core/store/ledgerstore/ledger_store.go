@@ -835,10 +835,10 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
 	config := &smartcontract.Config{
-		Time:       uint32(time.Now().Unix()),
-		Height:     height + 1,
-		Tx:         tx,
-		RandomHash: this.GetBlockHash(height),
+		Time:      uint32(time.Now().Unix()),
+		Height:    height + 1,
+		Tx:        tx,
+		BlockHash: this.GetBlockHash(height),
 	}
 
 	overlay := this.stateStore.NewOverlayDB()

@@ -92,16 +92,16 @@ var (
 
 	STORAGECONTEXT_ASREADONLY_NAME = "System.StorageContext.AsReadOnly"
 
-	RUNTIME_GETTIME_NAME         = "System.Runtime.GetTime"
-	RUNTIME_CHECKWITNESS_NAME    = "System.Runtime.CheckWitness"
-	RUNTIME_NOTIFY_NAME          = "System.Runtime.Notify"
-	RUNTIME_LOG_NAME             = "System.Runtime.Log"
-	RUNTIME_GETTRIGGER_NAME      = "System.Runtime.GetTrigger"
-	RUNTIME_SERIALIZE_NAME       = "System.Runtime.Serialize"
-	RUNTIME_DESERIALIZE_NAME     = "System.Runtime.Deserialize"
-	RUNTIME_BASE58TOADDRESS_NAME = "Ontology.Runtime.Base58ToAddress"
-	RUNTIME_ADDRESSTOBASE58_NAME = "Ontology.Runtime.AddressToBase58"
-	RUNTIME_GETRANDOMHASH_NAME   = "Ontology.Runtime.GetRandomHash"
+	RUNTIME_GETTIME_NAME             = "System.Runtime.GetTime"
+	RUNTIME_CHECKWITNESS_NAME        = "System.Runtime.CheckWitness"
+	RUNTIME_NOTIFY_NAME              = "System.Runtime.Notify"
+	RUNTIME_LOG_NAME                 = "System.Runtime.Log"
+	RUNTIME_GETTRIGGER_NAME          = "System.Runtime.GetTrigger"
+	RUNTIME_SERIALIZE_NAME           = "System.Runtime.Serialize"
+	RUNTIME_DESERIALIZE_NAME         = "System.Runtime.Deserialize"
+	RUNTIME_BASE58TOADDRESS_NAME     = "Ontology.Runtime.Base58ToAddress"
+	RUNTIME_ADDRESSTOBASE58_NAME     = "Ontology.Runtime.AddressToBase58"
+	RUNTIME_GETCURRENTBLOCKHASH_NAME = "Ontology.Runtime.GetCurrentBlockHash"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
 

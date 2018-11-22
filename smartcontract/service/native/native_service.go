@@ -51,7 +51,7 @@ type NativeService struct {
 	Tx            *types.Transaction
 	Height        uint32
 	Time          uint32
-	RandomHash    common.Uint256
+	BlockHash     common.Uint256
 	ContextRef    context.ContextRef
 }
 
