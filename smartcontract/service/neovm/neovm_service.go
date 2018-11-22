@@ -125,7 +125,7 @@ type NeoVmService struct {
 	Tx            *types.Transaction
 	Time          uint32
 	Height        uint32
-	RandomHash    scommon.Uint256
+	BlockHash     scommon.Uint256
 	Engine        *vm.ExecutionEngine
 	PreExec       bool
 }

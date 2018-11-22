@@ -158,7 +158,7 @@ func RuntimeAddressToBase58(service *NeoVmService, engine *vm.ExecutionEngine) e
 }
 
 func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, service.RandomHash.ToArray())
+	vm.PushData(engine, service.BlockHash.ToArray())
 	return nil
 }
 
