@@ -31,15 +31,13 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	cutils "github.com/ontio/ontology/core/utils"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	svrneovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/vm/neovm"
-	"math/big"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -420,7 +418,7 @@ func GetBlockTransactions(block *types.Block) interface{} {
 //NewNativeInvokeTransaction return native contract invoke transaction
 func NewNativeInvokeTransaction(gasPirce, gasLimit uint64, contractAddress common.Address, version byte,
 	method string, params []interface{}) (*types.MutableTransaction, error) {
-	invokeCode, err := BuildNativeInvokeCode(contractAddress, version, method, params)
+	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddress, version, method, params)
 	if err != nil {
 		return nil, err
 	}
@@ -450,110 +448,16 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 	return tx, nil
 }
 
-func BuildNativeInvokeCode(contractAddress common.Address, version byte, method string, params []interface{}) ([]byte, error) {
-	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := BuildNeoVMParam(builder, params)
-	if err != nil {
-		return nil, err
-	}
-	builder.EmitPushByteArray([]byte(method))
-	builder.EmitPushByteArray(contractAddress[:])
-	builder.EmitPushInteger(new(big.Int).SetInt64(int64(version)))
-	builder.Emit(neovm.SYSCALL)
-	builder.EmitPushByteArray([]byte(svrneovm.NATIVE_INVOKE_NAME))
-	return builder.ToArray(), nil
-}
-
 //BuildNeoVMInvokeCode build NeoVM Invoke code for params
 func BuildNeoVMInvokeCode(smartContractAddress common.Address, params []interface{}) ([]byte, error) {
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := BuildNeoVMParam(builder, params)
+	err := cutils.BuildNeoVMParam(builder, params)
 	if err != nil {
 		return nil, err
 	}
 	args := append(builder.ToArray(), 0x67)
 	args = append(args, smartContractAddress[:]...)
 	return args, nil
-}
-
-//buildNeoVMParamInter build neovm invoke param code
-func BuildNeoVMParam(builder *neovm.ParamsBuilder, smartContractParams []interface{}) error {
-	//VM load params in reverse order
-	for i := len(smartContractParams) - 1; i >= 0; i-- {
-		switch v := smartContractParams[i].(type) {
-		case bool:
-			builder.EmitPushBool(v)
-		case byte:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case int:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case uint:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case int32:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case uint32:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case int64:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case common.Fixed64:
-			builder.EmitPushInteger(big.NewInt(int64(v.GetData())))
-		case uint64:
-			val := big.NewInt(0)
-			builder.EmitPushInteger(val.SetUint64(uint64(v)))
-		case string:
-			builder.EmitPushByteArray([]byte(v))
-		case *big.Int:
-			builder.EmitPushInteger(v)
-		case []byte:
-			builder.EmitPushByteArray(v)
-		case common.Address:
-			builder.EmitPushByteArray(v[:])
-		case common.Uint256:
-			builder.EmitPushByteArray(v.ToArray())
-		case []interface{}:
-			err := BuildNeoVMParam(builder, v)
-			if err != nil {
-				return err
-			}
-			builder.EmitPushInteger(big.NewInt(int64(len(v))))
-			builder.Emit(neovm.PACK)
-		default:
-			object := reflect.ValueOf(v)
-			kind := object.Kind().String()
-			if kind == "ptr" {
-				object = object.Elem()
-				kind = object.Kind().String()
-			}
-			switch kind {
-			case "slice":
-				ps := make([]interface{}, 0)
-				for i := 0; i < object.Len(); i++ {
-					ps = append(ps, object.Index(i).Interface())
-				}
-				err := BuildNeoVMParam(builder, []interface{}{ps})
-				if err != nil {
-					return err
-				}
-			case "struct":
-				builder.EmitPushInteger(big.NewInt(0))
-				builder.Emit(neovm.NEWSTRUCT)
-				builder.Emit(neovm.TOALTSTACK)
-				for i := 0; i < object.NumField(); i++ {
-					field := object.Field(i)
-					builder.Emit(neovm.DUPFROMALTSTACK)
-					err := BuildNeoVMParam(builder, []interface{}{field.Interface()})
-					if err != nil {
-						return err
-					}
-					builder.Emit(neovm.APPEND)
-				}
-				builder.Emit(neovm.FROMALTSTACK)
-			default:
-				return fmt.Errorf("unsupported param:%s", v)
-			}
-		}
-	}
-	return nil
 }
 
 func GetAddress(str string) (common.Address, error) {

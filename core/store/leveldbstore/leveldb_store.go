@@ -139,7 +139,7 @@ func (self *LevelDBStore) Close() error {
 	return err
 }
 
-//NewIterator return a iterator of leveldb with the key perfix
+//NewIterator return a iterator of leveldb with the key prefix
 func (self *LevelDBStore) NewIterator(prefix []byte) common.StoreIterator {
 
 	iter := self.db.NewIterator(util.BytesPrefix(prefix), nil)
