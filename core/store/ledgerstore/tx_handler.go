@@ -46,7 +46,7 @@ import (
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
-func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
+func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 	var (
@@ -55,7 +55,6 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 		err         error
 	)
 
-	cache := storage.NewCacheDB(overlay)
 	if tx.GasPrice != 0 {
 		// init smart contract configuration info
 		config := &smartcontract.Config{
@@ -118,7 +117,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 }
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
-func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
+func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
@@ -144,7 +143,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		minGas            uint64
 		err               error
 	)
-	cache := storage.NewCacheDB(overlay)
+
 	availableGasLimit = tx.GasLimit
 	if isCharge {
 		uintCodeGasPrice, ok := neovm.GAS_TABLE.Load(neovm.UINT_INVOKE_CODE_LEN_NAME)

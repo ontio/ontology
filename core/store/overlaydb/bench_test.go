@@ -34,7 +34,7 @@ func TestDot(t *testing.T) {
 		v := fmt.Sprintf("v%d", i)
 		buf[k] = v
 	}
-	db := NewMemDB(10)
+	db := NewMemDB(10, 10)
 	for k, v := range buf {
 		db.Put([]byte(k), []byte(v))
 	}
@@ -50,7 +50,7 @@ func TestDB(t *testing.T) {
 		buf[i][0] = byte(i)
 	}
 
-	db := NewMemDB(10)
+	db := NewMemDB(10, 2)
 	for i := range buf {
 		db.Put(buf[i][:], nil)
 	}
@@ -71,7 +71,7 @@ func BenchmarkPut(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	p := NewMemDB(0)
+	p := NewMemDB(0, 0)
 	for i := range buf {
 		p.Put(buf[i][:], nil)
 	}
@@ -84,7 +84,7 @@ func BenchmarkPutRandom(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	p := NewMemDB(0)
+	p := NewMemDB(0, 0)
 	for i := range buf {
 		p.Put(buf[i][:], nil)
 	}
@@ -96,7 +96,7 @@ func BenchmarkGet(b *testing.B) {
 		binary.LittleEndian.PutUint32(buf[i][:], uint32(i))
 	}
 
-	p := NewMemDB(0)
+	p := NewMemDB(0, 0)
 	for i := range buf {
 		p.Put(buf[i][:], nil)
 	}
@@ -113,7 +113,7 @@ func BenchmarkGetRandom(b *testing.B) {
 		binary.LittleEndian.PutUint32(buf[i][:], uint32(i))
 	}
 
-	p := NewMemDB(0)
+	p := NewMemDB(0, 0)
 	for i := range buf {
 		p.Put(buf[i][:], nil)
 	}

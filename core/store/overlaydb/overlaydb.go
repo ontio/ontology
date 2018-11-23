@@ -32,10 +32,13 @@ type OverlayDB struct {
 	dbErr error
 }
 
+const initCap = 4 * 1024 * 1024
+const initkvNum = 1024
+
 func NewOverlayDB(store common.PersistStore) *OverlayDB {
 	return &OverlayDB{
 		store: store,
-		memdb: NewMemDB(0),
+		memdb: NewMemDB(initCap, initkvNum),
 	}
 }
 
