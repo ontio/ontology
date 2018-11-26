@@ -23,9 +23,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 )
 
@@ -38,17 +40,37 @@ func newChainStore() *ChainStore {
 		os.Exit(1)
 	}
 
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR)
+	db, err := ledger.NewLedger(config.DEFAULT_DATA_DIR)
 	if err != nil {
 		log.Fatalf("NewLedger error %s", err)
 		os.Exit(1)
 	}
-	store, err := OpenBlockStore(ledger.DefLedger)
+	acc1 := account.NewAccount("")
+	acc2 := account.NewAccount("")
+	acc3 := account.NewAccount("")
+	acc4 := account.NewAccount("")
+	acc5 := account.NewAccount("")
+	acc6 := account.NewAccount("")
+	acc7 := account.NewAccount("")
+
+	bookkeepers := []keypair.PublicKey{acc1.PublicKey, acc2.PublicKey, acc3.PublicKey, acc4.PublicKey, acc5.PublicKey, acc6.PublicKey, acc7.PublicKey}
+	genesisConfig := config.DefConfig.Genesis
+	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig)
 	if err != nil {
-		fmt.Printf("openblockstore failed: %v\n", err)
+		log.Errorf("BuildGenesisBlock error %s", err)
+		os.Exit(1)
+	}
+	err = db.Init(bookkeepers, block)
+	if err != nil {
+		log.Errorf("InitLedgerStoreWithGenesisBlock error %s", err)
+		os.Exit(1)
+	}
+	chainstore, err := OpenBlockStore(db, nil)
+	if err != nil {
+		log.Errorf("openblockstore failed: %v\n", err)
 		return nil
 	}
-	return store
+	return chainstore
 }
 
 func TestGetChainedBlockNum(t *testing.T) {

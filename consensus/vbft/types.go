@@ -22,18 +22,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
-	"io"
 )
 
 type Block struct {
-	Block      *types.Block
-	EmptyBlock *types.Block
-	Info       *vconfig.VbftBlockInfo
+	Block               *types.Block
+	EmptyBlock          *types.Block
+	Info                *vconfig.VbftBlockInfo
+	PrevBlockMerkleRoot common.Uint256
 }
 
 func (blk *Block) getProposer() uint32 {
@@ -54,6 +56,10 @@ func (blk *Block) getLastConfigBlockNum() uint32 {
 
 func (blk *Block) getNewChainConfig() *vconfig.ChainConfig {
 	return blk.Info.NewChainConfig
+}
+
+func (blk *Block) getPrevBlockMerkleRoot() common.Uint256 {
+	return blk.PrevBlockMerkleRoot
 }
 
 //
@@ -87,7 +93,9 @@ func (blk *Block) Serialize() ([]byte, error) {
 			return nil, fmt.Errorf("serialize empty block buf: %s", err)
 		}
 	}
-
+	if err := blk.PrevBlockMerkleRoot.Serialize(payload); err != nil {
+		return nil, fmt.Errorf("serialize MerkleRoot block: %s", err)
+	}
 	return payload.Bytes(), nil
 }
 
@@ -122,15 +130,22 @@ func (blk *Block) Deserialize(data []byte) error {
 			}
 		}
 	}
-
+	var merkleRoot common.Uint256
+	if source.Len() > 0 {
+		merkleRoot, eof = source.NextHash()
+		if eof {
+			log.Errorf("Block Deserialize merkleRoot")
+			return io.ErrUnexpectedEOF
+		}
+	}
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
 	blk.Info = info
-
+	blk.PrevBlockMerkleRoot = merkleRoot
 	return nil
 }
 
-func initVbftBlock(block *types.Block) (*Block, error) {
+func initVbftBlock(block *types.Block, prevMerkleRoot common.Uint256) (*Block, error) {
 	if block == nil {
 		return nil, fmt.Errorf("nil block in initVbftBlock")
 	}
@@ -141,7 +156,8 @@ func initVbftBlock(block *types.Block) (*Block, error) {
 	}
 
 	return &Block{
-		Block: block,
-		Info:  blkInfo,
+		Block:               block,
+		Info:                blkInfo,
+		PrevBlockMerkleRoot: prevMerkleRoot,
 	}, nil
 }

@@ -42,3 +42,7 @@ type NewInventoryMsg struct {
 type SmartCodeEventMsg struct {
 	Event *types.SmartCodeEvent
 }
+
+type BlockConsensusComplete struct {
+	Block *types.Block
+}

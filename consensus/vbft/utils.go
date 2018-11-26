@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
 	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -126,20 +127,16 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 	}
 	return nil
 }
-func GetVbftConfigInfo() (*config.VBFTConfig, error) {
+func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 	//get governance view
-	goveranceview, err := GetGovernanceView()
+	goveranceview, err := GetGovernanceView(memdb)
 	if err != nil {
 		return nil, err
 	}
 
 	//get preConfig
-	storageKey := &states.StorageKey{
-		ContractAddress: nutils.GovernanceContractAddress,
-		Key:             append([]byte(gov.PRE_CONFIG)),
-	}
 	preCfg := new(gov.PreConfig)
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
+	data, err := GetStorageValue(memdb, ledger.DefLedger, nutils.GovernanceContractAddress, []byte(gov.PRE_CONFIG))
 	if err != nil && err != scommon.ErrNotFound {
 		return nil, err
 	}
@@ -163,11 +160,7 @@ func GetVbftConfigInfo() (*config.VBFTConfig, error) {
 			MaxBlockChangeView:   uint32(preCfg.Configuration.MaxBlockChangeView),
 		}
 	} else {
-		storageKey := &states.StorageKey{
-			ContractAddress: nutils.GovernanceContractAddress,
-			Key:             append([]byte(gov.VBFT_CONFIG)),
-		}
-		data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
+		data, err := GetStorageValue(memdb, ledger.DefLedger, nutils.GovernanceContractAddress, []byte(gov.VBFT_CONFIG))
 		if err != nil {
 			return nil, err
 		}
@@ -190,8 +183,8 @@ func GetVbftConfigInfo() (*config.VBFTConfig, error) {
 	return chainconfig, nil
 }
 
-func GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
-	goveranceview, err := GetGovernanceView()
+func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error) {
+	goveranceview, err := GetGovernanceView(memdb)
 	if err != nil {
 		return nil, err
 	}
@@ -199,11 +192,8 @@ func GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	storageKey := &states.StorageKey{
-		ContractAddress: nutils.GovernanceContractAddress,
-		Key:             append([]byte(gov.PEER_POOL), viewBytes...),
-	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
+	key := append([]byte(gov.PEER_POOL), viewBytes...)
+	data, err := GetStorageValue(memdb, ledger.DefLedger, nutils.GovernanceContractAddress, key)
 	if err != nil {
 		return nil, err
 	}
@@ -228,8 +218,8 @@ func GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 	return peerstakes, nil
 }
 
-func isUpdate(view uint32) (bool, error) {
-	goveranceview, err := GetGovernanceView()
+func isUpdate(memdb *overlaydb.MemDB, view uint32) (bool, error) {
+	goveranceview, err := GetGovernanceView(memdb)
 	if err != nil {
 		return false, err
 	}
@@ -239,34 +229,54 @@ func isUpdate(view uint32) (bool, error) {
 	return false, nil
 }
 
-func GetGovernanceView() (*gov.GovernanceView, error) {
-	storageKey := &states.StorageKey{
-		ContractAddress: nutils.GovernanceContractAddress,
-		Key:             append([]byte(gov.GOVERNANCE_VIEW)),
+func getRawStorageItemFromMemDb(memdb *overlaydb.MemDB, addr common.Address, key []byte) (value []byte, unkown bool) {
+	rawKey := make([]byte, 0, 1+common.ADDR_LEN+len(key))
+	rawKey = append(rawKey, byte(scommon.ST_STORAGE))
+	rawKey = append(rawKey, addr[:]...)
+	rawKey = append(rawKey, key...)
+	return memdb.Get(rawKey)
+}
+
+func GetStorageValue(memdb *overlaydb.MemDB, backend *ledger.Ledger, addr common.Address, key []byte) (value []byte, err error) {
+	if memdb == nil {
+		return backend.GetStorageItem(addr, key)
 	}
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
+	rawValue, unknown := getRawStorageItemFromMemDb(memdb, addr, key)
+	if unknown {
+		return backend.GetStorageItem(addr, key)
+	}
+	if len(rawValue) == 0 {
+		return nil, scommon.ErrNotFound
+	}
+
+	value, err = states.GetValueFromRawStorageItem(rawValue)
+	return
+}
+
+func GetGovernanceView(memdb *overlaydb.MemDB) (*gov.GovernanceView, error) {
+	value, err := GetStorageValue(memdb, ledger.DefLedger, nutils.GovernanceContractAddress, []byte(gov.GOVERNANCE_VIEW))
 	if err != nil {
 		return nil, err
 	}
 	governanceView := new(gov.GovernanceView)
-	err = governanceView.Deserialize(bytes.NewBuffer(data))
+	err = governanceView.Deserialize(bytes.NewBuffer(value))
 	if err != nil {
 		return nil, err
 	}
 	return governanceView, nil
 }
 
-func getChainConfig(blkNum uint32) (*vconfig.ChainConfig, error) {
-	config, err := GetVbftConfigInfo()
+func getChainConfig(memdb *overlaydb.MemDB, blkNum uint32) (*vconfig.ChainConfig, error) {
+	config, err := GetVbftConfigInfo(memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
 	}
 
-	peersinfo, err := GetPeersConfig()
+	peersinfo, err := GetPeersConfig(memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
 	}
-	goverview, err := GetGovernanceView()
+	goverview, err := GetGovernanceView(memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get governanceview failed:%s", err)
 	}

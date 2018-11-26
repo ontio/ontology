@@ -174,7 +174,11 @@ func (self *Server) Receive(context actor.Context) {
 	case *actorTypes.StopConsensus:
 		self.stop()
 	case *message.SaveBlockCompleteMsg:
-		log.Infof("vbft actor receives block complete event. block height=%d, numtx=%d",
+		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, numtx=%d",
+			msg.Block.Header.Height, len(msg.Block.Transactions))
+		self.handleBlockPersistCompleted(msg.Block)
+	case *message.BlockConsensusComplete:
+		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d, numtx=%d",
 			msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
@@ -201,23 +205,23 @@ func (self *Server) Halt() error {
 func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	log.Infof("persist block: %d, %x", block.Header.Height, block.Hash())
 
-	self.incrValidator.AddBlock(block)
-
-	if block.Header.Height > self.completedBlockNum {
-		self.completedBlockNum = block.Header.Height
-		if self.nonConsensusNode() {
-			self.chainStore.ReloadFromLedger()
-			self.metaLock.Lock()
-			if self.GetCommittedBlockNo() >= self.currentBlockNum {
-				self.currentBlockNum = self.GetCommittedBlockNo() + 1
-			}
-			self.metaLock.Unlock()
-		}
-	} else {
-		log.Errorf("server %d, persist block %d, vs completed %d",
+	if block.Header.Height <= self.completedBlockNum {
+		log.Infof("server %d, persist block %d, vs completed %d",
 			self.Index, block.Header.Height, self.completedBlockNum)
+		return
 	}
-	if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig() {
+	self.completedBlockNum = block.Header.Height
+	self.incrValidator.AddBlock(block)
+	if self.nonConsensusNode() {
+		self.chainStore.ReloadFromLedger()
+		self.metaLock.Lock()
+		if self.GetCommittedBlockNo() >= self.currentBlockNum {
+			self.currentBlockNum = self.GetCommittedBlockNo() + 1
+		}
+		self.metaLock.Unlock()
+	}
+
+	if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig(self.completedBlockNum) {
 		err := self.updateChainConfig()
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)
@@ -405,7 +409,7 @@ func (self *Server) initialize() error {
 	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
-	store, err := OpenBlockStore(self.ledger)
+	store, err := OpenBlockStore(self.ledger, self.pid)
 	if err != nil {
 		log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
@@ -458,7 +462,6 @@ func (self *Server) initialize() error {
 	} else {
 		self.Index = math.MaxUint32
 	}
-
 	self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 	go self.syncer.run()
 	go self.stateMgr.run()
@@ -522,7 +525,6 @@ func (self *Server) stop() error {
 
 	self.incrValidator.Clean()
 	self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
-
 	// stop syncer, statemgr, msgSendLoop, timer, actionLoop, msgProcessingLoop
 	self.quit = true
 	close(self.quitC)
@@ -1062,7 +1064,16 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		log.Errorf("BlockPrposalMessage  check LastConfigBlockNum blocknum:%d,prvLastConfigBlockNum:%d,self LastConfigBlockNum:%d", msg.GetBlockNum(), blk.Info.LastConfigBlockNum, self.LastConfigBlockNum)
 		return
 	}
-
+	merkleRoot, err := self.chainStore.GetExecMerkleRoot(msgBlkNum - 1)
+	if err != nil {
+		log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (msgBlkNum - 1))
+		return
+	}
+	if msg.Block.getPrevBlockMerkleRoot() != merkleRoot {
+		msgMerkleRoot := msg.Block.getPrevBlockMerkleRoot()
+		log.Errorf("BlockPrposalMessage check MerkleRoot blocknum:%d,msg MerkleRoot:%s,self MerkleRoot:%s", msg.GetBlockNum(), msgMerkleRoot.ToHexString(), merkleRoot.ToHexString())
+		return
+	}
 	cfg := vconfig.ChainConfig{}
 	if blk.getNewChainConfig() != nil {
 		cfg = *blk.getNewChainConfig()
@@ -2083,8 +2094,8 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
 }
 
 //checkUpdateChainConfig query leveldb check is force update
-func (self *Server) checkUpdateChainConfig() bool {
-	force, err := isUpdate(self.config.View)
+func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
+	force, err := isUpdate(self.chainStore.GetExecWriteSet(blkNum-1), self.config.View)
 	if err != nil {
 		log.Errorf("checkUpdateChainConfig err:%s", err)
 		return false
@@ -2132,8 +2143,8 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
-	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig() {
-		chainconfig, err := getChainConfig(blkNum)
+	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
+		chainconfig, err := getChainConfig(self.chainStore.GetExecWriteSet(blkNum-1), blkNum)
 		if err != nil {
 			return fmt.Errorf("getChainConfig failed:%s", err)
 		}

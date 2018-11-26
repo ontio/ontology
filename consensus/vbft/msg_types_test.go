@@ -58,7 +58,12 @@ func constructProposalMsgTest(acc *account.Account) *blockProposalMsg {
 			Header:       blkHeader,
 			Transactions: nil,
 		},
-		Info: vbftBlkInfo,
+		EmptyBlock: &types.Block{
+			Header:       blkHeader,
+			Transactions: nil,
+		},
+		Info:                vbftBlkInfo,
+		PrevBlockMerkleRoot: common.Uint256{},
 	}
 	msg := &blockProposalMsg{
 		Block: blk,
@@ -375,7 +380,12 @@ func constructBlock() (*Block, error) {
 			Header:       blkHeader,
 			Transactions: txs,
 		},
-		Info: vbftBlkInfo,
+		EmptyBlock: &types.Block{
+			Header:       blkHeader,
+			Transactions: nil,
+		},
+		Info:                vbftBlkInfo,
+		PrevBlockMerkleRoot: common.Uint256{},
 	}
 	blk.Block.Hash()
 	blk.Block.Transactions = txs
