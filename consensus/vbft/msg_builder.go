@@ -100,7 +100,7 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 	case BlockFetchRespMessage:
 		t := &BlockFetchRespMsg{}
 		if err := t.Deserialize(m.Payload); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
+			return nil, fmt.Errorf("failed to Deserialize msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
 	case ProposalFetchMessage:
@@ -252,12 +252,17 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, fmt.Errorf("failed to constuct blk: %s", err)
 	}
+	merkleRoot, err := self.chainStore.GetExecMerkleRoot(blkNum - 1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
+	}
 
 	msg := &blockProposalMsg{
 		Block: &Block{
-			Block:      blk,
-			EmptyBlock: emptyBlk,
-			Info:       vbftBlkInfo,
+			Block:               blk,
+			EmptyBlock:          emptyBlk,
+			Info:                vbftBlkInfo,
+			PrevBlockMerkleRoot: merkleRoot,
 		},
 	}
 
