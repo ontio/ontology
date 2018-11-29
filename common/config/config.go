@@ -61,6 +61,7 @@ const (
 	DEFAULT_MAX_CONN_OUT_BOUND              = uint(1024)
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
 	DEFAULT_HTTP_INFO_PORT                  = uint(0)
+	DEFAULT_TRANSPORT_TYPE                  = "TCP"
 	DEFAULT_MAX_TX_IN_BLOCK                 = 60000
 	DEFAULT_MAX_SYNC_HEADER                 = 500
 	DEFAULT_ENABLE_CONSENSUS                = true
@@ -504,6 +505,7 @@ type P2PNodeConfig struct {
 	KeyPath                   string
 	CAPath                    string
 	HttpInfoPort              uint
+	TransportType             string
 	MaxHdrSyncReqs            uint
 	MaxConnInBound            uint
 	MaxConnOutBound           uint
@@ -568,6 +570,7 @@ func NewOntologyConfig() *OntologyConfig {
 			KeyPath:                   "",
 			CAPath:                    "",
 			HttpInfoPort:              DEFAULT_HTTP_INFO_PORT,
+			TransportType:             DEFAULT_TRANSPORT_TYPE,
 			MaxHdrSyncReqs:            DEFAULT_MAX_SYNC_HEADER,
 			MaxConnInBound:            DEFAULT_MAX_CONN_IN_BOUND,
 			MaxConnOutBound:           DEFAULT_MAX_CONN_OUT_BOUND,

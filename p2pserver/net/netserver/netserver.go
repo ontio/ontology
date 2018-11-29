@@ -21,7 +21,6 @@ package netserver
 import (
 	"errors"
 	"math/rand"
-	"net"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +33,9 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
+
+	tsp "github.com/ontio/ontology/p2pserver/net/transport"
+	tspCreator "github.com/ontio/ontology/p2pserver/net/transport/creator"
 )
 
 //NewNetServer return the net object in p2p
@@ -53,8 +55,8 @@ func NewNetServer() p2p.P2P {
 //NetServer represent all the actions in net layer
 type NetServer struct {
 	base         peer.PeerCom
-	synclistener net.Listener
-	conslistener net.Listener
+	synclistener tsp.Listener
+	conslistener tsp.Listener
 	SyncChan     chan *types.MsgPayload
 	ConsChan     chan *types.MsgPayload
 	ConnectingNodes
@@ -295,24 +297,17 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	this.connectLock.Unlock()
 
-	isTls := config.DefConfig.P2PNode.IsTLS
-	var conn net.Conn
-	var err error
-	var remotePeer *peer.Peer
-	if isTls {
-		conn, err = TLSDial(addr)
-		if err != nil {
-			this.RemoveFromConnectingList(addr)
-			log.Debugf("[p2p]connect %s failed:%s", addr, err.Error())
-			return err
-		}
-	} else {
-		conn, err = nonTLSDial(addr)
-		if err != nil {
-			this.RemoveFromConnectingList(addr)
-			log.Debugf("[p2p]connect %s failed:%s", addr, err.Error())
-			return err
-		}
+	tspType := config.DefConfig.P2PNode.TransportType
+	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
+	if err != nil {
+		log.Errorf("[p2p]Get the transport of %s, err:%s", tspType, err.Error())
+		return err
+	}
+	conn, err := transport.Dial(addr)
+	if err != nil {
+		this.RemoveFromConnectingList(addr)
+		log.Errorf("[p2p]connect %s failed:%s", addr, err.Error())
+		return err
 	}
 
 	addr = conn.RemoteAddr().String()
@@ -320,6 +315,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
 		conn.RemoteAddr().Network())
 
+	var remotePeer *peer.Peer
 	if !isConsensus {
 		this.AddOutConnRecord(addr)
 		remotePeer = peer.NewPeer()
@@ -403,8 +399,14 @@ func (this *NetServer) startListening() error {
 
 // startSyncListening starts a sync listener on the port for the inbound peer
 func (this *NetServer) startSyncListening(port uint16) error {
-	var err error
-	this.synclistener, err = createListener(port)
+	tspType := config.DefConfig.P2PNode.TransportType
+	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
+	if err != nil {
+		log.Errorf("[p2p]Get the transport of %s, err:%s", tspType, err.Error())
+		return err
+	}
+
+	this.synclistener, err = transport.Listen(port)
 	if err != nil {
 		log.Error("[p2p]failed to create sync listener")
 		return errors.New("[p2p]failed to create sync listener")
@@ -417,8 +419,14 @@ func (this *NetServer) startSyncListening(port uint16) error {
 
 // startConsListening starts a sync listener on the port for the inbound peer
 func (this *NetServer) startConsListening(port uint16) error {
-	var err error
-	this.conslistener, err = createListener(port)
+	tspType := config.DefConfig.P2PNode.TransportType
+	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
+	if err != nil {
+		log.Errorf("[p2p]Get the transport of %s, err:%s", tspType, err.Error())
+		return err
+	}
+
+	this.synclistener, err = transport.Listen(port)
 	if err != nil {
 		log.Error("[p2p]failed to create cons listener")
 		return errors.New("[p2p]failed to create cons listener")
@@ -430,7 +438,7 @@ func (this *NetServer) startConsListening(port uint16) error {
 }
 
 //startSyncAccept accepts the sync connection from the inbound peer
-func (this *NetServer) startSyncAccept(listener net.Listener) {
+func (this *NetServer) startSyncAccept(listener tsp.Listener) {
 	for {
 		conn, err := listener.Accept()
 
@@ -488,7 +496,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 }
 
 //startConsAccept accepts the consensus connnection from the inbound peer
-func (this *NetServer) startConsAccept(listener net.Listener) {
+func (this *NetServer) startConsAccept(listener tsp.Listener) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {

@@ -19,23 +19,23 @@
 package link
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
-	"net"
 	"time"
 
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
+
+	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 )
 
 //Link used to establish
 type Link struct {
 	id        uint64
 	addr      string                 // The address of the node
-	conn      net.Conn               // Connect socket with the peer node
+	conn      tsp.Connection         // Connect socket with the peer node
 	port      uint16                 // The server port of the node
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
@@ -90,12 +90,12 @@ func (this *Link) GetPort() uint16 {
 }
 
 //get connection
-func (this *Link) GetConn() net.Conn {
+func (this *Link) GetConn() tsp.Connection{
 	return this.conn
 }
 
 //set connection
-func (this *Link) SetConn(conn net.Conn) {
+func (this *Link) SetConn(conn tsp.Connection) {
 	this.conn = conn
 }
 
@@ -115,12 +115,16 @@ func (this *Link) Rx() {
 		return
 	}
 
-	reader := bufio.NewReaderSize(conn, common.MAX_BUF_LEN)
-
 	for {
+		reader, err :=  conn.GetReader()
+		if err != nil {
+			log.Errorf("[p2p]error GetReader, err:%s", err.Error())
+			break
+		}
+
 		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
-			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+			log.Errorf("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
 			break
 		}
 
