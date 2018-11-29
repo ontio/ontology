@@ -306,7 +306,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	conn, err := transport.Dial(addr)
 	if err != nil {
 		this.RemoveFromConnectingList(addr)
-		log.Errorf("[p2p]connect %s failed:%s", addr, err.Error())
+		log.Debugf("[p2p]connect %s failed:%s", addr, err.Error())
 		return err
 	}
 

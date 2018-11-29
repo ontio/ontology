@@ -124,7 +124,7 @@ func (this *Link) Rx() {
 
 		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
-			log.Errorf("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
 			break
 		}
 
