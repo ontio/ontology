@@ -92,7 +92,6 @@ func (this * transport) DialWithTimeout(addr string, timeout time.Duration) (tsp
 	}
 
 	if err != nil {
-		log.Errorf("[p2p]Can't dial to %s, Err %s", addr, err.Error())
 		return nil, err
 	}
 

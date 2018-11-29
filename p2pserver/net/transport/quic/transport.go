@@ -133,7 +133,6 @@ func (this * transport) DialWithTimeout(addr string, timeout time.Duration) (tsp
 	}
 	session, err := quic.DialAddr(addr, &tls.Config{InsecureSkipVerify: true}, qConfig)
 	if err != nil {
-		log.Errorf("[p2p]Can't dial to %s, ERR:%s", addr, err)
 		return nil, err
 	}
 
