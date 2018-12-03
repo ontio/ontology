@@ -23,6 +23,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"reflect"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
@@ -38,8 +43,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm"
-	"strings"
-	"time"
 )
 
 const MAX_SEARCH_HEIGHT uint32 = 100
@@ -310,7 +313,7 @@ func GetAllowance(asset string, from, to common.Address) (string, error) {
 }
 
 func GetContractBalance(cVersion byte, contractAddr, accAddr common.Address) (uint64, error) {
-	mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr[:]})
+	mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "balanceOf", []interface{}{accAddr})
 	if err != nil {
 		return 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
 	}
@@ -339,11 +342,16 @@ func GetContractAllowance(cVersion byte, contractAddr, fromAddr, toAddr common.A
 		From common.Address
 		To   common.Address
 	}
-	mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "allowance",
-		[]interface{}{&allowanceStruct{
-			From: fromAddr,
-			To:   toAddr,
-		}})
+	bf := bytes.NewBuffer(nil)
+	err := utils.WriteAddress(bf, fromAddr)
+	if err != nil {
+		return uint64(0), err
+	}
+	err = utils.WriteAddress(bf, toAddr)
+	if err != nil {
+		return uint64(0), err
+	}
+	mutable, err := NewNativeInvokeTransaction(0, 0, contractAddr, cVersion, "allowance", []interface{}{fromAddr, toAddr})
 	if err != nil {
 		return 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
 	}
@@ -418,7 +426,7 @@ func GetBlockTransactions(block *types.Block) interface{} {
 //NewNativeInvokeTransaction return native contract invoke transaction
 func NewNativeInvokeTransaction(gasPirce, gasLimit uint64, contractAddress common.Address, version byte,
 	method string, params []interface{}) (*types.MutableTransaction, error) {
-	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddress, version, method, params)
+	invokeCode, err := BuildNativeInvokeCode(contractAddress, version, method, params)
 	if err != nil {
 		return nil, err
 	}
@@ -448,16 +456,161 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 	return tx, nil
 }
 
+//add for wasm vm native transaction call
+func BuildNativeInvokeCode(contractAddress common.Address, version byte, method string, params []interface{}) ([]byte, error) {
+	bf := bytes.NewBuffer(nil)
+
+	for _, p := range params {
+		switch p.(type) {
+		case common.Address:
+			utils.WriteAddress(bf, p.(common.Address))
+		case uint64:
+			utils.WriteVarUint(bf, p.(uint64))
+		case []*ont.State:
+			utils.WriteVarUint(bf, uint64(len(p.([]*ont.State))))
+			for _, s := range p.([]*ont.State) {
+				utils.WriteAddress(bf, s.From)
+				utils.WriteAddress(bf, s.To)
+				utils.WriteVarUint(bf, s.Value)
+			}
+		case *ont.TransferFrom:
+			tmp := p.(*ont.TransferFrom)
+			utils.WriteAddress(bf, tmp.Sender)
+			utils.WriteAddress(bf, tmp.From)
+			utils.WriteAddress(bf, tmp.To)
+			utils.WriteVarUint(bf, tmp.Value)
+
+		case []string:
+			utils.WriteVarUint(bf, uint64(len(p.([]string))))
+			for _, s := range p.([]string) {
+				serialization.WriteVarBytes(bf, []byte(s))
+			}
+		case string:
+			serialization.WriteVarBytes(bf, []byte(p.(string)))
+		case []byte:
+			serialization.WriteVarBytes(bf, p.([]byte))
+		case []interface{}:
+			utils.WriteVarUint(bf, uint64(len(p.([]interface{}))))
+			for _, s := range p.([]interface{}) {
+				serialization.WriteVarBytes(bf, []byte(s.(string)))
+			}
+
+		default:
+			log.Errorf("[BuildNativeInvokeCode] unrecongnized params:%v\n", p)
+		}
+	}
+
+	txstruct := cutils.TxStruct{
+		Address: contractAddress[:],
+		Method:  []byte(method),
+		Version: int(version),
+		Args:    bf.Bytes(),
+	}
+
+	//todo replace with serialize method
+	//bs, err := json.Marshal(txstruct)
+	//if err != nil {
+	//	return nil, err
+	//}
+	bs, err := txstruct.Serialize()
+	if err != nil {
+		return nil, err
+	}
+	return bs, nil
+
+	//return cutils.BuildWasmNativeTransaction(contractAddress, int(version),method,bf.Bytes()),nil
+}
+
 //BuildNeoVMInvokeCode build NeoVM Invoke code for params
 func BuildNeoVMInvokeCode(smartContractAddress common.Address, params []interface{}) ([]byte, error) {
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := cutils.BuildNeoVMParam(builder, params)
+	err := BuildNeoVMParam(builder, params)
 	if err != nil {
 		return nil, err
 	}
 	args := append(builder.ToArray(), 0x67)
 	args = append(args, smartContractAddress[:]...)
 	return args, nil
+}
+
+//buildNeoVMParamInter build neovm invoke param code
+func BuildNeoVMParam(builder *neovm.ParamsBuilder, smartContractParams []interface{}) error {
+	//VM load params in reverse order
+	for i := len(smartContractParams) - 1; i >= 0; i-- {
+		switch v := smartContractParams[i].(type) {
+		case bool:
+			builder.EmitPushBool(v)
+		case byte:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case int:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case uint:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case int32:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case uint32:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case int64:
+			builder.EmitPushInteger(big.NewInt(int64(v)))
+		case common.Fixed64:
+			builder.EmitPushInteger(big.NewInt(int64(v.GetData())))
+		case uint64:
+			val := big.NewInt(0)
+			builder.EmitPushInteger(val.SetUint64(uint64(v)))
+		case string:
+			builder.EmitPushByteArray([]byte(v))
+		case *big.Int:
+			builder.EmitPushInteger(v)
+		case []byte:
+			builder.EmitPushByteArray(v)
+		case common.Address:
+			builder.EmitPushByteArray(v[:])
+		case common.Uint256:
+			builder.EmitPushByteArray(v.ToArray())
+		case []interface{}:
+			err := BuildNeoVMParam(builder, v)
+			if err != nil {
+				return err
+			}
+			builder.EmitPushInteger(big.NewInt(int64(len(v))))
+			builder.Emit(neovm.PACK)
+		default:
+			object := reflect.ValueOf(v)
+			kind := object.Kind().String()
+			if kind == "ptr" {
+				object = object.Elem()
+				kind = object.Kind().String()
+			}
+			switch kind {
+			case "slice":
+				ps := make([]interface{}, 0)
+				for i := 0; i < object.Len(); i++ {
+					ps = append(ps, object.Index(i).Interface())
+				}
+				err := BuildNeoVMParam(builder, []interface{}{ps})
+				if err != nil {
+					return err
+				}
+			case "struct":
+				builder.EmitPushInteger(big.NewInt(0))
+				builder.Emit(neovm.NEWSTRUCT)
+				builder.Emit(neovm.TOALTSTACK)
+				for i := 0; i < object.NumField(); i++ {
+					field := object.Field(i)
+					builder.Emit(neovm.DUPFROMALTSTACK)
+					err := BuildNeoVMParam(builder, []interface{}{field.Interface()})
+					if err != nil {
+						return err
+					}
+					builder.Emit(neovm.APPEND)
+				}
+				builder.Emit(neovm.FROMALTSTACK)
+			default:
+				return fmt.Errorf("unsupported param:%s", v)
+			}
+		}
+	}
+	return nil
 }
 
 func GetAddress(str string) (common.Address, error) {

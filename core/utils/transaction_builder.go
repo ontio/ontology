@@ -20,17 +20,70 @@ package utils
 
 import (
 	"bytes"
-	"fmt"
-	"math"
-	"math/big"
-	"reflect"
-
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
-	vm "github.com/ontio/ontology/vm/neovm"
+	"math"
 )
+
+type TxStruct struct {
+	Address []byte `json:"address"`
+	Method  []byte `json:"method"`
+	Version int    `json:"version"`
+	Args    []byte `json:"args"`
+}
+
+func (txs *TxStruct) Serialize() ([]byte, error) {
+	buffer := bytes.NewBuffer([]byte{})
+	err := serialization.WriteVarBytes(buffer, txs.Address)
+	if err != nil {
+		return nil, err
+	}
+	err = serialization.WriteVarBytes(buffer, txs.Method)
+	if err != nil {
+		return nil, err
+	}
+	err = serialization.WriteUint32(buffer, uint32(txs.Version))
+	if err != nil {
+		return nil, err
+	}
+	err = serialization.WriteVarBytes(buffer, txs.Args)
+	if err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
+func (txs *TxStruct) Deserialize(data []byte) error {
+
+	buffer := bytes.NewBuffer(data)
+	address, err := serialization.ReadVarBytes(buffer)
+	if err != nil {
+		return err
+	}
+
+	method, err := serialization.ReadVarBytes(buffer)
+	if err != nil {
+		return err
+	}
+	version, err := serialization.ReadUint32(buffer)
+	if err != nil {
+		return err
+	}
+
+	args, err := serialization.ReadVarBytes(buffer)
+	if err != nil {
+		return err
+	}
+
+	txs.Args = args
+	txs.Version = int(version)
+	txs.Method = method
+	txs.Address = address
+
+	return nil
+}
 
 // NewDeployTransaction returns a deploy Transaction
 func NewDeployTransaction(code []byte, name, version, author, email, desp string, needStorage bool) *types.MutableTransaction {
@@ -64,111 +117,20 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 	}
 }
 
-func BuildNativeTransaction(addr common.Address, initMethod string, args []byte) *types.MutableTransaction {
-	bf := new(bytes.Buffer)
-	builder := vm.NewParamsBuilder(bf)
-	builder.EmitPushByteArray(args)
-	builder.EmitPushByteArray([]byte(initMethod))
-	builder.EmitPushByteArray(addr[:])
-	builder.EmitPushInteger(big.NewInt(0))
-	builder.Emit(vm.SYSCALL)
-	builder.EmitPushByteArray([]byte(neovm.NATIVE_INVOKE_NAME))
+//add for wasm vm native transaction call
+func BuildWasmNativeTransaction(addr common.Address, version int, initMethod string, args []byte) *types.MutableTransaction {
+	txstruct := TxStruct{
+		Address: addr[:],
+		Method:  []byte(initMethod),
+		Version: version,
+		Args:    args,
+	}
+	bs, err := txstruct.Serialize()
+	if err != nil {
+		return nil
+	}
 
-	tx := NewInvokeTransaction(builder.ToArray())
+	tx := NewInvokeTransaction(bs)
 	tx.GasLimit = math.MaxUint64
 	return tx
-}
-
-func BuildNativeInvokeCode(contractAddress common.Address, version byte, method string, params []interface{}) ([]byte, error) {
-	builder := vm.NewParamsBuilder(new(bytes.Buffer))
-	err := BuildNeoVMParam(builder, params)
-	if err != nil {
-		return nil, err
-	}
-	builder.EmitPushByteArray([]byte(method))
-	builder.EmitPushByteArray(contractAddress[:])
-	builder.EmitPushInteger(new(big.Int).SetInt64(int64(version)))
-	builder.Emit(vm.SYSCALL)
-	builder.EmitPushByteArray([]byte(neovm.NATIVE_INVOKE_NAME))
-	return builder.ToArray(), nil
-}
-
-//buildNeoVMParamInter build neovm invoke param code
-func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{}) error {
-	//VM load params in reverse order
-	for i := len(smartContractParams) - 1; i >= 0; i-- {
-		switch v := smartContractParams[i].(type) {
-		case bool:
-			builder.EmitPushBool(v)
-		case byte:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case int:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case uint:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case int32:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case uint32:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case int64:
-			builder.EmitPushInteger(big.NewInt(int64(v)))
-		case common.Fixed64:
-			builder.EmitPushInteger(big.NewInt(int64(v.GetData())))
-		case uint64:
-			val := big.NewInt(0)
-			builder.EmitPushInteger(val.SetUint64(uint64(v)))
-		case string:
-			builder.EmitPushByteArray([]byte(v))
-		case *big.Int:
-			builder.EmitPushInteger(v)
-		case []byte:
-			builder.EmitPushByteArray(v)
-		case common.Address:
-			builder.EmitPushByteArray(v[:])
-		case common.Uint256:
-			builder.EmitPushByteArray(v.ToArray())
-		case []interface{}:
-			err := BuildNeoVMParam(builder, v)
-			if err != nil {
-				return err
-			}
-			builder.EmitPushInteger(big.NewInt(int64(len(v))))
-			builder.Emit(vm.PACK)
-		default:
-			object := reflect.ValueOf(v)
-			kind := object.Kind().String()
-			if kind == "ptr" {
-				object = object.Elem()
-				kind = object.Kind().String()
-			}
-			switch kind {
-			case "slice":
-				ps := make([]interface{}, 0)
-				for i := 0; i < object.Len(); i++ {
-					ps = append(ps, object.Index(i).Interface())
-				}
-				err := BuildNeoVMParam(builder, []interface{}{ps})
-				if err != nil {
-					return err
-				}
-			case "struct":
-				builder.EmitPushInteger(big.NewInt(0))
-				builder.Emit(vm.NEWSTRUCT)
-				builder.Emit(vm.TOALTSTACK)
-				for i := 0; i < object.NumField(); i++ {
-					field := object.Field(i)
-					builder.Emit(vm.DUPFROMALTSTACK)
-					err := BuildNeoVMParam(builder, []interface{}{field.Interface()})
-					if err != nil {
-						return err
-					}
-					builder.Emit(vm.APPEND)
-				}
-				builder.Emit(vm.FROMALTSTACK)
-			default:
-				return fmt.Errorf("unsupported param:%s", v)
-			}
-		}
-	}
-	return nil
 }

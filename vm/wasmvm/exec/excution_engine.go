@@ -71,12 +71,16 @@ func newStack(depth int) *vmstack {
 }
 
 //todo add parameters
-func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Crypto, service InteropServiceInterface) *ExecutionEngine {
+func NewExecutionEngine( //container interfaces.CodeContainer,
+	crypto interfaces.Crypto,
+	service InteropServiceInterface,
+	thegas *uint64) *ExecutionEngine {
 
 	engine := &ExecutionEngine{
-		crypto:        crypto,
-		CodeContainer: container,
-		service:       NewInteropService(),
+		crypto: crypto,
+		//CodeContainer: container,
+		service: NewInteropService(),
+		gas:     thegas,
 	}
 	if service != nil {
 		engine.service.MergeMap(service.GetServiceMap())
@@ -87,11 +91,12 @@ func NewExecutionEngine(container interfaces.CodeContainer, crypto interfaces.Cr
 }
 
 type ExecutionEngine struct {
-	crypto        interfaces.Crypto
-	service       *InteropService
-	CodeContainer interfaces.CodeContainer
-	vm            *VM
-	backupVM      *vmstack
+	crypto  interfaces.Crypto
+	service *InteropService
+	//CodeContainer interfaces.CodeContainer
+	vm       *VM
+	backupVM *vmstack
+	gas      *uint64
 }
 
 //GetVM return vm pointer
@@ -357,6 +362,7 @@ func (e *ExecutionEngine) call(caller common.Address,
 	input []byte,
 	actionName string,
 	ver byte) (returnbytes []byte, er error) {
+
 	if ver > 0 { //production contract version
 		methodName := CONTRACT_METHOD_NAME //fix to "invoke"
 		//1. read code

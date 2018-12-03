@@ -72,3 +72,12 @@ func TrimBuffToString(bytes []byte) string {
 	return string(bytes)
 
 }
+
+func TrimBuffToBytes(bytes []byte) []byte {
+	for i, b := range bytes {
+		if b == 0 {
+			return bytes[:i]
+		}
+	}
+	return bytes
+}

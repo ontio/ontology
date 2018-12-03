@@ -62,15 +62,26 @@ func (vm *VM) doCall(compiled compiledFunction, index int64) {
 
 		v, ok := vm.Services[compiled.name]
 		if ok {
+			price := vm.getCostPrice(compiled.name, locals)
+
+			if !vm.CheckUseGas(price) {
+				panic("[doCall]Not enough gas!")
+			}
+
 			rtn, err := v(vm.Engine)
 			if err != nil || !rtn {
 				log.Errorf("call method :%s failed\n", compiled.name)
+				panic("call method failed")
+
 			}
 		} else {
-			vm.ctx = prevCtxt
-			if compiled.returns {
-				vm.pushUint64(0)
-			}
+			log.Errorf("can find method %s\n", compiled.name)
+			panic("call method failed")
+
+			//vm.ctx = prevCtxt
+			//if compiled.returns {
+			//	vm.pushUint64(0)
+			//}
 		}
 
 	} else {
@@ -133,4 +144,48 @@ func (vm *VM) callIndirect() {
 	}
 
 	vm.doCall(vm.compiledFuncs[elemIndex], int64(index))
+}
+
+func (vm *VM) getCostPrice(name string, params []uint64) uint64 {
+
+	switch name {
+	case STORAGE_PUT_NAME:
+		return vm.storeGasCost(params)
+	default:
+		if value, ok := GAS_TABLE.Load(name); ok {
+			return value.(uint64)
+		}
+		return OPCODE_GAS
+	}
+
+	return uint64(0)
+}
+
+func (vm *VM) storeGasCost(params []uint64) uint64 {
+
+	if len(params) != 2 {
+		panic("[StoreGasCost]Param count error!")
+	}
+
+	key, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		panic("[StoreGasCost]Get key error!")
+	}
+	if len(key) > 1024 {
+		return uint64(0)
+	}
+
+	value, err := vm.GetPointerMemory(params[1])
+	if err != nil {
+		panic("[StoreGasCost]Get value error!")
+	}
+
+	if putCost, ok := GAS_TABLE.Load(STORAGE_PUT_NAME); ok {
+		return uint64(((len(key)+len(value)-1)/1024 + 1)) * putCost.(uint64)
+	} else {
+		log.Error("[StoreGasCost] get STORAGE_PUT_NAME gas failed")
+		panic("[StoreGasCost] get STORAGE_PUT_NAME gas failed")
+	}
+
+	return uint64(0)
 }

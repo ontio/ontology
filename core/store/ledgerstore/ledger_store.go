@@ -41,17 +41,18 @@ import (
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
+	cutils "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract"
-	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/vm/wasmvm/exec"
 )
 
 const (
@@ -855,30 +856,70 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	if tx.TxType == types.Invoke {
 		invoke := tx.Payload.(*payload.InvokeCode)
 
+		txStruct := &cutils.TxStruct{}
+		//fmt.Printf("==invoke.Code:%s\n", invoke.Code)
+
+		//errs := json.Unmarshal(invoke.Code, txStruct)
+		//if errs != nil {
+		//	return nil, errs
+		//}
+		err := txStruct.Deserialize(invoke.Code)
+		if err != nil {
+			return nil, err
+		}
+
 		sc := smartcontract.SmartContract{
 			Config:  config,
 			Store:   this,
 			CacheDB: cache,
 			Gas:     math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), preGas[neovm.UINT_INVOKE_CODE_LEN_NAME]),
-			PreExec: true,
+		}
+
+		//native contract preexec
+		if IsNativeContract(txStruct.Address) {
+			parsedAddr, err := common.AddressParseFromBytes(txStruct.Address)
+			if err != nil {
+				return nil, errors.NewErr("parse address error")
+			}
+			contract := sstate.ContractInvokeParam{
+				Version: byte(txStruct.Version),
+				Address: parsedAddr,
+				Method:  string(txStruct.Method),
+				Args:    txStruct.Args,
+			}
+
+			native, err := sc.NewNativeService()
+			native.InvokeParam = contract
+			if err != nil {
+				return nil, err
+			}
+			result, err := native.Invoke()
+			if err != nil {
+				return nil, err
+			}
+
+			hex := common.ToHexString(result.([]byte))
+			return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: exec.MIN_TRANSACTION_GAS * tx.GasPrice, Result: hex}, nil
 		}
 
 		//start the smart contract executive function
-		engine, _ := sc.NewExecuteEngine(invoke.Code)
+		engine, _ := sc.NewExecuteEngine(txStruct.Args)
 		result, err := engine.Invoke()
 		if err != nil {
 			return stf, err
 		}
+		hex := common.ToHexString(result.([]byte))
+
 		gasCost := math.MaxUint64 - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
 		if gasCost < mixGas {
 			gasCost = mixGas
 		}
-		cv, err := scommon.ConvertNeoVmTypeHexString(result)
-		if err != nil {
-			return stf, err
-		}
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv}, nil
+		//cv, err := scommon.ConvertNeoVmTypeHexString(result)
+		//if err != nil {
+		//	return stf, err
+		//}
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: hex}, nil
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: preGas[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), preGas[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
@@ -912,6 +953,7 @@ func (this *LedgerStoreImp) getPreGas(config *smartcontract.Config, cache *stora
 	if err != nil {
 		return nil, err
 	}
+
 	params := new(global_params.Params)
 	if err := params.Deserialize(bytes.NewBuffer(result.([]byte))); err != nil {
 		return nil, fmt.Errorf("deserialize global params error:%s", err)

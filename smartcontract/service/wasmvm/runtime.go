@@ -18,6 +18,7 @@
 package wasmvm
 
 import (
+	"encoding/binary"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/errors"
@@ -89,16 +90,35 @@ func (this *WasmVmService) runtimeNotify(engine *exec.ExecutionEngine) (bool, er
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
 	params := envCall.GetParams()
+
 	if len(params) != 1 {
+
 		return false, errors.NewErr("[RuntimeNotify]parameter count error ")
 	}
 	item, err := vm.GetPointerMemory(params[0])
 	if err != nil {
 		return false, err
 	}
+
+	length := len(item) / 4
+
+	notify := make([]string, length)
+
+	for i := 0; i < length; i++ {
+
+		tmp := item[i*4 : (i+1)*4]
+		idx := binary.LittleEndian.Uint32(tmp)
+
+		tmpitem, err := vm.GetPointerMemory(uint64(idx))
+		if err != nil {
+			return false, err
+		}
+		notify[i] = string(tmpitem)
+	}
+
 	context := this.ContextRef.CurrentContext()
 
-	this.Notifications = append(this.Notifications, &event.NotifyEventInfo{ContractAddress: context.ContractAddress, States: []string{string(item)}})
+	this.Notifications = append(this.Notifications, &event.NotifyEventInfo{ContractAddress: context.ContractAddress, States: notify})
 	vm.RestoreCtx()
 	return true, nil
 }
@@ -128,5 +148,168 @@ func (this *WasmVmService) runtimeCheckWitness(engine *exec.ExecutionEngine) (bo
 	if vm.GetEnvCall().GetReturns() {
 		vm.PushResult(uint64(res))
 	}
+	return true, nil
+}
+
+// raise an exception to terminate the vm execution
+func (this *WasmVmService) runtimeRaiseException(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[runtimeRaiseException]get parameter count error!")
+	}
+	data, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, errors.NewErr("[runtimeRaiseException]" + err.Error())
+	}
+
+	return false, errors.NewErr(string(data))
+}
+
+//get current block hash
+func (this *WasmVmService) runtimeGetCurrentBlockHash(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+
+	hash := this.BlockHash.ToHexString()
+	idx, err := vm.SetPointerMemory(hash)
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+
+	return true, nil
+}
+
+//get current tx
+func (this *WasmVmService) runtimeGetCodeContainer(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+
+	tx := this.Tx.Raw
+	idx, err := vm.SetPointerMemory(tx)
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+
+	return true, nil
+}
+
+//get current contract address
+func (this *WasmVmService) runtimeGetExecutingAddress(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+
+	ctx := this.ContextRef.CurrentContext()
+	if ctx == nil {
+		return false, errors.NewErr("Calling context invalid")
+	}
+
+	addr := ctx.ContractAddress[:]
+	//addr := vm.ContractAddress[:]
+	idx, err := vm.SetPointerMemory(addr)
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+
+	return true, nil
+}
+
+//get current contract address
+func (this *WasmVmService) runtimeGetCallingAddress(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+
+	ctx := this.ContextRef.CallingContext()
+	if ctx == nil {
+		return false, errors.NewErr("Calling context invalid")
+	}
+	addr := ctx.ContractAddress[:]
+	//addr := vm.ContractAddress[:]
+	idx, err := vm.SetPointerMemory(addr)
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+
+	return true, nil
+}
+
+//get entry contract address
+func (this *WasmVmService) runtimeGetEntryAddress(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+
+	ctx := this.ContextRef.EntryContext()
+	if ctx == nil {
+		return false, errors.NewErr("Calling context invalid")
+	}
+
+	addr := ctx.ContractAddress[:]
+	//addr := vm.ContractAddress[:]
+	idx, err := vm.SetPointerMemory(addr)
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+
+	return true, nil
+}
+
+//change address to Base58 format
+func (this *WasmVmService) runtimeAddressToBase58(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[runtimeAddressToBase58]get parameter count error!")
+	}
+	data, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, errors.NewErr("[runtimeAddressToBase58]" + err.Error())
+	}
+	address, err := common.AddressParseFromBytes(data)
+	if err != nil {
+		return false, errors.NewErr("[runtimeAddressToBase58]" + err.Error())
+	}
+
+	idx, err := vm.SetPointerMemory(address.ToBase58())
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+}
+
+//change address to hex format
+func (this *WasmVmService) runtimeAddressToHex(engine *exec.ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+
+	envCall := vm.GetEnvCall()
+	params := envCall.GetParams()
+	if len(params) != 1 {
+		return false, errors.NewErr("[runtimeAddressToHex]get parameter count error!")
+	}
+	data, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, errors.NewErr("[runtimeAddressToHex]" + err.Error())
+	}
+	address, err := common.AddressParseFromBytes(data)
+	if err != nil {
+		return false, errors.NewErr("[runtimeAddressToHex]" + err.Error())
+	}
+
+	idx, err := vm.SetPointerMemory(address.ToHexString())
+	if err != nil {
+		return false, err
+	}
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
 	return true, nil
 }

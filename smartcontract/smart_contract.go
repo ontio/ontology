@@ -28,8 +28,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	"github.com/ontio/ontology/smartcontract/storage"
-	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 const (
@@ -45,7 +45,6 @@ type SmartContract struct {
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 	Gas           uint64
 	ExecStep      int
-	PreExec       bool
 }
 
 // Config describe smart contract need parameters configuration
@@ -126,7 +125,8 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 	if !this.checkContexts() {
 		return nil, fmt.Errorf("%s", "engine over max limit!")
 	}
-	service := &neovm.NeoVmService{
+
+	service := &wasmvm.WasmVmService{
 		Store:      this.Store,
 		CacheDB:    this.CacheDB,
 		ContextRef: this,
@@ -135,8 +135,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		Time:       this.Config.Time,
 		Height:     this.Config.Height,
 		BlockHash:  this.Config.BlockHash,
-		Engine:     vm.NewExecutionEngine(),
-		PreExec:    this.PreExec,
+		Gas:        &this.Gas,
 	}
 	return service, nil
 }

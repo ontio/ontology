@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
-	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -153,11 +152,12 @@ func RegisterGovernanceContract(native *native.NativeService) {
 //Init governance contract, include vbft config, global param and ontid admin.
 func InitConfig(native *native.NativeService) ([]byte, error) {
 	configuration := new(config.VBFTConfig)
-	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("serialization.ReadVarBytes, contract params deserialize error: %v", err)
-	}
-	if err := configuration.Deserialize(bytes.NewBuffer(buf)); err != nil {
+	//buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	//if err != nil {
+	//	return utils.BYTE_FALSE, fmt.Errorf("serialization.ReadVarBytes, contract params deserialize error: %v", err)
+	//}
+	//if err := configuration.Deserialize(bytes.NewBuffer(buf)); err != nil {
+	if err := configuration.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
