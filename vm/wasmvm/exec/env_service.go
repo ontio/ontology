@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
 	"github.com/ontio/ontology/vm/wasmvm/util"
+	"golang.org/x/crypto/ripemd160"
 )
 
 type Args struct {
@@ -79,6 +80,8 @@ func NewInteropService() *InteropService {
 	service.Register("i64Subtract", int64Subtract)
 	service.Register("SHA1", hashSha1)
 	service.Register("SHA256", hashSha256)
+	service.Register("Hash160", hash160)
+	service.Register("Hash256", hash256)
 
 	//parameter apis
 	service.Register("ONT_ReadInt32Param", readInt32Param)
@@ -315,7 +318,6 @@ func readInt32Param(engine *ExecutionEngine) (bool, error) {
 
 //read int64 value from args bytes
 func readInt64Param(engine *ExecutionEngine) (bool, error) {
-
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 1 {
@@ -748,14 +750,14 @@ func rawMashalParams(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
 	if len(params) != 1 {
-		return false, errors.New("[jsonMashalParams]parameter count error")
+		return false, errors.New("[rawMashalParams]parameter count error")
 	}
 
 	addr := params[0]
 
 	pBytes, err := engine.vm.GetPointerMemory(addr)
 	if err != nil {
-		return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+		return false, errors.New("[rawMashalParams] GetPointerMemory err:" + err.Error())
 	}
 	bf := bytes.NewBuffer(nil)
 
@@ -764,7 +766,7 @@ func rawMashalParams(engine *ExecutionEngine) (bool, error) {
 		typeIdx := binary.LittleEndian.Uint32(pBytes[i : i+4])
 		typeBytes, err := engine.vm.GetPointerMemory(uint64(typeIdx))
 		if err != nil {
-			return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+			return false, errors.New("[rawMashalParams] GetPointerMemory err:" + err.Error())
 		}
 
 		sType := strings.ToLower(util.TrimBuffToString(typeBytes))
@@ -786,21 +788,20 @@ func rawMashalParams(engine *ExecutionEngine) (bool, error) {
 			intBytes := uint64(binary.LittleEndian.Uint32(pBytes[i+4 : i+8]))
 			str, err := engine.vm.GetPointerMemory(intBytes)
 			if err != nil {
-				return false, errors.New("[jsonMashalParams] GetPointerMemory err:" + err.Error())
+				return false, errors.New("[rawMashalParams] GetPointerMemory err:" + err.Error())
 			}
-
 			tmp := bytes.NewBuffer(nil)
 			serialization.WriteString(tmp, util.TrimBuffToString(str))
 			bf.Write(tmp.Bytes())
 			i += 7
 		default:
-			return false, errors.New("[jsonMashalParams]  not support type :" + string(typeBytes))
+			return false, errors.New("[rawMashalParams]  not support type :" + string(typeBytes))
 		}
 
 	}
 	argIdx, err := engine.vm.SetPointerMemory(bf.Bytes())
 	if err != nil {
-		return false, errors.New("[jsonMashalParams] SetPointerMemory err:" + err.Error())
+		return false, errors.New("[rawMashalParams] SetPointerMemory err:" + err.Error())
 	}
 	engine.vm.RestoreCtx()
 	if envCall.envReturns {
@@ -853,4 +854,50 @@ func hashSha256(engine *ExecutionEngine) (bool, error) {
 	vm.RestoreCtx()
 	vm.PushResult(uint64(idx))
 	return true, nil
+}
+
+func hash160(engine *ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("[hashSha1]parameter count error")
+	}
+	item, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+
+	temp := sha256.Sum256(item)
+	md := ripemd160.New()
+	md.Write(temp[:])
+	bt := md.Sum(nil)
+
+	idx, err := vm.SetPointerMemory(bt)
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+
+}
+
+func hash256(engine *ExecutionEngine) (bool, error) {
+	vm := engine.GetVM()
+	envCall := vm.envCall
+	params := envCall.envParams
+	if len(params) != 1 {
+		return false, errors.New("[hashSha1]parameter count error")
+	}
+	item, err := vm.GetPointerMemory(params[0])
+	if err != nil {
+		return false, err
+	}
+
+	temp := sha256.Sum256(item)
+	data := sha256.Sum256(temp[:])
+
+	idx, err := vm.SetPointerMemory(data)
+	vm.RestoreCtx()
+	vm.PushResult(uint64(idx))
+	return true, nil
+
 }

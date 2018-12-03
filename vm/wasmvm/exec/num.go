@@ -42,11 +42,23 @@ func (vm *VM) i32Popcnt() {
 }
 
 func (vm *VM) i32Add() {
-	vm.pushUint32(vm.popUint32() + vm.popUint32())
+
+	a := vm.popUint32()
+	b := vm.popUint32()
+
+	if IsI32AddOverflow(a, b) {
+		panic("i32Add overflow")
+	}
+	vm.pushUint32(a + b)
 }
 
 func (vm *VM) i32Mul() {
-	vm.pushUint32(vm.popUint32() * vm.popUint32())
+	a := vm.popUint32()
+	b := vm.popUint32()
+	if IsI32MultipleOverflow(a, b) {
+		panic("i32Multiple overflow")
+	}
+	vm.pushUint32(a * b)
 }
 
 func (vm *VM) i32DivS() {
@@ -58,6 +70,9 @@ func (vm *VM) i32DivS() {
 func (vm *VM) i32DivU() {
 	v2 := vm.popUint32()
 	v1 := vm.popUint32()
+	if IsI32DivOverflow(v1, v2) {
+		panic("i32Div overflow")
+	}
 	vm.pushUint32(v1 / v2)
 }
 
@@ -76,6 +91,9 @@ func (vm *VM) i32RemU() {
 func (vm *VM) i32Sub() {
 	v2 := vm.popUint32()
 	v1 := vm.popUint32()
+	if IsI32SubOverflow(v1, v2) {
+		panic("i32Sub overflow")
+	}
 	vm.pushUint32(v1 - v2)
 }
 
@@ -196,17 +214,33 @@ func (vm *VM) i64Popcnt() {
 }
 
 func (vm *VM) i64Add() {
-	vm.pushUint64(vm.popUint64() + vm.popUint64())
+	a := vm.popUint64()
+	b := vm.popUint64()
+
+	if IsI64AddOverflow(a, b) {
+		panic("i64Add overflow")
+	}
+
+	vm.pushUint64(a + b)
 }
 
 func (vm *VM) i64Sub() {
 	v2 := vm.popUint64()
 	v1 := vm.popUint64()
+	if IsI64SubOverflow(v1, v2) {
+		panic("i64Sub overflow")
+	}
 	vm.pushUint64(v1 - v2)
 }
 
 func (vm *VM) i64Mul() {
-	vm.pushUint64(vm.popUint64() * vm.popUint64())
+	a := vm.popUint64()
+	b := vm.popUint64()
+
+	if IsI64MultipleOverflow(a, b) {
+		panic("i64Mul overflow")
+	}
+	vm.pushUint64(a * b)
 }
 
 func (vm *VM) i64DivS() {
@@ -218,6 +252,9 @@ func (vm *VM) i64DivS() {
 func (vm *VM) i64DivU() {
 	v2 := vm.popUint64()
 	v1 := vm.popUint64()
+	if IsI64DivOverflow(v1, v2) {
+		panic("i64Div overflow")
+	}
 	vm.pushUint64(v1 / v2)
 }
 
@@ -523,4 +560,132 @@ func (vm *VM) f64Ge() {
 	v2 := vm.popFloat64()
 	v1 := vm.popFloat64()
 	vm.pushBool(v1 >= v2)
+}
+
+func IsI32OverFlow(res uint32) bool {
+	if res > math.MaxInt32 {
+		return true
+	}
+	return false
+}
+
+func IsI64OverFlow(res uint64) bool {
+	if res > math.MaxInt64 {
+		return true
+	}
+	return false
+}
+
+func IsSameSymbol32(a uint32, b uint32) bool {
+	if int32(a) > 0 && int32(b) > 0 {
+		return true
+	}
+	return false
+}
+
+func IsSameSymbol64(a uint64, b uint64) bool {
+	if int64(a) > 0 && int64(b) > 0 {
+		return true
+	}
+	return false
+}
+
+func IsI32AddOverflow(a uint32, b uint32) bool {
+	if int32(a) > 0 && int32(b) > 0 {
+		if (a + b) > math.MaxInt32 {
+			return true
+		}
+	}
+
+	if int32(a) < 0 && int32(b) < 0 {
+		if int32(a+b) < math.MinInt32 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func IsI32SubOverflow(a uint32, b uint32) bool {
+	if int32(a) < 0 && int32(b) < 0 {
+		if int32(a-b) < math.MinInt32 {
+			return true
+		}
+	}
+	return false
+}
+
+func IsI32DivOverflow(a uint32, b uint32) bool {
+	if (int32(a) > 0 && int32(b) < 0) || (int32(a) < 0 && int32(b) > 0) {
+		if int64(a/b) < math.MinInt32 {
+			return true
+		}
+	}
+	return false
+}
+
+func IsI32MultipleOverflow(a uint32, b uint32) bool {
+	if (int32(a) > 0 && int32(b) > 0) || (int32(a) < 0 && int32(b) < 0) {
+		if (a * b) > math.MaxInt32 {
+			return true
+		}
+	}
+
+	if (int32(a) > 0 && int32(b) < 0) || (int32(a) < 0 && int32(b) > 0) {
+		if int32(a*b) < math.MinInt32 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func IsI64AddOverflow(a uint64, b uint64) bool {
+	if int64(a) > 0 && int64(b) > 0 {
+		if (a + b) > math.MaxInt64 {
+			return true
+		}
+	}
+
+	if int64(a) < 0 && int64(b) < 0 {
+		if int64(a+b) < math.MinInt64 {
+			return true
+		}
+	}
+
+	return false
+}
+
+func IsI64SubOverflow(a uint64, b uint64) bool {
+	if int64(a) < 0 && int64(b) < 0 {
+		if int64(a-b) < math.MinInt64 {
+			return true
+		}
+	}
+	return false
+}
+
+func IsI64DivOverflow(a uint64, b uint64) bool {
+	if (int64(a) > 0 && int64(b) < 0) || (int64(a) < 0 && int64(b) > 0) {
+		if int64(a/b) < math.MinInt64 {
+			return true
+		}
+	}
+	return false
+}
+
+func IsI64MultipleOverflow(a uint64, b uint64) bool {
+	if (int64(a) > 0 && int64(b) > 0) || (int64(a) < 0 && int64(b) < 0) {
+		if (a * b) > math.MaxInt64 {
+			return true
+		}
+	}
+
+	if (int64(a) > 0 && int64(b) < 0) || (int64(a) < 0 && int64(b) > 0) {
+		if int64(a*b) < math.MinInt64 {
+			return true
+		}
+	}
+
+	return false
 }

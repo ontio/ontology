@@ -33,7 +33,6 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
-	cutils "github.com/ontio/ontology/core/utils"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	rpccommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -203,7 +202,7 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	default:
 		return nil, fmt.Errorf("Unsupport asset:%s", asset)
 	}
-	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddr, version, CONTRACT_APPROVE, []interface{}{state})
+	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_APPROVE, []interface{}{state})
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
@@ -238,7 +237,7 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	default:
 		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
-	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER, []interface{}{sts})
+	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER, []interface{}{sts})
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
@@ -277,7 +276,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	default:
 		return nil, fmt.Errorf("unsupport asset:%s", asset)
 	}
-	invokeCode, err := cutils.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER_FROM, []interface{}{transferFrom})
+	invokeCode, err := httpcom.BuildNativeInvokeCode(contractAddr, version, CONTRACT_TRANSFER_FROM, []interface{}{transferFrom})
 	if err != nil {
 		return nil, fmt.Errorf("build invoke code error:%s", err)
 	}
@@ -648,22 +647,6 @@ func PrepareDeployContract(
 	return PrepareSendRawTransaction(txData)
 }
 
-func InvokeNativeContract(
-	gasPrice,
-	gasLimit uint64,
-	signer *account.Account,
-	contractAddress common.Address,
-	version byte,
-	method string,
-	params []interface{},
-) (string, error) {
-	tx, err := httpcom.NewNativeInvokeTransaction(gasPrice, gasLimit, contractAddress, version, method, params)
-	if err != nil {
-		return "", err
-	}
-	return InvokeSmartContract(signer, tx)
-}
-
 //Invoke wasm smart contract
 //methodName is wasm contract action name
 //paramType  is Json or Raw format
@@ -745,28 +728,6 @@ func PrepareInvokeNeoVMContract(
 
 func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error) {
 	mutable, err := httpcom.NewSmartContractTransaction(0, 0, code)
-	if err != nil {
-		return nil, err
-	}
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		return nil, err
-	}
-	var buffer bytes.Buffer
-	err = tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("tx serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
-	return PrepareSendRawTransaction(txData)
-}
-
-func PrepareInvokeNativeContract(
-	contractAddress common.Address,
-	version byte,
-	method string,
-	params []interface{}) (*cstates.PreExecResult, error) {
-	mutable, err := httpcom.NewNativeInvokeTransaction(0, 0, contractAddress, version, method, params)
 	if err != nil {
 		return nil, err
 	}

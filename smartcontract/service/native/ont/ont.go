@@ -66,27 +66,21 @@ func OntInit(native *native.NativeService) ([]byte, error) {
 	}
 
 	distribute := make(map[common.Address]uint64)
-	source := common.NewZeroCopySource(native.Input)
-	buf, _, irregular, eof := source.NextVarBytes()
-	if eof {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadVarBytes, contract params deserialize error!")
-	}
-	if irregular {
-		return utils.BYTE_FALSE, common.ErrIrregularData
-	}
-	input := common.NewZeroCopySource(buf)
-	num, err := utils.DecodeVarUint(input)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("read number error:%v", err)
-	}
+
 	sum := uint64(0)
 	overflow := false
+
+	source := bytes.NewBuffer(native.Input)
+	num, err := utils.ReadVarUint(source)
+
+	input := source
+
 	for i := uint64(0); i < num; i++ {
-		addr, err := utils.DecodeAddress(input)
+		addr, err := utils.ReadAddress(input)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("read address error:%v", err)
 		}
-		value, err := utils.DecodeVarUint(input)
+		value, err := utils.ReadVarUint(input)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("read value error:%v", err)
 		}
@@ -240,6 +234,7 @@ func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
 	}
+
 	return types.BigIntToBytes(big.NewInt(int64(amount))), nil
 }
 

@@ -22,7 +22,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 	"github.com/ontio/ontology/vm/wasmvm/memory"
@@ -54,7 +53,7 @@ func (this *WasmVmService) putstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	this.CloneCache.Add(scommon.ST_STORAGE, k, &states.StorageItem{Value: value})
+	this.CacheDB.Put(k, value)
 
 	vm.RestoreCtx()
 
@@ -78,7 +77,7 @@ func (this *WasmVmService) getstore(engine *exec.ExecutionEngine) (bool, error) 
 	if err != nil {
 		return false, err
 	}
-	item, err := this.CloneCache.Get(scommon.ST_STORAGE, k)
+	item, err := this.CacheDB.Get(k)
 	if err != nil {
 		return false, err
 	}
@@ -90,7 +89,7 @@ func (this *WasmVmService) getstore(engine *exec.ExecutionEngine) (bool, error) 
 		}
 		return true, nil
 	}
-	idx, err := vm.SetPointerMemory(item.(*states.StorageItem).Value)
+	idx, err := vm.SetPointerMemory(item)
 	if err != nil {
 		return false, err
 	}
@@ -122,7 +121,7 @@ func (this *WasmVmService) deletestore(engine *exec.ExecutionEngine) (bool, erro
 		return false, err
 	}
 
-	this.CloneCache.Delete(scommon.ST_STORAGE, k)
+	this.CacheDB.Delete(k)
 	vm.RestoreCtx()
 
 	return true, nil
