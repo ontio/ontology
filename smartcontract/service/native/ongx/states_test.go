@@ -50,13 +50,13 @@ func TestInflations_Serialize(t *testing.T) {
 		Addr:  common.AddressFromVmCode([]byte{1, 2, 3}),
 		Value: 123,
 	}
-	inflations := Inflations{
-		Inflations: []Swap{inflation},
+	inflations := OngSwapParam{
+		Swap: []Swap{inflation},
 	}
 	link := common.NewZeroCopySink(nil)
 	inflations.Serialize(link)
 
-	var infs Inflations
+	var infs OngSwapParam
 	source := common.NewZeroCopySource(link.Bytes())
 	err := infs.Deserialize(source)
 	assert.Nil(t, err)
