@@ -567,8 +567,10 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
 		}
 	}
 
+	cache := storage.NewCacheDB(overlay)
 	for _, tx := range block.Transactions {
-		err := this.handleTransaction(overlay, block, tx)
+		cache.Reset()
+		err := this.handleTransaction(overlay, cache, block, tx)
 		if err != nil {
 			return fmt.Errorf("handleTransaction error %s", err)
 		}
@@ -682,12 +684,12 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	return nil
 }
 
-func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, block *types.Block, tx *types.Transaction) error {
+func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, block *types.Block, tx *types.Transaction) error {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	switch tx.TxType {
 	case types.Deploy:
-		err := this.stateStore.HandleDeployTransaction(this, overlay, tx, block, notify)
+		err := this.stateStore.HandleDeployTransaction(this, overlay, cache, tx, block, notify)
 		if overlay.Error() != nil {
 			return fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -696,7 +698,7 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, bloc
 		}
 		SaveNotify(this.eventStore, txHash, notify)
 	case types.Invoke:
-		err := this.stateStore.HandleInvokeTransaction(this, overlay, tx, block, notify)
+		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
 		if overlay.Error() != nil {
 			return fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}

@@ -34,12 +34,19 @@ type CacheDB struct {
 	keyScratch []byte
 }
 
+const initCap = 16 * 1024
+const initKvNum = 16
+
 // NewCacheDB return a new contract cache
 func NewCacheDB(store *overlaydb.OverlayDB) *CacheDB {
 	return &CacheDB{
 		backend: store,
-		memdb:   overlaydb.NewMemDB(0),
+		memdb:   overlaydb.NewMemDB(initCap, initKvNum),
 	}
+}
+
+func (self *CacheDB) Reset() {
+	self.memdb.Reset()
 }
 
 func ensureBuffer(b []byte, n int) []byte {
