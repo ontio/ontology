@@ -54,5 +54,6 @@ func TestInfiniteLoopCrash(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = engine.Invoke()
-	assert.Equal(t, "[NeoVmService] vm execute error!: the biginteger over max size 32bit", err.Error())
+
+	assert.NotNil(t, err)
 }

@@ -27,7 +27,11 @@ func opNop(e *ExecutionEngine) (VMState, error) {
 }
 
 func opJmp(e *ExecutionEngine) (VMState, error) {
-	offset := int(e.Context.OpReader.ReadInt16())
+	num, err := e.Context.OpReader.ReadInt16()
+	if err != nil {
+		return FAULT, err
+	}
+	offset := int(num)
 
 	offset = e.Context.GetInstructionPointer() + offset - 3
 
