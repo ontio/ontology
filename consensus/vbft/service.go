@@ -1297,6 +1297,13 @@ func (self *Server) processMsgEvent() error {
 						return nil
 					}
 
+					if self.isCommitter(msgBlkNum, self.Index) {
+						// make sure committer broadcasting his commit msg
+						if err := self.makeCommitment(proposal, msgBlkNum, forEmpty); err != nil {
+							log.Errorf("server %d consensused %d, committer broadcast commit msg: %s", self.Index, msgBlkNum, err)
+						}
+					}
+
 					// stop commit timer
 					if err := self.timer.CancelCommitMsgTimer(msgBlkNum); err != nil {
 						log.Errorf("failed to cancel commit timer, blockNum: %d, err: %s", msgBlkNum, err)
