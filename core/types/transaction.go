@@ -107,6 +107,9 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 
 	pend := source.Pos()
 	lenAll := pend - pstart
+	if lenAll > MAX_TX_SIZE {
+		return errors.New("execced max transaction size")
+	}
 	source.BackUp(lenAll)
 	tx.Raw, _ = source.NextBytes(lenAll)
 
