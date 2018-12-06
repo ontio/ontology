@@ -30,8 +30,11 @@ import (
 	"time"
 
 	quic "github.com/lucas-clemente/quic-go"
+	//"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/ontio/ontology/common/log"
 	tsp "github.com/ontio/ontology/p2pserver/net/transport"
+	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/common/config"
 )
 
 
@@ -56,33 +59,62 @@ func generateTLSConfig() *tls.Config {
 	return &tls.Config{Certificates: []tls.Certificate{tlsCert}}
 }
 
+var quicConfig = &quic.Config{
+	Versions:                              []quic.VersionNumber{101},
+	IdleTimeout:                           time.Second * (config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK) * common.KEEPALIVE_TIMEOUT,
+	MaxIncomingStreams:                    10000,
+	MaxIncomingUniStreams:                 10000,              // disable unidirectional streams
+	MaxReceiveStreamFlowControlWindow:     3 * (1 << 20),   // 3 MB
+	MaxReceiveConnectionFlowControlWindow: 4.5 * (1 << 20), // 4.5 MB
+	AcceptCookie: func(clientAddr net.Addr, cookie *quic.Cookie) bool {
+		// TODO(#6): require source address validation when under load
+		return true
+	},
+	KeepAlive: false,
+}
+
+type readerCloser struct {
+	quic.ReceiveStream
+}
+
+type reader struct {
+	io.Reader
+	readerCloser
+}
+
 type connection struct {
 	sess          quic.Session
 	streamWTimeOut time.Time
+}
+
+func (this * readerCloser) Close() error {
+
+	return nil//this.Stream.Close()
 }
 
 type transport struct {
 	tlsConf *tls.Config
 }
 
-func (this * connection) GetReader() (io.Reader, error) {
+func (this * connection) GetReader() (tsp.Reader, error) {
 
-	stream, err := this.sess.AcceptStream()
+	stream, err := this.sess.AcceptUniStream()//this.sess.AcceptStream()
 	if err != nil {
-		log.Errorf("[p2p]AcceptStream ERR:%s", err)
+		log.Errorf("[p2p]AcceptStream lAddr=%s, rAddr=%s, ERR:%s", this.sess.LocalAddr().String(), this.sess.RemoteAddr().String(), err)
 		return  nil, err
 	}
 
-	return stream, nil
+	return &reader{stream, readerCloser{stream}}, nil
 }
 
 func (this * connection) Write(b []byte) (int, error) {
 
-	stream, err := this.sess.OpenStreamSync()
+	stream, err := this.sess.OpenUniStreamSync()//this.sess.OpenStreamSync()
 	if err != nil {
-		log.Errorf("[p2p]OpenStreamSync ERR:%s", err)
+		log.Errorf("[p2p]OpenStreamSync lAddr=%s, rAddr=%s, ERR:%s", this.sess.LocalAddr().String(), this.sess.RemoteAddr().String(), err)
 		return 0, err
 	}
+	defer stream.Close()
 
 	stream.SetWriteDeadline(this.streamWTimeOut)
 	cntW, errW := stream.Write(b)
@@ -123,15 +155,17 @@ func NewTransport( ) (tsp.Transport, error) {
 
 func (this * transport) Dial(addr string) (tsp.Connection, error) {
 
-	return this.DialWithTimeout(addr, -1)
+	return this.DialWithTimeout(addr, time.Second * common.DIAL_TIMEOUT)
 }
 
 func (this * transport) DialWithTimeout(addr string, timeout time.Duration) (tsp.Connection, error) {
-	var qConfig *quic.Config = nil
+	//var qConfig *quic.Config = nil
 	if timeout >= 0 {
-		qConfig = &quic.Config{IdleTimeout: timeout}
+		//qConfig = &quic.Config{IdleTimeout: timeout}
+		quicConfig.HandshakeTimeout = timeout
 	}
-	session, err := quic.DialAddr(addr, &tls.Config{InsecureSkipVerify: true}, qConfig)
+
+	session, err := quic.DialAddr(addr, &tls.Config{InsecureSkipVerify: true}, quicConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -147,6 +181,11 @@ func (this * transport) Listen(port uint16) (tsp.Listener, error) {
 	}
 
 	return  newListener(port, tlsConf)
+}
+
+func (this* transport) GetReqInterval() int {
+
+	return common.REQ_INTERVAL_QUIC
 }
 
 func (this * transport) ProtocolCode() int {

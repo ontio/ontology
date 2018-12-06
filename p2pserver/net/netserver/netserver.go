@@ -20,6 +20,7 @@ package netserver
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"strings"
 	"sync"
@@ -269,6 +270,7 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	if this.IsAddrInOutConnRecord(addr) {
 		log.Debugf("[p2p]Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
+		fmt.Printf("[p2p]AddrInOutConnRecord %s\n", addr)
 		return nil
 	}
 	if this.IsOwnAddress(addr) {
@@ -288,9 +290,13 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	this.connectLock.Unlock()
 
+	this.connectLock.Lock()
 	if this.IsNbrPeerAddr(addr, isConsensus) {
+		this.connectLock.Unlock()
 		return nil
 	}
+	this.connectLock.Unlock()
+
 	this.connectLock.Lock()
 	if added := this.AddOutConnectingList(addr); added == false {
 		log.Debug("[p2p]node exist in connecting list", addr)
@@ -303,6 +309,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		log.Errorf("[p2p]Get the transport of %s, err:%s", tspType, err.Error())
 		return err
 	}
+
 	conn, err := transport.Dial(addr)
 	if err != nil {
 		this.RemoveFromConnectingList(addr)

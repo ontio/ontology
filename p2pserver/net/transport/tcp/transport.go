@@ -31,6 +31,13 @@ import (
 	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 )
 
+type readerCloser struct { }
+
+type reader struct {
+	io.Reader
+	readerCloser
+}
+
 type connection struct {
 	net.Conn
 	io.Reader
@@ -38,9 +45,13 @@ type connection struct {
 
 type transport struct { }
 
-func (this * connection) GetReader() (io.Reader, error) {
+func (this * readerCloser) Close() error {
+	return nil
+}
 
-	return this.Reader, nil
+func (this * connection) GetReader() (tsp.Reader, error) {
+
+	return &reader{this.Reader, readerCloser{}}, nil
 }
 
 func (this * connection) Write(b []byte) (n int, err error) {
@@ -101,7 +112,13 @@ func (this * transport) DialWithTimeout(addr string, timeout time.Duration) (tsp
 }
 
 func (this * transport) Listen(port uint16) (tsp.Listener, error) {
+
 	return newListen(port)
+}
+
+func (this* transport) GetReqInterval() int {
+
+	return common.REQ_INTERVAL
 }
 
 func (this * transport) ProtocolCode() int {

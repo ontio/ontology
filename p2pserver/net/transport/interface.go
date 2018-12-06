@@ -24,8 +24,13 @@ import (
 	"io"
 )
 
+type Reader interface {
+	io.Reader
+	Close() error
+}
+
 type Connection interface {
-	GetReader() (io.Reader, error)
+	GetReader() (Reader, error)
 	Write(b []byte) (int, error)
 	Close() error
 	LocalAddr() net.Addr
@@ -43,6 +48,7 @@ type Transport interface {
 	Dial(addr string) (Connection, error)
 	DialWithTimeout(addr string, timeout time.Duration) (Connection, error)
 	Listen(port uint16) (Listener, error)
+	GetReqInterval() int
 	ProtocolCode() int
 	ProtocolName() string
 }

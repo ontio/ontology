@@ -61,7 +61,7 @@ const (
 	DEFAULT_MAX_CONN_OUT_BOUND              = uint(1024)
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
 	DEFAULT_HTTP_INFO_PORT                  = uint(0)
-	DEFAULT_TRANSPORT_TYPE                  = "TCP"
+	DEFAULT_TRANSPORT_TYPE                  = "QUIC"
 	DEFAULT_MAX_TX_IN_BLOCK                 = 60000
 	DEFAULT_MAX_SYNC_HEADER                 = 500
 	DEFAULT_ENABLE_CONSENSUS                = true

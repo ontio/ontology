@@ -24,11 +24,13 @@ import (
 	"time"
 
 	comm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 
 	tsp "github.com/ontio/ontology/p2pserver/net/transport"
+	tspCreator "github.com/ontio/ontology/p2pserver/net/transport/creator"
 )
 
 //Link used to establish
@@ -125,17 +127,25 @@ func (this *Link) Rx() {
 		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
 			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+			reader.Close()
 			break
+		} else {
+			log.Infof("[p2p]success read msg %s from %s ", msg.CmdType(), this.GetAddr())
 		}
+
+
+		reader.Close()
 
 		t := time.Now()
 		this.UpdateRXTime(t)
 
 		if !this.needSendMsg(msg) {
 			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+			log.Infof("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
 			continue
 		}
 		this.addReqRecord(msg)
+		log.Infof("Start send to recvChan msgType:%s from:%d", msg.CmdType(), this.id)
 		this.recvChan <- &types.MsgPayload{
 			Id:          this.id,
 			Addr:        this.addr,
@@ -194,9 +204,11 @@ func (this *Link) Tx(msg types.Message) error {
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err = conn.Write(payload)
 	if err != nil {
-		log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())
+		log.Infof("[p2p]error sending messge %s to %s :%s", msg.CmdType(), this.GetAddr(), err.Error())
 		this.disconnectNotify()
 		return err
+	} else {
+		log.Infof("[p2p]success sending messge %s to %s", msg.CmdType(), this.GetAddr())
 	}
 
 	return nil
@@ -211,8 +223,15 @@ func (this *Link) needSendMsg(msg types.Message) bool {
 	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
 	now := time.Now().Unix()
 
+	tspType := config.DefConfig.P2PNode.TransportType
+	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
+	if err != nil {
+		log.Errorf("[p2p]Get the transport of %s, err:%s", tspType, err.Error())
+		return false
+	}
+
 	if t, ok := this.reqRecord[reqID]; ok {
-		if int(now-t) < common.REQ_INTERVAL {
+		if int(now-t) < transport.GetReqInterval() {
 			return false
 		}
 	}
@@ -224,11 +243,19 @@ func (this *Link) addReqRecord(msg types.Message) {
 	if msg.CmdType() != common.GET_DATA_TYPE {
 		return
 	}
+
+	tspType := config.DefConfig.P2PNode.TransportType
+	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
+	if err != nil {
+		log.Errorf("[p2p]Get the transport of %s, err:%s", tspType, err.Error())
+		return
+	}
+
 	now := time.Now().Unix()
 	if len(this.reqRecord) >= common.MAX_REQ_RECORD_SIZE-1 {
 		for id := range this.reqRecord {
 			t := this.reqRecord[id]
-			if int(now-t) > common.REQ_INTERVAL {
+			if int(now-t) > transport.GetReqInterval() {
 				delete(this.reqRecord, id)
 			}
 		}

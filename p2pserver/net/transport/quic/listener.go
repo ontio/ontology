@@ -34,7 +34,7 @@ type listener struct {
 
 func newListener(port uint16, tlsConf *tls.Config) (tsp.Listener, error) {
 	lnPortStr := ":"+strconv.Itoa(int(port))
-	l, err := quic.ListenAddr(lnPortStr, tlsConf, nil)
+	l, err := quic.ListenAddr(lnPortStr, tlsConf, quicConfig)
 	if err != nil {
 		log.Errorf("[p2p]Can't listen on port %d, err:%s",port, err)
 		return nil, err

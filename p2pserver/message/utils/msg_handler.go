@@ -122,6 +122,8 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	p2p.SetHeight(uint64(height))
 	msg := msgpack.NewPongMsg(uint64(height))
 
+	log.Infof("PingHandle send pong msg: %s", remotePeer.SyncLink.GetAddr())
+
 	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Warn(err)

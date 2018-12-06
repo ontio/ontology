@@ -38,6 +38,7 @@ const (
 	MAX_BUF_LEN         = 1024 * 256 //the maximum buffer to receive message
 	WRITE_DEADLINE      = 5          //deadline of conn write
 	REQ_INTERVAL        = 3          //single request max interval in second
+	REQ_INTERVAL_QUIC   = 2          //single request max interval in second(only for QUIC)
 	MAX_REQ_RECORD_SIZE = 1000       //the maximum request record size
 	MAX_RESP_CACHE_SIZE = 50         //the maximum response cache
 )
