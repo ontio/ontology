@@ -128,10 +128,10 @@ var PolarisConfig = &GenesisConfig{
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   3000,
 		//AdminOntID:           "did:ont:AMAx993nE6NEqZjwBssUfopxnnvTdob9ij",
-		SideChainID:          "testSideChain",
-		MinInitStake:         10000,
-		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
-		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
+		SideChainID:  "testSideChain",
+		MinInitStake: 10000,
+		VrfValue:     "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
+		VrfProof:     "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
 		Peers: []*VBFTPeerStakeInfo{
 			{
 				Index:      1,
@@ -199,10 +199,10 @@ var MainNetConfig = &GenesisConfig{
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   120000,
 		//AdminOntID:           "did:ont:AdjfcJgwru2FD8kotCPvLDXYzRjqFjc9Tb",
-		SideChainID:          "sideChain",
-		MinInitStake:         100000,
-		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
-		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
+		SideChainID:  "sideChain",
+		MinInitStake: 100000,
+		VrfValue:     "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
+		VrfProof:     "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
 		Peers: []*VBFTPeerStakeInfo{
 			{
 				Index:      1,
@@ -269,20 +269,20 @@ func NewGenesisConfig() *GenesisConfig {
 // VBFT genesis config, from local config file
 //
 type VBFTConfig struct {
-	N                    uint32               `json:"n"` // network size
-	C                    uint32               `json:"c"` // consensus quorum
-	K                    uint32               `json:"k"`
-	L                    uint32               `json:"l"`
-	BlockMsgDelay        uint32               `json:"block_msg_delay"`
-	HashMsgDelay         uint32               `json:"hash_msg_delay"`
-	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
-	MaxBlockChangeView   uint32               `json:"max_block_change_view"`
-	MinInitStake         uint32               `json:"min_init_stake"`
+	N                    uint32 `json:"n"` // network size
+	C                    uint32 `json:"c"` // consensus quorum
+	K                    uint32 `json:"k"`
+	L                    uint32 `json:"l"`
+	BlockMsgDelay        uint32 `json:"block_msg_delay"`
+	HashMsgDelay         uint32 `json:"hash_msg_delay"`
+	PeerHandshakeTimeout uint32 `json:"peer_handshake_timeout"`
+	MaxBlockChangeView   uint32 `json:"max_block_change_view"`
+	MinInitStake         uint32 `json:"min_init_stake"`
 	//AdminOntID           string               `json:"admin_ont_id"`
-	SideChainID          string               `json:"side_chain_id"`
-	VrfValue             string               `json:"vrf_value"`
-	VrfProof             string               `json:"vrf_proof"`
-	Peers                []*VBFTPeerStakeInfo `json:"peers"`
+	SideChainID string               `json:"side_chain_id"`
+	VrfValue    string               `json:"vrf_value"`
+	VrfProof    string               `json:"vrf_proof"`
+	Peers       []*VBFTPeerStakeInfo `json:"peers"`
 }
 
 func (this *VBFTConfig) Serialize(w io.Writer) error {

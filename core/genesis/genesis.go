@@ -111,8 +111,6 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	return genesisBlock, nil
 }
 
-
-
 func newUtilityToken() *types.Transaction {
 	mutable := utils.NewDeployTransaction(nutils.OngContractAddress[:], "ONG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", true)

@@ -158,7 +158,7 @@ func GetVbftConfigInfo() (*config.VBFTConfig, error) {
 func GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
 	storageKey := &states.StorageKey{
 		ContractAddress: nutils.GovernanceContractAddress,
-		Key:              []byte(gov.PEER_POOL),
+		Key:             []byte(gov.PEER_POOL),
 	}
 	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
 	if err != nil {

@@ -20,21 +20,17 @@ package governance
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/serialization"
 	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/auth"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm/types"
-	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 )
 
 func GetPeerPoolMap(native *native.NativeService, contract common.Address) (*PeerPoolMap, error) {
@@ -108,7 +104,6 @@ func GetView(native *native.NativeService, contract common.Address) (uint32, err
 	return governanceView.View, nil
 }
 
-
 func splitCurve(native *native.NativeService, contract common.Address, pos uint64, avg uint64, yita uint64) (uint64, error) {
 	if avg == 0 {
 		return 0, fmt.Errorf("splitCurve, avg stake is 0")
@@ -126,7 +121,6 @@ func splitCurve(native *native.NativeService, contract common.Address, pos uint6
 	s := ((uint64(Yi[index+1])-uint64(Yi[index]))*xi + uint64(Yi[index])*uint64(Xi[index+1]) - uint64(Yi[index+1])*uint64(Xi[index])) / (uint64(Xi[index+1]) - uint64(Xi[index]))
 	return s, nil
 }
-
 
 func validatePeerPubKeyFormat(pubkey string) error {
 	pk, err := vbftconfig.Pubkey(pubkey)
@@ -260,8 +254,6 @@ func putSplitCurve(native *native.NativeService, contract common.Address, splitC
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(SPLIT_CURVE)), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
-
-
 
 func getOngBalance(native *native.NativeService, address common.Address) (uint64, error) {
 	bf := new(bytes.Buffer)
@@ -420,4 +412,3 @@ func appCallTransfer(native *native.NativeService, contract common.Address, from
 	}
 	return nil
 }
-

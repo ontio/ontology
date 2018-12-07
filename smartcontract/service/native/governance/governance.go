@@ -16,25 +16,18 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-//Governance contract:
-//Users can apply for a candidate node to join consensus selection, deposit ONT to authorize for candidate nodes, quit selection and unAuthorize for candidate nodes through this contract.
-//ONT deposited in the contract can get ONG bonus which come from transaction fee of the network.
 package governance
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
-	"math"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/constants"
-	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"sort"
 )
 
 const (
@@ -51,6 +44,7 @@ const (
 	//function name
 	INIT_CONFIG = "initConfig"
 	COMMIT_DPOS = "commitDpos"
+
 	//key prefix
 	SIDE_CHAIN_ID   = "sideChainID"
 	PEER_POOL       = "peerPool"
@@ -61,14 +55,9 @@ const (
 	GOVERNANCE_VIEW = "governanceView"
 
 	//global
-	PRECISE           = 1000000
-	//NEW_VERSION_VIEW  = 6
-	//NEW_VERSION_BLOCK = 414100
+	PRECISE = 1000000
 )
 
-// candidate fee must >= 1 ONG
-//var MIN_CANDIDATE_FEE = uint64(math.Pow(10, constants.ONG_DECIMALS))
-//var AUTHORIZE_INFO_POOL = []byte{118, 111, 116, 101, 73, 110, 102, 111, 80, 111, 111, 108}
 var Xi = []uint32{
 	0, 100000, 200000, 300000, 400000, 500000, 600000, 700000, 800000, 900000, 1000000, 1100000, 1200000, 1300000, 1400000,
 	1500000, 1600000, 1700000, 1800000, 1900000, 2000000, 2100000, 2200000, 2300000, 2400000, 2500000, 2600000, 2700000,
@@ -91,15 +80,13 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(COMMIT_DPOS, CommitDpos)
 }
 
-//Init governance contract, include vbft config, global param and ontid admin.
 func InitConfig(native *native.NativeService) ([]byte, error) {
 	configuration := new(config.VBFTConfig)
-	//buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
-	//if err != nil {
-	//	return utils.BYTE_FALSE, fmt.Errorf("serialization.ReadVarBytes, contract params deserialize error: %v", err)
-	//}
-	//if err := configuration.Deserialize(bytes.NewBuffer(buf)); err != nil {
-	if err := configuration.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("serialization.ReadVarBytes, contract params deserialize error: %v", err)
+	}
+	if err := configuration.Deserialize(bytes.NewBuffer(buf)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -140,6 +127,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
 	}
 
+	//init side chain id
 	err = putSideChainID(native, contract, &SideChainID{configuration.SideChainID})
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putSideChainID, put sideChainID error: %v", err)
@@ -150,6 +138,8 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
+
+	//init globalParam
 	globalParam := &GlobalParam{
 		CandidateFee: 500000000000,
 		MinInitStake: configuration.MinInitStake,
@@ -160,7 +150,8 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		Yita:         5,
 		Penalty:      5,
 	}
-	if err = putGlobalParam(native, contract, globalParam) {
+	err = putGlobalParam(native, contract, globalParam)
+	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putGlobalParam, put globalParam error: %v", err)
 	}
 
@@ -207,21 +198,23 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putSplitCurve, put splitCurve error: %v", err)
 	}
-
 	return utils.BYTE_TRUE, nil
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
+
 	address, err := getSyncAddress(native)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getSyncAddress, get syncAddress error: %v", err)
 	}
+	//check witness
 	err = utils.ValidateOwner(native, address)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("validateOwner, checkWitness error: %v", err)
 	}
 	splitFee(native, contract)
+
 	commitDposParam := new(CommitDposParam)
 	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
 	if err != nil {
@@ -230,31 +223,37 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := commitDposParam.Deserialize(bytes.NewBuffer(buf)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
+
 	//input governance view
 	err = putGovernanceView(native, contract, commitDposParam.GovernanceView)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
 	}
+
 	//input configuration
 	err = putConfig(native, contract, commitDposParam.Configuration)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putConfig, put config error: %v", err)
 	}
+
 	//input global param
 	err = putGlobalParam(native, contract, commitDposParam.GlobalParam)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putGlobalParam, put globalParam error: %v", err)
 	}
+
 	//input global param2
 	err = putGlobalParam2(native, contract, commitDposParam.GlobalParam2)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putGlobalParam2, put globalParam2 error: %v", err)
 	}
+
 	//input split curve
 	err = putSplitCurve(native, contract, commitDposParam.SplitCurve)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putSplitCurve, put splitCurve error: %v", err)
 	}
+
 	//input peer pool map
 	peerPoolMap := &PeerPoolMap{
 		PeerPoolMap: make(map[string]*PeerPoolItem),
@@ -287,15 +286,18 @@ func splitFee(native *native.NativeService, contract common.Address) error {
 	if err != nil {
 		return fmt.Errorf("getConfig, get config error: %v", err)
 	}
+
 	//get peerPoolMap
 	peerPoolMap, err := GetPeerPoolMap(native, contract)
 	if err != nil {
 		return fmt.Errorf("splitFee, get peerPoolMap error: %v", err)
 	}
+
 	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
 	if err != nil {
 		return fmt.Errorf("splitFee, getOngBalance error: %v", err)
 	}
+
 	//get globalParam
 	globalParam, err := getGlobalParam(native, contract)
 	if err != nil {
@@ -315,6 +317,7 @@ func splitFee(native *native.NativeService, contract common.Address) error {
 			})
 		}
 	}
+
 	// sort peers by stake
 	sort.SliceStable(peersCandidate, func(i, j int) bool {
 		if peersCandidate[i].Stake > peersCandidate[j].Stake {
@@ -324,6 +327,7 @@ func splitFee(native *native.NativeService, contract common.Address) error {
 		}
 		return false
 	})
+
 	// cal s of each consensus node
 	var sum uint64
 	for i := 0; i < int(config.K); i++ {
@@ -345,6 +349,7 @@ func splitFee(native *native.NativeService, contract common.Address) error {
 	if sumS == 0 {
 		return fmt.Errorf("splitFee, sumS is 0")
 	}
+
 	//fee split of consensus peer
 	for i := 0; i < int(config.K); i++ {
 		nodeAmount := balance * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
@@ -384,44 +389,4 @@ func splitFee(native *native.NativeService, contract common.Address) error {
 		}
 	}
 	return nil
-}
-
-//Go to next consensus epoch
-func CommitDpos(native *native.NativeService) ([]byte, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	// get config
-	config, err := getConfig(native, contract)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("getConfig, get config error: %v", err)
-	}
-
-	//get governace view
-	governanceView, err := GetGovernanceView(native, contract)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
-	}
-
-	// get admin from database
-	adminAddress, err := global_params.GetStorageRole(native,
-		global_params.GenerateOperatorKey(utils.ParamContractAddress))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("getAdmin, get admin error: %v", err)
-	}
-
-	//check witness
-	err = utils.ValidateOwner(native, adminAddress)
-	if err != nil {
-		cycle := (native.Height - governanceView.Height) >= config.MaxBlockChangeView
-		if !cycle {
-			return utils.BYTE_FALSE, fmt.Errorf("commitDpos, authentication Failed")
-		}
-	}
-
-	err = executeCommitDpos(native, contract)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("executeCommitDpos, executeCommitDpos error: %v", err)
-	}
-
-	return utils.BYTE_TRUE, nil
 }

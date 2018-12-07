@@ -16,9 +16,9 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 package ongx
+
 import (
 	"fmt"
-	"math/big"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/states"
@@ -27,7 +27,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm/types"
+	"math/big"
 )
+
 func InitOngx() {
 	native.Contracts[utils.OngContractAddress] = RegisterOngContract
 }

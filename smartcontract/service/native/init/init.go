@@ -19,43 +19,37 @@
 package init
 
 import (
-	"bytes"
-	"math/big"
-
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
-	"github.com/ontio/ontology/smartcontract/service/native/ong"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
-	vm "github.com/ontio/ontology/vm/neovm"
+	//vm "github.com/ontio/ontology/vm/neovm"
+	"fmt"
 )
 
-var (
-	COMMIT_DPOS_BYTES = InitBytes(utils.GovernanceContractAddress, governance.COMMIT_DPOS)
-)
+//var (
+//	COMMIT_DPOS_BYTES = InitBytes(utils.GovernanceContractAddress, governance.COMMIT_DPOS)
+//)
 
 func init() {
-	ong.InitOng()
-	ont.InitOnt()
+	fmt.Println("------init----")
+	ongx.InitOngx()
 	params.InitGlobalParams()
 	ontid.Init()
 	auth.Init()
 	governance.InitGovernance()
 }
 
-func InitBytes(addr common.Address, method string) []byte {
-	bf := new(bytes.Buffer)
-	builder := vm.NewParamsBuilder(bf)
-	builder.EmitPushByteArray([]byte{})
-	builder.EmitPushByteArray([]byte(method))
-	builder.EmitPushByteArray(addr[:])
-	builder.EmitPushInteger(big.NewInt(0))
-	builder.Emit(vm.SYSCALL)
-	builder.EmitPushByteArray([]byte(neovm.NATIVE_INVOKE_NAME))
-
-	return builder.ToArray()
-}
+//func InitBytes(addr common.Address, method string) []byte {
+//	bf := new(bytes.Buffer)
+//	builder := vm.NewParamsBuilder(bf)
+//	builder.EmitPushByteArray([]byte{})
+//	builder.EmitPushByteArray([]byte(method))
+//	builder.EmitPushByteArray(addr[:])
+//	builder.EmitPushInteger(big.NewInt(0))
+//	builder.Emit(vm.SYSCALL)
+//	builder.EmitPushByteArray([]byte(neovm.NATIVE_INVOKE_NAME))
+//
+//	return builder.ToArray()
+//}

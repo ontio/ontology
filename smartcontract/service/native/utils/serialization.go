@@ -66,6 +66,30 @@ func EncodeAddress(sink *common.ZeroCopySink, addr common.Address) (size uint64)
 	return sink.WriteVarBytes(addr[:])
 }
 
+func DecodeAddress(source *common.ZeroCopySource) (common.Address, error) {
+	from, _, irregular, eof := source.NextVarBytes()
+	if eof {
+		return common.Address{}, io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.Address{}, common.ErrIrregularData
+	}
+	return common.AddressParseFromBytes(from)
+}
+func EncodeUint256(sink *common.ZeroCopySink, hash common.Uint256) (size uint64) {
+	return sink.WriteVarBytes(hash[:])
+}
+func DecodeUint256(source *common.ZeroCopySource) (common.Uint256, error) {
+	from, _, irregular, eof := source.NextVarBytes()
+	if eof {
+		return common.Uint256{}, io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.Uint256{}, common.ErrIrregularData
+	}
+	return common.Uint256ParseFromBytes(from)
+}
+
 func EncodeVarUint(sink *common.ZeroCopySink, value uint64) (size uint64) {
 	return sink.WriteVarBytes(types.BigIntToBytes(big.NewInt(int64(value))))
 }
@@ -83,16 +107,4 @@ func DecodeVarUint(source *common.ZeroCopySource) (uint64, error) {
 		return 0, fmt.Errorf("%s", "value should not be a negative number.")
 	}
 	return v.Uint64(), nil
-}
-
-func DecodeAddress(source *common.ZeroCopySource) (common.Address, error) {
-	from, _, irregular, eof := source.NextVarBytes()
-	if eof {
-		return common.Address{}, io.ErrUnexpectedEOF
-	}
-	if irregular {
-		return common.Address{}, common.ErrIrregularData
-	}
-
-	return common.AddressParseFromBytes(from)
 }

@@ -2085,7 +2085,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
 	//if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig() {
-	if  self.checkUpdateChainConfig() {
+	if self.checkUpdateChainConfig() {
 		chainconfig, err := getChainConfig(blkNum)
 		if err != nil {
 			return fmt.Errorf("getChainConfig failed:%s", err)
