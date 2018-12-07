@@ -19,7 +19,6 @@
 package ledgerstore
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -27,9 +26,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"testing"
 	"time"
 )
@@ -279,7 +275,7 @@ func TestSaveHeader(t *testing.T) {
 	}
 }
 
-func TestBlock(t *testing.T) {
+/*func TestBlock(t *testing.T) {
 	acc1 := account.NewAccount("")
 	acc2 := account.NewAccount("")
 	bookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{acc1.PublicKey, acc2.PublicKey})
@@ -406,3 +402,4 @@ func newInvokeTransaction(gasPirce, gasLimit uint64, code []byte) *types.Transac
 	}
 	return res
 }
+*/

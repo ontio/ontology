@@ -34,7 +34,6 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
-	scommon "github.com/ontio/ontology/core/store/common"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -127,81 +126,39 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 	return nil
 }
 func GetVbftConfigInfo() (*config.VBFTConfig, error) {
-	//get governance view
-	goveranceview, err := GetGovernanceView()
+
+	storageKey := &states.StorageKey{
+		ContractAddress: nutils.GovernanceContractAddress,
+		Key:             append([]byte(gov.VBFT_CONFIG)),
+	}
+	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
+	if err != nil {
+		return nil, err
+	}
+	cfg := new(gov.Configuration)
+	err = cfg.Deserialize(bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
 	}
 
-	//get preConfig
-	storageKey := &states.StorageKey{
-		ContractAddress: nutils.GovernanceContractAddress,
-		Key:             append([]byte(gov.PRE_CONFIG)),
-	}
-	preCfg := new(gov.PreConfig)
-	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
-	if err != nil && err != scommon.ErrNotFound {
-		return nil, err
-	}
-	if data != nil {
-		err = preCfg.Deserialize(bytes.NewBuffer(data))
-		if err != nil {
-			return nil, err
-		}
+	chainconfig := &config.VBFTConfig{
+		N:                    uint32(cfg.N),
+		C:                    uint32(cfg.C),
+		K:                    uint32(cfg.K),
+		L:                    uint32(cfg.L),
+		BlockMsgDelay:        uint32(cfg.BlockMsgDelay),
+		HashMsgDelay:         uint32(cfg.HashMsgDelay),
+		PeerHandshakeTimeout: uint32(cfg.PeerHandshakeTimeout),
+		MaxBlockChangeView:   uint32(cfg.MaxBlockChangeView),
 	}
 
-	chainconfig := new(config.VBFTConfig)
-	if preCfg.SetView == goveranceview.View {
-		chainconfig = &config.VBFTConfig{
-			N:                    uint32(preCfg.Configuration.N),
-			C:                    uint32(preCfg.Configuration.C),
-			K:                    uint32(preCfg.Configuration.K),
-			L:                    uint32(preCfg.Configuration.L),
-			BlockMsgDelay:        uint32(preCfg.Configuration.BlockMsgDelay),
-			HashMsgDelay:         uint32(preCfg.Configuration.HashMsgDelay),
-			PeerHandshakeTimeout: uint32(preCfg.Configuration.PeerHandshakeTimeout),
-			MaxBlockChangeView:   uint32(preCfg.Configuration.MaxBlockChangeView),
-		}
-	} else {
-		storageKey := &states.StorageKey{
-			ContractAddress: nutils.GovernanceContractAddress,
-			Key:             append([]byte(gov.VBFT_CONFIG)),
-		}
-		data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
-		if err != nil {
-			return nil, err
-		}
-		cfg := new(gov.Configuration)
-		err = cfg.Deserialize(bytes.NewBuffer(data))
-		if err != nil {
-			return nil, err
-		}
-		chainconfig = &config.VBFTConfig{
-			N:                    uint32(cfg.N),
-			C:                    uint32(cfg.C),
-			K:                    uint32(cfg.K),
-			L:                    uint32(cfg.L),
-			BlockMsgDelay:        uint32(cfg.BlockMsgDelay),
-			HashMsgDelay:         uint32(cfg.HashMsgDelay),
-			PeerHandshakeTimeout: uint32(cfg.PeerHandshakeTimeout),
-			MaxBlockChangeView:   uint32(cfg.MaxBlockChangeView),
-		}
-	}
 	return chainconfig, nil
 }
 
 func GetPeersConfig() ([]*config.VBFTPeerStakeInfo, error) {
-	goveranceview, err := GetGovernanceView()
-	if err != nil {
-		return nil, err
-	}
-	viewBytes, err := gov.GetUint32Bytes(goveranceview.View)
-	if err != nil {
-		return nil, err
-	}
 	storageKey := &states.StorageKey{
 		ContractAddress: nutils.GovernanceContractAddress,
-		Key:             append([]byte(gov.PEER_POOL), viewBytes...),
+		Key:              []byte(gov.PEER_POOL),
 	}
 	data, err := ledger.DefLedger.GetStorageItem(storageKey.ContractAddress, storageKey.Key)
 	if err != nil {

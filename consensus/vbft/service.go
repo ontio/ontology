@@ -35,15 +35,10 @@ import (
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
-	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
-	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
-	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/validator/increment"
 )
 
@@ -217,7 +212,8 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 		log.Errorf("server %d, persist block %d, vs completed %d",
 			self.Index, block.Header.Height, self.completedBlockNum)
 	}
-	if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig() {
+	//if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig() {
+	if self.checkUpdateChainConfig() {
 		err := self.updateChainConfig()
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)
@@ -1093,7 +1089,8 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	}
 
 	txs := msg.Block.Block.Transactions
-	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
+	//if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
+	if len(txs) > 0 {
 		height := uint32(msgBlkNum) - 1
 		start, end := self.incrValidator.BlockRange()
 
@@ -2051,29 +2048,6 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
-//creategovernaceTransaction invoke governance native contract commit_pos
-func (self *Server) creategovernaceTransaction(blkNum uint32) (*types.Transaction, error) {
-	//mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, gover.COMMIT_DPOS, []byte{})
-	mutable := utils.BuildWasmNativeTransaction(nutils.GovernanceContractAddress, 0, gover.COMMIT_DPOS, []byte{})
-	mutable.Nonce = blkNum
-	tx, err := mutable.IntoImmutable()
-	return tx, err
-}
-
-//checkNeedUpdateChainConfig use blockcount
-func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
-	prevBlk, _ := self.blockPool.getSealedBlock(blockNum - 1)
-	if prevBlk == nil {
-		log.Errorf("failed to get prevBlock (%d)", blockNum-1)
-		return false
-	}
-	lastConfigBlkNum := prevBlk.getLastConfigBlockNum()
-	if (blockNum - lastConfigBlkNum) >= self.config.MaxBlockChangeView {
-		return true
-	}
-	return false
-}
-
 //checkUpdateChainConfig query leveldb check is force update
 func (self *Server) checkUpdateChainConfig() bool {
 	force, err := isUpdate(self.config.View)
@@ -2097,20 +2071,6 @@ func (self *Server) validHeight(blkNum uint32) uint32 {
 	return validHeight
 }
 
-func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
-	if self.checkNeedUpdateChainConfig(blkNum) && len(sysTxs) == 1 {
-		invoke := sysTxs[0].Payload.(*payload.InvokeCode)
-		if invoke == nil {
-			log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
-			return true
-		}
-		if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
-			return false
-		}
-	}
-	return true
-}
-
 func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	if blkNum < self.GetCurrentBlockNo() {
 		return fmt.Errorf("server %d ignore deprecatd blk proposal %d, current %d",
@@ -2124,19 +2084,11 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
-	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig() {
+	//if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig() {
+	if  self.checkUpdateChainConfig() {
 		chainconfig, err := getChainConfig(blkNum)
 		if err != nil {
 			return fmt.Errorf("getChainConfig failed:%s", err)
-		}
-		//add transaction invoke governance native commit_pos contract
-		if self.checkNeedUpdateChainConfig(blkNum) {
-			tx, err := self.creategovernaceTransaction(blkNum)
-			if err != nil {
-				return fmt.Errorf("construct governace transaction error: %v", err)
-			}
-			sysTxs = append(sysTxs, tx)
-			chainconfig.View++
 		}
 		forEmpty = true
 		cfg = chainconfig

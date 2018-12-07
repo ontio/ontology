@@ -40,9 +40,10 @@ import (
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 )
 
 const MAX_SEARCH_HEIGHT uint32 = 100
@@ -278,7 +279,7 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 }
 
 func GetGrantOng(addr common.Address) (string, error) {
-	key := append([]byte(ont.UNBOUND_TIME_OFFSET), addr[:]...)
+	key := append([]byte(ongx.UNBOUND_TIME_OFFSET), addr[:]...)
 	value, err := ledger.DefLedger.GetStorageItem(utils.OntContractAddress, key)
 	if err != nil {
 		value = []byte{0, 0, 0, 0}

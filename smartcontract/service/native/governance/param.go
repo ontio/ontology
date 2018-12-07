@@ -26,36 +26,300 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"sort"
 )
 
-type RegisterCandidateParam struct {
-	PeerPubkey string
-	Address    common.Address
-	InitPos    uint32
-	Caller     []byte
-	KeyNo      uint32
-}
+type Status uint8
 
-func (this *RegisterCandidateParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, request peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.InitPos)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize initPos error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Caller); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize caller error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.KeyNo)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize keyNo error: %v", err)
+func (this *Status) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint8(w, uint8(*this)); err != nil {
+		return fmt.Errorf("serialization.WriteUint8, serialize status error: %v", err)
 	}
 	return nil
 }
 
-func (this *RegisterCandidateParam) Deserialize(r io.Reader) error {
+func (this *Status) Deserialize(r io.Reader) error {
+	status, err := serialization.ReadUint8(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint8, deserialize status error: %v", err)
+	}
+	*this = Status(status)
+	return nil
+}
+
+type PeerPoolMap struct {
+	PeerPoolMap map[string]*PeerPoolItem
+}
+
+func (this *PeerPoolMap) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint32(w, uint32(len(this.PeerPoolMap))); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize PeerPoolMap length error: %v", err)
+	}
+
+	var peerPoolItemList []*PeerPoolItem
+	for _, v := range this.PeerPoolMap {
+		peerPoolItemList = append(peerPoolItemList, v)
+	}
+	sort.SliceStable(peerPoolItemList, func(i, j int) bool {
+		return peerPoolItemList[i].PeerPubkey > peerPoolItemList[j].PeerPubkey
+	})
+	for _, v := range peerPoolItemList {
+		if err := v.Serialize(w); err != nil {
+			return fmt.Errorf("serialize peerPool error: %v", err)
+		}
+	}
+	return nil
+}
+
+func (this *PeerPoolMap) Deserialize(r io.Reader) error {
+	n, err := serialization.ReadUint32(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint32, deserialize PeerPoolMap length error: %v", err)
+	}
+	peerPoolMap := make(map[string]*PeerPoolItem)
+	for i := 0; uint32(i) < n; i++ {
+		peerPoolItem := new(PeerPoolItem)
+		if err := peerPoolItem.Deserialize(r); err != nil {
+			return fmt.Errorf("deserialize peerPool error: %v", err)
+		}
+		peerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
+	}
+	this.PeerPoolMap = peerPoolMap
+	return nil
+}
+
+type PeerPoolItem struct {
+	Index      uint32         //peer index
+	PeerPubkey string         //peer pubkey
+	Address    common.Address //peer owner
+	Status     Status         //peer status
+	InitPos    uint64         //peer initPos
+	TotalPos   uint64         //total authorize pos this peer received
+}
+
+func (this *PeerPoolItem) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint32(w, this.Index); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize address error: %v", err)
+	}
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
+	}
+	if err := this.Address.Serialize(w); err != nil {
+		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
+	}
+	if err := this.Status.Serialize(w); err != nil {
+		return fmt.Errorf("this.Status.Serialize, serialize Status error: %v", err)
+	}
+	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
+		return fmt.Errorf("serialization.WriteUint64, serialize initPos error: %v", err)
+	}
+	if err := serialization.WriteUint64(w, this.TotalPos); err != nil {
+		return fmt.Errorf("serialization.WriteUint64, serialize totalPos error: %v", err)
+	}
+	return nil
+}
+
+
+func (this *PeerPoolItem) Deserialize(r io.Reader) error {
+	index, err := serialization.ReadUint32(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint32, deserialize index error: %v", err)
+	}
+	peerPubkey, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+	}
+	address := new(common.Address)
+	err = address.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
+	}
+	status := new(Status)
+	err = status.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("status.Deserialize. deserialize status error: %v", err)
+	}
+	initPos, err := serialization.ReadUint64(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", err)
+	}
+	totalPos, err := serialization.ReadUint64(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint64, deserialize totalPos error: %v", err)
+	}
+	this.Index = index
+	this.PeerPubkey = peerPubkey
+	this.Address = *address
+	this.Status = *status
+	this.InitPos = initPos
+	this.TotalPos = totalPos
+	return nil
+}
+
+type GovernanceView struct {
+	View   uint32
+	Height uint32
+	TxHash common.Uint256
+}
+
+func (this *GovernanceView) Serialize(w io.Writer) error {
+	if err := serialization.WriteUint32(w, this.View); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize view error: %v", err)
+	}
+	if err := serialization.WriteUint32(w, this.Height); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize height error: %v", err)
+	}
+	if err := this.TxHash.Serialize(w); err != nil {
+		return fmt.Errorf("txHash.Serialize, serialize txHash error: %v", err)
+	}
+	return nil
+}
+
+func (this *GovernanceView) Deserialize(r io.Reader) error {
+	view, err := serialization.ReadUint32(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint32, deserialize view error: %v", err)
+	}
+
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint32, deserialize height error: %v", err)
+	}
+	height, err := serialization.ReadUint32(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint32, deserialize height error: %v", err)
+	}
+	txHash := new(common.Uint256)
+	if err := txHash.Deserialize(r); err != nil {
+		return fmt.Errorf("txHash.Deserialize, deserialize txHash error: %v", err)
+	}
+	this.View = view
+	this.Height = height
+	this.TxHash = *txHash
+	return nil
+}
+
+type SplitCurve struct {
+	Yi []uint32
+}
+
+func (this *SplitCurve) Serialize(w io.Writer) error {
+	if len(this.Yi) != 101 {
+		return fmt.Errorf("length of split curve != 101")
+	}
+
+	if err := utils.WriteVarUint(w, uint64(len(this.Yi))); err != nil {
+		return fmt.Errorf("serialization.WriteVarUint, serialize Yi length error: %v", err)
+	}
+	for _, v := range this.Yi {
+		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
+			return fmt.Errorf("utils.WriteVarUint, serialize splitCurve error: %v", err)
+		}
+	}
+	return nil
+}
+
+func (this *SplitCurve) Deserialize(r io.Reader) error {
+	n, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadVarUint, deserialize Yi length error: %v", err)
+	}
+	yi := make([]uint32, 0)
+	for i := 0; uint64(i) < n; i++ {
+		k, err := utils.ReadVarUint(r)
+		if err != nil {
+			return fmt.Errorf("utils.ReadVarUint, deserialize splitCurve error: %v", err)
+		}
+		if k > math.MaxUint32 {
+			return fmt.Errorf("yi larger than max of uint32")
+		}
+		yi = append(yi, uint32(k))
+	}
+	this.Yi = yi
+	return nil
+}
+
+type CandidateSplitInfo struct {
+	PeerPubkey string
+	Address    common.Address
+	InitPos    uint64
+	Stake      uint64 //total stake, init pos + total pos
+	S          uint64 //fee split weight of this peer
+}
+
+type SideChainNodeInfo struct {
+	SideChainID string
+	NodeInfoMap map[string]*NodeToSideChainParams
+}
+
+func (this *SideChainNodeInfo) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.SideChainID); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize sideChainID error: %v", err)
+	}
+
+	if err := serialization.WriteUint32(w, uint32(len(this.NodeInfoMap))); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize PeerPoolMap length error: %v", err)
+	}
+
+	var nodeInfoMapList []*NodeToSideChainParams
+	for _, v := range this.NodeInfoMap {
+		nodeInfoMapList = append(nodeInfoMapList, v)
+	}
+
+	sort.SliceStable(nodeInfoMapList, func(i, j int) bool {
+		return nodeInfoMapList[i].PeerPubkey > nodeInfoMapList[j].PeerPubkey
+	})
+	for _, v := range nodeInfoMapList {
+		if err := v.Serialize(w); err != nil {
+			return fmt.Errorf("serialize peerPool error: %v", err)
+		}
+	}
+	return nil
+}
+
+func (this *SideChainNodeInfo) Deserialize(r io.Reader) error {
+	sideChainID, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize sideChainID error: %v", err)
+	}
+
+	n, err := serialization.ReadUint32(r)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadUint32, deserialize PeerPoolMap length error: %v", err)
+	}
+
+	nodeInfoMap := make(map[string]*NodeToSideChainParams)
+	for i := 0; uint32(i) < n; i++ {
+		nodeInfo := new(NodeToSideChainParams)
+		if err := nodeInfo.Deserialize(r); err != nil {
+			return fmt.Errorf("deserialize peerPool error: %v", err)
+		}
+		nodeInfoMap[nodeInfo.PeerPubkey] = nodeInfo
+	}
+	this.SideChainID = sideChainID
+	this.NodeInfoMap = nodeInfoMap
+	return nil
+}
+
+type NodeToSideChainParams struct {
+	PeerPubkey  string
+	Address     common.Address
+	SideChainID string
+}
+
+func (this *NodeToSideChainParams) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
+	}
+	if err := utils.WriteAddress(w, this.Address); err != nil {
+		return fmt.Errorf("utils.WriteAddress, serialize address error: %v", err)
+	}
+	if err := serialization.WriteString(w, this.SideChainID); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize sideChainID error: %v", err)
+	}
+	return nil
+}
+
+func (this *NodeToSideChainParams) Deserialize(r io.Reader) error {
 	peerPubkey, err := serialization.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
@@ -64,58 +328,136 @@ func (this *RegisterCandidateParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	initPos, err := utils.ReadVarUint(r)
+	sideChainID, err := serialization.ReadString(r)
 	if err != nil {
-		return fmt.Errorf("utils.ReadVarUint, deserialize initPos error: %v", err)
-	}
-	if initPos > math.MaxUint32 {
-		return fmt.Errorf("initPos larger than max of uint32")
-	}
-	caller, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes, deserialize caller error: %v", err)
-	}
-	keyNo, err := utils.ReadVarUint(r)
-	if err != nil {
-		return fmt.Errorf("utils.ReadVarUint, deserialize keyNo error: %v", err)
-	}
-	if keyNo > math.MaxUint32 {
-		return fmt.Errorf("initPos larger than max of uint32")
+		return fmt.Errorf("serialization.ReadString, deserialize sideChainID error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = address
-	this.InitPos = uint32(initPos)
-	this.Caller = caller
-	this.KeyNo = uint32(keyNo)
+	this.SideChainID = sideChainID
 	return nil
 }
 
-type UnRegisterCandidateParam struct {
-	PeerPubkey string
-	Address    common.Address
+type SideChainID struct {
+	SideChainID string
 }
-
-func (this *UnRegisterCandidateParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, request peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
+func (this *SideChainID) Serialize(w io.Writer) error {
+	if err := serialization.WriteString(w, this.SideChainID); err != nil {
+		return fmt.Errorf("serialization.WriteString, serialize sideChainID error: %v", err)
 	}
 	return nil
 }
 
-func (this *UnRegisterCandidateParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *SideChainID) Deserialize(r io.Reader) error {
+	sideChainID, err := serialization.ReadString(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize sideChainID error: %v", err)
 	}
-	address, err := utils.ReadAddress(r)
+	this.SideChainID = sideChainID
+	return nil
+}
+
+type SyncAddress struct {
+	SyncAddress common.Address
+}
+
+func (this *SyncAddress) Serialize(sink *common.ZeroCopySink) {
+	utils.EncodeAddress(sink, this.SyncAddress)
+}
+
+func (this *SyncAddress) Deserialize(source *common.ZeroCopySource) error {
+	var err error
+	this.SyncAddress, err = utils.DecodeAddress(source)
 	if err != nil {
-		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+		return fmt.Errorf("deserialize address error:%s", err)
 	}
-	this.PeerPubkey = peerPubkey
-	this.Address = address
+	return nil
+}
+
+type CommitDposParam struct {
+	GovernanceView    *GovernanceView
+	PeerPoolMap       *PeerPoolMap
+	SideChainNodeInfo *SideChainNodeInfo
+	Configuration     *Configuration
+	GlobalParam       *GlobalParam
+	GlobalParam2      *GlobalParam2
+	SplitCurve        *SplitCurve
+}
+
+func (this *CommitDposParam) Serialize(w io.Writer) error {
+	if err := this.GovernanceView.Serialize(w); err != nil {
+		return fmt.Errorf("this.GovernanceView.Serialize, serialize GovernanceView error: %v", err)
+	}
+
+	if err := this.PeerPoolMap.Serialize(w); err != nil {
+		return fmt.Errorf("this.PeerPoolMap.Serialize, serialize PeerPoolMap error: %v", err)
+	}
+
+	if err := this.SideChainNodeInfo.Serialize(w); err != nil {
+		return fmt.Errorf("this.SideChainNodeInfo.Serialize, serialize SideChainNodeInfo error: %v", err)
+	}
+
+	if err := this.Configuration.Serialize(w); err != nil {
+		return fmt.Errorf("this.Configuration.Serialize, serialize Configuration error: %v", err)
+	}
+
+	if err := this.GlobalParam.Serialize(w); err != nil {
+		return fmt.Errorf("this.GlobalParam.Serialize, serialize GlobalParam error: %v", err)
+	}
+	if err := this.GlobalParam2.Serialize(w); err != nil {
+		return fmt.Errorf("this.GlobalParam2.Serialize, serialize GlobalParam2 error: %v", err)
+	}
+
+	if err := this.SplitCurve.Serialize(w); err != nil {
+		return fmt.Errorf("this.SplitCurve.Serialize, serialize SplitCurve error: %v", err)
+	}
+	return nil
+}
+
+func (this *CommitDposParam) Deserialize(r io.Reader) error {
+	governanceView := new(GovernanceView)
+	err := governanceView.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("governanceView.Deserialize, deserialize governanceView error: %v", err)
+	}
+
+	peerPoolMap := new(PeerPoolMap)
+	err = peerPoolMap.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("peerPoolMap.Deserialize, deserialize peerPoolMap error: %v", err)
+	}
+	sideChainNodeInfo := new(SideChainNodeInfo)
+	err = sideChainNodeInfo.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("sideChainNodeInfo.Deserialize, deserialize sideChainNodeInfo error: %v", err)
+	}
+	configuration := new(Configuration)
+	err = configuration.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("configuration.Deserialize, deserialize configuration error: %v", err)
+	}
+	globalParam := new(GlobalParam)
+	err = globalParam.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("globalParam.Deserialize, deserialize globalParam error: %v", err)
+	}
+	globalParam2 := new(GlobalParam2)
+	err = globalParam2.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("globalParam2.Deserialize, deserialize globalParam2 error: %v", err)
+	}
+	splitCurve := new(SplitCurve)
+	err = splitCurve.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("splitCurve.Deserialize, deserialize splitCurve error: %v", err)
+	}
+	this.GovernanceView = governanceView
+	this.PeerPoolMap = peerPoolMap
+	this.SideChainNodeInfo = sideChainNodeInfo
+	this.Configuration = configuration
+	this.GlobalParam = globalParam
+	this.GlobalParam2 = globalParam2
+	this.SplitCurve = splitCurve
 	return nil
 }
 

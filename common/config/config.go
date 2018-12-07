@@ -127,7 +127,8 @@ var PolarisConfig = &GenesisConfig{
 		HashMsgDelay:         10000,
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   3000,
-		AdminOntID:           "did:ont:AMAx993nE6NEqZjwBssUfopxnnvTdob9ij",
+		//AdminOntID:           "did:ont:AMAx993nE6NEqZjwBssUfopxnnvTdob9ij",
+		SideChainID:          "testSideChain",
 		MinInitStake:         10000,
 		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
 		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
@@ -197,7 +198,8 @@ var MainNetConfig = &GenesisConfig{
 		HashMsgDelay:         10000,
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   120000,
-		AdminOntID:           "did:ont:AdjfcJgwru2FD8kotCPvLDXYzRjqFjc9Tb",
+		//AdminOntID:           "did:ont:AdjfcJgwru2FD8kotCPvLDXYzRjqFjc9Tb",
+		SideChainID:          "sideChain",
 		MinInitStake:         100000,
 		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
 		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
@@ -276,7 +278,8 @@ type VBFTConfig struct {
 	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
 	MaxBlockChangeView   uint32               `json:"max_block_change_view"`
 	MinInitStake         uint32               `json:"min_init_stake"`
-	AdminOntID           string               `json:"admin_ont_id"`
+	//AdminOntID           string               `json:"admin_ont_id"`
+	SideChainID          string               `json:"side_chain_id"`
 	VrfValue             string               `json:"vrf_value"`
 	VrfProof             string               `json:"vrf_proof"`
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
@@ -310,8 +313,11 @@ func (this *VBFTConfig) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, this.MinInitStake); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize min_init_stake error!")
 	}
-	if err := serialization.WriteString(w, this.AdminOntID); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize admin_ont_id error!")
+	//if err := serialization.WriteString(w, this.AdminOntID); err != nil {
+	//	return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize admin_ont_id error!")
+	//}
+	if err := serialization.WriteString(w, this.SideChainID); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize side_chain_id error!")
 	}
 	if err := serialization.WriteString(w, this.VrfValue); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize vrf_value error!")
@@ -367,9 +373,11 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize minInitStake error!")
 	}
-	adminOntID, err := serialization.ReadString(r)
+	//adminOntID, err := serialization.ReadString(r)
+	sideChainID, err := serialization.ReadString(r)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize adminOntID error!")
+		//return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize adminOntID error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize side_chain_id error!")
 	}
 	vrfValue, err := serialization.ReadString(r)
 	if err != nil {
@@ -401,7 +409,8 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 	this.PeerHandshakeTimeout = peerHandshakeTimeout
 	this.MaxBlockChangeView = maxBlockChangeView
 	this.MinInitStake = minInitStake
-	this.AdminOntID = adminOntID
+	//this.AdminOntID = adminOntID
+	this.SideChainID = sideChainID
 	this.VrfValue = vrfValue
 	this.VrfProof = vrfProof
 	this.Peers = peers
