@@ -20,6 +20,7 @@ package ledgerstore
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 
@@ -340,6 +341,8 @@ func CheckStorage(dir string) error {
 		err := item.Deserialize(buf)
 		if err == nil && item.Value[0] == ontid.FLAG_VERSION {
 			return nil
+		} else if err == nil {
+			return errors.New("check ontid storage: invalid version flag")
 		} else {
 			return err
 		}
@@ -355,13 +358,17 @@ func CheckStorage(dir string) error {
 		db.BatchDelete(iter.Key())
 	}
 	iter.Release()
+	err = iter.Error()
+	if err != nil {
+		return err
+	}
 
 	tag := states.StorageItem{}
 	tag.Value = []byte{ontid.FLAG_VERSION}
 	buf := bytes.NewBuffer(nil)
 	tag.Serialize(buf)
 	db.BatchPut(flag, buf.Bytes())
-	db.BatchCommit()
+	err = db.BatchCommit()
 
-	return nil
+	return err
 }

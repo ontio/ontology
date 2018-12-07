@@ -67,7 +67,7 @@ func encodeID(id []byte) ([]byte, error) {
 func decodeID(data []byte) ([]byte, error) {
 	prefix := len(utils.OntIDContractAddress)
 	size := len(data)
-	if size == 0 || size < prefix || size != int(data[prefix])+1+prefix {
+	if size < prefix || size != int(data[prefix])+1+prefix {
 		return nil, errors.New("decode ONT ID error: invalid data length")
 	}
 	return data[prefix+1:], nil
