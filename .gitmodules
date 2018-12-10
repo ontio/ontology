@@ -1,3 +1,0 @@
-[submodule "vendor/github.com/ontio/ontology-crypto"]
-	path = vendor/github.com/ontio/ontology-crypto
-	url = https://github.com/ontio/ontology-crypto
