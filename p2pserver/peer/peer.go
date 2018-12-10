@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
 	"github.com/ontio/ontology/p2pserver/message/types"
+	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 )
 
 // PeerCom provides the basic information of a peer
@@ -85,7 +86,7 @@ func (this *PeerCom) GetRelay() bool {
 }
 
 // SetSyncPort sets a peer's sync port
-func (this *PeerCom) SetSyncPort(port uint16) {
+func (this *PeerCom) SetSyncPort(port uint16, ) {
 	this.syncPort = port
 }
 
@@ -126,15 +127,20 @@ func (this *PeerCom) GetHeight() uint64 {
 
 //Peer represent the node in p2p
 type Peer struct {
-	base      PeerCom
-	cap       [32]byte
-	SyncLink  *conn.Link
-	ConsLink  *conn.Link
-	syncState uint32
-	consState uint32
-	txnCnt    uint64
-	rxTxnCnt  uint64
-	connLock  sync.RWMutex
+	base                PeerCom
+	cap                 [32]byte
+	SyncLink            *conn.Link
+	SyncLinkConfigTSP   *conn.Link
+	ConsLink            *conn.Link
+	ConsLinkConfigTSP   *conn.Link
+	syncState           uint32
+	syncStateConfigTSP  uint32
+	consState           uint32
+	consStateConfigTSP  uint32
+	txnCnt             uint64
+	rxTxnCnt           uint64
+	connLock           sync.RWMutex
+	TransportType      byte
 }
 
 //NewPeer return new peer without publickey initial
@@ -143,8 +149,10 @@ func NewPeer() *Peer {
 		syncState: common.INIT,
 		consState: common.INIT,
 	}
-	p.SyncLink = conn.NewLink()
-	p.ConsLink = conn.NewLink()
+	p.SyncLink          = conn.NewLink()
+	p.SyncLinkConfigTSP = conn.NewLink()
+	p.ConsLink          = conn.NewLink()
+	p.ConsLinkConfigTSP = conn.NewLink()
 	runtime.SetFinalizer(p, rmPeer)
 	return p
 }
@@ -196,60 +204,106 @@ func (this *Peer) SetConsConn(consLink *conn.Link) {
 }
 
 //GetSyncState return sync state
-func (this *Peer) GetSyncState() uint32 {
-	return this.syncState
+func (this *Peer) GetSyncState(tspType byte) uint32 {
+	if tspType == common.LegacyTSPType {
+		return this.syncState
+	}else {
+		return this.syncStateConfigTSP
+	}
 }
 
 //SetSyncState set sync state to peer
-func (this *Peer) SetSyncState(state uint32) {
-	atomic.StoreUint32(&(this.syncState), state)
+func (this *Peer) SetSyncState(state uint32, tspType byte) {
+	if tspType == common.LegacyTSPType {
+		atomic.StoreUint32(&(this.syncState), state)
+	}else {
+		atomic.StoreUint32(&(this.syncStateConfigTSP), state)
+	}
 }
 
 //GetConsState return peer`s consensus state
-func (this *Peer) GetConsState() uint32 {
-	return this.consState
+func (this *Peer) GetConsState(tspType byte) uint32 {
+	if tspType == common.LegacyTSPType {
+		return this.consState
+	}else {
+		return this.consStateConfigTSP
+	}
 }
 
 //SetConsState set consensus state to peer
-func (this *Peer) SetConsState(state uint32) {
-	atomic.StoreUint32(&(this.consState), state)
+func (this *Peer) SetConsState(state uint32, tspType byte) {
+	if tspType == common.LegacyTSPType {
+		atomic.StoreUint32(&(this.consState), state)
+	}else {
+		atomic.StoreUint32(&(this.consStateConfigTSP), state)
+	}
 }
 
 //GetSyncPort return peer`s sync port
-func (this *Peer) GetSyncPort() uint16 {
-	return this.SyncLink.GetPort()
+func (this *Peer) GetSyncPort(tspType byte) uint16 {
+	if tspType == common.LegacyTSPType {
+		return this.SyncLink.GetPort()
+	}else {
+		return this.SyncLinkConfigTSP.GetPort()
+	}
 }
 
 //GetConsPort return peer`s consensus port
-func (this *Peer) GetConsPort() uint16 {
-	return this.ConsLink.GetPort()
+func (this *Peer) GetConsPort(tspType byte) uint16 {
+	if tspType == common.LegacyTSPType {
+		return this.ConsLink.GetPort()
+	}else {
+		return this.ConsLinkConfigTSP.GetPort()
+	}
 }
 
 //SetConsPort set peer`s consensus port
-func (this *Peer) SetConsPort(port uint16) {
-	this.ConsLink.SetPort(port)
+func (this *Peer) SetConsPort(port uint16, tspType byte) {
+	if tspType == common.LegacyTSPType {
+		this.ConsLink.SetPort(port)
+	}else {
+		this.ConsLinkConfigTSP.SetPort(port)
+	}
 }
 
 //SendToSync call sync link to send buffer
-func (this *Peer) SendToSync(msg types.Message) error {
-	if this.SyncLink != nil && this.SyncLink.Valid() {
-		return this.SyncLink.Tx(msg)
+func (this *Peer) SendToSync(msg types.Message, tspType byte) error {
+	if tspType == common.LegacyTSPType {
+		if this.SyncLink != nil && this.SyncLink.Valid() {
+			return this.SyncLink.Tx(msg, tspType)
+		}
+	}else {
+		if this.SyncLinkConfigTSP != nil && this.SyncLinkConfigTSP.Valid() {
+			return this.SyncLinkConfigTSP.Tx(msg, tspType)
+		}
 	}
 	return errors.New("[p2p]sync link invalid")
 }
 
 //SendToCons call consensus link to send buffer
-func (this *Peer) SendToCons(msg types.Message) error {
-	if this.ConsLink != nil && this.ConsLink.Valid() {
-		return this.ConsLink.Tx(msg)
+func (this *Peer) SendToCons(msg types.Message, tspType byte) error {
+	if tspType == common.LegacyTSPType {
+		if this.ConsLink != nil && this.ConsLink.Valid() {
+			return this.ConsLink.Tx(msg, tspType)
+		}
+	}else {
+		if this.ConsLinkConfigTSP != nil && this.ConsLinkConfigTSP.Valid() {
+			return this.ConsLinkConfigTSP.Tx(msg, tspType)
+		}
 	}
 	return errors.New("[p2p]cons link invalid")
 }
 
 //CloseSync halt sync connection
-func (this *Peer) CloseSync() {
-	this.SetSyncState(common.INACTIVITY)
-	conn := this.SyncLink.GetConn()
+func (this *Peer) CloseSync(tspType byte) {
+	this.SetSyncState(common.INACTIVITY, tspType)
+
+	var conn tsp.Connection
+	if tspType == common.LegacyTSPType {
+		conn = this.SyncLink.GetConn()
+	}else {
+		conn = this.SyncLinkConfigTSP.GetConn()
+	}
 	this.connLock.Lock()
 	if conn != nil {
 		conn.Close()
@@ -258,8 +312,8 @@ func (this *Peer) CloseSync() {
 }
 
 //CloseCons halt consensus connection
-func (this *Peer) CloseCons() {
-	this.SetConsState(common.INACTIVITY)
+func (this *Peer) CloseCons(tspType byte) {
+	this.SetConsState(common.INACTIVITY, tspType)
 	conn := this.ConsLink.GetConn()
 	this.connLock.Lock()
 	if conn != nil {
@@ -290,25 +344,33 @@ func (this *Peer) GetTimeStamp() int64 {
 }
 
 //GetContactTime return peer`s latest contact time in Time struct
-func (this *Peer) GetContactTime() time.Time {
-	return this.SyncLink.GetRXTime()
+func (this *Peer) GetContactTime(tspType byte) time.Time {
+	if tspType == common.LegacyTSPType {
+		return this.SyncLink.GetRXTime()
+	}else {
+		return this.SyncLinkConfigTSP.GetRXTime()
+	}
 }
 
 //GetAddr return peer`s sync link address
-func (this *Peer) GetAddr() string {
-	return this.SyncLink.GetAddr()
+func (this *Peer) GetAddr(tspType byte) string {
+	if tspType == common.LegacyTSPType {
+		return this.SyncLink.GetAddr()
+	}else {
+		return this.SyncLinkConfigTSP.GetAddr()
+	}
 }
 
 //GetAddr16 return peer`s sync link address in []byte
-func (this *Peer) GetAddr16() ([16]byte, error) {
+func (this *Peer) GetAddr16(tspType byte) ([16]byte, error) {
 	var result [16]byte
-	addrIp, err := common.ParseIPAddr(this.GetAddr())
+	addrIp, err := common.ParseIPAddr(this.GetAddr(tspType))
 	if err != nil {
 		return result, err
 	}
 	ip := net.ParseIP(addrIp).To16()
 	if ip == nil {
-		log.Warn("[p2p]parse ip address error\n", this.GetAddr())
+		log.Warn("[p2p]parse ip address error\n", this.GetAddr(tspType))
 		return result, errors.New("[p2p]parse ip address error")
 	}
 
@@ -317,21 +379,29 @@ func (this *Peer) GetAddr16() ([16]byte, error) {
 }
 
 //AttachSyncChan set msg chan to sync link
-func (this *Peer) AttachSyncChan(msgchan chan *types.MsgPayload) {
-	this.SyncLink.SetChan(msgchan)
+func (this *Peer) AttachSyncChan(msgchan chan *types.RecvMessage, tspType byte) {
+	if tspType == common.T_TCP {
+		this.SyncLink.SetChan(msgchan)
+	}else {
+		this.SyncLinkConfigTSP.SetChan(msgchan)
+	}
 }
 
 //AttachConsChan set msg chan to consensus link
-func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
-	this.ConsLink.SetChan(msgchan)
+func (this *Peer) AttachConsChan(msgchan chan *types.RecvMessage, tspType byte) {
+	if tspType == common.T_TCP {
+		this.ConsLink.SetChan(msgchan)
+	}else {
+		this.ConsLinkConfigTSP.SetChan(msgchan)
+	}
 }
 
 //Send transfer buffer by sync or cons link
-func (this *Peer) Send(msg types.Message, isConsensus bool) error {
-	if isConsensus && this.ConsLink.Valid() {
-		return this.SendToCons(msg)
+func (this *Peer) Send(msg types.Message, isConsensus bool, tspType byte) error {
+	if isConsensus {
+		return this.SendToCons(msg, tspType)
 	}
-	return this.SendToSync(msg)
+	return this.SendToSync(msg, tspType)
 }
 
 //SetHttpInfoState set peer`s httpinfo state
@@ -369,7 +439,9 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	this.base.SetSyncPort(syncPort)
 	this.base.SetConsPort(consPort)
 	this.SyncLink.SetPort(syncPort)
+	this.SyncLinkConfigTSP.SetPort(syncPort + 10000)
 	this.ConsLink.SetPort(consPort)
+	this.ConsLinkConfigTSP.SetPort(consPort + 10000)
 	if relay == 0 {
 		this.base.SetRelay(false)
 	} else {

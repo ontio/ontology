@@ -20,6 +20,7 @@ package peer
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/common/config"
 	"sync"
 
 	"github.com/ontio/ontology/p2pserver/common"
@@ -113,15 +114,16 @@ func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 	defer this.RUnlock()
 
 	var addrs []common.PeerAddr
+	tspType := config.DefConfig.P2PNode.TransportType
 	for _, p := range this.List {
-		if p.GetSyncState() != common.ESTABLISH {
+		if p.GetSyncState(tspType) != common.ESTABLISH {
 			continue
 		}
 		var addr common.PeerAddr
-		addr.IpAddr, _ = p.GetAddr16()
+		addr.IpAddr, _ = p.GetAddr16(tspType)
 		addr.Time = p.GetTimeStamp()
 		addr.Services = p.GetServices()
-		addr.Port = p.GetSyncPort()
+		addr.Port = p.GetSyncPort(tspType)
 		addr.ID = p.GetID()
 		addrs = append(addrs, addr)
 	}
@@ -136,7 +138,7 @@ func (this *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
 
 	hm := make(map[uint64]uint64)
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetSyncState(config.DefConfig.P2PNode.TransportType) == common.ESTABLISH {
 			hm[n.GetID()] = n.GetHeight()
 		}
 	}
@@ -149,7 +151,7 @@ func (this *NbrPeers) GetNeighbors() []*Peer {
 	defer this.RUnlock()
 	peers := []*Peer{}
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetSyncState(config.DefConfig.P2PNode.TransportType) == common.ESTABLISH {
 			node := n
 			peers = append(peers, node)
 		}
@@ -163,7 +165,7 @@ func (this *NbrPeers) GetNbrNodeCnt() uint32 {
 	defer this.RUnlock()
 	var count uint32
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetSyncState(config.DefConfig.P2PNode.TransportType) == common.ESTABLISH {
 			count++
 		}
 	}

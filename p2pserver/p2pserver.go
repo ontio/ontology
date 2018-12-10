@@ -286,6 +286,9 @@ func (this *P2PServer) WaitForPeersStart() {
 func (this *P2PServer) connectSeeds() {
 	seedNodes := make([]string, 0)
 	pList := make([]*peer.Peer, 0)
+
+	tspType := config.DefConfig.P2PNode.TransportType
+
 	for _, n := range config.DefConfig.Genesis.SeedList {
 		ip, err := common.ParseIPAddr(n)
 		if err != nil {
@@ -310,11 +313,11 @@ func (this *P2PServer) connectSeeds() {
 		np := this.network.GetNp()
 		np.Lock()
 		for _, tn := range np.List {
-			ipAddr, _ := tn.GetAddr16()
+			ipAddr, _ := tn.GetAddr16(tspType)
 			ip = ipAddr[:]
 			addrString := ip.To16().String() + ":" +
-				strconv.Itoa(int(tn.GetSyncPort()))
-			if nodeAddr == addrString && tn.GetSyncState() == common.ESTABLISH {
+				strconv.Itoa(int(tn.GetSyncPort(tspType)))
+			if nodeAddr == addrString && tn.GetSyncState(tspType) == common.ESTABLISH {
 				pList = append(pList, tn)
 			}
 		}
@@ -360,21 +363,22 @@ func (this *P2PServer) getNode(id uint64) *peer.Peer {
 
 //retryInactivePeer try to connect peer in INACTIVITY state
 func (this *P2PServer) retryInactivePeer() {
+	tspType := config.DefConfig.P2PNode.TransportType
 	np := this.network.GetNp()
 	np.Lock()
 	var ip net.IP
 	neighborPeers := make(map[uint64]*peer.Peer)
 	for _, p := range np.List {
-		addr, _ := p.GetAddr16()
+		addr, _ := p.GetAddr16(tspType)
 		ip = addr[:]
 		nodeAddr := ip.To16().String() + ":" +
-			strconv.Itoa(int(p.GetSyncPort()))
-		if p.GetSyncState() == common.INACTIVITY {
+			strconv.Itoa(int(p.GetSyncPort(tspType)))
+		if p.GetSyncState(tspType) == common.INACTIVITY {
 			log.Debugf("[p2p] try reconnect %s", nodeAddr)
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
-			p.CloseSync()
-			p.CloseCons()
+			p.CloseSync(tspType)
+			p.CloseCons(tspType)
 		} else {
 			//add others to tmp node map
 			this.removeFromRetryList(nodeAddr)
@@ -501,8 +505,9 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
+	tspType := config.DefConfig.P2PNode.TransportType
 	for _, p := range peers {
-		if p.GetSyncState() == common.ESTABLISH {
+		if p.GetSyncState(tspType) == common.ESTABLISH {
 			height := this.ledger.GetCurrentBlockHeight()
 			ping := msgpack.NewPingMsg(uint64(height))
 			go this.Send(p, ping, false)
@@ -515,14 +520,15 @@ func (this *P2PServer) timeout() {
 	peers := this.network.GetNeighbors()
 	var periodTime uint
 	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
+	tspType := config.DefConfig.P2PNode.TransportType
 	for _, p := range peers {
-		if p.GetSyncState() == common.ESTABLISH {
-			t := p.GetContactTime()
+		if p.GetSyncState(tspType) == common.ESTABLISH {
+			t := p.GetContactTime(tspType)
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
 				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
-				p.CloseSync()
-				p.CloseCons()
+				p.CloseSync(tspType)
+				p.CloseCons(tspType)
 			}
 		}
 	}
@@ -571,6 +577,7 @@ func (this *P2PServer) tryRecentPeers() {
 		if len(this.recentPeers[netID]) > 0 {
 			log.Info("[p2p]try to connect recent peer")
 		}
+
 		for _, v := range this.recentPeers[netID] {
 			go this.network.Connect(v, false)
 		}
@@ -597,10 +604,11 @@ func (this *P2PServer) syncUpRecentPeers() {
 //syncPeerAddr compare snapshot of recent peer with current link,then persist the list
 func (this *P2PServer) syncPeerAddr() {
 	changed := false
-	netID := config.DefConfig.P2PNode.NetworkMagic
+	netID   := config.DefConfig.P2PNode.NetworkMagic
+	tspType := config.DefConfig.P2PNode.TransportType
 	for i := 0; i < len(this.recentPeers[netID]); i++ {
 		p := this.network.GetPeerFromAddr(this.recentPeers[netID][i])
-		if p == nil || (p != nil && p.GetSyncState() != common.ESTABLISH) {
+		if p == nil || (p != nil && p.GetSyncState(tspType) != common.ESTABLISH) {
 			this.recentPeers[netID] = append(this.recentPeers[netID][:i], this.recentPeers[netID][i+1:]...)
 			changed = true
 			i--
@@ -612,10 +620,10 @@ func (this *P2PServer) syncPeerAddr() {
 		np.Lock()
 		var ip net.IP
 		for _, p := range np.List {
-			addr, _ := p.GetAddr16()
+			addr, _ := p.GetAddr16(tspType)
 			ip = addr[:]
 			nodeAddr := ip.To16().String() + ":" +
-				strconv.Itoa(int(p.GetSyncPort()))
+				strconv.Itoa(int(p.GetSyncPort(tspType)))
 			found := false
 			for i := 0; i < len(this.recentPeers[netID]); i++ {
 				if nodeAddr == this.recentPeers[netID][i] {

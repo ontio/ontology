@@ -102,6 +102,12 @@ const (
 	RECENT_LIMIT     = 10 //recent contact list limit
 )
 
+const (
+	T_TCP   = 0x001
+	T_UDP   = 0x002
+	T_QUICK = 0x004
+)
+
 //PeerAddr represent peer`s net information
 type PeerAddr struct {
 	Time          int64    //latest timestamp
@@ -174,4 +180,19 @@ func ParseIPPort(s string) (string, error) {
 		return "", errors.New("[p2p]port out of bound")
 	}
 	return s[i:], nil
+}
+
+var LegacyTSPType byte = T_TCP
+
+func GetTransportTypeString(tspType byte) string {
+	switch tspType {
+	case T_TCP:
+		return "TCP"
+	case T_UDP:
+		return "UDP"
+	case T_QUICK:
+		return "QUIC"
+	default:
+		panic("Invalid tspType in GetTransportTypeString")
+	}
 }

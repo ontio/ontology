@@ -19,18 +19,13 @@
 package transport
 
 import (
+	"io"
 	"net"
 	"time"
-	"io"
 )
 
-type Reader interface {
-	io.Reader
-	Close() error
-}
-
 type Connection interface {
-	GetReader() (Reader, error)
+	GetReader() (io.Reader, error)
 	Write(b []byte) (int, error)
 	Close() error
 	LocalAddr() net.Addr

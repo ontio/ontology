@@ -505,7 +505,7 @@ type P2PNodeConfig struct {
 	KeyPath                   string
 	CAPath                    string
 	HttpInfoPort              uint
-	TransportType             string
+	TransportType             byte
 	MaxHdrSyncReqs            uint
 	MaxConnInBound            uint
 	MaxConnOutBound           uint

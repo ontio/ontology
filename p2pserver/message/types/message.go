@@ -36,6 +36,11 @@ type Message interface {
 	CmdType() string
 }
 
+type RecvMessage struct {
+	TSPType        byte //Transport type
+	RecvMsgPayload *MsgPayload
+}
+
 //MsgPayload in link channel
 type MsgPayload struct {
 	Id          uint64  //peer ID

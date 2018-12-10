@@ -31,13 +31,6 @@ import (
 	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 )
 
-type readerCloser struct { }
-
-type reader struct {
-	io.Reader
-	readerCloser
-}
-
 type connection struct {
 	net.Conn
 	io.Reader
@@ -45,13 +38,9 @@ type connection struct {
 
 type transport struct { }
 
-func (this * readerCloser) Close() error {
-	return nil
-}
+func (this * connection) GetReader() (io.Reader, error) {
 
-func (this * connection) GetReader() (tsp.Reader, error) {
-
-	return &reader{this.Reader, readerCloser{}}, nil
+	return  this.Reader, nil
 }
 
 func (this * connection) Write(b []byte) (n int, err error) {
@@ -97,13 +86,13 @@ func (this * transport) DialWithTimeout(addr string, timeout time.Duration) (tsp
 		tlsConf, _ := tsp.GetClientTLSConfig()
 		if tlsConf == nil {
 			log.Error("[p2p]GetServerTLSConfig failed")
-			return nil, errors.New("[p2p]GetServerTLSConfig failed")
+			return nil, &tsp.DialError{"TCP", addr, "[p2p]GetServerTLSConfig failed"}
 		}
 		c, err = TLSDial(addr, timeout, tlsConf)
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, &tsp.DialError{"TCP", addr, err.Error()}
 	}
 
 	reader := bufio.NewReaderSize(c, common.MAX_BUF_LEN)

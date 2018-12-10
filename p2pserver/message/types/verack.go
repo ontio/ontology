@@ -26,12 +26,14 @@ import (
 )
 
 type VerACK struct {
-	IsConsensus bool
+	IsConsensus   bool
+	TransportType byte
 }
 
 //Serialize message payload
 func (this *VerACK) Serialization(sink *comm.ZeroCopySink) error {
 	sink.WriteBool(this.IsConsensus)
+	sink.WriteByte(this.TransportType)
 	return nil
 }
 
@@ -48,6 +50,11 @@ func (this *VerACK) Deserialization(source *comm.ZeroCopySource) error {
 	}
 	if irregular {
 		return comm.ErrIrregularData
+	}
+
+	this.TransportType, eof = source.NextByte()
+	if eof {
+		this.TransportType = 0x00
 	}
 
 	return nil

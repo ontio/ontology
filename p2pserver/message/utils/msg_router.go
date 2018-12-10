@@ -27,14 +27,14 @@ import (
 )
 
 // MessageHandler defines the unified api for each net message
-type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{})
+type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, tspType byte, args ...interface{})
 
 // MessageRouter mostly route different message type-based to the
 // related message handler
 type MessageRouter struct {
 	msgHandlers  map[string]MessageHandler // Msg handler mapped to msg type
-	RecvSyncChan chan *types.MsgPayload    // The channel to handle sync msg
-	RecvConsChan chan *types.MsgPayload    // The channel to handle consensus msg
+	RecvSyncChan chan *types.RecvMessage    // The channel to handle sync msg
+	RecvConsChan chan *types.RecvMessage    // The channel to handle consensus msg
 	stopSyncCh   chan bool                 // To stop sync channel
 	stopConsCh   chan bool                 // To stop consensus channel
 	p2p          p2p.P2P                   // Refer to the p2p network
@@ -100,21 +100,21 @@ func (this *MessageRouter) Start() {
 }
 
 // hookChan loops to handle the message from the network
-func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
+func (this *MessageRouter) hookChan(channel chan *types.RecvMessage,
 	stopCh chan bool) {
 	for {
 		select {
 		case data, ok := <-channel:
 			if ok {
-				msgType := data.Payload.CmdType()
+				msgType := data.RecvMsgPayload.Payload.CmdType()
 
 				log.Infof("MessageRouter receive msg: %s", msgType)
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
-					go handler(data, this.p2p, this.pid)
+					go handler(data.RecvMsgPayload, this.p2p, this.pid, data.TSPType)
 				} else {
-					log.Warn("unknown message handler for the msg: ",
-						msgType)
+					log.Warnf("unknown message handler for the msg: %d-%s",
+						msgType, msgCommon.GetTransportTypeString(data.TSPType))
 				}
 			}
 		case <-stopCh:
