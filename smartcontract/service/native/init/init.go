@@ -24,32 +24,12 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
-	//vm "github.com/ontio/ontology/vm/neovm"
-	"fmt"
 )
 
-//var (
-//	COMMIT_DPOS_BYTES = InitBytes(utils.GovernanceContractAddress, governance.COMMIT_DPOS)
-//)
-
 func init() {
-	fmt.Println("------init----")
 	ongx.InitOngx()
 	params.InitGlobalParams()
 	ontid.Init()
 	auth.Init()
 	governance.InitGovernance()
 }
-
-//func InitBytes(addr common.Address, method string) []byte {
-//	bf := new(bytes.Buffer)
-//	builder := vm.NewParamsBuilder(bf)
-//	builder.EmitPushByteArray([]byte{})
-//	builder.EmitPushByteArray([]byte(method))
-//	builder.EmitPushByteArray(addr[:])
-//	builder.EmitPushInteger(big.NewInt(0))
-//	builder.Emit(vm.SYSCALL)
-//	builder.EmitPushByteArray([]byte(neovm.NATIVE_INVOKE_NAME))
-//
-//	return builder.ToArray()
-//}

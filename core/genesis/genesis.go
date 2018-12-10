@@ -182,12 +182,13 @@ func newParamInit() *types.Transaction {
 	params.Serialize(bf)
 	nutils.WriteAddress(bf, genAdminAddress())
 
-	mutable := utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
+	mutable := utils.BuildWasmNativeTransaction(nutils.ParamContractAddress, 0, global_params.INIT_NAME, bf.Bytes())
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("constract genesis governing token transaction error ")
 	}
 	return tx
+
 }
 
 func genAdminAddress() common.Address {

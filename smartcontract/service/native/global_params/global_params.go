@@ -71,6 +71,7 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, read native input failed!")
 	}
+
 	argsBuffer := bytes.NewBuffer(native.Input)
 	if err := initParams.Deserialize(argsBuffer); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, deserialize params failed!")
