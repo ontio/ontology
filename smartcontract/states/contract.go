@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
 // Invoke smart contract struct
@@ -113,4 +114,5 @@ type PreExecResult struct {
 	State  byte
 	Gas    uint64
 	Result interface{}
+	Notify []*event.NotifyEventInfo
 }
