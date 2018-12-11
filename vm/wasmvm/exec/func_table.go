@@ -87,7 +87,8 @@ func (vm *VM) newFuncTable() {
 	vm.funcTable[ops.I64GeS] = vm.i64GeS
 	vm.funcTable[ops.I64GeU] = vm.i64GeU
 
-	vm.funcTable[ops.F32Eq] = vm.f32Eq
+	//will not support float type
+	/*vm.funcTable[ops.F32Eq] = vm.f32Eq
 	vm.funcTable[ops.F32Ne] = vm.f32Ne
 	vm.funcTable[ops.F32Lt] = vm.f32Lt
 	vm.funcTable[ops.F32Gt] = vm.f32Gt
@@ -128,16 +129,17 @@ func (vm *VM) newFuncTable() {
 	vm.funcTable[ops.F64Min] = vm.f64Min
 	vm.funcTable[ops.F64Max] = vm.f64Max
 	vm.funcTable[ops.F64Copysign] = vm.f64Copysign
+	*/
 
 	vm.funcTable[ops.I32Const] = vm.i32Const
 	vm.funcTable[ops.I64Const] = vm.i64Const
-	vm.funcTable[ops.F32Const] = vm.f32Const
-	vm.funcTable[ops.F64Const] = vm.f64Const
+	//vm.funcTable[ops.F32Const] = vm.f32Const
+	//vm.funcTable[ops.F64Const] = vm.f64Const
 
 	vm.funcTable[ops.I32ReinterpretF32] = vm.i32ReinterpretF32
 	vm.funcTable[ops.I64ReinterpretF64] = vm.i64ReinterpretF64
-	vm.funcTable[ops.F32ReinterpretI32] = vm.f32ReinterpretI32
-	vm.funcTable[ops.F64ReinterpretI64] = vm.f64ReinterpretI64
+	//vm.funcTable[ops.F32ReinterpretI32] = vm.f32ReinterpretI32
+	//vm.funcTable[ops.F64ReinterpretI64] = vm.f64ReinterpretI64
 
 	vm.funcTable[ops.I32WrapI64] = vm.i32Wrapi64
 	vm.funcTable[ops.I32TruncSF32] = vm.i32TruncSF32
@@ -150,21 +152,21 @@ func (vm *VM) newFuncTable() {
 	vm.funcTable[ops.I64TruncUF32] = vm.i64TruncUF32
 	vm.funcTable[ops.I64TruncSF64] = vm.i64TruncSF64
 	vm.funcTable[ops.I64TruncUF64] = vm.i64TruncUF64
-	vm.funcTable[ops.F32ConvertSI32] = vm.f32ConvertSI32
-	vm.funcTable[ops.F32ConvertUI32] = vm.f32ConvertUI32
-	vm.funcTable[ops.F32ConvertSI64] = vm.f32ConvertSI64
-	vm.funcTable[ops.F32ConvertUI64] = vm.f32ConvertUI64
-	vm.funcTable[ops.F32DemoteF64] = vm.f32DemoteF64
-	vm.funcTable[ops.F64ConvertSI32] = vm.f64ConvertSI32
-	vm.funcTable[ops.F64ConvertUI32] = vm.f64ConvertUI32
-	vm.funcTable[ops.F64ConvertSI64] = vm.f64ConvertSI64
-	vm.funcTable[ops.F64ConvertUI64] = vm.f64ConvertUI64
-	vm.funcTable[ops.F64PromoteF32] = vm.f64PromoteF32
+	//vm.funcTable[ops.F32ConvertSI32] = vm.f32ConvertSI32
+	//vm.funcTable[ops.F32ConvertUI32] = vm.f32ConvertUI32
+	//vm.funcTable[ops.F32ConvertSI64] = vm.f32ConvertSI64
+	//vm.funcTable[ops.F32ConvertUI64] = vm.f32ConvertUI64
+	//vm.funcTable[ops.F32DemoteF64] = vm.f32DemoteF64
+	//vm.funcTable[ops.F64ConvertSI32] = vm.f64ConvertSI32
+	//vm.funcTable[ops.F64ConvertUI32] = vm.f64ConvertUI32
+	//vm.funcTable[ops.F64ConvertSI64] = vm.f64ConvertSI64
+	//vm.funcTable[ops.F64ConvertUI64] = vm.f64ConvertUI64
+	//vm.funcTable[ops.F64PromoteF32] = vm.f64PromoteF32
 
 	vm.funcTable[ops.I32Load] = vm.i32Load
 	vm.funcTable[ops.I64Load] = vm.i64Load
-	vm.funcTable[ops.F32Load] = vm.f32Load
-	vm.funcTable[ops.F64Load] = vm.f64Load
+	//vm.funcTable[ops.F32Load] = vm.f32Load
+	//vm.funcTable[ops.F64Load] = vm.f64Load
 	vm.funcTable[ops.I32Load8s] = vm.i32Load8s
 	vm.funcTable[ops.I32Load8u] = vm.i32Load8u
 	vm.funcTable[ops.I32Load16s] = vm.i32Load16s
@@ -177,8 +179,8 @@ func (vm *VM) newFuncTable() {
 	vm.funcTable[ops.I64Load32u] = vm.i64Load32u
 	vm.funcTable[ops.I32Store] = vm.i32Store
 	vm.funcTable[ops.I64Store] = vm.i64Store
-	vm.funcTable[ops.F32Store] = vm.f32Store
-	vm.funcTable[ops.F64Store] = vm.f64Store
+	//vm.funcTable[ops.F32Store] = vm.f32Store
+	//vm.funcTable[ops.F64Store] = vm.f64Store
 	vm.funcTable[ops.I32Store8] = vm.i32Store8
 	vm.funcTable[ops.I32Store16] = vm.i32Store16
 	vm.funcTable[ops.I64Store8] = vm.i64Store8
