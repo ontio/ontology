@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-
 /*
  * Copyright (C) 2018 The ontology Authors
  * This file is part of The ontology library.

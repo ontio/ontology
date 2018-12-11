@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-
 /*
  * Copyright (C) 2018 The ontology Authors
  * This file is part of The ontology library.
@@ -37,10 +36,10 @@ package trie
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/rlp"
 	"io"
 	"strings"
-	"github.com/ontio/ontology/rlp"
-	"github.com/ontio/ontology/common"
 )
 
 var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f", "[17]"}

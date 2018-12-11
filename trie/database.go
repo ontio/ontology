@@ -23,17 +23,17 @@ import (
 )
 
 type Database struct {
-	db map[string][]byte
+	db   map[string][]byte
 	lock sync.RWMutex
 }
 
 func NewMemDatabase() *Database {
-	return &Database {
+	return &Database{
 		db: make(map[string][]byte),
 	}
 }
 
-func (db *Database) Put(key []byte, value []byte) error{
+func (db *Database) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 	db.db[string(key)] = CopyBytes(value)

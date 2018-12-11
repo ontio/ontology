@@ -35,15 +35,15 @@
 package trie
 
 import (
-	"hash"
 	"crypto/sha256"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/rlp"
+	"hash"
 )
 
 type hasher struct {
-	tmp        sliceBuffer
-	sha        keccakState
+	tmp sliceBuffer
+	sha keccakState
 }
 
 // keccakState wraps sha3.state. In addition to the usual hash methods, it also supports

@@ -54,8 +54,8 @@
 package trie
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -450,7 +450,7 @@ func (t *Trie) Commit() (root common.Uint256, err error) {
 		return common.Uint256{}, err
 	}
 	t.root = cached
-	return 	common.Uint256ParseFromBytes(hash.(hashNode))
+	return common.Uint256ParseFromBytes(hash.(hashNode))
 }
 
 func (t *Trie) hashRoot(db *Database) (node, node, error) {
