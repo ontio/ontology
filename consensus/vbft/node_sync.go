@@ -128,9 +128,22 @@ func (self *Syncer) run() {
 				req.startBlockNum = self.server.GetCommittedBlockNo() + 1
 				log.Infof("server %d, sync req start change to %d",
 					self.server.Index, req.startBlockNum)
-				if req.startBlockNum > req.targetBlockNum {
-					continue
+			}
+			for ; req.startBlockNum <= req.targetBlockNum; req.startBlockNum++ {
+				blk, _ := self.server.chainStore.GetBlock(req.startBlockNum)
+				if blk == nil {
+					log.Infof("server %d, on starting syncing %d, nil block from ledger",
+						self.server.Index, req.startBlockNum)
+					break
 				}
+				if err := self.server.fastForwardBlock(blk); err != nil {
+					log.Infof("server %d, on starting syncing %d, %s",
+						self.server.Index, req.startBlockNum, err)
+					break
+				}
+			}
+			if req.startBlockNum > req.targetBlockNum {
+				continue
 			}
 			if err := self.onNewBlockSyncReq(req); err != nil {
 				log.Errorf("server %d failed to handle new block sync req: %s", self.server.Index, err)
@@ -228,6 +241,16 @@ func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *Block {
 		}
 	}
 	return nil
+}
+
+func (self *Syncer) getCurrentTargetBlockNum() uint32 {
+	var targetBlkNum uint32
+	for _, syncer := range self.peers {
+		if syncer.active && syncer.targetBlkNum > targetBlkNum {
+			targetBlkNum = syncer.targetBlkNum
+		}
+	}
+	return targetBlkNum
 }
 
 func (self *Syncer) isActive() bool {
