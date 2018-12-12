@@ -268,13 +268,14 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
 	if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
-			resp["Result"], err = bactor.PreExecuteContract(txn)
+			rst, err := bactor.PreExecuteContract(txn)
 			if err != nil {
 				log.Infof("PreExec: ", err)
 				resp = ResponsePack(berr.SMARTCODE_ERROR)
 				resp["Result"] = err.Error()
 				return resp
 			}
+			resp["Result"] = bcomn.ConvertPreExecuteResult(rst)
 			return resp
 		}
 	}
