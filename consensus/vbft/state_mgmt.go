@@ -19,6 +19,7 @@
 package vbft
 
 import (
+	"math"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -407,7 +408,7 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) erro
 		self.currentState = Syncing
 		startBlkNum = self.server.GetCommittedBlockNo() + 1
 
-		if maxCommitted > self.lastBlockSyncReqHeight {
+		if maxCommitted > self.server.syncer.getCurrentTargetBlockNum() {
 			// syncer is much slower than peer-update, too much SyncReq can make channel full
 			log.Infof("server %d, start syncing %d - %d, with %v", self.server.Index, startBlkNum, maxCommitted, peers)
 			self.lastBlockSyncReqHeight = maxCommitted
@@ -462,15 +463,28 @@ func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 	C := int(self.server.config.C)
 	// one block less than targetBlkNum is also acceptable for fastforward
 	for blkNum := self.server.GetCurrentBlockNo(); blkNum < targetBlkNum; blkNum++ {
-		if len(self.server.msgPool.GetProposalMsgs(blkNum)) == 0 {
-			log.Infof("server %d check fastforward false, no proposal for block %d",
-				self.server.Index, blkNum)
+		commitMsgs := make([]*blockCommitMsg, 0)
+		for _, msg := range self.server.msgPool.GetCommitMsgs(blkNum) {
+			if c := msg.(*blockCommitMsg); c != nil {
+				commitMsgs = append(commitMsgs, c)
+			}
+		}
+		proposer, _ := getCommitConsensus(commitMsgs, C)
+		if proposer == math.MaxUint32 {
+			log.Infof("server %d check fastforward false, no consensus in %d commit msg for block %d",
+				self.server.Index, len(commitMsgs), blkNum)
 			return false
 		}
-		cMsgs := self.server.msgPool.GetCommitMsgs(blkNum)
-		if len(cMsgs) <= C {
-			log.Infof("server %d check fastforward false, only %d commit msg for block %d",
-				self.server.Index, len(cMsgs), blkNum)
+		foundProposal := false
+		for _, msg := range self.server.msgPool.GetProposalMsgs(blkNum) {
+			if p := msg.(*blockProposalMsg); p != nil && p.Block.getProposer() == proposer {
+				foundProposal = true
+				break
+			}
+		}
+		if !foundProposal {
+			log.Infof("server %d check fastforward false, no proposal for block %d",
+				self.server.Index, blkNum)
 			return false
 		}
 	}
