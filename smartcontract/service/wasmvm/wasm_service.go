@@ -92,10 +92,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	stateMachine.Register(exec.ATTRIBUTE_GETUSAGE_NAME, this.attributeGetUsage)
 	stateMachine.Register(exec.ATTRIBUTE_GETDATA_NAME, this.attributeGetData)
 	//block
-	stateMachine.Register(exec.BLOCK_GETHEADERHASH_NAME, this.blockGetCurrentHeaderHash)
-	stateMachine.Register(exec.BLOCK_GETHEADERHEIGHT_NAME, this.blockGetCurrentHeaderHeight)
-	stateMachine.Register(exec.BLOCK_GETBLOCKHASH_NAME, this.blockGetCurrentBlockHash)
-	stateMachine.Register(exec.BLOCK_GETBLOCKHEIGHT_NAME, this.blockGetCurrentBlockHeight)
 	stateMachine.Register(exec.BLOCK_GETTRANSACTIONBYHASH_NAME, this.blockGetTransactionByHash)
 	stateMachine.Register(exec.BLOCK_GETTRANSACTIONCOUNT_NAME, this.blockGetTransactionCount)
 	stateMachine.Register(exec.BLOCK_GETTRANSACTIONS, this.blockGetTransactions)

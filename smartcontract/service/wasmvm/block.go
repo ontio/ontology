@@ -24,52 +24,6 @@ import (
 	"github.com/ontio/ontology/vm/wasmvm/exec"
 )
 
-func (this *WasmVmService) blockGetCurrentHeaderHash(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
-	vm.RestoreCtx()
-
-	headerHash := this.Store.GetCurrentHeaderHash()
-	idx, err := vm.SetPointerMemory(headerHash.ToArray())
-	if err != nil {
-		return false, err
-	}
-	vm.RestoreCtx()
-	vm.PushResult(uint64(idx))
-	return true, nil
-}
-
-func (this *WasmVmService) blockGetCurrentHeaderHeight(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
-	vm.RestoreCtx()
-	headerHight := this.Store.GetCurrentHeaderHeight()
-	vm.RestoreCtx()
-	vm.PushResult(uint64(headerHight))
-	return true, nil
-}
-
-func (this *WasmVmService) blockGetCurrentBlockHash(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
-	vm.RestoreCtx()
-
-	bHash := this.Store.GetCurrentBlockHash()
-	idx, err := vm.SetPointerMemory(bHash.ToArray())
-	if err != nil {
-		return false, err
-	}
-	vm.RestoreCtx()
-	vm.PushResult(uint64(idx))
-	return true, nil
-}
-
-func (this *WasmVmService) blockGetCurrentBlockHeight(engine *exec.ExecutionEngine) (bool, error) {
-	vm := engine.GetVM()
-	vm.RestoreCtx()
-	bHight := this.Store.GetCurrentBlockHeight()
-	vm.RestoreCtx()
-	vm.PushResult(uint64(bHight))
-	return true, nil
-}
-
 func (this *WasmVmService) blockGetTransactionByHash(engine *exec.ExecutionEngine) (bool, error) {
 	vm := engine.GetVM()
 	envCall := vm.GetEnvCall()
