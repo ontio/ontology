@@ -95,6 +95,9 @@ func (tx *MutableTransaction) serialize(sink *common.ZeroCopySink) error {
 }
 
 func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error {
+	if tx.Version != TX_VERSION {
+		return errors.New("side chain block version should equal to 1")
+	}
 	sink.WriteString(tx.SideChainID)
 	sink.WriteByte(byte(tx.Version))
 	sink.WriteByte(byte(tx.TxType))

@@ -151,6 +151,9 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 		return common.ErrIrregularData
 	}
 	tx.Version, eof = source.NextByte()
+	if tx.Version != TX_VERSION {
+		return fmt.Errorf("side chain block version should equal to 1")
+	}
 	var txtype byte
 	txtype, eof = source.NextByte()
 	tx.TxType = TransactionType(txtype)
