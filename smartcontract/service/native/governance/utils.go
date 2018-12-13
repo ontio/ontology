@@ -350,7 +350,7 @@ func getSyncAddress(native *native.NativeService) (common.Address, error) {
 		return common.Address{}, fmt.Errorf("getSyncAddress, deserialize from raw storage item err:%v", err)
 	}
 
-	syncAddress := new(SyncAddress)
+	syncAddress := new(ongx.SyncAddress)
 	if err := syncAddress.Deserialize(common.NewZeroCopySource(syncAddressStore)); err != nil {
 		return common.Address{}, fmt.Errorf("getSyncAddress, deserialize syncAddress error: %v", err)
 	}
