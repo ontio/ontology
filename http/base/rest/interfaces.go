@@ -57,7 +57,7 @@ func GetNetworkId(cmd map[string]interface{}) map[string]interface{} {
 //get connection node count
 func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	count, err := bactor.GetConnectionCnt()
+	_, count, err := bactor.GetConnectionCnt()
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}

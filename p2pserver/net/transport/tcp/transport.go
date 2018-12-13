@@ -20,7 +20,6 @@ package tcp
 
 import (
 	"bufio"
-	"errors"
 	"io"
 	"net"
 	"time"
@@ -112,7 +111,7 @@ func (this* transport) GetReqInterval() int {
 
 func (this * transport) ProtocolCode() int {
 
-	return tsp.T_TCP
+	return common.T_TCP
 }
 
 func (this * transport) ProtocolName() string {

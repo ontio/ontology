@@ -105,7 +105,7 @@ const (
 const (
 	T_TCP   = 0x001
 	T_UDP   = 0x002
-	T_QUICK = 0x004
+	T_QUIC = 0x004
 )
 
 //PeerAddr represent peer`s net information
@@ -182,6 +182,9 @@ func ParseIPPort(s string) (string, error) {
 	return s[i:], nil
 }
 
+var LegacyNodePort uint16 = 20338
+var LegacyConsPort uint16 = 20339
+
 var LegacyTSPType byte = T_TCP
 
 func GetTransportTypeString(tspType byte) string {
@@ -190,7 +193,7 @@ func GetTransportTypeString(tspType byte) string {
 		return "TCP"
 	case T_UDP:
 		return "UDP"
-	case T_QUICK:
+	case T_QUIC:
 		return "QUIC"
 	default:
 		panic("Invalid tspType in GetTransportTypeString")

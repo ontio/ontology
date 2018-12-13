@@ -179,11 +179,11 @@ func (this* transport) GetReqInterval() int {
 }
 
 func (this * transport) ProtocolCode() int {
-	return  tsp.T_QUICK
+	return  common.T_QUIC
 }
 
 func (this * transport) ProtocolName() string {
-	return "QUICK"
+	return "QUIC"
 }
 
 

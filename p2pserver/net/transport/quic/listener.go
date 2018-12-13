@@ -60,7 +60,7 @@ func (this *listener) Accept() (tsp.Connection, error) {
 
 func (this *listener) setupConn(sess quic.Session) (tsp.Connection, error) {
 
-	return &connection{sess: sess, streamMap:make(map[quic.StreamID]*tspStream, MAX_INCOMING_STREAMS)}, nil
+	return &connection{sess: sess}, nil
 }
 
 func (this *listener) Close() error {

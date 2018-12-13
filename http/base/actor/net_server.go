@@ -44,21 +44,21 @@ func Xmit(msg interface{}) error {
 }
 
 //GetConnectionCnt from netSever actor
-func GetConnectionCnt() (uint32, error) {
+func GetConnectionCnt() (uint32, uint32, error) {
 	if netServerPid == nil {
-		return 1, nil
+		return 1, 1, nil
 	}
 	future := netServerPid.RequestFuture(&ac.GetConnectionCntReq{}, REQ_TIMEOUT*time.Second)
 	result, err := future.Result()
 	if err != nil {
 		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
+		return 0, 0, err
 	}
 	r, ok := result.(*ac.GetConnectionCntRsp)
 	if !ok {
-		return 0, errors.New("fail")
+		return 0, 0, errors.New("fail")
 	}
-	return r.Cnt, nil
+	return r.CntLegacy, r.Cnt, nil
 }
 
 //GetNeighborAddrs from netSever actor

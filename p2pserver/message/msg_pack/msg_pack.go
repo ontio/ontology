@@ -143,7 +143,6 @@ func NewVerAck(isConsensus bool) mt.Message {
 	log.Trace()
 	var verAck mt.VerACK
 	verAck.IsConsensus   = isConsensus
-	verAck.TransportType = config.DefConfig.P2PNode.TransportType
 
 	return &verAck
 }
@@ -155,8 +154,8 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 	version.P = mt.VersionPayload{
 		Version:       n.GetVersion(),
 		Services:      n.GetServices(),
-		SyncPort:      n.GetSyncPort(),
-		ConsPort:      n.GetConsPort(),
+		SyncPort:      n.GetSyncPort(config.DefConfig.P2PNode.TransportType),
+		ConsPort:      n.GetConsPort(config.DefConfig.P2PNode.TransportType),
 		Nonce:         n.GetID(),
 		IsConsensus:   isCons,
 		HttpInfoPort:  n.GetHttpInfoPort(),

@@ -2,11 +2,13 @@ package creator
 
 import (
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver/common"
 	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 	"github.com/ontio/ontology/p2pserver/net/transport/quic"
 	"github.com/ontio/ontology/p2pserver/net/transport/tcp"
-	"sync"
+
 	"errors"
+	"sync"
 )
 
 var once sync.Once
@@ -21,8 +23,8 @@ func GetTransportFactory() *transportFactory{
 	once.Do(func(){
 		instance = &transportFactory{}
 		instance.tspMap = make(map[byte]tsp.Transport, 2)
-		instance.tspMap[tsp.T_TCP], _ = tcp.NewTransport()
-		instance.tspMap[tsp.T_QUICK],_ = quic.NewTransport()
+		instance.tspMap[common.T_TCP], _ = tcp.NewTransport()
+		instance.tspMap[common.T_QUIC],_ = quic.NewTransport()
 	})
 
 	return instance

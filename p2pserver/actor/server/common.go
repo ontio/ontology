@@ -46,7 +46,8 @@ type GetConnectionCntReq struct {
 
 //response of connection count requet
 type GetConnectionCntRsp struct {
-	Cnt uint32
+	CntLegacy uint32
+	Cnt       uint32
 }
 
 //get net module id

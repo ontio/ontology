@@ -156,7 +156,7 @@ func (this *Link) Rx(tspType byte) {
 		}
 	}
 
-	this.disconnectNotify()
+	this.disconnectNotify(tspType)
 }
 
 //disconnectNotify push disconnect msg to channel
