@@ -1,5 +1,7 @@
 language: go
 
+go_import_path: github.com/ontio/ontology
+
 install:
   - go get github.com/Masterminds/glide
   - glide install
