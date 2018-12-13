@@ -127,12 +127,6 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
 	}
 
-	//init side chain id
-	err = putSideChainID(native, contract, &SideChainID{configuration.SideChainID})
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("putSideChainID, put sideChainID error: %v", err)
-	}
-
 	//init peer pool
 	err = putPeerPoolMap(native, contract, peerPoolMap)
 	if err != nil {
