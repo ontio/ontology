@@ -112,6 +112,7 @@ func GetNetworkName(id uint32) string {
 }
 
 var PolarisConfig = &GenesisConfig{
+	SideChainID: "testSideChain",
 	SeedList: []string{
 		"polaris1.ont.io:20338",
 		"polaris2.ont.io:20338",
@@ -127,7 +128,6 @@ var PolarisConfig = &GenesisConfig{
 		HashMsgDelay:         10000,
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   3000,
-		SideChainID:          "testSideChain",
 		MinInitStake:         10000,
 		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
 		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
@@ -181,6 +181,7 @@ var PolarisConfig = &GenesisConfig{
 }
 
 var MainNetConfig = &GenesisConfig{
+	SideChainID: "sideChain",
 	SeedList: []string{
 		"seed1.ont.io:20338",
 		"seed2.ont.io:20338",
@@ -197,7 +198,6 @@ var MainNetConfig = &GenesisConfig{
 		HashMsgDelay:         10000,
 		PeerHandshakeTimeout: 10,
 		MaxBlockChangeView:   120000,
-		SideChainID:          "sideChain",
 		MinInitStake:         100000,
 		VrfValue:             "1c9810aa9822e511d5804a9c4db9dd08497c31087b0daafa34d768a3253441fa20515e2f30f81741102af0ca3cefc4818fef16adb825fbaa8cad78647f3afb590e",
 		VrfProof:             "c57741f934042cb8d8b087b44b161db56fc3ffd4ffb675d36cd09f83935be853d8729f3f5298d12d6fd28d45dde515a4b9d7f67682d182ba5118abf451ff1988",
@@ -246,6 +246,7 @@ var MainNetConfig = &GenesisConfig{
 var DefConfig = NewOntologyConfig()
 
 type GenesisConfig struct {
+	SideChainID   string
 	SeedList      []string
 	ConsensusType string
 	VBFT          *VBFTConfig
@@ -276,7 +277,6 @@ type VBFTConfig struct {
 	PeerHandshakeTimeout uint32               `json:"peer_handshake_timeout"`
 	MaxBlockChangeView   uint32               `json:"max_block_change_view"`
 	MinInitStake         uint32               `json:"min_init_stake"`
-	SideChainID          string               `json:"side_chain_id"`
 	VrfValue             string               `json:"vrf_value"`
 	VrfProof             string               `json:"vrf_proof"`
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
@@ -309,9 +309,6 @@ func (this *VBFTConfig) Serialize(w io.Writer) error {
 	}
 	if err := serialization.WriteUint32(w, this.MinInitStake); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize min_init_stake error!")
-	}
-	if err := serialization.WriteString(w, this.SideChainID); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize side_chain_id error!")
 	}
 	if err := serialization.WriteString(w, this.VrfValue); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize vrf_value error!")
@@ -367,10 +364,6 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadUint32, deserialize minInitStake error!")
 	}
-	sideChainID, err := serialization.ReadString(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize side_chain_id error!")
-	}
 	vrfValue, err := serialization.ReadString(r)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.ReadString, deserialize vrfValue error!")
@@ -401,7 +394,6 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 	this.PeerHandshakeTimeout = peerHandshakeTimeout
 	this.MaxBlockChangeView = maxBlockChangeView
 	this.MinInitStake = minInitStake
-	this.SideChainID = sideChainID
 	this.VrfValue = vrfValue
 	this.VrfProof = vrfProof
 	this.Peers = peers
