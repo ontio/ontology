@@ -2,30 +2,35 @@ package types
 
 import (
 	"bytes"
+	"fmt"
+	"io"
 	"math"
 	"math/big"
 	"reflect"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
 )
 
-type NeoVmValueType uint8
+const (
+	bytearrayType byte = 0x00
+	boolType      byte = 0x01
+	integerType   byte = 0x02
+	bigintType    byte = 0x03
+	interopType   byte = 0x40
+	arrayType     byte = 0x80
+	structType    byte = 0x81
+	mapType       byte = 0x82
+)
 
 const (
-	boolType NeoVmValueType = iota
-	integerType
-	bigintType
-	bytearrayType
-	interopType
-	arrayType
-	structType
-	mapType
+	MAX_COUNT = 1024
 )
 
 type VmValue struct {
-	valType   NeoVmValueType
+	valType   byte
 	integer   int64
 	bigInt    *big.Int
 	byteArray []byte
@@ -47,6 +52,14 @@ func VmValueFromBytes(val []byte) (result VmValue, err error) {
 	result.valType = bytearrayType
 	result.byteArray = val
 	return
+}
+
+func VmValueFromBool(val bool) VmValue {
+	if val {
+		return VmValue{valType: boolType, integer: 1}
+	} else {
+		return VmValue{valType: boolType, integer: 0}
+	}
 }
 
 func VmValueFromUint64(val uint64) VmValue {
@@ -77,6 +90,13 @@ func VmValueFromStructVal(val StructValue) VmValue {
 	return VmValue{valType: structType, structval: val}
 }
 
+func VmValueFromInteropValue(val InteropValue) VmValue {
+	return VmValue{valType: interopType, interop: val}
+}
+func VmValueFromMapValue(val *MapValue) VmValue {
+	return VmValue{valType: mapType, mapval: val}
+}
+
 func NewMapVmValue() VmValue {
 	return VmValue{valType: mapType, mapval: NewMapValue()}
 }
@@ -102,6 +122,362 @@ func (self *VmValue) AsBytes() ([]byte, error) {
 	default:
 		panic("unreacheable!")
 	}
+}
+
+func (self *VmValue) BuildParamToNative(sink *common.ZeroCopySink) error {
+	b, err := self.CircularRefAndDepthDetection()
+	if err != nil {
+		return err
+	}
+	if b {
+		return fmt.Errorf("runtime serialize: can not serialize circular reference data")
+	}
+	return self.buildParamToNative(sink)
+}
+
+func (self *VmValue) buildParamToNative(sink *common.ZeroCopySink) error {
+	switch self.valType {
+	case bytearrayType:
+		sink.WriteVarBytes(self.byteArray)
+	case boolType:
+		bool, err := self.AsBool()
+		if err != nil {
+			return err
+		}
+		sink.WriteBool(bool)
+	case integerType:
+		bs, err := self.AsBytes()
+		if err != nil {
+			return err
+		}
+		sink.WriteVarBytes(bs)
+	case arrayType:
+		sink.WriteVarBytes(BigIntToBytes(big.NewInt(int64(len(self.array.Data)))))
+		for _, v := range self.array.Data {
+			err := v.BuildParamToNative(sink)
+			if err != nil {
+				return err
+			}
+		}
+	case structType:
+		for _, v := range self.structval.Data {
+			err := v.BuildParamToNative(sink)
+			if err != nil {
+				return err
+			}
+		}
+	case mapType:
+		//TODO
+		return errors.ERR_BAD_TYPE
+	default:
+		panic("unreacheable!")
+	}
+	return nil
+}
+func (self *VmValue) ConvertNeoVmValueHexString() (interface{}, error) {
+	var count int
+	return self.convertNeoVmValueHexString(&count)
+}
+func (self *VmValue) convertNeoVmValueHexString(count *int) (interface{}, error) {
+	if *count > MAX_COUNT {
+		return nil, fmt.Errorf("over max parameters convert length")
+	}
+	switch self.valType {
+	case boolType:
+		boo, err := self.AsBool()
+		if err != nil {
+			return nil, err
+		}
+		if boo {
+			return common.ToHexString([]byte{1}), nil
+		} else {
+			return common.ToHexString([]byte{0}), nil
+		}
+	case bytearrayType:
+		return common.ToHexString(self.byteArray), nil
+	case integerType:
+		return common.ToHexString(common.BigIntToNeoBytes(big.NewInt(self.integer))), nil
+	case bigintType:
+		return common.ToHexString(common.BigIntToNeoBytes(self.bigInt)), nil
+	case structType:
+		var sstr []interface{}
+		for i := 0; i < len(self.structval.Data); i++ {
+			*count++
+			t, err := self.structval.Data[i].convertNeoVmValueHexString(count)
+			if err != nil {
+				return nil, err
+			}
+			sstr = append(sstr, t)
+		}
+		return sstr, nil
+	case arrayType:
+		var sstr []interface{}
+		for i := 0; i < len(self.array.Data); i++ {
+			*count++
+			t, err := self.array.Data[i].convertNeoVmValueHexString(count)
+			if err != nil {
+				return nil, err
+			}
+			sstr = append(sstr, t)
+		}
+		return sstr, nil
+	case interopType:
+		return common.ToHexString(self.interop.Data.ToArray()), nil
+	default:
+		panic("unreacheable!")
+	}
+}
+func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
+	t, eof := source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	switch t {
+	case boolType:
+		b, irregular, eof := source.NextBool()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		*self = VmValueFromBool(b)
+	case bytearrayType:
+		data, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		value, err := VmValueFromBytes(data)
+		if err != nil {
+			return err
+		}
+		*self = value
+	case integerType:
+		data, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		value, err := VmValueFromBigInt(common.BigIntFromNeoBytes(data))
+		if err != nil {
+			return err
+		}
+		*self = value
+	case arrayType:
+		l, _, irregular, eof := source.NextVarUint()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		arr := new(ArrayValue)
+		for i := 0; i < int(l); i++ {
+			v := VmValue{}
+			err := v.Deserialize(source)
+			if err != nil {
+				return err
+			}
+			arr.Append(v)
+		}
+		*self = VmValueFromArrayVal(arr)
+	case mapType:
+		l, _, irregular, eof := source.NextVarUint()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		mapValue := NewMapValue()
+		for i := 0; i < int(l); i++ {
+			keyValue := VmValue{}
+			err := keyValue.Deserialize(source)
+			if err != nil {
+				return err
+			}
+			v := VmValue{}
+			err = v.Deserialize(source)
+			if err != nil {
+				return err
+			}
+			err = mapValue.Set(keyValue, v)
+			if err != nil {
+				return err
+			}
+		}
+		*self = VmValueFromMapValue(mapValue)
+	case structType:
+		l, _, irregular, eof := source.NextVarUint()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		structValue := NewStructValue()
+		for i := 0; i < int(l); i++ {
+			v := VmValue{}
+			err := v.Deserialize(source)
+			if err != nil {
+				return err
+			}
+			structValue = structValue.Append(v)
+		}
+		*self = VmValueFromStructVal(structValue)
+	default:
+		return fmt.Errorf("[Deserialize] VmValue Deserialize failed, Unsupported type!")
+
+	}
+	return nil
+}
+
+func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
+	b, err := self.CircularRefAndDepthDetection()
+	if err != nil {
+		return err
+	}
+	if b {
+		return fmt.Errorf("runtime serialize: can not serialize circular reference data")
+	}
+	switch self.valType {
+	case boolType:
+		sink.WriteByte(boolType)
+		boo, err := self.AsBool()
+		if err != nil {
+			return err
+		}
+		sink.WriteBool(boo)
+	case bytearrayType:
+		sink.WriteByte(bytearrayType)
+		sink.WriteVarBytes(self.byteArray)
+	case bigintType:
+		sink.WriteByte(integerType)
+		sink.WriteVarBytes(common.BigIntToNeoBytes(self.bigInt))
+	case integerType:
+		sink.WriteByte(integerType)
+		t := big.NewInt(self.integer)
+		sink.WriteVarBytes(common.BigIntToNeoBytes(t))
+	case arrayType:
+		sink.WriteByte(arrayType)
+		sink.WriteVarUint(uint64(len(self.array.Data)))
+		for i := 0; i < len(self.array.Data); i++ {
+			err := self.array.Data[i].Serialize(sink)
+			if err != nil {
+				return err
+			}
+		}
+	case mapType:
+		sink.WriteByte(mapType)
+		sink.WriteVarUint(uint64(len(self.mapval.Data)))
+		var unsortKey []string
+		for k := range self.mapval.Data {
+			unsortKey = append(unsortKey, k)
+		}
+		//TODO check consistence
+		sort.Strings(unsortKey)
+		for _, key := range unsortKey {
+			keyVal, err := VmValueFromBytes([]byte(key))
+			if err != nil {
+				return err
+			}
+			err = keyVal.Serialize(sink)
+			if err != nil {
+				return err
+			}
+			value := self.mapval.Data[key]
+			err = value.Serialize(sink)
+			if err != nil {
+				return err
+			}
+		}
+	case structType:
+		sink.WriteByte(structType)
+		sink.WriteVarUint(uint64(len(self.structval.Data)))
+		for _, item := range self.structval.Data {
+			err := item.Serialize(sink)
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		panic("unreacheable!")
+	}
+	return nil
+}
+
+func (self *VmValue) CircularRefAndDepthDetection() (bool, error) {
+	return self.circularRefAndDepthDetection(make(map[uintptr]bool), 0)
+}
+
+func (self *VmValue) circularRefAndDepthDetection(visited map[uintptr]bool, depth int) (bool, error) {
+	if depth > MAX_STRUCT_DEPTH {
+		return true, nil
+	}
+	switch self.valType {
+	case arrayType:
+		arr, err := self.AsArrayValue()
+		if err != nil {
+			return true, err
+		}
+		if len(arr.Data) == 0 {
+			return false, nil
+		}
+		p := reflect.ValueOf(arr.Data).Pointer()
+		if visited[p] {
+			return true, nil
+		}
+		visited[p] = true
+		for _, v := range arr.Data {
+			return v.circularRefAndDepthDetection(visited, depth+1)
+		}
+		delete(visited, p)
+		return false, nil
+	case structType:
+		s, err := self.AsStructValue()
+		if err != nil {
+			return true, err
+		}
+		if len(s.Data) == 0 {
+			return false, nil
+		}
+
+		p := reflect.ValueOf(s.Data).Pointer()
+		if visited[p] {
+			return true, nil
+		}
+		visited[p] = true
+
+		for _, v := range s.Data {
+			return v.circularRefAndDepthDetection(visited, depth+1)
+		}
+
+		delete(visited, p)
+		return false, nil
+	case mapType:
+		mp, err := self.AsMapValue()
+		if err != nil {
+			return true, err
+		}
+		p := reflect.ValueOf(mp.Data).Pointer()
+		if visited[p] {
+			return true, nil
+		}
+		visited[p] = true
+		for _, v := range mp.Data {
+			return v.circularRefAndDepthDetection(visited, depth+1)
+		}
+		delete(visited, p)
+		return false, nil
+	default:
+		return false, nil
+	}
+	return false, nil
 }
 
 func (self *VmValue) AsInt64() (int64, error) {
@@ -182,6 +558,15 @@ func (self *VmValue) AsArrayValue() (*ArrayValue, error) {
 		return self.array, nil
 	default:
 		return nil, errors.ERR_BAD_TYPE
+	}
+}
+
+func (self *VmValue) AsInteropValue() (InteropValue, error) {
+	switch self.valType {
+	case interopType:
+		return self.interop, nil
+	default:
+		return InteropValue{}, errors.ERR_BAD_TYPE
 	}
 }
 

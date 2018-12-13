@@ -28,7 +28,7 @@ import (
 )
 
 // ContractCreate create a new smart contract on blockchain, and put it to vm stack
-func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
+func ContractCreate(service *NeoVmService, engine *vm.Executor) error {
 	contract, err := isContractParamValid(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
@@ -42,12 +42,11 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		service.CacheDB.PutContract(contract)
 		dep = contract
 	}
-	vm.PushData(engine, dep)
-	return nil
+	return engine.EvalStack.PushAsInteropValue(dep)
 }
 
 // ContractMigrate migrate old smart contract to a new contract, and destroy old contract
-func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
+func ContractMigrate(service *NeoVmService, engine *vm.Executor) error {
 	contract, err := isContractParamValid(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] contract parameters invalid!")
@@ -76,13 +75,11 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err := iter.Error(); err != nil {
 		return err
 	}
-
-	vm.PushData(engine, contract)
-	return nil
+	return engine.EvalStack.PushAsInteropValue(contract)
 }
 
 // ContractDestory destroy a contract
-func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
+func ContractDestory(service *NeoVmService, engine *vm.Executor) error {
 	context := service.ContextRef.CurrentContext()
 	if context == nil {
 		return errors.NewErr("[ContractDestory] current contract context invalid!")
@@ -109,18 +106,15 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 }
 
 // ContractGetStorageContext put contract storage context to vm stack
-func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[GetStorageContext] Too few input parameter!")
-	}
-	opInterface, err := vm.PopInteropInterface(engine)
+func ContractGetStorageContext(service *NeoVmService, engine *vm.Executor) error {
+	opInterface, err := engine.EvalStack.PopAsInteropValue()
 	if err != nil {
 		return err
 	}
-	if opInterface == nil {
+	if opInterface.Data == nil {
 		return errors.NewErr("[GetStorageContext] Pop data nil!")
 	}
-	contractState, ok := opInterface.(*payload.DeployCode)
+	contractState, ok := opInterface.Data.(*payload.DeployCode)
 	if !ok {
 		return errors.NewErr("[GetStorageContext] Pop data not contract!")
 	}
@@ -132,64 +126,65 @@ func ContractGetStorageContext(service *NeoVmService, engine *vm.ExecutionEngine
 	if address != service.ContextRef.CurrentContext().ContractAddress {
 		return errors.NewErr("[GetStorageContext] CodeHash not equal!")
 	}
-	vm.PushData(engine, NewStorageContext(address))
-	return nil
+	return engine.EvalStack.PushAsInteropValue(NewStorageContext(address))
 }
 
 // ContractGetCode put contract to vm stack
-func ContractGetCode(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	i, err := vm.PopInteropInterface(engine)
+func ContractGetCode(service *NeoVmService, engine *vm.Executor) error {
+	i, err := engine.EvalStack.PopAsInteropValue()
 	if err != nil {
 		return err
 	}
-	vm.PushData(engine, i.(*payload.DeployCode).Code)
-	return nil
+	if d, ok := i.Data.(*payload.DeployCode); ok {
+		return engine.EvalStack.PushBytes(d.Code)
+	}
+	return fmt.Errorf("[ContractGetCode] Type error ")
 }
 
-func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, error) {
-	if vm.EvaluationStackCount(engine) < 7 {
+func isContractParamValid(engine *vm.Executor) (*payload.DeployCode, error) {
+	if engine.EvalStack.Count() < 7 {
 		return nil, errors.NewErr("[Contract] Too few input parameters")
 	}
-	code, err := vm.PopByteArray(engine)
+	code, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
 	if len(code) > 1024*1024 {
 		return nil, errors.NewErr("[Contract] Code too long!")
 	}
-	needStorage, err := vm.PopBoolean(engine)
+	needStorage, err := engine.EvalStack.PopAsBool()
 	if err != nil {
 		return nil, err
 	}
-	name, err := vm.PopByteArray(engine)
+	name, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
 	if len(name) > 252 {
 		return nil, errors.NewErr("[Contract] Name too long!")
 	}
-	version, err := vm.PopByteArray(engine)
+	version, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
 	if len(version) > 252 {
 		return nil, errors.NewErr("[Contract] Version too long!")
 	}
-	author, err := vm.PopByteArray(engine)
+	author, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
 	if len(author) > 252 {
 		return nil, errors.NewErr("[Contract] Author too long!")
 	}
-	email, err := vm.PopByteArray(engine)
+	email, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
 	if len(email) > 252 {
 		return nil, errors.NewErr("[Contract] Email too long!")
 	}
-	desc, err := vm.PopByteArray(engine)
+	desc, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}

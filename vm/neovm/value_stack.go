@@ -96,11 +96,25 @@ func (self *ValueStack) Push(t types.VmValue) error {
 	return nil
 }
 
-func (self *ValueStack) PushMany(vals... types.VmValue) error {
-	if int64(len(self.data) + len(vals)) > self.limit {
+func (self *ValueStack) PushMany(vals ...types.VmValue) error {
+	if int64(len(self.data)+len(vals)) > self.limit {
 		return errors.ERR_OVER_STACK_LEN
 	}
 	self.data = append(self.data, vals...)
+	return nil
+}
+
+func (self *ValueStack) PushAsArray(vals []types.VmValue) error {
+
+	if int64(len(self.data)+1) > self.limit {
+		return errors.ERR_OVER_STACK_LEN
+	}
+	arrayValue := types.NewArrayValue()
+	for _, val := range vals {
+		arrayValue.Append(val)
+	}
+	v := types.VmValueFromArrayVal(arrayValue)
+	self.data = append(self.data, v)
 	return nil
 }
 
