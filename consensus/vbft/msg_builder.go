@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -188,6 +189,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 
 	blkHeader := &types.Header{
 		SideChainID:      config.DefConfig.Genesis.SideChainID,
+		Version:          genesis.BlockVersion,
 		PrevBlockHash:    prevBlkHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,

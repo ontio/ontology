@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	BlockVersion uint32 = 0
+	BlockVersion uint32 = 1
 	GenesisNonce uint64 = 2083236893
 )
 

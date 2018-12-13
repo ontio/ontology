@@ -32,7 +32,7 @@ import (
 	msg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
-const ContextVersion uint32 = 0
+const ContextVersion uint32 = 1
 
 type ConsensusContext struct {
 	State           ConsensusState
