@@ -34,15 +34,17 @@ import (
 )
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
+const TX_VERSION = byte(1)
 
 type Transaction struct {
-	Version  byte
-	TxType   TransactionType
-	Nonce    uint32
-	GasPrice uint64
-	GasLimit uint64
-	Payer    common.Address
-	Payload  Payload
+	SideChainID string
+	Version     byte
+	TxType      TransactionType
+	Nonce       uint32
+	GasPrice    uint64
+	GasLimit    uint64
+	Payer       common.Address
+	Payload     Payload
 	//Attributes []*TxAttribute
 	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extension
 	Sigs       []RawSig
@@ -121,13 +123,14 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 // note: ownership transfered to output
 func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 	mutable := &MutableTransaction{
-		Version:  tx.Version,
-		TxType:   tx.TxType,
-		Nonce:    tx.Nonce,
-		GasPrice: tx.GasPrice,
-		GasLimit: tx.GasLimit,
-		Payer:    tx.Payer,
-		Payload:  tx.Payload,
+		SideChainID: tx.SideChainID,
+		Version:     tx.Version,
+		TxType:      tx.TxType,
+		Nonce:       tx.Nonce,
+		GasPrice:    tx.GasPrice,
+		GasLimit:    tx.GasLimit,
+		Payer:       tx.Payer,
+		Payload:     tx.Payload,
 	}
 
 	for _, raw := range tx.Sigs {
@@ -143,6 +146,10 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 
 func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
+	tx.SideChainID, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
 	tx.Version, eof = source.NextByte()
 	var txtype byte
 	txtype, eof = source.NextByte()

@@ -28,6 +28,7 @@ import (
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
@@ -49,7 +50,6 @@ import (
 )
 
 const (
-	VERSION_TRANSACTION    = byte(0)
 	VERSION_CONTRACT_ONT   = byte(0)
 	VERSION_CONTRACT_ONG   = byte(0)
 	CONTRACT_TRANSFER      = "transfer"
@@ -291,12 +291,14 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 		Code: invokeCode,
 	}
 	tx := &types.MutableTransaction{
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		TxType:   types.Invoke,
-		Nonce:    rand.Uint32(),
-		Payload:  invokePayload,
-		Sigs:     make([]types.Sig, 0, 0),
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		Version:     types.TX_VERSION,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		TxType:      types.Invoke,
+		Nonce:       rand.Uint32(),
+		Payload:     invokePayload,
+		Sigs:        make([]types.Sig, 0, 0),
 	}
 	return tx
 }
@@ -797,13 +799,14 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorag
 		Description: cdesc,
 	}
 	tx := &types.MutableTransaction{
-		Version:  VERSION_TRANSACTION,
-		TxType:   types.Deploy,
-		Nonce:    uint32(time.Now().Unix()),
-		Payload:  deployPayload,
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		Sigs:     make([]types.Sig, 0, 0),
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		Version:     types.TX_VERSION,
+		TxType:      types.Deploy,
+		Nonce:       uint32(time.Now().Unix()),
+		Payload:     deployPayload,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Sigs:        make([]types.Sig, 0, 0),
 	}
 	return tx
 }
