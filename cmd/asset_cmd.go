@@ -38,9 +38,9 @@ var AssetCommand = cli.Command{
 		{
 			Action:      transfer,
 			Name:        "transfer",
-			Usage:       "Transfer ont or ong to another account",
+			Usage:       "Transfer ong to another account",
 			ArgsUsage:   " ",
-			Description: "Transfer ont or ong to another account. If from address does not specified, using default account",
+			Description: "Transfer ong to another account. If from address does not specified, using default account",
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 				utils.TransactionGasPriceFlag,
@@ -90,7 +90,7 @@ var AssetCommand = cli.Command{
 		{
 			Action:    getBalance,
 			Name:      "balance",
-			Usage:     "Show balance of ont and ong of specified account",
+			Usage:     "Show balance of ong of specified account",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
@@ -100,34 +100,12 @@ var AssetCommand = cli.Command{
 		{
 			Action: getAllowance,
 			Name:   "allowance",
-			Usage:  "Show approve balance of ont or ong of specified account",
+			Usage:  "Show approve balance of ong of specified account",
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 				utils.ApproveAssetFlag,
 				utils.ApproveAssetFromFlag,
 				utils.ApproveAssetToFlag,
-				utils.WalletFileFlag,
-			},
-		},
-		{
-			Action:    unboundOng,
-			Name:      "unboundong",
-			Usage:     "Show the balance of unbound ONG",
-			ArgsUsage: "<address|label|index>",
-			Flags: []cli.Flag{
-				utils.RPCPortFlag,
-				utils.WalletFileFlag,
-			},
-		},
-		{
-			Action:    withdrawOng,
-			Name:      "withdrawong",
-			Usage:     "Withdraw ONG",
-			ArgsUsage: "<address|label|index>",
-			Flags: []cli.Flag{
-				utils.RPCPortFlag,
-				utils.TransactionGasPriceFlag,
-				utils.TransactionGasLimitFlag,
 				utils.WalletFileFlag,
 			},
 		},
@@ -146,7 +124,7 @@ func transfer(ctx *cli.Context) error {
 
 	asset := ctx.String(utils.GetFlagName(utils.TransactionAssetFlag))
 	if asset == "" {
-		asset = utils.ASSET_ONT
+		asset = utils.ASSET_ONG
 	}
 	from := ctx.String(utils.TransactionFromFlag.Name)
 	fromAddr, err := cmdcom.ParseAddress(from, ctx)
@@ -162,9 +140,6 @@ func transfer(ctx *cli.Context) error {
 	var amount uint64
 	amountStr := ctx.String(utils.TransactionAmountFlag.Name)
 	switch strings.ToLower(asset) {
-	case "ont":
-		amount = utils.ParseOnt(amountStr)
-		amountStr = utils.FormatOnt(amount)
 	case "ong":
 		amount = utils.ParseOng(amountStr)
 		amountStr = utils.FormatOng(amount)
@@ -244,7 +219,6 @@ func getBalance(ctx *cli.Context) error {
 		return err
 	}
 	PrintInfoMsg("BalanceOf:%s", accAddr)
-	PrintInfoMsg("  ONT:%s", balance.Ont)
 	PrintInfoMsg("  ONG:%s", utils.FormatOng(ong))
 	return nil
 }
@@ -260,7 +234,7 @@ func getAllowance(ctx *cli.Context) error {
 	}
 	asset := ctx.String(utils.GetFlagName(utils.ApproveAssetFlag))
 	if asset == "" {
-		asset = utils.ASSET_ONT
+		asset = utils.ASSET_ONG
 	}
 	fromAddr, err := cmdcom.ParseAddress(from, ctx)
 	if err != nil {
@@ -275,7 +249,6 @@ func getAllowance(ctx *cli.Context) error {
 		return err
 	}
 	switch strings.ToLower(asset) {
-	case "ont":
 	case "ong":
 		balance, err := strconv.ParseUint(balanceStr, 10, 64)
 		if err != nil {
@@ -316,9 +289,6 @@ func approve(ctx *cli.Context) error {
 	}
 	var amount uint64
 	switch strings.ToLower(asset) {
-	case "ont":
-		amount = utils.ParseOnt(amountStr)
-		amountStr = utils.FormatOnt(amount)
 	case "ong":
 		amount = utils.ParseOng(amountStr)
 		amountStr = utils.FormatOng(amount)
@@ -405,9 +375,6 @@ func transferFrom(ctx *cli.Context) error {
 
 	var amount uint64
 	switch strings.ToLower(asset) {
-	case "ont":
-		amount = utils.ParseOnt(amountStr)
-		amountStr = utils.FormatOnt(amount)
 	case "ong":
 		amount = utils.ParseOng(amountStr)
 		amountStr = utils.FormatOng(amount)

@@ -24,6 +24,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
@@ -42,11 +48,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"math/rand"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -56,7 +57,6 @@ const (
 	CONTRACT_TRANSFER_FROM = "transferFrom"
 	CONTRACT_APPROVE       = "approve"
 
-	ASSET_ONT = "ont"
 	ASSET_ONG = "ong"
 )
 
@@ -89,8 +89,6 @@ func GetAccountBalance(address, asset string) (uint64, error) {
 	}
 	var balance uint64
 	switch strings.ToLower(asset) {
-	case "ont":
-		balance, err = strconv.ParseUint(balances.Ont, 10, 64)
 	case "ong":
 		balance, err = strconv.ParseUint(balances.Ong, 10, 64)
 	default:
@@ -194,9 +192,6 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	case ASSET_ONT:
-		version = VERSION_CONTRACT_ONT
-		contractAddr = utils.OntContractAddress
 	case ASSET_ONG:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
@@ -229,9 +224,6 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	case ASSET_ONT:
-		version = VERSION_CONTRACT_ONT
-		contractAddr = utils.OntContractAddress
 	case ASSET_ONG:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
@@ -268,9 +260,6 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	case ASSET_ONT:
-		version = VERSION_CONTRACT_ONT
-		contractAddr = utils.OntContractAddress
 	case ASSET_ONG:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress

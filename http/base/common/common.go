@@ -46,7 +46,6 @@ import (
 const MAX_SEARCH_HEIGHT uint32 = 100
 
 type BalanceOfRsp struct {
-	Ont string `json:"ont"`
 	Ong string `json:"ong"`
 }
 
@@ -261,16 +260,11 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 }
 
 func GetBalance(address common.Address) (*BalanceOfRsp, error) {
-	ont, err := GetContractBalance(0, utils.OntContractAddress, address)
-	if err != nil {
-		return nil, fmt.Errorf("get ont balance error:%s", err)
-	}
 	ong, err := GetContractBalance(0, utils.OngContractAddress, address)
 	if err != nil {
 		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
 	return &BalanceOfRsp{
-		Ont: fmt.Sprintf("%d", ont),
 		Ong: fmt.Sprintf("%d", ong),
 	}, nil
 }
