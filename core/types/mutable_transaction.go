@@ -20,7 +20,9 @@ package types
 
 import (
 	"errors"
+
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/payload"
 )
 
@@ -95,8 +97,11 @@ func (tx *MutableTransaction) serialize(sink *common.ZeroCopySink) error {
 }
 
 func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error {
+	if tx.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return errors.New("tx side chain id is not correct")
+	}
 	if tx.Version != TX_VERSION {
-		return errors.New("side chain block version should equal to 1")
+		return errors.New("side chain tx version should equal to 1")
 	}
 	sink.WriteString(tx.SideChainID)
 	sink.WriteByte(byte(tx.Version))

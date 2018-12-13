@@ -27,6 +27,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 )
 
@@ -100,6 +101,9 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
 
 //Serialize the blockheader data without program
 func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) error {
+	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return errors.New("side chain id is not correct")
+	}
 	if bd.Version != 1 {
 		return errors.New("side chain block version should equal to 1")
 	}
@@ -118,6 +122,9 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) error {
 
 //Serialize the blockheader data without program
 func (bd *Header) SerializeUnsigned(w io.Writer) error {
+	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return errors.New("side chain id is not correct")
+	}
 	if bd.Version != 1 {
 		return errors.New("side chain block version should equal to 1")
 	}
@@ -271,6 +278,9 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	if irregular {
 		return common.ErrIrregularData
 	}
+	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return errors.New("side chain id is not correct")
+	}
 	bd.Version, eof = source.NextUint32()
 	if bd.Version != 1 {
 		return errors.New("side chain block version should equal to 1")
@@ -299,6 +309,9 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	bd.SideChainID, err = serialization.ReadString(r)
 	if err != nil {
 		return fmt.Errorf("Header item SideChainID Deserialize failed: %s", err)
+	}
+	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return fmt.Errorf("side chain id is not correct")
 	}
 
 	bd.Version, err = serialization.ReadUint32(r)

@@ -27,6 +27,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
@@ -150,9 +151,12 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	if irregular {
 		return common.ErrIrregularData
 	}
+	if tx.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return errors.New("tx side chain id is not correct")
+	}
 	tx.Version, eof = source.NextByte()
 	if tx.Version != TX_VERSION {
-		return fmt.Errorf("side chain block version should equal to 1")
+		return fmt.Errorf("side chain tx version should equal to 1")
 	}
 	var txtype byte
 	txtype, eof = source.NextByte()
