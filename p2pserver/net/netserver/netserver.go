@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -280,10 +281,31 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer, tspType byte) bool {
 	return false
 }
 
+func (this *NetServer) Connect(addr string, isConsensus bool) error {
+	err := this.connectSub(addr, isConsensus, config.DefConfig.P2PNode.TransportType)
+	switch err.(type){
+	case *tsp.DialError:
+		log.Infof("[p2p]Connect to %s dial err by transport %s and switch to transport %s",
+							addr,
+							common.GetTransportTypeString(config.DefConfig.P2PNode.TransportType),
+							common.GetTransportTypeString(common.LegacyTSPType))
+	    ip, errIP := common.ParseIPAddr(addr)
+	    port, errPort := common.ParseIPPort(addr)
+	    if errIP == nil && errPort == nil{
+	    	portNum, _ := strconv.ParseUint(port[1:], 10, 64)
+	    	legacyPort := portNum - uint64(10000)
+	    	legacyAddr := ip + ":" + strconv.FormatUint(legacyPort, 10)
+			return this.connectSub(legacyAddr, isConsensus, common.LegacyTSPType)
+		}
+	default:
+		return err
+	}
 
+	return err
+}
 
 //Connect used to connect net address under sync or cons mode
-func (this *NetServer) Connect(addr string, isConsensus bool) error {
+func (this *NetServer) connectSub(addr string, isConsensus bool, tspType byte) error {
 	if this.IsAddrInOutConnRecord(addr) {
 		log.Debugf("[p2p]Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
 		fmt.Printf("[p2p]AddrInOutConnRecord %s\n", addr)
@@ -305,8 +327,6 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		return errors.New("[p2p]connect: out connections reach the max limit")
 	}
 	this.connectLock.Unlock()
-
-	tspType := config.DefConfig.P2PNode.TransportType
 
 	this.connectLock.Lock()
 	if this.IsNbrPeerAddr(addr, isConsensus, tspType) {
@@ -361,7 +381,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SetConsState(common.HAND, tspType)
 		remotePeer.SetTransportType(tspType)
 	}
-	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
+	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight(), tspType)
 	err = remotePeer.Send(version, isConsensus, tspType)
 	if err != nil {
 		if !isConsensus {

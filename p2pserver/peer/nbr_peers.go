@@ -116,21 +116,29 @@ func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 	defer this.RUnlock()
 
 	var addrs []common.PeerAddr
-	tspType := config.DefConfig.P2PNode.TransportType
+	tspType  := config.DefConfig.P2PNode.TransportType
+	tspTypeL := common.LegacyTSPType
 	for _, p := range this.List {
 		if p.GetTransportType() != tspType {
 			continue
 		}
-		if p.GetSyncState(tspType) != common.ESTABLISH {
-			continue
+		if p.GetSyncState(tspType) == common.ESTABLISH {
+			var addr common.PeerAddr
+			addr.IpAddr, _ = p.GetAddr16(tspType)
+			addr.Time = p.GetTimeStamp(tspType)
+			addr.Services = p.GetServices()
+			addr.Port = p.GetSyncPort(tspType)
+			addr.ID = p.GetID()
+			addrs = append(addrs, addr)
+		}else if p.GetSyncState(tspTypeL) == common.ESTABLISH {
+			var addr common.PeerAddr
+			addr.IpAddr, _ = p.GetAddr16(tspTypeL)
+			addr.Time = p.GetTimeStamp(tspTypeL)
+			addr.Services = p.GetServices()
+			addr.Port = p.GetSyncPort(tspTypeL)
+			addr.ID = p.GetID()
+			addrs = append(addrs, addr)
 		}
-		var addr common.PeerAddr
-		addr.IpAddr, _ = p.GetAddr16(tspType)
-		addr.Time = p.GetTimeStamp(tspType)
-		addr.Services = p.GetServices()
-		addr.Port = p.GetSyncPort(tspType)
-		addr.ID = p.GetID()
-		addrs = append(addrs, addr)
 	}
 
 	return addrs

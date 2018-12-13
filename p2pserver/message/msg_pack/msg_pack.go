@@ -148,7 +148,7 @@ func NewVerAck(isConsensus bool) mt.Message {
 }
 
 //Version package
-func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
+func NewVersion(n p2pnet.P2P, isCons bool, height uint32, tspType byte) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{
@@ -161,7 +161,7 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 		HttpInfoPort:  n.GetHttpInfoPort(),
 		StartHeight:   uint64(height),
 		TimeStamp:     time.Now().UnixNano(),
-		TransportType: config.DefConfig.P2PNode.TransportType,
+		TransportType: tspType,
 	}
 
 	if n.GetRelay() {

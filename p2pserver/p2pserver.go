@@ -356,7 +356,9 @@ func (this *P2PServer) reachMinConnection() bool {
 
 	legacyCnt, cnt := this.GetConnectionCnt()
 
-	return int(cnt)+1 >= minCount || int(legacyCnt)+1 >= minCount
+	log.Tracef("[p2p]Current legacy connectCnt=%d, connectCnt=%d", legacyCnt, cnt)
+
+	return int(cnt)+1 >= minCount || int(legacyCnt)+1 >= minCount || int(legacyCnt+cnt)+1 >= minCount
 }
 
 //getNode returns the peer with the id
