@@ -1,6 +1,9 @@
 package neovm
 
-import "github.com/ontio/ontology/vm/neovm/types"
+import (
+	"github.com/ontio/ontology/vm/neovm/interfaces"
+	"github.com/ontio/ontology/vm/neovm/types"
+)
 
 func (self *ValueStack) PushBool(val bool) error {
 	if val {
@@ -79,6 +82,18 @@ func (self *ValueStack) PopAsStruct() (types.StructValue, error) {
 	return val.AsStructValue()
 }
 
+func (self *ValueStack) PushAsInteropValue(val interfaces.Interop) error {
+	return self.Push(types.VmValueFromInteropValue(types.NewInteropValue(val)))
+}
+
+func (self *ValueStack) PopAsInteropValue() (types.InteropValue, error) {
+	val, err := self.Pop()
+	if err != nil {
+		return types.InteropValue{}, err
+	}
+	return val.AsInteropValue()
+}
+
 func (self *ValueStack) PopPairAsBytes() (left, right []byte, err error) {
 	right, err = self.PopAsBytes()
 	if err != nil {
@@ -152,4 +167,16 @@ func (self *ValueStack) PopTripleAsIntVal() (left, middle, right types.IntValue,
 	}
 	left, err = self.PopAsIntValue()
 	return
+}
+
+func (self *ValueStack) PeekAsBytes(index int64) ([]byte, error) {
+	val, err := self.Peek(index)
+	if err != nil {
+		return nil, err
+	}
+	bs, err := val.AsBytes()
+	if err != nil {
+		return nil, err
+	}
+	return bs, nil
 }

@@ -26,22 +26,24 @@ import (
 )
 
 // BlockChainGetHeight put blockchain's height to vm stack
-func BlockChainGetHeight(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, service.Store.GetCurrentBlockHeight())
+func BlockChainGetHeight(service *NeoVmService, engine *vm.Executor) error {
+	err := engine.EvalStack.PushInt64(int64(service.Store.GetCurrentBlockHeight()))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetHeight] GetHeight error!.")
+	}
 	return nil
 }
 
 // BlockChainGetHeader put blockchain's header to vm stack
-func BlockChainGetHeader(service *NeoVmService, engine *vm.ExecutionEngine) error {
+func BlockChainGetHeader(service *NeoVmService, engine *vm.Executor) error {
 	var (
 		header *types.Header
 		err    error
 	)
-	data, err := vm.PopByteArray(engine)
+	data, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
-
 	l := len(data)
 	if l <= 5 {
 		b := common.BigIntFromNeoBytes(data)
@@ -60,20 +62,20 @@ func BlockChainGetHeader(service *NeoVmService, engine *vm.ExecutionEngine) erro
 	} else {
 		return errors.NewErr("[BlockChainGetHeader] data invalid.")
 	}
-	vm.PushData(engine, header)
+
+	err = engine.EvalStack.PushAsInteropValue(header)
+	if err != nil {
+		return errors.NewErr("[BlockChainGetHeader] PushAsInteropValue error.")
+	}
 	return nil
 }
 
 // BlockChainGetBlock put blockchain's block to vm stack
-func BlockChainGetBlock(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[BlockChainGetBlock] Too few input parameters ")
-	}
-	data, err := vm.PopByteArray(engine)
+func BlockChainGetBlock(service *NeoVmService, engine *vm.Executor) error {
+	data, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
-
 	var block *types.Block
 	l := len(data)
 	if l <= 5 {
@@ -96,13 +98,16 @@ func BlockChainGetBlock(service *NeoVmService, engine *vm.ExecutionEngine) error
 	} else {
 		return errors.NewErr("[BlockChainGetBlock] data invalid.")
 	}
-	vm.PushData(engine, block)
+	err = engine.EvalStack.PushAsInteropValue(block)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetBlock] PushAsInteropValue error!.")
+	}
 	return nil
 }
 
 // BlockChainGetTransaction put blockchain's transaction to vm stack
-func BlockChainGetTransaction(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	d, err := vm.PopByteArray(engine)
+func BlockChainGetTransaction(service *NeoVmService, engine *vm.Executor) error {
+	d, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -114,16 +119,16 @@ func BlockChainGetTransaction(service *NeoVmService, engine *vm.ExecutionEngine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetTransaction] GetTransaction error!")
 	}
-	vm.PushData(engine, t)
+	err = engine.EvalStack.PushAsInteropValue(t)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetTransaction] PushAsInteropValue error!")
+	}
 	return nil
 }
 
 // BlockChainGetContract put blockchain's contract to vm stack
-func BlockChainGetContract(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[GetContract] Too few input parameters ")
-	}
-	b, err := vm.PopByteArray(engine)
+func BlockChainGetContract(service *NeoVmService, engine *vm.Executor) error {
+	b, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -133,18 +138,18 @@ func BlockChainGetContract(service *NeoVmService, engine *vm.ExecutionEngine) er
 	}
 	item, err := service.Store.GetContractState(address)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[GetContract] GetAsset error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetContract] GetContract error!")
 	}
-	vm.PushData(engine, item)
+	err = engine.EvalStack.PushAsInteropValue(item)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetContract] PushAsInteropValue error!")
+	}
 	return nil
 }
 
 // BlockChainGetTransactionHeight put transaction in block height to vm stack
-func BlockChainGetTransactionHeight(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[BlockChainGetTransactionHeight] Too few input parameters ")
-	}
-	d, err := vm.PopByteArray(engine)
+func BlockChainGetTransactionHeight(service *NeoVmService, engine *vm.Executor) error {
+	d, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -154,8 +159,11 @@ func BlockChainGetTransactionHeight(service *NeoVmService, engine *vm.ExecutionE
 	}
 	_, h, err := service.Store.GetTransaction(hash)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetTransaction] GetTransaction error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetTransactionHeight] GetTransaction error!")
 	}
-	vm.PushData(engine, h)
+	err = engine.EvalStack.PushInt64(int64(h))
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetTransactionHeight] PushInt64 error!")
+	}
 	return nil
 }

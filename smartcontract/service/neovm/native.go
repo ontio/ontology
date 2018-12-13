@@ -33,16 +33,12 @@ import (
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
-func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	count := vm.EvaluationStackCount(engine)
-	if count < 4 {
-		return fmt.Errorf("invoke native contract invalid parameters %d < 4 ", count)
-	}
-	version, err := vm.PopInt(engine)
+func NativeInvoke(service *NeoVmService, engine *vm.Executor) error {
+	version, err := engine.EvalStack.PopAsInt64()
 	if err != nil {
 		return err
 	}
-	address, err := vm.PopByteArray(engine)
+	address, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -50,17 +46,19 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return fmt.Errorf("invoke native contract:%s, address invalid", address)
 	}
-	method, err := vm.PopByteArray(engine)
+	method, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
 	if len(method) > METHOD_LENGTH_LIMIT {
 		return fmt.Errorf("invoke native contract:%s method:%s too long, over max length 1024 limit", address, method)
 	}
-	args := vm.PopStackItem(engine)
-
-	buf := new(bytes.Buffer)
-	if err := BuildParamToNative(buf, args); err != nil {
+	args, err := engine.EvalStack.Pop()
+	if err != nil {
+		return err
+	}
+	sink := new(common.ZeroCopySink)
+	if err := args.BuildParamToNative(sink); err != nil {
 		return err
 	}
 
@@ -68,7 +66,7 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		Version: byte(version),
 		Address: addr,
 		Method:  string(method),
-		Args:    buf.Bytes(),
+		Args:    sink.Bytes(),
 	}
 
 	native := &native.NativeService{
@@ -85,8 +83,7 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return err
 	}
-	vm.PushData(engine, result)
-	return nil
+	return engine.EvalStack.PushBytes(result)
 }
 
 func BuildParamToNative(bf *bytes.Buffer, item types.StackItems) error {

@@ -20,25 +20,36 @@ package neovm
 
 import (
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/errors"
 	vm "github.com/ontio/ontology/vm/neovm"
+	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 // AttributeGetUsage put attribute's usage to vm stack
-func AttributeGetUsage(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	i, err := vm.PopInteropInterface(engine)
+func AttributeGetUsage(service *NeoVmService, engine *vm.Executor) error {
+	i, err := engine.EvalStack.PopAsInteropValue()
 	if err != nil {
 		return err
 	}
-	vm.PushData(engine, int(i.(*types.TxAttribute).Usage))
-	return nil
+	if a, ok := i.Data.(*types.TxAttribute); ok {
+		return engine.EvalStack.PushInt64(int64(a.Usage))
+	}
+	return errors.NewErr("[AttributeGetUsage] Wrong type!")
 }
 
 // AttributeGetData put attribute's data to vm stack
-func AttributeGetData(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	i, err := vm.PopInteropInterface(engine)
+func AttributeGetData(service *NeoVmService, engine *vm.Executor) error {
+	i, err := engine.EvalStack.PopAsInteropValue()
 	if err != nil {
 		return err
 	}
-	vm.PushData(engine, i.(*types.TxAttribute).Data)
-	return nil
+	if a, ok := i.Data.(*types.TxAttribute); ok {
+		val, err := vmtypes.VmValueFromBytes(a.Data)
+		if err != nil {
+			return err
+		}
+		engine.EvalStack.Push(val)
+		return nil
+	}
+	return errors.NewErr("[AttributeGetData] Wrong type!")
 }
