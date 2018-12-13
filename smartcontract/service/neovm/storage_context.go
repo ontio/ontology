@@ -43,12 +43,12 @@ func (this *StorageContext) ToArray() []byte {
 	return this.Address[:]
 }
 
-func StorageContextAsReadOnly(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	data, err := vm.PopInteropInterface(engine)
+func StorageContextAsReadOnly(service *NeoVmService, engine *vm.Executor) error {
+	data, err := engine.EvalStack.PopAsInteropValue()
 	if err != nil {
 		return err
 	}
-	context, ok := data.(*StorageContext)
+	context, ok := data.Data.(*StorageContext)
 	if !ok {
 		return fmt.Errorf("%s", "pop storage context type invalid")
 	}
@@ -56,6 +56,5 @@ func StorageContextAsReadOnly(service *NeoVmService, engine *vm.ExecutionEngine)
 		context = NewStorageContext(context.Address)
 		context.IsReadOnly = true
 	}
-	vm.PushData(engine, context)
-	return nil
+	return engine.EvalStack.PushAsInteropValue(context)
 }

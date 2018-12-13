@@ -21,7 +21,6 @@ package neovm
 import (
 	"crypto/sha1"
 	"crypto/sha256"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/vm/neovm/errors"
@@ -181,12 +180,14 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 	case RET:
 		self.Context, _ = self.PopContext()
+
 		/*
 			//todo
 				APPCALL  OpCode = 0x67
 				SYSCALL  OpCode = 0x68
 		*/
 		// Stack
+
 	case DUPFROMALTSTACK:
 		val, err := self.AltStack.Peek(0)
 		if err != nil {

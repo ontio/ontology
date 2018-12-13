@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"reflect"
 	"sort"
@@ -30,22 +31,20 @@ import (
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
 	vm "github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 // HeaderGetNextConsensus put current block time to vm stack
-func RuntimeGetTime(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, int(service.Time))
-	return nil
+func RuntimeGetTime(service *NeoVmService, engine *vm.Executor) error {
+	return engine.EvalStack.PushInt64(int64(service.Time))
 }
 
 // RuntimeCheckWitness provide check permissions service
 // If param address isn't exist in authorization list, check fail
-func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	data, err := vm.PopByteArray(engine)
+func RuntimeCheckWitness(service *NeoVmService, engine *vm.Executor) error {
+	data, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -64,37 +63,32 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 		result = service.ContextRef.CheckWitness(types.AddressFromPubKey(pk))
 	}
 
-	vm.PushData(engine, result)
-	return nil
+	return engine.EvalStack.PushBool(result)
 }
 
-func RuntimeSerialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	item := vm.PopStackItem(engine)
-
-	buf, err := SerializeStackItem(item)
+func RuntimeSerialize(service *NeoVmService, engine *vm.Executor) error {
+	val, err := engine.EvalStack.Pop()
+	sink := new(common.ZeroCopySink)
+	err = val.Serialize(sink)
 	if err != nil {
 		return err
 	}
-	vm.PushData(engine, buf)
-	return nil
+	return engine.EvalStack.PushBytes(sink.Bytes())
 }
 
-func RuntimeDeserialize(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	data, err := vm.PopByteArray(engine)
+//TODO check consistency with original implementation
+func RuntimeDeserialize(service *NeoVmService, engine *vm.Executor) error {
+	data, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
-		return err
+		return fmt.Errorf("[RuntimeDeserialize] PopAsBytes error: %s", err)
 	}
-	bf := bytes.NewBuffer(data)
-	item, err := DeserializeStackItem(bf)
+	source := common.NewZeroCopySource(data)
+	vmValue := vmtypes.VmValue{}
+	err = vmValue.Deserialize(source)
 	if err != nil {
-		return err
+		return fmt.Errorf("[RuntimeDeserialize] Deserialize error: %s", err)
 	}
-
-	if item == nil {
-		return nil
-	}
-	vm.PushData(engine, item)
-	return nil
+	return engine.EvalStack.Push(vmValue)
 }
 
 func RuntimeVerifyMutiSig(service *NeoVmService, engine *vm.ExecutionEngine) error {
@@ -147,10 +141,14 @@ func RuntimeVerifyMutiSig(service *NeoVmService, engine *vm.ExecutionEngine) err
 }
 
 // RuntimeNotify put smart contract execute event notify to notifications
-func RuntimeNotify(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	item := vm.PopStackItem(engine)
+func RuntimeNotify(service *NeoVmService, engine *vm.Executor) error {
+	item, err := engine.EvalStack.Pop()
+	if err != nil {
+		return err
+	}
+
 	context := service.ContextRef.CurrentContext()
-	states, err := scommon.ConvertNeoVmTypeHexString(item)
+	states, err := item.ConvertNeoVmValueHexString()
 	if err != nil {
 		return err
 	}
@@ -159,8 +157,8 @@ func RuntimeNotify(service *NeoVmService, engine *vm.ExecutionEngine) error {
 }
 
 // RuntimeLog push smart contract execute event log to client
-func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	item, err := vm.PopByteArray(engine)
+func RuntimeLog(service *NeoVmService, engine *vm.Executor) error {
+	item, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -170,16 +168,12 @@ func RuntimeLog(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
-func RuntimeGetTrigger(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, 0)
-	return nil
+func RuntimeGetTrigger(service *NeoVmService, engine *vm.Executor) error {
+	return engine.EvalStack.PushInt64(int64(0))
 }
 
-func RuntimeBase58ToAddress(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[RuntimeBase58ToAddress] Too few input parameters")
-	}
-	item, err := vm.PopByteArray(engine)
+func RuntimeBase58ToAddress(service *NeoVmService, engine *vm.Executor) error {
+	item, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -187,15 +181,12 @@ func RuntimeBase58ToAddress(service *NeoVmService, engine *vm.ExecutionEngine) e
 	if err != nil {
 		return err
 	}
-	vm.PushData(engine, address[:])
-	return nil
+	return engine.EvalStack.PushBytes(address[:])
 }
 
-func RuntimeAddressToBase58(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 1 {
-		return errors.NewErr("[RuntimeAddressToBase58] Too few input parameters")
-	}
-	item, err := vm.PopByteArray(engine)
+func RuntimeAddressToBase58(service *NeoVmService, engine *vm.Executor) error {
+
+	item, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -203,13 +194,11 @@ func RuntimeAddressToBase58(service *NeoVmService, engine *vm.ExecutionEngine) e
 	if err != nil {
 		return err
 	}
-	vm.PushData(engine, []byte(address.ToBase58()))
-	return nil
+	return engine.EvalStack.PushBytes([]byte(address.ToBase58()))
 }
 
-func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, service.BlockHash.ToArray())
-	return nil
+func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.Executor) error {
+	return engine.EvalStack.PushBytes(service.BlockHash.ToArray())
 }
 
 func SerializeStackItem(item vmtypes.StackItems) ([]byte, error) {

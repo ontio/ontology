@@ -23,12 +23,12 @@ import (
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
-func StoreGasCost(engine *vm.ExecutionEngine) (uint64, error) {
-	key, err := vm.PeekNByteArray(1, engine)
+func StoreGasCost(engine *vm.Executor) (uint64, error) {
+	key, err := engine.EvalStack.PeekAsBytes(1)
 	if err != nil {
 		return 0, err
 	}
-	value, err := vm.PeekNByteArray(2, engine)
+	value, err := engine.EvalStack.PeekAsBytes(2)
 	if err != nil {
 		return 0, err
 	}
@@ -39,7 +39,7 @@ func StoreGasCost(engine *vm.ExecutionEngine) (uint64, error) {
 	}
 }
 
-func GasPrice(engine *vm.ExecutionEngine, name string) (uint64, error) {
+func GasPrice(engine *vm.Executor, name string) (uint64, error) {
 	switch name {
 	case STORAGE_PUT_NAME:
 		return StoreGasCost(engine)

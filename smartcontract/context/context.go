@@ -21,6 +21,7 @@ package context
 import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 // ContextRef is a interface of smart context
@@ -43,7 +44,7 @@ type ContextRef interface {
 }
 
 type Engine interface {
-	Invoke() (interface{}, error)
+	Invoke() (*types.VmValue, error)
 }
 
 // Context describe smart contract execute context struct

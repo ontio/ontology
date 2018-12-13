@@ -135,7 +135,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		Time:       this.Config.Time,
 		Height:     this.Config.Height,
 		BlockHash:  this.Config.BlockHash,
-		Engine:     vm.NewExecutionEngine(),
+		Engine:     vm.NewExecutor(code),
 		PreExec:    this.PreExec,
 	}
 	return service, nil

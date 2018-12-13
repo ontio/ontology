@@ -27,10 +27,7 @@ import (
 )
 
 // StoragePut put smart contract storage item to cache
-func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 3 {
-		return errors.NewErr("[Context] Too few input parameters ")
-	}
+func StoragePut(service *NeoVmService, engine *vm.Executor) error {
 	context, err := getContext(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] get pop context error!")
@@ -42,7 +39,7 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StoragePut] check context error!")
 	}
 
-	key, err := vm.PopByteArray(engine)
+	key, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -50,7 +47,7 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return errors.NewErr("[StoragePut] Storage key to long")
 	}
 
-	value, err := vm.PopByteArray(engine)
+	value, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -60,10 +57,7 @@ func StoragePut(service *NeoVmService, engine *vm.ExecutionEngine) error {
 }
 
 // StorageDelete delete smart contract storage item from cache
-func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 2 {
-		return errors.NewErr("[Context] Too few input parameters ")
-	}
+func StorageDelete(service *NeoVmService, engine *vm.Executor) error {
 	context, err := getContext(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] get pop context error!")
@@ -74,7 +68,7 @@ func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err := checkStorageContext(service, context); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageDelete] check context error!")
 	}
-	ba, err := vm.PopByteArray(engine)
+	ba, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -84,15 +78,13 @@ func StorageDelete(service *NeoVmService, engine *vm.ExecutionEngine) error {
 }
 
 // StorageGet push smart contract storage item from cache to vm stack
-func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 2 {
-		return errors.NewErr("[Context] Too few input parameters ")
-	}
+func StorageGet(service *NeoVmService, engine *vm.Executor) error {
+
 	context, err := getContext(engine)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageGet] get pop context error!")
 	}
-	ba, err := vm.PopByteArray(engine)
+	ba, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
@@ -103,28 +95,26 @@ func StorageGet(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 
 	if len(raw) == 0 {
-		vm.PushData(engine, []byte{})
+		engine.EvalStack.PushBytes([]byte{})
 	} else {
 		value, err := states.GetValueFromRawStorageItem(raw)
 		if err != nil {
 			return err
 		}
-		vm.PushData(engine, value)
+		engine.EvalStack.PushBytes(value)
 	}
 	return nil
 }
 
 // StorageGetContext push smart contract storage context to vm stack
-func StorageGetContext(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	vm.PushData(engine, NewStorageContext(service.ContextRef.CurrentContext().ContractAddress))
-	return nil
+func StorageGetContext(service *NeoVmService, engine *vm.Executor) error {
+	return engine.EvalStack.PushAsInteropValue(NewStorageContext(service.ContextRef.CurrentContext().ContractAddress))
 }
 
-func StorageGetReadOnlyContext(service *NeoVmService, engine *vm.ExecutionEngine) error {
+func StorageGetReadOnlyContext(service *NeoVmService, engine *vm.Executor) error {
 	context := NewStorageContext(service.ContextRef.CurrentContext().ContractAddress)
 	context.IsReadOnly = true
-	vm.PushData(engine, context)
-	return nil
+	return engine.EvalStack.PushAsInteropValue(context)
 }
 
 func checkStorageContext(service *NeoVmService, context *StorageContext) error {
@@ -135,15 +125,15 @@ func checkStorageContext(service *NeoVmService, context *StorageContext) error {
 	return nil
 }
 
-func getContext(engine *vm.ExecutionEngine) (*StorageContext, error) {
-	opInterface, err := vm.PopInteropInterface(engine)
+func getContext(engine *vm.Executor) (*StorageContext, error) {
+	opInterface, err := engine.EvalStack.PopAsInteropValue()
 	if err != nil {
 		return nil, err
 	}
-	if opInterface == nil {
+	if opInterface.Data == nil {
 		return nil, errors.NewErr("[Context] Get storageContext nil")
 	}
-	context, ok := opInterface.(*StorageContext)
+	context, ok := opInterface.Data.(*StorageContext)
 	if !ok {
 		return nil, errors.NewErr("[Context] Get storageContext invalid")
 	}

@@ -13,6 +13,6 @@ func (self *StructValue) Append(item VmValue) StructValue {
 	return StructValue{Data: append(self.Data, item)}
 }
 
-func (self *StructValue)Len() int64 {
+func (self *StructValue) Len() int64 {
 	return int64(len(self.Data))
 }
