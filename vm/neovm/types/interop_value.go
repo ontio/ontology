@@ -6,18 +6,17 @@ import (
 )
 
 type InteropValue struct {
-	data interfaces.Interop
+	Data interfaces.Interop
 }
 
 func NewInteropValue(value interfaces.Interop) InteropValue {
-	return InteropValue{data: value}
+	return InteropValue{Data: value}
 }
 
 func (this *InteropValue) Equals(other InteropValue) bool {
 	// todo: both nil?
-	if this.data == nil || other.data == nil {
+	if this.Data == nil || other.Data == nil {
 		return false
 	}
-	return bytes.Equal(this.data.ToArray(), other.data.ToArray())
+	return bytes.Equal(this.Data.ToArray(), other.Data.ToArray())
 }
-

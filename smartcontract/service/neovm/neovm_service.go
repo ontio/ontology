@@ -21,11 +21,8 @@ package neovm
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/ontio/ontology-crypto/keypair"
 	scommon "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -33,7 +30,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
-	ntypes "github.com/ontio/ontology/vm/neovm/types"
+	vmty "github.com/ontio/ontology/vm/neovm/types"
+	"io"
 )
 
 var (
@@ -107,7 +105,7 @@ var (
 )
 
 type (
-	Execute   func(service *NeoVmService, engine *vm.ExecutionEngine) error
+	Execute   func(service *NeoVmService, engine *vm.Executor) error
 	Validator func(engine *vm.ExecutionEngine) error
 )
 
@@ -127,12 +125,12 @@ type NeoVmService struct {
 	Time          uint32
 	Height        uint32
 	BlockHash     scommon.Uint256
-	Engine        *vm.ExecutionEngine
+	Engine        *vm.Executor
 	PreExec       bool
 }
 
 // Invoke a smart contract
-func (this *NeoVmService) Invoke() (interface{}, error) {
+func (this *NeoVmService) Invoke() (*vmty.VmValue, error) {
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
@@ -143,29 +141,30 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		if this.PreExec && !this.ContextRef.CheckExecStep() {
 			return nil, VM_EXEC_STEP_EXCEED
 		}
-		if len(this.Engine.Contexts) == 0 || this.Engine.Context == nil {
+		if len(this.Engine.Callers) == 0 || this.Engine.Context == nil {
 			break
 		}
 		if this.Engine.Context.GetInstructionPointer() >= len(this.Engine.Context.Code) {
 			break
 		}
-		if err := this.Engine.ExecuteCode(); err != nil {
-			return nil, err
+		opCode, eof := this.Engine.Context.ReadOpCode()
+		if eof {
+			return nil, io.EOF
 		}
+
 		if this.Engine.Context.GetInstructionPointer() < len(this.Engine.Context.Code) {
-			if ok := checkStackSize(this.Engine); !ok {
+			if ok := checkStackSize(this.Engine, opCode); !ok {
 				return nil, ERR_CHECK_STACK_SIZE
 			}
 		}
-		if this.Engine.OpCode >= vm.PUSHBYTES1 && this.Engine.OpCode <= vm.PUSHBYTES75 {
+		if opCode >= vm.PUSHBYTES1 && opCode <= vm.PUSHBYTES75 {
 			if !this.ContextRef.CheckUseGas(OPCODE_GAS) {
 				return nil, ERR_GAS_INSUFFICIENT
 			}
 		} else {
-			if err := this.Engine.ValidateOp(); err != nil {
-				return nil, err
-			}
-			price, err := GasPrice(this.Engine, this.Engine.OpExec.Name)
+
+			opExec := vm.OpExecList[opCode]
+			price, err := GasPrice(this.Engine, opExec.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -173,32 +172,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, ERR_GAS_INSUFFICIENT
 			}
 		}
-		switch this.Engine.OpCode {
-		case vm.VERIFY:
-			if vm.EvaluationStackCount(this.Engine) < 3 {
-				return nil, errors.NewErr("[VERIFY] too few input parameters")
-			}
-			pubKey, err := vm.PopByteArray(this.Engine)
-			if err != nil {
-				return nil, err
-			}
-			key, err := keypair.DeserializePublicKey(pubKey)
-			if err != nil {
-				return nil, err
-			}
-			sig, err := vm.PopByteArray(this.Engine)
-			if err != nil {
-				return nil, err
-			}
-			data, err := vm.PopByteArray(this.Engine)
-			if err != nil {
-				return nil, err
-			}
-			if err := signature.Verify(key, data, sig); err != nil {
-				vm.PushData(this.Engine, false)
-			} else {
-				vm.PushData(this.Engine, true)
-			}
+		switch opCode {
 		case vm.SYSCALL:
 			if err := this.SystemCall(this.Engine); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
@@ -206,18 +180,18 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		case vm.APPCALL:
 			address, err := this.Engine.Context.OpReader.ReadBytes(20)
 			if err != nil {
-				return nil, fmt.Errorf("[Appcall] read contract address error: %v", err)
+				return nil, fmt.Errorf("[Appcall] read contract address error:%v", err)
 			}
 			if bytes.Compare(address, BYTE_ZERO_20) == 0 {
-				if vm.EvaluationStackCount(this.Engine) < 1 {
-					return nil, fmt.Errorf("[Appcall] too few input parameters: %d", vm.EvaluationStackCount(this.Engine))
+				if this.Engine.EvalStack.Count() < 1 {
+					return nil, fmt.Errorf("[Appcall] too few input parameters: %d", this.Engine.EvalStack.Count())
 				}
-				address, err = vm.PopByteArray(this.Engine)
+				address, err = this.Engine.EvalStack.PopAsBytes()
 				if err != nil {
-					return nil, fmt.Errorf("[Appcall] pop contract address error: %v", err)
+					return nil, fmt.Errorf("[Appcall] pop contract address error:%v", err)
 				}
 				if len(address) != 20 {
-					return nil, fmt.Errorf("[Appcall] pop contract address len != 20: %x", address)
+					return nil, fmt.Errorf("[Appcall] pop contract address len != 20:%x", address)
 				}
 			}
 			addr, err := scommon.AddressParseFromBytes(address)
@@ -232,33 +206,44 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			this.Engine.EvaluationStack.CopyTo(service.(*NeoVmService).Engine.EvaluationStack)
+			err = this.Engine.EvalStack.CopyTo(service.(*NeoVmService).Engine.EvalStack)
+			if err != nil {
+				return nil, fmt.Errorf("[Appcall] EvalStack CopyTo error:%x", err)
+			}
 			result, err := service.Invoke()
 			if err != nil {
 				return nil, err
 			}
 			if result != nil {
-				vm.PushData(this.Engine, result)
+				err := this.Engine.EvalStack.Push(*result)
+				if err != nil {
+					return nil, err
+				}
 			}
 		default:
-			if err := this.Engine.StepInto(); err != nil {
+			state, err := this.Engine.ExecuteOp(opCode, this.Engine.Context)
+			if err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] vm execution error!")
 			}
-			if this.Engine.State == vm.FAULT {
+			if state == vm.FAULT {
 				return nil, VM_EXEC_FAULT
 			}
 		}
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
-	if this.Engine.EvaluationStack.Count() != 0 {
-		return this.Engine.EvaluationStack.Peek(0), nil
+	if this.Engine.EvalStack.Count() != 0 {
+		val, err := this.Engine.EvalStack.Peek(0)
+		if err != nil {
+			return nil, err
+		}
+		return &val, nil
 	}
 	return nil, nil
 }
 
 // SystemCall provide register service for smart contract to interaction with blockchain
-func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
+func (this *NeoVmService) SystemCall(engine *vm.Executor) error {
 	serviceName, err := engine.Context.OpReader.ReadVarString(vm.MAX_BYTEARRAY_SIZE)
 	if err != nil {
 		return err
@@ -267,11 +252,11 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] the given service is not supported: %s", serviceName))
 	}
-	if service.Validator != nil {
-		if err := service.Validator(engine); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "[SystemCall] there was a service validator error!")
-		}
-	}
+	//if service.Validator != nil {
+	//	if err := service.Validator(engine); err != nil {
+	//		return errors.NewDetailErr(err, errors.ErrNoCode, "[SystemCall] service validator error!")
+	//	}
+	//}
 	price, err := GasPrice(engine, serviceName)
 	if err != nil {
 		return err
@@ -290,35 +275,41 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, error) {
 	if err != nil {
 		return nil, errors.NewErr("[getContract] get contract context error!")
 	}
-	log.Debugf("invoke contract address: %s", address.ToHexString())
+	log.Debugf("invoke contract address:%s", address.ToHexString())
 	if dep == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}
 	return dep.Code, nil
 }
 
-func checkStackSize(engine *vm.ExecutionEngine) bool {
+//TODO
+func checkStackSize(engine *vm.Executor, opcode vm.OpCode) bool {
 	size := 0
-	if engine.OpCode < vm.PUSH16 {
+	if opcode < vm.PUSH16 {
 		size = 1
 	} else {
-		switch engine.OpCode {
+		switch opcode {
 		case vm.DEPTH, vm.DUP, vm.OVER, vm.TUCK:
 			size = 1
 		case vm.UNPACK:
-			if engine.EvaluationStack.Count() == 0 {
+			if engine.EvalStack.Count() == 0 {
 				return false
 			}
-			item := vm.PeekStackItem(engine)
-			if a, ok := item.(*ntypes.Array); ok {
-				size = a.Count()
+			item, err := engine.EvalStack.Peek(0)
+			if err != nil {
+				return false
 			}
-			if a, ok := item.(*ntypes.Struct); ok {
-				size = a.Count()
+			arr, err := item.AsArrayValue()
+			if err == nil {
+				size = int(arr.Len())
+			}
+			struc, err := item.AsStructValue()
+			if err == nil {
+				size = int(struc.Len())
 			}
 		}
 	}
-	size += engine.EvaluationStack.Count() + engine.AltStack.Count()
+	size += engine.EvalStack.Count() + engine.AltStack.Count()
 	if size > DUPLICATE_STACK_SIZE {
 		return false
 	}

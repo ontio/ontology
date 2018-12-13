@@ -15,7 +15,6 @@ func (self *ArrayValue) Append(item VmValue) {
 	self.Data = append(self.Data, item)
 }
 
-func (self *ArrayValue)Len() int64 {
+func (self *ArrayValue) Len() int64 {
 	return int64(len(self.Data))
 }
-

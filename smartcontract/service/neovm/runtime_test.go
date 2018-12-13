@@ -19,40 +19,53 @@
 package neovm
 
 import (
-	"bytes"
-	"math/big"
-	"testing"
-
-	"errors"
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/vm/neovm"
+	"fmt"
+	"github.com/ontio/ontology/common"
+	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
+	"math/big"
+	"testing"
 )
 
 func TestRuntimeSerialize(t *testing.T) {
-	a := types.NewArray(nil)
-	b := types.NewArray([]types.StackItems{a})
-	a.Add(b)
 
-	_, err := SerializeStackItem(a)
-	assert.NotNil(t, err)
-}
+	bs := types.NewByteArray([]byte("test"))
+	arrStack := make([]types.StackItems, 0)
+	arrStack = append(arrStack, bs)
+	stru := types.NewStruct(arrStack)
+	boo := types.NewBoolean(true)
+	stru.Add(boo)
+	bigin := new(big.Int)
+	bigin.SetInt64(int64(1000))
+	bi := types.NewInteger(bigin)
+	stru.Add(bi)
+	bigin2 := big.NewInt(100)
+	bi2 := types.NewInteger(bigin2)
+	stru.Add(bi2)
+	res, err := SerializeStackItem(stru)
+	fmt.Println(common.ToHexString(res))
+	assert.Equal(t, err, nil)
 
-func TestRuntimeDeserializeBigInteger(t *testing.T) {
-	i := big.NewInt(123)
-	a := types.NewInteger(i)
+	struStr, err := scommon.ConvertNeoVmTypeHexString(stru)
+	fmt.Println("struStr:", struStr)
 
-	b, err := SerializeStackItem(a)
-	assert.Nil(t, err)
+	arr := types.NewArray([]types.StackItems{})
+	arr.Add(bs)
+	arr.Add(boo)
+	arr.Add(bi)
+	arr.Add(bi2)
+	arrRes, err := SerializeStackItem(arr)
+	assert.Equal(t, nil, err)
+	fmt.Println(common.ToHexString(arrRes))
 
-	item, err := DeserializeStackItem(bytes.NewReader(b))
-	assert.Nil(t, err)
+	m := types.NewMap()
+	m.Add(bs, arr)
+	m.Add(bi, stru)
+	m.Add(bi2, boo)
 
-	result, err := item.GetBigInteger()
-	assert.Nil(t, err)
-
-	assert.Equal(t, result, i)
+	mRes, err := SerializeStackItem(m)
+	fmt.Println(common.ToHexString(mRes))
 
 }
 
@@ -125,53 +138,4 @@ func TestStructRef(t *testing.T) {
 	map8.Add(ba1, map7)
 
 	assert.False(t, CircularRefAndDepthDetection(map8))
-}
-
-func TestRuntimeBase58ToAddress(t *testing.T) {
-	vm := neovm.NewExecutionEngine()
-
-	acc := account.NewAccount("")
-	addr := acc.Address
-	base58 := acc.Address.ToBase58()
-
-	err := RuntimeBase58ToAddress(nil, vm)
-
-	if assert.Error(t, err) {
-		assert.Equal(t, errors.New("[RuntimeBase58ToAddress] Too few input parameters"), err)
-	}
-
-	vm.EvaluationStack.Push(types.NewByteArray([]byte(base58)))
-
-	err = RuntimeBase58ToAddress(nil, vm)
-
-	assert.NoError(t, err)
-
-	result, err := vm.EvaluationStack.Pop().GetByteArray()
-	assert.NoError(t, err)
-	assert.Equal(t, addr[:], result)
-}
-
-func TestRuntimeAddressToBase58(t *testing.T) {
-	vm := neovm.NewExecutionEngine()
-
-	acc := account.NewAccount("")
-	addr := acc.Address
-	base58 := acc.Address.ToBase58()
-
-	err := RuntimeAddressToBase58(nil, vm)
-
-	if assert.Error(t, err) {
-		assert.Equal(t, errors.New("[RuntimeAddressToBase58] Too few input parameters"), err)
-	}
-
-	vm.EvaluationStack.Push(types.NewByteArray(addr[:]))
-
-	err = RuntimeAddressToBase58(nil, vm)
-
-	assert.NoError(t, err)
-
-	result, err := vm.EvaluationStack.Pop().GetByteArray()
-
-	assert.NoError(t, err)
-	assert.Equal(t, base58, string(result))
 }
