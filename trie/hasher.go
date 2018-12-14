@@ -36,22 +36,17 @@ package trie
 
 import (
 	"crypto/sha256"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/rlp"
-	"hash"
 )
 
 type hasher struct {
 	tmp sliceBuffer
-	sha keccakState
 }
 
-// keccakState wraps sha3.state. In addition to the usual hash methods, it also supports
-// Read to get a variable amount of data from the hash state. Read is faster than Sum
-// because it doesn't copy the internal state, but also modifies the internal state.
-type keccakState interface {
-	hash.Hash
-	Read([]byte) (int, error)
+func newHasher() *hasher {
+	return &hasher{
+		tmp: make(sliceBuffer, 0, 550),
+	}
 }
 
 type sliceBuffer []byte
@@ -175,9 +170,13 @@ func (h *hasher) store(n node, db *Database, force bool) (node, error) {
 }
 
 func (h *hasher) makeHashNode(data []byte) hashNode {
-	temp := sha256.Sum256(data)
-	hash := common.Uint256(sha256.Sum256(temp[:]))
-	return hashNode(hash.ToArray())
+	return hashNode(h.makeHash(data))
+}
+
+func (h *hasher) makeHash(data []byte) []byte {
+	tmp := sha256.Sum256(data)
+	u256 := sha256.Sum256(tmp[:])
+	return u256[:]
 }
 
 // CopyBytes returns an exact copy of the provided bytes.

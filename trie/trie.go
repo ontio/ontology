@@ -457,5 +457,6 @@ func (t *Trie) hashRoot(db *Database) (node, node, error) {
 	if t.root == nil {
 		return hashNode(emptyRoot.ToArray()), nil, nil
 	}
-	return nil, nil, nil
+	h := newHasher()
+	return h.hash(t.root, db, true)
 }
