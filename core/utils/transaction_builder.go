@@ -123,7 +123,7 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 }
 
 //add for wasm vm native transaction call
-func BuildWasmNativeTransaction(addr common.Address, version int, initMethod string, args []byte) *types.MutableTransaction {
+func BuildWasmNativeTransaction(addr common.Address, version int, initMethod string, args interface{}) *types.MutableTransaction {
 	//txstruct := TxStruct{
 	//	Address: addr[:],
 	//	Method:  []byte(initMethod),

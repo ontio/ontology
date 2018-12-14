@@ -178,11 +178,11 @@ func newParamInit() *types.Transaction {
 	for _, v := range s {
 		params.SetParam(global_params.Param{Key: v, Value: INIT_PARAM[v]})
 	}
-	bf := new(bytes.Buffer)
-	params.Serialize(bf)
-	nutils.WriteAddress(bf, genAdminAddress())
+	//bf := new(bytes.Buffer)
+	//params.Serialize(bf)
+	//nutils.WriteAddress(bf, genAdminAddress())
 
-	mutable := utils.BuildWasmNativeTransaction(nutils.ParamContractAddress, 0, global_params.INIT_NAME, bf.Bytes())
+	mutable := utils.BuildWasmNativeTransaction(nutils.ParamContractAddress, 0, global_params.INIT_NAME, params)
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("constract genesis governing token transaction error ")
