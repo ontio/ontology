@@ -28,6 +28,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"math"
+	"reflect"
+	"fmt"
 )
 
 type TxStruct struct {
@@ -138,15 +140,76 @@ func BuildWasmNativeTransaction(addr common.Address, version int, initMethod str
 	return tx
 }
 
+
+
 //add for wasm vm native transaction call
 func BuildNativeInvokeCode(contractAddress common.Address, version byte, method string, params []interface{}) ([]byte, error) {
 	bf := bytes.NewBuffer(nil)
+
+	//for _, p := range params {
+	//	switch p.(type) {
+	//	case common.Address:
+	//		utils.WriteAddress(bf, p.(common.Address))
+	//	case uint64:
+	//		utils.WriteVarUint(bf, p.(uint64))
+	//	case []*ont.State:
+	//		utils.WriteVarUint(bf, uint64(len(p.([]*ont.State))))
+	//		for _, s := range p.([]*ont.State) {
+	//			utils.WriteAddress(bf, s.From)
+	//			utils.WriteAddress(bf, s.To)
+	//			utils.WriteVarUint(bf, s.Value)
+	//		}
+	//	case *ont.TransferFrom:
+	//		tmp := p.(*ont.TransferFrom)
+	//		utils.WriteAddress(bf, tmp.Sender)
+	//		utils.WriteAddress(bf, tmp.From)
+	//		utils.WriteAddress(bf, tmp.To)
+	//		utils.WriteVarUint(bf, tmp.Value)
+	//
+	//	case []string:
+	//		utils.WriteVarUint(bf, uint64(len(p.([]string))))
+	//		for _, s := range p.([]string) {
+	//			serialization.WriteVarBytes(bf, []byte(s))
+	//		}
+	//	case string:
+	//		serialization.WriteVarBytes(bf, []byte(p.(string)))
+	//	case []byte:
+	//		serialization.WriteVarBytes(bf, p.([]byte))
+	//	case []interface{}:
+	//		utils.WriteVarUint(bf, uint64(len(p.([]interface{}))))
+	//		for _, s := range p.([]interface{}) {
+	//			serialization.WriteVarBytes(bf, []byte(s.(string)))
+	//		}
+	//
+	//	default:
+	//		log.Errorf("[BuildNativeInvokeCode] unrecongnized params:%v\n", p)
+	//	}
+	//}
+	err := buildParam(params, bf)
+	if err != nil{
+		return nil, err
+	}
+	txstruct := TxStruct{
+		Address: contractAddress[:],
+		Method:  []byte(method),
+		Version: int(version),
+		Args:    bf.Bytes(),
+	}
+
+	bs, err := txstruct.Serialize()
+	if err != nil {
+		return nil, err
+	}
+	return bs, nil
+}
+
+func buildParam(params []interface{},bf *bytes.Buffer) error{
 
 	for _, p := range params {
 		switch p.(type) {
 		case common.Address:
 			utils.WriteAddress(bf, p.(common.Address))
-		case uint64:
+		case uint64 ,int, int32, int64:
 			utils.WriteVarUint(bf, p.(uint64))
 		case []*ont.State:
 			utils.WriteVarUint(bf, uint64(len(p.([]*ont.State))))
@@ -178,20 +241,35 @@ func BuildNativeInvokeCode(contractAddress common.Address, version byte, method 
 			}
 
 		default:
+			object := reflect.ValueOf(p)
+			kind := object.Kind().String()
+			if kind == "ptr" {
+				object = object.Elem()
+				kind = object.Kind().String()
+			}
+			switch kind {
+			case "slice":
+				ps := make([]interface{}, 0)
+				for i := 0; i < object.Len(); i++ {
+					ps = append(ps, object.Index(i).Interface())
+				}
+				return buildParam([]interface{}{ps},bf)
+			case "struct":
+				for i := 0; i < object.NumField(); i++ {
+					field := object.Field(i)
+					err := buildParam([]interface{}{field.Interface()},bf )
+					if err != nil {
+						return err
+					}
+				}
+			default:
+				return fmt.Errorf("unsupported param:%s", p)
+			}
+
+
 			log.Errorf("[BuildNativeInvokeCode] unrecongnized params:%v\n", p)
 		}
 	}
 
-	txstruct := TxStruct{
-		Address: contractAddress[:],
-		Method:  []byte(method),
-		Version: int(version),
-		Args:    bf.Bytes(),
-	}
-
-	bs, err := txstruct.Serialize()
-	if err != nil {
-		return nil, err
-	}
-	return bs, nil
+	return nil
 }
