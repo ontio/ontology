@@ -124,14 +124,19 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 
 //add for wasm vm native transaction call
 func BuildWasmNativeTransaction(addr common.Address, version int, initMethod string, args []byte) *types.MutableTransaction {
-	txstruct := TxStruct{
-		Address: addr[:],
-		Method:  []byte(initMethod),
-		Version: version,
-		Args:    args,
-	}
-	bs, err := txstruct.Serialize()
-	if err != nil {
+	//txstruct := TxStruct{
+	//	Address: addr[:],
+	//	Method:  []byte(initMethod),
+	//	Version: version,
+	//	Args:    args,
+	//}
+	//bs, err := txstruct.Serialize()
+	//if err != nil {
+	//	return nil
+	//}
+
+	bs ,err:= BuildNativeInvokeCode(addr,byte(version),initMethod,[]interface{}{args})
+	if err != nil{
 		return nil
 	}
 
