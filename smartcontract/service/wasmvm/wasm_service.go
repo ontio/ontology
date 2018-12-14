@@ -37,9 +37,8 @@ import (
 )
 
 type WasmVmService struct {
-	Store   store.LedgerStore
-	CacheDB *storage.CacheDB
-	//CloneCache    *storage.CloneCache
+	Store         store.LedgerStore
+	CacheDB       *storage.CacheDB
 	ContextRef    context.ContextRef
 	Notifications []*event.NotifyEventInfo
 	Code          []byte
@@ -137,7 +136,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	contract := &states.ContractInvokeParam{}
 	contract.Deserialize(bytes.NewBuffer(this.Code))
-	//addr := contract.Address
 
 	code, err := this.Store.GetContractState(contract.Address)
 	if err != nil {
@@ -152,8 +150,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	} else {
 		caller = this.ContextRef.CallingContext().ContractAddress
 	}
-	//this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address})
-
 	res, err := engine.Call(caller, code.Code, contract.Method, contract.Args, contract.Version)
 
 	if err != nil {
@@ -347,8 +343,6 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 	}
 
 	var contractAddress common.Address
-	//var contractBytes []byte
-	//get contract address
 	contractAddressIdx := params[0]
 	addr, err := vm.GetPointerMemory(contractAddressIdx)
 	if err != nil {
@@ -356,10 +350,6 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 	}
 
 	if addr != nil {
-		//addrbytes, err := common.HexToBytes(util.TrimBuffToString(addr))
-		//if err != nil {
-		//	return false, errors.NewErr("[callContract]get contract address error:" + err.Error())
-		//}
 		contractAddress, err = common.AddressFromBase58(util.TrimBuffToString(addr))
 		if err != nil {
 			return false, errors.NewErr("[callContract]get contract address error:" + err.Error())
@@ -400,10 +390,7 @@ func (this *WasmVmService) callContract(engine *exec.ExecutionEngine) (bool, err
 	}
 	this.ContextRef.PopContext()
 	vm.RestoreCtx()
-	//var res string
 	if envCall.GetReturns() {
-		//res = fmt.Sprintf("%s", result)
-
 		idx, err := vm.SetPointerMemory(result)
 		if err != nil {
 			return false, errors.NewErr("[callContract]SetPointerMemory failed:" + err.Error())

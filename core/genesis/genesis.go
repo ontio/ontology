@@ -39,7 +39,7 @@ import (
 )
 
 const (
-	BlockVersion uint32 = 0
+	BlockVersion uint32 = 1
 	GenesisNonce uint64 = 2083236893
 )
 
@@ -52,6 +52,11 @@ var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
 var INIT_PARAM = map[string]string{
 	"gasPrice": "0",
+}
+
+type GParam struct {
+	Param     *global_params.Params
+	AdminAddr common.Address
 }
 
 var GenesisBookkeepers []keypair.PublicKey
@@ -75,6 +80,7 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	}
 	//blockdata
 	genesisHeader := &types.Header{
+		SideChainID:      config.DefConfig.Genesis.SideChainID,
 		Version:          BlockVersion,
 		PrevBlockHash:    common.Uint256{},
 		TransactionsRoot: common.Uint256{},
@@ -163,6 +169,8 @@ func deployOntIDContract() *types.Transaction {
 }
 
 func newParamInit() *types.Transaction {
+
+	gParam := new(GParam)
 	params := new(global_params.Params)
 	var s []string
 	for k := range INIT_PARAM {
@@ -178,17 +186,15 @@ func newParamInit() *types.Transaction {
 	for _, v := range s {
 		params.SetParam(global_params.Param{Key: v, Value: INIT_PARAM[v]})
 	}
-	//bf := new(bytes.Buffer)
-	//params.Serialize(bf)
-	//nutils.WriteAddress(bf, genAdminAddress())
 
-	mutable := utils.BuildWasmNativeTransaction(nutils.ParamContractAddress, 0, global_params.INIT_NAME, params)
+	gParam.Param = params
+	gParam.AdminAddr = genAdminAddress()
+	mutable := utils.BuildWasmNativeTransaction(nutils.ParamContractAddress, 0, global_params.INIT_NAME, gParam)
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("constract genesis governing token transaction error ")
 	}
 	return tx
-
 }
 
 func genAdminAddress() common.Address {

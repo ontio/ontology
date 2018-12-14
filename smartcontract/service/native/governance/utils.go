@@ -37,7 +37,6 @@ func GetPeerPoolMap(native *native.NativeService, contract common.Address) (*Pee
 	peerPoolMap := &PeerPoolMap{
 		PeerPoolMap: make(map[string]*PeerPoolItem),
 	}
-
 	peerPoolMapBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(PEER_POOL)))
 	if err != nil {
 		return nil, fmt.Errorf("getPeerPoolMap, get all peerPoolMap error: %v", err)
@@ -62,7 +61,6 @@ func putPeerPoolMap(native *native.NativeService, contract common.Address, peerP
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize peerPoolMap error: %v", err)
 	}
-
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_POOL)), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
@@ -263,6 +261,7 @@ func getOngBalance(native *native.NativeService, address common.Address) (uint64
 	}
 	sink := common.ZeroCopySink{}
 	utils.EncodeAddress(&sink, address)
+
 	value, err := native.NativeCall(utils.OngContractAddress, "balanceOf", sink.Bytes())
 	if err != nil {
 		return 0, fmt.Errorf("getOngBalance, appCall error: %v", err)
@@ -293,7 +292,6 @@ func getGlobalParam(native *native.NativeService, contract common.Address) (*Glo
 
 func putGlobalParam(native *native.NativeService, contract common.Address, globalParam *GlobalParam) error {
 	bf := new(bytes.Buffer)
-
 	if err := globalParam.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize globalParam error: %v", err)
 	}
@@ -308,6 +306,7 @@ func getGlobalParam2(native *native.NativeService, contract common.Address) (*Gl
 	if err != nil {
 		return nil, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
 	}
+
 	globalParam2Bytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(GLOBAL_PARAM2)))
 	if err != nil {
 		return nil, fmt.Errorf("getGlobalParam2, get globalParam2Bytes error: %v", err)
@@ -337,36 +336,6 @@ func putGlobalParam2(native *native.NativeService, contract common.Address, glob
 	return nil
 }
 
-func getSideChainID(native *native.NativeService, contract common.Address) (*SideChainID, error) {
-	sideChainIDBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(SIDE_CHAIN_ID)))
-	if err != nil {
-		return nil, fmt.Errorf("getSideChainID, get sideChainIDBytes error: %v", err)
-	}
-	sideChainID := new(SideChainID)
-	if sideChainIDBytes == nil {
-		return nil, fmt.Errorf("getSideChainID, get nil sideChainIDBytes")
-	} else {
-		value, err := cstates.GetValueFromRawStorageItem(sideChainIDBytes)
-		if err != nil {
-			return nil, fmt.Errorf("getSplitCurve, deserialize from raw storage item err:%v", err)
-			return nil, fmt.Errorf("getSideChainID, deserialize from raw storage item err:%v", err)
-		}
-		if err := sideChainID.Deserialize(bytes.NewBuffer(value)); err != nil {
-			return nil, fmt.Errorf("deserialize, deserialize sideChainID error: %v", err)
-		}
-	}
-	return sideChainID, nil
-}
-
-func putSideChainID(native *native.NativeService, contract common.Address, sideChainID *SideChainID) error {
-	bf := new(bytes.Buffer)
-	if err := sideChainID.Serialize(bf); err != nil {
-		return fmt.Errorf("serialize, serialize sideChainID error: %v", err)
-	}
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(SIDE_CHAIN_ID)), cstates.GenRawStorageItem(bf.Bytes()))
-	return nil
-}
-
 func getSyncAddress(native *native.NativeService) (common.Address, error) {
 	key := append(utils.OngContractAddress[:], ongx.SYNC_ADDRESS...)
 	syncAddressBytes, err := native.CacheDB.Get(key)
@@ -380,7 +349,8 @@ func getSyncAddress(native *native.NativeService) (common.Address, error) {
 	if err != nil {
 		return common.Address{}, fmt.Errorf("getSyncAddress, deserialize from raw storage item err:%v", err)
 	}
-	syncAddress := new(SyncAddress)
+
+	syncAddress := new(ongx.SyncAddress)
 	if err := syncAddress.Deserialize(common.NewZeroCopySource(syncAddressStore)); err != nil {
 		return common.Address{}, fmt.Errorf("getSyncAddress, deserialize syncAddress error: %v", err)
 	}
@@ -407,6 +377,7 @@ func appCallTransfer(native *native.NativeService, contract common.Address, from
 	}
 	sink := common.NewZeroCopySink(nil)
 	transfers.Serialization(sink)
+
 	if _, err := native.NativeCall(contract, "transfer", sink.Bytes()); err != nil {
 		return fmt.Errorf("appCallTransfer, appCall error: %v", err)
 	}

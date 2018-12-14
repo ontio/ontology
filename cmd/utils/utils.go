@@ -22,12 +22,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/common/constants"
 	"io/ioutil"
 	"math"
 	"math/big"
 	"os"
 	"strings"
+
+	"github.com/ontio/ontology/common/constants"
 )
 
 const (

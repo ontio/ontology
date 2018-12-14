@@ -39,9 +39,9 @@ var AssetCommand = cli.Command{
 		{
 			Action:      transfer,
 			Name:        "transfer",
-			Usage:       "Transfer ont or ong to another account",
+			Usage:       "Transfer ong to another account",
 			ArgsUsage:   " ",
-			Description: "Transfer ont or ong to another account. If from address does not specified, using default account",
+			Description: "Transfer ong to another account. If from address does not specified, using default account",
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 				utils.TransactionGasPriceFlag,
@@ -91,7 +91,7 @@ var AssetCommand = cli.Command{
 		{
 			Action:    getBalance,
 			Name:      "balance",
-			Usage:     "Show balance of ont and ong of specified account",
+			Usage:     "Show balance of ong of specified account",
 			ArgsUsage: "<address|label|index>",
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
@@ -101,7 +101,7 @@ var AssetCommand = cli.Command{
 		{
 			Action: getAllowance,
 			Name:   "allowance",
-			Usage:  "Show approve balance of ont or ong of specified account",
+			Usage:  "Show approve balance of ong of specified account",
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 				utils.ApproveAssetFlag,
@@ -110,28 +110,6 @@ var AssetCommand = cli.Command{
 				utils.WalletFileFlag,
 			},
 		},
-		//{
-		//	Action:    unboundOng,
-		//	Name:      "unboundong",
-		//	Usage:     "Show the balance of unbound ONG",
-		//	ArgsUsage: "<address|label|index>",
-		//	Flags: []cli.Flag{
-		//		utils.RPCPortFlag,
-		//		utils.WalletFileFlag,
-		//	},
-		//},
-		//{
-		//	Action:    withdrawOng,
-		//	Name:      "withdrawong",
-		//	Usage:     "Withdraw ONG",
-		//	ArgsUsage: "<address|label|index>",
-		//	Flags: []cli.Flag{
-		//		utils.RPCPortFlag,
-		//		utils.TransactionGasPriceFlag,
-		//		utils.TransactionGasLimitFlag,
-		//		utils.WalletFileFlag,
-		//	},
-		//},
 	},
 }
 

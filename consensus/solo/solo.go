@@ -41,7 +41,7 @@ import (
 /*
 *Simple consensus for solo node in test environment.
  */
-const ContextVersion uint32 = 0
+const ContextVersion uint32 = 1
 
 type SoloService struct {
 	Account          *account.Account

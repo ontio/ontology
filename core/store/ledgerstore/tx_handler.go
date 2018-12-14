@@ -222,6 +222,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 
 		native, err := sc.NewNativeService()
 		native.InvokeParam = contract
+		native.Input = contract.Args
 		if err != nil {
 			return err
 		}

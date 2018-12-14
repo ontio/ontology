@@ -857,12 +857,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		txStruct := &cutils.TxStruct{}
-		//fmt.Printf("==invoke.Code:%s\n", invoke.Code)
 
-		//errs := json.Unmarshal(invoke.Code, txStruct)
-		//if errs != nil {
-		//	return nil, errs
-		//}
 		err := txStruct.Deserialize(invoke.Code)
 		if err != nil {
 			return nil, err
@@ -890,6 +885,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 
 			native, err := sc.NewNativeService()
 			native.InvokeParam = contract
+			native.Input = contract.Args
 			if err != nil {
 				return nil, err
 			}

@@ -21,14 +21,15 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/urfave/cli"
+	"io/ioutil"
+	"strings"
+
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	httpcom "github.com/ontio/ontology/http/base/common"
-	"github.com/urfave/cli"
-	"io/ioutil"
-	"strings"
 )
 
 var (
@@ -64,7 +65,7 @@ var (
 				Action: invokeContract,
 				Name:   "invoke",
 				Usage:  "Invoke smart contract",
-				ArgsUsage: `NeoVM contract support bytearray(need encode to hex string), string, integer, boolean parameter type.
+				ArgsUsage: `WasmVM contract support bytearray(need encode to hex string), string, integer, boolean parameter type.
 
   Parameter 
      Contract parameters separate with comma ',' to split params. and must add type prefix to params.
@@ -205,7 +206,7 @@ func invokeCodeContract(ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		preResult, err := utils.PrepareInvokeCodeNeoVMContract(c)
+		preResult, err := utils.PrepareInvokeCodeWasmVMContract(c)
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeCodeNeoVMContract error:%s", err)
 		}
@@ -297,7 +298,7 @@ func invokeContract(ctx *cli.Context) error {
 	PrintInfoMsg("Invoke:%x Params:%s", contractAddr[:], paramData)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		preResult, err := utils.PrepareInvokeNeoVMContract(contractAddr, params)
+		preResult, err := utils.PrepareInvokeWasmVMContract(contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
 		}
@@ -326,27 +327,28 @@ func invokeContract(ctx *cli.Context) error {
 		}
 		return nil
 	}
-	signer, err := cmdcom.GetAccount(ctx)
-	if err != nil {
-		return fmt.Errorf("get signer account error:%s", err)
-	}
-	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
-	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
-	networkId, err := utils.GetNetworkId()
-	if err != nil {
-		return err
-	}
-	if networkId == config.NETWORK_ID_SOLO_NET {
-		gasPrice = 0
-	}
+	//signer, err := cmdcom.GetAccount(ctx)
+	//if err != nil {
+	//	return fmt.Errorf("get signer account error:%s", err)
+	//}
+	//gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
+	//gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
+	//networkId, err := utils.GetNetworkId()
+	//if err != nil {
+	//	return err
+	//}
+	//if networkId == config.NETWORK_ID_SOLO_NET {
+	//	gasPrice = 0
+	//}
 
-	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
-	if err != nil {
-		return fmt.Errorf("invoke NeoVM contract error:%s", err)
-	}
+	//txHash, err := utils.InvokeWasmVMContract(gasPrice, gasLimit, signer, contractAddr, params)
+	//if err != nil {
+	//	return fmt.Errorf("invoke NeoVM contract error:%s", err)
+	//}
 
-	PrintInfoMsg("  TxHash:%s", txHash)
-	PrintInfoMsg("\nTips:")
-	PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
+	//PrintInfoMsg("  TxHash:%s", txHash)
+	//PrintInfoMsg("\nTips:")
+	//PrintInfoMsg("  Using './ontology info status %s' to query transaction status.", txHash)
+
 	return nil
 }

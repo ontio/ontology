@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
@@ -31,7 +32,7 @@ import (
 	msg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
-const ContextVersion uint32 = 0
+const ContextVersion uint32 = 1
 
 type ConsensusContext struct {
 	State           ConsensusState
@@ -102,6 +103,7 @@ func (ctx *ConsensusContext) MakeHeader() *types.Block {
 		txRoot := common.ComputeMerkleRoot(txHash)
 		blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
 		header := &types.Header{
+			SideChainID:      config.DefConfig.Genesis.SideChainID,
 			Version:          ContextVersion,
 			PrevBlockHash:    ctx.PrevHash,
 			TransactionsRoot: txRoot,

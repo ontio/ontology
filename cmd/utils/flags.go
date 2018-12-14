@@ -330,8 +330,8 @@ var (
 	//Transfer setting
 	TransactionAssetFlag = cli.StringFlag{
 		Name:  "asset",
-		Usage: "Asset of ONT or ONG",
-		Value: ASSET_ONT,
+		Usage: "Asset of ONG",
+		Value: ASSET_ONGX,
 	}
 	TransactionFromFlag = cli.StringFlag{
 		Name:  "from",
@@ -375,7 +375,7 @@ var (
 	}
 	ApproveAssetFlag = cli.StringFlag{
 		Name:  "asset",
-		Usage: "Asset of ONT of ONG to approve",
+		Usage: "Asset of ONG to approve",
 		Value: "ont",
 	}
 	ApproveAmountFlag = cli.StringFlag{

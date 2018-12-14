@@ -27,10 +27,12 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 )
 
 type Header struct {
+	SideChainID      string
 	Version          uint32
 	PrevBlockHash    common.Uint256
 	TransactionsRoot common.Uint256
@@ -79,7 +81,10 @@ func (bd *Header) Serialize(w io.Writer) error {
 }
 
 func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
-	bd.serializationUnsigned(sink)
+	err := bd.serializationUnsigned(sink)
+	if err != nil {
+		return err
+	}
 	sink.WriteVarUint(uint64(len(bd.Bookkeepers)))
 
 	for _, pubkey := range bd.Bookkeepers {
@@ -95,7 +100,14 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
 }
 
 //Serialize the blockheader data without program
-func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
+func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) error {
+	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return errors.New("side chain id is not correct")
+	}
+	if bd.Version != 1 {
+		return errors.New("side chain block version should equal to 1")
+	}
+	sink.WriteString(bd.SideChainID)
 	sink.WriteUint32(bd.Version)
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
@@ -105,11 +117,22 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint64(bd.ConsensusData)
 	sink.WriteVarBytes(bd.ConsensusPayload)
 	sink.WriteBytes(bd.NextBookkeeper[:])
+	return nil
 }
 
 //Serialize the blockheader data without program
 func (bd *Header) SerializeUnsigned(w io.Writer) error {
-	err := serialization.WriteUint32(w, bd.Version)
+	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return errors.New("side chain id is not correct")
+	}
+	if bd.Version != 1 {
+		return errors.New("side chain block version should equal to 1")
+	}
+	err := serialization.WriteString(w, bd.SideChainID)
+	if err != nil {
+		return err
+	}
+	err = serialization.WriteUint32(w, bd.Version)
 	if err != nil {
 		return err
 	}
@@ -251,7 +274,17 @@ func (bd *Header) Deserialization(source *common.ZeroCopySource) error {
 func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 
+	bd.SideChainID, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return errors.New("side chain id is not correct")
+	}
 	bd.Version, eof = source.NextUint32()
+	if bd.Version != 1 {
+		return errors.New("side chain block version should equal to 1")
+	}
 	bd.PrevBlockHash, eof = source.NextHash()
 	bd.TransactionsRoot, eof = source.NextHash()
 	bd.BlockRoot, eof = source.NextHash()
@@ -273,9 +306,20 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 
 func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	var err error
+	bd.SideChainID, err = serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("Header item SideChainID Deserialize failed: %s", err)
+	}
+	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return fmt.Errorf("side chain id is not correct")
+	}
+
 	bd.Version, err = serialization.ReadUint32(r)
 	if err != nil {
 		return fmt.Errorf("Header item Version Deserialize failed: %s", err)
+	}
+	if bd.Version != 1 {
+		return fmt.Errorf("side chain block version should equal to 1")
 	}
 
 	err = bd.PrevBlockHash.Deserialize(r)

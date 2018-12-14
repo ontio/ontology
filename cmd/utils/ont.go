@@ -34,6 +34,7 @@ import (
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
@@ -57,7 +58,7 @@ const (
 	CONTRACT_TRANSFER_FROM = "transferFrom"
 	CONTRACT_APPROVE       = "approve"
 
-	ASSET_ONT = "ont"
+	ASSET_ONT  = "ont"
 	ASSET_ONGX = "ongx"
 )
 
@@ -90,8 +91,6 @@ func GetAccountBalance(address, asset string) (uint64, error) {
 	}
 	var balance uint64
 	switch strings.ToLower(asset) {
-	//case "ont":
-	//	balance, err = strconv.ParseUint(balances.Ont, 10, 64)
 	case "ong":
 		balance, err = strconv.ParseUint(balances.Ong, 10, 64)
 	default:
@@ -195,9 +194,6 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	//case ASSET_ONT:
-	//	version = VERSION_CONTRACT_ONT
-	//	contractAddr = utils.OntContractAddress
 	case ASSET_ONGX:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
@@ -230,9 +226,6 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	//case ASSET_ONT:
-	//	version = VERSION_CONTRACT_ONT
-	//	contractAddr = utils.OntContractAddress
 	case ASSET_ONGX:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
@@ -269,9 +262,6 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	//case ASSET_ONT:
-	//	version = VERSION_CONTRACT_ONT
-	//	contractAddr = utils.OntContractAddress
 	case ASSET_ONGX:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
@@ -292,12 +282,14 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 		Code: invokeCode,
 	}
 	tx := &types.MutableTransaction{
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		TxType:   types.Invoke,
-		Nonce:    rand.Uint32(),
-		Payload:  invokePayload,
-		Sigs:     make([]types.Sig, 0, 0),
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		Version:     types.TX_VERSION,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		TxType:      types.Invoke,
+		Nonce:       rand.Uint32(),
+		Payload:     invokePayload,
+		Sigs:        make([]types.Sig, 0, 0),
 	}
 	return tx
 }
@@ -649,6 +641,22 @@ func PrepareDeployContract(
 	return PrepareSendRawTransaction(txData)
 }
 
+func InvokeNativeContract(
+	gasPrice,
+	gasLimit uint64,
+	signer *account.Account,
+	contractAddress common.Address,
+	version byte,
+	method string,
+	params []interface{},
+) (string, error) {
+	tx, err := httpcom.NewNativeInvokeTransaction(gasPrice, gasLimit, contractAddress, version, method, params)
+	if err != nil {
+		return "", err
+	}
+	return InvokeSmartContract(signer, tx)
+}
+
 //Invoke wasm smart contract
 //methodName is wasm contract action name
 //paramType  is Json or Raw format
@@ -674,20 +682,6 @@ func InvokeWasmVMContract(
 	return InvokeSmartContract(siger, tx)
 }
 
-//Invoke neo vm smart contract. if isPreExec is true, the invoke will not really execute
-func InvokeNeoVMContract(
-	gasPrice,
-	gasLimit uint64,
-	signer *account.Account,
-	smartcodeAddress common.Address,
-	params []interface{}) (string, error) {
-	tx, err := httpcom.NewNeovmInvokeTransaction(gasPrice, gasLimit, smartcodeAddress, params)
-	if err != nil {
-		return "", err
-	}
-	return InvokeSmartContract(signer, tx)
-}
-
 //InvokeSmartContract is low level method to invoke contact.
 func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) (string, error) {
 	err := SignTransaction(signer, tx)
@@ -705,11 +699,34 @@ func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) 
 	return txHash, nil
 }
 
-func PrepareInvokeNeoVMContract(
+//func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error) {
+//	mutable, err := httpcom.NewSmartContractTransaction(0, 0, code)
+//	if err != nil {
+//		return nil, err
+//	}
+//	tx, err := mutable.IntoImmutable()
+//	if err != nil {
+//		return nil, err
+//	}
+//	var buffer bytes.Buffer
+//	err = tx.Serialize(&buffer)
+//	if err != nil {
+//		return nil, fmt.Errorf("tx serialize error:%s", err)
+//	}
+//	txData := hex.EncodeToString(buffer.Bytes())
+//	return PrepareSendRawTransaction(txData)
+//}
+
+func PrepareInvokeWasmVMContract(
 	contractAddress common.Address,
 	params []interface{},
 ) (*cstates.PreExecResult, error) {
-	mutable, err := httpcom.NewNeovmInvokeTransaction(0, 0, contractAddress, params)
+
+	invokeCode, err := cutils.BuildWasmInvokeCode(contractAddress, params)
+	if err != nil {
+		return nil, fmt.Errorf("build invoke code error:%s", err)
+	}
+	mutable := NewInvokeTransaction(0, 0, invokeCode)
 	if err != nil {
 		return nil, err
 	}
@@ -728,8 +745,30 @@ func PrepareInvokeNeoVMContract(
 	return PrepareSendRawTransaction(txData)
 }
 
-func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error) {
+func PrepareInvokeCodeWasmVMContract(code []byte) (*cstates.PreExecResult, error) {
 	mutable, err := httpcom.NewSmartContractTransaction(0, 0, code)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return nil, err
+	}
+	var buffer bytes.Buffer
+	err = tx.Serialize(&buffer)
+	if err != nil {
+		return nil, fmt.Errorf("tx serialize error:%s", err)
+	}
+	txData := hex.EncodeToString(buffer.Bytes())
+	return PrepareSendRawTransaction(txData)
+}
+
+func PrepareInvokeNativeContract(
+	contractAddress common.Address,
+	version byte,
+	method string,
+	params []interface{}) (*cstates.PreExecResult, error) {
+	mutable, err := httpcom.NewNativeInvokeTransaction(0, 0, contractAddress, version, method, params)
 	if err != nil {
 		return nil, err
 	}
@@ -760,13 +799,14 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorag
 		Description: cdesc,
 	}
 	tx := &types.MutableTransaction{
-		Version:  VERSION_TRANSACTION,
-		TxType:   types.Deploy,
-		Nonce:    uint32(time.Now().Unix()),
-		Payload:  deployPayload,
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		Sigs:     make([]types.Sig, 0, 0),
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		Version:     types.TX_VERSION,
+		TxType:      types.Deploy,
+		Nonce:       uint32(time.Now().Unix()),
+		Payload:     deployPayload,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Sigs:        make([]types.Sig, 0, 0),
 	}
 	return tx
 }
