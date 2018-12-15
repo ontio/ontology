@@ -30,6 +30,7 @@ type P2P interface {
 	Start()
 	Halt()
 	Connect(addr string, isConsensus bool) error
+	ConnectWithTSPType(addr string, isConsensus bool, tsptype byte) error
 	GetID() uint64
 	GetVersion() uint32
 	GetSyncPort(tspType byte) uint16

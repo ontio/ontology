@@ -304,6 +304,10 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	return err
 }
 
+func (this *NetServer) ConnectWithTSPType(addr string, isConsensus bool, tsptype byte) error {
+	return this.connectSub(addr, isConsensus, tsptype)
+}
+
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) connectSub(addr string, isConsensus bool, tspType byte) error {
 	if this.IsAddrInOutConnRecord(addr) {
@@ -381,7 +385,7 @@ func (this *NetServer) connectSub(addr string, isConsensus bool, tspType byte) e
 		remotePeer.SetConsState(common.HAND, tspType)
 		remotePeer.SetTransportType(tspType)
 	}
-	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight(), tspType)
+	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight(), config.DefConfig.P2PNode.TransportType)
 	err = remotePeer.Send(version, isConsensus, tspType)
 	if err != nil {
 		if !isConsensus {

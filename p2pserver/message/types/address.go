@@ -41,7 +41,9 @@ func (this Addr) Serialization(sink *common.ZeroCopySink) error {
 		sink.WriteUint16(addr.Port)
 		sink.WriteUint16(addr.ConsensusPort)
 		sink.WriteUint64(addr.ID)
+		sink.WriteByte(addr.TransportType)
 	}
+	sink.WriteByte(0x01)
 
 	return nil
 }
@@ -56,6 +58,13 @@ func (this *Addr) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 
+	withTSPTypeFlag := false
+	totalAddrsOffL  := count * 45 // 45 is the size of PeerAddr
+
+	if source.Len() >= (totalAddrsOffL+1) {
+		withTSPTypeFlag = true
+	}
+
 	for i := 0; i < int(count); i++ {
 		var addr comm.PeerAddr
 		addr.Time, eof = source.NextInt64()
@@ -67,6 +76,14 @@ func (this *Addr) Deserialization(source *common.ZeroCopySource) error {
 		addr.ID, eof = source.NextUint64()
 		if eof {
 			return io.ErrUnexpectedEOF
+		}
+
+		addr.TransportType = comm.LegacyTSPType
+		if withTSPTypeFlag {
+			addr.TransportType, eof = source.NextByte()
+			if eof {
+				return io.ErrUnexpectedEOF
+			}
 		}
 
 		this.NodeAddrs = append(this.NodeAddrs, addr)

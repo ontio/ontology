@@ -299,7 +299,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE, tspType)
-			msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight(), tspType)
+			msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight(), config.DefConfig.P2PNode.TransportType)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED, tspType)
 			msg = msgpack.NewVerAck(true)
@@ -392,7 +392,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE, tspType)
 			log.Infof("After set syncState:%d", remotePeer.GetSyncState(tspType))
-			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight(), tspType)
+			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight(), config.DefConfig.P2PNode.TransportType)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED, tspType)
 			msg = msgpack.NewVerAck(false)
@@ -486,7 +486,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTy
 			continue
 		}
 
-		if p2p.NodeEstablished(v.ID, tspType) {
+		if p2p.NodeEstablished(v.ID, v.TransportType) {
 			continue
 		}
 
@@ -501,7 +501,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTy
 			continue
 		}
 		log.Debug("[p2p]connect ip address:", address)
-		go p2p.Connect(address, false)
+		go p2p.ConnectWithTSPType(address, false,  v.TransportType)
 	}
 }
 

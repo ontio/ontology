@@ -116,6 +116,7 @@ type PeerAddr struct {
 	Port          uint16   //sync port
 	ConsensusPort uint16   //consensus port
 	ID            uint64   //Unique ID
+	TransportType byte     //supported transport type of peer
 }
 
 //const channel msg id and type

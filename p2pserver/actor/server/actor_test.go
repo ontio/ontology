@@ -59,7 +59,7 @@ func TestP2PActorServer(t *testing.T) {
 	if err != nil {
 		t.Errorf("GetConnectionCntReq error %s", err)
 	}
-	_, ok := result.(*GetConnectionCntRsp)
+	_, ok := result.(*GetspTypetConnectionCntRsp)
 	if !ok {
 		t.Error("GetConnectionCntRsp error")
 	}
