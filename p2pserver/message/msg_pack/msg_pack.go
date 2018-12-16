@@ -154,8 +154,8 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32, tspType byte) mt.Messa
 	version.P = mt.VersionPayload{
 		Version:       n.GetVersion(),
 		Services:      n.GetServices(),
-		SyncPort:      n.GetSyncPort(config.DefConfig.P2PNode.TransportType),
-		ConsPort:      n.GetConsPort(config.DefConfig.P2PNode.TransportType),
+		SyncPort:      n.GetSyncPort(tspType),
+		ConsPort:      n.GetConsPort(tspType),
 		Nonce:         n.GetID(),
 		IsConsensus:   isCons,
 		HttpInfoPort:  n.GetHttpInfoPort(),

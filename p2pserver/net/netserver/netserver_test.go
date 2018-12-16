@@ -33,7 +33,7 @@ func init() {
 	fmt.Println("Start test the netserver...")
 }
 
-func creatPeers(cnt uint16) []*peer.Peer {
+func creatPeers(cnt uint16, tspType byte) []*peer.Peer {
 	np := []*peer.Peer{}
 	var syncport uint16
 	var consport uint16
@@ -45,17 +45,19 @@ func creatPeers(cnt uint16) []*peer.Peer {
 		id = 0x7533345 + uint64(i)
 		height = 434923 + uint64(i)
 		p := peer.NewPeer()
-		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height)
-		p.SetConsState(2)
-		p.SetSyncState(4)
+		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, tspType)
+		p.SetConsState(2, tspType)
+		p.SetSyncState(4, tspType)
 		p.SetHttpInfoState(true)
-		p.SyncLink.SetAddr("127.0.0.1:10338")
+		p.SyncLink[tspType].SetAddr("127.0.0.1:10338")
 		np = append(np, p)
 	}
 	return np
 
 }
 func TestNewNetServer(t *testing.T) {
+	tspType := common.LegacyTSPType
+
 	server := NewNetServer()
 	server.Start()
 	defer server.Halt()
@@ -74,11 +76,11 @@ func TestNewNetServer(t *testing.T) {
 	if server.GetVersion() != common.PROTOCOL_VERSION {
 		t.Error("TestNewNetServer server version error", server.GetVersion())
 	}
-	if server.GetSyncPort() != 20338 {
-		t.Error("TestNewNetServer sync port error", server.GetSyncPort())
+	if server.GetSyncPort(tspType) != 20338 {
+		t.Error("TestNewNetServer sync port error", server.GetSyncPort(tspType))
 	}
-	if server.GetConsPort() != 20339 {
-		t.Error("TestNewNetServer sync port error", server.GetConsPort())
+	if server.GetConsPort(tspType) != 20339 {
+		t.Error("TestNewNetServer sync port error", server.GetConsPort(tspType))
 	}
 
 	fmt.Printf("lastest server time is %s\n", time.Unix(server.GetTime()/1e9, 0).String())
@@ -86,6 +88,8 @@ func TestNewNetServer(t *testing.T) {
 }
 
 func TestNetServerNbrPeer(t *testing.T) {
+	tspType := common.LegacyTSPType
+
 	log.Init(log.Stdout)
 	server := NewNetServer()
 	server.Start()
@@ -93,18 +97,19 @@ func TestNetServerNbrPeer(t *testing.T) {
 
 	nm := &peer.NbrPeers{}
 	nm.Init()
-	np := creatPeers(5)
+	np := creatPeers(5, tspType)
 	for _, v := range np {
 		server.AddNbrNode(v)
 	}
-	if server.GetConnectionCnt() != 5 {
-		t.Error("TestNetServerNbrPeer GetConnectionCnt error", server.GetConnectionCnt())
+	cntL, _ := server.GetConnectionCnt()
+	if cntL != 5 {
+		t.Error("TestNetServerNbrPeer GetConnectionCnt error", cntL)
 	}
 	addrs := server.GetNeighborAddrs()
 	if len(addrs) != 5 {
 		t.Error("TestNetServerNbrPeer GetNeighborAddrs error")
 	}
-	if server.NodeEstablished(0x7533345) == false {
+	if server.NodeEstablished(0x7533345, tspType) == false {
 		t.Error("TestNetServerNbrPeer NodeEstablished error")
 	}
 	if server.GetPeer(0x7533345) == nil {

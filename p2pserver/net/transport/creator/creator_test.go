@@ -2,7 +2,7 @@ package creator
 
 import (
 	"github.com/ontio/ontology/common/log"
-	tsp "github.com/ontio/ontology/p2pserver/net/transport"
+	"github.com/ontio/ontology/p2pserver/common"
 	"testing"
 )
 
@@ -16,7 +16,7 @@ func TestFactory(t *testing.T) {
 		t.Error("tcpTransport1 should be nil")
 	}
 
-	tcpTransport2, _ := GetTransportFactory().GetTransport(tsp.T_TCP)
+	tcpTransport2, _ := GetTransportFactory().GetTransport(common.T_TCP)
 	if tcpTransport2 == nil {
 		t.Error("tcpTransport2 shouldnot be nil")
 	}

@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
 )
 
@@ -35,14 +34,13 @@ func init() {
 	p = NewPeer()
 	p.base.version = 1
 	p.base.services = 1
-	p.base.syncPort = 10338
-	p.base.consPort = 10339
+	p.base.syncPort[tspType] = 10338
+	p.base.consPort[tspType] = 10339
 	p.base.relay = true
 	p.base.height = 123355
 	p.base.id = 29357734007
-	acct := account.NewAccount("SHA256withECDSA")
-	key = acct.PubKey()
-	p.SetBookKeeperAddr(key)
+
+	p.SetTransportType(tspType)
 }
 func TestGetPeerComInfo(t *testing.T) {
 	p.DumpInfo()
@@ -64,20 +62,20 @@ func TestGetPeerComInfo(t *testing.T) {
 		}
 	}
 
-	if p.base.GetSyncPort() != 10338 {
+	if p.base.GetSyncPort(tspType) != 10338 {
 		t.Errorf("PeerCom GetSyncPort error")
 	} else {
-		p.base.SetSyncPort(20338)
-		if p.base.GetSyncPort() != 20338 {
+		p.base.SetSyncPort(20338, tspType)
+		if p.base.GetSyncPort(tspType) != 20338 {
 			t.Errorf("PeerCom SetSyncPort error")
 		}
 	}
 
-	if p.base.GetConsPort() != 10339 {
+	if p.base.GetConsPort(tspType) != 10339 {
 		t.Errorf("PeerCom GetConsPort error")
 	} else {
-		p.base.SetConsPort(20339)
-		if p.base.GetConsPort() != 20339 {
+		p.base.SetConsPort(20339, tspType)
+		if p.base.GetConsPort(tspType) != 20339 {
 			t.Errorf("PeerCom SetConsPort error")
 		}
 	}
@@ -108,17 +106,14 @@ func TestGetPeerComInfo(t *testing.T) {
 			t.Errorf("PeerCom SetID error")
 		}
 	}
-	if p.base.GetPubKey() != key {
-		t.Errorf("PeerCom GetPubKey error")
-	}
 }
 
 func TestUpdatePeer(t *testing.T) {
-	p.UpdateInfo(time.Now(), 3, 3, 30334, 30335, 0x7533345, 0, 7322222)
-	p.SetConsState(2)
-	p.SetSyncState(3)
+	p.UpdateInfo(time.Now(), 3, 3, 30334, 30335, 0x7533345, 0, 7322222, tspType)
+	p.SetConsState(2, tspType)
+	p.SetSyncState(3, tspType)
 	p.SetHttpInfoState(true)
-	p.SyncLink.SetAddr("127.0.0.1:20338")
+	p.SyncLink[tspType].SetAddr("127.0.0.1:20338")
 	p.DumpInfo()
 
 }
