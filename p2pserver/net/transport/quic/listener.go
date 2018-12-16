@@ -23,7 +23,7 @@ import  (
 	"net"
 	"strconv"
 
-	quic "github.com/lucas-clemente/quic-go"
+	"github.com/lucas-clemente/quic-go"
 	"github.com/ontio/ontology/common/log"
 	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 )

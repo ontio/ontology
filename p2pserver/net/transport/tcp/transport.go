@@ -20,8 +20,10 @@ package tcp
 
 import (
 	"bufio"
-	"io"
+	"crypto/tls"
+	"errors"
 	"net"
+	"strconv"
 	"time"
 
 	"github.com/ontio/ontology/common/config"
@@ -30,40 +32,79 @@ import (
 	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 )
 
-type connection struct {
-	net.Conn
-	io.Reader
-}
-
 type transport struct { }
 
-func (this * connection) GetReader() (io.Reader, error) {
+// createListener creates a net listener on the port
+func createListener(port uint16) (net.Listener, error) {
+	var listener net.Listener
+	var err error
 
-	return  this.Reader, nil
+	isTls := config.DefConfig.P2PNode.IsTLS
+	if isTls {
+		tlsConf, _:= tsp.GetServerTLSConfig()
+		if tlsConf == nil {
+			log.Error("[p2p]GetServerTLSConfig failed")
+			return nil, errors.New("[p2p]GetServerTLSConfig failed")
+		}
+
+		listener, err = initTlsListen(port, tlsConf)
+		if err != nil {
+			log.Error("[p2p]initTlslisten failed")
+			return nil, errors.New("[p2p]initTlslisten failed")
+		}
+	} else {
+		listener, err = initNonTlsListen(port)
+		if err != nil {
+			log.Error("[p2p]initNonTlsListen failed")
+			return nil, errors.New("[p2p]initNonTlsListen failed")
+		}
+	}
+	return listener, nil
 }
 
-func (this * connection) Write(b []byte) (n int, err error) {
-
-	return this.Conn.Write(b)
+//nonTLSDial return net.Conn with nonTls
+func nonTLSDial(addr string, timeout time.Duration) (net.Conn, error) {
+	log.Trace()
+	conn, err := net.DialTimeout("tcp", addr, timeout)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
 
-func (this * connection) Close() error {
+//TLSDial return net.Conn with TLS
+func TLSDial(nodeAddr string, timeout time.Duration, tlsConf *tls.Config) (net.Conn, error) {
 
-	return  this.Conn.Close()
+	var dialer net.Dialer
+	dialer.Timeout = timeout
+	conn, err := tls.DialWithDialer(&dialer, "tcp", nodeAddr, tlsConf)
+	if err != nil {
+		return nil, err
+	}
+	return conn, nil
 }
 
-func (this* connection) LocalAddr() net.Addr {
-
-	return this.Conn.LocalAddr()
+//initNonTlsListen return net.Listener with nonTls mode
+func initNonTlsListen(port uint16) (net.Listener, error) {
+	log.Trace()
+	listener, err := net.Listen("tcp", ":"+strconv.Itoa(int(port)))
+	if err != nil {
+		log.Error("[p2p]Error listening\n", err.Error())
+		return nil, err
+	}
+	return listener, nil
 }
 
-func (this* connection) RemoteAddr() net.Addr {
+//initTlsListen return net.Listener with Tls mode
+func initTlsListen(port uint16, tlsConf *tls.Config) (net.Listener, error) {
 
-	return this.Conn.RemoteAddr()
-}
-func (this * connection) SetWriteDeadline(t time.Time) error {
-
-	return  this.Conn.SetWriteDeadline(t)
+	log.Info("[p2p]TLS listen port is ", strconv.Itoa(int(port)))
+	listener, err := tls.Listen("tcp", ":"+strconv.Itoa(int(port)), tlsConf)
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return listener, nil
 }
 
 func NewTransport() (tsp.Transport, error) {
