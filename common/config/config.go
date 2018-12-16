@@ -50,7 +50,7 @@ const (
 	CONSENSUS_TYPE_SOLO = "solo"
 	CONSENSUS_TYPE_VBFT = "vbft"
 
-	DEFAULT_LOG_LEVEL                       = log.TraceLog//log.InfoLog
+	DEFAULT_LOG_LEVEL                       = log.InfoLog//log.InfoLog
 	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
 	DEFAULT_NODE_PORT                       = uint(30338)
 	DEFAULT_NODE_PORT_LEGACY                = uint(20338)

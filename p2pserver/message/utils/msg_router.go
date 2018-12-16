@@ -108,7 +108,7 @@ func (this *MessageRouter) hookChan(channel chan *types.RecvMessage,
 			if ok {
 				msgType := data.RecvMsgPayload.Payload.CmdType()
 
-				log.Infof("MessageRouter receive msg: %s", msgType)
+				log.Tracef("MessageRouter receive msg: %s", msgType)
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
 					go handler(data.RecvMsgPayload, this.p2p, this.pid, data.TSPType)

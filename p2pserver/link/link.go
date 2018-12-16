@@ -128,10 +128,8 @@ func (this *Link) Rx(tspType byte) {
 
 		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
-			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+			log.Errorf("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
 			break
-		} else {
-			log.Infof("[p2p]success read msg %s from %s ", msg.CmdType(), this.GetAddr())
 		}
 
 		t := time.Now()
@@ -139,11 +137,10 @@ func (this *Link) Rx(tspType byte) {
 
 		if !this.needSendMsg(msg) {
 			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
-			log.Infof("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
 			continue
 		}
 		this.addReqRecord(msg)
-		log.Infof("Start send to recvChan msgType:%s from:%d", msg.CmdType(), this.id)
+		log.Tracef("Start send to recvChan msgType:%s from:%d", msg.CmdType(), this.id)
 		msgPayload := &types.MsgPayload{
 			Id:          this.id,
 			Addr:        this.addr,
@@ -208,12 +205,10 @@ func (this *Link) Tx(msg types.Message, tspType byte) error {
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err = conn.Write(payload)
 	if err != nil {
-		log.Infof("[p2p]error sending messge %s to %s :%s", msg.CmdType(), this.GetAddr(), err.Error())
+		log.Errorf("[p2p]error sending messge %s to %s :%s", msg.CmdType(), this.GetAddr(), err.Error())
 		this.disconnectNotify(tspType)
 		return err
-	} else {
-		log.Infof("[p2p]success sending messge %s to %s", msg.CmdType(), this.GetAddr())
-	}
+	} 
 
 	return nil
 }

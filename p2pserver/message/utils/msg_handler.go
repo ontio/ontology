@@ -130,7 +130,7 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTy
 	p2p.SetHeight(uint64(height))
 	msg := msgpack.NewPongMsg(uint64(height))
 
-	log.Infof("PingHandle send pong msg: %s", remotePeer.SyncLink[tspType].GetAddr())
+	log.Tracef("PingHandle send pong msg: %s", remotePeer.SyncLink[tspType].GetAddr())
 
 	err := p2p.Send(remotePeer, msg, false, tspType)
 	if err != nil {
@@ -182,7 +182,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspT
 
 // ConsensusHandle handles the consensus message from peer
 func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Debugf("[p2p]receive consensus message:%v,%d  by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+	log.Tracef("[p2p]receive consensus message:%v,%d  by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
 
 	if actor.ConsensusPid != nil {
 		var consensus = data.Payload.(*msgTypes.Consensus)
@@ -217,7 +217,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 
 	version := data.Payload.(*msgTypes.Version)
 
-	log.Infof("[p2p]VersionHandle, version.P.Nonce=%d from %s", version.P.Nonce, data.Addr)
+	log.Tracef("[p2p]VersionHandle, version.P.Nonce=%d from %s", version.P.Nonce, data.Addr)
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	if remotePeer == nil {
@@ -379,7 +379,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 		remotePeer.SyncLink[tspType].SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
 
-		log.Infof("remotePeer.UpdateInfo, version.P.Nonce=%d, syncState=%d", version.P.Nonce, remotePeer.GetSyncState(tspType))
+		log.Tracef("remotePeer.UpdateInfo, version.P.Nonce=%d, syncState=%d", version.P.Nonce, remotePeer.GetSyncState(tspType))
 
 		if pid != nil {
 			input := &msgCommon.AppendPeerID{
@@ -391,7 +391,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE, tspType)
-			log.Infof("After set syncState:%d", remotePeer.GetSyncState(tspType))
+			log.Tracef("After set syncState:%d", remotePeer.GetSyncState(tspType))
 			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight(), config.DefConfig.P2PNode.TransportType)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED, tspType)
@@ -649,7 +649,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTyp
 
 // DisconnectHandle handles the disconnect events
 func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Debugf("[p2p]receive disconnect message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+	log.Tracef("[p2p]receive disconnect message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
 	p2p.RemoveFromInConnRecord(data.Addr)
 	p2p.RemoveFromOutConnRecord(data.Addr)
 	remotePeer := p2p.GetPeer(data.Id)

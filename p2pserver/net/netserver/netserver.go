@@ -285,7 +285,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	err := this.connectSub(addr, isConsensus, config.DefConfig.P2PNode.TransportType)
 	switch err.(type){
 	case *tsp.DialError:
-		log.Infof("[p2p]Connect to %s dial err by transport %s and switch to transport %s",
+		log.Tracef("[p2p]Connect to %s dial err by transport %s and switch to transport %s",
 							addr,
 							common.GetTransportTypeString(config.DefConfig.P2PNode.TransportType),
 							common.GetTransportTypeString(common.LegacyTSPType))
@@ -312,7 +312,6 @@ func (this *NetServer) ConnectWithTSPType(addr string, isConsensus bool, tsptype
 func (this *NetServer) connectSub(addr string, isConsensus bool, tspType byte) error {
 	if this.IsAddrInOutConnRecord(addr) {
 		log.Debugf("[p2p]Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
-		fmt.Printf("[p2p]AddrInOutConnRecord %s\n", addr)
 		return nil
 	}
 	if this.IsOwnAddress(addr) {
@@ -490,7 +489,7 @@ func (this *NetServer) startSyncListening(port uint16, tspType byte) error {
 	this.synclistener[tspType] = listener
 
 	go this.startSyncAccept(listener, tspType)
-	log.Infof("[p2p]start listen on sync %s port %d", common.GetTransportTypeString(tspType), port)
+	log.Tracef("[p2p]start listen on sync %s port %d", common.GetTransportTypeString(tspType), port)
 	return nil
 }
 
@@ -512,7 +511,7 @@ func (this *NetServer) startConsListening(port uint16, tspType byte) error {
 	this.conslistener[tspType] = listener
 
 	go this.startConsAccept(listener, tspType)
-	log.Infof("[p2p]Start listen on consensus %s port %d", common.GetTransportTypeString(tspType), port)
+	log.Tracef("[p2p]Start listen on consensus %s port %d", common.GetTransportTypeString(tspType), port)
 	return nil
 }
 
