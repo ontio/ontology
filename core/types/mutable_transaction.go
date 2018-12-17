@@ -22,7 +22,6 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/payload"
 )
 
@@ -48,7 +47,7 @@ func (self *MutableTransaction) IntoImmutable() (*Transaction, error) {
 		return nil, err
 	}
 
-	return TransactionFromRawBytes(sink.Bytes())
+	return TransactionFromRawBytesWithoutSideChainIDCheck(sink.Bytes())
 }
 
 func (self *MutableTransaction) Hash() common.Uint256 {
@@ -97,9 +96,6 @@ func (tx *MutableTransaction) serialize(sink *common.ZeroCopySink) error {
 }
 
 func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error {
-	if tx.SideChainID != config.DefConfig.Genesis.SideChainID {
-		return errors.New("tx side chain id is not correct")
-	}
 	if tx.Version != TX_VERSION {
 		return errors.New("side chain tx version should equal to 1")
 	}

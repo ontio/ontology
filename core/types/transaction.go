@@ -69,6 +69,23 @@ func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
+	if tx.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return nil, fmt.Errorf("tx side chain id is not correct %v and %v", tx.SideChainID, config.DefConfig.Genesis.SideChainID)
+	}
+	return tx, nil
+}
+
+// if no error, ownership of param raw is transfered to Transaction
+func TransactionFromRawBytesWithoutSideChainIDCheck(raw []byte) (*Transaction, error) {
+	if len(raw) > MAX_TX_SIZE {
+		return nil, errors.New("execced max transaction size")
+	}
+	source := common.NewZeroCopySource(raw)
+	tx := &Transaction{Raw: raw}
+	err := tx.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
 	return tx, nil
 }
 
@@ -150,9 +167,6 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	tx.SideChainID, _, irregular, eof = source.NextString()
 	if irregular {
 		return common.ErrIrregularData
-	}
-	if tx.SideChainID != config.DefConfig.Genesis.SideChainID {
-		return errors.New("tx side chain id is not correct")
 	}
 	tx.Version, eof = source.NextByte()
 	if tx.Version != TX_VERSION {
