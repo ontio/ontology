@@ -60,7 +60,7 @@ func (this *listener) Accept() (tsp.Connection, error) {
 
 func (this *listener) setupConn(sess quic.Session) (tsp.Connection, error) {
 
-	return &connection{sess: sess}, nil
+	return newConnection(sess), nil
 }
 
 func (this *listener) Close() error {

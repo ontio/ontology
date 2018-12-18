@@ -116,7 +116,7 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 
 //get node connection count
 func GetConnectionCount(params []interface{}) map[string]interface{} {
-	_, count, err := bactor.GetConnectionCnt()
+	count, err := bactor.GetConnectionCnt()
 	if err != nil {
 		log.Errorf("GetConnectionCount error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, false)

@@ -136,11 +136,10 @@ func (this *P2PActor) handleGetVersionReq(ctx actor.Context, req *GetVersionReq)
 
 //connection count handler
 func (this *P2PActor) handleGetConnectionCntReq(ctx actor.Context, req *GetConnectionCntReq) {
-	cntLegacy, cnt := this.server.GetConnectionCnt()
+	cnt := this.server.GetConnectionCnt()
 	if ctx.Sender() != nil {
 		resp := &GetConnectionCntRsp{
-			CntLegacy: cntLegacy,
-			Cnt:       cnt,
+			Cnt: cnt,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
 	}

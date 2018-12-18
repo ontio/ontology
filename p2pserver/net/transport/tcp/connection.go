@@ -22,6 +22,9 @@ import (
 	"io"
 	"net"
 	"time"
+
+	"github.com/ontio/ontology/p2pserver/common"
+	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 )
 
 type connection struct {
@@ -29,12 +32,26 @@ type connection struct {
 	io.Reader
 }
 
-func (this * connection) GetReader() (io.Reader, error) {
-
-	return  this.Reader, nil
+type recvStream struct {
+	io.Reader
 }
 
-func (this * connection) Write(b []byte) (n int, err error) {
+func (this* recvStream) CanContinue() bool {
+
+	return false
+}
+
+func (this * connection) GetRecvStream() (tsp.RecvStream, error) {
+
+	return  &recvStream{this.Reader}, nil
+}
+
+func (this * connection) GetTransportType() byte {
+
+	return 	common.T_TCP
+}
+
+func (this * connection) Write(cmdType string, b []byte) (n int, err error) {
 
 	return this.Conn.Write(b)
 }

@@ -31,7 +31,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/common"
-	conn "github.com/ontio/ontology/p2pserver/link"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
@@ -44,11 +43,9 @@ import (
 //NewNetServer return the net object in p2p
 func NewNetServer() p2p.P2P {
 	n := &NetServer{
-		SyncChan: make(chan *types.RecvMessage, common.CHAN_CAPABILITY),
-		ConsChan: make(chan *types.RecvMessage, common.CHAN_CAPABILITY),
+		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
+		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 	}
-
-	n.base.Init()
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
 	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
@@ -70,8 +67,8 @@ type NetServer struct {
 	base                  peer.PeerCom
 	synclistener          map[byte]tsp.Listener
 	conslistener          map[byte]tsp.Listener
-	SyncChan              chan *types.RecvMessage
-	ConsChan              chan *types.RecvMessage
+	SyncChan     chan *types.MsgPayload
+	ConsChan     chan *types.MsgPayload
 	ConnectingNodes
 	PeerAddrMap
 	Np                    *peer.NbrPeers
@@ -121,8 +118,7 @@ func (this *NetServer) init() error {
 		return errors.New("[p2p]invalid link port")
 	}
 
-	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePortLegacy), common.LegacyTSPType)
-	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort), config.DefConfig.P2PNode.TransportType)
+	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
 
 	if config.DefConfig.P2PNode.DualPortSupport {
 		if config.DefConfig.P2PNode.NodeConsensusPort == 0 || config.DefConfig.P2PNode.NodeConsensusPortLegacy == 0{
@@ -130,11 +126,9 @@ func (this *NetServer) init() error {
 			return errors.New("[p2p]invalid consensus port")
 		}
 
-		this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPortLegacy), common.LegacyTSPType)
-		this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort), config.DefConfig.P2PNode.TransportType)
+		this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
 	} else {
-		this.base.SetConsPort(0, common.LegacyTSPType)
-		this.base.SetConsPort(0, config.DefConfig.P2PNode.TransportType)
+		this.base.SetConsPort(0)
 	}
 
 	this.base.SetRelay(true)
@@ -188,13 +182,13 @@ func (this *NetServer) GetServices() uint64 {
 }
 
 //GetSyncPort return the sync port
-func (this *NetServer) GetSyncPort(tspType byte) uint16 {
-	return this.base.GetSyncPort(tspType)
+func (this *NetServer) GetSyncPort() uint16 {
+	return this.base.GetSyncPort()
 }
 
 //GetConsPort return the cons port
-func (this *NetServer) GetConsPort(tspType byte) uint16 {
-	return this.base.GetConsPort(tspType)
+func (this *NetServer) GetConsPort() uint16 {
+	return this.base.GetConsPort()
 }
 
 //GetHttpInfoPort return the port support info via http
@@ -223,7 +217,7 @@ func (this *NetServer) GetNeighborAddrs() []common.PeerAddr {
 }
 
 //GetConnectionCnt return the total number of valid connections
-func (this *NetServer) GetConnectionCnt() (uint32, uint32) {
+func (this *NetServer) GetConnectionCnt() uint32 {
 	return this.Np.GetNbrNodeCnt()
 }
 
@@ -243,8 +237,8 @@ func (this *NetServer) GetNeighbors() []*peer.Peer {
 }
 
 //NodeEstablished return whether a peer is establish with self according to id
-func (this *NetServer) NodeEstablished(id uint64, tspType byte) bool {
-	return this.Np.NodeEstablished(id, tspType)
+func (this *NetServer) NodeEstablished(id uint64) bool {
+	return this.Np.NodeEstablished(id)
 }
 
 //Xmit called by actor, broadcast msg
@@ -253,7 +247,7 @@ func (this *NetServer) Xmit(msg types.Message, isCons bool) {
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
-func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.RecvMessage {
+func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.MsgPayload {
 	if isConsensus {
 		return this.ConsChan
 	} else {
@@ -262,50 +256,52 @@ func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.RecvMessage {
 }
 
 //Tx send data buf to peer
-func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool, tspType byte) error {
+func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
 	if p != nil {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
-			return p.Send(msg, false, tspType)
+			return p.Send(msg, false)
 		}
-		return p.Send(msg, isConsensus, tspType)
+		return p.Send(msg, isConsensus)
 	}
 	log.Warn("[p2p]send to a invalid peer")
 	return errors.New("[p2p]send to a invalid peer")
 }
 
 //IsPeerEstablished return the establise state of given peer`s id
-func (this *NetServer) IsPeerEstablished(p *peer.Peer, tspType byte) bool {
+func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 	if p != nil {
-		return this.Np.NodeEstablished(p.GetID(), tspType)
+		return this.Np.NodeEstablished(p.GetID())
 	}
 	return false
 }
 
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
-	err := this.connectSub(addr, isConsensus, config.DefConfig.P2PNode.TransportType)
+	tspType := config.DefConfig.P2PNode.TransportType
+	err := this.connectSub(addr, isConsensus, tspType)
 	switch err.(type){
 	case *tsp.DialError:
-		log.Tracef("[p2p]Connect to %s dial err by transport %s and switch to transport %s",
-							addr,
-							common.GetTransportTypeString(config.DefConfig.P2PNode.TransportType),
-							common.GetTransportTypeString(common.LegacyTSPType))
-	    ip, errIP := common.ParseIPAddr(addr)
-	    port, errPort := common.ParseIPPort(addr)
-	    if errIP == nil && errPort == nil{
-	    	portNum, _ := strconv.ParseUint(port[1:], 10, 64)
-	    	legacyPort := portNum - uint64(10000)
-	    	legacyAddr := ip + ":" + strconv.FormatUint(legacyPort, 10)
-			return this.connectSub(legacyAddr, isConsensus, common.LegacyTSPType)
+		if tspType != common.LegacyTSPType {
+			log.Tracef("[p2p]Connect to %s dial err by transport %s and switch to transport %s",
+				addr,
+				common.GetTransportTypeString(tspType),
+				common.GetTransportTypeString(common.LegacyTSPType))
+			ip, errIP := common.ParseIPAddr(addr)
+			port, errPort := common.ParseIPPort(addr)
+			if errIP == nil && errPort == nil {
+				portNum, _ := strconv.ParseUint(port[1:], 10, 64)
+				legacyPort := portNum - uint64(10000)
+				legacyAddr := ip + ":" + strconv.FormatUint(legacyPort, 10)
+				return this.connectSub(legacyAddr, isConsensus, common.LegacyTSPType)
+			}
+		}else {
+			log.Errorf("[p2p]DialError by transport %s", common.GetTransportTypeString(tspType))
+			return err
 		}
 	default:
 		return err
 	}
 
 	return err
-}
-
-func (this *NetServer) ConnectWithTSPType(addr string, isConsensus bool, tsptype byte) error {
-	return this.connectSub(addr, isConsensus, tsptype)
 }
 
 //Connect used to connect net address under sync or cons mode
@@ -331,13 +327,9 @@ func (this *NetServer) connectSub(addr string, isConsensus bool, tspType byte) e
 	}
 	this.connectLock.Unlock()
 
-	this.connectLock.Lock()
-	if this.IsNbrPeerAddr(addr, isConsensus, tspType) {
-		this.connectLock.Unlock()
+	if this.IsNbrPeerAddr(addr, isConsensus) {
 		return nil
 	}
-	this.connectLock.Unlock()
-
 	this.connectLock.Lock()
 	if added := this.AddOutConnectingList(addr); added == false {
 		log.Debug("[p2p]node exist in connecting list", addr)
@@ -367,25 +359,25 @@ func (this *NetServer) connectSub(addr string, isConsensus bool, tspType byte) e
 		this.AddOutConnRecord(addr)
 		remotePeer = peer.NewPeer()
 		this.AddPeerSyncAddress(addr, remotePeer)
-		remotePeer.SyncLink[tspType].SetAddr(addr)
-		remotePeer.SyncLink[tspType].SetConn(conn)
-		remotePeer.AttachSyncChan(this.SyncChan, tspType)
-		go remotePeer.SyncLink[tspType].Rx(tspType)
-		remotePeer.SetSyncState(common.HAND, tspType)
+		remotePeer.SyncLink.SetAddr(addr)
+		remotePeer.SyncLink.SetConn(conn)
+		remotePeer.AttachSyncChan(this.SyncChan)
+		go remotePeer.SyncLink.Rx()
+		remotePeer.SetSyncState(common.HAND)
 		remotePeer.SetTransportType(tspType)
+
 	} else {
 		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
 		this.AddPeerConsAddress(addr, remotePeer)
-		remotePeer.ConsLink[tspType].SetAddr(addr)
-		log.Tracef("[p2p]Set remote peer conslink conn during Connecting, remoteConsaddr =%s, tspType=%s", addr, common.GetTransportTypeString(tspType))
-		remotePeer.ConsLink[tspType].SetConn(conn)
-		remotePeer.AttachConsChan(this.ConsChan, tspType)
-		go remotePeer.ConsLink[tspType].Rx(tspType)
-		remotePeer.SetConsState(common.HAND, tspType)
+		remotePeer.ConsLink.SetAddr(addr)
+		remotePeer.ConsLink.SetConn(conn)
+		remotePeer.AttachConsChan(this.ConsChan)
+		go remotePeer.ConsLink.Rx()
+		remotePeer.SetConsState(common.HAND)
 		remotePeer.SetTransportType(tspType)
 	}
-	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight(), config.DefConfig.P2PNode.TransportType)
-	err = remotePeer.Send(version, isConsensus, tspType)
+	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
+	err = remotePeer.Send(version, isConsensus)
 	if err != nil {
 		if !isConsensus {
 			this.RemoveFromOutConnRecord(addr)
@@ -400,10 +392,8 @@ func (this *NetServer) connectSub(addr string, isConsensus bool, tspType byte) e
 func (this *NetServer) Halt() {
 	peers := this.Np.GetNeighbors()
 	for _, p := range peers {
-		p.CloseSync(common.LegacyTSPType)
-		p.CloseSync(config.DefConfig.P2PNode.TransportType)
-		p.CloseCons(common.LegacyTSPType)
-		p.CloseCons(config.DefConfig.P2PNode.TransportType)
+		p.CloseSync()
+		p.CloseCons()
 	}
 
 	for _, syncL := range this.synclistener {
@@ -422,26 +412,26 @@ func (this *NetServer) Halt() {
 func (this *NetServer) startListening() error {
 	var err error
 
-	syncPort := this.base.GetSyncPort(config.DefConfig.P2PNode.TransportType)
-	consPort := this.base.GetConsPort(config.DefConfig.P2PNode.TransportType)
-	syncPortLegacy := this.base.GetSyncPort(common.LegacyTSPType)
-	consPortLegacy := this.base.GetConsPort(common.LegacyTSPType)
+	syncPort := this.base.GetSyncPort()
+	consPort := this.base.GetConsPort()
+	syncPortLegacy := config.DefConfig.P2PNode.NodePortLegacy
+	consPortLegacy := config.DefConfig.P2PNode.NodeConsensusPortLegacy
 
-	if syncPort == 0 {
+	if syncPort == 0  || syncPortLegacy == 0{
 		log.Error("[p2p]sync port invalid")
 		return errors.New("[p2p]sync port invalid")
 	}
 
 	tspType := config.DefConfig.P2PNode.TransportType
-	err = this.startSyncListening(syncPortLegacy, common.LegacyTSPType)
+	err = this.startSyncListening(uint16(syncPort), tspType)
 	if err != nil {
 		log.Error("[p2p]start sync TCP listening fail")
 	}
 
 	if tspType != common.LegacyTSPType {
-		err = this.startSyncListening(syncPort, tspType)
+		err = this.startSyncListening(uint16(syncPortLegacy), common.LegacyTSPType)
 		if err != nil {
-			log.Errorf("[p2p]start sync listening fail by %s", common.GetTransportTypeString(tspType))
+			log.Errorf("[p2p]start sync listening fail by %s", common.GetTransportTypeString(common.LegacyTSPType))
 			return err
 		}
 	}
@@ -455,15 +445,15 @@ func (this *NetServer) startListening() error {
 		//still work
 		log.Warn("[p2p]consensus port invalid,keep single link")
 	} else {
-		err = this.startConsListening(consPortLegacy, common.LegacyTSPType)
+		err = this.startConsListening(uint16(consPort), tspType)
 		if err != nil {
 			log.Errorf("[p2p]start consensus %s listening fail", common.GetTransportTypeString(tspType))
 		}
 
 		if tspType != common.LegacyTSPType {
-			err = this.startConsListening(consPort, tspType)
+			err = this.startConsListening(uint16(consPortLegacy), common.LegacyTSPType)
 			if err != nil {
-				log.Errorf("[p2p]start consensus %s listening fail", common.GetTransportTypeString(tspType))
+				log.Errorf("[p2p]start consensus %s listening fail", common.GetTransportTypeString(common.LegacyTSPType))
 				return err
 			}
 		}
@@ -564,10 +554,10 @@ func (this *NetServer) startSyncAccept(listener tsp.Listener, tspType byte) {
 		addr := conn.RemoteAddr().String()
 		this.AddInConnRecord(addr)
 		this.AddPeerSyncAddress(addr, remotePeer)
-		remotePeer.SyncLink[tspType].SetAddr(addr)
-		remotePeer.SyncLink[tspType].SetConn(conn)
-		remotePeer.AttachSyncChan(this.SyncChan, tspType)
-		go remotePeer.SyncLink[tspType].Rx(tspType)
+		remotePeer.SyncLink.SetAddr(addr)
+		remotePeer.SyncLink.SetConn(conn)
+		remotePeer.AttachSyncChan(this.SyncChan)
+		go remotePeer.SyncLink.Rx()
 		remotePeer.SetTransportType(tspType)
 	}
 }
@@ -603,11 +593,11 @@ func (this *NetServer) startConsAccept(listener tsp.Listener, tspType byte) {
 		addr := conn.RemoteAddr().String()
 		this.AddPeerConsAddress(addr, remotePeer)
 
-		remotePeer.ConsLink[tspType].SetAddr(addr)
+		remotePeer.ConsLink.SetAddr(addr)
 		log.Tracef("[p2p]Set remote peer conslink conn during startConsAccept, remoteConsaddr =%s, tspType=%s", addr, common.GetTransportTypeString(tspType))
-		remotePeer.ConsLink[tspType].SetConn(conn)
-		remotePeer.AttachConsChan(this.ConsChan, tspType)
-		go remotePeer.ConsLink[tspType].Rx(tspType)
+		remotePeer.ConsLink.SetConn(conn)
+		remotePeer.AttachConsChan(this.ConsChan)
+		go remotePeer.ConsLink.Rx()
 		remotePeer.SetTransportType(tspType)
 	}
 }
@@ -677,24 +667,17 @@ func (this *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
 }
 
 //IsNbrPeerAddr return result whether the address is under connecting
-func (this *NetServer) IsNbrPeerAddr(addr string, isConsensus bool, tspType byte) bool {
+func (this *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
 	var addrNew string
 	this.Np.RLock()
 	defer this.Np.RUnlock()
-
-	var syncLink   *conn.Link
-	var consusLink *conn.Link
 	for _, p := range this.Np.List {
-		if p.GetSyncState(tspType) == common.HAND || p.GetSyncState(tspType) == common.HAND_SHAKE ||
-			p.GetSyncState(tspType) == common.ESTABLISH {
-
-			syncLink   = p.SyncLink[tspType]
-			consusLink = p.ConsLink[tspType]
-
+		if p.GetSyncState() == common.HAND || p.GetSyncState() == common.HAND_SHAKE ||
+			p.GetSyncState() == common.ESTABLISH {
 			if isConsensus {
-				addrNew = consusLink.GetAddr()
+				addrNew = p.ConsLink.GetAddr()
 			} else {
-				addrNew = syncLink.GetAddr()
+				addrNew = p.SyncLink.GetAddr()
 			}
 			if strings.Compare(addrNew, addr) == 0 {
 				return true

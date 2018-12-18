@@ -20,8 +20,6 @@ package peer
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
 	"sync"
 
 	"github.com/ontio/ontology/p2pserver/common"
@@ -39,9 +37,8 @@ func (this *NbrPeers) Broadcast(msg types.Message, isConsensus bool) {
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
-		if node.GetSyncState(node.GetTransportType()) == common.ESTABLISH && node.GetRelay() == true {
-			log.Tracef("Send msg %s to node %s, msgType=%t", msg.CmdType(), node.GetAddr(node.GetTransportType()), isConsensus)
-			node.Send(msg, isConsensus, node.GetTransportType())
+		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
+			node.Send(msg, isConsensus)
 		}
 	}
 }
@@ -94,7 +91,7 @@ func (this *NbrPeers) Init() {
 }
 
 //NodeEstablished whether peer established according to id
-func (this *NbrPeers) NodeEstablished(id uint64, tspType byte) bool {
+func (this *NbrPeers) NodeEstablished(id uint64) bool {
 	this.RLock()
 	defer this.RUnlock()
 
@@ -103,7 +100,7 @@ func (this *NbrPeers) NodeEstablished(id uint64, tspType byte) bool {
 		return false
 	}
 
-	if n.GetSyncState(tspType) != common.ESTABLISH {
+	if n.syncState != common.ESTABLISH {
 		return false
 	}
 
@@ -116,28 +113,17 @@ func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 	defer this.RUnlock()
 
 	var addrs []common.PeerAddr
-	tspType  := config.DefConfig.P2PNode.TransportType
-	tspTypeL := common.LegacyTSPType
 	for _, p := range this.List {
-		if p.GetSyncState(tspType) == common.ESTABLISH {
-			var addr common.PeerAddr
-			addr.IpAddr, _ = p.GetAddr16(tspType)
-			addr.Time = p.GetTimeStamp(tspType)
-			addr.Services = p.GetServices()
-			addr.Port = p.GetSyncPort(tspType)
-			addr.ID = p.GetID()
-			addr.TransportType = tspType
-			addrs = append(addrs, addr)
-		}else if p.GetSyncState(tspTypeL) == common.ESTABLISH {
-			var addr common.PeerAddr
-			addr.IpAddr, _ = p.GetAddr16(tspTypeL)
-			addr.Time = p.GetTimeStamp(tspTypeL)
-			addr.Services = p.GetServices()
-			addr.Port = p.GetSyncPort(tspTypeL)
-			addr.ID = p.GetID()
-			addr.TransportType = tspTypeL
-			addrs = append(addrs, addr)
+		if p.GetSyncState() != common.ESTABLISH {
+			continue
 		}
+		var addr common.PeerAddr
+		addr.IpAddr, _ = p.GetAddr16()
+		addr.Time = p.GetTimeStamp()
+		addr.Services = p.GetServices()
+		addr.Port = p.GetSyncPort()
+		addr.ID = p.GetID()
+		addrs = append(addrs, addr)
 	}
 
 	return addrs
@@ -149,9 +135,8 @@ func (this *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
 	defer this.RUnlock()
 
 	hm := make(map[uint64]uint64)
-	tspType := config.DefConfig.P2PNode.TransportType
 	for _, n := range this.List {
-		if n.GetSyncState(tspType) == common.ESTABLISH {
+		if n.GetSyncState() == common.ESTABLISH {
 			hm[n.GetID()] = n.GetHeight()
 		}
 	}
@@ -164,11 +149,7 @@ func (this *NbrPeers) GetNeighbors() []*Peer {
 	defer this.RUnlock()
 	peers := []*Peer{}
 	for _, n := range this.List {
-		if n.GetSyncState(common.LegacyTSPType) == common.ESTABLISH {
-			node := n
-			peers = append(peers, node)
-		}
-		if n.GetSyncState(config.DefConfig.P2PNode.TransportType) == common.ESTABLISH {
+		if n.GetSyncState() == common.ESTABLISH {
 			node := n
 			peers = append(peers, node)
 		}
@@ -177,18 +158,14 @@ func (this *NbrPeers) GetNeighbors() []*Peer {
 }
 
 //GetNbrNodeCnt return count of establish peers in nbrlist
-func (this *NbrPeers) GetNbrNodeCnt() (uint32, uint32) {
+func (this *NbrPeers) GetNbrNodeCnt() uint32 {
 	this.RLock()
 	defer this.RUnlock()
-	var countLegacy uint32
-    var count uint32
+	var count uint32
 	for _, n := range this.List {
-		if n.GetSyncState(common.LegacyTSPType) == common.ESTABLISH {
-			countLegacy++
-		}
-		if n.GetSyncState(config.DefConfig.P2PNode.TransportType) == common.ESTABLISH {
+		if n.GetSyncState() == common.ESTABLISH {
 			count++
 		}
 	}
-	return countLegacy, count
+	return count
 }

@@ -1,40 +1,72 @@
 package quic
 
 import (
+	"github.com/ontio/ontology/p2pserver/common"
 	"io"
 	"net"
 	"time"
 
 	"github.com/lucas-clemente/quic-go"
 	"github.com/ontio/ontology/common/log"
+	tsp "github.com/ontio/ontology/p2pserver/net/transport"
 )
 
+type recvStream struct {
+	io.Reader
+}
+
 type connection struct {
-	sess          quic.Session
+	sess           quic.Session
+	sstreamMap     map[string]quic.SendStream
 	streamWTimeOut time.Time
 }
 
-func (this * connection) GetReader() (io.Reader, error) {
+func (this * recvStream) CanContinue() bool {
 
-	stream, err := this.sess.AcceptUniStream()
-	if err != nil {
-		log.Errorf("[p2p]AcceptStream lAddr=%s, rAddr=%s, ERR:%s", this.sess.LocalAddr().String(), this.sess.RemoteAddr().String(), err)
-		return  nil, err
-	}
-
-	return stream, nil
+	return true
 }
 
-func (this * connection) Write(b []byte) (int, error) {
+func newConnection(sess quic.Session) tsp.Connection  {
 
-	stream, err := this.sess.OpenUniStreamSync()
-	if err != nil {
-		log.Errorf("[p2p]OpenStreamSync lAddr=%s, rAddr=%s, ERR:%s", this.sess.LocalAddr().String(), this.sess.RemoteAddr().String(), err)
-		return 0, err
+	return &connection{
+		sess:       sess,
+		sstreamMap: make(map[string]quic.SendStream),
 	}
-	defer stream.Close()
+}
 
-	stream.SetWriteDeadline(this.streamWTimeOut)
+func (this * connection) GetRecvStream() (tsp.RecvStream, error) {
+
+	stream, err := this.sess.AcceptUniStream()
+	if err != nil{
+		log.Errorf("[p2p]AcceptUniStream lAddr=%s, rAddr=%s, ERR:%s", this.sess.LocalAddr().String(), this.sess.RemoteAddr().String(), err)
+		return nil, err
+	}
+
+	return &recvStream{stream}, nil
+}
+
+func (this * connection) GetTransportType() byte {
+
+	return 	common.T_QUIC
+}
+
+func (this * connection) Write(cmdType string, b []byte) (int, error) {
+
+	var stream quic.SendStream
+	if s, ok := this.sstreamMap[cmdType]; !ok {
+		s, err := this.sess.OpenUniStreamSync()
+		if err != nil {
+			log.Errorf("[p2p]OpenUniStreamSync lAddr=%s, rAddr=%s, ERR:%s", this.sess.LocalAddr().String(), this.sess.RemoteAddr().String(), err)
+			return 0, err
+		}
+		//s.SetWriteDeadline(this.streamWTimeOut)
+
+		this.sstreamMap[cmdType] = s
+		stream = s
+	}else {
+		stream = s
+	}
+
 	cntW, errW := stream.Write(b)
 	if errW != nil {
 		log.Errorf("[p2p] Write err by stream:%s", errW)

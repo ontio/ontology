@@ -26,7 +26,7 @@ import (
 )
 
 type VerACK struct {
-	IsConsensus   bool
+	IsConsensus bool
 }
 
 //Serialize message payload

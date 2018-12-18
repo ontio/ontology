@@ -44,10 +44,10 @@ import (
 var respCache *lru.ARCCache
 
 // AddrReqHandle handles the neighbor address request from peer
-func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive addr request message %s=%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive addr request message", data.Addr, data.Id)
 	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil || remotePeer.GetTransportType() != tspType {
+	if remotePeer == nil {
 		log.Debug("[p2p]remotePeer invalid in AddrReqHandle")
 		return
 	}
@@ -72,7 +72,7 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 
 	}
 	msg := msgpack.NewAddrs(addrStr)
-	err := p2p.Send(remotePeer, msg,false, tspType)
+	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Warn(err)
 		return
@@ -80,8 +80,8 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 }
 
 // HeaderReqHandle handles the header sync req from peer
-func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive headers request message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive headers request message", data.Addr, data.Id)
 
 	headersReq := data.Payload.(*msgTypes.HeadersReq)
 
@@ -94,12 +94,12 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 		return
 	}
 	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil || remotePeer.GetTransportType() != tspType {
+	if remotePeer == nil {
 		log.Debugf("[p2p]remotePeer invalid in HeadersReqHandle, peer id: %d", data.Id)
 		return
 	}
 	msg := msgpack.NewHeaders(headers)
-	err = p2p.Send(remotePeer, msg, false, tspType)
+	err = p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Warn(err)
 		return
@@ -107,45 +107,35 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 }
 
 //PingHandle handle ping msg from peer
-func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive ping message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive ping message", data.Addr, data.Id)
 
 	ping := data.Payload.(*msgTypes.Ping)
 	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil || remotePeer.GetTransportType() != tspType {
+	if remotePeer == nil {
 		log.Debug("[p2p]remotePeer invalid in PingHandle")
 		return
 	}
 	remotePeer.SetHeight(ping.Height)
 
-	tspTypeConfig := config.DefConfig.P2PNode.TransportType
-	if tspType == msgCommon.LegacyTSPType && remotePeer.GetSyncState(tspTypeConfig) == msgCommon.ESTABLISH {
-		log.Debugf("[p2p] the config transport %s has been established, so needn't answer the remote peer's ping from transport %s",
-			         msgCommon.GetTransportTypeString(tspTypeConfig),
-			         msgCommon.GetTransportTypeString(tspType))
-		return
-	}
-
 	height := ledger.DefLedger.GetCurrentBlockHeight()
 	p2p.SetHeight(uint64(height))
 	msg := msgpack.NewPongMsg(uint64(height))
 
-	log.Tracef("PingHandle send pong msg: %s", remotePeer.SyncLink[tspType].GetAddr())
-
-	err := p2p.Send(remotePeer, msg, false, tspType)
+	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Warn(err)
 	}
 }
 
 ///PongHandle handle pong msg from peer
-func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive pong message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive pong message", data.Addr, data.Id)
 
 	pong := data.Payload.(*msgTypes.Pong)
 
 	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil || remotePeer.GetTransportType() != tspType{
+	if remotePeer == nil {
 		log.Debug("[p2p]remotePeer invalid in PongHandle")
 		return
 	}
@@ -153,8 +143,8 @@ func PongHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTy
 }
 
 // BlkHeaderHandle handles the sync headers from peer
-func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive block header message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive block header message", data.Addr, data.Id)
 	if pid != nil {
 		var blkHeader = data.Payload.(*msgTypes.BlkHeader)
 		input := &msgCommon.AppendHeaders{
@@ -166,8 +156,8 @@ func BlkHeaderHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 }
 
 // BlockHandle handles the block message from peer
-func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive block message from %s-%d", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive block message from ", data.Addr, data.Id)
 
 	if pid != nil {
 		var block = data.Payload.(*msgTypes.Block)
@@ -181,8 +171,8 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspT
 }
 
 // ConsensusHandle handles the consensus message from peer
-func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive consensus message:%v,%d  by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Debugf("[p2p]receive consensus message:%v,%d", data.Addr, data.Id)
 
 	if actor.ConsensusPid != nil {
 		var consensus = data.Payload.(*msgTypes.Consensus)
@@ -196,14 +186,14 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 }
 
 // NotFoundHandle handles the not found message from peer
-func NotFoundHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
+func NotFoundHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	var notFound = data.Payload.(*msgTypes.NotFound)
 	log.Debug("[p2p]receive notFound message, hash is ", notFound.Hash)
 }
 
 // TransactionHandle handles the transaction message from peer
-func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive transaction message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
 	var trn = data.Payload.(*msgTypes.Trn)
 	actor.AddTransaction(trn.Txn)
@@ -212,12 +202,10 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 }
 
 // VersionHandle handles version handshake protocol from peer
-func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive version message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive version message", data.Addr, data.Id)
 
 	version := data.Payload.(*msgTypes.Version)
-
-	log.Tracef("[p2p]VersionHandle, version.P.Nonce=%d from %s", version.P.Nonce, data.Addr)
 
 	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	if remotePeer == nil {
@@ -226,7 +214,6 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 		p2p.RemoveFromConnectingList(data.Addr)
 		return
 	}
-
 	addrIp, err := msgCommon.ParseIPAddr(data.Addr)
 	if err != nil {
 		log.Warn(err)
@@ -244,8 +231,8 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 			}
 		}
 		if !found {
-			remotePeer.CloseSync(tspType)
-			remotePeer.CloseCons(tspType)
+			remotePeer.CloseSync()
+			remotePeer.CloseCons()
 			log.Debug("[p2p]peer not in reserved list,close", data.Addr)
 			return
 		}
@@ -255,38 +242,38 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 	if version.P.IsConsensus == true {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
 			log.Warn("[p2p]consensus port not surpport", data.Addr)
-			remotePeer.CloseCons(tspType)
+			remotePeer.CloseCons()
 			return
 		}
 
 		p := p2p.GetPeer(version.P.Nonce)
 
-		if p == nil || p.GetTransportType() != tspType{
+		if p == nil {
 			log.Warn("[p2p]sync link is not exist", version.P.Nonce, data.Addr)
-			remotePeer.CloseCons(tspType)
-			remotePeer.CloseSync(tspType)
+			remotePeer.CloseCons()
+			remotePeer.CloseSync()
 			return
 		} else {
 			//p synclink must exist,merged
 			p.ConsLink = remotePeer.ConsLink
-			p.ConsLink[tspType].SetID(version.P.Nonce)
-			p.SetConsState(remotePeer.GetConsState(tspType), tspType)
+			p.ConsLink.SetID(version.P.Nonce)
+			p.SetConsState(remotePeer.GetConsState())
 			remotePeer = p
 
 		}
 		if version.P.Nonce == p2p.GetID() {
 			log.Warn("[p2p]the node handshake with itself", data.Addr)
 			p2p.SetOwnAddress(nodeAddr)
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr(tspType))
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr(tspType))
-			remotePeer.CloseCons(tspType)
+			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+			remotePeer.CloseCons()
 			return
 		}
 
-		s := remotePeer.GetConsState(tspType)
+		s := remotePeer.GetConsState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
 			log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, data.Addr)
-			remotePeer.CloseCons(tspType)
+			remotePeer.CloseCons()
 			return
 		}
 
@@ -298,46 +285,46 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
-			remotePeer.SetConsState(msgCommon.HAND_SHAKE, tspType)
-			msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight(), config.DefConfig.P2PNode.TransportType)
+			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
+			msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
 		} else if s == msgCommon.HAND {
-			remotePeer.SetConsState(msgCommon.HAND_SHAKED, tspType)
+			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
 
 		}
-		err := p2p.Send(remotePeer, msg, true, tspType)
+		err := p2p.Send(remotePeer, msg, true)
 		if err != nil {
 			log.Warn(err)
 			return
 		}
 	} else {
 		if version.P.Nonce == p2p.GetID() {
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr(tspType))
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr(tspType))
-			log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr(tspType))
+			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+			log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr())
 			p2p.SetOwnAddress(nodeAddr)
-			remotePeer.CloseSync(tspType)
+			remotePeer.CloseSync()
 			return
 		}
 
-		s := remotePeer.GetSyncState(tspType)
+		s := remotePeer.GetSyncState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr(tspType))
-			remotePeer.CloseSync(tspType)
+			log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
+			remotePeer.CloseSync()
 			return
 		}
 
 		// Obsolete node
 		p := p2p.GetPeer(version.P.Nonce)
-		if p != nil && p.GetTransportType() == tspType{
-			ipOld, err := msgCommon.ParseIPAddr(p.GetAddr(tspType))
+		if p != nil {
+			ipOld, err := msgCommon.ParseIPAddr(p.GetAddr())
 			if err != nil {
-				log.Warnf("[p2p]exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr(tspType))
+				log.Warn("[p2p]exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr())
 				return
 			}
 			ipNew, err := msgCommon.ParseIPAddr(data.Addr)
 			if err != nil {
-				remotePeer.CloseSync(tspType)
+				remotePeer.CloseSync()
 				log.Warn("[p2p]connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
 				return
 			}
@@ -345,11 +332,10 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 				//same id and same ip
 				n, ret := p2p.DelNbrNode(version.P.Nonce)
 				if ret == true {
-					log.Infof("[p2p]peer reconnect version.P.Nonce=%d, data.Addr=%s, ipNew=%s, ipOld=%s",
-										version.P.Nonce, data.Addr, ipNew, ipOld)
+					log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
 					// Close the connection and release the node source
-					n.CloseSync(tspType)
-					n.CloseCons(tspType)
+					n.CloseSync()
+					n.CloseCons()
 					if pid != nil {
 						input := &msgCommon.RemovePeerID{
 							ID: version.P.Nonce,
@@ -359,7 +345,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 				}
 			} else {
 				log.Warnf("[p2p]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
-				remotePeer.CloseSync(tspType)
+				remotePeer.CloseSync()
 				return
 
 			}
@@ -376,10 +362,10 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
 			version.P.Relay, version.P.StartHeight, version.P.TransportType)
-		remotePeer.SyncLink[tspType].SetID(version.P.Nonce)
+		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
 
-		log.Tracef("remotePeer.UpdateInfo, version.P.Nonce=%d, syncState=%d", version.P.Nonce, remotePeer.GetSyncState(tspType))
+		log.Tracef("remotePeer.UpdateInfo, version.P.Nonce=%d, syncState=%d", version.P.Nonce, remotePeer.GetSyncState())
 
 		if pid != nil {
 			input := &msgCommon.AppendPeerID{
@@ -390,14 +376,13 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
-			remotePeer.SetSyncState(msgCommon.HAND_SHAKE, tspType)
-			log.Tracef("After set syncState:%d", remotePeer.GetSyncState(tspType))
-			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight(), config.DefConfig.P2PNode.TransportType)
+			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
+			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
 		} else if s == msgCommon.HAND {
-			remotePeer.SetSyncState(msgCommon.HAND_SHAKED, tspType)
+			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)
 		}
-		err := p2p.Send(remotePeer, msg, false, tspType)
+		err := p2p.Send(remotePeer, msg, false)
 		if err != nil {
 			log.Warn(err)
 			return
@@ -406,13 +391,13 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 }
 
 // VerAckHandle handles the version ack from peer
-func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive verAck message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive verAck message from ", data.Addr, data.Id)
 
 	verAck := data.Payload.(*msgTypes.VerACK)
 	remotePeer := p2p.GetPeer(data.Id)
 
-	if remotePeer == nil || remotePeer.GetTransportType() != tspType {
+	if remotePeer == nil {
 		log.Warn("[p2p]nbr node is not exist", data.Id, data.Addr)
 		return
 	}
@@ -422,59 +407,58 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tsp
 			log.Warn("[p2p]consensus port not surpport")
 			return
 		}
-		s := remotePeer.GetConsState(tspType)
+		s := remotePeer.GetConsState()
 		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
 			log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
 			return
 		}
 
-		remotePeer.SetConsState(msgCommon.ESTABLISH, tspType)
+		remotePeer.SetConsState(msgCommon.ESTABLISH)
 		p2p.RemoveFromConnectingList(data.Addr)
 
 		if s == msgCommon.HAND_SHAKE {
 			msg := msgpack.NewVerAck(true)
-			p2p.Send(remotePeer, msg, true, tspType)
+			p2p.Send(remotePeer, msg, true)
 		}
 	} else {
-		s := remotePeer.GetSyncState(tspType)
+		s := remotePeer.GetSyncState()
 		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
 			log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
 			return
 		}
 
-		remotePeer.SetSyncState(msgCommon.ESTABLISH, tspType)
+		remotePeer.SetSyncState(msgCommon.ESTABLISH)
 		p2p.RemoveFromConnectingList(data.Addr)
 		remotePeer.DumpInfo()
 
-		addr := remotePeer.SyncLink[tspType].GetAddr()
+		addr := remotePeer.SyncLink.GetAddr()
 
 		if s == msgCommon.HAND_SHAKE {
 			msg := msgpack.NewVerAck(false)
-			p2p.Send(remotePeer, msg, false, tspType)
+			p2p.Send(remotePeer, msg, false)
 		} else {
 			//consensus port connect
-			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort(tspType) > 0 {
+			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort() > 0 {
 				addrIp, err := msgCommon.ParseIPAddr(addr)
 				if err != nil {
 					log.Warn(err)
 					return
 				}
 				nodeConsensusAddr := addrIp + ":" +
-					strconv.Itoa(int(remotePeer.GetConsPort(tspType)))
-				log.Tracef("[p2p] start consensus connect: nodeConsensusAddr=%s", nodeConsensusAddr)
+					strconv.Itoa(int(remotePeer.GetConsPort()))
 				go p2p.Connect(nodeConsensusAddr, true)
 			}
 		}
 
 		msg := msgpack.NewAddrReq()
-		go p2p.Send(remotePeer, msg, false, tspType)
+		go p2p.Send(remotePeer, msg, false)
 	}
 
 }
 
 // AddrHandle handles the neighbor address response message from peer
-func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]handle addr message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]handle addr message", data.Addr, data.Id)
 
 	var msg = data.Payload.(*msgTypes.Addr)
 	for _, v := range msg.NodeAddrs {
@@ -486,7 +470,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTy
 			continue
 		}
 
-		if p2p.NodeEstablished(v.ID, v.TransportType) {
+		if p2p.NodeEstablished(v.ID) {
 			continue
 		}
 
@@ -501,18 +485,18 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTy
 			continue
 		}
 		log.Debug("[p2p]connect ip address:", address)
-		go p2p.ConnectWithTSPType(address, false,  v.TransportType)
+		go p2p.Connect(address, false)
 	}
 }
 
 // DataReqHandle handles the data req(block/Transaction) from peer
-func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive data req message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive data req message", data.Addr, data.Id)
 
 	var dataReq = data.Payload.(*msgTypes.DataReq)
 
 	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil || remotePeer.GetTransportType() != tspType {
+	if remotePeer == nil {
 		log.Debug("[p2p]remotePeer invalid in DataReqHandle")
 		return
 	}
@@ -536,7 +520,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 				log.Debug("[p2p]can't get block by hash: ", hash,
 					" ,send not found message")
 				msg := msgpack.NewNotFound(hash)
-				err := p2p.Send(remotePeer, msg, false, tspType)
+				err := p2p.Send(remotePeer, msg, false)
 				if err != nil {
 					log.Warn(err)
 					return
@@ -548,7 +532,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 		log.Debug("[p2p]block height is ", block.Header.Height,
 			" ,hash is ", hash)
 		msg := msgpack.NewBlock(block)
-		err = p2p.Send(remotePeer, msg, false, tspType)
+		err = p2p.Send(remotePeer, msg, false)
 		if err != nil {
 			log.Warn(err)
 			return
@@ -560,14 +544,14 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 			log.Debug("[p2p]Can't get transaction by hash: ",
 				hash, " ,send not found message")
 			msg := msgpack.NewNotFound(hash)
-			err = p2p.Send(remotePeer, msg, false, tspType)
+			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Warn(err)
 				return
 			}
 		}
 		msg := msgpack.NewTxn(txn)
-		err = p2p.Send(remotePeer, msg, false, tspType)
+		err = p2p.Send(remotePeer, msg, false)
 		if err != nil {
 			log.Warn(err)
 			return
@@ -577,12 +561,12 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ts
 
 // InvHandle handles the inventory message(block,
 // transaction and consensus) from peer.
-func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive inv message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p]receive inv message", data.Addr, data.Id)
 	var inv = data.Payload.(*msgTypes.Inv)
 
 	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil || remotePeer.GetTransportType() != tspType{
+	if remotePeer == nil {
 		log.Debug("[p2p]remotePeer invalid in InvHandle")
 		return
 	}
@@ -604,7 +588,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTyp
 		trn, err := ledger.DefLedger.GetTransaction(id)
 		if trn == nil || err != nil {
 			msg := msgpack.NewTxnDataReq(id)
-			err = p2p.Send(remotePeer, msg, false, tspType)
+			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Warn(err)
 				return
@@ -625,7 +609,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTyp
 				// send the block request
 				log.Infof("[p2p]inv request block hash: %x", id)
 				msg := msgpack.NewBlkDataReq(id)
-				err = p2p.Send(remotePeer, msg, false, tspType)
+				err = p2p.Send(remotePeer, msg, false)
 				if err != nil {
 					log.Warn(err)
 					return
@@ -636,7 +620,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTyp
 		log.Debug("[p2p]receive consensus message")
 		id = inv.P.Blk[0]
 		msg := msgpack.NewConsensusDataReq(id)
-		err := p2p.Send(remotePeer, msg, true, tspType)
+		err := p2p.Send(remotePeer, msg, true)
 		if err != nil {
 			log.Warn(err)
 			return
@@ -648,26 +632,26 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspTyp
 }
 
 // DisconnectHandle handles the disconnect events
-func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, tspType byte, args ...interface{}) {
-	log.Tracef("[p2p]receive disconnect message %s-%d by transport %s", data.Addr, data.Id, msgCommon.GetTransportTypeString(tspType))
+func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Debug("[p2p]receive disconnect message", data.Addr, data.Id)
 	p2p.RemoveFromInConnRecord(data.Addr)
 	p2p.RemoveFromOutConnRecord(data.Addr)
 	remotePeer := p2p.GetPeer(data.Id)
-	if remotePeer == nil || remotePeer.GetTransportType() != tspType{
+	if remotePeer == nil {
 		log.Debug("[p2p]disconnect peer is nil")
 		return
 	}
 	p2p.RemoveFromConnectingList(data.Addr)
 
-	if remotePeer.SyncLink[tspType].GetAddr() == data.Addr {
+	if remotePeer.SyncLink.GetAddr() == data.Addr {
 		p2p.RemovePeerSyncAddress(data.Addr)
 		p2p.RemovePeerConsAddress(data.Addr)
-		remotePeer.CloseSync(tspType)
-		remotePeer.CloseCons(tspType)
+		remotePeer.CloseSync()
+		remotePeer.CloseCons()
 	}
-	if remotePeer.ConsLink[tspType].GetAddr() == data.Addr {
+	if remotePeer.ConsLink.GetAddr() == data.Addr {
 		p2p.RemovePeerConsAddress(data.Addr)
-		remotePeer.CloseCons(tspType)
+		remotePeer.CloseCons()
 	}
 }
 

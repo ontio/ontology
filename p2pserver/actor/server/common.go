@@ -46,7 +46,6 @@ type GetConnectionCntReq struct {
 
 //response of connection count requet
 type GetConnectionCntRsp struct {
-	CntLegacy uint32
 	Cnt       uint32
 }
 

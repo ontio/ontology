@@ -30,11 +30,10 @@ type P2P interface {
 	Start()
 	Halt()
 	Connect(addr string, isConsensus bool) error
-	ConnectWithTSPType(addr string, isConsensus bool, tsptype byte) error
 	GetID() uint64
 	GetVersion() uint32
-	GetSyncPort(tspType byte) uint16
-	GetConsPort(tspType byte) uint16
+	GetSyncPort() uint16
+	GetConsPort() uint16
 	GetHttpInfoPort() uint16
 	GetRelay() bool
 	GetHeight() uint64
@@ -42,13 +41,13 @@ type P2P interface {
 	GetServices() uint64
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() []common.PeerAddr
-	GetConnectionCnt() (uint32, uint32)
+	GetConnectionCnt() uint32
 	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer
 	SetHeight(uint64)
-	IsPeerEstablished(p *peer.Peer, tspType byte) bool
-	Send(p *peer.Peer, msg types.Message, isConsensus bool, tspType byte) error
-	GetMsgChan(isConsensus bool) chan *types.RecvMessage
+	IsPeerEstablished(p *peer.Peer) bool
+	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
+	GetMsgChan(isConsensus bool) chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddOutConnectingList(addr string) (added bool)
 	GetOutConnRecordLen() int
@@ -62,7 +61,7 @@ type P2P interface {
 	RemovePeerConsAddress(addr string)
 	AddNbrNode(*peer.Peer)
 	DelNbrNode(id uint64) (*peer.Peer, bool)
-	NodeEstablished(uint64, byte) bool
+	NodeEstablished(uint64) bool
 	Xmit(msg types.Message, isCons bool)
 	SetOwnAddress(addr string)
 	IsAddrFromConnecting(addr string) bool

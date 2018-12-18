@@ -24,9 +24,15 @@ import (
 	"time"
 )
 
+type RecvStream interface {
+	io.Reader
+	CanContinue() bool
+}
+
 type Connection interface {
-	GetReader() (io.Reader, error)
-	Write(b []byte) (int, error)
+	GetRecvStream() (RecvStream, error)
+	GetTransportType() byte
+	Write(cmdType string,  b []byte) (int, error)
 	Close() error
 	LocalAddr() net.Addr
 	RemoteAddr() net.Addr

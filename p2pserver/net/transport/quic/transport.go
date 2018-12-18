@@ -101,7 +101,7 @@ func (this * transport) DialWithTimeout(addr string, timeout time.Duration) (tsp
 		return nil, &tsp.DialError{"TCP", addr, err.Error()}
 	}
 
-	return &connection{sess: session}, nil
+	return newConnection(session), nil
 }
 
 func (this * transport) Listen(port uint16) (tsp.Listener, error) {

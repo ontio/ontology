@@ -794,7 +794,7 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 		if n == nil {
 			continue
 		}
-		if n.GetSyncState(n.GetTransportType()) != p2pComm.ESTABLISH {
+		if n.GetSyncState() != p2pComm.ESTABLISH {
 			continue
 		}
 		nodeBlockHeight := n.GetHeight()

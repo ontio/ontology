@@ -90,8 +90,12 @@ func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 		return comm.ErrIrregularData
 	}
 
-	this.P.TransportType, eof = source.NextByte()
-	if eof {
+	if this.P.Version == common.PROTOCOL_VERSION {
+		this.P.TransportType, eof = source.NextByte()
+		if eof {
+			this.P.TransportType = common.LegacyTSPType
+		}
+	}else {
 		this.P.TransportType = common.LegacyTSPType
 	}
 

@@ -86,7 +86,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	ngbrsLen := len(ngbrNoders)
 	for i := 0; i < ngbrsLen; i++ {
 		ngbType = SERVICENODE
-		ngbAddr = ngbrNoders[i].GetAddr(ngbrNoders[i].GetTransportType())
+		ngbAddr = ngbrNoders[i].GetAddr()
 		ngbInfoPort = ngbrNoders[i].GetHttpInfoPort()
 		ngbInfoState = ngbrNoders[i].GetHttpInfoState()
 		ngbHttpInfoAddr = ngbAddr + ":" + strconv.Itoa(int(ngbInfoPort))

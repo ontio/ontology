@@ -24,7 +24,6 @@ import (
 	"time"
 
 	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -38,11 +37,11 @@ import (
 //Link used to establish
 type Link struct {
 	id        uint64
-	addr      string                  // The address of the node
-	conn      tsp.Connection          // Connect socket with the peer node
+	addr      string                   // The address of the node
+	conn      tsp.Connection           // Connect socket with the peer node
 	port      uint16                   // The server port of the node
 	time      time.Time                // The latest time the node activity
-	recvChan  chan *types.RecvMessage //receive message  channel
+	recvChan  chan *types.MsgPayload  //receive message  channel
 	reqRecord map[string]int64        //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
 }
 
@@ -69,7 +68,7 @@ func (this *Link) Valid() bool {
 }
 
 //set message channel for link layer
-func (this *Link) SetChan(msgchan chan *types.RecvMessage) {
+func (this *Link) SetChan(msgchan chan *types.MsgPayload) {
 	this.recvChan = msgchan
 }
 
@@ -113,51 +112,106 @@ func (this *Link) GetRXTime() time.Time {
 	return this.time
 }
 
-func (this *Link) Rx(tspType byte) {
+func (this *Link) Rx() {
 	conn := this.conn
 	if conn == nil {
 		return
 	}
 
 	for {
-		reader, err :=  conn.GetReader()
-		if err != nil {
-			log.Errorf("[p2p]error GetReader, err:%s", err.Error())
+		recvS, err :=  conn.GetRecvStream()
+		if err != nil || recvS == nil  {
+			if err != nil {
+				log.Errorf("[p2p]error GetRecvStream, err:%s", err.Error())
+			} else {
+				log.Error("[p2p]error GetRecvStream, recvS == nil")
+			}
 			break
 		}
 
-		msg, payloadSize, err := types.ReadMessage(reader)
+		/*msg, payloadSize, err := types.ReadMessage(recvS)
+
 		if err != nil {
+
 			log.Errorf("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+
 			break
+
 		}
+
+
 
 		t := time.Now()
+
 		this.UpdateRXTime(t)
 
+
+
 		if !this.needSendMsg(msg) {
+
 			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+
 			continue
+
 		}
+
 		this.addReqRecord(msg)
+
 		log.Tracef("Start send to recvChan msgType:%s from:%d", msg.CmdType(), this.id)
+
 		msgPayload := &types.MsgPayload{
+
 			Id:          this.id,
+
 			Addr:        this.addr,
+
 			PayloadSize: payloadSize,
+
 			Payload:     msg,
+
 		}
-		this.recvChan <- &types.RecvMessage{
-			tspType,
-			msgPayload,
-		}
+
+		this.recvChan <- msgPayload*/
+
+		go func(streamR tsp.RecvStream) {
+			for {
+				msg, payloadSize, err := types.ReadMessage(recvS)
+				if err != nil {
+					log.Errorf("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+					break
+				}
+
+				t := time.Now()
+				this.UpdateRXTime(t)
+
+				if !this.needSendMsg(msg) {
+					log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+					if streamR.CanContinue() {
+						continue
+					}else {
+						break
+					}
+				}
+				this.addReqRecord(msg)
+				log.Tracef("Start send to recvChan msgType:%s from:%d", msg.CmdType(), this.id)
+				this.recvChan <- &types.MsgPayload{
+					Id:          this.id,
+					Addr:        this.addr,
+					PayloadSize: payloadSize,
+					Payload:     msg,
+				}
+				if !streamR.CanContinue() {
+					break
+				}
+			}
+		}(recvS)
 	}
 
-	this.disconnectNotify(tspType)
+	this.disconnectNotify()
 }
 
 //disconnectNotify push disconnect msg to channel
-func (this *Link) disconnectNotify(tspType byte) {
+func (this *Link) disconnectNotify( ) {
 	log.Debugf("[p2p]call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
 
@@ -167,10 +221,8 @@ func (this *Link) disconnectNotify(tspType byte) {
 		Addr:    this.addr,
 		Payload: msg,
 	}
-	this.recvChan <- &types.RecvMessage{
-		tspType,
-		discMsg,
-	}
+	this.recvChan <- discMsg
+
 }
 
 //close connection
@@ -181,7 +233,7 @@ func (this *Link) CloseConn() {
 	}
 }
 
-func (this *Link) Tx(msg types.Message, tspType byte) error {
+func (this *Link) Tx(msg types.Message) error {
 	conn := this.conn
 	if conn == nil {
 		return errors.New("[p2p]tx link invalid")
@@ -203,12 +255,12 @@ func (this *Link) Tx(msg types.Message, tspType byte) error {
 		nCount = 1
 	}
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
-	_, err = conn.Write(payload)
+	_, err = conn.Write(msg.CmdType(), payload)
 	if err != nil {
 		log.Errorf("[p2p]error sending messge %s to %s :%s", msg.CmdType(), this.GetAddr(), err.Error())
-		this.disconnectNotify(tspType)
+		this.disconnectNotify()
 		return err
-	} 
+	}
 
 	return nil
 }
@@ -222,7 +274,7 @@ func (this *Link) needSendMsg(msg types.Message) bool {
 	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
 	now := time.Now().Unix()
 
-	tspType := config.DefConfig.P2PNode.TransportType
+	tspType := this.conn.GetTransportType()
 	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
 	if err != nil {
 		log.Errorf("[p2p]Get the transport of %s, err:%s", tspType, err.Error())
@@ -243,7 +295,7 @@ func (this *Link) addReqRecord(msg types.Message) {
 		return
 	}
 
-	tspType := config.DefConfig.P2PNode.TransportType
+	tspType := this.conn.GetTransportType()
 	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
 	if err != nil {
 		log.Errorf("[p2p]Get the transport of %s, err:%s", tspType, err.Error())
