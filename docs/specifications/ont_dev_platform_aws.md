@@ -9,6 +9,7 @@
 
 ## Using(IP:External network IP of VM)
 * smartx:http://IP:8080
+ ![avatar](azure_image/smartx_new.png)
 * explorer:http://IP
  ![avatar](azure_image/explorer.png)
  
