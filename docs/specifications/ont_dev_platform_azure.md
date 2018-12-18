@@ -2,6 +2,7 @@
 ### 1.initialize(Run only once)
 * initialize httpd settings and restart httpd service
   * sh /data/install/start.sh IP (IP:External network IP of VM)
+  ![avatar](azure_image/start_new.png)
 
 ### 2.NetworkSecurityGroup
 * VM->SETTINGS->Networking->Inbound port rules
@@ -14,6 +15,7 @@
 
 ## Using(IP:External network IP of VM)
 * smartx:http://IP:8080
+![avatar](azure_image/smartx_new.png)
 * explorer:http://IP
  ![avatar](azure_image/explorer.png)
  
