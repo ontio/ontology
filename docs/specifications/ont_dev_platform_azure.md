@@ -1,13 +1,8 @@
 ## initialize && RUN
 ### 1.initialize(Run only once)
-* ontology start.sh add Executable authority 
-  * chmod +x /opt/gopath/test/start.sh
 * initialize httpd settings and restart httpd service
-  * sh /opt/start.sh IP (IP:External network IP of VM)
+  * sh /data/install/start.sh IP (IP:External network IP of VM)
   ![avatar](azure_image/initialize.png)
-* start ontology testmode service
-  * cd /opt/gopath/test && nohup ./start.sh &
-  ![avatar](azure_image/ontology.png)
 
 ### 2.NetworkSecurityGroup
 * VM->SETTINGS->Networking->Inbound port rules
