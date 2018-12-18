@@ -2,7 +2,6 @@
 ### 1.initialize(Run only once)
 * initialize httpd settings and restart httpd service
   * sh /opt/start.sh IP (IP:External network IP of VM)
-  ![avatar](azure_image/initialize.png)
 
 ### 2.NetworkSecurityGroup
 * VM->SETTINGS->Networking->Inbound port rules
