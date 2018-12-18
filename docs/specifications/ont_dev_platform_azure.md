@@ -7,15 +7,17 @@
 ### 2.NetworkSecurityGroup
 * VM->SETTINGS->Networking->Inbound port rules
   * 80
-  * 8000
-  * 3306（Optional）
   * 8080
+  * 20334
+  * 20335
+  * 20336
+  * 3306（Optional）
   ![avatar](azure_image/securityGroup.png)
 
 ## Using(IP:External network IP of VM)
-* smartx:http://IP
+* smartx:http://IP:8080
  ![avatar](azure_image/smartx.png)
-* explorer:http://IP:8000
+* explorer:http://IP
  ![avatar](azure_image/explorer.png)
  
 ## ONG acquisition mode ：
