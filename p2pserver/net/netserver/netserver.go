@@ -276,7 +276,7 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 }
 
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
-	tspType := common.TransportType(config.DefConfig.P2PNode.TransportType)
+	tspType := common.TransportType(config.DefConfig.P2PNode.TransportType	)
 	err := this.connectSub(addr, isConsensus, tspType)
 	switch err.(type){
 	case *tsp.DialError:
@@ -285,17 +285,35 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 				addr,
 				common.GetTransportTypeString(tspType),
 				common.GetTransportTypeString(common.LegacyTSPType))
-			ip, errIP := common.ParseIPAddr(addr)
-			port, errPort := common.ParseIPPort(addr)
-			if errIP == nil && errPort == nil {
-				portNum, _ := strconv.ParseUint(port[1:], 10, 64)
-				legacyPort := portNum - uint64(10000)
-				legacyAddr := ip + ":" + strconv.FormatUint(legacyPort, 10)
-				return this.connectSub(legacyAddr, isConsensus, common.LegacyTSPType)
-			}
+			return this.tryLegacyConnect(addr, isConsensus)
 		}else {
 			log.Errorf("[p2p]DialError by transport %s", common.GetTransportTypeString(tspType))
 			return err
+		}
+	default:
+		return err
+	}
+
+	return err
+}
+
+func (this *NetServer) tryLegacyConnect(addr string, isConsensus bool) error {
+	log.Tracef("[p2p]tryLegacyConnect to %s dial err by transport %s",
+		addr,
+		common.GetTransportTypeString(common.LegacyTSPType))
+	err := this.connectSub(addr, isConsensus, common.LegacyTSPType)
+	switch err.(type) {
+	case *tsp.DialError:
+		ip, errIP := common.ParseIPAddr(addr)
+		port, errPort := common.ParseIPPort(addr)
+		if errIP == nil && errPort == nil {
+			portNum, _ := strconv.ParseUint(port[1:], 10, 64)
+			legacyPort := portNum - uint64(10000)
+			legacyAddr := ip + ":" + strconv.FormatUint(legacyPort, 10)
+			log.Tracef("[p2p]tryLegacyConnect to %s dial err by transport %s",
+				legacyAddr,
+				common.GetTransportTypeString(common.LegacyTSPType))
+			return this.connectSub(legacyAddr, isConsensus, common.LegacyTSPType)
 		}
 	default:
 		return err

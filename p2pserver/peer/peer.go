@@ -169,6 +169,7 @@ func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]\t consPort = ", this.GetConsPort())
 	log.Debug("[p2p]\t relay = ", this.GetRelay())
 	log.Debug("[p2p]\t height = ", this.GetHeight())
+	log.Debug("[p2p]\t transport = ", this.GetTransportType())
 }
 
 //GetVersion return peer`s version
