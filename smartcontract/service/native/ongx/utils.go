@@ -35,21 +35,21 @@ import (
 )
 
 const (
-	TOTAL_SUPPLY_NAME        = "totalSupply"
-	TRANSFER_NAME            = "transfer"
-	APPROVE_NAME             = "approve"
-	TRANSFERFROM_NAME        = "transferFrom"
-	NAME_NAME                = "name"
-	SYMBOL_NAME              = "symbol"
-	DECIMALS_NAME            = "decimals"
-	TOTALSUPPLY_NAME         = "totalSupply"
-	BALANCEOF_NAME           = "balanceOf"
-	ALLOWANCE_NAME           = "allowance"
-	ONG_SWAP                 = "ongSwap"
-	ONGX_SWAP                = "ongxSwap"
-	SET_SYNC_ADDR_NAME       = "setSyncAddr"
-	TRANSFER_FLAG       byte = 1
-	APPROVE_FLAG        byte = 2
+	TOTAL_SUPPLY_NAME       = "totalSupply"
+	TRANSFER_NAME           = "transfer"
+	APPROVE_NAME            = "approve"
+	TRANSFERFROM_NAME       = "transferFrom"
+	NAME_NAME               = "name"
+	SYMBOL_NAME             = "symbol"
+	DECIMALS_NAME           = "decimals"
+	TOTALSUPPLY_NAME        = "totalSupply"
+	BALANCEOF_NAME          = "balanceOf"
+	ALLOWANCE_NAME          = "allowance"
+	ONG_SWAP                = "ongSwap"
+	ONGX_SWAP               = "ongxSwap"
+	SET_SYNC_ADDR_NAME      = "setSyncAddr"
+	TRANSFER_FLAG      byte = 1
+	APPROVE_FLAG       byte = 2
 )
 
 var (
