@@ -20,7 +20,9 @@ package neovm
 
 import (
 	"math/big"
+	"sort"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -86,6 +88,11 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 		PushData(e, s[i])
 	case *types.Map:
 		PushData(e, items.(*types.Map).TryGetValue(index))
+	case *types.ByteArray:
+		bi, _ := index.GetBigInteger()
+		i := int(bi.Int64())
+		a, _ := items.GetByteArray()
+		PushData(e, a[i])
 	}
 
 	return NONE, nil
@@ -178,7 +185,133 @@ func opReverse(e *ExecutionEngine) (VMState, error) {
 func opRemove(e *ExecutionEngine) (VMState, error) {
 	index := PopStackItem(e)
 	item := PopStackItem(e)
-	m := item.(*types.Map)
-	m.Remove(index)
+
+	switch item.(type) {
+	case *types.Map:
+		m := item.(*types.Map)
+		m.Remove(index)
+	case *types.Array:
+		m, err := item.GetArray()
+		if err != nil {
+			return FAULT, errors.NewErr("[opRemove]get Array error!")
+		}
+		atidx := -1
+		for i, obj := range m {
+			if index.Equals(obj) {
+				atidx = i
+				break
+			}
+		}
+		if atidx != -1 {
+			item.(*types.Array).RemoveAt(atidx + 1)
+		} else {
+			return FAULT, errors.NewErr("[opRemove] element not in array")
+		}
+	default:
+		return FAULT, errors.NewErr("Not a supported remove type")
+	}
+
+	return NONE, nil
+}
+
+func opHasKey(e *ExecutionEngine) (VMState, error) {
+	key := PopStackItem(e)
+	item := PopStackItem(e)
+
+	switch item.(type) {
+	case *types.Map:
+		v := item.(*types.Map).TryGetValue(key)
+
+		ok := false
+		if v != nil {
+			ok = true
+		}
+
+		PushData(e, ok)
+	default:
+		return FAULT, errors.NewErr("Not a supported haskey type")
+	}
+	return NONE, nil
+}
+
+func opKeys(e *ExecutionEngine) (VMState, error) {
+	item := PopStackItem(e)
+	switch item.(type) {
+	case *types.Map:
+		mapitem, err := item.GetMap()
+		if err != nil {
+			return FAULT, err
+		}
+
+		var unsortKey []string
+		keyMap := make(map[string]types.StackItems, 0)
+		keys := make([]types.StackItems, len(mapitem))
+		for k := range mapitem {
+			switch k.(type) {
+			case *types.ByteArray, *types.Integer, *types.Boolean:
+				ba, _ := k.GetByteArray()
+				key := string(ba)
+				if key == "" {
+					key = string([]byte{0})
+				}
+				unsortKey = append(unsortKey, key)
+				keyMap[key] = k
+
+			default:
+				return FAULT, errors.NewErr("Unsupport map key type.")
+			}
+		}
+
+		sort.Strings(unsortKey)
+		for j, v := range unsortKey {
+			keys[j] = keyMap[v]
+		}
+
+		PushData(e, types.NewArray(keys))
+	default:
+		return FAULT, errors.NewErr("Not a supported keys type")
+	}
+	return NONE, nil
+}
+
+func opValues(e *ExecutionEngine) (VMState, error) {
+	item := PopStackItem(e)
+	switch item.(type) {
+	case *types.Map:
+		mapitem, err := item.GetMap()
+		if err != nil {
+			return FAULT, err
+		}
+
+		var unsortKey []string
+		keyMap := make(map[string]types.StackItems, 0)
+		keys := make([]types.StackItems, len(mapitem))
+		values := make([]types.StackItems, len(mapitem))
+		for k := range mapitem {
+			switch k.(type) {
+			case *types.ByteArray, *types.Integer, *types.Boolean:
+				ba, _ := k.GetByteArray()
+				key := string(ba)
+				if key == "" {
+					key = string([]byte{0})
+				}
+				unsortKey = append(unsortKey, key)
+				keyMap[key] = k
+
+			default:
+				return FAULT, errors.NewErr("Unsupport map key type.")
+			}
+		}
+
+		sort.Strings(unsortKey)
+		for j, v := range unsortKey {
+			keys[j] = keyMap[v]
+			values[j] = mapitem[keys[j]]
+		}
+
+		PushData(e, types.NewArray(values))
+	default:
+		return FAULT, errors.NewErr("Not a supported values type")
+	}
 	return NONE, nil
 }
