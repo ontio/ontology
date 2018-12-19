@@ -119,7 +119,7 @@ func (this* transport) GetReqInterval() int {
 	return common.REQ_INTERVAL_QUIC
 }
 
-func (this * transport) ProtocolCode() int {
+func (this * transport) ProtocolCode() common.TransportType {
 	return  common.T_QUIC
 }
 

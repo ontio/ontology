@@ -1,6 +1,7 @@
 package quic
 
 import (
+	"bufio"
 	"github.com/ontio/ontology/p2pserver/common"
 	"io"
 	"net"
@@ -42,10 +43,12 @@ func (this * connection) GetRecvStream() (tsp.RecvStream, error) {
 		return nil, err
 	}
 
-	return &recvStream{stream}, nil
+	reader := bufio.NewReaderSize(stream, common.MAX_BUF_LEN)
+
+	return &recvStream{reader}, nil
 }
 
-func (this * connection) GetTransportType() byte {
+func (this * connection) GetTransportType() common.TransportType {
 
 	return 	common.T_QUIC
 }

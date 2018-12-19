@@ -32,14 +32,14 @@ var once sync.Once
 var instance *transportFactory
 
 type transportFactory struct {
-	tspMap map[byte]tsp.Transport
+	tspMap map[common.TransportType]tsp.Transport
 }
 
 func GetTransportFactory() *transportFactory{
 
 	once.Do(func(){
 		instance = &transportFactory{}
-		instance.tspMap = make(map[byte]tsp.Transport, 2)
+		instance.tspMap = make(map[common.TransportType]tsp.Transport, 2)
 		instance.tspMap[common.T_TCP], _ = tcp.NewTransport()
 		instance.tspMap[common.T_QUIC],_ = quic.NewTransport()
 	})
@@ -47,7 +47,7 @@ func GetTransportFactory() *transportFactory{
 	return instance
 }
 
-func (this* transportFactory) GetTransport(tspType byte) (tsp.Transport, error) {
+func (this* transportFactory) GetTransport(tspType common.TransportType) (tsp.Transport, error) {
 
 	if tsp, ok := instance.tspMap[tspType]; ok {
 		return tsp, nil

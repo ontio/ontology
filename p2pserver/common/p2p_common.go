@@ -102,23 +102,6 @@ const (
 	RECENT_LIMIT     = 10 //recent contact list limit
 )
 
-const (
-	T_TCP   = 0x001
-	T_UDP   = 0x002
-	T_QUIC = 0x004
-)
-
-//PeerAddr represent peer`s net information
-type PeerAddr struct {
-	Time          int64    //latest timestamp
-	Services      uint64   //service type
-	IpAddr        [16]byte //ip address
-	Port          uint16   //sync port
-	ConsensusPort uint16   //consensus port
-	ID            uint64   //Unique ID
-	TransportType byte     //supported transport type of peer
-}
-
 //const channel msg id and type
 const (
 	VERSION_TYPE     = "version"    //peer`s information
@@ -138,6 +121,28 @@ const (
 	NOT_FOUND_TYPE   = "notfound"   //peer can`t find blk according to the hash
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
 )
+
+const (
+	T_TCP   = 0x001
+	T_UDP   = 0x002
+	T_QUIC  = 0x004
+)
+
+type TransportType byte
+type CommandType   string
+
+//PeerAddr represent peer`s net information
+type PeerAddr struct {
+	Time          int64    //latest timestamp
+	Services      uint64   //service type
+	IpAddr        [16]byte //ip address
+	Port          uint16   //sync port
+	ConsensusPort uint16   //consensus port
+	ID            uint64   //Unique ID
+	TransportType byte     //supported transport type of peer
+}
+
+
 
 type AppendPeerID struct {
 	ID uint64 // The peer id
@@ -186,9 +191,9 @@ func ParseIPPort(s string) (string, error) {
 var LegacyNodePort uint16 = 20338
 var LegacyConsPort uint16 = 20339
 
-var LegacyTSPType byte = T_TCP
+var LegacyTSPType TransportType = T_TCP
 
-func GetTransportTypeString(tspType byte) string {
+func GetTransportTypeString(tspType TransportType) string {
 	switch tspType {
 	case T_TCP:
 		return "TCP"

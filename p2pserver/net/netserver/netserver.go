@@ -50,12 +50,12 @@ func NewNetServer() p2p.P2P {
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
 	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
 
-	if config.DefConfig.P2PNode.TransportType == common.LegacyTSPType {
-		n.synclistener = make(map[byte]tsp.Listener, 1)
-		n.conslistener = make(map[byte]tsp.Listener, 1)
+	if common.TransportType(config.DefConfig.P2PNode.TransportType) == common.LegacyTSPType {
+		n.synclistener = make(map[common.TransportType]tsp.Listener, 1)
+		n.conslistener = make(map[common.TransportType]tsp.Listener, 1)
 	}else {
-		n.synclistener = make(map[byte]tsp.Listener, 2)
-		n.conslistener = make(map[byte]tsp.Listener, 2)
+		n.synclistener = make(map[common.TransportType]tsp.Listener, 2)
+		n.conslistener = make(map[common.TransportType]tsp.Listener, 2)
 	}
 
 	n.init()
@@ -65,8 +65,8 @@ func NewNetServer() p2p.P2P {
 //NetServer represent all the actions in net layer
 type NetServer struct {
 	base                  peer.PeerCom
-	synclistener          map[byte]tsp.Listener
-	conslistener          map[byte]tsp.Listener
+	synclistener          map[common.TransportType]tsp.Listener
+	conslistener          map[common.TransportType]tsp.Listener
 	SyncChan     chan *types.MsgPayload
 	ConsChan     chan *types.MsgPayload
 	ConnectingNodes
@@ -276,7 +276,7 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 }
 
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
-	tspType := config.DefConfig.P2PNode.TransportType
+	tspType := common.TransportType(config.DefConfig.P2PNode.TransportType)
 	err := this.connectSub(addr, isConsensus, tspType)
 	switch err.(type){
 	case *tsp.DialError:
@@ -305,7 +305,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 }
 
 //Connect used to connect net address under sync or cons mode
-func (this *NetServer) connectSub(addr string, isConsensus bool, tspType byte) error {
+func (this *NetServer) connectSub(addr string, isConsensus bool, tspType common.TransportType) error {
 	if this.IsAddrInOutConnRecord(addr) {
 		log.Debugf("[p2p]Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
 		return nil
@@ -422,7 +422,7 @@ func (this *NetServer) startListening() error {
 		return errors.New("[p2p]sync port invalid")
 	}
 
-	tspType := config.DefConfig.P2PNode.TransportType
+	tspType := common.TransportType(config.DefConfig.P2PNode.TransportType)
 	err = this.startSyncListening(uint16(syncPort), tspType)
 	if err != nil {
 		log.Error("[p2p]start sync TCP listening fail")
@@ -462,7 +462,7 @@ func (this *NetServer) startListening() error {
 }
 
 // startSyncListening starts a sync listener on the port for the inbound peer
-func (this *NetServer) startSyncListening(port uint16, tspType byte) error {
+func (this *NetServer) startSyncListening(port uint16, tspType common.TransportType) error {
 	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
 	if err != nil {
 		log.Errorf("[p2p]Get the transport of %s, err:%s", common.GetTransportTypeString(tspType), err.Error())
@@ -484,7 +484,7 @@ func (this *NetServer) startSyncListening(port uint16, tspType byte) error {
 }
 
 // startConsListening starts a consensus listener on the port for the inbound peer
-func (this *NetServer) startConsListening(port uint16, tspType byte) error {
+func (this *NetServer) startConsListening(port uint16, tspType common.TransportType) error {
 	transport, err := tspCreator.GetTransportFactory().GetTransport(tspType)
 	if err != nil {
 		log.Errorf("[p2p]Get the transport of %s, err:%s", common.GetTransportTypeString(tspType), err.Error())
@@ -506,7 +506,7 @@ func (this *NetServer) startConsListening(port uint16, tspType byte) error {
 }
 
 //startSyncAccept accepts the sync connection from the inbound peer
-func (this *NetServer) startSyncAccept(listener tsp.Listener, tspType byte) {
+func (this *NetServer) startSyncAccept(listener tsp.Listener, tspType common.TransportType) {
 	for {
 		conn, err := listener.Accept()
 
@@ -563,7 +563,7 @@ func (this *NetServer) startSyncAccept(listener tsp.Listener, tspType byte) {
 }
 
 //startConsAccept accepts the consensus connnection from the inbound peer
-func (this *NetServer) startConsAccept(listener tsp.Listener, tspType byte) {
+func (this *NetServer) startConsAccept(listener tsp.Listener, tspType common.TransportType) {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {

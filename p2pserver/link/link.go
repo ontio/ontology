@@ -112,6 +112,35 @@ func (this *Link) GetRXTime() time.Time {
 	return this.time
 }
 
+func (this* Link) disposeRecvMessage(streamR tsp.RecvStream) error {
+	msg, payloadSize, err := types.ReadMessage(streamR)
+	if err != nil {
+		log.Errorf("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
+		return err
+	}
+
+	t := time.Now()
+	this.UpdateRXTime(t)
+
+	if !this.needSendMsg(msg) {
+		log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
+		return nil
+	}
+
+	this.addReqRecord(msg)
+
+	log.Tracef("Start send to recvChan msgType:%s from:%d", msg.CmdType(), this.id)
+	msgPayload := &types.MsgPayload{
+		Id:          this.id,
+		Addr:        this.addr,
+		PayloadSize: payloadSize,
+		Payload:     msg,
+	}
+	this.recvChan <- msgPayload
+
+	return nil
+}
+
 func (this *Link) Rx() {
 	conn := this.conn
 	if conn == nil {
@@ -119,8 +148,8 @@ func (this *Link) Rx() {
 	}
 
 	for {
-		recvS, err :=  conn.GetRecvStream()
-		if err != nil || recvS == nil  {
+		recvS, err := conn.GetRecvStream()
+		if err != nil || recvS == nil {
 			if err != nil {
 				log.Errorf("[p2p]error GetRecvStream, err:%s", err.Error())
 			} else {
@@ -129,82 +158,21 @@ func (this *Link) Rx() {
 			break
 		}
 
-		/*msg, payloadSize, err := types.ReadMessage(recvS)
-
-		if err != nil {
-
-			log.Errorf("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
-
-			break
-
-		}
-
-
-
-		t := time.Now()
-
-		this.UpdateRXTime(t)
-
-
-
-		if !this.needSendMsg(msg) {
-
-			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
-
-			continue
-
-		}
-
-		this.addReqRecord(msg)
-
-		log.Tracef("Start send to recvChan msgType:%s from:%d", msg.CmdType(), this.id)
-
-		msgPayload := &types.MsgPayload{
-
-			Id:          this.id,
-
-			Addr:        this.addr,
-
-			PayloadSize: payloadSize,
-
-			Payload:     msg,
-
-		}
-
-		this.recvChan <- msgPayload*/
-
-		go func(streamR tsp.RecvStream) {
-			for {
-				msg, payloadSize, err := types.ReadMessage(recvS)
-				if err != nil {
-					log.Errorf("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
-					break
-				}
-
-				t := time.Now()
-				this.UpdateRXTime(t)
-
-				if !this.needSendMsg(msg) {
-					log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
-					if streamR.CanContinue() {
-						continue
-					}else {
+		if recvS.CanContinue() {
+			 go func(streamR tsp.RecvStream) {
+			 	for {
+					err := this.disposeRecvMessage(streamR)
+					if err != nil {
 						break
 					}
 				}
-				this.addReqRecord(msg)
-				log.Tracef("Start send to recvChan msgType:%s from:%d", msg.CmdType(), this.id)
-				this.recvChan <- &types.MsgPayload{
-					Id:          this.id,
-					Addr:        this.addr,
-					PayloadSize: payloadSize,
-					Payload:     msg,
-				}
-				if !streamR.CanContinue() {
-					break
-				}
+			 }(recvS)
+		}else {
+			err = this.disposeRecvMessage(recvS)
+			if err != nil {
+				break
 			}
-		}(recvS)
+		}
 	}
 
 	this.disconnectNotify()

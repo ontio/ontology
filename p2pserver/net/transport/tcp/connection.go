@@ -46,7 +46,7 @@ func (this * connection) GetRecvStream() (tsp.RecvStream, error) {
 	return  &recvStream{this.Reader}, nil
 }
 
-func (this * connection) GetTransportType() byte {
+func (this * connection) GetTransportType() common.TransportType {
 
 	return 	common.T_TCP
 }

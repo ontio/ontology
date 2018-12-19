@@ -37,7 +37,7 @@ type VersionPayload struct {
 	StartHeight        uint64
 	Relay              uint8
 	IsConsensus        bool
-	TransportType      byte
+	TransportType      common.TransportType
 }
 
 type Version struct {
@@ -57,7 +57,7 @@ func (this *Version) Serialization(sink *comm.ZeroCopySink) error {
 	sink.WriteUint64(this.P.StartHeight)
 	sink.WriteUint8(this.P.Relay)
 	sink.WriteBool(this.P.IsConsensus)
-	sink.WriteByte(this.P.TransportType)
+	sink.WriteByte(byte(this.P.TransportType))
 
 	return nil
 }
@@ -91,9 +91,11 @@ func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 	}
 
 	if this.P.Version == common.PROTOCOL_VERSION {
-		this.P.TransportType, eof = source.NextByte()
+		tspType, eof := source.NextByte()
 		if eof {
 			this.P.TransportType = common.LegacyTSPType
+		}else {
+			this.P.TransportType = common.TransportType(tspType)
 		}
 	}else {
 		this.P.TransportType = common.LegacyTSPType

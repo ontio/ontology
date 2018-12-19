@@ -19,6 +19,7 @@
 package transport
 
 import (
+	"github.com/ontio/ontology/p2pserver/common"
 	"io"
 	"net"
 	"time"
@@ -31,7 +32,7 @@ type RecvStream interface {
 
 type Connection interface {
 	GetRecvStream() (RecvStream, error)
-	GetTransportType() byte
+	GetTransportType() common.TransportType
 	Write(cmdType string,  b []byte) (int, error)
 	Close() error
 	LocalAddr() net.Addr
@@ -50,6 +51,6 @@ type Transport interface {
 	DialWithTimeout(addr string, timeout time.Duration) (Connection, error)
 	Listen(port uint16) (Listener, error)
 	GetReqInterval() int
-	ProtocolCode() int
+	ProtocolCode() common.TransportType
 	ProtocolName() string
 }
