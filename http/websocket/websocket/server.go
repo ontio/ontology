@@ -197,8 +197,6 @@ func (self *WsServer) registryMethod() {
 		"getmerkleproof":            {handler: rest.GetMerkleProof},
 		"getblocktxsbyheight":       {handler: rest.GetBlockTxsByHeight},
 		"getgasprice":               {handler: rest.GetGasPrice},
-		"getunboundong":             {handler: rest.GetUnboundOng},
-		"getgrantong":               {handler: rest.GetGrantOng},
 		"getmempooltxcount":         {handler: rest.GetMemPoolTxCount},
 		"getmempooltxstate":         {handler: rest.GetMemPoolTxState},
 		"getversion":                {handler: rest.GetNodeVersion},

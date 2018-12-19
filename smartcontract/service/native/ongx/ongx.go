@@ -58,13 +58,13 @@ func OngxTransfer(native *native.NativeService) ([]byte, error) {
 		if v.Value == 0 {
 			continue
 		}
-		if v.Value > constants.ONG_TOTAL_SUPPLY {
-			return utils.BYTE_FALSE, fmt.Errorf("transfer ong amount:%d over totalSupply:%d", v.Value, constants.ONG_TOTAL_SUPPLY)
+		if v.Value > constants.ONGX_TOTAL_SUPPLY {
+			return utils.BYTE_FALSE, fmt.Errorf("transfer ong amount:%d over totalSupply:%d", v.Value, constants.ONGX_TOTAL_SUPPLY)
 		}
 		if _, _, err := Transfer(native, contract, &v); err != nil {
 			return utils.BYTE_FALSE, err
 		}
-		AddNotifications(native, contract, &v)
+		AddTransferNotifications(native, contract, &v)
 	}
 	return utils.BYTE_TRUE, nil
 }
@@ -77,8 +77,8 @@ func OngxApprove(native *native.NativeService) ([]byte, error) {
 	if state.Value == 0 {
 		return utils.BYTE_FALSE, nil
 	}
-	if state.Value > constants.ONG_TOTAL_SUPPLY {
-		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
+	if state.Value > constants.ONGX_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONGX_TOTAL_SUPPLY)
 	}
 	if native.ContextRef.CheckWitness(state.From) == false {
 		return utils.BYTE_FALSE, errors.NewErr("authentication failed!")
@@ -96,24 +96,24 @@ func OngxTransferFrom(native *native.NativeService) ([]byte, error) {
 	if state.Value == 0 {
 		return utils.BYTE_FALSE, nil
 	}
-	if state.Value > constants.ONG_TOTAL_SUPPLY {
-		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
+	if state.Value > constants.ONGX_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONGX_TOTAL_SUPPLY)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if _, _, err := TransferedFrom(native, contract, &state); err != nil {
 		return utils.BYTE_FALSE, err
 	}
-	AddNotifications(native, contract, &State{From: state.From, To: state.To, Value: state.Value})
+	AddTransferNotifications(native, contract, &State{From: state.From, To: state.To, Value: state.Value})
 	return utils.BYTE_TRUE, nil
 }
 func OngxName(native *native.NativeService) ([]byte, error) {
-	return []byte(constants.ONG_NAME), nil
+	return []byte(constants.ONGX_NAME), nil
 }
 func OngxDecimals(native *native.NativeService) ([]byte, error) {
-	return big.NewInt(int64(constants.ONG_DECIMALS)).Bytes(), nil
+	return big.NewInt(int64(constants.ONGX_DECIMALS)).Bytes(), nil
 }
 func OngxSymbol(native *native.NativeService) ([]byte, error) {
-	return []byte(constants.ONG_SYMBOL), nil
+	return []byte(constants.ONGX_SYMBOL), nil
 }
 func OngxTotalSupply(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -130,6 +130,12 @@ func OngxAllowance(native *native.NativeService) ([]byte, error) {
 	return GetBalanceValue(native, APPROVE_FLAG)
 }
 func OngxSetSyncAddr(native *native.NativeService) ([]byte, error) {
+	syncAddress := new(SyncAddress)
+	err := syncAddress.Deserialization(common.NewZeroCopySource(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("syncAddress.Deserialization, contract params deserialize error: %v", err)
+	}
+
 	context := native.ContextRef.CurrentContext().ContractAddress[:]
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
@@ -147,28 +153,16 @@ func OngxSetSyncAddr(native *native.NativeService) ([]byte, error) {
 }
 func OngSwap(native *native.NativeService) ([]byte, error) {
 	context := native.ContextRef.CurrentContext().ContractAddress
-	key := append(context[:], SYNC_ADDRESS...)
-	result, err := native.CacheDB.Get(key)
+	syncAddress, err := GetSyncAddress(native)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] get address from cache error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] GetSyncAddress error:%s", err)
 	}
-	if result == nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] sync address is nil")
-	}
-	syncAddrBytes, err := states.GetValueFromRawStorageItem(result)
-	if err != nil {
-		return nil, fmt.Errorf("[OngSwap], deserialize from raw storage item err:%v", err)
-	}
-	syncAddr := new(SyncAddress)
-	if err := syncAddr.Deserialize(common.NewZeroCopySource(syncAddrBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize, deserialize syncAddr error: %v", err)
-	}
-	if !native.ContextRef.CheckWitness(syncAddr.SyncAddress) {
+	if !native.ContextRef.CheckWitness(syncAddress.SyncAddress) {
 		return utils.BYTE_FALSE, errors.NewErr("[OngSwap] authentication failed!")
 	}
 	source := common.NewZeroCopySource(native.Input)
 	var ongSwapParam OngSwapParam
-	if err := ongSwapParam.Deserialize(source); err != nil {
+	if err := ongSwapParam.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
 	}
 	totalSupplyKey := GenTotalSupplyKey(context)
@@ -176,15 +170,22 @@ func OngSwap(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
 	}
+	var ok bool
 	for _, v := range ongSwapParam.Swap {
 		key := append(context[:], v.Addr[:]...)
 		balance, err := utils.GetStorageUInt64(native, key)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] error:%s", err)
 		}
-		native.CacheDB.Put(key, GetToUInt64StorageItem(balance, v.Value).ToArray())
-		amount += v.Value
-		AddNotifications(native, context, &State{To: v.Addr, Value: v.Value})
+		native.CacheDB.Put(key, utils.GenUInt64StorageItem(balance+v.Value).ToArray())
+		amount, ok = common.SafeAdd(amount, v.Value)
+		if ok {
+			return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] total supply is more than MAX_UINT64")
+		}
+		if amount > constants.ONGX_TOTAL_SUPPLY {
+			return utils.BYTE_FALSE, fmt.Errorf("[OngSwap] total supply is more than constants.ONGX_TOTAL_SUPPLY")
+		}
+		AddTransferNotifications(native, context, &State{To: v.Addr, Value: v.Value})
 	}
 	native.CacheDB.Put(totalSupplyKey, utils.GenUInt64StorageItem(amount).ToArray())
 	return utils.BYTE_TRUE, nil
@@ -193,7 +194,7 @@ func OngxSwap(native *native.NativeService) ([]byte, error) {
 	context := native.ContextRef.CurrentContext().ContractAddress
 	source := common.NewZeroCopySource(native.Input)
 	var swap Swap
-	if err := swap.Deserialize(source); err != nil {
+	if err := swap.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OngxSwap] error:%s", err)
 	}
 	if !native.ContextRef.CheckWitness(swap.Addr) {

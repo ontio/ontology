@@ -29,17 +29,13 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -268,24 +264,6 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 	return &BalanceOfRsp{
 		Ong: fmt.Sprintf("%d", ong),
 	}, nil
-}
-
-func GetGrantOng(addr common.Address) (string, error) {
-	key := append([]byte(ongx.UNBOUND_TIME_OFFSET), addr[:]...)
-	value, err := ledger.DefLedger.GetStorageItem(utils.OntContractAddress, key)
-	if err != nil {
-		value = []byte{0, 0, 0, 0}
-	}
-	v, err := serialization.ReadUint32(bytes.NewBuffer(value))
-	if err != nil {
-		return fmt.Sprintf("%v", 0), err
-	}
-	ont, err := GetContractBalance(0, utils.OntContractAddress, addr)
-	if err != nil {
-		return fmt.Sprintf("%v", 0), err
-	}
-	boundong := utils.CalcUnbindOng(ont, v, uint32(time.Now().Unix())-constants.GENESIS_BLOCK_TIMESTAMP)
-	return fmt.Sprintf("%v", boundong), nil
 }
 
 func GetAllowance(asset string, from, to common.Address) (string, error) {
