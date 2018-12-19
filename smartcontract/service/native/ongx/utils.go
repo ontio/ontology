@@ -35,20 +35,19 @@ import (
 )
 
 const (
-	UNBOUND_TIME_OFFSET = "unboundTimeOffset"
-	TOTAL_SUPPLY_NAME   = "totalSupply"
-	TRANSFER_NAME       = "transfer"
-	APPROVE_NAME        = "approve"
-	TRANSFERFROM_NAME   = "transferFrom"
-	NAME_NAME           = "name"
-	SYMBOL_NAME         = "symbol"
-	DECIMALS_NAME       = "decimals"
-	TOTALSUPPLY_NAME    = "totalSupply"
-	BALANCEOF_NAME      = "balanceOf"
-	ALLOWANCE_NAME      = "allowance"
-	ONG_SWAP            = "ongSwap"
-	ONGX_SWAP           = "ongxSwap"
-	SET_SYNC_ADDR_NAME  = "setSyncAddr"
+	TOTAL_SUPPLY_NAME  = "totalSupply"
+	TRANSFER_NAME      = "transfer"
+	APPROVE_NAME       = "approve"
+	TRANSFERFROM_NAME  = "transferFrom"
+	NAME_NAME          = "name"
+	SYMBOL_NAME        = "symbol"
+	DECIMALS_NAME      = "decimals"
+	TOTALSUPPLY_NAME   = "totalSupply"
+	BALANCEOF_NAME     = "balanceOf"
+	ALLOWANCE_NAME     = "allowance"
+	ONG_SWAP           = "ongSwap"
+	ONGX_SWAP          = "ongxSwap"
+	SET_SYNC_ADDR_NAME = "setSyncAddr"
 
 	TRANSFER_FLAG byte = 1
 	APPROVE_FLAG  byte = 2
@@ -82,7 +81,7 @@ func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 	return types.BigIntToBytes(big.NewInt(int64(amount))), nil
 }
 
-func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
+func AddTransferNotifications(native *native.NativeService, contract common.Address, state *State) {
 	if !config.DefConfig.Common.EnableEventLog {
 		return
 	}
@@ -207,7 +206,23 @@ func toTransfer(native *native.NativeService, toKey []byte, value uint64) (uint6
 	return toBalance, nil
 }
 
-func genAddressUnboundOffsetKey(contract, address common.Address) []byte {
-	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
-	return append(temp, address[:]...)
+func GetSyncAddress(native *native.NativeService) (*SyncAddress, error) {
+	context := native.ContextRef.CurrentContext().ContractAddress
+	key := append(context[:], SYNC_ADDRESS...)
+	result, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("[GetSyncAddress] get address from cache error:%s", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("[GetSyncAddress] sync address is nil")
+	}
+	syncAddrBytes, err := cstates.GetValueFromRawStorageItem(result)
+	if err != nil {
+		return nil, fmt.Errorf("[GetSyncAddress], deserialize from raw storage item err:%v", err)
+	}
+	syncAddr := new(SyncAddress)
+	if err := syncAddr.Deserialization(common.NewZeroCopySource(syncAddrBytes)); err != nil {
+		return nil, fmt.Errorf("[GetSyncAddress], deserialize syncAddr error: %v", err)
+	}
+	return syncAddr, nil
 }
