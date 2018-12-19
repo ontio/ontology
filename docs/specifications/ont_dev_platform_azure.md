@@ -1,26 +1,22 @@
 ## initialize && RUN
 ### 1.initialize(Run only once)
-* ontology start.sh add Executable authority 
-  * chmod +x /opt/gopath/test/start.sh
 * initialize httpd settings and restart httpd service
-  * sh /opt/start.sh IP (IP:External network IP of VM)
-  ![avatar](azure_image/initialize.png)
-* start ontology testmode service
-  * cd /opt/gopath/test && nohup ./start.sh &
-  ![avatar](azure_image/ontology.png)
+  * sh /data/install/start.sh IP (IP:External network IP of VM)
+  ![avatar](azure_image/start_new.png)
 
 ### 2.NetworkSecurityGroup
 * VM->SETTINGS->Networking->Inbound port rules
   * 80
-  * 8000
-  * 3306（Optional）
   * 8080
-  ![avatar](azure_image/securityGroup.png)
+  * 20334
+  * 20335
+  * 20336
+  * 3306（Optional）
 
 ## Using(IP:External network IP of VM)
-* smartx:http://IP
- ![avatar](azure_image/smartx.png)
-* explorer:http://IP:8000
+* smartx:http://IP:8080
+![avatar](azure_image/smartx_new.png)
+* explorer:http://IP
  ![avatar](azure_image/explorer.png)
  
 ## ONG acquisition mode ：
@@ -35,29 +31,28 @@
 * port:3306
 * user:root
 * passwd:123456
-* database:explorer;ontscide
+* database:explorer
 * operation :systemctl start/stop/restart mysqld
 
 ### 2.ontology
-* path:/opt/gopath/test
-* operation:cd /opt/gopath/test && ./start.sh
-* Log:/opt/gopath/test/Log
+* path:/data/gopath/test
+* operation:cd /data/gopath/test && ./start.sh
+* Log:/data/gopath/test/Log
 * wallet passwd:123456
 * port:20334,20335,20336
 
 ### 3.httpd
 * operation:systemctl start/stop/status/restart httpd
 * port:80,8080,8000
-  * smartx Front end (/var/www/html/ont-sc-ide) :80
-  * smartx back end  (/var/www/html/sc-project-ser):8080
-  * explorer  (/var/www/html):8000 
+  * smartx (/data/install/smartx) :8080
+  * explorer  (/data/install/explorer_web):80
 
 ### 4.java service
 * explorer service 
-  * path: /root/explorer 
+  * path: /data/install/explorer 
   * port:8085
   * description:Provide page logic API 
 * sync servicde 
-  * path: /root/ontsynhandler 
+  * path: /data/install/ontsynhandler 
   * port:10010
   * description:Synchronization block chain information
