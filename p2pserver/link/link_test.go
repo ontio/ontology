@@ -36,8 +36,8 @@ import (
 var (
 	cliLink    *Link
 	serverLink *Link
-	cliChan    chan *mt.RecvMessage
-	serverChan chan *mt.RecvMessage
+	cliChan    chan *mt.MsgPayload
+	serverChan chan *mt.MsgPayload
 	cliAddr    string
 	serAddr    string
 )
@@ -54,8 +54,8 @@ func init() {
 	cliLink.port = 50338
 	serverLink.port = 50339
 
-	cliChan = make(chan *mt.RecvMessage, 100)
-	serverChan = make(chan *mt.RecvMessage, 100)
+	cliChan = make(chan *mt.MsgPayload, 100)
+	serverChan = make(chan *mt.MsgPayload, 100)
 	//listen ip addr
 	cliAddr = "127.0.0.1:50338"
 	serAddr = "127.0.0.1:50339"
@@ -63,7 +63,6 @@ func init() {
 }
 
 func TestNewLink(t *testing.T) {
-    tspType := common.LegacyTSPType
 
 	id := 0x74936295
 	port := 40339
@@ -91,14 +90,12 @@ func TestNewLink(t *testing.T) {
 
 	cliLink.UpdateRXTime(time.Now())
 
-	msg := &mt.RecvMessage{
-		TSPType:tspType,
-		RecvMsgPayload:&mt.MsgPayload{
+	msg := &mt.MsgPayload{
 		Id:      cliLink.id,
 		Addr:    cliLink.addr,
 		Payload: &mt.NotFound{comm.UINT256_EMPTY},
-		},
-	}
+		}
+
 	go func() {
 		time.Sleep(5000000)
 		cliChan <- msg

@@ -27,12 +27,13 @@ import (
 	"testing"
 )
 
-var done chan struct{}
+var done  chan struct{}
 var done1 chan struct{}
+var end   chan struct{}
 
 func init() {
 	log.Init(log.Stdout)
-	done = make(chan struct{})
+	done  = make(chan struct{})
 	done1 = make(chan struct{})
 }
 
@@ -72,13 +73,16 @@ func startServer(t *testing.T) {
 					t.Errorf("read message error, err:%s", err.Error())
 				} else {
 					log.Infof("Receive message, one=%d, two=%d", msg.One, msg.Two)
+					if msg.Two == 190 {
+						close(done)
+					}
 				}
 			}
 		}(reader)
 
 	}
 
-	close(done)
+	close(end)
 }
 
 var cCon tsp.Connection
@@ -95,7 +99,7 @@ func startClient(t *testing.T) {
 
 	cCon = conn
 
-	mt := messageTest{100, 190}
+	mt := messageTest{100, 200}
 
 	buf := new(bytes.Buffer)
 	err = binary.Write(buf, binary.LittleEndian, mt)
@@ -111,31 +115,30 @@ func startClient(t *testing.T) {
 	}
 
 	close(done1)
-
 }
 
-func keepHeat() {
-	for {
-		<- done1
-		if cCon == nil {
-			continue
-		}
+func endRecv() {
 
-		mt := messageTest{100, 190}
-
-		buf := new(bytes.Buffer)
-		err := binary.Write(buf, binary.LittleEndian, mt)
-		if err != nil {
-			fmt.Printf("binary.Write failed: %s", err)
-		}
-		cCon.Write("messageTest", buf.Bytes())
+	<- done1
+	if cCon == nil {
+		close(done)
+		return
 	}
+
+	mt := messageTest{100, 190}
+
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.LittleEndian, mt)
+	if err != nil {
+		fmt.Printf("binary.Write failed: %s", err)
+	}
+	cCon.Write("messageTest", buf.Bytes())
 }
 
 func TestQuicTransport (t *testing.T) {
 	go startServer(t)
 	go startClient(t)
-	go keepHeat()
+	go endRecv()
 
 	<- done
 }

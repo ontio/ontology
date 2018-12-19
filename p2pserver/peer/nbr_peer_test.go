@@ -20,16 +20,15 @@ package peer
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/p2pserver/common"
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 var nm *NbrPeers
-
-var tspType = common.LegacyTSPType
 
 func creatPeers(cnt uint16) []*Peer {
 	np := []*Peer{}
@@ -43,11 +42,11 @@ func creatPeers(cnt uint16) []*Peer {
 		id = 0x7533345 + uint64(i)
 		height = 434923 + uint64(i)
 		p = NewPeer()
-		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, tspType)
-		p.SetConsState(2, tspType)
-		p.SetSyncState(3, tspType)
+		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, common.TransportType(config.DefConfig.P2PNode.TransportType))
+		p.SetConsState(2)
+		p.SetSyncState(3)
 		p.SetHttpInfoState(true)
-		p.SyncLink[tspType].SetAddr("127.0.0.1:10338")
+		p.SyncLink.SetAddr("127.0.0.1:10338")
 		np = append(np, p)
 	}
 	return np
@@ -82,11 +81,11 @@ func TestGetPeer(t *testing.T) {
 
 func TestAddNbrNode(t *testing.T) {
 	p := NewPeer()
-	p.UpdateInfo(time.Now(), 2, 3, 10335, 10336, 0x7123456, 0, 100, tspType)
-	p.SetConsState(2, tspType)
-	p.SetSyncState(3, tspType)
+	p.UpdateInfo(time.Now(), 2, 3, 10335, 10336, 0x7123456, 0, 100, common.TransportType(config.DefConfig.P2PNode.TransportType))
+	p.SetConsState(2)
+	p.SetSyncState(3)
 	p.SetHttpInfoState(true)
-	p.SyncLink[tspType].SetAddr("127.0.0.1")
+	p.SyncLink.SetAddr("127.0.0.1")
 	nm.AddNbrNode(p)
 	if nm.NodeExisted(0x7123456) == false {
 		t.Fatal("0x7123456 should be added in nbr peer")
@@ -113,8 +112,8 @@ func TestNodeEstablished(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestNodeEstablished:get peer error")
 	}
-	p.SetSyncState(4, tspType)
-	if nm.NodeEstablished(0x7533346, tspType) == false {
+	p.SetSyncState(4)
+	if nm.NodeEstablished(0x7533346) == false {
 		t.Fatal("TestNodeEstablished error")
 	}
 }
@@ -124,13 +123,13 @@ func TestGetNeighborAddrs(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestGetNeighborAddrs:get peer error")
 	}
-	p.SetSyncState(4, tspType)
+	p.SetSyncState(4)
 
 	p = nm.GetPeer(0x7533347)
 	if p == nil {
 		t.Fatal("TestGetNeighborAddrs:get peer error")
 	}
-	p.SetSyncState(4, tspType)
+	p.SetSyncState(4)
 
 	pList := nm.GetNeighborAddrs()
 	cnt := len(pList)
@@ -147,13 +146,13 @@ func TestGetNeighborHeights(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestGetNeighborHeights:get peer error")
 	}
-	p.SetSyncState(4, tspType)
+	p.SetSyncState(4)
 
 	p = nm.GetPeer(0x7533347)
 	if p == nil {
 		t.Fatal("TestGetNeighborHeights:get peer error")
 	}
-	p.SetSyncState(4, tspType)
+	p.SetSyncState(4)
 
 	pMap := nm.GetNeighborHeights()
 	for k, v := range pMap {
@@ -166,13 +165,13 @@ func TestGetNeighbors(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestGetNeighbors:get peer error")
 	}
-	p.SetSyncState(4, tspType)
+	p.SetSyncState(4)
 
 	p = nm.GetPeer(0x7533347)
 	if p == nil {
 		t.Fatal("TestGetNeighbors:get peer error")
 	}
-	p.SetSyncState(4, tspType)
+	p.SetSyncState(4)
 
 	pList := nm.GetNeighbors()
 	for _, v := range pList {
@@ -185,15 +184,15 @@ func TestGetNbrNodeCnt(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestGetNbrNodeCnt:get peer error")
 	}
-	p.SetSyncState(4, tspType)
+	p.SetSyncState(4)
 
 	p = nm.GetPeer(0x7533347)
 	if p == nil {
 		t.Fatal("TestGetNbrNodeCnt:get peer error")
 	}
-	p.SetSyncState(4, tspType)
+	p.SetSyncState(4)
 
-	if cntL, _ := nm.GetNbrNodeCnt(); cntL != 2 {
+	if cnt := nm.GetNbrNodeCnt(); cnt != 2 {
 		t.Fatal("TestGetNbrNodeCnt error")
 	}
 }

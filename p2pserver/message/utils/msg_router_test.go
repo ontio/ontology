@@ -28,7 +28,7 @@ import (
 	"testing"
 )
 
-func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, tspType byte, args ...interface{}) {
+func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) {
 	log.Info("Test handler")
 }
 

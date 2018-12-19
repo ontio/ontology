@@ -81,7 +81,6 @@ func init() {
 
 // TestVersionHandle tests Function VersionHandle handling a version message
 func TestVersionHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	// Simulate a remote peer to connect to the local
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
@@ -94,7 +93,7 @@ func TestVersionHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	buf := msgpack.NewVersion(network,false, 12345, tspType)
+	buf := msgpack.NewVersion(network,false, 12345)
 	assert.Nil(t, err)
 	version := buf.(*types.Version)
 	version.P.Nonce = testID
@@ -106,7 +105,7 @@ func TestVersionHandle(t *testing.T) {
 	}
 
 	// Invoke VersionHandle to handle the msg
-	VersionHandle(msg, network, nil, tspType)
+	VersionHandle(msg, network, nil)
 
 	// Get the remote peer from the neighbor peers by peer id
 	tempPeer := network.GetPeer(testID)
@@ -115,19 +114,18 @@ func TestVersionHandle(t *testing.T) {
 	assert.Equal(t, tempPeer.GetID(), testID)
 	assert.Equal(t, tempPeer.GetVersion(), network.GetVersion())
 	assert.Equal(t, tempPeer.GetServices(), network.GetServices())
-	assert.Equal(t, tempPeer.GetSyncPort(tspType), network.GetSyncPort(tspType))
+	assert.Equal(t, tempPeer.GetSyncPort(), network.GetSyncPort())
 	assert.Equal(t, tempPeer.GetHttpInfoPort(), network.GetHttpInfoPort())
-	assert.Equal(t, tempPeer.GetConsPort(tspType), network.GetConsPort(tspType))
+	assert.Equal(t, tempPeer.GetConsPort(), network.GetConsPort())
 	assert.Equal(t, tempPeer.GetHeight(), uint64(12345))
-	assert.Equal(t, tempPeer.GetSyncState(tspType), uint32(msgCommon.HAND_SHAKE))
-	assert.Equal(t, tempPeer.GetTransportType(), tspType)
+	assert.Equal(t, tempPeer.GetSyncState(), uint32(msgCommon.HAND_SHAKE))
+	assert.Equal(t, tempPeer.GetTransportType(), msgCommon.TransportType(config.DefConfig.P2PNode.TransportType))
 
 	network.DelNbrNode(testID)
 }
 
 // TestVerAckHandle tests Function VerAckHandle handling a version ack
 func TestVerAckHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	// Simulate a remote peer to be added to the neighbor peers
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
@@ -140,9 +138,9 @@ func TestVerAckHandle(t *testing.T) {
 
 	remotePeer.SetHttpInfoPort(20335)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345, tspType)
+		20337, testID, 0, 12345, msgCommon.TransportType(config.DefConfig.P2PNode.TransportType))
 	network.AddNbrNode(remotePeer)
-	remotePeer.SetSyncState(msgCommon.HAND_SHAKE, tspType)
+	remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
 
 	// Construct a version ack packet
 	buf := msgpack.NewVerAck(false)
@@ -155,19 +153,18 @@ func TestVerAckHandle(t *testing.T) {
 	}
 
 	// Invoke VerAckHandle to handle the msg
-	VerAckHandle(msg, network, nil, tspType)
+	VerAckHandle(msg, network, nil)
 
 	// Get the remote peer from the neighbor peers by peer id
 	tempPeer := network.GetPeer(testID)
 	assert.NotNil(t, tempPeer)
-	assert.Equal(t, tempPeer.GetSyncState(tspType), uint32(msgCommon.ESTABLISH))
+	assert.Equal(t, tempPeer.GetSyncState(), uint32(msgCommon.ESTABLISH))
 
 	network.DelNbrNode(testID)
 }
 
 // TestAddrReqHandle tests Function AddrReqHandle handling an address req
 func TestAddrReqHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	// Simulate a remote peer to be added to the neighbor peers
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
@@ -179,8 +176,8 @@ func TestAddrReqHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+		20337, testID, 0, 12345, msgCommon.TransportType(config.DefConfig.P2PNode.TransportType))
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -195,14 +192,13 @@ func TestAddrReqHandle(t *testing.T) {
 	}
 
 	// Invoke AddrReqHandle to handle the msg
-	AddrReqHandle(msg, network, nil, tspType)
+	AddrReqHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
 
 // TestHeadersReqHandle tests Function HeadersReqHandle handling a header req
 func TestHeadersReqHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	// Simulate a remote peer to be added to the neighbor peers
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
@@ -214,8 +210,8 @@ func TestHeadersReqHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+		20337, testID, 0, 12345, msgCommon.TransportType(config.DefConfig.P2PNode.TransportType))
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -230,7 +226,7 @@ func TestHeadersReqHandle(t *testing.T) {
 	}
 
 	// Invoke HeadersReqhandle to handle the msg
-	HeadersReqHandle(msg, network, nil, tspType)
+	HeadersReqHandle(msg, network, nil)
 	network.DelNbrNode(testID)
 }
 
@@ -248,7 +244,7 @@ func TestPingHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -285,7 +281,7 @@ func TestPongHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -310,7 +306,6 @@ func TestPongHandle(t *testing.T) {
 
 // TestBlkHeaderHandle tests Function BlkHeaderHandle handling a sync header msg
 func TestBlkHeaderHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	// Simulate a remote peer to be added to the neighbor peers
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
@@ -321,8 +316,8 @@ func TestBlkHeaderHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+		20337, testID, 0, 12345, msgCommon.TransportType(config.DefConfig.P2PNode.TransportType))
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -343,14 +338,13 @@ func TestBlkHeaderHandle(t *testing.T) {
 	}
 
 	// Invoke BlkHeaderHandle to handle the msg
-	BlkHeaderHandle(msg, network, nil, tspType)
+	BlkHeaderHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
 
 // TestBlockHandle tests Function BlockHandle handling a block message
 func TestBlockHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	// Simulate a remote peer to be added to the neighbor peers
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
@@ -361,8 +355,8 @@ func TestBlockHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+		20337, testID, 0, 12345, msgCommon.TransportType(config.DefConfig.P2PNode.TransportType))
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -383,14 +377,13 @@ func TestBlockHandle(t *testing.T) {
 	}
 
 	// Invoke BlockHandle to handle the msg
-	BlockHandle(msg, network, nil, tspType)
+	BlockHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
 
 // TestConsensusHandle tests Function ConsensusHandle handling a consensus message
 func TestConsensusHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	key := keypair.SerializePublicKey(testPub)
@@ -420,12 +413,11 @@ func TestConsensusHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	ConsensusHandle(msg, network, nil, tspType)
+	ConsensusHandle(msg, network, nil)
 }
 
 // TestNotFoundHandle tests Function NotFoundHandle handling a not found message
 func TestNotFoundHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"
 	hex, _ := hex.DecodeString(tempStr)
 	var hash common.Uint256
@@ -439,12 +431,11 @@ func TestNotFoundHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	NotFoundHandle(msg, network, nil, tspType)
+	NotFoundHandle(msg, network, nil)
 }
 
 // TestTransactionHandle tests Function TransactionHandle handling a transaction message
 func TestTransactionHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	code := []byte("ont")
 
 	invokeCodePayload := &payload.InvokeCode{
@@ -465,12 +456,11 @@ func TestTransactionHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	TransactionHandle(msg, network, nil, tspType)
+	TransactionHandle(msg, network, nil)
 }
 
 // TestAddrHandle tests Function AddrHandle handling a neighbor address response message
 func TestAddrHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	nodeAddrs := []msgCommon.PeerAddr{}
 	buf := msgpack.NewAddrs(nodeAddrs)
 
@@ -480,12 +470,11 @@ func TestAddrHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	AddrHandle(msg, network, nil, tspType)
+	AddrHandle(msg, network, nil)
 }
 
 // TestDataReqHandle tests Function DataReqHandle handling a data req(block/Transaction)
 func TestDataReqHandle(t *testing.T) {
-	tspType := msgCommon.LegacyTSPType
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	key := keypair.SerializePublicKey(testPub)
@@ -495,8 +484,8 @@ func TestDataReqHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+		20337, testID, 0, 12345, msgCommon.TransportType(config.DefConfig.P2PNode.TransportType))
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -511,7 +500,7 @@ func TestDataReqHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	DataReqHandle(msg, network,nil, tspType)
+	DataReqHandle(msg, network,nil)
 
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"
 	hex, _ := hex.DecodeString(tempStr)
@@ -525,7 +514,7 @@ func TestDataReqHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	DataReqHandle(msg, network, nil, tspType)
+	DataReqHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -542,8 +531,8 @@ func TestInvHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+		20337, testID, 0, 12345, msgCommon.TransportType(config.DefConfig.P2PNode.TransportType))
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -579,7 +568,7 @@ func TestDisconnectHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		20337, testID, 0, 12345, tspType)
-	remotePeer.SyncLink[tspType].SetAddr("127.0.0.1:50010")
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 

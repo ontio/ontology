@@ -55,7 +55,7 @@ func startServer(t *testing.T) {
 	}
 
 	go func (c tsp.Connection) {
-		reader, err := c.GetReader()
+		reader, err := c.GetRecvStream()
 
 		if err != nil {
 			t.Errorf("error GetReader, err:%s", err.Error())
@@ -93,7 +93,7 @@ func startClient(t *testing.T) {
 		t.Errorf("binary.Write failed: %s", err)
 	}
 
-	n,err := conn.Write(buf.Bytes())
+	n,err := conn.Write("", buf.Bytes())
 
 	if err != nil || n != buf.Len() {
 		t.Error("Send message error")
