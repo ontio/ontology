@@ -128,8 +128,7 @@ const (
 	T_QUIC  = 0x004
 )
 
-type TransportType byte
-type CommandType   string
+type TransportType uint64
 
 //PeerAddr represent peer`s net information
 type PeerAddr struct {
@@ -139,7 +138,6 @@ type PeerAddr struct {
 	Port          uint16   //sync port
 	ConsensusPort uint16   //consensus port
 	ID            uint64   //Unique ID
-	TransportType byte     //supported transport type of peer
 }
 
 

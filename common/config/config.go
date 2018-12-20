@@ -50,12 +50,10 @@ const (
 	CONSENSUS_TYPE_SOLO = "solo"
 	CONSENSUS_TYPE_VBFT = "vbft"
 
-	DEFAULT_LOG_LEVEL                       = log.InfoLog//log.InfoLog
+	DEFAULT_LOG_LEVEL                       = log.InfoLog
 	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
-	DEFAULT_NODE_PORT                       = uint(30338)
-	DEFAULT_NODE_PORT_LEGACY                = uint(20338)
-	DEFAULT_CONSENSUS_PORT                  = uint(30339)
-	DEFAULT_CONSENSUS_PORT_LEGACY           = uint(20339)
+	DEFAULT_NODE_PORT                       = uint(20338)
+	DEFAULT_CONSENSUS_PORT                  = uint(20339)
 	DEFAULT_RPC_PORT                        = uint(20336)
 	DEFAULT_RPC_LOCAL_PORT                  = uint(20337)
 	DEFAULT_REST_PORT                       = uint(20334)
@@ -117,10 +115,10 @@ func GetNetworkName(id uint32) string {
 
 var PolarisConfig = &GenesisConfig{
 	SeedList: []string{
-		"polaris1.ont.io:30338",
-		"polaris2.ont.io:30338",
-		"polaris3.ont.io:30338",
-		"polaris4.ont.io:30338"},
+		"polaris1.ont.io:20338",
+		"polaris2.ont.io:20338",
+		"polaris3.ont.io:20338",
+		"polaris4.ont.io:20338"},
 	ConsensusType: CONSENSUS_TYPE_VBFT,
 	VBFT: &VBFTConfig{
 		N:                    7,
@@ -186,11 +184,11 @@ var PolarisConfig = &GenesisConfig{
 
 var MainNetConfig = &GenesisConfig{
 	SeedList: []string{
-		"seed1.ont.io:30338",
-		"seed2.ont.io:30338",
-		"seed3.ont.io:30338",
-		"seed4.ont.io:30338",
-		"seed5.ont.io:30338"},
+		"seed1.ont.io:20338",
+		"seed2.ont.io:20338",
+		"seed3.ont.io:20338",
+		"seed4.ont.io:20338",
+		"seed5.ont.io:20338"},
 	ConsensusType: CONSENSUS_TYPE_VBFT,
 	VBFT: &VBFTConfig{
 		N:                    7,
@@ -501,16 +499,14 @@ type P2PNodeConfig struct {
 	NetworkId                 uint32
 	NetworkName               string
 	NodePort                  uint
-	NodePortLegacy            uint
 	NodeConsensusPort         uint
-	NodeConsensusPortLegacy   uint
 	DualPortSupport           bool
 	IsTLS                     bool
 	CertPath                  string
 	KeyPath                   string
 	CAPath                    string
 	HttpInfoPort              uint
-	TransportType             byte
+	TransportType             uint64
 	MaxHdrSyncReqs            uint
 	MaxConnInBound            uint
 	MaxConnOutBound           uint
@@ -568,9 +564,7 @@ func NewOntologyConfig() *OntologyConfig {
 			NetworkName:               GetNetworkName(NETWORK_ID_MAIN_NET),
 			NetworkMagic:              GetNetworkMagic(NETWORK_ID_MAIN_NET),
 			NodePort:                  DEFAULT_NODE_PORT,
-			NodePortLegacy:            DEFAULT_NODE_PORT_LEGACY,
 			NodeConsensusPort:         DEFAULT_CONSENSUS_PORT,
-			NodeConsensusPortLegacy:   DEFAULT_CONSENSUS_PORT_LEGACY,
 			DualPortSupport:           true,
 			IsTLS:                     false,
 			CertPath:                  "",

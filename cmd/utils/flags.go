@@ -111,6 +111,7 @@ var (
 		Usage: "Reserved peers `<file>`",
 		Value: config.DEFAULT_RESERVED_FILE,
 	}
+
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
 		Usage: "Network id `<number>`. 1=ontology main net, 2=polaris test net, 3=testmode, and other for custom network",
@@ -121,11 +122,6 @@ var (
 		Usage: "P2P network port `<number>`",
 		Value: config.DEFAULT_NODE_PORT,
 	}
-	NodePortFlagLegacy = cli.UintFlag{
-		Name:  "nodeportlegacy",
-		Usage: "P2P network port `<number>` for legacy transport",
-		Value: config.DEFAULT_NODE_PORT_LEGACY,
-	}
 	DualPortSupportFlag = cli.BoolFlag{
 		Name:  "dual-port",
 		Usage: "Enable a dual network, P2P network for transaction messages and for consensus messages.",
@@ -134,11 +130,6 @@ var (
 		Name:  "consensus-port",
 		Usage: "Consensus network port `<number>`. Effectively after set --dual-port parameter",
 		Value: config.DEFAULT_CONSENSUS_PORT,
-	}
-	ConsensusPortFlagLegacy = cli.UintFlag{
-		Name:  "consensus-portlegacy",
-		Usage: "Consensus network port `<number>` for legacy transport. Effectively after set --dual-port parameter",
-		Value: config.DEFAULT_CONSENSUS_PORT_LEGACY,
 	}
 	MaxConnInBoundFlag = cli.UintFlag{
 		Name:  "max-conn-in-bound",

@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -113,7 +112,7 @@ func (this *NetServer) init() error {
 		this.base.SetServices(uint64(common.SERVICE_NODE))
 	}
 
-	if config.DefConfig.P2PNode.NodePort == 0 || config.DefConfig.P2PNode.NodePortLegacy == 0{
+	if config.DefConfig.P2PNode.NodePort == 0 {
 		log.Error("[p2p]link port invalid")
 		return errors.New("[p2p]invalid link port")
 	}
@@ -121,7 +120,7 @@ func (this *NetServer) init() error {
 	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
 
 	if config.DefConfig.P2PNode.DualPortSupport {
-		if config.DefConfig.P2PNode.NodeConsensusPort == 0 || config.DefConfig.P2PNode.NodeConsensusPortLegacy == 0{
+		if config.DefConfig.P2PNode.NodeConsensusPort == 0 {
 			log.Error("[p2p]consensus port invalid")
 			return errors.New("[p2p]invalid consensus port")
 		}
@@ -304,17 +303,11 @@ func (this *NetServer) tryLegacyConnect(addr string, isConsensus bool) error {
 	err := this.connectSub(addr, isConsensus, common.LegacyTSPType)
 	switch err.(type) {
 	case *tsp.DialError:
-		ip, errIP := common.ParseIPAddr(addr)
-		port, errPort := common.ParseIPPort(addr)
-		if errIP == nil && errPort == nil {
-			portNum, _ := strconv.ParseUint(port[1:], 10, 64)
-			legacyPort := portNum - uint64(10000)
-			legacyAddr := ip + ":" + strconv.FormatUint(legacyPort, 10)
-			log.Tracef("[p2p]tryLegacyConnect to %s dial err by transport %s",
-				legacyAddr,
-				common.GetTransportTypeString(common.LegacyTSPType))
-			return this.connectSub(legacyAddr, isConsensus, common.LegacyTSPType)
-		}
+		log.Tracef("[p2p]tryLegacyConnect to %s dial err by transport %s",
+			addr,
+			common.GetTransportTypeString(common.LegacyTSPType))
+		return this.connectSub(addr, isConsensus, common.LegacyTSPType)
+
 	default:
 		return err
 	}
@@ -432,8 +425,8 @@ func (this *NetServer) startListening() error {
 
 	syncPort := this.base.GetSyncPort()
 	consPort := this.base.GetConsPort()
-	syncPortLegacy := config.DefConfig.P2PNode.NodePortLegacy
-	consPortLegacy := config.DefConfig.P2PNode.NodeConsensusPortLegacy
+	syncPortLegacy := this.base.GetSyncPort()
+	consPortLegacy := this.base.GetConsPort()
 
 	if syncPort == 0  || syncPortLegacy == 0{
 		log.Error("[p2p]sync port invalid")
