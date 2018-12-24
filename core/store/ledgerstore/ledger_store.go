@@ -203,7 +203,9 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		}
 		this.lock.Unlock()
 	}
-	return nil
+	// check and fix imcompatible states
+	err = this.stateStore.CheckStorage()
+	return err
 }
 
 func (this *LedgerStoreImp) hasAlreadyInitGenesisBlock() (bool, error) {

@@ -41,7 +41,6 @@ import (
 	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	hserver "github.com/ontio/ontology/http/base/actor"
@@ -240,10 +239,6 @@ func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
 
 	var err error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	err = ledgerstore.CheckStorage(dbDir)
-	if err != nil {
-		return nil, fmt.Errorf("Check storage error: %s", err)
-	}
 	ledger.DefLedger, err = ledger.NewLedger(dbDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
