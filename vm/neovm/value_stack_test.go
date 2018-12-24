@@ -1,10 +1,11 @@
 package neovm
 
 import (
-	"github.com/magiconair/properties/assert"
-	"github.com/ontio/ontology/vm/neovm/types"
 	"math/big"
 	"testing"
+
+	"github.com/ontio/ontology/vm/neovm/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestValueStack_Count(t *testing.T) {
@@ -73,16 +74,16 @@ func TestValueStack_Swap(t *testing.T) {
 	assert.Equal(t, err, nil)
 	r.Push(val3)
 
-	r.Swap(0,2)
+	r.Swap(0, 2)
 
 	val, err = r.Pop()
 	assert.Equal(t, err, nil)
-	v0,err := val.AsInt64()
+	v0, err := val.AsInt64()
 	assert.Equal(t, err, nil)
 	r.Pop()
 	val2, err = r.Pop()
 	assert.Equal(t, err, nil)
-	v2,err := val2.AsInt64()
+	v2, err := val2.AsInt64()
 	assert.Equal(t, err, nil)
 	assert.Equal(t, v0, int64(9999))
 	assert.Equal(t, v2, int64(7777))
