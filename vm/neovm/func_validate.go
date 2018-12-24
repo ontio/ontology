@@ -476,6 +476,9 @@ func validatePickItem(e *ExecutionEngine) error {
 			return errors.ERR_BAD_VALUE
 		}
 		barr, err := item.GetByteArray()
+		if err != nil {
+			return err
+		}
 		if index.Cmp(big.NewInt(int64(len(barr)))) >= 0 {
 			return errors.ERR_OVER_MAX_ARRAY_SIZE
 		}
@@ -619,7 +622,7 @@ func validatorRemove(e *ExecutionEngine) error {
 			return errors.ERR_REMOVE_NOT_SUPPORT
 		}
 	default:
-		return fmt.Errorf("validatePickItem error: %s", errors.ERR_NOT_SUPPORT_TYPE)
+		return fmt.Errorf("validateRemove error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
 
 	return nil
@@ -695,12 +698,12 @@ func validatorValues(e *ExecutionEngine) error {
 func validateDCALL(e *ExecutionEngine) error {
 	dest, err := PeekBigInteger(e)
 	if err != nil {
-		return fmt.Errorf("validateDJMP error: %s", errors.ERR_NOT_SUPPORT_TYPE)
+		return fmt.Errorf("validateDCALL error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
-	offset := dest.Int64()
+	target := dest.Int64()
 
-	if offset < 0 || int(offset) > len(e.Context.Code) {
-		return fmt.Errorf("validateDJMP error: %s", errors.ERR_DCALL_OFFSET_ERROR)
+	if target < 0 || int(target) >= len(e.Context.Code) {
+		return fmt.Errorf("validateDCALL error: %s", errors.ERR_DCALL_OFFSET_ERROR)
 	}
 	return nil
 }

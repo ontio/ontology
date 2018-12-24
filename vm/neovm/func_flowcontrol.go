@@ -77,13 +77,13 @@ func opDCALL(e *ExecutionEngine) (VMState, error) {
 	if err != nil {
 		return FAULT, errors.ERR_DCALL_OFFSET_ERROR
 	}
-	offset := dest.Int64()
+	target := dest.Int64()
 
-	if offset < 0 || int(offset) > len(e.Context.Code) {
+	if target < 0 || int(target) >= len(e.Context.Code) {
 		return FAULT, errors.ERR_DCALL_OFFSET_ERROR
 	}
 
-	e.Context.SetInstructionPointer(offset)
+	e.Context.SetInstructionPointer(target)
 
 	return NONE, nil
 }

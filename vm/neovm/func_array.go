@@ -20,7 +20,6 @@ package neovm
 
 import (
 	"math/big"
-	"sort"
 
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
@@ -195,18 +194,23 @@ func opRemove(e *ExecutionEngine) (VMState, error) {
 		if err != nil {
 			return FAULT, errors.NewErr("[opRemove]get Array error!")
 		}
-		atidx := -1
-		for i, obj := range m {
-			if index.Equals(obj) {
-				atidx = i
-				break
-			}
+
+		i, err := index.GetBigInteger()
+		if err != nil {
+			return FAULT, errors.NewErr("[opRemove] index not a interger!")
 		}
-		if atidx != -1 {
-			item.(*types.Array).RemoveAt(atidx + 1)
-		} else {
-			return FAULT, errors.NewErr("[opRemove] element not in array")
+
+		if i.Sign() < 0 {
+			return FAULT, errors.NewErr("[opRemove] index out of bound!")
 		}
+
+		len_t := big.NewInt(int64(len(m)))
+		if len_t.Cmp(i) <= 0 {
+			return FAULT, errors.NewErr("[opRemove] index out of bound!")
+		}
+
+		ii := i.Int64()
+		item.(*types.Array).RemoveAt(int(ii) + 1)
 	default:
 		return FAULT, errors.NewErr("Not a supported remove type")
 	}
@@ -238,33 +242,9 @@ func opKeys(e *ExecutionEngine) (VMState, error) {
 	item := PopStackItem(e)
 	switch item.(type) {
 	case *types.Map:
-		mapitem, err := item.GetMap()
+		keys, err := item.(*types.Map).GetMapSortedKey()
 		if err != nil {
 			return FAULT, err
-		}
-
-		var unsortKey []string
-		keyMap := make(map[string]types.StackItems, 0)
-		keys := make([]types.StackItems, len(mapitem))
-		for k := range mapitem {
-			switch k.(type) {
-			case *types.ByteArray, *types.Integer, *types.Boolean:
-				ba, _ := k.GetByteArray()
-				key := string(ba)
-				if key == "" {
-					key = string([]byte{0})
-				}
-				unsortKey = append(unsortKey, key)
-				keyMap[key] = k
-
-			default:
-				return FAULT, errors.NewErr("Unsupport map key type.")
-			}
-		}
-
-		sort.Strings(unsortKey)
-		for j, v := range unsortKey {
-			keys[j] = keyMap[v]
 		}
 
 		PushData(e, types.NewArray(keys))
@@ -283,30 +263,14 @@ func opValues(e *ExecutionEngine) (VMState, error) {
 			return FAULT, err
 		}
 
-		var unsortKey []string
-		keyMap := make(map[string]types.StackItems, 0)
-		keys := make([]types.StackItems, len(mapitem))
 		values := make([]types.StackItems, len(mapitem))
-		for k := range mapitem {
-			switch k.(type) {
-			case *types.ByteArray, *types.Integer, *types.Boolean:
-				ba, _ := k.GetByteArray()
-				key := string(ba)
-				if key == "" {
-					key = string([]byte{0})
-				}
-				unsortKey = append(unsortKey, key)
-				keyMap[key] = k
-
-			default:
-				return FAULT, errors.NewErr("Unsupport map key type.")
-			}
+		keys, err := item.(*types.Map).GetMapSortedKey()
+		if err != nil {
+			return FAULT, err
 		}
 
-		sort.Strings(unsortKey)
-		for j, v := range unsortKey {
-			keys[j] = keyMap[v]
-			values[j] = mapitem[keys[j]]
+		for j, v := range keys {
+			values[j] = mapitem[v]
 		}
 
 		PushData(e, types.NewArray(values))
