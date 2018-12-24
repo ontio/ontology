@@ -319,11 +319,16 @@ func (this *P2PServer) connectSeeds() {
 
 	seedConnList := make([]*peer.Peer, 0)
 	seedDisconn := make([]string, 0)
+	isSeed := false
 	for _, nodeAddr := range seedNodes {
 		if p, ok := connPeers[nodeAddr]; ok {
 			seedConnList = append(seedConnList, p)
 		} else {
 			seedDisconn = append(seedDisconn, nodeAddr)
+		}
+
+		if this.network.IsOwnAddress(nodeAddr) {
+			isSeed = true
 		}
 	}
 
@@ -331,7 +336,7 @@ func (this *P2PServer) connectSeeds() {
 		rand.Seed(time.Now().UnixNano())
 		index := rand.Intn(len(seedConnList))
 		this.reqNbrList(seedConnList[index])
-		if len(seedDisconn) > 0 {
+		if isSeed && len(seedDisconn) > 0 {
 			index := rand.Intn(len(seedDisconn))
 			go this.network.Connect(seedDisconn[index], false)
 		}
