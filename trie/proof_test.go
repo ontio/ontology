@@ -27,7 +27,7 @@ import (
 
 type kv struct {
 	k, v []byte
-	t bool
+	t    bool
 }
 
 func TestSimpleProof(t *testing.T) {
@@ -75,7 +75,7 @@ func TestRandomProof(t *testing.T) {
 func createRandomTrie(n int) (*Trie, map[string]*kv) {
 	trie := new(Trie)
 	vals := make(map[string]*kv)
-	for i:=0; i<n; i++ {
+	for i := 0; i < n; i++ {
 		key := randBytes(32)
 		value := randBytes(20)
 		trie.TryUpdate(key, value)
@@ -89,4 +89,3 @@ func randBytes(n int) []byte {
 	rand.Read(r)
 	return r
 }
-

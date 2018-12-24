@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
 
-
 /*
  * Copyright (C) 2018 The ontology Authors
  * This file is part of The ontology library.
@@ -38,9 +37,9 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/rlp"
-	"github.com/ontio/ontology/common"
 )
 
 // Prove constructs a merkle proof for key. The result contains all encoded nodes
