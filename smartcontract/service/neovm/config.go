@@ -102,6 +102,7 @@ var (
 	RUNTIME_BASE58TOADDRESS_NAME     = "Ontology.Runtime.Base58ToAddress"
 	RUNTIME_ADDRESSTOBASE58_NAME     = "Ontology.Runtime.AddressToBase58"
 	RUNTIME_GETCURRENTBLOCKHASH_NAME = "Ontology.Runtime.GetCurrentBlockHash"
+	RUNTIME_JSONMASHALMAP            = "Ontology.Runtime.JsonMarshalMap"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
 
