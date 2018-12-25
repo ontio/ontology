@@ -663,6 +663,9 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 
 		verErr := signature.Verify(key, data, sig)
 		err = self.EvalStack.PushBool(verErr == nil)
+		if err != nil {
+			return FAULT, err
+		}
 	// Array
 	case ARRAYSIZE:
 		val, err := self.EvalStack.Pop()
