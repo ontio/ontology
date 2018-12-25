@@ -23,12 +23,12 @@ import (
 	"math/big"
 	"testing"
 
+	"encoding/json"
 	"errors"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
-	"encoding/json"
 )
 
 func TestRuntimeSerialize(t *testing.T) {
@@ -181,44 +181,41 @@ func TestRuntimeJsonMashalMap(t *testing.T) {
 	key := types.NewByteArray([]byte("keys"))
 	val := types.NewInteger(big.NewInt(123))
 	item := types.NewMap()
-	item.Add(key,val)
+	item.Add(key, val)
 
 	item2 := types.NewMap()
-	item2.Add(types.NewByteArray([]byte("keys2")),types.NewByteArray([]byte("values2")))
+	item2.Add(types.NewByteArray([]byte("keys2")), types.NewByteArray([]byte("values2")))
 
-	item.Add(types.NewByteArray([]byte("mkey")),item2)
+	item.Add(types.NewByteArray([]byte("mkey")), item2)
 
 	item3 := types.NewMap()
-	item3.Add(types.NewByteArray([]byte("keys3")),types.NewByteArray([]byte("values3")))
+	item3.Add(types.NewByteArray([]byte("keys3")), types.NewByteArray([]byte("values3")))
 
 	item4 := types.NewMap()
-	item4.Add(types.NewByteArray([]byte("keys4")),types.NewByteArray([]byte("values4")))
-	arr := types.NewArray([]types.StackItems{item3,item4})
+	item4.Add(types.NewByteArray([]byte("keys4")), types.NewByteArray([]byte("values4")))
+	arr := types.NewArray([]types.StackItems{item3, item4})
 
-	item.Add(types.NewByteArray([]byte("arraykey")),arr)
-
+	item.Add(types.NewByteArray([]byte("arraykey")), arr)
 
 	item5 := types.NewMap()
-	item5.Add(types.NewByteArray([]byte("keys5")),types.NewByteArray([]byte("values5")))
+	item5.Add(types.NewByteArray([]byte("keys5")), types.NewByteArray([]byte("values5")))
 
 	iarr1 := types.NewArray([]types.StackItems{item5})
 
-
 	item6 := types.NewMap()
-	item6.Add(types.NewByteArray([]byte("keys6")),types.NewByteArray([]byte("values6")))
-
+	item6.Add(types.NewByteArray([]byte("keys6")), types.NewByteArray([]byte("values6")))
 
 	iarr2 := types.NewArray([]types.StackItems{item6})
 
 	iarr3 := types.NewArray([]types.StackItems{iarr1, iarr2})
 
-	item.Add(types.NewByteArray([]byte("bigarr")),iarr3)
+	item.Add(types.NewByteArray([]byte("bigarr")), iarr3)
 	m := make(map[string]interface{})
-	err := StackitemToMap(item,m,0)
+	err := StackitemToMap(item, m, 0)
 	assert.NoError(t, err)
 
-	res,err := json.Marshal(m)
+	res, err := json.Marshal(m)
 	assert.NoError(t, err)
 
-	assert.Equal(t,res,[]byte(`{"arraykey":[{"keys3":"values3"},{"keys4":"values4"}],"bigarr":[[{"keys5":"values5"}],[{"keys6":"values6"}]],"keys":123,"mkey":{"keys2":"values2"}}`))
+	assert.Equal(t, res, []byte(`{"arraykey":[{"keys3":"values3"},{"keys4":"values4"}],"bigarr":[[{"keys5":"values5"}],[{"keys6":"values6"}]],"keys":123,"mkey":{"keys2":"values2"}}`))
 }
