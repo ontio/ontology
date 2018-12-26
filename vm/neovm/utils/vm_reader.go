@@ -21,6 +21,7 @@ package utils
 import (
 	"bytes"
 	"encoding/binary"
+	"io"
 )
 
 type VmReader struct {
@@ -41,6 +42,10 @@ func (r *VmReader) ReadByte() (byte, error) {
 }
 
 func (r *VmReader) ReadBytes(count int) ([]byte, error) {
+	// first check to avoid memory attack
+	if r.reader.Len() < count {
+		return nil, io.EOF
+	}
 	b := make([]byte, count)
 	_, err := r.reader.Read(b)
 	if err != nil {

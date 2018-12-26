@@ -604,3 +604,52 @@ func (self *VmValue) GetMapKey() (string, error) {
 	}
 	return string(val), nil
 }
+
+//only for debug/testing
+func (self *VmValue) Dump() string {
+	b, err := self.CircularRefAndDepthDetection()
+	if err != nil {
+		return fmt.Sprintf("error: %v", err)
+	}
+	if b {
+		return "error: can not serialize circular reference data"
+	}
+	switch self.valType {
+	case boolType:
+		boo, _ := self.AsBool()
+		return fmt.Sprintf("bool(%v)", boo)
+	case bytearrayType:
+		return fmt.Sprintf("bytes(hex:%x)", self.byteArray)
+	case bigintType:
+		return fmt.Sprintf("int(%d)", self.bigInt)
+	case integerType:
+		return fmt.Sprintf("int(%d)", self.integer)
+	case arrayType:
+		data := ""
+		for _, v := range self.array.Data {
+			data += v.Dump() + ", "
+		}
+		return fmt.Sprintf("array[%d]{%s}", len(self.array.Data), data)
+	case mapType:
+		var unsortKey []string
+		for k := range self.mapval.Data {
+			unsortKey = append(unsortKey, k)
+		}
+		sort.Strings(unsortKey)
+		data := ""
+		for _, key := range unsortKey {
+			v := self.mapval.Data[key]
+			data += fmt.Sprintf("%x: %s,", key, v.Dump())
+		}
+		return fmt.Sprintf("map[%d]{%s}", len(self.mapval.Data), data)
+	case structType:
+		data := ""
+		for _, v := range self.structval.Data {
+			data += v.Dump() + ", "
+		}
+		return fmt.Sprintf("struct[%d]{%s}", len(self.structval.Data), data)
+	default:
+		panic("unreacheable!")
+	}
+	return ""
+}

@@ -65,7 +65,18 @@ func (this *ExecutionEngine) Execute() error {
 		if this.State == FAULT || this.State == HALT || this.State == BREAK {
 			break
 		}
-		err := this.StepInto()
+		err := this.ExecuteCode()
+		if err != nil {
+			break
+		}
+
+		err = this.ValidateOp()
+		if err != nil {
+			this.State = FAULT
+			return err
+		}
+
+		err = this.StepInto()
 		if err != nil {
 			return err
 		}
