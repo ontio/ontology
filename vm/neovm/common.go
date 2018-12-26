@@ -21,8 +21,10 @@ package neovm
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"fmt"
 	"hash"
 	"math/big"
+	"reflect"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/neovm/types"
@@ -210,6 +212,8 @@ func NewStackItem(data interface{}) types.StackItems {
 		stackItem = types.NewBoolean(data.(bool))
 	case []byte:
 		stackItem = types.NewByteArray(data.([]byte))
+	case string:
+		stackItem = types.NewByteArray([]byte(data.(string)))
 	case []types.StackItems:
 		stackItem = types.NewArray(data.([]types.StackItems))
 	case types.StackItems:
@@ -217,7 +221,7 @@ func NewStackItem(data interface{}) types.StackItems {
 	case interfaces.Interop:
 		stackItem = types.NewInteropInterface(data.(interfaces.Interop))
 	default:
-		panic("NewStackItemInterface Invalid Type!")
+		panic(fmt.Sprintf("NewStackItemInterface Invalid Type:%v", reflect.TypeOf(data)))
 	}
 	return stackItem
 }
