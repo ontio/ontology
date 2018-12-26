@@ -217,5 +217,5 @@ func TestRuntimeJsonMashalMap(t *testing.T) {
 	res, err := json.Marshal(m)
 	assert.NoError(t, err)
 
-	assert.Equal(t, res, []byte(`{"arraykey":[{"keys3":"values3"},{"keys4":"values4"}],"bigarr":[[{"keys5":"values5"}],[{"keys6":"values6"}]],"keys":123,"mkey":{"keys2":"values2"}}`))
+	assert.Equal(t, res, []byte(`{"arraykey":[{"keys3":"values3"},{"keys4":"values4"}],"bigarr":[[{"keys5":"values5"}],[{"keys6":"values6"}]],"keys":"7b","mkey":{"keys2":"values2"}}`))
 }

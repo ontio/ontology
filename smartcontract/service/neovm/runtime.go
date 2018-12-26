@@ -208,12 +208,12 @@ func StackitemToMap(item vmtypes.StackItems, m map[string]interface{}, depth int
 					return err
 				}
 				m[string(key)] = string(val)
-			case *vmtypes.Integer:
-				val, err := v.GetBigInteger()
+			case *vmtypes.Integer, *vmtypes.Boolean:
+				val, err := v.GetByteArray()
 				if err != nil {
 					return err
 				}
-				m[string(key)] = val.Int64()
+				m[string(key)] = common.ToHexString(val)
 			case *vmtypes.Array:
 				arr, err := v.GetArray()
 				if err != nil {
