@@ -19,6 +19,7 @@
 package neovm
 
 import (
+	"fmt"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
@@ -169,4 +170,13 @@ func (self *ValueStack) CopyTo(stack *ValueStack) error {
 	}
 	stack.data = append(stack.data, self.data...)
 	return nil
+}
+
+func (self *ValueStack) Dump() string {
+	data := fmt.Sprintf("stack[%d]:\n", len(self.data))
+	for i, item := range self.data {
+		i = len(self.data) - i
+		data += fmt.Sprintf("%d:\t%s\n", i, item.Dump())
+	}
+	return data
 }

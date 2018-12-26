@@ -1,11 +1,15 @@
 package neovm
 
 import (
+	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/ripemd160"
 	"math/big"
 	"testing"
 
+	"github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
@@ -13,13 +17,13 @@ import (
 
 type Value interface{}
 
-func value2json(t *testing.T, expect types.VmValue) []byte {
+func value2json(t *testing.T, expect types.VmValue) string {
 	e, err := expect.ConvertNeoVmValueHexString()
 	assert.Nil(t, err)
 	exp, err := json.Marshal(e)
 	assert.Nil(t, err)
 
-	return exp
+	return string(exp)
 }
 
 func assertEqual(t *testing.T, expect, actual types.VmValue) {
@@ -56,12 +60,56 @@ func newVmValue(t *testing.T, data Value) types.VmValue {
 	}
 }
 
+func newVmValueOld(t *testing.T, data Value) types.StackItems {
+	switch v := data.(type) {
+	case int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, *big.Int, big.Int:
+		val := types.NewInteger(ToBigInt(v))
+		return val
+	case bool:
+		return types.NewBoolean(v)
+	case []byte:
+		val := types.NewByteArray(v)
+		return val
+	case string:
+		val := types.NewByteArray([]byte(v))
+		return val
+	case []Value:
+		var arr []types.StackItems
+		for _, item := range v {
+			arr = append(arr, newVmValueOld(t, item))
+		}
+
+		return types.NewArray(arr)
+	case interfaces.Interop:
+		return types.NewInteropInterface(v)
+	default:
+		panic(fmt.Sprintf("newVmValue Invalid Type:%t", v))
+	}
+}
+
 func checkStackOpCode(t *testing.T, code OpCode, origin, expected []Value) {
 	checkAltStackOpCode(t, code, [2][]Value{origin, {}}, [2][]Value{expected, {}})
 }
 
 func checkAltStackOpCode(t *testing.T, code OpCode, origin [2][]Value, expected [2][]Value) {
-	executor := NewExecutor([]byte{byte(code)})
+	checkAltStackOpCodeOld(t, []byte{byte(code)}, origin, expected)
+	checkAltStackOpCodeNew(t, []byte{byte(code)}, origin, expected)
+}
+
+func checkMultiStackOpCode(t *testing.T, code []OpCode, origin, expected []Value) {
+	checkMultiAltStackOpCode(t, code, [2][]Value{origin, {}}, [2][]Value{expected, {}})
+}
+func checkMultiAltStackOpCode(t *testing.T, code []OpCode, origin [2][]Value, expected [2][]Value) {
+	var raw []byte
+	for _, c := range code {
+		raw = append(raw, byte(c))
+	}
+	checkAltStackOpCodeOld(t, raw, origin, expected)
+	checkAltStackOpCodeNew(t, raw, origin, expected)
+}
+
+func checkAltStackOpCodeNew(t *testing.T, code []byte, origin [2][]Value, expected [2][]Value) {
+	executor := NewExecutor(code)
 	for _, val := range origin[0] {
 		executor.EvalStack.Push(newVmValue(t, val))
 	}
@@ -114,8 +162,9 @@ func TestAltStackOpCode(t *testing.T) {
 func TestStackOpCode(t *testing.T) {
 	checkStackOpCode(t, SWAP, []Value{1, 2}, []Value{2, 1})
 	checkStackOpCode(t, XDROP, []Value{3, 2, 1}, []Value{2})
+	checkStackOpCode(t, XDROP, []Value{3, 2, 0}, []Value{3})
 	checkStackOpCode(t, XSWAP, []Value{3, 2, 1}, []Value{2, 3})
-	checkStackOpCode(t, XTUCK, []Value{2, 1}, []Value{2, 2})
+	checkStackOpCode(t, XTUCK, []Value{3, 2, 1}, []Value{3, 2, 2})
 	checkStackOpCode(t, DEPTH, []Value{1, 2}, []Value{1, 2, 2})
 	checkStackOpCode(t, DROP, []Value{1, 2}, []Value{1})
 	checkStackOpCode(t, DUP, []Value{1, 2}, []Value{1, 2, 2})
@@ -123,7 +172,8 @@ func TestStackOpCode(t *testing.T) {
 	checkStackOpCode(t, OVER, []Value{1, 2}, []Value{1, 2, 1})
 	checkStackOpCode(t, PICK, []Value{3, 2, 1}, []Value{3, 2, 3})
 	checkStackOpCode(t, ROLL, []Value{3, 2, 1}, []Value{2, 3})
-	checkStackOpCode(t, ROT, []Value{3, 1, 1, 1}, []Value{1, 1, 1, 3})
+	checkStackOpCode(t, ROT, []Value{4, 3, 2, 1}, []Value{4, 2, 1, 3})
+	checkStackOpCode(t, ROT, []Value{1, 2, 3}, []Value{2, 3, 1})
 	checkStackOpCode(t, TUCK, []Value{1, 2}, []Value{2, 1, 2})
 
 	checkStackOpCode(t, INVERT, []Value{2}, []Value{-3})
@@ -139,7 +189,7 @@ func TestStackOpCode(t *testing.T) {
 	checkStackOpCode(t, ABS, []Value{-9999}, []Value{9999})
 	checkStackOpCode(t, NOT, []Value{1}, []Value{0})
 
-	//SHL未实现
+	//TODO: SHL未实现
 	//checkStackOpCode(t, SHL, []int{1, 2}, []int{2})
 	//checkStackOpCode(t, SHR, []int{1, 2}, []int{2, 1})
 	checkStackOpCode(t, BOOLAND, []Value{1, 2}, []Value{1})
@@ -194,9 +244,17 @@ func TestArrayOpCode(t *testing.T) {
 
 	checkStackOpCode(t, PACK, []Value{"aaa", "bbb", "ccc", 3}, []Value{[]Value{"ccc", "bbb", "aaa"}})
 
-	checkStackOpCode(t, UNPACK, []Value{[]Value{"ccc", "bbb", "aaa"}}, []Value{"aaa", "bbb", "ccc"})
+	checkStackOpCode(t, UNPACK, []Value{[]Value{"ccc", "bbb", "aaa"}}, []Value{"aaa", "bbb", "ccc", 3})
 
 	checkStackOpCode(t, PICKITEM, []Value{[]Value{"ccc", "bbb", "aaa"}, 0}, []Value{"ccc"})
+	checkStackOpCode(t, PICKITEM, []Value{[]Value{"ccc", "bbb", "aaa"}, 1}, []Value{"bbb"})
+
+	// reverse will pop the value from stack
+	checkStackOpCode(t, REVERSE, []Value{[]Value{"ccc", "bbb", "aaa"}}, []Value{})
+	checkMultiStackOpCode(t, []OpCode{TOALTSTACK, DUPFROMALTSTACK, REVERSE, FROMALTSTACK},
+		[]Value{[]Value{"ccc", "bbb", "aaa"}},
+		[]Value{[]Value{"aaa", "bbb", "ccc"}},
+	)
 
 	checkStackOpCode(t, WITHIN, []Value{1, 2, 3}, []Value{0})
 }
@@ -209,10 +267,94 @@ func TestStringOpcode(t *testing.T) {
 	checkStackOpCode(t, RIGHT, []Value{"aaabbb", 3}, []Value{"bbb"})
 }
 
+func TestPUSHDATA(t *testing.T) {
+	checkStackOpCode(t, PUSH0, []Value{9999}, []Value{9999, 0})
+	checkStackOpCode(t, PUSH1, []Value{9999}, []Value{9999, 1})
+	checkStackOpCode(t, PUSH2, []Value{9999}, []Value{9999, 2})
+	checkStackOpCode(t, PUSH4, []Value{9999}, []Value{9999, 4})
+	checkStackOpCode(t, PUSHM1, []Value{1}, []Value{1, -1})
+	checkStackOpCode(t, PUSH1, []Value{9999}, []Value{9999, 1})
+	checkStackOpCode(t, PUSH2, []Value{9999}, []Value{9999, 2})
+	checkStackOpCode(t, PUSH3, []Value{9999}, []Value{9999, 3})
+	checkStackOpCode(t, PUSH4, []Value{9999}, []Value{9999, 4})
+	checkStackOpCode(t, PUSH5, []Value{9999}, []Value{9999, 5})
+	checkStackOpCode(t, PUSH6, []Value{9999}, []Value{9999, 6})
+	checkStackOpCode(t, PUSH7, []Value{9999}, []Value{9999, 7})
+	checkStackOpCode(t, PUSH8, []Value{9999}, []Value{9999, 8})
+	checkStackOpCode(t, PUSH9, []Value{9999}, []Value{9999, 9})
+	checkStackOpCode(t, PUSH10, []Value{9999}, []Value{9999, 10})
+	checkStackOpCode(t, PUSH11, []Value{9999}, []Value{9999, 11})
+	checkStackOpCode(t, PUSH12, []Value{9999}, []Value{9999, 12})
+	checkStackOpCode(t, PUSH13, []Value{9999}, []Value{9999, 13})
+	checkStackOpCode(t, PUSH14, []Value{9999}, []Value{9999, 14})
+	checkStackOpCode(t, PUSH15, []Value{9999}, []Value{9999, 15})
+	checkStackOpCode(t, PUSH16, []Value{9999}, []Value{9999, 16})
+}
+
+func TestHashOpCode(t *testing.T) {
+	data := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+	temp := sha256.Sum256(data)
+	md := ripemd160.New()
+	md.Write(temp[:])
+	checkStackOpCode(t, HASH160, []Value{data}, []Value{md.Sum(nil)})
+	hash256 := sha256.Sum256(temp[:])
+	checkStackOpCode(t, HASH256, []Value{data}, []Value{hash256[:]})
+
+	sh := sha1.New()
+	sh.Write(data)
+	hash := sh.Sum(nil)
+	checkStackOpCode(t, SHA1, []Value{data}, []Value{hash[:]})
+
+	sh = sha256.New()
+	sh.Write(data)
+	hash = sh.Sum(nil)
+	checkStackOpCode(t, SHA256, []Value{data}, []Value{hash[:]})
+}
+
 func TestAssertEqual(t *testing.T) {
 	val1 := newVmValue(t, -12345678910)
 	buf, _ := val1.AsBytes()
 	val2 := newVmValue(t, buf)
 
 	assertEqual(t, val1, val2)
+}
+
+func checkAltStackOpCodeOld(t *testing.T, code []byte, origin [2][]Value, expected [2][]Value) {
+	executor := NewExecutionEngine()
+	context := NewExecutionContext(code)
+	executor.PushContext(context)
+	for _, val := range origin[0] {
+		executor.EvaluationStack.Push(newVmValueOld(t, val))
+	}
+	for _, val := range origin[1] {
+		executor.AltStack.Push(newVmValueOld(t, val))
+	}
+	err := executor.Execute()
+	assert.Nil(t, err)
+	assert.Equal(t, len(expected[0]), executor.EvaluationStack.Count())
+	assert.Equal(t, len(expected[1]), executor.AltStack.Count())
+
+	stacks := [2]*RandomAccessStack{executor.EvaluationStack, executor.AltStack}
+	for s, stack := range stacks {
+		expect := expected[s]
+		for i := 0; i < len(expect); i++ {
+			val := expect[len(expect)-i-1]
+			res := stack.Pop()
+			exp := newVmValueOld(t, val)
+			assertEqualOld(t, res, exp)
+		}
+	}
+}
+
+func oldValue2json(t *testing.T, expect types.StackItems) string {
+	e, err := common.ConvertNeoVmTypeHexString(expect)
+	assert.Nil(t, err)
+	exp, err := json.Marshal(e)
+	assert.Nil(t, err)
+
+	return string(exp)
+}
+
+func assertEqualOld(t *testing.T, expect, actual types.StackItems) {
+	assert.Equal(t, oldValue2json(t, expect), oldValue2json(t, actual))
 }

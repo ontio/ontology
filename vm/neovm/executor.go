@@ -136,7 +136,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			return FAULT, err
 		}
 	case PUSHM1, PUSH1, PUSH2, PUSH3, PUSH4, PUSH5, PUSH6, PUSH7, PUSH8, PUSH9, PUSH10, PUSH11, PUSH12, PUSH13, PUSH14, PUSH15, PUSH16:
-		val := int64(opcode - PUSH1 + 1)
+		val := int64(opcode) - int64(PUSH1) + 1
 		err := self.EvalStack.Push(types.VmValueFromInt64(val))
 		if err != nil {
 			return FAULT, err
@@ -216,7 +216,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			return FAULT, err
 		}
 
-	case XDROP:
+	case XDROP: // XDROP is zero based
 		n, err := self.EvalStack.PopAsInt64()
 		if err != nil {
 			return FAULT, err
@@ -308,7 +308,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		var n int64
 		var err error
 		if opcode == ROT {
-			n = 3
+			n = 2
 		} else {
 			n, err = self.EvalStack.PopAsInt64()
 			if err != nil {
@@ -718,6 +718,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			if err != nil {
 				return FAULT, err
 			}
+		}
+		err = self.EvalStack.PushInt64(int64(l))
+		if err != nil {
+			return FAULT, err
 		}
 	case PICKITEM:
 		item, index, err := self.EvalStack.PopPair()
