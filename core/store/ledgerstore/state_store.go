@@ -330,7 +330,6 @@ func (self *StateStore) CheckStorage() error {
 	flag := append(prefix, ontid.FIELD_VERSION)
 	val, err := db.Get(flag)
 	if err == nil {
-		fmt.Println(">>>FLAG EXISTED<<<")
 		item := &states.StorageItem{}
 		buf := bytes.NewBuffer(val)
 		err := item.Deserialize(buf)
