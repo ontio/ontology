@@ -463,6 +463,7 @@ func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 	C := int(self.server.config.C)
 	// one block less than targetBlkNum is also acceptable for fastforward
 	for blkNum := self.server.GetCurrentBlockNo(); blkNum < targetBlkNum; blkNum++ {
+		// check if pending messages for targetBlkNum reached consensus
 		commitMsgs := make([]*blockCommitMsg, 0)
 		for _, msg := range self.server.msgPool.GetCommitMsgs(blkNum) {
 			if c := msg.(*blockCommitMsg); c != nil {
@@ -475,6 +476,7 @@ func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 				self.server.Index, len(commitMsgs), blkNum)
 			return false
 		}
+		// check if the proposal message is available
 		foundProposal := false
 		for _, msg := range self.server.msgPool.GetProposalMsgs(blkNum) {
 			if p := msg.(*blockProposalMsg); p != nil && p.Block.getProposer() == proposer {

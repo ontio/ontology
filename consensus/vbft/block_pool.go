@@ -524,7 +524,9 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 					endorseCnt[sig.EndorsedProposer] += 1
 					if endorseCnt[sig.EndorsedProposer] > C {
 						proposer = sig.EndorsedProposer
-						forEmpty = emptyCnt > C
+						if !forEmpty {
+							forEmpty = emptyCnt > C
+						}
 						break
 					}
 				}
