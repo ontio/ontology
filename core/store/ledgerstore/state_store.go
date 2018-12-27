@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -324,13 +323,8 @@ func (self *StateStore) Close() error {
 	return self.store.Close()
 }
 
-func CheckStorage(dir string) error {
-	path := dir + string(os.PathSeparator) + DBDirState
-	db, err := leveldbstore.NewLevelDBStore(path)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
+func (self *StateStore) CheckStorage() error {
+	db := self.store
 
 	prefix := append([]byte{byte(scom.ST_STORAGE)}, utils.OntIDContractAddress[:]...) //prefix of new storage key
 	flag := append(prefix, ontid.FIELD_VERSION)
