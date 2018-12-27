@@ -58,8 +58,25 @@ func (self *ConsensusRound) addMsg(msg ConsensusMsg, msgHash common.Uint256) err
 
 	msgs := self.msgs[msg.Type()]
 	self.msgs[msg.Type()] = append(msgs, msg)
-	self.msgHashs[msgHash] = nil
+	self.msgHashs[msgHash] = msg
 	return nil
+}
+
+func (self *ConsensusRound) dropMsg(msg ConsensusMsg) {
+	msgs := self.msgs[msg.Type()]
+	for i, m := range msgs {
+		if m == msg {
+			// msg found, remove from msg-list
+			self.msgs[msg.Type()] = append(msgs[:i], msgs[i+1:]...)
+			// remove from msg-hash-list
+			for hash, m := range self.msgHashs {
+				if m == msg {
+					delete(self.msgHashs, hash)
+					return
+				}
+			}
+		}
+	}
 }
 
 func (self *ConsensusRound) hasMsg(msg ConsensusMsg, msgHash common.Uint256) (bool, error) {
@@ -109,6 +126,15 @@ func (pool *MsgPool) AddMsg(msg ConsensusMsg, msgHash common.Uint256) error {
 	// Note: we accept msg for future rounds
 
 	return pool.rounds[blkNum].addMsg(msg, msgHash)
+}
+
+func (pool *MsgPool) DropMsg(msg ConsensusMsg) {
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
+
+	if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; present {
+		roundMsgs.dropMsg(msg)
+	}
 }
 
 func (pool *MsgPool) HasMsg(msg ConsensusMsg, msgHash common.Uint256) bool {

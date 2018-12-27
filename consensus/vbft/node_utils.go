@@ -298,14 +298,19 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 	commitCount := make(map[uint32]int)                  // proposer -> #commit-msg
 	endorseCount := make(map[uint32]map[uint32]struct{}) // proposer -> []endorsers
 	emptyCommitCount := 0
+	emptyCommit := false
 	for _, c := range commitMsgs {
 		if c.CommitForEmpty {
 			emptyCommitCount++
+			if emptyCommitCount > C && !emptyCommit {
+				C += 1
+				emptyCommit = true
+			}
 		}
 
 		commitCount[c.BlockProposer] += 1
 		if commitCount[c.BlockProposer] > C {
-			return c.BlockProposer, emptyCommitCount > C
+			return c.BlockProposer, emptyCommit
 		}
 
 		for endorser := range c.EndorsersSig {

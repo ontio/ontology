@@ -1055,6 +1055,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgPrevBlkHash := msg.Block.getPrevBlockHash()
 	if prevBlkHash != msgPrevBlkHash {
 		log.Errorf("BlockPrposalMessage check blocknum:%d,prevhash:%s,msg prevhash:%s", msg.GetBlockNum(), prevBlkHash.ToHexString(), msgPrevBlkHash.ToHexString())
+		self.msgPool.DropMsg(msg)
 		return
 	}
 	if self.LastConfigBlockNum != math.MaxUint32 && blk.Info.LastConfigBlockNum != self.LastConfigBlockNum {
@@ -1068,6 +1069,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		if cfg.Hash() != self.config.Hash() {
 			log.Errorf("processProposalMsg chainconfig unqeual to blockinfo cfg,view:(%d,%d),N:(%d,%d),C:(%d,%d),BlockMsgDelay:(%d,%d),HashMsgDelay:(%d,%d),PeerHandshakeTimeout:(%d,%d),posTable:(%v,%v),MaxBlockChangeView:(%d,%d)", cfg.View, self.config.View, cfg.N, self.config.N, cfg.C,
 				self.config.C, cfg.BlockMsgDelay, self.config.BlockMsgDelay, cfg.HashMsgDelay, self.config.HashMsgDelay, cfg.PeerHandshakeTimeout, self.config.PeerHandshakeTimeout, cfg.PosTable, self.config.PosTable, cfg.MaxBlockChangeView, self.config.MaxBlockChangeView)
+			self.msgPool.DropMsg(msg)
 			return
 		}
 	}
@@ -1076,6 +1078,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
 	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
 		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
+		self.msgPool.DropMsg(msg)
 		return
 	}
 
@@ -1084,11 +1087,13 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	if proposerPk == nil {
 		log.Errorf("server %d failed to get proposer %d pk of block %d",
 			self.Index, msg.Block.getProposer(), msgBlkNum)
+		self.msgPool.DropMsg(msg)
 		return
 	}
 	if err := verifyVrf(proposerPk, msgBlkNum, blk.getVrfValue(), msg.Block.getVrfValue(), msg.Block.getVrfProof()); err != nil {
 		log.Errorf("server %d failed to verify vrf of block %d proposal from %d",
 			self.Index, msgBlkNum, msg.Block.getProposer())
+		self.msgPool.DropMsg(msg)
 		return
 	}
 
@@ -2261,13 +2266,15 @@ func (self *Server) handleProposalTimeout(evt *TimerEvent) error {
 			log.Infof("server %d started backoff timer for blk %d", self.Index, evt.blockNum)
 			return nil
 		case EventRandomBackoff:
-			if err := self.makeProposal(evt.blockNum, true); err != nil {
-				return fmt.Errorf("failed to propose empty block: %s", err)
+			if self.is2ndProposer(evt.blockNum, self.Index) {
+				if err := self.makeProposal(evt.blockNum, true); err != nil {
+					return fmt.Errorf("failed to propose empty block: %s", err)
+				}
+				if err := self.timer.Start2ndProposalTimer(evt.blockNum); err != nil {
+					return fmt.Errorf("failed to start 2nd proposal timer: %s", err)
+				}
+				log.Infof("server %d proposed empty block for blk %d", self.Index, evt.blockNum)
 			}
-			if err := self.timer.Start2ndProposalTimer(evt.blockNum); err != nil {
-				return fmt.Errorf("failed to start 2nd proposal timer: %s", err)
-			}
-			log.Infof("server %d proposed empty block for blk %d", self.Index, evt.blockNum)
 			return nil
 		case EventPropose2ndBlockTimeout:
 			// 2nd proposal without any proposal, force resync
