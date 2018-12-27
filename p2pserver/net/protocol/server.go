@@ -64,5 +64,6 @@ type P2P interface {
 	NodeEstablished(uint64) bool
 	Xmit(msg types.Message, isCons bool)
 	SetOwnAddress(addr string)
+	IsOwnAddress(addr string) bool
 	IsAddrFromConnecting(addr string) bool
 }
