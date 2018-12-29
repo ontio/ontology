@@ -38,6 +38,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
@@ -52,6 +53,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/ontology/trie"
 )
 
 const (
@@ -69,27 +71,28 @@ var (
 
 //LedgerStoreImp is main store struct fo ledger
 type LedgerStoreImp struct {
-	blockStore         *BlockStore                      //BlockStore for saving block & transaction data
-	stateStore         *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
-	eventStore         *EventStore                      //EventStore for saving log those gen after smart contract executed.
-	storedIndexCount   uint32                           //record the count of have saved block index
-	currBlockHeight    uint32                           //Current block height
-	currBlockHash      common.Uint256                   //Current block hash
-	headerCache        map[common.Uint256]*types.Header //BlockHash => Header
-	headerIndex        map[uint32]common.Uint256        //Header index, Mapping header height => block hash
-	savingBlock        bool                             //is saving block now
-	vbftPeerInfoheader map[string]uint32                //pubInfo save pubkey,peerindex
-	vbftPeerInfoblock  map[string]uint32                //pubInfo save pubkey,peerindex
-	lock               sync.RWMutex
+	blockStore           *BlockStore                      //BlockStore for saving block & transaction data
+	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
+	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
+	storedIndexCount     uint32                           //record the count of have saved block index
+	currBlockHeight      uint32                           //Current block height
+	currBlockHash        common.Uint256                   //Current block hash
+	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
+	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
+	savingBlockSemaphore chan bool                        //is saving block now
+	vbftPeerInfoheader   map[string]uint32                //pubInfo save pubkey,peerindex
+	vbftPeerInfoblock    map[string]uint32                //pubInfo save pubkey,peerindex
+	lock                 sync.RWMutex
 }
 
 //NewLedgerStore return LedgerStoreImp instance
 func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
-		headerIndex:        make(map[uint32]common.Uint256),
-		headerCache:        make(map[common.Uint256]*types.Header, 0),
-		vbftPeerInfoheader: make(map[string]uint32),
-		vbftPeerInfoblock:  make(map[string]uint32),
+		headerIndex:          make(map[uint32]common.Uint256),
+		headerCache:          make(map[common.Uint256]*types.Header, 0),
+		vbftPeerInfoheader:   make(map[string]uint32),
+		vbftPeerInfoblock:    make(map[string]uint32),
+		savingBlockSemaphore: make(chan bool, 1),
 	}
 
 	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
@@ -120,6 +123,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 	if err != nil {
 		return fmt.Errorf("hasAlreadyInit error %s", err)
 	}
+	fmt.Println("InitLedgerStoreWithGenesisBlock!")
 	if !hasInit {
 		err = this.blockStore.ClearAll()
 		if err != nil {
@@ -142,9 +146,14 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("SaveBookkeeperState error %s", err)
 		}
-		err = this.saveBlock(genesisBlock)
+		result, err := this.executeBlock(genesisBlock)
 		if err != nil {
-			return fmt.Errorf("save genesis block error %s", err)
+			return fmt.Errorf("execute genesis block error %s", err)
+		}
+		fmt.Printf("result execute block:%x\n", result.StatesRoot)
+		err = this.submitBlock(genesisBlock, result)
+		if err != nil {
+			return fmt.Errorf("submit genesis block error %s", err)
 		}
 		err = this.initGenesisBlock()
 		if err != nil {
@@ -219,22 +228,22 @@ func (this *LedgerStoreImp) initGenesisBlock() error {
 }
 
 func (this *LedgerStoreImp) init() error {
-	err := this.initCurrentBlock()
+	err := this.loadCurrentBlock()
 	if err != nil {
 		return fmt.Errorf("initCurrentBlock error %s", err)
 	}
-	err = this.initHeaderIndexList()
+	err = this.loadHeaderIndexList()
 	if err != nil {
 		return fmt.Errorf("initHeaderIndexList error %s", err)
 	}
-	err = this.initStore()
+	err = this.loadStore()
 	if err != nil {
 		return fmt.Errorf("initStore error %s", err)
 	}
 	return nil
 }
 
-func (this *LedgerStoreImp) initCurrentBlock() error {
+func (this *LedgerStoreImp) loadCurrentBlock() error {
 	currentBlockHash, currentBlockHeight, err := this.blockStore.GetCurrentBlock()
 	if err != nil {
 		return fmt.Errorf("LoadCurrentBlock error %s", err)
@@ -245,7 +254,7 @@ func (this *LedgerStoreImp) initCurrentBlock() error {
 	return nil
 }
 
-func (this *LedgerStoreImp) initHeaderIndexList() error {
+func (this *LedgerStoreImp) loadHeaderIndexList() error {
 	currBlockHeight := this.GetCurrentBlockHeight()
 	headerIndex, err := this.blockStore.GetHeaderIndexList()
 	if err != nil {
@@ -269,7 +278,7 @@ func (this *LedgerStoreImp) initHeaderIndexList() error {
 	return nil
 }
 
-func (this *LedgerStoreImp) initStore() error {
+func (this *LedgerStoreImp) loadStore() error {
 	blockHeight := this.GetCurrentBlockHeight()
 
 	_, stateHeight, err := this.stateStore.GetCurrentBlock()
@@ -287,7 +296,11 @@ func (this *LedgerStoreImp) initStore() error {
 		}
 		this.eventStore.NewBatch()
 		this.stateStore.NewBatch()
-		err = this.saveBlockToStateStore(block)
+		result, err := this.executeBlock(block)
+		if err != nil {
+			return fmt.Errorf("execute block height:%d error:%s", i, err)
+		}
+		err = this.saveBlockToStateStore(block, result)
 		if err != nil {
 			return fmt.Errorf("save to state store height:%d error:%s", i, err)
 		}
@@ -528,121 +541,70 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block) error {
 	return nil
 }
 
-func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
-	blockHash := block.Hash()
-	blockHeight := block.Header.Height
-
-	this.setHeaderIndex(blockHeight, blockHash)
-	err := this.saveHeaderIndexList()
+func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.ExecuteResult, err error) {
+	this.setSavingBlockLock()
+	defer this.releaseSavingBlockLock()
+	err = this.verifyBlockHeight(block)
 	if err != nil {
-		return fmt.Errorf("saveHeaderIndexList error %s", err)
+		return
 	}
-	err = this.blockStore.SaveCurrentBlock(blockHeight, blockHash)
-	if err != nil {
-		return fmt.Errorf("SaveCurrentBlock error %s", err)
-	}
-	this.blockStore.SaveBlockHash(blockHeight, blockHash)
-	err = this.blockStore.SaveBlock(block)
-	if err != nil {
-		return fmt.Errorf("SaveBlock height %d hash %s error %s", blockHeight, blockHash.ToHexString(), err)
-	}
-	return nil
+	result, err = this.executeBlock(block)
+	return
 }
 
-func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block) error {
-	blockHash := block.Hash()
-	blockHeight := block.Header.Height
-
+func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	overlay := this.stateStore.NewOverlayDB()
-
+	cache := storage.NewCacheDB(overlay)
 	if block.Header.Height != 0 {
-		config := &smartcontract.Config{
+		conf := &smartcontract.Config{
 			Time:   block.Header.Timestamp,
 			Height: block.Header.Height,
 			Tx:     &types.Transaction{},
 		}
-
-		if err := refreshGlobalParam(config, storage.NewCacheDB(this.stateStore.NewOverlayDB()), this); err != nil {
-			return err
+		err = refreshGlobalParam(conf, cache, this)
+		if err != nil {
+			return
 		}
 	}
-
-	cache := storage.NewCacheDB(overlay)
 	for _, tx := range block.Transactions {
 		cache.Reset()
-		err := this.handleTransaction(overlay, cache, block, tx)
-		if err != nil {
-			return fmt.Errorf("handleTransaction error %s", err)
+		notify, e := this.handleTransaction(overlay, cache, block, tx)
+		if e != nil {
+			err = e
+			return
 		}
+		result.Notify = append(result.Notify, notify)
 	}
 
-	err := this.stateStore.AddMerkleTreeRoot(block.Header.TransactionsRoot)
+	result.StatesRoot, err = this.getStatesRoot(block.Header.Height, overlay)
 	if err != nil {
-		return fmt.Errorf("AddMerkleTreeRoot error %s", err)
+		return
 	}
-
-	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
-	if err != nil {
-		return fmt.Errorf("SaveCurrentBlock error %s", err)
-	}
-
-	stateHash := overlay.ChangeHash()
-	log.Debugf("the state transition hash of block %d is:%s", blockHeight, stateHash.ToHexString())
-	overlay.CommitTo()
-
-	return nil
+	result.WriteSet = overlay.GetWriteSet()
+	return
 }
 
-func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
-	blockHash := block.Hash()
-	blockHeight := block.Header.Height
-	txs := make([]common.Uint256, 0)
-	for _, tx := range block.Transactions {
-		txHash := tx.Hash()
-		txs = append(txs, txHash)
+func (this *LedgerStoreImp) SubmitBlock(block *types.Block, result store.ExecuteResult) error {
+	this.setSavingBlockLock()
+	defer this.releaseSavingBlockLock()
+	if err := this.verifyBlockHeight(block); err != nil {
+		return err
 	}
-	if len(txs) > 0 {
-		err := this.eventStore.SaveEventNotifyByBlock(block.Header.Height, txs)
-		if err != nil {
-			return fmt.Errorf("SaveEventNotifyByBlock error %s", err)
-		}
-	}
-	err := this.eventStore.SaveCurrentBlock(blockHeight, blockHash)
+	var err error
+	this.vbftPeerInfoblock, err = this.verifyHeader(block.Header, this.vbftPeerInfoblock)
 	if err != nil {
-		return fmt.Errorf("SaveCurrentBlock error %s", err)
+		return fmt.Errorf("verify block header error %s", err)
+	}
+	err = this.submitBlock(block, result)
+	if err != nil {
+		return fmt.Errorf("submit block error %s", err)
 	}
 	return nil
 }
 
-func (this *LedgerStoreImp) isSavingBlock() bool {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	if !this.savingBlock {
-		this.savingBlock = true
-		return false
-	}
-	return true
-}
-
-func (this *LedgerStoreImp) resetSavingBlock() {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	this.savingBlock = false
-}
-
-//saveBlock do the job of execution samrt contract and commit block to store.
-func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
+func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.ExecuteResult) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
-	if this.isSavingBlock() {
-		//hash already saved or is saving
-		return nil
-	}
-	defer this.resetSavingBlock()
-	if blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1) {
-		return nil
-	}
 
 	this.blockStore.NewBatch()
 	this.stateStore.NewBatch()
@@ -651,7 +613,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("save to block store height:%d error:%s", blockHeight, err)
 	}
-	err = this.saveBlockToStateStore(block)
+	err = this.saveBlockToStateStore(block, result)
 	if err != nil {
 		return fmt.Errorf("save to state store height:%d error:%s", blockHeight, err)
 	}
@@ -684,30 +646,187 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 	return nil
 }
 
-func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, block *types.Block, tx *types.Transaction) error {
+func (this *LedgerStoreImp) verifyBlockHeight(block *types.Block) error {
+	currBlockHeight := this.GetCurrentBlockHeight()
+	blockHeight := block.Header.Height
+	if blockHeight <= currBlockHeight {
+		return nil
+	}
+	nextBlockHeight := currBlockHeight + 1
+	if blockHeight != nextBlockHeight {
+		return fmt.Errorf("block height %d not equal next block height %d", blockHeight, nextBlockHeight)
+	}
+	return nil
+}
+
+func (this *LedgerStoreImp) getStatesRoot(height uint32, overlay *overlaydb.OverlayDB) (root common.Uint256, err error) {
+	if height != 0 {
+		root, err = this.stateStore.GetStatesRoot()
+		if err != nil {
+			return
+		}
+	}
+	fmt.Printf("states root:%x\n", root)
+	t, e := trie.New(root, overlay)
+	if e != nil {
+		err = e
+		return
+	}
+	overlay.GetWriteSet().ForEach(func(key, val []byte) {
+		if len(val) == 0 {
+			t.TryDelete(key)
+		} else {
+			t.TryUpdate(key, val)
+		}
+	})
+	fmt.Printf("trie overlay:%+v\n", t)
+	return t.Commit()
+}
+
+func (this *LedgerStoreImp) tryGetSavingBlockLock() bool {
+	select {
+	case this.savingBlockSemaphore <- true:
+		return false
+	default:
+		return true
+	}
+}
+
+func (this *LedgerStoreImp) setSavingBlockLock() {
+	this.savingBlockSemaphore <- true
+}
+
+func (this *LedgerStoreImp) releaseSavingBlockLock() {
+	select {
+	case <-this.savingBlockSemaphore:
+		return
+	default:
+		panic("Error: it cann't release unlock state!")
+	}
+}
+
+func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
+	blockHash := block.Hash()
+	blockHeight := block.Header.Height
+
+	this.setHeaderIndex(blockHeight, blockHash)
+	err := this.saveHeaderIndexList()
+	if err != nil {
+		return fmt.Errorf("saveHeaderIndexList error %s", err)
+	}
+	err = this.blockStore.SaveCurrentBlock(blockHeight, blockHash)
+	if err != nil {
+		return fmt.Errorf("SaveCurrentBlock error %s", err)
+	}
+	this.blockStore.SaveBlockHash(blockHeight, blockHash)
+	err = this.blockStore.SaveBlock(block)
+	if err != nil {
+		return fmt.Errorf("SaveBlock height %d hash %s error %s", blockHeight, blockHash.ToHexString(), err)
+	}
+	return nil
+}
+
+func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result store.ExecuteResult) error {
+	blockHash := block.Hash()
+	blockHeight := block.Header.Height
+
+	for _, notify := range result.Notify {
+		SaveNotify(this.eventStore, notify.TxHash, notify)
+	}
+
+	err := this.stateStore.SaveStatesRoot(result.StatesRoot)
+	if err != nil {
+		return fmt.Errorf("SaveStatesRoot error %s", err)
+	}
+
+	err = this.stateStore.AddTransactionsTreeRoot(block.Header.TransactionsRoot)
+	if err != nil {
+		return fmt.Errorf("AddTransactionsTreeRoot error %s", err)
+	}
+
+	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
+	if err != nil {
+		return fmt.Errorf("SaveCurrentBlock error %s", err)
+	}
+
+	log.Debugf("the state transition hash of block %d is:%s", blockHeight, result.StatesRoot.ToHexString())
+
+	result.WriteSet.ForEach(func(key, val []byte) {
+		if len(val) == 0 {
+			this.stateStore.BatchDeleteRawKey(key)
+		} else {
+			this.stateStore.BatchPutRawKeyVal(key, val)
+		}
+	})
+	return nil
+}
+
+func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
+	blockHash := block.Hash()
+	blockHeight := block.Header.Height
+	txs := make([]common.Uint256, 0)
+	for _, tx := range block.Transactions {
+		txHash := tx.Hash()
+		txs = append(txs, txHash)
+	}
+	if len(txs) > 0 {
+		err := this.eventStore.SaveEventNotifyByBlock(block.Header.Height, txs)
+		if err != nil {
+			return fmt.Errorf("SaveEventNotifyByBlock error %s", err)
+		}
+	}
+	err := this.eventStore.SaveCurrentBlock(blockHeight, blockHash)
+	if err != nil {
+		return fmt.Errorf("SaveCurrentBlock error %s", err)
+	}
+	return nil
+}
+
+//saveBlock do the job of execution samrt contract and commit block to store.
+func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
+	blockHeight := block.Header.Height
+	if this.tryGetSavingBlockLock() {
+		return nil
+	}
+	defer this.releaseSavingBlockLock()
+	if blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1) {
+		return nil
+	}
+
+	result, err := this.executeBlock(block)
+	if err != nil {
+		return err
+	}
+
+	if result.StatesRoot != block.Header.StatesRoot {
+		return fmt.Errorf("Local vm execute block states: %x is not equal consensus states:%x", result.StatesRoot, block.Header.StatesRoot)
+	}
+
+	return nil
+}
+
+func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	switch tx.TxType {
 	case types.Deploy:
 		err := this.stateStore.HandleDeployTransaction(this, overlay, cache, tx, block, notify)
 		if overlay.Error() != nil {
-			return fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-		SaveNotify(this.eventStore, txHash, notify)
 	case types.Invoke:
 		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
 		if overlay.Error() != nil {
-			return fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-		SaveNotify(this.eventStore, txHash, notify)
 	}
-	return nil
+	return notify, nil
 }
 
 func (this *LedgerStoreImp) saveHeaderIndexList() error {

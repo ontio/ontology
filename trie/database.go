@@ -22,25 +22,25 @@ import (
 	"sync"
 )
 
-type Database struct {
+type MemDatabase struct {
 	db   map[string][]byte
 	lock sync.RWMutex
 }
 
-func NewMemDatabase() *Database {
-	return &Database{
+func NewMemDatabase() *MemDatabase {
+	return &MemDatabase{
 		db: make(map[string][]byte),
 	}
 }
 
-func (db *Database) Put(key []byte, value []byte) error {
+func (db *MemDatabase) Put(key []byte, value []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 	db.db[string(key)] = CopyBytes(value)
 	return nil
 }
 
-func (db *Database) Has(key []byte) (bool, error) {
+func (db *MemDatabase) Has(key []byte) (bool, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -48,7 +48,7 @@ func (db *Database) Has(key []byte) (bool, error) {
 	return ok, nil
 }
 
-func (db *Database) Get(key []byte) ([]byte, error) {
+func (db *MemDatabase) Get(key []byte) ([]byte, error) {
 	db.lock.RLock()
 	defer db.lock.RUnlock()
 
@@ -58,7 +58,7 @@ func (db *Database) Get(key []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (db *Database) Delete(key []byte) error {
+func (db *MemDatabase) Delete(key []byte) error {
 	db.lock.Lock()
 	defer db.lock.Unlock()
 

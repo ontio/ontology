@@ -21,22 +21,32 @@ package vbft
 import (
 	"fmt"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/events/message"
 )
+
+type PendingBlock struct {
+	block      *Block
+	execResult *store.ExecuteResult
+}
 
 type ChainStore struct {
 	db              *ledger.Ledger
 	chainedBlockNum uint32
-	pendingBlocks   map[uint32]*Block
+	pendingBlocks   map[uint32]*PendingBlock
+	server          *Server
+	needSubmitBlock bool
 }
 
-func OpenBlockStore(db *ledger.Ledger) (*ChainStore, error) {
+func OpenBlockStore(db *ledger.Ledger, server *Server) (*ChainStore, error) {
 	return &ChainStore{
 		db:              db,
 		chainedBlockNum: db.GetCurrentBlockHeight(),
-		pendingBlocks:   make(map[uint32]*Block),
+		pendingBlocks:   make(map[uint32]*PendingBlock),
+		server:          server,
+		needSubmitBlock: false,
 	}, nil
 }
 
@@ -54,7 +64,7 @@ func (self *ChainStore) ReloadFromLedger() {
 		// update chainstore height
 		self.chainedBlockNum = height
 		// remove persisted pending blocks
-		newPending := make(map[uint32]*Block)
+		newPending := make(map[uint32]*PendingBlock)
 		for blkNum, blk := range self.pendingBlocks {
 			if blkNum > height {
 				newPending[blkNum] = blk
@@ -78,29 +88,37 @@ func (self *ChainStore) AddBlock(block *Block) error {
 	if block.Block.Header == nil {
 		panic("nil block header")
 	}
-	self.pendingBlocks[block.getBlockNum()] = block
 
 	blkNum := self.GetChainedBlockNum() + 1
 	for {
-		if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
-			log.Infof("ledger adding chained block (%d, %d)", blkNum, self.GetChainedBlockNum())
-
-			err := self.db.AddBlock(blk.Block)
-			if err != nil && blkNum > self.GetChainedBlockNum() {
-				return fmt.Errorf("ledger add blk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
+		var err error
+		if self.needSubmitBlock {
+			if submitBlk, present := self.pendingBlocks[blkNum-1]; submitBlk != nil && present {
+				err := self.db.SubmitBlock(submitBlk.block.Block, *submitBlk.execResult)
+				if err != nil && blkNum > self.GetChainedBlockNum() {
+					return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
+				}
+				if _, present := self.pendingBlocks[blkNum-2]; present {
+					delete(self.pendingBlocks, blkNum-2)
+				}
+			} else {
+				break
 			}
-
-			self.chainedBlockNum = blkNum
-			if blkNum != self.db.GetCurrentBlockHeight() {
-				log.Errorf("!!! chain store added chained block (%d, %d): %s",
-					blkNum, self.db.GetCurrentBlockHeight(), err)
-			}
-
-			delete(self.pendingBlocks, blkNum)
-			blkNum++
-		} else {
-			break
 		}
+		execResult, err := self.db.ExecuteBlock(block.Block)
+		if err != nil {
+			log.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
+			return fmt.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
+		}
+		self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult}
+		self.needSubmitBlock = true
+		self.server.pid.Tell(
+			&message.BlockConsensusComplete{
+				Block: block.Block,
+			})
+		self.chainedBlockNum = blkNum
+		blkNum++
+		break
 	}
 
 	return nil
@@ -109,21 +127,14 @@ func (self *ChainStore) AddBlock(block *Block) error {
 //
 // SetBlock is used when recovering from fork-chain
 //
-func (self *ChainStore) SetBlock(block *Block, blockHash common.Uint256) error {
-
-	err := self.db.AddBlock(block.Block)
-	self.chainedBlockNum = self.db.GetCurrentBlockHeight()
-	if err != nil {
-		return fmt.Errorf("ledger failed to add block: %s", err)
-	}
-
-	return nil
+func (self *ChainStore) SetBlock(blkNum uint32, blk *PendingBlock) {
+	self.pendingBlocks[blkNum] = blk
 }
 
 func (self *ChainStore) GetBlock(blockNum uint32) (*Block, error) {
 
 	if blk, present := self.pendingBlocks[blockNum]; present {
-		return blk, nil
+		return blk.block, nil
 	}
 
 	block, err := self.db.GetBlockByHeight(uint32(blockNum))

@@ -78,6 +78,14 @@ func (self *StateStore) NewBatch() {
 	self.store.NewBatch()
 }
 
+func (self *StateStore) BatchPutRawKeyVal(key, val []byte) {
+	self.store.BatchPut(key, val)
+}
+
+func (self *StateStore) BatchDeleteRawKey(key []byte) {
+	self.store.BatchDelete(key)
+}
+
 func (self *StateStore) init(currBlockHeight uint32) error {
 	treeSize, hashes, err := self.GetMerkleTree()
 	if err != nil && err != scom.ErrNotFound {
@@ -120,7 +128,7 @@ func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 }
 
 //AddMerkleTreeRoot add a new tree root
-func (self *StateStore) AddMerkleTreeRoot(txRoot common.Uint256) error {
+func (self *StateStore) AddTransactionsTreeRoot(txRoot common.Uint256) error {
 	key := self.getMerkleTreeKey()
 
 	self.merkleTree.AppendHash(txRoot)
@@ -269,6 +277,32 @@ func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	return nil
 }
 
+func (self *StateStore) SaveStatesRoot(statesRoot common.Uint256) error {
+	fmt.Printf("save states root:%x\n", statesRoot)
+	key := self.getStateRootKey()
+	buf := new(bytes.Buffer)
+	if err := statesRoot.Serialize(buf); err != nil {
+		return err
+	}
+	self.store.BatchPut(key, buf.Bytes())
+	return nil
+}
+
+func (self *StateStore) GetStatesRoot() (common.Uint256, error) {
+	key := self.getStateRootKey()
+	data, err := self.store.Get(key)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	statesRoot := common.Uint256{}
+	err = statesRoot.Deserialize(bytes.NewReader(data))
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	fmt.Printf("get states root:%x\n", statesRoot)
+	return statesRoot, nil
+}
+
 func (self *StateStore) getCurrentBlockKey() []byte {
 	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
@@ -278,6 +312,10 @@ func (self *StateStore) getBookkeeperKey() ([]byte, error) {
 	key[0] = byte(scom.ST_BOOKKEEPER)
 	copy(key[1:], []byte(BOOKKEEPER))
 	return key, nil
+}
+
+func (self *StateStore) getStateRootKey() []byte {
+	return []byte{byte((scom.DATA_STATES_ROOT))}
 }
 
 func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte, error) {
@@ -301,7 +339,7 @@ func (self *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.
 }
 
 func (self *StateStore) getMerkleTreeKey() []byte {
-	return []byte{byte(scom.SYS_BLOCK_MERKLE_TREE)}
+	return []byte{byte(scom.DATA_STATES_ROOT)}
 }
 
 //ClearAll clear all data in state store

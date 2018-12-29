@@ -23,10 +23,17 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 )
+
+type ExecuteResult struct {
+	WriteSet   *overlaydb.MemDB
+	StatesRoot common.Uint256
+	Notify     []*event.ExecuteNotify
+}
 
 // LedgerStore provides func with store package.
 type LedgerStore interface {
@@ -34,6 +41,8 @@ type LedgerStore interface {
 	Close() error
 	AddHeaders(headers []*types.Header) error
 	AddBlock(block *types.Block) error
+	ExecuteBlock(b *types.Block) (ExecuteResult, error)
+	SubmitBlock(b *types.Block, exec ExecuteResult) error
 	GetCurrentBlockHash() common.Uint256
 	GetCurrentBlockHeight() uint32
 	GetCurrentHeaderHeight() uint32

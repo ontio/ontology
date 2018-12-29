@@ -72,8 +72,14 @@ var (
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
-	db   *Database
-	root node
+	db       Database
+	root     node
+	rootHash common.Uint256
+}
+
+type Database interface {
+	Put(key, value []byte) error
+	Get(key []byte) ([]byte, error)
 }
 
 // newFlag returns the cache flag value for a newly created node.
@@ -87,20 +93,23 @@ func (t *Trie) newFlag() nodeFlag {
 // trie is initially empty and does not require a database. Otherwise,
 // New will panic if db is nil and returns a MissingNodeError if root does
 // not exist in the database. Accessing the trie loads nodes from db on demand.
-func New(root common.Uint256, db *Database) (*Trie, error) {
+func New(root common.Uint256, db Database) (*Trie, error) {
 	if db == nil {
 		panic("trie.New called without a database")
 	}
 	trie := &Trie{
 		db: db,
 	}
+	fmt.Println("root:", root)
 	if root != (common.Uint256{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
 		if err != nil {
 			return nil, err
 		}
+		fmt.Printf("root node:%+v\n", trie)
 		trie.root = rootnode
 	}
+	fmt.Printf("new trie:%+v\n", trie)
 	return trie, nil
 }
 
@@ -415,10 +424,13 @@ func (t *Trie) resolve(n node, prefix []byte) (node, error) {
 }
 
 func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
-	hash, _ := common.Uint256ParseFromBytes(n)
-	enc, err := t.db.Get(hash[:])
+	fmt.Println("resolve hash:", n)
+	enc, err := t.db.Get(n)
 	if err != nil {
 		return nil, err
+	}
+	if len(enc) == 0 {
+		return nil, fmt.Errorf("Get hashNode:%s from db is nil, it cann't be decoded", n)
 	}
 	return mustDecodeNode(n, enc), nil
 }
@@ -436,12 +448,13 @@ func (t *Trie) Hash() common.Uint256 {
 	hash, cached, _ := t.hashRoot(nil)
 	t.root = cached
 	u256, _ := common.Uint256ParseFromBytes(hash.(hashNode))
+	t.rootHash = u256
 	return u256
 }
 
 // Commit writes all nodes to the trie's memory database, tracking the internal
 // and external (for account tries) references.
-func (t *Trie) Commit() (root common.Uint256, err error) {
+func (t *Trie) Commit() (common.Uint256, error) {
 	if t.db == nil {
 		panic("commit called on trie with nil database")
 	}
@@ -453,7 +466,7 @@ func (t *Trie) Commit() (root common.Uint256, err error) {
 	return common.Uint256ParseFromBytes(hash.(hashNode))
 }
 
-func (t *Trie) hashRoot(db *Database) (node, node, error) {
+func (t *Trie) hashRoot(db Database) (node, node, error) {
 	if t.root == nil {
 		return hashNode(emptyRoot.ToArray()), nil, nil
 	}

@@ -36,6 +36,7 @@ type Header struct {
 	SideChainID      uint32
 	PrevBlockHash    common.Uint256
 	TransactionsRoot common.Uint256
+	StatesRoot       common.Uint256
 	BlockRoot        common.Uint256
 	Timestamp        uint32
 	Height           uint32
@@ -114,6 +115,7 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) error {
 	sink.WriteUint32(bd.SideChainID)
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
+	sink.WriteBytes(bd.StatesRoot[:])
 	sink.WriteBytes(bd.BlockRoot[:])
 	sink.WriteUint32(bd.Timestamp)
 	sink.WriteUint32(bd.Height)
@@ -144,6 +146,10 @@ func (bd *Header) SerializeUnsigned(w io.Writer) error {
 		return err
 	}
 	err = bd.TransactionsRoot.Serialize(w)
+	if err != nil {
+		return err
+	}
+	err = bd.StatesRoot.Serialize(w)
 	if err != nil {
 		return err
 	}
@@ -287,6 +293,7 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	}
 	bd.PrevBlockHash, eof = source.NextHash()
 	bd.TransactionsRoot, eof = source.NextHash()
+	bd.StatesRoot, eof = source.NextHash()
 	bd.BlockRoot, eof = source.NextHash()
 	bd.Timestamp, eof = source.NextUint32()
 	bd.Height, eof = source.NextUint32()
@@ -329,6 +336,11 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	}
 
 	err = bd.TransactionsRoot.Deserialize(r)
+	if err != nil {
+		return err
+	}
+
+	err = bd.StatesRoot.Deserialize(r)
 	if err != nil {
 		return err
 	}

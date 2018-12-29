@@ -43,7 +43,7 @@ func newChainStore() *ChainStore {
 		log.Fatalf("NewLedger error %s", err)
 		os.Exit(1)
 	}
-	store, err := OpenBlockStore(ledger.DefLedger)
+	store, err := OpenBlockStore(ledger.DefLedger, nil)
 	if err != nil {
 		fmt.Printf("openblockstore failed: %v\n", err)
 		return nil

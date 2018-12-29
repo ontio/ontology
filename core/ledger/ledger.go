@@ -72,6 +72,14 @@ func (self *Ledger) AddBlock(block *types.Block) error {
 	return err
 }
 
+func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
+	return self.ldgStore.ExecuteBlock(b)
+}
+
+func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
+	return self.ldgStore.SubmitBlock(b, exec)
+}
+
 func (self *Ledger) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
 	return self.ldgStore.GetBlockRootWithNewTxRoot(txRoot)
 }
