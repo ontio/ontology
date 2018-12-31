@@ -800,7 +800,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block) error {
 		return fmt.Errorf("Local vm execute block states: %x is not equal consensus states:%x", result.StatesRoot, block.Header.StatesRoot)
 	}
 
-	return nil
+	return this.submitBlock(block, result)
 }
 
 func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, error) {
