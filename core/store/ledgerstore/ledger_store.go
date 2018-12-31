@@ -666,7 +666,6 @@ func (this *LedgerStoreImp) getStatesRoot(height uint32, overlay *overlaydb.Over
 			return
 		}
 	}
-	fmt.Printf("states root:%x\n", root)
 	t, e := trie.New(root, overlay)
 	if e != nil {
 		err = e
@@ -679,7 +678,6 @@ func (this *LedgerStoreImp) getStatesRoot(height uint32, overlay *overlaydb.Over
 			t.TryUpdate(key, val)
 		}
 	})
-	fmt.Printf("trie overlay:%+v\n", t)
 	return t.Commit()
 }
 

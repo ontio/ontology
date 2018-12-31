@@ -31,7 +31,6 @@ import (
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/core/store/statestore"
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -104,7 +103,7 @@ func (self *StateStore) init(currBlockHeight uint32) error {
 
 //GetMerkleTree return merkle tree size an tree node
 func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
-	key := self.getMerkleTreeKey()
+	key := self.getTransactionsRootKey()
 	data, err := self.store.Get(key)
 	if err != nil {
 		return 0, nil, err
@@ -129,8 +128,6 @@ func (self *StateStore) GetMerkleTree() (uint32, []common.Uint256, error) {
 
 //AddMerkleTreeRoot add a new tree root
 func (self *StateStore) AddTransactionsTreeRoot(txRoot common.Uint256) error {
-	key := self.getMerkleTreeKey()
-
 	self.merkleTree.AppendHash(txRoot)
 	err := self.merkleHashStore.Flush()
 	if err != nil {
@@ -149,18 +146,12 @@ func (self *StateStore) AddTransactionsTreeRoot(txRoot common.Uint256) error {
 			return err
 		}
 	}
-	self.store.BatchPut(key, value.Bytes())
 	return nil
 }
 
 //GetMerkleProof return merkle proof of block
 func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
 	return self.merkleTree.InclusionProof(proofHeight, rootHeight+1)
-}
-
-//NewStateBatch return state commit bathe. Usually using in smart contract execution
-func (self *StateStore) NewStateBatch() *statestore.StateBatch {
-	return statestore.NewStateStoreBatch(statestore.NewMemDatabase(), self.store)
 }
 
 func (self *StateStore) NewOverlayDB() *overlaydb.OverlayDB {
@@ -279,7 +270,7 @@ func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 
 func (self *StateStore) SaveStatesRoot(statesRoot common.Uint256) error {
 	fmt.Printf("save states root:%x\n", statesRoot)
-	key := self.getStateRootKey()
+	key := self.getStatesRootKey()
 	buf := new(bytes.Buffer)
 	if err := statesRoot.Serialize(buf); err != nil {
 		return err
@@ -289,7 +280,7 @@ func (self *StateStore) SaveStatesRoot(statesRoot common.Uint256) error {
 }
 
 func (self *StateStore) GetStatesRoot() (common.Uint256, error) {
-	key := self.getStateRootKey()
+	key := self.getStatesRootKey()
 	data, err := self.store.Get(key)
 	if err != nil {
 		return common.Uint256{}, err
@@ -299,7 +290,6 @@ func (self *StateStore) GetStatesRoot() (common.Uint256, error) {
 	if err != nil {
 		return common.Uint256{}, err
 	}
-	fmt.Printf("get states root:%x\n", statesRoot)
 	return statesRoot, nil
 }
 
@@ -314,8 +304,8 @@ func (self *StateStore) getBookkeeperKey() ([]byte, error) {
 	return key, nil
 }
 
-func (self *StateStore) getStateRootKey() []byte {
-	return []byte{byte((scom.DATA_STATES_ROOT))}
+func (self *StateStore) getStatesRootKey() []byte {
+	return []byte{byte((scom.SYS_CURRENT_STATES_ROOT))}
 }
 
 func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte, error) {
@@ -338,8 +328,8 @@ func (self *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.
 	return self.merkleTree.GetRootWithNewLeaf(txRoot)
 }
 
-func (self *StateStore) getMerkleTreeKey() []byte {
-	return []byte{byte(scom.DATA_STATES_ROOT)}
+func (self *StateStore) getTransactionsRootKey() []byte {
+	return []byte{byte(scom.DATA_CURRENT_TRANSACTIONS_ROOT)}
 }
 
 //ClearAll clear all data in state store

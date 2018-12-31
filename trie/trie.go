@@ -72,9 +72,8 @@ var (
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
-	db       Database
-	root     node
-	rootHash common.Uint256
+	db   Database
+	root node
 }
 
 type Database interface {
@@ -100,7 +99,6 @@ func New(root common.Uint256, db Database) (*Trie, error) {
 	trie := &Trie{
 		db: db,
 	}
-	fmt.Println("root:", root)
 	if root != (common.Uint256{}) && root != emptyRoot {
 		rootnode, err := trie.resolveHash(root[:], nil)
 		if err != nil {
@@ -109,7 +107,6 @@ func New(root common.Uint256, db Database) (*Trie, error) {
 		fmt.Printf("root node:%+v\n", trie)
 		trie.root = rootnode
 	}
-	fmt.Printf("new trie:%+v\n", trie)
 	return trie, nil
 }
 
@@ -424,7 +421,6 @@ func (t *Trie) resolve(n node, prefix []byte) (node, error) {
 }
 
 func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
-	fmt.Println("resolve hash:", n)
 	enc, err := t.db.Get(n)
 	if err != nil {
 		return nil, err
@@ -448,7 +444,6 @@ func (t *Trie) Hash() common.Uint256 {
 	hash, cached, _ := t.hashRoot(nil)
 	t.root = cached
 	u256, _ := common.Uint256ParseFromBytes(hash.(hashNode))
-	t.rootHash = u256
 	return u256
 }
 
