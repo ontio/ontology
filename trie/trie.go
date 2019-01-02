@@ -104,7 +104,6 @@ func New(root common.Uint256, db Database) (*Trie, error) {
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("root node:%+v\n", trie)
 		trie.root = rootnode
 	}
 	return trie, nil
