@@ -186,12 +186,14 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
+	statesRoot, err := ledger.DefLedger.GetCurrentStateRoot()
 
 	blkHeader := &types.Header{
 		Version:          genesis.BlockVersion,
 		SideChainID:      config.DefConfig.Genesis.SideChainID,
 		PrevBlockHash:    prevBlkHash,
 		TransactionsRoot: txRoot,
+		StatesRoot:       statesRoot,
 		BlockRoot:        blockRoot,
 		Timestamp:        blocktimestamp,
 		Height:           uint32(blkNum),
