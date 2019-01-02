@@ -20,11 +20,10 @@ package ledgerstore
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
-
-	"encoding/binary"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
