@@ -123,7 +123,6 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 	if err != nil {
 		return fmt.Errorf("hasAlreadyInit error %s", err)
 	}
-	fmt.Println("InitLedgerStoreWithGenesisBlock!")
 	if !hasInit {
 		err = this.blockStore.ClearAll()
 		if err != nil {
@@ -150,7 +149,6 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("execute genesis block error %s", err)
 		}
-		fmt.Printf("result execute block:%x\n", result.StatesRoot)
 		err = this.submitBlock(genesisBlock, result)
 		if err != nil {
 			return fmt.Errorf("submit genesis block error %s", err)

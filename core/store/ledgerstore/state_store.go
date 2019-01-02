@@ -269,7 +269,6 @@ func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 }
 
 func (self *StateStore) SaveStatesRoot(statesRoot common.Uint256) error {
-	fmt.Printf("save states root:%x\n", statesRoot)
 	key := self.getStatesRootKey()
 	buf := new(bytes.Buffer)
 	if err := statesRoot.Serialize(buf); err != nil {
