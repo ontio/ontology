@@ -102,11 +102,16 @@ func (ctx *ConsensusContext) MakeHeader() *types.Block {
 		}
 		txRoot := common.ComputeMerkleRoot(txHash)
 		blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
+		statesRoot, err := ledger.DefLedger.GetPrevStatesRoot()
+		if err != nil {
+			panic("get previous states root fail!")
+		}
 		header := &types.Header{
 			Version:          ContextVersion,
 			SideChainID:      config.DefConfig.Genesis.SideChainID,
 			PrevBlockHash:    ctx.PrevHash,
 			TransactionsRoot: txRoot,
+			StatesRoot:       statesRoot,
 			BlockRoot:        blockRoot,
 			Timestamp:        ctx.Timestamp,
 			Height:           ctx.Height,

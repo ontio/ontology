@@ -79,6 +79,7 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 		SideChainID:      config.DefConfig.Genesis.SideChainID,
 		PrevBlockHash:    common.Uint256{},
 		TransactionsRoot: common.Uint256{},
+		StatesRoot:       common.Uint256{},
 		Timestamp:        constants.GENESIS_BLOCK_TIMESTAMP,
 		Height:           uint32(0),
 		ConsensusData:    GenesisNonce,

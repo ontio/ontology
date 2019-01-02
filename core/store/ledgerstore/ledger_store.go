@@ -946,6 +946,10 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.Execu
 	return this.eventStore.GetEventNotifyByBlock(height)
 }
 
+func (this *LedgerStoreImp) GetPrevStatesRoot() (common.Uint256, error) {
+	return this.stateStore.GetStatesRoot()
+}
+
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
 	height := this.GetCurrentBlockHeight()

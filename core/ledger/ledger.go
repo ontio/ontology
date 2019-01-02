@@ -84,6 +84,10 @@ func (self *Ledger) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint
 	return self.ldgStore.GetBlockRootWithNewTxRoot(txRoot)
 }
 
+func (self *Ledger) GetPrevStatesRoot() (common.Uint256, error) {
+	return self.ldgStore.GetPrevStatesRoot()
+}
+
 func (self *Ledger) GetBlockByHeight(height uint32) (*types.Block, error) {
 	return self.ldgStore.GetBlockByHeight(height)
 }
@@ -135,10 +139,6 @@ func (self *Ledger) IsContainTransaction(txHash common.Uint256) (bool, error) {
 
 func (self *Ledger) IsContainBlock(blockHash common.Uint256) (bool, error) {
 	return self.ldgStore.IsContainBlock(blockHash)
-}
-
-func (self *Ledger) GetCurrentStateRoot() (common.Uint256, error) {
-	return common.Uint256{}, nil
 }
 
 func (self *Ledger) GetBookkeeperState() (*states.BookkeeperState, error) {

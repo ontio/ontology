@@ -43,6 +43,7 @@ type LedgerStore interface {
 	AddBlock(block *types.Block) error
 	ExecuteBlock(b *types.Block) (ExecuteResult, error)
 	SubmitBlock(b *types.Block, exec ExecuteResult) error
+	GetPrevStatesRoot() (common.Uint256, error)
 	GetCurrentBlockHash() common.Uint256
 	GetCurrentBlockHeight() uint32
 	GetCurrentHeaderHeight() uint32

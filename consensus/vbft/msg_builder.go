@@ -186,8 +186,10 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
-	statesRoot, err := ledger.DefLedger.GetCurrentStateRoot()
-
+	statesRoot, err := ledger.DefLedger.GetPrevStatesRoot()
+	if err != nil {
+		return nil, fmt.Errorf("get previous block states root failed, error: %s", err)
+	}
 	blkHeader := &types.Header{
 		Version:          genesis.BlockVersion,
 		SideChainID:      config.DefConfig.Genesis.SideChainID,
