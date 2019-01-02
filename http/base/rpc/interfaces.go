@@ -288,7 +288,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 						log.Infof("PreExec: ", err)
 						return responsePack(berr.SMARTCODE_ERROR, err.Error())
 					}
-					return responseSuccess(result)
+					return responseSuccess(bcomn.ConvertPreExecuteResult(result))
 				}
 			}
 		}
