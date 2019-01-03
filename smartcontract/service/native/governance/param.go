@@ -646,7 +646,7 @@ func (this *GlobalParam) Deserialize(r io.Reader) error {
 type GlobalParam2 struct {
 	MinAuthorizePos      uint32 //min ONT of each authorization, 500 default
 	CandidateFeeSplitNum uint32 //num of peer can receive motivation(include consensus and candidate)
-	Field1               []byte //reserved field
+	DappFee              uint32 //fee split to dapp bonus
 	Field2               []byte //reserved field
 	Field3               []byte //reserved field
 	Field4               []byte //reserved field
@@ -661,8 +661,8 @@ func (this *GlobalParam2) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, uint64(this.CandidateFeeSplitNum)); err != nil {
 		return fmt.Errorf("utils.WriteVarUint, serialize candidateFeeSplitNum error: %v", err)
 	}
-	if err := serialization.WriteVarBytes(w, this.Field1); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field1 error: %v", err)
+	if err := utils.WriteVarUint(w, uint64(this.DappFee)); err != nil {
+		return fmt.Errorf("utils.WriteVarUint, serialize dappFee error: %v", err)
 	}
 	if err := serialization.WriteVarBytes(w, this.Field2); err != nil {
 		return fmt.Errorf("serialization.WriteVarBytes, serialize field2 error: %v", err)
@@ -691,25 +691,25 @@ func (this *GlobalParam2) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize candidateFeeSplitNum error: %v", err)
 	}
-	field1, err := serialization.ReadVarBytes(r)
+	dappFee, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("utils.ReadVarUint, deserialize field1 error: %v", err)
+		return fmt.Errorf("utils.ReadVarUint, deserialize dappFee error: %v", err)
 	}
 	field2, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		return fmt.Errorf("utils.ReadVarUint, deserialize field2 error: %v", err)
+		return fmt.Errorf("serialization.ReadVarBytes, deserialize field2 error: %v", err)
 	}
 	field3, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		return fmt.Errorf("utils.ReadVarUint, deserialize field3 error: %v", err)
+		return fmt.Errorf("serialization.ReadVarBytes, deserialize field3 error: %v", err)
 	}
 	field4, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		return fmt.Errorf("utils.ReadVarUint, deserialize field4 error: %v", err)
+		return fmt.Errorf("serialization.ReadVarBytes, deserialize field4 error: %v", err)
 	}
 	field5, err := serialization.ReadVarBytes(r)
 	if err != nil {
-		return fmt.Errorf("utils.ReadVarUint, deserialize field5 error: %v", err)
+		return fmt.Errorf("serialization.ReadVarBytes, deserialize field5 error: %v", err)
 	}
 	field6, err := serialization.ReadVarBytes(r)
 	if err != nil {
@@ -724,7 +724,7 @@ func (this *GlobalParam2) Deserialize(r io.Reader) error {
 
 	this.MinAuthorizePos = uint32(minAuthorizePos)
 	this.CandidateFeeSplitNum = uint32(candidateFeeSplitNum)
-	this.Field1 = field1
+	this.DappFee = uint32(dappFee)
 	this.Field2 = field2
 	this.Field3 = field3
 	this.Field4 = field4
@@ -990,5 +990,25 @@ func (this *ChangeInitPosParam) Deserialize(r io.Reader) error {
 	this.PeerPubkey = peerPubkey
 	this.Address = address
 	this.Pos = uint32(pos)
+	return nil
+}
+
+type GasAddress struct {
+	Address common.Address
+}
+
+func (this *GasAddress) Serialize(w io.Writer) error {
+	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
+		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
+	}
+	return nil
+}
+
+func (this *GasAddress) Deserialize(r io.Reader) error {
+	address, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+	}
+	this.Address = address
 	return nil
 }

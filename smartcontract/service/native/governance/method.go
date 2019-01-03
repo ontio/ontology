@@ -814,6 +814,12 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		return splitSum, fmt.Errorf("getConfig, get config error: %v", err)
 	}
 
+	//get globalParam2
+	globalParam2, err := getGlobalParam2(native, contract)
+	if err != nil {
+		return splitSum, fmt.Errorf("getGlobalParam2, getGlobalParam2 error: %v", err)
+	}
+
 	//get peerPoolMap
 	peerPoolMap, err := GetPeerPoolMap(native, contract, view-1)
 	if err != nil {
@@ -828,7 +834,25 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	if err != nil {
 		return splitSum, fmt.Errorf("getSplitFee, getSplitFee error: %v", err)
 	}
-	income := balance - splitFee
+
+	//fee split to dapp address
+	balance1 := balance * uint64(100-globalParam2.DappFee) / 100
+	gasAddress, err := getGasAddress(native, contract)
+	if err != nil {
+		return splitSum, fmt.Errorf("getGasAddress, getGasAddress error: %v", err)
+	}
+	if gasAddress.Address == common.ADDRESS_EMPTY {
+		balance1 = 0
+	} else {
+		err := appCallTransferOng(native, utils.GovernanceContractAddress, gasAddress.Address, balance1)
+		if err != nil {
+			return splitSum, fmt.Errorf("appCallTransferOng, appCallTransferOng error: %v", err)
+		}
+	}
+
+	//fee split to node
+	balance2 := balance - balance1
+	income := balance2 - splitFee
 	//get globalParam
 	globalParam, err := getGlobalParam(native, contract)
 	if err != nil {
@@ -894,11 +918,6 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 
 	//fee split of candidate peer
 	//cal s of each candidate node
-	//get globalParam2
-	globalParam2, err := getGlobalParam2(native, contract)
-	if err != nil {
-		return splitSum, fmt.Errorf("getGlobalParam2, getGlobalParam2 error: %v", err)
-	}
 	var length int
 	if int(globalParam2.CandidateFeeSplitNum) >= len(peersCandidate) {
 		length = len(peersCandidate)

@@ -75,6 +75,7 @@ const (
 	ADD_INIT_POS                     = "addInitPos"
 	REDUCE_INIT_POS                  = "reduceInitPos"
 	SET_PROMISE_POS                  = "setPromisePos"
+	SET_GAS_ADDRESS                  = "setGasAddress"
 
 	//key prefix
 	GLOBAL_PARAM      = "globalParam"
@@ -93,6 +94,7 @@ const (
 	SPLIT_FEE_ADDRESS = "splitFeeAddress"
 	PROMISE_POS       = "promisePos"
 	PRE_CONFIG        = "preConfig"
+	GAS_ADDRESS       = "gasAddress"
 
 	//global
 	PRECISE           = 1000000
@@ -148,6 +150,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 	native.Register(UPDATE_SPLIT_CURVE, UpdateSplitCurve)
 	native.Register(TRANSFER_PENALTY, TransferPenalty)
 	native.Register(SET_PROMISE_POS, SetPromisePos)
+	native.Register(SET_GAS_ADDRESS, SetGasAddress)
 }
 
 //Init governance contract, include vbft config, global param and ontid admin.
@@ -1167,6 +1170,10 @@ func UpdateGlobalParam2(native *native.NativeService) ([]byte, error) {
 	if globalParam2.MinAuthorizePos == 0 {
 		return utils.BYTE_FALSE, fmt.Errorf("globalParam2.MinAuthorizePos can not be 0")
 	}
+	if globalParam2.DappFee > 100 {
+		return utils.BYTE_FALSE, fmt.Errorf("globalParam2.DappFee must <= 100")
+	}
+
 	// get config
 	config, err := getConfig(native, contract)
 	if err != nil {
@@ -1623,6 +1630,34 @@ func SetPromisePos(native *native.NativeService) ([]byte, error) {
 	err = putPromisePos(native, contract, promisePos)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPromisePos, put promisePos error: %v", err)
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
+//set gas address to receive 50% of gas fee
+func SetGasAddress(native *native.NativeService) ([]byte, error) {
+	// get admin from database
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("getAdmin, get admin error: %v", err)
+	}
+
+	//check witness
+	err = utils.ValidateOwner(native, adminAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("setPromisePos, checkWitness error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	param := new(GasAddress)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
+	}
+	err = putGasAddress(native, contract, param)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("put gasAddress error: %v", err)
 	}
 
 	return utils.BYTE_TRUE, nil
