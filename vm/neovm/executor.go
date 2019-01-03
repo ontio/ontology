@@ -545,6 +545,35 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		if err != nil {
 			return FAULT, err
 		}
+	case SHL, SHR:
+		x2, err := self.EvalStack.PopAsIntValue()
+		if err != nil {
+			return FAULT, err
+		}
+		x1, err := self.EvalStack.PopAsIntValue()
+		if err != nil {
+			return FAULT, err
+		}
+		var res types.IntValue
+		switch opcode {
+		case SHL:
+			res, err = x1.Lsh(x2)
+			if err != nil {
+				return FAULT, err
+			}
+		case SHR:
+			res, err = x1.Rsh(x2)
+			if err != nil {
+				return FAULT, err
+			}
+		default:
+			panic("unreachable")
+		}
+		b := types.VmValueFromIntValue(res)
+		err = self.EvalStack.Push(b)
+		if err != nil {
+			return FAULT, err
+		}
 	case NUMEQUAL, NUMNOTEQUAL, LT, GT, LTE, GTE:
 		left, right, err := self.EvalStack.PopPairAsIntVal()
 		if err != nil {
