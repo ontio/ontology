@@ -35,10 +35,13 @@ import (
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
 
+const VERSION_SUPPORT_SHARD = 1
+
 type Transaction struct {
 	Version  byte
 	TxType   TransactionType
 	Nonce    uint32
+	ShardID  uint64
 	GasPrice uint64
 	GasLimit uint64
 	Payer    common.Address
@@ -124,6 +127,7 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 		Version:  tx.Version,
 		TxType:   tx.TxType,
 		Nonce:    tx.Nonce,
+		ShardID:  tx.ShardID,
 		GasPrice: tx.GasPrice,
 		GasLimit: tx.GasLimit,
 		Payer:    tx.Payer,
@@ -141,6 +145,7 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 	return mutable, nil
 }
 
+// TODO deserialize shard version will failed while use gettxinfo cmd
 func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	tx.Version, eof = source.NextByte()
@@ -148,6 +153,11 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	txtype, eof = source.NextByte()
 	tx.TxType = TransactionType(txtype)
 	tx.Nonce, eof = source.NextUint32()
+	if tx.Version >= VERSION_SUPPORT_SHARD {
+		tx.ShardID, eof = source.NextUint64()
+	} else {
+		tx.ShardID = 0
+	}
 	tx.GasPrice, eof = source.NextUint64()
 	tx.GasLimit, eof = source.NextUint64()
 	var buf []byte
@@ -382,7 +392,7 @@ const (
 )
 
 // Payload define the func for loading the payload data
-// base on payload type which have different struture
+// base on payload type which have different structure
 type Payload interface {
 	//Serialize payload data
 	Serialize(w io.Writer) error

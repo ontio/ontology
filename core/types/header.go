@@ -28,6 +28,8 @@ import (
 
 type Header struct {
 	Version          uint32
+	ShardID          uint64
+	ParentHeight     uint32
 	PrevBlockHash    common.Uint256
 	TransactionsRoot common.Uint256
 	BlockRoot        common.Uint256
@@ -63,6 +65,8 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
 //Serialize the blockheader data without program
 func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(bd.Version)
+	sink.WriteUint64(bd.ShardID)
+	sink.WriteUint32(bd.ParentHeight)
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
 	sink.WriteBytes(bd.BlockRoot[:])
@@ -138,6 +142,8 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 
 	bd.Version, eof = source.NextUint32()
+	bd.ShardID, eof = source.NextUint64()
+	bd.ParentHeight, eof = source.NextUint32()
 	bd.PrevBlockHash, eof = source.NextHash()
 	bd.TransactionsRoot, eof = source.NextHash()
 	bd.BlockRoot, eof = source.NextHash()

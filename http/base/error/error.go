@@ -82,4 +82,5 @@ var ErrMap = map[int64]string{
 	int64(ontErrors.ErrSummaryAsset):         "INTERNAL ERROR, ErrSummaryAsset",
 	int64(ontErrors.ErrXmitFail):             "INTERNAL ERROR, ErrXmitFail",
 	int64(ontErrors.ErrNoAccount):            "INTERNAL ERROR, ErrNoAccount",
+	int64(ontErrors.ErrInValidShard):         "UNMATCH SHARD ID",
 }
