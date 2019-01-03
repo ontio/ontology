@@ -27,10 +27,10 @@ import (
 )
 
 const (
-	DEFAULT_EXPORT_FILE   = "./OntBlocks.dat"
-	DEFAULT_ABI_PATH      = "./abi"
-	DEFAULT_EXPORT_HEIGHT = 0
-	DEFAULT_WALLET_PATH   = "./wallet_data"
+	DEFAULT_EXPORT_FILE        = "./OntBlocks.dat"
+	DEFAULT_ABI_PATH           = "./abi"
+	DEFAULT_EXPORT_HEIGHT      = 0
+	DEFAULT_WALLET_PATH        = "./wallet_data"
 )
 
 var (
@@ -493,6 +493,31 @@ var (
 	NonOptionFlag = cli.StringFlag{
 		Name:  "option",
 		Usage: "this command does not need option, please run directly",
+	}
+	ShardIDFlag = cli.Uint64Flag{
+		Name:  "ShardID",
+		Usage: "ShardID",
+		Value: config.DEFAULT_SHARD_ID,
+	}
+	ShardPortFlag = cli.UintFlag{
+		Name:  "Shard Port",
+		Usage: "Shard Port",
+		Value: config.DEFAULT_SHARD_PORT,
+	}
+	ParentShardIDFlag = cli.Uint64Flag{
+		Name:  "ParentShardID",
+		Usage: "Parent Shard ID",
+		Value: config.DEFAULT_PARENT_SHARD_ID,
+	}
+	ParentShardIPFlag = cli.StringFlag{
+		Name:  "ParentShardIP",
+		Usage: "Parent Shard IP",
+		Value: config.DEFAULT_PARENTSHARD_IPADDR,
+	}
+	ParentShardPortFlag = cli.UintFlag{
+		Name:  "ParentShardPort",
+		Usage: "Parent Shard Port",
+		Value: config.DEFAULT_PARENTSHARD_PORT,
 	}
 )
 

@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -73,6 +74,12 @@ const (
 
 	DEFAULT_DATA_DIR      = "./Chain"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
+
+	DEFAULT_SHARD_ID           = 0
+	DEFAULT_SHARD_PORT         = uint(20340)
+	DEFAULT_PARENT_SHARD_ID    = math.MaxUint64
+	DEFAULT_PARENTSHARD_IPADDR = "127.0.0.1"
+	DEFAULT_PARENTSHARD_PORT   = uint(0)
 )
 
 const (
@@ -542,6 +549,14 @@ type WebSocketConfig struct {
 	HttpKeyPath  string
 }
 
+type ShardConfig struct {
+	ShardID              uint64
+	ShardPort            uint
+	ParentShardID        uint64
+	ParentShardIPAddress string
+	ParentShardPort      uint
+}
+
 type OntologyConfig struct {
 	Genesis   *GenesisConfig
 	Common    *CommonConfig
@@ -550,6 +565,7 @@ type OntologyConfig struct {
 	Rpc       *RpcConfig
 	Restful   *RestfulConfig
 	Ws        *WebSocketConfig
+	Shard     *ShardConfig
 }
 
 func NewOntologyConfig() *OntologyConfig {
@@ -597,6 +613,13 @@ func NewOntologyConfig() *OntologyConfig {
 		Ws: &WebSocketConfig{
 			EnableHttpWs: true,
 			HttpWsPort:   DEFAULT_WS_PORT,
+		},
+		Shard: &ShardConfig{
+			ShardID:              DEFAULT_SHARD_ID,
+			ShardPort:            DEFAULT_SHARD_PORT,
+			ParentShardID:        DEFAULT_PARENT_SHARD_ID,
+			ParentShardIPAddress: DEFAULT_PARENTSHARD_IPADDR,
+			ParentShardPort:      DEFAULT_PARENTSHARD_PORT,
 		},
 	}
 }

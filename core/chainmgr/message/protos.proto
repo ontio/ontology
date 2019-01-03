@@ -1,0 +1,10 @@
+syntax = "proto3";
+package message;
+import "github.com/ontio/ontology-eventbus/actor/protos.proto";
+
+message CrossShardMsg {
+    int32 Version = 1;
+    int32 Type = 2;
+    actor.PID Sender = 3;
+    bytes Data = 4;
+}

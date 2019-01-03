@@ -29,6 +29,7 @@ const (
 	TOPIC_NODE_DISCONNECT           = "noddis"
 	TOPIC_NODE_CONSENSUS_DISCONNECT = "nodcnsdis"
 	TOPIC_SMART_CODE_EVENT          = "scevt"
+	TOPIC_SHARD_SYSTEM_EVENT        = "shardevt"
 )
 
 type SaveBlockCompleteMsg struct {

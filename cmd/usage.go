@@ -256,6 +256,16 @@ var AppHelpFlagGroups = []flagGroup{
 	{
 		Name: "MISC",
 	},
+	{
+		Name: "SHARD",
+		Flags: []cli.Flag{
+			utils.ShardIDFlag,
+			utils.ShardPortFlag,
+			utils.ParentShardIDFlag,
+			utils.ParentShardIPFlag,
+			utils.ParentShardPortFlag,
+		},
+	},
 }
 
 func init() {
