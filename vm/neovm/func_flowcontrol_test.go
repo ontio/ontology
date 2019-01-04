@@ -26,7 +26,7 @@ func TestOpDcall(t *testing.T) {
 	var e ExecutionEngine
 	stack := NewRandAccessStack()
 	e.EvaluationStack = stack
-	context := NewExecutionContext(&e, []byte{byte(PUSH8), byte(PUSH2), byte(PUSH0), byte(DCALL)})
+	context := NewExecutionContext([]byte{byte(PUSH8), byte(PUSH2), byte(PUSH0), byte(DCALL)})
 	e.PushContext(context)
 
 	PushData(&e, 1)

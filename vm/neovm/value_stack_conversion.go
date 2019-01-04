@@ -6,11 +6,7 @@ import (
 )
 
 func (self *ValueStack) PushBool(val bool) error {
-	if val {
-		return self.Push(types.VmValueFromInt64(1))
-	} else {
-		return self.Push(types.VmValueFromInt64(0))
-	}
+	return self.Push(types.VmValueFromBool(val))
 }
 
 func (self *ValueStack) PopAsBool() (bool, error) {

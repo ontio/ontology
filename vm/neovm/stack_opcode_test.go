@@ -18,7 +18,8 @@ import (
 type Value interface{}
 
 func value2json(t *testing.T, expect types.VmValue) string {
-	e, err := expect.ConvertNeoVmValueHexString()
+	//e, err := expect.ConvertNeoVmValueHexString()
+	e, err := expect.Stringify()
 	assert.Nil(t, err)
 	exp, err := json.Marshal(e)
 	assert.Nil(t, err)
@@ -192,25 +193,25 @@ func TestStackOpCode(t *testing.T) {
 	checkStackOpCode(t, AND, []Value{1, 2}, []Value{0})
 	checkStackOpCode(t, OR, []Value{1, 2}, []Value{3})
 	checkStackOpCode(t, XOR, []Value{1, 2}, []Value{3})
-	checkStackOpCode(t, EQUAL, []Value{1, 2}, []Value{0})
+	checkStackOpCode(t, EQUAL, []Value{1, 2}, []Value{false})
 
 	checkStackOpCode(t, INC, []Value{1}, []Value{2})
 	checkStackOpCode(t, DEC, []Value{2}, []Value{1})
 	checkStackOpCode(t, SIGN, []Value{1}, []Value{1})
 	checkStackOpCode(t, NEGATE, []Value{1}, []Value{-1})
 	checkStackOpCode(t, ABS, []Value{-9999}, []Value{9999})
-	checkStackOpCode(t, NOT, []Value{1}, []Value{0})
+	checkStackOpCode(t, NOT, []Value{true}, []Value{false})
 
 	checkStackOpCode(t, SHL, []Value{1, 2}, []Value{4})
 	checkStackOpCode(t, SHR, []Value{4, 1}, []Value{2})
 	checkStackOpCode(t, BOOLAND, []Value{1, 2}, []Value{1})
 	checkStackOpCode(t, BOOLOR, []Value{1, 2}, []Value{1})
-	checkStackOpCode(t, NUMEQUAL, []Value{1, 2}, []Value{0})
+	checkStackOpCode(t, NUMEQUAL, []Value{1, 2}, []Value{false})
 	checkStackOpCode(t, NUMNOTEQUAL, []Value{1, 2}, []Value{1})
 	checkStackOpCode(t, LT, []Value{1, 2}, []Value{1})
-	checkStackOpCode(t, GT, []Value{1, 2}, []Value{0})
+	checkStackOpCode(t, GT, []Value{1, 2}, []Value{false})
 	checkStackOpCode(t, LTE, []Value{1, 2}, []Value{1})
-	checkStackOpCode(t, GTE, []Value{1, 2}, []Value{0})
+	checkStackOpCode(t, GTE, []Value{1, 2}, []Value{false})
 	checkStackOpCode(t, MIN, []Value{1, 2}, []Value{1})
 	checkStackOpCode(t, MAX, []Value{1, 2}, []Value{2})
 
@@ -240,12 +241,12 @@ func TestArithmetic(t *testing.T) {
 	checkStackOpCode(t, NEGATE, []Value{-10}, []Value{10})
 	checkStackOpCode(t, ABS, []Value{-10}, []Value{10})
 
-	checkStackOpCode(t, NOT, []Value{1}, []Value{0})
+	checkStackOpCode(t, NOT, []Value{1}, []Value{false})
 	checkStackOpCode(t, NOT, []Value{0}, []Value{1})
 
-	checkStackOpCode(t, NZ, []Value{0}, []Value{0})
-	checkStackOpCode(t, NZ, []Value{-10}, []Value{1})
-	checkStackOpCode(t, NZ, []Value{10}, []Value{1})
+	checkStackOpCode(t, NZ, []Value{0}, []Value{false})
+	checkStackOpCode(t, NZ, []Value{-10}, []Value{true})
+	checkStackOpCode(t, NZ, []Value{10}, []Value{true})
 }
 
 func TestArrayOpCode(t *testing.T) {
@@ -272,7 +273,7 @@ func TestArrayOpCode(t *testing.T) {
 		[]Value{[]Value{"aaa", "bbb", "ccc", "eee"}},
 	)
 
-	checkStackOpCode(t, WITHIN, []Value{1, 2, 3}, []Value{0})
+	checkStackOpCode(t, WITHIN, []Value{1, 2, 3}, []Value{false})
 }
 
 func TestMapValue(t *testing.T) {
@@ -281,14 +282,13 @@ func TestMapValue(t *testing.T) {
 	mp["key2"] = "value2"
 
 	//TODO  map remove test
-	//mp2 := make(map[interface{}]interface{}, 0)
-	//mp2["key2"] = "value2"
-	//checkMultiStackOpCode(t, []OpCode{SWAP, TOALTSTACK, DUPFROMALTSTACK, SWAP, REMOVE, FROMALTSTACK},
-	//	[]Value{mp, "key"},
-	//	[]Value{mp2},
-	//)
+	mp2 := make(map[interface{}]interface{}, 0)
+	mp2["key2"] = "value2"
+	checkMultiStackOpCode(t, []OpCode{SWAP, TOALTSTACK, DUPFROMALTSTACK, SWAP, REMOVE, FROMALTSTACK},
+		[]Value{mp, "key"},
+		[]Value{mp2},
+	)
 
-	//TODO old vm not support
 	checkMultiStackOpCode(t, []OpCode{HASKEY}, []Value{mp, "key"}, []Value{true})
 	checkMultiStackOpCode(t, []OpCode{KEYS}, []Value{mp}, []Value{[]Value{"key", "key2"}})
 	checkMultiStackOpCode(t, []OpCode{VALUES}, []Value{mp}, []Value{[]Value{"value", "value2"}})
@@ -332,7 +332,7 @@ func TestPushData(t *testing.T) {
 
 	checkAltStackOpCodeOld(t, []byte{byte(PUSHDATA2), byte(0x01), byte(0x00), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
 	checkAltStackOpCodeNew(t, []byte{byte(PUSHDATA2), byte(0x01), byte(0x00), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
-
+	//
 	checkAltStackOpCodeOld(t, []byte{byte(PUSHDATA4), byte(0x01), byte(0x00), byte(0x00), byte(0x00), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
 	checkAltStackOpCodeNew(t, []byte{byte(PUSHDATA4), byte(0x01), byte(0x00), byte(0x00), byte(0x00), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
 }
@@ -407,7 +407,8 @@ func checkAltStackOpCodeOld(t *testing.T, code []byte, origin [2][]Value, expect
 }
 
 func oldValue2json(t *testing.T, expect types.StackItems) string {
-	e, err := common.ConvertNeoVmTypeHexString(expect)
+	//e, err := common.ConvertNeoVmTypeHexString(expect)
+	e, err := common.Stringify(expect)
 	assert.Nil(t, err)
 	exp, err := json.Marshal(e)
 	assert.Nil(t, err)
@@ -416,5 +417,8 @@ func oldValue2json(t *testing.T, expect types.StackItems) string {
 }
 
 func assertEqualOld(t *testing.T, expect, actual types.StackItems) {
-	assert.Equal(t, oldValue2json(t, expect), oldValue2json(t, actual))
+	ex := oldValue2json(t, expect)
+	act := oldValue2json(t, actual)
+
+	assert.Equal(t, ex, act)
 }

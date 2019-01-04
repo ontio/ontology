@@ -172,11 +172,15 @@ func (self *ValueStack) CopyTo(stack *ValueStack) error {
 	return nil
 }
 
-func (self *ValueStack) Dump() string {
+func (self *ValueStack) Dump() (string, error) {
 	data := fmt.Sprintf("stack[%d]:\n", len(self.data))
 	for i, item := range self.data {
 		i = len(self.data) - i
-		data += fmt.Sprintf("%d:\t%s\n", i, item.Dump())
+		res, err := item.Dump()
+		if err != nil {
+			return "", err
+		}
+		data += fmt.Sprintf("%d:\t%s\n", i, res)
 	}
-	return data
+	return data, nil
 }
