@@ -79,6 +79,7 @@ func (self IntValue) Lsh(other IntValue) (result IntValue, err error) {
 func IntValFromBigInt(val *big.Int) (result IntValue, err error) {
 	if val == nil {
 		err = errors.ERR_BAD_VALUE
+		return
 	}
 	// todo : check compatibility
 	if len(val.Bytes()) > constants.MAX_INT_SIZE {

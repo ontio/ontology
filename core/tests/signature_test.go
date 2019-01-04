@@ -15,23 +15,24 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package signature
+package tests
 
 import (
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/core/signature"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSign(t *testing.T) {
 	acc := account.NewAccount("")
 	data := []byte{1, 2, 3}
-	sig, err := Sign(acc, data)
+	sig, err := signature.Sign(acc, data)
 	assert.Nil(t, err)
 
-	err = Verify(acc.PublicKey, data, sig)
+	err = signature.Verify(acc.PublicKey, data, sig)
 	assert.Nil(t, err)
 }
 
@@ -46,16 +47,16 @@ func TestVerifyMultiSignature(t *testing.T) {
 	sigs := make([][]byte, 0)
 
 	for _, acc := range accs {
-		sig, _ := Sign(acc, data)
+		sig, _ := signature.Sign(acc, data)
 		sigs = append(sigs, sig)
 		pubkeys = append(pubkeys, acc.PublicKey)
 	}
 
-	err := VerifyMultiSignature(data, pubkeys, N, sigs)
+	err := signature.VerifyMultiSignature(data, pubkeys, N, sigs)
 	assert.Nil(t, err)
 
 	pubkeys[0], pubkeys[1] = pubkeys[1], pubkeys[0]
-	err = VerifyMultiSignature(data, pubkeys, N, sigs)
+	err = signature.VerifyMultiSignature(data, pubkeys, N, sigs)
 	assert.Nil(t, err)
 
 }
