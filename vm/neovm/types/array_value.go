@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type ArrayValue struct {
 	Data []VmValue
 }
@@ -17,4 +19,12 @@ func (self *ArrayValue) Append(item VmValue) {
 
 func (self *ArrayValue) Len() int64 {
 	return int64(len(self.Data))
+}
+
+func (self *ArrayValue)RemoveAt(index int64) error {
+	if index >= self.Len() {
+		return fmt.Errorf("[RemoveAt] index out of bound!")
+	}
+	self.Data = append(self.Data[:index-1], self.Data[index:]...)
+	return nil
 }
