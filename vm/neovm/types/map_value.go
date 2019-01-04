@@ -1,5 +1,9 @@
 package types
 
+import (
+	"sort"
+)
+
 type MapValue struct {
 	Data map[string]VmValue
 }
@@ -41,4 +45,25 @@ func (this *MapValue) Get(key VmValue) (value VmValue, ok bool, err error) {
 
 	value, ok = this.Data[skey]
 	return
+}
+
+func (this *MapValue) GetMapSortedKey() ([]string, error) {
+	var unsortKey []string
+	for k := range this.Data {
+		unsortKey = append(unsortKey, k)
+	}
+	sort.Strings(unsortKey)
+	return unsortKey, nil
+}
+
+func (this *MapValue) GetValues() ([]VmValue, error) {
+	keys, err := this.GetMapSortedKey()
+	if err != nil {
+		return nil, err
+	}
+	values := make([]VmValue, len(this.Data))
+	for j, v := range keys {
+		values[j] = this.Data[v]
+	}
+	return values, nil
 }
