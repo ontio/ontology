@@ -152,7 +152,6 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		minGas            uint64
 		err               error
 	)
-
 	availableGasLimit = tx.GasLimit
 	if isCharge {
 		uintCodeGasPrice, ok := exec.GAS_TABLE.Load(exec.UINT_INVOKE_CODE_LEN_NAME)
@@ -420,7 +419,6 @@ func IsNativeContract(address []byte) bool {
 	if bytes.Equal(address, utils.AuthContractAddress[:]) ||
 		bytes.Equal(address, utils.GovernanceContractAddress[:]) ||
 		bytes.Equal(address, utils.OngContractAddress[:]) ||
-		bytes.Equal(address, utils.OntContractAddress[:]) ||
 		bytes.Equal(address, utils.OntIDContractAddress[:]) ||
 		bytes.Equal(address, utils.ParamContractAddress[:]) {
 		return true

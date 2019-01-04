@@ -25,9 +25,7 @@ import (
 )
 
 func updateNativeSCAddr(hash common.Address) common.Address {
-	if hash == utils.OntContractAddress {
-		hash = common.AddressFromVmCode(utils.OntContractAddress[:])
-	} else if hash == utils.OngContractAddress {
+	if hash == utils.OngContractAddress {
 		hash = common.AddressFromVmCode(utils.OngContractAddress[:])
 	} else if hash == utils.OntIDContractAddress {
 		hash = common.AddressFromVmCode(utils.OntIDContractAddress[:])

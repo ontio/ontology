@@ -42,7 +42,6 @@ import (
 const MAX_SEARCH_HEIGHT uint32 = 100
 
 type BalanceOfRsp struct {
-	//Ont string `json:"ont"`
 	Ong string `json:"ongx"`
 }
 
@@ -269,8 +268,6 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 func GetAllowance(asset string, from, to common.Address) (string, error) {
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	case "ont":
-		contractAddr = utils.OntContractAddress
 	case "ong":
 		contractAddr = utils.OngContractAddress
 	default:

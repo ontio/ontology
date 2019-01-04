@@ -136,8 +136,8 @@ func (vm *VM) newFuncTable() {
 	//vm.funcTable[ops.F32Const] = vm.f32Const
 	//vm.funcTable[ops.F64Const] = vm.f64Const
 
-	vm.funcTable[ops.I32ReinterpretF32] = vm.i32ReinterpretF32
-	vm.funcTable[ops.I64ReinterpretF64] = vm.i64ReinterpretF64
+	//vm.funcTable[ops.I32ReinterpretF32] = vm.i32ReinterpretF32
+	//vm.funcTable[ops.I64ReinterpretF64] = vm.i64ReinterpretF64
 	//vm.funcTable[ops.F32ReinterpretI32] = vm.f32ReinterpretI32
 	//vm.funcTable[ops.F64ReinterpretI64] = vm.f64ReinterpretI64
 
