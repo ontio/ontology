@@ -528,6 +528,7 @@ func TestSimplestruct2(t *testing.T) {
 	}
 
 }
+
 //
 //func TestFloatSum(t *testing.T) {
 //	gas := uint64(2000000)
