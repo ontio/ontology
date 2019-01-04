@@ -18,7 +18,6 @@
 
 package test
 
-
 //
 //import (
 //	"github.com/ontio/ontology/core/types"
