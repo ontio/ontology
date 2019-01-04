@@ -122,10 +122,10 @@ func NewVM(module *wasm.Module) (*VM, error) {
 }
 
 func (vm *VM) CheckUseGas(gas uint64) bool {
-	//if *vm.Engine.gas < gas {
-	//	return false
-	//}
-	//*vm.Engine.gas -= gas
+	if *vm.Engine.gas < gas {
+		return false
+	}
+	*vm.Engine.gas -= gas
 	return true
 }
 
