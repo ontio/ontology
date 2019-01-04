@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type PendingBlock struct {
@@ -36,16 +37,16 @@ type ChainStore struct {
 	db              *ledger.Ledger
 	chainedBlockNum uint32
 	pendingBlocks   map[uint32]*PendingBlock
-	server          *Server
+	pid             *actor.PID
 	needSubmitBlock bool
 }
 
-func OpenBlockStore(db *ledger.Ledger, server *Server) (*ChainStore, error) {
+func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID) (*ChainStore, error) {
 	return &ChainStore{
 		db:              db,
 		chainedBlockNum: db.GetCurrentBlockHeight(),
 		pendingBlocks:   make(map[uint32]*PendingBlock),
-		server:          server,
+		pid:             serverPid,
 		needSubmitBlock: false,
 	}, nil
 }
@@ -112,7 +113,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		}
 		self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult}
 		self.needSubmitBlock = true
-		self.server.pid.Tell(
+		self.pid.Tell(
 			&message.BlockConsensusComplete{
 				Block: block.Block,
 			})
