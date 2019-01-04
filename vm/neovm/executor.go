@@ -909,6 +909,66 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			KEYS      OpCode = 0xCC
 			VALUES    OpCode = 0xCD
 		*/
+	case HASKEY:
+		item, key, err := self.EvalStack.PopPair()
+		if err != nil {
+			return FAULT, err
+		}
+		mapValue, err := item.AsMapValue()
+		if err != nil {
+			return FAULT, err
+		}
+		_, ok, err := mapValue.Get(key)
+		if err != nil {
+			return FAULT, err
+		}
+		err = self.EvalStack.Push(types.VmValueFromBool(ok))
+		if err != nil {
+			return FAULT, err
+		}
+	case KEYS:
+		item, err := self.EvalStack.Pop()
+		if err != nil {
+			return FAULT, err
+		}
+		mapValue, err := item.AsMapValue()
+		if err != nil {
+			return FAULT, err
+		}
+		keys, err := mapValue.GetMapSortedKey()
+		if err != nil {
+			return FAULT, err
+		}
+		arr := types.NewArrayValue()
+		for _, v := range keys {
+			t, err := types.VmValueFromBytes([]byte(v))
+			if err != nil {
+				return FAULT, err
+			}
+			arr.Append(t)
+		}
+		err = self.EvalStack.Push(types.VmValueFromArrayVal(arr))
+		if err != nil {
+			return FAULT, err
+		}
+	case VALUES:
+		item, err := self.EvalStack.Pop()
+		if err != nil {
+			return FAULT, err
+		}
+		mapVal, err := item.AsMapValue()
+		if err != nil {
+			return FAULT, err
+		}
+		vals, err := mapVal.GetValues()
+		arr := types.NewArrayValue()
+		for _, v := range vals {
+			arr.Append(v)
+		}
+		err = self.EvalStack.Push(types.VmValueFromArrayVal(arr))
+		if err != nil {
+			return FAULT, err
+		}
 	case THROW:
 		return FAULT, nil
 	case THROWIFNOT:

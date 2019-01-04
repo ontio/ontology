@@ -272,11 +272,15 @@ func TestArrayOpCode(t *testing.T) {
 		[]Value{[]Value{"aaa", "bbb", "ccc", "eee"}},
 	)
 
+	checkStackOpCode(t, WITHIN, []Value{1, 2, 3}, []Value{0})
+}
+
+func TestMapValue(t *testing.T) {
+	mp := make(map[interface{}]interface{}, 0)
+	mp["key"] = "value"
+	mp["key2"] = "value2"
+
 	//TODO  map remove test
-	//mp := make(map[interface{}]interface{}, 0)
-	//mp["key"] = "value"
-	//mp["key2"] = "value2"
-	//
 	//mp2 := make(map[interface{}]interface{}, 0)
 	//mp2["key2"] = "value2"
 	//checkMultiStackOpCode(t, []OpCode{SWAP, TOALTSTACK, DUPFROMALTSTACK, SWAP, REMOVE, FROMALTSTACK},
@@ -284,7 +288,10 @@ func TestArrayOpCode(t *testing.T) {
 	//	[]Value{mp2},
 	//)
 
-	checkStackOpCode(t, WITHIN, []Value{1, 2, 3}, []Value{0})
+	//TODO old vm not support
+	checkMultiStackOpCode(t, []OpCode{HASKEY}, []Value{mp, "key"}, []Value{true})
+	checkMultiStackOpCode(t, []OpCode{KEYS}, []Value{mp}, []Value{[]Value{"key", "key2"}})
+	checkMultiStackOpCode(t, []OpCode{VALUES}, []Value{mp}, []Value{[]Value{"value", "value2"}})
 }
 
 func TestStringOpcode(t *testing.T) {
