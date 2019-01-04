@@ -29,8 +29,8 @@ import (
 
 // int32 operators
 
-var I32MAX uint32 = 2 ^ 32
-var I64MAX uint64 = 2 ^ 64
+//var I32MAX uint32 = 2 ^ 32
+//var I64MAX uint64 = 2 ^ 64
 
 func (vm *VM) i32Clz() {
 	vm.pushUint64(uint64(bits.LeadingZeros32(vm.popUint32())))
@@ -48,16 +48,13 @@ func (vm *VM) i32Add() {
 
 	a := vm.popUint32()
 	b := vm.popUint32()
-	//follow the wasm spec:
-	// https://webassembly.github.io/spec/core/bikeshed/index.html#op-iadd
-	vm.pushUint32((a + b) % I32MAX)
+	vm.pushUint32(a + b)
 }
 
 func (vm *VM) i32Mul() {
 	a := vm.popUint32()
 	b := vm.popUint32()
-
-	vm.pushUint32(a * b % I32MAX)
+	vm.pushUint32(a * b)
 }
 
 func (vm *VM) i32DivS() {
@@ -87,8 +84,7 @@ func (vm *VM) i32RemU() {
 func (vm *VM) i32Sub() {
 	v2 := vm.popUint32()
 	v1 := vm.popUint32()
-
-	vm.pushUint32((v1 - v2 + I32MAX) % I32MAX)
+	vm.pushUint32(v1 - v2)
 }
 
 func (vm *VM) i32And() {
@@ -210,21 +206,19 @@ func (vm *VM) i64Popcnt() {
 func (vm *VM) i64Add() {
 	a := vm.popUint64()
 	b := vm.popUint64()
-
-	vm.pushUint64((a + b) % I64MAX)
+	vm.pushUint64(a + b)
 }
 
 func (vm *VM) i64Sub() {
 	v2 := vm.popUint64()
 	v1 := vm.popUint64()
-	vm.pushUint64((v1 - v2 + I64MAX) % I64MAX)
+	vm.pushUint64(v1 - v2)
 }
 
 func (vm *VM) i64Mul() {
 	a := vm.popUint64()
 	b := vm.popUint64()
-
-	vm.pushUint64(a * b % I64MAX)
+	vm.pushUint64(a * b)
 }
 
 func (vm *VM) i64DivS() {

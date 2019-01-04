@@ -236,7 +236,6 @@ func memcpy(engine *ExecutionEngine) (bool, error) {
 	if dest < src && dest+length > src {
 		return false, errors.New("memcpy overlapped")
 	}
-
 	copy(engine.vm.memory.Memory[dest:dest+length], engine.vm.memory.Memory[src:src+length])
 
 	//1. recover the vm context
