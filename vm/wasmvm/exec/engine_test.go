@@ -22,11 +22,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
-	"math"
 	"testing"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/vm/wasmvm/util"
 )
 
 var service = NewInteropService()
@@ -530,67 +528,67 @@ func TestSimplestruct2(t *testing.T) {
 	}
 
 }
-
-func TestFloatSum(t *testing.T) {
-	gas := uint64(2000000)
-
-	engine := NewExecutionEngine(nil, nil, &gas)
-	//test
-	code, err := ioutil.ReadFile("./test_data2/float.wasm")
-	if err != nil {
-		fmt.Println("error in read file", err.Error())
-		return
-	}
-
-	input := make([]interface{}, 3)
-	input[0] = "sum"
-	input[1] = float32(1.1)
-	input[2] = float32(0.5)
-
-	fmt.Printf("input is %v\n", input)
-
-	res, err := engine.CallInf(common.Address{}, code, input, nil)
-	if err != nil {
-		fmt.Println("call error!", err.Error())
-	}
-	fmt.Printf("res:%v\n", res)
-	fmt.Println(util.ByteToFloat32(res))
-	fmt.Println(math.Float32frombits(binary.LittleEndian.Uint32(res)))
-	if math.Float32frombits(binary.LittleEndian.Uint32(res)) != 1.6 {
-		t.Fatal("the res should be  1.6 ")
-	}
-	//fmt.Println(engine.memory)
-
-}
-func TestDoubleSum(t *testing.T) {
-	gas := uint64(2000000)
-
-	engine := NewExecutionEngine(nil, nil, &gas)
-	//test
-	code, err := ioutil.ReadFile("./test_data2/float.wasm")
-	if err != nil {
-		fmt.Println("error in read file", err.Error())
-		return
-	}
-
-	input := make([]interface{}, 3)
-	input[0] = "sumDouble"
-	input[1] = 1.1
-	input[2] = 0.5
-
-	fmt.Printf("input is %v\n", input)
-
-	res, err := engine.CallInf(common.Address{}, code, input, nil)
-	if err != nil {
-		fmt.Println("call error!", err.Error())
-	}
-	fmt.Printf("res:%v\n", res)
-	fmt.Println(util.ByteToFloat64(res))
-	fmt.Println(math.Float64frombits(binary.LittleEndian.Uint64(res)))
-	if math.Float64frombits(binary.LittleEndian.Uint64(res)) != 1.6 {
-		t.Fatal("the res should be  1.6 ")
-	}
-}
+//
+//func TestFloatSum(t *testing.T) {
+//	gas := uint64(2000000)
+//
+//	engine := NewExecutionEngine(nil, nil, &gas)
+//	//test
+//	code, err := ioutil.ReadFile("./test_data2/float.wasm")
+//	if err != nil {
+//		fmt.Println("error in read file", err.Error())
+//		return
+//	}
+//
+//	input := make([]interface{}, 3)
+//	input[0] = "sum"
+//	input[1] = float32(1.1)
+//	input[2] = float32(0.5)
+//
+//	fmt.Printf("input is %v\n", input)
+//
+//	res, err := engine.CallInf(common.Address{}, code, input, nil)
+//	if err != nil {
+//		fmt.Println("call error!", err.Error())
+//	}
+//	fmt.Printf("res:%v\n", res)
+//	fmt.Println(util.ByteToFloat32(res))
+//	fmt.Println(math.Float32frombits(binary.LittleEndian.Uint32(res)))
+//	if math.Float32frombits(binary.LittleEndian.Uint32(res)) != 1.6 {
+//		t.Fatal("the res should be  1.6 ")
+//	}
+//	//fmt.Println(engine.memory)
+//
+//}
+//func TestDoubleSum(t *testing.T) {
+//	gas := uint64(2000000)
+//
+//	engine := NewExecutionEngine(nil, nil, &gas)
+//	//test
+//	code, err := ioutil.ReadFile("./test_data2/float.wasm")
+//	if err != nil {
+//		fmt.Println("error in read file", err.Error())
+//		return
+//	}
+//
+//	input := make([]interface{}, 3)
+//	input[0] = "sumDouble"
+//	input[1] = 1.1
+//	input[2] = 0.5
+//
+//	fmt.Printf("input is %v\n", input)
+//
+//	res, err := engine.CallInf(common.Address{}, code, input, nil)
+//	if err != nil {
+//		fmt.Println("call error!", err.Error())
+//	}
+//	fmt.Printf("res:%v\n", res)
+//	fmt.Println(util.ByteToFloat64(res))
+//	fmt.Println(math.Float64frombits(binary.LittleEndian.Uint64(res)))
+//	if math.Float64frombits(binary.LittleEndian.Uint64(res)) != 1.6 {
+//		t.Fatal("the res should be  1.6 ")
+//	}
+//}
 
 func TestCalloc(t *testing.T) {
 	gas := uint64(2000000)

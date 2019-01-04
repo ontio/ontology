@@ -19,17 +19,12 @@
 package handlers
 
 import (
-	"encoding/hex"
-	"encoding/json"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/sigsvr/store"
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
@@ -73,42 +68,43 @@ func TestMain(m *testing.M) {
 	os.RemoveAll(testWalletStorePath)
 }
 
-func TestSigRawTx(t *testing.T) {
-	acc := account.NewAccount("")
-	defAcc, err := testWallet.GetDefaultAccount(pwd)
-	if err != nil {
-		t.Errorf("GetDefaultAccount error:%s", err)
-		return
-	}
-	mutable, err := utils.TransferTx(0, 0, "ont", defAcc.Address.ToBase58(), acc.Address.ToBase58(), 10)
-	if err != nil {
-		t.Errorf("TransferTx error:%s", err)
-		return
-	}
-	tx, err := mutable.IntoImmutable()
-	assert.Nil(t, err)
-	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	assert.Nil(t, err)
-	rawReq := &SigRawTransactionReq{
-		RawTx: hex.EncodeToString(sink.Bytes()),
-	}
-	data, err := json.Marshal(rawReq)
-	if err != nil {
-		t.Errorf("json.Marshal SigRawTransactionReq error:%s", err)
-		return
-	}
-	req := &clisvrcom.CliRpcRequest{
-		Qid:     "t",
-		Method:  "sigrawtx",
-		Params:  data,
-		Account: defAcc.Address.ToBase58(),
-		Pwd:     string(pwd),
-	}
-	resp := &clisvrcom.CliRpcResponse{}
-	SigRawTransaction(req, resp)
-	if resp.ErrorCode != 0 {
-		t.Errorf("SigRawTransaction failed. ErrorCode:%d", resp.ErrorCode)
-		return
-	}
-}
+//
+//func TestSigRawTx(t *testing.T) {
+//	acc := account.NewAccount("")
+//	defAcc, err := testWallet.GetDefaultAccount(pwd)
+//	if err != nil {
+//		t.Errorf("GetDefaultAccount error:%s", err)
+//		return
+//	}
+//	mutable, err := utils.TransferTx(0, 0, "ont", defAcc.Address.ToBase58(), acc.Address.ToBase58(), 10)
+//	if err != nil {
+//		t.Errorf("TransferTx error:%s", err)
+//		return
+//	}
+//	tx, err := mutable.IntoImmutable()
+//	assert.Nil(t, err)
+//	sink := common.ZeroCopySink{}
+//	err = tx.Serialization(&sink)
+//	assert.Nil(t, err)
+//	rawReq := &SigRawTransactionReq{
+//		RawTx: hex.EncodeToString(sink.Bytes()),
+//	}
+//	data, err := json.Marshal(rawReq)
+//	if err != nil {
+//		t.Errorf("json.Marshal SigRawTransactionReq error:%s", err)
+//		return
+//	}
+//	req := &clisvrcom.CliRpcRequest{
+//		Qid:     "t",
+//		Method:  "sigrawtx",
+//		Params:  data,
+//		Account: defAcc.Address.ToBase58(),
+//		Pwd:     string(pwd),
+//	}
+//	resp := &clisvrcom.CliRpcResponse{}
+//	SigRawTransaction(req, resp)
+//	if resp.ErrorCode != 0 {
+//		t.Errorf("SigRawTransaction failed. ErrorCode:%d", resp.ErrorCode)
+//		return
+//	}
+//}
