@@ -20,6 +20,8 @@ package common
 
 import (
 	"errors"
+	"fmt"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -94,4 +96,71 @@ func convertNeoVmTypeHexString(item interface{}, count *int) (interface{}, error
 		log.Error("[ConvertTypes] Invalid Types!")
 		return nil, errors.New("[ConvertTypes] Invalid Types!")
 	}
+}
+
+func Dump(item interface{}) (string, error) {
+	var count int
+	return dump(item, &count)
+}
+func dump(item interface{}, count *int) (string, error) {
+	if item == nil {
+		return "", nil
+	}
+	if *count > MAX_COUNT {
+		return "", errors.New("over max parameters convert length")
+	}
+	switch v := item.(type) {
+	case *types.Boolean:
+		b, err := v.GetBoolean()
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("bool(%v)", b), nil
+	case types.ByteArray:
+		bs, err := v.GetByteArray()
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("bytes(hex:%x)", bs), nil
+	case types.Integer:
+		b, err := v.GetBigInteger()
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("int(%d)", b), nil
+	case types.Array:
+		arr, err := v.GetArray()
+		if err != nil {
+			return "", nil
+		}
+		data := ""
+		for _, v := range arr {
+			s, err := Dump(v)
+			if err != nil {
+				return "", err
+			}
+			data += s + ", "
+		}
+		return fmt.Sprintf("array[%d]{%s}", len(arr), data), nil
+	case types.Map:
+		m, err := v.GetMap()
+		if err != nil {
+			return "", err
+		}
+		var unsortKey []string
+		for k, _ := range m {
+			s, err := Dump(k)
+			if err != nil {
+				return "", err
+			}
+			unsortKey = append(unsortKey, s)
+		}
+		sort.Strings(unsortKey)
+		data := ""
+		for _, key := range unsortKey {
+
+			data += fmt.Sprintf("%x: %s,", key)
+		}
+	}
+	return "", nil
 }

@@ -21,6 +21,7 @@ package neovm
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/vm/neovm/errors"
@@ -891,18 +892,36 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			data[i], data[j] = data[j], data[i]
 		}
 	case REMOVE:
-		mapVal, index, err := self.EvalStack.PopPair()
+		item, index, err := self.EvalStack.PopPair()
 		if err != nil {
 			return FAULT, err
 		}
-		value, err := mapVal.AsMapValue()
-		if err != nil {
-			return FAULT, err
-		}
-
-		err = value.Remove(index)
-		if err != nil {
-			return FAULT, err
+		switch item.GetType() {
+		case types.MapType:
+			value, err := item.AsMapValue()
+			if err == nil {
+				return FAULT, err
+			}
+			err = value.Remove(index)
+			if err != nil {
+				return FAULT, err
+			}
+		case types.ArrayType:
+			value, err := item.AsArrayValue()
+			if err != nil {
+				return FAULT, err
+			}
+			i, err := index.AsInt64()
+			if err != nil {
+				return FAULT, err
+			}
+			if i < 0 {
+				return FAULT, fmt.Errorf("[REMOVE] index out of bound!")
+			}
+			err = value.RemoveAt(i + 1)
+			if err != nil {
+				return FAULT, err
+			}
 		}
 		/*
 			HASKEY    OpCode = 0xCB

@@ -597,6 +597,15 @@ func (self *VmValue) Equals(other VmValue) bool {
 	}
 }
 
+func (self *VmValue) GetType() byte {
+	switch self.valType {
+	case integerType,bigintType:
+		return IntegerType
+	default:
+		return self.valType
+	}
+}
+
 func (self *VmValue) GetMapKey() (string, error) {
 	val, err := self.AsBytes()
 	if err != nil {
