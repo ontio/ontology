@@ -899,7 +899,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		switch item.GetType() {
 		case types.MapType:
 			value, err := item.AsMapValue()
-			if err == nil {
+			if err != nil {
 				return FAULT, err
 			}
 			err = value.Remove(index)
@@ -915,19 +915,13 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			if err != nil {
 				return FAULT, err
 			}
-			if i < 0 {
-				return FAULT, fmt.Errorf("[REMOVE] index out of bound!")
-			}
-			err = value.RemoveAt(i + 1)
+			err = value.RemoveAt(i)
 			if err != nil {
 				return FAULT, err
 			}
+		default:
+			return FAULT, fmt.Errorf("[REMOVE] not support datatype")
 		}
-		/*
-			HASKEY    OpCode = 0xCB
-			KEYS      OpCode = 0xCC
-			VALUES    OpCode = 0xCD
-		*/
 	case HASKEY:
 		item, key, err := self.EvalStack.PopPair()
 		if err != nil {
