@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
+	"hash/fnv"
 )
 
 var Version = "" //Set value when build project
@@ -111,7 +112,7 @@ func GetNetworkName(id uint32) string {
 	return fmt.Sprintf("%d", id)
 }
 
-var PolarisConfig = &GenesisConfig{
+var PolarisConfigFile = &GenesisConfigFile{
 	SideChainID: "testSideChain",
 	SeedList: []string{
 		"polaris1.ont.io:20338",
@@ -180,7 +181,7 @@ var PolarisConfig = &GenesisConfig{
 	SOLO: &SOLOConfig{},
 }
 
-var MainNetConfig = &GenesisConfig{
+var MainNetConfigFile = &GenesisConfigFile{
 	SideChainID: "sideChain",
 	SeedList: []string{
 		"seed1.ont.io:20338",
@@ -245,13 +246,35 @@ var MainNetConfig = &GenesisConfig{
 
 var DefConfig = NewOntologyConfig()
 
-type GenesisConfig struct {
+type GenesisConfigFile struct {
 	SideChainID   string
 	SeedList      []string
 	ConsensusType string
 	VBFT          *VBFTConfig
 	DBFT          *DBFTConfig
 	SOLO          *SOLOConfig
+}
+
+type GenesisConfig struct {
+	SideChainID   uint32
+	SeedList      []string
+	ConsensusType string
+	VBFT          *VBFTConfig
+	DBFT          *DBFTConfig
+	SOLO          *SOLOConfig
+}
+
+func (genesisConfigFile *GenesisConfigFile) ToGenesisConfig() *GenesisConfig {
+	hash := fnv.New32a()
+	hash.Write([]byte(genesisConfigFile.SideChainID))
+	return &GenesisConfig{
+		SideChainID: hash.Sum32(),
+		SeedList: genesisConfigFile.SeedList,
+		ConsensusType: genesisConfigFile.ConsensusType,
+		VBFT: genesisConfigFile.VBFT,
+		DBFT: genesisConfigFile.DBFT,
+		SOLO: genesisConfigFile.SOLO,
+	}
 }
 
 func NewGenesisConfig() *GenesisConfig {
@@ -534,7 +557,7 @@ type OntologyConfig struct {
 
 func NewOntologyConfig() *OntologyConfig {
 	return &OntologyConfig{
-		Genesis: MainNetConfig,
+		Genesis: MainNetConfigFile.ToGenesisConfig(),
 		Common: &CommonConfig{
 			LogLevel:       DEFAULT_LOG_LEVEL,
 			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
@@ -614,11 +637,11 @@ func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	mainNetId, err := this.getDefNetworkIDFromGenesisConfig(MainNetConfig)
+	mainNetId, err := this.getDefNetworkIDFromGenesisConfig(MainNetConfigFile.ToGenesisConfig())
 	if err != nil {
 		return 0, err
 	}
-	polaridId, err := this.getDefNetworkIDFromGenesisConfig(PolarisConfig)
+	polaridId, err := this.getDefNetworkIDFromGenesisConfig(PolarisConfigFile.ToGenesisConfig())
 	if err != nil {
 		return 0, err
 	}

@@ -32,7 +32,7 @@ import (
 )
 
 type Header struct {
-	SideChainID      string
+	SideChainID      uint32
 	Version          uint32
 	PrevBlockHash    common.Uint256
 	TransactionsRoot common.Uint256
@@ -107,7 +107,7 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) error {
 	if bd.Version != 1 {
 		return errors.New("side chain block version should equal to 1")
 	}
-	sink.WriteString(bd.SideChainID)
+	sink.WriteUint32(bd.SideChainID)
 	sink.WriteUint32(bd.Version)
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
@@ -128,7 +128,7 @@ func (bd *Header) SerializeUnsigned(w io.Writer) error {
 	if bd.Version != 1 {
 		return errors.New("side chain block version should equal to 1")
 	}
-	err := serialization.WriteString(w, bd.SideChainID)
+	err := serialization.WriteUint32(w, bd.SideChainID)
 	if err != nil {
 		return err
 	}
@@ -274,10 +274,7 @@ func (bd *Header) Deserialization(source *common.ZeroCopySource) error {
 func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 
-	bd.SideChainID, _, irregular, eof = source.NextString()
-	if irregular {
-		return common.ErrIrregularData
-	}
+	bd.SideChainID, eof = source.NextUint32()
 	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
 		return errors.New("side chain id is not correct")
 	}
@@ -306,7 +303,7 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 
 func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 	var err error
-	bd.SideChainID, err = serialization.ReadString(r)
+	bd.SideChainID, err = serialization.ReadUint32(r)
 	if err != nil {
 		return fmt.Errorf("Header item SideChainID Deserialize failed: %s", err)
 	}

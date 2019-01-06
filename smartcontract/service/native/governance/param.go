@@ -541,13 +541,13 @@ type CandidateSplitInfo struct {
 }
 
 type SideChainNodeInfo struct {
-	SideChainID string
+	SideChainID uint32
 	NodeInfoMap map[string]*NodeToSideChainParams
 }
 
 func (this *SideChainNodeInfo) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.SideChainID); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize sideChainID error: %v", err)
+	if err := serialization.WriteUint32(w, this.SideChainID); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize sideChainID error: %v", err)
 	}
 	if err := serialization.WriteUint32(w, uint32(len(this.NodeInfoMap))); err != nil {
 		return fmt.Errorf("serialization.WriteUint32, serialize PeerPoolMap length error: %v", err)
@@ -568,9 +568,9 @@ func (this *SideChainNodeInfo) Serialize(w io.Writer) error {
 }
 
 func (this *SideChainNodeInfo) Deserialize(r io.Reader) error {
-	sideChainID, err := serialization.ReadString(r)
+	sideChainID, err := serialization.ReadUint32(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize sideChainID error: %v", err)
+		return fmt.Errorf("serialization.ReadUint32, deserialize sideChainID error: %v", err)
 	}
 	n, err := serialization.ReadUint32(r)
 	if err != nil {
@@ -592,7 +592,7 @@ func (this *SideChainNodeInfo) Deserialize(r io.Reader) error {
 type NodeToSideChainParams struct {
 	PeerPubkey  string
 	Address     common.Address
-	SideChainID string
+	SideChainID uint32
 }
 
 func (this *NodeToSideChainParams) Serialize(w io.Writer) error {
@@ -602,8 +602,8 @@ func (this *NodeToSideChainParams) Serialize(w io.Writer) error {
 	if err := utils.WriteAddress(w, this.Address); err != nil {
 		return fmt.Errorf("utils.WriteAddress, serialize address error: %v", err)
 	}
-	if err := serialization.WriteString(w, this.SideChainID); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize sideChainID error: %v", err)
+	if err := serialization.WriteUint32(w, this.SideChainID); err != nil {
+		return fmt.Errorf("serialization.WriteUint32, serialize sideChainID error: %v", err)
 	}
 	return nil
 }
@@ -617,32 +617,12 @@ func (this *NodeToSideChainParams) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	sideChainID, err := serialization.ReadString(r)
+	sideChainID, err := serialization.ReadUint32(r)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize sideChainID error: %v", err)
+		return fmt.Errorf("serialization.ReadUint32, deserialize sideChainID error: %v", err)
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = address
-	this.SideChainID = sideChainID
-	return nil
-}
-
-type SideChainID struct {
-	SideChainID string
-}
-
-func (this *SideChainID) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.SideChainID); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize sideChainID error: %v", err)
-	}
-	return nil
-}
-
-func (this *SideChainID) Deserialize(r io.Reader) error {
-	sideChainID, err := serialization.ReadString(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize sideChainID error: %v", err)
-	}
 	this.SideChainID = sideChainID
 	return nil
 }
