@@ -129,7 +129,7 @@ func (bd *Header) SerializeUnsigned(w io.Writer) error {
 		return errors.New("side chain block version should equal to 1")
 	}
 	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
-		return errors.New("side chain id is not correct")
+		return fmt.Errorf("side chain id is not correct: %v and %v", bd.SideChainID, config.DefConfig.Genesis.SideChainID)
 	}
 	err := serialization.WriteUint32(w, bd.Version)
 	if err != nil {
