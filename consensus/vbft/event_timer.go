@@ -176,7 +176,7 @@ func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
 		}
 		return time.Duration(100 * time.Second)
 	case EventRandomBackoff:
-		d := (rand.Int63n(100) + 50) * int64(endorseBlockTimeout) / 100
+		d := (rand.Int63n(100) + 50) * int64(endorseBlockTimeout) / 10
 		return time.Duration(d)
 	case EventTxPool:
 		return txPooltimeout
