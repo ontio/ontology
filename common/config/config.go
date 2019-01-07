@@ -268,12 +268,12 @@ func (genesisConfigFile *GenesisConfigFile) ToGenesisConfig() *GenesisConfig {
 	hash := fnv.New32a()
 	hash.Write([]byte(genesisConfigFile.SideChainID))
 	return &GenesisConfig{
-		SideChainID: hash.Sum32(),
-		SeedList: genesisConfigFile.SeedList,
+		SideChainID:   hash.Sum32(),
+		SeedList:      genesisConfigFile.SeedList,
 		ConsensusType: genesisConfigFile.ConsensusType,
-		VBFT: genesisConfigFile.VBFT,
-		DBFT: genesisConfigFile.DBFT,
-		SOLO: genesisConfigFile.SOLO,
+		VBFT:          genesisConfigFile.VBFT,
+		DBFT:          genesisConfigFile.DBFT,
+		SOLO:          genesisConfigFile.SOLO,
 	}
 }
 

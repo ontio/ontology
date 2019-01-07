@@ -26,8 +26,8 @@ import (
 )
 
 type MutableTransaction struct {
-	SideChainID uint32
 	Version     byte
+	SideChainID uint32
 	TxType      TransactionType
 	Nonce       uint32
 	GasPrice    uint64
@@ -99,8 +99,8 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	if tx.Version != TX_VERSION {
 		return errors.New("side chain tx version should equal to 1")
 	}
-	sink.WriteUint32(tx.SideChainID)
 	sink.WriteByte(byte(tx.Version))
+	sink.WriteUint32(tx.SideChainID)
 	sink.WriteByte(byte(tx.TxType))
 	sink.WriteUint32(tx.Nonce)
 	sink.WriteUint64(tx.GasPrice)

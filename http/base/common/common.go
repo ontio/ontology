@@ -411,8 +411,8 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 		Code: invokeCode,
 	}
 	tx := &types.MutableTransaction{
-		SideChainID: config.DefConfig.Genesis.SideChainID,
 		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
 		GasPrice:    gasPrice,
 		GasLimit:    gasLimit,
 		TxType:      types.Invoke,

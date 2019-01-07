@@ -103,8 +103,8 @@ func (ctx *ConsensusContext) MakeHeader() *types.Block {
 		txRoot := common.ComputeMerkleRoot(txHash)
 		blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
 		header := &types.Header{
-			SideChainID:      config.DefConfig.Genesis.SideChainID,
 			Version:          ContextVersion,
+			SideChainID:      config.DefConfig.Genesis.SideChainID,
 			PrevBlockHash:    ctx.PrevHash,
 			TransactionsRoot: txRoot,
 			BlockRoot:        blockRoot,
