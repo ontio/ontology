@@ -105,8 +105,8 @@ func NewDeployTransaction(code []byte, name, version, author, email, desp string
 	}
 
 	return &types.MutableTransaction{
-		SideChainID: config.DefConfig.Genesis.SideChainID,
 		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
 		TxType:      types.Deploy,
 		Payload:     DeployCodePayload,
 	}
@@ -120,8 +120,8 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 	}
 
 	return &types.MutableTransaction{
-		SideChainID: config.DefConfig.Genesis.SideChainID,
 		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
 		TxType:      types.Invoke,
 		Payload:     invokeCodePayload,
 	}

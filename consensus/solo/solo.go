@@ -196,6 +196,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
 	header := &types.Header{
 		Version:          ContextVersion,
+		SideChainID:      config.DefConfig.Genesis.SideChainID,
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,

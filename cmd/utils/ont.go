@@ -282,8 +282,8 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 		Code: invokeCode,
 	}
 	tx := &types.MutableTransaction{
-		SideChainID: config.DefConfig.Genesis.SideChainID,
 		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
 		GasPrice:    gasPrice,
 		GasLimit:    gasLimit,
 		TxType:      types.Invoke,
@@ -799,8 +799,8 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorag
 		Description: cdesc,
 	}
 	tx := &types.MutableTransaction{
-		SideChainID: config.DefConfig.Genesis.SideChainID,
 		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
 		TxType:      types.Deploy,
 		Nonce:       uint32(time.Now().Unix()),
 		Payload:     deployPayload,

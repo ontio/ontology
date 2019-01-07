@@ -188,8 +188,8 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
 
 	blkHeader := &types.Header{
-		SideChainID:      config.DefConfig.Genesis.SideChainID,
 		Version:          genesis.BlockVersion,
+		SideChainID:      config.DefConfig.Genesis.SideChainID,
 		PrevBlockHash:    prevBlkHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,

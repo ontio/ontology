@@ -38,8 +38,8 @@ const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS 
 const TX_VERSION = byte(1)
 
 type Transaction struct {
-	SideChainID string
 	Version     byte
+	SideChainID uint32
 	TxType      TransactionType
 	Nonce       uint32
 	GasPrice    uint64
@@ -141,8 +141,8 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 // note: ownership transfered to output
 func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 	mutable := &MutableTransaction{
-		SideChainID: tx.SideChainID,
 		Version:     tx.Version,
+		SideChainID: tx.SideChainID,
 		TxType:      tx.TxType,
 		Nonce:       tx.Nonce,
 		GasPrice:    tx.GasPrice,
@@ -164,14 +164,11 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 
 func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
-	tx.SideChainID, _, irregular, eof = source.NextString()
-	if irregular {
-		return common.ErrIrregularData
-	}
 	tx.Version, eof = source.NextByte()
 	if tx.Version != TX_VERSION {
 		return fmt.Errorf("side chain tx version should equal to 1")
 	}
+	tx.SideChainID, eof = source.NextUint32()
 	var txtype byte
 	txtype, eof = source.NextByte()
 	tx.TxType = TransactionType(txtype)

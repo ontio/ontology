@@ -80,8 +80,8 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	}
 	//blockdata
 	genesisHeader := &types.Header{
-		SideChainID:      config.DefConfig.Genesis.SideChainID,
 		Version:          BlockVersion,
+		SideChainID:      config.DefConfig.Genesis.SideChainID,
 		PrevBlockHash:    common.Uint256{},
 		TransactionsRoot: common.Uint256{},
 		Timestamp:        constants.GENESIS_BLOCK_TIMESTAMP,
