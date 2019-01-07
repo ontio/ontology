@@ -21,11 +21,11 @@ package vbft
 import (
 	"fmt"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology-eventbus/actor"
 )
 
 type PendingBlock struct {
