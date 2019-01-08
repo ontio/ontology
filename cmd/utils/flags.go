@@ -487,11 +487,11 @@ var (
 	}
 	ShardIDFlag = cli.Uint64Flag{
 		Name:  "ShardID",
-		Usage: "ShardID",
+		Usage: "Shard ID",
 		Value: config.DEFAULT_SHARD_ID,
 	}
 	ShardPortFlag = cli.UintFlag{
-		Name:  "Shard Port",
+		Name:  "ShardPort",
 		Usage: "Shard Port",
 		Value: config.DEFAULT_SHARD_PORT,
 	}

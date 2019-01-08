@@ -1,1 +1,3 @@
-protoc -I=. -I=$GOPATH/src --go_out=plugins=grpc:. protos.proto
+# go get github.com/gogo/protobuf/protoc-gen-gogoslick
+# add protoc-gen-gogoslick to your $PATH
+protoc -I=. -I=$GOPATH/src --gogoslick_out=plugins=grpc:. protos.proto

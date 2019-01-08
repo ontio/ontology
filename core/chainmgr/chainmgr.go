@@ -42,6 +42,7 @@ type ChainManager struct {
 	p2pPid *actor.PID
 
 	remoteShardMsgC chan *RemoteMsg
+	parentConnWait chan bool
 
 	parentPid *actor.PID
 	localPid  *actor.PID
@@ -62,21 +63,24 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		ParentShardPort:      parentPort,
 		ChildShards:          make([]uint64, 0),
 		remoteShardMsgC:      make(chan *RemoteMsg, REMOTE_SHARDMSG_MAX_PENDING),
+		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
 
 		account: acc,
 	}
 
 	chainMgr.startRemoteEventbus()
-	if err := chainMgr.connectParent(); err != nil {
-		return nil, fmt.Errorf("connect parent shard failed: %s", err)
-	}
 	if err := chainMgr.startListener(); err != nil {
 		return nil, fmt.Errorf("shard %d start listener failed: %s", chainMgr.ShardID, err)
 	}
 
 	go chainMgr.run()
 	go chainMgr.remoteShardMsgLoop()
+
+	if err := chainMgr.connectParent(); err != nil {
+		chainMgr.Stop()
+		return nil, fmt.Errorf("connect parent shard failed: %s", err)
+	}
 
 	defaultChainManager = chainMgr
 	return defaultChainManager, nil
@@ -113,15 +117,18 @@ func (self *ChainManager) Receive(context actor.Context) {
 	case *actor.Restart:
 		log.Info("chain mgr actor restart")
 	case *shardmsg.CrossShardMsg:
-		log.Infof("chain mgr received shard msg")
-		shardmsg, err := shardmsg.Decode(msg.Type, msg.Data)
+		if msg == nil {
+			return
+		}
+		log.Infof("chain mgr received shard msg: %v", msg)
+		smsg, err := shardmsg.Decode(msg.Type, msg.Data)
 		if err != nil {
 			log.Errorf("decode shard msg: %s", err)
 			return
 		}
 		self.remoteShardMsgC <- &RemoteMsg{
 			Sender: msg.Sender,
-			Msg:    shardmsg,
+			Msg:    smsg,
 		}
 
 	default:
@@ -168,8 +175,13 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			if helloMsg.TargetShardID != self.ShardID {
 				return fmt.Errorf("hello msg with invalid target %d, from %d", helloMsg.TargetShardID, helloMsg.SourceShardID)
 			}
+			log.Infof(">>>>>> received hello msg from %d", helloMsg.SourceShardID)
 			// response ack
-			ackMsg, err := shardmsg.NewShardHelloAckMsg()
+			accPayload, err := serializeShardAccount(self.account)
+			if err != nil {
+				return err
+			}
+			ackMsg, err := shardmsg.NewShardHelloAckMsg(accPayload, self.localPid)
 			if err != nil {
 				return fmt.Errorf("construct hello ack to %d: %s", helloMsg.SourceShardID, err)
 			}
@@ -180,11 +192,13 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			if !ok {
 				return fmt.Errorf("invalid hello ack msg")
 			}
-			acc, err := DeserializeAccount(helloAckMsg.Account)
+			log.Infof(">>>>>> shard %d received hello ack msg", self.ShardID)
+			acc, err := deserializeShardAccount(helloAckMsg.Account)
 			if err != nil {
 				return fmt.Errorf("unmarshal account: %s", err)
 			}
 			self.account = acc
+			self.notifyParentConnected()
 			return nil
 		case shardmsg.BLOCK_REQ_MSG:
 		case shardmsg.BLOCK_RSP_MSG:
@@ -206,17 +220,41 @@ func (self *ChainManager) connectParent() error {
 	if self.ParentShardID == math.MaxUint64 {
 		return nil
 	}
+	if self.localPid == nil {
+		return fmt.Errorf("shard %d connect parent with nil localPid", self.ShardID)
+	}
+
 	parentAddr := fmt.Sprintf("%s:%d", self.ParentShardIPAddress, self.ParentShardPort)
-	parentPid := actor.NewPID(parentAddr, "parentChainMgr")
-	hellomsg, err := shardmsg.NewShardHelloMsg(self.ShardID, self.ParentShardID)
+	parentPid := actor.NewPID(parentAddr, fmt.Sprintf("shard-%d", self.ParentShardID))
+	hellomsg, err := shardmsg.NewShardHelloMsg(self.ShardID, self.ParentShardID, self.localPid)
 	if err != nil {
 		return fmt.Errorf("build hello msg: %s", err)
 	}
-	if err := parentPid.RequestFuture(hellomsg, CONNECT_PARENT_TIMEOUT).Wait(); err != nil {
-		return fmt.Errorf("connect parent chain failed: %s", err)
+	parentPid.Request(hellomsg, self.localPid)
+	if err := self.waitConnectParent(CONNECT_PARENT_TIMEOUT); err != nil {
+		return fmt.Errorf("wait connection with parent err: %s", err)
 	}
+
 	self.parentPid = parentPid
+	log.Infof("shard %d connected with parent shard %d", self.ShardID, self.ParentShardID)
 	return nil
+}
+
+func (self *ChainManager) waitConnectParent(timeout time.Duration) error {
+	select {
+	case <- time.After(timeout):
+		return fmt.Errorf("wait parent connection timeout")
+	case connected := <- self.parentConnWait:
+		if connected {
+			return nil
+		}
+		return fmt.Errorf("connection failed")
+	}
+	return nil
+}
+
+func (self *ChainManager) notifyParentConnected() {
+	self.parentConnWait <- true
 }
 
 func (self *ChainManager) startListener() error {
@@ -225,7 +263,7 @@ func (self *ChainManager) startListener() error {
 	props := actor.FromProducer(func() actor.Actor {
 		return self
 	})
-	pid, err := actor.SpawnNamed(props, "chain-manager")
+	pid, err := actor.SpawnNamed(props, fmt.Sprintf("shard-%d", self.ShardID))
 	if err != nil {
 		return fmt.Errorf("init chain manager actor: %s", err)
 	}

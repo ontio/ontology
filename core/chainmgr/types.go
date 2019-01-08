@@ -18,7 +18,7 @@ type shardAccount struct {
 	SigScheme  signature.SignatureScheme `json:"sig_scheme"`
 }
 
-func SerializeAccount(acc *account.Account) ([]byte, error) {
+func serializeShardAccount(acc *account.Account) ([]byte, error) {
 	if acc == nil {
 		return nil, fmt.Errorf("nil account")
 	}
@@ -38,7 +38,7 @@ func SerializeAccount(acc *account.Account) ([]byte, error) {
 	return json.Marshal(s)
 }
 
-func DeserializeAccount(payload []byte) (*account.Account, error) {
+func deserializeShardAccount(payload []byte) (*account.Account, error) {
 	s := &shardAccount{}
 	if err := json.Unmarshal(payload, s); err != nil {
 		return nil, err
