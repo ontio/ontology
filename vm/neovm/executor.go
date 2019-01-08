@@ -179,6 +179,17 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		if needJmp {
 			context.SetInstructionPointer(int64(offset))
 		}
+	case DCALL:
+		caller := context.Clone()
+		self.PushContext(caller)
+		target, err := self.EvalStack.PopAsInt64()
+		if err != nil {
+			return FAULT, err
+		}
+		if target < 0 || target >= int64(len(self.Context.Code)) {
+			return FAULT, errors.ERR_DCALL_OFFSET_ERROR
+		}
+		self.Context.SetInstructionPointer(target)
 	case RET:
 		self.Context, _ = self.PopContext()
 
@@ -188,7 +199,6 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 				SYSCALL  OpCode = 0x68
 		*/
 		// Stack
-
 	case DUPFROMALTSTACK:
 		val, err := self.AltStack.Peek(0)
 		if err != nil {
