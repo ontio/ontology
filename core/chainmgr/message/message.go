@@ -80,6 +80,12 @@ func Decode(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}
 		return msg, nil
+	case HELLO_ACK_MSG:
+		msg := &ShardHelloAckMsg{}
+		if err := json.Unmarshal(msgPayload, msg); err != nil {
+			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
+		}
+		return msg, nil
 	case BLOCK_REQ_MSG:
 		msg := &ShardGetGenesisBlockReqMsg{}
 		if err := json.Unmarshal(msgPayload, msg); err != nil {

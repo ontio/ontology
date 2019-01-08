@@ -238,6 +238,19 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 		return
 	}
 
+	if _, err := initConfig(ctx); err != nil {
+		log.Errorf("initConfig error:%s", err)
+		return
+	}
+
+	// start chain manager
+	chainmgr, err := initChainManager(ctx, nil)
+	if err != nil {
+		log.Errorf("init main chain manager error: %s", err)
+		return
+	}
+	defer chainmgr.Stop()
+
 	// start chain manager with parent shard
 	// wait chain manager initialized
 
