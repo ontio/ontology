@@ -110,9 +110,13 @@ func checkAltStackOpCode(t *testing.T, code OpCode, origin [2][]Value, expected 
 }
 
 func checkMultiStackOpCode(t *testing.T, code []OpCode, origin, expected []Value) {
-	checkMultiAltStackOpCode(t, code, [2][]Value{origin, {}}, [2][]Value{expected, {}})
+	var raw []byte
+	for _, c := range code {
+		raw = append(raw, byte(c))
+	}
+	checkMultiAltStackOpCode(t, raw, [2][]Value{origin, {}}, [2][]Value{expected, {}})
 }
-func checkMultiAltStackOpCode(t *testing.T, code []OpCode, origin [2][]Value, expected [2][]Value) {
+func checkMultiAltStackOpCode(t *testing.T, code []byte, origin [2][]Value, expected [2][]Value) {
 	var raw []byte
 	for _, c := range code {
 		raw = append(raw, byte(c))
@@ -120,14 +124,24 @@ func checkMultiAltStackOpCode(t *testing.T, code []OpCode, origin [2][]Value, ex
 	checkAltStackOpCodeOld(t, raw, origin, expected)
 	checkAltStackOpCodeNew(t, raw, origin, expected)
 }
+func checkMultiOpCode(t *testing.T, code []byte, origin []Value, expected []Value) {
+	var raw []byte
+	for _, c := range code {
+		raw = append(raw, byte(c))
+	}
+	checkAltStackOpCodeOld(t, raw, [2][]Value{origin}, [2][]Value{expected})
+	checkAltStackOpCodeNew(t, raw, [2][]Value{origin}, [2][]Value{expected})
+}
 
 func checkAltStackOpCodeNew(t *testing.T, code []byte, origin [2][]Value, expected [2][]Value) {
 	executor := NewExecutor(code)
 	for _, val := range origin[0] {
-		executor.EvalStack.Push(newVmValue(t, val))
+		err := executor.EvalStack.Push(newVmValue(t, val))
+		assert.Nil(t, err)
 	}
 	for _, val := range origin[1] {
-		executor.AltStack.Push(newVmValue(t, val))
+		err := executor.AltStack.Push(newVmValue(t, val))
+		assert.Nil(t, err)
 	}
 	err := executor.Execute()
 	assert.Nil(t, err)
@@ -326,20 +340,24 @@ func TestPUSHDATA(t *testing.T) {
 	checkStackOpCode(t, PUSH16, []Value{9999}, []Value{9999, 16})
 }
 
-func TestPushData(t *testing.T) {
-	checkAltStackOpCodeOld(t, []byte{byte(PUSHDATA1), byte(1), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
-	checkAltStackOpCodeNew(t, []byte{byte(PUSHDATA1), byte(1), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
+func TestFlowControl(t *testing.T) {
+	checkMultiStackOpCode(t, []OpCode{PUSH3, DCALL, PUSH0, PUSH1, RET}, nil, []Value{1, 0, 1})
+	checkMultiOpCode(t, []byte{byte(CALL), byte(0x03), byte(0x00), byte(PUSH2), byte(RET)}, nil, []Value{2, 2})
+	checkMultiOpCode(t, []byte{byte(JMP), byte(0x03), byte(0x00), byte(PUSH2), byte(RET)}, nil, []Value{2})
+	checkMultiOpCode(t, []byte{byte(JMPIF), byte(0x03), byte(0x00), byte(PUSH2), byte(RET)}, []Value{true}, []Value{2})
+	checkMultiOpCode(t, []byte{byte(JMPIF), byte(0x04), byte(0x00), byte(PUSH2), byte(PUSH14), byte(RET)}, []Value{true}, []Value{14})
+	checkMultiOpCode(t, []byte{byte(JMPIFNOT), byte(0x03), byte(0x00), byte(PUSH2), byte(RET)}, []Value{true}, []Value{2})
+	checkMultiOpCode(t, []byte{byte(JMPIFNOT), byte(0x04), byte(0x00), byte(PUSH2), byte(PUSH1), byte(RET)}, []Value{true}, []Value{2, 1})
+}
 
-	checkAltStackOpCodeOld(t, []byte{byte(PUSHDATA2), byte(0x01), byte(0x00), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
-	checkAltStackOpCodeNew(t, []byte{byte(PUSHDATA2), byte(0x01), byte(0x00), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
-	//
-	checkAltStackOpCodeOld(t, []byte{byte(PUSHDATA4), byte(0x01), byte(0x00), byte(0x00), byte(0x00), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
-	checkAltStackOpCodeNew(t, []byte{byte(PUSHDATA4), byte(0x01), byte(0x00), byte(0x00), byte(0x00), byte(2)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 2}, {}})
+func TestPushData(t *testing.T) {
+	checkMultiOpCode(t, []byte{byte(PUSHDATA1), byte(1), byte(2)}, nil, []Value{2})
+	checkMultiOpCode(t, []byte{byte(PUSHDATA2), byte(0x01), byte(0x00), byte(2)}, nil, []Value{2})
+	checkMultiOpCode(t, []byte{byte(PUSHDATA4), byte(0x01), byte(0x00), byte(0x00), byte(0x00), byte(2)}, nil, []Value{2})
 }
 
 func TestPushBytes(t *testing.T) {
-	checkAltStackOpCodeOld(t, []byte{byte(PUSHBYTES1), byte(1)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 1}, {}})
-	checkAltStackOpCodeNew(t, []byte{byte(PUSHBYTES1), byte(1)}, [2][]Value{[]Value{8}, {}}, [2][]Value{[]Value{8, 1}, {}})
+	checkMultiOpCode(t, []byte{byte(PUSHBYTES1), byte(1)}, nil, []Value{1})
 	code := make([]byte, 0)
 	code = append(code, byte(PUSHBYTES75))
 	for i := 0; i < int(PUSHBYTES75); i++ {
@@ -347,8 +365,7 @@ func TestPushBytes(t *testing.T) {
 	}
 	code2 := make([]byte, len(code)-1, cap(code))
 	copy(code2, code[1:])
-	checkAltStackOpCodeOld(t, code, [2][]Value{[]Value{}, {}}, [2][]Value{[]Value{code2}, {}})
-	checkAltStackOpCodeNew(t, code, [2][]Value{[]Value{}, {}}, [2][]Value{[]Value{code2}, {}})
+	checkMultiOpCode(t, code, nil, []Value{code2})
 }
 
 func TestHashOpCode(t *testing.T) {
