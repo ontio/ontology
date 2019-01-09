@@ -55,6 +55,10 @@ func (self *IncrementValidator) Clean() {
 func (self *IncrementValidator) BlockRange() (start uint32, end uint32) {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
+	return self.blockRange()
+}
+
+func (self *IncrementValidator) blockRange() (start uint32, end uint32) {
 	return self.baseHeight, self.baseHeight + uint32(len(self.blocks))
 }
 
@@ -67,7 +71,7 @@ func (self *IncrementValidator) AddBlock(block *types.Block) {
 	}
 
 	if self.baseHeight+uint32(len(self.blocks)) != block.Header.Height {
-		start, end := self.BlockRange()
+		start, end := self.blockRange()
 		log.Errorf("discontinue block is not allowed: [start, end)=[%d, %d), block height= %d",
 			start, end, block.Header.Height)
 		return
