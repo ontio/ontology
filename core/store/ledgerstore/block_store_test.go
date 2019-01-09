@@ -19,7 +19,6 @@
 package ledgerstore
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -27,9 +26,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"testing"
 	"time"
 )
@@ -277,132 +273,4 @@ func TestSaveHeader(t *testing.T) {
 		t.Errorf("TestSaveHeader SysFee %d != %d", fee, sysFee)
 		return
 	}
-}
-
-func TestBlock(t *testing.T) {
-	acc1 := account.NewAccount("")
-	acc2 := account.NewAccount("")
-	bookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{acc1.PublicKey, acc2.PublicKey})
-	if err != nil {
-		t.Errorf("AddressFromBookkeepers error %s", err)
-		return
-	}
-	header := &types.Header{
-		Version:          123,
-		PrevBlockHash:    common.Uint256{},
-		TransactionsRoot: common.Uint256{},
-		Timestamp:        uint32(uint32(time.Date(2017, time.February, 23, 0, 0, 0, 0, time.UTC).Unix())),
-		Height:           uint32(2),
-		ConsensusData:    1234567890,
-		NextBookkeeper:   bookkeeper,
-	}
-
-	tx1, err := transferTx(acc1.Address, acc2.Address, 10)
-	if err != nil {
-		t.Errorf("TestBlock transferTx error:%s", err)
-		return
-	}
-
-	block := &types.Block{
-		Header:       header,
-		Transactions: []*types.Transaction{tx1},
-	}
-	blockHash := block.Hash()
-	tx1Hash := tx1.Hash()
-
-	testBlockStore.NewBatch()
-
-	err = testBlockStore.SaveBlock(block)
-	if err != nil {
-		t.Errorf("SaveHeader error %s", err)
-		return
-	}
-	err = testBlockStore.CommitTo()
-	if err != nil {
-		t.Errorf("CommitTo error %s", err)
-		return
-	}
-
-	b, err := testBlockStore.GetBlock(blockHash)
-	if err != nil {
-		t.Errorf("GetBlock error %s", err)
-		return
-	}
-
-	hash := b.Hash()
-	if hash != blockHash {
-		t.Errorf("TestBlock failed BlockHash %x != %x ", hash, blockHash)
-		return
-	}
-	exist, err := testBlockStore.ContainTransaction(tx1Hash)
-	if err != nil {
-		t.Errorf("ContainTransaction error %s", err)
-		return
-	}
-	if !exist {
-		t.Errorf("TestBlock failed transaction %x should exist", tx1Hash)
-		return
-	}
-
-	if len(block.Transactions) != len(b.Transactions) {
-		t.Errorf("TestBlock failed Transaction size %d != %d ", len(b.Transactions), len(block.Transactions))
-		return
-	}
-	if b.Transactions[0].Hash() != tx1Hash {
-		t.Errorf("TestBlock failed transaction1 hash %x != %x", b.Transactions[0].Hash(), tx1Hash)
-		return
-	}
-}
-
-func transferTx(from, to common.Address, amount uint64) (*types.Transaction, error) {
-	buf := bytes.NewBuffer(nil)
-	var sts []ont.State
-	sts = append(sts, ont.State{
-		From:  from,
-		To:    to,
-		Value: amount,
-	})
-	transfers := &ont.Transfers{
-		States: sts,
-	}
-	err := transfers.Serialize(buf)
-	if err != nil {
-		return nil, fmt.Errorf("transfers.Serialize error %s", err)
-	}
-	var cversion byte
-	return invokeSmartContractTx(0, 30000, cversion, nutils.OntContractAddress, "transfer", []interface{}{sts})
-}
-
-func invokeSmartContractTx(gasPrice,
-	gasLimit uint64,
-	cversion byte,
-	contractAddress common.Address,
-	method string,
-	args []interface{}) (*types.Transaction, error) {
-
-	invokCode, err := utils.BuildNativeInvokeCode(contractAddress, cversion, method, args)
-	if err != nil {
-		return nil, err
-	}
-	return newInvokeTransaction(gasPrice, gasLimit, invokCode), nil
-}
-
-func newInvokeTransaction(gasPirce, gasLimit uint64, code []byte) *types.Transaction {
-	invokePayload := &payload.InvokeCode{
-		Code: code,
-	}
-	tx := &types.MutableTransaction{
-		Version:  0,
-		GasPrice: gasPirce,
-		GasLimit: gasLimit,
-		TxType:   types.Invoke,
-		Nonce:    uint32(time.Now().Unix()),
-		Payload:  invokePayload,
-		Sigs:     make([]types.Sig, 0, 0),
-	}
-	res, err := tx.IntoImmutable()
-	if err != nil {
-		return nil
-	}
-	return res
 }

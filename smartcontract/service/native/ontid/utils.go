@@ -29,8 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-const flag_exist = 0x01
-
 func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
 	val, err := srvc.CacheDB.Get(encID)
 	if err == nil {
@@ -45,9 +43,14 @@ func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
 }
 
 const (
-	FIELD_PK byte = 1 + iota
-	FIELD_ATTR
-	FIELD_RECOVERY
+	flag_exist = 0x01
+
+	FIELD_VERSION byte = 0
+	FLAG_VERSION  byte = 0x01
+
+	FIELD_PK       byte = 1
+	FIELD_ATTR     byte = 2
+	FIELD_RECOVERY byte = 3
 )
 
 func encodeID(id []byte) ([]byte, error) {
@@ -55,16 +58,19 @@ func encodeID(id []byte) ([]byte, error) {
 	if length == 0 || length > 255 {
 		return nil, errors.New("encode ONT ID error: invalid ID length")
 	}
-	enc := []byte{byte(length)}
+	//enc := []byte{byte(length)}
+	enc := append(utils.OntIDContractAddress[:], byte(length))
 	enc = append(enc, id...)
 	return enc, nil
 }
 
 func decodeID(data []byte) ([]byte, error) {
-	if len(data) == 0 || len(data) != int(data[0])+1 {
+	prefix := len(utils.OntIDContractAddress)
+	size := len(data)
+	if size < prefix || size != int(data[prefix])+1+prefix {
 		return nil, errors.New("decode ONT ID error: invalid data length")
 	}
-	return data[1:], nil
+	return data[prefix+1:], nil
 }
 
 func setRecovery(srvc *native.NativeService, encID []byte, recovery com.Address) error {

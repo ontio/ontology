@@ -42,6 +42,8 @@ func constructProposalMsgTest(acc *account.Account) *blockProposalMsg {
 		return nil
 	}
 	blkHeader := &types.Header{
+		Version:          1,
+		SideChainID:      3092255979,
 		PrevBlockHash:    common.Uint256{},
 		TransactionsRoot: txRoot,
 		Timestamp:        uint32(time.Now().Unix()),
@@ -362,6 +364,8 @@ func constructBlock() (*Block, error) {
 		return nil, err
 	}
 	blkHeader := &types.Header{
+		Version:          1,
+		SideChainID:      3092255979,
 		PrevBlockHash:    common.Uint256{},
 		TransactionsRoot: txRoot,
 		Timestamp:        uint32(time.Now().Unix()),

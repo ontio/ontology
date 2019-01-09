@@ -25,17 +25,14 @@ import (
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm"
 	"strings"
@@ -45,7 +42,6 @@ import (
 const MAX_SEARCH_HEIGHT uint32 = 100
 
 type BalanceOfRsp struct {
-	Ont string `json:"ont"`
 	Ong string `json:"ong"`
 }
 
@@ -260,43 +256,18 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 }
 
 func GetBalance(address common.Address) (*BalanceOfRsp, error) {
-	ont, err := GetContractBalance(0, utils.OntContractAddress, address)
-	if err != nil {
-		return nil, fmt.Errorf("get ont balance error:%s", err)
-	}
 	ong, err := GetContractBalance(0, utils.OngContractAddress, address)
 	if err != nil {
 		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
 	return &BalanceOfRsp{
-		Ont: fmt.Sprintf("%d", ont),
 		Ong: fmt.Sprintf("%d", ong),
 	}, nil
-}
-
-func GetGrantOng(addr common.Address) (string, error) {
-	key := append([]byte(ont.UNBOUND_TIME_OFFSET), addr[:]...)
-	value, err := ledger.DefLedger.GetStorageItem(utils.OntContractAddress, key)
-	if err != nil {
-		value = []byte{0, 0, 0, 0}
-	}
-	v, err := serialization.ReadUint32(bytes.NewBuffer(value))
-	if err != nil {
-		return fmt.Sprintf("%v", 0), err
-	}
-	ont, err := GetContractBalance(0, utils.OntContractAddress, addr)
-	if err != nil {
-		return fmt.Sprintf("%v", 0), err
-	}
-	boundong := utils.CalcUnbindOng(ont, v, uint32(time.Now().Unix())-constants.GENESIS_BLOCK_TIMESTAMP)
-	return fmt.Sprintf("%v", boundong), nil
 }
 
 func GetAllowance(asset string, from, to common.Address) (string, error) {
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	case "ont":
-		contractAddr = utils.OntContractAddress
 	case "ong":
 		contractAddr = utils.OngContractAddress
 	default:
@@ -438,12 +409,14 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 		Code: invokeCode,
 	}
 	tx := &types.MutableTransaction{
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		TxType:   types.Invoke,
-		Nonce:    uint32(time.Now().Unix()),
-		Payload:  invokePayload,
-		Sigs:     nil,
+		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		TxType:      types.Invoke,
+		Nonce:       uint32(time.Now().Unix()),
+		Payload:     invokePayload,
+		Sigs:        nil,
 	}
 	return tx, nil
 }

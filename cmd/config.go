@@ -68,9 +68,9 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 	netWorkId := ctx.Int(utils.GetFlagName(utils.NetworkIdFlag))
 	switch netWorkId {
 	case config.NETWORK_ID_MAIN_NET:
-		cfg.Genesis = config.MainNetConfig
+		cfg.Genesis = config.MainNetConfigFile.ToGenesisConfig()
 	case config.NETWORK_ID_POLARIS_NET:
-		cfg.Genesis = config.PolarisConfig
+		cfg.Genesis = config.PolarisConfigFile.ToGenesisConfig()
 	}
 
 	if ctx.Bool(utils.GetFlagName(utils.EnableTestModeFlag)) {
@@ -96,7 +96,7 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 	if err != nil {
 		return err
 	}
-	cfg.Genesis = newGenesisCfg
+	cfg.Genesis = newGenesisCfg.ToGenesisConfig()
 	log.Infof("Load genesis config:%s", genesisFile)
 
 	switch cfg.Genesis.ConsensusType {

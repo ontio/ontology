@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ont
+package ongx
 
 import (
 	"fmt"
@@ -212,4 +212,70 @@ func (this *TransferFrom) Deserialization(source *common.ZeroCopySource) error {
 	this.Value, err = utils.DecodeVarUint(source)
 
 	return err
+}
+
+type OngSwapParam struct {
+	Swap []Swap
+}
+
+func (this *OngSwapParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarUint(sink, uint64(len(this.Swap)))
+	for _, v := range this.Swap {
+		v.Serialization(sink)
+	}
+}
+
+func (this *OngSwapParam) Deserialization(source *common.ZeroCopySource) error {
+	n, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("ongSwapParam deserialize count error:%s", err)
+	}
+	for i := 0; uint64(i) < n; i++ {
+		var swap Swap
+		if err := swap.Deserialization(source); err != nil {
+			return err
+		}
+		this.Swap = append(this.Swap, swap)
+	}
+	return nil
+}
+
+type Swap struct {
+	Addr  common.Address
+	Value uint64
+}
+
+func (this *Swap) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeAddress(sink, this.Addr)
+	utils.EncodeVarUint(sink, this.Value)
+}
+
+func (this *Swap) Deserialization(source *common.ZeroCopySource) error {
+	var err error
+	this.Addr, err = utils.DecodeAddress(source)
+	if err != nil {
+		return fmt.Errorf("swap deserialize to error:%s", err)
+	}
+	this.Value, err = utils.DecodeVarUint(source)
+	if err != nil {
+		fmt.Errorf("swap deserialize value error:%s", err)
+	}
+	return nil
+}
+
+type SyncAddress struct {
+	SyncAddress common.Address
+}
+
+func (this *SyncAddress) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeAddress(sink, this.SyncAddress)
+}
+
+func (this *SyncAddress) Deserialization(source *common.ZeroCopySource) error {
+	var err error
+	this.SyncAddress, err = utils.DecodeAddress(source)
+	if err != nil {
+		return fmt.Errorf("deserialize address error:%s", err)
+	}
+	return nil
 }

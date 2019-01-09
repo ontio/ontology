@@ -26,6 +26,7 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
@@ -46,8 +47,10 @@ func NewDeployTransaction(code []byte, name, version, author, email, desp string
 	}
 
 	return &types.MutableTransaction{
-		TxType:  types.Deploy,
-		Payload: DeployCodePayload,
+		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		TxType:      types.Deploy,
+		Payload:     DeployCodePayload,
 	}
 }
 
@@ -59,8 +62,10 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 	}
 
 	return &types.MutableTransaction{
-		TxType:  types.Invoke,
-		Payload: invokeCodePayload,
+		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		TxType:      types.Invoke,
+		Payload:     invokeCodePayload,
 	}
 }
 

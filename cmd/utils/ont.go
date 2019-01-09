@@ -24,10 +24,17 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
@@ -36,27 +43,20 @@ import (
 	cutils "github.com/ontio/ontology/core/utils"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	rpccommon "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/ongx"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"math/rand"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
-	VERSION_TRANSACTION    = byte(0)
 	VERSION_CONTRACT_ONT   = byte(0)
 	VERSION_CONTRACT_ONG   = byte(0)
 	CONTRACT_TRANSFER      = "transfer"
 	CONTRACT_TRANSFER_FROM = "transferFrom"
 	CONTRACT_APPROVE       = "approve"
 
-	ASSET_ONT = "ont"
 	ASSET_ONG = "ong"
 )
 
@@ -89,8 +89,6 @@ func GetAccountBalance(address, asset string) (uint64, error) {
 	}
 	var balance uint64
 	switch strings.ToLower(asset) {
-	case "ont":
-		balance, err = strconv.ParseUint(balances.Ont, 10, 64)
 	case "ong":
 		balance, err = strconv.ParseUint(balances.Ong, 10, 64)
 	default:
@@ -186,7 +184,7 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	if err != nil {
 		return nil, fmt.Errorf("To address:%s invalid:%s", to, err)
 	}
-	var state = &ont.State{
+	var state = &ongx.State{
 		From:  fromAddr,
 		To:    toAddr,
 		Value: amount,
@@ -194,9 +192,6 @@ func ApproveTx(gasPrice, gasLimit uint64, asset string, from, to string, amount 
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	case ASSET_ONT:
-		version = VERSION_CONTRACT_ONT
-		contractAddr = utils.OntContractAddress
 	case ASSET_ONG:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
@@ -220,8 +215,8 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	if err != nil {
 		return nil, fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
-	var sts []*ont.State
-	sts = append(sts, &ont.State{
+	var sts []*ongx.State
+	sts = append(sts, &ongx.State{
 		From:  fromAddr,
 		To:    toAddr,
 		Value: amount,
@@ -229,9 +224,6 @@ func TransferTx(gasPrice, gasLimit uint64, asset, from, to string, amount uint64
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	case ASSET_ONT:
-		version = VERSION_CONTRACT_ONT
-		contractAddr = utils.OntContractAddress
 	case ASSET_ONG:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
@@ -259,7 +251,7 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	if err != nil {
 		return nil, fmt.Errorf("to address:%s invalid:%s", to, err)
 	}
-	transferFrom := &ont.TransferFrom{
+	transferFrom := &ongx.TransferFrom{
 		Sender: senderAddr,
 		From:   fromAddr,
 		To:     toAddr,
@@ -268,9 +260,6 @@ func TransferFromTx(gasPrice, gasLimit uint64, asset, sender, from, to string, a
 	var version byte
 	var contractAddr common.Address
 	switch strings.ToLower(asset) {
-	case ASSET_ONT:
-		version = VERSION_CONTRACT_ONT
-		contractAddr = utils.OntContractAddress
 	case ASSET_ONG:
 		version = VERSION_CONTRACT_ONG
 		contractAddr = utils.OngContractAddress
@@ -291,12 +280,14 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 		Code: invokeCode,
 	}
 	tx := &types.MutableTransaction{
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		TxType:   types.Invoke,
-		Nonce:    rand.Uint32(),
-		Payload:  invokePayload,
-		Sigs:     make([]types.Sig, 0, 0),
+		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		TxType:      types.Invoke,
+		Nonce:       rand.Uint32(),
+		Payload:     invokePayload,
+		Sigs:        make([]types.Sig, 0, 0),
 	}
 	return tx
 }
@@ -797,13 +788,14 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorag
 		Description: cdesc,
 	}
 	tx := &types.MutableTransaction{
-		Version:  VERSION_TRANSACTION,
-		TxType:   types.Deploy,
-		Nonce:    uint32(time.Now().Unix()),
-		Payload:  deployPayload,
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		Sigs:     make([]types.Sig, 0, 0),
+		Version:     types.TX_VERSION,
+		SideChainID: config.DefConfig.Genesis.SideChainID,
+		TxType:      types.Deploy,
+		Nonce:       uint32(time.Now().Unix()),
+		Payload:     deployPayload,
+		GasPrice:    gasPrice,
+		GasLimit:    gasLimit,
+		Sigs:        make([]types.Sig, 0, 0),
 	}
 	return tx
 }

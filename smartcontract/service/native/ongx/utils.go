@@ -16,11 +16,12 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ont
+package ongx
 
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -30,24 +31,57 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
-	UNBOUND_TIME_OFFSET = "unboundTimeOffset"
-	TOTAL_SUPPLY_NAME   = "totalSupply"
-	INIT_NAME           = "init"
-	TRANSFER_NAME       = "transfer"
-	APPROVE_NAME        = "approve"
-	TRANSFERFROM_NAME   = "transferFrom"
-	NAME_NAME           = "name"
-	SYMBOL_NAME         = "symbol"
-	DECIMALS_NAME       = "decimals"
-	TOTALSUPPLY_NAME    = "totalSupply"
-	BALANCEOF_NAME      = "balanceOf"
-	ALLOWANCE_NAME      = "allowance"
+	TOTAL_SUPPLY_NAME  = "totalSupply"
+	TRANSFER_NAME      = "transfer"
+	APPROVE_NAME       = "approve"
+	TRANSFERFROM_NAME  = "transferFrom"
+	NAME_NAME          = "name"
+	SYMBOL_NAME        = "symbol"
+	DECIMALS_NAME      = "decimals"
+	TOTALSUPPLY_NAME   = "totalSupply"
+	BALANCEOF_NAME     = "balanceOf"
+	ALLOWANCE_NAME     = "allowance"
+	ONG_SWAP           = "ongSwap"
+	ONGX_SWAP          = "ongxSwap"
+	SET_SYNC_ADDR_NAME = "setSyncAddr"
+
+	TRANSFER_FLAG byte = 1
+	APPROVE_FLAG  byte = 2
 )
 
-func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
+var (
+	SYNC_ADDRESS = []byte("syncAddress")
+)
+
+func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
+	source := common.NewZeroCopySource(native.Input)
+	from, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get from address error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	var key []byte
+	if flag == APPROVE_FLAG {
+		to, err := utils.DecodeAddress(source)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] get from address error!")
+		}
+		key = GenApproveKey(contract, from, to)
+	} else if flag == TRANSFER_FLAG {
+		key = GenBalanceKey(contract, from)
+	}
+	amount, err := utils.GetStorageUInt64(native, key)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
+	}
+	return types.BigIntToBytes(big.NewInt(int64(amount))), nil
+}
+
+func AddTransferNotifications(native *native.NativeService, contract common.Address, state *State) {
 	if !config.DefConfig.Common.EnableEventLog {
 		return
 	}
@@ -55,6 +89,17 @@ func AddNotifications(native *native.NativeService, contract common.Address, sta
 		&event.NotifyEventInfo{
 			ContractAddress: contract,
 			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
+		})
+}
+
+func AddOngxSwapNotifications(native *native.NativeService, contract common.Address, state *State) {
+	if !config.DefConfig.Common.EnableEventLog {
+		return
+	}
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          []interface{}{ONGX_SWAP, state.From.ToBase58(), state.Value},
 		})
 }
 
@@ -115,14 +160,6 @@ func TransferedFrom(native *native.NativeService, currentContract common.Address
 	return fromBalance, toBalance, nil
 }
 
-func getUnboundOffset(native *native.NativeService, contract, address common.Address) (uint32, error) {
-	offset, err := utils.GetStorageUInt32(native, genAddressUnboundOffsetKey(contract, address))
-	if err != nil {
-		return 0, err
-	}
-	return offset, nil
-}
-
 func genTransferFromKey(contract common.Address, state *TransferFrom) []byte {
 	temp := append(contract[:], state.From[:]...)
 	return append(temp, state.Sender[:]...)
@@ -169,7 +206,23 @@ func toTransfer(native *native.NativeService, toKey []byte, value uint64) (uint6
 	return toBalance, nil
 }
 
-func genAddressUnboundOffsetKey(contract, address common.Address) []byte {
-	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
-	return append(temp, address[:]...)
+func GetSyncAddress(native *native.NativeService) (*SyncAddress, error) {
+	context := native.ContextRef.CurrentContext().ContractAddress
+	key := append(context[:], SYNC_ADDRESS...)
+	result, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("[GetSyncAddress] get address from cache error:%s", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("[GetSyncAddress] sync address is nil")
+	}
+	syncAddrBytes, err := cstates.GetValueFromRawStorageItem(result)
+	if err != nil {
+		return nil, fmt.Errorf("[GetSyncAddress], deserialize from raw storage item err:%v", err)
+	}
+	syncAddr := new(SyncAddress)
+	if err := syncAddr.Deserialization(common.NewZeroCopySource(syncAddrBytes)); err != nil {
+		return nil, fmt.Errorf("[GetSyncAddress], deserialize syncAddr error: %v", err)
+	}
+	return syncAddr, nil
 }

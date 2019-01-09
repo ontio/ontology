@@ -27,6 +27,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
@@ -34,15 +35,17 @@ import (
 )
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
+const TX_VERSION = byte(1)
 
 type Transaction struct {
-	Version  byte
-	TxType   TransactionType
-	Nonce    uint32
-	GasPrice uint64
-	GasLimit uint64
-	Payer    common.Address
-	Payload  Payload
+	Version     byte
+	SideChainID uint32
+	TxType      TransactionType
+	Nonce       uint32
+	GasPrice    uint64
+	GasLimit    uint64
+	Payer       common.Address
+	Payload     Payload
 	//Attributes []*TxAttribute
 	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extension
 	Sigs       []RawSig
@@ -57,6 +60,23 @@ type Transaction struct {
 
 // if no error, ownership of param raw is transfered to Transaction
 func TransactionFromRawBytes(raw []byte) (*Transaction, error) {
+	if len(raw) > MAX_TX_SIZE {
+		return nil, errors.New("execced max transaction size")
+	}
+	source := common.NewZeroCopySource(raw)
+	tx := &Transaction{Raw: raw}
+	err := tx.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	if tx.SideChainID != config.DefConfig.Genesis.SideChainID {
+		return nil, fmt.Errorf("tx side chain id is not correct %v and %v", tx.SideChainID, config.DefConfig.Genesis.SideChainID)
+	}
+	return tx, nil
+}
+
+// if no error, ownership of param raw is transfered to Transaction
+func TransactionFromRawBytesWithoutSideChainIDCheck(raw []byte) (*Transaction, error) {
 	if len(raw) > MAX_TX_SIZE {
 		return nil, errors.New("execced max transaction size")
 	}
@@ -107,6 +127,9 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 
 	pend := source.Pos()
 	lenAll := pend - pstart
+	if lenAll > MAX_TX_SIZE {
+		return fmt.Errorf("execced max transaction size:%d", lenAll)
+	}
 	source.BackUp(lenAll)
 	tx.Raw, _ = source.NextBytes(lenAll)
 
@@ -118,13 +141,14 @@ func (tx *Transaction) Deserialization(source *common.ZeroCopySource) error {
 // note: ownership transfered to output
 func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 	mutable := &MutableTransaction{
-		Version:  tx.Version,
-		TxType:   tx.TxType,
-		Nonce:    tx.Nonce,
-		GasPrice: tx.GasPrice,
-		GasLimit: tx.GasLimit,
-		Payer:    tx.Payer,
-		Payload:  tx.Payload,
+		Version:     tx.Version,
+		SideChainID: tx.SideChainID,
+		TxType:      tx.TxType,
+		Nonce:       tx.Nonce,
+		GasPrice:    tx.GasPrice,
+		GasLimit:    tx.GasLimit,
+		Payer:       tx.Payer,
+		Payload:     tx.Payload,
 	}
 
 	for _, raw := range tx.Sigs {
@@ -141,6 +165,10 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	tx.Version, eof = source.NextByte()
+	if tx.Version != TX_VERSION {
+		return fmt.Errorf("side chain tx version should equal to 1")
+	}
+	tx.SideChainID, eof = source.NextUint32()
 	var txtype byte
 	txtype, eof = source.NextByte()
 	tx.TxType = TransactionType(txtype)

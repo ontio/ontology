@@ -18,13 +18,11 @@
 package config
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+	"github.com/magiconair/properties/assert"
 )
 
 func TestConfigGeneration(t *testing.T) {
-	polarisConfig := newPolarisConfig()
-	assert.Equal(t, polarisConfig, Parameters)
-	defaultConfig := newDefaultConfig()
-	assert.NotEqual(t, defaultConfig, polarisConfig)
+	mainConfig := MainNetConfigFile.ToGenesisConfig()
+	assert.Equal(t, mainConfig.SideChainID, uint32(3092255979))
 }
