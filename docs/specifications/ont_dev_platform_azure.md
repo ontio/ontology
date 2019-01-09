@@ -8,6 +8,7 @@
 * VM->SETTINGS->Networking->Inbound port rules
   * 80
   * 8080
+  * 8085
   * 20334
   * 20335
   * 20336
