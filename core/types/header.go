@@ -283,7 +283,7 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	}
 	bd.SideChainID, eof = source.NextUint32()
 	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
-		return errors.New("side chain id is not correct")
+		return fmt.Errorf("side chain id is not correct: %v and %v", bd.SideChainID, config.DefConfig.Genesis.SideChainID)
 	}
 	bd.PrevBlockHash, eof = source.NextHash()
 	bd.TransactionsRoot, eof = source.NextHash()

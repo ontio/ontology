@@ -277,8 +277,8 @@ func (genesisConfigFile *GenesisConfigFile) ToGenesisConfig() *GenesisConfig {
 	}
 }
 
-func NewGenesisConfig() *GenesisConfig {
-	return &GenesisConfig{
+func NewGenesisConfig() *GenesisConfigFile {
+	return &GenesisConfigFile{
 		SeedList:      make([]string, 0),
 		ConsensusType: CONSENSUS_TYPE_DBFT,
 		VBFT:          &VBFTConfig{},

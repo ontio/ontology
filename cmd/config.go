@@ -96,7 +96,7 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 	if err != nil {
 		return err
 	}
-	cfg.Genesis = newGenesisCfg
+	cfg.Genesis = newGenesisCfg.ToGenesisConfig()
 	log.Infof("Load genesis config:%s", genesisFile)
 
 	switch cfg.Genesis.ConsensusType {
