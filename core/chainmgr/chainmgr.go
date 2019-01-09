@@ -28,13 +28,18 @@ type RemoteMsg struct {
 	Msg    shardmsg.RemoteShardMsg
 }
 
+type ShardInfo struct {
+	Config *config.OntologyConfig
+}
+
 type ChainManager struct {
 	ShardID              uint64
 	ShardPort            uint
 	ParentShardID        uint64
 	ParentShardIPAddress string
 	ParentShardPort      uint
-	ChildShards          []uint64
+
+	Shards map[uint64]*ShardInfo
 
 	account *account.Account
 	genesisBlock *types.Block
@@ -61,7 +66,7 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		ParentShardID:        parentShardID,
 		ParentShardIPAddress: parentAddr,
 		ParentShardPort:      parentPort,
-		ChildShards:          make([]uint64, 0),
+		Shards:               make(map[uint64]*ShardInfo),
 		remoteShardMsgC:      make(chan *RemoteMsg, REMOTE_SHARDMSG_MAX_PENDING),
 		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
@@ -88,6 +93,10 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 
 func GetChainManager() *ChainManager {
 	return defaultChainManager
+}
+
+func (self *ChainManager) GetAccount() *account.Account {
+	return self.account
 }
 
 func (self *ChainManager) SetP2P(p2p *actor.PID) error {
@@ -138,8 +147,15 @@ func (self *ChainManager) Receive(context actor.Context) {
 
 func (self *ChainManager) run() error {
 
-	// start listener
-	// connect to parent
+	self.quitWg.Add(1)
+	defer self.quitWg.Done()
+
+	for {
+		select {
+		case <-self.quitC:
+			return nil
+		}
+	}
 	// get genesis block
 	// init ledger if needed
 	// verify genesis block if needed
@@ -150,13 +166,16 @@ func (self *ChainManager) run() error {
 }
 
 func (self *ChainManager) remoteShardMsgLoop() {
+	self.quitWg.Add(1)
+	defer self.quitWg.Done()
+
 	for {
 		if err := self.processRemoteShardMsg(); err != nil {
 			log.Errorf("chain mgr process remote shard msg failed: %s", err)
 		}
 		select {
 		case <-self.quitC:
-			break
+			return
 		default:
 		}
 	}
@@ -181,23 +200,34 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			if err != nil {
 				return err
 			}
-			ackMsg, err := shardmsg.NewShardHelloAckMsg(accPayload, self.localPid)
+			configPayload, err := self.buildShardConfig(helloMsg.SourceShardID)
 			if err != nil {
-				return fmt.Errorf("construct hello ack to %d: %s", helloMsg.SourceShardID, err)
+				return err
+			}
+			ackMsg, err := shardmsg.NewShardConfigMsg(accPayload, configPayload, self.localPid)
+			if err != nil {
+				return fmt.Errorf("construct config to shard %d: %s", helloMsg.SourceShardID, err)
 			}
 			remoteMsg.Sender.Tell(ackMsg)
 			return nil
-		case shardmsg.HELLO_ACK_MSG:
-			helloAckMsg, ok := msg.(*shardmsg.ShardHelloAckMsg)
+		case shardmsg.CONFIG_MSG:
+			shardCfgMsg, ok := msg.(*shardmsg.ShardConfigMsg)
 			if !ok {
-				return fmt.Errorf("invalid hello ack msg")
+				return fmt.Errorf("invalid config msg")
 			}
-			log.Infof(">>>>>> shard %d received hello ack msg", self.ShardID)
-			acc, err := deserializeShardAccount(helloAckMsg.Account)
+			log.Infof(">>>>>> shard %d received config msg", self.ShardID)
+			acc, err := deserializeShardAccount(shardCfgMsg.Account)
 			if err != nil {
 				return fmt.Errorf("unmarshal account: %s", err)
 			}
+			config, err := deserializeShardConfig(shardCfgMsg.Config)
+			if err != nil {
+				return fmt.Errorf("unmarshal shard config: %s", err)
+			}
 			self.account = acc
+			if err := self.addShardConfig(config.Shard.ShardID, config); err != nil {
+				return fmt.Errorf("add shard %d config: %s", config.Shard.ShardID, err)
+			}
 			self.notifyParentConnected()
 			return nil
 		case shardmsg.BLOCK_REQ_MSG:
@@ -276,4 +306,18 @@ func (self *ChainManager) startListener() error {
 func (self *ChainManager) Stop() {
 	close(self.quitC)
 	self.quitWg.Wait()
+}
+
+func (self *ChainManager) GetShardConfig(shardID uint64) *config.OntologyConfig {
+	if s := self.Shards[shardID]; s != nil {
+		return s.Config
+	}
+	return nil
+}
+
+func (self *ChainManager) addShardConfig(shardID uint64, cfg *config.OntologyConfig) error {
+	self.Shards[shardID] = &ShardInfo{
+		Config: cfg,
+	}
+	return nil
 }

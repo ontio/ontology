@@ -12,7 +12,7 @@ const (
 
 const (
 	HELLO_MSG = iota
-	HELLO_ACK_MSG
+	CONFIG_MSG
 	BLOCK_REQ_MSG
 	BLOCK_RSP_MSG
 	PEERINFO_REQ_MSG
@@ -32,12 +32,13 @@ func (msg *ShardHelloMsg) Type() int {
 	return HELLO_MSG
 }
 
-type ShardHelloAckMsg struct {
+type ShardConfigMsg struct {
 	Account []byte `json:"account"`
+	Config []byte `json:"config"`
 }
 
-func (msg *ShardHelloAckMsg) Type() int {
-	return HELLO_ACK_MSG
+func (msg *ShardConfigMsg) Type() int {
+	return CONFIG_MSG
 }
 
 type ShardGetGenesisBlockReqMsg struct {
@@ -80,8 +81,8 @@ func Decode(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}
 		return msg, nil
-	case HELLO_ACK_MSG:
-		msg := &ShardHelloAckMsg{}
+	case CONFIG_MSG:
+		msg := &ShardConfigMsg{}
 		if err := json.Unmarshal(msgPayload, msg); err != nil {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}
