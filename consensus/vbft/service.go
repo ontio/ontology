@@ -136,7 +136,7 @@ func NewVbftServer(account *account.Account, txpool, p2p *actor.PID) (*Server, e
 		poolActor:          &actorTypes.TxPoolActor{Pool: txpool},
 		p2p:                &actorTypes.P2PActor{P2P: p2p},
 		ledger:             ledger.DefLedger,
-		incrValidator:      increment.NewIncrementValidator(10),
+		incrValidator:      increment.NewIncrementValidator(20),
 	}
 	server.stateMgr = newStateMgr(server)
 
