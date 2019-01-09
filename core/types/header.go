@@ -318,7 +318,7 @@ func (bd *Header) DeserializeUnsigned(r io.Reader) error {
 		return fmt.Errorf("Header item SideChainID Deserialize failed: %s", err)
 	}
 	if bd.SideChainID != config.DefConfig.Genesis.SideChainID {
-		return fmt.Errorf("side chain id is not correct")
+		return fmt.Errorf("side chain id is not correct: %v and %v", bd.SideChainID, config.DefConfig.Genesis.SideChainID)
 	}
 
 	err = bd.PrevBlockHash.Deserialize(r)
