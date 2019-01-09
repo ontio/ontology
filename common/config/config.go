@@ -479,28 +479,28 @@ func (this *VBFTPeerStakeInfo) Deserialize(r io.Reader) error {
 }
 
 type DBFTConfig struct {
-	GenBlockTime uint
-	Bookkeepers  []string
+	GenBlockTime uint     `json:"gen_block_time"`
+	Bookkeepers  []string `json:"bookkeepers"`
 }
 
 type SOLOConfig struct {
-	GenBlockTime uint
-	Bookkeepers  []string
+	GenBlockTime uint     `json:"gen_block_time"`
+	Bookkeepers  []string `json:"bookkeepers"`
 }
 
 type CommonConfig struct {
-	LogLevel       uint
-	NodeType       string
-	EnableEventLog bool
-	SystemFee      map[string]int64
-	GasLimit       uint64
-	GasPrice       uint64
-	DataDir        string
+	LogLevel       uint             `json:"log_level"`
+	NodeType       string           `json:"node_type"`
+	EnableEventLog bool             `json:"enable_event_log"`
+	SystemFee      map[string]int64 `json:"system_fee"`
+	GasLimit       uint64           `json:"gas_limit"`
+	GasPrice       uint64           `json:"gas_price"`
+	DataDir        string           `json:"data_dir"`
 }
 
 type ConsensusConfig struct {
-	EnableConsensus bool
-	MaxTxInBlock    uint
+	EnableConsensus bool `json:"enable_consensus"`
+	MaxTxInBlock    uint `json:"max_tx_in_block"`
 }
 
 type P2PRsvConfig struct {
@@ -509,21 +509,21 @@ type P2PRsvConfig struct {
 }
 
 type P2PNodeConfig struct {
-	ReservedPeersOnly         bool
-	ReservedCfg               *P2PRsvConfig
-	NetworkMagic              uint32
-	NetworkId                 uint32
-	NetworkName               string
-	NodePort                  uint
-	IsTLS                     bool
-	CertPath                  string
-	KeyPath                   string
-	CAPath                    string
-	HttpInfoPort              uint
-	MaxHdrSyncReqs            uint
-	MaxConnInBound            uint
-	MaxConnOutBound           uint
-	MaxConnInBoundForSingleIP uint
+	ReservedPeersOnly         bool          `json:"reserved_peers_only"`
+	ReservedCfg               *P2PRsvConfig `json:"reserved_cfg"`
+	NetworkMagic              uint32        `json:"network_magic"`
+	NetworkId                 uint32        `json:"network_id"`
+	NetworkName               string        `json:"network_name"`
+	NodePort                  uint          `json:"node_port"`
+	IsTLS                     bool          `json:"is_tls"`
+	CertPath                  string        `json:"cert_path"`
+	KeyPath                   string        `json:"key_path"`
+	CAPath                    string        `json:"ca_path"`
+	HttpInfoPort              uint          `json:"http_info_port"`
+	MaxHdrSyncReqs            uint          `json:"max_hdr_sync_reqs"`
+	MaxConnInBound            uint          `json:"max_conn_in_bound"`
+	MaxConnOutBound           uint          `json:"max_conn_out_bound"`
+	MaxConnInBoundForSingleIP uint          `json:"max_conn_in_bound_for_single_ip"`
 }
 
 type RpcConfig struct {
@@ -548,11 +548,11 @@ type WebSocketConfig struct {
 }
 
 type ShardConfig struct {
-	ShardID              uint64
-	ShardPort            uint
-	ParentShardID        uint64
-	ParentShardIPAddress string
-	ParentShardPort      uint
+	ShardID              uint64 `json:"shard_id"`
+	ShardPort            uint   `json:"shard_port"`
+	ParentShardID        uint64 `json:"parent_shard_id"`
+	ParentShardIPAddress string `json:"parent_shard_ip_address"`
+	ParentShardPort      uint   `json:"parent_shard_port"`
 }
 
 type OntologyConfig struct {

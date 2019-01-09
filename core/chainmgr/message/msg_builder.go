@@ -24,9 +24,10 @@ func NewShardHelloMsg(localShard, targetShard uint64, sender *actor.PID) (*Cross
 	}, nil
 }
 
-func NewShardHelloAckMsg(accPayload []byte, sender *actor.PID) (*CrossShardMsg, error) {
-	ack := &ShardHelloAckMsg{
+func NewShardConfigMsg(accPayload []byte, configPayload []byte, sender *actor.PID) (*CrossShardMsg, error) {
+	ack := &ShardConfigMsg{
 		Account: accPayload,
+		Config: configPayload,
 	}
 	payload, err := json.Marshal(ack)
 	if err != nil {
@@ -35,7 +36,7 @@ func NewShardHelloAckMsg(accPayload []byte, sender *actor.PID) (*CrossShardMsg, 
 
 	return &CrossShardMsg{
 		Version: SHARD_MSG_VERSION,
-		Type:    HELLO_ACK_MSG,
+		Type:    CONFIG_MSG,
 		Sender:  sender,
 		Data:    payload,
 	}, nil
