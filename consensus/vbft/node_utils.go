@@ -233,12 +233,28 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 
 	peers := make([]uint32, 0)
 	peerMap := make(map[uint32]bool)
+	proposerMap := make(map[uint32]bool)
 	var cnt uint32
 
+	if checkCalcEndorserOrCommitter(end) {
+		if len(cfg.Proposers) != 0 {
+			for _, p := range cfg.Proposers {
+				proposerMap[p] = true
+				if uint32(len(proposerMap)) >= chain.C {
+					break
+				}
+			}
+		}
+	}
 	for i := start; ; i++ {
 		peerId := calcParticipant(cfg.Vrf, chain.PosTable, uint32(i))
 		if peerId == math.MaxUint32 {
 			return []uint32{}
+		}
+		if checkCalcEndorserOrCommitter(end) {
+			if _, present := proposerMap[peerId]; present {
+				continue
+			}
 		}
 		if _, present := peerMap[peerId]; !present {
 			// got new peer
@@ -254,14 +270,21 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 				return peers
 			}
 		}
-		if end == vconfig.MAX_ENDORSER_COUNT+vconfig.MAX_PROPOSER_COUNT ||
-			end == vconfig.MAX_PROPOSER_COUNT+vconfig.MAX_ENDORSER_COUNT+vconfig.MAX_COMMITTER_COUNT {
+		if checkCalcEndorserOrCommitter(end) {
 			if uint32(len(peers)) > chain.C*2 {
 				return peers
 			}
 		}
 	}
 	return peers
+}
+
+func checkCalcEndorserOrCommitter(end int) bool {
+	if end == vconfig.MAX_ENDORSER_COUNT+vconfig.MAX_PROPOSER_COUNT ||
+		end == vconfig.MAX_PROPOSER_COUNT+vconfig.MAX_ENDORSER_COUNT+vconfig.MAX_COMMITTER_COUNT {
+		return true
+	}
+	return false
 }
 
 func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 {
