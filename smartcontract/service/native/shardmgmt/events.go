@@ -22,7 +22,7 @@ func (evt *createShardEvent) getType() uint32 {
 
 type configShardEvent struct {
 	ShardID uint64       `json:"shard_id"`
-	Config  *shardConfig `json:"config"`
+	Config  *ShardConfig `json:"config"`
 }
 
 func (evt *configShardEvent) getType() uint32 {
