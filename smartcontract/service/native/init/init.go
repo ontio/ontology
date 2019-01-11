@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	vm "github.com/ontio/ontology/vm/neovm"
@@ -45,6 +46,7 @@ func init() {
 	ontid.Init()
 	auth.Init()
 	governance.InitGovernance()
+	shardmgmt.InitShardManagement()
 }
 
 func InitBytes(addr common.Address, method string) []byte {
