@@ -10,6 +10,7 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (
@@ -20,28 +21,28 @@ const (
 	SHARD_STATE_ARCHIVED
 )
 
-type shardMgmtGlobalState struct {
+type ShardMgmtGlobalState struct {
 	NextShardID uint64 `json:"next_shard_id"`
 }
 
-func (this *shardMgmtGlobalState) Serialize(w io.Writer) error {
+func (this *ShardMgmtGlobalState) Serialize(w io.Writer) error {
 	return serJson(w, this)
 }
 
-func (this *shardMgmtGlobalState) Deserialize(r io.Reader) error {
+func (this *ShardMgmtGlobalState) Deserialize(r io.Reader) error {
 	return desJson(r, this)
 }
 
-type shardConfig struct {
+type ShardConfig struct {
 	Config               []byte         `json:"config"`
 	StakeContractAddress common.Address `json:"stake_contract_address"`
 }
 
-func (this *shardConfig) Serialize(w io.Writer) error {
+func (this *ShardConfig) Serialize(w io.Writer) error {
 	return serJson(w, this)
 }
 
-func (this *shardConfig) Deserialize(r io.Reader) error {
+func (this *ShardConfig) Deserialize(r io.Reader) error {
 	return desJson(r, this)
 }
 
@@ -73,11 +74,11 @@ func setVersion(native *native.NativeService, contract common.Address) error {
 		return fmt.Errorf("failed to serialize version: %s", err)
 	}
 
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_VERSION)), buf.Bytes())
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_VERSION)), cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }
 
-func getGlobalState(native *native.NativeService, contract common.Address) (*shardMgmtGlobalState, error) {
+func getGlobalState(native *native.NativeService, contract common.Address) (*ShardMgmtGlobalState, error) {
 	stateBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)))
 	if err != nil {
 		return nil, fmt.Errorf("get shardmgmt global state: %s", err)
@@ -88,7 +89,7 @@ func getGlobalState(native *native.NativeService, contract common.Address) (*sha
 		return nil, fmt.Errorf("get shardmgmt global state, deserialize from raw storage: %s", err)
 	}
 
-	globalState := &shardMgmtGlobalState{}
+	globalState := &ShardMgmtGlobalState{}
 	if err := globalState.Deserialize(bytes.NewBuffer(value)); err != nil {
 		return nil, fmt.Errorf("get shardgmgmtm global state: deserialize state: %s", err)
 	}
@@ -96,7 +97,7 @@ func getGlobalState(native *native.NativeService, contract common.Address) (*sha
 	return globalState, nil
 }
 
-func setGlobalState(native *native.NativeService, contract common.Address, state *shardMgmtGlobalState) error {
+func setGlobalState(native *native.NativeService, contract common.Address, state *ShardMgmtGlobalState) error {
 	if state == nil {
 		return fmt.Errorf("setGlobalState, nil state")
 	}
@@ -106,27 +107,27 @@ func setGlobalState(native *native.NativeService, contract common.Address, state
 		return fmt.Errorf("serialize shardmgmt global state: %s", err)
 	}
 
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)), buf.Bytes())
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)), cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }
 
-type shardState struct {
+type ShardState struct {
 	ShardID        uint64         `json:"shard_id"`
 	Creator        common.Address `json:"creator"`
 	State          uint32         `json:"state"`
-	Config         *shardConfig   `json:"config"`
+	Config         *ShardConfig   `json:"config"`
 	PeerPubkeyList []string       `json:"peer_pubkey_list"`
 }
 
-func (this *shardState) Serialize(w io.Writer) error {
+func (this *ShardState) Serialize(w io.Writer) error {
 	return serJson(w, this)
 }
 
-func (this *shardState) Deserialize(r io.Reader) error {
+func (this *ShardState) Deserialize(r io.Reader) error {
 	return desJson(r, this)
 }
 
-func getShardState(native *native.NativeService, contract common.Address, shardID uint64) (*shardState, error) {
+func getShardState(native *native.NativeService, contract common.Address, shardID uint64) (*ShardState, error) {
 	shardIDBytes, err := GetUint64Bytes(shardID)
 	if err != nil {
 		return nil, fmt.Errorf("getShardState, serialize shardID: %s", err)
@@ -145,15 +146,15 @@ func getShardState(native *native.NativeService, contract common.Address, shardI
 		return nil, fmt.Errorf("getShardState, deserialize from raw storage: %s", err)
 	}
 
-	state := &shardState{}
+	state := &ShardState{}
 	if err := state.Deserialize(bytes.NewBuffer(value)); err != nil {
-		return nil, fmt.Errorf("getShardState, deserialize shardState: %s", err)
+		return nil, fmt.Errorf("getShardState, deserialize ShardState: %s", err)
 	}
 
 	return state, nil
 }
 
-func setShardState(native *native.NativeService, contract common.Address, state *shardState) error {
+func setShardState(native *native.NativeService, contract common.Address, state *ShardState) error {
 	if state == nil {
 		return fmt.Errorf("setShardState, nil state")
 	}
@@ -168,6 +169,8 @@ func setShardState(native *native.NativeService, contract common.Address, state 
 		return fmt.Errorf("serialize shardstate: %s", err)
 	}
 
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes), buf.Bytes())
+	key := utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes)
+	log.Infof("set shard %d , key %v, state: %s", state.ShardID, key, string(buf.Bytes()))
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }

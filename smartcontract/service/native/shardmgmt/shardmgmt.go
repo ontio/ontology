@@ -24,7 +24,7 @@ const (
 )
 
 func InitShardManagement() {
-	native.Contracts[utils.ParamContractAddress] = RegisterShardMgmtContract
+	native.Contracts[utils.ShardMgmtContractAddress] = RegisterShardMgmtContract
 }
 
 func RegisterShardMgmtContract(native *native.NativeService) {
@@ -53,7 +53,7 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 	// check if shard-mgmt initialized
 	ver, err := getVersion(native, contract)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("")
+		return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt, get version: %s", err)
 	}
 	if ver == 0 {
 		// initialize shardmgmt version
@@ -62,13 +62,13 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		}
 
 		// initialize shard mgmt
-		globalState := &shardMgmtGlobalState{NextShardID: 1}
+		globalState := &ShardMgmtGlobalState{NextShardID: 1}
 		if err := setGlobalState(native, contract, globalState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt global state: %s", err)
 		}
 
 		// initialize shard states
-		mainShardState := &shardState{
+		mainShardState := &ShardState{
 			ShardID: 0,			// shardID of main chain
 			State: SHARD_STATE_ACTIVE,
 		}
@@ -82,12 +82,17 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		// make upgrade
 		return utils.BYTE_FALSE, fmt.Errorf("upgrade TBD")
 	}
-	return utils.BYTE_TRUE, nil
+	return utils.BYTE_FALSE, fmt.Errorf("version downgrade from %d to %d", ver, VERSION_CONTRACT_SHARD_MGMT)
 }
 
 func CreateShard(native *native.NativeService) ([]byte, error) {
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid cmd param: %s", err)
+	}
+
 	params := new(CreateShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid param: %s", err)
 	}
 
@@ -101,7 +106,7 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, get global state: %s", err)
 	}
 
-	shard := &shardState{
+	shard := &ShardState{
 		ShardID: globalState.NextShardID,
 		Creator: params.Creator,
 		State:   SHARD_STATE_CREATED,
@@ -128,8 +133,12 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ConfigShard(native *native.NativeService) ([]byte, error) {
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid cmd param: %s", err)
+	}
 	params := new(ConfigShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid param: %s", err)
 	}
 
@@ -146,7 +155,7 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid configurator: %s", err)
 	}
 
-	config := &shardConfig{}
+	config := &ShardConfig{}
 	if err := config.Deserialize(bytes.NewBuffer(params.ConfigTestData)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid config: %s", err)
 	}
