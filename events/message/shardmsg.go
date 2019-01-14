@@ -13,6 +13,6 @@ const (
 )
 
 type ShardSystemEventMsg struct {
-	FromAddress common.Address             `json:"from_address"`
+	FromAddress common.Address               `json:"from_address"`
 	Event       *shardstates.ShardEventState `json:"event"`
 }

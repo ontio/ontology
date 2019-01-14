@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (
@@ -51,5 +52,7 @@ func PushShardEvent(txHash common.Uint256, errcode int64, contract common.Addres
 			FromAddress: contract,
 			Event: shardEvt,
 		})
+	} else {
+		log.Errorf("invalid format for shard mgmt event, contract: %v, hash: %v", contract, txHash)
 	}
 }
