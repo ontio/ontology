@@ -30,11 +30,10 @@ func subscribeShardSystemEvent(handler func(v interface{})) {
 }
 
 func (self *ChainManager) handleShardSystemEvent(msg *message.ShardSystemEventMsg) {
-	switch msg.MsgType {
-	case message.ShardGetGenesisBlockReq:
-	case message.ShardGetGenesisBlockRsp:
-	case message.ShardGetPeerInfoReq:
-	case message.ShardGetPeerInfoRsp:
+	if msg == nil {
+		return
+	}
+	switch msg.Event.EventType {
 	default:
 	}
 }

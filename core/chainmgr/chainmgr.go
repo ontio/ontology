@@ -14,6 +14,8 @@ import (
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/events/message"
 )
 
 const (
@@ -51,6 +53,8 @@ type ChainManager struct {
 
 	parentPid *actor.PID
 	localPid  *actor.PID
+	sub *events.ActorSubscriber
+
 	quitC     chan struct{}
 	quitWg    sync.WaitGroup
 }
@@ -86,7 +90,6 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		chainMgr.Stop()
 		return nil, fmt.Errorf("connect parent shard failed: %s", err)
 	}
-
 	defaultChainManager = chainMgr
 	return defaultChainManager, nil
 }
@@ -108,6 +111,11 @@ func (self *ChainManager) SetP2P(p2p *actor.PID) error {
 	return nil
 }
 
+func (self *ChainManager) SubscribeShardEvent() {
+	self.sub = events.NewActorSubscriber(self.localPid)
+	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
+}
+
 func (self *ChainManager) startRemoteEventbus() {
 	localRemote := fmt.Sprintf("%s:%d", config.DEFAULT_PARENTSHARD_IPADDR, self.ShardPort)
 	remote.Start(localRemote)
@@ -125,6 +133,12 @@ func (self *ChainManager) Receive(context actor.Context) {
 		log.Info("chain mgr actor started")
 	case *actor.Restart:
 		log.Info("chain mgr actor restart")
+	case *message.ShardSystemEventMsg:
+		if msg == nil {
+			return
+		}
+		evt := msg.Event
+		log.Infof("chain mgr received shard system event: ver: %d, type: %d", evt.Version, evt.EventType)
 	case *shardmsg.CrossShardMsg:
 		if msg == nil {
 			return

@@ -321,9 +321,6 @@ func (this *LedgerStoreImp) recoverStore() error {
 		if err != nil {
 			return fmt.Errorf("stateStore.CommitTo height:%d error %s", i, err)
 		}
-		for _, notify := range result.Notify {
-			SaveNotify(this.eventStore, notify.TxHash, notify)
-		}
 	}
 	return nil
 }
@@ -700,6 +697,10 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 
+	for _, notify := range result.Notify {
+		SaveNotify(this.eventStore, notify.TxHash, notify)
+	}
+
 	err := this.stateStore.AddStateMerkleTreeRoot(blockHeight, result.Hash)
 	if err != nil {
 		return fmt.Errorf("AddBlockMerkleTreeRoot error %s", err)
@@ -809,10 +810,6 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	if err != nil {
 		return fmt.Errorf("stateStore.CommitTo height:%d error %s", blockHeight, err)
 	}
-	for _, notify := range result.Notify {
-		SaveNotify(this.eventStore, notify.TxHash, notify)
-	}
-
 	this.setCurrentBlock(blockHeight, blockHash)
 
 	if events.DefActorPublisher != nil {

@@ -191,7 +191,7 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			ContractAddress: contract,
-			States:          []interface{}{eventState},
+			States:          eventState,
 		})
 	return nil
 }
