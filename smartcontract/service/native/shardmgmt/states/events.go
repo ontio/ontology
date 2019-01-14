@@ -1,4 +1,4 @@
-package shardmgmt
+package shardstates
 
 const (
 	EVENT_SHARD_CREATE = iota
@@ -8,37 +8,37 @@ const (
 	EVENT_SHARD_DEPOSIT
 )
 
-type shardEvent interface {
-	getType() uint32
+type ShardMgmtEvent interface {
+	GetType() uint32
 }
 
-type createShardEvent struct {
+type CreateShardEvent struct {
 	ShardID uint64 `json:"shard_id"`
 }
 
-func (evt *createShardEvent) getType() uint32 {
+func (evt *CreateShardEvent) GetType() uint32 {
 	return EVENT_SHARD_CREATE
 }
 
-type configShardEvent struct {
+type ConfigShardEvent struct {
 	ShardID uint64       `json:"shard_id"`
 	Config  *ShardConfig `json:"config"`
 }
 
-func (evt *configShardEvent) getType() uint32 {
+func (evt *ConfigShardEvent) GetType() uint32 {
 	return EVENT_SHARD_CONFIG_UPDATE
 }
 
-type joinShardEvent struct {
+type JoinShardEvent struct {
 	ShardID    uint64 `json:"shard_id"`
 	PeerPubKey string `json:"peer_pub_key"`
 }
 
-func (evt *joinShardEvent) getType() uint32 {
+func (evt *JoinShardEvent) GetType() uint32 {
 	return EVENT_SHARD_PEER_JOIN
 }
 
-type shardEventState struct {
+type ShardEventState struct {
 	Version   uint32 `json:"version"`
 	EventType uint32 `json:"event_type"`
 	Info      []byte `json:"info"`

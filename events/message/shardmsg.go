@@ -1,5 +1,10 @@
 package message
 
+import (
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+)
+
 const (
 	ShardGetGenesisBlockReq = iota
 	ShardGetGenesisBlockRsp
@@ -8,6 +13,6 @@ const (
 )
 
 type ShardSystemEventMsg struct {
-	MsgType    int    `json:"msg_type"`
-	MsgPayload []byte `json:"msg_payload"`
+	FromAddress common.Address             `json:"from_address"`
+	Event       *shardstates.ShardEventState `json:"event"`
 }

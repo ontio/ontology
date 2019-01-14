@@ -260,6 +260,11 @@ func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *ev
 		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 	}
 	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notify)
+	for _, n := range notify.Notify {
+		if n.ContractAddress == utils.ShardMgmtContractAddress {
+			event.PushShardEvent(txHash, 0, n.ContractAddress, n)
+		}
+	}
 	return nil
 }
 

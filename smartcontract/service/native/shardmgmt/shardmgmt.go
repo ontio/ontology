@@ -6,6 +6,10 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const (
@@ -62,15 +66,15 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		}
 
 		// initialize shard mgmt
-		globalState := &ShardMgmtGlobalState{NextShardID: 1}
+		globalState := &shardstates.ShardMgmtGlobalState{NextShardID: 1}
 		if err := setGlobalState(native, contract, globalState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt global state: %s", err)
 		}
 
 		// initialize shard states
-		mainShardState := &ShardState{
+		mainShardState := &shardstates.ShardState{
 			ShardID: 0,			// shardID of main chain
-			State: SHARD_STATE_ACTIVE,
+			State: shardstates.SHARD_STATE_ACTIVE,
 		}
 		if err := setShardState(native, contract, mainShardState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt main shard state: %s", err)
@@ -106,10 +110,10 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, get global state: %s", err)
 	}
 
-	shard := &ShardState{
+	shard := &shardstates.ShardState{
 		ShardID: globalState.NextShardID,
 		Creator: params.Creator,
-		State:   SHARD_STATE_CREATED,
+		State:   shardstates.SHARD_STATE_CREATED,
 	}
 	globalState.NextShardID += 1
 
@@ -124,8 +128,8 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, set shard state: %s", err)
 	}
 
-	evt := &createShardEvent{ShardID: shard.ShardID}
-	if err := addNotification(native, contract, evt); err != nil {
+	evt := &shardstates.CreateShardEvent{ShardID: shard.ShardID}
+	if err := AddNotification(native, contract, evt); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, add notification: %s", err)
 	}
 
@@ -155,7 +159,7 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid configurator: %s", err)
 	}
 
-	config := &ShardConfig{}
+	config := &shardstates.ShardConfig{}
 	if err := config.Deserialize(bytes.NewBuffer(params.ConfigTestData)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid config: %s", err)
 	}
@@ -171,4 +175,23 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 
 func JoinShard(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_FALSE, nil
+}
+
+
+func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {
+	infoBuf := new(bytes.Buffer)
+	if err := shardutil.SerJson(infoBuf, info); err != nil {
+		return fmt.Errorf("addNotification, ser info: %s", err)
+	}
+	eventState := &shardstates.ShardEventState{
+		Version:   VERSION_CONTRACT_SHARD_MGMT,
+		EventType: info.GetType(),
+		Info:      infoBuf.Bytes(),
+	}
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          []interface{}{eventState},
+		})
+	return nil
 }
