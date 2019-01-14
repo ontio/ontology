@@ -5,6 +5,7 @@ import (
 	"io"
 	"github.com/ontio/ontology/common/serialization"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
 type CommonParam struct {
@@ -33,11 +34,11 @@ type CreateShardParam struct {
 }
 
 func (this *CreateShardParam) Serialize(w io.Writer) error {
-	return serJson(w, this)
+	return shardutil.SerJson(w, this)
 }
 
 func (this *CreateShardParam) Deserialize(r io.Reader) error {
-	return desJson(r, this)
+	return shardutil.DesJson(r, this)
 }
 
 type ConfigShardParam struct {
@@ -46,11 +47,11 @@ type ConfigShardParam struct {
 }
 
 func (this *ConfigShardParam) Serialize(w io.Writer) error {
-	return serJson(w, this)
+	return shardutil.SerJson(w, this)
 }
 
 func (this *ConfigShardParam) Deserialize(r io.Reader) error {
-	return desJson(r, this)
+	return shardutil.DesJson(r, this)
 }
 
 type JoinShardParam struct {
@@ -61,9 +62,9 @@ type JoinShardParam struct {
 }
 
 func (this *JoinShardParam) Serialize(w io.Writer) error {
-	return serJson(w, this)
+	return shardutil.SerJson(w, this)
 }
 
 func (this *JoinShardParam) Deserialize(r io.Reader) error {
-	return desJson(r, this)
+	return shardutil.DesJson(r, this)
 }
