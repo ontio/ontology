@@ -1,11 +1,12 @@
 package chainmgr
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/chainmgr/message"
+
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
-	"bytes"
+	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -21,8 +22,8 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 
 	self.Shards[helloMsg.SourceShardID] = &ShardInfo{
 		ShardAddress: sender.Address,
-		Connected: true,
-		Config: cfg,
+		Connected:    true,
+		Config:       cfg,
 	}
 	self.ShardAddrs[sender.Address] = helloMsg.SourceShardID
 
@@ -78,6 +79,7 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.JoinShardEvent) erro
 }
 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
+	// build shard config
 	// start local shard
 	return nil
 }

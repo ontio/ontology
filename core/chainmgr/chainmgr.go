@@ -1,6 +1,7 @@
 package chainmgr
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"reflect"
@@ -8,21 +9,23 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology-eventbus/eventstream"
 	"github.com/ontio/ontology-eventbus/remote"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology-eventbus/eventstream"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"bytes"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology-crypto/keypair"
+	"encoding/hex"
 )
 
 const (
-	LOCAL_SHARDMSG_MAX_PENDING = 64
+	LOCAL_SHARDMSG_MAX_PENDING  = 64
 	REMOTE_SHARDMSG_MAX_PENDING = 64
 	CONNECT_PARENT_TIMEOUT      = 5 * time.Second
 )
@@ -36,8 +39,8 @@ type RemoteMsg struct {
 
 type ShardInfo struct {
 	ShardAddress string
-	Connected bool
-	Config *config.OntologyConfig
+	Connected    bool
+	Config       *config.OntologyConfig
 }
 
 type ChainManager struct {
@@ -47,25 +50,26 @@ type ChainManager struct {
 	ParentShardIPAddress string
 	ParentShardPort      uint
 
-	Shards map[uint64]*ShardInfo
+	Shards     map[uint64]*ShardInfo
 	ShardAddrs map[string]uint64
 
-	account *account.Account
+	account      *account.Account
 	genesisBlock *types.Block
 
+	ledger *ledger.Ledger
 	p2pPid *actor.PID
 
-	localShardMsgC chan *shardstates.ShardEventState
+	localShardMsgC  chan *shardstates.ShardEventState
 	remoteShardMsgC chan *RemoteMsg
-	parentConnWait chan bool
+	parentConnWait  chan bool
 
-	parentPid *actor.PID
-	localPid  *actor.PID
-	sub *events.ActorSubscriber
+	parentPid   *actor.PID
+	localPid    *actor.PID
+	sub         *events.ActorSubscriber
 	endpointSub *eventstream.Subscription
 
-	quitC     chan struct{}
-	quitWg    sync.WaitGroup
+	quitC  chan struct{}
+	quitWg sync.WaitGroup
 }
 
 func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, parentPort uint, acc *account.Account) (*ChainManager, error) {
@@ -103,14 +107,14 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 	}
 
 	chainMgr.endpointSub = eventstream.Subscribe(chainMgr.remoteEndpointEvent).
-		WithPredicate(func (m interface{}) bool {
+		WithPredicate(func(m interface{}) bool {
 			switch m.(type) {
 			case *remote.EndpointTerminatedEvent:
 				return true
 			default:
 				return false
-		}
-	})
+			}
+		})
 
 	defaultChainManager = chainMgr
 	return defaultChainManager, nil
@@ -133,13 +137,40 @@ func (self *ChainManager) SetP2P(p2p *actor.PID) error {
 	return nil
 }
 
-func (self *ChainManager) LoadFromLedger() error {
+func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 	// TODO: get all shards from local ledger
 
+	self.ledger = lgr
 
 	// start listen on local actor
 	self.sub = events.NewActorSubscriber(self.localPid)
 	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
+
+	globalState, err := self.getShardMgmtGlobalState()
+	if err != nil {
+
+	}
+	if globalState == nil {
+		// not initialized from ledger
+		log.Info("chainmgr: shard-mgmt not initialized, skipped loading from ledger")
+		return nil
+	}
+
+	peerPK := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
+
+	for i := uint64(1); i < globalState.NextShardID; i++ {
+		shard, err := self.getShardState(i)
+		if err != nil {
+			log.Errorf("get shard %d failed: %s", i, err)
+		}
+		if shard.State != shardstates.SHARD_STATE_ACTIVE {
+			continue
+		}
+		if _, present := shard.Peers[peerPK]; present {
+			// peer is in the shard
+			// build shard config
+		}
+	}
 
 	return nil
 }
@@ -234,7 +265,14 @@ func (self *ChainManager) run() error {
 				if err := self.onShardPeerJoint(jointEvt); err != nil {
 					log.Errorf("processing join shard event: %s", err)
 				}
-			case shardstates.SHARD_STATE_ACTIVE:
+			case shardstates.EVENT_SHARD_ACTIVATED:
+				evt := &shardstates.ShardActiveEvent{}
+				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
+					log.Errorf("deserialize join shard event: %s", err)
+				}
+				if err := self.onShardActivated(evt); err != nil {
+					log.Errorf("processing join shard event: %s", err)
+				}
 			case shardstates.EVENT_SHARD_PEER_LEAVE:
 			case shardstates.EVENT_SHARD_DEPOSIT:
 			}
@@ -339,9 +377,9 @@ func (self *ChainManager) connectParent() error {
 
 func (self *ChainManager) waitConnectParent(timeout time.Duration) error {
 	select {
-	case <- time.After(timeout):
+	case <-time.After(timeout):
 		return fmt.Errorf("wait parent connection timeout")
-	case connected := <- self.parentConnWait:
+	case connected := <-self.parentConnWait:
 		if connected {
 			return nil
 		}
@@ -374,4 +412,3 @@ func (self *ChainManager) Stop() {
 	close(self.quitC)
 	self.quitWg.Wait()
 }
-

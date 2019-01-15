@@ -13,12 +13,14 @@ import (
 const (
 	VERSION_CONTRACT_SHARD_MGMT = uint32(1)
 
+	MAINCHAIN_SHARDID = uint64(0)
+
 	// function names
-	INIT_NAME         = "init"
-	CREATE_SHARD_NAME = "createShard"
-	CONFIG_SHARD_NAME = "configShard"
-	JOIN_SHARD_NAME   = "joinShard"
-	ACTIVATE_SHARD_NAME   = "activateShard"
+	INIT_NAME           = "init"
+	CREATE_SHARD_NAME   = "createShard"
+	CONFIG_SHARD_NAME   = "configShard"
+	JOIN_SHARD_NAME     = "joinShard"
+	ACTIVATE_SHARD_NAME = "activateShard"
 
 	// key prefix
 	KEY_VERSION      = "version"
@@ -66,14 +68,14 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		}
 
 		// initialize shard mgmt
-		globalState := &shardstates.ShardMgmtGlobalState{NextShardID: 1}
+		globalState := &shardstates.ShardMgmtGlobalState{NextShardID: MAINCHAIN_SHARDID+1}
 		if err := setGlobalState(native, contract, globalState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt global state: %s", err)
 		}
 
 		// initialize shard states
 		mainShardState := &shardstates.ShardState{
-			ShardID: 0, // shardID of main chain
+			ShardID: MAINCHAIN_SHARDID,
 			State:   shardstates.SHARD_STATE_ACTIVE,
 		}
 		if err := setShardState(native, contract, mainShardState); err != nil {
@@ -99,6 +101,9 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid param: %s", err)
 	}
+	if params.ParentShardID != MAINCHAIN_SHARDID {
+		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid parent shard: %d", params.ParentShardID)
+	}
 
 	if err := utils.ValidateOwner(native, params.Creator); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid creator: %s", err)
@@ -114,7 +119,7 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		ShardID: globalState.NextShardID,
 		Creator: params.Creator,
 		State:   shardstates.SHARD_STATE_CREATED,
-		Peers:  make(map[string]*shardstates.PeerShardStakeInfo),
+		Peers:   make(map[string]*shardstates.PeerShardStakeInfo),
 	}
 	globalState.NextShardID += 1
 
@@ -166,9 +171,9 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 
 	// TODO: validate input config
 	shard.Config = &shardstates.ShardConfig{
-		NetworkSize: params.NetworkMin,
+		NetworkSize:          params.NetworkMin,
 		StakeContractAddress: params.StakeContractAddr,
-		TestData: params.ConfigTestData,
+		TestData:             params.ConfigTestData,
 	}
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
@@ -207,6 +212,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
 			PeerOwner:   params.PeerOwner,
+			PeerAddress: params.PeerAddress,
 			StakeAmount: params.StakeAmount,
 		}
 		if shard.Peers == nil {

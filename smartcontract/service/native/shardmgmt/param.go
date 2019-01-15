@@ -59,6 +59,7 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 type JoinShardParam struct {
 	ShardID     uint64         `json:"shard_id"`
 	PeerOwner   common.Address `json:"peer_owner"`
+	PeerAddress string         `json:"peer_address"`
 	PeerPubKey  string         `json:"peer_pub_key"`
 	StakeAmount uint64         `json:"stake_amount"`
 }
@@ -72,7 +73,7 @@ func (this *JoinShardParam) Deserialize(r io.Reader) error {
 }
 
 type ActivateShardParam struct {
-	ShardID     uint64         `json:"shard_id"`
+	ShardID uint64 `json:"shard_id"`
 }
 
 func (this *ActivateShardParam) Serialize(w io.Writer) error {
