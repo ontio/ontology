@@ -68,7 +68,7 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		}
 
 		// initialize shard mgmt
-		globalState := &shardstates.ShardMgmtGlobalState{NextShardID: MAINCHAIN_SHARDID+1}
+		globalState := &shardstates.ShardMgmtGlobalState{NextShardID: MAINCHAIN_SHARDID + 1}
 		if err := setGlobalState(native, contract, globalState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt global state: %s", err)
 		}
@@ -110,6 +110,10 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("create shard, check version: %s", err)
+	}
+
 	globalState, err := getGlobalState(native, contract)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, get global state: %s", err)
@@ -153,7 +157,11 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	shard, err := getShardState(native, contract, params.ShardID)
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, check version: %s", err)
+	}
+
+	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, get shard: %s", err)
 	}
@@ -169,11 +177,20 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid shard network size")
 	}
 
+	// TODO: support other stake
+	if params.StakeAssetAddress.ToHexString() != utils.OntContractAddress.ToHexString() {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, only support ONT staking")
+	}
+	if params.GasAssetAddress.ToHexString() != utils.OngContractAddress.ToHexString() {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, only support ONG gas")
+	}
+
 	// TODO: validate input config
 	shard.Config = &shardstates.ShardConfig{
-		NetworkSize:          params.NetworkMin,
-		StakeContractAddress: params.StakeContractAddr,
-		TestData:             params.ConfigTestData,
+		NetworkSize:       params.NetworkMin,
+		StakeAssetAddress: params.StakeAssetAddress,
+		GasAssetAddress:   params.GasAssetAddress,
+		TestData:          params.ConfigTestData,
 	}
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
@@ -195,11 +212,15 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	if err := utils.ValidateOwner(native, params.PeerOwner); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid configurator: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid configurator: %s", err)
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	shard, err := getShardState(native, contract, params.ShardID)
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, check version: %s", err)
+	}
+
+	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, get shard: %s", err)
 	}
@@ -239,7 +260,11 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	shard, err := getShardState(native, contract, params.ShardID)
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("activate shard, check version: %s", err)
+	}
+
+	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("activate shard, get shard: %s", err)
 	}

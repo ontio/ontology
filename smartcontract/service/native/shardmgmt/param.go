@@ -44,7 +44,8 @@ func (this *CreateShardParam) Deserialize(r io.Reader) error {
 type ConfigShardParam struct {
 	ShardID           uint64         `json:"shard_id"`
 	NetworkMin        uint32         `json:"network_min"`
-	StakeContractAddr common.Address `json:"stake_contract_addr"`
+	StakeAssetAddress common.Address `json:"stake_asset_address"`
+	GasAssetAddress   common.Address `json:"gas_asset_address"`
 	ConfigTestData    []byte         `json:"config_test_data"`
 }
 
