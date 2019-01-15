@@ -17,7 +17,7 @@ func NewShardHelloMsg(localShard, targetShard uint64, sender *actor.PID) (*Cross
 	}
 
 	return &CrossShardMsg{
-		Version: SHARD_MSG_VERSION,
+		Version: SHARD_PROTOCOL_VERSION,
 		Type:    HELLO_MSG,
 		Sender:  sender,
 		Data:    payload,
@@ -35,7 +35,7 @@ func NewShardConfigMsg(accPayload []byte, configPayload []byte, sender *actor.PI
 	}
 
 	return &CrossShardMsg{
-		Version: SHARD_MSG_VERSION,
+		Version: SHARD_PROTOCOL_VERSION,
 		Type:    CONFIG_MSG,
 		Sender:  sender,
 		Data:    payload,

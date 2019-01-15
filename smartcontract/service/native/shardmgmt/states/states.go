@@ -40,12 +40,17 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
+type PeerShardStakeInfo struct {
+	PeerOwner   common.Address `json:"peer_owner"`
+	StakeAmount uint64         `json:"stake_amount"`
+}
+
 type ShardState struct {
-	ShardID        uint64         `json:"shard_id"`
-	Creator        common.Address `json:"creator"`
-	State          uint32         `json:"state"`
-	Config         *ShardConfig   `json:"config"`
-	PeerPubkeyList []string       `json:"peer_pubkey_list"`
+	ShardID uint64                         `json:"shard_id"`
+	Creator common.Address                 `json:"creator"`
+	State   uint32                         `json:"state"`
+	Config  *ShardConfig                   `json:"config"`
+	Peers   map[string]*PeerShardStakeInfo `json:"peers"`
 }
 
 func (this *ShardState) Serialize(w io.Writer) error {
@@ -55,4 +60,3 @@ func (this *ShardState) Serialize(w io.Writer) error {
 func (this *ShardState) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
-
