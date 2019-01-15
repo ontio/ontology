@@ -28,8 +28,9 @@ func (this *ShardMgmtGlobalState) Deserialize(r io.Reader) error {
 }
 
 type ShardConfig struct {
-	Config               []byte         `json:"config"`
+	NetworkSize          uint32         `json:"network_size"`
 	StakeContractAddress common.Address `json:"stake_contract_address"`
+	TestData             []byte         `json:"test_data"`
 }
 
 func (this *ShardConfig) Serialize(w io.Writer) error {

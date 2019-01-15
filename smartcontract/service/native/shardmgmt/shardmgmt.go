@@ -3,10 +3,11 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const (
@@ -17,6 +18,7 @@ const (
 	CREATE_SHARD_NAME = "createShard"
 	CONFIG_SHARD_NAME = "configShard"
 	JOIN_SHARD_NAME   = "joinShard"
+	ACTIVATE_SHARD_NAME   = "activateShard"
 
 	// key prefix
 	KEY_VERSION      = "version"
@@ -33,6 +35,7 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(CREATE_SHARD_NAME, CreateShard)
 	native.Register(CONFIG_SHARD_NAME, ConfigShard)
 	native.Register(JOIN_SHARD_NAME, JoinShard)
+	native.Register(ACTIVATE_SHARD_NAME, ActivateShard)
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -70,8 +73,8 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 
 		// initialize shard states
 		mainShardState := &shardstates.ShardState{
-			ShardID: 0,			// shardID of main chain
-			State: shardstates.SHARD_STATE_ACTIVE,
+			ShardID: 0, // shardID of main chain
+			State:   shardstates.SHARD_STATE_ACTIVE,
 		}
 		if err := setShardState(native, contract, mainShardState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt main shard state: %s", err)
@@ -111,6 +114,7 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		ShardID: globalState.NextShardID,
 		Creator: params.Creator,
 		State:   shardstates.SHARD_STATE_CREATED,
+		Peers:  make(map[string]*shardstates.PeerShardStakeInfo),
 	}
 	globalState.NextShardID += 1
 
@@ -156,13 +160,18 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid configurator: %s", err)
 	}
 
-	config := &shardstates.ShardConfig{}
-	if err := config.Deserialize(bytes.NewBuffer(params.ConfigTestData)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid config: %s", err)
+	if params.NetworkMin < 1 {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid shard network size")
 	}
-	// TODO: validate input config
 
-	shard.Config = config
+	// TODO: validate input config
+	shard.Config = &shardstates.ShardConfig{
+		NetworkSize: params.NetworkMin,
+		StakeContractAddress: params.StakeContractAddr,
+		TestData: params.ConfigTestData,
+	}
+	shard.State = shardstates.SHARD_STATE_CONFIGURED
+
 	if err := setShardState(native, contract, shard); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
 	}
@@ -197,8 +206,11 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, peer already in shard")
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
-			PeerOwner: params.PeerOwner,
+			PeerOwner:   params.PeerOwner,
 			StakeAmount: params.StakeAmount,
+		}
+		if shard.Peers == nil {
+			shard.Peers = make(map[string]*shardstates.PeerShardStakeInfo)
 		}
 		shard.Peers[params.PeerPubKey] = peerStakeInfo
 	}
@@ -210,4 +222,47 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func ActivateShard(native *native.NativeService) ([]byte, error) {
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid cmd param: %s", err)
+	}
+	params := new(ActivateShardParam)
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid param: %s", err)
+	}
 
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	shard, err := getShardState(native, contract, params.ShardID)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("activate shard, get shard: %s", err)
+	}
+	if shard == nil {
+		return utils.BYTE_FALSE, fmt.Errorf("activate shard, get nil shard %d", params.ShardID)
+	}
+
+	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid configurator: %s", err)
+	}
+	if shard.State != shardstates.SHARD_STATE_CONFIGURED {
+		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid shard state: %d", shard.State)
+	}
+
+	// TODO: validate input config
+	if uint32(len(shard.Peers)) < shard.Config.NetworkSize {
+		return utils.BYTE_FALSE, fmt.Errorf("activae shard, not enough peer: %d vs %d",
+			len(shard.Peers), shard.Config.NetworkSize)
+	}
+
+	shard.State = shardstates.SHARD_STATE_ACTIVE
+	if err := setShardState(native, contract, shard); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
+	}
+
+	evt := &shardstates.ShardActiveEvent{ShardID: shard.ShardID}
+	if err := AddNotification(native, contract, evt); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("create shard, add notification: %s", err)
+	}
+
+	return utils.BYTE_TRUE, nil
+}
