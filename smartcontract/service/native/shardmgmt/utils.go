@@ -47,6 +47,14 @@ func setVersion(native *native.NativeService, contract common.Address) error {
 	return nil
 }
 
+func checkVersion(native *native.NativeService, contract common.Address) (bool, error) {
+	ver, err := getVersion(native, contract)
+	if err != nil {
+		return false, err
+	}
+	return ver == VERSION_CONTRACT_SHARD_MGMT, nil
+}
+
 func getGlobalState(native *native.NativeService, contract common.Address) (*shardstates.ShardMgmtGlobalState, error) {
 	stateBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)))
 	if err != nil {
@@ -80,7 +88,7 @@ func setGlobalState(native *native.NativeService, contract common.Address, state
 	return nil
 }
 
-func getShardState(native *native.NativeService, contract common.Address, shardID uint64) (*shardstates.ShardState, error) {
+func GetShardState(native *native.NativeService, contract common.Address, shardID uint64) (*shardstates.ShardState, error) {
 	shardIDBytes, err := shardutil.GetUint64Bytes(shardID)
 	if err != nil {
 		return nil, fmt.Errorf("getShardState, serialize shardID: %s", err)
