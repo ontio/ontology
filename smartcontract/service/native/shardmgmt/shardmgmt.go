@@ -6,9 +6,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
-	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -174,24 +171,43 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 }
 
 func JoinShard(native *native.NativeService) ([]byte, error) {
-	return utils.BYTE_FALSE, nil
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
+	}
+	params := new(JoinShardParam)
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid param: %s", err)
+	}
+
+	if err := utils.ValidateOwner(native, params.PeerOwner); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid configurator: %s", err)
+	}
+
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	shard, err := getShardState(native, contract, params.ShardID)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, get shard: %s", err)
+	}
+	if shard == nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, get nil shard %d", params.ShardID)
+	}
+
+	if _, present := shard.Peers[params.PeerPubKey]; present {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, peer already in shard")
+	} else {
+		peerStakeInfo := &shardstates.PeerShardStakeInfo{
+			PeerOwner: params.PeerOwner,
+			StakeAmount: params.StakeAmount,
+		}
+		shard.Peers[params.PeerPubKey] = peerStakeInfo
+	}
+
+	if err := setShardState(native, contract, shard); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, update shard state: %s", err)
+	}
+
+	return utils.BYTE_TRUE, nil
 }
 
 
-func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {
-	infoBuf := new(bytes.Buffer)
-	if err := shardutil.SerJson(infoBuf, info); err != nil {
-		return fmt.Errorf("addNotification, ser info: %s", err)
-	}
-	eventState := &shardstates.ShardEventState{
-		Version:   VERSION_CONTRACT_SHARD_MGMT,
-		EventType: info.GetType(),
-		Info:      infoBuf.Bytes(),
-	}
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			ContractAddress: contract,
-			States:          eventState,
-		})
-	return nil
-}

@@ -16,9 +16,13 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology-eventbus/eventstream"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"bytes"
 )
 
 const (
+	LOCAL_SHARDMSG_MAX_PENDING = 64
 	REMOTE_SHARDMSG_MAX_PENDING = 64
 	CONNECT_PARENT_TIMEOUT      = 5 * time.Second
 )
@@ -31,6 +35,8 @@ type RemoteMsg struct {
 }
 
 type ShardInfo struct {
+	ShardAddress string
+	Connected bool
 	Config *config.OntologyConfig
 }
 
@@ -42,18 +48,21 @@ type ChainManager struct {
 	ParentShardPort      uint
 
 	Shards map[uint64]*ShardInfo
+	ShardAddrs map[string]uint64
 
 	account *account.Account
 	genesisBlock *types.Block
 
 	p2pPid *actor.PID
 
+	localShardMsgC chan *shardstates.ShardEventState
 	remoteShardMsgC chan *RemoteMsg
 	parentConnWait chan bool
 
 	parentPid *actor.PID
 	localPid  *actor.PID
 	sub *events.ActorSubscriber
+	endpointSub *eventstream.Subscription
 
 	quitC     chan struct{}
 	quitWg    sync.WaitGroup
@@ -71,6 +80,8 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		ParentShardIPAddress: parentAddr,
 		ParentShardPort:      parentPort,
 		Shards:               make(map[uint64]*ShardInfo),
+		ShardAddrs:           make(map[string]uint64),
+		localShardMsgC:       make(chan *shardstates.ShardEventState, LOCAL_SHARDMSG_MAX_PENDING),
 		remoteShardMsgC:      make(chan *RemoteMsg, REMOTE_SHARDMSG_MAX_PENDING),
 		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
@@ -90,6 +101,17 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		chainMgr.Stop()
 		return nil, fmt.Errorf("connect parent shard failed: %s", err)
 	}
+
+	chainMgr.endpointSub = eventstream.Subscribe(chainMgr.remoteEndpointEvent).
+		WithPredicate(func (m interface{}) bool {
+			switch m.(type) {
+			case *remote.EndpointTerminatedEvent:
+				return true
+			default:
+				return false
+		}
+	})
+
 	defaultChainManager = chainMgr
 	return defaultChainManager, nil
 }
@@ -111,9 +133,15 @@ func (self *ChainManager) SetP2P(p2p *actor.PID) error {
 	return nil
 }
 
-func (self *ChainManager) SubscribeShardEvent() {
+func (self *ChainManager) LoadFromLedger() error {
+	// TODO: get all shards from local ledger
+
+
+	// start listen on local actor
 	self.sub = events.NewActorSubscriber(self.localPid)
 	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
+
+	return nil
 }
 
 func (self *ChainManager) startRemoteEventbus() {
@@ -139,6 +167,7 @@ func (self *ChainManager) Receive(context actor.Context) {
 		}
 		evt := msg.Event
 		log.Infof("chain mgr received shard system event: ver: %d, type: %d", evt.Version, evt.EventType)
+		self.localShardMsgC <- evt
 	case *shardmsg.CrossShardMsg:
 		if msg == nil {
 			return
@@ -159,6 +188,19 @@ func (self *ChainManager) Receive(context actor.Context) {
 	}
 }
 
+func (self *ChainManager) remoteEndpointEvent(evt interface{}) {
+	switch evt := evt.(type) {
+	case *remote.EndpointTerminatedEvent:
+		self.remoteShardMsgC <- &RemoteMsg{
+			Msg: &shardmsg.ShardDisconnectedMsg{
+				Address: evt.Address,
+			},
+		}
+	default:
+		return
+	}
+}
+
 func (self *ChainManager) run() error {
 
 	self.quitWg.Add(1)
@@ -166,6 +208,37 @@ func (self *ChainManager) run() error {
 
 	for {
 		select {
+		case shardEvt := <-self.localShardMsgC:
+			switch shardEvt.EventType {
+			case shardstates.EVENT_SHARD_CREATE:
+				createEvt := &shardstates.CreateShardEvent{}
+				if err := createEvt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
+					log.Errorf("deserialize create shard event: %s", err)
+				}
+				if err := self.onShardCreated(createEvt); err != nil {
+					log.Errorf("processing create shard event: %s", err)
+				}
+			case shardstates.EVENT_SHARD_CONFIG_UPDATE:
+				cfgEvt := &shardstates.ConfigShardEvent{}
+				if err := cfgEvt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
+					log.Errorf("deserialize create shard event: %s", err)
+				}
+				if err := self.onShardConfigured(cfgEvt); err != nil {
+					log.Errorf("processing create shard event: %s", err)
+				}
+			case shardstates.EVENT_SHARD_PEER_JOIN:
+				jointEvt := &shardstates.JoinShardEvent{}
+				if err := jointEvt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
+					log.Errorf("deserialize join shard event: %s", err)
+				}
+				if err := self.onShardPeerJoint(jointEvt); err != nil {
+					log.Errorf("processing join shard event: %s", err)
+				}
+			case shardstates.SHARD_STATE_ACTIVE:
+			case shardstates.EVENT_SHARD_PEER_LEAVE:
+			case shardstates.EVENT_SHARD_DEPOSIT:
+			}
+			break
 		case <-self.quitC:
 			return nil
 		}
@@ -210,45 +283,25 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			}
 			log.Infof(">>>>>> received hello msg from %d", helloMsg.SourceShardID)
 			// response ack
-			accPayload, err := serializeShardAccount(self.account)
-			if err != nil {
-				return err
-			}
-			configPayload, err := self.buildShardConfig(helloMsg.SourceShardID)
-			if err != nil {
-				return err
-			}
-			ackMsg, err := shardmsg.NewShardConfigMsg(accPayload, configPayload, self.localPid)
-			if err != nil {
-				return fmt.Errorf("construct config to shard %d: %s", helloMsg.SourceShardID, err)
-			}
-			remoteMsg.Sender.Tell(ackMsg)
-			return nil
+			return self.onNewShardConnected(remoteMsg.Sender, helloMsg)
 		case shardmsg.CONFIG_MSG:
 			shardCfgMsg, ok := msg.(*shardmsg.ShardConfigMsg)
 			if !ok {
 				return fmt.Errorf("invalid config msg")
 			}
 			log.Infof(">>>>>> shard %d received config msg", self.ShardID)
-			acc, err := deserializeShardAccount(shardCfgMsg.Account)
-			if err != nil {
-				return fmt.Errorf("unmarshal account: %s", err)
-			}
-			config, err := deserializeShardConfig(shardCfgMsg.Config)
-			if err != nil {
-				return fmt.Errorf("unmarshal shard config: %s", err)
-			}
-			self.account = acc
-			if err := self.addShardConfig(config.Shard.ShardID, config); err != nil {
-				return fmt.Errorf("add shard %d config: %s", config.Shard.ShardID, err)
-			}
-			self.notifyParentConnected()
-			return nil
+			return self.onShardConfigRequest(remoteMsg.Sender, shardCfgMsg)
 		case shardmsg.BLOCK_REQ_MSG:
 		case shardmsg.BLOCK_RSP_MSG:
 		case shardmsg.PEERINFO_REQ_MSG:
 		case shardmsg.PEERINFO_RSP_MSG:
 			return nil
+		case shardmsg.DISCONNECTED_MSG:
+			disconnMsg, ok := msg.(*shardmsg.ShardDisconnectedMsg)
+			if !ok {
+				return fmt.Errorf("invalid disconnect message")
+			}
+			return self.onShardDisconnected(disconnMsg)
 		default:
 			return nil
 		}
@@ -322,16 +375,3 @@ func (self *ChainManager) Stop() {
 	self.quitWg.Wait()
 }
 
-func (self *ChainManager) GetShardConfig(shardID uint64) *config.OntologyConfig {
-	if s := self.Shards[shardID]; s != nil {
-		return s.Config
-	}
-	return nil
-}
-
-func (self *ChainManager) addShardConfig(shardID uint64, cfg *config.OntologyConfig) error {
-	self.Shards[shardID] = &ShardInfo{
-		Config: cfg,
-	}
-	return nil
-}

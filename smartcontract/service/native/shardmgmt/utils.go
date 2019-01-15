@@ -2,15 +2,17 @@ package shardmgmt
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	cstates "github.com/ontio/ontology/core/states"
 	"fmt"
+
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
+	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -123,5 +125,23 @@ func setShardState(native *native.NativeService, contract common.Address, state 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes)
 	log.Infof("set shard %d , key %v, state: %s", state.ShardID, key, string(buf.Bytes()))
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
+	return nil
+}
+
+func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {
+	infoBuf := new(bytes.Buffer)
+	if err := shardutil.SerJson(infoBuf, info); err != nil {
+		return fmt.Errorf("addNotification, ser info: %s", err)
+	}
+	eventState := &shardstates.ShardEventState{
+		Version:   VERSION_CONTRACT_SHARD_MGMT,
+		EventType: info.GetType(),
+		Info:      infoBuf.Bytes(),
+	}
+	native.Notifications = append(native.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contract,
+			States:          eventState,
+		})
 	return nil
 }

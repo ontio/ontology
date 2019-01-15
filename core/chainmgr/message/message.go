@@ -1,4 +1,3 @@
-
 package message
 
 import (
@@ -7,7 +6,7 @@ import (
 )
 
 const (
-	SHARD_MSG_VERSION = 1
+	SHARD_PROTOCOL_VERSION = 1
 )
 
 const (
@@ -17,6 +16,8 @@ const (
 	BLOCK_RSP_MSG
 	PEERINFO_REQ_MSG
 	PEERINFO_RSP_MSG
+
+	DISCONNECTED_MSG
 )
 
 type RemoteShardMsg interface {
@@ -34,7 +35,10 @@ func (msg *ShardHelloMsg) Type() int {
 
 type ShardConfigMsg struct {
 	Account []byte `json:"account"`
-	Config []byte `json:"config"`
+	Config  []byte `json:"config"`
+
+	// peer pk : ip-addr/port, (query ip-addr from p2p)
+	// genesis config
 }
 
 func (msg *ShardConfigMsg) Type() int {
@@ -50,7 +54,8 @@ func (msg *ShardGetGenesisBlockReqMsg) Type() int {
 }
 
 type ShardGetGenesisBlockRspMsg struct {
-
+	ShardID       uint64 `json:"shard_id"`
+	GenesisConfig []byte `json:"genesis_config"`
 }
 
 func (msg *ShardGetGenesisBlockRspMsg) Type() int {
@@ -58,7 +63,7 @@ func (msg *ShardGetGenesisBlockRspMsg) Type() int {
 }
 
 type ShardGetPeerInfoReqMsg struct {
-
+	PeerPubKey []byte `json:"peer_pub_key"`
 }
 
 func (msg *ShardGetPeerInfoReqMsg) Type() int {
@@ -66,11 +71,20 @@ func (msg *ShardGetPeerInfoReqMsg) Type() int {
 }
 
 type ShardGetPeerInfoRspMsg struct {
-
+	PeerPubKey  []byte `json:"peer_pub_key"`
+	PeerAddress string `json:"peer_address"`
 }
 
 func (msg *ShardGetPeerInfoRspMsg) Type() int {
 	return PEERINFO_RSP_MSG
+}
+
+type ShardDisconnectedMsg struct {
+	Address string `json:"address"`
+}
+
+func (msg *ShardDisconnectedMsg) Type() int {
+	return DISCONNECTED_MSG
 }
 
 func Decode(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {

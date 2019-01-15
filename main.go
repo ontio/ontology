@@ -189,7 +189,10 @@ func startMainChain(ctx *cli.Context) {
 	}
 	defer ldg.Close()
 
-	chainmgr.SubscribeShardEvent()
+	if err := chainmgr.LoadFromLedger(); err != nil {
+		log.Errorf("load chain mgr from ledger: %s", err)
+		return
+	}
 
 	txpool, err := initTxPool(ctx)
 	if err != nil {
