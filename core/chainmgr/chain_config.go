@@ -12,6 +12,11 @@ func (self *ChainManager) buildShardConfig(shardID uint64) (*config.OntologyConf
 		return cfg, nil
 	}
 
+	shardState, err := self.getShardState(shardID)
+	if err != nil {
+		return nil, fmt.Errorf("get shardmgmt state: %s", err)
+	}
+
 	// check if shardID is in children
 	buf := new(bytes.Buffer)
 	if err := config.DefConfig.Serialize(buf); err != nil {
@@ -22,6 +27,19 @@ func (self *ChainManager) buildShardConfig(shardID uint64) (*config.OntologyConf
 	if err := shardConfig.Deserialize(buf); err != nil {
 		return nil, fmt.Errorf("init child config: %s", err)
 	}
+
+	// FIXME: solo only
+	if shardConfig.Genesis.ConsensusType != config.CONSENSUS_TYPE_SOLO {
+		return nil, fmt.Errorf("only solo suppported")
+	}
+	seedlist := make([]string, 0)
+	bookkeepers := make([]string, 0)
+	for peerPK, info := range shardState.Peers {
+		seedlist = append(seedlist, info.PeerAddress)
+		bookkeepers = append(bookkeepers, peerPK)
+	}
+	shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
+	shardConfig.Genesis.SeedList = seedlist
 
 	// TODO: init config for shard $shardID, including genesis config, data dir, net port, etc
 	shardName := GetShardName(shardID)

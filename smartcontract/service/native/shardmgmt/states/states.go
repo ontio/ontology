@@ -43,6 +43,7 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 
 type PeerShardStakeInfo struct {
 	PeerOwner   common.Address `json:"peer_owner"`
+	PeerAddress string         `json:"peer_address"`
 	StakeAmount uint64         `json:"stake_amount"`
 }
 
