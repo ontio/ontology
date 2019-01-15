@@ -1,11 +1,11 @@
 package shardmgmt
 
 import (
-	"github.com/ontio/ontology/common"
-	"io"
-	"github.com/ontio/ontology/common/serialization"
 	"fmt"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"io"
 )
 
 type CommonParam struct {
@@ -42,8 +42,10 @@ func (this *CreateShardParam) Deserialize(r io.Reader) error {
 }
 
 type ConfigShardParam struct {
-	ShardID        uint64 `json:"shard_id"`
-	ConfigTestData []byte `json:"config_test_data"`
+	ShardID           uint64         `json:"shard_id"`
+	NetworkMin        uint32         `json:"network_min"`
+	StakeContractAddr common.Address `json:"stake_contract_addr"`
+	ConfigTestData    []byte         `json:"config_test_data"`
 }
 
 func (this *ConfigShardParam) Serialize(w io.Writer) error {
@@ -66,5 +68,17 @@ func (this *JoinShardParam) Serialize(w io.Writer) error {
 }
 
 func (this *JoinShardParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+type ActivateShardParam struct {
+	ShardID     uint64         `json:"shard_id"`
+}
+
+func (this *ActivateShardParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *ActivateShardParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
