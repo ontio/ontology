@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"io"
 )
 
 const (
@@ -28,11 +29,10 @@ type ShardBlockInfo struct {
 	Events      []*shardstates.ShardEventState `json:"events"`
 }
 
-type ShardBlockMap map[uint64]*ShardBlockInfo // indexed by BlockHeight
-
 type shardBlkHdrHelper struct {
 	Payload []byte `json:"payload"`
 }
+
 func (this *ShardBlockHeader) MarshalJSON() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := this.Header.Serialize(buf); err != nil {
@@ -67,11 +67,70 @@ func (this *ShardBlockInfo) Deserialize(r io.Reader) error {
 	return DesJson(r, this)
 }
 
-//////
+////////////////////////////////////
+//
+//  shard block pool
+//
+////////////////////////////////////
+
+type ShardBlockMap map[uint64]*ShardBlockInfo // indexed by BlockHeight
+
+type ShardBlockPool struct {
+	Shards      map[uint64]ShardBlockMap // indexed by shardID
+	MaxBlockCap uint32
+}
+
+func NewShardBlockPool(historyCap uint32) *ShardBlockPool {
+	return &ShardBlockPool{
+		Shards:      make(map[uint64]ShardBlockMap),
+		MaxBlockCap: historyCap,
+	}
+}
+
+func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
+	if _, present := pool.Shards[blkInfo.ShardID]; !present {
+		pool.Shards[blkInfo.ShardID] = make(ShardBlockMap)
+	}
+
+	m := pool.Shards[blkInfo.ShardID]
+	if m == nil {
+		return fmt.Errorf("add shard block, nil map")
+	}
+	if _, present := m[blkInfo.BlockHeight]; present {
+		return fmt.Errorf("add shard block, dup blk")
+	}
+
+	m[blkInfo.BlockHeight] = blkInfo
+
+	// if too much block cached in map, drop old blocks
+	if uint32(len(m)) < pool.MaxBlockCap {
+		return nil
+	}
+	h := blkInfo.BlockHeight
+	for _, blk := range m {
+		if blk.BlockHeight > h {
+			h = blk.BlockHeight
+		}
+	}
+
+	toDrop := make([]uint64, 0)
+	for _, blk := range m {
+		if blk.BlockHeight < h - uint64(pool.MaxBlockCap) {
+			toDrop = append(toDrop, blk.BlockHeight)
+		}
+	}
+	for _, blkHeight := range toDrop {
+		delete(m, blkHeight)
+	}
+
+	return nil
+}
+
+////////////////////////////////////
 //
 //  json helpers
 //
-//////
+////////////////////////////////////
 
 func SerJson(w io.Writer, v interface{}) error {
 	buf, err := json.Marshal(v)

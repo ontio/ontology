@@ -26,9 +26,10 @@ import (
 )
 
 const (
-	LOCAL_SHARDMSG_MAX_PENDING  = 64
-	REMOTE_SHARDMSG_MAX_PENDING = 64
-	CONNECT_PARENT_TIMEOUT      = 5 * time.Second
+	CAP_LOCAL_SHARDMSG_CHNL  = 64
+	CAP_REMOTE_SHARDMSG_CHNL = 64
+	CAP_SHARD_BLOCK_POOL     = 16
+	CONNECT_PARENT_TIMEOUT   = 5 * time.Second
 )
 
 var defaultChainManager *ChainManager = nil
@@ -46,16 +47,16 @@ type ShardInfo struct {
 }
 
 type ChainManager struct {
-	ShardID              uint64
-	ShardPort            uint
-	ParentShardID        uint64
-	ParentShardIPAddress string
-	ParentShardPort      uint
+	shardID              uint64
+	shardPort            uint
+	parentShardID        uint64
+	parentShardIPAddress string
+	parentShardPort      uint
 
-	Lock        sync.RWMutex
-	Shards      map[uint64]*ShardInfo
-	ShardAddrs  map[string]uint64
-	ShardBlocks map[uint64]shardmsg.ShardBlockMap // indexed by shardID
+	lock       sync.RWMutex
+	shards     map[uint64]*ShardInfo
+	shardAddrs map[string]uint64
+	blockPool  *shardmsg.ShardBlockPool
 
 	account      *account.Account
 	genesisBlock *types.Block
@@ -81,21 +82,27 @@ type ChainManager struct {
 func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, parentPort uint, acc *account.Account) (*ChainManager, error) {
 	// fixme: change to sync.once
 	if defaultChainManager != nil {
-		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.ShardID)
+		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
 	}
+
+	blkPool := shardmsg.NewShardBlockPool(CAP_SHARD_BLOCK_POOL)
+	if blkPool == nil {
+		return nil, fmt.Errorf("chainmgr init: failed to init block pool")
+	}
+
 	chainMgr := &ChainManager{
-		ShardID:              shardID,
-		ShardPort:            shardPort,
-		ParentShardID:        parentShardID,
-		ParentShardIPAddress: parentAddr,
-		ParentShardPort:      parentPort,
-		Shards:               make(map[uint64]*ShardInfo),
-		ShardAddrs:           make(map[string]uint64),
-		ShardBlocks:          make(map[uint64]shardmsg.ShardBlockMap),
-		localBlockMsgC:       make(chan *types.Block, LOCAL_SHARDMSG_MAX_PENDING),
-		localShardMsgC:       make(chan *shardstates.ShardEventState, LOCAL_SHARDMSG_MAX_PENDING),
-		remoteShardMsgC:      make(chan *RemoteMsg, REMOTE_SHARDMSG_MAX_PENDING),
-		broadcastMsgC:        make(chan *shardmsg.CrossShardMsg, REMOTE_SHARDMSG_MAX_PENDING),
+		shardID:              shardID,
+		shardPort:            shardPort,
+		parentShardID:        parentShardID,
+		parentShardIPAddress: parentAddr,
+		parentShardPort:      parentPort,
+		shards:               make(map[uint64]*ShardInfo),
+		shardAddrs:           make(map[string]uint64),
+		blockPool:            blkPool,
+		localBlockMsgC:       make(chan *types.Block, CAP_LOCAL_SHARDMSG_CHNL),
+		localShardMsgC:       make(chan *shardstates.ShardEventState, CAP_LOCAL_SHARDMSG_CHNL),
+		remoteShardMsgC:      make(chan *RemoteMsg, CAP_REMOTE_SHARDMSG_CHNL),
+		broadcastMsgC:        make(chan *shardmsg.CrossShardMsg, CAP_REMOTE_SHARDMSG_CHNL),
 		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
 
@@ -104,7 +111,7 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 
 	chainMgr.startRemoteEventbus()
 	if err := chainMgr.startListener(); err != nil {
-		return nil, fmt.Errorf("shard %d start listener failed: %s", chainMgr.ShardID, err)
+		return nil, fmt.Errorf("shard %d start listener failed: %s", chainMgr.shardID, err)
 	}
 
 	go chainMgr.localShardMsgLoop()
@@ -128,14 +135,6 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 
 	defaultChainManager = chainMgr
 	return defaultChainManager, nil
-}
-
-func GetChainManager() *ChainManager {
-	return defaultChainManager
-}
-
-func (self *ChainManager) GetAccount() *account.Account {
-	return self.account
 }
 
 func (self *ChainManager) SetP2P(p2p *actor.PID) error {
@@ -187,7 +186,7 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 }
 
 func (self *ChainManager) startRemoteEventbus() {
-	localRemote := fmt.Sprintf("%s:%d", config.DEFAULT_PARENTSHARD_IPADDR, self.ShardPort)
+	localRemote := fmt.Sprintf("%s:%d", config.DEFAULT_PARENTSHARD_IPADDR, self.shardPort)
 	remote.Start(localRemote)
 }
 
@@ -301,7 +300,7 @@ func (self *ChainManager) localShardMsgLoop() error {
 			break
 		case blk := <-self.localBlockMsgC:
 			if err := self.onBlockPersistCompleted(blk); err != nil {
-				log.Errorf("processing shard %d, block %d, err: %s", self.ShardID, blk.Header.Height, err)
+				log.Errorf("processing shard %d, block %d, err: %s", self.shardID, blk.Header.Height, err)
 			}
 		case <-self.quitC:
 			return nil
@@ -323,7 +322,7 @@ func (self *ChainManager) broadcastMsgLoop() {
 	for {
 		select {
 		case msg := <-self.broadcastMsgC:
-			for _, s := range self.Shards {
+			for _, s := range self.shards {
 				if s.Connected && s.Sender != nil {
 					s.Sender.Tell(msg)
 				}
@@ -360,7 +359,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			if !ok {
 				return fmt.Errorf("invalid hello msg")
 			}
-			if helloMsg.TargetShardID != self.ShardID {
+			if helloMsg.TargetShardID != self.shardID {
 				return fmt.Errorf("hello msg with invalid target %d, from %d", helloMsg.TargetShardID, helloMsg.SourceShardID)
 			}
 			log.Infof(">>>>>> received hello msg from %d", helloMsg.SourceShardID)
@@ -371,7 +370,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			if !ok {
 				return fmt.Errorf("invalid config msg")
 			}
-			log.Infof(">>>>>> shard %d received config msg", self.ShardID)
+			log.Infof(">>>>>> shard %d received config msg", self.shardID)
 			return self.onShardConfigRequest(remoteMsg.Sender, shardCfgMsg)
 		case shardmsg.BLOCK_REQ_MSG:
 		case shardmsg.BLOCK_RSP_MSG:
@@ -379,7 +378,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			if !ok {
 				return fmt.Errorf("invalid block rsp msg")
 			}
-			log.Info(">>>> shard %d received block info from %d", self.ShardID, blkMsg.ShardID)
+			log.Info(">>>> shard %d received block info from %d", self.shardID, blkMsg.ShardID)
 			return self.onShardBlockReceived(remoteMsg.Sender, blkMsg)
 		case shardmsg.PEERINFO_REQ_MSG:
 		case shardmsg.PEERINFO_RSP_MSG:
@@ -402,16 +401,16 @@ func (self *ChainManager) processRemoteShardMsg() error {
 func (self *ChainManager) connectParent() error {
 
 	// connect to parent
-	if self.ParentShardID == math.MaxUint64 {
+	if self.parentShardID == math.MaxUint64 {
 		return nil
 	}
 	if self.localPid == nil {
-		return fmt.Errorf("shard %d connect parent with nil localPid", self.ShardID)
+		return fmt.Errorf("shard %d connect parent with nil localPid", self.shardID)
 	}
 
-	parentAddr := fmt.Sprintf("%s:%d", self.ParentShardIPAddress, self.ParentShardPort)
-	parentPid := actor.NewPID(parentAddr, fmt.Sprintf("shard-%d", self.ParentShardID))
-	hellomsg, err := shardmsg.NewShardHelloMsg(self.ShardID, self.ParentShardID, self.localPid)
+	parentAddr := fmt.Sprintf("%s:%d", self.parentShardIPAddress, self.parentShardPort)
+	parentPid := actor.NewPID(parentAddr, fmt.Sprintf("shard-%d", self.parentShardID))
+	hellomsg, err := shardmsg.NewShardHelloMsg(self.shardID, self.parentShardID, self.localPid)
 	if err != nil {
 		return fmt.Errorf("build hello msg: %s", err)
 	}
@@ -421,7 +420,7 @@ func (self *ChainManager) connectParent() error {
 	}
 
 	self.parentPid = parentPid
-	log.Infof("shard %d connected with parent shard %d", self.ShardID, self.ParentShardID)
+	log.Infof("shard %d connected with parent shard %d", self.shardID, self.parentShardID)
 	return nil
 }
 
@@ -448,13 +447,13 @@ func (self *ChainManager) startListener() error {
 	props := actor.FromProducer(func() actor.Actor {
 		return self
 	})
-	pid, err := actor.SpawnNamed(props, fmt.Sprintf("shard-%d", self.ShardID))
+	pid, err := actor.SpawnNamed(props, fmt.Sprintf("shard-%d", self.shardID))
 	if err != nil {
 		return fmt.Errorf("init chain manager actor: %s", err)
 	}
 	self.localPid = pid
 
-	log.Infof("chain %d started listen on port %d", self.ShardID, self.ShardPort)
+	log.Infof("chain %d started listen on port %d", self.shardID, self.shardPort)
 	return nil
 }
 

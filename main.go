@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path"
 	"runtime"
 	"strings"
 	"syscall"
@@ -40,6 +41,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
+	shard "github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
@@ -59,8 +61,6 @@ import (
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
 	"github.com/urfave/cli"
-	chainmgr2 "github.com/ontio/ontology/core/chainmgr"
-	"path"
 )
 
 func setupAPP() *cli.App {
@@ -250,16 +250,16 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 	}
 
 	// start chain manager
-	chainmgr, err := initChainManager(ctx, nil)
+	chainMgr, err := initChainManager(ctx, nil)
 	if err != nil {
 		log.Errorf("shard %d: init chain manager error: %s", shardID, err)
 		return
 	}
-	defer chainmgr.Stop()
+	defer chainMgr.Stop()
 
 	// init shard config from parent shard
-	acc := chainmgr.GetAccount()
-	cfg := chainmgr.GetShardConfig(shardID)
+	acc := shard.GetAccount()
+	cfg := chainMgr.GetShardConfig(shardID)
 	if cfg == nil {
 		log.Errorf("shard %d: get shard config failed", shardID)
 		return
@@ -273,7 +273,7 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 	}
 	defer ldg.Close()
 
-	if err := chainmgr.LoadFromLedger(ldg); err != nil {
+	if err := chainMgr.LoadFromLedger(ldg); err != nil {
 		log.Errorf("load chain mgr from ledger: %s", err)
 		return
 	}
@@ -289,7 +289,7 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 		return
 	}
 
-	if err := chainmgr.SetP2P(p2pPid); err != nil {
+	if err := chainMgr.SetP2P(p2pPid); err != nil {
 		log.Errorf("init chain manager error: %s", err)
 		return
 	}
@@ -309,7 +309,7 @@ func initLog(ctx *cli.Context, shardID uint64) {
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	logPath := log.PATH
 	if shardID > 0 {
-		logPath = path.Join(logPath, chainmgr2.GetShardName(shardID))
+		logPath = path.Join(logPath, shard.GetShardName(shardID))
 	}
 	alog.InitLog(logPath)
 	log.InitLog(logLevel, logPath, log.Stdout)
@@ -352,7 +352,7 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 	return acc, nil
 }
 
-func initChainManager(ctx *cli.Context, acc *account.Account) (*chainmgr2.ChainManager, error) {
+func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManager, error) {
 	shardID := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
 	shardPort := ctx.Uint(utils.GetFlagName(utils.ShardPortFlag))
 	parentShardID := ctx.Uint64(utils.GetFlagName(utils.ParentShardIDFlag))
@@ -360,7 +360,7 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*chainmgr2.ChainM
 	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
 	log.Infof("staring shard %d chain mgr: port %d, parent (%d, %s, %d)",
 		shardID, shardPort, parentShardID, parentShardAddr, parentShardPort)
-	return chainmgr2.Initialize(shardID, parentShardID, parentShardAddr, shardPort, parentShardPort, acc)
+	return shard.Initialize(shardID, parentShardID, parentShardAddr, shardPort, parentShardPort, acc)
 }
 
 func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error) {
