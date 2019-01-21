@@ -8,6 +8,8 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
+	"github.com/ontio/ontology/core/types"
 )
 
 func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *message.ShardHelloMsg) error {
@@ -24,6 +26,7 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 		ShardAddress: sender.Address,
 		Connected:    true,
 		Config:       cfg,
+		Sender: sender,
 	}
 	self.ShardAddrs[sender.Address] = helloMsg.SourceShardID
 
@@ -44,6 +47,7 @@ func (self *ChainManager) onShardDisconnected(disconnMsg *message.ShardDisconnec
 
 	if shardID, present := self.ShardAddrs[disconnMsg.Address]; present {
 		self.Shards[shardID].Connected = false
+		self.Shards[shardID].Sender = nil
 	}
 
 	return nil
@@ -66,6 +70,13 @@ func (self *ChainManager) onShardConfigRequest(sender *actor.PID, shardCfgMsg *m
 	return nil
 }
 
+func (self *ChainManager) onShardBlockReceived(sender *actor.PID, blkRspMsg *message.ShardBlockRspMsg) error {
+
+	log.Infof("shard %d, got block header from %d, height %d", self.ShardID, blkRspMsg.ShardID, blkRspMsg.Height)
+
+	return nil
+}
+
 func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) error {
 	return nil
 }
@@ -82,4 +93,38 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	// build shard config
 	// start local shard
 	return nil
+}
+
+func (self *ChainManager) onShardGasDeposited(evt *shardgas_states.DepositGasEvent) error {
+	return nil
+}
+
+/////////////
+//
+// local shard processors
+//
+/////////////
+
+func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
+	if blk == nil {
+		return fmt.Errorf("notification with nil blk on shard %d", self.ShardID)
+	}
+	log.Infof("shard %d, get new block %d", self.ShardID, blk.Header.Height)
+
+	// construct one parent-block-completed message
+	blockInfo, err := message.NewShardBlockInfo(self.ShardID, blk)
+	if err != nil {
+		return fmt.Errorf("init shard block info: %s", err)
+	}
+	if err := self.addShardBlockInfo(blockInfo); err != nil {
+		return fmt.Errorf("add shard block: %s", err)
+	}
+
+	msg, err := message.NewShardBlockRspMsg(self.ShardID, blockInfo.BlockHeight, blk.Header, self.localPid)
+	if err != nil {
+		return fmt.Errorf("build shard block msg: %s", err)
+	}
+
+	// send msg to child shards
+	return self.broadcastShardMsg(msg)
 }

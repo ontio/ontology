@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const (
@@ -45,20 +46,23 @@ func (msg *ShardConfigMsg) Type() int {
 	return CONFIG_MSG
 }
 
-type ShardGetGenesisBlockReqMsg struct {
-	ShardID uint64 `json:"shard_id"`
+type ShardBlockReqMsg struct {
+	ShardID  uint64 `json:"shard_id"`
+	BlockNum uint64 `json:"block_num"`
 }
 
-func (msg *ShardGetGenesisBlockReqMsg) Type() int {
+func (msg *ShardBlockReqMsg) Type() int {
 	return BLOCK_REQ_MSG
 }
 
-type ShardGetGenesisBlockRspMsg struct {
-	ShardID       uint64 `json:"shard_id"`
-	GenesisConfig []byte `json:"genesis_config"`
+type ShardBlockRspMsg struct {
+	ShardID     uint64                         `json:"shard_id"`
+	Height      uint64                         `json:"height"`
+	BlockHeader *ShardBlockHeader              `json:"block_header"`
+	Events      []*shardstates.ShardEventState `json:"events"`
 }
 
-func (msg *ShardGetGenesisBlockRspMsg) Type() int {
+func (msg *ShardBlockRspMsg) Type() int {
 	return BLOCK_RSP_MSG
 }
 
@@ -102,13 +106,13 @@ func Decode(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 		}
 		return msg, nil
 	case BLOCK_REQ_MSG:
-		msg := &ShardGetGenesisBlockReqMsg{}
+		msg := &ShardBlockReqMsg{}
 		if err := json.Unmarshal(msgPayload, msg); err != nil {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}
 		return msg, nil
 	case BLOCK_RSP_MSG:
-		msg := &ShardGetGenesisBlockRspMsg{}
+		msg := &ShardBlockRspMsg{}
 		if err := json.Unmarshal(msgPayload, msg); err != nil {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"encoding/hex"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology-eventbus/eventstream"
 	"github.com/ontio/ontology-eventbus/remote"
@@ -15,13 +17,12 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology-crypto/keypair"
-	"encoding/hex"
 )
 
 const (
@@ -41,6 +42,7 @@ type ShardInfo struct {
 	ShardAddress string
 	Connected    bool
 	Config       *config.OntologyConfig
+	Sender *actor.PID
 }
 
 type ChainManager struct {
@@ -50,8 +52,10 @@ type ChainManager struct {
 	ParentShardIPAddress string
 	ParentShardPort      uint
 
-	Shards     map[uint64]*ShardInfo
-	ShardAddrs map[string]uint64
+	Lock        sync.RWMutex
+	Shards      map[uint64]*ShardInfo
+	ShardAddrs  map[string]uint64
+	ShardBlocks map[uint64]shardmsg.ShardBlockMap // indexed by shardID
 
 	account      *account.Account
 	genesisBlock *types.Block
@@ -59,8 +63,10 @@ type ChainManager struct {
 	ledger *ledger.Ledger
 	p2pPid *actor.PID
 
+	localBlockMsgC  chan *types.Block
 	localShardMsgC  chan *shardstates.ShardEventState
 	remoteShardMsgC chan *RemoteMsg
+	broadcastMsgC   chan *shardmsg.CrossShardMsg
 	parentConnWait  chan bool
 
 	parentPid   *actor.PID
@@ -85,8 +91,11 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		ParentShardPort:      parentPort,
 		Shards:               make(map[uint64]*ShardInfo),
 		ShardAddrs:           make(map[string]uint64),
+		ShardBlocks:          make(map[uint64]shardmsg.ShardBlockMap),
+		localBlockMsgC:       make(chan *types.Block, LOCAL_SHARDMSG_MAX_PENDING),
 		localShardMsgC:       make(chan *shardstates.ShardEventState, LOCAL_SHARDMSG_MAX_PENDING),
 		remoteShardMsgC:      make(chan *RemoteMsg, REMOTE_SHARDMSG_MAX_PENDING),
+		broadcastMsgC:        make(chan *shardmsg.CrossShardMsg, REMOTE_SHARDMSG_MAX_PENDING),
 		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
 
@@ -98,8 +107,9 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		return nil, fmt.Errorf("shard %d start listener failed: %s", chainMgr.ShardID, err)
 	}
 
-	go chainMgr.run()
+	go chainMgr.localShardMsgLoop()
 	go chainMgr.remoteShardMsgLoop()
+	go chainMgr.broadcastMsgLoop()
 
 	if err := chainMgr.connectParent(); err != nil {
 		chainMgr.Stop()
@@ -145,6 +155,7 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 	// start listen on local actor
 	self.sub = events.NewActorSubscriber(self.localPid)
 	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
+	self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
 	globalState, err := self.getShardMgmtGlobalState()
 	if err != nil {
@@ -203,7 +214,7 @@ func (self *ChainManager) Receive(context actor.Context) {
 		if msg == nil {
 			return
 		}
-		log.Infof("chain mgr received shard msg: %v", msg)
+		log.Tracef("chain mgr received shard msg: %v", msg)
 		smsg, err := shardmsg.Decode(msg.Type, msg.Data)
 		if err != nil {
 			log.Errorf("decode shard msg: %s", err)
@@ -213,6 +224,9 @@ func (self *ChainManager) Receive(context actor.Context) {
 			Sender: msg.Sender,
 			Msg:    smsg,
 		}
+
+	case *message.SaveBlockCompleteMsg:
+		self.localBlockMsgC <- msg.Block
 
 	default:
 		log.Info("chain mgr actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
@@ -232,7 +246,7 @@ func (self *ChainManager) remoteEndpointEvent(evt interface{}) {
 	}
 }
 
-func (self *ChainManager) run() error {
+func (self *ChainManager) localShardMsgLoop() error {
 
 	self.quitWg.Add(1)
 	defer self.quitWg.Done()
@@ -274,9 +288,21 @@ func (self *ChainManager) run() error {
 					log.Errorf("processing join shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_PEER_LEAVE:
-			case shardstates.EVENT_SHARD_DEPOSIT:
+			case shardgas_states.EVENT_SHARD_GAS_DEPOSIT:
+				evt := &shardgas_states.DepositGasEvent{}
+				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
+					log.Errorf("deserialize shard gas deposit event: %s", err)
+				}
+				if err := self.onShardGasDeposited(evt); err != nil {
+					log.Errorf("processing shard %d gas deposit: %s", evt.ShardID, err)
+				}
+			case shardgas_states.EVENT_SHARD_GAS_WITHDRAW:
 			}
 			break
+		case blk := <-self.localBlockMsgC:
+			if err := self.onBlockPersistCompleted(blk); err != nil {
+				log.Errorf("processing shard %d, block %d, err: %s", self.ShardID, blk.Header.Height, err)
+			}
 		case <-self.quitC:
 			return nil
 		}
@@ -288,6 +314,24 @@ func (self *ChainManager) run() error {
 	//
 
 	return nil
+}
+
+func (self *ChainManager) broadcastMsgLoop() {
+	self.quitWg.Add(1)
+	defer self.quitWg.Done()
+
+	for {
+		select {
+		case msg := <-self.broadcastMsgC:
+			for _, s := range self.Shards {
+				if s.Connected && s.Sender != nil {
+					s.Sender.Tell(msg)
+				}
+			}
+		case <-self.quitC:
+			return
+		}
+	}
 }
 
 func (self *ChainManager) remoteShardMsgLoop() {
@@ -331,6 +375,12 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			return self.onShardConfigRequest(remoteMsg.Sender, shardCfgMsg)
 		case shardmsg.BLOCK_REQ_MSG:
 		case shardmsg.BLOCK_RSP_MSG:
+			blkMsg, ok := msg.(*shardmsg.ShardBlockRspMsg)
+			if !ok {
+				return fmt.Errorf("invalid block rsp msg")
+			}
+			log.Info(">>>> shard %d received block info from %d", self.ShardID, blkMsg.ShardID)
+			return self.onShardBlockReceived(remoteMsg.Sender, blkMsg)
 		case shardmsg.PEERINFO_REQ_MSG:
 		case shardmsg.PEERINFO_RSP_MSG:
 			return nil
@@ -411,4 +461,9 @@ func (self *ChainManager) startListener() error {
 func (self *ChainManager) Stop() {
 	close(self.quitC)
 	self.quitWg.Wait()
+}
+
+func (self *ChainManager) broadcastShardMsg(msg *shardmsg.CrossShardMsg) error {
+	self.broadcastMsgC <- msg
+	return nil
 }
