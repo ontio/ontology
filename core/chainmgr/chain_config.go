@@ -49,10 +49,10 @@ func (self *ChainManager) buildShardConfig(shardID uint64) (*config.OntologyConf
 	// init child shard config
 	shardConfig.Shard = &config.ShardConfig{
 		ShardID:              shardID,
-		ShardPort:            uint(uint64(self.ShardPort) + shardID - self.ShardID),
-		ParentShardID:        self.ShardID,
+		ShardPort:            uint(uint64(self.shardPort) + shardID - self.shardID),
+		ParentShardID:        self.shardID,
 		ParentShardIPAddress: config.DEFAULT_PARENTSHARD_IPADDR,
-		ParentShardPort:      self.ShardPort,
+		ParentShardPort:      self.shardPort,
 	}
 
 	self.setShardConfig(shardID, shardConfig)

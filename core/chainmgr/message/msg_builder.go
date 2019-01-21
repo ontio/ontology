@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/core/types"
 )
@@ -28,7 +29,7 @@ func NewShardHelloMsg(localShard, targetShard uint64, sender *actor.PID) (*Cross
 func NewShardConfigMsg(accPayload []byte, configPayload []byte, sender *actor.PID) (*CrossShardMsg, error) {
 	ack := &ShardConfigMsg{
 		Account: accPayload,
-		Config: configPayload,
+		Config:  configPayload,
 	}
 	payload, err := json.Marshal(ack)
 	if err != nil {
@@ -73,13 +74,34 @@ func NewShardBlockInfo(shardID uint64, blk *types.Block) (*ShardBlockInfo, error
 	}
 
 	blockInfo := &ShardBlockInfo{
-		ShardID: shardID,
+		ShardID:     shardID,
 		BlockHeight: uint64(blk.Header.Height),
-		State: ShardBlockNew,
+		State:       ShardBlockNew,
 		Header: &ShardBlockHeader{
 			Header: blk.Header,
 		},
 	}
+
+	// TODO: add event from block to blockInfo
+
+	return blockInfo, nil
+}
+
+func NewShardBlockInfoFromRemote(msg *ShardBlockRspMsg) (*ShardBlockInfo, error) {
+	if msg == nil {
+		return nil, fmt.Errorf("newShardBlockInfo, nil msg")
+	}
+
+	blockInfo := &ShardBlockInfo{
+		ShardID:     msg.ShardID,
+		BlockHeight: uint64(msg.BlockHeader.Header.Height),
+		State:       ShardBlockReceived,
+		Header: &ShardBlockHeader{
+			Header: msg.BlockHeader.Header,
+		},
+	}
+
+	// TODO: add event from msg to blockInfo
 
 	return blockInfo, nil
 }

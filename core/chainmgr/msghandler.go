@@ -22,13 +22,13 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 		return err
 	}
 
-	self.Shards[helloMsg.SourceShardID] = &ShardInfo{
+	self.shards[helloMsg.SourceShardID] = &ShardInfo{
 		ShardAddress: sender.Address,
 		Connected:    true,
 		Config:       cfg,
 		Sender: sender,
 	}
-	self.ShardAddrs[sender.Address] = helloMsg.SourceShardID
+	self.shardAddrs[sender.Address] = helloMsg.SourceShardID
 
 	buf := new(bytes.Buffer)
 	if err := cfg.Serialize(buf); err != nil {
@@ -45,9 +45,9 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 func (self *ChainManager) onShardDisconnected(disconnMsg *message.ShardDisconnectedMsg) error {
 	log.Errorf("remote shard %s disconnected", disconnMsg.Address)
 
-	if shardID, present := self.ShardAddrs[disconnMsg.Address]; present {
-		self.Shards[shardID].Connected = false
-		self.Shards[shardID].Sender = nil
+	if shardID, present := self.shardAddrs[disconnMsg.Address]; present {
+		self.shards[shardID].Connected = false
+		self.shards[shardID].Sender = nil
 	}
 
 	return nil
@@ -70,11 +70,16 @@ func (self *ChainManager) onShardConfigRequest(sender *actor.PID, shardCfgMsg *m
 	return nil
 }
 
-func (self *ChainManager) onShardBlockReceived(sender *actor.PID, blkRspMsg *message.ShardBlockRspMsg) error {
+func (self *ChainManager) onShardBlockReceived(sender *actor.PID, blkMsg *message.ShardBlockRspMsg) error {
 
-	log.Infof("shard %d, got block header from %d, height %d", self.ShardID, blkRspMsg.ShardID, blkRspMsg.Height)
+	log.Infof("shard %d, got block header from %d, height %d", self.shardID, blkMsg.ShardID, blkMsg.Height)
 
-	return nil
+	blkInfo, err := message.NewShardBlockInfoFromRemote(blkMsg)
+	if err != nil {
+		return fmt.Errorf("construct shard blockInfo for %d: %s", blkMsg.ShardID, err)
+	}
+
+	return self.addShardBlockInfo(blkInfo)
 }
 
 func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) error {
@@ -107,12 +112,12 @@ func (self *ChainManager) onShardGasDeposited(evt *shardgas_states.DepositGasEve
 
 func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 	if blk == nil {
-		return fmt.Errorf("notification with nil blk on shard %d", self.ShardID)
+		return fmt.Errorf("notification with nil blk on shard %d", self.shardID)
 	}
-	log.Infof("shard %d, get new block %d", self.ShardID, blk.Header.Height)
+	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
 
 	// construct one parent-block-completed message
-	blockInfo, err := message.NewShardBlockInfo(self.ShardID, blk)
+	blockInfo, err := message.NewShardBlockInfo(self.shardID, blk)
 	if err != nil {
 		return fmt.Errorf("init shard block info: %s", err)
 	}
@@ -120,7 +125,7 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 		return fmt.Errorf("add shard block: %s", err)
 	}
 
-	msg, err := message.NewShardBlockRspMsg(self.ShardID, blockInfo.BlockHeight, blk.Header, self.localPid)
+	msg, err := message.NewShardBlockRspMsg(self.shardID, blockInfo.BlockHeight, blk.Header, self.localPid)
 	if err != nil {
 		return fmt.Errorf("build shard block msg: %s", err)
 	}
