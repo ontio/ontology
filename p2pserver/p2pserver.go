@@ -48,11 +48,12 @@ import (
 
 //P2PServer control all network activities
 type P2PServer struct {
-	network   p2pnet.P2P
-	msgRouter *utils.MessageRouter
-	pid       *evtActor.PID
-	blockSync *BlockSyncMgr
-	ledger    *ledger.Ledger
+	network    p2pnet.P2P
+	msgRouter  *utils.MessageRouter
+	pid        *evtActor.PID
+	blockSync  *BlockSyncMgr
+	headerSync *HeaderSyncMgr
+	ledger     *ledger.Ledger
 	ReconnectAddrs
 	recentPeers    map[uint32][]string
 	quitSyncRecent chan bool
@@ -77,6 +78,7 @@ func NewServer() *P2PServer {
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.blockSync = NewBlockSyncMgr(p)
+	p.headerSync = NewHeaderSyncMgr(p)
 	p.recentPeers = make(map[uint32][]string)
 	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
@@ -106,7 +108,8 @@ func (this *P2PServer) Start() error {
 	go this.syncUpRecentPeers()
 	go this.keepOnlineService()
 	go this.heartBeatService()
-	go this.blockSync.Start()
+	//go this.blockSync.Start()
+	go this.headerSync.Start()
 	return nil
 }
 
