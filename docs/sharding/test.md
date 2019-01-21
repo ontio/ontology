@@ -21,7 +21,7 @@ test with ontology-tool
 start shard chain:
 
 ```
-/ontology --ShardID 1 --ShardPort 20341 --ParentShardID 0 --ParentShardPort 20340
+./ontology --ShardID 1 --ShardPort 20341 --ParentShardID 0 --ParentShardPort 20340
 ```
 
 
