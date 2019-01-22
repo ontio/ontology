@@ -84,8 +84,8 @@ func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, er
 	return self.ldgStore.GetStateMerkleRoot(height)
 }
 
-func (self *Ledger) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
-	return self.ldgStore.GetBlockRootWithNewTxRoot(txRoot)
+func (self *Ledger) GetBlockRootWithNewTxRoots(txRoots []common.Uint256) common.Uint256 {
+	return self.ldgStore.GetBlockRootWithNewTxRoots(txRoots)
 }
 
 func (self *Ledger) GetBlockByHeight(height uint32) (*types.Block, error) {

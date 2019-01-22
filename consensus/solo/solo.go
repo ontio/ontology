@@ -197,7 +197,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 
-	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
+	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots([]common.Uint256{txRoot})
 	header := &types.Header{
 		Version:          ContextVersion,
 		PrevBlockHash:    prevHash,

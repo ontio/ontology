@@ -25,6 +25,7 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology/common"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMerkleLeaf3(t *testing.T) {
@@ -62,6 +63,20 @@ func TestMerkleLeaf3(t *testing.T) {
 		}
 	}
 
+}
+
+func TestCompactMerkleTree_GetRootWithNewLeaves(t *testing.T) {
+	N := 1000
+	tree1 := NewTree(0, nil, nil)
+	tree2 := NewTree(0, nil, nil)
+	leaves := make([]common.Uint256, N)
+	for i := 0; i < N; i++ {
+		leaves[i][:][0] = byte(i)
+		hash := leaves[i]
+		assert.Equal(t, tree1.GetRootWithNewLeaf(hash), tree2.GetRootWithNewLeaves([]common.Uint256{hash}))
+		tree1.AppendHash(hash)
+		tree2.AppendHash(hash)
+	}
 }
 
 func TestMerkle(t *testing.T) {

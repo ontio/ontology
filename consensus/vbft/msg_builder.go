@@ -183,7 +183,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		txHash = append(txHash, t.Hash())
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
-	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
+	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(txRoot)
 
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,
