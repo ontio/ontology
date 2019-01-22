@@ -40,6 +40,7 @@ type LedgerStore interface {
 	InitLedgerStoreWithGenesisBlock(genesisblock *types.Block, defaultBookkeeper []keypair.PublicKey) error
 	Close() error
 	AddHeaders(headers []*types.Header) error
+	AddHeadersToStore(headers []*types.Header) error
 	AddBlock(block *types.Block) error
 	ExecuteBlock(b *types.Block) (ExecuteResult, error)
 	SubmitBlock(b *types.Block, exec ExecuteResult) error

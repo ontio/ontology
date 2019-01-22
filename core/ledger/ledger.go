@@ -145,6 +145,10 @@ func (self *Ledger) GetBookkeeperState() (*states.BookkeeperState, error) {
 	return self.ldgStore.GetBookkeeperState()
 }
 
+func (self *Ledger) AddHeadersToStore(headers []*types.Header) error {
+	return self.ldgStore.AddHeadersToStore(headers)
+}
+
 func (self *Ledger) GetStorageItem(codeHash common.Address, key []byte) ([]byte, error) {
 	storageKey := &states.StorageKey{
 		ContractAddress: codeHash,

@@ -110,6 +110,8 @@ func setupAPP() *cli.App {
 		utils.MaxConnInBoundFlag,
 		utils.MaxConnOutBoundFlag,
 		utils.MaxConnInBoundForSingleIPFlag,
+		utils.SyncModeFlag,
+
 		//test mode setting
 		utils.EnableTestModeFlag,
 		utils.TestModeGenBlockTimeFlag,
@@ -413,7 +415,12 @@ func logCurrBlockHeight() {
 	for {
 		select {
 		case <-ticker.C:
-			log.Infof("CurrentBlockHeight = %d", ledger.DefLedger.GetCurrentBlockHeight())
+			switch config.DefConfig.P2PNode.SyncMode {
+			case config.SYNC_FULL_MODE:
+				log.Infof("CurrentBlockHeight = %d", ledger.DefLedger.GetCurrentBlockHeight())
+			case config.SYNC_LIGHT_MODE:
+				log.Infof("CurrentHeaderHeight = %d", ledger.DefLedger.GetCurrentHeaderHeight())
+			}
 			isNeedNewFile := log.CheckIfNeedNewFile()
 			if isNeedNewFile {
 				log.ClosePrintLog()

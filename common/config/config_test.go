@@ -18,8 +18,8 @@
 package config
 
 import (
-	"testing"
 	"github.com/magiconair/properties/assert"
+	"testing"
 )
 
 func TestConfigGeneration(t *testing.T) {

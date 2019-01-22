@@ -22,13 +22,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
-	"io"
 )
 
 //Block store save the data of block & transaction
@@ -193,6 +193,14 @@ func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) er
 	return nil
 }
 
+func (this *BlockStore) SaveBlockHeader(header *types.Header) {
+	key := this.getHeaderKey(header.Hash())
+	value := bytes.NewBuffer(nil)
+	binary.Write(value, binary.LittleEndian, int64(0))
+	header.Serialize(value)
+	this.store.BatchPut(key, value.Bytes())
+}
+
 //GetHeader return the header specified by block hash
 func (this *BlockStore) GetHeader(blockHash common.Uint256) (*types.Header, error) {
 	if this.enableCache {
@@ -310,7 +318,6 @@ func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList []commo
 	for _, hash := range indexList {
 		hash.Serialize(value)
 	}
-
 	this.store.BatchPut(indexKey, value.Bytes())
 	return nil
 }

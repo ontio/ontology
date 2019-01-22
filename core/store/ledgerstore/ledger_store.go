@@ -246,7 +246,6 @@ func (this *LedgerStoreImp) loadCurrentBlock() error {
 	if err != nil {
 		return fmt.Errorf("LoadCurrentBlock error %s", err)
 	}
-	log.Infof("InitCurrentBlock currentBlockHash %s currentBlockHeight %d", currentBlockHash.ToHexString(), currentBlockHeight)
 	this.currBlockHash = currentBlockHash
 	this.currBlockHeight = currentBlockHeight
 	return nil
@@ -420,7 +419,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header, vbftPeerInfo map[
 		return vbftPeerInfo, fmt.Errorf("get prev header error %s", err)
 	}
 	if prevHeader == nil {
-		return vbftPeerInfo, fmt.Errorf("cannot find pre header by blockHash %s", prevHeaderHash.ToHexString())
+		return vbftPeerInfo, fmt.Errorf("cannot find pre header by blockHash %s, blockheight %d", prevHeaderHash.ToHexString(), header.Height)
 	}
 
 	if prevHeader.Height+1 != header.Height {
@@ -840,7 +839,6 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 		headerList[i] = this.headerIndex[height]
 	}
 	this.lock.RUnlock()
-
 	err := this.blockStore.SaveHeaderIndexList(storeCount, headerList)
 	if err != nil {
 		return fmt.Errorf("SaveHeaderIndexList start %d error %s", storeCount, err)
@@ -849,6 +847,35 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	this.lock.Lock()
 	this.storedIndexCount += HEADER_INDEX_BATCH_SIZE
 	this.lock.Unlock()
+	return nil
+}
+
+func (this *LedgerStoreImp) AddHeadersToStore(headers []*types.Header) error {
+	sort.Slice(headers, func(i, j int) bool {
+		return headers[i].Height < headers[j].Height
+	})
+	this.blockStore.NewBatch()
+	for _, header := range headers {
+		nextHeaderHeight := this.GetCurrentHeaderHeight() + 1
+		if header.Height != nextHeaderHeight {
+			return fmt.Errorf("header height %d not equal next header height %d", header.Height, nextHeaderHeight)
+		}
+		var err error
+		this.vbftPeerInfoheader, err = this.verifyHeader(header, this.vbftPeerInfoheader)
+		if err != nil {
+			return fmt.Errorf("verifyHeader error %s", err)
+		}
+		this.currBlockHeight++
+		this.addHeaderCache(header)
+		this.setHeaderIndex(header.Height, header.Hash())
+		this.blockStore.SaveBlockHeader(header)
+	}
+	if err := this.saveHeaderIndexList(); err != nil {
+		return err
+	}
+	if err := this.blockStore.CommitTo(); err != nil {
+		return err
+	}
 	return nil
 }
 

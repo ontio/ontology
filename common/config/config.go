@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -32,7 +33,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"hash/fnv"
 )
 
 var Version = "" //Set value when build project
@@ -82,6 +82,11 @@ const (
 	NETWORK_NAME_MAIN_NET    = "ontology"
 	NETWORK_NAME_POLARIS_NET = "polaris"
 	NETWORK_NAME_SOLO_NET    = "testmode"
+)
+
+const (
+	SYNC_FULL_MODE  = "full"
+	SYNC_LIGHT_MODE = "light"
 )
 
 var NETWORK_MAGIC = map[uint32]uint32{
@@ -523,6 +528,7 @@ type P2PNodeConfig struct {
 	MaxConnInBound            uint
 	MaxConnOutBound           uint
 	MaxConnInBoundForSingleIP uint
+	SyncMode                  string
 }
 
 type RpcConfig struct {
@@ -587,6 +593,7 @@ func NewOntologyConfig() *OntologyConfig {
 			MaxConnInBound:            DEFAULT_MAX_CONN_IN_BOUND,
 			MaxConnOutBound:           DEFAULT_MAX_CONN_OUT_BOUND,
 			MaxConnInBoundForSingleIP: DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
+			SyncMode:                  SYNC_FULL_MODE,
 		},
 		Rpc: &RpcConfig{
 			EnableHttpJsonRpc: true,

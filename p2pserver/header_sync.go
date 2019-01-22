@@ -19,9 +19,9 @@
 package p2pserver
 
 import (
-	"time"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
@@ -43,15 +43,16 @@ type HeaderSyncMgr struct {
 
 func NewHeaderSyncMgr(server *P2PServer) *HeaderSyncMgr {
 	return &HeaderSyncMgr{
-		server:        server,
-		ledger:        server.ledger,
-		exitCh:        make(chan interface{}, 1),
-		nodeWeights:   make(map[uint64]*NodeWeight, 0),
+		server:      server,
+		ledger:      server.ledger,
+		exitCh:      make(chan interface{}, 1),
+		nodeWeights: make(map[uint64]*NodeWeight, 0),
 	}
 }
 
 //Start to sync
 func (this *HeaderSyncMgr) Start() {
+	go this.syncHeader()
 	ticker := time.NewTicker(time.Second)
 	for {
 		select {
@@ -72,20 +73,13 @@ func (this *HeaderSyncMgr) syncHeader() {
 	}
 	defer this.releaseSyncHeaderLock()
 
-	curBlockHeight := this.ledger.GetCurrentBlockHeight()
-
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
-
-	if curHeaderHeight-curBlockHeight >= SYNC_MAX_HEADER_FORWARD_SIZE {
-		return
-	}
 
 	nextHeaderId := curHeaderHeight + 1
 	reqNode := this.getNextNode(nextHeaderId)
 	if reqNode == nil {
 		return
 	}
-
 	headerHash := this.ledger.GetCurrentHeaderHash()
 	msg := msgpack.NewHeadersReq(headerHash)
 	err := this.server.Send(reqNode, msg, false)
@@ -111,7 +105,7 @@ func (this *HeaderSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Heade
 	if height <= curHeaderHeight {
 		return
 	}
-	err := this.ledger.AddHeaders(headers)
+	err := this.ledger.AddHeadersToStore(headers)
 	if err != nil {
 		log.Warnf("[p2p]OnHeaderReceive AddHeaders error:%s", err)
 		return
@@ -183,6 +177,29 @@ func (this *HeaderSyncMgr) getNodeWeight(nodeId uint64) *NodeWeight {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	return this.nodeWeights[nodeId]
+}
+
+func (this *HeaderSyncMgr) OnAddNode(nodeId uint64) {
+	log.Debugf("[p2p]OnAddNode:%d", nodeId)
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	w := NewNodeWeight(nodeId)
+	this.nodeWeights[nodeId] = w
+}
+
+func (this *HeaderSyncMgr) OnDelNode(nodeId uint64) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	delete(this.nodeWeights, nodeId)
+	log.Infof("delNode:%d", nodeId)
+	if len(this.nodeWeights) == 0 {
+		log.Warnf("no sync nodes")
+	}
+	log.Infof("OnDelNode:%d", nodeId)
+}
+
+func (this *HeaderSyncMgr) Close() {
+	close(this.exitCh)
 }
 
 //appendReqTime append a node's request time

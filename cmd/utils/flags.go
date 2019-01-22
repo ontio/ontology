@@ -145,6 +145,12 @@ var (
 		Usage: "Max connection `<number>` in bound for single ip",
 		Value: config.DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP,
 	}
+	SyncModeFlag = cli.StringFlag{
+		Name:  "sync-mode",
+		Usage: "Sync mode `<value>`. full=sync blocks,light=sync headers",
+		Value: config.SYNC_FULL_MODE,
+	}
+
 	// RPC settings
 	RPCDisabledFlag = cli.BoolFlag{
 		Name:  "disable-rpc",

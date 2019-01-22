@@ -46,14 +46,21 @@ import (
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
+type SyncMode interface {
+	OnHeaderReceive(fromID uint64, headers []*types.Header)
+	OnAddNode(nodeId uint64)
+	OnDelNode(nodeId uint64)
+	Start()
+	Close()
+}
+
 //P2PServer control all network activities
 type P2PServer struct {
-	network    p2pnet.P2P
-	msgRouter  *utils.MessageRouter
-	pid        *evtActor.PID
-	blockSync  *BlockSyncMgr
-	headerSync *HeaderSyncMgr
-	ledger     *ledger.Ledger
+	network   p2pnet.P2P
+	msgRouter *utils.MessageRouter
+	pid       *evtActor.PID
+	SyncMode  SyncMode
+	ledger    *ledger.Ledger
 	ReconnectAddrs
 	recentPeers    map[uint32][]string
 	quitSyncRecent chan bool
@@ -77,8 +84,12 @@ func NewServer() *P2PServer {
 	}
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
-	p.blockSync = NewBlockSyncMgr(p)
-	p.headerSync = NewHeaderSyncMgr(p)
+	switch config.DefConfig.P2PNode.SyncMode {
+	case config.SYNC_FULL_MODE:
+		p.SyncMode = NewBlockSyncMgr(p)
+	case config.SYNC_LIGHT_MODE:
+		p.SyncMode = NewHeaderSyncMgr(p)
+	}
 	p.recentPeers = make(map[uint32][]string)
 	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
@@ -108,8 +119,7 @@ func (this *P2PServer) Start() error {
 	go this.syncUpRecentPeers()
 	go this.keepOnlineService()
 	go this.heartBeatService()
-	//go this.blockSync.Start()
-	go this.headerSync.Start()
+	go this.SyncMode.Start()
 	return nil
 }
 
@@ -120,7 +130,7 @@ func (this *P2PServer) Stop() {
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
-	this.blockSync.Close()
+	this.SyncMode.Close()
 }
 
 // GetNetWork returns the low level netserver
@@ -195,22 +205,22 @@ func (this *P2PServer) GetID() uint64 {
 
 // OnAddNode adds the peer id to the block sync mgr
 func (this *P2PServer) OnAddNode(id uint64) {
-	this.blockSync.OnAddNode(id)
+	this.SyncMode.OnAddNode(id)
 }
 
 // OnDelNode removes the peer id from the block sync mgr
 func (this *P2PServer) OnDelNode(id uint64) {
-	this.blockSync.OnDelNode(id)
+	this.SyncMode.OnDelNode(id)
 }
 
 // OnHeaderReceive adds the header list from network
 func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
-	this.blockSync.OnHeaderReceive(fromID, headers)
+	this.SyncMode.OnHeaderReceive(fromID, headers)
 }
 
 // OnBlockReceive adds the block from network
 func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32, block *types.Block) {
-	this.blockSync.OnBlockReceive(fromID, blockSize, block)
+	this.SyncMode.(*BlockSyncMgr).OnBlockReceive(fromID, blockSize, block)
 }
 
 // Todo: remove it if no use
