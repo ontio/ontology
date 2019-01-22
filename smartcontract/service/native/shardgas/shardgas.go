@@ -1,14 +1,14 @@
 package shardgas
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/common/constants"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
 )
 
 const (
@@ -16,11 +16,11 @@ const (
 	INIT_NAME         = "init"
 	DEPOSIT_GAS_NAME  = "depositGas"
 	WITHDRAS_GAS_NAME = "withdrawGas"
+	ACQUIRE_GAS_NAME  = "acquireWithdrawGas"
 
 	// Key prefix
-	KEY_VERSION  = "version"
-	KEY_BALANCE  = "balance"
-	KEY_WITHDRAW = "withdraw"
+	KEY_VERSION = "version"
+	KEY_BALANCE = "balance"
 )
 
 var ShardGasMgmtVersion = shardmgmt.VERSION_CONTRACT_SHARD_MGMT
@@ -33,6 +33,7 @@ func RegisterShardGasMgmtContract(native *native.NativeService) {
 	native.Register(INIT_NAME, ShardGasMgmtInit)
 	native.Register(DEPOSIT_GAS_NAME, DespositGasToShard)
 	native.Register(WITHDRAS_GAS_NAME, WithdrawGasFromShard)
+	native.Register(ACQUIRE_GAS_NAME, AcquireWithdrawGasFromShard)
 }
 
 func ShardGasMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -97,21 +98,24 @@ func DespositGasToShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, shardID check: %s", err)
 	}
 
-	amount, err := getUserDespoit(native, contract, params.ShardID, params.UserAddress)
+	gasInfo, err := getUserBalance(native, contract, params.ShardID, params.UserAddress)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, get user balance: %s", err)
 	}
 
 	// TODO: TRANSFER ONG
 
-	if err := setUserDeposit(native, contract, params.ShardID, params.UserAddress, amount + params.Amount); err != nil {
+	gasInfo.Balance += params.Amount
+	if err := setUserDeposit(native, contract, params.ShardID, params.UserAddress, gasInfo); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, update user balance: %s", err)
 	}
 
 	evt := &shardgas_states.DepositGasEvent{
-		ShardID: params.ShardID,
-		User: params.UserAddress,
-		Amount: params.Amount,
+		SourceShardID: native.ShardID.ToUint64(),
+		Height:        uint64(native.Height),
+		ShardID:       params.ShardID,
+		User:          params.UserAddress,
+		Amount:        params.Amount,
 	}
 	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, add notification: %s", err)
@@ -121,5 +125,139 @@ func DespositGasToShard(native *native.NativeService) ([]byte, error) {
 }
 
 func WithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
-	return utils.BYTE_FALSE, nil
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, invalid cmd param: %s", err)
+	}
+
+	params := new(WithdrawGasRequestParam)
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, invalid param: %s", err)
+	}
+	if err := utils.ValidateOwner(native, params.UserAddress); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, invalid creator: %s", err)
+	}
+	if params.Amount > constants.ONG_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, invalid amount")
+	}
+
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, version check: %s", err)
+	}
+	if ok, err := checkShardID(native, params.ShardID); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, shardID check: %s", err)
+	}
+
+	gasInfo, err := getUserBalance(native, contract, params.ShardID, params.UserAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, get user balance: %s", err)
+	}
+
+	if gasInfo.Balance <= params.Amount {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, not enough balance for withdraw")
+	}
+	if len(gasInfo.PendingWithdraw) >= shardgas_states.CAP_PENDING_WITHDRAW {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, overlimited withdraw request")
+	}
+
+	gasInfo.Balance -= params.Amount
+	gasInfo.WithdrawBalance += params.Amount
+	gasInfo.PendingWithdraw = append(gasInfo.PendingWithdraw, &shardgas_states.GasWithdrawInfo{
+		Height: uint64(native.Height),
+		Amount: uint64(params.Amount),
+	})
+
+	if err := setUserDeposit(native, contract, params.ShardID, params.UserAddress, gasInfo); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, update user balance: %s", err)
+	}
+
+	evt := &shardgas_states.WithdrawGasReqEvent{
+		SourceShardID: native.ShardID.ToUint64(),
+		Height:        uint64(native.Height),
+		ShardID:       params.ShardID,
+		User:          params.UserAddress,
+		Amount:        params.Amount,
+	}
+	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, add notification: %s", err)
+	}
+
+	return utils.BYTE_TRUE, nil
+}
+
+func AcquireWithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, invalid cmd param: %s", err)
+	}
+
+	params := new(AcquireWithdrawGasParam)
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, invalid param: %s", err)
+	}
+	if err := utils.ValidateOwner(native, params.UserAddress); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, invalid creator: %s", err)
+	}
+	if params.Amount > constants.ONG_TOTAL_SUPPLY {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, invalid amount")
+	}
+	if native.Height <= shardgas_states.WITHDRAW_GAS_DELAY_DURATION {
+		return utils.BYTE_FALSE, fmt.Errorf("acqure gas, pending to withdraw")
+	}
+
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, version check: %s", err)
+	}
+	if ok, err := checkShardID(native, params.ShardID); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, shardID check: %s", err)
+	}
+
+	gasInfo, err := getUserBalance(native, contract, params.ShardID, params.UserAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, get user balance: %s", err)
+	}
+
+	if params.Amount > gasInfo.WithdrawBalance {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, not enough withdraw balance")
+	}
+
+	withdrawAmount := uint64(0)
+	pendingWithdraw := make([]*shardgas_states.GasWithdrawInfo, 0)
+	for _, w := range gasInfo.PendingWithdraw {
+		if w.Height < uint64(native.Height)-shardgas_states.WITHDRAW_GAS_DELAY_DURATION {
+			if withdrawAmount+w.Amount < params.Amount {
+				withdrawAmount += w.Amount
+			} else {
+				w.Amount -= params.Amount - withdrawAmount
+				withdrawAmount = params.Amount
+				pendingWithdraw = append(pendingWithdraw, w)
+			}
+		} else {
+			pendingWithdraw = append(pendingWithdraw, w)
+		}
+	}
+
+	gasInfo.WithdrawBalance -= withdrawAmount
+	gasInfo.PendingWithdraw = pendingWithdraw
+
+	// TODO: transfer $withdrawAmount ong from contract to params.UserAddress
+
+	if err := setUserDeposit(native, contract, params.ShardID, params.UserAddress, gasInfo); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, update user balance: %s", err)
+	}
+
+	evt := &shardgas_states.WithdrawGasDoneEvent{
+		SourceShardID: native.ShardID.ToUint64(),
+		Height:        uint64(native.Height),
+		ShardID:       params.ShardID,
+		User:          params.UserAddress,
+		Amount:        withdrawAmount,
+	}
+	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, add notification: %s", err)
+	}
+
+	return utils.BYTE_TRUE, nil
 }

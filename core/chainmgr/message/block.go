@@ -1,11 +1,11 @@
 package message
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -34,8 +34,8 @@ type shardBlkHdrHelper struct {
 }
 
 func (this *ShardBlockHeader) MarshalJSON() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	if err := this.Header.Serialize(buf); err != nil {
+	buf := common.NewZeroCopySink(nil)
+	if err := this.Header.Serialization(buf); err != nil {
 		return nil, fmt.Errorf("shard block hdr marshal: %s", err)
 	}
 
@@ -50,9 +50,9 @@ func (this *ShardBlockHeader) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("shard block hdr helper: %s", err)
 	}
 
-	buf := bytes.NewBuffer(helper.Payload)
+	buf := common.NewZeroCopySource(helper.Payload)
 	hdr := &types.Header{}
-	if err := hdr.Deserialize(buf); err != nil {
+	if err := hdr.Deserialization(buf); err != nil {
 		return fmt.Errorf("shard block hdr unmarshal: %s", err)
 	}
 	this.Header = hdr
@@ -115,7 +115,7 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 
 	toDrop := make([]uint64, 0)
 	for _, blk := range m {
-		if blk.BlockHeight < h - uint64(pool.MaxBlockCap) {
+		if blk.BlockHeight < h-uint64(pool.MaxBlockCap) {
 			toDrop = append(toDrop, blk.BlockHeight)
 		}
 	}
@@ -123,6 +123,10 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 		delete(m, blkHeight)
 	}
 
+	return nil
+}
+
+func (pool *ShardBlockPool) AddEvent(evt shardstates.ShardMgmtEvent) error {
 	return nil
 }
 
