@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -198,8 +199,17 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	txRoot := common.ComputeMerkleRoot(txHash)
 
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
+	parentHeight := chainmgr.GetParentBlockHeight()
+	evts := chainmgr.GetBlockEventsByParentHeight(parentHeight)
+	shardID, err := types.NewShardID(chainmgr.GetShardID())
+	if err != nil {
+		return nil, fmt.Errorf("invalid shard ID: %d, %s", chainmgr.GetShardID(), err)
+	}
+
 	header := &types.Header{
 		Version:          ContextVersion,
+		ShardID:          shardID.ToUint64(),
+		ParentHeight:     uint32(parentHeight),
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
@@ -210,6 +220,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 	block := &types.Block{
 		Header:       header,
+		Events: evts,
 		Transactions: transactions,
 	}
 

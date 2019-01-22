@@ -1,6 +1,7 @@
 package message
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -34,13 +35,13 @@ type shardBlkHdrHelper struct {
 }
 
 func (this *ShardBlockHeader) MarshalJSON() ([]byte, error) {
-	buf := common.NewZeroCopySink(nil)
-	if err := this.Header.Serialization(buf); err != nil {
+	sink := common.NewZeroCopySink(nil)
+	if err := this.Header.Serialization(sink); err != nil {
 		return nil, fmt.Errorf("shard block hdr marshal: %s", err)
 	}
 
 	return json.Marshal(&shardBlkHdrHelper{
-		Payload: buf.Bytes(),
+		Payload: sink.Bytes(),
 	})
 }
 
@@ -50,9 +51,9 @@ func (this *ShardBlockHeader) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("shard block hdr helper: %s", err)
 	}
 
-	buf := common.NewZeroCopySource(helper.Payload)
+	source := common.NewZeroCopySource(helper.Payload)
 	hdr := &types.Header{}
-	if err := hdr.Deserialization(buf); err != nil {
+	if err := hdr.Deserialization(source); err != nil {
 		return fmt.Errorf("shard block hdr unmarshal: %s", err)
 	}
 	this.Header = hdr

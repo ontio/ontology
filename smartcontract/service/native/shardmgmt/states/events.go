@@ -1,6 +1,8 @@
 package shardstates
 
 import (
+	"bytes"
+	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common/serialization"
@@ -149,4 +151,23 @@ type ShardEventState struct {
 	Version   uint32 `json:"version"`
 	EventType uint32 `json:"event_type"`
 	Info      []byte `json:"info"`
+}
+
+func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {
+	switch evtType {
+	case EVENT_SHARD_GAS_DEPOSIT:
+		evt := &DepositGasEvent{}
+		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
+			return nil, fmt.Errorf("unmarshal remote event: %s", err)
+		}
+		return evt, nil
+	case EVENT_SHARD_GAS_WITHDRAW_REQ:
+	case EVENT_SHARD_GAS_WITHDRAW_DONE:
+		return nil, nil
+	case EVENT_SHARD_PEER_JOIN:
+	case EVENT_SHARD_PEER_LEAVE:
+		return nil, nil
+	}
+
+	return nil, fmt.Errorf("unknown remote event type: %d", evtType)
 }

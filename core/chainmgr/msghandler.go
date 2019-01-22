@@ -8,7 +8,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -84,7 +83,7 @@ func (self *ChainManager) onShardBlockReceived(sender *actor.PID, blkMsg *messag
 
 func (self *ChainManager) onShardContractEventReceived(sender *actor.PID, evtmsg *message.ShardContractEventMsg) error {
 
-	evt, err := message.DecodeShardEvent(evtmsg.EventType, evtmsg.EventData)
+	evt, err := shardstates.DecodeShardEvent(evtmsg.EventType, evtmsg.EventData)
 	if err != nil {
 		return err
 	}
@@ -116,7 +115,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	return nil
 }
 
-func (self *ChainManager) onShardGasDeposited(evt *shardgas_states.DepositGasEvent) error {
+func (self *ChainManager) onShardGasDeposited(evt *shardstates.DepositGasEvent) error {
 	if evt == nil {
 		return fmt.Errorf("notification with nil gas deposit event from %d", self.shardID)
 	}
@@ -131,11 +130,11 @@ func (self *ChainManager) onShardGasDeposited(evt *shardgas_states.DepositGasEve
 	return nil
 }
 
-func (self *ChainManager) onShardGasWithdrawReq(evt *shardgas_states.WithdrawGasReqEvent) error {
+func (self *ChainManager) onShardGasWithdrawReq(evt *shardstates.WithdrawGasReqEvent) error {
 	return nil
 }
 
-func (self *ChainManager) onShardGasWithdrawDone(evt *shardgas_states.WithdrawGasDoneEvent) error {
+func (self *ChainManager) onShardGasWithdrawDone(evt *shardstates.WithdrawGasDoneEvent) error {
 	return nil
 }
 

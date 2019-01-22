@@ -1,4 +1,4 @@
-package shardgas_states
+package shardstates
 
 import (
 	"io"
@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	EVENT_SHARD_GAS_DEPOSIT = iota + 100
+	EVENT_SHARD_GAS_DEPOSIT = iota + 128
 	EVENT_SHARD_GAS_WITHDRAW_REQ
 	EVENT_SHARD_GAS_WITHDRAW_DONE
 )

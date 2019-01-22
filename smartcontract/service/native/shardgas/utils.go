@@ -12,7 +12,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
 )
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -68,7 +67,7 @@ func checkShardID(native *native.NativeService, shardID uint64) (bool, error) {
 	return shardState.State == shardstates.SHARD_STATE_ACTIVE, nil
 }
 
-func getUserBalance(native *native.NativeService, contract common.Address, shardID uint64, user common.Address) (*shardgas_states.UserGasInfo, error) {
+func getUserBalance(native *native.NativeService, contract common.Address, shardID uint64, user common.Address) (*shardstates.UserGasInfo, error) {
 	shardIDByte, err := shardutil.GetUint64Bytes(shardID)
 	if err != nil {
 		return nil, fmt.Errorf("ser ShardID %s", err)
@@ -79,12 +78,12 @@ func getUserBalance(native *native.NativeService, contract common.Address, shard
 		return nil, fmt.Errorf("get balance from db: %s", err)
 	}
 	if len(dataBytes) == 0 {
-		return &shardgas_states.UserGasInfo{
-			PendingWithdraw: make([]*shardgas_states.GasWithdrawInfo, 0),
+		return &shardstates.UserGasInfo{
+			PendingWithdraw: make([]*shardstates.GasWithdrawInfo, 0),
 		}, nil
 	}
 
-	gasInfo := &shardgas_states.UserGasInfo{}
+	gasInfo := &shardstates.UserGasInfo{}
 	if err := user.Deserialize(bytes.NewBuffer(dataBytes)); err != nil {
 		return nil, fmt.Errorf("deserialize user balance: %s", err)
 	}
@@ -92,7 +91,7 @@ func getUserBalance(native *native.NativeService, contract common.Address, shard
 	return gasInfo, nil
 }
 
-func setUserDeposit(native *native.NativeService, contract common.Address, shardID uint64, user common.Address, userGas *shardgas_states.UserGasInfo) error {
+func setUserDeposit(native *native.NativeService, contract common.Address, shardID uint64, user common.Address, userGas *shardstates.UserGasInfo) error {
 	buf := new(bytes.Buffer)
 	if err := userGas.Serialize(buf); err != nil {
 		return fmt.Errorf("serialize user balance: %s", err)
