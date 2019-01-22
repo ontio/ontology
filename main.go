@@ -148,12 +148,12 @@ func main() {
 }
 
 func startOntology(ctx *cli.Context) {
-	initLog(ctx)
+	shardID := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
+	initLog(ctx, shardID)
 
 	log.Infof("ontology version %s", config.Version)
 
 	setMaxOpenFiles()
-	shardID := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
 	if shardID == config.DEFAULT_SHARD_ID {
 		startMainChain(ctx)
 	} else {
@@ -181,7 +181,7 @@ func startMainChain(ctx *cli.Context) {
 	}
 	defer chainmgr.Stop()
 
-	stateHashHeight := config.GetStateHashCheckHeight(cfg.P2PNode.NetworkId)
+	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
 	ldg, err := initLedger(ctx, stateHashHeight)
 	if err != nil {
 		log.Errorf("%s", err)
@@ -264,7 +264,7 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 	}
 	config.DefConfig = cfg
 
-	ldg, err := initLedger(ctx)
+	ldg, err := initLedger(ctx, 0)
 	if err != nil {
 		log.Errorf("%s", err)
 		return

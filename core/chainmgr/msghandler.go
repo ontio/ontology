@@ -82,6 +82,22 @@ func (self *ChainManager) onShardBlockReceived(sender *actor.PID, blkMsg *messag
 	return self.addShardBlockInfo(blkInfo)
 }
 
+func (self *ChainManager) onShardContractEventReceived(sender *actor.PID, evtmsg *message.ShardContractEventMsg) error {
+
+	evt, err := message.DecodeShardEvent(evtmsg.EventType, evtmsg.EventData)
+	if err != nil {
+		return err
+	}
+
+	return self.addShardEvent(evt)
+}
+
+/////////////
+//
+// local shard processors
+//
+/////////////
+
 func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) error {
 	return nil
 }
@@ -90,7 +106,7 @@ func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) e
 	return nil
 }
 
-func (self *ChainManager) onShardPeerJoint(evt *shardstates.JoinShardEvent) error {
+func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) error {
 	return nil
 }
 
@@ -101,14 +117,27 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 }
 
 func (self *ChainManager) onShardGasDeposited(evt *shardgas_states.DepositGasEvent) error {
+	if evt == nil {
+		return fmt.Errorf("notification with nil gas deposit event from %d", self.shardID)
+	}
+	log.Info("shard %d, deposit gas to %d, amount %d, addr %s", self.shardID, evt.ShardID, evt.Amount, evt.User.ToHexString())
+
+	msg, err := message.NewShardContractEventMsg(self.shardID, evt.GetType(), evt, self.localPid)
+	if err != nil {
+		return fmt.Errorf("build shard contract event msg: %s", err)
+	}
+
+	self.sendShardMsg(evt.ShardID, msg)
 	return nil
 }
 
-/////////////
-//
-// local shard processors
-//
-/////////////
+func (self *ChainManager) onShardGasWithdrawReq(evt *shardgas_states.WithdrawGasReqEvent) error {
+	return nil
+}
+
+func (self *ChainManager) onShardGasWithdrawDone(evt *shardgas_states.WithdrawGasDoneEvent) error {
+	return nil
+}
 
 func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 	if blk == nil {
@@ -131,5 +160,6 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 	}
 
 	// send msg to child shards
-	return self.broadcastShardMsg(msg)
+	self.broadcastShardMsg(msg)
+	return nil
 }

@@ -138,7 +138,11 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, set shard state: %s", err)
 	}
 
-	evt := &shardstates.CreateShardEvent{ShardID: shard.ShardID}
+	evt := &shardstates.CreateShardEvent{
+		SourceShardID: native.ShardID.ToUint64(),
+		Height: uint64(native.Height),
+		NewShardID: shard.ShardID,
+		}
 	if err := AddNotification(native, contract, evt); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, add notification: %s", err)
 	}
@@ -290,7 +294,11 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
 	}
 
-	evt := &shardstates.ShardActiveEvent{ShardID: shard.ShardID}
+	evt := &shardstates.ShardActiveEvent{
+		SourceShardID: native.ShardID.ToUint64(),
+		Height: uint64(native.Height),
+		ShardID: shard.ShardID,
+	}
 	if err := AddNotification(native, contract, evt); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, add notification: %s", err)
 	}

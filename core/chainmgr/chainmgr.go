@@ -39,11 +39,16 @@ type RemoteMsg struct {
 	Msg    shardmsg.RemoteShardMsg
 }
 
+type MsgSendReq struct {
+	targetShardID uint64
+	msg           *shardmsg.CrossShardMsg
+}
+
 type ShardInfo struct {
 	ShardAddress string
 	Connected    bool
 	Config       *config.OntologyConfig
-	Sender *actor.PID
+	Sender       *actor.PID
 }
 
 type ChainManager struct {
@@ -65,9 +70,9 @@ type ChainManager struct {
 	p2pPid *actor.PID
 
 	localBlockMsgC  chan *types.Block
-	localShardMsgC  chan *shardstates.ShardEventState
+	localEventC     chan *shardstates.ShardEventState
 	remoteShardMsgC chan *RemoteMsg
-	broadcastMsgC   chan *shardmsg.CrossShardMsg
+	broadcastMsgC   chan *MsgSendReq
 	parentConnWait  chan bool
 
 	parentPid   *actor.PID
@@ -100,9 +105,9 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		shardAddrs:           make(map[string]uint64),
 		blockPool:            blkPool,
 		localBlockMsgC:       make(chan *types.Block, CAP_LOCAL_SHARDMSG_CHNL),
-		localShardMsgC:       make(chan *shardstates.ShardEventState, CAP_LOCAL_SHARDMSG_CHNL),
+		localEventC:          make(chan *shardstates.ShardEventState, CAP_LOCAL_SHARDMSG_CHNL),
 		remoteShardMsgC:      make(chan *RemoteMsg, CAP_REMOTE_SHARDMSG_CHNL),
-		broadcastMsgC:        make(chan *shardmsg.CrossShardMsg, CAP_REMOTE_SHARDMSG_CHNL),
+		broadcastMsgC:        make(chan *MsgSendReq, CAP_REMOTE_SHARDMSG_CHNL),
 		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
 
@@ -114,7 +119,7 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		return nil, fmt.Errorf("shard %d start listener failed: %s", chainMgr.shardID, err)
 	}
 
-	go chainMgr.localShardMsgLoop()
+	go chainMgr.localEventLoop()
 	go chainMgr.remoteShardMsgLoop()
 	go chainMgr.broadcastMsgLoop()
 
@@ -208,13 +213,13 @@ func (self *ChainManager) Receive(context actor.Context) {
 		}
 		evt := msg.Event
 		log.Infof("chain mgr received shard system event: ver: %d, type: %d", evt.Version, evt.EventType)
-		self.localShardMsgC <- evt
+		self.localEventC <- evt
 	case *shardmsg.CrossShardMsg:
 		if msg == nil {
 			return
 		}
 		log.Tracef("chain mgr received shard msg: %v", msg)
-		smsg, err := shardmsg.Decode(msg.Type, msg.Data)
+		smsg, err := shardmsg.DecodeShardMsg(msg.Type, msg.Data)
 		if err != nil {
 			log.Errorf("decode shard msg: %s", err)
 			return
@@ -245,62 +250,77 @@ func (self *ChainManager) remoteEndpointEvent(evt interface{}) {
 	}
 }
 
-func (self *ChainManager) localShardMsgLoop() error {
+func (self *ChainManager) localEventLoop() error {
 
 	self.quitWg.Add(1)
 	defer self.quitWg.Done()
 
 	for {
 		select {
-		case shardEvt := <-self.localShardMsgC:
+		case shardEvt := <-self.localEventC:
 			switch shardEvt.EventType {
 			case shardstates.EVENT_SHARD_CREATE:
 				createEvt := &shardstates.CreateShardEvent{}
 				if err := createEvt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
-					log.Errorf("deserialize create shard event: %s", err)
+					return fmt.Errorf("deserialize create shard event: %s", err)
 				}
 				if err := self.onShardCreated(createEvt); err != nil {
-					log.Errorf("processing create shard event: %s", err)
+					return fmt.Errorf("processing create shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_CONFIG_UPDATE:
 				cfgEvt := &shardstates.ConfigShardEvent{}
 				if err := cfgEvt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
-					log.Errorf("deserialize create shard event: %s", err)
+					return fmt.Errorf("deserialize create shard event: %s", err)
 				}
 				if err := self.onShardConfigured(cfgEvt); err != nil {
-					log.Errorf("processing create shard event: %s", err)
+					return fmt.Errorf("processing create shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_PEER_JOIN:
-				jointEvt := &shardstates.JoinShardEvent{}
+				jointEvt := &shardstates.PeerJoinShardEvent{}
 				if err := jointEvt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
-					log.Errorf("deserialize join shard event: %s", err)
+					return fmt.Errorf("deserialize join shard event: %s", err)
 				}
 				if err := self.onShardPeerJoint(jointEvt); err != nil {
-					log.Errorf("processing join shard event: %s", err)
+					return fmt.Errorf("processing join shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_ACTIVATED:
 				evt := &shardstates.ShardActiveEvent{}
 				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
-					log.Errorf("deserialize join shard event: %s", err)
+					return fmt.Errorf("deserialize join shard event: %s", err)
 				}
 				if err := self.onShardActivated(evt); err != nil {
-					log.Errorf("processing join shard event: %s", err)
+					return fmt.Errorf("processing join shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_PEER_LEAVE:
 			case shardgas_states.EVENT_SHARD_GAS_DEPOSIT:
 				evt := &shardgas_states.DepositGasEvent{}
 				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
-					log.Errorf("deserialize shard gas deposit event: %s", err)
+					return fmt.Errorf("deserialize shard gas deposit event: %s", err)
 				}
 				if err := self.onShardGasDeposited(evt); err != nil {
-					log.Errorf("processing shard %d gas deposit: %s", evt.ShardID, err)
+					return fmt.Errorf("processing shard %d gas deposit: %s", evt.ShardID, err)
 				}
-			case shardgas_states.EVENT_SHARD_GAS_WITHDRAW:
+			case shardgas_states.EVENT_SHARD_GAS_WITHDRAW_REQ:
+				evt := &shardgas_states.WithdrawGasReqEvent{}
+				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
+					return fmt.Errorf("deserialize shard gas withdraw event: %s", err)
+				}
+				if err := self.onShardGasWithdrawReq(evt); err != nil {
+					return fmt.Errorf("processing shard %d gas withdraw: %s", evt.ShardID, err)
+				}
+			case shardgas_states.EVENT_SHARD_GAS_WITHDRAW_DONE:
+				evt := &shardgas_states.WithdrawGasDoneEvent{}
+				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
+					return fmt.Errorf("deserialize shard gas withdraw done event: %s", err)
+				}
+				if err := self.onShardGasWithdrawDone(evt); err != nil {
+					return fmt.Errorf("processing shard %d gas withdraw: %s", evt.ShardID, err)
+				}
 			}
 			break
 		case blk := <-self.localBlockMsgC:
 			if err := self.onBlockPersistCompleted(blk); err != nil {
-				log.Errorf("processing shard %d, block %d, err: %s", self.shardID, blk.Header.Height, err)
+				return fmt.Errorf("processing shard %d, block %d, err: %s", self.shardID, blk.Header.Height, err)
 			}
 		case <-self.quitC:
 			return nil
@@ -383,6 +403,13 @@ func (self *ChainManager) processRemoteShardMsg() error {
 		case shardmsg.PEERINFO_REQ_MSG:
 		case shardmsg.PEERINFO_RSP_MSG:
 			return nil
+		case shardmsg.SHARD_CONTRACT_EVENT_MSG:
+			evtMsg, ok := msg.(*shardmsg.ShardContractEventMsg)
+			if !ok {
+				return fmt.Errorf("invalid shard contract event msg")
+			}
+			log.Info("shard %d received contract event %", self.shardID, evtMsg.EventType)
+			return self.onShardContractEventReceived(remoteMsg.Sender, evtMsg)
 		case shardmsg.DISCONNECTED_MSG:
 			disconnMsg, ok := msg.(*shardmsg.ShardDisconnectedMsg)
 			if !ok {
@@ -462,7 +489,16 @@ func (self *ChainManager) Stop() {
 	self.quitWg.Wait()
 }
 
-func (self *ChainManager) broadcastShardMsg(msg *shardmsg.CrossShardMsg) error {
-	self.broadcastMsgC <- msg
-	return nil
+func (self *ChainManager) broadcastShardMsg(msg *shardmsg.CrossShardMsg) {
+	self.broadcastMsgC <- &MsgSendReq{
+		targetShardID: math.MaxUint64,
+		msg:           msg,
+	}
+}
+
+func (self *ChainManager) sendShardMsg(shardId uint64, msg *shardmsg.CrossShardMsg) {
+	self.broadcastMsgC <- &MsgSendReq{
+		targetShardID: shardId,
+		msg:           msg,
+	}
 }

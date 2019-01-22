@@ -56,3 +56,17 @@ func (this *WithdrawGasRequestParam) Serialize(w io.Writer) error {
 func (this *WithdrawGasRequestParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
+
+type AcquireWithdrawGasParam struct {
+	UserAddress common.Address `json:"user_address"`
+	ShardID     uint64         `json:"shard_id"`
+	Amount      uint64         `json:"amount"`
+}
+
+func (this *AcquireWithdrawGasParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *AcquireWithdrawGasParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}

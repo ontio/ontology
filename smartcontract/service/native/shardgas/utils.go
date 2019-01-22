@@ -12,6 +12,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
 )
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -67,34 +68,42 @@ func checkShardID(native *native.NativeService, shardID uint64) (bool, error) {
 	return shardState.State == shardstates.SHARD_STATE_ACTIVE, nil
 }
 
-func getUserDespoit(native *native.NativeService, contract common.Address, shardID uint64, user common.Address) (uint64, error) {
+func getUserBalance(native *native.NativeService, contract common.Address, shardID uint64, user common.Address) (*shardgas_states.UserGasInfo, error) {
 	shardIDByte, err := shardutil.GetUint64Bytes(shardID)
 	if err != nil {
-		return 0, fmt.Errorf("ser ShardID %s", err)
+		return nil, fmt.Errorf("ser ShardID %s", err)
 	}
 	keyBytes := utils.ConcatKey(contract, []byte(KEY_BALANCE), shardIDByte, user[:])
-	amountBytes, err := native.CacheDB.Get(keyBytes)
+	dataBytes, err := native.CacheDB.Get(keyBytes)
 	if err != nil {
-		return 0, fmt.Errorf("get balance from db: %s", err)
+		return nil, fmt.Errorf("get balance from db: %s", err)
 	}
-	if len(amountBytes) == 0 {
-		return 0, nil
+	if len(dataBytes) == 0 {
+		return &shardgas_states.UserGasInfo{
+			PendingWithdraw: make([]*shardgas_states.GasWithdrawInfo, 0),
+		}, nil
 	}
 
-	return shardutil.GetBytesUint64(amountBytes)
+	gasInfo := &shardgas_states.UserGasInfo{}
+	if err := user.Deserialize(bytes.NewBuffer(dataBytes)); err != nil {
+		return nil, fmt.Errorf("deserialize user balance: %s", err)
+	}
+
+	return gasInfo, nil
 }
 
-func setUserDeposit(native *native.NativeService, contract common.Address, shardID uint64, user common.Address, amount uint64) error {
+func setUserDeposit(native *native.NativeService, contract common.Address, shardID uint64, user common.Address, userGas *shardgas_states.UserGasInfo) error {
+	buf := new(bytes.Buffer)
+	if err := userGas.Serialize(buf); err != nil {
+		return fmt.Errorf("serialize user balance: %s", err)
+	}
+
 	shardIDByte, err := shardutil.GetUint64Bytes(shardID)
 	if err != nil {
 		return fmt.Errorf("ser ShardID %s", err)
 	}
 	keyBytes := utils.ConcatKey(contract, []byte(KEY_BALANCE), shardIDByte, user[:])
 
-	amountBytes, err := shardutil.GetUint64Bytes(amount)
-	if err != nil {
-		return fmt.Errorf("ser Amount %s", err)
-	}
-	native.CacheDB.Put(keyBytes, cstates.GenRawStorageItem(amountBytes))
+	native.CacheDB.Put(keyBytes, cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }

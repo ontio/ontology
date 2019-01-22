@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
+	"bytes"
 )
 
 const (
@@ -17,6 +19,8 @@ const (
 	BLOCK_RSP_MSG
 	PEERINFO_REQ_MSG
 	PEERINFO_RSP_MSG
+
+	SHARD_CONTRACT_EVENT_MSG
 
 	DISCONNECTED_MSG
 )
@@ -91,7 +95,17 @@ func (msg *ShardDisconnectedMsg) Type() int {
 	return DISCONNECTED_MSG
 }
 
-func Decode(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
+type ShardContractEventMsg struct {
+	FromShard uint64 `json:"from_shard"`
+	EventType uint32 `json:"event_type"`
+	EventData []byte `json:"event_data"`
+}
+
+func (msg *ShardContractEventMsg) Type() int {
+	return SHARD_CONTRACT_EVENT_MSG
+}
+
+func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 	switch msgtype {
 	case HELLO_MSG:
 		msg := &ShardHelloMsg{}
@@ -131,4 +145,23 @@ func Decode(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 		return msg, nil
 	}
 	return nil, fmt.Errorf("unknown remote shard msg type: %d", msgtype)
+}
+
+func DecodeShardEvent(evtType uint32, evtPayload []byte) (shardstates.ShardMgmtEvent, error) {
+	switch evtType {
+	case shardgas_states.EVENT_SHARD_GAS_DEPOSIT:
+		evt := &shardgas_states.DepositGasEvent{}
+		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
+			return nil, fmt.Errorf("unmarshal remote event: %s", err)
+		}
+		return evt, nil
+	case shardgas_states.EVENT_SHARD_GAS_WITHDRAW_REQ:
+	case shardgas_states.EVENT_SHARD_GAS_WITHDRAW_DONE:
+		return nil, nil
+	case shardstates.EVENT_SHARD_PEER_JOIN:
+	case shardstates.EVENT_SHARD_PEER_LEAVE:
+		return nil, nil
+	}
+
+	return nil, fmt.Errorf("unknown remote event type: %d", evtType)
 }
