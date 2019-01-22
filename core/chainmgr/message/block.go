@@ -22,11 +22,11 @@ type ShardBlockHeader struct {
 }
 
 type ShardBlockInfo struct {
-	ShardID     uint64                         `json:"shard_id"`
-	BlockHeight uint64                         `json:"block_height"`
-	State       uint                           `json:"state"`
-	Header      *ShardBlockHeader              `json:"header"`
-	Events      []*shardstates.ShardEventState `json:"events"`
+	ShardID     uint64                       `json:"shard_id"`
+	BlockHeight uint64                       `json:"block_height"`
+	State       uint                         `json:"state"`
+	Header      *ShardBlockHeader            `json:"header"`
+	Events      []shardstates.ShardMgmtEvent `json:"events"`
 }
 
 type shardBlkHdrHelper struct {
@@ -96,8 +96,18 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 	if m == nil {
 		return fmt.Errorf("add shard block, nil map")
 	}
-	if _, present := m[blkInfo.BlockHeight]; present {
-		return fmt.Errorf("add shard block, dup blk")
+	if blk, present := m[blkInfo.BlockHeight]; present {
+		if blk.State != ShardBlockNew {
+			return fmt.Errorf("add shard block, new block on block state %d", blk.State)
+		}
+		if blk.Header != nil &&
+			bytes.Compare(blk.Header.Header.BlockRoot[:], blkInfo.Header.Header.BlockRoot[:]) == 0 {
+			return fmt.Errorf("add shard block, dup blk")
+		}
+
+		// replace events
+		blkInfo.Events = blk.Events
+		m[blkInfo.BlockHeight] = blkInfo
 	}
 
 	m[blkInfo.BlockHeight] = blkInfo
@@ -127,6 +137,27 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 }
 
 func (pool *ShardBlockPool) AddEvent(evt shardstates.ShardMgmtEvent) error {
+	shardID := evt.GetSourceShardID()
+
+	if _, present := pool.Shards[shardID]; !present {
+		pool.Shards[shardID] = make(ShardBlockMap)
+	}
+
+	m := pool.Shards[shardID]
+	if m == nil {
+		return fmt.Errorf("add shard event, nil map")
+	}
+	if _, present := m[evt.GetHeight()]; !present {
+		m[evt.GetHeight()] = &ShardBlockInfo{
+			ShardID:     shardID,
+			BlockHeight: evt.GetHeight(),
+			State:       ShardBlockNew,
+			Events:      []shardstates.ShardMgmtEvent{evt},
+		}
+		return nil
+	}
+
+	m[evt.GetHeight()].Events = append(m[evt.GetHeight()].Events, evt)
 	return nil
 }
 

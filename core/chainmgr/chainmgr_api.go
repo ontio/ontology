@@ -1,9 +1,11 @@
 package chainmgr
 
 import (
-	"github.com/ontio/ontology/account"
 	"math"
+
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func GetChainManager() *ChainManager {
@@ -51,6 +53,22 @@ func GetParentBlockHeader(height uint64) *types.Header {
 	}
 	if blk, present := m[height]; present && blk != nil {
 		return blk.Header.Header
+	}
+
+	return nil
+}
+
+func GetParentBlockEvents(height uint64) []shardstates.ShardMgmtEvent {
+	chainmgr := GetChainManager()
+	chainmgr.lock.RLock()
+	defer chainmgr.lock.RUnlock()
+
+	m := chainmgr.blockPool.Shards[chainmgr.parentShardID]
+	if m == nil {
+		return nil
+	}
+	if blk, present := m[height]; present && blk != nil {
+		return blk.Events
 	}
 
 	return nil
