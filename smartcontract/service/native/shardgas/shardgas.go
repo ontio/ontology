@@ -6,9 +6,9 @@ import (
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const (
@@ -110,7 +110,7 @@ func DespositGasToShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, update user balance: %s", err)
 	}
 
-	evt := &shardgas_states.DepositGasEvent{
+	evt := &shardstates.DepositGasEvent{
 		SourceShardID: native.ShardID.ToUint64(),
 		Height:        uint64(native.Height),
 		ShardID:       params.ShardID,
@@ -157,13 +157,13 @@ func WithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	if gasInfo.Balance <= params.Amount {
 		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, not enough balance for withdraw")
 	}
-	if len(gasInfo.PendingWithdraw) >= shardgas_states.CAP_PENDING_WITHDRAW {
+	if len(gasInfo.PendingWithdraw) >= shardstates.CAP_PENDING_WITHDRAW {
 		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, overlimited withdraw request")
 	}
 
 	gasInfo.Balance -= params.Amount
 	gasInfo.WithdrawBalance += params.Amount
-	gasInfo.PendingWithdraw = append(gasInfo.PendingWithdraw, &shardgas_states.GasWithdrawInfo{
+	gasInfo.PendingWithdraw = append(gasInfo.PendingWithdraw, &shardstates.GasWithdrawInfo{
 		Height: uint64(native.Height),
 		Amount: uint64(params.Amount),
 	})
@@ -172,7 +172,7 @@ func WithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, update user balance: %s", err)
 	}
 
-	evt := &shardgas_states.WithdrawGasReqEvent{
+	evt := &shardstates.WithdrawGasReqEvent{
 		SourceShardID: native.ShardID.ToUint64(),
 		Height:        uint64(native.Height),
 		ShardID:       params.ShardID,
@@ -202,7 +202,7 @@ func AcquireWithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	if params.Amount > constants.ONG_TOTAL_SUPPLY {
 		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, invalid amount")
 	}
-	if native.Height <= shardgas_states.WITHDRAW_GAS_DELAY_DURATION {
+	if native.Height <= shardstates.WITHDRAW_GAS_DELAY_DURATION {
 		return utils.BYTE_FALSE, fmt.Errorf("acqure gas, pending to withdraw")
 	}
 
@@ -224,9 +224,9 @@ func AcquireWithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	withdrawAmount := uint64(0)
-	pendingWithdraw := make([]*shardgas_states.GasWithdrawInfo, 0)
+	pendingWithdraw := make([]*shardstates.GasWithdrawInfo, 0)
 	for _, w := range gasInfo.PendingWithdraw {
-		if w.Height < uint64(native.Height)-shardgas_states.WITHDRAW_GAS_DELAY_DURATION {
+		if w.Height < uint64(native.Height)-shardstates.WITHDRAW_GAS_DELAY_DURATION {
 			if withdrawAmount+w.Amount < params.Amount {
 				withdrawAmount += w.Amount
 			} else {
@@ -248,7 +248,7 @@ func AcquireWithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, update user balance: %s", err)
 	}
 
-	evt := &shardgas_states.WithdrawGasDoneEvent{
+	evt := &shardstates.WithdrawGasDoneEvent{
 		SourceShardID: native.ShardID.ToUint64(),
 		Height:        uint64(native.Height),
 		ShardID:       params.ShardID,

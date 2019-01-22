@@ -19,19 +19,30 @@
 package types
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 type Block struct {
 	Header       *Header
+	Events       map[uint64][]shardstates.ShardMgmtEvent
 	Transactions []*Transaction
 }
 
 func (b *Block) Serialization(sink *common.ZeroCopySink) {
 	b.Header.Serialization(sink)
+
+	sink.WriteUint32(uint32(len(b.Events)))
+	for shardID, evts := range b.Events {
+		if err := zcpSerializeShardEvents(sink, shardID, evts); err != nil {
+			return err
+		}
+	}
 
 	sink.WriteUint32(uint32(len(b.Transactions)))
 	for _, transaction := range b.Transactions {
@@ -58,6 +69,16 @@ func (self *Block) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
+
+	nEvts, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	events, err := zcpDeserializeShardEvents(source, nEvts)
+	if err != nil {
+		return err
+	}
+	self.Events = events
 
 	length, eof := source.NextUint32()
 	if eof {
@@ -112,4 +133,58 @@ func (b *Block) RebuildMerkleRoot() {
 	}
 	hash := common.ComputeMerkleRoot(hashes)
 	b.Header.TransactionsRoot = hash
+}
+
+func zcpSerializeShardEvents(sink *common.ZeroCopySink, shardID uint64, evts []shardstates.ShardMgmtEvent) error {
+	if len(evts) == 0 {
+		return nil
+	}
+
+	sink.WriteUint64(shardID)
+	sink.WriteUint32(uint32(len(evts)))
+	for _, evt := range evts {
+		buf := new(bytes.Buffer)
+		if err := evt.Serialize(buf); err != nil {
+			return err
+		}
+		sink.WriteUint32(evt.GetType())
+		sink.WriteVarBytes(buf.Bytes())
+	}
+
+	return nil
+}
+
+func zcpDeserializeShardEvents(source *common.ZeroCopySource, shardCnt uint32) (map[uint64][]shardstates.ShardMgmtEvent, error) {
+	shardEvts := make(map[uint64][]shardstates.ShardMgmtEvent)
+	for i := uint32(0); i < shardCnt; i++ {
+		shardID, eof := source.NextUint64()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
+
+		evtCnt, eof := source.NextUint32()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
+
+		evts := make([]shardstates.ShardMgmtEvent, 0)
+		for j := uint32(0); j < evtCnt; j++ {
+			evtType, eof := source.NextUint32()
+			if eof {
+				return nil, io.ErrUnexpectedEOF
+			}
+			evtBytes, _, _, eof := source.NextVarBytes()
+			if eof {
+				return nil, io.ErrUnexpectedEOF
+			}
+			evt, err := shardstates.DecodeShardEvent(evtType, evtBytes)
+			if err != nil {
+				return nil, fmt.Errorf("decode event: %s", err)
+			}
+			evts = append(evts, evt)
+		}
+		shardEvts[shardID] = evts
+	}
+
+	return shardEvts, nil
 }

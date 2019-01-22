@@ -21,7 +21,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -292,24 +291,24 @@ func (self *ChainManager) localEventLoop() error {
 					return fmt.Errorf("processing join shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_PEER_LEAVE:
-			case shardgas_states.EVENT_SHARD_GAS_DEPOSIT:
-				evt := &shardgas_states.DepositGasEvent{}
+			case shardstates.EVENT_SHARD_GAS_DEPOSIT:
+				evt := &shardstates.DepositGasEvent{}
 				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
 					return fmt.Errorf("deserialize shard gas deposit event: %s", err)
 				}
 				if err := self.onShardGasDeposited(evt); err != nil {
 					return fmt.Errorf("processing shard %d gas deposit: %s", evt.ShardID, err)
 				}
-			case shardgas_states.EVENT_SHARD_GAS_WITHDRAW_REQ:
-				evt := &shardgas_states.WithdrawGasReqEvent{}
+			case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
+				evt := &shardstates.WithdrawGasReqEvent{}
 				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
 					return fmt.Errorf("deserialize shard gas withdraw event: %s", err)
 				}
 				if err := self.onShardGasWithdrawReq(evt); err != nil {
 					return fmt.Errorf("processing shard %d gas withdraw: %s", evt.ShardID, err)
 				}
-			case shardgas_states.EVENT_SHARD_GAS_WITHDRAW_DONE:
-				evt := &shardgas_states.WithdrawGasDoneEvent{}
+			case shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
+				evt := &shardstates.WithdrawGasDoneEvent{}
 				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Info)); err != nil {
 					return fmt.Errorf("deserialize shard gas withdraw done event: %s", err)
 				}

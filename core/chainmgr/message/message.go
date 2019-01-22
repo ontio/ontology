@@ -3,9 +3,8 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas/states"
-	"bytes"
 )
 
 const (
@@ -145,23 +144,4 @@ func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 		return msg, nil
 	}
 	return nil, fmt.Errorf("unknown remote shard msg type: %d", msgtype)
-}
-
-func DecodeShardEvent(evtType uint32, evtPayload []byte) (shardstates.ShardMgmtEvent, error) {
-	switch evtType {
-	case shardgas_states.EVENT_SHARD_GAS_DEPOSIT:
-		evt := &shardgas_states.DepositGasEvent{}
-		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
-			return nil, fmt.Errorf("unmarshal remote event: %s", err)
-		}
-		return evt, nil
-	case shardgas_states.EVENT_SHARD_GAS_WITHDRAW_REQ:
-	case shardgas_states.EVENT_SHARD_GAS_WITHDRAW_DONE:
-		return nil, nil
-	case shardstates.EVENT_SHARD_PEER_JOIN:
-	case shardstates.EVENT_SHARD_PEER_LEAVE:
-		return nil, nil
-	}
-
-	return nil, fmt.Errorf("unknown remote event type: %d", evtType)
 }
