@@ -776,6 +776,11 @@ func (this *LedgerStoreImp) releaseSavingBlockLock() {
 func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.ExecuteResult) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
+	blockRoot := this.GetBlockRootWithNewTxRoot(block.Header.TransactionsRoot)
+	if blockRoot != block.Header.BlockRoot {
+		return fmt.Errorf("wrong block root at height:%d, expected:%s, got:%s",
+			block.Header.Height, blockRoot, block.Header.BlockRoot)
+	}
 
 	this.blockStore.NewBatch()
 	this.stateStore.NewBatch()
