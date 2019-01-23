@@ -1,6 +1,6 @@
 GOFMT=gofmt
 GC=go build
-VERSION := $(shell git describe --abbrev=4 --always --tags)
+VERSION := $(shell git describe --always --tags --long)
 BUILD_NODE_PAR = -ldflags "-X github.com/ontio/ontology/common/config.Version=$(VERSION)" #-race
 
 ARCH=$(shell uname -m)
