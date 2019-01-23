@@ -8,10 +8,10 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {

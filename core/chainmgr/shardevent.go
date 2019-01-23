@@ -1,10 +1,9 @@
-
 package chainmgr
 
 import (
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/events"
+	"github.com/ontio/ontology/events/message"
 )
 
 type ShardEventActor struct {
@@ -37,4 +36,3 @@ func (self *ChainManager) handleShardSystemEvent(msg *message.ShardSystemEventMs
 	default:
 	}
 }
-

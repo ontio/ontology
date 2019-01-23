@@ -5,7 +5,6 @@ import (
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func GetChainManager() *ChainManager {
@@ -57,23 +56,23 @@ func GetParentBlockHeader(height uint64) *types.Header {
 	return nil
 }
 
-func GetBlockEventsByParentHeight(height uint64) map[uint64][]shardstates.ShardMgmtEvent {
+func GetShardTxsByParentHeight(height uint64) map[uint64]*types.Transaction {
 	chainmgr := GetChainManager()
 
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
 
-	shardEvts := make(map[uint64][]shardstates.ShardMgmtEvent)
+	shardTxs := make(map[uint64]*types.Transaction)
 
 	m := chainmgr.blockPool.Shards[chainmgr.parentShardID]
 	if m == nil {
-		return shardEvts
+		return shardTxs
 	}
 	if blk, present := m[height]; present && blk != nil {
-		shardEvts[chainmgr.parentShardID] = blk.Events
+		for shardID, shardTx := range blk.ShardTxs {
+			shardTxs[shardID] = shardTx.Tx
+		}
 	}
 
-	// TODO: add shard event from sibling shards
-
-	return shardEvts
+	return shardTxs
 }

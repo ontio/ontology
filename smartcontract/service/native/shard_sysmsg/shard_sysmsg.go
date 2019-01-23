@@ -6,9 +6,9 @@ import (
 )
 
 const (
-	INIT_NAME = "init"
+	INIT_NAME                = "init"
 	PROCESS_PARENT_SHARD_MSG = "processParentShardMsg"
-	PROCESS_SIB_SHARD_MSG = "processSibShardMsg"
+	PROCESS_SIB_SHARD_MSG    = "processSibShardMsg"
 )
 
 func InitShardSystemMessageContract() {

@@ -104,9 +104,9 @@ func (evt *WithdrawGasReqEvent) Deserialize(r io.Reader) error {
 type WithdrawGasDoneEvent struct {
 	SourceShardID uint64         `json:"source_shard_id"`
 	Height        uint64         `json:"height"`
-	ShardID     uint64         `json:"shard_id"`
-	User        common.Address `json:"user"`
-	Amount      uint64         `json:"amount"`
+	ShardID       uint64         `json:"shard_id"`
+	User          common.Address `json:"user"`
+	Amount        uint64         `json:"amount"`
 }
 
 func (evt *WithdrawGasDoneEvent) GetSourceShardID() uint64 {
