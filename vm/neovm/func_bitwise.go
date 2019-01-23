@@ -18,12 +18,14 @@
 
 package neovm
 
+import "math/big"
+
 func opInvert(e *ExecutionEngine) (VMState, error) {
 	i, err := PopBigInt(e)
 	if err != nil {
 		return FAULT, err
 	}
-	PushData(e, i.Not(i))
+	PushData(e, big.NewInt(0).Not(i))
 	return NONE, nil
 }
 
