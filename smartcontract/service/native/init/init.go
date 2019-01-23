@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 )
 
 var (
@@ -49,6 +50,7 @@ func init() {
 	governance.InitGovernance()
 	shardmgmt.InitShardManagement()
 	shardgas.InitShardGasManagement()
+	shardsysmsg.InitShardSystemMessageContract()
 }
 
 func InitBytes(addr common.Address, method string) []byte {

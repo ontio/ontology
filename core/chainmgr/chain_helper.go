@@ -16,6 +16,13 @@ func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) err
 	return nil
 }
 
+func (this *ChainManager) getShardBlockInfo(shardID uint64, height uint64) *message.ShardBlockInfo {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+
+	return this.blockPool.GetBlock(shardID, height)
+}
+
 func (this *ChainManager) addShardEvent(evt shardstates.ShardMgmtEvent) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()

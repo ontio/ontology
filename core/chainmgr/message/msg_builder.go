@@ -101,9 +101,9 @@ func NewShardBlockInfo(shardID uint64, blk *types.Block) (*ShardBlockInfo, error
 	}
 
 	blockInfo := &ShardBlockInfo{
-		ShardID:     shardID,
-		BlockHeight: uint64(blk.Header.Height),
-		State:       ShardBlockNew,
+		ShardID: shardID,
+		Height:  uint64(blk.Header.Height),
+		State:   ShardBlockNew,
 		Header: &ShardBlockHeader{
 			Header: blk.Header,
 		},
@@ -120,9 +120,9 @@ func NewShardBlockInfoFromRemote(msg *ShardBlockRspMsg) (*ShardBlockInfo, error)
 	}
 
 	blockInfo := &ShardBlockInfo{
-		ShardID:     msg.ShardID,
-		BlockHeight: uint64(msg.BlockHeader.Header.Height),
-		State:       ShardBlockReceived,
+		ShardID: msg.ShardID,
+		Height:  uint64(msg.BlockHeader.Header.Height),
+		State:   ShardBlockReceived,
 		Header: &ShardBlockHeader{
 			Header: msg.BlockHeader.Header,
 		},
