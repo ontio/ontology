@@ -7,8 +7,8 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *message.ShardHelloMsg) error {
@@ -25,7 +25,7 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 		ShardAddress: sender.Address,
 		Connected:    true,
 		Config:       cfg,
-		Sender: sender,
+		Sender:       sender,
 	}
 	self.shardAddrs[sender.Address] = helloMsg.SourceShardID
 

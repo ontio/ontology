@@ -97,7 +97,7 @@ func (this *ShardBlockInfo) Deserialize(r io.Reader) error {
 	return DesJson(r, this)
 }
 
-func (this *ShardBlockInfo)ConstructShardBlockTx() error {
+func (this *ShardBlockInfo) ConstructShardBlockTx() error {
 	return nil
 }
 
