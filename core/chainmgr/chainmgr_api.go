@@ -33,8 +33,8 @@ func GetParentBlockHeight() uint64 {
 
 	h := uint64(0)
 	for _, blk := range m {
-		if blk.BlockHeight > h {
-			h = blk.BlockHeight
+		if blk.Height > h {
+			h = blk.Height
 		}
 	}
 

@@ -22,15 +22,20 @@ type ShardBlockHeader struct {
 	Header *types.Header
 }
 
-type ShardBlockInfo struct {
-	ShardID     uint64                       `json:"shard_id"`
-	BlockHeight uint64                       `json:"block_height"`
-	State       uint                         `json:"state"`
-	Header      *ShardBlockHeader            `json:"header"`
-	Events      []shardstates.ShardMgmtEvent `json:"events"`
+type ShardBlockTx struct {
+	Tx *types.Transaction
 }
 
-type shardBlkHdrHelper struct {
+type ShardBlockInfo struct {
+	ShardID  uint64                   `json:"shard_id"`
+	Height   uint64                   `json:"height"`
+	State    uint                     `json:"state"`
+	Header   *ShardBlockHeader        `json:"header"`
+	ShardTxs map[uint64]*ShardBlockTx `json:"shard_txs"`
+	Events   []shardstates.ShardMgmtEvent
+}
+
+type shardBlkMarshalHelper struct {
 	Payload []byte `json:"payload"`
 }
 
@@ -40,23 +45,47 @@ func (this *ShardBlockHeader) MarshalJSON() ([]byte, error) {
 		return nil, fmt.Errorf("shard block hdr marshal: %s", err)
 	}
 
-	return json.Marshal(&shardBlkHdrHelper{
+	return json.Marshal(&shardBlkMarshalHelper{
 		Payload: sink.Bytes(),
 	})
 }
 
 func (this *ShardBlockHeader) UnmarshalJSON(data []byte) error {
-	helper := &shardBlkHdrHelper{}
+	helper := &shardBlkMarshalHelper{}
 	if err := json.Unmarshal(data, helper); err != nil {
 		return fmt.Errorf("shard block hdr helper: %s", err)
 	}
 
-	source := common.NewZeroCopySource(helper.Payload)
 	hdr := &types.Header{}
-	if err := hdr.Deserialization(source); err != nil {
+	if err := hdr.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
 		return fmt.Errorf("shard block hdr unmarshal: %s", err)
 	}
 	this.Header = hdr
+	return nil
+}
+
+func (this *ShardBlockTx) MarshalJSON() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := this.Tx.Serialize(buf); err != nil {
+		return nil, fmt.Errorf("shard block tx marshal: %x", err)
+	}
+
+	return json.Marshal(&shardBlkMarshalHelper{
+		Payload: buf.Bytes(),
+	})
+}
+
+func (this *ShardBlockTx) UnmarshalJSON(data []byte) error {
+	helper := &shardBlkMarshalHelper{}
+	if err := json.Unmarshal(data, helper); err != nil {
+		return fmt.Errorf("shard block tx helper: %s", err)
+	}
+
+	tx := &types.Transaction{Raw: helper.Payload}
+	if err := tx.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
+		return fmt.Errorf("shard block tx unmarshal: %s", err)
+	}
+	this.Tx = tx
 	return nil
 }
 
@@ -66,6 +95,10 @@ func (this *ShardBlockInfo) Serialize(w io.Writer) error {
 
 func (this *ShardBlockInfo) Deserialize(r io.Reader) error {
 	return DesJson(r, this)
+}
+
+func (this *ShardBlockInfo)ConstructShardBlockTx() error {
+	return nil
 }
 
 ////////////////////////////////////
@@ -88,6 +121,13 @@ func NewShardBlockPool(historyCap uint32) *ShardBlockPool {
 	}
 }
 
+func (pool *ShardBlockPool) GetBlock(shardID, height uint64) *ShardBlockInfo {
+	if m, present := pool.Shards[shardID]; present && m != nil {
+		return m[height]
+	}
+	return nil
+}
+
 func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 	if _, present := pool.Shards[blkInfo.ShardID]; !present {
 		pool.Shards[blkInfo.ShardID] = make(ShardBlockMap)
@@ -97,7 +137,7 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 	if m == nil {
 		return fmt.Errorf("add shard block, nil map")
 	}
-	if blk, present := m[blkInfo.BlockHeight]; present {
+	if blk, present := m[blkInfo.Height]; present {
 		if blk.State != ShardBlockNew {
 			return fmt.Errorf("add shard block, new block on block state %d", blk.State)
 		}
@@ -108,26 +148,26 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 
 		// replace events
 		blkInfo.Events = blk.Events
-		m[blkInfo.BlockHeight] = blkInfo
+		m[blkInfo.Height] = blkInfo
 	}
 
-	m[blkInfo.BlockHeight] = blkInfo
+	m[blkInfo.Height] = blkInfo
 
 	// if too much block cached in map, drop old blocks
 	if uint32(len(m)) < pool.MaxBlockCap {
 		return nil
 	}
-	h := blkInfo.BlockHeight
+	h := blkInfo.Height
 	for _, blk := range m {
-		if blk.BlockHeight > h {
-			h = blk.BlockHeight
+		if blk.Height > h {
+			h = blk.Height
 		}
 	}
 
 	toDrop := make([]uint64, 0)
 	for _, blk := range m {
-		if blk.BlockHeight < h-uint64(pool.MaxBlockCap) {
-			toDrop = append(toDrop, blk.BlockHeight)
+		if blk.Height < h-uint64(pool.MaxBlockCap) {
+			toDrop = append(toDrop, blk.Height)
 		}
 	}
 	for _, blkHeight := range toDrop {
@@ -150,10 +190,10 @@ func (pool *ShardBlockPool) AddEvent(evt shardstates.ShardMgmtEvent) error {
 	}
 	if _, present := m[evt.GetHeight()]; !present {
 		m[evt.GetHeight()] = &ShardBlockInfo{
-			ShardID:     shardID,
-			BlockHeight: evt.GetHeight(),
-			State:       ShardBlockNew,
-			Events:      []shardstates.ShardMgmtEvent{evt},
+			ShardID: shardID,
+			Height:  evt.GetHeight(),
+			State:   ShardBlockNew,
+			Events:  []shardstates.ShardMgmtEvent{evt},
 		}
 		return nil
 	}

@@ -145,15 +145,23 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
 
 	// construct one parent-block-completed message
-	blockInfo, err := message.NewShardBlockInfo(self.shardID, blk)
-	if err != nil {
-		return fmt.Errorf("init shard block info: %s", err)
-	}
-	if err := self.addShardBlockInfo(blockInfo); err != nil {
-		return fmt.Errorf("add shard block: %s", err)
+	blkInfo := self.getShardBlockInfo(self.shardID, uint64(blk.Header.Height))
+	if blkInfo == nil {
+		newBlkInfo, err := message.NewShardBlockInfo(self.shardID, blk)
+		if err != nil {
+			return fmt.Errorf("init shard block info: %s", err)
+		}
+		if err := self.addShardBlockInfo(newBlkInfo); err != nil {
+			return fmt.Errorf("add shard block: %s", err)
+		}
+		blkInfo = newBlkInfo
 	}
 
-	msg, err := message.NewShardBlockRspMsg(self.shardID, blockInfo.BlockHeight, blk.Header, self.localPid)
+	if err := blkInfo.ConstructShardBlockTx(); err != nil {
+		return fmt.Errorf("shard %d, block %d, construct shard tx: %s", self.shardID, blkInfo.Height, err)
+	}
+
+	msg, err := message.NewShardBlockRspMsg(self.shardID, blkInfo.Height, blk.Header, self.localPid)
 	if err != nil {
 		return fmt.Errorf("build shard block msg: %s", err)
 	}
