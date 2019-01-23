@@ -176,23 +176,23 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 	//load vbft peerInfo
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType == "vbft" {
-		blk, err := this.GetBlockByHeight(this.currBlockHeight)
-		if err != nil {
-			return err
-		}
-		blkInfo, err := vconfig.VbftBlock(blk.Header)
-		if err != nil {
-			return err
-		}
 		var cfg *vconfig.ChainConfig
+		h, err := this.GetHeaderByHash(this.currBlockHash)
+		if err != nil {
+			return err
+		}
+		blkInfo, err := vconfig.VbftBlock(h)
+		if err != nil {
+			return err
+		}
 		if blkInfo.NewChainConfig != nil {
 			cfg = blkInfo.NewChainConfig
 		} else {
-			cfgBlock, err := this.GetBlockByHeight(blkInfo.LastConfigBlockNum)
+			h, err = this.GetHeaderByHash(this.headerIndex[blkInfo.LastConfigBlockNum])
 			if err != nil {
 				return err
 			}
-			Info, err := vconfig.VbftBlock(cfgBlock.Header)
+			Info, err := vconfig.VbftBlock(h)
 			if err != nil {
 				return err
 			}
@@ -234,9 +234,11 @@ func (this *LedgerStoreImp) init() error {
 	if err != nil {
 		return fmt.Errorf("initHeaderIndexList error %s", err)
 	}
-	err = this.loadStore()
-	if err != nil {
-		return fmt.Errorf("initStore error %s", err)
+	if config.DefConfig.P2PNode.SyncMode == config.SYNC_FULL_MODE {
+		err = this.loadStore()
+		if err != nil {
+			return fmt.Errorf("initStore error %s", err)
+		}
 	}
 	return nil
 }
@@ -828,6 +830,7 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	this.lock.RLock()
 	storeCount := this.storedIndexCount
 	currHeight := this.currBlockHeight
+	log.Info("storeCount:", storeCount, " currHeight:", currHeight)
 	if currHeight-storeCount < HEADER_INDEX_BATCH_SIZE {
 		this.lock.RUnlock()
 		return nil
@@ -868,11 +871,15 @@ func (this *LedgerStoreImp) AddHeadersToStore(headers []*types.Header) error {
 		this.currBlockHeight++
 		this.addHeaderCache(header)
 		this.setHeaderIndex(header.Height, header.Hash())
-		this.blockStore.SaveBlockHeader(header)
 	}
 	if err := this.saveHeaderIndexList(); err != nil {
 		return err
 	}
+	for _, v := range this.headerCache {
+		this.blockStore.SaveBlockHeader(v)
+		this.blockStore.SaveBlockHash(v.Height, v.Hash())
+	}
+	this.blockStore.SaveCurrentBlock(this.currBlockHeight, headers[len(headers)-1].Hash())
 	if err := this.blockStore.CommitTo(); err != nil {
 		return err
 	}
