@@ -776,7 +776,7 @@ func (this *LedgerStoreImp) releaseSavingBlockLock() {
 func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.ExecuteResult) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
-	blockRoot := this.GetBlockRootWithNewTxRoots([]common.Uint256{block.Header.TransactionsRoot})
+	blockRoot := this.GetBlockRootWithNewTxRoots(block.Header.Height, []common.Uint256{block.Header.TransactionsRoot})
 	if blockRoot != block.Header.BlockRoot {
 		return fmt.Errorf("wrong block root at height:%d, expected:%s, got:%s",
 			block.Header.Height, blockRoot, block.Header.BlockRoot)
@@ -909,8 +909,17 @@ func (this *LedgerStoreImp) IsContainTransaction(txHash common.Uint256) (bool, e
 }
 
 //GetBlockRootWithNewTxRoots return the block root(merkle root of blocks) after add a new tx root of block
-func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(txRoots []common.Uint256) common.Uint256 {
-	return this.stateStore.GetBlockRootWithNewTxRoots(txRoots)
+func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	// the block height in consensus is far behind ledger, this case should be rare
+	if this.currBlockHeight > startHeight+uint32(len(txRoots))-1 {
+		// or return error?
+		return common.UINT256_EMPTY
+	}
+
+	needs := txRoots[this.currBlockHeight+1-startHeight:]
+	return this.stateStore.GetBlockRootWithNewTxRoots(needs)
 }
 
 //GetBlockHash return the block hash by block height
