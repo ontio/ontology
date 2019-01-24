@@ -831,7 +831,6 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	this.lock.RLock()
 	storeCount := this.storedIndexCount
 	currHeight := this.currBlockHeight
-	log.Info("storeCount:", storeCount, " currHeight:", currHeight)
 	if currHeight-storeCount < HEADER_INDEX_BATCH_SIZE {
 		this.lock.RUnlock()
 		return nil
