@@ -150,7 +150,9 @@ func (evt *ShardActiveEvent) Deserialize(r io.Reader) error {
 type ShardEventState struct {
 	Version   uint32 `json:"version"`
 	EventType uint32 `json:"event_type"`
-	Info      []byte `json:"info"`
+	ToShard   uint64 `json:"to_shard"`
+	FromHeight uint64 `json:"from_height"`
+	Payload   []byte `json:"payload"`
 }
 
 func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {
@@ -163,9 +165,6 @@ func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error)
 		return evt, nil
 	case EVENT_SHARD_GAS_WITHDRAW_REQ:
 	case EVENT_SHARD_GAS_WITHDRAW_DONE:
-		return nil, nil
-	case EVENT_SHARD_PEER_JOIN:
-	case EVENT_SHARD_PEER_LEAVE:
 		return nil, nil
 	}
 

@@ -27,12 +27,12 @@ type ShardBlockTx struct {
 }
 
 type ShardBlockInfo struct {
-	ShardID  uint64                   `json:"shard_id"`
-	Height   uint64                   `json:"height"`
-	State    uint                     `json:"state"`
-	Header   *ShardBlockHeader        `json:"header"`
-	ShardTxs map[uint64]*ShardBlockTx `json:"shard_txs"`
-	Events   []shardstates.ShardMgmtEvent
+	FromShardID uint64                   `json:"from_shard_id"`
+	Height      uint64                   `json:"height"`
+	State       uint                     `json:"state"`
+	Header      *ShardBlockHeader        `json:"header"`
+	ShardTxs    map[uint64]*ShardBlockTx `json:"shard_txs"`		// indexed by ToShardID
+	Events      []*shardstates.ShardEventState
 }
 
 type shardBlkMarshalHelper struct {
@@ -97,10 +97,6 @@ func (this *ShardBlockInfo) Deserialize(r io.Reader) error {
 	return DesJson(r, this)
 }
 
-func (this *ShardBlockInfo) ConstructShardBlockTx() error {
-	return nil
-}
-
 ////////////////////////////////////
 //
 //  shard block pool
@@ -110,7 +106,7 @@ func (this *ShardBlockInfo) ConstructShardBlockTx() error {
 type ShardBlockMap map[uint64]*ShardBlockInfo // indexed by BlockHeight
 
 type ShardBlockPool struct {
-	Shards      map[uint64]ShardBlockMap // indexed by shardID
+	Shards      map[uint64]ShardBlockMap // indexed by FromShardID
 	MaxBlockCap uint32
 }
 
@@ -129,11 +125,11 @@ func (pool *ShardBlockPool) GetBlock(shardID, height uint64) *ShardBlockInfo {
 }
 
 func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
-	if _, present := pool.Shards[blkInfo.ShardID]; !present {
-		pool.Shards[blkInfo.ShardID] = make(ShardBlockMap)
+	if _, present := pool.Shards[blkInfo.FromShardID]; !present {
+		pool.Shards[blkInfo.FromShardID] = make(ShardBlockMap)
 	}
 
-	m := pool.Shards[blkInfo.ShardID]
+	m := pool.Shards[blkInfo.FromShardID]
 	if m == nil {
 		return fmt.Errorf("add shard block, nil map")
 	}
@@ -177,28 +173,26 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 	return nil
 }
 
-func (pool *ShardBlockPool) AddEvent(evt shardstates.ShardMgmtEvent) error {
-	shardID := evt.GetSourceShardID()
-
-	if _, present := pool.Shards[shardID]; !present {
-		pool.Shards[shardID] = make(ShardBlockMap)
+func (pool *ShardBlockPool) AddEvent(srcShardID uint64, evt *shardstates.ShardEventState) error {
+	if _, present := pool.Shards[srcShardID]; !present {
+		pool.Shards[srcShardID] = make(ShardBlockMap)
 	}
 
-	m := pool.Shards[shardID]
+	m := pool.Shards[srcShardID]
 	if m == nil {
 		return fmt.Errorf("add shard event, nil map")
 	}
-	if _, present := m[evt.GetHeight()]; !present {
-		m[evt.GetHeight()] = &ShardBlockInfo{
-			ShardID: shardID,
-			Height:  evt.GetHeight(),
-			State:   ShardBlockNew,
-			Events:  []shardstates.ShardMgmtEvent{evt},
+	if _, present := m[evt.FromHeight]; !present {
+		m[evt.FromHeight] = &ShardBlockInfo{
+			FromShardID: srcShardID,
+			Height:      evt.FromHeight,
+			State:       ShardBlockNew,
+			Events:      []*shardstates.ShardEventState{evt},
 		}
 		return nil
 	}
 
-	m[evt.GetHeight()].Events = append(m[evt.GetHeight()].Events, evt)
+	m[evt.FromHeight].Events = append(m[evt.FromHeight].Events, evt)
 	return nil
 }
 

@@ -52,6 +52,9 @@ type SoloService struct {
 	genBlockInterval time.Duration
 	pid              *actor.PID
 	sub              *events.ActorSubscriber
+
+	// sharding
+	parentHeight     uint64
 }
 
 func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
@@ -148,6 +151,11 @@ func (self *SoloService) genBlock() error {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
 
+	if self.parentHeight > uint64(block.Header.ParentHeight) {
+		return fmt.Errorf("invalid parent height: %d vs %s", self.parentHeight, block.Header.ParentHeight)
+	}
+	self.parentHeight = uint64(block.Header.ParentHeight)
+
 	result, err := ledger.DefLedger.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
@@ -205,7 +213,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 		return nil, fmt.Errorf("invalid shard ID: %d, %s", chainmgr.GetShardID(), err)
 	}
 
-	shardTxs := chainmgr.GetShardTxsByParentHeight(parentHeight)
+	shardTxs := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
 	header := &types.Header{
 		Version:          ContextVersion,
 		ShardID:          shardID.ToUint64(),

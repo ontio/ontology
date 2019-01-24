@@ -3,8 +3,6 @@ package message
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const (
@@ -18,8 +16,6 @@ const (
 	BLOCK_RSP_MSG
 	PEERINFO_REQ_MSG
 	PEERINFO_RSP_MSG
-
-	SHARD_CONTRACT_EVENT_MSG
 
 	DISCONNECTED_MSG
 )
@@ -59,10 +55,10 @@ func (msg *ShardBlockReqMsg) Type() int {
 }
 
 type ShardBlockRspMsg struct {
-	ShardID     uint64                         `json:"shard_id"`
-	Height      uint64                         `json:"height"`
-	BlockHeader *ShardBlockHeader              `json:"block_header"`
-	Events      []*shardstates.ShardEventState `json:"events"`
+	FromShardID uint64            `json:"from_shard_id"`
+	Height      uint64            `json:"height"`
+	BlockHeader *ShardBlockHeader `json:"block_header"`
+	Txs         []*ShardBlockTx   `json:"txs"`
 }
 
 func (msg *ShardBlockRspMsg) Type() int {
@@ -92,16 +88,6 @@ type ShardDisconnectedMsg struct {
 
 func (msg *ShardDisconnectedMsg) Type() int {
 	return DISCONNECTED_MSG
-}
-
-type ShardContractEventMsg struct {
-	FromShard uint64 `json:"from_shard"`
-	EventType uint32 `json:"event_type"`
-	EventData []byte `json:"event_data"`
-}
-
-func (msg *ShardContractEventMsg) Type() int {
-	return SHARD_CONTRACT_EVENT_MSG
 }
 
 func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
