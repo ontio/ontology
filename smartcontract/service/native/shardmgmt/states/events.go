@@ -148,11 +148,11 @@ func (evt *ShardActiveEvent) Deserialize(r io.Reader) error {
 }
 
 type ShardEventState struct {
-	Version   uint32 `json:"version"`
-	EventType uint32 `json:"event_type"`
-	ToShard   uint64 `json:"to_shard"`
+	Version    uint32 `json:"version"`
+	EventType  uint32 `json:"event_type"`
+	ToShard    uint64 `json:"to_shard"`
 	FromHeight uint64 `json:"from_height"`
-	Payload   []byte `json:"payload"`
+	Payload    []byte `json:"payload"`
 }
 
 func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {
