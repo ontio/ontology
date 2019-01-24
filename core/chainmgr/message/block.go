@@ -41,8 +41,10 @@ type shardBlkMarshalHelper struct {
 
 func (this *ShardBlockHeader) MarshalJSON() ([]byte, error) {
 	sink := common.NewZeroCopySink(nil)
-	if err := this.Header.Serialization(sink); err != nil {
-		return nil, fmt.Errorf("shard block hdr marshal: %s", err)
+	if this.Header != nil {
+		if err := this.Header.Serialization(sink); err != nil {
+			return nil, fmt.Errorf("shard block hdr marshal: %s", err)
+		}
 	}
 
 	return json.Marshal(&shardBlkMarshalHelper{
@@ -56,22 +58,26 @@ func (this *ShardBlockHeader) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("shard block hdr helper: %s", err)
 	}
 
-	hdr := &types.Header{}
-	if err := hdr.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
-		return fmt.Errorf("shard block hdr unmarshal: %s", err)
+	if len(helper.Payload) > 0 {
+		hdr := &types.Header{}
+		if err := hdr.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
+			return fmt.Errorf("shard block hdr unmarshal: %s", err)
+		}
+		this.Header = hdr
 	}
-	this.Header = hdr
 	return nil
 }
 
 func (this *ShardBlockTx) MarshalJSON() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	if err := this.Tx.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("shard block tx marshal: %x", err)
+	sink := common.NewZeroCopySink(nil)
+	if this.Tx != nil {
+		if err := this.Tx.Serialization(sink); err != nil {
+			return nil, fmt.Errorf("shard block tx marshal: %x", err)
+		}
 	}
 
 	return json.Marshal(&shardBlkMarshalHelper{
-		Payload: buf.Bytes(),
+		Payload: sink.Bytes(),
 	})
 }
 
@@ -81,11 +87,13 @@ func (this *ShardBlockTx) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("shard block tx helper: %s", err)
 	}
 
-	tx := &types.Transaction{Raw: helper.Payload}
-	if err := tx.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
-		return fmt.Errorf("shard block tx unmarshal: %s", err)
+	if len(helper.Payload) > 0 {
+		tx := &types.Transaction{Raw: helper.Payload}
+		if err := tx.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
+			return fmt.Errorf("shard block tx unmarshal: %s", err)
+		}
+		this.Tx = tx
 	}
-	this.Tx = tx
 	return nil
 }
 

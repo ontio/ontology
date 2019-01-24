@@ -118,7 +118,8 @@ func (self *SoloService) Receive(context actor.Context) {
 			self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 		}
 	case *message.SaveBlockCompleteMsg:
-		log.Infof("solo actor receives block complete event. block height=%d txnum=%d", msg.Block.Header.Height, len(msg.Block.Transactions))
+		log.Infof("solo actor receives block complete event. block height=%d parent=%d txnum=%d",
+			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions))
 		self.incrValidator.AddBlock(msg.Block)
 
 	case *actorTypes.TimeOut:

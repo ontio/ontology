@@ -5,6 +5,7 @@ import (
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/common/log"
 )
 
 func IsRootShard(shardId uint64) bool {
@@ -76,19 +77,21 @@ func GetShardTxsByParentHeight(start, end uint64) map[uint64][]*types.Transactio
 		return nil
 	}
 
-	shardID := chainmgr.parentShardID
-	m := chainmgr.blockPool.Shards[shardID]
+	parentShard := chainmgr.parentShardID
+	m := chainmgr.blockPool.Shards[parentShard]
 	if m == nil {
 		return nil
 	}
 	shardTxs := make(map[uint64][]*types.Transaction)
 	for ; start < end+1; start++ {
 		if blk, present := m[start]; present && blk != nil {
-			for shardID, shardTx := range blk.ShardTxs {
-				if shardTxs[shardID] == nil {
-					shardTxs[shardID] = make([]*types.Transaction, 0)
+			if shardTx, present := blk.ShardTxs[chainmgr.shardID]; present && shardTx != nil && shardTx.Tx != nil {
+				if shardTxs[parentShard] == nil {
+					shardTxs[parentShard] = make([]*types.Transaction, 0)
 				}
-				shardTxs[shardID] = append(shardTxs[shardID], shardTx.Tx)
+				shardTxs[parentShard] = append(shardTxs[parentShard], shardTx.Tx)
+				log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d",
+					chainmgr.shardID, parentShard, start)
 			}
 		}
 	}

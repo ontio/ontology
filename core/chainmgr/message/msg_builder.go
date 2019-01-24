@@ -84,7 +84,7 @@ func NewShardBlockInfo(shardID uint64, blk *types.Block) (*ShardBlockInfo, error
 	return blockInfo, nil
 }
 
-func NewShardBlockInfoFromRemote(msg *ShardBlockRspMsg) (*ShardBlockInfo, error) {
+func NewShardBlockInfoFromRemote(ShardID uint64, msg *ShardBlockRspMsg) (*ShardBlockInfo, error) {
 	if msg == nil {
 		return nil, fmt.Errorf("newShardBlockInfo, nil msg")
 	}
@@ -96,8 +96,12 @@ func NewShardBlockInfoFromRemote(msg *ShardBlockRspMsg) (*ShardBlockInfo, error)
 		Header: &ShardBlockHeader{
 			Header: msg.BlockHeader.Header,
 		},
+		ShardTxs: make(map[uint64]*ShardBlockTx),
 	}
 
+	if len(msg.Txs) > 0 {
+		blockInfo.ShardTxs[ShardID] = msg.Txs[0]
+	}
 	// TODO: add event from msg to blockInfo
 
 	return blockInfo, nil

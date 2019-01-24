@@ -483,6 +483,7 @@ func (self *ChainManager) broadcastShardMsg(msg *shardmsg.CrossShardMsg) {
 }
 
 func (self *ChainManager) sendShardMsg(shardId uint64, msg *shardmsg.CrossShardMsg) {
+	log.Infof("send shard msg type %d from %d to %d", msg.GetType(), self.shardID, shardId)
 	self.broadcastMsgC <- &MsgSendReq{
 		targetShardID: shardId,
 		msg:           msg,

@@ -75,13 +75,13 @@ func (self *ChainManager) onShardConfigRequest(sender *actor.PID, shardCfgMsg *m
 }
 
 func (self *ChainManager) onShardBlockReceived(sender *actor.PID, blkMsg *message.ShardBlockRspMsg) error {
-	blkInfo, err := message.NewShardBlockInfoFromRemote(blkMsg)
+	blkInfo, err := message.NewShardBlockInfoFromRemote(self.shardID, blkMsg)
 	if err != nil {
 		return fmt.Errorf("construct shard blockInfo for %d: %s", blkMsg.FromShardID, err)
 	}
 
-	log.Infof("shard %d, got block header from %d, height %d, tx %d",
-		self.shardID, blkMsg.FromShardID, blkMsg.Height, len(blkInfo.ShardTxs))
+	log.Infof("shard %d, got block header from %d, height: %d, tx %v",
+		self.shardID, blkMsg.FromShardID, blkMsg.BlockHeader.Header.Height, blkInfo.ShardTxs)
 
 	return self.addShardBlockInfo(blkInfo)
 }
@@ -115,7 +115,7 @@ func (self *ChainManager) onLocalShardEvent(evt *shardstates.ShardEventState) er
 	if evt == nil {
 		return fmt.Errorf("notification with nil evt on shard %d", self.shardID)
 	}
-	log.Info("shard %d, get new event type %d", self.shardID, evt.EventType)
+	log.Infof("shard %d, get new event type %d", self.shardID, evt.EventType)
 
 	return self.addShardEvent(evt)
 }
@@ -143,15 +143,19 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 			return fmt.Errorf("shard %d, block %d, construct shard tx: %s", self.shardID, blkInfo.Height, err)
 		}
 
-		self.updateShardBlockInfo(self.shardID, uint64(blk.Header.Height), shardTxs)
+		log.Infof("shard %d, block %d with shard tx: %v", self.shardID, blk.Header.Height, shardTxs)
+		self.updateShardBlockInfo(self.shardID, uint64(blk.Header.Height), blk, shardTxs)
 	}
 
-	// broadcast message to necessary
+	// broadcast message to shards
 	for shardID := range blkInfo.ShardTxs {
 		msg, err := message.NewShardBlockRspMsg(self.shardID, shardID, blkInfo, self.localPid)
 		if err != nil {
 			return fmt.Errorf("build shard block msg: %s", err)
 		}
+
+		log.Infof("shard %d, send block %d to %d with shard tx: %v",
+			self.shardID, blk.Header.Height, shardID, blkInfo.ShardTxs[shardID])
 
 		// send msg to shard
 		self.sendShardMsg(shardID, msg)
@@ -159,6 +163,9 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 
 	// broadcast to all other child shards
 	for shardID := range self.shards {
+		if shardID == self.shardID || shardID == self.parentShardID {
+			continue
+		}
 		if _, present := blkInfo.ShardTxs[shardID]; present {
 			continue
 		}
