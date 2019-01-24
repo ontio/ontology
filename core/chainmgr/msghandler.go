@@ -12,8 +12,6 @@ import (
 	"github.com/ontio/ontology/core/utils"
 	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
-	"github.com/ontio/ontology/common/serialization"
-	"encoding/json"
 )
 
 func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *message.ShardHelloMsg) error {
@@ -196,21 +194,15 @@ func (self *ChainManager) constructShardBlockTx(block *message.ShardBlockInfo) (
 	// build one ShardTx with events to the shard
 	shardTxs := make(map[uint64]*message.ShardBlockTx)
 	for shardId, evts := range shardEvts {
-		payload := new(bytes.Buffer)
-		if err := serialization.WriteUint32(payload, uint32(len(evts))); err != nil {
-			return nil, fmt.Errorf("construct shardTx, write evt count: %s", err)
+		params := &shardsysmsg.CrossShardMsgParam{
+			Events: evts,
 		}
-		for _, evt := range evts {
-			evtBytes, err := json.Marshal(evt)
-			if err != nil {
-				return nil, fmt.Errorf("construct shardTx, marshal evt: %s", err)
-			}
-			if err := serialization.WriteVarBytes(payload, evtBytes); err != nil {
-				return nil, fmt.Errorf("construct shardTx, write evt: %s", err)
-			}
+		payload := new(bytes.Buffer)
+		if err := params.Serialize(payload); err != nil {
+			return nil, fmt.Errorf("construct shardTx, serialize shard sys msg: %s", err)
 		}
 
-		mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_PARENT_SHARD_MSG, payload.Bytes())
+		mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, payload.Bytes())
 		tx, err := mutable.IntoImmutable()
 		if err != nil {
 			return nil, fmt.Errorf("construct shardTx: %s", err)
