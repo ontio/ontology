@@ -120,6 +120,7 @@ func setupAPP() *cli.App {
 		//rest setting
 		utils.RestfulEnableFlag,
 		utils.RestfulPortFlag,
+		utils.RestfulMaxConnsFlag,
 		//ws setting
 		utils.WsEnabledFlag,
 		utils.WsPortFlag,

@@ -156,6 +156,9 @@ rest 参数用于启动rest服务器。
 --restport
 restport 参数用于指定restful服务器绑定的端口号。默认值为20334。
 
+--restconnlimit
+restport 参数用于指定restful服务器最大客户端连接数。默认值为1024。
+
 #### 1.1.7 Web socket服务器参数
 
 --ws

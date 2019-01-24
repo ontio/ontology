@@ -171,6 +171,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.RestfulEnableFlag,
 			utils.RestfulPortFlag,
+			utils.RestfulMaxConnsFlag,
 		},
 	},
 	{

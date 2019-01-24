@@ -57,6 +57,7 @@ const (
 	DEFAULT_RPC_LOCAL_PORT                  = uint(20337)
 	DEFAULT_REST_PORT                       = uint(20334)
 	DEFAULT_WS_PORT                         = uint(20335)
+	DEFAULT_REST_MAX_CONN                   = uint(1024)
 	DEFAULT_MAX_CONN_IN_BOUND               = uint(1024)
 	DEFAULT_MAX_CONN_OUT_BOUND              = uint(1024)
 	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
@@ -517,10 +518,11 @@ type RpcConfig struct {
 }
 
 type RestfulConfig struct {
-	EnableHttpRestful bool
-	HttpRestPort      uint
-	HttpCertPath      string
-	HttpKeyPath       string
+	EnableHttpRestful  bool
+	HttpRestPort       uint
+	HttpMaxConnections uint
+	HttpCertPath       string
+	HttpKeyPath        string
 }
 
 type WebSocketConfig struct {
