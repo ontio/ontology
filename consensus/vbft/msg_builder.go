@@ -182,8 +182,14 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
 	}
+	lastBlock, err := self.chainStore.GetBlock(blkNum - 1)
+	if err != nil {
+		log.Errorf("constructBlock getlastblock err:%s,blknum:%d", err, blkNum-1)
+		return nil, err
+	}
+
 	txRoot := common.ComputeMerkleRoot(txHash)
-	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoot(txRoot)
+	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
 
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,

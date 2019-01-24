@@ -382,8 +382,8 @@ func (self *StateStore) GetStateMerkleRootWithNewHash(writeSetHash common.Uint25
 	return self.deltaMerkleTree.GetRootWithNewLeaf(writeSetHash)
 }
 
-func (self *StateStore) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
-	return self.merkleTree.GetRootWithNewLeaf(txRoot)
+func (self *StateStore) GetBlockRootWithNewTxRoots(txRoots []common.Uint256) common.Uint256 {
+	return self.merkleTree.GetRootWithNewLeaves(txRoots)
 }
 
 func (self *StateStore) genBlockMerkleTreeKey() []byte {
