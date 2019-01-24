@@ -2,6 +2,7 @@ package chainmgr
 
 import (
 	"github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -33,14 +34,15 @@ func (this *ChainManager) addShardEvent(evt *shardstates.ShardEventState) error 
 	return nil
 }
 
-func (this *ChainManager) updateShardBlockInfo(shardID uint64, height uint64, shardTxs map[uint64]*message.ShardBlockTx) {
+func (this *ChainManager) updateShardBlockInfo(shardID uint64, height uint64, blk *types.Block, shardTxs map[uint64]*message.ShardBlockTx) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	blk := this.blockPool.GetBlock(shardID, height)
-	if blk == nil {
+	blkInfo := this.blockPool.GetBlock(shardID, height)
+	if blkInfo == nil {
 		return
 	}
 
-	blk.ShardTxs = shardTxs
+	blkInfo.Header = &message.ShardBlockHeader{Header: blk.Header}
+	blkInfo.ShardTxs = shardTxs
 }
