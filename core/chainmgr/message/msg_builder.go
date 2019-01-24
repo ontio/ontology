@@ -4,9 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"bytes"
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -46,16 +44,13 @@ func NewShardConfigMsg(accPayload []byte, configPayload []byte, sender *actor.PI
 	}, nil
 }
 
-func NewShardBlockRspMsg(shardID uint64, blockNum uint64, blockHdr *types.Header, sender *actor.PID) (*CrossShardMsg, error) {
+func NewShardBlockRspMsg(fromShardID, toShardID uint64, blkInfo *ShardBlockInfo, sender *actor.PID) (*CrossShardMsg, error) {
 	blkRsp := &ShardBlockRspMsg{
-		ShardID: shardID,
-		Height:  blockNum,
-		BlockHeader: &ShardBlockHeader{
-			Header: blockHdr,
-		},
+		FromShardID: fromShardID,
+		Height:      blkInfo.Height,
+		BlockHeader: blkInfo.Header,
+		Txs:         []*ShardBlockTx{blkInfo.ShardTxs[toShardID]},
 	}
-
-	// TODO: add events to blockRspMsg
 
 	payload, err := json.Marshal(blkRsp)
 	if err != nil {
@@ -70,40 +65,15 @@ func NewShardBlockRspMsg(shardID uint64, blockNum uint64, blockHdr *types.Header
 	}, nil
 }
 
-func NewShardContractEventMsg(shardID uint64, eventType uint32, event serialization.SerializableData, sender *actor.PID) (*CrossShardMsg, error) {
-	buf := new(bytes.Buffer)
-	if err := event.Serialize(buf); err != nil {
-		return nil, fmt.Errorf("serialize event %d: %s", eventType, err)
-	}
-
-	msg := &ShardContractEventMsg{
-		FromShard: shardID,
-		EventType: eventType,
-		EventData: buf.Bytes(),
-	}
-
-	payload, err := json.Marshal(msg)
-	if err != nil {
-		return nil, fmt.Errorf("serialize shard contract-event: %s", err)
-	}
-
-	return &CrossShardMsg{
-		Version: SHARD_PROTOCOL_VERSION,
-		Type:    SHARD_CONTRACT_EVENT_MSG,
-		Sender:  sender,
-		Data:    payload,
-	}, nil
-}
-
 func NewShardBlockInfo(shardID uint64, blk *types.Block) (*ShardBlockInfo, error) {
 	if blk == nil {
 		return nil, fmt.Errorf("newShardBlockInfo, nil block")
 	}
 
 	blockInfo := &ShardBlockInfo{
-		ShardID: shardID,
-		Height:  uint64(blk.Header.Height),
-		State:   ShardBlockNew,
+		FromShardID: shardID,
+		Height:      uint64(blk.Header.Height),
+		State:       ShardBlockNew,
 		Header: &ShardBlockHeader{
 			Header: blk.Header,
 		},
@@ -120,9 +90,9 @@ func NewShardBlockInfoFromRemote(msg *ShardBlockRspMsg) (*ShardBlockInfo, error)
 	}
 
 	blockInfo := &ShardBlockInfo{
-		ShardID: msg.ShardID,
-		Height:  uint64(msg.BlockHeader.Header.Height),
-		State:   ShardBlockReceived,
+		FromShardID: msg.FromShardID,
+		Height:      uint64(msg.BlockHeader.Header.Height),
+		State:       ShardBlockReceived,
 		Header: &ShardBlockHeader{
 			Header: msg.BlockHeader.Header,
 		},

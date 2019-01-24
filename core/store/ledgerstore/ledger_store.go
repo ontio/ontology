@@ -632,6 +632,27 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 
 	cache := storage.NewCacheDB(overlay)
+
+	// execute shard txs
+	// sort shard Txs
+	ids := make([]uint64, 0)
+	for shardId, _ := range block.ShardTxs {
+		ids = append(ids, shardId)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	for _, id := range ids {
+		for _, tx := range block.ShardTxs[id] {
+			cache.Reset()
+			notify, e := this.handleTransaction(overlay, cache, block, tx)
+			if e != nil {
+				err = e
+				return
+			}
+			result.Notify = append(result.Notify, notify)
+		}
+	}
+
+	// execute transactions
 	for _, tx := range block.Transactions {
 		cache.Reset()
 		notify, e := this.handleTransaction(overlay, cache, block, tx)

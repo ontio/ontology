@@ -3,6 +3,7 @@ package shardsysmsg
 import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (
@@ -26,7 +27,8 @@ func ShardSysMsgInit(native *native.NativeService) ([]byte, error) {
 }
 
 func ProcessParentShardMsg(native *native.NativeService) ([]byte, error) {
-	return utils.BYTE_FALSE, nil
+	log.Infof("processing parent shard msg")
+	return utils.BYTE_TRUE, nil
 }
 
 func ProcessSibShardMsg(native *native.NativeService) ([]byte, error) {
