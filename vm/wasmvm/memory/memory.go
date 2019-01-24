@@ -38,6 +38,8 @@ const (
 	PString
 	PStruct
 	PUnkown
+	PArray
+	PRawArray
 )
 
 const (
@@ -136,6 +138,10 @@ func (vm *VMmemory) GetPointerMemory(addr uint64) ([]byte, error) {
 	} else {
 		return vm.Memory[int(addr) : int(addr)+length], nil
 	}
+}
+
+func (vm *VMmemory) SetPointerMemorySpecified(val []byte, ptype PType) (int, error) {
+	return vm.copyMemAndGetIdx(val, ptype)
 }
 
 //set pointer types into memory, return address of memory

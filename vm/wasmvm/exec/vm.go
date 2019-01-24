@@ -167,6 +167,10 @@ func (vm *VM) SetPointerMemory(val interface{}) (int, error) {
 	return vm.memory.SetPointerMemory(val)
 }
 
+func (vm *VM) SetPointerMemorySpecified(val []byte, ptype memory.PType) (int, error) {
+	return vm.memory.SetPointerMemorySpecified(val, ptype)
+}
+
 //alloc memory for struct
 //todo move to the SetPointerMemory
 func (vm *VM) SetStructMemory(val interface{}) (int, error) {
