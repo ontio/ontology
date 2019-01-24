@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstate "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/rlp"
 )
 
 var DefLedger *Ledger
@@ -170,6 +171,10 @@ func (self *Ledger) GetContractState(contractHash common.Address) (*payload.Depl
 
 func (self *Ledger) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
 	return self.ldgStore.GetMerkleProof(proofHeight, rootHeight)
+}
+
+func (self *Ledger) GetMPTProof(key []byte) ([]rlp.RawValue , error) {
+	return self.ldgStore.GetMPTProof(key)
 }
 
 func (self *Ledger) PreExecuteContract(tx *types.Transaction) (*cstate.PreExecResult, error) {

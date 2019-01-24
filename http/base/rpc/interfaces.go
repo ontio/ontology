@@ -515,6 +515,21 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 		curHeader.BlockRoot.ToHexString(), curHeight, hashes})
 }
 
+func GetMPTProof(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	str, ok := params[0].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	prove, err := bactor.GetMPTPrrof([]byte(str))
+	if err != nil {
+		return responsePack(berr.INTERNAL_ERROR, err)
+	}
+	return responseSuccess(prove)
+}
+
 //get block transactions by height
 func GetBlockTxsByHeight(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {

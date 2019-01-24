@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstate "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/rlp"
 )
 
 const (
@@ -102,4 +103,8 @@ func GetEventNotifyByHeight(height uint32) ([]*event.ExecuteNotify, error) {
 //GetMerkleProof from ledger
 func GetMerkleProof(proofHeight uint32, rootHeight uint32) ([]common.Uint256, error) {
 	return ledger.DefLedger.GetMerkleProof(proofHeight, rootHeight)
+}
+
+func GetMPTPrrof(key []byte) ([]rlp.RawValue , error) {
+	return ledger.DefLedger.GetMPTProof(key)
 }
