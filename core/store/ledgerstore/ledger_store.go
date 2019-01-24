@@ -54,6 +54,7 @@ import (
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/ontio/ontology/trie"
+	"github.com/ontio/ontology/rlp"
 )
 
 const (
@@ -884,6 +885,19 @@ func (this *LedgerStoreImp) AddHeadersToStore(headers []*types.Header) error {
 		return err
 	}
 	return nil
+}
+
+func (this *LedgerStoreImp) GetMPTProof(key []byte) ([]rlp.RawValue , error) {
+	root, err := this.stateStore.GetStatesRoot()
+	if err != nil {
+		return nil, err
+	}
+	overlay := this.stateStore.NewOverlayDB()
+	t, err := trie.New(root, overlay)
+	if err != nil {
+		return nil, err
+	}
+	return t.Prove(key), nil
 }
 
 //IsContainBlock return whether the block is in store

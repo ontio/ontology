@@ -168,10 +168,10 @@ func (h *hasher) store(n node, db Database, force bool) (node, error) {
 }
 
 func (h *hasher) makeHashNode(data []byte) hashNode {
-	return hashNode(h.makeHash(data))
+	return hashNode(makeHash(data))
 }
 
-func (h *hasher) makeHash(data []byte) []byte {
+func makeHash(data []byte) []byte {
 	tmp := sha256.Sum256(data)
 	u256 := sha256.Sum256(tmp[:])
 	return u256[:]

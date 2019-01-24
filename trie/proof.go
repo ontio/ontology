@@ -37,6 +37,8 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"errors"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/rlp"
@@ -49,7 +51,7 @@ import (
 // If the trie does not contain a value for key, the returned proof contains all
 // nodes of the longest existing prefix of the key (at least the root node), ending
 // with the node that proves the absence of the key.
-func (t *Trie) Prove(key []byte, fromLevel uint, db Database) error {
+func (t *Trie) Prove(key []byte) []rlp.RawValue {
 	// Collect all nodes on the path to key.
 	key = keybytesToHex(key)
 	nodes := []node{}
@@ -74,62 +76,59 @@ func (t *Trie) Prove(key []byte, fromLevel uint, db Database) error {
 			tn, err = t.resolveHash(n, nil)
 			if err != nil {
 				log.Error(fmt.Sprintf("Unhandled trie error: %v", err))
-				return err
 			}
 		default:
 			panic(fmt.Sprintf("%T: invalid node: %v", tn, tn))
 		}
 	}
 	hasher := newHasher()
+	proof := make([]rlp.RawValue, 0, len(nodes))
 	for i, n := range nodes {
 		// Don't bother checking for errors here since hasher panics
 		// if encoding doesn't work and we're not writing to any database.
 		n, _, _ = hasher.hashChildren(n, nil)
 		hn, _ := hasher.store(n, nil, false)
-		if hash, ok := hn.(hashNode); ok || i == 0 {
-			// If the node's database encoding is a hash (or is the
-			// root node), it becomes a proof element.
-			if fromLevel > 0 {
-				fromLevel--
-			} else {
-				enc, _ := rlp.EncodeToBytes(n)
-				if !ok {
-					hash = hasher.makeHash(enc)
-				}
-				db.Put(hash, enc)
-			}
+		if _, ok := hn.(hashNode); ok || i == 0 {
+			enc, _ := rlp.EncodeToBytes(n)
+			proof = append(proof, enc)
 		}
 	}
-	return nil
+	return proof
 }
 
 // VerifyProof checks merkle proofs. The given proof must contain the value for
 // key in a trie with the given root hash. VerifyProof returns an error if the
 // proof contains invalid trie nodes or the wrong value.
-func VerifyProof(rootHash common.Uint256, key []byte, db Database) (value []byte, nodes int, err error) {
+func VerifyProof(rootHash common.Uint256, key []byte, proof []rlp.RawValue) ([]byte, error) {
 	key = keybytesToHex(key)
-	wantHash := rootHash
-	for i := 0; ; i++ {
-		buf, _ := db.Get(wantHash[:])
-		if buf == nil {
-			return nil, i, fmt.Errorf("proof node %d (hash %064x) missing", i, wantHash)
+	root := rootHash.ToArray()
+	for i, buf := range proof {
+		if !bytes.Equal(makeHash(buf), root) {
+			return nil, fmt.Errorf("[VerifyProof] bad proof node %d: hash mismatch", i)
 		}
-		n, err := decodeNode(wantHash[:], buf)
+		n, err := decodeNode(root, buf)
 		if err != nil {
-			return nil, i, fmt.Errorf("bad proof node %d: %v", i, err)
+			return nil, fmt.Errorf("[VerifyProof] bad proof node %d: %v", i, err)
 		}
-		keyrest, cld := get(n, key)
+		keyRest, cld := get(n, key)
 		switch cld := cld.(type) {
 		case nil:
-			// The trie doesn't contain the key.
-			return nil, i, nil
+			if i != len(proof) - 1 {
+				return nil, fmt.Errorf("[VerifyProof] key mismatch at proof node %d", i)
+			} else {
+				return nil, nil
+			}
 		case hashNode:
-			key = keyrest
-			copy(wantHash[:], cld)
+			key = keyRest
+			root = cld
 		case valueNode:
-			return cld, i + 1, nil
+			if i != len(proof) - 1 {
+				return nil, errors.New("[VerifyProof] additional nodes at end of proof")
+			}
+			return cld, nil
 		}
 	}
+	return nil, errors.New("unexpected end of proof")
 }
 
 func get(tn node, key []byte) ([]byte, node) {

@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"fmt"
 )
 
 type kv struct {
@@ -33,11 +34,9 @@ type kv struct {
 func TestSimpleProof(t *testing.T) {
 	trie, vals := simpleTrie()
 	root := trie.Hash()
-	db := NewMemDatabase()
 	for _, kv := range vals {
-		err := trie.Prove(kv.k, 0, db)
-		assert.Nil(t, err)
-		val, _, err := VerifyProof(root, kv.k, db)
+		proves := trie.Prove(kv.k)
+		val, err := VerifyProof(root, kv.k, proves)
 		assert.Nil(t, err)
 		assert.Equal(t, val, kv.v)
 	}
@@ -61,11 +60,9 @@ func simpleTrie() (*Trie, map[string]*kv) {
 func TestRandomProof(t *testing.T) {
 	trie, vals := createRandomTrie(100)
 	root := trie.Hash()
-	db := NewMemDatabase()
 	for _, kv := range vals {
-		err := trie.Prove(kv.k, 0, db)
-		assert.Nil(t, err)
-		val, _, err := VerifyProof(root, kv.k, db)
+		proves := trie.Prove(kv.k)
+		val, err := VerifyProof(root, kv.k, proves)
 		assert.Nil(t, err)
 		assert.Equal(t, val, kv.v)
 	}
