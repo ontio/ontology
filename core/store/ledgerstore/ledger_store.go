@@ -181,11 +181,11 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 	//load vbft peerInfo
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType == "vbft" {
-		blk, err := this.GetBlockByHeight(this.currBlockHeight)
+		header, err := this.GetHeaderByHash(this.currBlockHash)
 		if err != nil {
 			return err
 		}
-		blkInfo, err := vconfig.VbftBlock(blk.Header)
+		blkInfo, err := vconfig.VbftBlock(header)
 		if err != nil {
 			return err
 		}
@@ -193,11 +193,11 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if blkInfo.NewChainConfig != nil {
 			cfg = blkInfo.NewChainConfig
 		} else {
-			cfgBlock, err := this.GetBlockByHeight(blkInfo.LastConfigBlockNum)
+			cfgHeader, err := this.GetHeaderByHeight(blkInfo.LastConfigBlockNum)
 			if err != nil {
 				return err
 			}
-			Info, err := vconfig.VbftBlock(cfgBlock.Header)
+			Info, err := vconfig.VbftBlock(cfgHeader)
 			if err != nil {
 				return err
 			}
