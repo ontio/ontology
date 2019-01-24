@@ -777,9 +777,9 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 	blockRoot := this.GetBlockRootWithNewTxRoots(block.Header.Height, []common.Uint256{block.Header.TransactionsRoot})
-	if blockRoot != block.Header.BlockRoot {
+	if block.Header.Height != 0 && blockRoot != block.Header.BlockRoot {
 		return fmt.Errorf("wrong block root at height:%d, expected:%s, got:%s",
-			block.Header.Height, blockRoot, block.Header.BlockRoot)
+			block.Header.Height, blockRoot.ToHexString(), block.Header.BlockRoot.ToHexString())
 	}
 
 	this.blockStore.NewBatch()
