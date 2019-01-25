@@ -52,7 +52,8 @@ func newTestChainStore(t *testing.T) *ChainStore {
 
 	bookkeepers := []keypair.PublicKey{acc1.PublicKey, acc2.PublicKey, acc3.PublicKey, acc4.PublicKey, acc5.PublicKey, acc6.PublicKey, acc7.PublicKey}
 	genesisConfig := config.DefConfig.Genesis
-	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig)
+	shardConfig := config.DefConfig.Shard
+	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig, shardConfig)
 	if err != nil {
 		t.Fatalf("BuildGenesisBlock error %s", err)
 	}

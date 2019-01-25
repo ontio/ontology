@@ -76,8 +76,9 @@ const (
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 
 	DEFAULT_SHARD_ID           = 0
-	DEFAULT_SHARD_PORT         = uint(20340)
 	DEFAULT_PARENT_SHARD_ID    = math.MaxUint64
+	DEFAULT_PARENT_HEIGHT      = 0
+	DEFAULT_SHARD_PORT         = uint(20340)
 	DEFAULT_PARENTSHARD_IPADDR = "127.0.0.1"
 	DEFAULT_PARENTSHARD_PORT   = uint(0)
 )
@@ -549,8 +550,9 @@ type WebSocketConfig struct {
 
 type ShardConfig struct {
 	ShardID              uint64 `json:"shard_id"`
-	ShardPort            uint   `json:"shard_port"`
 	ParentShardID        uint64 `json:"parent_shard_id"`
+	GenesisParentHeight  uint64 `json:"genesis_parent_height"`
+	ShardPort            uint   `json:"shard_port"`
 	ParentShardIPAddress string `json:"parent_shard_ip_address"`
 	ParentShardPort      uint   `json:"parent_shard_port"`
 }
@@ -612,8 +614,9 @@ func NewOntologyConfig() *OntologyConfig {
 		},
 		Shard: &ShardConfig{
 			ShardID:              DEFAULT_SHARD_ID,
-			ShardPort:            DEFAULT_SHARD_PORT,
 			ParentShardID:        DEFAULT_PARENT_SHARD_ID,
+			GenesisParentHeight:  DEFAULT_PARENT_HEIGHT,
+			ShardPort:            DEFAULT_SHARD_PORT,
 			ParentShardIPAddress: DEFAULT_PARENTSHARD_IPADDR,
 			ParentShardPort:      DEFAULT_PARENTSHARD_PORT,
 		},

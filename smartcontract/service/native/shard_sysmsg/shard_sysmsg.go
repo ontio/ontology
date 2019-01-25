@@ -19,13 +19,14 @@
 package shardsysmsg
 
 import (
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/common/log"
 	"bytes"
 	"fmt"
+
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const (
@@ -47,6 +48,9 @@ func ShardSysMsgInit(native *native.NativeService) ([]byte, error) {
 }
 
 func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
+
+	// FIXME: verify transaction from system
+	// check block-execution is at shard-tx processing stage
 
 	param := new(CrossShardMsgParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -70,6 +74,9 @@ func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
 				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
 			}
 		case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
+			if err := processShardGasWithdrawReq(shardEvt.(*shardstates.WithdrawGasReqEvent)); err != nil {
+				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
+			}
 		}
 	}
 
@@ -77,5 +84,9 @@ func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
 }
 
 func processShardGasDeposit(evt *shardstates.DepositGasEvent) error {
+	return nil
+}
+
+func processShardGasWithdrawReq(evt *shardstates.WithdrawGasReqEvent) error {
 	return nil
 }

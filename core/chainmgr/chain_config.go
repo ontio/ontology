@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func (self *ChainManager) buildShardConfig(shardID uint64) (*config.OntologyConfig, error) {
@@ -33,6 +34,10 @@ func (self *ChainManager) buildShardConfig(shardID uint64) (*config.OntologyConf
 	shardState, err := self.getShardState(shardID)
 	if err != nil {
 		return nil, fmt.Errorf("get shardmgmt state: %s", err)
+	}
+
+	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
+		return nil, fmt.Errorf("Shard not active: %d", shardState.State)
 	}
 
 	// check if shardID is in children
@@ -67,8 +72,9 @@ func (self *ChainManager) buildShardConfig(shardID uint64) (*config.OntologyConf
 	// init child shard config
 	shardConfig.Shard = &config.ShardConfig{
 		ShardID:              shardID,
-		ShardPort:            uint(uint64(self.shardPort) + shardID - self.shardID),
 		ParentShardID:        self.shardID,
+		GenesisParentHeight:  shardState.GenesisParentHeight,
+		ShardPort:            uint(uint64(self.shardPort) + shardID - self.shardID),
 		ParentShardIPAddress: config.DEFAULT_PARENTSHARD_IPADDR,
 		ParentShardPort:      self.shardPort,
 	}

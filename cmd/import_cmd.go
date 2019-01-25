@@ -72,7 +72,8 @@ func importBlocks(ctx *cli.Context) error {
 		return fmt.Errorf("GetBookkeepers error:%s", err)
 	}
 	genesisConfig := config.DefConfig.Genesis
-	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
+	shardConfig := config.DefConfig.Shard
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
 	if err != nil {
 		return fmt.Errorf("BuildGenesisBlock error %s", err)
 	}

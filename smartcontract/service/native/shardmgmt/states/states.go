@@ -28,8 +28,8 @@ import (
 const (
 	SHARD_STATE_CREATED    = iota
 	SHARD_STATE_CONFIGURED // all parameter configured
-	SHARD_STATE_READY      // all peers joined
 	SHARD_STATE_ACTIVE     // started
+	SHARD_STATE_STOPPING   // started
 	SHARD_STATE_ARCHIVED
 )
 
@@ -67,11 +67,12 @@ type PeerShardStakeInfo struct {
 }
 
 type ShardState struct {
-	ShardID uint64                         `json:"shard_id"`
-	Creator common.Address                 `json:"creator"`
-	State   uint32                         `json:"state"`
-	Config  *ShardConfig                   `json:"config"`
-	Peers   map[string]*PeerShardStakeInfo `json:"peers"`
+	ShardID             uint64                         `json:"shard_id"`
+	Creator             common.Address                 `json:"creator"`
+	State               uint32                         `json:"state"`
+	GenesisParentHeight uint64                         `json:"genesis_parent_height"`
+	Config              *ShardConfig                   `json:"config"`
+	Peers               map[string]*PeerShardStakeInfo `json:"peers"`
 }
 
 func (this *ShardState) Serialize(w io.Writer) error {

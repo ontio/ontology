@@ -36,7 +36,12 @@ func TestMain(m *testing.M) {
 func TestGenesisBlockInit(t *testing.T) {
 	_, pub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	conf := &config.GenesisConfig{}
-	block, err := BuildGenesisBlock([]keypair.PublicKey{pub}, conf)
+	shardCfg := &config.ShardConfig{
+		ShardID:             config.DEFAULT_SHARD_ID,
+		ParentShardID:       config.DEFAULT_PARENT_SHARD_ID,
+		GenesisParentHeight: config.DEFAULT_PARENT_HEIGHT,
+	}
+	block, err := BuildGenesisBlock([]keypair.PublicKey{pub}, conf, shardCfg)
 	assert.Nil(t, err)
 	assert.NotNil(t, block)
 	assert.NotEqual(t, block.Header.TransactionsRoot, common.UINT256_EMPTY)
