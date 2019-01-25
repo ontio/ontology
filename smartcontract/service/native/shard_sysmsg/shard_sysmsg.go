@@ -47,13 +47,13 @@ func ShardSysMsgInit(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_FALSE, nil
 }
 
-func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
+func ProcessCrossShardMsg(env *native.NativeService) ([]byte, error) {
 
 	// FIXME: verify transaction from system
 	// check block-execution is at shard-tx processing stage
 
 	param := new(CrossShardMsgParam)
-	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewBuffer(env.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("cross-shard msg, invalid input: %s", err)
 	}
 
@@ -70,7 +70,7 @@ func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
 
 		switch evt.EventType {
 		case shardstates.EVENT_SHARD_GAS_DEPOSIT:
-			if err := processShardGasDeposit(shardEvt.(*shardstates.DepositGasEvent)); err != nil {
+			if err := processShardGasDeposit(env, shardEvt.(*shardstates.DepositGasEvent)); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
 			}
 		case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
@@ -83,8 +83,8 @@ func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func processShardGasDeposit(evt *shardstates.DepositGasEvent) error {
-	return nil
+func processShardGasDeposit(env *native.NativeService, evt *shardstates.DepositGasEvent) error {
+	return appCallTransfer(env, utils.OngContractAddress, utils.ShardSysMsgContractAddress, evt.User, evt.Amount)
 }
 
 func processShardGasWithdrawReq(evt *shardstates.WithdrawGasReqEvent) error {

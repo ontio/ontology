@@ -146,8 +146,7 @@ func buildShardGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig
 	genesisHeader := &types.Header{
 		Version:          BlockVersion,
 		ShardID:          shardConfig.ShardID,
-		ParentShardID:    shardConfig.ParentShardID,
-		ParentHeight:     shardConfig.GenesisParentHeight,
+		ParentHeight:     uint32(shardConfig.GenesisParentHeight),
 		PrevBlockHash:    common.Uint256{},
 		TransactionsRoot: common.Uint256{},
 		Timestamp:        constants.GENESIS_BLOCK_TIMESTAMP,
@@ -163,7 +162,7 @@ func buildShardGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig
 	//block
 	ong := newUtilityToken()
 	param := newParamContract()
-	config := newConfig()
+	config := newGovConfigTx()
 
 	genesisBlock := &types.Block{
 		Header: genesisHeader,
