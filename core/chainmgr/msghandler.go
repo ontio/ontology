@@ -73,7 +73,7 @@ func (self *ChainManager) onShardDisconnected(disconnMsg *message.ShardDisconnec
 	return nil
 }
 
-func (self *ChainManager) onShardConfigRequest(sender *actor.PID, shardCfgMsg *message.ShardConfigMsg) error {
+func (self *ChainManager) onShardConfig(sender *actor.PID, shardCfgMsg *message.ShardConfigMsg) error {
 	acc, err := deserializeShardAccount(shardCfgMsg.Account)
 	if err != nil {
 		return fmt.Errorf("unmarshal account: %s", err)
