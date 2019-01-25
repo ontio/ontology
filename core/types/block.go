@@ -19,38 +19,15 @@
 package types
 
 import (
-	"bytes"
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 )
 
 type Block struct {
 	Header       *Header
 	Transactions []*Transaction
-}
-
-func (b *Block) Serialize(w io.Writer) error {
-	err := b.Header.Serialize(w)
-	if err != nil {
-		return err
-	}
-
-	err = serialization.WriteUint32(w, uint32(len(b.Transactions)))
-	if err != nil {
-		return fmt.Errorf("Block item Transactions length serialization failed: %s", err)
-	}
-
-	for _, transaction := range b.Transactions {
-		err := transaction.Serialize(w)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (b *Block) Serialization(sink *common.ZeroCopySink) error {
@@ -121,9 +98,9 @@ func (self *Block) Deserialization(source *common.ZeroCopySource) error {
 }
 
 func (b *Block) ToArray() []byte {
-	bf := new(bytes.Buffer)
-	b.Serialize(bf)
-	return bf.Bytes()
+	sink := common.NewZeroCopySink(nil)
+	b.Serialization(sink)
+	return sink.Bytes()
 }
 
 func (b *Block) Hash() common.Uint256 {

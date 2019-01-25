@@ -19,15 +19,13 @@
 package vbft
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -74,28 +72,22 @@ func (blk *Block) getVrfProof() []byte {
 }
 
 func (blk *Block) Serialize() ([]byte, error) {
-	buf := bytes.NewBuffer([]byte{})
-	if err := blk.Block.Serialize(buf); err != nil {
+	sink := common.NewZeroCopySink(nil)
+	if err := blk.Block.Serialization(sink); err != nil {
 		return nil, fmt.Errorf("serialize block: %s", err)
 	}
 
-	payload := bytes.NewBuffer([]byte{})
-	if err := serialization.WriteVarBytes(payload, buf.Bytes()); err != nil {
-		return nil, fmt.Errorf("serialize block buf: %s", err)
-	}
+	payload := common.NewZeroCopySink(nil)
+	payload.WriteVarBytes(sink.Bytes())
 
 	if blk.EmptyBlock != nil {
-		buf2 := bytes.NewBuffer([]byte{})
-		if err := blk.EmptyBlock.Serialize(buf2); err != nil {
+		sink2 := common.NewZeroCopySink(nil)
+		if err := blk.EmptyBlock.Serialization(sink2); err != nil {
 			return nil, fmt.Errorf("serialize empty block: %s", err)
 		}
-		if err := serialization.WriteVarBytes(payload, buf2.Bytes()); err != nil {
-			return nil, fmt.Errorf("serialize empty block buf: %s", err)
-		}
+		payload.WriteVarBytes(sink2.Bytes())
 	}
-	if err := blk.PrevBlockMerkleRoot.Serialize(payload); err != nil {
-		return nil, fmt.Errorf("serialize MerkleRoot block: %s", err)
-	}
+	payload.WriteHash(blk.PrevBlockMerkleRoot)
 	return payload.Bytes(), nil
 }
 

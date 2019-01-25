@@ -200,7 +200,9 @@ func (self *Store) PersistBlock(block *types.Block) error {
 		value := valuePool.Get()
 		defer valuePool.Put(value)
 
-		block.Serialize(value)
+		sink := common.NewZeroCopySink(nil)
+		block.Serialization(sink)
+		value.Write(sink.Bytes())
 		self.db.BatchPut(key.Bytes(), value.Bytes())
 	}
 
@@ -211,7 +213,9 @@ func (self *Store) PersistBlock(block *types.Block) error {
 
 	header := block.Header
 
-	header.Serialize(value)
+	sink := common.NewZeroCopySink(nil)
+	header.Serialization(sink)
+	value.Write(sink.Bytes())
 	self.db.BatchPut(key.Bytes(), value.Bytes())
 
 	err := self.db.BatchCommit()

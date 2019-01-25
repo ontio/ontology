@@ -144,27 +144,26 @@ func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Heade
 	if err != nil {
 		return nil, nil, err
 	}
-	reader := bytes.NewBuffer(value)
+	source := common.NewZeroCopySource(value)
 	sysFee := new(common.Fixed64)
-	err = sysFee.Deserialize(reader)
+	err = sysFee.Deserialization(source)
 	if err != nil {
 		return nil, nil, err
 	}
 	header := new(types.Header)
-	err = header.Deserialize(reader)
+	err = header.Deserialization(source)
 	if err != nil {
 		return nil, nil, err
 	}
-	txSize, err := serialization.ReadUint32(reader)
-	if err != nil {
-		return nil, nil, err
+	txSize, eof := source.NextUint32()
+	if eof {
+		return nil, nil, io.ErrUnexpectedEOF
 	}
 	txHashes := make([]common.Uint256, 0, int(txSize))
 	for i := uint32(0); i < txSize; i++ {
-		txHash := common.Uint256{}
-		err = txHash.Deserialize(reader)
-		if err != nil {
-			return nil, nil, err
+		txHash, eof := source.NextHash()
+		if eof {
+			return nil, nil, io.ErrUnexpectedEOF
 		}
 		txHashes = append(txHashes, txHash)
 	}
@@ -175,21 +174,15 @@ func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Heade
 func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) error {
 	blockHash := block.Hash()
 	key := this.getHeaderKey(blockHash)
-	value := bytes.NewBuffer(nil)
-	err := sysFee.Serialize(value)
-	if err != nil {
-		return err
-	}
-	block.Header.Serialize(value)
-	serialization.WriteUint32(value, uint32(len(block.Transactions)))
+	sink := common.NewZeroCopySink(nil)
+	sysFee.Serialization(sink)
+	block.Header.Serialization(sink)
+	sink.WriteUint32(uint32(len(block.Transactions)))
 	for _, tx := range block.Transactions {
 		txHash := tx.Hash()
-		err = txHash.Serialize(value)
-		if err != nil {
-			return err
-		}
+		sink.WriteHash(txHash)
 	}
-	this.store.BatchPut(key, value.Bytes())
+	this.store.BatchPut(key, sink.Bytes())
 	return nil
 }
 
@@ -211,9 +204,9 @@ func (this *BlockStore) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed6
 	if err != nil {
 		return common.Fixed64(0), err
 	}
-	reader := bytes.NewBuffer(data)
+	source := common.NewZeroCopySource(data)
 	var fee common.Fixed64
-	err = fee.Deserialize(reader)
+	err = fee.Deserialization(source)
 	if err != nil {
 		return common.Fixed64(0), err
 	}
@@ -226,14 +219,14 @@ func (this *BlockStore) loadHeader(blockHash common.Uint256) (*types.Header, err
 	if err != nil {
 		return nil, err
 	}
-	reader := bytes.NewBuffer(value)
+	source := common.NewZeroCopySource(value)
 	sysFee := new(common.Fixed64)
-	err = sysFee.Deserialize(reader)
+	err = sysFee.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}
 	header := new(types.Header)
-	err = header.Deserialize(reader)
+	err = header.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}
