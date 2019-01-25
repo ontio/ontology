@@ -403,7 +403,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 				return fmt.Errorf("invalid config msg")
 			}
 			log.Infof(">>>>>> shard %d received config msg", self.shardID)
-			return self.onShardConfigRequest(remoteMsg.Sender, shardCfgMsg)
+			return self.onShardConfig(remoteMsg.Sender, shardCfgMsg)
 		case shardmsg.BLOCK_REQ_MSG:
 		case shardmsg.BLOCK_RSP_MSG:
 			blkMsg, ok := msg.(*shardmsg.ShardBlockRspMsg)
