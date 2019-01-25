@@ -178,10 +178,15 @@ func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error)
 	case EVENT_SHARD_GAS_DEPOSIT:
 		evt := &DepositGasEvent{}
 		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
-			return nil, fmt.Errorf("unmarshal remote event: %s", err)
+			return nil, fmt.Errorf("unmarshal gas deposit evt: %s", err)
 		}
 		return evt, nil
 	case EVENT_SHARD_GAS_WITHDRAW_REQ:
+		evt := &WithdrawGasReqEvent{}
+		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
+			return nil, fmt.Errorf("unmarshal gas withdraw req: %s", err)
+		}
+		return evt, nil
 	case EVENT_SHARD_GAS_WITHDRAW_DONE:
 		return nil, nil
 	}

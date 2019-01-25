@@ -93,8 +93,9 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 
 		// initialize shard states
 		mainShardState := &shardstates.ShardState{
-			ShardID: MAINCHAIN_SHARDID,
-			State:   shardstates.SHARD_STATE_ACTIVE,
+			ShardID:             MAINCHAIN_SHARDID,
+			GenesisParentHeight: uint64(native.Height),
+			State:               shardstates.SHARD_STATE_ACTIVE,
 		}
 		if err := setShardState(native, contract, mainShardState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt main shard state: %s", err)

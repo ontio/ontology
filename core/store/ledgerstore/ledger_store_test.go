@@ -96,7 +96,8 @@ func TestInitLedgerStoreWithGenesisBlock(t *testing.T) {
 	//	return
 	//}
 	genesisConfig := config.DefConfig.Genesis
-	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig)
+	shardConfig := config.DefConfig.Shard
+	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig, shardConfig)
 	//header := &types.Header{
 	//	Version:          123,
 	//	PrevBlockHash:    common.Uint256{},

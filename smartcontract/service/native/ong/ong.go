@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm/types"
+	"bytes"
 )
 
 func InitOng() {
@@ -46,6 +47,7 @@ func RegisterOngContract(native *native.NativeService) {
 	native.Register(ont.TOTALSUPPLY_NAME, OngTotalSupply)
 	native.Register(ont.BALANCEOF_NAME, OngBalanceOf)
 	native.Register(ont.ALLOWANCE_NAME, OngAllowance)
+	native.Register(ont.SHARD_INIT_NAME, OngShardInit)
 }
 
 func OngInit(native *native.NativeService) ([]byte, error) {
@@ -63,6 +65,24 @@ func OngInit(native *native.NativeService) ([]byte, error) {
 	native.CacheDB.Put(ont.GenTotalSupplyKey(contract), item.ToArray())
 	native.CacheDB.Put(append(contract[:], utils.OntContractAddress[:]...), item.ToArray())
 	ont.AddNotifications(native, contract, &ont.State{To: utils.OntContractAddress, Value: constants.ONG_TOTAL_SUPPLY})
+	return utils.BYTE_TRUE, nil
+}
+
+func OngShardInit(native *native.NativeService) ([]byte, error) {
+	result, err := OngInit(native)
+	if err != nil || bytes.Compare(result, utils.BYTE_FALSE) == 0 {
+		return result, err
+	}
+
+	// transfer all ong to shard-sysmsg contract
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	addr := utils.ShardSysMsgContractAddress
+	amount := constants.ONG_TOTAL_SUPPLY
+	balanceKey := ont.GenBalanceKey(contract, addr)
+	item := utils.GenUInt64StorageItem(amount)
+	native.CacheDB.Put(balanceKey, item.ToArray())
+	ont.AddNotifications(native, contract, &ont.State{To: addr, Value: amount})
+
 	return utils.BYTE_TRUE, nil
 }
 

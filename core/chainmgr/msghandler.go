@@ -26,10 +26,10 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/core/utils"
-	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *message.ShardHelloMsg) error {
@@ -117,13 +117,16 @@ func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) e
 }
 
 func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) error {
-	// if current node is the peer, and shard is active, start the shard
 	return nil
 }
 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
 	// build shard config
 	// start local shard
+	_, err := self.buildShardConfig(evt.ShardID)
+	if err != nil {
+		return fmt.Errorf("shard %d, build shard %d config: %s", self.shardID, evt.ShardID, err)
+	}
 	return nil
 }
 
@@ -225,7 +228,7 @@ func (self *ChainManager) constructShardBlockTx(block *message.ShardBlockInfo) (
 		if err != nil {
 			return nil, fmt.Errorf("construct shardTx: %s", err)
 		}
-		shardTxs[shardId] = &message.ShardBlockTx{ Tx: tx }
+		shardTxs[shardId] = &message.ShardBlockTx{Tx: tx}
 	}
 
 	return shardTxs, nil

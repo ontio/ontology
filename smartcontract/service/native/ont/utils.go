@@ -45,6 +45,7 @@ const (
 	TOTALSUPPLY_NAME    = "totalSupply"
 	BALANCEOF_NAME      = "balanceOf"
 	ALLOWANCE_NAME      = "allowance"
+	SHARD_INIT_NAME     = "shardOngInit"
 )
 
 func AddNotifications(native *native.NativeService, contract common.Address, state *State) {

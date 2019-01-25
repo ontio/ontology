@@ -37,6 +37,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 )
 
 const (
@@ -60,7 +62,12 @@ var INIT_PARAM = map[string]string{
 var GenesisBookkeepers []keypair.PublicKey
 
 // BuildGenesisBlock returns the genesis block with default consensus bookkeeper list
-func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *config.GenesisConfig) (*types.Block, error) {
+func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *config.GenesisConfig,
+	shardConfig *config.ShardConfig) (*types.Block, error) {
+	if shardConfig != nil && shardConfig.ShardID != config.DEFAULT_SHARD_ID {
+		return buildShardGenesisBlock(defaultBookkeeper, genesisConfig, shardConfig)
+	}
+
 	//getBookkeeper
 	GenesisBookkeepers = defaultBookkeeper
 	nextBookkeeper, err := types.AddressFromBookkeepers(defaultBookkeeper)
@@ -112,6 +119,65 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 			newUtilityInit(),
 			newParamInit(),
 			govConfig,
+		},
+	}
+	genesisBlock.RebuildMerkleRoot()
+	return genesisBlock, nil
+}
+
+func buildShardGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *config.GenesisConfig,
+	shardConfig *config.ShardConfig) (*types.Block, error) {
+	//getBookkeeper
+	GenesisBookkeepers = defaultBookkeeper
+	nextBookkeeper, err := types.AddressFromBookkeepers(defaultBookkeeper)
+	if err != nil {
+		return nil, fmt.Errorf("[Block],BuildGenesisBlock err with GetBookkeeperAddress: %s", err)
+	}
+	govConfig := bytes.NewBuffer(nil)
+	if genesisConfig.VBFT != nil {
+		genesisConfig.VBFT.Serialize(govConfig)
+	}
+	govConfigTx := newGoverConfigInit(govConfig.Bytes())
+	consensusPayload, err := vconfig.GenesisConsensusPayload(govConfigTx.Hash(), 0)
+	if err != nil {
+		return nil, fmt.Errorf("consensus genesus init failed: %s", err)
+	}
+	//blockdata
+	genesisHeader := &types.Header{
+		Version:          BlockVersion,
+		ShardID:          shardConfig.ShardID,
+		ParentShardID:    shardConfig.ParentShardID,
+		ParentHeight:     shardConfig.GenesisParentHeight,
+		PrevBlockHash:    common.Uint256{},
+		TransactionsRoot: common.Uint256{},
+		Timestamp:        constants.GENESIS_BLOCK_TIMESTAMP,
+		Height:           uint32(0),
+		ConsensusData:    GenesisNonce,
+		NextBookkeeper:   nextBookkeeper,
+		ConsensusPayload: consensusPayload,
+
+		Bookkeepers: nil,
+		SigData:     nil,
+	}
+
+	//block
+	ong := newUtilityToken()
+	param := newParamContract()
+	config := newConfig()
+
+	genesisBlock := &types.Block{
+		Header: genesisHeader,
+		Transactions: []*types.Transaction{
+			ong,
+			param,
+			config,
+			deployShardMgmtContract(),
+			deployShardSysMsgContract(),
+			newShardUtilityInit(),
+			newParamInit(),
+			govConfigTx,
+			initShardMgmtContract(),
+			initShardSysMsgContract(),
 		},
 	}
 	genesisBlock.RebuildMerkleRoot()
@@ -224,6 +290,16 @@ func newUtilityInit() *types.Transaction {
 	return tx
 }
 
+func newShardUtilityInit() *types.Transaction {
+	mutable := utils.BuildNativeTransaction(nutils.OngContractAddress, ont.SHARD_INIT_NAME, []byte{})
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("contract genesis shard utility token transaction error ")
+	}
+
+	return tx
+}
+
 func newParamInit() *types.Transaction {
 	params := new(global_params.Params)
 	var s []string
@@ -271,5 +347,45 @@ func newGoverConfigInit(config []byte) *types.Transaction {
 	if err != nil {
 		panic("construct genesis governing token transaction error ")
 	}
+	return tx
+}
+
+func deployShardMgmtContract() *types.Transaction {
+	mutable := utils.NewDeployTransaction(nutils.ShardMgmtContractAddress[:], "ShardManagement", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Shard Management", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("contract genesis shardmgmt transaction error ")
+	}
+	return tx
+}
+
+func deployShardSysMsgContract() *types.Transaction {
+	mutable := utils.NewDeployTransaction(nutils.ShardSysMsgContractAddress[:], "ShardSysMsg", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Shard System Messaging", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("contract genesis shardsysmsg transaction error ")
+	}
+	return tx
+}
+
+func initShardMgmtContract() *types.Transaction {
+	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, shardmgmt.INIT_NAME, []byte{})
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("contract genesis shard management transaction error ")
+	}
+
+	return tx
+}
+
+func initShardSysMsgContract() *types.Transaction {
+	mutable := utils.BuildNativeTransaction(nutils.ShardSysMsgContractAddress, shardsysmsg.INIT_NAME, []byte{})
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("contract genesis shard sysmsg transaction error ")
+	}
+
 	return tx
 }

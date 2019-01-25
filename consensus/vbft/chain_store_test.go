@@ -55,7 +55,8 @@ func newChainStore() *ChainStore {
 
 	bookkeepers := []keypair.PublicKey{acc1.PublicKey, acc2.PublicKey, acc3.PublicKey, acc4.PublicKey, acc5.PublicKey, acc6.PublicKey, acc7.PublicKey}
 	genesisConfig := config.DefConfig.Genesis
-	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig)
+	shardConfig := config.DefConfig.Shard
+	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig, shardConfig)
 	if err != nil {
 		log.Errorf("BuildGenesisBlock error %s", err)
 		os.Exit(1)

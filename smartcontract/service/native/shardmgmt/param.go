@@ -20,10 +20,11 @@ package shardmgmt
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
-	"io"
 )
 
 type CommonParam struct {

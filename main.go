@@ -377,7 +377,8 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 		return nil, fmt.Errorf("GetBookkeepers error:%s", err)
 	}
 	genesisConfig := config.DefConfig.Genesis
-	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
+	shardConfig := config.DefConfig.Shard
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
 	if err != nil {
 		return nil, fmt.Errorf("genesisBlock error %s", err)
 	}
