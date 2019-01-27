@@ -31,6 +31,7 @@ import (
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"strconv"
+	"github.com/ontio/ontology/core/chainmgr"
 )
 
 const TLS_PORT int = 443
@@ -276,11 +277,20 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		}
 	}
 	log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
-	if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
-		resp["Error"] = int64(errCode)
-		resp["Result"] = desc
-		log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
-		return resp
+	if txn.ShardID == chainmgr.GetShardID() {
+		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
+			resp["Error"] = int64(errCode)
+			resp["Result"] = desc
+			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
+			return resp
+		}
+	} else {
+		if errCode, desc := bcomn.SendShardTxToChainMgr(txn); errCode != ontErrors.ErrNoError {
+			resp["Error"] = int64(errCode)
+			resp["Result"] = desc
+			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
+			return resp
+		}
 	}
 	log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
 	resp["Result"] = hash.ToHexString()

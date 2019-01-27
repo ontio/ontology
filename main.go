@@ -360,7 +360,13 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
 	log.Infof("staring shard %d chain mgr: port %d, parent (%d, %s, %d)",
 		shardID, shardPort, parentShardID, parentShardAddr, parentShardPort)
-	return shard.Initialize(shardID, parentShardID, parentShardAddr, shardPort, parentShardPort, acc)
+	chainmgr, err := shard.Initialize(shardID, parentShardID, parentShardAddr, shardPort, parentShardPort, acc)
+	if err != nil {
+		return nil, err
+	}
+	hserver.SetChainMgrPid(shard.GetPID())
+
+	return chainmgr, err
 }
 
 func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error) {

@@ -68,6 +68,7 @@ type PeerShardStakeInfo struct {
 
 type ShardState struct {
 	ShardID             uint64                         `json:"shard_id"`
+	ParentShardID       uint64                         `json:"parent_shard_id"`
 	Creator             common.Address                 `json:"creator"`
 	State               uint32                         `json:"state"`
 	GenesisParentHeight uint64                         `json:"genesis_parent_height"`

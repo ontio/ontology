@@ -42,12 +42,15 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 		return err
 	}
 
-	self.shards[helloMsg.SourceShardID] = &ShardInfo{
-		ShardAddress: sender.Address,
-		Connected:    true,
-		Config:       cfg,
-		Sender:       sender,
+	if _, present := self.shards[helloMsg.SourceShardID]; !present {
+		self.shards[helloMsg.SourceShardID] = &ShardInfo{}
 	}
+
+	self.shards[helloMsg.SourceShardID].ShardAddress = sender.Address
+	self.shards[helloMsg.SourceShardID].Connected = true
+	self.shards[helloMsg.SourceShardID].Config = cfg
+	self.shards[helloMsg.SourceShardID].Sender = sender
+
 	self.shardAddrs[sender.Address] = helloMsg.SourceShardID
 
 	buf := new(bytes.Buffer)
