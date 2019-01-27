@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
 func IsRootShard(shardId uint64) bool {
@@ -41,6 +42,10 @@ func GetAccount() *account.Account {
 
 func GetShardID() uint64 {
 	return GetChainManager().shardID
+}
+
+func GetPID() *actor.PID {
+	return GetChainManager().localPid
 }
 
 func GetParentBlockHeight() uint64 {

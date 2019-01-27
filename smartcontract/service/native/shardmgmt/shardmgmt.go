@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -94,6 +95,7 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		// initialize shard states
 		mainShardState := &shardstates.ShardState{
 			ShardID:             MAINCHAIN_SHARDID,
+			ParentShardID:       config.DEFAULT_PARENT_SHARD_ID,
 			GenesisParentHeight: uint64(native.Height),
 			State:               shardstates.SHARD_STATE_ACTIVE,
 		}
@@ -123,6 +125,9 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 	if params.ParentShardID != MAINCHAIN_SHARDID {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid parent shard: %d", params.ParentShardID)
 	}
+	if params.ParentShardID != native.ShardID.ToUint64() {
+		return utils.BYTE_FALSE, fmt.Errorf("create shard, parent ShardID is not current shard")
+	}
 
 	if err := utils.ValidateOwner(native, params.Creator); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid creator: %s", err)
@@ -139,10 +144,11 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	shard := &shardstates.ShardState{
-		ShardID: globalState.NextShardID,
-		Creator: params.Creator,
-		State:   shardstates.SHARD_STATE_CREATED,
-		Peers:   make(map[string]*shardstates.PeerShardStakeInfo),
+		ShardID:       globalState.NextShardID,
+		ParentShardID: params.ParentShardID,
+		Creator:       params.Creator,
+		State:         shardstates.SHARD_STATE_CREATED,
+		Peers:         make(map[string]*shardstates.PeerShardStakeInfo),
 	}
 	globalState.NextShardID += 1
 
@@ -194,6 +200,9 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid configurator: %s", err)
+	}
+	if shard.ParentShardID != native.ShardID.ToUint64() {
+		return utils.BYTE_FALSE, fmt.Errorf("config shard, not on parent shard")
 	}
 
 	if params.NetworkMin < 1 {
@@ -250,6 +259,9 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if shard == nil {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, get nil shard %d", params.ShardID)
 	}
+	if shard.ParentShardID != native.ShardID.ToUint64() {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, not on parent shard")
+	}
 
 	if _, present := shard.Peers[params.PeerPubKey]; present {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, peer already in shard")
@@ -264,6 +276,8 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		}
 		shard.Peers[params.PeerPubKey] = peerStakeInfo
 	}
+
+	// TODO: asset transfer
 
 	if err := setShardState(native, contract, shard); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, update shard state: %s", err)
@@ -300,6 +314,9 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	}
 	if shard.State != shardstates.SHARD_STATE_CONFIGURED {
 		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid shard state: %d", shard.State)
+	}
+	if shard.ParentShardID != native.ShardID.ToUint64() {
+		return utils.BYTE_FALSE, fmt.Errorf("activate shard, not on parent shard")
 	}
 
 	// TODO: validate input config

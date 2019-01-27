@@ -49,6 +49,13 @@ const (
 	CONNECT_PARENT_TIMEOUT   = 5 * time.Second
 )
 
+const (
+	CONN_TYPE_UNKNOWN = iota
+	CONN_TYPE_PARENT
+	CONN_TYPE_CHILD
+	CONN_TYPE_SIB
+)
+
 var defaultChainManager *ChainManager = nil
 
 type RemoteMsg struct {
@@ -63,6 +70,7 @@ type MsgSendReq struct {
 
 type ShardInfo struct {
 	ShardAddress string
+	ConnType     int
 	Connected    bool
 	Config       *config.OntologyConfig
 	Sender       *actor.PID
@@ -173,11 +181,6 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 
 	self.ledger = lgr
 
-	// start listen on local actor
-	self.sub = events.NewActorSubscriber(self.localPid)
-	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
-	self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
-
 	globalState, err := self.getShardMgmtGlobalState()
 	if err != nil {
 
@@ -201,8 +204,24 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 		if _, present := shard.Peers[peerPK]; present {
 			// peer is in the shard
 			// build shard config
+			if self.shardID == shard.ShardID {
+				// self shards
+			} else if self.parentShardID == shard.ShardID {
+				// parent shard
+			}
+		} else {
+			if self.shardID == shard.ParentShardID {
+				// child shards
+			} else if self.parentShardID == shard.ParentShardID {
+				// sib shards
+			}
 		}
 	}
+
+	// start listen on local actor
+	self.sub = events.NewActorSubscriber(self.localPid)
+	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
+	self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
 	return nil
 }
@@ -309,8 +328,10 @@ func (self *ChainManager) localEventLoop() error {
 					return fmt.Errorf("processing join shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_PEER_LEAVE:
-			case shardstates.EVENT_SHARD_GAS_DEPOSIT: fallthrough
-			case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ: fallthrough
+			case shardstates.EVENT_SHARD_GAS_DEPOSIT:
+				fallthrough
+			case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
+				fallthrough
 			case shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
 				if err := self.onLocalShardEvent(shardEvt); err != nil {
 					return fmt.Errorf("processing shard %d gas deposit: %s", shardEvt.ToShard, err)
