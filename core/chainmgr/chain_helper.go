@@ -65,3 +65,14 @@ func (this *ChainManager) updateShardBlockInfo(shardID uint64, height uint64, bl
 	blkInfo.Header = &message.ShardBlockHeader{Header: blk.Header}
 	blkInfo.ShardTxs = shardTxs
 }
+
+func (this *ChainManager) getChildShards() map[uint64]*ShardInfo {
+
+	// TODO
+
+	shards := make(map[uint64]*ShardInfo)
+
+
+
+	return shards
+}

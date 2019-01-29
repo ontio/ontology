@@ -35,6 +35,9 @@ const (
 	PEERINFO_REQ_MSG
 	PEERINFO_RSP_MSG
 
+	TXN_REQ_MSG
+	TXN_RSP_MSG
+
 	DISCONNECTED_MSG
 )
 
@@ -106,6 +109,22 @@ type ShardDisconnectedMsg struct {
 
 func (msg *ShardDisconnectedMsg) Type() int {
 	return DISCONNECTED_MSG
+}
+
+type TxnReqMsg struct {
+	Tx []byte `json:"tx"`
+}
+
+func (msg *TxnReqMsg) Type() int {
+	return TXN_REQ_MSG
+}
+
+type TxnRspMsg struct {
+	TxResult []byte `json:"tx_result"`
+}
+
+func (msg *TxnRspMsg) Type() int {
+	return TXN_RSP_MSG
 }
 
 func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {

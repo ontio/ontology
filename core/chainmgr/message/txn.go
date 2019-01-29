@@ -19,23 +19,41 @@
 package message
 
 import (
+	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 )
 
 type TxResult struct {
-	Err  errors.ErrCode
-	Hash common.Uint256
-	Desc string
+	Err  errors.ErrCode `json:"err"`
+	Hash common.Uint256 `json:"hash"`
+	Desc string         `json:"desc"`
 }
 
-type TxReq struct {
+type TxRequest struct {
 	Tx         *types.Transaction
 	TxResultCh chan *TxResult
 }
 
-type TxRsp struct {
-	Hash    common.Uint256
-	ErrCode errors.ErrCode
+func (this *TxRequest) MarshalJSON() ([]byte, error) {
+	sink := common.NewZeroCopySink(nil)
+	if this.Tx != nil {
+		if err := this.Tx.Serialization(sink); err != nil {
+			return nil, fmt.Errorf("TxRequest marshal: %s", err)
+		}
+	}
+
+	return sink.Bytes(), nil
+}
+
+func (this *TxRequest) UnmarshalJSON(data []byte) error {
+	tx := &types.Transaction{}
+	if err := tx.Deserialization(common.NewZeroCopySource(data)); err != nil {
+		return fmt.Errorf("TxRequest unmarshal: %s", err)
+	}
+
+	this.Tx = tx
+	return nil
 }

@@ -20,18 +20,19 @@ package chainmgr
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math"
 	"reflect"
 	"sync"
 	"time"
 
-	"encoding/hex"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology-eventbus/eventstream"
 	"github.com/ontio/ontology-eventbus/remote"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
@@ -91,14 +92,19 @@ type ChainManager struct {
 	account      *account.Account
 	genesisBlock *types.Block
 
-	ledger *ledger.Ledger
-	p2pPid *actor.PID
+	ledger    *ledger.Ledger
+	p2pPid    *actor.PID
+	txPoolPid *actor.PID
 
 	localBlockMsgC  chan *types.Block
 	localEventC     chan *shardstates.ShardEventState
 	remoteShardMsgC chan *RemoteMsg
 	broadcastMsgC   chan *MsgSendReq
 	parentConnWait  chan bool
+
+	txnReqC     chan *shardmsg.TxRequest
+	txnRspC     chan *shardmsg.TxResult
+	pendingTxns map[common.Uint256]*shardmsg.TxRequest
 
 	parentPid   *actor.PID
 	localPid    *actor.PID
@@ -135,6 +141,9 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		broadcastMsgC:        make(chan *MsgSendReq, CAP_REMOTE_SHARDMSG_CHNL),
 		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
+		txnReqC:              make(chan *shardmsg.TxRequest, CAP_LOCAL_SHARDMSG_CHNL),
+		txnRspC:              make(chan *shardmsg.TxResult, CAP_REMOTE_SHARDMSG_CHNL),
+		pendingTxns:          make(map[common.Uint256]*shardmsg.TxRequest),
 
 		account: acc,
 	}
@@ -165,15 +174,6 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 
 	defaultChainManager = chainMgr
 	return defaultChainManager, nil
-}
-
-func (self *ChainManager) SetP2P(p2p *actor.PID) error {
-	if defaultChainManager == nil {
-		return fmt.Errorf("uninitialized chain manager")
-	}
-
-	defaultChainManager.p2pPid = p2p
-	return nil
 }
 
 func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
@@ -267,6 +267,12 @@ func (self *ChainManager) Receive(context actor.Context) {
 
 	case *message.SaveBlockCompleteMsg:
 		self.localBlockMsgC <- msg.Block
+
+	case *shardmsg.TxRequest:
+		self.txnReqC <- msg
+
+	case *shardmsg.TxResult:
+		self.txnRspC <- msg
 
 	default:
 		log.Info("chain mgr actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
@@ -386,6 +392,29 @@ func (self *ChainManager) broadcastMsgLoop() {
 	}
 }
 
+func (self *ChainManager) txnLoop() {
+	self.quitWg.Add(1)
+	defer self.quitWg.Done()
+
+	for {
+		select {
+		case txreq := <-self.txnReqC:
+			if err := self.onTxnRequest(txreq); err != nil {
+				log.Errorf("processing txn request: %s", err)
+				if txreq != nil && txreq.TxResultCh != nil {
+					close(txreq.TxResultCh)
+				}
+			}
+		case txrsp := <-self.txnRspC:
+			if err := self.onTxnResponse(txrsp); err != nil {
+				log.Errorf("processing Txn response: %s", err)
+			}
+		case <-self.quitC:
+			return
+		}
+	}
+}
+
 func (self *ChainManager) remoteShardMsgLoop() {
 	self.quitWg.Add(1)
 	defer self.quitWg.Done()
@@ -435,6 +464,18 @@ func (self *ChainManager) processRemoteShardMsg() error {
 		case shardmsg.PEERINFO_REQ_MSG:
 		case shardmsg.PEERINFO_RSP_MSG:
 			return nil
+		case shardmsg.TXN_REQ_MSG:
+			txReq, ok := msg.(*shardmsg.TxnReqMsg)
+			if !ok {
+				return fmt.Errorf("invalid txn req msg")
+			}
+			self.onRemoteTxnRequest(remoteMsg.Sender, txReq)
+		case shardmsg.TXN_RSP_MSG:
+			txRsp, ok := msg.(*shardmsg.TxnRspMsg)
+			if !ok {
+				return fmt.Errorf("invalid txn rsp msg")
+			}
+			self.onRemoteTxnResponse(txRsp)
 		case shardmsg.DISCONNECTED_MSG:
 			disconnMsg, ok := msg.(*shardmsg.ShardDisconnectedMsg)
 			if !ok {

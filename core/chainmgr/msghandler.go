@@ -20,6 +20,7 @@ package chainmgr
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ontio/ontology-eventbus/actor"
@@ -30,6 +31,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
+	tcomn "github.com/ontio/ontology/txnpool/common"
 )
 
 func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *message.ShardHelloMsg) error {
@@ -235,4 +237,101 @@ func (self *ChainManager) constructShardBlockTx(block *message.ShardBlockInfo) (
 	}
 
 	return shardTxs, nil
+}
+
+func (self *ChainManager) onTxnRequest(txnReq *message.TxRequest) error {
+	if txnReq == nil || txnReq.Tx == nil {
+		return fmt.Errorf("nil Tx request")
+	}
+	if txnReq.Tx.ShardID == self.shardID {
+		// should be processed by txnpool
+		return fmt.Errorf("self Tx Request")
+	}
+
+	// check if tx is for child-shards
+	childShards := self.getChildShards()
+	if _, present := childShards[txnReq.Tx.ShardID]; present {
+		msg, err := message.NewTxnRequestMessage(txnReq, self.localPid)
+		if err != nil {
+			return fmt.Errorf("failed to construct TxRequest Msg: %s", err)
+		}
+		self.sendShardMsg(txnReq.Tx.ShardID, msg)
+		self.pendingTxns[txnReq.Tx.Hash()] = txnReq
+		return nil
+	}
+
+	return fmt.Errorf("unreachable Tx request")
+}
+
+func (self *ChainManager) onTxnResponse(txnRsp *message.TxResult) error {
+	if txnRsp == nil {
+		return fmt.Errorf("nil txn response")
+	}
+
+	if txnReq, present := self.pendingTxns[txnRsp.Hash]; present {
+		txnReq.TxResultCh <- &message.TxResult{
+			Err:  txnRsp.Err,
+			Hash: txnRsp.Hash,
+			Desc: txnRsp.Desc,
+		}
+		delete(self.pendingTxns, txnRsp.Hash)
+		return nil
+	}
+
+	return fmt.Errorf("not found in pending tx list")
+}
+
+func (self *ChainManager) onRemoteTxnRequest(sender *actor.PID, msg *message.TxnReqMsg) {
+	if msg == nil {
+		return
+	}
+
+	txReq := &message.TxRequest{}
+	if err := json.Unmarshal(msg.Tx, txReq); err != nil {
+		log.Errorf("unmarshal remote TxRequest failed: %s", err)
+		return
+	}
+	if txReq.Tx.ShardID != self.shardID {
+		log.Errorf("invalid remote TxRequest")
+		return
+	}
+
+	ch := make(chan *tcomn.TxResult, 1)
+	txPoolReq := &tcomn.TxReq{txReq.Tx, tcomn.ShardSender, ch}
+	self.txPoolPid.Tell(txPoolReq)
+	go func() {
+		if msg, ok := <-ch; ok {
+			rsp := &message.TxResult{
+				Err:  msg.Err,
+				Hash: msg.Hash,
+				Desc: msg.Desc,
+			}
+			// TODO: handle error
+			msg, _ := message.NewTxnResponseMessage(rsp, sender)
+			sender.Tell(msg)
+		}
+	}()
+}
+
+func (self *ChainManager) onRemoteTxnResponse(msg *message.TxnRspMsg) {
+	if msg == nil {
+		return
+	}
+
+	txRsp := &message.TxResult{}
+	if err := json.Unmarshal(msg.TxResult, txRsp); err != nil {
+		log.Errorf("unmarshal remote TxResponse failed: %s", err)
+		return
+	}
+	txReq, present := self.pendingTxns[txRsp.Hash]
+	if !present {
+		log.Errorf("invalid remote TxResponse")
+		return
+	}
+
+	txReq.TxResultCh <- &message.TxResult{
+		Err:  txRsp.Err,
+		Hash: txRsp.Hash,
+		Desc: txRsp.Desc,
+	}
 }

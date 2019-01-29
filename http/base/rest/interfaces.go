@@ -284,13 +284,16 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 			return resp
 		}
-	} else {
-		if errCode, desc := bcomn.SendShardTxToChainMgr(txn); errCode != ontErrors.ErrNoError {
-			resp["Error"] = int64(errCode)
-			resp["Result"] = desc
-			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
-			return resp
-		}
+	} else if txn.ShardID == config.DEFAULT_SHARD_ID {
+		resp["Error"] = ontErrors.ErrXmitFail
+		resp["Result"] = ""
+		log.Warnf("SendRawTransaction transaction in default shard sent to shard %d", chainmgr.GetShardID())
+		return resp
+	} else if errCode, desc := bcomn.SendShardTxToChainMgr(txn); errCode != ontErrors.ErrNoError {
+		resp["Error"] = int64(errCode)
+		resp["Result"] = desc
+		log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
+		return resp
 	}
 	log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
 	resp["Result"] = hash.ToHexString()

@@ -58,6 +58,7 @@ const (
 	NilSender  SenderType = iota
 	NetSender             // Net sends tx req
 	HttpSender            // Http sends tx req
+	ShardSender
 )
 
 func (sender SenderType) Sender() string {
@@ -68,6 +69,8 @@ func (sender SenderType) Sender() string {
 		return "net sender"
 	case HttpSender:
 		return "http sender"
+	case ShardSender:
+		return "shard sender"
 	default:
 		return "unknown sender"
 	}

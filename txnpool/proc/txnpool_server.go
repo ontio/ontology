@@ -266,7 +266,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 		return
 	}
 
-	if err == errors.ErrNoError && ((pt.sender == tc.HttpSender) ||
+	if err == errors.ErrNoError && ((pt.sender == tc.HttpSender) || (pt.sender == tc.ShardSender) ||
 		(pt.sender == tc.NetSender && !s.disableBroadcastNetTx)) {
 		pid := s.GetPID(tc.NetActor)
 		if pid != nil {
@@ -274,7 +274,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 		}
 	}
 
-	if pt.sender == tc.HttpSender && pt.ch != nil {
+	if (pt.sender == tc.HttpSender || pt.sender == tc.ShardSender) && pt.ch != nil {
 		replyTxResult(pt.ch, hash, err, err.Error())
 	}
 
@@ -328,7 +328,7 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 
 	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
 		s.increaseStats(tc.DuplicateStats)
-		if sender == tc.HttpSender && txResultCh != nil {
+		if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput,
 				"duplicated transaction input detected")
 		}

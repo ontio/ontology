@@ -34,11 +34,11 @@ func SetChainMgrPid(actr *actor.PID) {
 func AppendTxToRemoteShard(txn *types.Transaction) (errors.ErrCode, string) {
 
 	ch := make(chan *shardmsg.TxResult, 1)
-	txReq := &shardmsg.TxReq{txn, ch}
+	txReq := &shardmsg.TxRequest{txn, ch}
 	chainMgrPid.Tell(txReq)
 	if msg, ok := <-ch; ok {
 		return msg.Err, msg.Desc
 	}
 
-	return errors.ErrUnknown, ""
+	return errors.ErrXmitFail, ""
 }
