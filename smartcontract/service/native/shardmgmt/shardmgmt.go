@@ -108,8 +108,11 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 	if ver < VERSION_CONTRACT_SHARD_MGMT {
 		// make upgrade
 		return utils.BYTE_FALSE, fmt.Errorf("upgrade TBD")
+	} else if ver > VERSION_CONTRACT_SHARD_MGMT {
+		return utils.BYTE_FALSE, fmt.Errorf("version downgrade from %d to %d", ver, VERSION_CONTRACT_SHARD_MGMT)
 	}
-	return utils.BYTE_FALSE, fmt.Errorf("version downgrade from %d to %d", ver, VERSION_CONTRACT_SHARD_MGMT)
+
+	return utils.BYTE_TRUE, nil
 }
 
 func CreateShard(native *native.NativeService) ([]byte, error) {

@@ -348,7 +348,22 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
 	log.Infof("staring shard %d chain mgr: port %d, parent (%d, %s, %d)",
 		shardID, shardPort, parentShardID, parentShardAddr, parentShardPort)
-	chainmgr, err := shard.Initialize(shardID, parentShardID, parentShardAddr, shardPort, parentShardPort, acc)
+
+	// get all cmdArgs, for sub-shards
+	cmdArgs := make(map[string]string)
+	for _, f := range ctx.App.Flags {
+		name := f.GetName()
+		parts := strings.Split(f.GetName(), ",")
+		if len(parts) > 1 {
+			name = parts[0]
+		}
+
+		v := ctx.String(name)
+		if len(v) > 0 {
+			cmdArgs[name] = v
+		}
+	}
+	chainmgr, err := shard.Initialize(shardID, parentShardID, parentShardAddr, shardPort, parentShardPort, acc, cmdArgs)
 	if err != nil {
 		return nil, err
 	}

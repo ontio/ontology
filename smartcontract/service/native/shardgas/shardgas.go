@@ -87,8 +87,11 @@ func ShardGasMgmtInit(native *native.NativeService) ([]byte, error) {
 	if ver < ShardGasMgmtVersion {
 		// make upgrade
 		return utils.BYTE_FALSE, fmt.Errorf("upgrade TBD")
+	} else if ver > ShardGasMgmtVersion {
+		return utils.BYTE_FALSE, fmt.Errorf("version downgrade from %d to %d", ver, ShardGasMgmtVersion)
 	}
-	return utils.BYTE_FALSE, fmt.Errorf("version downgrade from %d to %d", ver, ShardGasMgmtVersion)
+
+	return utils.BYTE_TRUE, nil
 }
 
 func DespositGasToShard(native *native.NativeService) ([]byte, error) {

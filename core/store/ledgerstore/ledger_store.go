@@ -718,10 +718,6 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 
-	for _, notify := range result.Notify {
-		SaveNotify(this.eventStore, notify.TxHash, notify)
-	}
-
 	err := this.stateStore.AddStateMerkleTreeRoot(blockHeight, result.Hash)
 	if err != nil {
 		return fmt.Errorf("AddBlockMerkleTreeRoot error %s", err)
@@ -746,6 +742,10 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 			this.stateStore.BatchPutRawKeyVal(key, val)
 		}
 	})
+
+	for _, notify := range result.Notify {
+		SaveNotify(this.eventStore, notify.TxHash, notify)
+	}
 
 	return nil
 }

@@ -512,6 +512,14 @@ var (
 	}
 )
 
+var CmdFlagsForSharding = []cli.Flag{
+	ShardIDFlag,
+	ShardPortFlag,
+	ParentShardIDFlag,
+	ParentShardIPFlag,
+	ParentShardPortFlag,
+}
+
 //GetFlagName deal with short flag, and return the flag name whether flag name have short name
 func GetFlagName(flag cli.Flag) string {
 	name := flag.GetName()

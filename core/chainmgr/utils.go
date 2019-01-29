@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/core/store/common"
 )
 
 func (self *ChainManager) GetShardConfig(shardID uint64) *config.OntologyConfig {
@@ -57,6 +58,9 @@ func (self *ChainManager) getShardMgmtGlobalState() (*shardstates.ShardMgmtGloba
 	}
 
 	data, err := self.ledger.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_VERSION))
+	if err == common.ErrNotFound {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get shardmgmt version: %s", err)
 	}
@@ -70,6 +74,9 @@ func (self *ChainManager) getShardMgmtGlobalState() (*shardstates.ShardMgmtGloba
 	}
 
 	data, err = self.ledger.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_GLOBAL_STATE))
+	if err == common.ErrNotFound {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get shardmgmt global state: %s", err)
 	}
@@ -96,6 +103,9 @@ func (self *ChainManager) getShardState(shardID uint64) (*shardstates.ShardState
 	}
 	key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
 	data, err := self.ledger.GetStorageItem(utils.ShardMgmtContractAddress, key)
+	if err == common.ErrNotFound {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get shardmgmt global state: %s", err)
 	}

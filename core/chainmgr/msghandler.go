@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
@@ -134,6 +136,9 @@ func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) e
 }
 
 func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) error {
+
+	// TODO: if shard is active, start shard process.  Otherwise, start shard process onShardActivated
+
 	return nil
 }
 
@@ -156,6 +161,30 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if _, err := self.buildShardConfig(evt.ShardID, shardState); err != nil {
 		return fmt.Errorf("shard %d, build shard %d config: %s", self.shardID, evt.ShardID, err)
 	}
+
+	shardInfo := self.shards[evt.ShardID]
+	log.Infof("shard %d, received shard %d activated, parent %d", self.shardID, evt.ShardID, shardInfo.ParentShardID)
+	if shardInfo == nil {
+		return fmt.Errorf("shard %d, nil shard info", evt.ShardID)
+	}
+	if shardInfo.ParentShardID != self.shardID {
+		return nil
+	}
+
+	// build sub-shard args
+	shardArgs, err := self.buildShardCommandArgs(self.cmdArgs, shardInfo)
+	if err != nil {
+		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
+	}
+
+	log.Infof(">>>> staring shard %d, cmd: %s, args: %v", shardInfo.ShardID, os.Args[0], shardArgs)
+
+	// create new process
+	cmd := exec.Command(os.Args[0], shardArgs...)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("shard %d, failed to start %d: %s", self.shardID, shardInfo.ShardID, err)
+	}
+
 	return nil
 }
 
