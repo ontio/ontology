@@ -39,21 +39,33 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 	if err != nil {
 		return err
 	}
-	cfg, err := self.buildShardConfig(helloMsg.SourceShardID)
+
+	shardID := helloMsg.SourceShardID
+	shardState, err := self.getShardState(shardID)
+	if err != nil {
+		return fmt.Errorf("get shardmgmt state: %s", err)
+	}
+
+	cfg, err := self.buildShardConfig(shardID, shardState)
 	if err != nil {
 		return err
 	}
 
-	if _, present := self.shards[helloMsg.SourceShardID]; !present {
-		self.shards[helloMsg.SourceShardID] = &ShardInfo{}
+	if _, present := self.shards[shardID]; !present {
+		if _, err := self.initShardInfo(shardID, shardState); err != nil {
+			return fmt.Errorf("new shard connected, init: %s", err)
+		}
+		if self.shards[shardID] == nil {
+			return nil
+		}
 	}
 
-	self.shards[helloMsg.SourceShardID].ShardAddress = sender.Address
-	self.shards[helloMsg.SourceShardID].Connected = true
-	self.shards[helloMsg.SourceShardID].Config = cfg
-	self.shards[helloMsg.SourceShardID].Sender = sender
+	self.shards[shardID].ShardAddress = sender.Address
+	self.shards[shardID].Connected = true
+	self.shards[shardID].Config = cfg
+	self.shards[shardID].Sender = sender
 
-	self.shardAddrs[sender.Address] = helloMsg.SourceShardID
+	self.shardAddrs[sender.Address] = shardID
 
 	buf := new(bytes.Buffer)
 	if err := cfg.Serialize(buf); err != nil {
@@ -128,8 +140,20 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
 	// build shard config
 	// start local shard
-	_, err := self.buildShardConfig(evt.ShardID)
+	shardState, err := self.getShardState(evt.ShardID)
 	if err != nil {
+		return fmt.Errorf("get shardmgmt state: %s", err)
+	}
+
+	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
+		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
+	}
+
+	if _, err := self.initShardInfo(evt.ShardID, shardState); err != nil {
+		return fmt.Errorf("init shard %d info: %s", evt.ShardID, err)
+	}
+
+	if _, err := self.buildShardConfig(evt.ShardID, shardState); err != nil {
 		return fmt.Errorf("shard %d, build shard %d config: %s", self.shardID, evt.ShardID, err)
 	}
 	return nil

@@ -26,14 +26,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
-func (self *ChainManager) buildShardConfig(shardID uint64) (*config.OntologyConfig, error) {
+func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstates.ShardState) (*config.OntologyConfig, error) {
 	if cfg := self.GetShardConfig(shardID); cfg != nil {
 		return cfg, nil
-	}
-
-	shardState, err := self.getShardState(shardID)
-	if err != nil {
-		return nil, fmt.Errorf("get shardmgmt state: %s", err)
 	}
 
 	if shardState.State != shardstates.SHARD_STATE_ACTIVE {

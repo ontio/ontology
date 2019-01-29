@@ -16,10 +16,13 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 package chainmgr
 
 import (
+	"encoding/hex"
+	"fmt"
+
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -68,11 +71,52 @@ func (this *ChainManager) updateShardBlockInfo(shardID uint64, height uint64, bl
 
 func (this *ChainManager) getChildShards() map[uint64]*ShardInfo {
 
-	// TODO
-
 	shards := make(map[uint64]*ShardInfo)
 
-
+	for _, shardInfo := range this.shards {
+		if shardInfo.ConnType == CONN_TYPE_CHILD {
+			shards[shardInfo.ShardID] = shardInfo
+		}
+	}
 
 	return shards
+}
+
+func (self *ChainManager) initShardInfo(shardID uint64, shard *shardstates.ShardState) (*ShardInfo, error) {
+	if shardID != shard.ShardID {
+		return nil, fmt.Errorf("unmatched shard ID with shardstate")
+	}
+
+	peerPK := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
+	info := &ShardInfo{}
+	if i, present := self.shards[shard.ShardID]; present {
+		info = i
+	}
+	info.ShardID = shard.ShardID
+	info.ParentShardID = shard.ParentShardID
+
+	if _, present := shard.Peers[peerPK]; present {
+		// peer is in the shard
+		// build shard config
+		if self.shardID == shard.ShardID {
+			// self shards
+			info.ConnType = CONN_TYPE_SELF
+		} else if self.parentShardID == shard.ShardID {
+			// parent shard
+			info.ConnType = CONN_TYPE_PARENT
+		}
+	} else {
+		if self.shardID == shard.ParentShardID {
+			// child shards
+			info.ConnType = CONN_TYPE_CHILD
+		} else if self.parentShardID == shard.ParentShardID {
+			// sib shards
+			info.ConnType = CONN_TYPE_SIB
+		}
+	}
+
+	if info.ConnType != CONN_TYPE_UNKNOWN {
+		self.shards[shard.ShardID] = info
+	}
+	return info, nil
 }
