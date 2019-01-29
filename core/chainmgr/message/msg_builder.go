@@ -124,3 +124,49 @@ func NewShardBlockInfoFromRemote(ShardID uint64, msg *ShardBlockRspMsg) (*ShardB
 
 	return blockInfo, nil
 }
+
+func NewTxnRequestMessage(txnReq *TxRequest, sender *actor.PID) (*CrossShardMsg, error) {
+	if txnReq == nil {
+		return nil, nil
+	}
+	reqBytes, err := json.Marshal(txnReq)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := json.Marshal(&TxnReqMsg{
+		Tx: reqBytes,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal TxnReqMsg: %s", err)
+	}
+
+	return &CrossShardMsg{
+		Version: SHARD_PROTOCOL_VERSION,
+		Type:    TXN_REQ_MSG,
+		Sender:  sender,
+		Data:    payload,
+	}, nil
+}
+
+func NewTxnResponseMessage(txnRsp *TxResult, sender *actor.PID) (*CrossShardMsg, error) {
+	if txnRsp == nil {
+		return nil, nil
+	}
+	rspBytes, err := json.Marshal(txnRsp)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := json.Marshal(&TxnRspMsg{
+		TxResult: rspBytes,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("marshal TxnRspMsg: %s", err)
+	}
+
+	return &CrossShardMsg{
+		Version: SHARD_PROTOCOL_VERSION,
+		Type:    TXN_RSP_MSG,
+		Sender:  sender,
+		Data:    payload,
+	}, nil
+}

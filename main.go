@@ -205,11 +205,6 @@ func startMainChain(ctx *cli.Context) {
 		return
 	}
 
-	if err := chainmgr.SetP2P(p2pPid); err != nil {
-		log.Errorf("init chain manager error: %s", err)
-		return
-	}
-
 	_, err = initConsensus(ctx, p2pPid, txpool, acc)
 	if err != nil {
 		log.Errorf("initConsensus error:%s", err)
@@ -284,11 +279,6 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 	_, p2pPid, err := initP2PNode(ctx, txpool)
 	if err != nil {
 		log.Errorf("initP2PNode error:%s", err)
-		return
-	}
-
-	if err := chainMgr.SetP2P(p2pPid); err != nil {
-		log.Errorf("init chain manager error: %s", err)
 		return
 	}
 
@@ -412,6 +402,7 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 
 	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
 	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
+	shard.SetTxPool(txPoolServer.GetPID(tc.TxActor))
 
 	log.Infof("TxPool init success")
 	return txPoolServer, nil
@@ -436,6 +427,7 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2P
 	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
 	txpoolSvr.RegisterActor(tc.NetActor, p2pPID)
 	hserver.SetNetServerPID(p2pPID)
+	shard.SetP2P(p2pPID)
 	p2p.WaitForPeersStart()
 	log.Infof("P2P init success")
 	return p2p, p2pPID, nil

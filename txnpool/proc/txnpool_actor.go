@@ -125,7 +125,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	ta.server.increaseStats(tc.RcvStats)
 	if len(txn.ToArray()) > tc.MAX_TX_SIZE {
 		log.Debugf("handleTransaction: reject a transaction due to size over 1M")
-		if sender == tc.HttpSender && txResultCh != nil {
+		if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "size is over 1M")
 		}
 		return
@@ -136,7 +136,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 			txn.Hash())
 
 		ta.server.increaseStats(tc.DuplicateStats)
-		if sender == tc.HttpSender && txResultCh != nil {
+		if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrDuplicateInput,
 				fmt.Sprintf("transaction %x is already in the tx pool", txn.Hash()))
 		}
@@ -145,7 +145,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 			txn.Hash())
 
 		ta.server.increaseStats(tc.FailureStats)
-		if sender == tc.HttpSender && txResultCh != nil {
+		if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 			replyTxResult(txResultCh, txn.Hash(), errors.ErrTxPoolFull,
 				"transaction pool is full")
 		}
@@ -153,7 +153,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		if _, overflow := common.SafeMul(txn.GasLimit, txn.GasPrice); overflow {
 			log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow",
 				txn.GasLimit, txn.GasPrice)
-			if sender == tc.HttpSender && txResultCh != nil {
+			if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 				replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 					fmt.Sprintf("gasLimit %d * gasPrice %d overflow",
 						txn.GasLimit, txn.GasPrice))
@@ -166,7 +166,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
 			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
 				txn.GasLimit, txn.GasPrice)
-			if sender == tc.HttpSender && txResultCh != nil {
+			if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 				replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 					fmt.Sprintf("Please input gasLimit >= %d and gasPrice >= %d",
 						gasLimitConfig, gasPriceConfig))
@@ -177,7 +177,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		if txn.TxType == tx.Deploy && txn.GasLimit < neovm.CONTRACT_CREATE_GAS {
 			log.Debugf("handleTransaction: deploy tx invalid gasLimit %v, gasPrice %v",
 				txn.GasLimit, txn.GasPrice)
-			if sender == tc.HttpSender && txResultCh != nil {
+			if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 				replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown,
 					fmt.Sprintf("Deploy tx gaslimit should >= %d",
 						neovm.CONTRACT_CREATE_GAS))
@@ -188,7 +188,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		if !ta.server.disablePreExec {
 			if ok, desc := preExecCheck(txn); !ok {
 				log.Debugf("handleTransaction: preExecCheck tx %x failed", txn.Hash())
-				if sender == tc.HttpSender && txResultCh != nil {
+				if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, desc)
 				}
 				return

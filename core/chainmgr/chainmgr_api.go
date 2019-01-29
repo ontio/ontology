@@ -20,6 +20,7 @@ package chainmgr
 
 import (
 	"math"
+	"fmt"
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/types"
@@ -46,6 +47,23 @@ func GetShardID() uint64 {
 
 func GetPID() *actor.PID {
 	return GetChainManager().localPid
+}
+
+func SetP2P(p2p *actor.PID) error {
+	if defaultChainManager == nil {
+		return fmt.Errorf("uninitialized chain manager")
+	}
+
+	defaultChainManager.p2pPid = p2p
+	return nil
+}
+
+func SetTxPool(txPool *actor.PID) error {
+	if defaultChainManager == nil {
+		return fmt.Errorf("uninitialized chain manager")
+	}
+	defaultChainManager.txPoolPid = txPool
+	return nil
 }
 
 func GetParentBlockHeight() uint64 {
