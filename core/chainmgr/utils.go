@@ -44,6 +44,8 @@ func (self *ChainManager) setShardConfig(shardID uint64, cfg *config.OntologyCon
 	}
 
 	self.shards[shardID] = &ShardInfo{
+		ShardID: shardID,
+		ParentShardID: cfg.Shard.ParentShardID,
 		Config: cfg,
 	}
 	return nil

@@ -20,14 +20,12 @@ package chainmgr
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"reflect"
 	"sync"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology-eventbus/eventstream"
 	"github.com/ontio/ontology-eventbus/remote"
@@ -52,6 +50,7 @@ const (
 
 const (
 	CONN_TYPE_UNKNOWN = iota
+	CONN_TYPE_SELF
 	CONN_TYPE_PARENT
 	CONN_TYPE_CHILD
 	CONN_TYPE_SIB
@@ -70,11 +69,13 @@ type MsgSendReq struct {
 }
 
 type ShardInfo struct {
-	ShardAddress string
-	ConnType     int
-	Connected    bool
-	Config       *config.OntologyConfig
-	Sender       *actor.PID
+	ShardID       uint64
+	ParentShardID uint64
+	ShardAddress  string
+	ConnType      int
+	Connected     bool
+	Config        *config.OntologyConfig
+	Sender        *actor.PID
 }
 
 type ChainManager struct {
@@ -177,13 +178,10 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 }
 
 func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
-	// TODO: get all shards from local ledger
-
 	self.ledger = lgr
-
 	globalState, err := self.getShardMgmtGlobalState()
 	if err != nil {
-
+		return fmt.Errorf("chainmgr: failed to read shard-mgmt global state")
 	}
 	if globalState == nil {
 		// not initialized from ledger
@@ -191,30 +189,16 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 		return nil
 	}
 
-	peerPK := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
-
 	for i := uint64(1); i < globalState.NextShardID; i++ {
 		shard, err := self.getShardState(i)
 		if err != nil {
-			log.Errorf("get shard %d failed: %s", i, err)
+			return fmt.Errorf("get shard %d failed: %s", i, err)
 		}
 		if shard.State != shardstates.SHARD_STATE_ACTIVE {
 			continue
 		}
-		if _, present := shard.Peers[peerPK]; present {
-			// peer is in the shard
-			// build shard config
-			if self.shardID == shard.ShardID {
-				// self shards
-			} else if self.parentShardID == shard.ShardID {
-				// parent shard
-			}
-		} else {
-			if self.shardID == shard.ParentShardID {
-				// child shards
-			} else if self.parentShardID == shard.ParentShardID {
-				// sib shards
-			}
+		if _, err := self.initShardInfo(i, shard); err != nil {
+			return fmt.Errorf("init shard %d failed: %s", i, err)
 		}
 	}
 
