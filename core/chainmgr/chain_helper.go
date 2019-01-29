@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/cmd/utils"
 )
 
 func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) error {
@@ -104,6 +105,9 @@ func (self *ChainManager) initShardInfo(shardID uint64, shard *shardstates.Shard
 		} else if self.parentShardID == shard.ShardID {
 			// parent shard
 			info.ConnType = CONN_TYPE_PARENT
+		} else if self.shardID == shard.ParentShardID {
+			// child shard
+			info.ConnType = CONN_TYPE_CHILD
 		}
 	} else {
 		if self.shardID == shard.ParentShardID {
@@ -119,4 +123,31 @@ func (self *ChainManager) initShardInfo(shardID uint64, shard *shardstates.Shard
 		self.shards[shard.ShardID] = info
 	}
 	return info, nil
+}
+
+func (self *ChainManager)buildShardCommandArgs(cmdArgs map[string]string, shardInfo *ShardInfo) ([]string, error) {
+	args := make([]string, 0)
+	shardArgs := make(map[string]string)
+	for _, flag := range utils.CmdFlagsForSharding {
+		shardArgs[flag.GetName()] = ""
+	}
+	shardArgs[utils.ShardIDFlag.GetName()] = fmt.Sprintf("%d", shardInfo.ShardID)
+	shardArgs[utils.ShardPortFlag.GetName()] = fmt.Sprintf("%d",  uint(uint64(self.shardPort) + shardInfo.ShardID - self.shardID))
+	shardArgs[utils.ParentShardIDFlag.GetName()] = fmt.Sprintf("%d", shardInfo.ParentShardID)
+	shardArgs[utils.ParentShardPortFlag.GetName()] = fmt.Sprintf("%d", self.shardPort)
+
+	// copy all args to new shard command, except sharding related flags
+	for n, v := range cmdArgs {
+		if n == utils.ConsensusPortFlag.GetName() {
+			continue
+		}
+
+		if shardCfg, present := shardArgs[n]; !present {
+			args = append(args, "--" + n+"="+v)
+		} else if len(shardCfg) > 0 {
+			args = append(args, "--" + n+"="+shardCfg)
+		}
+	}
+
+	return args, nil
 }

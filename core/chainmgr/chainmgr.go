@@ -92,6 +92,8 @@ type ChainManager struct {
 
 	account      *account.Account
 	genesisBlock *types.Block
+	cmd          string
+	cmdArgs      map[string]string
 
 	ledger    *ledger.Ledger
 	p2pPid    *actor.PID
@@ -116,7 +118,7 @@ type ChainManager struct {
 	quitWg sync.WaitGroup
 }
 
-func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, parentPort uint, acc *account.Account) (*ChainManager, error) {
+func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, parentPort uint, acc *account.Account, cmdArgs map[string]string) (*ChainManager, error) {
 	// fixme: change to sync.once
 	if defaultChainManager != nil {
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
@@ -147,6 +149,7 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		pendingTxns:          make(map[common.Uint256]*shardmsg.TxRequest),
 
 		account: acc,
+		cmdArgs: cmdArgs,
 	}
 
 	chainMgr.startRemoteEventbus()
@@ -179,9 +182,15 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 
 func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 	self.ledger = lgr
+
+	// start listen on local actor
+	self.sub = events.NewActorSubscriber(self.localPid)
+	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
+	self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
+
 	globalState, err := self.getShardMgmtGlobalState()
 	if err != nil {
-		return fmt.Errorf("chainmgr: failed to read shard-mgmt global state")
+		return fmt.Errorf("chainmgr: failed to read shard-mgmt global state: %s", err)
 	}
 	if globalState == nil {
 		// not initialized from ledger
@@ -200,12 +209,8 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 		if _, err := self.initShardInfo(i, shard); err != nil {
 			return fmt.Errorf("init shard %d failed: %s", i, err)
 		}
+		// TODO: start shard process
 	}
-
-	// start listen on local actor
-	self.sub = events.NewActorSubscriber(self.localPid)
-	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
-	self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
 	return nil
 }
@@ -276,7 +281,7 @@ func (self *ChainManager) remoteEndpointEvent(evt interface{}) {
 	}
 }
 
-func (self *ChainManager) localEventLoop() error {
+func (self *ChainManager) localEventLoop() {
 
 	self.quitWg.Add(1)
 	defer self.quitWg.Done()
@@ -288,34 +293,38 @@ func (self *ChainManager) localEventLoop() error {
 			case shardstates.EVENT_SHARD_CREATE:
 				createEvt := &shardstates.CreateShardEvent{}
 				if err := createEvt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
-					return fmt.Errorf("deserialize create shard event: %s", err)
+					log.Errorf("deserialize create shard event: %s", err)
+					continue
 				}
 				if err := self.onShardCreated(createEvt); err != nil {
-					return fmt.Errorf("processing create shard event: %s", err)
+					log.Errorf("processing create shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_CONFIG_UPDATE:
 				cfgEvt := &shardstates.ConfigShardEvent{}
 				if err := cfgEvt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
-					return fmt.Errorf("deserialize create shard event: %s", err)
+					log.Errorf("deserialize create shard event: %s", err)
+					continue
 				}
 				if err := self.onShardConfigured(cfgEvt); err != nil {
-					return fmt.Errorf("processing create shard event: %s", err)
+					log.Errorf("processing create shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_PEER_JOIN:
 				jointEvt := &shardstates.PeerJoinShardEvent{}
 				if err := jointEvt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
-					return fmt.Errorf("deserialize join shard event: %s", err)
+					log.Errorf("deserialize join shard event: %s", err)
+					continue
 				}
 				if err := self.onShardPeerJoint(jointEvt); err != nil {
-					return fmt.Errorf("processing join shard event: %s", err)
+					log.Errorf("processing join shard event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_ACTIVATED:
 				evt := &shardstates.ShardActiveEvent{}
 				if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
-					return fmt.Errorf("deserialize join shard event: %s", err)
+					log.Errorf("deserialize shard activation event: %s", err)
+					continue
 				}
 				if err := self.onShardActivated(evt); err != nil {
-					return fmt.Errorf("processing join shard event: %s", err)
+					log.Errorf("processing shard activation event: %s", err)
 				}
 			case shardstates.EVENT_SHARD_PEER_LEAVE:
 			case shardstates.EVENT_SHARD_GAS_DEPOSIT:
@@ -324,25 +333,18 @@ func (self *ChainManager) localEventLoop() error {
 				fallthrough
 			case shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
 				if err := self.onLocalShardEvent(shardEvt); err != nil {
-					return fmt.Errorf("processing shard %d gas deposit: %s", shardEvt.ToShard, err)
+					log.Errorf("processing shard %d gas deposit: %s", shardEvt.ToShard, err)
 				}
 			}
 			break
 		case blk := <-self.localBlockMsgC:
 			if err := self.onBlockPersistCompleted(blk); err != nil {
-				return fmt.Errorf("processing shard %d, block %d, err: %s", self.shardID, blk.Header.Height, err)
+				log.Errorf("processing shard %d, block %d, err: %s", self.shardID, blk.Header.Height, err)
 			}
 		case <-self.quitC:
-			return nil
+			return
 		}
 	}
-	// get genesis block
-	// init ledger if needed
-	// verify genesis block if needed
-
-	//
-
-	return nil
 }
 
 func (self *ChainManager) broadcastMsgLoop() {
