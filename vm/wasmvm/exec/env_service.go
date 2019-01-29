@@ -419,6 +419,7 @@ func readNestedArrayParam(engine *ExecutionEngine) (bool, error) {
 }
 
 //read string array value from args bytes
+//add read string array system call
 func readStringArrayParam(engine *ExecutionEngine) (bool, error) {
 	envCall := engine.vm.envCall
 	params := envCall.envParams
