@@ -177,12 +177,14 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
 	}
 
-	log.Infof(">>>> staring shard %d, cmd: %s, args: %v", shardInfo.ShardID, os.Args[0], shardArgs)
-
 	// create new process
 	cmd := exec.Command(os.Args[0], shardArgs...)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("shard %d, failed to start %d: %s", self.shardID, shardInfo.ShardID, err)
+	if false {
+		if err := cmd.Start(); err != nil {
+			return fmt.Errorf("shard %d, failed to start %d: %s", self.shardID, shardInfo.ShardID, err)
+		}
+	} else {
+		log.Infof(">>>> staring shard %d, cmd: %s, args: %v", shardInfo.ShardID, os.Args[0], shardArgs)
 	}
 
 	return nil
