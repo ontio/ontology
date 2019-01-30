@@ -1,4 +1,4 @@
-# Auth contract
+# Authentication contract
 
 common event format is as follows, including txhash, state, gasConsumed and notify, each native contract method have different notifies.
 
@@ -11,7 +11,7 @@ common event format is as follows, including txhash, state, gasConsumed and noti
 
 #### InitContractAdmin
 
-* Usage: Init admin information of a certain contract through auth contract
+* Usage: Init admin information of a certain contract through authentication contract
 
 * Event and notify:
 ```
@@ -22,10 +22,10 @@ common event format is as follows, including txhash, state, gasConsumed and noti
   "Notify":[
     //notify of the method
     {
-      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of auth contract
+      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of authentication contract
       "States":[
         "initContractAdmin", //method name
-        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve auth control
+        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve authentication control
         "did:ont:AbPRaepcpBAFHz9zCj4619qch4Aq5hJARA" //admin ontid if above contract
       ]
     },
@@ -56,10 +56,10 @@ common event format is as follows, including txhash, state, gasConsumed and noti
   "Notify":[
     //notify of the method
     {
-      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of auth contract
+      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of authentication contract
       "States":[
         "transfer", //method name
-        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve auth control
+        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve authentication control
         true //status
       ]
     },
@@ -80,7 +80,7 @@ common event format is as follows, including txhash, state, gasConsumed and noti
 
 #### AssignFuncsToRole
 
-* Usage: Assign auth of invoking a function in a certain contract to a role
+* Usage: Assign authentication of invoking a function in a certain contract to a role
 
 * Event and notify:
 ```
@@ -91,10 +91,10 @@ common event format is as follows, including txhash, state, gasConsumed and noti
   "Notify":[
     //notify of the method
     {
-      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of auth contract
+      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of authentication contract
       "States":[
         "assignFuncsToRole", //method name
-        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve auth control
+        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve authentication control
         true //status
       ]
     },
@@ -125,10 +125,10 @@ common event format is as follows, including txhash, state, gasConsumed and noti
   "Notify":[
     //notify of the method
     {
-      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of auth contract
+      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of authentication contract
       "States":[
         "assignOntIDsToRole", //method name
-        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve auth control
+        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve authentication control
         true //status
       ]
     },
@@ -148,7 +148,7 @@ common event format is as follows, including txhash, state, gasConsumed and noti
 
 #### Delegate
 
-* Usage: delegate auth to another ontid
+* Usage: delegate authentication to another ontid
 
 * Event and notify:
 ```
@@ -159,10 +159,10 @@ common event format is as follows, including txhash, state, gasConsumed and noti
   "Notify":[
     //notify of the method
     {
-      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of auth contract
+      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of authentication contract
       "States":[
         "delegate",// method name
-        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve auth control
+        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve authentication control
         "did:ont:AbPRaepcpBAFHz9zCj4619qch4Aq5hJARA", //from ontid
         "did:ont:AbPRaepcpBAFHz9zCj4619qch4Aq5hJARA", //to ontid
         true //status
@@ -184,7 +184,7 @@ common event format is as follows, including txhash, state, gasConsumed and noti
 
 #### Withdraw
 
-* Usage: Withdraw delegated auth
+* Usage: Withdraw delegated authentication
 
 * Event and notify:
 ```
@@ -195,10 +195,10 @@ common event format is as follows, including txhash, state, gasConsumed and noti
   "Notify":[
     //notify of the method
     {
-      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of auth contract
+      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of authentication contract
       "States":[
         "withdraw",// method name
-        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve auth control
+        "ea1e2adf8c19f5a7e877860264ebf326e8c3aa5a", //contract address of contract which want to achieve authentication control
         "did:ont:AbPRaepcpBAFHz9zCj4619qch4Aq5hJARA", //from ontid
         "did:ont:AbPRaepcpBAFHz9zCj4619qch4Aq5hJARA", //to ontid
         true //status
@@ -220,7 +220,7 @@ common event format is as follows, including txhash, state, gasConsumed and noti
 
 #### VerifyToken
 
-* Usage: Verify auth of ontid
+* Usage: Verify authentication of ontid
 
 * Event and notify:
 ```
@@ -231,12 +231,12 @@ common event format is as follows, including txhash, state, gasConsumed and noti
   "Notify":[
     //notify of the method
     {
-      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of auth contract
+      "ContractAddress": "0600000000000000000000000000000000000000", //contract address of authentication contract
       "States":[
         "verifyToken", // method name
-        "0700000000000000000000000000000000000000", //contract address of contract which want to achieve auth control
+        "0700000000000000000000000000000000000000", //contract address of contract which want to achieve authentication control
         "ZGlk0m9uddpBVVhDSnM3NmlqWlUzOHNlUEg5MlNuVWFvZDdQNXRVbUV4", //invoker ontid
-        "registerCandidate",// function name want to verify auth
+        "registerCandidate",// function name want to verify authentication
         true //status
       ]
     },
