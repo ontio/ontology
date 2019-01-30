@@ -427,6 +427,9 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2P
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		return nil, nil, nil
 	}
+
+	// TODO: fix P2P for sharding
+
 	p2p := p2pserver.NewServer()
 
 	p2pActor := p2pactor.NewP2PActor(p2p)

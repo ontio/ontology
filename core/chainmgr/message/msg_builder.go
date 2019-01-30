@@ -126,47 +126,33 @@ func NewShardBlockInfoFromRemote(ShardID uint64, msg *ShardBlockRspMsg) (*ShardB
 }
 
 func NewTxnRequestMessage(txnReq *TxRequest, sender *actor.PID) (*CrossShardMsg, error) {
-	if txnReq == nil {
-		return nil, nil
-	}
-	reqBytes, err := json.Marshal(txnReq)
-	if err != nil {
-		return nil, err
-	}
-	payload, err := json.Marshal(&TxnReqMsg{
-		Tx: reqBytes,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("marshal TxnReqMsg: %s", err)
-	}
-
-	return &CrossShardMsg{
-		Version: SHARD_PROTOCOL_VERSION,
-		Type:    TXN_REQ_MSG,
-		Sender:  sender,
-		Data:    payload,
-	}, nil
+	return newJsonShardMsg(txnReq, TXN_REQ_MSG, sender)
 }
 
 func NewTxnResponseMessage(txnRsp *TxResult, sender *actor.PID) (*CrossShardMsg, error) {
-	if txnRsp == nil {
+	return newJsonShardMsg(txnRsp, TXN_RSP_MSG, sender)
+}
+
+func NewStorageRequestMessage(req *StorageRequest, sender *actor.PID) (*CrossShardMsg, error) {
+	return newJsonShardMsg(req, STORAGE_REQ_MSG, sender)
+}
+
+func NewStorageResponseMessage(storageRsp *StorageResult, sender *actor.PID) (*CrossShardMsg, error) {
+	return newJsonShardMsg(storageRsp, STORAGE_RSP_MSG, sender)
+}
+
+func newJsonShardMsg(msg interface{}, msgType int, sender *actor.PID) (*CrossShardMsg, error) {
+	if msg == nil {
 		return nil, nil
 	}
-	rspBytes, err := json.Marshal(txnRsp)
+	msgBytes, err := json.Marshal(msg)
 	if err != nil {
 		return nil, err
 	}
-	payload, err := json.Marshal(&TxnRspMsg{
-		TxResult: rspBytes,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("marshal TxnRspMsg: %s", err)
-	}
-
 	return &CrossShardMsg{
 		Version: SHARD_PROTOCOL_VERSION,
-		Type:    TXN_RSP_MSG,
+		Type:    int32(msgType),
 		Sender:  sender,
-		Data:    payload,
+		Data:    msgBytes,
 	}, nil
 }

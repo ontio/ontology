@@ -20,6 +20,7 @@ package actor
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -70,6 +71,15 @@ func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 //GetStorageItem from ledger
 func GetStorageItem(address common.Address, key []byte) ([]byte, error) {
 	return ledger.DefLedger.GetStorageItem(address, key)
+}
+
+func GetShardStorageItem(shardID uint64, address common.Address, key []byte) ([]byte, error) {
+	data, err := AppendStorageReqToRemoteShard(shardID, address, key)
+	if err != nil {
+		log.Warnf("shard get storage error: %s", err)
+		return nil, err
+	}
+	return data, nil
 }
 
 //GetContractStateFromStore from ledger

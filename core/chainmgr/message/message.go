@@ -37,6 +37,8 @@ const (
 
 	TXN_REQ_MSG
 	TXN_RSP_MSG
+	STORAGE_REQ_MSG
+	STORAGE_RSP_MSG
 
 	DISCONNECTED_MSG
 )
@@ -111,22 +113,6 @@ func (msg *ShardDisconnectedMsg) Type() int {
 	return DISCONNECTED_MSG
 }
 
-type TxnReqMsg struct {
-	Tx []byte `json:"tx"`
-}
-
-func (msg *TxnReqMsg) Type() int {
-	return TXN_REQ_MSG
-}
-
-type TxnRspMsg struct {
-	TxResult []byte `json:"tx_result"`
-}
-
-func (msg *TxnRspMsg) Type() int {
-	return TXN_RSP_MSG
-}
-
 func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 	switch msgtype {
 	case HELLO_MSG:
@@ -165,6 +151,19 @@ func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}
 		return msg, nil
+	case TXN_REQ_MSG:
+		msg := &TxRequest{}
+		if err := json.Unmarshal(msgPayload, msg); err != nil {
+			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
+		}
+		return msg, nil
+	case TXN_RSP_MSG:
+		msg := &TxResult{}
+		if err := json.Unmarshal(msgPayload, msg); err != nil {
+			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
+		}
+		return msg, nil
+
 	}
 	return nil, fmt.Errorf("unknown remote shard msg type: %d", msgtype)
 }

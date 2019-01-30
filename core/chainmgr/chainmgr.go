@@ -78,6 +78,8 @@ type ShardInfo struct {
 	Sender        *actor.PID
 }
 
+type ShardStorageReqList map[common.Address]*shardmsg.StorageRequest
+
 type ChainManager struct {
 	shardID              uint64
 	shardPort            uint
@@ -105,9 +107,10 @@ type ChainManager struct {
 	broadcastMsgC   chan *MsgSendReq
 	parentConnWait  chan bool
 
-	txnReqC     chan *shardmsg.TxRequest
+	txnReqC     chan shardmsg.ShardTxRequest
 	txnRspC     chan *shardmsg.TxResult
 	pendingTxns map[common.Uint256]*shardmsg.TxRequest
+	pendingStorageReqs map[uint64]ShardStorageReqList
 
 	parentPid   *actor.PID
 	localPid    *actor.PID
@@ -144,9 +147,10 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		broadcastMsgC:        make(chan *MsgSendReq, CAP_REMOTE_SHARDMSG_CHNL),
 		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
-		txnReqC:              make(chan *shardmsg.TxRequest, CAP_LOCAL_SHARDMSG_CHNL),
+		txnReqC:              make(chan shardmsg.ShardTxRequest, CAP_LOCAL_SHARDMSG_CHNL),
 		txnRspC:              make(chan *shardmsg.TxResult, CAP_REMOTE_SHARDMSG_CHNL),
 		pendingTxns:          make(map[common.Uint256]*shardmsg.TxRequest),
+		pendingStorageReqs:   make(map[uint64]ShardStorageReqList),
 
 		account: acc,
 		cmdArgs: cmdArgs,
@@ -382,13 +386,35 @@ func (self *ChainManager) txnLoop() {
 	self.quitWg.Add(1)
 	defer self.quitWg.Done()
 
+	// TODO: make sure tx requests are responsed in all cases
+
 	for {
 		select {
-		case txreq := <-self.txnReqC:
-			if err := self.onTxnRequest(txreq); err != nil {
-				log.Errorf("processing txn request: %s", err)
-				if txreq != nil && txreq.TxResultCh != nil {
-					close(txreq.TxResultCh)
+		case req := <-self.txnReqC:
+			childShards := self.getChildShards()
+			if _, present := childShards[req.ShardID()]; !present {
+				// request not for child shards
+				log.Errorf("shard %d dropped request type %d to shard %d", self.shardID, req.Type(), req.ShardID())
+				continue
+			}
+
+			switch req.Type() {
+			case shardmsg.TXN_REQ_MSG:
+				// TODO: err handling
+				txreq, _ := req.(*shardmsg.TxRequest)
+				if err := self.onTxnRequest(txreq); err != nil {
+					log.Errorf("processing txn request: %s", err)
+					if txreq != nil && txreq.TxResultCh != nil {
+						close(txreq.TxResultCh)
+					}
+				}
+			case shardmsg.STORAGE_REQ_MSG:
+				storageReq, _ := req.(*shardmsg.StorageRequest)
+				if err := self.onStorageRequest(storageReq); err != nil {
+					log.Errorf("processing storage request: %s", err)
+					if storageReq != nil && storageReq.ResultCh != nil {
+						close(storageReq.ResultCh)
+					}
 				}
 			}
 		case txrsp := <-self.txnRspC:
@@ -451,17 +477,29 @@ func (self *ChainManager) processRemoteShardMsg() error {
 		case shardmsg.PEERINFO_RSP_MSG:
 			return nil
 		case shardmsg.TXN_REQ_MSG:
-			txReq, ok := msg.(*shardmsg.TxnReqMsg)
+			txReq, ok := msg.(*shardmsg.TxRequest)
 			if !ok {
 				return fmt.Errorf("invalid txn req msg")
 			}
 			self.onRemoteTxnRequest(remoteMsg.Sender, txReq)
 		case shardmsg.TXN_RSP_MSG:
-			txRsp, ok := msg.(*shardmsg.TxnRspMsg)
+			txRsp, ok := msg.(*shardmsg.TxResult)
 			if !ok {
 				return fmt.Errorf("invalid txn rsp msg")
 			}
 			self.onRemoteTxnResponse(txRsp)
+		case shardmsg.STORAGE_REQ_MSG:
+			storageReq, ok := msg.(*shardmsg.StorageRequest)
+			if !ok {
+				return fmt.Errorf("invalid storage req msg")
+			}
+			self.onRemoteStorageRequest(remoteMsg.Sender, storageReq)
+		case shardmsg.STORAGE_RSP_MSG:
+			rsp, ok := msg.(*shardmsg.StorageResult)
+			if !ok {
+				return fmt.Errorf("invalid storage rsp msg")
+			}
+			self.onRemoteStorageResponse(rsp)
 		case shardmsg.DISCONNECTED_MSG:
 			disconnMsg, ok := msg.(*shardmsg.ShardDisconnectedMsg)
 			if !ok {

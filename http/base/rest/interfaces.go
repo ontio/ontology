@@ -20,9 +20,12 @@ package rest
 
 import (
 	"bytes"
+	"strconv"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/chainmgr"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
@@ -30,8 +33,6 @@ import (
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"strconv"
-	"github.com/ontio/ontology/core/chainmgr"
 )
 
 const TLS_PORT int = 443
@@ -408,6 +409,46 @@ func GetStorage(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	value, err := bactor.GetStorageItem(address, item)
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return ResponsePack(berr.SUCCESS)
+		}
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = common.ToHexString(value)
+	return resp
+}
+
+//get storage from contract
+func GetShardStorage(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	shardIDStr, ok := cmd["ShardID"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	shardID, err := strconv.ParseUint(shardIDStr, 10, 64)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	str, ok := cmd["Hash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	address, err := bcomn.GetAddress(str)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	key := cmd["Key"].(string)
+	item, err := common.HexToBytes(key)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	var value []byte
+	if shardID == chainmgr.GetShardID() {
+		value, err = bactor.GetStorageItem(address, item)
+	} else {
+		value, err = bactor.GetShardStorageItem(shardID, address, item)
+	}
 	if err != nil {
 		if err == scom.ErrNotFound {
 			return ResponsePack(berr.SUCCESS)

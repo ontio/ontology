@@ -21,10 +21,23 @@ package message
 import (
 	"fmt"
 
+	"encoding/json"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 )
+
+type ShardTxRequest interface {
+	json.Marshaler
+	json.Unmarshaler
+	Type() int
+	ShardID() uint64
+	Done()
+}
+
+type ShardTxResponse interface {
+	Type() int
+}
 
 type TxResult struct {
 	Err  errors.ErrCode `json:"err"`
@@ -32,9 +45,25 @@ type TxResult struct {
 	Desc string         `json:"desc"`
 }
 
+func (this *TxResult) Type() int {
+	return TXN_RSP_MSG
+}
+
 type TxRequest struct {
 	Tx         *types.Transaction
 	TxResultCh chan *TxResult
+}
+
+func (this *TxRequest) ShardID() uint64 {
+	return this.Tx.ShardID
+}
+
+func (this *TxRequest) Type() int {
+	return TXN_REQ_MSG
+}
+
+func (this *TxRequest) Done() {
+	close(this.TxResultCh)
 }
 
 func (this *TxRequest) MarshalJSON() ([]byte, error) {
@@ -56,4 +85,43 @@ func (this *TxRequest) UnmarshalJSON(data []byte) error {
 
 	this.Tx = tx
 	return nil
+}
+
+type StorageResult struct {
+	ShardID uint64         `json:"shard_id"`
+	Address common.Address `json:"address"`
+	Key     []byte         `json:"key"`
+	Data    []byte         `json:"data"`
+	Err     string         `json:"err"`
+}
+
+func (this *StorageResult) Type() int {
+	return STORAGE_RSP_MSG
+}
+
+type StorageRequest struct {
+	ShardId  uint64         `json:"shard_id"`
+	Address  common.Address `json:"address"`
+	Key      []byte         `json:"key"`
+	ResultCh chan *StorageResult
+}
+
+func (this *StorageRequest) Type() int {
+	return STORAGE_REQ_MSG
+}
+
+func (this *StorageRequest) ShardID() uint64 {
+	return this.ShardId
+}
+
+func (this *StorageRequest) Done() {
+	close(this.ResultCh)
+}
+
+func (this *StorageRequest) MarshalJSON() ([]byte, error) {
+	return json.Marshal(this)
+}
+
+func (this *StorageRequest) UnmarshalJSON(data []byte) error {
+	return json.Unmarshal(data, this)
 }
