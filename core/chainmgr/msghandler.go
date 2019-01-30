@@ -20,7 +20,6 @@ package chainmgr
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -34,6 +33,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tcomn "github.com/ontio/ontology/txnpool/common"
+	utils3 "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/core/store/common"
 )
 
 func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *message.ShardHelloMsg) error {
@@ -83,6 +84,8 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 
 func (self *ChainManager) onShardDisconnected(disconnMsg *message.ShardDisconnectedMsg) error {
 	log.Errorf("remote shard %s disconnected", disconnMsg.Address)
+
+	// TODO: clean pending remote-tx to disconnected shard
 
 	if shardID, present := self.shardAddrs[disconnMsg.Address]; present {
 		self.shards[shardID].Connected = false
@@ -172,7 +175,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	}
 
 	// build sub-shard args
-	shardArgs, err := self.buildShardCommandArgs(self.cmdArgs, shardInfo)
+	shardArgs, err := utils3.BuildShardCommandArgs(self.cmdArgs, evt.ShardID, self.shardID, uint64(self.shardPort))
 	if err != nil {
 		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
 	}
@@ -324,11 +327,7 @@ func (self *ChainManager) onTxnResponse(txnRsp *message.TxResult) error {
 	}
 
 	if txnReq, present := self.pendingTxns[txnRsp.Hash]; present {
-		txnReq.TxResultCh <- &message.TxResult{
-			Err:  txnRsp.Err,
-			Hash: txnRsp.Hash,
-			Desc: txnRsp.Desc,
-		}
+		txnReq.TxResultCh <- txnRsp
 		delete(self.pendingTxns, txnRsp.Hash)
 		return nil
 	}
@@ -336,14 +335,8 @@ func (self *ChainManager) onTxnResponse(txnRsp *message.TxResult) error {
 	return fmt.Errorf("not found in pending tx list")
 }
 
-func (self *ChainManager) onRemoteTxnRequest(sender *actor.PID, msg *message.TxnReqMsg) {
-	if msg == nil {
-		return
-	}
-
-	txReq := &message.TxRequest{}
-	if err := json.Unmarshal(msg.Tx, txReq); err != nil {
-		log.Errorf("unmarshal remote TxRequest failed: %s", err)
+func (self *ChainManager) onRemoteTxnRequest(sender *actor.PID, txReq *message.TxRequest) {
+	if txReq == nil || txReq.Tx == nil {
 		return
 	}
 	if txReq.Tx.ShardID != self.shardID {
@@ -351,10 +344,12 @@ func (self *ChainManager) onRemoteTxnRequest(sender *actor.PID, msg *message.Txn
 		return
 	}
 
+	// send tx to txpool
 	ch := make(chan *tcomn.TxResult, 1)
 	txPoolReq := &tcomn.TxReq{txReq.Tx, tcomn.ShardSender, ch}
 	self.txPoolPid.Tell(txPoolReq)
 	go func() {
+		// FIXME: one go-routine per remote-tx ??
 		if msg, ok := <-ch; ok {
 			rsp := &message.TxResult{
 				Err:  msg.Err,
@@ -368,25 +363,101 @@ func (self *ChainManager) onRemoteTxnRequest(sender *actor.PID, msg *message.Txn
 	}()
 }
 
-func (self *ChainManager) onRemoteTxnResponse(msg *message.TxnRspMsg) {
-	if msg == nil {
+func (self *ChainManager) onRemoteTxnResponse(txRsp *message.TxResult) {
+	if txRsp == nil {
 		return
 	}
 
-	txRsp := &message.TxResult{}
-	if err := json.Unmarshal(msg.TxResult, txRsp); err != nil {
-		log.Errorf("unmarshal remote TxResponse failed: %s", err)
-		return
-	}
 	txReq, present := self.pendingTxns[txRsp.Hash]
 	if !present {
 		log.Errorf("invalid remote TxResponse")
 		return
 	}
 
-	txReq.TxResultCh <- &message.TxResult{
-		Err:  txRsp.Err,
-		Hash: txRsp.Hash,
-		Desc: txRsp.Desc,
+	txReq.TxResultCh <- txRsp
+}
+
+
+func (self *ChainManager) onStorageRequest(storageReq *message.StorageRequest) error {
+	if storageReq.ShardId == self.shardID {
+		return fmt.Errorf("self storage request")
 	}
+
+	childShards := self.getChildShards()
+	if _, present := childShards[storageReq.ShardID()]; present {
+		msg, err := message.NewStorageRequestMessage(storageReq, self.localPid)
+		if err != nil {
+			return fmt.Errorf("failed to construct TxRequest Msg: %s", err)
+		}
+		self.sendShardMsg(storageReq.ShardID(), msg)
+		if _, present := self.pendingStorageReqs[storageReq.ShardID()]; !present {
+			self.pendingStorageReqs[storageReq.ShardID()] = make(ShardStorageReqList)
+		}
+		self.pendingStorageReqs[storageReq.ShardID()][storageReq.Address] = storageReq
+		return nil
+	}
+
+	return fmt.Errorf("unreachable storage request")
+}
+
+func (self *ChainManager) onStorageResponse(rsp *message.StorageResult) error {
+	if rsp == nil {
+		return fmt.Errorf("nil storage response")
+	}
+	reqList := self.pendingStorageReqs[rsp.ShardID]
+	if reqList == nil {
+		return fmt.Errorf("shard not found in pending storage reqs")
+	}
+	req := reqList[rsp.Address]
+	if req == nil {
+		return fmt.Errorf("req not found in pending storage req list")
+	}
+	req.ResultCh <- rsp
+	delete(reqList, rsp.Address)
+	return nil
+}
+
+func (self *ChainManager) onRemoteStorageRequest(sender *actor.PID, req *message.StorageRequest) {
+	if req == nil {
+		return
+	}
+	if req.ShardId != self.shardID {
+		return
+	}
+
+	// get storage from local ledger
+	var errStr string
+	data, err := self.ledger.GetStorageItem(req.Address, req.Key)
+	if err == common.ErrNotFound {
+		err = nil
+	}
+	if err != nil {
+		errStr = err.Error()
+	}
+	rsp := &message.StorageResult{
+		ShardID: req.ShardId,
+		Address: req.Address,
+		Key: req.Key,
+		Data: data,
+		Err: errStr,
+	}
+	msg, _ := message.NewStorageResponseMessage(rsp, sender)
+	sender.Tell(msg)
+}
+
+func (self *ChainManager) onRemoteStorageResponse(rsp *message.StorageResult) {
+	if rsp == nil {
+		return
+	}
+	reqList := self.pendingStorageReqs[rsp.ShardID]
+	if reqList == nil {
+		log.Errorf("shard not found in pending storage reqs")
+		return
+	}
+	req := reqList[rsp.Address]
+	if req == nil {
+		log.Errorf("req not found in pending storage req list")
+		return
+	}
+	req.ResultCh <- rsp
 }

@@ -45,6 +45,20 @@ func GetShardID() uint64 {
 	return GetChainManager().shardID
 }
 
+func GetParentShardID() uint64 {
+	chainmgr := GetChainManager()
+	return chainmgr.parentShardID
+}
+
+func GetChildShards() []uint64 {
+	childShards := make([]uint64, 0)
+	chainmgr := GetChainManager()
+	for id := range chainmgr.getChildShards() {
+		childShards = append(childShards, id)
+	}
+	return childShards
+}
+
 func GetPID() *actor.PID {
 	return GetChainManager().localPid
 }

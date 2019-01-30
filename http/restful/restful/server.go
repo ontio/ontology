@@ -60,6 +60,7 @@ const (
 	GET_BLK_HASH          = "/api/v1/block/hash/:height"
 	GET_TX                = "/api/v1/transaction/:hash"
 	GET_STORAGE           = "/api/v1/storage/:hash/:key"
+	GET_SHARD_STORAGE     = "/api/v1/storage/:shardid/:hash/:key"
 	GET_BALANCE           = "/api/v1/balance/:addr"
 	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
@@ -144,6 +145,7 @@ func (this *restServer) registryMethod() {
 		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
+		GET_SHARD_STORAGE:     {name: "getshardstorage", handler: rest.GetShardStorage},
 		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
 		GET_ALLOWANCE:         {name: "getallowance", handler: rest.GetAllowance},
 		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
@@ -182,6 +184,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_SMTCOCE_EVTS
 	} else if strings.Contains(url, strings.TrimRight(GET_BLK_HGT_BY_TXHASH, ":hash")) {
 		return GET_BLK_HGT_BY_TXHASH
+	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_STORAGE, ":shardid/:hash/:key")) {
+		return GET_SHARD_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
 		return GET_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
@@ -221,6 +225,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["PreExec"] = r.FormValue("preExec")
 	case GET_STORAGE:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
+	case GET_SHARD_STORAGE:
+		req["ShardID"], req["Hash"], req["Key"] = getParam(r, "shardid"), getParam(r, "hash"), getParam(r, "key")
 	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:

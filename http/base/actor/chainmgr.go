@@ -20,9 +20,10 @@ package actor
 
 import (
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
+	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 )
 
 var chainMgrPid *actor.PID
@@ -32,7 +33,6 @@ func SetChainMgrPid(actr *actor.PID) {
 }
 
 func AppendTxToRemoteShard(txn *types.Transaction) (errors.ErrCode, string) {
-
 	ch := make(chan *shardmsg.TxResult, 1)
 	txReq := &shardmsg.TxRequest{txn, ch}
 	chainMgrPid.Tell(txReq)
@@ -40,5 +40,21 @@ func AppendTxToRemoteShard(txn *types.Transaction) (errors.ErrCode, string) {
 		return msg.Err, msg.Desc
 	}
 
-	return errors.ErrXmitFail, ""
+	return errors.ErrUnknown, ""
+}
+
+func AppendStorageReqToRemoteShard(shardID uint64, address common.Address, key []byte) ([]byte, error) {
+	ch := make(chan *shardmsg.StorageResult, 1)
+	txReq := &shardmsg.StorageRequest{
+		ShardId:  shardID,
+		Address:  address,
+		Key:      key,
+		ResultCh: ch,
+	}
+	chainMgrPid.Tell(txReq)
+	if msg, ok := <-ch; ok {
+		return msg.Data, nil
+	}
+
+	return nil, errors.ErrUnknown
 }

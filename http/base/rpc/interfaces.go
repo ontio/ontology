@@ -32,6 +32,8 @@ import (
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"strconv"
+	"github.com/ontio/ontology/core/chainmgr"
 )
 
 //get best block hash
@@ -247,6 +249,65 @@ func GetStorage(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 	value, err := bactor.GetStorageItem(address, key)
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return responseSuccess(nil)
+		}
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	return responseSuccess(common.ToHexString(value))
+}
+
+//get storage from contract
+//   {"jsonrpc": "2.0", "method": "getstorage", "params": ["shardID", "code hash", "key"], "id": 0}
+func GetShardStorage(params []interface{}) map[string]interface{} {
+	if len(params) < 2 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+
+	var shardID uint64
+	var address common.Address
+	var key []byte
+	var err error
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		shardID, err = strconv.ParseUint(str, 10, 64)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+	default:
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+
+	switch params[1].(type) {
+	case string:
+		str := params[1].(string)
+		address, err = bcomn.GetAddress(str)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+	default:
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+
+	switch params[2].(type) {
+	case string:
+		str := params[2].(string)
+		hex, err := hex.DecodeString(str)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		key = hex
+	default:
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	var value []byte
+	if shardID == chainmgr.GetShardID() {
+		value, err = bactor.GetStorageItem(address, key)
+	} else {
+		value, err = bactor.GetShardStorageItem(shardID, address, key)
+	}
 	if err != nil {
 		if err == scom.ErrNotFound {
 			return responseSuccess(nil)
