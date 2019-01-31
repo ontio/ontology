@@ -18,6 +18,7 @@
 package common
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -42,4 +43,9 @@ func TestFileExisted(t *testing.T) {
 	assert.False(t, FileExisted("../log/log.og"))
 	assert.False(t, FileExisted("../log/log.go"))
 	assert.True(t, FileExisted("./log/log.go"))
+}
+
+func TestBase58(t *testing.T) {
+	addr := ADDRESS_EMPTY
+	fmt.Println("emtpy addr:", addr.ToBase58())
 }
