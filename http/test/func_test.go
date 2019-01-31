@@ -76,8 +76,7 @@ func TestMerkleVerifier(t *testing.T) {
 
 func TestTxDeserialize(t *testing.T) {
 	bys, _ := common.HexToBytes("00d175aed22900000000000000000886000000000000000000000000000000000000000000000000000080206700008097b70f436f225c42b14c2afc1d3bc582abd141000700c104696e697401002436323834333632382d313863622d343938332d623862622d38326633326464333139666500")
-	var txn types.Transaction
-	err := txn.Deserialize(bytes.NewReader(bys))
+	_, err := types.TransactionFromRawBytes(bys)
 	assert.Nil(t, err)
 }
 func TestAddress(t *testing.T) {
