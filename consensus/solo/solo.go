@@ -73,6 +73,8 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService
 	service.pid = pid
 	service.sub = events.NewActorSubscriber(pid)
 
+	// FIXME: load parent height from ledger
+
 	return service, err
 }
 
@@ -155,8 +157,6 @@ func (self *SoloService) genBlock() error {
 	if self.parentHeight > uint64(block.Header.ParentHeight) {
 		return fmt.Errorf("invalid parent height: %d vs %s", self.parentHeight, block.Header.ParentHeight)
 	}
-	self.parentHeight = uint64(block.Header.ParentHeight)
-
 	result, err := ledger.DefLedger.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
@@ -165,6 +165,8 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 	}
+	self.parentHeight = uint64(block.Header.ParentHeight)
+
 	return nil
 }
 

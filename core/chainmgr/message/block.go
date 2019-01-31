@@ -25,6 +25,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -49,7 +50,7 @@ type ShardBlockInfo struct {
 	Height      uint64                   `json:"height"`
 	State       uint                     `json:"state"`
 	Header      *ShardBlockHeader        `json:"header"`
-	ShardTxs    map[uint64]*ShardBlockTx `json:"shard_txs"`		// indexed by ToShardID
+	ShardTxs    map[uint64]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
 	Events      []*shardstates.ShardEventState
 }
 
@@ -173,6 +174,7 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 		m[blkInfo.Height] = blkInfo
 	}
 
+	log.Infof("chainmgr AddBlock from shard %d, block %d", blkInfo.FromShardID, blkInfo.Height)
 	m[blkInfo.Height] = blkInfo
 
 	// if too much block cached in map, drop old blocks

@@ -47,18 +47,23 @@ func ShardSysMsgInit(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_FALSE, nil
 }
 
-func ProcessCrossShardMsg(env *native.NativeService) ([]byte, error) {
+func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
+	cp := new(shardmgmt.CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("process cross shard, invalid cmd param: %s", err)
+	}
 
 	// FIXME: verify transaction from system
 	// check block-execution is at shard-tx processing stage
 
 	param := new(CrossShardMsgParam)
-	if err := param.Deserialize(bytes.NewBuffer(env.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		log.Errorf("cross-shard msg, invalid input: %s", err)
 		return utils.BYTE_FALSE, fmt.Errorf("cross-shard msg, invalid input: %s", err)
 	}
 
 	for _, evt := range param.Events {
-		log.Infof("processing cross shard msg %d(%d)", evt.EventType, evt.FromHeight)
+		log.Errorf("processing cross shard msg %d(%d)", evt.EventType, evt.FromHeight)
 		if evt.Version != shardmgmt.VERSION_CONTRACT_SHARD_MGMT {
 			continue
 		}
@@ -70,7 +75,7 @@ func ProcessCrossShardMsg(env *native.NativeService) ([]byte, error) {
 
 		switch evt.EventType {
 		case shardstates.EVENT_SHARD_GAS_DEPOSIT:
-			if err := processShardGasDeposit(env, shardEvt.(*shardstates.DepositGasEvent)); err != nil {
+			if err := processShardGasDeposit(native, shardEvt.(*shardstates.DepositGasEvent)); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
 			}
 		case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
