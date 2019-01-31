@@ -108,7 +108,7 @@ type ChainManager struct {
 	parentConnWait  chan bool
 
 	txnReqC     chan shardmsg.ShardTxRequest
-	txnRspC     chan *shardmsg.TxResult
+	txnRspC     chan shardmsg.ShardTxResponse
 	pendingTxns map[common.Uint256]*shardmsg.TxRequest
 	pendingStorageReqs map[uint64]ShardStorageReqList
 
@@ -148,7 +148,7 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		parentConnWait:       make(chan bool),
 		quitC:                make(chan struct{}),
 		txnReqC:              make(chan shardmsg.ShardTxRequest, CAP_LOCAL_SHARDMSG_CHNL),
-		txnRspC:              make(chan *shardmsg.TxResult, CAP_REMOTE_SHARDMSG_CHNL),
+		txnRspC:              make(chan shardmsg.ShardTxResponse, CAP_REMOTE_SHARDMSG_CHNL),
 		pendingTxns:          make(map[common.Uint256]*shardmsg.TxRequest),
 		pendingStorageReqs:   make(map[uint64]ShardStorageReqList),
 
@@ -164,6 +164,7 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 	go chainMgr.localEventLoop()
 	go chainMgr.remoteShardMsgLoop()
 	go chainMgr.broadcastMsgLoop()
+	go chainMgr.txnLoop()
 
 	if err := chainMgr.connectParent(); err != nil {
 		chainMgr.Stop()
@@ -265,6 +266,13 @@ func (self *ChainManager) Receive(context actor.Context) {
 		self.txnReqC <- msg
 
 	case *shardmsg.TxResult:
+		self.txnRspC <- msg
+
+	case *shardmsg.StorageRequest:
+		log.Error("chain mgr recieved local storage request")
+		self.txnReqC <- msg
+
+	case *shardmsg.StorageResult:
 		self.txnRspC <- msg
 
 	default:
@@ -417,9 +425,18 @@ func (self *ChainManager) txnLoop() {
 					}
 				}
 			}
-		case txrsp := <-self.txnRspC:
-			if err := self.onTxnResponse(txrsp); err != nil {
-				log.Errorf("processing Txn response: %s", err)
+		case rsp := <-self.txnRspC:
+			switch rsp.Type() {
+			case shardmsg.TXN_RSP_MSG:
+				txrsp, _ := rsp.(*shardmsg.TxResult)
+				if err := self.onTxnResponse(txrsp); err != nil {
+					log.Errorf("processing Txn response: %s", err)
+				}
+			case shardmsg.STORAGE_RSP_MSG:
+				storageRsp, _ := rsp.(*shardmsg.StorageResult)
+				if err := self.onStorageResponse(storageRsp); err != nil {
+					log.Errorf("processing storage response: %s", err)
+				}
 			}
 		case <-self.quitC:
 			return
@@ -447,6 +464,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 	select {
 	case remoteMsg := <-self.remoteShardMsgC:
 		msg := remoteMsg.Msg
+		log.Errorf(">>>>>> shard %d received remote shard msg type %d", self.shardID, msg.Type())
 		switch msg.Type() {
 		case shardmsg.HELLO_MSG:
 			helloMsg, ok := msg.(*shardmsg.ShardHelloMsg)

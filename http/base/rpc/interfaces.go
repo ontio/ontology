@@ -261,7 +261,7 @@ func GetStorage(params []interface{}) map[string]interface{} {
 //get storage from contract
 //   {"jsonrpc": "2.0", "method": "getstorage", "params": ["shardID", "code hash", "key"], "id": 0}
 func GetShardStorage(params []interface{}) map[string]interface{} {
-	if len(params) < 2 {
+	if len(params) < 3 {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
 
@@ -274,7 +274,7 @@ func GetShardStorage(params []interface{}) map[string]interface{} {
 		str := params[0].(string)
 		shardID, err = strconv.ParseUint(str, 10, 64)
 		if err != nil {
-			return responsePack(berr.INVALID_PARAMS, "")
+			return responsePack(berr.INVALID_PARAMS, err.Error())
 		}
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
@@ -302,6 +302,9 @@ func GetShardStorage(params []interface{}) map[string]interface{} {
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
+
+	log.Errorf(">>>> recevied shard storage get: %d, %s", shardID, key)
+
 	var value []byte
 	if shardID == chainmgr.GetShardID() {
 		value, err = bactor.GetStorageItem(address, key)
@@ -312,7 +315,7 @@ func GetShardStorage(params []interface{}) map[string]interface{} {
 		if err == scom.ErrNotFound {
 			return responseSuccess(nil)
 		}
-		return responsePack(berr.INVALID_PARAMS, "")
+		return responsePack(berr.INVALID_PARAMS, err.Error())
 	}
 	return responseSuccess(common.ToHexString(value))
 }

@@ -163,7 +163,18 @@ func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}
 		return msg, nil
-
+	case STORAGE_REQ_MSG:
+		msg := &StorageRequest{}
+		if err := json.Unmarshal(msgPayload, msg); err != nil {
+			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
+		}
+		return msg, nil
+	case STORAGE_RSP_MSG:
+		msg := &StorageResult{}
+		if err := json.Unmarshal(msgPayload, msg); err != nil {
+			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
+		}
+		return msg, nil
 	}
 	return nil, fmt.Errorf("unknown remote shard msg type: %d", msgtype)
 }
