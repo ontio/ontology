@@ -60,7 +60,7 @@ const (
 	GET_BLK_HASH          = "/api/v1/block/hash/:height"
 	GET_TX                = "/api/v1/transaction/:hash"
 	GET_STORAGE           = "/api/v1/storage/:hash/:key"
-	GET_SHARD_STORAGE     = "/api/v1/storage/:shardid/:hash/:key"
+	GET_SHARD_STORAGE     = "/api/v1/shardstorage/:shardid/:hash/:key"
 	GET_BALANCE           = "/api/v1/balance/:addr"
 	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"

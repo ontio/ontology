@@ -21,15 +21,12 @@ package message
 import (
 	"fmt"
 
-	"encoding/json"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 )
 
 type ShardTxRequest interface {
-	json.Marshaler
-	json.Unmarshaler
 	Type() int
 	ShardID() uint64
 	Done()
@@ -100,10 +97,10 @@ func (this *StorageResult) Type() int {
 }
 
 type StorageRequest struct {
-	ShardId  uint64         `json:"shard_id"`
-	Address  common.Address `json:"address"`
-	Key      []byte         `json:"key"`
-	ResultCh chan *StorageResult
+	ShardId  uint64              `json:"shard_id"`
+	Address  common.Address      `json:"address"`
+	Key      []byte              `json:"key"`
+	ResultCh chan *StorageResult `json:"-"`
 }
 
 func (this *StorageRequest) Type() int {
@@ -116,12 +113,4 @@ func (this *StorageRequest) ShardID() uint64 {
 
 func (this *StorageRequest) Done() {
 	close(this.ResultCh)
-}
-
-func (this *StorageRequest) MarshalJSON() ([]byte, error) {
-	return json.Marshal(this)
-}
-
-func (this *StorageRequest) UnmarshalJSON(data []byte) error {
-	return json.Unmarshal(data, this)
 }

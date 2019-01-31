@@ -383,11 +383,13 @@ func (self *ChainManager) onStorageRequest(storageReq *message.StorageRequest) e
 		return fmt.Errorf("self storage request")
 	}
 
+	log.Errorf("chain mgr onStorage request to shard %d", storageReq.ShardID())
+
 	childShards := self.getChildShards()
 	if _, present := childShards[storageReq.ShardID()]; present {
 		msg, err := message.NewStorageRequestMessage(storageReq, self.localPid)
 		if err != nil {
-			return fmt.Errorf("failed to construct TxRequest Msg: %s", err)
+			return fmt.Errorf("failed to construct StorageRequest Msg: %s", err)
 		}
 		self.sendShardMsg(storageReq.ShardID(), msg)
 		if _, present := self.pendingStorageReqs[storageReq.ShardID()]; !present {
@@ -428,6 +430,7 @@ func (self *ChainManager) onRemoteStorageRequest(sender *actor.PID, req *message
 	// get storage from local ledger
 	var errStr string
 	data, err := self.ledger.GetStorageItem(req.Address, req.Key)
+	log.Errorf("shard %d get storage addr %v, key %v, data %v, err: %s", self.shardID, req.Address, req.Key, data, err)
 	if err == common.ErrNotFound {
 		err = nil
 	}
