@@ -21,7 +21,6 @@ package merkle
 import (
 	"crypto/sha256"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/ontio/ontology/common"
@@ -266,22 +265,4 @@ func BenchmarkMerkleInsert2(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		treeTest.Append([]byte(fmt.Sprintf("bench %d", i)))
 	}
-}
-
-//
-
-func TestNewFileSeek(t *testing.T) {
-	name := "test.txt"
-	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		t.Fatal("can not open file", err)
-	}
-	off, err := f.Seek(0, 2)
-	f.Write([]byte{12})
-	a := float64(9999999999996841)
-	b := int64(a)
-
-	t.Fatal(b, "haha")
-
-	t.Fatal(off, err)
 }
