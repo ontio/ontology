@@ -95,7 +95,7 @@ func ShardGasMgmtInit(native *native.NativeService) ([]byte, error) {
 }
 
 func DespositGasToShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
+	cp := new(shardmgmt.CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, invalid cmd param: %s", err)
 	}
@@ -146,7 +146,7 @@ func DespositGasToShard(native *native.NativeService) ([]byte, error) {
 }
 
 func WithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
+	cp := new(shardmgmt.CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, invalid cmd param: %s", err)
 	}
@@ -208,7 +208,7 @@ func WithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 }
 
 func AcquireWithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
+	cp := new(shardmgmt.CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, invalid cmd param: %s", err)
 	}

@@ -641,6 +641,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	for _, id := range ids {
+		log.Infof("executing shard Tx from shard %d, txnum = %d", id, len(block.ShardTxs[id]))
 		for _, tx := range block.ShardTxs[id] {
 			cache.Reset()
 			notify, e := this.handleTransaction(overlay, cache, block, tx)

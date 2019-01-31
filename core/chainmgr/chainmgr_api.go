@@ -133,6 +133,7 @@ func GetShardTxsByParentHeight(start, end uint64) map[uint64][]*types.Transactio
 	}
 
 	parentShard := chainmgr.parentShardID
+	log.Infof("shard %d get parent shard %d tx, %d - %d", chainmgr.shardID, parentShard, start, end)
 	m := chainmgr.blockPool.Shards[parentShard]
 	if m == nil {
 		return nil
@@ -148,6 +149,9 @@ func GetShardTxsByParentHeight(start, end uint64) map[uint64][]*types.Transactio
 				log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d",
 					chainmgr.shardID, parentShard, start)
 			}
+		} else {
+			log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d, nil block",
+				chainmgr.shardID, parentShard, start)
 		}
 	}
 
