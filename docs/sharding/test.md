@@ -18,6 +18,7 @@ test with ontology-tool
 ./main -t ShardActivate
 ./main -t ShardGasInit
 ./main -t ShardDepositGas
+./main -t ShardQueryGas
 ```
 
 start shard chain:
