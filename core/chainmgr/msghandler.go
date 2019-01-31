@@ -20,21 +20,23 @@ package chainmgr
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"os/exec"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
+	utils3 "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tcomn "github.com/ontio/ontology/txnpool/common"
-	utils3 "github.com/ontio/ontology/cmd/utils"
-	"github.com/ontio/ontology/core/store/common"
 )
 
 func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *message.ShardHelloMsg) error {
@@ -139,10 +141,29 @@ func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) e
 }
 
 func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) error {
+	pubKey := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
+	if evt.PeerPubKey != pubKey {
+		return nil
+	}
 
-	// TODO: if shard is active, start shard process.  Otherwise, start shard process onShardActivated
+	shardState, err := self.getShardState(evt.ShardID)
+	if err != nil {
+		return fmt.Errorf("get shardmgmt state: %s", err)
+	}
 
-	return nil
+	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
+		return nil
+	}
+
+	shardInfo := self.shards[evt.ShardID]
+	if shardInfo == nil {
+		return fmt.Errorf("shard %d, nil shard info", evt.ShardID)
+	}
+	if shardInfo.ParentShardID != self.shardID {
+		return nil
+	}
+
+	return self.startUpSubShardProcess(shardInfo)
 }
 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
@@ -174,8 +195,17 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 		return nil
 	}
 
+	pubKey := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
+	if _, has := shardState.Peers[pubKey]; has == false {
+		return nil
+	}
+
+	return self.startUpSubShardProcess(shardInfo)
+}
+
+func (self *ChainManager) startUpSubShardProcess(shardInfo *ShardInfo) error {
 	// build sub-shard args
-	shardArgs, err := utils3.BuildShardCommandArgs(self.cmdArgs, evt.ShardID, self.shardID, uint64(self.shardPort))
+	shardArgs, err := utils3.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, self.shardID, uint64(self.shardPort))
 	if err != nil {
 		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
 	}
@@ -377,7 +407,6 @@ func (self *ChainManager) onRemoteTxnResponse(txRsp *message.TxResult) {
 	txReq.TxResultCh <- txRsp
 }
 
-
 func (self *ChainManager) onStorageRequest(storageReq *message.StorageRequest) error {
 	if storageReq.ShardId == self.shardID {
 		return fmt.Errorf("self storage request")
@@ -440,9 +469,9 @@ func (self *ChainManager) onRemoteStorageRequest(sender *actor.PID, req *message
 	rsp := &message.StorageResult{
 		ShardID: req.ShardId,
 		Address: req.Address,
-		Key: req.Key,
-		Data: data,
-		Err: errStr,
+		Key:     req.Key,
+		Data:    data,
+		Err:     errStr,
 	}
 	msg, _ := message.NewStorageResponseMessage(rsp, sender)
 	sender.Tell(msg)
