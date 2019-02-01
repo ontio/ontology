@@ -23,15 +23,12 @@ import (
 	"fmt"
 	"sync"
 
-	pool "github.com/valyala/bytebufferpool"
-
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	storcomm "github.com/ontio/ontology/core/store/common"
 	leveldb "github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
-	tx "github.com/ontio/ontology/core/types"
-
-	"github.com/ontio/ontology/common/serialization"
+	pool "github.com/valyala/bytebufferpool"
 )
 
 var keyPool pool.Pool
@@ -76,7 +73,7 @@ func (self *Store) init() error {
 			return nil
 		}
 
-		self.genesisBlock, err = tx.BlockFromRawBytes(genesis)
+		self.genesisBlock, err = types.BlockFromRawBytes(genesis)
 		if err != nil {
 			return errors.New(fmt.Sprint("inconsist db: genesis block deserialize failed. cause of:\n ", err.Error()))
 		}
@@ -86,7 +83,7 @@ func (self *Store) init() error {
 			return errors.New("inconsist db: best blockheader not in db")
 		}
 
-		self.bestBlockHeader, err = tx.HeaderFromRawBytes(best)
+		self.bestBlockHeader, err = types.HeaderFromRawBytes(best)
 		if err != nil {
 			return errors.New(fmt.Sprint("inconsist db: best blockheader deserialize failed. cause of:\n ", err.Error()))
 		}
@@ -143,12 +140,12 @@ func (self *Store) GetTransactionBytes(hash common.Uint256) ([]byte, error) {
 	return txn, err
 }
 
-func (self *Store) GetTransaction(hash common.Uint256) (*tx.Transaction, error) {
+func (self *Store) GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 	buf, err := self.GetTransactionBytes(hash)
 	if err != nil {
 		return nil, err
 	}
-	txn, err := tx.TransactionFromRawBytes(buf)
+	txn, err := types.TransactionFromRawBytes(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +158,7 @@ func (self *Store) Close() error {
 	return err
 }
 
-func (self *Store) saveTransaction(tx *tx.Transaction, height uint32) error {
+func (self *Store) saveTransaction(tx *types.Transaction, height uint32) error {
 	// generate key with DATA_TRANSACTION prefix
 	key := GenDataTransactionKey(tx.Hash())
 	defer keyPool.Put(key)
