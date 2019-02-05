@@ -204,6 +204,11 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 			return fmt.Errorf("getPeerAttributes error: %v", err)
 		}
 
+		//check if address is pee owner address
+		if params.Address == peerPoolItem.Address {
+			return fmt.Errorf("authorizeForPeer error, address can not be node owner")
+		}
+
 		authorizeInfo, err := getAuthorizeInfo(native, contract, peerPubkey, params.Address)
 		if err != nil {
 			return fmt.Errorf("getAuthorizeInfo, get authorizeInfo error: %v", err)
@@ -920,7 +925,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	return splitSum, nil
 }
 
-func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, ifConsensus bool, totalPos uint64, totalAmount uint64) (uint64, error) {
+func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, ifConsensus bool, totalPos uint64, totalAmount uint64, peerAddress common.Address) (uint64, error) {
 	var validatePos uint64
 	if ifConsensus {
 		validatePos = authorizeInfo.ConsensusPos + authorizeInfo.WithdrawConsensusPos
@@ -928,7 +933,7 @@ func executeAddressSplit(native *native.NativeService, contract common.Address, 
 		validatePos = authorizeInfo.CandidatePos + authorizeInfo.WithdrawCandidatePos
 	}
 
-	if validatePos == 0 {
+	if validatePos == 0 || authorizeInfo.Address == peerAddress {
 		return 0, nil
 	}
 	amount := validatePos * totalAmount / totalPos
@@ -1290,7 +1295,7 @@ func splitNodeFee(native *native.NativeService, contract common.Address, peerPub
 		}
 
 		//fee split
-		splitAmount, err := executeAddressSplit(native, contract, &authorizeInfo, ifConsensus, totalPos, amount)
+		splitAmount, err := executeAddressSplit(native, contract, &authorizeInfo, ifConsensus, totalPos, amount, peerAddress)
 		if err != nil {
 			return fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}
