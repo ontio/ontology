@@ -204,6 +204,11 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 			return fmt.Errorf("getPeerAttributes error: %v", err)
 		}
 
+		//check if address is pee owner address
+		if params.Address == peerPoolItem.Address {
+			return fmt.Errorf("authorizeForPeer error, address can not be node owner")
+		}
+
 		authorizeInfo, err := getAuthorizeInfo(native, contract, peerPubkey, params.Address)
 		if err != nil {
 			return fmt.Errorf("getAuthorizeInfo, get authorizeInfo error: %v", err)
