@@ -928,7 +928,7 @@ func executeAddressSplit(native *native.NativeService, contract common.Address, 
 		validatePos = authorizeInfo.CandidatePos + authorizeInfo.WithdrawCandidatePos
 	}
 
-	if validatePos == 0 {
+	if validatePos == 0 || totalPos == 0 {
 		return 0, nil
 	}
 	amount := validatePos * totalAmount / totalPos
