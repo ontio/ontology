@@ -29,9 +29,21 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+/////////
+//
+// Shard-system contract
+//
+//	. manage user deposit gas on child shard
+//	. process local shard request message
+//	. process remote shard response message
+//
+/////////
+
 const (
 	INIT_NAME               = "init"
 	PROCESS_CROSS_SHARD_MSG = "processShardMsg"
+	REMOTE_NOTIFY           = "remoteNotify"
+	REMOTE_INVOKE           = "remoteInvoke"
 )
 
 func InitShardSystemMessageContract() {
@@ -41,6 +53,8 @@ func InitShardSystemMessageContract() {
 func RegisterShardSysMsgContract(native *native.NativeService) {
 	native.Register(INIT_NAME, ShardSysMsgInit)
 	native.Register(PROCESS_CROSS_SHARD_MSG, ProcessCrossShardMsg)
+	native.Register(REMOTE_NOTIFY, RemoteNotify)
+	native.Register(REMOTE_INVOKE, RemoteInvoke)
 }
 
 func ShardSysMsgInit(native *native.NativeService) ([]byte, error) {
@@ -94,4 +108,36 @@ func processShardGasDeposit(env *native.NativeService, evt *shardstates.DepositG
 
 func processShardGasWithdrawReq(evt *shardstates.WithdrawGasReqEvent) error {
 	return nil
+}
+
+func RemoteNotify(native *native.NativeService) ([]byte, error) {
+	// TODO: verify invocation from other smart contract
+
+	cp := new(shardmgmt.CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, invalid cmd param: %s", err)
+	}
+
+	params := new(NotifyReqParam)
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, invalid param: %s", err)
+	}
+
+	// TODO: add evt to queue, update merkel root
+	//contract := native.ContextRef.CurrentContext().ContractAddress
+	//evt := &shardstates.CommonShardReq{
+	//	SourceShardID: native.ShardID,
+	//	Height:        uint64(native.Height),
+	//	ShardID:       params.ToShard,
+	//	Payload:       params.Payload,
+	//}
+
+	log.Infof("to send remote notify: from %d to %d", native.ShardID, params.ToShard)
+
+	return utils.BYTE_TRUE, nil
+}
+
+func RemoteInvoke(native *native.NativeService) ([]byte, error) {
+	// send evnt to chainmgr
+	return utils.BYTE_FALSE, nil
 }

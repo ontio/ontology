@@ -188,7 +188,14 @@ func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error)
 		}
 		return evt, nil
 	case EVENT_SHARD_GAS_WITHDRAW_DONE:
+		// TODO
 		return nil, nil
+	case EVENT_SHARD_REQ_COMMON:
+		evt := &CommonShardReq{}
+		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
+			return nil, fmt.Errorf("unmarshal common shard req: %s", err)
+		}
+		return evt, nil
 	}
 
 	return nil, fmt.Errorf("unknown remote event type: %d", evtType)

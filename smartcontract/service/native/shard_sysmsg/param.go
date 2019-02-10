@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
 type CrossShardMsgParam struct {
@@ -67,4 +68,17 @@ func (this *CrossShardMsgParam) Deserialize(r io.Reader) error {
 
 	this.Events = evts
 	return nil
+}
+
+type NotifyReqParam struct {
+	ToShard uint64 `json:"to_shard"`
+	Payload []byte `json:"payload"`
+}
+
+func (this *NotifyReqParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *NotifyReqParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
 }
