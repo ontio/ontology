@@ -21,6 +21,7 @@ package shardgas
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -28,6 +29,15 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
+
+/////////
+//
+// Shard-Gas management contract
+//
+//	. manage user deposit gas on parent
+//	. shard tx fee split with request from shard
+//
+/////////
 
 const (
 	// function names

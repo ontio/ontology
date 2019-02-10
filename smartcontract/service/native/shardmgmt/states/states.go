@@ -37,6 +37,8 @@ type ShardMgmtGlobalState struct {
 	NextShardID uint64 `json:"next_shard_id"`
 }
 
+// FIXME: replace all json marshal
+
 func (this *ShardMgmtGlobalState) Serialize(w io.Writer) error {
 	return shardutil.SerJson(w, this)
 }

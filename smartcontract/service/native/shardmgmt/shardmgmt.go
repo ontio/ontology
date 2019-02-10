@@ -29,6 +29,17 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+/////////
+//
+// Shard management contract
+//
+//	. create shard
+//	. config shard
+//	. join shard
+//	. activate shard
+//
+/////////
+
 const (
 	VERSION_CONTRACT_SHARD_MGMT = uint32(1)
 
