@@ -261,6 +261,11 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 	}
 	config.DefConfig = cfg
 
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
+		config.DefConfig.Genesis.SOLO.Bookkeepers = []string{curPk}
+	}
+
 	ldg, err := initLedger(ctx, 0)
 	if err != nil {
 		log.Errorf("%s", err)
