@@ -36,20 +36,170 @@ import (
 	//nstates "github.com/ontio/ontology/smartcontract/service/native/ont"
 	//"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	//"github.com/ontio/ontology/vm/neovm"
-	//"github.com/ontio/ontology/vm/wasmvm/exec"
-	//"github.com/ontio/ontology/vm/wasmvm/util"
+
+	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/states"
+	"bytes"
+	"fmt"
+	"github.com/go-interpreter/wagon/wasm"
+	"github.com/go-interpreter/wagon/exec"
+	"reflect"
 )
 
 type WasmVmService struct {
 	Store         store.LedgerStore
-	CloneCache    *storage.CloneCache
+	CacheDB       *storage.CacheDB
 	ContextRef    context.ContextRef
 	Notifications []*event.NotifyEventInfo
 	Code          []byte
 	Tx            *types.Transaction
 	Time          uint32
+	Height        uint32
+	BlockHash     common.Uint256
+	PreExec       bool
 }
+
+type Runtime struct {
+	Height uint32
+	calls uint32
+	Input []byte
+	Callers []common.Address
+}
+
+var (
+	ERR_CHECK_STACK_SIZE  = errors.NewErr("[WasmVmService] vm over max stack size!")
+	ERR_EXECUTE_CODE      = errors.NewErr("[WasmVmService] vm execute code invalid!")
+	ERR_GAS_INSUFFICIENT  = errors.NewErr("[WasmVmService] gas insufficient")
+	VM_EXEC_STEP_EXCEED   = errors.NewErr("[WasmVmService] vm execute step exceed!")
+	CONTRACT_NOT_EXIST    = errors.NewErr("[WasmVmService] Get contract code from db fail")
+	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[WasmVmService] DeployCode type error!")
+	VM_EXEC_FAULT         = errors.NewErr("[WasmVmService] vm execute state fault!")
+)
+
+
+func (this *WasmVmService) Invoke()(interface{}, error){
+
+	if len(this.Code) == 0 {
+		return nil, ERR_EXECUTE_CODE
+	}
+
+	contract := &states.ContractInvokeParam{}
+	contract.Deserialize(bytes.NewBuffer(this.Code))
+
+	code, err := this.Store.GetContractState(contract.Address)
+	if err != nil {
+		return nil, err
+	}
+
+	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
+
+	host := &Runtime{Height:this.Height ,Input:contract.Args}
+
+	m, err := wasm.ReadModule(bytes.NewReader(code.Code), func(name string) (*wasm.Module, error) {
+		switch name {
+		case "env":
+			return NewHostModule(host), nil
+		}
+		return nil, fmt.Errorf("module %q unknown", name)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+
+
+	return nil,nil
+}
+
+
+func (self *Runtime)Print(proc *exec.Process, v uint32)  {
+	fmt.Printf("result = %v\n", v)
+	self.calls += 1
+}
+
+func (self *Runtime)BlockHeight(proc *exec.Process) uint32 {
+	return self.Height
+}
+
+func (self *Runtime)InputLength(proc *exec.Process) uint32 {
+	return uint32(len(self.Input))
+}
+
+func (self *Runtime)GetInput(proc *exec.Process, dst uint32) {
+	_, err := proc.WriteAt(self.Input, int64(dst))
+	if err != nil {
+		panic(err)
+	}
+}
+
+
+func NewHostModule(host *Runtime) *wasm.Module {
+	m := wasm.NewModule()
+	m.Types = &wasm.SectionTypes{
+		Entries: []wasm.FunctionSig{
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+			{
+				Form:       0, // value for the 'func' type constructor
+				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+		},
+	}
+	m.FunctionIndexSpace = []wasm.Function{
+		{
+			Sig:  &m.Types.Entries[0],
+			Host: reflect.ValueOf(host.Print),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[0],
+			Host: reflect.ValueOf(host.GetInput),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[1],
+			Host: reflect.ValueOf(host.BlockHeight),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[1],
+			Host: reflect.ValueOf(host.InputLength),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+	}
+
+	m.Export = &wasm.SectionExports{
+		Entries: map[string]wasm.ExportEntry{
+			"print": {
+				FieldStr: "print",
+				Kind:     wasm.ExternalFunction,
+				Index:    0,
+			},
+			"get_input": {
+				FieldStr: "get_input",
+				Kind:     wasm.ExternalFunction,
+				Index:    1,
+			},
+			"block_height": {
+				FieldStr: "block_height",
+				Kind:     wasm.ExternalFunction,
+				Index:    2,
+			},
+			"input_length": {
+				FieldStr: "input_length",
+				Kind:     wasm.ExternalFunction,
+				Index:    3,
+			},
+		},
+	}
+
+	return m
+}
+
+
 
 //
 //func (this *WasmVmService) Invoke() (interface{}, error) {
