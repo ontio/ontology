@@ -232,12 +232,7 @@ func (self *ChainManager) onLocalShardEvent(evt *shardstates.ShardEventState) er
 	return self.addShardEvent(evt)
 }
 
-func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
-	if blk == nil {
-		return fmt.Errorf("notification with nil blk on shard %d", self.shardID)
-	}
-	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
-
+func (self *ChainManager) handleBlockEvents(blk *types.Block) error {
 	// construct one parent-block-completed message
 	blkInfo := self.getShardBlockInfo(self.shardID, uint64(blk.Header.Height))
 	if blkInfo == nil {
@@ -289,6 +284,52 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 		self.sendShardMsg(shardID, msg)
 	}
 
+	return nil
+}
+
+func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
+
+	for height := self.processedBlockHeight; height <= uint64(blk.Header.Height); height++ {
+		shards, err := self.getRemoteMsgShards(height)
+		if err != nil {
+			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
+		}
+		if len(shards) == 0 {
+			self.processedBlockHeight = height
+			continue
+		}
+
+		for _, s := range shards {
+			reqs, err := self.GetRemoteMsg(height, s)
+			if err != nil {
+				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
+			}
+			tx, err := message.NewCrossShardTxMsg(self.account, height, s, reqs)
+			if err != nil {
+				return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
+			}
+			self.sendCrossShardTx(s, tx)
+		}
+
+		self.processedBlockHeight = height
+	}
+	// TODO: update persisted ProcessedBlockHeight
+
+	return nil
+}
+
+func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
+	if blk == nil {
+		return fmt.Errorf("notification with nil blk on shard %d", self.shardID)
+	}
+	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
+
+	if err := self.handleBlockEvents(blk); err != nil {
+		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
+	}
+	if err := self.handleShardReqsInBlock(blk); err != nil {
+		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
+	}
 	return nil
 }
 
@@ -405,6 +446,22 @@ func (self *ChainManager) onRemoteTxnResponse(txRsp *message.TxResult) {
 	}
 
 	txReq.TxResultCh <- txRsp
+}
+
+func (self *ChainManager) onRemoteRelayTx(tx *types.Transaction) error {
+	childShards := self.getChildShards()
+	if _, present := childShards[tx.ShardID]; present {
+		reqTxMsg := &message.TxRequest{
+			Tx: tx,
+		}
+		msg, err := message.NewTxnRequestMessage(reqTxMsg, self.localPid)
+		if err != nil {
+			return fmt.Errorf("failed to build TxRequest msg: %s", err)
+		}
+		self.sendShardMsg(tx.ShardID, msg)
+	}
+
+	return nil
 }
 
 func (self *ChainManager) onStorageRequest(storageReq *message.StorageRequest) error {

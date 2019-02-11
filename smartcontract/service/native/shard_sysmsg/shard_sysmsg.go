@@ -40,10 +40,15 @@ import (
 /////////
 
 const (
+	// function names
 	INIT_NAME               = "init"
 	PROCESS_CROSS_SHARD_MSG = "processShardMsg"
 	REMOTE_NOTIFY           = "remoteNotify"
 	REMOTE_INVOKE           = "remoteInvoke"
+
+	// key prefix
+	KEY_SHARDS_IN_BLOCK = "shardsInBlock" // with block#, contains to-shard list
+	KEY_REQS_IN_BLOCK   = "reqsInBlock"   // with block# - shard#, containers requests to shard#
 )
 
 func InitShardSystemMessageContract() {
@@ -58,7 +63,8 @@ func RegisterShardSysMsgContract(native *native.NativeService) {
 }
 
 func ShardSysMsgInit(native *native.NativeService) ([]byte, error) {
-	return utils.BYTE_FALSE, nil
+	// TODO: nothing to do yet
+	return utils.BYTE_TRUE, nil
 }
 
 func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
@@ -115,24 +121,22 @@ func RemoteNotify(native *native.NativeService) ([]byte, error) {
 
 	cp := new(shardmgmt.CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, invalid cmd param: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid cmd param: %s", err)
 	}
 
 	params := new(NotifyReqParam)
 	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, invalid param: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid param: %s", err)
 	}
 
-	// TODO: add evt to queue, update merkel root
-	//contract := native.ContextRef.CurrentContext().ContractAddress
-	//evt := &shardstates.CommonShardReq{
-	//	SourceShardID: native.ShardID,
-	//	Height:        uint64(native.Height),
-	//	ShardID:       params.ToShard,
-	//	Payload:       params.Payload,
-	//}
-
+	// TODO: add evt to queue, update merkle root
 	log.Infof("to send remote notify: from %d to %d", native.ShardID, params.ToShard)
+	if err := addToShardsInBlock(native, params.ToShard); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remote notify, failed to add to-shard to block: %s", err)
+	}
+	if err := addReqsInBlock(native, params); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remote notify, failed to add req to block: %s", err)
+	}
 
 	return utils.BYTE_TRUE, nil
 }

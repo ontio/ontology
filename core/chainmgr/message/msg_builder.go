@@ -19,11 +19,20 @@
 package message
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func NewShardHelloMsg(localShard, targetShard uint64, sender *actor.PID) (*CrossShardMsg, error) {
@@ -81,6 +90,55 @@ func NewShardBlockRspMsg(fromShardID, toShardID uint64, blkInfo *ShardBlockInfo,
 		Sender:  sender,
 		Data:    payload,
 	}, nil
+}
+
+type _CrossShardTx struct {
+	Txs [][]byte `json:"txs"`
+}
+
+func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payload [][]byte) (*types.Transaction, error) {
+	tx := &_CrossShardTx{payload}
+	txBytes, err := json.Marshal(tx)
+	if err != nil {
+		return nil, fmt.Errorf("marshal crossShardTx: %s", err)
+	}
+
+	evt := &shardstates.ShardEventState{
+		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
+		EventType:  shardstates.EVENT_SHARD_REQ_COMMON,
+		ToShard:    toShardID,
+		FromHeight: height,
+		Payload:    txBytes,
+	}
+
+	param := &shardsysmsg.CrossShardMsgParam{
+		Events: []*shardstates.ShardEventState{evt},
+	}
+	paramBytes := new(bytes.Buffer)
+	if err := param.Serialize(paramBytes); err != nil {
+		return nil, fmt.Errorf("marshal crossShardMsg: %s", err)
+	}
+
+	mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, paramBytes.Bytes())
+	mutable.GasPrice = 0
+	mutable.Payer = account.Address
+	txHash := mutable.Hash()
+	sig, err := signature.Sign(account.SigScheme, account.PrivateKey, txHash.ToArray(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("sign tx: %s", err)
+	}
+	sigData, err := signature.Serialize(sig)
+	if err != nil {
+		return nil, fmt.Errorf("serialize sig: %s", err)
+	}
+	mutable.Sigs = []types.Sig{
+		{
+			PubKeys: []keypair.PublicKey{account.PubKey()},
+			M:       1,
+			SigData: [][]byte{sigData},
+		},
+	}
+	return mutable.IntoImmutable()
 }
 
 func NewShardBlockInfo(shardID uint64, blk *types.Block) (*ShardBlockInfo, error) {
