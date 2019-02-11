@@ -24,11 +24,12 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/core/store/common"
 )
 
 func (self *ChainManager) GetShardConfig(shardID uint64) *config.OntologyConfig {
@@ -45,9 +46,9 @@ func (self *ChainManager) setShardConfig(shardID uint64, cfg *config.OntologyCon
 	}
 
 	self.shards[shardID] = &ShardInfo{
-		ShardID: shardID,
+		ShardID:       shardID,
 		ParentShardID: cfg.Shard.ParentShardID,
-		Config: cfg,
+		Config:        cfg,
 	}
 	return nil
 }
@@ -116,4 +117,58 @@ func (self *ChainManager) getShardState(shardID uint64) (*shardstates.ShardState
 	}
 
 	return shardState, nil
+}
+
+func (self *ChainManager) getRemoteMsgShards(blockNum uint64) ([]uint64, error) {
+	if self.ledger == nil {
+		return nil, fmt.Errorf("uninitialized chain mgr")
+	}
+
+	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
+	if err != nil {
+		return nil, fmt.Errorf("serialize height: %s", err)
+	}
+	key := append([]byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes...)
+	toShardsBytes, err := self.ledger.GetStorageItem(utils.ShardSysMsgContractAddress, key)
+	if err == common.ErrNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get remote msg toShards in blk %d: %s", blockNum, err)
+	}
+
+	req := &shardsysmsg.ToShardsInBlock{}
+	if err := req.Deserialize(bytes.NewBuffer(toShardsBytes)); err != nil {
+		return nil, fmt.Errorf("deserialize toShards: %s", err)
+	}
+	return req.Shards, nil
+}
+
+func (self *ChainManager) GetRemoteMsg(blockNum, toShard uint64) ([][]byte, error) {
+	if self.ledger == nil {
+		return nil, fmt.Errorf("uninitialized chain mgr")
+	}
+
+	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
+	if err != nil {
+		return nil, fmt.Errorf("serialize height: %s", err)
+	}
+	shardIDBytes, err := shardutil.GetUint64Bytes(toShard)
+	if err != nil {
+		return nil, fmt.Errorf("serialize toshard: %s", err)
+	}
+	key := append(append([]byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes...), shardIDBytes...)
+	reqBytes, err := self.ledger.GetStorageItem(utils.ShardSysMsgContractAddress, key)
+	if err == common.ErrNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get remote msg to shard %d in blk %d: %s", toShard, blockNum, err)
+	}
+
+	req := &shardsysmsg.ReqsInBlock{}
+	if err := req.Deserialize(bytes.NewBuffer(reqBytes)); err != nil {
+		return nil, fmt.Errorf("deserialize remote msg to shard %d: %s", toShard, err)
+	}
+	return req.Reqs, nil
 }

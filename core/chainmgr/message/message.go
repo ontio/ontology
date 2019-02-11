@@ -21,6 +21,9 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 )
 
 const (
@@ -37,6 +40,7 @@ const (
 
 	TXN_REQ_MSG
 	TXN_RSP_MSG
+	TXN_RELAY_MSG
 	STORAGE_REQ_MSG
 	STORAGE_RSP_MSG
 
@@ -113,6 +117,14 @@ func (msg *ShardDisconnectedMsg) Type() int {
 	return DISCONNECTED_MSG
 }
 
+type ShardTxRelayMsg struct {
+	Tx *types.Transaction
+}
+
+func (msg *ShardTxRelayMsg) Type() int {
+	return TXN_RELAY_MSG
+}
+
 func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 	switch msgtype {
 	case HELLO_MSG:
@@ -163,6 +175,12 @@ func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}
 		return msg, nil
+	case TXN_RELAY_MSG:
+		tx := &types.Transaction{}
+		if err := tx.Deserialization(common.NewZeroCopySource(msgPayload)); err != nil {
+			return nil, fmt.Errorf("unmarshal relay txn msg %d: %s", msgtype, err)
+		}
+		return &ShardTxRelayMsg{tx}, nil
 	case STORAGE_REQ_MSG:
 		msg := &StorageRequest{}
 		if err := json.Unmarshal(msgPayload, msg); err != nil {

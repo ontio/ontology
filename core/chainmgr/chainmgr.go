@@ -87,10 +87,11 @@ type ChainManager struct {
 	parentShardIPAddress string
 	parentShardPort      uint
 
-	lock       sync.RWMutex
-	shards     map[uint64]*ShardInfo
-	shardAddrs map[string]uint64
-	blockPool  *shardmsg.ShardBlockPool
+	lock                 sync.RWMutex
+	shards               map[uint64]*ShardInfo
+	shardAddrs           map[string]uint64
+	blockPool            *shardmsg.ShardBlockPool
+	processedBlockHeight uint64
 
 	account      *account.Account
 	genesisBlock *types.Block
@@ -107,9 +108,9 @@ type ChainManager struct {
 	broadcastMsgC   chan *MsgSendReq
 	parentConnWait  chan bool
 
-	txnReqC     chan shardmsg.ShardTxRequest
-	txnRspC     chan shardmsg.ShardTxResponse
-	pendingTxns map[common.Uint256]*shardmsg.TxRequest
+	txnReqC            chan shardmsg.ShardTxRequest
+	txnRspC            chan shardmsg.ShardTxResponse
+	pendingTxns        map[common.Uint256]*shardmsg.TxRequest
 	pendingStorageReqs map[uint64]ShardStorageReqList
 
 	parentPid   *actor.PID
@@ -187,6 +188,9 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 
 func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 	self.ledger = lgr
+
+	// TODO: load ProcessedBlockHeight from ledger
+	self.processedBlockHeight = 0
 
 	// start listen on local actor
 	self.sub = events.NewActorSubscriber(self.localPid)
@@ -506,6 +510,12 @@ func (self *ChainManager) processRemoteShardMsg() error {
 				return fmt.Errorf("invalid txn rsp msg")
 			}
 			self.onRemoteTxnResponse(txRsp)
+		case shardmsg.TXN_RELAY_MSG:
+			txMsg, ok := msg.(*shardmsg.ShardTxRelayMsg)
+			if !ok {
+				return fmt.Errorf("invalid txn relay msg")
+			}
+			self.onRemoteRelayTx(txMsg.Tx)
 		case shardmsg.STORAGE_REQ_MSG:
 			storageReq, ok := msg.(*shardmsg.StorageRequest)
 			if !ok {
@@ -610,4 +620,23 @@ func (self *ChainManager) sendShardMsg(shardId uint64, msg *shardmsg.CrossShardM
 		targetShardID: shardId,
 		msg:           msg,
 	}
+}
+
+func (self *ChainManager) sendCrossShardTx(shardID uint64, tx *types.Transaction) error {
+	// FIXME: broadcast Tx to target shard
+
+	// relay with parent shard
+	payload := new(bytes.Buffer)
+	if err := tx.Serialize(payload); err != nil {
+		return fmt.Errorf("failed to serialize tx: %s", err)
+	}
+
+	msg := &shardmsg.CrossShardMsg{
+		Version: shardmsg.SHARD_PROTOCOL_VERSION,
+		Type:    shardmsg.TXN_RELAY_MSG,
+		Sender:  self.parentPid,
+		Data:    payload.Bytes(),
+	}
+	self.sendShardMsg(self.parentShardID, msg)
+	return nil
 }

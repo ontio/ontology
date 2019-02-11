@@ -19,11 +19,16 @@
 package shardsysmsg
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/common"
+	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func appCallTransfer(native *native.NativeService, contract common.Address, from common.Address, to common.Address, amount uint64) error {
@@ -43,4 +48,159 @@ func appCallTransfer(native *native.NativeService, contract common.Address, from
 		return fmt.Errorf("appCallTransfer, appCall error: %v", err)
 	}
 	return nil
+}
+
+type ToShardsInBlock struct {
+	Shards []uint64 `json:"shards"`
+}
+
+func (this *ToShardsInBlock) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *ToShardsInBlock) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+func addToShardsInBlock(native *native.NativeService, toShard uint64) error {
+	toShards, err := getToShardsInBlock(native, uint64(native.Height))
+	if err != nil {
+		return err
+	}
+	if toShards == nil {
+		toShards = []uint64{toShard}
+	} else {
+		for _, s := range toShards {
+			if s == toShard {
+				// already in
+				return nil
+			}
+		}
+	}
+
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	blockNumBytes, err := shardutil.GetUint64Bytes(uint64(native.Height))
+	if err != nil {
+		return fmt.Errorf("serialize height: %s", err)
+	}
+
+	toShardsInBlk := &ToShardsInBlock{
+		Shards: toShards,
+	}
+	buf := new(bytes.Buffer)
+	if err := toShardsInBlk.Serialize(buf); err != nil {
+		return fmt.Errorf("serialize to-shards in block: %s", err)
+	}
+
+	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
+	return nil
+}
+
+func getToShardsInBlock(native *native.NativeService, blockNum uint64) ([]uint64, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
+	if err != nil {
+		return nil, fmt.Errorf("serialize height: %s", err)
+	}
+
+	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
+	toShardsBytes, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("get toShards: %s", err)
+	}
+	if toShardsBytes == nil {
+		// not found
+		return nil, nil
+	}
+
+	value, err := cstates.GetValueFromRawStorageItem(toShardsBytes)
+	if err != nil {
+		return nil, fmt.Errorf("get toShards from bytes: %s", err)
+	}
+
+	req := &ToShardsInBlock{}
+	if err := req.Deserialize(bytes.NewBuffer(value)); err != nil {
+		return nil, fmt.Errorf("deserialize toShards: %s", err)
+	}
+
+	return req.Shards, nil
+}
+
+type ReqsInBlock struct {
+	Reqs [][]byte `json:"reqs"`
+}
+
+func (this *ReqsInBlock) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *ReqsInBlock) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+func addReqsInBlock(native *native.NativeService, req *NotifyReqParam) error {
+	reqs, err := getReqsInBlock(native, uint64(native.Height), req.ToShard)
+	if err != nil {
+		return err
+	}
+	if reqs == nil {
+		reqs = [][]byte{req.Payload}
+	}
+
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	blockNumBytes, err := shardutil.GetUint64Bytes(uint64(native.Height))
+	if err != nil {
+		return fmt.Errorf("serialize height: %s", err)
+	}
+	shardIDBytes, err := shardutil.GetUint64Bytes(req.ToShard)
+	if err != nil {
+		return fmt.Errorf("serialzie toshard: %s", err)
+	}
+
+	reqInBlk := &ReqsInBlock{
+		Reqs: reqs,
+	}
+	buf := new(bytes.Buffer)
+	if err := reqInBlk.Serialize(buf); err != nil {
+		return fmt.Errorf("serialize shardmgmt global state: %s", err)
+	}
+
+	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
+	return nil
+}
+
+func getReqsInBlock(native *native.NativeService, blockNum uint64, shardID uint64) ([][]byte, error) {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
+	if err != nil {
+		return nil, fmt.Errorf("serialize height: %s", err)
+	}
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardID)
+	if err != nil {
+		return nil, fmt.Errorf("serialize toShard: %s", err)
+	}
+
+	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
+	reqBytes, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("get reqs in block: %s", err)
+	}
+	if reqBytes == nil {
+		// not found
+		return nil, nil
+	}
+
+	value, err := cstates.GetValueFromRawStorageItem(reqBytes)
+	if err != nil {
+		return nil, fmt.Errorf("get reqs from bytes: %s", err)
+	}
+
+	req := &ReqsInBlock{}
+	if err := req.Deserialize(bytes.NewBuffer(value)); err != nil {
+		return nil, fmt.Errorf("deserialize reqsInBlock: %s", err)
+	}
+
+	return req.Reqs, nil
 }
