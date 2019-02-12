@@ -626,17 +626,25 @@ func (self *ChainManager) sendCrossShardTx(shardID uint64, tx *types.Transaction
 	// FIXME: broadcast Tx to target shard
 
 	// relay with parent shard
-	payload := new(bytes.Buffer)
-	if err := tx.Serialize(payload); err != nil {
-		return fmt.Errorf("failed to serialize tx: %s", err)
-	}
+	//payload := new(bytes.Buffer)
+	//if err := tx.Serialize(payload); err != nil {
+	//	return fmt.Errorf("failed to serialize tx: %s", err)
+	//}
+	//
+	//msg := &shardmsg.CrossShardMsg{
+	//	Version: shardmsg.SHARD_PROTOCOL_VERSION,
+	//	Type:    shardmsg.TXN_RELAY_MSG,
+	//	Sender:  self.parentPid,
+	//	Data:    payload.Bytes(),
+	//}
+	//self.sendShardMsg(self.parentShardID, msg)
+	//return nil
 
-	msg := &shardmsg.CrossShardMsg{
-		Version: shardmsg.SHARD_PROTOCOL_VERSION,
-		Type:    shardmsg.TXN_RELAY_MSG,
-		Sender:  self.parentPid,
-		Data:    payload.Bytes(),
-	}
-	self.sendShardMsg(self.parentShardID, msg)
+
+	go func(tx *types.Transaction) {
+		if err := sendRawTx(tx); err != nil {
+			log.Errorf("send raw tx failed: %s", err)
+		}
+	}(tx)
 	return nil
 }

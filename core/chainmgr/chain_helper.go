@@ -26,6 +26,11 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"bytes"
+	"encoding/json"
+	"time"
+	"net/http"
+	"io/ioutil"
 )
 
 func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) error {
@@ -122,4 +127,45 @@ func (self *ChainManager) initShardInfo(shardID uint64, shard *shardstates.Shard
 		self.shards[shard.ShardID] = info
 	}
 	return info, nil
+}
+
+type RestfulReq struct {
+	Action  string
+	Version string
+	Type    int
+	Data    string
+}
+
+func sendRawTx(tx *types.Transaction) error {
+	var buffer bytes.Buffer
+	err := tx.Serialize(&buffer)
+	if err != nil {
+		return fmt.Errorf("Serialize error:%s", err)
+	}
+	reqUrl := "http://127.0.0.1:20334/api/v1/transaction"
+	restReq := &RestfulReq{
+		Action:  "sendrawtransaction",
+		Version: "1.0.0",
+		Data:    hex.EncodeToString(buffer.Bytes()),
+	}
+	reqData, err := json.Marshal(restReq)
+	if err != nil {
+		return fmt.Errorf("json.Marshal error:%s", err)
+	}
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost:   5,
+			IdleConnTimeout:       time.Second * 300,
+			ResponseHeaderTimeout: time.Second * 300,
+		},
+		Timeout: time.Second * 300, //timeout for http response
+	}
+
+	resp, err := httpClient.Post(reqUrl, "application/json", bytes.NewReader(reqData))
+	if err != nil {
+		return fmt.Errorf("send http post request error:%s", err)
+	}
+	defer resp.Body.Close()
+	ioutil.ReadAll(resp.Body)
+	return nil
 }
