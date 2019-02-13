@@ -98,6 +98,7 @@ type _CrossShardTx struct {
 
 func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payload [][]byte) (*types.Transaction, error) {
 	tx := &_CrossShardTx{payload}
+	// FIXME: fix marshaling
 	txBytes, err := json.Marshal(tx)
 	if err != nil {
 		return nil, fmt.Errorf("marshal crossShardTx: %s", err)
@@ -120,6 +121,7 @@ func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payl
 	}
 
 	mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, paramBytes.Bytes())
+	mutable.ShardID = toShardID
 	mutable.GasPrice = 0
 	mutable.Payer = account.Address
 	txHash := mutable.Hash()

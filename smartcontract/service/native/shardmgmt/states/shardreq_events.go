@@ -21,6 +21,7 @@ package shardstates
 import (
 	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
@@ -29,10 +30,12 @@ const (
 )
 
 type CommonShardReq struct {
-	SourceShardID uint64 `json:"source_shard_id"`
-	Height        uint64 `json:"height"`
-	ShardID       uint64 `json:"shard_id"`
-	Payload       []byte `json:"payload"`
+	SourceShardID  uint64         `json:"source_shard_id"`
+	Height         uint64         `json:"height"`
+	TargetShard    uint64         `json:"target_shard"`
+	TargetContract common.Address `json:"target_contract"`
+	Payer          common.Address `json:"payer"`
+	Args           []byte         `json:"payload"`
 }
 
 func (evt *CommonShardReq) GetSourceShardID() uint64 {
@@ -40,7 +43,7 @@ func (evt *CommonShardReq) GetSourceShardID() uint64 {
 }
 
 func (evt *CommonShardReq) GetTargetShardID() uint64 {
-	return evt.ShardID
+	return evt.TargetShard
 }
 
 func (evt *CommonShardReq) GetHeight() uint64 {

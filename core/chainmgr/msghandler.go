@@ -294,7 +294,7 @@ func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
 		}
-		if len(shards) == 0 {
+		if shards == nil || len(shards) == 0 {
 			self.processedBlockHeight = height
 			continue
 		}
@@ -303,6 +303,9 @@ func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 			reqs, err := self.GetRemoteMsg(height, s)
 			if err != nil {
 				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
+			}
+			if len(reqs) == 0 {
+				continue
 			}
 			tx, err := message.NewCrossShardTxMsg(self.account, height, s, reqs)
 			if err != nil {

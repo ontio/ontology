@@ -27,6 +27,7 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -139,13 +140,17 @@ func (this *ReqsInBlock) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
-func addReqsInBlock(native *native.NativeService, req *NotifyReqParam) error {
-	reqs, err := getReqsInBlock(native, uint64(native.Height), req.ToShard)
+func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardReq) error {
+	reqs, err := getReqsInBlock(native, uint64(native.Height), req.TargetShard)
 	if err != nil {
 		return err
 	}
+	reqBytes := new(bytes.Buffer)
+	if err := req.Serialize(reqBytes); err != nil {
+		return err
+	}
 	if reqs == nil {
-		reqs = [][]byte{req.Payload}
+		reqs = [][]byte{reqBytes.Bytes()}
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -153,7 +158,7 @@ func addReqsInBlock(native *native.NativeService, req *NotifyReqParam) error {
 	if err != nil {
 		return fmt.Errorf("serialize height: %s", err)
 	}
-	shardIDBytes, err := shardutil.GetUint64Bytes(req.ToShard)
+	shardIDBytes, err := shardutil.GetUint64Bytes(req.TargetShard)
 	if err != nil {
 		return fmt.Errorf("serialzie toshard: %s", err)
 	}

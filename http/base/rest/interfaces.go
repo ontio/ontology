@@ -277,7 +277,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 			return resp
 		}
 	}
-	log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
+	log.Debugf("SendRawTransaction send to %d %d txpool %s", txn.ShardID, chainmgr.GetShardID(), hash.ToHexString())
 	if txn.ShardID == chainmgr.GetShardID() {
 		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 			resp["Error"] = int64(errCode)

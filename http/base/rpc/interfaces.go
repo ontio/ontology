@@ -355,10 +355,19 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 			}
 		}
 
-		log.Debugf("SendRawTransaction send to txpool %s", hash.ToHexString())
-		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
-			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
-			return responsePack(int64(errCode), desc)
+		log.Debugf("SendRawTransaction send to %d txpool %s", txn.ShardID, hash.ToHexString())
+		if txn.ShardID == chainmgr.GetShardID() {
+			if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
+				log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
+				return responsePack(int64(errCode), desc)
+			}
+		} else if txn.ShardID == config.DEFAULT_SHARD_ID {
+			return responsePack(int64(ontErrors.ErrXmitFail), "")
+		} else {
+			if errCode, desc := bcomn.SendShardTxToChainMgr(txn); errCode != ontErrors.ErrNoError {
+				log.Warnf("SendRawTransaction chainmgr verified %s error: %s", hash.ToHexString(), desc)
+				return responsePack(int64(errCode), desc)
+			}
 		}
 		log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
 	default:

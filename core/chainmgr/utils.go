@@ -157,7 +157,7 @@ func (self *ChainManager) GetRemoteMsg(blockNum, toShard uint64) ([][]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("serialize toshard: %s", err)
 	}
-	key := append(append([]byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes...), shardIDBytes...)
+	key := append(append([]byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes...), shardIDBytes...)
 	reqBytes, err := self.ledger.GetStorageItem(utils.ShardSysMsgContractAddress, key)
 	if err == common.ErrNotFound {
 		return nil, nil
