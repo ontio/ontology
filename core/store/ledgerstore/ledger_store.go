@@ -618,11 +618,16 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 
 func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	overlay := this.stateStore.NewOverlayDB()
+	shardID, err := types.NewShardID(block.Header.ShardID)
+	if err != nil {
+		return
+	}
 	if block.Header.Height != 0 {
 		config := &smartcontract.Config{
-			Time:   block.Header.Timestamp,
-			Height: block.Header.Height,
-			Tx:     &types.Transaction{},
+			ShardID: shardID,
+			Time:    block.Header.Timestamp,
+			Height:  block.Header.Height,
+			Tx:      &types.Transaction{},
 		}
 
 		err = refreshGlobalParam(config, storage.NewCacheDB(this.stateStore.NewOverlayDB()), this)
@@ -1036,7 +1041,12 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	height := this.GetCurrentBlockHeight()
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
+	shardID, err := types.NewShardID(tx.ShardID)
+	if err != nil {
+		return stf, err
+	}
 	config := &smartcontract.Config{
+		ShardID:   shardID,
 		Time:      uint32(time.Now().Unix()),
 		Height:    height + 1,
 		Tx:        tx,

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
@@ -71,8 +72,9 @@ func (this *CrossShardMsgParam) Deserialize(r io.Reader) error {
 }
 
 type NotifyReqParam struct {
-	ToShard uint64 `json:"to_shard"`
-	Payload []byte `json:"payload"`
+	ToShard    uint64         `json:"to_shard"`
+	ToContract common.Address `json:"to_contract"`
+	Args       []byte         `json:"payload"`
 }
 
 func (this *NotifyReqParam) Serialize(w io.Writer) error {

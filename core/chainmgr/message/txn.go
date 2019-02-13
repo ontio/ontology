@@ -19,6 +19,7 @@
 package message
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
@@ -63,6 +64,10 @@ func (this *TxRequest) Done() {
 	close(this.TxResultCh)
 }
 
+type TxRequestHelper struct {
+	Payload []byte `json:"payload"`
+}
+
 func (this *TxRequest) MarshalJSON() ([]byte, error) {
 	sink := common.NewZeroCopySink(nil)
 	if this.Tx != nil {
@@ -70,13 +75,17 @@ func (this *TxRequest) MarshalJSON() ([]byte, error) {
 			return nil, fmt.Errorf("TxRequest marshal: %s", err)
 		}
 	}
-
-	return sink.Bytes(), nil
+	result, err := json.Marshal(&TxRequestHelper{sink.Bytes()})
+	return result, err
 }
 
 func (this *TxRequest) UnmarshalJSON(data []byte) error {
+	helper := &TxRequestHelper{}
+	if err := json.Unmarshal(data, helper); err != nil {
+		return fmt.Errorf("TxRequest bytes unmarshal: %s", err)
+	}
 	tx := &types.Transaction{}
-	if err := tx.Deserialization(common.NewZeroCopySource(data)); err != nil {
+	if err := tx.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
 		return fmt.Errorf("TxRequest unmarshal: %s", err)
 	}
 

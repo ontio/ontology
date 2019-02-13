@@ -20,6 +20,7 @@ package shardstates
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -190,13 +191,30 @@ func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error)
 	case EVENT_SHARD_GAS_WITHDRAW_DONE:
 		// TODO
 		return nil, nil
-	case EVENT_SHARD_REQ_COMMON:
-		evt := &CommonShardReq{}
-		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
-			return nil, fmt.Errorf("unmarshal common shard req: %s", err)
-		}
-		return evt, nil
 	}
 
 	return nil, fmt.Errorf("unknown remote event type: %d", evtType)
+}
+
+type _CrossShardTx struct {
+	Txs [][]byte `json:"txs"`
+}
+
+func DecodeShardCommonReqs(payload []byte) ([]*CommonShardReq, error) {
+	txs := &_CrossShardTx{}
+	// FIXME: fix marshaling
+	if err := json.Unmarshal(payload, txs); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal txs: %s", err)
+	}
+
+	reqs := make([]*CommonShardReq, 0)
+	for _, tx := range txs.Txs {
+		req := &CommonShardReq{}
+		if err := req.Deserialize(bytes.NewBuffer(tx)); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal req-tx: %s, %s", err, string(tx))
+		}
+		reqs = append(reqs, req)
+	}
+
+	return reqs, nil
 }
