@@ -289,7 +289,11 @@ func (self *ChainManager) handleBlockEvents(blk *types.Block) error {
 
 func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 
-	for height := self.processedBlockHeight; height <= uint64(blk.Header.Height); height++ {
+	defer func() {
+		// TODO: update persisted ProcessedBlockHeight
+	}()
+
+	for height := self.processedBlockHeight+1; height <= uint64(blk.Header.Height); height++ {
 		shards, err := self.getRemoteMsgShards(height)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
@@ -316,7 +320,6 @@ func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 
 		self.processedBlockHeight = height
 	}
-	// TODO: update persisted ProcessedBlockHeight
 
 	return nil
 }
