@@ -17,7 +17,10 @@
  */
 package utils
 
-import "github.com/ontio/ontology/common"
+import (
+	"bytes"
+	"github.com/ontio/ontology/common"
+)
 
 var (
 	BYTE_FALSE = []byte{0}
@@ -30,3 +33,13 @@ var (
 	AuthContractAddress, _       = common.AddressParseFromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06})
 	GovernanceContractAddress, _ = common.AddressParseFromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07})
 )
+
+func IsNativeContract(addr common.Address) bool {
+	return bytes.Compare(addr[:], OntContractAddress[:]) == 0 ||
+		bytes.Compare(addr[:], OngContractAddress[:]) == 0 ||
+		bytes.Compare(addr[:], OntIDContractAddress[:]) == 0 ||
+		bytes.Compare(addr[:], ParamContractAddress[:]) == 0 ||
+		bytes.Compare(addr[:], AuthContractAddress[:]) == 0 ||
+		bytes.Compare(addr[:], GovernanceContractAddress[:]) == 0
+
+}

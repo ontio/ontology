@@ -784,7 +784,7 @@ func PrepareInvokeNativeContract(
 }
 
 //NewDeployCodeTransaction return a smart contract deploy transaction instance
-func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorage bool,
+func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorage byte,
 	cname, cversion, cauthor, cemail, cdesc string) *types.MutableTransaction {
 
 	deployPayload := &payload.DeployCode{

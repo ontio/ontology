@@ -36,7 +36,7 @@ type InvokeCodeInfo struct {
 }
 type DeployCodeInfo struct {
 	Code        string
-	NeedStorage bool
+	NeedStorage byte
 	Name        string
 	CodeVersion string
 	Author      string
