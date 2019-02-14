@@ -257,7 +257,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 			}
 		}
 		if checkCalcEndorserOrCommitter(end) {
-			if uint32(len(peers)) > chain.C*2+1 {
+			if uint32(len(peers)) > chain.C*2 {
 				return peers
 			}
 		}
