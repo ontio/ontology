@@ -235,28 +235,12 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 
 	peers := make([]uint32, 0)
 	peerMap := make(map[uint32]bool)
-	proposerMap := make(map[uint32]bool)
 	var cnt uint32
 
-	if checkCalcEndorserOrCommitter(end) {
-		if len(cfg.Proposers) != 0 {
-			for _, p := range cfg.Proposers {
-				proposerMap[p] = true
-				if uint32(len(proposerMap)) >= chain.C {
-					break
-				}
-			}
-		}
-	}
 	for i := start; ; i++ {
 		peerId := calcParticipant(cfg.Vrf, chain.PosTable, uint32(i))
 		if peerId == math.MaxUint32 {
 			return []uint32{}
-		}
-		if checkCalcEndorserOrCommitter(end) {
-			if _, present := proposerMap[peerId]; present {
-				continue
-			}
 		}
 		if _, present := peerMap[peerId]; !present {
 			// got new peer
@@ -273,7 +257,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 			}
 		}
 		if checkCalcEndorserOrCommitter(end) {
-			if uint32(len(peers)) > chain.C*2 {
+			if uint32(len(peers)) > chain.C*2+1 {
 				return peers
 			}
 		}
