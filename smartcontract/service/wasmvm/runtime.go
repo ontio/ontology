@@ -19,17 +19,19 @@ package wasmvm
 
 import (
 	"bytes"
+	"encoding/gob"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	states2 "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	"reflect"
-	"encoding/gob"
 )
 
 type ContractType byte
@@ -42,12 +44,13 @@ const (
 )
 
 type Runtime struct {
-	Service *WasmVmService
-	Input   []byte
-	Output  []byte
+	Service    *WasmVmService
+	Input      []byte
+	Output     []byte
+	CallOutPut []byte
 }
 
-func (self *Runtime) TimeStamp(proc *exec.Process, v uint32) uint64 {
+func (self *Runtime) TimeStamp(proc *exec.Process) uint64 {
 	return uint64(self.Service.Time)
 }
 
@@ -63,9 +66,17 @@ func (self *Runtime) SelfAddress(proc *exec.Process, dst uint32) {
 	}
 }
 
-func (self *Runtime) Calleraddress(proc *exec.Process, dst uint32) {
+func (self *Runtime) CallerAddress(proc *exec.Process, dst uint32) {
 	calleraddr := self.Service.ContextRef.CallingContext().ContractAddress
 	_, err := proc.WriteAt(calleraddr[:], int64(dst))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (self *Runtime) EntryAddress(proc *exec.Process, dst uint32) {
+	entryAddress := self.Service.ContextRef.EntryContext().ContractAddress
+	_, err := proc.WriteAt(entryAddress[:], int64(dst))
 	if err != nil {
 		panic(err)
 	}
@@ -124,7 +135,7 @@ func (self *Runtime) GetInput(proc *exec.Process, dst uint32) {
 	}
 }
 
-func (self *Runtime) Call_contract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32,outPtr uint32) uint32 {
+func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32) uint32 {
 	contractAddrbytes := make([]byte, 20)
 	_, err := proc.ReadAt(contractAddrbytes, int64(contractAddr))
 	if err != nil {
@@ -162,47 +173,99 @@ func (self *Runtime) Call_contract(proc *exec.Process, contractAddr uint32, inpu
 	if err != nil {
 		panic(err)
 	}
+
+	currentCtx := &context.Context{
+		Code:            self.Service.Code,
+		ContractAddress: self.Service.ContextRef.CurrentContext().ContractAddress,
+	}
+	self.Service.ContextRef.PushContext(currentCtx)
+
+	var result interface{}
+
+	contract := states.ContractInvokeParam{
+		Version: byte(ver),
+		Address: contractAddress,
+		Method:  method,
+		Args:    args,
+	}
+
 	switch contracttype {
 	case NATIVE_CONTRACT:
-		cip := states.ContractInvokeParam{
-			Version: byte(ver),
-			Address: contractAddress,
-			Method:  method,
-			Args:    args,
-		}
 
 		native := &native2.NativeService{
 			CacheDB:     self.Service.CacheDB,
-			InvokeParam: cip,
+			InvokeParam: contract,
 			Tx:          self.Service.Tx,
 			Height:      self.Service.Height,
 			Time:        self.Service.Time,
 			ContextRef:  self.Service.ContextRef,
 			ServiceMap:  make(map[string]native2.Handler),
 		}
-		result, err := native.Invoke()
+		result, err = native.Invoke()
 		if err != nil {
 			panic(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
 		}
-
-		buf := bytes.NewBuffer(nil)
-		enc := gob.NewEncoder(buf)
-		err = enc.Encode(result)
-		if err != nil {
-			panic(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
-		}
-
-		proc.WriteAt(buf.Bytes(),int64(outPtr))
-		return outPtr
-
-	case NEOVM_CONTRACT:
 
 	case WASMVM_CONTRACT:
+		bf := bytes.NewBuffer(nil)
+		if err := contract.Serialize(bf); err != nil {
+			panic(err)
+		}
+
+		self.Service.Code = bf.Bytes()
+		result, err = self.Service.Invoke()
+		if err != nil {
+			panic(err)
+		}
+
+	case NEOVM_CONTRACT:
+		//todo test if this work for neovm
+		bf := bytes.NewBuffer(nil)
+		if err := contract.Serialize(bf); err != nil {
+			panic(err)
+		}
+
+		neoservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes())
+		if err != nil {
+			panic(err)
+		}
+		result, err = neoservice.Invoke()
+		if err != nil {
+			panic(err)
+		}
+		//new neovm_service
 
 	default:
 		panic(errors.NewErr("Not a supported contract type"))
 	}
+	self.Service.ContextRef.PopContext()
 
+	buf := bytes.NewBuffer(nil)
+
+	enc := gob.NewEncoder(buf)
+	err = enc.Encode(result)
+	if err != nil {
+		panic(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
+	}
+
+	buf = bytes.NewBuffer(nil)
+	bs := buf.Bytes()
+	self.CallOutPut = make([]byte, len(bs))
+
+	copy(self.CallOutPut, bs)
+
+	return uint32(len(self.CallOutPut))
+}
+
+func (self *Runtime) CallOutputLength(proc *exec.Process) uint32 {
+	return uint32(len(self.CallOutPut))
+}
+
+func (self *Runtime) GetCallOut(proc *exec.Process, dst uint32) {
+	_, err := proc.WriteAt(self.CallOutPut, int64(dst))
+	if err != nil {
+		panic(err)
+	}
 }
 
 func NewHostModule(host *Runtime) *wasm.Module {
@@ -222,12 +285,7 @@ func NewHostModule(host *Runtime) *wasm.Module {
 	m.FunctionIndexSpace = []wasm.Function{
 		{
 			Sig:  &m.Types.Entries[0],
-			Host: reflect.ValueOf(host.Print),
-			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
-		},
-		{
-			Sig:  &m.Types.Entries[0],
-			Host: reflect.ValueOf(host.GetInput),
+			Host: reflect.ValueOf(host.TimeStamp),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{
@@ -240,29 +298,169 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Host: reflect.ValueOf(host.InputLength),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
+		{
+			Sig:  &m.Types.Entries[2],
+			Host: reflect.ValueOf(host.SelfAddress),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[2],
+			Host: reflect.ValueOf(host.CallerAddress),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[2],
+			Host: reflect.ValueOf(host.EntryAddress),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[2],
+			Host: reflect.ValueOf(host.GetInput),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[2],
+			Host: reflect.ValueOf(host.GetCallOut),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[3],
+			Host: reflect.ValueOf(host.Checkwitness),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[4],
+			Host: reflect.ValueOf(host.Ret),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[4],
+			Host: reflect.ValueOf(host.Notify),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[5],
+			Host: reflect.ValueOf(host.CallContract),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[6],
+			Host: reflect.ValueOf(host.StorageRead),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[7],
+			Host: reflect.ValueOf(host.StorageWrite),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[8],
+			Host: reflect.ValueOf(host.StorageDelete),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[9],
+			Host: reflect.ValueOf(host.ContractCreate),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[9],
+			Host: reflect.ValueOf(host.ContractMigrate),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[10],
+			Host: reflect.ValueOf(host.ContractDelete),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
 	}
 
 	m.Export = &wasm.SectionExports{
 		Entries: map[string]wasm.ExportEntry{
-			"print": {
-				FieldStr: "print",
+			"timestamp": {
+				FieldStr: "timestamp",
 				Kind:     wasm.ExternalFunction,
 				Index:    0,
-			},
-			"get_input": {
-				FieldStr: "get_input",
-				Kind:     wasm.ExternalFunction,
-				Index:    1,
 			},
 			"block_height": {
 				FieldStr: "block_height",
 				Kind:     wasm.ExternalFunction,
-				Index:    2,
+				Index:    1,
 			},
 			"input_length": {
 				FieldStr: "input_length",
 				Kind:     wasm.ExternalFunction,
+				Index:    2,
+			},
+			"self_address": {
+				FieldStr: "self_address",
+				Kind:     wasm.ExternalFunction,
 				Index:    3,
+			},
+			"caller_address": {
+				FieldStr: "caller_address",
+				Kind:     wasm.ExternalFunction,
+				Index:    4,
+			},
+			"entry_address": {
+				FieldStr: "entry_address",
+				Kind:     wasm.ExternalFunction,
+				Index:    5,
+			},
+			"get_input": {
+				FieldStr: "get_input",
+				Kind:     wasm.ExternalFunction,
+				Index:    6,
+			},
+			"get_callout": {
+				FieldStr: "get_callout",
+				Kind:     wasm.ExternalFunction,
+				Index:    7,
+			},
+			"check_witness": {
+				FieldStr: "check_witness",
+				Kind:     wasm.ExternalFunction,
+				Index:    8,
+			},
+			"ret": {
+				FieldStr: "ret",
+				Kind:     wasm.ExternalFunction,
+				Index:    9,
+			},
+			"notify": {
+				FieldStr: "notify",
+				Kind:     wasm.ExternalFunction,
+				Index:    10,
+			},
+			"call_contract": {
+				FieldStr: "call_contract",
+				Kind:     wasm.ExternalFunction,
+				Index:    11,
+			},
+			"storage_read": {
+				FieldStr: "storage_read",
+				Kind:     wasm.ExternalFunction,
+				Index:    12,
+			},
+			"storage_write": {
+				FieldStr: "storage_write",
+				Kind:     wasm.ExternalFunction,
+				Index:    13,
+			},
+			"contract_create": {
+				FieldStr: "contract_create",
+				Kind:     wasm.ExternalFunction,
+				Index:    14,
+			},
+			"contract_migrate": {
+				FieldStr: "contract_migrate",
+				Kind:     wasm.ExternalFunction,
+				Index:    15,
+			},
+			"contract_delete": {
+				FieldStr: "contract_delete",
+				Kind:     wasm.ExternalFunction,
+				Index:    16,
 			},
 		},
 	}
@@ -285,4 +483,13 @@ func (self *Runtime) getContractType(addr common.Address) (ContractType, error) 
 
 	return NEOVM_CONTRACT, nil
 
+}
+
+func serializeStorageKey(contractAddress common.Address, key []byte) ([]byte, error) {
+	bf := new(bytes.Buffer)
+	storageKey := &states2.StorageKey{ContractAddress: contractAddress, Key: key}
+	if _, err := storageKey.Serialize(bf); err != nil {
+		return []byte{}, errors.NewErr("[serializeStorageKey] StorageKey serialize error!")
+	}
+	return bf.Bytes(), nil
 }

@@ -126,6 +126,9 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 	if !this.checkContexts() {
 		return nil, fmt.Errorf("%s", "engine over max limit!")
 	}
+
+
+
 	service := &neovm.NeoVmService{
 		Store:      this.Store,
 		CacheDB:    this.CacheDB,
