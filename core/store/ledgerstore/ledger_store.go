@@ -858,7 +858,7 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-	case types.Invoke:
+	case types.Invoke ,types.InvokeWasm:
 		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
@@ -1020,7 +1020,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		return stf, err
 	}
 
-	if tx.TxType == types.Invoke {
+	if tx.TxType == types.Invoke || tx.TxType == types.InvokeWasm {
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		sc := smartcontract.SmartContract{
@@ -1032,7 +1032,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		}
 
 		//start the smart contract executive function
-		engine, _ := sc.NewExecuteEngine(invoke.Code)
+		engine, _ := sc.NewExecuteEngine(invoke.Code,tx.TxType)
 		result, err := engine.Invoke()
 		if err != nil {
 			return stf, err

@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 )
 
 const (
@@ -122,25 +123,40 @@ func (this *SmartContract) checkContexts() bool {
 
 // Execute is smart contract execute manager
 // According different vm type to launch different service
-func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error) {
+func (this *SmartContract) NewExecuteEngine(code []byte,txtype ctypes.TransactionType) (context.Engine, error) {
 	if !this.checkContexts() {
 		return nil, fmt.Errorf("%s", "engine over max limit!")
 	}
 
-
-
-	service := &neovm.NeoVmService{
-		Store:      this.Store,
-		CacheDB:    this.CacheDB,
-		ContextRef: this,
-		Code:       code,
-		Tx:         this.Config.Tx,
-		Time:       this.Config.Time,
-		Height:     this.Config.Height,
-		BlockHash:  this.Config.BlockHash,
-		Engine:     vm.NewExecutionEngine(),
-		PreExec:    this.PreExec,
+	var service context.Engine
+	if txtype == ctypes.Invoke{
+		service = &neovm.NeoVmService{
+			Store:      this.Store,
+			CacheDB:    this.CacheDB,
+			ContextRef: this,
+			Code:       code,
+			Tx:         this.Config.Tx,
+			Time:       this.Config.Time,
+			Height:     this.Config.Height,
+			BlockHash:  this.Config.BlockHash,
+			Engine:     vm.NewExecutionEngine(),
+			PreExec:    this.PreExec,
+		}
 	}
+	if txtype == ctypes.InvokeWasm{
+		service = &wasmvm.WasmVmService{
+			Store: this.Store,
+			CacheDB: this.CacheDB,
+			ContextRef: this,
+			Code:code,
+			Tx: this.Config.Tx,
+			Time:       this.Config.Time,
+			Height:     this.Config.Height,
+			BlockHash:  this.Config.BlockHash,
+			PreExec:    this.PreExec,
+		}
+	}
+
 	return service, nil
 }
 

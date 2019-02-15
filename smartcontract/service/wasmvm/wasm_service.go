@@ -28,8 +28,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	"github.com/ontio/ontology/vm/wasmvm/util"
-
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 )
@@ -121,31 +119,17 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	//get  function type
 	ftype := m.Types.Entries[int(fidx)]
 
+	//no returns of the entry function
+	if len(ftype.ReturnTypes) > 0 {
+		return nil, errors.NewErr("[Call]ExecCode error! Invoke function sig error" )
+	}
+
 	//nor args for passed in, all args in runtime input buffer
 
-	res, err := vm.ExecCode(index)
+	_, err = vm.ExecCode(index)
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 	}
 
-	if len(ftype.ReturnTypes) == 0 {
-		//no returns in our case
-
-		return nil, nil
-	}
-
-	//todo determine the return result
-	switch ftype.ReturnTypes[0] {
-	case wasm.ValueTypeI32:
-		return util.Int32ToBytes(res.(uint32)), nil
-	case wasm.ValueTypeI64:
-		return util.Int64ToBytes(res.(uint64)), nil
-
-	default:
-		return nil, errors.NewErr("[Call]the return type is not supported")
-	}
-
-	runtime.ret
-
-	return nil, nil
+	return host.Output,nil
 }

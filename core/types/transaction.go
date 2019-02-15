@@ -379,6 +379,7 @@ const (
 	Bookkeeper TransactionType = 0x02
 	Deploy     TransactionType = 0xd0
 	Invoke     TransactionType = 0xd1
+	InvokeWasm TransactionType = 0xd2   //add for wasm invoke
 )
 
 // Payload define the func for loading the payload data

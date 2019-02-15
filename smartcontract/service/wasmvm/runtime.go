@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	"reflect"
+	"github.com/ontio/ontology/core/types"
 )
 
 type ContractType byte
@@ -212,8 +213,11 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 			panic(err)
 		}
 
-		self.Service.Code = bf.Bytes()
-		result, err = self.Service.Invoke()
+		newservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(),types.InvokeWasm)
+		if err != nil {
+			panic(err)
+		}
+		result, err = newservice.Invoke()
 		if err != nil {
 			panic(err)
 		}
@@ -225,7 +229,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 			panic(err)
 		}
 
-		neoservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes())
+		neoservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(),types.Invoke)
 		if err != nil {
 			panic(err)
 		}
@@ -329,6 +333,16 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{
+			Sig:  &m.Types.Entries[3],
+			Host: reflect.ValueOf(host.GetCurrentBlockHash),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
+			Sig:  &m.Types.Entries[3],
+			Host: reflect.ValueOf(host.GetCurrentTxHash),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
 			Sig:  &m.Types.Entries[4],
 			Host: reflect.ValueOf(host.Ret),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
@@ -422,45 +436,55 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    8,
 			},
+			"get_current_blockhash": {
+				FieldStr: "get_current_blockhash",
+				Kind:     wasm.ExternalFunction,
+				Index:    9,
+			},
+			"get_current_txhash": {
+				FieldStr: "get_current_txhash",
+				Kind:     wasm.ExternalFunction,
+				Index:    10,
+			},
 			"ret": {
 				FieldStr: "ret",
 				Kind:     wasm.ExternalFunction,
-				Index:    9,
+				Index:    11,
 			},
 			"notify": {
 				FieldStr: "notify",
 				Kind:     wasm.ExternalFunction,
-				Index:    10,
+				Index:    12,
 			},
 			"call_contract": {
 				FieldStr: "call_contract",
 				Kind:     wasm.ExternalFunction,
-				Index:    11,
+				Index:    13,
 			},
 			"storage_read": {
 				FieldStr: "storage_read",
 				Kind:     wasm.ExternalFunction,
-				Index:    12,
+				Index:    14,
 			},
 			"storage_write": {
 				FieldStr: "storage_write",
 				Kind:     wasm.ExternalFunction,
-				Index:    13,
+				Index:    15,
 			},
 			"contract_create": {
 				FieldStr: "contract_create",
 				Kind:     wasm.ExternalFunction,
-				Index:    14,
+				Index:    16,
 			},
 			"contract_migrate": {
 				FieldStr: "contract_migrate",
 				Kind:     wasm.ExternalFunction,
-				Index:    15,
+				Index:    17,
 			},
 			"contract_delete": {
 				FieldStr: "contract_delete",
 				Kind:     wasm.ExternalFunction,
-				Index:    16,
+				Index:    18,
 			},
 		},
 	}

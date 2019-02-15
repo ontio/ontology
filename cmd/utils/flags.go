@@ -274,7 +274,7 @@ var (
 		Name:  "address",
 		Usage: "Contract `<address>`",
 	}
-	ContractStorageFlag = cli.BoolFlag{
+	ContractStorageFlag = cli.UintFlag{
 		Name:  "needstore",
 		Usage: "Is need use storage in contract",
 	}

@@ -197,7 +197,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	}
 
 	//start the smart contract executive function
-	engine, _ := sc.NewExecuteEngine(invoke.Code)
+	engine, _ := sc.NewExecuteEngine(invoke.Code,tx.TxType)
 
 	_, err = engine.Invoke()
 
