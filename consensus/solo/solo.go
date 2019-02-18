@@ -54,7 +54,7 @@ type SoloService struct {
 	sub              *events.ActorSubscriber
 
 	// sharding
-	parentHeight     uint64
+	parentHeight uint64 // ParentHeight of last block
 }
 
 func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
@@ -73,7 +73,12 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService
 	service.pid = pid
 	service.sub = events.NewActorSubscriber(pid)
 
-	// FIXME: load parent height from ledger
+	// load parentHeight from ledger
+	blkhdr, err := ledger.DefLedger.GetHeaderByHeight(ledger.DefLedger.GetCurrentBlockHeight())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current block header: %s", err)
+	}
+	service.parentHeight = uint64(blkhdr.ParentHeight)
 
 	return service, err
 }
@@ -154,7 +159,8 @@ func (self *SoloService) genBlock() error {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
 
-	if self.parentHeight > uint64(block.Header.ParentHeight) {
+	// parentHeight order consistency check
+		if self.parentHeight > uint64(block.Header.ParentHeight) {
 		return fmt.Errorf("invalid parent height: %d vs %s", self.parentHeight, block.Header.ParentHeight)
 	}
 	result, err := ledger.DefLedger.ExecuteBlock(block)
@@ -165,6 +171,8 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 	}
+
+	// new block persisted, update parentHeight
 	self.parentHeight = uint64(block.Header.ParentHeight)
 
 	return nil
@@ -210,12 +218,16 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	txRoot := common.ComputeMerkleRoot(txHash)
 
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
+
+	// get ParentHeight from chain-mgr
 	parentHeight := chainmgr.GetParentBlockHeight()
 	shardID, err := types.NewShardID(chainmgr.GetShardID())
 	if err != nil {
 		return nil, fmt.Errorf("invalid shard ID: %d, %s", chainmgr.GetShardID(), err)
 	}
 
+
+	// get Cross-Shard Txs from chain-mgr
 	shardTxs := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
 	header := &types.Header{
 		Version:          ContextVersion,
@@ -231,8 +243,8 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 	block := &types.Block{
 		Header:       header,
-		ShardTxs:     shardTxs,
-		Transactions: transactions,
+		ShardTxs:     shardTxs,     // Cross-Shard Txs
+		Transactions: transactions, // Intra-Shard Txs
 	}
 
 	blockHash := block.Hash()

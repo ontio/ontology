@@ -18,9 +18,10 @@
 package config
 
 import (
-	"github.com/stretchr/testify/assert"
-	"testing"
 	"bytes"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigGeneration(t *testing.T) {
