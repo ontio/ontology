@@ -662,12 +662,6 @@ func validatorHasKey(e *ExecutionEngine) error {
 		return errors.ERR_NOT_MAP_KEY
 	}
 
-	arrItem := PeekNStackItem(1, e)
-	_, ok := arrItem.(*types.Map)
-	if !ok {
-		return fmt.Errorf("validatorHasKey error: %s", errors.ERR_NOT_SUPPORT_TYPE)
-	}
-
 	return nil
 }
 
@@ -688,7 +682,7 @@ func validatorValues(e *ExecutionEngine) error {
 }
 
 func validateDCALL(e *ExecutionEngine) error {
-	dest, err := PeekBigInteger(e)
+	_, err := PeekBigInteger(e)
 	if err != nil {
 		return fmt.Errorf("validateDCALL error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
