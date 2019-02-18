@@ -36,7 +36,16 @@ func (b *Block) Serialization(sink *common.ZeroCopySink) {
 	b.Header.Serialization(sink)
 
 	sink.WriteUint32(uint32(len(b.ShardTxs)))
-	for shardID, evts := range b.ShardTxs {
+	shardIds := make([]uint64, 0, len(b.ShardTxs))
+
+	for id := range b.ShardTxs {
+		shardIds = append(shardIds, id)
+	}
+
+	common.SortUint64s(shardIds)
+
+	for _, shardID := range shardIds {
+		evts := b.ShardTxs[shardID]
 		if err := zcpSerializeShardTxs(sink, shardID, evts); err != nil {
 			return err
 		}
