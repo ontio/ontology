@@ -27,10 +27,10 @@ import (
 )
 
 const (
-	DEFAULT_EXPORT_FILE        = "./OntBlocks.dat"
-	DEFAULT_ABI_PATH           = "./abi"
-	DEFAULT_EXPORT_HEIGHT      = 0
-	DEFAULT_WALLET_PATH        = "./wallet_data"
+	DEFAULT_EXPORT_FILE   = "./OntBlocks.dat"
+	DEFAULT_ABI_PATH      = "./abi"
+	DEFAULT_EXPORT_HEIGHT = 0
+	DEFAULT_WALLET_PATH   = "./wallet_data"
 )
 
 var (

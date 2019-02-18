@@ -7,6 +7,9 @@ import (
 	"encoding/json"
 )
 
+//
+// FIXME: change to following json-serializations to consistent-defined serializations
+//
 func (this *GenesisConfig) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, uint32(len(this.SeedList))); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize seedlist error!")
@@ -106,13 +109,13 @@ func (this *OntologyConfig) Serialize(w io.Writer) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize common error!")
 	}
 	if err := jsonSerialize(w, this.Consensus); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize common error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize consensus error!")
 	}
 	if err := jsonSerialize(w, this.P2PNode); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize common error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize p2p error!")
 	}
 	if err := jsonSerialize(w, this.Shard); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize common error!")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize shard error!")
 	}
 
 	return nil

@@ -22,12 +22,17 @@ import (
 	"fmt"
 )
 
+//
+// build child-Shard Ontology process command line arguments
+//
 func BuildShardCommandArgs(cmdArgs map[string]string, shardID, parentShardID, parentPort uint64) ([]string, error) {
 	args := make([]string, 0)
 	shardArgs := make(map[string]string)
 	for _, flag := range CmdFlagsForSharding {
 		shardArgs[flag.GetName()] = ""
 	}
+
+	// prepare Shard-Configs for child-shard ontology process
 	shardArgs[ShardIDFlag.GetName()] = fmt.Sprintf("%d", shardID)
 	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d",  uint(parentPort + shardID - parentShardID))
 	shardArgs[ParentShardIDFlag.GetName()] = fmt.Sprintf("%d", parentShardID)
@@ -35,14 +40,20 @@ func BuildShardCommandArgs(cmdArgs map[string]string, shardID, parentShardID, pa
 
 	// copy all args to new shard command, except sharding related flags
 	for n, v := range cmdArgs {
+		// FIXME: disabled consensusPort flag
 		if n == ConsensusPortFlag.GetName() {
 			continue
 		}
 
-		if shardCfg, present := shardArgs[n]; !present {
+		if _, present := shardArgs[n]; !present {
+			// non-shard arguments: copy to child-shard
 			args = append(args, "--" + n+"="+v)
-		} else if len(shardCfg) > 0 {
-			args = append(args, "--" + n+"="+shardCfg)
+		}
+	}
+	for n, shardCfg := range shardArgs {
+		if len(shardCfg) > 0 {
+			// shard-arguments
+			args = append(args, "--" + n +"="+shardCfg)
 		}
 	}
 
