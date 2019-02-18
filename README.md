@@ -93,6 +93,13 @@ $ cd $GOPATH/src/github.com/ontio/ontology
 $ glide install
 ```
 
+If necessary, update dependent third party packages with glide.
+
+```
+$ cd $GOPATH/src/github.com/ontio/ontology
+$ glide update
+```
+
 Build the source code with make.
 
 ```
