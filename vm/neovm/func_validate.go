@@ -700,10 +700,10 @@ func validateDCALL(e *ExecutionEngine) error {
 	if err != nil {
 		return fmt.Errorf("validateDCALL error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
-	target := dest.Int64()
 
-	if target < 0 || int(target) >= len(e.Context.Code) {
+	if dest.Sign() < 0 || dest.Cmp(big.NewInt(int64(len(e.Context.Code)))) > 0 {
 		return fmt.Errorf("validateDCALL error: %s", errors.ERR_DCALL_OFFSET_ERROR)
 	}
+
 	return nil
 }

@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"github.com/ontio/ontology/vm/neovm/errors"
+	"math/big"
 )
 
 func opNop(e *ExecutionEngine) (VMState, error) {
@@ -77,11 +78,12 @@ func opDCALL(e *ExecutionEngine) (VMState, error) {
 	if err != nil {
 		return FAULT, errors.ERR_DCALL_OFFSET_ERROR
 	}
-	target := dest.Int64()
 
-	if target < 0 || int(target) >= len(e.Context.Code) {
+	if dest.Sign() < 0 || dest.Cmp(big.NewInt(int64(len(e.Context.Code)))) > 0 {
 		return FAULT, errors.ERR_DCALL_OFFSET_ERROR
 	}
+
+	target := dest.Int64()
 
 	e.Context.SetInstructionPointer(target)
 
