@@ -58,16 +58,29 @@ const (
 
 var defaultChainManager *ChainManager = nil
 
+//
+// RemoteMsg: for messages received from event-bus.
+//  @Sender : where the message is sent from
+//  @Msg : msg payload
+//
 type RemoteMsg struct {
 	Sender *actor.PID
 	Msg    shardmsg.RemoteShardMsg
 }
 
+//
+// MsgSendReq: request BroadcastLoop() to send msg to other shard
+//
 type MsgSendReq struct {
 	targetShardID uint64
 	msg           *shardmsg.CrossShardMsg
 }
 
+//
+// ShardInfo:
+//  . Configuration of other shards
+//  . EventBus ID of other shards
+//
 type ShardInfo struct {
 	ShardID       uint64
 	ParentShardID uint64
@@ -78,6 +91,9 @@ type ShardInfo struct {
 	Sender        *actor.PID
 }
 
+//
+// TODO: remove this after HTTP enabled on shard
+//
 type ShardStorageReqList map[common.Address]*shardmsg.StorageRequest
 
 type ChainManager struct {
@@ -87,19 +103,30 @@ type ChainManager struct {
 	parentShardIPAddress string
 	parentShardPort      uint
 
+	// ShardInfo management, indexing shards with ShardID / Sender-Addr
 	lock                 sync.RWMutex
 	shards               map[uint64]*ShardInfo
 	shardAddrs           map[string]uint64
+
+	// BlockHeader and Cross-Shard Txs of other shards
+	// FIXME: check if any lock needed (if not only accessed by remoteShardMsgLoop)
+	// TODO: persistent
 	blockPool            *shardmsg.ShardBlockPool
+
+	// last local block processed by ChainManager
+	// FIXME: on restart, make sure catchup with latest blocks
+	// TODO: persistent
 	processedBlockHeight uint64
 
 	account      *account.Account
-	genesisBlock *types.Block
-	cmd          string
+
+	// Ontology process command arguments, for child-shard ontology process creation
 	cmdArgs      map[string]string
 
 	ledger    *ledger.Ledger
 	p2pPid    *actor.PID
+
+	// send transaction to local
 	txPoolPid *actor.PID
 
 	localBlockMsgC  chan *types.Block
@@ -108,20 +135,28 @@ type ChainManager struct {
 	broadcastMsgC   chan *MsgSendReq
 	parentConnWait  chan bool
 
+	// TODO: remove the following members, after HTTP enabled on shard
 	txnReqC            chan shardmsg.ShardTxRequest
 	txnRspC            chan shardmsg.ShardTxResponse
 	pendingTxns        map[common.Uint256]*shardmsg.TxRequest
 	pendingStorageReqs map[uint64]ShardStorageReqList
 
-	parentPid   *actor.PID
-	localPid    *actor.PID
-	sub         *events.ActorSubscriber
-	endpointSub *eventstream.Subscription
+	parentPid     *actor.PID
+	localPid      *actor.PID
+
+	// subscribe local SHARD_EVENT from shard-system-contract and BLOCK-EVENT from ledger
+	localEventSub *events.ActorSubscriber
+
+	// subscribe event-bus disconnected event
+	busEventSub   *eventstream.Subscription
 
 	quitC  chan struct{}
 	quitWg sync.WaitGroup
 }
 
+//
+// Initialize chain manager when ontology starting
+//
 func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, parentPort uint, acc *account.Account, cmdArgs map[string]string) (*ChainManager, error) {
 	// fixme: change to sync.once
 	if defaultChainManager != nil {
@@ -157,7 +192,9 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		cmdArgs: cmdArgs,
 	}
 
+	// start remote-eventBus
 	chainMgr.startRemoteEventbus()
+	// listening on remote-eventBus
 	if err := chainMgr.startListener(); err != nil {
 		return nil, fmt.Errorf("shard %d start listener failed: %s", chainMgr.shardID, err)
 	}
@@ -165,6 +202,8 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 	go chainMgr.localEventLoop()
 	go chainMgr.remoteShardMsgLoop()
 	go chainMgr.broadcastMsgLoop()
+
+	// TODO: remove this after enabled HTTP on shard
 	go chainMgr.txnLoop()
 
 	if err := chainMgr.connectParent(); err != nil {
@@ -172,7 +211,8 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		return nil, fmt.Errorf("connect parent shard failed: %s", err)
 	}
 
-	chainMgr.endpointSub = eventstream.Subscribe(chainMgr.remoteEndpointEvent).
+	// subscribe on event-bus disconnected event
+	chainMgr.busEventSub = eventstream.Subscribe(chainMgr.processEventBusEvent).
 		WithPredicate(func(m interface{}) bool {
 			switch m.(type) {
 			case *remote.EndpointTerminatedEvent:
@@ -186,17 +226,23 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 	return defaultChainManager, nil
 }
 
+//
+// LoadFromLedger when ontology starting, after ledger initialized.
+//
 func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 	self.ledger = lgr
 
 	// TODO: load ProcessedBlockHeight from ledger
 	self.processedBlockHeight = 0
 
-	// start listen on local actor
-	self.sub = events.NewActorSubscriber(self.localPid)
-	self.sub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
-	self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
+	// TODO: load parent-shard/sib-shard blockhdrs from ledger
 
+	// start listen on local shard events
+	self.localEventSub = events.NewActorSubscriber(self.localPid)
+	self.localEventSub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
+	self.localEventSub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
+
+	// get child-shards from shard-mgmt contract
 	globalState, err := self.getShardMgmtGlobalState()
 	if err != nil {
 		return fmt.Errorf("chainmgr: failed to read shard-mgmt global state: %s", err)
@@ -207,18 +253,20 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 		return nil
 	}
 
+	// load all child-shard from shard-mgmt contract
 	for i := uint64(1); i < globalState.NextShardID; i++ {
 		shard, err := self.getShardState(i)
 		if err != nil {
 			return fmt.Errorf("get shard %d failed: %s", i, err)
 		}
+		// skip if shard is not active
 		if shard.State != shardstates.SHARD_STATE_ACTIVE {
 			continue
 		}
 		if _, err := self.initShardInfo(i, shard); err != nil {
 			return fmt.Errorf("init shard %d failed: %s", i, err)
 		}
-		// TODO: start shard process
+		// TODO: start shard process (use startChildShardProcess())
 	}
 
 	return nil
@@ -284,7 +332,10 @@ func (self *ChainManager) Receive(context actor.Context) {
 	}
 }
 
-func (self *ChainManager) remoteEndpointEvent(evt interface{}) {
+//
+// only process 'Disconnect' event from event stream
+//
+func (self *ChainManager) processEventBusEvent(evt interface{}) {
 	switch evt := evt.(type) {
 	case *remote.EndpointTerminatedEvent:
 		self.remoteShardMsgC <- &RemoteMsg{
@@ -297,6 +348,10 @@ func (self *ChainManager) remoteEndpointEvent(evt interface{}) {
 	}
 }
 
+//
+// localEventLoop: process all local shard-event.
+//   shard-events are from shard system contracts (shard-mgmt, shard-gas, shard-mq, shard-ccmc)
+//
 func (self *ChainManager) localEventLoop() {
 
 	self.quitWg.Add(1)
@@ -363,6 +418,10 @@ func (self *ChainManager) localEventLoop() {
 	}
 }
 
+//
+// broadcastMsgLoop: help broadcasting message to remote shards
+//  TODO: send msg to sibling-shards
+//
 func (self *ChainManager) broadcastMsgLoop() {
 	self.quitWg.Add(1)
 	defer self.quitWg.Done()
@@ -394,6 +453,9 @@ func (self *ChainManager) broadcastMsgLoop() {
 	}
 }
 
+//
+// TODO: remove after enabled HTTP on shard
+//
 func (self *ChainManager) txnLoop() {
 	self.quitWg.Add(1)
 	defer self.quitWg.Done()
@@ -464,6 +526,9 @@ func (self *ChainManager) remoteShardMsgLoop() {
 	}
 }
 
+//
+// processRemoteShardMsg: process messages from all remote shards
+//
 func (self *ChainManager) processRemoteShardMsg() error {
 	select {
 	case remoteMsg := <-self.remoteShardMsgC:
@@ -489,6 +554,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			log.Infof(">>>>>> shard %d received config msg", self.shardID)
 			return self.onShardConfig(remoteMsg.Sender, shardCfgMsg)
 		case shardmsg.BLOCK_REQ_MSG:
+			// TODO
 		case shardmsg.BLOCK_RSP_MSG:
 			blkMsg, ok := msg.(*shardmsg.ShardBlockRspMsg)
 			if !ok {
@@ -510,12 +576,6 @@ func (self *ChainManager) processRemoteShardMsg() error {
 				return fmt.Errorf("invalid txn rsp msg")
 			}
 			self.onRemoteTxnResponse(txRsp)
-		case shardmsg.TXN_RELAY_MSG:
-			txMsg, ok := msg.(*shardmsg.ShardTxRelayMsg)
-			if !ok {
-				return fmt.Errorf("invalid txn relay msg")
-			}
-			self.onRemoteRelayTx(txMsg.Tx)
 		case shardmsg.STORAGE_REQ_MSG:
 			storageReq, ok := msg.(*shardmsg.StorageRequest)
 			if !ok {
@@ -543,8 +603,11 @@ func (self *ChainManager) processRemoteShardMsg() error {
 	return nil
 }
 
+//
+// Connect to parent shard, send Hello message.
+// (root shard does not have parent shard)
+//
 func (self *ChainManager) connectParent() error {
-
 	// connect to parent
 	if self.parentShardID == math.MaxUint64 {
 		return nil
@@ -586,6 +649,9 @@ func (self *ChainManager) notifyParentConnected() {
 	self.parentConnWait <- true
 }
 
+//
+// start listening on remote event bus
+//
 func (self *ChainManager) startListener() error {
 
 	// start local
@@ -622,6 +688,10 @@ func (self *ChainManager) sendShardMsg(shardId uint64, msg *shardmsg.CrossShardM
 	}
 }
 
+//
+// send Cross-Shard Tx to remote shard
+// TODO: get ip-address of remote shard node
+//
 func (self *ChainManager) sendCrossShardTx(shardID uint64, tx *types.Transaction) error {
 	// FIXME: broadcast Tx to target shard
 

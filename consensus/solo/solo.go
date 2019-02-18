@@ -220,12 +220,14 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
 
 	// get ParentHeight from chain-mgr
-	parentHeight := chainmgr.GetParentBlockHeight()
+	parentHeight, err := chainmgr.GetParentBlockHeight()
+	if err != nil {
+		return nil, fmt.Errorf("get parentBlock height: %s", err)
+	}
 	shardID, err := types.NewShardID(chainmgr.GetShardID())
 	if err != nil {
 		return nil, fmt.Errorf("invalid shard ID: %d, %s", chainmgr.GetShardID(), err)
 	}
-
 
 	// get Cross-Shard Txs from chain-mgr
 	shardTxs := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)

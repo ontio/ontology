@@ -19,7 +19,6 @@
 package chainmgr
 
 import (
-	"math"
 	"fmt"
 
 	"github.com/ontio/ontology/account"
@@ -80,18 +79,18 @@ func SetTxPool(txPool *actor.PID) error {
 	return nil
 }
 
-func GetParentBlockHeight() uint64 {
+func GetParentBlockHeight() (uint64, error) {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
 
 	if IsRootShard(chainmgr.shardID) {
-		return 0
+		return 0, nil
 	}
 
 	m := chainmgr.blockPool.Shards[chainmgr.parentShardID]
 	if m == nil {
-		return math.MaxUint64
+		return 0, fmt.Errorf("no parent block info found in blockPool")
 	}
 
 	h := uint64(0)
@@ -106,7 +105,7 @@ func GetParentBlockHeight() uint64 {
 		}
 	}
 
-	return h
+	return h, nil
 }
 
 func GetParentBlockHeader(height uint64) *types.Header {

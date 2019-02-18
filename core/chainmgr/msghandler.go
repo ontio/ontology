@@ -163,7 +163,7 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 		return nil
 	}
 
-	return self.startUpSubShardProcess(shardInfo)
+	return self.startChildShardProcess(shardInfo)
 }
 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
@@ -200,10 +200,10 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 		return nil
 	}
 
-	return self.startUpSubShardProcess(shardInfo)
+	return self.startChildShardProcess(shardInfo)
 }
 
-func (self *ChainManager) startUpSubShardProcess(shardInfo *ShardInfo) error {
+func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 	// build sub-shard args
 	shardArgs, err := utils3.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, self.shardID, uint64(self.shardPort))
 	if err != nil {

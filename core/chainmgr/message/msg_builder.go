@@ -96,14 +96,22 @@ type _CrossShardTx struct {
 	Txs [][]byte `json:"txs"`
 }
 
+//
+// NewCrossShardTxMsg: create cross-shard transaction, to remote ShardSysMsg contract
+//  @payload: contains N sub-txns
+//
+//  One block can generated multiple cross-shard sub-txns, marshaled to [][]byte.
+//  NewCrossShardTXMsg creates one cross-shard forwarding Tx, which contains all sub-txns.
+//
 func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payload [][]byte) (*types.Transaction, error) {
+	// marshal all sub-txns to one byte-array
 	tx := &_CrossShardTx{payload}
-	// FIXME: fix marshaling
 	txBytes, err := json.Marshal(tx)
 	if err != nil {
 		return nil, fmt.Errorf("marshal crossShardTx: %s", err)
 	}
 
+	// cross-shard forwarding Tx payload
 	evt := &shardstates.ShardEventState{
 		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
 		EventType:  shardstates.EVENT_SHARD_REQ_COMMON,
@@ -112,6 +120,7 @@ func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payl
 		Payload:    txBytes,
 	}
 
+	// marshal to CrossShardMsgParam
 	param := &shardsysmsg.CrossShardMsgParam{
 		Events: []*shardstates.ShardEventState{evt},
 	}
@@ -120,10 +129,13 @@ func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payl
 		return nil, fmt.Errorf("marshal crossShardMsg: %s", err)
 	}
 
+	// build transaction
 	mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, paramBytes.Bytes())
 	mutable.ShardID = toShardID
 	mutable.GasPrice = 0
 	mutable.Payer = account.Address
+
+	// add signatures
 	txHash := mutable.Hash()
 	sig, err := signature.Sign(account.SigScheme, account.PrivateKey, txHash.ToArray(), nil)
 	if err != nil {

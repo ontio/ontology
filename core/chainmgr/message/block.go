@@ -37,14 +37,26 @@ const (
 	ShardBlockProcessed
 )
 
+//
+// Marshal-Helper for Block
+//
 type ShardBlockHeader struct {
 	Header *types.Header
 }
 
+//
+// Marshal-Helper for transaction
+//
 type ShardBlockTx struct {
 	Tx *types.Transaction
 }
 
+//
+// ShardBlockInfo contains:
+//  .Header: block header
+//  .ShardTxs: Cross-Shard Tx from the block
+//  .Events: shard events generated from the block (only for local block)
+//
 type ShardBlockInfo struct {
 	FromShardID uint64                   `json:"from_shard_id"`
 	Height      uint64                   `json:"height"`
