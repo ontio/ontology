@@ -1021,6 +1021,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	}
 
 	if tx.TxType == types.Invoke || tx.TxType == types.InvokeWasm {
+		fmt.Println("==============pre exec==========")
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		sc := smartcontract.SmartContract{
@@ -1042,6 +1043,8 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		if gasCost < mixGas {
 			gasCost = mixGas
 		}
+		//var cv interface{}
+		//if tx.TxType
 		cv, err := scommon.ConvertNeoVmTypeHexString(result)
 		if err != nil {
 			return stf, err
