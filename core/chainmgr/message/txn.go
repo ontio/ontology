@@ -27,6 +27,8 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
+//TODO: remove after enabled HTTP on shard
+
 type ShardTxRequest interface {
 	Type() int
 	ShardID() uint64

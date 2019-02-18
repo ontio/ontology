@@ -26,6 +26,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
+//
+// buildShardConfig: generate OntologyConfig for shard
+//
 func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstates.ShardState) (*config.OntologyConfig, error) {
 	if cfg := self.GetShardConfig(shardID); cfg != nil {
 		return cfg, nil
@@ -35,29 +38,32 @@ func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstat
 		return nil, fmt.Errorf("Shard not active: %d", shardState.State)
 	}
 
-	// check if shardID is in children
+	// TODO: check if shardID is in children
+
+	// copy current config
 	buf := new(bytes.Buffer)
 	if err := config.DefConfig.Serialize(buf); err != nil {
 		return nil, fmt.Errorf("serialize parent config: %s", err)
 	}
-
 	shardConfig := &config.OntologyConfig{}
 	if err := shardConfig.Deserialize(buf); err != nil {
 		return nil, fmt.Errorf("init child config: %s", err)
 	}
 
-	// FIXME: solo only
-	if shardConfig.Genesis.ConsensusType != config.CONSENSUS_TYPE_SOLO {
+	// FIXME: only solo supported
+	if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		// add seeds and bookkeepers to config
+		seedlist := make([]string, 0)
+		bookkeepers := make([]string, 0)
+		for peerPK, info := range shardState.Peers {
+			seedlist = append(seedlist, info.PeerAddress)
+			bookkeepers = append(bookkeepers, peerPK)
+		}
+		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
+		shardConfig.Genesis.SeedList = seedlist
+	} else {
 		return nil, fmt.Errorf("only solo suppported")
 	}
-	seedlist := make([]string, 0)
-	bookkeepers := make([]string, 0)
-	for peerPK, info := range shardState.Peers {
-		seedlist = append(seedlist, info.PeerAddress)
-		bookkeepers = append(bookkeepers, peerPK)
-	}
-	shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
-	shardConfig.Genesis.SeedList = seedlist
 
 	// TODO: init config for shard $shardID, including genesis config, data dir, net port, etc
 	shardName := GetShardName(shardID)
