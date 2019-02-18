@@ -675,11 +675,7 @@ func validatorKeys(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 1, "[validatorKeys]"); err != nil {
 		return err
 	}
-	arrItem := PeekNStackItem(0, e)
-	_, ok := arrItem.(*types.Map)
-	if !ok {
-		return fmt.Errorf("validatorKeys error: %s", errors.ERR_NOT_SUPPORT_TYPE)
-	}
+
 	return nil
 }
 
@@ -687,11 +683,7 @@ func validatorValues(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 1, "[validatorValues]"); err != nil {
 		return err
 	}
-	arrItem := PeekNStackItem(0, e)
-	_, ok := arrItem.(*types.Map)
-	if !ok {
-		return fmt.Errorf("validatorValues error: %s", errors.ERR_NOT_SUPPORT_TYPE)
-	}
+
 	return nil
 }
 
@@ -699,10 +691,6 @@ func validateDCALL(e *ExecutionEngine) error {
 	dest, err := PeekBigInteger(e)
 	if err != nil {
 		return fmt.Errorf("validateDCALL error: %s", errors.ERR_NOT_SUPPORT_TYPE)
-	}
-
-	if dest.Sign() < 0 || dest.Cmp(big.NewInt(int64(len(e.Context.Code)))) > 0 {
-		return fmt.Errorf("validateDCALL error: %s", errors.ERR_DCALL_OFFSET_ERROR)
 	}
 
 	return nil
