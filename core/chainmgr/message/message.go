@@ -113,6 +113,10 @@ func (msg *ShardDisconnectedMsg) Type() int {
 	return DISCONNECTED_MSG
 }
 
+func EncodeShardMsg(msg RemoteShardMsg) ([]byte, error) {
+	return json.Marshal(msg)
+}
+
 func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 	switch msgtype {
 	case HELLO_MSG:

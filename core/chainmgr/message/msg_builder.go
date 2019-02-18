@@ -40,7 +40,7 @@ func NewShardHelloMsg(localShard, targetShard uint64, sender *actor.PID) (*Cross
 		TargetShardID: targetShard,
 		SourceShardID: localShard,
 	}
-	payload, err := json.Marshal(hello)
+	payload, err := EncodeShardMsg(hello)
 	if err != nil {
 		return nil, fmt.Errorf("marshal hello msg: %s", err)
 	}
@@ -58,7 +58,7 @@ func NewShardConfigMsg(accPayload []byte, configPayload []byte, sender *actor.PI
 		Account: accPayload,
 		Config:  configPayload,
 	}
-	payload, err := json.Marshal(ack)
+	payload, err := EncodeShardMsg(ack)
 	if err != nil {
 		return nil, fmt.Errorf("marshal hello ack msg: %s", err)
 	}
@@ -79,7 +79,7 @@ func NewShardBlockRspMsg(fromShardID, toShardID uint64, blkInfo *ShardBlockInfo,
 		Txs:         []*ShardBlockTx{blkInfo.ShardTxs[toShardID]},
 	}
 
-	payload, err := json.Marshal(blkRsp)
+	payload, err := EncodeShardMsg(blkRsp)
 	if err != nil {
 		return nil, fmt.Errorf("marshal shard block rsp msg: %s", err)
 	}
@@ -213,11 +213,11 @@ func NewStorageResponseMessage(storageRsp *StorageResult, sender *actor.PID) (*C
 	return newJsonShardMsg(storageRsp, STORAGE_RSP_MSG, sender)
 }
 
-func newJsonShardMsg(msg interface{}, msgType int, sender *actor.PID) (*CrossShardMsg, error) {
+func newJsonShardMsg(msg RemoteShardMsg, msgType int, sender *actor.PID) (*CrossShardMsg, error) {
 	if msg == nil {
 		return nil, nil
 	}
-	msgBytes, err := json.Marshal(msg)
+	msgBytes, err := EncodeShardMsg(msg)
 	if err != nil {
 		return nil, err
 	}
