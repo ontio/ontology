@@ -614,13 +614,8 @@ func validatorRemove(e *ExecutionEngine) error {
 		if !value.IsMapKey() {
 			return errors.ERR_NOT_MAP_KEY
 		}
-		if _, ok := item.(*types.Map); !ok {
-			return errors.ERR_REMOVE_NOT_SUPPORT
-		}
 	case *types.Array:
-		if _, ok := item.(*types.Array); !ok {
-			return errors.ERR_REMOVE_NOT_SUPPORT
-		}
+		return nil
 	default:
 		return fmt.Errorf("validateRemove error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
@@ -682,10 +677,8 @@ func validatorValues(e *ExecutionEngine) error {
 }
 
 func validateDCALL(e *ExecutionEngine) error {
-	_, err := PeekBigInteger(e)
-	if err != nil {
-		return fmt.Errorf("validateDCALL error: %s", errors.ERR_NOT_SUPPORT_TYPE)
+	if err := LogStackTrace(e, 1, "[validatorValues]"); err != nil {
+		return err
 	}
-
 	return nil
 }
