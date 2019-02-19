@@ -266,3 +266,24 @@ func BenchmarkMerkleInsert2(b *testing.B) {
 		treeTest.Append([]byte(fmt.Sprintf("bench %d", i)))
 	}
 }
+
+func TestTreeHasher_HashFullTree(t *testing.T) {
+	debugCheck = true
+	leaves := make([][]byte, 0)
+	for i := byte(0); i < 200; i++ {
+		leaves = append(leaves, []byte{i})
+		TreeHasher{}.HashFullTree(leaves)
+	}
+}
+
+func TestTreeHasher(t *testing.T) {
+	tree := NewTree(0, nil, nil)
+	leaves := make([][]byte, 0)
+	for i := uint32(0); i < 1000; i++ {
+		leaf := []byte{byte(i + 1)}
+		leaves = append(leaves, leaf)
+		tree.Append(leaf)
+		root := TreeHasher{}.HashFullTree(leaves)
+		assert.Equal(t, root, tree.Root())
+	}
+}

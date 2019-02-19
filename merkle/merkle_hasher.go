@@ -24,6 +24,8 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
+var debugCheck = false
+
 type TreeHasher struct {
 }
 
@@ -47,7 +49,18 @@ func (self TreeHasher) HashFullTreeWithLeafHash(leaves []common.Uint256) common.
 	root_hash, hashes := self._hash_full(leaves, 0, length)
 
 	if uint(len(hashes)) != countBit(length) {
-		panic("assert failed in hash full tree")
+		panic("hashes length mismatch")
+	}
+
+	if debugCheck {
+		root2 := self.hash_empty()
+		if len(hashes) != 0 {
+			root2 = self._hash_fold(hashes)
+		}
+
+		if root_hash != root2 {
+			panic("root hash mismatch")
+		}
 	}
 
 	// assert len(hashes) == countBit(len(leaves))
@@ -62,16 +75,8 @@ func (self TreeHasher) HashFullTree(leaves [][]byte) common.Uint256 {
 	for i := range leaves {
 		leafhashes[i] = self.hash_leaf(leaves[i])
 	}
-	root_hash, hashes := self._hash_full(leafhashes, 0, length)
 
-	if uint(len(hashes)) != countBit(length) {
-		panic("assert failed in hash full tree")
-	}
-
-	// assert len(hashes) == countBit(len(leaves))
-	// assert self._hash_fold(hashes) == root_hash if hashes else root_hash == self.hash_empty()
-
-	return root_hash
+	return self.HashFullTreeWithLeafHash(leafhashes)
 }
 
 func (self TreeHasher) _hash_full(leaves []common.Uint256, l_idx, r_idx uint32) (root_hash common.Uint256, hashes []common.Uint256) {
@@ -82,7 +87,7 @@ func (self TreeHasher) _hash_full(leaves []common.Uint256, l_idx, r_idx uint32) 
 		leaf_hash := leaves[l_idx]
 		return leaf_hash, []common.Uint256{leaf_hash}
 	} else {
-		var split_width uint32 = 1 << (countBit(width-1) - 1)
+		var split_width uint32 = 1 << (highBit(width-1) - 1)
 		l_root, l_hashes := self._hash_full(leaves, l_idx, l_idx+split_width)
 		if len(l_hashes) != 1 {
 			panic("left tree always full")
