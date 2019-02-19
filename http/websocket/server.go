@@ -20,7 +20,6 @@
 package websocket
 
 import (
-	"bytes"
 	"github.com/ontio/ontology/common"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -108,9 +107,7 @@ func pushBlock(v interface{}) {
 	resp := rest.ResponsePack(Err.SUCCESS)
 	if block, ok := v.(types.Block); ok {
 		resp["Action"] = "sendrawblock"
-		w := bytes.NewBuffer(nil)
-		block.Serialize(w)
-		resp["Result"] = common.ToHexString(w.Bytes())
+		resp["Result"] = common.ToHexString(block.ToArray())
 		ws.BroadcastToSubscribers(nil, websocket.WSTOPIC_RAW_BLOCK, resp)
 
 		resp["Action"] = "sendjsonblock"

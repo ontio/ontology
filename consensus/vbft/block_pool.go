@@ -314,7 +314,7 @@ func (pool *BlockPool) endorseDone(blkNum uint32, C uint32) (uint32, bool, bool)
 		return math.MaxUint32, false, false
 	}
 
-	if uint32(len(candidate.EndorseSigs)) < 2*C {
+	if uint32(len(candidate.EndorseSigs)) < C+1 {
 		return math.MaxUint32, false, false
 	}
 
@@ -322,14 +322,14 @@ func (pool *BlockPool) endorseDone(blkNum uint32, C uint32) (uint32, bool, bool)
 		for _, esig := range eSigs {
 			if esig.ForEmpty {
 				emptyEndorseCount++
-				if emptyEndorseCount >= int(2*C) {
+				if emptyEndorseCount > int(C) {
 					// FIXME: endorsedProposer need fix
 					return esig.EndorsedProposer, true, true
 				}
 			} else {
 				endorseCount[esig.EndorsedProposer] += 1
 				// check if endorse-consensus reached
-				if endorseCount[esig.EndorsedProposer] >= 2*C {
+				if endorseCount[esig.EndorsedProposer] > C {
 					return esig.EndorsedProposer, false, true
 				}
 			}
@@ -350,7 +350,7 @@ func (pool *BlockPool) endorseFailed(blkNum uint32, C uint32) bool {
 		return false
 	}
 
-	if uint32(len(candidate.EndorseSigs)) < 2*C {
+	if uint32(len(candidate.EndorseSigs)) < C+1 {
 		return false
 	}
 
@@ -359,7 +359,7 @@ func (pool *BlockPool) endorseFailed(blkNum uint32, C uint32) bool {
 		for _, esig := range eSigs {
 			if !esig.ForEmpty {
 				proposalCount[esig.EndorsedProposer] += 1
-				if proposalCount[esig.EndorsedProposer] >= 2*C {
+				if proposalCount[esig.EndorsedProposer] > C+1 {
 					return false
 				}
 			} else {
@@ -369,7 +369,7 @@ func (pool *BlockPool) endorseFailed(blkNum uint32, C uint32) bool {
 		endorserCount[endorser] += 1
 	}
 
-	if uint32(len(proposalCount)) >= 2*C {
+	if uint32(len(proposalCount)) > C+1 {
 		return true
 	}
 	if emptyEndorseCnt > C {

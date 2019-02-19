@@ -186,6 +186,11 @@ var (
 		Usage: "Restful server listening port `<number>`",
 		Value: config.DEFAULT_REST_PORT,
 	}
+	RestfulMaxConnsFlag = cli.UintFlag{
+		Name:  "restmaxconns",
+		Usage: "Restful server maximum connections `<number>`",
+		Value: config.DEFAULT_REST_MAX_CONN,
+	}
 
 	//Account setting
 	AccountPassFlag = cli.StringFlag{

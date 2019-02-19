@@ -151,6 +151,9 @@ The rest parameter is used to start the RESTful server.
 --restport
 The restport parameter specifies the port number to which the RESTful server is bound. The default value is 20334.
 
+--restmaxconns
+The restconnlimit parameter specifies the maximum connections. The default value is 1024.
+
 #### 1.1.7 WebSocket Server Parameters
 
 --ws

@@ -22,13 +22,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
 )
 
 var p *Peer
-var key keypair.PublicKey
 
 func init() {
 	log.Init(log.Stdout)
@@ -40,9 +37,6 @@ func init() {
 	p.base.relay = true
 	p.base.height = 123355
 	p.base.id = 29357734007
-	acct := account.NewAccount("SHA256withECDSA")
-	key = acct.PubKey()
-	p.SetBookKeeperAddr(key)
 }
 func TestGetPeerComInfo(t *testing.T) {
 	p.DumpInfo()
@@ -107,9 +101,6 @@ func TestGetPeerComInfo(t *testing.T) {
 		if p.base.GetID() != 1224322422 {
 			t.Errorf("PeerCom SetID error")
 		}
-	}
-	if p.base.GetPubKey() != key {
-		t.Errorf("PeerCom GetPubKey error")
 	}
 }
 

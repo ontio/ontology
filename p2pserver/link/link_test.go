@@ -19,7 +19,6 @@
 package link
 
 import (
-	"bytes"
 	"math/rand"
 	"testing"
 	"time"
@@ -28,7 +27,6 @@ import (
 	"github.com/ontio/ontology/account"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/payload"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
@@ -171,20 +169,10 @@ func TestUnpackBufNode(t *testing.T) {
 		blkHeader.BlkHdr = headers
 		msg = blkHeader
 	case "tx":
-		var tx ct.Transaction
 		trn := &mt.Trn{}
-		sig := ct.Sig{}
-		sigCnt := 100000000
-		for i := 0; i < sigCnt; i++ {
-			data := [][]byte{
-				{byte(i)},
-			}
-			sig.SigData = append(sig.SigData, data...)
-		}
-		sigs := [1]*ct.Sig{&sig}
-		tx.Payload = new(payload.DeployCode)
-		tx.Sigs = sigs[:]
-		trn.Txn = &tx
+		rawTXBytes, _ := comm.HexToBytes("00d1af758596f401000000000000204e000000000000b09ba6a4fe99eb2b2dc1d86a6d453423a6be03f02e0101011552c1126765744469736b506c61796572734c697374676a6f1082c6cec3a1bcbb5a3892cf770061e4b98200014241015d434467639fd8e7b4331d2f3fc0d4168e2d68a203593c6399f5746d2324217aeeb3db8ff31ba0fdb1b13aa6f4c3cd25f7b3d0d26c144bbd75e2963d0a443629232103fdcae8110c9a60d1fc47f8111a12c1941e1f3584b0b0028157736ed1eecd101eac")
+		tx, _ := ct.TransactionFromRawBytes(rawTXBytes)
+		trn.Txn = tx
 		msg = trn
 	case "block":
 		var blk ct.Block
@@ -196,29 +184,17 @@ func TestUnpackBufNode(t *testing.T) {
 		header.SigData = make([][]byte, 0)
 		blk.Header = &header
 
-		for i := 0; i < 2400000; i++ {
-			var tx ct.Transaction
-			sig := ct.Sig{}
-			sig.SigData = append(sig.SigData, [][]byte{
-				{byte(1)},
-			}...)
-			sigs := [1]*ct.Sig{&sig}
-			tx.Payload = new(payload.DeployCode)
-			tx.Sigs = sigs[:]
-			txs = append(txs, &tx)
-		}
+		rawTXBytes, _ := comm.HexToBytes("00d1af758596f401000000000000204e000000000000b09ba6a4fe99eb2b2dc1d86a6d453423a6be03f02e0101011552c1126765744469736b506c61796572734c697374676a6f1082c6cec3a1bcbb5a3892cf770061e4b98200014241015d434467639fd8e7b4331d2f3fc0d4168e2d68a203593c6399f5746d2324217aeeb3db8ff31ba0fdb1b13aa6f4c3cd25f7b3d0d26c144bbd75e2963d0a443629232103fdcae8110c9a60d1fc47f8111a12c1941e1f3584b0b0028157736ed1eecd101eac")
+		tx, _ := ct.TransactionFromRawBytes(rawTXBytes)
+		txs = append(txs, tx)
 
 		blk.Transactions = txs
-		mBlk.Blk = blk
+		mBlk.Blk = &blk
 
 		msg = mBlk
 	}
 
-	buf := bytes.NewBuffer(nil)
-	err := mt.WriteMessage(buf, msg)
+	sink := comm.NewZeroCopySink(nil)
+	err := mt.WriteMessage(sink, msg)
 	assert.Nil(t, err)
-
-	demsg, err := mt.ReadMessage(buf)
-	assert.Nil(t, demsg)
-	assert.NotNil(t, err)
 }

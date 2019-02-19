@@ -104,9 +104,7 @@ func getBlock(hash common.Uint256, getTxBytes bool) (interface{}, int64) {
 		return nil, berr.UNKNOWN_BLOCK
 	}
 	if getTxBytes {
-		w := bytes.NewBuffer(nil)
-		block.Serialize(w)
-		return common.ToHexString(w.Bytes()), berr.SUCCESS
+		return common.ToHexString(block.ToArray()), berr.SUCCESS
 	}
 	return bcomn.GetBlockInfo(block), berr.SUCCESS
 }
@@ -203,9 +201,7 @@ func GetBlockByHeight(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.UNKNOWN_BLOCK)
 	}
 	if getTxBytes {
-		w := bytes.NewBuffer(nil)
-		block.Serialize(w)
-		resp["Result"] = common.ToHexString(w.Bytes())
+		resp["Result"] = common.ToHexString(block.ToArray())
 	} else {
 		resp["Result"] = bcomn.GetBlockInfo(block)
 	}

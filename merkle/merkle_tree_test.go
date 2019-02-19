@@ -21,10 +21,10 @@ package merkle
 import (
 	"crypto/sha256"
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/ontio/ontology/common"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMerkleLeaf3(t *testing.T) {
@@ -62,6 +62,20 @@ func TestMerkleLeaf3(t *testing.T) {
 		}
 	}
 
+}
+
+func TestCompactMerkleTree_GetRootWithNewLeaves(t *testing.T) {
+	N := 1000
+	tree1 := NewTree(0, nil, nil)
+	tree2 := NewTree(0, nil, nil)
+	leaves := make([]common.Uint256, N)
+	for i := 0; i < N; i++ {
+		leaves[i][:][0] = byte(i)
+		hash := leaves[i]
+		assert.Equal(t, tree1.GetRootWithNewLeaf(hash), tree2.GetRootWithNewLeaves([]common.Uint256{hash}))
+		tree1.AppendHash(hash)
+		tree2.AppendHash(hash)
+	}
 }
 
 func TestMerkle(t *testing.T) {
@@ -251,22 +265,4 @@ func BenchmarkMerkleInsert2(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		treeTest.Append([]byte(fmt.Sprintf("bench %d", i)))
 	}
-}
-
-//
-
-func TestNewFileSeek(t *testing.T) {
-	name := "test.txt"
-	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0755)
-	if err != nil {
-		t.Fatal("can not open file", err)
-	}
-	off, err := f.Seek(0, 2)
-	f.Write([]byte{12})
-	a := float64(9999999999996841)
-	b := int64(a)
-
-	t.Fatal(b, "haha")
-
-	t.Fatal(off, err)
 }

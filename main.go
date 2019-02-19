@@ -120,6 +120,7 @@ func setupAPP() *cli.App {
 		//rest setting
 		utils.RestfulEnableFlag,
 		utils.RestfulPortFlag,
+		utils.RestfulMaxConnsFlag,
 		//ws setting
 		utils.WsEnabledFlag,
 		utils.WsPortFlag,
@@ -140,6 +141,8 @@ func main() {
 
 func startOntology(ctx *cli.Context) {
 	initLog(ctx)
+
+	log.Infof("ontology version %s", config.Version)
 
 	_, err := initConfig(ctx)
 	if err != nil {

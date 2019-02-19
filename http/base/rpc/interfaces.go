@@ -83,9 +83,7 @@ func GetBlock(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 	}
-	w := bytes.NewBuffer(nil)
-	block.Serialize(w)
-	return responseSuccess(common.ToHexString(w.Bytes()))
+	return responseSuccess(common.ToHexString(block.ToArray()))
 }
 
 //get block height

@@ -181,11 +181,11 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 	//load vbft peerInfo
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	if consensusType == "vbft" {
-		blk, err := this.GetBlockByHeight(this.currBlockHeight)
+		header, err := this.GetHeaderByHash(this.currBlockHash)
 		if err != nil {
 			return err
 		}
-		blkInfo, err := vconfig.VbftBlock(blk.Header)
+		blkInfo, err := vconfig.VbftBlock(header)
 		if err != nil {
 			return err
 		}
@@ -193,11 +193,11 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if blkInfo.NewChainConfig != nil {
 			cfg = blkInfo.NewChainConfig
 		} else {
-			cfgBlock, err := this.GetBlockByHeight(blkInfo.LastConfigBlockNum)
+			cfgHeader, err := this.GetHeaderByHeight(blkInfo.LastConfigBlockNum)
 			if err != nil {
 				return err
 			}
-			Info, err := vconfig.VbftBlock(cfgBlock.Header)
+			Info, err := vconfig.VbftBlock(cfgHeader)
 			if err != nil {
 				return err
 			}
@@ -776,6 +776,11 @@ func (this *LedgerStoreImp) releaseSavingBlockLock() {
 func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.ExecuteResult) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
+	blockRoot := this.GetBlockRootWithNewTxRoots(block.Header.Height, []common.Uint256{block.Header.TransactionsRoot})
+	if block.Header.Height != 0 && blockRoot != block.Header.BlockRoot {
+		return fmt.Errorf("wrong block root at height:%d, expected:%s, got:%s",
+			block.Header.Height, blockRoot.ToHexString(), block.Header.BlockRoot.ToHexString())
+	}
 
 	this.blockStore.NewBatch()
 	this.stateStore.NewBatch()
@@ -903,9 +908,18 @@ func (this *LedgerStoreImp) IsContainTransaction(txHash common.Uint256) (bool, e
 	return this.blockStore.ContainTransaction(txHash)
 }
 
-//GetBlockRootWithNewTxRoot return the block root(merkle root of blocks) after add a new tx root of block
-func (this *LedgerStoreImp) GetBlockRootWithNewTxRoot(txRoot common.Uint256) common.Uint256 {
-	return this.stateStore.GetBlockRootWithNewTxRoot(txRoot)
+//GetBlockRootWithNewTxRoots return the block root(merkle root of blocks) after add a new tx root of block
+func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	// the block height in consensus is far behind ledger, this case should be rare
+	if this.currBlockHeight > startHeight+uint32(len(txRoots))-1 {
+		// or return error?
+		return common.UINT256_EMPTY
+	}
+
+	needs := txRoots[this.currBlockHeight+1-startHeight:]
+	return this.stateStore.GetBlockRootWithNewTxRoots(needs)
 }
 
 //GetBlockHash return the block hash by block height

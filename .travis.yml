@@ -12,5 +12,4 @@ go:
 script:
   - make
   - bash ./.travis.gofmt.sh
-    #  - go test -v ./...
-        
+  - bash ./.travis.gotest.sh
