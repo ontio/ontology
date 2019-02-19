@@ -40,7 +40,7 @@ func newChainStore() *ChainStore {
 		os.Exit(1)
 	}
 
-	db, err := ledger.NewLedger(config.DEFAULT_DATA_DIR)
+	db, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
 		log.Fatalf("NewLedger error %s", err)
 		os.Exit(1)

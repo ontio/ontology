@@ -54,7 +54,7 @@ var ImportCommand = cli.Command{
 func importBlocks(ctx *cli.Context) error {
 	log.InitLog(log.InfoLog)
 
-	_, err := SetOntologyConfig(ctx)
+	cfg, err := SetOntologyConfig(ctx)
 	if err != nil {
 		PrintErrorMsg("SetOntologyConfig error:%s", err)
 		cli.ShowSubcommandHelp(ctx)
@@ -62,7 +62,8 @@ func importBlocks(ctx *cli.Context) error {
 	}
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
 
-	ledger.DefLedger, err = ledger.NewLedger(dbDir)
+	stateHashHeight := config.GetStateHashCheckHeight(cfg.P2PNode.NetworkId)
+	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
 	if err != nil {
 		return fmt.Errorf("NewLedger error:%s", err)
 	}
