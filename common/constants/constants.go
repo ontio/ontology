@@ -32,7 +32,7 @@ var (
 const (
 	ONT_NAME         = "ONT Token"
 	ONT_SYMBOL       = "ONT"
-	ONT_DECIMALS     = 1
+	ONT_DECIMALS     = 0
 	ONT_TOTAL_SUPPLY = uint64(1000000000)
 )
 
