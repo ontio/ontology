@@ -16,29 +16,35 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message_test
+package shardstates_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
-func TestNewCrossShardTxMsg(t *testing.T) {
-	acc := account.NewAccount("")
-	if acc == nil {
-		t.Fatalf("failed to new account")
-	}
-	payload := [][]byte{{1, 2, 3, 4}}
-	tx, err := message.NewCrossShardTxMsg(acc, 100, 10, payload)
-	if err != nil {
-		t.Fatalf("failed to build cross shard tx: %s", err)
+func TestCreateShardEvent(t *testing.T) {
+	evt := &shardstates.CreateShardEvent{
+		SourceShardID: 100,
+		Height:        110,
+		NewShardID:    120,
 	}
 
 	buf := new(bytes.Buffer)
-	if err := tx.Serialize(buf); err != nil {
-		t.Fatalf("failed to serialize cross shard tx: %s", err)
+	if err := evt.Serialize(buf); err != nil {
+		t.Fatalf("serialize createEvt: %s", err)
+	}
+
+	evt2 := &shardstates.CreateShardEvent{}
+	if err := evt2.Deserialize(buf); err != nil {
+		t.Fatalf("deserialize createEvt: %s", err)
+	}
+
+	if evt.SourceShardID != evt2.SourceShardID ||
+		evt.Height != evt2.Height ||
+		evt.NewShardID != evt2.NewShardID {
+		t.Fatalf("mismatch evt")
 	}
 }

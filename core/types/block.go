@@ -38,6 +38,7 @@ func (b *Block) Serialization(sink *common.ZeroCopySink) error {
 		return err
 	}
 
+	// serialize cross-shard txs, ordered by ShardID
 	sink.WriteUint32(uint32(len(b.ShardTxs)))
 	shardIds := make([]uint64, 0, len(b.ShardTxs))
 
@@ -54,6 +55,7 @@ func (b *Block) Serialization(sink *common.ZeroCopySink) error {
 		}
 	}
 
+	// serialize transactions
 	sink.WriteUint32(uint32(len(b.Transactions)))
 	for _, transaction := range b.Transactions {
 		err := transaction.Serialization(sink)
@@ -84,6 +86,7 @@ func (self *Block) Deserialization(source *common.ZeroCopySource) error {
 		return err
 	}
 
+	// deserialize cross-shard Txs
 	nShardTxs, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -94,6 +97,7 @@ func (self *Block) Deserialization(source *common.ZeroCopySource) error {
 	}
 	self.ShardTxs = shardTxs
 
+	// deserialize local transactions
 	length, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF

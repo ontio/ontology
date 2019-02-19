@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
@@ -32,7 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func (self *ChainManager) GetShardConfig(shardID uint64) *config.OntologyConfig {
+func (self *ChainManager) getShardConfig(shardID uint64) *config.OntologyConfig {
 	if s := self.shards[shardID]; s != nil {
 		return s.Config
 	}
@@ -53,12 +54,12 @@ func (self *ChainManager) setShardConfig(shardID uint64, cfg *config.OntologyCon
 	return nil
 }
 
-func (self *ChainManager) getShardMgmtGlobalState() (*shardstates.ShardMgmtGlobalState, error) {
-	if self.ledger == nil {
-		return nil, fmt.Errorf("uninitialized chain mgr")
+func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalState, error) {
+	if lgr == nil {
+		return nil, fmt.Errorf("get shard global state, nil ledger")
 	}
 
-	data, err := self.ledger.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_VERSION))
+	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_VERSION))
 	if err == common.ErrNotFound {
 		return nil, nil
 	}
@@ -74,7 +75,7 @@ func (self *ChainManager) getShardMgmtGlobalState() (*shardstates.ShardMgmtGloba
 		return nil, fmt.Errorf("uncompatible version: %d", ver)
 	}
 
-	data, err = self.ledger.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_GLOBAL_STATE))
+	data, err = lgr.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_GLOBAL_STATE))
 	if err == common.ErrNotFound {
 		return nil, nil
 	}
@@ -93,9 +94,9 @@ func (self *ChainManager) getShardMgmtGlobalState() (*shardstates.ShardMgmtGloba
 	return globalState, nil
 }
 
-func (self *ChainManager) getShardState(shardID uint64) (*shardstates.ShardState, error) {
-	if self.ledger == nil {
-		return nil, fmt.Errorf("uninitialized chain mgr")
+func GetShardState(lgr *ledger.Ledger, shardID uint64) (*shardstates.ShardState, error) {
+	if lgr == nil {
+		return nil, fmt.Errorf("get shard state, nil ledger")
 	}
 
 	shardIDBytes, err := shardutil.GetUint64Bytes(shardID)
@@ -103,7 +104,7 @@ func (self *ChainManager) getShardState(shardID uint64) (*shardstates.ShardState
 		return nil, fmt.Errorf("ser shardID failed: %s", err)
 	}
 	key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
-	data, err := self.ledger.GetStorageItem(utils.ShardMgmtContractAddress, key)
+	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
 	if err == common.ErrNotFound {
 		return nil, nil
 	}
@@ -119,8 +120,8 @@ func (self *ChainManager) getShardState(shardID uint64) (*shardstates.ShardState
 	return shardState, nil
 }
 
-func (self *ChainManager) getRemoteMsgShards(blockNum uint64) ([]uint64, error) {
-	if self.ledger == nil {
+func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint64) ([]uint64, error) {
+	if lgr == nil {
 		return nil, fmt.Errorf("uninitialized chain mgr")
 	}
 
@@ -129,7 +130,7 @@ func (self *ChainManager) getRemoteMsgShards(blockNum uint64) ([]uint64, error) 
 		return nil, fmt.Errorf("serialize height: %s", err)
 	}
 	key := append([]byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes...)
-	toShardsBytes, err := self.ledger.GetStorageItem(utils.ShardSysMsgContractAddress, key)
+	toShardsBytes, err := lgr.GetStorageItem(utils.ShardSysMsgContractAddress, key)
 	if err == common.ErrNotFound {
 		return nil, nil
 	}
@@ -144,9 +145,9 @@ func (self *ChainManager) getRemoteMsgShards(blockNum uint64) ([]uint64, error) 
 	return req.Shards, nil
 }
 
-func (self *ChainManager) GetRemoteMsg(blockNum, toShard uint64) ([][]byte, error) {
-	if self.ledger == nil {
-		return nil, fmt.Errorf("uninitialized chain mgr")
+func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockNum, toShard uint64) ([][]byte, error) {
+	if lgr == nil {
+		return nil, fmt.Errorf("nil ledger")
 	}
 
 	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
@@ -158,7 +159,7 @@ func (self *ChainManager) GetRemoteMsg(blockNum, toShard uint64) ([][]byte, erro
 		return nil, fmt.Errorf("serialize toshard: %s", err)
 	}
 	key := append(append([]byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes...), shardIDBytes...)
-	reqBytes, err := self.ledger.GetStorageItem(utils.ShardSysMsgContractAddress, key)
+	reqBytes, err := lgr.GetStorageItem(utils.ShardSysMsgContractAddress, key)
 	if err == common.ErrNotFound {
 		return nil, nil
 	}

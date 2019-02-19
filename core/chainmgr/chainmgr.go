@@ -104,27 +104,27 @@ type ChainManager struct {
 	parentShardPort      uint
 
 	// ShardInfo management, indexing shards with ShardID / Sender-Addr
-	lock                 sync.RWMutex
-	shards               map[uint64]*ShardInfo
-	shardAddrs           map[string]uint64
+	lock       sync.RWMutex
+	shards     map[uint64]*ShardInfo
+	shardAddrs map[string]uint64
 
 	// BlockHeader and Cross-Shard Txs of other shards
 	// FIXME: check if any lock needed (if not only accessed by remoteShardMsgLoop)
 	// TODO: persistent
-	blockPool            *shardmsg.ShardBlockPool
+	blockPool *shardmsg.ShardBlockPool
 
 	// last local block processed by ChainManager
 	// FIXME: on restart, make sure catchup with latest blocks
 	// TODO: persistent
 	processedBlockHeight uint64
 
-	account      *account.Account
+	account *account.Account
 
 	// Ontology process command arguments, for child-shard ontology process creation
-	cmdArgs      map[string]string
+	cmdArgs map[string]string
 
-	ledger    *ledger.Ledger
-	p2pPid    *actor.PID
+	ledger *ledger.Ledger
+	p2pPid *actor.PID
 
 	// send transaction to local
 	txPoolPid *actor.PID
@@ -141,14 +141,14 @@ type ChainManager struct {
 	pendingTxns        map[common.Uint256]*shardmsg.TxRequest
 	pendingStorageReqs map[uint64]ShardStorageReqList
 
-	parentPid     *actor.PID
-	localPid      *actor.PID
+	parentPid *actor.PID
+	localPid  *actor.PID
 
 	// subscribe local SHARD_EVENT from shard-system-contract and BLOCK-EVENT from ledger
 	localEventSub *events.ActorSubscriber
 
 	// subscribe event-bus disconnected event
-	busEventSub   *eventstream.Subscription
+	busEventSub *eventstream.Subscription
 
 	quitC  chan struct{}
 	quitWg sync.WaitGroup
@@ -243,7 +243,7 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 	self.localEventSub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
 	// get child-shards from shard-mgmt contract
-	globalState, err := self.getShardMgmtGlobalState()
+	globalState, err := GetShardMgmtGlobalState(self.ledger)
 	if err != nil {
 		return fmt.Errorf("chainmgr: failed to read shard-mgmt global state: %s", err)
 	}
@@ -255,7 +255,7 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 
 	// load all child-shard from shard-mgmt contract
 	for i := uint64(1); i < globalState.NextShardID; i++ {
-		shard, err := self.getShardState(i)
+		shard, err := GetShardState(self.ledger, i)
 		if err != nil {
 			return fmt.Errorf("get shard %d failed: %s", i, err)
 		}
@@ -693,7 +693,7 @@ func (self *ChainManager) sendShardMsg(shardId uint64, msg *shardmsg.CrossShardM
 // TODO: get ip-address of remote shard node
 //
 func (self *ChainManager) sendCrossShardTx(shardID uint64, tx *types.Transaction) error {
-	// FIXME: broadcast Tx to target shard
+	// FIXME: broadcast Tx to seed nodes of target shard
 
 	// relay with parent shard
 	//payload := new(bytes.Buffer)
@@ -709,7 +709,6 @@ func (self *ChainManager) sendCrossShardTx(shardID uint64, tx *types.Transaction
 	//}
 	//self.sendShardMsg(self.parentShardID, msg)
 	//return nil
-
 
 	go func(tx *types.Transaction) {
 		if err := sendRawTx(tx); err != nil {

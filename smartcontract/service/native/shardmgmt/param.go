@@ -27,6 +27,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
+//
+// CommonParam wrapper for all smart contract interfaces
+//
 type CommonParam struct {
 	Input []byte
 }
@@ -47,6 +50,12 @@ func (this *CommonParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
+//
+// params for shard creation
+// @ParentShardID : local shard ID
+// @Creator : account address of shard creator.
+// shard creator is also the shard operator after shard activated
+//
 type CreateShardParam struct {
 	ParentShardID uint64         `json:"parent_shard_id"`
 	Creator       common.Address `json:"creator"`
@@ -60,6 +69,14 @@ func (this *CreateShardParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
+//
+// params for shard configuration
+// @ShardID : ID of shard which is to be configured
+// @NetworkMin : min node count of shard network
+// @StakeAssetAddress : contract address of token. shard is based on PoS. (ONT address)
+// @GasAssetAddress : contract address of gas token. (ONG address)
+// @...
+//
 type ConfigShardParam struct {
 	ShardID           uint64         `json:"shard_id"`
 	NetworkMin        uint32         `json:"network_min"`
@@ -76,6 +93,14 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
+//
+// param for peer join shard request
+// @ShardID : ID of shard which peer node is going to join
+// @PeerOwner : wallet address of peer owner (to pay stake token)
+// @PeerAddress : wallet address for peer fee split (to get paid gas)
+// @PeerPubKey : peer public key, to verify message signatures sent from peer
+// @StakeAmount : amount of token stake for the peer
+//
 type JoinShardParam struct {
 	ShardID     uint64         `json:"shard_id"`
 	PeerOwner   common.Address `json:"peer_owner"`
@@ -92,6 +117,11 @@ func (this *JoinShardParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
+//
+// param of shard-activation request
+// The request can only be initiated by operator of the shard
+// @ShardID : ID of shard which is to be activated
+//
 type ActivateShardParam struct {
 	ShardID uint64 `json:"shard_id"`
 }

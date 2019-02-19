@@ -21,11 +21,15 @@ package chainmgr
 import (
 	"fmt"
 
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 )
+
+func GetShardName(shardID uint64) string {
+	return fmt.Sprintf("shard_%d", shardID)
+}
 
 func IsRootShard(shardId uint64) bool {
 	return shardId == 0
@@ -79,7 +83,11 @@ func SetTxPool(txPool *actor.PID) error {
 	return nil
 }
 
-func GetParentBlockHeight() (uint64, error) {
+//
+// GetParentShardHeight
+// get height of parent shard
+//
+func GetParentShardHeight() (uint64, error) {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
@@ -94,7 +102,7 @@ func GetParentBlockHeight() (uint64, error) {
 	}
 
 	h := uint64(0)
-	if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
+	if cfg := chainmgr.getShardConfig(chainmgr.shardID); cfg != nil {
 		h = cfg.Shard.GenesisParentHeight
 	} else {
 		log.Errorf("failed to get self shard config")
@@ -127,6 +135,16 @@ func GetParentBlockHeader(height uint64) *types.Header {
 	return nil
 }
 
+//
+// GetShardTxsByParentHeight
+// Get cross-shard Tx/Events from parent shard.
+// Cross-shard Tx/events of parent shard are delivered to child shards with parent-block propagation.
+// NOTE: all cross-shard tx/events should be indexed with (parentHeight, shardHeight)
+// TODO:
+//
+// @start : startHeight of parent block
+// @end : endHeight of parent block
+//
 func GetShardTxsByParentHeight(start, end uint64) map[uint64][]*types.Transaction {
 	chainmgr := GetChainManager()
 

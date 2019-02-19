@@ -20,6 +20,7 @@ package message_test
 
 import (
 	"testing"
+
 	"github.com/ontio/ontology/core/chainmgr/message"
 )
 
@@ -50,9 +51,9 @@ func TestShardBlockRspMsg(t *testing.T) {
 	tx := newTestShardTx(t, 10, 1000)
 	rsp := &message.ShardBlockRspMsg{
 		FromShardID: 100,
-		Height: 200,
+		Height:      200,
 		BlockHeader: blkHdr,
-		Txs: []*message.ShardBlockTx{tx},
+		Txs:         []*message.ShardBlockTx{tx},
 	}
 
 	msgBytes, err := message.EncodeShardMsg(rsp)
