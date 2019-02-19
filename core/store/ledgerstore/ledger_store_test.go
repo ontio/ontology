@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 	log.InitLog(0)
 
 	var err error
-	testLedgerStore, err = NewLedgerStore("test/ledger")
+	testLedgerStore, err = NewLedgerStore("test/ledger", 0)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewLedgerStore error %s\n", err)
 		return

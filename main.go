@@ -144,7 +144,7 @@ func startOntology(ctx *cli.Context) {
 
 	log.Infof("ontology version %s", config.Version)
 
-	_, err := initConfig(ctx)
+	cfg, err := initConfig(ctx)
 	if err != nil {
 		log.Errorf("initConfig error:%s", err)
 		return
@@ -154,7 +154,8 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initWallet error:%s", err)
 		return
 	}
-	ldg, err := initLedger(ctx)
+	stateHashHeight := config.GetStateHashCheckHeight(cfg.P2PNode.NetworkId)
+	ldg, err := initLedger(ctx, stateHashHeight)
 	if err != nil {
 		log.Errorf("%s", err)
 		return
@@ -237,12 +238,12 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 	return acc, nil
 }
 
-func initLedger(ctx *cli.Context) (*ledger.Ledger, error) {
+func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error) {
 	events.Init() //Init event hub
 
 	var err error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	ledger.DefLedger, err = ledger.NewLedger(dbDir)
+	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
 	}

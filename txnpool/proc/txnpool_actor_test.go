@@ -37,7 +37,7 @@ import (
 func init() {
 	log.Init(log.PATH, log.Stdout)
 	var err error
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR)
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
 		return
 	}

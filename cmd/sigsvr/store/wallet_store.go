@@ -106,7 +106,7 @@ func NewWalletStore(path string) (*WalletStore, error) {
 	}
 	walletExtra, err := walletStore.getWalletExtra()
 	if err != nil {
-		return nil, fmt.Errorf("getWalletExtra error", err)
+		return nil, fmt.Errorf("getWalletExtra error: %v", err)
 	}
 	walletStore.nextAccountIndex = nextAccountIndex
 	walletStore.WalletScrypt = walletScrypt

@@ -130,10 +130,10 @@ func TestGetNeighborAddrs(t *testing.T) {
 	p.SetSyncState(4)
 
 	pList := nm.GetNeighborAddrs()
-	for i := 0; i < int(cnt); i++ {
+	for i := 0; i < len(pList); i++ {
 		fmt.Printf("peer id = %x \n", pList[i].ID)
 	}
-	if cnt != 2 {
+	if len(pList) != 2 {
 		t.Fatal("TestGetNeighborAddrs error")
 	}
 }

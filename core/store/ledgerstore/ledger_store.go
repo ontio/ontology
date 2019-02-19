@@ -62,8 +62,6 @@ const (
 	HEADER_INDEX_BATCH_SIZE = uint32(2000) //Bath size of saving header index
 )
 
-const STATE_HASH_HEIGHT = 1900000
-
 var (
 	//Storage save path.
 	DBDirEvent          = "ledgerevent"
@@ -86,16 +84,18 @@ type LedgerStoreImp struct {
 	vbftPeerInfoheader   map[string]uint32 //pubInfo save pubkey,peerindex
 	vbftPeerInfoblock    map[string]uint32 //pubInfo save pubkey,peerindex
 	lock                 sync.RWMutex
+	stateHashCheckHeight uint32
 }
 
 //NewLedgerStore return LedgerStoreImp instance
-func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
+func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
 		headerIndex:          make(map[uint32]common.Uint256),
 		headerCache:          make(map[common.Uint256]*types.Header, 0),
 		vbftPeerInfoheader:   make(map[string]uint32),
 		vbftPeerInfoblock:    make(map[string]uint32),
 		savingBlockSemaphore: make(chan bool, 1),
+		stateHashCheckHeight: stateHashHeight,
 	}
 
 	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
@@ -106,7 +106,7 @@ func NewLedgerStore(dataDir string) (*LedgerStoreImp, error) {
 
 	dbPath := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState)
 	merklePath := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath)
-	stateStore, err := NewStateStore(dbPath, merklePath, STATE_HASH_HEIGHT)
+	stateStore, err := NewStateStore(dbPath, merklePath, stateHashHeight)
 	if err != nil {
 		return nil, fmt.Errorf("NewStateStore error %s", err)
 	}
@@ -645,9 +645,9 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
-	if block.Header.Height < STATE_HASH_HEIGHT {
+	if block.Header.Height < this.stateHashCheckHeight {
 		result.MerkleRoot = common.UINT256_EMPTY
-	} else if block.Header.Height == STATE_HASH_HEIGHT {
+	} else if block.Header.Height == this.stateHashCheckHeight {
 		res, e := calculateTotalStateHash(overlay)
 		if e != nil {
 			err = e

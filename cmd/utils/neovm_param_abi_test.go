@@ -60,7 +60,7 @@ func TestParseNeovmFunc(t *testing.T) {
 }`
 	contractAbi, err := NewNeovmContractAbi([]byte(testNeovmAbi))
 	if err != nil {
-		t.Error("TestParseNeovmFunc NewNeovmContractAbi error:%s", err)
+		t.Errorf("TestParseNeovmFunc NewNeovmContractAbi error:%s", err)
 		return
 	}
 	funcAbi := contractAbi.GetFunc("Add")
@@ -71,7 +71,7 @@ func TestParseNeovmFunc(t *testing.T) {
 
 	params, err := ParseNeovmFunc([]string{"12", "34"}, funcAbi)
 	if err != nil {
-		t.Error("TestParseNeovmFunc ParseNeovmFunc error:%s", err)
+		t.Errorf("TestParseNeovmFunc ParseNeovmFunc error:%s", err)
 		return
 	}
 	fmt.Printf("TestParseNeovmFunc %v\n", params)
