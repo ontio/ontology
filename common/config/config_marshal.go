@@ -1,10 +1,10 @@
 package config
 
 import (
-	"io"
+	"encoding/json"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"encoding/json"
+	"io"
 )
 
 //
@@ -159,9 +159,9 @@ func (this *OntologyConfig) Deserialize(r io.Reader) error {
 	this.Shard = shard
 
 	// disable rpc, restful and websocket
-	this.Rpc = &RpcConfig{ EnableHttpJsonRpc: false }
-	this.Restful = &RestfulConfig{ EnableHttpRestful: false }
-	this.Ws = &WebSocketConfig{ EnableHttpWs: false }
+	this.Rpc = &RpcConfig{EnableHttpJsonRpc: false}
+	this.Restful = &RestfulConfig{EnableHttpRestful: false}
+	this.Ws = &WebSocketConfig{EnableHttpWs: false}
 	return nil
 }
 

@@ -22,15 +22,15 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"bytes"
+	"encoding/json"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"bytes"
-	"encoding/json"
-	"time"
-	"net/http"
 	"io/ioutil"
+	"net/http"
+	"time"
 )
 
 func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) error {
