@@ -46,7 +46,7 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 	}
 
 	shardID := helloMsg.SourceShardID
-	shardState, err := self.getShardState(shardID)
+	shardState, err := GetShardState(self.ledger, shardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -146,7 +146,7 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 		return nil
 	}
 
-	shardState, err := self.getShardState(evt.ShardID)
+	shardState, err := GetShardState(self.ledger, evt.ShardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -169,7 +169,7 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
 	// build shard config
 	// start local shard
-	shardState, err := self.getShardState(evt.ShardID)
+	shardState, err := GetShardState(self.ledger, evt.ShardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -293,8 +293,8 @@ func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 		// TODO: update persisted ProcessedBlockHeight
 	}()
 
-	for height := self.processedBlockHeight+1; height <= uint64(blk.Header.Height); height++ {
-		shards, err := self.getRemoteMsgShards(height)
+	for height := self.processedBlockHeight + 1; height <= uint64(blk.Header.Height); height++ {
+		shards, err := GetRequestedRemoteShards(self.ledger, height)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
 		}
@@ -304,7 +304,7 @@ func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 		}
 
 		for _, s := range shards {
-			reqs, err := self.GetRemoteMsg(height, s)
+			reqs, err := GetRequestsToRemoteShard(self.ledger, height, s)
 			if err != nil {
 				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
 			}

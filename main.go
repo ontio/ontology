@@ -252,7 +252,7 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 
 	// init shard config from parent shard
 	acc := shard.GetAccount()
-	cfg := chainMgr.GetShardConfig(shardID)
+	cfg := chainMgr.getShardConfig(shardID)
 	if cfg == nil {
 		log.Errorf("shard %d: get shard config failed", shardID)
 		return

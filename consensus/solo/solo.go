@@ -220,7 +220,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
 
 	// get ParentHeight from chain-mgr
-	parentHeight, err := chainmgr.GetParentBlockHeight()
+	parentHeight, err := chainmgr.GetParentShardHeight()
 	if err != nil {
 		return nil, fmt.Errorf("get parentBlock height: %s", err)
 	}
@@ -230,7 +230,11 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 
 	// get Cross-Shard Txs from chain-mgr
-	shardTxs := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+	shardTxs := make(map[uint64][]*types.Transaction)
+	if self.parentHeight < parentHeight {
+		// new parentBlock available
+		shardTxs = chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+	}
 	header := &types.Header{
 		Version:          ContextVersion,
 		ShardID:          shardID.ToUint64(),

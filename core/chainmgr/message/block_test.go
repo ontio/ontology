@@ -60,9 +60,9 @@ func newTestShardBlockInfo(t *testing.T) *message.ShardBlockInfo {
 
 	blkInfo := &message.ShardBlockInfo{
 		FromShardID: 100,
-		Height: uint64(height),
-		Header: shardHdr,
-		ShardTxs: make(map[uint64]*message.ShardBlockTx),
+		Height:      uint64(height),
+		Header:      shardHdr,
+		ShardTxs:    make(map[uint64]*message.ShardBlockTx),
 	}
 
 	version := byte(100)
