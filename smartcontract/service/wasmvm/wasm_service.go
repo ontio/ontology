@@ -20,18 +20,18 @@ package wasmvm
 import (
 	"bytes"
 	"fmt"
+	"github.com/go-interpreter/wagon/exec"
+	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	"github.com/go-interpreter/wagon/exec"
-	"github.com/go-interpreter/wagon/wasm"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 type WasmVmService struct {
@@ -64,29 +64,23 @@ var (
 )
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
-	fmt.Printf("Invoke 1 \n")
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
 
 	contract := &states.ContractInvokeParam{}
 	contract.Deserialize(bytes.NewBuffer(this.Code))
-	fmt.Printf("Invoke 2 \n")
-	fmt.Printf("contract is %v\n",contract)
 
 	code, err := this.Store.GetContractState(contract.Address)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Invoke 3 \n")
 
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
 
-	bf:= bytes.NewBuffer(nil)
-	serialization.WriteString(bf,contract.Method)
-
-	serialization.WriteVarBytes(bf,contract.Args)
-	fmt.Printf("Invoke 4 \n")
+	bf := bytes.NewBuffer(nil)
+	serialization.WriteString(bf, contract.Method)
+	bf.Write(contract.Args)
 
 	host := &Runtime{Service: this, Input: bf.Bytes()}
 
@@ -100,7 +94,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Invoke 5 \n")
 
 	if m.Export == nil {
 		return nil, errors.NewErr("[Call]No export in wasm!")
@@ -119,12 +112,10 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	entryName := CONTRACT_METHOD_NAME
 
 	entry, ok := m.Export.Entries[entryName]
-	fmt.Printf("Invoke 6 \n")
 
 	if ok == false {
 		return nil, errors.NewErr("[Call]Method:" + entryName + " does not exist!")
 	}
-	fmt.Printf("Invoke 7 \n")
 
 	//get entry index
 	index := int64(entry.Index)
@@ -134,21 +125,18 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	//get  function type
 	ftype := m.Types.Entries[int(fidx)]
-	fmt.Printf("Invoke 8 \n")
 
 	//no returns of the entry function
 	if len(ftype.ReturnTypes) > 0 {
-		return nil, errors.NewErr("[Call]ExecCode error! Invoke function sig error" )
+		return nil, errors.NewErr("[Call]ExecCode error! Invoke function sig error")
 	}
 
 	//nor args for passed in, all args in runtime input buffer
-	fmt.Printf("Invoke 9 \n")
 
 	_, err = vm.ExecCode(index)
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 	}
-	fmt.Printf("Invoke 10 \n")
 
-	return host.Output,nil
+	return host.Output, nil
 }

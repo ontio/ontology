@@ -643,6 +643,7 @@ func PrepareDeployContract(
 	txData := hex.EncodeToString(buffer.Bytes())
 	return PrepareSendRawTransaction(txData)
 }
+
 //
 //func InvokeNativeContract(
 //	gasPrice,
@@ -803,6 +804,7 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, needStorag
 	}
 	return tx
 }
+
 //
 ////for wasm vm
 ////build param bytes for wasm contract

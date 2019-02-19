@@ -227,7 +227,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			service, err := this.ContextRef.NewExecuteEngine(code,types.Invoke)
+			service, err := this.ContextRef.NewExecuteEngine(code, types.Invoke)
 			if err != nil {
 				return nil, err
 			}

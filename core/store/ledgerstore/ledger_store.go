@@ -858,7 +858,7 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-	case types.Invoke ,types.InvokeWasm:
+	case types.Invoke, types.InvokeWasm:
 		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
@@ -1021,7 +1021,6 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	}
 
 	if tx.TxType == types.Invoke || tx.TxType == types.InvokeWasm {
-		fmt.Println("==============pre exec==========")
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		sc := smartcontract.SmartContract{
@@ -1031,35 +1030,29 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			Gas:     math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), preGas[neovm.UINT_INVOKE_CODE_LEN_NAME]),
 			PreExec: true,
 		}
-		fmt.Printf("invoke.Code is %v\n",invoke.Code)
 		//start the smart contract executive function
-		engine, _ := sc.NewExecuteEngine(invoke.Code,tx.TxType)
-		fmt.Println("==============pre exec 2==========")
+		engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
 
 		result, err := engine.Invoke()
 		if err != nil {
 			return stf, err
 		}
-		fmt.Printf("result is %v",result)
 		gasCost := math.MaxUint64 - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
 		if gasCost < mixGas {
 			gasCost = mixGas
 		}
-		fmt.Println("==============pre exec 3==========")
 
 		var cv interface{}
-		if tx.TxType == types.Invoke{ //neovm
+		if tx.TxType == types.Invoke { //neovm
 			cv, err = scommon.ConvertNeoVmTypeHexString(result)
 			if err != nil {
 				return stf, err
 			}
-		}else{ //wasmvm
+		} else { //wasmvm
 			cv = common.ToHexString(result.([]byte))
 		}
-		fmt.Println("==============pre exec 4==========")
-		fmt.Printf("cv is %s\n",cv)
-		fmt.Printf("gas cost is %d\n",gasCost)
+
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: sc.Notifications}, nil
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)

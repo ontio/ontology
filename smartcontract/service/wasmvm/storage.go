@@ -43,9 +43,7 @@ func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32,
 		return math.MaxUint32
 	}
 
-	valbytes := item[offset : offset+vlen]
-
-	length, err := proc.WriteAt(valbytes, int64(val))
+	length, err := proc.WriteAt(item, int64(val))
 	if err != nil {
 		panic(err)
 	}

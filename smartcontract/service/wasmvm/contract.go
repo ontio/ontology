@@ -20,9 +20,9 @@ package wasmvm
 
 import (
 	"github.com/go-interpreter/wagon/exec"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/common"
 )
 
 func (self *Runtime) ContractCreate(proc *exec.Process,
@@ -39,28 +39,28 @@ func (self *Runtime) ContractCreate(proc *exec.Process,
 	emailLen uint32,
 	descPtr uint32,
 	descLen uint32,
-	newAddressPtr uint32	) uint32{
+	newAddressPtr uint32) uint32 {
 
 	code := make([]byte, codeLen)
-	_, err := proc.ReadAt(code,int64(codePtr))
+	_, err := proc.ReadAt(code, int64(codePtr))
 	if err != nil {
 		panic(err)
 	}
 
-	name := make([]byte,nameLen)
-	_, err = proc.ReadAt(name,int64(namePtr))
+	name := make([]byte, nameLen)
+	_, err = proc.ReadAt(name, int64(namePtr))
 	if err != nil {
 		panic(err)
 	}
 
-	version := make([]byte,verLen)
-	_, err = proc.ReadAt(version,int64(verPtr))
+	version := make([]byte, verLen)
+	_, err = proc.ReadAt(version, int64(verPtr))
 	if err != nil {
 		panic(err)
 	}
 
 	author := make([]byte, authorLen)
-	_, err = proc.ReadAt(author,int64(authorPtr))
+	_, err = proc.ReadAt(author, int64(authorPtr))
 	if err != nil {
 		panic(err)
 	}
@@ -72,18 +72,18 @@ func (self *Runtime) ContractCreate(proc *exec.Process,
 	}
 
 	desc := make([]byte, descLen)
-	_, err = proc.ReadAt(desc,int64(descPtr))
+	_, err = proc.ReadAt(desc, int64(descPtr))
 	if err != nil {
 		panic(err)
 	}
 
-	dep, err := self.isContractValid(code,needStorage,name,version,author,email,desc)
+	dep, err := self.isContractValid(code, needStorage, name, version, author, email, desc)
 	if err != nil {
 		panic(err)
 	}
 
 	contractAddr := dep.Address()
-	if self.isContractExist(contractAddr){
+	if self.isContractExist(contractAddr) {
 		panic(errors.NewErr("contract has been deployed"))
 	}
 
@@ -92,12 +92,12 @@ func (self *Runtime) ContractCreate(proc *exec.Process,
 		panic(err)
 	}
 
-	length, err := proc.WriteAt(contractAddr[:],int64(newAddressPtr))
+	length, err := proc.WriteAt(contractAddr[:], int64(newAddressPtr))
 	return uint32(length)
 
 }
 
-func (self *Runtime)ContractMigrate(proc *exec.Process,
+func (self *Runtime) ContractMigrate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
 	needStorage uint32,
@@ -111,28 +111,28 @@ func (self *Runtime)ContractMigrate(proc *exec.Process,
 	emailLen uint32,
 	descPtr uint32,
 	descLen uint32,
-	newAddressPtr uint32	) uint32{
+	newAddressPtr uint32) uint32 {
 
 	code := make([]byte, codeLen)
-	_, err := proc.ReadAt(code,int64(codePtr))
+	_, err := proc.ReadAt(code, int64(codePtr))
 	if err != nil {
 		panic(err)
 	}
 
-	name := make([]byte,nameLen)
-	_, err = proc.ReadAt(name,int64(namePtr))
+	name := make([]byte, nameLen)
+	_, err = proc.ReadAt(name, int64(namePtr))
 	if err != nil {
 		panic(err)
 	}
 
-	version := make([]byte,verLen)
-	_, err = proc.ReadAt(version,int64(verPtr))
+	version := make([]byte, verLen)
+	_, err = proc.ReadAt(version, int64(verPtr))
 	if err != nil {
 		panic(err)
 	}
 
 	author := make([]byte, authorLen)
-	_, err = proc.ReadAt(author,int64(authorPtr))
+	_, err = proc.ReadAt(author, int64(authorPtr))
 	if err != nil {
 		panic(err)
 	}
@@ -144,28 +144,28 @@ func (self *Runtime)ContractMigrate(proc *exec.Process,
 	}
 
 	desc := make([]byte, descLen)
-	_, err = proc.ReadAt(desc,int64(descPtr))
+	_, err = proc.ReadAt(desc, int64(descPtr))
 	if err != nil {
 		panic(err)
 	}
 
-	dep, err := self.isContractValid(code,needStorage,name,version,author,email,desc)
+	dep, err := self.isContractValid(code, needStorage, name, version, author, email, desc)
 	if err != nil {
 		panic(err)
 	}
 
 	contractAddr := dep.Address()
-	if self.isContractExist(contractAddr){
+	if self.isContractExist(contractAddr) {
 		panic(errors.NewErr("contract has been deployed"))
 	}
 	oldAddress := self.Service.ContextRef.CurrentContext().ContractAddress
 
 	iter := self.Service.CacheDB.NewIterator(oldAddress[:])
 	for has := iter.First(); has; has = iter.Next() {
-		key:= iter.Key()
+		key := iter.Key()
 		val := iter.Value()
 
-		newkey,err := serializeStorageKey(contractAddr,key)
+		newkey, err := serializeStorageKey(contractAddr, key)
 		if err != nil {
 			panic(err)
 		}
@@ -174,24 +174,23 @@ func (self *Runtime)ContractMigrate(proc *exec.Process,
 	}
 
 	iter.Release()
-	if err := iter.Error();err != nil {
+	if err := iter.Error(); err != nil {
 		panic(err)
 	}
 
-	length, err := proc.WriteAt(contractAddr[:],int64(newAddressPtr))
-	if err != nil{
+	length, err := proc.WriteAt(contractAddr[:], int64(newAddressPtr))
+	if err != nil {
 		panic(err)
 	}
 
 	return uint32(length)
 }
 
-
-func (self *Runtime)ContractDelete(proc *exec.Process){
+func (self *Runtime) ContractDelete(proc *exec.Process) {
 	contractAddress := self.Service.ContextRef.CurrentContext().ContractAddress
 	iter := self.Service.CacheDB.NewIterator(contractAddress[:])
 
-	for has := iter.First(); has ; has = iter.Next() {
+	for has := iter.First(); has; has = iter.Next() {
 		self.Service.CacheDB.Delete(iter.Key())
 	}
 	iter.Release()
@@ -200,7 +199,6 @@ func (self *Runtime)ContractDelete(proc *exec.Process){
 	}
 
 }
-
 
 func (self *Runtime) isContractValid(code []byte,
 	needStorage uint32,
@@ -248,7 +246,7 @@ func (self *Runtime) isContractValid(code []byte,
 
 func (self *Runtime) isContractExist(contractAddress common.Address) bool {
 	item, err := self.Service.CacheDB.GetContract(contractAddress)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	return item != nil

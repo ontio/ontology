@@ -21,11 +21,11 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 )
 
-func (self *Runtime)GetCurrentBlockHash( proc *exec.Process,ptr uint32) uint32{
+func (self *Runtime) GetCurrentBlockHash(proc *exec.Process, ptr uint32) uint32 {
 	blockhash := self.Service.BlockHash
 
-	length, err:= proc.WriteAt(blockhash[:],int64(ptr))
-	if err != nil{
+	length, err := proc.WriteAt(blockhash[:], int64(ptr))
+	if err != nil {
 		panic(err)
 	}
 	return uint32(length)

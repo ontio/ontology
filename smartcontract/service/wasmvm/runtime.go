@@ -20,20 +20,21 @@ package wasmvm
 import (
 	"bytes"
 	"encoding/gob"
+	"reflect"
+
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	states2 "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
-	"reflect"
-	"github.com/ontio/ontology/core/types"
-	"fmt"
 )
 
 type ContractType byte
@@ -103,7 +104,6 @@ func (self *Runtime) Checkwitness(proc *exec.Process, dst uint32) uint32 {
 }
 
 func (self *Runtime) Ret(proc *exec.Process, ptr uint32, len uint32) {
-	fmt.Printf("Ret :ptr %d, len %d",ptr, len)
 	bs := make([]byte, len)
 	_, err := proc.ReadAt(bs, int64(ptr))
 	if err != nil {
@@ -112,10 +112,18 @@ func (self *Runtime) Ret(proc *exec.Process, ptr uint32, len uint32) {
 
 	self.Output = make([]byte, len)
 	copy(self.Output, bs)
-	fmt.Printf("ret bs is %v\n",bs)
 
-	fmt.Printf("ret is %v\n",self.Output)
 	panic(errors.NewErr("return"))
+}
+
+func (self *Runtime) Debug(proc *exec.Process, ptr uint32, len uint32) {
+	bs := make([]byte, len)
+	_, err := proc.ReadAt(bs, int64(ptr))
+	if err != nil {
+		panic(err)
+	}
+
+	log.Debugf("[WasmContract Debug log]:%v\n", bs)
 }
 
 func (self *Runtime) Notify(proc *exec.Process, ptr uint32, len uint32) {
@@ -219,7 +227,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 			panic(err)
 		}
 
-		newservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(),types.InvokeWasm)
+		newservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(), types.InvokeWasm)
 		if err != nil {
 			panic(err)
 		}
@@ -235,7 +243,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 			panic(err)
 		}
 
-		neoservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(),types.Invoke)
+		neoservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(), types.Invoke)
 		if err != nil {
 			panic(err)
 		}
@@ -300,53 +308,51 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			//func(uint32)uint32  [3]
 			{
 				Form:        0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
+				ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32},
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
 			//func(uint32,uint32)  [4]
 			{
 				Form:       0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32},
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
 			},
 			//func(uint32,uint32,uint32)uint32  [5]
 			{
-				Form:       0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32},
+				Form:        0, // value for the 'func' type constructor
+				ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
 			//func(uint32,uint32,uint32,uint32,uint32)uint32  [6]
 			{
-				Form:       0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32},
+				Form:        0, // value for the 'func' type constructor
+				ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
 			//func(uint32,uint32,uint32,uint32)  [7]
 			{
 				Form:       0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32},
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			},
 			//func(uint32,uint32)uint32   [8]
 			{
-				Form:       0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32},
+				Form:        0, // value for the 'func' type constructor
+				ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
 			//func(uint32 * 12)uint32   [9]
 			{
-				Form:       0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,
-					wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,
-					wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,
-					wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,
-					wasm.ValueTypeI32,wasm.ValueTypeI32	},
+				Form: 0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+					wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+					wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+					wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
+					wasm.ValueTypeI32, wasm.ValueTypeI32},
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
 			//funct()   [10]
 			{
-				Form:       0, // value for the 'func' type constructor
+				Form: 0, // value for the 'func' type constructor
 			},
-
-
 		},
 	}
 	m.FunctionIndexSpace = []wasm.Function{
@@ -450,6 +456,11 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Host: reflect.ValueOf(host.ContractDelete),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
+		{
+			Sig:  &m.Types.Entries[4],
+			Host: reflect.ValueOf(host.Debug),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
 	}
 
 	m.Export = &wasm.SectionExports{
@@ -548,6 +559,11 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				FieldStr: "contract_delete",
 				Kind:     wasm.ExternalFunction,
 				Index:    18,
+			},
+			"contract_debug": {
+				FieldStr: "contract_debug",
+				Kind:     wasm.ExternalFunction,
+				Index:    19,
 			},
 		},
 	}

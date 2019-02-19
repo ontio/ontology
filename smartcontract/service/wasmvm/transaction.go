@@ -19,11 +19,11 @@ package wasmvm
 
 import "github.com/go-interpreter/wagon/exec"
 
-func (self *Runtime)GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32{
+func (self *Runtime) GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
 	txhash := self.Service.Tx.Hash()
 
-	length, err := proc.WriteAt(txhash[:],int64(ptr))
-	if err != nil{
+	length, err := proc.WriteAt(txhash[:], int64(ptr))
+	if err != nil {
 		panic(err)
 	}
 
