@@ -26,7 +26,7 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | Method | Parameter | Description |
 | :---| :---| :---|
 | [heartbeat](#1-heartbeat) |  | send heart beat info |
-| [subscribe](#2-subscribe) | [ConstractsFilter],[SubscribeEvent],[SubscribeJsonBlock],[SubscribeRawBlock],[SubscribeBlockTxHashs] | subscribe service |
+| [subscribe](#2-subscribe) | [ContractsFilter],[SubscribeEvent],[SubscribeJsonBlock],[SubscribeRawBlock],[SubscribeBlockTxHashs] | subscribe service |
 | [getconnectioncount](#3-getconnectioncount) |  | get the current number of connections for the node |
 | [getblocktxsbyheight](#4-getblocktxsbyheight) | height | return all transaction hash contained in the block corresponding to this height |
 | [getblockbyheight](#5-getblockbyheight) | height | return block details based on block height |
@@ -92,7 +92,7 @@ Subscribe service.
     "Action": "subscribe",
     "Version": "1.0.0",
     "Id":12345, //optional
-    "ConstractsFilter":["constractAddress"], //optional
+    "ContractsFilter":["ecceb5863d20b9d05412a5f2641167e716628932"], //optional
     "SubscribeEvent":false, //optional
     "SubscribeJsonBlock":true, //optional
     "SubscribeRawBlock":false, //optional
@@ -108,7 +108,7 @@ Subscribe service.
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": {
-        "ConstractsFilter":["constractAddress"],
+        "ContractsFilter":["ecceb5863d20b9d05412a5f2641167e716628932"],
         "SubscribeEvent":false,
         "SubscribeJsonBlock":true,
         "SubscribeRawBlock":false,
