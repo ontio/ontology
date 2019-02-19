@@ -26,7 +26,7 @@
 | Method | Parameter | Description |
 | :---| :---| :---|
 | [heartbeat](#1-heartbeat) |  | 发送心跳信号 |
-| [subscribe](#2-subscribe) | [ConstractsFilter],[SubscribeEvent],[SubscribeJsonBlock],[SubscribeRawBlock],[SubscribeBlockTxHashs] | 订阅某个服务 |
+| [subscribe](#2-subscribe) | [ContractsFilter],[SubscribeEvent],[SubscribeJsonBlock],[SubscribeRawBlock],[SubscribeBlockTxHashs] | 订阅某个服务 |
 | [getconnectioncount](#3-getconnectioncount) |  | 得到当前连接的节点数量 |
 | [getblocktxsbyheight](#4-getblocktxsbyheight) | height | 返回对应高度的区块中落账的所有交易哈希 |
 | [getblockbyheight](#5-getblockbyheight) | height | 得到该高度的区块的详细信息 |
@@ -93,7 +93,7 @@
     "Action": "subscribe",
     "Version": "1.0.0",
     "Id":12345, //optional
-    "ConstractsFilter":["constractAddress"], //optional
+    "ContractsFilter":["ecceb5863d20b9d05412a5f2641167e716628932"], //optional
     "SubscribeEvent":false, //optional
     "SubscribeJsonBlock":true, //optional
     "SubscribeRawBlock":false, //optional
@@ -109,7 +109,7 @@
     "Desc": "SUCCESS",
     "Error": 0,
     "Result": {
-        "ConstractsFilter":["constractAddress"],
+        "ContractsFilter":["ecceb5863d20b9d05412a5f2641167e716628932"],
         "SubscribeEvent":false,
         "SubscribeJsonBlock":true,
         "SubscribeRawBlock":false,
