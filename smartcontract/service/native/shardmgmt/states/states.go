@@ -75,6 +75,7 @@ type ShardState struct {
 	State               uint32                         `json:"state"`
 	GenesisParentHeight uint64                         `json:"genesis_parent_height"`
 	Config              *ShardConfig                   `json:"config"`
+	// TODO distinct key lower and upper
 	Peers               map[string]*PeerShardStakeInfo `json:"peers"`
 }
 

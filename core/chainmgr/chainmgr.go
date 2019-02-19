@@ -621,7 +621,7 @@ func (self *ChainManager) connectParent() error {
 	}
 
 	parentAddr := fmt.Sprintf("%s:%d", self.parentShardIPAddress, self.parentShardPort)
-	parentPid := actor.NewPID(parentAddr, fmt.Sprintf("shard-%d", self.parentShardID))
+	parentPid := actor.NewPID(parentAddr, GetShardName(self.parentShardID))
 	hellomsg, err := shardmsg.NewShardHelloMsg(self.shardID, self.parentShardID, self.localPid)
 	if err != nil {
 		return fmt.Errorf("build hello msg: %s", err)
@@ -662,7 +662,7 @@ func (self *ChainManager) startListener() error {
 	props := actor.FromProducer(func() actor.Actor {
 		return self
 	})
-	pid, err := actor.SpawnNamed(props, fmt.Sprintf("shard-%d", self.shardID))
+	pid, err := actor.SpawnNamed(props, GetShardName(self.shardID))
 	if err != nil {
 		return fmt.Errorf("init chain manager actor: %s", err)
 	}
