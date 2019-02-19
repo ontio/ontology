@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	"reflect"
 	"github.com/ontio/ontology/core/types"
+	"fmt"
 )
 
 type ContractType byte
@@ -102,6 +103,7 @@ func (self *Runtime) Checkwitness(proc *exec.Process, dst uint32) uint32 {
 }
 
 func (self *Runtime) Ret(proc *exec.Process, ptr uint32, len uint32) {
+	fmt.Printf("Ret :ptr %d, len %d",ptr, len)
 	bs := make([]byte, len)
 	_, err := proc.ReadAt(bs, int64(ptr))
 	if err != nil {
@@ -110,6 +112,10 @@ func (self *Runtime) Ret(proc *exec.Process, ptr uint32, len uint32) {
 
 	self.Output = make([]byte, len)
 	copy(self.Output, bs)
+	fmt.Printf("ret bs is %v\n",bs)
+
+	fmt.Printf("ret is %v\n",self.Output)
+	panic(errors.NewErr("return"))
 }
 
 func (self *Runtime) Notify(proc *exec.Process, ptr uint32, len uint32) {
@@ -276,14 +282,71 @@ func NewHostModule(host *Runtime) *wasm.Module {
 	m := wasm.NewModule()
 	m.Types = &wasm.SectionTypes{
 		Entries: []wasm.FunctionSig{
+			//func()uint64    [0]
 			{
-				Form:       0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
+				Form:        0, // value for the 'func' type constructor
+				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI64},
 			},
+			//func()uint32     [1]
 			{
 				Form:        0, // value for the 'func' type constructor
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
+			//func(uint32)     [2]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+			//func(uint32)uint32  [3]
+			{
+				Form:        0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32},
+				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+			//func(uint32,uint32)  [4]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32},
+			},
+			//func(uint32,uint32,uint32)uint32  [5]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32},
+				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+			//func(uint32,uint32,uint32,uint32,uint32)uint32  [6]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32},
+				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+			//func(uint32,uint32,uint32,uint32)  [7]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32},
+			},
+			//func(uint32,uint32)uint32   [8]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32},
+				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+			//func(uint32 * 12)uint32   [9]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,
+					wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,
+					wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,
+					wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,wasm.ValueTypeI32,
+					wasm.ValueTypeI32,wasm.ValueTypeI32	},
+				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
+			},
+			//funct()   [10]
+			{
+				Form:       0, // value for the 'func' type constructor
+			},
+
+
 		},
 	}
 	m.FunctionIndexSpace = []wasm.Function{

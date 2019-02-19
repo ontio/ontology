@@ -1031,24 +1031,35 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			Gas:     math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), preGas[neovm.UINT_INVOKE_CODE_LEN_NAME]),
 			PreExec: true,
 		}
-
+		fmt.Printf("invoke.Code is %v\n",invoke.Code)
 		//start the smart contract executive function
 		engine, _ := sc.NewExecuteEngine(invoke.Code,tx.TxType)
+		fmt.Println("==============pre exec 2==========")
+
 		result, err := engine.Invoke()
 		if err != nil {
 			return stf, err
 		}
+		fmt.Printf("result is %v",result)
 		gasCost := math.MaxUint64 - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
 		if gasCost < mixGas {
 			gasCost = mixGas
 		}
-		//var cv interface{}
-		//if tx.TxType
-		cv, err := scommon.ConvertNeoVmTypeHexString(result)
-		if err != nil {
-			return stf, err
+		fmt.Println("==============pre exec 3==========")
+
+		var cv interface{}
+		if tx.TxType == types.Invoke{ //neovm
+			cv, err = scommon.ConvertNeoVmTypeHexString(result)
+			if err != nil {
+				return stf, err
+			}
+		}else{ //wasmvm
+			cv = common.ToHexString(result.([]byte))
 		}
+		fmt.Println("==============pre exec 4==========")
+		fmt.Printf("cv is %s\n",cv)
+		fmt.Printf("gas cost is %d\n",gasCost)
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: sc.Notifications}, nil
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)

@@ -158,7 +158,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	copy(tx.Payer[:], buf)
 
 	switch tx.TxType {
-	case Invoke:
+	case Invoke ,InvokeWasm:
 		pl := new(payload.InvokeCode)
 		err := pl.Deserialization(source)
 		if err != nil {

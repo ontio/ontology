@@ -30,6 +30,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 type WasmVmService struct {
@@ -45,6 +47,7 @@ type WasmVmService struct {
 	PreExec       bool
 	GasPrice      uint64
 	GasLimit      uint64
+	IsTerminate   bool
 }
 
 var (
@@ -57,27 +60,33 @@ var (
 	VM_EXEC_FAULT         = errors.NewErr("[WasmVmService] vm execute state fault!")
 	VM_INIT_FAULT         = errors.NewErr("[WasmVmService] vm init state fault!")
 
-	CONTRACT_METHOD_NAME = "Invoke"
+	CONTRACT_METHOD_NAME = "invoke"
 )
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
-
+	fmt.Printf("Invoke 1 \n")
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
 
 	contract := &states.ContractInvokeParam{}
 	contract.Deserialize(bytes.NewBuffer(this.Code))
+	fmt.Printf("Invoke 2 \n")
+	fmt.Printf("contract is %v\n",contract)
 
 	code, err := this.Store.GetContractState(contract.Address)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("Invoke 3 \n")
 
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
 
-	bf := bytes.NewBuffer([]byte(contract.Method))
-	bf.Write(contract.Args)
+	bf:= bytes.NewBuffer(nil)
+	serialization.WriteString(bf,contract.Method)
+
+	serialization.WriteVarBytes(bf,contract.Args)
+	fmt.Printf("Invoke 4 \n")
 
 	host := &Runtime{Service: this, Input: bf.Bytes()}
 
@@ -91,6 +100,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("Invoke 5 \n")
 
 	if m.Export == nil {
 		return nil, errors.NewErr("[Call]No export in wasm!")
@@ -100,15 +110,21 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, VM_INIT_FAULT
 	}
+	if this.PreExec {
+		this.GasLimit = uint64(neovm.VM_STEP_LIMIT)
+	}
+	vm.RecoverPanic = true
 	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasPrice: this.GasPrice}
 
 	entryName := CONTRACT_METHOD_NAME
 
 	entry, ok := m.Export.Entries[entryName]
+	fmt.Printf("Invoke 6 \n")
 
 	if ok == false {
 		return nil, errors.NewErr("[Call]Method:" + entryName + " does not exist!")
 	}
+	fmt.Printf("Invoke 7 \n")
 
 	//get entry index
 	index := int64(entry.Index)
@@ -118,6 +134,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	//get  function type
 	ftype := m.Types.Entries[int(fidx)]
+	fmt.Printf("Invoke 8 \n")
 
 	//no returns of the entry function
 	if len(ftype.ReturnTypes) > 0 {
@@ -125,11 +142,13 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	//nor args for passed in, all args in runtime input buffer
+	fmt.Printf("Invoke 9 \n")
 
 	_, err = vm.ExecCode(index)
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 	}
+	fmt.Printf("Invoke 10 \n")
 
 	return host.Output,nil
 }

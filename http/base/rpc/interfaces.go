@@ -277,7 +277,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 		hash = txn.Hash()
 		log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
-		if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+		if txn.TxType == types.Invoke || txn.TxType == types.Deploy || txn.TxType == types.InvokeWasm {
 			if len(params) > 1 {
 				preExec, ok := params[1].(float64)
 				if ok && preExec == 1 {

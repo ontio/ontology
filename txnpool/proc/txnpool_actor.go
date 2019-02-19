@@ -164,6 +164,10 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		gasLimitConfig := config.DefConfig.Common.GasLimit
 		gasPriceConfig := ta.server.getGasPrice()
 		if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
+			fmt.Println("=========xxxxxxxxxxxxxxxxx================")
+			fmt.Printf("gaslimit:%d\n",txn.GasLimit)
+			fmt.Printf("GasPrice:%d\n",txn.GasPrice)
+
 			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
 				txn.GasLimit, txn.GasPrice)
 			if sender == tc.HttpSender && txResultCh != nil {

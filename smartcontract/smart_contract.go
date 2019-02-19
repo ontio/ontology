@@ -130,6 +130,8 @@ func (this *SmartContract) NewExecuteEngine(code []byte,txtype ctypes.Transactio
 
 	var service context.Engine
 	if txtype == ctypes.Invoke{
+		fmt.Printf("NewExecuteEngine -====neovm")
+
 		service = &neovm.NeoVmService{
 			Store:      this.Store,
 			CacheDB:    this.CacheDB,
@@ -144,6 +146,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte,txtype ctypes.Transactio
 		}
 	}
 	if txtype == ctypes.InvokeWasm{
+		fmt.Printf("NewExecuteEngine -====wasm")
 		service = &wasmvm.WasmVmService{
 			Store: this.Store,
 			CacheDB: this.CacheDB,
