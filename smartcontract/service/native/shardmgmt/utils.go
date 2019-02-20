@@ -45,7 +45,7 @@ func getVersion(native *native.NativeService, contract common.Address) (uint32, 
 
 	value, err := cstates.GetValueFromRawStorageItem(versionBytes)
 	if err != nil {
-		return 0, fmt.Errorf("get versoin, deserialized from raw storage item: %s", err)
+		return 0, fmt.Errorf("get version, deserialized from raw storage item: %s", err)
 	}
 
 	ver, err := serialization.ReadUint32(bytes.NewBuffer(value))
@@ -116,7 +116,7 @@ func GetShardState(native *native.NativeService, contract common.Address, shardI
 	if err != nil {
 		return nil, fmt.Errorf("getShardState: %s", err)
 	}
-	if shardIDBytes == nil {
+	if shardStateBytes == nil {
 		return nil, nil
 	}
 
