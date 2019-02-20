@@ -27,7 +27,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
-	utils3 "github.com/ontio/ontology/cmd/utils"
+	cmdUtil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/store/common"
@@ -35,7 +35,7 @@ import (
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
+	nativeUtil "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tcomn "github.com/ontio/ontology/txnpool/common"
 )
 
@@ -205,7 +205,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 
 func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 	// build sub-shard args
-	shardArgs, err := utils3.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, self.shardID, uint64(self.shardPort))
+	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, self.shardID, uint64(self.shardPort))
 	if err != nil {
 		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
 	}
@@ -363,7 +363,7 @@ func (self *ChainManager) constructShardBlockTx(block *message.ShardBlockInfo) (
 			return nil, fmt.Errorf("construct shardTx, serialize shard sys msg: %s", err)
 		}
 
-		mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, payload.Bytes())
+		mutable := utils.BuildNativeTransaction(nativeUtil.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, payload.Bytes())
 		tx, err := mutable.IntoImmutable()
 		if err != nil {
 			return nil, fmt.Errorf("construct shardTx: %s", err)
