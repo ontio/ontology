@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
@@ -256,6 +257,9 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 	// load all child-shard from shard-mgmt contract
 	for i := uint64(1); i < globalState.NextShardID; i++ {
 		shard, err := GetShardState(self.ledger, i)
+		if err == com.ErrNotFound {
+			continue
+		}
 		if err != nil {
 			return fmt.Errorf("get shard %d failed: %s", i, err)
 		}
