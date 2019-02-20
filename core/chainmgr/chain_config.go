@@ -30,7 +30,7 @@ import (
 // buildShardConfig: generate OntologyConfig for shard
 //
 func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstates.ShardState) (*config.OntologyConfig, error) {
-	if cfg := self.getShardConfig(shardID); cfg != nil {
+	if cfg := self.GetShardConfig(shardID); cfg != nil {
 		return cfg, nil
 	}
 
