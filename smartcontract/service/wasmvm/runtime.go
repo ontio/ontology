@@ -113,7 +113,7 @@ func (self *Runtime) Ret(proc *exec.Process, ptr uint32, len uint32) {
 	self.Output = make([]byte, len)
 	copy(self.Output, bs)
 
-	panic(errors.NewErr("return"))
+	panic(nil)
 }
 
 func (self *Runtime) Debug(proc *exec.Process, ptr uint32, len uint32) {
@@ -505,17 +505,17 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    7,
 			},
-			"check_witness": {
-				FieldStr: "check_witness",
+			"checkwitness": {
+				FieldStr: "checkwitness",
 				Kind:     wasm.ExternalFunction,
 				Index:    8,
 			},
-			"get_current_blockhash": {
+			"current_blockhash": {
 				FieldStr: "get_current_blockhash",
 				Kind:     wasm.ExternalFunction,
 				Index:    9,
 			},
-			"get_current_txhash": {
+			"current_txhash": {
 				FieldStr: "get_current_txhash",
 				Kind:     wasm.ExternalFunction,
 				Index:    10,
