@@ -33,7 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func (self *ChainManager) getShardConfig(shardID uint64) *config.OntologyConfig {
+func (self *ChainManager) GetShardConfig(shardID uint64) *config.OntologyConfig {
 	if s := self.shards[shardID]; s != nil {
 		return s.Config
 	}

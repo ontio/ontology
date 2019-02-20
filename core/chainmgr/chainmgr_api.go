@@ -102,7 +102,7 @@ func GetParentShardHeight() (uint64, error) {
 	}
 
 	h := uint64(0)
-	if cfg := chainmgr.getShardConfig(chainmgr.shardID); cfg != nil {
+	if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
 		h = cfg.Shard.GenesisParentHeight
 	} else {
 		log.Errorf("failed to get self shard config")
