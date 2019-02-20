@@ -61,7 +61,7 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 
 	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_VERSION))
 	if err == common.ErrNotFound {
-		return nil, err
+		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("get shardmgmt version: %s", err)
