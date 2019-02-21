@@ -95,6 +95,8 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.server.OnHeaderReceive(msg.FromID, msg.Headers)
 	case *common.AppendBlock:
 		this.server.OnBlockReceive(msg.FromID, msg.BlockSize, msg.Block, msg.MerkleRoot)
+	case *GetNbrPeerVersionInfosReq:
+		this.handleGetNbrPeerVersionInfosReq(ctx, msg)
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {
@@ -253,7 +255,7 @@ func (this *P2PActor) handleGetNbrPeerVersionInfosReq(ctx actor.Context, req *Ge
 
 	nbrPeers := this.server.GetNetWork().GetNeighbors()
 	nbrResp := &GetNbrPeerVersionInfosRsp{
-		VersionInfos: make([]*common.NbrPeerVersionInfo, len(nbrPeers)),
+		VersionInfos: []*common.NbrPeerVersionInfo{},
 	}
 
 	var p *peer.Peer

@@ -134,7 +134,6 @@ func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
 		GET_CONN_COUNT:           {name: "getconnectioncount", handler: rest.GetConnectionCount},
-		GET_NBRPEER_VERSIONINFOS: {name: "nbrpeerversioninfos", handler: rest.GetNbrPeerVersionInfos},
 		GET_BLK_TXS_BY_HEIGHT:    {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
 		GET_BLK_BY_HEIGHT:        {name: "getblockbyheight", handler: rest.GetBlockByHeight},
 		GET_BLK_BY_HASH:          {name: "getblockbyhash", handler: rest.GetBlockByHash},
@@ -156,6 +155,7 @@ func (this *restServer) registryMethod() {
 		GET_MEMPOOL_TXSTATE:      {name: "getmempooltxstate", handler: rest.GetMemPoolTxState},
 		GET_VERSION:              {name: "getversion", handler: rest.GetNodeVersion},
 		GET_NETWORKID:            {name: "getnetworkid", handler: rest.GetNetworkId},
+		GET_NBRPEER_VERSIONINFOS: {name: "nbrpeerversioninfos", handler: rest.GetNbrPeerVersionInfos},
 	}
 
 	postMethodMap := map[string]Action{
@@ -206,6 +206,7 @@ func (this *restServer) getPath(url string) string {
 func (this *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
 	case GET_CONN_COUNT:
+	case GET_NBRPEER_VERSIONINFOS:
 	case GET_BLK_TXS_BY_HEIGHT:
 		req["Height"] = getParam(r, "height")
 	case GET_BLK_BY_HEIGHT:
