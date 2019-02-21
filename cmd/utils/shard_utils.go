@@ -34,7 +34,7 @@ func BuildShardCommandArgs(cmdArgs map[string]string, shardID, parentShardID, pa
 
 	// prepare Shard-Configs for child-shard ontology process
 	shardArgs[ShardIDFlag.GetName()] = fmt.Sprintf("%d", shardID)
-	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d",  uint(parentPort + shardID - parentShardID))
+	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d", uint(parentPort+shardID-parentShardID))
 	shardArgs[ParentShardIDFlag.GetName()] = fmt.Sprintf("%d", parentShardID)
 	shardArgs[ParentShardPortFlag.GetName()] = fmt.Sprintf("%d", parentPort)
 
@@ -47,13 +47,13 @@ func BuildShardCommandArgs(cmdArgs map[string]string, shardID, parentShardID, pa
 
 		if _, present := shardArgs[n]; !present {
 			// non-shard arguments: copy to child-shard
-			args = append(args, "--" + n+"="+v)
+			args = append(args, "--"+n+"="+v)
 		}
 	}
 	for n, shardCfg := range shardArgs {
 		if len(shardCfg) > 0 {
 			// shard-arguments
-			args = append(args, "--" + n +"="+shardCfg)
+			args = append(args, "--"+n+"="+shardCfg)
 		}
 	}
 

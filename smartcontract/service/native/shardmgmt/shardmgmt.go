@@ -21,8 +21,8 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -42,8 +42,6 @@ import (
 
 const (
 	VERSION_CONTRACT_SHARD_MGMT = uint32(1)
-
-	MAINCHAIN_SHARDID = uint64(0)
 
 	// function names
 	INIT_NAME           = "init"
@@ -98,19 +96,19 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		}
 
 		// initialize shard mgmt
-		globalState := &shardstates.ShardMgmtGlobalState{NextShardID: MAINCHAIN_SHARDID + 1}
+		globalState := &shardstates.ShardMgmtGlobalState{NextSubShardIndex: 1}
 		if err := setGlobalState(native, contract, globalState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt global state: %s", err)
 		}
 
 		// initialize shard states
-		mainShardState := &shardstates.ShardState{
-			ShardID:             MAINCHAIN_SHARDID,
-			ParentShardID:       config.DEFAULT_PARENT_SHARD_ID,
+		shardState := &shardstates.ShardState{
+			ShardID:             native.ShardID.ToUint64(),
+			ParentShardID:       native.ParentShardID.ToUint64(),
 			GenesisParentHeight: uint64(native.Height),
 			State:               shardstates.SHARD_STATE_ACTIVE,
 		}
-		if err := setShardState(native, contract, mainShardState); err != nil {
+		if err := setShardState(native, contract, shardState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt main shard state: %s", err)
 		}
 		return utils.BYTE_TRUE, nil
@@ -157,14 +155,19 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, get global state: %s", err)
 	}
 
+	subShardID, err := types.ShardID(native.ShardID).GenSubShardID(globalState.NextSubShardIndex)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
 	shard := &shardstates.ShardState{
-		ShardID:       globalState.NextShardID,
+		ShardID:       subShardID.ToUint64(),
 		ParentShardID: params.ParentShardID,
 		Creator:       params.Creator,
 		State:         shardstates.SHARD_STATE_CREATED,
 		Peers:         make(map[string]*shardstates.PeerShardStakeInfo),
 	}
-	globalState.NextShardID += 1
+	globalState.NextSubShardIndex += 1
 
 	// TODO: SHARD CREATION FEE
 

@@ -134,10 +134,6 @@ func GetShardState(native *native.NativeService, contract common.Address, shardI
 }
 
 func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) error {
-	if state == nil {
-		return fmt.Errorf("setShardState, nil state")
-	}
-
 	shardIDBytes, err := shardutil.GetUint64Bytes(state.ShardID)
 	if err != nil {
 		return fmt.Errorf("setShardState, serialize shardID: %s", err)

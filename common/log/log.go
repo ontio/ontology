@@ -26,12 +26,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
-	"path"
 )
 
 const (

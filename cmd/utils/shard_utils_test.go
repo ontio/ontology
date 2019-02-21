@@ -19,9 +19,9 @@
 package utils_test
 
 import (
-	"testing"
-	"github.com/ontio/ontology/cmd/utils"
 	"fmt"
+	"github.com/ontio/ontology/cmd/utils"
+	"testing"
 )
 
 func TestBuildShardCommandArgs(t *testing.T) {
@@ -62,4 +62,3 @@ func isExits(args []string, arg string) bool {
 	}
 	return false
 }
-
