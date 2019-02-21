@@ -52,28 +52,29 @@ type restServer struct {
 }
 
 const (
-	GET_CONN_COUNT        = "/api/v1/node/connectioncount"
-	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
-	GET_BLK_BY_HEIGHT     = "/api/v1/block/details/height/:height"
-	GET_BLK_BY_HASH       = "/api/v1/block/details/hash/:hash"
-	GET_BLK_HEIGHT        = "/api/v1/block/height"
-	GET_BLK_HASH          = "/api/v1/block/hash/:height"
-	GET_TX                = "/api/v1/transaction/:hash"
-	GET_STORAGE           = "/api/v1/storage/:hash/:key"
-	GET_BALANCE           = "/api/v1/balance/:addr"
-	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
-	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
-	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
-	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
-	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
-	GET_GAS_PRICE         = "/api/v1/gasprice"
-	GET_ALLOWANCE         = "/api/v1/allowance/:asset/:from/:to"
-	GET_UNBOUNDONG        = "/api/v1/unboundong/:addr"
-	GET_GRANTONG          = "/api/v1/grantong/:addr"
-	GET_MEMPOOL_TXCOUNT   = "/api/v1/mempool/txcount"
-	GET_MEMPOOL_TXSTATE   = "/api/v1/mempool/txstate/:hash"
-	GET_VERSION           = "/api/v1/version"
-	GET_NETWORKID         = "/api/v1/networkid"
+	GET_CONN_COUNT           = "/api/v1/node/connectioncount"
+	GET_NBRPEER_VERSIONINFOS = "/api/v1/node/nbrpeerversioninfos"
+	GET_BLK_TXS_BY_HEIGHT    = "/api/v1/block/transactions/height/:height"
+	GET_BLK_BY_HEIGHT        = "/api/v1/block/details/height/:height"
+	GET_BLK_BY_HASH          = "/api/v1/block/details/hash/:hash"
+	GET_BLK_HEIGHT           = "/api/v1/block/height"
+	GET_BLK_HASH             = "/api/v1/block/hash/:height"
+	GET_TX                   = "/api/v1/transaction/:hash"
+	GET_STORAGE              = "/api/v1/storage/:hash/:key"
+	GET_BALANCE              = "/api/v1/balance/:addr"
+	GET_CONTRACT_STATE       = "/api/v1/contract/:hash"
+	GET_SMTCOCE_EVT_TXS      = "/api/v1/smartcode/event/transactions/:height"
+	GET_SMTCOCE_EVTS         = "/api/v1/smartcode/event/txhash/:hash"
+	GET_BLK_HGT_BY_TXHASH    = "/api/v1/block/height/txhash/:hash"
+	GET_MERKLE_PROOF         = "/api/v1/merkleproof/:hash"
+	GET_GAS_PRICE            = "/api/v1/gasprice"
+	GET_ALLOWANCE            = "/api/v1/allowance/:asset/:from/:to"
+	GET_UNBOUNDONG           = "/api/v1/unboundong/:addr"
+	GET_GRANTONG             = "/api/v1/grantong/:addr"
+	GET_MEMPOOL_TXCOUNT      = "/api/v1/mempool/txcount"
+	GET_MEMPOOL_TXSTATE      = "/api/v1/mempool/txstate/:hash"
+	GET_VERSION              = "/api/v1/version"
+	GET_NETWORKID            = "/api/v1/networkid"
 
 	POST_RAW_TX = "/api/v1/transaction"
 )
@@ -132,28 +133,29 @@ func (this *restServer) Start() error {
 func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
-		GET_CONN_COUNT:        {name: "getconnectioncount", handler: rest.GetConnectionCount},
-		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
-		GET_BLK_BY_HEIGHT:     {name: "getblockbyheight", handler: rest.GetBlockByHeight},
-		GET_BLK_BY_HASH:       {name: "getblockbyhash", handler: rest.GetBlockByHash},
-		GET_BLK_HEIGHT:        {name: "getblockheight", handler: rest.GetBlockHeight},
-		GET_BLK_HASH:          {name: "getblockhash", handler: rest.GetBlockHash},
-		GET_TX:                {name: "gettransaction", handler: rest.GetTransactionByHash},
-		GET_CONTRACT_STATE:    {name: "getcontract", handler: rest.GetContractState},
-		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
-		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
-		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
-		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
-		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
-		GET_ALLOWANCE:         {name: "getallowance", handler: rest.GetAllowance},
-		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
-		GET_GAS_PRICE:         {name: "getgasprice", handler: rest.GetGasPrice},
-		GET_UNBOUNDONG:        {name: "getunboundong", handler: rest.GetUnboundOng},
-		GET_GRANTONG:          {name: "getgrantong", handler: rest.GetGrantOng},
-		GET_MEMPOOL_TXCOUNT:   {name: "getmempooltxcount", handler: rest.GetMemPoolTxCount},
-		GET_MEMPOOL_TXSTATE:   {name: "getmempooltxstate", handler: rest.GetMemPoolTxState},
-		GET_VERSION:           {name: "getversion", handler: rest.GetNodeVersion},
-		GET_NETWORKID:         {name: "getnetworkid", handler: rest.GetNetworkId},
+		GET_CONN_COUNT:           {name: "getconnectioncount", handler: rest.GetConnectionCount},
+		GET_NBRPEER_VERSIONINFOS: {name: "nbrpeerversioninfos", handler: rest.GetNbrPeerVersionInfos},
+		GET_BLK_TXS_BY_HEIGHT:    {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
+		GET_BLK_BY_HEIGHT:        {name: "getblockbyheight", handler: rest.GetBlockByHeight},
+		GET_BLK_BY_HASH:          {name: "getblockbyhash", handler: rest.GetBlockByHash},
+		GET_BLK_HEIGHT:           {name: "getblockheight", handler: rest.GetBlockHeight},
+		GET_BLK_HASH:             {name: "getblockhash", handler: rest.GetBlockHash},
+		GET_TX:                   {name: "gettransaction", handler: rest.GetTransactionByHash},
+		GET_CONTRACT_STATE:       {name: "getcontract", handler: rest.GetContractState},
+		GET_SMTCOCE_EVT_TXS:      {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
+		GET_SMTCOCE_EVTS:         {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
+		GET_BLK_HGT_BY_TXHASH:    {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
+		GET_STORAGE:              {name: "getstorage", handler: rest.GetStorage},
+		GET_BALANCE:              {name: "getbalance", handler: rest.GetBalance},
+		GET_ALLOWANCE:            {name: "getallowance", handler: rest.GetAllowance},
+		GET_MERKLE_PROOF:         {name: "getmerkleproof", handler: rest.GetMerkleProof},
+		GET_GAS_PRICE:            {name: "getgasprice", handler: rest.GetGasPrice},
+		GET_UNBOUNDONG:           {name: "getunboundong", handler: rest.GetUnboundOng},
+		GET_GRANTONG:             {name: "getgrantong", handler: rest.GetGrantOng},
+		GET_MEMPOOL_TXCOUNT:      {name: "getmempooltxcount", handler: rest.GetMemPoolTxCount},
+		GET_MEMPOOL_TXSTATE:      {name: "getmempooltxstate", handler: rest.GetMemPoolTxState},
+		GET_VERSION:              {name: "getversion", handler: rest.GetNodeVersion},
+		GET_NETWORKID:            {name: "getnetworkid", handler: rest.GetNetworkId},
 	}
 
 	postMethodMap := map[string]Action{
