@@ -118,7 +118,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
-					if msgType == msgCommon.GET_DATA_TYPE {
+					if msgType == msgCommon.GET_DATA_TYPE  || msgType == msgCommon.GET_HEADERS_TYPE{
 						mJItem := &msgJobItem{
 							msgPayload: data,
 							p2p:        this.p2p,

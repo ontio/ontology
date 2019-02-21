@@ -21,6 +21,8 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
@@ -146,6 +148,15 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
+
+	go func() {
+		http.HandleFunc("/totalGoroutine", func(w http.ResponseWriter, r *http.Request){
+			w.Header().Set("Content-Type", "text/plain")
+			p := pprof.Lookup("goroutine")
+			p.WriteTo(w, 1)
+		})
+		http.ListenAndServe("0.0.0.0:10400", nil)
+	}()
 
 	if err := setupAPP().Run(os.Args); err != nil {
 		cmd.PrintErrorMsg(err.Error())
