@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -132,10 +133,33 @@ func setupAPP() *cli.App {
 	return app
 }
 
+var cpuprofile = string("mycpuprofile.prof")//flag.String("cpuprofile", "", "write cpu profile to this file")
+var memprofile = string("mymemprofile.prof")//flag.String("memprofile", "", "write memory profile to this file")
+
 func main() {
+
+	if cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	if err := setupAPP().Run(os.Args); err != nil {
 		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)
+	}
+
+	if memprofile != "" {
+		f, err := os.Create(memprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.WriteHeapProfile(f)
+		f.Close()
+		return
 	}
 }
 

@@ -102,16 +102,6 @@ const (
 	RECENT_LIMIT     = 10 //recent contact list limit
 )
 
-//PeerAddr represent peer`s net information
-type PeerAddr struct {
-	Time          int64    //latest timestamp
-	Services      uint64   //service type
-	IpAddr        [16]byte //ip address
-	Port          uint16   //sync port
-	ConsensusPort uint16   //consensus port
-	ID            uint64   //Unique ID
-}
-
 //const channel msg id and type
 const (
 	VERSION_TYPE     = "version"    //peer`s information
@@ -132,6 +122,16 @@ const (
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
 )
 
+//PeerAddr represent peer`s net information
+type PeerAddr struct {
+	Time          int64    //latest timestamp
+	Services      uint64   //service type
+	IpAddr        [16]byte //ip address
+	Port          uint16   //sync port
+	ConsensusPort uint16   //consensus port
+	ID            uint64   //Unique ID
+}
+
 type AppendPeerID struct {
 	ID uint64 // The peer id
 }
@@ -150,6 +150,11 @@ type AppendBlock struct {
 	BlockSize  uint32       // Block size
 	Block      *types.Block // Block to be added to the ledger
 	MerkleRoot com.Uint256  // MerkleRoot
+}
+
+type NbrPeerVersionInfo struct {
+	ID       uint64
+	Version  uint32
 }
 
 //ParseIPAddr return ip address

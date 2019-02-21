@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 type P2PActor struct {
@@ -242,4 +243,27 @@ func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context, req *Tran
 	} else {
 		log.Warnf("[p2p]can`t transmit consensus msg:no valid neighbor peer: %d\n", req.Target)
 	}
+}
+
+func (this *P2PActor) handleGetNbrPeerVersionInfosReq(ctx actor.Context, req *GetNbrPeerVersionInfosReq) {
+
+	if ctx.Sender() == nil {
+		return
+	}
+
+	nbrPeers := this.server.GetNetWork().GetNeighbors()
+	nbrResp := &GetNbrPeerVersionInfosRsp{
+		VersionInfos: make([]*common.NbrPeerVersionInfo, len(nbrPeers)),
+	}
+
+	var p *peer.Peer
+	for _, p = range nbrPeers {
+		nbrPeerVInfo := &common.NbrPeerVersionInfo{
+			ID:      p.GetID(),
+			Version: p.GetVersion(),
+		}
+		nbrResp.VersionInfos = append(nbrResp.VersionInfos, nbrPeerVInfo)
+	}
+
+	ctx.Sender().Request(nbrResp, ctx.Self())
 }
