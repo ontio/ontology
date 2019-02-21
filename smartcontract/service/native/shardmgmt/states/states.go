@@ -34,7 +34,7 @@ const (
 )
 
 type ShardMgmtGlobalState struct {
-	NextShardID uint64 `json:"next_shard_id"`
+	NextSubShardIndex uint16 `json:"next_sub_shard_index"`
 }
 
 // FIXME: replace all json marshal
@@ -69,14 +69,14 @@ type PeerShardStakeInfo struct {
 }
 
 type ShardState struct {
-	ShardID             uint64                         `json:"shard_id"`
-	ParentShardID       uint64                         `json:"parent_shard_id"`
-	Creator             common.Address                 `json:"creator"`
-	State               uint32                         `json:"state"`
-	GenesisParentHeight uint64                         `json:"genesis_parent_height"`
-	Config              *ShardConfig                   `json:"config"`
+	ShardID             uint64         `json:"shard_id"`
+	ParentShardID       uint64         `json:"parent_shard_id"`
+	Creator             common.Address `json:"creator"`
+	State               uint32         `json:"state"`
+	GenesisParentHeight uint64         `json:"genesis_parent_height"`
+	Config              *ShardConfig   `json:"config"`
 	// TODO distinct key lower and upper
-	Peers               map[string]*PeerShardStakeInfo `json:"peers"`
+	Peers map[string]*PeerShardStakeInfo `json:"peers"`
 }
 
 func (this *ShardState) Serialize(w io.Writer) error {

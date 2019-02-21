@@ -21,6 +21,7 @@ package ong
 import (
 	"math/big"
 
+	"bytes"
 	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
@@ -29,7 +30,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/vm/neovm/types"
-	"bytes"
 )
 
 func InitOng() {
