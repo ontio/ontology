@@ -48,6 +48,7 @@ type WasmVmService struct {
 	GasPrice      uint64
 	GasLimit      uint64
 	IsTerminate   bool
+	vm            *exec.VM
 }
 
 var (
@@ -132,7 +133,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	//nor args for passed in, all args in runtime input buffer
-
+	this.vm = vm
 	_, err = vm.ExecCode(index)
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())

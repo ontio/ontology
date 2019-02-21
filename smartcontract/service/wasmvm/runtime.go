@@ -54,14 +54,17 @@ type Runtime struct {
 }
 
 func (self *Runtime) TimeStamp(proc *exec.Process) uint64 {
+	self.checkGas(TIME_STAMP_GAS)
 	return uint64(self.Service.Time)
 }
 
 func (self *Runtime) BlockHeight(proc *exec.Process) uint32 {
+	self.checkGas(BLOCK_HEGHT_GAS)
 	return self.Service.Height
 }
 
 func (self *Runtime) SelfAddress(proc *exec.Process, dst uint32) {
+	self.checkGas(SELF_ADDRESS_GAS)
 	selfaddr := self.Service.ContextRef.CurrentContext().ContractAddress
 	_, err := proc.WriteAt(selfaddr[:], int64(dst))
 	if err != nil {
@@ -70,6 +73,7 @@ func (self *Runtime) SelfAddress(proc *exec.Process, dst uint32) {
 }
 
 func (self *Runtime) CallerAddress(proc *exec.Process, dst uint32) {
+	self.checkGas(CALLER_ADDRESS_GAS)
 	calleraddr := self.Service.ContextRef.CallingContext().ContractAddress
 	_, err := proc.WriteAt(calleraddr[:], int64(dst))
 	if err != nil {
@@ -78,6 +82,7 @@ func (self *Runtime) CallerAddress(proc *exec.Process, dst uint32) {
 }
 
 func (self *Runtime) EntryAddress(proc *exec.Process, dst uint32) {
+	self.checkGas(ENTRY_ADDRESS_GAS)
 	entryAddress := self.Service.ContextRef.EntryContext().ContractAddress
 	_, err := proc.WriteAt(entryAddress[:], int64(dst))
 	if err != nil {
@@ -86,6 +91,7 @@ func (self *Runtime) EntryAddress(proc *exec.Process, dst uint32) {
 }
 
 func (self *Runtime) Checkwitness(proc *exec.Process, dst uint32) uint32 {
+	self.checkGas(CHECKWITNESS_GAS)
 	addrbytes := make([]byte, 20)
 	_, err := proc.ReadAt(addrbytes, int64(dst))
 	if err != nil {
@@ -206,7 +212,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 
 	switch contracttype {
 	case NATIVE_CONTRACT:
-
+		self.checkGas(NATIVE_INVOKE_GAS)
 		native := &native2.NativeService{
 			CacheDB:     self.Service.CacheDB,
 			InvokeParam: contract,
@@ -222,6 +228,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 		}
 
 	case WASMVM_CONTRACT:
+		self.checkGas(CALL_CONTRACT_GAS)
 		bf := bytes.NewBuffer(nil)
 		if err := contract.Serialize(bf); err != nil {
 			panic(err)
@@ -237,6 +244,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 		}
 
 	case NEOVM_CONTRACT:
+		self.checkGas(CALL_CONTRACT_GAS)
 		//todo test if this work for neovm
 		bf := bytes.NewBuffer(nil)
 		if err := contract.Serialize(bf); err != nil {
@@ -586,6 +594,15 @@ func (self *Runtime) getContractType(addr common.Address) (ContractType, error) 
 
 	return NEOVM_CONTRACT, nil
 
+}
+
+func (self *Runtime) checkGas(gaslimit uint64) {
+	gas := self.Service.vm.AvaliableGas
+	if gas.GasLimit >= gaslimit {
+		gas.GasLimit -= gaslimit
+	} else {
+		panic(errors.NewErr("[wasm_Service]Insufficient gas limit"))
+	}
 }
 
 func serializeStorageKey(contractAddress common.Address, key []byte) ([]byte, error) {

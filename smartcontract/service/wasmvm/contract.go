@@ -47,6 +47,9 @@ func (self *Runtime) ContractCreate(proc *exec.Process,
 		panic(err)
 	}
 
+	cost := CONTRACT_CREATE_GAS + uint64(uint64(codeLen)/PER_UNIT_CODE_LEN)*UINT_DEPLOY_CODE_LEN_GAS
+	self.checkGas(cost)
+
 	name := make([]byte, nameLen)
 	_, err = proc.ReadAt(name, int64(namePtr))
 	if err != nil {
@@ -118,6 +121,9 @@ func (self *Runtime) ContractMigrate(proc *exec.Process,
 	if err != nil {
 		panic(err)
 	}
+
+	cost := CONTRACT_CREATE_GAS + uint64(uint64(codeLen)/PER_UNIT_CODE_LEN)*UINT_DEPLOY_CODE_LEN_GAS
+	self.checkGas(cost)
 
 	name := make([]byte, nameLen)
 	_, err = proc.ReadAt(name, int64(namePtr))

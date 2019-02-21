@@ -19,11 +19,12 @@ package wasmvm
 
 import (
 	"github.com/go-interpreter/wagon/exec"
+	"github.com/pkg/errors"
 	"math"
 )
 
 func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {
-
+	self.checkGas(STORAGE_GET_GAS)
 	keybytes := make([]byte, klen)
 	_, err := proc.ReadAt(keybytes, int64(keyPtr))
 	if err != nil {
@@ -51,10 +52,14 @@ func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32,
 }
 
 func (self *Runtime) StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint32, valPtr uint32, valLen uint32) {
+
 	keybytes := make([]byte, keylen)
 	_, err := proc.ReadAt(keybytes, int64(keyPtr))
 	if err != nil {
 		panic(err)
+	}
+	if len(keybytes) > 1024 {
+		panic(errors.New("[storageWrite]:key should not longer than 1024 bytes"))
 	}
 
 	valbytes := make([]byte, valLen)
@@ -62,6 +67,9 @@ func (self *Runtime) StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint
 	if err != nil {
 		panic(err)
 	}
+
+	cost := uint64(((len(keybytes)+len(valbytes)-1)/1024 + 1)) * STORAGE_PUT_GAS
+	self.checkGas(cost)
 
 	key, err := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
 	if err != nil {
@@ -72,6 +80,7 @@ func (self *Runtime) StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint
 }
 
 func (self *Runtime) StorageDelete(proc *exec.Process, keyPtr uint32, keylen uint32) {
+	self.checkGas(STORAGE_DELETE_GAS)
 	keybytes := make([]byte, keylen)
 	_, err := proc.ReadAt(keybytes, int64(keyPtr))
 	if err != nil {
