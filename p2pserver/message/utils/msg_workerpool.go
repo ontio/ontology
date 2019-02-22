@@ -16,6 +16,26 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+ /*
+  * https://github.com/valyala/fasthttp
+  * The MIT License (MIT)
+
+  *Copyright (c) 2015-present Aliaksandr Valialkin, VertaMedia
+  *Copyright (c) 2018-present Kirill Danshin
+  *Copyright (c) 2018-present Erik Dubbelboer
+  *Copyright (c) 2018-present FastHTTP Authors
+
+  *Permission is hereby granted, free of charge, to any person obtaining a copy
+  *of this software and associated documentation files (the "Software"), to deal
+  *in the Software without restriction, including without limitation the rights
+  *to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+  *copies of the Software, and to permit persons to whom the Software is
+  *furnished to do so, subject to the following conditions:
+
+  *The above copyright notice and this permission notice shall be included in all
+  *copies or substantial portions of the Software.  *
+  */
+
 package utils
 
 import (
@@ -138,13 +158,12 @@ func (this *msgWorkerPool) clean() {
 	}
 }
 
+//Only receiveMsg can invoke getMsgWorkChan
 func (this *msgWorkerPool) getMsgWorkChan(msgType string) *msgJobChan {
 
 	var msgJobCh *msgJobChan = nil
 	var willCreateNew = false
 
-	this.lock.Lock()
-	defer this.lock.Unlock()
 	if msgWaitingWorks, ok := this.waitingWokers[msgType]; ok {
 		lmWW := len(*msgWaitingWorks)
 		if lmWW > 0 {
@@ -186,6 +205,9 @@ func (this *msgWorkerPool) getMsgWorkChan(msgType string) *msgJobChan {
 }
 
 func (this *msgWorkerPool) receiveMsg(msg *msgJobItem) bool {
+
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
 	msgJobCh := this.getMsgWorkChan(msg.msgPayload.Payload.CmdType())
 	if msgJobCh != nil {
