@@ -21,12 +21,10 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
-	"runtime/pprof"
 	"strings"
 	"syscall"
 	"time"
@@ -135,42 +133,10 @@ func setupAPP() *cli.App {
 	return app
 }
 
-var cpuprofile = string("mycpuprofile.prof")//flag.String("cpuprofile", "", "write cpu profile to this file")
-var memprofile = string("mymemprofile.prof")//flag.String("memprofile", "", "write memory profile to this file")
-
 func main() {
-
-	if cpuprofile != "" {
-		f, err := os.Create(cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-
-	go func() {
-		http.HandleFunc("/totalGoroutine", func(w http.ResponseWriter, r *http.Request){
-			w.Header().Set("Content-Type", "text/plain")
-			p := pprof.Lookup("goroutine")
-			p.WriteTo(w, 1)
-		})
-		http.ListenAndServe("0.0.0.0:10400", nil)
-	}()
-
 	if err := setupAPP().Run(os.Args); err != nil {
 		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)
-	}
-
-	if memprofile != "" {
-		f, err := os.Create(memprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.WriteHeapProfile(f)
-		f.Close()
-		return
 	}
 }
 
