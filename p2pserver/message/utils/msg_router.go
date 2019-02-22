@@ -20,7 +20,6 @@ package utils
 
 import (
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -40,7 +39,6 @@ type MessageRouter struct {
 	stopConsCh   chan bool                 // To stop consensus channel
 	p2p          p2p.P2P                   // Refer to the p2p network
 	pid          *actor.PID                // P2P actor
-	msgWP        *msgWorkerPool
 }
 
 // NewMsgRouter returns a message router object
@@ -58,11 +56,6 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.stopSyncCh = make(chan bool)
 	this.stopConsCh = make(chan bool)
 	this.p2p = p2p
-
-	this.msgWP = &msgWorkerPool{
-		maxWorkerCount : 256 * config.DefConfig.P2PNode.MaxConnInBoundForSingleIP,
-	}
-	this.msgWP.init()
 
 	// Register message handler
 	this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
@@ -103,7 +96,6 @@ func (this *MessageRouter) SetPID(pid *actor.PID) {
 func (this *MessageRouter) Start() {
 	go this.hookChan(this.RecvSyncChan, this.stopSyncCh)
 	go this.hookChan(this.RecvConsChan, this.stopConsCh)
-	this.msgWP.start()
 	log.Debug("[p2p]MessageRouter start to parse p2p message...")
 }
 
@@ -118,20 +110,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
-					/*At present, only block sync msg is added into worker pool;
-					  Later, other msgs will be also added into worker pool
-					*/
-					if msgType == msgCommon.GET_DATA_TYPE  || msgType == msgCommon.GET_HEADERS_TYPE{
-						mJItem := &msgJobItem{
-							msgPayload: data,
-							p2p:        this.p2p,
-							pid:        this.pid,
-							msgHandler: handler,
-						}
-						this.msgWP.receiveMsg(mJItem)
-					} else {
-						go handler(data, this.p2p, this.pid)
-					}
+					go handler(data, this.p2p, this.pid)
 				} else {
 					log.Warn("unknown message handler for the msg: ",
 						msgType)
@@ -151,9 +130,5 @@ func (this *MessageRouter) Stop() {
 	}
 	if this.stopConsCh != nil {
 		this.stopConsCh <- true
-	}
-
-	if this.msgWP != nil {
-		this.msgWP.stop()
 	}
 }
