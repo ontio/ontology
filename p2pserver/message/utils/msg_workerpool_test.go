@@ -103,7 +103,7 @@ func TestMsgWPBBeyondMaxWorkerCount(t *testing.T) {
 		bRecvSucess := msgWP.receiveMsg(mJobItem)
 		assert.Equal(t, true, bRecvSucess)
 
-		time.Sleep(time.Millisecond* 100)
+		time.Sleep(time.Millisecond * 100)
 	}
 
 	msgWP.stop()

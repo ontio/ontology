@@ -53,10 +53,10 @@ type msgJobChan struct {
 	jobChan     chan *msgJobItem
 }
 
-func (this* msgWorkerPool) init() {
+func (this *msgWorkerPool) init() {
 
-	this.waitingWokers     = make(map[string]msgJobChanList)
-	this.stopChan          = make(chan struct{})
+	this.waitingWokers = make(map[string]msgJobChanList)
+	this.stopChan = make(chan struct{})
 	this.maxWorkerIdleTime = 10 * time.Second
 }
 
@@ -74,9 +74,9 @@ var msgJobChanCap = func() int {
 	return 1
 }()
 
-func (this* msgWorkerPool) start() {
+func (this *msgWorkerPool) start() {
 
-	if this.waitingWokers == nil || this.stopChan == nil{
+	if this.waitingWokers == nil || this.stopChan == nil {
 		log.Error("[p2p]invalid start invoking, the msg worker pool hasn't been initialized")
 		return
 	}
@@ -85,7 +85,7 @@ func (this* msgWorkerPool) start() {
 		for {
 			this.clean()
 			select {
-			case <- this.stopChan:
+			case <-this.stopChan:
 				return
 			default:
 				time.Sleep(this.maxWorkerIdleTime)
@@ -94,7 +94,7 @@ func (this* msgWorkerPool) start() {
 	}()
 }
 
-func (this* msgWorkerPool) stop() {
+func (this *msgWorkerPool) stop() {
 
 	if this.stopChan == nil {
 		log.Error("[p2p]invalid stop invoking, the msg worker pool hasn't been initialized!")
@@ -104,7 +104,7 @@ func (this* msgWorkerPool) stop() {
 	this.stopChan = nil
 }
 
-func (this* msgWorkerPool) clean() {
+func (this *msgWorkerPool) clean() {
 
 	var willCleanJC []*msgJobChan
 	curTime := time.Now()
@@ -117,7 +117,7 @@ func (this* msgWorkerPool) clean() {
 			continue
 		}
 		i := 0
-		for i < n  && jobChs[i] != nil && curTime.Sub(jobChs[i].lastUseTime) > this.maxWorkerIdleTime {
+		for i < n && jobChs[i] != nil && curTime.Sub(jobChs[i].lastUseTime) > this.maxWorkerIdleTime {
 			i++
 		}
 		willCleanJC = append(willCleanJC[:0], jobChs[:i]...)
@@ -138,7 +138,7 @@ func (this* msgWorkerPool) clean() {
 	}
 }
 
-func (this* msgWorkerPool) getMsgWorkChan(msgType string)*msgJobChan{
+func (this *msgWorkerPool) getMsgWorkChan(msgType string) *msgJobChan {
 
 	var msgJobCh *msgJobChan = nil
 	var willCreateNew = false
@@ -150,14 +150,14 @@ func (this* msgWorkerPool) getMsgWorkChan(msgType string)*msgJobChan{
 		if lmWW > 0 {
 			msgJobCh = (*msgWaitingWorks)[lmWW-1]
 			(*msgWaitingWorks)[lmWW-1] = nil
-			*msgWaitingWorks = (*msgWaitingWorks)[:(lmWW-1)]
-		}else {
+			*msgWaitingWorks = (*msgWaitingWorks)[:(lmWW - 1)]
+		} else {
 			if this.curWorkerCount < this.maxWorkerCount {
 				willCreateNew = true
 			}
 		}
-	}else {
-		msgWaitingWorksT            := make([]*msgJobChan, 0)
+	} else {
+		msgWaitingWorksT := make([]*msgJobChan, 0)
 		this.waitingWokers[msgType] = &msgWaitingWorksT
 
 		if this.curWorkerCount < this.maxWorkerCount {
@@ -165,7 +165,7 @@ func (this* msgWorkerPool) getMsgWorkChan(msgType string)*msgJobChan{
 		}
 	}
 
-	if msgJobCh == nil && willCreateNew{
+	if msgJobCh == nil && willCreateNew {
 		mJobCh := this.workChanPool.Get()
 
 		if mJobCh == nil {
@@ -185,9 +185,9 @@ func (this* msgWorkerPool) getMsgWorkChan(msgType string)*msgJobChan{
 	return msgJobCh
 }
 
-func (this* msgWorkerPool) receiveMsg(msg *msgJobItem) bool {
+func (this *msgWorkerPool) receiveMsg(msg *msgJobItem) bool {
 
-	msgJobCh:= this.getMsgWorkChan(msg.msgPayload.Payload.CmdType())
+	msgJobCh := this.getMsgWorkChan(msg.msgPayload.Payload.CmdType())
 	if msgJobCh != nil {
 		msgJobCh.jobChan <- msg
 		return true
@@ -196,7 +196,7 @@ func (this* msgWorkerPool) receiveMsg(msg *msgJobItem) bool {
 	return false
 }
 
-func (this* msgWorkerPool) disposeMsg(msgJobCh* msgJobChan) {
+func (this *msgWorkerPool) disposeMsg(msgJobCh *msgJobChan) {
 
 	for msgJob := range msgJobCh.jobChan {
 		if msgJob == nil {
@@ -211,8 +211,7 @@ func (this* msgWorkerPool) disposeMsg(msgJobCh* msgJobChan) {
 	this.lock.Unlock()
 }
 
-
-func (this* msgWorkerPool) release(msgType string, msgJobCh* msgJobChan)  {
+func (this *msgWorkerPool) release(msgType string, msgJobCh *msgJobChan) {
 
 	msgJobCh.lastUseTime = time.Now()
 
@@ -223,10 +222,3 @@ func (this* msgWorkerPool) release(msgType string, msgJobCh* msgJobChan)  {
 		*msgWaitingWorks = append(*msgWaitingWorks, msgJobCh)
 	}
 }
-
-
-
-
-
-
-

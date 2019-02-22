@@ -60,7 +60,7 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.p2p = p2p
 
 	this.msgWP = &msgWorkerPool{
-		maxWorkerCount : 256 * config.DefConfig.P2PNode.MaxConnInBoundForSingleIP,
+		maxWorkerCount: 256 * config.DefConfig.P2PNode.MaxConnInBoundForSingleIP,
 	}
 	this.msgWP.init()
 
@@ -121,7 +121,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 					/*At present, only block sync msg is added into worker pool;
 					  Later, other msgs will be also added into worker pool
 					*/
-					if msgType == msgCommon.GET_DATA_TYPE  || msgType == msgCommon.GET_HEADERS_TYPE{
+					if msgType == msgCommon.GET_DATA_TYPE || msgType == msgCommon.GET_HEADERS_TYPE {
 						mJItem := &msgJobItem{
 							msgPayload: data,
 							p2p:        this.p2p,
