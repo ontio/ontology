@@ -118,6 +118,9 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
+					/*At present, only block sync msg is added into worker pool;
+					  Later, other msgs will be also added into worker pool
+					*/
 					if msgType == msgCommon.GET_DATA_TYPE  || msgType == msgCommon.GET_HEADERS_TYPE{
 						mJItem := &msgJobItem{
 							msgPayload: data,
