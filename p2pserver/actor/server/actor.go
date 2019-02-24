@@ -25,7 +25,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 type P2PActor struct {
@@ -255,12 +254,11 @@ func (this *P2PActor) handleGetNbrPeerVersionInfosReq(ctx actor.Context, req *Ge
 
 	nbrPeers := this.server.GetNetWork().GetNeighbors()
 	nbrResp := &GetNbrPeerVersionInfosRsp{
-		VersionInfos: []*common.NbrPeerVersionInfo{},
+		VersionInfos: []*NbrPeerVersionInfo{},
 	}
 
-	var p *peer.Peer
-	for _, p = range nbrPeers {
-		nbrPeerVInfo := &common.NbrPeerVersionInfo{
+	for _, p := range nbrPeers {
+		nbrPeerVInfo := &NbrPeerVersionInfo{
 			ID:      p.GetID(),
 			Version: p.GetVersion(),
 		}

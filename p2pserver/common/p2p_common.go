@@ -152,11 +152,6 @@ type AppendBlock struct {
 	MerkleRoot com.Uint256  // MerkleRoot
 }
 
-type NbrPeerVersionInfo struct {
-	ID       uint64
-	Version  uint32
-}
-
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {
 	i := strings.Index(s, ":")
