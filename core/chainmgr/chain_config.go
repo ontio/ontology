@@ -39,7 +39,10 @@ func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstat
 	}
 
 	// TODO: check if shardID is in children
-
+	childShards := self.getChildShards()
+	if _, present := childShards[shardID]; !present {
+		return nil, fmt.Errorf("ShardID:%d not in children", shardID)
+	}
 	// copy current config
 	buf := new(bytes.Buffer)
 	if err := config.DefConfig.Serialize(buf); err != nil {
@@ -61,10 +64,39 @@ func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstat
 		}
 		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
 		shardConfig.Genesis.SeedList = seedlist
+	} else if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
+		seedlist := make([]string, 0)
+		peers := make([]*config.VBFTPeerStakeInfo, 0)
+		var index uint32
+		index = 1
+		for peerPK, info := range shardState.Peers {
+			seedlist = append(seedlist, info.PeerAddress)
+			vbftpeerstakeinfo := &config.VBFTPeerStakeInfo{
+				Index:      index,
+				PeerPubkey: peerPK,
+				Address:    info.PeerOwner.ToBase58(),
+				InitPos:    info.StakeAmount,
+			}
+			peers = append(peers, vbftpeerstakeinfo)
+			index++
+		}
+		shardConfig.Genesis.SeedList = seedlist
+		shardConfig.Genesis.VBFT.N = shardState.Config.VbftConfigData.N
+		shardConfig.Genesis.VBFT.C = shardState.Config.VbftConfigData.C
+		shardConfig.Genesis.VBFT.K = shardState.Config.VbftConfigData.K
+		shardConfig.Genesis.VBFT.L = shardState.Config.VbftConfigData.L
+		shardConfig.Genesis.VBFT.BlockMsgDelay = shardState.Config.VbftConfigData.BlockMsgDelay
+		shardConfig.Genesis.VBFT.HashMsgDelay = shardState.Config.VbftConfigData.HashMsgDelay
+		shardConfig.Genesis.VBFT.PeerHandshakeTimeout = shardState.Config.VbftConfigData.PeerHandshakeTimeout
+		shardConfig.Genesis.VBFT.MaxBlockChangeView = shardState.Config.VbftConfigData.MaxBlockChangeView
+		shardConfig.Genesis.VBFT.MinInitStake = shardState.Config.VbftConfigData.MinInitStake
+		shardConfig.Genesis.VBFT.AdminOntID = shardState.Config.VbftConfigData.AdminOntID
+		shardConfig.Genesis.VBFT.VrfValue = shardState.Config.VbftConfigData.VrfValue
+		shardConfig.Genesis.VBFT.VrfProof = shardState.Config.VbftConfigData.VrfProof
+		shardConfig.Genesis.VBFT.Peers = shardState.Config.VbftConfigData.Peers
 	} else {
 		return nil, fmt.Errorf("only solo suppported")
 	}
-
 	// TODO: init config for shard $shardID, including genesis config, data dir, net port, etc
 	shardName := GetShardName(shardID)
 	shardConfig.P2PNode.NodePort = 10000 + uint(shardID)

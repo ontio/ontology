@@ -22,6 +22,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
@@ -48,10 +49,10 @@ func (this *ShardMgmtGlobalState) Deserialize(r io.Reader) error {
 }
 
 type ShardConfig struct {
-	NetworkSize       uint32         `json:"network_size"`
-	StakeAssetAddress common.Address `json:"stake_asset_address"`
-	GasAssetAddress   common.Address `json:"gas_asset_address"`
-	TestData          []byte         `json:"test_data"`
+	NetworkSize       uint32             `json:"network_size"`
+	StakeAssetAddress common.Address     `json:"stake_asset_address"`
+	GasAssetAddress   common.Address     `json:"gas_asset_address"`
+	VbftConfigData    *config.VBFTConfig `json:"vbft_config_data"`
 }
 
 func (this *ShardConfig) Serialize(w io.Writer) error {

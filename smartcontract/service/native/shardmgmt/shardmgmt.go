@@ -21,6 +21,7 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -239,7 +240,7 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		NetworkSize:       params.NetworkMin,
 		StakeAssetAddress: params.StakeAssetAddress,
 		GasAssetAddress:   params.GasAssetAddress,
-		TestData:          params.ConfigTestData,
+		VbftConfigData:    params.VbftConfigData,
 	}
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
