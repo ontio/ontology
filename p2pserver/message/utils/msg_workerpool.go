@@ -44,7 +44,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 )
@@ -73,6 +72,16 @@ type msgJobChan struct {
 	jobChan     chan *msgJobItem
 }
 
+func newMsgWorkerPool(maxWorkerCount uint) *msgWorkerPool {
+
+	msgWP := &msgWorkerPool{
+		maxWorkerCount: maxWorkerCount,
+	}
+	msgWP.init()
+
+	return msgWP
+}
+
 func (this *msgWorkerPool) init() {
 
 	this.waitingWokers = make(map[string]msgJobChanList)
@@ -97,8 +106,7 @@ var msgJobChanCap = func() int {
 func (this *msgWorkerPool) start() {
 
 	if this.waitingWokers == nil || this.stopChan == nil {
-		log.Error("[p2p]invalid start invoking, the msg worker pool hasn't been initialized")
-		return
+		panic("[p2p]invalid start invoking, the msg worker pool hasn't been initialized")
 	}
 
 	go func() {
@@ -117,8 +125,7 @@ func (this *msgWorkerPool) start() {
 func (this *msgWorkerPool) stop() {
 
 	if this.stopChan == nil {
-		log.Error("[p2p]invalid stop invoking, the msg worker pool hasn't been initialized!")
-		return
+		panic("[p2p]invalid stop invoking, the msg worker pool hasn't been initialized!")
 	}
 	close(this.stopChan)
 	this.stopChan = nil

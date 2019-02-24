@@ -59,10 +59,7 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.stopConsCh = make(chan bool)
 	this.p2p = p2p
 
-	this.msgWP = &msgWorkerPool{
-		maxWorkerCount: 256 * config.DefConfig.P2PNode.MaxConnInBoundForSingleIP,
-	}
-	this.msgWP.init()
+	this.msgWP = newMsgWorkerPool(256 * config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
 
 	// Register message handler
 	this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
