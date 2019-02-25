@@ -260,7 +260,7 @@ func (this *P2PActor) handleGetNbrPeerVersionInfosReq(ctx actor.Context, req *Ge
 	for _, p := range nbrPeers {
 		nbrPeerVInfo := &NbrPeerVersionInfo{
 			ID:      p.GetID(),
-			Version: p.GetVersion(),
+			Version: p.GetSoftVersion(),
 		}
 		nbrResp.VersionInfos = append(nbrResp.VersionInfos, nbrPeerVInfo)
 	}

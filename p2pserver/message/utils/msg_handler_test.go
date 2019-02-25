@@ -136,7 +136,7 @@ func TestVerAckHandle(t *testing.T) {
 
 	remotePeer.SetHttpInfoPort(20335)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	network.AddNbrNode(remotePeer)
 	remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
 
@@ -173,7 +173,7 @@ func TestAddrReqHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -206,7 +206,7 @@ func TestHeadersReqHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -238,7 +238,7 @@ func TestPingHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -273,7 +273,7 @@ func TestPongHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -308,7 +308,7 @@ func TestBlkHeaderHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -346,7 +346,7 @@ func TestBlockHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -472,7 +472,7 @@ func TestDataReqHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -516,7 +516,7 @@ func TestInvHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -550,7 +550,7 @@ func TestDisconnectHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345)
+		20337, testID, 0, 12345, "1.5.2")
 	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)

@@ -42,6 +42,7 @@ type PeerCom struct {
 	syncPort     uint16
 	consPort     uint16
 	height       uint64
+	softVersion  string
 }
 
 // SetID sets a peer's id
@@ -124,6 +125,16 @@ func (this *PeerCom) GetHeight() uint64 {
 	return this.height
 }
 
+//SetSoftVersion sets a peers's software version
+func (this *PeerCom) SetSoftVersion(softVer string) {
+	this.softVersion = softVer
+}
+
+//GetSoftVersion return a peer's software version
+func (this *PeerCom) GetSoftVersion() string{
+	return this.softVersion
+}
+
 //Peer represent the node in p2p
 type Peer struct {
 	base      PeerCom
@@ -168,6 +179,7 @@ func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]\t consPort = ", this.GetConsPort())
 	log.Debug("[p2p]\t relay = ", this.GetRelay())
 	log.Debug("[p2p]\t height = ", this.GetHeight())
+	log.Debug("[p2p]\t softVersion = ", this.GetSoftVersion())
 }
 
 //GetVersion return peer`s version
@@ -316,6 +328,10 @@ func (this *Peer) GetAddr16() ([16]byte, error) {
 	return result, nil
 }
 
+func (this *Peer) GetSoftVersion() string {
+	return this.base.GetSoftVersion()
+}
+
 //AttachSyncChan set msg chan to sync link
 func (this *Peer) AttachSyncChan(msgchan chan *types.MsgPayload) {
 	this.SyncLink.SetChan(msgchan)
@@ -360,7 +376,7 @@ func (this *Peer) SetHttpInfoPort(port uint16) {
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64) {
+	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64, softVer string) {
 
 	this.SyncLink.UpdateRXTime(t)
 	this.base.SetID(nonce)
@@ -368,6 +384,7 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	this.base.SetServices(services)
 	this.base.SetSyncPort(syncPort)
 	this.base.SetConsPort(consPort)
+	this.base.SetSoftVersion(softVer)
 	this.SyncLink.SetPort(syncPort)
 	this.ConsLink.SetPort(consPort)
 	if relay == 0 {
