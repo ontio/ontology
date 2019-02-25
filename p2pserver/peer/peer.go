@@ -131,7 +131,7 @@ func (this *PeerCom) SetSoftVersion(softVer string) {
 }
 
 //GetSoftVersion return a peer's software version
-func (this *PeerCom) GetSoftVersion() string{
+func (this *PeerCom) GetSoftVersion() string {
 	return this.softVersion
 }
 
