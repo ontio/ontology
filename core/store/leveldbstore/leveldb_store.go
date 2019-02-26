@@ -41,7 +41,7 @@ const BITSPERKEY = 10
 
 //NewLevelDBStore return LevelDBStore instance
 func NewLevelDBStore(file string) (*LevelDBStore, error) {
-	openFileCache := 500
+	openFileCache := opt.DefaultOpenFilesCacheCapacity
 	maxOpenFiles, err := fdlimit.Current()
 	if err == nil && maxOpenFiles < openFileCache*5 {
 		openFileCache = maxOpenFiles / 5
