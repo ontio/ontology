@@ -27,6 +27,10 @@ import:
   subpackages:
   - ripemd160
 - package: github.com/hashicorp/golang-lru
+- package: github.com/ethereum/go-ethereum
+  version: v1.8.23
+  subpackages:
+  - common/fdlimit
 - package: github.com/gosuri/uiprogress
 - package: golang.org/x/sys
   repo: https://github.com/golang/sys.git

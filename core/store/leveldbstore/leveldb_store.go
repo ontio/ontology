@@ -19,6 +19,7 @@
 package leveldbstore
 
 import (
+	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -40,11 +41,21 @@ const BITSPERKEY = 10
 
 //NewLevelDBStore return LevelDBStore instance
 func NewLevelDBStore(file string) (*LevelDBStore, error) {
+	openFileCache := opt.DefaultOpenFilesCacheCapacity
+	maxOpenFiles, err := fdlimit.Current()
+	if err == nil && maxOpenFiles < openFileCache*5 {
+		openFileCache = maxOpenFiles / 5
+	}
+
+	if openFileCache < 16 {
+		openFileCache = 16
+	}
 
 	// default Options
 	o := opt.Options{
-		NoSync: false,
-		Filter: filter.NewBloomFilter(BITSPERKEY),
+		NoSync:                 false,
+		OpenFilesCacheCapacity: openFileCache,
+		Filter:                 filter.NewBloomFilter(BITSPERKEY),
 	}
 
 	db, err := leveldb.OpenFile(file, &o)
