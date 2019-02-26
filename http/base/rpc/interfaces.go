@@ -21,6 +21,7 @@ package rpc
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -309,7 +310,8 @@ func GetShardStorage(params []interface{}) map[string]interface{} {
 	if shardID == chainmgr.GetShardID() {
 		value, err = bactor.GetStorageItem(address, key)
 	} else {
-		value, err = bactor.GetShardStorageItem(shardID, address, key)
+		err = fmt.Errorf("param shardId %d unmatch", shardID)
+		log.Error(err)
 	}
 	if err != nil {
 		if err == scom.ErrNotFound {
@@ -355,7 +357,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 			}
 		}
 
-		log.Debugf("SendRawTransaction send to %d txpool %s", txn.ShardID, hash.ToHexString())
+		log.Debugf("SendRawTransaction send to %d, %d txpool %s", txn.ShardID, chainmgr.GetShardID(), hash.ToHexString())
 		if txn.ShardID == chainmgr.GetShardID() {
 			if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 				log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
@@ -364,10 +366,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		} else if txn.ShardID == config.DEFAULT_SHARD_ID {
 			return responsePack(int64(ontErrors.ErrXmitFail), "")
 		} else {
-			if errCode, desc := bcomn.SendShardTxToChainMgr(txn); errCode != ontErrors.ErrNoError {
-				log.Warnf("SendRawTransaction chainmgr verified %s error: %s", hash.ToHexString(), desc)
-				return responsePack(int64(errCode), desc)
-			}
+			return responsePack(int64(ontErrors.ErrInValidShard), "")
 		}
 		log.Debugf("SendRawTransaction verified %s", hash.ToHexString())
 	default:

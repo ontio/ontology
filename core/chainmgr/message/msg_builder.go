@@ -196,35 +196,3 @@ func NewShardBlockInfoFromRemote(ShardID uint64, msg *ShardBlockRspMsg) (*ShardB
 
 	return blockInfo, nil
 }
-
-func NewTxnRequestMessage(txnReq *TxRequest, sender *actor.PID) (*CrossShardMsg, error) {
-	return newJsonShardMsg(txnReq, TXN_REQ_MSG, sender)
-}
-
-func NewTxnResponseMessage(txnRsp *TxResult, sender *actor.PID) (*CrossShardMsg, error) {
-	return newJsonShardMsg(txnRsp, TXN_RSP_MSG, sender)
-}
-
-func NewStorageRequestMessage(req *StorageRequest, sender *actor.PID) (*CrossShardMsg, error) {
-	return newJsonShardMsg(req, STORAGE_REQ_MSG, sender)
-}
-
-func NewStorageResponseMessage(storageRsp *StorageResult, sender *actor.PID) (*CrossShardMsg, error) {
-	return newJsonShardMsg(storageRsp, STORAGE_RSP_MSG, sender)
-}
-
-func newJsonShardMsg(msg RemoteShardMsg, msgType int, sender *actor.PID) (*CrossShardMsg, error) {
-	if msg == nil {
-		return nil, nil
-	}
-	msgBytes, err := EncodeShardMsg(msg)
-	if err != nil {
-		return nil, err
-	}
-	return &CrossShardMsg{
-		Version: SHARD_PROTOCOL_VERSION,
-		Type:    int32(msgType),
-		Sender:  sender,
-		Data:    msgBytes,
-	}, nil
-}

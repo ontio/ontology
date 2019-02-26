@@ -81,6 +81,8 @@ const (
 	DEFAULT_SHARD_PORT         = uint(20340)
 	DEFAULT_PARENTSHARD_IPADDR = "127.0.0.1"
 	DEFAULT_PARENTSHARD_PORT   = uint(0)
+	DEFAULT_SHARD_REST_PORT    = uint(21334)
+	DEFAULT_SHARD_RPC_PORT     = uint(21336)
 )
 
 const (
@@ -531,12 +533,14 @@ type P2PNodeConfig struct {
 
 type RpcConfig struct {
 	EnableHttpJsonRpc bool
+	EnableShardRpc    bool
 	HttpJsonPort      uint
 	HttpLocalPort     uint
 }
 
 type RestfulConfig struct {
 	EnableHttpRestful  bool
+	EnableShardRestful bool
 	HttpRestPort       uint
 	HttpMaxConnections uint
 	HttpCertPath       string
@@ -605,12 +609,14 @@ func NewOntologyConfig() *OntologyConfig {
 		},
 		Rpc: &RpcConfig{
 			EnableHttpJsonRpc: true,
+			EnableShardRpc:    true,
 			HttpJsonPort:      DEFAULT_RPC_PORT,
 			HttpLocalPort:     DEFAULT_RPC_LOCAL_PORT,
 		},
 		Restful: &RestfulConfig{
-			EnableHttpRestful: true,
-			HttpRestPort:      DEFAULT_REST_PORT,
+			EnableHttpRestful:  true,
+			EnableShardRestful: true,
+			HttpRestPort:       DEFAULT_REST_PORT,
 		},
 		Ws: &WebSocketConfig{
 			EnableHttpWs: true,

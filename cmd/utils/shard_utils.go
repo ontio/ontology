@@ -25,7 +25,7 @@ import (
 //
 // build child-Shard Ontology process command line arguments
 //
-func BuildShardCommandArgs(cmdArgs map[string]string, shardID, parentShardID, parentPort uint64) ([]string, error) {
+func BuildShardCommandArgs(cmdArgs map[string]string, shardID, parentShardID uint64, parentPort uint) ([]string, error) {
 	args := make([]string, 0)
 	shardArgs := make(map[string]string)
 	for _, flag := range CmdFlagsForSharding {
@@ -34,7 +34,7 @@ func BuildShardCommandArgs(cmdArgs map[string]string, shardID, parentShardID, pa
 
 	// prepare Shard-Configs for child-shard ontology process
 	shardArgs[ShardIDFlag.GetName()] = fmt.Sprintf("%d", shardID)
-	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d", uint(parentPort+shardID-parentShardID))
+	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d", parentPort+uint(shardID-parentShardID))
 	shardArgs[ParentShardIDFlag.GetName()] = fmt.Sprintf("%d", parentShardID)
 	shardArgs[ParentShardPortFlag.GetName()] = fmt.Sprintf("%d", parentPort)
 

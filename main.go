@@ -134,6 +134,8 @@ func setupAPP() *cli.App {
 		utils.ParentShardIDFlag,
 		utils.ParentShardIPFlag,
 		utils.ParentShardPortFlag,
+		utils.ShardRestEnableFlag,
+		utils.ShardRpcEnableFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -295,6 +297,13 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 		return
 	}
 
+	err = initRpc(ctx)
+	if err != nil {
+		log.Errorf("initRpc error:%s", err)
+		return
+	}
+	initRestful(ctx)
+
 	go logCurrBlockHeight()
 	waitToExit()
 }
@@ -353,8 +362,8 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 	parentShardID := ctx.Uint64(utils.GetFlagName(utils.ParentShardIDFlag))
 	parentShardAddr := ctx.String(utils.GetFlagName(utils.ParentShardIPFlag))
 	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
-	log.Infof("staring shard %d chain mgr: port %d, parent (%d, %s, %d)",
-		shardID, shardPort, parentShardID, parentShardAddr, parentShardPort)
+	log.Infof("staring shard %d chain mgr: port %d, parent (%d, %s, %d)", shardID, shardPort, parentShardID,
+		parentShardAddr, parentShardPort)
 
 	// get all cmdArgs, for sub-shards
 	cmdArgs := make(map[string]string)
@@ -374,7 +383,6 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 	if err != nil {
 		return nil, err
 	}
-	hserver.SetChainMgrPid(shard.GetPID())
 
 	return chainmgr, err
 }
@@ -482,6 +490,9 @@ func initRpc(ctx *cli.Context) error {
 	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
 		return nil
 	}
+	if !config.DefConfig.Rpc.EnableShardRpc && !shard.IsRootShard(shard.GetShardID()) {
+		return nil
+	}
 	var err error
 	exitCh := make(chan interface{}, 0)
 	go func() {
@@ -529,6 +540,9 @@ func initLocalRpc(ctx *cli.Context) error {
 
 func initRestful(ctx *cli.Context) {
 	if !config.DefConfig.Restful.EnableHttpRestful {
+		return
+	}
+	if !config.DefConfig.Restful.EnableShardRestful && !shard.IsRootShard(shard.GetShardID()) {
 		return
 	}
 	go restful.StartServer()

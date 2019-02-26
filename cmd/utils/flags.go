@@ -155,6 +155,10 @@ var (
 		Name:  "disable-rpc",
 		Usage: "Shut down the rpc server.",
 	}
+	ShardRpcEnableFlag = cli.BoolFlag{
+		Name:  "enable-shard-rpc",
+		Usage: "Disable Shard Rpc",
+	}
 	RPCPortFlag = cli.UintFlag{
 		Name:  "rpcport",
 		Usage: "Json rpc server listening port `<number>`",
@@ -185,6 +189,10 @@ var (
 	RestfulEnableFlag = cli.BoolFlag{
 		Name:  "rest",
 		Usage: "Enable restful api server",
+	}
+	ShardRestEnableFlag = cli.BoolFlag{
+		Name:  "enable-shard-rest",
+		Usage: "Enable Shard Rest",
 	}
 	RestfulPortFlag = cli.UintFlag{
 		Name:  "restport",
