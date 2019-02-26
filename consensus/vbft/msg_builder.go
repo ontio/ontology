@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -187,12 +188,22 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		log.Errorf("constructBlock getlastblock err:%s,blknum:%d", err, blkNum-1)
 		return nil, err
 	}
-
+	parentHeight, err := chainmgr.GetParentShardHeight()
+	if err != nil {
+		log.Errorf("constructBlock getparentshardheight err:%s,blknum:%d", err, blkNum-1)
+		return nil, fmt.Errorf("get parentBlock height: %s", err)
+	}
+	shardTxs := make(map[uint64][]*types.Transaction)
+	if self.parentHeight < parentHeight {
+		shardTxs = chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
 
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,
+		ShardID:          chainmgr.GetShardID(),
+		ParentHeight:     uint32(parentHeight),
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
 		Timestamp:        blocktimestamp,
@@ -202,6 +213,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	}
 	blk := &types.Block{
 		Header:       blkHeader,
+		ShardTxs:     shardTxs, // Cross-Shard Txs
 		Transactions: txs,
 	}
 	blkHash := blk.Hash()

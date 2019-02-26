@@ -160,7 +160,7 @@ func (self *SoloService) genBlock() error {
 	}
 
 	// parentHeight order consistency check
-		if self.parentHeight > uint64(block.Header.ParentHeight) {
+	if self.parentHeight > uint64(block.Header.ParentHeight) {
 		return fmt.Errorf("invalid parent height: %d vs %s", self.parentHeight, block.Header.ParentHeight)
 	}
 	result, err := ledger.DefLedger.ExecuteBlock(block)

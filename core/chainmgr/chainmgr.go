@@ -256,11 +256,15 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 
 	// load all child-shard from shard-mgmt contract
 	for i := uint16(1); i < globalState.NextSubShardIndex; i++ {
-		subShardID, err := types.ShardID(self.shardID).GenSubShardID(i)
+		shardID, err := types.NewShardID(self.shardID)
 		if err != nil {
 			return err
 		}
-		shard, err := GetShardState(self.ledger, uint64(subShardID))
+		subShardID, err := shardID.GenSubShardID(i)
+		if err != nil {
+			return err
+		}
+		shard, err := GetShardState(self.ledger, subShardID.ToUint64())
 		if err == com.ErrNotFound {
 			continue
 		}
@@ -271,7 +275,7 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 		if shard.State != shardstates.SHARD_STATE_ACTIVE {
 			continue
 		}
-		if _, err := self.initShardInfo(uint64(subShardID), shard); err != nil {
+		if _, err := self.initShardInfo(subShardID.ToUint64(), shard); err != nil {
 			return fmt.Errorf("init shard %d failed: %s", i, err)
 		}
 		// TODO: start shard process (use startChildShardProcess())

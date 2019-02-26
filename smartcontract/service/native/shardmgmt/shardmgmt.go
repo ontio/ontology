@@ -135,7 +135,7 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid param: %s", err)
 	}
-	if params.ParentShardID != MAINCHAIN_SHARDID {
+	if params.ParentShardID != 0 {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid parent shard: %d", params.ParentShardID)
 	}
 	if params.ParentShardID != native.ShardID.ToUint64() {
