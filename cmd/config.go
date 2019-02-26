@@ -169,12 +169,14 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 
 func setRpcConfig(ctx *cli.Context, cfg *config.RpcConfig) {
 	cfg.EnableHttpJsonRpc = !ctx.Bool(utils.GetFlagName(utils.RPCDisabledFlag))
+	cfg.EnableShardRpc = cfg.EnableHttpJsonRpc && ctx.Bool(utils.GetFlagName(utils.ShardRpcEnableFlag))
 	cfg.HttpJsonPort = ctx.Uint(utils.GetFlagName(utils.RPCPortFlag))
 	cfg.HttpLocalPort = ctx.Uint(utils.GetFlagName(utils.RPCLocalProtFlag))
 }
 
 func setRestfulConfig(ctx *cli.Context, cfg *config.RestfulConfig) {
 	cfg.EnableHttpRestful = ctx.Bool(utils.GetFlagName(utils.RestfulEnableFlag))
+	cfg.EnableShardRestful = cfg.EnableHttpRestful && ctx.Bool(utils.GetFlagName(utils.ShardRestEnableFlag))
 	cfg.HttpRestPort = ctx.Uint(utils.GetFlagName(utils.RestfulPortFlag))
 	cfg.HttpMaxConnections = ctx.Uint(utils.GetFlagName(utils.RestfulMaxConnsFlag))
 }

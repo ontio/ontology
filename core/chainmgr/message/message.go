@@ -35,11 +35,6 @@ const (
 	PEERINFO_REQ_MSG
 	PEERINFO_RSP_MSG
 
-	TXN_REQ_MSG
-	TXN_RSP_MSG
-	STORAGE_REQ_MSG
-	STORAGE_RSP_MSG
-
 	DISCONNECTED_MSG
 )
 
@@ -151,30 +146,6 @@ func DecodeShardMsg(msgtype int32, msgPayload []byte) (RemoteShardMsg, error) {
 		return msg, nil
 	case PEERINFO_RSP_MSG:
 		msg := &ShardGetPeerInfoRspMsg{}
-		if err := json.Unmarshal(msgPayload, msg); err != nil {
-			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
-		}
-		return msg, nil
-	case TXN_REQ_MSG:
-		msg := &TxRequest{}
-		if err := json.Unmarshal(msgPayload, msg); err != nil {
-			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
-		}
-		return msg, nil
-	case TXN_RSP_MSG:
-		msg := &TxResult{}
-		if err := json.Unmarshal(msgPayload, msg); err != nil {
-			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
-		}
-		return msg, nil
-	case STORAGE_REQ_MSG:
-		msg := &StorageRequest{}
-		if err := json.Unmarshal(msgPayload, msg); err != nil {
-			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
-		}
-		return msg, nil
-	case STORAGE_RSP_MSG:
-		msg := &StorageResult{}
 		if err := json.Unmarshal(msgPayload, msg); err != nil {
 			return nil, fmt.Errorf("unmarshal remote shard msg %d: %s", msgtype, err)
 		}

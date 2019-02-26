@@ -117,6 +117,12 @@ func (this *OntologyConfig) Serialize(w io.Writer) error {
 	if err := jsonSerialize(w, this.Shard); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize shard error!")
 	}
+	if err := jsonSerialize(w, this.Restful); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize rest error!")
+	}
+	if err := jsonSerialize(w, this.Rpc); err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "OntologyConfig serialization, serialize rpc error!")
+	}
 
 	return nil
 }
@@ -152,15 +158,24 @@ func (this *OntologyConfig) Deserialize(r io.Reader) error {
 		return err
 	}
 
+	rest := new(RestfulConfig)
+	if err := jsonDeserialize(r, rest); err != nil {
+		return err
+	}
+
+	rpc := new(RpcConfig)
+	if err := jsonDeserialize(r, rpc); err != nil {
+		return err
+	}
+
 	this.Genesis = genesis
 	this.Common = common
 	this.Consensus = consensus
 	this.P2PNode = p2pnode
 	this.Shard = shard
 
-	// disable rpc, restful and websocket
-	this.Rpc = &RpcConfig{EnableHttpJsonRpc: false}
-	this.Restful = &RestfulConfig{EnableHttpRestful: false}
+	this.Rpc = rpc
+	this.Restful = rest
 	this.Ws = &WebSocketConfig{EnableHttpWs: false}
 	return nil
 }

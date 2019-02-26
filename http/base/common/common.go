@@ -233,14 +233,6 @@ func SendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
 	return ontErrors.ErrNoError, ""
 }
 
-func SendShardTxToChainMgr(txn *types.Transaction) (ontErrors.ErrCode, string) {
-	if errCode, desc := bactor.AppendTxToRemoteShard(txn); errCode != ontErrors.ErrNoError {
-		log.Warn("shard verify tx error:", errCode.Error())
-		return errCode, desc
-	}
-	return ontErrors.ErrNoError, ""
-}
-
 func GetBlockInfo(block *types.Block) BlockInfo {
 	hash := block.Hash()
 	var bookkeepers = []string{}

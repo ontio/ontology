@@ -262,6 +262,8 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ParentShardIDFlag,
 			utils.ParentShardIPFlag,
 			utils.ParentShardPortFlag,
+			utils.ShardRestEnableFlag,
+			utils.ShardRpcEnableFlag,
 		},
 	},
 }

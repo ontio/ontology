@@ -20,17 +20,16 @@
 package jsonrpc
 
 import (
-	"net/http"
-	"strconv"
-
 	"fmt"
-	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base"
 	"github.com/ontio/ontology/http/base/rpc"
+	"net/http"
 )
 
 func StartRPCServer() error {
 	log.Debug()
+
 	http.HandleFunc("/", rpc.Handle)
 
 	rpc.HandleFunc("getbestblockhash", rpc.GetBestBlockHash)
@@ -62,7 +61,7 @@ func StartRPCServer() error {
 
 	rpc.HandleFunc("getshardstorage", rpc.GetShardStorage)
 
-	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", base.GetShardRpcPort()), nil)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)
 	}

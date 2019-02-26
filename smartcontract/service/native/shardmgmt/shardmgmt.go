@@ -248,6 +248,8 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
 	}
 
+	// TODO: notify event
+
 	return utils.BYTE_TRUE, nil
 }
 
@@ -300,6 +302,8 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if err := setShardState(native, contract, shard); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, update shard state: %s", err)
 	}
+
+	// TODO: notify event
 
 	return utils.BYTE_TRUE, nil
 }

@@ -23,8 +23,10 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base"
 	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
@@ -82,7 +84,8 @@ const (
 
 //init restful server
 func InitRestServer() rest.ApiServer {
-	rt := &restServer{}
+	rt := &restServer{
+	}
 
 	rt.router = NewRouter()
 	rt.registryMethod()
@@ -93,7 +96,7 @@ func InitRestServer() rest.ApiServer {
 
 //start server
 func (this *restServer) Start() error {
-	retPort := int(cfg.DefConfig.Restful.HttpRestPort)
+	retPort := int(base.GetShardRestPort())
 	if retPort == 0 {
 		log.Fatal("Not configure HttpRestPort port ")
 		return nil
@@ -109,7 +112,7 @@ func (this *restServer) Start() error {
 		}
 	} else {
 		var err error
-		this.listener, err = net.Listen("tcp", ":"+strconv.Itoa(retPort))
+		this.listener, err = net.Listen("tcp", fmt.Sprintf(":%d", retPort))
 		if err != nil {
 			log.Fatal("net.Listen: ", err.Error())
 			return err

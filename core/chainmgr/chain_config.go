@@ -112,7 +112,8 @@ func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstat
 		ParentShardPort:      self.shardPort,
 	}
 
-	self.setShardConfig(shardID, shardConfig)
+	shardConfig.Rpc = config.DefConfig.Rpc
+	shardConfig.Restful = config.DefConfig.Restful
 
 	return shardConfig, nil
 }

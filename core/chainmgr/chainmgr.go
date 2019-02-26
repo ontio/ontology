@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology-eventbus/eventstream"
 	"github.com/ontio/ontology-eventbus/remote"
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
@@ -92,11 +91,6 @@ type ShardInfo struct {
 	Sender        *actor.PID
 }
 
-//
-// TODO: remove this after HTTP enabled on shard
-//
-type ShardStorageReqList map[common.Address]*shardmsg.StorageRequest
-
 type ChainManager struct {
 	shardID              uint64
 	shardPort            uint
@@ -136,12 +130,6 @@ type ChainManager struct {
 	broadcastMsgC   chan *MsgSendReq
 	parentConnWait  chan bool
 
-	// TODO: remove the following members, after HTTP enabled on shard
-	txnReqC            chan shardmsg.ShardTxRequest
-	txnRspC            chan shardmsg.ShardTxResponse
-	pendingTxns        map[common.Uint256]*shardmsg.TxRequest
-	pendingStorageReqs map[uint64]ShardStorageReqList
-
 	parentPid *actor.PID
 	localPid  *actor.PID
 
@@ -158,7 +146,8 @@ type ChainManager struct {
 //
 // Initialize chain manager when ontology starting
 //
-func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, parentPort uint, acc *account.Account, cmdArgs map[string]string) (*ChainManager, error) {
+func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, parentPort uint, acc *account.Account,
+	cmdArgs map[string]string) (*ChainManager, error) {
 	// fixme: change to sync.once
 	if defaultChainManager != nil {
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
@@ -175,19 +164,16 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 		parentShardID:        parentShardID,
 		parentShardIPAddress: parentAddr,
 		parentShardPort:      parentPort,
-		shards:               make(map[uint64]*ShardInfo),
-		shardAddrs:           make(map[string]uint64),
-		blockPool:            blkPool,
-		localBlockMsgC:       make(chan *types.Block, CAP_LOCAL_SHARDMSG_CHNL),
-		localEventC:          make(chan *shardstates.ShardEventState, CAP_LOCAL_SHARDMSG_CHNL),
-		remoteShardMsgC:      make(chan *RemoteMsg, CAP_REMOTE_SHARDMSG_CHNL),
-		broadcastMsgC:        make(chan *MsgSendReq, CAP_REMOTE_SHARDMSG_CHNL),
-		parentConnWait:       make(chan bool),
-		quitC:                make(chan struct{}),
-		txnReqC:              make(chan shardmsg.ShardTxRequest, CAP_LOCAL_SHARDMSG_CHNL),
-		txnRspC:              make(chan shardmsg.ShardTxResponse, CAP_REMOTE_SHARDMSG_CHNL),
-		pendingTxns:          make(map[common.Uint256]*shardmsg.TxRequest),
-		pendingStorageReqs:   make(map[uint64]ShardStorageReqList),
+
+		shards:          make(map[uint64]*ShardInfo),
+		shardAddrs:      make(map[string]uint64),
+		blockPool:       blkPool,
+		localBlockMsgC:  make(chan *types.Block, CAP_LOCAL_SHARDMSG_CHNL),
+		localEventC:     make(chan *shardstates.ShardEventState, CAP_LOCAL_SHARDMSG_CHNL),
+		remoteShardMsgC: make(chan *RemoteMsg, CAP_REMOTE_SHARDMSG_CHNL),
+		broadcastMsgC:   make(chan *MsgSendReq, CAP_REMOTE_SHARDMSG_CHNL),
+		parentConnWait:  make(chan bool),
+		quitC:           make(chan struct{}),
 
 		account: acc,
 		cmdArgs: cmdArgs,
@@ -203,9 +189,6 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 	go chainMgr.localEventLoop()
 	go chainMgr.remoteShardMsgLoop()
 	go chainMgr.broadcastMsgLoop()
-
-	// TODO: remove this after enabled HTTP on shard
-	go chainMgr.txnLoop()
 
 	if err := chainMgr.connectParent(); err != nil {
 		chainMgr.Stop()
@@ -325,19 +308,6 @@ func (self *ChainManager) Receive(context actor.Context) {
 
 	case *message.SaveBlockCompleteMsg:
 		self.localBlockMsgC <- msg.Block
-
-	case *shardmsg.TxRequest:
-		self.txnReqC <- msg
-
-	case *shardmsg.TxResult:
-		self.txnRspC <- msg
-
-	case *shardmsg.StorageRequest:
-		log.Error("chain mgr recieved local storage request")
-		self.txnReqC <- msg
-
-	case *shardmsg.StorageResult:
-		self.txnRspC <- msg
 
 	default:
 		log.Info("chain mgr actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
@@ -465,63 +435,6 @@ func (self *ChainManager) broadcastMsgLoop() {
 	}
 }
 
-//
-// TODO: remove after enabled HTTP on shard
-//
-func (self *ChainManager) txnLoop() {
-	self.quitWg.Add(1)
-	defer self.quitWg.Done()
-
-	// TODO: make sure tx requests are responsed in all cases
-
-	for {
-		select {
-		case req := <-self.txnReqC:
-			childShards := self.getChildShards()
-			if _, present := childShards[req.ShardID()]; !present {
-				// request not for child shards
-				log.Errorf("shard %d dropped request type %d to shard %d", self.shardID, req.Type(), req.ShardID())
-				continue
-			}
-
-			switch req.Type() {
-			case shardmsg.TXN_REQ_MSG:
-				// TODO: err handling
-				txreq, _ := req.(*shardmsg.TxRequest)
-				if err := self.onTxnRequest(txreq); err != nil {
-					log.Errorf("processing txn request: %s", err)
-					if txreq != nil && txreq.TxResultCh != nil {
-						close(txreq.TxResultCh)
-					}
-				}
-			case shardmsg.STORAGE_REQ_MSG:
-				storageReq, _ := req.(*shardmsg.StorageRequest)
-				if err := self.onStorageRequest(storageReq); err != nil {
-					log.Errorf("processing storage request: %s", err)
-					if storageReq != nil && storageReq.ResultCh != nil {
-						close(storageReq.ResultCh)
-					}
-				}
-			}
-		case rsp := <-self.txnRspC:
-			switch rsp.Type() {
-			case shardmsg.TXN_RSP_MSG:
-				txrsp, _ := rsp.(*shardmsg.TxResult)
-				if err := self.onTxnResponse(txrsp); err != nil {
-					log.Errorf("processing Txn response: %s", err)
-				}
-			case shardmsg.STORAGE_RSP_MSG:
-				storageRsp, _ := rsp.(*shardmsg.StorageResult)
-				if err := self.onStorageResponse(storageRsp); err != nil {
-					log.Errorf("processing storage response: %s", err)
-				}
-			}
-		case <-self.quitC:
-			return
-		}
-	}
-}
-
 func (self *ChainManager) remoteShardMsgLoop() {
 	self.quitWg.Add(1)
 	defer self.quitWg.Done()
@@ -576,30 +489,6 @@ func (self *ChainManager) processRemoteShardMsg() error {
 		case shardmsg.PEERINFO_REQ_MSG:
 		case shardmsg.PEERINFO_RSP_MSG:
 			return nil
-		case shardmsg.TXN_REQ_MSG:
-			txReq, ok := msg.(*shardmsg.TxRequest)
-			if !ok {
-				return fmt.Errorf("invalid txn req msg")
-			}
-			self.onRemoteTxnRequest(remoteMsg.Sender, txReq)
-		case shardmsg.TXN_RSP_MSG:
-			txRsp, ok := msg.(*shardmsg.TxResult)
-			if !ok {
-				return fmt.Errorf("invalid txn rsp msg")
-			}
-			self.onRemoteTxnResponse(txRsp)
-		case shardmsg.STORAGE_REQ_MSG:
-			storageReq, ok := msg.(*shardmsg.StorageRequest)
-			if !ok {
-				return fmt.Errorf("invalid storage req msg")
-			}
-			self.onRemoteStorageRequest(remoteMsg.Sender, storageReq)
-		case shardmsg.STORAGE_RSP_MSG:
-			rsp, ok := msg.(*shardmsg.StorageResult)
-			if !ok {
-				return fmt.Errorf("invalid storage rsp msg")
-			}
-			self.onRemoteStorageResponse(rsp)
 		case shardmsg.DISCONNECTED_MSG:
 			disconnMsg, ok := msg.(*shardmsg.ShardDisconnectedMsg)
 			if !ok {
