@@ -109,6 +109,7 @@ type Server struct {
 	completedBlockNum        uint32 // ledger SaveBlockCompleted block num
 	currentBlockNum          uint32
 	LastConfigBlockNum       uint32
+	parentHeight             uint64 // ParentHeight of last block
 	config                   *vconfig.ChainConfig
 	currentParticipantConfig *BlockParticipantConfig
 
@@ -179,8 +180,8 @@ func (self *Server) Receive(context actor.Context) {
 			msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block)
 	case *message.BlockConsensusComplete:
-		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d, numtx=%d",
-			msg.Block.Header.Height, len(msg.Block.Transactions))
+		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d,parent=%d, numtx=%d",
+			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
@@ -211,6 +212,8 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 			self.Index, block.Header.Height, self.completedBlockNum)
 		return
 	}
+	// new block persisted, update parentHeight
+	self.parentHeight = uint64(block.Header.ParentHeight)
 	self.completedBlockNum = block.Header.Height
 	self.incrValidator.AddBlock(block)
 	if self.nonConsensusNode() {
@@ -283,6 +286,8 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	if err != nil {
 		return err
 	}
+	self.parentHeight = uint64(block.Block.Header.ParentHeight)
+
 	var cfg vconfig.ChainConfig
 	if block.getNewChainConfig() != nil {
 		cfg = *block.getNewChainConfig()
@@ -2057,7 +2062,10 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		self.restartSyncing()
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
-
+	// parentHeight order consistency check
+	if self.parentHeight > uint64(block.Block.Header.ParentHeight) {
+		return fmt.Errorf("invalid parent height: %d vs %d", self.parentHeight, block.Block.Header.ParentHeight)
+	}
 	if err := self.blockPool.setBlockSealed(block, empty, sigdata); err != nil {
 		return fmt.Errorf("failed to seal proposal: %s", err)
 	}
