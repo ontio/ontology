@@ -452,6 +452,7 @@ func (self *ChainManager) onRemoteTxnResponse(txRsp *message.TxResult) {
 	}
 
 	txReq.TxResultCh <- txRsp
+	delete(self.pendingTxns, txRsp.Hash)
 }
 
 func (self *ChainManager) onRemoteRelayTx(tx *types.Transaction) error {
