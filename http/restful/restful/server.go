@@ -83,8 +83,7 @@ const (
 
 //init restful server
 func InitRestServer() rest.ApiServer {
-	rt := &restServer{
-	}
+	rt := &restServer{}
 
 	rt.router = NewRouter()
 	rt.registryMethod()
