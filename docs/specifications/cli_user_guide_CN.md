@@ -140,6 +140,9 @@ consensus-port 参数用于指定共识网络端口号。默认情况下，共�
 --dual-port
 dual-port 参数启动双网络，即用于处理交易消息的P2P网络，和用于共识消息的共识网络。默认不开启。
 
+--httpinfo-port
+httpinfo-port 参数用于指定查看节点信息的http server端口。默认为0，表示不开启。
+
 #### 1.1.5 RPC 服务器参数
 
 --disable-rpc

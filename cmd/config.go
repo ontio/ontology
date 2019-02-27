@@ -142,6 +142,7 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 	cfg.NodePort = ctx.Uint(utils.GetFlagName(utils.NodePortFlag))
 	cfg.NodeConsensusPort = ctx.Uint(utils.GetFlagName(utils.ConsensusPortFlag))
 	cfg.DualPortSupport = ctx.Bool(utils.GetFlagName(utils.DualPortSupportFlag))
+	cfg.HttpInfoPort = ctx.Uint(utils.GetFlagName(utils.HttpInfoPortFlag))
 	cfg.ReservedPeersOnly = ctx.Bool(utils.GetFlagName(utils.ReservedPeersOnlyFlag))
 	cfg.MaxConnInBound = ctx.Uint(utils.GetFlagName(utils.MaxConnInBoundFlag))
 	cfg.MaxConnOutBound = ctx.Uint(utils.GetFlagName(utils.MaxConnOutBoundFlag))
