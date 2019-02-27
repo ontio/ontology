@@ -132,3 +132,15 @@ type TransmitConsensusMsgReq struct {
 	Target uint64
 	Msg    ptypes.Message
 }
+
+type GetNbrPeerVersionInfosReq struct {
+}
+
+type NbrPeerVersionInfo struct {
+	ID      uint64
+	Version string
+}
+
+type GetNbrPeerVersionInfosRsp struct {
+	VersionInfos []*NbrPeerVersionInfo
+}
