@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/common"
@@ -31,7 +32,6 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -113,7 +113,7 @@ func GetView(native *native.NativeService, contract common.Address) (uint32, err
 }
 
 func appCallTransferOnt(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
-	err := appCallTransfer(native, utils.OntContractAddress, from, to, amount)
+	err := ont.AppCallTransfer(native, utils.OntContractAddress, from, to, amount)
 	if err != nil {
 		return fmt.Errorf("appCallTransferOnt, appCallTransfer error: %v", err)
 	}
@@ -121,60 +121,27 @@ func appCallTransferOnt(native *native.NativeService, from common.Address, to co
 }
 
 func appCallTransferOng(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
-	err := appCallTransfer(native, utils.OngContractAddress, from, to, amount)
+	err := ont.AppCallTransfer(native, utils.OngContractAddress, from, to, amount)
 	if err != nil {
 		return fmt.Errorf("appCallTransferOng, appCallTransfer error: %v", err)
 	}
 	return nil
 }
 
-func appCallTransfer(native *native.NativeService, contract common.Address, from common.Address, to common.Address, amount uint64) error {
-	var sts []ont.State
-	sts = append(sts, ont.State{
-		From:  from,
-		To:    to,
-		Value: amount,
-	})
-	transfers := ont.Transfers{
-		States: sts,
-	}
-	sink := common.NewZeroCopySink(nil)
-	transfers.Serialization(sink)
-
-	if _, err := native.NativeCall(contract, "transfer", sink.Bytes()); err != nil {
-		return fmt.Errorf("appCallTransfer, appCall error: %v", err)
-	}
-	return nil
-}
-
-func appCallTransferFromOnt(native *native.NativeService, sender common.Address, from common.Address, to common.Address, amount uint64) error {
-	err := appCallTransferFrom(native, utils.OntContractAddress, sender, from, to, amount)
+func appCallTransferFromOnt(native *native.NativeService, sender common.Address, from common.Address, to common.Address,
+	amount uint64) error {
+	err := ont.AppCallTransferFrom(native, utils.OntContractAddress, sender, from, to, amount)
 	if err != nil {
 		return fmt.Errorf("appCallTransferFromOnt, appCallTransferFrom error: %v", err)
 	}
 	return nil
 }
 
-func appCallTransferFromOng(native *native.NativeService, sender common.Address, from common.Address, to common.Address, amount uint64) error {
-	err := appCallTransferFrom(native, utils.OngContractAddress, sender, from, to, amount)
+func appCallTransferFromOng(native *native.NativeService, sender common.Address, from common.Address, to common.Address,
+	amount uint64) error {
+	err := ont.AppCallTransferFrom(native, utils.OngContractAddress, sender, from, to, amount)
 	if err != nil {
 		return fmt.Errorf("appCallTransferFromOng, appCallTransferFrom error: %v", err)
-	}
-	return nil
-}
-
-func appCallTransferFrom(native *native.NativeService, contract common.Address, sender common.Address, from common.Address, to common.Address, amount uint64) error {
-	params := &ont.TransferFrom{
-		Sender: sender,
-		From:   from,
-		To:     to,
-		Value:  amount,
-	}
-	sink := common.NewZeroCopySink(nil)
-	params.Serialization(sink)
-
-	if _, err := native.NativeCall(contract, "transferFrom", sink.Bytes()); err != nil {
-		return fmt.Errorf("appCallTransferFrom, appCall error: %v", err)
 	}
 	return nil
 }

@@ -21,11 +21,10 @@ package shardgas
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -33,8 +32,20 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+func genWithdrawDelayKey(contract common.Address) []byte {
+	return utils.ConcatKey(contract, []byte(KEY_WITHDRAW_DELAY))
+}
+
+func genVersionKey(contract common.Address) []byte {
+	return utils.ConcatKey(contract, []byte(KEY_VERSION))
+}
+
+func genShardUserBalanceKey(contract common.Address, shardIDByte []byte, user common.Address) []byte {
+	return utils.ConcatKey(contract, []byte(KEY_BALANCE), shardIDByte, user[:])
+}
+
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
-	versionBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_VERSION)))
+	versionBytes, err := native.CacheDB.Get(genVersionKey(contract))
 	if err != nil {
 		return 0, fmt.Errorf("get version: %s", err)
 	}
@@ -61,7 +72,7 @@ func setVersion(native *native.NativeService, contract common.Address) error {
 		return fmt.Errorf("failed to serialize version: %s", err)
 	}
 
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_VERSION)), cstates.GenRawStorageItem(buf.Bytes()))
+	native.CacheDB.Put(genVersionKey(contract), cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }
 
@@ -71,6 +82,34 @@ func checkVersion(native *native.NativeService, contract common.Address) (bool, 
 		return false, err
 	}
 	return ver == ShardGasMgmtVersion, nil
+}
+
+func setWithdrawDelay(native *native.NativeService, contract common.Address, delayHeight uint64) error {
+	bf := new(bytes.Buffer)
+	if err := serialization.WriteUint64(bf, delayHeight); err != nil {
+		return fmt.Errorf("failed to serialize delay, err: %s", err)
+	}
+	native.CacheDB.Put(genWithdrawDelayKey(contract), cstates.GenRawStorageItem(bf.Bytes()))
+	return nil
+}
+
+func getWithdrawDelay(native *native.NativeService, contract common.Address) (uint64, error) {
+	delayHeightBytes, err := native.CacheDB.Get(genWithdrawDelayKey(contract))
+	if err != nil {
+		return 0, fmt.Errorf("get withdraw delay height failed, err: %s", err)
+	}
+	if delayHeightBytes == nil || len(delayHeightBytes) == 0 {
+		return 0, fmt.Errorf("withdraw delay height is empty")
+	}
+	value, err := cstates.GetValueFromRawStorageItem(delayHeightBytes)
+	if err != nil {
+		return 0, fmt.Errorf("get withdraw delay height, deseialize from raw storage item: %s", err)
+	}
+	delayHeight, err := serialization.ReadUint64(bytes.NewBuffer(value))
+	if err != nil {
+		return 0, fmt.Errorf("serialization.ReadUint64, deserialize withdraw delay height: %s", err)
+	}
+	return delayHeight, nil
 }
 
 func checkShardID(native *native.NativeService, shardID types.ShardID) (bool, error) {
@@ -86,13 +125,13 @@ func checkShardID(native *native.NativeService, shardID types.ShardID) (bool, er
 	return shardState.State == shardstates.SHARD_STATE_ACTIVE, nil
 }
 
-func getUserBalance(native *native.NativeService, contract common.Address, shardID types.ShardID, user common.Address) (*shardstates.UserGasInfo, error) {
+func getUserBalance(native *native.NativeService, contract common.Address, shardID types.ShardID,
+	user common.Address) (*shardstates.UserGasInfo, error) {
 	shardIDByte, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("ser ShardID %s", err)
 	}
-	keyBytes := utils.ConcatKey(contract, []byte(KEY_BALANCE), shardIDByte, user[:])
-	dataBytes, err := native.CacheDB.Get(keyBytes)
+	dataBytes, err := native.CacheDB.Get(genShardUserBalanceKey(contract, shardIDByte, user))
 	if err != nil {
 		return nil, fmt.Errorf("get balance from db: %s", err)
 	}
@@ -101,16 +140,21 @@ func getUserBalance(native *native.NativeService, contract common.Address, shard
 			PendingWithdraw: make([]*shardstates.GasWithdrawInfo, 0),
 		}, nil
 	}
+	value, err := cstates.GetValueFromRawStorageItem(dataBytes)
+	if err != nil {
+		return nil, fmt.Errorf("get balance, deserialize from rwa storage item: %s", err)
+	}
 
 	gasInfo := &shardstates.UserGasInfo{}
-	if err := user.Deserialize(bytes.NewBuffer(dataBytes)); err != nil {
+	if err := gasInfo.Deserialize(bytes.NewBuffer(value)); err != nil {
 		return nil, fmt.Errorf("deserialize user balance: %s", err)
 	}
 
 	return gasInfo, nil
 }
 
-func setUserDeposit(native *native.NativeService, contract common.Address, shardID types.ShardID, user common.Address, userGas *shardstates.UserGasInfo) error {
+func setUserDeposit(native *native.NativeService, contract common.Address, shardID types.ShardID, user common.Address,
+	userGas *shardstates.UserGasInfo) error {
 	buf := new(bytes.Buffer)
 	if err := userGas.Serialize(buf); err != nil {
 		return fmt.Errorf("serialize user balance: %s", err)
@@ -120,8 +164,7 @@ func setUserDeposit(native *native.NativeService, contract common.Address, shard
 	if err != nil {
 		return fmt.Errorf("ser ShardID %s", err)
 	}
-	keyBytes := utils.ConcatKey(contract, []byte(KEY_BALANCE), shardIDByte, user[:])
 
-	native.CacheDB.Put(keyBytes, cstates.GenRawStorageItem(buf.Bytes()))
+	native.CacheDB.Put(genShardUserBalanceKey(contract, shardIDByte, user), cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }

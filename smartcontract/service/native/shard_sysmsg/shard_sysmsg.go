@@ -21,6 +21,7 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -126,7 +127,7 @@ func ProcessCrossShardMsg(native *native.NativeService) ([]byte, error) {
 }
 
 func processShardGasDeposit(env *native.NativeService, evt *shardstates.DepositGasEvent) error {
-	return appCallTransfer(env, utils.OngContractAddress, utils.ShardSysMsgContractAddress, evt.User, evt.Amount)
+	return ont.AppCallTransfer(env, utils.OngContractAddress, utils.ShardSysMsgContractAddress, evt.User, evt.Amount)
 }
 
 func processShardGasWithdrawReq(evt *shardstates.WithdrawGasReqEvent) error {
