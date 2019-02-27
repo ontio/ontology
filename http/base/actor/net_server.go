@@ -204,21 +204,3 @@ func GetNodeType() (uint64, error) {
 	}
 	return r.NodeType, nil
 }
-
-func GetNbrPeerVersionInfo() ([]*ac.NbrPeerVersionInfo, error) {
-
-	if netServerPid == nil {
-		return []*ac.NbrPeerVersionInfo{}, nil
-	}
-	future := netServerPid.RequestFuture(&ac.GetNbrPeerVersionInfosReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return nil, err
-	}
-	r, ok := result.(*ac.GetNbrPeerVersionInfosRsp)
-	if !ok {
-		return nil, errors.New("fail")
-	}
-	return r.VersionInfos, nil
-}

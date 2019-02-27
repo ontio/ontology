@@ -585,14 +585,3 @@ func GetGrantOng(params []interface{}) map[string]interface{} {
 	}
 	return responseSuccess(rsp)
 }
-
-//get neighbour peers'version infos
-func GetNbrPeerVersionInfos(params []interface{}) map[string]interface{} {
-
-	nbrPeerVInfos, err := bactor.GetNbrPeerVersionInfo()
-	if err != nil {
-		log.Errorf("GetNbrPeerVersionInfo error:%s", err)
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	return responseSuccess(nbrPeerVInfos)
-}

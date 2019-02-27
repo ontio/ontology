@@ -85,9 +85,9 @@ const TEMPLATE_PAGE = `
 	<tr><th>Neighbor IP</th><th>Neighbor Id</th><th>Neighbor Type</th></tr>
 	{{range .Neighbors}}
 	{{if .HttpInfoStart}}
-	<tr><td align="center">{{.NgbAddr}}</td><td align="center"><a href="http://{{.HttpInfoAddr}}/info" style="cursor:hand">{{.NgbId}}</a></td><td align="center">{{.NgbType}}</td></tr>
+	<tr><td align="center">{{.NgbAddr}}</td><td align="center"><a href="http://{{.HttpInfoAddr}}/info" style="cursor:hand">{{.NgbId}}</a></td><td align="center">{{.NgbType}}</td><td align="center">{{.NgbVersion}}</td></tr>
 	{{else}}
-	<tr><td align="center">{{.NgbAddr}}</td><td align="center">{{.NgbId}}</td><td align="center">{{.NgbType}}</td></tr>
+	<tr><td align="center">{{.NgbAddr}}</td><td align="center">{{.NgbId}}</td><td align="center">{{.NgbType}}</td><td align="center">{{.NgbVersion}}</td></tr>
 	{{end}}
 	{{end}}
 	</table>

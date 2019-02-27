@@ -94,8 +94,6 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.server.OnHeaderReceive(msg.FromID, msg.Headers)
 	case *common.AppendBlock:
 		this.server.OnBlockReceive(msg.FromID, msg.BlockSize, msg.Block, msg.MerkleRoot)
-	case *GetNbrPeerVersionInfosReq:
-		this.handleGetNbrPeerVersionInfosReq(ctx, msg)
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {
@@ -244,26 +242,4 @@ func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context, req *Tran
 	} else {
 		log.Warnf("[p2p]can`t transmit consensus msg:no valid neighbor peer: %d\n", req.Target)
 	}
-}
-
-func (this *P2PActor) handleGetNbrPeerVersionInfosReq(ctx actor.Context, req *GetNbrPeerVersionInfosReq) {
-
-	if ctx.Sender() == nil {
-		return
-	}
-
-	nbrPeers := this.server.GetNetWork().GetNeighbors()
-	nbrResp := &GetNbrPeerVersionInfosRsp{
-		VersionInfos: []*NbrPeerVersionInfo{},
-	}
-
-	for _, p := range nbrPeers {
-		nbrPeerVInfo := &NbrPeerVersionInfo{
-			ID:      p.GetID(),
-			Version: p.GetSoftVersion(),
-		}
-		nbrResp.VersionInfos = append(nbrResp.VersionInfos, nbrPeerVInfo)
-	}
-
-	ctx.Sender().Request(nbrResp, ctx.Self())
 }

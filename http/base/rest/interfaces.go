@@ -580,14 +580,3 @@ func GetMemPoolTxState(cmd map[string]interface{}) map[string]interface{} {
 	resp["Result"] = bcomn.TXNEntryInfo{attrs}
 	return resp
 }
-
-func GetNbrPeerVersionInfos(cmd map[string]interface{}) map[string]interface{} {
-
-	resp := ResponsePack(berr.SUCCESS)
-	nbrPeerVInfos, err := bactor.GetNbrPeerVersionInfo()
-	if err != nil {
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
-	resp["Result"] = nbrPeerVInfos
-	return resp
-}
