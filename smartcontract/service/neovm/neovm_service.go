@@ -124,7 +124,6 @@ type NeoVmService struct {
 	Code          []byte
 	Tx            *types.Transaction
 	ShardID       types.ShardID
-	ParentShardID types.ShardID
 	Time          uint32
 	Height        uint32
 	BlockHash     scommon.Uint256

@@ -30,20 +30,11 @@ const (
 )
 
 type CommonShardReq struct {
-	SourceShardID  uint64         `json:"source_shard_id"`
+	ImplSourceTargetShardID
 	Height         uint64         `json:"height"`
-	TargetShard    uint64         `json:"target_shard"`
 	TargetContract common.Address `json:"target_contract"`
 	Payer          common.Address `json:"payer"`
 	Args           []byte         `json:"payload"`
-}
-
-func (evt *CommonShardReq) GetSourceShardID() uint64 {
-	return evt.SourceShardID
-}
-
-func (evt *CommonShardReq) GetTargetShardID() uint64 {
-	return evt.TargetShard
 }
 
 func (evt *CommonShardReq) GetHeight() uint64 {

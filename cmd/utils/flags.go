@@ -503,11 +503,6 @@ var (
 		Usage: "Shard Port",
 		Value: config.DEFAULT_SHARD_PORT,
 	}
-	ParentShardIDFlag = cli.Uint64Flag{
-		Name:  "ParentShardID",
-		Usage: "Parent Shard ID",
-		Value: config.DEFAULT_PARENT_SHARD_ID,
-	}
 	ParentShardIPFlag = cli.StringFlag{
 		Name:  "ParentShardIP",
 		Usage: "Parent Shard IP",
@@ -523,7 +518,6 @@ var (
 var CmdFlagsForSharding = []cli.Flag{
 	ShardIDFlag,
 	ShardPortFlag,
-	ParentShardIDFlag,
 	ParentShardIPFlag,
 	ParentShardPortFlag,
 }

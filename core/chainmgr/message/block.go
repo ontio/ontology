@@ -58,11 +58,11 @@ type ShardBlockTx struct {
 //  .Events: shard events generated from the block (only for local block)
 //
 type ShardBlockInfo struct {
-	FromShardID uint64                   `json:"from_shard_id"`
-	Height      uint64                   `json:"height"`
-	State       uint                     `json:"state"`
-	Header      *ShardBlockHeader        `json:"header"`
-	ShardTxs    map[uint64]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
+	FromShardID types.ShardID                   `json:"from_shard_id"`
+	Height      uint64                          `json:"height"`
+	State       uint                            `json:"state"`
+	Header      *ShardBlockHeader               `json:"header"`
+	ShardTxs    map[types.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
 	Events      []*shardstates.ShardEventState
 }
 
@@ -145,18 +145,18 @@ func (this *ShardBlockInfo) Deserialize(r io.Reader) error {
 type ShardBlockMap map[uint64]*ShardBlockInfo // indexed by BlockHeight
 
 type ShardBlockPool struct {
-	Shards      map[uint64]ShardBlockMap // indexed by FromShardID
+	Shards      map[types.ShardID]ShardBlockMap // indexed by FromShardID
 	MaxBlockCap uint32
 }
 
 func NewShardBlockPool(historyCap uint32) *ShardBlockPool {
 	return &ShardBlockPool{
-		Shards:      make(map[uint64]ShardBlockMap),
+		Shards:      make(map[types.ShardID]ShardBlockMap),
 		MaxBlockCap: historyCap,
 	}
 }
 
-func (pool *ShardBlockPool) GetBlock(shardID, height uint64) *ShardBlockInfo {
+func (pool *ShardBlockPool) GetBlock(shardID types.ShardID, height uint64) *ShardBlockInfo {
 	if m, present := pool.Shards[shardID]; present && m != nil {
 		return m[height]
 	}
@@ -213,7 +213,7 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 	return nil
 }
 
-func (pool *ShardBlockPool) AddEvent(srcShardID uint64, evt *shardstates.ShardEventState) error {
+func (pool *ShardBlockPool) AddEvent(srcShardID types.ShardID, evt *shardstates.ShardEventState) error {
 	if _, present := pool.Shards[srcShardID]; !present {
 		pool.Shards[srcShardID] = make(ShardBlockMap)
 	}

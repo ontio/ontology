@@ -142,12 +142,12 @@ func DespositGasToShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	evt := &shardstates.DepositGasEvent{
-		SourceShardID: native.ShardID.ToUint64(),
-		Height:        uint64(native.Height),
-		ShardID:       params.ShardID,
-		User:          params.UserAddress,
-		Amount:        params.Amount,
+		Height: uint64(native.Height),
+		User:   params.UserAddress,
+		Amount: params.Amount,
 	}
+	evt.ShardID = params.ShardID
+	evt.SourceShardID = native.ShardID
 	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deposit gas, add notification: %s", err)
 	}
@@ -204,12 +204,12 @@ func WithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	evt := &shardstates.WithdrawGasReqEvent{
-		SourceShardID: native.ShardID.ToUint64(),
-		Height:        uint64(native.Height),
-		ShardID:       params.ShardID,
-		User:          params.UserAddress,
-		Amount:        params.Amount,
+		Height: uint64(native.Height),
+		User:   params.UserAddress,
+		Amount: params.Amount,
 	}
+	evt.SourceShardID = native.ShardID
+	evt.ShardID = params.ShardID
 	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("withdraw gas, add notification: %s", err)
 	}
@@ -280,12 +280,12 @@ func AcquireWithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	evt := &shardstates.WithdrawGasDoneEvent{
-		SourceShardID: native.ShardID.ToUint64(),
-		Height:        uint64(native.Height),
-		ShardID:       params.ShardID,
-		User:          params.UserAddress,
-		Amount:        withdrawAmount,
+		Height: uint64(native.Height),
+		User:   params.UserAddress,
+		Amount: withdrawAmount,
 	}
+	evt.SourceShardID = native.ShardID
+	evt.ShardID = params.ShardID
 	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("acquire gas, add notification: %s", err)
 	}

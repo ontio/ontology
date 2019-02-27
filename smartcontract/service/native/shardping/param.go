@@ -19,15 +19,16 @@
 package shardping
 
 import (
+	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
 type ShardPingParam struct {
-	FromShard uint64 `json:"from_shard"`
-	ToShard   uint64 `json:"to_shard"`
-	Param     string `json:"param"`
+	FromShard types.ShardID `json:"from_shard"`
+	ToShard   types.ShardID `json:"to_shard"`
+	Param     string        `json:"param"`
 }
 
 func (this *ShardPingParam) Serialize(w io.Writer) error {

@@ -21,6 +21,7 @@ package chainmgr
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
@@ -33,14 +34,14 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func (self *ChainManager) GetShardConfig(shardID uint64) *config.OntologyConfig {
+func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.OntologyConfig {
 	if s := self.shards[shardID]; s != nil {
 		return s.Config
 	}
 	return nil
 }
 
-func (self *ChainManager) setShardConfig(shardID uint64, cfg *config.OntologyConfig) error {
+func (self *ChainManager) setShardConfig(shardID types.ShardID, cfg *config.OntologyConfig) error {
 	if info := self.shards[shardID]; info != nil {
 		info.Config = cfg
 		return nil
@@ -94,12 +95,12 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	return globalState, nil
 }
 
-func GetShardState(lgr *ledger.Ledger, shardID uint64) (*shardstates.ShardState, error) {
+func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.ShardState, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard state, nil ledger")
 	}
 
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID)
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("ser shardID failed: %s", err)
 	}
@@ -120,7 +121,7 @@ func GetShardState(lgr *ledger.Ledger, shardID uint64) (*shardstates.ShardState,
 	return shardState, nil
 }
 
-func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint64) ([]uint64, error) {
+func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint64) ([]types.ShardID, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("uninitialized chain mgr")
 	}
@@ -145,7 +146,7 @@ func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint64) ([]uint64, er
 	return req.Shards, nil
 }
 
-func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockNum, toShard uint64) ([][]byte, error) {
+func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockNum uint64, toShard types.ShardID) ([][]byte, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("nil ledger")
 	}
@@ -154,7 +155,7 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockNum, toShard uint64) ([][
 	if err != nil {
 		return nil, fmt.Errorf("serialize height: %s", err)
 	}
-	shardIDBytes, err := shardutil.GetUint64Bytes(toShard)
+	shardIDBytes, err := shardutil.GetUint64Bytes(toShard.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("serialize toshard: %s", err)
 	}

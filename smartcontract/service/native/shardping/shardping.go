@@ -21,6 +21,7 @@ package shardping
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -64,7 +65,7 @@ func ShardPingTest(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ping shard, invalid param: %s", err)
 	}
-	if params.ToShard != native.ShardID.ToUint64() {
+	if params.ToShard != native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("ping shard, invalid to shard: %d vs %d", params.ToShard, native.ShardID)
 	}
 
@@ -82,7 +83,7 @@ func SendShardPingTest(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("send ping shard, invalid param: %s", err)
 	}
-	if params.FromShard != native.ShardID.ToUint64() {
+	if params.FromShard != native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("send ping shard, invalid from shard: %d vs %d", params.FromShard, native.ShardID)
 	}
 
@@ -102,7 +103,7 @@ func SendShardPingTest(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func appcallSendReq(native *native.NativeService, toShard uint64, payload []byte) error {
+func appcallSendReq(native *native.NativeService, toShard types.ShardID, payload []byte) error {
 	paramBytes := new(bytes.Buffer)
 	params := shardsysmsg.NotifyReqParam{
 		ToShard: toShard,

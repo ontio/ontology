@@ -259,7 +259,6 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.ShardIDFlag,
 			utils.ShardPortFlag,
-			utils.ParentShardIDFlag,
 			utils.ParentShardIPFlag,
 			utils.ParentShardPortFlag,
 			utils.ShardRestEnableFlag,

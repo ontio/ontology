@@ -56,19 +56,10 @@ func (this *UserGasInfo) Deserialize(r io.Reader) error {
 }
 
 type DepositGasEvent struct {
-	SourceShardID uint64         `json:"source_shard_id"`
-	Height        uint64         `json:"height"`
-	ShardID       uint64         `json:"shard_id"`
-	User          common.Address `json:"user"`
-	Amount        uint64         `json:"amount"`
-}
-
-func (evt *DepositGasEvent) GetSourceShardID() uint64 {
-	return evt.SourceShardID
-}
-
-func (evt *DepositGasEvent) GetTargetShardID() uint64 {
-	return evt.ShardID
+	ImplSourceTargetShardID
+	Height uint64         `json:"height"`
+	User   common.Address `json:"user"`
+	Amount uint64         `json:"amount"`
 }
 
 func (evt *DepositGasEvent) GetHeight() uint64 {
@@ -88,19 +79,10 @@ func (evt *DepositGasEvent) Deserialize(r io.Reader) error {
 }
 
 type WithdrawGasReqEvent struct {
-	SourceShardID uint64         `json:"source_shard_id"`
-	Height        uint64         `json:"height"`
-	ShardID       uint64         `json:"shard_id"`
-	User          common.Address `json:"user"`
-	Amount        uint64         `json:"amount"`
-}
-
-func (evt *WithdrawGasReqEvent) GetSourceShardID() uint64 {
-	return evt.SourceShardID
-}
-
-func (evt *WithdrawGasReqEvent) GetTargetShardID() uint64 {
-	return evt.ShardID
+	ImplSourceTargetShardID
+	Height uint64         `json:"height"`
+	User   common.Address `json:"user"`
+	Amount uint64         `json:"amount"`
 }
 
 func (evt *WithdrawGasReqEvent) GetHeight() uint64 {
@@ -120,19 +102,10 @@ func (evt *WithdrawGasReqEvent) Deserialize(r io.Reader) error {
 }
 
 type WithdrawGasDoneEvent struct {
-	SourceShardID uint64         `json:"source_shard_id"`
-	Height        uint64         `json:"height"`
-	ShardID       uint64         `json:"shard_id"`
-	User          common.Address `json:"user"`
-	Amount        uint64         `json:"amount"`
-}
-
-func (evt *WithdrawGasDoneEvent) GetSourceShardID() uint64 {
-	return evt.SourceShardID
-}
-
-func (evt *WithdrawGasDoneEvent) GetTargetShardID() uint64 {
-	return evt.ShardID
+	ImplSourceTargetShardID
+	Height uint64         `json:"height"`
+	User   common.Address `json:"user"`
+	Amount uint64         `json:"amount"`
 }
 
 func (evt *WithdrawGasDoneEvent) GetHeight() uint64 {

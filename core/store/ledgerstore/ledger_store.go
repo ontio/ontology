@@ -618,11 +618,12 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 
 func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	overlay := this.stateStore.NewOverlayDB()
-	shardID, err := types.NewShardID(block.Header.ShardID)
-	if err != nil {
-		return
-	}
 	if block.Header.Height != 0 {
+		var shardID types.ShardID
+		shardID, err = types.NewShardID(block.Header.ShardID)
+		if err != nil {
+			return
+		}
 		config := &smartcontract.Config{
 			ShardID: shardID,
 			Time:    block.Header.Timestamp,

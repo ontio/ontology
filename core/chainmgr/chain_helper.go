@@ -44,7 +44,7 @@ func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) err
 	return nil
 }
 
-func (this *ChainManager) getShardBlockInfo(shardID uint64, height uint64) *message.ShardBlockInfo {
+func (this *ChainManager) getShardBlockInfo(shardID types.ShardID, height uint64) *message.ShardBlockInfo {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
@@ -61,7 +61,7 @@ func (this *ChainManager) addShardEvent(evt *shardstates.ShardEventState) error 
 	return nil
 }
 
-func (this *ChainManager) updateShardBlockInfo(shardID uint64, height uint64, blk *types.Block, shardTxs map[uint64]*message.ShardBlockTx) {
+func (this *ChainManager) updateShardBlockInfo(shardID types.ShardID, height uint64, blk *types.Block, shardTxs map[types.ShardID]*message.ShardBlockTx) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -74,9 +74,8 @@ func (this *ChainManager) updateShardBlockInfo(shardID uint64, height uint64, bl
 	blkInfo.ShardTxs = shardTxs
 }
 
-func (this *ChainManager) getChildShards() map[uint64]*ShardInfo {
-
-	shards := make(map[uint64]*ShardInfo)
+func (this *ChainManager) getChildShards() map[types.ShardID]*ShardInfo {
+	shards := make(map[types.ShardID]*ShardInfo)
 
 	for _, shardInfo := range this.shards {
 		if shardInfo.ConnType == CONN_TYPE_CHILD {
@@ -87,7 +86,7 @@ func (this *ChainManager) getChildShards() map[uint64]*ShardInfo {
 	return shards
 }
 
-func (self *ChainManager) initShardInfo(shardID uint64, shard *shardstates.ShardState) (*ShardInfo, error) {
+func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstates.ShardState) (*ShardInfo, error) {
 	if shardID != shard.ShardID {
 		return nil, fmt.Errorf("unmatched shard ID with shardstate")
 	}
@@ -98,7 +97,7 @@ func (self *ChainManager) initShardInfo(shardID uint64, shard *shardstates.Shard
 		info = i
 	}
 	info.ShardID = shard.ShardID
-	info.ParentShardID = shard.ParentShardID
+	info.ParentShardID = shard.ShardID.ParentID()
 
 	if _, present := shard.Peers[peerPK]; present {
 		// peer is in the shard
@@ -109,15 +108,15 @@ func (self *ChainManager) initShardInfo(shardID uint64, shard *shardstates.Shard
 		} else if self.parentShardID == shard.ShardID {
 			// parent shard
 			info.ConnType = CONN_TYPE_PARENT
-		} else if self.shardID == shard.ParentShardID {
+		} else if self.shardID == shard.ShardID.ParentID() {
 			// child shard
 			info.ConnType = CONN_TYPE_CHILD
 		}
 	} else {
-		if self.shardID == shard.ParentShardID {
+		if self.shardID == shard.ShardID.ParentID() {
 			// child shards
 			info.ConnType = CONN_TYPE_CHILD
-		} else if self.parentShardID == shard.ParentShardID {
+		} else if self.parentShardID == shard.ShardID.ParentID() {
 			// sib shards
 			info.ConnType = CONN_TYPE_SIB
 		}

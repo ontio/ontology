@@ -20,6 +20,7 @@ package shardmgmt
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -58,7 +59,7 @@ func (this *CommonParam) Deserialize(r io.Reader) error {
 // shard creator is also the shard operator after shard activated
 //
 type CreateShardParam struct {
-	ParentShardID uint64         `json:"parent_shard_id"`
+	ParentShardID types.ShardID  `json:"parent_shard_id"`
 	Creator       common.Address `json:"creator"`
 }
 
@@ -80,7 +81,7 @@ func (this *CreateShardParam) Deserialize(r io.Reader) error {
 //
 
 type ConfigShardParam struct {
-	ShardID           uint64             `json:"shard_id"`
+	ShardID           types.ShardID      `json:"shard_id"`
 	NetworkMin        uint32             `json:"network_min"`
 	StakeAssetAddress common.Address     `json:"stake_asset_address"`
 	GasAssetAddress   common.Address     `json:"gas_asset_address"`
@@ -104,7 +105,7 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 // @StakeAmount : amount of token stake for the peer
 //
 type JoinShardParam struct {
-	ShardID     uint64         `json:"shard_id"`
+	ShardID     types.ShardID  `json:"shard_id"`
 	PeerOwner   common.Address `json:"peer_owner"`
 	PeerAddress string         `json:"peer_address"`
 	PeerPubKey  string         `json:"peer_pub_key"`
@@ -125,7 +126,7 @@ func (this *JoinShardParam) Deserialize(r io.Reader) error {
 // @ShardID : ID of shard which is to be activated
 //
 type ActivateShardParam struct {
-	ShardID uint64 `json:"shard_id"`
+	ShardID types.ShardID `json:"shard_id"`
 }
 
 func (this *ActivateShardParam) Serialize(w io.Writer) error {

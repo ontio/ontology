@@ -21,6 +21,7 @@ package shardsysmsg
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -72,7 +73,7 @@ func (this *CrossShardMsgParam) Deserialize(r io.Reader) error {
 }
 
 type NotifyReqParam struct {
-	ToShard    uint64         `json:"to_shard"`
+	ToShard    types.ShardID  `json:"to_shard"`
 	ToContract common.Address `json:"to_contract"`
 	Args       []byte         `json:"payload"`
 }

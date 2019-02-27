@@ -21,6 +21,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 )
 
 const (
@@ -43,8 +44,8 @@ type RemoteShardMsg interface {
 }
 
 type ShardHelloMsg struct {
-	TargetShardID uint64 `json:"target_shard_id"`
-	SourceShardID uint64 `json:"source_shard_id"`
+	TargetShardID types.ShardID `json:"target_shard_id"`
+	SourceShardID types.ShardID `json:"source_shard_id"`
 }
 
 func (msg *ShardHelloMsg) Type() int {
@@ -73,7 +74,7 @@ func (msg *ShardBlockReqMsg) Type() int {
 }
 
 type ShardBlockRspMsg struct {
-	FromShardID uint64            `json:"from_shard_id"`
+	FromShardID types.ShardID     `json:"from_shard_id"`
 	Height      uint64            `json:"height"`
 	BlockHeader *ShardBlockHeader `json:"block_header"`
 	Txs         []*ShardBlockTx   `json:"txs"`

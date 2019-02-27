@@ -21,6 +21,7 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -52,7 +53,7 @@ func appCallTransfer(native *native.NativeService, contract common.Address, from
 }
 
 type ToShardsInBlock struct {
-	Shards []uint64 `json:"shards"`
+	Shards []types.ShardID `json:"shards"`
 }
 
 func (this *ToShardsInBlock) Serialize(w io.Writer) error {
@@ -63,13 +64,13 @@ func (this *ToShardsInBlock) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
-func addToShardsInBlock(native *native.NativeService, toShard uint64) error {
+func addToShardsInBlock(native *native.NativeService, toShard types.ShardID) error {
 	toShards, err := getToShardsInBlock(native, uint64(native.Height))
 	if err != nil {
 		return err
 	}
 	if toShards == nil {
-		toShards = []uint64{toShard}
+		toShards = []types.ShardID{toShard}
 	} else {
 		for _, s := range toShards {
 			if s == toShard {
@@ -77,6 +78,7 @@ func addToShardsInBlock(native *native.NativeService, toShard uint64) error {
 				return nil
 			}
 		}
+		toShards = append(toShards, toShard)
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -98,7 +100,7 @@ func addToShardsInBlock(native *native.NativeService, toShard uint64) error {
 	return nil
 }
 
-func getToShardsInBlock(native *native.NativeService, blockNum uint64) ([]uint64, error) {
+func getToShardsInBlock(native *native.NativeService, blockNum uint64) ([]types.ShardID, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
 	if err != nil {
@@ -141,7 +143,7 @@ func (this *ReqsInBlock) Deserialize(r io.Reader) error {
 }
 
 func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardReq) error {
-	reqs, err := getReqsInBlock(native, uint64(native.Height), req.TargetShard)
+	reqs, err := getReqsInBlock(native, uint64(native.Height), req.ShardID)
 	if err != nil {
 		return err
 	}
@@ -158,7 +160,7 @@ func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardRe
 	if err != nil {
 		return fmt.Errorf("serialize height: %s", err)
 	}
-	shardIDBytes, err := shardutil.GetUint64Bytes(req.TargetShard)
+	shardIDBytes, err := shardutil.GetUint64Bytes(req.ShardID.ToUint64())
 	if err != nil {
 		return fmt.Errorf("serialzie toshard: %s", err)
 	}
@@ -176,13 +178,13 @@ func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardRe
 	return nil
 }
 
-func getReqsInBlock(native *native.NativeService, blockNum uint64, shardID uint64) ([][]byte, error) {
+func getReqsInBlock(native *native.NativeService, blockNum uint64, shardID types.ShardID) ([][]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
 	if err != nil {
 		return nil, fmt.Errorf("serialize height: %s", err)
 	}
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID)
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("serialize toShard: %s", err)
 	}
