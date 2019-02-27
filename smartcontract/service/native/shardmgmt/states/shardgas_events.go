@@ -32,8 +32,8 @@ const (
 )
 
 const (
-	CAP_PENDING_WITHDRAW        = 10
-	WITHDRAW_GAS_DELAY_DURATION = 50000
+	CAP_PENDING_WITHDRAW   = 10
+	DEFAULE_WITHDRAW_DELAY = 50000
 )
 
 type GasWithdrawInfo struct {

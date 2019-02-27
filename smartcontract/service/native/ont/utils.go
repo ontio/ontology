@@ -174,3 +174,40 @@ func genAddressUnboundOffsetKey(contract, address common.Address) []byte {
 	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
 	return append(temp, address[:]...)
 }
+
+func AppCallTransfer(native *native.NativeService, contract common.Address, from common.Address, to common.Address,
+	amount uint64) error {
+	var sts []State
+	sts = append(sts, State{
+		From:  from,
+		To:    to,
+		Value: amount,
+	})
+	transfers := Transfers{
+		States: sts,
+	}
+	sink := common.NewZeroCopySink(nil)
+	transfers.Serialization(sink)
+
+	if _, err := native.NativeCall(contract, "transfer", sink.Bytes()); err != nil {
+		return fmt.Errorf("appCallTransfer, appCall error: %v", err)
+	}
+	return nil
+}
+
+func AppCallTransferFrom(native *native.NativeService, contract common.Address, sender common.Address,
+	from common.Address, to common.Address, amount uint64) error {
+	params := &TransferFrom{
+		Sender: sender,
+		From:   from,
+		To:     to,
+		Value:  amount,
+	}
+	sink := common.NewZeroCopySink(nil)
+	params.Serialization(sink)
+
+	if _, err := native.NativeCall(contract, "transferFrom", sink.Bytes()); err != nil {
+		return fmt.Errorf("appCallTransferFrom, appCall error: %v", err)
+	}
+	return nil
+}

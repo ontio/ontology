@@ -26,6 +26,18 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
+type SetWithdrawDelayParam struct {
+	DelayHeight uint64 `json:"delay_height"`
+}
+
+func (this *SetWithdrawDelayParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *SetWithdrawDelayParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
 type DepositGasParam struct {
 	UserAddress common.Address `json:"user_address"`
 	ShardID     types.ShardID  `json:"shard_id"`
@@ -65,5 +77,18 @@ func (this *AcquireWithdrawGasParam) Serialize(w io.Writer) error {
 }
 
 func (this *AcquireWithdrawGasParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+type GetShardBalanceParam struct {
+	UserAddress common.Address `json:"user_address"`
+	ShardId     types.ShardID  `json:"shard_id"`
+}
+
+func (this *GetShardBalanceParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *GetShardBalanceParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
