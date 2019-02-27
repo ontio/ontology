@@ -21,6 +21,7 @@ package shardgas
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -72,7 +73,7 @@ func checkVersion(native *native.NativeService, contract common.Address) (bool, 
 	return ver == ShardGasMgmtVersion, nil
 }
 
-func checkShardID(native *native.NativeService, shardID uint64) (bool, error) {
+func checkShardID(native *native.NativeService, shardID types.ShardID) (bool, error) {
 	shardState, err := shardmgmt.GetShardState(native, utils.ShardMgmtContractAddress, shardID)
 	if err != nil {
 		return false, err
@@ -85,8 +86,8 @@ func checkShardID(native *native.NativeService, shardID uint64) (bool, error) {
 	return shardState.State == shardstates.SHARD_STATE_ACTIVE, nil
 }
 
-func getUserBalance(native *native.NativeService, contract common.Address, shardID uint64, user common.Address) (*shardstates.UserGasInfo, error) {
-	shardIDByte, err := shardutil.GetUint64Bytes(shardID)
+func getUserBalance(native *native.NativeService, contract common.Address, shardID types.ShardID, user common.Address) (*shardstates.UserGasInfo, error) {
+	shardIDByte, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("ser ShardID %s", err)
 	}
@@ -109,13 +110,13 @@ func getUserBalance(native *native.NativeService, contract common.Address, shard
 	return gasInfo, nil
 }
 
-func setUserDeposit(native *native.NativeService, contract common.Address, shardID uint64, user common.Address, userGas *shardstates.UserGasInfo) error {
+func setUserDeposit(native *native.NativeService, contract common.Address, shardID types.ShardID, user common.Address, userGas *shardstates.UserGasInfo) error {
 	buf := new(bytes.Buffer)
 	if err := userGas.Serialize(buf); err != nil {
 		return fmt.Errorf("serialize user balance: %s", err)
 	}
 
-	shardIDByte, err := shardutil.GetUint64Bytes(shardID)
+	shardIDByte, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return fmt.Errorf("ser ShardID %s", err)
 	}

@@ -21,6 +21,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 	"os"
 	"os/signal"
 	"path"
@@ -131,7 +132,6 @@ func setupAPP() *cli.App {
 		//sharding setting
 		utils.ShardIDFlag,
 		utils.ShardPortFlag,
-		utils.ParentShardIDFlag,
 		utils.ParentShardIPFlag,
 		utils.ParentShardPortFlag,
 		utils.ShardRestEnableFlag,
@@ -152,13 +152,17 @@ func main() {
 }
 
 func startOntology(ctx *cli.Context) {
-	shardID := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
+	id := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
+	shardID, err := types.NewShardID(id)
+	if err != nil {
+		fmt.Printf("wrong shard id:%d", id)
+	}
 	initLog(ctx, shardID)
 
 	log.Infof("ontology version %s", config.Version)
 
 	setMaxOpenFiles()
-	if shardID == config.DEFAULT_SHARD_ID {
+	if id == config.DEFAULT_SHARD_ID {
 		startMainChain(ctx)
 	} else {
 		startShardChain(ctx, shardID)
@@ -166,7 +170,7 @@ func startOntology(ctx *cli.Context) {
 }
 
 func startMainChain(ctx *cli.Context) {
-	initLog(ctx, 0)
+	initLog(ctx, types.NewShardIDUnchecked(0))
 
 	if _, err := initConfig(ctx); err != nil {
 		log.Errorf("initConfig error:%s", err)
@@ -232,7 +236,7 @@ func startMainChain(ctx *cli.Context) {
 	waitToExit()
 }
 
-func startShardChain(ctx *cli.Context, shardID uint64) {
+func startShardChain(ctx *cli.Context, shardID types.ShardID) {
 	initLog(ctx, shardID)
 
 	parentShardIP := ctx.String(utils.GetFlagName(utils.ParentShardIPFlag))
@@ -308,11 +312,11 @@ func startShardChain(ctx *cli.Context, shardID uint64) {
 	waitToExit()
 }
 
-func initLog(ctx *cli.Context, shardID uint64) {
+func initLog(ctx *cli.Context, shardID types.ShardID) {
 	//init log module
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	logPath := log.PATH
-	if shardID > 0 {
+	if shardID.ToUint64() > 0 {
 		logPath = path.Join(logPath, shard.GetShardName(shardID))
 	}
 	alog.InitLog(logPath)
@@ -357,9 +361,14 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 }
 
 func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManager, error) {
-	shardID := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
+	id := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
+	shardID, err := types.NewShardID(id)
+	if err != nil {
+		return nil, err
+	}
+
 	shardPort := ctx.Uint(utils.GetFlagName(utils.ShardPortFlag))
-	parentShardID := ctx.Uint64(utils.GetFlagName(utils.ParentShardIDFlag))
+	parentShardID := shardID.ParentID()
 	parentShardAddr := ctx.String(utils.GetFlagName(utils.ParentShardIPFlag))
 	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
 	log.Infof("staring shard %d chain mgr: port %d, parent (%d, %s, %d)", shardID, shardPort, parentShardID,
@@ -379,7 +388,7 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 			cmdArgs[name] = v
 		}
 	}
-	chainmgr, err := shard.Initialize(shardID, parentShardID, parentShardAddr, shardPort, parentShardPort, acc, cmdArgs)
+	chainmgr, err := shard.Initialize(shardID, parentShardAddr, shardPort, parentShardPort, acc, cmdArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -490,7 +499,7 @@ func initRpc(ctx *cli.Context) error {
 	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
 		return nil
 	}
-	if !config.DefConfig.Rpc.EnableShardRpc && !shard.IsRootShard(shard.GetShardID()) {
+	if !config.DefConfig.Rpc.EnableShardRpc && !shard.GetShardID().IsRootShard() {
 		return nil
 	}
 	var err error
@@ -542,7 +551,7 @@ func initRestful(ctx *cli.Context) {
 	if !config.DefConfig.Restful.EnableHttpRestful {
 		return
 	}
-	if !config.DefConfig.Restful.EnableShardRestful && !shard.IsRootShard(shard.GetShardID()) {
+	if !config.DefConfig.Restful.EnableShardRestful && !shard.GetShardID().IsRootShard() {
 		return
 	}
 	go restful.StartServer()

@@ -21,6 +21,7 @@ package chainmgr
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -29,7 +30,7 @@ import (
 //
 // buildShardConfig: generate OntologyConfig for shard
 //
-func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstates.ShardState) (*config.OntologyConfig, error) {
+func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *shardstates.ShardState) (*config.OntologyConfig, error) {
 	if cfg := self.GetShardConfig(shardID); cfg != nil {
 		return cfg, nil
 	}
@@ -99,15 +100,14 @@ func (self *ChainManager) buildShardConfig(shardID uint64, shardState *shardstat
 	}
 	// TODO: init config for shard $shardID, including genesis config, data dir, net port, etc
 	shardName := GetShardName(shardID)
-	shardConfig.P2PNode.NodePort = 10000 + uint(shardID)
+	shardConfig.P2PNode.NodePort = 10000 + uint(shardID.ToUint64())
 	shardConfig.P2PNode.NetworkName = shardName
 
 	// init child shard config
 	shardConfig.Shard = &config.ShardConfig{
 		ShardID:              shardID,
-		ParentShardID:        self.shardID,
 		GenesisParentHeight:  shardState.GenesisParentHeight,
-		ShardPort:            uint(uint64(self.shardPort) + shardID - self.shardID),
+		ShardPort:            uint(uint64(self.shardPort) + shardID.ToUint64() - self.shardID.ToUint64()),
 		ParentShardIPAddress: config.DEFAULT_PARENTSHARD_IPADDR,
 		ParentShardPort:      self.shardPort,
 	}

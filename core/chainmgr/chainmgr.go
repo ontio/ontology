@@ -72,7 +72,7 @@ type RemoteMsg struct {
 // MsgSendReq: request BroadcastLoop() to send msg to other shard
 //
 type MsgSendReq struct {
-	targetShardID uint64
+	targetShardID types.ShardID
 	msg           *shardmsg.CrossShardMsg
 }
 
@@ -82,8 +82,8 @@ type MsgSendReq struct {
 //  . EventBus ID of other shards
 //
 type ShardInfo struct {
-	ShardID       uint64
-	ParentShardID uint64
+	ShardID       types.ShardID
+	ParentShardID types.ShardID
 	ShardAddress  string
 	ConnType      int
 	Connected     bool
@@ -92,16 +92,16 @@ type ShardInfo struct {
 }
 
 type ChainManager struct {
-	shardID              uint64
+	shardID              types.ShardID
 	shardPort            uint
-	parentShardID        uint64
+	parentShardID        types.ShardID
 	parentShardIPAddress string
 	parentShardPort      uint
 
 	// ShardInfo management, indexing shards with ShardID / Sender-Addr
 	lock       sync.RWMutex
-	shards     map[uint64]*ShardInfo
-	shardAddrs map[string]uint64
+	shards     map[types.ShardID]*ShardInfo
+	shardAddrs map[string]types.ShardID
 
 	// BlockHeader and Cross-Shard Txs of other shards
 	// FIXME: check if any lock needed (if not only accessed by remoteShardMsgLoop)
@@ -146,8 +146,7 @@ type ChainManager struct {
 //
 // Initialize chain manager when ontology starting
 //
-func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, parentPort uint, acc *account.Account,
-	cmdArgs map[string]string) (*ChainManager, error) {
+func Initialize(shardID types.ShardID, parentAddr string, shardPort, parentPort uint, acc *account.Account, cmdArgs map[string]string) (*ChainManager, error) {
 	// fixme: change to sync.once
 	if defaultChainManager != nil {
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
@@ -161,19 +160,18 @@ func Initialize(shardID, parentShardID uint64, parentAddr string, shardPort, par
 	chainMgr := &ChainManager{
 		shardID:              shardID,
 		shardPort:            shardPort,
-		parentShardID:        parentShardID,
+		parentShardID:        shardID.ParentID(),
 		parentShardIPAddress: parentAddr,
 		parentShardPort:      parentPort,
-
-		shards:          make(map[uint64]*ShardInfo),
-		shardAddrs:      make(map[string]uint64),
-		blockPool:       blkPool,
-		localBlockMsgC:  make(chan *types.Block, CAP_LOCAL_SHARDMSG_CHNL),
-		localEventC:     make(chan *shardstates.ShardEventState, CAP_LOCAL_SHARDMSG_CHNL),
-		remoteShardMsgC: make(chan *RemoteMsg, CAP_REMOTE_SHARDMSG_CHNL),
-		broadcastMsgC:   make(chan *MsgSendReq, CAP_REMOTE_SHARDMSG_CHNL),
-		parentConnWait:  make(chan bool),
-		quitC:           make(chan struct{}),
+		shards:               make(map[types.ShardID]*ShardInfo),
+		shardAddrs:           make(map[string]types.ShardID),
+		blockPool:            blkPool,
+		localBlockMsgC:       make(chan *types.Block, CAP_LOCAL_SHARDMSG_CHNL),
+		localEventC:          make(chan *shardstates.ShardEventState, CAP_LOCAL_SHARDMSG_CHNL),
+		remoteShardMsgC:      make(chan *RemoteMsg, CAP_REMOTE_SHARDMSG_CHNL),
+		broadcastMsgC:        make(chan *MsgSendReq, CAP_REMOTE_SHARDMSG_CHNL),
+		parentConnWait:       make(chan bool),
+		quitC:                make(chan struct{}),
 
 		account: acc,
 		cmdArgs: cmdArgs,
@@ -239,15 +237,11 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 
 	// load all child-shard from shard-mgmt contract
 	for i := uint16(1); i < globalState.NextSubShardIndex; i++ {
-		shardID, err := types.NewShardID(self.shardID)
+		subShardID, err := self.shardID.GenSubShardID(i)
 		if err != nil {
 			return err
 		}
-		subShardID, err := shardID.GenSubShardID(i)
-		if err != nil {
-			return err
-		}
-		shard, err := GetShardState(self.ledger, subShardID.ToUint64())
+		shard, err := GetShardState(self.ledger, subShardID)
 		if err == com.ErrNotFound {
 			continue
 		}
@@ -258,7 +252,7 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 		if shard.State != shardstates.SHARD_STATE_ACTIVE {
 			continue
 		}
-		if _, err := self.initShardInfo(subShardID.ToUint64(), shard); err != nil {
+		if _, err := self.initShardInfo(subShardID, shard); err != nil {
 			return fmt.Errorf("init shard %d failed: %s", i, err)
 		}
 		// TODO: start shard process (use startChildShardProcess())
@@ -411,7 +405,7 @@ func (self *ChainManager) broadcastMsgLoop() {
 	for {
 		select {
 		case msg := <-self.broadcastMsgC:
-			if msg.targetShardID == math.MaxUint64 {
+			if msg.targetShardID.ToUint64() == math.MaxUint64 {
 				// broadcast
 				for _, s := range self.shards {
 					if s.Connected && s.Sender != nil {
@@ -510,7 +504,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 //
 func (self *ChainManager) connectParent() error {
 	// connect to parent
-	if self.parentShardID == math.MaxUint64 {
+	if self.parentShardID.ToUint64() == math.MaxUint64 {
 		return nil
 	}
 	if self.localPid == nil {
@@ -576,12 +570,12 @@ func (self *ChainManager) Stop() {
 
 func (self *ChainManager) broadcastShardMsg(msg *shardmsg.CrossShardMsg) {
 	self.broadcastMsgC <- &MsgSendReq{
-		targetShardID: math.MaxUint64,
+		targetShardID: types.NewShardIDUnchecked(math.MaxUint64),
 		msg:           msg,
 	}
 }
 
-func (self *ChainManager) sendShardMsg(shardId uint64, msg *shardmsg.CrossShardMsg) {
+func (self *ChainManager) sendShardMsg(shardId types.ShardID, msg *shardmsg.CrossShardMsg) {
 	log.Infof("send shard msg type %d from %d to %d", msg.GetType(), self.shardID, shardId)
 	self.broadcastMsgC <- &MsgSendReq{
 		targetShardID: shardId,
@@ -593,7 +587,7 @@ func (self *ChainManager) sendShardMsg(shardId uint64, msg *shardmsg.CrossShardM
 // send Cross-Shard Tx to remote shard
 // TODO: get ip-address of remote shard node
 //
-func (self *ChainManager) sendCrossShardTx(shardID uint64, tx *types.Transaction) error {
+func (self *ChainManager) sendCrossShardTx(shardID types.ShardID, tx *types.Transaction) error {
 	// FIXME: broadcast Tx to seed nodes of target shard
 
 	// relay with parent shard

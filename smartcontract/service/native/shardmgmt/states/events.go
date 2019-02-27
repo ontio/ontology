@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common/serialization"
@@ -39,22 +40,35 @@ const (
 type ShardMgmtEvent interface {
 	serialization.SerializableData
 	GetType() uint32
-	GetSourceShardID() uint64
-	GetTargetShardID() uint64
+	GetSourceShardID() types.ShardID
+	GetTargetShardID() types.ShardID
 	GetHeight() uint64
 }
 
-type CreateShardEvent struct {
-	SourceShardID uint64 `json:"source_shard_id"`
-	Height        uint64 `json:"height"`
-	NewShardID    uint64 `json:"new_shard_id"`
+type ImplSourceTargetShardID struct {
+	SourceShardID types.ShardID `json:"source_shard_id"`
+	ShardID       types.ShardID `json:"shard_id"`
 }
 
-func (evt *CreateShardEvent) GetSourceShardID() uint64 {
+func (self *ImplSourceTargetShardID) GetSourceShardID() types.ShardID {
+	return self.SourceShardID
+}
+
+func (self *ImplSourceTargetShardID) GetTargetShardID() types.ShardID {
+	return self.ShardID
+}
+
+type CreateShardEvent struct {
+	SourceShardID types.ShardID `json:"source_shard_id"`
+	Height        uint64        `json:"height"`
+	NewShardID    types.ShardID `json:"new_shard_id"`
+}
+
+func (evt *CreateShardEvent) GetSourceShardID() types.ShardID {
 	return evt.SourceShardID
 }
 
-func (evt *CreateShardEvent) GetTargetShardID() uint64 {
+func (evt *CreateShardEvent) GetTargetShardID() types.ShardID {
 	return evt.NewShardID
 }
 
@@ -75,18 +89,9 @@ func (evt *CreateShardEvent) Deserialize(r io.Reader) error {
 }
 
 type ConfigShardEvent struct {
-	SourceShardID uint64       `json:"source_shard_id"`
-	Height        uint64       `json:"height"`
-	ShardID       uint64       `json:"shard_id"`
-	Config        *ShardConfig `json:"config"`
-}
-
-func (evt *ConfigShardEvent) GetSourceShardID() uint64 {
-	return evt.SourceShardID
-}
-
-func (evt *ConfigShardEvent) GetTargetShardID() uint64 {
-	return evt.ShardID
+	ImplSourceTargetShardID
+	Height uint64       `json:"height"`
+	Config *ShardConfig `json:"config"`
 }
 
 func (evt *ConfigShardEvent) GetHeight() uint64 {
@@ -106,18 +111,9 @@ func (evt *ConfigShardEvent) Deserialize(r io.Reader) error {
 }
 
 type PeerJoinShardEvent struct {
-	SourceShardID uint64 `json:"source_shard_id"`
-	Height        uint64 `json:"height"`
-	ShardID       uint64 `json:"shard_id"`
-	PeerPubKey    string `json:"peer_pub_key"`
-}
-
-func (evt *PeerJoinShardEvent) GetSourceShardID() uint64 {
-	return evt.SourceShardID
-}
-
-func (evt *PeerJoinShardEvent) GetTargetShardID() uint64 {
-	return evt.ShardID
+	ImplSourceTargetShardID
+	Height     uint64 `json:"height"`
+	PeerPubKey string `json:"peer_pub_key"`
 }
 
 func (evt *PeerJoinShardEvent) GetHeight() uint64 {
@@ -137,17 +133,8 @@ func (evt *PeerJoinShardEvent) Deserialize(r io.Reader) error {
 }
 
 type ShardActiveEvent struct {
-	SourceShardID uint64 `json:"source_shard_id"`
-	Height        uint64 `json:"height"`
-	ShardID       uint64 `json:"shard_id"`
-}
-
-func (evt *ShardActiveEvent) GetSourceShardID() uint64 {
-	return evt.SourceShardID
-}
-
-func (evt *ShardActiveEvent) GetTargetShardID() uint64 {
-	return evt.ShardID
+	ImplSourceTargetShardID
+	Height uint64 `json:"height"`
 }
 
 func (evt *ShardActiveEvent) GetHeight() uint64 {
@@ -167,11 +154,11 @@ func (evt *ShardActiveEvent) Deserialize(r io.Reader) error {
 }
 
 type ShardEventState struct {
-	Version    uint32 `json:"version"`
-	EventType  uint32 `json:"event_type"`
-	ToShard    uint64 `json:"to_shard"`
-	FromHeight uint64 `json:"from_height"`
-	Payload    []byte `json:"payload"`
+	Version    uint32        `json:"version"`
+	EventType  uint32        `json:"event_type"`
+	ToShard    types.ShardID `json:"to_shard"`
+	FromHeight uint64        `json:"from_height"`
+	Payload    []byte        `json:"payload"`
 }
 
 func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {

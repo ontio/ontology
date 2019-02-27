@@ -158,12 +158,12 @@ func RemoteNotify(native *native.NativeService) ([]byte, error) {
 	}
 
 	shardReq := &shardstates.CommonShardReq{
-		SourceShardID:  native.ShardID.ToUint64(),
 		Height:         uint64(native.Height),
-		TargetShard:    reqParam.ToShard,
 		TargetContract: reqParam.ToContract,
 		Args:           reqParam.Args,
 	}
+	shardReq.SourceShardID = native.ShardID
+	shardReq.ShardID = reqParam.ToShard
 
 	// TODO: add evt to queue, update merkle root
 	log.Errorf("to send remote notify: from %d to %d", native.ShardID, reqParam.ToShard)

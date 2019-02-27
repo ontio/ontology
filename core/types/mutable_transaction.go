@@ -24,7 +24,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 )
@@ -147,7 +146,7 @@ func (tx *MutableTransaction) DeserializeUnsigned(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	shardID := uint64(config.DEFAULT_SHARD_ID)
+	shardID := uint64(0)
 	if version >= VERSION_SUPPORT_SHARD {
 		shardID, err = serialization.ReadUint64(r)
 		if err != nil {

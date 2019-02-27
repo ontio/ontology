@@ -50,12 +50,11 @@ type SmartContract struct {
 
 // Config describe smart contract need parameters configuration
 type Config struct {
-	ShardID       ctypes.ShardID      // TODO: init this field
-	ParentShardID ctypes.ShardID      // TODO: init this field
-	Time          uint32              // current block timestamp
-	Height        uint32              // current block height
-	BlockHash     common.Uint256      // current block hash
-	Tx            *ctypes.Transaction // current transaction
+	ShardID   ctypes.ShardID      // TODO: init this field
+	Time      uint32              // current block timestamp
+	Height    uint32              // current block height
+	BlockHash common.Uint256      // current block hash
+	Tx        *ctypes.Transaction // current transaction
 }
 
 // PushContext push current context to smart contract

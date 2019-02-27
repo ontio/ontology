@@ -307,7 +307,7 @@ func GetShardStorage(params []interface{}) map[string]interface{} {
 	log.Errorf(">>>> recevied shard storage get: %d, %s", shardID, key)
 
 	var value []byte
-	if shardID == chainmgr.GetShardID() {
+	if shardID == chainmgr.GetShardID().ToUint64() {
 		value, err = bactor.GetStorageItem(address, key)
 	} else {
 		err = fmt.Errorf("param shardId %d unmatch", shardID)
@@ -358,7 +358,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 
 		log.Debugf("SendRawTransaction send to %d, %d txpool %s", txn.ShardID, chainmgr.GetShardID(), hash.ToHexString())
-		if txn.ShardID == chainmgr.GetShardID() {
+		if txn.ShardID == chainmgr.GetShardID().ToUint64() {
 			if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 				log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 				return responsePack(int64(errCode), desc)

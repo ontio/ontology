@@ -19,6 +19,7 @@
 package shardstates
 
 import (
+	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -70,8 +71,7 @@ type PeerShardStakeInfo struct {
 }
 
 type ShardState struct {
-	ShardID             uint64         `json:"shard_id"`
-	ParentShardID       uint64         `json:"parent_shard_id"`
+	ShardID             types.ShardID  `json:"shard_id"`
 	Creator             common.Address `json:"creator"`
 	State               uint32         `json:"state"`
 	GenesisParentHeight uint64         `json:"genesis_parent_height"`

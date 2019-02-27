@@ -19,6 +19,7 @@
 package shardgas
 
 import (
+	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -27,7 +28,7 @@ import (
 
 type DepositGasParam struct {
 	UserAddress common.Address `json:"user_address"`
-	ShardID     uint64         `json:"shard_id"`
+	ShardID     types.ShardID  `json:"shard_id"`
 	Amount      uint64         `json:"amount"`
 }
 
@@ -41,7 +42,7 @@ func (this *DepositGasParam) Deserialize(r io.Reader) error {
 
 type WithdrawGasRequestParam struct {
 	UserAddress common.Address `json:"user_address"`
-	ShardID     uint64         `json:"shard_id"`
+	ShardID     types.ShardID  `json:"shard_id"`
 	Amount      uint64         `json:"amount"`
 }
 
@@ -55,7 +56,7 @@ func (this *WithdrawGasRequestParam) Deserialize(r io.Reader) error {
 
 type AcquireWithdrawGasParam struct {
 	UserAddress common.Address `json:"user_address"`
-	ShardID     uint64         `json:"shard_id"`
+	ShardID     types.ShardID  `json:"shard_id"`
 	Amount      uint64         `json:"amount"`
 }
 

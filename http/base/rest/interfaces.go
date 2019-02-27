@@ -279,7 +279,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		}
 	}
 	log.Debugf("SendRawTransaction send to %d, %d txpool %s", txn.ShardID, chainmgr.GetShardID(), hash.ToHexString())
-	if txn.ShardID == chainmgr.GetShardID() {
+	if txn.ShardID == chainmgr.GetShardID().ToUint64() {
 		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 			resp["Error"] = int64(errCode)
 			resp["Result"] = desc
@@ -444,7 +444,7 @@ func GetShardStorage(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	var value []byte
-	if shardID == chainmgr.GetShardID() {
+	if shardID == chainmgr.GetShardID().ToUint64() {
 		value, err = bactor.GetStorageItem(address, item)
 	} else {
 		err = fmt.Errorf("param shardId %d unmatch", shardID)

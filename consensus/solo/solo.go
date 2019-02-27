@@ -224,20 +224,19 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get parentBlock height: %s", err)
 	}
-	shardID, err := types.NewShardID(chainmgr.GetShardID())
-	if err != nil {
-		return nil, fmt.Errorf("invalid shard ID: %d, %s", chainmgr.GetShardID(), err)
-	}
 
 	// get Cross-Shard Txs from chain-mgr
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {
 		// new parentBlock available
-		shardTxs = chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+		temp := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+		for id, txs := range temp {
+			shardTxs[id.ToUint64()] = txs
+		}
 	}
 	header := &types.Header{
 		Version:          ContextVersion,
-		ShardID:          shardID.ToUint64(),
+		ShardID:          chainmgr.GetShardID().ToUint64(),
 		ParentHeight:     uint32(parentHeight),
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,

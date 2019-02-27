@@ -27,7 +27,6 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
@@ -155,7 +154,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	if tx.Version >= VERSION_SUPPORT_SHARD {
 		tx.ShardID, eof = source.NextUint64()
 	} else {
-		tx.ShardID = config.DEFAULT_SHARD_ID
+		tx.ShardID = 0
 	}
 	tx.GasPrice, eof = source.NextUint64()
 	tx.GasLimit, eof = source.NextUint64()

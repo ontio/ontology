@@ -22,6 +22,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -37,8 +38,7 @@ func TestGenesisBlockInit(t *testing.T) {
 	_, pub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	conf := &config.GenesisConfig{}
 	shardCfg := &config.ShardConfig{
-		ShardID:             config.DEFAULT_SHARD_ID,
-		ParentShardID:       config.DEFAULT_PARENT_SHARD_ID,
+		ShardID:             types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID),
 		GenesisParentHeight: config.DEFAULT_PARENT_HEIGHT,
 	}
 	block, err := BuildGenesisBlock([]keypair.PublicKey{pub}, conf, shardCfg)

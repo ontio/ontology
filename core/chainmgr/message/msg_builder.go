@@ -35,7 +35,7 @@ import (
 	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func NewShardHelloMsg(localShard, targetShard uint64, sender *actor.PID) (*CrossShardMsg, error) {
+func NewShardHelloMsg(localShard, targetShard types.ShardID, sender *actor.PID) (*CrossShardMsg, error) {
 	hello := &ShardHelloMsg{
 		TargetShardID: targetShard,
 		SourceShardID: localShard,
@@ -71,7 +71,7 @@ func NewShardConfigMsg(accPayload []byte, configPayload []byte, sender *actor.PI
 	}, nil
 }
 
-func NewShardBlockRspMsg(fromShardID, toShardID uint64, blkInfo *ShardBlockInfo, sender *actor.PID) (*CrossShardMsg, error) {
+func NewShardBlockRspMsg(fromShardID, toShardID types.ShardID, blkInfo *ShardBlockInfo, sender *actor.PID) (*CrossShardMsg, error) {
 	blkRsp := &ShardBlockRspMsg{
 		FromShardID: fromShardID,
 		Height:      blkInfo.Height,
@@ -103,7 +103,7 @@ type _CrossShardTx struct {
 //  One block can generated multiple cross-shard sub-txns, marshaled to [][]byte.
 //  NewCrossShardTXMsg creates one cross-shard forwarding Tx, which contains all sub-txns.
 //
-func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payload [][]byte) (*types.Transaction, error) {
+func NewCrossShardTxMsg(account *account.Account, height uint64, toShardID types.ShardID, payload [][]byte) (*types.Transaction, error) {
 	// marshal all sub-txns to one byte-array
 	tx := &_CrossShardTx{payload}
 	txBytes, err := json.Marshal(tx)
@@ -131,7 +131,7 @@ func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payl
 
 	// build transaction
 	mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, paramBytes.Bytes())
-	mutable.ShardID = toShardID
+	mutable.ShardID = toShardID.ToUint64()
 	mutable.GasPrice = 0
 	mutable.Payer = account.Address
 
@@ -155,7 +155,7 @@ func NewCrossShardTxMsg(account *account.Account, height, toShardID uint64, payl
 	return mutable.IntoImmutable()
 }
 
-func NewShardBlockInfo(shardID uint64, blk *types.Block) (*ShardBlockInfo, error) {
+func NewShardBlockInfo(shardID types.ShardID, blk *types.Block) (*ShardBlockInfo, error) {
 	if blk == nil {
 		return nil, fmt.Errorf("newShardBlockInfo, nil block")
 	}
@@ -174,7 +174,7 @@ func NewShardBlockInfo(shardID uint64, blk *types.Block) (*ShardBlockInfo, error
 	return blockInfo, nil
 }
 
-func NewShardBlockInfoFromRemote(ShardID uint64, msg *ShardBlockRspMsg) (*ShardBlockInfo, error) {
+func NewShardBlockInfoFromRemote(ShardID types.ShardID, msg *ShardBlockRspMsg) (*ShardBlockInfo, error) {
 	if msg == nil {
 		return nil, fmt.Errorf("newShardBlockInfo, nil msg")
 	}
@@ -186,7 +186,7 @@ func NewShardBlockInfoFromRemote(ShardID uint64, msg *ShardBlockRspMsg) (*ShardB
 		Header: &ShardBlockHeader{
 			Header: msg.BlockHeader.Header,
 		},
-		ShardTxs: make(map[uint64]*ShardBlockTx),
+		ShardTxs: make(map[types.ShardID]*ShardBlockTx),
 	}
 
 	if len(msg.Txs) > 0 {

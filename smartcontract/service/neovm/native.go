@@ -72,15 +72,14 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 
 	native := &native.NativeService{
-		CacheDB:       service.CacheDB,
-		InvokeParam:   contract,
-		Tx:            service.Tx,
-		ShardID:       service.ShardID,
-		ParentShardID: service.ParentShardID,
-		Height:        service.Height,
-		Time:          service.Time,
-		ContextRef:    service.ContextRef,
-		ServiceMap:    make(map[string]native.Handler),
+		CacheDB:     service.CacheDB,
+		InvokeParam: contract,
+		Tx:          service.Tx,
+		ShardID:     service.ShardID,
+		Height:      service.Height,
+		Time:        service.Time,
+		ContextRef:  service.ContextRef,
+		ServiceMap:  make(map[string]native.Handler),
 	}
 
 	result, err := native.Invoke()

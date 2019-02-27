@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 	"io"
 	"math"
 
@@ -553,12 +554,12 @@ type WebSocketConfig struct {
 }
 
 type ShardConfig struct {
-	ShardID              uint64 `json:"shard_id"`
-	ParentShardID        uint64 `json:"parent_shard_id"`
-	GenesisParentHeight  uint64 `json:"genesis_parent_height"`
-	ShardPort            uint   `json:"shard_port"`
-	ParentShardIPAddress string `json:"parent_shard_ip_address"`
-	ParentShardPort      uint   `json:"parent_shard_port"`
+	ShardID              types.ShardID `json:"shard_id"`
+	ParentShardID        types.ShardID `json:"parent_shard_id"`
+	GenesisParentHeight  uint64        `json:"genesis_parent_height"`
+	ShardPort            uint          `json:"shard_port"`
+	ParentShardIPAddress string        `json:"parent_shard_ip_address"`
+	ParentShardPort      uint          `json:"parent_shard_port"`
 }
 
 type OntologyConfig struct {
@@ -621,8 +622,7 @@ func NewOntologyConfig() *OntologyConfig {
 			HttpWsPort:   DEFAULT_WS_PORT,
 		},
 		Shard: &ShardConfig{
-			ShardID:              DEFAULT_SHARD_ID,
-			ParentShardID:        DEFAULT_PARENT_SHARD_ID,
+			ShardID:              types.NewShardIDUnchecked(DEFAULT_SHARD_ID),
 			GenesisParentHeight:  DEFAULT_PARENT_HEIGHT,
 			ShardPort:            DEFAULT_SHARD_PORT,
 			ParentShardIPAddress: DEFAULT_PARENTSHARD_IPADDR,

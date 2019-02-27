@@ -21,6 +21,7 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -106,8 +107,8 @@ func setGlobalState(native *native.NativeService, contract common.Address, state
 	return nil
 }
 
-func GetShardState(native *native.NativeService, contract common.Address, shardID uint64) (*shardstates.ShardState, error) {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID)
+func GetShardState(native *native.NativeService, contract common.Address, shardID types.ShardID) (*shardstates.ShardState, error) {
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("getShardState, serialize shardID: %s", err)
 	}
@@ -134,7 +135,7 @@ func GetShardState(native *native.NativeService, contract common.Address, shardI
 }
 
 func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(state.ShardID)
+	shardIDBytes, err := shardutil.GetUint64Bytes(state.ShardID.ToUint64())
 	if err != nil {
 		return fmt.Errorf("setShardState, serialize shardID: %s", err)
 	}

@@ -203,7 +203,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 
 func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 	// build sub-shard args
-	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, self.shardID, self.shardPort)
+	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, uint64(self.shardPort))
 	if err != nil {
 		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
 	}
@@ -337,8 +337,8 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
 	return nil
 }
 
-func (self *ChainManager) constructShardBlockTx(block *message.ShardBlockInfo) (map[uint64]*message.ShardBlockTx, error) {
-	shardEvts := make(map[uint64][]*shardstates.ShardEventState)
+func (self *ChainManager) constructShardBlockTx(block *message.ShardBlockInfo) (map[types.ShardID]*message.ShardBlockTx, error) {
+	shardEvts := make(map[types.ShardID][]*shardstates.ShardEventState)
 
 	// sort all ShardEvents by 'to-shard-id'
 	for _, evt := range block.Events {
@@ -351,7 +351,7 @@ func (self *ChainManager) constructShardBlockTx(block *message.ShardBlockInfo) (
 	}
 
 	// build one ShardTx with events to the shard
-	shardTxs := make(map[uint64]*message.ShardBlockTx)
+	shardTxs := make(map[types.ShardID]*message.ShardBlockTx)
 	for shardId, evts := range shardEvts {
 		params := &shardsysmsg.CrossShardMsgParam{
 			Events: evts,

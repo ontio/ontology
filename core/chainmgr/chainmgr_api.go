@@ -27,12 +27,8 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
-func GetShardName(shardID uint64) string {
-	return fmt.Sprintf("shard_%d", shardID)
-}
-
-func IsRootShard(shardId uint64) bool {
-	return shardId == 0
+func GetShardName(shardID types.ShardID) string {
+	return fmt.Sprintf("shard_%d", shardID.ToUint64())
 }
 
 func GetChainManager() *ChainManager {
@@ -44,17 +40,17 @@ func GetAccount() *account.Account {
 	return chainmgr.account
 }
 
-func GetShardID() uint64 {
+func GetShardID() types.ShardID {
 	return GetChainManager().shardID
 }
 
-func GetParentShardID() uint64 {
+func GetParentShardID() types.ShardID {
 	chainmgr := GetChainManager()
 	return chainmgr.parentShardID
 }
 
-func GetChildShards() []uint64 {
-	childShards := make([]uint64, 0)
+func GetChildShards() []types.ShardID {
+	childShards := make([]types.ShardID, 0)
 	chainmgr := GetChainManager()
 	for id := range chainmgr.getChildShards() {
 		childShards = append(childShards, id)
@@ -92,7 +88,7 @@ func GetParentShardHeight() (uint64, error) {
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
 
-	if IsRootShard(chainmgr.shardID) {
+	if chainmgr.shardID.IsRootShard() {
 		return 0, nil
 	}
 
@@ -120,7 +116,7 @@ func GetParentBlockHeader(height uint64) *types.Header {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
-	if IsRootShard(chainmgr.shardID) {
+	if chainmgr.shardID.IsRootShard() {
 		return nil
 	}
 
@@ -145,12 +141,12 @@ func GetParentBlockHeader(height uint64) *types.Header {
 // @start : startHeight of parent block
 // @end : endHeight of parent block
 //
-func GetShardTxsByParentHeight(start, end uint64) map[uint64][]*types.Transaction {
+func GetShardTxsByParentHeight(start, end uint64) map[types.ShardID][]*types.Transaction {
 	chainmgr := GetChainManager()
 
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
-	if IsRootShard(chainmgr.shardID) {
+	if chainmgr.shardID.IsRootShard() {
 		return nil
 	}
 
@@ -160,7 +156,7 @@ func GetShardTxsByParentHeight(start, end uint64) map[uint64][]*types.Transactio
 	if m == nil {
 		return nil
 	}
-	shardTxs := make(map[uint64][]*types.Transaction)
+	shardTxs := make(map[types.ShardID][]*types.Transaction)
 	for ; start < end+1; start++ {
 		if blk, present := m[start]; present && blk != nil {
 			if shardTx, present := blk.ShardTxs[chainmgr.shardID]; present && shardTx != nil && shardTx.Tx != nil {
