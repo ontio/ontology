@@ -121,11 +121,10 @@ func GetAccount(ctx *cli.Context, address ...string) (*account.Account, error) {
 	if err != nil {
 		return nil, err
 	}
-	//passwd, err := GetPasswd(ctx)
-	//if err != nil {
-	//	return nil, err
-	//}
-	passwd := []byte("passwordtest")
+	passwd, err := GetPasswd(ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer ClearPasswd(passwd)
 	accAddr := ""
 	if len(address) > 0 {
