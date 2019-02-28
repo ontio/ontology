@@ -73,7 +73,6 @@ type msgJobChan struct {
 }
 
 func newMsgWorkerPool(maxWorkerCount uint) *msgWorkerPool {
-
 	msgWP := &msgWorkerPool{
 		maxWorkerCount: maxWorkerCount,
 	}
@@ -83,7 +82,6 @@ func newMsgWorkerPool(maxWorkerCount uint) *msgWorkerPool {
 }
 
 func (this *msgWorkerPool) init() {
-
 	this.waitingWokers = make(map[string]msgJobChanList)
 	this.stopChan = make(chan struct{})
 	this.maxWorkerIdleTime = 10 * time.Second
@@ -104,7 +102,6 @@ var msgJobChanCap = func() int {
 }()
 
 func (this *msgWorkerPool) start() {
-
 	if this.waitingWokers == nil || this.stopChan == nil {
 		panic("[p2p]invalid start invoking, the msg worker pool hasn't been initialized")
 	}
@@ -123,7 +120,6 @@ func (this *msgWorkerPool) start() {
 }
 
 func (this *msgWorkerPool) stop() {
-
 	if this.stopChan == nil {
 		panic("[p2p]invalid stop invoking, the msg worker pool hasn't been initialized!")
 	}
@@ -132,7 +128,6 @@ func (this *msgWorkerPool) stop() {
 }
 
 func (this *msgWorkerPool) clean() {
-
 	var willCleanJC []*msgJobChan
 	curTime := time.Now()
 
@@ -167,7 +162,6 @@ func (this *msgWorkerPool) clean() {
 
 //Only receiveMsg can invoke getMsgWorkChan
 func (this *msgWorkerPool) getMsgWorkChan(msgType string) *msgJobChan {
-
 	var msgJobCh *msgJobChan = nil
 	var willCreateNew = false
 
@@ -212,7 +206,6 @@ func (this *msgWorkerPool) getMsgWorkChan(msgType string) *msgJobChan {
 }
 
 func (this *msgWorkerPool) receiveMsg(msg *msgJobItem) bool {
-
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -226,7 +219,6 @@ func (this *msgWorkerPool) receiveMsg(msg *msgJobItem) bool {
 }
 
 func (this *msgWorkerPool) disposeMsg(msgJobCh *msgJobChan) {
-
 	for msgJob := range msgJobCh.jobChan {
 		if msgJob == nil {
 			break
@@ -241,7 +233,6 @@ func (this *msgWorkerPool) disposeMsg(msgJobCh *msgJobChan) {
 }
 
 func (this *msgWorkerPool) release(msgType string, msgJobCh *msgJobChan) {
-
 	msgJobCh.lastUseTime = time.Now()
 
 	this.lock.Lock()

@@ -33,17 +33,14 @@ import (
 type testMsgPayload struct{}
 
 func (this *testMsgPayload) Serialization(sink *common.ZeroCopySink) error {
-
 	return nil
 }
 
 func (this *testMsgPayload) Deserialization(source *common.ZeroCopySource) error {
-
 	return nil
 }
 
 func (this *testMsgPayload) CmdType() string {
-
 	return "TestMsg"
 }
 
@@ -52,7 +49,6 @@ func msgHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...int
 }
 
 func TestMsgWPStartStop(t *testing.T) {
-
 	msgWP := &msgWorkerPool{
 		maxWorkerCount: 5,
 	}
@@ -64,7 +60,6 @@ func TestMsgWPStartStop(t *testing.T) {
 }
 
 func TestMsgWPBWithinMaxWorkerCount(t *testing.T) {
-
 	msgWP := &msgWorkerPool{
 		maxWorkerCount: 5,
 	}
@@ -86,7 +81,6 @@ func TestMsgWPBWithinMaxWorkerCount(t *testing.T) {
 }
 
 func TestMsgWPBBeyondMaxWorkerCount(t *testing.T) {
-
 	msgWP := &msgWorkerPool{
 		maxWorkerCount: 5,
 	}
@@ -98,7 +92,7 @@ func TestMsgWPBBeyondMaxWorkerCount(t *testing.T) {
 	for i := 0; i < 8; i++ {
 		mJobItem := &msgJobItem{
 			msgPayload: &types.MsgPayload{Payload: &testMsgPayload{}},
-			msgHandler: testHandler,
+			msgHandler: msgHandler,
 		}
 		bRecvSucess := msgWP.receiveMsg(mJobItem)
 		assert.Equal(t, true, bRecvSucess)
@@ -110,7 +104,6 @@ func TestMsgWPBBeyondMaxWorkerCount(t *testing.T) {
 }
 
 func TestMsgWPBAutoClean(t *testing.T) {
-
 	msgWP := &msgWorkerPool{
 		maxWorkerCount: 5,
 	}
