@@ -290,6 +290,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		if shard.Peers == nil {
 			shard.Peers = make(map[string]*shardstates.PeerShardStakeInfo)
 		}
+		peerStakeInfo.Index = uint32(len(shard.Peers) + 1)
 		shard.Peers[params.PeerPubKey] = peerStakeInfo
 	}
 

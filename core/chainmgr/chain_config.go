@@ -21,6 +21,8 @@ package chainmgr
 import (
 	"bytes"
 	"fmt"
+	"sort"
+
 	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common/config"
@@ -68,19 +70,22 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 	} else if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		seedlist := make([]string, 0)
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
-		var index uint32
-		index = 1
 		for peerPK, info := range shardState.Peers {
 			seedlist = append(seedlist, info.PeerAddress)
 			vbftpeerstakeinfo := &config.VBFTPeerStakeInfo{
-				Index:      index,
+				Index:      info.Index,
 				PeerPubkey: peerPK,
 				Address:    info.PeerOwner.ToBase58(),
 				InitPos:    info.StakeAmount,
 			}
 			peers = append(peers, vbftpeerstakeinfo)
-			index++
 		}
+		sort.SliceStable(peers, func(i, j int) bool {
+			if peers[i].Index > peers[j].Index {
+				return true
+			}
+			return false
+		})
 		shardConfig.Genesis.SeedList = seedlist
 		shardConfig.Genesis.VBFT.N = shardState.Config.VbftConfigData.N
 		shardConfig.Genesis.VBFT.C = shardState.Config.VbftConfigData.C
@@ -94,7 +99,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		shardConfig.Genesis.VBFT.AdminOntID = shardState.Config.VbftConfigData.AdminOntID
 		shardConfig.Genesis.VBFT.VrfValue = shardState.Config.VbftConfigData.VrfValue
 		shardConfig.Genesis.VBFT.VrfProof = shardState.Config.VbftConfigData.VrfProof
-		shardConfig.Genesis.VBFT.Peers = shardState.Config.VbftConfigData.Peers
+		shardConfig.Genesis.VBFT.Peers = peers
 	} else {
 		return nil, fmt.Errorf("only solo suppported")
 	}
