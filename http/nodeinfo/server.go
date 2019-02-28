@@ -54,9 +54,9 @@ var node p2p.P2P
 
 var templates = template.Must(template.New("info").Parse(TEMPLATE_PAGE))
 
-func newNgbNodeInfo(ngbId string, ngbType string, ngbAddr string, httpInfoAddr string, httpInfoPort uint16, httpInfoStart bool) *NgbNodeInfo {
+func newNgbNodeInfo(ngbId string, ngbType string, ngbAddr string, httpInfoAddr string, httpInfoPort uint16, httpInfoStart bool, ngbVersion string) *NgbNodeInfo {
 	return &NgbNodeInfo{NgbId: ngbId, NgbType: ngbType, NgbAddr: ngbAddr, HttpInfoAddr: httpInfoAddr,
-		HttpInfoPort: httpInfoPort, HttpInfoStart: httpInfoStart}
+		HttpInfoPort: httpInfoPort, HttpInfoStart: httpInfoStart, NgbVersion: ngbVersion}
 }
 
 func initPageInfo(blockHeight uint32, curNodeType string, ngbrCnt int, ngbrsInfo []NgbNodeInfo) (*Info, error) {
@@ -79,6 +79,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	var ngbInfoPort uint16
 	var ngbInfoState bool
 	var ngbHttpInfoAddr string
+	var ngbVersion string
 
 	curNodeType := SERVICENODE
 
@@ -91,8 +92,9 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 		ngbInfoState = ngbrNoders[i].GetHttpInfoState()
 		ngbHttpInfoAddr = ngbAddr + ":" + strconv.Itoa(int(ngbInfoPort))
 		ngbId = fmt.Sprintf("0x%x", ngbrNoders[i].GetID())
+		ngbVersion = ngbrNoders[i].GetSoftVersion()
 
-		ngbrInfo := newNgbNodeInfo(ngbId, ngbType, ngbAddr, ngbHttpInfoAddr, ngbInfoPort, ngbInfoState)
+		ngbrInfo := newNgbNodeInfo(ngbId, ngbType, ngbAddr, ngbHttpInfoAddr, ngbInfoPort, ngbInfoState, ngbVersion)
 		ngbrNodersInfo = append(ngbrNodersInfo, *ngbrInfo)
 	}
 	sort.Sort(NgbNodeInfoSlice(ngbrNodersInfo))

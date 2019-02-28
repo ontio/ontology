@@ -105,7 +105,7 @@ func TestGetPeerComInfo(t *testing.T) {
 }
 
 func TestUpdatePeer(t *testing.T) {
-	p.UpdateInfo(time.Now(), 3, 3, 30334, 30335, 0x7533345, 0, 7322222)
+	p.UpdateInfo(time.Now(), 3, 3, 30334, 30335, 0x7533345, 0, 7322222, "1.5.2")
 	p.SetConsState(2)
 	p.SetSyncState(3)
 	p.SetHttpInfoState(true)

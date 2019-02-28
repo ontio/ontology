@@ -162,6 +162,7 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 		HttpInfoPort: n.GetHttpInfoPort(),
 		StartHeight:  uint64(height),
 		TimeStamp:    time.Now().UnixNano(),
+		SoftVersion:  config.Version,
 	}
 
 	if n.GetRelay() {

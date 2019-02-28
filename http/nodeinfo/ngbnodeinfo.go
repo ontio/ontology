@@ -27,6 +27,7 @@ type NgbNodeInfo struct {
 	HttpInfoAddr  string
 	HttpInfoPort  uint16
 	HttpInfoStart bool
+	NgbVersion    string
 }
 
 type NgbNodeInfoSlice []NgbNodeInfo

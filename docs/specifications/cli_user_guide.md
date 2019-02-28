@@ -134,6 +134,8 @@ The consensusport parameter specifies the consensus network port number. By defa
 --dual-port
 The dual-port parameter initiates a dual network, i.e. a P2P network for processing transaction messages and a consensus network for consensus messages. The parameter disables by default.
 
+--httpinfo-port
+httpinfo-port parameter specifies the http server port of viewing node information. The default value is 0 which means closes the http server.
 
 #### 1.1.5 RPC Server Parameters
 

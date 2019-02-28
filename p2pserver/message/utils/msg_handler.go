@@ -282,7 +282,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight)
+			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
@@ -362,7 +362,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight)
+			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
 		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
 

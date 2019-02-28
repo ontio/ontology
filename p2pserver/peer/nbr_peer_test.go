@@ -40,7 +40,7 @@ func creatPeers(cnt uint16) []*Peer {
 		id = 0x7533345 + uint64(i)
 		height = 434923 + uint64(i)
 		p = NewPeer()
-		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height)
+		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, "1.5.2")
 		p.SetConsState(2)
 		p.SetSyncState(3)
 		p.SetHttpInfoState(true)
@@ -79,7 +79,7 @@ func TestGetPeer(t *testing.T) {
 
 func TestAddNbrNode(t *testing.T) {
 	p := NewPeer()
-	p.UpdateInfo(time.Now(), 2, 3, 10335, 10336, 0x7123456, 0, 100)
+	p.UpdateInfo(time.Now(), 2, 3, 10335, 10336, 0x7123456, 0, 100, "1.5.2")
 	p.SetConsState(2)
 	p.SetSyncState(3)
 	p.SetHttpInfoState(true)
