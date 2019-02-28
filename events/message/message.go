@@ -33,7 +33,8 @@ const (
 )
 
 type SaveBlockCompleteMsg struct {
-	Block *types.Block
+	Block          *types.Block
+	ShardSysEvents []*ShardSystemEventMsg
 }
 
 type NewInventoryMsg struct {

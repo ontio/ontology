@@ -20,11 +20,9 @@ package event
 
 import (
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const (
@@ -44,15 +42,4 @@ func PushSmartCodeEvent(txHash common.Uint256, errcode int64, action string, res
 		Error:  errcode,
 	}
 	events.DefActorPublisher.Publish(message.TOPIC_SMART_CODE_EVENT, &message.SmartCodeEventMsg{smartCodeEvt})
-}
-
-func PushShardEvent(txHash common.Uint256, errcode int64, contract common.Address, result *NotifyEventInfo) {
-	if shardEvt, ok := result.States.(*shardstates.ShardEventState); ok {
-		events.DefActorPublisher.Publish(message.TOPIC_SHARD_SYSTEM_EVENT, &message.ShardSystemEventMsg{
-			FromAddress: contract,
-			Event:       shardEvt,
-		})
-	} else {
-		log.Errorf("invalid format for shard mgmt event, contract: %v, hash: %v", contract, txHash)
-	}
 }

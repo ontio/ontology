@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"hash"
 	"math"
 	"os"
@@ -840,14 +841,37 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
 
+	shardSysMsg := extractShardSysEvents(result.Notify)
+
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
 			&message.SaveBlockCompleteMsg{
-				Block: block,
+				Block:          block,
+				ShardSysEvents: shardSysMsg,
 			})
 	}
 	return nil
+}
+
+func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystemEventMsg {
+	var shardSysMsg []*message.ShardSystemEventMsg
+	for _, txEvents := range notify {
+		for _, n := range txEvents.Notify {
+			if n.ContractAddress == utils.ShardMgmtContractAddress ||
+				n.ContractAddress == utils.ShardGasMgmtContractAddress ||
+				n.ContractAddress == utils.ShardSysMsgContractAddress {
+				if shardEvt, ok := n.States.(*shardstates.ShardEventState); ok {
+					shardSysMsg = append(shardSysMsg, &message.ShardSystemEventMsg{
+						FromAddress: n.ContractAddress,
+						Event:       shardEvt,
+					})
+				}
+			}
+		}
+	}
+
+	return shardSysMsg
 }
 
 //saveBlock do the job of execution samrt contract and commit block to store.
