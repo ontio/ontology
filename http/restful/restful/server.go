@@ -24,12 +24,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/http/base"
-	"github.com/ontio/ontology/http/base/common"
-	berr "github.com/ontio/ontology/http/base/error"
-	"github.com/ontio/ontology/http/base/rest"
 	"golang.org/x/net/netutil"
 	"io"
 	"net"
@@ -38,6 +32,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/chainmgr"
+	"github.com/ontio/ontology/http/base"
+	"github.com/ontio/ontology/http/base/common"
+	berr "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/http/base/rest"
+	"golang.org/x/net/netutil"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}
@@ -95,7 +98,7 @@ func InitRestServer() rest.ApiServer {
 
 //start server
 func (this *restServer) Start() error {
-	retPort := int(base.GetShardRestPort())
+	retPort := int(chainmgr.GetShardRestPort())
 	if retPort == 0 {
 		log.Fatal("Not configure HttpRestPort port ")
 		return nil

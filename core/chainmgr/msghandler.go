@@ -313,7 +313,7 @@ func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 			if err != nil {
 				return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
 			}
-			self.sendCrossShardTx(s, tx)
+			self.sendCrossShardTx(tx, string(GetShardRpcPortByShardID(s.ToUint64())))
 		}
 
 		self.processedBlockHeight = height

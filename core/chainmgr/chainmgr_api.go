@@ -23,9 +23,12 @@ import (
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 )
+
+const shard_port_gap = 10
 
 func GetShardName(shardID types.ShardID) string {
 	return fmt.Sprintf("shard_%d", shardID.ToUint64())
@@ -60,6 +63,18 @@ func GetChildShards() []types.ShardID {
 
 func GetPID() *actor.PID {
 	return GetChainManager().localPid
+}
+
+func GetShardRestPort() uint {
+	return config.DefConfig.Restful.HttpRestPort + uint(GetShardID().ToUint64())*shard_port_gap
+}
+
+func GetShardRpcPort() uint {
+	return config.DefConfig.Rpc.HttpJsonPort + uint(GetShardID().ToUint64())*shard_port_gap
+}
+
+func GetShardRpcPortByShardID(shardId uint64) uint {
+	return config.DefConfig.Rpc.HttpJsonPort + uint(shardId)*shard_port_gap
 }
 
 func SetP2P(p2p *actor.PID) error {
