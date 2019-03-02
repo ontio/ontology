@@ -24,14 +24,17 @@ import (
 
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"io/ioutil"
-	"net/http"
-	"time"
 )
+
+const JSON_RPC_VERSION = "2.0"
 
 func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) error {
 	this.lock.Lock()
@@ -128,26 +131,28 @@ func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstate
 	return info, nil
 }
 
-type RestfulReq struct {
-	Action  string
-	Version string
-	Type    int
-	Data    string
+type JsonRpcRequest struct {
+	Version string        `json:"jsonrpc"`
+	Id      string        `json:"id"`
+	Method  string        `json:"method"`
+	Params  []interface{} `json:"params"`
 }
 
-func sendRawTx(tx *types.Transaction) error {
+func sendRawTx(tx *types.Transaction, shardPort string) error {
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {
 		return fmt.Errorf("Serialize error:%s", err)
 	}
-	reqUrl := "http://127.0.0.1:20334/api/v1/transaction"
-	restReq := &RestfulReq{
-		Action:  "sendrawtransaction",
-		Version: "1.0.0",
-		Data:    hex.EncodeToString(buffer.Bytes()),
+	reqAddr := "http://127.0.0.1:" + shardPort
+
+	rpcReq := &JsonRpcRequest{
+		Version: JSON_RPC_VERSION,
+		Id:      "rpc",
+		Method:  "sendrawtransaction",
+		Params:  []interface{}{hex.EncodeToString(buffer.Bytes())},
 	}
-	reqData, err := json.Marshal(restReq)
+	reqData, err := json.Marshal(rpcReq)
 	if err != nil {
 		return fmt.Errorf("json.Marshal error:%s", err)
 	}
@@ -159,8 +164,7 @@ func sendRawTx(tx *types.Transaction) error {
 		},
 		Timeout: time.Second * 300, //timeout for http response
 	}
-
-	resp, err := httpClient.Post(reqUrl, "application/json", bytes.NewReader(reqData))
+	resp, err := httpClient.Post(reqAddr, "application/json", bytes.NewReader(reqData))
 	if err != nil {
 		return fmt.Errorf("send http post request error:%s", err)
 	}

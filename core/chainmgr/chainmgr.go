@@ -582,7 +582,7 @@ func (self *ChainManager) sendShardMsg(shardId types.ShardID, msg *shardmsg.Cros
 // send Cross-Shard Tx to remote shard
 // TODO: get ip-address of remote shard node
 //
-func (self *ChainManager) sendCrossShardTx(shardID types.ShardID, tx *types.Transaction) error {
+func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort string) error {
 	// FIXME: broadcast Tx to seed nodes of target shard
 
 	// relay with parent shard
@@ -600,10 +600,10 @@ func (self *ChainManager) sendCrossShardTx(shardID types.ShardID, tx *types.Tran
 	//self.sendShardMsg(self.parentShardID, msg)
 	//return nil
 
-	go func(tx *types.Transaction) {
-		if err := sendRawTx(tx); err != nil {
-			log.Errorf("send raw tx failed: %s", err)
+	go func(tx *types.Transaction, shardPort string) {
+		if err := sendRawTx(tx, shardPort); err != nil {
+			log.Errorf("send raw tx failed: %s,shadPort:%s", err, shardPort)
 		}
-	}(tx)
+	}(tx, shardPort)
 	return nil
 }
