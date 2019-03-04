@@ -543,7 +543,7 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 }
 
 //
-// @ set BlockPool as committed for given BlockNum
+// @ set BlockPool as committed for given BlockHeight
 //
 // Note: setCommitDone supposed to be called after commitDone.
 // Because setCommitDone requires exclusive lock, this function is provided separately.

@@ -82,7 +82,7 @@ func (self *ProgramBuilder) Finish() []byte {
 }
 
 func NewProgramBuilder() ProgramBuilder {
-	return ProgramBuilder{sink: common.NewZeroCopySink(nil)}
+	return ProgramBuilder{sink: common.NewZeroCopySink(0)}
 }
 
 func ProgramFromPubKey(pubkey keypair.PublicKey) []byte {

@@ -174,7 +174,7 @@ func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Heade
 func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) error {
 	blockHash := block.Hash()
 	key := this.getHeaderKey(blockHash)
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	sysFee.Serialization(sink)
 	block.Header.Serialization(sink)
 	sink.WriteUint32(uint32(len(block.Transactions)))

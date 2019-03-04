@@ -186,7 +186,7 @@ func AppCallTransfer(native *native.NativeService, contract common.Address, from
 	transfers := Transfers{
 		States: sts,
 	}
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	transfers.Serialization(sink)
 
 	if _, err := native.NativeCall(contract, "transfer", sink.Bytes()); err != nil {
@@ -203,7 +203,7 @@ func AppCallTransferFrom(native *native.NativeService, contract common.Address, 
 		To:     to,
 		Value:  amount,
 	}
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	params.Serialization(sink)
 
 	if _, err := native.NativeCall(contract, "transferFrom", sink.Bytes()); err != nil {

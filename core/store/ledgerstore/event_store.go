@@ -161,10 +161,10 @@ func (this *EventStore) ClearAll() error {
 //SaveCurrentBlock persist current block height and block hash to event store
 func (this *EventStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
 	key := this.getCurrentBlockKey()
-	value := bytes.NewBuffer(nil)
-	blockHash.Serialize(value)
-	serialization.WriteUint32(value, height)
-	this.store.BatchPut(key, value.Bytes())
+	sink := common.NewZeroCopySink(0)
+	sink.WriteHash(blockHash)
+	sink.WriteUint32(height)
+	this.store.BatchPut(key, sink.Bytes())
 
 	return nil
 }

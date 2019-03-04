@@ -722,6 +722,17 @@ func accumulateHash(hasher hash.Hash, iter scom.StoreIterator) error {
 	return iter.Error()
 }
 
+func (this *LedgerStoreImp) saveShardState(block *types.Block, result store.ExecuteResult) error {
+	shardSysMsg := extractShardSysEvents(result.Notify)
+	err := this.stateStore.AddBlockShardEvents(block.Header.Height, shardSysMsg)
+	if err != nil {
+		return err
+	}
+
+	this.stateStore.AddShardCurrAnchorHeight(block.Header.ParentHeight)
+	return nil
+}
+
 func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result store.ExecuteResult) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
@@ -739,6 +750,11 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
+	}
+
+	err = this.saveShardState(block, result)
+	if err != nil {
+		return fmt.Errorf("save shard state error: %v", err)
 	}
 
 	log.Debugf("the state transition hash of block %d is:%s", blockHeight, result.Hash.ToHexString())
@@ -1161,6 +1177,14 @@ func (this *LedgerStoreImp) getPreGas(config *smartcontract.Config, cache *stora
 		}
 	}
 	return m, nil
+}
+
+func (self *LedgerStoreImp) GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error) {
+	return self.stateStore.GetBlockShardEvents(height)
+}
+
+func (self *LedgerStoreImp) GetShardCurrAnchorHeight() (uint32, error) {
+	return self.stateStore.GetShardCurrAnchorHeight()
 }
 
 //Close ledger store.

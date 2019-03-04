@@ -31,7 +31,7 @@ func TestHeader_Serialize(t *testing.T) {
 	header.Height = 321
 	header.Bookkeepers = make([]keypair.PublicKey, 0)
 	header.SigData = make([][]byte, 0)
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	header.Serialization(sink)
 	bs := sink.Bytes()
 

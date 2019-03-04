@@ -71,7 +71,7 @@ type shardBlkMarshalHelper struct {
 }
 
 func (this *ShardBlockHeader) MarshalJSON() ([]byte, error) {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	if this.Header != nil {
 		if err := this.Header.Serialization(sink); err != nil {
 			return nil, fmt.Errorf("shard block hdr marshal: %s", err)
@@ -100,7 +100,7 @@ func (this *ShardBlockHeader) UnmarshalJSON(data []byte) error {
 }
 
 func (this *ShardBlockTx) MarshalJSON() ([]byte, error) {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	if this.Tx != nil {
 		if err := this.Tx.Serialization(sink); err != nil {
 			return nil, fmt.Errorf("shard block tx marshal: %x", err)
@@ -156,14 +156,14 @@ func NewShardBlockPool(historyCap uint32) *ShardBlockPool {
 	}
 }
 
-func (pool *ShardBlockPool) GetBlock(shardID types.ShardID, height uint32) *ShardBlockInfo {
+func (pool *ShardBlockPool) GetBlockInfo(shardID types.ShardID, height uint32) *ShardBlockInfo {
 	if m, present := pool.Shards[shardID]; present && m != nil {
 		return m[height]
 	}
 	return nil
 }
 
-func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
+func (pool *ShardBlockPool) AddBlockInfo(blkInfo *ShardBlockInfo) error {
 	if _, present := pool.Shards[blkInfo.FromShardID]; !present {
 		pool.Shards[blkInfo.FromShardID] = make(ShardBlockMap)
 	}
@@ -183,7 +183,6 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 
 		// replace events
 		blkInfo.Events = blk.Events
-		m[blkInfo.Height] = blkInfo
 	}
 
 	log.Infof("chainmgr AddBlock from shard %d, block %d", blkInfo.FromShardID, blkInfo.Height)
@@ -210,29 +209,6 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 		delete(m, blkHeight)
 	}
 
-	return nil
-}
-
-func (pool *ShardBlockPool) AddEvent(srcShardID types.ShardID, evt *shardstates.ShardEventState) error {
-	if _, present := pool.Shards[srcShardID]; !present {
-		pool.Shards[srcShardID] = make(ShardBlockMap)
-	}
-
-	m := pool.Shards[srcShardID]
-	if m == nil {
-		return fmt.Errorf("add shard event, nil map")
-	}
-	if _, present := m[evt.FromHeight]; !present {
-		m[evt.FromHeight] = &ShardBlockInfo{
-			FromShardID: srcShardID,
-			Height:      evt.FromHeight,
-			State:       ShardBlockNew,
-			Events:      []*shardstates.ShardEventState{evt},
-		}
-		return nil
-	}
-
-	m[evt.FromHeight].Events = append(m[evt.FromHeight].Events, evt)
 	return nil
 }
 

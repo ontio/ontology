@@ -44,7 +44,7 @@ type MutableTransaction struct {
 
 // output has no reference to self
 func (self *MutableTransaction) IntoImmutable() (*Transaction, error) {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	err := self.serialize(sink)
 	if err != nil {
 		return nil, err

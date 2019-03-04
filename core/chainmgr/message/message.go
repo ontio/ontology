@@ -65,8 +65,8 @@ func (msg *ShardConfigMsg) Type() int {
 }
 
 type ShardBlockReqMsg struct {
-	ShardID  uint64 `json:"shard_id"`
-	BlockNum uint64 `json:"block_num"`
+	ShardID     uint64 `json:"shard_id"`
+	BlockHeight uint32 `json:"block_num"`
 }
 
 func (msg *ShardBlockReqMsg) Type() int {

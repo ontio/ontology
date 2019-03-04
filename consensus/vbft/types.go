@@ -72,14 +72,14 @@ func (blk *Block) getVrfProof() []byte {
 }
 
 func (blk *Block) Serialize() ([]byte, error) {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	blk.Block.Serialization(sink)
 
-	payload := common.NewZeroCopySink(nil)
+	payload := common.NewZeroCopySink(0)
 	payload.WriteVarBytes(sink.Bytes())
 
 	if blk.EmptyBlock != nil {
-		sink2 := common.NewZeroCopySink(nil)
+		sink2 := common.NewZeroCopySink(0)
 		blk.EmptyBlock.Serialization(sink2)
 		payload.WriteVarBytes(sink2.Bytes())
 	}

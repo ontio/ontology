@@ -123,7 +123,7 @@ func (self *Block) Deserialization(source *common.ZeroCopySource) error {
 }
 
 func (b *Block) ToArray() []byte {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	b.Serialization(sink)
 	return sink.Bytes()
 }

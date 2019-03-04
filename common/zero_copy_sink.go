@@ -172,11 +172,12 @@ func (self *ZeroCopySink) WriteVarUint(data uint64) (size uint64) {
 }
 
 // NewReader returns a new ZeroCopySink reading from b.
-func NewZeroCopySink(b []byte) *ZeroCopySink {
-	if b == nil {
-		b = make([]byte, 0, 512)
+func NewZeroCopySink(cap int) *ZeroCopySink {
+	if cap <= 0 {
+		cap = 512
 	}
-	return &ZeroCopySink{b}
+	buf := make([]byte, 0, cap)
+	return &ZeroCopySink{buf}
 }
 
 func (self *ZeroCopySink) Bytes() []byte { return self.buf }

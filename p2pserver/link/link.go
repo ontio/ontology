@@ -167,7 +167,12 @@ func (this *Link) CloseConn() {
 }
 
 func (this *Link) Send(msg types.Message) error {
-	sink := comm.NewZeroCopySink(nil)
+	conn := this.conn
+	if conn == nil {
+		return errors.New("[p2p]tx link invalid")
+	}
+
+	sink := comm.NewZeroCopySink(0)
 	types.WriteMessage(sink, msg)
 
 	return this.SendRaw(sink.Bytes())

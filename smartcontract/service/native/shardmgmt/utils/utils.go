@@ -68,7 +68,7 @@ func GetBytesUint64(b []byte) (uint64, error) {
 }
 
 func GetUint32Bytes(num uint32) []byte {
-	sink := common.NewZeroCopySink(make([]byte, 0, 4))
+	sink := common.NewZeroCopySink(4)
 	sink.WriteUint32(num)
 	return sink.Bytes()
 }

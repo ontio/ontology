@@ -45,4 +45,8 @@ const (
 	SYS_STATE_MERKLE_TREE  DataEntryPrefix = 0x20 // state merkle tree root key prefix
 
 	EVENT_NOTIFY DataEntryPrefix = 0x14 //Event notify key prefix
+
+	SHARD_CURR_ANCHOR_HEIGHT     DataEntryPrefix = 0x30 // the newest anchored height of parent shard chain
+	SHARD_SUBSHARD_ANCHOR_HEIGHT DataEntryPrefix = 0x31 // map[subshardid] -> anchored height, updated by chain manager
+	SHARD_EVENTS                 DataEntryPrefix = 0x32 // block height -> shard events
 )

@@ -236,35 +236,17 @@ func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 	return nil
 }
 
-func (self *ChainManager) onLocalShardEvent(evt *shardstates.ShardEventState) error {
-	if evt == nil {
-		return fmt.Errorf("notification with nil evt on shard %d", self.shardID)
-	}
-	log.Infof("shard %d, get new event type %d", self.shardID, evt.EventType)
-
-	return self.addShardEvent(evt)
-}
-
-func (self *ChainManager) handleBlockEvents(blk *types.Block) error {
+func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*shardstates.ShardEventState) error {
 	// construct one parent-block-completed message
-	blkInfo := self.getShardBlockInfo(self.shardID, blk.Header.Height)
-	if blkInfo == nil {
-		newBlkInfo, err := message.NewShardBlockInfo(self.shardID, blk)
-		if err != nil {
-			return fmt.Errorf("init shard block info: %s", err)
-		}
-		if err := self.addShardBlockInfo(newBlkInfo); err != nil {
-			return fmt.Errorf("add shard block: %s", err)
-		}
-		blkInfo = newBlkInfo
-	} else {
-		shardTxs, err := self.constructShardBlockTx(blkInfo)
-		if err != nil {
-			return fmt.Errorf("shard %d, block %d, construct shard tx: %s", self.shardID, blkInfo.Height, err)
-		}
-
-		log.Infof("shard %d, block %d with shard tx: %v", self.shardID, blk.Header.Height, shardTxs)
-		self.updateShardBlockInfo(self.shardID, blk.Header.Height, blk, shardTxs)
+	blkInfo := message.NewShardBlockInfo(self.shardID, header)
+	shardTxs, err := constructShardBlockTx(shardEvts)
+	if err != nil {
+		return fmt.Errorf("shard %d, block %d, construct shard tx: %s", self.shardID, header.Height, err)
+	}
+	blkInfo.ShardTxs = shardTxs
+	blkInfo.Events = shardEvts
+	if err := self.addShardBlockInfo(blkInfo); err != nil {
+		return fmt.Errorf("add shard block: %s", err)
 	}
 
 	// broadcast message to shards
@@ -275,7 +257,7 @@ func (self *ChainManager) handleBlockEvents(blk *types.Block) error {
 		}
 
 		log.Infof("shard %d, send block %d to %d with shard tx: %v",
-			self.shardID, blk.Header.Height, shardID, blkInfo.ShardTxs[shardID])
+			self.shardID, header.Height, shardID, blkInfo.ShardTxs[shardID])
 
 		// send msg to shard
 		self.sendShardMsg(shardID, msg)
@@ -300,13 +282,13 @@ func (self *ChainManager) handleBlockEvents(blk *types.Block) error {
 	return nil
 }
 
-func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
+func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 
 	defer func() {
 		// TODO: update persisted ProcessedBlockHeight
 	}()
 
-	for height := self.processedBlockHeight + 1; height <= blk.Header.Height; height++ {
+	for height := self.processedBlockHeight + 1; height <= header.Height; height++ {
 		shards, err := GetRequestedRemoteShards(self.ledger, height)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
@@ -337,26 +319,23 @@ func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 	return nil
 }
 
-func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) error {
-	if blk == nil {
-		return fmt.Errorf("notification with nil blk on shard %d", self.shardID)
-	}
+func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*shardstates.ShardEventState) error {
 	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
 
-	if err := self.handleBlockEvents(blk); err != nil {
+	if err := self.handleBlockEvents(blk.Header, shardEvts); err != nil {
 		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
 	}
-	if err := self.handleShardReqsInBlock(blk); err != nil {
+	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
 		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 	return nil
 }
 
-func (self *ChainManager) constructShardBlockTx(block *message.ShardBlockInfo) (map[types.ShardID]*message.ShardBlockTx, error) {
+func constructShardBlockTx(evts []*shardstates.ShardEventState) (map[types.ShardID]*message.ShardBlockTx, error) {
 	shardEvts := make(map[types.ShardID][]*shardstates.ShardEventState)
 
 	// sort all ShardEvents by 'to-shard-id'
-	for _, evt := range block.Events {
+	for _, evt := range evts {
 		toShard := evt.ToShard
 		if _, present := shardEvts[toShard]; !present {
 			shardEvts[toShard] = make([]*shardstates.ShardEventState, 0)

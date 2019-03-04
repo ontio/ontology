@@ -193,7 +193,7 @@ func (bd *Header) Hash() common.Uint256 {
 	if bd.hash != nil {
 		return *bd.hash
 	}
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	bd.serializationUnsigned(sink)
 	temp := sha256.Sum256(sink.Bytes())
 	hash := common.Uint256(sha256.Sum256(temp[:]))
@@ -203,13 +203,13 @@ func (bd *Header) Hash() common.Uint256 {
 }
 
 func (bd *Header) GetMessage() []byte {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	bd.serializationUnsigned(sink)
 	return sink.Bytes()
 }
 
 func (bd *Header) ToArray() []byte {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	bd.Serialization(sink)
 	return sink.Bytes()
 }

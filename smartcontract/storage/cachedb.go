@@ -103,7 +103,7 @@ func (self *CacheDB) GetContract(addr comm.Address) (*payload.DeployCode, error)
 func (self *CacheDB) PutContract(contract *payload.DeployCode) error {
 	address := contract.Address()
 
-	sink := comm.NewZeroCopySink(nil)
+	sink := comm.NewZeroCopySink(0)
 	err := contract.Serialization(sink)
 	if err != nil {
 		return err
