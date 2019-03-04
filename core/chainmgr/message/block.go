@@ -59,7 +59,7 @@ type ShardBlockTx struct {
 //
 type ShardBlockInfo struct {
 	FromShardID types.ShardID                   `json:"from_shard_id"`
-	Height      uint64                          `json:"height"`
+	Height      uint32                          `json:"height"`
 	State       uint                            `json:"state"`
 	Header      *ShardBlockHeader               `json:"header"`
 	ShardTxs    map[types.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
@@ -142,7 +142,7 @@ func (this *ShardBlockInfo) Deserialize(r io.Reader) error {
 //
 ////////////////////////////////////
 
-type ShardBlockMap map[uint64]*ShardBlockInfo // indexed by BlockHeight
+type ShardBlockMap map[uint32]*ShardBlockInfo // indexed by BlockHeight
 
 type ShardBlockPool struct {
 	Shards      map[types.ShardID]ShardBlockMap // indexed by FromShardID
@@ -156,7 +156,7 @@ func NewShardBlockPool(historyCap uint32) *ShardBlockPool {
 	}
 }
 
-func (pool *ShardBlockPool) GetBlock(shardID types.ShardID, height uint64) *ShardBlockInfo {
+func (pool *ShardBlockPool) GetBlock(shardID types.ShardID, height uint32) *ShardBlockInfo {
 	if m, present := pool.Shards[shardID]; present && m != nil {
 		return m[height]
 	}
@@ -200,9 +200,9 @@ func (pool *ShardBlockPool) AddBlock(blkInfo *ShardBlockInfo) error {
 		}
 	}
 
-	toDrop := make([]uint64, 0)
+	toDrop := make([]uint32, 0)
 	for _, blk := range m {
-		if blk.Height < h-uint64(pool.MaxBlockCap) {
+		if blk.Height < h-uint32(pool.MaxBlockCap) {
 			toDrop = append(toDrop, blk.Height)
 		}
 	}

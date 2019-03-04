@@ -554,7 +554,7 @@ type WebSocketConfig struct {
 type ShardConfig struct {
 	ShardID              types.ShardID `json:"shard_id"`
 	ParentShardID        types.ShardID `json:"parent_shard_id"`
-	GenesisParentHeight  uint64        `json:"genesis_parent_height"`
+	GenesisParentHeight  uint32        `json:"genesis_parent_height"`
 	ShardPort            uint          `json:"shard_port"`
 	ParentShardIPAddress string        `json:"parent_shard_ip_address"`
 	ParentShardPort      uint          `json:"parent_shard_port"`

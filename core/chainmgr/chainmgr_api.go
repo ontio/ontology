@@ -98,7 +98,7 @@ func SetTxPool(txPool *actor.PID) error {
 // GetParentShardHeight
 // get height of parent shard
 //
-func GetParentShardHeight() (uint64, error) {
+func GetParentShardHeight() (uint32, error) {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
@@ -112,7 +112,7 @@ func GetParentShardHeight() (uint64, error) {
 		return 0, fmt.Errorf("no parent block info found in blockPool")
 	}
 
-	h := uint64(0)
+	h := uint32(0)
 	if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
 		h = cfg.Shard.GenesisParentHeight
 	} else {
@@ -127,7 +127,7 @@ func GetParentShardHeight() (uint64, error) {
 	return h, nil
 }
 
-func GetParentBlockHeader(height uint64) *types.Header {
+func GetParentBlockHeader(height uint32) *types.Header {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
@@ -156,7 +156,7 @@ func GetParentBlockHeader(height uint64) *types.Header {
 // @start : startHeight of parent block
 // @end : endHeight of parent block
 //
-func GetShardTxsByParentHeight(start, end uint64) map[types.ShardID][]*types.Transaction {
+func GetShardTxsByParentHeight(start, end uint32) map[types.ShardID][]*types.Transaction {
 	chainmgr := GetChainManager()
 
 	chainmgr.lock.RLock()

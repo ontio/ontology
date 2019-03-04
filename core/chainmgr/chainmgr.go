@@ -111,7 +111,7 @@ type ChainManager struct {
 	// last local block processed by ChainManager
 	// FIXME: on restart, make sure catchup with latest blocks
 	// TODO: persistent
-	processedBlockHeight uint64
+	processedBlockHeight uint32
 
 	account *account.Account
 

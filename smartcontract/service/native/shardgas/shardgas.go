@@ -191,7 +191,7 @@ func DepositGasToShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	evt := &shardstates.DepositGasEvent{
-		Height: uint64(native.Height),
+		Height: native.Height,
 		User:   param.UserAddress,
 		Amount: param.Amount,
 	}
@@ -244,7 +244,7 @@ func WithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	gasInfo.Balance -= params.Amount
 	gasInfo.WithdrawBalance += params.Amount
 	gasInfo.PendingWithdraw = append(gasInfo.PendingWithdraw, &shardstates.GasWithdrawInfo{
-		Height: uint64(native.Height),
+		Height: native.Height,
 		Amount: uint64(params.Amount),
 	})
 
@@ -253,7 +253,7 @@ func WithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	evt := &shardstates.WithdrawGasReqEvent{
-		Height: uint64(native.Height),
+		Height: native.Height,
 		User:   params.UserAddress,
 		Amount: params.Amount,
 	}
@@ -308,7 +308,7 @@ func AcquireWithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	withdrawAmount := uint64(0)
 	pendingWithdraw := make([]*shardstates.GasWithdrawInfo, 0)
 	for _, w := range gasInfo.PendingWithdraw {
-		if uint64(native.Height)-w.Height > delayHeight {
+		if native.Height-w.Height > delayHeight {
 			if withdrawAmount+w.Amount < params.Amount {
 				withdrawAmount += w.Amount
 			} else {
@@ -335,7 +335,7 @@ func AcquireWithdrawGasFromShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	evt := &shardstates.WithdrawGasDoneEvent{
-		Height: uint64(native.Height),
+		Height: native.Height,
 		User:   params.UserAddress,
 		Amount: withdrawAmount,
 	}

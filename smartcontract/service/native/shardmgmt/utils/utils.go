@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"io"
 
 	"github.com/ontio/ontology/common/serialization"
@@ -62,6 +63,21 @@ func GetBytesUint64(b []byte) (uint64, error) {
 	num, err := serialization.ReadUint64(bytes.NewBuffer(b))
 	if err != nil {
 		return 0, fmt.Errorf("serialization.ReadUint64, deserialize uint64 error: %v", err)
+	}
+	return num, nil
+}
+
+func GetUint32Bytes(num uint32) []byte {
+	sink := common.NewZeroCopySink(make([]byte, 0, 4))
+	sink.WriteUint32(num)
+	return sink.Bytes()
+}
+
+func GetBytesUint32(b []byte) (uint32, error) {
+	source := common.NewZeroCopySource(b)
+	num, eof := source.NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
 	}
 	return num, nil
 }

@@ -42,7 +42,7 @@ type ShardMgmtEvent interface {
 	GetType() uint32
 	GetSourceShardID() types.ShardID
 	GetTargetShardID() types.ShardID
-	GetHeight() uint64
+	GetHeight() uint32
 }
 
 type ImplSourceTargetShardID struct {
@@ -60,7 +60,7 @@ func (self *ImplSourceTargetShardID) GetTargetShardID() types.ShardID {
 
 type CreateShardEvent struct {
 	SourceShardID types.ShardID `json:"source_shard_id"`
-	Height        uint64        `json:"height"`
+	Height        uint32        `json:"height"`
 	NewShardID    types.ShardID `json:"new_shard_id"`
 }
 
@@ -72,7 +72,7 @@ func (evt *CreateShardEvent) GetTargetShardID() types.ShardID {
 	return evt.NewShardID
 }
 
-func (evt *CreateShardEvent) GetHeight() uint64 {
+func (evt *CreateShardEvent) GetHeight() uint32 {
 	return evt.Height
 }
 
@@ -90,11 +90,11 @@ func (evt *CreateShardEvent) Deserialize(r io.Reader) error {
 
 type ConfigShardEvent struct {
 	ImplSourceTargetShardID
-	Height uint64       `json:"height"`
+	Height uint32       `json:"height"`
 	Config *ShardConfig `json:"config"`
 }
 
-func (evt *ConfigShardEvent) GetHeight() uint64 {
+func (evt *ConfigShardEvent) GetHeight() uint32 {
 	return evt.Height
 }
 
@@ -112,11 +112,11 @@ func (evt *ConfigShardEvent) Deserialize(r io.Reader) error {
 
 type PeerJoinShardEvent struct {
 	ImplSourceTargetShardID
-	Height     uint64 `json:"height"`
+	Height     uint32 `json:"height"`
 	PeerPubKey string `json:"peer_pub_key"`
 }
 
-func (evt *PeerJoinShardEvent) GetHeight() uint64 {
+func (evt *PeerJoinShardEvent) GetHeight() uint32 {
 	return evt.Height
 }
 
@@ -134,10 +134,10 @@ func (evt *PeerJoinShardEvent) Deserialize(r io.Reader) error {
 
 type ShardActiveEvent struct {
 	ImplSourceTargetShardID
-	Height uint64 `json:"height"`
+	Height uint32 `json:"height"`
 }
 
-func (evt *ShardActiveEvent) GetHeight() uint64 {
+func (evt *ShardActiveEvent) GetHeight() uint32 {
 	return evt.Height
 }
 
@@ -157,7 +157,7 @@ type ShardEventState struct {
 	Version    uint32        `json:"version"`
 	EventType  uint32        `json:"event_type"`
 	ToShard    types.ShardID `json:"to_shard"`
-	FromHeight uint64        `json:"from_height"`
+	FromHeight uint32        `json:"from_height"`
 	Payload    []byte        `json:"payload"`
 }
 

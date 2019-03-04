@@ -121,15 +121,12 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	return shardState, nil
 }
 
-func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint64) ([]types.ShardID, error) {
+func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.ShardID, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("uninitialized chain mgr")
 	}
 
-	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
-	if err != nil {
-		return nil, fmt.Errorf("serialize height: %s", err)
-	}
+	blockNumBytes := shardutil.GetUint32Bytes(blockNum)
 	key := append([]byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes...)
 	toShardsBytes, err := lgr.GetStorageItem(utils.ShardSysMsgContractAddress, key)
 	if err == common.ErrNotFound {
@@ -146,15 +143,12 @@ func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint64) ([]types.Shar
 	return req.Shards, nil
 }
 
-func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockNum uint64, toShard types.ShardID) ([][]byte, error) {
+func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard types.ShardID) ([][]byte, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("nil ledger")
 	}
 
-	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
-	if err != nil {
-		return nil, fmt.Errorf("serialize height: %s", err)
-	}
+	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
 	shardIDBytes, err := shardutil.GetUint64Bytes(toShard.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("serialize toshard: %s", err)
@@ -165,7 +159,7 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockNum uint64, toShard types
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get remote msg to shard %d in blk %d: %s", toShard, blockNum, err)
+		return nil, fmt.Errorf("get remote msg to shard %d in blk %d: %s", toShard, blockHeight, err)
 	}
 
 	req := &shardsysmsg.ReqsInBlock{}

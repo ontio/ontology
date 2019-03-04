@@ -84,16 +84,16 @@ func checkVersion(native *native.NativeService, contract common.Address) (bool, 
 	return ver == ShardGasMgmtVersion, nil
 }
 
-func setWithdrawDelay(native *native.NativeService, contract common.Address, delayHeight uint64) error {
+func setWithdrawDelay(native *native.NativeService, contract common.Address, delayHeight uint32) error {
 	bf := new(bytes.Buffer)
-	if err := serialization.WriteUint64(bf, delayHeight); err != nil {
+	if err := serialization.WriteUint32(bf, delayHeight); err != nil {
 		return fmt.Errorf("failed to serialize delay, err: %s", err)
 	}
 	native.CacheDB.Put(genWithdrawDelayKey(contract), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
 
-func getWithdrawDelay(native *native.NativeService, contract common.Address) (uint64, error) {
+func getWithdrawDelay(native *native.NativeService, contract common.Address) (uint32, error) {
 	delayHeightBytes, err := native.CacheDB.Get(genWithdrawDelayKey(contract))
 	if err != nil {
 		return 0, fmt.Errorf("get withdraw delay height failed, err: %s", err)
@@ -105,7 +105,7 @@ func getWithdrawDelay(native *native.NativeService, contract common.Address) (ui
 	if err != nil {
 		return 0, fmt.Errorf("get withdraw delay height, deseialize from raw storage item: %s", err)
 	}
-	delayHeight, err := serialization.ReadUint64(bytes.NewBuffer(value))
+	delayHeight, err := serialization.ReadUint32(bytes.NewBuffer(value))
 	if err != nil {
 		return 0, fmt.Errorf("serialization.ReadUint64, deserialize withdraw delay height: %s", err)
 	}

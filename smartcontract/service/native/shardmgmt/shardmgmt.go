@@ -103,7 +103,7 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		// initialize shard states
 		shardState := &shardstates.ShardState{
 			ShardID:             native.ShardID,
-			GenesisParentHeight: uint64(native.Height),
+			GenesisParentHeight: native.Height,
 			State:               shardstates.SHARD_STATE_ACTIVE,
 		}
 		if err := setShardState(native, contract, shardState); err != nil {
@@ -179,7 +179,7 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 
 	evt := &shardstates.CreateShardEvent{
 		SourceShardID: native.ShardID,
-		Height:        uint64(native.Height),
+		Height:        native.Height,
 		NewShardID:    shard.ShardID,
 	}
 	if err := AddNotification(native, contract, evt); err != nil {
@@ -349,7 +349,7 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
 	}
 
-	evt := &shardstates.ShardActiveEvent{Height: uint64(native.Height)}
+	evt := &shardstates.ShardActiveEvent{Height: native.Height}
 	evt.SourceShardID = native.ShardID
 	evt.ShardID = shard.ShardID
 	if err := AddNotification(native, contract, evt); err != nil {

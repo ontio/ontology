@@ -44,7 +44,7 @@ func (this *ToShardsInBlock) Deserialize(r io.Reader) error {
 }
 
 func addToShardsInBlock(native *native.NativeService, toShard types.ShardID) error {
-	toShards, err := getToShardsInBlock(native, uint64(native.Height))
+	toShards, err := getToShardsInBlock(native, native.Height)
 	if err != nil {
 		return err
 	}
@@ -61,10 +61,7 @@ func addToShardsInBlock(native *native.NativeService, toShard types.ShardID) err
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes, err := shardutil.GetUint64Bytes(uint64(native.Height))
-	if err != nil {
-		return fmt.Errorf("serialize height: %s", err)
-	}
+	blockNumBytes := shardutil.GetUint32Bytes(native.Height)
 
 	toShardsInBlk := &ToShardsInBlock{
 		Shards: toShards,
@@ -79,12 +76,9 @@ func addToShardsInBlock(native *native.NativeService, toShard types.ShardID) err
 	return nil
 }
 
-func getToShardsInBlock(native *native.NativeService, blockNum uint64) ([]types.ShardID, error) {
+func getToShardsInBlock(native *native.NativeService, blockHeight uint32) ([]types.ShardID, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
-	if err != nil {
-		return nil, fmt.Errorf("serialize height: %s", err)
-	}
+	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
 	toShardsBytes, err := native.CacheDB.Get(key)
@@ -122,7 +116,7 @@ func (this *ReqsInBlock) Deserialize(r io.Reader) error {
 }
 
 func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardReq) error {
-	reqs, err := getReqsInBlock(native, uint64(native.Height), req.ShardID)
+	reqs, err := getReqsInBlock(native, native.Height, req.ShardID)
 	if err != nil {
 		return err
 	}
@@ -135,10 +129,7 @@ func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardRe
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes, err := shardutil.GetUint64Bytes(uint64(native.Height))
-	if err != nil {
-		return fmt.Errorf("serialize height: %s", err)
-	}
+	blockNumBytes := shardutil.GetUint32Bytes(native.Height)
 	shardIDBytes, err := shardutil.GetUint64Bytes(req.ShardID.ToUint64())
 	if err != nil {
 		return fmt.Errorf("serialzie toshard: %s", err)
@@ -157,12 +148,9 @@ func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardRe
 	return nil
 }
 
-func getReqsInBlock(native *native.NativeService, blockNum uint64, shardID types.ShardID) ([][]byte, error) {
+func getReqsInBlock(native *native.NativeService, blockHeight uint32, shardID types.ShardID) ([][]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes, err := shardutil.GetUint64Bytes(blockNum)
-	if err != nil {
-		return nil, fmt.Errorf("serialize height: %s", err)
-	}
+	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
 	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("serialize toShard: %s", err)

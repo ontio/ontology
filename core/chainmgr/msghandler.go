@@ -232,7 +232,7 @@ func (self *ChainManager) onLocalShardEvent(evt *shardstates.ShardEventState) er
 
 func (self *ChainManager) handleBlockEvents(blk *types.Block) error {
 	// construct one parent-block-completed message
-	blkInfo := self.getShardBlockInfo(self.shardID, uint64(blk.Header.Height))
+	blkInfo := self.getShardBlockInfo(self.shardID, blk.Header.Height)
 	if blkInfo == nil {
 		newBlkInfo, err := message.NewShardBlockInfo(self.shardID, blk)
 		if err != nil {
@@ -249,7 +249,7 @@ func (self *ChainManager) handleBlockEvents(blk *types.Block) error {
 		}
 
 		log.Infof("shard %d, block %d with shard tx: %v", self.shardID, blk.Header.Height, shardTxs)
-		self.updateShardBlockInfo(self.shardID, uint64(blk.Header.Height), blk, shardTxs)
+		self.updateShardBlockInfo(self.shardID, blk.Header.Height, blk, shardTxs)
 	}
 
 	// broadcast message to shards
@@ -291,7 +291,7 @@ func (self *ChainManager) handleShardReqsInBlock(blk *types.Block) error {
 		// TODO: update persisted ProcessedBlockHeight
 	}()
 
-	for height := self.processedBlockHeight + 1; height <= uint64(blk.Header.Height); height++ {
+	for height := self.processedBlockHeight + 1; height <= blk.Header.Height; height++ {
 		shards, err := GetRequestedRemoteShards(self.ledger, height)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)

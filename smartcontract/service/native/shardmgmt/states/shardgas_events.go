@@ -37,7 +37,7 @@ const (
 )
 
 type GasWithdrawInfo struct {
-	Height uint64 `json:"height"`
+	Height uint32 `json:"height"`
 	Amount uint64 `json:"amount"`
 }
 
@@ -57,12 +57,12 @@ func (this *UserGasInfo) Deserialize(r io.Reader) error {
 
 type DepositGasEvent struct {
 	ImplSourceTargetShardID
-	Height uint64         `json:"height"`
+	Height uint32         `json:"height"`
 	User   common.Address `json:"user"`
 	Amount uint64         `json:"amount"`
 }
 
-func (evt *DepositGasEvent) GetHeight() uint64 {
+func (evt *DepositGasEvent) GetHeight() uint32 {
 	return evt.Height
 }
 
@@ -80,12 +80,12 @@ func (evt *DepositGasEvent) Deserialize(r io.Reader) error {
 
 type WithdrawGasReqEvent struct {
 	ImplSourceTargetShardID
-	Height uint64         `json:"height"`
+	Height uint32         `json:"height"`
 	User   common.Address `json:"user"`
 	Amount uint64         `json:"amount"`
 }
 
-func (evt *WithdrawGasReqEvent) GetHeight() uint64 {
+func (evt *WithdrawGasReqEvent) GetHeight() uint32 {
 	return evt.Height
 }
 
@@ -103,12 +103,12 @@ func (evt *WithdrawGasReqEvent) Deserialize(r io.Reader) error {
 
 type WithdrawGasDoneEvent struct {
 	ImplSourceTargetShardID
-	Height uint64         `json:"height"`
+	Height uint32         `json:"height"`
 	User   common.Address `json:"user"`
 	Amount uint64         `json:"amount"`
 }
 
-func (evt *WithdrawGasDoneEvent) GetHeight() uint64 {
+func (evt *WithdrawGasDoneEvent) GetHeight() uint32 {
 	return evt.Height
 }
 
