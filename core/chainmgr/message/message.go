@@ -75,7 +75,7 @@ func (msg *ShardBlockReqMsg) Type() int {
 
 type ShardBlockRspMsg struct {
 	FromShardID types.ShardID     `json:"from_shard_id"`
-	Height      uint64            `json:"height"`
+	Height      uint32            `json:"height"`
 	BlockHeader *ShardBlockHeader `json:"block_header"`
 	Txs         []*ShardBlockTx   `json:"txs"`
 }

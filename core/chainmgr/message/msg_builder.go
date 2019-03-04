@@ -103,7 +103,7 @@ type _CrossShardTx struct {
 //  One block can generated multiple cross-shard sub-txns, marshaled to [][]byte.
 //  NewCrossShardTXMsg creates one cross-shard forwarding Tx, which contains all sub-txns.
 //
-func NewCrossShardTxMsg(account *account.Account, height uint64, toShardID types.ShardID, payload [][]byte) (*types.Transaction, error) {
+func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types.ShardID, payload [][]byte) (*types.Transaction, error) {
 	// marshal all sub-txns to one byte-array
 	tx := &_CrossShardTx{payload}
 	txBytes, err := json.Marshal(tx)
@@ -162,7 +162,7 @@ func NewShardBlockInfo(shardID types.ShardID, blk *types.Block) (*ShardBlockInfo
 
 	blockInfo := &ShardBlockInfo{
 		FromShardID: shardID,
-		Height:      uint64(blk.Header.Height),
+		Height:      blk.Header.Height,
 		State:       ShardBlockNew,
 		Header: &ShardBlockHeader{
 			Header: blk.Header,
@@ -181,7 +181,7 @@ func NewShardBlockInfoFromRemote(ShardID types.ShardID, msg *ShardBlockRspMsg) (
 
 	blockInfo := &ShardBlockInfo{
 		FromShardID: msg.FromShardID,
-		Height:      uint64(msg.BlockHeader.Header.Height),
+		Height:      msg.BlockHeader.Header.Height,
 		State:       ShardBlockReceived,
 		Header: &ShardBlockHeader{
 			Header: msg.BlockHeader.Header,

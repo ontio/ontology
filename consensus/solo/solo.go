@@ -54,7 +54,7 @@ type SoloService struct {
 	sub              *events.ActorSubscriber
 
 	// sharding
-	parentHeight uint64 // ParentHeight of last block
+	parentHeight uint32 // ParentHeight of last block
 }
 
 func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
@@ -78,7 +78,7 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current block header: %s", err)
 	}
-	service.parentHeight = uint64(blkhdr.ParentHeight)
+	service.parentHeight = blkhdr.ParentHeight
 
 	return service, err
 }
@@ -160,7 +160,7 @@ func (self *SoloService) genBlock() error {
 	}
 
 	// parentHeight order consistency check
-	if self.parentHeight > uint64(block.Header.ParentHeight) {
+	if self.parentHeight > block.Header.ParentHeight {
 		return fmt.Errorf("invalid parent height: %d vs %s", self.parentHeight, block.Header.ParentHeight)
 	}
 	result, err := ledger.DefLedger.ExecuteBlock(block)
@@ -173,7 +173,7 @@ func (self *SoloService) genBlock() error {
 	}
 
 	// new block persisted, update parentHeight
-	self.parentHeight = uint64(block.Header.ParentHeight)
+	self.parentHeight = block.Header.ParentHeight
 
 	return nil
 }

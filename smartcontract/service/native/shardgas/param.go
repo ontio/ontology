@@ -27,7 +27,7 @@ import (
 )
 
 type SetWithdrawDelayParam struct {
-	DelayHeight uint64 `json:"delay_height"`
+	DelayHeight uint32 `json:"delay_height"`
 }
 
 func (this *SetWithdrawDelayParam) Serialize(w io.Writer) error {

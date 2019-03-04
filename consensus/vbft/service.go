@@ -109,7 +109,7 @@ type Server struct {
 	completedBlockNum        uint32 // ledger SaveBlockCompleted block num
 	currentBlockNum          uint32
 	LastConfigBlockNum       uint32
-	parentHeight             uint64 // ParentHeight of last block
+	parentHeight             uint32 // ParentHeight of last block
 	config                   *vconfig.ChainConfig
 	currentParticipantConfig *BlockParticipantConfig
 
@@ -213,7 +213,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 		return
 	}
 	// new block persisted, update parentHeight
-	self.parentHeight = uint64(block.Header.ParentHeight)
+	self.parentHeight = block.Header.ParentHeight
 	self.completedBlockNum = block.Header.Height
 	self.incrValidator.AddBlock(block)
 	if self.nonConsensusNode() {
@@ -266,7 +266,7 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	if err != nil {
 		return err
 	}
-	self.parentHeight = uint64(block.Block.Header.ParentHeight)
+	self.parentHeight = block.Block.Header.ParentHeight
 
 	var cfg vconfig.ChainConfig
 	if block.getNewChainConfig() != nil {
@@ -2043,7 +2043,7 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 	// parentHeight order consistency check
-	if self.parentHeight > uint64(block.Block.Header.ParentHeight) {
+	if self.parentHeight > block.Block.Header.ParentHeight {
 		return fmt.Errorf("invalid parent height: %d vs %d", self.parentHeight, block.Block.Header.ParentHeight)
 	}
 	if err := self.blockPool.setBlockSealed(block, empty, sigdata); err != nil {
