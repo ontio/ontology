@@ -21,8 +21,10 @@ package ledgerstore
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ontio/ontology/events/message"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -194,7 +196,7 @@ func (self *StateStore) AddStateMerkleTreeRoot(blockHeight uint32, writeSetHash 
 	self.deltaMerkleTree.AppendHash(writeSetHash)
 	treeSize := self.deltaMerkleTree.TreeSize()
 	hashes := self.deltaMerkleTree.Hashes()
-	value := common.NewZeroCopySink(make([]byte, 0, 4+len(hashes)*common.UINT256_SIZE))
+	value := common.NewZeroCopySink(4 + len(hashes)*common.UINT256_SIZE)
 	value.WriteUint32(treeSize)
 	for _, hash := range hashes {
 		value.WriteHash(hash)
@@ -217,13 +219,63 @@ func (self *StateStore) AddBlockMerkleTreeRoot(txRoot common.Uint256) error {
 	self.merkleTree.AppendHash(txRoot)
 	treeSize := self.merkleTree.TreeSize()
 	hashes := self.merkleTree.Hashes()
-	value := common.NewZeroCopySink(make([]byte, 0, 4+len(hashes)*common.UINT256_SIZE))
+	value := common.NewZeroCopySink(4 + len(hashes)*common.UINT256_SIZE)
 	value.WriteUint32(treeSize)
 	for _, hash := range hashes {
 		value.WriteHash(hash)
 	}
 	self.store.BatchPut(key, value.Bytes())
 	return nil
+}
+
+func (self *StateStore) GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error) {
+	var buf []byte
+	buf, err = self.store.Get(genBlockShardEventsKey(height))
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(buf, &events)
+	return
+}
+
+func genBlockShardEventsKey(height uint32) []byte {
+	sink := common.NewZeroCopySink(5)
+	sink.WriteByte(byte(scom.SHARD_EVENTS))
+	sink.WriteUint32(height)
+	return sink.Bytes()
+}
+
+func (self *StateStore) AddBlockShardEvents(height uint32, events []*message.ShardSystemEventMsg) error {
+	//todo: replace marshal method?
+	buf, err := json.Marshal(events)
+	if err != nil {
+		return err
+	}
+	self.store.BatchPut(genBlockShardEventsKey(height), buf)
+	return nil
+}
+
+func (self *StateStore) GetShardCurrAnchorHeight() (uint32, error) {
+	buf, err := self.store.Get([]byte{byte(scom.SHARD_CURR_ANCHOR_HEIGHT)})
+	if err == scom.ErrNotFound {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	height, eof := common.NewZeroCopySource(buf).NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	return height, nil
+}
+
+func (self *StateStore) AddShardCurrAnchorHeight(parentHeight uint32) {
+	sink := common.NewZeroCopySink(4)
+	sink.WriteUint32(parentHeight	)
+	self.store.BatchPut([]byte{byte(scom.SHARD_CURR_ANCHOR_HEIGHT)}, sink.Bytes())
 }
 
 //GetMerkleProof return merkle proof of block

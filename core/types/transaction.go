@@ -304,7 +304,7 @@ func (self *RawSig) GetSig() (Sig, error) {
 }
 
 func (self *Sig) Serialization(sink *common.ZeroCopySink) error {
-	temp := common.NewZeroCopySink(nil)
+	temp := common.NewZeroCopySink(0)
 	program.EncodeParamProgramInto(temp, self.SigData)
 	sink.WriteVarBytes(temp.Bytes())
 

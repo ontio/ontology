@@ -36,7 +36,7 @@ type NbrPeers struct {
 
 //Broadcast tranfer msg buffer to all establish peer
 func (this *NbrPeers) Broadcast(msg types.Message, isConsensus bool) {
-	sink := comm.NewZeroCopySink(nil)
+	sink := comm.NewZeroCopySink(0)
 	err := types.WriteMessage(sink, msg)
 	if err != nil {
 		log.Errorf("[p2p]error serialize message ", err.Error())

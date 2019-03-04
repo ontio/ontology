@@ -1248,7 +1248,7 @@ func (self *Server) processMsgEvent() error {
 				}
 			} else {
 				// process new proposal when
-				// 1. we have endorsed for current BlockNum
+				// 1. we have endorsed for current BlockHeight
 				// 2. proposal is from next potential-leader
 
 				// TODO
@@ -1315,7 +1315,7 @@ func (self *Server) processMsgEvent() error {
 				}
 			} else {
 				// process new endorsement when
-				// 1. we have committed for current BlockNum
+				// 1. we have committed for current BlockHeight
 				// 2. endorsed proposal is from next potential-leader
 			}
 

@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstate "github.com/ontio/ontology/smartcontract/states"
 )
@@ -182,6 +183,14 @@ func (self *Ledger) GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify,
 
 func (self *Ledger) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error) {
 	return self.ldgStore.GetEventNotifyByBlock(height)
+}
+
+func (self *Ledger) GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error) {
+	return self.ldgStore.GetBlockShardEvents(height)
+}
+
+func (self *Ledger) GetShardCurrAnchorHeight() (uint32, error) {
+	return self.ldgStore.GetShardCurrAnchorHeight()
 }
 
 func (self *Ledger) Close() error {

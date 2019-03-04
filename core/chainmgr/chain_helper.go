@@ -40,40 +40,26 @@ func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) err
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	if err := this.blockPool.AddBlock(blkInfo); err != nil {
-		return err
-	}
-
-	return nil
+	return this.blockPool.AddBlockInfo(blkInfo)
 }
 
 func (this *ChainManager) getShardBlockInfo(shardID types.ShardID, height uint32) *message.ShardBlockInfo {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-	return this.blockPool.GetBlock(shardID, height)
+	return this.blockPool.GetBlockInfo(shardID, height)
 }
 
-func (this *ChainManager) addShardEvent(evt *shardstates.ShardEventState) error {
+func (this *ChainManager) updateShardBlockInfo(shardID types.ShardID, header *types.Header, shardTxs map[types.ShardID]*message.ShardBlockTx) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	if err := this.blockPool.AddEvent(this.shardID, evt); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (this *ChainManager) updateShardBlockInfo(shardID types.ShardID, height uint32, blk *types.Block, shardTxs map[types.ShardID]*message.ShardBlockTx) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	blkInfo := this.blockPool.GetBlock(shardID, height)
+	blkInfo := this.blockPool.GetBlockInfo(shardID, header.Height)
 	if blkInfo == nil {
 		return
 	}
 
-	blkInfo.Header = &message.ShardBlockHeader{Header: blk.Header}
+	blkInfo.Header = &message.ShardBlockHeader{Header: header}
 	blkInfo.ShardTxs = shardTxs
 }
 

@@ -131,11 +131,11 @@ func TestShardBlockPool(t *testing.T) {
 	shardID := blk.FromShardID
 	height := blk.Height
 
-	if err := pool.AddBlock(blk); err != nil {
+	if err := pool.AddBlockInfo(blk); err != nil {
 		t.Fatalf("failed add block: %s", err)
 	}
 
-	blk2 := pool.GetBlock(shardID, height)
+	blk2 := pool.GetBlockInfo(shardID, height)
 	if blk2 == nil {
 		t.Fatalf("failed get block")
 	}

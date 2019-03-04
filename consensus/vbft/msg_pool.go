@@ -90,7 +90,7 @@ type MsgPool struct {
 	lock       sync.RWMutex
 	server     *Server
 	historyLen uint32
-	rounds     map[uint32]*ConsensusRound // indexed by BlockNum
+	rounds     map[uint32]*ConsensusRound // indexed by BlockHeight
 }
 
 func newMsgPool(server *Server, historyLen uint32) *MsgPool {

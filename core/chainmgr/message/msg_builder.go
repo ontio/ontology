@@ -155,23 +155,19 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types
 	return mutable.IntoImmutable()
 }
 
-func NewShardBlockInfo(shardID types.ShardID, blk *types.Block) (*ShardBlockInfo, error) {
-	if blk == nil {
-		return nil, fmt.Errorf("newShardBlockInfo, nil block")
-	}
-
+func NewShardBlockInfo(shardID types.ShardID, header *types.Header) *ShardBlockInfo {
 	blockInfo := &ShardBlockInfo{
 		FromShardID: shardID,
-		Height:      blk.Header.Height,
+		Height:      header.Height,
 		State:       ShardBlockNew,
 		Header: &ShardBlockHeader{
-			Header: blk.Header,
+			Header: header,
 		},
 	}
 
 	// TODO: add event from block to blockInfo
 
-	return blockInfo, nil
+	return blockInfo
 }
 
 func NewShardBlockInfoFromRemote(ShardID types.ShardID, msg *ShardBlockRspMsg) (*ShardBlockInfo, error) {

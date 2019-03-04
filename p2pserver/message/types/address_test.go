@@ -28,7 +28,7 @@ import (
 )
 
 func MessageTest(t *testing.T, msg Message) {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	err := WriteMessage(sink, msg)
 	assert.Nil(t, err)
 
