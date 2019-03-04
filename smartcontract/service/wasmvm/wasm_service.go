@@ -72,6 +72,8 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	contract := &states.WasmContractParam{}
 	contract.Deserialize(bytes.NewBuffer(this.Code))
 
+	fmt.Printf("contract.args is %v\n",contract.Args)
+
 	code, err := this.Store.GetContractState(contract.Address)
 	if err != nil {
 		return nil, err

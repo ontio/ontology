@@ -35,6 +35,7 @@ import (
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
+	"fmt"
 )
 
 type ContractType byte
@@ -118,6 +119,7 @@ func (self *Runtime) Checkwitness(proc *exec.Process, dst uint32) uint32 {
 }
 
 func (self *Runtime) Ret(proc *exec.Process, ptr uint32, len uint32) {
+	fmt.Println("===Ret 1")
 	bs := make([]byte, len)
 	_, err := proc.ReadAt(bs, int64(ptr))
 	if err != nil {
@@ -186,25 +188,8 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 	if err != nil {
 		panic(err)
 	}
-
 	inputs := make([]byte, inputLen)
 	_, err = proc.ReadAt(inputs, int64(inputPtr))
-	if err != nil {
-		panic(err)
-	}
-
-	bf := bytes.NewBuffer(inputs)
-	ver, err := serialization.ReadUint32(bf)
-	if err != nil {
-		panic(err)
-	}
-
-	method, err := serialization.ReadString(bf)
-	if err != nil {
-		panic(err)
-	}
-
-	args, err := serialization.ReadVarBytes(bf)
 	if err != nil {
 		panic(err)
 	}
@@ -222,15 +207,24 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 
 	var result interface{}
 
-	contract := states.ContractInvokeParam{
-		Version: byte(ver),
-		Address: contractAddress,
-		Method:  method,
-		Args:    args,
-	}
-
 	switch contracttype {
 	case NATIVE_CONTRACT:
+		bf := bytes.NewBuffer(inputs)
+		method, err := serialization.ReadString(bf)
+		if err != nil {
+			panic(err)
+		}
+
+		args, err := serialization.ReadVarBytes(bf)
+		if err != nil {
+			panic(err)
+		}
+		contract := states.ContractInvokeParam{
+			Version: byte(0),
+			Address: contractAddress,
+			Method:  method,
+			Args:    args,
+		}
 		self.checkGas(NATIVE_INVOKE_GAS)
 		native := &native2.NativeService{
 			CacheDB:     self.Service.CacheDB,
@@ -247,30 +241,45 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 		}
 
 	case WASMVM_CONTRACT:
+		fmt.Println("===CallContract===7")
+
+		//contract
 		self.checkGas(CALL_CONTRACT_GAS)
 		bf := bytes.NewBuffer(nil)
-		if err := contract.Serialize(bf); err != nil {
+		//if err := contract.Serialize(bf); err != nil {
+		//	panic(err)
+		//}
+		conParam := states.WasmContractParam{Address:contractAddress,Args:inputs}
+		if err := conParam.Serialize(bf); err != nil {
 			panic(err)
 		}
+		fmt.Println("===CallContract===8")
 
 		newservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(), types.InvokeWasm)
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println("===CallContract===9")
+
 		result, err = newservice.Invoke()
 		if err != nil {
 			panic(err)
 		}
+		fmt.Printf("result is %v\n",result)
+
+		fmt.Printf("result is %v\n",string(result.([]byte)[1:]))
+		fmt.Println("===CallContract===9")
+
 
 	case NEOVM_CONTRACT:
 		self.checkGas(CALL_CONTRACT_GAS)
 		//todo test if this work for neovm
-		bf := bytes.NewBuffer(nil)
-		if err := contract.Serialize(bf); err != nil {
-			panic(err)
-		}
+		//bf := bytes.NewBuffer(nil)
+		//if err := contract.Serialize(bf); err != nil {
+		//	panic(err)
+		//}
 
-		neoservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(), types.Invoke)
+		neoservice, err := self.Service.ContextRef.NewExecuteEngine(inputs, types.Invoke)
 		if err != nil {
 			panic(err)
 		}
@@ -283,6 +292,9 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 	default:
 		panic(errors.NewErr("Not a supported contract type"))
 	}
+
+	fmt.Println("===CallContract===10")
+
 	self.Service.ContextRef.PopContext()
 
 	buf := bytes.NewBuffer(nil)
@@ -290,7 +302,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 	enc := gob.NewEncoder(buf)
 	err = enc.Encode(result)
 	if err != nil {
-		panic(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
+		panic(errors.NewErr("[callContract]callContract failed:" + err.Error()))
 	}
 
 	buf = bytes.NewBuffer(nil)
@@ -298,6 +310,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 	self.CallOutPut = make([]byte, len(bs))
 
 	copy(self.CallOutPut, bs)
+	fmt.Println("===CallContract===11")
 
 	return uint32(len(self.CallOutPut))
 }
@@ -598,17 +611,23 @@ func NewHostModule(host *Runtime) *wasm.Module {
 }
 
 func (self *Runtime) getContractType(addr common.Address) (ContractType, error) {
+	fmt.Printf("===getContractType addr is %s\n",addr.ToBase58())
+	fmt.Println("==getContractType 1")
 	if utils.IsNativeContract(addr) {
 		return NATIVE_CONTRACT, nil
 	}
+	fmt.Println("==getContractType 2")
+
 	dep, err := self.Service.CacheDB.GetContract(addr)
 	if err != nil {
 		return UNKOWN_CONTRACT, err
 	}
+	fmt.Println("==getContractType 3")
 
 	if dep.NeedStorage == byte(3) {
 		return WASMVM_CONTRACT, nil
 	}
+	fmt.Println("==getContractType 4")
 
 	return NEOVM_CONTRACT, nil
 
