@@ -104,7 +104,7 @@ var (
 	//P2P setting
 	ReservedPeersOnlyFlag = cli.BoolFlag{
 		Name:  "reserved-only",
-		Usage: "Connect reserved peers `<address>` only",
+		Usage: "Connect reserved peers only. Reserved peers are configured with --reserved-file.",
 	}
 	ReservedPeersFileFlag = cli.StringFlag{
 		Name:  "reserved-file",
