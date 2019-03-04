@@ -74,11 +74,19 @@ func (self *Runtime) SelfAddress(proc *exec.Process, dst uint32) {
 
 func (self *Runtime) CallerAddress(proc *exec.Process, dst uint32) {
 	self.checkGas(CALLER_ADDRESS_GAS)
-	calleraddr := self.Service.ContextRef.CallingContext().ContractAddress
-	_, err := proc.WriteAt(calleraddr[:], int64(dst))
-	if err != nil {
-		panic(err)
+	if self.Service.ContextRef.CallingContext() != nil {
+		calleraddr := self.Service.ContextRef.CallingContext().ContractAddress
+		_, err := proc.WriteAt(calleraddr[:], int64(dst))
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		_, err := proc.WriteAt(common.ADDRESS_EMPTY[:], int64(dst))
+		if err != nil {
+			panic(err)
+		}
 	}
+
 }
 
 func (self *Runtime) EntryAddress(proc *exec.Process, dst uint32) {
@@ -151,6 +159,17 @@ func (self *Runtime) InputLength(proc *exec.Process) uint32 {
 
 func (self *Runtime) GetInput(proc *exec.Process, dst uint32) {
 	_, err := proc.WriteAt(self.Input, int64(dst))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (self *Runtime) CallOutputLength(proc *exec.Process) uint32 {
+	return uint32(len(self.CallOutPut))
+}
+
+func (self *Runtime) GetCallOut(proc *exec.Process, dst uint32) {
+	_, err := proc.WriteAt(self.CallOutPut, int64(dst))
 	if err != nil {
 		panic(err)
 	}
@@ -283,17 +302,6 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 	return uint32(len(self.CallOutPut))
 }
 
-func (self *Runtime) CallOutputLength(proc *exec.Process) uint32 {
-	return uint32(len(self.CallOutPut))
-}
-
-func (self *Runtime) GetCallOut(proc *exec.Process, dst uint32) {
-	_, err := proc.WriteAt(self.CallOutPut, int64(dst))
-	if err != nil {
-		panic(err)
-	}
-}
-
 func NewHostModule(host *Runtime) *wasm.Module {
 	m := wasm.NewModule()
 	m.Types = &wasm.SectionTypes{
@@ -380,6 +388,11 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{
+			Sig:  &m.Types.Entries[1],
+			Host: reflect.ValueOf(host.CallOutputLength),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
 			Sig:  &m.Types.Entries[2],
 			Host: reflect.ValueOf(host.SelfAddress),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
@@ -430,6 +443,11 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{
+			Sig:  &m.Types.Entries[4],
+			Host: reflect.ValueOf(host.Debug),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{
 			Sig:  &m.Types.Entries[5],
 			Host: reflect.ValueOf(host.CallContract),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
@@ -464,11 +482,6 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Host: reflect.ValueOf(host.ContractDelete),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
-			Sig:  &m.Types.Entries[4],
-			Host: reflect.ValueOf(host.Debug),
-			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
-		},
 	}
 
 	m.Export = &wasm.SectionExports{
@@ -488,90 +501,95 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    2,
 			},
+			"call_output_length": {
+				FieldStr: "call_output_length",
+				Kind:     wasm.ExternalFunction,
+				Index:    3,
+			},
 			"self_address": {
 				FieldStr: "self_address",
 				Kind:     wasm.ExternalFunction,
-				Index:    3,
+				Index:    4,
 			},
 			"caller_address": {
 				FieldStr: "caller_address",
 				Kind:     wasm.ExternalFunction,
-				Index:    4,
+				Index:    5,
 			},
 			"entry_address": {
 				FieldStr: "entry_address",
 				Kind:     wasm.ExternalFunction,
-				Index:    5,
+				Index:    6,
 			},
 			"get_input": {
 				FieldStr: "get_input",
 				Kind:     wasm.ExternalFunction,
-				Index:    6,
+				Index:    7,
 			},
 			"get_callout": {
 				FieldStr: "get_callout",
 				Kind:     wasm.ExternalFunction,
-				Index:    7,
+				Index:    8,
 			},
 			"checkwitness": {
 				FieldStr: "checkwitness",
 				Kind:     wasm.ExternalFunction,
-				Index:    8,
+				Index:    9,
 			},
 			"current_blockhash": {
 				FieldStr: "get_current_blockhash",
 				Kind:     wasm.ExternalFunction,
-				Index:    9,
+				Index:    10,
 			},
 			"current_txhash": {
 				FieldStr: "get_current_txhash",
 				Kind:     wasm.ExternalFunction,
-				Index:    10,
+				Index:    11,
 			},
 			"ret": {
 				FieldStr: "ret",
 				Kind:     wasm.ExternalFunction,
-				Index:    11,
+				Index:    12,
 			},
 			"notify": {
 				FieldStr: "notify",
 				Kind:     wasm.ExternalFunction,
-				Index:    12,
-			},
-			"call_contract": {
-				FieldStr: "call_contract",
-				Kind:     wasm.ExternalFunction,
 				Index:    13,
-			},
-			"storage_read": {
-				FieldStr: "storage_read",
-				Kind:     wasm.ExternalFunction,
-				Index:    14,
-			},
-			"storage_write": {
-				FieldStr: "storage_write",
-				Kind:     wasm.ExternalFunction,
-				Index:    15,
-			},
-			"contract_create": {
-				FieldStr: "contract_create",
-				Kind:     wasm.ExternalFunction,
-				Index:    16,
-			},
-			"contract_migrate": {
-				FieldStr: "contract_migrate",
-				Kind:     wasm.ExternalFunction,
-				Index:    17,
-			},
-			"contract_delete": {
-				FieldStr: "contract_delete",
-				Kind:     wasm.ExternalFunction,
-				Index:    18,
 			},
 			"contract_debug": {
 				FieldStr: "contract_debug",
 				Kind:     wasm.ExternalFunction,
+				Index:    14,
+			},
+			"call_contract": {
+				FieldStr: "call_contract",
+				Kind:     wasm.ExternalFunction,
+				Index:    15,
+			},
+			"storage_read": {
+				FieldStr: "storage_read",
+				Kind:     wasm.ExternalFunction,
+				Index:    16,
+			},
+			"storage_write": {
+				FieldStr: "storage_write",
+				Kind:     wasm.ExternalFunction,
+				Index:    17,
+			},
+			"contract_create": {
+				FieldStr: "contract_create",
+				Kind:     wasm.ExternalFunction,
+				Index:    18,
+			},
+			"contract_migrate": {
+				FieldStr: "contract_migrate",
+				Kind:     wasm.ExternalFunction,
 				Index:    19,
+			},
+			"contract_delete": {
+				FieldStr: "contract_delete",
+				Kind:     wasm.ExternalFunction,
+				Index:    20,
 			},
 		},
 	}

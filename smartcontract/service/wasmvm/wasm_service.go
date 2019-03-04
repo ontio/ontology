@@ -20,10 +20,10 @@ package wasmvm
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -69,7 +69,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, ERR_EXECUTE_CODE
 	}
 
-	contract := &states.ContractInvokeParam{}
+	contract := &states.WasmContractParam{}
 	contract.Deserialize(bytes.NewBuffer(this.Code))
 
 	code, err := this.Store.GetContractState(contract.Address)
@@ -79,11 +79,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
 
-	bf := bytes.NewBuffer(nil)
-	serialization.WriteString(bf, contract.Method)
-	bf.Write(contract.Args)
-
-	host := &Runtime{Service: this, Input: bf.Bytes()}
+	host := &Runtime{Service: this, Input: contract.Args}
 
 	m, err := wasm.ReadModule(bytes.NewReader(code.Code), func(name string) (*wasm.Module, error) {
 		switch name {
