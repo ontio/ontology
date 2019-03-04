@@ -834,25 +834,31 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	if err != nil {
 		return splitSum, fmt.Errorf("getSplitFee, getSplitFee error: %v", err)
 	}
+	if balance < splitFee {
+		panic("balance less than splitFee to withdraw!")
+	}
+	income := balance - splitFee
 
 	//fee split to dapp address
-	balance1 := balance * uint64(100-globalParam2.DappFee) / 100
+	dappIncome := income * uint64(globalParam2.DappFee) / 100
 	gasAddress, err := getGasAddress(native, contract)
 	if err != nil {
 		return splitSum, fmt.Errorf("getGasAddress, getGasAddress error: %v", err)
 	}
 	if gasAddress.Address == common.ADDRESS_EMPTY {
-		balance1 = 0
+		dappIncome = 0
 	} else {
-		err := appCallTransferOng(native, utils.GovernanceContractAddress, gasAddress.Address, balance1)
+		err := appCallTransferOng(native, utils.GovernanceContractAddress, gasAddress.Address, dappIncome)
 		if err != nil {
 			return splitSum, fmt.Errorf("appCallTransferOng, appCallTransferOng error: %v", err)
 		}
 	}
 
 	//fee split to node
-	balance2 := balance - balance1
-	income := balance2 - splitFee
+	if income < dappIncome {
+		panic("income less than dappIncome!")
+	}
+	nodeIncome := income - dappIncome
 	//get globalParam
 	globalParam, err := getGlobalParam(native, contract)
 	if err != nil {
@@ -907,7 +913,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 
 	//fee split of consensus peer
 	for i := 0; i < int(config.K); i++ {
-		nodeAmount := income * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
+		nodeAmount := nodeIncome * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address, true,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount)
 		if err != nil {
@@ -932,7 +938,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		return splitSum, nil
 	}
 	for i := int(config.K); i < length; i++ {
-		nodeAmount := income * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
+		nodeAmount := nodeIncome * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address, false,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount)
 		if err != nil {

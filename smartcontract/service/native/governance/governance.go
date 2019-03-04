@@ -1652,7 +1652,7 @@ func SetGasAddress(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	param := new(GasAddress)
-	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := param.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	err = putGasAddress(native, contract, param)

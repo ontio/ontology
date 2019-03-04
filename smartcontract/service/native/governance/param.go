@@ -997,17 +997,14 @@ type GasAddress struct {
 	Address common.Address
 }
 
-func (this *GasAddress) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
-	}
-	return nil
+func (this *GasAddress) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeAddress(sink, this.Address)
 }
 
-func (this *GasAddress) Deserialize(r io.Reader) error {
-	address, err := utils.ReadAddress(r)
+func (this *GasAddress) Deserialization(source *common.ZeroCopySource) error {
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
-		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
+		return fmt.Errorf("utils.DecodeAddress, deserialize address error: %v", err)
 	}
 	this.Address = address
 	return nil

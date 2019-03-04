@@ -806,7 +806,7 @@ func getGasAddress(native *native.NativeService, contract common.Address) (*GasA
 		if err != nil {
 			return nil, fmt.Errorf("get value from gasAddressBytes err:%v", err)
 		}
-		if err := gasAddress.Deserialize(bytes.NewBuffer(gasAddressStore)); err != nil {
+		if err := gasAddress.Deserialization(common.NewZeroCopySource(gasAddressStore)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize gasAddress error: %v", err)
 		}
 	}
@@ -814,11 +814,9 @@ func getGasAddress(native *native.NativeService, contract common.Address) (*GasA
 }
 
 func putGasAddress(native *native.NativeService, contract common.Address, gasAddress *GasAddress) error {
-	bf := new(bytes.Buffer)
-	if err := gasAddress.Serialize(bf); err != nil {
-		return fmt.Errorf("serialize, serialize gasAddress error: %v", err)
-	}
+	sink := common.NewZeroCopySink(nil)
+	gasAddress.Serialization(sink)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(GAS_ADDRESS)),
-		cstates.GenRawStorageItem(bf.Bytes()))
+		cstates.GenRawStorageItem(sink.Bytes()))
 	return nil
 }
