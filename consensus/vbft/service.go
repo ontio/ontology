@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -1111,6 +1112,35 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 			self.Index, msgBlkNum, msg.Block.getProposer())
 		self.msgPool.DropMsg(msg)
 		return
+	}
+	if self.parentHeight < msg.Block.Block.Header.ParentHeight {
+		log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,ParentHeight:%d,self.parentHeight:%d", msg.GetBlockNum(), self.parentHeight, msg.Block.Block.Header.ParentHeight)
+		return
+	}
+	parentHeight, err := chainmgr.GetParentShardHeight()
+	if self.parentHeight < parentHeight {
+		temp := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+		for id, txs := range temp {
+			msgtxs := msg.Block.Block.ShardTxs[id.ToUint64()]
+			if len(txs) != len(msgtxs) {
+				log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, len(txs):%d,len(msgtxs):%d", self.parentHeight, len(txs), len(msgtxs))
+				return
+			}
+			txHash := []common.Uint256{}
+			for _, t := range txs {
+				txHash = append(txHash, t.Hash())
+			}
+			msgtxHash := []common.Uint256{}
+			for _, msgtx := range msgtxs {
+				msgtxHash = append(txHash, msgtx.Hash())
+			}
+			txRoot := common.ComputeMerkleRoot(txHash)
+			msgtxRoot := common.ComputeMerkleRoot(msgtxHash)
+			if txRoot != msgtxRoot {
+				log.Errorf("BlockPrposalMessage check parentHeight blocknum:%d,msg txRoot:%s,msgtxRoot:%s", self.parentHeight, txRoot.ToHexString(), msgtxRoot.ToHexString())
+				return
+			}
+		}
 	}
 
 	txs := msg.Block.Block.Transactions
