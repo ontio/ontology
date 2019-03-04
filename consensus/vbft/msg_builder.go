@@ -204,6 +204,9 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		temp := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
 		for id, txs := range temp {
 			shardTxs[id.ToUint64()] = txs
+			for _, t := range txs {
+				txHash = append(txHash, t.Hash())
+			}
 		}
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
