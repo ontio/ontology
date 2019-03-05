@@ -20,7 +20,6 @@ package wasmvm
 import (
 	"bytes"
 	"encoding/gob"
-	"fmt"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
@@ -187,7 +186,6 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 		panic(err)
 	}
 
-	fmt.Printf("contractAddress :%s\n", contractAddress.ToHexString())
 	inputs := make([]byte, inputLen)
 	_, err = proc.ReadAt(inputs, int64(inputPtr))
 	if err != nil {
@@ -533,13 +531,13 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    7,
 			},
-			"get_callout": {
-				FieldStr: "get_callout",
+			"get_output": {
+				FieldStr: "get_output",
 				Kind:     wasm.ExternalFunction,
 				Index:    8,
 			},
-			"checkwitness": {
-				FieldStr: "checkwitness",
+			"check_witness": {
+				FieldStr: "check_witness",
 				Kind:     wasm.ExternalFunction,
 				Index:    9,
 			},
