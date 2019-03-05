@@ -43,7 +43,6 @@ func TestInfiniteLoopCrash(t *testing.T) {
 		Height: 10,
 		Tx:     &types.Transaction{},
 	}
-	//cache := storage.NewCloneCache(testBatch)
 	sc := SmartContract{
 		Config:  config,
 		Gas:     10000,

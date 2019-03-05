@@ -20,10 +20,10 @@ package overlaydb
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 	"testing"
 
-	"fmt"
 	"github.com/stretchr/testify/assert"
 )
 
