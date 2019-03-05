@@ -19,14 +19,12 @@ package overlaydb
 
 import (
 	"encoding/binary"
-	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/store/leveldbstore"
-	"github.com/ontio/ontology/core/store/statestore"
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"strconv"
 	"testing"
+
+	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/stretchr/testify/assert"
 )
 
 func makeKey(i int) []byte {
@@ -79,24 +77,6 @@ func BenchmarkOverlayDBSerialPut(b *testing.B) {
 		overlay.Reset()
 		for i := 0; i < N; i++ {
 			overlay.Put(makeKey(i), []byte("val"+strconv.Itoa(i)))
-		}
-
-	}
-
-}
-
-func BenchmarkStateBatch(b *testing.B) {
-	store, _ := leveldbstore.NewMemLevelDBStore()
-
-	N := 100000
-	for i := 0; i < b.N; i++ {
-		batch := statestore.NewStateStoreBatch(statestore.NewMemDatabase(), store)
-		for i := 0; i < N; i++ {
-			val := &states.StorageItem{
-				Value: []byte("val" + strconv.Itoa(i)),
-			}
-
-			batch.TryAdd(common.DataEntryPrefix(1), makeKey(i), val)
 		}
 
 	}
