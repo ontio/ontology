@@ -135,6 +135,7 @@ type Peer struct {
 	txnCnt    uint64
 	rxTxnCnt  uint64
 	connLock  sync.RWMutex
+	transportType    common.TransportType
 }
 
 //NewPeer return new peer without publickey initial
@@ -168,6 +169,7 @@ func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]\t consPort = ", this.GetConsPort())
 	log.Debug("[p2p]\t relay = ", this.GetRelay())
 	log.Debug("[p2p]\t height = ", this.GetHeight())
+	log.Debug("[p2p]\t transport = ", this.GetTransportType())
 }
 
 //GetVersion return peer`s version
@@ -228,6 +230,16 @@ func (this *Peer) GetConsPort() uint16 {
 //SetConsPort set peer`s consensus port
 func (this *Peer) SetConsPort(port uint16) {
 	this.ConsLink.SetPort(port)
+}
+
+//GetTransportType return transport type
+func (this *Peer) GetTransportType() common.TransportType {
+	return this.transportType
+}
+
+//SetTransportType set transport type to peer
+func (this *Peer) SetTransportType(tspType common.TransportType) {
+	this.transportType = tspType
 }
 
 //SendToSync call sync link to send buffer
@@ -360,7 +372,7 @@ func (this *Peer) SetHttpInfoPort(port uint16) {
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64) {
+	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64, tspType common.TransportType) {
 
 	this.SyncLink.UpdateRXTime(t)
 	this.base.SetID(nonce)
@@ -376,4 +388,5 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 		this.base.SetRelay(true)
 	}
 	this.SetHeight(uint64(height))
+	this.SetTransportType(tspType)
 }

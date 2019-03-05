@@ -42,7 +42,7 @@ var (
 )
 
 func init() {
-	log.Init(log.PATH, log.Stdout)
+	log.Init(log.Stdout)
 	topic = "TXN"
 
 	mutable := &types.MutableTransaction{
@@ -123,28 +123,28 @@ func Test_RCV(t *testing.T) {
 	// Start stateless validator
 	statelessV, err := stateless.NewValidator("stateless")
 	if err != nil {
-		t.Errorf("failed to new stateless valdiator", err)
+		t.Errorf("failed to new stateless valdiator %s", err.Error())
 		return
 	}
 	statelessV.Register(rspPid)
 
 	statelessV2, err := stateless.NewValidator("stateless2")
 	if err != nil {
-		t.Errorf("failed to new stateless valdiator", err)
+		t.Errorf("failed to new stateless valdiator %s", err.Error())
 		return
 	}
 	statelessV2.Register(rspPid)
 
 	statelessV3, err := stateless.NewValidator("stateless3")
 	if err != nil {
-		t.Errorf("failed to new stateless valdiator", err)
+		t.Errorf("failed to new stateless valdiator %s", err.Error())
 		return
 	}
 	statelessV3.Register(rspPid)
 
 	statefulV, err := stateful.NewValidator("stateful")
 	if err != nil {
-		t.Errorf("failed to new stateful valdiator", err)
+		t.Errorf("failed to new stateful valdiator %s", err.Error())
 		return
 	}
 	statefulV.Register(rspPid)

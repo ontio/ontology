@@ -19,7 +19,6 @@
 package link
 
 import (
-	"bytes"
 	"math/rand"
 	"testing"
 	"time"
@@ -28,7 +27,6 @@ import (
 	"github.com/ontio/ontology/account"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/payload"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
@@ -96,7 +94,8 @@ func TestNewLink(t *testing.T) {
 		Id:      cliLink.id,
 		Addr:    cliLink.addr,
 		Payload: &mt.NotFound{comm.UINT256_EMPTY},
-	}
+		}
+
 	go func() {
 		time.Sleep(5000000)
 		cliChan <- msg
@@ -171,54 +170,27 @@ func TestUnpackBufNode(t *testing.T) {
 		blkHeader.BlkHdr = headers
 		msg = blkHeader
 	case "tx":
-		var tx ct.Transaction
 		trn := &mt.Trn{}
-		sig := ct.Sig{}
-		sigCnt := 100000000
-		for i := 0; i < sigCnt; i++ {
-			data := [][]byte{
-				{byte(i)},
-			}
-			sig.SigData = append(sig.SigData, data...)
-		}
-		sigs := [1]*ct.Sig{&sig}
-		tx.Payload = new(payload.DeployCode)
-		tx.Sigs = sigs[:]
-		trn.Txn = &tx
+		tx, _:= ct.TransactionFromRawBytes([]byte{0xe4,0x24,0x5d,0x83,0x60,0x7e,0x66,0x44,0xc3,0x60,0xb6,0x00,0x70,0x45,0x01,0x7b,0x5c,0x5d,0x89,0xd9,0xf0,0xf5,0xa9,0xc3,0xb3,0x78,0x01,0x01,0x8f,0x78,0x9c,0xc3})
+		trn.Txn = tx
 		msg = trn
 	case "block":
 		var blk ct.Block
 		mBlk := &mt.Block{}
-		var txs []*ct.Transaction
 		header := ct.Header{}
 		header.Height = uint32(1)
 		header.Bookkeepers = make([]keypair.PublicKey, 0)
 		header.SigData = make([][]byte, 0)
 		blk.Header = &header
 
-		for i := 0; i < 2400000; i++ {
-			var tx ct.Transaction
-			sig := ct.Sig{}
-			sig.SigData = append(sig.SigData, [][]byte{
-				{byte(1)},
-			}...)
-			sigs := [1]*ct.Sig{&sig}
-			tx.Payload = new(payload.DeployCode)
-			tx.Sigs = sigs[:]
-			txs = append(txs, &tx)
-		}
+		blk.Transactions = make([]*ct.Transaction, 0)
 
-		blk.Transactions = txs
-		mBlk.Blk = blk
+		mBlk.Blk = &blk
 
 		msg = mBlk
 	}
 
-	buf := bytes.NewBuffer(nil)
-	err := mt.WriteMessage(buf, msg)
+	sink := comm.NewZeroCopySink(nil)
+	err := mt.WriteMessage(sink, msg)
 	assert.Nil(t, err)
-
-	demsg, err := mt.ReadMessage(buf)
-	assert.Nil(t, demsg)
-	assert.NotNil(t, err)
 }

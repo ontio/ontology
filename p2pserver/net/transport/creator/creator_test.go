@@ -15,31 +15,26 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package utils
+package creator
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/net/netserver"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/stretchr/testify/assert"
+	"github.com/ontio/ontology/p2pserver/common"
 	"testing"
 )
 
-func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) {
-	log.Info("Test handler")
+func init() {
+	log.Init(log.Stdout)
 }
 
-// TestMsgRouter tests a basic function of a message router
-func TestMsgRouter(t *testing.T) {
-	network := netserver.NewNetServer()
-	msgRouter := NewMsgRouter(network)
-	assert.NotNil(t, msgRouter)
+func TestFactory(t *testing.T) {
+	tcpTransport1, _ := GetTransportFactory().GetTransport(10)
+	if tcpTransport1 != nil {
+		t.Error("tcpTransport1 should be nil")
+	}
 
-	msgRouter.RegisterMsgHandler("test", testHandler)
-	msgRouter.UnRegisterMsgHandler("test")
-	msgRouter.Start()
-	msgRouter.Stop()
+	tcpTransport2, _ := GetTransportFactory().GetTransport(common.T_TCP)
+	if tcpTransport2 == nil {
+		t.Error("tcpTransport2 shouldnot be nil")
+	}
 }

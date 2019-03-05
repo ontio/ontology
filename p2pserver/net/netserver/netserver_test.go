@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/peer"
@@ -45,7 +46,7 @@ func creatPeers(cnt uint16) []*peer.Peer {
 		id = 0x7533345 + uint64(i)
 		height = 434923 + uint64(i)
 		p := peer.NewPeer()
-		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height)
+		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, common.TransportType(config.DefConfig.P2PNode.TransportType))
 		p.SetConsState(2)
 		p.SetSyncState(4)
 		p.SetHttpInfoState(true)
@@ -74,15 +75,14 @@ func TestNewNetServer(t *testing.T) {
 	if server.GetVersion() != common.PROTOCOL_VERSION {
 		t.Error("TestNewNetServer server version error", server.GetVersion())
 	}
-	if server.GetSyncPort() != 20338 {
+	if server.GetSyncPort() != uint16(config.DefConfig.P2PNode.NodePort) {
 		t.Error("TestNewNetServer sync port error", server.GetSyncPort())
 	}
-	if server.GetConsPort() != 20339 {
+	if server.GetConsPort() != uint16(config.DefConfig.P2PNode.NodeConsensusPort) {
 		t.Error("TestNewNetServer sync port error", server.GetConsPort())
 	}
 
 	fmt.Printf("lastest server time is %s\n", time.Unix(server.GetTime()/1e9, 0).String())
-
 }
 
 func TestNetServerNbrPeer(t *testing.T) {
@@ -97,8 +97,9 @@ func TestNetServerNbrPeer(t *testing.T) {
 	for _, v := range np {
 		server.AddNbrNode(v)
 	}
-	if server.GetConnectionCnt() != 5 {
-		t.Error("TestNetServerNbrPeer GetConnectionCnt error", server.GetConnectionCnt())
+	cnt := server.GetConnectionCnt()
+	if cnt != 5 {
+		t.Error("TestNetServerNbrPeer GetConnectionCnt error", cnt)
 	}
 	addrs := server.GetNeighborAddrs()
 	if len(addrs) != 5 {

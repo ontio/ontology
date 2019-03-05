@@ -142,7 +142,7 @@ func NewTxn(txn *ct.Transaction) mt.Message {
 func NewVerAck(isConsensus bool) mt.Message {
 	log.Trace()
 	var verAck mt.VerACK
-	verAck.IsConsensus = isConsensus
+	verAck.IsConsensus   = isConsensus
 
 	return &verAck
 }
@@ -152,15 +152,16 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{
-		Version:      n.GetVersion(),
-		Services:     n.GetServices(),
-		SyncPort:     n.GetSyncPort(),
-		ConsPort:     n.GetConsPort(),
-		Nonce:        n.GetID(),
-		IsConsensus:  isCons,
-		HttpInfoPort: n.GetHttpInfoPort(),
-		StartHeight:  uint64(height),
-		TimeStamp:    time.Now().UnixNano(),
+		Version:       n.GetVersion(),
+		Services:      n.GetServices(),
+		SyncPort:      n.GetSyncPort(),
+		ConsPort:      n.GetConsPort(),
+		Nonce:         n.GetID(),
+		IsConsensus:   isCons,
+		HttpInfoPort:  n.GetHttpInfoPort(),
+		StartHeight:   uint64(height),
+		TimeStamp:     time.Now().UnixNano(),
+		TransportType: msgCommon.TransportType(config.DefConfig.P2PNode.TransportType),
 	}
 
 	if n.GetRelay() {

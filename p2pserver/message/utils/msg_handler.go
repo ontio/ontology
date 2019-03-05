@@ -21,12 +21,12 @@ package utils
 import (
 	"errors"
 	"fmt"
+	lru "github.com/hashicorp/golang-lru"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -281,7 +281,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight)
+			version.P.Relay, version.P.StartHeight, version.P.TransportType)
 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
@@ -361,9 +361,11 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight)
+			version.P.Relay, version.P.StartHeight, version.P.TransportType)
 		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
+
+		log.Tracef("remotePeer.UpdateInfo, version.P.Nonce=%d, syncState=%d", version.P.Nonce, remotePeer.GetSyncState())
 
 		if pid != nil {
 			input := &msgCommon.AppendPeerID{
@@ -413,7 +415,6 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 
 		remotePeer.SetConsState(msgCommon.ESTABLISH)
 		p2p.RemoveFromConnectingList(data.Addr)
-		remotePeer.SetConsConn(remotePeer.GetConsConn())
 
 		if s == msgCommon.HAND_SHAKE {
 			msg := msgpack.NewVerAck(true)

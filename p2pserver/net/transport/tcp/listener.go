@@ -16,30 +16,49 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils
+package tcp
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
+	"bufio"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/net/netserver"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/ontio/ontology/p2pserver/common"
+	"net"
+
+	tsp "github.com/ontio/ontology/p2pserver/net/transport"
+
 )
 
-func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) {
-	log.Info("Test handler")
+type listener struct {
+	net.Listener
 }
 
-// TestMsgRouter tests a basic function of a message router
-func TestMsgRouter(t *testing.T) {
-	network := netserver.NewNetServer()
-	msgRouter := NewMsgRouter(network)
-	assert.NotNil(t, msgRouter)
+func newListen(port uint16) (tsp.Listener, error) {
 
-	msgRouter.RegisterMsgHandler("test", testHandler)
-	msgRouter.UnRegisterMsgHandler("test")
-	msgRouter.Start()
-	msgRouter.Stop()
+	nl, err := createListener(port)
+	if err != nil {
+		log.Errorf("[p2p]Listen Error on %d of network TCP, err:%s", port,  err)
+		return nil, err
+	}
+
+	return &listener{nl, }, nil
+}
+
+func (this *listener) Accept() (tsp.Connection, error){
+	conn, err := this.Listener.Accept()
+	if err != nil {
+		log.Errorf("")
+		return nil, err
+	}
+
+	reader := bufio.NewReaderSize(conn, common.MAX_BUF_LEN)
+
+	return  &connection{conn, reader}, nil
+}
+
+func (this *listener) Close() error {
+	return this.Listener.Close()
+}
+
+func (this *listener) Addr() net.Addr {
+	return this.Listener.Addr()
 }

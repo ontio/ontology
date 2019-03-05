@@ -23,8 +23,9 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 var p *Peer
@@ -40,9 +41,8 @@ func init() {
 	p.base.relay = true
 	p.base.height = 123355
 	p.base.id = 29357734007
-	acct := account.NewAccount("SHA256withECDSA")
-	key = acct.PubKey()
-	p.SetBookKeeperAddr(key)
+
+	p.SetTransportType(common.TransportType(config.DefConfig.P2PNode.TransportType))
 }
 func TestGetPeerComInfo(t *testing.T) {
 	p.DumpInfo()
@@ -108,13 +108,10 @@ func TestGetPeerComInfo(t *testing.T) {
 			t.Errorf("PeerCom SetID error")
 		}
 	}
-	if p.base.GetPubKey() != key {
-		t.Errorf("PeerCom GetPubKey error")
-	}
 }
 
 func TestUpdatePeer(t *testing.T) {
-	p.UpdateInfo(time.Now(), 3, 3, 30334, 30335, 0x7533345, 0, 7322222)
+	p.UpdateInfo(time.Now(), 3, 3, 30334, 30335, 0x7533345, 0, 7322222, common.TransportType(config.DefConfig.P2PNode.TransportType))
 	p.SetConsState(2)
 	p.SetSyncState(3)
 	p.SetHttpInfoState(true)

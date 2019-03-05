@@ -38,6 +38,7 @@ const (
 	MAX_BUF_LEN         = 1024 * 256 //the maximum buffer to receive message
 	WRITE_DEADLINE      = 5          //deadline of conn write
 	REQ_INTERVAL        = 3          //single request max interval in second
+	REQ_INTERVAL_QUIC   = 2          //single request max interval in second(only for QUIC)
 	MAX_REQ_RECORD_SIZE = 1000       //the maximum request record size
 	MAX_RESP_CACHE_SIZE = 50         //the maximum response cache
 )
@@ -101,16 +102,6 @@ const (
 	RECENT_LIMIT     = 10 //recent contact list limit
 )
 
-//PeerAddr represent peer`s net information
-type PeerAddr struct {
-	Time          int64    //latest timestamp
-	Services      uint64   //service type
-	IpAddr        [16]byte //ip address
-	Port          uint16   //sync port
-	ConsensusPort uint16   //consensus port
-	ID            uint64   //Unique ID
-}
-
 //const channel msg id and type
 const (
 	VERSION_TYPE     = "version"    //peer`s information
@@ -130,6 +121,26 @@ const (
 	NOT_FOUND_TYPE   = "notfound"   //peer can`t find blk according to the hash
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
 )
+
+const (
+	T_TCP   = 0x001
+	T_UDP   = 0x002
+	T_QUIC  = 0x004
+)
+
+type TransportType uint64
+
+//PeerAddr represent peer`s net information
+type PeerAddr struct {
+	Time          int64    //latest timestamp
+	Services      uint64   //service type
+	IpAddr        [16]byte //ip address
+	Port          uint16   //sync port
+	ConsensusPort uint16   //consensus port
+	ID            uint64   //Unique ID
+}
+
+
 
 type AppendPeerID struct {
 	ID uint64 // The peer id
@@ -173,4 +184,22 @@ func ParseIPPort(s string) (string, error) {
 		return "", errors.New("[p2p]port out of bound")
 	}
 	return s[i:], nil
+}
+
+var LegacyNodePort uint16 = 20338
+var LegacyConsPort uint16 = 20339
+
+var LegacyTSPType TransportType = T_TCP
+
+func GetTransportTypeString(tspType TransportType) string {
+	switch tspType {
+	case T_TCP:
+		return "TCP"
+	case T_UDP:
+		return "UDP"
+	case T_QUIC:
+		return "QUIC"
+	default:
+		panic("Invalid tspType in GetTransportTypeString")
+	}
 }

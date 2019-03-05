@@ -16,30 +16,20 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils
+package transport
 
-import (
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/net/netserver"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/stretchr/testify/assert"
-	"testing"
-)
+import "fmt"
 
-func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) {
-	log.Info("Test handler")
+type DialError struct {
+	TransportName string
+	IPAddr        string
+	Err           string
 }
 
-// TestMsgRouter tests a basic function of a message router
-func TestMsgRouter(t *testing.T) {
-	network := netserver.NewNetServer()
-	msgRouter := NewMsgRouter(network)
-	assert.NotNil(t, msgRouter)
+func (this* DialError) Error() string {
+	errStr := fmt.Sprintf("Dial to %s err by transport %s, the detailed err info is:%s", this.IPAddr, this.TransportName, this.Err)
 
-	msgRouter.RegisterMsgHandler("test", testHandler)
-	msgRouter.UnRegisterMsgHandler("test")
-	msgRouter.Start()
-	msgRouter.Stop()
+	return errStr
 }
+
+

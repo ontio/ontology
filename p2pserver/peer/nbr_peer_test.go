@@ -23,7 +23,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 var nm *NbrPeers
@@ -40,7 +42,7 @@ func creatPeers(cnt uint16) []*Peer {
 		id = 0x7533345 + uint64(i)
 		height = 434923 + uint64(i)
 		p = NewPeer()
-		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height)
+		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, common.TransportType(config.DefConfig.P2PNode.TransportType))
 		p.SetConsState(2)
 		p.SetSyncState(3)
 		p.SetHttpInfoState(true)
@@ -79,7 +81,7 @@ func TestGetPeer(t *testing.T) {
 
 func TestAddNbrNode(t *testing.T) {
 	p := NewPeer()
-	p.UpdateInfo(time.Now(), 2, 3, 10335, 10336, 0x7123456, 0, 100)
+	p.UpdateInfo(time.Now(), 2, 3, 10335, 10336, 0x7123456, 0, 100, common.TransportType(config.DefConfig.P2PNode.TransportType))
 	p.SetConsState(2)
 	p.SetSyncState(3)
 	p.SetHttpInfoState(true)
@@ -130,6 +132,7 @@ func TestGetNeighborAddrs(t *testing.T) {
 	p.SetSyncState(4)
 
 	pList := nm.GetNeighborAddrs()
+	cnt := len(pList)
 	for i := 0; i < int(cnt); i++ {
 		fmt.Printf("peer id = %x \n", pList[i].ID)
 	}
@@ -189,7 +192,7 @@ func TestGetNbrNodeCnt(t *testing.T) {
 	}
 	p.SetSyncState(4)
 
-	if nm.GetNbrNodeCnt() != 2 {
+	if cnt := nm.GetNbrNodeCnt(); cnt != 2 {
 		t.Fatal("TestGetNbrNodeCnt error")
 	}
 }

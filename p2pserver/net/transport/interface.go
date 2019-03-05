@@ -16,30 +16,41 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils
+package transport
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/net/netserver"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/stretchr/testify/assert"
-	"testing"
+	"github.com/ontio/ontology/p2pserver/common"
+	"io"
+	"net"
+	"time"
 )
 
-func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) {
-	log.Info("Test handler")
+type RecvStream interface {
+	io.Reader
+	CanContinue() bool
 }
 
-// TestMsgRouter tests a basic function of a message router
-func TestMsgRouter(t *testing.T) {
-	network := netserver.NewNetServer()
-	msgRouter := NewMsgRouter(network)
-	assert.NotNil(t, msgRouter)
+type Connection interface {
+	GetRecvStream() (RecvStream, error)
+	GetTransportType() common.TransportType
+	Write(cmdType string,  b []byte) (int, error)
+	Close() error
+	LocalAddr() net.Addr
+	RemoteAddr() net.Addr
+	SetWriteDeadline(t time.Time) error
+}
 
-	msgRouter.RegisterMsgHandler("test", testHandler)
-	msgRouter.UnRegisterMsgHandler("test")
-	msgRouter.Start()
-	msgRouter.Stop()
+type Listener interface {
+	Accept() (Connection, error)
+	Close() error
+	Addr() net.Addr
+}
+
+type Transport interface {
+	Dial(addr string) (Connection, error)
+	DialWithTimeout(addr string, timeout time.Duration) (Connection, error)
+	Listen(port uint16) (Listener, error)
+	GetReqInterval() int
+	ProtocolCode() common.TransportType
+	ProtocolName() string
 }

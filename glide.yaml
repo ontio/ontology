@@ -32,5 +32,6 @@ import:
   repo: https://github.com/golang/sys.git
   subpackages:
   - unix
+- package: github.com/lucas-clemente/quic-go
 ignore:
   - golang.org/x/sys/unix
