@@ -91,25 +91,11 @@ func VerifyChainConfig(cfg *ChainConfig) error {
 
 //Serialize the ChainConfig
 func (cc *ChainConfig) Serialize(w io.Writer) error {
-
 	data, err := json.Marshal(cc)
 	if err != nil {
 		return err
 	}
-
 	if _, err := w.Write(data); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (cc *ChainConfig) Deserialize(r io.Reader, length int) error {
-	buf := make([]byte, length)
-	if _, err := io.ReadFull(r, buf[:]); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(buf[:], &cc); err != nil {
 		return err
 	}
 	return nil
@@ -126,10 +112,16 @@ func (pc *PeerConfig) Serialize(w io.Writer) error {
 }
 
 func (pc *PeerConfig) Deserialize(r io.Reader) error {
-	index, _ := serialization.ReadUint32(r)
+	index, err := serialization.ReadUint32(r)
+	if err != nil {
+		return fmt.Errorf("serialization PeerConfig index err:%s", err)
+	}
 	pc.Index = index
 
-	nodeid, _ := serialization.ReadString(r)
+	nodeid, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("serialization PeerConfig nodeid err:%s", err)
+	}
 	pc.ID = nodeid
 	return nil
 }
