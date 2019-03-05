@@ -59,7 +59,6 @@ func TestRandomCodeCrash(t *testing.T) {
 		for j := 0; j < 10; j++ {
 			rand.Read(code)
 
-			//cache := storage.NewCloneCache(testBatch)
 			sc := SmartContract{
 				Config:  config,
 				Gas:     10000,
