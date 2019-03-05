@@ -43,7 +43,7 @@ import (
 
 type WasmVmService struct {
 	Store         store.LedgerStore
-	CloneCache    *storage.CloneCache
+	CacheDB       *storage.CacheDB
 	ContextRef    context.ContextRef
 	Notifications []*event.NotifyEventInfo
 	Code          []byte

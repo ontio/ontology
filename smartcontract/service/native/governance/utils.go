@@ -421,7 +421,7 @@ func getPreConfig(native *native.NativeService, contract common.Address) (*PreCo
 	preConfig := new(PreConfig)
 	preConfigBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(PRE_CONFIG)))
 	if err != nil {
-		return nil, fmt.Errorf("native.CloneCache.Get, get preConfigBytes error: %v", err)
+		return nil, fmt.Errorf("native.CacheDB.Get, get preConfigBytes error: %v", err)
 	}
 	if preConfigBytes != nil {
 		preConfigStore, err := cstates.GetValueFromRawStorageItem(preConfigBytes)
@@ -476,7 +476,7 @@ func putCandidateIndex(native *native.NativeService, contract common.Address, ca
 func getSplitFee(native *native.NativeService, contract common.Address) (uint64, error) {
 	splitFeeBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(SPLIT_FEE)))
 	if err != nil {
-		return 0, fmt.Errorf("native.CloneCache.Get, get splitFeeBytes error: %v", err)
+		return 0, fmt.Errorf("native.CacheDB.Get, get splitFeeBytes error: %v", err)
 	}
 	var splitFee uint64 = 0
 	if splitFeeBytes != nil {
@@ -504,7 +504,7 @@ func putSplitFee(native *native.NativeService, contract common.Address, splitFee
 func getSplitFeeAddress(native *native.NativeService, contract common.Address, address common.Address) (*SplitFeeAddress, error) {
 	splitFeeAddressBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(SPLIT_FEE_ADDRESS), address[:]))
 	if err != nil {
-		return nil, fmt.Errorf("native.CloneCache.Get, get splitFeeAddressBytes error: %v", err)
+		return nil, fmt.Errorf("native.CacheDB.Get, get splitFeeAddressBytes error: %v", err)
 	}
 	splitFeeAddress := &SplitFeeAddress{
 		Address: address,
@@ -717,7 +717,7 @@ func getPeerAttributes(native *native.NativeService, contract common.Address, pe
 	}
 	peerAttributesBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(PEER_ATTRIBUTES), peerPubkeyPrefix))
 	if err != nil {
-		return nil, fmt.Errorf("getPeerAttributes, native.CloneCache.Get error: %v", err)
+		return nil, fmt.Errorf("getPeerAttributes, native.CacheDB.Get error: %v", err)
 	}
 	peerAttributes := &PeerAttributes{
 		PeerPubkey:   peerPubkey,
