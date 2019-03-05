@@ -52,13 +52,3 @@ func TestSerialize(t *testing.T) {
 	res := generTestData()
 	fmt.Println("serialize:", res)
 }
-
-func TestDeserialize(t *testing.T) {
-	res := generTestData()
-	test := &ChainConfig{}
-	err := test.Deserialize(bytes.NewReader(res), len(res))
-	if err != nil {
-		t.Log("test failed ")
-	}
-	fmt.Printf("version: %d, C:%d \n", test.Version, test.C)
-}
