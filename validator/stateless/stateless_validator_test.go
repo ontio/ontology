@@ -50,7 +50,7 @@ func TestStatelessValidator(t *testing.T) {
 
 	code := []byte{1, 2, 3}
 
-	mutable := utils.NewDeployTransaction(code, "test", "1", "author", "author@123.com", "test desp", false)
+	mutable := utils.NewDeployTransaction(code, "test", "1", "author", "author@123.com", "test desp", byte(1))
 
 	mutable.Payer = acc.Address
 
