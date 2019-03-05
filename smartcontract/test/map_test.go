@@ -79,7 +79,7 @@ func TestMap(t *testing.T) {
 			Gas:     100,
 			CacheDB: nil,
 		}
-		engine, err := sc.NewExecuteEngine(byteCode)
+		engine, err := sc.NewExecuteEngine(byteCode, types.Invoke)
 
 		_, err = engine.Invoke()
 		if err != nil {

@@ -49,7 +49,7 @@ func TestInfiniteLoopCrash(t *testing.T) {
 		Gas:     10000,
 		CacheDB: nil,
 	}
-	engine, err := sc.NewExecuteEngine(evilBytecode)
+	engine, err := sc.NewExecuteEngine(evilBytecode, types.Invoke)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -63,7 +63,7 @@ func TestPackCrash(t *testing.T) {
 		Gas:     200,
 		CacheDB: nil,
 	}
-	engine, err := sc.NewExecuteEngine(byteCode)
+	engine, err := sc.NewExecuteEngine(byteCode, types.Invoke)
 	if err != nil {
 		panic(err)
 		// cause the VM to hang forever
