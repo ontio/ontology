@@ -20,13 +20,14 @@ package utils
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/core/types"
 )
 
 //
 // build child-Shard Ontology process command line arguments
 //
-func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, parentPort uint64) ([]string, error) {
+func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, shardPort, parentPort uint64) ([]string, error) {
 	args := make([]string, 0)
 	shardArgs := make(map[string]string)
 	for _, flag := range CmdFlagsForSharding {
@@ -34,10 +35,9 @@ func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, par
 	}
 
 	// prepare Shard-Configs for child-shard ontology process
-	shardArgs[ShardIDFlag.GetName()] = fmt.Sprintf("%d", shardID)
+	shardArgs[ShardIDFlag.GetName()] = fmt.Sprintf("%d", uint(shardID.ToUint64()))
 	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d", uint(parentPort+uint64(shardID.Index())))
 	shardArgs[ParentShardPortFlag.GetName()] = fmt.Sprintf("%d", parentPort)
-
 	// copy all args to new shard command, except sharding related flags
 	for n, v := range cmdArgs {
 		// FIXME: disabled consensusPort flag
@@ -56,6 +56,5 @@ func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, par
 			args = append(args, "--"+n+"="+shardCfg)
 		}
 	}
-
 	return args, nil
 }

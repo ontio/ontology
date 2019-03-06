@@ -329,11 +329,11 @@ func (self *ChainManager) handleShardSysEvent(shardEvt *shardstates.ShardEventSt
 	case shardstates.EVENT_SHARD_CONFIG_UPDATE:
 		cfgEvt := &shardstates.ConfigShardEvent{}
 		if err := cfgEvt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
-			log.Errorf("deserialize create shard event: %s", err)
+			log.Errorf("deserialize update shard config event: %s", err)
 			return
 		}
 		if err := self.onShardConfigured(cfgEvt); err != nil {
-			log.Errorf("processing create shard event: %s", err)
+			log.Errorf("processing update shard config event: %s", err)
 		}
 	case shardstates.EVENT_SHARD_PEER_JOIN:
 		jointEvt := &shardstates.PeerJoinShardEvent{}
