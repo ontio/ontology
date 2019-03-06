@@ -24,6 +24,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
+	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
@@ -83,13 +85,23 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 }
 
 func (self *ChainManager) onShardDisconnected(disconnMsg *message.ShardDisconnectedMsg) error {
-	log.Errorf("remote shard %s disconnected", disconnMsg.Address)
-
+	log.Errorf("remote shard addr:%s disconnected", disconnMsg.Address)
 	// TODO: clean pending remote-tx to disconnected shard
-
 	if shardID, present := self.shardAddrs[disconnMsg.Address]; present {
 		self.shards[shardID].Connected = false
 		self.shards[shardID].Sender = nil
+		err := self.restartChildShardProcess(shardID)
+		if err != nil {
+			log.Errorf("restart chaild shard failed shardID:%d,err:%s", shardID, err)
+		}
+	} else {
+		if disconnMsg.Address == self.parentShardIPAddress+":"+fmt.Sprint(self.parentShardPort) {
+			log.Infof("parentShard:%d has quit server", self.parentShardID)
+			pid := os.Getpid()
+			log.Infof("ShardId:%d,pid:%d quit server", self.shardID, pid)
+			time.AfterFunc(3*time.Second, func() { syscall.Kill(pid, syscall.SIGKILL) })
+		}
+		log.Warnf("remote shard addr is not present:%s,parentShardID:%d,parentShardIPAddress:%s,parentShardPort:%d", disconnMsg.Address, self.parentShardID, self.parentShardIPAddress, self.parentShardPort)
 	}
 
 	return nil
@@ -171,31 +183,38 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
-
 	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
 		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
 	}
+	return self.startChildShard(evt.ShardID, shardState)
+}
 
-	if _, err := self.initShardInfo(evt.ShardID, shardState); err != nil {
-		return fmt.Errorf("init shard %d info: %s", evt.ShardID, err)
+func (self *ChainManager) restartChildShardProcess(shardID types.ShardID) error {
+	shardState, err := GetShardState(self.ledger, shardID)
+	if err != nil {
+		return fmt.Errorf("restartChildShard get shardmgmt state: %s", err)
 	}
-
-	if _, err := self.buildShardConfig(evt.ShardID, shardState); err != nil {
-		return fmt.Errorf("shard %d, build shard %d config: %s", self.shardID, evt.ShardID, err)
+	return self.startChildShard(shardID, shardState)
+}
+func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shardstates.ShardState) error {
+	if _, err := self.initShardInfo(shardID, shardState); err != nil {
+		return fmt.Errorf("startChildShard init shard %d info: %s", shardID, err)
 	}
-
-	shardInfo := self.shards[evt.ShardID]
-	log.Infof("shard %d, received shard %d activated, parent %d", self.shardID, evt.ShardID, shardInfo.ParentShardID)
+	if _, err := self.buildShardConfig(shardID, shardState); err != nil {
+		return fmt.Errorf("startChildShard shard %d, build shard %d config: %s", self.shardID, shardID, err)
+	}
+	shardInfo := self.shards[shardID]
+	log.Infof("startChildShard shard %d, received shard %d restart msg, parent %d", self.shardID, shardID, shardInfo.ParentShardID)
 	if shardInfo == nil {
-		return fmt.Errorf("shard %d, nil shard info", evt.ShardID)
+		return fmt.Errorf("startChildShard shard %d, nil shard info", shardID)
 	}
 	if shardInfo.ParentShardID != self.shardID {
-		log.Warnf("onShardActivated ParentShardID:%d,shardID:%d", shardInfo.ParentShardID, self.shardID)
+		log.Warnf("startChildShard ParentShardID:%d,shardID:%d", shardInfo.ParentShardID, self.shardID)
 		return nil
 	}
 	pubKey := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
 	if _, has := shardState.Peers[pubKey]; !has {
-		log.Warnf("onShardActivated pubKey:%s is not exit shardState", pubKey)
+		log.Warnf("startChildShard pubKey:%s is not exit shardState", pubKey)
 		return nil
 	}
 	return self.startChildShardProcess(shardInfo)
