@@ -20,7 +20,6 @@ package types
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -53,8 +52,20 @@ type messageHeader struct {
 
 func readMessageHeader(reader io.Reader) (messageHeader, error) {
 	msgh := messageHeader{}
-	err := binary.Read(reader, binary.LittleEndian, &msgh)
-	return msgh, err
+	hdrBytes := make([]byte, comm.UINT32_SIZE+common.MSG_CMD_LEN+comm.UINT32_SIZE+common.CHECKSUM_LEN)
+
+	if _, err := reader.Read(hdrBytes); err != nil {
+		return msgh, err
+	}
+
+	source := comm.NewZeroCopySource(hdrBytes)
+	msgh.Magic, _ = source.NextUint32()
+	cmd, _ := source.NextBytes(common.MSG_CMD_LEN)
+	copy(msgh.CMD[:], cmd)
+	msgh.Length, _ = source.NextUint32()
+	checksum, _ := source.NextBytes(common.CHECKSUM_LEN)
+	copy(msgh.Checksum[:], checksum)
+	return msgh, nil
 }
 
 func writeMessageHeaderInto(sink *comm.ZeroCopySink, msgh messageHeader) {
@@ -62,10 +73,6 @@ func writeMessageHeaderInto(sink *comm.ZeroCopySink, msgh messageHeader) {
 	sink.WriteBytes(msgh.CMD[:])
 	sink.WriteUint32(msgh.Length)
 	sink.WriteBytes(msgh.Checksum[:])
-}
-
-func writeMessageHeader(writer io.Writer, msgh messageHeader) error {
-	return binary.Write(writer, binary.LittleEndian, msgh)
 }
 
 func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]byte) messageHeader {

@@ -115,7 +115,7 @@ func (self *ZeroCopySource) BackUp(n uint64) {
 
 func (self *ZeroCopySource) NextUint16() (data uint16, eof bool) {
 	var buf []byte
-	buf, eof = self.NextBytes(2)
+	buf, eof = self.NextBytes(UINT16_SIZE)
 	if eof {
 		return
 	}
@@ -125,7 +125,7 @@ func (self *ZeroCopySource) NextUint16() (data uint16, eof bool) {
 
 func (self *ZeroCopySource) NextUint32() (data uint32, eof bool) {
 	var buf []byte
-	buf, eof = self.NextBytes(4)
+	buf, eof = self.NextBytes(UINT32_SIZE)
 	if eof {
 		return
 	}
@@ -135,7 +135,7 @@ func (self *ZeroCopySource) NextUint32() (data uint32, eof bool) {
 
 func (self *ZeroCopySource) NextUint64() (data uint64, eof bool) {
 	var buf []byte
-	buf, eof = self.NextBytes(8)
+	buf, eof = self.NextBytes(UINT64_SIZE)
 	if eof {
 		return
 	}

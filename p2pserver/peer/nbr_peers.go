@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"sync"
 
+	comm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
@@ -34,11 +36,18 @@ type NbrPeers struct {
 
 //Broadcast tranfer msg buffer to all establish peer
 func (this *NbrPeers) Broadcast(msg types.Message, isConsensus bool) {
+	sink := comm.NewZeroCopySink(nil)
+	err := types.WriteMessage(sink, msg)
+	if err != nil {
+		log.Errorf("[p2p]error serialize message ", err.Error())
+		return
+	}
+
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-			node.Send(msg, isConsensus)
+			node.Send(msg.CmdType(), sink.Bytes(), isConsensus)
 		}
 	}
 }
