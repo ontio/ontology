@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardccmc"
 	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
+	"github.com/ontio/ontology/smartcontract/service/native/shardhotel"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardping"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -55,6 +56,7 @@ func init() {
 	shardsysmsg.InitShardSystemMessageContract()
 	shardccmc.InitShardCCMC()
 	shardping.InitShardPing()
+	shardhotel.InitShardHotel()
 }
 
 func InitBytes(addr common.Address, method string) []byte {
