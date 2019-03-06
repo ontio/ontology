@@ -433,7 +433,7 @@ func TestTransactionHandle(t *testing.T) {
 	}
 	tx := &ct.Transaction{
 		Version: 0,
-		TxType:  ct.Invoke,
+		TxType:  ct.InvokeNeo,
 		Payload: invokeCodePayload,
 	}
 
