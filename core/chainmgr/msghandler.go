@@ -190,34 +190,30 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 		return fmt.Errorf("shard %d, nil shard info", evt.ShardID)
 	}
 	if shardInfo.ParentShardID != self.shardID {
+		log.Warnf("onShardActivated ParentShardID:%d,shardID:%d", shardInfo.ParentShardID, self.shardID)
 		return nil
 	}
-
 	pubKey := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
 	if _, has := shardState.Peers[pubKey]; !has {
+		log.Warnf("onShardActivated pubKey:%s is not exit shardState", pubKey)
 		return nil
 	}
-
 	return self.startChildShardProcess(shardInfo)
 }
 
 func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 	// build sub-shard args
-	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, uint64(self.shardPort))
+	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, uint64(self.parentShardPort), uint64(self.shardPort))
 	if err != nil {
 		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
 	}
-
-	// create new process
 	cmd := exec.Command(os.Args[0], shardArgs...)
-	if false {
-		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("shard %d, failed to start %d: %s", self.shardID, shardInfo.ShardID, err)
-		}
+	if err := cmd.Start(); err != nil {
+		log.Errorf("shard %d, failed to start %d: err:%s", self.shardID, shardInfo.ShardID, err)
+		return fmt.Errorf("shard %d, failed to start %d: err:%s", self.shardID, shardInfo.ShardID, err)
 	} else {
 		log.Infof(">>>> staring shard %d, cmd: %s, args: %v", shardInfo.ShardID, os.Args[0], shardArgs)
 	}
-
 	return nil
 }
 

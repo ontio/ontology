@@ -21,7 +21,6 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 	"os"
 	"os/signal"
 	"path"
@@ -31,6 +30,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/fdlimit"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	alog "github.com/ontio/ontology-eventbus/log"

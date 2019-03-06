@@ -20,33 +20,30 @@ package utils_test
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/cmd/utils"
 	"testing"
+
+	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/core/types"
 )
 
 func TestBuildShardCommandArgs(t *testing.T) {
 	args := make(map[string]string)
 	args["a"] = "1"
 	args["b"] = "2"
-
-	shardID := uint64(2)
-	parentShardID := uint64(1)
+	shardID := types.NewShardIDUnchecked(uint64(1))
+	shardPort := uint64(1000)
 	parentPort := uint64(10000)
-	cmdArgs, err := utils.BuildShardCommandArgs(args, shardID, parentShardID, parentPort)
+	cmdArgs, err := utils.BuildShardCommandArgs(args, shardID, shardPort, parentPort)
 	if err != nil {
 		t.Fatalf("failed to build shard cmd args: %s", err)
 	}
-
 	if !isExits(cmdArgs, "--a=1") {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
 	if !isExits(cmdArgs, "--b=2") {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
-	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ShardIDFlag.GetName(), shardID)) {
-		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
-	}
-	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ParentShardIDFlag.GetName(), parentShardID)) {
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ShardIDFlag.GetName(), shardID.ToUint64())) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
 	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ParentShardPortFlag.GetName(), parentPort)) {
