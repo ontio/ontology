@@ -274,7 +274,7 @@ func (self *StateStore) GetShardCurrAnchorHeight() (uint32, error) {
 
 func (self *StateStore) AddShardCurrAnchorHeight(parentHeight uint32) {
 	sink := common.NewZeroCopySink(4)
-	sink.WriteUint32(parentHeight	)
+	sink.WriteUint32(parentHeight)
 	self.store.BatchPut([]byte{byte(scom.SHARD_CURR_ANCHOR_HEIGHT)}, sink.Bytes())
 }
 
