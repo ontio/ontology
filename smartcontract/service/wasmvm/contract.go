@@ -80,7 +80,7 @@ func (self *Runtime) ContractCreate(proc *exec.Process,
 		panic(err)
 	}
 
-	dep, err := self.isContractValid(code, needStorage, name, version, author, email, desc)
+	dep, err := payload.CreateDeployCode(code, needStorage, name, version, author, email, desc)
 	if err != nil {
 		panic(err)
 	}
@@ -155,7 +155,7 @@ func (self *Runtime) ContractMigrate(proc *exec.Process,
 		panic(err)
 	}
 
-	dep, err := self.isContractValid(code, needStorage, name, version, author, email, desc)
+	dep, err := payload.CreateDeployCode(code, needStorage, name, version, author, email, desc)
 	if err != nil {
 		panic(err)
 	}
@@ -204,50 +204,6 @@ func (self *Runtime) ContractDelete(proc *exec.Process) {
 		panic(err)
 	}
 
-}
-
-func (self *Runtime) isContractValid(code []byte,
-	vmType uint32,
-	name []byte,
-	version []byte,
-	author []byte,
-	email []byte,
-	desc []byte) (*payload.DeployCode, error) {
-
-	if len(code) > 1024*1024 {
-		return nil, errors.NewErr("[Contract] Code too long!")
-	}
-
-	if len(name) > 252 {
-		return nil, errors.NewErr("[Contract] name too long!")
-	}
-
-	if len(version) > 252 {
-		return nil, errors.NewErr("[Contract] version too long!")
-	}
-
-	if len(author) > 252 {
-		return nil, errors.NewErr("[author] version too long!")
-	}
-
-	if len(email) > 252 {
-		return nil, errors.NewErr("[author] emailPtr too long!")
-	}
-
-	if len(desc) > 65536 {
-		return nil, errors.NewErr("[descPtr] emailPtr too long!")
-	}
-
-	contract := &payload.DeployCode{
-		Code:        code,
-		VmType: byte(vmType),
-		Name:        string(name),
-		Version:     string(version),
-		Author:      string(author),
-		Email:       string(email),
-		Description: string(desc),
-	}
-	return contract, nil
 }
 
 func (self *Runtime) isContractExist(contractAddress common.Address) bool {

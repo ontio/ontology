@@ -25,12 +25,12 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
 )
 
-
-const(
-	NEOVM_TYPE byte = 1
-	EVM_TYPE   byte = 2
+const (
+	NEOVM_TYPE  byte = 1
+	EVM_TYPE    byte = 2
 	WASMVM_TYPE byte = 3
 )
 
@@ -135,6 +135,11 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 		return fmt.Errorf("DeployCode Description Deserialize failed: %s", err)
 	}
 
+	err = validateDeployCode(dc)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -202,5 +207,62 @@ func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 
+	err := validateDeployCode(dc)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func validateDeployCode(dep *DeployCode) error {
+	if len(dep.Code) > 1024*1024 {
+		return errors.NewErr("[Contract] Code too long!")
+	}
+
+	if len(dep.Name) > 252 {
+		return errors.NewErr("[Contract] name too long!")
+	}
+
+	if len(dep.Version) > 252 {
+		return errors.NewErr("[Contract] version too long!")
+	}
+
+	if len(dep.Author) > 252 {
+		return errors.NewErr("[author] version too long!")
+	}
+
+	if len(dep.Email) > 252 {
+		return errors.NewErr("[author] emailPtr too long!")
+	}
+
+	if len(dep.Description) > 65536 {
+		return errors.NewErr("[descPtr] emailPtr too long!")
+	}
+	return nil
+}
+
+func CreateDeployCode(code []byte,
+	vmType uint32,
+	name []byte,
+	version []byte,
+	author []byte,
+	email []byte,
+	desc []byte) (*DeployCode, error) {
+
+	contract := &DeployCode{
+		Code:        code,
+		VmType:      byte(vmType),
+		Name:        string(name),
+		Version:     string(version),
+		Author:      string(author),
+		Email:       string(email),
+		Description: string(desc),
+	}
+
+	err := validateDeployCode(contract)
+	if err != nil {
+		return nil, err
+	}
+	return contract, nil
 }

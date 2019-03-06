@@ -378,7 +378,7 @@ type TransactionType byte
 const (
 	Bookkeeper TransactionType = 0x02
 	Deploy     TransactionType = 0xd0
-	InvokeNeo     TransactionType = 0xd1
+	InvokeNeo  TransactionType = 0xd1
 	InvokeWasm TransactionType = 0xd2 //add for wasm invoke
 )
 

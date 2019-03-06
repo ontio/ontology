@@ -744,7 +744,7 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType byt
 
 	deployPayload := &payload.DeployCode{
 		Code:        code,
-		VmType: vmType,
+		VmType:      vmType,
 		Name:        cname,
 		Version:     cversion,
 		Author:      cauthor,
