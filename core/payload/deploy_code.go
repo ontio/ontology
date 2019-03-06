@@ -30,7 +30,6 @@ import (
 
 const (
 	NEOVM_TYPE  byte = 1
-	EVM_TYPE    byte = 2
 	WASMVM_TYPE byte = 3
 )
 
@@ -169,12 +168,8 @@ func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 		return common.ErrIrregularData
 	}
 
-	//dc.NeedStorage, irregular, eof = source.NextBool()
-	dc.VmType, eof = source.NextByte()
-	if dc.VmType < 0 || dc.VmType > 3 {
-		return common.ErrIrregularData
-	}
-	if eof {
+	dc.VmType, _ = source.NextByte()
+	if dc.VmType != WASMVM_TYPE && dc.VmType != NEOVM_TYPE {
 		return common.ErrIrregularData
 	}
 
