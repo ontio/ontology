@@ -44,7 +44,11 @@ func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32,
 		return math.MaxUint32
 	}
 
-	length, err := proc.WriteAt(item, int64(val))
+	if uint32(len(item)) < offset {
+		panic(errors.New("offset is invalid"))
+	}
+
+	length, err := proc.WriteAt(item[offset:], int64(val))
 	if err != nil {
 		panic(err)
 	}
@@ -57,9 +61,6 @@ func (self *Runtime) StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint
 	_, err := proc.ReadAt(keybytes, int64(keyPtr))
 	if err != nil {
 		panic(err)
-	}
-	if len(keybytes) > 1024 {
-		panic(errors.New("[storageWrite]:key should not longer than 1024 bytes"))
 	}
 
 	valbytes := make([]byte, valLen)

@@ -62,7 +62,6 @@ func (dc *DeployCode) Serialize(w io.Writer) error {
 		return fmt.Errorf("DeployCode Code Serialize failed: %s", err)
 	}
 
-	//err = serialization.WriteBool(w, dc.NeedStorage)
 	err = serialization.WriteByte(w, dc.VmType)
 	if err != nil {
 		return fmt.Errorf("DeployCode NeedStorage Serialize failed: %s", err)
@@ -103,7 +102,6 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 	}
 	dc.Code = code
 
-	//dc.NeedStorage, err = serialization.ReadBool(r)
 	dc.VmType, err = serialization.ReadByte(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode NeedStorage Deserialize failed: %s", err)
@@ -168,10 +166,7 @@ func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 		return common.ErrIrregularData
 	}
 
-	dc.VmType, _ = source.NextByte()
-	if dc.VmType != WASMVM_TYPE && dc.VmType != NEOVM_TYPE {
-		return common.ErrIrregularData
-	}
+	dc.VmType, eof = source.NextByte()
 
 	dc.Name, _, irregular, eof = source.NextString()
 	if irregular {
@@ -233,6 +228,10 @@ func validateDeployCode(dep *DeployCode) error {
 
 	if len(dep.Description) > 65536 {
 		return errors.NewErr("[descPtr] emailPtr too long!")
+	}
+
+	if dep.VmType != WASMVM_TYPE && dep.VmType != NEOVM_TYPE {
+		return errors.NewErr("[descPtr] VmType invalid!")
 	}
 	return nil
 }

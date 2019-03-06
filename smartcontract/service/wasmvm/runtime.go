@@ -19,7 +19,6 @@ package wasmvm
 
 import (
 	"bytes"
-	"encoding/gob"
 	"reflect"
 
 	"github.com/go-interpreter/wagon/exec"
@@ -35,6 +34,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/states"
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
 )
@@ -126,10 +126,8 @@ func (self *Runtime) Ret(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	self.Output = make([]byte, len)
-	copy(self.Output, bs)
-
-	panic(nil)
+	self.Output = bs
+	proc.Terminate()
 }
 
 func (self *Runtime) Debug(proc *exec.Process, ptr uint32, len uint32) {
@@ -139,7 +137,7 @@ func (self *Runtime) Debug(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	log.Debugf("[WasmContract Debug log]:%v\n", bs)
+	log.Debugf("[WasmContract Debug log]:%v\n", string(bs))
 }
 
 func (self *Runtime) Notify(proc *exec.Process, ptr uint32, len uint32) {
@@ -177,7 +175,21 @@ func (self *Runtime) GetCallOut(proc *exec.Process, dst uint32) {
 	}
 }
 
+func (self *Runtime) GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
+	self.checkGas(CURRENT_TX_HASH_GAS)
+
+	txhash := self.Service.Tx.Hash()
+
+	length, err := proc.WriteAt(txhash[:], int64(ptr))
+	if err != nil {
+		panic(err)
+	}
+
+	return uint32(length)
+}
+
 func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32) uint32 {
+	self.checkGas(CALL_CONTRACT_GAS)
 	contractAddrbytes := make([]byte, 20)
 	_, err := proc.ReadAt(contractAddrbytes, int64(contractAddr))
 	if err != nil {
@@ -206,7 +218,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 	}
 	self.Service.ContextRef.PushContext(currentCtx)
 
-	var result interface{}
+	var result []byte
 
 	switch contracttype {
 	case NATIVE_CONTRACT:
@@ -244,35 +256,29 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 			ServiceMap:  make(map[string]native2.Handler),
 		}
 
-		result, err = native.Invoke()
+		tmpRes, err := native.Invoke()
 		if err != nil {
 			panic(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
 		}
+		result = tmpRes.([]byte)
 
 	case WASMVM_CONTRACT:
-		//contract
-		self.checkGas(CALL_CONTRACT_GAS)
-		bf := bytes.NewBuffer(nil)
-		//if err := contract.Serialize(bf); err != nil {
-		//	panic(err)
-		//}
 		conParam := states.WasmContractParam{Address: contractAddress, Args: inputs}
-		if err := conParam.Serialize(bf); err != nil {
-			panic(err)
-		}
+		sink := common.NewZeroCopySink(nil)
+		conParam.Serialization(sink)
 
-		newservice, err := self.Service.ContextRef.NewExecuteEngine(bf.Bytes(), types.InvokeWasm)
+		newservice, err := self.Service.ContextRef.NewExecuteEngine(sink.Bytes(), types.InvokeWasm)
 		if err != nil {
 			panic(err)
 		}
 
-		result, err = newservice.Invoke()
+		tmpRes, err := newservice.Invoke()
 		if err != nil {
 			panic(err)
 		}
+		result = tmpRes.([]byte)
 
 	case NEOVM_CONTRACT:
-		self.checkGas(CALL_CONTRACT_GAS)
 		neoservice, err := self.Service.ContextRef.NewExecuteEngine(inputs, types.InvokeNeo)
 		if err != nil {
 			panic(err)
@@ -285,30 +291,21 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 		case neotypes.StackItems:
 			result, err = tmp.(neotypes.StackItems).GetByteArray()
 			if err != nil {
-				panic(err)
+				result, err = neovm.SerializeStackItem(tmp.(neotypes.StackItems))
+				if err != nil {
+					panic(err)
+				}
 			}
 		default:
-			result = tmp
+			panic(errors.NewErr("Invalid return type of NeoVM"))
 		}
 
 	default:
 		panic(errors.NewErr("Not a supported contract type"))
 	}
-
 	self.Service.ContextRef.PopContext()
 
-	buf := bytes.NewBuffer(nil)
-
-	enc := gob.NewEncoder(buf)
-	err = enc.Encode(result)
-	if err != nil {
-		panic(errors.NewErr("[callContract]callContract failed:" + err.Error()))
-	}
-
-	bs := buf.Bytes()
-	self.CallOutPut = make([]byte, len(bs))
-
-	copy(self.CallOutPut, bs)
+	self.CallOutPut = result
 	return uint32(len(self.CallOutPut))
 }
 
@@ -566,8 +563,8 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    13,
 			},
-			"contract_debug": {
-				FieldStr: "contract_debug",
+			"debug": {
+				FieldStr: "debug",
 				Kind:     wasm.ExternalFunction,
 				Index:    14,
 			},

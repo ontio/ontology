@@ -22,6 +22,7 @@ import (
 )
 
 func (self *Runtime) GetCurrentBlockHash(proc *exec.Process, ptr uint32) uint32 {
+	self.checkGas(CURRENT_BLOCK_HASH_GAS)
 	blockhash := self.Service.BlockHash
 
 	length, err := proc.WriteAt(blockhash[:], int64(ptr))

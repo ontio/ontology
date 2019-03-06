@@ -20,8 +20,6 @@ package states
 
 import (
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/errors"
 	"io"
 )
 
@@ -30,34 +28,9 @@ type WasmContractParam struct {
 	Args    []byte
 }
 
-func (this *WasmContractParam) Serialize(w io.Writer) error {
-	if err := this.Address.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Address serialize error!")
-	}
-	if err := serialization.WriteVarBytes(w, this.Args); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Args serialize error!")
-	}
-	return nil
-}
-
 func (this *WasmContractParam) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteAddress(this.Address)
 	sink.WriteVarBytes([]byte(this.Args))
-}
-
-// Deserialize contract
-func (this *WasmContractParam) Deserialize(r io.Reader) error {
-	var err error
-
-	if err := this.Address.Deserialize(r); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Address deserialize error!")
-	}
-
-	this.Args, err = serialization.ReadVarBytes(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Args deserialize error!")
-	}
-	return nil
 }
 
 // `ContractInvokeParam.Args` has reference of `source`

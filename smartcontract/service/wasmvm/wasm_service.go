@@ -73,7 +73,8 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	contract := &states.WasmContractParam{}
-	contract.Deserialize(bytes.NewBuffer(this.Code))
+	sink := common.NewZeroCopySource(this.Code)
+	contract.Deserialization(sink)
 
 	code, err := this.Store.GetContractState(contract.Address)
 	if err != nil {
