@@ -43,7 +43,7 @@ func TestContractState(t *testing.T) {
 
 	deploy := &payload.DeployCode{
 		Code:        testCode,
-		NeedStorage: byte(1),
+		VmType:      payload.NEOVM_TYPE,
 		Name:        "testsm",
 		Version:     "v1.0",
 		Author:      "",

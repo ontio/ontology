@@ -57,7 +57,7 @@ func TestEqualStackOverflow(t *testing.T) {
 		Gas:     10000,
 		CacheDB: nil,
 	}
-	engine, _ := sc.NewExecuteEngine(code, types.Invoke)
+	engine, _ := sc.NewExecuteEngine(code, types.InvokeNeo)
 	_, err := engine.Invoke()
 
 	assert.Nil(t, err)

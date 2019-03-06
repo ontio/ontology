@@ -45,7 +45,7 @@ func TestBuildParamToNative(t *testing.T) {
 		Config: config,
 		Gas:    100000,
 	}
-	engine, err := sc.NewExecuteEngine(hex, types.Invoke)
+	engine, err := sc.NewExecuteEngine(hex, types.InvokeNeo)
 
 	_, err = engine.Invoke()
 
