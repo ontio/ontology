@@ -255,7 +255,17 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 		}
 		// TODO: start shard process (use startChildShardProcess())
 	}
+	return self.StartShardServer()
+}
 
+func (self *ChainManager) StartShardServer() error {
+	for shardID, _ := range self.shards {
+		err := self.restartChildShardProcess(shardID)
+		if err != nil {
+			return fmt.Errorf("StartShardServer shardId:%d,err:%s", shardID, err)
+		}
+		log.Infof("StartShardServer shardId succ:%d", shardID)
+	}
 	return nil
 }
 
