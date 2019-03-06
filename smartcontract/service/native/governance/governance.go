@@ -1637,17 +1637,17 @@ func SetPromisePos(native *native.NativeService) ([]byte, error) {
 
 //set gas address to receive 50% of gas fee
 func SetGasAddress(native *native.NativeService) ([]byte, error) {
-	// get admin from database
-	adminAddress, err := global_params.GetStorageRole(native,
+	// get operator from database
+	operatorAddress, err := global_params.GetStorageRole(native,
 		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("getAdmin, get admin error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("SetGasAddress, get operator error: %v", err)
 	}
 
 	//check witness
-	err = utils.ValidateOwner(native, adminAddress)
+	err = utils.ValidateOwner(native, operatorAddress)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("setPromisePos, checkWitness error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("SetGasAddress, checkWitness error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
