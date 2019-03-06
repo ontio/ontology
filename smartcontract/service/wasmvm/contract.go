@@ -207,7 +207,7 @@ func (self *Runtime) ContractDelete(proc *exec.Process) {
 }
 
 func (self *Runtime) isContractValid(code []byte,
-	needStorage uint32,
+	vmType uint32,
 	name []byte,
 	version []byte,
 	author []byte,
@@ -240,7 +240,7 @@ func (self *Runtime) isContractValid(code []byte,
 
 	contract := &payload.DeployCode{
 		Code:        code,
-		NeedStorage: byte(needStorage),
+		VmType: byte(vmType),
 		Name:        string(name),
 		Version:     string(version),
 		Author:      string(author),

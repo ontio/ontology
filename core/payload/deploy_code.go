@@ -27,11 +27,18 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 )
 
+
+const(
+	NEOVM_TYPE byte = 1
+	EVM_TYPE   byte = 2
+	WASMVM_TYPE byte = 3
+)
+
 // DeployCode is an implementation of transaction payload for deploy smartcontract
 type DeployCode struct {
 	Code []byte
 	//modify for define contract type
-	NeedStorage byte
+	VmType      byte
 	Name        string
 	Version     string
 	Author      string
@@ -57,7 +64,7 @@ func (dc *DeployCode) Serialize(w io.Writer) error {
 	}
 
 	//err = serialization.WriteBool(w, dc.NeedStorage)
-	err = serialization.WriteByte(w, dc.NeedStorage)
+	err = serialization.WriteByte(w, dc.VmType)
 	if err != nil {
 		return fmt.Errorf("DeployCode NeedStorage Serialize failed: %s", err)
 	}
@@ -98,7 +105,7 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 	dc.Code = code
 
 	//dc.NeedStorage, err = serialization.ReadBool(r)
-	dc.NeedStorage, err = serialization.ReadByte(r)
+	dc.VmType, err = serialization.ReadByte(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode NeedStorage Deserialize failed: %s", err)
 	}
@@ -139,8 +146,7 @@ func (dc *DeployCode) ToArray() []byte {
 
 func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteVarBytes(dc.Code)
-	//sink.WriteBool(dc.NeedStorage)
-	sink.WriteByte(dc.NeedStorage)
+	sink.WriteByte(dc.VmType)
 	sink.WriteString(dc.Name)
 	sink.WriteString(dc.Version)
 	sink.WriteString(dc.Author)
@@ -159,10 +165,13 @@ func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 	}
 
 	//dc.NeedStorage, irregular, eof = source.NextBool()
-	dc.NeedStorage, eof = source.NextByte()
-	//if irregular {
-	//	return common.ErrIrregularData
-	//}
+	dc.VmType, eof = source.NextByte()
+	if dc.VmType < 0 || dc.VmType > 3 {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return common.ErrIrregularData
+	}
 
 	dc.Name, _, irregular, eof = source.NextString()
 	if irregular {

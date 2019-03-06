@@ -78,7 +78,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
-
 	host := &Runtime{Service: this, Input: contract.Args}
 
 	m, err := wasm.ReadModule(bytes.NewReader(code.Code), func(name string) (*wasm.Module, error) {
@@ -128,7 +127,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, errors.NewErr("[Call]ExecCode error! Invoke function sig error")
 	}
 
-	//nor args for passed in, all args in runtime input buffer
+	//no args for passed in, all args in runtime input buffer
 	this.vm = vm
 	_, err = vm.ExecCode(index)
 	if err != nil {

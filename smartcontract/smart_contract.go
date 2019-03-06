@@ -129,7 +129,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 	}
 
 	var service context.Engine
-	if txtype == ctypes.Invoke {
+	if txtype == ctypes.InvokeNeo {
 
 		service = &neovm.NeoVmService{
 			Store:      this.Store,

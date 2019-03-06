@@ -20,6 +20,8 @@ package wasmvm
 import (
 	"bytes"
 	"encoding/gob"
+	"reflect"
+
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
@@ -33,7 +35,8 @@ import (
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
-	"reflect"
+	neotypes "github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/core/payload"
 )
 
 type ContractType byte
@@ -270,21 +273,23 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 
 	case NEOVM_CONTRACT:
 		self.checkGas(CALL_CONTRACT_GAS)
-		//todo test if this work for neovm
-		//bf := bytes.NewBuffer(nil)
-		//if err := contract.Serialize(bf); err != nil {
-		//	panic(err)
-		//}
-
-		neoservice, err := self.Service.ContextRef.NewExecuteEngine(inputs, types.Invoke)
+		neoservice, err := self.Service.ContextRef.NewExecuteEngine(inputs, types.InvokeNeo)
 		if err != nil {
 			panic(err)
 		}
-		result, err = neoservice.Invoke()
+		tmp, err := neoservice.Invoke()
 		if err != nil {
 			panic(err)
 		}
-		//new neovm_service
+		switch tmp.(type) {
+		case neotypes.StackItems:
+			result, err = tmp.(neotypes.StackItems).GetByteArray()
+			if err != nil {
+				panic(err)
+			}
+		default:
+			result = tmp
+		}
 
 	default:
 		panic(errors.NewErr("Not a supported contract type"))
@@ -614,7 +619,7 @@ func (self *Runtime) getContractType(addr common.Address) (ContractType, error) 
 	if dep == nil {
 		return UNKOWN_CONTRACT, errors.NewErr("contract is not exist.")
 	}
-	if dep.NeedStorage == byte(3) {
+	if dep.VmType == payload.WASMVM_TYPE {
 		return WASMVM_CONTRACT, nil
 	}
 

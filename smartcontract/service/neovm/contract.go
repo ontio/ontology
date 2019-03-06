@@ -157,7 +157,7 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 	if len(code) > 1024*1024 {
 		return nil, errors.NewErr("[Contract] Code too long!")
 	}
-	needStorage, err := vm.PopInt(engine)
+	vmType, err := vm.PopInt(engine)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +198,7 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 	}
 	contract := &payload.DeployCode{
 		Code:        code,
-		NeedStorage: byte(needStorage),
+		VmType:      byte(vmType),
 		Name:        string(name),
 		Version:     string(version),
 		Author:      string(author),
