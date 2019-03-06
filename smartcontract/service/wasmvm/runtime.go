@@ -201,6 +201,10 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 		panic(err)
 	}
 
+	if uint32(proc.MemAllocated()) < inputLen {
+		panic(errors.NewErr("inputLen is greater than memory size"))
+	}
+
 	inputs := make([]byte, inputLen)
 	_, err = proc.ReadAt(inputs, int64(inputPtr))
 	if err != nil {
