@@ -71,12 +71,12 @@ func NewShardConfigMsg(accPayload []byte, configPayload []byte, sender *actor.PI
 	}, nil
 }
 
-func NewShardBlockRspMsg(fromShardID, toShardID types.ShardID, blkInfo *ShardBlockInfo, sender *actor.PID) (*CrossShardMsg, error) {
+func NewShardBlockRspMsg(fromShardID types.ShardID, header *types.Header, tx *ShardBlockTx, sender *actor.PID) (*CrossShardMsg, error) {
 	blkRsp := &ShardBlockRspMsg{
 		FromShardID: fromShardID,
-		Height:      blkInfo.Height,
-		BlockHeader: blkInfo.Header,
-		Txs:         []*ShardBlockTx{blkInfo.ShardTxs[toShardID]},
+		Height:      header.Height,
+		BlockHeader: &ShardBlockHeader{header},
+		Txs:         []*ShardBlockTx{tx},
 	}
 
 	payload, err := EncodeShardMsg(blkRsp)

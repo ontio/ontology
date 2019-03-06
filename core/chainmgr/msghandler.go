@@ -251,7 +251,7 @@ func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*s
 
 	// broadcast message to shards
 	for shardID := range blkInfo.ShardTxs {
-		msg, err := message.NewShardBlockRspMsg(self.shardID, shardID, blkInfo, self.localPid)
+		msg, err := message.NewShardBlockRspMsg(self.shardID, header, shardTxs[shardID], self.localPid)
 		if err != nil {
 			return fmt.Errorf("build shard block msg: %s", err)
 		}
@@ -272,7 +272,7 @@ func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*s
 			continue
 		}
 
-		msg, err := message.NewShardBlockRspMsg(self.shardID, shardID, blkInfo, self.localPid)
+		msg, err := message.NewShardBlockRspMsg(self.shardID, header, shardTxs[shardID], self.localPid)
 		if err != nil {
 			return fmt.Errorf("build shard block msg: %s", err)
 		}
@@ -347,21 +347,31 @@ func constructShardBlockTx(evts []*shardstates.ShardEventState) (map[types.Shard
 	// build one ShardTx with events to the shard
 	shardTxs := make(map[types.ShardID]*message.ShardBlockTx)
 	for shardId, evts := range shardEvts {
-		params := &shardsysmsg.CrossShardMsgParam{
-			Events: evts,
-		}
-		payload := new(bytes.Buffer)
-		if err := params.Serialize(payload); err != nil {
-			return nil, fmt.Errorf("construct shardTx, serialize shard sys msg: %s", err)
-		}
-
-		mutable := utils.BuildNativeTransaction(nativeUtil.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, payload.Bytes())
-		tx, err := mutable.IntoImmutable()
+		tx, err := newShardBlockTx(evts)
 		if err != nil {
-			return nil, fmt.Errorf("construct shardTx: %s", err)
+			return nil, err
 		}
-		shardTxs[shardId] = &message.ShardBlockTx{Tx: tx}
+		shardTxs[shardId] = tx
 	}
 
 	return shardTxs, nil
+}
+
+func newShardBlockTx(evts []*shardstates.ShardEventState) (*message.ShardBlockTx, error) {
+	params := &shardsysmsg.CrossShardMsgParam{
+		Events: evts,
+	}
+	payload := new(bytes.Buffer)
+	if err := params.Serialize(payload); err != nil {
+		return nil, fmt.Errorf("construct shardTx, serialize shard sys msg: %s", err)
+	}
+
+	mutable := utils.BuildNativeTransaction(nativeUtil.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, payload.Bytes())
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return nil, fmt.Errorf("construct shardTx: %s", err)
+	}
+
+	return &message.ShardBlockTx{Tx: tx}, nil
+
 }

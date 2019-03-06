@@ -490,12 +490,44 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			log.Infof(">>>>>> shard %d received config msg", self.shardID)
 			return self.onShardConfig(remoteMsg.Sender, shardCfgMsg)
 		case shardmsg.BLOCK_REQ_MSG:
+			var header *types.Header
+			var shardTx *shardmsg.ShardBlockTx
+			var err error
+
 			req := msg.(*shardmsg.ShardBlockReqMsg)
-			_, err := self.ledger.GetBlockShardEvents(req.BlockHeight)
-			if err != nil {
-				return err
+			info := self.getShardBlockInfo(self.shardID, req.BlockHeight)
+			if info != nil {
+				header = info.Header.Header
+				shardTx = info.ShardTxs[req.ShardID]
+			} else {
+				header, err = self.ledger.GetHeaderByHeight(req.BlockHeight)
+				if err != nil {
+					return err
+				}
+				evts, err := self.ledger.GetBlockShardEvents(req.BlockHeight)
+				if err != nil {
+					return err
+				}
+
+				shardEvts := make([]*shardstates.ShardEventState, 0)
+				for _, evt := range evts {
+					shardEvt := evt.Event
+					if isShardGasEvent(shardEvt) && shardEvt.ToShard == req.ShardID {
+						shardEvts = append(shardEvts, shardEvt)
+					}
+				}
+				shardTx, err = newShardBlockTx(shardEvts)
+				if err != nil {
+					return err
+				}
 			}
-			// TODO
+			msg, err := shardmsg.NewShardBlockRspMsg(self.shardID, header, shardTx, self.localPid)
+			if err != nil {
+				return fmt.Errorf("build shard block msg: %s", err)
+			}
+
+			// send msg to shard
+			self.sendShardMsg(req.ShardID, msg)
 		case shardmsg.BLOCK_RSP_MSG:
 			blkMsg, ok := msg.(*shardmsg.ShardBlockRspMsg)
 			if !ok {
