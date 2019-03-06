@@ -62,6 +62,9 @@ var (
 	VM_INIT_FAULT         = errors.NewErr("[WasmVmService] vm init state fault!")
 
 	CONTRACT_METHOD_NAME = "invoke"
+
+	//max memory size of wasm vm
+	WASM_MEM_LIMITATION uint64 = 10 * 1024 * 1024
 )
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
@@ -95,7 +98,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, errors.NewErr("[Call]No export in wasm!")
 	}
 
-	vm, err := exec.NewVM(m)
+	vm, err := exec.NewVM(m, WASM_MEM_LIMITATION)
 	if err != nil {
 		return nil, VM_INIT_FAULT
 	}
