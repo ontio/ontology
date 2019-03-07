@@ -536,8 +536,8 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    7,
 			},
-			"get_output": {
-				FieldStr: "get_output",
+			"get_call_output": {
+				FieldStr: "get_call_output",
 				Kind:     wasm.ExternalFunction,
 				Index:    8,
 			},

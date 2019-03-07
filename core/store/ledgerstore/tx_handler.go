@@ -222,7 +222,6 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 
 	var notifies []*event.NotifyEventInfo
 	if isCharge {
-
 		newBalance, err = getBalanceFromNative(config, cache, store, tx.Payer)
 		if err != nil {
 			return err
