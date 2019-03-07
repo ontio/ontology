@@ -18,9 +18,10 @@
 package wasmvm
 
 import (
-	"github.com/go-interpreter/wagon/exec"
-	"github.com/pkg/errors"
+	"errors"
 	"math"
+
+	"github.com/go-interpreter/wagon/exec"
 )
 
 func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {
