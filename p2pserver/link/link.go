@@ -25,6 +25,7 @@ import (
 	"net"
 	"time"
 
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -165,13 +166,24 @@ func (this *Link) CloseConn() {
 	}
 }
 
-func (this *Link) Tx(msgType string, payload []byte) error {
+func (this *Link) Send(msg types.Message) error {
+	sink := comm.NewZeroCopySink(nil)
+	err := types.WriteMessage(sink, msg)
+	if err != nil {
+		log.Debugf("[p2p]error serialize messge ", err.Error())
+		return err
+	}
+
+	return this.SendRaw(sink.Bytes())
+}
+
+func (this *Link) SendRaw(rawPacket []byte) error {
 	conn := this.conn
 	if conn == nil {
 		return errors.New("[p2p]tx link invalid")
 	}
 
-	nByteCnt := len(payload)
+	nByteCnt := len(rawPacket)
 	log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
 
 	nCount := nByteCnt / common.PER_SEND_LEN
@@ -179,7 +191,7 @@ func (this *Link) Tx(msgType string, payload []byte) error {
 		nCount = 1
 	}
 	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
-	_, err := conn.Write(payload)
+	_, err := conn.Write(rawPacket)
 	if err != nil {
 		log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())
 		this.disconnectNotify()

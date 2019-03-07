@@ -247,9 +247,9 @@ func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.MsgPayload {
 func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
 	if p != nil {
 		if config.DefConfig.P2PNode.DualPortSupport == false {
-			return p.SendMsg(msg, false)
+			return p.Send(msg, false)
 		}
-		return p.SendMsg(msg, isConsensus)
+		return p.Send(msg, isConsensus)
 	}
 	log.Warn("[p2p]send to a invalid peer")
 	return errors.New("[p2p]send to a invalid peer")
@@ -340,7 +340,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		remotePeer.SetConsState(common.HAND)
 	}
 	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
-	err = remotePeer.SendMsg(version, isConsensus)
+	err = remotePeer.Send(version, isConsensus)
 	if err != nil {
 		if !isConsensus {
 			this.RemoveFromOutConnRecord(addr)

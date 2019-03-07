@@ -54,7 +54,7 @@ func readMessageHeader(reader io.Reader) (messageHeader, error) {
 	msgh := messageHeader{}
 	hdrBytes := make([]byte, comm.UINT32_SIZE+common.MSG_CMD_LEN+comm.UINT32_SIZE+common.CHECKSUM_LEN)
 
-	if _, err := reader.Read(hdrBytes); err != nil {
+	if _, err := io.ReadFull(reader, hdrBytes); err != nil {
 		return msgh, err
 	}
 

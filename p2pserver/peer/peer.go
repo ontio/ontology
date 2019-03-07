@@ -246,7 +246,7 @@ func (this *Peer) SetConsPort(port uint16) {
 //SendToSync call sync link to send buffer
 func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
 	if this.SyncLink != nil && this.SyncLink.Valid() {
-		return this.SyncLink.Tx(msgType, msgPayload)
+		return this.SyncLink.SendRaw(msgPayload)
 	}
 	return errors.New("[p2p]sync link invalid")
 }
@@ -254,7 +254,7 @@ func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
 //SendToCons call consensus link to send buffer
 func (this *Peer) SendToCons(msgType string, msgPayload []byte) error {
 	if this.ConsLink != nil && this.ConsLink.Valid() {
-		return this.ConsLink.Tx(msgType, msgPayload)
+		return this.ConsLink.SendRaw(msgPayload)
 	}
 	return errors.New("[p2p]cons link invalid")
 }
@@ -343,8 +343,8 @@ func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
 	this.ConsLink.SetChan(msgchan)
 }
 
-//SendMsg transfer buffer by sync or cons link
-func (this *Peer) SendMsg(msg types.Message, isConsensus bool) error {
+//Send transfer buffer by sync or cons link
+func (this *Peer) Send(msg types.Message, isConsensus bool) error {
 	sink := comm.NewZeroCopySink(nil)
 	err := types.WriteMessage(sink, msg)
 	if err != nil {
@@ -352,10 +352,10 @@ func (this *Peer) SendMsg(msg types.Message, isConsensus bool) error {
 		return err
 	}
 
-	return this.Send(msg.CmdType(), sink.Bytes(), isConsensus)
+	return this.SendRaw(msg.CmdType(), sink.Bytes(), isConsensus)
 }
 
-func (this *Peer) Send(msgType string, msgPayload []byte, isConsensus bool) error {
+func (this *Peer) SendRaw(msgType string, msgPayload []byte, isConsensus bool) error {
 	if isConsensus && this.ConsLink.Valid() {
 		return this.SendToCons(msgType, msgPayload)
 	}
