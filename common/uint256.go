@@ -24,7 +24,12 @@ import (
 	"io"
 )
 
-const UINT256_SIZE = 32
+const (
+	UINT16_SIZE  = 2
+	UINT32_SIZE  = 4
+	UINT64_SIZE  = 8
+	UINT256_SIZE = 32
+)
 
 type Uint256 [UINT256_SIZE]byte
 

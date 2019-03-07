@@ -26,6 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	conn "github.com/ontio/ontology/p2pserver/link"
@@ -243,17 +244,17 @@ func (this *Peer) SetConsPort(port uint16) {
 }
 
 //SendToSync call sync link to send buffer
-func (this *Peer) SendToSync(msg types.Message) error {
+func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
 	if this.SyncLink != nil && this.SyncLink.Valid() {
-		return this.SyncLink.Tx(msg)
+		return this.SyncLink.SendRaw(msgPayload)
 	}
 	return errors.New("[p2p]sync link invalid")
 }
 
 //SendToCons call consensus link to send buffer
-func (this *Peer) SendToCons(msg types.Message) error {
+func (this *Peer) SendToCons(msgType string, msgPayload []byte) error {
 	if this.ConsLink != nil && this.ConsLink.Valid() {
-		return this.ConsLink.Tx(msg)
+		return this.ConsLink.SendRaw(msgPayload)
 	}
 	return errors.New("[p2p]cons link invalid")
 }
@@ -344,10 +345,21 @@ func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
 
 //Send transfer buffer by sync or cons link
 func (this *Peer) Send(msg types.Message, isConsensus bool) error {
-	if isConsensus && this.ConsLink.Valid() {
-		return this.SendToCons(msg)
+	sink := comm.NewZeroCopySink(nil)
+	err := types.WriteMessage(sink, msg)
+	if err != nil {
+		log.Debugf("[p2p]error serialize messge ", err.Error())
+		return err
 	}
-	return this.SendToSync(msg)
+
+	return this.SendRaw(msg.CmdType(), sink.Bytes(), isConsensus)
+}
+
+func (this *Peer) SendRaw(msgType string, msgPayload []byte, isConsensus bool) error {
+	if isConsensus && this.ConsLink.Valid() {
+		return this.SendToCons(msgType, msgPayload)
+	}
+	return this.SendToSync(msgType, msgPayload)
 }
 
 //SetHttpInfoState set peer`s httpinfo state
