@@ -383,112 +383,112 @@ func NewHostModule(host *Runtime) *wasm.Module {
 		},
 	}
 	m.FunctionIndexSpace = []wasm.Function{
-		{
+		{ //0
 			Sig:  &m.Types.Entries[0],
 			Host: reflect.ValueOf(host.TimeStamp),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //1
 			Sig:  &m.Types.Entries[1],
 			Host: reflect.ValueOf(host.BlockHeight),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //2
 			Sig:  &m.Types.Entries[1],
 			Host: reflect.ValueOf(host.InputLength),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //3
 			Sig:  &m.Types.Entries[1],
 			Host: reflect.ValueOf(host.CallOutputLength),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //4
 			Sig:  &m.Types.Entries[2],
 			Host: reflect.ValueOf(host.SelfAddress),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //5
 			Sig:  &m.Types.Entries[2],
 			Host: reflect.ValueOf(host.CallerAddress),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //6
 			Sig:  &m.Types.Entries[2],
 			Host: reflect.ValueOf(host.EntryAddress),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //7
 			Sig:  &m.Types.Entries[2],
 			Host: reflect.ValueOf(host.GetInput),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //8
 			Sig:  &m.Types.Entries[2],
 			Host: reflect.ValueOf(host.GetCallOut),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //9
 			Sig:  &m.Types.Entries[3],
 			Host: reflect.ValueOf(host.Checkwitness),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //10
 			Sig:  &m.Types.Entries[3],
 			Host: reflect.ValueOf(host.GetCurrentBlockHash),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //11
 			Sig:  &m.Types.Entries[3],
 			Host: reflect.ValueOf(host.GetCurrentTxHash),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //12
 			Sig:  &m.Types.Entries[4],
 			Host: reflect.ValueOf(host.Ret),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //13
 			Sig:  &m.Types.Entries[4],
 			Host: reflect.ValueOf(host.Notify),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //14
 			Sig:  &m.Types.Entries[4],
 			Host: reflect.ValueOf(host.Debug),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //15
 			Sig:  &m.Types.Entries[5],
 			Host: reflect.ValueOf(host.CallContract),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //16
 			Sig:  &m.Types.Entries[6],
 			Host: reflect.ValueOf(host.StorageRead),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //17
 			Sig:  &m.Types.Entries[7],
 			Host: reflect.ValueOf(host.StorageWrite),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //18
 			Sig:  &m.Types.Entries[8],
 			Host: reflect.ValueOf(host.StorageDelete),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //19
 			Sig:  &m.Types.Entries[9],
 			Host: reflect.ValueOf(host.ContractCreate),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //20
 			Sig:  &m.Types.Entries[9],
 			Host: reflect.ValueOf(host.ContractMigrate),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
-		{
+		{ //21
 			Sig:  &m.Types.Entries[10],
 			Host: reflect.ValueOf(host.ContractDelete),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
@@ -548,12 +548,12 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Index:    9,
 			},
 			"current_blockhash": {
-				FieldStr: "get_current_blockhash",
+				FieldStr: "current_blockhash",
 				Kind:     wasm.ExternalFunction,
 				Index:    10,
 			},
 			"current_txhash": {
-				FieldStr: "get_current_txhash",
+				FieldStr: "current_txhash",
 				Kind:     wasm.ExternalFunction,
 				Index:    11,
 			},
@@ -587,20 +587,25 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    17,
 			},
+			"storage_delete": {
+				FieldStr: "storage_delete",
+				Kind:     wasm.ExternalFunction,
+				Index:    18,
+			},
 			"contract_create": {
 				FieldStr: "contract_create",
 				Kind:     wasm.ExternalFunction,
-				Index:    18,
+				Index:    19,
 			},
 			"contract_migrate": {
 				FieldStr: "contract_migrate",
 				Kind:     wasm.ExternalFunction,
-				Index:    19,
+				Index:    20,
 			},
 			"contract_delete": {
 				FieldStr: "contract_delete",
 				Kind:     wasm.ExternalFunction,
-				Index:    20,
+				Index:    21,
 			},
 		},
 	}
