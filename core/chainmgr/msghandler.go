@@ -222,7 +222,13 @@ func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shar
 
 func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 	// build sub-shard args
-	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, uint64(self.parentShardPort), uint64(self.shardPort))
+	shardportcfg := &cmdUtil.ShardPortConfig{
+		ParentPort: self.parentShardPort,
+		NodePort:   GetShardNodePortID(shardInfo.ShardID.ToUint64()),
+		RpcPort:    GetShardRpcPortByShardID(shardInfo.ShardID.ToUint64()),
+		RestPort:   GetShardRestPortByShardID(shardInfo.ShardID.ToUint64()),
+	}
+	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, shardportcfg)
 	if err != nil {
 		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
 	}

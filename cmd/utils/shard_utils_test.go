@@ -31,9 +31,13 @@ func TestBuildShardCommandArgs(t *testing.T) {
 	args["a"] = "1"
 	args["b"] = "2"
 	shardID := types.NewShardIDUnchecked(uint64(1))
-	shardPort := uint64(1000)
-	parentPort := uint64(10000)
-	cmdArgs, err := utils.BuildShardCommandArgs(args, shardID, shardPort, parentPort)
+	shardportcfg := &utils.ShardPortConfig{
+		ParentPort: uint(10001),
+		NodePort:   uint(20338),
+		RpcPort:    uint(20336),
+		RestPort:   uint(20334),
+	}
+	cmdArgs, err := utils.BuildShardCommandArgs(args, shardID, shardportcfg)
 	if err != nil {
 		t.Fatalf("failed to build shard cmd args: %s", err)
 	}
@@ -46,7 +50,16 @@ func TestBuildShardCommandArgs(t *testing.T) {
 	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ShardIDFlag.GetName(), shardID.ToUint64())) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
-	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ParentShardPortFlag.GetName(), parentPort)) {
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ParentShardPortFlag.GetName(), shardportcfg.ParentPort)) {
+		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
+	}
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.NodePortFlag.GetName(), shardportcfg.NodePort)) {
+		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
+	}
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.RPCPortFlag.GetName(), shardportcfg.RpcPort)) {
+		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
+	}
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.RestfulPortFlag.GetName(), shardportcfg.RestPort)) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
 }

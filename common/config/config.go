@@ -24,9 +24,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 	"io"
 	"math"
+
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -81,7 +82,7 @@ const (
 	DEFAULT_PARENT_HEIGHT      = 0
 	DEFAULT_SHARD_PORT         = uint(20340)
 	DEFAULT_PARENTSHARD_IPADDR = "127.0.0.1"
-	DEFAULT_PARENTSHARD_PORT   = uint(0)
+	DEFAULT_PARENTSHARD_PORT   = uint(20340)
 )
 
 const (

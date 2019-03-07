@@ -105,7 +105,9 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 	}
 	// TODO: init config for shard $shardID, including genesis config, data dir, net port, etc
 	shardName := GetShardName(shardID)
-	shardConfig.P2PNode.NodePort = 10000 + uint(shardID.ToUint64())
+	shardConfig.P2PNode.NodePort = GetShardNodePortID(shardID.ToUint64())
+	shardConfig.Rpc.HttpLocalPort = GetShardRpcPortByShardID(shardID.ToUint64())
+	shardConfig.Restful.HttpRestPort = GetShardRestPortByShardID(shardID.ToUint64())
 	shardConfig.P2PNode.NetworkName = shardName
 
 	// init child shard config
