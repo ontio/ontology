@@ -27,17 +27,26 @@ import (
 //
 // build child-Shard Ontology process command line arguments
 //
-func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, shardPort, parentPort uint64) ([]string, error) {
+type ShardPortConfig struct {
+	ParentPort uint
+	NodePort   uint
+	RpcPort    uint
+	RestPort   uint
+}
+
+func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, shardportcfg *ShardPortConfig) ([]string, error) {
 	args := make([]string, 0)
 	shardArgs := make(map[string]string)
 	for _, flag := range CmdFlagsForSharding {
 		shardArgs[flag.GetName()] = ""
 	}
-
 	// prepare Shard-Configs for child-shard ontology process
 	shardArgs[ShardIDFlag.GetName()] = fmt.Sprintf("%d", uint(shardID.ToUint64()))
-	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d", uint(parentPort+uint64(shardID.Index())))
-	shardArgs[ParentShardPortFlag.GetName()] = fmt.Sprintf("%d", parentPort)
+	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d", uint(shardportcfg.ParentPort+uint(shardID.Index())))
+	shardArgs[ParentShardPortFlag.GetName()] = fmt.Sprintf("%d", shardportcfg.ParentPort)
+	shardArgs[NodePortFlag.GetName()] = fmt.Sprintf("%d", shardportcfg.NodePort)
+	shardArgs[RPCPortFlag.GetName()] = fmt.Sprintf("%d", shardportcfg.RpcPort)
+	shardArgs[RestfulPortFlag.GetName()] = fmt.Sprintf("%d", shardportcfg.RestPort)
 	// copy all args to new shard command, except sharding related flags
 	for n, v := range cmdArgs {
 		// FIXME: disabled consensusPort flag

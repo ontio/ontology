@@ -65,12 +65,24 @@ func GetPID() *actor.PID {
 	return GetChainManager().localPid
 }
 
+func GetShardNodePort() uint {
+	return config.DefConfig.P2PNode.NodePort + uint(GetShardID().ToUint64())*shard_port_gap
+}
+
 func GetShardRestPort() uint {
 	return config.DefConfig.Restful.HttpRestPort + uint(GetShardID().ToUint64())*shard_port_gap
 }
 
 func GetShardRpcPort() uint {
 	return config.DefConfig.Rpc.HttpJsonPort + uint(GetShardID().ToUint64())*shard_port_gap
+}
+
+func GetShardNodePortID(shardId uint64) uint {
+	return config.DefConfig.P2PNode.NodePort + uint(shardId)*shard_port_gap
+}
+
+func GetShardRestPortByShardID(shardId uint64) uint {
+	return config.DefConfig.Restful.HttpRestPort + uint(shardId)*shard_port_gap
 }
 
 func GetShardRpcPortByShardID(shardId uint64) uint {
