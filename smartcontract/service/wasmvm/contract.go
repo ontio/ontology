@@ -41,7 +41,7 @@ func (self *Runtime) ContractCreate(proc *exec.Process,
 	descLen uint32,
 	newAddressPtr uint32) uint32 {
 
-	if uint32(proc.MemAllocated()) < codeLen + nameLen + verLen + authorLen + emailLen + descLen {
+	if uint32(proc.MemAllocated()) < codeLen+nameLen+verLen+authorLen+emailLen+descLen {
 		panic(errors.NewErr("contract create len is greater than memory size"))
 	}
 
@@ -120,10 +120,9 @@ func (self *Runtime) ContractMigrate(proc *exec.Process,
 	descLen uint32,
 	newAddressPtr uint32) uint32 {
 
-	if uint32(proc.MemAllocated()) < codeLen + nameLen + verLen + authorLen + emailLen + descLen {
+	if uint32(proc.MemAllocated()) < codeLen+nameLen+verLen+authorLen+emailLen+descLen {
 		panic(errors.NewErr("contract migrate len is greater than memory size"))
 	}
-
 
 	code := make([]byte, codeLen)
 	_, err := proc.ReadAt(code, int64(codePtr))
