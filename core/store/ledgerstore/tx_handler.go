@@ -194,6 +194,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		CacheDB: cache,
 		Store:   store,
 		Gas:     availableGasLimit - codeLenGasLimit,
+		PreExec: false,
 	}
 
 	//start the smart contract executive function
