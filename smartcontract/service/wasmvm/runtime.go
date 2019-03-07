@@ -188,6 +188,10 @@ func (self *Runtime) GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
 	return uint32(length)
 }
 
+func (self *Runtime) RaiseException(proc *exec.Process) {
+	panic(errors.NewErr("[RaiseException]Contract RaiseException"))
+}
+
 func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32) uint32 {
 	self.checkGas(CALL_CONTRACT_GAS)
 	contractAddrbytes := make([]byte, 20)
@@ -492,6 +496,11 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Host: reflect.ValueOf(host.ContractDelete),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
+		{ //22
+			Sig:  &m.Types.Entries[10],
+			Host: reflect.ValueOf(host.RaiseException),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
 	}
 
 	m.Export = &wasm.SectionExports{
@@ -605,6 +614,11 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				FieldStr: "contract_delete",
 				Kind:     wasm.ExternalFunction,
 				Index:    21,
+			},
+			"ont_exception": {
+				FieldStr: "ont_exception",
+				Kind:     wasm.ExternalFunction,
+				Index:    22,
 			},
 		},
 	}
