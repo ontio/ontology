@@ -477,7 +477,7 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //18
-			Sig:  &m.Types.Entries[8],
+			Sig:  &m.Types.Entries[4],
 			Host: reflect.ValueOf(host.StorageDelete),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
