@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
@@ -65,6 +64,7 @@ var (
 
 	//max memory size of wasm vm
 	WASM_MEM_LIMITATION uint64 = 10 * 1024 * 1024
+	VM_STEP_LIMIT = 40000000
 )
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
@@ -107,7 +107,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, VM_INIT_FAULT
 	}
 	if this.PreExec {
-		this.GasLimit = uint64(neovm.VM_STEP_LIMIT)
+		this.GasLimit = uint64(VM_STEP_LIMIT)
 	}
 	vm.RecoverPanic = true
 	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasPrice: this.GasPrice}

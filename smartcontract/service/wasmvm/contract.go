@@ -174,6 +174,9 @@ func (self *Runtime) ContractMigrate(proc *exec.Process,
 	}
 	oldAddress := self.Service.ContextRef.CurrentContext().ContractAddress
 
+	self.Service.CacheDB.PutContract(dep)
+	self.Service.CacheDB.DeleteContract(oldAddress)
+
 	iter := self.Service.CacheDB.NewIterator(oldAddress[:])
 	for has := iter.First(); has; has = iter.Next() {
 		key := iter.Key()
