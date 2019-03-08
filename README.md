@@ -19,11 +19,12 @@ Prerequisites for getting started with development on the Ontology networks are:
 - Understanding of your business scenario/requirements
 - No need for previous blockchain engineering experience
 
-The Ontology core tech team, the community, and the ecosystem can all support you in development. MainNet, TestNet, SmartX and a Docker image for Ontology, SmartX, and Ontology Explorer combined make it easy to start.
+The Ontology core tech team, the community, and the ecosystem can all support you in development. MainNet, TestNet, Docker image for Ontology, SmartX, and Ontology Explorer combined make it easy to start.
 
 Ontology makes getting started easier!
 
-The code is currently in Alpha phase of the release life cycle, but is rapidly under development towards Beta. The master code may be unstable, but stable versions can be found under the [release page](https://github.com/ontio/ontology/releases).
+Ontology MainNet has been launched on Jun 30, 2018. <br>
+And new features are still rapidly under development. The master branch may be unstable, but stable versions can be found under the [release page](https://github.com/ontio/ontology/releases).
 
 We openly welcome developers to Ontology.
 
