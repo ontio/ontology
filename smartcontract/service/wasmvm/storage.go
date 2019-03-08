@@ -48,12 +48,12 @@ func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32,
 	if uint32(len(item)) < offset {
 		panic(errors.New("offset is invalid"))
 	}
+	_, err = proc.WriteAt(item[offset:offset+vlen], int64(val))
 
-	length, err := proc.WriteAt(item[offset:], int64(val))
 	if err != nil {
 		panic(err)
 	}
-	return uint32(length)
+	return uint32(len(item))
 }
 
 func (self *Runtime) StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint32, valPtr uint32, valLen uint32) {
