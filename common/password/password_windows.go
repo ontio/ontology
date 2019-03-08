@@ -16,13 +16,14 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// +build !windows
+// +build windows
 
 package password
 
 import (
 	"bytes"
 	"fmt"
+	"golang.org/x/crypto/ssh/terminal"
 	"os"
 
 	"github.com/howeyc/gopass"
@@ -31,7 +32,7 @@ import (
 // GetPassword gets password from user input
 func GetPassword() ([]byte, error) {
 	fmt.Printf("Password:")
-	passwd, err := gopass.GetPasswd()
+	passwd, err := terminal.ReadPassword(os.Stdin)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func GetPassword() ([]byte, error) {
 // GetConfirmedPassword gets double confirmed password from user input
 func GetConfirmedPassword() ([]byte, error) {
 	fmt.Printf("Password:")
-	first, err := gopass.GetPasswd()
+	first, err := terminal.ReadPassword(os.Stdin)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +52,7 @@ func GetConfirmedPassword() ([]byte, error) {
 	}
 
 	fmt.Printf("Re-enter Password:")
-	second, err := gopass.GetPasswd()
+	second, err := terminal.ReadPassword(os.Stdin)
 	if err != nil {
 		return nil, err
 	}
