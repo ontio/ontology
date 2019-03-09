@@ -27,8 +27,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
+
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -80,7 +80,6 @@ func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstate
 		return nil, fmt.Errorf("unmatched shard ID with shardstate")
 	}
 
-	peerPK := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
 	info := &ShardInfo{}
 	if i, present := self.shards[shard.ShardID]; present {
 		info = i
@@ -88,7 +87,7 @@ func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstate
 	info.ShardID = shard.ShardID
 	info.ParentShardID = shard.ShardID.ParentID()
 
-	if _, present := shard.Peers[peerPK]; present {
+	if _, present := shard.Peers[self.account.PublicKey]; present {
 		// peer is in the shard
 		// build shard config
 		if self.shardID == shard.ShardID {

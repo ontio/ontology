@@ -20,7 +20,10 @@ package shardmgmt
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -136,21 +139,21 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid parent shard: %d", params.ParentShardID)
 	}
 	if params.ParentShardID != native.ShardID {
-		return utils.BYTE_FALSE, fmt.Errorf("create shard, parent ShardID is not current shard")
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: parent ShardID is not current shard")
 	}
 
 	if err := utils.ValidateOwner(native, params.Creator); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid creator: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: invalid creator: %s", err)
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("create shard, check version: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: check version: %s", err)
 	}
 
 	globalState, err := getGlobalState(native, contract)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("create shard, get global state: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: get global state: %s", err)
 	}
 
 	subShardID, err := native.ShardID.GenSubShardID(globalState.NextSubShardIndex)
@@ -162,19 +165,24 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		ShardID: subShardID,
 		Creator: params.Creator,
 		State:   shardstates.SHARD_STATE_CREATED,
-		Peers:   make(map[string]*shardstates.PeerShardStakeInfo),
+		Peers:   make(map[keypair.PublicKey]*shardstates.PeerShardStakeInfo),
 	}
 	globalState.NextSubShardIndex += 1
 
-	// TODO: SHARD CREATION FEE
-
 	// update global state
 	if err := setGlobalState(native, contract, globalState); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("create shard, update global state: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: update global state: %s", err)
 	}
 	// save shard
 	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("create shard, set shard state: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: set shard state: %s", err)
+	}
+
+	// transfer create shard fee to root chain governance contract
+	err = ont.AppCallTransfer(native, utils.OntContractAddress, params.Creator, utils.GovernanceContractAddress,
+		shardstates.SHARD_CREATE_FEE)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: recharge create shard fee failed, err: %s", err)
 	}
 
 	evt := &shardstates.CreateShardEvent{
@@ -183,7 +191,7 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		NewShardID:    shard.ShardID,
 	}
 	if err := AddNotification(native, contract, evt); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("create shard, add notification: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: add notification: %s", err)
 	}
 
 	return utils.BYTE_TRUE, nil
@@ -244,7 +252,15 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
 	}
 
-	// TODO: notify event
+	evt := &shardstates.ConfigShardEvent{
+		Height: native.Height,
+		Config: shard.Config,
+	}
+	evt.SourceShardID = native.ShardID
+	evt.ShardID = native.ShardID
+	if err := AddNotification(native, contract, evt); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: add notification: %s", err)
+	}
 
 	return utils.BYTE_TRUE, nil
 }
@@ -279,7 +295,15 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, not on parent shard")
 	}
 
-	if _, present := shard.Peers[params.PeerPubKey]; present {
+	pubKeyData, err := hex.DecodeString(params.PeerPubKey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, decode param pub key failed, err: %s", err)
+	}
+	paramPubkey, err := keypair.DeserializePublicKey(pubKeyData)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, deserialize param pub key failed, err: %s", err)
+	}
+	if _, present := shard.Peers[paramPubkey]; present {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, peer already in shard")
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
@@ -288,19 +312,31 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 			StakeAmount: params.StakeAmount,
 		}
 		if shard.Peers == nil {
-			shard.Peers = make(map[string]*shardstates.PeerShardStakeInfo)
+			shard.Peers = make(map[keypair.PublicKey]*shardstates.PeerShardStakeInfo)
 		}
 		peerStakeInfo.Index = uint32(len(shard.Peers) + 1)
-		shard.Peers[params.PeerPubKey] = peerStakeInfo
+		shard.Peers[paramPubkey] = peerStakeInfo
 	}
-
-	// TODO: asset transfer
 
 	if err := setShardState(native, contract, shard); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, update shard state: %s", err)
 	}
 
-	// TODO: notify event
+	// transfer stake asset
+	err = ont.AppCallTransfer(native, shard.Config.StakeAssetAddress, params.PeerOwner, contract, params.StakeAmount)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, transfer stake asset failed, err: %s", err)
+	}
+
+	evt := &shardstates.PeerJoinShardEvent{
+		Height:     native.Height,
+		PeerPubKey: params.PeerPubKey,
+	}
+	evt.SourceShardID = native.ShardID
+	evt.ShardID = native.ShardID
+	if err := AddNotification(native, contract, evt); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, add notification: %s", err)
+	}
 
 	return utils.BYTE_TRUE, nil
 }
@@ -347,14 +383,14 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	shard.GenesisParentHeight = native.Height
 	shard.State = shardstates.SHARD_STATE_ACTIVE
 	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("activae shard, update shard state: %s", err)
 	}
 
 	evt := &shardstates.ShardActiveEvent{Height: native.Height}
 	evt.SourceShardID = native.ShardID
 	evt.ShardID = shard.ShardID
 	if err := AddNotification(native, contract, evt); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("create shard, add notification: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("activae shard, add notification: %s", err)
 	}
 
 	return utils.BYTE_TRUE, nil
