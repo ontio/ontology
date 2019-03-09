@@ -20,7 +20,9 @@ package chainmgr
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
 	"sort"
 
 	"github.com/ontio/ontology/core/types"
@@ -63,7 +65,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		bookkeepers := make([]string, 0)
 		for peerPK, info := range shardState.Peers {
 			seedlist = append(seedlist, info.PeerAddress)
-			bookkeepers = append(bookkeepers, peerPK)
+			bookkeepers = append(bookkeepers, hex.EncodeToString(keypair.SerializePublicKey(peerPK)))
 		}
 		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
 		shardConfig.Genesis.SeedList = seedlist
@@ -74,7 +76,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 			seedlist = append(seedlist, info.PeerAddress)
 			vbftpeerstakeinfo := &config.VBFTPeerStakeInfo{
 				Index:      info.Index,
-				PeerPubkey: peerPK,
+				PeerPubkey: hex.EncodeToString(keypair.SerializePublicKey(peerPK)),
 				Address:    info.PeerOwner.ToBase58(),
 				InitPos:    info.StakeAmount,
 			}

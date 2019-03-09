@@ -212,9 +212,8 @@ func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shar
 		log.Warnf("startChildShard ParentShardID:%d,shardID:%d", shardInfo.ParentShardID, self.shardID)
 		return nil
 	}
-	pubKey := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
-	if _, has := shardState.Peers[pubKey]; !has {
-		log.Warnf("startChildShard pubKey:%s is not exit shardState", pubKey)
+	if _, has := shardState.Peers[self.account.PublicKey]; !has {
+		log.Warnf("startChildShard pubKey:%x is not exit shardState", self.account.PublicKey)
 		return nil
 	}
 	return self.startChildShardProcess(shardInfo)

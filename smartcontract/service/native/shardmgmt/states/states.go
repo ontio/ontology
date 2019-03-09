@@ -19,6 +19,7 @@
 package shardstates
 
 import (
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
 	"io"
 
@@ -28,10 +29,14 @@ import (
 )
 
 const (
+	SHARD_CREATE_FEE = 100 * 1000000000 // 100 ong
+)
+
+const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED // all parameter configured
-	SHARD_STATE_ACTIVE     // started
-	SHARD_STATE_STOPPING   // started
+	SHARD_STATE_CONFIGURED  // all parameter configured
+	SHARD_STATE_ACTIVE      // started
+	SHARD_STATE_STOPPING    // started
 	SHARD_STATE_ARCHIVED
 )
 
@@ -77,8 +82,8 @@ type ShardState struct {
 	State               uint32         `json:"state"`
 	GenesisParentHeight uint32         `json:"genesis_parent_height"`
 	Config              *ShardConfig   `json:"config"`
-	// TODO distinct key lower and upper
-	Peers map[string]*PeerShardStakeInfo `json:"peers"`
+
+	Peers map[keypair.PublicKey]*PeerShardStakeInfo `json:"peers"`
 }
 
 func (this *ShardState) Serialize(w io.Writer) error {
