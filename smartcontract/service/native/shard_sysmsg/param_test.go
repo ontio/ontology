@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/core/types"
 )
 
 func Test_ParamSerialize(t *testing.T) {
@@ -41,10 +42,14 @@ func Test_ParamSerialize(t *testing.T) {
 }
 
 func Test_ParamSerialize2(t *testing.T) {
+	toShardID, err := types.NewShardID(3)
+	if err != nil {
+		t.Fatalf("invalid shard id")
+	}
 	evt := &shardstates.ShardEventState{
 		Version:    1,
 		EventType:  2,
-		ToShard:    3,
+		ToShard:    toShardID,
 		FromHeight: 4,
 		Payload:    []byte("test"),
 	}
