@@ -21,6 +21,7 @@ package native
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -31,18 +32,18 @@ import (
 
 const (
 	TxExec = iota
-	TxWait
-	TxPrepare
 	TxPrepared
 	TxAbort
 	TxCommit
 )
 
 var (
-	MaxRemoteReqPerTx    = 8
-	ErrNotFound          = errors.New("not found")
-	ErrTooMuchRemoteReq  = errors.New("too much remote request")
-	ErrMismatchedRequest = errors.New("Mismatched request")
+	MaxRemoteReqPerTx      = 8
+	ErrNotFound            = errors.New("not found")
+	ErrTooMuchRemoteReq    = errors.New("too much remote request")
+	ErrMismatchedTxPayload = errors.New("Mismatched Tx Payload")
+	ErrMismatchedRequest   = errors.New("Mismatched request")
+	ErrMismatchedResponse  = errors.New("Mismatched response")
 )
 
 type TxStateInShard struct {
@@ -50,13 +51,16 @@ type TxStateInShard struct {
 }
 
 type TxState struct {
-	Caller common.Address
-	State  int
-	Shards map[uint64]*TxStateInShard
-	Reqs   map[int32]*shardstates.XShardTxReq
-	Rsps   map[int32]*shardstates.XShardTxRsp
-	DB     *storage.CacheDB
-	Notify *event.ExecuteNotify
+	Caller    common.Address
+	State     int
+	Shards    map[uint64]*TxStateInShard
+	TxPayload []byte
+	Reqs      map[int32]*shardstates.XShardTxReq
+	Rsps      map[int32]*shardstates.XShardTxRsp
+	Result    []byte
+	ResultErr error
+	DB        *storage.CacheDB
+	Notify    *event.ExecuteNotify
 }
 
 type ShardTxStateMap struct {
@@ -106,9 +110,9 @@ func CreateTxState(tx common.Uint256) (*TxState, error) {
 		return state, nil
 	}
 	state := &TxState{
-		Shards: make(map[uint64]*TxStateInShard),
-		Reqs:   make(map[int32]*shardstates.XShardTxReq),
-		Rsps:   make(map[int32]*shardstates.XShardTxRsp),
+		Shards:     make(map[uint64]*TxStateInShard),
+		Reqs:       make(map[int32]*shardstates.XShardTxReq),
+		Rsps:       make(map[int32]*shardstates.XShardTxRsp),
 	}
 	shardTxStateTable.TxStates[tx] = state
 	return state, nil
@@ -121,15 +125,98 @@ func GetTxState(tx common.Uint256) (*TxState, error) {
 	return nil, ErrNotFound
 }
 
-func GetTxResponse(tx common.Uint256, reqMsg *shardstates.CommonShardMsg) ([]byte, error) {
-	return nil, ErrNotFound
-}
+func SetTxPrepared(tx common.Uint256) error {
+	txState, err := GetTxState(tx)
+	if err != nil {
+		return err
+	}
 
-func PutTxResponse(tx common.Uint256, reqMsg *shardstates.CommonShardMsg, result []byte, err error) error {
+	if txState.State != TxExec {
+		return fmt.Errorf("invalid state to prepared: %s", txState.State)
+	}
+
+	txState.State = TxPrepared
 	return nil
 }
 
-func AddRemoteTxReq(tx common.Uint256, req shardstates.XShardMsg) error {
+func SetTxCommitted(tx common.Uint256, isCommit bool) error {
+	txState, err := GetTxState(tx)
+	if err != nil {
+		return err
+	}
+
+	if isCommit && txState.State != TxPrepared {
+		return fmt.Errorf("invalid state to commit: %d", txState.State)
+	}
+
+	if isCommit {
+		txState.State = TxCommit
+	} else {
+		txState.State = TxAbort
+	}
+
+	txState.Shards = make(map[uint64]*TxStateInShard)
+	return nil
+}
+
+func SetTxResult(tx common.Uint256, result []byte, resultErr error) error {
+	txState, err := GetTxState(tx)
+	if err != nil {
+		return err
+	}
+
+	txState.Result = result
+	txState.ResultErr = resultErr
+	return nil
+}
+
+func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) ([]byte, error) {
+	txState, err := CreateTxState(tx)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+
+	if rspMsg, present := txState.Rsps[txReq.IdxInTx]; present {
+		return rspMsg.Result, errors.New(rspMsg.Error)
+	}
+	return nil, ErrNotFound
+}
+
+func PutTxResponse(tx common.Uint256, txRsp *shardstates.XShardTxRsp) error {
+	txState, err := CreateTxState(tx)
+	if err != nil {
+		return errors.ErrNotFound
+	}
+
+	if rspMsg, present := txState.Rsps[txRsp.IdxInTx]; present {
+		if bytes.Compare(rspMsg.Result, txRsp.Result) == 0 &&
+			rspMsg.Error == txRsp.Error {
+			return nil
+		}
+		return ErrMismatchedResponse
+	}
+
+	txState.Rsps[txRsp.IdxInTx] = txRsp
+	return nil
+}
+
+func GetTxPayload(tx common.Uint256) ([]byte, error) {
+	txState, err := GetTxState(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	if txState.TxPayload == nil {
+		return nil, ErrNotFound
+	}
+	return txState.TxPayload, nil
+}
+
+func GetTxRequests(tx common.Uint256) ([]*shardstates.XShardTxReq, error) {
+	return nil, nil
+}
+
+func PutTxRequest(tx common.Uint256, txPayload []byte, req shardstates.XShardMsg) error {
 	if req.Type() != shardstates.EVENT_SHARD_TXREQ {
 		return fmt.Errorf("invalid type of txReq: %d", req.Type())
 	}
@@ -154,22 +241,22 @@ func AddRemoteTxReq(tx common.Uint256, req shardstates.XShardMsg) error {
 		}
 	}
 
+	if txPayload != nil {
+		if txState.TxPayload != nil {
+			if bytes.Compare(txState.TxPayload, txPayload) != 0 {
+				return ErrMismatchedTxPayload
+			}
+		} else {
+			txState.TxPayload = txPayload
+		}
+	}
 	txState.Reqs[txReq.IdxInTx] = txReq
-	return nil
-}
-
-func AddRemoteTxRsp(tx common.Uint256, caller common.Address, dataDb *storage.CacheDB, rsp shardstates.XShardMsg) error {
 	return nil
 }
 
 func GetNextReqIndex(tx common.Uint256) int32 {
 	// TODO
 	return 0
-}
-
-func GetRemoteTxRsp(tx common.Uint256, caller common.Address, req *shardstates.XShardTxReq) (*shardstates.XShardTxRsp, error) {
-	// TODO
-	return nil, nil
 }
 
 func UpdateTxState(tx common.Uint256, caller common.Address, dataDB *storage.CacheDB, result []byte) error {
