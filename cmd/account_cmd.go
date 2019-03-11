@@ -283,7 +283,7 @@ func accountSet(ctx *cli.Context) error {
 	}
 	accMeta := common.GetAccountMetadataMulti(wallet, address)
 	if accMeta == nil {
-		return fmt.Errorf("cannot find account info by:%s", address)
+		return fmt.Errorf("cannot find account info by: %s", address)
 	}
 	address = accMeta.Address
 	label := accMeta.Label
@@ -341,6 +341,7 @@ func accountSet(ctx *cli.Context) error {
 		defer common.ClearPasswd(passwd)
 		PrintInfoMsg("Please input new password:")
 		newPass, err := password.GetConfirmedPassword()
+		defer common.ClearPasswd(newPass)
 		if err != nil {
 			return fmt.Errorf("input password error:%s", err)
 		}
@@ -369,7 +370,7 @@ func accountDelete(ctx *cli.Context) error {
 	}
 	accMeta := common.GetAccountMetadataMulti(wallet, address)
 	if accMeta == nil {
-		return fmt.Errorf("cannot get account by address:%s", address)
+		return fmt.Errorf("cannot get account by: %s", address)
 	}
 	passwd, err := common.GetPasswd(ctx)
 	if err != nil {

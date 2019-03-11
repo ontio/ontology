@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
 
-// +build !windows
+// +build windows
 
 package password
 
@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/howeyc/gopass"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // GetPassword gets password from user input
 func GetPassword() ([]byte, error) {
 	fmt.Printf("Password:")
-	passwd, err := gopass.GetPasswd()
+	passwd, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func GetPassword() ([]byte, error) {
 // GetConfirmedPassword gets double confirmed password from user input
 func GetConfirmedPassword() ([]byte, error) {
 	fmt.Printf("Password:")
-	first, err := gopass.GetPasswd()
+	first, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func GetConfirmedPassword() ([]byte, error) {
 	}
 
 	fmt.Printf("Re-enter Password:")
-	second, err := gopass.GetPasswd()
+	second, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, err
 	}
