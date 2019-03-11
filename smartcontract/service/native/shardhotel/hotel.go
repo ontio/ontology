@@ -173,7 +173,7 @@ func ShardDoubleReserve(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel reserver1: room %d: %s", param.RoomNo1, err)
 	}
 
-	if err := appcallReserveRoom(ctx, param.Shard2, param.User, param.ContractAddress2, param.RoomNo2); err != nil {
+	if err := appcallReserveRoom(ctx, param.User, param.Shard2, param.RoomNo2, param.Transactional); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel reserver1: to remote shard: %s", err)
 	}
 
@@ -205,7 +205,7 @@ func ShardDoubleCheckout(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel checkout1: room %d: %s", param.RoomNo1, err)
 	}
 
-	if err := appcallCheckoutRoom(ctx, param.Shard2, param.User, param.ContractAddress2, param.RoomNo2); err != nil {
+	if err := appcallCheckoutRoom(ctx, param.User, param.Shard2, param.RoomNo2, param.Transactional); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel checkout1: to remote shard: %s", err)
 	}
 
@@ -241,7 +241,7 @@ func getRoomUser(ctx *native.NativeService, roomNo int) (common.Address, error) 
 	return userAddr, ErrNotFound
 }
 
-func appcallReserveRoom(ctx *native.NativeService, toShard types.ShardID, user, contract common.Address, roomNo int) error {
+func appcallReserveRoom(ctx *native.NativeService, user common.Address, toShard types.ShardID, roomNo int, transactional bool) error {
 	buf := new(bytes.Buffer)
 	param := &ShardHotelReserveParam{
 		User:   user,
@@ -257,10 +257,10 @@ func appcallReserveRoom(ctx *native.NativeService, toShard types.ShardID, user, 
 		return err
 	}
 
-	return appcallSendReq(ctx, toShard, buf2.Bytes())
+	return appcallSendReq(ctx, toShard, buf2.Bytes(), transactional)
 }
 
-func appcallCheckoutRoom(ctx *native.NativeService, toShard types.ShardID, user, contract common.Address, roomNo int) error {
+func appcallCheckoutRoom(ctx *native.NativeService, user common.Address, toShard types.ShardID, roomNo int, transactional bool) error {
 	buf := new(bytes.Buffer)
 	param := &ShardHotelCheckoutParam{
 		User:   user,
@@ -276,10 +276,10 @@ func appcallCheckoutRoom(ctx *native.NativeService, toShard types.ShardID, user,
 		return err
 	}
 
-	return appcallSendReq(ctx, toShard, buf2.Bytes())
+	return appcallSendReq(ctx, toShard, buf2.Bytes(), transactional)
 }
 
-func appcallSendReq(native *native.NativeService, toShard types.ShardID, payload []byte) error {
+func appcallSendReq(native *native.NativeService, toShard types.ShardID, payload []byte, transactional bool) error {
 	paramBytes := new(bytes.Buffer)
 	params := shardsysmsg.NotifyReqParam{
 		ToShard: toShard,
@@ -295,8 +295,14 @@ func appcallSendReq(native *native.NativeService, toShard types.ShardID, payload
 		return fmt.Errorf("hotel remote req, marshal cmn param: %s", err)
 	}
 
-	if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_NOTIFY, cmnBytes.Bytes()); err != nil {
-		return fmt.Errorf("hotel remote req, appcallSendReq: %s", err)
+	if transactional {
+		if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_INVOKE, cmnBytes.Bytes()); err != nil {
+			return fmt.Errorf("hotel remote req, appcallSend Tx: %s", err)
+		}
+	} else {
+		if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_NOTIFY, cmnBytes.Bytes()); err != nil {
+			return fmt.Errorf("hotel remote req, appcallSend Notify: %s", err)
+		}
 	}
 	return nil
 }

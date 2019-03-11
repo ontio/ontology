@@ -63,6 +63,15 @@ func makePrefixedKey(dst []byte, prefix byte, key []byte) []byte {
 	return dst
 }
 
+// return if any put/del operation to cachedb
+func (self *CacheDB) IsEmptyCache() bool {
+	return self.memdb.Len() == 0
+}
+
+func (self *CacheDB) GetBackendDB() *overlaydb.OverlayDB {
+	return self.backend
+}
+
 // Commit current transaction cache to block cache
 func (self *CacheDB) Commit() {
 	self.memdb.ForEach(func(key, val []byte) {

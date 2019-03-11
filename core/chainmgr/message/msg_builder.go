@@ -114,7 +114,7 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types
 	// cross-shard forwarding Tx payload
 	evt := &shardstates.ShardEventState{
 		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
-		EventType:  shardstates.EVENT_SHARD_REQ_COMMON,
+		EventType:  shardstates.EVENT_SHARD_MSG_COMMON,
 		ToShard:    toShardID,
 		FromHeight: height,
 		Payload:    txBytes,

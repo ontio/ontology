@@ -20,13 +20,13 @@ package shardstates
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"github.com/ontio/ontology/common"
 )
 
 const (
@@ -153,6 +153,34 @@ func (evt *ShardActiveEvent) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, evt)
 }
 
+type XShardCommitMsg struct {
+	MsgType int `json:"msg_type"`
+}
+
+func (msg *XShardCommitMsg) Type() int {
+	return msg.MsgType
+}
+
+func (msg *XShardCommitMsg) GetContract() common.Address {
+	return common.ADDRESS_EMPTY
+}
+
+func (msg *XShardCommitMsg) GetMethod() string {
+	return ""
+}
+
+func (msg *XShardCommitMsg) GetArgs() []byte {
+	return nil
+}
+
+func (msg *XShardCommitMsg) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, msg)
+}
+
+func (msg *XShardCommitMsg) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, msg)
+}
+
 type ShardEventState struct {
 	Version    uint32        `json:"version"`
 	EventType  uint32        `json:"event_type"`
@@ -161,7 +189,7 @@ type ShardEventState struct {
 	Payload    []byte        `json:"payload"`
 }
 
-func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {
+func DecodeShardGasEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {
 	switch evtType {
 	case EVENT_SHARD_GAS_DEPOSIT:
 		evt := &DepositGasEvent{}
@@ -181,27 +209,4 @@ func DecodeShardEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error)
 	}
 
 	return nil, fmt.Errorf("unknown remote event type: %d", evtType)
-}
-
-type _CrossShardTx struct {
-	Txs [][]byte `json:"txs"`
-}
-
-func DecodeShardCommonReqs(payload []byte) ([]*CommonShardReq, error) {
-	txs := &_CrossShardTx{}
-	// FIXME: fix marshaling
-	if err := json.Unmarshal(payload, txs); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal txs: %s", err)
-	}
-
-	reqs := make([]*CommonShardReq, 0)
-	for _, tx := range txs.Txs {
-		req := &CommonShardReq{}
-		if err := req.Deserialize(bytes.NewBuffer(tx)); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal req-tx: %s, %s", err, string(tx))
-		}
-		reqs = append(reqs, req)
-	}
-
-	return reqs, nil
 }

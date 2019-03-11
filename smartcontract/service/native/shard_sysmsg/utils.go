@@ -43,8 +43,8 @@ func (this *ToShardsInBlock) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
-func addToShardsInBlock(native *native.NativeService, toShard types.ShardID) error {
-	toShards, err := getToShardsInBlock(native, native.Height)
+func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error {
+	toShards, err := getToShardsInBlock(ctx, ctx.Height)
 	if err != nil {
 		return err
 	}
@@ -60,8 +60,8 @@ func addToShardsInBlock(native *native.NativeService, toShard types.ShardID) err
 		toShards = append(toShards, toShard)
 	}
 
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(native.Height)
+	contract := ctx.ContextRef.CurrentContext().ContractAddress
+	blockNumBytes := shardutil.GetUint32Bytes(ctx.Height)
 
 	toShardsInBlk := &ToShardsInBlock{
 		Shards: toShards,
@@ -72,16 +72,16 @@ func addToShardsInBlock(native *native.NativeService, toShard types.ShardID) err
 	}
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
+	ctx.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }
 
-func getToShardsInBlock(native *native.NativeService, blockHeight uint32) ([]types.ShardID, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
+func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.ShardID, error) {
+	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	toShardsBytes, err := native.CacheDB.Get(key)
+	toShardsBytes, err := ctx.CacheDB.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("get toShards: %s", err)
 	}
@@ -115,8 +115,8 @@ func (this *ReqsInBlock) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
-func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardReq) error {
-	reqs, err := getReqsInBlock(native, native.Height, req.ShardID)
+func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
+	reqs, err := getReqsInBlock(ctx, ctx.Height, req.GetTargetShardID())
 	if err != nil {
 		return err
 	}
@@ -128,9 +128,9 @@ func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardRe
 		reqs = [][]byte{reqBytes.Bytes()}
 	}
 
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(native.Height)
-	shardIDBytes, err := shardutil.GetUint64Bytes(req.ShardID.ToUint64())
+	contract := ctx.ContextRef.CurrentContext().ContractAddress
+	blockNumBytes := shardutil.GetUint32Bytes(ctx.Height)
+	shardIDBytes, err := shardutil.GetUint64Bytes(req.GetTargetShardID().ToUint64())
 	if err != nil {
 		return fmt.Errorf("serialzie toshard: %s", err)
 	}
@@ -144,12 +144,12 @@ func addReqsInBlock(native *native.NativeService, req *shardstates.CommonShardRe
 	}
 
 	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
+	ctx.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }
 
-func getReqsInBlock(native *native.NativeService, blockHeight uint32, shardID types.ShardID) ([][]byte, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
+func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types.ShardID) ([][]byte, error) {
+	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
 	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
@@ -157,7 +157,7 @@ func getReqsInBlock(native *native.NativeService, blockHeight uint32, shardID ty
 	}
 
 	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	reqBytes, err := native.CacheDB.Get(key)
+	reqBytes, err := ctx.CacheDB.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("get reqs in block: %s", err)
 	}
@@ -178,3 +178,14 @@ func getReqsInBlock(native *native.NativeService, blockHeight uint32, shardID ty
 
 	return req.Reqs, nil
 }
+
+
+func txCommitReady(txState map[uint64]*native.TxStateInShard) bool {
+	for _, state := range txState {
+		if state.State < native.TxPrepared {
+			return false
+		}
+	}
+	return true
+}
+

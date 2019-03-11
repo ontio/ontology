@@ -21,11 +21,11 @@ package shardsysmsg
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
@@ -75,6 +75,7 @@ func (this *CrossShardMsgParam) Deserialize(r io.Reader) error {
 type NotifyReqParam struct {
 	ToShard    types.ShardID  `json:"to_shard"`
 	ToContract common.Address `json:"to_contract"`
+	Method     string         `json:"method"`
 	Args       []byte         `json:"payload"`
 }
 
@@ -83,5 +84,19 @@ func (this *NotifyReqParam) Serialize(w io.Writer) error {
 }
 
 func (this *NotifyReqParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+type InvokeReqParam struct {
+	ToShard    uint64         `json:"to_shard"`
+	ToContract common.Address `json:"to_contract"`
+	Args       []byte         `json:"payload"`
+}
+
+func (this *InvokeReqParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *InvokeReqParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
