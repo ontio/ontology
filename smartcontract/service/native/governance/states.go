@@ -130,7 +130,7 @@ func (this *PeerPoolMap) Deserialize(r io.Reader) error {
 
 type PeerPoolItem struct {
 	Index      uint32         //peer index
-	PeerPubkey string         //peer pubkey
+	PeerPubkey string         //peer pubkey, run ontology wallet account
 	Address    common.Address //peer owner
 	Status     Status         //peer status
 	InitPos    uint64         //peer initPos
@@ -323,7 +323,8 @@ func (this *GovernanceView) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type TotalStake struct { //table record each address's total stake in this contract
+type TotalStake struct {
+	//table record each address's total stake in this contract
 	Address    common.Address
 	Stake      uint64
 	TimeOffset uint32
@@ -362,7 +363,8 @@ func (this *TotalStake) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type PenaltyStake struct { //table record penalty stake of peer
+type PenaltyStake struct {
+	//table record penalty stake of peer
 	PeerPubkey   string //peer pubKey of penalty stake
 	InitPos      uint64 //initPos penalty
 	AuthorizePos uint64 //authorize pos penalty
@@ -518,7 +520,8 @@ func (this *PeerAttributes) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type SplitFeeAddress struct { //table record each address's ong motivation
+type SplitFeeAddress struct {
+	//table record each address's ong motivation
 	Address common.Address
 	Amount  uint64
 }
