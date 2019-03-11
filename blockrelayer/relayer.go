@@ -6,6 +6,7 @@ import (
 	"encoding"
 	"encoding/binary"
 	"fmt"
+	"github.com/ontio/ontology/common/log"
 	"hash"
 	"io"
 	"math/rand"
@@ -39,7 +40,7 @@ func (self implTask) ImplementTask() {}
 
 type FlushTask struct {
 	implTask
-	finished chan<- bool
+	finished chan<- uint32
 }
 
 type SaveTask struct {
@@ -63,17 +64,24 @@ func (self *Storage) SaveBlock(block *types.Block) {
 	if block.Header.PrevBlockHash != self.currHash {
 		return
 	}
-	raw := block.ToArray()
+
+	sink := common.NewZeroCopySink(nil)
+	headerLen, err := block.SerializeExt(sink)
+	if err != nil {
+		log.Errorf("serialize block err: %v", err)
+		return
+	}
+	raw := sink.Bytes()
 	self.task <- &SaveTask{
-		block: &RawBlock{Hash: block.Hash(), Height: block.Header.Height, Payload: raw},
+		block: &RawBlock{Hash: block.Hash(), HeaderSize:headerLen, Height: block.Header.Height, Payload: raw},
 	}
 }
 
-func (self *Storage) Flush() {
-	finished := make(chan bool)
+func (self *Storage) Flush() uint32 {
+	finished := make(chan uint32)
 	self.task <- &FlushTask{finished: finished}
 
-	<-finished
+	return <-finished
 }
 
 func (self *Storage) SaveBlockTest(height uint32) {
@@ -83,7 +91,7 @@ func (self *Storage) SaveBlockTest(height uint32) {
 	binary.LittleEndian.PutUint32(blockHash[:], height)
 
 	self.task <- &SaveTask{
-		block: &RawBlock{Hash: blockHash, Height: height, Payload: raw},
+		block: &RawBlock{Hash: blockHash, HeaderSize: uint32(len(raw) / 3), Height: height, Payload: raw},
 	}
 }
 
@@ -133,14 +141,16 @@ type BlockMeta struct {
 	hash     common.Uint256
 	offset   uint64
 	height   uint32
+	headerSize uint32
 	size     uint32
 	checksum common.Uint256
 }
 
 type RawBlock struct {
-	Hash    common.Uint256
-	Height  uint32
-	Payload []byte
+	Hash       common.Uint256
+	Height     uint32
+	HeaderSize uint32
+	Payload    []byte
 }
 
 func (self *RawBlock) Size() int {
@@ -148,12 +158,13 @@ func (self *RawBlock) Size() int {
 }
 
 func (self *BlockMeta) Bytes() []byte {
-	buf := make([]byte, 0, 32+8+4+4+32)
+	buf := make([]byte, 0, 32+8+4+4+32+4)
 	sink := common.NewZeroCopySink(buf)
 
 	sink.WriteHash(self.hash)
 	sink.WriteUint64(self.offset)
 	sink.WriteUint32(self.height)
+	sink.WriteUint32(self.headerSize)
 	sink.WriteUint32(self.size)
 	sink.WriteHash(self.checksum)
 
@@ -166,6 +177,7 @@ func BlockMetaFromBytes(raw []byte) (meta BlockMeta, err error) {
 	meta.hash, eof = source.NextHash()
 	meta.offset, eof = source.NextUint64()
 	meta.height, eof = source.NextUint32()
+	meta.headerSize, eof = source.NextUint32()
 	meta.size, eof = source.NextUint32()
 	meta.checksum, eof = source.NextHash()
 	if eof {
@@ -291,7 +303,7 @@ func (self *StorageBackend) GetBlockByHash(hash common.Uint256) (*RawBlock, erro
 		return nil, err
 	}
 
-	return &RawBlock{Hash: hash, Height: meta.height, Payload: buf}, nil
+	return &RawBlock{Hash: hash, HeaderSize:meta.headerSize, Height: meta.height, Payload: buf}, nil
 }
 
 func (self *StorageBackend) flush() {
@@ -323,6 +335,7 @@ func (self *StorageBackend) saveBlock(block *RawBlock) error {
 	meta := BlockMeta{
 		hash:   block.Hash,
 		height: block.Height,
+		headerSize: uint32(block.HeaderSize),
 		size:   uint32(block.Size()),
 		offset: self.currInfo.blockOffset,
 	}
@@ -357,7 +370,7 @@ func (self *StorageBackend) blockSaveLoop(task <-chan Task) {
 				self.saveBlock(task.block)
 			case *FlushTask:
 				self.flush()
-				task.finished <- true
+				task.finished <- self.currInfo.nextHeight - 1
 			}
 		case <-time.After(MAX_TIME_OUT):
 			self.flush()

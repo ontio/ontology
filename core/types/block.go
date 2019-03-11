@@ -31,19 +31,29 @@ type Block struct {
 }
 
 func (b *Block) Serialization(sink *common.ZeroCopySink) error {
+	_, err := b.SerializeExt(sink)
+
+	return err
+}
+
+func (b *Block) SerializeExt(sink *common.ZeroCopySink) (uint32, error) {
+	pos := sink.Size()
 	err := b.Header.Serialization(sink)
 	if err != nil {
-		return err
+		return 0, err
 	}
+
+	headerLen := sink.Size() - pos
 
 	sink.WriteUint32(uint32(len(b.Transactions)))
 	for _, transaction := range b.Transactions {
 		err := transaction.Serialization(sink)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+
+	return uint32(headerLen), nil
 }
 
 // if no error, ownership of param raw is transfered to Transaction
