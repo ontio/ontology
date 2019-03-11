@@ -134,7 +134,8 @@ func (self *Runtime) Debug(proc *exec.Process, ptr uint32, len uint32) {
 	bs := make([]byte, len)
 	_, err := proc.ReadAt(bs, int64(ptr))
 	if err != nil {
-		panic(err)
+		//do not panic on debug
+		return
 	}
 
 	fmt.Printf("%s", string(bs))
