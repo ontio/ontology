@@ -21,15 +21,14 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"errors"
-	"github.com/ontio/ontology/common"
 )
 
 /////////
@@ -100,12 +99,12 @@ func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	cp := new(shardmgmt.CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid cmn param: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, invalid cmn param: %s", err)
 	}
 
 	reqParam := new(NotifyReqParam)
 	if err := reqParam.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid param: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, invalid param: %s", err)
 	}
 
 	txHash := ctx.Tx.Hash()
@@ -119,17 +118,13 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	// get response from native-tx-statedb
-	caller := ctx.ContextRef.CurrentContext().ContractAddress
-	rsp, err := native.GetRemoteTxRsp(txHash, caller, msg)
-	if err != nil {
+	result, err := native.GetTxResponse(txHash, msg)
+	if err != native.ErrNotFound {
 		if err == native.ErrMismatchedRequest {
 			// TODO: abort transaction
 			return utils.BYTE_FALSE, err
 		}
-		return utils.BYTE_FALSE, err
-	}
-	if rsp != nil {
-		return rsp.Result, errors.New(rsp.Error)
+		return result, err
 	}
 
 	// no response found in tx-statedb, send request
@@ -138,7 +133,17 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, native.ErrTooMuchRemoteReq
 	}
 	msg.IdxInTx = reqIdx
+	txPayload := bytes.NewBuffer(nil)
+	if err := ctx.Tx.Payload.Serialize(txPayload); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to get tx payload: %s", err)
+	}
+	if err := native.PutTxRequest(txHash, txPayload.Bytes(), msg); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, put Tx request: %s", err)
+	}
 	if _, err := remoteNotify(ctx, txHash, reqParam.ToShard, msg); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, notify: %s", err)
+	}
+	if err := waitRemoteResponse(ctx); err != nil {
 		return utils.BYTE_FALSE, err
 	}
 	return nil, nil
@@ -193,6 +198,7 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 				return utils.BYTE_FALSE, fmt.Errorf("decode shard reqs: %s", err)
 			}
 			for _, req := range reqs {
+				txCompleted := true
 				switch req.Type {
 				case shardstates.EVENT_SHARD_NOTIFY:
 					if err := processXShardNotify(ctx, req); err != nil {
@@ -202,6 +208,7 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 					if err := processXShardReq(ctx, req); err != nil {
 						return utils.BYTE_FALSE, fmt.Errorf("process req: %s", err)
 					}
+					txCompleted = false
 				case shardstates.EVENT_SHARD_TXRSP:
 					if err := processXShardRsp(ctx, req); err != nil {
 						return utils.BYTE_FALSE, fmt.Errorf("process rsp: %s", err)
@@ -210,10 +217,12 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 					if err := processXShardPrepareMsg(ctx, req); err != nil {
 						return utils.BYTE_FALSE, fmt.Errorf("process prepare-msg: %s", err)
 					}
+					txCompleted = false
 				case shardstates.EVENT_SHARD_PREPARED:
 					if err := processXShardPreparedMsg(ctx, req); err != nil {
 						return utils.BYTE_FALSE, fmt.Errorf("process prepared-msg: %s", err)
 					}
+					txCompleted = false
 				case shardstates.EVENT_SHARD_COMMIT:
 					if err := processXShardCommitMsg(ctx, req); err != nil {
 						return utils.BYTE_FALSE, fmt.Errorf("process commit-msg: %s", err)
@@ -225,9 +234,11 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 				}
 
 				// transaction should be completed, and be removed from txstate-db
-				if shards, err := native.GetTxShards(req.SourceTxHash); err != native.ErrNotFound {
-					for _, s := range shards {
-						log.Errorf("TODO: abort transaction %d on shard %d", common.ToHexString(req.SourceTxHash[:]), s)
+				if txCompleted {
+					if shards, err := native.GetTxShards(req.SourceTxHash); err != native.ErrNotFound {
+						for _, s := range shards {
+							log.Errorf("TODO: abort transaction %d on shard %d", common.ToHexString(req.SourceTxHash[:]), s)
+						}
 					}
 				}
 			}

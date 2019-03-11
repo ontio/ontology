@@ -29,15 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func remoteTxResponse(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, result []byte, err string) ([]byte, error) {
-	msg := &shardstates.XShardTxRsp{
-		FeeUsed: 0,
-		Result:  result,
-		Error:   err,
-	}
-	return remoteNotify(ctx, tx, toShard, msg)
-}
-
 func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 	toShards, err := native.GetTxShards(tx)
 	if err != nil {
@@ -52,13 +43,6 @@ func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, e
 	}
 
 	return nil, nil
-}
-
-func sendPreparedResponse(ctx *native.NativeService, shard types.ShardID, tx common.Uint256) ([]byte, error) {
-	msg := &shardstates.XShardCommitMsg{
-		MsgType: shardstates.EVENT_SHARD_PREPARED,
-	}
-	return remoteNotify(ctx, tx, shard, msg)
 }
 
 func abortTx(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
@@ -115,16 +99,5 @@ func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.Sh
 		return utils.BYTE_FALSE, fmt.Errorf("remote notify, failed to add req to block: %s", err)
 	}
 
-	if shardReq.IsTransactional() {
-		// TODO: save tx to pending queue, abort the current execution
-		if err := native.AddRemoteTxReq(tx, msg); err != nil {
-			// TODO: remove added remoteNotify msg
-			return utils.BYTE_FALSE, err
-		}
-		// TODO: stop any further processing
-		for ctx.ContextRef.CurrentContext() != ctx.ContextRef.EntryContext() {
-			ctx.ContextRef.PopContext()
-		}
-	}
 	return utils.BYTE_TRUE, nil
 }

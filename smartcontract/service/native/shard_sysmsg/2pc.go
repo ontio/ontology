@@ -21,43 +21,60 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
-	"sort"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
+	if msg.GetType() != shardstates.EVENT_SHARD_PREPARE {
+		return fmt.Errorf("invalid prepare type: %d", msg.GetType())
+	}
+
+	// check cached DB
 	if !ctx.CacheDB.IsEmptyCache() {
 		return fmt.Errorf("non-empty init db when processing prepare msg")
 	}
+
 	tx := msg.SourceTxHash
-	_, err := native.GetTxState(tx)
+	reqs, err := native.GetTxRequests(tx)
 	if err != nil {
+		return fmt.Errorf("get tx requests on prepare %s: %s", common.ToHexString(tx[:]), err)
+	}
+
+	prepareOK := true
+	for _, req := range reqs {
+		result1, err1 := native.GetTxResponse(tx, req)
+		if err1 == native.ErrNotFound {
+			return fmt.Errorf("get tx response %d: %s", req.IdxInTx, err1)
+		}
+		result2, err2 := ctx.NativeCall(req.GetContract(), req.GetMethod(), req.GetArgs())
+		if bytes.Compare(result1, result2.([]byte)) != 0 ||
+			err1.Error() != err2.Error() {
+			prepareOK = false
+			break
+		}
+	}
+
+	if !prepareOK {
 		// we may have aborted the tx, send abort again
 		abort := &shardstates.XShardCommitMsg{
 			MsgType: shardstates.EVENT_SHARD_ABORT,
 		}
 		remoteNotify(ctx, tx, msg.SourceShardID, abort)
+		native.SetTxCommitted(tx, false)
 		return fmt.Errorf("failed get tx db when processing prepare msg")
 	}
 
-	// lock contract
-	contracts, err := native.GetTxContracts(ctx, tx)
-	if err != nil {
-		return fmt.Errorf("failed to get contract of tx %v", tx)
-	}
-	sort.Slice(contracts, func(i, j int) bool {
-		return bytes.Compare(contracts[i][:], contracts[j][:]) > 0
-	})
-	for _, c := range contracts {
-		if err := native.LockContract(ctx, c); err != nil {
-			// TODO: revert all locks
-			return fmt.Errorf("failed to lock contract %v for tx %v", c, tx)
-		}
+	if err := lockTxContracts(ctx, tx, nil, nil); err != nil {
+		return err
 	}
 	// response prepared
-	if _, err := sendPreparedResponse(ctx, msg.SourceShardID, tx); err != nil {
+	pareparedMsg := &shardstates.XShardCommitMsg{
+		MsgType: shardstates.EVENT_SHARD_PREPARED,
+	}
+	if _, err := remoteNotify(ctx, tx, msg.SourceShardID, pareparedMsg); err != nil {
 		return fmt.Errorf("failed to add prepared response for tx %v: %s", tx, err)
 	}
 	return nil
@@ -87,13 +104,13 @@ func processXShardPreparedMsg(ctx *native.NativeService, msg *shardstates.Common
 		return fmt.Errorf("failed to commit tx %v: %s", tx, err)
 	}
 
-	// cached rwset to db
+	// commit cached rwset
 	txState, err := native.GetTxState(tx)
 	if err != nil {
 		return err
 	}
 	ctx.CacheDB = txState.DB
-
+	native.SetTxCommitted(tx, true)
 	return nil
 }
 
@@ -108,10 +125,10 @@ func processXShardCommitMsg(ctx *native.NativeService, msg *shardstates.CommonSh
 	if err != nil {
 		return fmt.Errorf("get Tx state: %s", err)
 	}
-	txState.State = native.TxCommit
 
 	// commit the cached rwset
 	ctx.CacheDB = txState.DB
+	native.SetTxCommitted(tx, true)
 
 	return nil
 }
@@ -123,11 +140,6 @@ func processXShardAbortMsg(ctx *native.NativeService, msg *shardstates.CommonSha
 
 	// update tx state
 	tx := msg.SourceTxHash
-	txState, err := native.GetTxState(tx)
-	if err != nil {
-		return fmt.Errorf("get Tx state: %s", err)
-	}
-	txState.State = native.TxAbort
-
+	native.SetTxCommitted(tx, false)
 	return nil
 }
