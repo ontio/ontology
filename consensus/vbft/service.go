@@ -1113,11 +1113,15 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	if self.parentHeight < msg.Block.Block.Header.ParentHeight {
+	parentHeight, err := chainmgr.GetParentShardHeight()
+	if err != nil {
+		log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,Get ParentHeight:%d,err:%s", msg.GetBlockNum(), self.parentHeight, err)
+		return
+	}
+	if parentHeight < msg.Block.Block.Header.ParentHeight {
 		log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,ParentHeight:%d,self.parentHeight:%d", msg.GetBlockNum(), self.parentHeight, msg.Block.Block.Header.ParentHeight)
 		return
 	}
-	parentHeight, err := chainmgr.GetParentShardHeight()
 	if self.parentHeight < parentHeight {
 		temp := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
 		for id, txs := range temp {

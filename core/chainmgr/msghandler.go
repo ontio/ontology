@@ -186,6 +186,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
 		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
 	}
+	shardState.GenesisParentHeight = self.processedBlockHeight
 	return self.startChildShard(evt.ShardID, shardState)
 }
 
@@ -237,7 +238,7 @@ func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 		log.Errorf("shard %d, failed to start %d: err:%s", self.shardID, shardInfo.ShardID, err)
 		return fmt.Errorf("shard %d, failed to start %d: err:%s", self.shardID, shardInfo.ShardID, err)
 	} else {
-		log.Infof(">>>> staring shard %d, cmd: %s, args: %v", shardInfo.ShardID, os.Args[0], shardArgs)
+		log.Infof(">>>> starting shard %d, cmd: %s, args: %v", shardInfo.ShardID, os.Args[0], shardArgs)
 	}
 	return nil
 }
