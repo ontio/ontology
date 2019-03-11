@@ -4,18 +4,17 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/ontio/ontology/smartcontract/common"
-
-	"github.com/clearmatics/bn256"
+	"github.com/kunxian-xia/bn256"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const fieldSize = 32
 const g1Size = 64
 const g2Size = 128
 
-func deserializeG1(point *bn256.G1, source common.ZeroCopySource) error {
+func deserializeG1(point *bn256.G1, source *common.ZeroCopySource) error {
 	bytes, eof := source.NextBytes(g1Size)
 	if eof {
 		return errors.New("eof")
@@ -24,9 +23,10 @@ func deserializeG1(point *bn256.G1, source common.ZeroCopySource) error {
 	if !ok {
 		return errors.New("failed to unmarshal G1 point")
 	}
+	return nil
 }
 
-func deserializeG2(point *bn256.G2, source common.ZeroCopySource) error {
+func deserializeG2(point *bn256.G2, source *common.ZeroCopySource) error {
 	bytes, eof := source.NextBytes(g2Size)
 	if eof {
 		return errors.New("eof")
@@ -35,6 +35,7 @@ func deserializeG2(point *bn256.G2, source common.ZeroCopySource) error {
 	if !ok {
 		return errors.New("failed to unmarshal G1 point")
 	}
+	return nil
 }
 
 type phgr13VerifyingKey struct {
@@ -49,12 +50,11 @@ type phgr13VerifyingKey struct {
 	ic         []*bn256.G1
 }
 
-func (vk *phgr13VerifyingKey) Deserialize(source common.ZeroCopySource) error {
+func (vk *phgr13VerifyingKey) Deserialize(source *common.ZeroCopySource) error {
 	var err error
 	var eof bool
-	var ok bool
 
-	vk.icLen, eof = source.NextUInt64()
+	vk.icLen, eof = source.NextUint64()
 	if eof {
 		err = errors.New("")
 		return err
@@ -92,11 +92,11 @@ func (vk *phgr13VerifyingKey) Deserialize(source common.ZeroCopySource) error {
 		return err
 	}
 
-	if source.Len() < icLen*g1Size {
+	if source.Len() < vk.icLen*g1Size {
 		return errors.New("")
 	}
-	this.ic = make([]*bn256.G1, icLen)
-	for i := 0; i < icLen; i++ {
+	vk.ic = make([]*bn256.G1, vk.icLen)
+	for i := uint64(0); i < vk.icLen; i++ {
 		err = deserializeG1(vk.ic[i], source)
 		if err != nil {
 			return err
@@ -116,7 +116,7 @@ type phgr13Proof struct {
 	h      *bn256.G1
 }
 
-func (proof *phgr13Proof) Deserialize(source common.ZeroCopySource) error {
+func (proof *phgr13Proof) Deserialize(source *common.ZeroCopySource) error {
 	var err error
 
 	// if source.Len() < 7*g1Size + 1*g2Size {
@@ -223,9 +223,13 @@ func PHGR13Verify(ns *native.NativeService) ([]byte, error) {
 
 	// deserialize public input
 	// public input is a vector of field elements
-	inputLen := source.NextUInt64(source)
+	inputLen, eof := source.NextUint64()
+	if eof {
+		return nil, errors.New("")
+	}
+
 	input := make([]*big.Int, inputLen)
-	for i := 0; i < inputLen; i++ {
+	for i := uint64(0); i < inputLen; i++ {
 		bytes, eof := source.NextBytes(fieldSize)
 		if eof {
 			return nil, errors.New("encounter eof when deserialize public input")
@@ -236,8 +240,8 @@ func PHGR13Verify(ns *native.NativeService) ([]byte, error) {
 	// do the actual zk-SNARKs verification
 	valid := verify(vk, proof, input)
 	if !valid {
-		return common.BYTES_FALSE, nil
+		return utils.BYTE_FALSE, nil
 	} else {
-		return common.BYTES_TRUE, nil
+		return utils.BYTE_TRUE, nil
 	}
 }
