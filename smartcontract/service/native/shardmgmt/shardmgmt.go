@@ -217,9 +217,6 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, get shard: %s", err)
 	}
-	if shard == nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, get nil shard %d", params.ShardID)
-	}
 
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid configurator: %s", err)
@@ -272,13 +269,12 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: invalid param: %s", err)
 	}
 	// verify peer is exist in root chain consensus
-	peerPoolMap, err := getRootCurrentViewPeerMap(native)
-	if _, ok := peerPoolMap.PeerPoolMap[params.PeerPubKey]; !ok {
-		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer doesn't exist")
+	if _, err := getRootCurrentViewPeerItem(native, params.PeerPubKey); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: failed, err: %s", err)
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	err = setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
+	err := setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: failed, err: %s", err)
 	}
@@ -328,7 +324,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	if err := utils.ValidateOwner(native, params.PeerOwner); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: invalid configurator: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: invalid peer owner: %s", err)
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -339,9 +335,6 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: get shard: %s", err)
-	}
-	if shard == nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: get nil shard %d", params.ShardID)
 	}
 	if shard.ShardID.ParentID() != native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: not on parent shard")
@@ -358,10 +351,9 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
-	peerPoolMap, err := getRootCurrentViewPeerMap(native)
-	rootChainPeerItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubKey]
-	if !ok {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer doesn't exist")
+	rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 	if rootChainPeerItem.TotalPos < params.StakeAmount {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
@@ -379,9 +371,10 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer already in shard")
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
-			PeerOwner:   params.PeerOwner,
-			PeerPubKey:  params.PeerPubKey,
-			StakeAmount: params.StakeAmount,
+			PeerOwner:        params.PeerOwner,
+			PeerPubKey:       params.PeerPubKey,
+			StakeAmount:      params.StakeAmount,
+			MaxAuthorization: 0,
 		}
 		if shard.Peers == nil {
 			shard.Peers = make(map[keypair.PublicKey]*shardstates.PeerShardStakeInfo)
@@ -431,9 +424,6 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("activate shard, get shard: %s", err)
-	}
-	if shard == nil {
-		return utils.BYTE_FALSE, fmt.Errorf("activate shard, get nil shard %d", params.ShardID)
 	}
 
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {

@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -135,25 +134,25 @@ func setGlobalState(native *native.NativeService, contract common.Address, state
 func GetShardState(native *native.NativeService, contract common.Address, shardID types.ShardID) (*shardstates.ShardState, error) {
 	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
-		return nil, fmt.Errorf("getShardState, serialize shardID: %s", err)
+		return nil, fmt.Errorf("getShardState: serialize shardID: %s", err)
 	}
 
 	shardStateBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes))
 	if err != nil {
 		return nil, fmt.Errorf("getShardState: %s", err)
 	}
-	if shardStateBytes == nil {
-		return nil, nil
+	if shardStateBytes == nil || len(shardStateBytes) == 0 {
+		return nil, fmt.Errorf("getShardState: shard %d not exist", shardID)
 	}
 
 	value, err := cstates.GetValueFromRawStorageItem(shardStateBytes)
 	if err != nil {
-		return nil, fmt.Errorf("getShardState, deserialize from raw storage: %s", err)
+		return nil, fmt.Errorf("getShardState: deserialize from raw storage: %s", err)
 	}
 
 	state := &shardstates.ShardState{}
 	if err := state.Deserialize(bytes.NewBuffer(value)); err != nil {
-		return nil, fmt.Errorf("getShardState, deserialize ShardState: %s", err)
+		return nil, fmt.Errorf("getShardState: deserialize ShardState: %s", err)
 	}
 
 	return state, nil
@@ -162,16 +161,15 @@ func GetShardState(native *native.NativeService, contract common.Address, shardI
 func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) error {
 	shardIDBytes, err := shardutil.GetUint64Bytes(state.ShardID.ToUint64())
 	if err != nil {
-		return fmt.Errorf("setShardState, serialize shardID: %s", err)
+		return fmt.Errorf("setShardState: serialize shardID: %s", err)
 	}
 
 	buf := new(bytes.Buffer)
 	if err := state.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize shardstate: %s", err)
+		return fmt.Errorf("setShardState: serialize shardstate: %s", err)
 	}
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes)
-	log.Infof("set shard %d , key %v, state: %s", state.ShardID, key, string(buf.Bytes()))
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
 	return nil
 }
@@ -242,6 +240,18 @@ func getShardPeerState(native *native.NativeService, contract common.Address, sh
 		return state_default, fmt.Errorf("getShardPeerState: parse store value failed, err: %s", err)
 	}
 	return peerState(value), nil
+}
+
+func getRootCurrentViewPeerItem(native *native.NativeService, pubKey string) (*governance.PeerPoolItem, error) {
+	peerPoolMap, err := getRootCurrentViewPeerMap(native)
+	if err != nil {
+		return nil, fmt.Errorf("getRootCurrentViewPeerItem: failed, err: %s", err)
+	}
+	item, ok := peerPoolMap.PeerPoolMap[pubKey]
+	if !ok {
+		return nil, fmt.Errorf("getRootCurrentViewPeerItem: peer not exist")
+	}
+	return item, nil
 }
 
 func getRootCurrentViewPeerMap(native *native.NativeService) (*governance.PeerPoolMap, error) {
