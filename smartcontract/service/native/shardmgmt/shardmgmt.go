@@ -23,7 +23,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -68,6 +67,8 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(APPROVE_JOIN_SHARD_NAME, ApproveJoinShard)
 	native.Register(JOIN_SHARD_NAME, JoinShard)
 	native.Register(ACTIVATE_SHARD_NAME, ActivateShard)
+
+	registerShardGov(native)
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -271,16 +272,7 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: invalid param: %s", err)
 	}
 	// verify peer is exist in root chain consensus
-	//get current view
-	view, err := governance.GetView(native, utils.GovernanceContractAddress)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: get view error: %s", err)
-	}
-	//get peerPoolMap
-	peerPoolMap, err := governance.GetPeerPoolMap(native, utils.GovernanceContractAddress, view)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: get peerPoolMap error: %s", err)
-	}
+	peerPoolMap, err := getRootCurrentViewPeerMap(native)
 	if _, ok := peerPoolMap.PeerPoolMap[params.PeerPubKey]; !ok {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer doesn't exist")
 	}
@@ -366,16 +358,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
-	//get current view
-	view, err := governance.GetView(native, utils.GovernanceContractAddress)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: get view error: %s", err)
-	}
-	//get peerPoolMap
-	peerPoolMap, err := governance.GetPeerPoolMap(native, utils.GovernanceContractAddress, view)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: get peerPoolMap error: %s", err)
-	}
+	peerPoolMap, err := getRootCurrentViewPeerMap(native)
 	rootChainPeerItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubKey]
 	if !ok {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer doesn't exist")

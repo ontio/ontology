@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -241,4 +242,18 @@ func getShardPeerState(native *native.NativeService, contract common.Address, sh
 		return state_default, fmt.Errorf("getShardPeerState: parse store value failed, err: %s", err)
 	}
 	return peerState(value), nil
+}
+
+func getRootCurrentViewPeerMap(native *native.NativeService) (*governance.PeerPoolMap, error) {
+	//get current view
+	view, err := governance.GetView(native, utils.GovernanceContractAddress)
+	if err != nil {
+		return nil, fmt.Errorf("getRootCurrentViewPeerMap: get view error: %s", err)
+	}
+	//get peerPoolMap
+	peerPoolMap, err := governance.GetPeerPoolMap(native, utils.GovernanceContractAddress, view)
+	if err != nil {
+		return nil, fmt.Errorf("getRootCurrentViewPeerMap: get peerPoolMap error: %s", err)
+	}
+	return peerPoolMap, nil
 }
