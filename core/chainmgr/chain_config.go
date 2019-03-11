@@ -63,8 +63,9 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		// add seeds and bookkeepers to config
 		seedlist := make([]string, 0)
 		bookkeepers := make([]string, 0)
-		for peerPK, info := range shardState.Peers {
-			seedlist = append(seedlist, info.PeerAddress)
+		for peerPK, _ := range shardState.Peers {
+			seed := types.AddressFromPubKey(peerPK)
+			seedlist = append(seedlist, seed.ToBase58())
 			bookkeepers = append(bookkeepers, hex.EncodeToString(keypair.SerializePublicKey(peerPK)))
 		}
 		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
@@ -73,7 +74,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		seedlist := make([]string, 0)
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
 		for peerPK, info := range shardState.Peers {
-			seedlist = append(seedlist, info.PeerAddress)
+			seedlist = append(seedlist, info.PeerPubKey)
 			vbftpeerstakeinfo := &config.VBFTPeerStakeInfo{
 				Index:      info.Index,
 				PeerPubkey: hex.EncodeToString(keypair.SerializePublicKey(peerPK)),

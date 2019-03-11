@@ -308,7 +308,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
 			PeerOwner:   params.PeerOwner,
-			PeerAddress: params.PeerAddress,
+			PeerPubKey:  params.PeerPubKey,
 			StakeAmount: params.StakeAmount,
 		}
 		if shard.Peers == nil {

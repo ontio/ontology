@@ -100,14 +100,12 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 // param for peer join shard request
 // @ShardID : ID of shard which peer node is going to join
 // @PeerOwner : wallet address of peer owner (to pay stake token)
-// @PeerAddress : wallet address for peer fee split (to get paid gas)
-// @PeerPubKey : peer public key, to verify message signatures sent from peer
+// @PeerPubKey : peer public key, to verify message signatures sent from peer, run ontology wallet account
 // @StakeAmount : amount of token stake for the peer
 //
 type JoinShardParam struct {
 	ShardID     types.ShardID  `json:"shard_id"`
 	PeerOwner   common.Address `json:"peer_owner"`
-	PeerAddress string         `json:"peer_address"`
 	PeerPubKey  string         `json:"peer_pub_key"`
 	StakeAmount uint64         `json:"stake_amount"`
 }
