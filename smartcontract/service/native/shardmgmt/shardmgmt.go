@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -46,16 +47,13 @@ const (
 	VERSION_CONTRACT_SHARD_MGMT = uint32(1)
 
 	// function names
-	INIT_NAME           = "init"
-	CREATE_SHARD_NAME   = "createShard"
-	CONFIG_SHARD_NAME   = "configShard"
-	JOIN_SHARD_NAME     = "joinShard"
-	ACTIVATE_SHARD_NAME = "activateShard"
-
-	// key prefix
-	KEY_VERSION      = "version"
-	KEY_GLOBAL_STATE = "globalState"
-	KEY_SHARD_STATE  = "shardState"
+	INIT_NAME               = "init"
+	CREATE_SHARD_NAME       = "createShard"
+	CONFIG_SHARD_NAME       = "configShard"
+	APPLY_JOIN_SHARD_NAME   = "applyJoinShard"
+	APPROVE_JOIN_SHARD_NAME = "approveJoinShard"
+	JOIN_SHARD_NAME         = "joinShard"
+	ACTIVATE_SHARD_NAME     = "activateShard"
 )
 
 func InitShardManagement() {
@@ -66,6 +64,8 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(INIT_NAME, ShardMgmtInit)
 	native.Register(CREATE_SHARD_NAME, CreateShard)
 	native.Register(CONFIG_SHARD_NAME, ConfigShard)
+	native.Register(APPLY_JOIN_SHARD_NAME, ApplyJoinShard)
+	native.Register(APPROVE_JOIN_SHARD_NAME, ApproveJoinShard)
 	native.Register(JOIN_SHARD_NAME, JoinShard)
 	native.Register(ACTIVATE_SHARD_NAME, ActivateShard)
 }
@@ -265,6 +265,66 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
+	params := new(ApplyJoinShardParam)
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: invalid param: %s", err)
+	}
+	// verify peer is exist in root chain consensus
+	//get current view
+	view, err := governance.GetView(native, utils.GovernanceContractAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: get view error: %s", err)
+	}
+	//get peerPoolMap
+	peerPoolMap, err := governance.GetPeerPoolMap(native, utils.GovernanceContractAddress, view)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: get peerPoolMap error: %s", err)
+	}
+	if _, ok := peerPoolMap.PeerPoolMap[params.PeerPubKey]; !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer doesn't exist error: %s", err)
+	}
+
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	err = setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
+func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
+	// get admin from database
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: get admin failed, err: %s", err)
+	}
+	if err := utils.ValidateOwner(native, adminAddress); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: invalid configurator: %s", err)
+	}
+
+	params := new(ApproveJoinShardParam)
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: invalid param: %s", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	for _, pubKey := range params.PeerPubKey {
+		state, err := getShardPeerState(native, contract, params.ShardId, pubKey)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: faile, err: %s", err)
+		}
+		if state != state_applied {
+			return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: peer %s hasn't applied", pubKey)
+		}
+		err = setShardPeerState(native, contract, params.ShardId, state_approved, pubKey)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: update peer %s state faield, err: %s", pubKey, err)
+		}
+	}
+	return utils.BYTE_TRUE, nil
+}
+
 func JoinShard(native *native.NativeService) ([]byte, error) {
 	cp := new(CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -276,35 +336,47 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	if err := utils.ValidateOwner(native, params.PeerOwner); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid configurator: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: invalid configurator: %s", err)
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, check version: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: check version: %s", err)
 	}
 
 	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, get shard: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: get shard: %s", err)
 	}
 	if shard == nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, get nil shard %d", params.ShardID)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: get nil shard %d", params.ShardID)
 	}
 	if shard.ShardID.ParentID() != native.ShardID {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, not on parent shard")
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: not on parent shard")
+	}
+
+	state, err := getShardPeerState(native, contract, params.ShardID, params.PeerPubKey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
+	}
+	if state != state_approved {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer state %s unmatch", state)
+	}
+	err = setShardPeerState(native, contract, params.ShardID, state_joined, params.PeerPubKey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 
 	pubKeyData, err := hex.DecodeString(params.PeerPubKey)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, decode param pub key failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: decode param pub key failed, err: %s", err)
 	}
 	paramPubkey, err := keypair.DeserializePublicKey(pubKeyData)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, deserialize param pub key failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: deserialize param pub key failed, err: %s", err)
 	}
 	if _, present := shard.Peers[paramPubkey]; present {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, peer already in shard")
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer already in shard")
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
 			PeerOwner:   params.PeerOwner,
@@ -319,13 +391,13 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, update shard state: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: update shard state: %s", err)
 	}
 
 	// transfer stake asset
 	err = ont.AppCallTransfer(native, shard.Config.StakeAssetAddress, params.PeerOwner, contract, params.StakeAmount)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, transfer stake asset failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: transfer stake asset failed, err: %s", err)
 	}
 
 	evt := &shardstates.PeerJoinShardEvent{
@@ -335,7 +407,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	evt.SourceShardID = native.ShardID
 	evt.ShardID = native.ShardID
 	if err := AddNotification(native, contract, evt); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, add notification: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: add notification: %s", err)
 	}
 
 	return utils.BYTE_TRUE, nil

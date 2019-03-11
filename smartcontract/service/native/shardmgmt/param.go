@@ -96,6 +96,32 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
+type ApplyJoinShardParam struct {
+	ShardId    types.ShardID `json:"shard_id"`
+	PeerPubKey string        `json:"peer_pub_key"`
+}
+
+func (this *ApplyJoinShardParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *ApplyJoinShardParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+type ApproveJoinShardParam struct {
+	ShardId    types.ShardID `json:"shard_id"`
+	PeerPubKey []string      `json:"peer_pub_key"`
+}
+
+func (this *ApproveJoinShardParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *ApproveJoinShardParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
 //
 // param for peer join shard request
 // @ShardID : ID of shard which peer node is going to join
