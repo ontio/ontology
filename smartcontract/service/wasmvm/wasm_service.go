@@ -64,7 +64,7 @@ var (
 
 	//max memory size of wasm vm
 	WASM_MEM_LIMITATION uint64 = 10 * 1024 * 1024
-	VM_STEP_LIMIT = 40000000
+	VM_STEP_LIMIT              = 40000000
 )
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
@@ -86,7 +86,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
 	host := &Runtime{Service: this, Input: contract.Args}
-
 	m, err := wasm.ReadModule(bytes.NewReader(code.Code), func(name string) (*wasm.Module, error) {
 		switch name {
 		case "env":

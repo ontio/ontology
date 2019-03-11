@@ -21,10 +21,10 @@ import (
 	"bytes"
 	"reflect"
 
+	"fmt"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	states2 "github.com/ontio/ontology/core/states"
@@ -137,7 +137,7 @@ func (self *Runtime) Debug(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	log.Debugf("[WasmContract Debug log]:%v\n", string(bs))
+	fmt.Printf("%s", string(bs))
 }
 
 func (self *Runtime) Notify(proc *exec.Process, ptr uint32, len uint32) {
@@ -193,6 +193,7 @@ func (self *Runtime) RaiseException(proc *exec.Process) {
 }
 
 func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32) uint32 {
+
 	self.checkGas(CALL_CONTRACT_GAS)
 	contractAddrbytes := make([]byte, 20)
 	_, err := proc.ReadAt(contractAddrbytes, int64(contractAddr))
@@ -268,6 +269,7 @@ func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, input
 		if err != nil {
 			panic(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
 		}
+
 		result = tmpRes.([]byte)
 
 	case WASMVM_CONTRACT:
@@ -615,8 +617,8 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    21,
 			},
-			"ont_exception": {
-				FieldStr: "ont_exception",
+			"abort": {
+				FieldStr: "abort",
 				Kind:     wasm.ExternalFunction,
 				Index:    22,
 			},
