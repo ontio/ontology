@@ -282,7 +282,7 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: get peerPoolMap error: %s", err)
 	}
 	if _, ok := peerPoolMap.PeerPoolMap[params.PeerPubKey]; !ok {
-		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer doesn't exist error: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer doesn't exist")
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -365,6 +365,23 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	err = setShardPeerState(native, contract, params.ShardID, state_joined, params.PeerPubKey)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
+	}
+	//get current view
+	view, err := governance.GetView(native, utils.GovernanceContractAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: get view error: %s", err)
+	}
+	//get peerPoolMap
+	peerPoolMap, err := governance.GetPeerPoolMap(native, utils.GovernanceContractAddress, view)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: get peerPoolMap error: %s", err)
+	}
+	rootChainPeerItem, ok := peerPoolMap.PeerPoolMap[params.PeerPubKey]
+	if !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer doesn't exist")
+	}
+	if rootChainPeerItem.TotalPos < params.StakeAmount {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
 	}
 
 	pubKeyData, err := hex.DecodeString(params.PeerPubKey)
