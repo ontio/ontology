@@ -118,10 +118,6 @@ func checkShardID(native *native.NativeService, shardID types.ShardID) (bool, er
 		return false, err
 	}
 
-	if shardState == nil {
-		return false, fmt.Errorf("invalid shard %d", shardID)
-	}
-
 	return shardState.State == shardstates.SHARD_STATE_ACTIVE, nil
 }
 

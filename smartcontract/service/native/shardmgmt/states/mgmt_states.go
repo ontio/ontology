@@ -70,10 +70,12 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 }
 
 type PeerShardStakeInfo struct {
-	Index       uint32         `json:"index"`
-	PeerOwner   common.Address `json:"peer_owner"`
-	PeerPubKey  string         `json:"peer_pub_key"`
-	StakeAmount uint64         `json:"stake_amount"`
+	Index            uint32         `json:"index"`
+	PeerOwner        common.Address `json:"peer_owner"`
+	PeerPubKey       string         `json:"peer_pub_key"`
+	StakeAmount      uint64         `json:"stake_amount"`
+	MaxAuthorization uint64         `json:"max_authorization"`
+	Proportion       uint64         `json:"proportion"`
 }
 
 type ShardState struct {
