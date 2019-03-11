@@ -20,7 +20,9 @@ package shardmgmt
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common"
@@ -33,6 +35,28 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
+
+const (
+	// key prefix
+	KEY_VERSION      = "version"
+	KEY_GLOBAL_STATE = "globalState"
+	KEY_SHARD_STATE  = "shardState"
+
+	KEY_SHARD_PEER_STATE = "peerState"
+)
+
+type peerState string
+
+const (
+	state_default  peerState = "default"
+	state_applied  peerState = "applied"
+	state_approved peerState = "approved"
+	state_joined   peerState = "joined"
+)
+
+func genPeerStateKey(contract common.Address, shardIdBytes []byte, pubKey keypair.PublicKey) []byte {
+	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_PEER_STATE), keypair.SerializePublicKey(pubKey))
+}
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
 	versionBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_VERSION)))
@@ -169,4 +193,52 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 			States:          eventState,
 		})
 	return nil
+}
+
+func setShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID, state peerState,
+	pubKey string) error {
+	pubKeyData, err := hex.DecodeString(pubKey)
+	if err != nil {
+		return fmt.Errorf("setShardPeerState: decode param pub key failed, err: %s", err)
+	}
+	paramPubkey, err := keypair.DeserializePublicKey(pubKeyData)
+	if err != nil {
+		return fmt.Errorf("setShardPeerState: deserialize param pub key failed, err: %s", err)
+	}
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
+	if err != nil {
+		return fmt.Errorf("setShardPeerState: serialize shardID: %s", err)
+	}
+	key := genPeerStateKey(contract, shardIDBytes, paramPubkey)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem([]byte(state)))
+	return nil
+}
+
+func getShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID,
+	pubKey string) (peerState, error) {
+	pubKeyData, err := hex.DecodeString(pubKey)
+	if err != nil {
+		return state_default, fmt.Errorf("getShardPeerState: decode param pub key failed, err: %s", err)
+	}
+	paramPubkey, err := keypair.DeserializePublicKey(pubKeyData)
+	if err != nil {
+		return state_default, fmt.Errorf("getShardPeerState: deserialize param pub key failed, err: %s", err)
+	}
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
+	if err != nil {
+		return state_default, fmt.Errorf("getShardPeerState: serialize shardID: %s", err)
+	}
+	key := genPeerStateKey(contract, shardIDBytes, paramPubkey)
+	data, err := native.CacheDB.Get(key)
+	if err != nil {
+		return state_default, fmt.Errorf("getShardPeerState: read db failed, err: %s", err)
+	}
+	if len(data) == 0 {
+		return state_default, nil
+	}
+	value, err := cstates.GetValueFromRawStorageItem(data)
+	if err != nil {
+		return state_default, fmt.Errorf("getShardPeerState: parse store value failed, err: %s", err)
+	}
+	return peerState(value), nil
 }
