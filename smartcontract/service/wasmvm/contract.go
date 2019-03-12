@@ -215,6 +215,9 @@ func (self *Runtime) ContractDelete(proc *exec.Process) {
 		panic(err)
 	}
 
+	//the contract has been deleted ,quit the contract operation
+	proc.Terminate()
+
 }
 
 func (self *Runtime) isContractExist(contractAddress common.Address) bool {
