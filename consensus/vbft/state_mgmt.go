@@ -20,6 +20,7 @@ package vbft
 
 import (
 	"math"
+	"sort"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -428,27 +429,34 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) erro
 
 // return 0 if consensus not reached yet
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
-	C := int(self.server.config.C)
+	myCommitted := self.server.GetCommittedBlockNo()
 
+	commitedBlocksList := make([]uint32, 0, len(self.peers))
+	for _, p := range self.peers {
+		if p.committedBlockNum > myCommitted {
+			commitedBlocksList = append(commitedBlocksList, p.committedBlockNum)
+		}
+	}
+
+	sort.Slice(commitedBlocksList, func(i, j int) bool { return commitedBlocksList[i] > commitedBlocksList[j] })
+
+	commitedBlocks := make(map[uint32]int)
+	for k := range commitedBlocksList {
+		blockNumber := commitedBlocksList[k]
+		if _, present := commitedBlocks[blockNumber]; !present {
+			commitedBlocks[blockNumber] = k + 1
+		}
+	}
+
+	C := int(self.server.config.C)
 	consensused := false
 	var maxCommitted uint32
-	myCommitted := self.server.GetCommittedBlockNo()
-	peers := make(map[uint32][]uint32)
-	for _, p := range self.peers {
-		n := p.committedBlockNum
-		if n >= myCommitted {
-			if _, present := peers[n]; !present {
-				peers[n] = make([]uint32, 0)
+	for k := range commitedBlocks {
+		if commitedBlocks[k] > C {
+			if k > maxCommitted {
+				maxCommitted = k
 			}
-			for k := range peers {
-				if n >= k {
-					peers[k] = append(peers[k], p.peerIdx)
-				}
-			}
-			if len(peers[n]) > C {
-				maxCommitted = n
-				consensused = true
-			}
+			consensused = true
 		}
 	}
 
