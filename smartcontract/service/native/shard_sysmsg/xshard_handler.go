@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -63,8 +64,8 @@ func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg
 	if !ok || reqMsg == nil {
 		return fmt.Errorf("invalid request message")
 	}
-	result, err := native.GetTxResponse(req.SourceTxHash, reqMsg)
-	if err == native.ErrNotFound {
+	result, err := xshard_state.GetTxResponse(req.SourceTxHash, reqMsg)
+	if err == xshard_state.ErrNotFound {
 		// FIXME: invoke neo contract
 		result2, err2 := ctx.NativeCall(req.Msg.GetContract(), req.Msg.GetMethod(), req.Msg.GetArgs())
 		if err != nil {
@@ -84,10 +85,10 @@ func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg
 		Result:  result,
 		Error:   err.Error(),
 	}
-	if err2 := native.PutTxRequest(req.SourceTxHash, nil, reqMsg); err2 != nil {
+	if err2 := xshard_state.PutTxRequest(req.SourceTxHash, nil, reqMsg); err2 != nil {
 		return err2
 	}
-	if err2 := native.PutTxResponse(req.SourceTxHash, rspMsg); err2 != nil {
+	if err2 := xshard_state.PutTxResponse(req.SourceTxHash, rspMsg); err2 != nil {
 		return err2
 	}
 
@@ -119,12 +120,12 @@ func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg
 	}
 
 	tx := msg.SourceTxHash
-	if err := native.PutTxResponse(tx, rspMsg); err != nil {
+	if err := xshard_state.PutTxResponse(tx, rspMsg); err != nil {
 		return fmt.Errorf("failed to store tx response: %s", err)
 	}
 
 	// Get caller contract and cachedDB from tx
-	txPayload, err := native.GetTxPayload(tx)
+	txPayload, err := xshard_state.GetTxPayload(tx)
 	if err != nil {
 		return fmt.Errorf("failed to get tx payload on remote response: %s", err)
 	}
@@ -134,18 +135,22 @@ func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg
 	engine, _ := ctx.ContextRef.NewExecuteEngine(txPayload)
 	result, resultErr := engine.Invoke()
 	if resultErr != nil {
-		return err
+		// Txn failed, abort all transactions
+		if _, err2 := abortTx(ctx, tx); err2 != nil {
+			return fmt.Errorf("rwset verify %s, abort tx %v, err: %s", err, tx, err2)
+		}
+		return resultErr
 	}
 
 	// START 2PC COMMIT
-	if err := native.VerifyStates(ctx, tx); err != nil {
+	if err := xshard_state.VerifyStates(tx); err != nil {
 		if _, err2 := abortTx(ctx, tx); err2 != nil {
 			return fmt.Errorf("rwset verify %s, abort tx %v, err: %s", err, tx, err2)
 		}
 		return err
 	}
 
-	native.SetTxPrepared(tx)
+	xshard_state.SetTxPrepared(tx)
 	if _, err := sendPrepareRequest(ctx, tx); err != nil {
 		return err
 	}
@@ -155,7 +160,8 @@ func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg
 		return err
 	}
 
-	// . reset ctx.CacheDB
+	// save Tx rwset and reset ctx.CacheDB
+	xshard_state.UpdateTxResult(tx, ctx.CacheDB)
 	ctx.CacheDB = storage.NewCacheDB(ctx.CacheDB.GetBackendDB())
 	return waitRemoteResponse(ctx)
 }
@@ -163,12 +169,12 @@ func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg
 func lockTxContracts(ctx *native.NativeService, tx common.Uint256, result []byte, resultErr error) error {
 	if result != nil {
 		// save result/err to txstate-db
-		if err := native.SetTxResult(tx, result, resultErr); err != nil {
+		if err := xshard_state.SetTxResult(tx, result, resultErr); err != nil {
 			return fmt.Errorf("save Tx result: %s", err)
 		}
 	}
 
-	contracts, err := native.GetTxContracts(ctx, tx)
+	contracts, err := xshard_state.GetTxContracts(tx)
 	if err != nil {
 		return fmt.Errorf("failed to get contract of tx %v", tx)
 	}
@@ -176,14 +182,24 @@ func lockTxContracts(ctx *native.NativeService, tx common.Uint256, result []byte
 		return bytes.Compare(contracts[i][:], contracts[j][:]) > 0
 	})
 	for _, c := range contracts {
-		if err := native.LockContract(ctx, c); err != nil {
+		if err := xshard_state.LockContract(c); err != nil {
 			// TODO: revert all locks
 			return fmt.Errorf("failed to lock contract %v for tx %v", c, tx)
 		}
 	}
 
-	// TODO: add notification to cached DB
-	// TODO: add DB to cached-tx-state
+	return nil
+}
+
+func unlockTxContract(ctx *native.NativeService, tx common.Uint256) error {
+	contracts, err := xshard_state.GetTxContracts(tx)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range contracts {
+		xshard_state.UnlockContract(c)
+	}
 	return nil
 }
 

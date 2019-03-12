@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -30,7 +31,7 @@ import (
 )
 
 func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
-	toShards, err := native.GetTxShards(tx)
+	toShards, err := xshard_state.GetTxShards(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +51,7 @@ func abortTx(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 	//
 
 	// send abort message to all shards
-	toShards, err := native.GetTxShards(tx)
+	toShards, err := xshard_state.GetTxShards(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,11 +63,13 @@ func abortTx(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 		remoteNotify(ctx, tx, s, msg)
 	}
 
+	// FIXME: cleanup resources
+
 	return nil, nil
 }
 
 func sendCommit(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
-	toShards, err := native.GetTxShards(tx)
+	toShards, err := xshard_state.GetTxShards(tx)
 	if err != nil {
 		return nil, err
 	}

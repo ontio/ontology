@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"io"
 
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -179,13 +180,11 @@ func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types
 	return req.Reqs, nil
 }
 
-
-func txCommitReady(txState map[uint64]*native.TxStateInShard) bool {
+func txCommitReady(txState map[uint64]int) bool {
 	for _, state := range txState {
-		if state.State < native.TxPrepared {
+		if state != xshard_state.TxPrepared {
 			return false
 		}
 	}
 	return true
 }
-
