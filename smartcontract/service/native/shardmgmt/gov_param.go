@@ -52,3 +52,18 @@ func (this *CommitDposParam) Serialize(w io.Writer) error {
 func (this *CommitDposParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
+
+type UserStakeParam struct {
+	ShardId    types.ShardID  `json:"shard_id"`
+	User       common.Address `json:"user"`
+	PeerPubKey []string       `json:"peer_pub_key"`
+	Amount     []uint64       `json:"amount"`
+}
+
+func (this *UserStakeParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *UserStakeParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
