@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -11,6 +12,7 @@ import (
 const (
 	CHANGE_MAX_AUTHORIZATION = "changeMaxAuthorization"
 	CHANGE_PROPORTION        = "changeProportion" // node change proportion of stake user
+	SET_MIN_STAKE            = "setMinStake"
 	COMMIT_DPOS              = "commitDpos"
 	USER_STAKE               = "userStake"
 )
@@ -20,6 +22,7 @@ const (
 func registerShardGov(native *native.NativeService) {
 	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
 	native.Register(CHANGE_PROPORTION, ChangeProportion)
+	native.Register(SET_MIN_STAKE, SetMinStake)
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(USER_STAKE, UserStake)
 }
@@ -82,6 +85,32 @@ func ChangeProportion(native *native.NativeService) ([]byte, error) {
 	err = setShardState(native, contract, shard)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
+func SetMinStake(native *native.NativeService) ([]byte, error) {
+	// get admin from database
+	adminAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: get admin error: %v", err)
+	}
+	//check witness
+	if err := utils.ValidateOwner(native, adminAddress); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: checkWitness error: %v", err)
+	}
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: invalid cmd param: %s", err)
+	}
+	params := new(SetMinStakeParam)
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: invalid param: %s", err)
+	}
+	err = setUserMinStakeAmount(native, params.ShardId, params.Amount)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
 }

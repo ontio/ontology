@@ -23,10 +23,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -210,31 +209,36 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, check version: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: check version: %s", err)
 	}
 
 	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, get shard: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: get shard: %s", err)
 	}
 
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid configurator: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: invalid configurator: %s", err)
 	}
 	if shard.ShardID.ParentID() != native.ShardID {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, not on parent shard")
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: not on parent shard")
 	}
 
 	if params.NetworkMin < 1 {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid shard network size")
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: invalid shard network size")
 	}
 
 	// TODO: support other stake
 	if params.StakeAssetAddress.ToHexString() != utils.OntContractAddress.ToHexString() {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, only support ONT staking")
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: only support ONT staking")
 	}
 	if params.GasAssetAddress.ToHexString() != utils.OngContractAddress.ToHexString() {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, only support ONG gas")
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: only support ONG gas")
+	}
+
+	err = setUserMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftConfigData.MinInitStake))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: failed, err: %s", err)
 	}
 
 	// TODO: validate input config
@@ -247,7 +251,7 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
 	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: update shard state: %s", err)
 	}
 
 	evt := &shardstates.ConfigShardEvent{
@@ -358,6 +362,13 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if rootChainPeerItem.TotalPos < params.StakeAmount {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
 	}
+	minStakeAmount, err := GetUserMinStakeAmount(native, params.ShardID)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
+	}
+	if params.StakeAmount < minStakeAmount {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: stake asset should more than min amount")
+	}
 
 	pubKeyData, err := hex.DecodeString(params.PeerPubKey)
 	if err != nil {
@@ -395,6 +406,11 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	err = ont.AppCallTransfer(native, shard.Config.StakeAssetAddress, params.PeerOwner, contract, params.StakeAmount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: transfer stake asset failed, err: %s", err)
+	}
+
+	_, err = native.NativeCall(utils.ShardStakeAddress, "peerInitStake", native.Input)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 
 	evt := &shardstates.PeerJoinShardEvent{

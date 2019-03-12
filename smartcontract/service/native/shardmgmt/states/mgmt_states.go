@@ -31,7 +31,8 @@ import (
 )
 
 const (
-	SHARD_CREATE_FEE = 100 * 1000000000 // 100 ong
+	SHARD_CREATE_FEE  = 100 * 1000000000 // 100 ong
+	DEFAULT_MIN_STAKE = 100000
 )
 
 const (

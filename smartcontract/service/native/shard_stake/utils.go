@@ -27,7 +27,7 @@ func genShardViewKey(contract common.Address, shardIdBytes []byte) []byte {
 	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_VIEW_INDEX))
 }
 
-func genShardViewPeerInfoKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
+func genShardViewInfoKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
 	return utils.ConcatKey(contract, shardIdBytes, viewBytes, []byte(KEY_VIEW_INFO))
 }
 
@@ -90,7 +90,7 @@ func getShardViewInfo(native *native.NativeService, id types.ShardID, view sstat
 	if err != nil {
 		return nil, fmt.Errorf("getShardViewInfo: ser view failed, err: %s", err)
 	}
-	key := genShardViewPeerInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
+	key := genShardViewInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
 	dataBytes, err := native.CacheDB.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("getShardViewInfo: read db failed, err: %s", err)
@@ -119,7 +119,7 @@ func setShardViewInfo(native *native.NativeService, id types.ShardID, view sstat
 	if err != nil {
 		return fmt.Errorf("setShardViewInfo: ser view failed, err: %s", err)
 	}
-	key := genShardViewPeerInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
+	key := genShardViewInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
 	bf := new(bytes.Buffer)
 	err = info.Serialize(bf)
 	if err != nil {

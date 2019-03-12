@@ -9,6 +9,19 @@ import (
 	"io"
 )
 
+type SetMinStakeParam struct {
+	ShardId types.ShardID `json:"shard_id"`
+	Amount  uint64        `json:"amount"`
+}
+
+func (this *SetMinStakeParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *SetMinStakeParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
 type ChangeMaxAuthorizationParam struct {
 	ShardId          types.ShardID `json:"shard_id"`
 	PeerPubKey       string        `json:"peer_pub_key"`
