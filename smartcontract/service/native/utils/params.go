@@ -19,6 +19,7 @@ package utils
 
 import (
 	"bytes"
+
 	"github.com/ontio/ontology/common"
 )
 

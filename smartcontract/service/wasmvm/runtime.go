@@ -25,6 +25,7 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	states2 "github.com/ontio/ontology/core/states"
@@ -102,13 +103,13 @@ func (self *Runtime) EntryAddress(proc *exec.Process, dst uint32) {
 
 func (self *Runtime) Checkwitness(proc *exec.Process, dst uint32) uint32 {
 	self.checkGas(CHECKWITNESS_GAS)
-	addrbytes := make([]byte, 20)
-	_, err := proc.ReadAt(addrbytes, int64(dst))
+	var addr common.Address
+	_, err := proc.ReadAt(addr[:], int64(dst))
 	if err != nil {
 		panic(err)
 	}
 
-	address, err := common.AddressParseFromBytes(addrbytes)
+	address, err := common.AddressParseFromBytes(addr[:])
 	if err != nil {
 		panic(err)
 	}
@@ -138,7 +139,7 @@ func (self *Runtime) Debug(proc *exec.Process, ptr uint32, len uint32) {
 		return
 	}
 
-	fmt.Printf("%s", string(bs))
+	log.Debugf("[WasmContract]Debug:%s\n", bs)
 }
 
 func (self *Runtime) Notify(proc *exec.Process, ptr uint32, len uint32) {
@@ -189,8 +190,15 @@ func (self *Runtime) GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
 	return uint32(length)
 }
 
-func (self *Runtime) RaiseException(proc *exec.Process) {
-	panic(errors.NewErr("[RaiseException]Contract RaiseException"))
+func (self *Runtime) RaiseException(proc *exec.Process, ptr uint32, len uint32) {
+	bs := make([]byte, len)
+	_, err := proc.ReadAt(bs, int64(ptr))
+	if err != nil {
+		//do not panic on debug
+		return
+	}
+
+	panic(fmt.Errorf("[RaiseException]Contract RaiseException:%s\n", bs))
 }
 
 func (self *Runtime) CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32) uint32 {
@@ -500,7 +508,7 @@ func NewHostModule(host *Runtime) *wasm.Module {
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //22
-			Sig:  &m.Types.Entries[10],
+			Sig:  &m.Types.Entries[4],
 			Host: reflect.ValueOf(host.RaiseException),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
