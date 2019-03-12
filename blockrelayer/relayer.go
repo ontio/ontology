@@ -73,7 +73,7 @@ func (self *Storage) SaveBlock(block *types.Block) {
 	}
 	raw := sink.Bytes()
 	self.task <- &SaveTask{
-		block: &RawBlock{Hash: block.Hash(), HeaderSize:headerLen, Height: block.Header.Height, Payload: raw},
+		block: &RawBlock{Hash: block.Hash(), HeaderSize: headerLen, Height: block.Header.Height, Payload: raw},
 	}
 }
 
@@ -138,12 +138,12 @@ func CurrInfoFromBytes(buf []byte) (info CurrInfo, err error) {
 }
 
 type BlockMeta struct {
-	hash     common.Uint256
-	offset   uint64
-	height   uint32
+	hash       common.Uint256
+	offset     uint64
+	height     uint32
 	headerSize uint32
-	size     uint32
-	checksum common.Uint256
+	size       uint32
+	checksum   common.Uint256
 }
 
 type RawBlock struct {
@@ -286,8 +286,15 @@ func (self *StorageBackend) checkDataConsistence() (bool, error) {
 	return bytes.Equal(checksum.Sum(nil), self.currInfo.checksum.Sum(nil)), nil
 }
 
-func (self *StorageBackend) GetBlockByHash(hash common.Uint256) (*RawBlock, error) {
-	metaRaw, err := self.metaDB.Get(hash[:], nil)
+func (self *StorageBackend) GetBlockByHeight(height uint32) (*RawBlock, error) {
+	var metaKey [4]byte
+	binary.BigEndian.PutUint32(metaKey[:], height)
+
+	return self.getBlock(metaKey[:])
+}
+
+func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
+	metaRaw, err := self.metaDB.Get(metaKey, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -296,14 +303,17 @@ func (self *StorageBackend) GetBlockByHash(hash common.Uint256) (*RawBlock, erro
 	if err != nil {
 		return nil, err
 	}
-
 	buf := make([]byte, meta.size)
 	_, err = self.blockDB.ReadAt(buf, int64(meta.offset))
 	if err != nil {
 		return nil, err
 	}
 
-	return &RawBlock{Hash: hash, HeaderSize:meta.headerSize, Height: meta.height, Payload: buf}, nil
+	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, Height: meta.height, Payload: buf}, nil
+}
+
+func (self *StorageBackend) GetBlockByHash(hash common.Uint256) (*RawBlock, error) {
+	return self.getBlock(hash[:])
 }
 
 func (self *StorageBackend) flush() {
@@ -333,17 +343,20 @@ func (self *StorageBackend) saveBlock(block *RawBlock) error {
 	self.currInfo.checksum.Write(block.Payload)
 
 	meta := BlockMeta{
-		hash:   block.Hash,
-		height: block.Height,
+		hash:       block.Hash,
+		height:     block.Height,
 		headerSize: uint32(block.HeaderSize),
-		size:   uint32(block.Size()),
-		offset: self.currInfo.blockOffset,
+		size:       uint32(block.Size()),
+		offset:     self.currInfo.blockOffset,
 	}
 	self.currInfo.checksum.Sum(meta.checksum[:0])
 	_, err := self.blockDB.Write(block.Payload)
 	checkerr(err)
 
 	self.batch.Put(meta.hash[:], meta.Bytes())
+	var b [4]byte
+	binary.BigEndian.PutUint32(b[:], meta.height)
+	self.batch.Put(b[:], meta.Bytes())
 
 	self.currInfo.blockOffset += uint64(block.Size())
 	self.currInfo.nextHeight += 1
