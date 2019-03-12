@@ -42,7 +42,9 @@ const (
 	KEY_GLOBAL_STATE = "globalState"
 	KEY_SHARD_STATE  = "shardState"
 
-	KEY_SHARD_PEER_STATE = "peerState"
+	KEY_SHARD_PEER_STATE      = "peerState"
+	KEY_SHARD_COMMIT_DPOS_NUM = "commitDposNum" // while shard consensus switch, every consensus node at shard should commit dpos
+	KEY_VIEW_DIVIDED          = "divided"       // shard view has divided fee or not
 )
 
 type peerState string
@@ -56,6 +58,14 @@ const (
 
 func genPeerStateKey(contract common.Address, shardIdBytes []byte, pubKey keypair.PublicKey) []byte {
 	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_PEER_STATE), keypair.SerializePublicKey(pubKey))
+}
+
+func genCommitDposNumKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
+	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_COMMIT_DPOS_NUM), viewBytes)
+}
+
+func genShardDividedKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
+	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_VIEW_DIVIDED), viewBytes)
 }
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -266,4 +276,47 @@ func getRootCurrentViewPeerMap(native *native.NativeService) (*governance.PeerPo
 		return nil, fmt.Errorf("getRootCurrentViewPeerMap: get peerPoolMap error: %s", err)
 	}
 	return peerPoolMap, nil
+}
+
+func setViewDivided(native *native.NativeService, contract common.Address, shardId types.ShardID, view shardstates.View) error {
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
+	if err != nil {
+		return fmt.Errorf("setViewDivided: serialize shardID: %s", err)
+	}
+	viewBytes, err := shardutil.GetUint64Bytes(uint64(view))
+	if err != nil {
+		return fmt.Errorf("setViewDivided: serialize view: %s", err)
+	}
+	key := genCommitDposNumKey(contract, shardIDBytes, viewBytes)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(shardutil.GetUint32Bytes(1)))
+	return nil
+}
+
+func isViewDivided(native *native.NativeService, contract common.Address, shardId types.ShardID,
+	view shardstates.View) (bool, error) {
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
+	if err != nil {
+		return false, fmt.Errorf("isViewDivided: serialize shardID: %s", err)
+	}
+	viewBytes, err := shardutil.GetUint64Bytes(uint64(view))
+	if err != nil {
+		return false, fmt.Errorf("isViewDivided: serialize view: %s", err)
+	}
+	key := genCommitDposNumKey(contract, shardIDBytes, viewBytes)
+	storeValue, err := native.CacheDB.Get(key)
+	if err != nil {
+		return false, fmt.Errorf("isViewDivided: read db failed, err: %s", err)
+	}
+	if len(storeValue) == 0 {
+		return false, nil
+	}
+	data, err := cstates.GetValueFromRawStorageItem(storeValue)
+	if err != nil {
+		return false, fmt.Errorf("isViewDivided: parse db value failed, err: %s", err)
+	}
+	num, err := shardutil.GetBytesUint32(data)
+	if err != nil {
+		return false, fmt.Errorf("isViewDivided: deserialize value failed, err: %s", err)
+	}
+	return num != 0, nil
 }
