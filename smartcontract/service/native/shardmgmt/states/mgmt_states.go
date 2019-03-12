@@ -40,6 +40,13 @@ const (
 	SHARD_STATE_ARCHIVED
 )
 
+type NodeType uint
+
+const (
+	CONDIDATE_NODE = iota
+	CONSENSUS_NODE
+)
+
 type ShardMgmtGlobalState struct {
 	NextSubShardIndex uint16 `json:"next_sub_shard_index"`
 }
@@ -74,6 +81,7 @@ type PeerShardStakeInfo struct {
 	PeerOwner        common.Address `json:"peer_owner"`
 	PeerPubKey       string         `json:"peer_pub_key"`
 	StakeAmount      uint64         `json:"stake_amount"`
+	NodeType         NodeType       `json:"node_type"`
 	MaxAuthorization uint64         `json:"max_authorization"`
 	Proportion       uint64         `json:"proportion"`
 }
@@ -95,3 +103,5 @@ func (this *ShardState) Serialize(w io.Writer) error {
 func (this *ShardState) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
+
+type View uint64 // shard consensus epoch index

@@ -371,13 +371,17 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer already in shard")
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
-			PeerOwner:        params.PeerOwner,
-			PeerPubKey:       params.PeerPubKey,
-			StakeAmount:      params.StakeAmount,
-			MaxAuthorization: 0,
+			PeerOwner:   params.PeerOwner,
+			PeerPubKey:  params.PeerPubKey,
+			StakeAmount: params.StakeAmount,
 		}
 		if shard.Peers == nil {
 			shard.Peers = make(map[keypair.PublicKey]*shardstates.PeerShardStakeInfo)
+		}
+		for i := uint32(0); i < shard.Config.VbftConfigData.K; i++ {
+			if shard.Config.VbftConfigData.Peers[i].PeerPubkey == params.PeerPubKey {
+				peerStakeInfo.NodeType = shardstates.CONSENSUS_NODE
+			}
 		}
 		peerStakeInfo.Index = uint32(len(shard.Peers) + 1)
 		shard.Peers[paramPubkey] = peerStakeInfo

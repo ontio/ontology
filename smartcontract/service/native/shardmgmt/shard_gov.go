@@ -12,11 +12,13 @@ import (
 const (
 	CHANGE_MAX_AUTHORIZATION = "changeMaxAuthorization"
 	CHANGE_PROPORTION        = "changeProportion" // node change proportion of stake user
+	COMMIT_DPOS              = "commitDpos"
 )
 
 func registerShardGov(native *native.NativeService) {
 	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
 	native.Register(CHANGE_PROPORTION, ChangeProportion)
+	native.Register(COMMIT_DPOS, CommitDpos)
 }
 
 func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
@@ -93,6 +95,34 @@ func ChangeProportion(native *native.NativeService) ([]byte, error) {
 	err = setShardState(native, contract, shard)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
+func CommitDpos(native *native.NativeService) ([]byte, error) {
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid cmd param: %s", err)
+	}
+	params := new(CommitDposParam)
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if err := utils.ValidateOwner(native, params.Peer); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: check witness failed, err: %s", err)
+	}
+	shard, err := GetShardState(native, contract, params.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: get shard: %s", err)
+	}
+	//check witness, only shard gas contract can call
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardGasMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only shard gas contract can invoke")
+	}
+	err = divideFee(native, contract, shard, params.View, params.FeeAmount)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
 }
