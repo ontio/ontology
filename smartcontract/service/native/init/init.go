@@ -20,6 +20,7 @@ package init
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
@@ -52,6 +53,7 @@ func init() {
 	auth.Init()
 	governance.InitGovernance()
 	shardmgmt.InitShardManagement()
+	shard_stake.InitShardStake()
 	shardgas.InitShardGasManagement()
 	shardsysmsg.InitShardSystemMessageContract()
 	shardccmc.InitShardCCMC()
