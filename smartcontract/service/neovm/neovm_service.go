@@ -25,13 +25,13 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	scommon "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
 	ntypes "github.com/ontio/ontology/vm/neovm/types"
@@ -254,7 +254,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	// TODO: check txstate-db, if abort remote transactions
 	if this.Engine.EvaluationStack.Count() == 1 {
 		tx := this.Tx.Hash()
-		if shards, err := native.GetTxShards(tx); err != native.ErrNotFound {
+		if shards, err := xshard_state.GetTxShards(tx); err != xshard_state.ErrNotFound {
 			for _, s := range shards {
 				log.Errorf("TODO: abort transaction %s on shard %d", scommon.ToHexString(tx[:]), s)
 			}

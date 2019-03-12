@@ -16,10 +16,11 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package native
+package xshard_state
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
@@ -27,7 +28,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	"github.com/syndtr/goleveldb/leveldb/errors"
 )
 
 const (
@@ -41,19 +41,16 @@ var (
 	MaxRemoteReqPerTx      = 8
 	ErrNotFound            = errors.New("not found")
 	ErrTooMuchRemoteReq    = errors.New("too much remote request")
-	ErrMismatchedTxPayload = errors.New("Mismatched Tx Payload")
-	ErrMismatchedRequest   = errors.New("Mismatched request")
-	ErrMismatchedResponse  = errors.New("Mismatched response")
+	ErrInvalidRemoteRsp    = errors.New("invalid remotes response")
+	ErrMismatchedTxPayload = errors.New("mismatched Tx Payload")
+	ErrMismatchedRequest   = errors.New("mismatched request")
+	ErrMismatchedResponse  = errors.New("nismatched response")
 )
-
-type TxStateInShard struct {
-	State int
-}
 
 type TxState struct {
 	Caller    common.Address
 	State     int
-	Shards    map[uint64]*TxStateInShard
+	Shards    map[uint64]int
 	TxPayload []byte
 	Reqs      map[int32]*shardstates.XShardTxReq
 	Rsps      map[int32]*shardstates.XShardTxRsp
@@ -84,19 +81,20 @@ func GetTxShards(tx common.Uint256) ([]types.ShardID, error) {
 	return nil, ErrNotFound
 }
 
-func AddTxShard(tx common.Uint256, shardID uint64) error {
-	if state, present := shardTxStateTable.TxStates[tx]; present {
-		if _, present := state.Shards[shardID]; !present {
-			state.Shards[shardID] = &TxStateInShard{
-				State: TxExec,
-			}
-		}
+func AddTxShard(tx common.Uint256, shardID types.ShardID) error {
+	txState, err := CreateTxState(tx)
+	if err != nil {
+		return err
+	}
+	id := shardID.ToUint64()
+	if _, present := txState.Shards[id]; !present {
+		txState.Shards[id] = TxExec
 	}
 
 	return ErrNotFound
 }
 
-func GetTxCommitState(tx common.Uint256) (map[uint64]*TxStateInShard, error) {
+func GetTxCommitState(tx common.Uint256) (map[uint64]int, error) {
 	if state, present := shardTxStateTable.TxStates[tx]; present {
 		return state.Shards, nil
 	}
@@ -110,9 +108,9 @@ func CreateTxState(tx common.Uint256) (*TxState, error) {
 		return state, nil
 	}
 	state := &TxState{
-		Shards:     make(map[uint64]*TxStateInShard),
-		Reqs:       make(map[int32]*shardstates.XShardTxReq),
-		Rsps:       make(map[int32]*shardstates.XShardTxRsp),
+		Shards: make(map[uint64]int),
+		Reqs:   make(map[int32]*shardstates.XShardTxReq),
+		Rsps:   make(map[int32]*shardstates.XShardTxRsp),
 	}
 	shardTxStateTable.TxStates[tx] = state
 	return state, nil
@@ -123,6 +121,21 @@ func GetTxState(tx common.Uint256) (*TxState, error) {
 		return state, nil
 	}
 	return nil, ErrNotFound
+}
+
+func GetNextReqIndex(tx common.Uint256) int32 {
+	txState, err := CreateTxState(tx)
+	if err != nil {
+		return -1
+	}
+
+	nextId := int32(len(txState.Reqs))
+	for id := range txState.Reqs {
+		if id > nextId {
+			nextId = id + 1
+		}
+	}
+	return nextId
 }
 
 func SetTxPrepared(tx common.Uint256) error {
@@ -155,7 +168,7 @@ func SetTxCommitted(tx common.Uint256, isCommit bool) error {
 		txState.State = TxAbort
 	}
 
-	txState.Shards = make(map[uint64]*TxStateInShard)
+	txState.Shards = make(map[uint64]int)
 	return nil
 }
 
@@ -185,9 +198,14 @@ func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) ([]byte, e
 func PutTxResponse(tx common.Uint256, txRsp *shardstates.XShardTxRsp) error {
 	txState, err := CreateTxState(tx)
 	if err != nil {
-		return errors.ErrNotFound
+		return ErrNotFound
 	}
 
+	// check if corresponding request existed
+	if _, present := txState.Reqs[txRsp.IdxInTx]; !present {
+		return ErrInvalidRemoteRsp
+	}
+	// check if duplicated response
 	if rspMsg, present := txState.Rsps[txRsp.IdxInTx]; present {
 		if bytes.Compare(rspMsg.Result, txRsp.Result) == 0 &&
 			rspMsg.Error == txRsp.Error {
@@ -213,7 +231,15 @@ func GetTxPayload(tx common.Uint256) ([]byte, error) {
 }
 
 func GetTxRequests(tx common.Uint256) ([]*shardstates.XShardTxReq, error) {
-	return nil, nil
+	txState, err := GetTxState(tx)
+	if err != nil {
+		return nil, err
+	}
+	reqs := make([]*shardstates.XShardTxReq, 0)
+	for _, req := range txState.Reqs {
+		reqs = append(reqs, req)
+	}
+	return reqs, nil
 }
 
 func PutTxRequest(tx common.Uint256, txPayload []byte, req shardstates.XShardMsg) error {
@@ -254,34 +280,33 @@ func PutTxRequest(tx common.Uint256, txPayload []byte, req shardstates.XShardMsg
 	return nil
 }
 
-func GetNextReqIndex(tx common.Uint256) int32 {
-	// TODO
-	return 0
-}
-
-func UpdateTxState(tx common.Uint256, caller common.Address, dataDB *storage.CacheDB, result []byte) error {
+func UpdateTxResult(tx common.Uint256, dataDB *storage.CacheDB) error {
 	txState := shardTxStateTable.TxStates[tx]
 	if txState == nil {
 		txState = &TxState{
-			Caller: caller,
-			DB:     dataDB,
+			DB: dataDB,
 		}
 	}
+	txState.DB = dataDB
 	shardTxStateTable.TxStates[tx] = txState
 	return nil
 }
 
-func VerifyStates(ctx *NativeService, tx common.Uint256) error {
+func VerifyStates(tx common.Uint256) error {
 	// TODO
 	return nil
 }
 
-func GetTxContracts(ctx *NativeService, tx common.Uint256) ([]common.Address, error) {
+func GetTxContracts(tx common.Uint256) ([]common.Address, error) {
 	// TODO
 	return []common.Address{}, nil
 }
 
-func LockContract(ctx *NativeService, contract common.Address) error {
+func LockContract(contract common.Address) error {
 	// TODO
+	return nil
+}
+
+func UnlockContract(contract common.Address) error {
 	return nil
 }

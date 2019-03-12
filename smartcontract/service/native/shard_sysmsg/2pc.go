@@ -23,8 +23,10 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
@@ -38,15 +40,15 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonS
 	}
 
 	tx := msg.SourceTxHash
-	reqs, err := native.GetTxRequests(tx)
+	reqs, err := xshard_state.GetTxRequests(tx)
 	if err != nil {
 		return fmt.Errorf("get tx requests on prepare %s: %s", common.ToHexString(tx[:]), err)
 	}
 
 	prepareOK := true
 	for _, req := range reqs {
-		result1, err1 := native.GetTxResponse(tx, req)
-		if err1 == native.ErrNotFound {
+		result1, err1 := xshard_state.GetTxResponse(tx, req)
+		if err1 == xshard_state.ErrNotFound {
 			return fmt.Errorf("get tx response %d: %s", req.IdxInTx, err1)
 		}
 		result2, err2 := ctx.NativeCall(req.GetContract(), req.GetMethod(), req.GetArgs())
@@ -62,8 +64,9 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonS
 		abort := &shardstates.XShardCommitMsg{
 			MsgType: shardstates.EVENT_SHARD_ABORT,
 		}
+		// TODO: clean TX resources
 		remoteNotify(ctx, tx, msg.SourceShardID, abort)
-		native.SetTxCommitted(tx, false)
+		xshard_state.SetTxCommitted(tx, false)
 		return fmt.Errorf("failed get tx db when processing prepare msg")
 	}
 
@@ -77,23 +80,31 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonS
 	if _, err := remoteNotify(ctx, tx, msg.SourceShardID, pareparedMsg); err != nil {
 		return fmt.Errorf("failed to add prepared response for tx %v: %s", tx, err)
 	}
-	return nil
+
+	// save tx rwset and reset ctx.CacheDB
+	// TODO: add notification to cached DB
+	xshard_state.UpdateTxResult(tx, ctx.CacheDB)
+	ctx.CacheDB = storage.NewCacheDB(ctx.CacheDB.GetBackendDB())
+	return waitRemoteResponse(ctx)
 }
 
 func processXShardPreparedMsg(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
+	if msg.GetType() != shardstates.EVENT_SHARD_PREPARED {
+		return fmt.Errorf("invalid prepared type: %d", msg.GetType())
+	}
 	if !ctx.CacheDB.IsEmptyCache() {
 		return fmt.Errorf("non-empty init db when processing prepared msg")
 	}
 
 	tx := msg.SourceTxHash
-	txCommits, err := native.GetTxCommitState(tx)
+	txCommits, err := xshard_state.GetTxCommitState(tx)
 	if err != nil {
 		return fmt.Errorf("get Tx commit state: %s", err)
 	}
 	if _, present := txCommits[msg.SourceShardID.ToUint64()]; !present {
 		return fmt.Errorf("invalid shard ID %d, in tx commit", msg.SourceShardID)
 	}
-	txCommits[msg.SourceShardID.ToUint64()].State = native.TxPrepared
+	txCommits[msg.SourceShardID.ToUint64()] = xshard_state.TxPrepared
 
 	if !txCommitReady(txCommits) {
 		// wait for prepared from all shards
@@ -105,12 +116,13 @@ func processXShardPreparedMsg(ctx *native.NativeService, msg *shardstates.Common
 	}
 
 	// commit cached rwset
-	txState, err := native.GetTxState(tx)
+	txState, err := xshard_state.GetTxState(tx)
 	if err != nil {
 		return err
 	}
 	ctx.CacheDB = txState.DB
-	native.SetTxCommitted(tx, true)
+	xshard_state.SetTxCommitted(tx, true)
+	unlockTxContract(ctx, tx)
 	return nil
 }
 
@@ -120,16 +132,16 @@ func processXShardCommitMsg(ctx *native.NativeService, msg *shardstates.CommonSh
 	}
 
 	// update tx state
+	// commit the cached rwset
 	tx := msg.SourceTxHash
-	txState, err := native.GetTxState(tx)
+	txState, err := xshard_state.GetTxState(tx)
 	if err != nil {
 		return fmt.Errorf("get Tx state: %s", err)
 	}
-
-	// commit the cached rwset
 	ctx.CacheDB = txState.DB
-	native.SetTxCommitted(tx, true)
 
+	xshard_state.SetTxCommitted(tx, true)
+	unlockTxContract(ctx, tx)
 	return nil
 }
 
@@ -140,6 +152,6 @@ func processXShardAbortMsg(ctx *native.NativeService, msg *shardstates.CommonSha
 
 	// update tx state
 	tx := msg.SourceTxHash
-	native.SetTxCommitted(tx, false)
+	xshard_state.SetTxCommitted(tx, false)
 	return nil
 }

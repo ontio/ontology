@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
@@ -118,9 +119,9 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	// get response from native-tx-statedb
-	result, err := native.GetTxResponse(txHash, msg)
-	if err != native.ErrNotFound {
-		if err == native.ErrMismatchedRequest {
+	result, err := xshard_state.GetTxResponse(txHash, msg)
+	if err != xshard_state.ErrNotFound {
+		if err == xshard_state.ErrMismatchedRequest {
 			// TODO: abort transaction
 			return utils.BYTE_FALSE, err
 		}
@@ -128,18 +129,24 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	// no response found in tx-statedb, send request
-	reqIdx := native.GetNextReqIndex(txHash)
-	if reqIdx < 0 {
-		return utils.BYTE_FALSE, native.ErrTooMuchRemoteReq
-	}
-	msg.IdxInTx = reqIdx
 	txPayload := bytes.NewBuffer(nil)
 	if err := ctx.Tx.Payload.Serialize(txPayload); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to get tx payload: %s", err)
 	}
-	if err := native.PutTxRequest(txHash, txPayload.Bytes(), msg); err != nil {
+	if err := xshard_state.AddTxShard(txHash, reqParam.ToShard); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
+	}
+
+	// put Tx-Request
+	reqIdx := xshard_state.GetNextReqIndex(txHash)
+	if reqIdx < 0 {
+		return utils.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
+	}
+	msg.IdxInTx = reqIdx
+	if err := xshard_state.PutTxRequest(txHash, txPayload.Bytes(), msg); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, put Tx request: %s", err)
 	}
+
 	if _, err := remoteNotify(ctx, txHash, reqParam.ToShard, msg); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, notify: %s", err)
 	}
@@ -235,7 +242,7 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 
 				// transaction should be completed, and be removed from txstate-db
 				if txCompleted {
-					if shards, err := native.GetTxShards(req.SourceTxHash); err != native.ErrNotFound {
+					if shards, err := xshard_state.GetTxShards(req.SourceTxHash); err != xshard_state.ErrNotFound {
 						for _, s := range shards {
 							log.Errorf("TODO: abort transaction %d on shard %d", common.ToHexString(req.SourceTxHash[:]), s)
 						}
