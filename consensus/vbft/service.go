@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
@@ -44,6 +45,7 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
+	params "github.com/ontio/ontology/smartcontract/service/native/shardgas"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/validator/increment"
 )
@@ -342,7 +344,7 @@ func (self *Server) updateChainConfig() error {
 	self.config = block.Info.NewChainConfig
 	self.LastConfigBlockNum = block.getLastConfigBlockNum()
 	self.metaLock.Unlock()
-
+	self.sendshardgovTx(block.Block.Header.Height, block.Info.NewChainConfig)
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -1125,7 +1127,11 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	if self.parentHeight < parentHeight {
 		temp := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
 		for id, txs := range temp {
-			msgtxs := msg.Block.Block.ShardTxs[id.ToUint64()]
+			msgtxs, present := msg.Block.Block.ShardTxs[id.ToUint64()]
+			if !present {
+				log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, shardId:%d", self.parentHeight, id.ToUint64())
+				return
+			}
 			if len(txs) != len(msgtxs) {
 				log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, len(txs):%d,len(msgtxs):%d", self.parentHeight, len(txs), len(msgtxs))
 				return
@@ -1136,7 +1142,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 			}
 			msgtxHash := []common.Uint256{}
 			for _, msgtx := range msgtxs {
-				msgtxHash = append(txHash, msgtx.Hash())
+				msgtxHash = append(msgtxHash, msgtx.Hash())
 			}
 			txRoot := common.ComputeMerkleRoot(txHash)
 			msgtxRoot := common.ComputeMerkleRoot(msgtxHash)
@@ -2111,6 +2117,54 @@ func (self *Server) msgSendLoop() {
 			return
 		}
 	}
+}
+
+func (self *Server) sendshardgovTx(blkNum uint32, chainconfig *vconfig.ChainConfig) error {
+	log.Infof("sendshardgovTx blkNum:%d", blkNum)
+	tx, err := self.createshardgovTransaction(blkNum, chainconfig)
+	if err != nil {
+		return fmt.Errorf("SendRootChain err:%s", err)
+	}
+	chainmgr.SendShardTx(tx, string(chainmgr.GetShardRpcPortByShardID(0)))
+	return nil
+}
+
+//create shard ong transaction
+func (self *Server) createshardgovTransaction(blkNum uint32, chainconfig *vconfig.ChainConfig) (*types.Transaction, error) {
+	param := &params.CommitDposParam{
+		ShardId:   chainmgr.GetShardID(),
+		FeeAmount: 0,
+		NewConfig: chainconfig,
+		View:      chainconfig.View,
+		Peer:      self.account.Address.ToBase58(),
+	}
+	paramBytes := new(bytes.Buffer)
+	if err := param.Serialize(paramBytes); err != nil {
+		return nil, fmt.Errorf("marshal shardgovtx: %s", err)
+	}
+	//build transaction
+	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, gover.COMMIT_DPOS, paramBytes.Bytes())
+	mutable.GasPrice = 0
+	mutable.Payer = self.account.Address
+	mutable.Nonce = blkNum
+	// add signatures
+	txHash := mutable.Hash()
+	sig, err := signature.Sign(self.account.SigScheme, self.account.PrivateKey, txHash.ToArray(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("sign tx: %s", err)
+	}
+	sigData, err := signature.Serialize(sig)
+	if err != nil {
+		return nil, fmt.Errorf("serialize sig: %s", err)
+	}
+	mutable.Sigs = []types.Sig{
+		{
+			PubKeys: []keypair.PublicKey{self.account.PubKey()},
+			M:       1,
+			SigData: [][]byte{sigData},
+		},
+	}
+	return mutable.IntoImmutable()
 }
 
 //creategovernaceTransaction invoke governance native contract commit_pos
