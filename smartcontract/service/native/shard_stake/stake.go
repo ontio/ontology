@@ -16,6 +16,7 @@ const (
 	UNFREEZE_STAKE = "unfreezeStake"
 	WITHDRAW_STAKE = "withdrawStake"
 	WITHDRAW_FEE   = "withdrawFee"
+	COMMIT_DPOS    = "commitDpos"
 )
 
 func InitShardStake() {
@@ -28,6 +29,7 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(UNFREEZE_STAKE, UnfreezeStake)
 	native.Register(WITHDRAW_STAKE, WithdrawStake)
 	native.Register(WITHDRAW_FEE, WithdrawFee)
+	native.Register(COMMIT_DPOS, CommitDpos)
 }
 
 func PeerInitStake(native *native.NativeService) ([]byte, error) {
@@ -151,5 +153,24 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
+	cp := new(shardmgmt.CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid cmd param: %s", err)
+	}
+	param := new(CommitDposParam)
+	if err := param.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
+	}
+	if len(param.PeerPubKey) != len(param.Amount) {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: peer pub key num not match amount num")
+	}
+	feeInfo := make(map[string]uint64)
+	for index, peer := range param.PeerPubKey {
+		feeInfo[peer] = param.Amount[index]
+	}
+	err := commitDpos(native, param.ShardId, feeInfo)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	}
 	return utils.BYTE_TRUE, nil
 }

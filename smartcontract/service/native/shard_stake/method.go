@@ -10,6 +10,55 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
+func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map[string]uint64) error {
+	currentView, err := getShardCurrentView(native, shardId)
+	if err != nil {
+		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
+	}
+	nextView := currentView + 1
+	currentViewInfo, err := getShardViewInfo(native, shardId, currentView)
+	if err != nil {
+		return fmt.Errorf("commitDpos: get shard %d current view info failed, err: %s", shardId, err)
+	}
+	nextViewInfo, err := getShardViewInfo(native, shardId, nextView)
+	if err != nil {
+		return fmt.Errorf("commitDpos: get shard %d next view info failed, err: %s", shardId, err)
+	}
+	if nextViewInfo.Peers == nil || len(nextViewInfo.Peers) == 0 {
+		nextViewInfo = currentViewInfo
+		err = setShardViewInfo(native, shardId, nextView, nextViewInfo)
+		if err != nil {
+			return fmt.Errorf("commitDpos: update shard %d next view info failed, err: %s", shardId, err)
+		}
+	}
+	for pubKeyString, feeAmount := range feeInfo {
+		pubKeyData, err := hex.DecodeString(pubKeyString)
+		if err != nil {
+			return fmt.Errorf("commitDpos: decode pub key %s failed, err: %s", pubKeyString, err)
+		}
+		peer, err := keypair.DeserializePublicKey(pubKeyData)
+		if err != nil {
+			return fmt.Errorf("commitDpos: deserialize pub key %s failed, err: %s", pubKeyString, err)
+		}
+		peerInfo, ok := currentViewInfo.Peers[peer]
+		if !ok {
+			return fmt.Errorf("commitDpos: peer %s not exist at current view", pubKeyString)
+		}
+		peerInfo.WholeFee = feeAmount
+		peerInfo.FeeBalance = feeAmount
+		currentViewInfo.Peers[peer] = peerInfo
+	}
+	err = setShardViewInfo(native, shardId, currentView, currentViewInfo)
+	if err != nil {
+		return fmt.Errorf("commitDpos: update shard %d view info failed, err: %s", shardId, err)
+	}
+	err = setShardView(native, shardId, nextView)
+	if err != nil {
+		return fmt.Errorf("commitDpos: update shard %d view failed, err: %s", shardId, err)
+	}
+	return nil
+}
+
 func peerStake(native *native.NativeService, id types.ShardID, peerPubKey keypair.PublicKey, peerOwner common.Address,
 	amount uint64) error {
 	initView := shardstates.View(0)
@@ -156,11 +205,11 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 	for pubKeyString, amount := range stakeInfo {
 		pubKeyData, err := hex.DecodeString(pubKeyString)
 		if err != nil {
-			return fmt.Errorf("unfreezeStakeAsset: decode param pub key failed, err: %s", err)
+			return fmt.Errorf("unfreezeStakeAsset: decode pub key %s failed, err: %s", pubKeyString, err)
 		}
 		peer, err := keypair.DeserializePublicKey(pubKeyData)
 		if err != nil {
-			return fmt.Errorf("unfreezeStakeAsset: deserialize param pub key failed, err: %s", err)
+			return fmt.Errorf("unfreezeStakeAsset: deserialize pub key %s failed, err: %s", pubKeyString, err)
 		}
 		userPeerStakeInfo, ok := userStakeInfo.Peers[peer]
 		if !ok {
