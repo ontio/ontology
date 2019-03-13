@@ -236,7 +236,7 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: only support ONG gas")
 	}
 
-	err = setUserMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftConfigData.MinInitStake))
+	err = setNodeMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftConfigData.MinInitStake))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: failed, err: %s", err)
 	}
@@ -362,7 +362,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if rootChainPeerItem.TotalPos < params.StakeAmount {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
 	}
-	minStakeAmount, err := GetUserMinStakeAmount(native, params.ShardID)
+	minStakeAmount, err := GetNodeMinStakeAmount(native, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}

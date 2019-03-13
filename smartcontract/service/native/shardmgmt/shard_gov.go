@@ -108,7 +108,7 @@ func SetMinStake(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: invalid param: %s", err)
 	}
-	err = setUserMinStakeAmount(native, params.ShardId, params.Amount)
+	err = setNodeMinStakeAmount(native, params.ShardId, params.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: failed, err: %s", err)
 	}
