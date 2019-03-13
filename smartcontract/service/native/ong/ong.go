@@ -23,6 +23,7 @@ import (
 
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/errors"
@@ -171,4 +172,21 @@ func OngBalanceOf(native *native.NativeService) ([]byte, error) {
 
 func OngAllowance(native *native.NativeService) ([]byte, error) {
 	return ont.GetBalanceValue(native, ont.APPROVE_FLAG)
+}
+
+func GetOngBalance(native *native.NativeService, address common.Address) (uint64, error) {
+	bf := new(bytes.Buffer)
+	err := utils.WriteAddress(bf, address)
+	if err != nil {
+		return 0, fmt.Errorf("getOngBalance, utils.WriteAddress error: %v", err)
+	}
+	sink := common.ZeroCopySink{}
+	utils.EncodeAddress(&sink, address)
+
+	value, err := native.NativeCall(utils.OngContractAddress, "balanceOf", sink.Bytes())
+	if err != nil {
+		return 0, fmt.Errorf("getOngBalance, appCall error: %v", err)
+	}
+	balance := types.BigIntFromBytes(value.([]byte)).Uint64()
+	return balance, nil
 }

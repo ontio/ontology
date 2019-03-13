@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/common/constants"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -728,7 +729,7 @@ func executeSplit(native *native.NativeService, contract common.Address, view ui
 		return fmt.Errorf("executeSplit, get peerPoolMap error: %v", err)
 	}
 
-	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
+	balance, err := ong.GetOngBalance(native, utils.GovernanceContractAddress)
 	if err != nil {
 		return fmt.Errorf("executeSplit, getOngBalance error: %v", err)
 	}
@@ -841,7 +842,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		return splitSum, fmt.Errorf("executeSplit, get currentPeerPoolMap error: %v", err)
 	}
 
-	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
+	balance, err := ong.getOngBalance(native, utils.GovernanceContractAddress)
 	if err != nil {
 		return splitSum, fmt.Errorf("executeSplit, getOngBalance error: %v", err)
 	}

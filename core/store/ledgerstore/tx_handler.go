@@ -83,20 +83,20 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 		gasLimit := createGasPrice.(uint64) + calcGasByCodeLen(len(deploy.Code), uintCodePrice.(uint64))
 		balance, err := isBalanceSufficient(tx.Payer, cache, config, store, gasLimit*tx.GasPrice)
 		if err != nil {
-			if err := costInvalidGas(tx.Payer, balance, config, overlay, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, balance, config, overlay, store, notify, shardID); err != nil {
 				return err
 			}
 			return err
 		}
 		if tx.GasLimit < gasLimit {
-			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, overlay, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, overlay, store, notify, shardID); err != nil {
 				return err
 			}
 			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", gasLimit, tx.GasLimit)
 
 		}
 		gasConsumed = gasLimit * tx.GasPrice
-		notifies, err = chargeCostGas(tx.Payer, gasConsumed, config, cache, store)
+		notifies, err = chargeCostGas(tx.Payer, gasConsumed, config, cache, store, shardID)
 		if err != nil {
 			return err
 		}
@@ -169,7 +169,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		minGas = neovm.MIN_TRANSACTION_GAS * tx.GasPrice
 
 		if oldBalance < minGas {
-			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify, shardID); err != nil {
 				return err
 			}
 			return fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
@@ -178,14 +178,14 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), uintCodeGasPrice.(uint64))
 
 		if oldBalance < codeLenGasLimit*tx.GasPrice {
-			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify, shardID); err != nil {
 				return err
 			}
 			return fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
 		}
 
 		if tx.GasLimit < codeLenGasLimit {
-			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, overlay, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, overlay, store, notify, shardID); err != nil {
 				return err
 			}
 			return fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
@@ -218,7 +218,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	costGas = costGasLimit * tx.GasPrice
 	if err != nil {
 		if isCharge {
-			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify, shardID); err != nil {
 				return err
 			}
 		}
@@ -233,13 +233,13 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		}
 
 		if newBalance < costGas {
-			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify); err != nil {
+			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify, shardID); err != nil {
 				return err
 			}
 			return fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
 		}
 
-		notifies, err = chargeCostGas(tx.Payer, costGas, config, sc.CacheDB, store)
+		notifies, err = chargeCostGas(tx.Payer, costGas, config, sc.CacheDB, store, shardID)
 		if err != nil {
 			return err
 		}
@@ -283,9 +283,12 @@ func isBalanceSufficient(payer common.Address, cache *storage.CacheDB, config *s
 }
 
 func chargeCostGas(payer common.Address, gas uint64, config *smartcontract.Config,
-	cache *storage.CacheDB, store store.LedgerStore) ([]*event.NotifyEventInfo, error) {
-
-	params := genNativeTransferCode(payer, utils.GovernanceContractAddress, gas)
+	cache *storage.CacheDB, store store.LedgerStore, shardID types.ShardID) ([]*event.NotifyEventInfo, error) {
+	contractAddr := utils.GovernanceContractAddress
+	if !shardID.IsRootShard() {
+		contractAddr = utils.ShardGasMgmtContractAddress
+	}
+	params := genNativeTransferCode(payer, contractAddr, gas)
 
 	sc := smartcontract.SmartContract{
 		Config:  config,
@@ -366,9 +369,9 @@ func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, 
 }
 
 func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Config, overlay *overlaydb.OverlayDB,
-	store store.LedgerStore, notify *event.ExecuteNotify) error {
+	store store.LedgerStore, notify *event.ExecuteNotify, shardID types.ShardID) error {
 	cache := storage.NewCacheDB(overlay)
-	notifies, err := chargeCostGas(address, gas, config, cache, store)
+	notifies, err := chargeCostGas(address, gas, config, cache, store, shardID)
 	if err != nil {
 		return err
 	}

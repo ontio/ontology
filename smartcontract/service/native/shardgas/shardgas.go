@@ -21,9 +21,11 @@ package shardgas
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/vm/neovm/types"
-	"math/big"
 
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -44,12 +46,13 @@ import (
 
 const (
 	// function names
-	INIT_NAME          = "init"
-	SET_WITHDRAW_DELAY = "setWithdrawDelay"
-	DEPOSIT_GAS_NAME   = "depositGas"
-	WITHDRAS_GAS_NAME  = "withdrawGas"
-	ACQUIRE_GAS_NAME   = "acquireWithdrawGas"
-	GET_SHARD_BALANCE  = "getShardBalance"
+	INIT_NAME                     = "init"
+	SET_WITHDRAW_DELAY            = "setWithdrawDelay"
+	DEPOSIT_GAS_NAME              = "depositGas"
+	WITHDRAS_GAS_NAME             = "withdrawGas"
+	ACQUIRE_GAS_NAME              = "acquireWithdrawGas"
+	GET_SHARD_BALANCE             = "getShardBalance"
+	TRANSFER_SHARDGAS_TO_SHARDSYS = "transferShardGasToShardSys"
 
 	// Key prefix
 	KEY_VERSION        = "version"
@@ -70,6 +73,7 @@ func RegisterShardGasMgmtContract(native *native.NativeService) {
 	native.Register(WITHDRAS_GAS_NAME, WithdrawGasFromShard)
 	native.Register(ACQUIRE_GAS_NAME, AcquireWithdrawGasFromShard)
 	native.Register(GET_SHARD_BALANCE, GetUserShardBalance)
+	native.Register(TRANSFER_SHARDGAS_TO_SHARDSYS, TransferShardGasToShardSys)
 }
 
 func ShardGasMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -365,4 +369,16 @@ func GetUserShardBalance(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("get balance, err: %s", err)
 	}
 	return types.BigIntToBytes(new(big.Int).SetUint64(balance.Balance)), nil
+}
+
+func TransferShardGasToShardSys(native *native.NativeService) ([]byte, error) {
+	fee, err := ong.GetOngBalance(native, utils.ShardGasMgmtContractAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("TransferShardGasToShardSys, getOngBalance error: %v", err)
+	}
+	err = ont.AppCallTransfer(native, utils.OngContractAddress, utils.ShardGasMgmtContractAddress, utils.ShardSysMsgContractAddress, fee)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AppCallTransfer, ong transfer error: %v", err)
+	}
+	return utils.BYTE_TRUE, nil
 }

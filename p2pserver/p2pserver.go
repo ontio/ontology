@@ -562,7 +562,7 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 func (this *P2PServer) tryRecentPeers() {
 	netID := config.DefConfig.P2PNode.NetworkMagic
 	peerRecent := common.RECENT_FILE_NAME
-	if config.DefConfig.Shard.ShardID.ToUint64() > 0 {
+	if !config.DefConfig.Shard.ShardID.IsRootShard() {
 		peerRecent = config.DefConfig.P2PNode.NetworkName + string(os.PathSeparator) + common.RECENT_FILE_NAME
 	}
 	if comm.FileExisted(peerRecent) {
@@ -657,7 +657,7 @@ func (this *P2PServer) syncPeerAddr() {
 			return
 		}
 		peerRecent := common.RECENT_FILE_NAME
-		if config.DefConfig.Shard.ShardID.ToUint64() > 0 {
+		if !config.DefConfig.Shard.ShardID.IsRootShard() {
 			peerRecent = config.DefConfig.P2PNode.NetworkName + string(os.PathSeparator) + common.RECENT_FILE_NAME
 		}
 		err = ioutil.WriteFile(peerRecent, buf, os.ModePerm)

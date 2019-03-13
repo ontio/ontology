@@ -2180,9 +2180,14 @@ func (self *Server) sendshardgovTx(blkNum uint32, chainconfig *vconfig.ChainConf
 
 //create shard ong transaction
 func (self *Server) createshardgovTransaction(blkNum uint32, chainconfig *vconfig.ChainConfig) (*types.Transaction, error) {
+	feeAmount, err := getShardGasBalance(self.chainStore.GetExecWriteSet(blkNum - 1))
+	if err != nil {
+		log.Errorf("getShardGasBalance blkNum:%d,err:%s", blkNum, err)
+		return nil, err
+	}
 	param := &params.CommitDposParam{
 		ShardId:   chainmgr.GetShardID(),
-		FeeAmount: 0,
+		FeeAmount: feeAmount,
 		NewConfig: chainconfig,
 		View:      chainconfig.View,
 		Peer:      self.account.Address.ToBase58(),
