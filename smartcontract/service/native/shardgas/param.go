@@ -19,10 +19,11 @@
 package shardgas
 
 import (
-	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
@@ -90,5 +91,21 @@ func (this *GetShardBalanceParam) Serialize(w io.Writer) error {
 }
 
 func (this *GetShardBalanceParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+type CommitDposParam struct {
+	ShardId   types.ShardID        `json:"shard_id"`
+	FeeAmount uint64               `json:"fee_amount"`
+	NewConfig *vconfig.ChainConfig `json:"new_config"`
+	View      uint32               `json:"view"`
+	Peer      string               `json:"peer"`
+}
+
+func (this *CommitDposParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *CommitDposParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }

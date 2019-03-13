@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"strconv"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -34,7 +36,6 @@ import (
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"strconv"
 )
 
 //get best block hash
@@ -304,13 +305,13 @@ func GetShardStorage(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
 
-	log.Errorf(">>>> recevied shard storage get: %d, %s", shardID, key)
+	log.Errorf(">>>> recevied shard storage get: %d,chainmgr:%d, %s", shardID, chainmgr.GetShardID().ToUint64(), key)
 
 	var value []byte
 	if shardID == chainmgr.GetShardID().ToUint64() {
 		value, err = bactor.GetStorageItem(address, key)
 	} else {
-		err = fmt.Errorf("param shardId %d unmatch", shardID)
+		err = fmt.Errorf("param shardId:%d,GetShardID:%d  unmatch", shardID, chainmgr.GetShardID().ToUint64())
 		log.Error(err)
 	}
 	if err != nil {
