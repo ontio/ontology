@@ -592,7 +592,7 @@ func DeployContract(
 	gasPrice,
 	gasLimit uint64,
 	signer *account.Account,
-	needStorage byte,
+	vmtype byte,
 	code,
 	cname,
 	cversion,
@@ -604,7 +604,7 @@ func DeployContract(
 	if err != nil {
 		return "", fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	mutable := NewDeployCodeTransaction(gasPrice, gasLimit, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
+	mutable := NewDeployCodeTransaction(gasPrice, gasLimit, c, vmtype, cname, cversion, cauthor, cemail, cdesc)
 
 	err = SignTransaction(signer, mutable)
 	if err != nil {
