@@ -186,7 +186,6 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
 		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
 	}
-	shardState.GenesisParentHeight = self.processedBlockHeight
 	return self.startChildShard(evt.ShardID, shardState)
 }
 
@@ -290,9 +289,9 @@ func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*s
 }
 
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
-
 	defer func() {
-		// TODO: update persisted ProcessedBlockHeight
+		err := self.ledger.PutShardProcessedBlockHeight(self.processedBlockHeight)
+		log.Infof("save processed block height err:%v", err)
 	}()
 
 	for height := self.processedBlockHeight + 1; height <= header.Height; height++ {

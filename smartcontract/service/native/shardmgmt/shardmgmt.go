@@ -344,6 +344,7 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 			len(shard.Peers), shard.Config.NetworkSize)
 	}
 
+	shard.GenesisParentHeight = native.Height
 	shard.State = shardstates.SHARD_STATE_ACTIVE
 	if err := setShardState(native, contract, shard); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, update shard state: %s", err)
