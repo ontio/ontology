@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
-	states2 "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -668,9 +667,9 @@ func (self *Runtime) checkGas(gaslimit uint64) {
 
 func serializeStorageKey(contractAddress common.Address, key []byte) ([]byte, error) {
 	bf := new(bytes.Buffer)
-	storageKey := &states2.StorageKey{ContractAddress: contractAddress, Key: key}
-	if _, err := storageKey.Serialize(bf); err != nil {
-		return []byte{}, errors.NewErr("[serializeStorageKey] StorageKey serialize error!")
-	}
+
+	bf.Write(contractAddress[:])
+	bf.Write(key)
+
 	return bf.Bytes(), nil
 }
