@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
@@ -287,4 +288,16 @@ func getChainConfig(memdb *overlaydb.MemDB, blkNum uint32) (*vconfig.ChainConfig
 	}
 	cfg.View = goverview.View
 	return cfg, err
+}
+
+func getShardGasBalance(memdb *overlaydb.MemDB) (uint64, error) {
+	value, err := GetStorageValue(memdb, ledger.DefLedger, nutils.OngContractAddress, nutils.ShardGasMgmtContractAddress[:])
+	if err != nil {
+		return 0, err
+	}
+	balance, err := serialization.ReadUint64(bytes.NewBuffer(value))
+	if err != nil {
+		return 0, err
+	}
+	return balance, nil
 }

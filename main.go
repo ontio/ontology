@@ -317,7 +317,7 @@ func initLog(ctx *cli.Context, shardID types.ShardID) {
 	//init log module
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	logPath := log.PATH
-	if shardID.ToUint64() > 0 {
+	if !shardID.IsRootShard() {
 		logPath = path.Join(shard.GetShardName(shardID), logPath)
 	}
 	alog.InitLog(logPath)
@@ -402,7 +402,7 @@ func initLedger(ctx *cli.Context, shardID types.ShardID, stateHashHeight uint32)
 
 	var err error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	if shardID.ToUint64() > 0 {
+	if !shardID.IsRootShard() {
 		dbDir = utils.GetStoreDirPath(config.DefConfig.P2PNode.NetworkName, config.DefConfig.Common.DataDir)
 	}
 	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)

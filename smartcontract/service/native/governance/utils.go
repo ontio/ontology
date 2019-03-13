@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 
 	"github.com/ontio/ontology-crypto/vrf"
@@ -33,7 +34,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func GetPeerPoolMap(native *native.NativeService, contract common.Address, view uint32) (*PeerPoolMap, error) {
@@ -145,23 +145,6 @@ func appCallTransferFromOng(native *native.NativeService, sender common.Address,
 		return fmt.Errorf("appCallTransferFromOng, appCallTransferFrom error: %v", err)
 	}
 	return nil
-}
-
-func getOngBalance(native *native.NativeService, address common.Address) (uint64, error) {
-	bf := new(bytes.Buffer)
-	err := utils.WriteAddress(bf, address)
-	if err != nil {
-		return 0, fmt.Errorf("getOngBalance, utils.WriteAddress error: %v", err)
-	}
-	sink := common.ZeroCopySink{}
-	utils.EncodeAddress(&sink, address)
-
-	value, err := native.NativeCall(utils.OngContractAddress, "balanceOf", sink.Bytes())
-	if err != nil {
-		return 0, fmt.Errorf("getOngBalance, appCall error: %v", err)
-	}
-	balance := types.BigIntFromBytes(value.([]byte)).Uint64()
-	return balance, nil
 }
 
 func splitCurve(native *native.NativeService, contract common.Address, pos uint64, avg uint64, yita uint64) (uint64, error) {
