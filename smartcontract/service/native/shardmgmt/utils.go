@@ -42,10 +42,9 @@ const (
 	KEY_GLOBAL_STATE = "globalState"
 	KEY_SHARD_STATE  = "shardState"
 
-	KEY_SHARD_PEER_STATE      = "peerState"
-	KEY_SHARD_MIN_STAKE       = "shard_peer_min_stake" // peer min stake, ordinary user has not this limit
-	KEY_SHARD_COMMIT_DPOS_NUM = "commitDposNum"        // while shard consensus switch, every consensus node at shard should commit dpos
-	KEY_VIEW_DIVIDED          = "divided"              // shard view has divided fee or not
+	KEY_SHARD_PEER_STATE = "peerState"
+	KEY_SHARD_MIN_STAKE  = "shard_peer_min_stake" // peer min stake, ordinary user has not this limit
+	KEY_VIEW_DIVIDED     = "divided"              // shard view has divided fee or not
 )
 
 type peerState string
@@ -59,10 +58,6 @@ const (
 
 func genPeerStateKey(contract common.Address, shardIdBytes []byte, pubKey keypair.PublicKey) []byte {
 	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_PEER_STATE), keypair.SerializePublicKey(pubKey))
-}
-
-func genCommitDposNumKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
-	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_COMMIT_DPOS_NUM), viewBytes)
 }
 
 func genShardMinStakeKey(contract common.Address, shardIdBytes []byte) []byte {
@@ -292,7 +287,7 @@ func setViewDivided(native *native.NativeService, contract common.Address, shard
 	if err != nil {
 		return fmt.Errorf("setViewDivided: serialize view: %s", err)
 	}
-	key := genCommitDposNumKey(contract, shardIDBytes, viewBytes)
+	key := genShardDividedKey(contract, shardIDBytes, viewBytes)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(shardutil.GetUint32Bytes(1)))
 	return nil
 }
@@ -307,7 +302,7 @@ func isViewDivided(native *native.NativeService, contract common.Address, shardI
 	if err != nil {
 		return false, fmt.Errorf("isViewDivided: serialize view: %s", err)
 	}
-	key := genCommitDposNumKey(contract, shardIDBytes, viewBytes)
+	key := genShardDividedKey(contract, shardIDBytes, viewBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
 		return false, fmt.Errorf("isViewDivided: read db failed, err: %s", err)
@@ -325,39 +320,40 @@ func isViewDivided(native *native.NativeService, contract common.Address, shardI
 	}
 	return num != 0, nil
 }
-func GetUserMinStakeAmount(native *native.NativeService, id types.ShardID) (uint64, error) {
+
+func GetNodeMinStakeAmount(native *native.NativeService, id types.ShardID) (uint64, error) {
 	shardIDBytes, err := shardutil.GetUint64Bytes(id.ToUint64())
 	if err != nil {
-		return 0, fmt.Errorf("GetUserMinStakeAmount: ser shardId failed, err: %s", err)
+		return 0, fmt.Errorf("GetNodeMinStakeAmount: ser shardId failed, err: %s", err)
 	}
 	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
-		return 0, fmt.Errorf("GetUserMinStakeAmount: ser shardId failed, err: %s", err)
+		return 0, fmt.Errorf("GetNodeMinStakeAmount: ser shardId failed, err: %s", err)
 	}
 	if len(storeValue) == 0 {
 		return 0, nil
 	}
 	data, err := cstates.GetValueFromRawStorageItem(storeValue)
 	if err != nil {
-		return 0, fmt.Errorf("GetUserMinStakeAmount: parse store value failed, err: %s", err)
+		return 0, fmt.Errorf("GetNodeMinStakeAmount: parse store value failed, err: %s", err)
 	}
 	amount, err := shardutil.GetBytesUint64(data)
 	if err != nil {
-		return 0, fmt.Errorf("GetUserMinStakeAmount: dese value failed, err: %s", err)
+		return 0, fmt.Errorf("GetNodeMinStakeAmount: dese value failed, err: %s", err)
 	}
 	return amount, nil
 }
 
-func setUserMinStakeAmount(native *native.NativeService, id types.ShardID, amount uint64) error {
+func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amount uint64) error {
 	shardIDBytes, err := shardutil.GetUint64Bytes(id.ToUint64())
 	if err != nil {
-		return fmt.Errorf("setUserMinStakeAmount: ser shardId failed, err: %s", err)
+		return fmt.Errorf("setNodeMinStakeAmount: ser shardId failed, err: %s", err)
 	}
 	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
 	data, err := shardutil.GetUint64Bytes(amount)
 	if err != nil {
-		return fmt.Errorf("setUserMinStakeAmount: ser view failed, err: %s", err)
+		return fmt.Errorf("setNodeMinStakeAmount: ser view failed, err: %s", err)
 	}
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 	return nil

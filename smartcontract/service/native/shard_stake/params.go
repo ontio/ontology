@@ -8,9 +8,10 @@ import (
 )
 
 type UnfreezeFromShardParam struct {
-	ShardId types.ShardID  `json:"shard_id"`
-	Address common.Address `json:"address"`
-	Amount  uint64         `json:"amount"`
+	ShardId    types.ShardID  `json:"shard_id"`
+	Address    common.Address `json:"address"`
+	PeerPubKey []string       `json:"peer_pub_key"`
+	Amount     []uint64       `json:"amount"`
 }
 
 func (this *UnfreezeFromShardParam) Serialize(w io.Writer) error {
@@ -18,5 +19,31 @@ func (this *UnfreezeFromShardParam) Serialize(w io.Writer) error {
 }
 
 func (this *UnfreezeFromShardParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+type WithdrawStakeAssetParam struct {
+	ShardId types.ShardID  `json:"shard_id"`
+	User    common.Address `json:"user"`
+}
+
+func (this *WithdrawStakeAssetParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *WithdrawStakeAssetParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
+type WithdrawFeeParam struct {
+	ShardId types.ShardID  `json:"shard_id"`
+	User    common.Address `json:"user"`
+}
+
+func (this *WithdrawFeeParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *WithdrawFeeParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
