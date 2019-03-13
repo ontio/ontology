@@ -1187,6 +1187,14 @@ func (self *LedgerStoreImp) GetShardCurrAnchorHeight() (uint32, error) {
 	return self.stateStore.GetShardCurrAnchorHeight()
 }
 
+func (self *LedgerStoreImp) GetShardProcessedBlockHeight() (uint32, error) {
+	return self.stateStore.GetShardProcessedBlockHeight()
+}
+
+func (self *LedgerStoreImp) PutShardProcessedBlockHeight(height uint32) error {
+	return self.stateStore.PutShardProcessedBlockHeight(height)
+}
+
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	err := this.blockStore.Close()

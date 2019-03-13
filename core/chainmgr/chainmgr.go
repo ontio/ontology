@@ -212,8 +212,11 @@ func Initialize(shardID types.ShardID, parentAddr string, shardPort, parentPort 
 func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 	self.ledger = lgr
 
-	// TODO: load ProcessedBlockHeight from ledger
-	self.processedBlockHeight = 0
+	processedBlockHeight, err := self.ledger.GetShardProcessedBlockHeight()
+	if err != nil {
+		return fmt.Errorf("chainmgr: failed to read processed block height: %s", err)
+	}
+	self.processedBlockHeight = processedBlockHeight
 
 	// TODO: load parent-shard/sib-shard blockhdrs from ledger
 

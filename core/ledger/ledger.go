@@ -196,6 +196,14 @@ func (self *Ledger) GetShardCurrAnchorHeight() (uint32, error) {
 	return self.ldgStore.GetShardCurrAnchorHeight()
 }
 
+func (self *Ledger) GetShardProcessedBlockHeight() (uint32, error) {
+	return self.ldgStore.GetShardProcessedBlockHeight()
+}
+
+func (self *Ledger) PutShardProcessedBlockHeight(height uint32) error {
+	return self.ldgStore.PutShardProcessedBlockHeight(height)
+}
+
 func (self *Ledger) Close() error {
 	return self.ldgStore.Close()
 }

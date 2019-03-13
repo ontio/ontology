@@ -255,6 +255,29 @@ func (self *StateStore) AddBlockShardEvents(height uint32, events []*message.Sha
 	return nil
 }
 
+func (self *StateStore) GetShardProcessedBlockHeight() (uint32, error) {
+	buf, err := self.store.Get([]byte{byte(scom.SHARD_PROCESSED_BLOCK_HEIGHT)})
+	if err == scom.ErrNotFound {
+		return 0, nil
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	height, eof := common.NewZeroCopySource(buf).NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	return height, nil
+}
+
+func (self *StateStore) PutShardProcessedBlockHeight(height uint32) error {
+	sink := common.NewZeroCopySink(4)
+	sink.WriteUint32(height)
+	return self.store.Put([]byte{byte(scom.SHARD_PROCESSED_BLOCK_HEIGHT)}, sink.Bytes())
+}
+
 func (self *StateStore) GetShardCurrAnchorHeight() (uint32, error) {
 	buf, err := self.store.Get([]byte{byte(scom.SHARD_CURR_ANCHOR_HEIGHT)})
 	if err == scom.ErrNotFound {
