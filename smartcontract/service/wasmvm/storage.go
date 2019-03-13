@@ -32,10 +32,8 @@ func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32,
 		panic(err)
 	}
 
-	key, err := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
-	if err != nil {
-		panic(err)
-	}
+	key := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
+
 	item, err := self.Service.CacheDB.Get(key)
 	if err != nil {
 		panic(err)
@@ -73,10 +71,7 @@ func (self *Runtime) StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint
 	cost := uint64(((len(keybytes)+len(valbytes)-1)/1024 + 1)) * STORAGE_PUT_GAS
 	self.checkGas(cost)
 
-	key, err := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
-	if err != nil {
-		panic(err)
-	}
+	key := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
 
 	self.Service.CacheDB.Put(key, valbytes)
 }
@@ -88,9 +83,7 @@ func (self *Runtime) StorageDelete(proc *exec.Process, keyPtr uint32, keylen uin
 	if err != nil {
 		panic(err)
 	}
-	key, err := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
-	if err != nil {
-		panic(err)
-	}
+	key := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
+
 	self.Service.CacheDB.Delete(key)
 }

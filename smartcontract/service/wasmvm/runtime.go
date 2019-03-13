@@ -665,11 +665,11 @@ func (self *Runtime) checkGas(gaslimit uint64) {
 	}
 }
 
-func serializeStorageKey(contractAddress common.Address, key []byte) ([]byte, error) {
+func serializeStorageKey(contractAddress common.Address, key []byte) []byte {
 	bf := new(bytes.Buffer)
 
 	bf.Write(contractAddress[:])
 	bf.Write(key)
 
-	return bf.Bytes(), nil
+	return bf.Bytes()
 }
