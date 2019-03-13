@@ -40,6 +40,7 @@ const (
 var (
 	MaxRemoteReqPerTx      = 8
 	ErrNotFound            = errors.New("not found")
+	ErrInvalidTxState    = errors.New("invalid transaction state")
 	ErrTooMuchRemoteReq    = errors.New("too much remote request")
 	ErrInvalidRemoteRsp    = errors.New("invalid remotes response")
 	ErrMismatchedTxPayload = errors.New("mismatched Tx Payload")
@@ -87,11 +88,13 @@ func AddTxShard(tx common.Uint256, shardID types.ShardID) error {
 		return err
 	}
 	id := shardID.ToUint64()
-	if _, present := txState.Shards[id]; !present {
+	if state, present := txState.Shards[id]; !present {
 		txState.Shards[id] = TxExec
+	} else if state != TxExec {
+		return ErrInvalidTxState
 	}
 
-	return ErrNotFound
+	return nil
 }
 
 func GetTxCommitState(tx common.Uint256) (map[uint64]int, error) {
