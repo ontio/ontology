@@ -7,7 +7,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map[string]uint64) error {
@@ -15,6 +14,7 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
 	}
+	// TODO: check should current+1 or current+2
 	nextView := currentView + 1
 	currentViewInfo, err := getShardViewInfo(native, shardId, currentView)
 	if err != nil {
@@ -61,7 +61,7 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map
 
 func peerStake(native *native.NativeService, id types.ShardID, peerPubKey keypair.PublicKey, peerOwner common.Address,
 	amount uint64) error {
-	initView := shardstates.View(0)
+	initView := View(0)
 	info := &UserStakeInfo{Peers: make(map[keypair.PublicKey]*UserPeerStakeInfo)}
 	info.Peers[peerPubKey] = &UserPeerStakeInfo{StakeAmount: amount}
 	err := setShardViewUserStake(native, id, initView, peerOwner, info)
@@ -341,8 +341,8 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 		if err != nil {
 			return 0, fmt.Errorf("withdrawFee: failed, view %d, err: %s", i, err)
 		}
-		if !isUserStakePeer(userStake) {
-			if !isUserStakePeer(latestUserStakeInfo) {
+		if !isUserStakePeerEmpty(userStake) {
+			if !isUserStakePeerEmpty(latestUserStakeInfo) {
 				continue
 			} else {
 				userStake = latestUserStakeInfo
@@ -384,7 +384,41 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 	return dividends, nil
 }
 
-func isUserStakePeer(info *UserStakeInfo) bool {
+// change peer max authorization and proportion
+func changePeerInfo(native *native.NativeService, shardId types.ShardID, peerOwner common.Address, peerPubKey string,
+	methodName string, amount uint64) error {
+	currentView, err := getShardCurrentView(native, shardId)
+	if err != nil {
+		return fmt.Errorf("changePeerInfo: failed, err: %s", err)
+	}
+	nextView := currentView + 1
+	nextViewInfo, err := getShardViewInfo(native, shardId, nextView)
+	if err != nil {
+		return fmt.Errorf("changePeerInfo: failed, err: %s", err)
+	}
+	peerInfo, pubKey, err := nextViewInfo.GetPeer(peerPubKey)
+	if err != nil {
+		return fmt.Errorf("changePeerInfo: failed, err: %s", err)
+	}
+	if peerInfo.Owner != peerOwner {
+		return fmt.Errorf("changePeerInfo: peer owner not match")
+	}
+	switch methodName {
+	case CHANGE_MAX_AUTHORIZATION:
+		peerInfo.MaxAuthorization = amount
+	case CHANGE_PROPORTION:
+		peerInfo.Proportion = amount
+	default:
+		return fmt.Errorf("changePeerInfo: unsupport change field")
+	}
+	nextViewInfo.Peers[pubKey] = peerInfo
+	if err := setShardViewInfo(native, shardId, nextView, nextViewInfo); err != nil {
+		return fmt.Errorf("changePeerInfo: field, err: %s", err)
+	}
+	return nil
+}
+
+func isUserStakePeerEmpty(info *UserStakeInfo) bool {
 	if info.Peers == nil || len(info.Peers) == 0 {
 		return false
 	}

@@ -19,6 +19,7 @@
 package utils
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math/big"
@@ -95,4 +96,36 @@ func DecodeAddress(source *common.ZeroCopySource) (common.Address, error) {
 	}
 
 	return common.AddressParseFromBytes(from)
+}
+
+func GetUint32Bytes(num uint32) ([]byte, error) {
+	bf := new(bytes.Buffer)
+	if err := serialization.WriteUint32(bf, num); err != nil {
+		return nil, fmt.Errorf("serialization.WriteUint32, serialize uint32 error: %v", err)
+	}
+	return bf.Bytes(), nil
+}
+
+func GetBytesUint32(b []byte) (uint32, error) {
+	num, err := serialization.ReadUint32(bytes.NewBuffer(b))
+	if err != nil {
+		return 0, fmt.Errorf("serialization.ReadUint32, deserialize uint32 error: %v", err)
+	}
+	return num, nil
+}
+
+func GetUint64Bytes(num uint64) ([]byte, error) {
+	bf := new(bytes.Buffer)
+	if err := serialization.WriteUint64(bf, num); err != nil {
+		return nil, fmt.Errorf("serialization.WriteUint64, serialize uint64 error: %v", err)
+	}
+	return bf.Bytes(), nil
+}
+
+func GetBytesUint64(b []byte) (uint64, error) {
+	num, err := serialization.ReadUint64(bytes.NewBuffer(b))
+	if err != nil {
+		return 0, fmt.Errorf("serialization.ReadUint64, deserialize uint64 error: %v", err)
+	}
+	return num, nil
 }

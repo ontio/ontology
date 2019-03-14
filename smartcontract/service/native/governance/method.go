@@ -1094,7 +1094,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
 	oldView := view - 1
-	oldViewBytes, err := GetUint32Bytes(oldView)
+	oldViewBytes, err := utils.GetUint32Bytes(oldView)
 	if err != nil {
 		return fmt.Errorf("GetUint32Bytes, get oldViewBytes error: %v", err)
 	}
@@ -1250,7 +1250,7 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
 	oldView := view - 1
-	oldViewBytes, err := GetUint32Bytes(oldView)
+	oldViewBytes, err := utils.GetUint32Bytes(oldView)
 	if err != nil {
 		return fmt.Errorf("GetUint32Bytes, get oldViewBytes error: %v", err)
 	}

@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/serialization"
 	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -40,7 +39,7 @@ func GetPeerPoolMap(native *native.NativeService, contract common.Address, view 
 	peerPoolMap := &PeerPoolMap{
 		PeerPoolMap: make(map[string]*PeerPoolItem),
 	}
-	viewBytes, err := GetUint32Bytes(view)
+	viewBytes, err := utils.GetUint32Bytes(view)
 	if err != nil {
 		return nil, fmt.Errorf("getUint32Bytes, getUint32Bytes error: %v", err)
 	}
@@ -68,7 +67,7 @@ func putPeerPoolMap(native *native.NativeService, contract common.Address, view 
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize peerPoolMap error: %v", err)
 	}
-	viewBytes, err := GetUint32Bytes(view)
+	viewBytes, err := utils.GetUint32Bytes(view)
 	if err != nil {
 		return fmt.Errorf("getUint32Bytes, get viewBytes error: %v", err)
 	}
@@ -163,38 +162,6 @@ func splitCurve(native *native.NativeService, contract common.Address, pos uint6
 	Yi := splitCurve.Yi
 	s := ((uint64(Yi[index+1])-uint64(Yi[index]))*xi + uint64(Yi[index])*uint64(Xi[index+1]) - uint64(Yi[index+1])*uint64(Xi[index])) / (uint64(Xi[index+1]) - uint64(Xi[index]))
 	return s, nil
-}
-
-func GetUint32Bytes(num uint32) ([]byte, error) {
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteUint32(bf, num); err != nil {
-		return nil, fmt.Errorf("serialization.WriteUint32, serialize uint32 error: %v", err)
-	}
-	return bf.Bytes(), nil
-}
-
-func GetBytesUint32(b []byte) (uint32, error) {
-	num, err := serialization.ReadUint32(bytes.NewBuffer(b))
-	if err != nil {
-		return 0, fmt.Errorf("serialization.ReadUint32, deserialize uint32 error: %v", err)
-	}
-	return num, nil
-}
-
-func GetUint64Bytes(num uint64) ([]byte, error) {
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteUint64(bf, num); err != nil {
-		return nil, fmt.Errorf("serialization.WriteUint64, serialize uint64 error: %v", err)
-	}
-	return bf.Bytes(), nil
-}
-
-func GetBytesUint64(b []byte) (uint64, error) {
-	num, err := serialization.ReadUint64(bytes.NewBuffer(b))
-	if err != nil {
-		return 0, fmt.Errorf("serialization.ReadUint64, deserialize uint64 error: %v", err)
-	}
-	return num, nil
 }
 
 func getGlobalParam(native *native.NativeService, contract common.Address) (*GlobalParam, error) {
@@ -406,7 +373,7 @@ func getCandidateIndex(native *native.NativeService, contract common.Address) (u
 		if err != nil {
 			return 0, fmt.Errorf("getCandidateIndex, deserialize from raw storage item err:%v", err)
 		}
-		candidateIndex, err := GetBytesUint32(candidateIndexStore)
+		candidateIndex, err := utils.GetBytesUint32(candidateIndexStore)
 		if err != nil {
 			return 0, fmt.Errorf("GetBytesUint32, get candidateIndex error: %v", err)
 		}
@@ -415,7 +382,7 @@ func getCandidateIndex(native *native.NativeService, contract common.Address) (u
 }
 
 func putCandidateIndex(native *native.NativeService, contract common.Address, candidateIndex uint32) error {
-	candidateIndexBytes, err := GetUint32Bytes(candidateIndex)
+	candidateIndexBytes, err := utils.GetUint32Bytes(candidateIndex)
 	if err != nil {
 		return fmt.Errorf("GetUint32Bytes, get candidateIndexBytes error: %v", err)
 	}
@@ -434,7 +401,7 @@ func getSplitFee(native *native.NativeService, contract common.Address) (uint64,
 		if err != nil {
 			return 0, fmt.Errorf("getSplitFee, splitFeeBytes is not available")
 		}
-		splitFee, err = GetBytesUint64(splitFeeStore)
+		splitFee, err = utils.GetBytesUint64(splitFeeStore)
 		if err != nil {
 			return 0, fmt.Errorf("GetBytesUint64, get splitFee error: %v", err)
 		}
@@ -443,7 +410,7 @@ func getSplitFee(native *native.NativeService, contract common.Address) (uint64,
 }
 
 func putSplitFee(native *native.NativeService, contract common.Address, splitFee uint64) error {
-	splitFeeBytes, err := GetUint64Bytes(splitFee)
+	splitFeeBytes, err := utils.GetUint64Bytes(splitFee)
 	if err != nil {
 		return fmt.Errorf("GetUint64Bytes, get splitFeeBytes error: %v", err)
 	}

@@ -66,8 +66,6 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(APPROVE_JOIN_SHARD_NAME, ApproveJoinShard)
 	native.Register(JOIN_SHARD_NAME, JoinShard)
 	native.Register(ACTIVATE_SHARD_NAME, ActivateShard)
-
-	registerShardGov(native)
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -362,13 +360,6 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if rootChainPeerItem.TotalPos < params.StakeAmount {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
 	}
-	minStakeAmount, err := GetNodeMinStakeAmount(native, params.ShardID)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
-	}
-	if params.StakeAmount < minStakeAmount {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: stake asset should more than min amount")
-	}
 
 	pubKeyData, err := hex.DecodeString(params.PeerPubKey)
 	if err != nil {
@@ -382,9 +373,8 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer already in shard")
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
-			PeerOwner:   params.PeerOwner,
-			PeerPubKey:  params.PeerPubKey,
-			StakeAmount: params.StakeAmount,
+			PeerOwner:  params.PeerOwner,
+			PeerPubKey: params.PeerPubKey,
 		}
 		if shard.Peers == nil {
 			shard.Peers = make(map[keypair.PublicKey]*shardstates.PeerShardStakeInfo)
@@ -392,6 +382,8 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		for i := uint32(0); i < shard.Config.VbftConfigData.K; i++ {
 			if shard.Config.VbftConfigData.Peers[i].PeerPubkey == params.PeerPubKey {
 				peerStakeInfo.NodeType = shardstates.CONSENSUS_NODE
+			} else {
+				peerStakeInfo.NodeType = shardstates.CONDIDATE_NODE
 			}
 		}
 		peerStakeInfo.Index = uint32(len(shard.Peers) + 1)
@@ -402,14 +394,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: update shard state: %s", err)
 	}
 
-	// transfer stake asset
-	err = ont.AppCallTransfer(native, shard.Config.StakeAssetAddress, params.PeerOwner, contract, params.StakeAmount)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: transfer stake asset failed, err: %s", err)
-	}
-
-	_, err = native.NativeCall(utils.ShardStakeAddress, "peerInitStake", native.Input)
-	if err != nil {
+	if err := peerInitStake(native, params, shard.Config.StakeAssetAddress); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 

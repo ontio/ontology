@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -43,8 +44,6 @@ const (
 	KEY_SHARD_STATE  = "shardState"
 
 	KEY_SHARD_PEER_STATE = "peerState"
-	KEY_SHARD_MIN_STAKE  = "shard_peer_min_stake" // peer min stake, ordinary user has not this limit
-	KEY_VIEW_DIVIDED     = "divided"              // shard view has divided fee or not
 )
 
 type peerState string
@@ -58,14 +57,6 @@ const (
 
 func genPeerStateKey(contract common.Address, shardIdBytes []byte, pubKey keypair.PublicKey) []byte {
 	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_PEER_STATE), keypair.SerializePublicKey(pubKey))
-}
-
-func genShardMinStakeKey(contract common.Address, shardIdBytes []byte) []byte {
-	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_MIN_STAKE))
-}
-
-func genShardDividedKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
-	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_VIEW_DIVIDED), viewBytes)
 }
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -278,83 +269,35 @@ func getRootCurrentViewPeerMap(native *native.NativeService) (*governance.PeerPo
 	return peerPoolMap, nil
 }
 
-func setViewDivided(native *native.NativeService, contract common.Address, shardId types.ShardID, view shardstates.View) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setViewDivided: serialize shardID: %s", err)
+func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amount uint64) error {
+	setMinStakeParam := &shard_stake.SetMinStakeParam{
+		ShardId: id,
+		Amount:  amount,
 	}
-	viewBytes, err := shardutil.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("setViewDivided: serialize view: %s", err)
+	bf := new(bytes.Buffer)
+	if err := setMinStakeParam.Serialize(bf); err != nil {
+		return fmt.Errorf("setNodeMinStakeAmount: failed, err: %s", err)
 	}
-	key := genShardDividedKey(contract, shardIDBytes, viewBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(shardutil.GetUint32Bytes(1)))
+	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.SET_MIN_STAKE, bf.Bytes()); err != nil {
+		return fmt.Errorf("setNodeMinStakeAmount: failed, err: %s", err)
+	}
 	return nil
 }
 
-func isViewDivided(native *native.NativeService, contract common.Address, shardId types.ShardID,
-	view shardstates.View) (bool, error) {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: serialize shardID: %s", err)
+func peerInitStake(native *native.NativeService, param *JoinShardParam, stakeAssetAddr common.Address) error {
+	callParam := &shard_stake.PeerInitStakeParam{
+		ShardId:        param.ShardID,
+		StakeAssetAddr: stakeAssetAddr,
+		PeerOwner:      param.PeerOwner,
+		PeerPubKey:     param.PeerPubKey,
+		StakeAmount:    param.StakeAmount,
 	}
-	viewBytes, err := shardutil.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: serialize view: %s", err)
+	bf := new(bytes.Buffer)
+	if err := callParam.Serialize(bf); err != nil {
+		return fmt.Errorf("peerInitStake: failed, err: %s", err)
 	}
-	key := genShardDividedKey(contract, shardIDBytes, viewBytes)
-	storeValue, err := native.CacheDB.Get(key)
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: read db failed, err: %s", err)
+	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.PEER_STAKE, bf.Bytes()); err != nil {
+		return fmt.Errorf("peerInitStake: failed, err: %s", err)
 	}
-	if len(storeValue) == 0 {
-		return false, nil
-	}
-	data, err := cstates.GetValueFromRawStorageItem(storeValue)
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: parse db value failed, err: %s", err)
-	}
-	num, err := shardutil.GetBytesUint32(data)
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: deserialize value failed, err: %s", err)
-	}
-	return num != 0, nil
-}
-
-func GetNodeMinStakeAmount(native *native.NativeService, id types.ShardID) (uint64, error) {
-	shardIDBytes, err := shardutil.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return 0, fmt.Errorf("GetNodeMinStakeAmount: ser shardId failed, err: %s", err)
-	}
-	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
-	storeValue, err := native.CacheDB.Get(key)
-	if err != nil {
-		return 0, fmt.Errorf("GetNodeMinStakeAmount: ser shardId failed, err: %s", err)
-	}
-	if len(storeValue) == 0 {
-		return 0, nil
-	}
-	data, err := cstates.GetValueFromRawStorageItem(storeValue)
-	if err != nil {
-		return 0, fmt.Errorf("GetNodeMinStakeAmount: parse store value failed, err: %s", err)
-	}
-	amount, err := shardutil.GetBytesUint64(data)
-	if err != nil {
-		return 0, fmt.Errorf("GetNodeMinStakeAmount: dese value failed, err: %s", err)
-	}
-	return amount, nil
-}
-
-func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amount uint64) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setNodeMinStakeAmount: ser shardId failed, err: %s", err)
-	}
-	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
-	data, err := shardutil.GetUint64Bytes(amount)
-	if err != nil {
-		return fmt.Errorf("setNodeMinStakeAmount: ser view failed, err: %s", err)
-	}
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 	return nil
 }

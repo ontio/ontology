@@ -19,8 +19,6 @@
 package shardstates
 
 import (
-	"encoding/hex"
-	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
 	"io"
@@ -80,14 +78,10 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 }
 
 type PeerShardStakeInfo struct {
-	Index            uint32         `json:"index"`
-	PeerOwner        common.Address `json:"peer_owner"`
-	PeerPubKey       string         `json:"peer_pub_key"`
-	StakeAmount      uint64         `json:"stake_amount"`
-	UserStakeAmount  uint64         `json:"user_stake_amount"`
-	NodeType         NodeType       `json:"node_type"`
-	MaxAuthorization uint64         `json:"max_authorization"`
-	Proportion       uint64         `json:"proportion"`
+	Index      uint32         `json:"index"`
+	PeerOwner  common.Address `json:"peer_owner"`
+	PeerPubKey string         `json:"peer_pub_key"`
+	NodeType   NodeType       `json:"node_type"`
 }
 
 type ShardState struct {
@@ -107,21 +101,3 @@ func (this *ShardState) Serialize(w io.Writer) error {
 func (this *ShardState) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
-
-func (this *ShardState) GetPeerStakeInfo(pubKey string) (*PeerShardStakeInfo, keypair.PublicKey, error) {
-	pubKeyData, err := hex.DecodeString(pubKey)
-	if err != nil {
-		return nil, nil, fmt.Errorf("GetPeerStakeInfo: decode param pub key failed, err: %s", err)
-	}
-	paramPubkey, err := keypair.DeserializePublicKey(pubKeyData)
-	if err != nil {
-		return nil, nil, fmt.Errorf("GetPeerStakeInfo: deserialize param pub key failed, err: %s", err)
-	}
-	shardPeerStakeInfo, ok := this.Peers[paramPubkey]
-	if !ok {
-		return nil, nil, fmt.Errorf("GetPeerStakeInfo: peer %s not exist", pubKey)
-	}
-	return shardPeerStakeInfo, paramPubkey, nil
-}
-
-type View uint64 // shard consensus epoch index

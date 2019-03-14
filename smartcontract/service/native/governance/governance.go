@@ -222,7 +222,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 		}
 		index := peerPoolItem.Index
-		indexBytes, err := GetUint32Bytes(index)
+		indexBytes, err := utils.GetUint32Bytes(index)
 		if err != nil {
 			return nil, fmt.Errorf("getUint32Bytes, getUint32Bytes error: %v", err)
 		}
@@ -244,7 +244,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
-	indexBytes, err := GetUint32Bytes(maxId + 1)
+	indexBytes, err := utils.GetUint32Bytes(maxId + 1)
 	if err != nil {
 		return nil, fmt.Errorf("getUint32Bytes, get indexBytes error: %v", err)
 	}
@@ -484,7 +484,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("get value from raw storage item error:%v", err)
 		}
-		index, err := GetBytesUint32(value)
+		index, err := utils.GetBytesUint32(value)
 		if err != nil {
 			return nil, fmt.Errorf("GetBytesUint32, get index error: %v", err)
 		}
@@ -504,7 +504,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 			return nil, fmt.Errorf("putCandidateIndex, put candidateIndex error: %v", err)
 		}
 
-		indexBytes, err := GetUint32Bytes(peerPoolItem.Index)
+		indexBytes, err := utils.GetUint32Bytes(peerPoolItem.Index)
 		if err != nil {
 			return nil, fmt.Errorf("GetUint32Bytes, get indexBytes error: %v", err)
 		}
