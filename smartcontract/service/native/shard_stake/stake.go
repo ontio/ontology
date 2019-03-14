@@ -191,8 +191,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	for index, peer := range param.PeerPubKey {
 		feeInfo[peer] = param.Amount[index]
 	}
-	// TODO: check view is committed
-	err := commitDpos(native, param.ShardId, feeInfo)
+	err := commitDpos(native, param.ShardId, feeInfo, param.View)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}

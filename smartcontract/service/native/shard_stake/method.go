@@ -9,10 +9,13 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map[string]uint64) error {
+func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map[string]uint64, view View) error {
 	currentView, err := getShardCurrentView(native, shardId)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
+	}
+	if view != currentView {
+		return fmt.Errorf("commitDpos: the view %d not equals current view %d", view, currentView)
 	}
 	// TODO: check should current+1 or current+2
 	nextView := currentView + 1

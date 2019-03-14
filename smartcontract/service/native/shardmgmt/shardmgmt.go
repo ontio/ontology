@@ -504,7 +504,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		dividends = append(dividends, peerFee)
 		peers = append(peers, info.PeerPubKey)
 	}
-	if err := commitDpos(native, params.ShardID, dividends, peers); err != nil {
+	if err := commitDpos(native, params.ShardID, dividends, peers, params.View); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	err = ont.AppCallTransfer(native, utils.OngContractAddress, contract, utils.ShardStakeAddress, params.FeeAmount)

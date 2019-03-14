@@ -302,10 +302,11 @@ func peerInitStake(native *native.NativeService, param *JoinShardParam, stakeAss
 	return nil
 }
 
-func commitDpos(native *native.NativeService, shardId types.ShardID, amount []uint64, peers []string) error {
+func commitDpos(native *native.NativeService, shardId types.ShardID, amount []uint64, peers []string, view uint64) error {
 	param := &shard_stake.CommitDposParam{
 		ShardId:    shardId,
 		PeerPubKey: peers,
+		View:       shard_stake.View(view),
 		Amount:     amount,
 	}
 	bf := new(bytes.Buffer)
