@@ -48,11 +48,25 @@ var (
 	ErrInvalidRemoteRsp    = errors.New("invalid remotes response")
 	ErrMismatchedTxPayload = errors.New("mismatched Tx Payload")
 	ErrMismatchedRequest   = errors.New("mismatched request")
-	ErrMismatchedResponse  = errors.New("nismatched response")
+	ErrMismatchedResponse  = errors.New("mismatched response")
 )
 
+//
+// TxState
+// stores intermediate states of one cross-shard transaction
+//
+// * State: current execution state : exec -> (wait) -> prepare -> prepared -> commit
+// * Shards: store shards which participant with the transaction
+// * TxPayload: serialized transaction
+// * NextReqID: index of next transactional remote request
+// * Reqs: sent remote requests in this transaction
+// * Rsps: received remote responses in this transaction
+// * Result: execution result of the transaction
+// * ResultErr: execution error of the transaction
+// * WriteSet:
+// * Notify:
+//
 type TxState struct {
-	Caller    common.Address
 	State     int
 	Shards    map[uint64]int
 	TxPayload []byte
@@ -65,6 +79,10 @@ type TxState struct {
 	Notify    *event.ExecuteNotify
 }
 
+//
+// ShardTxStateMap
+// stores all intermediate states of cross-shard transactions
+//
 type ShardTxStateMap struct {
 	TxStates map[common.Uint256]*TxState
 }
@@ -73,6 +91,10 @@ var shardTxStateTable = ShardTxStateMap{
 	TxStates: make(map[common.Uint256]*TxState),
 }
 
+//
+// GetTxShards
+// get shards which participant with the procession of transaction
+//
 func GetTxShards(tx common.Uint256) ([]types.ShardID, error) {
 	if state, present := shardTxStateTable.TxStates[tx]; present {
 		shards := make([]types.ShardID, 0, len(state.Shards))
@@ -86,6 +108,10 @@ func GetTxShards(tx common.Uint256) ([]types.ShardID, error) {
 	return nil, ErrNotFound
 }
 
+//
+// AddTxShard
+// add participated shard to txState
+//
 func AddTxShard(tx common.Uint256, shardID types.ShardID) error {
 	txState, err := CreateTxState(tx)
 	if err != nil {
@@ -231,6 +257,11 @@ func SetTxResult(tx common.Uint256, result []byte, resultErr error) error {
 	return nil
 }
 
+//
+// GetTxResponse
+// get remote response of the request, if existed.
+// return nil if not existed
+//
 func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) (*shardstates.XShardTxRsp, error) {
 	txState, err := CreateTxState(tx)
 	if err != nil {
@@ -243,6 +274,11 @@ func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) (*shardsta
 	return nil, nil
 }
 
+//
+// PutTxResponse
+// add remote response to txState.
+// if not matched with previous response, return ErrMismatchResponse
+//
 func PutTxResponse(tx common.Uint256, txRsp *shardstates.XShardTxRsp) error {
 	txState, err := CreateTxState(tx)
 	if err != nil {
@@ -290,6 +326,10 @@ func GetTxRequests(tx common.Uint256) ([]*shardstates.XShardTxReq, error) {
 	return reqs, nil
 }
 
+//
+// ValidateTxRequest
+// check if the remote request is consistent with previous request which has same Index
+//
 func ValidateTxRequest(tx common.Uint256, req *shardstates.XShardTxReq) error {
 	txState, err := GetTxState(tx)
 	if err == ErrNotFound {
@@ -309,6 +349,13 @@ func ValidateTxRequest(tx common.Uint256, req *shardstates.XShardTxReq) error {
 	return nil
 }
 
+//
+// PutTxRequest
+// add remote request to txState
+//	1. check if remote request is valid
+//  2. add serialized tx to txState
+//  3. update next request index
+//
 func PutTxRequest(tx common.Uint256, txPayload []byte, req shardstates.XShardMsg) error {
 	if req.Type() != shardstates.EVENT_SHARD_TXREQ {
 		return fmt.Errorf("invalid type of txReq: %d", req.Type())
@@ -342,6 +389,10 @@ func PutTxRequest(tx common.Uint256, txPayload []byte, req shardstates.XShardMsg
 	return nil
 }
 
+//
+// UpdateTxResult
+// save writeset of the transaction to txState
+//
 func UpdateTxResult(tx common.Uint256, dataDB *storage.CacheDB) error {
 	txState, err := GetTxState(tx)
 	if err != nil {

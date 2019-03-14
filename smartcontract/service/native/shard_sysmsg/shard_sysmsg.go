@@ -70,7 +70,7 @@ func RegisterShardSysMsgContract(ctx *native.NativeService) {
 }
 
 func ShardSysMsgInit(ctx *native.NativeService) ([]byte, error) {
-	// TODO: nothing to do yet
+	// TODO: init sys-msg-queue Store
 	return utils.BYTE_TRUE, nil
 }
 
