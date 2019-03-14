@@ -9,6 +9,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
+// set current+2 stake info to current+1 stake info
 func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map[string]uint64, view View) error {
 	currentView, err := getShardCurrentView(native, shardId)
 	if err != nil {
@@ -17,22 +18,9 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map
 	if view != currentView {
 		return fmt.Errorf("commitDpos: the view %d not equals current view %d", view, currentView)
 	}
-	// TODO: check should current+1 or current+2
-	nextView := currentView + 1
 	currentViewInfo, err := GetShardViewInfo(native, shardId, currentView)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view info failed, err: %s", shardId, err)
-	}
-	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
-	if err != nil {
-		return fmt.Errorf("commitDpos: get shard %d next view info failed, err: %s", shardId, err)
-	}
-	if nextViewInfo.Peers == nil || len(nextViewInfo.Peers) == 0 {
-		nextViewInfo = currentViewInfo
-		err = setShardViewInfo(native, shardId, nextView, nextViewInfo)
-		if err != nil {
-			return fmt.Errorf("commitDpos: update shard %d next view info failed, err: %s", shardId, err)
-		}
 	}
 	for pubKeyString, feeAmount := range feeInfo {
 		pubKeyData, err := hex.DecodeString(pubKeyString)
@@ -54,6 +42,15 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map
 	err = setShardViewInfo(native, shardId, currentView, currentViewInfo)
 	if err != nil {
 		return fmt.Errorf("commitDpos: update shard %d view info failed, err: %s", shardId, err)
+	}
+	nextView := currentView + 1
+	nextTwoView := nextView + 1
+	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
+	if err != nil {
+		return fmt.Errorf("commitDpos: get next view info failed, err: %s", err)
+	}
+	if err := setShardViewInfo(native, shardId, nextTwoView, nextViewInfo); err != nil {
+		return fmt.Errorf("commitDpos: set next two view info failed, err: %s", err)
 	}
 	err = setShardView(native, shardId, nextView)
 	if err != nil {
