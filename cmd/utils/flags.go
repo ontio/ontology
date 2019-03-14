@@ -274,9 +274,9 @@ var (
 		Name:  "address",
 		Usage: "Contract `<address>`",
 	}
-	ContractStorageFlag = cli.BoolFlag{
-		Name:  "needstore",
-		Usage: "Is need use storage in contract",
+	ContractVmTypeFlag = cli.UintFlag{
+		Name:  "vmtype",
+		Usage: "The Contract type: 1 for Neovm ,3 for Wasmvm",
 	}
 	ContractCodeFileFlag = cli.StringFlag{
 		Name:  "code",

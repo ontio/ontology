@@ -33,11 +33,11 @@ import (
 )
 
 // NewDeployTransaction returns a deploy Transaction
-func NewDeployTransaction(code []byte, name, version, author, email, desp string, needStorage bool) *types.MutableTransaction {
+func NewDeployTransaction(code []byte, name, version, author, email, desp string, vmType byte) *types.MutableTransaction {
 	//TODO: check arguments
 	DeployCodePayload := &payload.DeployCode{
 		Code:        code,
-		NeedStorage: needStorage,
+		VmType:      vmType,
 		Name:        name,
 		Version:     version,
 		Author:      author,
@@ -59,7 +59,7 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 	}
 
 	return &types.MutableTransaction{
-		TxType:  types.Invoke,
+		TxType:  types.InvokeNeo,
 		Payload: invokeCodePayload,
 	}
 }

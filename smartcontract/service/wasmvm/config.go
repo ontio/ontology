@@ -15,21 +15,26 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+package wasmvm
 
-// Copyright 2017 The go-interpreter Authors.  All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+var (
+	TIME_STAMP_GAS       uint64 = 1
+	BLOCK_HEGHT_GAS      uint64 = 1
+	SELF_ADDRESS_GAS     uint64 = 1
+	CALLER_ADDRESS_GAS   uint64 = 1
+	ENTRY_ADDRESS_GAS    uint64 = 1
+	CHECKWITNESS_GAS     uint64 = 200
+	CALL_CONTRACT_GAS    uint64 = 10
+	CONTRACT_CREATE_GAS  uint64 = 20000000
+	CONTRACT_MIGRATE_GAS uint64 = 20000000
+	NATIVE_INVOKE_GAS    uint64 = 1000
 
-package exec
+	CURRENT_BLOCK_HASH_GAS uint64 = 100
+	CURRENT_TX_HASH_GAS    uint64 = 100
 
-import "errors"
-
-// ErrUnreachable is the error value used while trapping the VM when
-// an unreachable operator is reached during execution.
-var ErrUnreachable = errors.New("exec: reached unreachable")
-
-func (vm *VM) unreachable() {
-	panic(ErrUnreachable)
-}
-
-func (vm *VM) nop() {}
+	STORAGE_GET_GAS          uint64 = 200
+	STORAGE_PUT_GAS          uint64 = 4000
+	STORAGE_DELETE_GAS       uint64 = 100
+	UINT_DEPLOY_CODE_LEN_GAS uint64 = 200000
+	PER_UNIT_CODE_LEN        uint64 = 1024
+)

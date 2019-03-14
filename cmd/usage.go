@@ -199,7 +199,7 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ContractEmailFlag,
 			utils.ContractNameFlag,
 			utils.ContractVersionFlag,
-			utils.ContractStorageFlag,
+			utils.ContractVmTypeFlag,
 			utils.ContractPrepareInvokeFlag,
 			utils.ContractParamsFlag,
 			utils.ContractReturnTypeFlag,

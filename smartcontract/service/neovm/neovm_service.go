@@ -197,7 +197,7 @@ func (this *NeoVmService) Invoke() (*vmty.VmValue, error) {
 			if err != nil {
 				return nil, err
 			}
-			service, err := this.ContextRef.NewExecuteEngine(code)
+			service, err := this.ContextRef.NewExecuteEngine(code, types.InvokeNeo)
 			if err != nil {
 				return nil, err
 			}

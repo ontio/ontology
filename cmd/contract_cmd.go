@@ -48,7 +48,7 @@ var (
 					utils.RPCPortFlag,
 					utils.TransactionGasPriceFlag,
 					utils.TransactionGasLimitFlag,
-					utils.ContractStorageFlag,
+					utils.ContractVmTypeFlag,
 					utils.ContractCodeFileFlag,
 					utils.ContractNameFlag,
 					utils.ContractVersionFlag,
@@ -122,7 +122,7 @@ func deployContract(ctx *cli.Context) error {
 		return nil
 	}
 
-	store := ctx.Bool(utils.GetFlagName(utils.ContractStorageFlag))
+	vmtype := ctx.Uint(utils.GetFlagName(utils.ContractVmTypeFlag))
 	codeFile := ctx.String(utils.GetFlagName(utils.ContractCodeFileFlag))
 	if "" == codeFile {
 		return fmt.Errorf("please specific code file")
@@ -151,7 +151,7 @@ func deployContract(ctx *cli.Context) error {
 	cversion := fmt.Sprintf("%s", version)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareDeployFlag)) {
-		preResult, err := utils.PrepareDeployContract(store, code, name, cversion, author, email, desc)
+		preResult, err := utils.PrepareDeployContract(byte(vmtype), code, name, cversion, author, email, desc)
 		if err != nil {
 			return fmt.Errorf("PrepareDeployContract error:%s", err)
 		}
@@ -168,7 +168,7 @@ func deployContract(ctx *cli.Context) error {
 		return fmt.Errorf("get signer account error:%s", err)
 	}
 
-	txHash, err := utils.DeployContract(gasPrice, gasLimit, signer, store, code, name, cversion, author, email, desc)
+	txHash, err := utils.DeployContract(gasPrice, gasLimit, signer, byte(vmtype), code, name, cversion, author, email, desc)
 	if err != nil {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}

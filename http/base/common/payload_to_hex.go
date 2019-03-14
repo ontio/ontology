@@ -36,7 +36,7 @@ type InvokeCodeInfo struct {
 }
 type DeployCodeInfo struct {
 	Code        string
-	NeedStorage bool
+	VmType      byte
 	Name        string
 	CodeVersion string
 	Author      string
@@ -100,7 +100,7 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)
 		obj.Code = common.ToHexString(object.Code)
-		obj.NeedStorage = object.NeedStorage
+		obj.VmType = object.VmType
 		obj.Name = object.Name
 		obj.CodeVersion = object.Version
 		obj.Author = object.Author

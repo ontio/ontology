@@ -158,7 +158,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	copy(tx.Payer[:], buf)
 
 	switch tx.TxType {
-	case Invoke:
+	case InvokeNeo, InvokeWasm:
 		pl := new(payload.InvokeCode)
 		err := pl.Deserialization(source)
 		if err != nil {
@@ -378,7 +378,8 @@ type TransactionType byte
 const (
 	Bookkeeper TransactionType = 0x02
 	Deploy     TransactionType = 0xd0
-	Invoke     TransactionType = 0xd1
+	InvokeNeo  TransactionType = 0xd1
+	InvokeWasm TransactionType = 0xd2 //add for wasm invoke
 )
 
 // Payload define the func for loading the payload data
