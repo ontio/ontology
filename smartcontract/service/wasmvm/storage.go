@@ -22,6 +22,7 @@ import (
 	"math"
 
 	"github.com/go-interpreter/wagon/exec"
+	"github.com/ontio/ontology/core/states"
 )
 
 func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {
@@ -34,19 +35,30 @@ func (self *Runtime) StorageRead(proc *exec.Process, keyPtr uint32, klen uint32,
 
 	key := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
 
-	item, err := self.Service.CacheDB.Get(key)
+	raw, err := self.Service.CacheDB.Get(key)
 	if err != nil {
 		panic(err)
 	}
 
-	if item == nil {
+	if raw == nil {
 		return math.MaxUint32
+	}
+
+	item, err := states.GetValueFromRawStorageItem(raw)
+	if err != nil {
+		panic(err)
+	}
+
+	length := vlen
+	itemlen := uint32(len(item))
+	if itemlen < vlen {
+		length = itemlen
 	}
 
 	if uint32(len(item)) < offset {
 		panic(errors.New("offset is invalid"))
 	}
-	_, err = proc.WriteAt(item[offset:offset+vlen], int64(val))
+	_, err = proc.WriteAt(item[offset:offset+length], int64(val))
 
 	if err != nil {
 		panic(err)
@@ -73,7 +85,7 @@ func (self *Runtime) StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint
 
 	key := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
 
-	self.Service.CacheDB.Put(key, valbytes)
+	self.Service.CacheDB.Put(key, states.GenRawStorageItem(valbytes))
 }
 
 func (self *Runtime) StorageDelete(proc *exec.Process, keyPtr uint32, keylen uint32) {
