@@ -22,9 +22,9 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/core/types"
 )
 
 func Test_ParamSerialize(t *testing.T) {

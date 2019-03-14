@@ -95,10 +95,6 @@ func ShardHotelInit(ctx *native.NativeService) ([]byte, error) {
 }
 
 func ShardReserveRoom(ctx *native.NativeService) ([]byte, error) {
-	if ctx.ContextRef.IsPreExec() {
-		return utils.BYTE_TRUE, nil
-	}
-
 	cp := new(shardmgmt.CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel reserve, invalid cmd param: %s", err)
@@ -157,10 +153,6 @@ func ShardCheckout(ctx *native.NativeService) ([]byte, error) {
 }
 
 func ShardDoubleReserve(ctx *native.NativeService) ([]byte, error) {
-	if ctx.ContextRef.IsPreExec() {
-		return utils.BYTE_TRUE, nil
-	}
-
 	cp := new(shardmgmt.CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel reserver1, invalid cmd param: %s", err)
