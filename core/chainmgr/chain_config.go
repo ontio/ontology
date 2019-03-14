@@ -73,14 +73,22 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 	} else if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		seedlist := make([]string, 0)
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
+		peerStakeInfo, err := GetShardPeerStakeInfo(self.ledger, shardState.ShardID)
+		if err != nil {
+			return nil, fmt.Errorf("buildShardConfig: failed, err: %s")
+		}
 		for peerPK, info := range shardState.Peers {
 			seedlist = append(seedlist, info.PeerPubKey)
 			vbftpeerstakeinfo := &config.VBFTPeerStakeInfo{
 				Index:      info.Index,
 				PeerPubkey: hex.EncodeToString(keypair.SerializePublicKey(peerPK)),
 				Address:    info.PeerOwner.ToBase58(),
-				InitPos:    info.StakeAmount,
 			}
+			stakeInfo, ok := peerStakeInfo[peerPK]
+			if !ok {
+				return nil, fmt.Errorf("buildShardConfig: peer %s has not stake info", vbftpeerstakeinfo.PeerPubkey)
+			}
+			vbftpeerstakeinfo.InitPos = stakeInfo.WholeStakeAmount - stakeInfo.UserStakeAmount
 			peers = append(peers, vbftpeerstakeinfo)
 		}
 		sort.SliceStable(peers, func(i, j int) bool {

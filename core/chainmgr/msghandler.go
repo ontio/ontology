@@ -196,6 +196,7 @@ func (self *ChainManager) restartChildShardProcess(shardID types.ShardID) error 
 	}
 	return self.startChildShard(shardID, shardState)
 }
+
 func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shardstates.ShardState) error {
 	if _, err := self.initShardInfo(shardID, shardState); err != nil {
 		return fmt.Errorf("startChildShard init shard %d info: %s", shardID, err)

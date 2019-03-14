@@ -21,6 +21,9 @@ package chainmgr
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
@@ -111,7 +114,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 		return nil, err
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get shardmgmt global state: %s", err)
+		return nil, fmt.Errorf("get shardmgmt shard state: %s", err)
 	}
 
 	shardState := &shardstates.ShardState{}
@@ -120,6 +123,39 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	}
 
 	return shardState, nil
+}
+
+func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[keypair.PublicKey]*shard_stake.PeerViewInfo,
+	error) {
+	if lgr == nil {
+		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
+	}
+
+	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
+	if err != nil {
+		return nil, fmt.Errorf("GetShardPeerStakeInfo: ser shardID failed: %s", err)
+	}
+	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
+	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
+	if err == common.ErrNotFound {
+		return nil, err
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GetShardPeerStakeInfo: get current view: %s", err)
+	}
+	viewInfoKey := shard_stake.GenShardViewInfoKey(shardIDBytes, viewBytes)
+	infoData, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewInfoKey)
+	if err == common.ErrNotFound {
+		return nil, err
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GetShardPeerStakeInfo: get current view info: %s", err)
+	}
+	info := shard_stake.ViewInfo{}
+	if err := info.Deserialize(bytes.NewBuffer(infoData)); err != nil {
+		return nil, fmt.Errorf("GetShardPeerStakeInfo: deserialize view info: %s", err)
+	}
+	return info.Peers, nil
 }
 
 func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.ShardID, error) {
