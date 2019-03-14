@@ -107,19 +107,19 @@ func setShardView(native *native.NativeService, id types.ShardID, view View) err
 	return nil
 }
 
-func getShardViewInfo(native *native.NativeService, id types.ShardID, view View) (*ViewInfo, error) {
+func GetShardViewInfo(native *native.NativeService, id types.ShardID, view View) (*ViewInfo, error) {
 	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
 	if err != nil {
-		return nil, fmt.Errorf("getShardViewInfo: ser shardId failed, err: %s", err)
+		return nil, fmt.Errorf("GetShardViewInfo: ser shardId failed, err: %s", err)
 	}
 	viewBytes, err := utils.GetUint64Bytes(uint64(view))
 	if err != nil {
-		return nil, fmt.Errorf("getShardViewInfo: ser view failed, err: %s", err)
+		return nil, fmt.Errorf("GetShardViewInfo: ser view failed, err: %s", err)
 	}
 	key := genShardViewInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
 	dataBytes, err := native.CacheDB.Get(key)
 	if err != nil {
-		return nil, fmt.Errorf("getShardViewInfo: read db failed, err: %s", err)
+		return nil, fmt.Errorf("GetShardViewInfo: read db failed, err: %s", err)
 	}
 	viewInfo := &ViewInfo{}
 	if len(dataBytes) == 0 {
@@ -127,11 +127,11 @@ func getShardViewInfo(native *native.NativeService, id types.ShardID, view View)
 	}
 	storeValue, err := cstates.GetValueFromRawStorageItem(dataBytes)
 	if err != nil {
-		return nil, fmt.Errorf("getShardViewInfo: parse store vale faield, err: %s", err)
+		return nil, fmt.Errorf("GetShardViewInfo: parse store vale faield, err: %s", err)
 	}
 	err = viewInfo.Deserialize(bytes.NewBuffer(storeValue))
 	if err != nil {
-		return nil, fmt.Errorf("getShardViewInfo: deserialize view info failed, err: %s", err)
+		return nil, fmt.Errorf("GetShardViewInfo: deserialize view info failed, err: %s", err)
 	}
 	return viewInfo, nil
 }

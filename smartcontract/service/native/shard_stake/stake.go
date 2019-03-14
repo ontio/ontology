@@ -177,6 +177,9 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only shard mgmt contract can invoke")
+	}
 	param := new(CommitDposParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
@@ -188,6 +191,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	for index, peer := range param.PeerPubKey {
 		feeInfo[peer] = param.Amount[index]
 	}
+	// TODO: check view is committed
 	err := commitDpos(native, param.ShardId, feeInfo)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)

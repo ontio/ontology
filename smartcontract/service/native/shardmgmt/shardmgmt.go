@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -52,6 +53,7 @@ const (
 	APPROVE_JOIN_SHARD_NAME = "approveJoinShard"
 	JOIN_SHARD_NAME         = "joinShard"
 	ACTIVATE_SHARD_NAME     = "activateShard"
+	COMMIT_DPOS_NAME        = "commitDpos"
 )
 
 func InitShardManagement() {
@@ -66,6 +68,7 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(APPROVE_JOIN_SHARD_NAME, ApproveJoinShard)
 	native.Register(JOIN_SHARD_NAME, JoinShard)
 	native.Register(ACTIVATE_SHARD_NAME, ActivateShard)
+	native.Register(COMMIT_DPOS_NAME, CommitDpos)
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -394,6 +397,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: update shard state: %s", err)
 	}
 
+	// call shard stake contract
 	if err := peerInitStake(native, params, shard.Config.StakeAssetAddress); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
@@ -460,5 +464,52 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("activae shard, add notification: %s", err)
 	}
 
+	return utils.BYTE_TRUE, nil
+}
+
+func CommitDpos(native *native.NativeService) ([]byte, error) {
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid cmd param: %s", err)
+	}
+	params := new(CommitDposParam)
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: check version: %s", err)
+	}
+
+	shard, err := GetShardState(native, contract, params.ShardID)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: get shard: %s", err)
+	}
+	// TODO: check new config
+	shard.Config.VbftConfigData = params.NewConfig
+	viewInfo, err := shard_stake.GetShardViewInfo(native, params.ShardID, shard_stake.View(params.View))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	}
+	dividends := make([]uint64, 0)
+	peers := make([]string, 0)
+	wholeNodeStakeAmount := uint64(0)
+	for _, info := range viewInfo.Peers {
+		wholeNodeStakeAmount += info.WholeStakeAmount
+	}
+	// TODO: check viewInfo.Peers is existed in shard states
+	// TODO: candidate node and consensus node different rate
+	for _, info := range viewInfo.Peers {
+		peerFee := info.WholeStakeAmount * params.FeeAmount / wholeNodeStakeAmount
+		dividends = append(dividends, peerFee)
+		peers = append(peers, info.PeerPubKey)
+	}
+	if err := commitDpos(native, params.ShardID, dividends, peers); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	}
+	err = ont.AppCallTransfer(native, utils.OngContractAddress, contract, utils.ShardStakeAddress, params.FeeAmount)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: transfer fee to stake contract failed, err: %s", err)
+	}
 	return utils.BYTE_TRUE, nil
 }

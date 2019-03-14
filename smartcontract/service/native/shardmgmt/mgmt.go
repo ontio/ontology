@@ -160,3 +160,18 @@ func (this *ActivateShardParam) Serialize(w io.Writer) error {
 func (this *ActivateShardParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
+
+type CommitDposParam struct {
+	ShardID   types.ShardID      `json:"shard_id"`
+	View      uint64             `json:"view"`
+	FeeAmount uint64             `json:"fee_amount"`
+	NewConfig *config.VBFTConfig `json:"new_config"`
+}
+
+func (this *CommitDposParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *CommitDposParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
