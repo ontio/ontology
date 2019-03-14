@@ -64,7 +64,7 @@ func TestRandomCodeCrash(t *testing.T) {
 				Gas:     10000,
 				CacheDB: nil,
 			}
-			engine, _ := sc.NewExecuteEngine(code)
+			engine, _ := sc.NewExecuteEngine(code, types.InvokeNeo)
 			engine.Invoke()
 		}
 	}
@@ -89,7 +89,7 @@ func TestOpCodeDUP(t *testing.T) {
 		Gas:     10000,
 		CacheDB: nil,
 	}
-	engine, _ := sc.NewExecuteEngine(code)
+	engine, _ := sc.NewExecuteEngine(code, types.InvokeNeo)
 	_, err := engine.Invoke()
 
 	assert.NotNil(t, err)
@@ -122,7 +122,7 @@ func TestOpReadMemAttack(t *testing.T) {
 		Gas:     100000,
 		CacheDB: nil,
 	}
-	engine, _ := sc.NewExecuteEngine(bs.Bytes())
+	engine, _ := sc.NewExecuteEngine(bs.Bytes(), types.InvokeNeo)
 	_, err := engine.Invoke()
 
 	assert.NotNil(t, err)
