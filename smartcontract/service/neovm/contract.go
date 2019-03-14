@@ -154,10 +154,8 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 	if err != nil {
 		return nil, err
 	}
-	if len(code) > 1024*1024 {
-		return nil, errors.NewErr("[Contract] Code too long!")
-	}
-	needStorage, err := vm.PopBoolean(engine)
+
+	vmType, err := vm.PopInt(engine)
 	if err != nil {
 		return nil, err
 	}
@@ -165,46 +163,33 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 	if err != nil {
 		return nil, err
 	}
-	if len(name) > 252 {
-		return nil, errors.NewErr("[Contract] Name too long!")
-	}
+
 	version, err := vm.PopByteArray(engine)
 	if err != nil {
 		return nil, err
 	}
-	if len(version) > 252 {
-		return nil, errors.NewErr("[Contract] Version too long!")
-	}
+
 	author, err := vm.PopByteArray(engine)
 	if err != nil {
 		return nil, err
 	}
-	if len(author) > 252 {
-		return nil, errors.NewErr("[Contract] Author too long!")
-	}
+
 	email, err := vm.PopByteArray(engine)
 	if err != nil {
 		return nil, err
 	}
-	if len(email) > 252 {
-		return nil, errors.NewErr("[Contract] Email too long!")
-	}
+
 	desc, err := vm.PopByteArray(engine)
 	if err != nil {
 		return nil, err
 	}
-	if len(desc) > 65536 {
-		return nil, errors.NewErr("[Contract] Desc too long!")
+
+	contract, err := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
+
+	if err != nil {
+		return nil, err
 	}
-	contract := &payload.DeployCode{
-		Code:        code,
-		NeedStorage: needStorage,
-		Name:        string(name),
-		Version:     string(version),
-		Author:      string(author),
-		Email:       string(email),
-		Description: string(desc),
-	}
+
 	return contract, nil
 }
 

@@ -193,12 +193,16 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		CacheDB: cache,
 		Store:   store,
 		Gas:     availableGasLimit - codeLenGasLimit,
+		PreExec: false,
 	}
 
 	//start the smart contract executive function
-	engine, _ := sc.NewExecuteEngine(invoke.Code)
+	engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
 
 	_, err = engine.Invoke()
+	if err != nil {
+		return err
+	}
 
 	costGasLimit = availableGasLimit - sc.Gas
 	if costGasLimit < neovm.MIN_TRANSACTION_GAS {
@@ -234,6 +238,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 			return err
 		}
 	}
+
 	notify.Notify = append(notify.Notify, sc.Notifications...)
 	notify.Notify = append(notify.Notify, notifies...)
 	notify.GasConsumed = costGas
