@@ -185,6 +185,10 @@ func (this *SmartContract) checkAccountAddress(address common.Address) bool {
 	return false
 }
 
+func (this *SmartContract) IsPreExec() bool {
+	return this.PreExec
+}
+
 func (this *SmartContract) checkContractAddress(address common.Address) bool {
 	if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
 		return true

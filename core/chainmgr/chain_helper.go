@@ -19,16 +19,16 @@
 package chainmgr
 
 import (
-	"encoding/hex"
-	"fmt"
-
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -124,13 +124,13 @@ type JsonRpcRequest struct {
 	Params  []interface{} `json:"params"`
 }
 
-func sendRawTx(tx *types.Transaction, shardPort string) error {
+func sendRawTx(tx *types.Transaction, shardPort uint) error {
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {
-		return fmt.Errorf("Serialize error:%s", err)
+		return fmt.Errorf("serialize error:%s", err)
 	}
-	reqAddr := "http://127.0.0.1:" + shardPort
+	reqAddr := fmt.Sprintf("http://127.0.0.1:%d", shardPort)
 
 	rpcReq := &JsonRpcRequest{
 		Version: JSON_RPC_VERSION,
@@ -150,6 +150,8 @@ func sendRawTx(tx *types.Transaction, shardPort string) error {
 		},
 		Timeout: time.Second * 300, //timeout for http response
 	}
+
+	log.Debugf("chainmgr forward tx to %s", reqAddr)
 	resp, err := httpClient.Post(reqAddr, "application/json", bytes.NewReader(reqData))
 	if err != nil {
 		return fmt.Errorf("send http post request error:%s", err)

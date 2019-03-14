@@ -21,11 +21,13 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 	"io"
 
+	common2 "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
-	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
@@ -49,6 +51,7 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 	if err != nil {
 		return err
 	}
+
 	if toShards == nil {
 		toShards = []types.ShardID{toShard}
 	} else {
@@ -72,8 +75,10 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 		return fmt.Errorf("serialize to-shards in block: %s", err)
 	}
 
+	log.Debugf("put ToShards: height: %d, shards: %v", ctx.Height, toShards)
+
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	ctx.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
+	xshard_state.PutKV(key, buf.Bytes())
 	return nil
 }
 
@@ -82,8 +87,8 @@ func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.
 	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	toShardsBytes, err := ctx.CacheDB.Get(key)
-	if err != nil {
+	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
+	if err != nil && err != common.ErrNotFound {
 		return nil, fmt.Errorf("get toShards: %s", err)
 	}
 	if toShardsBytes == nil {
@@ -91,14 +96,9 @@ func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.
 		return nil, nil
 	}
 
-	value, err := cstates.GetValueFromRawStorageItem(toShardsBytes)
-	if err != nil {
-		return nil, fmt.Errorf("get toShards from bytes: %s", err)
-	}
-
 	req := &ToShardsInBlock{}
-	if err := req.Deserialize(bytes.NewBuffer(value)); err != nil {
-		return nil, fmt.Errorf("deserialize toShards: %s", err)
+	if err := req.Deserialize(bytes.NewBuffer(toShardsBytes)); err != nil {
+		return nil, fmt.Errorf("deserialize toShards: %s: %s", err, string(toShardsBytes))
 	}
 
 	return req.Shards, nil
@@ -118,7 +118,7 @@ func (this *ReqsInBlock) Deserialize(r io.Reader) error {
 
 func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
 	reqs, err := getReqsInBlock(ctx, ctx.Height, req.GetTargetShardID())
-	if err != nil {
+	if err != nil && err != common.ErrNotFound {
 		return err
 	}
 	reqBytes := new(bytes.Buffer)
@@ -145,7 +145,7 @@ func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) 
 	}
 
 	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	ctx.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
+	xshard_state.PutKV(key, buf.Bytes())
 	return nil
 }
 
@@ -158,8 +158,8 @@ func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types
 	}
 
 	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	reqBytes, err := ctx.CacheDB.Get(key)
-	if err != nil {
+	reqBytes, err := xshard_state.GetKVStorageItem(key)
+	if err != nil && err != common.ErrNotFound {
 		return nil, fmt.Errorf("get reqs in block: %s", err)
 	}
 	if reqBytes == nil {
@@ -167,22 +167,27 @@ func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types
 		return nil, nil
 	}
 
-	value, err := cstates.GetValueFromRawStorageItem(reqBytes)
-	if err != nil {
-		return nil, fmt.Errorf("get reqs from bytes: %s", err)
-	}
-
 	req := &ReqsInBlock{}
-	if err := req.Deserialize(bytes.NewBuffer(value)); err != nil {
+	if err := req.Deserialize(bytes.NewBuffer(reqBytes)); err != nil {
 		return nil, fmt.Errorf("deserialize reqsInBlock: %s", err)
 	}
 
 	return req.Reqs, nil
 }
 
-func txCommitReady(txState map[uint64]int) bool {
-	for _, state := range txState {
+func txCommitReady(tx common2.Uint256, txState map[uint64]int) bool {
+	t, err := xshard_state.GetTxState(tx)
+	if err != nil {
+		log.Errorf("shard get tx state: %s", err)
+		return false
+	}
+	if t.State != xshard_state.TxPrepared {
+		log.Errorf("shard tx state: %d", t.State)
+		return false
+	}
+	for id, state := range txState {
 		if state != xshard_state.TxPrepared {
+			log.Errorf("shard %d not prepared: %d", id, state)
 			return false
 		}
 	}

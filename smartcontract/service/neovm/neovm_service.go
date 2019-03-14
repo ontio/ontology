@@ -254,9 +254,12 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	// TODO: check txstate-db, if abort remote transactions
 	if this.Engine.EvaluationStack.Count() == 1 {
 		tx := this.Tx.Hash()
-		if shards, err := xshard_state.GetTxShards(tx); err != xshard_state.ErrNotFound {
-			for _, s := range shards {
-				log.Errorf("TODO: abort transaction %s on shard %d", scommon.ToHexString(tx[:]), s)
+		txPaused, err := xshard_state.IsTxExecutionPaused(tx)
+		if err != nil || !txPaused {
+			if shards, err := xshard_state.GetTxShards(tx); err != xshard_state.ErrNotFound {
+				for _, s := range shards {
+					log.Errorf("TODO: abort transaction %s on shard %d", scommon.ToHexString(tx[:]), s)
+				}
 			}
 		}
 	}
