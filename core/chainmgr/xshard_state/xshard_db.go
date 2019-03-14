@@ -24,6 +24,10 @@ import (
 	"github.com/ontio/ontology/core/store/common"
 )
 
+//
+// xShardMsgKV: kv store of shard-message-queue contract
+//
+
 var xShardMsgKV = make(map[string][]byte)
 
 func GetKVStorageItem(key []byte) ([]byte, error) {

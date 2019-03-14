@@ -19,11 +19,8 @@
 package shardsysmsg
 
 import (
-	"bytes"
 	"fmt"
-	"sort"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/payload"
@@ -35,7 +32,7 @@ import (
 )
 
 //
-//  notify : process as usual transaction, record fee debt from source shard
+//  processXShardNotify : process as usual transaction, record fee debt from source shard
 //			 normal return
 //
 func processXShardNotify(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
@@ -50,7 +47,7 @@ func processXShardNotify(ctx *native.NativeService, req *shardstates.CommonShard
 }
 
 //
-//  xreq : load cached db, process request, save cached, record fee debt from source shard
+//  processXShardReq : load cached db, process request, save cached, record fee debt from source shard
 //			 normal return
 //
 func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
@@ -104,7 +101,7 @@ func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg
 }
 
 //
-//  xrsp : load cached db, invoke PROCESS_XSHARD_RSP_FUNCNAME
+//  processXShardRsp : load cached db, invoke PROCESS_XSHARD_RSP_FUNCNAME
 //
 func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
 	if msg.Msg.Type() != shardstates.EVENT_SHARD_TXRSP {
@@ -194,54 +191,4 @@ func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg
 	log.Debugf("starting 2pc, to wait response")
 
 	return waitRemoteResponse(ctx, tx)
-}
-
-func lockTxContracts(ctx *native.NativeService, tx common.Uint256, result []byte, resultErr error) error {
-	if result != nil {
-		// save result/err to txstate-db
-		if err := xshard_state.SetTxResult(tx, result, resultErr); err != nil {
-			return fmt.Errorf("save Tx result: %s", err)
-		}
-	}
-
-	contracts, err := xshard_state.GetTxContracts(tx)
-	if err != nil {
-		return fmt.Errorf("failed to get contract of tx %v", tx)
-	}
-	if len(contracts) > 1 {
-		sort.Slice(contracts, func(i, j int) bool {
-			return bytes.Compare(contracts[i][:], contracts[j][:]) > 0
-		})
-	}
-	for _, c := range contracts {
-		if err := xshard_state.LockContract(c); err != nil {
-			// TODO: revert all locks
-			return fmt.Errorf("failed to lock contract %v for tx %v", c, tx)
-		}
-	}
-
-	return nil
-}
-
-func unlockTxContract(ctx *native.NativeService, tx common.Uint256) error {
-	contracts, err := xshard_state.GetTxContracts(tx)
-	if err != nil {
-		return err
-	}
-
-	for _, c := range contracts {
-		xshard_state.UnlockContract(c)
-	}
-	return nil
-}
-
-func waitRemoteResponse(ctx *native.NativeService, tx common.Uint256) error {
-	// TODO: stop any further processing
-	if err := xshard_state.SetTxExecutionPaused(tx); err != nil {
-		return fmt.Errorf("set Tx execution paused: %s", err)
-	}
-	for ctx.ContextRef.CurrentContext() != ctx.ContextRef.EntryContext() {
-		ctx.ContextRef.PopContext()
-	}
-	return nil
 }

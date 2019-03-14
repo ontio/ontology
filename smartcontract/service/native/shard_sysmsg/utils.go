@@ -21,161 +21,98 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
-	"io"
+	"sort"
 
-	common2 "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
-	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-type ToShardsInBlock struct {
-	Shards []types.ShardID `json:"shards"`
-}
-
-func (this *ToShardsInBlock) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
-}
-
-func (this *ToShardsInBlock) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
-}
-
-func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error {
-	toShards, err := getToShardsInBlock(ctx, ctx.Height)
+func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
+	toShards, err := xshard_state.GetTxShards(tx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if toShards == nil {
-		toShards = []types.ShardID{toShard}
-	} else {
-		for _, s := range toShards {
-			if s == toShard {
-				// already in
-				return nil
-			}
+	for _, s := range toShards {
+		msg := &shardstates.XShardCommitMsg{
+			MsgType: shardstates.EVENT_SHARD_PREPARE,
 		}
-		toShards = append(toShards, toShard)
+		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+			log.Errorf("send prepare to shard %d: %s", s.ToUint64(), err)
+		}
 	}
 
-	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(ctx.Height)
+	return nil, nil
+}
 
-	toShardsInBlk := &ToShardsInBlock{
-		Shards: toShards,
+func abortTx(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
+	// TODO: clean resources held by tx
+	//
+
+	// send abort message to all shards
+	toShards, err := xshard_state.GetTxShards(tx)
+	if err != nil {
+		return nil, err
 	}
-	buf := new(bytes.Buffer)
-	if err := toShardsInBlk.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize to-shards in block: %s", err)
+
+	for _, s := range toShards {
+		msg := &shardstates.XShardCommitMsg{
+			MsgType: shardstates.EVENT_SHARD_ABORT,
+		}
+		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+			log.Errorf("send abort to shard %d: %s", s.ToUint64(), err)
+		}
 	}
 
-	log.Debugf("put ToShards: height: %d, shards: %v", ctx.Height, toShards)
+	// FIXME: cleanup resources
 
-	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	xshard_state.PutKV(key, buf.Bytes())
+	return nil, nil
+}
+
+func sendCommit(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
+	toShards, err := xshard_state.GetTxShards(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, s := range toShards {
+		msg := &shardstates.XShardCommitMsg{
+			MsgType: shardstates.EVENT_SHARD_COMMIT,
+		}
+		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+			log.Errorf("send commit to shard %d: %s", s.ToUint64(), err)
+		}
+	}
+
+	return nil, nil
+}
+
+func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg shardstates.XShardMsg) error {
+	shardReq := &shardstates.CommonShardMsg{
+		SourceShardID: ctx.ShardID,
+		SourceHeight:  uint64(ctx.Height),
+		TargetShardID: toShard,
+		SourceTxHash:  tx,
+		Msg:           msg,
+	}
+
+	// TODO: add evt to queue, update merkle root
+	log.Debugf("to send remote notify type %d: from %d to %d", msg.Type(), ctx.ShardID, toShard)
+	if err := addToShardsInBlock(ctx, toShard); err != nil {
+		return fmt.Errorf("remote notify, failed to add to-shard to block: %s", err)
+	}
+	if err := addReqsInBlock(ctx, shardReq); err != nil {
+		return fmt.Errorf("remote notify, failed to add req to block: %s", err)
+	}
+
 	return nil
 }
 
-func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.ShardID, error) {
-	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
-
-	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
-	if err != nil && err != common.ErrNotFound {
-		return nil, fmt.Errorf("get toShards: %s", err)
-	}
-	if toShardsBytes == nil {
-		// not found
-		return nil, nil
-	}
-
-	req := &ToShardsInBlock{}
-	if err := req.Deserialize(bytes.NewBuffer(toShardsBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize toShards: %s: %s", err, string(toShardsBytes))
-	}
-
-	return req.Shards, nil
-}
-
-type ReqsInBlock struct {
-	Reqs [][]byte `json:"reqs"`
-}
-
-func (this *ReqsInBlock) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
-}
-
-func (this *ReqsInBlock) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
-}
-
-func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
-	reqs, err := getReqsInBlock(ctx, ctx.Height, req.GetTargetShardID())
-	if err != nil && err != common.ErrNotFound {
-		return err
-	}
-	reqBytes := new(bytes.Buffer)
-	if err := req.Serialize(reqBytes); err != nil {
-		return err
-	}
-	if reqs == nil {
-		reqs = [][]byte{reqBytes.Bytes()}
-	}
-
-	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(ctx.Height)
-	shardIDBytes, err := shardutil.GetUint64Bytes(req.GetTargetShardID().ToUint64())
-	if err != nil {
-		return fmt.Errorf("serialzie toshard: %s", err)
-	}
-
-	reqInBlk := &ReqsInBlock{
-		Reqs: reqs,
-	}
-	buf := new(bytes.Buffer)
-	if err := reqInBlk.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize shardmgmt global state: %s", err)
-	}
-
-	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	xshard_state.PutKV(key, buf.Bytes())
-	return nil
-}
-
-func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types.ShardID) ([][]byte, error) {
-	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("serialize toShard: %s", err)
-	}
-
-	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	reqBytes, err := xshard_state.GetKVStorageItem(key)
-	if err != nil && err != common.ErrNotFound {
-		return nil, fmt.Errorf("get reqs in block: %s", err)
-	}
-	if reqBytes == nil {
-		// not found
-		return nil, nil
-	}
-
-	req := &ReqsInBlock{}
-	if err := req.Deserialize(bytes.NewBuffer(reqBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize reqsInBlock: %s", err)
-	}
-
-	return req.Reqs, nil
-}
-
-func txCommitReady(tx common2.Uint256, txState map[uint64]int) bool {
+func txCommitReady(tx common.Uint256, txState map[uint64]int) bool {
 	t, err := xshard_state.GetTxState(tx)
 	if err != nil {
 		log.Errorf("shard get tx state: %s", err)
@@ -192,4 +129,54 @@ func txCommitReady(tx common2.Uint256, txState map[uint64]int) bool {
 		}
 	}
 	return true
+}
+
+func lockTxContracts(ctx *native.NativeService, tx common.Uint256, result []byte, resultErr error) error {
+	if result != nil {
+		// save result/err to txstate-db
+		if err := xshard_state.SetTxResult(tx, result, resultErr); err != nil {
+			return fmt.Errorf("save Tx result: %s", err)
+		}
+	}
+
+	contracts, err := xshard_state.GetTxContracts(tx)
+	if err != nil {
+		return fmt.Errorf("failed to get contract of tx %v", tx)
+	}
+	if len(contracts) > 1 {
+		sort.Slice(contracts, func(i, j int) bool {
+			return bytes.Compare(contracts[i][:], contracts[j][:]) > 0
+		})
+	}
+	for _, c := range contracts {
+		if err := xshard_state.LockContract(c); err != nil {
+			// TODO: revert all locks
+			return fmt.Errorf("failed to lock contract %v for tx %v", c, tx)
+		}
+	}
+
+	return nil
+}
+
+func unlockTxContract(ctx *native.NativeService, tx common.Uint256) error {
+	contracts, err := xshard_state.GetTxContracts(tx)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range contracts {
+		xshard_state.UnlockContract(c)
+	}
+	return nil
+}
+
+func waitRemoteResponse(ctx *native.NativeService, tx common.Uint256) error {
+	// TODO: stop any further processing
+	if err := xshard_state.SetTxExecutionPaused(tx); err != nil {
+		return fmt.Errorf("set Tx execution paused: %s", err)
+	}
+	for ctx.ContextRef.CurrentContext() != ctx.ContextRef.EntryContext() {
+		ctx.ContextRef.PopContext()
+	}
+	return nil
 }
