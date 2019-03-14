@@ -858,7 +858,7 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-	case types.Invoke:
+	case types.InvokeNeo, types.InvokeWasm:
 		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
@@ -1020,7 +1020,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		return stf, err
 	}
 
-	if tx.TxType == types.Invoke {
+	if tx.TxType == types.InvokeNeo || tx.TxType == types.InvokeWasm {
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		sc := smartcontract.SmartContract{
@@ -1030,9 +1030,9 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			Gas:     math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), preGas[neovm.UINT_INVOKE_CODE_LEN_NAME]),
 			PreExec: true,
 		}
-
 		//start the smart contract executive function
-		engine, _ := sc.NewExecuteEngine(invoke.Code)
+		engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
+
 		result, err := engine.Invoke()
 		if err != nil {
 			return stf, err
@@ -1042,10 +1042,17 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		if gasCost < mixGas {
 			gasCost = mixGas
 		}
-		cv, err := scommon.ConvertNeoVmTypeHexString(result)
-		if err != nil {
-			return stf, err
+
+		var cv interface{}
+		if tx.TxType == types.InvokeNeo { //neovm
+			cv, err = scommon.ConvertNeoVmTypeHexString(result)
+			if err != nil {
+				return stf, err
+			}
+		} else { //wasmvm
+			cv = common.ToHexString(result.([]byte))
 		}
+
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: sc.Notifications}, nil
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)

@@ -38,5 +38,7 @@ import:
   - unix
 - package: golang.org/x/net
   repo: https://github.com/golang/net.git
+- package: github.com/go-interpreter/wagon
+  repo: https://github.com/ontio/wagon.git
 ignore:
   - golang.org/x/sys/unix

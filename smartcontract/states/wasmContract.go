@@ -16,29 +16,35 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// Copyright 2017 The go-interpreter Authors.  All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-package validate
+package states
 
 import (
-	"io/ioutil"
-	"log"
-	"os"
+	"io"
+
+	"github.com/ontio/ontology/common"
 )
 
-var PrintDebugInfo = false
+type WasmContractParam struct {
+	Address common.Address
+	Args    []byte
+}
 
-var logger *log.Logger
+func (this *WasmContractParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteAddress(this.Address)
+	sink.WriteVarBytes([]byte(this.Args))
+}
 
-func init() {
-	w := ioutil.Discard
+// `ContractInvokeParam.Args` has reference of `source`
+func (this *WasmContractParam) Deserialization(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	this.Address, eof = source.NextAddress()
 
-	if PrintDebugInfo {
-		w = os.Stderr
+	this.Args, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-
-	logger = log.New(w, "", log.Lshortfile)
-	log.SetFlags(log.Lshortfile)
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }

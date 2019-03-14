@@ -25,12 +25,19 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/errors"
+)
+
+const (
+	NEOVM_TYPE  byte = 1
+	WASMVM_TYPE byte = 3
 )
 
 // DeployCode is an implementation of transaction payload for deploy smartcontract
 type DeployCode struct {
-	Code        []byte
-	NeedStorage bool
+	Code []byte
+	//modify for define contract type
+	VmType      byte
 	Name        string
 	Version     string
 	Author      string
@@ -55,7 +62,7 @@ func (dc *DeployCode) Serialize(w io.Writer) error {
 		return fmt.Errorf("DeployCode Code Serialize failed: %s", err)
 	}
 
-	err = serialization.WriteBool(w, dc.NeedStorage)
+	err = serialization.WriteByte(w, dc.VmType)
 	if err != nil {
 		return fmt.Errorf("DeployCode NeedStorage Serialize failed: %s", err)
 	}
@@ -95,7 +102,7 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 	}
 	dc.Code = code
 
-	dc.NeedStorage, err = serialization.ReadBool(r)
+	dc.VmType, err = serialization.ReadByte(r)
 	if err != nil {
 		return fmt.Errorf("DeployCode NeedStorage Deserialize failed: %s", err)
 	}
@@ -125,6 +132,11 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 		return fmt.Errorf("DeployCode Description Deserialize failed: %s", err)
 	}
 
+	err = validateDeployCode(dc)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -136,7 +148,7 @@ func (dc *DeployCode) ToArray() []byte {
 
 func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteVarBytes(dc.Code)
-	sink.WriteBool(dc.NeedStorage)
+	sink.WriteByte(dc.VmType)
 	sink.WriteString(dc.Name)
 	sink.WriteString(dc.Version)
 	sink.WriteString(dc.Author)
@@ -154,10 +166,7 @@ func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 		return common.ErrIrregularData
 	}
 
-	dc.NeedStorage, irregular, eof = source.NextBool()
-	if irregular {
-		return common.ErrIrregularData
-	}
+	dc.VmType, eof = source.NextByte()
 
 	dc.Name, _, irregular, eof = source.NextString()
 	if irregular {
@@ -188,5 +197,66 @@ func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 
+	err := validateDeployCode(dc)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func validateDeployCode(dep *DeployCode) error {
+	if len(dep.Code) > 1024*1024 {
+		return errors.NewErr("[Contract] Code too long!")
+	}
+
+	if len(dep.Name) > 252 {
+		return errors.NewErr("[Contract] name too long!")
+	}
+
+	if len(dep.Version) > 252 {
+		return errors.NewErr("[Contract] version too long!")
+	}
+
+	if len(dep.Author) > 252 {
+		return errors.NewErr("[author] version too long!")
+	}
+
+	if len(dep.Email) > 252 {
+		return errors.NewErr("[author] emailPtr too long!")
+	}
+
+	if len(dep.Description) > 65536 {
+		return errors.NewErr("[descPtr] emailPtr too long!")
+	}
+
+	if dep.VmType != WASMVM_TYPE && dep.VmType != NEOVM_TYPE {
+		return errors.NewErr("[descPtr] VmType invalid!")
+	}
+	return nil
+}
+
+func CreateDeployCode(code []byte,
+	vmType uint32,
+	name []byte,
+	version []byte,
+	author []byte,
+	email []byte,
+	desc []byte) (*DeployCode, error) {
+
+	contract := &DeployCode{
+		Code:        code,
+		VmType:      byte(vmType),
+		Name:        string(name),
+		Version:     string(version),
+		Author:      string(author),
+		Email:       string(email),
+		Description: string(desc),
+	}
+
+	err := validateDeployCode(contract)
+	if err != nil {
+		return nil, err
+	}
+	return contract, nil
 }

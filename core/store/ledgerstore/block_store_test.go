@@ -110,7 +110,7 @@ func TestBlockHash(t *testing.T) {
 func TestSaveTransaction(t *testing.T) {
 	invoke := &payload.InvokeCode{}
 	txTemp := &types.MutableTransaction{
-		TxType:  types.Invoke,
+		TxType:  types.InvokeNeo,
 		Payload: invoke,
 	}
 	tx, err := txTemp.IntoImmutable()
@@ -395,7 +395,7 @@ func newInvokeTransaction(gasPirce, gasLimit uint64, code []byte) *types.Transac
 		Version:  0,
 		GasPrice: gasPirce,
 		GasLimit: gasLimit,
-		TxType:   types.Invoke,
+		TxType:   types.InvokeNeo,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
 		Sigs:     make([]types.Sig, 0, 0),

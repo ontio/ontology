@@ -35,7 +35,7 @@ func init() {
 	log.Init(log.PATH, log.Stdout)
 
 	mutable := &types.MutableTransaction{
-		TxType:  types.Invoke,
+		TxType:  types.InvokeNeo,
 		Nonce:   uint32(time.Now().Unix()),
 		Payload: &payload.InvokeCode{Code: []byte{}},
 	}

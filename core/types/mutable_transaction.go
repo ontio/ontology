@@ -156,7 +156,7 @@ func (tx *MutableTransaction) DeserializeUnsigned(r io.Reader) error {
 	}
 
 	switch tx.TxType {
-	case Invoke:
+	case InvokeNeo, InvokeWasm:
 		tx.Payload = new(payload.InvokeCode)
 	case Deploy:
 		tx.Payload = new(payload.DeployCode)
