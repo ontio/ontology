@@ -20,6 +20,7 @@ package context
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
@@ -38,7 +39,7 @@ type ContextRef interface {
 	PopContext()
 	CheckWitness(address common.Address) bool
 	PushNotifications(notifications []*event.NotifyEventInfo)
-	NewExecuteEngine(code []byte) (Engine, error)
+	NewExecuteEngine(code []byte, txtype types.TransactionType) (Engine, error)
 	CheckUseGas(gas uint64) bool
 	CheckExecStep() bool
 }

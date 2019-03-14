@@ -143,7 +143,7 @@ func ContractGetCode(service *NeoVmService, engine *vm.Executor) error {
 	}
 	if d, ok := i.Data.(*payload.DeployCode); ok {
 		return engine.EvalStack.PushBytes(d.Code)
-	}
+}
 	return fmt.Errorf("[ContractGetCode] Type error ")
 }
 
@@ -155,10 +155,8 @@ func isContractParamValid(engine *vm.Executor) (*payload.DeployCode, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(code) > 1024*1024 {
-		return nil, errors.NewErr("[Contract] Code too long!")
-	}
-	needStorage, err := engine.EvalStack.PopAsBool()
+
+	vmType, err := engine.EvalStack.PopAsUint32()
 	if err != nil {
 		return nil, err
 	}
@@ -166,46 +164,33 @@ func isContractParamValid(engine *vm.Executor) (*payload.DeployCode, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(name) > 252 {
-		return nil, errors.NewErr("[Contract] Name too long!")
-	}
+
 	version, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
-	if len(version) > 252 {
-		return nil, errors.NewErr("[Contract] Version too long!")
-	}
+
 	author, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
-	if len(author) > 252 {
-		return nil, errors.NewErr("[Contract] Author too long!")
-	}
+
 	email, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
-	if len(email) > 252 {
-		return nil, errors.NewErr("[Contract] Email too long!")
-	}
+
 	desc, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return nil, err
 	}
-	if len(desc) > 65536 {
-		return nil, errors.NewErr("[Contract] Desc too long!")
+
+	contract, err := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
+
+	if err != nil {
+		return nil, err
 	}
-	contract := &payload.DeployCode{
-		Code:        code,
-		NeedStorage: needStorage,
-		Name:        string(name),
-		Version:     string(version),
-		Author:      string(author),
-		Email:       string(email),
-		Description: string(desc),
-	}
+
 	return contract, nil
 }
 

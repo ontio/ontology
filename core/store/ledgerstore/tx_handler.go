@@ -189,15 +189,16 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 
 	//init smart contract info
 	sc := smartcontract.SmartContract{
-		Config:   config,
-		CacheDB:  cache,
-		Store:    store,
+		Config:  config,
+		CacheDB: cache,
+		Store:   store,
 		GasTable: gasTable,
-		Gas:      availableGasLimit - codeLenGasLimit,
+		Gas:     availableGasLimit - codeLenGasLimit,
+		PreExec: false,
 	}
 
 	//start the smart contract executive function
-	engine, _ := sc.NewExecuteEngine(invoke.Code)
+	engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
 
 	_, err = engine.Invoke()
 
@@ -235,6 +236,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 			return err
 		}
 	}
+
 	notify.Notify = append(notify.Notify, sc.Notifications...)
 	notify.Notify = append(notify.Notify, notifies...)
 	notify.GasConsumed = costGas
