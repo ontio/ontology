@@ -71,7 +71,7 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
 	this.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, ConsensusHandle)
 	this.RegisterMsgHandler(msgCommon.NOT_FOUND_TYPE, NotFoundHandle)
-	this.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
+	//this.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
 	this.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, DisconnectHandle)
 }
 
@@ -109,10 +109,10 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 				msgType := data.Payload.CmdType()
 
 				handler, ok := this.msgHandlers[msgType]
-				if ok {
+				if ok && msgType != msgCommon.TX_TYPE {
 					go handler(data, this.p2p, this.pid)
 				} else {
-					log.Warn("unknown message handler for the msg: ",
+					log.Debug("unknown message handler for the msg: ",
 						msgType)
 				}
 			}

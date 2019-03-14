@@ -20,6 +20,7 @@ package netserver
 
 import (
 	"errors"
+	"github.com/ontio/ontology/blockrelayer"
 	"math/rand"
 	"net"
 	"strings"
@@ -28,7 +29,6 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -339,7 +339,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
 	}
-	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
+	version := msgpack.NewVersion(this, isConsensus, blockrelayer.DefStorage.CurrentHeight())
 	err = remotePeer.Send(version, isConsensus)
 	if err != nil {
 		if !isConsensus {

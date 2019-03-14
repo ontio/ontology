@@ -19,6 +19,7 @@
 package p2pserver
 
 import (
+	"github.com/ontio/ontology/blockrelayer"
 	"math"
 	"sort"
 	"sync"
@@ -26,7 +27,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	p2pComm "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
@@ -230,22 +230,22 @@ type BlockSyncMgr struct {
 	syncHeaderLock bool                                 //Help to avoid send header sync request duplicate
 	saveBlockLock  bool                                 //Help to avoid saving block concurrently
 	exitCh         chan interface{}                     //ExitCh to receive exit signal
-	ledger         *ledger.Ledger                       //ledger
+	relayer        *blockrelayer.Storage                //ledger
 	lock           sync.RWMutex                         //lock
 	nodeWeights    map[uint64]*NodeWeight               //Map NodeID => NodeStatus, using for getNextNode
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
-func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
+func NewBlockSyncMgr(server *P2PServer) (*BlockSyncMgr, error) {
 	return &BlockSyncMgr{
 		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo, 0),
 		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
 		blocksCache:   make(map[uint32]*BlockInfo, 0),
 		server:        server,
-		ledger:        server.ledger,
+		relayer:       blockrelayer.DefStorage,
 		exitCh:        make(chan interface{}, 1),
 		nodeWeights:   make(map[uint64]*NodeWeight, 0),
-	}
+	}, nil
 }
 
 //Start to sync
@@ -282,9 +282,8 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 	}
 	this.lock.RUnlock()
-
-	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
-	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+	curHeaderHeight := this.relayer.CurrHeaderHeight()
+	curBlockHeight := this.relayer.CurrentHeight()
 
 	for height, flightInfo := range headerTimeoutFlights {
 		this.addTimeoutCnt(flightInfo.GetNodeId())
@@ -301,7 +300,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		}
 		flightInfo.SetNodeId(reqNode.GetID())
 
-		headerHash := this.ledger.GetCurrentHeaderHash()
+		headerHash := this.relayer.CurrHeaderHash()
 		msg := msgpack.NewHeadersReq(headerHash)
 		err := this.server.Send(reqNode, msg, false)
 		if err != nil {
@@ -355,9 +354,9 @@ func (this *BlockSyncMgr) syncHeader() {
 	if this.getFlightHeaderCount() >= SYNC_MAX_FLIGHT_HEADER_SIZE {
 		return
 	}
-	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+	curBlockHeight := this.relayer.CurrentHeight()
 
-	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
+	curHeaderHeight := this.relayer.CurrHeaderHeight()
 	//Waiting for block catch up header
 	if curHeaderHeight-curBlockHeight >= SYNC_MAX_HEADER_FORWARD_SIZE {
 		return
@@ -369,7 +368,7 @@ func (this *BlockSyncMgr) syncHeader() {
 	}
 	this.addFlightHeader(reqNode.GetID(), NextHeaderId)
 
-	headerHash := this.ledger.GetCurrentHeaderHash()
+	headerHash := this.relayer.CurrHeaderHash()
 	msg := msgpack.NewHeadersReq(headerHash)
 	err := this.server.Send(reqNode, msg, false)
 	if err != nil {
@@ -391,8 +390,8 @@ func (this *BlockSyncMgr) syncBlock() {
 	if availCount <= 0 {
 		return
 	}
-	curBlockHeight := this.ledger.GetCurrentBlockHeight()
-	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
+	curBlockHeight := this.relayer.CurrentHeight()
+	curHeaderHeight := this.relayer.CurrHeaderHeight()
 	count := int(curHeaderHeight - curBlockHeight)
 	if count <= 0 {
 		return
@@ -405,16 +404,20 @@ func (this *BlockSyncMgr) syncBlock() {
 		count = cacheCap
 	}
 
-	counter := 1
 	i := uint32(0)
 	reqTimes := 1
+	var nextBlockHeight uint32 = 0
 	for {
-		if counter > count {
+		if nextBlockHeight >= curHeaderHeight {
 			break
 		}
 		i++
-		nextBlockHeight := curBlockHeight + i
-		nextBlockHash := this.ledger.GetBlockHash(nextBlockHeight)
+		nextBlockHeight = curBlockHeight + i
+		nextBlockHash, err := this.relayer.GetBlockHash(nextBlockHeight)
+		if err != nil {
+			log.Warnf("[p2p]syncBlock Height:%d , currHeaderHeight:%d, currBlockHeight:%d, GetBlockHash error:%s", nextBlockHeight, curHeaderHeight, curBlockHeight, err)
+			return
+		}
 		if nextBlockHash == common.UINT256_EMPTY {
 			return
 		}
@@ -447,7 +450,6 @@ func (this *BlockSyncMgr) syncBlock() {
 				this.appendReqTime(reqNode.GetID())
 			}
 		}
-		counter++
 		reqTimes = 1
 	}
 }
@@ -459,7 +461,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 	}
 	log.Infof("Header receive height:%d - %d", headers[0].Height, headers[len(headers)-1].Height)
 	height := headers[0].Height
-	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
+	curHeaderHeight := this.relayer.CurrHeaderHeight()
 
 	//Means another gorountinue is adding header
 	if height <= curHeaderHeight {
@@ -468,7 +470,8 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 	if !this.isHeaderOnFlight(height) {
 		return
 	}
-	err := this.ledger.AddHeaders(headers)
+	//err := this.ledger.AddHeaders(headers)
+	err := this.relayer.AddHeader(headers)
 	this.delFlightHeader(height)
 	if err != nil {
 		this.addErrorRespCnt(fromID)
@@ -487,7 +490,6 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 	merkleRoot common.Uint256) {
 	height := block.Header.Height
 	blockHash := block.Hash()
-	log.Trace("[p2p]OnBlockReceive Height:%d", height)
 	flightInfo := this.getFlightBlock(blockHash, fromID)
 	if flightInfo != nil {
 		t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
@@ -496,12 +498,12 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 	}
 
 	this.delFlightBlock(blockHash)
-	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
+	curHeaderHeight := this.relayer.CurrHeaderHeight()
 	nextHeader := curHeaderHeight + 1
 	if height > nextHeader {
 		return
 	}
-	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+	curBlockHeight := this.relayer.CurrentHeight()
 	if height <= curBlockHeight {
 		return
 	}
@@ -621,7 +623,7 @@ func (this *BlockSyncMgr) saveBlock() {
 		return
 	}
 	defer this.releaseSaveBlockLock()
-	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+	curBlockHeight := this.relayer.CurrentHeight()
 	nextBlockHeight := curBlockHeight + 1
 	this.lock.Lock()
 	for height := range this.blocksCache {
@@ -631,11 +633,11 @@ func (this *BlockSyncMgr) saveBlock() {
 	}
 	this.lock.Unlock()
 	for {
-		fromID, nextBlock, merkleRoot := this.getBlockCache(nextBlockHeight)
+		fromID, nextBlock, _ := this.getBlockCache(nextBlockHeight)
 		if nextBlock == nil {
 			return
 		}
-		err := this.ledger.AddBlock(nextBlock, merkleRoot)
+		err := this.relayer.SaveBlock(nextBlock)
 		this.delBlockCache(nextBlockHeight)
 		if err != nil {
 			this.addErrorRespCnt(fromID)
@@ -646,6 +648,7 @@ func (this *BlockSyncMgr) saveBlock() {
 			log.Warnf("[p2p]saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
 			reqNode := this.getNextNode(nextBlockHeight)
 			if reqNode == nil {
+				log.Warn("[block_sync] reqNode is nil")
 				return
 			}
 			this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlock.Hash())

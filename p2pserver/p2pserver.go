@@ -21,6 +21,7 @@ package p2pserver
 import (
 	"encoding/json"
 	"errors"
+	"github.com/ontio/ontology/blockrelayer"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -76,7 +77,11 @@ func NewServer() *P2PServer {
 	}
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
-	p.blockSync = NewBlockSyncMgr(p)
+	var err error
+	p.blockSync, err = NewBlockSyncMgr(p)
+	if err != nil {
+		log.Warn("NewServer error:", err)
+	}
 	p.recentPeers = make(map[uint32][]string)
 	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
@@ -516,7 +521,7 @@ func (this *P2PServer) ping() {
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
-			height := this.ledger.GetCurrentBlockHeight()
+			height := blockrelayer.DefStorage.CurrentHeight()
 			ping := msgpack.NewPingMsg(uint64(height))
 			go this.Send(p, ping, false)
 		}

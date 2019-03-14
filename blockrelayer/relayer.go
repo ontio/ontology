@@ -12,6 +12,8 @@ import (
 	"math/rand"
 	"os"
 	"path"
+	"sort"
+	"sync"
 	"time"
 
 	"github.com/ontio/ontology/common"
@@ -24,10 +26,17 @@ import (
 
 const KEY_CURR = "current"
 
+var DefStorage *Storage
+
 type Storage struct {
-	*StorageBackend
-	task     chan Task
-	currHash common.Uint256
+	backend          *StorageBackend
+	task             chan Task
+	currHash         common.Uint256
+	currHeight       uint32
+	lock             *sync.Mutex
+	headers          map[common.Uint256]*types.Header
+	headerIndex      map[uint32]common.Uint256
+	currHeaderHeight uint32
 }
 
 type Task interface {
@@ -54,27 +63,120 @@ func Open(pt string) (*Storage, error) {
 		return nil, err
 	}
 
-	task := make(chan Task)
-	go backend.blockSaveLoop(task)
-
-	return &Storage{backend, task, backend.CurrHash()}, nil
+	task := make(chan Task, 1000)
+	headers := make(map[common.Uint256]*types.Header)
+	headerIndex := make(map[uint32]common.Uint256)
+	lock := new(sync.Mutex)
+	store := &Storage{backend, task, backend.CurrHash(), backend.CurrHeight(),
+		lock, headers, headerIndex, backend.CurrHeight()}
+	go store.blockSaveLoop(task)
+	return store, nil
 }
 
-func (self *Storage) SaveBlock(block *types.Block) {
-	if block.Header.PrevBlockHash != self.currHash {
-		return
-	}
+func (self *Storage) SaveBlock(block *types.Block) error {
 
 	sink := common.NewZeroCopySink(nil)
-	headerLen, err := block.SerializeExt(sink)
+	headerLen, unsignedLen, err := block.SerializeExt(sink)
 	if err != nil {
 		log.Errorf("serialize block err: %v", err)
-		return
+		return err
 	}
 	raw := sink.Bytes()
 	self.task <- &SaveTask{
-		block: &RawBlock{Hash: block.Hash(), HeaderSize: headerLen, Height: block.Header.Height, Payload: raw},
+		block: &RawBlock{Hash: block.Hash(), HeaderSize: headerLen, unSignedHeaderSize: unsignedLen, Height: block.Header.Height, Payload: raw},
 	}
+
+	return nil
+}
+
+func (self *Storage) blockSaveLoop(task <-chan Task) {
+	for {
+		select {
+		case t, ok := <-task:
+			if ok == false {
+				self.backend.flush()
+				return
+			}
+			switch task := t.(type) {
+			case *SaveTask:
+				err := self.backend.saveBlock(task.block)
+				if err != nil {
+					log.Warnf("[replayer] saveBlock warning:%v", err)
+					continue
+				}
+				self.currHeight = task.block.Height
+
+			case *FlushTask:
+				self.backend.flush()
+				task.finished <- self.backend.currInfo.nextHeight - 1
+			}
+		case <-time.After(MAX_TIME_OUT):
+			self.backend.flush()
+			nextHeight := self.backend.currInfo.nextHeight
+
+			self.lock.Lock()
+			for k, v := range self.headers {
+				if v.Height+100 > nextHeight {
+					delete(self.headers, k)
+				}
+			}
+			for height, _ := range self.headerIndex {
+				if height+100 > nextHeight {
+					delete(self.headerIndex, height)
+				}
+			}
+			self.lock.Unlock()
+		}
+	}
+}
+
+func (self *Storage) AddHeader(headers []*types.Header) error {
+	sort.Slice(headers, func(i, j int) bool {
+		return headers[i].Height < headers[j].Height
+	})
+	if self.CurrHeaderHash() != headers[0].PrevBlockHash {
+		return fmt.Errorf("[relayer] AddHeader check hash failed")
+	}
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	for _, header := range headers {
+		self.headers[header.Hash()] = header
+		self.headerIndex[header.Height] = header.Hash()
+	}
+	self.currHeaderHeight = headers[len(headers)-1].Height
+	return nil
+}
+
+func (self *Storage) GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
+	self.lock.Lock()
+	header, ok := self.headers[hash]
+	self.lock.Unlock()
+	if ok {
+		return header, nil
+	} else {
+		header, err := self.backend.getHeader(hash[:])
+		if err != nil {
+			return nil, err
+		}
+		return header, nil
+	}
+}
+
+func (self *Storage) CurrHeaderHeight() uint32 {
+	if self.currHeaderHeight == 0 {
+		return self.backend.CurrHeight()
+	}
+	return self.currHeaderHeight
+}
+
+func (self *Storage) CurrHeaderHash() common.Uint256 {
+	self.lock.Lock()
+	headerHash, ok := self.headerIndex[self.currHeaderHeight]
+	self.lock.Unlock()
+	if ok {
+		return headerHash
+	}
+	return self.backend.CurrHash()
 }
 
 func (self *Storage) Flush() uint32 {
@@ -93,6 +195,14 @@ func (self *Storage) SaveBlockTest(height uint32) {
 	self.task <- &SaveTask{
 		block: &RawBlock{Hash: blockHash, HeaderSize: uint32(len(raw) / 3), Height: height, Payload: raw},
 	}
+}
+
+func (self *Storage) CurrentHeight() uint32 {
+	return self.currHeight
+}
+
+func (self *Storage) GetBlockByHash(hash common.Uint256) (*RawBlock, error) {
+	return self.backend.GetBlockByHash(hash)
 }
 
 type CurrInfo struct {
@@ -138,19 +248,21 @@ func CurrInfoFromBytes(buf []byte) (info CurrInfo, err error) {
 }
 
 type BlockMeta struct {
-	hash       common.Uint256
-	offset     uint64
-	height     uint32
-	headerSize uint32
-	size       uint32
-	checksum   common.Uint256
+	hash               common.Uint256
+	offset             uint64
+	height             uint32
+	headerSize         uint32
+	unSignedHeaderSize uint32
+	size               uint32
+	checksum           common.Uint256
 }
 
 type RawBlock struct {
-	Hash       common.Uint256
-	Height     uint32
-	HeaderSize uint32
-	Payload    []byte
+	Hash               common.Uint256
+	Height             uint32
+	HeaderSize         uint32
+	unSignedHeaderSize uint32
+	Payload            []byte
 }
 
 func (self *RawBlock) Size() int {
@@ -158,13 +270,13 @@ func (self *RawBlock) Size() int {
 }
 
 func (self *BlockMeta) Bytes() []byte {
-	buf := make([]byte, 0, 32+8+4+4+32+4)
+	buf := make([]byte, 0, 32+8+4+4+4+32+4)
 	sink := common.NewZeroCopySink(buf)
-
 	sink.WriteHash(self.hash)
 	sink.WriteUint64(self.offset)
 	sink.WriteUint32(self.height)
 	sink.WriteUint32(self.headerSize)
+	sink.WriteUint32(self.unSignedHeaderSize)
 	sink.WriteUint32(self.size)
 	sink.WriteHash(self.checksum)
 
@@ -178,6 +290,7 @@ func BlockMetaFromBytes(raw []byte) (meta BlockMeta, err error) {
 	meta.offset, eof = source.NextUint64()
 	meta.height, eof = source.NextUint32()
 	meta.headerSize, eof = source.NextUint32()
+	meta.unSignedHeaderSize, eof = source.NextUint32()
 	meta.size, eof = source.NextUint32()
 	meta.checksum, eof = source.NextHash()
 	if eof {
@@ -199,6 +312,7 @@ type StorageBackend struct {
 	batch         *leveldb.Batch
 	pendingBlocks int
 	pendingSize   int
+	checkedHeight uint32
 }
 
 func OpenLevelDB(file string) (*leveldb.DB, error) {
@@ -253,6 +367,9 @@ func open(pt string) (*StorageBackend, error) {
 
 	if stat.Size() < int64(info.blockOffset) {
 		return nil, errors.New("the length of blocks.bin is less than the record of metadb")
+	} else if stat.Size() > int64(info.blockOffset) {
+		err := blockDB.Truncate(int64(info.blockOffset))
+		checkerr(err)
 	}
 
 	store := &StorageBackend{
@@ -289,8 +406,29 @@ func (self *StorageBackend) checkDataConsistence() (bool, error) {
 func (self *StorageBackend) GetBlockByHeight(height uint32) (*RawBlock, error) {
 	var metaKey [4]byte
 	binary.BigEndian.PutUint32(metaKey[:], height)
-
 	return self.getBlock(metaKey[:])
+}
+
+func (self *Storage) GetBlockHash(height uint32) (common.Uint256, error) {
+	self.lock.Lock()
+	hash, ok := self.headerIndex[height]
+	self.lock.Unlock()
+	if ok {
+		return hash, nil
+	}
+	var metaKey [4]byte
+	binary.BigEndian.PutUint32(metaKey[:], height)
+	metaRaw, err := self.backend.metaDB.Get(metaKey[:], nil)
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+
+	meta, err := BlockMetaFromBytes(metaRaw)
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+
+	return meta.hash, nil
 }
 
 func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
@@ -308,8 +446,50 @@ func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
 	if err != nil {
 		return nil, err
 	}
+	if meta.height < self.checkedHeight {
+		if checkBlockHashConsistence(buf[0:meta.unSignedHeaderSize], meta) {
+			self.checkedHeight = meta.height
+		} else {
+			log.Error("[relayer] getBlock checkBlockHashConsistence failed")
+			return nil, fmt.Errorf("[relayer] getBlock  checkBlockHashConsistence failed")
+		}
+	}
+	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf}, nil
+}
 
-	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, Height: meta.height, Payload: buf}, nil
+func checkBlockHashConsistence(buf []byte, meta BlockMeta) bool {
+	temp := sha256.Sum256(buf)
+	hash := common.Uint256(sha256.Sum256(temp[:]))
+	return meta.hash == hash
+}
+func (self *StorageBackend) getHeader(metaKey []byte) (*types.Header, error) {
+	metaRaw, err := self.metaDB.Get(metaKey, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	meta, err := BlockMetaFromBytes(metaRaw)
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, meta.headerSize)
+	_, err = self.blockDB.ReadAt(buf, int64(meta.offset))
+	if err != nil {
+		return nil, err
+	}
+	if checkBlockHashConsistence(buf[0:meta.unSignedHeaderSize], meta) {
+		self.checkedHeight = meta.height
+	} else {
+		log.Error("[relayer] getHeader checkBlockHashConsistence failed")
+		return nil, fmt.Errorf("[relayer] getHeader checkBlockHashConsistence failed")
+	}
+	header := new(types.Header)
+	source := common.NewZeroCopySource(buf)
+	err = header.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return header, nil
 }
 
 func (self *StorageBackend) GetBlockByHash(hash common.Uint256) (*RawBlock, error) {
@@ -335,7 +515,13 @@ func (self *StorageBackend) CurrHash() common.Uint256 {
 func (self *StorageBackend) NextHeight() uint32 {
 	return self.currInfo.nextHeight
 }
-
+func (self *StorageBackend) CurrHeight() uint32 {
+	if self.currInfo.nextHeight > 0 {
+		return self.currInfo.nextHeight - 1
+	} else {
+		return 0
+	}
+}
 func (self *StorageBackend) saveBlock(block *RawBlock) error {
 	if self.currInfo.nextHeight != block.Height {
 		return fmt.Errorf("need continue block")
@@ -343,11 +529,12 @@ func (self *StorageBackend) saveBlock(block *RawBlock) error {
 	self.currInfo.checksum.Write(block.Payload)
 
 	meta := BlockMeta{
-		hash:       block.Hash,
-		height:     block.Height,
-		headerSize: uint32(block.HeaderSize),
-		size:       uint32(block.Size()),
-		offset:     self.currInfo.blockOffset,
+		hash:               block.Hash,
+		height:             block.Height,
+		headerSize:         uint32(block.HeaderSize),
+		unSignedHeaderSize: block.unSignedHeaderSize,
+		size:               uint32(block.Size()),
+		offset:             self.currInfo.blockOffset,
 	}
 	self.currInfo.checksum.Sum(meta.checksum[:0])
 	_, err := self.blockDB.Write(block.Payload)
@@ -368,27 +555,6 @@ func (self *StorageBackend) saveBlock(block *RawBlock) error {
 	}
 
 	return nil
-}
-
-func (self *StorageBackend) blockSaveLoop(task <-chan Task) {
-	for {
-		select {
-		case t, ok := <-task:
-			if ok == false {
-				self.flush()
-				return
-			}
-			switch task := t.(type) {
-			case *SaveTask:
-				self.saveBlock(task.block)
-			case *FlushTask:
-				self.flush()
-				task.finished <- self.currInfo.nextHeight - 1
-			}
-		case <-time.After(MAX_TIME_OUT):
-			self.flush()
-		}
-	}
 }
 
 func checkerr(err error) {

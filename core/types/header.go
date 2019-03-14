@@ -45,7 +45,14 @@ type Header struct {
 }
 
 func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
+	_, err := bd.SerializeExt(sink)
+
+	return err
+}
+func (bd *Header) SerializeExt(sink *common.ZeroCopySink) (uint32, error) {
+	pos := sink.Size()
 	bd.serializationUnsigned(sink)
+	unsignedLen := sink.Size() - pos
 	sink.WriteVarUint(uint64(len(bd.Bookkeepers)))
 
 	for _, pubkey := range bd.Bookkeepers {
@@ -57,7 +64,7 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
 		sink.WriteVarBytes(sig)
 	}
 
-	return nil
+	return uint32(unsignedLen), nil
 }
 
 //Serialize the blockheader data without program
