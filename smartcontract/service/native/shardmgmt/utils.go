@@ -301,3 +301,19 @@ func peerInitStake(native *native.NativeService, param *JoinShardParam, stakeAss
 	}
 	return nil
 }
+
+func commitDpos(native *native.NativeService, shardId types.ShardID, amount []uint64, peers []string) error {
+	param := &shard_stake.CommitDposParam{
+		ShardId:    shardId,
+		PeerPubKey: peers,
+		Amount:     amount,
+	}
+	bf := new(bytes.Buffer)
+	if err := param.Serialize(bf); err != nil {
+		return fmt.Errorf("commitDpos: failed, err: %s", err)
+	}
+	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes()); err != nil {
+		return fmt.Errorf("commitDpos: failed, err: %s", err)
+	}
+	return nil
+}

@@ -16,11 +16,11 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map
 	}
 	// TODO: check should current+1 or current+2
 	nextView := currentView + 1
-	currentViewInfo, err := getShardViewInfo(native, shardId, currentView)
+	currentViewInfo, err := GetShardViewInfo(native, shardId, currentView)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view info failed, err: %s", shardId, err)
 	}
-	nextViewInfo, err := getShardViewInfo(native, shardId, nextView)
+	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d next view info failed, err: %s", shardId, err)
 	}
@@ -73,11 +73,11 @@ func peerStake(native *native.NativeService, id types.ShardID, peerPubKey keypai
 	if err != nil {
 		return fmt.Errorf("peerStake: set next view peer stake info failed, err: %s", err)
 	}
-	initViewInfo, err := getShardViewInfo(native, id, initView)
+	initViewInfo, err := GetShardViewInfo(native, id, initView)
 	if err != nil {
 		return fmt.Errorf("peerStake: get init view info failed, err: %s", err)
 	}
-	nextViewInfo, err := getShardViewInfo(native, id, nextView)
+	nextViewInfo, err := GetShardViewInfo(native, id, nextView)
 	if err != nil {
 		return fmt.Errorf("peerStake: get next view info failed, err: %s", err)
 	}
@@ -115,7 +115,7 @@ func userStake(native *native.NativeService, id types.ShardID, user common.Addre
 	if err != nil {
 		return fmt.Errorf("userStake: failed, err: %s", err)
 	}
-	shardViewInfo, err := getShardViewInfo(native, id, nextView)
+	shardViewInfo, err := GetShardViewInfo(native, id, nextView)
 	if err != nil {
 		return fmt.Errorf("userStake: failed, err: %s", err)
 	}
@@ -188,7 +188,7 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 	if err != nil {
 		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
-	shardViewInfo, err := getShardViewInfo(native, id, nextView)
+	shardViewInfo, err := GetShardViewInfo(native, id, nextView)
 	if err != nil {
 		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
@@ -270,7 +270,7 @@ func withdrawStakeAsset(native *native.NativeService, id types.ShardID, user com
 	if err != nil {
 		return 0, fmt.Errorf("withdrawStakeAsset: failed, err: %s", err)
 	}
-	currentViewInfo, err := getShardViewInfo(native, id, currentViewIndex)
+	currentViewInfo, err := GetShardViewInfo(native, id, currentViewIndex)
 	if err != nil {
 		return 0, fmt.Errorf("withdrawStakeAsset: failed, err: %s", err)
 	}
@@ -348,7 +348,7 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 				userStake = latestUserStakeInfo
 			}
 		}
-		viewStake, err := getShardViewInfo(native, shardId, i)
+		viewStake, err := GetShardViewInfo(native, shardId, i)
 		if err != nil {
 			return 0, fmt.Errorf("withdrawFee: failed, view %d, err: %s", i, err)
 		}
@@ -392,7 +392,7 @@ func changePeerInfo(native *native.NativeService, shardId types.ShardID, peerOwn
 		return fmt.Errorf("changePeerInfo: failed, err: %s", err)
 	}
 	nextView := currentView + 1
-	nextViewInfo, err := getShardViewInfo(native, shardId, nextView)
+	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
 	if err != nil {
 		return fmt.Errorf("changePeerInfo: failed, err: %s", err)
 	}
