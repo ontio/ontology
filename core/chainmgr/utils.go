@@ -21,12 +21,13 @@ package chainmgr
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -127,8 +128,8 @@ func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.Shar
 	}
 
 	blockNumBytes := shardutil.GetUint32Bytes(blockNum)
-	key := append([]byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes...)
-	toShardsBytes, err := lgr.GetStorageItem(utils.ShardSysMsgContractAddress, key)
+	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes)
+	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
 	if err == common.ErrNotFound {
 		return nil, nil
 	}
@@ -153,8 +154,8 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard ty
 	if err != nil {
 		return nil, fmt.Errorf("serialize toshard: %s", err)
 	}
-	key := append(append([]byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes...), shardIDBytes...)
-	reqBytes, err := lgr.GetStorageItem(utils.ShardSysMsgContractAddress, key)
+	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
+	reqBytes, err := xshard_state.GetKVStorageItem(key)
 	if err == common.ErrNotFound {
 		return nil, nil
 	}

@@ -4,7 +4,7 @@
 start main chain:
 
 ```
-./ontology --testmode --testmode-gen-block-time 10
+./ontology --testmode --testmode-gen-block-time 10 --enable-shard-rpc
 ```
 
 

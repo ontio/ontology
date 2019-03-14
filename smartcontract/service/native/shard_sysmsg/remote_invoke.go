@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
@@ -40,7 +39,9 @@ func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, e
 		msg := &shardstates.XShardCommitMsg{
 			MsgType: shardstates.EVENT_SHARD_PREPARE,
 		}
-		remoteNotify(ctx, tx, s, msg)
+		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+			log.Errorf("send prepare to shard %d: %s", s.ToUint64(), err)
+		}
 	}
 
 	return nil, nil
@@ -60,7 +61,9 @@ func abortTx(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 		msg := &shardstates.XShardCommitMsg{
 			MsgType: shardstates.EVENT_SHARD_ABORT,
 		}
-		remoteNotify(ctx, tx, s, msg)
+		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+			log.Errorf("send abort to shard %d: %s", s.ToUint64(), err)
+		}
 	}
 
 	// FIXME: cleanup resources
@@ -78,13 +81,15 @@ func sendCommit(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 		msg := &shardstates.XShardCommitMsg{
 			MsgType: shardstates.EVENT_SHARD_COMMIT,
 		}
-		remoteNotify(ctx, tx, s, msg)
+		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+			log.Errorf("send commit to shard %d: %s", s.ToUint64(), err)
+		}
 	}
 
 	return nil, nil
 }
 
-func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg shardstates.XShardMsg) ([]byte, error) {
+func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg shardstates.XShardMsg) error {
 	shardReq := &shardstates.CommonShardMsg{
 		SourceShardID: ctx.ShardID,
 		SourceHeight:  uint64(ctx.Height),
@@ -94,13 +99,13 @@ func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.Sh
 	}
 
 	// TODO: add evt to queue, update merkle root
-	log.Errorf("to send remote notify: from %d to %d", ctx.ShardID, toShard)
+	log.Debugf("to send remote notify type %d: from %d to %d", msg.Type(), ctx.ShardID, toShard)
 	if err := addToShardsInBlock(ctx, toShard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remote notify, failed to add to-shard to block: %s", err)
+		return fmt.Errorf("remote notify, failed to add to-shard to block: %s", err)
 	}
 	if err := addReqsInBlock(ctx, shardReq); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remote notify, failed to add req to block: %s", err)
+		return fmt.Errorf("remote notify, failed to add req to block: %s", err)
 	}
 
-	return utils.BYTE_TRUE, nil
+	return nil
 }

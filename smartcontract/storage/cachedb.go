@@ -72,6 +72,14 @@ func (self *CacheDB) GetBackendDB() *overlaydb.OverlayDB {
 	return self.backend
 }
 
+func (self *CacheDB) GetCache() *overlaydb.MemDB {
+	return self.memdb
+}
+
+func (self *CacheDB) SetCache(cache *overlaydb.MemDB) {
+	self.memdb = cache
+}
+
 // Commit current transaction cache to block cache
 func (self *CacheDB) Commit() {
 	self.memdb.ForEach(func(key, val []byte) {

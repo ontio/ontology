@@ -2125,7 +2125,7 @@ func (self *Server) sendshardgovTx(blkNum uint32, chainconfig *vconfig.ChainConf
 	if err != nil {
 		return fmt.Errorf("SendRootChain err:%s", err)
 	}
-	chainmgr.SendShardTx(tx, string(chainmgr.GetShardRpcPortByShardID(0)))
+	chainmgr.SendShardTx(tx, chainmgr.GetShardRpcPortByShardID(0))
 	return nil
 }
 

@@ -296,6 +296,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 
 	for height := self.processedBlockHeight + 1; height <= header.Height; height++ {
 		shards, err := GetRequestedRemoteShards(self.ledger, height)
+		log.Infof("chainmgr get remote shards: height: %d, shards: %v, err: %s", height, shards, err)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
 		}
@@ -316,7 +317,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 			if err != nil {
 				return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
 			}
-			self.sendCrossShardTx(tx, string(GetShardRpcPortByShardID(s.ToUint64())))
+			self.sendCrossShardTx(tx, GetShardRpcPortByShardID(s.ToUint64()))
 		}
 
 		self.processedBlockHeight = height

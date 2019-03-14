@@ -472,7 +472,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 	select {
 	case remoteMsg := <-self.remoteShardMsgC:
 		msg := remoteMsg.Msg
-		log.Errorf(">>>>>> shard %d received remote shard msg type %d", self.shardID, msg.Type())
+		log.Debugf("shard %d received remote shard msg type %d", self.shardID, msg.Type())
 		switch msg.Type() {
 		case shardmsg.HELLO_MSG:
 			helloMsg, ok := msg.(*shardmsg.ShardHelloMsg)
@@ -482,7 +482,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			if helloMsg.TargetShardID != self.shardID {
 				return fmt.Errorf("hello msg with invalid target %d, from %d", helloMsg.TargetShardID, helloMsg.SourceShardID)
 			}
-			log.Infof(">>>>>> received hello msg from %d", helloMsg.SourceShardID)
+			log.Infof("received hello msg from %d", helloMsg.SourceShardID)
 			// response ack
 			return self.onNewShardConnected(remoteMsg.Sender, helloMsg)
 		case shardmsg.CONFIG_MSG:
@@ -490,7 +490,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 			if !ok {
 				return fmt.Errorf("invalid config msg")
 			}
-			log.Infof(">>>>>> shard %d received config msg", self.shardID)
+			log.Infof("shard %d received config msg", self.shardID)
 			return self.onShardConfig(remoteMsg.Sender, shardCfgMsg)
 		case shardmsg.BLOCK_REQ_MSG:
 			var header *types.Header
@@ -644,7 +644,7 @@ func (self *ChainManager) sendShardMsg(shardId types.ShardID, msg *shardmsg.Cros
 // send Cross-Shard Tx to remote shard
 // TODO: get ip-address of remote shard node
 //
-func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort string) error {
+func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort uint) error {
 	// FIXME: broadcast Tx to seed nodes of target shard
 
 	// relay with parent shard
@@ -662,9 +662,9 @@ func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort stri
 	//self.sendShardMsg(self.parentShardID, msg)
 	//return nil
 
-	go func(tx *types.Transaction, shardPort string) {
+	go func(tx *types.Transaction, shardPort uint) {
 		if err := sendRawTx(tx, shardPort); err != nil {
-			log.Errorf("send raw tx failed: %s,shadPort:%s", err, shardPort)
+			log.Errorf("send raw tx failed: %s,shardPort:%d", err, shardPort)
 		}
 	}(tx, shardPort)
 	return nil
