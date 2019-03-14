@@ -70,7 +70,7 @@ type ShardHotelReserve2Param struct {
 	Shard2           types.ShardID  `json:"shard_2"`
 	ContractAddress2 common.Address `json:"contract_address_2"`
 	RoomNo2          int            `json:"room_no_2"`
-	Transactional    bool `json:"transactional"`
+	Transactional    bool           `json:"transactional"`
 }
 
 func (this *ShardHotelReserve2Param) Serialize(w io.Writer) error {

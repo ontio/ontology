@@ -41,11 +41,6 @@ const (
 	EVENT_SHARD_ABORT
 )
 
-const (
-	// Function Name of Cross-Shard Response Processing
-	PROCESS_XSHARD_RSP_FUNCNAME = "ProcessXShardResponse"
-)
-
 type XShardMsg interface {
 	Type() int
 	GetContract() common.Address
