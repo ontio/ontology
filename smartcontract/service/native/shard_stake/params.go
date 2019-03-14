@@ -213,6 +213,7 @@ func (this *WithdrawFeeParam) Deserialize(r io.Reader) error {
 
 type CommitDposParam struct {
 	ShardId    types.ShardID
+	View       View
 	Amount     []uint64
 	PeerPubKey []string
 }
