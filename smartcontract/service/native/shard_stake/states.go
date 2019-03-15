@@ -14,15 +14,16 @@ import (
 type View uint64 // shard consensus epoch index
 
 type PeerViewInfo struct {
-	PeerPubKey          string
-	Owner               common.Address
-	WholeFee            uint64 // each epoch handling fee
-	FeeBalance          uint64 // each epoch handling fee not be withdrawn
-	WholeStakeAmount    uint64 // node + user stake amount
-	WholeUnfreezeAmount uint64 // all user can withdraw amount
-	UserStakeAmount     uint64 // user stake amount
-	MaxAuthorization    uint64 // max user stake amount
-	Proportion          uint64 // proportion to user
+	PeerPubKey             string
+	Owner                  common.Address
+	WholeFee               uint64 // each epoch handling fee
+	FeeBalance             uint64 // each epoch handling fee not be withdrawn
+	WholeStakeAmount       uint64 // node + user stake amount at the last view
+	WholeUnfreezeAmount    uint64 // all user can withdraw amount
+	CurrentViewStakeAmount uint64 // current view user stake amount
+	UserStakeAmount        uint64 // user stake amount
+	MaxAuthorization       uint64 // max user stake amount
+	Proportion             uint64 // proportion to user
 }
 
 func (this *PeerViewInfo) Serialize(w io.Writer) error {
@@ -43,6 +44,9 @@ func (this *PeerViewInfo) Serialize(w io.Writer) error {
 	}
 	if err := utils.WriteVarUint(w, this.WholeUnfreezeAmount); err != nil {
 		return fmt.Errorf("serialize whole unfreeze amount failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.CurrentViewStakeAmount); err != nil {
+		return fmt.Errorf("serialize current view stake amount failed, err: %s", err)
 	}
 	if err := utils.WriteVarUint(w, this.UserStakeAmount); err != nil {
 		return fmt.Errorf("serialize user stake amount failed, err: %s", err)
@@ -74,6 +78,9 @@ func (this *PeerViewInfo) Deserialize(r io.Reader) error {
 	}
 	if this.WholeUnfreezeAmount, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read whole unfreeze amount failed, err: %s", err)
+	}
+	if this.CurrentViewStakeAmount, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read current view stake amount failed, err: %s", err)
 	}
 	if this.UserStakeAmount, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read user stake amount failed, err: %s", err)
@@ -157,9 +164,10 @@ func (this *ViewInfo) Deserialize(r io.Reader) error {
 }
 
 type UserPeerStakeInfo struct {
-	PeerPubKey     string
-	StakeAmount    uint64
-	UnfreezeAmount uint64
+	PeerPubKey             string
+	StakeAmount            uint64
+	CurrentViewStakeAmount uint64
+	UnfreezeAmount         uint64
 }
 
 type UserStakeInfo struct {
@@ -186,6 +194,10 @@ func (this *UserStakeInfo) Serialize(w io.Writer) error {
 		err = utils.WriteVarUint(w, info.StakeAmount)
 		if err != nil {
 			return fmt.Errorf("serialize stake amount failed, index %d, err: %s", index, err)
+		}
+		err = utils.WriteVarUint(w, info.CurrentViewStakeAmount)
+		if err != nil {
+			return fmt.Errorf("serialize current view stake amount failed, index %d, err: %s", index, err)
 		}
 		err = utils.WriteVarUint(w, info.UnfreezeAmount)
 		if err != nil {
@@ -218,12 +230,17 @@ func (this *UserStakeInfo) Deserialize(r io.Reader) error {
 		}
 		stakeAmount, err := utils.ReadVarUint(r)
 		if err != nil {
-			return fmt.Errorf("deserialze: deserialize whole fee failed, err: %s", err)
+			return fmt.Errorf("deserialze: deserialize stake amount failed, err: %s", err)
 		}
 		info.StakeAmount = stakeAmount
+		currentViewStakeAmount, err := utils.ReadVarUint(r)
+		if err != nil {
+			return fmt.Errorf("deserialze: deserialize current view stake amount failed, err: %s", err)
+		}
+		info.CurrentViewStakeAmount = currentViewStakeAmount
 		unfreezeAmount, err := utils.ReadVarUint(r)
 		if err != nil {
-			return fmt.Errorf("deserialze: deserialize whole fee failed, err: %s", err)
+			return fmt.Errorf("deserialze: deserialize unfreeze amount failed, err: %s", err)
 		}
 		info.UnfreezeAmount = unfreezeAmount
 		this.Peers[pubKey] = info
