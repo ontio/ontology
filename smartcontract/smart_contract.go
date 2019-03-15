@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	MAX_EXECUTE_ENGINE = 1024
+	MAX_EXECUTE_ENGINE = 128
 )
 
 // SmartContract describe smart contract execute engine
