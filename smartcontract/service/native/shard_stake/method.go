@@ -81,6 +81,8 @@ func peerStake(native *native.NativeService, id types.ShardID, peerPubKey keypai
 	if err != nil {
 		return fmt.Errorf("peerStake: get next view info failed, err: %s", err)
 	}
+	// TODO: init peer and user info
+	//peerViewInfo := &PeerViewInfo{}
 	initViewInfo.Peers[peerPubKey].WholeStakeAmount = initViewInfo.Peers[peerPubKey].WholeStakeAmount + amount
 	err = setShardViewInfo(native, id, initView, initViewInfo)
 	if err != nil {
@@ -110,26 +112,27 @@ func userStake(native *native.NativeService, id types.ShardID, user common.Addre
 		return fmt.Errorf("userStake: failed, err: %s", err)
 	}
 	nextView := currentView + 1
-
-	userStakeInfo, err := getShardViewUserStake(native, id, lastStakeView, user)
-	if err != nil {
-		return fmt.Errorf("userStake: failed, err: %s", err)
-	}
-	shardViewInfo, err := GetShardViewInfo(native, id, nextView)
-	if err != nil {
-		return fmt.Errorf("userStake: failed, err: %s", err)
-	}
-
-	// update user current stake info
-	if lastStakeView < currentView {
-		err = setShardViewUserStake(native, id, currentView, user, userStakeInfo)
-		if err != nil {
-			return fmt.Errorf("userStake: set current view user stake info failed, err: %s", err)
-		}
-	} else if lastStakeView > nextView {
+	if lastStakeView > nextView {
 		return fmt.Errorf("userStake: user last stake view %d and next view %d unmatch", lastStakeView, nextView)
+	} else if lastStakeView == nextView {
+		lastStakeView = currentView
 	}
-
+	lastUserStakeInfo, err := getShardViewUserStake(native, id, lastStakeView, user)
+	if err != nil {
+		return fmt.Errorf("userStake: get user last stake info failed, err: %s", err)
+	}
+	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, user)
+	if err != nil {
+		return fmt.Errorf("userStake: get user next stake info failed, err: %s", err)
+	}
+	currentViewInfo, err := GetShardViewInfo(native, id, currentView)
+	if err != nil {
+		return fmt.Errorf("userStake: get current view info failed, err: %s", err)
+	}
+	nextViewInfo, err := GetShardViewInfo(native, id, nextView)
+	if err != nil {
+		return fmt.Errorf("userStake: get next view info failed, err: %s", err)
+	}
 	for pubKeyString, amount := range stakeInfo {
 		pubKeyData, err := hex.DecodeString(pubKeyString)
 		if err != nil {
@@ -139,34 +142,46 @@ func userStake(native *native.NativeService, id types.ShardID, user common.Addre
 		if err != nil {
 			return fmt.Errorf("userStake: deserialize pub key %s failed, err: %s", pubKeyString, err)
 		}
-		userPeerStakeInfo, ok := userStakeInfo.Peers[peer]
+		currentPeerStakeInfo, ok := currentViewInfo.Peers[peer]
 		if !ok {
-			userPeerStakeInfo = &UserPeerStakeInfo{}
+			return fmt.Errorf("userStake: current view cannot find peer %s", pubKeyString)
 		}
-		userPeerStakeInfo.StakeAmount = userPeerStakeInfo.StakeAmount + amount
-		userStakeInfo.Peers[peer] = userPeerStakeInfo
-
-		shardPeerStakeInfo, ok := shardViewInfo.Peers[peer]
+		nextPeerStakeInfo, ok := nextViewInfo.Peers[peer]
 		if !ok {
-			shardPeerStakeInfo = &PeerViewInfo{}
+			return fmt.Errorf("userStake: next view cannot find peer %s", pubKeyString)
 		}
-		shardPeerStakeInfo.WholeStakeAmount = shardPeerStakeInfo.WholeStakeAmount + amount
-		shardViewInfo.Peers[peer] = shardPeerStakeInfo
+		lastUserPeerStakeInfo, ok := lastUserStakeInfo.Peers[peer]
+		if !ok {
+			lastUserPeerStakeInfo = &UserPeerStakeInfo{PeerPubKey: pubKeyString}
+		}
+		nextUserPeerStakeInfo, ok := nextUserStakeInfo.Peers[peer]
+		if !ok {
+			nextUserPeerStakeInfo = &UserPeerStakeInfo{PeerPubKey: pubKeyString,
+				StakeAmount: lastUserPeerStakeInfo.StakeAmount, UnfreezeAmount: lastUserPeerStakeInfo.UnfreezeAmount}
+		}
+		lastUserPeerStakeInfo.CurrentViewStakeAmount += amount
+		lastUserStakeInfo.Peers[peer] = lastUserPeerStakeInfo
+		nextUserPeerStakeInfo.StakeAmount += amount
+		nextUserStakeInfo.Peers[peer] = nextUserPeerStakeInfo
+		currentPeerStakeInfo.CurrentViewStakeAmount += amount
+		currentViewInfo.Peers[peer] = currentPeerStakeInfo
+		nextPeerStakeInfo.WholeStakeAmount += amount
+		nextViewInfo.Peers[peer] = nextPeerStakeInfo
 	}
-	// update shard stake info and user stake info
-	err = setShardViewUserStake(native, id, nextView, user, userStakeInfo)
-	if err != nil {
-		return fmt.Errorf("userStake: set next view user stake info failed, err: %s", err)
-	}
-	err = setShardViewInfo(native, id, nextView, shardViewInfo)
-	if err != nil {
+	if err := setUserLastStakeView(native, id, user, nextView); err != nil {
 		return fmt.Errorf("userStake: failed, err: %s", err)
 	}
-
-	// update user last stake view num
-	err = setUserLastStakeView(native, id, user, nextView)
-	if err != nil {
-		return fmt.Errorf("userStake: failed, err: %s", err)
+	if err := setShardViewUserStake(native, id, currentView, user, lastUserStakeInfo); err != nil {
+		return fmt.Errorf("userStake: udpate current view user stake info failed, err: %s", err)
+	}
+	if err := setShardViewUserStake(native, id, nextView, user, nextUserStakeInfo); err != nil {
+		return fmt.Errorf("userStake: udpate next view user stake info failed, err: %s", err)
+	}
+	if err := setShardViewInfo(native, id, currentView, currentViewInfo); err != nil {
+		return fmt.Errorf("userStake: udpate current view info failed, err: %s", err)
+	}
+	if err := setShardViewInfo(native, id, nextView, nextViewInfo); err != nil {
+		return fmt.Errorf("userStake: udpate current view info failed, err: %s", err)
 	}
 	return nil
 }
@@ -182,25 +197,26 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
 	nextView := currentView + 1
-
-	// read user stake info and view stake info
-	userStakeInfo, err := getShardViewUserStake(native, id, lastStakeView, user)
-	if err != nil {
-		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
-	}
-	shardViewInfo, err := GetShardViewInfo(native, id, nextView)
-	if err != nil {
-		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
-	}
-	if lastStakeView < currentView {
-		// update current user stake info
-		err = setShardViewUserStake(native, id, currentView, user, userStakeInfo)
-		if err != nil {
-			return fmt.Errorf("unfreezeStakeAsset: set current view user stake info failed, err: %s", err)
-		}
-	} else if lastStakeView > nextView {
+	if lastStakeView > nextView {
 		return fmt.Errorf("unfreezeStakeAsset: user last stake view %d and next view %d unmatch",
 			lastStakeView, nextView)
+	} else if lastStakeView == nextView {
+		lastStakeView = currentView
+	}
+	lastUserStakeInfo, err := getShardViewUserStake(native, id, lastStakeView, user)
+	if err != nil {
+		return fmt.Errorf("unfreezeStakeAsset: get user last stake info failed, err: %s", err)
+	}
+	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, user)
+	if err != nil {
+		return fmt.Errorf("unfreezeStakeAsset: get user next stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(lastUserStakeInfo) || isUserStakePeerEmpty(nextUserStakeInfo) {
+		return fmt.Errorf("userStake: user stake peer info is empty")
+	}
+	nextViewInfo, err := GetShardViewInfo(native, id, nextView)
+	if err != nil {
+		return fmt.Errorf("unfreezeStakeAsset: get next view info failed, err: %s", err)
 	}
 	for pubKeyString, amount := range stakeInfo {
 		pubKeyData, err := hex.DecodeString(pubKeyString)
@@ -211,100 +227,131 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 		if err != nil {
 			return fmt.Errorf("unfreezeStakeAsset: deserialize pub key %s failed, err: %s", pubKeyString, err)
 		}
-		userPeerStakeInfo, ok := userStakeInfo.Peers[peer]
+		nextPeerStakeInfo, ok := nextViewInfo.Peers[peer]
 		if !ok {
-			userPeerStakeInfo = &UserPeerStakeInfo{}
+			return fmt.Errorf("unfreezeStakeAsset: next view cannot find peer %s", pubKeyString)
 		}
-		if userPeerStakeInfo.StakeAmount < amount {
-			return fmt.Errorf("unfreezeStakeAsset: stake amount %d not enough", userPeerStakeInfo.StakeAmount)
+		if nextPeerStakeInfo.WholeStakeAmount < amount {
+			return fmt.Errorf("unfreezeStakeAsset: peer %s stake num not enough", pubKeyString)
 		}
-		userPeerStakeInfo.StakeAmount -= amount
-		userPeerStakeInfo.UnfreezeAmount += amount
-		userStakeInfo.Peers[peer] = userPeerStakeInfo
-
-		shardPeerStakeInfo, ok := shardViewInfo.Peers[peer]
+		// use last stake to check first
+		lastUserPeerStakeInfo, ok := lastUserStakeInfo.Peers[peer]
 		if !ok {
-			shardPeerStakeInfo = &PeerViewInfo{}
+			return fmt.Errorf("userStake: current view cannot find user stake peer %s", pubKeyString)
 		}
-		if shardPeerStakeInfo.WholeStakeAmount < amount {
-			return fmt.Errorf("unfreezeStakeAsset: whole stake amount %d not enough", shardPeerStakeInfo.WholeStakeAmount)
+		nextUserPeerStakeInfo, ok := nextUserStakeInfo.Peers[peer]
+		if !ok {
+			nextUserPeerStakeInfo = &UserPeerStakeInfo{PeerPubKey: pubKeyString,
+				StakeAmount: lastUserPeerStakeInfo.StakeAmount, UnfreezeAmount: lastUserPeerStakeInfo.UnfreezeAmount}
 		}
-		shardPeerStakeInfo.WholeStakeAmount -= amount
-		shardPeerStakeInfo.WholeUnfreezeAmount += amount
-		shardViewInfo.Peers[peer] = shardPeerStakeInfo
+		if nextUserPeerStakeInfo.StakeAmount < amount {
+			return fmt.Errorf("unfreezeStakeAsset: next user stake peer %s not enough", pubKeyString)
+		}
+		nextUserPeerStakeInfo.StakeAmount -= amount
+		nextUserPeerStakeInfo.UnfreezeAmount += amount
+		nextUserStakeInfo.Peers[peer] = nextUserPeerStakeInfo
+		nextPeerStakeInfo.WholeStakeAmount -= amount
+		nextPeerStakeInfo.WholeUnfreezeAmount += amount
+		nextViewInfo.Peers[peer] = nextPeerStakeInfo
 	}
-
-	// update next stake info
-	err = setShardViewUserStake(native, id, nextView, user, userStakeInfo)
-	if err != nil {
+	if err := setUserLastStakeView(native, id, user, nextView); err != nil {
 		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
-	err = setShardViewInfo(native, id, nextView, shardViewInfo)
-	if err != nil {
-		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
+	// update user stake info from last to current
+	if err := setShardViewUserStake(native, id, currentView, user, lastUserStakeInfo); err != nil {
+		return fmt.Errorf("unfreezeStakeAsset: udpate current view user stake info failed, err: %s", err)
 	}
-
-	// update user last stake view num
-	err = setUserLastStakeView(native, id, user, nextView)
-	if err != nil {
-		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
+	if err := setShardViewUserStake(native, id, nextView, user, nextUserStakeInfo); err != nil {
+		return fmt.Errorf("unfreezeStakeAsset: udpate next view user stake info failed, err: %s", err)
+	}
+	if err := setShardViewInfo(native, id, nextView, nextViewInfo); err != nil {
+		return fmt.Errorf("unfreezeStakeAsset: udpate current view info failed, err: %s", err)
 	}
 	return nil
 }
 
 // return withdraw amount
 func withdrawStakeAsset(native *native.NativeService, id types.ShardID, user common.Address) (uint64, error) {
-	// get user stake view index
-	stakeView, err := getUserLastStakeView(native, id, user)
+	// get view index
+	lastStakeView, err := getUserLastStakeView(native, id, user)
 	if err != nil {
-		return 0, fmt.Errorf("withdrawStakeAsset: failed, err: %s", err)
+		return 0, fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
-	currentViewIndex, err := getShardCurrentView(native, id)
+	currentView, err := getShardCurrentView(native, id)
 	if err != nil {
-		return 0, fmt.Errorf("withdrawStakeAsset: failed, err: %s", err)
+		return 0, fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
-	if stakeView > currentViewIndex {
-		stakeView = currentViewIndex
+	nextView := currentView + 1
+	if lastStakeView > nextView {
+		return 0, fmt.Errorf("unfreezeStakeAsset: user last stake view %d and next view %d unmatch",
+			lastStakeView, nextView)
+	} else if lastStakeView == nextView {
+		lastStakeView = currentView
 	}
-	userStakeInfo, err := getShardViewUserStake(native, id, stakeView, user)
+	lastUserStakeInfo, err := getShardViewUserStake(native, id, lastStakeView, user)
 	if err != nil {
-		return 0, fmt.Errorf("withdrawStakeAsset: failed, err: %s", err)
+		return 0, fmt.Errorf("unfreezeStakeAsset: get user last stake info failed, err: %s", err)
 	}
-	currentViewInfo, err := GetShardViewInfo(native, id, currentViewIndex)
+	if isUserStakePeerEmpty(lastUserStakeInfo) {
+		return 0, fmt.Errorf("userStake: user stake peer info is empty")
+	}
+	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, user)
 	if err != nil {
-		return 0, fmt.Errorf("withdrawStakeAsset: failed, err: %s", err)
+		return 0, fmt.Errorf("unfreezeStakeAsset: get user next stake info failed, err: %s", err)
 	}
-	withdrawAmount := uint64(0)
-	for peer, userPeerStakeInfo := range userStakeInfo.Peers {
-		peerStakeInfo, ok := currentViewInfo.Peers[peer]
+	currentViewInfo, err := GetShardViewInfo(native, id, currentView)
+	if err != nil {
+		return 0, fmt.Errorf("userStake: get current view info failed, err: %s", err)
+	}
+	nextViewInfo, err := GetShardViewInfo(native, id, nextView)
+	if err != nil {
+		return 0, fmt.Errorf("unfreezeStakeAsset: get next view info failed, err: %s", err)
+	}
+	amount := uint64(0)
+	for peer, userPeerStakeInfo := range lastUserStakeInfo.Peers {
+		currentPeerInfo, ok := currentViewInfo.Peers[peer]
 		if !ok {
-			return 0, fmt.Errorf("withdrawStakeAsset: cannot get current view peer %s stake info",
-				hex.EncodeToString(keypair.SerializePublicKey(peer)))
+			return 0, fmt.Errorf("unfreezeStakeAsset: current view peer %s not exist", userPeerStakeInfo.PeerPubKey)
 		}
-		withdrawAmount += userPeerStakeInfo.UnfreezeAmount
-		if peerStakeInfo.WholeUnfreezeAmount < userPeerStakeInfo.UnfreezeAmount {
-			return 0, fmt.Errorf("withdrawStakeAsset: whole unfreeze amount %d not enough",
-				peerStakeInfo.WholeUnfreezeAmount)
+		nextPeerInfo, ok := nextViewInfo.Peers[peer]
+		if !ok {
+			return 0, fmt.Errorf("unfreezeStakeAsset: next view peer %s not exist", userPeerStakeInfo.PeerPubKey)
 		}
-		peerStakeInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
-		userPeerStakeInfo.UnfreezeAmount = 0
-		userStakeInfo.Peers[peer] = userPeerStakeInfo
-		currentViewInfo.Peers[peer] = peerStakeInfo
-	}
+		currentPeerInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
+		currentPeerInfo.CurrentViewStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+		nextPeerInfo.WholeStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+		nextPeerInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
+		currentViewInfo.Peers[peer] = currentPeerInfo
+		nextViewInfo.Peers[peer] = nextPeerInfo
 
-	err = setShardViewInfo(native, id, currentViewIndex, currentViewInfo)
-	if err != nil {
-		return 0, fmt.Errorf("withdrawStakeAsset:failed, err: %s", err)
+		amount += userPeerStakeInfo.UnfreezeAmount + userPeerStakeInfo.CurrentViewStakeAmount
+		nextUserPeerStakeInfo, ok := nextUserStakeInfo.Peers[peer]
+		if !ok {
+			nextUserPeerStakeInfo = &UserPeerStakeInfo{PeerPubKey: userPeerStakeInfo.PeerPubKey,
+				StakeAmount: userPeerStakeInfo.StakeAmount,}
+		} else {
+			nextUserPeerStakeInfo.UnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
+			nextUserPeerStakeInfo.StakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+		}
+		userPeerStakeInfo.UnfreezeAmount = 0
+		userPeerStakeInfo.CurrentViewStakeAmount = 0
+		lastUserStakeInfo.Peers[peer] = userPeerStakeInfo
+		nextUserStakeInfo.Peers[peer] = nextUserPeerStakeInfo
 	}
-	err = setShardViewUserStake(native, id, currentViewIndex, user, userStakeInfo)
-	if err != nil {
-		return 0, fmt.Errorf("withdrawStakeAsset:failed, err: %s", err)
+	if err := setUserLastStakeView(native, id, user, nextView); err != nil {
+		return 0, fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
-	err = setUserLastStakeView(native, id, user, currentViewIndex)
-	if err != nil {
-		return 0, fmt.Errorf("withdrawStakeAsset:failed, err: %s", err)
+	// update user stake info from last to current
+	if err := setShardViewUserStake(native, id, currentView, user, lastUserStakeInfo); err != nil {
+		return 0, fmt.Errorf("unfreezeStakeAsset: udpate current view user stake info failed, err: %s", err)
 	}
-	return withdrawAmount, nil
+	if err := setShardViewUserStake(native, id, nextView, user, nextUserStakeInfo); err != nil {
+		return 0, fmt.Errorf("unfreezeStakeAsset: udpate next view user stake info failed, err: %s", err)
+	}
+	if err := setShardViewInfo(native, id, nextView, nextViewInfo); err != nil {
+		return 0, fmt.Errorf("unfreezeStakeAsset: udpate current view info failed, err: %s", err)
+	}
+	return amount, nil
 }
 
 // return the amount that user could withdraw
@@ -324,7 +371,6 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 	dividends := uint64(0)
 	i := userWithdrawView
 	count := 0
-	supportMul := uint64(100000)
 	latestUserStakeInfo := &UserStakeInfo{Peers: make(map[keypair.PublicKey]*UserPeerStakeInfo)}
 	lastStakeView, err := getUserLastStakeView(native, shardId, user)
 	if err != nil {
@@ -361,7 +407,7 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 			if peerStakeInfo.FeeBalance == 0 {
 				continue
 			}
-			peerDivide := info.StakeAmount * supportMul * peerStakeInfo.WholeFee / peerStakeInfo.WholeStakeAmount / supportMul
+			peerDivide := info.StakeAmount * peerStakeInfo.WholeFee / peerStakeInfo.WholeStakeAmount
 			peerStakeInfo.FeeBalance = peerStakeInfo.FeeBalance - peerDivide
 			viewStake.Peers[peer] = peerStakeInfo
 			dividends += peerDivide
@@ -373,7 +419,7 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 		count++
 		latestUserStakeInfo = userStake
 	}
-	err = setUserLastWithdrawView(native, shardId, user, currentView-1)
+	err = setUserLastWithdrawView(native, shardId, user, i)
 	if err != nil {
 		return 0, fmt.Errorf("withdrawFee: failed, view %d, err: %s", i, err)
 	}

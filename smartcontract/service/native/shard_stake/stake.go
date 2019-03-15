@@ -23,7 +23,7 @@ const (
 	COMMIT_DPOS              = "commitDpos"
 )
 
-// TODO: quit node and withdraw unbound ong
+// TODO: quit node and withdraw unbound ong, dynamic node attend
 
 func InitShardStake() {
 	native.Contracts[utils.ShardStakeAddress] = RegisterShardStake
