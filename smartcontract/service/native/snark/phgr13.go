@@ -6,37 +6,10 @@ import (
 
 	"github.com/kunxian-xia/bn256"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
-
-const fieldSize = 32
-const g1Size = 64
-const g2Size = 128
-
-func deserializeG1(point *bn256.G1, source *common.ZeroCopySource) error {
-	bytes, eof := source.NextBytes(g1Size)
-	if eof {
-		return errors.New("eof")
-	}
-	_, ok := point.Unmarshal(bytes)
-	if !ok {
-		return errors.New("failed to unmarshal G1 point")
-	}
-	return nil
-}
-
-func deserializeG2(point *bn256.G2, source *common.ZeroCopySource) error {
-	bytes, eof := source.NextBytes(g2Size)
-	if eof {
-		return errors.New("eof")
-	}
-	_, ok := point.Unmarshal(bytes)
-	if !ok {
-		return errors.New("failed to unmarshal G1 point")
-	}
-	return nil
-}
 
 type phgr13VerifyingKey struct {
 	icLen      uint64
@@ -56,13 +29,10 @@ func (vk *phgr13VerifyingKey) Deserialize(source *common.ZeroCopySource) error {
 
 	vk.icLen, eof = source.NextUint64()
 	if eof {
-		err = errors.New("")
+		err = errors.New("input's length is less than required")
 		return err
 	}
 
-	// if source.Len() < 2*g1Size + 5*g2Size + icLen*g1Size {
-
-	// }
 	err = deserializeG2(vk.a, source)
 	if err != nil {
 		return err
@@ -93,7 +63,7 @@ func (vk *phgr13VerifyingKey) Deserialize(source *common.ZeroCopySource) error {
 	}
 
 	if source.Len() < vk.icLen*g1Size {
-		return errors.New("")
+		return errors.New("input's length is less than required")
 	}
 	vk.ic = make([]*bn256.G1, vk.icLen)
 	for i := uint64(0); i < vk.icLen; i++ {
@@ -118,10 +88,6 @@ type phgr13Proof struct {
 
 func (proof *phgr13Proof) Deserialize(source *common.ZeroCopySource) error {
 	var err error
-
-	// if source.Len() < 7*g1Size + 1*g2Size {
-
-	// }
 
 	err = deserializeG1(proof.a, source)
 	if err != nil {
@@ -158,9 +124,9 @@ func (proof *phgr13Proof) Deserialize(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func verify(vk *phgr13VerifyingKey, proof *phgr13Proof, input []*big.Int) bool {
+func verify(vk *phgr13VerifyingKey, proof *phgr13Proof, input []*big.Int) (bool, error) {
 	if len(input)+1 != len(vk.ic) {
-		return false
+		return false, errors.New("len(input) + 1 != len(vk.ic)")
 	}
 	vkX := vk.ic[0]
 	for i := 0; i < len(input); i++ {
@@ -169,44 +135,47 @@ func verify(vk *phgr13VerifyingKey, proof *phgr13Proof, input []*big.Int) bool {
 
 	// p1 := new(bn256.G1).ScalarBaseMult(big.NewInt(1))
 	p2 := new(bn256.G2).ScalarBaseMult(big.NewInt(1))
+
 	if !bn256.PairingCheck([]*bn256.G1{proof.a, new(bn256.G1).Neg(proof.aPrime)},
 		[]*bn256.G2{vk.a, p2}) {
-		return false
+		log.Error("knowledge commitments condition a failed")
+		return false, nil
 	}
 	if !bn256.PairingCheck([]*bn256.G1{vk.b, new(bn256.G1).Neg(proof.bPrime)},
 		[]*bn256.G2{proof.b, p2}) {
-		return false
+		log.Error("knowledge commitments condition b failed")
+		return false, nil
 	}
 	if !bn256.PairingCheck([]*bn256.G1{proof.c, new(bn256.G1).Neg(proof.cPrime)},
 		[]*bn256.G2{vk.c, p2}) {
-		return false
+		log.Error("knowledge commitments condition c failed")
+		return false, nil
 	}
 
 	vkxPlusAPlusC := new(bn256.G1).Add(vkX, proof.a)
 	vkxPlusAPlusC.Add(vkxPlusAPlusC, proof.c)
-	//vkxPlusAPlusC.Neg(vkxPlusAPlusC)
+
 	if !bn256.PairingCheck([]*bn256.G1{proof.k, new(bn256.G1).Neg(vkxPlusAPlusC),
 		new(bn256.G1).Neg(vk.gammaBeta1)}, []*bn256.G2{vk.gamma, vk.gammaBeta2, proof.b}) {
-		return false
+		log.Error("same coefficient condition failed")
+		return false, nil
 	}
 
 	if !bn256.PairingCheck([]*bn256.G1{new(bn256.G1).Add(vkX, proof.a),
 		new(bn256.G1).Neg(proof.h), new(bn256.G1).Neg(proof.c)},
 		[]*bn256.G2{proof.b, vk.z, p2}) {
-		return false
+		log.Error("qap divisibility condition failed")
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 // PHGR13Verify ...
 func PHGR13Verify(ns *native.NativeService) ([]byte, error) {
 	var err error
-	// inputs are
-	//  1. vk
-	//  2. proof
-	//  3. public input
-
+	// inputs consists of (vk, proof, public input)
 	source := common.NewZeroCopySource(ns.Input)
+
 	// deserialize vk
 	vk := new(phgr13VerifyingKey)
 	err = vk.Deserialize(source)
@@ -223,22 +192,27 @@ func PHGR13Verify(ns *native.NativeService) ([]byte, error) {
 
 	// deserialize public input
 	// public input is a vector of field elements
-	inputLen, eof := source.NextUint64()
+	fieldsNum, eof := source.NextUint64()
 	if eof {
-		return nil, errors.New("")
+		return nil, errors.New("eof when deserialize number of field elements in public input")
 	}
-
-	input := make([]*big.Int, inputLen)
-	for i := uint64(0); i < inputLen; i++ {
+	if source.Len() < fieldsNum*fieldSize {
+		return nil, errors.New("input's length is less than required")
+	}
+	input := make([]*big.Int, fieldsNum)
+	for i := uint64(0); i < fieldsNum; i++ {
 		bytes, eof := source.NextBytes(fieldSize)
 		if eof {
-			return nil, errors.New("encounter eof when deserialize public input")
+			return nil, errors.New("encounter eof when deserialize field element")
 		}
 		input[i] = new(big.Int).SetBytes(bytes)
 	}
 
 	// do the actual zk-SNARKs verification
-	valid := verify(vk, proof, input)
+	valid, err := verify(vk, proof, input)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
 	if !valid {
 		return utils.BYTE_FALSE, nil
 	} else {
