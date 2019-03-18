@@ -2,10 +2,10 @@ package shard_stake
 
 import (
 	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 )
@@ -215,7 +215,7 @@ type CommitDposParam struct {
 	ShardId    types.ShardID
 	View       View
 	Amount     []uint64
-	PeerPubKey []string
+	PeerPubKey []keypair.PublicKey
 }
 
 func (this *CommitDposParam) Serialize(w io.Writer) error {
@@ -231,9 +231,9 @@ func (this *CommitDposParam) Serialize(w io.Writer) error {
 		return fmt.Errorf("serialize: write peer len failed, err: %s", err)
 	}
 	for index, peer := range this.PeerPubKey {
-		err = serialization.WriteString(w, peer)
+		err = serialization.WriteVarBytes(w, keypair.SerializePublicKey(peer))
 		if err != nil {
-			return fmt.Errorf("serialize: write peer %s failed, index %d, err: %s", peer, index, err)
+			return fmt.Errorf("serialize: write peer failed, index %d, err: %s", index, err)
 		}
 		err = utils.WriteVarUint(w, this.Amount[index])
 		if err != nil {
@@ -256,12 +256,16 @@ func (this *CommitDposParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read peer len, err: %s", err)
 	}
-	peers := make([]string, peerNum)
+	peers := make([]keypair.PublicKey, peerNum)
 	amount := make([]uint64, peerNum)
 	for i := uint64(0); i < peerNum; i++ {
-		peer, err := serialization.ReadString(r)
+		pubKeyData, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return fmt.Errorf("deserialize: read peer failed, index %d, err: %s", i, err)
+		}
+		peer, err := keypair.DeserializePublicKey(pubKeyData)
+		if err != nil {
+			return fmt.Errorf("deserialize: deserialize pub key failed, index %d, err: %s", i, err)
 		}
 		num, err := utils.ReadVarUint(r)
 		if err != nil {
@@ -381,31 +385,150 @@ func (this *UserStakeParam) Deserialize(r io.Reader) error {
 }
 
 type ChangeMaxAuthorizationParam struct {
-	ShardId    types.ShardID `json:"shard_id"`
+	ShardId    types.ShardID
 	User       common.Address
-	PeerPubKey string `json:"peer_pub_key"`
-	Amount     uint64 `json:"max_authorization"`
+	PeerPubKey string
+	Amount     uint64
 }
 
 func (this *ChangeMaxAuthorizationParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteVarUint(w, this.ShardId.ToUint64()); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write addr failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.PeerPubKey); err != nil {
+		return fmt.Errorf("serialize: write pub key failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.Amount); err != nil {
+		return fmt.Errorf("serialize: write amount failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ChangeMaxAuthorizationParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	id, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	this.ShardId, err = types.NewShardID(id)
+	if err != nil {
+		return fmt.Errorf("deserialize: generate shard id failed, err: %s", err)
+	}
+	user, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	}
+	this.User = user
+	pubKey, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read pub key failed, err: %s", err)
+	}
+	this.PeerPubKey = pubKey
+	amount, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
+	}
+	this.Amount = amount
+	return nil
 }
 
 type ChangeProportionParam struct {
-	ShardId    types.ShardID `json:"shard_id"`
+	ShardId    types.ShardID
 	User       common.Address
-	PeerPubKey string `json:"peer_pub_key"`
-	Amount     uint64 `json:"proportion"`
+	PeerPubKey string
+	Amount     uint64
 }
 
 func (this *ChangeProportionParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteVarUint(w, this.ShardId.ToUint64()); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write addr failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.PeerPubKey); err != nil {
+		return fmt.Errorf("serialize: write pub key failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.Amount); err != nil {
+		return fmt.Errorf("serialize: write amount failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ChangeProportionParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	id, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	this.ShardId, err = types.NewShardID(id)
+	if err != nil {
+		return fmt.Errorf("deserialize: generate shard id failed, err: %s", err)
+	}
+	user, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	}
+	this.User = user
+	pubKey, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read pub key failed, err: %s", err)
+	}
+	this.PeerPubKey = pubKey
+	amount, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
+	}
+	this.Amount = amount
+	return nil
+}
+
+type DeletePeerParam struct {
+	ShardId types.ShardID
+	Peers   []keypair.PublicKey
+}
+
+func (this *DeletePeerParam) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, this.ShardId.ToUint64()); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(len(this.Peers))); err != nil {
+		return fmt.Errorf("serialize: write peer num failed, err: %s", err)
+	}
+	for index, peer := range this.Peers {
+		if err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(peer)); err != nil {
+			return fmt.Errorf("serialize: write pub key failed, index %d, err: %s", index, err)
+		}
+	}
+	return nil
+}
+
+func (this *DeletePeerParam) Deserialize(r io.Reader) error {
+	id, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	this.ShardId, err = types.NewShardID(id)
+	if err != nil {
+		return fmt.Errorf("deserialize: generate shard id failed, err: %s", err)
+	}
+	peersNum, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read peers num failed, err: %s", err)
+	}
+	peers := make([]keypair.PublicKey, 0)
+	for i := uint64(0); i < peersNum; i++ {
+		pubKeyData, err := serialization.ReadVarBytes(r)
+		if err != nil {
+			return fmt.Errorf("deserialize: read peer failed, index %d, err: %s", i, err)
+		}
+		peer, err := keypair.DeserializePublicKey(pubKeyData)
+		if err != nil {
+			return fmt.Errorf("deserialize: deserialize pub key failed, index %d, err: %s", i, err)
+		}
+		peers = append(peers, peer)
+	}
+	this.Peers = peers
+	return nil
 }
