@@ -26,6 +26,8 @@ const (
 
 	KEY_SHARD_USER_LAST_STAKE_VIEW    = "shard_last_stake_view"    // user latest stake influence view index
 	KEY_SHARD_USER_LAST_WITHDRAW_VIEW = "shard_last_withdraw_view" // user latest withdraw view index, user's dividends at this view has not yet withdrawn
+
+	KEY_UNBOUND_ONG = "unbound_ong"
 )
 
 func genShardDividedKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
@@ -67,6 +69,10 @@ func genShardUserLastStakeViewKey(contract common.Address, shardIdBytes []byte, 
 
 func genShardUserLastWithdrawViewKey(contract common.Address, shardIdBytes []byte, user common.Address) []byte {
 	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_USER_LAST_WITHDRAW_VIEW), user[:])
+}
+
+func genUserUnboundOngKey(contract, user common.Address) []byte {
+	return utils.ConcatKey(contract, []byte(KEY_UNBOUND_ONG), user[:])
 }
 
 func getShardCurrentView(native *native.NativeService, id types.ShardID) (View, error) {
@@ -319,48 +325,6 @@ func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amoun
 	return nil
 }
 
-func setViewDivided(native *native.NativeService, contract common.Address, shardId types.ShardID, view View) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setViewDivided: serialize shardID: %s", err)
-	}
-	viewBytes, err := shardutil.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("setViewDivided: serialize view: %s", err)
-	}
-	key := genShardDividedKey(contract, shardIDBytes, viewBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(shardutil.GetUint32Bytes(1)))
-	return nil
-}
-
-func isViewDivided(native *native.NativeService, contract common.Address, shardId types.ShardID, view View) (bool, error) {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: serialize shardID: %s", err)
-	}
-	viewBytes, err := shardutil.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: serialize view: %s", err)
-	}
-	key := genShardDividedKey(contract, shardIDBytes, viewBytes)
-	storeValue, err := native.CacheDB.Get(key)
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: read db failed, err: %s", err)
-	}
-	if len(storeValue) == 0 {
-		return false, nil
-	}
-	data, err := cstates.GetValueFromRawStorageItem(storeValue)
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: parse db value failed, err: %s", err)
-	}
-	num, err := shardutil.GetBytesUint32(data)
-	if err != nil {
-		return false, fmt.Errorf("isViewDivided: deserialize value failed, err: %s", err)
-	}
-	return num != 0, nil
-}
-
 func setShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID,
 	addr common.Address) error {
 	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
@@ -401,4 +365,34 @@ func getShardStakeAssetAddr(native *native.NativeService, contract common.Addres
 		return addr, fmt.Errorf("getShardStakeAssetAddr: deserialize value failed, err: %s", err)
 	}
 	return addr, nil
+}
+
+func getUserUnboundOngInfo(native *native.NativeService, contract, user common.Address) (*UserUnboundOngInfo, error) {
+	key := genUserUnboundOngKey(contract, user)
+	storeValue, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("getUserUnboundOngInfo: read db failed, err: %s", err)
+	}
+	info := &UserUnboundOngInfo{}
+	if len(storeValue) == 0 {
+		return info, nil
+	}
+	data, err := cstates.GetValueFromRawStorageItem(storeValue)
+	if err != nil {
+		return nil, fmt.Errorf("getUserUnboundOngInfo: parse db value failed, err: %s", err)
+	}
+	if err := info.Deserialize(bytes.NewBuffer(data)); err != nil {
+		return nil, fmt.Errorf("getUserUnboundOngInfo: deserialize failed, err: %s", err)
+	}
+	return info, nil
+}
+
+func setUserUnboundOngInfo(native *native.NativeService, contract, user common.Address, info *UserUnboundOngInfo) error {
+	key := genUserUnboundOngKey(contract, user)
+	bf := new(bytes.Buffer)
+	if err := info.Serialize(bf); err != nil {
+		return fmt.Errorf("setUserUnboundOngInfo: failed, err: %s", err)
+	}
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(bf.Bytes()))
+	return nil
 }
