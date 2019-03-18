@@ -452,6 +452,9 @@ func ExitShard(native *native.NativeService) ([]byte, error) {
 	if shardPeerInfo.PeerOwner != param.PeerOwner {
 		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: peer owner unmatch")
 	}
+	if err := peerExit(native, param.ShardId, paramPubkey); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: failed, err: %s", err)
+	}
 	if shardPeerInfo.NodeType == shardstates.CONSENSUS_NODE {
 		shardPeerInfo.NodeType = shardstates.QUIT_CONSENSUS_NODE
 	} else if shardPeerInfo.NodeType == shardstates.CONDIDATE_NODE {

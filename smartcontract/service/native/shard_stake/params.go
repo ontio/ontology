@@ -532,3 +532,39 @@ func (this *DeletePeerParam) Deserialize(r io.Reader) error {
 	this.Peers = peers
 	return nil
 }
+
+type PeerExitParam struct {
+	ShardId types.ShardID
+	Peer    keypair.PublicKey
+}
+
+func (this *PeerExitParam) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, this.ShardId.ToUint64()); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, keypair.SerializePublicKey(this.Peer)); err != nil {
+		return fmt.Errorf("serialize: write pub key failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *PeerExitParam) Deserialize(r io.Reader) error {
+	id, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	this.ShardId, err = types.NewShardID(id)
+	if err != nil {
+		return fmt.Errorf("deserialize: generate shard id failed, err: %s", err)
+	}
+	pubKeyData, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read peer failed, err: %s", err)
+	}
+	peer, err := keypair.DeserializePublicKey(pubKeyData)
+	if err != nil {
+		return fmt.Errorf("deserialize: deserialize pub key failed,  err: %s", err)
+	}
+	this.Peer = peer
+	return nil
+}

@@ -21,6 +21,7 @@ const (
 	CHANGE_MAX_AUTHORIZATION = "changeMaxAuthorization"
 	CHANGE_PROPORTION        = "changeProportion" // node change proportion of stake user
 	COMMIT_DPOS              = "commitDpos"
+	PEER_EXIT                = "peerExit"
 	DELETE_PEER              = "deletePeer"
 )
 
@@ -41,6 +42,7 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
 	native.Register(CHANGE_PROPORTION, ChangeProportion)
 	native.Register(DELETE_PEER, DeletePeer)
+	native.Register(PEER_EXIT, PeerExit)
 }
 
 func SetMinStake(native *native.NativeService) ([]byte, error) {
@@ -102,6 +104,36 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	err = ont.AppCallTransfer(native, params.StakeAssetAddr, params.PeerOwner, contract, params.StakeAmount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: transfer stake asset failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
+// peer quit consensus completed, only call by shard mgmt at commitDpos
+func PeerExit(native *native.NativeService) ([]byte, error) {
+	param := new(PeerExitParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: invalid param: %s", err)
+	}
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: only can be invoked by shardmgmt contract")
+	}
+	currentView, err := getShardCurrentView(native, param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
+	}
+	// get the next view info
+	nextView := currentView + 1
+	viewInfo, err := GetShardViewInfo(native, param.ShardId, nextView)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
+	}
+	if peerViewInfo, ok := viewInfo.Peers[param.Peer]; !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: peer %s not exist", peerViewInfo.PeerPubKey)
+	} else {
+		peerViewInfo.CanStake = false
+	}
+	if err := setShardViewInfo(native, param.ShardId, nextView, viewInfo); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
 }
