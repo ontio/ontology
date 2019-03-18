@@ -25,7 +25,7 @@ const (
 	DELETE_PEER              = "deletePeer"
 )
 
-// TODO: quit node and withdraw unbound ong
+// TODO: withdraw unbound ong
 
 func InitShardStake() {
 	native.Contracts[utils.ShardStakeAddress] = RegisterShardStake
