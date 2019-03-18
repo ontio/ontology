@@ -61,19 +61,30 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map
 
 func peerStake(native *native.NativeService, id types.ShardID, peerPubKey keypair.PublicKey, peerOwner common.Address,
 	amount uint64) error {
-	initView := View(0)
+	currentView, err := getShardCurrentView(native, id)
+	if err != nil {
+		return fmt.Errorf("peerStake: get current view peer stake info failed, err: %s", err)
+	}
+	// if peer join after view 0, the stake should effective from next round
+	if currentView > 0 {
+		currentView++
+	}
 	info := &UserStakeInfo{Peers: make(map[keypair.PublicKey]*UserPeerStakeInfo)}
-	info.Peers[peerPubKey] = &UserPeerStakeInfo{StakeAmount: amount}
-	err := setShardViewUserStake(native, id, initView, peerOwner, info)
+	pubKeyString := hex.EncodeToString(keypair.SerializePublicKey(peerPubKey))
+	info.Peers[peerPubKey] = &UserPeerStakeInfo{
+		PeerPubKey:  pubKeyString,
+		StakeAmount: amount,
+	}
+	err = setShardViewUserStake(native, id, currentView, peerOwner, info)
 	if err != nil {
 		return fmt.Errorf("peerStake: set init view peer stake info failed, err: %s", err)
 	}
-	nextView := initView + 1
+	nextView := currentView + 1
 	err = setShardViewUserStake(native, id, nextView, peerOwner, info)
 	if err != nil {
 		return fmt.Errorf("peerStake: set next view peer stake info failed, err: %s", err)
 	}
-	initViewInfo, err := GetShardViewInfo(native, id, initView)
+	initViewInfo, err := GetShardViewInfo(native, id, currentView)
 	if err != nil {
 		return fmt.Errorf("peerStake: get init view info failed, err: %s", err)
 	}
@@ -81,10 +92,17 @@ func peerStake(native *native.NativeService, id types.ShardID, peerPubKey keypai
 	if err != nil {
 		return fmt.Errorf("peerStake: get next view info failed, err: %s", err)
 	}
-	// TODO: init peer and user info
-	//peerViewInfo := &PeerViewInfo{}
-	initViewInfo.Peers[peerPubKey].WholeStakeAmount = initViewInfo.Peers[peerPubKey].WholeStakeAmount + amount
-	err = setShardViewInfo(native, id, initView, initViewInfo)
+	peerViewInfo, ok := initViewInfo.Peers[peerPubKey]
+	if ok {
+		return fmt.Errorf("peerStake: peer %s has already exist", pubKeyString)
+	}
+	peerViewInfo = &PeerViewInfo{
+		PeerPubKey:       pubKeyString,
+		Owner:            peerOwner,
+		WholeStakeAmount: amount,
+	}
+	initViewInfo.Peers[peerPubKey] = peerViewInfo
+	err = setShardViewInfo(native, id, currentView, initViewInfo)
 	if err != nil {
 		return fmt.Errorf("peerStake: update init view info failed, err: %s", err)
 	}
