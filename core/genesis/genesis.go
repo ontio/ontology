@@ -274,7 +274,7 @@ func newGoverningInit() *types.Transaction {
 	mutable := utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
-		panic("construct genesis governing token transaction error ")
+		panic(fmt.Sprintf("construct genesis governing token transaction error: %s", err))
 	}
 	return tx
 }
