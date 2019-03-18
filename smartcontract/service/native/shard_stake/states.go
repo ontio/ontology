@@ -60,6 +60,7 @@ func (this *PeerViewInfo) Serialize(w io.Writer) error {
 	}
 	return nil
 }
+
 func (this *PeerViewInfo) Deserialize(r io.Reader) error {
 	var err error = nil
 	if this.PeerPubKey, err = serialization.ReadString(r); err != nil {
@@ -246,5 +247,43 @@ func (this *UserStakeInfo) Deserialize(r io.Reader) error {
 		info.UnfreezeAmount = unfreezeAmount
 		this.Peers[pubKey] = info
 	}
+	return nil
+}
+
+type UserUnboundOngInfo struct {
+	Time        uint32
+	StakeAmount uint64
+	Balance     uint64
+}
+
+func (this *UserUnboundOngInfo) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, uint64(this.Time)); err != nil {
+		return fmt.Errorf("serialize: write time failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.StakeAmount); err != nil {
+		return fmt.Errorf("serialize: write amount failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.Balance); err != nil {
+		return fmt.Errorf("serialize: write ong balance failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *UserUnboundOngInfo) Deserialize(r io.Reader) error {
+	time, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("serialize: read time failed, err: %s", err)
+	}
+	this.Time = uint32(time)
+	amount, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("serialize: read amount failed, err: %s", err)
+	}
+	this.StakeAmount = amount
+	balance, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("serialize: read ong balance failed, err: %s", err)
+	}
+	this.Balance = balance
 	return nil
 }

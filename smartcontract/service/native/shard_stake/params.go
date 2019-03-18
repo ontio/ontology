@@ -568,3 +568,23 @@ func (this *PeerExitParam) Deserialize(r io.Reader) error {
 	this.Peer = peer
 	return nil
 }
+
+type WithdrawOngParam struct {
+	User common.Address
+}
+
+func (this *WithdrawOngParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write pub key failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *WithdrawOngParam) Deserialize(r io.Reader) error {
+	addr, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	}
+	this.User = addr
+	return nil
+}
