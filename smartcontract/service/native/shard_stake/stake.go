@@ -139,6 +139,9 @@ func UserStake(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: invalid param: %s", err)
 	}
+	if err := utils.ValidateOwner(native, param.User); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UserStake: check witness failed, err: %s", err)
+	}
 	stakeInfo := make(map[string]uint64)
 	for index, peer := range param.PeerPubKey {
 		amount := param.Amount[index]
@@ -147,6 +150,18 @@ func UserStake(native *native.NativeService) ([]byte, error) {
 	err := userStake(native, param.ShardId, param.User, stakeInfo)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+	}
+	wholeAmount := uint64(0)
+	for _, amount := range param.Amount {
+		wholeAmount += amount
+	}
+	if err := ont.AppCallTransfer(native, stakeAssetAddr, param.User, contract, wholeAmount); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UserStake: transfer stake asset failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
 }
