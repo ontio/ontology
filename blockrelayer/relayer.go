@@ -257,6 +257,24 @@ type BlockMeta struct {
 	checksum           common.Uint256
 }
 
+type RawBlockMeta struct {
+	rawMeta []byte
+}
+
+func NewRawBlockMeta(raw []byte) RawBlockMeta {
+	if len(raw) != 32+8+4+4+4+32+4 {
+		panic("wrong meta block len")
+	}
+	return RawBlockMeta{rawMeta: raw}
+}
+
+func (self *RawBlockMeta) Hash() common.Uint256 {
+	var hs common.Uint256
+	copy(hs[:], self.rawMeta)
+
+	return hs
+}
+
 type RawBlock struct {
 	Hash               common.Uint256
 	Height             uint32
@@ -418,17 +436,13 @@ func (self *Storage) GetBlockHash(height uint32) (common.Uint256, error) {
 	}
 	var metaKey [4]byte
 	binary.BigEndian.PutUint32(metaKey[:], height)
-	metaRaw, err := self.backend.metaDB.Get(metaKey[:], nil)
+	raw, err := self.backend.metaDB.Get(metaKey[:], nil)
 	if err != nil {
 		return common.UINT256_EMPTY, err
 	}
 
-	meta, err := BlockMetaFromBytes(metaRaw)
-	if err != nil {
-		return common.UINT256_EMPTY, err
-	}
-
-	return meta.hash, nil
+	rawMeta := NewRawBlockMeta(raw)
+	return rawMeta.Hash(), nil
 }
 
 func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
