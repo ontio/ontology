@@ -231,7 +231,7 @@ func startMainChain(ctx *cli.Context) {
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)
 
-	go logCurrBlockHeight()
+	go logCurrBlockHeight(shardID)
 	waitToExit()
 }
 
@@ -307,7 +307,7 @@ func startShardChain(ctx *cli.Context, shardID types.ShardID) {
 	}
 	initRestful(ctx)
 
-	go logCurrBlockHeight()
+	go logCurrBlockHeight(shardID)
 	waitToExit()
 }
 
@@ -579,7 +579,7 @@ func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 	log.Infof("Nodeinfo init success")
 }
 
-func logCurrBlockHeight() {
+func logCurrBlockHeight(shardID types.ShardID) {
 	ticker := time.NewTicker(config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 	for {
 		select {
@@ -588,7 +588,11 @@ func logCurrBlockHeight() {
 			isNeedNewFile := log.CheckIfNeedNewFile()
 			if isNeedNewFile {
 				log.ClosePrintLog()
-				log.InitLog(int(config.DefConfig.Common.LogLevel), log.PATH, log.Stdout)
+				logPath := log.PATH
+				if !shardID.IsRootShard() {
+					logPath = path.Join(shard.GetShardName(shardID), logPath)
+				}
+				log.InitLog(int(config.DefConfig.Common.LogLevel), logPath, log.Stdout)
 			}
 		}
 	}

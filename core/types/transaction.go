@@ -151,11 +151,6 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	txtype, eof = source.NextByte()
 	tx.TxType = TransactionType(txtype)
 	tx.Nonce, eof = source.NextUint32()
-	if tx.Version >= VERSION_SUPPORT_SHARD {
-		tx.ShardID, eof = source.NextUint64()
-	} else {
-		tx.ShardID = 0
-	}
 	tx.GasPrice, eof = source.NextUint64()
 	tx.GasLimit, eof = source.NextUint64()
 	var buf []byte

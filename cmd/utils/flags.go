@@ -148,7 +148,7 @@ var (
 	}
 	ShardRpcEnableFlag = cli.BoolFlag{
 		Name:  "enable-shard-rpc",
-		Usage: "Disable Shard Rpc",
+		Usage: "Enable Shard Rpc",
 	}
 	RPCPortFlag = cli.UintFlag{
 		Name:  "rpcport",
