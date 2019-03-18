@@ -95,6 +95,7 @@ func peerStake(native *native.NativeService, id types.ShardID, peerPubKey keypai
 		PeerPubKey:       pubKeyString,
 		Owner:            peerOwner,
 		WholeStakeAmount: amount,
+		CanStake:         true, // default can stake asset
 	}
 	initViewInfo.Peers[peerPubKey] = peerViewInfo
 	err = setShardViewInfo(native, id, currentView, initViewInfo)
@@ -162,6 +163,12 @@ func userStake(native *native.NativeService, id types.ShardID, user common.Addre
 		nextPeerStakeInfo, ok := nextViewInfo.Peers[peer]
 		if !ok {
 			return fmt.Errorf("userStake: next view cannot find peer %s", pubKeyString)
+		}
+		if !nextPeerStakeInfo.CanStake {
+			return fmt.Errorf("userStake: peer %s cannot stake", pubKeyString)
+		}
+		if nextPeerStakeInfo.MaxAuthorization < nextPeerStakeInfo.UserStakeAmount+amount {
+			return fmt.Errorf("userStake: exceed peer %s authorization", pubKeyString)
 		}
 		lastUserPeerStakeInfo, ok := lastUserStakeInfo.Peers[peer]
 		if !ok {

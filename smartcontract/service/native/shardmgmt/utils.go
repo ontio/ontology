@@ -302,6 +302,21 @@ func peerInitStake(native *native.NativeService, param *JoinShardParam, stakeAss
 	return nil
 }
 
+func peerExit(native *native.NativeService, shardId types.ShardID, peer keypair.PublicKey) error {
+	param := &shard_stake.PeerExitParam{
+		ShardId: shardId,
+		Peer:    peer,
+	}
+	bf := new(bytes.Buffer)
+	if err := param.Serialize(bf); err != nil {
+		return fmt.Errorf("peerExit: failed, err: %s", err)
+	}
+	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.PEER_EXIT, bf.Bytes()); err != nil {
+		return fmt.Errorf("peerExit: failed, err: %s", err)
+	}
+	return nil
+}
+
 func deletePeer(native *native.NativeService, shardId types.ShardID, peers []keypair.PublicKey) error {
 	param := &shard_stake.DeletePeerParam{
 		ShardId: shardId,
