@@ -252,14 +252,6 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 		if err != nil {
 			return fmt.Errorf("unfreezeStakeAsset: deserialize pub key %s failed, err: %s", pubKeyString, err)
 		}
-		nextPeerStakeInfo, ok := nextViewInfo.Peers[peer]
-		if !ok {
-			return fmt.Errorf("unfreezeStakeAsset: next view cannot find peer %s", pubKeyString)
-		}
-		if nextPeerStakeInfo.WholeStakeAmount < amount {
-			return fmt.Errorf("unfreezeStakeAsset: peer %s stake num not enough", pubKeyString)
-		}
-		// use last stake to check first
 		lastUserPeerStakeInfo, ok := lastUserStakeInfo.Peers[peer]
 		if !ok {
 			return fmt.Errorf("userStake: current view cannot find user stake peer %s", pubKeyString)
@@ -272,16 +264,23 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 		if nextUserPeerStakeInfo.StakeAmount < amount {
 			return fmt.Errorf("unfreezeStakeAsset: next user stake peer %s not enough", pubKeyString)
 		}
-		if nextPeerStakeInfo.Owner == user && minStakeAmount > nextUserPeerStakeInfo.StakeAmount-amount {
+		nextPeerStakeInfo, ok := nextViewInfo.Peers[peer]
+		if !ok { // peer has already exit consensus and deleted
+			nextUserPeerStakeInfo.UnfreezeAmount += nextUserPeerStakeInfo.StakeAmount
+			nextUserPeerStakeInfo.StakeAmount = 0
+		} else if nextPeerStakeInfo.WholeStakeAmount < amount {
+			return fmt.Errorf("unfreezeStakeAsset: peer %s stake num not enough", pubKeyString)
+		} else if nextPeerStakeInfo.Owner == user && minStakeAmount > nextUserPeerStakeInfo.StakeAmount-amount {
 			return fmt.Errorf("unfreezeStakeAsset: peer %s owner stake amount not enough", pubKeyString)
+		} else {
+			nextUserPeerStakeInfo.StakeAmount -= amount
+			nextUserPeerStakeInfo.UnfreezeAmount += amount
+			nextPeerStakeInfo.WholeStakeAmount -= amount
+			nextPeerStakeInfo.UserStakeAmount -= amount
+			nextPeerStakeInfo.WholeUnfreezeAmount += amount
+			nextViewInfo.Peers[peer] = nextPeerStakeInfo
 		}
-		nextUserPeerStakeInfo.StakeAmount -= amount
-		nextUserPeerStakeInfo.UnfreezeAmount += amount
 		nextUserStakeInfo.Peers[peer] = nextUserPeerStakeInfo
-		nextPeerStakeInfo.WholeStakeAmount -= amount
-		nextPeerStakeInfo.UserStakeAmount -= amount
-		nextPeerStakeInfo.WholeUnfreezeAmount += amount
-		nextViewInfo.Peers[peer] = nextPeerStakeInfo
 	}
 	if err := setUserLastStakeView(native, id, user, nextView); err != nil {
 		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
@@ -338,35 +337,35 @@ func withdrawStakeAsset(native *native.NativeService, id types.ShardID, user com
 	}
 	amount := uint64(0)
 	for peer, userPeerStakeInfo := range lastUserStakeInfo.Peers {
-		currentPeerInfo, ok := currentViewInfo.Peers[peer]
-		if !ok {
-			return 0, fmt.Errorf("unfreezeStakeAsset: current view peer %s not exist", userPeerStakeInfo.PeerPubKey)
+		if nextPeerInfo, ok := nextViewInfo.Peers[peer]; ok {
+			nextPeerInfo.WholeStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+			nextPeerInfo.UserStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+			nextPeerInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
+			nextViewInfo.Peers[peer] = nextPeerInfo
+			nextUserPeerStakeInfo, ok := nextUserStakeInfo.Peers[peer]
+			if !ok {
+				nextUserPeerStakeInfo = &UserPeerStakeInfo{PeerPubKey: userPeerStakeInfo.PeerPubKey,
+					StakeAmount: userPeerStakeInfo.StakeAmount,}
+			} else {
+				nextUserPeerStakeInfo.UnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
+				nextUserPeerStakeInfo.StakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+			}
+			nextUserStakeInfo.Peers[peer] = nextUserPeerStakeInfo
+		} else {
+			delete(nextUserStakeInfo.Peers, peer)
 		}
-		nextPeerInfo, ok := nextViewInfo.Peers[peer]
-		if !ok {
-			return 0, fmt.Errorf("unfreezeStakeAsset: next view peer %s not exist", userPeerStakeInfo.PeerPubKey)
-		}
-		currentPeerInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
-		currentPeerInfo.CurrentViewStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
-		nextPeerInfo.WholeStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
-		nextPeerInfo.UserStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
-		nextPeerInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
-		currentViewInfo.Peers[peer] = currentPeerInfo
-		nextViewInfo.Peers[peer] = nextPeerInfo
 
 		amount += userPeerStakeInfo.UnfreezeAmount + userPeerStakeInfo.CurrentViewStakeAmount
-		nextUserPeerStakeInfo, ok := nextUserStakeInfo.Peers[peer]
-		if !ok {
-			nextUserPeerStakeInfo = &UserPeerStakeInfo{PeerPubKey: userPeerStakeInfo.PeerPubKey,
-				StakeAmount: userPeerStakeInfo.StakeAmount,}
+		if currentPeerInfo, ok := currentViewInfo.Peers[peer]; ok {
+			currentPeerInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
+			currentPeerInfo.CurrentViewStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+			currentViewInfo.Peers[peer] = currentPeerInfo
+			userPeerStakeInfo.UnfreezeAmount = 0
+			userPeerStakeInfo.CurrentViewStakeAmount = 0
+			lastUserStakeInfo.Peers[peer] = userPeerStakeInfo
 		} else {
-			nextUserPeerStakeInfo.UnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
-			nextUserPeerStakeInfo.StakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+			delete(lastUserStakeInfo.Peers, peer)
 		}
-		userPeerStakeInfo.UnfreezeAmount = 0
-		userPeerStakeInfo.CurrentViewStakeAmount = 0
-		lastUserStakeInfo.Peers[peer] = userPeerStakeInfo
-		nextUserStakeInfo.Peers[peer] = nextUserPeerStakeInfo
 	}
 	if err := setUserLastStakeView(native, id, user, nextView); err != nil {
 		return 0, fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
@@ -430,9 +429,8 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 		}
 		for peer, info := range userStake.Peers {
 			peerStakeInfo, ok := viewStake.Peers[peer]
-			if !ok {
-				return 0, fmt.Errorf("withdrawFee: cannot get view %d peer %s stake info", i,
-					hex.EncodeToString(keypair.SerializePublicKey(peer)))
+			if !ok { // peer has already exit consensus
+				continue
 			}
 			if peerStakeInfo.FeeBalance == 0 {
 				continue
