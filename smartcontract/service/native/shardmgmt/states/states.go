@@ -46,6 +46,8 @@ type NodeType uint
 const (
 	CONDIDATE_NODE = iota
 	CONSENSUS_NODE
+	QUIT_CONSENSUS_NODE
+	QUITING_CONSENSUS_NODE
 )
 
 type ShardMgmtGlobalState struct {

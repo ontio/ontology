@@ -144,6 +144,20 @@ func (this *JoinShardParam) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, this)
 }
 
+type ExitShardParam struct {
+	ShardId    types.ShardID  `json:"shard_id"`
+	PeerPubKey string         `json:"peer_pub_key"`
+	PeerOwner  common.Address `json:"peer_owner"`
+}
+
+func (this *ExitShardParam) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *ExitShardParam) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
 //
 // param of shard-activation request
 // The request can only be initiated by operator of the shard

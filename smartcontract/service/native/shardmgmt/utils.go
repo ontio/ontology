@@ -302,7 +302,23 @@ func peerInitStake(native *native.NativeService, param *JoinShardParam, stakeAss
 	return nil
 }
 
-func commitDpos(native *native.NativeService, shardId types.ShardID, amount []uint64, peers []string, view uint64) error {
+func deletePeer(native *native.NativeService, shardId types.ShardID, peers []keypair.PublicKey) error {
+	param := &shard_stake.DeletePeerParam{
+		ShardId: shardId,
+		Peers:   peers,
+	}
+	bf := new(bytes.Buffer)
+	if err := param.Serialize(bf); err != nil {
+		return fmt.Errorf("deletePeer: failed, err: %s", err)
+	}
+	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.DELETE_PEER, bf.Bytes()); err != nil {
+		return fmt.Errorf("deletePeer: failed, err: %s", err)
+	}
+	return nil
+}
+
+func commitDpos(native *native.NativeService, shardId types.ShardID, amount []uint64, peers []keypair.PublicKey,
+	view uint64) error {
 	param := &shard_stake.CommitDposParam{
 		ShardId:    shardId,
 		PeerPubKey: peers,

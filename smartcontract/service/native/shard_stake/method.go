@@ -10,7 +10,7 @@ import (
 )
 
 // set current+2 stake info to current+1 stake info
-func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map[string]uint64, view View) error {
+func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map[keypair.PublicKey]uint64, view View) error {
 	currentView, err := getShardCurrentView(native, shardId)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
@@ -22,18 +22,11 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view info failed, err: %s", shardId, err)
 	}
-	for pubKeyString, feeAmount := range feeInfo {
-		pubKeyData, err := hex.DecodeString(pubKeyString)
-		if err != nil {
-			return fmt.Errorf("commitDpos: decode pub key %s failed, err: %s", pubKeyString, err)
-		}
-		peer, err := keypair.DeserializePublicKey(pubKeyData)
-		if err != nil {
-			return fmt.Errorf("commitDpos: deserialize pub key %s failed, err: %s", pubKeyString, err)
-		}
+	for peer, feeAmount := range feeInfo {
 		peerInfo, ok := currentViewInfo.Peers[peer]
 		if !ok {
-			return fmt.Errorf("commitDpos: peer %s not exist at current view", pubKeyString)
+			return fmt.Errorf("commitDpos: peer %s not exist at current view",
+				hex.EncodeToString(keypair.SerializePublicKey(peer)))
 		}
 		peerInfo.WholeFee = feeAmount
 		peerInfo.FeeBalance = feeAmount

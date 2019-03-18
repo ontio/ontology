@@ -21,6 +21,7 @@ const (
 	CHANGE_MAX_AUTHORIZATION = "changeMaxAuthorization"
 	CHANGE_PROPORTION        = "changeProportion" // node change proportion of stake user
 	COMMIT_DPOS              = "commitDpos"
+	DELETE_PEER              = "deletePeer"
 )
 
 // TODO: quit node and withdraw unbound ong
@@ -39,6 +40,7 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
 	native.Register(CHANGE_PROPORTION, ChangeProportion)
+	native.Register(DELETE_PEER, DeletePeer)
 }
 
 func SetMinStake(native *native.NativeService) ([]byte, error) {
@@ -104,6 +106,34 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+// peer quit consensus completed, only call by shard mgmt at commitDpos
+func DeletePeer(native *native.NativeService) ([]byte, error) {
+	param := new(DeletePeerParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: invalid param: %s", err)
+	}
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: only can be invoked by shardmgmt contract")
+	}
+	currentView, err := getShardCurrentView(native, param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
+	}
+	// get the next view info
+	nextView := currentView + 1
+	viewInfo, err := GetShardViewInfo(native, param.ShardId, nextView)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
+	}
+	for _, peer := range param.Peers {
+		delete(viewInfo.Peers, peer)
+	}
+	if err := setShardViewInfo(native, param.ShardId, nextView, viewInfo); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
 func UserStake(native *native.NativeService) ([]byte, error) {
 	param := new(UserStakeParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -152,11 +182,15 @@ func WithdrawStake(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: check witness failed, err: %s", err)
 	}
-	_, err := withdrawStakeAsset(native, param.ShardId, param.User)
+	amount, err := withdrawStakeAsset(native, param.ShardId, param.User)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
 	}
-	// TODO: transfer asset
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	err = ont.AppCallTransfer(native, utils.OntContractAddress, contract, param.User, amount)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: transfer ont failed, amount %d, err: %s", amount, err)
+	}
 	return utils.BYTE_TRUE, nil
 }
 
@@ -168,11 +202,15 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawFee: check witness failed, err: %s", err)
 	}
-	_, err := withdrawFee(native, param.ShardId, param.User)
+	amount, err := withdrawFee(native, param.ShardId, param.User)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawFee: failed, err: %s", err)
 	}
-	// TODO: transfer asset
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	err = ont.AppCallTransfer(native, utils.OngContractAddress, contract, param.User, amount)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("WithdrawFee: transfer ong failed, amount %d, err: %s", amount, err)
+	}
 	return utils.BYTE_TRUE, nil
 }
 
@@ -187,7 +225,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if len(param.PeerPubKey) != len(param.Amount) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: peer pub key num not match amount num")
 	}
-	feeInfo := make(map[string]uint64)
+	feeInfo := make(map[keypair.PublicKey]uint64)
 	for index, peer := range param.PeerPubKey {
 		feeInfo[peer] = param.Amount[index]
 	}
