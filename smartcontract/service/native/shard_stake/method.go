@@ -9,7 +9,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-// set current+2 stake info to current+1 stake info
+// TODO: consider peer exit scenario
+
+// set current+2 stake info to current+1 stake info, only update view info, don't settle
 func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo map[keypair.PublicKey]uint64, view View) error {
 	currentView, err := getShardCurrentView(native, shardId)
 	if err != nil {
@@ -177,6 +179,7 @@ func userStake(native *native.NativeService, id types.ShardID, user common.Addre
 		currentPeerStakeInfo.CurrentViewStakeAmount += amount
 		currentViewInfo.Peers[peer] = currentPeerStakeInfo
 		nextPeerStakeInfo.WholeStakeAmount += amount
+		nextPeerStakeInfo.UserStakeAmount += amount
 		nextViewInfo.Peers[peer] = nextPeerStakeInfo
 	}
 	if err := setUserLastStakeView(native, id, user, nextView); err != nil {
@@ -229,6 +232,10 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 	if err != nil {
 		return fmt.Errorf("unfreezeStakeAsset: get next view info failed, err: %s", err)
 	}
+	minStakeAmount, err := GetNodeMinStakeAmount(native, id)
+	if err != nil {
+		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
+	}
 	for pubKeyString, amount := range stakeInfo {
 		pubKeyData, err := hex.DecodeString(pubKeyString)
 		if err != nil {
@@ -258,10 +265,14 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 		if nextUserPeerStakeInfo.StakeAmount < amount {
 			return fmt.Errorf("unfreezeStakeAsset: next user stake peer %s not enough", pubKeyString)
 		}
+		if nextPeerStakeInfo.Owner == user && minStakeAmount > nextUserPeerStakeInfo.StakeAmount-amount {
+			return fmt.Errorf("unfreezeStakeAsset: peer %s owner stake amount not enough", pubKeyString)
+		}
 		nextUserPeerStakeInfo.StakeAmount -= amount
 		nextUserPeerStakeInfo.UnfreezeAmount += amount
 		nextUserStakeInfo.Peers[peer] = nextUserPeerStakeInfo
 		nextPeerStakeInfo.WholeStakeAmount -= amount
+		nextPeerStakeInfo.UserStakeAmount -= amount
 		nextPeerStakeInfo.WholeUnfreezeAmount += amount
 		nextViewInfo.Peers[peer] = nextPeerStakeInfo
 	}
@@ -331,6 +342,7 @@ func withdrawStakeAsset(native *native.NativeService, id types.ShardID, user com
 		currentPeerInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
 		currentPeerInfo.CurrentViewStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
 		nextPeerInfo.WholeStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
+		nextPeerInfo.UserStakeAmount -= userPeerStakeInfo.CurrentViewStakeAmount
 		nextPeerInfo.WholeUnfreezeAmount -= userPeerStakeInfo.UnfreezeAmount
 		currentViewInfo.Peers[peer] = currentPeerInfo
 		nextViewInfo.Peers[peer] = nextPeerInfo
