@@ -207,3 +207,127 @@ func TestStruct_Clone(t *testing.T) {
 	}
 
 }
+
+func TestOpValues(t *testing.T) {
+	var e ExecutionEngine
+	stack := NewRandAccessStack()
+	e.EvaluationStack = stack
+	a := vtypes.NewMap()
+	key1 := NewStackItem(vtypes.NewByteArray([]byte("aaa")))
+	key2 := NewStackItem(vtypes.NewByteArray([]byte("bbb")))
+
+	value1 := NewStackItem(vtypes.NewByteArray([]byte("xxx")))
+	value2 := NewStackItem(vtypes.NewByteArray([]byte("yyy")))
+
+	a.Add(key1, value1)
+	a.Add(key2, value2)
+
+	PushData(&e, a)
+	opValues(&e)
+
+	arr, err := PeekArray(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpValues test failed.")
+	}
+
+	v, err := arr[0].GetByteArray()
+	if err != nil {
+		t.Fatal("NeoVM OpValues test failed.")
+	}
+
+	if string(v) != "xxx" {
+		t.Fatalf("NeoVM OpValues test failed, expect xxx, get %s.", string(v))
+	}
+
+	v1, err := arr[1].GetByteArray()
+	if err != nil {
+		t.Fatal("NeoVM OpValues test failed.")
+	}
+
+	if string(v1) != "yyy" {
+		t.Fatalf("NeoVM OpValues test failed, expect xxx, get %s.", string(v1))
+	}
+}
+
+func TestOpKeys(t *testing.T) {
+	var e ExecutionEngine
+	stack := NewRandAccessStack()
+	e.EvaluationStack = stack
+	a := vtypes.NewMap()
+	key1 := NewStackItem(vtypes.NewByteArray([]byte("aaa")))
+	key2 := NewStackItem(vtypes.NewByteArray([]byte("bbb")))
+
+	value1 := NewStackItem(vtypes.NewByteArray([]byte("xxx")))
+	value2 := NewStackItem(vtypes.NewByteArray([]byte("yyy")))
+
+	a.Add(key1, value1)
+	a.Add(key2, value2)
+
+	PushData(&e, a)
+	opKeys(&e)
+
+	arr, err := PeekArray(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpValues test failed.")
+	}
+
+	v, err := arr[0].GetByteArray()
+	if err != nil {
+		t.Fatal("NeoVM OpValues test failed.")
+	}
+
+	if string(v) != "aaa" {
+		t.Fatalf("NeoVM OpValues test failed, expect xxx, get %s.", string(v))
+	}
+
+	v1, err := arr[1].GetByteArray()
+	if err != nil {
+		t.Fatal("NeoVM OpValues test failed.")
+	}
+
+	if string(v1) != "bbb" {
+		t.Fatalf("NeoVM OpValues test failed, expect xxx, get %s.", string(v1))
+	}
+}
+
+func TestOpHasKey(t *testing.T) {
+	var e ExecutionEngine
+	stack := NewRandAccessStack()
+	e.EvaluationStack = stack
+	a := vtypes.NewMap()
+	key1 := NewStackItem(vtypes.NewByteArray([]byte("aaa")))
+	key2 := NewStackItem(vtypes.NewByteArray([]byte("bbb")))
+	key3 := NewStackItem(vtypes.NewByteArray([]byte("ccc")))
+
+	value1 := NewStackItem(vtypes.NewByteArray([]byte("xxx")))
+	value2 := NewStackItem(vtypes.NewByteArray([]byte("yyy")))
+
+	a.Add(key1, value1)
+	a.Add(key2, value2)
+
+	PushData(&e, a)
+	PushData(&e, key2)
+	opHasKey(&e)
+	arr, err := PopBoolean(&e)
+	if err != nil {
+		t.Fatal("NeoVM OpHaskey test failed.")
+	}
+
+	if !arr {
+		t.Fatalf("NeoVM OpHaskey test failed, expect true, get false.")
+	}
+
+	PushData(&e, a)
+	PushData(&e, key3)
+	opHasKey(&e)
+	arr1, err := PopBoolean(&e)
+
+	if err != nil {
+		t.Fatal("NeoVM OpHaskey test failed.")
+	}
+
+	if arr1 {
+		t.Fatalf("NeoVM OpHaskey test failed, expect false , get true.")
+	}
+
+}
