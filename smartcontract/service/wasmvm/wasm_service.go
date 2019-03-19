@@ -143,7 +143,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	entryName := CONTRACT_METHOD_NAME
 
-	entry, ok := vm.GetModule().Export.Entries[entryName]
+	entry, ok := compiled.RawModule.Export.Entries[entryName]
 
 	if ok == false {
 		return nil, errors.NewErr("[Call]Method:" + entryName + " does not exist!")
@@ -153,10 +153,10 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	index := int64(entry.Index)
 
 	//get function index
-	fidx := vm.GetModule().Function.Types[int(index)]
+	fidx := compiled.RawModule.Function.Types[int(index)]
 
 	//get  function type
-	ftype := vm.GetModule().Types.Entries[int(fidx)]
+	ftype := compiled.RawModule.Types.Entries[int(fidx)]
 
 	//no returns of the entry function
 	if len(ftype.ReturnTypes) > 0 {
