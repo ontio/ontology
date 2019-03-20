@@ -333,11 +333,11 @@ func deletePeer(native *native.NativeService, shardId types.ShardID, peers []key
 }
 
 func commitDpos(native *native.NativeService, shardId types.ShardID, amount []uint64, peers []keypair.PublicKey,
-	view uint64) error {
+	view shard_stake.View) error {
 	param := &shard_stake.CommitDposParam{
 		ShardId:    shardId,
 		PeerPubKey: peers,
-		View:       shard_stake.View(view),
+		View:       view,
 		Amount:     amount,
 	}
 	bf := new(bytes.Buffer)

@@ -20,7 +20,9 @@ package shardmgmt
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -97,8 +99,9 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 }
 
 type ApplyJoinShardParam struct {
-	ShardId    types.ShardID `json:"shard_id"`
-	PeerPubKey string        `json:"peer_pub_key"`
+	ShardId    types.ShardID  `json:"shard_id"`
+	PeerOwner  common.Address `json:"peer_owner"`
+	PeerPubKey string         `json:"peer_pub_key"`
 }
 
 func (this *ApplyJoinShardParam) Serialize(w io.Writer) error {
@@ -176,10 +179,10 @@ func (this *ActivateShardParam) Deserialize(r io.Reader) error {
 }
 
 type CommitDposParam struct {
-	ShardID   types.ShardID      `json:"shard_id"`
-	View      uint64             `json:"view"`
-	FeeAmount uint64             `json:"fee_amount"`
-	NewConfig *config.VBFTConfig `json:"new_config"`
+	ShardID   types.ShardID        `json:"shard_id"`
+	FeeAmount uint64               `json:"fee_amount"`
+	View      shard_stake.View     `json:"view"`
+	NewConfig *vconfig.ChainConfig `json:"new_config"`
 }
 
 func (this *CommitDposParam) Serialize(w io.Writer) error {

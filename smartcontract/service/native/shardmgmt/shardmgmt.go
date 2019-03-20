@@ -55,6 +55,9 @@ const (
 	EXIT_SHARD_NAME         = "exitShard"
 	ACTIVATE_SHARD_NAME     = "activateShard"
 	COMMIT_DPOS_NAME        = "commitDpos"
+
+	// TODO: child shard commit dpos
+	SHARD_COMMIT_DPOS = "shardCommitDpos"
 )
 
 func InitShardManagement() {
@@ -271,9 +274,16 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
+	}
 	params := new(ApplyJoinShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: invalid param: %s", err)
+	}
+	if err := utils.ValidateOwner(native, params.PeerOwner); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: check witness faield, err: %s", err)
 	}
 	// verify peer is exist in root chain consensus
 	if _, err := getRootCurrentViewPeerItem(native, params.PeerPubKey); err != nil {
@@ -281,8 +291,7 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	err := setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
-	if err != nil {
+	if err := setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
@@ -298,9 +307,12 @@ func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, adminAddress); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: invalid configurator: %s", err)
 	}
-
+	cp := new(CommonParam)
+	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
+	}
 	params := new(ApproveJoinShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: invalid param: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -523,6 +535,12 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked at root shard")
+	}
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardGasMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by shard gas contract")
+	}
 	cp := new(CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid cmd param: %s", err)
@@ -563,7 +581,6 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	// TODO: check new config
 	// TODO: update shard mgmt peer state
-	shard.Config.VbftConfigData = params.NewConfig
 	viewInfo, err := shard_stake.GetShardViewInfo(native, params.ShardID, shard_stake.View(params.View))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
@@ -583,10 +600,6 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	if err := commitDpos(native, params.ShardID, dividends, peers, params.View); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
-	}
-	err = ont.AppCallTransfer(native, utils.OngContractAddress, contract, utils.ShardStakeAddress, params.FeeAmount)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: transfer fee to stake contract failed, err: %s", err)
 	}
 	if err := setShardState(native, contract, shard); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: update shard state failed, err: %s", err)

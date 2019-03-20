@@ -19,6 +19,7 @@
 package shardstates
 
 import (
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -57,9 +58,10 @@ func (this *UserGasInfo) Deserialize(r io.Reader) error {
 
 type DepositGasEvent struct {
 	ImplSourceTargetShardID
-	Height uint32         `json:"height"`
-	User   common.Address `json:"user"`
-	Amount uint64         `json:"amount"`
+	Height     uint32         `json:"height"`
+	User       common.Address `json:"user"`
+	Amount     uint64         `json:"amount"`
+	WithdrawId uint64         `json:"withdraw_id"`
 }
 
 func (evt *DepositGasEvent) GetHeight() uint32 {
@@ -80,9 +82,10 @@ func (evt *DepositGasEvent) Deserialize(r io.Reader) error {
 
 type WithdrawGasReqEvent struct {
 	ImplSourceTargetShardID
-	Height uint32         `json:"height"`
-	User   common.Address `json:"user"`
-	Amount uint64         `json:"amount"`
+	Height     uint32         `json:"height"`
+	User       common.Address `json:"user"`
+	WithdrawId uint64         `json:"withdraw_id"`
+	Amount     uint64         `json:"amount"`
 }
 
 func (evt *WithdrawGasReqEvent) GetHeight() uint32 {
@@ -103,9 +106,9 @@ func (evt *WithdrawGasReqEvent) Deserialize(r io.Reader) error {
 
 type WithdrawGasDoneEvent struct {
 	ImplSourceTargetShardID
-	Height uint32         `json:"height"`
-	User   common.Address `json:"user"`
-	Amount uint64         `json:"amount"`
+	Height     uint32         `json:"height"`
+	User       common.Address `json:"user"`
+	WithdrawId uint64         `json:"withdraw_id"`
 }
 
 func (evt *WithdrawGasDoneEvent) GetHeight() uint32 {
@@ -121,5 +124,28 @@ func (evt *WithdrawGasDoneEvent) Serialize(w io.Writer) error {
 }
 
 func (evt *WithdrawGasDoneEvent) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, evt)
+}
+
+type ShardCommitDposEvent struct {
+	ImplSourceTargetShardID
+	Height    uint32               `json:"height"`
+	FeeAmount uint64               `json:"fee_amount"`
+	View      uint64               `json:"view"`
+	NewConfig *vconfig.ChainConfig `json:"new_config"`
+}
+
+func (evt *ShardCommitDposEvent) GetHeight() uint32 {
+	return evt.Height
+}
+
+func (evt *ShardCommitDposEvent) GetType() uint32 {
+	return EVENT_SHARD_GAS_WITHDRAW_DONE
+}
+func (evt *ShardCommitDposEvent) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, evt)
+}
+
+func (evt *ShardCommitDposEvent) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, evt)
 }
