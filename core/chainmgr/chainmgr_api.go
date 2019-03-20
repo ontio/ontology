@@ -202,8 +202,3 @@ func GetShardTxsByParentHeight(start, end uint32) map[types.ShardID][]*types.Tra
 
 	return shardTxs
 }
-
-func SendShardTx(tx *types.Transaction, shardPort uint) error {
-	chainmgr := GetChainManager()
-	return chainmgr.sendCrossShardTx(tx, shardPort)
-}

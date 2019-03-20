@@ -30,31 +30,8 @@ const (
 	EVENT_SHARD_GAS_DEPOSIT = iota + 128
 	EVENT_SHARD_GAS_WITHDRAW_REQ
 	EVENT_SHARD_GAS_WITHDRAW_DONE
+	EVENT_SHARD_COMMIT_DPOS
 )
-
-const (
-	CAP_PENDING_WITHDRAW   = 10
-	DEFAULE_WITHDRAW_DELAY = 50000
-)
-
-type GasWithdrawInfo struct {
-	Height uint32 `json:"height"`
-	Amount uint64 `json:"amount"`
-}
-
-type UserGasInfo struct {
-	Balance         uint64             `json:"balance"`
-	WithdrawBalance uint64             `json:"withdraw_balance"`
-	PendingWithdraw []*GasWithdrawInfo `json:"pending_withdraw"`
-}
-
-func (this *UserGasInfo) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
-}
-
-func (this *UserGasInfo) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
-}
 
 type DepositGasEvent struct {
 	ImplSourceTargetShardID
@@ -140,7 +117,7 @@ func (evt *ShardCommitDposEvent) GetHeight() uint32 {
 }
 
 func (evt *ShardCommitDposEvent) GetType() uint32 {
-	return EVENT_SHARD_GAS_WITHDRAW_DONE
+	return EVENT_SHARD_COMMIT_DPOS
 }
 func (evt *ShardCommitDposEvent) Serialize(w io.Writer) error {
 	return shardutil.SerJson(w, evt)

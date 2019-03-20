@@ -204,3 +204,4 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard ty
 	}
 	return req.Reqs, nil
 }
+
