@@ -22,6 +22,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
+	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"os"
 	"os/exec"
 	"syscall"
@@ -189,6 +193,47 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	return self.startChildShard(evt.ShardID, shardState)
 }
 
+func (self *ChainManager) onWithdrawGasReq(evt *shardstates.WithdrawGasReqEvent) {
+	param := &shardgas.PeerWithdrawGasParam{
+		Signer:     self.account.Address,
+		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
+		User:       evt.User,
+		ShardId:    evt.SourceShardID,
+		Amount:     evt.Amount,
+		WithdrawId: evt.WithdrawId,
+	}
+	bf := new(bytes.Buffer)
+	if err := param.Serialize(bf); err != nil {
+		log.Errorf("onWithdrawGasReq: failed, err: %s", err)
+	}
+	err := self.invokeRootNativeContract(nativeUtil.ShardGasMgmtContractAddress, shardgas.PEER_CONFIRM_WTIDHRAW_NAME,
+		bf.Bytes())
+	if err != nil {
+		log.Errorf("onWithdrawGasReq: failed, err: %s", err)
+	}
+}
+
+func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEvent) {
+	param := &shardgas.CommitDposParam{
+		Signer:     self.account.Address,
+		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
+		CommitDposParam: &shardmgmt.CommitDposParam{
+			ShardID:   evt.SourceShardID,
+			FeeAmount: evt.FeeAmount,
+			View:      shard_stake.View(evt.View),
+			NewConfig: evt.NewConfig,
+		},
+	}
+	bf := new(bytes.Buffer)
+	if err := param.Serialize(bf); err != nil {
+		log.Errorf("onShardCommitDpos: failed, err: %s", err)
+	}
+	err := self.invokeRootNativeContract(nativeUtil.ShardGasMgmtContractAddress, shardgas.COMMIT_DPOS_NAME, bf.Bytes())
+	if err != nil {
+		log.Errorf("onShardCommitDpos: failed, err: %s", err)
+	}
+}
+
 func (self *ChainManager) restartChildShardProcess(shardID types.ShardID) error {
 	shardState, err := GetShardState(self.ledger, shardID)
 	if err != nil {
@@ -317,7 +362,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 			if err != nil {
 				return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
 			}
-			self.sendCrossShardTx(tx, GetShardRpcPortByShardID(s.ToUint64()))
+			go self.sendCrossShardTx(tx, GetShardRpcPortByShardID(s.ToUint64()))
 		}
 
 		self.processedBlockHeight = height
@@ -381,4 +426,18 @@ func newShardBlockTx(evts []*shardstates.ShardEventState) (*message.ShardBlockTx
 
 	return &message.ShardBlockTx{Tx: tx}, nil
 
+}
+
+func (self *ChainManager) invokeRootNativeContract(contract common.Address, method string, args []byte) error {
+	mutable := utils.BuildNativeTransaction(contract, method, args)
+	err := cmdUtil.SignTransaction(self.account, mutable)
+	if err != nil {
+		return fmt.Errorf("invokeRootNativeContract: sign tx failed, err: %s", err)
+	}
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return fmt.Errorf("invokeRootNativeContract: parse tx failed, err: %s", err)
+	}
+	go self.sendCrossShardTx(tx, GetShardRpcPortByShardID(self.shardID.ParentID().ToUint64()))
+	return nil
 }

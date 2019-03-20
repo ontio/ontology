@@ -377,6 +377,14 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 				log.Errorf("processing shard activation event: %s", err)
 			}
 		case shardstates.EVENT_SHARD_PEER_LEAVE:
+		case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
+			evt := &shardstates.WithdrawGasReqEvent{}
+			if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
+				log.Errorf("deserialize shard activation event: %s", err)
+				continue
+			}
+			self.onWithdrawGasReq(evt)
+		case shardstates.EVENT_SHARD_COMMIT_DPOS:
 		}
 	}
 
@@ -385,8 +393,7 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 
 func isShardGasEvent(evt *shardstates.ShardEventState) bool {
 	switch evt.EventType {
-	case shardstates.EVENT_SHARD_GAS_DEPOSIT, shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ,
-		shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
+	case shardstates.EVENT_SHARD_GAS_DEPOSIT, shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
 		return true
 	}
 	return false
@@ -644,7 +651,7 @@ func (self *ChainManager) sendShardMsg(shardId types.ShardID, msg *shardmsg.Cros
 // send Cross-Shard Tx to remote shard
 // TODO: get ip-address of remote shard node
 //
-func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort uint) error {
+func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort uint) {
 	// FIXME: broadcast Tx to seed nodes of target shard
 
 	// relay with parent shard
@@ -661,11 +668,7 @@ func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort uint
 	//}
 	//self.sendShardMsg(self.parentShardID, msg)
 	//return nil
-
-	go func(tx *types.Transaction, shardPort uint) {
-		if err := sendRawTx(tx, shardPort); err != nil {
-			log.Errorf("send raw tx failed: %s,shardPort:%d", err, shardPort)
-		}
-	}(tx, shardPort)
-	return nil
+	if err := sendRawTx(tx, shardPort); err != nil {
+		log.Errorf("send raw tx failed: %s,shardPort:%d", err, shardPort)
+	}
 }
