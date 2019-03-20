@@ -25,6 +25,7 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -144,8 +145,7 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 		return
 	}
 
-	//log.Debugf("[WasmContract]Debug:%s\n", bs)
-	fmt.Printf("%s", bs)
+	log.Debugf("[WasmContract]Debug:%s\n", bs)
 }
 
 func Notify(proc *exec.Process, ptr uint32, len uint32) {
@@ -202,19 +202,15 @@ func GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
 	return uint32(length)
 }
 
-//func RaiseException(proc *exec.Process, ptr uint32, len uint32) {
-//	bs := make([]byte, len)
-//	_, err := proc.ReadAt(bs, int64(ptr))
-//	if err != nil {
-//		//do not panic on debug
-//		return
-//	}
-//
-//	panic(fmt.Errorf("[RaiseException]Contract RaiseException:%s\n", bs))
-//}
-func RaiseException(proc *exec.Process) {
+func RaiseException(proc *exec.Process, ptr uint32, len uint32) {
+	bs := make([]byte, len)
+	_, err := proc.ReadAt(bs, int64(ptr))
+	if err != nil {
+		//do not panic on debug
+		return
+	}
 
-	panic(fmt.Errorf("[RaiseException]Contract RaiseException\n"))
+	panic(fmt.Errorf("[RaiseException]Contract RaiseException:%s\n", bs))
 }
 
 func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32) uint32 {
@@ -525,7 +521,7 @@ func NewHostModule() *wasm.Module {
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //22
-			Sig:  &m.Types.Entries[10],
+			Sig:  &m.Types.Entries[4],
 			Host: reflect.ValueOf(RaiseException),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
