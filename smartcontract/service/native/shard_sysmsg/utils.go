@@ -112,7 +112,7 @@ func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.Sh
 	return nil
 }
 
-func txCommitReady(tx common.Uint256, txState map[uint64]int) bool {
+func txCommitReady(tx common.Uint256, txState map[types.ShardID]int) bool {
 	t, err := xshard_state.GetTxState(tx)
 	if err != nil {
 		log.Errorf("shard get tx state: %s", err)
