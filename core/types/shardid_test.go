@@ -23,7 +23,7 @@ func assertWrongId(t *testing.T, l1, l2, l3, l4 uint16) {
 func TestShardID_Level(t *testing.T) {
 	assert.Equal(t, genShardId(t, 0, 0, 0, 0).Level(), 0)
 	assert.Equal(t, genShardId(t, 1, 0, 0, 0).Level(), 1)
-	assert.Equal(t, genShardId(t, 1, 9, 0, 0).Level(), 1)
+	assert.Equal(t, genShardId(t, 1, 9, 0, 0).Level(), 2)
 	assert.Equal(t, genShardId(t, 1, 5, 1, 0).Level(), 3)
 	assert.Equal(t, genShardId(t, 1, 5, 9, 4).Level(), 4)
 }
