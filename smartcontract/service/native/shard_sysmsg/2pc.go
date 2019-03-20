@@ -144,10 +144,10 @@ func processXShardPreparedMsg(ctx *native.NativeService, msg *shardstates.Common
 	if err != nil {
 		return fmt.Errorf("get Tx commit state: %s", err)
 	}
-	if _, present := txCommits[msg.SourceShardID.ToUint64()]; !present {
+	if _, present := txCommits[msg.SourceShardID]; !present {
 		return fmt.Errorf("invalid shard ID %d, in tx commit", msg.SourceShardID)
 	}
-	txCommits[msg.SourceShardID.ToUint64()] = xshard_state.TxPrepared
+	txCommits[msg.SourceShardID] = xshard_state.TxPrepared
 
 	if !txCommitReady(tx, txCommits) {
 		// wait for prepared from all shards
