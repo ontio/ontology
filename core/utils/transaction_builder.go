@@ -46,6 +46,7 @@ func NewDeployTransaction(code []byte, name, version, author, email, desp string
 	}
 
 	return &types.MutableTransaction{
+		Version: types.VERSION_SUPPORT_SHARD,
 		TxType:  types.Deploy,
 		Payload: DeployCodePayload,
 	}
@@ -59,6 +60,7 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 	}
 
 	return &types.MutableTransaction{
+		Version: types.VERSION_SUPPORT_SHARD,
 		TxType:  types.Invoke,
 		Payload: invokeCodePayload,
 	}
