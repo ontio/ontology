@@ -21,6 +21,7 @@ package vbft
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"math"
 	"reflect"
 	"sync"
@@ -57,7 +58,7 @@ const (
 	EndorseBlock
 	CommitBlock
 	SealBlock
-	FastForward // for syncer catch up
+	FastForward  // for syncer catch up
 	ReBroadcast
 )
 
@@ -344,7 +345,6 @@ func (self *Server) updateChainConfig() error {
 	self.config = block.Info.NewChainConfig
 	self.LastConfigBlockNum = block.getLastConfigBlockNum()
 	self.metaLock.Unlock()
-	self.sendshardgovTx(block.Block.Header.Height, block.Info.NewChainConfig)
 	self.metaLock.RLock()
 	defer self.metaLock.RUnlock()
 
@@ -1095,7 +1095,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 
 	prevBlockTimestamp := blk.Block.Header.Timestamp
 	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
-	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
+	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute * 10).Unix()) {
 		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
 		self.msgPool.DropMsg(msg)
 		return
@@ -2119,29 +2119,11 @@ func (self *Server) msgSendLoop() {
 	}
 }
 
-func (self *Server) sendshardgovTx(blkNum uint32, chainconfig *vconfig.ChainConfig) error {
-	log.Infof("sendshardgovTx blkNum:%d", blkNum)
-	tx, err := self.createshardgovTransaction(blkNum, chainconfig)
-	if err != nil {
-		return fmt.Errorf("SendRootChain err:%s", err)
-	}
-	chainmgr.SendShardTx(tx, chainmgr.GetShardRpcPortByShardID(0))
-	return nil
-}
-
 //create shard ong transaction
-func (self *Server) createshardgovTransaction(blkNum uint32, chainconfig *vconfig.ChainConfig) (*types.Transaction, error) {
-	feeAmount, err := getShardGasBalance(self.chainStore.GetExecWriteSet(blkNum - 1))
-	if err != nil {
-		log.Errorf("getShardGasBalance blkNum:%d,err:%s", blkNum, err)
-		return nil, err
-	}
-	param := &params.CommitDposParam{
-		ShardId:   chainmgr.GetShardID(),
-		FeeAmount: feeAmount,
+func (self *Server) createShardGovTransaction(blkNum uint32, chainconfig *vconfig.ChainConfig) (*types.Transaction, error) {
+	param := &params.ShardCommitDposParam{
+		View:      shard_stake.View(chainconfig.View - 1),
 		NewConfig: chainconfig,
-		View:      chainconfig.View,
-		Peer:      self.account.Address.ToBase58(),
 	}
 	paramBytes := new(bytes.Buffer)
 	if err := param.Serialize(paramBytes); err != nil {
@@ -2251,7 +2233,13 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		}
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(blkNum) {
-			tx, err := self.creategovernaceTransaction(blkNum)
+			var tx *types.Transaction
+			var err error = nil
+			if chainmgr.GetShardID().IsRootShard() {
+				tx, err = self.creategovernaceTransaction(blkNum)
+			} else {
+				tx, err = self.createShardGovTransaction(blkNum, chainconfig)
+			}
 			if err != nil {
 				return fmt.Errorf("construct governace transaction error: %v", err)
 			}
