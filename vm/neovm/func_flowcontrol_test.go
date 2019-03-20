@@ -15,6 +15,10 @@ func TestOpDcall(t *testing.T) {
 	opDCALL(&e)
 	e.ExecuteCode()
 
+	if len(e.Contexts) != 2 {
+		t.Fatalf("NeoVM opDCALL test failed")
+	}
+
 	if e.OpCode != PUSH2 {
 		t.Fatalf("NeoVM opDCALL test failed, expect PUSH2 , get %x.", e.OpCode)
 	}
