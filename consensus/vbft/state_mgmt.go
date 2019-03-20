@@ -431,36 +431,21 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) erro
 func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 	myCommitted := self.server.GetCommittedBlockNo()
 
-	commitedBlocksList := make([]uint32, 0, len(self.peers))
+	committedBlocksList := make([]uint32, 0, len(self.peers))
 	for _, p := range self.peers {
 		if p.committedBlockNum > myCommitted {
-			commitedBlocksList = append(commitedBlocksList, p.committedBlockNum)
+			committedBlocksList = append(committedBlocksList, p.committedBlockNum)
 		}
 	}
 
-	sort.Slice(commitedBlocksList, func(i, j int) bool { return commitedBlocksList[i] > commitedBlocksList[j] })
-
-	commitedBlocks := make(map[uint32]int)
-	for k := range commitedBlocksList {
-		blockNumber := commitedBlocksList[k]
-		if _, present := commitedBlocks[blockNumber]; !present {
-			commitedBlocks[blockNumber] = k + 1
-		}
-	}
+	sort.Slice(committedBlocksList, func(i, j int) bool { return committedBlocksList[i] > committedBlocksList[j] })
 
 	C := int(self.server.config.C)
-	consensused := false
-	var maxCommitted uint32
-	for k := range commitedBlocks {
-		if commitedBlocks[k] > C {
-			if k > maxCommitted {
-				maxCommitted = k
-			}
-			consensused = true
-		}
+	if len(committedBlocksList) <= C || committedBlocksList[C] < myCommitted {
+		return myCommitted, false
+	} else {
+		return committedBlocksList[C], true
 	}
-
-	return maxCommitted, consensused
 }
 
 func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
