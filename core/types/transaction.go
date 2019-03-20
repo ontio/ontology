@@ -42,6 +42,7 @@ type Transaction struct {
 	GasPrice uint64
 	GasLimit uint64
 	Payer    common.Address
+	ShardID  uint64
 	Payload  Payload
 	//Attributes []*TxAttribute
 	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extension
@@ -124,6 +125,7 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 		Version:  tx.Version,
 		TxType:   tx.TxType,
 		Nonce:    tx.Nonce,
+		ShardID:  tx.ShardID,
 		GasPrice: tx.GasPrice,
 		GasLimit: tx.GasLimit,
 		Payer:    tx.Payer,
@@ -141,6 +143,7 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 	return mutable, nil
 }
 
+// TODO deserialize shard version will failed while use gettxinfo cmd
 func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	tx.Version, eof = source.NextByte()
@@ -156,6 +159,14 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 		return io.ErrUnexpectedEOF
 	}
 	copy(tx.Payer[:], buf)
+	if tx.Version > CURR_TX_VERSION {
+		return common.ErrIrregularData
+	}
+	if tx.Version == VERSION_SUPPORT_SHARD {
+		tx.ShardID, eof = source.NextUint64()
+	} else {
+		tx.ShardID = 0
+	}
 
 	switch tx.TxType {
 	case Invoke:
@@ -382,7 +393,7 @@ const (
 )
 
 // Payload define the func for loading the payload data
-// base on payload type which have different struture
+// base on payload type which have different structure
 type Payload interface {
 	//Serialize payload data
 	Serialize(w io.Writer) error
