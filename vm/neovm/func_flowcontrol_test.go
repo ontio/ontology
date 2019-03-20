@@ -26,7 +26,7 @@ func TestOpDcall(t *testing.T) {
 	var e ExecutionEngine
 	stack := NewRandAccessStack()
 	e.EvaluationStack = stack
-	context := NewExecutionContext(&e, []byte{0x58, 0x52, 0x00, 0x6e})
+	context := NewExecutionContext(&e, []byte{byte(PUSH8), byte(PUSH2), byte(PUSH0), byte(DCALL)})
 	e.PushContext(context)
 
 	PushData(&e, 1)
@@ -38,6 +38,6 @@ func TestOpDcall(t *testing.T) {
 	}
 
 	if e.OpCode != PUSH2 {
-		t.Fatalf("NeoVM opDCALL test failed, expect PUSH2 , get %x.", e.OpCode)
+		t.Fatalf("NeoVM opDCALL test failed, expect PUSH2 , get %s.", OpExecList[e.OpCode].Name)
 	}
 }
