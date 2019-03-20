@@ -35,9 +35,6 @@ import (
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
 
-const CURR_TX_VERSION = 1
-const VERSION_SUPPORT_SHARD = 1
-
 type Transaction struct {
 	Version  byte
 	TxType   TransactionType

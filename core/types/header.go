@@ -27,8 +27,6 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
-const CURR_HEADER_VERSION = 1
-
 type Header struct {
 	Version          uint32
 	ShardID          uint64
