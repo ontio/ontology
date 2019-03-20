@@ -68,7 +68,7 @@ var (
 //
 type TxState struct {
 	State     int
-	Shards    map[uint64]int
+	Shards    map[types.ShardID]int
 	TxPayload []byte
 	NextReqID int32
 	Reqs      map[int32]*shardstates.XShardTxReq
@@ -98,8 +98,7 @@ var shardTxStateTable = ShardTxStateMap{
 func GetTxShards(tx common.Uint256) ([]types.ShardID, error) {
 	if state, present := shardTxStateTable.TxStates[tx]; present {
 		shards := make([]types.ShardID, 0, len(state.Shards))
-		for s := range state.Shards {
-			id, _ := types.NewShardID(s)
+		for id := range state.Shards {
 			shards = append(shards, id)
 		}
 		return shards, nil
@@ -112,12 +111,11 @@ func GetTxShards(tx common.Uint256) ([]types.ShardID, error) {
 // AddTxShard
 // add participated shard to txState
 //
-func AddTxShard(tx common.Uint256, shardID types.ShardID) error {
+func AddTxShard(tx common.Uint256, id types.ShardID) error {
 	txState, err := CreateTxState(tx)
 	if err != nil {
 		return err
 	}
-	id := shardID.ToUint64()
 	if state, present := txState.Shards[id]; !present {
 		txState.Shards[id] = TxExec
 	} else if state != TxExec {
@@ -160,7 +158,7 @@ func SetTxExecutionContinued(tx common.Uint256) error {
 	return nil
 }
 
-func GetTxCommitState(tx common.Uint256) (map[uint64]int, error) {
+func GetTxCommitState(tx common.Uint256) (map[types.ShardID]int, error) {
 	if state, present := shardTxStateTable.TxStates[tx]; present {
 		return state.Shards, nil
 	}
@@ -175,7 +173,7 @@ func CreateTxState(tx common.Uint256) (*TxState, error) {
 	}
 	state := &TxState{
 		State:  TxExec,
-		Shards: make(map[uint64]int),
+		Shards: make(map[types.ShardID]int),
 		Reqs:   make(map[int32]*shardstates.XShardTxReq),
 		Rsps:   make(map[int32]*shardstates.XShardTxRsp),
 	}
@@ -242,7 +240,7 @@ func SetTxCommitted(tx common.Uint256, isCommit bool) error {
 		txState.State = TxAbort
 	}
 
-	txState.Shards = make(map[uint64]int)
+	txState.Shards = make(map[types.ShardID]int)
 	return nil
 }
 
