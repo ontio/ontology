@@ -20,11 +20,14 @@ package types
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 )
+
+const CURR_HEADER_VERSION = 1
 
 type Header struct {
 	Version          uint32
@@ -65,8 +68,13 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
 //Serialize the blockheader data without program
 func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(bd.Version)
-	sink.WriteUint64(bd.ShardID)
-	sink.WriteUint32(bd.ParentHeight)
+	if bd.Version > CURR_HEADER_VERSION {
+		panic(fmt.Errorf("invalid header version:%d", bd.Version))
+	}
+	if bd.Version == VERSION_SUPPORT_SHARD {
+		sink.WriteUint64(bd.ShardID)
+		sink.WriteUint32(bd.ParentHeight)
+	}
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
 	sink.WriteBytes(bd.BlockRoot[:])
@@ -142,8 +150,16 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 
 	bd.Version, eof = source.NextUint32()
-	bd.ShardID, eof = source.NextUint64()
-	bd.ParentHeight, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if bd.Version > CURR_HEADER_VERSION {
+		return common.ErrIrregularData
+	}
+	if bd.Version == VERSION_SUPPORT_SHARD {
+		bd.ShardID, eof = source.NextUint64()
+		bd.ParentHeight, eof = source.NextUint32()
+	}
 	bd.PrevBlockHash, eof = source.NextHash()
 	bd.TransactionsRoot, eof = source.NextHash()
 	bd.BlockRoot, eof = source.NextHash()

@@ -21,10 +21,7 @@ package types
 import (
 	"errors"
 	"fmt"
-	"io"
-
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 )
 
@@ -102,12 +99,15 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	sink.WriteByte(byte(tx.Version))
 	sink.WriteByte(byte(tx.TxType))
 	sink.WriteUint32(tx.Nonce)
-	if tx.Version >= VERSION_SUPPORT_SHARD {
-		sink.WriteUint64(tx.ShardID)
+	if tx.Version > CURR_TX_VERSION {
+		panic(fmt.Errorf("invalid tx version:%d", tx.Version))
 	}
 	sink.WriteUint64(tx.GasPrice)
 	sink.WriteUint64(tx.GasLimit)
 	sink.WriteBytes(tx.Payer[:])
+	if tx.Version == VERSION_SUPPORT_SHARD {
+		sink.WriteUint64(tx.ShardID)
+	}
 
 	//Payload
 	if tx.Payload == nil {
@@ -128,69 +128,6 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 		return errors.New("wrong transaction payload type")
 	}
 	sink.WriteVarUint(uint64(tx.attributes))
-
-	return nil
-}
-
-func (tx *MutableTransaction) DeserializeUnsigned(r io.Reader) error {
-	var versiontype [2]byte
-	_, err := io.ReadFull(r, versiontype[:])
-	if err != nil {
-		return err
-	}
-	version := versiontype[0]
-	nonce, err := serialization.ReadUint32(r)
-	if err != nil {
-		return err
-	}
-	shardID := uint64(0)
-	if version >= VERSION_SUPPORT_SHARD {
-		shardID, err = serialization.ReadUint64(r)
-		if err != nil {
-			return err
-		}
-	}
-	gasPrice, err := serialization.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-	gasLimit, err := serialization.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-	tx.Version = version
-	tx.TxType = TransactionType(versiontype[1])
-	tx.ShardID = shardID
-	tx.Nonce = nonce
-	tx.GasPrice = gasPrice
-	tx.GasLimit = gasLimit
-	if err := tx.Payer.Deserialize(r); err != nil {
-		return err
-	}
-
-	switch tx.TxType {
-	case Invoke:
-		tx.Payload = new(payload.InvokeCode)
-	case Deploy:
-		tx.Payload = new(payload.DeployCode)
-	default:
-		return fmt.Errorf("unsupported tx type %v", tx.TxType)
-	}
-
-	err = tx.Payload.Deserialize(r)
-	if err != nil {
-		return err
-	}
-
-	//attributes
-	length, err := serialization.ReadVarUint(r, 0)
-	if err != nil {
-		return err
-	}
-	if length != 0 {
-		return fmt.Errorf("transaction attribute must be 0, got %d", length)
-	}
-	tx.attributes = 0
 
 	return nil
 }

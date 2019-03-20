@@ -35,16 +35,17 @@ import (
 
 const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS attacks
 
+const CURR_TX_VERSION = 1
 const VERSION_SUPPORT_SHARD = 1
 
 type Transaction struct {
 	Version  byte
 	TxType   TransactionType
 	Nonce    uint32
-	ShardID  uint64
 	GasPrice uint64
 	GasLimit uint64
 	Payer    common.Address
+	ShardID  uint64
 	Payload  Payload
 	//Attributes []*TxAttribute
 	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extension
@@ -153,11 +154,6 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	txtype, eof = source.NextByte()
 	tx.TxType = TransactionType(txtype)
 	tx.Nonce, eof = source.NextUint32()
-	if tx.Version >= VERSION_SUPPORT_SHARD {
-		tx.ShardID, eof = source.NextUint64()
-	} else {
-		tx.ShardID = 0
-	}
 	tx.GasPrice, eof = source.NextUint64()
 	tx.GasLimit, eof = source.NextUint64()
 	var buf []byte
@@ -166,6 +162,14 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 		return io.ErrUnexpectedEOF
 	}
 	copy(tx.Payer[:], buf)
+	if tx.Version > CURR_TX_VERSION {
+		return common.ErrIrregularData
+	}
+	if tx.Version == VERSION_SUPPORT_SHARD {
+		tx.ShardID, eof = source.NextUint64()
+	} else {
+		tx.ShardID = 0
+	}
 
 	switch tx.TxType {
 	case Invoke:
