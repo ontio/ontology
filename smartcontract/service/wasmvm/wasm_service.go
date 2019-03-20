@@ -139,6 +139,5 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 	}
-
 	return host.Output, nil
 }

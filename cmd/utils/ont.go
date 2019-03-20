@@ -20,6 +20,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -658,6 +659,20 @@ func InvokeNeoVMContract(
 	return InvokeSmartContract(signer, tx)
 }
 
+//Invoke wasm vm smart contract. if isPreExec is true, the invoke will not really execute
+func InvokeWasmVMContract(
+	gasPrice,
+	gasLimit uint64,
+	signer *account.Account,
+	smartcodeAddress common.Address,
+	params []interface{}) (string, error) {
+	tx, err := httpcom.NewWasmVMInvokeTransaction(gasPrice, gasLimit, smartcodeAddress, params)
+	if err != nil {
+		return "", err
+	}
+	return InvokeSmartContract(signer, tx)
+}
+
 //InvokeSmartContract is low level method to invoke contact.
 func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) (string, error) {
 	err := SignTransaction(signer, tx)
@@ -707,6 +722,27 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error)
 	if err != nil {
 		return nil, err
 	}
+	var buffer bytes.Buffer
+	err = tx.Serialize(&buffer)
+	if err != nil {
+		return nil, fmt.Errorf("tx serialize error:%s", err)
+	}
+	txData := hex.EncodeToString(buffer.Bytes())
+	return PrepareSendRawTransaction(txData)
+}
+
+//prepare invoke wasm
+func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interface{}) (*cstates.PreExecResult, error) {
+	mutable, err := httpcom.NewWasmVMInvokeTransaction(0, 0, contractAddress, params)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return nil, err
+	}
+
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
@@ -789,4 +825,31 @@ func ParseNeoVMContractReturnTypeString(hexStr string) (string, error) {
 		return "", fmt.Errorf("hex.DecodeString:%s error:%s", hexStr, err)
 	}
 	return string(data), nil
+}
+
+func ParseWasmVMContractReturnTypeByteArray(hexStr string) (string, error) {
+	return hexStr, nil
+}
+
+//ParseWasmVMContractReturnTypeString return string value of smart contract execute code.
+func ParseWasmVMContractReturnTypeString(hexStr string) (string, error) {
+	data, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return "", fmt.Errorf("hex.DecodeString:%s error:%s", hexStr, err)
+	}
+	return string(data), nil
+}
+
+//ParseWasmVMContractReturnTypeInteger return integer value of smart contract execute code.
+func ParseWasmVMContractReturnTypeInteger(hexStr string) (int64, error) {
+	data, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	return int64(binary.LittleEndian.Uint64(data)), nil
+}
+
+//ParseWasmVMContractReturnTypeBool return bool value of smart contract execute code.
+func ParseWasmVMContractReturnTypeBool(hexStr string) (bool, error) {
+	return hexStr == "01", nil
 }

@@ -25,7 +25,9 @@ import (
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/payload"
 	httpcom "github.com/ontio/ontology/http/base/common"
+	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"strings"
@@ -64,7 +66,7 @@ var (
 				Action: invokeContract,
 				Name:   "invoke",
 				Usage:  "Invoke smart contract",
-				ArgsUsage: `NeoVM contract support bytearray(need encode to hex string), string, integer, boolean parameter type.
+				ArgsUsage: `Ontology contract support bytearray(need encode to hex string), string, integer, boolean parameter type.
 
   Parameter 
      Contract parameters separate with comma ',' to split params. and must add type prefix to params.
@@ -86,6 +88,7 @@ var (
 					utils.TransactionGasPriceFlag,
 					utils.TransactionGasLimitFlag,
 					utils.ContractAddrFlag,
+					utils.ContractVmTypeFlag,
 					utils.ContractParamsFlag,
 					utils.ContractVersionFlag,
 					utils.ContractPrepareInvokeFlag,
@@ -220,7 +223,7 @@ func invokeCodeContract(ctx *cli.Context) error {
 			PrintInfoMsg("Return:%s (raw value)", preResult.Result)
 			return nil
 		}
-		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes)
+		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes, payload.NEOVM_TYPE)
 		if err != nil {
 			return fmt.Errorf("parseReturnValue values:%+v types:%s error:%s", values, rawReturnTypes, err)
 		}
@@ -286,7 +289,10 @@ func invokeContract(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("invalid contract address error:%s", err)
 	}
-
+	vmtype := ctx.Uint(utils.GetFlagName(utils.ContractVmTypeFlag))
+	if byte(vmtype) != payload.NEOVM_TYPE && byte(vmtype) != payload.WASMVM_TYPE {
+		return fmt.Errorf("invalid vmtype")
+	}
 	paramsStr := ctx.String(utils.GetFlagName(utils.ContractParamsFlag))
 	params, err := utils.ParseParams(paramsStr)
 	if err != nil {
@@ -295,15 +301,24 @@ func invokeContract(ctx *cli.Context) error {
 
 	paramData, _ := json.Marshal(params)
 	PrintInfoMsg("Invoke:%x Params:%s", contractAddr[:], paramData)
-
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		preResult, err := utils.PrepareInvokeNeoVMContract(contractAddr, params)
+
+		var preResult *states.PreExecResult
+		if byte(vmtype) == payload.NEOVM_TYPE {
+			preResult, err = utils.PrepareInvokeNeoVMContract(contractAddr, params)
+
+		}
+		if byte(vmtype) == payload.WASMVM_TYPE {
+			preResult, err = utils.PrepareInvokeWasmVMContract(contractAddr, params)
+		}
+
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
 		}
 		if preResult.State == 0 {
 			return fmt.Errorf("contract invoke failed")
 		}
+
 		PrintInfoMsg("Contract invoke successfully")
 		PrintInfoMsg("  Gas limit:%d", preResult.Gas)
 
@@ -312,7 +327,7 @@ func invokeContract(ctx *cli.Context) error {
 			PrintInfoMsg("  Return:%s (raw value)", preResult.Result)
 			return nil
 		}
-		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes)
+		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes, byte(vmtype))
 		if err != nil {
 			return fmt.Errorf("parseReturnValue values:%+v types:%s error:%s", values, rawReturnTypes, err)
 		}
@@ -340,9 +355,18 @@ func invokeContract(ctx *cli.Context) error {
 		gasPrice = 0
 	}
 
-	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
-	if err != nil {
-		return fmt.Errorf("invoke NeoVM contract error:%s", err)
+	var txHash string
+	if byte(vmtype) == payload.NEOVM_TYPE {
+		txHash, err = utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
+		if err != nil {
+			return fmt.Errorf("invoke NeoVM contract error:%s", err)
+		}
+	}
+	if byte(vmtype) == payload.WASMVM_TYPE {
+		txHash, err = utils.InvokeWasmVMContract(gasPrice, gasLimit, signer, contractAddr, params)
+		if err != nil {
+			return fmt.Errorf("invoke NeoVM contract error:%s", err)
+		}
 	}
 
 	PrintInfoMsg("  TxHash:%s", txHash)

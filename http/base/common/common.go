@@ -21,6 +21,7 @@ package common
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -446,7 +447,15 @@ func NewNeovmInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common
 	if err != nil {
 		return nil, err
 	}
-	return NewSmartContractTransaction(gasPrice, gasLimit, invokeCode)
+	return NewWasmSmartContractTransaction(gasPrice, gasLimit, invokeCode)
+}
+
+func NewWasmVMInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common.Address, params []interface{}) (*types.MutableTransaction, error) {
+	invokeCode, err := BuildWasmVMInvokeCode(contractAddress, params)
+	if err != nil {
+		return nil, err
+	}
+	return NewWasmSmartContractTransaction(gasPrice, gasLimit, invokeCode)
 }
 
 func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (*types.MutableTransaction, error) {
@@ -457,6 +466,21 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.InvokeNeo,
+		Nonce:    uint32(time.Now().Unix()),
+		Payload:  invokePayload,
+		Sigs:     nil,
+	}
+	return tx, nil
+}
+
+func NewWasmSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (*types.MutableTransaction, error) {
+	invokePayload := &payload.InvokeCode{
+		Code: invokeCode,
+	}
+	tx := &types.MutableTransaction{
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+		TxType:   types.InvokeWasm,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
 		Sigs:     nil,
@@ -485,4 +509,74 @@ func GetAddress(str string) (common.Address, error) {
 		address, err = common.AddressFromBase58(str)
 	}
 	return address, err
+}
+
+//build param bytes for wasm contract
+func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{}) ([]byte, error) {
+	contract := &cstate.WasmContractParam{}
+	contract.Address = contractAddress
+	bf := bytes.NewBuffer(nil)
+
+	argbytes, err := buildWasmContractParam(params, bf)
+	if err != nil {
+		return nil, fmt.Errorf("build wasm contract param failed:%s", err)
+	}
+	contract.Args = argbytes
+	sink := common.NewZeroCopySink(nil)
+	contract.Serialization(sink)
+	return sink.Bytes(), nil
+
+}
+
+//build param bytes for wasm contract
+func buildWasmContractParam(params []interface{}, bf *bytes.Buffer) ([]byte, error) {
+	for _, param := range params {
+		switch param.(type) {
+		case string:
+			tmp := bytes.NewBuffer(nil)
+			serialization.WriteString(tmp, param.(string))
+			bf.Write(tmp.Bytes())
+		case int:
+			tmpBytes := make([]byte, 4)
+			binary.LittleEndian.PutUint32(tmpBytes, uint32(param.(int)))
+			bf.Write(tmpBytes)
+		case int64:
+			tmpBytes := make([]byte, 8)
+			binary.LittleEndian.PutUint64(tmpBytes, uint64(param.(int64)))
+			bf.Write(tmpBytes)
+		case uint16:
+			tmpBytes := make([]byte, 2)
+			binary.LittleEndian.PutUint16(tmpBytes, param.(uint16))
+			bf.Write(tmpBytes)
+		case uint32:
+			tmpBytes := make([]byte, 4)
+			binary.LittleEndian.PutUint32(tmpBytes, param.(uint32))
+			bf.Write(tmpBytes)
+		case uint64:
+			tmpBytes := make([]byte, 8)
+			binary.LittleEndian.PutUint64(tmpBytes, param.(uint64))
+			bf.Write(tmpBytes)
+		case []byte:
+			tmp := bytes.NewBuffer(nil)
+			serialization.WriteVarBytes(tmp, param.([]byte))
+			bf.Write(tmp.Bytes())
+		case common.Uint256:
+			bs := param.(common.Uint256)
+			parambytes := bs[:]
+			bf.Write(parambytes)
+		case common.Address:
+			bs := param.(common.Address)
+			parambytes := bs[:]
+			bf.Write(parambytes)
+		case byte:
+			bf.WriteByte(param.(byte))
+		case []interface{}:
+			buildWasmContractParam(param.([]interface{}), bf)
+
+		default:
+			return nil, fmt.Errorf("not a supported type :%v\n", param)
+		}
+	}
+	return bf.Bytes(), nil
+
 }

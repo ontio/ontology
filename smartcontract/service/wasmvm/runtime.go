@@ -25,7 +25,6 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -138,7 +137,8 @@ func (self *Runtime) Debug(proc *exec.Process, ptr uint32, len uint32) {
 		return
 	}
 
-	log.Debugf("[WasmContract]Debug:%s\n", bs)
+	//log.Debugf("[WasmContract]Debug:%s\n", bs)
+	fmt.Printf("%s", bs)
 }
 
 func (self *Runtime) Notify(proc *exec.Process, ptr uint32, len uint32) {
@@ -148,7 +148,7 @@ func (self *Runtime) Notify(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	notify := &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, bs}
+	notify := &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, string(bs)}
 	notifys := make([]*event.NotifyEventInfo, 1)
 	notifys[0] = notify
 	self.Service.ContextRef.PushNotifications(notifys)
@@ -625,8 +625,8 @@ func NewHostModule(host *Runtime) *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    21,
 			},
-			"abort": {
-				FieldStr: "abort",
+			"panic": {
+				FieldStr: "panic",
 				Kind:     wasm.ExternalFunction,
 				Index:    22,
 			},
