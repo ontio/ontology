@@ -805,6 +805,9 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 		if n.GetSyncState() != p2pComm.ESTABLISH {
 			continue
 		}
+		if !p2pComm.IsUpstreamPeer(n.GetAddr()) {
+			continue
+		}
 		nodeBlockHeight := n.GetHeight()
 		if nextBlockHeight <= uint32(nodeBlockHeight) {
 			return n

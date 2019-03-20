@@ -349,6 +349,65 @@ func (this *P2PServer) connectSeeds() {
 	}
 }
 
+func (this *P2PServer) connectUpstream() {
+	upstreamNodes := make([]string, 0)
+	for i, n := range config.DefConfig.P2PNode.ReservedCfg.UpstreamPeers {
+		ip, err := common.ParseIPAddr(n)
+		if err != nil {
+			log.Warnf("[p2p]upstream peer %s address format is wrong", n)
+			continue
+		}
+		ns, err := net.LookupHost(ip)
+		if err != nil {
+			log.Warnf("[p2p]resolve err: %s", err.Error())
+			continue
+		}
+		port, err := common.ParseIPPort(n)
+		if err != nil {
+			log.Warnf("[p2p]upstream peer %s address format is wrong", n)
+			continue
+		}
+		upstreamNodes = append(upstreamNodes, ns[0]+port)
+		//update UpstreamPeers
+		config.DefConfig.P2PNode.ReservedCfg.UpstreamPeers[i] = ns[0] + port
+	}
+
+	connPeers := make(map[string]*peer.Peer)
+	np := this.network.GetNp()
+	np.Lock()
+	for _, tn := range np.List {
+		ipAddr, _ := tn.GetAddr16()
+		ip := net.IP(ipAddr[:])
+		addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetSyncPort()))
+		if tn.GetSyncState() == common.ESTABLISH {
+			connPeers[addrString] = tn
+		}
+	}
+	np.Unlock()
+
+	upstreamConnList := make([]*peer.Peer, 0)
+	upstreamDisconn := make([]string, 0)
+	for _, nodeAddr := range upstreamNodes {
+		if p, ok := connPeers[nodeAddr]; ok {
+			upstreamConnList = append(upstreamConnList, p)
+		} else {
+			upstreamDisconn = append(upstreamDisconn, nodeAddr)
+		}
+	}
+
+	if len(upstreamConnList) > 0 {
+		rand.Seed(time.Now().UnixNano())
+		if len(upstreamDisconn) > 0 {
+			index := rand.Intn(len(upstreamDisconn))
+			go this.network.Connect(upstreamDisconn[index], false)
+		}
+	} else { //not found
+		for _, nodeAddr := range upstreamNodes {
+			go this.network.Connect(nodeAddr, false)
+		}
+	}
+}
+
 //reachMinConnection return whether net layer have enough link under different config
 func (this *P2PServer) reachMinConnection() bool {
 	if config.DefConfig.Consensus.EnableConsensus == false {
@@ -458,6 +517,7 @@ func (this *P2PServer) connectSeedService() {
 		select {
 		case <-t.C:
 			this.connectSeeds()
+			this.connectUpstream()
 			t.Stop()
 			if this.reachMinConnection() {
 				t.Reset(time.Second * time.Duration(10*common.CONN_MONITOR))
@@ -522,6 +582,9 @@ func (this *P2PServer) pingTo(peers []*peer.Peer) {
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
 			height := blockrelayer.DefStorage.CurrentHeight()
+			if !common.IsUpstreamPeer(p.GetAddr()) {
+				height += 1
+			}
 			ping := msgpack.NewPingMsg(uint64(height))
 			go this.Send(p, ping, false)
 		}

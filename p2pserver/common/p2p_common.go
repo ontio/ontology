@@ -20,6 +20,7 @@ package common
 
 import (
 	"errors"
+	"github.com/ontio/ontology/common/config"
 	"strconv"
 	"strings"
 
@@ -175,4 +176,17 @@ func ParseIPPort(s string) (string, error) {
 		return "", errors.New("[p2p]port out of bound")
 	}
 	return s[i:], nil
+}
+
+func IsUpstreamPeer(peer string) bool {
+	if config.DefConfig.P2PNode.ReservedCfg.UpstreamPeers == nil ||
+		len(config.DefConfig.P2PNode.ReservedCfg.UpstreamPeers) == 0 {
+		return false
+	}
+	for _, item := range config.DefConfig.P2PNode.ReservedCfg.UpstreamPeers {
+		if strings.Compare(item, peer) == 0 {
+			return true
+		}
+	}
+	return false
 }

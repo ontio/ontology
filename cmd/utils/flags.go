@@ -111,6 +111,11 @@ var (
 		Usage: "Reserved peers `<file>`",
 		Value: config.DEFAULT_RESERVED_FILE,
 	}
+	UpstreamPeersFileFlag = cli.StringFlag{
+		Name:  "upstream-file",
+		Usage: "Upstream peers `<file>`",
+		Value: config.DEFAULT_UPSTREAM_FILE,
+	}
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
 		Usage: "Network id `<number>`. 1=ontology main net, 2=polaris test net, 3=testmode, and other for custom network",

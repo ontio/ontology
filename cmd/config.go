@@ -167,6 +167,20 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 		}
 	}
 
+	// sync block from upstream node
+	upfile := ctx.String(utils.GetFlagName(utils.UpstreamPeersFileFlag))
+	if !common.FileExisted(upfile) {
+		log.Warnf("upstream file %s not exist\n", upfile)
+		return
+	}
+	err := utils.GetJsonObjectFromFile(upfile, &cfg.ReservedCfg)
+	if err != nil {
+		log.Errorf("Get UpstreamCfg error:%s", err)
+		return
+	}
+	for i := 0; i < len(cfg.ReservedCfg.UpstreamPeers); i++ {
+		log.Info("upstream addr: " + cfg.ReservedCfg.UpstreamPeers[i])
+	}
 }
 
 func setRpcConfig(ctx *cli.Context, cfg *config.RpcConfig) {

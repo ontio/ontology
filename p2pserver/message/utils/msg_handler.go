@@ -121,6 +121,9 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 
 	height := blockrelayer.DefStorage.CurrentHeight()
 	p2p.SetHeight(uint64(height))
+	if !msgCommon.IsUpstreamPeer(remotePeer.GetAddr()) {
+		height += 1
+	}
 	msg := msgpack.NewPongMsg(uint64(height))
 
 	err := p2p.Send(remotePeer, msg, false)
