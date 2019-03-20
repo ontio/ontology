@@ -182,7 +182,7 @@ func (self *Runtime) ContractMigrate(proc *exec.Process,
 		key := iter.Key()
 		val := iter.Value()
 
-		newkey := serializeStorageKey(contractAddr, key)
+		newkey := serializeStorageKey(contractAddr, key[20:])
 
 		self.Service.CacheDB.Put(newkey, val)
 		self.Service.CacheDB.Delete(key)
