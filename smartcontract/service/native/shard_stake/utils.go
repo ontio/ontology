@@ -7,7 +7,6 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -295,7 +294,7 @@ func GetNodeMinStakeAmount(native *native.NativeService, id types.ShardID) (uint
 	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
-		return 0, fmt.Errorf("GetNodeMinStakeAmount: ser shardId failed, err: %s", err)
+		return 0, fmt.Errorf("GetNodeMinStakeAmount: read db failed, err: %s", err)
 	}
 	if len(storeValue) == 0 {
 		return 0, nil
@@ -327,7 +326,7 @@ func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amoun
 
 func setShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID,
 	addr common.Address) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
+	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
 	if err != nil {
 		return fmt.Errorf("setShardStakeAssetAddr: serialize shardID: %s", err)
 	}
@@ -344,7 +343,7 @@ func setShardStakeAssetAddr(native *native.NativeService, contract common.Addres
 func getShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID) (common.Address,
 	error) {
 	addr := common.Address{}
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
+	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
 	if err != nil {
 		return addr, fmt.Errorf("getShardStakeAssetAddr: serialize shardID: %s", err)
 	}
