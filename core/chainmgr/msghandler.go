@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology/common"
+	evtmsg "github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"os"
@@ -284,7 +285,7 @@ func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 	return nil
 }
 
-func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*shardstates.ShardEventState) error {
+func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*evtmsg.ShardEventState) error {
 	// construct one parent-block-completed message
 	blkInfo := message.NewShardBlockInfo(self.shardID, header)
 	shardTxs, err := constructShardBlockTx(shardEvts)
@@ -368,7 +369,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	return nil
 }
 
-func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*shardstates.ShardEventState) error {
+func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
 	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
 
 	if err := self.handleBlockEvents(blk.Header, shardEvts); err != nil {
@@ -380,14 +381,14 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []
 	return nil
 }
 
-func constructShardBlockTx(evts []*shardstates.ShardEventState) (map[types.ShardID]*message.ShardBlockTx, error) {
-	shardEvts := make(map[types.ShardID][]*shardstates.ShardEventState)
+func constructShardBlockTx(evts []*evtmsg.ShardEventState) (map[types.ShardID]*message.ShardBlockTx, error) {
+	shardEvts := make(map[types.ShardID][]*evtmsg.ShardEventState)
 
 	// sort all ShardEvents by 'to-shard-id'
 	for _, evt := range evts {
 		toShard := evt.ToShard
 		if _, present := shardEvts[toShard]; !present {
-			shardEvts[toShard] = make([]*shardstates.ShardEventState, 0)
+			shardEvts[toShard] = make([]*evtmsg.ShardEventState, 0)
 		}
 
 		shardEvts[toShard] = append(shardEvts[toShard], evt)
@@ -406,7 +407,7 @@ func constructShardBlockTx(evts []*shardstates.ShardEventState) (map[types.Shard
 	return shardTxs, nil
 }
 
-func newShardBlockTx(evts []*shardstates.ShardEventState) (*message.ShardBlockTx, error) {
+func newShardBlockTx(evts []*evtmsg.ShardEventState) (*message.ShardBlockTx, error) {
 	params := &shardsysmsg.CrossShardMsgParam{
 		Events: evts,
 	}

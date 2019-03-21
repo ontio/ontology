@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"hash"
 	"math"
 	"os"
@@ -877,7 +876,7 @@ func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystem
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
 				n.ContractAddress == utils.ShardGasMgmtContractAddress ||
 				n.ContractAddress == utils.ShardSysMsgContractAddress {
-				if shardEvt, ok := n.States.(*shardstates.ShardEventState); ok {
+				if shardEvt, ok := n.States.(*message.ShardEventState); ok {
 					shardSysMsg = append(shardSysMsg, &message.ShardSystemEventMsg{
 						FromAddress: n.ContractAddress,
 						Event:       shardEvt,

@@ -22,13 +22,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/events/message"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const (
@@ -63,7 +63,7 @@ type ShardBlockInfo struct {
 	State       uint                            `json:"state"`
 	Header      *ShardBlockHeader               `json:"header"`
 	ShardTxs    map[types.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
-	Events      []*shardstates.ShardEventState
+	Events      []*message.ShardEventState
 }
 
 type shardBlkMarshalHelper struct {

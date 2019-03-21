@@ -21,17 +21,17 @@ package shardsysmsg
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/events/message"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
 type CrossShardMsgParam struct {
-	Events []*shardstates.ShardEventState
+	Events []*message.ShardEventState
 }
 
 func (this *CrossShardMsgParam) Serialize(w io.Writer) error {
@@ -55,13 +55,13 @@ func (this *CrossShardMsgParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("des - CrossShardMsg: %s", err)
 	}
-	evts := make([]*shardstates.ShardEventState, 0)
+	evts := make([]*message.ShardEventState, 0)
 	for i := uint32(0); i < evtCnt; i++ {
 		evtBytes, err := serialization.ReadVarBytes(r)
 		if err != nil {
 			return fmt.Errorf("des - CrossShardMsg, read bytes: %s", err)
 		}
-		evt := &shardstates.ShardEventState{}
+		evt := &message.ShardEventState{}
 		if err := json.Unmarshal(evtBytes, evt); err != nil {
 			return fmt.Errorf("des - CrossShardMsg, unmarshal: %s", err)
 		}

@@ -20,7 +20,7 @@ package message
 
 import (
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/core/types"
 )
 
 const (
@@ -31,6 +31,14 @@ const (
 )
 
 type ShardSystemEventMsg struct {
-	FromAddress common.Address               `json:"from_address"`
-	Event       *shardstates.ShardEventState `json:"event"`
+	FromAddress common.Address   `json:"from_address"`
+	Event       *ShardEventState `json:"event"`
+}
+
+type ShardEventState struct {
+	Version    uint32        `json:"version"`
+	EventType  uint32        `json:"event_type"`
+	ToShard    types.ShardID `json:"to_shard"`
+	FromHeight uint32        `json:"from_height"`
+	Payload    []byte        `json:"payload"`
 }
