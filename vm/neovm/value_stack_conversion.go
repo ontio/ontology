@@ -70,10 +70,10 @@ func (self *ValueStack) PopAsMap() (*types.MapValue, error) {
 	return val.AsMapValue()
 }
 
-func (self *ValueStack) PopAsStruct() (types.StructValue, error) {
+func (self *ValueStack) PopAsStruct() (*types.StructValue, error) {
 	val, err := self.Pop()
 	if err != nil {
-		return types.StructValue{}, err
+		return nil, err
 	}
 	return val.AsStructValue()
 }
