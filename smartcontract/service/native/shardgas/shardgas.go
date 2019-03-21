@@ -21,6 +21,7 @@ package shardgas
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/constants"
@@ -59,7 +60,7 @@ const (
 	SHARD_COMMIT_DPOS      = "shardCommitDpos"
 	GET_USER_WITHDRAW_ID   = "getWithdrawId"
 	GET_WITHDRAW_BY_ID     = "getWithdrawById"
-	GET_UNFINISH_WITHDRAW  = "getUnfinishWithdraw"
+	GET_UN_FINISH_WITHDRAW = "getUnFinishWithdraw"
 )
 
 var ShardGasMgmtVersion = shardmgmt.VERSION_CONTRACT_SHARD_MGMT
@@ -81,6 +82,9 @@ func RegisterShardGasMgmtContract(native *native.NativeService) {
 	native.Register(WITHDRAW_RETRY_NAME, UserWithdrawRetry)
 	native.Register(USER_WITHDRAW_SUCCESS, UserWithdrawSuccess)
 	native.Register(SHARD_COMMIT_DPOS, ShardCommitDpos)
+	native.Register(GET_USER_WITHDRAW_ID, GetUserWithdrawId)
+	native.Register(GET_WITHDRAW_BY_ID, GetUserWithdrawById)
+	native.Register(GET_UN_FINISH_WITHDRAW, GetUserUnFinishWithdraw)
 }
 
 func ShardGasMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -197,7 +201,7 @@ func UserWithdrawGas(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: failed, err: %s", err)
 	}
 	// freeze user ong at this contract
-	if err := setUserWithdrawFrozenGas(native, contract, param.User, withdrawId, param.Amount); err != nil {
+	if err := setUserWithdrawGas(native, contract, param.User, withdrawId, param.Amount); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: failed, err: %s", err)
 	}
 	err = ont.AppCallTransfer(native, utils.OngContractAddress, param.User, utils.ShardSysMsgContractAddress, param.Amount)
@@ -231,7 +235,7 @@ func UserWithdrawRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawRetry: invalid user: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	frozenGasAmount, err := getUserWithdrawFrozenGas(native, contract, param.User, param.WithdrawId)
+	frozenGasAmount, err := getUserWithdrawGas(native, contract, param.User, param.WithdrawId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawRetry: failed, err: %s", err)
 	}
@@ -265,14 +269,14 @@ func UserWithdrawSuccess(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawSuccess: invalid param: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	frozenGasAmount, err := getUserWithdrawFrozenGas(native, contract, param.User, param.WithdrawId)
+	frozenGasAmount, err := getUserWithdrawGas(native, contract, param.User, param.WithdrawId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawSuccess: failed, err: %s", err)
 	}
 	if frozenGasAmount == 0 {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawSuccess: the withraw %d has withdrawn", param.WithdrawId)
 	}
-	if err := setUserWithdrawFrozenGas(native, contract, param.User, param.WithdrawId, 0); err != nil {
+	if err := setUserWithdrawGas(native, contract, param.User, param.WithdrawId, 0); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawSuccess: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
@@ -307,7 +311,59 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 
 // pre-execute tx
 func GetUserWithdrawId(native *native.NativeService) ([]byte, error) {
-	return utils.BYTE_TRUE, nil
+	if native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserWithdrawId: only can be invoked at child shard")
+	}
+	user, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserWithdrawId: read param failed, err: %s", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	withdrawId, err := getUserWithdrawId(native, contract, user)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserWithdrawId: failed, err: %s", err)
+	}
+
+	return ntypes.BigIntToBytes(new(big.Int).SetUint64(withdrawId)), nil
+}
+
+func GetUserWithdrawById(native *native.NativeService) ([]byte, error) {
+	if native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserWithdrawById: only can be invoked at child shard")
+	}
+	param := &GetWithdrawByIdParam{}
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserWithdrawById: failed, err: %s", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	amount, err := getUserWithdrawGas(native, contract, param.User, param.WithdrawId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserWithdrawById: failed, err: %s", err)
+	}
+	return ntypes.BigIntToBytes(new(big.Int).SetUint64(amount)), nil
+}
+
+func GetUserUnFinishWithdraw(native *native.NativeService) ([]byte, error) {
+	if native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserUnFinishWithdraw: only can be invoked at child shard")
+	}
+	user, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserUnFinishWithdraw: read param failed, err: %s", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	withdrawId, err := getUserWithdrawId(native, contract, user)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserUnFinishWithdraw: failed, err: %s", err)
+	}
+	result := make(map[uint64]uint64)
+	// withdraw id start from 1
+	for i := uint64(1); i < withdrawId; i++ {
+		amount, _ := getUserWithdrawGas(native, contract, user, i)
+		result[i] = amount
+	}
+	data, _ := json.Marshal(result)
+	return data, nil
 }
 
 func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {

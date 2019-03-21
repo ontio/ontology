@@ -51,39 +51,39 @@ func setUserWithdrawId(native *native.NativeService, contract, user common.Addre
 	return nil
 }
 
-func getUserWithdrawFrozenGas(native *native.NativeService, contract, user common.Address, withdrawId uint64) (uint64, error) {
+func getUserWithdrawGas(native *native.NativeService, contract, user common.Address, withdrawId uint64) (uint64, error) {
 	idBytes, err := utils.GetUint64Bytes(withdrawId)
 	if err != nil {
-		return 0, fmt.Errorf("getUserWithdrawFrozenGas: serialize withdraw id: %s", err)
+		return 0, fmt.Errorf("getUserWithdrawGas: serialize withdraw id: %s", err)
 	}
 	key := genUserFrozenGasKey(contract, user, idBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
-		return 0, fmt.Errorf("getUserWithdrawFrozenGas: read db failed, err: %s", err)
+		return 0, fmt.Errorf("getUserWithdrawGas: read db failed, err: %s", err)
 	}
 	if len(storeValue) == 0 {
 		return 0, nil
 	}
 	data, err := cstates.GetValueFromRawStorageItem(storeValue)
 	if err != nil {
-		return 0, fmt.Errorf("getUserWithdrawFrozenGas: parse store value failed, err: %s", err)
+		return 0, fmt.Errorf("getUserWithdrawGas: parse store value failed, err: %s", err)
 	}
 	amount, err := utils.GetBytesUint64(data)
 	if err != nil {
-		return 0, fmt.Errorf("getUserWithdrawFrozenGas: dese value failed, err: %s", err)
+		return 0, fmt.Errorf("getUserWithdrawGas: dese value failed, err: %s", err)
 	}
 	return amount, nil
 }
 
-func setUserWithdrawFrozenGas(native *native.NativeService, contract, user common.Address, withdrawId, amount uint64) error {
+func setUserWithdrawGas(native *native.NativeService, contract, user common.Address, withdrawId, amount uint64) error {
 	idBytes, err := utils.GetUint64Bytes(withdrawId)
 	if err != nil {
-		return fmt.Errorf("setUserWithdrawFrozenGas: serialize withdraw id: %s", err)
+		return fmt.Errorf("setUserWithdrawGas: serialize withdraw id: %s", err)
 	}
 	key := genUserFrozenGasKey(contract, user, idBytes)
 	value, err := utils.GetUint64Bytes(amount)
 	if err != nil {
-		return fmt.Errorf("setUserWithdrawFrozenGas: serialize amount: %s", err)
+		return fmt.Errorf("setUserWithdrawGas: serialize amount: %s", err)
 	}
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
 	return nil
