@@ -221,7 +221,10 @@ func UserWithdrawGas(native *native.NativeService) ([]byte, error) {
 		WithdrawId: withdrawId,
 		Amount:     param.Amount,
 	}
-	rootShard := types.NewShardIDUnchecked(0)
+	rootShard, err := types.NewShardID(0)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: generate root shard id failed, err: %s", err)
+	}
 	evt.ShardID = rootShard
 	evt.SourceShardID = native.ShardID
 	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
@@ -255,7 +258,10 @@ func UserWithdrawRetry(native *native.NativeService) ([]byte, error) {
 		WithdrawId: param.WithdrawId,
 		Amount:     frozenGasAmount,
 	}
-	rootShard := types.NewShardIDUnchecked(0)
+	rootShard, err := types.NewShardID(0)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawRetry: generate root shard id failed, err: %s", err)
+	}
 	evt.ShardID = rootShard
 	evt.SourceShardID = native.ShardID
 	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
@@ -307,7 +313,10 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 		Height:    native.Height,
 		FeeAmount: balance,
 	}
-	rootShard := types.NewShardIDUnchecked(0)
+	rootShard, err := types.NewShardID(0)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: generate root shard id failed, err: %s", err)
+	}
 	evt.ShardID = rootShard
 	evt.SourceShardID = native.ShardID
 	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
@@ -543,7 +552,10 @@ func GetShardGasBalance(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetShardGasBalance: deserialize param failed, err: %s", err)
 	}
-	shardId := types.NewShardIDUnchecked(param)
+	shardId, err := types.NewShardID(param)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardGasBalance: generate root shard id failed, err: %s", err)
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	shardBalance, err := getShardGasBalance(native, contract, shardId)
 	if err != nil {
