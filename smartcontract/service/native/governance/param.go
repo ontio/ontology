@@ -655,6 +655,12 @@ type GlobalParam2 struct {
 }
 
 func (this *GlobalParam2) Serialize(w io.Writer) error {
+	if this.MinAuthorizePos == 0 {
+		return fmt.Errorf("globalParam2.MinAuthorizePos can not be 0")
+	}
+	if this.DappFee > 100 {
+		return fmt.Errorf("globalParam2.DappFee must <= 100")
+	}
 	if err := utils.WriteVarUint(w, uint64(this.MinAuthorizePos)); err != nil {
 		return fmt.Errorf("utils.WriteVarUint, serialize minAuthorizePos error: %v", err)
 	}
@@ -721,7 +727,12 @@ func (this *GlobalParam2) Deserialize(r io.Reader) error {
 	if candidateFeeSplitNum > math.MaxUint32 {
 		return fmt.Errorf("candidateFeeSplitNum larger than max of uint32")
 	}
-
+	if minAuthorizePos == 0 {
+		return fmt.Errorf("globalParam2.MinAuthorizePos can not be 0")
+	}
+	if dappFee > 100 {
+		return fmt.Errorf("globalParam2.DappFee must <= 100")
+	}
 	this.MinAuthorizePos = uint32(minAuthorizePos)
 	this.CandidateFeeSplitNum = uint32(candidateFeeSplitNum)
 	this.DappFee = uint32(dappFee)

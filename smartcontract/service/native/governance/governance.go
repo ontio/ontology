@@ -1166,14 +1166,6 @@ func UpdateGlobalParam2(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize globalParam2 error: %v", err)
 	}
 
-	//check the globalParam
-	if globalParam2.MinAuthorizePos == 0 {
-		return utils.BYTE_FALSE, fmt.Errorf("globalParam2.MinAuthorizePos can not be 0")
-	}
-	if globalParam2.DappFee > 100 {
-		return utils.BYTE_FALSE, fmt.Errorf("globalParam2.DappFee must <= 100")
-	}
-
 	// get config
 	config, err := getConfig(native, contract)
 	if err != nil {
