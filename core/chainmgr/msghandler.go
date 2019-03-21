@@ -24,8 +24,10 @@ import (
 	"fmt"
 	"github.com/ontio/ontology/common"
 	evtmsg "github.com/ontio/ontology/events/message"
+	bcommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
+	"math"
 	"os"
 	"os/exec"
 	"strings"
@@ -199,16 +201,12 @@ func (self *ChainManager) onWithdrawGasReq(evt *shardstates.WithdrawGasReqEvent)
 		Signer:     self.account.Address,
 		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
 		User:       evt.User,
-		ShardId:    evt.SourceShardID,
+		ShardId:    evt.SourceShardID.ToUint64(),
 		Amount:     evt.Amount,
 		WithdrawId: evt.WithdrawId,
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		log.Errorf("onWithdrawGasReq: failed, err: %s", err)
-	}
 	err := self.invokeRootNativeContract(nativeUtil.ShardGasMgmtContractAddress, shardgas.PEER_CONFIRM_WTIDHRAW_NAME,
-		bf.Bytes())
+		[]interface{}{param})
 	if err != nil {
 		log.Errorf("onWithdrawGasReq: failed, err: %s", err)
 	}
@@ -219,15 +217,12 @@ func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEven
 		Signer:     self.account.Address,
 		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
 		CommitDposParam: &shardmgmt.CommitDposParam{
-			ShardID:   evt.SourceShardID,
+			ShardID:   evt.SourceShardID.ToUint64(),
 			FeeAmount: evt.FeeAmount,
 		},
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		log.Errorf("onShardCommitDpos: failed, err: %s", err)
-	}
-	err := self.invokeRootNativeContract(nativeUtil.ShardGasMgmtContractAddress, shardgas.COMMIT_DPOS_NAME, bf.Bytes())
+	err := self.invokeRootNativeContract(nativeUtil.ShardGasMgmtContractAddress, shardgas.COMMIT_DPOS_NAME,
+		[]interface{}{param})
 	if err != nil {
 		log.Errorf("onShardCommitDpos: failed, err: %s", err)
 	}
@@ -431,9 +426,12 @@ func newShardBlockTx(evts []*evtmsg.ShardEventState) (*message.ShardBlockTx, err
 
 }
 
-func (self *ChainManager) invokeRootNativeContract(contract common.Address, method string, args []byte) error {
-	mutable := utils.BuildNativeTransaction(contract, method, args)
-	err := cmdUtil.SignTransaction(self.account, mutable)
+func (self *ChainManager) invokeRootNativeContract(contract common.Address, method string, args []interface{}) error {
+	mutable, err := bcommon.NewNativeInvokeTransaction(0, math.MaxUint32, contract, byte(0), method, args)
+	if err != nil {
+		return fmt.Errorf("invokeRootNativeContract: generate tx failed, err: %s", err)
+	}
+	err = cmdUtil.SignTransaction(self.account, mutable)
 	if err != nil {
 		return fmt.Errorf("invokeRootNativeContract: sign tx failed, err: %s", err)
 	}

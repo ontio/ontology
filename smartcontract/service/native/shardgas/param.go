@@ -26,12 +26,11 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 )
 
 type DepositGasParam struct {
 	User    common.Address
-	ShardId types.ShardID
+	ShardId uint64
 	Amount  uint64
 }
 
@@ -39,7 +38,7 @@ func (this *DepositGasParam) Serialize(w io.Writer) error {
 	if err := utils.WriteAddress(w, this.User); err != nil {
 		return fmt.Errorf("serialize: write addr failed, err: %s", err)
 	}
-	if err := utils.WriteVarUint(w, this.ShardId.ToUint64()); err != nil {
+	if err := utils.WriteVarUint(w, this.ShardId); err != nil {
 		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
 	}
 	if err := utils.WriteVarUint(w, this.Amount); err != nil {
@@ -58,10 +57,7 @@ func (this *DepositGasParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
 	}
-	this.ShardId, err = types.NewShardID(id)
-	if err != nil {
-		return fmt.Errorf("deserialize: generate shard id failed, err: %s", err)
-	}
+	this.ShardId = id
 	amount, err := utils.ReadVarUint(r)
 	if err != nil {
 		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
@@ -161,7 +157,7 @@ type PeerWithdrawGasParam struct {
 	Signer     common.Address
 	PeerPubKey string
 	User       common.Address
-	ShardId    types.ShardID
+	ShardId    uint64
 	Amount     uint64
 	WithdrawId uint64
 }
@@ -176,7 +172,7 @@ func (this *PeerWithdrawGasParam) Serialize(w io.Writer) error {
 	if err := utils.WriteAddress(w, this.User); err != nil {
 		return fmt.Errorf("serialize: write user failed, err: %s", err)
 	}
-	if err := utils.WriteVarUint(w, this.ShardId.ToUint64()); err != nil {
+	if err := utils.WriteVarUint(w, this.ShardId); err != nil {
 		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
 	}
 	if err := utils.WriteVarUint(w, this.Amount); err != nil {
@@ -208,10 +204,7 @@ func (this *PeerWithdrawGasParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
 	}
-	this.ShardId, err = types.NewShardID(id)
-	if err != nil {
-		return fmt.Errorf("deserialize: generate shard id failed, err: %s", err)
-	}
+	this.ShardId = id
 	amount, err := utils.ReadVarUint(r)
 	if err != nil {
 		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
