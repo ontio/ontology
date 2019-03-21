@@ -19,9 +19,13 @@
 package shardstates
 
 import (
+	"encoding/hex"
+	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -86,6 +90,14 @@ type PeerShardStakeInfo struct {
 	NodeType   NodeType       `json:"node_type"`
 }
 
+func (this *PeerShardStakeInfo) Serialize(w io.Writer) error {
+	return shardutil.SerJson(w, this)
+}
+
+func (this *PeerShardStakeInfo) Deserialize(r io.Reader) error {
+	return shardutil.DesJson(r, this)
+}
+
 type ShardState struct {
 	ShardID             types.ShardID  `json:"shard_id"`
 	Creator             common.Address `json:"creator"`
@@ -97,9 +109,82 @@ type ShardState struct {
 }
 
 func (this *ShardState) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteVarUint(w, this.ShardID.ToUint64()); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.Creator); err != nil {
+		return fmt.Errorf("serialize: write creator failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.State)); err != nil {
+		return fmt.Errorf("serialize: write state failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.GenesisParentHeight)); err != nil {
+		return fmt.Errorf("serialize: write genesis parent height failed, err: %s", err)
+	}
+	if err := this.Config.Serialize(w); err != nil {
+		return fmt.Errorf("serialize: write config failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(len(this.Peers))); err != nil {
+		return fmt.Errorf("serialize: write peers num failed, err: %s", err)
+	}
+	peers := make([]*PeerShardStakeInfo, 0)
+	for _, peer := range peers {
+		peers = append(peers, peer)
+	}
+	sort.SliceStable(peers, func(i, j int) bool {
+		return peers[i].Index < peers[j].Index
+	})
+	for _, peer := range peers {
+		if err := peer.Serialize(w); err != nil {
+			return fmt.Errorf("serialzie: write peer failed, index %d, err: %s", peer.Index, err)
+		}
+	}
+	return nil
 }
 
 func (this *ShardState) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	id, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	shardId, err := types.NewShardID(id)
+	if err != nil {
+		return fmt.Errorf("deserialize: generate shard id failed, err: %s", err)
+	}
+	this.ShardID = shardId
+	if this.Creator, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read creator failed, err: %s", err)
+	}
+	state, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read state failed, err: %s", err)
+	}
+	this.State = uint32(state)
+	height, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read genesis parent height failed, err: %s", err)
+	}
+	this.GenesisParentHeight = uint32(height)
+	peersNum, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read peers num failed, err: %s", err)
+	}
+	peers := make(map[keypair.PublicKey]*PeerShardStakeInfo)
+	for i := uint64(0); i < peersNum; i++ {
+		peer := &PeerShardStakeInfo{}
+		if err := peer.Deserialize(r); err != nil {
+			return fmt.Errorf("deserialize: read peer failed, index %d, err: %s", i, err)
+		}
+		pubKeyData, err := hex.DecodeString(peer.PeerPubKey)
+		if err != nil {
+			return fmt.Errorf("deserialize: decode peer pub key failed, index %d, err: %s", i, err)
+		}
+		pubKey, err := keypair.DeserializePublicKey(pubKeyData)
+		if err != nil {
+			return fmt.Errorf("deserialize: deserialize peer pub key failed, index %d, err: %s", i, err)
+		}
+		peers[pubKey] = peer
+	}
+	this.Peers = peers
+	return nil
 }

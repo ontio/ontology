@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 
