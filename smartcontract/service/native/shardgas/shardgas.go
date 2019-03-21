@@ -32,6 +32,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	ntypes "github.com/ontio/ontology/vm/neovm/types"
+	"math/big"
 )
 
 /////////
@@ -48,6 +50,7 @@ const (
 	DEPOSIT_GAS_NAME           = "depositGas"
 	PEER_CONFIRM_WTIDHRAW_NAME = "peerConfirmWithdraw"
 	COMMIT_DPOS_NAME           = "commitDpos"
+	GET_SHARD_GAS_BALANCE_NAME = "getShardGasBalance"
 
 	USER_WITHDRAW_GAS_NAME = "userWithdrawGas"
 	WITHDRAW_RETRY_NAME    = "withdrawRetry"
@@ -67,6 +70,7 @@ func RegisterShardGasMgmtContract(native *native.NativeService) {
 	native.Register(DEPOSIT_GAS_NAME, DepositGasToShard)
 	native.Register(PEER_CONFIRM_WTIDHRAW_NAME, PeerConfirmWithdraw)
 	native.Register(COMMIT_DPOS_NAME, CommitDpos)
+	native.Register(GET_SHARD_GAS_BALANCE_NAME, GetShardGasBalance)
 
 	// invoke at child
 	native.Register(USER_WITHDRAW_GAS_NAME, UserWithdrawGas)
@@ -455,4 +459,23 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		}
 	}
 	return utils.BYTE_TRUE, nil
+}
+
+// pre-execute tx
+func GetShardGasBalance(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardGasBalance: only can be invoked at root")
+	}
+	bf := bytes.NewBuffer(native.Input)
+	param, err := utils.ReadVarUint(bf)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardGasBalance: deserialize param failed, err: %s", err)
+	}
+	shardId := types.NewShardIDUnchecked(param)
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	shardBalance, err := getShardGasBalance(native, contract, shardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardGasBalance: failed, err: %s", err)
+	}
+	return ntypes.BigIntToBytes(new(big.Int).SetUint64(shardBalance)), nil
 }
