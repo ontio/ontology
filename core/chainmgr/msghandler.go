@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -256,8 +257,10 @@ func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shar
 		log.Warnf("startChildShard ParentShardID:%d,shardID:%d", shardInfo.ParentShardID, self.shardID)
 		return nil
 	}
-	if _, has := shardState.Peers[self.account.PublicKey]; !has {
-		log.Warnf("startChildShard pubKey:%x is not exit shardState", self.account.PublicKey)
+	key := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
+	if _, has := shardState.Peers[strings.ToLower(key)]; !has {
+		log.Warnf("startChildShard pubKey:%s is not exit shardState",
+			hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)))
 		return nil
 	}
 	return self.startChildShardProcess(shardInfo)

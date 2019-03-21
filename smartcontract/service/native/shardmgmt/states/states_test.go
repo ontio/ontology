@@ -12,9 +12,9 @@ func TestEncodeByte(t *testing.T) {
 	acc := account.NewAccount("")
 	peerPK := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
 	t.Log(peerPK)
-	for i := 0; i < 100; i++ {
-		testPK := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
-		t.Log(testPK)
-		assert.Equal(t, peerPK, testPK)
-	}
+	assert.Equal(t, acc.PublicKey, acc.PublicKey)
+
+	data, _:= hex.DecodeString(peerPK)
+	genPubKey, _:= keypair.DeserializePublicKey(data)
+	assert.Equal(t, genPubKey, acc.PublicKey)
 }

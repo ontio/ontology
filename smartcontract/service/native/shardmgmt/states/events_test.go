@@ -20,6 +20,7 @@ package shardstates_test
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/core/types"
 	"testing"
 
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -27,9 +28,9 @@ import (
 
 func TestCreateShardEvent(t *testing.T) {
 	evt := &shardstates.CreateShardEvent{
-		SourceShardID: 100,
+		SourceShardID: types.NewShardIDUnchecked(1),
 		Height:        110,
-		NewShardID:    120,
+		NewShardID:    types.NewShardIDUnchecked(1),
 	}
 
 	buf := new(bytes.Buffer)

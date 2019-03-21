@@ -21,7 +21,6 @@ package chainmgr
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 
@@ -124,8 +123,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	return shardState, nil
 }
 
-func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[keypair.PublicKey]*shard_stake.PeerViewInfo,
-	error) {
+func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[string]*shard_stake.PeerViewInfo, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
 	}
@@ -204,4 +202,3 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard ty
 	}
 	return req.Reqs, nil
 }
-
