@@ -21,7 +21,6 @@ package vbft
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"math"
 	"reflect"
 	"sync"
@@ -46,7 +45,6 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
-	params "github.com/ontio/ontology/smartcontract/service/native/shardgas"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/validator/increment"
 )
@@ -2120,17 +2118,9 @@ func (self *Server) msgSendLoop() {
 }
 
 //create shard ong transaction
-func (self *Server) createShardGovTransaction(blkNum uint32, chainconfig *vconfig.ChainConfig) (*types.Transaction, error) {
-	param := &params.ShardCommitDposParam{
-		View:      shard_stake.View(chainconfig.View - 1),
-		NewConfig: chainconfig,
-	}
-	paramBytes := new(bytes.Buffer)
-	if err := param.Serialize(paramBytes); err != nil {
-		return nil, fmt.Errorf("marshal shardgovtx: %s", err)
-	}
+func (self *Server) createShardGovTransaction(blkNum uint32) (*types.Transaction, error) {
 	//build transaction
-	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, gover.COMMIT_DPOS, paramBytes.Bytes())
+	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, gover.COMMIT_DPOS, []byte{})
 	mutable.GasPrice = 0
 	mutable.Payer = self.account.Address
 	mutable.Nonce = blkNum
@@ -2238,7 +2228,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			if chainmgr.GetShardID().IsRootShard() {
 				tx, err = self.creategovernaceTransaction(blkNum)
 			} else {
-				tx, err = self.createShardGovTransaction(blkNum, chainconfig)
+				tx, err = self.createShardGovTransaction(blkNum)
 			}
 			if err != nil {
 				return fmt.Errorf("construct governace transaction error: %v", err)

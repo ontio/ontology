@@ -19,7 +19,6 @@
 package shardstates
 
 import (
-	"github.com/ontio/ontology/consensus/vbft/config"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -106,10 +105,8 @@ func (evt *WithdrawGasDoneEvent) Deserialize(r io.Reader) error {
 
 type ShardCommitDposEvent struct {
 	ImplSourceTargetShardID
-	Height    uint32               `json:"height"`
-	FeeAmount uint64               `json:"fee_amount"`
-	View      uint64               `json:"view"`
-	NewConfig *vconfig.ChainConfig `json:"new_config"`
+	Height    uint32 `json:"height"`
+	FeeAmount uint64 `json:"fee_amount"`
 }
 
 func (evt *ShardCommitDposEvent) GetHeight() uint32 {

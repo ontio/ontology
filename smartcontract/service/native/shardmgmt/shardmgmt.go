@@ -579,9 +579,12 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 		}
 	}
-	// TODO: check new config
 	// TODO: update shard mgmt peer state
-	viewInfo, err := shard_stake.GetShardViewInfo(native, params.ShardID, shard_stake.View(params.View))
+	shardView, err := shard_stake.GetShardCurrentView(native, params.ShardID)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	}
+	viewInfo, err := shard_stake.GetShardViewInfo(native, params.ShardID, shardView)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
@@ -598,7 +601,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		dividends = append(dividends, peerFee)
 		peers = append(peers, peer)
 	}
-	if err := commitDpos(native, params.ShardID, dividends, peers, params.View); err != nil {
+	if err := commitDpos(native, params.ShardID, dividends, peers); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	if err := setShardState(native, contract, shard); err != nil {

@@ -23,7 +23,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"os"
@@ -220,8 +219,6 @@ func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEven
 		CommitDposParam: &shardmgmt.CommitDposParam{
 			ShardID:   evt.SourceShardID,
 			FeeAmount: evt.FeeAmount,
-			View:      shard_stake.View(evt.View),
-			NewConfig: evt.NewConfig,
 		},
 	}
 	bf := new(bytes.Buffer)
