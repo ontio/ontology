@@ -74,26 +74,26 @@ func genUserUnboundOngKey(contract, user common.Address) []byte {
 	return utils.ConcatKey(contract, []byte(KEY_UNBOUND_ONG), user[:])
 }
 
-func getShardCurrentView(native *native.NativeService, id types.ShardID) (View, error) {
+func GetShardCurrentView(native *native.NativeService, id types.ShardID) (View, error) {
 	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
 	if err != nil {
-		return 0, fmt.Errorf("getShardCurrentView: ser shardId failed, err: %s", err)
+		return 0, fmt.Errorf("GetShardCurrentView: ser shardId failed, err: %s", err)
 	}
 	key := genShardViewKey(utils.ShardStakeAddress, shardIDBytes)
 	dataBytes, err := native.CacheDB.Get(key)
 	if err != nil {
-		return 0, fmt.Errorf("getShardCurrentView: read db failed, err: %s", err)
+		return 0, fmt.Errorf("GetShardCurrentView: read db failed, err: %s", err)
 	}
 	if len(dataBytes) == 0 {
-		return 0, fmt.Errorf("getShardCurrentView: shard %d view not exist", id.ToUint64())
+		return 0, fmt.Errorf("GetShardCurrentView: shard %d view not exist", id.ToUint64())
 	}
 	value, err := cstates.GetValueFromRawStorageItem(dataBytes)
 	if err != nil {
-		return 0, fmt.Errorf("getShardCurrentView: parse store value failed, err: %s", err)
+		return 0, fmt.Errorf("GetShardCurrentView: parse store value failed, err: %s", err)
 	}
 	view, err := utils.GetBytesUint64(value)
 	if err != nil {
-		return 0, fmt.Errorf("getShardCurrentView: deserialize value failed, err: %s", err)
+		return 0, fmt.Errorf("GetShardCurrentView: deserialize value failed, err: %s", err)
 	}
 	return View(view), nil
 }

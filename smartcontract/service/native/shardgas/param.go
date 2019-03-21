@@ -21,10 +21,7 @@ package shardgas
 import (
 	"fmt"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
@@ -264,17 +261,4 @@ func (this *CommitDposParam) Deserialize(r io.Reader) error {
 	}
 	this.CommitDposParam = commitDpos
 	return nil
-}
-
-type ShardCommitDposParam struct {
-	View      shard_stake.View     `json:"view"`
-	NewConfig *vconfig.ChainConfig `json:"new_config"`
-}
-
-func (this *ShardCommitDposParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
-}
-
-func (this *ShardCommitDposParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
 }

@@ -126,7 +126,7 @@ func PeerExit(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: only can be invoked by shardmgmt contract")
 	}
-	currentView, err := getShardCurrentView(native, param.ShardId)
+	currentView, err := GetShardCurrentView(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
 	}
@@ -156,7 +156,7 @@ func DeletePeer(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: only can be invoked by shardmgmt contract")
 	}
-	currentView, err := getShardCurrentView(native, param.ShardId)
+	currentView, err := GetShardCurrentView(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
 	}
@@ -323,7 +323,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	for index, peer := range param.PeerPubKey {
 		feeInfo[peer] = param.Amount[index]
 	}
-	err := commitDpos(native, param.ShardId, feeInfo, param.View)
+	err := commitDpos(native, param.ShardId, feeInfo)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
