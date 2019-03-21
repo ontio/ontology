@@ -334,15 +334,17 @@ func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*e
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	defer func() {
 		err := self.ledger.PutShardProcessedBlockHeight(self.processedBlockHeight)
-		log.Infof("save processed block height err:%v", err)
+		if err != nil {
+			log.Infof("save processed block height err:%v", err)
+		}
 	}()
 
 	for height := self.processedBlockHeight + 1; height <= header.Height; height++ {
 		shards, err := GetRequestedRemoteShards(self.ledger, height)
-		log.Infof("chainmgr get remote shards: height: %d, shards: %v, err: %s", height, shards, err)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
 		}
+		log.Infof("chainmgr get remote shards: height: %d, shards: %v", height, shards)
 		if shards == nil || len(shards) == 0 {
 			self.processedBlockHeight = height
 			continue
