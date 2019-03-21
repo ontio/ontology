@@ -163,12 +163,17 @@ func (self *ChainStore) GetBlock(blockNum uint32) (*Block, error) {
 		return nil, err
 	}
 	prevMerkleRoot := common.Uint256{}
+	crossStatesRoot := common.Uint256{}
 	if blockNum > 1 {
 		prevMerkleRoot, err = self.db.GetStateMerkleRoot(blockNum - 1)
 		if err != nil {
 			log.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blockNum, err)
 			return nil, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blockNum, err)
 		}
+		crossStatesRoot, err = self.db.GetCrossStatesRoot(blockNum - 1)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return initVbftBlock(block, prevMerkleRoot)
+	return initVbftBlock(block, prevMerkleRoot, crossStatesRoot)
 }

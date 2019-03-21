@@ -34,6 +34,7 @@ type Block struct {
 	EmptyBlock          *types.Block
 	Info                *vconfig.VbftBlockInfo
 	PrevBlockMerkleRoot common.Uint256
+	CrossStatesHash     common.Uint256
 }
 
 func (blk *Block) getProposer() uint32 {
@@ -58,6 +59,10 @@ func (blk *Block) getNewChainConfig() *vconfig.ChainConfig {
 
 func (blk *Block) getPrevBlockMerkleRoot() common.Uint256 {
 	return blk.PrevBlockMerkleRoot
+}
+
+func (blk *Block) getCrossStatesHash() common.Uint256 {
+	return blk.CrossStatesHash
 }
 
 //
@@ -88,6 +93,7 @@ func (blk *Block) Serialize() ([]byte, error) {
 		payload.WriteVarBytes(sink2.Bytes())
 	}
 	payload.WriteHash(blk.PrevBlockMerkleRoot)
+	payload.WriteHash(blk.CrossStatesHash)
 	return payload.Bytes(), nil
 }
 
@@ -130,14 +136,23 @@ func (blk *Block) Deserialize(data []byte) error {
 			return io.ErrUnexpectedEOF
 		}
 	}
+	var crossStatesHash common.Uint256
+	if source.Len() > 0 {
+		crossStatesHash, eof = source.NextHash()
+		if eof {
+			log.Errorf("Block Deserialize crossStatesHash")
+			return io.ErrUnexpectedEOF
+		}
+	}
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
 	blk.Info = info
 	blk.PrevBlockMerkleRoot = merkleRoot
+	blk.CrossStatesHash = crossStatesHash
 	return nil
 }
 
-func initVbftBlock(block *types.Block, prevMerkleRoot common.Uint256) (*Block, error) {
+func initVbftBlock(block *types.Block, prevMerkleRoot common.Uint256, crossStatesHash common.Uint256) (*Block, error) {
 	if block == nil {
 		return nil, fmt.Errorf("nil block in initVbftBlock")
 	}
@@ -151,5 +166,6 @@ func initVbftBlock(block *types.Block, prevMerkleRoot common.Uint256) (*Block, e
 		Block:               block,
 		Info:                blkInfo,
 		PrevBlockMerkleRoot: prevMerkleRoot,
+		CrossStatesHash:     crossStatesHash,
 	}, nil
 }

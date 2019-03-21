@@ -194,6 +194,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,
 		TransactionsRoot: txRoot,
+		CrossStatesRoot:  lastBlock.getCrossStatesHash(),
 		BlockRoot:        blockRoot,
 		Timestamp:        blocktimestamp,
 		Height:           uint32(blkNum),

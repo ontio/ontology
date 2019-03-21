@@ -210,6 +210,33 @@ func (self *StateStore) AddStateMerkleTreeRoot(blockHeight uint32, writeSetHash 
 	return nil
 }
 
+func (self *StateStore) AddCrossStates(height uint32, crossStates []byte, crossStatesHash common.Uint256) error {
+	self.store.BatchPut(genCrossStatesKey(height), crossStates)
+
+	buf := bytes.NewBuffer(nil)
+	err := crossStatesHash.Serialize(buf)
+	if err != nil {
+		return err
+	}
+	self.store.BatchPut(genCrossStatesRootKey(height), buf.Bytes())
+	return nil
+}
+
+func (self *StateStore) GetCrossStatesRoot(height uint32) (hash common.Uint256, err error) {
+	key := genCrossStatesRootKey(height)
+	var value []byte
+	value, err = self.store.Get(key)
+	if err != nil {
+		return
+	}
+	buf := bytes.NewBuffer(value)
+	err = hash.Deserialize(buf)
+	if err != nil {
+		return
+	}
+	return
+}
+
 //AddBlockMerkleTreeRoot add a new tree root
 func (self *StateStore) AddBlockMerkleTreeRoot(txRoot common.Uint256) error {
 	key := self.genBlockMerkleTreeKey()
@@ -386,6 +413,20 @@ func (self *StateStore) genBlockMerkleTreeKey() []byte {
 
 func (self *StateStore) genStateMerkleTreeKey() []byte {
 	return []byte{byte(scom.SYS_STATE_MERKLE_TREE)}
+}
+
+func genCrossStatesKey(height uint32) []byte {
+	key := make([]byte, 5, 5)
+	key[0] = byte(scom.SYS_CROSS_STATES)
+	binary.LittleEndian.PutUint32(key[1:], height)
+	return key
+}
+
+func genCrossStatesRootKey(height uint32) []byte {
+	key := make([]byte, 5, 5)
+	key[0] = byte(scom.SYS_CROSS_STATES_HASH)
+	binary.LittleEndian.PutUint32(key[1:], height)
+	return key
 }
 
 func (self *StateStore) genStateMerkleRootKey(height uint32) []byte {

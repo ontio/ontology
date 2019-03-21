@@ -20,6 +20,7 @@ package smartcontract
 import (
 	"fmt"
 
+	"crypto/sha256"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
@@ -46,6 +47,7 @@ type SmartContract struct {
 	Gas           uint64
 	ExecStep      int
 	PreExec       bool
+	CrossHashes   *common.ZeroCopySink
 }
 
 // Config describe smart contract need parameters configuration
@@ -112,6 +114,17 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	}
 	this.Gas -= gas
 	return true
+}
+
+func (this *SmartContract) PutMerkleVal(val []byte) error {
+	temp := sha256.Sum256(val)
+	data := sha256.Sum256(temp[:])
+	u256, err := common.Uint256ParseFromBytes(data[:])
+	if err != nil {
+		return err
+	}
+	this.CrossHashes.WriteHash(u256)
+	return nil
 }
 
 func (this *SmartContract) checkContexts() bool {
