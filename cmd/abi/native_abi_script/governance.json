@@ -512,8 +512,8 @@
           "type":"Int"
         },
         {
-          "name":"Field1",
-          "type":"ByteArray"
+          "name":"DappFee",
+          "type":"Int"
         },
         {
           "name":"Field2",
@@ -549,6 +549,17 @@
         {
           "name":"Pos",
           "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setGasAddress",
+      "parameters":
+      [
+        {
+          "name":"Address",
+          "type":"Address"
         }
       ],
       "returnType":"Bool"
