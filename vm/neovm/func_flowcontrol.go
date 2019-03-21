@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"github.com/ontio/ontology/vm/neovm/errors"
+	"math/big"
 )
 
 func opNop(e *ExecutionEngine) (VMState, error) {
@@ -66,6 +67,26 @@ func opCall(e *ExecutionEngine) (VMState, error) {
 	e.OpCode = JMP
 	e.PushContext(context)
 	return opJmp(e)
+}
+
+func opDCALL(e *ExecutionEngine) (VMState, error) {
+	context := e.Context.Clone()
+	e.PushContext(context)
+
+	dest, err := PopBigInt(e)
+	if err != nil {
+		return FAULT, errors.ERR_DCALL_OFFSET_ERROR
+	}
+
+	if dest.Sign() < 0 || dest.Cmp(big.NewInt(int64(len(e.Context.Code)))) > 0 {
+		return FAULT, errors.ERR_DCALL_OFFSET_ERROR
+	}
+
+	target := dest.Int64()
+
+	e.Context.SetInstructionPointer(target)
+
+	return NONE, nil
 }
 
 func opRet(e *ExecutionEngine) (VMState, error) {

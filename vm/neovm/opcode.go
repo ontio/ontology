@@ -64,6 +64,7 @@ const (
 	TOALTSTACK      OpCode = 0x6B // Puts the input onto the top of the alt stack. Removes it from the main stack.
 	FROMALTSTACK    OpCode = 0x6C // Puts the input onto the top of the main stack. Removes it from the alt stack.
 	XDROP           OpCode = 0x6D
+	DCALL           OpCode = 0x6E
 	XSWAP           OpCode = 0x72
 	XTUCK           OpCode = 0x73
 	DEPTH           OpCode = 0x74 // Puts the number of stack items onto the stack.

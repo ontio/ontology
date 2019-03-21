@@ -21,6 +21,7 @@ package neovm
 import (
 	"math/big"
 
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -86,6 +87,11 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 		PushData(e, s[i])
 	case *types.Map:
 		PushData(e, items.(*types.Map).TryGetValue(index))
+	case *types.ByteArray:
+		bi, _ := index.GetBigInteger()
+		i := int(bi.Int64())
+		a, _ := items.GetByteArray()
+		PushData(e, a[i])
 	}
 
 	return NONE, nil
@@ -178,7 +184,98 @@ func opReverse(e *ExecutionEngine) (VMState, error) {
 func opRemove(e *ExecutionEngine) (VMState, error) {
 	index := PopStackItem(e)
 	item := PopStackItem(e)
-	m := item.(*types.Map)
-	m.Remove(index)
+
+	switch item.(type) {
+	case *types.Map:
+		m := item.(*types.Map)
+		m.Remove(index)
+	case *types.Array:
+		m, err := item.GetArray()
+		if err != nil {
+			return FAULT, errors.NewErr("[opRemove]get Array error!")
+		}
+
+		i, err := index.GetBigInteger()
+		if err != nil {
+			return FAULT, errors.NewErr("[opRemove] index not a interger!")
+		}
+
+		if i.Sign() < 0 {
+			return FAULT, errors.NewErr("[opRemove] index out of bound!")
+		}
+
+		len_t := big.NewInt(int64(len(m)))
+		if len_t.Cmp(i) <= 0 {
+			return FAULT, errors.NewErr("[opRemove] index out of bound!")
+		}
+
+		ii := i.Int64()
+		item.(*types.Array).RemoveAt(int(ii) + 1)
+	default:
+		return FAULT, errors.NewErr("Not a supported remove type")
+	}
+
+	return NONE, nil
+}
+
+func opHasKey(e *ExecutionEngine) (VMState, error) {
+	key := PopStackItem(e)
+	item := PopStackItem(e)
+
+	switch item.(type) {
+	case *types.Map:
+		v := item.(*types.Map).TryGetValue(key)
+
+		ok := false
+		if v != nil {
+			ok = true
+		}
+
+		PushData(e, ok)
+	default:
+		return FAULT, errors.NewErr("Not a supported haskey type")
+	}
+	return NONE, nil
+}
+
+func opKeys(e *ExecutionEngine) (VMState, error) {
+	item := PopStackItem(e)
+	switch item.(type) {
+	case *types.Map:
+		keys, err := item.(*types.Map).GetMapSortedKey()
+		if err != nil {
+			return FAULT, err
+		}
+
+		PushData(e, types.NewArray(keys))
+	default:
+		return FAULT, errors.NewErr("Not a supported keys type")
+	}
+	return NONE, nil
+}
+
+func opValues(e *ExecutionEngine) (VMState, error) {
+	item := PopStackItem(e)
+	switch item.(type) {
+	case *types.Map:
+		mapitem, err := item.GetMap()
+		if err != nil {
+			return FAULT, err
+		}
+
+		values := make([]types.StackItems, len(mapitem))
+		keys, err := item.(*types.Map).GetMapSortedKey()
+		if err != nil {
+			return FAULT, err
+		}
+
+		for j, v := range keys {
+			values[j] = mapitem[v]
+		}
+
+		PushData(e, types.NewArray(values))
+	default:
+		return FAULT, errors.NewErr("Not a supported values type")
+	}
 	return NONE, nil
 }

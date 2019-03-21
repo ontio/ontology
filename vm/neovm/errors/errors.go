@@ -48,4 +48,6 @@ var (
 	ERR_MAP_NOT_EXIST            = errors.New("map not contain key")
 	ERR_NOT_MAP_KEY              = errors.New("type cann't as map key")
 	ERR_REMOVE_NOT_SUPPORT       = errors.New("type don't support remove")
+	ERR_HASKEY_NOT_SUPPORT       = errors.New("array keys only support integer")
+	ERR_DCALL_OFFSET_ERROR       = errors.New("DCALL offset is not right")
 )

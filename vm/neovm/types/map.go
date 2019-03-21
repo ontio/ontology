@@ -21,6 +21,7 @@ package types
 import (
 	"fmt"
 	"math/big"
+	"sort"
 
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
@@ -101,4 +102,37 @@ func (this *Map) TryGetValue(key StackItems) StackItems {
 
 func (this *Map) IsMapKey() bool {
 	return false
+}
+
+func (this *Map) GetMapSortedKey() ([]StackItems, error) {
+	mapitem, err := this.GetMap()
+	if err != nil {
+		return nil, err
+	}
+
+	var unsortKey []string
+	keyMap := make(map[string]StackItems, 0)
+	keys := make([]StackItems, len(mapitem))
+	for k := range mapitem {
+		switch k.(type) {
+		case *ByteArray, *Integer, *Boolean:
+			ba, _ := k.GetByteArray()
+			key := string(ba)
+			if key == "" {
+				key = string([]byte{0})
+			}
+			unsortKey = append(unsortKey, key)
+			keyMap[key] = k
+
+		default:
+			return nil, fmt.Errorf("%s", "Unsupport map key type.")
+		}
+	}
+
+	sort.Strings(unsortKey)
+
+	for j, v := range unsortKey {
+		keys[j] = keyMap[v]
+	}
+	return keys, nil
 }
