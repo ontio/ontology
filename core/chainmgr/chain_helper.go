@@ -23,8 +23,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -87,7 +89,8 @@ func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstate
 	info.ShardID = shard.ShardID
 	info.ParentShardID = shard.ShardID.ParentID()
 
-	if _, present := shard.Peers[self.account.PublicKey]; present {
+	key := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
+	if _, present := shard.Peers[strings.ToLower(key)]; present {
 		// peer is in the shard
 		// build shard config
 		if self.shardID == shard.ShardID {

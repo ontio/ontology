@@ -20,10 +20,8 @@ package shardgas
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/types"
@@ -37,6 +35,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	ntypes "github.com/ontio/ontology/vm/neovm/types"
 	"math/big"
+	"strings"
 )
 
 /////////
@@ -382,15 +381,7 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: get shard state failed, err: %s", err)
 	}
-	pubKeyData, err := hex.DecodeString(param.PeerPubKey)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: decode peer pub key failed, err: %s", err)
-	}
-	peer, err := keypair.DeserializePublicKey(pubKeyData)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: deserialize peer pub key failed, err: %s", err)
-	}
-	shardPeerInfo, ok := shard.Peers[peer]
+	shardPeerInfo, ok := shard.Peers[strings.ToLower(param.PeerPubKey)]
 	if !ok {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: peer not exist at shard")
 	}
@@ -473,15 +464,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if shardBalance < param.FeeAmount {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: shard gas balance not enough")
 	}
-	pubKeyData, err := hex.DecodeString(param.PeerPubKey)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: decode peer pub key failed, err: %s", err)
-	}
-	peer, err := keypair.DeserializePublicKey(pubKeyData)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: deserialize peer pub key failed, err: %s", err)
-	}
-	shardPeerInfo, ok := shard.Peers[peer]
+	shardPeerInfo, ok := shard.Peers[strings.ToLower(param.PeerPubKey)]
 	if !ok {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: peer not exist at shard")
 	}

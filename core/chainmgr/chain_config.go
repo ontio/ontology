@@ -20,9 +20,7 @@ package chainmgr
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"sort"
 
 	"github.com/ontio/ontology/core/types"
@@ -61,15 +59,11 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 	// FIXME: only solo supported
 	if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		// add seeds and bookkeepers to config
-		seedlist := make([]string, 0)
 		bookkeepers := make([]string, 0)
 		for peerPK, _ := range shardState.Peers {
-			seed := types.AddressFromPubKey(peerPK)
-			seedlist = append(seedlist, seed.ToBase58())
-			bookkeepers = append(bookkeepers, hex.EncodeToString(keypair.SerializePublicKey(peerPK)))
+			bookkeepers = append(bookkeepers, peerPK)
 		}
 		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
-		shardConfig.Genesis.SeedList = seedlist
 	} else if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		seedlist := make([]string, 0)
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
@@ -81,7 +75,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 			seedlist = append(seedlist, info.PeerPubKey)
 			vbftpeerstakeinfo := &config.VBFTPeerStakeInfo{
 				Index:      info.Index,
-				PeerPubkey: hex.EncodeToString(keypair.SerializePublicKey(peerPK)),
+				PeerPubkey: peerPK,
 				Address:    info.PeerOwner.ToBase58(),
 			}
 			stakeInfo, ok := peerStakeInfo[peerPK]

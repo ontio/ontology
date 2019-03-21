@@ -1,9 +1,7 @@
 package shard_stake
 
 import (
-	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -97,26 +95,7 @@ func (this *PeerViewInfo) Deserialize(r io.Reader) error {
 }
 
 type ViewInfo struct {
-	Peers map[keypair.PublicKey]*PeerViewInfo
-}
-
-func (this *ViewInfo) GetPeer(pubKey string) (*PeerViewInfo, keypair.PublicKey, error) {
-	if this.Peers == nil {
-		return nil, nil, fmt.Errorf("GetPeer: peers is nil")
-	}
-	pubKeyData, err := hex.DecodeString(pubKey)
-	if err != nil {
-		return nil, nil, fmt.Errorf("GetPeer: decode param pub key failed, err: %s", err)
-	}
-	paramPubkey, err := keypair.DeserializePublicKey(pubKeyData)
-	if err != nil {
-		return nil, nil, fmt.Errorf("GetPeer: deserialize param pub key failed, err: %s", err)
-	}
-	shardPeerStakeInfo, ok := this.Peers[paramPubkey]
-	if !ok {
-		return nil, nil, fmt.Errorf("GetPeer: peer %s not exist", pubKey)
-	}
-	return shardPeerStakeInfo, paramPubkey, nil
+	Peers map[string]*PeerViewInfo
 }
 
 func (this *ViewInfo) Serialize(w io.Writer) error {
@@ -145,22 +124,14 @@ func (this *ViewInfo) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialze: read peers num failed, err: %s", err)
 	}
-	this.Peers = make(map[keypair.PublicKey]*PeerViewInfo)
+	this.Peers = make(map[string]*PeerViewInfo)
 	for i := uint64(0); i < num; i++ {
 		info := &PeerViewInfo{}
 		err = info.Deserialize(r)
 		if err != nil {
 			return fmt.Errorf("deserialize: index %d, err: %s", i, err)
 		}
-		pubKeyData, err := hex.DecodeString(info.PeerPubKey)
-		if err != nil {
-			return fmt.Errorf("deserialze: decode pub key failed, err: %s", err)
-		}
-		pubKey, err := keypair.DeserializePublicKey(pubKeyData)
-		if err != nil {
-			return fmt.Errorf("deserialze: deserialize pub key failed, err: %s", err)
-		}
-		this.Peers[pubKey] = info
+		this.Peers[info.PeerPubKey] = info
 	}
 	return nil
 }
@@ -173,7 +144,7 @@ type UserPeerStakeInfo struct {
 }
 
 type UserStakeInfo struct {
-	Peers map[keypair.PublicKey]*UserPeerStakeInfo
+	Peers map[string]*UserPeerStakeInfo
 }
 
 func (this *UserStakeInfo) Serialize(w io.Writer) error {
@@ -214,7 +185,7 @@ func (this *UserStakeInfo) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialze: read peers num failed, err: %s", err)
 	}
-	this.Peers = make(map[keypair.PublicKey]*UserPeerStakeInfo)
+	this.Peers = make(map[string]*UserPeerStakeInfo)
 	for i := uint64(0); i < num; i++ {
 		info := &UserPeerStakeInfo{}
 		peerPubKey, err := serialization.ReadString(r)
@@ -222,14 +193,6 @@ func (this *UserStakeInfo) Deserialize(r io.Reader) error {
 			return fmt.Errorf("deserialze: read peer pub key failed, index %d, err: %s", i, err)
 		}
 		info.PeerPubKey = peerPubKey
-		pubKeyData, err := hex.DecodeString(peerPubKey)
-		if err != nil {
-			return fmt.Errorf("deserialze: decode param pub key failed, err: %s", err)
-		}
-		pubKey, err := keypair.DeserializePublicKey(pubKeyData)
-		if err != nil {
-			return fmt.Errorf("deserialze: deserialize param pub key failed, err: %s", err)
-		}
 		stakeAmount, err := utils.ReadVarUint(r)
 		if err != nil {
 			return fmt.Errorf("deserialze: deserialize stake amount failed, err: %s", err)
@@ -245,7 +208,7 @@ func (this *UserStakeInfo) Deserialize(r io.Reader) error {
 			return fmt.Errorf("deserialze: deserialize unfreeze amount failed, err: %s", err)
 		}
 		info.UnfreezeAmount = unfreezeAmount
-		this.Peers[pubKey] = info
+		this.Peers[peerPubKey] = info
 	}
 	return nil
 }

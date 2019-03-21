@@ -2,9 +2,7 @@ package shard_stake
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -13,6 +11,7 @@ import (
 )
 
 const (
+	INIT_SHARD               = "initShard"
 	PEER_STAKE               = "peerInitStake"
 	USER_STAKE               = "userStake"
 	SET_MIN_STAKE            = "setMinStake"
@@ -32,6 +31,7 @@ func InitShardStake() {
 }
 
 func RegisterShardStake(native *native.NativeService) {
+	native.Register(INIT_SHARD, InitShard)
 	native.Register(PEER_STAKE, PeerInitStake)
 	native.Register(USER_STAKE, UserStake)
 	native.Register(UNFREEZE_STAKE, UnfreezeStake)
@@ -68,6 +68,20 @@ func SetMinStake(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func InitShard(native *native.NativeService) ([]byte, error) {
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: only shard mgmt can invoke")
+	}
+	param := &InitShardParam{}
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
+	}
+	if err := setShardView(native, param.ShardId, 0); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
 func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	params := new(PeerInitStakeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -77,15 +91,7 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: only shard mgmt can invoke")
 	}
-	pubKeyData, err := hex.DecodeString(params.PeerPubKey)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: decode param pub key failed, err: %s", err)
-	}
-	paramPubkey, err := keypair.DeserializePublicKey(pubKeyData)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: deserialize param pub key failed, err: %s", err)
-	}
-	err = peerStake(native, params.ShardId, paramPubkey, params.PeerOwner, params.StakeAmount)
+	err := peerStake(native, params.ShardId, params.PeerPubKey, params.PeerOwner, params.StakeAmount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: deserialize param pub key failed, err: %s", err)
 	}
@@ -319,7 +325,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if len(param.PeerPubKey) != len(param.Amount) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: peer pub key num not match amount num")
 	}
-	feeInfo := make(map[keypair.PublicKey]uint64)
+	feeInfo := make(map[string]uint64)
 	for index, peer := range param.PeerPubKey {
 		feeInfo[peer] = param.Amount[index]
 	}
