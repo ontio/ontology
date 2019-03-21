@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -418,10 +419,14 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
 		}
 	}
-	if uint32(newConfirmedNum) < shard.Config.VbftConfigData.K-shard.Config.VbftConfigData.C {
+	required := shard.Config.VbftConfigData.K - shard.Config.VbftConfigData.C
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		required = 1
+	}
+	if uint32(newConfirmedNum) < required {
 		return utils.BYTE_TRUE, nil
 	} else {
-		if uint32(oldConfirmedNum) < shard.Config.VbftConfigData.K-shard.Config.VbftConfigData.C {
+		if uint32(oldConfirmedNum) < required {
 			shardBalance, err := getShardGasBalance(native, contract, param.ShardId)
 			if err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
@@ -505,9 +510,13 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 		}
 	}
-	if uint32(newCommitNum) < shard.Config.VbftConfigData.K-shard.Config.VbftConfigData.C {
+	required := shard.Config.VbftConfigData.K - shard.Config.VbftConfigData.C
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		required = 1
+	}
+	if uint32(newCommitNum) < required {
 		return utils.BYTE_TRUE, nil
-	} else if uint32(oldCommitAmount) < shard.Config.VbftConfigData.K-shard.Config.VbftConfigData.C {
+	} else if uint32(oldCommitAmount) < required {
 		err = ont.AppCallTransfer(native, utils.OngContractAddress, contract, utils.ShardStakeAddress, param.FeeAmount)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: transfer ong failed, err: %s", err)
