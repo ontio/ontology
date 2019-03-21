@@ -252,7 +252,7 @@ func (this *CommitDposParam) Deserialize(r io.Reader) error {
 	this.Signer = signer
 	peerPubKey, err := serialization.ReadString(r)
 	if err != nil {
-		return fmt.Errorf("deserialize: read signer failed, err: %s", err)
+		return fmt.Errorf("deserialize: read peer pub key failed, err: %s", err)
 	}
 	this.PeerPubKey = peerPubKey
 	commitDpos := &shardmgmt.CommitDposParam{}
@@ -260,5 +260,34 @@ func (this *CommitDposParam) Deserialize(r io.Reader) error {
 		return fmt.Errorf("deserialize: read commit dpos param failed, err: %s", err)
 	}
 	this.CommitDposParam = commitDpos
+	return nil
+}
+
+type GetWithdrawByIdParam struct {
+	User       common.Address
+	WithdrawId uint64
+}
+
+func (this *GetWithdrawByIdParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write addr failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.WithdrawId); err != nil {
+		return fmt.Errorf("serialize: write withdraw id failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *GetWithdrawByIdParam) Deserialize(r io.Reader) error {
+	user, err := utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read user failed, err: %s", err)
+	}
+	this.User = user
+	withdrawId, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read withdraw id failed, err: %s", err)
+	}
+	this.WithdrawId = withdrawId
 	return nil
 }
