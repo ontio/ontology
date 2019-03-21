@@ -181,14 +181,6 @@ func (msg *XShardCommitMsg) Deserialize(r io.Reader) error {
 	return shardutil.DesJson(r, msg)
 }
 
-type ShardEventState struct {
-	Version    uint32        `json:"version"`
-	EventType  uint32        `json:"event_type"`
-	ToShard    types.ShardID `json:"to_shard"`
-	FromHeight uint32        `json:"from_height"`
-	Payload    []byte        `json:"payload"`
-}
-
 func DecodeShardGasEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {
 	switch evtType {
 	case EVENT_SHARD_GAS_DEPOSIT:

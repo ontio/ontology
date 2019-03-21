@@ -181,7 +181,7 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 	if err := shardutil.SerJson(infoBuf, info); err != nil {
 		return fmt.Errorf("addNotification, ser info: %s", err)
 	}
-	eventState := &shardstates.ShardEventState{
+	eventState := &message.ShardEventState{
 		Version:    VERSION_CONTRACT_SHARD_MGMT,
 		EventType:  info.GetType(),
 		ToShard:    info.GetTargetShardID(),

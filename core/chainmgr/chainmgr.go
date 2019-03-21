@@ -329,8 +329,8 @@ func (self *ChainManager) processEventBusEvent(evt interface{}) {
 }
 
 // handle shard system contract event, other events are not handled and returned
-func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemEventMsg) []*shardstates.ShardEventState {
-	var gasEvents []*shardstates.ShardEventState
+func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemEventMsg) []*message.ShardEventState {
+	var gasEvents []*message.ShardEventState
 	for _, evt := range shardEvts {
 		shardEvt := evt.Event
 		if isShardGasEvent(shardEvt) {
@@ -391,7 +391,7 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 	return gasEvents
 }
 
-func isShardGasEvent(evt *shardstates.ShardEventState) bool {
+func isShardGasEvent(evt *message.ShardEventState) bool {
 	switch evt.EventType {
 	case shardstates.EVENT_SHARD_GAS_DEPOSIT, shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
 		return true
@@ -519,7 +519,7 @@ func (self *ChainManager) processRemoteShardMsg() error {
 					return err
 				}
 
-				shardEvts := make([]*shardstates.ShardEventState, 0)
+				shardEvts := make([]*message.ShardEventState, 0)
 				for _, evt := range evts {
 					shardEvt := evt.Event
 					if isShardGasEvent(shardEvt) && shardEvt.ToShard == req.ShardID {

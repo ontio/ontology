@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/events/message"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
@@ -112,7 +113,7 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types
 	}
 
 	// cross-shard forwarding Tx payload
-	evt := &shardstates.ShardEventState{
+	evt := &message.ShardEventState{
 		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
 		EventType:  shardstates.EVENT_SHARD_MSG_COMMON,
 		ToShard:    toShardID,
@@ -122,7 +123,7 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types
 
 	// marshal to CrossShardMsgParam
 	param := &shardsysmsg.CrossShardMsgParam{
-		Events: []*shardstates.ShardEventState{evt},
+		Events: []*message.ShardEventState{evt},
 	}
 	paramBytes := new(bytes.Buffer)
 	if err := param.Serialize(paramBytes); err != nil {
