@@ -794,3 +794,29 @@ func putPromisePos(native *native.NativeService, contract common.Address, promis
 		cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
+
+func getGasAddress(native *native.NativeService, contract common.Address) (*GasAddress, error) {
+	gasAddressBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(GAS_ADDRESS)))
+	if err != nil {
+		return nil, fmt.Errorf("get gasAddressBytes error: %v", err)
+	}
+	gasAddress := new(GasAddress)
+	if gasAddressBytes != nil {
+		gasAddressStore, err := cstates.GetValueFromRawStorageItem(gasAddressBytes)
+		if err != nil {
+			return nil, fmt.Errorf("get value from gasAddressBytes err:%v", err)
+		}
+		if err := gasAddress.Deserialization(common.NewZeroCopySource(gasAddressStore)); err != nil {
+			return nil, fmt.Errorf("deserialize, deserialize gasAddress error: %v", err)
+		}
+	}
+	return gasAddress, nil
+}
+
+func putGasAddress(native *native.NativeService, contract common.Address, gasAddress *GasAddress) error {
+	sink := common.NewZeroCopySink(nil)
+	gasAddress.Serialization(sink)
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(GAS_ADDRESS)),
+		cstates.GenRawStorageItem(sink.Bytes()))
+	return nil
+}
