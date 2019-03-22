@@ -20,11 +20,11 @@ package shardsysmsg_test
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/events/message"
 	"testing"
 
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func Test_ParamSerialize(t *testing.T) {
@@ -46,7 +46,7 @@ func Test_ParamSerialize2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("invalid shard id")
 	}
-	evt := &shardstates.ShardEventState{
+	evt := &message.ShardEventState{
 		Version:    1,
 		EventType:  2,
 		ToShard:    toShardID,
@@ -54,7 +54,7 @@ func Test_ParamSerialize2(t *testing.T) {
 		Payload:    []byte("test"),
 	}
 	param := &shardsysmsg.CrossShardMsgParam{
-		Events: []*shardstates.ShardEventState{evt},
+		Events: []*message.ShardEventState{evt},
 	}
 
 	buf := new(bytes.Buffer)

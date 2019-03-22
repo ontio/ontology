@@ -44,6 +44,14 @@ type ShardBlockHeader struct {
 	Header *types.Header
 }
 
+func (this *ShardBlockHeader) Serialize(sink *common.ZeroCopySink) error {
+	return this.Header.Serialization(sink)
+}
+
+func (this *ShardBlockHeader) Deserialize(sink *common.ZeroCopySource) error {
+	return this.Header.Deserialization(sink)
+}
+
 //
 // Marshal-Helper for transaction
 //
