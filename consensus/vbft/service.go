@@ -56,7 +56,7 @@ const (
 	EndorseBlock
 	CommitBlock
 	SealBlock
-	FastForward  // for syncer catch up
+	FastForward // for syncer catch up
 	ReBroadcast
 )
 
@@ -1093,7 +1093,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 
 	prevBlockTimestamp := blk.Block.Header.Timestamp
 	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
-	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute * 10).Unix()) {
+	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
 		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
 		self.msgPool.DropMsg(msg)
 		return

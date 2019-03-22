@@ -1,3 +1,21 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package shard_stake
 
 import (
@@ -341,7 +359,7 @@ func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: invalid param: %s", err)
 	}
-	err := changePeerInfo(native, params.ShardId, params.User, params.PeerPubKey, CHANGE_MAX_AUTHORIZATION, params.Amount);
+	err := changePeerInfo(native, params.ShardId, params.User, params.PeerPubKey, CHANGE_MAX_AUTHORIZATION, params.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: failed, err: %s", err)
 	}
@@ -353,7 +371,7 @@ func ChangeProportion(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: invalid param: %s", err)
 	}
-	err := changePeerInfo(native, param.ShardId, param.User, param.PeerPubKey, CHANGE_PROPORTION, param.Amount);
+	err := changePeerInfo(native, param.ShardId, param.User, param.PeerPubKey, CHANGE_PROPORTION, param.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: failed, err: %s", err)
 	}
