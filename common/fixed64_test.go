@@ -24,7 +24,7 @@ import (
 
 func TestFixed64_Serialize(t *testing.T) {
 	val := Fixed64(10)
-	buf := NewZeroCopySink(nil)
+	buf := NewZeroCopySink(0)
 	val.Serialization(buf)
 	val2 := Fixed64(0)
 	val2.Deserialization(NewZeroCopySource(buf.Bytes()))
