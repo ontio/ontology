@@ -388,6 +388,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer already in shard")
 	} else {
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
+			IpAddress:  params.IpAddress,
 			PeerOwner:  params.PeerOwner,
 			PeerPubKey: params.PeerPubKey,
 		}

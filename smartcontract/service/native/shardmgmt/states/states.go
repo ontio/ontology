@@ -84,6 +84,7 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 
 type PeerShardStakeInfo struct {
 	Index      uint32         `json:"index"`
+	IpAddress  string         `json:"ip_addres"`
 	PeerOwner  common.Address `json:"peer_owner"`
 	PeerPubKey string         `json:"peer_pub_key"`
 	NodeType   NodeType       `json:"node_type"`
@@ -92,6 +93,9 @@ type PeerShardStakeInfo struct {
 func (this *PeerShardStakeInfo) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, uint64(this.Index)); err != nil {
 		return fmt.Errorf("serialize: write index failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.IpAddress); err != nil {
+		return fmt.Errorf("serialize: write ip address failed, err: %s", err)
 	}
 	if err := utils.WriteAddress(w, this.PeerOwner); err != nil {
 		return fmt.Errorf("serialize: write peer owner failed, err: %s", err)
@@ -111,6 +115,11 @@ func (this *PeerShardStakeInfo) Deserialize(r io.Reader) error {
 		return fmt.Errorf("deserialize: read index failed, err: %s", err)
 	}
 	this.Index = uint32(index)
+	ipAddr, err := serialization.ReadString(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read ip addr failed, err: %s", err)
+	}
+	this.IpAddress = ipAddr
 	owner, err := utils.ReadAddress(r)
 	if err != nil {
 		return fmt.Errorf("deserialize: read peer owner failed, err: %s", err)

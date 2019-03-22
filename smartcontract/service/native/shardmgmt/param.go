@@ -132,6 +132,7 @@ func (this *ApproveJoinShardParam) Deserialize(r io.Reader) error {
 //
 type JoinShardParam struct {
 	ShardID     types.ShardID  `json:"shard_id"`
+	IpAddress   string         `json:"ip_address"`
 	PeerOwner   common.Address `json:"peer_owner"`
 	PeerPubKey  string         `json:"peer_pub_key"`
 	StakeAmount uint64         `json:"stake_amount"`
