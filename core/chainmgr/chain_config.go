@@ -65,14 +65,12 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		}
 		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
 	} else if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
-		seedlist := make([]string, 0)
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
 		peerStakeInfo, err := GetShardPeerStakeInfo(self.ledger, shardState.ShardID)
 		if err != nil {
 			return nil, fmt.Errorf("buildShardConfig: failed, err: %s")
 		}
 		for peerPK, info := range shardState.Peers {
-			seedlist = append(seedlist, info.PeerPubKey)
 			vbftpeerstakeinfo := &config.VBFTPeerStakeInfo{
 				Index:      info.Index,
 				PeerPubkey: peerPK,
@@ -91,7 +89,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 			}
 			return false
 		})
-		shardConfig.Genesis.SeedList = seedlist
+		shardConfig.Genesis.SeedList = []string{}
 		shardConfig.Genesis.VBFT.N = shardState.Config.VbftConfigData.N
 		shardConfig.Genesis.VBFT.C = shardState.Config.VbftConfigData.C
 		shardConfig.Genesis.VBFT.K = shardState.Config.VbftConfigData.K
