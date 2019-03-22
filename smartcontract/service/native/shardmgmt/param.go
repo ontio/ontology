@@ -178,7 +178,7 @@ func (this *ActivateShardParam) Deserialize(r io.Reader) error {
 
 type CommitDposParam struct {
 	ShardID   uint64 `json:"shard_id"`
-	FeeAmount uint64        `json:"fee_amount"`
+	FeeAmount uint64 `json:"fee_amount"`
 }
 
 func (this *CommitDposParam) Serialize(w io.Writer) error {
