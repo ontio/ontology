@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/fdlimit"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	alog "github.com/ontio/ontology-eventbus/log"
@@ -45,6 +44,7 @@ import (
 	shard "github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	hserver "github.com/ontio/ontology/http/base/actor"

@@ -70,7 +70,9 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		if err != nil {
 			return nil, fmt.Errorf("buildShardConfig: failed, err: %s")
 		}
+		seedList := make([]string, 0)
 		for peerPK, info := range shardState.Peers {
+			seedList = append(seedList, info.IpAddress)
 			vbftpeerstakeinfo := &config.VBFTPeerStakeInfo{
 				Index:      info.Index,
 				PeerPubkey: peerPK,
@@ -89,7 +91,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 			}
 			return false
 		})
-		shardConfig.Genesis.SeedList = []string{}
+		shardConfig.Genesis.SeedList = seedList
 		shardConfig.Genesis.VBFT.N = shardState.Config.VbftConfigData.N
 		shardConfig.Genesis.VBFT.C = shardState.Config.VbftConfigData.C
 		shardConfig.Genesis.VBFT.K = shardState.Config.VbftConfigData.K
