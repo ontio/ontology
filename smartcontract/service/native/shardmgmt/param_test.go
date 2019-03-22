@@ -20,6 +20,7 @@ package shardmgmt_test
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/core/types"
 	"testing"
 
 	"github.com/ontio/ontology/account"
@@ -28,7 +29,7 @@ import (
 
 func newCreateShardParam(t *testing.T, acc *account.Account) []byte {
 	param := &shardmgmt.CreateShardParam{
-		ParentShardID: 100,
+		ParentShardID: types.NewShardIDUnchecked(100),
 		Creator:       acc.Address,
 	}
 
@@ -69,7 +70,7 @@ func TestCreateShardParam(t *testing.T) {
 	if bytes.Compare(param.Creator[:], acc.Address[:]) != 0 {
 		t.Fatalf("unmatched creator address: %v vs %v", param.Creator, acc.Address)
 	}
-	if param.ParentShardID != 100 {
+	if param.ParentShardID.ToUint64() != 100 {
 		t.Fatalf("unmatched parent shard id: %d vs %d", param.ParentShardID, 100)
 	}
 }

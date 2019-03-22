@@ -194,7 +194,7 @@ func TestUnpackBufNode(t *testing.T) {
 		msg = mBlk
 	}
 
-	sink := comm.NewZeroCopySink(nil)
+	sink := comm.NewZeroCopySink(0)
 	err := mt.WriteMessage(sink, msg)
 	assert.Nil(t, err)
 }

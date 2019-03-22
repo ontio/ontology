@@ -32,7 +32,7 @@ import (
 func TestMsgHdrSerializationDeserialization(t *testing.T) {
 	hdr := newMessageHeader("hdrtest", 0, common.Checksum(nil))
 
-	sink := common2.NewZeroCopySink(nil)
+	sink := common2.NewZeroCopySink(0)
 	writeMessageHeaderInto(sink, hdr)
 
 	dehdr, err := readMessageHeader(bytes.NewBuffer(sink.Bytes()))
@@ -51,7 +51,7 @@ func readMessageHeader_old(reader io.Reader) (messageHeader, error) {
 func TestMsgHdr2(t *testing.T) {
 	hdr := newMessageHeader("hdrtest1", 20, common.Checksum([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}))
 
-	sink := common2.NewZeroCopySink(nil)
+	sink := common2.NewZeroCopySink(0)
 	writeMessageHeaderInto(sink, hdr)
 
 	hdr1, err := readMessageHeader(bytes.NewBuffer(sink.Bytes()))
@@ -69,7 +69,7 @@ func TestMsgHdr2(t *testing.T) {
 func TestMsgHdrDesPerformance(t *testing.T) {
 	hdr := newMessageHeader("hdrtest2", 20, common.Checksum([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}))
 
-	sink := common2.NewZeroCopySink(nil)
+	sink := common2.NewZeroCopySink(0)
 	writeMessageHeaderInto(sink, hdr)
 
 	cnt := 1000000

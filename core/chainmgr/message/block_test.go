@@ -20,6 +20,7 @@ package message_test
 
 import (
 	"encoding/json"
+	"github.com/ontio/ontology/common"
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -32,6 +33,7 @@ import (
 
 func newTestBlockHdr() *message.ShardBlockHeader {
 	hdr := &types.Header{}
+	hdr.Version = types.VERSION_SUPPORT_SHARD
 	hdr.Bookkeepers = make([]keypair.PublicKey, 0)
 	hdr.SigData = make([][]byte, 0)
 
@@ -65,30 +67,31 @@ func newTestShardBlockInfo(t *testing.T) *message.ShardBlockInfo {
 		ShardTxs:    make(map[types.ShardID]*message.ShardBlockTx),
 	}
 
-	version := byte(100)
-	shardID := uint64(100)
-	shardTx := newTestShardTx(t, version, shardID)
-	blkInfo.ShardTxs[shardTx.Tx.ShardID] = shardTx
+	version := byte(1)
+	shardID := types.NewShardIDUnchecked(100)
+	shardTx := newTestShardTx(t, version, shardID.ToUint64())
+	blkInfo.ShardTxs[shardID] = shardTx
 
 	return blkInfo
 }
 
-func TestShardBlockHeader_Marshal(t *testing.T) {
+func TestShardBlockHeaderSerialize(t *testing.T) {
 	height := uint32(123)
-	parentHeight := uint64(321)
+	parentHeight := uint32(321)
 
 	shardHdr := newTestBlockHdr()
 	shardHdr.Header.Height = height
 	shardHdr.Header.ParentHeight = parentHeight
-
-	shardBytes, err := json.Marshal(shardHdr)
+	sink := common.NewZeroCopySink(0)
+	err := shardHdr.Serialize(sink)
 	if err != nil {
-		t.Fatalf("marshal shard header: %s", err)
+		t.Fatalf("ser shard header: %s", err)
 	}
-
-	shardHdr2 := &message.ShardBlockHeader{}
-	if err := json.Unmarshal(shardBytes, shardHdr2); err != nil {
-		t.Fatalf("unmarshal shard header: %s", err)
+	bs := sink.Bytes()
+	source := common.NewZeroCopySource(bs)
+	shardHdr2 := message.ShardBlockHeader{Header: &types.Header{}}
+	if err := shardHdr2.Deserialize(source); err != nil {
+		t.Fatalf("deser shard header: %s", err)
 	}
 
 	if shardHdr2.Header.ParentHeight != parentHeight {
@@ -101,7 +104,7 @@ func TestShardBlockHeader_Marshal(t *testing.T) {
 }
 
 func TestShardBlockTx_Marshal(t *testing.T) {
-	version := byte(100)
+	version := byte(1)
 	shardID := uint64(100)
 
 	shardTx := newTestShardTx(t, version, shardID)
