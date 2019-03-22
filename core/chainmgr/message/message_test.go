@@ -19,13 +19,15 @@
 package message_test
 
 import (
+	"github.com/ontio/ontology/core/types"
 	"testing"
 
 	"github.com/ontio/ontology/core/chainmgr/message"
 )
 
 func TestShardHelloMsg(t *testing.T) {
-	hello := &message.ShardHelloMsg{100, 200}
+	hello := &message.ShardHelloMsg{TargetShardID: types.NewShardIDUnchecked(100),
+		SourceShardID: types.NewShardIDUnchecked(200)}
 	helloBytes, err := message.EncodeShardMsg(hello)
 	if err != nil {
 		t.Fatalf("failed to encode hello: %s", err)
@@ -48,9 +50,9 @@ func TestShardHelloMsg(t *testing.T) {
 
 func TestShardBlockRspMsg(t *testing.T) {
 	blkHdr := newTestBlockHdr()
-	tx := newTestShardTx(t, 10, 1000)
+	tx := newTestShardTx(t, 1, 1000)
 	rsp := &message.ShardBlockRspMsg{
-		FromShardID: 100,
+		FromShardID: types.NewShardIDUnchecked(100),
 		Height:      200,
 		BlockHeader: blkHdr,
 		Txs:         []*message.ShardBlockTx{tx},

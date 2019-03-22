@@ -103,7 +103,7 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	sink.WriteByte(byte(tx.TxType))
 	sink.WriteUint32(tx.Nonce)
 	if tx.Version > CURR_TX_VERSION {
-		panic(fmt.Errorf("invalid tx version:%d", tx.Version))
+		return fmt.Errorf("invalid tx version:%d", tx.Version)
 	}
 	sink.WriteUint64(tx.GasPrice)
 	sink.WriteUint64(tx.GasLimit)
