@@ -22,6 +22,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strings"
+
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/types"
@@ -34,8 +37,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	ntypes "github.com/ontio/ontology/vm/neovm/types"
-	"math/big"
-	"strings"
 )
 
 /////////

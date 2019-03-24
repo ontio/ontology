@@ -20,10 +20,10 @@ package shardsysmsg_test
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/events/message"
 	"testing"
 
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 )
 

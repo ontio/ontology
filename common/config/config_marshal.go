@@ -20,9 +20,10 @@ package config
 
 import (
 	"encoding/json"
+	"io"
+
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"io"
 )
 
 //
