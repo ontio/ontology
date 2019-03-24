@@ -21,11 +21,12 @@ package shard_stake
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"strings"
 )
 
 // TODO: consider peer exit scenario

@@ -20,11 +20,12 @@ package shard_stake
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"io"
 )
 
 type InitShardParam struct {

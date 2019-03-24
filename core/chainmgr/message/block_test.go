@@ -20,10 +20,10 @@ package message_test
 
 import (
 	"encoding/json"
-	"github.com/ontio/ontology/common"
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"

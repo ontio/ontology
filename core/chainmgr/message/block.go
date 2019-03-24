@@ -22,13 +22,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/events/message"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events/message"
 )
 
 const (

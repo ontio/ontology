@@ -21,6 +21,7 @@ package shard_stake
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
