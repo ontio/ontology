@@ -38,5 +38,8 @@ import:
   - unix
 - package: golang.org/x/net
   repo: https://github.com/golang/net.git
+- package: github.com/gogo/protobuf
+  subpackages:
+  - proto
 ignore:
   - golang.org/x/sys/unix
