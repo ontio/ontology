@@ -21,6 +21,8 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
+	"strings"
+
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -29,7 +31,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"strings"
 )
 
 /////////

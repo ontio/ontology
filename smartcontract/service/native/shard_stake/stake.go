@@ -21,6 +21,7 @@ package shard_stake
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"

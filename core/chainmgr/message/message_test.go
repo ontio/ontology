@@ -19,10 +19,10 @@
 package message_test
 
 import (
-	"github.com/ontio/ontology/core/types"
 	"testing"
 
 	"github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/types"
 )
 
 func TestShardHelloMsg(t *testing.T) {

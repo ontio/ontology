@@ -23,9 +23,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ontio/ontology/core/types"
-
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
