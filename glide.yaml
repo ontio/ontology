@@ -38,8 +38,15 @@ import:
   - unix
 - package: golang.org/x/net
   repo: https://github.com/golang/net.git
+- package: github.com/golang/protobuf
+  repo: https://github.com/golang/protobuf.git
+  subpackages:
+  - proto
+- package: google.golang.org/grpc
+- package: google.golang.org/genproto
 - package: github.com/gogo/protobuf
   subpackages:
   - proto
+  - protoc-gen-go
 ignore:
   - golang.org/x/sys/unix
