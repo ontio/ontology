@@ -357,41 +357,35 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	return msg, nil
 }
 
-func (self *Server) constructBlockFetchMsg(blkNum uint32) (*blockFetchMsg, error) {
-	msg := &blockFetchMsg{
+func (self *Server) constructBlockFetchMsg(blkNum uint32) *blockFetchMsg {
+	return &blockFetchMsg{
 		BlockNum: blkNum,
 	}
-	return msg, nil
 }
 
-func (self *Server) constructBlockFetchRespMsg(blkNum uint32, blk *Block, blkHash common.Uint256) (*BlockFetchRespMsg, error) {
-	msg := &BlockFetchRespMsg{
+func (self *Server) constructBlockFetchRespMsg(blkNum uint32, blk *Block, blkHash common.Uint256) *BlockFetchRespMsg {
+	return &BlockFetchRespMsg{
 		BlockNumber: blkNum,
 		BlockHash:   blkHash,
 		BlockData:   blk,
 	}
-	return msg, nil
 }
 
-func (self *Server) constructBlockInfoFetchMsg(startBlkNum uint32) (*BlockInfoFetchMsg, error) {
-
-	msg := &BlockInfoFetchMsg{
+func (self *Server) constructBlockInfoFetchMsg(startBlkNum uint32) *BlockInfoFetchMsg {
+	return &BlockInfoFetchMsg{
 		StartBlockNum: startBlkNum,
 	}
-	return msg, nil
 }
 
-func (self *Server) constructBlockInfoFetchRespMsg(blockInfos []*BlockInfo_) (*BlockInfoFetchRespMsg, error) {
-	msg := &BlockInfoFetchRespMsg{
+func (self *Server) constructBlockInfoFetchRespMsg(blockInfos []*BlockInfo_) *BlockInfoFetchRespMsg {
+	return &BlockInfoFetchRespMsg{
 		Blocks: blockInfos,
 	}
-	return msg, nil
 }
 
-func (self *Server) constructProposalFetchMsg(blkNum uint32, proposer uint32) (*proposalFetchMsg, error) {
-	msg := &proposalFetchMsg{
+func (self *Server) constructProposalFetchMsg(blkNum uint32, proposer uint32) *proposalFetchMsg {
+	return &proposalFetchMsg{
 		ProposerID: proposer,
 		BlockNum:   blkNum,
 	}
-	return msg, nil
 }

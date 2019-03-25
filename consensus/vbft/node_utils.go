@@ -433,12 +433,11 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	return nil
 }
 
-func (self *Server) broadcast(msg ConsensusMsg) error {
+func (self *Server) broadcast(msg ConsensusMsg) {
 	self.msgSendC <- &SendMsgEvent{
 		ToPeer: math.MaxUint32,
 		Msg:    msg,
 	}
-	return nil
 }
 
 func (self *Server) broadcastToAll(data []byte) error {
