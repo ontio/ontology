@@ -66,21 +66,23 @@ func RegisterShardStake(native *native.NativeService) {
 }
 
 func SetMinStake(native *native.NativeService) ([]byte, error) {
-	// get admin from database
-	adminAddress, err := global_params.GetStorageRole(native,
-		global_params.GenerateOperatorKey(utils.ParamContractAddress))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: get admin error: %v", err)
-	}
-	//check witness
-	if err := utils.ValidateOwner(native, adminAddress); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: checkWitness error: %v", err)
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
+		// get admin from database
+		adminAddress, err := global_params.GetStorageRole(native,
+			global_params.GenerateOperatorKey(utils.ParamContractAddress))
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: get admin error: %v", err)
+		}
+		//check witness
+		if err := utils.ValidateOwner(native, adminAddress); err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: checkWitness error: %v", err)
+		}
 	}
 	params := new(SetMinStakeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: invalid param: %s", err)
 	}
-	err = setNodeMinStakeAmount(native, params.ShardId, params.Amount)
+	err := setNodeMinStakeAmount(native, params.ShardId, params.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: failed, err: %s", err)
 	}
