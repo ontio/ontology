@@ -116,6 +116,8 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 			ShardID:             native.ShardID,
 			GenesisParentHeight: native.Height,
 			State:               shardstates.SHARD_STATE_ACTIVE,
+			Config:              &shardstates.ShardConfig{VbftConfigData: &config.VBFTConfig{}},
+			Peers:               make(map[string]*shardstates.PeerShardStakeInfo),
 		}
 		if err := setShardState(native, contract, shardState); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt main shard state: %s", err)
@@ -173,6 +175,7 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		ShardID: subShardID,
 		Creator: params.Creator,
 		State:   shardstates.SHARD_STATE_CREATED,
+		Config:  &shardstates.ShardConfig{VbftConfigData: &config.VBFTConfig{}},
 		Peers:   make(map[string]*shardstates.PeerShardStakeInfo),
 	}
 	globalState.NextSubShardIndex += 1
