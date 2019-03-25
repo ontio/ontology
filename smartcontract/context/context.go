@@ -40,6 +40,7 @@ type ContextRef interface {
 	NewExecuteEngine(code []byte) (Engine, error)
 	CheckUseGas(gas uint64) bool
 	CheckExecStep() bool
+	PutMerkleVal(val []byte) error
 }
 
 type Engine interface {

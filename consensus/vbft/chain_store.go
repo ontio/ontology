@@ -55,12 +55,16 @@ func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID) (*ChainStore, error
 		log.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", chainstore.chainedBlockNum, err)
 		return nil, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", chainstore.chainedBlockNum, err)
 	}
+	crossStatesRoot, err := db.GetCrossStatesRoot(chainstore.chainedBlockNum)
+	if err != nil {
+		return nil, fmt.Errorf("GetCrossStatesRoot blockNum:%s, error :%s", chainstore.chainedBlockNum, err)
+	}
 	writeSet := overlaydb.NewMemDB(1, 1)
 	block, err := chainstore.GetBlock(chainstore.chainedBlockNum)
 	if err != nil {
 		return nil, err
 	}
-	chainstore.pendingBlocks[chainstore.chainedBlockNum] = &PendingBlock{block: block, execResult: &store.ExecuteResult{WriteSet: writeSet, MerkleRoot: merkleRoot}}
+	chainstore.pendingBlocks[chainstore.chainedBlockNum] = &PendingBlock{block: block, execResult: &store.ExecuteResult{WriteSet: writeSet, MerkleRoot: merkleRoot, CrossStatesRoot: crossStatesRoot}}
 	return chainstore, nil
 }
 
@@ -84,6 +88,18 @@ func (self *ChainStore) GetExecMerkleRoot(blkNum uint32) (common.Uint256, error)
 		return merkleRoot, nil
 	}
 
+}
+
+func (self *ChainStore) GetCrossStatesRoot(blkNum uint32) (common.Uint256, error) {
+	if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
+		return blk.execResult.CrossStatesRoot, nil
+	}
+	crossStatesRoot, err := self.db.GetCrossStatesRoot(blkNum)
+	if err != nil {
+		return common.Uint256{}, fmt.Errorf("GetCrossStatesRoot blockNum:%d, error :%s", blkNum, err)
+	} else {
+		return crossStatesRoot, nil
+	}
 }
 
 func (self *ChainStore) GetExecWriteSet(blkNum uint32) *overlaydb.MemDB {
@@ -163,17 +179,12 @@ func (self *ChainStore) GetBlock(blockNum uint32) (*Block, error) {
 		return nil, err
 	}
 	prevMerkleRoot := common.Uint256{}
-	crossStatesRoot := common.Uint256{}
 	if blockNum > 1 {
 		prevMerkleRoot, err = self.db.GetStateMerkleRoot(blockNum - 1)
 		if err != nil {
 			log.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blockNum, err)
 			return nil, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blockNum, err)
 		}
-		crossStatesRoot, err = self.db.GetCrossStatesRoot(blockNum - 1)
-		if err != nil {
-			return nil, err
-		}
 	}
-	return initVbftBlock(block, prevMerkleRoot, crossStatesRoot)
+	return initVbftBlock(block, prevMerkleRoot)
 }

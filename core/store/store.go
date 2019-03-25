@@ -32,7 +32,7 @@ import (
 type ExecuteResult struct {
 	WriteSet        *overlaydb.MemDB
 	CrossStates     []byte
-	CrossStatesHash common.Uint256
+	CrossStatesRoot common.Uint256
 	Hash            common.Uint256
 	MerkleRoot      common.Uint256
 	Notify          []*event.ExecuteNotify
@@ -62,6 +62,7 @@ type LedgerStore interface {
 	IsContainTransaction(txHash common.Uint256) (bool, error)
 	GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256
 	GetMerkleProof(m, n uint32) ([]common.Uint256, error)
+	GetCrossStatesProof(height uint32, val []byte) ([]common.Uint256, error)
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
 	GetBookkeeperState() (*states.BookkeeperState, error)
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)

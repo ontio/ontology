@@ -599,6 +599,27 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, stateMerkleRoot common.
 	return nil
 }
 
+func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, val []byte) (auditPath []common.Uint256, err error) {
+	hashes, err := this.stateStore.GetCrossStates(height)
+	if err != nil {
+		return nil, err
+	}
+	if len(hashes) == 1 {
+		auditPath = hashes
+		return
+	}
+
+	tree := merkle.NewTree(0, nil, nil)
+
+	for _, v := range hashes {
+		if bytes.Equal(v.ToArray(), val) {
+			break
+		}
+		auditPath = tree.AppendHash(v)
+	}
+	return
+}
+
 func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
@@ -647,7 +668,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 		result.Notify = append(result.Notify, notify)
 	}
 
-	result.CrossStatesHash, result.CrossStates, err = calculateCrossStatesHash(crossHashes)
+	result.CrossStatesRoot, result.CrossStates, err = calculateCrossStatesHash(crossHashes)
 	if err != nil {
 		return
 	}
@@ -683,8 +704,7 @@ func calculateCrossStatesHash(sink *common.ZeroCopySink) (common.Uint256, []byte
 		}
 		hashes = append(hashes, u256)
 	}
-	var hasher merkle.TreeHasher
-	return hasher.HashFullTreeWithLeafHash(hashes), bs, nil
+	return merkle.TreeHasher{}.HashFullTreeWithLeafHash(hashes), bs, nil
 }
 
 func calculateTotalStateHash(overlay *overlaydb.OverlayDB) (result common.Uint256, err error) {
@@ -740,7 +760,7 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}
 
-	err = this.stateStore.AddCrossStates(blockHeight, result.CrossStates, result.CrossStatesHash)
+	err = this.stateStore.AddCrossStates(blockHeight, result.CrossStates, result.CrossStatesRoot)
 	if err != nil {
 		return err
 	}

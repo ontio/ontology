@@ -176,6 +176,10 @@ func (self *Ledger) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uin
 	return self.ldgStore.GetMerkleProof(proofHeight, rootHeight)
 }
 
+func (self *Ledger) GetCrossStatesProof(height uint32, val []byte) ([]common.Uint256, error) {
+	return self.ldgStore.GetCrossStatesProof(height, val)
+}
+
 func (self *Ledger) PreExecuteContract(tx *types.Transaction) (*cstate.PreExecResult, error) {
 	return self.ldgStore.PreExecuteContract(tx)
 }

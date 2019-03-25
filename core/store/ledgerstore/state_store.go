@@ -237,6 +237,32 @@ func (self *StateStore) GetCrossStatesRoot(height uint32) (hash common.Uint256, 
 	return
 }
 
+func (self *StateStore) GetCrossStates(height uint32) (hashes []common.Uint256, err error) {
+	key := genCrossStatesKey(height)
+
+	var value []byte
+	value, err = self.store.Get(key)
+	if err != nil {
+		return
+	}
+
+	source := common.NewZeroCopySource(value)
+
+	l := source.Size() / common.UINT256_SIZE
+
+	hashes = make([]common.Uint256, 0, l)
+
+	for i := 0; i < l; i++ {
+		u256, ok := source.NextHash()
+		if !ok {
+			err = io.ErrUnexpectedEOF
+			return
+		}
+		hashes = append(hashes, u256)
+	}
+	return
+}
+
 //AddBlockMerkleTreeRoot add a new tree root
 func (self *StateStore) AddBlockMerkleTreeRoot(txRoot common.Uint256) error {
 	key := self.genBlockMerkleTreeKey()
