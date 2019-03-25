@@ -248,7 +248,7 @@ func (self *StateStore) GetCrossStates(height uint32) (hashes []common.Uint256, 
 
 	source := common.NewZeroCopySource(value)
 
-	l := source.Size() / common.UINT256_SIZE
+	l := int(source.Size() / common.UINT256_SIZE)
 
 	hashes = make([]common.Uint256, 0, l)
 
