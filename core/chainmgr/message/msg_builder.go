@@ -54,10 +54,11 @@ func NewShardHelloMsg(localShard, targetShard types.ShardID, sender *actor.PID) 
 	}, nil
 }
 
-func NewShardConfigMsg(accPayload []byte, configPayload []byte, sender *actor.PID) (*CrossShardMsg, error) {
+func NewShardConfigMsg(accPayload []byte, shardSeeds map[uint64][]string, configPayload []byte, sender *actor.PID) (*CrossShardMsg, error) {
 	ack := &ShardConfigMsg{
-		Account: accPayload,
-		Config:  configPayload,
+		Account:    accPayload,
+		ShardSeeds: shardSeeds,
+		Config:     configPayload,
 	}
 	payload, err := EncodeShardMsg(ack)
 	if err != nil {

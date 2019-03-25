@@ -85,6 +85,7 @@ type ShardInfo struct {
 	ShardID       types.ShardID
 	ParentShardID types.ShardID
 	ShardAddress  string
+	SeedList      []string
 	ConnType      int
 	Connected     bool
 	Config        *config.OntologyConfig
@@ -651,7 +652,7 @@ func (self *ChainManager) sendShardMsg(shardId types.ShardID, msg *shardmsg.Cros
 // send Cross-Shard Tx to remote shard
 // TODO: get ip-address of remote shard node
 //
-func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort uint) {
+func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPList []string, shardPort uint) error {
 	// FIXME: broadcast Tx to seed nodes of target shard
 
 	// relay with parent shard
@@ -668,7 +669,12 @@ func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPort uint
 	//}
 	//self.sendShardMsg(self.parentShardID, msg)
 	//return nil
-	if err := sendRawTx(tx, shardPort); err != nil {
-		log.Errorf("send raw tx failed: %s,shardPort:%d", err, shardPort)
+	if len(shardPeerIPList) == 0 {
+		return fmt.Errorf("send raw tx failed: no shard peers")
 	}
+	if err := sendRawTx(tx, shardPeerIPList[0], shardPort); err != nil {
+		return fmt.Errorf("send raw tx failed: %s, shardAddr %s:%d", err, shardPeerIPList[0], shardPort)
+	}
+
+	return nil
 }

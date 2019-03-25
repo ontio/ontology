@@ -23,14 +23,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
-
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -89,6 +88,12 @@ func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstate
 	info.ShardID = shard.ShardID
 	info.ParentShardID = shard.ShardID.ParentID()
 
+	seedList := make([]string, 0)
+	for _, p := range shard.Peers {
+		seedList = append(seedList, p.IpAddress)
+	}
+	info.SeedList = seedList
+
 	key := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
 	if _, present := shard.Peers[strings.ToLower(key)]; present {
 		// peer is in the shard
@@ -126,13 +131,13 @@ type JsonRpcRequest struct {
 	Params  []interface{} `json:"params"`
 }
 
-func sendRawTx(tx *types.Transaction, shardPort uint) error {
+func sendRawTx(tx *types.Transaction, shardPeerIp string, shardPort uint) error {
 	var buffer bytes.Buffer
 	err := tx.Serialize(&buffer)
 	if err != nil {
 		return fmt.Errorf("serialize error:%s", err)
 	}
-	reqAddr := fmt.Sprintf("http://127.0.0.1:%d", shardPort)
+	reqAddr := fmt.Sprintf("http://%s:%d", shardPeerIp, shardPort)
 
 	rpcReq := &JsonRpcRequest{
 		Version: JSON_RPC_VERSION,
