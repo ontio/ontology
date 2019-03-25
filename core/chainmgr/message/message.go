@@ -53,8 +53,9 @@ func (msg *ShardHelloMsg) Type() int {
 }
 
 type ShardConfigMsg struct {
-	Account []byte `json:"account"`
-	Config  []byte `json:"config"`
+	Account    []byte              `json:"account"`
+	ShardSeeds map[uint64][]string `json:"shard_seeds"`
+	Config     []byte              `json:"config"`
 
 	// peer pk : ip-addr/port, (query ip-addr from p2p)
 	// genesis config
