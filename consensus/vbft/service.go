@@ -1785,8 +1785,8 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 		if self.completedBlockNum+1 == evt.blockNum {
 			validHeight := self.validHeight(evt.blockNum)
 			newProposal := false
-			for _, e := range self.poolActor.GetTxnPool(true, uint32(validHeight)) {
-				if err := self.incrValidator.Verify(e.Tx, uint32(validHeight)); err == nil {
+			for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
+				if err := self.incrValidator.Verify(e.Tx, validHeight); err == nil {
 					newProposal = true
 					break
 				}
@@ -2172,8 +2172,8 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	}
 
 	if !forEmpty {
-		for _, e := range self.poolActor.GetTxnPool(true, uint32(validHeight)) {
-			if err := self.incrValidator.Verify(e.Tx, uint32(validHeight)); err == nil {
+		for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
+			if err := self.incrValidator.Verify(e.Tx, validHeight); err == nil {
 				userTxs = append(userTxs, e.Tx)
 			}
 		}
