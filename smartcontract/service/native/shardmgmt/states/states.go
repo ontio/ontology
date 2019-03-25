@@ -38,9 +38,9 @@ const (
 
 const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED // all parameter configured
-	SHARD_STATE_ACTIVE     // started
-	SHARD_STATE_STOPPING   // started
+	SHARD_STATE_CONFIGURED  // all parameter configured
+	SHARD_STATE_ACTIVE      // started
+	SHARD_STATE_STOPPING    // started
 	SHARD_STATE_ARCHIVED
 )
 
@@ -75,11 +75,40 @@ type ShardConfig struct {
 }
 
 func (this *ShardConfig) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteVarUint(w, uint64(this.NetworkSize)); err != nil {
+		return fmt.Errorf("serialize: write net size failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.StakeAssetAddress); err != nil {
+		return fmt.Errorf("serialize: write stake asset addr failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.GasAssetAddress); err != nil {
+		return fmt.Errorf("serialize: write gas asset addr failed, err: %s", err)
+	}
+	if err := this.VbftConfigData.Serialize(w); err != nil {
+		return fmt.Errorf("serialize: write config failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ShardConfig) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	netSize, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read net size failed, err: %s", err)
+	}
+	this.NetworkSize = uint32(netSize)
+	this.StakeAssetAddress, err = utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read stake asset addr failed, err: %s", err)
+	}
+	this.GasAssetAddress, err = utils.ReadAddress(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read gas asset addr failed, err: %s", err)
+	}
+	this.VbftConfigData = &config.VBFTConfig{}
+	if err := this.VbftConfigData.Deserialize(r); err != nil {
+		return fmt.Errorf("deserialize: read config failed, err: %s", err)
+	}
+	return nil
 }
 
 type PeerShardStakeInfo struct {

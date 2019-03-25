@@ -29,3 +29,5 @@ glide.lock
 *.iml
 docker/payload
 shard_*
+config.json
+peers.recent
