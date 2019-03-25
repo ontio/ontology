@@ -1783,8 +1783,15 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 	case EventTxPool:
 		self.timer.stopTxTicker(evt.blockNum)
 		if self.completedBlockNum+1 == evt.blockNum {
-			txpool := self.poolActor.GetTxnPool(true, self.validHeight(evt.blockNum))
-			if len(txpool) != 0 {
+			validHeight := self.validHeight(evt.blockNum)
+			newProposal := false
+			for _, e := range self.poolActor.GetTxnPool(true, uint32(validHeight)) {
+				if err := self.incrValidator.Verify(e.Tx, uint32(validHeight)); err == nil {
+					newProposal = true
+					break
+				}
+			}
+			if newProposal {
 				self.timer.CancelTxBlockTimeout(evt.blockNum)
 				self.startNewProposal(evt.blockNum)
 			} else {
