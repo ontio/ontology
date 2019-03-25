@@ -21,6 +21,7 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/ontio/ontology/common/config"
@@ -383,7 +384,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 		}
-		if rootChainPeerItem.TotalPos < params.StakeAmount {
+		if rootChainPeerItem.InitPos < params.StakeAmount && rootChainPeerItem.TotalPos < params.StakeAmount {
 			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
 		}
 	}
@@ -391,29 +392,21 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if _, present := shard.Peers[strings.ToLower(params.PeerPubKey)]; present {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer already in shard")
 	} else {
+		if shard.Peers == nil {
+			shard.Peers = make(map[string]*shardstates.PeerShardStakeInfo)
+		}
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
 			IpAddress:  params.IpAddress,
 			PeerOwner:  params.PeerOwner,
 			PeerPubKey: params.PeerPubKey,
 		}
-		if shard.Peers == nil {
-			shard.Peers = make(map[string]*shardstates.PeerShardStakeInfo)
-		}
-		if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
-			for i := uint32(0); i < shard.Config.VbftConfigData.K; i++ {
-				if shard.Config.VbftConfigData.Peers[i].PeerPubkey == params.PeerPubKey {
-					peerStakeInfo.NodeType = shardstates.CONSENSUS_NODE
-				} else {
-					peerStakeInfo.NodeType = shardstates.CONDIDATE_NODE
-				}
-			}
-		} else if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-			peerStakeInfo.NodeType = shardstates.CONSENSUS_NODE
-		} else {
-			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: unsupport consensus type")
-		}
-		peerStakeInfo.Index = uint32(len(shard.Peers) + 1)
 		shard.Peers[strings.ToLower(params.PeerPubKey)] = peerStakeInfo
+		if shard.Config.VbftConfigData.Peers == nil {
+			shard.Config.VbftConfigData.Peers = make([]*config.VBFTPeerStakeInfo, 0)
+		}
+		shard.Config.VbftConfigData.Peers = append(shard.Config.VbftConfigData.Peers, &config.VBFTPeerStakeInfo{
+			PeerPubkey: strings.ToLower(params.PeerPubKey), Address: params.PeerOwner.ToBase58(), InitPos: params.StakeAmount,
+		})
 	}
 
 	if err := setShardState(native, contract, shard); err != nil {
@@ -519,7 +512,25 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("activae shard, not enough peer: %d vs %d",
 			len(shard.Peers), shard.Config.NetworkSize)
 	}
-
+	peers := shard.Config.VbftConfigData.Peers
+	sort.SliceStable(peers, func(i, j int) bool {
+		return peers[i].InitPos > peers[j].InitPos
+	})
+	for index, peer := range peers {
+		peer.Index = uint32(index) + 1
+		shardPeer, ok := shard.Peers[peer.PeerPubkey]
+		if !ok {
+			return utils.BYTE_FALSE, fmt.Errorf("activate shard, unmatch peer pub key %s", peer.PeerPubkey)
+		}
+		shardPeer.Index = uint32(index) + 1
+		if uint32(index) < shard.Config.VbftConfigData.K {
+			shardPeer.NodeType = shardstates.CONSENSUS_NODE
+		} else {
+			shardPeer.NodeType = shardstates.CONDIDATE_NODE
+		}
+		shard.Peers[peer.PeerPubkey] = shardPeer
+	}
+	shard.Config.VbftConfigData.Peers = peers
 	shard.GenesisParentHeight = native.Height
 	shard.State = shardstates.SHARD_STATE_ACTIVE
 	if err := setShardState(native, contract, shard); err != nil {
