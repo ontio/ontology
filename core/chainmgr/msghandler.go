@@ -22,11 +22,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology/common"
-	evtmsg "github.com/ontio/ontology/events/message"
-	bcommon "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"math"
 	"os"
 	"os/exec"
@@ -37,11 +32,16 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
 	cmdUtil "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
+	evtmsg "github.com/ontio/ontology/events/message"
+	bcommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	nativeUtil "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -79,11 +79,16 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 
 	self.shardAddrs[sender.Address] = shardID
 
+	shardSeeds := make(map[uint64][]string)
+	for _, s := range self.shards {
+		shardSeeds[s.ShardID.ToUint64()] = s.SeedList
+	}
+
 	buf := new(bytes.Buffer)
 	if err := cfg.Serialize(buf); err != nil {
 		return err
 	}
-	ackMsg, err := message.NewShardConfigMsg(accPayload, buf.Bytes(), self.localPid)
+	ackMsg, err := message.NewShardConfigMsg(accPayload, shardSeeds, buf.Bytes(), self.localPid)
 	if err != nil {
 		return fmt.Errorf("construct config to shard %d: %s", helloMsg.SourceShardID, err)
 	}
@@ -127,6 +132,16 @@ func (self *ChainManager) onShardConfig(sender *actor.PID, shardCfgMsg *message.
 	if err := self.setShardConfig(config.Shard.ShardID, config); err != nil {
 		return fmt.Errorf("add shard %d config: %s", config.Shard.ShardID, err)
 	}
+
+	for id, s := range shardCfgMsg.ShardSeeds {
+		sid, _ := types.NewShardID(id)
+		if _, present := self.shards[sid]; !present {
+			self.shards[sid] = &ShardInfo{
+				SeedList: s,
+			}
+		}
+	}
+
 	self.notifyParentConnected()
 	return nil
 }
@@ -360,7 +375,15 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 			if err != nil {
 				return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
 			}
-			go self.sendCrossShardTx(tx, GetShardRpcPortByShardID(s.ToUint64()))
+			if sinfo, _ := self.shards[s]; sinfo != nil {
+				go func() {
+					if err := self.sendCrossShardTx(tx, sinfo.SeedList, GetShardRpcPortByShardID(s.ToUint64())); err != nil {
+						log.Errorf("send xshardTx to %d, ip %v, failed: %s", s.ToUint64(), sinfo.SeedList, err)
+					}
+				}()
+			} else {
+				return fmt.Errorf("to send xshard tx to %d, no seeds", s)
+			}
 		}
 
 		self.processedBlockHeight = height
@@ -439,6 +462,9 @@ func (self *ChainManager) invokeRootNativeContract(contract common.Address, meth
 	if err != nil {
 		return fmt.Errorf("invokeRootNativeContract: parse tx failed, err: %s", err)
 	}
-	go self.sendCrossShardTx(tx, GetShardRpcPortByShardID(self.shardID.ParentID().ToUint64()))
+
+	// TODO: handle send-tx failure
+	// TODO: change 127.0.0.1 to seeds of root-shard
+	go self.sendCrossShardTx(tx, []string{"127.0.0.1"}, GetShardRpcPortByShardID(self.shardID.ParentID().ToUint64()))
 	return nil
 }
