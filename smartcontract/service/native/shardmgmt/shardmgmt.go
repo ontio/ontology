@@ -384,7 +384,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 		}
-		if rootChainPeerItem.InitPos < params.StakeAmount && rootChainPeerItem.TotalPos < params.StakeAmount {
+		if rootChainPeerItem.InitPos < params.StakeAmount {
 			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
 		}
 	}
@@ -404,9 +404,12 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		if shard.Config.VbftConfigData.Peers == nil {
 			shard.Config.VbftConfigData.Peers = make([]*config.VBFTPeerStakeInfo, 0)
 		}
-		shard.Config.VbftConfigData.Peers = append(shard.Config.VbftConfigData.Peers, &config.VBFTPeerStakeInfo{
-			PeerPubkey: strings.ToLower(params.PeerPubKey), Address: params.PeerOwner.ToBase58(), InitPos: params.StakeAmount,
-		})
+		vbftPeerInfo := &config.VBFTPeerStakeInfo{
+			PeerPubkey: strings.ToLower(params.PeerPubKey),
+			Address:    params.PeerOwner.ToBase58(),
+			InitPos:    params.StakeAmount,
+		}
+		shard.Config.VbftConfigData.Peers = append(shard.Config.VbftConfigData.Peers, vbftPeerInfo)
 	}
 
 	if err := setShardState(native, contract, shard); err != nil {
