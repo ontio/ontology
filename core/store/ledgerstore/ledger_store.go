@@ -633,11 +633,19 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			return
 		}
 	}
+	gasTable := make(map[string]uint64)
+	neovm.GAS_TABLE.Range(func(k, value interface{}) bool {
+		key := k.(string)
+		val := value.(uint64)
+		gasTable[key] = val
+
+		return true
+	})
 
 	cache := storage.NewCacheDB(overlay)
 	for _, tx := range block.Transactions {
 		cache.Reset()
-		notify, e := this.handleTransaction(overlay, cache, block, tx)
+		notify, e := this.handleTransaction(overlay, cache, gasTable, block, tx)
 		if e != nil {
 			err = e
 			return
@@ -852,12 +860,12 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 	return this.submitBlock(block, result)
 }
 
-func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, error) {
+func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64, block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	switch tx.TxType {
 	case types.Deploy:
-		err := this.stateStore.HandleDeployTransaction(this, overlay, cache, tx, block, notify)
+		err := this.stateStore.HandleDeployTransaction(this, overlay, gasTable, cache, tx, block, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -865,7 +873,7 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.Invoke:
-		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
+		err := this.stateStore.HandleInvokeTransaction(this, overlay, gasTable, cache, tx, block, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}

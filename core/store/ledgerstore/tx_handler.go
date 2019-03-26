@@ -45,7 +45,7 @@ import (
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
-func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
+func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 	var (
@@ -62,19 +62,19 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 			Tx:        tx,
 			BlockHash: block.Hash(),
 		}
-		createGasPrice, ok := neovm.GAS_TABLE.Load(neovm.CONTRACT_CREATE_NAME)
+		createGasPrice, ok := gasTable[neovm.CONTRACT_CREATE_NAME]
 		if !ok {
 			overlay.SetError(errors.NewErr("[HandleDeployTransaction] get CONTRACT_CREATE_NAME gas failed"))
 			return nil
 		}
 
-		uintCodePrice, ok := neovm.GAS_TABLE.Load(neovm.UINT_DEPLOY_CODE_LEN_NAME)
+		uintCodePrice, ok := gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]
 		if !ok {
 			overlay.SetError(errors.NewErr("[HandleDeployTransaction] get UINT_DEPLOY_CODE_LEN_NAME gas failed"))
 			return nil
 		}
 
-		gasLimit := createGasPrice.(uint64) + calcGasByCodeLen(len(deploy.Code), uintCodePrice.(uint64))
+		gasLimit := createGasPrice + calcGasByCodeLen(len(deploy.Code), uintCodePrice)
 		balance, err := isBalanceSufficient(tx.Payer, cache, config, store, gasLimit*tx.GasPrice)
 		if err != nil {
 			if err := costInvalidGas(tx.Payer, balance, config, overlay, store, notify); err != nil {
@@ -116,7 +116,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 }
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
-func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
+func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
@@ -145,7 +145,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 
 	availableGasLimit = tx.GasLimit
 	if isCharge {
-		uintCodeGasPrice, ok := neovm.GAS_TABLE.Load(neovm.UINT_INVOKE_CODE_LEN_NAME)
+		uintCodeGasPrice, ok := gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]
 		if !ok {
 			overlay.SetError(errors.NewErr("[HandleInvokeTransaction] get UINT_INVOKE_CODE_LEN_NAME gas failed"))
 			return nil
@@ -165,7 +165,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 			return fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
 		}
 
-		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), uintCodeGasPrice.(uint64))
+		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), uintCodeGasPrice)
 
 		if oldBalance < codeLenGasLimit*tx.GasPrice {
 			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify); err != nil {
@@ -189,10 +189,11 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 
 	//init smart contract info
 	sc := smartcontract.SmartContract{
-		Config:  config,
-		CacheDB: cache,
-		Store:   store,
-		Gas:     availableGasLimit - codeLenGasLimit,
+		Config:   config,
+		CacheDB:  cache,
+		Store:    store,
+		GasTable: gasTable,
+		Gas:      availableGasLimit - codeLenGasLimit,
 	}
 
 	//start the smart contract executive function
@@ -327,7 +328,6 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, st
 				log.Errorf("[refreshGlobalParam] failed to parse uint %v\n", ps.Value)
 			} else {
 				neovm.GAS_TABLE.Store(key, pu)
-
 			}
 		}
 		return true
