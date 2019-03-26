@@ -48,16 +48,12 @@ const (
 	KEY_UNBOUND_ONG = "unbound_ong"
 )
 
-func genShardDividedKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
-	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_VIEW_DIVIDED), viewBytes)
-}
-
 func GenShardViewKey(shardIdBytes []byte) []byte {
 	return append(shardIdBytes, []byte(KEY_VIEW_INDEX)...)
 }
 
 func genShardViewKey(contract common.Address, shardIdBytes []byte) []byte {
-	return utils.ConcatKey(contract, shardIdBytes, GenShardViewKey(shardIdBytes))
+	return utils.ConcatKey(contract, GenShardViewKey(shardIdBytes))
 }
 
 func GenShardViewInfoKey(shardIdBytes []byte, viewBytes []byte) []byte {
