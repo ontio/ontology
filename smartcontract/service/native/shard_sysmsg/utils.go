@@ -93,7 +93,7 @@ func sendCommit(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 }
 
 func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg shardstates.XShardMsg) error {
-	if !ctx.ContextRef.CheckUseGas(neovm.OPCODE_REMOTE_NOTIFY) {
+	if !ctx.ContextRef.CheckUseGas(neovm.REMOTE_NOTIFY_GAS) {
 		return neovm.ERR_GAS_INSUFFICIENT
 	}
 
