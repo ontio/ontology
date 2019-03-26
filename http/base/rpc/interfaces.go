@@ -527,11 +527,11 @@ func GetCrossStatesProof(params []interface{}) map[string]interface{} {
 	if !ok {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	hash, err := common.Uint256FromHexString(str)
+	key, err := hex.DecodeString(str)
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	proof, err := bactor.GetCrossStatesProof(uint32(height), hash)
+	proof, value, err := bactor.GetCrossStatesProof(uint32(height), key)
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
@@ -539,7 +539,7 @@ func GetCrossStatesProof(params []interface{}) map[string]interface{} {
 	for _, v := range proof {
 		hashes = append(hashes, v.ToHexString())
 	}
-	return responseSuccess(bcomn.CrossStatesProof{"CrossStatesProof", hashes})
+	return responseSuccess(bcomn.CrossStatesProof{"CrossStatesProof", hashes, hex.EncodeToString(value)})
 }
 
 //get block transactions by height

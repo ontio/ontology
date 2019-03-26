@@ -116,6 +116,10 @@ func (self TreeHasher) _hash_fold(hashes []common.Uint256) common.Uint256 {
 	return accum
 }
 
+func (self TreeHasher) HashLeaf(data []byte) common.Uint256 {
+	return self.hash_leaf(data)
+}
+
 func (self TreeHasher) MerkleLeafPath(leaf common.Uint256, hashes []common.Uint256) []common.Uint256 {
 	if len(hashes) == 1 {
 		return hashes
@@ -174,8 +178,8 @@ func (self TreeHasher) MerkleHashes(preLeaves []common.Uint256, depth int) [][]c
 	return levels
 }
 
-func (self TreeHasher) MerkleProve(leaf common.Uint256, path []common.Uint256, root common.Uint256) bool {
-	hash := leaf
+func (self TreeHasher) MerkleProve(value []byte, path []common.Uint256, root common.Uint256) bool {
+	hash := self.hash_leaf(value)
 	for _, v := range path {
 		hash = self.hash_children(hash, v)
 	}

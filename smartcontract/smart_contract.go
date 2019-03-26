@@ -116,15 +116,9 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	return true
 }
 
-func (this *SmartContract) PutMerkleVal(val []byte) error {
-	temp := sha256.Sum256(val)
-	data := sha256.Sum256(temp[:])
-	u256, err := common.Uint256ParseFromBytes(data[:])
-	if err != nil {
-		return err
-	}
-	this.CrossHashes.WriteHash(u256)
-	return nil
+func (this *SmartContract) PutMerkleVal(data []byte)  {
+	tmp := append([]byte{0}, data...)
+	this.CrossHashes.WriteHash(sha256.Sum256(tmp))
 }
 
 func (this *SmartContract) checkContexts() bool {

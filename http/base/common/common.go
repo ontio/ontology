@@ -62,6 +62,7 @@ type MerkleProof struct {
 type CrossStatesProof struct {
 	Type         string
 	TargetHashes []string
+	Value        string
 }
 
 type LogEventArgs struct {

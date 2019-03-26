@@ -104,6 +104,6 @@ func GetMerkleProof(proofHeight uint32, rootHeight uint32) ([]common.Uint256, er
 	return ledger.DefLedger.GetMerkleProof(proofHeight, rootHeight)
 }
 
-func GetCrossStatesProof(height uint32, leaf common.Uint256) ([]common.Uint256, error) {
-	return ledger.DefLedger.GetCrossStatesProof(height, leaf)
+func GetCrossStatesProof(height uint32, key []byte) ([]common.Uint256, []byte, error) {
+	return ledger.DefLedger.GetCrossStatesProof(height, key)
 }
