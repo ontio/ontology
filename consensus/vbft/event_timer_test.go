@@ -35,14 +35,15 @@ func TestCancelTimer(t *testing.T) {
 	eventtimer.StartTimer(1, 10)
 	eventtimer.CancelTimer(1)
 }
-
 func TestStartEventTimer(t *testing.T) {
 	eventtimer := constructEventTimer()
-	eventtimer.startEventTimer(EventProposeBlockTimeout, 1)
+	err := eventtimer.startEventTimer(EventProposeBlockTimeout, 1)
+	t.Logf("TestStartEventTimer: %v", err)
 }
 
 func TestCancelEventTimer(t *testing.T) {
 	eventtimer := constructEventTimer()
-	eventtimer.startEventTimer(EventProposeBlockTimeout, 1)
+	err := eventtimer.startEventTimer(EventProposeBlockTimeout, 1)
+	t.Logf("startEventTimer: %v", err)
 	eventtimer.cancelEventTimer(EventProposeBlockTimeout, 1)
 }

@@ -709,8 +709,14 @@ func (self *Server) startNewRound() error {
 		self.processProposalMsg(proposal)
 		return nil
 	}
-	self.timer.startTxTicker(blkNum)
-	self.timer.StartTxBlockTimeout(blkNum)
+	if err := self.timer.startTxTicker(blkNum); err != nil {
+		log.Errorf("startxticker blk:%d,err:%s", blkNum, err)
+		return err
+	}
+	if err := self.timer.StartTxBlockTimeout(blkNum); err != nil {
+		log.Errorf("starttxblocktimeout blk:%d,err:%s", blkNum, err)
+		return err
+	}
 	return nil
 }
 
@@ -726,12 +732,16 @@ func (self *Server) startNewProposal(blkNum uint32) {
 		}
 	} else if self.is2ndProposer(blkNum, self.Index) {
 		log.Infof("server %d, 2nd proposer for block %d", self.Index, blkNum)
-		self.timer.StartProposalBackoffTimer(blkNum)
+		if err := self.timer.StartProposalBackoffTimer(blkNum); err != nil {
+			log.Errorf("server %d, startproposalbackofftimer for block %d err:%s", self.Index, blkNum, err)
+		}
 	}
 
 	// TODO: if new round block proposal has received, go endorsing/committing directly
 
-	self.timer.StartProposalTimer(blkNum)
+	if err := self.timer.StartProposalTimer(blkNum); err != nil {
+		log.Errorf("server %d, startnewproposal for block %d err:%s", self.Index, blkNum, err)
+	}
 }
 
 // verify consensus messsage, then send msg to processMsgEvent
@@ -1435,7 +1445,9 @@ func (self *Server) actionLoop() {
 					if proposal == nil {
 						log.Infof("server %d fastforward stopped at blk %d, no proposal", self.Index, blkNum)
 						self.fetchProposal(blkNum, proposer)
-						self.timer.StartCommitTimer(blkNum)
+						if err := self.timer.StartCommitTimer(blkNum); err != nil {
+							log.Errorf("server %d fastforward startcommittimer at blk %d, err:%s", self.Index, blkNum, err)
+						}
 						break
 					}
 
@@ -1522,7 +1534,9 @@ func (self *Server) actionLoop() {
 							if proposal == nil {
 								self.fetchProposal(blkNum, proposer)
 								// restart endorsing timer
-								self.timer.StartEndorsingTimer(blkNum)
+								if err := self.timer.StartEndorsingTimer(blkNum); err != nil {
+									log.Errorf("server %d endorse %d done, startendorsingtimer err:%s", self.Index, blkNum, err)
+								}
 								log.Errorf("server %d endorse %d done, but no proposal", self.Index, blkNum)
 							} else if err := self.makeCommitment(proposal, blkNum, forEmpty); err != nil {
 								log.Errorf("server %d failed to commit block %d on rebroadcasting: %s",
@@ -1635,12 +1649,16 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 			if proposal == nil {
 				self.fetchProposal(evt.blockNum, proposer)
 				// restart endorsing timer
-				self.timer.StartEndorsingTimer(evt.blockNum)
+				if err := self.timer.StartEndorsingTimer(evt.blockNum); err != nil {
+					log.Errorf("endorse %d done,fetchproposal  startendorsingtimer err:%s", evt.blockNum, err)
+				}
 				return fmt.Errorf("endorse %d done, but no proposal available", evt.blockNum)
 			}
 			if err := self.verifyPrevBlockHash(evt.blockNum, proposal); err != nil {
 				// restart endorsing timer
-				self.timer.StartEndorsingTimer(evt.blockNum)
+				if errinfo := self.timer.StartEndorsingTimer(evt.blockNum); errinfo != nil {
+					log.Errorf("endorse %d done,verifyprevblockhash, startendorsingtimer err:%s", evt.blockNum, errinfo)
+				}
 				return fmt.Errorf("endorse %d done, but prev blk hash inconsistency: %s", evt.blockNum, err)
 			}
 			if err := self.makeCommitment(proposal, evt.blockNum, forEmpty); err != nil {
@@ -1689,7 +1707,9 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 			if proposal == nil {
 				self.fetchProposal(evt.blockNum, proposer)
 				// restart timer
-				self.timer.StartEndorseEmptyBlockTimer(evt.blockNum)
+				if err := self.timer.StartEndorseEmptyBlockTimer(evt.blockNum); err != nil {
+					return fmt.Errorf("failed to startendorseemptyblocktimer block %d err:%s", evt.blockNum, err)
+				}
 			} else if err := self.makeCommitment(proposal, evt.blockNum, forEmpty); err != nil {
 				return fmt.Errorf("failed to endorse for block %d on empty endorse timeout: %s", evt.blockNum, err)
 			}
@@ -1705,7 +1725,9 @@ func (self *Server) processTimerEvent(evt *TimerEvent) error {
 					}
 				}
 			} else {
-				self.timer.StartEndorseEmptyBlockTimer(evt.blockNum)
+				if err := self.timer.StartEndorseEmptyBlockTimer(evt.blockNum); err != nil {
+					return fmt.Errorf("failed to endorse block proposal (%d): StartEndorseEmptyBlockTimer err: %s", evt.blockNum, err)
+				}
 			}
 		}
 		return nil
@@ -1848,9 +1870,14 @@ func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) erro
 	// start endorsing timer
 	// TODO: endorsing may have reached consensus before received proposal, handle this
 	if !forEmpty {
-		self.timer.StartEndorsingTimer(blkNum)
+		if err := self.timer.StartEndorsingTimer(blkNum); err != nil {
+			log.Errorf("endorseblock blk:%d,startendorsingtimer err:%s", blkNum, err)
+			return fmt.Errorf("endorseblock blk:%d,startendorsingkimer err:%s", blkNum, err)
+		}
 	} else {
-		self.timer.StartEndorseEmptyBlockTimer(blkNum)
+		if err := self.timer.StartEndorseEmptyBlockTimer(blkNum); err != nil {
+			return fmt.Errorf("endorseBlock blk:%d,forEmpty:%v,StartEndorsingTimer err:%s", blkNum, forEmpty, err)
+		}
 	}
 
 	return nil
@@ -1908,8 +1935,9 @@ func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error
 
 	// start commit timer
 	// TODO: committing may have reached consensus before received endorsement, handle this
-	self.timer.StartCommitTimer(blkNum)
-
+	if err := self.timer.StartCommitTimer(blkNum); err != nil {
+		return fmt.Errorf("commitBlock startcommittimer err: %s", err)
+	}
 	return nil
 }
 
@@ -2233,7 +2261,9 @@ func (self *Server) handleProposalTimeout(evt *TimerEvent) error {
 
 		switch evt.evtType {
 		case EventProposeBlockTimeout:
-			self.timer.StartBackoffTimer(evt.blockNum)
+			if err := self.timer.StartBackoffTimer(evt.blockNum); err != nil {
+				return fmt.Errorf("failed to blk:%d, startbackofftimer err: %s", evt.blockNum, err)
+			}
 			log.Infof("server %d started backoff timer for blk %d", self.Index, evt.blockNum)
 			return nil
 		case EventRandomBackoff:
@@ -2241,7 +2271,9 @@ func (self *Server) handleProposalTimeout(evt *TimerEvent) error {
 				if err := self.makeProposal(evt.blockNum, true); err != nil {
 					return fmt.Errorf("failed to propose empty block: %s", err)
 				}
-				self.timer.Start2ndProposalTimer(evt.blockNum)
+				if err := self.timer.Start2ndProposalTimer(evt.blockNum); err != nil {
+					return fmt.Errorf("failed to propose start2ndproposaltimer err:%s", err)
+				}
 				log.Infof("server %d proposed empty block for blk %d", self.Index, evt.blockNum)
 			}
 			return nil
