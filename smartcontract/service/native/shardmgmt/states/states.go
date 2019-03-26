@@ -71,6 +71,8 @@ type ShardConfig struct {
 	NetworkSize       uint32             `json:"network_size"`
 	StakeAssetAddress common.Address     `json:"stake_asset_address"`
 	GasAssetAddress   common.Address     `json:"gas_asset_address"`
+	GasPrice          uint64             `json:"gas_price"`
+	GasLimit          uint64             `json:"gas_limit"`
 	VbftConfigData    *config.VBFTConfig `json:"vbft_config_data"`
 }
 

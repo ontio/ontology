@@ -208,6 +208,9 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
 		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
 	}
+
+	// TODO: child shards need information of all sib-shards
+
 	return self.startChildShard(evt.ShardID, shardState)
 }
 
@@ -255,14 +258,18 @@ func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shar
 	if _, err := self.initShardInfo(shardID, shardState); err != nil {
 		return fmt.Errorf("startChildShard init shard %d info: %s", shardID, err)
 	}
-	if _, err := self.buildShardConfig(shardID, shardState); err != nil {
-		return fmt.Errorf("startChildShard shard %d, build shard %d config: %s", self.shardID, shardID, err)
-	}
 	shardInfo := self.shards[shardID]
-	log.Infof("startChildShard shard %d, received shard %d restart msg, parent %d", self.shardID, shardID, shardInfo.ParentShardID)
 	if shardInfo == nil {
 		return fmt.Errorf("startChildShard shard %d, nil shard info", shardID)
 	}
+
+	if cfg, err := self.buildShardConfig(shardID, shardState); err != nil {
+		return fmt.Errorf("startChildShard shard %d, build shard %d config: %s", self.shardID, shardID, err)
+	} else {
+		shardInfo.Config = cfg
+	}
+	log.Infof("startChildShard shard %d, received shard %d restart msg, parent %d", self.shardID, shardID, shardInfo.ParentShardID)
+
 	if shardInfo.ParentShardID != self.shardID {
 		log.Warnf("startChildShard ParentShardID:%d,shardID:%d", shardInfo.ParentShardID, self.shardID)
 		return nil
@@ -278,11 +285,13 @@ func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shar
 
 func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
 	// build sub-shard args
-	shardportcfg := &cmdUtil.ShardPortConfig{
+	shardportcfg := &cmdUtil.ShardCmdConfig{
 		ParentPort: self.parentShardPort,
 		NodePort:   GetShardNodePortID(shardInfo.ShardID.ToUint64()),
 		RpcPort:    GetShardRpcPortByShardID(shardInfo.ShardID.ToUint64()),
 		RestPort:   GetShardRestPortByShardID(shardInfo.ShardID.ToUint64()),
+		GasPrice:   shardInfo.Config.Common.GasPrice,
+		GasLimit:   shardInfo.Config.Common.GasLimit,
 	}
 	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, shardportcfg)
 	if err != nil {

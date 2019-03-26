@@ -55,7 +55,6 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		return nil, fmt.Errorf("init child config: %s", err)
 	}
 
-	// FIXME: only solo supported
 	if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		// add seeds and bookkeepers to config
 		bookkeepers := make([]string, 0)
@@ -126,5 +125,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 	shardConfig.Rpc = config.DefConfig.Rpc
 	shardConfig.Restful = config.DefConfig.Restful
 
+	shardConfig.Common.GasPrice = shardState.Config.GasPrice
+	shardConfig.Common.GasLimit = shardState.Config.GasLimit
 	return shardConfig, nil
 }

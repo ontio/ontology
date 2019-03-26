@@ -27,14 +27,16 @@ import (
 //
 // build child-Shard Ontology process command line arguments
 //
-type ShardPortConfig struct {
+type ShardCmdConfig struct {
 	ParentPort uint
 	NodePort   uint
 	RpcPort    uint
 	RestPort   uint
+	GasPrice   uint64
+	GasLimit   uint64
 }
 
-func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, shardportcfg *ShardPortConfig) ([]string, error) {
+func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, shardCmdCfg *ShardCmdConfig) ([]string, error) {
 	args := make([]string, 0)
 	shardArgs := make(map[string]string)
 	for _, flag := range CmdFlagsForSharding {
@@ -42,11 +44,13 @@ func BuildShardCommandArgs(cmdArgs map[string]string, shardID types.ShardID, sha
 	}
 	// prepare Shard-Configs for child-shard ontology process
 	shardArgs[ShardIDFlag.GetName()] = fmt.Sprintf("%d", uint(shardID.ToUint64()))
-	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d", uint(shardportcfg.ParentPort+uint(shardID.Index())))
-	shardArgs[ParentShardPortFlag.GetName()] = fmt.Sprintf("%d", shardportcfg.ParentPort)
-	shardArgs[NodePortFlag.GetName()] = fmt.Sprintf("%d", shardportcfg.NodePort)
-	shardArgs[RPCPortFlag.GetName()] = fmt.Sprintf("%d", shardportcfg.RpcPort)
-	shardArgs[RestfulPortFlag.GetName()] = fmt.Sprintf("%d", shardportcfg.RestPort)
+	shardArgs[ShardPortFlag.GetName()] = fmt.Sprintf("%d", uint(shardCmdCfg.ParentPort+uint(shardID.Index())))
+	shardArgs[ParentShardPortFlag.GetName()] = fmt.Sprintf("%d", shardCmdCfg.ParentPort)
+	shardArgs[NodePortFlag.GetName()] = fmt.Sprintf("%d", shardCmdCfg.NodePort)
+	shardArgs[RPCPortFlag.GetName()] = fmt.Sprintf("%d", shardCmdCfg.RpcPort)
+	shardArgs[RestfulPortFlag.GetName()] = fmt.Sprintf("%d", shardCmdCfg.RestPort)
+	shardArgs[GasPriceFlag.GetName()] = fmt.Sprintf("%d", shardCmdCfg.GasPrice)
+	shardArgs[GasLimitFlag.GetName()] = fmt.Sprintf("%d", shardCmdCfg.GasLimit)
 	// copy all args to new shard command, except sharding related flags
 	for n, v := range cmdArgs {
 		// FIXME: disabled consensusPort flag
