@@ -45,6 +45,7 @@ type SmartContract struct {
 	Store         store.LedgerStore     // ledger store
 	Config        *Config
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
+	GasTable      map[string]uint64
 	Gas           uint64
 	ExecStep      int
 	PreExec       bool
@@ -136,6 +137,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		Store:        this.Store,
 		CacheDB:      this.CacheDB,
 		ContextRef:   this,
+		GasTable:     this.GasTable,
 		Code:         code,
 		Tx:           this.Config.Tx,
 		ShardID:      this.Config.ShardID,

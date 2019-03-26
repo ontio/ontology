@@ -127,6 +127,7 @@ type NeoVmService struct {
 	ContextRef    context.ContextRef
 	Notifications []*event.NotifyEventInfo
 	Code          []byte
+	GasTable      map[string]uint64
 	Tx            *types.Transaction
 	ShardID       scommon.ShardID
 	ShardTxState  *xshard_state.TxState
@@ -144,6 +145,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	}
 	this.ContextRef.PushContext(&context.Context{ContractAddress: scommon.AddressFromVmCode(this.Code), Code: this.Code})
 	this.Engine.PushContext(vm.NewExecutionContext(this.Engine, this.Code))
+	var gasTable [256]uint64
 	for {
 		//check the execution step count
 		if this.PreExec && !this.ContextRef.CheckExecStep() {
@@ -163,7 +165,8 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, ERR_CHECK_STACK_SIZE
 			}
 		}
-		if this.Engine.OpCode >= vm.PUSHBYTES1 && this.Engine.OpCode <= vm.PUSHBYTES75 {
+		opCode := this.Engine.OpCode
+		if opCode >= vm.PUSHBYTES1 && opCode <= vm.PUSHBYTES75 {
 			if !this.ContextRef.CheckUseGas(OPCODE_GAS) {
 				return nil, ERR_GAS_INSUFFICIENT
 			}
@@ -171,15 +174,21 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err := this.Engine.ValidateOp(); err != nil {
 				return nil, err
 			}
-			price, err := GasPrice(this.Engine, this.Engine.OpExec.Name)
-			if err != nil {
-				return nil, err
+			price := gasTable[opCode]
+			if price == 0 {
+				p, err := GasPrice(this.GasTable, this.Engine, this.Engine.OpExec.Name)
+				if err != nil {
+					return nil, err
+				}
+				price = p
+				// note: this works because the gas fee for opcode is constant
+				gasTable[opCode] = price
 			}
 			if !this.ContextRef.CheckUseGas(price) {
 				return nil, ERR_GAS_INSUFFICIENT
 			}
 		}
-		switch this.Engine.OpCode {
+		switch opCode {
 		case vm.VERIFY:
 			if vm.EvaluationStackCount(this.Engine) < 3 {
 				return nil, errors.NewErr("[VERIFY] too few input parameters")
@@ -307,7 +316,7 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 			return errors.NewDetailErr(err, errors.ErrNoCode, "[SystemCall] there was a service validator error!")
 		}
 	}
-	price, err := GasPrice(engine, serviceName)
+	price, err := GasPrice(this.GasTable, engine, serviceName)
 	if err != nil {
 		return err
 	}
