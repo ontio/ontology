@@ -599,23 +599,24 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, stateMerkleRoot common.
 	return nil
 }
 
-func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, key []byte) ([]common.Uint256, []byte, error) {
+func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
 	hashes, err := this.stateStore.GetCrossStates(height)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	storageKey := new(states.StorageKey)
 	if err := storageKey.Deserialize(bytes.NewBuffer(key)); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	state, err := this.stateStore.GetStorageState(storageKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	tree := merkle.TreeHasher{}
-	leaf := tree.HashLeaf(state.Value)
-	path := merkle.TreeHasher{}.MerkleLeafPath(leaf, hashes)
-	return path, state.Value, nil
+	path, err := merkle.MerkleLeafPath(state.Value, hashes)
+	if err != nil {
+		return nil, err
+	}
+	return path, nil
 }
 
 func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {

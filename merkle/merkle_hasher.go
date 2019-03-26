@@ -20,10 +20,17 @@ package merkle
 
 import (
 	"crypto/sha256"
-
 	"bytes"
-	"github.com/ontio/ontology/common"
 	"math"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
+	"fmt"
+)
+
+const (
+	LEFT byte = iota
+	RIGHT
 )
 
 var debugCheck = false
@@ -116,41 +123,61 @@ func (self TreeHasher) _hash_fold(hashes []common.Uint256) common.Uint256 {
 	return accum
 }
 
-func (self TreeHasher) HashLeaf(data []byte) common.Uint256 {
-	return self.hash_leaf(data)
+func HashLeaf(data []byte) common.Uint256 {
+	tmp := append([]byte{0}, data...)
+	return sha256.Sum256(tmp)
 }
 
-func (self TreeHasher) MerkleLeafPath(leaf common.Uint256, hashes []common.Uint256) []common.Uint256 {
-	if len(hashes) == 1 {
-		return hashes
-	}
-	index := getIndex(leaf, hashes)
+func HashChildren(left, right common.Uint256) common.Uint256 {
+	data := append([]byte{1}, left[:]...)
+	data = append(data, right[:]...)
+	return sha256.Sum256(data)
+}
+
+func MerkleLeafPath(data []byte, hashes []common.Uint256) ([]byte, error) {
+	buf := bytes.NewBuffer(make([]byte, 0, len(hashes)*common.UINT256_SIZE+len(data)))
+	index := getIndex(HashLeaf(data), hashes)
 	if index < 0 {
-		return nil
+		return nil, fmt.Errorf("%s", "values doesn't exist!")
 	}
 	d := depth(len(hashes))
-	merkleTree := self.MerkleHashes(hashes, d)
-	var path []common.Uint256
+	merkleTree := MerkleHashes(hashes, d)
+	if err := serialization.WriteUint64(buf, uint64(len(data))); err != nil {
+		return nil, err
+	}
+	if _, err := buf.Write(data); err != nil {
+		return nil, err
+	}
 	for i := d; i > 0; i-- {
 		subTree := merkleTree[i]
-		levelLen := len(subTree)
-		remainder := levelLen % 2
-		nextIndex := index / 2
-		if index == levelLen-1 && remainder != 0 {
-			index = nextIndex
+		subLen := len(subTree)
+		remainder := subLen % 2
+		nIndex := index / 2
+		if index == subLen-1 && remainder != 0 {
+			index = nIndex
 			continue
 		}
 		if index%2 != 0 {
-			path = append(path, subTree[index-1])
+			if err := buf.WriteByte(LEFT); err != nil {
+				return nil, err
+			}
+			if _, err := buf.Write(subTree[index-1][:]); err != nil {
+				return nil, err
+			}
 		} else {
-			path = append(path, subTree[index+1])
+			if err := buf.WriteByte(RIGHT); err != nil {
+				return nil, err
+			}
+			if _, err := buf.Write(subTree[index+1][:]); err != nil {
+				return nil, err
+			}
 		}
-		index = nextIndex
+		index = nIndex
 	}
-	return path
+	return buf.Bytes(), nil
 }
 
-func (self TreeHasher) MerkleHashes(preLeaves []common.Uint256, depth int) [][]common.Uint256 {
+func MerkleHashes(preLeaves []common.Uint256, depth int) [][]common.Uint256 {
 	levels := make([][]common.Uint256, depth+1, depth+1)
 	levels[depth] = preLeaves
 	for i := depth; i > 0; i -= 1 {
@@ -158,35 +185,54 @@ func (self TreeHasher) MerkleHashes(preLeaves []common.Uint256, depth int) [][]c
 		levelLen := len(level)
 		remainder := levelLen % 2
 		nextLevel := make([]common.Uint256, levelLen/2+remainder)
-
 		k := 0
 		for j := 0; j < len(level)-1; j += 2 {
 			left := level[j]
 			right := level[j+1]
 
-			nextLevel[k] = self.hash_children(left, right)
+			nextLevel[k] = HashChildren(left, right)
 			k += 1
 		}
-
 		if remainder != 0 {
 			nextLevel[k] = level[len(level)-1]
 		}
-
 		levels[i-1] = nextLevel
 	}
-
 	return levels
 }
 
-func (self TreeHasher) MerkleProve(value []byte, path []common.Uint256, root common.Uint256) bool {
-	hash := self.hash_leaf(value)
-	for _, v := range path {
-		hash = self.hash_children(hash, v)
+func MerkleProve(path []byte, root common.Uint256) []byte {
+	source := common.NewZeroCopySource(path)
+	l, eof := source.NextUint64()
+	if eof {
+		return nil
 	}
-	if bytes.Equal(hash[:], root[:]) {
-		return true
+	value, eof := source.NextBytes(l)
+	if eof {
+		return nil
 	}
-	return false
+	hash := HashLeaf(value)
+	size := int(source.Size() / (common.UINT256_SIZE + 1))
+	for i:=0;i<size;i++ {
+		f, eof := source.NextByte()
+		if eof {
+			return nil
+		}
+		v, eof := source.NextHash()
+		if eof {
+			return nil
+		}
+		if f == LEFT {
+			hash = HashChildren(v, hash)
+		} else {
+			hash = HashChildren(hash, v)
+		}
+	}
+
+	if !bytes.Equal(hash[:], root[:]) {
+		return nil
+	}
+	return value
 }
 
 func depth(n int) int {

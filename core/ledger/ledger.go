@@ -176,7 +176,7 @@ func (self *Ledger) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uin
 	return self.ldgStore.GetMerkleProof(proofHeight, rootHeight)
 }
 
-func (self *Ledger) GetCrossStatesProof(height uint32, key []byte) ([]common.Uint256, []byte, error) {
+func (self *Ledger) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
 	return self.ldgStore.GetCrossStatesProof(height, key)
 }
 

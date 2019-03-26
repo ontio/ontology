@@ -61,8 +61,7 @@ type MerkleProof struct {
 
 type CrossStatesProof struct {
 	Type      string
-	AuditPath []string
-	Value     string
+	AuditPath string
 }
 
 type LogEventArgs struct {
