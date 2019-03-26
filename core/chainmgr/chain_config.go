@@ -67,7 +67,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
 		peerStakeInfo, err := GetShardPeerStakeInfo(self.ledger, shardState.ShardID)
 		if err != nil {
-			return nil, fmt.Errorf("buildShardConfig: failed, err: %s")
+			return nil, fmt.Errorf("buildShardConfig: failed, err: %s", err)
 		}
 		seedList := make([]string, 0)
 		for peerPK, info := range shardState.Peers {
