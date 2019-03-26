@@ -119,21 +119,17 @@ func GetParentShardHeight() (uint32, error) {
 		return 0, nil
 	}
 
-	m := chainmgr.blockPool.Shards[chainmgr.parentShardID]
-	if m == nil {
-		return 0, fmt.Errorf("no parent block info found in blockPool")
-	}
-
 	h := uint32(0)
-	if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
+	if m := chainmgr.blockPool.Shards[chainmgr.parentShardID]; m != nil {
+		for _, blk := range m {
+			if blk.Height > h {
+				h = blk.Height
+			}
+		}
+	} else if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
 		h = cfg.Shard.GenesisParentHeight
 	} else {
 		log.Errorf("failed to get self shard config")
-	}
-	for _, blk := range m {
-		if blk.Height > h {
-			h = blk.Height
-		}
 	}
 
 	return h, nil
