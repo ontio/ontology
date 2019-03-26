@@ -45,6 +45,7 @@ var (
 	HASH160_GAS                   uint64 = 20
 	HASH256_GAS                   uint64 = 20
 	OPCODE_GAS                    uint64 = 1
+	OPCODE_REMOTE_NOTIFY          uint64 = 20000
 
 	PER_UNIT_CODE_LEN    int = 1024
 	METHOD_LENGTH_LIMIT  int = 1024

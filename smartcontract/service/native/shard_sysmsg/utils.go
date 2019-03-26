@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
@@ -92,6 +93,10 @@ func sendCommit(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 }
 
 func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg shardstates.XShardMsg) error {
+	if !ctx.ContextRef.CheckUseGas(neovm.OPCODE_REMOTE_NOTIFY) {
+		return neovm.ERR_GAS_INSUFFICIENT
+	}
+
 	shardReq := &shardstates.CommonShardMsg{
 		SourceShardID: ctx.ShardID,
 		SourceHeight:  uint64(ctx.Height),
