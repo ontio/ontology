@@ -132,8 +132,8 @@ func TestCmp(t *testing.T) {
 	b := NewInteger(big.NewInt(0))
 	c := NewBoolean(true)
 	d := NewInteger(big.NewInt(1))
-	assert.False(t, a.Equals(b)) //????
-	assert.True(t, c.Equals(d))  //????
+	assert.True(t, a.Equals(b))
+	assert.True(t, c.Equals(d))
 
 	arr := NewArray(nil)
 	stt := NewStruct(nil)
