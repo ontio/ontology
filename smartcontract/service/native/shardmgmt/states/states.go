@@ -200,11 +200,11 @@ func (this *ShardState) Serialize(w io.Writer) error {
 		peers = append(peers, peer)
 	}
 	sort.SliceStable(peers, func(i, j int) bool {
-		return peers[i].Index < peers[j].Index
+		return peers[i].PeerPubKey < peers[j].PeerPubKey
 	})
 	for _, peer := range peers {
 		if err := peer.Serialize(w); err != nil {
-			return fmt.Errorf("serialzie: write peer failed, index %d, err: %s", peer.Index, err)
+			return fmt.Errorf("serialize: write peer failed, index %d, err: %s", peer.Index, err)
 		}
 	}
 	return nil
