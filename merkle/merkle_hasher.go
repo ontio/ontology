@@ -22,6 +22,8 @@ import (
 	"crypto/sha256"
 
 	"github.com/ontio/ontology/common"
+	"math"
+	"bytes"
 )
 
 var debugCheck = false
@@ -112,4 +114,86 @@ func (self TreeHasher) _hash_fold(hashes []common.Uint256) common.Uint256 {
 	}
 
 	return accum
+}
+
+func (self TreeHasher) MerkleLeafPath(leaf common.Uint256, hashes []common.Uint256) []common.Uint256 {
+	if len(hashes) == 1 {
+		return hashes
+	}
+	index := getIndex(leaf, hashes)
+	if index < 0 {
+		return nil
+	}
+	d := depth(len(hashes))
+	merkleTree := self.MerkleHashes(hashes, d)
+	var path []common.Uint256
+	for i := d; i > 0; i -- {
+		subTree := merkleTree[i]
+		levelLen := len(subTree)
+		remainder := levelLen % 2
+		nextIndex := index / 2
+		if index == levelLen-1 && remainder != 0 {
+			index = nextIndex
+			continue
+		}
+		if index%2 != 0 {
+			path = append(path, subTree[index - 1])
+		} else {
+			path = append(path, subTree[index + 1])
+		}
+		index = nextIndex
+	}
+	return path
+}
+
+func (self TreeHasher) MerkleHashes(preLeaves []common.Uint256, depth int) [][]common.Uint256 {
+	levels := make([][]common.Uint256, depth+1, depth+1)
+	levels[depth] = preLeaves
+	for i := depth; i > 0; i -= 1 {
+		level := levels[i]
+		levelLen := len(level)
+		remainder := levelLen % 2
+		nextLevel := make([]common.Uint256, levelLen/2+remainder)
+
+		k := 0
+		for j := 0; j < len(level)-1; j += 2 {
+			left := level[j]
+			right := level[j+1]
+
+			nextLevel[k] = self.hash_children(left, right)
+			k += 1
+		}
+
+		if remainder != 0 {
+			nextLevel[k] = level[len(level)-1]
+		}
+
+		levels[i-1] = nextLevel
+	}
+
+	return levels
+}
+
+func (self TreeHasher) MerkleProve(leaf common.Uint256, path []common.Uint256, root common.Uint256) bool {
+	hash := leaf
+	for _, v := range path {
+		hash = self.hash_children(hash, v)
+	}
+	if bytes.Equal(hash[:], root[:]) {
+		return true
+	}
+	return false
+}
+
+func depth(n int) int {
+	return int(math.Ceil(math.Log2(float64(n))))
+}
+
+func getIndex(leaf common.Uint256, hashes []common.Uint256) int {
+	for i, v:=range hashes {
+		if bytes.Equal(v[:], leaf[:]) {
+			return i
+		}
+	}
+	return -1
 }
