@@ -239,10 +239,8 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	// TODO: reset default values
-	if params.GasPrice == 0 {
+	if params.GasPrice == 0 && params.GasLimit == 0 {
 		params.GasPrice = 500
-	}
-	if params.GasLimit == 0 {
 		params.GasLimit = 200000
 	}
 
