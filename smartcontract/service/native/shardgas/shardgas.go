@@ -196,7 +196,7 @@ func UserWithdrawGas(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: get user balance failed, err: %s", err)
 	}
 	if balance < param.Amount {
-		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: user balance not enough, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: user balance not enough")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	withdrawId, err := getUserWithdrawId(native, contract, param.User)
