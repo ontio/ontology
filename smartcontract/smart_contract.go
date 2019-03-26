@@ -116,7 +116,7 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	return true
 }
 
-func (this *SmartContract) PutMerkleVal(data []byte)  {
+func (this *SmartContract) PutMerkleVal(data []byte) {
 	tmp := append([]byte{0}, data...)
 	this.CrossHashes.WriteHash(sha256.Sum256(tmp))
 }

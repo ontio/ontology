@@ -21,9 +21,9 @@ package merkle
 import (
 	"crypto/sha256"
 
+	"bytes"
 	"github.com/ontio/ontology/common"
 	"math"
-	"bytes"
 )
 
 var debugCheck = false
@@ -131,7 +131,7 @@ func (self TreeHasher) MerkleLeafPath(leaf common.Uint256, hashes []common.Uint2
 	d := depth(len(hashes))
 	merkleTree := self.MerkleHashes(hashes, d)
 	var path []common.Uint256
-	for i := d; i > 0; i -- {
+	for i := d; i > 0; i-- {
 		subTree := merkleTree[i]
 		levelLen := len(subTree)
 		remainder := levelLen % 2
@@ -141,9 +141,9 @@ func (self TreeHasher) MerkleLeafPath(leaf common.Uint256, hashes []common.Uint2
 			continue
 		}
 		if index%2 != 0 {
-			path = append(path, subTree[index - 1])
+			path = append(path, subTree[index-1])
 		} else {
-			path = append(path, subTree[index + 1])
+			path = append(path, subTree[index+1])
 		}
 		index = nextIndex
 	}
@@ -194,7 +194,7 @@ func depth(n int) int {
 }
 
 func getIndex(leaf common.Uint256, hashes []common.Uint256) int {
-	for i, v:=range hashes {
+	for i, v := range hashes {
 		if bytes.Equal(v[:], leaf[:]) {
 			return i
 		}

@@ -60,9 +60,9 @@ type MerkleProof struct {
 }
 
 type CrossStatesProof struct {
-	Type         string
-	TargetHashes []string
-	Value        string
+	Type      string
+	AuditPath []string
+	Value     string
 }
 
 type LogEventArgs struct {
