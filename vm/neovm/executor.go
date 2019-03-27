@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"golang.org/x/crypto/ripemd160"
@@ -57,9 +58,12 @@ func (self *Executor) PopContext() (*ExecutionContext, error) {
 	return context, nil
 }
 
-func (self *Executor) PushContext(context *ExecutionContext) {
-	//todo : check limit
+func (self *Executor) PushContext(context *ExecutionContext) error {
+	if len(self.Callers) >= constants.MAX_INVOCATION_STACK_SIZE {
+		return errors.ERR_OVER_STACK_LEN
+	}
 	self.Callers = append(self.Callers, context)
+	return nil
 }
 
 func (self *Executor) Execute() error {
@@ -149,7 +153,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		if opcode == CALL {
 			caller := context.Clone()
 			caller.SetInstructionPointer(int64(caller.GetInstructionPointer() + 2))
-			self.PushContext(caller)
+			err := self.PushContext(caller)
+			if err != nil {
+				return FAULT, err
+			}
 			opcode = JMP
 		}
 
@@ -181,7 +188,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 	case DCALL:
 		caller := context.Clone()
-		self.PushContext(caller)
+		err := self.PushContext(caller)
+		if err != nil {
+			return FAULT, errors.ERR_OVER_STACK_LEN
+		}
 		target, err := self.EvalStack.PopAsInt64()
 		if err != nil {
 			return FAULT, err
@@ -192,13 +202,6 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		self.Context.SetInstructionPointer(target)
 	case RET:
 		self.Context, _ = self.PopContext()
-
-		/*
-			//todo
-				APPCALL  OpCode = 0x67
-				SYSCALL  OpCode = 0x68
-		*/
-		// Stack
 	case DUPFROMALTSTACK:
 		val, err := self.AltStack.Peek(0)
 		if err != nil {
@@ -325,6 +328,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			if err != nil {
 				return FAULT, err
 			}
+		}
+
+		if n == 0 {
+			return NONE, nil
 		}
 
 		// todo: clearly define the behave when n ==0 and stack is empty
@@ -741,7 +748,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 				return FAULT, err
 			}
 
-			array.Append(val)
+			err = array.Append(val)
+			if err != nil {
+				return FAULT, err
+			}
 		}
 		err = self.EvalStack.Push(types.VmValueFromArrayVal(array))
 		if err != nil {
@@ -813,8 +823,13 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		if err != nil {
 			return FAULT, err
 		}
-
-		//todo check val is Struct?
+		if s, err := val.AsStructValue(); err == nil {
+			t, err := s.Clone()
+			if err != nil {
+				return FAULT, err
+			}
+			val = types.VmValueFromStructVal(t)
+		}
 		if array, err := item.AsArrayValue(); err == nil {
 			ind, err := index.AsInt64()
 			if err != nil {
@@ -853,7 +868,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 		array := types.NewArrayValue()
 		for i := int64(0); i < count; i++ {
-			array.Append(types.VmValueFromInt64(0))
+			err = array.Append(types.VmValueFromInt64(0))
+			if err != nil {
+				return FAULT, err
+			}
 		}
 		err = self.EvalStack.Push(types.VmValueFromArrayVal(array))
 		if err != nil {
@@ -881,10 +899,16 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			return FAULT, err
 		}
 	case APPEND:
-		//todo: handle struct
 		item, err := self.EvalStack.Pop()
 		if err != nil {
 			return FAULT, err
+		}
+		if s, err := item.AsStructValue(); err == nil {
+			t, err := s.Clone()
+			if err != nil {
+				return FAULT, err
+			}
+			item = types.VmValueFromStructVal(t)
 		}
 		val, err := self.EvalStack.Pop()
 		switch val.GetType() {
@@ -893,7 +917,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			array.Append(item)
 		case types.ArrayType:
 			array, _ := val.AsArrayValue()
-			array.Append(item)
+			err = array.Append(item)
+			if err != nil {
+				return FAULT, err
+			}
 		default:
 			return FAULT, fmt.Errorf("[executor] ExecuteOp APPEND error, unknown datatype")
 		}
@@ -964,17 +991,13 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		if err != nil {
 			return FAULT, err
 		}
-		keys, err := mapValue.GetMapSortedKey()
-		if err != nil {
-			return FAULT, err
-		}
+		keys := mapValue.GetMapSortedKey()
 		arr := types.NewArrayValue()
 		for _, v := range keys {
-			t, err := types.VmValueFromBytes([]byte(v))
+			err = arr.Append(v)
 			if err != nil {
 				return FAULT, err
 			}
-			arr.Append(t)
 		}
 		err = self.EvalStack.Push(types.VmValueFromArrayVal(arr))
 		if err != nil {
@@ -992,7 +1015,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		vals, err := mapVal.GetValues()
 		arr := types.NewArrayValue()
 		for _, v := range vals {
-			arr.Append(v)
+			err := arr.Append(v)
+			if err != nil {
+				return FAULT, err
+			}
 		}
 		err = self.EvalStack.Push(types.VmValueFromArrayVal(arr))
 		if err != nil {

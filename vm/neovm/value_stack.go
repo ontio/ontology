@@ -112,7 +112,10 @@ func (self *ValueStack) PushAsArray(vals []types.VmValue) error {
 	}
 	arrayValue := types.NewArrayValue()
 	for _, val := range vals {
-		arrayValue.Append(val)
+		err := arrayValue.Append(val)
+		if err != nil {
+			return err
+		}
 	}
 	v := types.VmValueFromArrayVal(arrayValue)
 	self.data = append(self.data, v)
