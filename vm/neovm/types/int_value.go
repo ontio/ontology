@@ -243,8 +243,10 @@ func (self IntValue) Abs() (val IntValue) {
 			val.isbig = true
 			val.bigint = big.NewInt(self.integer)
 			val.bigint.Abs(val.bigint)
-		} else {
+		} else if self.integer < 0 {
 			val.integer = -self.integer
+		} else {
+			val.integer = self.integer
 		}
 	}
 	return
