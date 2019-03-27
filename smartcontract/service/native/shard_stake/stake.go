@@ -129,13 +129,15 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	if minStakeAmount > params.StakeAmount {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: stake amount should be larger than min stake amount")
 	}
-	// save user unbound ong info
-	unboundOngInfo := &UserUnboundOngInfo{
-		StakeAmount: params.StakeAmount,
-		Time:        native.Time,
-	}
-	if err := setUserUnboundOngInfo(native, contract, params.PeerOwner, unboundOngInfo); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
+	if params.StakeAssetAddr == utils.OntContractAddress {
+		// save user unbound ong info
+		unboundOngInfo := &UserUnboundOngInfo{
+			StakeAmount: params.StakeAmount,
+			Time:        native.Time,
+		}
+		if err := setUserUnboundOngInfo(native, contract, params.PeerOwner, unboundOngInfo); err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
+		}
 	}
 	// transfer stake asset
 	err = ont.AppCallTransfer(native, params.StakeAssetAddr, params.PeerOwner, contract, params.StakeAmount)
@@ -225,31 +227,33 @@ func UserStake(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, shardId)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
-	}
 	wholeAmount := uint64(0)
 	for _, amount := range param.Amount {
 		wholeAmount += amount
 	}
-	unboundOngInfo, err := getUserUnboundOngInfo(native, contract, param.User)
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 	}
-	if unboundOngInfo.Time == 0 {
-		// user stake firstly
-		unboundOngInfo.Time = native.Time
-		unboundOngInfo.StakeAmount = wholeAmount
-	} else {
-		amount := utils.CalcUnbindOng(unboundOngInfo.StakeAmount, unboundOngInfo.Time-constants.GENESIS_BLOCK_TIMESTAMP,
-			native.Time-constants.GENESIS_BLOCK_TIMESTAMP)
-		unboundOngInfo.Balance += amount
-		unboundOngInfo.Time = native.Time
-		unboundOngInfo.StakeAmount += wholeAmount
-	}
-	if err := setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+	if stakeAssetAddr == utils.OntContractAddress {
+		unboundOngInfo, err := getUserUnboundOngInfo(native, contract, param.User)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+		}
+		if unboundOngInfo.Time == 0 {
+			// user stake firstly
+			unboundOngInfo.Time = native.Time
+			unboundOngInfo.StakeAmount = wholeAmount
+		} else {
+			amount := utils.CalcUnbindOng(unboundOngInfo.StakeAmount,
+				unboundOngInfo.Time-constants.GENESIS_BLOCK_TIMESTAMP, native.Time-constants.GENESIS_BLOCK_TIMESTAMP)
+			unboundOngInfo.Balance += amount
+			unboundOngInfo.Time = native.Time
+			unboundOngInfo.StakeAmount += wholeAmount
+		}
+		if err := setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo); err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+		}
 	}
 	if err := ont.AppCallTransfer(native, stakeAssetAddr, param.User, contract, wholeAmount); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: transfer stake asset failed, err: %s", err)
@@ -288,30 +292,40 @@ func WithdrawStake(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: check witness failed, err: %s", err)
 	}
-	num, err := withdrawStakeAsset(native, param.ShardId, param.User)
+	shardId, err := types.NewShardID(param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: generate shard id failed, err: %s", err)
+	}
+	num, err := withdrawStakeAsset(native, shardId, param.User)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	unboundOngInfo, err := getUserUnboundOngInfo(native, contract, param.User)
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 	}
-	if unboundOngInfo.Time == 0 {
-		// user stake firstly
-		unboundOngInfo.Time = native.Time
-		unboundOngInfo.StakeAmount = num
-	} else if unboundOngInfo.StakeAmount > num {
-		amount := utils.CalcUnbindOng(unboundOngInfo.StakeAmount, unboundOngInfo.Time-constants.GENESIS_BLOCK_TIMESTAMP,
-			native.Time-constants.GENESIS_BLOCK_TIMESTAMP)
-		unboundOngInfo.Balance += amount
-		unboundOngInfo.Time = native.Time
-		unboundOngInfo.StakeAmount += num
-	} else {
-		return utils.BYTE_FALSE, fmt.Errorf("UserStake: user stake whole amount not enough")
-	}
-	if err := setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+	if stakeAssetAddr == utils.OntContractAddress {
+		unboundOngInfo, err := getUserUnboundOngInfo(native, contract, param.User)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+		}
+		if unboundOngInfo.Time == 0 {
+			// user stake firstly
+			unboundOngInfo.Time = native.Time
+			unboundOngInfo.StakeAmount = num
+		} else if unboundOngInfo.StakeAmount > num {
+			amount := utils.CalcUnbindOng(unboundOngInfo.StakeAmount, unboundOngInfo.Time-constants.GENESIS_BLOCK_TIMESTAMP,
+				native.Time-constants.GENESIS_BLOCK_TIMESTAMP)
+			unboundOngInfo.Balance += amount
+			unboundOngInfo.Time = native.Time
+			unboundOngInfo.StakeAmount += num
+		} else {
+			return utils.BYTE_FALSE, fmt.Errorf("UserStake: user stake whole amount not enough")
+		}
+		if err := setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo); err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+		}
 	}
 	err = ont.AppCallTransfer(native, utils.OntContractAddress, contract, param.User, num)
 	if err != nil {
@@ -328,7 +342,11 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawFee: check witness failed, err: %s", err)
 	}
-	amount, err := withdrawFee(native, param.ShardId, param.User)
+	shardId, err := types.NewShardID(param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("WithdrawFee: generate shard id failed, err: %s", err)
+	}
+	amount, err := withdrawFee(native, shardId, param.User)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawFee: failed, err: %s", err)
 	}
@@ -427,7 +445,8 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 	if err := ont.AppCallTransfer(native, utils.OntContractAddress, contract, contract, 1); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: transfer ont failed, err: %s", err)
 	}
-	if err := ont.AppCallTransfer(native, utils.OngContractAddress, contract, contract, wholeAmount); err != nil {
+	if err := ont.AppCallTransferFrom(native, utils.OngContractAddress, contract, utils.OntContractAddress, param.User,
+		wholeAmount); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: transfer ong failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
