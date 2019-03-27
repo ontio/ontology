@@ -21,9 +21,9 @@ package merkle
 import (
 	"bytes"
 	"crypto/sha256"
+	"fmt"
 	"math"
 
-	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 )
