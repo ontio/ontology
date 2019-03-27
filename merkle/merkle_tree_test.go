@@ -290,7 +290,7 @@ func TestTreeHasher(t *testing.T) {
 
 func TestAudit(t *testing.T) {
 	var hashes []common.Uint256
-	n := 1
+	n := 100
 	tree := TreeHasher{}
 	for i := 0; i < n; i++ {
 		hashes = append(hashes, HashLeaf([]byte(fmt.Sprintf("%d", i))))
