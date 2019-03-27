@@ -214,6 +214,7 @@ func TestStackOpCode(t *testing.T) {
 	checkStackOpCode(t, SIGN, []Value{1}, []Value{1})
 	checkStackOpCode(t, NEGATE, []Value{1}, []Value{-1})
 	checkStackOpCode(t, ABS, []Value{-9999}, []Value{9999})
+	checkStackOpCode(t, ABS, []Value{9999}, []Value{9999})
 	checkStackOpCode(t, NOT, []Value{true}, []Value{false})
 
 	checkStackOpCode(t, SHL, []Value{1, 2}, []Value{4})
