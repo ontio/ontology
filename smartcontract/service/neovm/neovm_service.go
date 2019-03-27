@@ -136,14 +136,13 @@ func (this *NeoVmService) Invoke() (*vmty.VmValue, error) {
 		return nil, ERR_EXECUTE_CODE
 	}
 	this.ContextRef.PushContext(&context.Context{ContractAddress: scommon.AddressFromVmCode(this.Code), Code: this.Code})
-	this.Engine.PushContext(vm.NewExecutionContext(this.Code))
 	var gasTable [256]uint64
 	for {
 		//check the execution step count
 		if this.PreExec && !this.ContextRef.CheckExecStep() {
 			return nil, VM_EXEC_STEP_EXCEED
 		}
-		if len(this.Engine.Callers) == 0 || this.Engine.Context == nil {
+		if this.Engine.Context == nil {
 			break
 		}
 		if this.Engine.Context.GetInstructionPointer() >= len(this.Engine.Context.Code) {
@@ -154,31 +153,24 @@ func (this *NeoVmService) Invoke() (*vmty.VmValue, error) {
 			return nil, io.EOF
 		}
 
-		if this.Engine.Context.GetInstructionPointer() < len(this.Engine.Context.Code) {
-			if ok := checkStackSize(this.Engine, opCode); !ok {
-				return nil, ERR_CHECK_STACK_SIZE
-			}
-		}
+		price := gasTable[opCode]
 		if opCode >= vm.PUSHBYTES1 && opCode <= vm.PUSHBYTES75 {
-			if !this.ContextRef.CheckUseGas(OPCODE_GAS) {
-				return nil, ERR_GAS_INSUFFICIENT
+			price = OPCODE_GAS
+		} else if price == 0 {
+			opExec := vm.OpExecList[opCode]
+			p, err := GasPrice(this.GasTable, this.Engine, opExec.Name)
+			if err != nil {
+				return nil, err
 			}
-		} else {
-			price := gasTable[opCode]
-			if price == 0 {
-				opExec := vm.OpExecList[opCode]
-				p, err := GasPrice(this.GasTable, this.Engine, opExec.Name)
-				if err != nil {
-					return nil, err
-				}
-				price = p
-				// note: this works because the gas fee for opcode is constant
-				gasTable[opCode] = price
-			}
-			if !this.ContextRef.CheckUseGas(price) {
-				return nil, ERR_GAS_INSUFFICIENT
-			}
+			price = p
+			// note: this works because the gas fee for opcode is constant
+			gasTable[opCode] = price
 		}
+
+		if !this.ContextRef.CheckUseGas(price) {
+			return nil, ERR_GAS_INSUFFICIENT
+		}
+
 		switch opCode {
 		case vm.SYSCALL:
 			if err := this.SystemCall(this.Engine); err != nil {
@@ -282,38 +274,4 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, error) {
 		return nil, CONTRACT_NOT_EXIST
 	}
 	return dep.Code, nil
-}
-
-//TODO
-func checkStackSize(engine *vm.Executor, opcode vm.OpCode) bool {
-	size := 0
-	if opcode < vm.PUSH16 {
-		size = 1
-	} else {
-		switch opcode {
-		case vm.DEPTH, vm.DUP, vm.OVER, vm.TUCK:
-			size = 1
-		case vm.UNPACK:
-			if engine.EvalStack.Count() == 0 {
-				return false
-			}
-			item, err := engine.EvalStack.Peek(0)
-			if err != nil {
-				return false
-			}
-			arr, err := item.AsArrayValue()
-			if err == nil {
-				size = int(arr.Len())
-			}
-			struc, err := item.AsStructValue()
-			if err == nil {
-				size = int(struc.Len())
-			}
-		}
-	}
-	size += engine.EvalStack.Count() + engine.AltStack.Count()
-	if size > DUPLICATE_STACK_SIZE {
-		return false
-	}
-	return true
 }
