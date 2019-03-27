@@ -43,8 +43,8 @@ const (
 	SYS_CURRENT_STATE_ROOT DataEntryPrefix = 0x12 //no use
 	SYS_BLOCK_MERKLE_TREE  DataEntryPrefix = 0x13 // Block merkle tree root key prefix
 	SYS_STATE_MERKLE_TREE  DataEntryPrefix = 0x20 // state merkle tree root key prefix
-	SYS_CROSS_STATES       DataEntryPrefix = 0x21
-	SYS_CROSS_STATES_HASH  DataEntryPrefix = 0x22
+	SYS_CROSS_STATES       DataEntryPrefix = 0x22
+	SYS_CROSS_STATES_HASH  DataEntryPrefix = 0x23
 
 	EVENT_NOTIFY DataEntryPrefix = 0x14 //Event notify key prefix
 )
