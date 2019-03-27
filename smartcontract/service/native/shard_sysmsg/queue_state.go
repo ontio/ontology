@@ -51,17 +51,13 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 		return err
 	}
 
-	if toShards == nil {
-		toShards = []types.ShardID{toShard}
-	} else {
-		for _, s := range toShards {
-			if s == toShard {
-				// already in
-				return nil
-			}
+	for _, s := range toShards {
+		if s == toShard {
+			// already in
+			return nil
 		}
-		toShards = append(toShards, toShard)
 	}
+	toShards = append(toShards, toShard)
 
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes := shardutil.GetUint32Bytes(ctx.Height)
@@ -124,9 +120,7 @@ func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) 
 	if err := req.Serialize(reqBytes); err != nil {
 		return err
 	}
-	if reqs == nil {
-		reqs = [][]byte{reqBytes.Bytes()}
-	}
+	reqs = append(reqs, reqBytes.Bytes())
 
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes := shardutil.GetUint32Bytes(ctx.Height)
