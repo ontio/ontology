@@ -295,7 +295,6 @@ func TestMapValue(t *testing.T) {
 	mp["key"] = "value"
 	mp["key2"] = "value2"
 
-	//TODO  map remove test
 	mp2 := make(map[interface{}]interface{}, 0)
 	mp2["key2"] = "value2"
 	checkMultiStackOpCode(t, []OpCode{SWAP, TOALTSTACK, DUPFROMALTSTACK, SWAP, REMOVE, FROMALTSTACK},

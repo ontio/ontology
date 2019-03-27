@@ -1,6 +1,11 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ontio/ontology/vm/neovm/constants"
+	"github.com/ontio/ontology/vm/neovm/errors"
+)
 
 type ArrayValue struct {
 	Data []VmValue
@@ -12,9 +17,12 @@ func NewArrayValue() *ArrayValue {
 	return &ArrayValue{Data: make([]VmValue, 0, initArraySize)}
 }
 
-func (self *ArrayValue) Append(item VmValue) {
-	//todo: check limit
+func (self *ArrayValue) Append(item VmValue) error {
+	if len(self.Data) >= constants.MAX_ARRAY_SIZE {
+		return errors.ERR_OVER_MAX_ARRAY_SIZE
+	}
 	self.Data = append(self.Data, item)
+	return nil
 }
 
 func (self *ArrayValue) Len() int64 {
