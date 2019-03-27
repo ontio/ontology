@@ -253,8 +253,8 @@ func (self *StateStore) GetCrossStates(height uint32) (hashes []common.Uint256, 
 	hashes = make([]common.Uint256, 0, l)
 
 	for i := 0; i < l; i++ {
-		u256, ok := source.NextHash()
-		if !ok {
+		u256, eof := source.NextHash()
+		if eof {
 			err = io.ErrUnexpectedEOF
 			return
 		}
