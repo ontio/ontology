@@ -51,6 +51,9 @@ func (this *PeerViewInfo) Serialize(w io.Writer) error {
 	if err := utils.WriteAddress(w, this.Owner); err != nil {
 		return fmt.Errorf("serialize owner failed, err: %s", err)
 	}
+	if err := serialization.WriteBool(w, this.CanStake); err != nil {
+		return fmt.Errorf("serialize can stake failed, err: %s", err)
+	}
 	if err := utils.WriteVarUint(w, this.WholeFee); err != nil {
 		return fmt.Errorf("serialize whole fee failed, err: %s", err)
 	}
@@ -85,6 +88,9 @@ func (this *PeerViewInfo) Deserialize(r io.Reader) error {
 	}
 	if this.Owner, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read owner failed, err: %s", err)
+	}
+	if this.CanStake, err = serialization.ReadBool(r); err != nil {
+		return fmt.Errorf("deserialize: read can stake failed, err: %s", err)
 	}
 	if this.WholeFee, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read whole fee failed, err: %s", err)

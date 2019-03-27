@@ -21,6 +21,7 @@ package shard_stake
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -215,12 +216,16 @@ func UserStake(native *native.NativeService) ([]byte, error) {
 		amount := param.Amount[index]
 		stakeInfo[peer] = amount
 	}
-	err := userStake(native, param.ShardId, param.User, stakeInfo)
+	shardId, err := types.NewShardID(param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UserStake: generate shard id failed, err: %s", err)
+	}
+	err = userStake(native, shardId, param.User, stakeInfo)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, param.ShardId)
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 	}
@@ -358,11 +363,18 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 }
 
 func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
-	params := new(ChangeMaxAuthorizationParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	param := new(ChangeMaxAuthorizationParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: invalid param: %s", err)
 	}
-	err := changePeerInfo(native, params.ShardId, params.User, params.PeerPubKey, CHANGE_MAX_AUTHORIZATION, params.Amount)
+	if err := utils.ValidateOwner(native, param.User); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: check witness failed, err: %s", err)
+	}
+	shardId, err := types.NewShardID(param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: generate shard id failed, err: %s", err)
+	}
+	err = changePeerInfo(native, shardId, param.User, param.PeerPubKey, CHANGE_MAX_AUTHORIZATION, param.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: failed, err: %s", err)
 	}
@@ -374,7 +386,17 @@ func ChangeProportion(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: invalid param: %s", err)
 	}
-	err := changePeerInfo(native, param.ShardId, param.User, param.PeerPubKey, CHANGE_PROPORTION, param.Amount)
+	if err := utils.ValidateOwner(native, param.User); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: check witness failed, err: %s", err)
+	}
+	shardId, err := types.NewShardID(param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: generate shard id failed, err: %s", err)
+	}
+	if param.Amount > 100 {
+		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: proportion larger than 100")
+	}
+	err = changePeerInfo(native, shardId, param.User, param.PeerPubKey, CHANGE_PROPORTION, param.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: failed, err: %s", err)
 	}
