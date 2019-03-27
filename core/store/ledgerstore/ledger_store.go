@@ -602,15 +602,15 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, stateMerkleRoot common.
 func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
 	hashes, err := this.stateStore.GetCrossStates(height)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetCrossStates:%s", err)
 	}
 	storageKey := new(states.StorageKey)
 	if err := storageKey.Deserialize(bytes.NewBuffer(key)); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("StorageKey Deserialize:%s", err)
 	}
 	state, err := this.stateStore.GetStorageState(storageKey)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetStorageState Key:%x contracthash:%x", storageKey.Key, storageKey.ContractAddress)
 	}
 	path, err := merkle.MerkleLeafPath(state.Value, hashes)
 	if err != nil {
