@@ -489,7 +489,7 @@ func changePeerInfo(native *native.NativeService, shardId types.ShardID, peerOwn
 	default:
 		return fmt.Errorf("changePeerInfo: unsupport change field")
 	}
-	nextViewInfo.Peers[peerPubKey] = peerInfo
+	nextViewInfo.Peers[strings.ToLower(peerPubKey)] = peerInfo
 	if err := setShardViewInfo(native, shardId, nextView, nextViewInfo); err != nil {
 		return fmt.Errorf("changePeerInfo: field, err: %s", err)
 	}
