@@ -697,8 +697,8 @@ func calculateCrossStatesHash(sink *common.ZeroCopySink) (common.Uint256, []byte
 	l := len(bs) / common.UINT256_SIZE
 	hashes := make([]common.Uint256, 0, l)
 	for i := 0; i < l; i++ {
-		u256, ok := source.NextHash()
-		if !ok {
+		u256, eof := source.NextHash()
+		if eof {
 			return common.UINT256_EMPTY, nil, fmt.Errorf("%s", "Get states hash error!")
 		}
 		hashes = append(hashes, u256)
