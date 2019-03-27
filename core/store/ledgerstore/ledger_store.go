@@ -604,15 +604,11 @@ func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, key []byte) ([]by
 	if err != nil {
 		return nil, fmt.Errorf("GetCrossStates:%s", err)
 	}
-	storageKey := new(states.StorageKey)
-	if err := storageKey.Deserialize(bytes.NewBuffer(key)); err != nil {
-		return nil, fmt.Errorf("StorageKey Deserialize:%s", err)
-	}
-	state, err := this.stateStore.GetStorageState(storageKey)
+	state, err := this.stateStore.GetStorageValue(key)
 	if err != nil {
-		return nil, fmt.Errorf("GetStorageState Key:%x contracthash:%x", storageKey.Key, storageKey.ContractAddress)
+		return nil, fmt.Errorf("GetStorageState key:%x", key)
 	}
-	path, err := merkle.MerkleLeafPath(state.Value, hashes)
+	path, err := merkle.MerkleLeafPath(state, hashes)
 	if err != nil {
 		return nil, err
 	}
