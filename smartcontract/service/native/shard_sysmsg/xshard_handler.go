@@ -100,7 +100,7 @@ func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg
 		Result:  result.([]byte),
 	}
 	if err != nil {
-		rspMsg.Error = err.Error()
+		rspMsg.Error = true
 	}
 	if err2 := xshard_state.PutTxRequest(req.SourceTxHash, nil, reqMsg); err2 != nil {
 		return err2
