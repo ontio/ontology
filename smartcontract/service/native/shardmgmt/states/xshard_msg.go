@@ -119,7 +119,7 @@ type XShardTxRsp struct {
 	IdxInTx int32  `json:"idx_in_tx"`
 	FeeUsed uint64 `json:"fee_used"`
 	Result  []byte `json:"result"`
-	Error   string `json:"error"`
+	Error   bool   `json:"error"`
 }
 
 func (msg *XShardTxRsp) Type() int {

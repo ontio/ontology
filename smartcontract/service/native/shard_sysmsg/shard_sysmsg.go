@@ -151,8 +151,8 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 		log.Debugf("remote invoke response available result: %v, err %s", rspMsg.Result, err)
 		if err == nil {
 			var resultErr error
-			if rspMsg.Error != "" {
-				resultErr = errors.New(rspMsg.Error)
+			if rspMsg.Error {
+				resultErr = errors.New("remote invoke got error response")
 			}
 			return rspMsg.Result, resultErr
 		} else if err != xshard_state.ErrNotFound {
