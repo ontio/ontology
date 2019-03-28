@@ -211,7 +211,7 @@ func MerkleProve(path []byte, root common.Uint256) []byte {
 		return nil
 	}
 	hash := HashLeaf(value)
-	size := int(source.Size() / (common.UINT256_SIZE + 1))
+	size := int((source.Size() - source.Pos()) / common.UINT256_SIZE)
 	for i := 0; i < size; i++ {
 		f, eof := source.NextByte()
 		if eof {

@@ -382,7 +382,6 @@ func (self *StateStore) GetStorageValue(key []byte) ([]byte, error) {
 	return storageState.Value, nil
 }
 
-
 //GetCurrentBlock return current block height and current hash in state store
 func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := self.getCurrentBlockKey()
