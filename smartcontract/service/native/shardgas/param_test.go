@@ -56,9 +56,9 @@ func TestPeerWithdrawGasParam(t *testing.T) {
 func TestDepositGasParamSerialize(t *testing.T) {
 	user, _ := common.AddressFromBase58("ARpjnrnHEjXhg4aw7vY6xsY6CfQ1XEWzWC")
 	param := &DepositGasParam{
-		User:user,
-		Amount:1000000000,
-		ShardId:types.NewShardIDUnchecked(1),
+		User:    user,
+		Amount:  1000000000,
+		ShardId: types.NewShardIDUnchecked(1),
 	}
 	bf := new(bytes.Buffer)
 	err := param.Serialize(bf)
