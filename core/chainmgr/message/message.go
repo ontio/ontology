@@ -21,6 +21,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -52,10 +53,16 @@ func (msg *ShardHelloMsg) Type() int {
 	return HELLO_MSG
 }
 
+type SibShardInfo struct {
+	SeedList []string `json:"seed_list"`
+	GasPrice uint64   `json:"gas_price"`
+	GasLimit uint64   `json:"gas_limit"`
+}
+
 type ShardConfigMsg struct {
-	Account    []byte              `json:"account"`
-	ShardSeeds map[uint64][]string `json:"shard_seeds"`
-	Config     []byte              `json:"config"`
+	Account   []byte                   `json:"account"`
+	SibShards map[uint64]*SibShardInfo `json:"sib_shards"`
+	Config    []byte                   `json:"config"`
 
 	// peer pk : ip-addr/port, (query ip-addr from p2p)
 	// genesis config

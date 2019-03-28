@@ -121,6 +121,8 @@ func ShardReserveRoom(ctx *native.NativeService) ([]byte, error) {
 	if err := setRoomOwner(ctx, param.RoomNo, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel reserve: reserve room %d: %s", param.RoomNo, err)
 	}
+	log.Errorf("user %v reserved room %d OK", hex.EncodeToString(param.User[:]), param.RoomNo)
+
 	return utils.BYTE_TRUE, nil
 }
 
@@ -148,6 +150,8 @@ func ShardCheckout(ctx *native.NativeService) ([]byte, error) {
 	if err := setRoomOwner(ctx, param.RoomNo, common.ADDRESS_EMPTY); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel checkout: room %d: %s", param.RoomNo, err)
 	}
+
+	log.Errorf("user %v checkout room %d OK", hex.EncodeToString(param.User[:]), param.RoomNo)
 
 	return utils.BYTE_TRUE, nil
 }

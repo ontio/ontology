@@ -241,6 +241,12 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: invalid shard network size")
 	}
 
+	// TODO: reset default values
+	if params.GasPrice == 0 && params.GasLimit == 0 {
+		params.GasPrice = 500
+		params.GasLimit = 200000
+	}
+
 	// TODO: support other stake
 	if params.StakeAssetAddress.ToHexString() != utils.OntContractAddress.ToHexString() {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: only support ONT staking")
@@ -254,6 +260,8 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		NetworkSize:       params.NetworkMin,
 		StakeAssetAddress: params.StakeAssetAddress,
 		GasAssetAddress:   params.GasAssetAddress,
+		GasPrice:          params.GasPrice,
+		GasLimit:          params.GasLimit,
 		VbftConfigData:    params.VbftConfigData,
 	}
 	shard.State = shardstates.SHARD_STATE_CONFIGURED

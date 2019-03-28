@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/events/message"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
@@ -30,6 +29,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -54,11 +54,11 @@ func NewShardHelloMsg(localShard, targetShard types.ShardID, sender *actor.PID) 
 	}, nil
 }
 
-func NewShardConfigMsg(accPayload []byte, shardSeeds map[uint64][]string, configPayload []byte, sender *actor.PID) (*CrossShardMsg, error) {
+func NewShardConfigMsg(accPayload []byte, sibShards map[uint64]*SibShardInfo, configPayload []byte, sender *actor.PID) (*CrossShardMsg, error) {
 	ack := &ShardConfigMsg{
-		Account:    accPayload,
-		ShardSeeds: shardSeeds,
-		Config:     configPayload,
+		Account:   accPayload,
+		SibShards: sibShards,
+		Config:    configPayload,
 	}
 	payload, err := EncodeShardMsg(ack)
 	if err != nil {
@@ -105,7 +105,7 @@ type _CrossShardTx struct {
 //  One block can generated multiple cross-shard sub-txns, marshaled to [][]byte.
 //  NewCrossShardTXMsg creates one cross-shard forwarding Tx, which contains all sub-txns.
 //
-func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types.ShardID, payload [][]byte) (*types.Transaction, error) {
+func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types.ShardID, gasPrice, gasLimit uint64, payload [][]byte) (*types.Transaction, error) {
 	// marshal all sub-txns to one byte-array
 	tx := &_CrossShardTx{payload}
 	txBytes, err := json.Marshal(tx)
@@ -134,7 +134,8 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types
 	// build transaction
 	mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, paramBytes.Bytes())
 	mutable.ShardID = toShardID.ToUint64()
-	mutable.GasPrice = 0
+	mutable.GasPrice = gasPrice
+	mutable.GasLimit = gasLimit
 	mutable.Payer = account.Address
 
 	// add signatures

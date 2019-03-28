@@ -598,6 +598,7 @@ func (self *ChainManager) waitConnectParent(timeout time.Duration) error {
 		return fmt.Errorf("wait parent connection timeout")
 	case connected := <-self.parentConnWait:
 		if connected {
+			close(self.parentConnWait)
 			return nil
 		}
 		return fmt.Errorf("connection failed")

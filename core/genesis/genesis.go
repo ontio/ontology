@@ -177,6 +177,7 @@ func buildShardGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig
 			govConfigTx,
 			initShardMgmtContract(),
 			initShardSysMsgContract(),
+			deployShardHotelContract(),
 		},
 	}
 	genesisBlock.RebuildMerkleRoot()
@@ -386,5 +387,15 @@ func initShardSysMsgContract() *types.Transaction {
 		panic("construct genesis shard sysmsg transaction error ")
 	}
 
+	return tx
+}
+
+func deployShardHotelContract() *types.Transaction {
+	mutable := utils.NewDeployTransaction(nutils.ShardHotelAddress[:], "ShardHotel", "1.0",
+		"Ontology Team", "contact@ont.io", "Ontology Shard Hotel", true)
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		panic("construct genesis shard hotel transaction error ")
+	}
 	return tx
 }
