@@ -84,7 +84,7 @@ func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg
 		return fmt.Errorf("invalid request message")
 	}
 
-	if rspMsg, _ := xshard_state.GetTxResponse(req.SourceTxHash, reqMsg); rspMsg != nil {
+	if rspMsg := xshard_state.GetTxResponse(req.SourceTxHash, reqMsg); rspMsg != nil {
 		return nil
 	}
 
