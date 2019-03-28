@@ -112,10 +112,7 @@ func GetTxShards(tx common.Uint256) ([]types.ShardID, error) {
 // add participated shard to txState
 //
 func AddTxShard(tx common.Uint256, id types.ShardID) error {
-	txState, err := CreateTxState(tx)
-	if err != nil {
-		return err
-	}
+	txState := CreateTxState(tx)
 	if state, present := txState.Shards[id]; !present {
 		txState.Shards[id] = TxExec
 	} else if state != TxExec {
@@ -167,9 +164,9 @@ func GetTxCommitState(tx common.Uint256) (map[types.ShardID]int, error) {
 
 // CreateTxState
 // If txState available, return it.  Otherwise, Create txState.
-func CreateTxState(tx common.Uint256) (*TxState, error) {
+func CreateTxState(tx common.Uint256) *TxState {
 	if state, present := shardTxStateTable.TxStates[tx]; present {
-		return state, nil
+		return state
 	}
 	state := &TxState{
 		State:  TxExec,
@@ -178,7 +175,7 @@ func CreateTxState(tx common.Uint256) (*TxState, error) {
 		Rsps:   make(map[int32]*shardstates.XShardTxRsp),
 	}
 	shardTxStateTable.TxStates[tx] = state
-	return state, nil
+	return state
 }
 
 func GetTxState(tx common.Uint256) (*TxState, error) {
@@ -189,10 +186,7 @@ func GetTxState(tx common.Uint256) (*TxState, error) {
 }
 
 func GetNextReqIndex(tx common.Uint256) int32 {
-	txState, err := CreateTxState(tx)
-	if err != nil {
-		return -1
-	}
+	txState := CreateTxState(tx)
 	if txState.NextReqID >= MaxRemoteReqPerTx {
 		return -1
 	}
@@ -260,16 +254,13 @@ func SetTxResult(tx common.Uint256, result []byte, resultErr error) error {
 // get remote response of the request, if existed.
 // return nil if not existed
 //
-func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) (*shardstates.XShardTxRsp, error) {
-	txState, err := CreateTxState(tx)
-	if err != nil {
-		return nil, err
-	}
+func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) *shardstates.XShardTxRsp {
+	txState := CreateTxState(tx)
 
 	if rspMsg, present := txState.Rsps[txReq.IdxInTx]; present {
-		return rspMsg, nil
+		return rspMsg
 	}
-	return nil, nil
+	return nil
 }
 
 //
@@ -278,10 +269,7 @@ func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) (*shardsta
 // if not matched with previous response, return ErrMismatchResponse
 //
 func PutTxResponse(tx common.Uint256, txRsp *shardstates.XShardTxRsp) error {
-	txState, err := CreateTxState(tx)
-	if err != nil {
-		return ErrNotFound
-	}
+	txState := CreateTxState(tx)
 
 	// check if corresponding request existed
 	if _, present := txState.Reqs[txRsp.IdxInTx]; !present {
@@ -368,10 +356,7 @@ func PutTxRequest(tx common.Uint256, txPayload []byte, req shardstates.XShardMsg
 		return fmt.Errorf("validate tx request idx %d: %s", txReq.IdxInTx, err)
 	}
 
-	txState, err := CreateTxState(tx)
-	if err != nil {
-		return err
-	}
+	txState := CreateTxState(tx)
 
 	if txPayload != nil {
 		if txState.TxPayload != nil {

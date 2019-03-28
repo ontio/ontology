@@ -69,21 +69,18 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonS
 	// 2. compare new responses with stored responses
 	prepareOK := true
 	for _, req := range reqs {
-		rspMsg, err1 := xshard_state.GetTxResponse(tx, req)
+		rspMsg := xshard_state.GetTxResponse(tx, req)
 		if rspMsg == nil {
-			log.Errorf("get tx response %d: %s", req.IdxInTx, err1)
+			log.Errorf("can not find tx response at index: %d", req.IdxInTx)
 			break
 		}
 		result2, err2 := ctx.NativeCall(req.GetContract(), req.GetMethod(), req.GetArgs())
-		var err1Str, err2Str string
-		if err1 != nil {
-			err1Str = err1.Error()
-		}
+		isError := false
 		if err2 != nil {
-			err2Str = err2.Error()
+			isError = true
 		}
 		if bytes.Compare(rspMsg.Result, result2.([]byte)) != 0 ||
-			err1Str != err2Str {
+			rspMsg.Error != isError {
 			prepareOK = false
 			break
 		}
