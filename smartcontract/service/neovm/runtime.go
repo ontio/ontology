@@ -309,7 +309,7 @@ func DeserializeStackItem(r io.Reader) (items vmtypes.StackItems, err error) {
 		if err != nil {
 			return nil, errors.NewErr("Deserialize stackItems Integer error: " + err.Error())
 		}
-		return vmtypes.NewInteger(vmtypes.BigIntFromBytes(b)), nil
+		return vmtypes.NewInteger(common.BigIntFromNeoBytes(b)), nil
 	case vmtypes.ArrayType, vmtypes.StructType:
 		count, err := serialization.ReadVarUint(r, 0)
 		if err != nil {
