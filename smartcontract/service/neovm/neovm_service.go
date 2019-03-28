@@ -199,23 +199,20 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				vm.PushData(this.Engine, true)
 			}
 		case vm.CHECKMULTISIG:
-			if vm.EvaluationStackCount(this.Engine) < 2 {
+			if vm.EvaluationStackCount(this.Engine) < 4 {
 				return nil, errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters")
 			}
 			data, err := vm.PopByteArray(this.Engine)
 			if err != nil {
 				return nil, err
 			}
-			size, err := vm.PopInt(this.Engine)
+			arr1, err := vm.PopArray(this.Engine)
 			if err != nil {
 				return nil, err
 			}
-			if vm.EvaluationStackCount(this.Engine) < size {
-				return nil, errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters ")
-			}
-			pks := make([]keypair.PublicKey, 0, size)
-			for i:=0;i<size;i++ {
-				value, err := vm.PopByteArray(this.Engine)
+			pks := make([]keypair.PublicKey, 0, len(arr1))
+			for i:=0;i<len(arr1);i++ {
+				value, err := arr1[i].GetByteArray()
 				if err != nil {
 					return nil, err
 				}
@@ -225,23 +222,18 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				}
 				pks = append(pks, pk)
 			}
-			if vm.EvaluationStackCount(this.Engine) < 2 {
-				return nil, errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters ")
-			}
+
 			m, err := vm.PopInt(this.Engine)
 			if err != nil {
 				return nil, err
 			}
-			size, err = vm.PopInt(this.Engine)
+			arr2, err := vm.PopArray(this.Engine)
 			if err != nil {
 				return nil, err
 			}
-			if vm.EvaluationStackCount(this.Engine) < size {
-				return nil, errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters ")
-			}
-			signs := make([][]byte, 0, size)
-			for i:=0;i<size;i++ {
-				value, err := vm.PopByteArray(this.Engine)
+			signs := make([][]byte, 0, len(arr2))
+			for i:=0;i<len(arr2);i++ {
+				value, err := arr2[i].GetByteArray()
 				if err != nil {
 					return nil, err
 				}
