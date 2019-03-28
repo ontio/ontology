@@ -31,13 +31,15 @@ func TestBuildShardCommandArgs(t *testing.T) {
 	args["a"] = "1"
 	args["b"] = "2"
 	shardID := types.NewShardIDUnchecked(uint64(1))
-	shardportcfg := &utils.ShardPortConfig{
+	shardCmdCfg := &utils.ShardCmdConfig{
 		ParentPort: uint(10001),
 		NodePort:   uint(20338),
 		RpcPort:    uint(20336),
 		RestPort:   uint(20334),
+		GasPrice:   500,
+		GasLimit:   200000,
 	}
-	cmdArgs, err := utils.BuildShardCommandArgs(args, shardID, shardportcfg)
+	cmdArgs, err := utils.BuildShardCommandArgs(args, shardID, shardCmdCfg)
 	if err != nil {
 		t.Fatalf("failed to build shard cmd args: %s", err)
 	}
@@ -50,16 +52,22 @@ func TestBuildShardCommandArgs(t *testing.T) {
 	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ShardIDFlag.GetName(), shardID.ToUint64())) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
-	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ParentShardPortFlag.GetName(), shardportcfg.ParentPort)) {
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ParentShardPortFlag.GetName(), shardCmdCfg.ParentPort)) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
-	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.NodePortFlag.GetName(), shardportcfg.NodePort)) {
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.NodePortFlag.GetName(), shardCmdCfg.NodePort)) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
-	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.RPCPortFlag.GetName(), shardportcfg.RpcPort)) {
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.RPCPortFlag.GetName(), shardCmdCfg.RpcPort)) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
-	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.RestfulPortFlag.GetName(), shardportcfg.RestPort)) {
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.RestfulPortFlag.GetName(), shardCmdCfg.RestPort)) {
+		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
+	}
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.GasPriceFlag.GetName(), shardCmdCfg.GasPrice)) {
+		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
+	}
+	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.GasLimitFlag.GetName(), shardCmdCfg.GasLimit)) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
 }

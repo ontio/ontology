@@ -23,16 +23,17 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 /////////
@@ -92,10 +93,11 @@ func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid param: %s", err)
 	}
 
+	// send with minimal gas fee
 	msg := &shardstates.XShardNotify{
 		Contract: reqParam.ToContract,
 		Payer:    ctx.Tx.Payer,
-		Fee:      0,
+		Fee:      neovm.MIN_TRANSACTION_GAS,
 		Method:   reqParam.Method,
 		Args:     reqParam.Args,
 	}

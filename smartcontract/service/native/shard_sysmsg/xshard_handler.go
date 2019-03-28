@@ -27,7 +27,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
+	neovm2 "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
@@ -37,12 +37,31 @@ import (
 //
 func processXShardNotify(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
 
-	// FIXME: invoke neo contract
+	// TODO: invoke neo contract
+	//builder := neovm.NewParamsBuilder(new(bytes.Buffer))
+	//params := make([]interface{}, 0)
+	//params = append(params, req.Msg.GetMethod())
+	//for _, arg := range req.Msg.GetArgs() {
+	//	params = append(params, arg)
+	//}
+	//err := utils.BuildNeoVMParam(builder, params)
+	//if err != nil {
+	//	return err
+	//}
+	//args := append(builder.ToArray(), byte(neovm.APPCALL))
+	//contract := req.Msg.GetContract()
+	//args = append(args, contract[:]...)
+	//
+	//engine, _ := ctx.ContextRef.NewExecuteEngine(args)
+	//_, err = engine.Invoke()
+	//
+	//log.Errorf("XSHARD NOTIFY on method: %s", req.Msg.GetMethod())
+	//
+	//return err
+
 	if _, err := ctx.NativeCall(req.Msg.GetContract(), req.Msg.GetMethod(), req.Msg.GetArgs()); err != nil {
 		return err
 	}
-
-	// TODO: fee settlement
 	return nil
 }
 
@@ -147,7 +166,7 @@ func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg
 	}
 	invokeCode := origTx.Payload.(*payload.InvokeCode)
 	engine, _ := ctx.ContextRef.NewExecuteEngine(invokeCode.Code)
-	neo := engine.(*neovm.NeoVmService)
+	neo := engine.(*neovm2.NeoVmService)
 	neo.Tx = origTx
 	_, resultErr := engine.Invoke()
 	if resultErr != nil {

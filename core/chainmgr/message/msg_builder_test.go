@@ -33,7 +33,7 @@ func TestNewCrossShardTxMsg(t *testing.T) {
 		t.Fatalf("failed to new account")
 	}
 	payload := [][]byte{{1, 2, 3, 4}}
-	tx, err := message.NewCrossShardTxMsg(acc, 100, types.NewShardIDUnchecked(10), payload)
+	tx, err := message.NewCrossShardTxMsg(acc, 100, types.NewShardIDUnchecked(10), 500, 20000, payload)
 	if err != nil {
 		t.Fatalf("failed to build cross shard tx: %s", err)
 	}
