@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
 	ctypes "github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -117,8 +118,7 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 }
 
 func (this *SmartContract) PutMerkleVal(data []byte) {
-	tmp := append([]byte{0}, data...)
-	this.CrossHashes.WriteHash(sha256.Sum256(tmp))
+	this.CrossHashes.WriteHash(merkle.HashLeaf(data))
 }
 
 func (this *SmartContract) checkContexts() bool {
