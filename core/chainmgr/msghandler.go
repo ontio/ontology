@@ -216,7 +216,7 @@ func (self *ChainManager) onWithdrawGasReq(evt *shardstates.WithdrawGasReqEvent)
 		Signer:     self.account.Address,
 		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
 		User:       evt.User,
-		ShardId:    evt.SourceShardID.ToUint64(),
+		ShardId:    evt.SourceShardID,
 		Amount:     evt.Amount,
 		WithdrawId: evt.WithdrawId,
 	}
@@ -232,7 +232,7 @@ func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEven
 		Signer:     self.account.Address,
 		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
 		CommitDposParam: &shardmgmt.CommitDposParam{
-			ShardID:   evt.SourceShardID.ToUint64(),
+			ShardID:   evt.SourceShardID,
 			FeeAmount: evt.FeeAmount,
 		},
 	}

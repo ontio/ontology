@@ -21,6 +21,8 @@ package shardgas
 import (
 	"bytes"
 	"encoding/hex"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"testing"
 
 	"github.com/magiconair/properties/assert"
@@ -34,7 +36,7 @@ func TestPeerWithdrawGasParam(t *testing.T) {
 		Signer:     acc.Address,
 		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)),
 		User:       acc.Address,
-		ShardId:    0,
+		ShardId:    types.NewShardIDUnchecked(0),
 		Amount:     10000,
 		WithdrawId: 1,
 	}
@@ -44,6 +46,26 @@ func TestPeerWithdrawGasParam(t *testing.T) {
 		t.Fatal(err)
 	}
 	newParam := &PeerWithdrawGasParam{}
+	err = newParam.Deserialize(bf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, param, newParam)
+}
+
+func TestDepositGasParamSerialize(t *testing.T) {
+	user, _ := common.AddressFromBase58("ARpjnrnHEjXhg4aw7vY6xsY6CfQ1XEWzWC")
+	param := &DepositGasParam{
+		User:user,
+		Amount:1000000000,
+		ShardId:types.NewShardIDUnchecked(1),
+	}
+	bf := new(bytes.Buffer)
+	err := param.Serialize(bf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newParam := &DepositGasParam{}
 	err = newParam.Deserialize(bf)
 	if err != nil {
 		t.Fatal(err)

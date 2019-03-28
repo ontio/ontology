@@ -136,10 +136,6 @@ func DepositGasToShard(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: invalid param: %s", err)
 	}
-	shardId, err := types.NewShardID(param.ShardId)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: generate shardId failed, err: %s", err)
-	}
 
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: invalid user: %s", err)
@@ -152,14 +148,14 @@ func DepositGasToShard(native *native.NativeService) ([]byte, error) {
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: version check: %s", err)
 	}
-	if ok, err := checkShardID(native, shardId); !ok || err != nil {
+	if ok, err := checkShardID(native, param.ShardId); !ok || err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: shardID check: %s", err)
 	}
-	shardGasBalance, err := getShardGasBalance(native, contract, shardId)
+	shardGasBalance, err := getShardGasBalance(native, contract, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: failed, err: %s", err)
 	}
-	if err := setShardGasBalance(native, contract, shardId, shardGasBalance+param.Amount); err != nil {
+	if err := setShardGasBalance(native, contract, param.ShardId, shardGasBalance+param.Amount); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: failed, err: %s", err)
 	}
 	if err := ont.AppCallTransfer(native, utils.OngContractAddress, param.User, contract, param.Amount); err != nil {
@@ -171,7 +167,7 @@ func DepositGasToShard(native *native.NativeService) ([]byte, error) {
 		User:   param.User,
 		Amount: param.Amount,
 	}
-	evt.ShardID = shardId
+	evt.ShardID = param.ShardId
 	evt.SourceShardID = native.ShardID
 	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: add notification: %s", err)
@@ -396,11 +392,7 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.Signer); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: invalid peer signer: %s", err)
 	}
-	shardId, err := types.NewShardID(param.ShardId)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: generate shard id failed, err: %s", err)
-	}
-	shard, err := shardmgmt.GetShardState(native, utils.ShardMgmtContractAddress, shardId)
+	shard, err := shardmgmt.GetShardState(native, utils.ShardMgmtContractAddress, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: get shard state failed, err: %s", err)
 	}
@@ -412,23 +404,23 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: peer not consensus node")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	oldConfirmedNum, err := getWithdrawConfirmNum(native, contract, param.User, shardId, param.WithdrawId)
+	oldConfirmedNum, err := getWithdrawConfirmNum(native, contract, param.User, param.ShardId, param.WithdrawId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
 	}
 	newConfirmedNum := oldConfirmedNum
-	isPeerConfirmed, err := isPeerConfirmWithdraw(native, contract, param.User, param.PeerPubKey, shardId,
+	isPeerConfirmed, err := isPeerConfirmWithdraw(native, contract, param.User, param.PeerPubKey, param.ShardId,
 		param.WithdrawId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
 	}
 	if !isPeerConfirmed {
 		newConfirmedNum++
-		err = peerConfirmWithdraw(native, contract, param.User, param.PeerPubKey, shardId, param.WithdrawId)
+		err = peerConfirmWithdraw(native, contract, param.User, param.PeerPubKey, param.ShardId, param.WithdrawId)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
 		}
-		err = setWithdrawConfirmNum(native, contract, param.User, shardId, param.WithdrawId, newConfirmedNum)
+		err = setWithdrawConfirmNum(native, contract, param.User, param.ShardId, param.WithdrawId, newConfirmedNum)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
 		}
@@ -441,7 +433,7 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	} else {
 		if uint32(oldConfirmedNum) < required {
-			shardBalance, err := getShardGasBalance(native, contract, shardId)
+			shardBalance, err := getShardGasBalance(native, contract, param.ShardId)
 			if err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
 			}
@@ -458,7 +450,7 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 			User:       param.User,
 			WithdrawId: param.WithdrawId,
 		}
-		evt.ShardID = shardId
+		evt.ShardID = param.ShardId
 		evt.SourceShardID = native.ShardID
 		if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: add notification: %s", err)
@@ -476,15 +468,11 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	shardId, err := types.NewShardID(param.ShardID)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: generate shard id failed, err: %s", err)
-	}
-	shard, err := shardmgmt.GetShardState(native, utils.ShardMgmtContractAddress, shardId)
+	shard, err := shardmgmt.GetShardState(native, utils.ShardMgmtContractAddress, param.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: get shard state failed, err: %s", err)
 	}
-	shardBalance, err := getShardGasBalance(native, contract, shardId)
+	shardBalance, err := getShardGasBalance(native, contract, param.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
@@ -498,25 +486,25 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if shardPeerInfo.NodeType != shardstates.CONSENSUS_NODE {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: peer not consensus node")
 	}
-	shardCurrentView, err := shard_stake.GetShardCurrentView(native, shardId)
+	shardCurrentView, err := shard_stake.GetShardCurrentView(native, param.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
-	oldCommitAmount, err := getViewCommitNum(native, contract, shardId, shardCurrentView)
+	oldCommitAmount, err := getViewCommitNum(native, contract, param.ShardID, shardCurrentView)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	newCommitNum := oldCommitAmount
-	isPeerCommited, err := isPeerCommitView(native, contract, param.PeerPubKey, shardId, shardCurrentView)
+	isPeerCommited, err := isPeerCommitView(native, contract, param.PeerPubKey, param.ShardID, shardCurrentView)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	if !isPeerCommited {
 		newCommitNum++
-		if err := peerCommitView(native, contract, param.PeerPubKey, shardId, shardCurrentView); err != nil {
+		if err := peerCommitView(native, contract, param.PeerPubKey, param.ShardID, shardCurrentView); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 		}
-		if err := setViewCommitNum(native, contract, shardId, shardCurrentView, newCommitNum); err != nil {
+		if err := setViewCommitNum(native, contract, param.ShardID, shardCurrentView, newCommitNum); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 		}
 	}

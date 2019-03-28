@@ -21,6 +21,7 @@ package utils
 import (
 	"bytes"
 	"fmt"
+	ctypes "github.com/ontio/ontology/core/types"
 	"io"
 	"math/big"
 
@@ -28,6 +29,22 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
+
+func SerializeShardId(w io.Writer, id ctypes.ShardID) error {
+	return WriteVarUint(w, id.ToUint64())
+}
+
+func DeserializeShardId(r io.Reader) (ctypes.ShardID, error) {
+	id, err := ReadVarUint(r)
+	if err != nil {
+		return ctypes.ShardID{}, err
+	}
+	shardId, err := ctypes.NewShardID(id)
+	if err != nil {
+		return ctypes.ShardID{}, fmt.Errorf("generate shard id failed, err: %s", err)
+	}
+	return shardId, nil
+}
 
 func WriteVarUint(w io.Writer, value uint64) error {
 	if err := serialization.WriteVarBytes(w, types.BigIntToBytes(big.NewInt(int64(value)))); err != nil {
