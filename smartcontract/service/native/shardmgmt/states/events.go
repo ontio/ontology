@@ -21,6 +21,7 @@ package shardstates
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -46,8 +47,8 @@ type ShardMgmtEvent interface {
 }
 
 type ImplSourceTargetShardID struct {
-	SourceShardID types.ShardID `json:"source_shard_id"`
-	ShardID       types.ShardID `json:"shard_id"`
+	SourceShardID types.ShardID
+	ShardID       types.ShardID
 }
 
 func (self *ImplSourceTargetShardID) GetSourceShardID() types.ShardID {
@@ -58,10 +59,31 @@ func (self *ImplSourceTargetShardID) GetTargetShardID() types.ShardID {
 	return self.ShardID
 }
 
+func (self *ImplSourceTargetShardID) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, self.SourceShardID); err != nil {
+		return fmt.Errorf("serialize: write source shardId failed, err: %s", err)
+	}
+	if err := utils.SerializeShardId(w, self.ShardID); err != nil {
+		return fmt.Errorf("serialize: write shardId failed, err: %s", err)
+	}
+	return nil
+}
+
+func (self *ImplSourceTargetShardID) Deserialize(r io.Reader) error {
+	var err error = nil
+	if self.SourceShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read source shardId failed, err: %s", err)
+	}
+	if self.ShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shardId failed, err: %s", err)
+	}
+	return nil
+}
+
 type CreateShardEvent struct {
-	SourceShardID types.ShardID `json:"source_shard_id"`
-	Height        uint32        `json:"height"`
-	NewShardID    types.ShardID `json:"new_shard_id"`
+	SourceShardID types.ShardID
+	Height        uint32
+	NewShardID    types.ShardID
 }
 
 func (evt *CreateShardEvent) GetSourceShardID() types.ShardID {
@@ -81,11 +103,32 @@ func (evt *CreateShardEvent) GetType() uint32 {
 }
 
 func (evt *CreateShardEvent) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, evt)
+	if err := utils.SerializeShardId(w, evt.SourceShardID); err != nil {
+		return fmt.Errorf("serialize: write source shardId failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(evt.Height)); err != nil {
+		return fmt.Errorf("serialize: write height failed, err: %s", err)
+	}
+	if err := utils.SerializeShardId(w, evt.NewShardID); err != nil {
+		return fmt.Errorf("serialize: write new shardId failed, err: %s", err)
+	}
+	return nil
 }
 
 func (evt *CreateShardEvent) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, evt)
+	var err error = nil
+	if evt.SourceShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read source shardId failed, err: %s", err)
+	}
+	height, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read height failed, err: %s", err)
+	}
+	evt.Height = uint32(height)
+	if evt.NewShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read new shardId failed, err: %s", err)
+	}
+	return nil
 }
 
 type ConfigShardEvent struct {
