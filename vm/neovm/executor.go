@@ -23,6 +23,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
@@ -592,17 +593,35 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		if err != nil {
 			return FAULT, err
 		}
-	case NUMEQUAL, NUMNOTEQUAL, LT, GT, LTE, GTE:
+	case NUMNOTEQUAL, NUMEQUAL:
+		// note : pop as bytes to avoid hard-fork because previous version missing check
+		// whether the params are a valid 32 byte integer
+		left, right, err := self.EvalStack.PopPairAsBytes()
+		if err != nil {
+			return FAULT, err
+		}
+		l := common.BigIntFromNeoBytes(left)
+		r := common.BigIntFromNeoBytes(right)
+		var val bool
+		switch opcode {
+		case NUMEQUAL:
+			val = l.Cmp(r) == 0
+		case NUMNOTEQUAL:
+			val = l.Cmp(r) != 0
+		default:
+			panic("unreachable")
+		}
+		err = self.EvalStack.PushBool(val)
+		if err != nil {
+			return FAULT, err
+		}
+	case LT, GT, LTE, GTE:
 		left, right, err := self.EvalStack.PopPairAsIntVal()
 		if err != nil {
 			return FAULT, err
 		}
 		var val bool
 		switch opcode {
-		case NUMEQUAL:
-			val = left.Cmp(right) == 0
-		case NUMNOTEQUAL:
-			val = left.Cmp(right) != 0
 		case LT:
 			val = left.Cmp(right) < 0
 		case GT:
