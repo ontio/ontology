@@ -25,7 +25,6 @@ import (
 
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -68,16 +67,7 @@ func RegisterShardStake(native *native.NativeService) {
 
 func SetMinStake(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
-		// get admin from database
-		adminAddress, err := global_params.GetStorageRole(native,
-			global_params.GenerateOperatorKey(utils.ParamContractAddress))
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: get admin error: %v", err)
-		}
-		//check witness
-		if err := utils.ValidateOwner(native, adminAddress); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: checkWitness error: %v", err)
-		}
+		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: only can be call by shard mgmt contract")
 	}
 	params := new(SetMinStakeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
