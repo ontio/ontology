@@ -306,17 +306,7 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-// TODO: validate owner by shard creator
 func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
-	// get admin from database
-	adminAddress, err := global_params.GetStorageRole(native,
-		global_params.GenerateOperatorKey(utils.ParamContractAddress))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: get admin failed, err: %s", err)
-	}
-	if err := utils.ValidateOwner(native, adminAddress); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: invalid configurator: %s", err)
-	}
 	cp := new(CommonParam)
 	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
@@ -326,6 +316,13 @@ func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: invalid param: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
+	shard, err := GetShardState(native, contract, params.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: cannot get shard %d, err: %s", params.ShardId, err)
+	}
+	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: check witness failed, err: %s", err)
+	}
 	for _, pubKey := range params.PeerPubKey {
 		state, err := getShardPeerState(native, contract, params.ShardId, pubKey)
 		if err != nil {
