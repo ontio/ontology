@@ -144,18 +144,14 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	// get response from native-tx-statedb
-	rspMsg, err := xshard_state.GetTxResponse(tx, msg)
+	rspMsg := xshard_state.GetTxResponse(tx, msg)
 	if rspMsg != nil {
-		log.Debugf("remote invoke response available result: %v, err %s", rspMsg.Result, err)
-		if err == nil {
-			var resultErr error
-			if rspMsg.Error {
-				resultErr = errors.New("remote invoke got error response")
-			}
-			return rspMsg.Result, resultErr
-		} else if err != xshard_state.ErrNotFound {
-			return utils.BYTE_FALSE, err
+		log.Debugf("remote invoke response available result: %v, err %s", rspMsg.Result)
+		var resultErr error
+		if rspMsg.Error {
+			resultErr = errors.New("remote invoke got error response")
 		}
+		return rspMsg.Result, resultErr
 	}
 
 	// no response found in tx-statedb, send request
