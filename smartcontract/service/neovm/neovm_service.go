@@ -73,8 +73,6 @@ var (
 		RUNTIME_GETTRIGGER_NAME:              {Execute: RuntimeGetTrigger},
 		RUNTIME_SERIALIZE_NAME:               {Execute: RuntimeSerialize, Validator: validatorSerialize},
 		RUNTIME_DESERIALIZE_NAME:             {Execute: RuntimeDeserialize, Validator: validatorDeserialize},
-		RUNTIME_VERIFYSIG_NAME:               {Execute: RuntimeVerifySig},
-		RUNTIME_VERIFYMUTISIG_NAME:           {Execute: RuntimeVerifyMutiSig},
 		NATIVE_INVOKE_NAME:                   {Execute: NativeInvoke},
 		STORAGE_GET_NAME:                     {Execute: StorageGet},
 		STORAGE_PUT_NAME:                     {Execute: StoragePut},
@@ -200,6 +198,59 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			} else {
 				vm.PushData(this.Engine, true)
 			}
+		case vm.CHECKMULTISIG:
+			if vm.EvaluationStackCount(this.Engine) < 2 {
+				return errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters")
+			}
+			data, err := vm.PopByteArray(this.Engine)
+			if err != nil {
+				return err
+			}
+			size, err := vm.PopInt(this.Engine)
+			if err != nil {
+				return err
+			}
+			if vm.EvaluationStackCount(this.Engine) < size {
+				return errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters ")
+			}
+			pks := make([]keypair.PublicKey, 0, size)
+			for i:=0;i<size;i++ {
+				value, err := vm.PopByteArray(this.Engine)
+				if err != nil {
+					return err
+				}
+				pk, err := keypair.DeserializePublicKey(value)
+				if err != nil {
+					return err
+				}
+				pks = append(pks, pk)
+			}
+			if vm.EvaluationStackCount(this.Engine) < 2 {
+				return errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters ")
+			}
+			m, err := vm.PopInt(this.Engine)
+			if err != nil {
+				return err
+			}
+			size, err = vm.PopInt(this.Engine)
+			if err != nil {
+				return err
+			}
+			if vm.EvaluationStackCount(this.Engine) < size {
+				return errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters ")
+			}
+			signs := make([][]byte, 0, size)
+			for i:=0;i<size;i++ {
+				value, err := vm.PopByteArray(this.Engine)
+				if err != nil {
+					return err
+				}
+				signs = append(signs, value)
+			}
+			if err := signature.VerifyMultiSignature(data, pks, m, signs); err != nil {
+				vm.PushData(this.Engine, false)
+			}
+			vm.PushData(this.Engine, true)
 		case vm.SYSCALL:
 			if err := this.SystemCall(this.Engine); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
