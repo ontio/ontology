@@ -614,20 +614,18 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
-	dividends := make([]uint64, 0)
-	peers := make([]string, 0)
 	wholeNodeStakeAmount := uint64(0)
 	for _, info := range viewInfo.Peers {
 		wholeNodeStakeAmount += info.WholeStakeAmount
 	}
 	// TODO: check viewInfo.Peers is existed in shard states
 	// TODO: candidate node and consensus node different rate
+	feeInfo := make([]*shard_stake.PeerAmount, 0)
 	for peer, info := range viewInfo.Peers {
 		peerFee := info.WholeStakeAmount * params.FeeAmount / wholeNodeStakeAmount
-		dividends = append(dividends, peerFee)
-		peers = append(peers, peer)
+		feeInfo = append(feeInfo, &shard_stake.PeerAmount{PeerPubKey: peer, Amount: peerFee})
 	}
-	if err := commitDpos(native, params.ShardID, dividends, peers); err != nil {
+	if err := commitDpos(native, params.ShardID, feeInfo); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	if err := setShardState(native, contract, shard); err != nil {

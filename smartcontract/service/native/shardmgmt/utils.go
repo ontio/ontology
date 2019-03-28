@@ -269,11 +269,8 @@ func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amoun
 }
 
 func initStakeContractShard(native *native.NativeService, id types.ShardID) error {
-	param := &shard_stake.InitShardParam{
-		ShardId: id,
-	}
 	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
+	if err := utils.SerializeShardId(bf, id); err != nil {
 		return fmt.Errorf("initStakeContractShard: failed, err: %s", err)
 	}
 	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.INIT_SHARD, bf.Bytes()); err != nil {
@@ -287,8 +284,7 @@ func peerInitStake(native *native.NativeService, param *JoinShardParam, stakeAss
 		ShardId:        param.ShardID,
 		StakeAssetAddr: stakeAssetAddr,
 		PeerOwner:      param.PeerOwner,
-		PeerPubKey:     param.PeerPubKey,
-		StakeAmount:    param.StakeAmount,
+		Value:          &shard_stake.PeerAmount{PeerPubKey: param.PeerPubKey, Amount: param.StakeAmount},
 	}
 	bf := new(bytes.Buffer)
 	if err := callParam.Serialize(bf); err != nil {
@@ -330,11 +326,10 @@ func deletePeer(native *native.NativeService, shardId types.ShardID, peers []str
 	return nil
 }
 
-func commitDpos(native *native.NativeService, shardId types.ShardID, amount []uint64, peers []string) error {
+func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo []*shard_stake.PeerAmount) error {
 	param := &shard_stake.CommitDposParam{
-		ShardId:    shardId,
-		PeerPubKey: peers,
-		Amount:     amount,
+		ShardId: shardId,
+		Value:   feeInfo,
 	}
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
