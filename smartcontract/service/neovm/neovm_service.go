@@ -73,6 +73,8 @@ var (
 		RUNTIME_GETTRIGGER_NAME:              {Execute: RuntimeGetTrigger},
 		RUNTIME_SERIALIZE_NAME:               {Execute: RuntimeSerialize, Validator: validatorSerialize},
 		RUNTIME_DESERIALIZE_NAME:             {Execute: RuntimeDeserialize, Validator: validatorDeserialize},
+		RUNTIME_VERIFYSIG_NAME:               {Execute: RuntimeVerifySig},
+		RUNTIME_VERIFYMUTISIG_NAME:           {Execute: RuntimeVerifyMutiSig},
 		NATIVE_INVOKE_NAME:                   {Execute: NativeInvoke},
 		STORAGE_GET_NAME:                     {Execute: StorageGet},
 		STORAGE_PUT_NAME:                     {Execute: StoragePut},

@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	vm "github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/core/signature"
 )
 
 // HeaderGetNextConsensus put current block time to vm stack
@@ -93,6 +94,87 @@ func RuntimeDeserialize(service *NeoVmService, engine *vm.ExecutionEngine) error
 		return nil
 	}
 	vm.PushData(engine, item)
+	return nil
+}
+
+func RuntimeVerifySig(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 3 {
+		return errors.NewErr("[RuntimeVerifySig] Too few input parameters ")
+	}
+	data, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
+	pk, err := keypair.DeserializePublicKey(data)
+	if err != nil {
+		return err
+	}
+	msg, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
+	sign, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
+
+	vm.PushData(engine, signature.Verify(pk, msg, sign))
+	return nil
+}
+
+func RuntimeVerifyMutiSig(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 2 {
+		return errors.NewErr("[RuntimeVerifySig] Too few input parameters")
+	}
+	data, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
+	size, err := vm.PopInt(engine)
+	if err != nil {
+		return err
+	}
+	if vm.EvaluationStackCount(engine) < size {
+		return errors.NewErr("[RuntimeVerifySig] Too few input parameters ")
+	}
+	pks := make([]keypair.PublicKey, 0, size)
+	for i:=0;i<size;i++ {
+		value, err := vm.PopByteArray(engine)
+		if err != nil {
+			return err
+		}
+		pk, err := keypair.DeserializePublicKey(value)
+		if err != nil {
+			return err
+		}
+		pks = append(pks, pk)
+	}
+	if vm.EvaluationStackCount(engine) < 2 {
+		return errors.NewErr("[RuntimeVerifySig] Too few input parameters ")
+	}
+	m, err := vm.PopInt(engine)
+	if err != nil {
+		return err
+	}
+	size, err = vm.PopInt(engine)
+	if err != nil {
+		return err
+	}
+	if vm.EvaluationStackCount(engine) < size {
+		return errors.NewErr("[RuntimeVerifySig] Too few input parameters ")
+	}
+	signs := make([][]byte, 0, size)
+	for i:=0;i<size;i++ {
+		value, err := vm.PopByteArray(engine)
+		if err != nil {
+			return err
+		}
+		signs = append(signs, value)
+	}
+	if err := signature.VerifyMultiSignature(data, pks, m, signs); err != nil {
+		vm.PushData(engine, false)
+	}
+	vm.PushData(engine, true)
 	return nil
 }
 
