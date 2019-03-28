@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -307,6 +306,7 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+// TODO: validate owner by shard creator
 func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
 	// get admin from database
 	adminAddress, err := global_params.GetStorageRole(native,
@@ -569,11 +569,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: check version: %s", err)
 	}
-	shardId, err := types.NewShardID(params.ShardID)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: generate shard id failed, err: %s", err)
-	}
-	shard, err := GetShardState(native, contract, shardId)
+	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: get shard: %s", err)
 	}
@@ -586,7 +582,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		} else if info.NodeType == shardstates.QUITING_CONSENSUS_NODE {
 			// delete peer at mgmt contract
 			delete(shard.Peers, peer)
-			if err := setShardPeerState(native, contract, shardId, state_default, info.PeerPubKey); err != nil {
+			if err := setShardPeerState(native, contract, params.ShardID, state_default, info.PeerPubKey); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: update peer state faile, err: %s", err)
 			}
 			quitPeers = append(quitPeers, peer)
@@ -594,16 +590,16 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	// delete peers at stake contract
 	if len(quitPeers) > 0 {
-		if err = deletePeer(native, shardId, quitPeers); err != nil {
+		if err = deletePeer(native, params.ShardID, quitPeers); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 		}
 	}
 	// TODO: update shard mgmt peer state
-	shardView, err := shard_stake.GetShardCurrentView(native, shardId)
+	shardView, err := shard_stake.GetShardCurrentView(native, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
-	viewInfo, err := shard_stake.GetShardViewInfo(native, shardId, shardView)
+	viewInfo, err := shard_stake.GetShardViewInfo(native, params.ShardID, shardView)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
@@ -620,7 +616,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		dividends = append(dividends, peerFee)
 		peers = append(peers, peer)
 	}
-	if err := commitDpos(native, shardId, dividends, peers); err != nil {
+	if err := commitDpos(native, params.ShardID, dividends, peers); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	if err := setShardState(native, contract, shard); err != nil {
