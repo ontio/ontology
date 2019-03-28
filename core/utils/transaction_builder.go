@@ -28,7 +28,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	neovm "github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
@@ -119,6 +119,9 @@ func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{
 		case uint64:
 			val := big.NewInt(0)
 			builder.EmitPushInteger(val.SetUint64(uint64(v)))
+		case types.ShardID:
+			val := big.NewInt(0)
+			builder.EmitPushInteger(val.SetUint64(v.ToUint64()))
 		case string:
 			builder.EmitPushByteArray([]byte(v))
 		case *big.Int:
