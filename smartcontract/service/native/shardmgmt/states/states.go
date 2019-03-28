@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -38,9 +37,9 @@ const (
 
 const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED // all parameter configured
-	SHARD_STATE_ACTIVE     // started
-	SHARD_STATE_STOPPING   // started
+	SHARD_STATE_CONFIGURED  // all parameter configured
+	SHARD_STATE_ACTIVE      // started
+	SHARD_STATE_STOPPING    // started
 	SHARD_STATE_ARCHIVED
 )
 
@@ -54,26 +53,32 @@ const (
 )
 
 type ShardMgmtGlobalState struct {
-	NextSubShardIndex uint16 `json:"next_sub_shard_index"`
+	NextSubShardIndex uint16
 }
 
-// FIXME: replace all json marshal
-
 func (this *ShardMgmtGlobalState) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteVarUint(w, uint64(this.NextSubShardIndex)); err != nil {
+		return fmt.Errorf("serialize: write NextSubShardIndex failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ShardMgmtGlobalState) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	index, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read NextSubShardIndex failed, err: %s", err)
+	}
+	this.NextSubShardIndex = uint16(index)
+	return nil
 }
 
 type ShardConfig struct {
-	NetworkSize       uint32             `json:"network_size"`
-	StakeAssetAddress common.Address     `json:"stake_asset_address"`
-	GasAssetAddress   common.Address     `json:"gas_asset_address"`
-	GasPrice          uint64             `json:"gas_price"`
-	GasLimit          uint64             `json:"gas_limit"`
-	VbftConfigData    *config.VBFTConfig `json:"vbft_config_data"`
+	GasPrice          uint64
+	GasLimit          uint64
+	NetworkSize       uint32
+	StakeAssetAddress common.Address
+	GasAssetAddress   common.Address
+	VbftConfigData    *config.VBFTConfig
 }
 
 func (this *ShardConfig) Serialize(w io.Writer) error {
@@ -114,11 +119,11 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 }
 
 type PeerShardStakeInfo struct {
-	Index      uint32         `json:"index"`
-	IpAddress  string         `json:"ip_addres"`
-	PeerOwner  common.Address `json:"peer_owner"`
-	PeerPubKey string         `json:"peer_pub_key"`
-	NodeType   NodeType       `json:"node_type"`
+	Index      uint32
+	IpAddress  string
+	PeerOwner  common.Address
+	PeerPubKey string
+	NodeType   NodeType
 }
 
 func (this *PeerShardStakeInfo) Serialize(w io.Writer) error {

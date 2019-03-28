@@ -19,15 +19,14 @@
 package shardsysmsg
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
 type CrossShardMsgParam struct {
@@ -35,68 +34,102 @@ type CrossShardMsgParam struct {
 }
 
 func (this *CrossShardMsgParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, uint32(len(this.Events))); err != nil {
-		return fmt.Errorf("construct shardTx, write evt count: %s", err)
+	if err := utils.WriteVarUint(w, uint64(len(this.Events))); err != nil {
+		return fmt.Errorf("serialize: write events len failed, err: %s", err)
 	}
-	for _, evt := range this.Events {
-		evtBytes, err := json.Marshal(evt)
-		if err != nil {
-			return fmt.Errorf("construct shardTx, marshal evt: %s", err)
-		}
-		if err := serialization.WriteVarBytes(w, evtBytes); err != nil {
-			return fmt.Errorf("construct shardTx, write evt: %s", err)
+	for index, evt := range this.Events {
+		if err := evt.Serialize(w); err != nil {
+			return fmt.Errorf("serialize: write event failed, index %d, err: %s", index, err)
 		}
 	}
 	return nil
 }
 
 func (this *CrossShardMsgParam) Deserialize(r io.Reader) error {
-	evtCnt, err := serialization.ReadUint32(r)
+	num, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("des - CrossShardMsg: %s", err)
+		return fmt.Errorf("deserialize: read events num failed, err: %s", err)
 	}
-	evts := make([]*message.ShardEventState, 0)
-	for i := uint32(0); i < evtCnt; i++ {
-		evtBytes, err := serialization.ReadVarBytes(r)
-		if err != nil {
-			return fmt.Errorf("des - CrossShardMsg, read bytes: %s", err)
-		}
+	this.Events = make([]*message.ShardEventState, num)
+	for i := uint64(0); i < num; i++ {
 		evt := &message.ShardEventState{}
-		if err := json.Unmarshal(evtBytes, evt); err != nil {
-			return fmt.Errorf("des - CrossShardMsg, unmarshal: %s", err)
+		if err := evt.Deserialize(r); err != nil {
+			return fmt.Errorf("deserialize: read event failed, index %d, err: %s", i, err)
 		}
-		evts = append(evts, evt)
+		this.Events[i] = evt
 	}
-
-	this.Events = evts
 	return nil
 }
 
 type NotifyReqParam struct {
-	ToShard    types.ShardID  `json:"to_shard"`
-	ToContract common.Address `json:"to_contract"`
-	Method     string         `json:"method"`
-	Args       []byte         `json:"payload"`
+	ToShard    types.ShardID
+	ToContract common.Address
+	Method     string
+	Args       []byte
 }
 
 func (this *NotifyReqParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ToShard); err != nil {
+		return fmt.Errorf("serialize: write to shard failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.ToContract); err != nil {
+		return fmt.Errorf("serialize: write to contract failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.Method); err != nil {
+		return fmt.Errorf("serialize: write method failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Args); err != nil {
+		return fmt.Errorf("serialize: write args failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *NotifyReqParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error
+	if this.ToShard, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read to shard failed, err: %s", err)
+	}
+	if this.ToContract, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read to contract failed, err: %s", err)
+	}
+	if this.Method, err = serialization.ReadString(r); err != nil {
+		return fmt.Errorf("deserialize: read method failed, err: %s", err)
+	}
+	if this.Args, err = serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read args failed, err: %s", err)
+	}
+	return nil
 }
 
 type InvokeReqParam struct {
-	ToShard    uint64         `json:"to_shard"`
-	ToContract common.Address `json:"to_contract"`
-	Args       []byte         `json:"payload"`
+	ToShard    types.ShardID
+	ToContract common.Address
+	Args       []byte
 }
 
 func (this *InvokeReqParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ToShard); err != nil {
+		return fmt.Errorf("serialize: write to shard failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.ToContract); err != nil {
+		return fmt.Errorf("serialize: write to contract failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Args); err != nil {
+		return fmt.Errorf("serialize: write args failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *InvokeReqParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error
+	if this.ToShard, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read to shard failed, err: %s", err)
+	}
+	if this.ToContract, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read to contract failed, err: %s", err)
+	}
+	if this.Args, err = serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read args failed, err: %s", err)
+	}
+	return nil
 }

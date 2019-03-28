@@ -19,18 +19,23 @@
 package shardping_events
 
 import (
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"github.com/ontio/ontology/common/serialization"
 	"io"
 )
 
 type SendShardPingEvent struct {
-	Payload string `json:"payload"`
+	Payload string
 }
 
 func (this *SendShardPingEvent) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	return serialization.WriteString(w, this.Payload)
 }
 
 func (this *SendShardPingEvent) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	payload, err := serialization.ReadString(r)
+	if err != nil {
+		return err
+	}
+	this.Payload = payload
+	return nil
 }

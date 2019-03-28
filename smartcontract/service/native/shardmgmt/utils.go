@@ -177,7 +177,7 @@ func setShardState(native *native.NativeService, contract common.Address, state 
 
 func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {
 	infoBuf := new(bytes.Buffer)
-	if err := shardutil.SerJson(infoBuf, info); err != nil {
+	if err := info.Serialize(infoBuf); err != nil {
 		return fmt.Errorf("addNotification, ser info: %s", err)
 	}
 	eventState := &message.ShardEventState{

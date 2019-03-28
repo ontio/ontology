@@ -19,64 +19,128 @@
 package shardhotel
 
 import (
+	"fmt"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
 type ShardHotelInitParam struct {
-	Count int `json:"count"`
+	Count uint64
 }
 
 func (this *ShardHotelInitParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	return utils.WriteVarUint(w, this.Count)
 }
 
 func (this *ShardHotelInitParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	count, err := utils.ReadVarUint(r)
+	if err != nil {
+		return err
+	}
+	this.Count = count
+	return nil
 }
 
 type ShardHotelReserveParam struct {
-	User   common.Address `json:"user"`
-	RoomNo int            `json:"room_no"`
+	User   common.Address
+	RoomNo uint64
 }
 
 func (this *ShardHotelReserveParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write user failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.RoomNo); err != nil {
+		return fmt.Errorf("serialize: write roomNo failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ShardHotelReserveParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user failed, err: %s", err)
+	}
+	if this.RoomNo, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read roomNo failed, err: %s", err)
+	}
+	return nil
 }
 
 type ShardHotelCheckoutParam struct {
-	User   common.Address `json:"user"`
-	RoomNo int            `json:"room_no"`
+	User   common.Address
+	RoomNo uint64
 }
 
 func (this *ShardHotelCheckoutParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write user failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.RoomNo); err != nil {
+		return fmt.Errorf("serialize: write roomNo failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ShardHotelCheckoutParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user failed, err: %s", err)
+	}
+	if this.RoomNo, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read roomNo failed, err: %s", err)
+	}
+	return nil
 }
 
 type ShardHotelReserve2Param struct {
-	User             common.Address `json:"user"`
-	RoomNo1          int            `json:"room_no"`
-	Shard2           types.ShardID  `json:"shard_2"`
-	ContractAddress2 common.Address `json:"contract_address_2"`
-	RoomNo2          int            `json:"room_no_2"`
-	Transactional    bool           `json:"transactional"`
+	User             common.Address
+	RoomNo1          uint64
+	Shard2           types.ShardID
+	ContractAddress2 common.Address
+	RoomNo2          uint64
+	Transactional    bool
 }
 
 func (this *ShardHotelReserve2Param) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write user failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.RoomNo1); err != nil {
+		return fmt.Errorf("serialize: write roomNo1 failed, err: %s", err)
+	}
+	if err := utils.SerializeShardId(w, this.Shard2); err != nil {
+		return fmt.Errorf("serialize: write shard2 failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.ContractAddress2); err != nil {
+		return fmt.Errorf("serialize: write contract addr2 failed, err: %s", err)
+	}
+	if err := serialization.WriteBool(w, this.Transactional); err != nil {
+		return fmt.Errorf("serialize: write transactional failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ShardHotelReserve2Param) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user failed, err: %s", err)
+	}
+	if this.RoomNo1, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read roomNo1 failed, err: %s", err)
+	}
+	if this.Shard2, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard2 failed, err: %s", err)
+	}
+	if this.ContractAddress2, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read contract addr2 failed, err: %s", err)
+	}
+	if this.Transactional, err = serialization.ReadBool(r); err != nil {
+		return fmt.Errorf("deserialize: read transactional failed, err: %s", err)
+	}
+	return nil
 }

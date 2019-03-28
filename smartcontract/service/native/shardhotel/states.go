@@ -19,20 +19,28 @@
 package shardhotel
 
 import (
+	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
 type ShardHotelRoomState struct {
-	Owner common.Address `json:"owner"`
+	Owner common.Address
 }
 
 func (this ShardHotelRoomState) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteAddress(w, this.Owner); err != nil {
+		return fmt.Errorf("serialize: write owner failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ShardHotelRoomState) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.Owner, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read owner failed, err: %s", err)
+	}
+	return nil
 }

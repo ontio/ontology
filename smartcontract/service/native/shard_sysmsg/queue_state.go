@@ -21,6 +21,7 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/common/serialization"
 	"io"
 
 	"github.com/ontio/ontology/common/log"
@@ -34,15 +35,36 @@ import (
 )
 
 type ToShardsInBlock struct {
-	Shards []types.ShardID `json:"shards"`
+	Shards []types.ShardID
 }
 
 func (this *ToShardsInBlock) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteVarUint(w, uint64(len(this.Shards))); err != nil {
+		return fmt.Errorf("srialize: write shards len failed, err: %s", err)
+	}
+	for i, shard := range this.Shards {
+		if err := utils.SerializeShardId(w, shard); err != nil {
+			return fmt.Errorf("serialize: write shard id failed, index %d, err: %s", i, err)
+		}
+	}
+	return nil
 }
 
 func (this *ToShardsInBlock) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	shardNum, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read shards len failed, err: %s", err)
+	}
+	this.Shards = make([]types.ShardID, shardNum)
+	for i := uint64(0); i < shardNum; i++ {
+		shard, err := utils.DeserializeShardId(r)
+		if err != nil {
+			return fmt.Errorf("deserialize: read shard failed, index %d, err: %s", i, err)
+		}
+		this.Shards[i] = shard
+	}
+	return nil
 }
 
 func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error {
@@ -100,15 +122,36 @@ func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.
 }
 
 type ReqsInBlock struct {
-	Reqs [][]byte `json:"reqs"`
+	Reqs [][]byte
 }
 
 func (this *ReqsInBlock) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteVarUint(w, uint64(len(this.Reqs))); err != nil {
+		return fmt.Errorf("srialize: write reqs len failed, err: %s", err)
+	}
+	for i, req := range this.Reqs {
+		if err := serialization.WriteVarBytes(w, req); err != nil {
+			return fmt.Errorf("serialize: write req failed, index %d, err: %s", i, err)
+		}
+	}
+	return nil
 }
 
 func (this *ReqsInBlock) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	reqNum, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read reqs len failed, err: %s", err)
+	}
+	this.Reqs = make([][]byte, reqNum)
+	for i := uint64(0); i < reqNum; i++ {
+		req, err := serialization.ReadVarBytes(r)
+		if err != nil {
+			return fmt.Errorf("deserialize: read req failed, index %d, err: %s", i, err)
+		}
+		this.Reqs[i] = req
+	}
+	return nil
 }
 
 func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {

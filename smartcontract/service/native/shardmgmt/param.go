@@ -21,12 +21,12 @@ package shardmgmt
 import (
 	"fmt"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 )
 
 //
@@ -59,16 +59,29 @@ func (this *CommonParam) Deserialize(r io.Reader) error {
 // shard creator is also the shard operator after shard activated
 //
 type CreateShardParam struct {
-	ParentShardID types.ShardID  `json:"parent_shard_id"`
-	Creator       common.Address `json:"creator"`
+	ParentShardID types.ShardID
+	Creator       common.Address
 }
 
 func (this *CreateShardParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ParentShardID); err != nil {
+		return fmt.Errorf("serialize: write parent shard id failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.Creator); err != nil {
+		return fmt.Errorf("serialize: write creator failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *CreateShardParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ParentShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read parent shard id failed, err: %s", err)
+	}
+	if this.Creator, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read creator failed, err: %s", err)
+	}
+	return nil
 }
 
 //
@@ -81,48 +94,128 @@ func (this *CreateShardParam) Deserialize(r io.Reader) error {
 //
 
 type ConfigShardParam struct {
-	ShardID           types.ShardID      `json:"shard_id"`
-	NetworkMin        uint32             `json:"network_min"`
-	StakeAssetAddress common.Address     `json:"stake_asset_address"`
-	GasAssetAddress   common.Address     `json:"gas_asset_address"`
-	GasPrice          uint64             `json:"gas_price"`
-	GasLimit          uint64             `json:"gas_limit"`
-	VbftConfigData    *config.VBFTConfig `json:"vbft_config_data"`
+	ShardID           types.ShardID
+	NetworkMin        uint32
+	StakeAssetAddress common.Address
+	GasAssetAddress   common.Address
+	GasPrice          uint64
+	GasLimit          uint64
+	VbftConfigData    *config.VBFTConfig
 }
 
 func (this *ConfigShardParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ShardID); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.NetworkMin)); err != nil {
+		return fmt.Errorf("serialize: write network min failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.StakeAssetAddress); err != nil {
+		return fmt.Errorf("serialize: write stake asset addr failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.GasAssetAddress); err != nil {
+		return fmt.Errorf("serialize: write gas asset addr failed, err: %s", err)
+	}
+	if err := this.VbftConfigData.Serialize(w); err != nil {
+		return fmt.Errorf("serialize: write config failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ConfigShardParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	networkMin, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read network min failed, err: %s", err)
+	}
+	this.NetworkMin = uint32(networkMin)
+	if this.StakeAssetAddress, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read stake asset addr failed, err: %s", err)
+	}
+	if this.GasAssetAddress, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read gas asset addr failed, err: %s", err)
+	}
+	this.VbftConfigData = &config.VBFTConfig{}
+	if err = this.VbftConfigData.Deserialize(r); err != nil {
+		return fmt.Errorf("deserialize: read config failed, err: %s", err)
+	}
+	return nil
 }
 
 type ApplyJoinShardParam struct {
-	ShardId    types.ShardID  `json:"shard_id"`
-	PeerOwner  common.Address `json:"peer_owner"`
-	PeerPubKey string         `json:"peer_pub_key"`
+	ShardId    types.ShardID
+	PeerOwner  common.Address
+	PeerPubKey string
 }
 
 func (this *ApplyJoinShardParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.PeerOwner); err != nil {
+		return fmt.Errorf("serialize: write peer owner failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.PeerPubKey); err != nil {
+		return fmt.Errorf("serialize: write peer pub key failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ApplyJoinShardParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.PeerOwner, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read peer owner failed, err: %s", err)
+	}
+	if this.PeerPubKey, err = serialization.ReadString(r); err != nil {
+		return fmt.Errorf("deserialize: read peer pub key failed, err: %s", err)
+	}
+	return nil
 }
 
 type ApproveJoinShardParam struct {
-	ShardId    types.ShardID `json:"shard_id"`
-	PeerPubKey []string      `json:"peer_pub_key"`
+	ShardId    types.ShardID
+	PeerPubKey []string
 }
 
 func (this *ApproveJoinShardParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubKey))); err != nil {
+		return fmt.Errorf("serialize: write peers num failed, err: %s", err)
+	}
+	for index, peer := range this.PeerPubKey {
+		if err := serialization.WriteString(w, peer); err != nil {
+			return fmt.Errorf("serialize: write peer pub key failed, index %d, err: %s", index, err)
+		}
+	}
+	return nil
 }
 
 func (this *ApproveJoinShardParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	num, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read peers num failed, err: %s", err)
+	}
+	this.PeerPubKey = make([]string, num)
+	for i := uint64(0); i < num; i++ {
+		peer, err := serialization.ReadString(r)
+		if err != nil {
+			return fmt.Errorf("deserialize: read peer failed, index %d, err: %s", i, err)
+		}
+		this.PeerPubKey[i] = peer
+	}
+	return nil
 }
 
 //
@@ -133,33 +226,83 @@ func (this *ApproveJoinShardParam) Deserialize(r io.Reader) error {
 // @StakeAmount : amount of token stake for the peer
 //
 type JoinShardParam struct {
-	ShardID     types.ShardID  `json:"shard_id"`
-	IpAddress   string         `json:"ip_address"`
-	PeerOwner   common.Address `json:"peer_owner"`
-	PeerPubKey  string         `json:"peer_pub_key"`
-	StakeAmount uint64         `json:"stake_amount"`
+	ShardID     types.ShardID
+	IpAddress   string
+	PeerOwner   common.Address
+	PeerPubKey  string
+	StakeAmount uint64
 }
 
 func (this *JoinShardParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ShardID); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.IpAddress); err != nil {
+		return fmt.Errorf("serialize: write ip failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.PeerOwner); err != nil {
+		return fmt.Errorf("serialize: write peer owner failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.PeerPubKey); err != nil {
+		return fmt.Errorf("serialize: write peer pub key failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.StakeAmount); err != nil {
+		return fmt.Errorf("serialize: write peer stake amount failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *JoinShardParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.IpAddress, err = serialization.ReadString(r); err != nil {
+		return fmt.Errorf("deserialize: read ip failed, err: %s", err)
+	}
+	if this.PeerOwner, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read peer owner failed, err: %s", err)
+	}
+	if this.PeerPubKey, err = serialization.ReadString(r); err != nil {
+		return fmt.Errorf("deserialize: read peer pub key failed, err: %s", err)
+	}
+	if this.StakeAmount, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read stake amount failed, err: %s", err)
+	}
+	return nil
 }
 
 type ExitShardParam struct {
-	ShardId    types.ShardID  `json:"shard_id"`
-	PeerPubKey string         `json:"peer_pub_key"`
-	PeerOwner  common.Address `json:"peer_owner"`
+	ShardId    types.ShardID
+	PeerOwner  common.Address
+	PeerPubKey string
 }
 
 func (this *ExitShardParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.PeerOwner); err != nil {
+		return fmt.Errorf("serialize: write peer owner failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.PeerPubKey); err != nil {
+		return fmt.Errorf("serialize: write peer pub key failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ExitShardParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.PeerOwner, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read peer owner failed, err: %s", err)
+	}
+	if this.PeerPubKey, err = serialization.ReadString(r); err != nil {
+		return fmt.Errorf("deserialize: read peer pub key failed, err: %s", err)
+	}
+	return nil
 }
 
 //
@@ -168,26 +311,46 @@ func (this *ExitShardParam) Deserialize(r io.Reader) error {
 // @ShardID : ID of shard which is to be activated
 //
 type ActivateShardParam struct {
-	ShardID types.ShardID `json:"shard_id"`
+	ShardID types.ShardID
 }
 
 func (this *ActivateShardParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ShardID); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ActivateShardParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	return nil
 }
 
 type CommitDposParam struct {
-	ShardID   types.ShardID `json:"shard_id"`
-	FeeAmount uint64        `json:"fee_amount"`
+	ShardID   types.ShardID
+	FeeAmount uint64
 }
 
 func (this *CommitDposParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ShardID); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.FeeAmount); err != nil {
+		return fmt.Errorf("serialize: write fee amount failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *CommitDposParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.FeeAmount, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read fee amount failed, err: %s", err)
+	}
+	return nil
 }

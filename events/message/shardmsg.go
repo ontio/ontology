@@ -19,8 +19,12 @@
 package message
 
 import (
+	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"io"
 )
 
 const (
@@ -31,14 +35,81 @@ const (
 )
 
 type ShardSystemEventMsg struct {
-	FromAddress common.Address   `json:"from_address"`
-	Event       *ShardEventState `json:"event"`
+	FromAddress common.Address
+	Event       *ShardEventState
+}
+
+func (this *ShardSystemEventMsg) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.FromAddress); err != nil {
+		return fmt.Errorf("serialize: write from addr failed, err: %s", err)
+	}
+	if err := this.Event.Serialize(w); err != nil {
+		return fmt.Errorf("serialize: write evt failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *ShardSystemEventMsg) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.FromAddress, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read from addr failed, err: %s", err)
+	}
+	if err = this.Event.Deserialize(r); err != nil {
+		return fmt.Errorf("deserialize: read event failed, err: %s", err)
+	}
+	return nil
 }
 
 type ShardEventState struct {
-	Version    uint32        `json:"version"`
-	EventType  uint32        `json:"event_type"`
-	ToShard    types.ShardID `json:"to_shard"`
-	FromHeight uint32        `json:"from_height"`
-	Payload    []byte        `json:"payload"`
+	Version    uint32
+	EventType  uint32
+	ToShard    types.ShardID
+	FromHeight uint32
+	Payload    []byte
+}
+
+func (this *ShardEventState) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, uint64(this.Version)); err != nil {
+		return fmt.Errorf("serialize: write version failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.EventType)); err != nil {
+		return fmt.Errorf("serialize: write event type failed, err: %s", err)
+	}
+	if err := utils.SerializeShardId(w, this.ToShard); err != nil {
+		return fmt.Errorf("serialize: write to shard failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.FromHeight)); err != nil {
+		return fmt.Errorf("serialize: write from height failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, this.Payload); err != nil {
+		return fmt.Errorf("serialize: write payload failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *ShardEventState) Deserialize(r io.Reader) error {
+	version, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read version failed, err: %s", err)
+	}
+	this.Version = uint32(version)
+	evtType, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read event type failed, err: %s", err)
+	}
+	this.EventType = uint32(evtType)
+	if this.ToShard, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read to shard failed, err: %s", err)
+	}
+	height, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read from height failed, err: %s", err)
+	}
+	this.FromHeight = uint32(height)
+	payload, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read payload failed, err: %s", err)
+	}
+	this.Payload = payload
+	return nil
 }
