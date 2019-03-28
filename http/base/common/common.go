@@ -21,7 +21,6 @@ package common
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -515,8 +514,8 @@ func GetAddress(str string) (common.Address, error) {
 func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{}) ([]byte, error) {
 	contract := &cstate.WasmContractParam{}
 	contract.Address = contractAddress
-	bf := bytes.NewBuffer(nil)
-
+	//bf := bytes.NewBuffer(nil)
+	bf := common.NewZeroCopySink(nil)
 	argbytes, err := buildWasmContractParam(params, bf)
 	if err != nil {
 		return nil, fmt.Errorf("build wasm contract param failed:%s", err)
@@ -529,50 +528,31 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 }
 
 //build param bytes for wasm contract
-func buildWasmContractParam(params []interface{}, bf *bytes.Buffer) ([]byte, error) {
+func buildWasmContractParam(params []interface{}, bf *common.ZeroCopySink) ([]byte, error) {
 	for _, param := range params {
 		switch param.(type) {
 		case string:
-			tmp := bytes.NewBuffer(nil)
-			serialization.WriteString(tmp, param.(string))
-			bf.Write(tmp.Bytes())
+			bf.WriteString(param.(string))
 		case int:
-			tmpBytes := make([]byte, 4)
-			binary.LittleEndian.PutUint32(tmpBytes, uint32(param.(int)))
-			bf.Write(tmpBytes)
+			bf.WriteInt32(param.(int32))
 		case int64:
-			tmpBytes := make([]byte, 8)
-			binary.LittleEndian.PutUint64(tmpBytes, uint64(param.(int64)))
-			bf.Write(tmpBytes)
+			bf.WriteInt64(param.(int64))
 		case uint16:
-			tmpBytes := make([]byte, 2)
-			binary.LittleEndian.PutUint16(tmpBytes, param.(uint16))
-			bf.Write(tmpBytes)
+			bf.WriteUint16(param.(uint16))
 		case uint32:
-			tmpBytes := make([]byte, 4)
-			binary.LittleEndian.PutUint32(tmpBytes, param.(uint32))
-			bf.Write(tmpBytes)
+			bf.WriteUint32(param.(uint32))
 		case uint64:
-			tmpBytes := make([]byte, 8)
-			binary.LittleEndian.PutUint64(tmpBytes, param.(uint64))
-			bf.Write(tmpBytes)
+			bf.WriteUint64(param.(uint64))
 		case []byte:
-			tmp := bytes.NewBuffer(nil)
-			serialization.WriteVarBytes(tmp, param.([]byte))
-			bf.Write(tmp.Bytes())
+			bf.WriteVarBytes(param.([]byte))
 		case common.Uint256:
-			bs := param.(common.Uint256)
-			parambytes := bs[:]
-			bf.Write(parambytes)
+			bf.WriteHash(param.(common.Uint256))
 		case common.Address:
-			bs := param.(common.Address)
-			parambytes := bs[:]
-			bf.Write(parambytes)
+			bf.WriteAddress(param.(common.Address))
 		case byte:
 			bf.WriteByte(param.(byte))
 		case []interface{}:
 			buildWasmContractParam(param.([]interface{}), bf)
-
 		default:
 			return nil, fmt.Errorf("not a supported type :%v\n", param)
 		}
