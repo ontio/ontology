@@ -20,7 +20,6 @@ package smartcontract
 import (
 	"fmt"
 
-	"crypto/sha256"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
