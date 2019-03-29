@@ -39,7 +39,7 @@ import (
 
 const (
 	//status
-	RegisterCandidateStatus Status = iota
+	RegisterCandidateStatus utils.Status = iota
 	CandidateStatus
 	ConsensusStatus
 	QuitConsensusStatus
@@ -176,7 +176,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	}
 
 	//check the configuration
-	err = CheckVBFTConfig(configuration)
+	err = utils.CheckVBFTConfig(configuration)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("checkVBFTConfig failed: %v", err)
 	}
@@ -200,8 +200,8 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	var view uint32 = 1
 	var maxId uint32
 
-	peerPoolMap := &PeerPoolMap{
-		PeerPoolMap: make(map[string]*PeerPoolItem),
+	peerPoolMap := &utils.PeerPoolMap{
+		PeerPoolMap: make(map[string]*utils.PeerPoolItem),
 	}
 	for _, peer := range configuration.Peers {
 		if peer.Index > maxId {
@@ -212,7 +212,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("common.AddressFromBase58, address format error: %v", err)
 		}
 
-		peerPoolItem := new(PeerPoolItem)
+		peerPoolItem := new(utils.PeerPoolItem)
 		peerPoolItem.Index = peer.Index
 		peerPoolItem.PeerPubkey = peer.PeerPubkey
 		peerPoolItem.Address = address
@@ -240,11 +240,11 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	}
 
 	//init peer pool
-	err = putPeerPoolMap(native, contract, 0, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, 0, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -255,18 +255,18 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)), cstates.GenRawStorageItem(indexBytes))
 
 	//init governance view
-	governanceView := &GovernanceView{
+	governanceView := &utils.ChangeView{
 		View:   view,
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	err = putGovernanceView(native, contract, governanceView)
+	err = utils.PutChangeView(native, contract, governanceView, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
 	}
 
 	//init config
-	config := &Configuration{
+	config := &utils.Configuration{
 		N:                    configuration.N,
 		C:                    configuration.C,
 		K:                    configuration.K,
@@ -276,7 +276,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		PeerHandshakeTimeout: configuration.PeerHandshakeTimeout,
 		MaxBlockChangeView:   configuration.MaxBlockChangeView,
 	}
-	err = putConfig(native, contract, config)
+	err = utils.PutConfig(native, contract, config, VBFT_CONFIG)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putConfig, put config error: %v", err)
 	}
@@ -347,13 +347,13 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -385,7 +385,7 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	delete(peerPoolMap.PeerPoolMap, params.PeerPubkey)
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -416,7 +416,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -429,7 +429,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 
 	//check if peerPoolMap full
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -515,7 +515,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 		native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
 	}
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -546,13 +546,13 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -578,7 +578,7 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 
 	//remove peerPubkey from peerPool
 	delete(peerPoolMap.PeerPoolMap, params.PeerPubkey)
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -610,12 +610,12 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -648,7 +648,7 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 		peerPoolItem.Status = BlackStatus
 		peerPoolMap.PeerPoolMap[peerPubkey] = peerPoolItem
 	}
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -721,19 +721,19 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
 
 	//get config
-	config, err := getConfig(native, contract)
+	config, err := utils.GetConfig(native, contract, VBFT_CONFIG)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getConfig, get config error: %v", err)
 	}
@@ -769,7 +769,7 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 	}
 
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -814,13 +814,13 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -897,7 +897,7 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 		}
 	}
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -978,13 +978,13 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	// get config
-	config, err := getConfig(native, contract)
+	config, err := utils.GetConfig(native, contract, VBFT_CONFIG)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getConfig, get config error: %v", err)
 	}
 
 	//get governace view
-	governanceView, err := GetGovernanceView(native, contract)
+	governanceView, err := utils.GetChangeView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
 	}
@@ -1035,18 +1035,18 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
 	}
 
-	configuration := new(Configuration)
+	configuration := new(utils.Configuration)
 	if err := configuration.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize configuration error: %v", err)
 	}
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -1089,11 +1089,11 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("updateConfig. MaxBlockChangeView must >= 10000")
 	}
 
-	preConfig := &PreConfig{
+	preConfig := &utils.PreConfig{
 		Configuration: configuration,
 		SetView:       view,
 	}
-	err = putPreConfig(native, contract, preConfig)
+	err = utils.PutPreConfig(native, contract, preConfig, PRE_CONFIG)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPreConfig, put preConfig error: %v", err)
 	}
@@ -1118,7 +1118,7 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	// get config
-	config, err := getConfig(native, contract)
+	config, err := utils.GetConfig(native, contract, VBFT_CONFIG)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getConfig, get config error: %v", err)
 	}
@@ -1183,7 +1183,7 @@ func UpdateGlobalParam2(native *native.NativeService) ([]byte, error) {
 	}
 
 	// get config
-	config, err := getConfig(native, contract)
+	config, err := utils.GetConfig(native, contract, VBFT_CONFIG)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getConfig, get config error: %v", err)
 	}
@@ -1319,13 +1319,13 @@ func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
 
 	//check if is peer owner
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -1383,13 +1383,13 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 
 	//check if is peer owner
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -1488,13 +1488,13 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 
 	//check if is peer owner
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -1510,7 +1510,7 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 	}
 
 	peerPoolMap.PeerPoolMap[params.PeerPubkey].InitPos = peerPoolItem.InitPos + uint64(params.Pos)
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap error: %v", err)
 	}
@@ -1554,13 +1554,13 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 
 	//check if is peer owner
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -1593,7 +1593,7 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 	}
 
 	peerPoolMap.PeerPoolMap[params.PeerPubkey].InitPos = newInitPos
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap error: %v", err)
 	}

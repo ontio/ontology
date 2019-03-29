@@ -45,6 +45,7 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/validator/increment"
 )
@@ -2175,7 +2176,7 @@ func (self *Server) msgSendLoop() {
 //create shard ong transaction
 func (self *Server) createShardGovTransaction(blkNum uint32) (*types.Transaction, error) {
 	//build transaction
-	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, gover.COMMIT_DPOS, []byte{})
+	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, shard_stake.COMMIT_DPOS, []byte{})
 	mutable.GasPrice = 0
 	mutable.Payer = self.account.Address
 	mutable.Nonce = blkNum
@@ -2223,7 +2224,7 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
 
 //checkUpdateChainConfig query leveldb check is force update
 func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
-	force, err := isUpdate(self.chainStore.GetExecWriteSet(blkNum-1), self.config.View)
+	force, err := isUpdate(self.chainStore.GetExecWriteSet(blkNum-1), self.config.View, chainmgr.GetShardID().IsRootShard())
 	if err != nil {
 		log.Errorf("checkUpdateChainConfig err:%s", err)
 		return false
@@ -2272,7 +2273,8 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
 	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
-		chainconfig, err := getChainConfig(self.chainStore.GetExecWriteSet(blkNum-1), blkNum)
+		isRootShard := chainmgr.GetShardID().IsRootShard()
+		chainconfig, err := getChainConfig(self.chainStore.GetExecWriteSet(blkNum-1), blkNum, isRootShard)
 		if err != nil {
 			return fmt.Errorf("getChainConfig failed:%s", err)
 		}
@@ -2280,7 +2282,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		if self.checkNeedUpdateChainConfig(blkNum) {
 			var tx *types.Transaction
 			var err error = nil
-			if chainmgr.GetShardID().IsRootShard() {
+			if isRootShard {
 				tx, err = self.creategovernaceTransaction(blkNum)
 			} else {
 				tx, err = self.createShardGovTransaction(blkNum)

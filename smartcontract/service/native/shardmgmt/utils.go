@@ -21,9 +21,9 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 
 	"github.com/ontio/ontology/common"
@@ -31,6 +31,7 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -226,7 +227,7 @@ func getShardPeerState(native *native.NativeService, contract common.Address, sh
 	return peerState(value), nil
 }
 
-func getRootCurrentViewPeerItem(native *native.NativeService, pubKey string) (*governance.PeerPoolItem, error) {
+func getRootCurrentViewPeerItem(native *native.NativeService, pubKey string) (*utils.PeerPoolItem, error) {
 	peerPoolMap, err := getRootCurrentViewPeerMap(native)
 	if err != nil {
 		return nil, fmt.Errorf("getRootCurrentViewPeerItem: failed, err: %s", err)
@@ -238,14 +239,14 @@ func getRootCurrentViewPeerItem(native *native.NativeService, pubKey string) (*g
 	return item, nil
 }
 
-func getRootCurrentViewPeerMap(native *native.NativeService) (*governance.PeerPoolMap, error) {
+func getRootCurrentViewPeerMap(native *native.NativeService) (*utils.PeerPoolMap, error) {
 	//get current view
-	view, err := governance.GetView(native, utils.GovernanceContractAddress)
+	view, err := utils.GetView(native, utils.GovernanceContractAddress, gov.GOVERNANCE_VIEW)
 	if err != nil {
 		return nil, fmt.Errorf("getRootCurrentViewPeerMap: get view error: %s", err)
 	}
 	//get peerPoolMap
-	peerPoolMap, err := governance.GetPeerPoolMap(native, utils.GovernanceContractAddress, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, utils.GovernanceContractAddress, view, gov.PEER_POOL)
 	if err != nil {
 		return nil, fmt.Errorf("getRootCurrentViewPeerMap: get peerPoolMap error: %s", err)
 	}
