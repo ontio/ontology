@@ -32,7 +32,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -102,7 +101,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 		return nil, fmt.Errorf("get shard state, nil ledger")
 	}
 
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
+	shardIDBytes, err := utils.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("ser shardID failed: %s", err)
 	}
@@ -128,7 +127,7 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[strin
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
 	}
 
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
+	shardIDBytes, err := utils.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: ser shardID failed: %s", err)
 	}
@@ -159,8 +158,10 @@ func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.Shar
 	if lgr == nil {
 		return nil, fmt.Errorf("uninitialized chain mgr")
 	}
-
-	blockNumBytes := shardutil.GetUint32Bytes(blockNum)
+	blockNumBytes, err := utils.GetUint32Bytes(blockNum)
+	if err != nil {
+		return nil, fmt.Errorf("GetRequestedRemoteShards: ser height %s", err)
+	}
 	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes)
 	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
 	if err == common.ErrNotFound {
@@ -182,8 +183,11 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard ty
 		return nil, fmt.Errorf("nil ledger")
 	}
 
-	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
-	shardIDBytes, err := shardutil.GetUint64Bytes(toShard.ToUint64())
+	blockNumBytes, err := utils.GetUint32Bytes(blockHeight)
+	if err != nil {
+		return nil, fmt.Errorf("GetRequestsToRemoteShard: ser height %s", err)
+	}
+	shardIDBytes, err := utils.GetUint64Bytes(toShard.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("serialize toshard: %s", err)
 	}

@@ -28,7 +28,6 @@ import (
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardccmc/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -98,7 +97,7 @@ func setCCMCState(native *native.NativeService, contract common.Address, state *
 }
 
 func getCCInfo(native *native.NativeService, contract common.Address, CCID uint64) (*ccmc_states.ShardCCInfo, error) {
-	ccidBytes, err := shardutil.GetUint64Bytes(CCID)
+	ccidBytes, err := utils.GetUint64Bytes(CCID)
 	if err != nil {
 		return nil, fmt.Errorf("getCCInfo, serialize shardID: %s", err)
 	}
@@ -129,7 +128,7 @@ func setCCInfo(native *native.NativeService, contract common.Address, state *ccm
 		return fmt.Errorf("setCCInfo, nil state")
 	}
 
-	ccidBytes, err := shardutil.GetUint64Bytes(state.CCID)
+	ccidBytes, err := utils.GetUint64Bytes(state.CCID)
 	if err != nil {
 		return fmt.Errorf("setCCInfo, serialize shardID: %s", err)
 	}
@@ -165,5 +164,5 @@ func getCCID(native *native.NativeService, contract common.Address, addr common.
 		return 0, fmt.Errorf("getCCID, deserialize from raw storage: %s", err)
 	}
 
-	return shardutil.GetBytesUint64(ccidBytes)
+	return utils.GetBytesUint64(ccidBytes)
 }

@@ -33,7 +33,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -133,7 +132,7 @@ func setGlobalState(native *native.NativeService, contract common.Address, state
 }
 
 func GetShardState(native *native.NativeService, contract common.Address, shardID types.ShardID) (*shardstates.ShardState, error) {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
+	shardIDBytes, err := utils.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("getShardState: serialize shardID: %s", err)
 	}
@@ -160,7 +159,7 @@ func GetShardState(native *native.NativeService, contract common.Address, shardI
 }
 
 func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(state.ShardID.ToUint64())
+	shardIDBytes, err := utils.GetUint64Bytes(state.ShardID.ToUint64())
 	if err != nil {
 		return fmt.Errorf("setShardState: serialize shardID: %s", err)
 	}
@@ -197,7 +196,7 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 
 func setShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID, state peerState,
 	pubKey string) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
+	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
 	if err != nil {
 		return fmt.Errorf("setShardPeerState: serialize shardID: %s", err)
 	}
@@ -208,7 +207,7 @@ func setShardPeerState(native *native.NativeService, contract common.Address, sh
 
 func getShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID,
 	pubKey string) (peerState, error) {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
+	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
 	if err != nil {
 		return state_default, fmt.Errorf("getShardPeerState: serialize shardID: %s", err)
 	}

@@ -32,7 +32,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -227,14 +226,20 @@ func ShardDoubleCheckout(ctx *native.NativeService) ([]byte, error) {
 }
 
 func setRoomOwner(ctx *native.NativeService, roomNo int, owner common.Address) error {
-	roomBytes := shardutil.GetUint32Bytes(uint32(roomNo))
+	roomBytes, err := utils.GetUint32Bytes(uint32(roomNo))
+	if err != nil {
+		return fmt.Errorf("setRoomOwner: ser roomNo : %s", err)
+	}
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	ctx.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_ROOM), roomBytes), states.GenRawStorageItem(owner[:]))
 	return nil
 }
 
 func getRoomUser(ctx *native.NativeService, roomNo int) (common.Address, error) {
-	roomBytes := shardutil.GetUint32Bytes(uint32(roomNo))
+	roomBytes, err := utils.GetUint32Bytes(uint32(roomNo))
+	if err != nil {
+		return common.ADDRESS_EMPTY, fmt.Errorf("getRoomUser: ser roomNo : %s", err)
+	}
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 
 	userBytes, err := ctx.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_ROOM), roomBytes))

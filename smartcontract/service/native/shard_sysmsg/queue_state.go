@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -82,7 +81,10 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 	toShards = append(toShards, toShard)
 
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(ctx.Height)
+	blockNumBytes, err := utils.GetUint32Bytes(ctx.Height)
+	if err != nil {
+		return fmt.Errorf("addToShardsInBlock: ser height %s", err)
+	}
 
 	toShardsInBlk := &ToShardsInBlock{
 		Shards: toShards,
@@ -101,7 +103,10 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 
 func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.ShardID, error) {
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
+	blockNumBytes, err := utils.GetUint32Bytes(blockHeight)
+	if err != nil {
+		return nil, fmt.Errorf("getToShardsInBlock: ser height %s", err)
+	}
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
 	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
@@ -166,8 +171,11 @@ func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) 
 	reqs = append(reqs, reqBytes.Bytes())
 
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(ctx.Height)
-	shardIDBytes, err := shardutil.GetUint64Bytes(req.GetTargetShardID().ToUint64())
+	blockNumBytes, err := utils.GetUint32Bytes(ctx.Height)
+	if err != nil {
+		return fmt.Errorf("addReqsInBlock: ser height %s", err)
+	}
+	shardIDBytes, err := utils.GetUint64Bytes(req.GetTargetShardID().ToUint64())
 	if err != nil {
 		return fmt.Errorf("serialzie toshard: %s", err)
 	}
@@ -187,8 +195,11 @@ func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) 
 
 func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types.ShardID) ([][]byte, error) {
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := shardutil.GetUint32Bytes(blockHeight)
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
+	blockNumBytes, err := utils.GetUint32Bytes(blockHeight)
+	if err != nil {
+		return nil, fmt.Errorf("getReqsInBlock: ser height %s", err)
+	}
+	shardIDBytes, err := utils.GetUint64Bytes(shardID.ToUint64())
 	if err != nil {
 		return nil, fmt.Errorf("serialize toShard: %s", err)
 	}
