@@ -20,6 +20,8 @@ package native
 
 import (
 	"fmt"
+	"bytes"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
@@ -29,6 +31,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 type (
@@ -97,4 +101,18 @@ func (this *NativeService) NativeCall(address common.Address, method string, arg
 	}
 	this.InvokeParam = c
 	return this.Invoke()
+}
+
+func (this *NativeService) NeoVMCall(address common.Address, method string, args []byte) (interface{}, error) {
+	bf := new(bytes.Buffer)
+	builder := vm.NewParamsBuilder(bf)
+	builder.EmitPushByteArray(args)
+	builder.EmitPushByteArray([]byte(method))
+	builder.Emit(vm.APPCALL)
+	builder.EmitPushByteArray(address[:])
+	engine, err := this.ContextRef.NewExecuteEngine(builder.ToArray())
+	if err != nil {
+		return nil, err
+	}
+	return engine.Invoke()
 }
