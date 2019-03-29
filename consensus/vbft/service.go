@@ -181,6 +181,7 @@ func (self *Server) Receive(context actor.Context) {
 		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d, numtx=%d",
 			msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block)
+		self.handleBlockSubmit(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
 
@@ -226,6 +227,17 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 		if err != nil {
 			log.Errorf("updateChainConfig failed:%s", err)
 		}
+	}
+}
+
+func (self *Server) handleBlockSubmit(block *types.Block) {
+	stateRoot, err := self.chainStore.GetExecMerkleRoot(block.Header.Height)
+	if err != nil {
+		log.Errorf("handleBlockSubmit failed:%s", err)
+		return
+	}
+	if blocksubmitMsg, _ := self.constructBlockSubmitMsg(block.Header.Height, stateRoot); blocksubmitMsg != nil {
+		self.broadcast(blocksubmitMsg)
 	}
 }
 
@@ -1042,6 +1054,32 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 		self.syncer.syncMsgC <- &SyncMsg{
 			fromPeer: peerIdx,
 			msg:      msg,
+		}
+	case BlockSubmitMessage:
+		pMsg, ok := msg.(*blockSubmitMsg)
+		if !ok {
+			log.Error("invalid msg with submit msg type")
+			return
+		}
+		msgBlkNum := pMsg.GetBlockNum()
+		if msgBlkNum > self.GetCurrentBlockNo() {
+			log.Errorf("failed to get submit msg (%d) to currentblock:%d", msgBlkNum, self.GetCurrentBlockNo())
+			return
+		}
+		if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
+			if err != errDropFarFutureMsg {
+				log.Errorf("failed to add submit msg (%d) to pool: %s", msgBlkNum, err)
+			}
+			return
+		}
+		submitNum := self.msgPool.GetBlockSubmitMsgNums(msgBlkNum)
+		m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
+		if submitNum < uint32(m) {
+			return
+		}
+		log.Infof("submit msg  submitNum:%d,m:%d", submitNum, m)
+		if err := self.chainStore.SubmitBlock(msgBlkNum); err != nil {
+			log.Errorf("SubmitBlock err:%s", err)
 		}
 	}
 }
