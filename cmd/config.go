@@ -20,11 +20,12 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/smartcontract/service/native/governance"
+	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/urfave/cli"
 )
 
@@ -108,7 +109,7 @@ func setGenesis(ctx *cli.Context, cfg *config.OntologyConfig) error {
 			cfg.Genesis.DBFT.GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME
 		}
 	case config.CONSENSUS_TYPE_VBFT:
-		err = governance.CheckVBFTConfig(cfg.Genesis.VBFT)
+		err = nutils.CheckVBFTConfig(cfg.Genesis.VBFT)
 		if err != nil {
 			return fmt.Errorf("VBFT config error %v", err)
 		}

@@ -21,29 +21,10 @@ package governance
 import (
 	"fmt"
 	"io"
-	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 )
-
-type Status uint8
-
-func (this *Status) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint8(w, uint8(*this)); err != nil {
-		return fmt.Errorf("serialization.WriteUint8, serialize status error: %v", err)
-	}
-	return nil
-}
-
-func (this *Status) Deserialize(r io.Reader) error {
-	status, err := serialization.ReadUint8(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint8, deserialize status error: %v", err)
-	}
-	*this = Status(status)
-	return nil
-}
 
 type BlackListItem struct {
 	PeerPubkey string         //peerPubkey in black list
@@ -81,117 +62,6 @@ func (this *BlackListItem) Deserialize(r io.Reader) error {
 	this.PeerPubkey = peerPubkey
 	this.Address = *address
 	this.InitPos = initPos
-	return nil
-}
-
-type PeerPoolList struct {
-	Peers []*PeerPoolItem
-}
-
-type PeerPoolMap struct {
-	PeerPoolMap map[string]*PeerPoolItem
-}
-
-func (this *PeerPoolMap) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, uint32(len(this.PeerPoolMap))); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize PeerPoolMap length error: %v", err)
-	}
-	var peerPoolItemList []*PeerPoolItem
-	for _, v := range this.PeerPoolMap {
-		peerPoolItemList = append(peerPoolItemList, v)
-	}
-	sort.SliceStable(peerPoolItemList, func(i, j int) bool {
-		return peerPoolItemList[i].PeerPubkey > peerPoolItemList[j].PeerPubkey
-	})
-	for _, v := range peerPoolItemList {
-		if err := v.Serialize(w); err != nil {
-			return fmt.Errorf("serialize peerPool error: %v", err)
-		}
-	}
-	return nil
-}
-
-func (this *PeerPoolMap) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadUint32(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint32, deserialize PeerPoolMap length error: %v", err)
-	}
-	peerPoolMap := make(map[string]*PeerPoolItem)
-	for i := 0; uint32(i) < n; i++ {
-		peerPoolItem := new(PeerPoolItem)
-		if err := peerPoolItem.Deserialize(r); err != nil {
-			return fmt.Errorf("deserialize peerPool error: %v", err)
-		}
-		peerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
-	}
-	this.PeerPoolMap = peerPoolMap
-	return nil
-}
-
-type PeerPoolItem struct {
-	Index      uint32         //peer index
-	PeerPubkey string         //peer pubkey, run ontology wallet account
-	Address    common.Address //peer owner
-	Status     Status         //peer status
-	InitPos    uint64         //peer initPos
-	TotalPos   uint64         //total authorize pos this peer received
-}
-
-func (this *PeerPoolItem) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, this.Index); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize address error: %v", err)
-	}
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := this.Status.Serialize(w); err != nil {
-		return fmt.Errorf("this.Status.Serialize, serialize Status error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize initPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.TotalPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize totalPos error: %v", err)
-	}
-	return nil
-}
-
-func (this *PeerPoolItem) Deserialize(r io.Reader) error {
-	index, err := serialization.ReadUint32(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint32, deserialize index error: %v", err)
-	}
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
-	}
-	address := new(common.Address)
-	err = address.Deserialize(r)
-	if err != nil {
-		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
-	}
-	status := new(Status)
-	err = status.Deserialize(r)
-	if err != nil {
-		return fmt.Errorf("status.Deserialize. deserialize status error: %v", err)
-	}
-	initPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", err)
-	}
-	totalPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize totalPos error: %v", err)
-	}
-	this.Index = index
-	this.PeerPubkey = peerPubkey
-	this.Address = *address
-	this.Status = *status
-	this.InitPos = initPos
-	this.TotalPos = totalPos
 	return nil
 }
 
@@ -283,44 +153,6 @@ type PeerStakeInfo struct {
 	Index      uint32
 	PeerPubkey string
 	Stake      uint64
-}
-
-type GovernanceView struct {
-	View   uint32
-	Height uint32
-	TxHash common.Uint256
-}
-
-func (this *GovernanceView) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, this.View); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize view error: %v", err)
-	}
-	if err := serialization.WriteUint32(w, this.Height); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize height error: %v", err)
-	}
-	if err := this.TxHash.Serialize(w); err != nil {
-		return fmt.Errorf("txHash.Serialize, serialize txHash error: %v", err)
-	}
-	return nil
-}
-
-func (this *GovernanceView) Deserialize(r io.Reader) error {
-	view, err := serialization.ReadUint32(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint32, deserialize view error: %v", err)
-	}
-	height, err := serialization.ReadUint32(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint32, deserialize height error: %v", err)
-	}
-	txHash := new(common.Uint256)
-	if err := txHash.Deserialize(r); err != nil {
-		return fmt.Errorf("txHash.Deserialize, deserialize txHash error: %v", err)
-	}
-	this.View = view
-	this.Height = height
-	this.TxHash = *txHash
-	return nil
 }
 
 type TotalStake struct {
