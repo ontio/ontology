@@ -21,7 +21,6 @@ package native
 import (
 	"fmt"
 	"bytes"
-	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
@@ -32,7 +31,6 @@ import (
 	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 type (
