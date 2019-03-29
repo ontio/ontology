@@ -52,13 +52,13 @@ func registerCandidate(native *native.NativeService, flag string) error {
 	}
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//check peerPubkey
-	if err := validatePeerPubKeyFormat(params.PeerPubkey); err != nil {
+	if err := utils.ValidatePeerPubKeyFormat(params.PeerPubkey); err != nil {
 		return fmt.Errorf("invalid peer pubkey")
 	}
 
@@ -76,7 +76,7 @@ func registerCandidate(native *native.NativeService, flag string) error {
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -87,14 +87,14 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("registerCandidate, peerPubkey is already in peerPoolMap")
 	}
 
-	peerPoolItem := &PeerPoolItem{
+	peerPoolItem := &utils.PeerPoolItem{
 		PeerPubkey: params.PeerPubkey,
 		Address:    params.Address,
 		InitPos:    uint64(params.InitPos),
 		Status:     RegisterCandidateStatus,
 	}
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -157,13 +157,13 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 	}
 
 	//get current view
-	view, err := GetView(native, contract)
+	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return fmt.Errorf("getView, get view error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -230,7 +230,7 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 			return fmt.Errorf("putAuthorizeInfo, put authorizeInfo error: %v", err)
 		}
 	}
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -259,7 +259,7 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 	return nil
 }
 
-func normalQuit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
+func normalQuit(native *native.NativeService, contract common.Address, peerPoolItem *utils.PeerPoolItem) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
@@ -311,7 +311,7 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 	return nil
 }
 
-func blackQuit(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
+func blackQuit(native *native.NativeService, contract common.Address, peerPoolItem *utils.PeerPoolItem) error {
 	// ont transfer to trigger unboundong
 	err := appCallTransferOnt(native, utils.GovernanceContractAddress, utils.GovernanceContractAddress, peerPoolItem.InitPos)
 	if err != nil {
@@ -383,7 +383,7 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 	return nil
 }
 
-func consensusToConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
+func consensusToConsensus(native *native.NativeService, contract common.Address, peerPoolItem *utils.PeerPoolItem) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
@@ -426,7 +426,7 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 	return nil
 }
 
-func unConsensusToConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
+func unConsensusToConsensus(native *native.NativeService, contract common.Address, peerPoolItem *utils.PeerPoolItem) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
@@ -469,7 +469,7 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 	return nil
 }
 
-func consensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
+func consensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *utils.PeerPoolItem) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
@@ -512,7 +512,7 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 	return nil
 }
 
-func unConsensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *PeerPoolItem) error {
+func unConsensusToUnConsensus(native *native.NativeService, contract common.Address, peerPoolItem *utils.PeerPoolItem) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
@@ -671,7 +671,7 @@ func withdrawPenaltyStake(native *native.NativeService, contract common.Address,
 }
 
 func executeCommitDpos(native *native.NativeService, contract common.Address) error {
-	governanceView, err := GetGovernanceView(native, contract)
+	governanceView, err := utils.GetChangeView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
 	}
@@ -694,12 +694,12 @@ func executeCommitDpos(native *native.NativeService, contract common.Address) er
 	}
 
 	//update view
-	governanceView = &GovernanceView{
+	governanceView = &utils.ChangeView{
 		View:   view + 1,
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	err = putGovernanceView(native, contract, governanceView)
+	err = utils.PutChangeView(native, contract, governanceView, GOVERNANCE_VIEW)
 	if err != nil {
 		return fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
 	}
@@ -709,13 +709,13 @@ func executeCommitDpos(native *native.NativeService, contract common.Address) er
 
 func executeSplit(native *native.NativeService, contract common.Address, view uint32) error {
 	// get config
-	config, err := getConfig(native, contract)
+	config, err := utils.GetConfig(native, contract, VBFT_CONFIG)
 	if err != nil {
 		return fmt.Errorf("getConfig, get config error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view-1)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view-1, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("executeSplit, get peerPoolMap error: %v", err)
 	}
@@ -810,13 +810,13 @@ func executeSplit(native *native.NativeService, contract common.Address, view ui
 func executeSplit2(native *native.NativeService, contract common.Address, view uint32) (uint64, error) {
 	var splitSum uint64 = 0
 	// get config
-	config, err := getConfig(native, contract)
+	config, err := utils.GetConfig(native, contract, VBFT_CONFIG)
 	if err != nil {
 		return splitSum, fmt.Errorf("getConfig, get config error: %v", err)
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view-1)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view-1, PEER_POOL)
 	if err != nil {
 		return splitSum, fmt.Errorf("executeSplit, get peerPoolMap error: %v", err)
 	}
@@ -964,7 +964,7 @@ func executePeerSplit(native *native.NativeService, contract common.Address, pee
 
 func executeCommitDpos1(native *native.NativeService, contract common.Address) error {
 	//get governace view
-	governanceView, err := GetGovernanceView(native, contract)
+	governanceView, err := utils.GetChangeView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
 	}
@@ -980,19 +980,19 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 	}
 
 	//update config
-	preConfig, err := getPreConfig(native, contract)
+	preConfig, err := utils.GetPreConfig(native, contract, PRE_CONFIG)
 	if err != nil {
 		return fmt.Errorf("getPreConfig, get preConfig error: %v", err)
 	}
 	if preConfig.SetView == view {
-		err = putConfig(native, contract, preConfig.Configuration)
+		err = utils.PutConfig(native, contract, preConfig.Configuration, VBFT_CONFIG)
 		if err != nil {
 			return fmt.Errorf("putConfig, put config error: %v", err)
 		}
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -1028,7 +1028,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 		}
 	}
 	// get config
-	config, err := getConfig(native, contract)
+	config, err := utils.GetConfig(native, contract, VBFT_CONFIG)
 	if err != nil {
 		return fmt.Errorf("getConfig, get config error: %v", err)
 	}
@@ -1089,7 +1089,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 		peerPoolItem.Status = CandidateStatus
 		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
 	}
-	err = putPeerPoolMap(native, contract, newView, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, newView, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
@@ -1105,7 +1105,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 
 func executeCommitDpos2(native *native.NativeService, contract common.Address) error {
 	//get governace view
-	governanceView, err := GetGovernanceView(native, contract)
+	governanceView, err := utils.GetChangeView(native, contract, GOVERNANCE_VIEW)
 	if err != nil {
 		return fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
 	}
@@ -1121,19 +1121,19 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 	}
 
 	//update config
-	preConfig, err := getPreConfig(native, contract)
+	preConfig, err := utils.GetPreConfig(native, contract, PRE_CONFIG)
 	if err != nil {
 		return fmt.Errorf("getPreConfig, get preConfig error: %v", err)
 	}
 	if preConfig.SetView == view {
-		err = putConfig(native, contract, preConfig.Configuration)
+		err = utils.PutConfig(native, contract, preConfig.Configuration, VBFT_CONFIG)
 		if err != nil {
 			return fmt.Errorf("putConfig, put config error: %v", err)
 		}
 	}
 
 	//get peerPoolMap
-	peerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	peerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("getPeerPoolMap, get peerPoolMap error: %v", err)
 	}
@@ -1184,7 +1184,7 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 		}
 	}
 	// get config
-	config, err := getConfig(native, contract)
+	config, err := utils.GetConfig(native, contract, VBFT_CONFIG)
 	if err != nil {
 		return fmt.Errorf("getConfig, get config error: %v", err)
 	}
@@ -1245,7 +1245,7 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 		peerPoolItem.Status = CandidateStatus
 		peerPoolMap.PeerPoolMap[peers[i].PeerPubkey] = peerPoolItem
 	}
-	err = putPeerPoolMap(native, contract, newView, peerPoolMap)
+	err = utils.PutPeerPoolMap(native, contract, newView, peerPoolMap, PEER_POOL)
 	if err != nil {
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
