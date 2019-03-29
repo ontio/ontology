@@ -1075,6 +1075,9 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if configuration.PeerHandshakeTimeout < 10 {
 		return utils.BYTE_FALSE, fmt.Errorf("updateConfig. PeerHandshakeTimeout must >= 10")
 	}
+	if configuration.MaxBlockChangeView < 10000 {
+		return utils.BYTE_FALSE, fmt.Errorf("updateConfig. MaxBlockChangeView must >= 10000")
+	}
 
 	preConfig := &PreConfig{
 		Configuration: configuration,

@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology-crypto/vrf"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	vbftconfig "github.com/ontio/ontology/consensus/vbft/config"
 	cstates "github.com/ontio/ontology/core/states"
