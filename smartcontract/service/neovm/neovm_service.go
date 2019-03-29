@@ -73,6 +73,7 @@ var (
 		RUNTIME_GETTRIGGER_NAME:              {Execute: RuntimeGetTrigger},
 		RUNTIME_SERIALIZE_NAME:               {Execute: RuntimeSerialize, Validator: validatorSerialize},
 		RUNTIME_DESERIALIZE_NAME:             {Execute: RuntimeDeserialize, Validator: validatorDeserialize},
+		RUNTIME_VERIFYMUTISIG_NAME:           {Execute: RuntimeVerifyMutiSig},
 		NATIVE_INVOKE_NAME:                   {Execute: NativeInvoke},
 		STORAGE_GET_NAME:                     {Execute: StorageGet},
 		STORAGE_PUT_NAME:                     {Execute: StoragePut},
@@ -194,52 +195,6 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, err
 			}
 			if err := signature.Verify(key, data, sig); err != nil {
-				vm.PushData(this.Engine, false)
-			} else {
-				vm.PushData(this.Engine, true)
-			}
-		case vm.CHECKMULTISIG:
-			if vm.EvaluationStackCount(this.Engine) < 4 {
-				return nil, errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters")
-			}
-			data, err := vm.PopByteArray(this.Engine)
-			if err != nil {
-				return nil, err
-			}
-			arr1, err := vm.PopArray(this.Engine)
-			if err != nil {
-				return nil, err
-			}
-			pks := make([]keypair.PublicKey, 0, len(arr1))
-			for i := 0; i < len(arr1); i++ {
-				value, err := arr1[i].GetByteArray()
-				if err != nil {
-					return nil, err
-				}
-				pk, err := keypair.DeserializePublicKey(value)
-				if err != nil {
-					return nil, err
-				}
-				pks = append(pks, pk)
-			}
-
-			m, err := vm.PopInt(this.Engine)
-			if err != nil {
-				return nil, err
-			}
-			arr2, err := vm.PopArray(this.Engine)
-			if err != nil {
-				return nil, err
-			}
-			signs := make([][]byte, 0, len(arr2))
-			for i := 0; i < len(arr2); i++ {
-				value, err := arr2[i].GetByteArray()
-				if err != nil {
-					return nil, err
-				}
-				signs = append(signs, value)
-			}
-			if err := signature.VerifyMultiSignature(data, pks, m, signs); err != nil {
 				vm.PushData(this.Engine, false)
 			} else {
 				vm.PushData(this.Engine, true)
