@@ -40,8 +40,6 @@ const (
 	KEY_SHARD_VIEW_USER_STAKE = "shard_view_stake"     // user stake info at specific view index of shard
 	KEY_SHARD_MIN_STAKE       = "shard_peer_min_stake" // peer min stake, ordinary user has not this limit
 
-	KEY_VIEW_DIVIDED = "divided" // shard view has divided fee or not
-
 	KEY_SHARD_USER_LAST_STAKE_VIEW    = "shard_last_stake_view"    // user latest stake influence view index
 	KEY_SHARD_USER_LAST_WITHDRAW_VIEW = "shard_last_withdraw_view" // user latest withdraw view index, user's dividends at this view has not yet withdrawn
 
@@ -149,7 +147,7 @@ func GetShardViewInfo(native *native.NativeService, id types.ShardID, view View)
 	if err != nil {
 		return nil, fmt.Errorf("GetShardViewInfo: parse store vale faield, err: %s", err)
 	}
-	err = viewInfo.Deserialize(bytes.NewBuffer(storeValue))
+	err = viewInfo.Deserialization(common.NewZeroCopySource(storeValue))
 	if err != nil {
 		return nil, fmt.Errorf("GetShardViewInfo: deserialize view info failed, err: %s", err)
 	}
@@ -166,12 +164,9 @@ func setShardViewInfo(native *native.NativeService, id types.ShardID, view View,
 		return fmt.Errorf("setShardViewInfo: ser view failed, err: %s", err)
 	}
 	key := genShardViewInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
-	bf := new(bytes.Buffer)
-	err = info.Serialize(bf)
-	if err != nil {
-		return fmt.Errorf("setShardViewInfo: ser view info failed, err: %s", err)
-	}
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(bf.Bytes()))
+	sink := common.NewZeroCopySink(0)
+	info.Serialization(sink)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 	return nil
 }
 
@@ -198,8 +193,8 @@ func getShardViewUserStake(native *native.NativeService, id types.ShardID, view 
 	if err != nil {
 		return nil, fmt.Errorf("getShardViewUserStake: parse store info failed, err: %s", err)
 	}
-	err = info.Deserialize(bytes.NewBuffer(value))
-	if err != nil {
+	source := common.NewZeroCopySource(value)
+	if err := info.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("getShardViewUserStake: dese info failed, err: %s", err)
 	}
 	return info, nil
@@ -216,12 +211,9 @@ func setShardViewUserStake(native *native.NativeService, id types.ShardID, view 
 		return fmt.Errorf("setShardViewUserStake: ser view failed, err: %s", err)
 	}
 	key := genShardViewUserStakeKey(utils.ShardStakeAddress, shardIDBytes, viewBytes, user)
-	bf := new(bytes.Buffer)
-	err = info.Serialize(bf)
-	if err != nil {
-		return fmt.Errorf("setShardViewUserStake: ser info failed, err: %s", err)
-	}
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(bf.Bytes()))
+	sink := common.NewZeroCopySink(0)
+	info.Serialization(sink)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 	return nil
 }
 
@@ -395,18 +387,16 @@ func getUserUnboundOngInfo(native *native.NativeService, contract, user common.A
 	if err != nil {
 		return nil, fmt.Errorf("getUserUnboundOngInfo: parse db value failed, err: %s", err)
 	}
-	if err := info.Deserialize(bytes.NewBuffer(data)); err != nil {
+	source := common.NewZeroCopySource(data)
+	if err := info.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("getUserUnboundOngInfo: deserialize failed, err: %s", err)
 	}
 	return info, nil
 }
 
-func setUserUnboundOngInfo(native *native.NativeService, contract, user common.Address, info *UserUnboundOngInfo) error {
+func setUserUnboundOngInfo(native *native.NativeService, contract, user common.Address, info *UserUnboundOngInfo) {
 	key := genUserUnboundOngKey(contract, user)
-	bf := new(bytes.Buffer)
-	if err := info.Serialize(bf); err != nil {
-		return fmt.Errorf("setUserUnboundOngInfo: failed, err: %s", err)
-	}
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(bf.Bytes()))
-	return nil
+	sink := common.NewZeroCopySink(0)
+	info.Serialization(sink)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }

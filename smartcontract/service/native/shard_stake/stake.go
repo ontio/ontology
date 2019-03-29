@@ -123,9 +123,7 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 			StakeAmount: params.Value.Amount,
 			Time:        native.Time,
 		}
-		if err := setUserUnboundOngInfo(native, contract, params.PeerOwner, unboundOngInfo); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
-		}
+		setUserUnboundOngInfo(native, contract, params.PeerOwner, unboundOngInfo)
 	}
 	// transfer stake asset
 	err = ont.AppCallTransfer(native, params.StakeAssetAddr, params.PeerOwner, contract, params.Value.Amount)
@@ -230,9 +228,7 @@ func UserStake(native *native.NativeService) ([]byte, error) {
 			unboundOngInfo.Time = native.Time
 			unboundOngInfo.StakeAmount += wholeAmount
 		}
-		if err := setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
-		}
+		setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo)
 	}
 	if err := ont.AppCallTransfer(native, stakeAssetAddr, param.User, contract, wholeAmount); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: transfer stake asset failed, err: %s", err)
@@ -290,9 +286,7 @@ func WithdrawStake(native *native.NativeService) ([]byte, error) {
 		} else {
 			return utils.BYTE_FALSE, fmt.Errorf("UserStake: user stake whole amount not enough")
 		}
-		if err := setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
-		}
+		setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo)
 	}
 	err = ont.AppCallTransfer(native, utils.OntContractAddress, contract, param.User, num)
 	if err != nil {
@@ -390,9 +384,7 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 	wholeAmount := amount + unboundOngInfo.Balance
 	unboundOngInfo.Balance = 0
 	unboundOngInfo.Time = native.Time
-	if err := setUserUnboundOngInfo(native, contract, user, unboundOngInfo); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: failed, err: %s", err)
-	}
+	setUserUnboundOngInfo(native, contract, user, unboundOngInfo)
 	if err := ont.AppCallTransfer(native, utils.OntContractAddress, contract, contract, 1); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: transfer ont failed, err: %s", err)
 	}

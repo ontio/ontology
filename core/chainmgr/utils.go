@@ -21,14 +21,15 @@ package chainmgr
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/store/common"
+	sComm "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
@@ -62,7 +63,7 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	}
 
 	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_VERSION))
-	if err == common.ErrNotFound {
+	if err == sComm.ErrNotFound {
 		return nil, nil
 	}
 	if err != nil {
@@ -78,7 +79,7 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	}
 
 	data, err = lgr.GetStorageItem(utils.ShardMgmtContractAddress, []byte(shardmgmt.KEY_GLOBAL_STATE))
-	if err == common.ErrNotFound {
+	if err == sComm.ErrNotFound {
 		return nil, nil
 	}
 	if err != nil {
@@ -107,7 +108,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	}
 	key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
 	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
-	if err == common.ErrNotFound {
+	if err == sComm.ErrNotFound {
 		return nil, err
 	}
 	if err != nil {
@@ -133,7 +134,7 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[strin
 	}
 	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
 	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
-	if err == common.ErrNotFound {
+	if err == sComm.ErrNotFound {
 		return nil, err
 	}
 	if err != nil {
@@ -141,14 +142,14 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[strin
 	}
 	viewInfoKey := shard_stake.GenShardViewInfoKey(shardIDBytes, viewBytes)
 	infoData, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewInfoKey)
-	if err == common.ErrNotFound {
+	if err == sComm.ErrNotFound {
 		return nil, err
 	}
 	if err != nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: get current view info: %s", err)
 	}
 	info := shard_stake.ViewInfo{}
-	if err := info.Deserialize(bytes.NewBuffer(infoData)); err != nil {
+	if err := info.Deserialization(common.NewZeroCopySource(infoData)); err != nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: deserialize view info: %s", err)
 	}
 	return info.Peers, nil
