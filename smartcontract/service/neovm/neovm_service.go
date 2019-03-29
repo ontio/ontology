@@ -211,7 +211,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, err
 			}
 			pks := make([]keypair.PublicKey, 0, len(arr1))
-			for i:=0;i<len(arr1);i++ {
+			for i := 0; i < len(arr1); i++ {
 				value, err := arr1[i].GetByteArray()
 				if err != nil {
 					return nil, err
@@ -232,7 +232,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 				return nil, err
 			}
 			signs := make([][]byte, 0, len(arr2))
-			for i:=0;i<len(arr2);i++ {
+			for i := 0; i < len(arr2); i++ {
 				value, err := arr2[i].GetByteArray()
 				if err != nil {
 					return nil, err
@@ -241,8 +241,9 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			}
 			if err := signature.VerifyMultiSignature(data, pks, m, signs); err != nil {
 				vm.PushData(this.Engine, false)
+			} else {
+				vm.PushData(this.Engine, true)
 			}
-			vm.PushData(this.Engine, true)
 		case vm.SYSCALL:
 			if err := this.SystemCall(this.Engine); err != nil {
 				return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[NeoVmService] service system call error!")
