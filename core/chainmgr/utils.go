@@ -164,7 +164,7 @@ func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.Shar
 	}
 	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes)
 	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
-	if err == common.ErrNotFound {
+	if err == xshard_state.ErrNotFound {
 		return nil, nil
 	}
 	if err != nil {
@@ -193,7 +193,7 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard ty
 	}
 	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
 	reqBytes, err := xshard_state.GetKVStorageItem(key)
-	if err == common.ErrNotFound {
+	if err == xshard_state.ErrNotFound {
 		return nil, nil
 	}
 	if err != nil {

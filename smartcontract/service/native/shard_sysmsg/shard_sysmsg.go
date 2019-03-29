@@ -94,7 +94,7 @@ func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	// send with minimal gas fee
-	msg := &shardstates.XShardNotify{
+	msg := &xshard_state.XShardNotify{
 		Contract: reqParam.ToContract,
 		Payer:    ctx.Tx.Payer,
 		Fee:      neovm.MIN_TRANSACTION_GAS,
@@ -131,8 +131,8 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	if reqIdx < 0 {
 		return utils.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
 	}
-	msg := &shardstates.XShardTxReq{
-		IdxInTx:  reqIdx,
+	msg := &xshard_state.XShardTxReq{
+		IdxInTx:  uint64(reqIdx),
 		Payer:    ctx.Tx.Payer,
 		Fee:      0,
 		Contract: reqParam.ToContract,
@@ -227,8 +227,8 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 			if err := processShardGasWithdrawDone(ctx, shardEvt.(*shardstates.WithdrawGasDoneEvent)); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
 			}
-		case shardstates.EVENT_SHARD_MSG_COMMON:
-			reqs, err := shardstates.DecodeShardCommonReqs(evt.Payload)
+		case xshard_state.EVENT_SHARD_MSG_COMMON:
+			reqs, err := xshard_state.DecodeShardCommonReqs(evt.Payload)
 			if err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("decode shard reqs: %s", err)
 			}
@@ -236,38 +236,38 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 				log.Debugf("processing cross shard req %d(height: %d, type: %d)", evt.EventType, evt.FromHeight, req.Type)
 				txCompleted := false
 				switch req.Type {
-				case shardstates.EVENT_SHARD_NOTIFY:
+				case xshard_state.EVENT_SHARD_NOTIFY:
 					if err := processXShardNotify(ctx, req); err != nil {
 						log.Errorf("process notify: %s", err)
 					}
 					txCompleted = true
-				case shardstates.EVENT_SHARD_TXREQ:
+				case xshard_state.EVENT_SHARD_TXREQ:
 					if err := processXShardReq(ctx, req); err != nil {
 						log.Errorf("process xshard req: %s", err)
 					}
 					txCompleted = false
-				case shardstates.EVENT_SHARD_TXRSP:
+				case xshard_state.EVENT_SHARD_TXRSP:
 					if err := processXShardRsp(ctx, req); err != nil {
 						log.Errorf("process xshard rsp: %s", err)
 					}
 					txCompleted = false
-				case shardstates.EVENT_SHARD_PREPARE:
+				case xshard_state.EVENT_SHARD_PREPARE:
 					if err := processXShardPrepareMsg(ctx, req); err != nil {
 						log.Errorf("process xshard prepare: %s", err)
 					}
 					txCompleted = false
-				case shardstates.EVENT_SHARD_PREPARED:
+				case xshard_state.EVENT_SHARD_PREPARED:
 					if err := processXShardPreparedMsg(ctx, req); err != nil {
 						log.Errorf("process xshard prepared: %s", err)
 					}
 					// FIXME: completed with all-shards-prepared
 					txCompleted = true
-				case shardstates.EVENT_SHARD_COMMIT:
+				case xshard_state.EVENT_SHARD_COMMIT:
 					if err := processXShardCommitMsg(ctx, req); err != nil {
 						log.Errorf("process xshard commit: %s", err)
 					}
 					txCompleted = true
-				case shardstates.EVENT_SHARD_ABORT:
+				case xshard_state.EVENT_SHARD_ABORT:
 					if err := processXShardAbortMsg(ctx, req); err != nil {
 						log.Errorf("process xshard abort: %s", err)
 					}

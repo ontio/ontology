@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -110,7 +109,7 @@ func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
 	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
-	if err != nil && err != common.ErrNotFound {
+	if err != nil && err != xshard_state.ErrNotFound {
 		return nil, fmt.Errorf("get toShards: %s", err)
 	}
 	if toShardsBytes == nil {
@@ -159,7 +158,7 @@ func (this *ReqsInBlock) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func addReqsInBlock(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
+func addReqsInBlock(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
 	reqs, err := getReqsInBlock(ctx, ctx.Height, req.GetTargetShardID())
 	if err != nil && err != common.ErrNotFound {
 		return err
@@ -206,7 +205,7 @@ func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types
 
 	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
 	reqBytes, err := xshard_state.GetKVStorageItem(key)
-	if err != nil && err != common.ErrNotFound {
+	if err != nil && err != xshard_state.ErrNotFound {
 		return nil, fmt.Errorf("get reqs in block: %s", err)
 	}
 	if reqBytes == nil {

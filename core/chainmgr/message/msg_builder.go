@@ -27,12 +27,12 @@ import (
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -116,7 +116,7 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types
 	// cross-shard forwarding Tx payload
 	evt := &message.ShardEventState{
 		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
-		EventType:  shardstates.EVENT_SHARD_MSG_COMMON,
+		EventType:  xshard_state.EVENT_SHARD_MSG_COMMON,
 		ToShard:    toShardID,
 		FromHeight: height,
 		Payload:    txBytes,

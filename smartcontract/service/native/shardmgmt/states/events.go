@@ -24,7 +24,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 )
@@ -253,39 +252,6 @@ func (evt *ShardActiveEvent) Deserialize(r io.Reader) error {
 		return fmt.Errorf("deserialize: read height failed, err: %s", err)
 	}
 	evt.Height = uint32(height)
-	return nil
-}
-
-type XShardCommitMsg struct {
-	MsgType uint64
-}
-
-func (msg *XShardCommitMsg) Type() uint64 {
-	return msg.MsgType
-}
-
-func (msg *XShardCommitMsg) GetContract() common.Address {
-	return common.ADDRESS_EMPTY
-}
-
-func (msg *XShardCommitMsg) GetMethod() string {
-	return ""
-}
-
-func (msg *XShardCommitMsg) GetArgs() []byte {
-	return nil
-}
-
-func (msg *XShardCommitMsg) Serialize(w io.Writer) error {
-	return utils.WriteVarUint(w, msg.MsgType)
-}
-
-func (msg *XShardCommitMsg) Deserialize(r io.Reader) error {
-	msgType, err := utils.ReadVarUint(r)
-	if err != nil{
-		return err
-	}
-	msg.MsgType = msgType
 	return nil
 }
 
