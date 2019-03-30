@@ -229,6 +229,12 @@ func startMainChain(ctx *cli.Context) {
 		log.Errorf("initLocalRpc error:%s", err)
 		return
 	}
+
+	// start child shards on main-chain
+	if err := chainmgr.StartShardServer(); err != nil {
+		log.Errorf("start child-shard servers failed: %s", err)
+		return
+	}
 	initRestful(ctx)
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)

@@ -82,6 +82,10 @@ func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *messa
 
 	shardSeeds := make(map[uint64]*message.SibShardInfo)
 	for _, s := range self.shards {
+		if s.Config == nil {
+			log.Errorf("unknow config of shard: %d, %v", s.ShardID, s)
+			continue
+		}
 		shardSeeds[s.ShardID.ToUint64()] = &message.SibShardInfo{
 			SeedList: s.SeedList,
 			GasPrice: s.Config.Common.GasPrice,
