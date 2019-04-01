@@ -97,10 +97,7 @@ func setCCMCState(native *native.NativeService, contract common.Address, state *
 }
 
 func getCCInfo(native *native.NativeService, contract common.Address, CCID uint64) (*ccmc_states.ShardCCInfo, error) {
-	ccidBytes, err := utils.GetUint64Bytes(CCID)
-	if err != nil {
-		return nil, fmt.Errorf("getCCInfo, serialize shardID: %s", err)
-	}
+	ccidBytes := utils.GetUint64Bytes(CCID)
 
 	ccstateBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_CC_INFO), ccidBytes))
 	if err != nil {
@@ -128,10 +125,7 @@ func setCCInfo(native *native.NativeService, contract common.Address, state *ccm
 		return fmt.Errorf("setCCInfo, nil state")
 	}
 
-	ccidBytes, err := utils.GetUint64Bytes(state.CCID)
-	if err != nil {
-		return fmt.Errorf("setCCInfo, serialize shardID: %s", err)
-	}
+	ccidBytes := utils.GetUint64Bytes(state.CCID)
 
 	buf := new(bytes.Buffer)
 	if err := state.Serialize(buf); err != nil {

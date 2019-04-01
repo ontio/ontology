@@ -102,10 +102,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 		return nil, fmt.Errorf("get shard state, nil ledger")
 	}
 
-	shardIDBytes, err := utils.GetUint64Bytes(shardID.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("ser shardID failed: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
 	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
 	if err == sComm.ErrNotFound {
@@ -128,10 +125,7 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[strin
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
 	}
 
-	shardIDBytes, err := utils.GetUint64Bytes(shardID.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("GetShardPeerStakeInfo: ser shardID failed: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
 	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
 	if err == sComm.ErrNotFound {
@@ -159,10 +153,7 @@ func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.Shar
 	if lgr == nil {
 		return nil, fmt.Errorf("uninitialized chain mgr")
 	}
-	blockNumBytes, err := utils.GetUint32Bytes(blockNum)
-	if err != nil {
-		return nil, fmt.Errorf("GetRequestedRemoteShards: ser height %s", err)
-	}
+	blockNumBytes := utils.GetUint32Bytes(blockNum)
 	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes)
 	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
 	if err == xshard_state.ErrNotFound {
@@ -184,14 +175,8 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard ty
 		return nil, fmt.Errorf("nil ledger")
 	}
 
-	blockNumBytes, err := utils.GetUint32Bytes(blockHeight)
-	if err != nil {
-		return nil, fmt.Errorf("GetRequestsToRemoteShard: ser height %s", err)
-	}
-	shardIDBytes, err := utils.GetUint64Bytes(toShard.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("serialize toshard: %s", err)
-	}
+	blockNumBytes := utils.GetUint32Bytes(blockHeight)
+	shardIDBytes := utils.GetUint64Bytes(toShard.ToUint64())
 	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
 	reqBytes, err := xshard_state.GetKVStorageItem(key)
 	if err == xshard_state.ErrNotFound {

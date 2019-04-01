@@ -1094,10 +1094,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
 	oldView := view - 1
-	oldViewBytes, err := utils.GetUint32Bytes(oldView)
-	if err != nil {
-		return fmt.Errorf("GetUint32Bytes, get oldViewBytes error: %v", err)
-	}
+	oldViewBytes := utils.GetUint32Bytes(oldView)
 	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(PEER_POOL), oldViewBytes))
 
 	return nil
@@ -1250,10 +1247,7 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
 	oldView := view - 1
-	oldViewBytes, err := utils.GetUint32Bytes(oldView)
-	if err != nil {
-		return fmt.Errorf("GetUint32Bytes, get oldViewBytes error: %v", err)
-	}
+	oldViewBytes := utils.GetUint32Bytes(oldView)
 	native.CacheDB.Delete(utils.ConcatKey(contract, []byte(PEER_POOL), oldViewBytes))
 
 	//update split fee
@@ -1261,10 +1255,7 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 	if err != nil {
 		return fmt.Errorf("getSplitFee, getSplitFee error: %v", err)
 	}
-	err = putSplitFee(native, contract, splitSum+splitFee)
-	if err != nil {
-		return fmt.Errorf("putSplitFee, put splitFee error: %v", err)
-	}
+	putSplitFee(native, contract, splitSum+splitFee)
 
 	return nil
 }

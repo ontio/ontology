@@ -132,11 +132,7 @@ func setGlobalState(native *native.NativeService, contract common.Address, state
 }
 
 func GetShardState(native *native.NativeService, contract common.Address, shardID types.ShardID) (*shardstates.ShardState, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(shardID.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("getShardState: serialize shardID: %s", err)
-	}
-
+	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	shardStateBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes))
 	if err != nil {
 		return nil, fmt.Errorf("getShardState: %s", err)
@@ -159,10 +155,7 @@ func GetShardState(native *native.NativeService, contract common.Address, shardI
 }
 
 func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) error {
-	shardIDBytes, err := utils.GetUint64Bytes(state.ShardID.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardState: serialize shardID: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(state.ShardID.ToUint64())
 
 	buf := new(bytes.Buffer)
 	if err := state.Serialize(buf); err != nil {
@@ -195,22 +188,15 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 }
 
 func setShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID, state peerState,
-	pubKey string) error {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardPeerState: serialize shardID: %s", err)
-	}
+	pubKey string) {
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genPeerStateKey(contract, shardIDBytes, pubKey)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem([]byte(state)))
-	return nil
 }
 
 func getShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID,
 	pubKey string) (peerState, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return state_default, fmt.Errorf("getShardPeerState: serialize shardID: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genPeerStateKey(contract, shardIDBytes, pubKey)
 	data, err := native.CacheDB.Get(key)
 	if err != nil {

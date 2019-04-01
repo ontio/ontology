@@ -85,9 +85,7 @@ func ShardHotelInit(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	for i := uint64(0); i < param.Count; i++ {
-		if err := setRoomOwner(ctx, i, common.ADDRESS_EMPTY); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("init shard hotel, init room %d failed: %s", i, err)
-		}
+		setRoomOwner(ctx, i, common.ADDRESS_EMPTY)
 	}
 
 	return utils.BYTE_TRUE, nil
@@ -117,10 +115,8 @@ func ShardReserveRoom(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("room reserved by %s", hex.EncodeToString(user[:]))
 	}
 
-	if err := setRoomOwner(ctx, param.RoomNo, param.User); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("hotel reserve: reserve room %d: %s", param.RoomNo, err)
-	}
-	log.Errorf("user %v reserved room %d OK", hex.EncodeToString(param.User[:]), param.RoomNo)
+	setRoomOwner(ctx, param.RoomNo, param.User)
+	log.Errorf("user %s reserved room %d OK", param.User.ToBase58(), param.RoomNo)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -146,9 +142,7 @@ func ShardCheckout(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel checkout: invalid user")
 	}
 
-	if err := setRoomOwner(ctx, param.RoomNo, common.ADDRESS_EMPTY); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("hotel checkout: room %d: %s", param.RoomNo, err)
-	}
+	setRoomOwner(ctx, param.RoomNo, common.ADDRESS_EMPTY)
 
 	log.Errorf("user %v checkout room %d OK", hex.EncodeToString(param.User[:]), param.RoomNo)
 
@@ -181,9 +175,7 @@ func ShardDoubleReserve(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel reserver1: room reserved by %s", hex.EncodeToString(user[:]))
 	}
 
-	if err := setRoomOwner(ctx, param.RoomNo1, param.User); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("hotel reserver1: room %d: %s", param.RoomNo1, err)
-	}
+	setRoomOwner(ctx, param.RoomNo1, param.User)
 
 	if err := appcallReserveRoom(ctx, param.User, param.Shard2, param.RoomNo2, param.Transactional); err != nil {
 		log.Errorf(">>>> hotel contract reserve remote room: %s", err)
@@ -214,9 +206,7 @@ func ShardDoubleCheckout(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel checkout1: invalid user")
 	}
 
-	if err := setRoomOwner(ctx, param.RoomNo1, common.ADDRESS_EMPTY); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("hotel checkout1: room %d: %s", param.RoomNo1, err)
-	}
+	setRoomOwner(ctx, param.RoomNo1, common.ADDRESS_EMPTY)
 
 	if err := appcallCheckoutRoom(ctx, param.User, param.Shard2, param.RoomNo2, param.Transactional); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("hotel checkout1: to remote shard: %s", err)
@@ -225,21 +215,14 @@ func ShardDoubleCheckout(ctx *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func setRoomOwner(ctx *native.NativeService, roomNo uint64, owner common.Address) error {
-	roomBytes, err := utils.GetUint64Bytes(roomNo)
-	if err != nil {
-		return fmt.Errorf("setRoomOwner: ser roomNo : %s", err)
-	}
+func setRoomOwner(ctx *native.NativeService, roomNo uint64, owner common.Address) {
+	roomBytes := utils.GetUint64Bytes(roomNo)
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	ctx.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_ROOM), roomBytes), states.GenRawStorageItem(owner[:]))
-	return nil
 }
 
 func getRoomUser(ctx *native.NativeService, roomNo uint64) (common.Address, error) {
-	roomBytes, err := utils.GetUint64Bytes(roomNo)
-	if err != nil {
-		return common.ADDRESS_EMPTY, fmt.Errorf("getRoomUser: ser roomNo : %s", err)
-	}
+	roomBytes := utils.GetUint64Bytes(roomNo)
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 
 	userBytes, err := ctx.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_ROOM), roomBytes))

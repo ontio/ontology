@@ -80,10 +80,7 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 	toShards = append(toShards, toShard)
 
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes, err := utils.GetUint32Bytes(ctx.Height)
-	if err != nil {
-		return fmt.Errorf("addToShardsInBlock: ser height %s", err)
-	}
+	blockNumBytes := utils.GetUint32Bytes(ctx.Height)
 
 	toShardsInBlk := &ToShardsInBlock{
 		Shards: toShards,
@@ -102,10 +99,7 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 
 func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.ShardID, error) {
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes, err := utils.GetUint32Bytes(blockHeight)
-	if err != nil {
-		return nil, fmt.Errorf("getToShardsInBlock: ser height %s", err)
-	}
+	blockNumBytes := utils.GetUint32Bytes(blockHeight)
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
 	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
@@ -170,14 +164,8 @@ func addReqsInBlock(ctx *native.NativeService, req *xshard_state.CommonShardMsg)
 	reqs = append(reqs, reqBytes.Bytes())
 
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes, err := utils.GetUint32Bytes(ctx.Height)
-	if err != nil {
-		return fmt.Errorf("addReqsInBlock: ser height %s", err)
-	}
-	shardIDBytes, err := utils.GetUint64Bytes(req.GetTargetShardID().ToUint64())
-	if err != nil {
-		return fmt.Errorf("serialzie toshard: %s", err)
-	}
+	blockNumBytes := utils.GetUint32Bytes(ctx.Height)
+	shardIDBytes := utils.GetUint64Bytes(req.GetTargetShardID().ToUint64())
 
 	reqInBlk := &ReqsInBlock{
 		Reqs: reqs,
@@ -194,14 +182,8 @@ func addReqsInBlock(ctx *native.NativeService, req *xshard_state.CommonShardMsg)
 
 func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types.ShardID) ([][]byte, error) {
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes, err := utils.GetUint32Bytes(blockHeight)
-	if err != nil {
-		return nil, fmt.Errorf("getReqsInBlock: ser height %s", err)
-	}
-	shardIDBytes, err := utils.GetUint64Bytes(shardID.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("serialize toShard: %s", err)
-	}
+	blockNumBytes := utils.GetUint32Bytes(blockHeight)
+	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 
 	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
 	reqBytes, err := xshard_state.GetKVStorageItem(key)

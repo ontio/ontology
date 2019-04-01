@@ -222,10 +222,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
 		}
 		index := peerPoolItem.Index
-		indexBytes, err := utils.GetUint32Bytes(index)
-		if err != nil {
-			return nil, fmt.Errorf("getUint32Bytes, getUint32Bytes error: %v", err)
-		}
+		indexBytes := utils.GetUint32Bytes(index)
 		native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
 
 		//update total stake
@@ -244,10 +241,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
-	indexBytes, err := utils.GetUint32Bytes(maxId + 1)
-	if err != nil {
-		return nil, fmt.Errorf("getUint32Bytes, get indexBytes error: %v", err)
-	}
+	indexBytes := utils.GetUint32Bytes(maxId + 1)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)), cstates.GenRawStorageItem(indexBytes))
 
 	//init governance view
@@ -499,15 +493,9 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 
 		//update candidateIndex
 		newCandidateIndex := candidateIndex + 1
-		err = putCandidateIndex(native, contract, newCandidateIndex)
-		if err != nil {
-			return nil, fmt.Errorf("putCandidateIndex, put candidateIndex error: %v", err)
-		}
+		putCandidateIndex(native, contract, newCandidateIndex)
 
-		indexBytes, err := utils.GetUint32Bytes(peerPoolItem.Index)
-		if err != nil {
-			return nil, fmt.Errorf("GetUint32Bytes, get indexBytes error: %v", err)
-		}
+		indexBytes := utils.GetUint32Bytes(peerPoolItem.Index)
 		native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
 	}
 	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
@@ -1441,10 +1429,7 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("withdrawFee, splitFee is not enough")
 	}
 	newSplitFee := splitFee - fee
-	err = putSplitFee(native, contract, newSplitFee)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("putSplitFee, put splitFee error: %v", err)
-	}
+	putSplitFee(native, contract, newSplitFee)
 
 	return utils.BYTE_TRUE, nil
 }

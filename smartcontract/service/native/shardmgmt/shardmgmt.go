@@ -314,9 +314,7 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	if err := setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: failed, err: %s", err)
-	}
+	setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -345,10 +343,7 @@ func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
 		if state != state_applied {
 			return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: peer %s hasn't applied", pubKey)
 		}
-		err = setShardPeerState(native, contract, params.ShardId, state_approved, pubKey)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: update peer %s state faield, err: %s", pubKey, err)
-		}
+		setShardPeerState(native, contract, params.ShardId, state_approved, pubKey)
 	}
 	return utils.BYTE_TRUE, nil
 }
@@ -387,9 +382,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if state != state_approved {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer state %s unmatch", state)
 	}
-	if err = setShardPeerState(native, contract, params.ShardID, state_joined, params.PeerPubKey); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
-	}
+	setShardPeerState(native, contract, params.ShardID, state_joined, params.PeerPubKey)
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
 		if err != nil {
@@ -593,9 +586,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		} else if info.NodeType == shardstates.QUITING_CONSENSUS_NODE {
 			// delete peer at mgmt contract
 			delete(shard.Peers, peer)
-			if err := setShardPeerState(native, contract, params.ShardID, state_default, info.PeerPubKey); err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: update peer state faile, err: %s", err)
-			}
+			setShardPeerState(native, contract, params.ShardID, state_default, info.PeerPubKey)
 			quitPeers = append(quitPeers, peer)
 		}
 	}

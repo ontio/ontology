@@ -88,10 +88,7 @@ func genUserUnboundOngKey(contract, user common.Address) []byte {
 }
 
 func GetShardCurrentView(native *native.NativeService, id types.ShardID) (View, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return 0, fmt.Errorf("GetShardCurrentView: ser shardId failed, err: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardViewKey(utils.ShardStakeAddress, shardIDBytes)
 	dataBytes, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -111,29 +108,16 @@ func GetShardCurrentView(native *native.NativeService, id types.ShardID) (View, 
 	return View(view), nil
 }
 
-func setShardView(native *native.NativeService, id types.ShardID, view View) error {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardView: ser shardId failed, err: %s", err)
-	}
+func setShardView(native *native.NativeService, id types.ShardID, view View) {
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardViewKey(utils.ShardStakeAddress, shardIDBytes)
-	value, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("setShardView: ser view failed, err: %s", err)
-	}
+	value := utils.GetUint64Bytes(uint64(view))
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
-	return nil
 }
 
 func GetShardViewInfo(native *native.NativeService, id types.ShardID, view View) (*ViewInfo, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("GetShardViewInfo: ser shardId failed, err: %s", err)
-	}
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return nil, fmt.Errorf("GetShardViewInfo: ser view failed, err: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	key := genShardViewInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
 	dataBytes, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -154,32 +138,19 @@ func GetShardViewInfo(native *native.NativeService, id types.ShardID, view View)
 	return viewInfo, nil
 }
 
-func setShardViewInfo(native *native.NativeService, id types.ShardID, view View, info *ViewInfo) error {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardViewInfo: ser shardId failed, err: %s", err)
-	}
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("setShardViewInfo: ser view failed, err: %s", err)
-	}
+func setShardViewInfo(native *native.NativeService, id types.ShardID, view View, info *ViewInfo) {
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	key := genShardViewInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
-	return nil
 }
 
 func getShardViewUserStake(native *native.NativeService, id types.ShardID, view View, user common.Address) (*UserStakeInfo,
 	error) {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("getShardViewUserStake: ser shardId failed, err: %s", err)
-	}
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return nil, fmt.Errorf("getShardViewUserStake: ser view failed, err: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	key := genShardViewUserStakeKey(utils.ShardStakeAddress, shardIDBytes, viewBytes, user)
 	dataBytes, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -201,27 +172,17 @@ func getShardViewUserStake(native *native.NativeService, id types.ShardID, view 
 }
 
 func setShardViewUserStake(native *native.NativeService, id types.ShardID, view View, user common.Address,
-	info *UserStakeInfo) error {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardViewUserStake: ser shardId failed, err: %s", err)
-	}
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("setShardViewUserStake: ser view failed, err: %s", err)
-	}
+	info *UserStakeInfo) {
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	key := genShardViewUserStakeKey(utils.ShardStakeAddress, shardIDBytes, viewBytes, user)
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
-	return nil
 }
 
 func getUserLastStakeView(native *native.NativeService, id types.ShardID, user common.Address) (View, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return 0, fmt.Errorf("getUserLastStakeView: ser shardId failed, err: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardUserLastStakeViewKey(utils.ShardStakeAddress, shardIDBytes, user)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -241,25 +202,15 @@ func getUserLastStakeView(native *native.NativeService, id types.ShardID, user c
 	return View(view), nil
 }
 
-func setUserLastStakeView(native *native.NativeService, id types.ShardID, user common.Address, view View) error {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setUserLastStakeView: ser shardId failed, err: %s", err)
-	}
+func setUserLastStakeView(native *native.NativeService, id types.ShardID, user common.Address, view View) {
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardUserLastStakeViewKey(utils.ShardStakeAddress, shardIDBytes, user)
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("setUserLastStakeView: ser view failed, err: %s", err)
-	}
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(viewBytes))
-	return nil
 }
 
 func getUserLastWithdrawView(native *native.NativeService, id types.ShardID, user common.Address) (View, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return 0, fmt.Errorf("getUserLastWithdrawView: ser shardId failed, err: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardUserLastWithdrawViewKey(utils.ShardStakeAddress, shardIDBytes, user)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -279,25 +230,15 @@ func getUserLastWithdrawView(native *native.NativeService, id types.ShardID, use
 	return View(view), nil
 }
 
-func setUserLastWithdrawView(native *native.NativeService, id types.ShardID, user common.Address, view View) error {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setUserLastWithdrawView: ser shardId failed, err: %s", err)
-	}
+func setUserLastWithdrawView(native *native.NativeService, id types.ShardID, user common.Address, view View) {
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardUserLastWithdrawViewKey(utils.ShardStakeAddress, shardIDBytes, user)
-	data, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("setUserLastWithdrawView: ser view failed, err: %s", err)
-	}
+	data := utils.GetUint64Bytes(uint64(view))
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
-	return nil
 }
 
 func GetNodeMinStakeAmount(native *native.NativeService, id types.ShardID) (uint64, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return 0, fmt.Errorf("GetNodeMinStakeAmount: ser shardId failed, err: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -317,28 +258,18 @@ func GetNodeMinStakeAmount(native *native.NativeService, id types.ShardID) (uint
 	return amount, nil
 }
 
-func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amount uint64) error {
-	shardIDBytes, err := utils.GetUint64Bytes(id.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setNodeMinStakeAmount: ser shardId failed, err: %s", err)
-	}
+func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amount uint64) {
+	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
-	data, err := utils.GetUint64Bytes(amount)
-	if err != nil {
-		return fmt.Errorf("setNodeMinStakeAmount: ser view failed, err: %s", err)
-	}
+	data := utils.GetUint64Bytes(amount)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
-	return nil
 }
 
 func setShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID,
 	addr common.Address) error {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardStakeAssetAddr: serialize shardID: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	bf := new(bytes.Buffer)
-	err = addr.Serialize(bf)
+	err := addr.Serialize(bf)
 	if err != nil {
 		return fmt.Errorf("setShardStakeAssetAddr: serialize addr: %s", err)
 	}
@@ -350,10 +281,7 @@ func setShardStakeAssetAddr(native *native.NativeService, contract common.Addres
 func getShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID) (common.Address,
 	error) {
 	addr := common.Address{}
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return addr, fmt.Errorf("getShardStakeAssetAddr: serialize shardID: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genShardStakeAssetAddrKey(contract, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {

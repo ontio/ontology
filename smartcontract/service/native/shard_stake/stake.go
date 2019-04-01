@@ -71,10 +71,7 @@ func SetMinStake(native *native.NativeService) ([]byte, error) {
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: invalid param: %s", err)
 	}
-	err := setNodeMinStakeAmount(native, params.ShardId, params.Amount)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: failed, err: %s", err)
-	}
+	setNodeMinStakeAmount(native, params.ShardId, params.Amount)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -86,9 +83,7 @@ func InitShard(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
 	}
-	if err := setShardView(native, shardId, 0); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
-	}
+	setShardView(native, shardId, 0)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -157,9 +152,7 @@ func PeerExit(native *native.NativeService) ([]byte, error) {
 	} else {
 		peerViewInfo.CanStake = false
 	}
-	if err := setShardViewInfo(native, param.ShardId, nextView, viewInfo); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
-	}
+	setShardViewInfo(native, param.ShardId, nextView, viewInfo)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -185,9 +178,7 @@ func DeletePeer(native *native.NativeService) ([]byte, error) {
 	for _, peer := range param.Peers {
 		delete(viewInfo.Peers, peer)
 	}
-	if err := setShardViewInfo(native, param.ShardId, nextView, viewInfo); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
-	}
+	setShardViewInfo(native, param.ShardId, nextView, viewInfo)
 	return utils.BYTE_TRUE, nil
 }
 
