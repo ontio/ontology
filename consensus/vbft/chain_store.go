@@ -31,9 +31,9 @@ import (
 )
 
 type PendingBlock struct {
-	block           *Block
-	execResult      *store.ExecuteResult
-	needSubmitBlock bool
+	block        *Block
+	execResult   *store.ExecuteResult
+	hasSubmitted bool
 }
 type ChainStore struct {
 	db              *ledger.Ledger
@@ -59,7 +59,7 @@ func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID) (*ChainStore, error
 	if err != nil {
 		return nil, err
 	}
-	chainstore.pendingBlocks[chainstore.chainedBlockNum] = &PendingBlock{block: block, execResult: &store.ExecuteResult{WriteSet: writeSet, MerkleRoot: merkleRoot}, needSubmitBlock: true}
+	chainstore.pendingBlocks[chainstore.chainedBlockNum] = &PendingBlock{block: block, execResult: &store.ExecuteResult{WriteSet: writeSet, MerkleRoot: merkleRoot}, hasSubmitted: true}
 	return chainstore, nil
 }
 
@@ -77,7 +77,7 @@ func (self *ChainStore) GetExecMerkleRoot(blkNum uint32) (common.Uint256, error)
 	}
 	merkleRoot, err := self.db.GetStateMerkleRoot(blkNum)
 	if err != nil {
-		log.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blkNum, err)
+		log.Infof("GetStateMerkleRoot blockNum:%d, error :%s", blkNum, err)
 		return common.Uint256{}, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blkNum, err)
 	} else {
 		return merkleRoot, nil
@@ -132,7 +132,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		log.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 		return fmt.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 	}
-	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, needSubmitBlock: false}
+	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
 	self.pid.Tell(
 		&message.BlockConsensusComplete{
 			Block: block.Block,
@@ -146,12 +146,12 @@ func (self *ChainStore) SubmitBlock(blkNum uint32) error {
 	if blkNum == 0 {
 		return nil
 	}
-	if submitBlk, present := self.pendingBlocks[blkNum]; submitBlk != nil && submitBlk.needSubmitBlock == false && present {
+	if submitBlk, present := self.pendingBlocks[blkNum]; submitBlk != nil && submitBlk.hasSubmitted == false && present {
 		err := self.db.SubmitBlock(submitBlk.block.Block, *submitBlk.execResult)
 		if err != nil && blkNum > self.GetChainedBlockNum() {
 			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 		}
-		submitBlk.needSubmitBlock = true
+		submitBlk.hasSubmitted = true
 		if _, present := self.pendingBlocks[blkNum-1]; present {
 			delete(self.pendingBlocks, blkNum-1)
 		}

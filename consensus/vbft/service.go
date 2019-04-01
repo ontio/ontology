@@ -239,6 +239,25 @@ func (self *Server) handleBlockSubmit(block *types.Block) {
 	if blocksubmitMsg, _ := self.constructBlockSubmitMsg(block.Header.Height, stateRoot); blocksubmitMsg != nil {
 		self.broadcast(blocksubmitMsg)
 	}
+	self.SubmitBlock(block.Header.Height, stateRoot)
+}
+func (self *Server) SubmitBlock(blkNum uint32, stateRoot common.Uint256) {
+	cMsgs := self.msgPool.GetBlockSubmitMsgNums(blkNum)
+	m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
+	if len(cMsgs) < m {
+		return
+	}
+	for _, msg := range cMsgs {
+		c := msg.(*blockSubmitMsg)
+		if c != nil {
+			if c.BlockStateRoot != stateRoot {
+				return
+			}
+		}
+	}
+	if err := self.chainStore.SubmitBlock(blkNum); err != nil {
+		log.Errorf("SubmitBlock err:%s", err)
+	}
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
@@ -1072,15 +1091,11 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			}
 			return
 		}
-		submitNum := self.msgPool.GetBlockSubmitMsgNums(msgBlkNum)
-		m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
-		if submitNum < uint32(m) {
+		stateRoot, err := self.chainStore.GetExecMerkleRoot(msgBlkNum)
+		if err != nil {
 			return
 		}
-		log.Infof("submit msg  submitNum:%d,m:%d", submitNum, m)
-		if err := self.chainStore.SubmitBlock(msgBlkNum); err != nil {
-			log.Errorf("SubmitBlock err:%s", err)
-		}
+		self.SubmitBlock(msgBlkNum, stateRoot)
 	}
 }
 
@@ -2071,7 +2086,6 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 
 	// broadcast to other modules
 	// TODO: block committed, update tx pool, notify block-listeners
-
 	{
 		self.metaLock.Lock()
 		if sealedBlkNum >= self.currentBlockNum {
