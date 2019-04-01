@@ -20,7 +20,6 @@ package xshard_state
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -396,11 +395,30 @@ type _CrossShardTx struct {
 	Txs [][]byte `json:"txs"`
 }
 
+func (this *_CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
+	num, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Txs = make([][]byte, num)
+	for i := uint64(0); i < num; i++ {
+		data, _, irr, eof := source.NextVarBytes()
+		if irr {
+			return common.ErrIrregularData
+		}
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.Txs[i] = data
+	}
+	return nil
+}
+
 func DecodeShardCommonReqs(payload []byte) ([]*CommonShardMsg, error) {
 	txs := &_CrossShardTx{}
-	// FIXME: fix marshaling
-	if err := json.Unmarshal(payload, txs); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal txs: %s", err)
+	source := common.NewZeroCopySource(payload)
+	if err := txs.Deserialization(source); err != nil {
+		return nil, fmt.Errorf("deserialization payload failed, err: %s", err)
 	}
 
 	reqs := make([]*CommonShardMsg, 0)

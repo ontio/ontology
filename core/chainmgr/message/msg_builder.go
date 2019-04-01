@@ -21,7 +21,6 @@ package message
 import (
 	"bytes"
 	"fmt"
-	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
@@ -104,25 +103,6 @@ func (this *_CrossShardTx) Serialization(sink *common.ZeroCopySink) {
 	for _, tx := range this.Txs {
 		sink.WriteVarBytes(tx)
 	}
-}
-
-func (this *_CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
-	num, eof := source.NextUint64()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	this.Txs = make([][]byte, num)
-	for i := uint64(0); i < num; i++ {
-		data, _, irr, eof := source.NextVarBytes()
-		if irr {
-			return common.ErrIrregularData
-		}
-		if eof {
-			return io.ErrUnexpectedEOF
-		}
-		this.Txs[i] = data
-	}
-	return nil
 }
 
 //
