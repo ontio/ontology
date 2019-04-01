@@ -21,12 +21,13 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/common/serialization"
 	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
-	"github.com/ontio/ontology/core/store/common"
+	sComm "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -64,6 +65,28 @@ func (this *ToShardsInBlock) Deserialize(r io.Reader) error {
 	}
 	return nil
 }
+func (this *ToShardsInBlock) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(uint64(len(this.Shards)))
+	for _, shardId := range this.Shards {
+		utils.SerializationShardId(sink, shardId)
+	}
+}
+
+func (this *ToShardsInBlock) Deserialization(source *common.ZeroCopySource) error {
+	num, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Shards = make([]types.ShardID, num)
+	for i := uint64(0); i < num; i++ {
+		shard, err := utils.DeserializationShardId(source)
+		if err != nil {
+			return err
+		}
+		this.Shards[i] = shard
+	}
+	return nil
+}
 
 func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error {
 	toShards, err := getToShardsInBlock(ctx, ctx.Height)
@@ -85,15 +108,13 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 	toShardsInBlk := &ToShardsInBlock{
 		Shards: toShards,
 	}
-	buf := new(bytes.Buffer)
-	if err := toShardsInBlk.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize to-shards in block: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	toShardsInBlk.Serialization(sink)
 
 	log.Debugf("put ToShards: height: %d, shards: %v", ctx.Height, toShards)
 
 	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	xshard_state.PutKV(key, buf.Bytes())
+	xshard_state.PutKV(key, sink.Bytes())
 	return nil
 }
 
@@ -112,7 +133,7 @@ func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.
 	}
 
 	req := &ToShardsInBlock{}
-	if err := req.Deserialize(bytes.NewBuffer(toShardsBytes)); err != nil {
+	if err := req.Deserialization(common.NewZeroCopySource(toShardsBytes)); err != nil {
 		return nil, fmt.Errorf("deserialize toShards: %s: %s", err, string(toShardsBytes))
 	}
 
@@ -152,9 +173,35 @@ func (this *ReqsInBlock) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *ReqsInBlock) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(uint64(len(this.Reqs)))
+	for _, req := range this.Reqs {
+		sink.WriteVarBytes(req)
+	}
+}
+
+func (this *ReqsInBlock) Deserialization(source *common.ZeroCopySource) error {
+	num, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Reqs = make([][]byte, num)
+	for i := uint64(0); i < num; i++ {
+		data, _, irregular, eof := source.NextVarBytes()
+		if irregular {
+			return common.ErrIrregularData
+		}
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.Reqs[i] = data
+	}
+	return nil
+}
+
 func addReqsInBlock(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
 	reqs, err := getReqsInBlock(ctx, ctx.Height, req.GetTargetShardID())
-	if err != nil && err != common.ErrNotFound {
+	if err != nil && err != sComm.ErrNotFound {
 		return err
 	}
 	reqBytes := new(bytes.Buffer)
@@ -170,13 +217,11 @@ func addReqsInBlock(ctx *native.NativeService, req *xshard_state.CommonShardMsg)
 	reqInBlk := &ReqsInBlock{
 		Reqs: reqs,
 	}
-	buf := new(bytes.Buffer)
-	if err := reqInBlk.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize shardmgmt global state: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	reqInBlk.Serialization(sink)
 
 	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	xshard_state.PutKV(key, buf.Bytes())
+	xshard_state.PutKV(key, sink.Bytes())
 	return nil
 }
 
@@ -196,7 +241,7 @@ func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types
 	}
 
 	req := &ReqsInBlock{}
-	if err := req.Deserialize(bytes.NewBuffer(reqBytes)); err != nil {
+	if err := req.Deserialization(common.NewZeroCopySource(reqBytes)); err != nil {
 		return nil, fmt.Errorf("deserialize reqsInBlock: %s", err)
 	}
 

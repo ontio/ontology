@@ -75,25 +75,17 @@ func getCCMCState(native *native.NativeService, contract common.Address) (*ccmc_
 	}
 
 	globalState := &ccmc_states.ShardCCMCState{}
-	if err := globalState.Deserialize(bytes.NewBuffer(value)); err != nil {
+	if err := globalState.Deserialization(common.NewZeroCopySource(value)); err != nil {
 		return nil, fmt.Errorf("get ccmc global state: deserialize state: %s", err)
 	}
 
 	return globalState, nil
 }
 
-func setCCMCState(native *native.NativeService, contract common.Address, state *ccmc_states.ShardCCMCState) error {
-	if state == nil {
-		return fmt.Errorf("setCCMCState, nil state")
-	}
-
-	buf := new(bytes.Buffer)
-	if err := state.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize ccmc global state: %s", err)
-	}
-
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_CCMC_STATE)), cstates.GenRawStorageItem(buf.Bytes()))
-	return nil
+func setCCMCState(native *native.NativeService, contract common.Address, state *ccmc_states.ShardCCMCState) {
+	sink := common.NewZeroCopySink(0)
+	state.Serialization(sink)
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_CCMC_STATE)), cstates.GenRawStorageItem(sink.Bytes()))
 }
 
 func getCCInfo(native *native.NativeService, contract common.Address, CCID uint64) (*ccmc_states.ShardCCInfo, error) {
@@ -113,7 +105,7 @@ func getCCInfo(native *native.NativeService, contract common.Address, CCID uint6
 	}
 
 	state := &ccmc_states.ShardCCInfo{}
-	if err := state.Deserialize(bytes.NewBuffer(value)); err != nil {
+	if err := state.Deserialization(common.NewZeroCopySource(value)); err != nil {
 		return nil, fmt.Errorf("getCCInfo, deserialize CCInfo: %s", err)
 	}
 
@@ -127,20 +119,18 @@ func setCCInfo(native *native.NativeService, contract common.Address, state *ccm
 
 	ccidBytes := utils.GetUint64Bytes(state.CCID)
 
-	buf := new(bytes.Buffer)
-	if err := state.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize ccinfo: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	state.Serialization(sink)
 
 	// set CC_STATE
 	key := utils.ConcatKey(contract, []byte(KEY_CC_INFO), ccidBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 
 	// set CC_CONTRACT
 	ccAddrKey := utils.ConcatKey(contract, []byte(KEY_CC_CONTRACT), state.ContractAddr[:])
 	native.CacheDB.Put(ccAddrKey, cstates.GenRawStorageItem(ccidBytes))
 
-	log.Infof("set ccstate %d , key %v, state: %s", state.ShardID, key, string(buf.Bytes()))
+	log.Infof("set ccstate %d , key %v, state: %s", state.ShardID, key, string(sink.Bytes()))
 	return nil
 }
 

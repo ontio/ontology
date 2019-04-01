@@ -84,10 +84,7 @@ func ShardCCMCInit(native *native.NativeService) ([]byte, error) {
 		}
 
 		ccmcState := &ccmc_states.ShardCCMCState{NextCCID: INIT_CCID}
-		if err := setCCMCState(native, contract, ccmcState); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("init ccmc ID: %s", err)
-		}
-
+		setCCMCState(native, contract, ccmcState)
 		return utils.BYTE_TRUE, nil
 	}
 
@@ -142,9 +139,7 @@ func ShardCCMCRegister(native *native.NativeService) ([]byte, error) {
 	}
 	ccmc.NextCCID += 1
 
-	if err := setCCMCState(native, contract, ccmc); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("register cc, failed to update ccmc: %s", err)
-	}
+	setCCMCState(native, contract, ccmc)
 	if err := setCCInfo(native, contract, ccInfo); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("register cc, failed to save ccinfo: %s", err)
 	}

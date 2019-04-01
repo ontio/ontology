@@ -47,6 +47,19 @@ func (this *ShardCCMCState) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *ShardCCMCState) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(this.NextCCID)
+}
+
+func (this *ShardCCMCState) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.NextCCID, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 type ShardCCInfo struct {
 	CCID         uint64
 	ShardID      types.ShardID
@@ -102,6 +115,42 @@ func (this *ShardCCInfo) Deserialize(r io.Reader) error {
 		dep, err := utils.ReadAddress(r)
 		if err != nil {
 			return fmt.Errorf("deserialize: read dependencies failed, index %d, err: %s", i, err)
+		}
+		this.Dependencies[i] = dep
+	}
+	return nil
+}
+
+func (this *ShardCCInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(this.CCID)
+	utils.SerializationShardId(sink, this.ShardID)
+	sink.WriteAddress(this.Owner)
+	sink.WriteAddress(this.ContractAddr)
+	sink.WriteUint64(uint64(len(this.Dependencies)))
+	for _, dep := range this.Dependencies {
+		sink.WriteAddress(dep)
+	}
+}
+
+func (this *ShardCCInfo) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	var err error = nil
+	this.CCID, eof = source.NextUint64()
+	this.ShardID, err = utils.DeserializationShardId(source)
+	if err != nil {
+		return err
+	}
+	this.Owner, eof = source.NextAddress()
+	this.ContractAddr, eof = source.NextAddress()
+	num, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Dependencies = make([]common.Address, num)
+	for i := uint64(0); i < num; i++ {
+		dep, eof := source.NextAddress()
+		if eof {
+			return io.ErrUnexpectedEOF
 		}
 		this.Dependencies[i] = dep
 	}

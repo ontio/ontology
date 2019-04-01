@@ -164,7 +164,7 @@ func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.Shar
 	}
 
 	req := &shardsysmsg.ToShardsInBlock{}
-	if err := req.Deserialize(bytes.NewBuffer(toShardsBytes)); err != nil {
+	if err := req.Deserialization(common.NewZeroCopySource(toShardsBytes)); err != nil {
 		return nil, fmt.Errorf("deserialize toShards: %s", err)
 	}
 	return req.Shards, nil
@@ -187,7 +187,7 @@ func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard ty
 	}
 
 	req := &shardsysmsg.ReqsInBlock{}
-	if err := req.Deserialize(bytes.NewBuffer(reqBytes)); err != nil {
+	if err := req.Deserialization(common.NewZeroCopySource(reqBytes)); err != nil {
 		return nil, fmt.Errorf("deserialize remote msg to shard %d: %s", toShard, err)
 	}
 	return req.Reqs, nil
