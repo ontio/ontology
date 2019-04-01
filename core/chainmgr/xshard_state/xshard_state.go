@@ -91,6 +91,14 @@ var shardTxStateTable = ShardTxStateMap{
 	TxStates: make(map[common.Uint256]*TxState),
 }
 
+func (self *TxState) GetTxShards() []types.ShardID {
+	shards := make([]types.ShardID, 0, len(self.Shards))
+	for id := range self.Shards {
+		shards = append(shards, id)
+	}
+	return shards
+}
+
 //
 // GetTxShards
 // get shards which participant with the procession of transaction
@@ -105,6 +113,16 @@ func GetTxShards(tx common.Uint256) ([]types.ShardID, error) {
 	}
 
 	return nil, ErrNotFound
+}
+
+func (self *TxState) AddTxShard(id types.ShardID) error {
+	if state, present := self.Shards[id]; !present {
+		self.Shards[id] = TxExec
+	} else if state != TxExec {
+		return ErrInvalidTxState
+	}
+
+	return nil
 }
 
 //
@@ -122,6 +140,10 @@ func AddTxShard(tx common.Uint256, id types.ShardID) error {
 	return nil
 }
 
+func (self *TxState) IsTxExecutionPaused(tx common.Uint256) bool {
+	return self.State != TxExec
+}
+
 func IsTxExecutionPaused(tx common.Uint256) (bool, error) {
 	txState, err := GetTxState(tx)
 	if err != nil {
@@ -129,6 +151,13 @@ func IsTxExecutionPaused(tx common.Uint256) (bool, error) {
 	}
 
 	return txState.State != TxExec, nil
+}
+
+func (txState *TxState) SetTxExecutionPaused() {
+	switch txState.State {
+	case TxExec:
+		txState.State = TxWait
+	}
 }
 
 func SetTxExecutionPaused(tx common.Uint256) error {
@@ -143,6 +172,13 @@ func SetTxExecutionPaused(tx common.Uint256) error {
 	return nil
 }
 
+func (txState *TxState) SetTxExecutionContinued() {
+	switch txState.State {
+	case TxWait:
+		txState.State = TxExec
+	}
+}
+
 func SetTxExecutionContinued(tx common.Uint256) error {
 	txState, err := GetTxState(tx)
 	if err != nil {
@@ -153,6 +189,56 @@ func SetTxExecutionContinued(tx common.Uint256) error {
 		txState.State = TxExec
 	}
 	return nil
+}
+
+func (self *TxState) SetShardPrepared(shardId types.ShardID) error {
+	if _, ok := self.Shards[shardId]; !ok {
+		return fmt.Errorf("invalid shard ID %d, in tx commit", shardId)
+	}
+	self.Shards[shardId] = TxPrepared
+	return nil
+}
+
+func (self *TxState) IsTxCommitReady() bool {
+	if self.State != TxPrepared {
+		return false
+	}
+	for _, state := range self.Shards {
+		if state != TxPrepared {
+			return false
+		}
+	}
+	return true
+}
+
+func (self *TxState) Clone() *TxState {
+	txs := &TxState{
+		State:     self.State,
+		Shards:    make(map[types.ShardID]int),
+		TxPayload: self.TxPayload,
+		NextReqID: self.NextReqID,
+		Reqs:      make(map[uint64]*XShardTxReq),
+		Rsps:      make(map[uint64]*XShardTxRsp),
+		Result:    make([]byte, len(self.Result)),
+		ResultErr: self.ResultErr,
+		WriteSet:  nil,
+		Notify:    self.Notify,
+	}
+
+	for k, v := range self.Shards {
+		txs.Shards[k] = v
+	}
+	// todo: need deep clone?
+	for k, v := range self.Reqs {
+		txs.Reqs[k] = v
+	}
+	for k, v := range self.Rsps {
+		txs.Rsps[k] = v
+	}
+	//todo: need clone?
+	txs.WriteSet = self.WriteSet
+
+	return txs
 }
 
 func GetTxCommitState(tx common.Uint256) (map[types.ShardID]int, error) {
@@ -176,6 +262,10 @@ func CreateTxState(tx common.Uint256) *TxState {
 	}
 	shardTxStateTable.TxStates[tx] = state
 	return state
+}
+
+func PutTxState(tx common.Uint256, state *TxState) {
+	shardTxStateTable.TxStates[tx] = state
 }
 
 func GetTxState(tx common.Uint256) (*TxState, error) {
@@ -203,6 +293,15 @@ func SetNextReqIndex(tx common.Uint256, nextId uint64) error {
 		return fmt.Errorf("SetNextReqIndex: next id %d is too large", nextId)
 	}
 	txState.NextReqID = int32(nextId)
+	return nil
+}
+
+func (self *TxState) SetTxPrepared() error {
+	if self.State != TxExec {
+		return fmt.Errorf("invalid state to prepared: %s", self.State)
+	}
+
+	self.State = TxPrepared
 	return nil
 }
 
@@ -251,6 +350,10 @@ func SetTxResult(tx common.Uint256, result []byte, resultErr error) error {
 	return nil
 }
 
+func (self *TxState) GetResponse(reqIndex uint64) *XShardTxRsp {
+	return self.Rsps[reqIndex]
+}
+
 //
 // GetTxResponse
 // get remote response of the request, if existed.
@@ -262,6 +365,24 @@ func GetTxResponse(tx common.Uint256, txReq *XShardTxReq) *XShardTxRsp {
 	if rspMsg, present := txState.Rsps[txReq.IdxInTx]; present {
 		return rspMsg
 	}
+	return nil
+}
+
+func (txState *TxState) PutTxResponse(txRsp *XShardTxRsp) error {
+	// check if corresponding request existed
+	if _, present := txState.Reqs[txRsp.IdxInTx]; !present {
+		return ErrInvalidRemoteRsp
+	}
+	// check if duplicated response
+	if rspMsg, present := txState.Rsps[txRsp.IdxInTx]; present {
+		if bytes.Compare(rspMsg.Result, txRsp.Result) == 0 &&
+			rspMsg.Error == txRsp.Error {
+			return nil
+		}
+		return ErrMismatchedResponse
+	}
+
+	txState.Rsps[txRsp.IdxInTx] = txRsp
 	return nil
 }
 
@@ -337,6 +458,39 @@ func ValidateTxRequest(tx common.Uint256, req *XShardTxReq) error {
 	return nil
 }
 
+func (txState *TxState) ValidateTxRequest(req *XShardTxReq) error {
+	if reqMsg, present := txState.Reqs[req.IdxInTx]; present {
+		if reqMsg.Contract == req.Contract &&
+			reqMsg.Method == req.Method &&
+			bytes.Compare(reqMsg.Args, req.Args) == 0 {
+			return nil
+		} else {
+			return ErrMismatchedRequest
+		}
+	}
+
+	return nil
+}
+
+func (txState *TxState) PutTxRequest(txPayload []byte, txReq *XShardTxReq) error {
+	if err := txState.ValidateTxRequest(txReq); err != nil {
+		return fmt.Errorf("validate tx request idx %d: %s", txReq.IdxInTx, err)
+	}
+
+	if txPayload != nil {
+		if txState.TxPayload != nil {
+			if bytes.Compare(txState.TxPayload, txPayload) != 0 {
+				return ErrMismatchedTxPayload
+			}
+		} else {
+			txState.TxPayload = txPayload
+		}
+	}
+	txState.Reqs[txReq.IdxInTx] = txReq
+	txState.NextReqID = int32(txReq.IdxInTx + 1)
+	return nil
+}
+
 //
 // PutTxRequest
 // add remote request to txState
@@ -387,7 +541,7 @@ func UpdateTxResult(tx common.Uint256, dataDB *storage.CacheDB) error {
 	return nil
 }
 
-func VerifyStates(tx common.Uint256) error {
+func (self *TxState) VerifyStates() error {
 	// TODO
 	return nil
 }

@@ -127,7 +127,7 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *xshard_state.Common
 //     . commit stored write-set
 //     . release all resources
 //
-func processXShardPreparedMsg(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
+func processXShardPreparedMsg(ctx *native.NativeService, txState *xshard_state.TxState, msg *xshard_state.CommonShardMsg) error {
 	if msg.Msg.Type() != xshard_state.EVENT_SHARD_PREPARED {
 		return fmt.Errorf("invalid prepared type: %d", msg.GetType())
 	}
@@ -136,31 +136,24 @@ func processXShardPreparedMsg(ctx *native.NativeService, msg *xshard_state.Commo
 	}
 
 	tx := msg.SourceTxHash
-	txCommits, err := xshard_state.GetTxCommitState(tx)
-	if err != nil {
-		return fmt.Errorf("get Tx commit state: %s", err)
-	}
-	if _, present := txCommits[msg.SourceShardID]; !present {
+	if _, present := txState.Shards[msg.SourceShardID]; !present {
 		return fmt.Errorf("invalid shard ID %d, in tx commit", msg.SourceShardID)
 	}
-	txCommits[msg.SourceShardID] = xshard_state.TxPrepared
+	txState.Shards[msg.SourceShardID] = xshard_state.TxPrepared
 
-	if !txCommitReady(tx, txCommits) {
+	if !txCommitReady(txState) {
 		// wait for prepared from all shards
 		log.Error("commit not ready")
 		return nil
 	}
 
-	if _, err := sendCommit(ctx, tx); err != nil {
+	if _, err := sendCommit(ctx, txState, tx); err != nil {
 		return fmt.Errorf("failed to commit tx %v: %s", tx, err)
 	}
 
 	// commit cached rwset
-	txState, err := xshard_state.GetTxState(tx)
-	if err != nil {
-		return err
-	}
 	ctx.CacheDB.SetCache(txState.WriteSet)
+	//todo:
 	xshard_state.SetTxCommitted(tx, true)
 	unlockTxContract(ctx, tx)
 	return nil

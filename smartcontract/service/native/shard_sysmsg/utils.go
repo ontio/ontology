@@ -31,13 +31,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
-func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
-	toShards, err := xshard_state.GetTxShards(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, s := range toShards {
+func sendPrepareRequest(ctx *native.NativeService, txState *xshard_state.TxState, tx common.Uint256) ([]byte, error) {
+	for _, s := range txState.GetTxShards() {
 		msg := &xshard_state.XShardCommitMsg{
 			MsgType: xshard_state.EVENT_SHARD_PREPARE,
 		}
@@ -73,11 +68,8 @@ func abortTx(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 	return nil, nil
 }
 
-func sendCommit(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
-	toShards, err := xshard_state.GetTxShards(tx)
-	if err != nil {
-		return nil, err
-	}
+func sendCommit(ctx *native.NativeService, txState *xshard_state.TxState, tx common.Uint256) ([]byte, error) {
+	toShards := txState.GetTxShards()
 
 	for _, s := range toShards {
 		msg := &xshard_state.XShardCommitMsg{
@@ -115,17 +107,12 @@ func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.Sh
 	return nil
 }
 
-func txCommitReady(tx common.Uint256, txState map[types.ShardID]int) bool {
-	t, err := xshard_state.GetTxState(tx)
-	if err != nil {
-		log.Errorf("shard get tx state: %s", err)
+func txCommitReady(txState *xshard_state.TxState) bool {
+	if txState.State != xshard_state.TxPrepared {
+		log.Errorf("shard tx state: %d", txState.State)
 		return false
 	}
-	if t.State != xshard_state.TxPrepared {
-		log.Errorf("shard tx state: %d", t.State)
-		return false
-	}
-	for id, state := range txState {
+	for id, state := range txState.Shards {
 		if state != xshard_state.TxPrepared {
 			log.Errorf("shard %d not prepared: %d", id, state)
 			return false
