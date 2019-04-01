@@ -32,8 +32,7 @@ func BlockGetTransactionCount(service *NeoVmService, engine *vm.Executor) error 
 	}
 	if block, ok := i.Data.(*types.Block); ok {
 		val := vmtypes.VmValueFromInt64(int64(len(block.Transactions)))
-		engine.EvalStack.Push(val)
-		return nil
+		return engine.EvalStack.Push(val)
 	}
 	return errors.NewErr("[BlockGetTransactionCount] Wrong type ")
 }
@@ -52,7 +51,7 @@ func BlockGetTransactions(service *NeoVmService, engine *vm.Executor) error {
 			transactionList = append(transactionList, vmtypes.VmValueFromInteropValue(vmtypes.NewInteropValue(v)))
 		}
 
-		engine.EvalStack.PushAsArray(transactionList)
+		return engine.EvalStack.PushAsArray(transactionList)
 	}
 	return errors.NewErr("[BlockGetTransactions] Wrong type ")
 }

@@ -95,15 +95,13 @@ func StorageGet(service *NeoVmService, engine *vm.Executor) error {
 	}
 
 	if len(raw) == 0 {
-		engine.EvalStack.PushBytes([]byte{})
-	} else {
-		value, err := states.GetValueFromRawStorageItem(raw)
-		if err != nil {
-			return err
-		}
-		engine.EvalStack.PushBytes(value)
+		return engine.EvalStack.PushBytes([]byte{})
 	}
-	return nil
+	value, err := states.GetValueFromRawStorageItem(raw)
+	if err != nil {
+		return err
+	}
+	return engine.EvalStack.PushBytes(value)
 }
 
 // StorageGetContext push smart contract storage context to vm stack

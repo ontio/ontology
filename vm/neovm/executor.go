@@ -153,8 +153,11 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 	case JMP, JMPIF, JMPIFNOT, CALL:
 		if opcode == CALL {
 			caller := context.Clone()
-			caller.SetInstructionPointer(int64(caller.GetInstructionPointer() + 2))
-			err := self.PushContext(caller)
+			err := caller.SetInstructionPointer(int64(caller.GetInstructionPointer() + 2))
+			if err != nil {
+				return FAULT, err
+			}
+			err = self.PushContext(caller)
 			if err != nil {
 				return FAULT, err
 			}
@@ -185,7 +188,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 
 		if needJmp {
-			context.SetInstructionPointer(int64(offset))
+			err := context.SetInstructionPointer(int64(offset))
+			if err != nil {
+				return FAULT, err
+			}
 		}
 	case DCALL:
 		caller := context.Clone()
@@ -200,8 +206,13 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		if target < 0 || target >= int64(len(self.Context.Code)) {
 			return FAULT, errors.ERR_DCALL_OFFSET_ERROR
 		}
-		self.Context.SetInstructionPointer(target)
+		err = self.Context.SetInstructionPointer(target)
+		if err != nil {
+			return FAULT, err
+		}
 	case RET:
+		// omit handle error is ok, if context stack is empty, self.Context will be nil
+		// which will be checked outside before the next opcode call
 		self.Context, _ = self.PopContext()
 	case DUPFROMALTSTACK:
 		val, err := self.AltStack.Peek(0)

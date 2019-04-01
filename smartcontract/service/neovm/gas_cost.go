@@ -33,7 +33,7 @@ func StoreGasCost(gasTable map[string]uint64, engine *vm.Executor) (uint64, erro
 		return 0, err
 	}
 	if putCost, ok := gasTable[STORAGE_PUT_NAME]; ok {
-		return uint64(((len(key)+len(value)-1)/1024 + 1)) * putCost, nil
+		return uint64((len(key)+len(value)-1)/1024+1) * putCost, nil
 	} else {
 		return uint64(0), errors.NewErr("[StoreGasCost] get STORAGE_PUT_NAME gas failed")
 	}
