@@ -83,13 +83,8 @@ func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 
-	cp := new(shardmgmt.CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid cmn param: %s", err)
-	}
-
 	reqParam := new(NotifyReqParam)
-	if err := reqParam.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := reqParam.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid param: %s", err)
 	}
 
@@ -114,17 +109,12 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 
-	cp := new(shardmgmt.CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, invalid cmn param: %s", err)
-	}
-
 	reqParam := new(NotifyReqParam)
-	if err := reqParam.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := reqParam.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, invalid param: %s", err)
 	}
 
-	log.Debugf("received remote invoke: %s", string(cp.Input))
+	log.Debugf("received remote invoke: %s", string(ctx.Input))
 
 	tx := ctx.Tx.Hash()
 	reqIdx := xshard_state.GetNextReqIndex(tx)
@@ -188,16 +178,11 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 
-	cp := new(shardmgmt.CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("process cross shard, invalid cmd param: %s", err)
-	}
-
 	// FIXME: verify transaction from system
 	// check block-execution is at shard-tx processing stage
 
 	param := new(CrossShardMsgParam)
-	if err := param.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
 		log.Errorf("cross-shard msg, invalid input: %s", err)
 		return utils.BYTE_FALSE, fmt.Errorf("cross-shard msg, invalid input: %s", err)
 	}

@@ -138,13 +138,8 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 }
 
 func CreateShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid cmd param: %s", err)
-	}
-
 	params := new(CreateShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid param: %s", err)
 	}
 	if params.ParentShardID.ToUint64() != 0 {
@@ -209,12 +204,8 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ConfigShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid cmd param: %s", err)
-	}
 	params := new(ConfigShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid param: %s", err)
 	}
 
@@ -285,12 +276,8 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
-	}
 	params := new(ApplyJoinShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: invalid param: %s", err)
 	}
 	if err := utils.ValidateOwner(native, params.PeerOwner); err != nil {
@@ -309,12 +296,8 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
-	}
 	params := new(ApproveJoinShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: invalid param: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -339,12 +322,8 @@ func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
 }
 
 func JoinShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
-	}
 	params := new(JoinShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid param: %s", err)
 	}
 
@@ -427,12 +406,8 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ExitShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: invalid cmd param: %s", err)
-	}
 	param := new(ExitShardParam)
-	if err := param.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: invalid param: %s", err)
 	}
 
@@ -471,12 +446,8 @@ func ExitShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ActivateShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid cmd param: %s", err)
-	}
 	params := new(ActivateShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid param: %s", err)
 	}
 
@@ -545,12 +516,8 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardGasMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by shard gas contract")
 	}
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid cmd param: %s", err)
-	}
 	params := new(CommitDposParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress

@@ -47,13 +47,13 @@ func (this *ShardPingParam) Serialize(w io.Writer) error {
 
 func (this *ShardPingParam) Deserialize(r io.Reader) error {
 	var err error = nil
-	if this.FromShard, err = utils.DeserializeShardId(r); err != nil{
+	if this.FromShard, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read from shard failed, err: %s", err)
 	}
-	if this.ToShard, err = utils.DeserializeShardId(r); err != nil{
+	if this.ToShard, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read to shard failed, err: %s", err)
 	}
-	if this.Param, err = serialization.ReadString(r); err != nil{
+	if this.Param, err = serialization.ReadString(r); err != nil {
 		return fmt.Errorf("deserialize: read param failed, err: %s", err)
 	}
 	return nil

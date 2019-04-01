@@ -37,17 +37,7 @@ func newCreateShardParam(t *testing.T, acc *account.Account) []byte {
 	if err := param.Serialize(buf); err != nil {
 		t.Fatalf("serialize create shard param: %s", err)
 	}
-
-	cp := &shardmgmt.CommonParam{
-		Input: buf.Bytes(),
-	}
-
-	buf2 := new(bytes.Buffer)
-	if err := cp.Serialize(buf2); err != nil {
-		t.Fatalf("serialize creat shard param, cp: %s", err)
-	}
-
-	return buf2.Bytes()
+	return buf.Bytes()
 }
 
 func TestCreateShardParam(t *testing.T) {
@@ -58,12 +48,8 @@ func TestCreateShardParam(t *testing.T) {
 
 	paramBytes := newCreateShardParam(t, acc)
 
-	cp := &shardmgmt.CommonParam{}
-	if err := cp.Deserialize(bytes.NewBuffer(paramBytes)); err != nil {
-		t.Fatalf("deserialize create shard param, cp: %s", err)
-	}
 	param := &shardmgmt.CreateShardParam{}
-	if err := param.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewBuffer(paramBytes)); err != nil {
 		t.Fatalf("deserialize create shard param: %s", err)
 	}
 

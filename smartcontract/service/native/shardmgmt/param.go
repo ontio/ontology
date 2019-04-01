@@ -30,29 +30,6 @@ import (
 )
 
 //
-// CommonParam wrapper for all smart contract interfaces
-//
-type CommonParam struct {
-	Input []byte
-}
-
-func (this *CommonParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.Input); err != nil {
-		return fmt.Errorf("CommonParam serialize write failed: %s", err)
-	}
-	return nil
-}
-
-func (this *CommonParam) Deserialize(r io.Reader) error {
-	buf, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("CommonParam deserialize read failed: %s", err)
-	}
-	this.Input = buf
-	return nil
-}
-
-//
 // params for shard creation
 // @ParentShardID : local shard ID
 // @Creator : account address of shard creator.
