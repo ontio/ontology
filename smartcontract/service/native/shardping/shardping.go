@@ -21,6 +21,7 @@ package shardping
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common/log"
@@ -90,13 +91,11 @@ func SendShardPingTest(native *native.NativeService) ([]byte, error) {
 	pingEvt := &shardping_events.SendShardPingEvent{
 		Payload: "SendShardPingPayload",
 	}
-	buf := new(bytes.Buffer)
-	if err := pingEvt.Serialize(buf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("send ping shard, serialize failed: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	pingEvt.Serialization(sink)
 
 	// call shard_sysmsg to send ping
-	if err := appcallSendReq(native, params.ToShard, buf.Bytes()); err != nil {
+	if err := appcallSendReq(native, params.ToShard, sink.Bytes()); err != nil {
 		return utils.BYTE_FALSE, err
 	}
 

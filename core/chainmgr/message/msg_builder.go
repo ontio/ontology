@@ -20,13 +20,14 @@ package message
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
@@ -98,6 +99,32 @@ type _CrossShardTx struct {
 	Txs [][]byte `json:"txs"`
 }
 
+func (this *_CrossShardTx) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(uint64(len(this.Txs)))
+	for _, tx := range this.Txs {
+		sink.WriteVarBytes(tx)
+	}
+}
+
+func (this *_CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
+	num, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Txs = make([][]byte, num)
+	for i := uint64(0); i < num; i++ {
+		data, _, irr, eof := source.NextVarBytes()
+		if irr {
+			return common.ErrIrregularData
+		}
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.Txs[i] = data
+	}
+	return nil
+}
+
 //
 // NewCrossShardTxMsg: create cross-shard transaction, to remote ShardSysMsg contract
 //  @payload: contains N sub-txns
@@ -108,18 +135,15 @@ type _CrossShardTx struct {
 func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types.ShardID, gasPrice, gasLimit uint64, payload [][]byte) (*types.Transaction, error) {
 	// marshal all sub-txns to one byte-array
 	tx := &_CrossShardTx{payload}
-	txBytes, err := json.Marshal(tx)
-	if err != nil {
-		return nil, fmt.Errorf("marshal crossShardTx: %s", err)
-	}
-
+	sink := common.NewZeroCopySink(0)
+	tx.Serialization(sink)
 	// cross-shard forwarding Tx payload
 	evt := &message.ShardEventState{
 		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
 		EventType:  xshard_state.EVENT_SHARD_MSG_COMMON,
 		ToShard:    toShardID,
 		FromHeight: height,
-		Payload:    txBytes,
+		Payload:    sink.Bytes(),
 	}
 
 	// marshal to CrossShardMsgParam

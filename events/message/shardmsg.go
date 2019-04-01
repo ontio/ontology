@@ -91,3 +91,35 @@ func (this *ShardEventState) Deserialize(r io.Reader) error {
 	}
 	return nil
 }
+
+func (this *ShardEventState) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.Version)
+	sink.WriteUint32(this.EventType)
+	sink.WriteUint64(this.ToShard.ToUint64())
+	sink.WriteUint32(this.FromHeight)
+	sink.WriteVarBytes(this.Payload)
+}
+
+func (this *ShardEventState) Deserialization(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	this.Version, eof = source.NextUint32()
+	this.EventType, eof = source.NextUint32()
+	toShard, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	id, err := types.NewShardID(toShard)
+	if err != nil {
+		return fmt.Errorf("generate shardId faield, err: %s", err)
+	}
+	this.ToShard = id
+	this.FromHeight, eof = source.NextUint32()
+	this.Payload, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}

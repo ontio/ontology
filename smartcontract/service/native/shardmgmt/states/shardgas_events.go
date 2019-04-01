@@ -84,6 +84,28 @@ func (evt *DepositGasEvent) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *DepositGasEvent) Serialization(sink *common.ZeroCopySink) {
+	this.ImplSourceTargetShardID.Serialization(sink)
+	sink.WriteUint32(this.Height)
+	sink.WriteAddress(this.User)
+	sink.WriteUint64(this.Amount)
+}
+
+func (this *DepositGasEvent) Deserialization(source *common.ZeroCopySource) error {
+	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
+		return fmt.Errorf("read impl err: %s", err)
+	}
+	var eof bool
+	this.Height, eof = source.NextUint32()
+	this.User, eof = source.NextAddress()
+	this.Amount, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 type WithdrawGasReqEvent struct {
 	*ImplSourceTargetShardID
 	Height     uint32
@@ -142,6 +164,30 @@ func (evt *WithdrawGasReqEvent) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *WithdrawGasReqEvent) Serialization(sink *common.ZeroCopySink) {
+	this.ImplSourceTargetShardID.Serialization(sink)
+	sink.WriteUint32(this.Height)
+	sink.WriteAddress(this.User)
+	sink.WriteUint64(this.WithdrawId)
+	sink.WriteUint64(this.Amount)
+}
+
+func (this *WithdrawGasReqEvent) Deserialization(source *common.ZeroCopySource) error {
+	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
+		return fmt.Errorf("read impl err: %s", err)
+	}
+	var eof bool
+	this.Height, eof = source.NextUint32()
+	this.User, eof = source.NextAddress()
+	this.WithdrawId, eof = source.NextUint64()
+	this.Amount, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 type WithdrawGasDoneEvent struct {
 	*ImplSourceTargetShardID
 	Height     uint32
@@ -193,6 +239,28 @@ func (evt *WithdrawGasDoneEvent) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *WithdrawGasDoneEvent) Serialization(sink *common.ZeroCopySink) {
+	this.ImplSourceTargetShardID.Serialization(sink)
+	sink.WriteUint32(this.Height)
+	sink.WriteAddress(this.User)
+	sink.WriteUint64(this.WithdrawId)
+}
+
+func (this *WithdrawGasDoneEvent) Deserialization(source *common.ZeroCopySource) error {
+	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
+		return fmt.Errorf("read impl err: %s", err)
+	}
+	var eof bool
+	this.Height, eof = source.NextUint32()
+	this.User, eof = source.NextAddress()
+	this.WithdrawId, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 type ShardCommitDposEvent struct {
 	*ImplSourceTargetShardID
 	Height    uint32
@@ -232,6 +300,26 @@ func (evt *ShardCommitDposEvent) Deserialize(r io.Reader) error {
 	evt.Height = uint32(height)
 	if evt.FeeAmount, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read fee amount failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *ShardCommitDposEvent) Serialization(sink *common.ZeroCopySink) {
+	this.ImplSourceTargetShardID.Serialization(sink)
+	sink.WriteUint32(this.Height)
+	sink.WriteUint64(this.FeeAmount)
+}
+
+func (this *ShardCommitDposEvent) Deserialization(source *common.ZeroCopySource) error {
+	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
+		return fmt.Errorf("read impl err: %s", err)
+	}
+	var eof bool
+	this.Height, eof = source.NextUint32()
+	this.FeeAmount, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	return nil
 }

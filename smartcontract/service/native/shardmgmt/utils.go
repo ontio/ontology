@@ -155,16 +155,14 @@ func setShardState(native *native.NativeService, contract common.Address, state 
 }
 
 func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {
-	infoBuf := new(bytes.Buffer)
-	if err := info.Serialize(infoBuf); err != nil {
-		return fmt.Errorf("addNotification, ser info: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	info.Serialization(sink)
 	eventState := &message.ShardEventState{
 		Version:    VERSION_CONTRACT_SHARD_MGMT,
 		EventType:  info.GetType(),
 		ToShard:    info.GetTargetShardID(),
 		FromHeight: info.GetHeight(),
-		Payload:    infoBuf.Bytes(),
+		Payload:    sink.Bytes(),
 	}
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{

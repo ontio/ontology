@@ -19,6 +19,7 @@
 package shardping_events
 
 import (
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"io"
 )
@@ -37,5 +38,21 @@ func (this *SendShardPingEvent) Deserialize(r io.Reader) error {
 		return err
 	}
 	this.Payload = payload
+	return nil
+}
+
+func (this *SendShardPingEvent) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.Payload)
+}
+
+func (this *SendShardPingEvent) Deserialization(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	this.Payload, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	return nil
 }

@@ -19,13 +19,13 @@
 package shardstates
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const (
@@ -42,6 +42,8 @@ type ShardMgmtEvent interface {
 	GetSourceShardID() types.ShardID
 	GetTargetShardID() types.ShardID
 	GetHeight() uint32
+	Serialization(sink *common.ZeroCopySink)
+	Deserialization(source *common.ZeroCopySource) error
 }
 
 type ImplSourceTargetShardID struct {
@@ -74,6 +76,24 @@ func (self *ImplSourceTargetShardID) Deserialize(r io.Reader) error {
 	}
 	if self.ShardID, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read shardId failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *ImplSourceTargetShardID) Serialization(sink *common.ZeroCopySink) {
+	utils.SerializationShardId(sink, this.SourceShardID)
+	utils.SerializationShardId(sink, this.ShardID)
+}
+
+func (this *ImplSourceTargetShardID) Deserialization(source *common.ZeroCopySource) error {
+	this.SourceShardID = types.ShardID{}
+	this.ShardID = types.ShardID{}
+	var err error = nil
+	if this.SourceShardID, err = utils.DeserializationShardId(source); err != nil {
+		return fmt.Errorf("read source shard id err: %s", err)
+	}
+	if this.ShardID, err = utils.DeserializationShardId(source); err != nil {
+		return fmt.Errorf("read shard id err: %s", err)
 	}
 	return nil
 }
@@ -129,6 +149,30 @@ func (evt *CreateShardEvent) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *CreateShardEvent) Serialization(sink *common.ZeroCopySink) {
+	utils.SerializationShardId(sink, this.SourceShardID)
+	sink.WriteUint32(this.Height)
+	utils.SerializationShardId(sink, this.NewShardID)
+}
+
+func (this *CreateShardEvent) Deserialization(source *common.ZeroCopySource) error {
+	this.SourceShardID = types.ShardID{}
+	var err error = nil
+	if this.SourceShardID, err = utils.DeserializationShardId(source); err != nil {
+		return fmt.Errorf("read source shard id err: %s", err)
+	}
+	var eof bool
+	this.Height, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.NewShardID = types.ShardID{}
+	if this.NewShardID, err = utils.DeserializationShardId(source); err != nil {
+		return fmt.Errorf("read shard id err: %s", err)
+	}
+	return nil
+}
+
 type ConfigShardEvent struct {
 	*ImplSourceTargetShardID
 	Height uint32       `json:"height"`
@@ -170,6 +214,29 @@ func (evt *ConfigShardEvent) Deserialize(r io.Reader) error {
 	evt.Config = &ShardConfig{}
 	if err = evt.Config.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read config failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *ConfigShardEvent) Serialization(sink *common.ZeroCopySink) {
+	this.ImplSourceTargetShardID.Serialization(sink)
+	sink.WriteUint32(this.Height)
+	this.Config.Serialization(sink)
+}
+
+func (this *ConfigShardEvent) Deserialization(source *common.ZeroCopySource) error {
+	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
+		return fmt.Errorf("read impl err: %s", err)
+	}
+	var eof bool
+	this.Height, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Config = &ShardConfig{}
+	if err := this.Config.Deserialization(source); err != nil {
+		return fmt.Errorf("read config err: %s", err)
 	}
 	return nil
 }
@@ -218,6 +285,29 @@ func (evt *PeerJoinShardEvent) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *PeerJoinShardEvent) Serialization(sink *common.ZeroCopySink) {
+	this.ImplSourceTargetShardID.Serialization(sink)
+	sink.WriteUint32(this.Height)
+	sink.WriteString(this.PeerPubKey)
+}
+
+func (this *PeerJoinShardEvent) Deserialization(source *common.ZeroCopySource) error {
+	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
+		return fmt.Errorf("read impl err: %s", err)
+	}
+	var irregular, eof bool
+	this.Height, eof = source.NextUint32()
+	this.PeerPubKey, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 type ShardActiveEvent struct {
 	*ImplSourceTargetShardID
 	Height uint32 `json:"height"`
@@ -255,17 +345,35 @@ func (evt *ShardActiveEvent) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *ShardActiveEvent) Serialization(sink *common.ZeroCopySink) {
+	this.ImplSourceTargetShardID.Serialization(sink)
+	sink.WriteUint32(this.Height)
+}
+
+func (this *ShardActiveEvent) Deserialization(source *common.ZeroCopySource) error {
+	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
+		return fmt.Errorf("read impl err: %s", err)
+	}
+	var eof bool
+	this.Height, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 func DecodeShardGasEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {
 	switch evtType {
 	case EVENT_SHARD_GAS_DEPOSIT:
 		evt := &DepositGasEvent{}
-		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
+		if err := evt.Deserialization(common.NewZeroCopySource(evtPayload)); err != nil {
 			return nil, fmt.Errorf("DecodeShardGasEvent: %s", err)
 		}
 		return evt, nil
 	case EVENT_SHARD_GAS_WITHDRAW_DONE:
 		evt := &WithdrawGasDoneEvent{}
-		if err := evt.Deserialize(bytes.NewBuffer(evtPayload)); err != nil {
+		if err := evt.Deserialization(common.NewZeroCopySource(evtPayload)); err != nil {
 			return nil, fmt.Errorf("DecodeShardGasEvent: %s", err)
 		}
 		return evt, nil
