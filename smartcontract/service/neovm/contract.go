@@ -39,7 +39,10 @@ func ContractCreate(service *NeoVmService, engine *vm.Executor) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
 	if dep == nil {
-		service.CacheDB.PutContract(contract)
+		err := service.CacheDB.PutContract(contract)
+		if err != nil {
+			return err
+		}
 		dep = contract
 	}
 	return engine.EvalStack.PushAsInteropValue(dep)
@@ -59,7 +62,10 @@ func ContractMigrate(service *NeoVmService, engine *vm.Executor) error {
 	context := service.ContextRef.CurrentContext()
 	oldAddr := context.ContractAddress
 
-	service.CacheDB.PutContract(contract)
+	err = service.CacheDB.PutContract(contract)
+	if err != nil {
+		return err
+	}
 	service.CacheDB.DeleteContract(oldAddr)
 
 	iter := service.CacheDB.NewIterator(oldAddr[:])
@@ -207,7 +213,7 @@ func isContractExist(service *NeoVmService, contractAddress common.Address) erro
 	item, err := service.CacheDB.GetContract(contractAddress)
 
 	if err != nil || item != nil {
-		return fmt.Errorf("[Contract] Get contract %x error or contract exist!", contractAddress)
+		return fmt.Errorf("[Contract] Get contract %x error or contract exist", contractAddress)
 	}
 	return nil
 }

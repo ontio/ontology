@@ -69,7 +69,7 @@ func NativeInvoke(service *NeoVmService, engine *vm.Executor) error {
 		Args:    sink.Bytes(),
 	}
 
-	native := &native.NativeService{
+	nat := &native.NativeService{
 		CacheDB:     service.CacheDB,
 		InvokeParam: contract,
 		Tx:          service.Tx,
@@ -79,7 +79,7 @@ func NativeInvoke(service *NeoVmService, engine *vm.Executor) error {
 		ServiceMap:  make(map[string]native.Handler),
 	}
 
-	result, err := native.Invoke()
+	result, err := nat.Invoke()
 	if err != nil {
 		return err
 	}

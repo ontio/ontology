@@ -56,14 +56,20 @@ func opJmp(e *ExecutionEngine) (VMState, error) {
 	}
 
 	if fValue {
-		e.Context.SetInstructionPointer(int64(offset))
+		err := e.Context.SetInstructionPointer(int64(offset))
+		if err != nil {
+			return FAULT, err
+		}
 	}
 	return NONE, nil
 }
 
 func opCall(e *ExecutionEngine) (VMState, error) {
 	context := e.Context.Clone()
-	e.Context.SetInstructionPointer(int64(e.Context.GetInstructionPointer() + 2))
+	err := e.Context.SetInstructionPointer(int64(e.Context.GetInstructionPointer() + 2))
+	if err != nil {
+		return FAULT, err
+	}
 	e.OpCode = JMP
 	e.PushContext(context)
 	return opJmp(e)
@@ -84,7 +90,10 @@ func opDCALL(e *ExecutionEngine) (VMState, error) {
 
 	target := dest.Int64()
 
-	e.Context.SetInstructionPointer(target)
+	err = e.Context.SetInstructionPointer(target)
+	if err != nil {
+		return FAULT, err
+	}
 
 	return NONE, nil
 }

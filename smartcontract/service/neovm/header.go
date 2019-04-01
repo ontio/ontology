@@ -106,7 +106,7 @@ func HeaderGetIndex(service *NeoVmService, engine *vm.Executor) error {
 	} else if h, ok := d.Data.(*types.Header); ok {
 		data = h
 	} else {
-		return fmt.Errorf("[HeaderGetIndex] Wrong type!")
+		return fmt.Errorf("[HeaderGetIndex] Wrong type")
 	}
 	return engine.EvalStack.PushUint32(data.Height)
 }
@@ -123,7 +123,7 @@ func HeaderGetTimestamp(service *NeoVmService, engine *vm.Executor) error {
 	} else if h, ok := d.Data.(*types.Header); ok {
 		data = h
 	} else {
-		return errors.NewErr("[HeaderGetTimestamp] Wrong type!")
+		return errors.NewErr("[HeaderGetTimestamp] Wrong type")
 	}
 	return engine.EvalStack.PushUint32(data.Timestamp)
 }
@@ -140,7 +140,7 @@ func HeaderGetConsensusData(service *NeoVmService, engine *vm.Executor) error {
 	} else if h, ok := d.Data.(*types.Header); ok {
 		data = h
 	} else {
-		return errors.NewErr("[HeaderGetConsensusData] Wrong type!")
+		return errors.NewErr("[HeaderGetConsensusData] Wrong type")
 	}
 	return engine.EvalStack.PushUint64(data.ConsensusData)
 }
@@ -157,7 +157,7 @@ func HeaderGetNextConsensus(service *NeoVmService, engine *vm.Executor) error {
 	} else if h, ok := d.Data.(*types.Header); ok {
 		data = h
 	} else {
-		return errors.NewErr("[HeaderGetNextConsensus] Wrong type!")
+		return errors.NewErr("[HeaderGetNextConsensus] Wrong type")
 	}
 	return engine.EvalStack.PushBytes(data.NextBookkeeper[:])
 }
