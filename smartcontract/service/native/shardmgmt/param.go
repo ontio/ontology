@@ -19,13 +19,14 @@
 package shardmgmt
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 )
 
@@ -77,7 +78,13 @@ type ConfigShardParam struct {
 	GasAssetAddress   common.Address
 	GasPrice          uint64
 	GasLimit          uint64
-	VbftConfigData    *config.VBFTConfig
+	VbftConfigData    []byte
+}
+
+func (this *ConfigShardParam) GetConfig() (*config.VBFTConfig, error) {
+	cfg := &config.VBFTConfig{}
+	err := cfg.Deserialize(bytes.NewReader(this.VbftConfigData))
+	return cfg, err
 }
 
 func (this *ConfigShardParam) Serialize(w io.Writer) error {
@@ -93,8 +100,8 @@ func (this *ConfigShardParam) Serialize(w io.Writer) error {
 	if err := utils.WriteAddress(w, this.GasAssetAddress); err != nil {
 		return fmt.Errorf("serialize: write gas asset addr failed, err: %s", err)
 	}
-	if err := this.VbftConfigData.Serialize(w); err != nil {
-		return fmt.Errorf("serialize: write config failed, err: %s", err)
+	if err := serialization.WriteVarBytes(w, this.VbftConfigData); err != nil {
+		return fmt.Errorf("serialize: write cfg data failed, err: %s", err)
 	}
 	return nil
 }
@@ -115,9 +122,8 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 	if this.GasAssetAddress, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read gas asset addr failed, err: %s", err)
 	}
-	this.VbftConfigData = &config.VBFTConfig{}
-	if err = this.VbftConfigData.Deserialize(r); err != nil {
-		return fmt.Errorf("deserialize: read config failed, err: %s", err)
+	if this.VbftConfigData, err = serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read config data failed, err: %s", err)
 	}
 	return nil
 }

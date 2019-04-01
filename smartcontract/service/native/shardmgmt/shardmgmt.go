@@ -120,7 +120,7 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 			ShardID:             native.ShardID,
 			GenesisParentHeight: native.Height,
 			State:               shardstates.SHARD_STATE_ACTIVE,
-			Config:              &shardstates.ShardConfig{VbftConfigData: &config.VBFTConfig{}},
+			Config:              &shardstates.ShardConfig{VbftCfg: &config.VBFTConfig{}},
 			Peers:               make(map[string]*shardstates.PeerShardStakeInfo),
 		}
 		setShardState(native, contract, shardState)
@@ -172,7 +172,7 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		ShardID: subShardID,
 		Creator: params.Creator,
 		State:   shardstates.SHARD_STATE_CREATED,
-		Config:  &shardstates.ShardConfig{VbftConfigData: &config.VBFTConfig{}},
+		Config:  &shardstates.ShardConfig{VbftCfg: &config.VBFTConfig{}},
 		Peers:   make(map[string]*shardstates.PeerShardStakeInfo),
 	}
 	globalState.NextSubShardIndex += 1
@@ -251,11 +251,15 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		GasAssetAddress:   params.GasAssetAddress,
 		GasPrice:          params.GasPrice,
 		GasLimit:          params.GasLimit,
-		VbftConfigData:    params.VbftConfigData,
 	}
+	cfg, err := params.GetConfig()
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: decode config failed, err: %s", err)
+	}
+	shard.Config.VbftCfg = cfg
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
-	err = setNodeMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftConfigData.MinInitStake))
+	err = setNodeMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftCfg.MinInitStake))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: failed, err: %s", err)
 	}
@@ -374,15 +378,15 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 			PeerPubKey: params.PeerPubKey,
 		}
 		shard.Peers[strings.ToLower(params.PeerPubKey)] = peerStakeInfo
-		if shard.Config.VbftConfigData.Peers == nil {
-			shard.Config.VbftConfigData.Peers = make([]*config.VBFTPeerStakeInfo, 0)
+		if shard.Config.VbftCfg.Peers == nil {
+			shard.Config.VbftCfg.Peers = make([]*config.VBFTPeerStakeInfo, 0)
 		}
 		vbftPeerInfo := &config.VBFTPeerStakeInfo{
 			PeerPubkey: strings.ToLower(params.PeerPubKey),
 			Address:    params.PeerOwner.ToBase58(),
 			InitPos:    params.StakeAmount,
 		}
-		shard.Config.VbftConfigData.Peers = append(shard.Config.VbftConfigData.Peers, vbftPeerInfo)
+		shard.Config.VbftCfg.Peers = append(shard.Config.VbftCfg.Peers, vbftPeerInfo)
 	}
 
 	setShardState(native, contract, shard)
@@ -476,7 +480,7 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("activae shard, not enough peer: %d vs %d",
 			len(shard.Peers), shard.Config.NetworkSize)
 	}
-	peers := shard.Config.VbftConfigData.Peers
+	peers := shard.Config.VbftCfg.Peers
 	sort.SliceStable(peers, func(i, j int) bool {
 		return peers[i].InitPos > peers[j].InitPos
 	})
@@ -487,14 +491,14 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("activate shard, unmatch peer pub key %s", peer.PeerPubkey)
 		}
 		shardPeer.Index = uint32(index) + 1
-		if uint32(index) < shard.Config.VbftConfigData.K {
+		if uint32(index) < shard.Config.VbftCfg.K {
 			shardPeer.NodeType = shardstates.CONSENSUS_NODE
 		} else {
 			shardPeer.NodeType = shardstates.CONDIDATE_NODE
 		}
 		shard.Peers[peer.PeerPubkey] = shardPeer
 	}
-	shard.Config.VbftConfigData.Peers = peers
+	shard.Config.VbftCfg.Peers = peers
 	shard.GenesisParentHeight = native.Height
 	shard.State = shardstates.SHARD_STATE_ACTIVE
 	setShardState(native, contract, shard)

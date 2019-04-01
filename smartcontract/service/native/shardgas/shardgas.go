@@ -411,7 +411,7 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 		peerConfirmWithdraw(native, contract, param.User, param.PeerPubKey, param.ShardId, param.WithdrawId)
 		setWithdrawConfirmNum(native, contract, param.User, param.ShardId, param.WithdrawId, newConfirmedNum)
 	}
-	required := shard.Config.VbftConfigData.K - shard.Config.VbftConfigData.C
+	required := shard.Config.VbftCfg.K - shard.Config.VbftCfg.C
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		required = 1
 	}
@@ -494,7 +494,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 		}
 	}
-	required := shard.Config.VbftConfigData.K - shard.Config.VbftConfigData.C
+	required := shard.Config.VbftCfg.K - shard.Config.VbftCfg.C
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		required = 1
 	}

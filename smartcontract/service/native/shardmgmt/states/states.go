@@ -38,9 +38,9 @@ const (
 
 const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED // all parameter configured
-	SHARD_STATE_ACTIVE     // started
-	SHARD_STATE_STOPPING   // started
+	SHARD_STATE_CONFIGURED  // all parameter configured
+	SHARD_STATE_ACTIVE      // started
+	SHARD_STATE_STOPPING    // started
 	SHARD_STATE_ARCHIVED
 )
 
@@ -92,7 +92,7 @@ type ShardConfig struct {
 	NetworkSize       uint32
 	StakeAssetAddress common.Address
 	GasAssetAddress   common.Address
-	VbftConfigData    *config.VBFTConfig
+	VbftCfg           *config.VBFTConfig
 }
 
 func (this *ShardConfig) Serialize(w io.Writer) error {
@@ -105,7 +105,7 @@ func (this *ShardConfig) Serialize(w io.Writer) error {
 	if err := utils.WriteAddress(w, this.GasAssetAddress); err != nil {
 		return fmt.Errorf("serialize: write gas asset addr failed, err: %s", err)
 	}
-	if err := this.VbftConfigData.Serialize(w); err != nil {
+	if err := this.VbftCfg.Serialize(w); err != nil {
 		return fmt.Errorf("serialize: write config failed, err: %s", err)
 	}
 	return nil
@@ -125,8 +125,8 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read gas asset addr failed, err: %s", err)
 	}
-	this.VbftConfigData = &config.VBFTConfig{}
-	if err := this.VbftConfigData.Deserialize(r); err != nil {
+	this.VbftCfg = &config.VBFTConfig{}
+	if err := this.VbftCfg.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read config failed, err: %s", err)
 	}
 	return nil
@@ -136,7 +136,7 @@ func (this *ShardConfig) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.NetworkSize)
 	sink.WriteAddress(this.StakeAssetAddress)
 	sink.WriteAddress(this.GasAssetAddress)
-	this.VbftConfigData.Serialization(sink)
+	this.VbftCfg.Serialization(sink)
 }
 
 func (this *ShardConfig) Deserialization(source *common.ZeroCopySource) error {
@@ -147,8 +147,8 @@ func (this *ShardConfig) Deserialization(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	this.VbftConfigData = &config.VBFTConfig{}
-	return this.VbftConfigData.Deserialization(source)
+	this.VbftCfg = &config.VBFTConfig{}
+	return this.VbftCfg.Deserialization(source)
 }
 
 type PeerShardStakeInfo struct {
