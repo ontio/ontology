@@ -90,7 +90,7 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	}
 
 	globalState := &shardstates.ShardMgmtGlobalState{}
-	if err := globalState.Deserialize(bytes.NewBuffer(data)); err != nil {
+	if err := globalState.Deserialization(common.NewZeroCopySource(data)); err != nil {
 		return nil, fmt.Errorf("des shardmgmt global state: %s", err)
 	}
 
@@ -113,7 +113,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	}
 
 	shardState := &shardstates.ShardState{}
-	if err := shardState.Deserialize(bytes.NewBuffer(data)); err != nil {
+	if err := shardState.Deserialization(common.NewZeroCopySource(data)); err != nil {
 		return nil, fmt.Errorf("des shardmgmt shard state: %s", err)
 	}
 

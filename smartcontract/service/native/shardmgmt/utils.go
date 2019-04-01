@@ -110,25 +110,17 @@ func getGlobalState(native *native.NativeService, contract common.Address) (*sha
 	}
 
 	globalState := &shardstates.ShardMgmtGlobalState{}
-	if err := globalState.Deserialize(bytes.NewBuffer(value)); err != nil {
+	if err := globalState.Deserialization(common.NewZeroCopySource(value)); err != nil {
 		return nil, fmt.Errorf("get shardgmgmtm global state: deserialize state: %s", err)
 	}
 
 	return globalState, nil
 }
 
-func setGlobalState(native *native.NativeService, contract common.Address, state *shardstates.ShardMgmtGlobalState) error {
-	if state == nil {
-		return fmt.Errorf("setGlobalState, nil state")
-	}
-
-	buf := new(bytes.Buffer)
-	if err := state.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize shardmgmt global state: %s", err)
-	}
-
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)), cstates.GenRawStorageItem(buf.Bytes()))
-	return nil
+func setGlobalState(native *native.NativeService, contract common.Address, state *shardstates.ShardMgmtGlobalState) {
+	sink := common.NewZeroCopySink(0)
+	state.Serialization(sink)
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)), cstates.GenRawStorageItem(sink.Bytes()))
 }
 
 func GetShardState(native *native.NativeService, contract common.Address, shardID types.ShardID) (*shardstates.ShardState, error) {
@@ -147,24 +139,19 @@ func GetShardState(native *native.NativeService, contract common.Address, shardI
 	}
 
 	state := &shardstates.ShardState{}
-	if err := state.Deserialize(bytes.NewBuffer(value)); err != nil {
+	if err := state.Deserialization(common.NewZeroCopySource(value)); err != nil {
 		return nil, fmt.Errorf("getShardState: deserialize ShardState: %s", err)
 	}
 
 	return state, nil
 }
 
-func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) error {
+func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) {
 	shardIDBytes := utils.GetUint64Bytes(state.ShardID.ToUint64())
-
-	buf := new(bytes.Buffer)
-	if err := state.Serialize(buf); err != nil {
-		return fmt.Errorf("setShardState: serialize shardstate: %s", err)
-	}
-
+	sink := common.NewZeroCopySink(0)
+	state.Serialization(sink)
 	key := utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
-	return nil
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 
 func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {

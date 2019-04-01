@@ -429,6 +429,63 @@ func (this *VBFTConfig) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *VBFTConfig) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.N)
+	sink.WriteUint32(this.C)
+	sink.WriteUint32(this.K)
+	sink.WriteUint32(this.L)
+	sink.WriteUint32(this.BlockMsgDelay)
+	sink.WriteUint32(this.HashMsgDelay)
+	sink.WriteUint32(this.PeerHandshakeTimeout)
+	sink.WriteUint32(this.MaxBlockChangeView)
+	sink.WriteUint32(this.MinInitStake)
+	sink.WriteString(this.AdminOntID)
+	sink.WriteString(this.VrfValue)
+	sink.WriteString(this.VrfProof)
+	sink.WriteUint64(uint64(len(this.Peers)))
+	for _, peer := range this.Peers {
+		peer.Serialization(sink)
+	}
+}
+
+func (this *VBFTConfig) Deserialization(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	this.N, eof = source.NextUint32()
+	this.C, eof = source.NextUint32()
+	this.K, eof = source.NextUint32()
+	this.L, eof = source.NextUint32()
+	this.BlockMsgDelay, eof = source.NextUint32()
+	this.HashMsgDelay, eof = source.NextUint32()
+	this.PeerHandshakeTimeout, eof = source.NextUint32()
+	this.MaxBlockChangeView, eof = source.NextUint32()
+	this.MinInitStake, eof = source.NextUint32()
+	this.AdminOntID, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.VrfValue, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.VrfProof, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	num, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Peers = make([]*VBFTPeerStakeInfo, num)
+	for i := uint64(0); i < num; i++ {
+		peer := &VBFTPeerStakeInfo{}
+		if err := peer.Deserialization(source); err != nil {
+			return fmt.Errorf("read peer info, index %d, err: %s", i, err)
+		}
+		this.Peers[i] = peer
+	}
+	return nil
+}
+
 type VBFTPeerStakeInfo struct {
 	Index      uint32 `json:"index"`
 	PeerPubkey string `json:"peerPubkey"`
@@ -478,6 +535,31 @@ func (this *VBFTPeerStakeInfo) Deserialize(r io.Reader) error {
 	this.PeerPubkey = peerPubkey
 	this.Address = address.ToBase58()
 	this.InitPos = initPos
+	return nil
+}
+
+func (this *VBFTPeerStakeInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.Index)
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteString(this.Address)
+	sink.WriteUint64(this.InitPos)
+}
+
+func (this *VBFTPeerStakeInfo) Deserialization(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	this.Index, eof = source.NextUint32()
+	this.PeerPubkey, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.Address, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.InitPos, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	return nil
 }
 

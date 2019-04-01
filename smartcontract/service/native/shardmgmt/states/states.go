@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -43,10 +44,10 @@ const (
 	SHARD_STATE_ARCHIVED
 )
 
-type NodeType uint
+type NodeType uint8
 
 const (
-	CONDIDATE_NODE = iota
+	CONDIDATE_NODE NodeType = iota
 	CONSENSUS_NODE
 	QUIT_CONSENSUS_NODE
 	QUITING_CONSENSUS_NODE
@@ -69,6 +70,19 @@ func (this *ShardMgmtGlobalState) Deserialize(r io.Reader) error {
 		return fmt.Errorf("deserialize: read NextSubShardIndex failed, err: %s", err)
 	}
 	this.NextSubShardIndex = uint16(index)
+	return nil
+}
+
+func (this *ShardMgmtGlobalState) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint16(this.NextSubShardIndex)
+}
+
+func (this *ShardMgmtGlobalState) Deserialization(source *common.ZeroCopySource) error {
+	id, eof := source.NextUint16()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.NextSubShardIndex = id
 	return nil
 }
 
@@ -116,6 +130,25 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 		return fmt.Errorf("deserialize: read config failed, err: %s", err)
 	}
 	return nil
+}
+
+func (this *ShardConfig) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.NetworkSize)
+	sink.WriteAddress(this.StakeAssetAddress)
+	sink.WriteAddress(this.GasAssetAddress)
+	this.VbftConfigData.Serialization(sink)
+}
+
+func (this *ShardConfig) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.NetworkSize, eof = source.NextUint32()
+	this.StakeAssetAddress, eof = source.NextAddress()
+	this.GasAssetAddress, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.VbftConfigData = &config.VBFTConfig{}
+	return this.VbftConfigData.Deserialization(source)
 }
 
 type PeerShardStakeInfo struct {
@@ -167,6 +200,34 @@ func (this *PeerShardStakeInfo) Deserialize(r io.Reader) error {
 	nodeType, err := utils.ReadVarUint(r)
 	if err != nil {
 		return fmt.Errorf("deserialize: read node type failed, err: %s", err)
+	}
+	this.NodeType = NodeType(nodeType)
+	return nil
+}
+
+func (this *PeerShardStakeInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.Index)
+	sink.WriteString(this.IpAddress)
+	sink.WriteAddress(this.PeerOwner)
+	sink.WriteString(this.PeerPubKey)
+	sink.WriteUint8(uint8(this.NodeType))
+}
+
+func (this *PeerShardStakeInfo) Deserialization(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	this.Index, eof = source.NextUint32()
+	this.IpAddress, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.PeerOwner, eof = source.NextAddress()
+	this.PeerPubKey, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	nodeType, eof := source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	this.NodeType = NodeType(nodeType)
 	return nil
@@ -257,5 +318,57 @@ func (this *ShardState) Deserialize(r io.Reader) error {
 		peers[peer.PeerPubKey] = peer
 	}
 	this.Peers = peers
+	return nil
+}
+
+func (this *ShardState) Serialization(sink *common.ZeroCopySink) {
+	utils.SerializationShardId(sink, this.ShardID)
+	sink.WriteAddress(this.Creator)
+	sink.WriteUint32(this.State)
+	sink.WriteUint32(this.GenesisParentHeight)
+	this.Config.Serialization(sink)
+	sink.WriteUint64(uint64(len(this.Peers)))
+	peers := make([]*PeerShardStakeInfo, 0)
+	for _, peer := range this.Peers {
+		peers = append(peers, peer)
+	}
+	sort.SliceStable(peers, func(i, j int) bool {
+		return peers[i].PeerPubKey < peers[j].PeerPubKey
+	})
+	for _, peer := range peers {
+		peer.Serialization(sink)
+	}
+}
+
+func (this *ShardState) Deserialization(source *common.ZeroCopySource) error {
+	shardId, err := utils.DeserializationShardId(source)
+	if err != nil {
+		return fmt.Errorf("dese shardId: %s", err)
+	}
+	var eof bool
+	this.ShardID = shardId
+	this.Creator, eof = source.NextAddress()
+	this.State, eof = source.NextUint32()
+	this.GenesisParentHeight, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Config = &ShardConfig{}
+	err = this.Config.Deserialization(source)
+	if err != nil {
+		return fmt.Errorf("dese config: %s", err)
+	}
+	peersNum, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Peers = make(map[string]*PeerShardStakeInfo)
+	for i := uint64(0); i < peersNum; i++ {
+		peer := &PeerShardStakeInfo{}
+		if err := peer.Deserialization(source); err != nil {
+			return fmt.Errorf("read peer, index %d, err: %s", i, err)
+		}
+		this.Peers[strings.ToLower(peer.PeerPubKey)] = peer
+	}
 	return nil
 }
