@@ -48,8 +48,7 @@ func AttributeGetData(service *NeoVmService, engine *vm.Executor) error {
 		if err != nil {
 			return err
 		}
-		engine.EvalStack.Push(val)
-		return nil
+		return engine.EvalStack.Push(val)
 	}
 	return errors.NewErr("[AttributeGetData] Wrong type!")
 }

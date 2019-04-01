@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
 )
@@ -31,7 +29,7 @@ func (self *ArrayValue) Len() int64 {
 
 func (self *ArrayValue) RemoveAt(index int64) error {
 	if index < 0 || index >= self.Len() {
-		return fmt.Errorf("[RemoveAt] index out of bound!")
+		return errors.ERR_INDEX_OUT_OF_BOUND
 	}
 	self.Data = append(self.Data[:index], self.Data[index+1:]...)
 	return nil
