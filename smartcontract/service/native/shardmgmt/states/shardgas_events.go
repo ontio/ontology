@@ -34,7 +34,7 @@ const (
 )
 
 type DepositGasEvent struct {
-	*ImplSourceTargetShardID
+	ImplSourceTargetShardID
 	Height uint32
 	User   common.Address
 	Amount uint64
@@ -66,7 +66,7 @@ func (evt *DepositGasEvent) Serialize(w io.Writer) error {
 
 func (evt *DepositGasEvent) Deserialize(r io.Reader) error {
 	var err error = nil
-	evt.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read impl failed, err: %s", err)
 	}
@@ -92,7 +92,7 @@ func (this *DepositGasEvent) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *DepositGasEvent) Deserialization(source *common.ZeroCopySource) error {
-	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	this.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
 		return fmt.Errorf("read impl err: %s", err)
 	}
@@ -107,7 +107,7 @@ func (this *DepositGasEvent) Deserialization(source *common.ZeroCopySource) erro
 }
 
 type WithdrawGasReqEvent struct {
-	*ImplSourceTargetShardID
+	ImplSourceTargetShardID
 	Height     uint32
 	User       common.Address
 	WithdrawId uint64
@@ -143,7 +143,7 @@ func (evt *WithdrawGasReqEvent) Serialize(w io.Writer) error {
 
 func (evt *WithdrawGasReqEvent) Deserialize(r io.Reader) error {
 	var err error = nil
-	evt.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read impl failed, err: %s", err)
 	}
@@ -173,7 +173,7 @@ func (this *WithdrawGasReqEvent) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *WithdrawGasReqEvent) Deserialization(source *common.ZeroCopySource) error {
-	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	this.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
 		return fmt.Errorf("read impl err: %s", err)
 	}
@@ -189,7 +189,7 @@ func (this *WithdrawGasReqEvent) Deserialization(source *common.ZeroCopySource) 
 }
 
 type WithdrawGasDoneEvent struct {
-	*ImplSourceTargetShardID
+	ImplSourceTargetShardID
 	Height     uint32
 	User       common.Address
 	WithdrawId uint64
@@ -221,7 +221,7 @@ func (evt *WithdrawGasDoneEvent) Serialize(w io.Writer) error {
 
 func (evt *WithdrawGasDoneEvent) Deserialize(r io.Reader) error {
 	var err error = nil
-	evt.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read impl failed, err: %s", err)
 	}
@@ -247,7 +247,7 @@ func (this *WithdrawGasDoneEvent) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *WithdrawGasDoneEvent) Deserialization(source *common.ZeroCopySource) error {
-	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	this.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
 		return fmt.Errorf("read impl err: %s", err)
 	}
@@ -262,7 +262,7 @@ func (this *WithdrawGasDoneEvent) Deserialization(source *common.ZeroCopySource)
 }
 
 type ShardCommitDposEvent struct {
-	*ImplSourceTargetShardID
+	ImplSourceTargetShardID
 	Height    uint32
 	FeeAmount uint64
 }
@@ -289,7 +289,7 @@ func (evt *ShardCommitDposEvent) Serialize(w io.Writer) error {
 
 func (evt *ShardCommitDposEvent) Deserialize(r io.Reader) error {
 	var err error = nil
-	evt.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read impl failed, err: %s", err)
 	}
@@ -311,7 +311,7 @@ func (this *ShardCommitDposEvent) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *ShardCommitDposEvent) Deserialization(source *common.ZeroCopySource) error {
-	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	this.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
 		return fmt.Errorf("read impl err: %s", err)
 	}

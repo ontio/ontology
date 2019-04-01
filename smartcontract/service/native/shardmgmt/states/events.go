@@ -174,7 +174,7 @@ func (this *CreateShardEvent) Deserialization(source *common.ZeroCopySource) err
 }
 
 type ConfigShardEvent struct {
-	*ImplSourceTargetShardID
+	ImplSourceTargetShardID
 	Height uint32       `json:"height"`
 	Config *ShardConfig `json:"config"`
 }
@@ -202,7 +202,7 @@ func (evt *ConfigShardEvent) Serialize(w io.Writer) error {
 
 func (evt *ConfigShardEvent) Deserialize(r io.Reader) error {
 	var err error = nil
-	evt.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read impl shardId failed, err: %s", err)
 	}
@@ -225,7 +225,7 @@ func (this *ConfigShardEvent) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *ConfigShardEvent) Deserialization(source *common.ZeroCopySource) error {
-	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	this.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
 		return fmt.Errorf("read impl err: %s", err)
 	}
@@ -242,7 +242,7 @@ func (this *ConfigShardEvent) Deserialization(source *common.ZeroCopySource) err
 }
 
 type PeerJoinShardEvent struct {
-	*ImplSourceTargetShardID
+	ImplSourceTargetShardID
 	Height     uint32 `json:"height"`
 	PeerPubKey string `json:"peer_pub_key"`
 }
@@ -270,7 +270,7 @@ func (evt *PeerJoinShardEvent) Serialize(w io.Writer) error {
 
 func (evt *PeerJoinShardEvent) Deserialize(r io.Reader) error {
 	var err error = nil
-	evt.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read impl shardId failed, err: %s", err)
 	}
@@ -292,7 +292,7 @@ func (this *PeerJoinShardEvent) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *PeerJoinShardEvent) Deserialization(source *common.ZeroCopySource) error {
-	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	this.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
 		return fmt.Errorf("read impl err: %s", err)
 	}
@@ -309,7 +309,7 @@ func (this *PeerJoinShardEvent) Deserialization(source *common.ZeroCopySource) e
 }
 
 type ShardActiveEvent struct {
-	*ImplSourceTargetShardID
+	ImplSourceTargetShardID
 	Height uint32 `json:"height"`
 }
 
@@ -333,7 +333,7 @@ func (evt *ShardActiveEvent) Serialize(w io.Writer) error {
 
 func (evt *ShardActiveEvent) Deserialize(r io.Reader) error {
 	var err error = nil
-	evt.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read impl shardId failed, err: %s", err)
 	}
@@ -351,7 +351,7 @@ func (this *ShardActiveEvent) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *ShardActiveEvent) Deserialization(source *common.ZeroCopySource) error {
-	this.ImplSourceTargetShardID = &ImplSourceTargetShardID{}
+	this.ImplSourceTargetShardID = ImplSourceTargetShardID{}
 	if err := this.ImplSourceTargetShardID.Deserialization(source); err != nil {
 		return fmt.Errorf("read impl err: %s", err)
 	}
