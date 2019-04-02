@@ -1624,7 +1624,7 @@ func (self *Server) actionLoop() {
 				}
 				stateRoot, err := self.chainStore.GetExecMerkleRoot(action.BlockNum)
 				if err != nil {
-					log.Errorf("handleBlockSubmit failed:%s", err)
+					log.Infof("handleBlockSubmit failed:%s", err)
 					continue
 				}
 				if self.CheckSubmitBlock(action.BlockNum, stateRoot) {
