@@ -56,6 +56,7 @@ const (
 	SealBlock
 	FastForward // for syncer catch up
 	ReBroadcast
+	SubmitBlock
 )
 
 const (
@@ -1082,7 +1083,11 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			}
 			return
 		}
-		self.processConsensusMsg(msg)
+		self.bftActionC <- &BftAction{
+			Type:     SubmitBlock,
+			BlockNum: msgBlkNum,
+			forEmpty: false,
+		}
 	}
 }
 
@@ -1110,6 +1115,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		return
 	}
 	if msg.Block.getPrevBlockMerkleRoot() != merkleRoot {
+		self.msgPool.DropMsg(msg)
 		msgMerkleRoot := msg.Block.getPrevBlockMerkleRoot()
 		log.Errorf("BlockPrposalMessage check MerkleRoot blocknum:%d,msg MerkleRoot:%s,self MerkleRoot:%s", msg.GetBlockNum(), msgMerkleRoot.ToHexString(), merkleRoot.ToHexString())
 		return
@@ -1377,14 +1383,6 @@ func (self *Server) processMsgEvent() error {
 
 				// FIXME: add msg from msg-pool to block-pool when starting new block-round
 			}
-		case BlockSubmitMessage:
-			pMsg := msg.(*blockSubmitMsg)
-			msgBlkNum := pMsg.GetBlockNum()
-			stateRoot, err := self.chainStore.GetExecMerkleRoot(msgBlkNum)
-			if err != nil {
-				return nil
-			}
-			self.SubmitBlock(msgBlkNum, stateRoot)
 		}
 
 	case <-self.quitC:
@@ -1619,8 +1617,23 @@ func (self *Server) actionLoop() {
 						}
 					}
 				}
+			case SubmitBlock:
+				blkNum := self.GetCurrentBlockNo()
+				if action.BlockNum > blkNum {
+					continue
+				}
+				stateRoot, err := self.chainStore.GetExecMerkleRoot(action.BlockNum)
+				if err != nil {
+					log.Errorf("handleBlockSubmit failed:%s", err)
+					continue
+				}
+				if action.forEmpty {
+					if blocksubmitMsg, _ := self.constructBlockSubmitMsg(action.BlockNum, stateRoot); blocksubmitMsg != nil {
+						self.broadcast(blocksubmitMsg)
+					}
+				}
+				self.SubmitBlock(action.BlockNum, stateRoot)
 			}
-
 		case <-self.quitC:
 			log.Infof("server %d actionLoop quit", self.Index)
 			return
