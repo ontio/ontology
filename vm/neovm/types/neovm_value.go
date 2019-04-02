@@ -163,7 +163,7 @@ func (self *VmValue) buildParamToNative(sink *common.ZeroCopySink) error {
 			return err
 		}
 		sink.WriteBool(b)
-	case integerType:
+	case integerType, bigintType:
 		bs, err := self.AsBytes()
 		if err != nil {
 			return err
@@ -187,8 +187,10 @@ func (self *VmValue) buildParamToNative(sink *common.ZeroCopySink) error {
 	case mapType:
 		//TODO
 		return errors.ERR_BAD_TYPE
+	case interopType:
+		return errors.ERR_BAD_TYPE
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 	return nil
 }
