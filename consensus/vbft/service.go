@@ -231,17 +231,20 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 
 func (self *Server) SubmitBlock(blkNum uint32, stateRoot common.Uint256) {
 	cMsgs := self.msgPool.GetBlockSubmitMsgNums(blkNum)
-	m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
-	if len(cMsgs) < m {
-		return
-	}
+	var stateRootCnt uint32
 	for _, msg := range cMsgs {
 		c := msg.(*blockSubmitMsg)
 		if c != nil {
-			if c.BlockStateRoot != stateRoot {
-				return
+			if c.BlockStateRoot == stateRoot {
+				stateRootCnt++
+			} else {
+				continue
 			}
 		}
+	}
+	m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
+	if stateRootCnt < uint32(m) {
+		return
 	}
 	if err := self.chainStore.SubmitBlock(blkNum); err != nil {
 		log.Errorf("SubmitBlock err:%s", err)
