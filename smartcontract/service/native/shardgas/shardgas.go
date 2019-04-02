@@ -426,6 +426,7 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 			if shardBalance < param.Amount {
 				return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: shard balance not enough")
 			}
+			setShardGasBalance(native, contract, param.ShardId, shardBalance-param.Amount)
 			err = ont.AppCallTransfer(native, utils.OngContractAddress, contract, param.User, param.Amount)
 			if err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: transfer ong failed, err: %s", err)
