@@ -230,7 +230,7 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	}
 }
 
-func (self *Server) SubmitBlock(blkNum uint32, stateRoot common.Uint256) {
+func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bool {
 	cMsgs := self.msgPool.GetBlockSubmitMsgNums(blkNum)
 	var stateRootCnt uint32
 	for _, msg := range cMsgs {
@@ -245,11 +245,9 @@ func (self *Server) SubmitBlock(blkNum uint32, stateRoot common.Uint256) {
 	}
 	m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
 	if stateRootCnt < uint32(m) {
-		return
+		return false
 	}
-	if err := self.chainStore.SubmitBlock(blkNum); err != nil {
-		log.Errorf("SubmitBlock err:%s", err)
-	}
+	return true
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
@@ -1083,10 +1081,12 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			}
 			return
 		}
-		self.bftActionC <- &BftAction{
-			Type:     SubmitBlock,
-			BlockNum: msgBlkNum,
-			forEmpty: false,
+		if self.CheckSubmitBlock(msgBlkNum, pMsg.BlockStateRoot) {
+			self.bftActionC <- &BftAction{
+				Type:     SubmitBlock,
+				BlockNum: msgBlkNum,
+				forEmpty: false,
+			}
 		}
 	}
 }
@@ -1627,12 +1627,11 @@ func (self *Server) actionLoop() {
 					log.Errorf("handleBlockSubmit failed:%s", err)
 					continue
 				}
-				if action.forEmpty {
-					if blocksubmitMsg, _ := self.constructBlockSubmitMsg(action.BlockNum, stateRoot); blocksubmitMsg != nil {
-						self.broadcast(blocksubmitMsg)
+				if self.CheckSubmitBlock(action.BlockNum, stateRoot) {
+					if err := self.chainStore.SubmitBlock(action.BlockNum); err != nil {
+						log.Errorf("SubmitBlock err:%s", err)
 					}
 				}
-				self.SubmitBlock(action.BlockNum, stateRoot)
 			}
 		case <-self.quitC:
 			log.Infof("server %d actionLoop quit", self.Index)

@@ -663,10 +663,18 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 	if err := pool.chainStore.AddBlock(c.SealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
-	pool.server.bftActionC <- &BftAction{
-		Type:     SubmitBlock,
-		BlockNum: pool.chainStore.GetChainedBlockNum(),
-		forEmpty: true,
+	stateRoot, err := pool.chainStore.GetExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
+	if err != nil {
+		log.Errorf("handleBlockSubmit failed:%s", err)
+		return nil
+	}
+	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(pool.chainStore.GetChainedBlockNum(), stateRoot); blocksubmitMsg != nil {
+		pool.server.broadcast(blocksubmitMsg)
+		pool.server.bftActionC <- &BftAction{
+			Type:     SubmitBlock,
+			BlockNum: pool.chainStore.GetChainedBlockNum(),
+			forEmpty: false,
+		}
 	}
 	return nil
 }
