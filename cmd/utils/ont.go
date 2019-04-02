@@ -20,7 +20,6 @@ package utils
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -29,6 +28,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -828,28 +828,26 @@ func ParseNeoVMContractReturnTypeString(hexStr string) (string, error) {
 }
 
 func ParseWasmVMContractReturnTypeByteArray(hexStr string) (string, error) {
-	return hexStr, nil
+	bf := bytes.NewBuffer([]byte(hexStr))
+	bs, err := serialization.ReadVarBytes(bf)
+	return string(bs), err
 }
 
 //ParseWasmVMContractReturnTypeString return string value of smart contract execute code.
 func ParseWasmVMContractReturnTypeString(hexStr string) (string, error) {
-	data, err := hex.DecodeString(hexStr)
-	if err != nil {
-		return "", fmt.Errorf("hex.DecodeString:%s error:%s", hexStr, err)
-	}
-	return string(data), nil
+	bf := bytes.NewBuffer([]byte(hexStr))
+	return serialization.ReadString(bf)
 }
 
 //ParseWasmVMContractReturnTypeInteger return integer value of smart contract execute code.
 func ParseWasmVMContractReturnTypeInteger(hexStr string) (int64, error) {
-	data, err := hex.DecodeString(hexStr)
-	if err != nil {
-		return 0, fmt.Errorf("hex.DecodeString error:%s", err)
-	}
-	return int64(binary.LittleEndian.Uint64(data)), nil
+	bf := bytes.NewBuffer([]byte(hexStr))
+	res, err := serialization.ReadUint64(bf)
+	return int64(res), err
 }
 
 //ParseWasmVMContractReturnTypeBool return bool value of smart contract execute code.
 func ParseWasmVMContractReturnTypeBool(hexStr string) (bool, error) {
-	return hexStr == "01", nil
+	bf := bytes.NewBuffer([]byte(hexStr))
+	return serialization.ReadBool(bf)
 }
