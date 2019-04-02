@@ -391,11 +391,18 @@ func (evt *CommonShardMsg) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type _CrossShardTx struct {
+type CrossShardTx struct {
 	Txs [][]byte `json:"txs"`
 }
 
-func (this *_CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
+func (this *CrossShardTx) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(uint64(len(this.Txs)))
+	for _, tx := range this.Txs {
+		sink.WriteVarBytes(tx)
+	}
+}
+
+func (this *CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
 	num, eof := source.NextUint64()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -415,7 +422,7 @@ func (this *_CrossShardTx) Deserialization(source *common.ZeroCopySource) error 
 }
 
 func DecodeShardCommonReqs(payload []byte) ([]*CommonShardMsg, error) {
-	txs := &_CrossShardTx{}
+	txs := &CrossShardTx{}
 	source := common.NewZeroCopySource(payload)
 	if err := txs.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("deserialization payload failed, err: %s", err)
