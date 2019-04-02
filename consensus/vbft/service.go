@@ -181,7 +181,6 @@ func (self *Server) Receive(context actor.Context) {
 		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d, numtx=%d",
 			msg.Block.Header.Height, len(msg.Block.Transactions))
 		self.handleBlockPersistCompleted(msg.Block)
-		self.handleBlockSubmit(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
 
@@ -230,17 +229,6 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 	}
 }
 
-func (self *Server) handleBlockSubmit(block *types.Block) {
-	stateRoot, err := self.chainStore.GetExecMerkleRoot(block.Header.Height)
-	if err != nil {
-		log.Errorf("handleBlockSubmit failed:%s", err)
-		return
-	}
-	if blocksubmitMsg, _ := self.constructBlockSubmitMsg(block.Header.Height, stateRoot); blocksubmitMsg != nil {
-		self.broadcast(blocksubmitMsg)
-	}
-	self.SubmitBlock(block.Header.Height, stateRoot)
-}
 func (self *Server) SubmitBlock(blkNum uint32, stateRoot common.Uint256) {
 	cMsgs := self.msgPool.GetBlockSubmitMsgNums(blkNum)
 	m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
@@ -1091,11 +1079,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			}
 			return
 		}
-		stateRoot, err := self.chainStore.GetExecMerkleRoot(msgBlkNum)
-		if err != nil {
-			return
-		}
-		self.SubmitBlock(msgBlkNum, stateRoot)
+		self.processConsensusMsg(msg)
 	}
 }
 
@@ -1390,6 +1374,14 @@ func (self *Server) processMsgEvent() error {
 
 				// FIXME: add msg from msg-pool to block-pool when starting new block-round
 			}
+		case BlockSubmitMessage:
+			pMsg := msg.(*blockSubmitMsg)
+			msgBlkNum := pMsg.GetBlockNum()
+			stateRoot, err := self.chainStore.GetExecMerkleRoot(msgBlkNum)
+			if err != nil {
+				return nil
+			}
+			self.SubmitBlock(msgBlkNum, stateRoot)
 		}
 
 	case <-self.quitC:

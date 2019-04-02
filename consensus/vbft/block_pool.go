@@ -664,6 +664,15 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
 
+	stateRoot, err := pool.chainStore.GetExecMerkleRoot(c.SealedBlock.getBlockNum() - 1)
+	if err != nil {
+		log.Errorf("handleBlockSubmit failed:%s", err)
+		return nil
+	}
+	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(c.SealedBlock.getBlockNum()-1, stateRoot); blocksubmitMsg != nil {
+		pool.server.broadcast(blocksubmitMsg)
+	}
+	pool.server.SubmitBlock(c.SealedBlock.getBlockNum()-1, stateRoot)
 	return nil
 }
 

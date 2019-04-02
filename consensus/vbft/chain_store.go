@@ -138,7 +138,6 @@ func (self *ChainStore) AddBlock(block *Block) error {
 			Block: block.Block,
 		})
 	self.chainedBlockNum = blkNum
-	blkNum++
 	return nil
 }
 
