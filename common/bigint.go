@@ -29,27 +29,32 @@ func bytesReverse(u []byte) []byte {
 
 var bigOne = big.NewInt(1)
 
+// neo encoding: https://docs.microsoft.com/en-us/dotnet/api/system.numerics.biginteger.tobytearray?view=netframework-4.7.2
 func BigIntToNeoBytes(data *big.Int) []byte {
 	bs := data.Bytes()
 	if len(bs) == 0 {
 		return []byte{}
 	}
-	b := bs[0]
+	// golang big.Int use big-endian
+	bytesReverse(bs)
+	// bs now is little-endian
 	if data.Sign() < 0 {
 		for i, b := range bs {
 			bs[i] = ^b
 		}
-		temp := big.NewInt(0)
-		temp.SetBytes(bs)
-		temp.Add(temp, bigOne)
-		bs = temp.Bytes()
-		bytesReverse(bs)
-		if b>>7 == 1 {
+		for i := 0; i < len(bs); i++ {
+			if bs[i] == 255 {
+				bs[i] = 0
+			} else {
+				bs[i] += 1
+				break
+			}
+		}
+		if bs[len(bs)-1] < 128 {
 			bs = append(bs, 255)
 		}
 	} else {
-		bytesReverse(bs)
-		if b>>7 == 1 {
+		if bs[len(bs)-1] >= 128 {
 			bs = append(bs, 0)
 		}
 	}

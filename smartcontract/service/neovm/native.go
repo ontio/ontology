@@ -115,7 +115,7 @@ func buildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
 		}
 	case *types.Array:
 		arr, _ := item.GetArray()
-		if err := serialization.WriteVarBytes(bf, types.BigIntToBytes(big.NewInt(int64(len(arr))))); err != nil {
+		if err := serialization.WriteVarBytes(bf, common.BigIntToNeoBytes(big.NewInt(int64(len(arr))))); err != nil {
 			return err
 		}
 		for _, v := range arr {
