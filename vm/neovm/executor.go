@@ -898,7 +898,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 		array := types.NewArrayValue()
 		for i := int64(0); i < count; i++ {
-			err = array.Append(types.VmValueFromInt64(0))
+			err = array.Append(types.VmValueFromBool(false))
 			if err != nil {
 				return FAULT, err
 			}
@@ -917,7 +917,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 		array := types.NewStructValue()
 		for i := int64(0); i < count; i++ {
-			array.Append(types.VmValueFromInt64(0))
+			array.Append(types.VmValueFromBool(false))
 		}
 		err = self.EvalStack.Push(types.VmValueFromStructVal(array))
 		if err != nil {
