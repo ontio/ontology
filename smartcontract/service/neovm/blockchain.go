@@ -23,7 +23,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	vm "github.com/ontio/ontology/vm/neovm"
-	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 // BlockChainGetHeight put blockchain's height to vm stack
@@ -45,7 +44,7 @@ func BlockChainGetHeader(service *NeoVmService, engine *vm.ExecutionEngine) erro
 
 	l := len(data)
 	if l <= 5 {
-		b := vmtypes.BigIntFromBytes(data)
+		b := common.BigIntFromNeoBytes(data)
 		height := uint32(b.Int64())
 		hash := service.Store.GetBlockHash(height)
 		header, err = service.Store.GetHeaderByHash(hash)
@@ -78,7 +77,7 @@ func BlockChainGetBlock(service *NeoVmService, engine *vm.ExecutionEngine) error
 	var block *types.Block
 	l := len(data)
 	if l <= 5 {
-		b := vmtypes.BigIntFromBytes(data)
+		b := common.BigIntFromNeoBytes(data)
 		height := uint32(b.Int64())
 		var err error
 		block, err = service.Store.GetBlockByHeight(height)

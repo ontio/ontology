@@ -33,7 +33,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func GetPeerPoolMap(native *native.NativeService, contract common.Address, view uint32) (*PeerPoolMap, error) {
@@ -193,7 +192,7 @@ func getOngBalance(native *native.NativeService, address common.Address) (uint64
 	if err != nil {
 		return 0, fmt.Errorf("getOngBalance, appCall error: %v", err)
 	}
-	balance := types.BigIntFromBytes(value.([]byte)).Uint64()
+	balance := common.BigIntFromNeoBytes(value.([]byte)).Uint64()
 	return balance, nil
 }
 
