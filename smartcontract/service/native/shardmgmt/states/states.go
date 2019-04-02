@@ -96,6 +96,12 @@ type ShardConfig struct {
 }
 
 func (this *ShardConfig) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, this.GasPrice); err != nil {
+		return fmt.Errorf("serialize: write gas price failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.GasLimit); err != nil {
+		return fmt.Errorf("serialize: write gas limit failed, err: %s", err)
+	}
 	if err := utils.WriteVarUint(w, uint64(this.NetworkSize)); err != nil {
 		return fmt.Errorf("serialize: write net size failed, err: %s", err)
 	}
@@ -112,6 +118,15 @@ func (this *ShardConfig) Serialize(w io.Writer) error {
 }
 
 func (this *ShardConfig) Deserialize(r io.Reader) error {
+	var err error = nil
+	this.GasPrice, err = utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read gas price failed, err: %s", err)
+	}
+	this.GasLimit, err = utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read gas limit failed, err: %s", err)
+	}
 	netSize, err := utils.ReadVarUint(r)
 	if err != nil {
 		return fmt.Errorf("deserialize: read net size failed, err: %s", err)
@@ -133,6 +148,8 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 }
 
 func (this *ShardConfig) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(this.GasPrice)
+	sink.WriteUint64(this.GasLimit)
 	sink.WriteUint32(this.NetworkSize)
 	sink.WriteAddress(this.StakeAssetAddress)
 	sink.WriteAddress(this.GasAssetAddress)
@@ -141,6 +158,8 @@ func (this *ShardConfig) Serialization(sink *common.ZeroCopySink) {
 
 func (this *ShardConfig) Deserialization(source *common.ZeroCopySource) error {
 	var eof bool
+	this.GasPrice, eof = source.NextUint64()
+	this.GasLimit, eof = source.NextUint64()
 	this.NetworkSize, eof = source.NextUint32()
 	this.StakeAssetAddress, eof = source.NextAddress()
 	this.GasAssetAddress, eof = source.NextAddress()

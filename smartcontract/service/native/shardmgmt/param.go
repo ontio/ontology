@@ -100,6 +100,12 @@ func (this *ConfigShardParam) Serialize(w io.Writer) error {
 	if err := utils.WriteAddress(w, this.GasAssetAddress); err != nil {
 		return fmt.Errorf("serialize: write gas asset addr failed, err: %s", err)
 	}
+	if err := utils.WriteVarUint(w, this.GasPrice); err != nil {
+		return fmt.Errorf("serialize: write gas price failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.GasLimit); err != nil {
+		return fmt.Errorf("serialize: write gas limit failed, err: %s", err)
+	}
 	if err := serialization.WriteVarBytes(w, this.VbftConfigData); err != nil {
 		return fmt.Errorf("serialize: write cfg data failed, err: %s", err)
 	}
@@ -121,6 +127,12 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 	}
 	if this.GasAssetAddress, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read gas asset addr failed, err: %s", err)
+	}
+	if this.GasPrice, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read gas price failed, err: %s", err)
+	}
+	if this.GasLimit, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read gas limit failed, err: %s", err)
 	}
 	if this.VbftConfigData, err = serialization.ReadVarBytes(r); err != nil {
 		return fmt.Errorf("deserialize: read config data failed, err: %s", err)
