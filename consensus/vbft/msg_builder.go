@@ -109,6 +109,12 @@ func DeserializeVbftMsg(msgPayload []byte) (ConsensusMsg, error) {
 			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
 		}
 		return t, nil
+	case BlockSubmitMessage:
+		t := &blockSubmitMsg{}
+		if err := json.Unmarshal(m.Payload, t); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal msg (type: %d): %s", m.Type, err)
+		}
+		return t, nil
 	}
 
 	return nil, fmt.Errorf("unknown msg type: %d", m.Type)
@@ -392,6 +398,19 @@ func (self *Server) constructProposalFetchMsg(blkNum uint32, proposer uint32) (*
 	msg := &proposalFetchMsg{
 		ProposerID: proposer,
 		BlockNum:   blkNum,
+	}
+	return msg, nil
+}
+
+func (self *Server) constructBlockSubmitMsg(blkNum uint32, stateRoot common.Uint256) (*blockSubmitMsg, error) {
+	submitSig, err := signature.Sign(self.account, stateRoot[:])
+	if err != nil {
+		return nil, fmt.Errorf("submit failed to sign stateroot hash:%x, err: %s", stateRoot, err)
+	}
+	msg := &blockSubmitMsg{
+		BlockStateRoot: stateRoot,
+		BlockNum:       blkNum,
+		SubmitMsgSig:   submitSig,
 	}
 	return msg, nil
 }

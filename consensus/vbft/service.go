@@ -56,6 +56,7 @@ const (
 	SealBlock
 	FastForward // for syncer catch up
 	ReBroadcast
+	SubmitBlock
 )
 
 const (
@@ -227,6 +228,26 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 			log.Errorf("updateChainConfig failed:%s", err)
 		}
 	}
+}
+
+func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bool {
+	cMsgs := self.msgPool.GetBlockSubmitMsgNums(blkNum)
+	var stateRootCnt uint32
+	for _, msg := range cMsgs {
+		c := msg.(*blockSubmitMsg)
+		if c != nil {
+			if c.BlockStateRoot == stateRoot {
+				stateRootCnt++
+			} else {
+				continue
+			}
+		}
+	}
+	m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
+	if stateRootCnt < uint32(m) {
+		return false
+	}
+	return true
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
@@ -1043,6 +1064,33 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			fromPeer: peerIdx,
 			msg:      msg,
 		}
+	case BlockSubmitMessage:
+		pMsg, ok := msg.(*blockSubmitMsg)
+		if !ok {
+			log.Error("invalid msg with submit msg type")
+			return
+		}
+		msgBlkNum := pMsg.GetBlockNum()
+		if msgBlkNum > self.GetCurrentBlockNo() {
+			log.Errorf("failed to get submit msg (%d) to currentblock:%d", msgBlkNum, self.GetCurrentBlockNo())
+			return
+		}
+		if self.GetCurrentBlockNo() > msgBlkNum+1 {
+			return
+		}
+		if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
+			if err != errDropFarFutureMsg {
+				log.Errorf("failed to add submit msg (%d) to pool: %s", msgBlkNum, err)
+			}
+			return
+		}
+		if self.CheckSubmitBlock(msgBlkNum, pMsg.BlockStateRoot) {
+			self.bftActionC <- &BftAction{
+				Type:     SubmitBlock,
+				BlockNum: msgBlkNum,
+				forEmpty: false,
+			}
+		}
 	}
 }
 
@@ -1070,6 +1118,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		return
 	}
 	if msg.Block.getPrevBlockMerkleRoot() != merkleRoot {
+		self.msgPool.DropMsg(msg)
 		msgMerkleRoot := msg.Block.getPrevBlockMerkleRoot()
 		log.Errorf("BlockPrposalMessage check MerkleRoot blocknum:%d,msg MerkleRoot:%s,self MerkleRoot:%s", msg.GetBlockNum(), msgMerkleRoot.ToHexString(), merkleRoot.ToHexString())
 		return
@@ -1571,8 +1620,22 @@ func (self *Server) actionLoop() {
 						}
 					}
 				}
+			case SubmitBlock:
+				blkNum := self.GetCurrentBlockNo()
+				if action.BlockNum > blkNum {
+					continue
+				}
+				stateRoot, err := self.chainStore.GetExecMerkleRoot(action.BlockNum)
+				if err != nil {
+					log.Infof("handleBlockSubmit failed:%s", err)
+					continue
+				}
+				if self.CheckSubmitBlock(action.BlockNum, stateRoot) {
+					if err := self.chainStore.SubmitBlock(action.BlockNum); err != nil {
+						log.Errorf("SubmitBlock err:%s", err)
+					}
+				}
 			}
-
 		case <-self.quitC:
 			log.Infof("server %d actionLoop quit", self.Index)
 			return
@@ -2033,7 +2096,6 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 
 	// broadcast to other modules
 	// TODO: block committed, update tx pool, notify block-listeners
-
 	{
 		self.metaLock.Lock()
 		if sealedBlkNum >= self.currentBlockNum {

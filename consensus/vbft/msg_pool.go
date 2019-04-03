@@ -205,6 +205,21 @@ func (pool *MsgPool) GetCommitMsgs(blocknum uint32) []ConsensusMsg {
 	return msg
 }
 
+func (pool *MsgPool) GetBlockSubmitMsgNums(blocknum uint32) []ConsensusMsg {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+
+	roundMsgs, ok := pool.rounds[blocknum]
+	if !ok {
+		return nil
+	}
+	msg, ok := roundMsgs.msgs[BlockSubmitMessage]
+	if !ok {
+		return nil
+	}
+	return msg
+}
+
 func (pool *MsgPool) onBlockSealed(blockNum uint32) {
 	if blockNum <= pool.historyLen {
 		return
