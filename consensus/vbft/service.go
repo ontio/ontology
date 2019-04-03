@@ -1075,6 +1075,9 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			log.Errorf("failed to get submit msg (%d) to currentblock:%d", msgBlkNum, self.GetCurrentBlockNo())
 			return
 		}
+		if self.GetCurrentBlockNo() > msgBlkNum+1 {
+			return
+		}
 		if err := self.msgPool.AddMsg(msg, msgHash); err != nil {
 			if err != errDropFarFutureMsg {
 				log.Errorf("failed to add submit msg (%d) to pool: %s", msgBlkNum, err)
