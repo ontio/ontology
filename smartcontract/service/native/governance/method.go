@@ -918,6 +918,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 
 	//fee split of consensus peer
 	for i := 0; i < int(config.K); i++ {
+		//nodeAmount := nodeIncome * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
 		nodeAmount := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Div(new(big.Int).Mul(nodeIncome,
 			new(big.Int).SetUint64(uint64(globalParam.A))), new(big.Int).SetUint64(100)),
 			new(big.Int).SetUint64(peersCandidate[i].S)), new(big.Int).SetUint64(sumS))
@@ -946,6 +947,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		return splitSum, nil
 	}
 	for i := int(config.K); i < length; i++ {
+		//nodeAmount := nodeIncome * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
 		nodeAmount := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Div(new(big.Int).Mul(nodeIncome,
 			new(big.Int).SetUint64(uint64(globalParam.A))), new(big.Int).SetUint64(100)),
 			new(big.Int).SetUint64(peersCandidate[i].Stake)), new(big.Int).SetUint64(sum))
