@@ -186,6 +186,9 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		pos := params.PosList[i]
 
 		//check pos
+		if pos < 1 {
+			return fmt.Errorf("authorizeForPeer, pos must >= 1")
+		}
 		if pos < globalParam2.MinAuthorizePos || pos%globalParam2.MinAuthorizePos != 0 {
 			return fmt.Errorf("authorizeForPeer, pos must be times of %d", globalParam2.MinAuthorizePos)
 		}
