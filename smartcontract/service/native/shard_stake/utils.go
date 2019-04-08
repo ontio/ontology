@@ -19,7 +19,6 @@
 package shard_stake
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
@@ -265,17 +264,10 @@ func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amoun
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 }
 
-func setShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID,
-	addr common.Address) error {
+func setShardStakeAssetAddr(native *native.NativeService, shardId types.ShardID, addr common.Address) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
-	bf := new(bytes.Buffer)
-	err := addr.Serialize(bf)
-	if err != nil {
-		return fmt.Errorf("setShardStakeAssetAddr: serialize addr: %s", err)
-	}
-	key := genShardStakeAssetAddrKey(contract, shardIDBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(bf.Bytes()))
-	return nil
+	key := genShardStakeAssetAddrKey(utils.ShardStakeAddress, shardIDBytes)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(addr[:]))
 }
 
 func getShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID) (common.Address,
@@ -294,10 +286,10 @@ func getShardStakeAssetAddr(native *native.NativeService, contract common.Addres
 	if err != nil {
 		return addr, fmt.Errorf("getShardStakeAssetAddr: parse db value failed, err: %s", err)
 	}
-	err = addr.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return addr, fmt.Errorf("getShardStakeAssetAddr: deserialize value failed, err: %s", err)
+	if len(data) != common.ADDR_LEN {
+		return addr, fmt.Errorf("getShardStakeAssetAddr: store value len %d not equals addr len", len(data))
 	}
+	copy(addr[:], data)
 	return addr, nil
 }
 

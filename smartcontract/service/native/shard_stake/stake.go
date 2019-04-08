@@ -27,11 +27,11 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+// TODO: addInitPos and reduceInitPos
 const (
 	INIT_SHARD               = "initShard"
 	PEER_STAKE               = "peerInitStake"
 	USER_STAKE               = "userStake"
-	SET_MIN_STAKE            = "setMinStake"
 	UNFREEZE_STAKE           = "unfreezeStake"
 	WITHDRAW_STAKE           = "withdrawStake"
 	WITHDRAW_FEE             = "withdrawFee"
@@ -53,7 +53,6 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(USER_STAKE, UserStake)
 	native.Register(UNFREEZE_STAKE, UnfreezeStake)
 	native.Register(WITHDRAW_STAKE, WithdrawStake)
-	native.Register(SET_MIN_STAKE, SetMinStake)
 	native.Register(WITHDRAW_FEE, WithdrawFee)
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
@@ -63,27 +62,18 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(WITHDRAW_ONG, WithdrawOng)
 }
 
-func SetMinStake(native *native.NativeService) ([]byte, error) {
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
-		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: only can be call by shard mgmt contract")
-	}
-	params := new(SetMinStakeParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: invalid param: %s", err)
-	}
-	setNodeMinStakeAmount(native, params.ShardId, params.Amount)
-	return utils.BYTE_TRUE, nil
-}
-
 func InitShard(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: only shard mgmt can invoke")
 	}
-	shardId, err := utils.DeserializeShardId(bytes.NewBuffer(native.Input))
+	param := &InitShardParam{}
+	err := param.Deserialize(bytes.NewBuffer(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
 	}
-	setShardView(native, shardId, 0)
+	setShardView(native, param.ShardId, 0)
+	setNodeMinStakeAmount(native, param.ShardId, param.MinStake)
+	setShardStakeAssetAddr(native, param.ShardId, param.StakeAssetAddr)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -101,10 +91,6 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: deserialize param pub key failed, err: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	err = setShardStakeAssetAddr(native, contract, params.ShardId, params.StakeAssetAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
-	}
 	minStakeAmount, err := GetNodeMinStakeAmount(native, params.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
@@ -112,7 +98,11 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	if minStakeAmount > params.Value.Amount {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: stake amount should be larger than min stake amount")
 	}
-	if params.StakeAssetAddr == utils.OntContractAddress {
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, params.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
+	}
+	if stakeAssetAddr == utils.OntContractAddress {
 		// save user unbound ong info
 		unboundOngInfo := &UserUnboundOngInfo{
 			StakeAmount: params.Value.Amount,
@@ -121,7 +111,7 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 		setUserUnboundOngInfo(native, contract, params.PeerOwner, unboundOngInfo)
 	}
 	// transfer stake asset
-	err = ont.AppCallTransfer(native, params.StakeAssetAddr, params.PeerOwner, contract, params.Value.Amount)
+	err = ont.AppCallTransfer(native, stakeAssetAddr, params.PeerOwner, contract, params.Value.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: transfer stake asset failed, err: %s", err)
 	}
