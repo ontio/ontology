@@ -248,18 +248,24 @@ func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
 			continue
 		}
 		if err != nil {
-			return fmt.Errorf("get shard %d failed: %s", i, err)
+			return fmt.Errorf("get shard %d failed: %s", subShardID, err)
 		}
 		// skip if shard is not active
 		if shard.State != shardstates.SHARD_STATE_ACTIVE {
 			continue
 		}
 		if _, err := self.initShardInfo(subShardID, shard); err != nil {
-			return fmt.Errorf("init shard %d failed: %s", i, err)
+			return fmt.Errorf("init shard %d failed: %s", subShardID, err)
 		}
-		// TODO: start shard process (use startChildShardProcess())
+		if shardInfo := self.shards[subShardID]; shardInfo != nil {
+			cfg, err := self.buildShardConfig(subShardID, shard)
+			if err != nil {
+				return fmt.Errorf("init shard %d, failed to build config: %s", subShardID, err)
+			}
+			shardInfo.Config = cfg
+		}
 	}
-	return self.StartShardServer()
+	return nil
 }
 
 func (self *ChainManager) StartShardServer() error {
@@ -598,7 +604,6 @@ func (self *ChainManager) waitConnectParent(timeout time.Duration) error {
 		return fmt.Errorf("wait parent connection timeout")
 	case connected := <-self.parentConnWait:
 		if connected {
-			close(self.parentConnWait)
 			return nil
 		}
 		return fmt.Errorf("connection failed")
@@ -607,7 +612,11 @@ func (self *ChainManager) waitConnectParent(timeout time.Duration) error {
 }
 
 func (self *ChainManager) notifyParentConnected() {
-	self.parentConnWait <- true
+	select {
+	case self.parentConnWait <- true:
+	default:
+		return
+	}
 }
 
 //
