@@ -33,11 +33,10 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	cmdUtil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	config2 "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
 	evtmsg "github.com/ontio/ontology/events/message"
 	bcommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
@@ -148,8 +147,8 @@ func (self *ChainManager) onShardConfig(sender *actor.PID, shardCfgMsg *message.
 		if _, present := self.shards[sid]; !present {
 			self.shards[sid] = &ShardInfo{
 				SeedList: s.SeedList,
-				Config: &config2.OntologyConfig{
-					Common: &config2.CommonConfig{
+				Config: &config.OntologyConfig{
+					Common: &config.CommonConfig{
 						GasPrice: s.GasPrice,
 						GasLimit: s.GasLimit,
 					},
@@ -487,12 +486,12 @@ func newShardBlockTx(evts []*evtmsg.ShardEventState) (*message.ShardBlockTx, err
 	params := &shardsysmsg.CrossShardMsgParam{
 		Events: evts,
 	}
-	payload := new(bytes.Buffer)
-	if err := params.Serialize(payload); err != nil {
-		return nil, fmt.Errorf("construct shardTx, serialize shard sys msg: %s", err)
+	// build transaction
+	mutable, err := bcommon.NewNativeInvokeTransaction(0, math.MaxUint32, nativeUtil.ShardSysMsgContractAddress,
+		byte(0), shardsysmsg.PROCESS_CROSS_SHARD_MSG, []interface{}{params})
+	if err != nil {
+		return nil, fmt.Errorf("newShardBlockTx: build tx failed, err: %s", err)
 	}
-
-	mutable := utils.BuildNativeTransaction(nativeUtil.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, payload.Bytes())
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		return nil, fmt.Errorf("construct shardTx: %s", err)

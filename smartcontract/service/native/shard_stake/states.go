@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -119,6 +120,45 @@ func (this *PeerViewInfo) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *PeerViewInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubKey)
+	sink.WriteAddress(this.Owner)
+	sink.WriteBool(this.CanStake)
+	sink.WriteUint64(this.WholeFee)
+	sink.WriteUint64(this.FeeBalance)
+	sink.WriteUint64(this.WholeStakeAmount)
+	sink.WriteUint64(this.WholeUnfreezeAmount)
+	sink.WriteUint64(this.CurrentViewStakeAmount)
+	sink.WriteUint64(this.UserStakeAmount)
+	sink.WriteUint64(this.MaxAuthorization)
+	sink.WriteUint64(this.Proportion)
+}
+
+func (this *PeerViewInfo) Deserialization(source *common.ZeroCopySource) error {
+	var eof, irregular bool
+	this.PeerPubKey, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.Owner, eof = source.NextAddress()
+	this.CanStake, irregular, eof = source.NextBool()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.WholeFee, eof = source.NextUint64()
+	this.FeeBalance, eof = source.NextUint64()
+	this.WholeStakeAmount, eof = source.NextUint64()
+	this.WholeUnfreezeAmount, eof = source.NextUint64()
+	this.CurrentViewStakeAmount, eof = source.NextUint64()
+	this.UserStakeAmount, eof = source.NextUint64()
+	this.MaxAuthorization, eof = source.NextUint64()
+	this.Proportion, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 type ViewInfo struct {
 	Peers map[string]*PeerViewInfo
 }
@@ -161,11 +201,63 @@ func (this *ViewInfo) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *ViewInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(uint64(len(this.Peers)))
+	peerInfoList := make([]*PeerViewInfo, 0)
+	for _, info := range this.Peers {
+		peerInfoList = append(peerInfoList, info)
+	}
+	sort.SliceStable(peerInfoList, func(i, j int) bool {
+		return peerInfoList[i].PeerPubKey > peerInfoList[j].PeerPubKey
+	})
+	for _, peer := range peerInfoList {
+		peer.Serialization(sink)
+	}
+}
+
+func (this *ViewInfo) Deserialization(source *common.ZeroCopySource) error {
+	num, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Peers = make(map[string]*PeerViewInfo)
+	for i := uint64(0); i < num; i++ {
+		peer := &PeerViewInfo{}
+		if err := peer.Deserialization(source); err != nil {
+			return fmt.Errorf("index %d, err: %s", i, err)
+		}
+		this.Peers[strings.ToLower(peer.PeerPubKey)] = peer
+	}
+	return nil
+}
+
 type UserPeerStakeInfo struct {
 	PeerPubKey             string
 	StakeAmount            uint64
 	CurrentViewStakeAmount uint64
 	UnfreezeAmount         uint64
+}
+
+func (this *UserPeerStakeInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubKey)
+	sink.WriteUint64(this.StakeAmount)
+	sink.WriteUint64(this.CurrentViewStakeAmount)
+	sink.WriteUint64(this.UnfreezeAmount)
+}
+
+func (this *UserPeerStakeInfo) Deserialization(source *common.ZeroCopySource) error {
+	var eof, irregular bool
+	this.PeerPubKey, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.StakeAmount, eof = source.NextUint64()
+	this.CurrentViewStakeAmount, eof = source.NextUint64()
+	this.UnfreezeAmount, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 
 type UserStakeInfo struct {
@@ -238,6 +330,36 @@ func (this *UserStakeInfo) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *UserStakeInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(uint64(len(this.Peers)))
+	peerInfoList := make([]*UserPeerStakeInfo, 0)
+	for _, info := range this.Peers {
+		peerInfoList = append(peerInfoList, info)
+	}
+	sort.SliceStable(peerInfoList, func(i, j int) bool {
+		return peerInfoList[i].PeerPubKey > peerInfoList[j].PeerPubKey
+	})
+	for _, peer := range peerInfoList {
+		peer.Serialization(sink)
+	}
+}
+
+func (this *UserStakeInfo) Deserialization(source *common.ZeroCopySource) error {
+	num, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Peers = make(map[string]*UserPeerStakeInfo)
+	for i := uint64(0); i < num; i++ {
+		peer := &UserPeerStakeInfo{}
+		if err := peer.Deserialization(source); err != nil {
+			return fmt.Errorf("index %d, err: %s", i, err)
+		}
+		this.Peers[strings.ToLower(peer.PeerPubKey)] = peer
+	}
+	return nil
+}
+
 type UserUnboundOngInfo struct {
 	Time        uint32
 	StakeAmount uint64
@@ -273,5 +395,22 @@ func (this *UserUnboundOngInfo) Deserialize(r io.Reader) error {
 		return fmt.Errorf("serialize: read ong balance failed, err: %s", err)
 	}
 	this.Balance = balance
+	return nil
+}
+
+func (this *UserUnboundOngInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.Time)
+	sink.WriteUint64(this.StakeAmount)
+	sink.WriteUint64(this.Balance)
+}
+
+func (this *UserUnboundOngInfo) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.Time, eof = source.NextUint32()
+	this.StakeAmount, eof = source.NextUint64()
+	this.Balance, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	return nil
 }

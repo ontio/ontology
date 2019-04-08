@@ -155,9 +155,7 @@ func DepositGasToShard(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: failed, err: %s", err)
 	}
-	if err := setShardGasBalance(native, contract, param.ShardId, shardGasBalance+param.Amount); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: failed, err: %s", err)
-	}
+	setShardGasBalance(native, contract, param.ShardId, shardGasBalance+param.Amount)
 	if err := ont.AppCallTransfer(native, utils.OngContractAddress, param.User, contract, param.Amount); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DepositGasToShard: transfer ong failed, err: %s", err)
 	}
@@ -201,13 +199,9 @@ func UserWithdrawGas(native *native.NativeService) ([]byte, error) {
 	}
 	// withdraw id should be self-increment
 	withdrawId++
-	if err := setUserWithdrawId(native, contract, param.User, withdrawId); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: failed, err: %s", err)
-	}
+	setUserWithdrawId(native, contract, param.User, withdrawId)
 	// freeze user ong at this contract
-	if err := setUserWithdrawGas(native, contract, param.User, withdrawId, param.Amount); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: failed, err: %s", err)
-	}
+	setUserWithdrawGas(native, contract, param.User, withdrawId, param.Amount)
 	err = ont.AppCallTransfer(native, utils.OngContractAddress, param.User, utils.ShardSysMsgContractAddress, param.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: transfer ong failed, err: %s", err)
@@ -286,9 +280,7 @@ func UserWithdrawSuccess(native *native.NativeService) ([]byte, error) {
 	if frozenGasAmount == 0 {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawSuccess: the withraw %d has withdrawn", param.WithdrawId)
 	}
-	if err := setUserWithdrawGas(native, contract, param.User, param.WithdrawId, 0); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawSuccess: failed, err: %s", err)
-	}
+	setUserWithdrawGas(native, contract, param.User, param.WithdrawId, 0)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -416,16 +408,10 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 	}
 	if !isPeerConfirmed {
 		newConfirmedNum++
-		err = peerConfirmWithdraw(native, contract, param.User, param.PeerPubKey, param.ShardId, param.WithdrawId)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
-		}
-		err = setWithdrawConfirmNum(native, contract, param.User, param.ShardId, param.WithdrawId, newConfirmedNum)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: failed, err: %s", err)
-		}
+		peerConfirmWithdraw(native, contract, param.User, param.PeerPubKey, param.ShardId, param.WithdrawId)
+		setWithdrawConfirmNum(native, contract, param.User, param.ShardId, param.WithdrawId, newConfirmedNum)
 	}
-	required := shard.Config.VbftConfigData.K - shard.Config.VbftConfigData.C
+	required := shard.Config.VbftCfg.K - shard.Config.VbftCfg.C
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		required = 1
 	}
@@ -440,6 +426,7 @@ func PeerConfirmWithdraw(native *native.NativeService) ([]byte, error) {
 			if shardBalance < param.Amount {
 				return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: shard balance not enough")
 			}
+			setShardGasBalance(native, contract, param.ShardId, shardBalance-param.Amount)
 			err = ont.AppCallTransfer(native, utils.OngContractAddress, contract, param.User, param.Amount)
 			if err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("PeerConfirmWithdraw: transfer ong failed, err: %s", err)
@@ -508,7 +495,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 		}
 	}
-	required := shard.Config.VbftConfigData.K - shard.Config.VbftConfigData.C
+	required := shard.Config.VbftCfg.K - shard.Config.VbftCfg.C
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		required = 1
 	}

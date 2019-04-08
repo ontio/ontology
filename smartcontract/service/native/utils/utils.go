@@ -30,10 +30,7 @@ func GetPeerPoolMap(native *native.NativeService, contract common.Address, view 
 	peerPoolMap := &PeerPoolMap{
 		PeerPoolMap: make(map[string]*PeerPoolItem),
 	}
-	viewBytes, err := GetUint32Bytes(view)
-	if err != nil {
-		return nil, fmt.Errorf("getUint32Bytes, getUint32Bytes error: %v", err)
-	}
+	viewBytes := GetUint32Bytes(view)
 	peerPoolMapBytes, err := native.CacheDB.Get(ConcatKey(contract, []byte(key), viewBytes))
 	if err != nil {
 		return nil, fmt.Errorf("getPeerPoolMap, get all peerPoolMap error: %v", err)
@@ -58,10 +55,7 @@ func PutPeerPoolMap(native *native.NativeService, contract common.Address, view 
 	if err := peerPoolMap.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize peerPoolMap error: %v", err)
 	}
-	viewBytes, err := GetUint32Bytes(view)
-	if err != nil {
-		return fmt.Errorf("getUint32Bytes, get viewBytes error: %v", err)
-	}
+	viewBytes := GetUint32Bytes(view)
 	native.CacheDB.Put(ConcatKey(contract, []byte(key), viewBytes), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }

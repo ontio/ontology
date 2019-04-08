@@ -199,10 +199,7 @@ func GetPeersConfig(memdb *overlaydb.MemDB, isRootShard bool) ([]*config.VBFTPee
 	if err != nil {
 		return nil, err
 	}
-	viewBytes, err := nutils.GetUint32Bytes(changeview.View)
-	if err != nil {
-		return nil, err
-	}
+	viewBytes := nutils.GetUint32Bytes(changeview.View)
 	key := append([]byte(gov.PEER_POOL), viewBytes...)
 	contractAddress := nutils.GovernanceContractAddress
 	if !isRootShard {
@@ -223,12 +220,12 @@ func GetPeersConfig(memdb *overlaydb.MemDB, isRootShard bool) ([]*config.VBFTPee
 	var peerstakes []*config.VBFTPeerStakeInfo
 	for _, id := range peerMap.PeerPoolMap {
 		if id.Status == gov.CandidateStatus || id.Status == gov.ConsensusStatus {
-			config := &config.VBFTPeerStakeInfo{
+			peerStakeInfo := &config.VBFTPeerStakeInfo{
 				Index:      uint32(id.Index),
 				PeerPubkey: id.PeerPubkey,
 				InitPos:    id.InitPos + id.TotalPos,
 			}
-			peerstakes = append(peerstakes, config)
+			peerstakes = append(peerstakes, peerStakeInfo)
 		}
 	}
 	return peerstakes, nil

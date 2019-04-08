@@ -19,21 +19,21 @@
 package message
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
+	"math"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events/message"
+	bcommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func NewShardHelloMsg(localShard, targetShard types.ShardID, sender *actor.PID) (*CrossShardMsg, error) {
@@ -94,10 +94,6 @@ func NewShardBlockRspMsg(fromShardID types.ShardID, header *types.Header, tx *Sh
 	}, nil
 }
 
-type _CrossShardTx struct {
-	Txs [][]byte `json:"txs"`
-}
-
 //
 // NewCrossShardTxMsg: create cross-shard transaction, to remote ShardSysMsg contract
 //  @payload: contains N sub-txns
@@ -107,32 +103,28 @@ type _CrossShardTx struct {
 //
 func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types.ShardID, gasPrice, gasLimit uint64, payload [][]byte) (*types.Transaction, error) {
 	// marshal all sub-txns to one byte-array
-	tx := &_CrossShardTx{payload}
-	txBytes, err := json.Marshal(tx)
-	if err != nil {
-		return nil, fmt.Errorf("marshal crossShardTx: %s", err)
-	}
-
+	tx := &xshard_state.CrossShardTx{payload}
+	sink := common.NewZeroCopySink(0)
+	tx.Serialization(sink)
 	// cross-shard forwarding Tx payload
 	evt := &message.ShardEventState{
 		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
-		EventType:  shardstates.EVENT_SHARD_MSG_COMMON,
+		EventType:  xshard_state.EVENT_SHARD_MSG_COMMON,
 		ToShard:    toShardID,
 		FromHeight: height,
-		Payload:    txBytes,
+		Payload:    sink.Bytes(),
 	}
 
 	// marshal to CrossShardMsgParam
 	param := &shardsysmsg.CrossShardMsgParam{
 		Events: []*message.ShardEventState{evt},
 	}
-	paramBytes := new(bytes.Buffer)
-	if err := param.Serialize(paramBytes); err != nil {
-		return nil, fmt.Errorf("marshal crossShardMsg: %s", err)
-	}
-
 	// build transaction
-	mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, paramBytes.Bytes())
+	mutable, err := bcommon.NewNativeInvokeTransaction(0, math.MaxUint32, utils.ShardSysMsgContractAddress,
+		byte(0), shardsysmsg.PROCESS_CROSS_SHARD_MSG, []interface{}{param})
+	if err != nil {
+		return nil, fmt.Errorf("NewCrossShardTxMsg: build tx failed, err: %s", err)
+	}
 	mutable.ShardID = toShardID.ToUint64()
 	mutable.GasPrice = gasPrice
 	mutable.GasLimit = gasLimit

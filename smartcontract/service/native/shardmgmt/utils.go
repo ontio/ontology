@@ -22,18 +22,16 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -111,33 +109,21 @@ func getGlobalState(native *native.NativeService, contract common.Address) (*sha
 	}
 
 	globalState := &shardstates.ShardMgmtGlobalState{}
-	if err := globalState.Deserialize(bytes.NewBuffer(value)); err != nil {
+	if err := globalState.Deserialization(common.NewZeroCopySource(value)); err != nil {
 		return nil, fmt.Errorf("get shardgmgmtm global state: deserialize state: %s", err)
 	}
 
 	return globalState, nil
 }
 
-func setGlobalState(native *native.NativeService, contract common.Address, state *shardstates.ShardMgmtGlobalState) error {
-	if state == nil {
-		return fmt.Errorf("setGlobalState, nil state")
-	}
-
-	buf := new(bytes.Buffer)
-	if err := state.Serialize(buf); err != nil {
-		return fmt.Errorf("serialize shardmgmt global state: %s", err)
-	}
-
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)), cstates.GenRawStorageItem(buf.Bytes()))
-	return nil
+func setGlobalState(native *native.NativeService, contract common.Address, state *shardstates.ShardMgmtGlobalState) {
+	sink := common.NewZeroCopySink(0)
+	state.Serialization(sink)
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)), cstates.GenRawStorageItem(sink.Bytes()))
 }
 
 func GetShardState(native *native.NativeService, contract common.Address, shardID types.ShardID) (*shardstates.ShardState, error) {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardID.ToUint64())
-	if err != nil {
-		return nil, fmt.Errorf("getShardState: serialize shardID: %s", err)
-	}
-
+	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	shardStateBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes))
 	if err != nil {
 		return nil, fmt.Errorf("getShardState: %s", err)
@@ -152,40 +138,30 @@ func GetShardState(native *native.NativeService, contract common.Address, shardI
 	}
 
 	state := &shardstates.ShardState{}
-	if err := state.Deserialize(bytes.NewBuffer(value)); err != nil {
+	if err := state.Deserialization(common.NewZeroCopySource(value)); err != nil {
 		return nil, fmt.Errorf("getShardState: deserialize ShardState: %s", err)
 	}
 
 	return state, nil
 }
 
-func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(state.ShardID.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardState: serialize shardID: %s", err)
-	}
-
-	buf := new(bytes.Buffer)
-	if err := state.Serialize(buf); err != nil {
-		return fmt.Errorf("setShardState: serialize shardstate: %s", err)
-	}
-
+func setShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) {
+	shardIDBytes := utils.GetUint64Bytes(state.ShardID.ToUint64())
+	sink := common.NewZeroCopySink(0)
+	state.Serialization(sink)
 	key := utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(buf.Bytes()))
-	return nil
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 
 func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {
-	infoBuf := new(bytes.Buffer)
-	if err := shardutil.SerJson(infoBuf, info); err != nil {
-		return fmt.Errorf("addNotification, ser info: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	info.Serialization(sink)
 	eventState := &message.ShardEventState{
 		Version:    VERSION_CONTRACT_SHARD_MGMT,
 		EventType:  info.GetType(),
 		ToShard:    info.GetTargetShardID(),
 		FromHeight: info.GetHeight(),
-		Payload:    infoBuf.Bytes(),
+		Payload:    sink.Bytes(),
 	}
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
@@ -196,22 +172,15 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 }
 
 func setShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID, state peerState,
-	pubKey string) error {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardPeerState: serialize shardID: %s", err)
-	}
+	pubKey string) {
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genPeerStateKey(contract, shardIDBytes, pubKey)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem([]byte(state)))
-	return nil
 }
 
 func getShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID,
 	pubKey string) (peerState, error) {
-	shardIDBytes, err := shardutil.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return state_default, fmt.Errorf("getShardPeerState: serialize shardID: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genPeerStateKey(contract, shardIDBytes, pubKey)
 	data, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -269,11 +238,8 @@ func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amoun
 }
 
 func initStakeContractShard(native *native.NativeService, id types.ShardID) error {
-	param := &shard_stake.InitShardParam{
-		ShardId: id,
-	}
 	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
+	if err := utils.SerializeShardId(bf, id); err != nil {
 		return fmt.Errorf("initStakeContractShard: failed, err: %s", err)
 	}
 	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.INIT_SHARD, bf.Bytes()); err != nil {
@@ -287,8 +253,7 @@ func peerInitStake(native *native.NativeService, param *JoinShardParam, stakeAss
 		ShardId:        param.ShardID,
 		StakeAssetAddr: stakeAssetAddr,
 		PeerOwner:      param.PeerOwner,
-		PeerPubKey:     param.PeerPubKey,
-		StakeAmount:    param.StakeAmount,
+		Value:          &shard_stake.PeerAmount{PeerPubKey: param.PeerPubKey, Amount: param.StakeAmount},
 	}
 	bf := new(bytes.Buffer)
 	if err := callParam.Serialize(bf); err != nil {
@@ -330,11 +295,10 @@ func deletePeer(native *native.NativeService, shardId types.ShardID, peers []str
 	return nil
 }
 
-func commitDpos(native *native.NativeService, shardId types.ShardID, amount []uint64, peers []string) error {
+func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo []*shard_stake.PeerAmount) error {
 	param := &shard_stake.CommitDposParam{
-		ShardId:    shardId,
-		PeerPubKey: peers,
-		Amount:     amount,
+		ShardId: shardId,
+		Value:   feeInfo,
 	}
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {

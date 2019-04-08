@@ -113,21 +113,17 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 
 		// initialize shard mgmt
 		globalState := &shardstates.ShardMgmtGlobalState{NextSubShardIndex: 1}
-		if err := setGlobalState(native, contract, globalState); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt global state: %s", err)
-		}
+		setGlobalState(native, contract, globalState)
 
 		// initialize shard states
 		shardState := &shardstates.ShardState{
 			ShardID:             native.ShardID,
 			GenesisParentHeight: native.Height,
 			State:               shardstates.SHARD_STATE_ACTIVE,
-			Config:              &shardstates.ShardConfig{VbftConfigData: &config.VBFTConfig{}},
+			Config:              &shardstates.ShardConfig{VbftCfg: &config.VBFTConfig{}},
 			Peers:               make(map[string]*shardstates.PeerShardStakeInfo),
 		}
-		if err := setShardState(native, contract, shardState); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt main shard state: %s", err)
-		}
+		setShardState(native, contract, shardState)
 		return utils.BYTE_TRUE, nil
 	}
 
@@ -142,13 +138,8 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 }
 
 func CreateShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid cmd param: %s", err)
-	}
-
 	params := new(CreateShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("create shard, invalid param: %s", err)
 	}
 	if params.ParentShardID.ToUint64() != 0 {
@@ -181,19 +172,15 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 		ShardID: subShardID,
 		Creator: params.Creator,
 		State:   shardstates.SHARD_STATE_CREATED,
-		Config:  &shardstates.ShardConfig{VbftConfigData: &config.VBFTConfig{}},
+		Config:  &shardstates.ShardConfig{VbftCfg: &config.VBFTConfig{}},
 		Peers:   make(map[string]*shardstates.PeerShardStakeInfo),
 	}
 	globalState.NextSubShardIndex += 1
 
 	// update global state
-	if err := setGlobalState(native, contract, globalState); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: update global state: %s", err)
-	}
+	setGlobalState(native, contract, globalState)
 	// save shard
-	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: set shard state: %s", err)
-	}
+	setShardState(native, contract, shard)
 
 	// transfer create shard fee to root chain governance contract
 	err = ont.AppCallTransfer(native, utils.OngContractAddress, params.Creator, utils.GovernanceContractAddress,
@@ -217,12 +204,8 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ConfigShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid cmd param: %s", err)
-	}
 	params := new(ConfigShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("config shard, invalid param: %s", err)
 	}
 
@@ -268,18 +251,20 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		GasAssetAddress:   params.GasAssetAddress,
 		GasPrice:          params.GasPrice,
 		GasLimit:          params.GasLimit,
-		VbftConfigData:    params.VbftConfigData,
 	}
+	cfg, err := params.GetConfig()
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: decode config failed, err: %s", err)
+	}
+	shard.Config.VbftCfg = cfg
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
-	err = setNodeMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftConfigData.MinInitStake))
+	err = setNodeMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftCfg.MinInitStake))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: failed, err: %s", err)
 	}
 
-	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: update shard state: %s", err)
-	}
+	setShardState(native, contract, shard)
 
 	evt := &shardstates.ConfigShardEvent{
 		Height: native.Height,
@@ -295,12 +280,8 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
-	}
 	params := new(ApplyJoinShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: invalid param: %s", err)
 	}
 	if err := utils.ValidateOwner(native, params.PeerOwner); err != nil {
@@ -314,19 +295,13 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	if err := setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: failed, err: %s", err)
-	}
+	setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
 	return utils.BYTE_TRUE, nil
 }
 
 func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
-	}
 	params := new(ApproveJoinShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: invalid param: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -345,21 +320,14 @@ func ApproveJoinShard(native *native.NativeService) ([]byte, error) {
 		if state != state_applied {
 			return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: peer %s hasn't applied", pubKey)
 		}
-		err = setShardPeerState(native, contract, params.ShardId, state_approved, pubKey)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("ApproveJoinShard: update peer %s state faield, err: %s", pubKey, err)
-		}
+		setShardPeerState(native, contract, params.ShardId, state_approved, pubKey)
 	}
 	return utils.BYTE_TRUE, nil
 }
 
 func JoinShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid cmd param: %s", err)
-	}
 	params := new(JoinShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("join shard, invalid param: %s", err)
 	}
 
@@ -387,9 +355,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	if state != state_approved {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer state %s unmatch", state)
 	}
-	if err = setShardPeerState(native, contract, params.ShardID, state_joined, params.PeerPubKey); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
-	}
+	setShardPeerState(native, contract, params.ShardID, state_joined, params.PeerPubKey)
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
 		if err != nil {
@@ -412,20 +378,18 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 			PeerPubKey: params.PeerPubKey,
 		}
 		shard.Peers[strings.ToLower(params.PeerPubKey)] = peerStakeInfo
-		if shard.Config.VbftConfigData.Peers == nil {
-			shard.Config.VbftConfigData.Peers = make([]*config.VBFTPeerStakeInfo, 0)
+		if shard.Config.VbftCfg.Peers == nil {
+			shard.Config.VbftCfg.Peers = make([]*config.VBFTPeerStakeInfo, 0)
 		}
 		vbftPeerInfo := &config.VBFTPeerStakeInfo{
 			PeerPubkey: strings.ToLower(params.PeerPubKey),
 			Address:    params.PeerOwner.ToBase58(),
 			InitPos:    params.StakeAmount,
 		}
-		shard.Config.VbftConfigData.Peers = append(shard.Config.VbftConfigData.Peers, vbftPeerInfo)
+		shard.Config.VbftCfg.Peers = append(shard.Config.VbftCfg.Peers, vbftPeerInfo)
 	}
 
-	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: update shard state: %s", err)
-	}
+	setShardState(native, contract, shard)
 
 	// call shard stake contract
 	if err := peerInitStake(native, params, shard.Config.StakeAssetAddress); err != nil {
@@ -446,12 +410,8 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 }
 
 func ExitShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: invalid cmd param: %s", err)
-	}
 	param := new(ExitShardParam)
-	if err := param.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: invalid param: %s", err)
 	}
 
@@ -484,20 +444,14 @@ func ExitShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: peer has already exit")
 	}
 	shard.Peers[strings.ToLower(param.PeerPubKey)] = shardPeerInfo
-	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: update shard state failed, err: %s", err)
-	}
+	setShardState(native, contract, shard)
 
 	return utils.BYTE_TRUE, nil
 }
 
 func ActivateShard(native *native.NativeService) ([]byte, error) {
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid cmd param: %s", err)
-	}
 	params := new(ActivateShardParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("activate shard, invalid param: %s", err)
 	}
 
@@ -526,7 +480,7 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("activae shard, not enough peer: %d vs %d",
 			len(shard.Peers), shard.Config.NetworkSize)
 	}
-	peers := shard.Config.VbftConfigData.Peers
+	peers := shard.Config.VbftCfg.Peers
 	sort.SliceStable(peers, func(i, j int) bool {
 		return peers[i].InitPos > peers[j].InitPos
 	})
@@ -537,19 +491,17 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("activate shard, unmatch peer pub key %s", peer.PeerPubkey)
 		}
 		shardPeer.Index = uint32(index) + 1
-		if uint32(index) < shard.Config.VbftConfigData.K {
+		if uint32(index) < shard.Config.VbftCfg.K {
 			shardPeer.NodeType = shardstates.CONSENSUS_NODE
 		} else {
 			shardPeer.NodeType = shardstates.CONDIDATE_NODE
 		}
 		shard.Peers[peer.PeerPubkey] = shardPeer
 	}
-	shard.Config.VbftConfigData.Peers = peers
+	shard.Config.VbftCfg.Peers = peers
 	shard.GenesisParentHeight = native.Height
 	shard.State = shardstates.SHARD_STATE_ACTIVE
-	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("activae shard, update shard state: %s", err)
-	}
+	setShardState(native, contract, shard)
 
 	evt := &shardstates.ShardActiveEvent{Height: native.Height}
 	evt.SourceShardID = native.ShardID
@@ -568,12 +520,8 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardGasMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by shard gas contract")
 	}
-	cp := new(CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid cmd param: %s", err)
-	}
 	params := new(CommitDposParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -593,9 +541,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		} else if info.NodeType == shardstates.QUITING_CONSENSUS_NODE {
 			// delete peer at mgmt contract
 			delete(shard.Peers, peer)
-			if err := setShardPeerState(native, contract, params.ShardID, state_default, info.PeerPubKey); err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: update peer state faile, err: %s", err)
-			}
+			setShardPeerState(native, contract, params.ShardID, state_default, info.PeerPubKey)
 			quitPeers = append(quitPeers, peer)
 		}
 	}
@@ -614,38 +560,34 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
-	dividends := make([]uint64, 0)
-	peers := make([]string, 0)
 	wholeNodeStakeAmount := uint64(0)
 	for _, info := range viewInfo.Peers {
 		wholeNodeStakeAmount += info.WholeStakeAmount
 	}
 	// TODO: check viewInfo.Peers is existed in shard states
 	// TODO: candidate node and consensus node different rate
+	feeInfo := make([]*shard_stake.PeerAmount, 0)
 	for peer, info := range viewInfo.Peers {
 		peerFee := info.WholeStakeAmount * params.FeeAmount / wholeNodeStakeAmount
-		dividends = append(dividends, peerFee)
-		peers = append(peers, peer)
+		feeInfo = append(feeInfo, &shard_stake.PeerAmount{PeerPubKey: peer, Amount: peerFee})
 	}
-	if err := commitDpos(native, params.ShardID, dividends, peers); err != nil {
+	if err := commitDpos(native, params.ShardID, feeInfo); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
-	if err := setShardState(native, contract, shard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: update shard state failed, err: %s", err)
-	}
+	setShardState(native, contract, shard)
 	return utils.BYTE_TRUE, nil
 }
 
 func SaveConfig(native *native.NativeService, state *shardstates.ShardState) error {
 	config := &utils.Configuration{
-		N:                    state.Config.VbftConfigData.N,
-		C:                    state.Config.VbftConfigData.C,
-		K:                    state.Config.VbftConfigData.K,
-		L:                    state.Config.VbftConfigData.L,
-		BlockMsgDelay:        state.Config.VbftConfigData.BlockMsgDelay,
-		HashMsgDelay:         state.Config.VbftConfigData.HashMsgDelay,
-		PeerHandshakeTimeout: state.Config.VbftConfigData.PeerHandshakeTimeout,
-		MaxBlockChangeView:   state.Config.VbftConfigData.MaxBlockChangeView,
+		N:                    state.Config.VbftCfg.N,
+		C:                    state.Config.VbftCfg.C,
+		K:                    state.Config.VbftCfg.K,
+		L:                    state.Config.VbftCfg.L,
+		BlockMsgDelay:        state.Config.VbftCfg.BlockMsgDelay,
+		HashMsgDelay:         state.Config.VbftCfg.HashMsgDelay,
+		PeerHandshakeTimeout: state.Config.VbftCfg.PeerHandshakeTimeout,
+		MaxBlockChangeView:   state.Config.VbftCfg.MaxBlockChangeView,
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	err := utils.PutConfig(native, contract, config, VBFT_CONFIG)
@@ -668,7 +610,7 @@ func SaveConfig(native *native.NativeService, state *shardstates.ShardState) err
 		PeerPoolMap: make(map[string]*utils.PeerPoolItem),
 	}
 	var maxId uint32
-	for _, peer := range state.Config.VbftConfigData.Peers {
+	for _, peer := range state.Config.VbftCfg.Peers {
 		if peer.Index > maxId {
 			maxId = peer.Index
 		}

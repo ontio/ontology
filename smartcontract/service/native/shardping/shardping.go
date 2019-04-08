@@ -21,12 +21,12 @@ package shardping
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardping/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -56,13 +56,8 @@ func RegisterShardPingContract(native *native.NativeService) {
 }
 
 func ShardPingTest(native *native.NativeService) ([]byte, error) {
-	cp := new(shardmgmt.CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ping shard, invalid cmd param: %s", err)
-	}
-
 	params := new(ShardPingParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ping shard, invalid param: %s", err)
 	}
 	if params.ToShard != native.ShardID {
@@ -74,13 +69,8 @@ func ShardPingTest(native *native.NativeService) ([]byte, error) {
 }
 
 func SendShardPingTest(native *native.NativeService) ([]byte, error) {
-	cp := new(shardmgmt.CommonParam)
-	if err := cp.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("send ping shard, invalid cmd param: %s", err)
-	}
-
 	params := new(ShardPingParam)
-	if err := params.Deserialize(bytes.NewBuffer(cp.Input)); err != nil {
+	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("send ping shard, invalid param: %s", err)
 	}
 	if params.FromShard != native.ShardID {
@@ -90,13 +80,11 @@ func SendShardPingTest(native *native.NativeService) ([]byte, error) {
 	pingEvt := &shardping_events.SendShardPingEvent{
 		Payload: "SendShardPingPayload",
 	}
-	buf := new(bytes.Buffer)
-	if err := pingEvt.Serialize(buf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("send ping shard, serialize failed: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	pingEvt.Serialization(sink)
 
 	// call shard_sysmsg to send ping
-	if err := appcallSendReq(native, params.ToShard, buf.Bytes()); err != nil {
+	if err := appcallSendReq(native, params.ToShard, sink.Bytes()); err != nil {
 		return utils.BYTE_FALSE, err
 	}
 
@@ -113,13 +101,7 @@ func appcallSendReq(native *native.NativeService, toShard types.ShardID, payload
 		return fmt.Errorf("send ping shard, marshal param: %s", err)
 	}
 
-	cmnBytes := new(bytes.Buffer)
-	cmnParam := shardmgmt.CommonParam{paramBytes.Bytes()}
-	if err := cmnParam.Serialize(cmnBytes); err != nil {
-		return fmt.Errorf("send ping shard, marshal cmn param: %s", err)
-	}
-
-	if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_NOTIFY, cmnBytes.Bytes()); err != nil {
+	if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_NOTIFY, paramBytes.Bytes()); err != nil {
 		return fmt.Errorf("send ping shard, appcallSendReq: %s", err)
 	}
 	return nil

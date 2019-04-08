@@ -60,21 +60,14 @@ func getUserWithdrawId(native *native.NativeService, contract, user common.Addre
 	return id, nil
 }
 
-func setUserWithdrawId(native *native.NativeService, contract, user common.Address, id uint64) error {
+func setUserWithdrawId(native *native.NativeService, contract, user common.Address, id uint64) {
 	key := genUserWithdrawId(contract, user)
-	value, err := utils.GetUint64Bytes(id)
-	if err != nil {
-		return fmt.Errorf("setUserWithdrawId: serialize num failed, err: %s", err)
-	}
+	value := utils.GetUint64Bytes(id)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
-	return nil
 }
 
 func getUserWithdrawGas(native *native.NativeService, contract, user common.Address, withdrawId uint64) (uint64, error) {
-	idBytes, err := utils.GetUint64Bytes(withdrawId)
-	if err != nil {
-		return 0, fmt.Errorf("getUserWithdrawGas: serialize withdraw id: %s", err)
-	}
+	idBytes := utils.GetUint64Bytes(withdrawId)
 	key := genUserFrozenGasKey(contract, user, idBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -94,16 +87,9 @@ func getUserWithdrawGas(native *native.NativeService, contract, user common.Addr
 	return amount, nil
 }
 
-func setUserWithdrawGas(native *native.NativeService, contract, user common.Address, withdrawId, amount uint64) error {
-	idBytes, err := utils.GetUint64Bytes(withdrawId)
-	if err != nil {
-		return fmt.Errorf("setUserWithdrawGas: serialize withdraw id: %s", err)
-	}
+func setUserWithdrawGas(native *native.NativeService, contract, user common.Address, withdrawId, amount uint64) {
+	idBytes := utils.GetUint64Bytes(withdrawId)
 	key := genUserFrozenGasKey(contract, user, idBytes)
-	value, err := utils.GetUint64Bytes(amount)
-	if err != nil {
-		return fmt.Errorf("setUserWithdrawGas: serialize amount: %s", err)
-	}
+	value := utils.GetUint64Bytes(amount)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
-	return nil
 }

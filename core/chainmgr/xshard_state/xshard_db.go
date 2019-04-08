@@ -20,8 +20,6 @@ package xshard_state
 
 import (
 	"encoding/hex"
-
-	"github.com/ontio/ontology/core/store/common"
 )
 
 //
@@ -33,7 +31,7 @@ var xShardMsgKV = make(map[string][]byte)
 func GetKVStorageItem(key []byte) ([]byte, error) {
 	k := hex.EncodeToString(key)
 	if v, present := xShardMsgKV[k]; !present {
-		return nil, common.ErrNotFound
+		return nil, ErrNotFound
 	} else {
 		return v, nil
 	}

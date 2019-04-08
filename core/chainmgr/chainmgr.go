@@ -19,7 +19,6 @@
 package chainmgr
 
 import (
-	"bytes"
 	"fmt"
 	"math"
 	"reflect"
@@ -30,6 +29,7 @@ import (
 	"github.com/ontio/ontology-eventbus/eventstream"
 	"github.com/ontio/ontology-eventbus/remote"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
@@ -343,7 +343,7 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 
 		case shardstates.EVENT_SHARD_CREATE:
 			createEvt := &shardstates.CreateShardEvent{}
-			if err := createEvt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
+			if err := createEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
 				log.Errorf("deserialize create shard event: %s", err)
 				continue
 			}
@@ -352,7 +352,7 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 			}
 		case shardstates.EVENT_SHARD_CONFIG_UPDATE:
 			cfgEvt := &shardstates.ConfigShardEvent{}
-			if err := cfgEvt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
+			if err := cfgEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
 				log.Errorf("deserialize update shard config event: %s", err)
 				continue
 			}
@@ -361,7 +361,7 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 			}
 		case shardstates.EVENT_SHARD_PEER_JOIN:
 			jointEvt := &shardstates.PeerJoinShardEvent{}
-			if err := jointEvt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
+			if err := jointEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
 				log.Errorf("deserialize join shard event: %s", err)
 				continue
 			}
@@ -370,7 +370,7 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 			}
 		case shardstates.EVENT_SHARD_ACTIVATED:
 			evt := &shardstates.ShardActiveEvent{}
-			if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
+			if err := evt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
 				log.Errorf("deserialize shard activation event: %s", err)
 				continue
 			}
@@ -380,7 +380,7 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 		case shardstates.EVENT_SHARD_PEER_LEAVE:
 		case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
 			evt := &shardstates.WithdrawGasReqEvent{}
-			if err := evt.Deserialize(bytes.NewBuffer(shardEvt.Payload)); err != nil {
+			if err := evt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
 				log.Errorf("deserialize shard activation event: %s", err)
 				continue
 			}

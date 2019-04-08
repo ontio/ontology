@@ -22,12 +22,12 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -44,39 +44,64 @@ const (
 	SHARD_STATE_ARCHIVED
 )
 
-type NodeType uint
+type NodeType uint8
 
 const (
-	CONDIDATE_NODE = iota
+	CONDIDATE_NODE NodeType = iota
 	CONSENSUS_NODE
 	QUIT_CONSENSUS_NODE
 	QUITING_CONSENSUS_NODE
 )
 
 type ShardMgmtGlobalState struct {
-	NextSubShardIndex uint16 `json:"next_sub_shard_index"`
+	NextSubShardIndex uint16
 }
 
-// FIXME: replace all json marshal
-
 func (this *ShardMgmtGlobalState) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.WriteVarUint(w, uint64(this.NextSubShardIndex)); err != nil {
+		return fmt.Errorf("serialize: write NextSubShardIndex failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ShardMgmtGlobalState) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	index, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read NextSubShardIndex failed, err: %s", err)
+	}
+	this.NextSubShardIndex = uint16(index)
+	return nil
+}
+
+func (this *ShardMgmtGlobalState) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint16(this.NextSubShardIndex)
+}
+
+func (this *ShardMgmtGlobalState) Deserialization(source *common.ZeroCopySource) error {
+	id, eof := source.NextUint16()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.NextSubShardIndex = id
+	return nil
 }
 
 type ShardConfig struct {
-	NetworkSize       uint32             `json:"network_size"`
-	StakeAssetAddress common.Address     `json:"stake_asset_address"`
-	GasAssetAddress   common.Address     `json:"gas_asset_address"`
-	GasPrice          uint64             `json:"gas_price"`
-	GasLimit          uint64             `json:"gas_limit"`
-	VbftConfigData    *config.VBFTConfig `json:"vbft_config_data"`
+	GasPrice          uint64
+	GasLimit          uint64
+	NetworkSize       uint32
+	StakeAssetAddress common.Address
+	GasAssetAddress   common.Address
+	VbftCfg           *config.VBFTConfig
 }
 
 func (this *ShardConfig) Serialize(w io.Writer) error {
+	if err := utils.WriteVarUint(w, this.GasPrice); err != nil {
+		return fmt.Errorf("serialize: write gas price failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.GasLimit); err != nil {
+		return fmt.Errorf("serialize: write gas limit failed, err: %s", err)
+	}
 	if err := utils.WriteVarUint(w, uint64(this.NetworkSize)); err != nil {
 		return fmt.Errorf("serialize: write net size failed, err: %s", err)
 	}
@@ -86,13 +111,22 @@ func (this *ShardConfig) Serialize(w io.Writer) error {
 	if err := utils.WriteAddress(w, this.GasAssetAddress); err != nil {
 		return fmt.Errorf("serialize: write gas asset addr failed, err: %s", err)
 	}
-	if err := this.VbftConfigData.Serialize(w); err != nil {
+	if err := this.VbftCfg.Serialize(w); err != nil {
 		return fmt.Errorf("serialize: write config failed, err: %s", err)
 	}
 	return nil
 }
 
 func (this *ShardConfig) Deserialize(r io.Reader) error {
+	var err error = nil
+	this.GasPrice, err = utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read gas price failed, err: %s", err)
+	}
+	this.GasLimit, err = utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read gas limit failed, err: %s", err)
+	}
 	netSize, err := utils.ReadVarUint(r)
 	if err != nil {
 		return fmt.Errorf("deserialize: read net size failed, err: %s", err)
@@ -106,19 +140,42 @@ func (this *ShardConfig) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read gas asset addr failed, err: %s", err)
 	}
-	this.VbftConfigData = &config.VBFTConfig{}
-	if err := this.VbftConfigData.Deserialize(r); err != nil {
+	this.VbftCfg = &config.VBFTConfig{}
+	if err := this.VbftCfg.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read config failed, err: %s", err)
 	}
 	return nil
 }
 
+func (this *ShardConfig) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(this.GasPrice)
+	sink.WriteUint64(this.GasLimit)
+	sink.WriteUint32(this.NetworkSize)
+	sink.WriteAddress(this.StakeAssetAddress)
+	sink.WriteAddress(this.GasAssetAddress)
+	this.VbftCfg.Serialization(sink)
+}
+
+func (this *ShardConfig) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.GasPrice, eof = source.NextUint64()
+	this.GasLimit, eof = source.NextUint64()
+	this.NetworkSize, eof = source.NextUint32()
+	this.StakeAssetAddress, eof = source.NextAddress()
+	this.GasAssetAddress, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.VbftCfg = &config.VBFTConfig{}
+	return this.VbftCfg.Deserialization(source)
+}
+
 type PeerShardStakeInfo struct {
-	Index      uint32         `json:"index"`
-	IpAddress  string         `json:"ip_addres"`
-	PeerOwner  common.Address `json:"peer_owner"`
-	PeerPubKey string         `json:"peer_pub_key"`
-	NodeType   NodeType       `json:"node_type"`
+	Index      uint32
+	IpAddress  string
+	PeerOwner  common.Address
+	PeerPubKey string
+	NodeType   NodeType
 }
 
 func (this *PeerShardStakeInfo) Serialize(w io.Writer) error {
@@ -162,6 +219,34 @@ func (this *PeerShardStakeInfo) Deserialize(r io.Reader) error {
 	nodeType, err := utils.ReadVarUint(r)
 	if err != nil {
 		return fmt.Errorf("deserialize: read node type failed, err: %s", err)
+	}
+	this.NodeType = NodeType(nodeType)
+	return nil
+}
+
+func (this *PeerShardStakeInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.Index)
+	sink.WriteString(this.IpAddress)
+	sink.WriteAddress(this.PeerOwner)
+	sink.WriteString(this.PeerPubKey)
+	sink.WriteUint8(uint8(this.NodeType))
+}
+
+func (this *PeerShardStakeInfo) Deserialization(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	this.Index, eof = source.NextUint32()
+	this.IpAddress, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	this.PeerOwner, eof = source.NextAddress()
+	this.PeerPubKey, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	nodeType, eof := source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	this.NodeType = NodeType(nodeType)
 	return nil
@@ -252,5 +337,57 @@ func (this *ShardState) Deserialize(r io.Reader) error {
 		peers[peer.PeerPubKey] = peer
 	}
 	this.Peers = peers
+	return nil
+}
+
+func (this *ShardState) Serialization(sink *common.ZeroCopySink) {
+	utils.SerializationShardId(sink, this.ShardID)
+	sink.WriteAddress(this.Creator)
+	sink.WriteUint32(this.State)
+	sink.WriteUint32(this.GenesisParentHeight)
+	this.Config.Serialization(sink)
+	sink.WriteUint64(uint64(len(this.Peers)))
+	peers := make([]*PeerShardStakeInfo, 0)
+	for _, peer := range this.Peers {
+		peers = append(peers, peer)
+	}
+	sort.SliceStable(peers, func(i, j int) bool {
+		return peers[i].PeerPubKey < peers[j].PeerPubKey
+	})
+	for _, peer := range peers {
+		peer.Serialization(sink)
+	}
+}
+
+func (this *ShardState) Deserialization(source *common.ZeroCopySource) error {
+	shardId, err := utils.DeserializationShardId(source)
+	if err != nil {
+		return fmt.Errorf("dese shardId: %s", err)
+	}
+	var eof bool
+	this.ShardID = shardId
+	this.Creator, eof = source.NextAddress()
+	this.State, eof = source.NextUint32()
+	this.GenesisParentHeight, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Config = &ShardConfig{}
+	err = this.Config.Deserialization(source)
+	if err != nil {
+		return fmt.Errorf("dese config: %s", err)
+	}
+	peersNum, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Peers = make(map[string]*PeerShardStakeInfo)
+	for i := uint64(0); i < peersNum; i++ {
+		peer := &PeerShardStakeInfo{}
+		if err := peer.Deserialization(source); err != nil {
+			return fmt.Errorf("read peer, index %d, err: %s", i, err)
+		}
+		this.Peers[strings.ToLower(peer.PeerPubKey)] = peer
+	}
 	return nil
 }

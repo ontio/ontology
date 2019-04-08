@@ -26,8 +26,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	neovm2 "github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
@@ -35,7 +34,7 @@ import (
 //  processXShardNotify : process as usual transaction, record fee debt from source shard
 //			 normal return
 //
-func processXShardNotify(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
+func processXShardNotify(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
 
 	// TODO: invoke neo contract
 	//builder := neovm.NewParamsBuilder(new(bytes.Buffer))
@@ -69,8 +68,8 @@ func processXShardNotify(ctx *native.NativeService, req *shardstates.CommonShard
 //  processXShardReq : load cached db, process request, save cached, record fee debt from source shard
 //			 normal return
 //
-func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg) error {
-	if req.Msg.Type() != shardstates.EVENT_SHARD_TXREQ {
+func processXShardReq(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
+	if req.Msg.Type() != xshard_state.EVENT_SHARD_TXREQ {
 		return fmt.Errorf("invalid request type: %d", req.GetType())
 	}
 	// check cached DB
@@ -79,7 +78,7 @@ func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg
 	}
 
 	// get txState
-	reqMsg, ok := req.Msg.(*shardstates.XShardTxReq)
+	reqMsg, ok := req.Msg.(*xshard_state.XShardTxReq)
 	if !ok || reqMsg == nil {
 		return fmt.Errorf("invalid request message")
 	}
@@ -94,7 +93,7 @@ func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg
 
 	// FIXME: save notification
 	// FIXME: feeUsed
-	rspMsg := &shardstates.XShardTxRsp{
+	rspMsg := &xshard_state.XShardTxRsp{
 		IdxInTx: reqMsg.IdxInTx,
 		FeeUsed: 0,
 		Result:  result.([]byte),
@@ -122,8 +121,8 @@ func processXShardReq(ctx *native.NativeService, req *shardstates.CommonShardMsg
 //
 //  processXShardRsp : load cached db, invoke PROCESS_XSHARD_RSP_FUNCNAME
 //
-func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
-	if msg.Msg.Type() != shardstates.EVENT_SHARD_TXRSP {
+func processXShardRsp(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
+	if msg.Msg.Type() != xshard_state.EVENT_SHARD_TXRSP {
 		return fmt.Errorf("invalid response type: %d", msg.GetType())
 	}
 	// get cached DB
@@ -131,7 +130,7 @@ func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg
 		return fmt.Errorf("non-empty init db when processing shard common req")
 	}
 
-	rspMsg, ok := msg.Msg.(*shardstates.XShardTxRsp)
+	rspMsg, ok := msg.Msg.(*xshard_state.XShardTxRsp)
 	if !ok || rspMsg == nil {
 		return fmt.Errorf("invalid response message")
 	}
@@ -166,7 +165,7 @@ func processXShardRsp(ctx *native.NativeService, msg *shardstates.CommonShardMsg
 	}
 	invokeCode := origTx.Payload.(*payload.InvokeCode)
 	engine, _ := ctx.ContextRef.NewExecuteEngine(invokeCode.Code)
-	neo := engine.(*neovm2.NeoVmService)
+	neo := engine.(*neovm.NeoVmService)
 	neo.Tx = origTx
 	_, resultErr := engine.Invoke()
 	if resultErr != nil {

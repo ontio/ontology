@@ -22,12 +22,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
@@ -71,8 +71,8 @@ type TxState struct {
 	Shards    map[types.ShardID]int
 	TxPayload []byte
 	NextReqID int32
-	Reqs      map[int32]*shardstates.XShardTxReq
-	Rsps      map[int32]*shardstates.XShardTxRsp
+	Reqs      map[uint64]*XShardTxReq
+	Rsps      map[uint64]*XShardTxRsp
 	Result    []byte
 	ResultErr error
 	WriteSet  *overlaydb.MemDB
@@ -171,8 +171,8 @@ func CreateTxState(tx common.Uint256) *TxState {
 	state := &TxState{
 		State:  TxExec,
 		Shards: make(map[types.ShardID]int),
-		Reqs:   make(map[int32]*shardstates.XShardTxReq),
-		Rsps:   make(map[int32]*shardstates.XShardTxRsp),
+		Reqs:   make(map[uint64]*XShardTxReq),
+		Rsps:   make(map[uint64]*XShardTxRsp),
 	}
 	shardTxStateTable.TxStates[tx] = state
 	return state
@@ -194,13 +194,15 @@ func GetNextReqIndex(tx common.Uint256) int32 {
 	return txState.NextReqID
 }
 
-func SetNextReqIndex(tx common.Uint256, nextId int32) error {
+func SetNextReqIndex(tx common.Uint256, nextId uint64) error {
 	txState, err := GetTxState(tx)
 	if err != nil {
 		return err
 	}
-
-	txState.NextReqID = nextId
+	if nextId > math.MaxInt32 {
+		return fmt.Errorf("SetNextReqIndex: next id %d is too large", nextId)
+	}
+	txState.NextReqID = int32(nextId)
 	return nil
 }
 
@@ -254,7 +256,7 @@ func SetTxResult(tx common.Uint256, result []byte, resultErr error) error {
 // get remote response of the request, if existed.
 // return nil if not existed
 //
-func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) *shardstates.XShardTxRsp {
+func GetTxResponse(tx common.Uint256, txReq *XShardTxReq) *XShardTxRsp {
 	txState := CreateTxState(tx)
 
 	if rspMsg, present := txState.Rsps[txReq.IdxInTx]; present {
@@ -268,7 +270,7 @@ func GetTxResponse(tx common.Uint256, txReq *shardstates.XShardTxReq) *shardstat
 // add remote response to txState.
 // if not matched with previous response, return ErrMismatchResponse
 //
-func PutTxResponse(tx common.Uint256, txRsp *shardstates.XShardTxRsp) error {
+func PutTxResponse(tx common.Uint256, txRsp *XShardTxRsp) error {
 	txState := CreateTxState(tx)
 
 	// check if corresponding request existed
@@ -300,12 +302,12 @@ func GetTxPayload(tx common.Uint256) ([]byte, error) {
 	return txState.TxPayload, nil
 }
 
-func GetTxRequests(tx common.Uint256) ([]*shardstates.XShardTxReq, error) {
+func GetTxRequests(tx common.Uint256) ([]*XShardTxReq, error) {
 	txState, err := GetTxState(tx)
 	if err != nil {
 		return nil, err
 	}
-	reqs := make([]*shardstates.XShardTxReq, 0)
+	reqs := make([]*XShardTxReq, 0)
 	for _, req := range txState.Reqs {
 		reqs = append(reqs, req)
 	}
@@ -316,7 +318,7 @@ func GetTxRequests(tx common.Uint256) ([]*shardstates.XShardTxReq, error) {
 // ValidateTxRequest
 // check if the remote request is consistent with previous request which has same Index
 //
-func ValidateTxRequest(tx common.Uint256, req *shardstates.XShardTxReq) error {
+func ValidateTxRequest(tx common.Uint256, req *XShardTxReq) error {
 	txState, err := GetTxState(tx)
 	if err == ErrNotFound {
 		return nil
@@ -342,12 +344,12 @@ func ValidateTxRequest(tx common.Uint256, req *shardstates.XShardTxReq) error {
 //  2. add serialized tx to txState
 //  3. update next request index
 //
-func PutTxRequest(tx common.Uint256, txPayload []byte, req shardstates.XShardMsg) error {
-	if req.Type() != shardstates.EVENT_SHARD_TXREQ {
+func PutTxRequest(tx common.Uint256, txPayload []byte, req XShardMsg) error {
+	if req.Type() != EVENT_SHARD_TXREQ {
 		return fmt.Errorf("invalid type of txReq: %d", req.Type())
 	}
 
-	txReq, ok := req.(*shardstates.XShardTxReq)
+	txReq, ok := req.(*XShardTxReq)
 	if !ok || txReq == nil {
 		return fmt.Errorf("invalid txReq")
 	}
