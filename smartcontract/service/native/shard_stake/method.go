@@ -60,6 +60,7 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo []*
 	if err != nil {
 		return fmt.Errorf("commitDpos: get next view info failed, err: %s", err)
 	}
+	// TODO: judge nextViewInfo is empty, if empty, use current view info as next view info
 	setShardViewInfo(native, shardId, nextTwoView, nextViewInfo)
 	setShardView(native, shardId, nextView)
 	return nil
@@ -153,12 +154,18 @@ func userStake(native *native.NativeService, id types.ShardID, user common.Addre
 		if !ok {
 			return fmt.Errorf("userStake: current view cannot find peer %s", pubKeyString)
 		}
+		if currentPeerStakeInfo.Owner == user {
+			return fmt.Errorf("userStake: cannot stake self node %s at current", pubKeyString)
+		}
 		nextPeerStakeInfo, ok := nextViewInfo.Peers[pubKeyString]
 		if !ok {
 			return fmt.Errorf("userStake: next view cannot find peer %s", pubKeyString)
 		}
 		if !nextPeerStakeInfo.CanStake {
 			return fmt.Errorf("userStake: peer %s cannot stake", pubKeyString)
+		}
+		if nextPeerStakeInfo.Owner == user {
+			return fmt.Errorf("userStake: cannot stake self node %s at next", pubKeyString)
 		}
 		if nextPeerStakeInfo.MaxAuthorization < nextPeerStakeInfo.UserStakeAmount+amount {
 			return fmt.Errorf("userStake: exceed peer %s authorization", pubKeyString)
@@ -241,6 +248,7 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 		if nextUserPeerStakeInfo.StakeAmount < amount {
 			return fmt.Errorf("unfreezeStakeAsset: next user stake peer %s not enough", pubKeyString)
 		}
+		// TODO: if peer has been already deleted, user can withdraw stake asset at current view
 		nextPeerStakeInfo, ok := nextViewInfo.Peers[pubKeyString]
 		if !ok { // peer has already exit consensus and deleted
 			nextUserPeerStakeInfo.UnfreezeAmount += nextUserPeerStakeInfo.StakeAmount
@@ -396,6 +404,7 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 			if peerStakeInfo.FeeBalance == 0 {
 				continue
 			}
+			// TODO: consider Proportion
 			peerDivide := info.StakeAmount * peerStakeInfo.WholeFee / peerStakeInfo.WholeStakeAmount
 			peerStakeInfo.FeeBalance = peerStakeInfo.FeeBalance - peerDivide
 			viewStake.Peers[peer] = peerStakeInfo
