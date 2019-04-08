@@ -580,14 +580,14 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 
 func SaveConfig(native *native.NativeService, state *shardstates.ShardState) error {
 	config := &utils.Configuration{
-		N:                    state.Config.VbftConfigData.N,
-		C:                    state.Config.VbftConfigData.C,
-		K:                    state.Config.VbftConfigData.K,
-		L:                    state.Config.VbftConfigData.L,
-		BlockMsgDelay:        state.Config.VbftConfigData.BlockMsgDelay,
-		HashMsgDelay:         state.Config.VbftConfigData.HashMsgDelay,
-		PeerHandshakeTimeout: state.Config.VbftConfigData.PeerHandshakeTimeout,
-		MaxBlockChangeView:   state.Config.VbftConfigData.MaxBlockChangeView,
+		N:                    state.Config.VbftCfg.N,
+		C:                    state.Config.VbftCfg.C,
+		K:                    state.Config.VbftCfg.K,
+		L:                    state.Config.VbftCfg.L,
+		BlockMsgDelay:        state.Config.VbftCfg.BlockMsgDelay,
+		HashMsgDelay:         state.Config.VbftCfg.HashMsgDelay,
+		PeerHandshakeTimeout: state.Config.VbftCfg.PeerHandshakeTimeout,
+		MaxBlockChangeView:   state.Config.VbftCfg.MaxBlockChangeView,
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	err := utils.PutConfig(native, contract, config, VBFT_CONFIG)
@@ -610,7 +610,7 @@ func SaveConfig(native *native.NativeService, state *shardstates.ShardState) err
 		PeerPoolMap: make(map[string]*utils.PeerPoolItem),
 	}
 	var maxId uint32
-	for _, peer := range state.Config.VbftConfigData.Peers {
+	for _, peer := range state.Config.VbftCfg.Peers {
 		if peer.Index > maxId {
 			maxId = peer.Index
 		}
