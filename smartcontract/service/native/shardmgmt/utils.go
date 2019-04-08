@@ -222,24 +222,14 @@ func getRootCurrentViewPeerMap(native *native.NativeService) (*utils.PeerPoolMap
 	return peerPoolMap, nil
 }
 
-func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amount uint64) error {
-	setMinStakeParam := &shard_stake.SetMinStakeParam{
-		ShardId: id,
-		Amount:  amount,
+func initStakeContractShard(native *native.NativeService, id types.ShardID, minStake uint64, stakeAsset common.Address) error {
+	param := &shard_stake.InitShardParam{
+		ShardId:        id,
+		MinStake:       minStake,
+		StakeAssetAddr: stakeAsset,
 	}
 	bf := new(bytes.Buffer)
-	if err := setMinStakeParam.Serialize(bf); err != nil {
-		return fmt.Errorf("setNodeMinStakeAmount: failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.SET_MIN_STAKE, bf.Bytes()); err != nil {
-		return fmt.Errorf("setNodeMinStakeAmount: failed, err: %s", err)
-	}
-	return nil
-}
-
-func initStakeContractShard(native *native.NativeService, id types.ShardID) error {
-	bf := new(bytes.Buffer)
-	if err := utils.SerializeShardId(bf, id); err != nil {
+	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("initStakeContractShard: failed, err: %s", err)
 	}
 	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.INIT_SHARD, bf.Bytes()); err != nil {
@@ -248,12 +238,11 @@ func initStakeContractShard(native *native.NativeService, id types.ShardID) erro
 	return nil
 }
 
-func peerInitStake(native *native.NativeService, param *JoinShardParam, stakeAssetAddr common.Address) error {
+func peerInitStake(native *native.NativeService, param *JoinShardParam) error {
 	callParam := &shard_stake.PeerInitStakeParam{
-		ShardId:        param.ShardID,
-		StakeAssetAddr: stakeAssetAddr,
-		PeerOwner:      param.PeerOwner,
-		Value:          &shard_stake.PeerAmount{PeerPubKey: param.PeerPubKey, Amount: param.StakeAmount},
+		ShardId:   param.ShardID,
+		PeerOwner: param.PeerOwner,
+		Value:     &shard_stake.PeerAmount{PeerPubKey: param.PeerPubKey, Amount: param.StakeAmount},
 	}
 	bf := new(bytes.Buffer)
 	if err := callParam.Serialize(bf); err != nil {

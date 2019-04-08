@@ -182,9 +182,6 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: recharge create shard fee failed, err: %s", err)
 	}
-	if err := initStakeContractShard(native, subShardID); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
-	}
 	evt := &shardstates.CreateShardEvent{
 		SourceShardID: native.ShardID,
 		Height:        native.Height,
@@ -253,9 +250,8 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	shard.Config.VbftCfg = cfg
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
-	err = setNodeMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftCfg.MinInitStake))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: failed, err: %s", err)
+	if err := initStakeContractShard(native, params.ShardID, uint64(cfg.MinInitStake), params.GasAssetAddress); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
 	}
 
 	setShardState(native, contract, shard)
@@ -386,7 +382,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	setShardState(native, contract, shard)
 
 	// call shard stake contract
-	if err := peerInitStake(native, params, shard.Config.StakeAssetAddress); err != nil {
+	if err := peerInitStake(native, params); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 
