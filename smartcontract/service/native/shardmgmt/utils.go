@@ -239,7 +239,7 @@ func initStakeContractShard(native *native.NativeService, id types.ShardID, minS
 }
 
 func peerInitStake(native *native.NativeService, param *JoinShardParam) error {
-	callParam := &shard_stake.PeerInitStakeParam{
+	callParam := &shard_stake.PeerStakeParam{
 		ShardId:   param.ShardID,
 		PeerOwner: param.PeerOwner,
 		Value:     &shard_stake.PeerAmount{PeerPubKey: param.PeerPubKey, Amount: param.StakeAmount},

@@ -87,13 +87,13 @@ func (this *PeerAmount) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type PeerInitStakeParam struct {
+type PeerStakeParam struct {
 	ShardId        types.ShardID
 	PeerOwner      common.Address
 	Value          *PeerAmount
 }
 
-func (this *PeerInitStakeParam) Serialize(w io.Writer) error {
+func (this *PeerStakeParam) Serialize(w io.Writer) error {
 	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
 		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
 	}
@@ -106,7 +106,7 @@ func (this *PeerInitStakeParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *PeerInitStakeParam) Deserialize(r io.Reader) error {
+func (this *PeerStakeParam) Deserialize(r io.Reader) error {
 	var err error = nil
 	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)

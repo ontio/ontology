@@ -264,11 +264,10 @@ func setShardStakeAssetAddr(native *native.NativeService, shardId types.ShardID,
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(addr[:]))
 }
 
-func getShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID) (common.Address,
-	error) {
+func getShardStakeAssetAddr(native *native.NativeService, shardId types.ShardID) (common.Address, error) {
 	addr := common.Address{}
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
-	key := genShardStakeAssetAddrKey(contract, shardIDBytes)
+	key := genShardStakeAssetAddrKey(utils.ShardStakeAddress, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
 		return addr, fmt.Errorf("getShardStakeAssetAddr: read db failed, err: %s", err)
@@ -287,8 +286,8 @@ func getShardStakeAssetAddr(native *native.NativeService, contract common.Addres
 	return addr, nil
 }
 
-func getUserUnboundOngInfo(native *native.NativeService, contract, user common.Address) (*UserUnboundOngInfo, error) {
-	key := genUserUnboundOngKey(contract, user)
+func getUserUnboundOngInfo(native *native.NativeService, user common.Address) (*UserUnboundOngInfo, error) {
+	key := genUserUnboundOngKey(utils.ShardStakeAddress, user)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("getUserUnboundOngInfo: read db failed, err: %s", err)
@@ -308,8 +307,8 @@ func getUserUnboundOngInfo(native *native.NativeService, contract, user common.A
 	return info, nil
 }
 
-func setUserUnboundOngInfo(native *native.NativeService, contract, user common.Address, info *UserUnboundOngInfo) {
-	key := genUserUnboundOngKey(contract, user)
+func setUserUnboundOngInfo(native *native.NativeService, user common.Address, info *UserUnboundOngInfo) {
+	key := genUserUnboundOngKey(utils.ShardStakeAddress, user)
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
