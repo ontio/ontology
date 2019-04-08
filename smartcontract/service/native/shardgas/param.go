@@ -20,11 +20,11 @@ package shardgas
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -49,21 +49,16 @@ func (this *DepositGasParam) Serialize(w io.Writer) error {
 }
 
 func (this *DepositGasParam) Deserialize(r io.Reader) error {
-	user, err := utils.ReadAddress(r)
-	if err != nil {
-		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user failed, err: %s", err)
 	}
-	this.User = user
-	id, err := utils.DeserializeShardId(r)
-	if err != nil {
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
 	}
-	this.ShardId = id
-	amount, err := utils.ReadVarUint(r)
-	if err != nil {
+	if this.Amount, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
 	}
-	this.Amount = amount
 	return nil
 }
 
@@ -83,16 +78,13 @@ func (this *UserWithdrawGasParam) Serialize(w io.Writer) error {
 }
 
 func (this *UserWithdrawGasParam) Deserialize(r io.Reader) error {
-	user, err := utils.ReadAddress(r)
-	if err != nil {
-		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user failed, err: %s", err)
 	}
-	this.User = user
-	amount, err := utils.ReadVarUint(r)
-	if err != nil {
+	if this.Amount, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
 	}
-	this.Amount = amount
 	return nil
 }
 
@@ -112,16 +104,13 @@ func (this *UserRetryWithdrawParam) Serialize(w io.Writer) error {
 }
 
 func (this *UserRetryWithdrawParam) Deserialize(r io.Reader) error {
-	user, err := utils.ReadAddress(r)
-	if err != nil {
-		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user failed, err: %s", err)
 	}
-	this.User = user
-	withdrawId, err := utils.ReadVarUint(r)
-	if err != nil {
+	if this.WithdrawId, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read withdraw id failed, err: %s", err)
 	}
-	this.WithdrawId = withdrawId
 	return nil
 }
 
@@ -141,16 +130,13 @@ func (this *UserWithdrawSuccessParam) Serialize(w io.Writer) error {
 }
 
 func (this *UserWithdrawSuccessParam) Deserialize(r io.Reader) error {
-	user, err := utils.ReadAddress(r)
-	if err != nil {
-		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user failed, err: %s", err)
 	}
-	this.User = user
-	withdrawId, err := utils.ReadVarUint(r)
-	if err != nil {
+	if this.WithdrawId, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read withdraw id failed, err: %s", err)
 	}
-	this.WithdrawId = withdrawId
 	return nil
 }
 
@@ -186,42 +172,31 @@ func (this *PeerWithdrawGasParam) Serialize(w io.Writer) error {
 }
 
 func (this *PeerWithdrawGasParam) Deserialize(r io.Reader) error {
-	signer, err := utils.ReadAddress(r)
-	if err != nil {
+	var err error = nil
+	if this.Signer, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read signer failed, err: %s", err)
 	}
-	this.Signer = signer
-	peerPubKey, err := serialization.ReadString(r)
-	if err != nil {
+	if this.PeerPubKey, err = serialization.ReadString(r); err != nil {
 		return fmt.Errorf("deserialize: read signer failed, err: %s", err)
 	}
-	this.PeerPubKey = peerPubKey
-	user, err := utils.ReadAddress(r)
-	if err != nil {
+	if this.User, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read user failed, err: %s", err)
 	}
-	this.User = user
-	id, err := utils.DeserializeShardId(r)
-	if err != nil {
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
 	}
-	this.ShardId = id
-	amount, err := utils.ReadVarUint(r)
-	if err != nil {
+	if this.Amount, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
 	}
-	this.Amount = amount
-	withdrawId, err := utils.ReadVarUint(r)
-	if err != nil {
+	if this.WithdrawId, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read withdraw id failed, err: %s", err)
 	}
-	this.WithdrawId = withdrawId
 	return nil
 }
 
 type CommitDposParam struct {
-	PeerPubKey string
 	Signer     common.Address
+	PeerPubKey string
 	*shardmgmt.CommitDposParam
 }
 
@@ -239,16 +214,13 @@ func (this *CommitDposParam) Serialize(w io.Writer) error {
 }
 
 func (this *CommitDposParam) Deserialize(r io.Reader) error {
-	signer, err := utils.ReadAddress(r)
-	if err != nil {
+	var err error = nil
+	if this.Signer, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read signer failed, err: %s", err)
 	}
-	this.Signer = signer
-	peerPubKey, err := serialization.ReadString(r)
-	if err != nil {
+	if this.PeerPubKey, err = serialization.ReadString(r); err != nil {
 		return fmt.Errorf("deserialize: read peer pub key failed, err: %s", err)
 	}
-	this.PeerPubKey = peerPubKey
 	commitDpos := &shardmgmt.CommitDposParam{}
 	if err := commitDpos.Deserialize(r); err != nil {
 		return fmt.Errorf("deserialize: read commit dpos param failed, err: %s", err)
@@ -273,15 +245,12 @@ func (this *GetWithdrawByIdParam) Serialize(w io.Writer) error {
 }
 
 func (this *GetWithdrawByIdParam) Deserialize(r io.Reader) error {
-	user, err := utils.ReadAddress(r)
-	if err != nil {
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read user failed, err: %s", err)
 	}
-	this.User = user
-	withdrawId, err := utils.ReadVarUint(r)
-	if err != nil {
+	if this.WithdrawId, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read withdraw id failed, err: %s", err)
 	}
-	this.WithdrawId = withdrawId
 	return nil
 }

@@ -31,14 +31,14 @@ const (
 )
 
 type ShardSystemEventMsg struct {
-	FromAddress common.Address   `json:"from_address"`
-	Event       *ShardEventState `json:"event"`
+	FromAddress common.Address
+	Event       *ShardEventState
 }
 
 type ShardEventState struct {
-	Version    uint32        `json:"version"`
-	EventType  uint32        `json:"event_type"`
-	ToShard    types.ShardID `json:"to_shard"`
-	FromHeight uint32        `json:"from_height"`
-	Payload    []byte        `json:"payload"`
+	Version    uint32
+	EventType  uint32
+	ToShard    types.ShardID
+	FromHeight uint32
+	Payload    []byte
 }

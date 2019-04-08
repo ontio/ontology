@@ -19,14 +19,13 @@
 package utils
 
 import (
-	"bytes"
 	"fmt"
-	ctypes "github.com/ontio/ontology/core/types"
 	"io"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -38,6 +37,22 @@ func DeserializeShardId(r io.Reader) (ctypes.ShardID, error) {
 	id, err := ReadVarUint(r)
 	if err != nil {
 		return ctypes.ShardID{}, err
+	}
+	shardId, err := ctypes.NewShardID(id)
+	if err != nil {
+		return ctypes.ShardID{}, fmt.Errorf("generate shard id failed, err: %s", err)
+	}
+	return shardId, nil
+}
+
+func SerializationShardId(sink *common.ZeroCopySink, id ctypes.ShardID) {
+	sink.WriteUint64(id.ToUint64())
+}
+
+func DeserializationShardId(source *common.ZeroCopySource) (ctypes.ShardID, error) {
+	id, eof := source.NextUint64()
+	if eof {
+		return ctypes.ShardID{}, io.ErrUnexpectedEOF
 	}
 	shardId, err := ctypes.NewShardID(id)
 	if err != nil {
@@ -115,34 +130,32 @@ func DecodeAddress(source *common.ZeroCopySource) (common.Address, error) {
 	return common.AddressParseFromBytes(from)
 }
 
-func GetUint32Bytes(num uint32) ([]byte, error) {
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteUint32(bf, num); err != nil {
-		return nil, fmt.Errorf("serialization.WriteUint32, serialize uint32 error: %v", err)
-	}
-	return bf.Bytes(), nil
+func GetUint32Bytes(num uint32) []byte {
+	sink := common.NewZeroCopySink(0)
+	sink.WriteUint32(num)
+	return sink.Bytes()
 }
 
 func GetBytesUint32(b []byte) (uint32, error) {
-	num, err := serialization.ReadUint32(bytes.NewBuffer(b))
-	if err != nil {
-		return 0, fmt.Errorf("serialization.ReadUint32, deserialize uint32 error: %v", err)
+	source := common.NewZeroCopySource(b)
+	num, eof := source.NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
 	}
 	return num, nil
 }
 
-func GetUint64Bytes(num uint64) ([]byte, error) {
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteUint64(bf, num); err != nil {
-		return nil, fmt.Errorf("serialization.WriteUint64, serialize uint64 error: %v", err)
-	}
-	return bf.Bytes(), nil
+func GetUint64Bytes(num uint64) []byte {
+	sink := common.NewZeroCopySink(0)
+	sink.WriteUint64(num)
+	return sink.Bytes()
 }
 
 func GetBytesUint64(b []byte) (uint64, error) {
-	num, err := serialization.ReadUint64(bytes.NewBuffer(b))
-	if err != nil {
-		return 0, fmt.Errorf("serialization.ReadUint64, deserialize uint64 error: %v", err)
+	source := common.NewZeroCopySource(b)
+	num, eof := source.NextUint64()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
 	}
 	return num, nil
 }

@@ -19,22 +19,43 @@
 package shardping
 
 import (
-	"github.com/ontio/ontology/core/types"
+	"fmt"
 	"io"
 
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type ShardPingParam struct {
-	FromShard types.ShardID `json:"from_shard"`
-	ToShard   types.ShardID `json:"to_shard"`
-	Param     string        `json:"param"`
+	FromShard types.ShardID
+	ToShard   types.ShardID
+	Param     string
 }
 
 func (this *ShardPingParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.FromShard); err != nil {
+		return fmt.Errorf("serialize: write from shard failed, err: %s", err)
+	}
+	if err := utils.SerializeShardId(w, this.ToShard); err != nil {
+		return fmt.Errorf("serialize: write to shard failed, err: %s", err)
+	}
+	if err := serialization.WriteString(w, this.Param); err != nil {
+		return fmt.Errorf("serialize: write param failed, err: %s", err)
+	}
+	return nil
 }
 
 func (this *ShardPingParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.FromShard, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read from shard failed, err: %s", err)
+	}
+	if this.ToShard, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read to shard failed, err: %s", err)
+	}
+	if this.Param, err = serialization.ReadString(r); err != nil {
+		return fmt.Errorf("deserialize: read param failed, err: %s", err)
+	}
+	return nil
 }

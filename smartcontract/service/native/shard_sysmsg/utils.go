@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
@@ -39,8 +38,8 @@ func sendPrepareRequest(ctx *native.NativeService, tx common.Uint256) ([]byte, e
 	}
 
 	for _, s := range toShards {
-		msg := &shardstates.XShardCommitMsg{
-			MsgType: shardstates.EVENT_SHARD_PREPARE,
+		msg := &xshard_state.XShardCommitMsg{
+			MsgType: xshard_state.EVENT_SHARD_PREPARE,
 		}
 		if err := remoteNotify(ctx, tx, s, msg); err != nil {
 			log.Errorf("send prepare to shard %d: %s", s.ToUint64(), err)
@@ -61,8 +60,8 @@ func abortTx(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 	}
 
 	for _, s := range toShards {
-		msg := &shardstates.XShardCommitMsg{
-			MsgType: shardstates.EVENT_SHARD_ABORT,
+		msg := &xshard_state.XShardCommitMsg{
+			MsgType: xshard_state.EVENT_SHARD_ABORT,
 		}
 		if err := remoteNotify(ctx, tx, s, msg); err != nil {
 			log.Errorf("send abort to shard %d: %s", s.ToUint64(), err)
@@ -81,8 +80,8 @@ func sendCommit(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 	}
 
 	for _, s := range toShards {
-		msg := &shardstates.XShardCommitMsg{
-			MsgType: shardstates.EVENT_SHARD_COMMIT,
+		msg := &xshard_state.XShardCommitMsg{
+			MsgType: xshard_state.EVENT_SHARD_COMMIT,
 		}
 		if err := remoteNotify(ctx, tx, s, msg); err != nil {
 			log.Errorf("send commit to shard %d: %s", s.ToUint64(), err)
@@ -92,12 +91,11 @@ func sendCommit(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
 	return nil, nil
 }
 
-func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg shardstates.XShardMsg) error {
+func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg xshard_state.XShardMsg) error {
 	if !ctx.ContextRef.CheckUseGas(neovm.REMOTE_NOTIFY_GAS) {
 		return neovm.ERR_GAS_INSUFFICIENT
 	}
-
-	shardReq := &shardstates.CommonShardMsg{
+	shardReq := &xshard_state.CommonShardMsg{
 		SourceShardID: ctx.ShardID,
 		SourceHeight:  uint64(ctx.Height),
 		TargetShardID: toShard,

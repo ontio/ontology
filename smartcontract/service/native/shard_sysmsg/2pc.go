@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
@@ -42,8 +41,8 @@ import (
 //     . response with PREPARED
 // 4. otherwise, response with ABORT
 //
-func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
-	if msg.Msg.Type() != shardstates.EVENT_SHARD_PREPARE {
+func processXShardPrepareMsg(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
+	if msg.Msg.Type() != xshard_state.EVENT_SHARD_PREPARE {
 		return fmt.Errorf("invalid prepare type: %d", msg.GetType())
 	}
 
@@ -89,8 +88,8 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonS
 
 	if !prepareOK {
 		// inconsistent response, abort
-		abort := &shardstates.XShardCommitMsg{
-			MsgType: shardstates.EVENT_SHARD_ABORT,
+		abort := &xshard_state.XShardCommitMsg{
+			MsgType: xshard_state.EVENT_SHARD_ABORT,
 		}
 		// TODO: clean TX resources
 		if err := remoteNotify(ctx, tx, msg.SourceShardID, abort); err != nil {
@@ -101,8 +100,8 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonS
 	}
 
 	// response prepared
-	pareparedMsg := &shardstates.XShardCommitMsg{
-		MsgType: shardstates.EVENT_SHARD_PREPARED,
+	pareparedMsg := &xshard_state.XShardCommitMsg{
+		MsgType: xshard_state.EVENT_SHARD_PREPARED,
 	}
 	//if err := lockTxContracts(ctx, tx, nil, nil); err != nil {
 	//	// FIXME
@@ -128,8 +127,8 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *shardstates.CommonS
 //     . commit stored write-set
 //     . release all resources
 //
-func processXShardPreparedMsg(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
-	if msg.Msg.Type() != shardstates.EVENT_SHARD_PREPARED {
+func processXShardPreparedMsg(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
+	if msg.Msg.Type() != xshard_state.EVENT_SHARD_PREPARED {
 		return fmt.Errorf("invalid prepared type: %d", msg.GetType())
 	}
 	if !ctx.CacheDB.IsEmptyCache() {
@@ -173,7 +172,7 @@ func processXShardPreparedMsg(ctx *native.NativeService, msg *shardstates.Common
 // 1. commit cached writeset
 // 2. release all resources
 //
-func processXShardCommitMsg(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
+func processXShardCommitMsg(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
 	if !ctx.CacheDB.IsEmptyCache() {
 		return fmt.Errorf("non-empty init db when processing prepared msg")
 	}
@@ -191,7 +190,7 @@ func processXShardCommitMsg(ctx *native.NativeService, msg *shardstates.CommonSh
 	return nil
 }
 
-func processXShardAbortMsg(ctx *native.NativeService, msg *shardstates.CommonShardMsg) error {
+func processXShardAbortMsg(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
 	if !ctx.CacheDB.IsEmptyCache() {
 		return fmt.Errorf("non-empty init db when processing prepared msg")
 	}

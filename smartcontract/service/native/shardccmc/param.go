@@ -19,23 +19,64 @@
 package shardccmc
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/utils"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type RegisterCCParam struct {
-	ShardID      uint64           `json:"shard_id"`
-	Owner        common.Address   `json:"owner"`
-	ContractAddr common.Address   `json:"contract_addr"`
-	Dependencies []common.Address `json:"dependencies"`
+	ShardID      types.ShardID
+	Owner        common.Address
+	ContractAddr common.Address
+	Dependencies []common.Address
 }
 
 func (this *RegisterCCParam) Serialize(w io.Writer) error {
-	return shardutil.SerJson(w, this)
+	if err := utils.SerializeShardId(w, this.ShardID); err != nil {
+		return fmt.Errorf("serialize: write shardId failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.Owner); err != nil {
+		return fmt.Errorf("serialize: write owner failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.ContractAddr); err != nil {
+		return fmt.Errorf("serialize: write contract addr failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(len(this.Dependencies))); err != nil {
+		return fmt.Errorf("serialize: write dependencies num failed, err: %s", err)
+	}
+	for index, dep := range this.Dependencies {
+		if err := utils.WriteAddress(w, dep); err != nil {
+			return fmt.Errorf("serialize: write dependencies failed, index %d, err: %s", index, err)
+		}
+	}
+	return nil
 }
 
 func (this *RegisterCCParam) Deserialize(r io.Reader) error {
-	return shardutil.DesJson(r, this)
+	var err error = nil
+	if this.ShardID, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shardId failed, err: %s", err)
+	}
+	if this.Owner, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read owner failed, err: %s", err)
+	}
+	if this.ContractAddr, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read contract owner failed, err: %s", err)
+	}
+	num, err := utils.ReadVarUint(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read dependencies num failed, err: %s", err)
+	}
+	this.Dependencies = make([]common.Address, num)
+	for i := uint64(0); i < num; i++ {
+		addr, err := utils.ReadAddress(r)
+		if err != nil {
+			return fmt.Errorf("deserialize: read dependencies failed, index %d, err: %s", i, err)
+		}
+		this.Dependencies[i] = addr
+	}
+	return nil
 }

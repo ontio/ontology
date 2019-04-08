@@ -115,25 +115,15 @@ func checkShardID(native *native.NativeService, shardID types.ShardID) (bool, er
 	return shardState.State == shardstates.SHARD_STATE_ACTIVE, nil
 }
 
-func setShardGasBalance(native *native.NativeService, contract common.Address, shardId types.ShardID, amount uint64) error {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setShardGasBalance: serialize shardID: %s", err)
-	}
+func setShardGasBalance(native *native.NativeService, contract common.Address, shardId types.ShardID, amount uint64) {
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genShardGasBalance(contract, shardIDBytes)
-	data, err := utils.GetUint64Bytes(amount)
-	if err != nil {
-		return fmt.Errorf("setShardGasBalance: serialize amount: %s", err)
-	}
+	data := utils.GetUint64Bytes(amount)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
-	return nil
 }
 
 func getShardGasBalance(native *native.NativeService, contract common.Address, shardId types.ShardID) (uint64, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return 0, fmt.Errorf("getShardGasBalance: serialize shardID: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genShardGasBalance(contract, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -155,14 +145,8 @@ func getShardGasBalance(native *native.NativeService, contract common.Address, s
 
 func getWithdrawConfirmNum(native *native.NativeService, contract, user common.Address, shardId types.ShardID,
 	withdrawId uint64) (uint64, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return 0, fmt.Errorf("getWithdrawConfirmNum: serialize shardID: %s", err)
-	}
-	idBytes, err := utils.GetUint64Bytes(withdrawId)
-	if err != nil {
-		return 0, fmt.Errorf("getWithdrawConfirmNum: serialize withdraw id: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	idBytes := utils.GetUint64Bytes(withdrawId)
 	key := genWithdrawConfirmNumKey(contract, user, shardIDBytes, idBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -183,53 +167,27 @@ func getWithdrawConfirmNum(native *native.NativeService, contract, user common.A
 }
 
 func setWithdrawConfirmNum(native *native.NativeService, contract, user common.Address, shardId types.ShardID,
-	withdrawId, num uint64) error {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setWithdrawConfirmNum: serialize shardID: %s", err)
-	}
-	idBytes, err := utils.GetUint64Bytes(withdrawId)
-	if err != nil {
-		return fmt.Errorf("setWithdrawConfirmNum: serialize withdraw id: %s", err)
-	}
+	withdrawId, num uint64) {
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	idBytes := utils.GetUint64Bytes(withdrawId)
 	key := genWithdrawConfirmNumKey(contract, user, shardIDBytes, idBytes)
-	value, err := utils.GetUint64Bytes(num)
-	if err != nil {
-		return fmt.Errorf("setWithdrawConfirmNum: serialize num failed, err: %s", err)
-	}
+	value := utils.GetUint64Bytes(num)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
-	return nil
 }
 
 func peerConfirmWithdraw(native *native.NativeService, contract, user common.Address, peer string, shardId types.ShardID,
-	withdrawId uint64) error {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("peerConfirmWithdraw: serialize shardId: %s", err)
-	}
-	idBytes, err := utils.GetUint64Bytes(withdrawId)
-	if err != nil {
-		return fmt.Errorf("peerConfirmWithdraw: serialize withdraw id: %s", err)
-	}
+	withdrawId uint64) {
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	idBytes := utils.GetUint64Bytes(withdrawId)
 	key := genPeerConfirmWithdrawKey(contract, user, peer, shardIDBytes, idBytes)
-	data, err := utils.GetUint32Bytes(1)
-	if err != nil {
-		return fmt.Errorf("peerConfirmWithdraw: serialize confirm failed: %s", err)
-	}
+	data := utils.GetUint32Bytes(1)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
-	return nil
 }
 
 func isPeerConfirmWithdraw(native *native.NativeService, contract, user common.Address, peer string, shardId types.ShardID,
 	withdrawId uint64) (bool, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return false, fmt.Errorf("isPeerConfirmWithdraw: serialize shardId: %s", err)
-	}
-	idBytes, err := utils.GetUint64Bytes(withdrawId)
-	if err != nil {
-		return false, fmt.Errorf("isPeerConfirmWithdraw: serialize withdraw id: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	idBytes := utils.GetUint64Bytes(withdrawId)
 	key := genPeerConfirmWithdrawKey(contract, user, peer, shardIDBytes, idBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -251,14 +209,8 @@ func isPeerConfirmWithdraw(native *native.NativeService, contract, user common.A
 
 func getViewCommitNum(native *native.NativeService, contract common.Address, shardId types.ShardID,
 	view shard_stake.View) (uint64, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return 0, fmt.Errorf("getViewCommitNum: serialize shardID: %s", err)
-	}
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return 0, fmt.Errorf("getViewCommitNum: serialize withdraw id: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	key := genCommitDposPeersNumKey(contract, shardIDBytes, viewBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -280,52 +232,28 @@ func getViewCommitNum(native *native.NativeService, contract common.Address, sha
 
 func setViewCommitNum(native *native.NativeService, contract common.Address, shardId types.ShardID,
 	view shard_stake.View, num uint64) error {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("setViewCommitNum: serialize shardID: %s", err)
-	}
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("setViewCommitNum: serialize withdraw id: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	key := genCommitDposPeersNumKey(contract, shardIDBytes, viewBytes)
-	value, err := utils.GetUint64Bytes(num)
-	if err != nil {
-		return fmt.Errorf("setViewCommitNum: serialize num failed, err: %s", err)
-	}
+	value := utils.GetUint64Bytes(num)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
 	return nil
 }
 
 func peerCommitView(native *native.NativeService, contract common.Address, peer string, shardId types.ShardID,
 	view shard_stake.View) error {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return fmt.Errorf("peerCommitView: serialize shardId: %s", err)
-	}
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return fmt.Errorf("peerCommitView: serialize withdraw id: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	key := genPeerCommitDposKey(contract, peer, shardIDBytes, viewBytes)
-	data, err := utils.GetUint32Bytes(1)
-	if err != nil {
-		return fmt.Errorf("peerCommitView: serialize confirm failed: %s", err)
-	}
+	data := utils.GetUint32Bytes(1)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 	return nil
 }
 
 func isPeerCommitView(native *native.NativeService, contract common.Address, peer string, shardId types.ShardID,
 	view shard_stake.View) (bool, error) {
-	shardIDBytes, err := utils.GetUint64Bytes(shardId.ToUint64())
-	if err != nil {
-		return false, fmt.Errorf("isPeerCommitView: serialize shardId: %s", err)
-	}
-	viewBytes, err := utils.GetUint64Bytes(uint64(view))
-	if err != nil {
-		return false, fmt.Errorf("isPeerCommitView: serialize withdraw id: %s", err)
-	}
+	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	viewBytes := utils.GetUint64Bytes(uint64(view))
 	key := genPeerCommitDposKey(contract, peer, shardIDBytes, viewBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {

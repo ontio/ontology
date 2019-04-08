@@ -90,18 +90,18 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 			return false
 		})
 		shardConfig.Genesis.SeedList = seedList
-		shardConfig.Genesis.VBFT.N = shardState.Config.VbftConfigData.N
-		shardConfig.Genesis.VBFT.C = shardState.Config.VbftConfigData.C
-		shardConfig.Genesis.VBFT.K = shardState.Config.VbftConfigData.K
-		shardConfig.Genesis.VBFT.L = shardState.Config.VbftConfigData.L
-		shardConfig.Genesis.VBFT.BlockMsgDelay = shardState.Config.VbftConfigData.BlockMsgDelay
-		shardConfig.Genesis.VBFT.HashMsgDelay = shardState.Config.VbftConfigData.HashMsgDelay
-		shardConfig.Genesis.VBFT.PeerHandshakeTimeout = shardState.Config.VbftConfigData.PeerHandshakeTimeout
-		shardConfig.Genesis.VBFT.MaxBlockChangeView = shardState.Config.VbftConfigData.MaxBlockChangeView
-		shardConfig.Genesis.VBFT.MinInitStake = shardState.Config.VbftConfigData.MinInitStake
-		shardConfig.Genesis.VBFT.AdminOntID = shardState.Config.VbftConfigData.AdminOntID
-		shardConfig.Genesis.VBFT.VrfValue = shardState.Config.VbftConfigData.VrfValue
-		shardConfig.Genesis.VBFT.VrfProof = shardState.Config.VbftConfigData.VrfProof
+		shardConfig.Genesis.VBFT.N = shardState.Config.VbftCfg.N
+		shardConfig.Genesis.VBFT.C = shardState.Config.VbftCfg.C
+		shardConfig.Genesis.VBFT.K = shardState.Config.VbftCfg.K
+		shardConfig.Genesis.VBFT.L = shardState.Config.VbftCfg.L
+		shardConfig.Genesis.VBFT.BlockMsgDelay = shardState.Config.VbftCfg.BlockMsgDelay
+		shardConfig.Genesis.VBFT.HashMsgDelay = shardState.Config.VbftCfg.HashMsgDelay
+		shardConfig.Genesis.VBFT.PeerHandshakeTimeout = shardState.Config.VbftCfg.PeerHandshakeTimeout
+		shardConfig.Genesis.VBFT.MaxBlockChangeView = shardState.Config.VbftCfg.MaxBlockChangeView
+		shardConfig.Genesis.VBFT.MinInitStake = shardState.Config.VbftCfg.MinInitStake
+		shardConfig.Genesis.VBFT.AdminOntID = shardState.Config.VbftCfg.AdminOntID
+		shardConfig.Genesis.VBFT.VrfValue = shardState.Config.VbftCfg.VrfValue
+		shardConfig.Genesis.VBFT.VrfProof = shardState.Config.VbftCfg.VrfProof
 		shardConfig.Genesis.VBFT.Peers = peers
 	} else {
 		return nil, fmt.Errorf("only solo suppported")

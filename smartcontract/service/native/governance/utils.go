@@ -23,12 +23,11 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -170,13 +169,9 @@ func getCandidateIndex(native *native.NativeService, contract common.Address) (u
 	}
 }
 
-func putCandidateIndex(native *native.NativeService, contract common.Address, candidateIndex uint32) error {
-	candidateIndexBytes, err := utils.GetUint32Bytes(candidateIndex)
-	if err != nil {
-		return fmt.Errorf("GetUint32Bytes, get candidateIndexBytes error: %v", err)
-	}
+func putCandidateIndex(native *native.NativeService, contract common.Address, candidateIndex uint32) {
+	candidateIndexBytes := utils.GetUint32Bytes(candidateIndex)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(CANDIDITE_INDEX)), cstates.GenRawStorageItem(candidateIndexBytes))
-	return nil
 }
 
 func getSplitFee(native *native.NativeService, contract common.Address) (uint64, error) {
@@ -198,13 +193,9 @@ func getSplitFee(native *native.NativeService, contract common.Address) (uint64,
 	return splitFee, nil
 }
 
-func putSplitFee(native *native.NativeService, contract common.Address, splitFee uint64) error {
-	splitFeeBytes, err := utils.GetUint64Bytes(splitFee)
-	if err != nil {
-		return fmt.Errorf("GetUint64Bytes, get splitFeeBytes error: %v", err)
-	}
+func putSplitFee(native *native.NativeService, contract common.Address, splitFee uint64) {
+	splitFeeBytes := utils.GetUint64Bytes(splitFee)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(SPLIT_FEE)), cstates.GenRawStorageItem(splitFeeBytes))
-	return nil
 }
 
 func getSplitFeeAddress(native *native.NativeService, contract common.Address, address common.Address) (*SplitFeeAddress, error) {
