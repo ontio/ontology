@@ -65,18 +65,6 @@ func TestGetActivePeerCount(t *testing.T) {
 	t.Logf("TestGetActivePeerCount count:%v", count)
 }
 
-func TestPeerConnected(t *testing.T) {
-	peerpool := constructPeerPool(false)
-	err := peerpool.peerConnected(uint32(1))
-	t.Logf("TestPeerConnected :%v", err)
-}
-
-func TestPeerDisconnected(t *testing.T) {
-	peerpool := constructPeerPool(true)
-	err := peerpool.peerDisconnected(uint32(1))
-	t.Logf("TestPeerDisconnected :%v", err)
-}
-
 func TestPeerHandshake(t *testing.T) {
 	nodeId := "120202c924ed1a67fd1719020ce599d723d09d48362376836e04b0be72dfe825e24d81"
 	peerconfig := &vconfig.PeerConfig{
@@ -90,8 +78,7 @@ func TestPeerHandshake(t *testing.T) {
 		CommittedBlockHash:   common.Uint256{},
 		CommittedBlockLeader: uint32(1),
 	}
-	err := peerpool.peerHandshake(uint32(1), handshakemsg)
-	t.Logf("TestPeerHandshake :%v", err)
+	peerpool.peerHandshake(uint32(1), handshakemsg)
 }
 
 func TestPeerHeartbeat(t *testing.T) {
@@ -108,8 +95,7 @@ func TestPeerHeartbeat(t *testing.T) {
 		CommittedBlockLeader: uint32(1),
 		ChainConfigView:      uint32(1),
 	}
-	err := peerpool.peerHeartbeat(uint32(1), heartbeatmsg)
-	t.Logf("TestPeerHeartbeat: %v", err)
+	peerpool.peerHeartbeat(uint32(1), heartbeatmsg)
 }
 
 func TestGetNeighbours(t *testing.T) {

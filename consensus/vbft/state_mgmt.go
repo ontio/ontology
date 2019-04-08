@@ -148,13 +148,9 @@ func (self *StateMgr) run() {
 				}
 			case UpdatePeerState:
 				if evt.peerState.connected {
-					if err := self.onPeerUpdate(evt.peerState); err != nil {
-						log.Errorf("statemgr process peer (%d) err: %s", evt.peerState.peerIdx, err)
-					}
+					self.onPeerUpdate(evt.peerState)
 				} else {
-					if err := self.onPeerDisconnected(evt.peerState.peerIdx); err != nil {
-						log.Errorf("statmgr process peer (%d) disconn err: %s", evt.peerState.peerIdx, err)
-					}
+					self.onPeerDisconnected(evt.peerState.peerIdx)
 				}
 
 			case SyncDone:
@@ -176,7 +172,7 @@ func (self *StateMgr) run() {
 	}
 }
 
-func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
+func (self *StateMgr) onPeerUpdate(peerState *PeerState) {
 	peerIdx := peerState.peerIdx
 	newPeer := false
 	if _, present := self.peers[peerIdx]; !present {
@@ -193,10 +189,8 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 		if isActive(self.currentState) && peerState.committedBlockNum > self.server.GetCurrentBlockNo()+MAX_SYNCING_CHECK_BLK_NUM {
 			log.Warnf("server %d seems lost sync: %d(%d) vs %d", self.server.Index,
 				peerState.committedBlockNum, peerState.peerIdx, self.server.GetCurrentBlockNo())
-			if err := self.checkStartSyncing(self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM, false); err != nil {
-				log.Errorf("server %d start syncing check failed", self.server.Index)
-			}
-			return nil
+			self.checkStartSyncing(self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM, false)
+			return
 		}
 	}
 
@@ -259,14 +253,12 @@ func (self *StateMgr) onPeerUpdate(peerState *PeerState) error {
 			self.checkStartSyncing(self.server.GetCommittedBlockNo()+MAX_SYNCING_CHECK_BLK_NUM, false)
 		}
 	}
-
-	return nil
 }
 
-func (self *StateMgr) onPeerDisconnected(peerIdx uint32) error {
+func (self *StateMgr) onPeerDisconnected(peerIdx uint32) {
 
 	if _, present := self.peers[peerIdx]; !present {
-		return nil
+		return
 	}
 	delete(self.peers, peerIdx)
 
@@ -277,7 +269,6 @@ func (self *StateMgr) onPeerDisconnected(peerIdx uint32) error {
 		}
 	}
 
-	return nil
 }
 
 func (self *StateMgr) onLiveTick(evt *StateEvent) error {
@@ -379,11 +370,11 @@ func (self *StateMgr) setSyncedReady() error {
 	return nil
 }
 
-func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) error {
+func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
 
 	if self.server.nonConsensusNode() {
 		// non-consensus node, block-syncer do the syncing
-		return nil
+		return
 	}
 	var maxCommitted uint32
 	peers := make(map[uint32][]uint32)
@@ -422,8 +413,6 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) erro
 		log.Infof("server %d, start syncing check %v, %d", self.server.Index, peers, self.server.GetCurrentBlockNo())
 		self.currentState = SyncingCheck
 	}
-
-	return nil
 }
 
 // return 0 if consensus not reached yet
