@@ -119,7 +119,7 @@ func (self *EventTimer) stop() {
 	self.normalTimers = make(map[uint32]*time.Timer)
 }
 
-func (self *EventTimer) StartTimer(Idx uint32, timeout time.Duration) error {
+func (self *EventTimer) StartTimer(Idx uint32, timeout time.Duration) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
@@ -139,11 +139,9 @@ func (self *EventTimer) StartTimer(Idx uint32, timeout time.Duration) error {
 			blockNum: Idx,
 		}
 	})
-
-	return nil
 }
 
-func (self *EventTimer) CancelTimer(idx uint32) error {
+func (self *EventTimer) CancelTimer(idx uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
@@ -151,7 +149,6 @@ func (self *EventTimer) CancelTimer(idx uint32) error {
 		t.Stop()
 		delete(self.normalTimers, idx)
 	}
-	return nil
 }
 
 func (self *EventTimer) getEventTimeout(evtType TimerEventType) time.Duration {
@@ -200,7 +197,8 @@ func (self *EventTimer) startEventTimer(evtType TimerEventType, blockNum uint32)
 
 	timeout := self.getEventTimeout(evtType)
 	if timeout == 0 {
-		panic(fmt.Errorf("invalid timeout for event %d, blkNum %d", evtType, blockNum))
+		log.Errorf("invalid timeout for event %d, blkNum %d", evtType, blockNum)
+		return fmt.Errorf("invalid timeout for event %d, blkNum %d", evtType, blockNum)
 	}
 	timers[blockNum] = time.AfterFunc(timeout, func() {
 		self.C <- &TimerEvent{
@@ -208,22 +206,19 @@ func (self *EventTimer) startEventTimer(evtType TimerEventType, blockNum uint32)
 			blockNum: blockNum,
 		}
 	})
-
 	return nil
 }
 
 //
 // internal helper, should call with lock held
 //
-func (self *EventTimer) cancelEventTimer(evtType TimerEventType, blockNum uint32) error {
+func (self *EventTimer) cancelEventTimer(evtType TimerEventType, blockNum uint32) {
 	timers := self.eventTimers[evtType]
 
 	if t, present := timers[blockNum]; present {
 		t.Stop()
 		delete(timers, blockNum)
 	}
-
-	return nil
 }
 
 func (self *EventTimer) StartProposalTimer(blockNum uint32) error {
@@ -234,11 +229,11 @@ func (self *EventTimer) StartProposalTimer(blockNum uint32) error {
 	return self.startEventTimer(EventProposeBlockTimeout, blockNum)
 }
 
-func (self *EventTimer) CancelProposalTimer(blockNum uint32) error {
+func (self *EventTimer) CancelProposalTimer(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventProposeBlockTimeout, blockNum)
+	self.cancelEventTimer(EventProposeBlockTimeout, blockNum)
 }
 
 func (self *EventTimer) StartEndorsingTimer(blockNum uint32) error {
@@ -249,11 +244,11 @@ func (self *EventTimer) StartEndorsingTimer(blockNum uint32) error {
 	return self.startEventTimer(EventEndorseBlockTimeout, blockNum)
 }
 
-func (self *EventTimer) CancelEndorseMsgTimer(blockNum uint32) error {
+func (self *EventTimer) CancelEndorseMsgTimer(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventEndorseBlockTimeout, blockNum)
+	self.cancelEventTimer(EventEndorseBlockTimeout, blockNum)
 }
 
 func (self *EventTimer) StartEndorseEmptyBlockTimer(blockNum uint32) error {
@@ -264,11 +259,11 @@ func (self *EventTimer) StartEndorseEmptyBlockTimer(blockNum uint32) error {
 	return self.startEventTimer(EventEndorseEmptyBlockTimeout, blockNum)
 }
 
-func (self *EventTimer) CancelEndorseEmptyBlockTimer(blockNum uint32) error {
+func (self *EventTimer) CancelEndorseEmptyBlockTimer(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventEndorseEmptyBlockTimeout, blockNum)
+	self.cancelEventTimer(EventEndorseEmptyBlockTimeout, blockNum)
 }
 
 func (self *EventTimer) StartCommitTimer(blockNum uint32) error {
@@ -279,11 +274,11 @@ func (self *EventTimer) StartCommitTimer(blockNum uint32) error {
 	return self.startEventTimer(EventCommitBlockTimeout, blockNum)
 }
 
-func (self *EventTimer) CancelCommitMsgTimer(blockNum uint32) error {
+func (self *EventTimer) CancelCommitMsgTimer(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventCommitBlockTimeout, blockNum)
+	self.cancelEventTimer(EventCommitBlockTimeout, blockNum)
 }
 
 func (self *EventTimer) StartProposalBackoffTimer(blockNum uint32) error {
@@ -293,11 +288,11 @@ func (self *EventTimer) StartProposalBackoffTimer(blockNum uint32) error {
 	return self.startEventTimer(EventProposalBackoff, blockNum)
 }
 
-func (self *EventTimer) CancelProposalBackoffTimer(blockNum uint32) error {
+func (self *EventTimer) CancelProposalBackoffTimer(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventProposalBackoff, blockNum)
+	self.cancelEventTimer(EventProposalBackoff, blockNum)
 }
 
 func (self *EventTimer) StartBackoffTimer(blockNum uint32) error {
@@ -307,11 +302,11 @@ func (self *EventTimer) StartBackoffTimer(blockNum uint32) error {
 	return self.startEventTimer(EventRandomBackoff, blockNum)
 }
 
-func (self *EventTimer) CancelBackoffTimer(blockNum uint32) error {
+func (self *EventTimer) CancelBackoffTimer(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventRandomBackoff, blockNum)
+	self.cancelEventTimer(EventRandomBackoff, blockNum)
 }
 
 func (self *EventTimer) Start2ndProposalTimer(blockNum uint32) error {
@@ -321,11 +316,11 @@ func (self *EventTimer) Start2ndProposalTimer(blockNum uint32) error {
 	return self.startEventTimer(EventPropose2ndBlockTimeout, blockNum)
 }
 
-func (self *EventTimer) Cancel2ndProposalTimer(blockNum uint32) error {
+func (self *EventTimer) Cancel2ndProposalTimer(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventPropose2ndBlockTimeout, blockNum)
+	self.cancelEventTimer(EventPropose2ndBlockTimeout, blockNum)
 }
 
 func (self *EventTimer) onBlockSealed(blockNum uint32) {
@@ -334,10 +329,7 @@ func (self *EventTimer) onBlockSealed(blockNum uint32) {
 
 	// clear event timers
 	for i := 0; i < int(EventMax); i++ {
-		if err := self.cancelEventTimer(TimerEventType(i), blockNum); err != nil {
-			log.Errorf("server %d, failed to stop timer %d on sealing",
-				self.server.Index, i)
-		}
+		self.cancelEventTimer(TimerEventType(i), blockNum)
 	}
 }
 
@@ -348,11 +340,11 @@ func (self *EventTimer) StartTxBlockTimeout(blockNum uint32) error {
 	return self.startEventTimer(EventTxBlockTimeout, blockNum)
 }
 
-func (self *EventTimer) CancelTxBlockTimeout(blockNum uint32) error {
+func (self *EventTimer) CancelTxBlockTimeout(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventTxBlockTimeout, blockNum)
+	self.cancelEventTimer(EventTxBlockTimeout, blockNum)
 }
 
 func (self *EventTimer) startPeerTicker(peerIdx uint32) error {
@@ -394,11 +386,11 @@ func (self *EventTimer) startTxTicker(blockNum uint32) error {
 	return self.startEventTimer(EventTxPool, blockNum)
 }
 
-func (self *EventTimer) stopTxTicker(blockNum uint32) error {
+func (self *EventTimer) stopTxTicker(blockNum uint32) {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 
-	return self.cancelEventTimer(EventTxPool, blockNum)
+	self.cancelEventTimer(EventTxPool, blockNum)
 }
 
 ///////////////////////////////////////////////////////////

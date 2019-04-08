@@ -23,7 +23,6 @@ import (
 	"sync"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 )
 
 var errDropFarFutureMsg = errors.New("msg pool dropped msg for far future")
@@ -51,15 +50,14 @@ func newConsensusRound(num uint32) *ConsensusRound {
 	return r
 }
 
-func (self *ConsensusRound) addMsg(msg ConsensusMsg, msgHash common.Uint256) error {
+func (self *ConsensusRound) addMsg(msg ConsensusMsg, msgHash common.Uint256) {
 	if _, present := self.msgHashs[msgHash]; present {
-		return nil
+		return
 	}
 
 	msgs := self.msgs[msg.Type()]
 	self.msgs[msg.Type()] = append(msgs, msg)
 	self.msgHashs[msgHash] = msg
-	return nil
 }
 
 func (self *ConsensusRound) dropMsg(msg ConsensusMsg) {
@@ -79,11 +77,11 @@ func (self *ConsensusRound) dropMsg(msg ConsensusMsg) {
 	}
 }
 
-func (self *ConsensusRound) hasMsg(msg ConsensusMsg, msgHash common.Uint256) (bool, error) {
+func (self *ConsensusRound) hasMsg(msg ConsensusMsg, msgHash common.Uint256) bool {
 	if _, present := self.msgHashs[msgHash]; present {
-		return present, nil
+		return present
 	}
-	return false, nil
+	return false
 }
 
 type MsgPool struct {
@@ -125,7 +123,8 @@ func (pool *MsgPool) AddMsg(msg ConsensusMsg, msgHash common.Uint256) error {
 	// TODO: limit #history rounds to historyLen
 	// Note: we accept msg for future rounds
 
-	return pool.rounds[blkNum].addMsg(msg, msgHash)
+	pool.rounds[blkNum].addMsg(msg, msgHash)
+	return nil
 }
 
 func (pool *MsgPool) DropMsg(msg ConsensusMsg) {
@@ -144,20 +143,10 @@ func (pool *MsgPool) HasMsg(msg ConsensusMsg, msgHash common.Uint256) bool {
 	if roundMsgs, present := pool.rounds[msg.GetBlockNum()]; !present {
 		return false
 	} else {
-		if present, err := roundMsgs.hasMsg(msg, msgHash); err != nil {
-			log.Errorf("msgpool failed to check msg avail: %s", err)
-			return false
-		} else {
-			return present
-		}
+		return roundMsgs.hasMsg(msg, msgHash)
 	}
 
 	return false
-}
-
-func (pool *MsgPool) Persist() error {
-	// TODO
-	return nil
 }
 
 func (pool *MsgPool) GetProposalMsgs(blocknum uint32) []ConsensusMsg {
