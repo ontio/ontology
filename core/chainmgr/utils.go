@@ -120,11 +120,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	return shardState, nil
 }
 
-func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[string]*shard_stake.PeerViewInfo, error) {
-	if lgr == nil {
-		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
-	}
-
+func GetShardView(lgr *ledger.Ledger, shardID types.ShardID) (*utils.ChangeView, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
 	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
@@ -134,6 +130,20 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID) (map[strin
 	if err != nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: get current view: %s", err)
 	}
+	changeView := &utils.ChangeView{}
+	if err := changeView.Deserialize(bytes.NewBuffer(viewBytes)); err != nil {
+		return nil, fmt.Errorf("deserialize, deserialize changeView error: %v", err)
+	}
+	return changeView, nil
+}
+
+func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
+	if lgr == nil {
+		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
+	}
+	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
+
+	viewBytes := utils.GetUint32Bytes(shardView)
 	viewInfoKey := shard_stake.GenShardViewInfoKey(shardIDBytes, viewBytes)
 	infoData, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewInfoKey)
 	if err == sComm.ErrNotFound {

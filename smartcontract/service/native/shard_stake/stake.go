@@ -21,6 +21,7 @@ package shard_stake
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -83,7 +84,12 @@ func InitShard(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
 	}
-	setShardView(native, shardId, 0)
+	shardView := &utils.ChangeView{
+		View:   0,
+		Height: native.Height,
+		TxHash: native.Tx.Hash(),
+	}
+	setShardView(native, shardId, shardView)
 	return utils.BYTE_TRUE, nil
 }
 

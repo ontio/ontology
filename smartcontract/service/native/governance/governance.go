@@ -250,7 +250,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	err = utils.PutChangeView(native, contract, governanceView, GOVERNANCE_VIEW)
+	err = utils.PutChangeView(native, contract, governanceView, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
 	}
@@ -337,7 +337,7 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	}
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -406,7 +406,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -530,7 +530,7 @@ func RejectCandidate(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -594,7 +594,7 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -705,7 +705,7 @@ func QuitNode(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -798,7 +798,7 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -959,7 +959,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 
 	//get governace view
-	governanceView, err := utils.GetChangeView(native, contract, GOVERNANCE_VIEW)
+	governanceView, err := utils.GetChangeView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
 	}
@@ -1016,7 +1016,7 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	}
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -1292,7 +1292,7 @@ func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
 
 	//check if is peer owner
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -1356,7 +1356,7 @@ func SetPeerCost(native *native.NativeService) ([]byte, error) {
 
 	//check if is peer owner
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -1453,7 +1453,7 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 
 	//check if is peer owner
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -1514,7 +1514,7 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 
 	//check if is peer owner
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("getView, get view error: %v", err)
 	}
