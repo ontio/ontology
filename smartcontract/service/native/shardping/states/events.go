@@ -19,9 +19,10 @@
 package shardping_events
 
 import (
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"io"
 )
 
 type SendShardPingEvent struct {

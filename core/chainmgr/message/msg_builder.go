@@ -20,6 +20,7 @@ package message
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
@@ -33,7 +34,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"math"
 )
 
 func NewShardHelloMsg(localShard, targetShard types.ShardID, sender *actor.PID) (*CrossShardMsg, error) {

@@ -22,16 +22,15 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )

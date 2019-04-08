@@ -20,11 +20,11 @@ package ccmc_states
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type ShardCCMCState struct {

@@ -23,12 +23,11 @@ import (
 	"encoding/hex"
 	"fmt"
 
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 

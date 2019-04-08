@@ -20,11 +20,11 @@ package shardgas
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )

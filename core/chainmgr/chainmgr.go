@@ -20,7 +20,6 @@ package chainmgr
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
 	"math"
 	"reflect"
 	"sync"
@@ -30,6 +29,7 @@ import (
 	"github.com/ontio/ontology-eventbus/eventstream"
 	"github.com/ontio/ontology-eventbus/remote"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"

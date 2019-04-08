@@ -20,10 +20,10 @@ package shardmgmt_test
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/core/types"
 	"testing"
 
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 )
 

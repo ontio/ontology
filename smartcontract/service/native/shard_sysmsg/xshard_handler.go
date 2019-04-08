@@ -26,7 +26,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	neovm2 "github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
@@ -165,7 +165,7 @@ func processXShardRsp(ctx *native.NativeService, msg *xshard_state.CommonShardMs
 	}
 	invokeCode := origTx.Payload.(*payload.InvokeCode)
 	engine, _ := ctx.ContextRef.NewExecuteEngine(invokeCode.Code)
-	neo := engine.(*neovm2.NeoVmService)
+	neo := engine.(*neovm.NeoVmService)
 	neo.Tx = origTx
 	_, resultErr := engine.Invoke()
 	if resultErr != nil {

@@ -20,12 +20,12 @@ package shardhotel
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type ShardHotelInitParam struct {

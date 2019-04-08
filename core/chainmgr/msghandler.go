@@ -33,7 +33,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	cmdUtil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	config2 "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
@@ -147,8 +147,8 @@ func (self *ChainManager) onShardConfig(sender *actor.PID, shardCfgMsg *message.
 		if _, present := self.shards[sid]; !present {
 			self.shards[sid] = &ShardInfo{
 				SeedList: s.SeedList,
-				Config: &config2.OntologyConfig{
-					Common: &config2.CommonConfig{
+				Config: &config.OntologyConfig{
+					Common: &config.CommonConfig{
 						GasPrice: s.GasPrice,
 						GasLimit: s.GasLimit,
 					},

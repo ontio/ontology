@@ -20,12 +20,12 @@ package utils
 
 import (
 	"fmt"
-	ctypes "github.com/ontio/ontology/core/types"
 	"io"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
