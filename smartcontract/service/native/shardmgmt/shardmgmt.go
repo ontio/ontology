@@ -558,13 +558,13 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	wholeNodeStakeAmount := uint64(0)
 	for _, info := range viewInfo.Peers {
-		wholeNodeStakeAmount += info.WholeStakeAmount
+		wholeNodeStakeAmount += info.UserStakeAmount + info.InitPos
 	}
 	// TODO: check viewInfo.Peers is existed in shard states
 	// TODO: candidate node and consensus node different rate
 	feeInfo := make([]*shard_stake.PeerAmount, 0)
 	for peer, info := range viewInfo.Peers {
-		peerFee := info.WholeStakeAmount * params.FeeAmount / wholeNodeStakeAmount
+		peerFee := (info.UserStakeAmount + info.InitPos) * params.FeeAmount / wholeNodeStakeAmount
 		feeInfo = append(feeInfo, &shard_stake.PeerAmount{PeerPubKey: peer, Amount: peerFee})
 	}
 	if err := commitDpos(native, params.ShardID, feeInfo); err != nil {
