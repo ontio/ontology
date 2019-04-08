@@ -39,6 +39,11 @@ func registerCandidate(native *native.NativeService, flag string) error {
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
+	//check pos
+	if params.InitPos < 1 {
+		return fmt.Errorf("registerCandidate, init pos must >= 1")
+	}
+
 	//check auth of OntID
 	err := appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, uint64(params.KeyNo))
 	if err != nil {
