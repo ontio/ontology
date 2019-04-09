@@ -21,16 +21,14 @@ package shard_stake
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
 	"strings"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
-
-// TODO: consider peer exit scenario
 
 // set current+2 stake info to current+1 stake info, only update view info, don't settle
 func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo []*PeerAmount) error {
@@ -42,6 +40,19 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo []*
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view info failed, err: %s", shardId, err)
 	}
+	nextView := currentView + 1
+	nextTwoView := nextView + 1
+	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
+	if err != nil {
+		return fmt.Errorf("commitDpos: get next view info failed, err: %s", err)
+	}
+	// if empty, use current view info as next view info
+	if nextViewInfo.Peers == nil || len(nextViewInfo.Peers) == 0 {
+		nextViewInfo = currentViewInfo
+		setShardViewInfo(native, shardId, nextView, nextViewInfo)
+	}
+	setShardViewInfo(native, shardId, nextTwoView, nextViewInfo)
+	// settle current fee
 	for _, info := range feeInfo {
 		peer := strings.ToLower(info.PeerPubKey)
 		feeAmount := info.Amount
@@ -55,18 +66,12 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo []*
 		currentViewInfo.Peers[peer] = peerInfo
 	}
 	setShardViewInfo(native, shardId, currentView, currentViewInfo)
-	nextView := currentView + 1
-	nextTwoView := nextView + 1
-	nextViewInfo, err := GetShardViewInfo(native, shardId, View(nextView))
-	if err != nil {
-		return fmt.Errorf("commitDpos: get next view info failed, err: %s", err)
-	}
-	setShardViewInfo(native, shardId, View(nextTwoView), nextViewInfo)
 	shardView := &utils.ChangeView{
 		View:   uint32(nextView),
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
+	// commit dpos
 	setShardView(native, shardId, shardView)
 	return nil
 }
