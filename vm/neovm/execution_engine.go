@@ -19,7 +19,10 @@
 package neovm
 
 import (
+	"fmt"
 	"github.com/ontio/ontology/vm/neovm/errors"
+	"github.com/ontio/ontology/vm/neovm/types"
+	"reflect"
 )
 
 func NewExecutionEngine() *ExecutionEngine {
@@ -110,6 +113,38 @@ func (this *ExecutionEngine) ExecuteOp() (VMState, error) {
 		PushData(this, bs)
 		return NONE, nil
 	}
+
+	fmt.Println("op:", this.OpExec.Name)
+	s := this.EvaluationStack.Count()
+	for i := 0; i < s; i++ {
+		item := this.EvaluationStack.Peek(i)
+		fmt.Print("type:", reflect.TypeOf(item))
+		fmt.Print(" ")
+		switch v := item.(type) {
+		case *types.Integer:
+			s, _ := v.GetBigInteger()
+			fmt.Printf("value:%v", s)
+		case *types.Boolean:
+			s, _ := v.GetBoolean()
+			fmt.Printf("value:%v", s)
+		case *types.ByteArray:
+			s, _ := v.GetByteArray()
+			fmt.Printf("value:%v", s)
+		case *types.Interop:
+			s, _ := v.GetInterface()
+			fmt.Printf("value:%v", s)
+		case *types.Array:
+			s, _ := v.GetArray()
+			fmt.Printf("value:%v", s)
+		case *types.Map:
+			s, _ := v.GetMap()
+			for k, v := range s {
+				fmt.Printf("key:%v value:%v", k, v)
+			}
+		}
+		fmt.Print(" ")
+	}
+	fmt.Println()
 
 	if this.OpExec.Validator != nil {
 		if err := this.OpExec.Validator(this); err != nil {
