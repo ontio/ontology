@@ -19,8 +19,9 @@
 package native
 
 import (
-	"fmt"
 	"bytes"
+	"fmt"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
@@ -104,7 +105,11 @@ func (this *NativeService) NativeCall(address common.Address, method string, arg
 func (this *NativeService) NeoVMCall(address common.Address, method string, args []byte) (interface{}, error) {
 	bf := new(bytes.Buffer)
 	builder := vm.NewParamsBuilder(bf)
+	builder.EmitPushInteger(big.NewInt(1))
+	builder.Emit(vm.NEWARRAY)
+	builder.EmitPushInteger(big.NewInt(0))
 	builder.EmitPushByteArray(args)
+	builder.Emit(vm.SETITEM)
 	builder.EmitPushByteArray([]byte(method))
 	builder.EmitPushCall(address[:])
 	engine, err := this.ContextRef.NewExecuteEngine(builder.ToArray())
