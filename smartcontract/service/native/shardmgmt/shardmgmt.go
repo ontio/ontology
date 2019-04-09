@@ -250,7 +250,7 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	shard.Config.VbftCfg = cfg
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
-	if err := initStakeContractShard(native, params.ShardID, uint64(cfg.MinInitStake), params.GasAssetAddress); err != nil {
+	if err := initStakeContractShard(native, params.ShardID, uint64(cfg.MinInitStake), params.StakeAssetAddress); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
 	}
 
