@@ -166,6 +166,7 @@ func reduceInitPos(native *native.NativeService, id types.ShardID, owner common.
 		return fmt.Errorf("reduceInitPos: should more than min stake amout")
 	}
 	peerInfo.InitPos -= info.Amount
+	peerInfo.UserUnfreezeAmount += info.Amount
 	nextViewInfo.Peers[pubKeyString] = peerInfo
 	setShardViewInfo(native, id, nextView, nextViewInfo)
 	lastStakeView, err := getUserLastStakeView(native, id, owner)
