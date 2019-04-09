@@ -21,10 +21,10 @@ package shard_stake
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"math/big"
 	"strings"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
