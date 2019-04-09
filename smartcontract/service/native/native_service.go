@@ -106,8 +106,7 @@ func (this *NativeService) NeoVMCall(address common.Address, method string, args
 	builder := vm.NewParamsBuilder(bf)
 	builder.EmitPushByteArray(args)
 	builder.EmitPushByteArray([]byte(method))
-	builder.Emit(vm.APPCALL)
-	builder.EmitPushByteArray(address[:])
+	builder.EmitPushCall(address[:])
 	engine, err := this.ContextRef.NewExecuteEngine(builder.ToArray())
 	if err != nil {
 		return nil, err
