@@ -30,7 +30,10 @@ import (
 
 const (
 	USER_MAX_WITHDRAW_VIEW = 100 // one can withdraw 100 epoch dividends
+	PEER_MAX_PROPORTION    = 100
+)
 
+const (
 	KEY_VIEW_INDEX = "view_index"
 	KEY_VIEW_INFO  = "view_info"
 

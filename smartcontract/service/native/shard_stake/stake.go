@@ -416,7 +416,7 @@ func ChangeProportion(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: check witness failed, err: %s", err)
 	}
-	if param.Value.Amount > 100 {
+	if param.Value.Amount > PEER_MAX_PROPORTION {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: proportion larger than 100")
 	}
 	err := changePeerInfo(native, param.ShardId, param.User, param.Value, CHANGE_PROPORTION)

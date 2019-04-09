@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
+	"math/big"
 	"strings"
 
 	"github.com/ontio/ontology/common"
@@ -480,11 +481,28 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 			if peerStakeInfo.FeeBalance == 0 {
 				continue
 			}
-			// TODO: consider Proportion
-			peerDivide := info.StakeAmount * peerStakeInfo.WholeFee / peerStakeInfo.UserStakeAmount
-			peerStakeInfo.FeeBalance = peerStakeInfo.FeeBalance - peerDivide
+			dividends := uint64(0)
+			wholeFee := new(big.Int).SetUint64(peerStakeInfo.WholeFee)
+			userProportion := new(big.Int).SetUint64(peerStakeInfo.Proportion)
+			peerProportion := new(big.Int).SetUint64(PEER_MAX_PROPORTION - peerStakeInfo.Proportion)
+			proportionBase := new(big.Int).SetUint64(PEER_MAX_PROPORTION)
+			if user == peerStakeInfo.Owner { // peer owner
+				if peerStakeInfo.UserStakeAmount == 0 {
+					dividends = peerStakeInfo.WholeFee
+				} else {
+					temp := wholeFee.Mul(wholeFee, peerProportion)
+					dividends = temp.Div(temp, proportionBase).Uint64()
+				}
+			} else {
+				temp := wholeFee.Mul(wholeFee, userProportion)
+				temp.Mul(temp, new(big.Int).SetUint64(info.StakeAmount))
+				temp.Div(temp, new(big.Int).SetUint64(peerStakeInfo.UserStakeAmount))
+				// wholeFee * proportion * stakeAmount / allStakeAmount / PEER_MAX_PROPORTION
+				dividends = temp.Div(temp, proportionBase).Uint64()
+			}
+			peerStakeInfo.FeeBalance = peerStakeInfo.FeeBalance - dividends
 			viewStake.Peers[peer] = peerStakeInfo
-			dividends += peerDivide
+			dividends += dividends
 		}
 		setShardViewInfo(native, shardId, i, viewStake)
 		count++
