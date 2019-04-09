@@ -21,6 +21,7 @@ package shard_stake
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -174,7 +175,7 @@ func PeerExit(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: get current view info failed, err: %s", err)
 	}
-	currentPeerInfo, ok := currentViewInfo.Peers[param.Peer];
+	currentPeerInfo, ok := currentViewInfo.Peers[param.Peer]
 	if !ok {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: peer %s not exist", currentPeerInfo.PeerPubKey)
 	} else {

@@ -88,9 +88,9 @@ func (this *PeerAmount) Deserialize(r io.Reader) error {
 }
 
 type PeerStakeParam struct {
-	ShardId        types.ShardID
-	PeerOwner      common.Address
-	Value          *PeerAmount
+	ShardId   types.ShardID
+	PeerOwner common.Address
+	Value     *PeerAmount
 }
 
 func (this *PeerStakeParam) Serialize(w io.Writer) error {
