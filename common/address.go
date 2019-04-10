@@ -20,6 +20,7 @@ package common
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -129,4 +130,22 @@ func AddressFromVmCode(code []byte) Address {
 	md.Sum(addr[:0])
 
 	return addr
+}
+
+func (self Address) MarshalJSON() ([]byte, error) {
+	return json.Marshal(self.ToBase58())
+}
+
+func (self *Address) UnmarshalJSON(input []byte) error {
+	base58Addr := ""
+	err := json.Unmarshal(input, &base58Addr)
+	if err != nil{
+		return err
+	}
+	addr, err := AddressFromBase58(base58Addr)
+	if err != nil {
+		return err
+	}
+	copy(self[:], addr[:])
+	return nil
 }
