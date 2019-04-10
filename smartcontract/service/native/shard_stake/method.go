@@ -225,9 +225,15 @@ func userStake(native *native.NativeService, id types.ShardID, user common.Addre
 	if err != nil {
 		return fmt.Errorf("userStake: get user last stake info failed, err: %s", err)
 	}
+	if isUserStakePeerEmpty(lastUserStakeInfo) { // user stake peer firstly
+		lastUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	}
 	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, user)
 	if err != nil {
 		return fmt.Errorf("userStake: get user next stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(nextUserStakeInfo) { // user stake peer firstly
+		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
 	}
 	currentViewInfo, err := GetShardViewInfo(native, id, currentView)
 	if err != nil {
@@ -465,8 +471,8 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 		if err != nil {
 			return 0, fmt.Errorf("withdrawFee: failed, view %d, err: %s", i, err)
 		}
-		if !isUserStakePeerEmpty(userStake) {
-			if !isUserStakePeerEmpty(latestUserStakeInfo) {
+		if isUserStakePeerEmpty(userStake) {
+			if isUserStakePeerEmpty(latestUserStakeInfo) {
 				continue
 			} else {
 				userStake = latestUserStakeInfo
@@ -556,12 +562,12 @@ func changePeerInfo(native *native.NativeService, shardId types.ShardID, peerOwn
 
 func isUserStakePeerEmpty(info *UserStakeInfo) bool {
 	if info.Peers == nil || len(info.Peers) == 0 {
-		return false
+		return true
 	}
 	for _, stakeInfo := range info.Peers {
 		if stakeInfo.StakeAmount != 0 || stakeInfo.UnfreezeAmount != 0 {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }
