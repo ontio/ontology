@@ -50,7 +50,17 @@ type XShardMsg interface {
 	Deserialize(r io.Reader) error
 }
 
+func IsXShardMsgEqual(msg1, msg2 XShardMsg) bool {
+	buf1 := bytes.NewBuffer(nil)
+	buf2 := bytes.NewBuffer(nil)
+	msg1.Serialize(buf1)
+	msg2.Serialize(buf2)
+
+	return bytes.Equal(buf1.Bytes(), buf2.Bytes())
+}
+
 type XShardNotify struct {
+	NotifyID uint32
 	Contract common.Address
 	Payer    common.Address
 	Fee      uint64
@@ -75,6 +85,9 @@ func (msg *XShardNotify) GetArgs() []byte {
 }
 
 func (msg *XShardNotify) Serialize(w io.Writer) error {
+	if err := utils.WriteUint32(w, msg.NotifyID); err != nil {
+		return err
+	}
 	if err := utils.WriteAddress(w, msg.Contract); err != nil {
 		return fmt.Errorf("serialize: write contract failed, err: %s", err)
 	}
@@ -95,6 +108,9 @@ func (msg *XShardNotify) Serialize(w io.Writer) error {
 
 func (msg *XShardNotify) Deserialize(r io.Reader) error {
 	var err error = nil
+	if msg.NotifyID, err = utils.ReadUint32(r); err != nil {
+		return err
+	}
 	if msg.Contract, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read contract failed, err: %s", err)
 	}

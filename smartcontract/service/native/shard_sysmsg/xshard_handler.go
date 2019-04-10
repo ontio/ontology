@@ -82,7 +82,9 @@ func processXShardReq(ctx *native.NativeService, txState *xshard_state.TxState, 
 		return fmt.Errorf("invalid request message")
 	}
 
-	if txState.GetResponse(reqMsg.IdxInTx) != nil {
+	shardReq := txState.InReqResp[req.SourceShardID]
+	lenReq := uint64(len(shardReq))
+	if lenReq > 0 && reqMsg.IdxInTx <= shardReq[lenReq-1].Req.IdxInTx {
 		return nil
 	}
 
@@ -101,18 +103,15 @@ func processXShardReq(ctx *native.NativeService, txState *xshard_state.TxState, 
 	if err != nil {
 		rspMsg.Error = true
 	}
-	if err2 := txState.PutTxRequest(nil, reqMsg); err2 != nil {
-		return err2
-	}
-	if err2 := txState.PutTxResponse(rspMsg); err2 != nil {
-		return err2
-	}
+	txState.InReqResp[req.SourceShardID] = append(txState.InReqResp[req.SourceShardID],
+		&xshard_state.XShardTxReqResp{Req: reqMsg, Resp: rspMsg, Index: txState.TotalInReq})
+	txState.TotalInReq += 1
 
 	log.Debugf("process xshard request result: %v", result)
 	// reset ctx.CacheDB
 	ctx.CacheDB.Reset()
 	// build TX-RSP
-	if err := remoteNotify(ctx, req.SourceTxHash, req.SourceShardID, rspMsg); err != nil {
+	if err := remoteSendShardMsg(ctx, req.SourceTxHash, req.SourceShardID, rspMsg); err != nil {
 		return err
 	}
 	txState.SetTxExecutionPaused()
@@ -131,18 +130,15 @@ func processXShardRsp(ctx *native.NativeService, txState *xshard_state.TxState, 
 		return fmt.Errorf("non-empty init db when processing shard common req")
 	}
 
-	rspMsg, ok := msg.Msg.(*xshard_state.XShardTxRsp)
-	if !ok || rspMsg == nil {
-		return fmt.Errorf("invalid response message")
+	rspMsg := msg.Msg.(*xshard_state.XShardTxRsp)
+	tx := msg.SourceTxHash
+	if txState.PendingReq == nil || txState.PendingReq.IdxInTx != rspMsg.IdxInTx {
+		// todo: system error or remote shard error
+		return fmt.Errorf("invalid response id: %d", rspMsg.IdxInTx)
 	}
 
-	tx := msg.SourceTxHash
-	if err := txState.AddTxShard(msg.SourceShardID); err != nil {
-		return fmt.Errorf("failed to add shardID on response: %s", err)
-	}
-	if err := txState.PutTxResponse(rspMsg); err != nil {
-		return fmt.Errorf("failed to store tx response: %s", err)
-	}
+	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq, Resp: rspMsg})
+	txState.PendingReq = nil
 	txState.SetTxExecutionContinued()
 
 	log.Debugf("process xshard response result: %v", rspMsg.Result)
@@ -156,6 +152,9 @@ func processXShardRsp(ctx *native.NativeService, txState *xshard_state.TxState, 
 	// FIXME: invoke neo contract
 	// re-execute tx
 	txState.NextReqID = 0
+	//todo: add txState in NeoVmService
+	xshard_state.PutTxState(txState.TxID, txState)
+
 	origTx, err := types.TransactionFromRawBytes(txPayload)
 	if err != nil {
 		return fmt.Errorf("failed to re-init original tx: %s", err)
@@ -167,7 +166,7 @@ func processXShardRsp(ctx *native.NativeService, txState *xshard_state.TxState, 
 	_, resultErr := engine.Invoke()
 	if resultErr != nil {
 		// Txn failed, abort all transactions
-		if _, err2 := abortTx(ctx, tx); err2 != nil {
+		if _, err2 := abortTx(ctx, txState, tx); err2 != nil {
 			return fmt.Errorf("rwset verify %s, abort tx %v, err: %s", err, tx, err2)
 		}
 		return resultErr
@@ -177,7 +176,7 @@ func processXShardRsp(ctx *native.NativeService, txState *xshard_state.TxState, 
 
 	// START 2PC COMMIT
 	if err := txState.VerifyStates(); err != nil {
-		if _, err2 := abortTx(ctx, tx); err2 != nil {
+		if _, err2 := abortTx(ctx, txState, tx); err2 != nil {
 			return fmt.Errorf("rwset verify %s, abort tx %v, err: %s", err, tx, err2)
 		}
 		return err

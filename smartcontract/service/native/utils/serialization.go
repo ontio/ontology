@@ -95,6 +95,26 @@ func ReadAddress(r io.Reader) (common.Address, error) {
 	return common.AddressParseFromBytes(from)
 }
 
+func WriteUint32(w io.Writer, num uint32) error {
+	buf := GetUint32Bytes(num)
+	if err := serialization.WriteVarBytes(w, buf); err != nil {
+		return fmt.Errorf("serialize value error:%v", err)
+	}
+
+	return nil
+}
+
+func ReadUint32(r io.Reader) (uint32, error) {
+	from, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return 0, fmt.Errorf("[State] deserialize from error:%v", err)
+	}
+	if len(from) != 4 {
+		return 0, fmt.Errorf("deserialize uint 32 error； wrong size")
+	}
+	return GetBytesUint32(from)
+}
+
 func EncodeAddress(sink *common.ZeroCopySink, addr common.Address) (size uint64) {
 	return sink.WriteVarBytes(addr[:])
 }

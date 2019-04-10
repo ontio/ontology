@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -41,7 +40,7 @@ import (
 //     . response with PREPARED
 // 4. otherwise, response with ABORT
 //
-func processXShardPrepareMsg(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
+func processXShardPrepareMsg(ctx *native.NativeService, txState *xshard_state.TxState, msg *xshard_state.CommonShardMsg) error {
 	if msg.Msg.Type() != xshard_state.EVENT_SHARD_PREPARE {
 		return fmt.Errorf("invalid prepare type: %d", msg.GetType())
 	}
@@ -52,27 +51,24 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *xshard_state.Common
 	}
 
 	tx := msg.SourceTxHash
-	reqs, err := xshard_state.GetTxRequests(tx)
-	if err != nil {
-		// no request available, the transaction should have been closed
-		return fmt.Errorf("get tx requests on prepare %s: %s", common.ToHexString(tx[:]), err)
+	var reqResp []*xshard_state.XShardTxReqResp
+	for _, shardReq := range txState.InReqResp {
+		reqResp = append(reqResp, shardReq...)
 	}
 
-	// sorting reqs with IdxInTx
-	sort.Slice(reqs, func(i, j int) bool {
-		return reqs[i].IdxInTx < reqs[j].IdxInTx
+	// sorting reqResp with IdxInTx
+	sort.Slice(reqResp, func(i, j int) bool {
+		return reqResp[i].Index < reqResp[j].Index
 	})
-	log.Debugf("process prepare : reqs: %d", len(reqs))
+	log.Debugf("process prepare : reqs: %d", len(reqResp))
 
+	txState.NextReqID = 0
 	// 1. re-execute all requests
 	// 2. compare new responses with stored responses
 	prepareOK := true
-	for _, req := range reqs {
-		rspMsg := xshard_state.GetTxResponse(tx, req)
-		if rspMsg == nil {
-			log.Errorf("can not find tx response at index: %d", req.IdxInTx)
-			break
-		}
+	for _, val := range reqResp {
+		req := val.Req
+		rspMsg := val.Resp
 		result2, err2 := ctx.NativeCall(req.GetContract(), req.GetMethod(), req.GetArgs())
 		isError := false
 		if err2 != nil {
@@ -92,10 +88,11 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *xshard_state.Common
 			MsgType: xshard_state.EVENT_SHARD_ABORT,
 		}
 		// TODO: clean TX resources
-		if err := remoteNotify(ctx, tx, msg.SourceShardID, abort); err != nil {
+		if err := remoteSendShardMsg(ctx, tx, msg.SourceShardID, abort); err != nil {
 			log.Errorf("remote notify: %s", err)
 		}
-		xshard_state.SetTxCommitted(tx, false)
+
+		txState.State = xshard_state.TxAbort
 		return fmt.Errorf("failed get tx db when processing prepare msg")
 	}
 
@@ -107,15 +104,15 @@ func processXShardPrepareMsg(ctx *native.NativeService, msg *xshard_state.Common
 	//	// FIXME
 	//	return err
 	//}
-	if err := remoteNotify(ctx, tx, msg.SourceShardID, pareparedMsg); err != nil {
+	if err := remoteSendShardMsg(ctx, tx, msg.SourceShardID, pareparedMsg); err != nil {
 		return fmt.Errorf("failed to add prepared response for tx %v: %s", tx, err)
 	}
 
 	// save tx rwset and reset ctx.CacheDB
 	// TODO: add notification to cached DB
-	xshard_state.UpdateTxResult(tx, ctx.CacheDB)
+	txState.WriteSet = ctx.CacheDB.GetCache()
 	ctx.CacheDB = storage.NewCacheDB(ctx.CacheDB.GetBackendDB())
-	return waitRemoteResponse(ctx, tx)
+	return ErrYield
 }
 
 //
@@ -153,8 +150,8 @@ func processXShardPreparedMsg(ctx *native.NativeService, txState *xshard_state.T
 
 	// commit cached rwset
 	ctx.CacheDB.SetCache(txState.WriteSet)
+	txState.State = xshard_state.TxCommit
 	//todo:
-	xshard_state.SetTxCommitted(tx, true)
 	unlockTxContract(ctx, tx)
 	return nil
 }
@@ -165,7 +162,7 @@ func processXShardPreparedMsg(ctx *native.NativeService, txState *xshard_state.T
 // 1. commit cached writeset
 // 2. release all resources
 //
-func processXShardCommitMsg(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
+func processXShardCommitMsg(ctx *native.NativeService, txState *xshard_state.TxState, msg *xshard_state.CommonShardMsg) error {
 	if !ctx.CacheDB.IsEmptyCache() {
 		return fmt.Errorf("non-empty init db when processing prepared msg")
 	}
@@ -173,23 +170,18 @@ func processXShardCommitMsg(ctx *native.NativeService, msg *xshard_state.CommonS
 	// update tx state
 	// commit the cached rwset
 	tx := msg.SourceTxHash
-	txState, err := xshard_state.GetTxState(tx)
-	if err != nil {
-		return fmt.Errorf("get Tx state: %s", err)
-	}
 	ctx.CacheDB.SetCache(txState.WriteSet)
-	xshard_state.SetTxCommitted(tx, true)
+	txState.State = xshard_state.TxCommit
 	unlockTxContract(ctx, tx)
 	return nil
 }
 
-func processXShardAbortMsg(ctx *native.NativeService, msg *xshard_state.CommonShardMsg) error {
+func processXShardAbortMsg(ctx *native.NativeService, txState *xshard_state.TxState, msg *xshard_state.CommonShardMsg) error {
 	if !ctx.CacheDB.IsEmptyCache() {
 		return fmt.Errorf("non-empty init db when processing prepared msg")
 	}
 
 	// update tx state
-	tx := msg.SourceTxHash
-	xshard_state.SetTxCommitted(tx, false)
+	txState.State = xshard_state.TxAbort
 	return nil
 }

@@ -36,7 +36,7 @@ func sendPrepareRequest(ctx *native.NativeService, txState *xshard_state.TxState
 		msg := &xshard_state.XShardCommitMsg{
 			MsgType: xshard_state.EVENT_SHARD_PREPARE,
 		}
-		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
 			log.Errorf("send prepare to shard %d: %s", s.ToUint64(), err)
 		}
 	}
@@ -44,21 +44,17 @@ func sendPrepareRequest(ctx *native.NativeService, txState *xshard_state.TxState
 	return nil, nil
 }
 
-func abortTx(ctx *native.NativeService, tx common.Uint256) ([]byte, error) {
+func abortTx(ctx *native.NativeService, txState *xshard_state.TxState, tx common.Uint256) ([]byte, error) {
 	// TODO: clean resources held by tx
 	//
 
 	// send abort message to all shards
-	toShards, err := xshard_state.GetTxShards(tx)
-	if err != nil {
-		return nil, err
-	}
-
+	toShards := txState.GetTxShards()
 	for _, s := range toShards {
 		msg := &xshard_state.XShardCommitMsg{
 			MsgType: xshard_state.EVENT_SHARD_ABORT,
 		}
-		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
 			log.Errorf("send abort to shard %d: %s", s.ToUint64(), err)
 		}
 	}
@@ -75,7 +71,7 @@ func sendCommit(ctx *native.NativeService, txState *xshard_state.TxState, tx com
 		msg := &xshard_state.XShardCommitMsg{
 			MsgType: xshard_state.EVENT_SHARD_COMMIT,
 		}
-		if err := remoteNotify(ctx, tx, s, msg); err != nil {
+		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
 			log.Errorf("send commit to shard %d: %s", s.ToUint64(), err)
 		}
 	}
@@ -83,7 +79,7 @@ func sendCommit(ctx *native.NativeService, txState *xshard_state.TxState, tx com
 	return nil, nil
 }
 
-func remoteNotify(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg xshard_state.XShardMsg) error {
+func remoteSendShardMsg(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg xshard_state.XShardMsg) error {
 	if !ctx.ContextRef.CheckUseGas(neovm.REMOTE_NOTIFY_GAS) {
 		return neovm.ERR_GAS_INSUFFICIENT
 	}
