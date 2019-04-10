@@ -565,7 +565,7 @@ func isUserStakePeerEmpty(info *UserStakeInfo) bool {
 		return true
 	}
 	for _, stakeInfo := range info.Peers {
-		if stakeInfo.StakeAmount != 0 || stakeInfo.UnfreezeAmount != 0 {
+		if stakeInfo.StakeAmount != 0 || stakeInfo.UnfreezeAmount != 0 || stakeInfo.CurrentViewStakeAmount != 0 {
 			return false
 		}
 	}

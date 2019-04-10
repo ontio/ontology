@@ -20,12 +20,16 @@ package shard_stake
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common/log"
+	"math/big"
 
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	ntypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
@@ -43,6 +47,11 @@ const (
 	PEER_EXIT                = "peerExit"
 	DELETE_PEER              = "deletePeer"
 	WITHDRAW_ONG             = "withdrawOng"
+
+	// for pre-execute
+	GET_CURRENT_VIEW = "getCurrentView"
+	GET_PEER_INFO    = "getPeerInfo"
+	GET_USER_INFO    = "getUserInfo"
 )
 
 func InitShardStake() {
@@ -64,6 +73,10 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(DELETE_PEER, DeletePeer)
 	native.Register(PEER_EXIT, PeerExit)
 	native.Register(WITHDRAW_ONG, WithdrawOng)
+
+	native.Register(GET_CURRENT_VIEW, GetCurrentView)
+	native.Register(GET_PEER_INFO, GetPeerInfo)
+	native.Register(GET_USER_INFO, GetUserInfo)
 }
 
 func InitShard(native *native.NativeService) ([]byte, error) {
@@ -474,4 +487,60 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: transfer ong failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
+}
+
+func GetCurrentView(native *native.NativeService) ([]byte, error) {
+	shardId, err := utils.DeserializeShardId(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: read shardId failed, err: %s", err)
+	}
+	currentView, err := GetShardCurrentView(native, shardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: failed, err: %s", err)
+	}
+	return ntypes.BigIntToBytes(new(big.Int).SetUint64(uint64(currentView))), nil
+}
+
+func GetPeerInfo(native *native.NativeService) ([]byte, error) {
+	param := &GetPeerInfoParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo: failed, err: %s", err)
+	}
+	peerInfo, err := GetShardViewInfo(native, param.ShardId, View(param.View))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo: failed, err: %s", err)
+	}
+	data, err := json.Marshal(peerInfo)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo: marshal peer info failed, err: %s", err)
+	}
+	return data, nil
+}
+
+// return user stake info at nearest of param view
+func GetUserInfo(native *native.NativeService) ([]byte, error) {
+	param := &GetUserStakeInfoParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: failed, err: %s", err)
+	}
+	result := &UserStakeInfo{Peers: make(map[string]*UserPeerStakeInfo)}
+	for i := param.View; ; i-- {
+		info, err := getShardViewUserStake(native, param.ShardId, View(i), param.User)
+		if err != nil {
+			log.Debugf("GetUserInfo: get view %d info failed, err: %s", i, err)
+			continue
+		}
+		if !isUserStakePeerEmpty(info) {
+			result = info
+			break
+		}
+		if i == 0 {
+			break
+		}
+	}
+	data, err := json.Marshal(result)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: marshal info failed, err: %s", err)
+	}
+	return data, nil
 }

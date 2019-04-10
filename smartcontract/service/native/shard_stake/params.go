@@ -468,3 +468,62 @@ func (this *PeerExitParam) Deserialize(r io.Reader) error {
 	}
 	return nil
 }
+
+type GetPeerInfoParam struct {
+	ShardId    types.ShardID
+	View       uint64
+}
+
+func (this *GetPeerInfoParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.View); err != nil {
+		return fmt.Errorf("serialize: write view failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *GetPeerInfoParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.View, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read view failed, err: %s", err)
+	}
+	return nil
+}
+
+type GetUserStakeInfoParam struct {
+	ShardId types.ShardID
+	View    uint64
+	User    common.Address
+}
+
+func (this *GetUserStakeInfoParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.View); err != nil {
+		return fmt.Errorf("serialize: write view failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write addr failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *GetUserStakeInfoParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.View, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read view failed, err: %s", err)
+	}
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	}
+	return nil
+}
