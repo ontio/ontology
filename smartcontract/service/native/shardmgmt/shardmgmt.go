@@ -285,6 +285,13 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
+	state, err := getShardPeerState(native, contract, params.ShardId, params.PeerPubKey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: faile, err: %s", err)
+	}
+	if state != state_default {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer %s hasn't applied", params.PeerPubKey)
+	}
 	setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
 	return utils.BYTE_TRUE, nil
 }
@@ -531,7 +538,6 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		} else if info.NodeType == shardstates.QUITING_CONSENSUS_NODE {
 			// delete peer at mgmt contract
 			delete(shard.Peers, peer)
-			setShardPeerState(native, contract, params.ShardID, state_default, info.PeerPubKey)
 			quitPeers = append(quitPeers, peer)
 		}
 	}

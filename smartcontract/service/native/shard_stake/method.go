@@ -335,13 +335,15 @@ func unfreezeStakeAsset(native *native.NativeService, id types.ShardID, user com
 		}
 		nextPeerStakeInfo, ok := nextViewInfo.Peers[pubKeyString]
 		if !ok {
-			// peer has already exit consensus and deleted, user should also unfreeze stake asset, cannot withdraw asset straightly
-			nextUserPeerStakeInfo.UnfreezeAmount += nextUserPeerStakeInfo.StakeAmount
-			nextUserPeerStakeInfo.StakeAmount = 0
+			return fmt.Errorf("unfreezeStakeAsset: next view cannot find peer %s", pubKeyString)
 		} else if nextPeerStakeInfo.Owner == user {
 			return fmt.Errorf("unfreezeStakeAsset: cannot unfreeze self node %s at next", pubKeyString)
 		} else if nextPeerStakeInfo.UserStakeAmount < amount {
 			return fmt.Errorf("unfreezeStakeAsset: peer %s stake num not enough", pubKeyString)
+		} else if nextPeerStakeInfo.InitPos == 0 {
+			// peer has already exit consensus, user should also unfreeze stake asset, cannot withdraw asset straightly
+			nextUserPeerStakeInfo.UnfreezeAmount += nextUserPeerStakeInfo.StakeAmount
+			nextUserPeerStakeInfo.StakeAmount = 0
 		} else {
 			nextUserPeerStakeInfo.StakeAmount -= amount
 			nextUserPeerStakeInfo.UnfreezeAmount += amount
@@ -476,8 +478,8 @@ func withdrawFee(native *native.NativeService, shardId types.ShardID, user commo
 		}
 		for peer, info := range userStake.Peers {
 			peerStakeInfo, ok := viewStake.Peers[peer]
-			if !ok { // peer has already exit consensus
-				continue
+			if !ok {
+				return 0, fmt.Errorf("withdrawFee: failed, view %d, peer %s not exist", i, peer)
 			}
 			if peerStakeInfo.FeeBalance == 0 {
 				continue
@@ -532,6 +534,12 @@ func changePeerInfo(native *native.NativeService, shardId types.ShardID, peerOwn
 	}
 	if peerInfo.Owner != peerOwner {
 		return fmt.Errorf("changePeerInfo: peer owner not match")
+	}
+	if !peerInfo.CanStake {
+		return fmt.Errorf("changePeerInfo: peer is exiting consensus")
+	}
+	if peerInfo.InitPos == 0 {
+		return fmt.Errorf("changePeerInfo: peer exited consensus")
 	}
 	switch methodName {
 	case CHANGE_MAX_AUTHORIZATION:

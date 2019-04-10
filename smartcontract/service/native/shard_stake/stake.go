@@ -242,7 +242,6 @@ func DeletePeer(native *native.NativeService) ([]byte, error) {
 	// peer could withdraw stake asset at new consensus epoch
 	for _, peer := range param.Peers {
 		if peerInfo, ok := viewInfo.Peers[peer]; ok {
-			delete(viewInfo.Peers, peer)
 			lastStakeView, err := getUserLastStakeView(native, param.ShardId, peerInfo.Owner)
 			if err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: peer %s, err: %s", peer, err)
@@ -261,8 +260,12 @@ func DeletePeer(native *native.NativeService) ([]byte, error) {
 			} else {
 				ownerStakeSelfInfo = &UserPeerStakeInfo{PeerPubKey: peer, UnfreezeAmount: peerInfo.InitPos}
 			}
+			peerInfo.UserUnfreezeAmount += peerInfo.InitPos
+			peerInfo.InitPos = 0
 			setUserLastStakeView(native, param.ShardId, peerInfo.Owner, nextView)
 			setShardViewUserStake(native, param.ShardId, nextView, peerInfo.Owner, ownerStakeInfo)
+		} else {
+			return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: peer %s not exist", peer)
 		}
 	}
 	setShardViewInfo(native, param.ShardId, nextView, viewInfo)
