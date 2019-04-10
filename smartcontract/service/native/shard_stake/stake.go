@@ -142,6 +142,21 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
 	}
+	if stakeAssetAddr == utils.OntContractAddress {
+		unboundOngInfo, err := getUserUnboundOngInfo(native, param.PeerOwner)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
+		}
+		if unboundOngInfo.Time == 0 {
+			return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: peer owner unboundong time is 0")
+		}
+		amount := utils.CalcUnbindOng(unboundOngInfo.StakeAmount,
+			unboundOngInfo.Time-constants.GENESIS_BLOCK_TIMESTAMP, native.Time-constants.GENESIS_BLOCK_TIMESTAMP)
+		unboundOngInfo.Balance += amount
+		unboundOngInfo.Time = native.Time
+		unboundOngInfo.StakeAmount += param.Value.Amount
+		setUserUnboundOngInfo(native, param.PeerOwner, unboundOngInfo)
+	}
 	err = ont.AppCallTransfer(native, stakeAssetAddr, param.PeerOwner, utils.ShardStakeAddress, param.Value.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: transfer stake asset failed, err: %s", err)
