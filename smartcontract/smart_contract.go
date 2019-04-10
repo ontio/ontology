@@ -36,6 +36,7 @@ import (
 
 const (
 	MAX_EXECUTE_ENGINE = 1024
+	MAX_STACK_LEN      = 1024
 )
 
 // SmartContract describe smart contract execute engine
@@ -153,6 +154,9 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 func (this *SmartContract) NewExecuteEngineWithElem(code []byte, stacks []types.StackItems) (context.Engine, error) {
 	if !this.checkContexts() {
 		return nil, fmt.Errorf("%s", "engine over max limit!")
+	}
+	if len(stacks) > MAX_STACK_LEN {
+		return nil, fmt.Errorf("%s", "engine over max stack length!")
 	}
 	engine := vm.NewExecutionEngine()
 	for i := len(stacks) - 1; i >= 0; i-- {
