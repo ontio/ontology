@@ -334,8 +334,14 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 		}
 
 		commitCount[c.BlockProposer] += 1
-		if commitCount[c.BlockProposer] > C {
-			return c.BlockProposer, emptyCommit
+		if commitCount[c.BlockProposer] > C && commitCount[c.BlockProposer] == len(c.EndorsersSig) {
+			for _, commit := range commitMsgs {
+				if c.BlockProposer == commit.BlockProposer {
+					if _, pesent := commit.EndorsersSig[commit.Committer]; !pesent {
+						return c.BlockProposer, emptyCommit
+					}
+				}
+			}
 		}
 
 		for endorser := range c.EndorsersSig {

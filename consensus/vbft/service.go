@@ -1886,7 +1886,9 @@ func (self *Server) processHeartbeatMsg(peerIdx uint32, msg *peerHeartbeatMsg) {
 
 func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) error {
 	// for each round, one node can only endorse one block, or empty block
-
+	if proposal.Block.getProposer() == self.Index {
+		return nil
+	}
 	blkNum := proposal.GetBlockNum()
 
 	// check if has endorsed
@@ -1944,7 +1946,9 @@ func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) erro
 
 func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error {
 	// for each round, we can only commit one block
-
+	if proposal.Block.getProposer() == self.Index {
+		return nil
+	}
 	blkNum := proposal.GetBlockNum()
 	if self.blockPool.committedForBlock(blkNum) {
 		return nil
