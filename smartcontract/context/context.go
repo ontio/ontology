@@ -21,6 +21,7 @@ package context
 import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 // ContextRef is a interface of smart context
@@ -38,6 +39,7 @@ type ContextRef interface {
 	CheckWitness(address common.Address) bool
 	PushNotifications(notifications []*event.NotifyEventInfo)
 	NewExecuteEngine(code []byte) (Engine, error)
+	NewExecuteEngineWithElem(code []byte, stacks []types.StackItems) (Engine, error)
 	CheckUseGas(gas uint64) bool
 	CheckExecStep() bool
 	PutMerkleVal(data []byte)

@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
@@ -144,6 +145,30 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		Height:     this.Config.Height,
 		BlockHash:  this.Config.BlockHash,
 		Engine:     vm.NewExecutionEngine(),
+		PreExec:    this.PreExec,
+	}
+	return service, nil
+}
+
+func (this *SmartContract) NewExecuteEngineWithElem(code []byte, stacks []types.StackItems) (context.Engine, error) {
+	if !this.checkContexts() {
+		return nil, fmt.Errorf("%s", "engine over max limit!")
+	}
+	engine := vm.NewExecutionEngine()
+	for i := len(stacks) - 1; i >= 0; i-- {
+		engine.EvaluationStack.Push(stacks[i])
+	}
+	service := &neovm.NeoVmService{
+		Store:      this.Store,
+		CacheDB:    this.CacheDB,
+		ContextRef: this,
+		Code:       code,
+		Tx:         this.Config.Tx,
+		ShardID:    this.Config.ShardID,
+		Time:       this.Config.Time,
+		Height:     this.Config.Height,
+		BlockHash:  this.Config.BlockHash,
+		Engine:     engine,
 		PreExec:    this.PreExec,
 	}
 	return service, nil

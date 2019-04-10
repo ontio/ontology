@@ -19,11 +19,10 @@
 package native
 
 import (
-	"bytes"
 	"fmt"
-	"math/big"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -31,7 +30,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
-	vm "github.com/ontio/ontology/vm/neovm"
+	ntypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 type (
@@ -103,17 +102,18 @@ func (this *NativeService) NativeCall(address common.Address, method string, arg
 }
 
 func (this *NativeService) NeoVMCall(address common.Address, method string, args []byte) (interface{}, error) {
-	bf := new(bytes.Buffer)
-	builder := vm.NewParamsBuilder(bf)
-	builder.EmitPushInteger(big.NewInt(1))
-	builder.Emit(vm.NEWARRAY)
-	builder.Emit(vm.DUP)
-	builder.EmitPushInteger(big.NewInt(0))
-	builder.EmitPushByteArray(args)
-	builder.Emit(vm.SETITEM)
-	builder.EmitPushByteArray([]byte(method))
-	builder.EmitPushCall(address[:])
-	engine, err := this.ContextRef.NewExecuteEngine(builder.ToArray())
+	dep, err := this.CacheDB.GetContract(address)
+	if err != nil {
+		return nil, errors.NewErr("[NeoVMCall] Get contract context error!")
+	}
+	log.Debugf("[NeoVMCall] native invoke neovm contract address:%s", address.ToHexString())
+	if dep == nil {
+		return nil, errors.NewErr("[NeoVMCall] native invoke neovm contract is nil")
+	}
+	stacks := make([]ntypes.StackItems, 2)
+	stacks[0] = ntypes.NewByteArray([]byte(method))
+	stacks[1] = ntypes.NewArray([]ntypes.StackItems{ntypes.NewByteArray(args)})
+	engine, err := this.ContextRef.NewExecuteEngineWithElem(dep.Code, stacks)
 	if err != nil {
 		return nil, err
 	}
