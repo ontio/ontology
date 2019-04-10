@@ -103,3 +103,7 @@ func GetEventNotifyByHeight(height uint32) ([]*event.ExecuteNotify, error) {
 func GetMerkleProof(proofHeight uint32, rootHeight uint32) ([]common.Uint256, error) {
 	return ledger.DefLedger.GetMerkleProof(proofHeight, rootHeight)
 }
+
+func GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	return ledger.DefLedger.GetCrossStatesProof(height, key)
+}

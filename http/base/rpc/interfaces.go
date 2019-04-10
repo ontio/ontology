@@ -514,6 +514,30 @@ func GetMerkleProof(params []interface{}) map[string]interface{} {
 		curHeader.BlockRoot.ToHexString(), curHeight, hashes})
 }
 
+//get cross chain state proof
+func GetCrossStatesProof(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	height, ok := params[0].(float64)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	str, ok := params[1].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	key, err := hex.DecodeString(str)
+	if err != nil {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	proof, err := bactor.GetCrossStatesProof(uint32(height), key)
+	if err != nil {
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	return responseSuccess(bcomn.CrossStatesProof{"CrossStatesProof", hex.EncodeToString(proof)})
+}
+
 //get block transactions by height
 func GetBlockTxsByHeight(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {

@@ -84,6 +84,10 @@ func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, er
 	return self.ldgStore.GetStateMerkleRoot(height)
 }
 
+func (self *Ledger) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
+	return self.ldgStore.GetCrossStatesRoot(height)
+}
+
 func (self *Ledger) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
 	return self.ldgStore.GetBlockRootWithNewTxRoots(startHeight, txRoots)
 }
@@ -170,6 +174,10 @@ func (self *Ledger) GetContractState(contractHash common.Address) (*payload.Depl
 
 func (self *Ledger) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
 	return self.ldgStore.GetMerkleProof(proofHeight, rootHeight)
+}
+
+func (self *Ledger) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	return self.ldgStore.GetCrossStatesProof(height, key)
 }
 
 func (self *Ledger) PreExecuteContract(tx *types.Transaction) (*cstate.PreExecResult, error) {

@@ -119,3 +119,9 @@ func TestOpNz(t *testing.T) {
 		t.Fatal("NeoVM OpNz test failed.")
 	}
 }
+
+func TestCmp(t *testing.T) {
+	a := types.NewBoolean(false)
+	b := types.NewInteger(big.NewInt(0))
+
+}

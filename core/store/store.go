@@ -30,10 +30,12 @@ import (
 )
 
 type ExecuteResult struct {
-	WriteSet   *overlaydb.MemDB
-	Hash       common.Uint256
-	MerkleRoot common.Uint256
-	Notify     []*event.ExecuteNotify
+	WriteSet        *overlaydb.MemDB
+	CrossStates     []byte
+	CrossStatesRoot common.Uint256
+	Hash            common.Uint256
+	MerkleRoot      common.Uint256
+	Notify          []*event.ExecuteNotify
 }
 
 // LedgerStore provides func with store package.
@@ -45,6 +47,7 @@ type LedgerStore interface {
 	ExecuteBlock(b *types.Block) (ExecuteResult, error)   // called by consensus
 	SubmitBlock(b *types.Block, exec ExecuteResult) error // called by consensus
 	GetStateMerkleRoot(height uint32) (result common.Uint256, err error)
+	GetCrossStatesRoot(height uint32) (result common.Uint256, err error)
 	GetCurrentBlockHash() common.Uint256
 	GetCurrentBlockHeight() uint32
 	GetCurrentHeaderHeight() uint32
@@ -59,6 +62,7 @@ type LedgerStore interface {
 	IsContainTransaction(txHash common.Uint256) (bool, error)
 	GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256
 	GetMerkleProof(m, n uint32) ([]common.Uint256, error)
+	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
 	GetBookkeeperState() (*states.BookkeeperState, error)
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)

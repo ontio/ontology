@@ -47,6 +47,7 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract"
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -524,6 +525,10 @@ func (this *LedgerStoreImp) GetStateMerkleRoot(height uint32) (common.Uint256, e
 	return this.stateStore.GetStateMerkleRoot(height)
 }
 
+func (this *LedgerStoreImp) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
+	return this.stateStore.GetCrossStatesRoot(height)
+}
+
 func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	this.getSavingBlockLock()
 	defer this.releaseSavingBlockLock()
@@ -538,7 +543,6 @@ func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.Execu
 		err = fmt.Errorf("block height %d not equal next block height %d", blockHeight, nextBlockHeight)
 		return
 	}
-
 	result, err = this.executeBlock(block)
 	return
 }
@@ -595,6 +599,22 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, stateMerkleRoot common.
 	return nil
 }
 
+func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	hashes, err := this.stateStore.GetCrossStates(height)
+	if err != nil {
+		return nil, fmt.Errorf("GetCrossStates:%s", err)
+	}
+	state, err := this.stateStore.GetStorageValue(key)
+	if err != nil {
+		return nil, fmt.Errorf("GetStorageState key:%x", key)
+	}
+	path, err := merkle.MerkleLeafPath(state, hashes)
+	if err != nil {
+		return nil, err
+	}
+	return path, nil
+}
+
 func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
@@ -632,17 +652,21 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 
 	cache := storage.NewCacheDB(overlay)
+	crossHashes := common.NewZeroCopySink(nil)
 	for _, tx := range block.Transactions {
 		cache.Reset()
-		notify, e := this.handleTransaction(overlay, cache, block, tx)
+		notify, e := this.handleTransaction(overlay, cache, block, tx, crossHashes)
 		if e != nil {
 			err = e
 			return
 		}
-
 		result.Notify = append(result.Notify, notify)
 	}
 
+	result.CrossStatesRoot, result.CrossStates, err = calculateCrossStatesHash(crossHashes)
+	if err != nil {
+		return
+	}
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
 	if block.Header.Height < this.stateHashCheckHeight {
@@ -661,6 +685,21 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 
 	return
+}
+
+func calculateCrossStatesHash(sink *common.ZeroCopySink) (common.Uint256, []byte, error) {
+	bs := sink.Bytes()
+	source := common.NewZeroCopySource(bs)
+	l := len(bs) / common.UINT256_SIZE
+	hashes := make([]common.Uint256, 0, l)
+	for i := 0; i < l; i++ {
+		u256, eof := source.NextHash()
+		if eof {
+			return common.UINT256_EMPTY, nil, fmt.Errorf("%s", "Get states hash error!")
+		}
+		hashes = append(hashes, u256)
+	}
+	return merkle.TreeHasher{}.HashFullTreeWithLeafHash(hashes), bs, nil
 }
 
 func calculateTotalStateHash(overlay *overlaydb.OverlayDB) (result common.Uint256, err error) {
@@ -714,6 +753,11 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 	err = this.stateStore.SaveCurrentBlock(blockHeight, blockHash)
 	if err != nil {
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
+	}
+
+	err = this.stateStore.AddCrossStates(blockHeight, result.CrossStates, result.CrossStatesRoot)
+	if err != nil {
+		return err
 	}
 
 	log.Debugf("the state transition hash of block %d is:%s", blockHeight, result.Hash.ToHexString())
@@ -846,7 +890,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 	return this.submitBlock(block, result)
 }
 
-func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, error) {
+func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, block *types.Block, tx *types.Transaction, crossHashes *common.ZeroCopySink) (*event.ExecuteNotify, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	switch tx.TxType {
@@ -859,7 +903,7 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.Invoke:
-		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
+		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify, crossHashes)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}

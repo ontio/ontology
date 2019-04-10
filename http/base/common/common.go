@@ -59,6 +59,11 @@ type MerkleProof struct {
 	TargetHashes     []string
 }
 
+type CrossStatesProof struct {
+	Type      string
+	AuditPath string
+}
+
 type LogEventArgs struct {
 	TxHash          string
 	ContractAddress string

@@ -210,6 +210,59 @@ func (self *StateStore) AddStateMerkleTreeRoot(blockHeight uint32, writeSetHash 
 	return nil
 }
 
+func (self *StateStore) AddCrossStates(height uint32, crossStates []byte, crossStatesHash common.Uint256) error {
+	self.store.BatchPut(genCrossStatesKey(height), crossStates)
+
+	buf := bytes.NewBuffer(nil)
+	err := crossStatesHash.Serialize(buf)
+	if err != nil {
+		return err
+	}
+	self.store.BatchPut(genCrossStatesRootKey(height), buf.Bytes())
+	return nil
+}
+
+func (self *StateStore) GetCrossStatesRoot(height uint32) (hash common.Uint256, err error) {
+	key := genCrossStatesRootKey(height)
+	var value []byte
+	value, err = self.store.Get(key)
+	if err != nil {
+		return
+	}
+	buf := bytes.NewBuffer(value)
+	err = hash.Deserialize(buf)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (self *StateStore) GetCrossStates(height uint32) (hashes []common.Uint256, err error) {
+	key := genCrossStatesKey(height)
+
+	var value []byte
+	value, err = self.store.Get(key)
+	if err != nil {
+		return
+	}
+
+	source := common.NewZeroCopySource(value)
+
+	l := int(source.Size() / common.UINT256_SIZE)
+
+	hashes = make([]common.Uint256, 0, l)
+
+	for i := 0; i < l; i++ {
+		u256, eof := source.NextHash()
+		if eof {
+			err = io.ErrUnexpectedEOF
+			return
+		}
+		hashes = append(hashes, u256)
+	}
+	return
+}
+
 //AddBlockMerkleTreeRoot add a new tree root
 func (self *StateStore) AddBlockMerkleTreeRoot(txRoot common.Uint256) error {
 	key := self.genBlockMerkleTreeKey()
@@ -315,6 +368,20 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 	return storageState, nil
 }
 
+func (self *StateStore) GetStorageValue(key []byte) ([]byte, error) {
+	data, err := self.store.Get(append([]byte{byte(byte(scom.ST_STORAGE))}, key...))
+	if err != nil {
+		return nil, err
+	}
+	reader := bytes.NewBuffer(data)
+	storageState := new(states.StorageItem)
+	err = storageState.Deserialize(reader)
+	if err != nil {
+		return nil, err
+	}
+	return storageState.Value, nil
+}
+
 //GetCurrentBlock return current block height and current hash in state store
 func (self *StateStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 	key := self.getCurrentBlockKey()
@@ -386,6 +453,20 @@ func (self *StateStore) genBlockMerkleTreeKey() []byte {
 
 func (self *StateStore) genStateMerkleTreeKey() []byte {
 	return []byte{byte(scom.SYS_STATE_MERKLE_TREE)}
+}
+
+func genCrossStatesKey(height uint32) []byte {
+	key := make([]byte, 5, 5)
+	key[0] = byte(scom.SYS_CROSS_STATES)
+	binary.LittleEndian.PutUint32(key[1:], height)
+	return key
+}
+
+func genCrossStatesRootKey(height uint32) []byte {
+	key := make([]byte, 5, 5)
+	key[0] = byte(scom.SYS_CROSS_STATES_HASH)
+	binary.LittleEndian.PutUint32(key[1:], height)
+	return key
 }
 
 func (self *StateStore) genStateMerkleRootKey(height uint32) []byte {

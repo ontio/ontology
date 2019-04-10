@@ -24,16 +24,19 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
 	ctypes "github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
 	MAX_EXECUTE_ENGINE = 1024
+	MAX_STACK_LEN      = 1024
 )
 
 // SmartContract describe smart contract execute engine
@@ -46,6 +49,7 @@ type SmartContract struct {
 	Gas           uint64
 	ExecStep      int
 	PreExec       bool
+	CrossHashes   *common.ZeroCopySink
 }
 
 // Config describe smart contract need parameters configuration
@@ -114,6 +118,10 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	return true
 }
 
+func (this *SmartContract) PutMerkleVal(data []byte) {
+	this.CrossHashes.WriteHash(merkle.HashLeaf(data))
+}
+
 func (this *SmartContract) checkContexts() bool {
 	if len(this.Contexts) > MAX_EXECUTE_ENGINE {
 		return false
@@ -138,6 +146,33 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		Height:     this.Config.Height,
 		BlockHash:  this.Config.BlockHash,
 		Engine:     vm.NewExecutionEngine(),
+		PreExec:    this.PreExec,
+	}
+	return service, nil
+}
+
+func (this *SmartContract) NewExecuteEngineWithElem(code []byte, stacks []types.StackItems) (context.Engine, error) {
+	if !this.checkContexts() {
+		return nil, fmt.Errorf("%s", "engine over max limit!")
+	}
+	if len(stacks) > MAX_STACK_LEN {
+		return nil, fmt.Errorf("%s", "engine over max stack length!")
+	}
+	engine := vm.NewExecutionEngine()
+	for i := len(stacks) - 1; i >= 0; i-- {
+		engine.EvaluationStack.Push(stacks[i])
+	}
+	service := &neovm.NeoVmService{
+		Store:      this.Store,
+		CacheDB:    this.CacheDB,
+		ContextRef: this,
+		Code:       code,
+		Tx:         this.Config.Tx,
+		ShardID:    this.Config.ShardID,
+		Time:       this.Config.Time,
+		Height:     this.Config.Height,
+		BlockHash:  this.Config.BlockHash,
+		Engine:     engine,
 		PreExec:    this.PreExec,
 	}
 	return service, nil

@@ -33,6 +33,7 @@ type Header struct {
 	ParentHeight     uint32
 	PrevBlockHash    common.Uint256
 	TransactionsRoot common.Uint256
+	CrossStatesRoot  common.Uint256
 	BlockRoot        common.Uint256
 	Timestamp        uint32
 	Height           uint32
@@ -72,6 +73,7 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	if bd.Version == VERSION_SUPPORT_SHARD {
 		sink.WriteUint64(bd.ShardID)
 		sink.WriteUint32(bd.ParentHeight)
+		sink.WriteHash(bd.CrossStatesRoot)
 	}
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
@@ -157,6 +159,7 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	if bd.Version == VERSION_SUPPORT_SHARD {
 		bd.ShardID, eof = source.NextUint64()
 		bd.ParentHeight, eof = source.NextUint32()
+		bd.CrossStatesRoot, eof = source.NextHash()
 	}
 	bd.PrevBlockHash, eof = source.NextHash()
 	bd.TransactionsRoot, eof = source.NextHash()
