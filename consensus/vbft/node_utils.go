@@ -319,11 +319,11 @@ func calcParticipant(vrf vconfig.VRFValue, dposTable []uint32, k uint32) uint32 
 //		@ consensused proposer
 //		@ consensused for empty commit
 //
-func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
-	commitCount := make(map[uint32]int)                  // proposer -> #commit-msg
+func getCommitConsensus(commitMsgs []*blockCommitMsg, C int, N int) (uint32, bool) {
 	endorseCount := make(map[uint32]map[uint32]struct{}) // proposer -> []endorsers
 	emptyCommitCount := 0
 	emptyCommit := false
+	signCount := make(map[uint32]map[uint32]int)
 	for _, c := range commitMsgs {
 		if c.CommitForEmpty {
 			emptyCommitCount++
@@ -332,18 +332,16 @@ func getCommitConsensus(commitMsgs []*blockCommitMsg, C int) (uint32, bool) {
 				emptyCommit = true
 			}
 		}
-
-		commitCount[c.BlockProposer] += 1
-		if commitCount[c.BlockProposer] > C && commitCount[c.BlockProposer] == len(c.EndorsersSig) {
-			for _, commit := range commitMsgs {
-				if c.BlockProposer == commit.BlockProposer {
-					if _, pesent := commit.EndorsersSig[commit.Committer]; !pesent {
-						return c.BlockProposer, emptyCommit
-					}
-				}
-			}
+		if _, present := signCount[c.BlockProposer]; !present {
+			signCount[c.BlockProposer] = make(map[uint32]int)
 		}
-
+		signCount[c.BlockProposer][c.Committer] += 1
+		for endorser := range c.EndorsersSig {
+			signCount[c.BlockProposer][endorser] += 1
+		}
+		if len(signCount[c.BlockProposer])+1 >= N-(N-1)/3 {
+			return c.BlockProposer, emptyCommit
+		}
 		for endorser := range c.EndorsersSig {
 			if _, present := endorseCount[c.BlockProposer]; !present {
 				endorseCount[c.BlockProposer] = make(map[uint32]struct{})
