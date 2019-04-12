@@ -32,15 +32,17 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	chainmgr "github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
+	com "github.com/ontio/ontology/core/store/common"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/core/types"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
+	state "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
-
-	shardmgt "github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 )
 
 func SignMsg(account *account.Account, msg ConsensusMsg) ([]byte, error) {
@@ -130,9 +132,9 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 	}
 	return nil
 }
-func GetVbftConfigInfo(memdb *overlaydb.MemDB, isRootShard bool) (*config.VBFTConfig, error) {
+func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 	//get governance view,change view
-	changeview, err := GetChangeView(memdb, isRootShard)
+	changeview, err := GetChangeView(memdb)
 	if err != nil {
 		return nil, err
 	}
@@ -142,11 +144,6 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB, isRootShard bool) (*config.VBFTCo
 	contractAddress := nutils.GovernanceContractAddress
 	key := gov.PRE_CONFIG
 	vbft_key := gov.VBFT_CONFIG
-	if !isRootShard {
-		contractAddress = nutils.ShardMgmtContractAddress
-		key = shardmgt.PRE_CONFIG
-		vbft_key = shardmgt.VBFT_CONFIG
-	}
 	data, err := GetStorageValue(memdb, ledger.DefLedger, contractAddress, []byte(key))
 	if err != nil && err != scommon.ErrNotFound {
 		return nil, err
@@ -194,18 +191,14 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB, isRootShard bool) (*config.VBFTCo
 	return chainconfig, nil
 }
 
-func GetPeersConfig(memdb *overlaydb.MemDB, isRootShard bool) ([]*config.VBFTPeerStakeInfo, error) {
-	changeview, err := GetChangeView(memdb, isRootShard)
+func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error) {
+	changeview, err := GetChangeView(memdb)
 	if err != nil {
 		return nil, err
 	}
 	viewBytes := nutils.GetUint32Bytes(changeview.View)
 	key := append([]byte(gov.PEER_POOL), viewBytes...)
 	contractAddress := nutils.GovernanceContractAddress
-	if !isRootShard {
-		contractAddress = nutils.ShardMgmtContractAddress
-		key = append([]byte(shardmgt.PEER_POOL), viewBytes...)
-	}
 	data, err := GetStorageValue(memdb, ledger.DefLedger, contractAddress, key)
 	if err != nil {
 		return nil, err
@@ -231,8 +224,8 @@ func GetPeersConfig(memdb *overlaydb.MemDB, isRootShard bool) ([]*config.VBFTPee
 	return peerstakes, nil
 }
 
-func isUpdate(memdb *overlaydb.MemDB, view uint32, isRootShard bool) (bool, error) {
-	changeview, err := GetChangeView(memdb, isRootShard)
+func isUpdate(memdb *overlaydb.MemDB, view uint32) (bool, error) {
+	changeview, err := GetChangeView(memdb)
 	if err != nil {
 		return false, err
 	}
@@ -266,13 +259,9 @@ func GetStorageValue(memdb *overlaydb.MemDB, backend *ledger.Ledger, addr common
 	return
 }
 
-func GetChangeView(memdb *overlaydb.MemDB, isRootShard bool) (*nutils.ChangeView, error) {
+func GetChangeView(memdb *overlaydb.MemDB) (*nutils.ChangeView, error) {
 	contractAddress := nutils.GovernanceContractAddress
 	key := gov.GOVERNANCE_VIEW
-	if !isRootShard {
-		contractAddress = nutils.ShardMgmtContractAddress
-		key = shardmgt.SHARD_VIEW
-	}
 	value, err := GetStorageValue(memdb, ledger.DefLedger, contractAddress, []byte(key))
 	if err != nil {
 		return nil, err
@@ -285,17 +274,17 @@ func GetChangeView(memdb *overlaydb.MemDB, isRootShard bool) (*nutils.ChangeView
 	return changeView, nil
 }
 
-func getChainConfig(memdb *overlaydb.MemDB, blkNum uint32, isRootShard bool) (*vconfig.ChainConfig, error) {
-	config, err := GetVbftConfigInfo(memdb, isRootShard)
+func getRootChainConfig(memdb *overlaydb.MemDB, blkNum uint32) (*vconfig.ChainConfig, error) {
+	config, err := GetVbftConfigInfo(memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
 	}
 
-	peersinfo, err := GetPeersConfig(memdb, isRootShard)
+	peersinfo, err := GetPeersConfig(memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
 	}
-	changeview, err := GetChangeView(memdb, isRootShard)
+	changeview, err := GetChangeView(memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get governanceview failed:%s", err)
 	}
@@ -318,4 +307,52 @@ func getShardGasBalance(memdb *overlaydb.MemDB) (uint64, error) {
 		return 0, err
 	}
 	return balance, nil
+}
+
+func getShardConfig(lgr *ledger.Ledger, shardID types.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
+	shardState, err := chainmgr.GetShardState(lgr, shardID)
+	if err == com.ErrNotFound {
+		return nil, fmt.Errorf("get shard %d failed: %s", shardID, err)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get shard %d failed: %s", shardID, err)
+	}
+	chainconfig := &config.VBFTConfig{
+		N:                    shardState.Config.VbftCfg.N,
+		C:                    shardState.Config.VbftCfg.C,
+		K:                    shardState.Config.VbftCfg.K,
+		L:                    shardState.Config.VbftCfg.L,
+		BlockMsgDelay:        shardState.Config.VbftCfg.BlockMsgDelay,
+		HashMsgDelay:         shardState.Config.VbftCfg.HashMsgDelay,
+		PeerHandshakeTimeout: shardState.Config.VbftCfg.PeerHandshakeTimeout,
+		MaxBlockChangeView:   shardState.Config.VbftCfg.MaxBlockChangeView,
+	}
+
+	shardView, err := chainmgr.GetShardView(lgr, shardID)
+	if err != nil {
+		return nil, fmt.Errorf("GetShardView err:%s", err)
+	}
+	var peersinfo []*config.VBFTPeerStakeInfo
+	PeerStakesInfo, err := chainmgr.GetShardPeerStakeInfo(lgr, shardID, shardView.View+1)
+	if err != nil {
+		return nil, fmt.Errorf("GetShardPeerStakeInfo err:%s", err)
+	}
+	for index, id := range shardState.Peers {
+		if id.NodeType == state.CONDIDATE_NODE || id.NodeType == state.CONSENSUS_NODE {
+			if stateInfo, present := PeerStakesInfo[index]; stateInfo != nil && present {
+				peerStakeInfo := &config.VBFTPeerStakeInfo{
+					Index:      id.Index,
+					PeerPubkey: id.PeerPubKey,
+					InitPos:    stateInfo.WholeStakeAmount,
+				}
+				peersinfo = append(peersinfo, peerStakeInfo)
+			}
+		}
+	}
+	cfg, err := vconfig.GenesisChainConfig(chainconfig, peersinfo, shardView.TxHash, blkNum)
+	if err != nil {
+		return nil, fmt.Errorf("GenesisShardChainConfig failed: %s", err)
+	}
+	cfg.View = shardView.View
+	return cfg, err
 }

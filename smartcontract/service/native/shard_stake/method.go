@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 // TODO: consider peer exit scenario
@@ -56,12 +57,17 @@ func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo []*
 	setShardViewInfo(native, shardId, currentView, currentViewInfo)
 	nextView := currentView + 1
 	nextTwoView := nextView + 1
-	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
+	nextViewInfo, err := GetShardViewInfo(native, shardId, View(nextView))
 	if err != nil {
 		return fmt.Errorf("commitDpos: get next view info failed, err: %s", err)
 	}
-	setShardViewInfo(native, shardId, nextTwoView, nextViewInfo)
-	setShardView(native, shardId, nextView)
+	setShardViewInfo(native, shardId, View(nextTwoView), nextViewInfo)
+	shardView := &utils.ChangeView{
+		View:   uint32(nextView),
+		Height: native.Height,
+		TxHash: native.Tx.Hash(),
+	}
+	setShardView(native, shardId, shardView)
 	return nil
 }
 

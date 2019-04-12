@@ -58,7 +58,7 @@ func registerCandidate(native *native.NativeService, flag string) error {
 	}
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -163,7 +163,7 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 	}
 
 	//get current view
-	view, err := utils.GetView(native, contract, GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return fmt.Errorf("getView, get view error: %v", err)
 	}
@@ -680,7 +680,7 @@ func withdrawPenaltyStake(native *native.NativeService, contract common.Address,
 }
 
 func executeCommitDpos(native *native.NativeService, contract common.Address) error {
-	governanceView, err := utils.GetChangeView(native, contract, GOVERNANCE_VIEW)
+	governanceView, err := utils.GetChangeView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
 	}
@@ -708,7 +708,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address) er
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	err = utils.PutChangeView(native, contract, governanceView, GOVERNANCE_VIEW)
+	err = utils.PutChangeView(native, contract, governanceView, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
 	}
@@ -1026,7 +1026,7 @@ func executePeerSplit(native *native.NativeService, contract common.Address, pee
 
 func executeCommitDpos1(native *native.NativeService, contract common.Address) error {
 	//get governace view
-	governanceView, err := utils.GetChangeView(native, contract, GOVERNANCE_VIEW)
+	governanceView, err := utils.GetChangeView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
 	}
@@ -1164,7 +1164,7 @@ func executeCommitDpos1(native *native.NativeService, contract common.Address) e
 
 func executeCommitDpos2(native *native.NativeService, contract common.Address) error {
 	//get governace view
-	governanceView, err := utils.GetChangeView(native, contract, GOVERNANCE_VIEW)
+	governanceView, err := utils.GetChangeView(native, contract, []byte(GOVERNANCE_VIEW))
 	if err != nil {
 		return fmt.Errorf("getGovernanceView, get GovernanceView error: %v", err)
 	}

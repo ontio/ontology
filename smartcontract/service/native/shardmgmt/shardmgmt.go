@@ -24,7 +24,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -61,11 +60,6 @@ const (
 
 	// TODO: child shard commit dpos
 	SHARD_COMMIT_DPOS = "shardCommitDpos"
-	//key prefix
-	VBFT_CONFIG = "vbftConfig"
-	SHARD_VIEW  = "shardView"
-	PEER_POOL   = "peerPool"
-	PRE_CONFIG  = "preConfig"
 )
 
 func InitShardManagement() {
@@ -576,60 +570,4 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	setShardState(native, contract, shard)
 	return utils.BYTE_TRUE, nil
-}
-
-func SaveConfig(native *native.NativeService, state *shardstates.ShardState) error {
-	config := &utils.Configuration{
-		N:                    state.Config.VbftCfg.N,
-		C:                    state.Config.VbftCfg.C,
-		K:                    state.Config.VbftCfg.K,
-		L:                    state.Config.VbftCfg.L,
-		BlockMsgDelay:        state.Config.VbftCfg.BlockMsgDelay,
-		HashMsgDelay:         state.Config.VbftCfg.HashMsgDelay,
-		PeerHandshakeTimeout: state.Config.VbftCfg.PeerHandshakeTimeout,
-		MaxBlockChangeView:   state.Config.VbftCfg.MaxBlockChangeView,
-	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	err := utils.PutConfig(native, contract, config, VBFT_CONFIG)
-	if err != nil {
-		return fmt.Errorf("putConfig, put config error: %v", err)
-	}
-	var view uint32 = 1
-
-	shardView := &utils.ChangeView{
-		View:   view, //todo
-		Height: native.Height,
-		TxHash: native.Tx.Hash(),
-	}
-	err = utils.PutChangeView(native, contract, shardView, SHARD_VIEW)
-	if err != nil {
-		return fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
-	}
-
-	peerPoolMap := &utils.PeerPoolMap{
-		PeerPoolMap: make(map[string]*utils.PeerPoolItem),
-	}
-	var maxId uint32
-	for _, peer := range state.Config.VbftCfg.Peers {
-		if peer.Index > maxId {
-			maxId = peer.Index
-		}
-		address, err := common.AddressFromBase58(peer.Address)
-		if err != nil {
-			return fmt.Errorf("common.AddressFromBase58, address format error: %v", err)
-		}
-
-		peerPoolItem := new(utils.PeerPoolItem)
-		peerPoolItem.Index = peer.Index
-		peerPoolItem.PeerPubkey = peer.PeerPubkey
-		peerPoolItem.Address = address
-		peerPoolItem.InitPos = peer.InitPos
-		peerPoolItem.TotalPos = 0
-		peerPoolMap.PeerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
-	}
-	err = utils.PutPeerPoolMap(native, contract, view, peerPoolMap, PEER_POOL)
-	if err != nil {
-		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
-	}
-	return nil
 }

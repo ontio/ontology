@@ -133,12 +133,12 @@ func buildShardGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig
 	if err != nil {
 		return nil, fmt.Errorf("[Block],BuildGenesisBlock err with GetBookkeeperAddress: %s", err)
 	}
-	govConfig := bytes.NewBuffer(nil)
+	shardCfg := bytes.NewBuffer(nil)
 	if genesisConfig.VBFT != nil {
-		genesisConfig.VBFT.Serialize(govConfig)
+		genesisConfig.VBFT.Serialize(shardCfg)
 	}
-	govConfigTx := newGoverConfigInit(govConfig.Bytes())
-	consensusPayload, err := vconfig.GenesisConsensusPayload(govConfigTx.Hash(), 0)
+	shardConfigTx := newGoverConfigInit(shardCfg.Bytes())
+	consensusPayload, err := vconfig.GenesisConsensusPayload(shardConfigTx.Hash(), 0)
 	if err != nil {
 		return nil, fmt.Errorf("consensus genesus init failed: %s", err)
 	}
@@ -162,19 +162,16 @@ func buildShardGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig
 	//block
 	ong := newUtilityToken()
 	param := newParamContract()
-	gov := newGovContract()
 
 	genesisBlock := &types.Block{
 		Header: genesisHeader,
 		Transactions: []*types.Transaction{
 			ong,
 			param,
-			gov,
 			deployShardMgmtContract(),
 			deployShardSysMsgContract(),
 			newShardUtilityInit(),
 			newParamInit(),
-			govConfigTx,
 			initShardMgmtContract(),
 			initShardSysMsgContract(),
 			deployShardHotelContract(),
