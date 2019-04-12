@@ -30,7 +30,7 @@ import (
 )
 
 type Message interface {
-	Serialization(sink *comm.ZeroCopySink) error
+	Serialization(sink *comm.ZeroCopySink)
 	Deserialization(source *comm.ZeroCopySource) error
 	CmdType() string
 }
@@ -84,13 +84,10 @@ func newMessageHeader(cmd string, length uint32, checksum [common.CHECKSUM_LEN]b
 	return msgh
 }
 
-func WriteMessage(sink *comm.ZeroCopySink, msg Message) error {
+func WriteMessage(sink *comm.ZeroCopySink, msg Message) {
 	pstart := sink.Size()
 	sink.NextBytes(common.MSG_HDR_LEN) // can not save the buf, since it may reallocate in sink
-	err := msg.Serialization(sink)
-	if err != nil {
-		return err
-	}
+	msg.Serialization(sink)
 	pend := sink.Size()
 	total := pend - pstart
 	payLen := total - common.MSG_HDR_LEN
@@ -103,8 +100,6 @@ func WriteMessage(sink *comm.ZeroCopySink, msg Message) error {
 	sink.BackUp(total)
 	writeMessageHeaderInto(sink, hdr)
 	sink.NextBytes(payLen)
-
-	return err
 }
 
 func ReadMessage(reader io.Reader) (Message, uint32, error) {

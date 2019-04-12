@@ -28,8 +28,8 @@ type Consensus struct {
 }
 
 //Serialize message payload
-func (this *Consensus) Serialization(sink *comm.ZeroCopySink) error {
-	return this.Cons.Serialization(sink)
+func (this *Consensus) Serialization(sink *comm.ZeroCopySink) {
+	this.Cons.Serialization(sink)
 }
 
 func (this *Consensus) CmdType() string {

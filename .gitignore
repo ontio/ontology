@@ -28,3 +28,6 @@ neosnapshot/*
 glide.lock
 *.iml
 docker/payload
+config.json
+peers.recent
+shard_*/

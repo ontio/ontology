@@ -30,20 +30,13 @@ type Block struct {
 	Transactions []*Transaction
 }
 
-func (b *Block) Serialization(sink *common.ZeroCopySink) error {
-	err := b.Header.Serialization(sink)
-	if err != nil {
-		return err
-	}
+func (b *Block) Serialization(sink *common.ZeroCopySink) {
+	b.Header.Serialization(sink)
 
 	sink.WriteUint32(uint32(len(b.Transactions)))
 	for _, transaction := range b.Transactions {
-		err := transaction.Serialization(sink)
-		if err != nil {
-			return err
-		}
+		transaction.Serialization(sink)
 	}
-	return nil
 }
 
 // if no error, ownership of param raw is transfered to Transaction

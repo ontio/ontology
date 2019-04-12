@@ -91,13 +91,11 @@ func (this *ConsensusPayload) Type() common.InventoryType {
 	return common.CONSENSUS
 }
 
-func (this *ConsensusPayload) Serialization(sink *common.ZeroCopySink) error {
+func (this *ConsensusPayload) Serialization(sink *common.ZeroCopySink) {
 	this.serializationUnsigned(sink)
 	buf := keypair.SerializePublicKey(this.Owner)
 	sink.WriteVarBytes(buf)
 	sink.WriteVarBytes(this.Signature)
-
-	return nil
 }
 
 //Serialize message payload

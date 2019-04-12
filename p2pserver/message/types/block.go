@@ -32,13 +32,9 @@ type Block struct {
 }
 
 //Serialize message payload
-func (this *Block) Serialization(sink *common.ZeroCopySink) error {
-	err := this.Blk.Serialization(sink)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. err:%v", err))
-	}
+func (this *Block) Serialization(sink *common.ZeroCopySink) {
+	this.Blk.Serialization(sink)
 	sink.WriteHash(this.MerkleRoot)
-	return nil
 }
 
 func (this *Block) CmdType() string {

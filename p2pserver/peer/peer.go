@@ -346,11 +346,7 @@ func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
 //Send transfer buffer by sync or cons link
 func (this *Peer) Send(msg types.Message, isConsensus bool) error {
 	sink := comm.NewZeroCopySink(nil)
-	err := types.WriteMessage(sink, msg)
-	if err != nil {
-		log.Debugf("[p2p]error serialize messge ", err.Error())
-		return err
-	}
+	types.WriteMessage(sink, msg)
 
 	return this.SendRaw(msg.CmdType(), sink.Bytes(), isConsensus)
 }
