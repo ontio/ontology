@@ -29,12 +29,12 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-type View uint64 // shard consensus epoch index
+type View uint32 // shard consensus epoch index
 
 type PeerViewInfo struct {
 	PeerPubKey             string
 	Owner                  common.Address
-	CanStake               bool   // if user can stake peer
+	CanStake               bool   // if user can stake peer //todo modify param name
 	WholeFee               uint64 // each epoch handling fee
 	FeeBalance             uint64 // each epoch handling fee not be withdrawn
 	WholeStakeAmount       uint64 // node + user stake amount at the last view

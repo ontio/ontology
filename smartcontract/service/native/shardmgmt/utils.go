@@ -210,7 +210,7 @@ func getRootCurrentViewPeerItem(native *native.NativeService, pubKey string) (*u
 
 func getRootCurrentViewPeerMap(native *native.NativeService) (*utils.PeerPoolMap, error) {
 	//get current view
-	view, err := utils.GetView(native, utils.GovernanceContractAddress, gov.GOVERNANCE_VIEW)
+	view, err := utils.GetView(native, utils.GovernanceContractAddress, []byte(gov.GOVERNANCE_VIEW))
 	if err != nil {
 		return nil, fmt.Errorf("getRootCurrentViewPeerMap: get view error: %s", err)
 	}

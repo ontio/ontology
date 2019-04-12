@@ -2175,13 +2175,26 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
 
 //checkUpdateChainConfig query leveldb check is force update
 func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
-	force, err := isUpdate(self.chainStore.GetExecWriteSet(blkNum-1), self.config.View, chainmgr.GetShardID().IsRootShard())
-	if err != nil {
-		log.Errorf("checkUpdateChainConfig err:%s", err)
-		return false
+	if chainmgr.GetShardID().IsRootShard() {
+		force, err := isUpdate(self.chainStore.GetExecWriteSet(blkNum-1), self.config.View)
+		if err != nil {
+			log.Errorf("checkUpdateChainConfig err:%s", err)
+			return false
+		}
+		log.Debugf("checkUpdateChainConfig force: %v", force)
+
+		return force
+	} else {
+		shardView, err := chainmgr.GetShardView(self.ledger, chainmgr.GetShardID())
+		if err != nil {
+			log.Errorf("GetShardView err:%s", err)
+			return false
+		}
+		if shardView.View > self.config.View {
+			return true
+		}
 	}
-	log.Debugf("checkUpdateChainConfig force: %v", force)
-	return force
+	return false
 }
 
 func (self *Server) validHeight(blkNum uint32) uint32 {
@@ -2225,9 +2238,18 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	cfg = nil
 	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
 		isRootShard := chainmgr.GetShardID().IsRootShard()
-		chainconfig, err := getChainConfig(self.chainStore.GetExecWriteSet(blkNum-1), blkNum, isRootShard)
-		if err != nil {
-			return fmt.Errorf("getChainConfig failed:%s", err)
+		var chainconfig *vconfig.ChainConfig
+		var err error
+		if isRootShard {
+			chainconfig, err = getRootChainConfig(self.chainStore.GetExecWriteSet(blkNum-1), blkNum)
+			if err != nil {
+				return fmt.Errorf("getRootChainConfig failed:%s", err)
+			}
+		} else {
+			chainconfig, err = getShardConfig(self.ledger, chainmgr.GetShardID(), blkNum)
+			if err != nil {
+				return fmt.Errorf("getShardChainConfig failed:%s", err)
+			}
 		}
 		//add transaction invoke governance native commit_pos contract
 		if self.checkNeedUpdateChainConfig(blkNum) {

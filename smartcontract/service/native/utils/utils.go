@@ -60,8 +60,8 @@ func PutPeerPoolMap(native *native.NativeService, contract common.Address, view 
 	return nil
 }
 
-func GetChangeView(native *native.NativeService, contract common.Address, key string) (*ChangeView, error) {
-	changeViewBytes, err := native.CacheDB.Get(ConcatKey(contract, []byte(key)))
+func GetChangeView(native *native.NativeService, contract common.Address, key []byte) (*ChangeView, error) {
+	changeViewBytes, err := native.CacheDB.Get(ConcatKey(contract, key))
 	if err != nil {
 		return nil, fmt.Errorf("getChangeView, get changeViewBytes error: %v", err)
 	}
@@ -80,7 +80,7 @@ func GetChangeView(native *native.NativeService, contract common.Address, key st
 	return changeView, nil
 }
 
-func GetView(native *native.NativeService, contract common.Address, key string) (uint32, error) {
+func GetView(native *native.NativeService, contract common.Address, key []byte) (uint32, error) {
 	changeView, err := GetChangeView(native, contract, key)
 	if err != nil {
 		return 0, fmt.Errorf("getView, getView error: %v", err)
@@ -88,12 +88,12 @@ func GetView(native *native.NativeService, contract common.Address, key string) 
 	return changeView.View, nil
 }
 
-func PutChangeView(native *native.NativeService, contract common.Address, changeView *ChangeView, key string) error {
+func PutChangeView(native *native.NativeService, contract common.Address, changeView *ChangeView, key []byte) error {
 	bf := new(bytes.Buffer)
 	if err := changeView.Serialize(bf); err != nil {
 		return fmt.Errorf("serialize, serialize changeView error: %v", err)
 	}
-	native.CacheDB.Put(ConcatKey(contract, []byte(key)), cstates.GenRawStorageItem(bf.Bytes()))
+	native.CacheDB.Put(ConcatKey(contract, key), cstates.GenRawStorageItem(bf.Bytes()))
 	return nil
 }
 
