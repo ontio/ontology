@@ -105,10 +105,10 @@ func GetShardCurrentView(native *native.NativeService, id types.ShardID) (View, 
 	return View(changeView.View), nil
 }
 
-func setShardView(native *native.NativeService, id types.ShardID, shardView *utils.ChangeView) error {
+func setShardView(native *native.NativeService, id types.ShardID, shardView *utils.ChangeView) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := GenShardViewKey(shardIDBytes)
-	return utils.PutChangeView(native, utils.ShardStakeAddress, shardView, key)
+	utils.PutChangeView(native, utils.ShardStakeAddress, shardView, key)
 }
 
 func GetShardViewInfo(native *native.NativeService, id types.ShardID, view View) (*ViewInfo, error) {

@@ -470,8 +470,8 @@ func (this *PeerExitParam) Deserialize(r io.Reader) error {
 }
 
 type GetPeerInfoParam struct {
-	ShardId    types.ShardID
-	View       uint64
+	ShardId types.ShardID
+	View    uint64
 }
 
 func (this *GetPeerInfoParam) Serialize(w io.Writer) error {

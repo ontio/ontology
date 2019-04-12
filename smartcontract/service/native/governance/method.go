@@ -699,10 +699,7 @@ func executeCommitDpos(native *native.NativeService, contract common.Address) er
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	err = utils.PutChangeView(native, contract, governanceView, []byte(GOVERNANCE_VIEW))
-	if err != nil {
-		return fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
-	}
+	utils.PutChangeView(native, contract, governanceView, []byte(GOVERNANCE_VIEW))
 
 	return nil
 }

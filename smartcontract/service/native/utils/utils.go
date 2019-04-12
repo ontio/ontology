@@ -73,8 +73,8 @@ func GetChangeView(native *native.NativeService, contract common.Address, key []
 		if err != nil {
 			return nil, fmt.Errorf("getChangeView, deserialize from raw storage item err:%v", err)
 		}
-		if err := changeView.Deserialize(bytes.NewBuffer(value)); err != nil {
-			return nil, fmt.Errorf("deserialize, deserialize changeView error: %v", err)
+		if err := changeView.Deserialization(common.NewZeroCopySource(value)); err != nil {
+			return nil, fmt.Errorf("getChangeView, deserialize changeView error: %v", err)
 		}
 	}
 	return changeView, nil
@@ -88,13 +88,10 @@ func GetView(native *native.NativeService, contract common.Address, key []byte) 
 	return changeView.View, nil
 }
 
-func PutChangeView(native *native.NativeService, contract common.Address, changeView *ChangeView, key []byte) error {
-	bf := new(bytes.Buffer)
-	if err := changeView.Serialize(bf); err != nil {
-		return fmt.Errorf("serialize, serialize changeView error: %v", err)
-	}
-	native.CacheDB.Put(ConcatKey(contract, key), cstates.GenRawStorageItem(bf.Bytes()))
-	return nil
+func PutChangeView(native *native.NativeService, contract common.Address, changeView *ChangeView, key []byte) {
+	sink := common.NewZeroCopySink(0)
+	changeView.Serialization(sink)
+	native.CacheDB.Put(ConcatKey(contract, key), cstates.GenRawStorageItem(sink.Bytes()))
 }
 
 func GetConfig(native *native.NativeService, contract common.Address, key string) (*Configuration, error) {

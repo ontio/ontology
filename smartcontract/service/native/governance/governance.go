@@ -250,10 +250,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	err = utils.PutChangeView(native, contract, governanceView, []byte(GOVERNANCE_VIEW))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("putGovernanceView, put governanceView error: %v", err)
-	}
+	utils.PutChangeView(native, contract, governanceView, []byte(GOVERNANCE_VIEW))
 
 	//init config
 	config := &utils.Configuration{

@@ -139,7 +139,7 @@ func (self Address) MarshalJSON() ([]byte, error) {
 func (self *Address) UnmarshalJSON(input []byte) error {
 	base58Addr := ""
 	err := json.Unmarshal(input, &base58Addr)
-	if err != nil{
+	if err != nil {
 		return err
 	}
 	addr, err := AddressFromBase58(base58Addr)
