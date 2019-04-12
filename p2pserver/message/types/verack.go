@@ -30,9 +30,8 @@ type VerACK struct {
 }
 
 //Serialize message payload
-func (this *VerACK) Serialization(sink *comm.ZeroCopySink) error {
+func (this *VerACK) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteBool(this.IsConsensus)
-	return nil
 }
 
 func (this *VerACK) CmdType() string {

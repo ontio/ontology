@@ -189,10 +189,7 @@ func multiSigToTx(ctx *cli.Context) error {
 		return fmt.Errorf("IntoImmutable error:%s", err)
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	if err != nil {
-		return fmt.Errorf("tx serialization error:%s", err)
-	}
+	tx.Serialization(&sink)
 
 	rawTx = hex.EncodeToString(sink.Bytes())
 	PrintInfoMsg("RawTx after multi signed:")
@@ -263,10 +260,7 @@ func sigToTx(ctx *cli.Context) error {
 		return fmt.Errorf("IntoImmutable error:%s", err)
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	if err != nil {
-		return fmt.Errorf("tx serialization error:%s", err)
-	}
+	tx.Serialization(&sink)
 
 	rawTx = hex.EncodeToString(sink.Bytes())
 	PrintInfoMsg("RawTx after signed:")
