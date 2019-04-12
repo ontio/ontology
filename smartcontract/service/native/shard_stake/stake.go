@@ -371,7 +371,7 @@ func WithdrawStake(native *native.NativeService) ([]byte, error) {
 			// user stake firstly
 			unboundOngInfo.Time = native.Time
 			unboundOngInfo.StakeAmount = num
-		} else if unboundOngInfo.StakeAmount > num {
+		} else if unboundOngInfo.StakeAmount >= num {
 			amount := utils.CalcUnbindOng(unboundOngInfo.StakeAmount, unboundOngInfo.Time-constants.GENESIS_BLOCK_TIMESTAMP,
 				native.Time-constants.GENESIS_BLOCK_TIMESTAMP)
 			unboundOngInfo.Balance += amount
