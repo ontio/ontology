@@ -44,7 +44,7 @@ type Header struct {
 	hash *common.Uint256
 }
 
-func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
+func (bd *Header) Serialization(sink *common.ZeroCopySink) {
 	bd.serializationUnsigned(sink)
 	sink.WriteVarUint(uint64(len(bd.Bookkeepers)))
 
@@ -56,8 +56,6 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
 	for _, sig := range bd.SigData {
 		sink.WriteVarBytes(sig)
 	}
-
-	return nil
 }
 
 //Serialize the blockheader data without program

@@ -29,10 +29,9 @@ type PrepareResponse struct {
 	Signature []byte
 }
 
-func (pres *PrepareResponse) Serialization(sink *common.ZeroCopySink) error {
+func (pres *PrepareResponse) Serialization(sink *common.ZeroCopySink) {
 	pres.msgData.Serialization(sink)
 	sink.WriteVarBytes(pres.Signature)
-	return nil
 }
 
 //read data to reader

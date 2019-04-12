@@ -96,12 +96,7 @@ func SigRawTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		return
 	}
 	sink := common.ZeroCopySink{}
-	err = rawTx.Serialization(&sink)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigRawTransaction tx Serialize error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
-		return
-	}
+	rawTx.Serialization(&sink)
 	resp.Result = &SigRawTransactionRsp{
 		SignedTx: hex.EncodeToString(sink.Bytes()),
 	}

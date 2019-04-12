@@ -27,7 +27,7 @@ import (
 )
 
 type ConsensusMessage interface {
-	Serialization(sink *common.ZeroCopySink) error
+	Serialization(sink *common.ZeroCopySink)
 	Deserialization(source *common.ZeroCopySource) error
 	Type() ConsensusMessageType
 	ViewNumber() byte

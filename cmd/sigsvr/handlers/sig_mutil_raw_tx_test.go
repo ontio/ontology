@@ -64,8 +64,7 @@ func TestSigMutilRawTransaction(t *testing.T) {
 	immut, err := tx.IntoImmutable()
 	assert.Nil(t, err)
 	sink := common.ZeroCopySink{}
-	err = immut.Serialization(&sink)
-	assert.Nil(t, err)
+	immut.Serialization(&sink)
 
 	rawReq := &SigMutilRawTransactionReq{
 		RawTx:   hex.EncodeToString(sink.Bytes()),
