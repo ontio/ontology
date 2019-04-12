@@ -34,7 +34,7 @@ type Storage struct {
 	currHash         common.Uint256
 	currHeight       uint32
 	lock             *sync.Mutex
-	headers          map[common.Uint256]*types.Header
+	headers          map[common.Uint256]*types.RawHeader
 	headerIndex      map[uint32]common.Uint256
 	currHeaderHeight uint32
 }
@@ -64,7 +64,7 @@ func Open(pt string) (*Storage, error) {
 	}
 
 	task := make(chan Task, 1000)
-	headers := make(map[common.Uint256]*types.Header)
+	headers := make(map[common.Uint256]*types.RawHeader)
 	headerIndex := make(map[uint32]common.Uint256)
 	lock := new(sync.Mutex)
 	store := &Storage{backend, task, backend.CurrHash(), backend.CurrHeight(),
@@ -116,12 +116,12 @@ func (self *Storage) blockSaveLoop(task <-chan Task) {
 
 			self.lock.Lock()
 			for k, v := range self.headers {
-				if v.Height+100 > nextHeight {
+				if v.Height+100 < nextHeight {
 					delete(self.headers, k)
 				}
 			}
 			for height, _ := range self.headerIndex {
-				if height+100 > nextHeight {
+				if height+100 < nextHeight {
 					delete(self.headerIndex, height)
 				}
 			}
@@ -130,7 +130,7 @@ func (self *Storage) blockSaveLoop(task <-chan Task) {
 	}
 }
 
-func (self *Storage) AddHeader(headers []*types.Header) error {
+func (self *Storage) AddHeader(headers []*types.RawHeader) error {
 	sort.Slice(headers, func(i, j int) bool {
 		return headers[i].Height < headers[j].Height
 	})
@@ -147,7 +147,7 @@ func (self *Storage) AddHeader(headers []*types.Header) error {
 	return nil
 }
 
-func (self *Storage) GetHeaderByHash(hash common.Uint256) (*types.Header, error) {
+func (self *Storage) GetHeaderByHash(hash common.Uint256) (*types.RawHeader, error) {
 	self.lock.Lock()
 	header, ok := self.headers[hash]
 	self.lock.Unlock()
@@ -476,7 +476,7 @@ func checkBlockHashConsistence(buf []byte, meta BlockMeta) bool {
 	hash := common.Uint256(sha256.Sum256(temp[:]))
 	return meta.hash == hash
 }
-func (self *StorageBackend) getHeader(metaKey []byte) (*types.Header, error) {
+func (self *StorageBackend) getHeader(metaKey []byte) (*types.RawHeader, error) {
 	metaRaw, err := self.metaDB.Get(metaKey, nil)
 	if err != nil {
 		return nil, err
@@ -497,7 +497,7 @@ func (self *StorageBackend) getHeader(metaKey []byte) (*types.Header, error) {
 		log.Error("[relayer] getHeader checkBlockHashConsistence failed")
 		return nil, fmt.Errorf("[relayer] getHeader checkBlockHashConsistence failed")
 	}
-	header := new(types.Header)
+	header := new(types.RawHeader)
 	source := common.NewZeroCopySource(buf)
 	err = header.Deserialization(source)
 	if err != nil {

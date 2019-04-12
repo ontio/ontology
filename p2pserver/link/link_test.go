@@ -157,12 +157,12 @@ func TestUnpackBufNode(t *testing.T) {
 		}
 		msg = &consensus
 	case "blkheader":
-		var headers []*ct.Header
+		var headers []*ct.RawHeader
 		blkHeader := &mt.BlkHeader{}
 		for i := 0; uint32(i) < 100000000; i++ {
-			header := &ct.Header{}
+			header := &ct.RawHeader{}
 			header.Height = uint32(i)
-			header.Bookkeepers = make([]keypair.PublicKey, 0)
+			header.Bookkeepers = make([][]byte, 0)
 			header.SigData = make([][]byte, 0)
 			headers = append(headers, header)
 		}

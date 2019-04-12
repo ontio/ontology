@@ -202,7 +202,7 @@ func (this *P2PServer) OnDelNode(id uint64) {
 }
 
 // OnHeaderReceive adds the header list from network
-func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
+func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.RawHeader) {
 	this.blockSync.OnHeaderReceive(fromID, headers)
 }
 
@@ -516,7 +516,7 @@ func (this *P2PServer) connectSeedService() {
 	for {
 		select {
 		case <-t.C:
-			this.connectSeeds()
+			//this.connectSeeds()
 			this.connectUpstream()
 			t.Stop()
 			if this.reachMinConnection() {

@@ -142,8 +142,8 @@ type RemovePeerID struct {
 }
 
 type AppendHeaders struct {
-	FromID  uint64          // The peer id
-	Headers []*types.Header // Headers to be added to the ledger
+	FromID  uint64             // The peer id
+	Headers []*types.RawHeader // Headers to be added to the ledger
 }
 
 type AppendBlock struct {

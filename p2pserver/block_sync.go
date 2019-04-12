@@ -455,7 +455,7 @@ func (this *BlockSyncMgr) syncBlock() {
 }
 
 //OnHeaderReceive receive header from net
-func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header) {
+func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.RawHeader) {
 	if len(headers) == 0 {
 		return
 	}
