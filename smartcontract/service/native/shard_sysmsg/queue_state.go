@@ -19,7 +19,6 @@
 package shardsysmsg
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -204,11 +203,8 @@ func addReqsInBlock(ctx *native.NativeService, req *xshard_state.CommonShardMsg)
 	if err != nil && err != sComm.ErrNotFound {
 		return err
 	}
-	reqBytes := new(bytes.Buffer)
-	if err := req.Serialize(reqBytes); err != nil {
-		return err
-	}
-	reqs = append(reqs, reqBytes.Bytes())
+	buf := common.SerializeToBytes(req)
+	reqs = append(reqs, buf)
 
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes := utils.GetUint32Bytes(ctx.Height)

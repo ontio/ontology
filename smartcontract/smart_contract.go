@@ -19,6 +19,7 @@ package smartcontract
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -38,14 +39,16 @@ const (
 
 // SmartContract describe smart contract execute engine
 type SmartContract struct {
-	Contexts      []*context.Context // all execute smart contract context
-	CacheDB       *storage.CacheDB   // state cache
-	Store         store.LedgerStore  // ledger store
-	Config        *Config
-	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
-	Gas           uint64
-	ExecStep      int
-	PreExec       bool
+	Contexts         []*context.Context // all execute smart contract context
+	CacheDB          *storage.CacheDB   // state cache
+	MainShardTxState *xshard_state.TxState
+	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
+	Store            store.LedgerStore // ledger store
+	Config           *Config
+	Notifications    []*event.NotifyEventInfo // all execute smart contract event notify info
+	Gas              uint64
+	ExecStep         int
+	PreExec          bool
 }
 
 // Config describe smart contract need parameters configuration

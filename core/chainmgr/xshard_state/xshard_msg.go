@@ -24,9 +24,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 const (
@@ -46,17 +44,15 @@ type XShardMsg interface {
 	GetContract() common.Address
 	GetMethod() string
 	GetArgs() []byte
-	Serialize(w io.Writer) error
-	Deserialize(r io.Reader) error
+	Serialization(sink *common.ZeroCopySink)
+	Deserialization(source *common.ZeroCopySource) error
 }
 
 func IsXShardMsgEqual(msg1, msg2 XShardMsg) bool {
-	buf1 := bytes.NewBuffer(nil)
-	buf2 := bytes.NewBuffer(nil)
-	msg1.Serialize(buf1)
-	msg2.Serialize(buf2)
+	buf1 := common.SerializeToBytes(msg1)
+	buf2 := common.SerializeToBytes(msg2)
 
-	return bytes.Equal(buf1.Bytes(), buf2.Bytes())
+	return bytes.Equal(buf1, buf2)
 }
 
 type XShardNotify struct {
@@ -84,56 +80,42 @@ func (msg *XShardNotify) GetArgs() []byte {
 	return msg.Args
 }
 
-func (msg *XShardNotify) Serialize(w io.Writer) error {
-	if err := utils.WriteUint32(w, msg.NotifyID); err != nil {
-		return err
-	}
-	if err := utils.WriteAddress(w, msg.Contract); err != nil {
-		return fmt.Errorf("serialize: write contract failed, err: %s", err)
-	}
-	if err := utils.WriteAddress(w, msg.Payer); err != nil {
-		return fmt.Errorf("serialize: write payer failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, msg.Fee); err != nil {
-		return fmt.Errorf("serialize: write fee failed, err: %s", err)
-	}
-	if err := serialization.WriteString(w, msg.Method); err != nil {
-		return fmt.Errorf("serialize: write method failed, err: %s", err)
-	}
-	if err := serialization.WriteVarBytes(w, msg.Args); err != nil {
-		return fmt.Errorf("serialize: write args failed, err: %s", err)
-	}
-	return nil
+func (msg *XShardNotify) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(msg.NotifyID)
+	sink.WriteAddress(msg.Contract)
+	sink.WriteAddress(msg.Payer)
+	sink.WriteUint64(msg.Fee)
+	sink.WriteString(msg.Method)
+	sink.WriteVarBytes(msg.Args)
 }
 
-func (msg *XShardNotify) Deserialize(r io.Reader) error {
-	var err error = nil
-	if msg.NotifyID, err = utils.ReadUint32(r); err != nil {
-		return err
+func (msg *XShardNotify) Deserialization(source *common.ZeroCopySource) error {
+	var eof, irregular bool
+	msg.NotifyID, eof = source.NextUint32()
+	msg.Contract, eof = source.NextAddress()
+	msg.Payer, eof = source.NextAddress()
+	msg.Fee, eof = source.NextUint64()
+	msg.Method, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	if msg.Contract, err = utils.ReadAddress(r); err != nil {
-		return fmt.Errorf("deserialize: read contract failed, err: %s", err)
+	msg.Args, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	if msg.Payer, err = utils.ReadAddress(r); err != nil {
-		return fmt.Errorf("deserialize: read payer failed, err: %s", err)
+
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	if msg.Fee, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read fee failed, err: %s", err)
-	}
-	if msg.Method, err = serialization.ReadString(r); err != nil {
-		return fmt.Errorf("deserialize: read method failed, err: %s", err)
-	}
-	if msg.Args, err = serialization.ReadVarBytes(r); err != nil {
-		return fmt.Errorf("deserialize: read args failed, err: %s", err)
-	}
+
 	return nil
 }
 
 type XShardTxReq struct {
 	IdxInTx  uint64
+	Contract common.Address
 	Payer    common.Address
 	Fee      uint64
-	Contract common.Address
 	Method   string
 	Args     []byte
 }
@@ -154,56 +136,42 @@ func (msg *XShardTxReq) GetArgs() []byte {
 	return msg.Args
 }
 
-func (msg *XShardTxReq) Serialize(w io.Writer) error {
-	if err := utils.WriteVarUint(w, msg.IdxInTx); err != nil {
-		return fmt.Errorf("serialize: write IdxInTx failed, err: %s", err)
-	}
-	if err := utils.WriteAddress(w, msg.Payer); err != nil {
-		return fmt.Errorf("serialize: write payer failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, msg.Fee); err != nil {
-		return fmt.Errorf("serialize: write fee failed, err: %s", err)
-	}
-	if err := utils.WriteAddress(w, msg.Contract); err != nil {
-		return fmt.Errorf("serialize: write contract failed, err: %s", err)
-	}
-	if err := serialization.WriteString(w, msg.Method); err != nil {
-		return fmt.Errorf("serialize: write method failed, err: %s", err)
-	}
-	if err := serialization.WriteVarBytes(w, msg.Args); err != nil {
-		return fmt.Errorf("serialize: write args failed, err: %s", err)
-	}
-	return nil
+func (msg *XShardTxReq) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(msg.IdxInTx)
+	sink.WriteAddress(msg.Contract)
+	sink.WriteAddress(msg.Payer)
+	sink.WriteUint64(msg.Fee)
+	sink.WriteString(msg.Method)
+	sink.WriteVarBytes(msg.Args)
 }
 
-func (msg *XShardTxReq) Deserialize(r io.Reader) error {
-	var err error = nil
-	if msg.IdxInTx, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read IdxInTx failed, err: %s", err)
+func (msg *XShardTxReq) Deserialization(source *common.ZeroCopySource) error {
+	var eof, irregular bool
+	msg.IdxInTx, eof = source.NextUint64()
+	msg.Contract, eof = source.NextAddress()
+	msg.Payer, eof = source.NextAddress()
+	msg.Fee, eof = source.NextUint64()
+	msg.Method, _, irregular, eof = source.NextString()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	if msg.Payer, err = utils.ReadAddress(r); err != nil {
-		return fmt.Errorf("deserialize: read payer failed, err: %s", err)
+	msg.Args, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	if msg.Fee, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read fee failed, err: %s", err)
+
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	if msg.Contract, err = utils.ReadAddress(r); err != nil {
-		return fmt.Errorf("deserialize: read contract failed, err: %s", err)
-	}
-	if msg.Method, err = serialization.ReadString(r); err != nil {
-		return fmt.Errorf("deserialize: read method failed, err: %s", err)
-	}
-	if msg.Args, err = serialization.ReadVarBytes(r); err != nil {
-		return fmt.Errorf("deserialize: read args failed, err: %s", err)
-	}
+
 	return nil
 }
 
 type XShardTxRsp struct {
 	IdxInTx uint64
 	FeeUsed uint64
-	Result  []byte
 	Error   bool
+	Result  []byte
 }
 
 func (msg *XShardTxRsp) Type() uint64 {
@@ -222,36 +190,31 @@ func (msg *XShardTxRsp) GetArgs() []byte {
 	return msg.Result
 }
 
-func (msg *XShardTxRsp) Serialize(w io.Writer) error {
-	if err := utils.WriteVarUint(w, msg.IdxInTx); err != nil {
-		return fmt.Errorf("serialize: write IdxInTx failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, msg.FeeUsed); err != nil {
-		return fmt.Errorf("serialize: write fee used failed, err: %s", err)
-	}
-	if err := serialization.WriteVarBytes(w, msg.Result); err != nil {
-		return fmt.Errorf("serialize: write result failed, err: %s", err)
-	}
-	if err := serialization.WriteBool(w, msg.Error); err != nil {
-		return fmt.Errorf("serialize: write error failed, err: %s", err)
-	}
-	return nil
+func (msg *XShardTxRsp) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(msg.IdxInTx)
+	sink.WriteUint64(msg.FeeUsed)
+	sink.WriteBool(msg.Error)
+	sink.WriteVarBytes(msg.Result)
 }
 
-func (msg *XShardTxRsp) Deserialize(r io.Reader) error {
-	var err error = nil
-	if msg.IdxInTx, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read IdxInTx failed, err: %s", err)
+func (msg *XShardTxRsp) Deserialization(source *common.ZeroCopySource) error {
+	var eof, irregular bool
+	msg.IdxInTx, eof = source.NextUint64()
+	msg.FeeUsed, eof = source.NextUint64()
+	msg.Error, irregular, eof = source.NextBool()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	if msg.FeeUsed, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read fee used failed, err: %s", err)
+
+	msg.Result, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	if msg.Result, err = serialization.ReadVarBytes(r); err != nil {
-		return fmt.Errorf("deserialize: read result failed, err: %s", err)
+
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	if msg.Error, err = serialization.ReadBool(r); err != nil {
-		return fmt.Errorf("deserialize: read error failed, err: %s", err)
-	}
+
 	return nil
 }
 
@@ -275,16 +238,16 @@ func (msg *XShardCommitMsg) GetArgs() []byte {
 	return nil
 }
 
-func (msg *XShardCommitMsg) Serialize(w io.Writer) error {
-	return utils.WriteVarUint(w, msg.MsgType)
+func (msg *XShardCommitMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(msg.MsgType)
 }
 
-func (msg *XShardCommitMsg) Deserialize(r io.Reader) error {
-	msgType, err := utils.ReadVarUint(r)
-	if err != nil {
-		return err
+func (msg *XShardCommitMsg) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	msg.MsgType, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	msg.MsgType = msgType
 	return nil
 }
 
@@ -318,72 +281,61 @@ func (evt *CommonShardMsg) IsTransactional() bool {
 	return evt.Msg.Type() != EVENT_SHARD_NOTIFY
 }
 
-func (evt *CommonShardMsg) Serialize(w io.Writer) error {
-	if err := utils.SerializeShardId(w, evt.SourceShardID); err != nil {
-		return fmt.Errorf("serialize: write source shard id failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, evt.SourceHeight); err != nil {
-		return fmt.Errorf("serialize: write source height failed, err: %s", err)
-	}
-	if err := utils.SerializeShardId(w, evt.TargetShardID); err != nil {
-		return fmt.Errorf("serialize: write target shard id failed, err: %s", err)
-	}
-	if err := evt.SourceTxHash.Serialize(w); err != nil {
-		return fmt.Errorf("serialize: write source tx hash failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, evt.Type); err != nil {
-		return fmt.Errorf("serialize: write type failed, err: %s", err)
-	}
+func (evt *CommonShardMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(evt.SourceShardID.ToUint64())
+	sink.WriteUint64(evt.SourceHeight)
+	sink.WriteUint64(evt.TargetShardID.ToUint64())
+	sink.WriteHash(evt.SourceTxHash)
+	sink.WriteUint64(evt.Type)
 	if len(evt.Payload) > 0 {
-		if err := serialization.WriteVarBytes(w, evt.Payload); err != nil {
-			return fmt.Errorf("serialize: write payload failed, err: %s", err)
-		}
+		sink.WriteVarBytes(evt.Payload)
 	} else {
-		if err := evt.Msg.Serialize(w); err != nil {
-			return fmt.Errorf("serialize: write msg failed, err: %s", err)
-		}
+		buf := common.SerializeToBytes(evt.Msg)
+		sink.WriteVarBytes(buf)
 	}
-	return nil
 }
 
-func (evt *CommonShardMsg) Deserialize(r io.Reader) error {
-	var err error = nil
-	if evt.SourceShardID, err = utils.DeserializeShardId(r); err != nil {
-		return fmt.Errorf("deserialize: read source shard id failed, err: %s", err)
+func (evt *CommonShardMsg) Deserialization(source *common.ZeroCopySource) error {
+	var irregular bool
+	shardID, eof := source.NextUint64()
+	id, err := types.NewShardID(shardID)
+	if err != nil {
+		return err
 	}
-	if evt.SourceHeight, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read source height failed, err: %s", err)
+	evt.SourceShardID = id
+	evt.SourceHeight, eof = source.NextUint64()
+	shardID, eof = source.NextUint64()
+	id, err = types.NewShardID(shardID)
+	if err != nil {
+		return err
 	}
-	if evt.TargetShardID, err = utils.DeserializeShardId(r); err != nil {
-		return fmt.Errorf("deserialize: read target shard id failed, err: %s", err)
+	evt.TargetShardID = id
+	evt.SourceTxHash, eof = source.NextHash()
+	evt.Type, eof = source.NextUint64()
+	evt.Payload, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	evt.SourceTxHash = common.Uint256{}
-	if err := evt.SourceTxHash.Deserialize(r); err != nil {
-		return fmt.Errorf("deserialize: read source tx hash failed, err: %s", err)
-	}
-	if evt.Type, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read type failed, err: %s", err)
-	}
-	if evt.Payload, err = serialization.ReadVarBytes(r); err != nil {
-		return fmt.Errorf("deserialize: read payload failed, err: %s", err)
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
 	switch evt.Type {
 	case EVENT_SHARD_NOTIFY:
 		notify := &XShardNotify{}
-		if err := notify.Deserialize(bytes.NewBuffer(evt.Payload)); err != nil {
+		if err := notify.Deserialization(common.NewZeroCopySource(evt.Payload)); err != nil {
 			return err
 		}
 		evt.Msg = notify
 	case EVENT_SHARD_TXREQ:
 		req := &XShardTxReq{}
-		if err := req.Deserialize(bytes.NewBuffer(evt.Payload)); err != nil {
+		if err := req.Deserialization(common.NewZeroCopySource(evt.Payload)); err != nil {
 			return err
 		}
 		evt.Msg = req
 	case EVENT_SHARD_TXRSP:
 		rsp := &XShardTxRsp{}
-		if err := rsp.Deserialize(bytes.NewBuffer(evt.Payload)); err != nil {
+		if err := rsp.Deserialization(common.NewZeroCopySource(evt.Payload)); err != nil {
 			return err
 		}
 		evt.Msg = rsp
@@ -395,11 +347,11 @@ func (evt *CommonShardMsg) Deserialize(r io.Reader) error {
 		fallthrough
 	case EVENT_SHARD_ABORT:
 		xcommitMsg := &XShardCommitMsg{}
-		if err := xcommitMsg.Deserialize(bytes.NewBuffer(evt.Payload)); err != nil {
+		if err := xcommitMsg.Deserialization(common.NewZeroCopySource(evt.Payload)); err != nil {
 			return err
 		}
 		if xcommitMsg.Type() != evt.Type {
-			return fmt.Errorf("invalid xcommit msg %d vs %d", xcommitMsg.Type(), evt.Type)
+			return fmt.Errorf("invalid xcommit evt %d vs %d", xcommitMsg.Type(), evt.Type)
 		}
 		evt.Msg = xcommitMsg
 	}
@@ -447,7 +399,7 @@ func DecodeShardCommonReqs(payload []byte) ([]*CommonShardMsg, error) {
 	reqs := make([]*CommonShardMsg, 0)
 	for _, tx := range txs.Txs {
 		req := &CommonShardMsg{}
-		if err := req.Deserialize(bytes.NewBuffer(tx)); err != nil {
+		if err := req.Deserialization(common.NewZeroCopySource(tx)); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal req-tx: %s, %s", err, string(tx))
 		}
 		reqs = append(reqs, req)

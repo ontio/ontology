@@ -88,6 +88,11 @@ type TxState struct {
 	Notify        *event.ExecuteNotify
 }
 
+type ShardTxInfo struct {
+	Index uint32
+	State *TxState
+}
+
 type ShardTxID string // cross shard tx id: userTxHash+notify1+notify2...
 //
 // ShardTxStateMap
