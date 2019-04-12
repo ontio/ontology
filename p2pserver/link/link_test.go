@@ -30,7 +30,6 @@ import (
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -195,6 +194,5 @@ func TestUnpackBufNode(t *testing.T) {
 	}
 
 	sink := comm.NewZeroCopySink(nil)
-	err := mt.WriteMessage(sink, msg)
-	assert.Nil(t, err)
+	mt.WriteMessage(sink, msg)
 }
