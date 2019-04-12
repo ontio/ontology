@@ -45,7 +45,7 @@ type Version struct {
 }
 
 //Serialize message payload
-func (this *Version) Serialization(sink *comm.ZeroCopySink) error {
+func (this *Version) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint32(this.P.Version)
 	sink.WriteUint64(this.P.Services)
 	sink.WriteInt64(this.P.TimeStamp)
@@ -58,8 +58,6 @@ func (this *Version) Serialization(sink *comm.ZeroCopySink) error {
 	sink.WriteUint8(this.P.Relay)
 	sink.WriteBool(this.P.IsConsensus)
 	sink.WriteString(this.P.SoftVersion)
-
-	return nil
 }
 
 func (this *Version) CmdType() string {

@@ -30,9 +30,8 @@ type Pong struct {
 }
 
 //Serialize message payload
-func (this Pong) Serialization(sink *comm.ZeroCopySink) error {
+func (this Pong) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint64(this.Height)
-	return nil
 }
 
 func (this Pong) CmdType() string {

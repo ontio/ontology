@@ -83,14 +83,14 @@ func TestShardBlockHeaderSerialize(t *testing.T) {
 	shardHdr.Header.Height = height
 	shardHdr.Header.ParentHeight = parentHeight
 	sink := common.NewZeroCopySink(0)
-	err := shardHdr.Serialize(sink)
+	err := shardHdr.Serialization(sink)
 	if err != nil {
 		t.Fatalf("ser shard header: %s", err)
 	}
 	bs := sink.Bytes()
 	source := common.NewZeroCopySource(bs)
 	shardHdr2 := message.ShardBlockHeader{Header: &types.Header{}}
-	if err := shardHdr2.Deserialize(source); err != nil {
+	if err := shardHdr2.Deserialization(source); err != nil {
 		t.Fatalf("deser shard header: %s", err)
 	}
 

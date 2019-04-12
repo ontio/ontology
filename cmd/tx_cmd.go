@@ -228,10 +228,7 @@ func transferTx(ctx *cli.Context) error {
 		return fmt.Errorf("IntoImmutable error:%s", err)
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	if err != nil {
-		return fmt.Errorf("tx serialization error:%s", err)
-	}
+	tx.Serialization(&sink)
 	PrintInfoMsg("Transfer raw tx:")
 	PrintInfoMsg(hex.EncodeToString(sink.Bytes()))
 	return nil
@@ -306,10 +303,7 @@ func approveTx(ctx *cli.Context) error {
 		return fmt.Errorf("IntoImmutable error:%s", err)
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	if err != nil {
-		return fmt.Errorf("tx serialization error:%s", err)
-	}
+	tx.Serialization(&sink)
 	PrintInfoMsg("Approve raw tx:")
 	PrintInfoMsg(hex.EncodeToString(sink.Bytes()))
 	return nil
@@ -395,10 +389,7 @@ func transferFromTx(ctx *cli.Context) error {
 		return fmt.Errorf("IntoImmutable error:%s", err)
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	if err != nil {
-		return fmt.Errorf("tx serialization error:%s", err)
-	}
+	tx.Serialization(&sink)
 	PrintInfoMsg("TransferFrom raw tx:")
 	PrintInfoMsg(hex.EncodeToString(sink.Bytes()))
 	return nil
@@ -485,10 +476,7 @@ func withdrawONGTx(ctx *cli.Context) error {
 		return fmt.Errorf("IntoImmutable error:%s", err)
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	if err != nil {
-		return fmt.Errorf("tx serialization error:%s", err)
-	}
+	tx.Serialization(&sink)
 	PrintInfoMsg("Withdraw raw tx:")
 	PrintInfoMsg(hex.EncodeToString(sink.Bytes()))
 	return nil

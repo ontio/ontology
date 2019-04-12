@@ -41,10 +41,7 @@ func NewShardHelloMsg(localShard, targetShard types.ShardID, sender *actor.PID) 
 		TargetShardID: targetShard,
 		SourceShardID: localShard,
 	}
-	payload, err := EncodeShardMsg(hello)
-	if err != nil {
-		return nil, fmt.Errorf("marshal hello msg: %s", err)
-	}
+	payload := EncodeShardMsg(hello)
 
 	return &CrossShardMsg{
 		Version: SHARD_PROTOCOL_VERSION,
@@ -60,10 +57,7 @@ func NewShardConfigMsg(accPayload []byte, sibShards map[uint64]*SibShardInfo, co
 		SibShards: sibShards,
 		Config:    configPayload,
 	}
-	payload, err := EncodeShardMsg(ack)
-	if err != nil {
-		return nil, fmt.Errorf("marshal hello ack msg: %s", err)
-	}
+	payload := EncodeShardMsg(ack)
 
 	return &CrossShardMsg{
 		Version: SHARD_PROTOCOL_VERSION,
@@ -81,10 +75,7 @@ func NewShardBlockRspMsg(fromShardID types.ShardID, header *types.Header, tx *Sh
 		Txs:         []*ShardBlockTx{tx},
 	}
 
-	payload, err := EncodeShardMsg(blkRsp)
-	if err != nil {
-		return nil, fmt.Errorf("marshal shard block rsp msg: %s", err)
-	}
+	payload := EncodeShardMsg(blkRsp)
 
 	return &CrossShardMsg{
 		Version: SHARD_PROTOCOL_VERSION,

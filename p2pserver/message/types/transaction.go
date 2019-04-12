@@ -30,8 +30,8 @@ type Trn struct {
 }
 
 //Serialize message payload
-func (this Trn) Serialization(sink *comm.ZeroCopySink) error {
-	return this.Txn.Serialization(sink)
+func (this Trn) Serialization(sink *comm.ZeroCopySink) {
+	this.Txn.Serialization(sink)
 }
 
 func (this *Trn) CmdType() string {
