@@ -72,7 +72,10 @@ func NewShardBlockRspMsg(fromShardID types.ShardID, header *types.Header, tx *Sh
 		FromShardID: fromShardID,
 		Height:      header.Height,
 		BlockHeader: &ShardBlockHeader{header},
-		Txs:         []*ShardBlockTx{tx},
+		Txs:         make([]*ShardBlockTx, 0),
+	}
+	if tx != nil {
+		blkRsp.Txs = append(blkRsp.Txs, tx)
 	}
 
 	payload := EncodeShardMsg(blkRsp)

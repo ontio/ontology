@@ -20,9 +20,10 @@ package message
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"io"
 )
 
 const (
