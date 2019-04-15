@@ -182,9 +182,6 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: recharge create shard fee failed, err: %s", err)
 	}
-	if err := initStakeContractShard(native, subShardID); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
-	}
 	evt := &shardstates.CreateShardEvent{
 		SourceShardID: native.ShardID,
 		Height:        native.Height,
@@ -253,9 +250,8 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	shard.Config.VbftCfg = cfg
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
-	err = setNodeMinStakeAmount(native, params.ShardID, uint64(shard.Config.VbftCfg.MinInitStake))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: failed, err: %s", err)
+	if err := initStakeContractShard(native, params.ShardID, uint64(cfg.MinInitStake), params.StakeAssetAddress); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
 	}
 
 	setShardState(native, contract, shard)
@@ -289,6 +285,13 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
+	state, err := getShardPeerState(native, contract, params.ShardId, params.PeerPubKey)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: faile, err: %s", err)
+	}
+	if state != state_default {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer %s hasn't applied", params.PeerPubKey)
+	}
 	setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
 	return utils.BYTE_TRUE, nil
 }
@@ -386,7 +389,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	setShardState(native, contract, shard)
 
 	// call shard stake contract
-	if err := peerInitStake(native, params, shard.Config.StakeAssetAddress); err != nil {
+	if err := peerInitStake(native, params); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 
@@ -535,7 +538,6 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		} else if info.NodeType == shardstates.QUITING_CONSENSUS_NODE {
 			// delete peer at mgmt contract
 			delete(shard.Peers, peer)
-			setShardPeerState(native, contract, params.ShardID, state_default, info.PeerPubKey)
 			quitPeers = append(quitPeers, peer)
 		}
 	}
@@ -556,13 +558,13 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	wholeNodeStakeAmount := uint64(0)
 	for _, info := range viewInfo.Peers {
-		wholeNodeStakeAmount += info.WholeStakeAmount
+		wholeNodeStakeAmount += info.UserStakeAmount + info.InitPos
 	}
 	// TODO: check viewInfo.Peers is existed in shard states
 	// TODO: candidate node and consensus node different rate
 	feeInfo := make([]*shard_stake.PeerAmount, 0)
 	for peer, info := range viewInfo.Peers {
-		peerFee := info.WholeStakeAmount * params.FeeAmount / wholeNodeStakeAmount
+		peerFee := (info.UserStakeAmount + info.InitPos) * params.FeeAmount / wholeNodeStakeAmount
 		feeInfo = append(feeInfo, &shard_stake.PeerAmount{PeerPubKey: peer, Amount: peerFee})
 	}
 	if err := commitDpos(native, params.ShardID, feeInfo); err != nil {

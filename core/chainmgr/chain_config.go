@@ -84,7 +84,7 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 			if !ok {
 				return nil, fmt.Errorf("buildShardConfig: peer %s has not stake info", vbftpeerstakeinfo.PeerPubkey)
 			}
-			vbftpeerstakeinfo.InitPos = stakeInfo.WholeStakeAmount
+			vbftpeerstakeinfo.InitPos = stakeInfo.UserStakeAmount + stakeInfo.InitPos
 			peers = append(peers, vbftpeerstakeinfo)
 		}
 		sort.SliceStable(peers, func(i, j int) bool {

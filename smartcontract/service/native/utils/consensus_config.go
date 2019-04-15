@@ -86,6 +86,23 @@ func (this *ChangeView) Deserialize(r io.Reader) error {
 	return nil
 }
 
+func (this *ChangeView) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.View)
+	sink.WriteUint32(this.Height)
+	sink.WriteHash(this.TxHash)
+}
+
+func (this *ChangeView) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.View, eof = source.NextUint32()
+	this.Height, eof = source.NextUint32()
+	this.TxHash, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
 type PreConfig struct {
 	Configuration *Configuration
 	SetView       uint32
