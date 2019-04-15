@@ -5,13 +5,16 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"github.com/ontio/ontology/core/payload"
-	utils2 "github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/smartcontract/storage"
+	"io"
 	"time"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	utils2 "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -104,6 +107,140 @@ func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam
 	return utils.BYTE_FALSE, shardsysmsg.ErrYield
 }
 
+func executeTransaction(tx *types.Transaction) (*xshard_state.TxState, interface{}, error) {
+	config := &smartcontract.Config{
+		ShardID: types.NewShardIDUnchecked(tx.ShardID),
+		Time:    uint32(time.Now().Unix()),
+		Tx:      tx,
+	}
+
+	overlay := NewOverlayDB()
+	cache := storage.NewCacheDB(overlay)
+
+	txHash := tx.Hash()
+	txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
+
+	if tx.TxType == types.Invoke {
+		invoke := tx.Payload.(*payload.InvokeCode)
+
+		sc := smartcontract.SmartContract{
+			Config:           config,
+			Store:            nil,
+			MainShardTxState: txState,
+			CacheDB:          cache,
+			Gas:              100000000000000,
+			PreExec:          true,
+		}
+
+		//start the smart contract executive function
+		engine, _ := sc.NewExecuteEngine(invoke.Code)
+		res, err := engine.Invoke()
+
+		if err != nil {
+			//if err == shardsysmsg.ErrYield {
+			//	return txState, err
+			//}
+			// todo: handle error check
+			if txState.PendingReq != nil {
+				return txState, nil, shardsysmsg.ErrYield
+			}
+			return nil, nil, err
+		}
+
+		return txState, res, nil
+	}
+
+	panic("unimplemented")
+}
+
+func resumeTx(shardTxID xshard_state.ShardTxID, rspMsg *xshard_state.XShardTxRsp) (*xshard_state.TxState, interface{}, error) {
+	txState := xshard_state.CreateTxState(shardTxID).Clone()
+
+	if txState.PendingReq == nil || txState.PendingReq.IdxInTx != rspMsg.IdxInTx {
+		// todo: system error or remote shard error
+		return nil, nil, fmt.Errorf("invalid response id: %d", rspMsg.IdxInTx)
+	}
+
+	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq, Resp: rspMsg})
+	txState.PendingReq = nil
+
+	txPayload := txState.TxPayload
+	if txPayload == nil {
+		return nil, nil, fmt.Errorf("failed to get tx payload")
+	}
+
+	// FIXME: invoke neo contract
+	// re-execute tx
+	txState.NextReqID = 0
+
+	tx, err := types.TransactionFromRawBytes(txPayload)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to re-init original tx: %s", err)
+	}
+
+	config := &smartcontract.Config{
+		ShardID: types.NewShardIDUnchecked(tx.ShardID),
+		Time:    uint32(time.Now().Unix()),
+		Tx:      tx,
+	}
+
+	overlay := NewOverlayDB()
+	cache := storage.NewCacheDB(overlay)
+	if tx.TxType == types.Invoke {
+		invoke := tx.Payload.(*payload.InvokeCode)
+
+		sc := smartcontract.SmartContract{
+			Config:           config,
+			Store:            nil,
+			MainShardTxState: txState,
+			CacheDB:          cache,
+			Gas:              100000000000000,
+			PreExec:          true,
+		}
+
+		//start the smart contract executive function
+		engine, _ := sc.NewExecuteEngine(invoke.Code)
+		res, err := engine.Invoke()
+
+		if err != nil {
+			//if err == shardsysmsg.ErrYield {
+			//	return txState, err
+			//}
+			// todo: handle error check
+			if txState.PendingReq != nil {
+				return txState, nil, shardsysmsg.ErrYield
+			}
+			return nil, nil, err
+		}
+
+		// xshard transaction has completed
+		txState.WriteSet = cache.GetCache()
+
+		return txState, res, nil
+	}
+
+	panic("unimplemented")
+}
+
+func processXShardRsp(shardTxID xshard_state.ShardTxID, rspMsg *xshard_state.XShardTxRsp) (*xshard_state.TxState, error) {
+	txState, _, err := resumeTx(shardTxID, rspMsg)
+
+	if err != nil {
+		if err == shardsysmsg.ErrYield {
+			return txState, err
+		}
+		// Txn failed, abort all transactions
+		//todo abort tx
+		//if _, err2 := abortTx(ctx, txState, tx); err2 != nil {
+		//	return fmt.Errorf("rwset verify %s, abort tx %v, err: %s", err, tx, err2)
+		//}
+		//return resultErr
+		return txState, err
+	}
+
+	return txState, err
+}
+
 var ShardA = types.NewShardIDUnchecked(1)
 var ShardB = types.NewShardIDUnchecked(2)
 
@@ -122,7 +259,7 @@ func RemoteNotifyPing(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func RemoteInvokeAdd(native *native.NativeService) ([]byte, error) {
+func RemoteInvokeAddAndInc(native *native.NativeService) ([]byte, error) {
 	sink := common.NewZeroCopySink(10)
 	sink.WriteUint64(2)
 	sink.WriteUint64(3)
@@ -134,7 +271,16 @@ func RemoteInvokeAdd(native *native.NativeService) ([]byte, error) {
 	}
 
 	sum, err := RemoteInvoke(native, params)
-	return sum, err
+	source := common.NewZeroCopySource(sum)
+	s, eof := source.NextUint64()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+
+	sink.Reset()
+	sink.WriteUint64(s + 1)
+
+	return sink.Bytes(), err
 }
 
 func HandlePing(native *native.NativeService) ([]byte, error) {

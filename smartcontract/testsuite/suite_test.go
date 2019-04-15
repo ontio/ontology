@@ -3,18 +3,12 @@ package testsuite
 import (
 	"fmt"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
+	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
 	"testing"
-	"time"
-
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
-	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 func TestRemoteNotifyPing(t *testing.T) {
@@ -27,7 +21,7 @@ func TestRemoteNotifyPing(t *testing.T) {
 	tx := BuildInvokeTx(shardAContract, "remoteNotifyPing", []interface{}{""})
 	assert.NotNil(t, tx)
 
-	state, err := executeTransaction(tx)
+	state, _, err := executeTransaction(tx)
 
 	assert.Nil(t, err)
 	assert.Equal(t, len(state.ShardNotifies), 1)
@@ -47,14 +41,15 @@ func TestRemoteNotifyPing(t *testing.T) {
 
 func TestRemoteInvokeAdd(t *testing.T) {
 	shardAContract := RandomAddress()
+	method := "remoteAddAndInc"
 	InstallNativeContract(shardAContract, map[string]native.Handler{
-		"remoteInvokeAdd": RemoteInvokeAdd,
+		method: RemoteInvokeAddAndInc,
 	})
 
-	tx := BuildInvokeTx(shardAContract, "remoteInvokeAdd", []interface{}{""})
+	tx := BuildInvokeTx(shardAContract, method, []interface{}{""})
 	assert.NotNil(t, tx)
 
-	state, err := executeTransaction(tx)
+	state, _, err := executeTransaction(tx)
 
 	//assert.Equal(t, shardsysmsg.ErrYield, err) // error is wrapped
 	assert.NotNil(t, err)
@@ -71,50 +66,22 @@ func TestRemoteInvokeAdd(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, state.PendingReq)
-}
+	hs := tx.Hash()
+	shardTxID := xshard_state.ShardTxID(string(hs[:]))
+	xshard_state.PutTxState(shardTxID, state)
 
-func executeTransaction(tx *types.Transaction) (*xshard_state.TxState, error) {
-	config := &smartcontract.Config{
-		ShardID: types.NewShardIDUnchecked(tx.ShardID),
-		Time:    uint32(time.Now().Unix()),
-		Tx:      tx,
+	sink.Reset()
+	sink.WriteUint64(5)
+	rep := &xshard_state.XShardTxRsp{
+		IdxInTx: expected.IdxInTx,
+		Error:   false,
+		Result:  sink.Bytes(),
 	}
 
-	overlay := NewOverlayDB()
-	cache := storage.NewCacheDB(overlay)
+	state, res, err := resumeTx(shardTxID, rep)
+	assert.Nil(t, err)
+	sink.Reset()
+	sink.WriteUint64(6)
 
-	txHash := tx.Hash()
-	txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
-
-	if tx.TxType == types.Invoke {
-		invoke := tx.Payload.(*payload.InvokeCode)
-
-		sc := smartcontract.SmartContract{
-			Config:           config,
-			Store:            nil,
-			MainShardTxState: txState,
-			CacheDB:          cache,
-			Gas:              100000000000000,
-			PreExec:          true,
-		}
-
-		//start the smart contract executive function
-		engine, _ := sc.NewExecuteEngine(invoke.Code)
-		_, err := engine.Invoke()
-
-		if err != nil {
-			//if err == shardsysmsg.ErrYield {
-			//	return txState, err
-			//}
-			// todo: handle error check
-			if txState.PendingReq != nil {
-				return txState, shardsysmsg.ErrYield
-			}
-			return nil, err
-		}
-
-		return txState, nil
-	}
-
-	panic("unimplemented")
+	assert.Equal(t, res.(*types.ByteArray), types.NewByteArray(sink.Bytes()))
 }

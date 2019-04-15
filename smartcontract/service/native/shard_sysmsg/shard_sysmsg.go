@@ -242,30 +242,61 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 					shardTxID = xshard_state.ShardTxID(string(sink.Bytes()))
 
 					txState := xshard_state.CreateTxState(shardTxID).Clone()
-					if err = processXShardNotify(ctx, txState, req); err != nil {
+					ctx.SubShardTxState[shardTxID] = xshard_state.ShardTxInfo{
+						Index: uint32(len(ctx.SubShardTxState)),
+						State: txState,
+					}
+					tmp := ctx.MainShardTxState
+					ctx.MainShardTxState = txState
+					if err = processXShardNotify(ctx, req); err != nil {
 						log.Errorf("process notify: %s", err)
 					}
+					ctx.MainShardTxState = tmp
 					txCompleted = true
 				case xshard_state.EVENT_SHARD_TXREQ:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
-					txState = xshard_state.CreateTxState(shardTxID).Clone()
-					if err = processXShardReq(ctx, txState, req); err != nil {
+					if _, ok := ctx.SubShardTxState[shardTxID]; ok == false {
+						ctx.SubShardTxState[shardTxID] = xshard_state.ShardTxInfo{
+							Index: uint32(len(ctx.SubShardTxState)),
+							State: xshard_state.CreateTxState(shardTxID).Clone(),
+						}
+					}
+					tmp := ctx.MainShardTxState
+					ctx.MainShardTxState = ctx.SubShardTxState[shardTxID].State
+					if err = processXShardReq(ctx, req); err != nil {
 						log.Errorf("process xshard req: %s", err)
 					}
+					ctx.MainShardTxState = tmp
 					txCompleted = false
 				case xshard_state.EVENT_SHARD_TXRSP:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
-					txState = xshard_state.CreateTxState(shardTxID).Clone()
+					if _, ok := ctx.SubShardTxState[shardTxID]; ok == false {
+						ctx.SubShardTxState[shardTxID] = xshard_state.ShardTxInfo{
+							Index: uint32(len(ctx.SubShardTxState)),
+							State: xshard_state.CreateTxState(shardTxID).Clone(),
+						}
+					}
+					tmp := ctx.MainShardTxState
+					ctx.MainShardTxState = ctx.SubShardTxState[shardTxID].State
 					if err = processXShardRsp(ctx, txState, req); err != nil {
 						log.Errorf("process xshard rsp: %s", err)
 					}
+					ctx.MainShardTxState = tmp
 					txCompleted = false
 				case xshard_state.EVENT_SHARD_PREPARE:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
-					txState = xshard_state.CreateTxState(shardTxID).Clone()
+					if _, ok := ctx.SubShardTxState[shardTxID]; ok == false {
+						ctx.SubShardTxState[shardTxID] = xshard_state.ShardTxInfo{
+							Index: uint32(len(ctx.SubShardTxState)),
+							State: xshard_state.CreateTxState(shardTxID).Clone(),
+						}
+					}
+					tmp := ctx.MainShardTxState
+					ctx.MainShardTxState = ctx.SubShardTxState[shardTxID].State
 					if err = processXShardPrepareMsg(ctx, txState, req); err != nil {
 						log.Errorf("process xshard prepare: %s", err)
 					}
+					ctx.MainShardTxState = tmp
 					txCompleted = false
 				case xshard_state.EVENT_SHARD_PREPARED:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))

@@ -33,7 +33,7 @@ import (
 //  processXShardNotify : process as usual transaction, record fee debt from source shard
 //			 normal return
 //
-func processXShardNotify(ctx *native.NativeService, txState *xshard_state.TxState, req *xshard_state.CommonShardMsg) error {
+func processXShardNotify(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
 
 	// TODO: invoke neo contract
 	//builder := neovm.NewParamsBuilder(new(bytes.Buffer))
@@ -67,7 +67,7 @@ func processXShardNotify(ctx *native.NativeService, txState *xshard_state.TxStat
 //  processXShardReq : load cached db, process request, save cached, record fee debt from source shard
 //			 normal return
 //
-func processXShardReq(ctx *native.NativeService, txState *xshard_state.TxState, req *xshard_state.CommonShardMsg) error {
+func processXShardReq(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
 	if req.Msg.Type() != xshard_state.EVENT_SHARD_TXREQ {
 		return fmt.Errorf("invalid request type: %d", req.GetType())
 	}
@@ -75,6 +75,8 @@ func processXShardReq(ctx *native.NativeService, txState *xshard_state.TxState, 
 	if !ctx.CacheDB.IsEmptyCache() {
 		return fmt.Errorf("non-empty init db when processing shard common req")
 	}
+
+	txState := ctx.MainShardTxState
 
 	// get txState
 	reqMsg, ok := req.Msg.(*xshard_state.XShardTxReq)
