@@ -20,19 +20,24 @@ package shard_stake
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common/log"
+	"math/big"
 
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	ntypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
 	INIT_SHARD               = "initShard"
 	PEER_STAKE               = "peerInitStake"
+	ADD_INIT_DOS             = "addInitPos"
+	REDUCE_INIT_POS          = "reduceInitPos"
 	USER_STAKE               = "userStake"
-	SET_MIN_STAKE            = "setMinStake"
 	UNFREEZE_STAKE           = "unfreezeStake"
 	WITHDRAW_STAKE           = "withdrawStake"
 	WITHDRAW_FEE             = "withdrawFee"
@@ -42,6 +47,11 @@ const (
 	PEER_EXIT                = "peerExit"
 	DELETE_PEER              = "deletePeer"
 	WITHDRAW_ONG             = "withdrawOng"
+
+	// for pre-execute
+	GET_CURRENT_VIEW = "getCurrentView"
+	GET_PEER_INFO    = "getPeerInfo"
+	GET_USER_INFO    = "getUserInfo"
 )
 
 func InitShardStake() {
@@ -51,10 +61,11 @@ func InitShardStake() {
 func RegisterShardStake(native *native.NativeService) {
 	native.Register(INIT_SHARD, InitShard)
 	native.Register(PEER_STAKE, PeerInitStake)
+	native.Register(ADD_INIT_DOS, AddInitPos)
+	native.Register(REDUCE_INIT_POS, ReduceInitPost)
 	native.Register(USER_STAKE, UserStake)
 	native.Register(UNFREEZE_STAKE, UnfreezeStake)
 	native.Register(WITHDRAW_STAKE, WithdrawStake)
-	native.Register(SET_MIN_STAKE, SetMinStake)
 	native.Register(WITHDRAW_FEE, WithdrawFee)
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
@@ -62,25 +73,18 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(DELETE_PEER, DeletePeer)
 	native.Register(PEER_EXIT, PeerExit)
 	native.Register(WITHDRAW_ONG, WithdrawOng)
-}
 
-func SetMinStake(native *native.NativeService) ([]byte, error) {
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
-		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: only can be call by shard mgmt contract")
-	}
-	params := new(SetMinStakeParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("SetMinStake: invalid param: %s", err)
-	}
-	setNodeMinStakeAmount(native, params.ShardId, params.Amount)
-	return utils.BYTE_TRUE, nil
+	native.Register(GET_CURRENT_VIEW, GetCurrentView)
+	native.Register(GET_PEER_INFO, GetPeerInfo)
+	native.Register(GET_USER_INFO, GetUserInfo)
 }
 
 func InitShard(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: only shard mgmt can invoke")
 	}
-	shardId, err := utils.DeserializeShardId(bytes.NewBuffer(native.Input))
+	param := &InitShardParam{}
+	err := param.Deserialize(bytes.NewBuffer(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
 	}
@@ -89,12 +93,14 @@ func InitShard(native *native.NativeService) ([]byte, error) {
 		Height: native.Height,
 		TxHash: native.Tx.Hash(),
 	}
-	setShardView(native, shardId, shardView)
+	setShardView(native, param.ShardId, shardView)
+	setNodeMinStakeAmount(native, param.ShardId, param.MinStake)
+	setShardStakeAssetAddr(native, param.ShardId, param.StakeAssetAddr)
 	return utils.BYTE_TRUE, nil
 }
 
 func PeerInitStake(native *native.NativeService) ([]byte, error) {
-	params := new(PeerInitStakeParam)
+	params := new(PeerStakeParam)
 	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: invalid param: %s", err)
 	}
@@ -102,15 +108,11 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: only shard mgmt can invoke")
 	}
-	err := peerStake(native, params.ShardId, params.Value.PeerPubKey, params.PeerOwner, params.Value.Amount)
+	err := peerInitStake(native, params.ShardId, params.Value.PeerPubKey, params.PeerOwner, params.Value.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: deserialize param pub key failed, err: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	err = setShardStakeAssetAddr(native, contract, params.ShardId, params.StakeAssetAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
-	}
 	minStakeAmount, err := GetNodeMinStakeAmount(native, params.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
@@ -118,23 +120,78 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	if minStakeAmount > params.Value.Amount {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: stake amount should be larger than min stake amount")
 	}
-	if params.StakeAssetAddr == utils.OntContractAddress {
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, params.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
+	}
+	if stakeAssetAddr == utils.OntContractAddress {
 		// save user unbound ong info
 		unboundOngInfo := &UserUnboundOngInfo{
 			StakeAmount: params.Value.Amount,
 			Time:        native.Time,
 		}
-		setUserUnboundOngInfo(native, contract, params.PeerOwner, unboundOngInfo)
+		setUserUnboundOngInfo(native, params.PeerOwner, unboundOngInfo)
 	}
 	// transfer stake asset
-	err = ont.AppCallTransfer(native, params.StakeAssetAddr, params.PeerOwner, contract, params.Value.Amount)
+	err = ont.AppCallTransfer(native, stakeAssetAddr, params.PeerOwner, contract, params.Value.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: transfer stake asset failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
 }
 
-// peer quit consensus completed, only call by shard mgmt at commitDpos
+func AddInitPos(native *native.NativeService) ([]byte, error) {
+	param := new(PeerStakeParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: invalid param: %s", err)
+	}
+	if err := utils.ValidateOwner(native, param.PeerOwner); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: check witness failed, err: %s", err)
+	}
+	if err := addInitPos(native, param.ShardId, param.PeerOwner, param.Value); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
+	}
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, param.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
+	}
+	if stakeAssetAddr == utils.OntContractAddress {
+		unboundOngInfo, err := getUserUnboundOngInfo(native, param.PeerOwner)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
+		}
+		if unboundOngInfo.Time == 0 {
+			return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: peer owner unboundong time is 0")
+		}
+		amount := utils.CalcUnbindOng(unboundOngInfo.StakeAmount,
+			unboundOngInfo.Time-constants.GENESIS_BLOCK_TIMESTAMP, native.Time-constants.GENESIS_BLOCK_TIMESTAMP)
+		unboundOngInfo.Balance += amount
+		unboundOngInfo.Time = native.Time
+		unboundOngInfo.StakeAmount += param.Value.Amount
+		setUserUnboundOngInfo(native, param.PeerOwner, unboundOngInfo)
+	}
+	err = ont.AppCallTransfer(native, stakeAssetAddr, param.PeerOwner, utils.ShardStakeAddress, param.Value.Amount)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: transfer stake asset failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
+func ReduceInitPost(native *native.NativeService) ([]byte, error) {
+	param := new(PeerStakeParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: invalid param: %s", err)
+	}
+	if err := utils.ValidateOwner(native, param.PeerOwner); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: check witness failed, err: %s", err)
+	}
+	if err := reduceInitPos(native, param.ShardId, param.PeerOwner, param.Value); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
+// peer quit consensus, user cannot stake, only call by shard mgmt at commitDpos
 func PeerExit(native *native.NativeService) ([]byte, error) {
 	param := new(PeerExitParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
@@ -147,18 +204,32 @@ func PeerExit(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
 	}
+	currentViewInfo, err := GetShardViewInfo(native, param.ShardId, currentView)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: get current view info failed, err: %s", err)
+	}
+	currentPeerInfo, ok := currentViewInfo.Peers[param.Peer]
+	if !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: peer %s not exist", currentPeerInfo.PeerPubKey)
+	} else {
+		currentPeerInfo.CanStake = false
+	}
+	currentViewInfo.Peers[param.Peer] = currentPeerInfo
+	setShardViewInfo(native, param.ShardId, currentView, currentViewInfo)
 	// get the next view info
 	nextView := currentView + 1
-	viewInfo, err := GetShardViewInfo(native, param.ShardId, nextView)
+	nextViewInfo, err := GetShardViewInfo(native, param.ShardId, nextView)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: get next view info failed, err: %s", err)
 	}
-	if peerViewInfo, ok := viewInfo.Peers[param.Peer]; !ok {
-		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: peer %s not exist", peerViewInfo.PeerPubKey)
+	nextPeerInfo, ok := nextViewInfo.Peers[param.Peer]
+	if !ok {
+		nextPeerInfo = currentPeerInfo
 	} else {
-		peerViewInfo.CanStake = false
+		nextPeerInfo.CanStake = false
 	}
-	setShardViewInfo(native, param.ShardId, nextView, viewInfo)
+	nextViewInfo.Peers[param.Peer] = nextPeerInfo
+	setShardViewInfo(native, param.ShardId, nextView, nextViewInfo)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -181,8 +252,34 @@ func DeletePeer(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
 	}
+	// peer could withdraw stake asset at new consensus epoch
 	for _, peer := range param.Peers {
-		delete(viewInfo.Peers, peer)
+		if peerInfo, ok := viewInfo.Peers[peer]; ok {
+			lastStakeView, err := getUserLastStakeView(native, param.ShardId, peerInfo.Owner)
+			if err != nil {
+				return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: peer %s, err: %s", peer, err)
+			}
+			if lastStakeView > nextView {
+				return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: peer %s last stake view %d and next view %d unmatch",
+					peer, lastStakeView, nextView)
+			}
+			ownerStakeInfo, err := getShardViewUserStake(native, param.ShardId, lastStakeView, peerInfo.Owner)
+			if err != nil {
+				return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: peer %s, err: %s", peer, err)
+			}
+			ownerStakeSelfInfo, ok := ownerStakeInfo.Peers[peer]
+			if ok {
+				ownerStakeSelfInfo.UnfreezeAmount += peerInfo.InitPos
+			} else {
+				ownerStakeSelfInfo = &UserPeerStakeInfo{PeerPubKey: peer, UnfreezeAmount: peerInfo.InitPos}
+			}
+			peerInfo.UserUnfreezeAmount += peerInfo.InitPos
+			peerInfo.InitPos = 0
+			setUserLastStakeView(native, param.ShardId, peerInfo.Owner, nextView)
+			setShardViewUserStake(native, param.ShardId, nextView, peerInfo.Owner, ownerStakeInfo)
+		} else {
+			return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: peer %s not exist", peer)
+		}
 	}
 	setShardViewInfo(native, param.ShardId, nextView, viewInfo)
 	return utils.BYTE_TRUE, nil
@@ -205,12 +302,12 @@ func UserStake(native *native.NativeService) ([]byte, error) {
 	for _, value := range param.Value {
 		wholeAmount += value.Amount
 	}
-	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, param.ShardId)
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 	}
 	if stakeAssetAddr == utils.OntContractAddress {
-		unboundOngInfo, err := getUserUnboundOngInfo(native, contract, param.User)
+		unboundOngInfo, err := getUserUnboundOngInfo(native, param.User)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 		}
@@ -225,7 +322,7 @@ func UserStake(native *native.NativeService) ([]byte, error) {
 			unboundOngInfo.Time = native.Time
 			unboundOngInfo.StakeAmount += wholeAmount
 		}
-		setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo)
+		setUserUnboundOngInfo(native, param.User, unboundOngInfo)
 	}
 	if err := ont.AppCallTransfer(native, stakeAssetAddr, param.User, contract, wholeAmount); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: transfer stake asset failed, err: %s", err)
@@ -261,12 +358,12 @@ func WithdrawStake(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	stakeAssetAddr, err := getShardStakeAssetAddr(native, contract, param.ShardId)
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 	}
 	if stakeAssetAddr == utils.OntContractAddress {
-		unboundOngInfo, err := getUserUnboundOngInfo(native, contract, param.User)
+		unboundOngInfo, err := getUserUnboundOngInfo(native, param.User)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
 		}
@@ -274,7 +371,7 @@ func WithdrawStake(native *native.NativeService) ([]byte, error) {
 			// user stake firstly
 			unboundOngInfo.Time = native.Time
 			unboundOngInfo.StakeAmount = num
-		} else if unboundOngInfo.StakeAmount > num {
+		} else if unboundOngInfo.StakeAmount >= num {
 			amount := utils.CalcUnbindOng(unboundOngInfo.StakeAmount, unboundOngInfo.Time-constants.GENESIS_BLOCK_TIMESTAMP,
 				native.Time-constants.GENESIS_BLOCK_TIMESTAMP)
 			unboundOngInfo.Balance += amount
@@ -283,7 +380,7 @@ func WithdrawStake(native *native.NativeService) ([]byte, error) {
 		} else {
 			return utils.BYTE_FALSE, fmt.Errorf("UserStake: user stake whole amount not enough")
 		}
-		setUserUnboundOngInfo(native, contract, param.User, unboundOngInfo)
+		setUserUnboundOngInfo(native, param.User, unboundOngInfo)
 	}
 	err = ont.AppCallTransfer(native, utils.OntContractAddress, contract, param.User, num)
 	if err != nil {
@@ -350,7 +447,7 @@ func ChangeProportion(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: check witness failed, err: %s", err)
 	}
-	if param.Value.Amount > 100 {
+	if param.Value.Amount > PEER_MAX_PROPORTION {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: proportion larger than 100")
 	}
 	err := changePeerInfo(native, param.ShardId, param.User, param.Value, CHANGE_PROPORTION)
@@ -369,7 +466,7 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: check witness failed, err: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	unboundOngInfo, err := getUserUnboundOngInfo(native, contract, user)
+	unboundOngInfo, err := getUserUnboundOngInfo(native, user)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: failed, err: %s", err)
 	}
@@ -381,7 +478,7 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 	wholeAmount := amount + unboundOngInfo.Balance
 	unboundOngInfo.Balance = 0
 	unboundOngInfo.Time = native.Time
-	setUserUnboundOngInfo(native, contract, user, unboundOngInfo)
+	setUserUnboundOngInfo(native, user, unboundOngInfo)
 	if err := ont.AppCallTransfer(native, utils.OntContractAddress, contract, contract, 1); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: transfer ont failed, err: %s", err)
 	}
@@ -390,4 +487,60 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: transfer ong failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
+}
+
+func GetCurrentView(native *native.NativeService) ([]byte, error) {
+	shardId, err := utils.DeserializeShardId(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: read shardId failed, err: %s", err)
+	}
+	currentView, err := GetShardCurrentView(native, shardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: failed, err: %s", err)
+	}
+	return ntypes.BigIntToBytes(new(big.Int).SetUint64(uint64(currentView))), nil
+}
+
+func GetPeerInfo(native *native.NativeService) ([]byte, error) {
+	param := &GetPeerInfoParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo: failed, err: %s", err)
+	}
+	peerInfo, err := GetShardViewInfo(native, param.ShardId, View(param.View))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo: failed, err: %s", err)
+	}
+	data, err := json.Marshal(peerInfo)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPeerInfo: marshal peer info failed, err: %s", err)
+	}
+	return data, nil
+}
+
+// return user stake info at nearest of param view
+func GetUserInfo(native *native.NativeService) ([]byte, error) {
+	param := &GetUserStakeInfoParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: failed, err: %s", err)
+	}
+	result := &UserStakeInfo{Peers: make(map[string]*UserPeerStakeInfo)}
+	for i := param.View; ; i-- {
+		info, err := getShardViewUserStake(native, param.ShardId, View(i), param.User)
+		if err != nil {
+			log.Debugf("GetUserInfo: get view %d info failed, err: %s", i, err)
+			continue
+		}
+		if !isUserStakePeerEmpty(info) {
+			result = info
+			break
+		}
+		if i == 0 {
+			break
+		}
+	}
+	data, err := json.Marshal(result)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: marshal info failed, err: %s", err)
+	}
+	return data, nil
 }

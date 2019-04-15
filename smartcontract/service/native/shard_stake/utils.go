@@ -19,7 +19,6 @@
 package shard_stake
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
@@ -31,7 +30,10 @@ import (
 
 const (
 	USER_MAX_WITHDRAW_VIEW = 100 // one can withdraw 100 epoch dividends
+	PEER_MAX_PROPORTION    = 100
+)
 
+const (
 	KEY_VIEW_INDEX = "view_index"
 	KEY_VIEW_INFO  = "view_info"
 
@@ -103,10 +105,10 @@ func GetShardCurrentView(native *native.NativeService, id types.ShardID) (View, 
 	return View(changeView.View), nil
 }
 
-func setShardView(native *native.NativeService, id types.ShardID, shardView *utils.ChangeView) error {
+func setShardView(native *native.NativeService, id types.ShardID, shardView *utils.ChangeView) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := GenShardViewKey(shardIDBytes)
-	return utils.PutChangeView(native, utils.ShardStakeAddress, shardView, key)
+	utils.PutChangeView(native, utils.ShardStakeAddress, shardView, key)
 }
 
 func GetShardViewInfo(native *native.NativeService, id types.ShardID, view View) (*ViewInfo, error) {
@@ -259,24 +261,16 @@ func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amoun
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 }
 
-func setShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID,
-	addr common.Address) error {
+func setShardStakeAssetAddr(native *native.NativeService, shardId types.ShardID, addr common.Address) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
-	bf := new(bytes.Buffer)
-	err := addr.Serialize(bf)
-	if err != nil {
-		return fmt.Errorf("setShardStakeAssetAddr: serialize addr: %s", err)
-	}
-	key := genShardStakeAssetAddrKey(contract, shardIDBytes)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(bf.Bytes()))
-	return nil
+	key := genShardStakeAssetAddrKey(utils.ShardStakeAddress, shardIDBytes)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(addr[:]))
 }
 
-func getShardStakeAssetAddr(native *native.NativeService, contract common.Address, shardId types.ShardID) (common.Address,
-	error) {
+func getShardStakeAssetAddr(native *native.NativeService, shardId types.ShardID) (common.Address, error) {
 	addr := common.Address{}
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
-	key := genShardStakeAssetAddrKey(contract, shardIDBytes)
+	key := genShardStakeAssetAddrKey(utils.ShardStakeAddress, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
 		return addr, fmt.Errorf("getShardStakeAssetAddr: read db failed, err: %s", err)
@@ -288,15 +282,15 @@ func getShardStakeAssetAddr(native *native.NativeService, contract common.Addres
 	if err != nil {
 		return addr, fmt.Errorf("getShardStakeAssetAddr: parse db value failed, err: %s", err)
 	}
-	err = addr.Deserialize(bytes.NewBuffer(data))
-	if err != nil {
-		return addr, fmt.Errorf("getShardStakeAssetAddr: deserialize value failed, err: %s", err)
+	if len(data) != common.ADDR_LEN {
+		return addr, fmt.Errorf("getShardStakeAssetAddr: store value len %d not equals addr len", len(data))
 	}
+	copy(addr[:], data)
 	return addr, nil
 }
 
-func getUserUnboundOngInfo(native *native.NativeService, contract, user common.Address) (*UserUnboundOngInfo, error) {
-	key := genUserUnboundOngKey(contract, user)
+func getUserUnboundOngInfo(native *native.NativeService, user common.Address) (*UserUnboundOngInfo, error) {
+	key := genUserUnboundOngKey(utils.ShardStakeAddress, user)
 	storeValue, err := native.CacheDB.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("getUserUnboundOngInfo: read db failed, err: %s", err)
@@ -316,8 +310,8 @@ func getUserUnboundOngInfo(native *native.NativeService, contract, user common.A
 	return info, nil
 }
 
-func setUserUnboundOngInfo(native *native.NativeService, contract, user common.Address, info *UserUnboundOngInfo) {
-	key := genUserUnboundOngKey(contract, user)
+func setUserUnboundOngInfo(native *native.NativeService, user common.Address, info *UserUnboundOngInfo) {
+	key := genUserUnboundOngKey(utils.ShardStakeAddress, user)
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))

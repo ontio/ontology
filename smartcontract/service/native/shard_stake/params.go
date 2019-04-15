@@ -28,6 +28,39 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+type InitShardParam struct {
+	ShardId        types.ShardID
+	StakeAssetAddr common.Address
+	MinStake       uint64
+}
+
+func (this *InitShardParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.StakeAssetAddr); err != nil {
+		return fmt.Errorf("serialize: write stake asset addr failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.MinStake); err != nil {
+		return fmt.Errorf("serialize: write min stake failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *InitShardParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.StakeAssetAddr, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read stake asset addr failed, err: %s", err)
+	}
+	if this.MinStake, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read min stake failed, err: %s", err)
+	}
+	return nil
+}
+
 type PeerAmount struct {
 	PeerPubKey string
 	Amount     uint64
@@ -54,19 +87,15 @@ func (this *PeerAmount) Deserialize(r io.Reader) error {
 	return nil
 }
 
-type PeerInitStakeParam struct {
-	ShardId        types.ShardID
-	StakeAssetAddr common.Address
-	PeerOwner      common.Address
-	Value          *PeerAmount
+type PeerStakeParam struct {
+	ShardId   types.ShardID
+	PeerOwner common.Address
+	Value     *PeerAmount
 }
 
-func (this *PeerInitStakeParam) Serialize(w io.Writer) error {
+func (this *PeerStakeParam) Serialize(w io.Writer) error {
 	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
 		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
-	}
-	if err := utils.WriteAddress(w, this.StakeAssetAddr); err != nil {
-		return fmt.Errorf("serialize: write stake asset addr failed, err: %s", err)
 	}
 	if err := utils.WriteAddress(w, this.PeerOwner); err != nil {
 		return fmt.Errorf("serialize: write peer owner failed, err: %s", err)
@@ -77,13 +106,10 @@ func (this *PeerInitStakeParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *PeerInitStakeParam) Deserialize(r io.Reader) error {
+func (this *PeerStakeParam) Deserialize(r io.Reader) error {
 	var err error = nil
 	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
-	}
-	if this.StakeAssetAddr, err = utils.ReadAddress(r); err != nil {
-		return fmt.Errorf("deserialize: read stake asset addr failed, err: %s", err)
 	}
 	if this.PeerOwner, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read peer owner failed, err: %s", err)
@@ -439,6 +465,65 @@ func (this *PeerExitParam) Deserialize(r io.Reader) error {
 
 	if this.Peer, err = serialization.ReadString(r); err != nil {
 		return fmt.Errorf("deserialize: read peer failed, err: %s", err)
+	}
+	return nil
+}
+
+type GetPeerInfoParam struct {
+	ShardId types.ShardID
+	View    uint64
+}
+
+func (this *GetPeerInfoParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.View); err != nil {
+		return fmt.Errorf("serialize: write view failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *GetPeerInfoParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.View, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read view failed, err: %s", err)
+	}
+	return nil
+}
+
+type GetUserStakeInfoParam struct {
+	ShardId types.ShardID
+	View    uint64
+	User    common.Address
+}
+
+func (this *GetUserStakeInfoParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.View); err != nil {
+		return fmt.Errorf("serialize: write view failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write addr failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *GetUserStakeInfoParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.View, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read view failed, err: %s", err)
+	}
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
 	}
 	return nil
 }

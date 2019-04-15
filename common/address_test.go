@@ -21,6 +21,7 @@ package common
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,4 +62,20 @@ func TestAddress_Serialize(t *testing.T) {
 	var addr2 Address
 	addr2.Deserialize(buf)
 	assert.Equal(t, addr, addr2)
+}
+
+func TestAddress_MarshalJSON(t *testing.T) {
+	addr, _ := AddressFromBase58("AN9PD1zC4moFWjDzY4xG9bAr7R7UvHwmLL")
+	data, err := json.Marshal(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("marshal addr is %s", string(data))
+	newAddr := new(Address)
+	err = json.Unmarshal(data, newAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("unmarshal addr is %s", newAddr.ToBase58())
+	assert.Equal(t, addr, *newAddr)
 }

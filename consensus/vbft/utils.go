@@ -32,7 +32,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	chainmgr "github.com/ontio/ontology/core/chainmgr"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -343,7 +343,7 @@ func getShardConfig(lgr *ledger.Ledger, shardID types.ShardID, blkNum uint32) (*
 				peerStakeInfo := &config.VBFTPeerStakeInfo{
 					Index:      id.Index,
 					PeerPubkey: id.PeerPubKey,
-					InitPos:    stateInfo.WholeStakeAmount,
+					InitPos:    stateInfo.InitPos + stateInfo.UserStakeAmount,
 				}
 				peersinfo = append(peersinfo, peerStakeInfo)
 			}
