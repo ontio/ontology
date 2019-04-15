@@ -83,13 +83,12 @@ func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 
-	txHash := ctx.Tx.Hash()
-	txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
 	reqParam := new(NotifyReqParam)
 	if err := reqParam.Deserialize(bytes.NewBuffer(ctx.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid param: %s", err)
 	}
 
+	txState := ctx.MainShardTxState
 	// send with minimal gas fee
 	msg := &xshard_state.XShardNotify{
 		NotifyID: txState.NumNotifies,
@@ -125,7 +124,7 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 
 	txHash := ctx.Tx.Hash()
 	shardTxID := xshard_state.ShardTxID(string(txHash[:]))
-	txState := xshard_state.CreateTxState(shardTxID).Clone()
+	txState := ctx.MainShardTxState
 	reqIdx := txState.NextReqID
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
 		return utils.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
