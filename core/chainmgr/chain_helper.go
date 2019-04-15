@@ -49,16 +49,16 @@ func (this *ChainManager) getShardBlockInfo(shardID types.ShardID, height uint32
 	return this.blockPool.GetBlockInfo(shardID, height)
 }
 
-func (this *ChainManager) updateShardBlockInfo(shardID types.ShardID, header *types.Header, shardTxs map[types.ShardID]*message.ShardBlockTx) {
+func (this *ChainManager) updateShardBlockInfo(shardID types.ShardID, block *types.Block, shardTxs map[types.ShardID]*message.ShardBlockTx) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	blkInfo := this.blockPool.GetBlockInfo(shardID, header.Height)
+	blkInfo := this.blockPool.GetBlockInfo(shardID, block.Header.Height)
 	if blkInfo == nil {
 		return
 	}
 
-	blkInfo.Header = &message.ShardBlockHeader{Header: header}
+	blkInfo.Block = block
 	blkInfo.ShardTxs = shardTxs
 }
 

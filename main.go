@@ -360,21 +360,7 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 
 	log.Infof("starting shard %d chain mgr", shardID)
 
-	// get all cmdArgs, for sub-shards
-	cmdArgs := make(map[string]string)
-	for _, f := range ctx.App.Flags {
-		name := f.GetName()
-		parts := strings.Split(f.GetName(), ",")
-		if len(parts) > 1 {
-			name = parts[0]
-		}
-
-		v := ctx.String(name)
-		if len(v) > 0 {
-			cmdArgs[name] = v
-		}
-	}
-	chainmgr, err := shard.Initialize(shardID, acc, cmdArgs)
+	chainmgr, err := shard.Initialize(shardID, acc)
 	if err != nil {
 		return nil, err
 	}

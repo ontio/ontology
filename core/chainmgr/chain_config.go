@@ -59,11 +59,11 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
 	} else if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
-		shardView, err := GetShardView(self.ledger, shardState.ShardID)
+		shardView, err := GetShardView(self.mainLedger, shardState.ShardID)
 		if err != nil {
 			return nil, fmt.Errorf("buildShardConfig GetShardView: failed, err: %s", err)
 		}
-		peerStakeInfo, err := GetShardPeerStakeInfo(self.ledger, shardState.ShardID, shardView.View)
+		peerStakeInfo, err := GetShardPeerStakeInfo(self.mainLedger, shardState.ShardID, shardView.View)
 		if err != nil {
 			return nil, fmt.Errorf("buildShardConfig GetShardPeerStakeInfo: failed, err: %s", err)
 		}
@@ -107,9 +107,6 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 	}
 	// TODO: init config for shard $shardID, including genesis config, data dir, net port, etc
 	shardName := GetShardName(shardID)
-	shardConfig.P2PNode.NodePort = GetShardNodePortID(shardID.ToUint64())
-	shardConfig.Rpc.HttpLocalPort = GetShardRpcPortByShardID(shardID.ToUint64())
-	shardConfig.Restful.HttpRestPort = GetShardRestPortByShardID(shardID.ToUint64())
 	shardConfig.P2PNode.NetworkName = shardName
 
 	// init child shard config
