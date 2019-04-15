@@ -25,14 +25,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"strings"
 	"time"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const JSON_RPC_VERSION = "2.0"
@@ -64,18 +62,6 @@ func (this *ChainManager) updateShardBlockInfo(shardID types.ShardID, header *ty
 	blkInfo.ShardTxs = shardTxs
 }
 
-func (this *ChainManager) getChildShards() map[types.ShardID]*ShardInfo {
-	shards := make(map[types.ShardID]*ShardInfo)
-
-	for _, shardInfo := range this.shards {
-		if shardInfo.ConnType == CONN_TYPE_CHILD {
-			shards[shardInfo.ShardID] = shardInfo
-		}
-	}
-
-	return shards
-}
-
 func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstates.ShardState) (*ShardInfo, error) {
 	if shardID != shard.ShardID {
 		return nil, fmt.Errorf("unmatched shard ID with shardstate")
@@ -86,41 +72,13 @@ func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstate
 		info = i
 	}
 	info.ShardID = shard.ShardID
-	info.ParentShardID = shard.ShardID.ParentID()
 
 	seedList := make([]string, 0)
 	for _, p := range shard.Peers {
 		seedList = append(seedList, p.IpAddress)
 	}
 	info.SeedList = seedList
-
-	key := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
-	if _, present := shard.Peers[strings.ToLower(key)]; present {
-		// peer is in the shard
-		// build shard config
-		if self.shardID == shard.ShardID {
-			// self shards
-			info.ConnType = CONN_TYPE_SELF
-		} else if self.parentShardID == shard.ShardID {
-			// parent shard
-			info.ConnType = CONN_TYPE_PARENT
-		} else if self.shardID == shard.ShardID.ParentID() {
-			// child shard
-			info.ConnType = CONN_TYPE_CHILD
-		}
-	} else {
-		if self.shardID == shard.ShardID.ParentID() {
-			// child shards
-			info.ConnType = CONN_TYPE_CHILD
-		} else if self.parentShardID == shard.ShardID.ParentID() {
-			// sib shards
-			info.ConnType = CONN_TYPE_SIB
-		}
-	}
-
-	if info.ConnType != CONN_TYPE_UNKNOWN {
-		self.shards[shard.ShardID] = info
-	}
+	self.shards[shard.ShardID] = info
 	return info, nil
 }
 

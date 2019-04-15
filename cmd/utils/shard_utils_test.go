@@ -52,9 +52,6 @@ func TestBuildShardCommandArgs(t *testing.T) {
 	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ShardIDFlag.GetName(), shardID.ToUint64())) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}
-	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.ParentShardPortFlag.GetName(), shardCmdCfg.ParentPort)) {
-		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
-	}
 	if !isExits(cmdArgs, fmt.Sprintf("--%s=%d", utils.NodePortFlag.GetName(), shardCmdCfg.NodePort)) {
 		t.Fatalf("arg 'a' not exist in %v", cmdArgs)
 	}

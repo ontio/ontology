@@ -23,7 +23,6 @@ import (
 	"math"
 	"reflect"
 	"sync"
-	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology-eventbus/eventstream"
@@ -38,22 +37,13 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const (
 	CAP_LOCAL_SHARDMSG_CHNL  = 64
 	CAP_REMOTE_SHARDMSG_CHNL = 64
 	CAP_SHARD_BLOCK_POOL     = 16
-	CONNECT_PARENT_TIMEOUT   = 5 * time.Second
-)
-
-const (
-	CONN_TYPE_UNKNOWN = iota
-	CONN_TYPE_SELF
-	CONN_TYPE_PARENT
-	CONN_TYPE_CHILD
-	CONN_TYPE_SIB
 )
 
 var defaultChainManager *ChainManager = nil
@@ -79,25 +69,16 @@ type MsgSendReq struct {
 //
 // ShardInfo:
 //  . Configuration of other shards
-//  . EventBus ID of other shards
+//  . seed list of other shards
 //
 type ShardInfo struct {
-	ShardID       types.ShardID
-	ParentShardID types.ShardID
-	ShardAddress  string
-	SeedList      []string
-	ConnType      int
-	Connected     bool
-	Config        *config.OntologyConfig
-	Sender        *actor.PID
+	ShardID  types.ShardID
+	SeedList []string
+	Config   *config.OntologyConfig
 }
 
 type ChainManager struct {
 	shardID              types.ShardID
-	shardPort            uint
-	parentShardID        types.ShardID
-	parentShardIPAddress string
-	parentShardPort      uint
 
 	// ShardInfo management, indexing shards with ShardID / Sender-Addr
 	lock       sync.RWMutex
@@ -146,7 +127,7 @@ type ChainManager struct {
 //
 // Initialize chain manager when ontology starting
 //
-func Initialize(shardID types.ShardID, parentAddr string, shardPort, parentPort uint, acc *account.Account, cmdArgs map[string]string) (*ChainManager, error) {
+func Initialize(shardID types.ShardID, acc *account.Account, cmdArgs map[string]string) (*ChainManager, error) {
 	// fixme: change to sync.once
 	if defaultChainManager != nil {
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
@@ -159,10 +140,6 @@ func Initialize(shardID types.ShardID, parentAddr string, shardPort, parentPort 
 
 	chainMgr := &ChainManager{
 		shardID:              shardID,
-		shardPort:            shardPort,
-		parentShardID:        shardID.ParentID(),
-		parentShardIPAddress: parentAddr,
-		parentShardPort:      parentPort,
 		shards:               make(map[types.ShardID]*ShardInfo),
 		shardAddrs:           make(map[string]types.ShardID),
 		blockPool:            blkPool,
@@ -176,21 +153,7 @@ func Initialize(shardID types.ShardID, parentAddr string, shardPort, parentPort 
 		cmdArgs: cmdArgs,
 	}
 
-	// start remote-eventBus
-	chainMgr.startRemoteEventbus()
-	// listening on remote-eventBus
-	if err := chainMgr.startListener(); err != nil {
-		return nil, fmt.Errorf("shard %d start listener failed: %s", chainMgr.shardID, err)
-	}
-
 	go chainMgr.localEventLoop()
-	go chainMgr.remoteShardMsgLoop()
-	go chainMgr.broadcastMsgLoop()
-
-	if err := chainMgr.connectParent(); err != nil {
-		chainMgr.Stop()
-		return nil, fmt.Errorf("connect parent shard failed: %s", err)
-	}
 
 	// subscribe on event-bus disconnected event
 	chainMgr.busEventSub = eventstream.Subscribe(chainMgr.processEventBusEvent).
@@ -279,11 +242,6 @@ func (self *ChainManager) StartShardServer() error {
 	return nil
 }
 
-func (self *ChainManager) startRemoteEventbus() {
-	localRemote := fmt.Sprintf("%s:%d", config.DEFAULT_PARENTSHARD_IPADDR, self.shardPort)
-	remote.Start(localRemote)
-}
-
 func (self *ChainManager) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Restarting:
@@ -296,21 +254,6 @@ func (self *ChainManager) Receive(context actor.Context) {
 		log.Info("chain mgr actor started")
 	case *actor.Restart:
 		log.Info("chain mgr actor restart")
-	case *shardmsg.CrossShardMsg:
-		if msg == nil {
-			return
-		}
-		log.Tracef("chain mgr received shard msg: %v", msg)
-		smsg, err := shardmsg.DecodeShardMsg(msg.Type, msg.Data)
-		if err != nil {
-			log.Errorf("decode shard msg: %s", err)
-			return
-		}
-		self.remoteShardMsgC <- &RemoteMsg{
-			Sender: msg.Sender,
-			Msg:    smsg,
-		}
-
 	case *message.SaveBlockCompleteMsg:
 		self.localBlockMsgC <- msg
 
@@ -426,216 +369,6 @@ func (self *ChainManager) localEventLoop() {
 			return
 		}
 	}
-}
-
-//
-// broadcastMsgLoop: help broadcasting message to remote shards
-//  TODO: send msg to sibling-shards
-//
-func (self *ChainManager) broadcastMsgLoop() {
-	self.quitWg.Add(1)
-	defer self.quitWg.Done()
-
-	for {
-		select {
-		case msg := <-self.broadcastMsgC:
-			if msg.targetShardID.ToUint64() == math.MaxUint64 {
-				// broadcast
-				for _, s := range self.shards {
-					if s.Connected && s.Sender != nil {
-						s.Sender.Tell(msg.msg)
-					}
-				}
-			} else {
-				// send to shard
-				if s, present := self.shards[msg.targetShardID]; present {
-					if s.Connected && s.Sender != nil {
-						s.Sender.Tell(msg.msg)
-					}
-				} else {
-					// other shards
-					// TODO: send msg to sib shards
-				}
-			}
-		case <-self.quitC:
-			return
-		}
-	}
-}
-
-func (self *ChainManager) remoteShardMsgLoop() {
-	self.quitWg.Add(1)
-	defer self.quitWg.Done()
-
-	for {
-		if err := self.processRemoteShardMsg(); err != nil {
-			log.Errorf("chain mgr process remote shard msg failed: %s", err)
-		}
-		select {
-		case <-self.quitC:
-			return
-		default:
-		}
-	}
-}
-
-//
-// processRemoteShardMsg: process messages from all remote shards
-//
-func (self *ChainManager) processRemoteShardMsg() error {
-	select {
-	case remoteMsg := <-self.remoteShardMsgC:
-		msg := remoteMsg.Msg
-		log.Debugf("shard %d received remote shard msg type %d", self.shardID, msg.Type())
-		switch msg.Type() {
-		case shardmsg.HELLO_MSG:
-			helloMsg, ok := msg.(*shardmsg.ShardHelloMsg)
-			if !ok {
-				return fmt.Errorf("invalid hello msg")
-			}
-			if helloMsg.TargetShardID != self.shardID {
-				return fmt.Errorf("hello msg with invalid target %d, from %d", helloMsg.TargetShardID, helloMsg.SourceShardID)
-			}
-			log.Infof("received hello msg from %d", helloMsg.SourceShardID)
-			// response ack
-			return self.onNewShardConnected(remoteMsg.Sender, helloMsg)
-		case shardmsg.CONFIG_MSG:
-			shardCfgMsg, ok := msg.(*shardmsg.ShardConfigMsg)
-			if !ok {
-				return fmt.Errorf("invalid config msg")
-			}
-			log.Infof("shard %d received config msg", self.shardID)
-			return self.onShardConfig(remoteMsg.Sender, shardCfgMsg)
-		case shardmsg.BLOCK_REQ_MSG:
-			var header *types.Header
-			var shardTx *shardmsg.ShardBlockTx
-			var err error
-
-			req := msg.(*shardmsg.ShardBlockReqMsg)
-			info := self.getShardBlockInfo(self.shardID, req.BlockHeight)
-			if info != nil {
-				header = info.Header.Header
-				shardTx = info.ShardTxs[req.ShardID]
-			} else {
-				header, err = self.ledger.GetHeaderByHeight(req.BlockHeight)
-				if err != nil {
-					return err
-				}
-				evts, err := self.ledger.GetBlockShardEvents(req.BlockHeight)
-				if err != nil {
-					return err
-				}
-
-				shardEvts := make([]*message.ShardEventState, 0)
-				for _, evt := range evts {
-					shardEvt := evt.Event
-					if isShardGasEvent(shardEvt) && shardEvt.ToShard == req.ShardID {
-						shardEvts = append(shardEvts, shardEvt)
-					}
-				}
-				shardTx, err = newShardBlockTx(shardEvts)
-				if err != nil {
-					return err
-				}
-			}
-			msg, err := shardmsg.NewShardBlockRspMsg(self.shardID, header, shardTx, self.localPid)
-			if err != nil {
-				return fmt.Errorf("build shard block msg: %s", err)
-			}
-
-			// send msg to shard
-			self.sendShardMsg(req.ShardID, msg)
-		case shardmsg.BLOCK_RSP_MSG:
-			blkMsg, ok := msg.(*shardmsg.ShardBlockRspMsg)
-			if !ok {
-				return fmt.Errorf("invalid block rsp msg")
-			}
-			return self.onShardBlockReceived(remoteMsg.Sender, blkMsg)
-		case shardmsg.PEERINFO_REQ_MSG:
-		case shardmsg.PEERINFO_RSP_MSG:
-			return nil
-		case shardmsg.DISCONNECTED_MSG:
-			disconnMsg, ok := msg.(*shardmsg.ShardDisconnectedMsg)
-			if !ok {
-				return fmt.Errorf("invalid disconnect message")
-			}
-			return self.onShardDisconnected(disconnMsg)
-		default:
-			return nil
-		}
-	case <-self.quitC:
-		return nil
-	}
-	return nil
-}
-
-//
-// Connect to parent shard, send Hello message.
-// (root shard does not have parent shard)
-//
-func (self *ChainManager) connectParent() error {
-	// connect to parent
-	if self.parentShardID.ToUint64() == math.MaxUint64 {
-		return nil
-	}
-	if self.localPid == nil {
-		return fmt.Errorf("shard %d connect parent with nil localPid", self.shardID)
-	}
-
-	parentAddr := fmt.Sprintf("%s:%d", self.parentShardIPAddress, self.parentShardPort)
-	parentPid := actor.NewPID(parentAddr, GetShardName(self.parentShardID))
-	hellomsg, err := shardmsg.NewShardHelloMsg(self.shardID, self.parentShardID, self.localPid)
-	if err != nil {
-		return fmt.Errorf("build hello msg: %s", err)
-	}
-	parentPid.Request(hellomsg, self.localPid)
-	if err := self.waitConnectParent(CONNECT_PARENT_TIMEOUT); err != nil {
-		return fmt.Errorf("wait connection with parent err: %s", err)
-	}
-
-	self.parentPid = parentPid
-	log.Infof("shard %d connected with parent shard %d", self.shardID, self.parentShardID)
-	return nil
-}
-
-func (self *ChainManager) waitConnectParent(timeout time.Duration) error {
-	select {
-	case <-time.After(timeout):
-		return fmt.Errorf("wait parent connection timeout")
-	case connected := <-self.parentConnWait:
-		if connected {
-			return nil
-		}
-		return fmt.Errorf("connection failed")
-	}
-	return nil
-}
-
-func (self *ChainManager) notifyParentConnected() {
-	select {
-	case self.parentConnWait <- true:
-	default:
-		return
-	}
-}
-
-//
-// start listening on remote event bus
-//
-func (self *ChainManager) startListener() error {
-
-	// start local
-	props := actor.FromProducer(func() actor.Actor {
-		return self
-	})
-	pid, err := actor.SpawnNamed(props, GetShardName(self.shardID))
-	if err != nil {
-		return fmt.Errorf("init chain manager actor: %s", err)
-	}
-	self.localPid = pid
-
-	log.Infof("chain %d started listen on port %d", self.shardID, self.shardPort)
-	return nil
 }
 
 func (self *ChainManager) Stop() {

@@ -25,7 +25,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -76,12 +75,8 @@ const (
 	DEFAULT_DATA_DIR      = "./Chain"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 
-	DEFAULT_SHARD_ID           = 0
-	DEFAULT_PARENT_SHARD_ID    = math.MaxUint64
-	DEFAULT_PARENT_HEIGHT      = 0
-	DEFAULT_SHARD_PORT         = uint(20340)
-	DEFAULT_PARENTSHARD_IPADDR = "127.0.0.1"
-	DEFAULT_PARENTSHARD_PORT   = uint(20340)
+	DEFAULT_SHARD_ID      = 0
+	DEFAULT_PARENT_HEIGHT = 0
 )
 
 const (
@@ -614,14 +609,12 @@ type P2PNodeConfig struct {
 
 type RpcConfig struct {
 	EnableHttpJsonRpc bool
-	EnableShardRpc    bool
 	HttpJsonPort      uint
 	HttpLocalPort     uint
 }
 
 type RestfulConfig struct {
 	EnableHttpRestful  bool
-	EnableShardRestful bool
 	HttpRestPort       uint
 	HttpMaxConnections uint
 	HttpCertPath       string
@@ -636,12 +629,8 @@ type WebSocketConfig struct {
 }
 
 type ShardConfig struct {
-	ShardID              types.ShardID `json:"shard_id"`
-	ParentShardID        types.ShardID `json:"parent_shard_id"`
-	GenesisParentHeight  uint32        `json:"genesis_parent_height"`
-	ShardPort            uint          `json:"shard_port"`
-	ParentShardIPAddress string        `json:"parent_shard_ip_address"`
-	ParentShardPort      uint          `json:"parent_shard_port"`
+	ShardID             types.ShardID `json:"shard_id"`
+	GenesisParentHeight uint32        `json:"genesis_parent_height"`
 }
 
 type OntologyConfig struct {
@@ -690,25 +679,20 @@ func NewOntologyConfig() *OntologyConfig {
 		},
 		Rpc: &RpcConfig{
 			EnableHttpJsonRpc: true,
-			EnableShardRpc:    true,
 			HttpJsonPort:      DEFAULT_RPC_PORT,
 			HttpLocalPort:     DEFAULT_RPC_LOCAL_PORT,
 		},
 		Restful: &RestfulConfig{
-			EnableHttpRestful:  true,
-			EnableShardRestful: true,
-			HttpRestPort:       DEFAULT_REST_PORT,
+			EnableHttpRestful: true,
+			HttpRestPort:      DEFAULT_REST_PORT,
 		},
 		Ws: &WebSocketConfig{
 			EnableHttpWs: true,
 			HttpWsPort:   DEFAULT_WS_PORT,
 		},
 		Shard: &ShardConfig{
-			ShardID:              types.NewShardIDUnchecked(DEFAULT_SHARD_ID),
-			GenesisParentHeight:  DEFAULT_PARENT_HEIGHT,
-			ShardPort:            DEFAULT_SHARD_PORT,
-			ParentShardIPAddress: DEFAULT_PARENTSHARD_IPADDR,
-			ParentShardPort:      DEFAULT_PARENTSHARD_PORT,
+			ShardID:             types.NewShardIDUnchecked(DEFAULT_SHARD_ID),
+			GenesisParentHeight: DEFAULT_PARENT_HEIGHT,
 		},
 	}
 }

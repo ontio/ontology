@@ -131,11 +131,6 @@ func setupAPP() *cli.App {
 		utils.WsPortFlag,
 		//sharding setting
 		utils.ShardIDFlag,
-		utils.ShardPortFlag,
-		utils.ParentShardIPFlag,
-		utils.ParentShardPortFlag,
-		utils.ShardRestEnableFlag,
-		utils.ShardRpcEnableFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -245,17 +240,6 @@ func startMainChain(ctx *cli.Context) {
 
 func startShardChain(ctx *cli.Context, shardID types.ShardID) {
 	initLog(ctx, shardID)
-
-	parentShardIP := ctx.String(utils.GetFlagName(utils.ParentShardIPFlag))
-	if len(parentShardIP) == 0 {
-		parentShardIP = config.DEFAULT_PARENTSHARD_IPADDR
-	}
-
-	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
-	if parentShardPort == 0 {
-		log.Errorf("shard %d: no parent shard port", shardID)
-		return
-	}
 
 	// start chain manager
 	chainMgr, err := initChainManager(ctx, nil)
@@ -374,12 +358,7 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 		return nil, err
 	}
 
-	shardPort := ctx.Uint(utils.GetFlagName(utils.ShardPortFlag))
-	parentShardID := shardID.ParentID()
-	parentShardAddr := ctx.String(utils.GetFlagName(utils.ParentShardIPFlag))
-	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
-	log.Infof("starting shard %d chain mgr: port %d, parent (%d, %s, %d)", shardID, shardPort, parentShardID,
-		parentShardAddr, parentShardPort)
+	log.Infof("starting shard %d chain mgr", shardID)
 
 	// get all cmdArgs, for sub-shards
 	cmdArgs := make(map[string]string)
@@ -395,7 +374,7 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 			cmdArgs[name] = v
 		}
 	}
-	chainmgr, err := shard.Initialize(shardID, parentShardAddr, shardPort, parentShardPort, acc, cmdArgs)
+	chainmgr, err := shard.Initialize(shardID, acc, cmdArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -509,9 +488,6 @@ func initRpc(ctx *cli.Context) error {
 	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
 		return nil
 	}
-	if !config.DefConfig.Rpc.EnableShardRpc && !shard.GetShardID().IsRootShard() {
-		return nil
-	}
 	var err error
 	exitCh := make(chan interface{}, 0)
 	go func() {
@@ -559,9 +535,6 @@ func initLocalRpc(ctx *cli.Context) error {
 
 func initRestful(ctx *cli.Context) {
 	if !config.DefConfig.Restful.EnableHttpRestful {
-		return
-	}
-	if !config.DefConfig.Restful.EnableShardRestful && !shard.GetShardID().IsRootShard() {
 		return
 	}
 	go restful.StartServer()

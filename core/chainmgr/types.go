@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 )
 
 type shardAccount struct {
@@ -83,13 +82,4 @@ func deserializeShardAccount(payload []byte) (*account.Account, error) {
 		Address:    addr,
 		SigScheme:  s.SigScheme,
 	}, nil
-}
-
-func deserializeShardConfig(payload []byte) (*config.OntologyConfig, error) {
-	cfg := &config.OntologyConfig{}
-	buf := bytes.NewBuffer(payload)
-	if err := cfg.Deserialize(buf); err != nil {
-		return nil, fmt.Errorf("deserialize ontology config: %s", err)
-	}
-	return cfg, nil
 }

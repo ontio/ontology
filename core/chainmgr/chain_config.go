@@ -25,7 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 //
@@ -40,11 +40,6 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 		return nil, fmt.Errorf("Shard not active: %d", shardState.State)
 	}
 
-	// TODO: check if shardID is in children
-	childShards := self.getChildShards()
-	if _, present := childShards[shardID]; !present {
-		return nil, fmt.Errorf("ShardID:%d not in children", shardID)
-	}
 	// copy current config
 	buf := new(bytes.Buffer)
 	if err := config.DefConfig.Serialize(buf); err != nil {
@@ -119,11 +114,8 @@ func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *sh
 
 	// init child shard config
 	shardConfig.Shard = &config.ShardConfig{
-		ShardID:              shardID,
-		GenesisParentHeight:  shardState.GenesisParentHeight,
-		ShardPort:            uint(uint64(self.shardPort) + shardID.ToUint64() - self.shardID.ToUint64()),
-		ParentShardIPAddress: config.DEFAULT_PARENTSHARD_IPADDR,
-		ParentShardPort:      self.shardPort,
+		ShardID:             shardID,
+		GenesisParentHeight: shardState.GenesisParentHeight,
 	}
 
 	shardConfig.Rpc = config.DefConfig.Rpc

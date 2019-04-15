@@ -155,10 +155,6 @@ var (
 		Name:  "disable-rpc",
 		Usage: "Shut down the rpc server.",
 	}
-	ShardRpcEnableFlag = cli.BoolFlag{
-		Name:  "enable-shard-rpc",
-		Usage: "Enable Shard Rpc",
-	}
 	RPCPortFlag = cli.UintFlag{
 		Name:  "rpcport",
 		Usage: "Json rpc server listening port `<number>`",
@@ -189,10 +185,6 @@ var (
 	RestfulEnableFlag = cli.BoolFlag{
 		Name:  "rest",
 		Usage: "Enable restful api server",
-	}
-	ShardRestEnableFlag = cli.BoolFlag{
-		Name:  "enable-shard-rest",
-		Usage: "Enable Shard Rest",
 	}
 	RestfulPortFlag = cli.UintFlag{
 		Name:  "restport",
@@ -502,34 +494,14 @@ var (
 		Name:  "option",
 		Usage: "this command does not need option, please run directly",
 	}
+
+	//Shard setting
 	ShardIDFlag = cli.Uint64Flag{
 		Name:  "ShardID",
 		Usage: "Shard ID",
 		Value: config.DEFAULT_SHARD_ID,
 	}
-	ShardPortFlag = cli.UintFlag{
-		Name:  "ShardPort",
-		Usage: "Shard Port",
-		Value: config.DEFAULT_SHARD_PORT,
-	}
-	ParentShardIPFlag = cli.StringFlag{
-		Name:  "ParentShardIP",
-		Usage: "Parent Shard IP",
-		Value: config.DEFAULT_PARENTSHARD_IPADDR,
-	}
-	ParentShardPortFlag = cli.UintFlag{
-		Name:  "ParentShardPort",
-		Usage: "Parent Shard Port",
-		Value: config.DEFAULT_PARENTSHARD_PORT,
-	}
 )
-
-var CmdFlagsForSharding = []cli.Flag{
-	ShardIDFlag,
-	ShardPortFlag,
-	ParentShardIPFlag,
-	ParentShardPortFlag,
-}
 
 //GetFlagName deal with short flag, and return the flag name whether flag name have short name
 func GetFlagName(flag cli.Flag) string {

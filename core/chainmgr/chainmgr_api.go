@@ -49,16 +49,7 @@ func GetShardID() types.ShardID {
 
 func GetParentShardID() types.ShardID {
 	chainmgr := GetChainManager()
-	return chainmgr.parentShardID
-}
-
-func GetChildShards() []types.ShardID {
-	childShards := make([]types.ShardID, 0)
-	chainmgr := GetChainManager()
-	for id := range chainmgr.getChildShards() {
-		childShards = append(childShards, id)
-	}
-	return childShards
+	return chainmgr.shardID.ParentID()
 }
 
 func GetPID() *actor.PID {
@@ -120,7 +111,7 @@ func GetParentShardHeight() (uint32, error) {
 	}
 
 	h := uint32(0)
-	if m := chainmgr.blockPool.Shards[chainmgr.parentShardID]; m != nil {
+	if m := chainmgr.blockPool.Shards[chainmgr.shardID.ParentID()]; m != nil {
 		for _, blk := range m {
 			if blk.Height > h {
 				h = blk.Height
@@ -143,7 +134,7 @@ func GetParentBlockHeader(height uint32) *types.Header {
 		return nil
 	}
 
-	m := chainmgr.blockPool.Shards[chainmgr.parentShardID]
+	m := chainmgr.blockPool.Shards[chainmgr.shardID.ParentID()]
 	if m == nil {
 		return nil
 	}
@@ -173,7 +164,7 @@ func GetShardTxsByParentHeight(start, end uint32) map[types.ShardID][]*types.Tra
 		return nil
 	}
 
-	parentShard := chainmgr.parentShardID
+	parentShard := chainmgr.shardID.ParentID()
 	log.Infof("shard %d get parent shard %d tx, %d - %d", chainmgr.shardID, parentShard, start, end)
 	m := chainmgr.blockPool.Shards[parentShard]
 	if m == nil {

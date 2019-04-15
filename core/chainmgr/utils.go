@@ -30,9 +30,9 @@ import (
 	sComm "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -50,9 +50,8 @@ func (self *ChainManager) setShardConfig(shardID types.ShardID, cfg *config.Onto
 	}
 
 	self.shards[shardID] = &ShardInfo{
-		ShardID:       shardID,
-		ParentShardID: cfg.Shard.ParentShardID,
-		Config:        cfg,
+		ShardID: shardID,
+		Config:  cfg,
 	}
 	return nil
 }
