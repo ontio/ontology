@@ -927,9 +927,6 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 		peerPubkey := params.PeerPubkeyList[i]
 		pos := params.WithdrawList[i]
 
-		if pos < 1 {
-			return utils.BYTE_FALSE, fmt.Errorf("withdraw, amount of withdraw must >= 1")
-		}
 		peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
