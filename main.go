@@ -160,8 +160,56 @@ func startOntology(ctx *cli.Context) {
 	if id == config.DEFAULT_SHARD_ID {
 		startMainChain(ctx)
 	} else {
-		startShardChain(ctx, shardID)
+		startSyncRootChain(ctx)
 	}
+}
+
+func startSyncRootChain(ctx *cli.Context) {
+	shardID := types.NewShardIDUnchecked(0)
+	initLog(ctx, shardID)
+
+	if _, err := initConfig(ctx); err != nil {
+		log.Errorf("initConfig error:%s", err)
+		return
+	}
+	// start chain manager
+	chainmgr, err := initChainManager(ctx, nil)
+	if err != nil {
+		log.Errorf("init main chain manager error: %s", err)
+		return
+	}
+	defer chainmgr.Stop()
+	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	ldg, err := initLedger(ctx, shardID, stateHashHeight)
+	if err != nil {
+		log.Errorf("%s", err)
+		return
+	}
+	defer ldg.Close()
+
+	if err := chainmgr.LoadFromLedger(ldg); err != nil {
+		log.Errorf("load chain mgr from ledger: %s", err)
+		return
+	}
+
+	txpool, err := initTxPool(ctx)
+	if err != nil {
+		log.Errorf("initTxPool error:%s", err)
+		return
+	}
+	p2pSvr, _, err := initP2PNode(ctx, txpool)
+	if err != nil {
+		log.Errorf("initP2PNode error:%s", err)
+		return
+	}
+	initNodeInfo(ctx, p2pSvr)
+	go logCurrBlockHeight(shardID)
+	go func() {
+		if cfg := chainmgr.GetShardConfig(shardID); cfg != nil {
+			//start shard function
+		}
+	}()
+	waitToExit()
 }
 
 func startMainChain(ctx *cli.Context) {

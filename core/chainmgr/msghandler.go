@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	evtmsg "github.com/ontio/ontology/events/message"
 	bcommon "github.com/ontio/ontology/http/base/common"
@@ -229,7 +230,27 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 
 	return nil
 }
-
+func (self *ChainManager) handleRootChainBLock() error {
+	shardState, err := GetShardState(self.mainLedger, self.shardID)
+	if err == com.ErrNotFound {
+		log.Debugf("get shard %d failed: %s", self.shardID, err)
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("get shard %d failed: %s", self.shardID, err)
+	}
+	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
+		return nil
+	}
+	if cfg, err := self.buildShardConfig(self.shardID, shardState); err != nil {
+		return fmt.Errorf("startChildShard shard %d,config: %s", self.shardID, err)
+	} else {
+		if err := self.setShardConfig(self.shardID, cfg); err != nil {
+			return fmt.Errorf("add shard %d config: %s", self.shardID, err)
+		}
+	}
+	return nil
+}
 func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
 	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
 
@@ -238,6 +259,9 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []
 	}
 	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
 		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
+	}
+	if err := self.handleRootChainBLock(); err != nil {
+		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 	return nil
 }
