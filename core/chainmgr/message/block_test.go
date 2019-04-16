@@ -19,7 +19,6 @@
 package message_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -83,10 +82,7 @@ func TestShardBlockHeaderSerialize(t *testing.T) {
 	shardHdr.Header.Height = height
 	shardHdr.Header.ParentHeight = parentHeight
 	sink := common.NewZeroCopySink(0)
-	err := shardHdr.Serialization(sink)
-	if err != nil {
-		t.Fatalf("ser shard header: %s", err)
-	}
+	shardHdr.Serialization(sink)
 	bs := sink.Bytes()
 	source := common.NewZeroCopySource(bs)
 	shardHdr2 := message.ShardBlockHeader{Header: &types.Header{}}
@@ -100,30 +96,6 @@ func TestShardBlockHeaderSerialize(t *testing.T) {
 
 	if shardHdr2.Header.Height != height {
 		t.Fatalf("unmatched height: %d vs %d", shardHdr2.Header.Height, height)
-	}
-}
-
-func TestShardBlockTx_Marshal(t *testing.T) {
-	version := byte(1)
-	shardID := uint64(100)
-
-	shardTx := newTestShardTx(t, version, shardID)
-	shardBytes, err := json.Marshal(shardTx)
-	if err != nil {
-		t.Fatalf("marshal shard header: %s", err)
-	}
-
-	shardTx2 := &message.ShardBlockTx{}
-	if err := json.Unmarshal(shardBytes, shardTx2); err != nil {
-		t.Fatalf("unmarshal shard header: %s", err)
-	}
-
-	if shardTx2.Tx.Version != version {
-		t.Fatalf("unmatched tx version: %d vs %d", shardTx2.Tx.Version, version)
-	}
-
-	if shardTx2.Tx.ShardID != shardID {
-		t.Fatalf("unmatched tx type: %d vs %d", shardTx2.Tx.ShardID, shardID)
 	}
 }
 

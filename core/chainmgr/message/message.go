@@ -237,6 +237,7 @@ func (this *ShardBlockRspMsg) Deserialization(source *common.ZeroCopySource) err
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
+	this.BlockHeader = &ShardBlockHeader{}
 	if err := this.BlockHeader.Deserialization(source); err != nil {
 		return fmt.Errorf("read header failed, err: %s", err)
 	}
