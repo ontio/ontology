@@ -32,11 +32,8 @@ type Block struct {
 	Transactions []*Transaction
 }
 
-func (b *Block) Serialization(sink *common.ZeroCopySink) error {
-	err := b.Header.Serialization(sink)
-	if err != nil {
-		return err
-	}
+func (b *Block) Serialization(sink *common.ZeroCopySink) {
+	b.Header.Serialization(sink)
 
 	// serialize cross-shard txs, ordered by ShardID
 	sink.WriteUint32(uint32(len(b.ShardTxs)))
@@ -50,20 +47,14 @@ func (b *Block) Serialization(sink *common.ZeroCopySink) error {
 
 	for _, shardID := range shardIds {
 		evts := b.ShardTxs[shardID]
-		if err := zcpSerializeShardTxs(sink, shardID, evts); err != nil {
-			return err
-		}
+		zcpSerializeShardTxs(sink, shardID, evts)
 	}
 
 	// serialize transactions
 	sink.WriteUint32(uint32(len(b.Transactions)))
 	for _, transaction := range b.Transactions {
-		err := transaction.Serialization(sink)
-		if err != nil {
-			return err
-		}
+		transaction.Serialization(sink)
 	}
-	return nil
 }
 
 // if no error, ownership of param raw is transfered to Transaction
@@ -153,20 +144,16 @@ func (b *Block) RebuildMerkleRoot() {
 	b.Header.TransactionsRoot = hash
 }
 
-func zcpSerializeShardTxs(sink *common.ZeroCopySink, shardID uint64, shardTxs []*Transaction) error {
+func zcpSerializeShardTxs(sink *common.ZeroCopySink, shardID uint64, shardTxs []*Transaction) {
 	if shardTxs == nil {
-		return nil
+		return
 	}
 
 	sink.WriteUint64(shardID)
 	sink.WriteUint32(uint32(len(shardTxs)))
 	for _, tx := range shardTxs {
-		if err := tx.Serialization(sink); err != nil {
-			return err
-		}
+		tx.Serialization(sink)
 	}
-
-	return nil
 }
 
 func zcpDeserializeShardTxs(source *common.ZeroCopySource, shardTxCnt uint32) (map[uint64][]*Transaction, error) {

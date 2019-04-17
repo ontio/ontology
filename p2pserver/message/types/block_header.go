@@ -32,17 +32,12 @@ type BlkHeader struct {
 }
 
 //Serialize message payload
-func (this BlkHeader) Serialization(sink *common.ZeroCopySink) error {
+func (this BlkHeader) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(uint32(len(this.BlkHdr)))
 
 	for _, header := range this.BlkHdr {
-		err := header.Serialization(sink)
-		if err != nil {
-			return err
-		}
+		header.Serialization(sink)
 	}
-
-	return nil
 }
 
 func (this *BlkHeader) CmdType() string {

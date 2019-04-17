@@ -31,11 +31,9 @@ type DataReq struct {
 }
 
 //Serialize message payload
-func (this DataReq) Serialization(sink *common.ZeroCopySink) error {
+func (this DataReq) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteByte(byte(this.DataType))
 	sink.WriteHash(this.Hash)
-
-	return nil
 }
 
 func (this *DataReq) CmdType() string {

@@ -41,9 +41,7 @@ func (pr *PrepareRequest) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteAddress(pr.NextBookkeeper)
 	sink.WriteVarUint(uint64(len(pr.Transactions)))
 	for _, t := range pr.Transactions {
-		if err := t.Serialization(sink); err != nil {
-			return fmt.Errorf("[PrepareRequest] transactions serialization failed: %s", err)
-		}
+		t.Serialization(sink)
 	}
 	sink.WriteVarBytes(pr.Signature)
 

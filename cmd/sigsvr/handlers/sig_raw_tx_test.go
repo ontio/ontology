@@ -88,8 +88,7 @@ func TestSigRawTx(t *testing.T) {
 	tx, err := mutable.IntoImmutable()
 	assert.Nil(t, err)
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	assert.Nil(t, err)
+	tx.Serialization(&sink)
 	rawReq := &SigRawTransactionReq{
 		RawTx: hex.EncodeToString(sink.Bytes()),
 	}

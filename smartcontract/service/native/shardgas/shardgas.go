@@ -111,10 +111,7 @@ func ShardGasMgmtInit(native *native.NativeService) ([]byte, error) {
 	}
 	if ver == 0 {
 		// initialize shardmgmt version
-		if err := setVersion(native, contract); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("init shard gas version: %s", err)
-		}
-
+		setVersion(native, contract)
 		return utils.BYTE_TRUE, nil
 	}
 

@@ -19,11 +19,9 @@
 package shardgas
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -81,21 +79,16 @@ func getVersion(native *native.NativeService, contract common.Address) (uint32, 
 		return 0, fmt.Errorf("get versoin, deserialized from raw storage item: %s", err)
 	}
 
-	ver, err := serialization.ReadUint32(bytes.NewBuffer(value))
+	ver, err := utils.GetBytesUint32(value)
 	if err != nil {
 		return 0, fmt.Errorf("serialization.ReadUint32, deserialize version: %s", err)
 	}
 	return ver, nil
 }
 
-func setVersion(native *native.NativeService, contract common.Address) error {
-	buf := new(bytes.Buffer)
-	if err := serialization.WriteUint32(buf, ShardGasMgmtVersion); err != nil {
-		return fmt.Errorf("failed to serialize version: %s", err)
-	}
-
-	native.CacheDB.Put(genVersionKey(contract), cstates.GenRawStorageItem(buf.Bytes()))
-	return nil
+func setVersion(native *native.NativeService, contract common.Address) {
+	data := utils.GetUint32Bytes(ShardGasMgmtVersion)
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_VERSION)), cstates.GenRawStorageItem(data))
 }
 
 func checkVersion(native *native.NativeService, contract common.Address) (bool, error) {

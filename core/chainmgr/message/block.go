@@ -20,13 +20,11 @@ package message
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
 )
@@ -44,12 +42,13 @@ type ShardBlockHeader struct {
 	Header *types.Header
 }
 
-func (this *ShardBlockHeader) Serialize(sink *common.ZeroCopySink) error {
-	return this.Header.Serialization(sink)
+func (this *ShardBlockHeader) Serialization(sink *common.ZeroCopySink) {
+	this.Header.Serialization(sink)
 }
 
-func (this *ShardBlockHeader) Deserialize(sink *common.ZeroCopySource) error {
-	return this.Header.Deserialization(sink)
+func (this *ShardBlockHeader) Deserialization(source *common.ZeroCopySource) error {
+	this.Header = &types.Header{}
+	return this.Header.Deserialization(source)
 }
 
 //
@@ -57,6 +56,15 @@ func (this *ShardBlockHeader) Deserialize(sink *common.ZeroCopySource) error {
 //
 type ShardBlockTx struct {
 	Tx *types.Transaction
+}
+
+func (this *ShardBlockTx) Serialization(sink *common.ZeroCopySink) {
+	this.Tx.Serialization(sink)
+}
+
+func (this *ShardBlockTx) Deserialization(source *common.ZeroCopySource) error {
+	this.Tx = &types.Transaction{}
+	return this.Tx.Deserialization(source)
 }
 
 //
@@ -74,74 +82,74 @@ type ShardBlockInfo struct {
 	Events      []*message.ShardEventState
 }
 
-type shardBlkMarshalHelper struct {
-	Payload []byte `json:"payload"`
-}
-
-func (this *ShardBlockHeader) MarshalJSON() ([]byte, error) {
-	sink := common.NewZeroCopySink(0)
-	if this.Header != nil {
-		if err := this.Header.Serialization(sink); err != nil {
-			return nil, fmt.Errorf("shard block hdr marshal: %s", err)
-		}
+func (this *ShardBlockInfo) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteUint64(this.FromShardID.ToUint64())
+	sink.WriteUint32(this.Height)
+	sink.WriteUint64(uint64(this.State))
+	this.Header.Serialization(sink)
+	sink.WriteUint64(uint64(len(this.ShardTxs)))
+	for id, tx := range this.ShardTxs {
+		sink.WriteUint64(id.ToUint64())
+		tx.Serialization(sink)
 	}
-
-	return json.Marshal(&shardBlkMarshalHelper{
-		Payload: sink.Bytes(),
-	})
-}
-
-func (this *ShardBlockHeader) UnmarshalJSON(data []byte) error {
-	helper := &shardBlkMarshalHelper{}
-	if err := json.Unmarshal(data, helper); err != nil {
-		return fmt.Errorf("shard block hdr helper: %s", err)
-	}
-
-	if len(helper.Payload) > 0 {
-		hdr := &types.Header{}
-		if err := hdr.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
-			return fmt.Errorf("shard block hdr unmarshal: %s", err)
-		}
-		this.Header = hdr
+	sink.WriteUint64(uint64(len(this.Events)))
+	for _, event := range this.Events {
+		event.Serialization(sink)
 	}
 	return nil
 }
 
-func (this *ShardBlockTx) MarshalJSON() ([]byte, error) {
-	sink := common.NewZeroCopySink(0)
-	if this.Tx != nil {
-		if err := this.Tx.Serialization(sink); err != nil {
-			return nil, fmt.Errorf("shard block tx marshal: %x", err)
-		}
+func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error {
+	fromShard, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-
-	return json.Marshal(&shardBlkMarshalHelper{
-		Payload: sink.Bytes(),
-	})
-}
-
-func (this *ShardBlockTx) UnmarshalJSON(data []byte) error {
-	helper := &shardBlkMarshalHelper{}
-	if err := json.Unmarshal(data, helper); err != nil {
-		return fmt.Errorf("shard block tx helper: %s", err)
+	id, err := types.NewShardID(fromShard)
+	if err != nil {
+		return fmt.Errorf("deserialization: generate from shard id failed, err: %s", err)
 	}
-
-	if len(helper.Payload) > 0 {
-		tx := &types.Transaction{Raw: helper.Payload}
-		if err := tx.Deserialization(common.NewZeroCopySource(helper.Payload)); err != nil {
-			return fmt.Errorf("shard block tx unmarshal: %s", err)
+	this.FromShardID = id
+	this.Height, eof = source.NextUint32()
+	state, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.State = uint(state)
+	this.Header = &ShardBlockHeader{}
+	if err := this.Header.Deserialization(source); err != nil {
+		return fmt.Errorf("deserialization: read header failed, err: %s", err)
+	}
+	txNum, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.ShardTxs = make(map[types.ShardID]*ShardBlockTx)
+	for i := uint64(0); i < txNum; i++ {
+		id, eof := source.NextUint64()
+		if eof {
+			return fmt.Errorf("deserialization: read tx shardId failed, index %d, err: %s", i, io.ErrUnexpectedEOF)
 		}
-		this.Tx = tx
+		shardId, err := types.NewShardID(id)
+		if err != nil {
+			return fmt.Errorf("deserialization: generate tx shardId failed, index %d, err: %s", i, err)
+		}
+		tx := &ShardBlockTx{}
+		if err := tx.Deserialization(source); err != nil {
+			return fmt.Errorf("deserialization: read tx failed, index %d, err: %s", i, err)
+		}
+		this.ShardTxs[shardId] = tx
+	}
+	eventNum, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	for i := uint64(0); i < eventNum; i++ {
+		evt := &message.ShardEventState{}
+		if err := evt.Deserialization(source); err != nil {
+			return fmt.Errorf("deserialization: read event failed, index %d, err: %s", i, err)
+		}
 	}
 	return nil
-}
-
-func (this *ShardBlockInfo) Serialize(w io.Writer) error {
-	return SerJson(w, this)
-}
-
-func (this *ShardBlockInfo) Deserialize(r io.Reader) error {
-	return DesJson(r, this)
 }
 
 ////////////////////////////////////
@@ -217,34 +225,5 @@ func (pool *ShardBlockPool) AddBlockInfo(blkInfo *ShardBlockInfo) error {
 		delete(m, blkHeight)
 	}
 
-	return nil
-}
-
-////////////////////////////////////
-//
-//  json helpers
-//
-////////////////////////////////////
-
-func SerJson(w io.Writer, v interface{}) error {
-	buf, err := json.Marshal(v)
-	if err != nil {
-		return fmt.Errorf("json marshal failed: %s", err)
-	}
-
-	if err := serialization.WriteVarBytes(w, buf); err != nil {
-		return fmt.Errorf("json serialize write failed: %s", err)
-	}
-	return nil
-}
-
-func DesJson(r io.Reader, v interface{}) error {
-	buf, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("json deserialize read failed: %s", err)
-	}
-	if err := json.Unmarshal(buf, v); err != nil {
-		return fmt.Errorf("json unmarshal failed: %s", err)
-	}
 	return nil
 }

@@ -32,12 +32,10 @@ type BlocksReq struct {
 }
 
 //Serialize message payload
-func (this *BlocksReq) Serialization(sink *comm.ZeroCopySink) error {
+func (this *BlocksReq) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint8(this.HeaderHashCount)
 	sink.WriteHash(this.HashStart)
 	sink.WriteHash(this.HashStop)
-
-	return nil
 }
 
 func (this *BlocksReq) CmdType() string {
