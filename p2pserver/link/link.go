@@ -20,9 +20,8 @@ package link
 
 import (
 	"bufio"
-	"errors"
-	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	comm "github.com/ontio/ontology/common"
@@ -31,21 +30,37 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
+const MaxWriteBuff = 16 * 1024 // add backpressure when pending msg in write buffer execced this
+
 //Link used to establish
 type Link struct {
 	id        uint64
-	addr      string                 // The address of the node
-	conn      net.Conn               // Connect socket with the peer node
-	port      uint16                 // The server port of the node
-	time      time.Time              // The latest time the node activity
-	recvChan  chan *types.MsgPayload //msgpayload channel
-	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
+	addr      string                  // The address of the node
+	conn      net.Conn                // Connect socket with the peer node
+	port      uint16                  // The server port of the node
+	time      time.Time               // The latest time the node activity
+	recvChan  chan *types.MsgPayload  //msgpayload channel
+	reqRecord map[types.DataReq]int64 //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
+
+	// owned by write loop
+	writeBuff *comm.ZeroCopySink
+
+	maxWriteBuff int
+	lock         sync.Mutex
+	cond         *sync.Cond
+	err          error
+	pendingBuff  *comm.ZeroCopySink
 }
 
 func NewLink() *Link {
 	link := &Link{
-		reqRecord: make(map[string]int64, 0),
+		reqRecord:    make(map[types.DataReq]int64, 0),
+		maxWriteBuff: MaxWriteBuff,
+		writeBuff:    comm.NewZeroCopySink(make([]byte, 0, MaxWriteBuff)),
+		pendingBuff:  comm.NewZeroCopySink(make([]byte, 0, MaxWriteBuff)),
 	}
+	link.cond = sync.NewCond(&link.lock)
+
 	return link
 }
 
@@ -109,7 +124,12 @@ func (this *Link) GetRXTime() time.Time {
 	return this.time
 }
 
-func (this *Link) Rx() {
+func (this *Link) RunReadWriteLoop() {
+	go this.writeLoop()
+	go this.readLoop()
+}
+
+func (this *Link) readLoop() {
 	conn := this.conn
 	if conn == nil {
 		return
@@ -118,10 +138,25 @@ func (this *Link) Rx() {
 	reader := bufio.NewReaderSize(conn, common.MAX_BUF_LEN)
 
 	for {
+		this.lock.Lock()
+		for this.err == nil && this.writeBuff.Size() > uint64(this.maxWriteBuff) {
+			this.cond.Wait()
+		}
+		if this.err != nil {
+			this.lock.Unlock()
+			break
+		}
+		this.lock.Unlock()
+
 		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
+			this.lock.Lock()
+			this.err = err
+			this.disconnectNotify()
+			this.cond.Signal() // notify write loop
+			this.lock.Unlock()
 			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
-			break
+			return
 		}
 
 		t := time.Now()
@@ -138,10 +173,7 @@ func (this *Link) Rx() {
 			PayloadSize: payloadSize,
 			Payload:     msg,
 		}
-
 	}
-
-	this.disconnectNotify()
 }
 
 //disconnectNotify push disconnect msg to channel
@@ -166,35 +198,67 @@ func (this *Link) CloseConn() {
 	}
 }
 
-func (this *Link) Send(msg types.Message) error {
-	sink := comm.NewZeroCopySink(nil)
-	types.WriteMessage(sink, msg)
-
-	return this.SendRaw(sink.Bytes())
-}
-
-func (this *Link) SendRaw(rawPacket []byte) error {
+func (this *Link) writeLoop() {
 	conn := this.conn
 	if conn == nil {
-		return errors.New("[p2p]tx link invalid")
+		return
 	}
 
-	nByteCnt := len(rawPacket)
-	log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
+	for {
+		this.lock.Lock()
+		for this.err == nil && this.writeBuff.Size() == 0 {
+			this.cond.Wait()
+		}
+		if this.err != nil {
+			this.lock.Unlock()
+			return
+		}
+		this.writeBuff.Reset()
+		temp := this.writeBuff
+		this.writeBuff = this.pendingBuff
+		this.pendingBuff = temp
+		this.lock.Unlock()
 
-	nCount := nByteCnt / common.PER_SEND_LEN
-	if nCount == 0 {
-		nCount = 1
-	}
-	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
-	_, err := conn.Write(rawPacket)
-	if err != nil {
-		log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())
-		this.disconnectNotify()
-		return err
-	}
+		payload := this.writeBuff.Bytes()
+		nByteCnt := len(payload)
+		log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
 
-	return nil
+		nCount := nByteCnt / common.PER_SEND_LEN
+		if nCount == 0 {
+			nCount = 1
+		}
+
+		conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
+		_, err := conn.Write(payload)
+		if err != nil {
+			this.lock.Lock()
+			this.err = err
+			this.disconnectNotify()
+			this.cond.Signal() // notify read loop
+			this.lock.Unlock()
+
+			log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())
+			return
+		}
+
+		this.time = time.Now()
+
+		this.cond.Signal() // notify read loop
+	}
+}
+
+func (this *Link) Send(msg types.Message) {
+	this.lock.Lock()
+	types.WriteMessage(this.writeBuff, msg)
+	this.lock.Unlock()
+	this.cond.Broadcast()
+}
+
+func (this *Link) SendRaw(rawPacket []byte) {
+	this.lock.Lock()
+	this.writeBuff.WriteBytes(rawPacket)
+	this.lock.Unlock()
+	this.cond.Broadcast()
 }
 
 //needSendMsg check whether the msg is needed to push to channel
@@ -202,8 +266,7 @@ func (this *Link) needSendMsg(msg types.Message) bool {
 	if msg.CmdType() != common.GET_DATA_TYPE {
 		return true
 	}
-	var dataReq = msg.(*types.DataReq)
-	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
+	var reqID = *msg.(*types.DataReq)
 	now := time.Now().Unix()
 
 	if t, ok := this.reqRecord[reqID]; ok {
@@ -221,14 +284,12 @@ func (this *Link) addReqRecord(msg types.Message) {
 	}
 	now := time.Now().Unix()
 	if len(this.reqRecord) >= common.MAX_REQ_RECORD_SIZE-1 {
-		for id := range this.reqRecord {
-			t := this.reqRecord[id]
+		for id, t := range this.reqRecord {
 			if int(now-t) > common.REQ_INTERVAL {
 				delete(this.reqRecord, id)
 			}
 		}
 	}
-	var dataReq = msg.(*types.DataReq)
-	reqID := fmt.Sprintf("%x%s", dataReq.DataType, dataReq.Hash.ToHexString())
-	this.reqRecord[reqID] = now
+	var dataReq = *msg.(*types.DataReq)
+	this.reqRecord[dataReq] = now
 }
