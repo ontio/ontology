@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/vm/neovm/types"
+	ntypes "github.com/ontio/ontology/vm/neovm/types"
 	"math"
 	"math/big"
 )
@@ -19,7 +20,9 @@ const (
 	NAME           = "oep4Name"
 	SYMBOL         = "oep4Symbol"
 	DECIMALS       = "oep4Decimals"
-	TOTAL_SUPPLY   = "oep4TotalSupply"
+	TOTAL_SUPPLY   = "oep4TotalSupply" // query total supply at shard
+	SHARD_SUPPLY   = "oep4ShardSupply" // query shard supply at root
+	WHOLE_SUPPLY   = "oep4WholeSupply" // sum supply at all shard, only can be invoked at root
 	BALANCE_OF     = "oep4BalanceOf"
 	TRANSFER       = "oep4Transfer"
 	TRANSFER_MULTI = "oep4TransferMulti"
@@ -44,6 +47,8 @@ func RegisterOEP4(native *native.NativeService) {
 	native.Register(SYMBOL, Symbol)
 	native.Register(DECIMALS, Decimals)
 	native.Register(TOTAL_SUPPLY, TotalSupply)
+	native.Register(SHARD_SUPPLY, ShardSupply)
+	native.Register(WHOLE_SUPPLY, WholeSupply)
 	native.Register(BALANCE_OF, BalanceOf)
 	native.Register(TRANSFER, Transfer)
 	native.Register(TRANSFER_MULTI, TransferMulti)
@@ -90,6 +95,8 @@ func Register(native *native.NativeService) ([]byte, error) {
 		TotalSupply: param.TotalSupply,
 	}
 	setContract(native, assetId, oep4)
+	shardSupplyInfo := map[types.ShardID]*big.Int{native.ShardID: param.TotalSupply}
+	setShardSupplyInfo(native, assetId, shardSupplyInfo)
 	transferEvent := &TransferEvent{
 		From:   common.ADDRESS_EMPTY,
 		To:     param.Account,
@@ -160,7 +167,7 @@ func Decimals(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("Decimals: failed, err: %s", err)
 	}
-	return types.BigIntToBytes(new(big.Int).SetUint64(oep4.Decimals)), nil
+	return ntypes.BigIntToBytes(new(big.Int).SetUint64(oep4.Decimals)), nil
 }
 
 func TotalSupply(native *native.NativeService) ([]byte, error) {
@@ -173,7 +180,46 @@ func TotalSupply(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
 	}
-	return types.BigIntToBytes(oep4.TotalSupply), nil
+	return ntypes.BigIntToBytes(oep4.TotalSupply), nil
+}
+
+func ShardSupply(native *native.NativeService) ([]byte, error) {
+	callAddr := native.ContextRef.CallingContext().ContractAddress
+	asset, err := getAssetId(native, callAddr)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
+	}
+	shardSupplyInfo, err := getShardSupplyInfo(native, asset)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
+	}
+	shardId, err := utils.DeserializeShardId(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: deserialize param failed, err: %s", err)
+	}
+	supply, ok := shardSupplyInfo[shardId]
+	if ok {
+		return ntypes.BigIntToBytes(supply), nil
+	} else {
+		return ntypes.BigIntToBytes(big.NewInt(0)), nil
+	}
+}
+
+func WholeSupply(native *native.NativeService) ([]byte, error) {
+	callAddr := native.ContextRef.CallingContext().ContractAddress
+	asset, err := getAssetId(native, callAddr)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
+	}
+	shardSupplyInfo, err := getShardSupplyInfo(native, asset)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
+	}
+	whole := new(big.Int)
+	for _, supply := range shardSupplyInfo {
+		whole.Add(whole, supply)
+	}
+	return ntypes.BigIntToBytes(whole), nil
 }
 
 func BalanceOf(native *native.NativeService) ([]byte, error) {
@@ -190,7 +236,7 @@ func BalanceOf(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("BalanceOf: failed, err: %s", err)
 	}
-	return types.BigIntToBytes(userBalance), nil
+	return ntypes.BigIntToBytes(userBalance), nil
 }
 
 func Transfer(native *native.NativeService) ([]byte, error) {
@@ -297,7 +343,7 @@ func Allowance(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("Allowance: failed, err: %s", err)
 	}
-	return types.BigIntToBytes(allowance), nil
+	return ntypes.BigIntToBytes(allowance), nil
 }
 
 func XShardTransfer(native *native.NativeService) ([]byte, error) {
@@ -395,6 +441,28 @@ func XShardTransferSuccess(native *native.NativeService) ([]byte, error) {
 	}
 	transfer.Status = XSHARD_TRANSFER_COMPLETE
 	setXShardTransfer(native, param.Asset, param.Account, param.TransferId, transfer)
+	if native.ShardID.IsRootShard() {
+		supplyInfo, err := getShardSupplyInfo(native, param.Asset)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSuccess: failed, err: %s", err)
+		}
+		if rootSupply, ok := supplyInfo[native.ShardID]; ok {
+			if rootSupply.Cmp(transfer.Amount) < 0 {
+				return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSuccess: root supply not enough")
+			}
+			rootSupply.Sub(rootSupply, transfer.Amount)
+			supplyInfo[native.ShardID] = rootSupply
+		} else {
+			return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSuccess: root supply not exist")
+		}
+		if shardSupply, ok := supplyInfo[transfer.ToShard]; ok {
+			shardSupply.Add(shardSupply, transfer.Amount)
+			supplyInfo[transfer.ToShard] = shardSupply
+		} else {
+			supplyInfo[transfer.ToShard] = transfer.Amount
+		}
+		setShardSupplyInfo(native, param.Asset, supplyInfo)
+	}
 	return utils.BYTE_TRUE, nil
 }
 
@@ -415,6 +483,28 @@ func ShardMint(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("ShardMint: failed, err: %s", err)
 		}
 		receiveTransfer(native, param)
+	}
+	if native.ShardID.IsRootShard() {
+		supplyInfo, err := getShardSupplyInfo(native, param.Asset)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSuccess: failed, err: %s", err)
+		}
+		if shardSupply, ok := supplyInfo[param.FromShard]; ok {
+			if shardSupply.Cmp(param.Amount) < 0 {
+				return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSuccess: shard supply not enough")
+			}
+			shardSupply.Sub(shardSupply, param.Amount)
+			supplyInfo[native.ShardID] = shardSupply
+		} else {
+			return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSuccess: shard supply not exist")
+		}
+		if rootSupply, ok := supplyInfo[native.ShardID]; ok {
+			rootSupply.Add(rootSupply, param.Amount)
+			supplyInfo[native.ShardID] = rootSupply
+		} else {
+			return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSuccess: root supply not exist")
+		}
+		setShardSupplyInfo(native, param.Asset, supplyInfo)
 	}
 
 	tranSuccParam := &XShardTranSuccParam{

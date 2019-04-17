@@ -17,6 +17,7 @@ const (
 
 	KEY_OEP4                 = "oep4"
 	KEY_OEP4_BALANCE         = "oep4_balance"
+	KEY_OEP4_SHARD_SUPPLY    = "oep4_shard_supply" // asset distribute shard
 	KEY_OEP4_ALLOWANCE       = "oep4_allowance"
 	KEY_OEP4_TRANSFER_NUM    = "oep4_transfer_num"
 	KEY_OEP4_XSHARD_TRANSFER = "oep4_xshard_transfer"
@@ -39,6 +40,11 @@ func genAssetKey(asset uint64) []byte {
 func genBalanceKey(asset uint64, user common.Address) []byte {
 	assetBytes := utils.GetUint64Bytes(asset)
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_BALANCE), user[:])
+}
+
+func genShardSupplyInfoKey(asset uint64) []byte {
+	assetBytes := utils.GetUint64Bytes(asset)
+	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_SHARD_SUPPLY))
 }
 
 func genAllowanceKey(asset uint64, owner, spender common.Address) []byte {
@@ -272,4 +278,51 @@ func isAssetRegister(native *native.NativeService, assetAddr common.Address) (bo
 func deleteAssetId(native *native.NativeService, assetAddr common.Address) {
 	key := genAssetIdKey(assetAddr)
 	native.CacheDB.Delete(key)
+}
+
+func setShardSupplyInfo(native *native.NativeService, asset uint64, supplyInfo map[types.ShardID]*big.Int) {
+	key := genShardSupplyInfoKey(asset)
+	sink := common.NewZeroCopySink(0)
+	sink.WriteUint64(uint64(len(supplyInfo)))
+	for shard, supply := range supplyInfo {
+		utils.SerializationShardId(sink, shard)
+		sink.WriteVarBytes(common.BigIntToNeoBytes(supply))
+	}
+	native.CacheDB.Put(key, states.GenRawStorageItem(sink.Bytes()))
+}
+
+func getShardSupplyInfo(native *native.NativeService, asset uint64) (map[types.ShardID]*big.Int, error) {
+	key := genShardSupplyInfoKey(asset)
+	raw, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("getShardSupplyInfo: read db failed, err: %s", err)
+	}
+	if len(raw) == 0 {
+		return map[types.ShardID]*big.Int{}, nil
+	}
+	storeValue, err := states.GetValueFromRawStorageItem(raw)
+	if err != nil {
+		return nil, fmt.Errorf("getShardSupplyInfo: parse store value failed, err: %s", err)
+	}
+	souce := common.NewZeroCopySource(storeValue)
+	shardNum, eof := souce.NextUint64()
+	if eof {
+		return nil, fmt.Errorf("getShardSupplyInfo: deserialize shard num failed, err: %s", err)
+	}
+	shards := make(map[types.ShardID]*big.Int)
+	for i := uint64(0); i < shardNum; i++ {
+		if shard, err := utils.DeserializationShardId(souce); err != nil {
+			return nil, fmt.Errorf("getShardSupplyInfo: deserialize shard failed, index %d, err: %s", i, err)
+		} else {
+			supplyBytes, _, irr, eof := souce.NextVarBytes()
+			if irr {
+				return nil, fmt.Errorf("getShardSupplyInfo: deserialize supply failed, index %d, err: %s", i, common.ErrIrregularData)
+			}
+			if eof {
+				return nil, fmt.Errorf("getShardSupplyInfo: deserialize supply failed, index %d, err: %s", i, io.ErrUnexpectedEOF)
+			}
+			shards[shard] = common.BigIntFromNeoBytes(supplyBytes)
+		}
+	}
+	return shards, nil
 }
