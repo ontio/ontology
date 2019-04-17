@@ -859,7 +859,6 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	this.setCurrentBlock(blockHeight, blockHash)
 
 	shardSysMsg := extractShardSysEvents(result.Notify)
-
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,

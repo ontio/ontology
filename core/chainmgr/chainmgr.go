@@ -139,7 +139,7 @@ func (self *ChainManager) LoadFromLedger(mainLedger *ledger.Ledger) error {
 	self.localEventSub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
 	// get child-shards from shard-mgmt contract
-	globalState, err := GetShardMgmtGlobalState(mainLedger.ParentLedger)
+	globalState, err := GetShardMgmtGlobalState(mainLedger)
 	if err != nil {
 		return fmt.Errorf("chainmgr: failed to read shard-mgmt global state: %s", err)
 	}

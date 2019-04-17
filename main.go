@@ -185,18 +185,16 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 	}
 	defer chainmgr.Stop()
 	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
-	ldg, err := initLedger(ctx, shardID, stateHashHeight)
+	ldg, err := initLedger(ctx, rootshardID, stateHashHeight)
 	if err != nil {
 		log.Errorf("%s", err)
 		return
 	}
 	defer ldg.Close()
-
 	if err := chainmgr.LoadFromLedger(ldg); err != nil {
 		log.Errorf("load chain mgr from ledger: %s", err)
 		return
 	}
-
 	txpool, err := initTxPool(ctx)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
@@ -291,6 +289,13 @@ func startMainChain(ctx *cli.Context) {
 func startShardChain(ctx *cli.Context, cfg *config.OntologyConfig, shardID types.ShardID) {
 	acc := shard.GetAccount()
 	config.DefConfig = cfg
+	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	ldg, err := initLedger(ctx, shardID, stateHashHeight)
+	if err != nil {
+		log.Errorf("%s", err)
+		return
+	}
+	defer ldg.Close()
 	txpool, err := initTxPool(ctx)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
@@ -384,15 +389,15 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 func initLedger(ctx *cli.Context, shardID types.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
 	events.Init() //Init event hub
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	mainLedger, err := ledger.NewLedger(dbDir, stateHashHeight)
-	if err != nil {
-		return nil, fmt.Errorf("NewLedger error:%s", err)
-	}
+	var err error
 	if shardID.IsRootShard() {
-		ledger.DefLedger = mainLedger
+		ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
+		if err != nil {
+			return nil, fmt.Errorf("NewLedger error:%s", err)
+		}
 	} else {
 		dbDir = utils.GetStoreDirPath(config.DefConfig.P2PNode.NetworkName, config.DefConfig.Common.DataDir)
-		ledger.DefLedger, err = ledger.NewShardLedger(shardID, dbDir, mainLedger)
+		ledger.DefLedger, err = ledger.NewShardLedger(shardID, dbDir, ledger.DefLedger)
 		if err != nil {
 			return nil, fmt.Errorf("NewLedger error:%s", err)
 		}

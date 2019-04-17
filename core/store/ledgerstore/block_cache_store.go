@@ -82,7 +82,7 @@ func (this *BlockCacheStore) GetBlock(height uint32) (*types.Block, common.Uint2
 	return blk, mklHash, err
 }
 
-func (this *BlockCacheStore) RemoveBlock(height uint32) {
+func (this *BlockCacheStore) DelBlock(height uint32) {
 	mklKey := fmt.Sprintf("mkl-%d-%d", this.shardID.ToUint64(), height)
 	blkKey := fmt.Sprintf("blk-%d-%d", this.shardID.ToUint64(), height)
 	this.store.Delete([]byte(mklKey))

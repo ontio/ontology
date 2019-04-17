@@ -123,6 +123,26 @@ func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256)
 		err := self.ldgStore.AddBlock(block, stateMerkleRoot)
 		if err != nil {
 			log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
+			return err
+		}
+		if !self.ShardID.IsRootShard() {
+			lastHeader, err := self.GetHeaderByHeight(block.Header.Height - 1)
+			if err != nil {
+				log.Errorf("Ledger GetHeaderByHeight BlockHeight:%d,error:%s", block.Header.Height-1, err)
+				return err
+			}
+			for blockHeight := lastHeader.ParentHeight; blockHeight < block.Header.ParentHeight; blockHeight++ {
+				parentBlock, statemerkleRoot, err := self.ParentBlockCache.GetBlock(blockHeight)
+				if err != nil {
+					log.Errorf("Ledger ParentBlockCache BlockHeight:%d,ParentHeight:%d error:%s", block.Header.Height, block.Header.ParentHeight, err)
+					return err
+				}
+				err = self.ParentLedger.AddBlock(parentBlock, statemerkleRoot)
+				if err == nil {
+					self.ParentBlockCache.DelBlock(blockHeight)
+				}
+				return err
+			}
 		}
 		return err
 	} else if block.Header.ShardID == self.ShardID.ParentID().ToUint64() {
