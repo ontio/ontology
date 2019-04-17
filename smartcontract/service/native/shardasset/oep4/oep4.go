@@ -3,13 +3,14 @@ package oep4
 import (
 	"bytes"
 	"fmt"
+	"math"
+	"math/big"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	ntypes "github.com/ontio/ontology/vm/neovm/types"
-	"math"
-	"math/big"
 )
 
 // TODO: support user burn and mint

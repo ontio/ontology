@@ -3,12 +3,13 @@ package oep4
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"math/big"
 )
 
 func transfer(native *native.NativeService, param *TransferParam) error {

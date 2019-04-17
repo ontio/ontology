@@ -2,13 +2,14 @@ package oep4
 
 import (
 	"fmt"
+	"io"
+	"math/big"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"io"
-	"math/big"
 )
 
 const (
