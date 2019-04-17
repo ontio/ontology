@@ -172,8 +172,13 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 		log.Errorf("initConfig error:%s", err)
 		return
 	}
+	acc, err := initAccount(ctx)
+	if err != nil {
+		log.Errorf("initWallet error:%s", err)
+		return
+	}
 	// start chain manager
-	chainmgr, err := initChainManager(ctx, nil)
+	chainmgr, err := initChainManager(ctx, acc)
 	if err != nil {
 		log.Errorf("init main chain manager error: %s", err)
 		return
@@ -205,31 +210,11 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 	initNodeInfo(ctx, p2pSvr)
 	go logCurrBlockHeight(rootshardID)
 	go func() {
-		if cfg := chainmgr.GetShardConfig(shardID); cfg != nil {
-			config.DefConfig = cfg
-			acc := shard.GetAccount()
-			txpool, err := initTxPool(ctx)
-			if err != nil {
-				log.Errorf("initTxPool error:%s", err)
-				return
+		for {
+			if cfg := chainmgr.GetShardConfig(shardID); cfg != nil {
+				startShardChain(ctx, cfg, shardID)
+				break
 			}
-			_, p2pPid, err := initP2PNode(ctx, txpool)
-			if err != nil {
-				log.Errorf("initP2PNode error:%s", err)
-				return
-			}
-			_, err = initConsensus(ctx, p2pPid, txpool, acc)
-			if err != nil {
-				log.Errorf("initConsensus error:%s", err)
-				return
-			}
-			err = initRpc(ctx)
-			if err != nil {
-				log.Errorf("initRpc error:%s", err)
-				return
-			}
-			initRestful(ctx)
-			go logCurrBlockHeight(shardID)
 		}
 	}()
 	waitToExit()
@@ -295,12 +280,6 @@ func startMainChain(ctx *cli.Context) {
 		log.Errorf("initLocalRpc error:%s", err)
 		return
 	}
-
-	// start child shards on main-chain
-	if err := chainmgr.StartShardServer(); err != nil {
-		log.Errorf("start child-shard servers failed: %s", err)
-		return
-	}
 	initRestful(ctx)
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)
@@ -309,43 +288,9 @@ func startMainChain(ctx *cli.Context) {
 	waitToExit()
 }
 
-func startShardChain(ctx *cli.Context, shardID types.ShardID) {
-	initLog(ctx, shardID)
-
-	// start chain manager
-	chainMgr, err := initChainManager(ctx, nil)
-	if err != nil {
-		log.Errorf("shard %d: init chain manager error: %s", shardID, err)
-		return
-	}
-	defer chainMgr.Stop()
-
-	// init shard config from parent shard
+func startShardChain(ctx *cli.Context, cfg *config.OntologyConfig, shardID types.ShardID) {
 	acc := shard.GetAccount()
-	cfg := chainMgr.GetShardConfig(shardID)
-	if cfg == nil {
-		log.Errorf("shard %d: get shard config failed", shardID)
-		return
-	}
 	config.DefConfig = cfg
-
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-		curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
-		config.DefConfig.Genesis.SOLO.Bookkeepers = []string{curPk}
-	}
-
-	ldg, err := initLedger(ctx, shardID, 0)
-	if err != nil {
-		log.Errorf("%s", err)
-		return
-	}
-	defer ldg.Close()
-
-	if err := chainMgr.LoadFromLedger(ldg); err != nil {
-		log.Errorf("load chain mgr from ledger: %s", err)
-		return
-	}
-
 	txpool, err := initTxPool(ctx)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
@@ -356,7 +301,6 @@ func startShardChain(ctx *cli.Context, shardID types.ShardID) {
 		log.Errorf("initP2PNode error:%s", err)
 		return
 	}
-
 	_, err = initConsensus(ctx, p2pPid, txpool, acc)
 	if err != nil {
 		log.Errorf("initConsensus error:%s", err)
@@ -369,9 +313,7 @@ func startShardChain(ctx *cli.Context, shardID types.ShardID) {
 		return
 	}
 	initRestful(ctx)
-
 	go logCurrBlockHeight(shardID)
-	waitToExit()
 }
 
 func initLog(ctx *cli.Context, shardID types.ShardID) {
