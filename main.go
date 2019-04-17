@@ -166,7 +166,7 @@ func startOntology(ctx *cli.Context) {
 
 func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 	rootshardID := types.NewShardIDUnchecked(0)
-	initLog(ctx, shardID)
+	initLog(ctx, rootshardID)
 
 	if _, err := initConfig(ctx); err != nil {
 		log.Errorf("initConfig error:%s", err)
@@ -383,15 +383,19 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 
 func initLedger(ctx *cli.Context, shardID types.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
 	events.Init() //Init event hub
-
-	var err error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	if !shardID.IsRootShard() {
-		dbDir = utils.GetStoreDirPath(config.DefConfig.P2PNode.NetworkName, config.DefConfig.Common.DataDir)
-	}
-	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
+	mainLedger, err := ledger.NewLedger(dbDir, stateHashHeight)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error:%s", err)
+	}
+	if shardID.IsRootShard() {
+		ledger.DefLedger = mainLedger
+	} else {
+		dbDir = utils.GetStoreDirPath(config.DefConfig.P2PNode.NetworkName, config.DefConfig.Common.DataDir)
+		ledger.DefLedger, err = ledger.NewShardLedger(shardID, dbDir, mainLedger)
+		if err != nil {
+			return nil, fmt.Errorf("NewLedger error:%s", err)
+		}
 	}
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {

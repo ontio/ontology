@@ -59,8 +59,8 @@ func (this *BlockCacheStore) PutBlock(block *types.Block, stateMerkleRoot common
 	blkKey := fmt.Sprintf("blk-%d-%d", this.shardID.ToUint64(), block.Header.Height)
 	sink := common.NewZeroCopySink(0)
 	block.Serialization(sink)
-	this.store.BatchPut([]byte(mklKey), stateMerkleRoot[:])
-	this.store.BatchPut([]byte(blkKey), sink.Bytes())
+	this.store.Put([]byte(mklKey), stateMerkleRoot[:])
+	this.store.Put([]byte(blkKey), sink.Bytes())
 	return nil
 }
 
