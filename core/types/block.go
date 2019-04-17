@@ -47,9 +47,7 @@ func (b *Block) Serialization(sink *common.ZeroCopySink) {
 
 	for _, shardID := range shardIds {
 		evts := b.ShardTxs[shardID]
-		if err := zcpSerializeShardTxs(sink, shardID, evts); err != nil {
-			return err
-		}
+		zcpSerializeShardTxs(sink, shardID, evts)
 	}
 
 	// serialize transactions
@@ -146,20 +144,16 @@ func (b *Block) RebuildMerkleRoot() {
 	b.Header.TransactionsRoot = hash
 }
 
-func zcpSerializeShardTxs(sink *common.ZeroCopySink, shardID uint64, shardTxs []*Transaction) error {
+func zcpSerializeShardTxs(sink *common.ZeroCopySink, shardID uint64, shardTxs []*Transaction) {
 	if shardTxs == nil {
-		return nil
+		return
 	}
 
 	sink.WriteUint64(shardID)
 	sink.WriteUint32(uint32(len(shardTxs)))
 	for _, tx := range shardTxs {
-		if err := tx.Serialization(sink); err != nil {
-			return err
-		}
+		tx.Serialization(sink)
 	}
-
-	return nil
 }
 
 func zcpDeserializeShardTxs(source *common.ZeroCopySource, shardTxCnt uint32) (map[uint64][]*Transaction, error) {

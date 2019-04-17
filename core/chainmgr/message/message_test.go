@@ -28,10 +28,7 @@ import (
 func TestShardHelloMsg(t *testing.T) {
 	hello := &message.ShardHelloMsg{TargetShardID: types.NewShardIDUnchecked(100),
 		SourceShardID: types.NewShardIDUnchecked(200)}
-	helloBytes, err := message.EncodeShardMsg(hello)
-	if err != nil {
-		t.Fatalf("failed to encode hello: %s", err)
-	}
+	helloBytes := message.EncodeShardMsg(hello)
 	msg2, err := message.DecodeShardMsg(message.HELLO_MSG, helloBytes)
 	if err != nil {
 		t.Fatalf("failed to decode hello: %s", err)
@@ -58,14 +55,11 @@ func TestShardBlockRspMsg(t *testing.T) {
 		Txs:         []*message.ShardBlockTx{tx},
 	}
 
-	msgBytes, err := message.EncodeShardMsg(rsp)
-	if err != nil {
-		t.Fatalf("failed to encode rsp msg: %s", err)
-	}
+	msgBytes := message.EncodeShardMsg(rsp)
 
 	msg2, err := message.DecodeShardMsg(message.BLOCK_RSP_MSG, msgBytes)
 	if err != nil {
-		t.Fatalf("failed to decode hello: %s", err)
+		t.Fatalf("failed to decode rsp msg: %s", err)
 	}
 	rsp2, ok := msg2.(*message.ShardBlockRspMsg)
 	if !ok {
