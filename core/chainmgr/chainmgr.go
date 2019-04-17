@@ -79,7 +79,7 @@ type ChainManager struct {
 	localPid  *actor.PID
 
 	// subscribe local SHARD_EVENT from shard-system-contract and BLOCK-EVENT from ledger
-	localEventSub *events.ActorSubscriber
+	localEventSub  *events.ActorSubscriber
 	localBlockMsgC chan *message.SaveBlockCompleteMsg
 
 	quitC  chan struct{}
@@ -108,9 +108,14 @@ func Initialize(shardID types.ShardID, acc *account.Account) (*ChainManager, err
 
 		account: acc,
 	}
-
 	go chainMgr.localEventLoop()
-
+	props := actor.FromProducer(func() actor.Actor {
+		return chainMgr
+	})
+	pid, err := actor.SpawnNamed(props, GetShardName(shardID))
+	if err == nil {
+		chainMgr.localPid = pid
+	}
 	defaultChainManager = chainMgr
 	return defaultChainManager, nil
 }

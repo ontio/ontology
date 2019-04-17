@@ -160,12 +160,12 @@ func startOntology(ctx *cli.Context) {
 	if id == config.DEFAULT_SHARD_ID {
 		startMainChain(ctx)
 	} else {
-		startSyncRootChain(ctx)
+		startSyncRootChain(ctx, shardID)
 	}
 }
 
-func startSyncRootChain(ctx *cli.Context) {
-	shardID := types.NewShardIDUnchecked(0)
+func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
+	rootshardID := types.NewShardIDUnchecked(0)
 	initLog(ctx, shardID)
 
 	if _, err := initConfig(ctx); err != nil {
@@ -203,10 +203,33 @@ func startSyncRootChain(ctx *cli.Context) {
 		return
 	}
 	initNodeInfo(ctx, p2pSvr)
-	go logCurrBlockHeight(shardID)
+	go logCurrBlockHeight(rootshardID)
 	go func() {
 		if cfg := chainmgr.GetShardConfig(shardID); cfg != nil {
-			//start shard function
+			config.DefConfig = cfg
+			acc := shard.GetAccount()
+			txpool, err := initTxPool(ctx)
+			if err != nil {
+				log.Errorf("initTxPool error:%s", err)
+				return
+			}
+			_, p2pPid, err := initP2PNode(ctx, txpool)
+			if err != nil {
+				log.Errorf("initP2PNode error:%s", err)
+				return
+			}
+			_, err = initConsensus(ctx, p2pPid, txpool, acc)
+			if err != nil {
+				log.Errorf("initConsensus error:%s", err)
+				return
+			}
+			err = initRpc(ctx)
+			if err != nil {
+				log.Errorf("initRpc error:%s", err)
+				return
+			}
+			initRestful(ctx)
+			go logCurrBlockHeight(shardID)
 		}
 	}()
 	waitToExit()
