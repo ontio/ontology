@@ -39,6 +39,12 @@ type Storage struct {
 	currHeaderHeight uint32
 }
 
+func (self *Storage) DumpStatus() string {
+	return fmt.Sprintf("current height: %d, current header height: %d, backend next height: %d",
+		self.currHeight, self.currHeaderHeight, self.backend.currInfo.nextHeight)
+
+}
+
 type Task interface {
 	ImplementTask()
 }
@@ -74,7 +80,6 @@ func Open(pt string) (*Storage, error) {
 }
 
 func (self *Storage) SaveBlock(block *types.Block) error {
-
 	sink := common.NewZeroCopySink(nil)
 	headerLen, unsignedLen, err := block.SerializeExt(sink)
 	if err != nil {
@@ -111,6 +116,8 @@ func (self *Storage) blockSaveLoop(task <-chan Task) {
 				task.finished <- self.backend.currInfo.nextHeight - 1
 			}
 		case <-time.After(MAX_TIME_OUT):
+			log.Infof("relayer status: %s", self.DumpStatus())
+
 			self.backend.flush()
 			nextHeight := self.backend.currInfo.nextHeight
 
@@ -120,7 +127,7 @@ func (self *Storage) blockSaveLoop(task <-chan Task) {
 					delete(self.headers, k)
 				}
 			}
-			for height, _ := range self.headerIndex {
+			for height := range self.headerIndex {
 				if height+100 < nextHeight {
 					delete(self.headerIndex, height)
 				}
@@ -356,13 +363,38 @@ func OpenLevelDB(file string) (*leveldb.DB, error) {
 	return db, nil
 }
 
+func truncateBlockDB(name string, size int64) (e error) {
+	blockDB, err := os.OpenFile(name, os.O_CREATE|os.O_RDWR, 0666)
+	defer func() {
+		e = blockDB.Close()
+	}()
+	if err != nil {
+		return err
+	}
+	stat, err := blockDB.Stat()
+	if err != nil {
+		return fmt.Errorf("get block db stat err:%v", err)
+	}
+
+	if stat.Size() < size {
+		return errors.New("the length of blocks.bin is less than the record of metadb")
+	} else if stat.Size() > size {
+		log.Infof("block DB file size:%d, block offset: %d\n", stat.Size(), size)
+		err = blockDB.Truncate(size)
+		if err != nil {
+			return err
+		}
+		err = blockDB.Sync()
+		if err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
 func open(pt string) (*StorageBackend, error) {
 	metaDB, err := OpenLevelDB(path.Join(pt, "metadb"))
-	if err != nil {
-		return nil, err
-	}
-	name := path.Join(pt, "blocks.bin")
-	blockDB, err := os.OpenFile(name, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return nil, err
 	}
@@ -378,16 +410,14 @@ func open(pt string) (*StorageBackend, error) {
 		return nil, err
 	}
 
-	stat, err := blockDB.Stat()
+	name := path.Join(pt, "blocks.bin")
+	err = truncateBlockDB(name, int64(info.blockOffset))
 	if err != nil {
-		return nil, fmt.Errorf("get block db stat err:%v", err)
+		return nil, err
 	}
-
-	if stat.Size() < int64(info.blockOffset) {
-		return nil, errors.New("the length of blocks.bin is less than the record of metadb")
-	} else if stat.Size() > int64(info.blockOffset) {
-		err := blockDB.Truncate(int64(info.blockOffset))
-		checkerr(err)
+	blockDB, err := os.OpenFile(name, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
+	if err != nil {
+		return nil, err
 	}
 
 	store := &StorageBackend{
@@ -537,7 +567,8 @@ func (self *StorageBackend) CurrHeight() uint32 {
 }
 func (self *StorageBackend) saveBlock(block *RawBlock) error {
 	if self.currInfo.nextHeight != block.Height {
-		return fmt.Errorf("need continue block")
+		return fmt.Errorf("need continue block, expected: %d, got; %d",
+			self.currInfo.nextHeight, block.Height)
 	}
 	self.currInfo.checksum.Write(block.Payload)
 
