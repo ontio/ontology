@@ -68,6 +68,7 @@ var (
 	DBDirEvent          = "ledgerevent"
 	DBDirBlock          = "block"
 	DBDirState          = "states"
+	DBDirBlockCache     = "blockCache"
 	MerkleTreeStorePath = "merkle_tree.db"
 )
 

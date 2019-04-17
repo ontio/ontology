@@ -20,8 +20,11 @@ package ledger
 
 import (
 	"fmt"
+	"path"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
@@ -36,16 +39,66 @@ import (
 var DefLedger *Ledger
 
 type Ledger struct {
-	ldgStore store.LedgerStore
+	ShardID          types.ShardID
+	ParentLedger     *Ledger
+	ParentBlockCache *ledgerstore.BlockCacheStore
+	ldgStore         store.LedgerStore
 }
 
+//
+// NewLedger : initialize ledger for main-chain
+//
 func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
-	ldgStore, err := ledgerstore.NewLedgerStore(dataDir, stateHashHeight)
+	dbPath := path.Join(dataDir, fmt.Sprintf("shard_%d", config.DEFAULT_SHARD_ID))
+	ldgStore, err := ledgerstore.NewLedgerStore(dbPath, stateHashHeight)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
 	return &Ledger{
+		ShardID:  types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID),
 		ldgStore: ldgStore,
+	}, nil
+}
+
+//
+// NewLedger : initialize ledger for shard-chain
+//
+func NewShardLedger(shardID types.ShardID, dataDir string, mainLedger *Ledger) (*Ledger, error) {
+	if shardID.ToUint64() == config.DEFAULT_SHARD_ID {
+		return mainLedger, nil
+	}
+
+	// load parent ledger
+	var parentLedger *Ledger
+	var err error
+	for shardID.ParentID().ToUint64() != config.DEFAULT_SHARD_ID {
+		parentLedger, err = NewShardLedger(shardID.ParentID(), dataDir, mainLedger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load shard ledger %d: %s", shardID.ParentID(), err)
+		}
+	}
+	if parentLedger == nil {
+		parentLedger = mainLedger
+	}
+
+	// load shard ledger
+	dbPath := path.Join(dataDir, fmt.Sprintf("shard_%d", shardID.ToUint64()))
+	ldgStore, err := ledgerstore.NewLedgerStore(dbPath, 0)
+	if err != nil {
+		return nil, fmt.Errorf("NewLedgerStore error %s", err)
+	}
+
+	// init parent block cache
+	parentBlockCache, err := ledgerstore.ResetBlockCacheStore(shardID.ParentID(), dataDir)
+	if err != nil {
+		return nil, fmt.Errorf("reset shard %d parent blockcache failed: %s", shardID, err)
+	}
+
+	return &Ledger{
+		ShardID:          shardID,
+		ParentLedger:     parentLedger,
+		ParentBlockCache: parentBlockCache,
+		ldgStore:         ldgStore,
 	}, nil
 }
 
@@ -66,11 +119,19 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 }
 
 func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	err := self.ldgStore.AddBlock(block, stateMerkleRoot)
-	if err != nil {
-		log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
+	if block.Header.ShardID == self.ShardID.ToUint64() {
+		err := self.ldgStore.AddBlock(block, stateMerkleRoot)
+		if err != nil {
+			log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
+		}
+		return err
+	} else if block.Header.ShardID == self.ShardID.ParentID().ToUint64() {
+		return self.ParentBlockCache.PutBlock(block, stateMerkleRoot)
+	} else if self.ParentLedger != nil {
+		return self.ParentLedger.AddBlock(block, stateMerkleRoot)
 	}
-	return err
+
+	return fmt.Errorf("invalid block to add")
 }
 
 func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
