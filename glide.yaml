@@ -32,6 +32,8 @@ import:
   subpackages:
   - common/fdlimit
 - package: github.com/gosuri/uiprogress
+- package: github.com/gosuri/uilive
+  version: v0.0.1
 - package: golang.org/x/sys
   repo: https://github.com/golang/sys.git
   subpackages:
