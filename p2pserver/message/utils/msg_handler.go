@@ -667,9 +667,9 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 }
 
 //get blk hdrs from starthash to stophash
-func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*types.RawHeader, error) {
+func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*types.RawTrustedHeader, error) {
 	var count uint32 = 0
-	headers := []*types.RawHeader{}
+	headers := []*types.RawTrustedHeader{}
 	var startHeight uint32
 	var stopHeight uint32
 	curHeight := blockrelayer.DefStorage.CurrHeaderHeight() //header height

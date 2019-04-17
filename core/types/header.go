@@ -26,6 +26,11 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
+type RawTrustedHeader struct {
+	Height  uint32
+	Payload []byte
+}
+
 type RawHeader struct {
 	Version          uint32
 	PrevBlockHash    common.Uint256
@@ -42,6 +47,15 @@ type RawHeader struct {
 	SigData     [][]byte
 
 	hash *common.Uint256
+}
+
+func (bd *RawHeader) GetTrustedHeader() *RawTrustedHeader {
+	sink := common.NewZeroCopySink(nil)
+	bd.Serialization(sink)
+	return &RawTrustedHeader{
+		Height:  bd.Height,
+		Payload: sink.Bytes(),
+	}
 }
 
 func (bd *RawHeader) Serialization(sink *common.ZeroCopySink) error {

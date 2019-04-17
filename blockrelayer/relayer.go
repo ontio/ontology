@@ -34,7 +34,7 @@ type Storage struct {
 	currHash         common.Uint256
 	currHeight       uint32
 	lock             *sync.Mutex
-	headers          map[common.Uint256]*types.RawHeader
+	headers          map[common.Uint256]*types.RawTrustedHeader
 	headerIndex      map[uint32]common.Uint256
 	currHeaderHeight uint32
 }
@@ -64,7 +64,7 @@ func Open(pt string) (*Storage, error) {
 	}
 
 	task := make(chan Task, 1000)
-	headers := make(map[common.Uint256]*types.RawHeader)
+	headers := make(map[common.Uint256]*types.RawTrustedHeader)
 	headerIndex := make(map[uint32]common.Uint256)
 	lock := new(sync.Mutex)
 	store := &Storage{backend, task, backend.CurrHash(), backend.CurrHeight(),
@@ -140,14 +140,14 @@ func (self *Storage) AddHeader(headers []*types.RawHeader) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	for _, header := range headers {
-		self.headers[header.Hash()] = header
+		self.headers[header.Hash()] = header.GetTrustedHeader()
 		self.headerIndex[header.Height] = header.Hash()
 	}
 	self.currHeaderHeight = headers[len(headers)-1].Height
 	return nil
 }
 
-func (self *Storage) GetHeaderByHash(hash common.Uint256) (*types.RawHeader, error) {
+func (self *Storage) GetHeaderByHash(hash common.Uint256) (*types.RawTrustedHeader, error) {
 	self.lock.Lock()
 	header, ok := self.headers[hash]
 	self.lock.Unlock()
@@ -476,7 +476,7 @@ func checkBlockHashConsistence(buf []byte, meta BlockMeta) bool {
 	hash := common.Uint256(sha256.Sum256(temp[:]))
 	return meta.hash == hash
 }
-func (self *StorageBackend) getHeader(metaKey []byte) (*types.RawHeader, error) {
+func (self *StorageBackend) getHeader(metaKey []byte) (*types.RawTrustedHeader, error) {
 	metaRaw, err := self.metaDB.Get(metaKey, nil)
 	if err != nil {
 		return nil, err
@@ -497,12 +497,11 @@ func (self *StorageBackend) getHeader(metaKey []byte) (*types.RawHeader, error) 
 		log.Error("[relayer] getHeader checkBlockHashConsistence failed")
 		return nil, fmt.Errorf("[relayer] getHeader checkBlockHashConsistence failed")
 	}
-	header := new(types.RawHeader)
-	source := common.NewZeroCopySource(buf)
-	err = header.Deserialization(source)
-	if err != nil {
-		return nil, err
+	header := &types.RawTrustedHeader{
+		Height:  meta.height,
+		Payload: buf,
 	}
+
 	return header, nil
 }
 

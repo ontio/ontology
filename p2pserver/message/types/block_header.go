@@ -31,6 +31,26 @@ type BlkHeader struct {
 	BlkHdr []*ct.RawHeader
 }
 
+type RawTrustedBlockHeader struct {
+	BlkHdr []*ct.RawTrustedHeader
+}
+
+func (this *RawTrustedBlockHeader) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteUint32(uint32(len(this.BlkHdr)))
+
+	for _, header := range this.BlkHdr {
+		sink.WriteBytes(header.Payload)
+	}
+	return nil
+}
+func (this *RawTrustedBlockHeader) Deserialization(source *common.ZeroCopySource) error {
+	panic("[block_header] unsupport")
+}
+
+func (this *RawTrustedBlockHeader) CmdType() string {
+	return comm.HEADERS_TYPE
+}
+
 //Serialize message payload
 func (this BlkHeader) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteUint32(uint32(len(this.BlkHdr)))

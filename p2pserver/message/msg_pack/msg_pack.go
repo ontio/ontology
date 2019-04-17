@@ -57,9 +57,9 @@ func NewBlock(bk *ct.Block, merkleRoot common.Uint256) mt.Message {
 }
 
 //blk hdr package
-func NewHeaders(headers []*ct.RawHeader) mt.Message {
+func NewHeaders(headers []*ct.RawTrustedHeader) mt.Message {
 	log.Trace()
-	var blkHdr mt.BlkHeader
+	var blkHdr mt.RawTrustedBlockHeader
 	blkHdr.BlkHdr = headers
 
 	return &blkHdr
