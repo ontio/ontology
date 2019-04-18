@@ -39,6 +39,8 @@ import (
 	ntypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
+// TODO: delete this because has been replaced by shard asset contract
+
 /////////
 //
 // Shard-Gas management contract
@@ -64,7 +66,7 @@ const (
 	GET_UN_FINISH_WITHDRAW = "getUnFinishWithdraw"
 )
 
-var ShardGasMgmtVersion = shardmgmt.VERSION_CONTRACT_SHARD_MGMT
+var ShardGasMgmtVersion = utils.VERSION_CONTRACT_SHARD_MGMT
 
 func InitShardGasManagement() {
 	native.Contracts[utils.ShardGasMgmtContractAddress] = RegisterShardGasMgmtContract
@@ -282,32 +284,6 @@ func UserWithdrawSuccess(native *native.NativeService) ([]byte, error) {
 }
 
 func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
-	if native.ShardID.IsRootShard() {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
-	}
-	contract := native.ContextRef.CurrentContext().ContractAddress
-	balance, err := ong.GetOngBalance(native, contract)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: get shard fee balance failed, err: %s", err)
-	}
-	err = ont.AppCallTransfer(native, utils.OngContractAddress, contract, utils.ShardSysMsgContractAddress, balance)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: transfer ong failed, err: %s", err)
-	}
-	// TODO: call shard mgmt shard commit dpos
-	evt := &shardstates.ShardCommitDposEvent{
-		Height:    native.Height,
-		FeeAmount: balance,
-	}
-	rootShard, err := common.NewShardID(0)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: generate root shard id failed, err: %s", err)
-	}
-	evt.ShardID = rootShard
-	evt.SourceShardID = native.ShardID
-	if err := shardmgmt.AddNotification(native, contract, evt); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: add notification: %s", err)
-	}
 	return utils.BYTE_TRUE, nil
 }
 

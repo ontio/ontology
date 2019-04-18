@@ -78,7 +78,7 @@ func getVersion(native *native.NativeService, contract common.Address) (uint32, 
 }
 
 func setVersion(native *native.NativeService, contract common.Address) {
-	data := utils.GetUint32Bytes(VERSION_CONTRACT_SHARD_MGMT)
+	data := utils.GetUint32Bytes(utils.VERSION_CONTRACT_SHARD_MGMT)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_VERSION)), cstates.GenRawStorageItem(data))
 }
 
@@ -87,7 +87,7 @@ func checkVersion(native *native.NativeService, contract common.Address) (bool, 
 	if err != nil {
 		return false, err
 	}
-	return ver == VERSION_CONTRACT_SHARD_MGMT, nil
+	return ver == utils.VERSION_CONTRACT_SHARD_MGMT, nil
 }
 
 func getGlobalState(native *native.NativeService, contract common.Address) (*shardstates.ShardMgmtGlobalState, error) {
@@ -150,7 +150,7 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	eventState := &message.ShardEventState{
-		Version:    VERSION_CONTRACT_SHARD_MGMT,
+		Version:    utils.VERSION_CONTRACT_SHARD_MGMT,
 		EventType:  info.GetType(),
 		ToShard:    info.GetTargetShardID(),
 		FromHeight: info.GetHeight(),
@@ -288,17 +288,3 @@ func preCommitDpos(native *native.NativeService, shardId common.ShardID) error {
 	return nil
 }
 
-func commitDpos(native *native.NativeService, shardId common.ShardID, feeInfo []*shard_stake.PeerAmount) error {
-	param := &shard_stake.CommitDposParam{
-		ShardId: shardId,
-		Value:   feeInfo,
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		return fmt.Errorf("commitDpos: failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes()); err != nil {
-		return fmt.Errorf("commitDpos: failed, err: %s", err)
-	}
-	return nil
-}

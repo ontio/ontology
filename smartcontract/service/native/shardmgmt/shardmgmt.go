@@ -50,8 +50,6 @@ import (
 /////////
 
 const (
-	VERSION_CONTRACT_SHARD_MGMT = uint32(1)
-
 	// function names
 	INIT_NAME               = "init"
 	CREATE_SHARD_NAME       = "createShard"
@@ -127,11 +125,11 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 
-	if ver < VERSION_CONTRACT_SHARD_MGMT {
+	if ver < utils.VERSION_CONTRACT_SHARD_MGMT {
 		// make upgrade
 		return utils.BYTE_FALSE, fmt.Errorf("upgrade TBD")
-	} else if ver > VERSION_CONTRACT_SHARD_MGMT {
-		return utils.BYTE_FALSE, fmt.Errorf("version downgrade from %d to %d", ver, VERSION_CONTRACT_SHARD_MGMT)
+	} else if ver > utils.VERSION_CONTRACT_SHARD_MGMT {
+		return utils.BYTE_FALSE, fmt.Errorf("version downgrade from %d to %d", ver, utils.VERSION_CONTRACT_SHARD_MGMT)
 	}
 
 	return utils.BYTE_TRUE, nil

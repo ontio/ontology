@@ -19,6 +19,8 @@ package utils
 
 import "github.com/ontio/ontology/common"
 
+const VERSION_CONTRACT_SHARD_MGMT = uint32(1)
+
 var (
 	BYTE_FALSE = []byte{0}
 	BYTE_TRUE  = []byte{1}

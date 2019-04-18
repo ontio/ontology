@@ -36,8 +36,9 @@ import (
 	bcommon "github.com/ontio/ontology/http/base/common"
 	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
+
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+
 	nativeUtil "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -120,22 +121,6 @@ func (self *ChainManager) onWithdrawGasReq(evt *shardstates.WithdrawGasReqEvent)
 		[]interface{}{param})
 	if err != nil {
 		log.Errorf("onWithdrawGasReq: failed, err: %s", err)
-	}
-}
-
-func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEvent) {
-	param := &shardgas.CommitDposParam{
-		Signer:     self.account.Address,
-		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
-		CommitDposParam: &shardmgmt.CommitDposParam{
-			ShardID:   evt.SourceShardID,
-			FeeAmount: evt.FeeAmount,
-		},
-	}
-	err := self.invokeRootNativeContract(nativeUtil.ShardGasMgmtContractAddress, shardgas.COMMIT_DPOS_NAME,
-		[]interface{}{param})
-	if err != nil {
-		log.Errorf("onShardCommitDpos: failed, err: %s", err)
 	}
 }
 
