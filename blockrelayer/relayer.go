@@ -6,6 +6,7 @@ import (
 	"encoding"
 	"encoding/binary"
 	"fmt"
+	"github.com/coocood/freecache"
 	"github.com/ontio/ontology/common/log"
 	"hash"
 	"io"
@@ -330,7 +331,7 @@ const MAX_PENDING_SIZE = 20 * 1024 * 1024
 const MAX_TIME_OUT = 30 * time.Second
 
 type StorageBackend struct {
-	metaDB  *leveldb.DB
+	metaDB  *MetaDB
 	blockDB *os.File
 
 	currInfo      CurrInfo
@@ -338,6 +339,35 @@ type StorageBackend struct {
 	pendingBlocks int
 	pendingSize   int
 	checkedHeight uint32
+}
+
+type MetaDB struct {
+	metaDB *leveldb.DB
+	cache  *freecache.Cache
+}
+
+func NewMetaDB(db *leveldb.DB) *MetaDB {
+	return &MetaDB{
+		metaDB: db,
+		cache:  freecache.NewCache(100 * 1024 * 1024),
+	}
+}
+
+func (db *MetaDB) Write(batch *leveldb.Batch, wo *opt.WriteOptions) error {
+	return db.metaDB.Write(batch, wo)
+}
+
+func (db *MetaDB) Get(key []byte) ([]byte, error) {
+	val, err := db.cache.Get(key)
+	if err == nil {
+		return val, nil
+	}
+	val, err = db.metaDB.Get(key, nil)
+	if err == nil {
+		_ = db.cache.Set(key, val, 0)
+	}
+
+	return val, err
 }
 
 func OpenLevelDB(file string) (*leveldb.DB, error) {
@@ -421,7 +451,7 @@ func open(pt string) (*StorageBackend, error) {
 	}
 
 	store := &StorageBackend{
-		metaDB:   metaDB,
+		metaDB:   NewMetaDB(metaDB),
 		blockDB:  blockDB,
 		currInfo: info,
 		batch:    new(leveldb.Batch),
@@ -466,7 +496,7 @@ func (self *Storage) GetBlockHash(height uint32) (common.Uint256, error) {
 	}
 	var metaKey [4]byte
 	binary.BigEndian.PutUint32(metaKey[:], height)
-	raw, err := self.backend.metaDB.Get(metaKey[:], nil)
+	raw, err := self.backend.metaDB.Get(metaKey[:])
 	if err != nil {
 		return common.UINT256_EMPTY, err
 	}
@@ -476,7 +506,7 @@ func (self *Storage) GetBlockHash(height uint32) (common.Uint256, error) {
 }
 
 func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
-	metaRaw, err := self.metaDB.Get(metaKey, nil)
+	metaRaw, err := self.metaDB.Get(metaKey)
 	if err != nil {
 		return nil, err
 	}
@@ -507,7 +537,7 @@ func checkBlockHashConsistence(buf []byte, meta BlockMeta) bool {
 	return meta.hash == hash
 }
 func (self *StorageBackend) getHeader(metaKey []byte) (*types.RawTrustedHeader, error) {
-	metaRaw, err := self.metaDB.Get(metaKey, nil)
+	metaRaw, err := self.metaDB.Get(metaKey)
 	if err != nil {
 		return nil, err
 	}
