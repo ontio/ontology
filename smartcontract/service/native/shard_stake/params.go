@@ -20,11 +20,10 @@ package shard_stake
 
 import (
 	"fmt"
-	"io"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"io"
 )
 
 type InitShardParam struct {
@@ -220,21 +219,24 @@ func (this *WithdrawFeeParam) Deserialize(r io.Reader) error {
 }
 
 type CommitDposParam struct {
-	ShardId common.ShardID
-	Value   []*PeerAmount
+	ShardId   common.ShardID
+	Height    uint32
+	Hash      common.Uint256
+	FeeAmount uint64
 }
 
 func (this *CommitDposParam) Serialize(w io.Writer) error {
 	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
 		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
 	}
-	if err := utils.WriteVarUint(w, uint64(len(this.Value))); err != nil {
-		return fmt.Errorf("serialize: write value len failed, err: %s", err)
+	if err := utils.WriteVarUint(w, uint64(this.Height)); err != nil {
+		return fmt.Errorf("serialize: write height failed, err: %s", err)
 	}
-	for index, value := range this.Value {
-		if err := value.Serialize(w); err != nil {
-			return fmt.Errorf("serialize: write value failed, index %d, err: %s", index, err)
-		}
+	if err := serialization.WriteVarBytes(w, this.Hash.ToArray()); err != nil {
+		return fmt.Errorf("serialize: write hash failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.FeeAmount); err != nil {
+		return fmt.Errorf("serialize: write fee amount failed, err: %s", err)
 	}
 	return nil
 }
@@ -244,17 +246,22 @@ func (this *CommitDposParam) Deserialize(r io.Reader) error {
 	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
 	}
-	num, err := utils.ReadVarUint(r)
+	height, err := utils.ReadVarUint(r)
 	if err != nil {
-		return fmt.Errorf("deserialize: read value len failed, err: %s", err)
+		return fmt.Errorf("deserialize: read height failed, err: %s", err)
 	}
-	this.Value = make([]*PeerAmount, num)
-	for i := uint64(0); i < num; i++ {
-		value := &PeerAmount{}
-		if err := value.Deserialize(r); err != nil {
-			return fmt.Errorf("deserialize: read value failed, index %d, err: %s", i, err)
-		}
-		this.Value[i] = value
+	this.Height = uint32(height)
+	hashData, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return fmt.Errorf("deserialize: read hash failed, err: %s", err)
+	}
+	hash, err := common.Uint256ParseFromBytes(hashData)
+	if err != nil {
+		return fmt.Errorf("deserialize: decode hash failed, err: %s", err)
+	}
+	this.Hash = hash
+	if this.FeeAmount, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read fee amount failed, err: %s", err)
 	}
 	return nil
 }

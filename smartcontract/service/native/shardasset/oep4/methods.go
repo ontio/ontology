@@ -151,7 +151,7 @@ func notifyShardMint(native *native.NativeService, toShard types.ShardID, param 
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyShardMint: failed, err: %s", err)
 	}
-	if err := notifyShard(native, toShard, SHARD_RECEIVE_ASSET, bf.Bytes()); err != nil {
+	if err := shardsysmsg.NotifyShard(native, toShard, SHARD_RECEIVE_ASSET, bf.Bytes()); err != nil {
 		return fmt.Errorf("notifyShardMint: failed, err: %s", err)
 	}
 	return nil
@@ -162,7 +162,7 @@ func notifyTransferSuccess(native *native.NativeService, toShard types.ShardID, 
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyTransferSuccess: failed, err: %s", err)
 	}
-	if err := notifyShard(native, toShard, XSHARD_TRANSFER_SUCC, bf.Bytes()); err != nil {
+	if err := shardsysmsg.NotifyShard(native, toShard, XSHARD_TRANSFER_SUCC, bf.Bytes()); err != nil {
 		return fmt.Errorf("notifyTransferSuccess: failed, err: %s", err)
 	}
 	return nil
@@ -173,25 +173,8 @@ func notifyShardReceiveOng(native *native.NativeService, toShard types.ShardID, 
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyShardReceiveOng: failed, err: %s", err)
 	}
-	if err := notifyShard(native, toShard, ONG_XSHARD_RECEIVE, bf.Bytes()); err != nil {
+	if err := shardsysmsg.NotifyShard(native, toShard, ONG_XSHARD_RECEIVE, bf.Bytes()); err != nil {
 		return fmt.Errorf("notifyShardReceiveOng: failed, err: %s", err)
-	}
-	return nil
-}
-
-func notifyShard(native *native.NativeService, toShard types.ShardID, method string, args []byte) error {
-	paramBytes := new(bytes.Buffer)
-	params := shardsysmsg.NotifyReqParam{
-		ToShard:    toShard,
-		ToContract: utils.ShardAssetAddress,
-		Method:     method,
-		Args:       args,
-	}
-	if err := params.Serialize(paramBytes); err != nil {
-		return fmt.Errorf("notifyShard: serialize param failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_NOTIFY, paramBytes.Bytes()); err != nil {
-		return fmt.Errorf("notifyShard: invoke failed, err: %s", err)
 	}
 	return nil
 }

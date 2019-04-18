@@ -144,10 +144,10 @@ func setShardViewInfo(native *native.NativeService, id common.ShardID, view View
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 
-func setShardCommitting(native *native.NativeService, id common.ShardID) {
+func setShardCommitting(native *native.NativeService, id common.ShardID, isCommitting bool) {
 	key := genShardIsCommittingKey(id)
 	sink := common.NewZeroCopySink(0)
-	sink.WriteBool(true)
+	sink.WriteBool(isCommitting)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 

@@ -445,7 +445,7 @@ func PreCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: deserialize shard id faield, err: %s", err)
 	}
-	setShardCommitting(native, shardId)
+	setShardCommitting(native, shardId, true)
 	currentView, err := GetShardCurrentView(native, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
@@ -462,8 +462,15 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
 	}
-	err := commitDpos(native, param.ShardId, param.Value)
+	isCommitting, err := isShardCommitting(native, param.ShardId)
 	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	}
+	if !isCommitting {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: shard doesn't per-commit")
+	}
+	setShardCommitting(native, param.ShardId, false)
+	if err := commitDpos(native, param.ShardId, param.FeeAmount, param.Height, param.Hash); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil

@@ -277,6 +277,17 @@ func deletePeer(native *native.NativeService, shardId common.ShardID, peers []st
 	return nil
 }
 
+func preCommitDpos(native *native.NativeService, shardId common.ShardID) error {
+	bf := new(bytes.Buffer)
+	if err := utils.SerializeShardId(bf, shardId); err != nil {
+		return fmt.Errorf("preCommitDpos: serialize shardId failed, err: %s", err)
+	}
+	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.PRE_COMMIT_DPOS, bf.Bytes()); err != nil {
+		return fmt.Errorf("preCommitDpos: failed, err: %s", err)
+	}
+	return nil
+}
+
 func commitDpos(native *native.NativeService, shardId common.ShardID, feeInfo []*shard_stake.PeerAmount) error {
 	param := &shard_stake.CommitDposParam{
 		ShardId: shardId,

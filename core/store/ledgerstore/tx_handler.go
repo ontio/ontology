@@ -824,7 +824,7 @@ func chargeCostGas(payer common.Address, gas uint64, config *smartcontract.Confi
 	cache *storage.CacheDB, store store.LedgerStore, shardID common.ShardID) ([]*event.NotifyEventInfo, error) {
 	contractAddr := utils.GovernanceContractAddress
 	if !shardID.IsRootShard() {
-		contractAddr = utils.ShardGasMgmtContractAddress
+		contractAddr = utils.ShardMgmtContractAddress
 	}
 	params := genNativeTransferCode(payer, contractAddr, gas)
 

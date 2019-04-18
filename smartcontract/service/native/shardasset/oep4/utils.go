@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
@@ -307,10 +308,18 @@ func deleteAssetId(native *native.NativeService, assetAddr common.Address) {
 func setShardSupplyInfo(native *native.NativeService, asset AssetId, supplyInfo map[types.ShardID]*big.Int) {
 	key := genShardSupplyInfoKey(asset)
 	sink := common.NewZeroCopySink(0)
-	sink.WriteUint64(uint64(len(supplyInfo)))
-	for shard, supply := range supplyInfo {
+	num := uint64(len(supplyInfo))
+	sink.WriteUint64(num)
+	shards := make([]types.ShardID, 0)
+	for shard, _ := range supplyInfo {
+		shards = append(shards, shard)
+	}
+	sort.SliceStable(shards, func(i, j int) bool {
+		return shards[i].ToUint64() < shards[j].ToUint64()
+	})
+	for _, shard := range shards {
 		utils.SerializationShardId(sink, shard)
-		sink.WriteVarBytes(common.BigIntToNeoBytes(supply))
+		sink.WriteVarBytes(common.BigIntToNeoBytes(supplyInfo[shard]))
 	}
 	native.CacheDB.Put(key, states.GenRawStorageItem(sink.Bytes()))
 }
