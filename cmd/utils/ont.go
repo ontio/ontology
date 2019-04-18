@@ -828,29 +828,45 @@ func ParseNeoVMContractReturnTypeString(hexStr string) (string, error) {
 }
 
 func ParseWasmVMContractReturnTypeByteArray(hexStr string) (string, error) {
-	bf := bytes.NewBuffer([]byte(hexStr))
+	hexbs, err := common.HexToBytes(hexStr)
+	if err != nil {
+		return "", fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
+	}
+	bf := bytes.NewBuffer(hexbs)
 	bs, err := serialization.ReadVarBytes(bf)
 	if err != nil {
 		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, err)
 	}
-	return string(bs), nil
+	return common.ToHexString(bs), nil
 }
 
 //ParseWasmVMContractReturnTypeString return string value of smart contract execute code.
 func ParseWasmVMContractReturnTypeString(hexStr string) (string, error) {
-	bf := bytes.NewBuffer([]byte(hexStr))
+	hexbs, err := common.HexToBytes(hexStr)
+	if err != nil {
+		return "", fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
+	}
+	bf := bytes.NewBuffer(hexbs)
 	return serialization.ReadString(bf)
 }
 
 //ParseWasmVMContractReturnTypeInteger return integer value of smart contract execute code.
 func ParseWasmVMContractReturnTypeInteger(hexStr string) (int64, error) {
-	bf := bytes.NewBuffer([]byte(hexStr))
+	hexbs, err := common.HexToBytes(hexStr)
+	if err != nil {
+		return 0, fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
+	}
+	bf := bytes.NewBuffer(hexbs)
 	res, err := serialization.ReadUint64(bf)
 	return int64(res), err
 }
 
 //ParseWasmVMContractReturnTypeBool return bool value of smart contract execute code.
 func ParseWasmVMContractReturnTypeBool(hexStr string) (bool, error) {
-	bf := bytes.NewBuffer([]byte(hexStr))
+	hexbs, err := common.HexToBytes(hexStr)
+	if err != nil {
+		return false, fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
+	}
+	bf := bytes.NewBuffer(hexbs)
 	return serialization.ReadBool(bf)
 }
