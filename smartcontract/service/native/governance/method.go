@@ -835,6 +835,12 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		return splitSum, fmt.Errorf("executeSplit, get peerPoolMap error: %v", err)
 	}
 
+	//get current peerPoolMap
+	currentPeerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return splitSum, fmt.Errorf("executeSplit, get currentPeerPoolMap error: %v", err)
+	}
+
 	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
 	if err != nil {
 		return splitSum, fmt.Errorf("executeSplit, getOngBalance error: %v", err)
@@ -934,7 +940,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sumS))
 
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
-			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
+			currentPeerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
 		if err != nil {
 			return splitSum, fmt.Errorf("executeSplit2, splitNodeFee error: %v", err)
@@ -969,7 +975,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sum))
 
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
-			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
+			currentPeerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
 		if err != nil {
 			return splitSum, fmt.Errorf("executeSplit2, splitNodeFee error: %v", err)
