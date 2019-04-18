@@ -830,7 +830,10 @@ func ParseNeoVMContractReturnTypeString(hexStr string) (string, error) {
 func ParseWasmVMContractReturnTypeByteArray(hexStr string) (string, error) {
 	bf := bytes.NewBuffer([]byte(hexStr))
 	bs, err := serialization.ReadVarBytes(bf)
-	return string(bs), err
+	if err != nil{
+		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, err)
+	}
+	return string(bs), nil
 }
 
 //ParseWasmVMContractReturnTypeString return string value of smart contract execute code.
