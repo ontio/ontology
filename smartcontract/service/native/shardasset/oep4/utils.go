@@ -12,7 +12,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-const ONG_ASSET_ID uint64 = 0
+const ONG_ASSET_ID AssetId = 0
 
 const (
 	KEY_INIT = "oep4_init"
@@ -41,39 +41,39 @@ func genAssetIdKey(assetAddr common.Address) []byte {
 	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_ASSET_ID), assetAddr[:])
 }
 
-func genAssetKey(asset uint64) []byte {
-	assetBytes := utils.GetUint64Bytes(asset)
+func genAssetKey(asset AssetId) []byte {
+	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4))
 }
 
-func genBalanceKey(asset uint64, user common.Address) []byte {
-	assetBytes := utils.GetUint64Bytes(asset)
+func genBalanceKey(asset AssetId, user common.Address) []byte {
+	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_BALANCE), user[:])
 }
 
-func genShardSupplyInfoKey(asset uint64) []byte {
-	assetBytes := utils.GetUint64Bytes(asset)
+func genShardSupplyInfoKey(asset AssetId) []byte {
+	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_SHARD_SUPPLY))
 }
 
-func genAllowanceKey(asset uint64, owner, spender common.Address) []byte {
-	assetBytes := utils.GetUint64Bytes(asset)
+func genAllowanceKey(asset AssetId, owner, spender common.Address) []byte {
+	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_ALLOWANCE), owner[:], spender[:])
 }
 
-func genXShardTransferNumKey(asset uint64, user common.Address) []byte {
-	assetBytes := utils.GetUint64Bytes(asset)
+func genXShardTransferNumKey(asset AssetId, user common.Address) []byte {
+	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_TRANSFER_NUM), user[:])
 }
 
-func genXShardTransferKey(asset uint64, user common.Address, transferId *big.Int) []byte {
-	assetBytes := utils.GetUint64Bytes(asset)
+func genXShardTransferKey(asset AssetId, user common.Address, transferId *big.Int) []byte {
+	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_XSHARD_TRANSFER), user[:],
 		common.BigIntToNeoBytes(transferId)[:])
 }
 
-func genXShardReceiveKey(asset uint64, user common.Address, fromShard types.ShardID, transferId *big.Int) []byte {
-	assetBytes := utils.GetUint64Bytes(asset)
+func genXShardReceiveKey(asset AssetId, user common.Address, fromShard types.ShardID, transferId *big.Int) []byte {
+	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	shardIdBytes := utils.GetUint64Bytes(fromShard.ToUint64())
 	tranIdBytes := common.BigIntToNeoBytes(transferId)[:]
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_XSHARD_RECEIVE), shardIdBytes, user[:],
@@ -95,13 +95,13 @@ func isOep4ShardAssetInit(native *native.NativeService) (bool, error) {
 	return len(raw) != 0, nil
 }
 
-func setContract(native *native.NativeService, asset uint64, oep4 *Oep4) {
+func setContract(native *native.NativeService, asset AssetId, oep4 *Oep4) {
 	sink := common.NewZeroCopySink(0)
 	oep4.Serialization(sink)
 	native.CacheDB.Put(genAssetKey(asset), states.GenRawStorageItem(sink.Bytes()))
 }
 
-func getContract(native *native.NativeService, asset uint64) (*Oep4, error) {
+func getContract(native *native.NativeService, asset AssetId) (*Oep4, error) {
 	raw, err := native.CacheDB.Get(genAssetKey(asset))
 	if err != nil {
 		return nil, fmt.Errorf("getContract: read db failed, err: %s", err)
@@ -120,7 +120,7 @@ func getContract(native *native.NativeService, asset uint64) (*Oep4, error) {
 	return oep4, nil
 }
 
-func setXShardTransfer(native *native.NativeService, asset uint64, user common.Address, transferId *big.Int,
+func setXShardTransfer(native *native.NativeService, asset AssetId, user common.Address, transferId *big.Int,
 	transfer *XShardTransferState) {
 	key := genXShardTransferKey(asset, user, transferId)
 	sink := common.NewZeroCopySink(0)
@@ -128,7 +128,7 @@ func setXShardTransfer(native *native.NativeService, asset uint64, user common.A
 	native.CacheDB.Put(key, states.GenRawStorageItem(sink.Bytes()))
 }
 
-func getXShardTransfer(native *native.NativeService, asset uint64, user common.Address,
+func getXShardTransfer(native *native.NativeService, asset AssetId, user common.Address,
 	transferId *big.Int) (*XShardTransferState, error) {
 	key := genXShardTransferKey(asset, user, transferId)
 	raw, err := native.CacheDB.Get(key)
@@ -149,12 +149,12 @@ func getXShardTransfer(native *native.NativeService, asset uint64, user common.A
 	return state, nil
 }
 
-func setUserBalance(native *native.NativeService, asset uint64, user common.Address, balance *big.Int) {
+func setUserBalance(native *native.NativeService, asset AssetId, user common.Address, balance *big.Int) {
 	store := common.BigIntToNeoBytes(balance)
 	native.CacheDB.Put(genBalanceKey(asset, user), states.GenRawStorageItem(store))
 }
 
-func getUserBalance(native *native.NativeService, asset uint64, user common.Address) (*big.Int, error) {
+func getUserBalance(native *native.NativeService, asset AssetId, user common.Address) (*big.Int, error) {
 	raw, err := native.CacheDB.Get(genBalanceKey(asset, user))
 	if err != nil {
 		return nil, fmt.Errorf("getUserBalance: read db failed, err: %s", err)
@@ -169,12 +169,12 @@ func getUserBalance(native *native.NativeService, asset uint64, user common.Addr
 	return common.BigIntFromNeoBytes(storeValue), nil
 }
 
-func setUserAllowance(native *native.NativeService, asset uint64, owner, spender common.Address, balance *big.Int) {
+func setUserAllowance(native *native.NativeService, asset AssetId, owner, spender common.Address, balance *big.Int) {
 	store := common.BigIntToNeoBytes(balance)
 	native.CacheDB.Put(genAllowanceKey(asset, owner, spender), states.GenRawStorageItem(store))
 }
 
-func getUserAllowance(native *native.NativeService, asset uint64, owner, spender common.Address) (*big.Int, error) {
+func getUserAllowance(native *native.NativeService, asset AssetId, owner, spender common.Address) (*big.Int, error) {
 	raw, err := native.CacheDB.Get(genAllowanceKey(asset, owner, spender))
 	if err != nil {
 		return nil, fmt.Errorf("getUserAllowance: read db failed, err: %s", err)
@@ -189,12 +189,12 @@ func getUserAllowance(native *native.NativeService, asset uint64, owner, spender
 	return common.BigIntFromNeoBytes(storeValue), nil
 }
 
-func setXShardTransferNum(native *native.NativeService, asset uint64, user common.Address, num *big.Int) {
+func setXShardTransferNum(native *native.NativeService, asset AssetId, user common.Address, num *big.Int) {
 	key := genXShardTransferNumKey(asset, user)
 	native.CacheDB.Put(key, states.GenRawStorageItem(common.BigIntToNeoBytes(num)))
 }
 
-func getXShardTransferNum(native *native.NativeService, asset uint64, user common.Address) (*big.Int, error) {
+func getXShardTransferNum(native *native.NativeService, asset AssetId, user common.Address) (*big.Int, error) {
 	key := genXShardTransferNumKey(asset, user)
 	raw, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -211,14 +211,14 @@ func getXShardTransferNum(native *native.NativeService, asset uint64, user commo
 }
 
 func receiveTransfer(native *native.NativeService, param *ShardMintParam) {
-	key := genXShardReceiveKey(param.Asset, param.Account, param.FromShard, param.TransferId)
+	key := genXShardReceiveKey(AssetId(param.Asset), param.Account, param.FromShard, param.TransferId)
 	sink := common.NewZeroCopySink(0)
 	sink.WriteBool(true)
 	native.CacheDB.Put(key, states.GenRawStorageItem(sink.Bytes()))
 }
 
 func isTransferReceived(native *native.NativeService, param *ShardMintParam) (bool, error) {
-	key := genXShardReceiveKey(param.Asset, param.Account, param.FromShard, param.TransferId)
+	key := genXShardReceiveKey(AssetId(param.Asset), param.Account, param.FromShard, param.TransferId)
 	raw, err := native.CacheDB.Get(key)
 	if err != nil {
 		return false, fmt.Errorf("isTransferReceived: read db failed, err: %s", err)
@@ -265,12 +265,12 @@ func getAssetNum(native *native.NativeService) (uint64, error) {
 	return num, nil
 }
 
-func registerAsset(native *native.NativeService, assetAddr common.Address, assetId uint64) {
+func registerAsset(native *native.NativeService, assetAddr common.Address, assetId AssetId) {
 	key := genAssetIdKey(assetAddr)
-	native.CacheDB.Put(key, utils.GetUint64Bytes(assetId))
+	native.CacheDB.Put(key, utils.GetUint64Bytes(uint64(assetId)))
 }
 
-func getAssetId(native *native.NativeService, assetAddr common.Address) (uint64, error) {
+func getAssetId(native *native.NativeService, assetAddr common.Address) (AssetId, error) {
 	key := genAssetIdKey(assetAddr)
 	raw, err := native.CacheDB.Get(key)
 	if err != nil {
@@ -287,7 +287,7 @@ func getAssetId(native *native.NativeService, assetAddr common.Address) (uint64,
 	if err != nil {
 		return 0, fmt.Errorf("getAssetId: deserialize store value failed, err: %s", err)
 	}
-	return id, nil
+	return AssetId(id), nil
 }
 
 func isAssetRegister(native *native.NativeService, assetAddr common.Address) (bool, error) {
@@ -304,7 +304,7 @@ func deleteAssetId(native *native.NativeService, assetAddr common.Address) {
 	native.CacheDB.Delete(key)
 }
 
-func setShardSupplyInfo(native *native.NativeService, asset uint64, supplyInfo map[types.ShardID]*big.Int) {
+func setShardSupplyInfo(native *native.NativeService, asset AssetId, supplyInfo map[types.ShardID]*big.Int) {
 	key := genShardSupplyInfoKey(asset)
 	sink := common.NewZeroCopySink(0)
 	sink.WriteUint64(uint64(len(supplyInfo)))
@@ -315,7 +315,7 @@ func setShardSupplyInfo(native *native.NativeService, asset uint64, supplyInfo m
 	native.CacheDB.Put(key, states.GenRawStorageItem(sink.Bytes()))
 }
 
-func getShardSupplyInfo(native *native.NativeService, asset uint64) (map[types.ShardID]*big.Int, error) {
+func getShardSupplyInfo(native *native.NativeService, asset AssetId) (map[types.ShardID]*big.Int, error) {
 	key := genShardSupplyInfoKey(asset)
 	raw, err := native.CacheDB.Get(key)
 	if err != nil {

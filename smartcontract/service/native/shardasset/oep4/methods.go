@@ -42,7 +42,7 @@ func transfer(native *native.NativeService, param *TransferParam) error {
 	return nil
 }
 
-func userBurn(native *native.NativeService, asset uint64, user common.Address, amount *big.Int) error {
+func userBurn(native *native.NativeService, asset AssetId, user common.Address, amount *big.Int) error {
 	oep4, err := getContract(native, asset)
 	if err != nil {
 		return fmt.Errorf("userBurn: failed, err: %s", err)
@@ -64,7 +64,7 @@ func userBurn(native *native.NativeService, asset uint64, user common.Address, a
 	return nil
 }
 
-func userMint(native *native.NativeService, asset uint64, user common.Address, amount *big.Int) error {
+func userMint(native *native.NativeService, asset AssetId, user common.Address, amount *big.Int) error {
 	oep4, err := getContract(native, asset)
 	if err != nil {
 		return fmt.Errorf("userMint: failed, err: %s", err)
@@ -80,7 +80,7 @@ func userMint(native *native.NativeService, asset uint64, user common.Address, a
 	return nil
 }
 
-func xShardTransfer(native *native.NativeService, asset uint64, from, to common.Address, toShard types.ShardID,
+func xShardTransfer(native *native.NativeService, asset AssetId, from, to common.Address, toShard types.ShardID,
 	amount *big.Int) (*big.Int, error) {
 	transferNum, err := getXShardTransferNum(native, asset, from)
 	if err != nil {
@@ -98,7 +98,7 @@ func xShardTransfer(native *native.NativeService, asset uint64, from, to common.
 	return transferNum, nil
 }
 
-func rootReceiveAsset(native *native.NativeService, fromShard types.ShardID, asset uint64, amount *big.Int) error {
+func rootReceiveAsset(native *native.NativeService, fromShard types.ShardID, asset AssetId, amount *big.Int) error {
 	supplyInfo, err := getShardSupplyInfo(native, asset)
 	if err != nil {
 		return fmt.Errorf("rootReceiveAsset: failed, err: %s", err)
@@ -122,7 +122,7 @@ func rootReceiveAsset(native *native.NativeService, fromShard types.ShardID, ass
 	return nil
 }
 
-func rootTransferSucc(native *native.NativeService, toShard types.ShardID, asset uint64, amount *big.Int) error {
+func rootTransferSucc(native *native.NativeService, toShard types.ShardID, asset AssetId, amount *big.Int) error {
 	supplyInfo, err := getShardSupplyInfo(native, asset)
 	if err != nil {
 		return fmt.Errorf("rootTransferSucc: failed, err: %s", err)

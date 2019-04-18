@@ -119,9 +119,9 @@ func Register(native *native.NativeService) ([]byte, error) {
 	if assetNum == math.MaxUint64 {
 		return utils.BYTE_FALSE, fmt.Errorf("Register: failed, asset num exceed")
 	}
-	assetId := assetNum + 1
+	setAssetNum(native, assetNum+1)
+	assetId := AssetId(assetNum + 1)
 	registerAsset(native, callAddr, assetId)
-	setAssetNum(native, assetId)
 	oep4 := &Oep4{
 		Name:        param.Name,
 		Symbol:      param.Symbol,
@@ -149,7 +149,7 @@ func GetAssetId(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetAssetId: failed, err: %s", err)
 	}
-	return ntypes.BigIntToBytes(new(big.Int).SetUint64(assetId)), nil
+	return ntypes.BigIntToBytes(new(big.Int).SetUint64(uint64(assetId))), nil
 }
 
 func Migrate(native *native.NativeService) ([]byte, error) {
@@ -421,7 +421,7 @@ func XShardTransfer(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:      asset,
+		Asset:      uint64(asset),
 		Account:    param.To,
 		Amount:     param.Amount,
 		TransferId: txId,
@@ -453,7 +453,7 @@ func XShardTransferRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferRetry: transfer has already completed")
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:      asset,
+		Asset:      uint64(asset),
 		Account:    transfer.ToAccount,
 		Amount:     transfer.Amount,
 		TransferId: param.TransferId,
@@ -472,14 +472,14 @@ func XShardTransferSucc(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: failed, err: %s", err)
 	}
-	transfer, err := getXShardTransfer(native, param.Asset, param.Account, param.TransferId)
+	transfer, err := getXShardTransfer(native, AssetId(param.Asset), param.Account, param.TransferId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: failed, err: %s", err)
 	}
 	transfer.Status = XSHARD_TRANSFER_COMPLETE
-	setXShardTransfer(native, param.Asset, param.Account, param.TransferId, transfer)
+	setXShardTransfer(native, AssetId(param.Asset), param.Account, param.TransferId, transfer)
 	if native.ShardID.IsRootShard() {
-		if err := rootTransferSucc(native, transfer.ToShard, param.Asset, transfer.Amount); err != nil {
+		if err := rootTransferSucc(native, transfer.ToShard, AssetId(param.Asset), transfer.Amount); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: failed, err: %s", err)
 		}
 	}
@@ -499,13 +499,13 @@ func ShardReceiveAsset(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
 	}
 	if !isReceived {
-		if err := userMint(native, param.Asset, param.Account, param.Amount); err != nil {
+		if err := userMint(native, AssetId(param.Asset), param.Account, param.Amount); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
 		}
 		receiveTransfer(native, param)
 	}
 	if native.ShardID.IsRootShard() {
-		if err := rootReceiveAsset(native, param.FromShard, param.Asset, param.Amount); err != nil {
+		if err := rootReceiveAsset(native, param.FromShard, AssetId(param.Asset), param.Amount); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
 		}
 	}
@@ -545,7 +545,7 @@ func XShardTransferOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOng: failed, err: %s", err)
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:      ONG_ASSET_ID,
+		Asset:      uint64(ONG_ASSET_ID),
 		Account:    param.To,
 		Amount:     param.Amount,
 		TransferId: txId,
@@ -572,7 +572,7 @@ func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOngRetry: transfer has already completed")
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:      ONG_ASSET_ID,
+		Asset:      uint64(ONG_ASSET_ID),
 		Account:    transfer.ToAccount,
 		Amount:     transfer.Amount,
 		TransferId: param.TransferId,
