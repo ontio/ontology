@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/ontio/ontology/common/config"
+	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/http/base/rpc"
 )
@@ -62,8 +62,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getgrantong", rpc.GetGrantOng)
 
 	rpc.HandleFunc("getshardstorage", rpc.GetShardStorage)
-
-	err := http.ListenAndServe(":%d"+strconv.Itoa(int(config.DefConfig.Rpc.HttpJsonPort)), nil)
+	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)
 	}
