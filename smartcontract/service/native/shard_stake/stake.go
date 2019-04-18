@@ -43,15 +43,17 @@ const (
 	WITHDRAW_FEE             = "withdrawFee"
 	CHANGE_MAX_AUTHORIZATION = "changeMaxAuthorization"
 	CHANGE_PROPORTION        = "changeProportion" // node change proportion of stake user
+	PRE_COMMIT_DPOS          = "preCommitDpos"
 	COMMIT_DPOS              = "commitDpos"
 	PEER_EXIT                = "peerExit"
 	DELETE_PEER              = "deletePeer"
 	WITHDRAW_ONG             = "withdrawOng"
 
 	// for pre-execute
-	GET_CURRENT_VIEW = "getCurrentView"
-	GET_PEER_INFO    = "getPeerInfo"
-	GET_USER_INFO    = "getUserInfo"
+	GET_CURRENT_VIEW  = "getCurrentView"
+	GET_PEER_INFO     = "getPeerInfo"
+	GET_USER_INFO     = "getUserInfo"
+	GET_IS_COMMITTING = "getIsCommitting"
 )
 
 func InitShardStake() {
@@ -62,11 +64,12 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(INIT_SHARD, InitShard)
 	native.Register(PEER_STAKE, PeerInitStake)
 	native.Register(ADD_INIT_DOS, AddInitPos)
-	native.Register(REDUCE_INIT_POS, ReduceInitPost)
+	native.Register(REDUCE_INIT_POS, ReduceInitPos)
 	native.Register(USER_STAKE, UserStake)
 	native.Register(UNFREEZE_STAKE, UnfreezeStake)
 	native.Register(WITHDRAW_STAKE, WithdrawStake)
 	native.Register(WITHDRAW_FEE, WithdrawFee)
+	native.Register(PRE_COMMIT_DPOS, PreCommitDpos)
 	native.Register(COMMIT_DPOS, CommitDpos)
 	native.Register(CHANGE_MAX_AUTHORIZATION, ChangeMaxAuthorization)
 	native.Register(CHANGE_PROPORTION, ChangeProportion)
@@ -74,6 +77,7 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(PEER_EXIT, PeerExit)
 	native.Register(WITHDRAW_ONG, WithdrawOng)
 
+	native.Register(GET_IS_COMMITTING, GetIsCommitting)
 	native.Register(GET_CURRENT_VIEW, GetCurrentView)
 	native.Register(GET_PEER_INFO, GetPeerInfo)
 	native.Register(GET_USER_INFO, GetUserInfo)
@@ -100,40 +104,43 @@ func InitShard(native *native.NativeService) ([]byte, error) {
 }
 
 func PeerInitStake(native *native.NativeService) ([]byte, error) {
-	params := new(PeerStakeParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	param := new(PeerStakeParam)
+	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: invalid param: %s", err)
 	}
 	// only call by shard mgmt contract
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: only shard mgmt can invoke")
 	}
-	err := peerInitStake(native, params.ShardId, params.Value.PeerPubKey, params.PeerOwner, params.Value.Amount)
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
+	}
+	err := peerInitStake(native, param.ShardId, param.Value.PeerPubKey, param.PeerOwner, param.Value.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: deserialize param pub key failed, err: %s", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	minStakeAmount, err := GetNodeMinStakeAmount(native, params.ShardId)
+	minStakeAmount, err := GetNodeMinStakeAmount(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
 	}
-	if minStakeAmount > params.Value.Amount {
+	if minStakeAmount > param.Value.Amount {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: stake amount should be larger than min stake amount")
 	}
-	stakeAssetAddr, err := getShardStakeAssetAddr(native, params.ShardId)
+	stakeAssetAddr, err := getShardStakeAssetAddr(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
 	}
 	if stakeAssetAddr == utils.OntContractAddress {
 		// save user unbound ong info
 		unboundOngInfo := &UserUnboundOngInfo{
-			StakeAmount: params.Value.Amount,
+			StakeAmount: param.Value.Amount,
 			Time:        native.Time,
 		}
-		setUserUnboundOngInfo(native, params.PeerOwner, unboundOngInfo)
+		setUserUnboundOngInfo(native, param.PeerOwner, unboundOngInfo)
 	}
 	// transfer stake asset
-	err = ont.AppCallTransfer(native, stakeAssetAddr, params.PeerOwner, contract, params.Value.Amount)
+	err = ont.AppCallTransfer(native, stakeAssetAddr, param.PeerOwner, contract, param.Value.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: transfer stake asset failed, err: %s", err)
 	}
@@ -147,6 +154,9 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 	}
 	if err := utils.ValidateOwner(native, param.PeerOwner); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: check witness failed, err: %s", err)
+	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
 	}
 	if err := addInitPos(native, param.ShardId, param.PeerOwner, param.Value); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
@@ -177,16 +187,19 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func ReduceInitPost(native *native.NativeService) ([]byte, error) {
+func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 	param := new(PeerStakeParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: invalid param: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ReduceInitPos: invalid param: %s", err)
+	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ReduceInitPos: failed, err: %s", err)
 	}
 	if err := utils.ValidateOwner(native, param.PeerOwner); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: check witness failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ReduceInitPos: check witness failed, err: %s", err)
 	}
 	if err := reduceInitPos(native, param.ShardId, param.PeerOwner, param.Value); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("AddInitPos: failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ReduceInitPos: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
 }
@@ -199,6 +212,9 @@ func PeerExit(native *native.NativeService) ([]byte, error) {
 	}
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: only can be invoked by shardmgmt contract")
+	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
 	}
 	currentView, err := GetShardCurrentView(native, param.ShardId)
 	if err != nil {
@@ -241,6 +257,9 @@ func DeletePeer(native *native.NativeService) ([]byte, error) {
 	}
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: only can be invoked by shardmgmt contract")
+	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
 	}
 	currentView, err := GetShardCurrentView(native, param.ShardId)
 	if err != nil {
@@ -293,6 +312,9 @@ func UserStake(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: check witness failed, err: %s", err)
 	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
+	}
 	err := userStake(native, param.ShardId, param.User, param.Value)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserStake: failed, err: %s", err)
@@ -335,6 +357,9 @@ func UnfreezeStake(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UnfreezeStake: invalid param: %s", err)
 	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UnfreezeStake: failed, err: %s", err)
+	}
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UnfreezeStake: check witness failed, err: %s", err)
 	}
@@ -349,6 +374,9 @@ func WithdrawStake(native *native.NativeService) ([]byte, error) {
 	param := new(WithdrawStakeAssetParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: invalid param: %s", err)
+	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
 	}
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: check witness failed, err: %s", err)
@@ -409,6 +437,23 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func PreCommitDpos(native *native.NativeService) ([]byte, error) {
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: only shard mgmt contract can invoke")
+	}
+	shardId, err := utils.DeserializeShardId(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: deserialize shard id faield, err: %s", err)
+	}
+	setShardCommitting(native, shardId)
+	currentView, err := GetShardCurrentView(native, shardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
+	}
+	setShardView(native, shardId, &utils.ChangeView{View: uint32(currentView)})
+	return utils.BYTE_TRUE, nil
+}
+
 func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only shard mgmt contract can invoke")
@@ -429,6 +474,9 @@ func ChangeMaxAuthorization(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: invalid param: %s", err)
 	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: failed, err: %s", err)
+	}
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeMaxAuthorization: check witness failed, err: %s", err)
 	}
@@ -443,6 +491,9 @@ func ChangeProportion(native *native.NativeService) ([]byte, error) {
 	param := new(ChangeProportionParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: invalid param: %s", err)
+	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: failed, err: %s", err)
 	}
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ChangeProportion: check witness failed, err: %s", err)
@@ -487,6 +538,21 @@ func WithdrawOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawOng: transfer ong failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
+}
+
+func GetIsCommitting(native *native.NativeService) ([]byte, error) {
+	shardId, err := utils.DeserializeShardId(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetIsCommitting: read shardId failed, err: %s", err)
+	}
+	isCommitting, err := isShardCommitting(native, shardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetIsCommitting: failed, err: %s", err)
+	}
+	if isCommitting {
+		return utils.BYTE_TRUE, nil
+	}
+	return utils.BYTE_FALSE, nil
 }
 
 func GetCurrentView(native *native.NativeService) ([]byte, error) {
