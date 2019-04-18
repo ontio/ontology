@@ -12,7 +12,11 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+const ONG_ASSET_ID uint64 = 0
+
 const (
+	KEY_INIT = "oep4_init"
+
 	KEY_OEP4_ASSET_NUM = "oep4_asset_num"
 	KEY_OEP4_ASSET_ID  = "oep4_asset_id"
 
@@ -24,6 +28,10 @@ const (
 	KEY_OEP4_XSHARD_TRANSFER = "oep4_xshard_transfer"
 	KEY_OEP4_XSHARD_RECEIVE  = "oep4_xshard_receive"
 )
+
+func genInitKey() []byte {
+	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_INIT))
+}
 
 func genAssetNumKey() []byte {
 	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_ASSET_NUM))
@@ -70,6 +78,21 @@ func genXShardReceiveKey(asset uint64, user common.Address, fromShard types.Shar
 	tranIdBytes := common.BigIntToNeoBytes(transferId)[:]
 	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_XSHARD_RECEIVE), shardIdBytes, user[:],
 		tranIdBytes)
+}
+
+func initOep4ShardAsset(native *native.NativeService) {
+	sink := common.NewZeroCopySink(0)
+	sink.WriteBool(true)
+	native.CacheDB.Put(genInitKey(), states.GenRawStorageItem(sink.Bytes()))
+}
+
+func isOep4ShardAssetInit(native *native.NativeService) (bool, error) {
+	key := genInitKey()
+	raw, err := native.CacheDB.Get(key)
+	if err != nil {
+		return false, fmt.Errorf("isOep4ShardAssetInit: read db failed, err: %s", err)
+	}
+	return len(raw) != 0, nil
 }
 
 func setContract(native *native.NativeService, asset uint64, oep4 *Oep4) {

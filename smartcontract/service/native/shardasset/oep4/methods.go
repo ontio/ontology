@@ -80,12 +80,78 @@ func userMint(native *native.NativeService, asset uint64, user common.Address, a
 	return nil
 }
 
+func xShardTransfer(native *native.NativeService, asset uint64, from, to common.Address, toShard types.ShardID,
+	amount *big.Int) (*big.Int, error) {
+	transferNum, err := getXShardTransferNum(native, asset, from)
+	if err != nil {
+		return nil, fmt.Errorf("xShardTransfer: failed, err: %s", err)
+	}
+	transferNum.Add(transferNum, big.NewInt(1))
+	transfer := &XShardTransferState{
+		ToShard:   toShard,
+		ToAccount: to,
+		Amount:    amount,
+		Status:    XSHARD_TRANSFER_PENDING,
+	}
+	setXShardTransfer(native, asset, from, transferNum, transfer)
+	setXShardTransferNum(native, asset, from, transferNum)
+	return transferNum, nil
+}
+
+func rootReceiveAsset(native *native.NativeService, fromShard types.ShardID, asset uint64, amount *big.Int) error {
+	supplyInfo, err := getShardSupplyInfo(native, asset)
+	if err != nil {
+		return fmt.Errorf("rootReceiveAsset: failed, err: %s", err)
+	}
+	if shardSupply, ok := supplyInfo[fromShard]; ok {
+		if shardSupply.Cmp(amount) < 0 {
+			return fmt.Errorf("rootReceiveAsset: shard supply not enough")
+		}
+		shardSupply.Sub(shardSupply, amount)
+		supplyInfo[native.ShardID] = shardSupply
+	} else {
+		return fmt.Errorf("rootReceiveAsset: shard supply not exist")
+	}
+	if rootSupply, ok := supplyInfo[native.ShardID]; ok {
+		rootSupply.Add(rootSupply, amount)
+		supplyInfo[native.ShardID] = rootSupply
+	} else {
+		return fmt.Errorf("rootReceiveAsset: root supply not exist")
+	}
+	setShardSupplyInfo(native, asset, supplyInfo)
+	return nil
+}
+
+func rootTransferSucc(native *native.NativeService, toShard types.ShardID, asset uint64, amount *big.Int) error {
+	supplyInfo, err := getShardSupplyInfo(native, asset)
+	if err != nil {
+		return fmt.Errorf("rootTransferSucc: failed, err: %s", err)
+	}
+	if rootSupply, ok := supplyInfo[native.ShardID]; ok {
+		if rootSupply.Cmp(amount) < 0 {
+			return fmt.Errorf("rootTransferSucc: root supply not enough")
+		}
+		rootSupply.Sub(rootSupply, amount)
+		supplyInfo[native.ShardID] = rootSupply
+	} else {
+		return fmt.Errorf("rootTransferSucc: root supply not exist")
+	}
+	if shardSupply, ok := supplyInfo[toShard]; ok {
+		shardSupply.Add(shardSupply, amount)
+		supplyInfo[toShard] = shardSupply
+	} else {
+		supplyInfo[toShard] = amount
+	}
+	setShardSupplyInfo(native, asset, supplyInfo)
+	return nil
+}
+
 func notifyShardMint(native *native.NativeService, toShard types.ShardID, param *ShardMintParam) error {
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyShardMint: failed, err: %s", err)
 	}
-	if err := notifyShard(native, toShard, SHARD_MINT, bf.Bytes()); err != nil {
+	if err := notifyShard(native, toShard, SHARD_RECEIVE_ASSET, bf.Bytes()); err != nil {
 		return fmt.Errorf("notifyShardMint: failed, err: %s", err)
 	}
 	return nil
@@ -98,6 +164,17 @@ func notifyTransferSuccess(native *native.NativeService, toShard types.ShardID, 
 	}
 	if err := notifyShard(native, toShard, XSHARD_TRANSFER_SUCC, bf.Bytes()); err != nil {
 		return fmt.Errorf("notifyTransferSuccess: failed, err: %s", err)
+	}
+	return nil
+}
+
+func notifyShardReceiveOng(native *native.NativeService, toShard types.ShardID, param *ShardMintParam) error {
+	bf := new(bytes.Buffer)
+	if err := param.Serialize(bf); err != nil {
+		return fmt.Errorf("notifyShardReceiveOng: failed, err: %s", err)
+	}
+	if err := notifyShard(native, toShard, ONG_XSHARD_RECEIVE, bf.Bytes()); err != nil {
+		return fmt.Errorf("notifyShardReceiveOng: failed, err: %s", err)
 	}
 	return nil
 }

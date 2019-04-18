@@ -10,6 +10,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+//type AssetId uint64
+
 type Oep4 struct {
 	Name        string
 	Symbol      string
