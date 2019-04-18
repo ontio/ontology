@@ -830,7 +830,7 @@ func ParseNeoVMContractReturnTypeString(hexStr string) (string, error) {
 func ParseWasmVMContractReturnTypeByteArray(hexStr string) (string, error) {
 	bf := bytes.NewBuffer([]byte(hexStr))
 	bs, err := serialization.ReadVarBytes(bf)
-	if err != nil{
+	if err != nil {
 		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, err)
 	}
 	return string(bs), nil
