@@ -30,9 +30,27 @@ import (
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 )
+
+func TestExtractHeaderHeight(t *testing.T) {
+	header := types.Header{
+		Version:          uint32(0),
+		PrevBlockHash:    common.UINT256_EMPTY,
+		TransactionsRoot: common.UINT256_EMPTY,
+		BlockRoot:        common.UINT256_EMPTY,
+		Timestamp:        uint32(1),
+		Height:           uint32(99999),
+	}
+	sink := common.NewZeroCopySink(nil)
+	header.Serialization(sink)
+	source := common.NewZeroCopySource(sink.Bytes())
+	height, err := extractHeaderHeight(source)
+	assert.Nil(t, err)
+	assert.Equal(t,uint32(99999),height)
+}
 
 func TestVersion(t *testing.T) {
 	testBlockStore.NewBatch()

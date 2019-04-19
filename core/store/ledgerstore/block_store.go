@@ -224,17 +224,11 @@ func (this *BlockStore) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed6
 }
 
 func (this *BlockStore) loadHeader(blockHash common.Uint256) (*types.Header, error) {
-	key := this.getHeaderKey(blockHash)
-	value, err := this.store.Get(key)
+	rawHeader, err := this.loadRawHeader(blockHash)
 	if err != nil {
 		return nil, err
 	}
-	source := common.NewZeroCopySource(value)
-	sysFee := new(common.Fixed64)
-	err = sysFee.Deserialization(source)
-	if err != nil {
-		return nil, err
-	}
+	source := common.NewZeroCopySource(rawHeader.Payload)
 	header := new(types.Header)
 	err = header.Deserialization(source)
 	if err != nil {
@@ -255,7 +249,7 @@ func (this *BlockStore) loadRawHeader(blockHash common.Uint256) (*types.RawHeade
 	if err != nil {
 		return nil, err
 	}
-	height,err := exactHeaderHeight(source)
+	height,err := extractHeaderHeight(source)
 	if err != nil {
 		return nil, err
 	}
@@ -266,8 +260,8 @@ func (this *BlockStore) loadRawHeader(blockHash common.Uint256) (*types.RawHeade
 	return header, nil
 }
 
-func exactHeaderHeight(source *common.ZeroCopySource) (uint32, error) {
-	eof := source.Skip(4+32+32+32)
+func extractHeaderHeight(source *common.ZeroCopySource) (uint32, error) {
+	eof := source.Skip(4+32+32+32+4)
 	if eof {
 		return 0,fmt.Errorf("[exactHeaderHeight] NextUint32 error")
 	}
