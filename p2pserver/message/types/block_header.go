@@ -31,6 +31,25 @@ type BlkHeader struct {
 	BlkHdr []*ct.Header
 }
 
+type RawBlkHeader struct {
+	BlkHdr []*ct.RawHeader
+}
+
+func (this *RawBlkHeader) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(uint32(len(this.BlkHdr)))
+	for _, header := range this.BlkHdr {
+		header.Serialization(sink)
+	}
+}
+
+func (this *RawBlkHeader) CmdType() string {
+	return comm.HEADERS_TYPE
+}
+
+func (this *RawBlkHeader) Deserialization(source *common.ZeroCopySource) error {
+	panic("")
+}
+
 //Serialize message payload
 func (this BlkHeader) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(uint32(len(this.BlkHdr)))

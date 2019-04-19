@@ -26,6 +26,19 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
+type RawHeader struct {
+	Height uint32
+	Payload []byte
+}
+
+func (this *RawHeader) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteBytes(this.Payload)
+}
+
+func (this *RawHeader) Deserialization(source *common.ZeroCopySource) error {
+	panic("[RawHead] Deserialization")
+}
+
 type Header struct {
 	Version          uint32
 	PrevBlockHash    common.Uint256
