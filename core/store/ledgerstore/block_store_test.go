@@ -49,7 +49,7 @@ func TestExtractHeaderHeight(t *testing.T) {
 	source := common.NewZeroCopySource(sink.Bytes())
 	height, err := extractHeaderHeight(source)
 	assert.Nil(t, err)
-	assert.Equal(t,uint32(99999),height)
+	assert.Equal(t, uint32(99999), height)
 }
 
 func TestVersion(t *testing.T) {
