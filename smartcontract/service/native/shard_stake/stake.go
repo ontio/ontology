@@ -425,6 +425,9 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, param.User); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawFee: check witness failed, err: %s", err)
 	}
+	if err := checkCommittingDpos(native, param.ShardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
+	}
 	amount, err := withdrawFee(native, param.ShardId, param.User)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawFee: failed, err: %s", err)
@@ -444,6 +447,9 @@ func PreCommitDpos(native *native.NativeService) ([]byte, error) {
 	shardId, err := utils.DeserializeShardId(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: deserialize shard id faield, err: %s", err)
+	}
+	if err := checkCommittingDpos(native, shardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
 	}
 	setShardCommitting(native, shardId, true)
 	currentView, err := GetShardCurrentView(native, shardId)

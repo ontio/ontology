@@ -573,6 +573,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := preCommitDpos(native, shardId); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
+	// TODO: update shard config, get shard current view stake info
 	setShardState(native, contract, shard)
 	if err := shardsysmsg.NotifyShard(native, shardId, contract, SHARD_COMMIT_DPOS, []byte{}); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)

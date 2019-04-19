@@ -39,14 +39,14 @@ const (
 
 	XSHARD_TRANSFER       = "oep4XShardTransfer"
 	XSHARD_TRANFSER_RETRY = "oep4XShardTransferRetry"
-	XSHARD_TRANSFER_SUCC  = "oep4XShardTransferSuccess"
 
 	ONG_XSHARD_TRANSFER       = "ongXShardTransfer"
 	ONG_XSHARD_TRANSFER_RETRY = "ongXShardTransferRetry"
-	ONG_XSHARD_RECEIVE        = "ongXShardReceive"
 
-	// call by shardsysmsg contract while xshard transfer
-	SHARD_RECEIVE_ASSET = "oep4ShardReceive"
+	// call by shardsysmsg contract
+	XSHARD_TRANSFER_SUCC = "oep4XShardTransferSuccess"
+	SHARD_RECEIVE_ASSET  = "oep4ShardReceive"
+	ONG_XSHARD_RECEIVE   = "ongXShardReceive"
 )
 
 func RegisterOEP4(native *native.NativeService) {
