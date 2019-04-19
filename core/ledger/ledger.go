@@ -103,6 +103,9 @@ func (self *Ledger) GetHeaderByHeight(height uint32) (*types.Header, error) {
 func (self *Ledger) GetHeaderByHash(blockHash common.Uint256) (*types.Header, error) {
 	return self.ldgStore.GetHeaderByHash(blockHash)
 }
+func (self *Ledger) GetRawHeaderByHash(blockHash common.Uint256) (*types.RawHeader, error) {
+	return self.ldgStore.GetRawHeaderByHash(blockHash)
+}
 
 func (self *Ledger) GetBlockHash(height uint32) common.Uint256 {
 	return self.ldgStore.GetBlockHash(height)
