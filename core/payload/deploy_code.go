@@ -128,9 +128,7 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 }
 
 func (dc *DeployCode) ToArray() []byte {
-	sink := common.NewZeroCopySink(0)
-	dc.Serialization(sink)
-	return sink.Bytes()
+	return common.SerializeToBytes(dc)
 }
 
 func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) {

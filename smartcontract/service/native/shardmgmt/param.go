@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -37,7 +36,7 @@ import (
 // shard creator is also the shard operator after shard activated
 //
 type CreateShardParam struct {
-	ParentShardID types.ShardID
+	ParentShardID common.ShardID
 	Creator       common.Address
 }
 
@@ -72,7 +71,7 @@ func (this *CreateShardParam) Deserialize(r io.Reader) error {
 //
 
 type ConfigShardParam struct {
-	ShardID           types.ShardID
+	ShardID           common.ShardID
 	NetworkMin        uint32
 	StakeAssetAddress common.Address
 	GasAssetAddress   common.Address
@@ -141,7 +140,7 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 }
 
 type ApplyJoinShardParam struct {
-	ShardId    types.ShardID
+	ShardId    common.ShardID
 	PeerOwner  common.Address
 	PeerPubKey string
 }
@@ -174,7 +173,7 @@ func (this *ApplyJoinShardParam) Deserialize(r io.Reader) error {
 }
 
 type ApproveJoinShardParam struct {
-	ShardId    types.ShardID
+	ShardId    common.ShardID
 	PeerPubKey []string
 }
 
@@ -221,7 +220,7 @@ func (this *ApproveJoinShardParam) Deserialize(r io.Reader) error {
 // @StakeAmount : amount of token stake for the peer
 //
 type JoinShardParam struct {
-	ShardID     types.ShardID
+	ShardID     common.ShardID
 	IpAddress   string
 	PeerOwner   common.Address
 	PeerPubKey  string
@@ -268,7 +267,7 @@ func (this *JoinShardParam) Deserialize(r io.Reader) error {
 }
 
 type ExitShardParam struct {
-	ShardId    types.ShardID
+	ShardId    common.ShardID
 	PeerOwner  common.Address
 	PeerPubKey string
 }
@@ -306,7 +305,7 @@ func (this *ExitShardParam) Deserialize(r io.Reader) error {
 // @ShardID : ID of shard which is to be activated
 //
 type ActivateShardParam struct {
-	ShardID types.ShardID
+	ShardID common.ShardID
 }
 
 func (this *ActivateShardParam) Serialize(w io.Writer) error {
@@ -325,7 +324,7 @@ func (this *ActivateShardParam) Deserialize(r io.Reader) error {
 }
 
 type CommitDposParam struct {
-	ShardID   types.ShardID
+	ShardID   common.ShardID
 	FeeAmount uint64
 }
 

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/storage"
 	"io"
@@ -41,7 +42,7 @@ func InstallNativeContract(addr common.Address, actions map[string]native.Handle
 func RemoteNotify(ctx *native.NativeService, param shardsysmsg.NotifyReqParam) {
 	txState := ctx.MainShardTxState
 	// send with minimal gas fee
-	msg := &xshard_state.XShardNotify{
+	msg := &xshard_types.XShardNotify{
 		NotifyID: txState.NumNotifies,
 		Contract: param.ToContract,
 		Payer:    ctx.Tx.Payer,
@@ -61,7 +62,7 @@ func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
 		return utils.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
 	}
-	msg := &xshard_state.XShardTxReq{
+	msg := &xshard_types.XShardTxReq{
 		IdxInTx:  uint64(reqIdx),
 		Payer:    ctx.Tx.Payer,
 		Fee:      neovm.MIN_TRANSACTION_GAS,
@@ -72,7 +73,7 @@ func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam
 	txState.NextReqID += 1
 
 	if reqIdx < uint32(len(txState.OutReqResp)) {
-		if xshard_state.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
+		if xshard_types.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
 			return utils.BYTE_FALSE, xshard_state.ErrMismatchedRequest
 		}
 		rspMsg := txState.OutReqResp[reqIdx].Resp
@@ -96,10 +97,17 @@ func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam
 		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
 	}
 
-	txState.PendingReq = msg
+	txState.PendingReq = &xshard_state.XShardReqMsg{
+		SourceShardID: ctx.ShardID,
+		SourceHeight:  ctx.Height,
+		TargetShardID: reqParam.ToShard,
+		SourceTxHash:  ctx.Tx.Hash(),
+		Req:           msg,
+	}
+	txState.ExecuteState = xshard_state.ExecYielded
 
 	// put Tx-Request
-	//todo: clean
+	// todo: clean
 	//if err := remoteSendShardMsg(ctx, txHash, reqParam.ToShard, msg); err != nil {
 	//	return utils.BYTE_FALSE, fmt.Errorf("remote invoke, notify: %s", err)
 	//}
@@ -107,15 +115,39 @@ func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam
 	return utils.BYTE_FALSE, shardsysmsg.ErrYield
 }
 
-func executeTransaction(tx *types.Transaction) (*xshard_state.TxState, interface{}, error) {
+func processTransaction(blockHeight uint32, tx *types.Transaction) (result interface{}, err error) {
+	overlay := NewOverlayDB()
+	xshardDB := storage.NewXShardDB(overlay)
+	cache := storage.NewCacheDB(overlay)
+
+	txState, result, err := executeTransaction(tx, cache)
+	if err != nil {
+		if txState != nil && txState.PendingReq != nil { // yielded
+			for id := range txState.Shards {
+				xshardDB.AddToShard(blockHeight, id)
+			}
+			_ = xshardDB.AddXShardReqsInBlock(blockHeight, &xshard_types.CommonShardMsg{
+				SourceTxHash:  txState.PendingReq.SourceTxHash,
+				SourceShardID: txState.PendingReq.SourceShardID,
+				SourceHeight:  uint64(txState.PendingReq.SourceHeight),
+				TargetShardID: txState.PendingReq.TargetShardID,
+				Msg:           txState.PendingReq.Req,
+			})
+
+			//xshardDB.SetShardTxState()
+		}
+	}
+
+	return result, err
+}
+
+func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_state.TxState,
+	interface{}, error) {
 	config := &smartcontract.Config{
-		ShardID: types.NewShardIDUnchecked(tx.ShardID),
+		ShardID: common.NewShardIDUnchecked(tx.ShardID),
 		Time:    uint32(time.Now().Unix()),
 		Tx:      tx,
 	}
-
-	overlay := NewOverlayDB()
-	cache := storage.NewCacheDB(overlay)
 
 	txHash := tx.Hash()
 	txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
@@ -153,15 +185,15 @@ func executeTransaction(tx *types.Transaction) (*xshard_state.TxState, interface
 	panic("unimplemented")
 }
 
-func resumeTx(shardTxID xshard_state.ShardTxID, rspMsg *xshard_state.XShardTxRsp) (*xshard_state.TxState, interface{}, error) {
+func resumeTx(shardTxID xshard_state.ShardTxID, rspMsg *xshard_types.XShardTxRsp) (*xshard_state.TxState, interface{}, error) {
 	txState := xshard_state.CreateTxState(shardTxID).Clone()
 
-	if txState.PendingReq == nil || txState.PendingReq.IdxInTx != rspMsg.IdxInTx {
+	if txState.PendingReq == nil || txState.PendingReq.Req.IdxInTx != rspMsg.IdxInTx {
 		// todo: system error or remote shard error
 		return nil, nil, fmt.Errorf("invalid response id: %d", rspMsg.IdxInTx)
 	}
 
-	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq, Resp: rspMsg})
+	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq.Req, Resp: rspMsg})
 	txState.PendingReq = nil
 
 	txPayload := txState.TxPayload
@@ -179,7 +211,7 @@ func resumeTx(shardTxID xshard_state.ShardTxID, rspMsg *xshard_state.XShardTxRsp
 	}
 
 	config := &smartcontract.Config{
-		ShardID: types.NewShardIDUnchecked(tx.ShardID),
+		ShardID: common.NewShardIDUnchecked(tx.ShardID),
 		Time:    uint32(time.Now().Unix()),
 		Tx:      tx,
 	}
@@ -222,7 +254,7 @@ func resumeTx(shardTxID xshard_state.ShardTxID, rspMsg *xshard_state.XShardTxRsp
 	panic("unimplemented")
 }
 
-func processXShardRsp(shardTxID xshard_state.ShardTxID, rspMsg *xshard_state.XShardTxRsp) (*xshard_state.TxState, error) {
+func processXShardRsp(shardTxID xshard_state.ShardTxID, rspMsg *xshard_types.XShardTxRsp) (*xshard_state.TxState, error) {
 	txState, _, err := resumeTx(shardTxID, rspMsg)
 
 	if err != nil {
@@ -241,8 +273,8 @@ func processXShardRsp(shardTxID xshard_state.ShardTxID, rspMsg *xshard_state.XSh
 	return txState, err
 }
 
-var ShardA = types.NewShardIDUnchecked(1)
-var ShardB = types.NewShardIDUnchecked(2)
+var ShardA = common.NewShardIDUnchecked(1)
+var ShardB = common.NewShardIDUnchecked(2)
 
 func RemoteNotifyPing(native *native.NativeService) ([]byte, error) {
 	sink := common.NewZeroCopySink(10)
@@ -271,6 +303,9 @@ func RemoteInvokeAddAndInc(native *native.NativeService) ([]byte, error) {
 	}
 
 	sum, err := RemoteInvoke(native, params)
+	if err != nil {
+		return nil, err
+	}
 	source := common.NewZeroCopySource(sum)
 	s, eof := source.NextUint64()
 	if eof {

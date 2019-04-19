@@ -44,7 +44,6 @@ import (
 	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	hserver "github.com/ontio/ontology/http/base/actor"
@@ -148,7 +147,7 @@ func main() {
 
 func startOntology(ctx *cli.Context) {
 	id := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
-	shardID, err := types.NewShardID(id)
+	shardID, err := common.NewShardID(id)
 	if err != nil {
 		fmt.Printf("wrong shard id:%d", id)
 	}
@@ -160,7 +159,7 @@ func startOntology(ctx *cli.Context) {
 	startMainChain(ctx, shardID)
 }
 
-func startMainChain(ctx *cli.Context, shardID types.ShardID) {
+func startMainChain(ctx *cli.Context, shardID common.ShardID) {
 	initLog(ctx, shardID)
 
 	if _, err := initConfig(ctx); err != nil {
@@ -220,7 +219,7 @@ func startMainChain(ctx *cli.Context, shardID types.ShardID) {
 	waitToExit()
 }
 
-func initLog(ctx *cli.Context, shardID types.ShardID) {
+func initLog(ctx *cli.Context, shardID common.ShardID) {
 	//init log module
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	logPath := log.PATH
@@ -268,7 +267,7 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 	return acc, nil
 }
 
-func initChainManager(ctx *cli.Context, shardID types.ShardID, acc *account.Account) (*chainmgr.ChainManager, error) {
+func initChainManager(ctx *cli.Context, shardID common.ShardID, acc *account.Account) (*chainmgr.ChainManager, error) {
 	log.Infof("starting shard %d chain mgr", shardID)
 
 	mgr, err := chainmgr.Initialize(shardID, acc)
@@ -280,17 +279,17 @@ func initChainManager(ctx *cli.Context, shardID types.ShardID, acc *account.Acco
 	if err := mgr.LoadFromLedger(stateHashHeight); err != nil {
 		log.Errorf("load chain mgr from ledger: %s", err)
 		return nil, err
-	}
+		}
 
 	// set Default Ledger
 	if lgr := ledger.GetShardLedger(shardID); lgr != nil {
 		ledger.DefLedger = lgr
-	}
+		}
 
 	return mgr, err
 }
 
-func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID types.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
+func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID common.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
 	var lgr *ledger.Ledger
 	var err error
@@ -298,15 +297,15 @@ func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID types.Shard
 		lgr, err = ledger.NewLedger(dbDir, stateHashHeight)
 		if err != nil {
 			return nil, fmt.Errorf("NewLedger error:%s", err)
-		}
+	}
 	} else {
 		if mainledger == nil {
 			return nil, fmt.Errorf("mainledger is nil")
 		}
 		lgr, err = ledger.NewShardLedger(shardID, dbDir, mainledger)
-		if err != nil {
-			return nil, fmt.Errorf("NewLedger error:%s", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("NewLedger error:%s", err)
+	}
 	}
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
@@ -339,9 +338,9 @@ func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.Txn
 			continue
 		}
 		srv, err := mgr.StartTxnPoolServer(shardId, lgr)
-		if err != nil {
-			return nil, fmt.Errorf("Init txpool error:%s", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("Init txpool error:%s", err)
+	}
 		stlValidator, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator_%d", shardId.ToUint64()))
 		stlValidator.Register(srv.GetPID(tc.VerifyRspActor))
 		stlValidator2, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator2_%d", shardId.ToUint64()))
@@ -480,7 +479,7 @@ func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 	log.Infof("Nodeinfo init success")
 }
 
-func logCurrBlockHeight(shardID types.ShardID) {
+func logCurrBlockHeight(shardID common.ShardID) {
 	ticker := time.NewTicker(config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 	for {
 		select {

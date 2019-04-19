@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -33,7 +34,7 @@ import (
 //  processXShardNotify : process as usual transaction, record fee debt from source shard
 //			 normal return
 //
-func processXShardNotify(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
+func processXShardNotify(ctx *native.NativeService, req *xshard_types.CommonShardMsg) error {
 
 	// TODO: invoke neo contract
 	//builder := neovm.NewParamsBuilder(new(bytes.Buffer))
@@ -67,8 +68,8 @@ func processXShardNotify(ctx *native.NativeService, req *xshard_state.CommonShar
 //  processXShardReq : load cached db, process request, save cached, record fee debt from source shard
 //			 normal return
 //
-func processXShardReq(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
-	if req.Msg.Type() != xshard_state.EVENT_SHARD_TXREQ {
+func processXShardReq(ctx *native.NativeService, req *xshard_types.CommonShardMsg) error {
+	if req.Msg.Type() != xshard_types.EVENT_SHARD_TXREQ {
 		return fmt.Errorf("invalid request type: %d", req.GetType())
 	}
 	// check cached DB
@@ -79,7 +80,7 @@ func processXShardReq(ctx *native.NativeService, req *xshard_state.CommonShardMs
 	txState := ctx.MainShardTxState
 
 	// get txState
-	reqMsg, ok := req.Msg.(*xshard_state.XShardTxReq)
+	reqMsg, ok := req.Msg.(*xshard_types.XShardTxReq)
 	if !ok || reqMsg == nil {
 		return fmt.Errorf("invalid request message")
 	}
@@ -97,7 +98,7 @@ func processXShardReq(ctx *native.NativeService, req *xshard_state.CommonShardMs
 
 	// FIXME: save notification
 	// FIXME: feeUsed
-	rspMsg := &xshard_state.XShardTxRsp{
+	rspMsg := &xshard_types.XShardTxRsp{
 		IdxInTx: reqMsg.IdxInTx,
 		FeeUsed: 0,
 		Result:  result.([]byte),
@@ -123,8 +124,8 @@ func processXShardReq(ctx *native.NativeService, req *xshard_state.CommonShardMs
 //
 //  processXShardRsp : load cached db, invoke PROCESS_XSHARD_RSP_FUNCNAME
 //
-func processXShardRsp(ctx *native.NativeService, txState *xshard_state.TxState, msg *xshard_state.CommonShardMsg) error {
-	if msg.Msg.Type() != xshard_state.EVENT_SHARD_TXRSP {
+func processXShardRsp(ctx *native.NativeService, txState *xshard_state.TxState, msg *xshard_types.CommonShardMsg) error {
+	if msg.Msg.Type() != xshard_types.EVENT_SHARD_TXRSP {
 		return fmt.Errorf("invalid response type: %d", msg.GetType())
 	}
 	// get cached DB
@@ -132,14 +133,14 @@ func processXShardRsp(ctx *native.NativeService, txState *xshard_state.TxState, 
 		return fmt.Errorf("non-empty init db when processing shard common req")
 	}
 
-	rspMsg := msg.Msg.(*xshard_state.XShardTxRsp)
+	rspMsg := msg.Msg.(*xshard_types.XShardTxRsp)
 	tx := msg.SourceTxHash
-	if txState.PendingReq == nil || txState.PendingReq.IdxInTx != rspMsg.IdxInTx {
+	if txState.PendingReq == nil || txState.PendingReq.Req.IdxInTx != rspMsg.IdxInTx {
 		// todo: system error or remote shard error
 		return fmt.Errorf("invalid response id: %d", rspMsg.IdxInTx)
 	}
 
-	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq, Resp: rspMsg})
+	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq.Req, Resp: rspMsg})
 	txState.PendingReq = nil
 	txState.SetTxExecutionContinued()
 

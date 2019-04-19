@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/ledger"
 	sComm "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
@@ -36,7 +35,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.OntologyConfig {
+func (self *ChainManager) GetShardConfig(shardID common.ShardID) *config.OntologyConfig {
 	self.lock.RLock()
 	defer self.lock.RUnlock()
 	if s := self.shards[shardID]; s != nil {
@@ -45,7 +44,7 @@ func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.Ontology
 	return nil
 }
 
-func (self *ChainManager) setShardConfig(shardID types.ShardID, cfg *config.OntologyConfig) error {
+func (self *ChainManager) setShardConfig(shardID common.ShardID, cfg *config.OntologyConfig) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	if info := self.shards[shardID]; info != nil {
@@ -54,8 +53,8 @@ func (self *ChainManager) setShardConfig(shardID types.ShardID, cfg *config.Onto
 	}
 
 	self.shards[shardID] = &ShardInfo{
-		ShardID: shardID,
-		Config:  cfg,
+		ShardID:       shardID,
+		Config:        cfg,
 	}
 	return nil
 }
@@ -100,7 +99,7 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	return globalState, nil
 }
 
-func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.ShardState, error) {
+func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.ShardState, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard state, nil ledger")
 	}
@@ -123,7 +122,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	return shardState, nil
 }
 
-func GetShardView(lgr *ledger.Ledger, shardID types.ShardID) (*utils.ChangeView, error) {
+func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
 	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
@@ -162,7 +161,7 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID, shardView 
 	return info.Peers, nil
 }
 
-func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.ShardID, error) {
+func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]common.ShardID, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("uninitialized chain mgr")
 	}
@@ -183,7 +182,7 @@ func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.Shar
 	return req.Shards, nil
 }
 
-func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard types.ShardID) ([][]byte, error) {
+func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard common.ShardID) ([][]byte, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("nil ledger")
 	}

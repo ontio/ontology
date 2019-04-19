@@ -166,7 +166,9 @@ func (self *ZeroCopySource) NextVarBytes() (data []byte, size uint64, irregular 
 	count, size, irregular, eof = self.NextVarUint()
 	size += count
 
-	data, eof = self.NextBytes(count)
+	if count > 0 {
+		data, eof = self.NextBytes(count)
+	}
 
 	return
 }

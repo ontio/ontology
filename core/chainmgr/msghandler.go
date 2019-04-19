@@ -139,7 +139,7 @@ func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEven
 	}
 }
 
-func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shardstates.ShardState) error {
+func (self ChainManager) startChildShard(shardID common.ShardID, shardState *shardstates.ShardState) error {
 	// TODO: start consensus / syncer / http / txpool
 
 	if _, err := self.initShardInfo(shardID, shardState); err != nil {
@@ -192,9 +192,9 @@ func (self *ChainManager) handleBlockEvents(block *types.Block, shardEvts []*evt
 
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	shardID, err := types.NewShardID(header.ShardID)
-	if err != nil {
+		if err != nil {
 		return fmt.Errorf("invalid shard id %d", header.ShardID)
-	}
+		}
 	lgr := ledger.GetShardLedger(shardID)
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)
@@ -285,8 +285,8 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []
 	return nil
 }
 
-func constructShardBlockTx(evts []*evtmsg.ShardEventState) (map[types.ShardID]*message.ShardBlockTx, error) {
-	shardEvts := make(map[types.ShardID][]*evtmsg.ShardEventState)
+func constructShardBlockTx(evts []*evtmsg.ShardEventState) (map[common.ShardID]*message.ShardBlockTx, error) {
+	shardEvts := make(map[common.ShardID][]*evtmsg.ShardEventState)
 
 	// sort all ShardEvents by 'to-shard-id'
 	for _, evt := range evts {
@@ -299,7 +299,7 @@ func constructShardBlockTx(evts []*evtmsg.ShardEventState) (map[types.ShardID]*m
 	}
 
 	// build one ShardTx with events to the shard
-	shardTxs := make(map[types.ShardID]*message.ShardBlockTx)
+	shardTxs := make(map[common.ShardID]*message.ShardBlockTx)
 	for shardId, evts := range shardEvts {
 		tx, err := newShardBlockTx(evts)
 		if err != nil {

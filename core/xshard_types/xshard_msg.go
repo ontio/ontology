@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package xshard_state
+package xshard_types
 
 import (
 	"bytes"
@@ -24,7 +24,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 )
 
 const (
@@ -252,20 +251,20 @@ func (msg *XShardCommitMsg) Deserialization(source *common.ZeroCopySource) error
 }
 
 type CommonShardMsg struct {
-	SourceShardID types.ShardID
+	SourceShardID common.ShardID
 	SourceHeight  uint64
-	TargetShardID types.ShardID
+	TargetShardID common.ShardID
 	SourceTxHash  common.Uint256
 	Type          uint64
 	Payload       []byte
 	Msg           XShardMsg
 }
 
-func (evt *CommonShardMsg) GetSourceShardID() types.ShardID {
+func (evt *CommonShardMsg) GetSourceShardID() common.ShardID {
 	return evt.SourceShardID
 }
 
-func (evt *CommonShardMsg) GetTargetShardID() types.ShardID {
+func (evt *CommonShardMsg) GetTargetShardID() common.ShardID {
 	return evt.TargetShardID
 }
 
@@ -298,14 +297,14 @@ func (evt *CommonShardMsg) Serialization(sink *common.ZeroCopySink) {
 func (evt *CommonShardMsg) Deserialization(source *common.ZeroCopySource) error {
 	var irregular bool
 	shardID, eof := source.NextUint64()
-	id, err := types.NewShardID(shardID)
+	id, err := common.NewShardID(shardID)
 	if err != nil {
 		return err
 	}
 	evt.SourceShardID = id
 	evt.SourceHeight, eof = source.NextUint64()
 	shardID, eof = source.NextUint64()
-	id, err = types.NewShardID(shardID)
+	id, err = common.NewShardID(shardID)
 	if err != nil {
 		return err
 	}

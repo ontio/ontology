@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -39,23 +38,23 @@ const (
 type ShardMgmtEvent interface {
 	serialization.SerializableData
 	GetType() uint32
-	GetSourceShardID() types.ShardID
-	GetTargetShardID() types.ShardID
+	GetSourceShardID() common.ShardID
+	GetTargetShardID() common.ShardID
 	GetHeight() uint32
 	Serialization(sink *common.ZeroCopySink)
 	Deserialization(source *common.ZeroCopySource) error
 }
 
 type ImplSourceTargetShardID struct {
-	SourceShardID types.ShardID
-	ShardID       types.ShardID
+	SourceShardID common.ShardID
+	ShardID       common.ShardID
 }
 
-func (self *ImplSourceTargetShardID) GetSourceShardID() types.ShardID {
+func (self *ImplSourceTargetShardID) GetSourceShardID() common.ShardID {
 	return self.SourceShardID
 }
 
-func (self *ImplSourceTargetShardID) GetTargetShardID() types.ShardID {
+func (self *ImplSourceTargetShardID) GetTargetShardID() common.ShardID {
 	return self.ShardID
 }
 
@@ -86,8 +85,8 @@ func (this *ImplSourceTargetShardID) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *ImplSourceTargetShardID) Deserialization(source *common.ZeroCopySource) error {
-	this.SourceShardID = types.ShardID{}
-	this.ShardID = types.ShardID{}
+	this.SourceShardID = common.ShardID{}
+	this.ShardID = common.ShardID{}
 	var err error = nil
 	if this.SourceShardID, err = utils.DeserializationShardId(source); err != nil {
 		return fmt.Errorf("read source shard id err: %s", err)
@@ -99,16 +98,16 @@ func (this *ImplSourceTargetShardID) Deserialization(source *common.ZeroCopySour
 }
 
 type CreateShardEvent struct {
-	SourceShardID types.ShardID
+	SourceShardID common.ShardID
 	Height        uint32
-	NewShardID    types.ShardID
+	NewShardID    common.ShardID
 }
 
-func (evt *CreateShardEvent) GetSourceShardID() types.ShardID {
+func (evt *CreateShardEvent) GetSourceShardID() common.ShardID {
 	return evt.SourceShardID
 }
 
-func (evt *CreateShardEvent) GetTargetShardID() types.ShardID {
+func (evt *CreateShardEvent) GetTargetShardID() common.ShardID {
 	return evt.NewShardID
 }
 
@@ -156,7 +155,7 @@ func (this *CreateShardEvent) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *CreateShardEvent) Deserialization(source *common.ZeroCopySource) error {
-	this.SourceShardID = types.ShardID{}
+	this.SourceShardID = common.ShardID{}
 	var err error = nil
 	if this.SourceShardID, err = utils.DeserializationShardId(source); err != nil {
 		return fmt.Errorf("read source shard id err: %s", err)
@@ -166,7 +165,7 @@ func (this *CreateShardEvent) Deserialization(source *common.ZeroCopySource) err
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	this.NewShardID = types.ShardID{}
+	this.NewShardID = common.ShardID{}
 	if this.NewShardID, err = utils.DeserializationShardId(source); err != nil {
 		return fmt.Errorf("read shard id err: %s", err)
 	}

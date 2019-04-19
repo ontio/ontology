@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"hash"
 	"math"
 	"os"
@@ -621,8 +622,8 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	overlay := this.stateStore.NewOverlayDB()
 	if block.Header.Height != 0 {
-		var shardID types.ShardID
-		shardID, err = types.NewShardID(block.Header.ShardID)
+		var shardID common.ShardID
+		shardID, err = common.NewShardID(block.Header.ShardID)
 		if err != nil {
 			return
 		}
@@ -640,11 +641,12 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 
 	cache := storage.NewCacheDB(overlay)
+	xshardDB := storage.NewXShardDB(overlay)
 
 	// execute shard txs
 	// sort shard Txs
 	ids := make([]uint64, 0)
-	for shardId, _ := range block.ShardTxs {
+	for shardId := range block.ShardTxs {
 		ids = append(ids, shardId)
 	}
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
@@ -652,7 +654,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 		log.Infof("executing shard Tx from shard %d, txnum = %d", id, len(block.ShardTxs[id]))
 		for _, tx := range block.ShardTxs[id] {
 			cache.Reset()
-			notify, e := this.handleTransaction(overlay, cache, block, tx)
+			notify, e := HandleTransaction(this, overlay, cache, xshardDB, block.Header, tx)
 			if e != nil {
 				err = e
 				return
@@ -664,7 +666,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	// execute transactions
 	for _, tx := range block.Transactions {
 		cache.Reset()
-		notify, e := this.handleTransaction(overlay, cache, block, tx)
+		notify, e := HandleTransaction(this, overlay, cache, xshardDB, block.Header, tx)
 		if e != nil {
 			err = e
 			return
@@ -913,12 +915,13 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 	return this.submitBlock(block, result)
 }
 
-func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, error) {
+func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
+	xshardDB *storage.XShardDB, header *types.Header, tx *types.Transaction) (*event.ExecuteNotify, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	switch tx.TxType {
 	case types.Deploy:
-		err := this.stateStore.HandleDeployTransaction(this, overlay, cache, tx, block, notify)
+		err := HandleDeployTransaction(store, overlay, cache, tx, header, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -934,13 +937,23 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 			log.Debugf("HandleChangeMetadataTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.Invoke:
-		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
+		txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
+		err := HandleInvokeTransaction(store, overlay, cache, xshardDB, txState, tx, header, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
+	case types.ShardCall:
+		err := HandleShardCallTransaction(store, overlay, cache, xshardDB, tx, header, notify)
+		if overlay.Error() != nil {
+			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+		}
+		if err != nil {
+			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
+		}
+
 	}
 
 	return notify, nil
@@ -1081,7 +1094,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	height := this.GetCurrentBlockHeight()
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
-	shardID, err := types.NewShardID(tx.ShardID)
+	shardID, err := common.NewShardID(tx.ShardID)
 	if err != nil {
 		return stf, err
 	}

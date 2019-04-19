@@ -23,7 +23,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 )
 
 const (
@@ -41,7 +40,7 @@ type ShardSystemEventMsg struct {
 type ShardEventState struct {
 	Version    uint32
 	EventType  uint32
-	ToShard    types.ShardID
+	ToShard    common.ShardID
 	FromHeight uint32
 	Payload    []byte
 }

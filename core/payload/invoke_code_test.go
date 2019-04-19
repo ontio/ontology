@@ -18,7 +18,7 @@
 package payload
 
 import (
-	"bytes"
+	"github.com/ontio/ontology/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,15 +29,15 @@ func TestInvokeCode_Serialize(t *testing.T) {
 		Code: []byte{1, 2, 3},
 	}
 
-	buf := bytes.NewBuffer(nil)
-	code.Serialize(buf)
-	bs := buf.Bytes()
+	bs := common.SerializeToBytes(&code)
 	var code2 InvokeCode
-	code2.Deserialize(buf)
+
+	err := code2.Deserialization(common.NewZeroCopySource(bs))
+	assert.Nil(t, err)
 	assert.Equal(t, code, code2)
 
-	buf = bytes.NewBuffer(bs[:len(bs)-2])
-	err := code.Deserialize(buf)
+	buf := common.NewZeroCopySource(bs[:len(bs)-2])
+	err = code.Deserialization(buf)
 
 	assert.NotNil(t, err)
 }

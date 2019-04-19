@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
@@ -217,7 +216,7 @@ func getRoomUser(ctx *native.NativeService, roomNo uint64) (common.Address, erro
 	return userAddr, nil
 }
 
-func appcallReserveRoom(ctx *native.NativeService, user common.Address, toShard types.ShardID, roomNo uint64,
+func appcallReserveRoom(ctx *native.NativeService, user common.Address, toShard common.ShardID, roomNo uint64,
 	transactional bool) error {
 	buf := new(bytes.Buffer)
 	param := &ShardHotelReserveParam{
@@ -234,7 +233,7 @@ func appcallReserveRoom(ctx *native.NativeService, user common.Address, toShard 
 	return appcallSendReq(ctx, toShard, SHARD_RESERVE_NAME, buf.Bytes(), transactional)
 }
 
-func appcallCheckoutRoom(ctx *native.NativeService, user common.Address, toShard types.ShardID, roomNo uint64,
+func appcallCheckoutRoom(ctx *native.NativeService, user common.Address, toShard common.ShardID, roomNo uint64,
 	transactional bool) error {
 	buf := new(bytes.Buffer)
 	param := &ShardHotelCheckoutParam{
@@ -248,7 +247,7 @@ func appcallCheckoutRoom(ctx *native.NativeService, user common.Address, toShard
 	return appcallSendReq(ctx, toShard, SHARD_CHECKOUT_NAME, buf.Bytes(), transactional)
 }
 
-func appcallSendReq(native *native.NativeService, toShard types.ShardID, method string, payload []byte,
+func appcallSendReq(native *native.NativeService, toShard common.ShardID, method string, payload []byte,
 	transactional bool) error {
 	paramBytes := new(bytes.Buffer)
 	params := shardsysmsg.NotifyReqParam{

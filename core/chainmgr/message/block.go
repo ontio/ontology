@@ -58,11 +58,11 @@ func (this *ShardBlockTx) Deserialization(source *common.ZeroCopySource) error {
 //  .Events: shard events generated from the block (only for local block)
 //
 type ShardBlockInfo struct {
-	FromShardID types.ShardID                   `json:"from_shard_id"`
-	Height      uint32                          `json:"height"`
-	State       uint                            `json:"state"`
+	FromShardID common.ShardID                   `json:"from_shard_id"`
+	Height      uint32                           `json:"height"`
+	State       uint                             `json:"state"`
 	Block       *types.Block                    `json:"block"`
-	ShardTxs    map[types.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
+	ShardTxs    map[common.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
 	Events      []*message.ShardEventState
 }
 
@@ -75,7 +75,7 @@ func (this *ShardBlockInfo) Serialization(sink *common.ZeroCopySink) error {
 	for id, tx := range this.ShardTxs {
 		sink.WriteUint64(id.ToUint64())
 		tx.Serialization(sink)
-	}
+		}
 	sink.WriteUint64(uint64(len(this.Events)))
 	for _, event := range this.Events {
 		event.Serialization(sink)
@@ -91,7 +91,7 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 	id, err := types.NewShardID(fromShard)
 	if err != nil {
 		return fmt.Errorf("deserialization: generate from shard id failed, err: %s", err)
-	}
+		}
 	this.FromShardID = id
 	this.Height, eof = source.NextUint32()
 	state, eof := source.NextUint64()
@@ -102,7 +102,7 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 	this.Block = &types.Block{}
 	if err := this.Block.Deserialization(source); err != nil {
 		return fmt.Errorf("deserialization: read header failed, err: %s", err)
-	}
+		}
 	txNum, eof := source.NextUint64()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -112,7 +112,7 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 		id, eof := source.NextUint64()
 		if eof {
 			return fmt.Errorf("deserialization: read tx shardId failed, index %d, err: %s", i, io.ErrUnexpectedEOF)
-		}
+	}
 		shardId, err := types.NewShardID(id)
 		if err != nil {
 			return fmt.Errorf("deserialization: generate tx shardId failed, index %d, err: %s", i, err)
@@ -120,7 +120,7 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 		tx := &ShardBlockTx{}
 		if err := tx.Deserialization(source); err != nil {
 			return fmt.Errorf("deserialization: read tx failed, index %d, err: %s", i, err)
-		}
+	}
 		this.ShardTxs[shardId] = tx
 	}
 	eventNum, eof := source.NextUint64()
@@ -145,18 +145,18 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 type ShardBlockMap map[uint32]*ShardBlockInfo // indexed by BlockHeight
 
 type ShardBlockPool struct {
-	Shards      map[types.ShardID]ShardBlockMap // indexed by FromShardID
+	Shards      map[common.ShardID]ShardBlockMap // indexed by FromShardID
 	MaxBlockCap uint32
 }
 
 func NewShardBlockPool(historyCap uint32) *ShardBlockPool {
 	return &ShardBlockPool{
-		Shards:      make(map[types.ShardID]ShardBlockMap),
+		Shards:      make(map[common.ShardID]ShardBlockMap),
 		MaxBlockCap: historyCap,
 	}
 }
 
-func (pool *ShardBlockPool) GetBlockInfo(shardID types.ShardID, height uint32) *ShardBlockInfo {
+func (pool *ShardBlockPool) GetBlockInfo(shardID common.ShardID, height uint32) *ShardBlockInfo {
 	if m, present := pool.Shards[shardID]; present && m != nil {
 		return m[height]
 	}

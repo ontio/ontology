@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"testing"
 
 	"github.com/magiconair/properties/assert"
@@ -36,7 +35,7 @@ func TestPeerWithdrawGasParam(t *testing.T) {
 		Signer:     acc.Address,
 		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey)),
 		User:       acc.Address,
-		ShardId:    types.NewShardIDUnchecked(0),
+		ShardId:    common.NewShardIDUnchecked(0),
 		Amount:     10000,
 		WithdrawId: 1,
 	}
@@ -58,7 +57,7 @@ func TestDepositGasParamSerialize(t *testing.T) {
 	param := &DepositGasParam{
 		User:    user,
 		Amount:  1000000000,
-		ShardId: types.NewShardIDUnchecked(1),
+		ShardId: common.NewShardIDUnchecked(1),
 	}
 	bf := new(bytes.Buffer)
 	err := param.Serialize(bf)

@@ -20,13 +20,13 @@ package message
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/xshard_types"
 	"math"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
 	bcommon "github.com/ontio/ontology/http/base/common"
@@ -42,15 +42,15 @@ import (
 //  One block can generated multiple cross-shard sub-txns, marshaled to [][]byte.
 //  NewCrossShardTXMsg creates one cross-shard forwarding Tx, which contains all sub-txns.
 //
-func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types.ShardID, gasPrice, gasLimit uint64, payload [][]byte) (*types.Transaction, error) {
+func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID common.ShardID, gasPrice, gasLimit uint64, payload [][]byte) (*types.Transaction, error) {
 	// marshal all sub-txns to one byte-array
-	tx := &xshard_state.CrossShardTx{payload}
+	tx := &xshard_types.CrossShardTx{payload}
 	sink := common.NewZeroCopySink(0)
 	tx.Serialization(sink)
 	// cross-shard forwarding Tx payload
 	evt := &message.ShardEventState{
 		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
-		EventType:  xshard_state.EVENT_SHARD_MSG_COMMON,
+		EventType:  xshard_types.EVENT_SHARD_MSG_COMMON,
 		ToShard:    toShardID,
 		FromHeight: height,
 		Payload:    sink.Bytes(),
@@ -91,7 +91,7 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types
 	return mutable.IntoImmutable()
 }
 
-func NewShardBlockInfo(shardID types.ShardID, block *types.Block) *ShardBlockInfo {
+func NewShardBlockInfo(shardID common.ShardID, block *types.Block) *ShardBlockInfo {
 	blockInfo := &ShardBlockInfo{
 		FromShardID: shardID,
 		Height:      block.Header.Height,

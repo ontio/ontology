@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -253,7 +252,7 @@ func (this *PeerShardStakeInfo) Deserialization(source *common.ZeroCopySource) e
 }
 
 type ShardState struct {
-	ShardID             types.ShardID
+	ShardID             common.ShardID
 	Creator             common.Address
 	State               uint32
 	GenesisParentHeight uint32
@@ -302,7 +301,7 @@ func (this *ShardState) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
 	}
-	shardId, err := types.NewShardID(id)
+	shardId, err := common.NewShardID(id)
 	if err != nil {
 		return fmt.Errorf("deserialize: generate shard id failed, err: %s", err)
 	}

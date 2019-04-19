@@ -20,6 +20,7 @@ package shardsysmsg
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/xshard_types"
 	"io"
 
 	"github.com/ontio/ontology/common"
@@ -27,13 +28,12 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	sComm "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type ToShardsInBlock struct {
-	Shards []types.ShardID
+	Shards []common.ShardID
 }
 
 func (this *ToShardsInBlock) Serialize(w io.Writer) error {
@@ -54,7 +54,7 @@ func (this *ToShardsInBlock) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read shards len failed, err: %s", err)
 	}
-	this.Shards = make([]types.ShardID, shardNum)
+	this.Shards = make([]common.ShardID, shardNum)
 	for i := uint64(0); i < shardNum; i++ {
 		shard, err := utils.DeserializeShardId(r)
 		if err != nil {
@@ -76,7 +76,7 @@ func (this *ToShardsInBlock) Deserialization(source *common.ZeroCopySource) erro
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	this.Shards = make([]types.ShardID, num)
+	this.Shards = make([]common.ShardID, num)
 	for i := uint64(0); i < num; i++ {
 		shard, err := utils.DeserializationShardId(source)
 		if err != nil {
@@ -87,7 +87,7 @@ func (this *ToShardsInBlock) Deserialization(source *common.ZeroCopySource) erro
 	return nil
 }
 
-func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error {
+func addToShardsInBlock(ctx *native.NativeService, toShard common.ShardID) error {
 	toShards, err := getToShardsInBlock(ctx, ctx.Height)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func addToShardsInBlock(ctx *native.NativeService, toShard types.ShardID) error 
 	return nil
 }
 
-func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]types.ShardID, error) {
+func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]common.ShardID, error) {
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes := utils.GetUint32Bytes(blockHeight)
 
@@ -198,7 +198,7 @@ func (this *ReqsInBlock) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func addReqsInBlock(ctx *native.NativeService, req *xshard_state.CommonShardMsg) error {
+func addReqsInBlock(ctx *native.NativeService, req *xshard_types.CommonShardMsg) error {
 	reqs, err := getReqsInBlock(ctx, ctx.Height, req.GetTargetShardID())
 	if err != nil && err != sComm.ErrNotFound {
 		return err
@@ -221,7 +221,7 @@ func addReqsInBlock(ctx *native.NativeService, req *xshard_state.CommonShardMsg)
 	return nil
 }
 
-func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID types.ShardID) ([][]byte, error) {
+func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID common.ShardID) ([][]byte, error) {
 	contract := ctx.ContextRef.CurrentContext().ContractAddress
 	blockNumBytes := utils.GetUint32Bytes(blockHeight)
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())

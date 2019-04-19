@@ -49,8 +49,8 @@ import (
 )
 
 const (
-	CAP_LOCAL_SHARDMSG_CHNL = 64
-	CAP_SHARD_BLOCK_POOL    = 16
+	CAP_LOCAL_SHARDMSG_CHNL  = 64
+	CAP_SHARD_BLOCK_POOL     = 16
 )
 
 var defaultChainManager *ChainManager = nil
@@ -61,17 +61,17 @@ var defaultChainManager *ChainManager = nil
 //  . seed list of other shards
 //
 type ShardInfo struct {
-	ShardID  types.ShardID
-	SeedList []string
-	Config   *config.OntologyConfig
+	ShardID  common.ShardID
+	SeedList      []string
+	Config        *config.OntologyConfig
 }
 
 type ChainManager struct {
-	shardID types.ShardID
+	shardID              common.ShardID
 
 	// ShardInfo management, indexing shards with ShardID / Sender-Addr
 	lock       sync.RWMutex
-	shards     map[types.ShardID]*ShardInfo
+	shards     map[common.ShardID]*ShardInfo
 	mainLedger *ledger.Ledger
 	consensus  consensus.ConsensusService
 
@@ -82,7 +82,7 @@ type ChainManager struct {
 
 	// last local block processed by ChainManager
 	processedParentBlockHeight uint32
-	account                    *account.Account
+	account *account.Account
 
 	// send transaction to local
 	txPoolPid *actor.PID
@@ -91,7 +91,7 @@ type ChainManager struct {
 	mgr       *txnpool.TxnPoolManager
 
 	// subscribe local SHARD_EVENT from shard-system-contract and BLOCK-EVENT from ledger
-	localEventSub  *events.ActorSubscriber
+	localEventSub *events.ActorSubscriber
 	localBlockMsgC chan *message.SaveBlockCompleteMsg
 
 	quitC  chan struct{}
@@ -101,7 +101,7 @@ type ChainManager struct {
 //
 // Initialize chain manager when ontology starting
 //
-func Initialize(shardID types.ShardID, acc *account.Account) (*ChainManager, error) {
+func Initialize(shardID common.ShardID, acc *account.Account) (*ChainManager, error) {
 	if defaultChainManager != nil {
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
 	}
@@ -112,11 +112,11 @@ func Initialize(shardID types.ShardID, acc *account.Account) (*ChainManager, err
 	}
 
 	chainMgr := &ChainManager{
-		shardID:        shardID,
-		shards:         make(map[types.ShardID]*ShardInfo),
-		blockPool:      blkPool,
-		localBlockMsgC: make(chan *message.SaveBlockCompleteMsg, CAP_LOCAL_SHARDMSG_CHNL),
-		quitC:          make(chan struct{}),
+		shardID:              shardID,
+		shards:         make(map[common.ShardID]*ShardInfo),
+		blockPool:            blkPool,
+		localBlockMsgC:       make(chan *message.SaveBlockCompleteMsg, CAP_LOCAL_SHARDMSG_CHNL),
+		quitC:                make(chan struct{}),
 
 		account: acc,
 	}
@@ -209,7 +209,7 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 	ledger.DefLedger = lgr
 	self.processedParentBlockHeight = lgr.GetCurrentBlockHeight()
 	log.Infof("main ledger init success")
-	return nil
+		return nil
 }
 
 func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
@@ -229,19 +229,19 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	}
 
 	bookKeepers, err := shardInfo.Config.GetBookkeepers()
-	if err != nil {
+		if err != nil {
 		return fmt.Errorf("init shard ledger: GetBookkeepers error:%s", err)
-	}
+		}
 	genesisConfig := shardInfo.Config.Genesis
 	shardConfig := shardInfo.Config.Shard
 	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
 	if err != nil {
 		return fmt.Errorf("init shard ledger: genesisBlock error %s", err)
-	}
+		}
 	err = lgr.Init(bookKeepers, genesisBlock)
-	if err != nil {
+		if err != nil {
 		return fmt.Errorf("init shard ledger: :%s", err)
-	}
+		}
 	return nil
 }
 
@@ -249,28 +249,28 @@ func (self *ChainManager) GetActiveShards() []types.ShardID {
 	shards := make([]types.ShardID, 0)
 	for _, shardInfo := range self.shards {
 		shards = append(shards, shardInfo.ShardID)
-	}
+		}
 	return shards
 }
 
 func (self *ChainManager) GetDefaultLedger() *ledger.Ledger {
 	if shardInfo := self.shards[self.shardID]; shardInfo != nil {
 		return ledger.GetShardLedger(self.shardID)
-	}
+		}
 	return self.mainLedger
 }
 
 func (self *ChainManager) startConsensus() error {
 	if self.consensus != nil {
 		return nil
-	}
+			}
 
 	// start consensus
 	shardInfo := self.shards[self.shardID]
 	if shardInfo == nil {
 		log.Infof("shard %d starting consensus, shard info not available", self.shardID.ToUint64())
 		return nil
-	}
+		}
 	if shardInfo.Config == nil {
 		log.Infof("shard %d starting consensus, shard config not available", self.shardID.ToUint64())
 		return nil
@@ -278,7 +278,7 @@ func (self *ChainManager) startConsensus() error {
 	lgr := ledger.GetShardLedger(self.shardID)
 	if lgr == nil {
 		log.Infof("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
-		return nil
+	return nil
 	}
 
 	// TODO: check if peer should start consensus
@@ -289,9 +289,9 @@ func (self *ChainManager) startConsensus() error {
 	consensusType := shardInfo.Config.Genesis.ConsensusType
 	consensusService, err := consensus.NewConsensusService(consensusType, self.shardID, self.account,
 		self.txPoolPid, lgr, self.p2pPid)
-	if err != nil {
+		if err != nil {
 		return fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
-	}
+		}
 	consensusService.Start()
 	self.consensus = consensusService
 

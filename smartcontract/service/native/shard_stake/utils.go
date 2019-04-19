@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -89,7 +88,7 @@ func genUserUnboundOngKey(contract, user common.Address) []byte {
 	return utils.ConcatKey(contract, []byte(KEY_UNBOUND_ONG), user[:])
 }
 
-func GetShardCurrentView(native *native.NativeService, id types.ShardID) (View, error) {
+func GetShardCurrentView(native *native.NativeService, id common.ShardID) (View, error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := GenShardViewKey(shardIDBytes)
 	changeView, err := utils.GetChangeView(native, utils.ShardStakeAddress, key)
@@ -99,13 +98,13 @@ func GetShardCurrentView(native *native.NativeService, id types.ShardID) (View, 
 	return View(changeView.View), nil
 }
 
-func setShardView(native *native.NativeService, id types.ShardID, shardView *utils.ChangeView) {
+func setShardView(native *native.NativeService, id common.ShardID, shardView *utils.ChangeView) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := GenShardViewKey(shardIDBytes)
 	utils.PutChangeView(native, utils.ShardStakeAddress, shardView, key)
 }
 
-func GetShardViewInfo(native *native.NativeService, id types.ShardID, view View) (*ViewInfo, error) {
+func GetShardViewInfo(native *native.NativeService, id common.ShardID, view View) (*ViewInfo, error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	viewBytes := utils.GetUint32Bytes(uint32(view))
 	key := genShardViewInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
@@ -128,7 +127,7 @@ func GetShardViewInfo(native *native.NativeService, id types.ShardID, view View)
 	return viewInfo, nil
 }
 
-func setShardViewInfo(native *native.NativeService, id types.ShardID, view View, info *ViewInfo) {
+func setShardViewInfo(native *native.NativeService, id common.ShardID, view View, info *ViewInfo) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	viewBytes := utils.GetUint32Bytes(uint32(view))
 	key := genShardViewInfoKey(utils.ShardStakeAddress, shardIDBytes, viewBytes)
@@ -137,7 +136,7 @@ func setShardViewInfo(native *native.NativeService, id types.ShardID, view View,
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 
-func getShardViewUserStake(native *native.NativeService, id types.ShardID, view View, user common.Address) (*UserStakeInfo,
+func getShardViewUserStake(native *native.NativeService, id common.ShardID, view View, user common.Address) (*UserStakeInfo,
 	error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	viewBytes := utils.GetUint32Bytes(uint32(view))
@@ -161,7 +160,7 @@ func getShardViewUserStake(native *native.NativeService, id types.ShardID, view 
 	return info, nil
 }
 
-func setShardViewUserStake(native *native.NativeService, id types.ShardID, view View, user common.Address,
+func setShardViewUserStake(native *native.NativeService, id common.ShardID, view View, user common.Address,
 	info *UserStakeInfo) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	viewBytes := utils.GetUint32Bytes(uint32(view))
@@ -171,7 +170,7 @@ func setShardViewUserStake(native *native.NativeService, id types.ShardID, view 
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 
-func getUserLastStakeView(native *native.NativeService, id types.ShardID, user common.Address) (View, error) {
+func getUserLastStakeView(native *native.NativeService, id common.ShardID, user common.Address) (View, error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardUserLastStakeViewKey(utils.ShardStakeAddress, shardIDBytes, user)
 	storeValue, err := native.CacheDB.Get(key)
@@ -192,14 +191,14 @@ func getUserLastStakeView(native *native.NativeService, id types.ShardID, user c
 	return View(view), nil
 }
 
-func setUserLastStakeView(native *native.NativeService, id types.ShardID, user common.Address, view View) {
+func setUserLastStakeView(native *native.NativeService, id common.ShardID, user common.Address, view View) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardUserLastStakeViewKey(utils.ShardStakeAddress, shardIDBytes, user)
 	viewBytes := utils.GetUint32Bytes(uint32(view))
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(viewBytes))
 }
 
-func getUserLastWithdrawView(native *native.NativeService, id types.ShardID, user common.Address) (View, error) {
+func getUserLastWithdrawView(native *native.NativeService, id common.ShardID, user common.Address) (View, error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardUserLastWithdrawViewKey(utils.ShardStakeAddress, shardIDBytes, user)
 	storeValue, err := native.CacheDB.Get(key)
@@ -220,14 +219,14 @@ func getUserLastWithdrawView(native *native.NativeService, id types.ShardID, use
 	return View(view), nil
 }
 
-func setUserLastWithdrawView(native *native.NativeService, id types.ShardID, user common.Address, view View) {
+func setUserLastWithdrawView(native *native.NativeService, id common.ShardID, user common.Address, view View) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardUserLastWithdrawViewKey(utils.ShardStakeAddress, shardIDBytes, user)
 	data := utils.GetUint32Bytes(uint32(view))
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 }
 
-func GetNodeMinStakeAmount(native *native.NativeService, id types.ShardID) (uint64, error) {
+func GetNodeMinStakeAmount(native *native.NativeService, id common.ShardID) (uint64, error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
@@ -248,7 +247,7 @@ func GetNodeMinStakeAmount(native *native.NativeService, id types.ShardID) (uint
 	return amount, nil
 }
 
-func setNodeMinStakeAmount(native *native.NativeService, id types.ShardID, amount uint64) {
+func setNodeMinStakeAmount(native *native.NativeService, id common.ShardID, amount uint64) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := genShardMinStakeKey(utils.ShardStakeAddress, shardIDBytes)
 	data := utils.GetUint64Bytes(amount)
@@ -261,7 +260,7 @@ func setShardStakeAssetAddr(native *native.NativeService, shardId types.ShardID,
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(addr[:]))
 }
 
-func getShardStakeAssetAddr(native *native.NativeService, shardId types.ShardID) (common.Address, error) {
+func getShardStakeAssetAddr(native *native.NativeService, shardId common.ShardID) (common.Address, error) {
 	addr := common.Address{}
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genShardStakeAssetAddrKey(utils.ShardStakeAddress, shardIDBytes)

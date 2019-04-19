@@ -21,10 +21,10 @@ package xshard_state
 import (
 	"errors"
 	"fmt"
+	"github.com/ontio/ontology/core/xshard_types"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
@@ -49,6 +49,12 @@ var (
 	ErrMismatchedResponse  = errors.New("mismatched response")
 )
 
+type ExecuteState uint8
+
+const ExecYielded = ExecuteState(1)
+const ExecPrepared = ExecuteState(2)
+const ExecCompleted = ExecuteState(3)
+
 //
 // TxState
 // stores intermediate states of one cross-shard transaction
@@ -65,27 +71,35 @@ var (
 // * Notify:
 //
 type XShardTxReqResp struct {
-	Req   *XShardTxReq
-	Resp  *XShardTxRsp
+	Req   *xshard_types.XShardTxReq
+	Resp  *xshard_types.XShardTxRsp
 	Index uint32
+}
+type XShardReqMsg struct {
+	SourceShardID common.ShardID
+	SourceHeight  uint32
+	TargetShardID common.ShardID
+	SourceTxHash  common.Uint256
+	Req           *xshard_types.XShardTxReq
 }
 
 type TxState struct {
 	State         int
 	TxID          ShardTxID // cross shard tx id: userTxHash+notify1+notify2...
-	Shards        map[types.ShardID]int
+	Shards        map[common.ShardID]int
 	TxPayload     []byte
 	NumNotifies   uint32
-	ShardNotifies []*XShardNotify
+	ShardNotifies []*xshard_types.XShardNotify
 	NextReqID     uint32
-	InReqResp     map[types.ShardID][]*XShardTxReqResp // todo: request id may conflict
+	InReqResp     map[common.ShardID][]*XShardTxReqResp // todo: request id may conflict
 	TotalInReq    uint32
 	OutReqResp    []*XShardTxReqResp
-	PendingReq    *XShardTxReq
-	Result        []byte
-	ResultErr     error
-	WriteSet      *overlaydb.MemDB
-	Notify        *event.ExecuteNotify
+	PendingReq    *XShardReqMsg
+	ExecuteState
+	Result    []byte
+	ResultErr error
+	WriteSet  *overlaydb.MemDB
+	Notify    *event.ExecuteNotify
 }
 
 type ShardTxInfo struct {
@@ -106,8 +120,8 @@ var shardTxStateTable = ShardTxStateMap{
 	TxStates: make(map[ShardTxID]*TxState),
 }
 
-func (self *TxState) GetTxShards() []types.ShardID {
-	shards := make([]types.ShardID, 0, len(self.Shards))
+func (self *TxState) GetTxShards() []common.ShardID {
+	shards := make([]common.ShardID, 0, len(self.Shards))
 	for id := range self.Shards {
 		shards = append(shards, id)
 	}
@@ -118,9 +132,9 @@ func (self *TxState) GetTxShards() []types.ShardID {
 // GetTxShards
 // get shards which participant with the procession of transaction
 //
-func GetTxShards(txid ShardTxID) ([]types.ShardID, error) {
+func GetTxShards(txid ShardTxID) ([]common.ShardID, error) {
 	if state, present := shardTxStateTable.TxStates[txid]; present {
-		shards := make([]types.ShardID, 0, len(state.Shards))
+		shards := make([]common.ShardID, 0, len(state.Shards))
 		for id := range state.Shards {
 			shards = append(shards, id)
 		}
@@ -130,7 +144,7 @@ func GetTxShards(txid ShardTxID) ([]types.ShardID, error) {
 	return nil, ErrNotFound
 }
 
-func (self *TxState) AddTxShard(id types.ShardID) error {
+func (self *TxState) AddTxShard(id common.ShardID) error {
 	if state, present := self.Shards[id]; !present {
 		self.Shards[id] = TxExec
 	} else if state != TxExec {
@@ -191,7 +205,7 @@ func SetTxExecutionContinued(tx common.Uint256) error {
 	return nil
 }
 
-func (self *TxState) SetShardPrepared(shardId types.ShardID) error {
+func (self *TxState) SetShardPrepared(shardId common.ShardID) error {
 	if _, ok := self.Shards[shardId]; !ok {
 		return fmt.Errorf("invalid shard ID %d, in tx commit", shardId)
 	}
@@ -214,11 +228,11 @@ func (self *TxState) IsTxCommitReady() bool {
 func (self *TxState) Clone() *TxState {
 	txs := &TxState{
 		State:      self.State,
-		Shards:     make(map[types.ShardID]int),
+		Shards:     make(map[common.ShardID]int),
 		TxPayload:  self.TxPayload,
 		NextReqID:  self.NextReqID,
 		Result:     make([]byte, len(self.Result)),
-		InReqResp:  make(map[types.ShardID][]*XShardTxReqResp),
+		InReqResp:  make(map[common.ShardID][]*XShardTxReqResp),
 		PendingReq: self.PendingReq,
 		ResultErr:  self.ResultErr,
 		WriteSet:   nil,
@@ -252,7 +266,7 @@ func CreateTxState(tx ShardTxID) *TxState {
 	}
 	state := &TxState{
 		State:  TxExec,
-		Shards: make(map[types.ShardID]int),
+		Shards: make(map[common.ShardID]int),
 		TxID:   tx,
 	}
 	shardTxStateTable.TxStates[tx] = state

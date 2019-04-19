@@ -18,7 +18,7 @@
 package payload
 
 import (
-	"bytes"
+	"github.com/ontio/ontology/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +26,7 @@ import (
 
 func TestDeployCode(t *testing.T) {
 	deploy := DeployCode{
-		Code:        []byte{1, 2, 3},
+		Code: []byte{1, 2, 3},
 		NeedStorage: true,
 		Name:        "test",
 		Version:     "1.0.0",
@@ -35,22 +35,13 @@ func TestDeployCode(t *testing.T) {
 		Description: "test",
 	}
 
-	buf := bytes.NewBuffer(nil)
-	err := deploy.Serialize(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	bs := buf.Bytes()
+	bs := common.SerializeToBytes(&deploy)
 	var deploy2 DeployCode
-	err = deploy2.Deserialize(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err := deploy2.Deserialization(common.NewZeroCopySource(bs))
+	assert.Nil(t, err)
 	assert.Equal(t, deploy2, deploy)
 
-	buf = bytes.NewBuffer(bs)
-	err = deploy2.Deserialize(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
+	buf := common.NewZeroCopySource(bs[:len(bs)-1])
+	err = deploy2.Deserialization(buf)
+	assert.NotNil(t, err)
 }

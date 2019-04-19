@@ -53,7 +53,7 @@ type SmartContract struct {
 
 // Config describe smart contract need parameters configuration
 type Config struct {
-	ShardID   ctypes.ShardID      // TODO: init this field
+	ShardID   common.ShardID      // TODO: init this field
 	Time      uint32              // current block timestamp
 	Height    uint32              // current block height
 	BlockHash common.Uint256      // current block hash
@@ -131,19 +131,19 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		return nil, fmt.Errorf("%s", "engine over max limit!")
 	}
 	service := &neovm.NeoVmService{
-		Store:      this.Store,
-		CacheDB:    this.CacheDB,
-		ContextRef: this,
-		Code:       code,
-		Tx:         this.Config.Tx,
-		ShardID:    this.Config.ShardID,
+		Store:            this.Store,
+		CacheDB:          this.CacheDB,
+		ContextRef:       this,
+		Code:             code,
+		Tx:               this.Config.Tx,
+		ShardID:          this.Config.ShardID,
 		MainShardTxState: this.MainShardTxState,
 		SubShardTxState:  this.SubShardTxState,
-		Time:       this.Config.Time,
-		Height:     this.Config.Height,
-		BlockHash:  this.Config.BlockHash,
-		Engine:     vm.NewExecutionEngine(),
-		PreExec:    this.PreExec,
+		Time:             this.Config.Time,
+		Height:           this.Config.Height,
+		BlockHash:        this.Config.BlockHash,
+		Engine:           vm.NewExecutionEngine(),
+		PreExec:          this.PreExec,
 	}
 	return service, nil
 }

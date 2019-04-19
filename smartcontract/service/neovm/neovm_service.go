@@ -126,7 +126,7 @@ type NeoVmService struct {
 	Notifications    []*event.NotifyEventInfo
 	Code             []byte
 	Tx               *types.Transaction
-	ShardID          types.ShardID
+	ShardID          scommon.ShardID
 	MainShardTxState *xshard_state.TxState
 	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
 	Time             uint32

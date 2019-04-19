@@ -183,6 +183,13 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 			return err
 		}
 		tx.Payload = pl
+	case ShardCall:
+		pl := new(payload.ShardCall)
+		err := pl.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		tx.Payload = pl
 	case MetaData:
 		meta := new(payload.MetaDataCode)
 		err := meta.Deserialization(source)
@@ -394,19 +401,17 @@ func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
 type TransactionType byte
 
 const (
-	Bookkeeper TransactionType = 0x02
 	Deploy     TransactionType = 0xd0
 	Invoke     TransactionType = 0xd1
 	MetaData   TransactionType = 0xd2
+	ShardCall  TransactionType = 0xd3
 )
 
 // Payload define the func for loading the payload data
 // base on payload type which have different structure
 type Payload interface {
-	//Serialize payload data
-	Serialize(w io.Writer) error
-
-	Deserialize(r io.Reader) error
+	Serialization(sink *common.ZeroCopySink)
+	Deserialization(source *common.ZeroCopySource) error
 }
 
 func (tx *Transaction) Serialization(sink *common.ZeroCopySink) {

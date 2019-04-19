@@ -21,20 +21,20 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/core/xshard_types"
 	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 func sendPrepareRequest(ctx *native.NativeService, txState *xshard_state.TxState, tx common.Uint256) ([]byte, error) {
 	for _, s := range txState.GetTxShards() {
-		msg := &xshard_state.XShardCommitMsg{
-			MsgType: xshard_state.EVENT_SHARD_PREPARE,
+		msg := &xshard_types.XShardCommitMsg{
+			MsgType: xshard_types.EVENT_SHARD_PREPARE,
 		}
 		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
 			log.Errorf("send prepare to shard %d: %s", s.ToUint64(), err)
@@ -51,8 +51,8 @@ func abortTx(ctx *native.NativeService, txState *xshard_state.TxState, tx common
 	// send abort message to all shards
 	toShards := txState.GetTxShards()
 	for _, s := range toShards {
-		msg := &xshard_state.XShardCommitMsg{
-			MsgType: xshard_state.EVENT_SHARD_ABORT,
+		msg := &xshard_types.XShardCommitMsg{
+			MsgType: xshard_types.EVENT_SHARD_ABORT,
 		}
 		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
 			log.Errorf("send abort to shard %d: %s", s.ToUint64(), err)
@@ -68,8 +68,8 @@ func sendCommit(ctx *native.NativeService, txState *xshard_state.TxState, tx com
 	toShards := txState.GetTxShards()
 
 	for _, s := range toShards {
-		msg := &xshard_state.XShardCommitMsg{
-			MsgType: xshard_state.EVENT_SHARD_COMMIT,
+		msg := &xshard_types.XShardCommitMsg{
+			MsgType: xshard_types.EVENT_SHARD_COMMIT,
 		}
 		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
 			log.Errorf("send commit to shard %d: %s", s.ToUint64(), err)
@@ -79,11 +79,11 @@ func sendCommit(ctx *native.NativeService, txState *xshard_state.TxState, tx com
 	return nil, nil
 }
 
-func remoteSendShardMsg(ctx *native.NativeService, tx common.Uint256, toShard types.ShardID, msg xshard_state.XShardMsg) error {
+func remoteSendShardMsg(ctx *native.NativeService, tx common.Uint256, toShard common.ShardID, msg xshard_types.XShardMsg) error {
 	if !ctx.ContextRef.CheckUseGas(neovm.REMOTE_NOTIFY_GAS) {
 		return neovm.ERR_GAS_INSUFFICIENT
 	}
-	shardReq := &xshard_state.CommonShardMsg{
+	shardReq := &xshard_types.CommonShardMsg{
 		SourceShardID: ctx.ShardID,
 		SourceHeight:  uint64(ctx.Height),
 		TargetShardID: toShard,

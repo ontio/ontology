@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
@@ -90,7 +91,7 @@ func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 
 	txState := ctx.MainShardTxState
 	// send with minimal gas fee
-	msg := &xshard_state.XShardNotify{
+	msg := &xshard_types.XShardNotify{
 		NotifyID: txState.NumNotifies,
 		Contract: reqParam.ToContract,
 		Payer:    ctx.Tx.Payer,
@@ -129,7 +130,7 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
 		return utils.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
 	}
-	msg := &xshard_state.XShardTxReq{
+	msg := &xshard_types.XShardTxReq{
 		IdxInTx:  uint64(reqIdx),
 		Payer:    ctx.Tx.Payer,
 		Fee:      0,
@@ -141,7 +142,7 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	txState.NextReqID += 1
 
 	if reqIdx < uint32(len(txState.OutReqResp)) {
-		if xshard_state.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
+		if xshard_types.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
 			return utils.BYTE_FALSE, xshard_state.ErrMismatchedRequest
 		}
 		rspMsg := txState.OutReqResp[reqIdx].Resp
@@ -165,7 +166,12 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
 	}
 
-	txState.PendingReq = msg
+	txState.PendingReq = &xshard_state.XShardReqMsg{
+		SourceShardID: ctx.ShardID,
+		SourceHeight:  ctx.Height,
+		TargetShardID: reqParam.ToShard,
+		SourceTxHash:  ctx.Tx.Hash(),
+	}
 
 	// put Tx-Request
 	//todo: clean
@@ -223,8 +229,8 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 			if err := processShardGasWithdrawDone(ctx, shardEvt.(*shardstates.WithdrawGasDoneEvent)); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
 			}
-		case xshard_state.EVENT_SHARD_MSG_COMMON:
-			reqs, err := xshard_state.DecodeShardCommonReqs(evt.Payload)
+		case xshard_types.EVENT_SHARD_MSG_COMMON:
+			reqs, err := xshard_types.DecodeShardCommonReqs(evt.Payload)
 			if err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("decode shard reqs: %s", err)
 			}
@@ -234,8 +240,8 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 				var shardTxID xshard_state.ShardTxID
 				txCompleted := false
 				switch req.Type {
-				case xshard_state.EVENT_SHARD_NOTIFY:
-					nid := req.Msg.(*xshard_state.XShardNotify).NotifyID
+				case xshard_types.EVENT_SHARD_NOTIFY:
+					nid := req.Msg.(*xshard_types.XShardNotify).NotifyID
 					sink := common.NewZeroCopySink(0)
 					sink.WriteBytes(req.SourceTxHash[:]) //todo : use shard tx id
 					sink.WriteUint32(nid)
@@ -253,7 +259,7 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 					}
 					ctx.MainShardTxState = tmp
 					txCompleted = true
-				case xshard_state.EVENT_SHARD_TXREQ:
+				case xshard_types.EVENT_SHARD_TXREQ:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
 					if _, ok := ctx.SubShardTxState[shardTxID]; ok == false {
 						ctx.SubShardTxState[shardTxID] = xshard_state.ShardTxInfo{
@@ -268,7 +274,7 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 					}
 					ctx.MainShardTxState = tmp
 					txCompleted = false
-				case xshard_state.EVENT_SHARD_TXRSP:
+				case xshard_types.EVENT_SHARD_TXRSP:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
 					if _, ok := ctx.SubShardTxState[shardTxID]; ok == false {
 						ctx.SubShardTxState[shardTxID] = xshard_state.ShardTxInfo{
@@ -283,7 +289,7 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 					}
 					ctx.MainShardTxState = tmp
 					txCompleted = false
-				case xshard_state.EVENT_SHARD_PREPARE:
+				case xshard_types.EVENT_SHARD_PREPARE:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
 					if _, ok := ctx.SubShardTxState[shardTxID]; ok == false {
 						ctx.SubShardTxState[shardTxID] = xshard_state.ShardTxInfo{
@@ -298,7 +304,7 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 					}
 					ctx.MainShardTxState = tmp
 					txCompleted = false
-				case xshard_state.EVENT_SHARD_PREPARED:
+				case xshard_types.EVENT_SHARD_PREPARED:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
 					txState = xshard_state.CreateTxState(shardTxID).Clone()
 					if err = processXShardPreparedMsg(ctx, txState, req); err != nil {
@@ -306,14 +312,14 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 					}
 					// FIXME: completed with all-shards-prepared
 					txCompleted = true
-				case xshard_state.EVENT_SHARD_COMMIT:
+				case xshard_types.EVENT_SHARD_COMMIT:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
 					txState = xshard_state.CreateTxState(shardTxID).Clone()
 					if err = processXShardCommitMsg(ctx, txState, req); err != nil {
 						log.Errorf("process xshard commit: %s", err)
 					}
 					txCompleted = true
-				case xshard_state.EVENT_SHARD_ABORT:
+				case xshard_types.EVENT_SHARD_ABORT:
 					shardTxID = xshard_state.ShardTxID(string(req.SourceTxHash[:]))
 					txState = xshard_state.CreateTxState(shardTxID).Clone()
 					if err = processXShardAbortMsg(ctx, txState, req); err != nil {
