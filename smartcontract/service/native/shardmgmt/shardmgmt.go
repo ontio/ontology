@@ -21,21 +21,22 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/ong"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
-	"github.com/ontio/ontology/smartcontract/service/native/shardasset/oep4"
 	"math/big"
 	"sort"
 	"strings"
 
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	"github.com/ontio/ontology/smartcontract/service/native/shardasset/oep4"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	nTypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 /////////
@@ -51,18 +52,20 @@ import (
 
 const (
 	// function names
-	INIT_NAME               = "init"
-	CREATE_SHARD_NAME       = "createShard"
-	CONFIG_SHARD_NAME       = "configShard"
-	APPLY_JOIN_SHARD_NAME   = "applyJoinShard"
-	APPROVE_JOIN_SHARD_NAME = "approveJoinShard"
-	JOIN_SHARD_NAME         = "joinShard"
-	EXIT_SHARD_NAME         = "exitShard"
-	ACTIVATE_SHARD_NAME     = "activateShard"
+	INIT_NAME                = "init"
+	CREATE_SHARD_NAME        = "createShard"
+	CONFIG_SHARD_NAME        = "configShard"
+	APPLY_JOIN_SHARD_NAME    = "applyJoinShard"
+	APPROVE_JOIN_SHARD_NAME  = "approveJoinShard"
+	JOIN_SHARD_NAME          = "joinShard"
+	EXIT_SHARD_NAME          = "exitShard"
+	ACTIVATE_SHARD_NAME      = "activateShard"
+	NOTIFY_SHARD_COMMIT_DPOS = "notifyShardCommitDpos"
 
 	NOTIFY_ROOT_COMMIT_DPOS = "notifyRootCommitDpos"
 	COMMIT_DPOS_NAME        = "commitDpos"
 	SHARD_COMMIT_DPOS       = "shardCommitDpos"
+	SHARD_RETRY_COMMIT_DPOS = "shardRetryCommitDpos"
 )
 
 func InitShardManagement() {
@@ -78,10 +81,12 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(JOIN_SHARD_NAME, JoinShard)
 	native.Register(ACTIVATE_SHARD_NAME, ActivateShard)
 	native.Register(EXIT_SHARD_NAME, ExitShard)
+	native.Register(NOTIFY_SHARD_COMMIT_DPOS, NotifyShardCommitDpos)
 
 	native.Register(NOTIFY_ROOT_COMMIT_DPOS, NotifyRootCommitDpos)
 	native.Register(COMMIT_DPOS_NAME, CommitDpos)
 	native.Register(SHARD_COMMIT_DPOS, ShardCommitDpos)
+	native.Register(SHARD_RETRY_COMMIT_DPOS, ShardRetryCommitDpos)
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -581,6 +586,31 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func NotifyShardCommitDpos(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_TRUE, fmt.Errorf("NotifyShardCommitDpos: only can be invoked at root")
+	}
+	shardId, err := utils.DeserializeShardId(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: deserialize shardId failed, err: %s", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: check version: %s", err)
+	}
+	shard, err := GetShardState(native, contract, shardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: get shard: %s", err)
+	}
+	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: check witness failed, err: %s", err)
+	}
+	if err := shardsysmsg.NotifyShard(native, shardId, contract, SHARD_COMMIT_DPOS, []byte{}); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: failed, err: %s", err)
+	}
+	return utils.BYTE_TRUE, nil
+}
+
 func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
@@ -604,12 +634,16 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := xShardTransferParam.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: serialize xshard param failed, err: %s", err)
 	}
-	if _, err := native.NativeCall(utils.ShardAssetAddress, oep4.ONG_XSHARD_TRANSFER, bf.Bytes()); err != nil {
+	transferIdBytes, err := native.NativeCall(utils.ShardAssetAddress, oep4.ONG_XSHARD_TRANSFER, bf.Bytes())
+	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard transfer failed, err: %s", err)
 	}
+	transferId := nTypes.BigIntFromBytes(transferIdBytes.([]byte))
 	shardStakeCommitParam := &shard_stake.CommitDposParam{
 		ShardId:   native.ShardID,
 		FeeAmount: balance,
+		Height:    native.Height,
+		Hash:      native.Tx.Hash(),
 	}
 	bf.Reset()
 	if err := shardStakeCommitParam.Serialize(bf); err != nil {
@@ -618,6 +652,46 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	err = shardsysmsg.NotifyShard(native, rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard commit dpos failed, err: %s", err)
+	}
+	retry := &shardstates.RetryCommitDpos{TransferId: transferId, FeeAmount: balance, Height: native.Height,
+		Hash: native.Tx.Hash()}
+	setRetryCommitDpos(native, retry)
+	return utils.BYTE_TRUE, nil
+}
+
+func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
+	if native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: only can be invoked at shard")
+	}
+	retry, err := getRetryCommitDpos(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: failed, err: %s", err)
+	}
+	xshardTransferParam := &oep4.XShardTransferRetryParam{
+		From:       utils.ShardMgmtContractAddress,
+		TransferId: retry.TransferId,
+	}
+	bf := new(bytes.Buffer)
+	if err := xshardTransferParam.Serialize(bf); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: serialize transfer retry failed, err: %s", err)
+	}
+	if _, err := native.NativeCall(utils.ShardAssetAddress, oep4.ONG_XSHARD_TRANSFER_RETRY, bf.Bytes()); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: xshard transfer retry failed, err: %s", err)
+	}
+	shardStakeCommitParam := &shard_stake.CommitDposParam{
+		ShardId:   native.ShardID,
+		FeeAmount: retry.FeeAmount,
+		Hash:      retry.Hash,
+		Height:    retry.Height,
+	}
+	bf.Reset()
+	if err := shardStakeCommitParam.Serialize(bf); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: serialize commit dpos param failed, err: %s", err)
+	}
+	rootShard := types.NewShardIDUnchecked(0)
+	err = shardsysmsg.NotifyShard(native, rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: xshard commit dpos failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
 }

@@ -21,6 +21,7 @@ package shardstates
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"sort"
 	"strings"
 
@@ -37,9 +38,9 @@ const (
 
 const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED // all parameter configured
-	SHARD_STATE_ACTIVE     // started
-	SHARD_STATE_STOPPING   // started
+	SHARD_STATE_CONFIGURED  // all parameter configured
+	SHARD_STATE_ACTIVE      // started
+	SHARD_STATE_STOPPING    // started
 	SHARD_STATE_ARCHIVED
 )
 
@@ -387,6 +388,38 @@ func (this *ShardState) Deserialization(source *common.ZeroCopySource) error {
 			return fmt.Errorf("read peer, index %d, err: %s", i, err)
 		}
 		this.Peers[strings.ToLower(peer.PeerPubKey)] = peer
+	}
+	return nil
+}
+
+type RetryCommitDpos struct {
+	TransferId *big.Int
+	Height     uint32
+	Hash       common.Uint256
+	FeeAmount  uint64
+}
+
+func (this *RetryCommitDpos) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(common.BigIntToNeoBytes(this.TransferId))
+	sink.WriteUint32(this.Height)
+	sink.WriteHash(this.Hash)
+	sink.WriteUint64(this.FeeAmount)
+}
+
+func (this *RetryCommitDpos) Deserialization(source *common.ZeroCopySource) error {
+	id, _, irr, eof := source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.TransferId = common.BigIntFromNeoBytes(id)
+	this.Height, eof = source.NextUint32()
+	this.Hash, eof = source.NextHash()
+	this.FeeAmount, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	return nil
 }

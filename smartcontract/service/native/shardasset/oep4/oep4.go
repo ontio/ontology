@@ -450,7 +450,7 @@ func XShardTransferRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferRetry: failed, err: %s", err)
 	}
 	if transfer.Status == XSHARD_TRANSFER_COMPLETE {
-		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferRetry: transfer has already completed")
+		return utils.BYTE_TRUE, nil
 	}
 	shardMintParam := &ShardMintParam{
 		Asset:      uint64(asset),
@@ -553,7 +553,7 @@ func XShardTransferOng(native *native.NativeService) ([]byte, error) {
 	if err := notifyShardReceiveOng(native, param.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
-	return utils.BYTE_TRUE, nil
+	return ntypes.BigIntToBytes(txId), nil
 }
 
 func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
@@ -569,7 +569,7 @@ func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOngRetry: failed, err: %s", err)
 	}
 	if transfer.Status == XSHARD_TRANSFER_COMPLETE {
-		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOngRetry: transfer has already completed")
+		return utils.BYTE_TRUE, nil
 	}
 	shardMintParam := &ShardMintParam{
 		Asset:      uint64(ONG_ASSET_ID),

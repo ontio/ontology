@@ -40,6 +40,8 @@ const (
 	KEY_SHARD_STATE  = "shardState"
 
 	KEY_SHARD_PEER_STATE = "peerState"
+
+	KEY_RETRY_COMMIT_DPOS = "retry_commit"
 )
 
 type peerState string
@@ -53,6 +55,10 @@ const (
 
 func genPeerStateKey(contract common.Address, shardIdBytes []byte, pubKey string) []byte {
 	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_PEER_STATE), []byte(pubKey))
+}
+
+func genRetryCommitDposKey() []byte {
+	return utils.ConcatKey(utils.ShardMgmtContractAddress, []byte(KEY_RETRY_COMMIT_DPOS))
 }
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -187,6 +193,32 @@ func getShardPeerState(native *native.NativeService, contract common.Address, sh
 		return state_default, fmt.Errorf("getShardPeerState: parse store value failed, err: %s", err)
 	}
 	return peerState(value), nil
+}
+
+func setRetryCommitDpos(native *native.NativeService, retry *shardstates.RetryCommitDpos) {
+	sink := common.NewZeroCopySink(0)
+	retry.Serialization(sink)
+	native.CacheDB.Put(genRetryCommitDposKey(), cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func getRetryCommitDpos(native *native.NativeService) (*shardstates.RetryCommitDpos, error) {
+	raw, err := native.CacheDB.Get(genRetryCommitDposKey())
+	if err != nil {
+		return nil, fmt.Errorf("getRetryCommitDpos: read db failed, err: %s", err)
+	}
+	if len(raw) == 0 {
+		return nil, fmt.Errorf("getRetryCommitDpos: store is empty")
+	}
+	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
+	if err != nil {
+		return nil, fmt.Errorf("getRetryCommitDpos: parse store value failed, err: %s", err)
+	}
+	source := common.NewZeroCopySource(storeValue)
+	retry := &shardstates.RetryCommitDpos{}
+	if err := retry.Deserialization(source); err != nil{
+		return nil, fmt.Errorf("getRetryCommitDpos: deserialize failed, err: %s", err)
+	}
+	return retry, nil
 }
 
 func getRootCurrentViewPeerItem(native *native.NativeService, pubKey string) (*utils.PeerPoolItem, error) {
