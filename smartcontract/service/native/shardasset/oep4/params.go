@@ -26,7 +26,7 @@ func (this *RegisterParam) Serialize(w io.Writer) error {
 	if err := serialization.WriteString(w, this.Symbol); err != nil {
 		return fmt.Errorf("serialize: write name failed, err: %s", err)
 	}
-	if err := serialization.WriteUint64(w, this.Decimals); err != nil {
+	if err := utils.WriteVarUint(w, this.Decimals); err != nil {
 		return fmt.Errorf("serialize: write decimals failed, err: %s", err)
 	}
 	if err := serialization.WriteVarBytes(w, common.BigIntToNeoBytes(this.TotalSupply)); err != nil {
@@ -187,6 +187,7 @@ func (this *MultiTransferParam) Deserialize(r io.Reader) error {
 		if err := tran.Deserialize(r); err != nil {
 			return fmt.Errorf("deserialize: read transfer failed, index %d, err: %s", i, err)
 		}
+		this.Transfers[i] = tran
 	}
 	return nil
 }
@@ -383,15 +384,15 @@ func (this *ShardMintParam) Deserialize(r io.Reader) error {
 	if this.FromAccount, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read from account addr failed, err: %s", err)
 	}
-	if amount, err := serialization.ReadVarBytes(r); err != nil {
-		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
-	} else {
-		this.Amount = common.BigIntFromNeoBytes(amount)
-	}
 	if id, err := serialization.ReadVarBytes(r); err != nil {
 		return fmt.Errorf("deserialize: read transfer id failed, err: %s", err)
 	} else {
 		this.TransferId = common.BigIntFromNeoBytes(id)
+	}
+	if amount, err := serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
+	} else {
+		this.Amount = common.BigIntFromNeoBytes(amount)
 	}
 	return nil
 }
