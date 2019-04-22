@@ -19,6 +19,7 @@
 package common
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -58,6 +59,24 @@ func (u *Uint256) Deserialize(r io.Reader) error {
 	if err != nil {
 		return errors.New("deserialize Uint256 error")
 	}
+	return nil
+}
+
+func (u Uint256) MarshalJSON() ([]byte, error) {
+	return json.Marshal(u.ToHexString())
+}
+
+func (u *Uint256) UnmarshalJSON(input []byte) error {
+	hashString := ""
+	err := json.Unmarshal(input, &hashString)
+	if err != nil {
+		return err
+	}
+	addr, err := Uint256FromHexString(hashString)
+	if err != nil {
+		return err
+	}
+	copy(u[:], addr[:])
 	return nil
 }
 

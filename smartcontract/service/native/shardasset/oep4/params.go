@@ -348,7 +348,7 @@ type ShardMintParam struct {
 
 func (this *ShardMintParam) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, this.Asset); err != nil {
-		return fmt.Errorf("serialize: write asset addr failed, err: %s", err)
+		return fmt.Errorf("serialize: write asset id failed, err: %s", err)
 	}
 	if err := utils.WriteAddress(w, this.Account); err != nil {
 		return fmt.Errorf("serialize: write account addr failed, err: %s", err)
@@ -368,7 +368,7 @@ func (this *ShardMintParam) Serialize(w io.Writer) error {
 func (this *ShardMintParam) Deserialize(r io.Reader) error {
 	var err error = nil
 	if this.Asset, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read asset addr failed, err: %s", err)
+		return fmt.Errorf("deserialize: read asset id failed, err: %s", err)
 	}
 	if this.Account, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read account addr failed, err: %s", err)
@@ -397,7 +397,7 @@ type XShardTranSuccParam struct {
 
 func (this *XShardTranSuccParam) Serialize(w io.Writer) error {
 	if err := utils.WriteVarUint(w, this.Asset); err != nil {
-		return fmt.Errorf("serialize: write asset addr failed, err: %s", err)
+		return fmt.Errorf("serialize: write asset id failed, err: %s", err)
 	}
 	if err := utils.WriteAddress(w, this.Account); err != nil {
 		return fmt.Errorf("serialize: write account addr failed, err: %s", err)
@@ -411,7 +411,7 @@ func (this *XShardTranSuccParam) Serialize(w io.Writer) error {
 func (this *XShardTranSuccParam) Deserialize(r io.Reader) error {
 	var err error = nil
 	if this.Asset, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read asset addr failed, err: %s", err)
+		return fmt.Errorf("deserialize: read asset id failed, err: %s", err)
 	}
 	if this.Account, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read account addr failed, err: %s", err)
@@ -420,6 +420,67 @@ func (this *XShardTranSuccParam) Deserialize(r io.Reader) error {
 		return fmt.Errorf("deserialize: read transfer id failed, err: %s", err)
 	} else {
 		this.TransferId = common.BigIntFromNeoBytes(id)
+	}
+	return nil
+}
+
+type GetXShardTransferInfoParam struct {
+	Account    common.Address
+	Asset      uint64
+	TransferId *big.Int
+}
+
+func (this *GetXShardTransferInfoParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.Account); err != nil {
+		return fmt.Errorf("serialize: write account addr failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.Asset); err != nil {
+		return fmt.Errorf("serialize: write asset id failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, common.BigIntToNeoBytes(this.TransferId)); err != nil {
+		return fmt.Errorf("serialize: write transfer id failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *GetXShardTransferInfoParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.Account, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read account addr failed, err: %s", err)
+	}
+	if this.Asset, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read asset id failed, err: %s", err)
+	}
+	if id, err := serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read transfer id failed, err: %s", err)
+	} else {
+		this.TransferId = common.BigIntFromNeoBytes(id)
+	}
+	return nil
+}
+
+type GetPendingXShardTransferParam struct {
+	Account common.Address
+	Asset   uint64
+}
+
+func (this *GetPendingXShardTransferParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.Account); err != nil {
+		return fmt.Errorf("serialize: write account addr failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.Asset); err != nil {
+		return fmt.Errorf("serialize: write asset id failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *GetPendingXShardTransferParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.Account, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read account addr failed, err: %s", err)
+	}
+	if this.Asset, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read asset id failed, err: %s", err)
 	}
 	return nil
 }

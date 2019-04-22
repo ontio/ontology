@@ -63,10 +63,10 @@ const (
 )
 
 type XShardTransferState struct {
-	ToShard   types.ShardID
-	ToAccount common.Address
-	Amount    *big.Int
-	Status    uint8
+	ToShard   types.ShardID  `json:"to_shard"`
+	ToAccount common.Address `json:"to_account"`
+	Amount    *big.Int       `json:"amount"`
+	Status    uint8          `json:"status"`
 }
 
 func (this *XShardTransferState) Serialization(sink *common.ZeroCopySink) {

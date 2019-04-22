@@ -20,6 +20,7 @@ package shardmgmt
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
@@ -66,6 +67,10 @@ const (
 	COMMIT_DPOS_NAME        = "commitDpos"
 	SHARD_COMMIT_DPOS       = "shardCommitDpos"
 	SHARD_RETRY_COMMIT_DPOS = "shardRetryCommitDpos"
+
+	// query shard commit Dpos info, include xshard transfer ong
+	// id, commit dpos height and block hash at shard, and whole handling fee at last consensus epoch at shard
+	GET_SHARD_COMMIT_DPOS_INFO = "getShardCommitDPosInfo"
 )
 
 func InitShardManagement() {
@@ -87,6 +92,7 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(COMMIT_DPOS_NAME, CommitDpos)
 	native.Register(SHARD_COMMIT_DPOS, ShardCommitDpos)
 	native.Register(SHARD_RETRY_COMMIT_DPOS, ShardRetryCommitDpos)
+	native.Register(GET_SHARD_COMMIT_DPOS_INFO, GetShardCommitDPosInfo)
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -653,9 +659,9 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard commit dpos failed, err: %s", err)
 	}
-	retry := &shardstates.RetryCommitDpos{TransferId: transferId, FeeAmount: balance, Height: native.Height,
+	info := &shardstates.ShardCommitDposInfo{TransferId: transferId, FeeAmount: balance, Height: native.Height,
 		Hash: native.Tx.Hash()}
-	setRetryCommitDpos(native, retry)
+	setShardCommitDposInfo(native, info)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -663,13 +669,13 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: only can be invoked at shard")
 	}
-	retry, err := getRetryCommitDpos(native)
+	info, err := getShardCommitDposInfo(native)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: failed, err: %s", err)
 	}
 	xshardTransferParam := &oep4.XShardTransferRetryParam{
 		From:       utils.ShardMgmtContractAddress,
-		TransferId: retry.TransferId,
+		TransferId: info.TransferId,
 	}
 	bf := new(bytes.Buffer)
 	if err := xshardTransferParam.Serialize(bf); err != nil {
@@ -680,9 +686,9 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	shardStakeCommitParam := &shard_stake.CommitDposParam{
 		ShardId:   native.ShardID,
-		FeeAmount: retry.FeeAmount,
-		Hash:      retry.Hash,
-		Height:    retry.Height,
+		FeeAmount: info.FeeAmount,
+		Hash:      info.Hash,
+		Height:    info.Height,
 	}
 	bf.Reset()
 	if err := shardStakeCommitParam.Serialize(bf); err != nil {
@@ -694,4 +700,19 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: xshard commit dpos failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
+}
+
+func GetShardCommitDPosInfo(native *native.NativeService) ([]byte, error) {
+	if native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: only can be invoked at shard")
+	}
+	info, err := getShardCommitDposInfo(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: failed, err: %s", err)
+	}
+	data, err := json.Marshal(info)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: marshal info failed, err: %s", err)
+	}
+	return data, nil
 }

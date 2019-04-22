@@ -392,21 +392,21 @@ func (this *ShardState) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-type RetryCommitDpos struct {
-	TransferId *big.Int
-	Height     uint32
-	Hash       common.Uint256
-	FeeAmount  uint64
+type ShardCommitDposInfo struct {
+	TransferId *big.Int       `json:"transfer_id"`
+	Height     uint32         `json:"height"`
+	Hash       common.Uint256 `json:"hash"`
+	FeeAmount  uint64         `json:"fee_amount"`
 }
 
-func (this *RetryCommitDpos) Serialization(sink *common.ZeroCopySink) {
+func (this *ShardCommitDposInfo) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(common.BigIntToNeoBytes(this.TransferId))
 	sink.WriteUint32(this.Height)
 	sink.WriteHash(this.Hash)
 	sink.WriteUint64(this.FeeAmount)
 }
 
-func (this *RetryCommitDpos) Deserialization(source *common.ZeroCopySource) error {
+func (this *ShardCommitDposInfo) Deserialization(source *common.ZeroCopySource) error {
 	id, _, irr, eof := source.NextVarBytes()
 	if irr {
 		return common.ErrIrregularData

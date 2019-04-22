@@ -195,28 +195,28 @@ func getShardPeerState(native *native.NativeService, contract common.Address, sh
 	return peerState(value), nil
 }
 
-func setRetryCommitDpos(native *native.NativeService, retry *shardstates.RetryCommitDpos) {
+func setShardCommitDposInfo(native *native.NativeService, retry *shardstates.ShardCommitDposInfo) {
 	sink := common.NewZeroCopySink(0)
 	retry.Serialization(sink)
 	native.CacheDB.Put(genRetryCommitDposKey(), cstates.GenRawStorageItem(sink.Bytes()))
 }
 
-func getRetryCommitDpos(native *native.NativeService) (*shardstates.RetryCommitDpos, error) {
+func getShardCommitDposInfo(native *native.NativeService) (*shardstates.ShardCommitDposInfo, error) {
 	raw, err := native.CacheDB.Get(genRetryCommitDposKey())
 	if err != nil {
-		return nil, fmt.Errorf("getRetryCommitDpos: read db failed, err: %s", err)
+		return nil, fmt.Errorf("getShardCommitDposInfo: read db failed, err: %s", err)
 	}
 	if len(raw) == 0 {
-		return nil, fmt.Errorf("getRetryCommitDpos: store is empty")
+		return nil, fmt.Errorf("getShardCommitDposInfo: store is empty")
 	}
 	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
 	if err != nil {
-		return nil, fmt.Errorf("getRetryCommitDpos: parse store value failed, err: %s", err)
+		return nil, fmt.Errorf("getShardCommitDposInfo: parse store value failed, err: %s", err)
 	}
 	source := common.NewZeroCopySource(storeValue)
-	retry := &shardstates.RetryCommitDpos{}
-	if err := retry.Deserialization(source); err != nil{
-		return nil, fmt.Errorf("getRetryCommitDpos: deserialize failed, err: %s", err)
+	retry := &shardstates.ShardCommitDposInfo{}
+	if err := retry.Deserialization(source); err != nil {
+		return nil, fmt.Errorf("getShardCommitDposInfo: deserialize failed, err: %s", err)
 	}
 	return retry, nil
 }

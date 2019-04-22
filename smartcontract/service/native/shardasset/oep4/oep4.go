@@ -2,8 +2,10 @@ package oep4
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"math"
 	"math/big"
@@ -47,6 +49,9 @@ const (
 	XSHARD_TRANSFER_SUCC = "oep4XShardTransferSuccess"
 	SHARD_RECEIVE_ASSET  = "oep4ShardReceive"
 	ONG_XSHARD_RECEIVE   = "ongXShardReceive"
+
+	GET_PENDING_TRANSFER = "getOep4PendingTransfer"
+	GET_TRANSFER         = "getOep4Transfer"
 )
 
 func RegisterOEP4(native *native.NativeService) {
@@ -75,6 +80,9 @@ func RegisterOEP4(native *native.NativeService) {
 	native.Register(ONG_XSHARD_RECEIVE, XShardReceiveOng)
 
 	native.Register(SHARD_RECEIVE_ASSET, ShardReceiveAsset)
+
+	native.Register(GET_PENDING_TRANSFER, GetPendingXShardTransfer)
+	native.Register(GET_TRANSFER, GetXShardTransferState)
 }
 
 func Init(native *native.NativeService) ([]byte, error) {
@@ -617,4 +625,45 @@ func XShardReceiveOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
+}
+
+func GetPendingXShardTransfer(native *native.NativeService) ([]byte, error) {
+	param := &GetPendingXShardTransferParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPendingXShardTransfer: failed, err: %s", err)
+	}
+	transferNum, err := getXShardTransferNum(native, AssetId(param.Asset), param.Account)
+	if err != nil {
+		return nil, fmt.Errorf("GetPendingXShardTransfer: failed, err: %s", err)
+	}
+	increase := big.NewInt(1)
+	transfers := make([]*XShardTransferState, 0)
+	for i := big.NewInt(0); i.Cmp(transferNum) < 0; i.Add(i, increase) {
+		transfer, err := getXShardTransfer(native, AssetId(param.Asset), param.Account, i)
+		if err != nil {
+			log.Debugf("GetPendingXShardTransfer: read transfer failed, tranId %s, err: %s", i.String(), err)
+		}
+		transfers = append(transfers, transfer)
+	}
+	data, err := json.Marshal(transfers)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetPendingXShardTransfer: marshal failed, err: %s", err)
+	}
+	return data, nil
+}
+
+func GetXShardTransferState(native *native.NativeService) ([]byte, error) {
+	param := &GetXShardTransferInfoParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetXShardTransferState: failed, err: %s", err)
+	}
+	transfer, err := getXShardTransfer(native, AssetId(param.Asset), param.Account, param.TransferId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetXShardTransferState: failed, err: %s", err)
+	}
+	data, err := json.Marshal(transfer)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetXShardTransferState: marshal info failed, err: %s", err)
+	}
+	return data, nil
 }
