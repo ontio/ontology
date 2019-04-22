@@ -97,9 +97,10 @@ const (
 	GAS_ADDRESS       = "gasAddress"
 
 	//global
-	PRECISE           = 1000000
-	NEW_VERSION_VIEW  = 6
-	NEW_VERSION_BLOCK = 414100
+	PRECISE            = 1000000
+	NEW_VERSION_VIEW   = 6
+	NEW_VERSION_BLOCK  = 414100
+	NEW_WITHDRAW_BLOCK = 2800000
 )
 
 // candidate fee must >= 1 ONG
@@ -927,6 +928,11 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 		peerPubkey := params.PeerPubkeyList[i]
 		pos := params.WithdrawList[i]
 
+		if native.Height > NEW_WITHDRAW_BLOCK {
+			if pos < 1 {
+				return utils.BYTE_FALSE, fmt.Errorf("withdraw, amount of withdraw must >= 1")
+			}
+		}
 		peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
