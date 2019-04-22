@@ -936,6 +936,14 @@ func (this *LedgerStoreImp) GetHeaderByHash(blockHash common.Uint256) (*types.He
 	return this.blockStore.GetHeader(blockHash)
 }
 
+func (this *LedgerStoreImp) GetRawHeaderByHash(blockHash common.Uint256) (*types.RawHeader, error) {
+	header := this.getHeaderCache(blockHash)
+	if header != nil {
+		return header.GetRawHeader(), nil
+	}
+	return this.blockStore.GetRawHeader(blockHash)
+}
+
 //GetHeaderByHash return the block header by block height
 func (this *LedgerStoreImp) GetHeaderByHeight(height uint32) (*types.Header, error) {
 	blockHash := this.GetBlockHash(height)
