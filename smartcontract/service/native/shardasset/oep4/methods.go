@@ -37,7 +37,7 @@ func transfer(native *native.NativeService, param *TransferParam) error {
 	toBalance.Add(toBalance, param.Amount)
 	setUserBalance(native, asset, param.To, toBalance)
 	// push event
-	event := &TransferEvent{Asset: callAddr, From: param.From, To: param.To, Amount: param.Amount}
+	event := &TransferEvent{AssetId: asset, From: param.From, To: param.To, Amount: param.Amount}
 	NotifyEvent(native, event.ToNotify())
 	return nil
 }
@@ -151,15 +151,32 @@ func notifyShardMint(native *native.NativeService, toShard types.ShardID, param 
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyShardMint: failed, err: %s", err)
 	}
-	if err := shardsysmsg.NotifyShard(native, toShard, utils.ShardAssetAddress, SHARD_RECEIVE_ASSET, bf.Bytes()); err != nil {
+	if err := shardsysmsg.NotifyShard(native, toShard, utils.ShardAssetAddress, XSHARD_RECEIVE_ASSET, bf.Bytes()); err != nil {
 		return fmt.Errorf("notifyShardMint: failed, err: %s", err)
 	}
 	return nil
 }
 
-func notifyTransferSuccess(native *native.NativeService, toShard types.ShardID, param *XShardTranSuccParam) error {
+func notifyTransferSuccess(native *native.NativeService, toShard types.ShardID, param *ShardMintParam) error {
+	event := &XShardReceiveEvent{
+		TransferEvent: &TransferEvent{
+			AssetId: AssetId(param.Asset),
+			From:    param.FromAccount,
+			To:      param.Account,
+			Amount:  param.Amount,
+		},
+		TransferId: param.TransferId,
+		FromShard:  param.FromShard,
+	}
+	NotifyEvent(native, event.ToNotify())
+
+	tranSuccParam := &XShardTranSuccParam{
+		Asset:      param.Asset,
+		Account:    param.Account,
+		TransferId: param.TransferId,
+	}
 	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
+	if err := tranSuccParam.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyTransferSuccess: failed, err: %s", err)
 	}
 	if err := shardsysmsg.NotifyShard(native, toShard, utils.ShardAssetAddress, XSHARD_TRANSFER_SUCC, bf.Bytes()); err != nil {

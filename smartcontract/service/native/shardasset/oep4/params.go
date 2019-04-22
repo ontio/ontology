@@ -339,11 +339,12 @@ func (this *XShardTransferRetryParam) Deserialize(r io.Reader) error {
 }
 
 type ShardMintParam struct {
-	Asset      uint64
-	Account    common.Address
-	FromShard  types.ShardID
-	TransferId *big.Int
-	Amount     *big.Int
+	Asset       uint64
+	Account     common.Address
+	FromShard   types.ShardID
+	FromAccount common.Address
+	TransferId  *big.Int
+	Amount      *big.Int
 }
 
 func (this *ShardMintParam) Serialize(w io.Writer) error {
@@ -355,6 +356,9 @@ func (this *ShardMintParam) Serialize(w io.Writer) error {
 	}
 	if err := utils.SerializeShardId(w, this.FromShard); err != nil {
 		return fmt.Errorf("serialize: write from shard id failed, err: %s", err)
+	}
+	if err := utils.WriteAddress(w, this.FromAccount); err != nil {
+		return fmt.Errorf("serialize: write from account addr failed, err: %s", err)
 	}
 	if err := serialization.WriteVarBytes(w, common.BigIntToNeoBytes(this.TransferId)); err != nil {
 		return fmt.Errorf("serialize: write transfer id failed, err: %s", err)
@@ -375,6 +379,9 @@ func (this *ShardMintParam) Deserialize(r io.Reader) error {
 	}
 	if this.FromShard, err = utils.DeserializeShardId(r); err != nil {
 		return fmt.Errorf("deserialize: read from shard failed, err: %s", err)
+	}
+	if this.FromAccount, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read from account addr failed, err: %s", err)
 	}
 	if amount, err := serialization.ReadVarBytes(r); err != nil {
 		return fmt.Errorf("deserialize: read amount failed, err: %s", err)

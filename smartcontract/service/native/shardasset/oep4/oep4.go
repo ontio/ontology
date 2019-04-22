@@ -47,7 +47,7 @@ const (
 
 	// call by shardsysmsg contract
 	XSHARD_TRANSFER_SUCC = "oep4XShardTransferSuccess"
-	SHARD_RECEIVE_ASSET  = "oep4ShardReceive"
+	XSHARD_RECEIVE_ASSET = "oep4ShardReceive"
 	ONG_XSHARD_RECEIVE   = "ongXShardReceive"
 
 	GET_PENDING_TRANSFER = "getOep4PendingTransfer"
@@ -74,12 +74,12 @@ func RegisterOEP4(native *native.NativeService) {
 	native.Register(ALLOWANCE, Allowance)
 	native.Register(XSHARD_TRANSFER, XShardTransfer)
 	native.Register(XSHARD_TRANFSER_RETRY, XShardTransferRetry)
-	native.Register(XSHARD_TRANSFER_SUCC, XShardTransferSucc)
+	native.Register(XSHARD_RECEIVE_ASSET, ShardReceiveAsset)
 	native.Register(ONG_XSHARD_TRANSFER, XShardTransferOng)
 	native.Register(ONG_XSHARD_TRANSFER_RETRY, XShardTransferOngRetry)
 	native.Register(ONG_XSHARD_RECEIVE, XShardReceiveOng)
 
-	native.Register(SHARD_RECEIVE_ASSET, ShardReceiveAsset)
+	native.Register(XSHARD_TRANSFER_SUCC, XShardTransferSucc)
 
 	native.Register(GET_PENDING_TRANSFER, GetPendingXShardTransfer)
 	native.Register(GET_TRANSFER, GetXShardTransferState)
@@ -338,7 +338,7 @@ func Approve(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("Approve: owner balance not enough")
 	}
 	setUserAllowance(native, asset, param.Owner, param.Spender, param.Allowance)
-	event := &ApproveEvent{Asset: callAddr, Owner: param.Owner, Spender: param.Spender, Allowance: param.Allowance}
+	event := &ApproveEvent{AssetId: asset, Owner: param.Owner, Spender: param.Spender, Allowance: param.Allowance}
 	NotifyEvent(native, event.ToNotify())
 	return utils.BYTE_TRUE, nil
 }
@@ -429,10 +429,12 @@ func XShardTransfer(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:      uint64(asset),
-		Account:    param.To,
-		Amount:     param.Amount,
-		TransferId: txId,
+		Asset:       uint64(asset),
+		Account:     param.To,
+		FromShard:   native.ShardID,
+		FromAccount: param.From,
+		Amount:      param.Amount,
+		TransferId:  txId,
 	}
 	if err := notifyShardMint(native, param.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
@@ -461,10 +463,12 @@ func XShardTransferRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:      uint64(asset),
-		Account:    transfer.ToAccount,
-		Amount:     transfer.Amount,
-		TransferId: param.TransferId,
+		Asset:       uint64(asset),
+		Account:     transfer.ToAccount,
+		Amount:      transfer.Amount,
+		FromShard:   native.ShardID,
+		FromAccount: param.From,
+		TransferId:  param.TransferId,
 	}
 	if err := notifyShardMint(native, transfer.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferRetry: failed, err: %s", err)
@@ -491,6 +495,17 @@ func XShardTransferSucc(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: failed, err: %s", err)
 		}
 	}
+	event := XShardTransferEvent{
+		TransferEvent: &TransferEvent{
+			AssetId: AssetId(param.Asset),
+			From:    param.Account,
+			To:      transfer.ToAccount,
+			Amount:  transfer.Amount,
+		},
+		TransferId: param.TransferId,
+		ToShard:    transfer.ToShard,
+	}
+	NotifyEvent(native, event.ToNotify())
 	return utils.BYTE_TRUE, nil
 }
 
@@ -518,12 +533,7 @@ func ShardReceiveAsset(native *native.NativeService) ([]byte, error) {
 		}
 	}
 
-	tranSuccParam := &XShardTranSuccParam{
-		Asset:      param.Asset,
-		Account:    param.Account,
-		TransferId: param.TransferId,
-	}
-	if err := notifyTransferSuccess(native, param.FromShard, tranSuccParam); err != nil {
+	if err := notifyTransferSuccess(native, param.FromShard, param); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
@@ -553,10 +563,12 @@ func XShardTransferOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOng: failed, err: %s", err)
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:      uint64(ONG_ASSET_ID),
-		Account:    param.To,
-		Amount:     param.Amount,
-		TransferId: txId,
+		Asset:       uint64(ONG_ASSET_ID),
+		Account:     param.To,
+		Amount:      param.Amount,
+		FromShard:   native.ShardID,
+		FromAccount: param.From,
+		TransferId:  txId,
 	}
 	if err := notifyShardReceiveOng(native, param.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
@@ -580,10 +592,12 @@ func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:      uint64(ONG_ASSET_ID),
-		Account:    transfer.ToAccount,
-		Amount:     transfer.Amount,
-		TransferId: param.TransferId,
+		Asset:       uint64(ONG_ASSET_ID),
+		Account:     transfer.ToAccount,
+		Amount:      transfer.Amount,
+		FromShard:   native.ShardID,
+		FromAccount: param.From,
+		TransferId:  param.TransferId,
 	}
 	if err := notifyShardReceiveOng(native, transfer.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOngRetry: failed, err: %s", err)
@@ -616,12 +630,7 @@ func XShardReceiveOng(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: failed, err: %s", err)
 		}
 	}
-	tranSuccParam := &XShardTranSuccParam{
-		Asset:      param.Asset,
-		Account:    param.Account,
-		TransferId: param.TransferId,
-	}
-	if err := notifyTransferSuccess(native, param.FromShard, tranSuccParam); err != nil {
+	if err := notifyTransferSuccess(native, param.FromShard, param); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil

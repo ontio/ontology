@@ -12,47 +12,47 @@ import (
 )
 
 type TransferEvent struct {
-	Asset  common.Address
-	From   common.Address
-	To     common.Address
-	Amount *big.Int
+	AssetId AssetId
+	From    common.Address
+	To      common.Address
+	Amount  *big.Int
 }
 
 func (this *TransferEvent) ToNotify() []interface{} {
-	return []interface{}{this.Asset.ToHexString(), this.From.ToBase58(), this.To.ToBase58(), this.Amount.String()}
+	return []interface{}{uint64(this.AssetId), this.From.ToBase58(), this.To.ToBase58(), this.Amount.String()}
 }
 
 type ApproveEvent struct {
-	Asset     common.Address
+	AssetId   AssetId
 	Owner     common.Address
 	Spender   common.Address
 	Allowance *big.Int
 }
 
 func (this *ApproveEvent) ToNotify() []interface{} {
-	return []interface{}{this.Asset.ToHexString(), this.Owner.ToBase58(), this.Spender.ToBase58(), this.Allowance.String()}
+	return []interface{}{uint64(this.AssetId), this.Owner.ToBase58(), this.Spender.ToBase58(), this.Allowance.String()}
 }
 
-type DepositToShardEvent struct {
+type XShardTransferEvent struct {
 	*TransferEvent
-	DepositId uint64
-	ToShard   types.ShardID
+	TransferId *big.Int
+	ToShard    types.ShardID
 }
 
-func (this *DepositToShardEvent) ToNotify() []interface{} {
+func (this *XShardTransferEvent) ToNotify() []interface{} {
 	transferEvent := this.TransferEvent.ToNotify()
-	return append(transferEvent, this.DepositId, this.ToShard.ToUint64())
+	return append(transferEvent, this.TransferId.String(), this.ToShard.ToUint64())
 }
 
-type WithdrawFromShardEvent struct {
+type XShardReceiveEvent struct {
 	*TransferEvent
-	WithdrawId types.ShardID
+	TransferId *big.Int
 	FromShard  types.ShardID
 }
 
-func (this *WithdrawFromShardEvent) ToNotify() []interface{} {
+func (this *XShardReceiveEvent) ToNotify() []interface{} {
 	transferEvent := this.TransferEvent.ToNotify()
-	return append(transferEvent, this.WithdrawId, this.FromShard.ToUint64())
+	return append(transferEvent, this.TransferId.String(), this.FromShard.ToUint64())
 }
 
 func NotifyEvent(native *native.NativeService, notify []interface{}) {
