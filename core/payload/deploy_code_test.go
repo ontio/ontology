@@ -19,24 +19,45 @@ package payload
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDeployCode_Serialize(t *testing.T) {
+func TestDeployCode(t *testing.T) {
 	deploy := DeployCode{
-		Code: []byte{1, 2, 3},
+		Code:        []byte{1, 2, 3},
+		NeedStorage: true,
+		Name:        "test",
+		Version:     "1.0.0",
+		Author:      "ontology",
+		Email:       "1@1.com",
+		Description: "test",
+
+		OntVersion: 1,
+		Owner:      common.ADDRESS_EMPTY,
+		AllShard:   true,
+		IsFrozen:   false,
+		ShardId:    9,
 	}
 
 	buf := bytes.NewBuffer(nil)
-	deploy.Serialize(buf)
+	err := deploy.Serialize(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
 	bs := buf.Bytes()
 	var deploy2 DeployCode
-	deploy2.Deserialize(buf)
+	err = deploy2.DeserializeForShard(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
 	assert.Equal(t, deploy2, deploy)
 
-	buf = bytes.NewBuffer(bs[:len(bs)-1])
-	err := deploy2.Deserialize(buf)
-	assert.NotNil(t, err)
+	buf = bytes.NewBuffer(bs)
+	err = deploy2.DeserializeForShard(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
