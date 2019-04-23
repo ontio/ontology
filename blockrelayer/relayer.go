@@ -96,6 +96,8 @@ func (self *Storage) SaveBlock(block *types.Block) error {
 }
 
 func (self *Storage) blockSaveLoop(task <-chan Task) {
+	t := time.NewTicker(MAX_TIME_OUT)
+	tLog := time.NewTicker(3 * time.Second)
 	for {
 		select {
 		case t, ok := <-task:
@@ -116,9 +118,9 @@ func (self *Storage) blockSaveLoop(task <-chan Task) {
 				self.backend.flush()
 				task.finished <- self.backend.currInfo.nextHeight - 1
 			}
-		case <-time.After(MAX_TIME_OUT):
+		case <-tLog.C:
 			log.Infof("relayer status: %s", self.DumpStatus())
-
+		case <-t.C:
 			self.backend.flush()
 			nextHeight := self.backend.currInfo.nextHeight
 
