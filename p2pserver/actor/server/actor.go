@@ -19,10 +19,12 @@
 package server
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
 )
@@ -41,9 +43,9 @@ func NewP2PActor(p2pServer *p2pserver.P2PServer) *P2PActor {
 }
 
 //start a actor called net_server
-func (this *P2PActor) Start() (*actor.PID, error) {
+func (this *P2PActor) Start(shardID types.ShardID) (*actor.PID, error) {
 	this.props = actor.FromProducer(func() actor.Actor { return this })
-	p2pPid, err := actor.SpawnNamed(this.props, "net_server")
+	p2pPid, err := actor.SpawnNamed(this.props, "net_server"+fmt.Sprintf("%s", shardID.ToUint64()))
 	return p2pPid, err
 }
 

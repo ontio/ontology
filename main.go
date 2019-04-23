@@ -185,7 +185,7 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 	}
 	defer chainmgr.Stop()
 	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
-	ldg, err := initLedger(ctx, rootshardID, stateHashHeight)
+	ldg, err := initLedger(ctx, nil, rootshardID, stateHashHeight)
 	if err != nil {
 		log.Errorf("%s", err)
 		return
@@ -200,7 +200,7 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 		log.Errorf("initTxPool error:%s", err)
 		return
 	}
-	p2pSvr, _, err := initP2PNode(ctx, txpool)
+	p2pSvr, _, err := initP2PNode(ctx, rootshardID, txpool)
 	if err != nil {
 		log.Errorf("initP2PNode error:%s", err)
 		return
@@ -210,7 +210,7 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 	go func() {
 		for {
 			if cfg := chainmgr.GetShardConfig(shardID); cfg != nil {
-				startShardChain(ctx, cfg, shardID)
+				startShardChain(ctx, ldg, cfg, shardID)
 				break
 			}
 		}
@@ -231,6 +231,8 @@ func startMainChain(ctx *cli.Context) {
 		log.Errorf("initWallet error:%s", err)
 		return
 	}
+	pubkey := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
+	log.Infof("server: %s starting", pubkey)
 	// start chain manager
 	chainmgr, err := initChainManager(ctx, acc)
 	if err != nil {
@@ -240,7 +242,7 @@ func startMainChain(ctx *cli.Context) {
 	defer chainmgr.Stop()
 
 	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
-	ldg, err := initLedger(ctx, shardID, stateHashHeight)
+	ldg, err := initLedger(ctx, nil, shardID, stateHashHeight)
 	if err != nil {
 		log.Errorf("%s", err)
 		return
@@ -257,7 +259,7 @@ func startMainChain(ctx *cli.Context) {
 		log.Errorf("initTxPool error:%s", err)
 		return
 	}
-	p2pSvr, p2pPid, err := initP2PNode(ctx, txpool)
+	p2pSvr, p2pPid, err := initP2PNode(ctx, shardID, txpool)
 	if err != nil {
 		log.Errorf("initP2PNode error:%s", err)
 		return
@@ -286,11 +288,12 @@ func startMainChain(ctx *cli.Context) {
 	waitToExit()
 }
 
-func startShardChain(ctx *cli.Context, cfg *config.OntologyConfig, shardID types.ShardID) {
+func startShardChain(ctx *cli.Context, mainledger *ledger.Ledger, cfg *config.OntologyConfig, shardID types.ShardID) {
 	acc := shard.GetAccount()
-	config.DefConfig = cfg
+	//todo
+	//config.DefConfig = cfg
 	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
-	ldg, err := initLedger(ctx, shardID, stateHashHeight)
+	ldg, err := initLedger(ctx, mainledger, shardID, stateHashHeight)
 	if err != nil {
 		log.Errorf("%s", err)
 		return
@@ -301,7 +304,7 @@ func startShardChain(ctx *cli.Context, cfg *config.OntologyConfig, shardID types
 		log.Errorf("initTxPool error:%s", err)
 		return
 	}
-	_, p2pPid, err := initP2PNode(ctx, txpool)
+	_, p2pPid, err := initP2PNode(ctx, shardID, txpool)
 	if err != nil {
 		log.Errorf("initP2PNode error:%s", err)
 		return
@@ -319,6 +322,7 @@ func startShardChain(ctx *cli.Context, cfg *config.OntologyConfig, shardID types
 	}
 	initRestful(ctx)
 	go logCurrBlockHeight(shardID)
+	waitToExit()
 }
 
 func initLog(ctx *cli.Context, shardID types.ShardID) {
@@ -386,8 +390,10 @@ func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManag
 	return chainmgr, err
 }
 
-func initLedger(ctx *cli.Context, shardID types.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
-	events.Init() //Init event hub
+func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID types.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
+	if shardID.IsRootShard() {
+		events.Init() //Init event hub
+	}
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
 	var err error
 	if shardID.IsRootShard() {
@@ -396,8 +402,11 @@ func initLedger(ctx *cli.Context, shardID types.ShardID, stateHashHeight uint32)
 			return nil, fmt.Errorf("NewLedger error:%s", err)
 		}
 	} else {
-		dbDir = utils.GetStoreDirPath(config.DefConfig.P2PNode.NetworkName, config.DefConfig.Common.DataDir)
-		ledger.DefLedger, err = ledger.NewShardLedger(shardID, dbDir, ledger.DefLedger)
+		//dbDir = utils.GetStoreDirPath(config.DefConfig.P2PNode.NetworkName, config.DefConfig.Common.DataDir)
+		if mainledger == nil {
+			return nil, fmt.Errorf("mainledger is nil")
+		}
+		ledger.DefLedger, err = ledger.NewShardLedger(shardID, dbDir, mainledger)
 		if err != nil {
 			return nil, fmt.Errorf("NewLedger error:%s", err)
 		}
@@ -444,17 +453,19 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	return txPoolServer, nil
 }
 
-func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-		return nil, nil, nil
-	}
-
+func initP2PNode(ctx *cli.Context, shardID types.ShardID, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
+	//todo solo open p2p
+	/*
+		if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+			return nil, nil, nil
+		}
+	*/
 	// TODO: fix P2P for sharding
 
 	p2p := p2pserver.NewServer()
 
 	p2pActor := p2pactor.NewP2PActor(p2p)
-	p2pPID, err := p2pActor.Start()
+	p2pPID, err := p2pActor.Start(shardID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("p2pActor init error %s", err)
 	}
