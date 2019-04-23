@@ -20,8 +20,10 @@ package common
 import (
 	"bytes"
 	"crypto/rand"
-	"github.com/ontio/ontology/common/serialization"
 	"testing"
+
+	"github.com/ontio/ontology/common/serialization"
+	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkZeroCopySource(b *testing.B) {
@@ -58,4 +60,10 @@ func BenchmarkDerserialize(b *testing.B) {
 		}
 	}
 
+}
+
+func TestReadFromNil(t *testing.T) {
+	s := NewZeroCopySource(nil)
+	_, _, _, eof := s.NextString()
+	assert.True(t, eof)
 }
