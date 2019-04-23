@@ -501,6 +501,11 @@ var (
 		Usage: "Shard ID",
 		Value: config.DEFAULT_SHARD_ID,
 	}
+	//solo shard setting
+	EnableSoloShardFlag = cli.BoolFlag{
+		Name:  "enable-solo-shard",
+		Usage: "Start Shard in testmode",
+	}
 )
 
 //GetFlagName deal with short flag, and return the flag name whether flag name have short name

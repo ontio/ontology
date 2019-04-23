@@ -131,6 +131,7 @@ func setupAPP() *cli.App {
 		utils.WsPortFlag,
 		//sharding setting
 		utils.ShardIDFlag,
+		utils.EnableSoloShardFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -402,7 +403,6 @@ func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID types.Shard
 			return nil, fmt.Errorf("NewLedger error:%s", err)
 		}
 	} else {
-		//dbDir = utils.GetStoreDirPath(config.DefConfig.P2PNode.NetworkName, config.DefConfig.Common.DataDir)
 		if mainledger == nil {
 			return nil, fmt.Errorf("mainledger is nil")
 		}
@@ -454,12 +454,9 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 }
 
 func initP2PNode(ctx *cli.Context, shardID types.ShardID, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
-	//todo solo open p2p
-	/*
-		if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-			return nil, nil, nil
-		}
-	*/
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO && !ctx.Bool(utils.GetFlagName(utils.EnableSoloShardFlag)) {
+		return nil, nil, nil
+	}
 	// TODO: fix P2P for sharding
 
 	p2p := p2pserver.NewServer()

@@ -261,6 +261,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Name: "SHARD",
 		Flags: []cli.Flag{
 			utils.ShardIDFlag,
+			utils.EnableSoloShardFlag,
 		},
 	},
 }

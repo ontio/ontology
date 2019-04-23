@@ -5,7 +5,7 @@ start main chain:
 now only support solo
 
 ```
-./ontology --testmode --testmode-gen-block-time 10 --networkid 300 --gasprice 0
+./ontology --testmode --testmode-gen-block-time 10 --networkid 300 --enable-solo-shard --gasprice 0
 ```
 1、wait gene some block then stop main chain copy -r chain dir to  shard chain dir
 2、start main chain,get some ong use cli withdrawong method
@@ -29,5 +29,5 @@ create peers.recent like:
 ```
 
 ```
-./ontology --testmode --ShardID  1 --networkid 300 --rpcport 30336 --nodeport 30338 --enable-consensus 2
+./ontology --testmode --ShardID  1 --networkid 300 --rpcport 30336 --nodeport 30338 --enable-consensus  --enable-solo-shard
 ```
