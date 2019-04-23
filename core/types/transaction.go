@@ -178,7 +178,12 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 		tx.Payload = pl
 	case Deploy:
 		pl := new(payload.DeployCode)
-		err := pl.Deserialization(source)
+		var err error = nil
+		if tx.Version == VERSION_SUPPORT_SHARD {
+			err = pl.DeserializationForShard(source)
+		} else {
+			err = pl.Deserialization(source)
+		}
 		if err != nil {
 			return err
 		}

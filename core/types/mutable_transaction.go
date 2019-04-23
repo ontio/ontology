@@ -118,15 +118,9 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	}
 	switch pl := tx.Payload.(type) {
 	case *payload.DeployCode:
-		err := pl.Serialization(sink)
-		if err != nil {
-			return err
-		}
+		pl.Serialization(sink)
 	case *payload.InvokeCode:
-		err := pl.Serialization(sink)
-		if err != nil {
-			return err
-		}
+		pl.Serialization(sink)
 	default:
 		return errors.New("wrong transaction payload type")
 	}

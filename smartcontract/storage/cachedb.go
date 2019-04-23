@@ -111,24 +111,22 @@ func (self *CacheDB) GetContract(addr comm.Address) (*payload.DeployCode, error)
 	}
 
 	contract := new(payload.DeployCode)
-	if err := contract.Deserialization(comm.NewZeroCopySource(value)); err != nil {
-		return nil, err
+	if err := contract.DeserializationForShard(comm.NewZeroCopySource(value)); err != nil {
+		if err := contract.Deserialization(comm.NewZeroCopySource(value)); err != nil {
+			return nil, err
+		}
 	}
 	return contract, nil
 }
 
-func (self *CacheDB) PutContract(contract *payload.DeployCode) error {
+func (self *CacheDB) PutContract(contract *payload.DeployCode) {
 	address := contract.Address()
 
 	sink := comm.NewZeroCopySink(0)
-	err := contract.Serialization(sink)
-	if err != nil {
-		return err
-	}
+	contract.Serialization(sink)
 
 	value := sink.Bytes()
 	self.put(common.ST_CONTRACT, address[:], value)
-	return nil
 }
 
 func (self *CacheDB) DeleteContract(address comm.Address) {

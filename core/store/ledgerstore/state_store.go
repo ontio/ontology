@@ -326,12 +326,14 @@ func (self *StateStore) GetContractState(contractHash common.Address) (*payload.
 	if err != nil {
 		return nil, err
 	}
-	reader := bytes.NewReader(value)
+
 	contractState := new(payload.DeployCode)
-	err = contractState.Deserialize(reader)
-	if err != nil {
-		return nil, err
+	if err = contractState.DeserializeForShard(bytes.NewReader(value)); err != nil {
+		if err = contractState.Deserialize(bytes.NewReader(value)); err != nil {
+			return nil, err
+		}
 	}
+
 	return contractState, nil
 }
 

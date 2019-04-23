@@ -19,7 +19,6 @@
 package payload
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -36,6 +35,12 @@ type DeployCode struct {
 	Author      string
 	Email       string
 	Description string
+
+	OntVersion uint64
+	Owner      common.Address
+	AllShard   bool
+	IsFrozen   bool
+	ShardId    uint64
 
 	address common.Address
 }
@@ -85,6 +90,22 @@ func (dc *DeployCode) Serialize(w io.Writer) error {
 		return fmt.Errorf("DeployCode Description Serialize failed: %s", err)
 	}
 
+	if err = serialization.WriteUint64(w, dc.OntVersion); err != nil {
+		return fmt.Errorf("DeployCode OntVersion Serialize failed: %s", err)
+	}
+	if err = dc.Owner.Serialize(w); err != nil {
+		return fmt.Errorf("DeployCode Owner Serialize failed: %s", err)
+	}
+	if err = serialization.WriteBool(w, dc.AllShard); err != nil {
+		return fmt.Errorf("DeployCode AllShard Serialize failed: %s", err)
+	}
+	if err = serialization.WriteBool(w, dc.IsFrozen); err != nil {
+		return fmt.Errorf("DeployCode IsFrozen Serialize failed: %s", err)
+	}
+	if err = serialization.WriteUint64(w, dc.ShardId); err != nil {
+		return fmt.Errorf("DeployCode shardId Serialize failed: %s", err)
+	}
+
 	return nil
 }
 
@@ -128,13 +149,44 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func (dc *DeployCode) ToArray() []byte {
-	b := new(bytes.Buffer)
-	dc.Serialize(b)
-	return b.Bytes()
+func (dc *DeployCode) DeserializeForShard(r io.Reader) error {
+	err := dc.Deserialize(r)
+	if err != nil {
+		return err
+	}
+	dc.OntVersion, err = serialization.ReadUint64(r)
+	if err != nil {
+		return fmt.Errorf("DeployCode OntVersion Deserialize failed: %s", err)
+	}
+	addr := &common.Address{}
+	err = addr.Deserialize(r)
+	if err != nil {
+		return fmt.Errorf("DeployCode Owner Deserialize failed: %s", err)
+	}
+	dc.Owner = *addr
+	dc.AllShard, err = serialization.ReadBool(r)
+	if err != nil {
+		return fmt.Errorf("DeployCode AllShard Deserialize failed: %s", err)
+	}
+	dc.IsFrozen, err = serialization.ReadBool(r)
+	if err != nil {
+		return fmt.Errorf("DeployCode IsFrozen Deserialize failed: %s", err)
+	}
+	dc.ShardId, err = serialization.ReadUint64(r)
+	if err != nil {
+		return fmt.Errorf("DeployCode ShardId Deserialize failed: %s", err)
+	}
+
+	return nil
 }
 
-func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
+func (dc *DeployCode) ToArray() []byte {
+	sink := common.NewZeroCopySink(0)
+	dc.Serialization(sink)
+	return sink.Bytes()
+}
+
+func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(dc.Code)
 	sink.WriteBool(dc.NeedStorage)
 	sink.WriteString(dc.Name)
@@ -142,8 +194,11 @@ func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteString(dc.Author)
 	sink.WriteString(dc.Email)
 	sink.WriteString(dc.Description)
-
-	return nil
+	sink.WriteUint64(dc.OntVersion)
+	sink.WriteAddress(dc.Owner)
+	sink.WriteBool(dc.AllShard)
+	sink.WriteBool(dc.IsFrozen)
+	sink.WriteUint64(dc.ShardId)
 }
 
 //note: DeployCode.Code has data reference of param source
@@ -188,5 +243,39 @@ func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 
+	return nil
+}
+
+func (dc *DeployCode) DeserializationForShard(source *common.ZeroCopySource) error {
+	err := dc.Deserialization(source)
+	if err != nil {
+		return err
+	}
+	var irr, eof bool
+	dc.OntVersion, eof = source.NextUint64()
+	dc.Owner, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	dc.AllShard, irr, eof = source.NextBool()
+	if irr {
+		return common.ErrIrregularData
+	}
+
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	dc.IsFrozen, irr, eof = source.NextBool()
+	if irr {
+		return common.ErrIrregularData
+	}
+
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	dc.ShardId, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	return nil
 }

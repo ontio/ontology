@@ -64,6 +64,8 @@ var (
 		TRANSACTION_GETATTRIBUTES_NAME:       {Execute: TransactionGetAttributes, Validator: validatorTransaction},
 		CONTRACT_CREATE_NAME:                 {Execute: ContractCreate},
 		CONTRACT_MIGRATE_NAME:                {Execute: ContractMigrate},
+		CONTRACT_ACTIVE_NAME:                 {Execute: ContractActive},
+		CONTRACT_FREEZE_NAME:                 {Execute: ContractFreeze},
 		CONTRACT_GETSTORAGECONTEXT_NAME:      {Execute: ContractGetStorageContext},
 		CONTRACT_DESTROY_NAME:                {Execute: ContractDestory},
 		CONTRACT_GETSCRIPT_NAME:              {Execute: ContractGetCode, Validator: validatorGetCode},
@@ -308,6 +310,12 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, error) {
 	log.Debugf("invoke contract address:%s", address.ToHexString())
 	if dep == nil {
 		return nil, CONTRACT_NOT_EXIST
+	}
+	if !dep.AllShard && dep.ShardId != this.ShardID.ToUint64() {
+		return nil, fmt.Errorf("[getContract] contract shardId %d unmatch %d!", dep.ShardId, this.ShardID.ToUint64())
+	}
+	if dep.IsFrozen {
+		return nil, fmt.Errorf("[getContract] contract frozen")
 	}
 	return dep.Code, nil
 }

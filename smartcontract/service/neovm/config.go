@@ -81,6 +81,8 @@ var (
 
 	CONTRACT_CREATE_NAME            = "Ontology.Contract.Create"
 	CONTRACT_MIGRATE_NAME           = "Ontology.Contract.Migrate"
+	CONTRACT_ACTIVE_NAME            = "Ontology.Contract.Active"
+	CONTRACT_FREEZE_NAME            = "Ontology.Contract.Freeze"
 	CONTRACT_GETSTORAGECONTEXT_NAME = "System.Contract.GetStorageContext"
 	CONTRACT_DESTROY_NAME           = "System.Contract.Destroy"
 	CONTRACT_GETSCRIPT_NAME         = "Ontology.Contract.GetScript"

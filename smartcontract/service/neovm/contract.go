@@ -46,6 +46,46 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// ContractCreate create a new smart contract on blockchain, and put it to vm stack
+func ContractActive(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	contract, err := isContractParamValid(engine)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractActive] contract parameters invalid!")
+	}
+	contractAddress := contract.Address()
+	dep, err := service.CacheDB.GetContract(contractAddress)
+	if err != nil || dep == nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractActive] contract invalid!")
+	}
+	if !service.ContextRef.CheckWitness(dep.Owner) {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractActive] Only can be call by owner!")
+	}
+	dep.IsFrozen = false
+	service.CacheDB.PutContract(dep)
+	vm.PushData(engine, dep)
+	return nil
+}
+
+// ContractCreate create a new smart contract on blockchain, and put it to vm stack
+func ContractFreeze(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	contract, err := isContractParamValid(engine)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractFreeze] contract parameters invalid!")
+	}
+	contractAddress := contract.Address()
+	dep, err := service.CacheDB.GetContract(contractAddress)
+	if err != nil || dep == nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractFreeze] contract invalid!")
+	}
+	if !service.ContextRef.CheckWitness(dep.Owner) {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractFreeze] Only can be call by owner!")
+	}
+	dep.IsFrozen = true
+	service.CacheDB.PutContract(dep)
+	vm.PushData(engine, dep)
+	return nil
+}
+
 // ContractMigrate migrate old smart contract to a new contract, and destroy old contract
 func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	contract, err := isContractParamValid(engine)
