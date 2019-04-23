@@ -62,9 +62,14 @@ const (
 	MAX_INV_BLK_CNT   = 64 //the maximum blk hash cnt of inv msg
 )
 
+// protocol versions
+const (
+	PROTOCOL_SUPPORT_SHARD = 1
+	PROTOCOL_VERSION       = PROTOCOL_SUPPORT_SHARD // protocol version
+)
+
 //info update const
 const (
-	PROTOCOL_VERSION      = 0     //protocol version
 	UPDATE_RATE_PER_BLOCK = 2     //info update rate in one generate block period
 	KEEPALIVE_TIMEOUT     = 15    //contact timeout in sec
 	DIAL_TIMEOUT          = 6     //connect timeout in sec
@@ -133,11 +138,13 @@ const (
 )
 
 type AppendPeerID struct {
-	ID uint64 // The peer id
+	ID     uint64 // The peer id
+	Shards []uint64
 }
 
 type RemovePeerID struct {
-	ID uint64 // The peer id
+	ID     uint64 // The peer id
+	Shards []uint64
 }
 
 type AppendHeaders struct {

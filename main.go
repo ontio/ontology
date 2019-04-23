@@ -460,7 +460,7 @@ func initP2PNode(ctx *cli.Context, shardID types.ShardID, txpoolSvr *proc.TXPool
 	}
 	// TODO: fix P2P for sharding
 
-	p2p := p2pserver.NewServer()
+	p2p := p2pserver.NewServer(shardID)
 
 	p2pActor := p2pactor.NewP2PActor(p2p)
 	p2pPID, err := p2pActor.Start(shardID)

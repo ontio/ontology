@@ -89,9 +89,9 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	case *TransmitConsensusMsgReq:
 		this.handleTransmitConsensusMsgReq(ctx, msg)
 	case *common.AppendPeerID:
-		this.server.OnAddNode(msg.ID)
+		this.server.OnAddNode(msg.ID, msg.Shards)
 	case *common.RemovePeerID:
-		this.server.OnDelNode(msg.ID)
+		this.server.OnDelNode(msg.ID, msg.Shards)
 	case *common.AppendHeaders:
 		this.server.OnHeaderReceive(msg.FromID, msg.Headers)
 	case *common.AppendBlock:

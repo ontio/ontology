@@ -21,6 +21,7 @@ package p2pserver
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"net"
@@ -48,11 +49,11 @@ import (
 
 //P2PServer control all network activities
 type P2PServer struct {
-	network   p2pnet.P2P
-	msgRouter *utils.MessageRouter
-	pid       *evtActor.PID
-	blockSync *BlockSyncMgr
-	ledger    *ledger.Ledger
+	network      p2pnet.P2P
+	msgRouter    *utils.MessageRouter
+	pid          *evtActor.PID
+	shardID      types.ShardID
+	blockSyncers map[uint64]*BlockSyncMgr
 	ReconnectAddrs
 	recentPeers    map[uint32][]string
 	quitSyncRecent chan bool
@@ -67,20 +68,21 @@ type ReconnectAddrs struct {
 }
 
 //NewServer return a new p2pserver according to the pubkey
-func NewServer() *P2PServer {
+func NewServer(shardID types.ShardID) *P2PServer {
 	n := netserver.NewNetServer()
 
 	p := &P2PServer{
 		network: n,
-		ledger:  ledger.DefLedger,
+		shardID: shardID,
 	}
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
-	p.blockSync = NewBlockSyncMgr(p)
+	p.blockSyncers = make(map[uint64]*BlockSyncMgr)
 	p.recentPeers = make(map[uint32][]string)
 	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
 	p.quitHeartBeat = make(chan bool)
+
 	return p
 }
 
@@ -106,7 +108,19 @@ func (this *P2PServer) Start() error {
 	go this.syncUpRecentPeers()
 	go this.keepOnlineService()
 	go this.heartBeatService()
-	go this.blockSync.Start()
+	for _, syncer := range this.blockSyncers {
+		syncer.Start()
+	}
+	return nil
+}
+
+func (this *P2PServer) StartSync(shardID types.ShardID, lgr *ledger.Ledger) error {
+	syncer := NewBlockSyncMgr(shardID, this, lgr)
+	if syncer == nil {
+		return fmt.Errorf("failed to init syncer for shard %d", shardID)
+	}
+	this.blockSyncers[shardID.ToUint64()] = syncer
+	syncer.Start()
 	return nil
 }
 
@@ -117,7 +131,9 @@ func (this *P2PServer) Stop() {
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
-	this.blockSync.Close()
+	for _, syncer := range this.blockSyncers {
+		syncer.Close()
+	}
 }
 
 // GetNetWork returns the low level netserver
@@ -187,24 +203,45 @@ func (this *P2PServer) GetID() uint64 {
 }
 
 // OnAddNode adds the peer id to the block sync mgr
-func (this *P2PServer) OnAddNode(id uint64) {
-	this.blockSync.OnAddNode(id)
+func (this *P2PServer) OnAddNode(id uint64, shards []uint64) {
+	for _, s := range shards {
+		if syncer := this.blockSyncers[s]; syncer != nil {
+			syncer.OnAddNode(id)
+		}
+	}
 }
 
 // OnDelNode removes the peer id from the block sync mgr
-func (this *P2PServer) OnDelNode(id uint64) {
-	this.blockSync.OnDelNode(id)
+func (this *P2PServer) OnDelNode(id uint64, shards []uint64) {
+	for _, s := range shards {
+		if syncer := this.blockSyncers[s]; syncer != nil {
+			syncer.OnDelNode(id)
+		}
+	}
 }
 
 // OnHeaderReceive adds the header list from network
 func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
-	this.blockSync.OnHeaderReceive(fromID, headers)
+	if len(headers) == 0 {
+		return
+	}
+
+	shardID := headers[0].ShardID
+	if syncer := this.blockSyncers[shardID]; syncer != nil {
+		syncer.OnHeaderReceive(fromID, headers)
+	}
 }
 
 // OnBlockReceive adds the block from network
 func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32,
 	block *types.Block, merkleRoot comm.Uint256) {
-	this.blockSync.OnBlockReceive(fromID, blockSize, block, merkleRoot)
+	if block == nil {
+		return
+	}
+	shardID := block.Header.ShardID
+	if syncer := this.blockSyncers[shardID]; syncer != nil {
+		syncer.OnBlockReceive(fromID, blockSize, block, merkleRoot)
+	}
 }
 
 // Todo: remove it if no use
@@ -226,44 +263,6 @@ func (this *P2PServer) SetPID(pid *evtActor.PID) {
 // GetPID returns p2p actor
 func (this *P2PServer) GetPID() *evtActor.PID {
 	return this.pid
-}
-
-//blockSyncFinished compare all nbr peers and self height at beginning
-func (this *P2PServer) blockSyncFinished() bool {
-	peers := this.network.GetNeighbors()
-	if len(peers) == 0 {
-		return false
-	}
-
-	blockHeight := this.ledger.GetCurrentBlockHeight()
-
-	for _, v := range peers {
-		if blockHeight < uint32(v.GetHeight()) {
-			return false
-		}
-	}
-	return true
-}
-
-//WaitForSyncBlkFinish compare the height of self and remote peer in loop
-func (this *P2PServer) WaitForSyncBlkFinish() {
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	if consensusType == "solo" {
-		return
-	}
-
-	for {
-		headerHeight := this.ledger.GetCurrentHeaderHeight()
-		currentBlkHeight := this.ledger.GetCurrentBlockHeight()
-		log.Info("[p2p]WaitForSyncBlkFinish... current block height is ",
-			currentBlkHeight, " ,current header height is ", headerHeight)
-
-		if this.blockSyncFinished() {
-			break
-		}
-
-		<-time.After(time.Second * (time.Duration(common.SYNC_BLK_WAIT)))
-	}
 }
 
 //WaitForPeersStart check whether enough peer linked in loop
@@ -514,9 +513,16 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
+	// TODO: support sharding
+	syncer := this.blockSyncers[config.DEFAULT_SHARD_ID]
+	if syncer == nil {
+		return
+	}
+
+	height := syncer.ledger.GetCurrentBlockHeight()
+
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
-			height := this.ledger.GetCurrentBlockHeight()
 			ping := msgpack.NewPingMsg(uint64(height))
 			go this.Send(p, ping, false)
 		}

@@ -236,13 +236,16 @@ type BlockSyncMgr struct {
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
-func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
+func NewBlockSyncMgr(shardID types.ShardID, server *P2PServer, lgr *ledger.Ledger) *BlockSyncMgr {
+	if lgr == nil {
+		return nil
+	}
 	return &BlockSyncMgr{
 		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo, 0),
 		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
 		blocksCache:   make(map[uint32]*BlockInfo, 0),
 		server:        server,
-		ledger:        server.ledger,
+		ledger:        lgr,
 		exitCh:        make(chan interface{}, 1),
 		nodeWeights:   make(map[uint64]*NodeWeight, 0),
 	}

@@ -23,6 +23,7 @@ import (
 
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/core/types"
 )
 
 type VersionPayload struct {
@@ -38,6 +39,7 @@ type VersionPayload struct {
 	Relay        uint8
 	IsConsensus  bool
 	SoftVersion  string
+	Shards       []uint64
 }
 
 type Version struct {
@@ -58,6 +60,10 @@ func (this *Version) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint8(this.P.Relay)
 	sink.WriteBool(this.P.IsConsensus)
 	sink.WriteString(this.P.SoftVersion)
+	sink.WriteUint32(uint32(len(this.P.Shards)))
+	for _, id := range this.P.Shards {
+		sink.WriteUint64(id)
+	}
 }
 
 func (this *Version) CmdType() string {
@@ -91,6 +97,22 @@ func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 	this.P.SoftVersion, _, irregular, eof = source.NextString()
 	if eof || irregular {
 		this.P.SoftVersion = ""
+	}
+
+	this.P.Shards = make([]uint64, 0)
+	shardCnt, eof := source.NextUint32()
+	if !eof {
+		for i := uint32(0); i < shardCnt; i++ {
+			shardId, eof := source.NextUint64()
+			if eof {
+				break
+			}
+			if _, err := types.NewShardID(shardId); err != nil {
+				break
+			} else {
+				this.P.Shards = append(this.P.Shards, shardId)
+			}
+		}
 	}
 
 	return nil
