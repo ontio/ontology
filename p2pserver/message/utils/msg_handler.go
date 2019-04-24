@@ -161,6 +161,18 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 
 	if pid != nil {
 		var block = data.Payload.(*msgTypes.Block)
+		stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
+		if block.Blk.Header.Height >= stateHashHeight && block.MerkleRoot == common.UINT256_EMPTY {
+			log.Info("received block msg with empty merkle root")
+			remotePeer := p2p.GetPeer(data.Id)
+			if remotePeer != nil {
+				remotePeer.CloseSync()
+				remotePeer.CloseCons()
+			}
+
+			return
+		}
+
 		input := &msgCommon.AppendBlock{
 			FromID:     data.Id,
 			BlockSize:  data.PayloadSize,
