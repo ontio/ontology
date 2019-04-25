@@ -19,7 +19,6 @@ package payload
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/common"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -34,12 +33,6 @@ func TestDeployCode(t *testing.T) {
 		Author:      "ontology",
 		Email:       "1@1.com",
 		Description: "test",
-
-		OntVersion: 1,
-		Owner:      common.ADDRESS_EMPTY,
-		AllShard:   true,
-		IsFrozen:   false,
-		ShardId:    9,
 	}
 
 	buf := bytes.NewBuffer(nil)
@@ -49,14 +42,14 @@ func TestDeployCode(t *testing.T) {
 	}
 	bs := buf.Bytes()
 	var deploy2 DeployCode
-	err = deploy2.DeserializeForShard(buf)
+	err = deploy2.Deserialize(buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, deploy2, deploy)
 
 	buf = bytes.NewBuffer(bs)
-	err = deploy2.DeserializeForShard(buf)
+	err = deploy2.Deserialize(buf)
 	if err != nil {
 		t.Fatal(err)
 	}

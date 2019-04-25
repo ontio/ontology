@@ -20,10 +20,10 @@ package neovm
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
