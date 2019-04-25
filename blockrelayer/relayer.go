@@ -27,8 +27,6 @@ import (
 
 const KEY_CURR = "current"
 
-var CHECK_HEIGHT = uint32(3000000)
-
 var DefStorage *Storage
 
 type Storage struct {
@@ -82,7 +80,6 @@ func Open(pt string) (*Storage, error) {
 	return store, nil
 }
 
-//remove block height > height
 func RevertToHeight(dbDir string, height uint32) error {
 	dB, err := OpenLevelDB(path.Join(dbDir, "metadb"))
 	if err != nil {
@@ -99,7 +96,7 @@ func RevertToHeight(dbDir string, height uint32) error {
 	} else if err != errors.ErrNotFound {
 		return err
 	}
-	if info.nextHeight-1 < height {
+	if info.nextHeight < height {
 		return fmt.Errorf("current block height is %d less than %d", info.nextHeight-1, height)
 	}
 
@@ -108,7 +105,7 @@ func RevertToHeight(dbDir string, height uint32) error {
 		return err
 	}
 	batch := new(leveldb.Batch)
-	for h := info.nextHeight - 1; h > height; h-- {
+	for h := info.nextHeight - 1; h >= height; h-- {
 		var metaKey [4]byte
 		binary.BigEndian.PutUint32(metaKey[:], h)
 		raw, err := metaDB.Get(metaKey[:])
@@ -128,7 +125,7 @@ func RevertToHeight(dbDir string, height uint32) error {
 
 func calculateCurrInfo(dbDir string, metaDB *MetaDB, height uint32) (*CurrInfo, error) {
 	var metaKey [4]byte
-	binary.BigEndian.PutUint32(metaKey[:], height)
+	binary.BigEndian.PutUint32(metaKey[:], height-1)
 	metaRaw, err := metaDB.Get(metaKey[:])
 	if err != nil {
 		return nil, err
@@ -355,7 +352,7 @@ type RawBlockMeta struct {
 }
 
 func NewRawBlockMeta(raw []byte, height uint32) RawBlockMeta {
-	if (height >= CHECK_HEIGHT && len(raw) != 32+8+4+4+4+32+4+32) || (height < CHECK_HEIGHT && len(raw) != 32+8+4+4+4+32+4) {
+	if (height >= uint32(3000000) && len(raw) != 32+8+4+4+4+32+4+32) || (height < 3000000 && len(raw) != 32+8+4+4+4+32+4) {
 		panic("wrong meta block len")
 	}
 	return RawBlockMeta{rawMeta: raw}
@@ -382,7 +379,7 @@ func (self *RawBlock) Size() int {
 }
 
 func (self *BlockMeta) Bytes() []byte {
-	buf := make([]byte, 0, 32+8+4+4+4+32+4+32)
+	buf := make([]byte, 0, 32+8+4+4+4+32+4+4)
 	sink := common.NewZeroCopySink(buf)
 	sink.WriteHash(self.hash)
 	sink.WriteUint64(self.offset)
@@ -391,7 +388,7 @@ func (self *BlockMeta) Bytes() []byte {
 	sink.WriteUint32(self.unSignedHeaderSize)
 	sink.WriteUint32(self.size)
 	sink.WriteHash(self.checksum)
-	if self.height >= CHECK_HEIGHT {
+	if self.height >= 3000000 {
 		sink.WriteHash(self.stateRoot)
 	}
 	return sink.Bytes()
@@ -407,7 +404,7 @@ func BlockMetaFromBytes(raw []byte) (meta BlockMeta, err error) {
 	meta.unSignedHeaderSize, eof = source.NextUint32()
 	meta.size, eof = source.NextUint32()
 	meta.checksum, eof = source.NextHash()
-	if meta.height >= CHECK_HEIGHT {
+	if meta.height >= 3000000 {
 		meta.stateRoot, eof = source.NextHash()
 	}
 	if eof {
@@ -568,6 +565,10 @@ func (self *StorageBackend) checkDataConsistence() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	var temp common.Uint256
+	checksum.Sum(temp[:0])
+	var temp2 common.Uint256
+	self.currInfo.checksum.Sum(temp2[:0])
 	return bytes.Equal(checksum.Sum(nil), self.currInfo.checksum.Sum(nil)), nil
 }
 
@@ -618,7 +619,7 @@ func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
 			return nil, fmt.Errorf("[relayer] getBlock  checkBlockHashConsistence failed")
 		}
 	}
-	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf, StateRoot:meta.stateRoot}, nil
+	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf}, nil
 }
 
 func checkBlockHashConsistence(buf []byte, meta BlockMeta) bool {
@@ -691,14 +692,26 @@ func (self *StorageBackend) saveBlock(block *RawBlock) error {
 			self.currInfo.nextHeight, block.Height)
 	}
 	self.currInfo.checksum.Write(block.Payload)
-	meta := BlockMeta{
-		hash:               block.Hash,
-		height:             block.Height,
-		headerSize:         uint32(block.HeaderSize),
-		unSignedHeaderSize: block.unSignedHeaderSize,
-		size:               uint32(block.Size()),
-		offset:             self.currInfo.blockOffset,
-		stateRoot:          block.StateRoot,
+	var meta BlockMeta
+	if block.Height < 3000000 {
+		meta = BlockMeta{
+			hash:               block.Hash,
+			height:             block.Height,
+			headerSize:         uint32(block.HeaderSize),
+			unSignedHeaderSize: block.unSignedHeaderSize,
+			size:               uint32(block.Size()),
+			offset:             self.currInfo.blockOffset,
+		}
+	} else {
+		meta = BlockMeta{
+			hash:               block.Hash,
+			height:             block.Height,
+			headerSize:         uint32(block.HeaderSize),
+			unSignedHeaderSize: block.unSignedHeaderSize,
+			size:               uint32(block.Size()),
+			offset:             self.currInfo.blockOffset,
+			stateRoot:          block.StateRoot,
+		}
 	}
 	self.currInfo.checksum.Sum(meta.checksum[:0])
 	_, err := self.blockDB.Write(block.Payload)
