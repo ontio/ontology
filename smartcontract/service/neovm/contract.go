@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
@@ -46,6 +47,30 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+// InitMetaData init contract meta data, we don't help user to check witness of owner
+func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	contractAddress := service.ContextRef.CurrentContext().ContractAddress
+	oldMeta, err := service.CacheDB.GetMetaData(contractAddress)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[InitMetaData] read meta data failed!")
+	}
+	if oldMeta != nil { // init contract meta data
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[InitMetaData] meta data has already initialized")
+	}
+	newMeta, err := getMetaData(engine)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("[InitMetaData] invalid param: %s", err))
+	}
+	if !checkInitMeta(newMeta) {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[InitMetaData] meta data should contain owner")
+	}
+	newMeta.OntVersion = common.VERSION_SUPPORT_SHARD
+	newMeta.Contract = service.ContextRef.CurrentContext().ContractAddress
+	service.CacheDB.PutMetaData(newMeta)
+	vm.PushData(engine, oldMeta)
+	return nil
+}
+
 // ContractMigrate migrate old smart contract to a new contract, and destroy old contract
 func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	contract, err := isContractParamValid(engine)
@@ -62,6 +87,16 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 	service.CacheDB.PutContract(contract)
 	service.CacheDB.DeleteContract(oldAddr)
+
+	meta, err := service.CacheDB.GetMetaData(oldAddr)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractMigrate] cannot get contract meta data!")
+	}
+	if meta != nil {
+		meta.Contract = newAddr
+		service.CacheDB.PutMetaData(meta)
+		service.CacheDB.DeleteMetaData(oldAddr)
+	}
 
 	iter := service.CacheDB.NewIterator(oldAddr[:])
 	for has := iter.First(); has; has = iter.Next() {
@@ -206,6 +241,48 @@ func isContractParamValid(engine *vm.ExecutionEngine) (*payload.DeployCode, erro
 		Description: string(desc),
 	}
 	return contract, nil
+}
+
+// param is owner, allShard, isFrozen, ShardId
+func getMetaData(engine *vm.ExecutionEngine) (*payload.MetaDataCode, error) {
+	if vm.EvaluationStackCount(engine) < 4 {
+		return nil, fmt.Errorf("too few input parameters")
+	}
+	meta := payload.NewDefaultMetaData()
+	owner, err := vm.PopByteArray(engine)
+	if err != nil {
+		return nil, fmt.Errorf("read owner failed, err: %s", err)
+	}
+	meta.Owner, err = common.AddressParseFromBytes(owner)
+	if err != nil {
+		return nil, fmt.Errorf("parse owner failed, err: %s", err)
+	}
+	meta.AllShard, err = vm.PopBoolean(engine)
+	if err != nil {
+		return nil, fmt.Errorf("read allShard failed, err: %s", err)
+	}
+	meta.IsFrozen, err = vm.PopBoolean(engine)
+	if err != nil {
+		return nil, fmt.Errorf("read isFrozen failed, err: %s", err)
+	}
+	shardId, err := vm.PopBigInt(engine)
+	if err != nil {
+		return nil, fmt.Errorf("read shardId failed, err: %s", err)
+	}
+	meta.ShardId = shardId.Uint64()
+	return meta, nil
+}
+
+func checkInitMeta(meta *payload.MetaDataCode) bool {
+	if meta.Owner == common.ADDRESS_EMPTY {
+		return false
+	}
+	if !meta.AllShard {
+		if _, err := types.NewShardID(meta.ShardId); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 func isContractExist(service *NeoVmService, contractAddress common.Address) error {

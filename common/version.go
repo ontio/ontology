@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package types
+package common
 
 const VERSION_SUPPORT_SHARD = 1 // add shard id in tx, add shard id and parent height in header
 

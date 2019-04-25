@@ -122,6 +122,88 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	return nil
 }
 
+//HandleChangeMetadataTransaction change contract metadata, only can be invoked by contract owner at root shard
+func (self *StateStore) HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
+	cache *storage.CacheDB, tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
+	shardID, err := types.NewShardID(block.Header.ShardID)
+	if err != nil {
+		return fmt.Errorf("generate shardId failed, %s", err)
+	}
+	cfg := &smartcontract.Config{
+		ShardID:   shardID,
+		Time:      block.Header.Timestamp,
+		Height:    block.Header.Height,
+		Tx:        tx,
+		BlockHash: block.Hash(),
+	}
+	defer func() {
+		if err != nil {
+			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, cfg, overlay, store, notify, shardID); err != nil {
+				log.Errorf("HandleChangeMetadataTransaction: costInvalidGas failed, err: %s", err)
+			} else {
+				cache.Commit()
+			}
+		}
+	}()
+	if tx.Version != common.VERSION_SUPPORT_SHARD {
+		return fmt.Errorf("unsupport tx version")
+	}
+	if !shardID.IsRootShard() {
+		return fmt.Errorf("only can be invoked at root")
+	}
+	newMeta, ok := tx.Payload.(*payload.MetaDataCode)
+	if !ok {
+		return fmt.Errorf("invalid payload")
+	}
+	meta, err := cache.GetMetaData(newMeta.Contract)
+	if err != nil {
+		return fmt.Errorf("read meta data form db failed, err: %s", err)
+	}
+	if meta == nil {
+		return fmt.Errorf("contract cannot contain meta data")
+	}
+	checkWitness := false
+	signerList, err := tx.GetSignatureAddresses()
+	if err != nil {
+		return fmt.Errorf("cannot get tx signer list, err: %s", err)
+	}
+	for _, signer := range signerList {
+		if signer == meta.Owner {
+			checkWitness = true
+		}
+	}
+	if !checkWitness {
+		return fmt.Errorf("tx cannot have owner signature")
+	}
+	// can only change the owner and active or freeze contract
+	// cannot change shard info
+	meta.Owner = newMeta.Owner
+	meta.IsFrozen = newMeta.IsFrozen
+	cache.PutMetaData(meta)
+	gasConsumed := uint64(0)
+	if tx.GasPrice > 0 {
+		setMetaGas, ok := neovm.GAS_TABLE.Load(neovm.CONTRACT_SET_META_DATA_NAME)
+		if !ok {
+			return fmt.Errorf("estimate gas failed")
+		}
+		wholeGas := setMetaGas.(uint64)
+		// init smart contract configuration info
+		if tx.GasLimit < wholeGas {
+			return fmt.Errorf("gasLimit insufficient, need:%d actual:%d", wholeGas, tx.GasLimit)
+		}
+		gasConsumed = tx.GasPrice * wholeGas
+		notifies, err := chargeCostGas(tx.Payer, gasConsumed, cfg, cache, store, shardID)
+		if err != nil {
+			return err
+		}
+		notify.Notify = append(notify.Notify, notifies...)
+	}
+	notify.GasConsumed = gasConsumed
+	notify.State = event.CONTRACT_STATE_SUCCESS
+	cache.Commit()
+	return nil
+}
+
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {

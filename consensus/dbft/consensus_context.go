@@ -31,7 +31,7 @@ import (
 	msg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
-const ContextVersion uint32 = types.CURR_HEADER_VERSION
+const ContextVersion uint32 = common.CURR_HEADER_VERSION
 
 type ConsensusContext struct {
 	State           ConsensusState

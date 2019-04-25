@@ -205,7 +205,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,
-		Version:          types.CURR_HEADER_VERSION,
+		Version:          common.CURR_HEADER_VERSION,
 		ShardID:          chainmgr.GetShardID().ToUint64(),
 		ParentHeight:     uint32(parentHeight),
 		TransactionsRoot: txRoot,

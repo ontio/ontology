@@ -102,13 +102,13 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	sink.WriteByte(byte(tx.Version))
 	sink.WriteByte(byte(tx.TxType))
 	sink.WriteUint32(tx.Nonce)
-	if tx.Version > CURR_TX_VERSION {
+	if tx.Version > common.CURR_TX_VERSION {
 		return fmt.Errorf("invalid tx version:%d", tx.Version)
 	}
 	sink.WriteUint64(tx.GasPrice)
 	sink.WriteUint64(tx.GasLimit)
 	sink.WriteBytes(tx.Payer[:])
-	if tx.Version == VERSION_SUPPORT_SHARD {
+	if tx.Version == common.VERSION_SUPPORT_SHARD {
 		sink.WriteUint64(tx.ShardID)
 	}
 
@@ -118,15 +118,9 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	}
 	switch pl := tx.Payload.(type) {
 	case *payload.DeployCode:
-		err := pl.Serialization(sink)
-		if err != nil {
-			return err
-		}
+		pl.Serialization(sink)
 	case *payload.InvokeCode:
-		err := pl.Serialization(sink)
-		if err != nil {
-			return err
-		}
+		pl.Serialization(sink)
 	default:
 		return errors.New("wrong transaction payload type")
 	}
@@ -147,7 +141,7 @@ func (tx *MutableTransaction) DeserializeUnsigned(r io.Reader) error {
 		return err
 	}
 	shardID := uint64(0)
-	if version >= VERSION_SUPPORT_SHARD {
+	if version >= common.VERSION_SUPPORT_SHARD {
 		shardID, err = serialization.ReadUint64(r)
 		if err != nil {
 			return err

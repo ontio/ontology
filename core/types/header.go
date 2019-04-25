@@ -64,10 +64,10 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) {
 //Serialize the blockheader data without program
 func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(bd.Version)
-	if bd.Version > CURR_HEADER_VERSION {
+	if bd.Version > common.CURR_HEADER_VERSION {
 		panic(fmt.Errorf("invalid header version:%d", bd.Version))
 	}
-	if bd.Version == VERSION_SUPPORT_SHARD {
+	if bd.Version == common.VERSION_SUPPORT_SHARD {
 		sink.WriteUint64(bd.ShardID)
 		sink.WriteUint32(bd.ParentHeight)
 	}
@@ -149,10 +149,10 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	if bd.Version > CURR_HEADER_VERSION {
+	if bd.Version > common.CURR_HEADER_VERSION {
 		return common.ErrIrregularData
 	}
-	if bd.Version == VERSION_SUPPORT_SHARD {
+	if bd.Version == common.VERSION_SUPPORT_SHARD {
 		bd.ShardID, eof = source.NextUint64()
 		bd.ParentHeight, eof = source.NextUint32()
 	}
