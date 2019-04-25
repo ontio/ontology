@@ -22,10 +22,16 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
 
 	"github.com/ontio/ontology/common"
+	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
+)
+
+const (
+	parentHeightKey = "parentHeight"
 )
 
 type BlockCacheStore struct {
@@ -55,6 +61,17 @@ func (this *BlockCacheStore) PutBlock(block *types.Block, stateMerkleRoot common
 	if this.shardID.ToUint64() != block.Header.ShardID {
 		return fmt.Errorf("unmatched shard id: %d vs %d", this.shardID, block.Header.ShardID)
 	}
+	currentHeight, err := this.GetCurrentParentHeight()
+	if err != nil {
+		return fmt.Errorf("PutBlockHeight err:%s", err)
+	}
+	if block.Header.Height <= currentHeight {
+		return nil
+	}
+	if currentHeight+1 != block.Header.Height && currentHeight != 0 {
+		return fmt.Errorf("block height %d not equal next block height %d", currentHeight, block.Header.Height)
+	}
+	this.PutBlockHeight(block.Header.Height)
 	mklKey := fmt.Sprintf("mkl-%d-%d", this.shardID.ToUint64(), block.Header.Height)
 	blkKey := fmt.Sprintf("blk-%d-%d", this.shardID.ToUint64(), block.Header.Height)
 	sink := common.NewZeroCopySink(0)
@@ -87,4 +104,25 @@ func (this *BlockCacheStore) DelBlock(height uint32) {
 	blkKey := fmt.Sprintf("blk-%d-%d", this.shardID.ToUint64(), height)
 	this.store.Delete([]byte(mklKey))
 	this.store.Delete([]byte(blkKey))
+}
+
+func (this *BlockCacheStore) PutBlockHeight(height uint32) {
+	parentHeight := fmt.Sprintf("%d", height)
+	this.store.Delete([]byte(parentHeight))
+	this.store.Put([]byte(parentHeightKey), []byte(parentHeight))
+}
+
+func (this *BlockCacheStore) GetCurrentParentHeight() (uint32, error) {
+	parentHeight, err := this.store.Get([]byte(parentHeightKey))
+	if err != nil {
+		if err == scommon.ErrNotFound {
+			return 0, nil
+		}
+		return 0, err
+	}
+	height, err := strconv.Atoi(string(parentHeight))
+	if err != nil {
+		return 0, err
+	}
+	return uint32(height), nil
 }

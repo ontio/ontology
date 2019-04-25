@@ -292,7 +292,7 @@ func startMainChain(ctx *cli.Context) {
 func startShardChain(ctx *cli.Context, chainmagr *shard.ChainManager, mainledger *ledger.Ledger, cfg *config.OntologyConfig, shardID types.ShardID) {
 	acc := shard.GetAccount()
 	//todo
-	//config.DefConfig = cfg
+	config.DefConfig = cfg
 	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
 	ldg, err := initLedger(ctx, mainledger, shardID, stateHashHeight)
 	if err != nil {

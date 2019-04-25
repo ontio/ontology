@@ -37,6 +37,8 @@ import (
 )
 
 func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.OntologyConfig {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	if s := self.shards[shardID]; s != nil {
 		return s.Config
 	}
@@ -44,6 +46,8 @@ func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.Ontology
 }
 
 func (self *ChainManager) setShardConfig(shardID types.ShardID, cfg *config.OntologyConfig) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	if info := self.shards[shardID]; info != nil {
 		info.Config = cfg
 		return nil

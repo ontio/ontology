@@ -161,7 +161,7 @@ func (self *SoloService) genBlock() error {
 
 	// parentHeight order consistency check
 	if self.parentHeight > block.Header.ParentHeight {
-		return fmt.Errorf("invalid parent height: %d vs %s", self.parentHeight, block.Header.ParentHeight)
+		return fmt.Errorf("invalid parent height: %d vs %d", self.parentHeight, block.Header.ParentHeight)
 	}
 	result, err := ledger.DefLedger.ExecuteBlock(block)
 	if err != nil {
@@ -224,7 +224,6 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get parentBlock height: %s", err)
 	}
-
 	// get Cross-Shard Txs from chain-mgr
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {

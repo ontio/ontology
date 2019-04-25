@@ -24,8 +24,8 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
 )
 
 const shard_port_gap = 10
@@ -76,20 +76,24 @@ func GetParentShardHeight() (uint32, error) {
 	if chainmgr.shardID.IsRootShard() {
 		return 0, nil
 	}
-
-	h := uint32(0)
-	if m := chainmgr.blockPool.Shards[chainmgr.shardID.ParentID()]; m != nil {
-		for _, blk := range m {
-			if blk.Height > h {
-				h = blk.Height
-			}
-		}
-	} else if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
-		h = cfg.Shard.GenesisParentHeight
-	} else {
-		log.Errorf("failed to get self shard config")
+	shardLedger := GetShardLedger(chainmgr.shardID)
+	if shardLedger == nil {
+		return 0, nil
 	}
-
+	h := uint32(0)
+	height, err := shardLedger.ParentBlockCache.GetCurrentParentHeight()
+	if err != nil {
+		return h, err
+	}
+	if height == 0 {
+		if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
+			h = cfg.Shard.GenesisParentHeight
+		} else {
+			log.Errorf("failed to get self shard config")
+		}
+	} else {
+		h = height
+	}
 	return h, nil
 }
 
@@ -114,6 +118,8 @@ func GetShardBlock(shardID types.ShardID, height uint32) *types.Block {
 
 func GetShardLedger(shardID types.ShardID) *ledger.Ledger {
 	chainmgr := GetChainManager()
+	chainmgr.lock.RLock()
+	defer chainmgr.lock.RUnlock()
 	if shardInfo := chainmgr.shards[shardID]; shardInfo != nil {
 		return shardInfo.Ledger
 	}

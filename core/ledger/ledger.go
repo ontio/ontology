@@ -126,9 +126,12 @@ func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256)
 		}
 		return err
 	} else {
-		return DefLedger.ParentBlockCache.PutBlock(block, stateMerkleRoot)
+		if block.Header.Height > DefLedger.ParentLedger.GetCurrentBlockHeight() {
+			return DefLedger.ParentBlockCache.PutBlock(block, stateMerkleRoot)
+		} else {
+			return nil
+		}
 	}
-	return fmt.Errorf("invalid block to add")
 }
 
 func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
@@ -142,11 +145,11 @@ func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error 
 			log.Errorf("Ledger GetHeaderByHeight BlockHeight:%d,error:%s", b.Header.Height-1, err)
 			return err
 		}
-		for blockHeight := lastHeader.ParentHeight; blockHeight < b.Header.ParentHeight; blockHeight++ {
+		for blockHeight := lastHeader.ParentHeight + 1; blockHeight < b.Header.ParentHeight; blockHeight++ {
 			parentBlock, statemerkleRoot, err := self.ParentBlockCache.GetBlock(blockHeight)
 			if err != nil {
-				log.Errorf("Ledger ParentBlockCache BlockHeight:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
-				return err
+				log.Warnf("Ledger ParentBlockCache sharad height:%d,blockHeight:%d,ParentHeight:%d error:%s", b.Header.Height, blockHeight, b.Header.ParentHeight, err)
+				break
 			}
 			err = self.ParentLedger.ldgStore.AddBlock(parentBlock, statemerkleRoot)
 			if err == nil {
