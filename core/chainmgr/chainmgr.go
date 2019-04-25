@@ -130,7 +130,7 @@ func (self *ChainManager) LoadFromLedger(mainLedger *ledger.Ledger) error {
 	}
 	self.processedParentBlockHeight = processedBlockHeight
 	self.mainLedger = mainLedger
-
+	self.SetShardLedger(self.shardID, mainLedger)
 	// TODO: load parent-shard/sib-shard blockhdrs from ledger
 
 	// start listen on local shard events
@@ -336,4 +336,10 @@ func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPLis
 func (self *ChainManager) getShardRPCPort(shardID types.ShardID) uint {
 	// TODO: get from shardinfo
 	return 0
+}
+
+func (self *ChainManager) SetShardLedger(shardID types.ShardID, ledger *ledger.Ledger) {
+	self.shards[shardID] = &ShardInfo{
+		Ledger: ledger,
+	}
 }

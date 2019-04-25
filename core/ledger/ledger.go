@@ -136,11 +136,6 @@ func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 }
 
 func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
-	err := self.ldgStore.SubmitBlock(b, exec)
-	if err != nil {
-		log.Errorf("Ledger SubmitBlock BlockHeight:%d BlockHash:%x error:%s", b.Header.Height, b.Hash(), err)
-		return err
-	}
 	if !self.ShardID.IsRootShard() {
 		lastHeader, err := self.GetHeaderByHeight(b.Header.Height - 1)
 		if err != nil {
@@ -159,6 +154,11 @@ func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error 
 			}
 			return err
 		}
+	}
+	err := self.ldgStore.SubmitBlock(b, exec)
+	if err != nil {
+		log.Errorf("Ledger SubmitBlock BlockHeight:%d BlockHash:%x error:%s", b.Header.Height, b.Hash(), err)
+		return err
 	}
 	return nil
 }

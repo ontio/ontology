@@ -211,7 +211,7 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 	go func() {
 		for {
 			if cfg := chainmgr.GetShardConfig(shardID); cfg != nil {
-				startShardChain(ctx, ldg, cfg, shardID)
+				startShardChain(ctx, chainmgr, ldg, cfg, shardID)
 				break
 			}
 		}
@@ -289,7 +289,7 @@ func startMainChain(ctx *cli.Context) {
 	waitToExit()
 }
 
-func startShardChain(ctx *cli.Context, mainledger *ledger.Ledger, cfg *config.OntologyConfig, shardID types.ShardID) {
+func startShardChain(ctx *cli.Context, chainmagr *shard.ChainManager, mainledger *ledger.Ledger, cfg *config.OntologyConfig, shardID types.ShardID) {
 	acc := shard.GetAccount()
 	//todo
 	//config.DefConfig = cfg
@@ -299,6 +299,7 @@ func startShardChain(ctx *cli.Context, mainledger *ledger.Ledger, cfg *config.On
 		log.Errorf("%s", err)
 		return
 	}
+	chainmagr.SetShardLedger(shardID, ldg)
 	defer ldg.Close()
 	txpool, err := initTxPool(ctx)
 	if err != nil {
