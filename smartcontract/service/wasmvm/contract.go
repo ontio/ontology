@@ -25,7 +25,7 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
-func (self *Runtime) ContractCreate(proc *exec.Process,
+func ContractCreate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
 	needStorage uint32,
@@ -40,6 +40,7 @@ func (self *Runtime) ContractCreate(proc *exec.Process,
 	descPtr uint32,
 	descLen uint32,
 	newAddressPtr uint32) uint32 {
+	self := proc.HostData().(*Runtime)
 
 	if uint32(proc.MemAllocated()) < codeLen+nameLen+verLen+authorLen+emailLen+descLen {
 		panic(errors.NewErr("contract create len is greater than memory size"))
@@ -104,7 +105,7 @@ func (self *Runtime) ContractCreate(proc *exec.Process,
 
 }
 
-func (self *Runtime) ContractMigrate(proc *exec.Process,
+func ContractMigrate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
 	needStorage uint32,
@@ -119,6 +120,8 @@ func (self *Runtime) ContractMigrate(proc *exec.Process,
 	descPtr uint32,
 	descLen uint32,
 	newAddressPtr uint32) uint32 {
+
+	self := proc.HostData().(*Runtime)
 
 	if uint32(proc.MemAllocated()) < codeLen+nameLen+verLen+authorLen+emailLen+descLen {
 		panic(errors.NewErr("contract migrate len is greater than memory size"))
@@ -201,7 +204,8 @@ func (self *Runtime) ContractMigrate(proc *exec.Process,
 	return uint32(length)
 }
 
-func (self *Runtime) ContractDelete(proc *exec.Process) {
+func ContractDelete(proc *exec.Process) {
+	self := proc.HostData().(*Runtime)
 	contractAddress := self.Service.ContextRef.CurrentContext().ContractAddress
 	iter := self.Service.CacheDB.NewIterator(contractAddress[:])
 

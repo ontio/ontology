@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -658,6 +659,20 @@ func InvokeNeoVMContract(
 	return InvokeSmartContract(signer, tx)
 }
 
+//Invoke wasm vm smart contract. if isPreExec is true, the invoke will not really execute
+func InvokeWasmVMContract(
+	gasPrice,
+	gasLimit uint64,
+	signer *account.Account,
+	smartcodeAddress common.Address,
+	params []interface{}) (string, error) {
+	tx, err := httpcom.NewWasmVMInvokeTransaction(gasPrice, gasLimit, smartcodeAddress, params)
+	if err != nil {
+		return "", err
+	}
+	return InvokeSmartContract(signer, tx)
+}
+
 //InvokeSmartContract is low level method to invoke contact.
 func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) (string, error) {
 	err := SignTransaction(signer, tx)
@@ -707,6 +722,27 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error)
 	if err != nil {
 		return nil, err
 	}
+	var buffer bytes.Buffer
+	err = tx.Serialize(&buffer)
+	if err != nil {
+		return nil, fmt.Errorf("tx serialize error:%s", err)
+	}
+	txData := hex.EncodeToString(buffer.Bytes())
+	return PrepareSendRawTransaction(txData)
+}
+
+//prepare invoke wasm
+func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interface{}) (*cstates.PreExecResult, error) {
+	mutable, err := httpcom.NewWasmVMInvokeTransaction(0, 0, contractAddress, params)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return nil, err
+	}
+
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
@@ -789,4 +825,48 @@ func ParseNeoVMContractReturnTypeString(hexStr string) (string, error) {
 		return "", fmt.Errorf("hex.DecodeString:%s error:%s", hexStr, err)
 	}
 	return string(data), nil
+}
+
+func ParseWasmVMContractReturnTypeByteArray(hexStr string) (string, error) {
+	hexbs, err := common.HexToBytes(hexStr)
+	if err != nil {
+		return "", fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
+	}
+	bf := bytes.NewBuffer(hexbs)
+	bs, err := serialization.ReadVarBytes(bf)
+	if err != nil {
+		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, err)
+	}
+	return common.ToHexString(bs), nil
+}
+
+//ParseWasmVMContractReturnTypeString return string value of smart contract execute code.
+func ParseWasmVMContractReturnTypeString(hexStr string) (string, error) {
+	hexbs, err := common.HexToBytes(hexStr)
+	if err != nil {
+		return "", fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
+	}
+	bf := bytes.NewBuffer(hexbs)
+	return serialization.ReadString(bf)
+}
+
+//ParseWasmVMContractReturnTypeInteger return integer value of smart contract execute code.
+func ParseWasmVMContractReturnTypeInteger(hexStr string) (int64, error) {
+	hexbs, err := common.HexToBytes(hexStr)
+	if err != nil {
+		return 0, fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
+	}
+	bf := bytes.NewBuffer(hexbs)
+	res, err := serialization.ReadUint64(bf)
+	return int64(res), err
+}
+
+//ParseWasmVMContractReturnTypeBool return bool value of smart contract execute code.
+func ParseWasmVMContractReturnTypeBool(hexStr string) (bool, error) {
+	hexbs, err := common.HexToBytes(hexStr)
+	if err != nil {
+		return false, fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
+	}
+	bf := bytes.NewBuffer(hexbs)
+	return serialization.ReadBool(bf)
 }

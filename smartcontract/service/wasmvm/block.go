@@ -21,7 +21,8 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 )
 
-func (self *Runtime) GetCurrentBlockHash(proc *exec.Process, ptr uint32) uint32 {
+func GetCurrentBlockHash(proc *exec.Process, ptr uint32) uint32 {
+	self := proc.HostData().(*Runtime)
 	self.checkGas(CURRENT_BLOCK_HASH_GAS)
 	blockhash := self.Service.BlockHash
 
@@ -30,5 +31,4 @@ func (self *Runtime) GetCurrentBlockHash(proc *exec.Process, ptr uint32) uint32 
 		panic(err)
 	}
 	return uint32(length)
-
 }
