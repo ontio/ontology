@@ -119,38 +119,15 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 }
 
 func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	if block.Header.ShardID == self.ShardID.ToUint64() {
+	if block.Header.ShardID == DefLedger.ShardID.ToUint64() {
 		err := self.ldgStore.AddBlock(block, stateMerkleRoot)
 		if err != nil {
 			log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
-			return err
-		}
-		if !self.ShardID.IsRootShard() {
-			lastHeader, err := self.GetHeaderByHeight(block.Header.Height - 1)
-			if err != nil {
-				log.Errorf("Ledger GetHeaderByHeight BlockHeight:%d,error:%s", block.Header.Height-1, err)
-				return err
-			}
-			for blockHeight := lastHeader.ParentHeight; blockHeight < block.Header.ParentHeight; blockHeight++ {
-				parentBlock, statemerkleRoot, err := self.ParentBlockCache.GetBlock(blockHeight)
-				if err != nil {
-					log.Errorf("Ledger ParentBlockCache BlockHeight:%d,ParentHeight:%d error:%s", block.Header.Height, block.Header.ParentHeight, err)
-					return err
-				}
-				err = self.ParentLedger.AddBlock(parentBlock, statemerkleRoot)
-				if err == nil {
-					self.ParentBlockCache.DelBlock(blockHeight)
-				}
-				return err
-			}
 		}
 		return err
-	} else if block.Header.ShardID == self.ShardID.ParentID().ToUint64() {
-		return self.ParentBlockCache.PutBlock(block, stateMerkleRoot)
-	} else if self.ParentLedger != nil {
-		return self.ParentLedger.AddBlock(block, stateMerkleRoot)
+	} else {
+		return DefLedger.ParentBlockCache.PutBlock(block, stateMerkleRoot)
 	}
-
 	return fmt.Errorf("invalid block to add")
 }
 
@@ -159,7 +136,31 @@ func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 }
 
 func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
-	return self.ldgStore.SubmitBlock(b, exec)
+	err := self.ldgStore.SubmitBlock(b, exec)
+	if err != nil {
+		log.Errorf("Ledger SubmitBlock BlockHeight:%d BlockHash:%x error:%s", b.Header.Height, b.Hash(), err)
+		return err
+	}
+	if !self.ShardID.IsRootShard() {
+		lastHeader, err := self.GetHeaderByHeight(b.Header.Height - 1)
+		if err != nil {
+			log.Errorf("Ledger GetHeaderByHeight BlockHeight:%d,error:%s", b.Header.Height-1, err)
+			return err
+		}
+		for blockHeight := lastHeader.ParentHeight; blockHeight < b.Header.ParentHeight; blockHeight++ {
+			parentBlock, statemerkleRoot, err := self.ParentBlockCache.GetBlock(blockHeight)
+			if err != nil {
+				log.Errorf("Ledger ParentBlockCache BlockHeight:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
+				return err
+			}
+			err = self.ParentLedger.ldgStore.AddBlock(parentBlock, statemerkleRoot)
+			if err == nil {
+				self.ParentBlockCache.DelBlock(blockHeight)
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, err error) {
