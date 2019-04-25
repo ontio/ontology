@@ -23,6 +23,7 @@ import (
 	"github.com/ontio/ontology/blockrelayer"
 	"github.com/ontio/ontology/cmd"
 	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
@@ -57,6 +58,9 @@ func setupBlockRelayer() *cli.App {
 		utils.MaxConnInBoundFlag,
 		utils.MaxConnOutBoundFlag,
 		utils.MaxConnInBoundForSingleIPFlag,
+	}
+	app.Commands = []cli.Command{
+		cmd.RevertCommand,
 	}
 	//app.Commands = []cli.Command{
 	//	cmdsvr.ImportWalletCommand,
@@ -134,7 +138,7 @@ func initBlockRelayer(ctx *cli.Context) (*blockrelayer.Storage, error) {
 	if err != nil {
 		return nil, err
 	}
-	storage.SaveBlock(genesisBlock)
+	storage.SaveBlock(genesisBlock, common.UINT256_EMPTY)
 	blockrelayer.DefStorage = storage
 	log.Infof("BlockRelayer init success")
 	return storage, nil

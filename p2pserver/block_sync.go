@@ -633,11 +633,11 @@ func (this *BlockSyncMgr) saveBlock() {
 	}
 	this.lock.Unlock()
 	for {
-		fromID, nextBlock, _ := this.getBlockCache(nextBlockHeight)
+		fromID, nextBlock, stateRoot := this.getBlockCache(nextBlockHeight)
 		if nextBlock == nil {
 			return
 		}
-		err := this.relayer.SaveBlock(nextBlock)
+		err := this.relayer.SaveBlock(nextBlock, stateRoot)
 		this.delBlockCache(nextBlockHeight)
 		if err != nil {
 			this.addErrorRespCnt(fromID)
