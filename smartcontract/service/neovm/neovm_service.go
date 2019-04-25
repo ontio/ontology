@@ -21,6 +21,7 @@ package neovm
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	scommon "github.com/ontio/ontology/common"
@@ -110,7 +111,7 @@ var (
 )
 
 type (
-	Execute   func(service *NeoVmService, engine *vm.ExecutionEngine) error
+	Execute func(service *NeoVmService, engine *vm.ExecutionEngine) error
 	Validator func(engine *vm.ExecutionEngine) error
 )
 
@@ -140,21 +141,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
-	contractAddr := scommon.AddressFromVmCode(this.Code)
-	meta, err := this.CacheDB.GetMetaData(contractAddr)
-	if err != nil {
-		return nil, CONTRACT_READ_META_ERR
-	}
-	// old contract can only be invoked at root
-	if meta == nil {
-		if !this.ShardID.IsRootShard() {
-			return nil, CONTRACT_CANNOT_RUN_AT_SHARD
-		}
-	} else if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() { // check contract can be invoked at this shard
-		return nil, CONTRACT_CANNOT_RUN_AT_SHARD
-	}
-
-	this.ContextRef.PushContext(&context.Context{ContractAddress: contractAddr, Code: this.Code})
+	this.ContextRef.PushContext(&context.Context{ContractAddress: scommon.AddressFromVmCode(this.Code), Code: this.Code})
 	this.Engine.PushContext(vm.NewExecutionContext(this.Engine, this.Code))
 	for {
 		//check the execution step count
@@ -245,6 +232,22 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			code, err := this.getContract(addr)
 			if err != nil {
 				return nil, err
+			}
+			_, isNativeContract := native.Contracts[addr]
+			if !isNativeContract { // native contract don't have meta data
+				meta, err := this.CacheDB.GetMetaData(addr)
+				if err != nil {
+					return nil, CONTRACT_READ_META_ERR
+				}
+				// old contract can only be invoked at root
+				if meta == nil {
+					if !this.ShardID.IsRootShard() {
+						return nil, CONTRACT_CANNOT_RUN_AT_SHARD
+					}
+				} else if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() {
+					// check contract can be invoked at current shard
+					return nil, CONTRACT_CANNOT_RUN_AT_SHARD
+				}
 			}
 			service, err := this.ContextRef.NewExecuteEngine(code)
 			if err != nil {
