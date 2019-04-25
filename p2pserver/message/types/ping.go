@@ -26,12 +26,16 @@ import (
 )
 
 type Ping struct {
-	Height uint64
+	Height map[uint64]uint32
 }
 
 //Serialize message payload
 func (this Ping) Serialization(sink *comm.ZeroCopySink) {
-	sink.WriteUint64(this.Height)
+	sink.WriteUint32(uint32(len(this.Height)))
+	for id, h := range this.Height {
+		sink.WriteUint64(id)
+		sink.WriteUint32(h)
+	}
 }
 
 func (this *Ping) CmdType() string {
@@ -40,10 +44,20 @@ func (this *Ping) CmdType() string {
 
 //Deserialize message payload
 func (this *Ping) Deserialization(source *comm.ZeroCopySource) error {
-	var eof bool
-	this.Height, eof = source.NextUint64()
+	n, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
+	}
+	for i := uint32(0); i < n; i++ {
+		id, eof := source.NextUint64()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		h, eof := source.NextUint32()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.Height[id] = h
 	}
 
 	return nil

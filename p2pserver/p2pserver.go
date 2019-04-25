@@ -513,17 +513,15 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
-	// TODO: support sharding
-	syncer := this.blockSyncers[config.DEFAULT_SHARD_ID]
-	if syncer == nil {
-		return
-	}
+	heights := make(map[uint64]uint32)
 
-	height := syncer.ledger.GetCurrentBlockHeight()
+	for id, syncer := range this.blockSyncers {
+		heights[id] = syncer.ledger.GetCurrentBlockHeight()
+	}
 
 	for _, p := range peers {
 		if p.GetSyncState() == common.ESTABLISH {
-			ping := msgpack.NewPingMsg(uint64(height))
+			ping := msgpack.NewPingMsg(heights)
 			go this.Send(p, ping, false)
 		}
 	}

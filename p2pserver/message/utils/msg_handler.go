@@ -118,9 +118,8 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	}
 	remotePeer.SetHeight(ping.Height)
 
-	height := ledger.DefLedger.GetCurrentBlockHeight()
-	p2p.SetHeight(uint64(height))
-	msg := msgpack.NewPongMsg(uint64(height))
+	height := p2p.GetHeight()
+	msg := msgpack.NewPongMsg(height)
 
 	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
@@ -282,12 +281,12 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
+			version.P.Relay, version.P.ShardHeights, version.P.SoftVersion)
 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
+			msg = msgpack.NewVersion(p2p, true, nil)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
@@ -362,7 +361,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
+			version.P.Relay, version.P.ShardHeights, version.P.SoftVersion)
 		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
 
@@ -376,7 +375,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
+			msg = msgpack.NewVersion(p2p, false, nil)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)

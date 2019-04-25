@@ -143,7 +143,7 @@ func Test_RCV(t *testing.T) {
 	}
 	statelessV3.Register(rspPid)
 
-	statefulV, err := stateful.NewValidator("stateful")
+	statefulV, err := stateful.NewValidator("stateful", ledger.DefLedger)
 	if err != nil {
 		t.Errorf("failed to new stateful valdiator", err)
 		return

@@ -26,24 +26,38 @@ import (
 )
 
 type Pong struct {
-	Height uint64
+	Height map[uint64]uint32
 }
 
 //Serialize message payload
-func (this Pong) Serialization(sink *comm.ZeroCopySink) {
-	sink.WriteUint64(this.Height)
+func (this *Pong) Serialization(sink *comm.ZeroCopySink) {
+	sink.WriteUint32(uint32(len(this.Height)))
+	for id, h := range this.Height {
+		sink.WriteUint64(id)
+		sink.WriteUint32(h)
+	}
 }
 
-func (this Pong) CmdType() string {
+func (this *Pong) CmdType() string {
 	return common.PONG_TYPE
 }
 
 //Deserialize message payload
 func (this *Pong) Deserialization(source *comm.ZeroCopySource) error {
-	var eof bool
-	this.Height, eof = source.NextUint64()
+	n, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
+	}
+	for i := uint32(0); i < n; i++ {
+		id, eof := source.NextUint64()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		h, eof := source.NextUint32()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.Height[id] = h
 	}
 
 	return nil

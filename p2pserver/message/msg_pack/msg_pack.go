@@ -113,19 +113,19 @@ func NewNotFound(hash common.Uint256) mt.Message {
 }
 
 //ping msg package
-func NewPingMsg(height uint64) *mt.Ping {
+func NewPingMsg(heights map[uint64]uint32) *mt.Ping {
 	log.Trace()
 	var ping mt.Ping
-	ping.Height = uint64(height)
+	ping.Height = heights
 
 	return &ping
 }
 
 //pong msg package
-func NewPongMsg(height uint64) *mt.Pong {
+func NewPongMsg(heights map[uint64]uint32) *mt.Pong {
 	log.Trace()
 	var pong mt.Pong
-	pong.Height = uint64(height)
+	pong.Height = heights
 
 	return &pong
 }
@@ -149,7 +149,7 @@ func NewVerAck(isConsensus bool) mt.Message {
 }
 
 //Version package
-func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
+func NewVersion(n p2pnet.P2P, isCons bool, heights map[uint64]uint32) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{
@@ -160,9 +160,9 @@ func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
 		Nonce:        n.GetID(),
 		IsConsensus:  isCons,
 		HttpInfoPort: n.GetHttpInfoPort(),
-		StartHeight:  uint64(height),
 		TimeStamp:    time.Now().UnixNano(),
 		SoftVersion:  config.Version,
+		ShardHeights: heights,
 	}
 
 	if n.GetRelay() {

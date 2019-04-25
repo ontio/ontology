@@ -35,7 +35,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/chainmgr"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -91,6 +91,7 @@ type p2pMsgPayload struct {
 
 type Server struct {
 	Index         uint32
+	ShardID       types.ShardID
 	account       *account.Account
 	poolActor     *actorTypes.TxPoolActor
 	p2p           *actorTypes.P2PActor
@@ -133,13 +134,14 @@ type Server struct {
 	quitWg     sync.WaitGroup
 }
 
-func NewVbftServer(account *account.Account, txpool, p2p *actor.PID) (*Server, error) {
+func NewVbftServer(shardID types.ShardID, account *account.Account, txpool *actor.PID, lgr *ledger.Ledger, p2p *actor.PID) (*Server, error) {
 	server := &Server{
 		msgHistoryDuration: 64,
 		account:            account,
+		ShardID:            shardID,
+		ledger:             lgr,
 		poolActor:          &actorTypes.TxPoolActor{Pool: txpool},
 		p2p:                &actorTypes.P2PActor{P2P: p2p},
-		ledger:             ledger.DefLedger,
 		incrValidator:      increment.NewIncrementValidator(20),
 	}
 	server.stateMgr = newStateMgr(server)
@@ -1114,17 +1116,13 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	parentHeight, err := chainmgr.GetParentShardHeight()
-	if err != nil {
-		log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,Get ParentHeight:%d,err:%s", msg.GetBlockNum(), self.parentHeight, err)
-		return
-	}
+	parentHeight := self.ledger.GetParentHeight()
 	if parentHeight < msg.Block.Block.Header.ParentHeight {
 		log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,ParentHeight:%d,self.parentHeight:%d", msg.GetBlockNum(), self.parentHeight, msg.Block.Block.Header.ParentHeight)
 		return
 	}
 	if self.parentHeight < parentHeight {
-		temp := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
 		for id, txs := range temp {
 			msgtxs, present := msg.Block.Block.ShardTxs[id.ToUint64()]
 			if !present {
@@ -2054,10 +2052,7 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 	// parentHeight order consistency check
-	parentHeight, err := chainmgr.GetParentShardHeight()
-	if err != nil {
-		return fmt.Errorf("sealBlock: cannot get parent height from chainmrg")
-	}
+	parentHeight := self.ledger.GetParentHeight()
 	if parentHeight < block.Block.Header.ParentHeight {
 		return fmt.Errorf("invalid parent height: %d vs %d", parentHeight, block.Block.Header.ParentHeight)
 	}
@@ -2175,7 +2170,7 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
 
 //checkUpdateChainConfig query leveldb check is force update
 func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
-	if chainmgr.GetShardID().IsRootShard() {
+	if self.ShardID.IsRootShard() {
 		force, err := isUpdate(self.chainStore.GetExecWriteSet(blkNum-1), self.config.View)
 		if err != nil {
 			log.Errorf("checkUpdateChainConfig err:%s", err)
@@ -2185,7 +2180,7 @@ func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
 
 		return force
 	} else {
-		shardView, err := chainmgr.GetShardView(self.ledger, chainmgr.GetShardID())
+		shardView, err := xshard.GetShardView(self.ledger, self.ShardID)
 		if err != nil {
 			log.Errorf("GetShardView err:%s", err)
 			return false
@@ -2237,7 +2232,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
 	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
-		isRootShard := chainmgr.GetShardID().IsRootShard()
+		isRootShard := self.ShardID.IsRootShard()
 		var chainconfig *vconfig.ChainConfig
 		var err error
 		if isRootShard {
@@ -2246,7 +2241,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 				return fmt.Errorf("getRootChainConfig failed:%s", err)
 			}
 		} else {
-			chainconfig, err = getShardConfig(self.ledger, chainmgr.GetShardID(), blkNum)
+			chainconfig, err = getShardConfig(self.ledger, self.ShardID, blkNum)
 			if err != nil {
 				return fmt.Errorf("getShardChainConfig failed:%s", err)
 			}

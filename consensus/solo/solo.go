@@ -30,7 +30,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
-	"github.com/ontio/ontology/core/chainmgr"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -54,15 +54,19 @@ type SoloService struct {
 	sub              *events.ActorSubscriber
 
 	// sharding
+	shardID      types.ShardID
 	parentHeight uint32 // ParentHeight of last block
+	ledger       *ledger.Ledger
 }
 
-func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
+func NewSoloService(shardID types.ShardID, bkAccount *account.Account, txpool *actor.PID, lgr *ledger.Ledger) (*SoloService, error) {
 	service := &SoloService{
 		Account:          bkAccount,
 		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},
 		incrValidator:    increment.NewIncrementValidator(20),
 		genBlockInterval: time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
+		shardID:          shardID,
+		ledger:           lgr,
 	}
 
 	props := actor.FromProducer(func() actor.Actor {
@@ -74,7 +78,7 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService
 	service.sub = events.NewActorSubscriber(pid)
 
 	// load parentHeight from ledger
-	blkhdr, err := ledger.DefLedger.GetHeaderByHeight(ledger.DefLedger.GetCurrentBlockHeight())
+	blkhdr, err := lgr.GetHeaderByHeight(lgr.GetCurrentBlockHeight())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get current block header: %s", err)
 	}
@@ -163,13 +167,13 @@ func (self *SoloService) genBlock() error {
 	if self.parentHeight > block.Header.ParentHeight {
 		return fmt.Errorf("invalid parent height: %d vs %d", self.parentHeight, block.Header.ParentHeight)
 	}
-	result, err := ledger.DefLedger.ExecuteBlock(block)
+	result, err := self.ledger.ExecuteBlock(block)
 	if err != nil {
-		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
+		return fmt.Errorf("executeBlock height:%d error:%s", block.Header.Height, err)
 	}
-	err = ledger.DefLedger.SubmitBlock(block, result)
+	err = self.ledger.SubmitBlock(block, result)
 	if err != nil {
-		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
+		return fmt.Errorf("submitBlock height:%d error:%s", block.Header.Height, err)
 	}
 
 	// new block persisted, update parentHeight
@@ -185,8 +189,8 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	if err != nil {
 		return nil, fmt.Errorf("GetBookkeeperAddress error:%s", err)
 	}
-	prevHash := ledger.DefLedger.GetCurrentBlockHash()
-	height := ledger.DefLedger.GetCurrentBlockHeight()
+	prevHash := self.ledger.GetCurrentBlockHash()
+	height := self.ledger.GetCurrentBlockHeight()
 
 	validHeight := height
 
@@ -217,25 +221,23 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 
-	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
+	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
 
 	// get ParentHeight from chain-mgr
-	parentHeight, err := chainmgr.GetParentShardHeight()
-	if err != nil {
-		return nil, fmt.Errorf("get parentBlock height: %s", err)
-	}
+	parentHeight := self.ledger.GetParentHeight()
+
 	// get Cross-Shard Txs from chain-mgr
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {
 		// new parentBlock available
-		temp := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
 		for id, txs := range temp {
 			shardTxs[id.ToUint64()] = txs
 		}
 	}
 	header := &types.Header{
 		Version:          ContextVersion,
-		ShardID:          chainmgr.GetShardID().ToUint64(),
+		ShardID:          self.shardID.ToUint64(),
 		ParentHeight:     uint32(parentHeight),
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,

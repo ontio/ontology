@@ -42,6 +42,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	setRestfulConfig(ctx, cfg.Restful)
 	setWebSocketConfig(ctx, cfg.Ws)
 	if cfg.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		cfg.Genesis.SeedList = []string{"127.0.0.1:20338"}
 		cfg.Ws.EnableHttpWs = true
 		cfg.Restful.EnableHttpRestful = true
 		cfg.Consensus.EnableConsensus = true

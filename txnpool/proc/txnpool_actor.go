@@ -86,8 +86,8 @@ func replyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256,
 }
 
 // preExecCheck checks whether preExec pass
-func preExecCheck(txn *tx.Transaction) (bool, string) {
-	result, err := ledger.DefLedger.PreExecuteContract(txn)
+func preExecCheck(lgr *ledger.Ledger, txn *tx.Transaction) (bool, string) {
+	result, err := lgr.PreExecuteContract(txn)
 	if err != nil {
 		log.Debugf("preExecCheck: failed to preExecuteContract tx %x err %v",
 			txn.Hash(), err)
@@ -186,7 +186,7 @@ func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 		}
 
 		if !ta.server.disablePreExec {
-			if ok, desc := preExecCheck(txn); !ok {
+			if ok, desc := preExecCheck(ta.server.ledger, txn); !ok {
 				log.Debugf("handleTransaction: preExecCheck tx %x failed", txn.Hash())
 				if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 					replyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, desc)

@@ -288,5 +288,18 @@ func (self *Ledger) PutShardProcessedBlockHeight(height uint32) error {
 }
 
 func (self *Ledger) Close() error {
+	if self.ParentLedger != nil {
+		self.ParentLedger.Close()
+	}
+	if self.ParentBlockCache != nil {
+		self.ParentBlockCache.Close()
+	}
 	return self.ldgStore.Close()
+}
+
+func (self *Ledger) GetParentHeight() uint32 {
+	if self.ParentLedger != nil {
+		return self.ParentLedger.GetCurrentBlockHeight()
+	}
+	return 0
 }

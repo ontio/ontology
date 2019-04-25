@@ -27,6 +27,8 @@ import (
 	"github.com/ontio/ontology/events/message"
 	tc "github.com/ontio/ontology/txnpool/common"
 	tp "github.com/ontio/ontology/txnpool/proc"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/ledger"
 )
 
 // startActor starts an actor with the proxy and unique id,
@@ -44,16 +46,26 @@ func startActor(obj interface{}, id string) (*actor.PID, error) {
 	return pid, nil
 }
 
+type TxnPoolManager struct {
+	servers map[types.ShardID]*tp.TXPoolServer
+}
+
+func NewTxnPoolManager() *TxnPoolManager {
+	return &TxnPoolManager{
+		servers: make(map[types.ShardID]*tp.TXPoolServer),
+	}
+}
+
 // StartTxnPoolServer starts the txnpool server and registers
 // actors to handle the msgs from the network, http, consensus
 // and validators. Meanwhile subscribes the block complete  event.
-func StartTxnPoolServer(disablePreExec, disableBroadcastNetTx bool) (*tp.TXPoolServer, error) {
+func (self *TxnPoolManager) StartTxnPoolServer(shardID types.ShardID, lgr *ledger.Ledger, disablePreExec, disableBroadcastNetTx bool) (*tp.TXPoolServer, error) {
 	var s *tp.TXPoolServer
 
 	/* Start txnpool server to receive msgs from p2p,
 	 * consensus and valdiators
 	 */
-	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, disablePreExec, disableBroadcastNetTx)
+	s = tp.NewTxPoolServer(shardID, lgr, tc.MAX_WORKER_NUM, disablePreExec, disableBroadcastNetTx)
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tp.NewVerifyRspActor(s)
@@ -82,5 +94,20 @@ func StartTxnPoolServer(disablePreExec, disableBroadcastNetTx bool) (*tp.TXPoolS
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)
 	sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
+
+	self.servers[shardID] = s
 	return s, nil
+}
+
+func (self *TxnPoolManager) GetPID(shardId types.ShardID, actor tc.ActorType) *actor.PID {
+	if s := self.servers[shardId]; s != nil {
+		return s.GetPID(actor)
+	}
+	return nil
+}
+
+func (self *TxnPoolManager) RegisterActor(actor tc.ActorType, pid *actor.PID) {
+	for _, s := range self.servers {
+		s.RegisterActor(actor, pid)
+	}
 }

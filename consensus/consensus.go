@@ -25,6 +25,8 @@ import (
 	"github.com/ontio/ontology/consensus/dbft"
 	"github.com/ontio/ontology/consensus/solo"
 	"github.com/ontio/ontology/consensus/vbft"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/types"
 )
 
 type ConsensusService interface {
@@ -39,7 +41,7 @@ const (
 	CONSENSUS_VBFT = "vbft"
 )
 
-func NewConsensusService(consensusType string, account *account.Account, txpool *actor.PID, ledger *actor.PID, p2p *actor.PID) (ConsensusService, error) {
+func NewConsensusService(consensusType string, shardID types.ShardID, account *account.Account, txpool *actor.PID, ledger *ledger.Ledger, p2p *actor.PID) (ConsensusService, error) {
 	if consensusType == "" {
 		consensusType = CONSENSUS_DBFT
 	}
@@ -47,11 +49,11 @@ func NewConsensusService(consensusType string, account *account.Account, txpool 
 	var err error
 	switch consensusType {
 	case CONSENSUS_DBFT:
-		consensus, err = dbft.NewDbftService(account, txpool, p2p)
+		consensus, err = dbft.NewDbftService(shardID, account, txpool, ledger, p2p)
 	case CONSENSUS_SOLO:
-		consensus, err = solo.NewSoloService(account, txpool)
+		consensus, err = solo.NewSoloService(shardID, account, txpool, ledger)
 	case CONSENSUS_VBFT:
-		consensus, err = vbft.NewVbftServer(account, txpool, p2p)
+		consensus, err = vbft.NewVbftServer(shardID, account, txpool, ledger, p2p)
 	}
 	log.Infof("ConsensusType:%s", consensusType)
 	return consensus, err

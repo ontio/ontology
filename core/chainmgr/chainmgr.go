@@ -25,15 +25,20 @@ import (
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
+	actor2 "github.com/ontio/ontology/http/base/actor"
+	"github.com/ontio/ontology/p2pserver/actor/req"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -63,6 +68,7 @@ type ChainManager struct {
 	lock       sync.RWMutex
 	shards     map[types.ShardID]*ShardInfo
 	mainLedger *ledger.Ledger
+	consensus  consensus.ConsensusService
 
 	// BlockHeader and Cross-Shard Txs of other shards
 	// FIXME: check if any lock needed (if not only accessed by remoteShardMsgLoop)
@@ -123,65 +129,175 @@ func Initialize(shardID types.ShardID, acc *account.Account) (*ChainManager, err
 //
 // LoadFromLedger when ontology starting, after ledger initialized.
 //
-func (self *ChainManager) LoadFromLedger(mainLedger *ledger.Ledger) error {
-	processedBlockHeight, err := mainLedger.GetShardProcessedBlockHeight()
+func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
+	if err := self.initMainLedger(stateHashHeight); err != nil {
+		return err
+	}
+
+	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
+		// main-chain node, not need to process shard-events
+		return nil
+	}
+
+	processedBlockHeight, err := self.mainLedger.GetShardProcessedBlockHeight()
 	if err != nil {
 		return fmt.Errorf("chainmgr: failed to read processed block height: %s", err)
 	}
 	self.processedParentBlockHeight = processedBlockHeight
-	self.mainLedger = mainLedger
-	self.SetShardLedger(types.NewShardIDUnchecked(0), mainLedger)
-	// TODO: load parent-shard/sib-shard blockhdrs from ledger
+
+	shardState, err := GetShardState(self.mainLedger, self.shardID)
+	if err == com.ErrNotFound {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("get shard %d failed: %s", self.shardID, err)
+	}
+	// skip if shard is not active
+	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
+		return nil
+	}
+	if _, err := self.initShardInfo(self.shardID, shardState); err != nil {
+		return fmt.Errorf("init shard %d failed: %s", self.shardID, err)
+	}
+	shardInfo := self.shards[self.shardID]
+	if shardInfo == nil {
+		return nil
+	}
+	cfg, err := self.buildShardConfig(self.shardID, shardState)
+	if err != nil {
+		return fmt.Errorf("init shard %d, failed to build config: %s", self.shardID, err)
+	}
+	shardInfo.Config = cfg
+
+	if err := self.initShardLedger(shardInfo); err != nil {
+		return fmt.Errorf("init shard %d, failed to init ledger: %s", self.shardID, err)
+	}
+
+	return nil
+}
+
+func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
+	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
+	lgr, err := ledger.NewLedger(dbDir, stateHashHeight)
+	if err != nil {
+		return fmt.Errorf("NewLedger error:%s", err)
+	}
+	bookKeepers, err := config.DefConfig.GetBookkeepers()
+	if err != nil {
+		return fmt.Errorf("GetBookkeepers error:%s", err)
+	}
+	genesisConfig := config.DefConfig.Genesis
+	shardConfig := config.DefConfig.Shard
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
+	if err != nil {
+		return fmt.Errorf("genesisBlock error %s", err)
+	}
+	err = lgr.Init(bookKeepers, genesisBlock)
+	if err != nil {
+		return fmt.Errorf("Init ledger error:%s", err)
+	}
+
+	mainShardID := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	mainShardInfo := &ShardInfo{
+		ShardID:  mainShardID,
+		SeedList: config.DefConfig.Genesis.SeedList,
+		Config:   config.DefConfig,
+		Ledger:   lgr,
+	}
+	self.shards[mainShardID] = mainShardInfo
+	self.mainLedger = lgr
+	log.Infof("main ledger init success")
+	return nil
+}
+
+func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
+	if shardInfo.Ledger != nil {
+		return nil
+	}
+	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
+		return fmt.Errorf("init main ledger as shard ledger")
+	}
+	if self.mainLedger == nil {
+		return fmt.Errorf("init shard ledger with nil main ledger")
+	}
+	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
+	lgr, err := ledger.NewShardLedger(self.shardID, dbDir, self.mainLedger)
+	if err != nil {
+		return fmt.Errorf("init shard ledger: %s", err)
+	}
+
+	bookKeepers, err := shardInfo.Config.GetBookkeepers()
+	if err != nil {
+		return fmt.Errorf("init shard ledger: GetBookkeepers error:%s", err)
+	}
+	genesisConfig := shardInfo.Config.Genesis
+	shardConfig := shardInfo.Config.Shard
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
+	if err != nil {
+		return fmt.Errorf("init shard ledger: genesisBlock error %s", err)
+	}
+	err = lgr.Init(bookKeepers, genesisBlock)
+	if err != nil {
+		return fmt.Errorf("init shard ledger: :%s", err)
+	}
+	shardInfo.Ledger = lgr
+	return nil
+}
+
+func (self *ChainManager) GetActiveShards() map[types.ShardID]*ledger.Ledger {
+	lgrs := make(map[types.ShardID]*ledger.Ledger)
+	for _, shardInfo := range self.shards {
+		lgrs[shardInfo.ShardID] = shardInfo.Ledger
+	}
+	return lgrs
+}
+
+func (self *ChainManager) GetDefaultLedger() *ledger.Ledger {
+	if shardInfo := self.shards[self.shardID]; shardInfo != nil {
+		if shardInfo.Ledger != nil {
+			return shardInfo.Ledger
+		}
+	}
+	return self.mainLedger
+}
+
+func (self *ChainManager) startConsensus() error {
+	if self.consensus != nil {
+		return nil
+	}
+
+	// start consensus
+	if shardInfo := self.shards[self.shardID]; shardInfo.Config != nil && shardInfo.Ledger != nil {
+		// TODO: check if peer should start consensus
+		if !shardInfo.Config.Consensus.EnableConsensus {
+			return nil
+		}
+
+		consensusType := shardInfo.Config.Genesis.ConsensusType
+		consensusService, err := consensus.NewConsensusService(consensusType, self.shardID, self.account,
+			self.txPoolPid, shardInfo.Ledger, self.p2pPid)
+		if err != nil {
+			return fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
+		}
+		consensusService.Start()
+		self.consensus = consensusService
+
+		actor2.SetConsensusPid(consensusService.GetPID())
+		req.SetConsensusPid(consensusService.GetPID())
+	}
+	return nil
+}
+
+func (self *ChainManager) Start(txPoolPid, p2pPid *actor.PID) error {
+	self.txPoolPid = txPoolPid
+	self.p2pPid = p2pPid
 
 	// start listen on local shard events
 	self.localEventSub = events.NewActorSubscriber(self.localPid)
 	self.localEventSub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
 	self.localEventSub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
-	// get child-shards from shard-mgmt contract
-	globalState, err := GetShardMgmtGlobalState(mainLedger)
-	if err != nil {
-		return fmt.Errorf("chainmgr: failed to read shard-mgmt global state: %s", err)
-	}
-	if globalState == nil {
-		// not initialized from ledger
-		log.Info("chainmgr: shard-mgmt not initialized, skipped loading from ledger")
-		return nil
-	}
-
-	// load all child-shard from shard-mgmt contract
-	for i := uint16(1); i < globalState.NextSubShardIndex; i++ {
-		subShardID, err := self.shardID.GenSubShardID(i)
-		if err != nil {
-			return err
-		}
-		shard, err := GetShardState(mainLedger, subShardID)
-		if err == com.ErrNotFound {
-			continue
-		}
-		if err != nil {
-			return fmt.Errorf("get shard %d failed: %s", subShardID, err)
-		}
-		// skip if shard is not active
-		if shard.State != shardstates.SHARD_STATE_ACTIVE {
-			continue
-		}
-		if _, err := self.initShardInfo(subShardID, shard); err != nil {
-			return fmt.Errorf("init shard %d failed: %s", subShardID, err)
-		}
-		if shardInfo := self.shards[subShardID]; shardInfo != nil {
-			cfg, err := self.buildShardConfig(subShardID, shard)
-			if err != nil {
-				return fmt.Errorf("init shard %d, failed to build config: %s", subShardID, err)
-			}
-			shardInfo.Config = cfg
-		}
-	}
-	return nil
-}
-
-func (self *ChainManager) StartShardServer() error {
-	return nil
+	return self.startConsensus()
 }
 
 func (self *ChainManager) Receive(context actor.Context) {
@@ -297,9 +413,17 @@ func (self *ChainManager) localEventLoop() {
 	}
 }
 
-func (self *ChainManager) Stop() {
+func (self *ChainManager) Close() {
 	close(self.quitC)
 	self.quitWg.Wait()
+
+	// close ledgers
+	lgr := self.GetDefaultLedger()
+	lgr.Close()
+}
+
+func (self *ChainManager) Stop() {
+	// TODO
 }
 
 //

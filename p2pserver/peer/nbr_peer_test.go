@@ -138,25 +138,6 @@ func TestGetNeighborAddrs(t *testing.T) {
 	}
 }
 
-func TestGetNeighborHeights(t *testing.T) {
-	p := nm.GetPeer(0x7533346)
-	if p == nil {
-		t.Fatal("TestGetNeighborHeights:get peer error")
-	}
-	p.SetSyncState(4)
-
-	p = nm.GetPeer(0x7533347)
-	if p == nil {
-		t.Fatal("TestGetNeighborHeights:get peer error")
-	}
-	p.SetSyncState(4)
-
-	pMap := nm.GetNeighborHeights()
-	for k, v := range pMap {
-		fmt.Printf("peer id = %x height = %d \n", k, v)
-	}
-}
-
 func TestGetNeighbors(t *testing.T) {
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
