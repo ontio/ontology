@@ -21,6 +21,8 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/payload"
 	"reflect"
 	"strconv"
 	"strings"
@@ -34,6 +36,7 @@ const (
 	PARAM_TYPE_STRING     = "string"
 	PARAM_TYPE_INTEGER    = "int"
 	PARAM_TYPE_BOOLEAN    = "bool"
+	PARAM_TYPE_ADDRESS    = "address"
 	PARAM_LEFT_BRACKET    = "["
 	PARAM_RIGHT_BRACKET   = "]"
 	PARAM_ESC_CHAR        = `/`
@@ -194,6 +197,9 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 		default:
 			return nil, fmt.Errorf("parse boolean param:%s failed", pValue)
 		}
+	case PARAM_TYPE_ADDRESS:
+		return common.AddressFromBase58(pValue)
+
 	default:
 		return nil, fmt.Errorf("unspport param type:%s", pType)
 	}
@@ -203,7 +209,7 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 //Return type can be: bytearray, string, int, bool.
 //Types can be split with "," each other, such as int,string,bool
 //Type array can be express with "[]", such [int,string], param array can be nested, such as [int,[int,bool]]
-func ParseReturnValue(rawValue interface{}, rawReturnTypeStr string) ([]interface{}, error) {
+func ParseReturnValue(rawValue interface{}, rawReturnTypeStr string, vmtype byte) ([]interface{}, error) {
 	returnTypes, _, err := parseRawParamsString(rawReturnTypeStr)
 	if err != nil {
 		return nil, fmt.Errorf("parse raw return types:%s error:%s", rawReturnTypeStr, err)
@@ -213,10 +219,61 @@ func ParseReturnValue(rawValue interface{}, rawReturnTypeStr string) ([]interfac
 	if !ok {
 		rawValues = append(rawValues, rawValue)
 	}
-	return parseReturnValueArray(rawValues, returnTypes)
+	if vmtype == payload.NEOVM_TYPE {
+		return parseReturnNeoValueArray(rawValues, returnTypes)
+	} else {
+		return parasReturnValueWasmArray(rawValues, returnTypes)
+	}
+
 }
 
-func parseReturnValueArray(rawValues []interface{}, returnTypes []interface{}) ([]interface{}, error) {
+func parasReturnValueWasmArray(rawValues []interface{}, returnTypes []interface{}) ([]interface{}, error) {
+	values := make([]interface{}, 0)
+	for i := 0; i < len(rawValues); i++ {
+		rawValue := rawValues[i]
+		if i == len(returnTypes) {
+			return values, nil
+		}
+		valueType := returnTypes[i]
+
+		var err error
+		switch v := rawValue.(type) {
+		case string:
+			var value interface{}
+			vType := valueType.(string)
+			switch strings.ToLower(vType) {
+			case PARAM_TYPE_BYTE_ARRAY:
+				value, err = ParseWasmVMContractReturnTypeByteArray(v)
+			case PARAM_TYPE_STRING:
+				value, err = ParseWasmVMContractReturnTypeString(v)
+			case PARAM_TYPE_INTEGER:
+				value, err = ParseWasmVMContractReturnTypeInteger(v)
+			case PARAM_TYPE_BOOLEAN:
+				value, err = ParseWasmVMContractReturnTypeBool(v)
+			default:
+				return nil, fmt.Errorf("unknown return type:%s", v)
+			}
+			values = append(values, value)
+			if err != nil {
+				return nil, fmt.Errorf("parse return value:%s type:byte array error:%s", v, err)
+			}
+		case []interface{}:
+			valueTypes, ok := valueType.([]interface{})
+			if !ok {
+				return nil, fmt.Errorf("parse return value:%+v types:%s failed, types doesnot match", v, valueType)
+			}
+			values, err := parasReturnValueWasmArray(v, valueTypes)
+			if err != nil {
+				return nil, fmt.Errorf("parese return values:%+v types:%s error:%s", values, valueType, err)
+			}
+		default:
+			return nil, fmt.Errorf("unknown return type:%s", reflect.TypeOf(rawValue))
+		}
+	}
+	return values, nil
+}
+
+func parseReturnNeoValueArray(rawValues []interface{}, returnTypes []interface{}) ([]interface{}, error) {
 	values := make([]interface{}, 0)
 	for i := 0; i < len(rawValues); i++ {
 		rawValue := rawValues[i]
@@ -251,7 +308,7 @@ func parseReturnValueArray(rawValues []interface{}, returnTypes []interface{}) (
 			if !ok {
 				return nil, fmt.Errorf("parse return value:%+v types:%s failed, types doesnot match", v, valueType)
 			}
-			values, err := parseReturnValueArray(v, valueTypes)
+			values, err := parseReturnNeoValueArray(v, valueTypes)
 			if err != nil {
 				return nil, fmt.Errorf("parese return values:%+v types:%s error:%s", values, valueType, err)
 			}
