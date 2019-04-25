@@ -22,7 +22,7 @@ func revertToHeight(ctx *cli.Context) error {
 	log.InitLog(logLevel, log.PATH, log.Stdout)
 
 	revertHeight := ctx.Uint64(utils.GetFlagName(utils.RevertToHeightFlag))
-	if revertHeight > 0 {
+	if revertHeight >= 0 {
 		return blockrelayer.RevertToHeight(config.DefConfig.Common.DataDir, uint32(revertHeight))
 	}
 	return nil
