@@ -71,6 +71,7 @@ const (
 	DEFAULT_GAS_LIMIT                       = 20000
 	DEFAULT_GAS_PRICE                       = 500
 
+	DEFAULT_REVERT_HEIGHT = 0
 	DEFAULT_DATA_DIR      = "./Chain"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 	DEFAULT_UPSTREAM_FILE = "./peers.upstream"
