@@ -52,8 +52,8 @@ func (self *XShardDB) GetXshardReqsInBlock(blockHeight uint32, shardID comm.Shar
 	return nil, nil
 }
 
-func (self *XShardDB) AddXShardReqsInBlock(blockHeight uint32, req *xshard_types.CommonShardMsg) error {
-	fmt.Println("AddXShardReqsInBlock: unimplemented")
+func (self *XShardDB) AddXShardMsgInBlock(blockHeight uint32, req *xshard_types.CommonShardMsg) error {
+	fmt.Println("AddXShardMsgInBlock: unimplemented")
 	return nil
 
 }

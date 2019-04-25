@@ -126,7 +126,7 @@ func processTransaction(blockHeight uint32, tx *types.Transaction) (result inter
 			for id := range txState.Shards {
 				xshardDB.AddToShard(blockHeight, id)
 			}
-			_ = xshardDB.AddXShardReqsInBlock(blockHeight, &xshard_types.CommonShardMsg{
+			_ = xshardDB.AddXShardMsgInBlock(blockHeight, &xshard_types.CommonShardMsg{
 				SourceTxHash:  txState.PendingReq.SourceTxHash,
 				SourceShardID: txState.PendingReq.SourceShardID,
 				SourceHeight:  uint64(txState.PendingReq.SourceHeight),

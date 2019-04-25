@@ -128,6 +128,18 @@ func (self *TxState) GetTxShards() []common.ShardID {
 	return shards
 }
 
+func (self *TxState) IsCommitReady() bool {
+	if self.State != TxPrepared {
+		return false
+	}
+	for _, state := range self.Shards {
+		if state != TxPrepared {
+			return false
+		}
+	}
+	return true
+}
+
 //
 // GetTxShards
 // get shards which participant with the procession of transaction

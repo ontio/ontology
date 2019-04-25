@@ -925,6 +925,7 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
+		cache.Commit()
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
@@ -938,10 +939,11 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 		}
 	case types.Invoke:
 		txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
-		err := HandleInvokeTransaction(store, overlay, cache, xshardDB, txState, tx, header, notify)
+		_, err := HandleInvokeTransaction(store, overlay, cache, xshardDB, txState, tx, header, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
+		cache.Commit()
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
