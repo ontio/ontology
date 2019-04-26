@@ -252,7 +252,7 @@ func (self *ChainManager) handleRootChainBLock() error {
 	return nil
 }
 func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
-	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
+	log.Infof("shard %d, get new block %d,blk shardId:%d", self.shardID, blk.Header.Height, blk.Header.ShardID)
 
 	if err := self.handleBlockEvents(blk, shardEvts); err != nil {
 		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)

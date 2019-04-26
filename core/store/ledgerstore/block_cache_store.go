@@ -69,7 +69,7 @@ func (this *BlockCacheStore) PutBlock(block *types.Block, stateMerkleRoot common
 		return nil
 	}
 	if currentHeight+1 != block.Header.Height && currentHeight != 0 {
-		return fmt.Errorf("block height %d not equal next block height %d", currentHeight, block.Header.Height)
+		return fmt.Errorf("blockcache block height %d not equal next block height %d", currentHeight, block.Header.Height)
 	}
 	this.PutBlockHeight(block.Header.Height)
 	mklKey := fmt.Sprintf("mkl-%d-%d", this.shardID.ToUint64(), block.Header.Height)

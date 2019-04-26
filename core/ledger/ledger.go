@@ -145,17 +145,18 @@ func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error 
 			log.Errorf("Ledger GetHeaderByHeight BlockHeight:%d,error:%s", b.Header.Height-1, err)
 			return err
 		}
-		for blockHeight := lastHeader.ParentHeight + 1; blockHeight < b.Header.ParentHeight; blockHeight++ {
+		for blockHeight := lastHeader.ParentHeight + 1; blockHeight <= b.Header.ParentHeight; blockHeight++ {
 			parentBlock, statemerkleRoot, err := self.ParentBlockCache.GetBlock(blockHeight)
 			if err != nil {
 				log.Warnf("Ledger ParentBlockCache sharad height:%d,blockHeight:%d,ParentHeight:%d error:%s", b.Header.Height, blockHeight, b.Header.ParentHeight, err)
-				break
+				continue
 			}
 			err = self.ParentLedger.ldgStore.AddBlock(parentBlock, statemerkleRoot)
 			if err == nil {
 				self.ParentBlockCache.DelBlock(blockHeight)
+			} else {
+				return err
 			}
-			return err
 		}
 	}
 	err := self.ldgStore.SubmitBlock(b, exec)
