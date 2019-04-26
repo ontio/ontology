@@ -148,9 +148,6 @@ func (self *StateStore) HandleChangeMetadataTransaction(store store.LedgerStore,
 	if tx.Version != common.VERSION_SUPPORT_SHARD {
 		return fmt.Errorf("unsupport tx version")
 	}
-	if !shardID.IsRootShard() {
-		return fmt.Errorf("only can be invoked at root")
-	}
 	newMeta, ok := tx.Payload.(*payload.MetaDataCode)
 	if !ok {
 		return fmt.Errorf("invalid payload")

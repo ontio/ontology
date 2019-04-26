@@ -61,7 +61,7 @@ func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("[InitMetaData] invalid param: %s", err))
 	}
-	if !checkInitMeta(newMeta) {
+	if !checkInitMeta(service, newMeta) {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[InitMetaData] meta data should contain owner")
 	}
 	newMeta.OntVersion = common.VERSION_SUPPORT_SHARD
@@ -273,14 +273,16 @@ func getMetaData(engine *vm.ExecutionEngine) (*payload.MetaDataCode, error) {
 	return meta, nil
 }
 
-func checkInitMeta(meta *payload.MetaDataCode) bool {
+func checkInitMeta(service *NeoVmService, meta *payload.MetaDataCode) bool {
 	if meta.Owner == common.ADDRESS_EMPTY {
 		return false
 	}
-	if !meta.AllShard {
-		if _, err := types.NewShardID(meta.ShardId); err != nil {
-			return false
-		}
+	if _, err := types.NewShardID(meta.ShardId); err != nil {
+		return false
+	}
+	// shard contract can only run at self shard while init meta
+	if !service.ShardID.IsRootShard() {
+		return service.ShardID.ToUint64() == meta.ShardId
 	}
 	return true
 }
