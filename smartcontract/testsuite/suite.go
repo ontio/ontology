@@ -115,32 +115,6 @@ func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam
 	return utils.BYTE_FALSE, shardsysmsg.ErrYield
 }
 
-func processTransaction(blockHeight uint32, tx *types.Transaction) (result interface{}, err error) {
-	overlay := NewOverlayDB()
-	xshardDB := storage.NewXShardDB(overlay)
-	cache := storage.NewCacheDB(overlay)
-
-	txState, result, err := executeTransaction(tx, cache)
-	if err != nil {
-		if txState != nil && txState.PendingReq != nil { // yielded
-			for id := range txState.Shards {
-				xshardDB.AddToShard(blockHeight, id)
-			}
-			_ = xshardDB.AddXShardMsgInBlock(blockHeight, &xshard_types.CommonShardMsg{
-				SourceTxHash:  txState.PendingReq.SourceTxHash,
-				SourceShardID: txState.PendingReq.SourceShardID,
-				SourceHeight:  uint64(txState.PendingReq.SourceHeight),
-				TargetShardID: txState.PendingReq.TargetShardID,
-				Msg:           txState.PendingReq.Req,
-			})
-
-			//xshardDB.SetShardTxState()
-		}
-	}
-
-	return result, err
-}
-
 func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_state.TxState,
 	interface{}, error) {
 	config := &smartcontract.Config{

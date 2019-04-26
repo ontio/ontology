@@ -112,7 +112,10 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 	xshardDB := storage.NewXShardDB(overlay)
 	header := &types2.Header{}
 	txHash := tx.Hash()
-	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
+	txevent := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
+	notify := &event.TransactionNotify{
+		ContractEvent: txevent,
+	}
 
 	state := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
 	_, err := ledgerstore.HandleInvokeTransaction(nil, overlay, cache, xshardDB, state, tx, header, notify)

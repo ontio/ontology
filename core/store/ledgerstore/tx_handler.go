@@ -226,60 +226,12 @@ func resumeTxState(shardTxID xshard_state.ShardTxID, rspMsg *xshard_types.XShard
 	return txState, tx, nil
 }
 
-/*
-	config := &smartcontract.Config{
-		ShardID: common.NewShardIDUnchecked(tx.ShardID),
-		Time:    uint32(time.Now().Unix()),
-		Tx:      tx,
-	}
-
-	overlay := NewOverlayDB()
-	cache := storage.NewCacheDB(overlay)
-	if tx.TxType == types.Invoke {
-		invoke := tx.Payload.(*payload.InvokeCode)
-
-		sc := smartcontract.SmartContract{
-			Config:           config,
-			Store:            nil,
-			MainShardTxState: txState,
-			CacheDB:          cache,
-			Gas:              100000000000000,
-			PreExec:          true,
-		}
-
-		//start the smart contract executive function
-		engine, _ := sc.NewExecuteEngine(invoke.Code)
-		res, err := engine.Invoke()
-
-		if err != nil {
-			//if err == shardsysmsg.ErrYield {
-			//	return txState, err
-			//}
-			// todo: handle error check
-			if txState.PendingReq != nil {
-				return txState, nil, shardsysmsg.ErrYield
-			}
-			return nil, nil, err
-		}
-
-		// xshard transaction has completed
-		txState.WriteSet = cache.GetCache()
-
-		return txState, res, nil
-	}
-
-	panic("unimplemented")
-}
-*/
-
 func handleShardAbortMsg(msg *xshard_types.CommonShardMsg, store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.ExecuteNotify) {
+	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
 	shardTxID := xshard_state.ShardTxID(string(msg.SourceTxHash[:]))
 	txState := xshard_state.CreateTxState(shardTxID).Clone()
 
 	// update tx state
-	// commit the cached rwset
-	cache.SetCache(txState.WriteSet)
 	txState.State = xshard_state.TxAbort
 	//unlockTxContract(ctx, tx)
 
@@ -287,7 +239,7 @@ func handleShardAbortMsg(msg *xshard_types.CommonShardMsg, store store.LedgerSto
 }
 
 func handleShardCommitMsg(msg *xshard_types.CommonShardMsg, store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.ExecuteNotify) {
+	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
 	shardTxID := xshard_state.ShardTxID(string(msg.SourceTxHash[:]))
 	txState := xshard_state.CreateTxState(shardTxID).Clone()
 
@@ -295,13 +247,24 @@ func handleShardCommitMsg(msg *xshard_types.CommonShardMsg, store store.LedgerSt
 	// commit the cached rwset
 	cache.SetCache(txState.WriteSet)
 	txState.State = xshard_state.TxCommit
+
+	for _, msg := range txState.ShardNotifies {
+		notify.ShardMsg = append(notify.ShardMsg, &xshard_types.CommonShardMsg{
+			//SourceShardID: prepMsg.TargetShardID,
+			//SourceHeight:  uint64(header.Height),
+			//TargetShardID: prepMsg.SourceShardID,
+			//SourceTxHash  common.Uint256 //todo
+			Type: xshard_types.EVENT_SHARD_NOTIFY,
+			Msg:  msg,
+		})
+	}
 	//unlockTxContract(ctx, tx)
 
 	xshard_state.PutTxState(shardTxID, txState)
 }
 
 func handleShardPreparedMsg(msg *xshard_types.CommonShardMsg, store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.ExecuteNotify) {
+	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
 	shardTxID := xshard_state.ShardTxID(string(msg.SourceTxHash[:]))
 	txState := xshard_state.CreateTxState(shardTxID).Clone()
 
@@ -317,21 +280,31 @@ func handleShardPreparedMsg(msg *xshard_types.CommonShardMsg, store store.Ledger
 		return
 	}
 
-	//todo send commit
-	//if _, err := sendCommit(ctx, txState, tx); err != nil {
-	//	return fmt.Errorf("failed to commit tx %v: %s", tx, err)
-	//}
+	// todo send commit
+	cmt := &xshard_types.XShardCommitMsg{
+		MsgType: xshard_types.EVENT_SHARD_COMMIT,
+	}
+	for _, shard := range txState.GetTxShards() {
+		notify.ShardMsg = append(notify.ShardMsg, &xshard_types.CommonShardMsg{
+			SourceShardID: common.NewShardIDUnchecked(header.ShardID),
+			SourceHeight:  uint64(header.Height),
+			TargetShardID: shard,
+			SourceTxHash:  msg.SourceTxHash,
+			Type:          xshard_types.EVENT_SHARD_COMMIT,
+			Msg:           cmt,
+		})
+	}
 
 	// commit cached rwset
 	cache.SetCache(txState.WriteSet)
 	txState.State = xshard_state.TxCommit
-	//todo:
+	// todo:
 	//unlockTxContract(ctx, tx)
 	xshard_state.PutTxState(shardTxID, txState)
 }
 
 func handleShardPrepareMsg(prepMsg *xshard_types.CommonShardMsg, store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.ExecuteNotify) {
+	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
 	shardTxID := xshard_state.ShardTxID(string(prepMsg.SourceTxHash[:]))
 	txState := xshard_state.CreateTxState(shardTxID).Clone()
 
@@ -360,7 +333,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.CommonShardMsg, store store.Led
 		}
 
 		cache.Reset()
-		result2, err2 := executeTransaction(store, overlay, cache, txState, subTx, header, notify)
+		result2, err2 := executeTransaction(store, overlay, cache, txState, subTx, header)
 
 		isError := false
 		var res []byte
@@ -383,7 +356,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.CommonShardMsg, store store.Led
 		}
 
 		// TODO: clean TX resources
-		_ = xshardDB.AddXShardMsgInBlock(header.Height, &xshard_types.CommonShardMsg{
+		notify.ShardMsg = append(notify.ShardMsg, &xshard_types.CommonShardMsg{
 			SourceShardID: prepMsg.TargetShardID,
 			SourceHeight:  uint64(header.Height),
 			TargetShardID: prepMsg.SourceShardID,
@@ -405,12 +378,12 @@ func handleShardPrepareMsg(prepMsg *xshard_types.CommonShardMsg, store store.Led
 	//	// FIXME
 	//	return err
 	//}
-	_ = xshardDB.AddXShardMsgInBlock(header.Height, &xshard_types.CommonShardMsg{
+	notify.ShardMsg = append(notify.ShardMsg, &xshard_types.CommonShardMsg{
 		SourceShardID: prepMsg.TargetShardID,
 		SourceHeight:  uint64(header.Height),
 		TargetShardID: prepMsg.SourceShardID,
-		//SourceTxHash  common.Uint256
-		Type: xshard_types.EVENT_SHARD_ABORT,
+		SourceTxHash:  prepMsg.SourceTxHash,
+		Type:          xshard_types.EVENT_SHARD_ABORT,
 		//Payload       []byte //todo
 		Msg: pareparedMsg,
 	})
@@ -449,7 +422,7 @@ func buildNativeInvokeTx(payer, contract common.Address, method string, msg []by
 }
 
 func handleShardReqMsg(req *xshard_types.CommonShardMsg, store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.ExecuteNotify) {
+	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
 	msg := req.Msg.(*xshard_types.XShardTxReq)
 	shardTxID := xshard_state.ShardTxID(string(req.SourceTxHash[:]))
 	txState := xshard_state.CreateTxState(shardTxID).Clone()
@@ -467,7 +440,7 @@ func handleShardReqMsg(req *xshard_types.CommonShardMsg, store store.LedgerStore
 	}
 
 	cache.Reset()
-	result, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify)
+	result, err := executeTransaction(store, overlay, cache, txState, subTx, header)
 
 	log.Debugf("xshard req: method: %s, args: %v, result: %v, err: %s", req.Msg.GetMethod(), req.Msg.GetArgs(), result, err)
 
@@ -487,7 +460,7 @@ func handleShardReqMsg(req *xshard_types.CommonShardMsg, store store.LedgerStore
 		&xshard_state.XShardTxReqResp{Req: msg, Resp: rspMsg, Index: txState.TotalInReq})
 	txState.TotalInReq += 1
 
-	xshardDB.AddXShardMsgInBlock(header.Height, &xshard_types.CommonShardMsg{
+	notify.ShardMsg = append(notify.ShardMsg, &xshard_types.CommonShardMsg{
 		//SourceShardID :
 		//SourceHeight  uint64
 		//TargetShardID common.ShardID
@@ -515,7 +488,7 @@ func handleShardReqMsg(req *xshard_types.CommonShardMsg, store store.LedgerStore
 
 }
 func handleShardRespMsg(req *xshard_types.CommonShardMsg, store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.ExecuteNotify) {
+	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
 	msg := req.Msg.(*xshard_types.XShardTxRsp)
 	shardTxID := xshard_state.ShardTxID(string(req.SourceTxHash[:]))
 	txState := xshard_state.CreateTxState(shardTxID).Clone()
@@ -526,15 +499,11 @@ func handleShardRespMsg(req *xshard_types.CommonShardMsg, store store.LedgerStor
 	// re-execute tx
 	txState.NextReqID = 0
 	cache.Reset()
-	_, err = executeTransaction(store, overlay, cache, txState, subTx, header, notify)
+	_, err = executeTransaction(store, overlay, cache, txState, subTx, header)
 
 	if err != nil {
 		if txState.ExecuteState == xshard_state.ExecYielded {
-			blockHeight := header.Height
-			for id := range txState.Shards {
-				xshardDB.AddToShard(blockHeight, id)
-			}
-			_ = xshardDB.AddXShardMsgInBlock(blockHeight, &xshard_types.CommonShardMsg{
+			notify.ShardMsg = append(notify.ShardMsg, &xshard_types.CommonShardMsg{
 				SourceTxHash:  txState.PendingReq.SourceTxHash,
 				SourceShardID: txState.PendingReq.SourceShardID,
 				SourceHeight:  uint64(txState.PendingReq.SourceHeight),
@@ -554,7 +523,7 @@ func handleShardRespMsg(req *xshard_types.CommonShardMsg, store store.LedgerStor
 		msg := &xshard_types.XShardCommitMsg{
 			MsgType: xshard_types.EVENT_SHARD_PREPARE,
 		}
-		_ = xshardDB.AddXShardMsgInBlock(header.Height, &xshard_types.CommonShardMsg{
+		notify.ShardMsg = append(notify.ShardMsg, &xshard_types.CommonShardMsg{
 			SourceTxHash:  subTx.Hash(),
 			SourceShardID: common.NewShardIDUnchecked(header.ShardID),
 			SourceHeight:  uint64(header.Height),
@@ -597,7 +566,7 @@ func handleShardRespMsg(req *xshard_types.CommonShardMsg, store store.LedgerStor
 
 func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
 	cache *storage.CacheDB, txState *xshard_state.TxState,
-	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) (result interface{}, err error) {
+	tx *types.Transaction, header *types.Header) (result interface{}, err error) {
 	shardID, err := common.NewShardID(header.ShardID)
 	if err != nil {
 		return nil, err
@@ -632,7 +601,7 @@ func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
 
 func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
 	cache *storage.CacheDB, xshardDB *storage.XShardDB,
-	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) error {
+	tx *types.Transaction, header *types.Header, notify *event.TransactionNotify) error {
 	shardCall := tx.Payload.(*payload.ShardCall)
 	reqs := shardCall.Msgs
 	for _, req := range reqs {
@@ -709,7 +678,7 @@ func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.Over
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
 	cache *storage.CacheDB, xshardDB *storage.XShardDB, txState *xshard_state.TxState,
-	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) (result interface{}, err error) {
+	tx *types.Transaction, header *types.Header, notify *event.TransactionNotify) (result interface{}, err error) {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || header.Height == 0
@@ -757,7 +726,7 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 		minGas = neovm.MIN_TRANSACTION_GAS * tx.GasPrice
 
 		if oldBalance < minGas {
-			if err = costInvalidGas(tx.Payer, oldBalance, config, cache, store, notify, shardID); err != nil {
+			if err = costInvalidGas(tx.Payer, oldBalance, config, cache, store, notify.ContractEvent, shardID); err != nil {
 				return
 			}
 			return nil, fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
@@ -766,14 +735,14 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), uintCodeGasPrice.(uint64))
 
 		if oldBalance < codeLenGasLimit*tx.GasPrice {
-			if err = costInvalidGas(tx.Payer, oldBalance, config, cache, store, notify, shardID); err != nil {
+			if err = costInvalidGas(tx.Payer, oldBalance, config, cache, store, notify.ContractEvent, shardID); err != nil {
 				return
 			}
 			return nil, fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
 		}
 
 		if tx.GasLimit < codeLenGasLimit {
-			if err = costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, cache, store, notify, shardID); err != nil {
+			if err = costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, cache, store, notify.ContractEvent, shardID); err != nil {
 				return
 			}
 			return nil, fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
@@ -807,17 +776,13 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	costGas = costGasLimit * tx.GasPrice
 	if err != nil {
 		if isCharge {
-			if err = costInvalidGas(tx.Payer, costGas, config, cache, store, notify, shardID); err != nil {
+			if err = costInvalidGas(tx.Payer, costGas, config, cache, store, notify.ContractEvent, shardID); err != nil {
 				return
 			}
 		}
 
 		if txState.ExecuteState == xshard_state.ExecYielded {
-			blockHeight := header.Height
-			for id := range txState.Shards {
-				xshardDB.AddToShard(blockHeight, id)
-			}
-			_ = xshardDB.AddXShardMsgInBlock(blockHeight, &xshard_types.CommonShardMsg{
+			notify.ShardMsg = append(notify.ShardMsg, &xshard_types.CommonShardMsg{
 				SourceTxHash:  txState.PendingReq.SourceTxHash,
 				SourceShardID: txState.PendingReq.SourceShardID,
 				SourceHeight:  uint64(txState.PendingReq.SourceHeight),
@@ -839,7 +804,7 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 		}
 
 		if newBalance < costGas {
-			if err = costInvalidGas(tx.Payer, costGas, config, cache, store, notify, shardID); err != nil {
+			if err = costInvalidGas(tx.Payer, costGas, config, cache, store, notify.ContractEvent, shardID); err != nil {
 				return nil, err
 			}
 			return nil, fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
@@ -850,10 +815,11 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 			return nil, err
 		}
 	}
-	notify.Notify = append(notify.Notify, sc.Notifications...)
-	notify.Notify = append(notify.Notify, notifies...)
-	notify.GasConsumed = costGas
-	notify.State = event.CONTRACT_STATE_SUCCESS
+	cnotify := notify.ContractEvent
+	cnotify.Notify = append(cnotify.Notify, sc.Notifications...)
+	cnotify.Notify = append(cnotify.Notify, notifies...)
+	cnotify.GasConsumed = costGas
+	cnotify.State = event.CONTRACT_STATE_SUCCESS
 	sc.CacheDB.Commit()
 	//todo : add notify to xshardDB
 	xshardDB.Commit()

@@ -20,6 +20,7 @@ package event
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -45,4 +46,9 @@ type ExecuteNotify struct {
 	State       byte
 	GasConsumed uint64
 	Notify      []*NotifyEventInfo
+}
+
+type TransactionNotify struct {
+	ContractEvent *ExecuteNotify
+	ShardMsg      []*xshard_types.CommonShardMsg
 }

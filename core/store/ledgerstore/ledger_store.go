@@ -24,6 +24,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
+	"github.com/ontio/ontology/core/xshard_types"
 	"hash"
 	"math"
 	"os"
@@ -642,6 +643,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 	cache := storage.NewCacheDB(overlay)
 	xshardDB := storage.NewXShardDB(overlay)
+	var shardNotify []*xshard_types.CommonShardMsg
 
 	// execute shard txs
 	// sort shard Txs
@@ -659,7 +661,8 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 				err = e
 				return
 			}
-			result.Notify = append(result.Notify, notify)
+			shardNotify = append(shardNotify, notify.ShardMsg...)
+			result.Notify = append(result.Notify, notify.ContractEvent)
 		}
 	}
 
@@ -672,8 +675,12 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			return
 		}
 
-		result.Notify = append(result.Notify, notify)
+		shardNotify = append(shardNotify, notify.ShardMsg...)
+		result.Notify = append(result.Notify, notify.ContractEvent)
 	}
+
+	xshardDB.SetXShardMsgInBlock(block.Header.Height, shardNotify)
+	xshardDB.Commit()
 
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
@@ -916,12 +923,15 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 }
 
 func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
-	xshardDB *storage.XShardDB, header *types.Header, tx *types.Transaction) (*event.ExecuteNotify, error) {
+	xshardDB *storage.XShardDB, header *types.Header, tx *types.Transaction) (*event.TransactionNotify, error) {
 	txHash := tx.Hash()
-	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
+	events := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
+	notify := &event.TransactionNotify{
+		ContractEvent: events,
+	}
 	switch tx.TxType {
 	case types.Deploy:
-		err := HandleDeployTransaction(store, overlay, cache, tx, header, notify)
+		err := HandleDeployTransaction(store, overlay, cache, tx, header, notify.ContractEvent)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -955,7 +965,6 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-
 	}
 
 	return notify, nil

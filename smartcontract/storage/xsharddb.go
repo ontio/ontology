@@ -19,7 +19,6 @@
 package storage
 
 import (
-	"fmt"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/store/common"
@@ -52,10 +51,32 @@ func (self *XShardDB) GetXshardReqsInBlock(blockHeight uint32, shardID comm.Shar
 	return nil, nil
 }
 
-func (self *XShardDB) AddXShardMsgInBlock(blockHeight uint32, req *xshard_types.CommonShardMsg) error {
-	fmt.Println("AddXShardMsgInBlock: unimplemented")
-	return nil
+func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []*xshard_types.CommonShardMsg) {
+	shardMsgMap := make(map[comm.ShardID][]*xshard_types.CommonShardMsg)
+	for _, msg := range msgs {
+		shardMsgMap[msg.TargetShardID] = append(shardMsgMap[msg.TargetShardID], msg)
+	}
+	keys := comm.NewZeroCopySink(8)
+	val := comm.NewZeroCopySink(1024)
+	shards := comm.NewZeroCopySink(2 + 8*len(shardMsgMap))
+	shards.WriteVarUint(uint64(len(shardMsgMap)))
+	for shardID, shardMsgs := range shardMsgMap {
+		shards.WriteUint64(shardID.ToUint64())
+		keys.Reset()
+		keys.WriteUint32(blockHeight)
+		keys.WriteUint64(shardID.ToUint64())
 
+		val.Reset()
+		val.WriteVarUint(uint64(len(shardMsgs)))
+		for _, msg := range shardMsgs {
+			msg.Serialization(val)
+		}
+		self.cacheDB.put(common.XSHARD_KEY_REQS_IN_BLOCK, keys.Bytes(), val.Bytes())
+	}
+	keys.Reset()
+	keys.WriteUint32(blockHeight)
+
+	self.cacheDB.put(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes(), shards.Bytes())
 }
 
 func (self *XShardDB) SetShardTxState(id xshard_state.ShardTxID, state *xshard_state.TxState) {
@@ -66,48 +87,48 @@ func (self *XShardDB) GetShardTxState(id xshard_state.ShardTxID) *xshard_state.T
 	return self.states[id]
 }
 
-func (self *XShardDB) AddToShard(blockHeight uint32, to comm.ShardID) error {
-	shardIDs, err := self.GetToShards(blockHeight)
-	if err != nil {
-		return err
-	}
+//func (self *XShardDB) AddToShard(blockHeight uint32, to comm.ShardID) error {
+//	shardIDs, err := self.GetToShards(blockHeight)
+//	if err != nil {
+//		return err
+//	}
+//
+//	shardIDs = append(shardIDs, to)
+//
+//	sink := comm.NewZeroCopySink(len(shardIDs) * 8)
+//	for _, id := range shardIDs {
+//		sink.WriteUint64(id.ToUint64())
+//	}
+//
+//	keys := comm.NewZeroCopySink(4)
+//	keys.WriteUint32(blockHeight)
+//	self.cacheDB.put(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes(), sink.Bytes())
+//	return nil
+//}
 
-	shardIDs = append(shardIDs, to)
-
-	sink := comm.NewZeroCopySink(len(shardIDs) * 8)
-	for _, id := range shardIDs {
-		sink.WriteUint64(id.ToUint64())
-	}
-
-	keys := comm.NewZeroCopySink(4)
-	keys.WriteUint32(blockHeight)
-	self.cacheDB.put(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes(), sink.Bytes())
-	return nil
-}
-
-func (self *XShardDB) GetToShards(blockHeight uint32) ([]comm.ShardID, error) {
-	keys := comm.NewZeroCopySink(4)
-	keys.WriteUint32(blockHeight)
-	val, err := self.cacheDB.get(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	source := comm.NewZeroCopySource(val)
-
-	shardIDs := make([]comm.ShardID, 0, len(val)/8)
-	for {
-		id, eof := source.NextUint64()
-		if eof {
-			break
-		}
-		shardID, err := comm.NewShardID(id)
-		if err != nil {
-			return nil, err
-		}
-
-		shardIDs = append(shardIDs, shardID)
-	}
-
-	return shardIDs, nil
-}
+//func (self *XShardDB) GetToShards(blockHeight uint32) ([]comm.ShardID, error) {
+//	keys := comm.NewZeroCopySink(4)
+//	keys.WriteUint32(blockHeight)
+//	val, err := self.cacheDB.get(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes())
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	source := comm.NewZeroCopySource(val)
+//
+//	shardIDs := make([]comm.ShardID, 0, len(val)/8)
+//	for {
+//		id, eof := source.NextUint64()
+//		if eof {
+//			break
+//		}
+//		shardID, err := comm.NewShardID(id)
+//		if err != nil {
+//			return nil, err
+//		}
+//
+//		shardIDs = append(shardIDs, shardID)
+//	}
+//
+//	return shardIDs, nil
+//}
