@@ -203,11 +203,10 @@ func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error 
 		if err != nil {
 			return err
 		}
-		err = self.ParentLedger.ldgStore.SubmitBlock(parentBlock, result)
-		if err != nil {
-			self.ParentBlockCache.DelBlock(b.Header.ParentHeight)
-		} else {
+		if err := self.ParentLedger.ldgStore.SubmitBlock(parentBlock, result); err != nil {
 			return err
+		} else {
+			self.ParentBlockCache.DelBlock(b.Header.ParentHeight)
 		}
 	}
 	err := self.ldgStore.SubmitBlock(b, exec)
