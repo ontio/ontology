@@ -25,6 +25,8 @@ import (
 	"strconv"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	exec "github.com/ontio/ontology/core/store"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
@@ -35,9 +37,10 @@ const (
 )
 
 type BlockCacheStore struct {
-	shardID types.ShardID
-	dbDir   string
-	store   *leveldbstore.LevelDBStore
+	shardID    types.ShardID
+	dbDir      string
+	store      *leveldbstore.LevelDBStore
+	execResult map[uint32]exec.ExecuteResult
 }
 
 func ResetBlockCacheStore(shardID types.ShardID, dbDir string) (*BlockCacheStore, error) {
@@ -51,9 +54,10 @@ func ResetBlockCacheStore(shardID types.ShardID, dbDir string) (*BlockCacheStore
 		return nil, err
 	}
 	return &BlockCacheStore{
-		shardID: shardID,
-		dbDir:   dbDir,
-		store:   store,
+		shardID:    shardID,
+		dbDir:      dbDir,
+		store:      store,
+		execResult: make(map[uint32]exec.ExecuteResult),
 	}, nil
 }
 
@@ -75,6 +79,7 @@ func (this *BlockCacheStore) PutBlock(block *types.Block, stateMerkleRoot common
 	if currentHeight+1 != block.Header.Height && currentHeight != 0 {
 		return fmt.Errorf("blockcache block height %d not equal next block height %d", currentHeight, block.Header.Height)
 	}
+	log.Infof("xiexie----heigt:%d", block.Header.Height)
 	this.PutBlockHeight(block.Header.Height)
 	mklKey := fmt.Sprintf("mkl-%d-%d", this.shardID.ToUint64(), block.Header.Height)
 	blkKey := fmt.Sprintf("blk-%d-%d", this.shardID.ToUint64(), block.Header.Height)
@@ -129,4 +134,15 @@ func (this *BlockCacheStore) GetCurrentParentHeight() (uint32, error) {
 		return 0, err
 	}
 	return uint32(height), nil
+}
+
+func (this *BlockCacheStore) SaveBlockExecuteResult(height uint32, exec exec.ExecuteResult) {
+	this.execResult[height] = exec
+}
+
+func (this *BlockCacheStore) GetBlockExecuteResult(height uint32) (exec.ExecuteResult, error) {
+	if exec, present := this.execResult[height]; present {
+		return exec, nil
+	}
+	return exec.ExecuteResult{}, fmt.Errorf("block execute not found height:%d", height)
 }

@@ -27,10 +27,10 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/chainmgr/xshard"
 )
 
 type ConsensusMsgPayload struct {
@@ -188,7 +188,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		log.Errorf("constructBlock getlastblock err:%s,blknum:%d", err, blkNum-1)
 		return nil, err
 	}
-	parentHeight := self.ledger.GetParentHeight()
+	parentHeighp := self.ledger.GetParentHeight()
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {
 		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)

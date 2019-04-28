@@ -68,7 +68,7 @@ func SetTxPool(txPool *actor.PID) error {
 // GetParentShardHeight
 // get height of parent shard
 //
-func GetParentShardHeight() (uint32, error) {
+func GetParentShardHeight(height uint32) (uint32, error) {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
@@ -80,21 +80,28 @@ func GetParentShardHeight() (uint32, error) {
 	if shardLedger == nil {
 		return 0, nil
 	}
-	h := uint32(0)
-	height, err := shardLedger.ParentBlockCache.GetCurrentParentHeight()
+	header, err := shardLedger.GetHeaderByHeight(height)
 	if err != nil {
-		return h, err
+		return 0, err
 	}
-	if height == 0 {
-		if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
-			h = cfg.Shard.GenesisParentHeight
-		} else {
-			log.Errorf("failed to get self shard config")
+	return header.ParentHeight + 1, nil
+	/*
+		h := uint32(0)
+		height, err := shardLedger.ParentBlockCache.GetCurrentParentHeight()
+		if err != nil {
+			return h, err
 		}
-	} else {
-		h = height
-	}
-	return h, nil
+		if height == 0 {
+			if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
+				h = cfg.Shard.GenesisParentHeight
+			} else {
+				log.Errorf("failed to get self shard config")
+			}
+		} else {
+			h = height
+		}
+		return h, nil
+	*/
 }
 
 func GetShardBlock(shardID types.ShardID, height uint32) *types.Block {
