@@ -24,7 +24,6 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -62,46 +61,6 @@ func SetTxPool(txPool *actor.PID) error {
 	}
 	defaultChainManager.txPoolPid = txPool
 	return nil
-}
-
-//
-// GetParentShardHeight
-// get height of parent shard
-//
-func GetParentShardHeight(height uint32) (uint32, error) {
-	chainmgr := GetChainManager()
-	chainmgr.lock.RLock()
-	defer chainmgr.lock.RUnlock()
-
-	if chainmgr.shardID.IsRootShard() {
-		return 0, nil
-	}
-	shardLedger := ledger.GetShardLedger(chainmgr.shardID)
-	if shardLedger == nil {
-		return 0, nil
-	}
-	header, err := shardLedger.GetHeaderByHeight(height)
-	if err != nil {
-		return 0, err
-	}
-	return header.ParentHeight + 1, nil
-	/*
-		h := uint32(0)
-		height, err := shardLedger.ParentBlockCache.GetCurrentParentHeight()
-		if err != nil {
-			return h, err
-		}
-		if height == 0 {
-			if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
-				h = cfg.Shard.GenesisParentHeight
-			} else {
-				log.Errorf("failed to get self shard config")
-			}
-		} else {
-			h = height
-		}
-		return h, nil
-	*/
 }
 
 func GetShardBlock(shardID types.ShardID, height uint32) *types.Block {

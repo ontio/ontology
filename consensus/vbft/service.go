@@ -182,7 +182,9 @@ func (self *Server) Receive(context actor.Context) {
 	case *message.SaveBlockCompleteMsg:
 		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, numtx=%d",
 			msg.Block.Header.Height, len(msg.Block.Transactions))
-		self.handleBlockPersistCompleted(msg.Block)
+		if self.ShardID.ToUint64() == msg.Block.Header.ShardID {
+			self.handleBlockPersistCompleted(msg.Block)
+		}
 	case *message.BlockConsensusComplete:
 		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d,parent=%d, numtx=%d",
 			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions))
@@ -1116,7 +1118,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	parentHeight := self.ledger.GetParentHeight()
+	parentHeight := self.ledger.GetParentHeight() + 1
 	if parentHeight < msg.Block.Block.Header.ParentHeight {
 		log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,ParentHeight:%d,self.parentHeight:%d", msg.GetBlockNum(), self.parentHeight, msg.Block.Block.Header.ParentHeight)
 		return
@@ -2052,7 +2054,7 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 	// parentHeight order consistency check
-	parentHeight := self.ledger.GetParentHeight()
+	parentHeight := self.ledger.GetParentHeight() + 1
 	if parentHeight < block.Block.Header.ParentHeight {
 		return fmt.Errorf("invalid parent height: %d vs %d", parentHeight, block.Block.Header.ParentHeight)
 	}

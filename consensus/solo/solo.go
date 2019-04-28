@@ -131,7 +131,9 @@ func (self *SoloService) Receive(context actor.Context) {
 	case *message.SaveBlockCompleteMsg:
 		log.Infof("solo actor receives block complete event. block height=%d parent=%d txnum=%d",
 			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions))
-		self.incrValidator.AddBlock(msg.Block)
+		if self.shardID.ToUint64() == msg.Block.Header.ShardID {
+			self.incrValidator.AddBlock(msg.Block)
+		}
 
 	case *actorTypes.TimeOut:
 		err := self.genBlock()

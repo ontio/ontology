@@ -160,53 +160,6 @@ func startOntology(ctx *cli.Context) {
 	startMainChain(ctx, shardID)
 }
 
-func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
-	rootshardID := types.NewShardIDUnchecked(0)
-	initLog(ctx, rootshardID)
-
-	if _, err := initConfig(ctx); err != nil {
-		log.Errorf("initConfig error:%s", err)
-		return
-	}
-	acc, err := initAccount(ctx)
-	if err != nil {
-		log.Errorf("initWallet error:%s", err)
-		return
-	}
-	// start chain manager
-	chainmgr, err := initChainManager(ctx, shardID, acc)
-	if err != nil {
-		log.Errorf("init main chain manager error: %s", err)
-		return
-	}
-	defer chainmgr.Close()
-
-	txnPoolMgr, err := initTxPool(ctx, chainmgr)
-	if err != nil {
-		log.Errorf("initTxPool error:%s", err)
-		return
-	}
-	p2pSvr, _, err := initP2PNode(ctx, shardID, txnPoolMgr)
-	if err != nil {
-		log.Errorf("initP2PNode error:%s", err)
-		return
-	}
-	chainmgr.Start(txnPoolMgr.GetPID(shardID, tc.TxActor), p2pSvr.GetPID(), txnPoolMgr)
-	defer chainmgr.Stop()
-
-	initNodeInfo(ctx, p2pSvr)
-	go logCurrBlockHeight(rootshardID)
-	go func() {
-		for {
-			if cfg := chainmgr.GetShardConfig(shardID); cfg != nil {
-				startShardChain(ctx, chainmgr, chainmgr.GetDefaultLedger(), cfg, shardID)
-				break
-			}
-		}
-	}()
-	waitToExit()
-}
-
 func startMainChain(ctx *cli.Context, shardID types.ShardID) {
 	initLog(ctx, shardID)
 
@@ -263,44 +216,6 @@ func startMainChain(ctx *cli.Context, shardID types.ShardID) {
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)
 
-	go logCurrBlockHeight(shardID)
-	waitToExit()
-}
-
-func startShardChain(ctx *cli.Context, chainmagr *chainmgr.ChainManager, mainledger *ledger.Ledger, cfg *config.OntologyConfig, shardID types.ShardID) {
-	acc := chainmgr.GetAccount()
-	//todo
-	config.DefConfig = cfg
-	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
-	ldg, err := initLedger(ctx, mainledger, shardID, stateHashHeight)
-	if err != nil {
-		log.Errorf("%s", err)
-		return
-	}
-	//chainmagr.SetShardLedger(shardID, ldg)
-	defer ldg.Close()
-	txpool, err := initTxPool(ctx, nil)
-	if err != nil {
-		log.Errorf("initTxPool error:%s", err)
-		return
-	}
-	_, p2pPid, err := initP2PNode(ctx, shardID, txpool)
-	if err != nil {
-		log.Errorf("initP2PNode error:%s", err)
-		return
-	}
-	_, err = initConsensus(ctx, shardID, p2pPid, txpool.GetPID(shardID, tc.TxPoolActor), acc)
-	if err != nil {
-		log.Errorf("initConsensus error:%s", err)
-		return
-	}
-
-	err = initRpc(ctx)
-	if err != nil {
-		log.Errorf("initRpc error:%s", err)
-		return
-	}
-	initRestful(ctx)
 	go logCurrBlockHeight(shardID)
 	waitToExit()
 }
