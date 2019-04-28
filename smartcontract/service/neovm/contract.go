@@ -64,7 +64,7 @@ func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if !checkInitMeta(service, newMeta) {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[InitMetaData] meta data should contain owner")
 	}
-	newMeta.OntVersion = common.VERSION_SUPPORT_SHARD
+	newMeta.OntVersion = common.CURR_TX_VERSION
 	newMeta.Contract = service.ContextRef.CurrentContext().ContractAddress
 	service.CacheDB.PutMetaData(newMeta)
 	vm.PushData(engine, oldMeta)

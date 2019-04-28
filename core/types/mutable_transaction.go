@@ -121,6 +121,8 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 		pl.Serialization(sink)
 	case *payload.InvokeCode:
 		pl.Serialization(sink)
+	case *payload.MetaDataCode:
+		pl.Serialization(sink)
 	default:
 		return errors.New("wrong transaction payload type")
 	}
@@ -170,6 +172,8 @@ func (tx *MutableTransaction) DeserializeUnsigned(r io.Reader) error {
 		tx.Payload = new(payload.InvokeCode)
 	case Deploy:
 		tx.Payload = new(payload.DeployCode)
+	case MetaData:
+		tx.Payload = new(payload.MetaDataCode)
 	default:
 		return fmt.Errorf("unsupported tx type %v", tx.TxType)
 	}

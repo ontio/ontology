@@ -145,7 +145,7 @@ func (self *StateStore) HandleChangeMetadataTransaction(store store.LedgerStore,
 			}
 		}
 	}()
-	if tx.Version != common.VERSION_SUPPORT_SHARD {
+	if tx.Version < common.VERSION_SUPPORT_SHARD {
 		return fmt.Errorf("unsupport tx version")
 	}
 	newMeta, ok := tx.Payload.(*payload.MetaDataCode)
