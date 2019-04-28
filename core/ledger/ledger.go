@@ -45,6 +45,7 @@ type Ledger struct {
 	ParentLedger     *Ledger
 	ParentBlockCache *ledgerstore.BlockCacheStore
 	ldgStore         store.LedgerStore
+	ChildLedger      *Ledger
 }
 
 type LedgerMgr struct {
@@ -119,7 +120,7 @@ func NewShardLedger(shardID types.ShardID, dataDir string, mainLedger *Ledger) (
 		ParentBlockCache: parentBlockCache,
 		ldgStore:         ldgStore,
 	}
-
+	parentLedger.ChildLedger = lgr
 	DefLedgerMgr.Lock.Lock()
 	defer DefLedgerMgr.Lock.Unlock()
 	DefLedgerMgr.Ledgers[lgr.ShardID] = lgr
@@ -160,18 +161,14 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 }
 
 func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	if block.Header.ShardID == self.ShardID.ToUint64() {
+	if len(DefLedgerMgr.Ledgers) > 1 && self.ShardID.IsRootShard() {
+		return self.ChildLedger.ParentBlockCache.PutBlock(block, stateMerkleRoot)
+	} else {
 		err := self.ldgStore.AddBlock(block, stateMerkleRoot)
 		if err != nil {
 			log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
 		}
 		return err
-	} else {
-		if block.Header.Height > DefLedger.ParentLedger.GetCurrentBlockHeight() {
-			return DefLedger.ParentBlockCache.PutBlock(block, stateMerkleRoot)
-		} else {
-			return nil
-		}
 	}
 }
 

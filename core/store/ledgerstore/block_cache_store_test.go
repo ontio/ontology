@@ -92,14 +92,6 @@ func TestBlockCacheStore_Ops(t *testing.T) {
 	if blk2.Header.ShardID != shardID.ToUint64() {
 		t.Fatalf("get block unmatched shard id")
 	}
-	blkHeight, err := cacheStore.GetCurrentParentHeight()
-	if err != nil {
-		t.Fatalf("get current parent height failed:%s", err)
-	}
-
-	if height != blkHeight {
-		t.Fatalf("get current parent height not equal heiht")
-	}
 	cacheStore.DelBlock(height)
 	if _, _, err := cacheStore.GetBlock(height); err != common2.ErrNotFound {
 		t.Fatalf("del block failed: %s", err)

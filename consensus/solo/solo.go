@@ -178,7 +178,6 @@ func (self *SoloService) genBlock() error {
 
 	// new block persisted, update parentHeight
 	self.parentHeight = block.Header.ParentHeight
-
 	return nil
 }
 
@@ -222,7 +221,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
 
 	// get ParentHeight from chain-mgr
-	parentHeight := self.ledger.GetParentHeight()
+	parentHeight := self.ledger.GetParentHeight() + 1
 
 	// get Cross-Shard Txs from chain-mgr
 	shardTxs := make(map[uint64][]*types.Transaction)
