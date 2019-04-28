@@ -21,6 +21,7 @@ package ledger
 import (
 	"fmt"
 	"path"
+	"sync"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -37,12 +38,24 @@ import (
 )
 
 var DefLedger *Ledger
+var DefLedgerMgr *LedgerMgr
 
 type Ledger struct {
 	ShardID          types.ShardID
 	ParentLedger     *Ledger
 	ParentBlockCache *ledgerstore.BlockCacheStore
 	ldgStore         store.LedgerStore
+}
+
+type LedgerMgr struct {
+	Lock    sync.RWMutex
+	Ledgers map[types.ShardID]*Ledger
+}
+
+func init() {
+	DefLedgerMgr = &LedgerMgr{
+		Ledgers: make(map[types.ShardID]*Ledger),
+	}
 }
 
 //
@@ -54,10 +67,16 @@ func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
-	return &Ledger{
+	lgr := &Ledger{
 		ShardID:  types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID),
 		ldgStore: ldgStore,
-	}, nil
+	}
+
+	DefLedgerMgr.Lock.Lock()
+	defer DefLedgerMgr.Lock.Unlock()
+	DefLedgerMgr.Ledgers[lgr.ShardID] = lgr
+
+	return lgr, nil
 }
 
 //
@@ -94,12 +113,34 @@ func NewShardLedger(shardID types.ShardID, dataDir string, mainLedger *Ledger) (
 		return nil, fmt.Errorf("reset shard %d parent blockcache failed: %s", shardID, err)
 	}
 
-	return &Ledger{
+	lgr := &Ledger{
 		ShardID:          shardID,
 		ParentLedger:     parentLedger,
 		ParentBlockCache: parentBlockCache,
 		ldgStore:         ldgStore,
-	}, nil
+	}
+
+	DefLedgerMgr.Lock.Lock()
+	defer DefLedgerMgr.Lock.Unlock()
+	DefLedgerMgr.Ledgers[lgr.ShardID] = lgr
+
+	return lgr, nil
+}
+
+func GetShardLedger(shardID types.ShardID) *Ledger {
+	DefLedgerMgr.Lock.RLock()
+	defer DefLedgerMgr.Lock.RUnlock()
+
+	return DefLedgerMgr.Ledgers[shardID]
+}
+
+func CloseLedgers() {
+	DefLedgerMgr.Lock.Lock()
+	defer DefLedgerMgr.Lock.Unlock()
+	for _, lgr := range DefLedgerMgr.Ledgers {
+		lgr.Close()
+	}
+	DefLedgerMgr.Ledgers = make(map[types.ShardID]*Ledger)
 }
 
 func (self *Ledger) GetStore() store.LedgerStore {
@@ -119,7 +160,7 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 }
 
 func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	if block.Header.ShardID == DefLedger.ShardID.ToUint64() {
+	if block.Header.ShardID == self.ShardID.ToUint64() {
 		err := self.ldgStore.AddBlock(block, stateMerkleRoot)
 		if err != nil {
 			log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
@@ -288,9 +329,6 @@ func (self *Ledger) PutShardProcessedBlockHeight(height uint32) error {
 }
 
 func (self *Ledger) Close() error {
-	if self.ParentLedger != nil {
-		self.ParentLedger.Close()
-	}
 	if self.ParentBlockCache != nil {
 		self.ParentBlockCache.Close()
 	}

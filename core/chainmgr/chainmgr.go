@@ -39,6 +39,7 @@ import (
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/p2pserver/actor/req"
+	"github.com/ontio/ontology/p2pserver/actor/server"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -58,7 +59,6 @@ type ShardInfo struct {
 	ShardID  types.ShardID
 	SeedList []string
 	Config   *config.OntologyConfig
-	Ledger   *ledger.Ledger
 }
 
 type ChainManager struct {
@@ -186,8 +186,13 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 	if err != nil {
 		return fmt.Errorf("GetBookkeepers error:%s", err)
 	}
-	genesisConfig := config.DefConfig.Genesis
-	shardConfig := config.DefConfig.Shard
+	cfg := config.DefConfig
+	if self.shardID.ToUint64() != config.DEFAULT_SHARD_ID {
+		cfg = config.NewOntologyConfig()
+	}
+
+	genesisConfig := cfg.Genesis
+	shardConfig := cfg.Shard
 	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
 	if err != nil {
 		return fmt.Errorf("genesisBlock error %s", err)
@@ -200,9 +205,8 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 	mainShardID := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	mainShardInfo := &ShardInfo{
 		ShardID:  mainShardID,
-		SeedList: config.DefConfig.Genesis.SeedList,
-		Config:   config.DefConfig,
-		Ledger:   lgr,
+		SeedList: cfg.Genesis.SeedList,
+		Config:   cfg,
 	}
 	self.shards[mainShardID] = mainShardInfo
 	self.mainLedger = lgr
@@ -211,7 +215,7 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 }
 
 func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
-	if shardInfo.Ledger != nil {
+	if shardInfo != nil && ledger.GetShardLedger(shardInfo.ShardID) != nil {
 		return nil
 	}
 	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
@@ -240,23 +244,20 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	if err != nil {
 		return fmt.Errorf("init shard ledger: :%s", err)
 	}
-	shardInfo.Ledger = lgr
 	return nil
 }
 
-func (self *ChainManager) GetActiveShards() map[types.ShardID]*ledger.Ledger {
-	lgrs := make(map[types.ShardID]*ledger.Ledger)
+func (self *ChainManager) GetActiveShards() []types.ShardID {
+	shards := make([]types.ShardID, 0)
 	for _, shardInfo := range self.shards {
-		lgrs[shardInfo.ShardID] = shardInfo.Ledger
+		shards = append(shards, shardInfo.ShardID)
 	}
-	return lgrs
+	return shards
 }
 
 func (self *ChainManager) GetDefaultLedger() *ledger.Ledger {
 	if shardInfo := self.shards[self.shardID]; shardInfo != nil {
-		if shardInfo.Ledger != nil {
-			return shardInfo.Ledger
-		}
+		return ledger.GetShardLedger(self.shardID)
 	}
 	return self.mainLedger
 }
@@ -267,24 +268,37 @@ func (self *ChainManager) startConsensus() error {
 	}
 
 	// start consensus
-	if shardInfo := self.shards[self.shardID]; shardInfo.Config != nil && shardInfo.Ledger != nil {
-		// TODO: check if peer should start consensus
-		if !shardInfo.Config.Consensus.EnableConsensus {
-			return nil
-		}
-
-		consensusType := shardInfo.Config.Genesis.ConsensusType
-		consensusService, err := consensus.NewConsensusService(consensusType, self.shardID, self.account,
-			self.txPoolPid, shardInfo.Ledger, self.p2pPid)
-		if err != nil {
-			return fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
-		}
-		consensusService.Start()
-		self.consensus = consensusService
-
-		actor2.SetConsensusPid(consensusService.GetPID())
-		req.SetConsensusPid(consensusService.GetPID())
+	shardInfo := self.shards[self.shardID]
+	if shardInfo == nil {
+		log.Infof("shard %d starting consensus, shard info not available", self.shardID.ToUint64())
+		return nil
 	}
+	if shardInfo.Config == nil {
+		log.Infof("shard %d starting consensus, shard config not available", self.shardID.ToUint64())
+		return nil
+	}
+	lgr := ledger.GetShardLedger(self.shardID)
+	if lgr == nil {
+		log.Infof("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
+		return nil
+	}
+
+	// TODO: check if peer should start consensus
+	if !shardInfo.Config.Consensus.EnableConsensus {
+		return nil
+	}
+
+	consensusType := shardInfo.Config.Genesis.ConsensusType
+	consensusService, err := consensus.NewConsensusService(consensusType, self.shardID, self.account,
+		self.txPoolPid, lgr, self.p2pPid)
+	if err != nil {
+		return fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
+	}
+	consensusService.Start()
+	self.consensus = consensusService
+
+	actor2.SetConsensusPid(consensusService.GetPID())
+	req.SetConsensusPid(consensusService.GetPID())
 	return nil
 }
 
@@ -296,6 +310,24 @@ func (self *ChainManager) Start(txPoolPid, p2pPid *actor.PID) error {
 	self.localEventSub = events.NewActorSubscriber(self.localPid)
 	self.localEventSub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
 	self.localEventSub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
+
+	syncerToStart := make([]types.ShardID, 0)
+	for shardId := self.shardID; shardId.ToUint64() != config.DEFAULT_SHARD_ID; shardId = shardId.ParentID() {
+		syncerToStart = append(syncerToStart, shardId)
+	}
+	// start syncing root-chain
+	syncerToStart = append(syncerToStart, types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+
+	// start syncing shard
+	for i := len(syncerToStart) - 1; i >= 0; i-- {
+		shardId := syncerToStart[i]
+		if self.shards[shardId] != nil {
+			p2pPid.Tell(&server.StartSync{
+				ShardID: shardId.ToUint64(),
+			})
+			log.Infof("start sync %d", shardId)
+		}
+	}
 
 	return self.startConsensus()
 }
@@ -416,10 +448,6 @@ func (self *ChainManager) localEventLoop() {
 func (self *ChainManager) Close() {
 	close(self.quitC)
 	self.quitWg.Wait()
-
-	// close ledgers
-	lgr := self.GetDefaultLedger()
-	lgr.Close()
 }
 
 func (self *ChainManager) Stop() {
@@ -460,12 +488,4 @@ func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPLis
 func (self *ChainManager) getShardRPCPort(shardID types.ShardID) uint {
 	// TODO: get from shardinfo
 	return 0
-}
-
-func (self *ChainManager) SetShardLedger(shardID types.ShardID, ledger *ledger.Ledger) {
-	self.lock.Lock()
-	defer self.lock.Unlock()
-	self.shards[shardID] = &ShardInfo{
-		Ledger: ledger,
-	}
 }

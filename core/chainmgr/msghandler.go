@@ -26,8 +26,10 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	cmdUtil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	evtmsg "github.com/ontio/ontology/events/message"
@@ -59,7 +61,7 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 		return nil
 	}
 
-	lgr := GetShardLedger(evt.ShardID)
+	lgr := ledger.GetShardLedger(evt.ShardID)
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
 	}
@@ -87,7 +89,7 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
 	// build shard config
 	// start local shard
-	lgr := GetShardLedger(evt.ShardID)
+	lgr := ledger.GetShardLedger(evt.ShardID)
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
 	}
@@ -180,7 +182,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	if err != nil {
 		return fmt.Errorf("invalid shard id %d", header.ShardID)
 	}
-	lgr := GetShardLedger(shardID)
+	lgr := ledger.GetShardLedger(shardID)
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)
 	}
@@ -230,7 +232,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 
 	return nil
 }
-func (self *ChainManager) handleRootChainBLock() error {
+func (self *ChainManager) handleRootChainBlock() error {
 	shardState, err := GetShardState(self.mainLedger, self.shardID)
 	if err == com.ErrNotFound {
 		log.Debugf("get shard %d failed: %s", self.shardID, err)
@@ -252,7 +254,11 @@ func (self *ChainManager) handleRootChainBLock() error {
 	return nil
 }
 func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
-	log.Infof("shard %d, get new block %d,blk shardId:%d", self.shardID, blk.Header.Height, blk.Header.ShardID)
+	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
+		// main-chain has no parent-chain, and not support xshard-txn
+		return nil
+	}
+	log.Infof("chainmgr shard %d, get new block %d,blk shardId:%d", self.shardID, blk.Header.Height, blk.Header.ShardID)
 
 	if err := self.handleBlockEvents(blk, shardEvts); err != nil {
 		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
@@ -260,7 +266,7 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []
 	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
 		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
-	if err := self.handleRootChainBLock(); err != nil {
+	if err := self.handleRootChainBlock(); err != nil {
 		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 	return nil

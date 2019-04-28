@@ -29,5 +29,5 @@ create peers.recent like:
 ```
 
 ```
-./ontology --testmode --ShardID  1 --networkid 300 --rpcport 30336 --nodeport 30338 --enable-consensus  --enable-solo-shard
+./ontology --testmode --ShardID  1 --networkid 300 --restport 30334 --wsport 30335 --rpcport 30336 --nodeport 30338 --enable-consensus  --enable-solo-shard
 ```

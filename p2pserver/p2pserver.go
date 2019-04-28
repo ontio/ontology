@@ -114,13 +114,18 @@ func (this *P2PServer) Start() error {
 	return nil
 }
 
-func (this *P2PServer) StartSync(shardID types.ShardID, lgr *ledger.Ledger) error {
+func (this *P2PServer) StartSyncShard(shardID types.ShardID) error {
+	lgr := ledger.GetShardLedger(shardID)
+	if lgr == nil {
+		return fmt.Errorf("failed to get shard ledger before starting syncing %d", shardID)
+	}
 	syncer := NewBlockSyncMgr(shardID, this, lgr)
 	if syncer == nil {
 		return fmt.Errorf("failed to init syncer for shard %d", shardID)
 	}
 	this.blockSyncers[shardID.ToUint64()] = syncer
-	syncer.Start()
+	go syncer.Start()
+	log.Infof("syncer for shard %d started", shardID.ToUint64())
 	return nil
 }
 

@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/common/config"
 )
 
 const shard_port_gap = 10
@@ -77,7 +76,7 @@ func GetParentShardHeight() (uint32, error) {
 	if chainmgr.shardID.IsRootShard() {
 		return 0, nil
 	}
-	shardLedger := GetShardLedger(chainmgr.shardID)
+	shardLedger := ledger.GetShardLedger(chainmgr.shardID)
 	if shardLedger == nil {
 		return 0, nil
 	}
@@ -114,19 +113,6 @@ func GetShardBlock(shardID types.ShardID, height uint32) *types.Block {
 		return blk.Block
 	}
 
-	return nil
-}
-
-func GetShardLedger(shardID types.ShardID) *ledger.Ledger {
-	chainmgr := GetChainManager()
-	chainmgr.lock.RLock()
-	defer chainmgr.lock.RUnlock()
-	if shardID.ToUint64() == config.DEFAULT_SHARD_ID {
-		return chainmgr.mainLedger
-	}
-	if shardInfo := chainmgr.shards[shardID]; shardInfo != nil {
-		return shardInfo.Ledger
-	}
 	return nil
 }
 

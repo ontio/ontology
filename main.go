@@ -157,11 +157,7 @@ func startOntology(ctx *cli.Context) {
 	log.Infof("ontology version %s", config.Version)
 
 	setMaxOpenFiles()
-	if id == config.DEFAULT_SHARD_ID {
-		startMainChain(ctx)
-	} else {
-		startSyncRootChain(ctx, shardID)
-	}
+	startMainChain(ctx, shardID)
 }
 
 func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
@@ -211,8 +207,7 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 	waitToExit()
 }
 
-func startMainChain(ctx *cli.Context) {
-	shardID := types.NewShardIDUnchecked(0)
+func startMainChain(ctx *cli.Context, shardID types.ShardID) {
 	initLog(ctx, shardID)
 
 	if _, err := initConfig(ctx); err != nil {
@@ -237,6 +232,7 @@ func startMainChain(ctx *cli.Context) {
 		log.Errorf("init main chain manager error: %s", err)
 		return
 	}
+	defer ledger.CloseLedgers()
 	defer chainmgr.Close()
 
 	txPoolMgr, err := initTxPool(ctx, chainmgr)
@@ -281,7 +277,7 @@ func startShardChain(ctx *cli.Context, chainmagr *chainmgr.ChainManager, mainled
 		log.Errorf("%s", err)
 		return
 	}
-	chainmagr.SetShardLedger(shardID, ldg)
+	//chainmagr.SetShardLedger(shardID, ldg)
 	defer ldg.Close()
 	txpool, err := initTxPool(ctx, nil)
 	if err != nil {
@@ -372,7 +368,7 @@ func initChainManager(ctx *cli.Context, shardID types.ShardID, acc *account.Acco
 	}
 
 	// set Default Ledger
-	if lgr := chainmgr.GetShardLedger(shardID); lgr != nil {
+	if lgr := ledger.GetShardLedger(shardID); lgr != nil {
 		ledger.DefLedger = lgr
 	}
 
@@ -422,7 +418,11 @@ func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.Txn
 	disableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.DisableBroadcastNetTxFlag))
 
 	mgr := txnpool.NewTxnPoolManager()
-	for shardId, lgr := range chainMgr.GetActiveShards() {
+	for _, shardId := range chainMgr.GetActiveShards() {
+		lgr := ledger.GetShardLedger(shardId)
+		if lgr == nil {
+			continue
+		}
 		srv, err := mgr.StartTxnPoolServer(shardId, lgr, disablePreExec, disableBroadcastNetTx)
 		if err != nil {
 			return nil, fmt.Errorf("Init txpool error:%s", err)
@@ -449,7 +449,6 @@ func initP2PNode(ctx *cli.Context, shardID types.ShardID, txpoolMgr *txnpool.Txn
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO && !ctx.Bool(utils.GetFlagName(utils.EnableSoloShardFlag)) {
 		return nil, nil, nil
 	}
-	// TODO: fix P2P for sharding
 
 	p2p := p2pserver.NewServer(shardID)
 
@@ -571,9 +570,9 @@ func logCurrBlockHeight(shardID types.ShardID) {
 	for {
 		select {
 		case <-ticker.C:
-			lgr := chainmgr.GetShardLedger(shardID)
+			lgr := ledger.GetShardLedger(shardID)
 			if lgr == nil {
-				lgr = ledger.DefLedger
+				continue
 			}
 			log.Infof("CurrentBlockHeight = %d", lgr.GetCurrentBlockHeight())
 			isNeedNewFile := log.CheckIfNeedNewFile()

@@ -45,7 +45,7 @@ func NewP2PActor(p2pServer *p2pserver.P2PServer) *P2PActor {
 //start a actor called net_server
 func (this *P2PActor) Start(shardID types.ShardID) (*actor.PID, error) {
 	this.props = actor.FromProducer(func() actor.Actor { return this })
-	p2pPid, err := actor.SpawnNamed(this.props, "net_server"+fmt.Sprintf("%s", shardID.ToUint64()))
+	p2pPid, err := actor.SpawnNamed(this.props, "net_server"+fmt.Sprintf("%d", shardID.ToUint64()))
 	return p2pPid, err
 }
 
@@ -96,6 +96,14 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.server.OnHeaderReceive(msg.FromID, msg.Headers)
 	case *common.AppendBlock:
 		this.server.OnBlockReceive(msg.FromID, msg.BlockSize, msg.Block, msg.MerkleRoot)
+	case *StartSync:
+		if shardID, err := types.NewShardID(msg.ShardID); err == nil {
+			if err := this.server.StartSyncShard(shardID); err != nil {
+				log.Errorf("[p2p] start syncing shard %d: %s", shardID, err)
+			}
+		} else {
+			log.Errorf("[p2p] start syncing, invalid shardID: %d", msg.ShardID)
+		}
 	default:
 		err := this.server.Xmit(ctx.Message())
 		if nil != err {

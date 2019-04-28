@@ -28,6 +28,8 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
+	types2 "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -338,7 +340,13 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		go remotePeer.ConsLink.Rx()
 		remotePeer.SetConsState(common.HAND)
 	}
-	version := msgpack.NewVersion(this, isConsensus, nil)
+
+	heights := make(map[uint64]uint32)
+	lgr := ledger.GetShardLedger(types2.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+	if lgr != nil {
+		heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+	}
+	version := msgpack.NewVersion(this, isConsensus, heights)
 	err = remotePeer.Send(version, isConsensus)
 	if err != nil {
 		if !isConsensus {

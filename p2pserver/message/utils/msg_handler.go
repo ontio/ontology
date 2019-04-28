@@ -286,7 +286,12 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, true, nil)
+			heights := make(map[uint64]uint32)
+			lgr := ledger.GetShardLedger(types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			if lgr != nil {
+				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+			}
+			msg = msgpack.NewVersion(p2p, true, heights)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
@@ -337,8 +342,13 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 					n.CloseSync()
 					n.CloseCons()
 					if pid != nil {
+						shards := make([]uint64, 0)
+						for s := range version.P.ShardHeights {
+							shards = append(shards, s)
+						}
 						input := &msgCommon.RemovePeerID{
-							ID: version.P.Nonce,
+							ID:     version.P.Nonce,
+							Shards: shards,
 						}
 						pid.Tell(input)
 					}
@@ -366,8 +376,13 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		p2p.AddNbrNode(remotePeer)
 
 		if pid != nil {
+			shards := make([]uint64, 0)
+			for s, _ := range version.P.ShardHeights {
+				shards = append(shards, s)
+			}
 			input := &msgCommon.AppendPeerID{
-				ID: version.P.Nonce,
+				ID:     version.P.Nonce,
+				Shards: shards,
 			}
 			pid.Tell(input)
 		}
@@ -375,7 +390,12 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, false, nil)
+			heights := make(map[uint64]uint32)
+			lgr := ledger.GetShardLedger(types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			if lgr != nil {
+				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+			}
+			msg = msgpack.NewVersion(p2p, false, heights)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)

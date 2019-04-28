@@ -48,6 +48,7 @@ func (this *Pong) Deserialization(source *comm.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
+	heights := make(map[uint64]uint32)
 	for i := uint32(0); i < n; i++ {
 		id, eof := source.NextUint64()
 		if eof {
@@ -57,8 +58,8 @@ func (this *Pong) Deserialization(source *comm.ZeroCopySource) error {
 		if eof {
 			return io.ErrUnexpectedEOF
 		}
-		this.Height[id] = h
+		heights[id] = h
 	}
-
+	this.Height = heights
 	return nil
 }
