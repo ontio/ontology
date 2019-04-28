@@ -204,7 +204,6 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 
 	log.Infof("current block height %v, increment validator block cache range: [%d, %d)", height, start, end)
-
 	txs := self.poolActor.GetTxnPool(true, validHeight)
 
 	transactions := make([]*types.Transaction, 0, len(txs))
@@ -214,7 +213,6 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 			transactions = append(transactions, txEntry.Tx)
 		}
 	}
-
 	txHash := []common.Uint256{}
 	for _, t := range transactions {
 		txHash = append(txHash, t.Hash())

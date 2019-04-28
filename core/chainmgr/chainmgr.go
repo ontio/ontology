@@ -38,9 +38,14 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
+	hserver "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/actor/server"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/txnpool"
+	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/validator/stateful"
+	"github.com/ontio/ontology/validator/stateless"
 )
 
 const (
@@ -83,6 +88,7 @@ type ChainManager struct {
 	txPoolPid *actor.PID
 	p2pPid    *actor.PID
 	localPid  *actor.PID
+	mgr       *txnpool.TxnPoolManager
 
 	// subscribe local SHARD_EVENT from shard-system-contract and BLOCK-EVENT from ledger
 	localEventSub  *events.ActorSubscriber
@@ -297,10 +303,33 @@ func (self *ChainManager) startConsensus() error {
 	return nil
 }
 
-func (self *ChainManager) Start(txPoolPid, p2pPid *actor.PID) error {
+func (self *ChainManager) initTxPool() (*actor.PID, error) {
+	lgr := ledger.GetShardLedger(self.shardID)
+	if lgr == nil {
+		log.Infof("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
+		return nil, nil
+	}
+	srv, err := self.mgr.StartTxnPoolServer(self.shardID, lgr)
+	if err != nil {
+		return nil, fmt.Errorf("Init txpool error:%s", err)
+	}
+	stlValidator, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator_%d", self.shardID.ToUint64()))
+	stlValidator.Register(srv.GetPID(tc.VerifyRspActor))
+	stlValidator2, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator2_%d", self.shardID.ToUint64()))
+	stlValidator2.Register(srv.GetPID(tc.VerifyRspActor))
+	stfValidator, _ := stateful.NewValidator(fmt.Sprintf("stateful_validator_%d", self.shardID.ToUint64()), lgr)
+	stfValidator.Register(srv.GetPID(tc.VerifyRspActor))
+
+	hserver.SetTxnPoolPid(srv.GetPID(tc.TxPoolActor))
+	hserver.SetTxPid(srv.GetPID(tc.TxActor))
+	SetTxPool(srv.GetPID(tc.TxActor))
+	return self.mgr.GetPID(self.shardID, tc.TxActor), nil
+}
+
+func (self *ChainManager) Start(txPoolPid, p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolManager) error {
 	self.txPoolPid = txPoolPid
 	self.p2pPid = p2pPid
-
+	self.mgr = txPoolMgr
 	// start listen on local shard events
 	self.localEventSub = events.NewActorSubscriber(self.localPid)
 	self.localEventSub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)

@@ -89,7 +89,7 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
 	// build shard config
 	// start local shard
-	lgr := ledger.GetShardLedger(evt.ShardID)
+	lgr := ledger.GetShardLedger(evt.ShardID.ParentID())
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
 	}
@@ -157,6 +157,15 @@ func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shar
 	}
 	log.Infof("startChildShard shard %d, received shard %d restart msg", self.shardID, shardID)
 
+	if err := self.initShardLedger(shardInfo); err != nil {
+		return fmt.Errorf("init shard %d, failed to init ledger: %s", self.shardID, err)
+	}
+	txPoolPid, err := self.initTxPool()
+	if err != nil {
+		return fmt.Errorf("init initTxPool %d, failed to init initTxPool: %s", self.shardID, err)
+	}
+	self.txPoolPid = txPoolPid
+	self.startConsensus()
 	return nil
 }
 

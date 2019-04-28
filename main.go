@@ -191,7 +191,7 @@ func startSyncRootChain(ctx *cli.Context, shardID types.ShardID) {
 		log.Errorf("initP2PNode error:%s", err)
 		return
 	}
-	chainmgr.Start(txnPoolMgr.GetPID(shardID, tc.TxActor), p2pSvr.GetPID())
+	chainmgr.Start(txnPoolMgr.GetPID(shardID, tc.TxActor), p2pSvr.GetPID(), txnPoolMgr)
 	defer chainmgr.Stop()
 
 	initNodeInfo(ctx, p2pSvr)
@@ -246,7 +246,7 @@ func startMainChain(ctx *cli.Context, shardID types.ShardID) {
 		return
 	}
 
-	chainmgr.Start(txPoolMgr.GetPID(shardID, tc.TxPoolActor), p2pSvr.GetPID())
+	chainmgr.Start(txPoolMgr.GetPID(shardID, tc.TxPoolActor), p2pSvr.GetPID(), txPoolMgr)
 	defer chainmgr.Stop()
 
 	err = initRpc(ctx)
@@ -417,13 +417,13 @@ func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.Txn
 	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
 	disableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.DisableBroadcastNetTxFlag))
 
-	mgr := txnpool.NewTxnPoolManager()
+	mgr := txnpool.NewTxnPoolManager(disablePreExec, disableBroadcastNetTx)
 	for _, shardId := range chainMgr.GetActiveShards() {
 		lgr := ledger.GetShardLedger(shardId)
 		if lgr == nil {
 			continue
 		}
-		srv, err := mgr.StartTxnPoolServer(shardId, lgr, disablePreExec, disableBroadcastNetTx)
+		srv, err := mgr.StartTxnPoolServer(shardId, lgr)
 		if err != nil {
 			return nil, fmt.Errorf("Init txpool error:%s", err)
 		}
