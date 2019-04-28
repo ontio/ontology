@@ -67,7 +67,4 @@ type LedgerStore interface {
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
 	GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error)
-	GetShardCurrAnchorHeight() (uint32, error)
-	GetShardProcessedBlockHeight() (uint32, error)
-	PutShardProcessedBlockHeight(height uint32) error
 }

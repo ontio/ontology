@@ -139,12 +139,6 @@ func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
 		return nil
 	}
 
-	processedBlockHeight, err := self.mainLedger.GetShardProcessedBlockHeight()
-	if err != nil {
-		return fmt.Errorf("chainmgr: failed to read processed block height: %s", err)
-	}
-	self.processedParentBlockHeight = processedBlockHeight
-
 	shardState, err := GetShardState(self.mainLedger, self.shardID)
 	if err == com.ErrNotFound {
 		return nil
@@ -210,6 +204,7 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 	}
 	self.shards[mainShardID] = mainShardInfo
 	self.mainLedger = lgr
+	self.processedParentBlockHeight = lgr.GetCurrentBlockHeight()
 	log.Infof("main ledger init success")
 	return nil
 }

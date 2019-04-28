@@ -730,7 +730,6 @@ func (this *LedgerStoreImp) saveShardState(block *types.Block, result store.Exec
 		return err
 	}
 
-	this.stateStore.AddShardCurrAnchorHeight(block.Header.ParentHeight)
 	return nil
 }
 
@@ -1181,18 +1180,6 @@ func (this *LedgerStoreImp) getPreGas(config *smartcontract.Config, cache *stora
 
 func (self *LedgerStoreImp) GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error) {
 	return self.stateStore.GetBlockShardEvents(height)
-}
-
-func (self *LedgerStoreImp) GetShardCurrAnchorHeight() (uint32, error) {
-	return self.stateStore.GetShardCurrAnchorHeight()
-}
-
-func (self *LedgerStoreImp) GetShardProcessedBlockHeight() (uint32, error) {
-	return self.stateStore.GetShardProcessedBlockHeight()
-}
-
-func (self *LedgerStoreImp) PutShardProcessedBlockHeight(height uint32) error {
-	return self.stateStore.PutShardProcessedBlockHeight(height)
 }
 
 //Close ledger store.

@@ -316,18 +316,6 @@ func (self *Ledger) GetBlockShardEvents(height uint32) (events []*message.ShardS
 	return self.ldgStore.GetBlockShardEvents(height)
 }
 
-func (self *Ledger) GetShardCurrAnchorHeight() (uint32, error) {
-	return self.ldgStore.GetShardCurrAnchorHeight()
-}
-
-func (self *Ledger) GetShardProcessedBlockHeight() (uint32, error) {
-	return self.ldgStore.GetShardProcessedBlockHeight()
-}
-
-func (self *Ledger) PutShardProcessedBlockHeight(height uint32) error {
-	return self.ldgStore.PutShardProcessedBlockHeight(height)
-}
-
 func (self *Ledger) Close() error {
 	if self.ParentBlockCache != nil {
 		self.ParentBlockCache.Close()
