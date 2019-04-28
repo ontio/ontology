@@ -188,7 +188,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		log.Errorf("constructBlock getlastblock err:%s,blknum:%d", err, blkNum-1)
 		return nil, err
 	}
-	parentHeighp := self.ledger.GetParentHeight()
+	parentHeight := self.ledger.GetParentHeight()
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {
 		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
