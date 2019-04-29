@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
+	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
@@ -176,8 +177,12 @@ func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 	if !self.ShardID.IsRootShard() {
 		parentBlock, merkleRoot, err := self.ParentBlockCache.GetBlock(b.Header.ParentHeight)
 		if err != nil {
-			log.Errorf("Ledger ExecuteBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
-			return store.ExecuteResult{}, err
+			if err == scommon.ErrNotFound {
+				return self.ldgStore.ExecuteBlock(b)
+			} else {
+				log.Errorf("Ledger ExecuteBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
+				return store.ExecuteResult{}, err
+			}
 		}
 		result, err := self.ParentLedger.ldgStore.ExecuteBlock(parentBlock)
 		if err != nil {
@@ -196,8 +201,17 @@ func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error 
 	if !self.ShardID.IsRootShard() {
 		parentBlock, _, err := self.ParentBlockCache.GetBlock(b.Header.ParentHeight)
 		if err != nil {
-			log.Errorf("Ledger SubmitBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
-			return err
+			if err == scommon.ErrNotFound {
+				err := self.ldgStore.SubmitBlock(b, exec)
+				if err != nil {
+					log.Errorf("Ledger SubmitBlock BlockHeight:%d BlockHash:%x error:%s", b.Header.Height, b.Hash(), err)
+					return err
+				}
+				return nil
+			} else {
+				log.Errorf("Ledger SubmitBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
+				return err
+			}
 		}
 		result, err := self.ParentBlockCache.GetBlockExecuteResult(b.Header.ParentHeight)
 		if err != nil {
