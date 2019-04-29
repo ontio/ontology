@@ -32,7 +32,7 @@ import (
 
 func newTestBlockHdr() *message.ShardBlockHeader {
 	hdr := &types.Header{}
-	hdr.Version = types.VERSION_SUPPORT_SHARD
+	hdr.Version = common.VERSION_SUPPORT_SHARD
 	hdr.Bookkeepers = make([]keypair.PublicKey, 0)
 	hdr.SigData = make([][]byte, 0)
 

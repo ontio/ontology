@@ -117,22 +117,45 @@ func (self *CacheDB) GetContract(addr comm.Address) (*payload.DeployCode, error)
 	return contract, nil
 }
 
-func (self *CacheDB) PutContract(contract *payload.DeployCode) error {
+func (self *CacheDB) PutContract(contract *payload.DeployCode) {
 	address := contract.Address()
 
 	sink := comm.NewZeroCopySink(0)
-	err := contract.Serialization(sink)
-	if err != nil {
-		return err
-	}
+	contract.Serialization(sink)
 
 	value := sink.Bytes()
 	self.put(common.ST_CONTRACT, address[:], value)
-	return nil
 }
 
 func (self *CacheDB) DeleteContract(address comm.Address) {
 	self.delete(common.ST_CONTRACT, address[:])
+}
+
+func (self *CacheDB) GetMetaData(addr comm.Address) (*payload.MetaDataCode, error) {
+	value, err := self.get(common.ST_CONTRACT_META_DATA, addr[:])
+	if err != nil {
+		return nil, err
+	}
+
+	if len(value) == 0 {
+		return nil, nil
+	}
+
+	meta := new(payload.MetaDataCode)
+	if err := meta.Deserialization(comm.NewZeroCopySource(value)); err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
+func (self *CacheDB) PutMetaData(meta *payload.MetaDataCode) {
+	sink := comm.NewZeroCopySink(0)
+	meta.Serialization(sink)
+	self.put(common.ST_CONTRACT_META_DATA, meta.Contract[:], sink.Bytes())
+}
+
+func (self *CacheDB) DeleteMetaData(address comm.Address) {
+	self.delete(common.ST_CONTRACT_META_DATA, address[:])
 }
 
 func (self *CacheDB) Get(key []byte) ([]byte, error) {

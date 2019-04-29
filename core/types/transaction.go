@@ -159,10 +159,10 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 		return io.ErrUnexpectedEOF
 	}
 	copy(tx.Payer[:], buf)
-	if tx.Version > CURR_TX_VERSION {
+	if tx.Version > common.CURR_TX_VERSION {
 		return common.ErrIrregularData
 	}
-	if tx.Version == VERSION_SUPPORT_SHARD {
+	if tx.Version == common.VERSION_SUPPORT_SHARD {
 		tx.ShardID, eof = source.NextUint64()
 	} else {
 		tx.ShardID = 0
@@ -183,6 +183,13 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 			return err
 		}
 		tx.Payload = pl
+	case MetaData:
+		meta := new(payload.MetaDataCode)
+		err := meta.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		tx.Payload = meta
 	default:
 		return fmt.Errorf("unsupported tx type %v", tx.Type())
 	}
@@ -390,6 +397,7 @@ const (
 	Bookkeeper TransactionType = 0x02
 	Deploy     TransactionType = 0xd0
 	Invoke     TransactionType = 0xd1
+	MetaData   TransactionType = 0xd2
 )
 
 // Payload define the func for loading the payload data

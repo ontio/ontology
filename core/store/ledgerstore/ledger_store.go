@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 //Storage of ledger
 package ledgerstore
 
@@ -924,6 +925,14 @@ func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cach
 		}
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
+		}
+	case types.MetaData:
+		err := this.stateStore.HandleChangeMetadataTransaction(this, overlay, cache, tx, block, notify)
+		if overlay.Error() != nil {
+			return nil, fmt.Errorf("HandleChangeMetadataTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+		}
+		if err != nil {
+			log.Debugf("HandleChangeMetadataTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.Invoke:
 		err := this.stateStore.HandleInvokeTransaction(this, overlay, cache, tx, block, notify)
