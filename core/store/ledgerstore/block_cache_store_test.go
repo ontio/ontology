@@ -50,7 +50,7 @@ func TestResetBlockCacheStore(t *testing.T) {
 
 func newTestBlock(height uint32, shardID types.ShardID) *types.Block {
 	header := &types.Header{}
-	header.Version = types.CURR_HEADER_VERSION
+	header.Version = common.CURR_HEADER_VERSION
 	header.Height = height
 	header.ShardID = shardID.ToUint64()
 	header.Bookkeepers = make([]keypair.PublicKey, 0)
