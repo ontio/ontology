@@ -19,9 +19,12 @@
 package xshard_state
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ontio/ontology/core/xshard_types"
+	"io"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -51,6 +54,7 @@ var (
 
 type ExecuteState uint8
 
+const ExecNone = ExecuteState(0)
 const ExecYielded = ExecuteState(1)
 const ExecPrepared = ExecuteState(2)
 const ExecCompleted = ExecuteState(3)
@@ -75,12 +79,36 @@ type XShardTxReqResp struct {
 	Resp  *xshard_types.XShardTxRsp
 	Index uint32
 }
+
 type XShardReqMsg struct {
 	SourceShardID common.ShardID
 	SourceHeight  uint32
 	TargetShardID common.ShardID
 	SourceTxHash  common.Uint256
 	Req           *xshard_types.XShardTxReq
+}
+
+func (msg *XShardReqMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteShardID(msg.SourceShardID)
+	sink.WriteUint32(msg.SourceHeight)
+	sink.WriteShardID(msg.TargetShardID)
+	sink.WriteHash(msg.SourceTxHash)
+	msg.Req.Serialization(sink)
+}
+
+func (self *XShardReqMsg) Deserialization(source *common.ZeroCopySource) (err error) {
+	self.SourceShardID, err = source.NextShardID()
+	if err != nil {
+		return
+	}
+	self.SourceHeight, _ = source.NextUint32()
+	self.TargetShardID, err = source.NextShardID()
+	if err != nil {
+		return
+	}
+	self.SourceTxHash, _ = source.NextHash()
+	self.Req = &xshard_types.XShardTxReq{}
+	return self.Req.Deserialization(source)
 }
 
 type TxState struct {
@@ -95,11 +123,236 @@ type TxState struct {
 	TotalInReq    uint32
 	OutReqResp    []*XShardTxReqResp
 	PendingReq    *XShardReqMsg
-	ExecuteState
-	Result    []byte
-	ResultErr error
-	WriteSet  *overlaydb.MemDB
-	Notify    *event.ExecuteNotify
+	ExecState     ExecuteState
+	Result        []byte
+	ResultErr     string
+	WriteSet      *overlaydb.MemDB
+	Notify        *event.ExecuteNotify
+}
+
+func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
+	state, eof := source.NextUint32()
+	self.State = int(state)
+	id, _, irr, eof := source.NextString()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.TxID = ShardTxID(id)
+	lenShards, _, irr, eof := source.NextVarUint()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.Shards = make(map[common.ShardID]int)
+	for i := uint64(0); i < lenShards; i++ {
+		id, err := source.NextShardID()
+		if err != nil {
+			return err
+		}
+		state, eof := source.NextUint32()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+
+		self.Shards[id] = int(state)
+	}
+	self.TxPayload, _, irr, eof = source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.NumNotifies, eof = source.NextUint32()
+	len, _, irr, eof := source.NextVarUint()
+	if irr {
+		return common.ErrIrregularData
+	}
+
+	for i := uint64(0); i < len; i++ {
+		notify := &xshard_types.XShardNotify{}
+		err := notify.Deserialization(source)
+		if err != nil {
+			return err
+		}
+
+		self.ShardNotifies = append(self.ShardNotifies, notify)
+	}
+	self.NextReqID, eof = source.NextUint32()
+
+	len, _, irr, eof = source.NextVarUint()
+	if irr {
+		return common.ErrIrregularData
+	}
+	for i := uint64(0); i < len; i++ {
+		id, err := source.NextShardID()
+		if err != nil {
+			return err
+		}
+		inLen, _, irr, _ := source.NextVarUint()
+		if irr {
+			return common.ErrIrregularData
+		}
+
+		var inReqResp []*XShardTxReqResp
+		for j := uint64(0); j < inLen; j++ {
+			req := &xshard_types.XShardTxReq{}
+			err := req.Deserialization(source)
+			if err != nil {
+				return err
+			}
+			resp := &xshard_types.XShardTxRsp{}
+			err = resp.Deserialization(source)
+			if err != nil {
+				return err
+			}
+			index, eof := source.NextUint32()
+			if eof {
+				return io.ErrUnexpectedEOF
+			}
+			inReqResp = append(inReqResp, &XShardTxReqResp{
+				Index: index,
+				Req:   req,
+				Resp:  resp,
+			})
+		}
+
+		self.InReqResp[id] = inReqResp
+	}
+
+	self.TotalInReq, eof = source.NextUint32()
+	lenOutReqResp, _, irr, eof := source.NextVarUint()
+	if irr {
+		return common.ErrIrregularData
+	}
+	for i:=uint64(0); i< lenOutReqResp; i++ {
+		req := &xshard_types.XShardTxReq{}
+		err := req.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		resp := &xshard_types.XShardTxRsp{}
+		err = resp.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		index, eof := source.NextUint32()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		self.OutReqResp = append(self.OutReqResp, &XShardTxReqResp{
+			Index: index,
+			Req:   req,
+			Resp:  resp,
+		})
+	}
+
+	hasPending, irr, eof := source.NextBool()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if hasPending {
+		self.PendingReq = &XShardReqMsg{}
+		err := self.PendingReq.Deserialization(source)
+		if err != nil {
+			return err
+		}
+	}
+	st, eof := source.NextUint8()
+	self.ExecState = ExecuteState(st)
+	self.Result, _, irr, eof = source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.ResultErr, _, irr, eof = source.NextString()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if self.WriteSet == nil {
+		self.WriteSet = overlaydb.NewMemDB(1024, 10)
+	}
+	err := self.WriteSet.Dersialization(source)
+	if err != nil {
+		return err
+	}
+
+	buf, _, irr, eof := source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	return json.Unmarshal(buf, &self.Notify)
+}
+
+func (self *TxState) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(uint32(self.State))
+	sink.WriteString(string(self.TxID))
+	type shardState struct {
+		shard common.ShardID
+		state int
+	}
+	var shards []shardState
+	for id, state := range self.Shards {
+		shards = append(shards, shardState{shard: id, state: state})
+	}
+	sort.Slice(shards, func(i, j int) bool {
+		return shards[i].shard.ToUint64() < shards[j].shard.ToUint64()
+	})
+	sink.WriteVarUint(uint64(len(shards)))
+	for _, s := range shards {
+		sink.WriteUint64(s.shard.ToUint64())
+		sink.WriteUint32(uint32(s.state))
+	}
+
+	sink.WriteVarBytes(self.TxPayload)
+	sink.WriteUint32(self.NumNotifies)
+	sink.WriteVarUint(uint64(len(self.ShardNotifies)))
+	for _, notify := range self.ShardNotifies {
+		notify.Serialization(sink)
+	}
+	sink.WriteUint32(self.NextReqID)
+
+	type shardReqResp struct {
+		shard     common.ShardID
+		InReqResp []*XShardTxReqResp
+	}
+	var shardInReqResp []shardReqResp
+	for shard, re := range self.InReqResp {
+		shardInReqResp = append(shardInReqResp, shardReqResp{shard: shard, InReqResp: re})
+	}
+	sort.Slice(shardInReqResp, func(i, j int) bool {
+		return shardInReqResp[i].shard.ToUint64() < shardInReqResp[j].shard.ToUint64()
+	})
+
+	sink.WriteVarUint(uint64(len(shardInReqResp)))
+	for _, s := range shardInReqResp {
+		sink.WriteUint64(s.shard.ToUint64())
+		sink.WriteVarUint(uint64(len(s.InReqResp)))
+		for _, reqResp := range s.InReqResp {
+			reqResp.Req.Serialization(sink)
+			reqResp.Resp.Serialization(sink)
+			sink.WriteUint32(reqResp.Index)
+		}
+	}
+	sink.WriteUint32(self.TotalInReq)
+	sink.WriteVarUint(uint64(len(self.OutReqResp)))
+	for _, reqResp := range self.OutReqResp {
+		reqResp.Req.Serialization(sink)
+		reqResp.Resp.Serialization(sink)
+		sink.WriteUint32(reqResp.Index)
+	}
+	sink.WriteBool(self.PendingReq != nil)
+	if self.PendingReq != nil {
+		self.PendingReq.Serialization(sink)
+	}
+	sink.WriteUint8(uint8(self.ExecState))
+	sink.WriteVarBytes(self.Result)
+	sink.WriteString(self.ResultErr)
+	if self.WriteSet == nil {
+		self.WriteSet = overlaydb.NewMemDB(1024, 10)
+	}
+	self.WriteSet.Serialiazation(sink)
+	buf, _ := json.Marshal(self.Notify)
+	sink.WriteVarBytes(buf)
 }
 
 type ShardTxInfo struct {
@@ -138,22 +391,6 @@ func (self *TxState) IsCommitReady() bool {
 		}
 	}
 	return true
-}
-
-//
-// GetTxShards
-// get shards which participant with the procession of transaction
-//
-func GetTxShards(txid ShardTxID) ([]common.ShardID, error) {
-	if state, present := shardTxStateTable.TxStates[txid]; present {
-		shards := make([]common.ShardID, 0, len(state.Shards))
-		for id := range state.Shards {
-			shards = append(shards, id)
-		}
-		return shards, nil
-	}
-
-	return nil, ErrNotFound
 }
 
 func (self *TxState) AddTxShard(id common.ShardID) error {
@@ -314,7 +551,7 @@ func SetTxResult(tx common.Uint256, result []byte, resultErr error) error {
 	}
 
 	txState.Result = result
-	txState.ResultErr = resultErr
+	txState.ResultErr = resultErr.Error()
 	return nil
 }
 

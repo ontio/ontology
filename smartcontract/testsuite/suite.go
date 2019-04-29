@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	"io"
 	"time"
@@ -104,7 +105,7 @@ func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam
 		SourceTxHash:  ctx.Tx.Hash(),
 		Req:           msg,
 	}
-	txState.ExecuteState = xshard_state.ExecYielded
+	txState.ExecState = xshard_state.ExecYielded
 
 	// put Tx-Request
 	// todo: clean
@@ -289,7 +290,16 @@ func RemoteInvokeAddAndInc(native *native.NativeService) ([]byte, error) {
 	sink.Reset()
 	sink.WriteUint64(s + 1)
 
+	pushEvent(native, sink.Bytes())
+
 	return sink.Bytes(), err
+}
+
+func pushEvent(native *native.NativeService, s interface{}) {
+	event := new(event.NotifyEventInfo)
+	event.ContractAddress = native.ContextRef.CurrentContext().ContractAddress
+	event.States = s
+	native.Notifications = append(native.Notifications, event)
 }
 
 func HandlePing(native *native.NativeService) ([]byte, error) {

@@ -16,4 +16,3 @@ func (self *FakeDB) Get(key []byte) ([]byte, error) {
 func NewOverlayDB() *overlaydb.OverlayDB {
 	return overlaydb.NewOverlayDB(&FakeDB{nil})
 }
-

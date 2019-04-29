@@ -958,7 +958,8 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.ShardCall:
-		err := HandleShardCallTransaction(store, overlay, cache, xshardDB, tx, header, notify)
+		shardCall := tx.Payload.(*payload.ShardCall)
+		err := HandleShardCallTransaction(store, overlay, cache, xshardDB, shardCall.Msgs, header, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}

@@ -1,6 +1,7 @@
 package testsuite
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
@@ -119,7 +120,6 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 
 	state := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
 	_, err := ledgerstore.HandleInvokeTransaction(nil, overlay, cache, xshardDB, state, tx, header, notify)
-	//state, _, err := executeTransaction(tx, cache)
 
 	//assert.Equal(t, shardsysmsg.ErrYield, err) // error is wrapped
 	assert.NotNil(t, err)
@@ -137,8 +137,7 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 
 	assert.Equal(t, expected, state.PendingReq.Req)
 	hs := tx.Hash()
-	shardTxID := xshard_state.ShardTxID(string(hs[:]))
-	xshard_state.PutTxState(shardTxID, state)
+	xshardDB.SetXShardState(state)
 
 	sink.Reset()
 	sink.WriteUint64(5)
@@ -148,10 +147,34 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		Result:  sink.Bytes(),
 	}
 
-	state, res, err := resumeTx(shardTxID, rep)
+	msgs := []*xshard_types.CommonShardMsg{{
+		SourceTxHash: hs,
+		Type:         xshard_types.EVENT_SHARD_TXRSP, Msg: rep}}
+	err = ledgerstore.HandleShardCallTransaction(nil, overlay, cache, xshardDB, msgs, header, notify)
 	assert.Nil(t, err)
 	sink.Reset()
 	sink.WriteUint64(6)
 
-	assert.Equal(t, res.(*types.ByteArray), types.NewByteArray(sink.Bytes()))
+	state, err = xshardDB.GetXShardState(state.TxID)
+	assert.Nil(t, err)
+	res,_ := json.Marshal(state.Notify.Notify[0].States)
+	buf, _ := json.Marshal(sink.Bytes())
+	assert.Equal(t, string(res), string(buf))
+
+	msgs = []*xshard_types.CommonShardMsg{{
+		SourceTxHash: hs,
+		Type:         xshard_types.EVENT_SHARD_COMMIT, Msg: &xshard_types.XShardCommitMsg{
+			MsgType:xshard_types.EVENT_SHARD_COMMIT,
+		}}}
+
+	err = ledgerstore.HandleShardCallTransaction(nil, overlay, cache, xshardDB, msgs, header, notify)
+	assert.Nil(t, err)
+	sink.Reset()
+	sink.WriteUint64(6)
+
+	assert.Nil(t, err)
+	res,_ = json.Marshal(notify.ContractEvent.Notify[0].States)
+	buf, _ = json.Marshal(sink.Bytes())
+	assert.Equal(t, string(res), string(buf))
+
 }

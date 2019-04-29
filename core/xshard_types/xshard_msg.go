@@ -250,11 +250,44 @@ func (msg *XShardCommitMsg) Deserialization(source *common.ZeroCopySource) error
 	return nil
 }
 
-type CommonShardMsg struct {
+type ShardMsgHeader struct {
 	SourceShardID common.ShardID
 	SourceHeight  uint64
 	TargetShardID common.ShardID
 	SourceTxHash  common.Uint256
+}
+
+func (self *ShardMsgHeader) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(self.SourceShardID.ToUint64())
+	sink.WriteUint64(self.SourceHeight)
+	sink.WriteUint64(self.TargetShardID.ToUint64())
+	sink.WriteHash(self.SourceTxHash)
+}
+
+func (self *ShardMsgHeader) Deserialization(source *common.ZeroCopySource) error {
+	shardID, eof := source.NextUint64()
+	id, err := common.NewShardID(shardID)
+	if err != nil {
+		return err
+	}
+	self.SourceShardID = id
+	self.SourceHeight, eof = source.NextUint64()
+	shardID, eof = source.NextUint64()
+	id, err = common.NewShardID(shardID)
+	if err != nil {
+		return err
+	}
+	self.TargetShardID = id
+	self.SourceTxHash, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	return nil
+}
+
+type CommonShardMsg struct {
+	ShardMsgHeader
 	Type          uint64
 	Payload       []byte
 	Msg           XShardMsg
@@ -281,10 +314,7 @@ func (evt *CommonShardMsg) IsTransactional() bool {
 }
 
 func (evt *CommonShardMsg) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteUint64(evt.SourceShardID.ToUint64())
-	sink.WriteUint64(evt.SourceHeight)
-	sink.WriteUint64(evt.TargetShardID.ToUint64())
-	sink.WriteHash(evt.SourceTxHash)
+	evt.ShardMsgHeader.Serialization(sink)
 	sink.WriteUint64(evt.Type)
 	if len(evt.Payload) > 0 {
 		sink.WriteVarBytes(evt.Payload)
@@ -295,21 +325,11 @@ func (evt *CommonShardMsg) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (evt *CommonShardMsg) Deserialization(source *common.ZeroCopySource) error {
-	var irregular bool
-	shardID, eof := source.NextUint64()
-	id, err := common.NewShardID(shardID)
+	var irregular, eof bool
+	err := evt.ShardMsgHeader.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	evt.SourceShardID = id
-	evt.SourceHeight, eof = source.NextUint64()
-	shardID, eof = source.NextUint64()
-	id, err = common.NewShardID(shardID)
-	if err != nil {
-		return err
-	}
-	evt.TargetShardID = id
-	evt.SourceTxHash, eof = source.NextHash()
 	evt.Type, eof = source.NextUint64()
 	evt.Payload, _, irregular, eof = source.NextVarBytes()
 	if irregular {

@@ -116,10 +116,9 @@ func (self *ZeroCopySink) WriteUint64(data uint64) {
 	binary.LittleEndian.PutUint64(buf, data)
 }
 
-//func (self *ZeroCopySink) WriteShardID(data uint64) {
-//	buf := self.NextBytes(8)
-//	binary.LittleEndian.PutUint64(buf, data)
-//}
+func (self *ZeroCopySink) WriteShardID(data ShardID) {
+	self.WriteUint64(data.ToUint64())
+}
 
 func (self *ZeroCopySink) WriteInt64(data int64) {
 	self.WriteUint64(uint64(data))

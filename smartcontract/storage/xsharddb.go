@@ -30,7 +30,6 @@ import (
 // When smart contract execute finish, need to commit transaction cache to block cache
 type XShardDB struct {
 	cacheDB *CacheDB
-	states  map[xshard_state.ShardTxID]*xshard_state.TxState
 }
 
 func NewXShardDB(store *overlaydb.OverlayDB) *XShardDB {
@@ -46,9 +45,34 @@ func (self *XShardDB) Commit() {
 	self.cacheDB.Commit()
 }
 
-func (self *XShardDB) GetXshardReqsInBlock(blockHeight uint32, shardID comm.ShardID) ([][]byte, error) {
-	panic("unimplemented")
-	return nil, nil
+func (self *XShardDB) GetXShardState(id xshard_state.ShardTxID) (*xshard_state.TxState, error) {
+	val, err := self.cacheDB.get(common.XSHARD_STATE, []byte(string(id)))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(val) == 0 { // not found
+		state := &xshard_state.TxState{
+			Shards: make(map[comm.ShardID]int),
+			TxID:   id,
+		}
+
+		return state, nil
+	}
+
+	source := comm.NewZeroCopySource(val)
+	state := &xshard_state.TxState{}
+	err = state.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
+}
+
+func (self *XShardDB) SetXShardState(state *xshard_state.TxState) {
+	buf := comm.SerializeToBytes(state)
+	self.cacheDB.put(common.XSHARD_STATE, []byte(string(state.TxID)), buf)
 }
 
 func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []*xshard_types.CommonShardMsg) {
@@ -78,57 +102,3 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []*xshard_typ
 
 	self.cacheDB.put(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes(), shards.Bytes())
 }
-
-func (self *XShardDB) SetShardTxState(id xshard_state.ShardTxID, state *xshard_state.TxState) {
-	self.states[id] = state
-}
-
-func (self *XShardDB) GetShardTxState(id xshard_state.ShardTxID) *xshard_state.TxState {
-	return self.states[id]
-}
-
-//func (self *XShardDB) AddToShard(blockHeight uint32, to comm.ShardID) error {
-//	shardIDs, err := self.GetToShards(blockHeight)
-//	if err != nil {
-//		return err
-//	}
-//
-//	shardIDs = append(shardIDs, to)
-//
-//	sink := comm.NewZeroCopySink(len(shardIDs) * 8)
-//	for _, id := range shardIDs {
-//		sink.WriteUint64(id.ToUint64())
-//	}
-//
-//	keys := comm.NewZeroCopySink(4)
-//	keys.WriteUint32(blockHeight)
-//	self.cacheDB.put(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes(), sink.Bytes())
-//	return nil
-//}
-
-//func (self *XShardDB) GetToShards(blockHeight uint32) ([]comm.ShardID, error) {
-//	keys := comm.NewZeroCopySink(4)
-//	keys.WriteUint32(blockHeight)
-//	val, err := self.cacheDB.get(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes())
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	source := comm.NewZeroCopySource(val)
-//
-//	shardIDs := make([]comm.ShardID, 0, len(val)/8)
-//	for {
-//		id, eof := source.NextUint64()
-//		if eof {
-//			break
-//		}
-//		shardID, err := comm.NewShardID(id)
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		shardIDs = append(shardIDs, shardID)
-//	}
-//
-//	return shardIDs, nil
-//}

@@ -139,6 +139,8 @@ func setupAPP() *cli.App {
 }
 
 func main() {
+	fmt.Println("common.haha", common.Haha)
+
 	if err := setupAPP().Run(os.Args); err != nil {
 		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)
