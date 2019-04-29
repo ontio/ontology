@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common/serialization"
 	"math"
 	"math/big"
 
@@ -31,6 +32,7 @@ const (
 	TOTAL_SUPPLY   = "oep4TotalSupply" // query total supply at shard
 	SHARD_SUPPLY   = "oep4ShardSupply" // query shard supply at root
 	WHOLE_SUPPLY   = "oep4WholeSupply" // sum supply at all shard, only can be invoked at root
+	SUPPLY_INFO    = "oep4SupplyInfo"  // query every shard supply at root
 	BALANCE_OF     = "oep4BalanceOf"
 	TRANSFER       = "oep4Transfer"
 	TRANSFER_MULTI = "oep4TransferMulti"
@@ -66,6 +68,7 @@ func RegisterOEP4(native *native.NativeService) {
 	native.Register(TOTAL_SUPPLY, TotalSupply)
 	native.Register(SHARD_SUPPLY, ShardSupply)
 	native.Register(WHOLE_SUPPLY, WholeSupply)
+	native.Register(SUPPLY_INFO, GetSupplyInfo)
 	native.Register(BALANCE_OF, BalanceOf)
 	native.Register(TRANSFER, Transfer)
 	native.Register(TRANSFER_MULTI, TransferMulti)
@@ -100,6 +103,7 @@ func Init(native *native.NativeService) ([]byte, error) {
 	supplyInfo := make(map[types.ShardID]*big.Int)
 	supplyInfo[native.ShardID] = new(big.Int).SetUint64(constants.ONG_TOTAL_SUPPLY)
 	setShardSupplyInfo(native, ONG_ASSET_ID, supplyInfo)
+	registerAsset(native, utils.OngContractAddress, ONG_ASSET_ID)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -274,6 +278,22 @@ func WholeSupply(native *native.NativeService) ([]byte, error) {
 		whole.Add(whole, supply)
 	}
 	return ntypes.BigIntToBytes(whole), nil
+}
+
+func GetSupplyInfo(native *native.NativeService) ([]byte, error) {
+	assetId, err := serialization.ReadUint64(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: read param failed, err: %s", err)
+	}
+	supplyInfo, err := getShardSupplyInfo(native, AssetId(assetId))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: failed, err: %s", err)
+	}
+	data, err := json.Marshal(supplyInfo)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: marshal supply info failed, err: %s", err)
+	}
+	return data, nil
 }
 
 func BalanceOf(native *native.NativeService) ([]byte, error) {
