@@ -41,7 +41,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
-	shard "github.com/ontio/ontology/core/chainmgr"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
@@ -58,7 +58,6 @@ import (
 	p2pactor "github.com/ontio/ontology/p2pserver/actor/server"
 	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
-	"github.com/ontio/ontology/txnpool/proc"
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
 	"github.com/urfave/cli"
@@ -131,11 +130,7 @@ func setupAPP() *cli.App {
 		utils.WsPortFlag,
 		//sharding setting
 		utils.ShardIDFlag,
-		utils.ShardPortFlag,
-		utils.ParentShardIPFlag,
-		utils.ParentShardPortFlag,
-		utils.ShardRestEnableFlag,
-		utils.ShardRpcEnableFlag,
+		utils.EnableSoloShardFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())
@@ -162,15 +157,10 @@ func startOntology(ctx *cli.Context) {
 	log.Infof("ontology version %s", config.Version)
 
 	setMaxOpenFiles()
-	if id == config.DEFAULT_SHARD_ID {
-		startMainChain(ctx)
-	} else {
-		startShardChain(ctx, shardID)
-	}
+	startMainChain(ctx, shardID)
 }
 
-func startMainChain(ctx *cli.Context) {
-	shardID := types.NewShardIDUnchecked(0)
+func startMainChain(ctx *cli.Context, shardID types.ShardID) {
 	initLog(ctx, shardID)
 
 	if _, err := initConfig(ctx); err != nil {
@@ -182,43 +172,36 @@ func startMainChain(ctx *cli.Context) {
 		log.Errorf("initWallet error:%s", err)
 		return
 	}
+	if acc != nil {
+		pubkey := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
+		log.Infof("server: %s starting", pubkey)
+	}
+
+	events.Init() //Init event hub
+
 	// start chain manager
-	chainmgr, err := initChainManager(ctx, acc)
+	chainmgr, err := initChainManager(ctx, shardID, acc)
 	if err != nil {
 		log.Errorf("init main chain manager error: %s", err)
 		return
 	}
-	defer chainmgr.Stop()
+	defer ledger.CloseLedgers()
+	defer chainmgr.Close()
 
-	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
-	ldg, err := initLedger(ctx, shardID, stateHashHeight)
-	if err != nil {
-		log.Errorf("%s", err)
-		return
-	}
-	defer ldg.Close()
-
-	if err := chainmgr.LoadFromLedger(ldg); err != nil {
-		log.Errorf("load chain mgr from ledger: %s", err)
-		return
-	}
-
-	txpool, err := initTxPool(ctx)
+	txPoolMgr, err := initTxPool(ctx, chainmgr)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
 		return
 	}
-	p2pSvr, p2pPid, err := initP2PNode(ctx, txpool)
+	p2pSvr, _, err := initP2PNode(ctx, shardID, txPoolMgr)
 	if err != nil {
 		log.Errorf("initP2PNode error:%s", err)
 		return
 	}
 
-	_, err = initConsensus(ctx, p2pPid, txpool, acc)
-	if err != nil {
-		log.Errorf("initConsensus error:%s", err)
-		return
-	}
+	chainmgr.Start(txPoolMgr.GetPID(shardID, tc.TxPoolActor), p2pSvr.GetPID(), txPoolMgr)
+	defer chainmgr.Stop()
+
 	err = initRpc(ctx)
 	if err != nil {
 		log.Errorf("initRpc error:%s", err)
@@ -229,91 +212,9 @@ func startMainChain(ctx *cli.Context) {
 		log.Errorf("initLocalRpc error:%s", err)
 		return
 	}
-
-	// start child shards on main-chain
-	if err := chainmgr.StartShardServer(); err != nil {
-		log.Errorf("start child-shard servers failed: %s", err)
-		return
-	}
 	initRestful(ctx)
 	initWs(ctx)
 	initNodeInfo(ctx, p2pSvr)
-
-	go logCurrBlockHeight(shardID)
-	waitToExit()
-}
-
-func startShardChain(ctx *cli.Context, shardID types.ShardID) {
-	initLog(ctx, shardID)
-
-	parentShardIP := ctx.String(utils.GetFlagName(utils.ParentShardIPFlag))
-	if len(parentShardIP) == 0 {
-		parentShardIP = config.DEFAULT_PARENTSHARD_IPADDR
-	}
-
-	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
-	if parentShardPort == 0 {
-		log.Errorf("shard %d: no parent shard port", shardID)
-		return
-	}
-
-	// start chain manager
-	chainMgr, err := initChainManager(ctx, nil)
-	if err != nil {
-		log.Errorf("shard %d: init chain manager error: %s", shardID, err)
-		return
-	}
-	defer chainMgr.Stop()
-
-	// init shard config from parent shard
-	acc := shard.GetAccount()
-	cfg := chainMgr.GetShardConfig(shardID)
-	if cfg == nil {
-		log.Errorf("shard %d: get shard config failed", shardID)
-		return
-	}
-	config.DefConfig = cfg
-
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-		curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
-		config.DefConfig.Genesis.SOLO.Bookkeepers = []string{curPk}
-	}
-
-	ldg, err := initLedger(ctx, shardID, 0)
-	if err != nil {
-		log.Errorf("%s", err)
-		return
-	}
-	defer ldg.Close()
-
-	if err := chainMgr.LoadFromLedger(ldg); err != nil {
-		log.Errorf("load chain mgr from ledger: %s", err)
-		return
-	}
-
-	txpool, err := initTxPool(ctx)
-	if err != nil {
-		log.Errorf("initTxPool error:%s", err)
-		return
-	}
-	_, p2pPid, err := initP2PNode(ctx, txpool)
-	if err != nil {
-		log.Errorf("initP2PNode error:%s", err)
-		return
-	}
-
-	_, err = initConsensus(ctx, p2pPid, txpool, acc)
-	if err != nil {
-		log.Errorf("initConsensus error:%s", err)
-		return
-	}
-
-	err = initRpc(ctx)
-	if err != nil {
-		log.Errorf("initRpc error:%s", err)
-		return
-	}
-	initRestful(ctx)
 
 	go logCurrBlockHeight(shardID)
 	waitToExit()
@@ -324,7 +225,7 @@ func initLog(ctx *cli.Context, shardID types.ShardID) {
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	logPath := log.PATH
 	if !shardID.IsRootShard() {
-		logPath = path.Join(shard.GetShardName(shardID), logPath)
+		logPath = path.Join(chainmgr.GetShardName(shardID), logPath)
 	}
 	alog.InitLog(logPath)
 	log.InitLog(logLevel, logPath, log.Stdout)
@@ -367,53 +268,45 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 	return acc, nil
 }
 
-func initChainManager(ctx *cli.Context, acc *account.Account) (*shard.ChainManager, error) {
-	id := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
-	shardID, err := types.NewShardID(id)
+func initChainManager(ctx *cli.Context, shardID types.ShardID, acc *account.Account) (*chainmgr.ChainManager, error) {
+	log.Infof("starting shard %d chain mgr", shardID)
+
+	mgr, err := chainmgr.Initialize(shardID, acc)
 	if err != nil {
 		return nil, err
 	}
 
-	shardPort := ctx.Uint(utils.GetFlagName(utils.ShardPortFlag))
-	parentShardID := shardID.ParentID()
-	parentShardAddr := ctx.String(utils.GetFlagName(utils.ParentShardIPFlag))
-	parentShardPort := ctx.Uint(utils.GetFlagName(utils.ParentShardPortFlag))
-	log.Infof("starting shard %d chain mgr: port %d, parent (%d, %s, %d)", shardID, shardPort, parentShardID,
-		parentShardAddr, parentShardPort)
-
-	// get all cmdArgs, for sub-shards
-	cmdArgs := make(map[string]string)
-	for _, f := range ctx.App.Flags {
-		name := f.GetName()
-		parts := strings.Split(f.GetName(), ",")
-		if len(parts) > 1 {
-			name = parts[0]
-		}
-
-		v := ctx.String(name)
-		if len(v) > 0 {
-			cmdArgs[name] = v
-		}
-	}
-	chainmgr, err := shard.Initialize(shardID, parentShardAddr, shardPort, parentShardPort, acc, cmdArgs)
-	if err != nil {
+	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	if err := mgr.LoadFromLedger(stateHashHeight); err != nil {
+		log.Errorf("load chain mgr from ledger: %s", err)
 		return nil, err
 	}
 
-	return chainmgr, err
+	// set Default Ledger
+	if lgr := ledger.GetShardLedger(shardID); lgr != nil {
+		ledger.DefLedger = lgr
+	}
+
+	return mgr, err
 }
 
-func initLedger(ctx *cli.Context, shardID types.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
-	events.Init() //Init event hub
-
-	var err error
+func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID types.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	if !shardID.IsRootShard() {
-		dbDir = utils.GetStoreDirPath(config.DefConfig.P2PNode.NetworkName, config.DefConfig.Common.DataDir)
-	}
-	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
-	if err != nil {
-		return nil, fmt.Errorf("NewLedger error:%s", err)
+	var lgr *ledger.Ledger
+	var err error
+	if shardID.IsRootShard() {
+		lgr, err = ledger.NewLedger(dbDir, stateHashHeight)
+		if err != nil {
+			return nil, fmt.Errorf("NewLedger error:%s", err)
+		}
+	} else {
+		if mainledger == nil {
+			return nil, fmt.Errorf("mainledger is nil")
+		}
+		lgr, err = ledger.NewShardLedger(shardID, dbDir, mainledger)
+		if err != nil {
+			return nil, fmt.Errorf("NewLedger error:%s", err)
+		}
 	}
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
@@ -425,49 +318,57 @@ func initLedger(ctx *cli.Context, shardID types.ShardID, stateHashHeight uint32)
 	if err != nil {
 		return nil, fmt.Errorf("genesisBlock error %s", err)
 	}
-	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
+	err = lgr.Init(bookKeepers, genesisBlock)
 	if err != nil {
 		return nil, fmt.Errorf("Init ledger error:%s", err)
 	}
 
 	log.Infof("Ledger init success")
-	return ledger.DefLedger, nil
+	return lgr, nil
 }
 
-func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
+func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.TxnPoolManager, error) {
 	disablePreExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecDisableFlag))
 	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
 	disableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.DisableBroadcastNetTxFlag))
-	txPoolServer, err := txnpool.StartTxnPoolServer(disablePreExec, disableBroadcastNetTx)
-	if err != nil {
-		return nil, fmt.Errorf("Init txpool error:%s", err)
-	}
-	stlValidator, _ := stateless.NewValidator("stateless_validator")
-	stlValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
-	stlValidator2, _ := stateless.NewValidator("stateless_validator2")
-	stlValidator2.Register(txPoolServer.GetPID(tc.VerifyRspActor))
-	stfValidator, _ := stateful.NewValidator("stateful_validator")
-	stfValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
 
-	hserver.SetTxnPoolPid(txPoolServer.GetPID(tc.TxPoolActor))
-	hserver.SetTxPid(txPoolServer.GetPID(tc.TxActor))
-	shard.SetTxPool(txPoolServer.GetPID(tc.TxActor))
+	mgr := txnpool.NewTxnPoolManager(disablePreExec, disableBroadcastNetTx)
+	for _, shardId := range chainMgr.GetActiveShards() {
+		lgr := ledger.GetShardLedger(shardId)
+		if lgr == nil {
+			continue
+		}
+		srv, err := mgr.StartTxnPoolServer(shardId, lgr)
+		if err != nil {
+			return nil, fmt.Errorf("Init txpool error:%s", err)
+		}
+		stlValidator, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator_%d", shardId.ToUint64()))
+		stlValidator.Register(srv.GetPID(tc.VerifyRspActor))
+		stlValidator2, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator2_%d", shardId.ToUint64()))
+		stlValidator2.Register(srv.GetPID(tc.VerifyRspActor))
+		stfValidator, _ := stateful.NewValidator(fmt.Sprintf("stateful_validator_%d", shardId.ToUint64()), lgr)
+		stfValidator.Register(srv.GetPID(tc.VerifyRspActor))
+
+		if shardId == chainmgr.GetShardID() {
+			hserver.SetTxnPoolPid(srv.GetPID(tc.TxPoolActor))
+			hserver.SetTxPid(srv.GetPID(tc.TxActor))
+			chainmgr.SetTxPool(srv.GetPID(tc.TxActor))
+		}
+	}
 
 	log.Infof("TxPool init success")
-	return txPoolServer, nil
+	return mgr, nil
 }
 
-func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, *actor.PID, error) {
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+func initP2PNode(ctx *cli.Context, shardID types.ShardID, txpoolMgr *txnpool.TxnPoolManager) (*p2pserver.P2PServer, *actor.PID, error) {
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO && !ctx.Bool(utils.GetFlagName(utils.EnableSoloShardFlag)) {
 		return nil, nil, nil
 	}
 
-	// TODO: fix P2P for sharding
-
-	p2p := p2pserver.NewServer()
+	p2p := p2pserver.NewServer(shardID)
 
 	p2pActor := p2pactor.NewP2PActor(p2p)
-	p2pPID, err := p2pActor.Start()
+	p2pPID, err := p2pActor.Start(shardID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("p2pActor init error %s", err)
 	}
@@ -476,23 +377,21 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2P
 	if err != nil {
 		return nil, nil, fmt.Errorf("p2p service start error %s", err)
 	}
-	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
-	txpoolSvr.RegisterActor(tc.NetActor, p2pPID)
+	netreqactor.SetTxnPoolPid(txpoolMgr.GetPID(shardID, tc.TxActor))
+	txpoolMgr.RegisterActor(tc.NetActor, p2pPID)
 	hserver.SetNetServerPID(p2pPID)
-	shard.SetP2P(p2pPID)
+	chainmgr.SetP2P(p2pPID)
 	p2p.WaitForPeersStart()
 	log.Infof("P2P init success")
 	return p2p, p2pPID, nil
 }
 
-func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolServer, acc *account.Account) (consensus.ConsensusService, error) {
+func initConsensus(ctx *cli.Context, shardID types.ShardID, p2pPid, txPoolPid *actor.PID, acc *account.Account) (consensus.ConsensusService, error) {
 	if !config.DefConfig.Consensus.EnableConsensus {
 		return nil, nil
 	}
-	pool := txpoolSvr.GetPID(tc.TxPoolActor)
-
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	consensusService, err := consensus.NewConsensusService(consensusType, acc, pool, nil, p2pPid)
+	consensusService, err := consensus.NewConsensusService(consensusType, shardID, acc, txPoolPid, nil, p2pPid)
 	if err != nil {
 		return nil, fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
 	}
@@ -507,9 +406,6 @@ func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolSe
 
 func initRpc(ctx *cli.Context) error {
 	if !config.DefConfig.Rpc.EnableHttpJsonRpc {
-		return nil
-	}
-	if !config.DefConfig.Rpc.EnableShardRpc && !shard.GetShardID().IsRootShard() {
 		return nil
 	}
 	var err error
@@ -561,9 +457,6 @@ func initRestful(ctx *cli.Context) {
 	if !config.DefConfig.Restful.EnableHttpRestful {
 		return
 	}
-	if !config.DefConfig.Restful.EnableShardRestful && !shard.GetShardID().IsRootShard() {
-		return
-	}
 	go restful.StartServer()
 
 	log.Infof("Restful init success")
@@ -592,13 +485,17 @@ func logCurrBlockHeight(shardID types.ShardID) {
 	for {
 		select {
 		case <-ticker.C:
-			log.Infof("CurrentBlockHeight = %d", ledger.DefLedger.GetCurrentBlockHeight())
+			lgr := ledger.GetShardLedger(shardID)
+			if lgr == nil {
+				continue
+			}
+			log.Infof("CurrentBlockHeight = %d", lgr.GetCurrentBlockHeight())
 			isNeedNewFile := log.CheckIfNeedNewFile()
 			if isNeedNewFile {
 				log.ClosePrintLog()
 				logPath := log.PATH
 				if !shardID.IsRootShard() {
-					logPath = path.Join(shard.GetShardName(shardID), logPath)
+					logPath = path.Join(chainmgr.GetShardName(shardID), logPath)
 				}
 				log.InitLog(int(config.DefConfig.Common.LogLevel), logPath, log.Stdout)
 			}

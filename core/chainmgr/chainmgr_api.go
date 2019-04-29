@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/types"
 )
@@ -47,48 +46,6 @@ func GetShardID() types.ShardID {
 	return GetChainManager().shardID
 }
 
-func GetParentShardID() types.ShardID {
-	chainmgr := GetChainManager()
-	return chainmgr.parentShardID
-}
-
-func GetChildShards() []types.ShardID {
-	childShards := make([]types.ShardID, 0)
-	chainmgr := GetChainManager()
-	for id := range chainmgr.getChildShards() {
-		childShards = append(childShards, id)
-	}
-	return childShards
-}
-
-func GetPID() *actor.PID {
-	return GetChainManager().localPid
-}
-
-func GetShardNodePort() uint {
-	return config.DefConfig.P2PNode.NodePort + uint(GetShardID().ToUint64())*shard_port_gap
-}
-
-func GetShardRestPort() uint {
-	return config.DefConfig.Restful.HttpRestPort + uint(GetShardID().ToUint64())*shard_port_gap
-}
-
-func GetShardRpcPort() uint {
-	return config.DefConfig.Rpc.HttpJsonPort + uint(GetShardID().ToUint64())*shard_port_gap
-}
-
-func GetShardNodePortID(shardId uint64) uint {
-	return config.DefConfig.P2PNode.NodePort + uint(shardId)*shard_port_gap
-}
-
-func GetShardRestPortByShardID(shardId uint64) uint {
-	return config.DefConfig.Restful.HttpRestPort + uint(shardId)*shard_port_gap
-}
-
-func GetShardRpcPortByShardID(shardId uint64) uint {
-	return config.DefConfig.Rpc.HttpJsonPort + uint(shardId)*shard_port_gap
-}
-
 func SetP2P(p2p *actor.PID) error {
 	if defaultChainManager == nil {
 		return fmt.Errorf("uninitialized chain manager")
@@ -106,36 +63,7 @@ func SetTxPool(txPool *actor.PID) error {
 	return nil
 }
 
-//
-// GetParentShardHeight
-// get height of parent shard
-//
-func GetParentShardHeight() (uint32, error) {
-	chainmgr := GetChainManager()
-	chainmgr.lock.RLock()
-	defer chainmgr.lock.RUnlock()
-
-	if chainmgr.shardID.IsRootShard() {
-		return 0, nil
-	}
-
-	h := uint32(0)
-	if m := chainmgr.blockPool.Shards[chainmgr.parentShardID]; m != nil {
-		for _, blk := range m {
-			if blk.Height > h {
-				h = blk.Height
-			}
-		}
-	} else if cfg := chainmgr.GetShardConfig(chainmgr.shardID); cfg != nil {
-		h = cfg.Shard.GenesisParentHeight
-	} else {
-		log.Errorf("failed to get self shard config")
-	}
-
-	return h, nil
-}
-
-func GetParentBlockHeader(height uint32) *types.Header {
+func GetShardBlock(shardID types.ShardID, height uint32) *types.Block {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
@@ -143,12 +71,12 @@ func GetParentBlockHeader(height uint32) *types.Header {
 		return nil
 	}
 
-	m := chainmgr.blockPool.Shards[chainmgr.parentShardID]
+	m := chainmgr.blockPool.Shards[shardID]
 	if m == nil {
 		return nil
 	}
 	if blk, present := m[height]; present && blk != nil {
-		return blk.Header.Header
+		return blk.Block
 	}
 
 	return nil
@@ -173,7 +101,7 @@ func GetShardTxsByParentHeight(start, end uint32) map[types.ShardID][]*types.Tra
 		return nil
 	}
 
-	parentShard := chainmgr.parentShardID
+	parentShard := chainmgr.shardID.ParentID()
 	log.Infof("shard %d get parent shard %d tx, %d - %d", chainmgr.shardID, parentShard, start, end)
 	m := chainmgr.blockPool.Shards[parentShard]
 	if m == nil {

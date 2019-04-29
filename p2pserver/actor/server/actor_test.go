@@ -23,7 +23,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
 )
@@ -32,13 +34,14 @@ func TestP2PActorServer(t *testing.T) {
 	log.Init(log.Stdout)
 	fmt.Println("Start test the p2pserver by actor...")
 
-	p2p := p2pserver.NewServer()
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	p2p := p2pserver.NewServer(shardId)
 	if p2p == nil {
 		t.Fatalf("TestP2PActorServer: p2pserver NewServer error")
 	}
 
 	p2pActor := NewP2PActor(p2p)
-	p2pPID, err := p2pActor.Start()
+	p2pPID, err := p2pActor.Start(shardId)
 	if err != nil {
 		t.Fatalf("p2pActor init error %s", err)
 	}

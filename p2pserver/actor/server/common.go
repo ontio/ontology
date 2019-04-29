@@ -132,3 +132,7 @@ type TransmitConsensusMsgReq struct {
 	Target uint64
 	Msg    ptypes.Message
 }
+
+type StartSync struct {
+	ShardID uint64
+}

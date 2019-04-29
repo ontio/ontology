@@ -42,7 +42,7 @@ type PeerCom struct {
 	httpInfoPort uint16
 	syncPort     uint16
 	consPort     uint16
-	height       uint64
+	height       map[uint64]uint32
 	softVersion  string
 }
 
@@ -117,12 +117,12 @@ func (this *PeerCom) GetHttpInfoPort() uint16 {
 }
 
 // SetHeight sets a peer's height
-func (this *PeerCom) SetHeight(height uint64) {
+func (this *PeerCom) SetHeight(height map[uint64]uint32) {
 	this.height = height
 }
 
 // GetHeight returns a peer's height
-func (this *PeerCom) GetHeight() uint64 {
+func (this *PeerCom) GetHeight() map[uint64]uint32 {
 	return this.height
 }
 
@@ -189,12 +189,12 @@ func (this *Peer) GetVersion() uint32 {
 }
 
 //GetHeight return peer`s block height
-func (this *Peer) GetHeight() uint64 {
+func (this *Peer) GetHeight() map[uint64]uint32 {
 	return this.base.GetHeight()
 }
 
 //SetHeight set height to peer
-func (this *Peer) SetHeight(height uint64) {
+func (this *Peer) SetHeight(height map[uint64]uint32) {
 	this.base.SetHeight(height)
 }
 
@@ -384,7 +384,7 @@ func (this *Peer) SetHttpInfoPort(port uint16) {
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64, softVer string) {
+	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height map[uint64]uint32, softVer string) {
 
 	this.SyncLink.UpdateRXTime(t)
 	this.base.SetID(nonce)
@@ -400,5 +400,5 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	} else {
 		this.base.SetRelay(true)
 	}
-	this.SetHeight(uint64(height))
+	this.SetHeight(height)
 }

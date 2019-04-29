@@ -118,9 +118,8 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	}
 	remotePeer.SetHeight(ping.Height)
 
-	height := ledger.DefLedger.GetCurrentBlockHeight()
-	p2p.SetHeight(uint64(height))
-	msg := msgpack.NewPongMsg(uint64(height))
+	height := p2p.GetHeight()
+	msg := msgpack.NewPongMsg(height)
 
 	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
@@ -282,12 +281,17 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
+			version.P.Relay, version.P.ShardHeights, version.P.SoftVersion)
 
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
+			heights := make(map[uint64]uint32)
+			lgr := ledger.GetShardLedger(types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			if lgr != nil {
+				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+			}
+			msg = msgpack.NewVersion(p2p, true, heights)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(true)
@@ -338,8 +342,13 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 					n.CloseSync()
 					n.CloseCons()
 					if pid != nil {
+						shards := make([]uint64, 0)
+						for s := range version.P.ShardHeights {
+							shards = append(shards, s)
+						}
 						input := &msgCommon.RemovePeerID{
-							ID: version.P.Nonce,
+							ID:     version.P.Nonce,
+							Shards: shards,
 						}
 						pid.Tell(input)
 					}
@@ -362,13 +371,18 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
 			version.P.Services, version.P.SyncPort,
 			version.P.ConsPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
+			version.P.Relay, version.P.ShardHeights, version.P.SoftVersion)
 		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
 
 		if pid != nil {
+			shards := make([]uint64, 0)
+			for s, _ := range version.P.ShardHeights {
+				shards = append(shards, s)
+			}
 			input := &msgCommon.AppendPeerID{
-				ID: version.P.Nonce,
+				ID:     version.P.Nonce,
+				Shards: shards,
 			}
 			pid.Tell(input)
 		}
@@ -376,7 +390,12 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		var msg msgTypes.Message
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
+			heights := make(map[uint64]uint32)
+			lgr := ledger.GetShardLedger(types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			if lgr != nil {
+				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+			}
+			msg = msgpack.NewVersion(p2p, false, heights)
 		} else if s == msgCommon.HAND {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 			msg = msgpack.NewVerAck(false)

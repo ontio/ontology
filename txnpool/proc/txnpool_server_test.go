@@ -19,11 +19,14 @@
 package proc
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -72,13 +75,24 @@ func startActor(obj interface{}) *actor.PID {
 
 func TestTxn(t *testing.T) {
 	t.Log("Starting test tx")
-	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
 	}
 	defer s.Stop()
+
+	// Initialize an actor to handle the msgs from valdiators
+	rspActor := NewVerifyRspActor(s)
+	rspPid := startActor(rspActor)
+	if rspPid == nil {
+		t.Fatalf("start verify rsp actor failed")
+	}
+	s.RegisterActor(tc.VerifyRspActor, rspPid)
+
+	stlValidator, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator_%d", shardId.ToUint64()))
+	stlValidator.Register(s.GetPID(tc.VerifyRspActor))
 
 	// Case 1: Send nil txn to the server, server should reject it
 	s.assignTxToWorker(nil, sender, nil)
@@ -121,8 +135,8 @@ func TestTxn(t *testing.T) {
 
 func TestAssignRsp2Worker(t *testing.T) {
 	t.Log("Starting assign response to the worker testing")
-	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -164,8 +178,8 @@ func TestAssignRsp2Worker(t *testing.T) {
 
 func TestActor(t *testing.T) {
 	t.Log("Starting actor testing")
-	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -232,8 +246,8 @@ func TestActor(t *testing.T) {
 
 func TestValidator(t *testing.T) {
 	t.Log("Starting validator testing")
-	var s *TXPoolServer
-	s = NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return

@@ -60,7 +60,8 @@ func init() {
 
 func TestTxActor(t *testing.T) {
 	t.Log("Starting tx actor test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -128,7 +129,8 @@ func TestTxActor(t *testing.T) {
 
 func TestTxPoolActor(t *testing.T) {
 	t.Log("Starting tx pool actor test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
@@ -182,7 +184,8 @@ func TestTxPoolActor(t *testing.T) {
 
 func TestVerifyRspActor(t *testing.T) {
 	t.Log("Starting validator response actor test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return

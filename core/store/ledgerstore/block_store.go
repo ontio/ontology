@@ -23,12 +23,13 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
-	"io"
 )
 
 //Block store save the data of block & transaction
@@ -361,8 +362,6 @@ func (this *BlockStore) GetTransaction(txHash common.Uint256) (*types.Transactio
 }
 
 func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transaction, uint32, error) {
-	key := this.getTransactionKey(txHash)
-
 	var tx *types.Transaction
 	var height uint32
 	if this.enableCache {
@@ -372,6 +371,7 @@ func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transacti
 		}
 	}
 
+	key := this.getTransactionKey(txHash)
 	value, err := this.store.Get(key)
 	if err != nil {
 		return nil, 0, err
@@ -392,13 +392,13 @@ func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transacti
 
 //IsContainTransaction return whether the transaction is in store
 func (this *BlockStore) ContainTransaction(txHash common.Uint256) (bool, error) {
-	key := this.getTransactionKey(txHash)
-
 	if this.enableCache {
 		if this.cache.ContainTransaction(txHash) {
 			return true, nil
 		}
 	}
+
+	key := this.getTransactionKey(txHash)
 	_, err := this.store.Get(key)
 	if err != nil {
 		if err == scom.ErrNotFound {

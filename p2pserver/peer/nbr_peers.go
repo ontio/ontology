@@ -133,20 +133,6 @@ func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 	return addrs
 }
 
-//GetNeighborHeights return the id-height map of nbr peers
-func (this *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
-	this.RLock()
-	defer this.RUnlock()
-
-	hm := make(map[uint64]uint64)
-	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
-			hm[n.GetID()] = n.GetHeight()
-		}
-	}
-	return hm
-}
-
 //GetNeighbors return all establish peers in nbr list
 func (this *NbrPeers) GetNeighbors() []*Peer {
 	this.RLock()

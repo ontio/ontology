@@ -42,12 +42,15 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	setRestfulConfig(ctx, cfg.Restful)
 	setWebSocketConfig(ctx, cfg.Ws)
 	if cfg.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		cfg.Genesis.SeedList = []string{"127.0.0.1:20338"}
 		cfg.Ws.EnableHttpWs = true
 		cfg.Restful.EnableHttpRestful = true
 		cfg.Consensus.EnableConsensus = true
-		cfg.P2PNode.NetworkId = config.NETWORK_ID_SOLO_NET
-		cfg.P2PNode.NetworkName = config.GetNetworkName(cfg.P2PNode.NetworkId)
-		cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(cfg.P2PNode.NetworkId)
+		if !ctx.Bool(utils.GetFlagName(utils.EnableSoloShardFlag)) {
+			cfg.P2PNode.NetworkId = config.NETWORK_ID_SOLO_NET
+			cfg.P2PNode.NetworkName = config.GetNetworkName(cfg.P2PNode.NetworkId)
+			cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(cfg.P2PNode.NetworkId)
+		}
 		cfg.Common.GasPrice = 0
 	}
 	if cfg.P2PNode.NetworkId == config.NETWORK_ID_MAIN_NET ||
@@ -172,14 +175,12 @@ func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 
 func setRpcConfig(ctx *cli.Context, cfg *config.RpcConfig) {
 	cfg.EnableHttpJsonRpc = !ctx.Bool(utils.GetFlagName(utils.RPCDisabledFlag))
-	cfg.EnableShardRpc = cfg.EnableHttpJsonRpc && ctx.Bool(utils.GetFlagName(utils.ShardRpcEnableFlag))
 	cfg.HttpJsonPort = ctx.Uint(utils.GetFlagName(utils.RPCPortFlag))
 	cfg.HttpLocalPort = ctx.Uint(utils.GetFlagName(utils.RPCLocalProtFlag))
 }
 
 func setRestfulConfig(ctx *cli.Context, cfg *config.RestfulConfig) {
 	cfg.EnableHttpRestful = ctx.Bool(utils.GetFlagName(utils.RestfulEnableFlag))
-	cfg.EnableShardRestful = cfg.EnableHttpRestful && ctx.Bool(utils.GetFlagName(utils.ShardRestEnableFlag))
 	cfg.HttpRestPort = ctx.Uint(utils.GetFlagName(utils.RestfulPortFlag))
 	cfg.HttpMaxConnections = ctx.Uint(utils.GetFlagName(utils.RestfulMaxConnsFlag))
 }

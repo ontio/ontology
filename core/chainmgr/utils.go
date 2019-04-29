@@ -30,13 +30,15 @@ import (
 	sComm "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.OntologyConfig {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
 	if s := self.shards[shardID]; s != nil {
 		return s.Config
 	}
@@ -44,15 +46,16 @@ func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.Ontology
 }
 
 func (self *ChainManager) setShardConfig(shardID types.ShardID, cfg *config.OntologyConfig) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
 	if info := self.shards[shardID]; info != nil {
 		info.Config = cfg
 		return nil
 	}
 
 	self.shards[shardID] = &ShardInfo{
-		ShardID:       shardID,
-		ParentShardID: cfg.Shard.ParentShardID,
-		Config:        cfg,
+		ShardID: shardID,
+		Config:  cfg,
 	}
 	return nil
 }

@@ -19,163 +19,27 @@
 package chainmgr
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math"
-	"os"
-	"os/exec"
-	"strings"
-	"syscall"
-	"time"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology-eventbus/actor"
 	cmdUtil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/ledger"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	evtmsg "github.com/ontio/ontology/events/message"
 	bcommon "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	nativeUtil "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
-
-func (self *ChainManager) onNewShardConnected(sender *actor.PID, helloMsg *message.ShardHelloMsg) error {
-	accPayload, err := serializeShardAccount(self.account)
-	if err != nil {
-		return err
-	}
-
-	shardID := helloMsg.SourceShardID
-	shardState, err := GetShardState(self.ledger, shardID)
-	if err != nil {
-		return fmt.Errorf("get shardmgmt state: %s", err)
-	}
-
-	cfg, err := self.buildShardConfig(shardID, shardState)
-	if err != nil {
-		return err
-	}
-
-	if _, present := self.shards[shardID]; !present {
-		if _, err := self.initShardInfo(shardID, shardState); err != nil {
-			return fmt.Errorf("new shard connected, init: %s", err)
-		}
-		if self.shards[shardID] == nil {
-			return nil
-		}
-	}
-
-	self.shards[shardID].ShardAddress = sender.Address
-	self.shards[shardID].Connected = true
-	self.shards[shardID].Config = cfg
-	self.shards[shardID].Sender = sender
-
-	self.shardAddrs[sender.Address] = shardID
-
-	shardSeeds := make(map[uint64]*message.SibShardInfo)
-	for _, s := range self.shards {
-		if s.Config == nil {
-			log.Errorf("unknow config of shard: %d, %v", s.ShardID, s)
-			continue
-		}
-		shardSeeds[s.ShardID.ToUint64()] = &message.SibShardInfo{
-			SeedList: s.SeedList,
-			GasPrice: s.Config.Common.GasPrice,
-			GasLimit: s.Config.Common.GasLimit,
-		}
-	}
-
-	buf := new(bytes.Buffer)
-	if err := cfg.Serialize(buf); err != nil {
-		return err
-	}
-	ackMsg, err := message.NewShardConfigMsg(accPayload, shardSeeds, buf.Bytes(), self.localPid)
-	if err != nil {
-		return fmt.Errorf("construct config to shard %d: %s", helloMsg.SourceShardID, err)
-	}
-	sender.Tell(ackMsg)
-	return nil
-}
-
-func (self *ChainManager) onShardDisconnected(disconnMsg *message.ShardDisconnectedMsg) error {
-	log.Errorf("remote shard addr:%s disconnected", disconnMsg.Address)
-	// TODO: clean pending remote-tx to disconnected shard
-	if shardID, present := self.shardAddrs[disconnMsg.Address]; present {
-		self.shards[shardID].Connected = false
-		self.shards[shardID].Sender = nil
-		err := self.restartChildShardProcess(shardID)
-		if err != nil {
-			log.Errorf("restart chaild shard failed shardID:%d,err:%s", shardID, err)
-		}
-	} else {
-		if disconnMsg.Address == self.parentShardIPAddress+":"+fmt.Sprint(self.parentShardPort) {
-			log.Infof("parentShard:%d has quit server", self.parentShardID)
-			pid := os.Getpid()
-			log.Infof("ShardId:%d,pid:%d quit server", self.shardID, pid)
-			time.AfterFunc(3*time.Second, func() { syscall.Kill(pid, syscall.SIGKILL) })
-		}
-		log.Warnf("remote shard addr is not present:%s,parentShardID:%d,parentShardIPAddress:%s,parentShardPort:%d", disconnMsg.Address, self.parentShardID, self.parentShardIPAddress, self.parentShardPort)
-	}
-
-	return nil
-}
-
-func (self *ChainManager) onShardConfig(sender *actor.PID, shardCfgMsg *message.ShardConfigMsg) error {
-	if shardCfgMsg.Account != nil && len(shardCfgMsg.Account) > 0 {
-		acc, err := deserializeShardAccount(shardCfgMsg.Account)
-		if err != nil {
-			return fmt.Errorf("unmarshal account: %s", err)
-		}
-		self.account = acc
-	}
-
-	if shardCfgMsg.Config != nil && len(shardCfgMsg.Config) > 0 {
-		config, err := deserializeShardConfig(shardCfgMsg.Config)
-		if err != nil {
-			return fmt.Errorf("unmarshal shard config: %s", err)
-		}
-		if err := self.setShardConfig(config.Shard.ShardID, config); err != nil {
-			return fmt.Errorf("add shard %d config: %s", config.Shard.ShardID, err)
-		}
-	}
-
-	for id, s := range shardCfgMsg.SibShards {
-		sid, _ := types.NewShardID(id)
-		if _, present := self.shards[sid]; !present {
-			self.shards[sid] = &ShardInfo{
-				SeedList: s.SeedList,
-				Config: &config.OntologyConfig{
-					Common: &config.CommonConfig{
-						GasPrice: s.GasPrice,
-						GasLimit: s.GasLimit,
-					},
-				},
-			}
-		}
-	}
-
-	self.notifyParentConnected()
-	return nil
-}
-
-func (self *ChainManager) onShardBlockReceived(sender *actor.PID, blkMsg *message.ShardBlockRspMsg) error {
-	blkInfo, err := message.NewShardBlockInfoFromRemote(self.shardID, blkMsg)
-	if err != nil {
-		return fmt.Errorf("construct shard blockInfo for %d: %s", blkMsg.FromShardID, err)
-	}
-
-	log.Infof("shard %d, got block header from %d, height: %d, tx %v",
-		self.shardID, blkMsg.FromShardID, blkMsg.BlockHeader.Header.Height, blkInfo.ShardTxs)
-
-	return self.addShardBlockInfo(blkInfo)
-}
 
 /////////////
 //
@@ -197,7 +61,12 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 		return nil
 	}
 
-	shardState, err := GetShardState(self.ledger, evt.ShardID)
+	lgr := ledger.GetShardLedger(evt.ShardID)
+	if lgr == nil {
+		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
+	}
+
+	shardState, err := GetShardState(lgr, evt.ShardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -210,17 +79,21 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 	if shardInfo == nil {
 		return fmt.Errorf("shard %d, nil shard info", evt.ShardID)
 	}
-	if shardInfo.ParentShardID != self.shardID {
+	if shardInfo.ShardID.ParentID() != self.shardID {
 		return nil
 	}
 
-	return self.startChildShardProcess(shardInfo)
+	return nil
 }
 
 func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) error {
 	// build shard config
 	// start local shard
-	shardState, err := GetShardState(self.ledger, evt.ShardID)
+	lgr := ledger.GetShardLedger(evt.ShardID.ParentID())
+	if lgr == nil {
+		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
+	}
+	shardState, err := GetShardState(lgr, evt.ShardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -231,25 +104,6 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if err := self.startChildShard(evt.ShardID, shardState); err != nil {
 		return err
 	}
-
-	// broadcast new shards to its sib-shards
-	for _, shardInfo := range self.shards {
-		if !shardInfo.Connected || shardInfo.ShardID == evt.ShardID {
-			continue
-		}
-		sibShards := make(map[uint64]*message.SibShardInfo)
-		sibShards[evt.ShardID.ToUint64()] = &message.SibShardInfo{
-			SeedList: shardInfo.SeedList,
-			GasPrice: shardState.Config.GasPrice,
-			GasLimit: shardState.Config.GasLimit,
-		}
-		msg, err := message.NewShardConfigMsg(nil, sibShards, nil, shardInfo.Sender)
-		if err != nil {
-			log.Errorf("failed to build shard config msg of shard %d to shard %d", evt.ShardID, shardInfo.ShardID)
-		}
-		shardInfo.Sender.Tell(msg)
-	}
-
 	return nil
 }
 
@@ -285,16 +139,8 @@ func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEven
 	}
 }
 
-func (self *ChainManager) restartChildShardProcess(shardID types.ShardID) error {
-	shardState, err := GetShardState(self.ledger, shardID)
-	if err != nil {
-		return fmt.Errorf("restartChildShard get shardmgmt state: %s", err)
-	}
-	return self.startChildShard(shardID, shardState)
-}
-
 func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shardstates.ShardState) error {
-	// TODO: start child shard if account.pubkey is in peer-list
+	// TODO: start consensus / syncer / http / txpool
 
 	if _, err := self.initShardInfo(shardID, shardState); err != nil {
 		return fmt.Errorf("startChildShard init shard %d info: %s", shardID, err)
@@ -309,48 +155,24 @@ func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shar
 	} else {
 		shardInfo.Config = cfg
 	}
-	log.Infof("startChildShard shard %d, received shard %d restart msg, parent %d", self.shardID, shardID, shardInfo.ParentShardID)
+	log.Infof("startChildShard shard %d, received shard %d restart msg", self.shardID, shardID)
 
-	if shardInfo.ParentShardID != self.shardID {
-		log.Warnf("startChildShard ParentShardID:%d,shardID:%d", shardInfo.ParentShardID, self.shardID)
-		return nil
+	if err := self.initShardLedger(shardInfo); err != nil {
+		return fmt.Errorf("init shard %d, failed to init ledger: %s", self.shardID, err)
 	}
-	key := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
-	if _, has := shardState.Peers[strings.ToLower(key)]; !has {
-		log.Warnf("startChildShard pubKey:%s is not exit shardState",
-			hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)))
-		return nil
-	}
-	return self.startChildShardProcess(shardInfo)
-}
-
-func (self *ChainManager) startChildShardProcess(shardInfo *ShardInfo) error {
-	// build sub-shard args
-	shardportcfg := &cmdUtil.ShardCmdConfig{
-		ParentPort: self.parentShardPort,
-		NodePort:   GetShardNodePortID(shardInfo.ShardID.ToUint64()),
-		RpcPort:    GetShardRpcPortByShardID(shardInfo.ShardID.ToUint64()),
-		RestPort:   GetShardRestPortByShardID(shardInfo.ShardID.ToUint64()),
-		GasPrice:   shardInfo.Config.Common.GasPrice,
-		GasLimit:   shardInfo.Config.Common.GasLimit,
-	}
-	shardArgs, err := cmdUtil.BuildShardCommandArgs(self.cmdArgs, shardInfo.ShardID, shardportcfg)
+	txPoolPid, err := self.initTxPool()
 	if err != nil {
-		return fmt.Errorf("shard %d, build shard %d command args: %s", self.shardID, shardInfo.ShardID, err)
+		return fmt.Errorf("init initTxPool %d, failed to init initTxPool: %s", self.shardID, err)
 	}
-	cmd := exec.Command(os.Args[0], shardArgs...)
-	if err := cmd.Start(); err != nil {
-		log.Errorf("shard %d, failed to start %d: err:%s", self.shardID, shardInfo.ShardID, err)
-		return fmt.Errorf("shard %d, failed to start %d: err:%s", self.shardID, shardInfo.ShardID, err)
-	} else {
-		log.Infof(">>>> starting shard %d, cmd: %s, args: %v", shardInfo.ShardID, os.Args[0], shardArgs)
-	}
+	self.txPoolPid = txPoolPid
+	self.startConsensus()
 	return nil
 }
 
-func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*evtmsg.ShardEventState) error {
+func (self *ChainManager) handleBlockEvents(block *types.Block, shardEvts []*evtmsg.ShardEventState) error {
 	// construct one parent-block-completed message
-	blkInfo := message.NewShardBlockInfo(self.shardID, header)
+	header := block.Header
+	blkInfo := message.NewShardBlockInfo(self.shardID, block)
 	shardTxs, err := constructShardBlockTx(shardEvts)
 	if err != nil {
 		return fmt.Errorf("shard %d, block %d, construct shard tx: %s", self.shardID, header.Height, err)
@@ -361,60 +183,32 @@ func (self *ChainManager) handleBlockEvents(header *types.Header, shardEvts []*e
 		return fmt.Errorf("add shard block: %s", err)
 	}
 
-	// broadcast message to shards
-	for shardID := range blkInfo.ShardTxs {
-		msg, err := message.NewShardBlockRspMsg(self.shardID, header, shardTxs[shardID], self.localPid)
-		if err != nil {
-			return fmt.Errorf("build shard block msg: %s", err)
-		}
-
-		log.Infof("shard %d, send block %d to %d with shard tx: %v",
-			self.shardID, header.Height, shardID, blkInfo.ShardTxs[shardID])
-
-		// send msg to shard
-		self.sendShardMsg(shardID, msg)
-	}
-
-	// broadcast to all other child shards
-	for shardID := range self.shards {
-		if shardID == self.shardID || shardID == self.parentShardID {
-			continue
-		}
-		if _, present := blkInfo.ShardTxs[shardID]; present {
-			continue
-		}
-
-		msg, err := message.NewShardBlockRspMsg(self.shardID, header, shardTxs[shardID], self.localPid)
-		if err != nil {
-			return fmt.Errorf("build shard block msg: %s", err)
-		}
-		self.sendShardMsg(shardID, msg)
-	}
-
 	return nil
 }
 
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
-	defer func() {
-		err := self.ledger.PutShardProcessedBlockHeight(self.processedBlockHeight)
-		if err != nil {
-			log.Infof("save processed block height err:%v", err)
-		}
-	}()
+	shardID, err := types.NewShardID(header.ShardID)
+	if err != nil {
+		return fmt.Errorf("invalid shard id %d", header.ShardID)
+	}
+	lgr := ledger.GetShardLedger(shardID)
+	if lgr == nil {
+		return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)
+	}
 
-	for height := self.processedBlockHeight + 1; height <= header.Height; height++ {
-		shards, err := GetRequestedRemoteShards(self.ledger, height)
+	for height := self.processedParentBlockHeight + 1; height <= header.Height; height++ {
+		shards, err := GetRequestedRemoteShards(lgr, height)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
 		}
 		log.Infof("chainmgr get remote shards: height: %d, shards: %v", height, shards)
 		if shards == nil || len(shards) == 0 {
-			self.processedBlockHeight = height
+			self.processedParentBlockHeight = height
 			continue
 		}
 
 		for _, s := range shards {
-			reqs, err := GetRequestsToRemoteShard(self.ledger, height, s)
+			reqs, err := GetRequestsToRemoteShard(lgr, height, s)
 			if err != nil {
 				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
 			}
@@ -436,26 +230,53 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 				return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
 			}
 			go func() {
-				if err := self.sendCrossShardTx(tx, shardInfo.SeedList, GetShardRpcPortByShardID(s.ToUint64())); err != nil {
+				if err := self.sendCrossShardTx(tx, shardInfo.SeedList, self.getShardRPCPort(s)); err != nil {
 					log.Errorf("send xshardTx to %d, ip %v, failed: %s", s.ToUint64(), shardInfo.SeedList, err)
 				}
 			}()
 		}
 
-		self.processedBlockHeight = height
+		self.processedParentBlockHeight = height
 	}
 
 	return nil
 }
-
+func (self *ChainManager) handleRootChainBlock() error {
+	shardState, err := GetShardState(self.mainLedger, self.shardID)
+	if err == com.ErrNotFound {
+		log.Debugf("get shard %d failed: %s", self.shardID, err)
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("get shard %d failed: %s", self.shardID, err)
+	}
+	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
+		return nil
+	}
+	if cfg, err := self.buildShardConfig(self.shardID, shardState); err != nil {
+		return fmt.Errorf("startChildShard shard %d,config: %s", self.shardID, err)
+	} else {
+		if err := self.setShardConfig(self.shardID, cfg); err != nil {
+			return fmt.Errorf("add shard %d config: %s", self.shardID, err)
+		}
+	}
+	return nil
+}
 func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
-	log.Infof("shard %d, get new block %d", self.shardID, blk.Header.Height)
+	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
+		// main-chain has no parent-chain, and not support xshard-txn
+		return nil
+	}
+	log.Infof("chainmgr shard %d, get new block %d,blk shardId:%d", self.shardID, blk.Header.Height, blk.Header.ShardID)
 
-	if err := self.handleBlockEvents(blk.Header, shardEvts); err != nil {
+	if err := self.handleBlockEvents(blk, shardEvts); err != nil {
 		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
 	}
 	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
 		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
+	}
+	if err := self.handleRootChainBlock(); err != nil {
+		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 	return nil
 }
@@ -521,6 +342,6 @@ func (self *ChainManager) invokeRootNativeContract(contract common.Address, meth
 
 	// TODO: handle send-tx failure
 	// TODO: change 127.0.0.1 to seeds of root-shard
-	go self.sendCrossShardTx(tx, []string{"127.0.0.1"}, GetShardRpcPortByShardID(self.shardID.ParentID().ToUint64()))
+	go self.sendCrossShardTx(tx, []string{"127.0.0.1"}, self.getShardRPCPort(self.shardID.ParentID()))
 	return nil
 }

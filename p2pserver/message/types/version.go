@@ -22,6 +22,7 @@ import (
 	"io"
 
 	comm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -38,6 +39,7 @@ type VersionPayload struct {
 	Relay        uint8
 	IsConsensus  bool
 	SoftVersion  string
+	ShardHeights map[uint64]uint32
 }
 
 type Version struct {
@@ -58,6 +60,11 @@ func (this *Version) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint8(this.P.Relay)
 	sink.WriteBool(this.P.IsConsensus)
 	sink.WriteString(this.P.SoftVersion)
+	sink.WriteUint32(uint32(len(this.P.ShardHeights)))
+	for id, h := range this.P.ShardHeights {
+		sink.WriteUint64(id)
+		sink.WriteUint32(h)
+	}
 }
 
 func (this *Version) CmdType() string {
@@ -91,6 +98,25 @@ func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 	this.P.SoftVersion, _, irregular, eof = source.NextString()
 	if eof || irregular {
 		this.P.SoftVersion = ""
+	}
+
+	this.P.ShardHeights = make(map[uint64]uint32)
+	shardCnt, eof := source.NextUint32()
+	if !eof {
+		for i := uint32(0); i < shardCnt; i++ {
+			shardId, eof := source.NextUint64()
+			if eof {
+				break
+			}
+			shardHeight, eof := source.NextUint32()
+			if eof {
+				break
+			}
+			if _, err := types.NewShardID(shardId); err != nil {
+				break
+			}
+			this.P.ShardHeights[shardId] = shardHeight
+		}
 	}
 
 	return nil

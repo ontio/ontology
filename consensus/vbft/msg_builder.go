@@ -27,7 +27,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/chainmgr"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -188,14 +188,10 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		log.Errorf("constructBlock getlastblock err:%s,blknum:%d", err, blkNum-1)
 		return nil, err
 	}
-	parentHeight, err := chainmgr.GetParentShardHeight()
-	if err != nil {
-		log.Errorf("constructBlock getparentshardheight err:%s,blknum:%d", err, blkNum-1)
-		return nil, fmt.Errorf("get parentBlock height: %s", err)
-	}
+	parentHeight := self.ledger.GetParentHeight() + 1
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {
-		temp := chainmgr.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
 		for id, txs := range temp {
 			shardTxs[id.ToUint64()] = txs
 		}
@@ -206,7 +202,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,
 		Version:          common.CURR_HEADER_VERSION,
-		ShardID:          chainmgr.GetShardID().ToUint64(),
+		ShardID:          self.ShardID.ToUint64(),
 		ParentHeight:     uint32(parentHeight),
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,

@@ -30,13 +30,13 @@ import (
 	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func newTestBlockHdr() *message.ShardBlockHeader {
+func newTestBlock() *types.Block {
 	hdr := &types.Header{}
 	hdr.Version = common.VERSION_SUPPORT_SHARD
 	hdr.Bookkeepers = make([]keypair.PublicKey, 0)
 	hdr.SigData = make([][]byte, 0)
 
-	return &message.ShardBlockHeader{hdr}
+	return &types.Block{Header: hdr}
 }
 
 func newTestShardTx(t *testing.T, version byte, shardID uint64) *message.ShardBlockTx {
@@ -55,14 +55,14 @@ func newTestShardTx(t *testing.T, version byte, shardID uint64) *message.ShardBl
 func newTestShardBlockInfo(t *testing.T) *message.ShardBlockInfo {
 	height := uint32(123)
 	parentHeight := uint32(321)
-	shardHdr := newTestBlockHdr()
-	shardHdr.Header.Height = height
-	shardHdr.Header.ParentHeight = parentHeight
+	shardBlk := newTestBlock()
+	shardBlk.Header.Height = height
+	shardBlk.Header.ParentHeight = parentHeight
 
 	blkInfo := &message.ShardBlockInfo{
 		FromShardID: types.NewShardIDUnchecked(100),
 		Height:      uint32(height),
-		Header:      shardHdr,
+		Block:       shardBlk,
 		ShardTxs:    make(map[types.ShardID]*message.ShardBlockTx),
 	}
 
@@ -78,24 +78,25 @@ func TestShardBlockHeaderSerialize(t *testing.T) {
 	height := uint32(123)
 	parentHeight := uint32(321)
 
-	shardHdr := newTestBlockHdr()
-	shardHdr.Header.Height = height
-	shardHdr.Header.ParentHeight = parentHeight
+	shardBlk := newTestBlock()
+	shardBlk.Header.Height = height
+	shardBlk.Header.ParentHeight = parentHeight
 	sink := common.NewZeroCopySink(0)
-	shardHdr.Serialization(sink)
+	shardBlk.Serialization(sink)
 	bs := sink.Bytes()
+
 	source := common.NewZeroCopySource(bs)
-	shardHdr2 := message.ShardBlockHeader{Header: &types.Header{}}
-	if err := shardHdr2.Deserialization(source); err != nil {
+	shardBlk2 := new(types.Block)
+	if err := shardBlk2.Deserialization(source); err != nil {
 		t.Fatalf("deser shard header: %s", err)
 	}
 
-	if shardHdr2.Header.ParentHeight != parentHeight {
-		t.Fatalf("unmatched parent height: %d vs %d", shardHdr2.Header.ParentHeight, parentHeight)
+	if shardBlk2.Header.ParentHeight != parentHeight {
+		t.Fatalf("unmatched parent height: %d vs %d", shardBlk2.Header.ParentHeight, parentHeight)
 	}
 
-	if shardHdr2.Header.Height != height {
-		t.Fatalf("unmatched height: %d vs %d", shardHdr2.Header.Height, height)
+	if shardBlk2.Header.Height != height {
+		t.Fatalf("unmatched height: %d vs %d", shardBlk2.Header.Height, height)
 	}
 }
 

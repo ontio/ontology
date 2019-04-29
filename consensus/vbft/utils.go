@@ -32,7 +32,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/chainmgr"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -310,7 +310,7 @@ func getShardGasBalance(memdb *overlaydb.MemDB) (uint64, error) {
 }
 
 func getShardConfig(lgr *ledger.Ledger, shardID types.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
-	shardState, err := chainmgr.GetShardState(lgr, shardID)
+	shardState, err := xshard.GetShardState(lgr, shardID)
 	if err == com.ErrNotFound {
 		return nil, fmt.Errorf("get shard %d failed: %s", shardID, err)
 	}
@@ -328,12 +328,12 @@ func getShardConfig(lgr *ledger.Ledger, shardID types.ShardID, blkNum uint32) (*
 		MaxBlockChangeView:   shardState.Config.VbftCfg.MaxBlockChangeView,
 	}
 
-	shardView, err := chainmgr.GetShardView(lgr, shardID)
+	shardView, err := xshard.GetShardView(lgr, shardID)
 	if err != nil {
 		return nil, fmt.Errorf("GetShardView err:%s", err)
 	}
 	var peersinfo []*config.VBFTPeerStakeInfo
-	PeerStakesInfo, err := chainmgr.GetShardPeerStakeInfo(lgr, shardID, shardView.View+1)
+	PeerStakesInfo, err := xshard.GetShardPeerStakeInfo(lgr, shardID, shardView.View+1)
 	if err != nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo err:%s", err)
 	}

@@ -89,12 +89,6 @@ func genUserUnboundOngKey(contract, user common.Address) []byte {
 	return utils.ConcatKey(contract, []byte(KEY_UNBOUND_ONG), user[:])
 }
 
-func GetShardView(native *native.NativeService, id types.ShardID) (*utils.ChangeView, error) {
-	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
-	key := GenShardViewKey(shardIDBytes)
-	return utils.GetChangeView(native, utils.ShardStakeAddress, key)
-}
-
 func GetShardCurrentView(native *native.NativeService, id types.ShardID) (View, error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := GenShardViewKey(shardIDBytes)

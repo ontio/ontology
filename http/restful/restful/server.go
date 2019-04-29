@@ -34,7 +34,6 @@ import (
 
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/chainmgr"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
 	"golang.org/x/net/netutil"
@@ -95,7 +94,7 @@ func InitRestServer() rest.ApiServer {
 
 //start server
 func (this *restServer) Start() error {
-	retPort := int(chainmgr.GetShardRestPort())
+	retPort := int(cfg.DefConfig.Restful.HttpRestPort)
 	if retPort == 0 {
 		log.Fatal("Not configure HttpRestPort port ")
 		return nil
