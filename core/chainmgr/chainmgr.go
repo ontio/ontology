@@ -187,12 +187,8 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 		return fmt.Errorf("GetBookkeepers error:%s", err)
 	}
 	cfg := config.DefConfig
-	if self.shardID.ToUint64() != config.DEFAULT_SHARD_ID {
-		cfg = config.NewOntologyConfig()
-	}
-
-	genesisConfig := cfg.Genesis
-	shardConfig := cfg.Shard
+	genesisConfig := config.DefConfig.Genesis
+	shardConfig := config.DefConfig.Shard
 	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
 	if err != nil {
 		return fmt.Errorf("genesisBlock error %s", err)
