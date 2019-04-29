@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
@@ -35,58 +34,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
-
-func NewShardHelloMsg(localShard, targetShard types.ShardID, sender *actor.PID) (*CrossShardMsg, error) {
-	hello := &ShardHelloMsg{
-		TargetShardID: targetShard,
-		SourceShardID: localShard,
-	}
-	payload := EncodeShardMsg(hello)
-
-	return &CrossShardMsg{
-		Version: SHARD_PROTOCOL_VERSION,
-		Type:    HELLO_MSG,
-		Sender:  sender,
-		Data:    payload,
-	}, nil
-}
-
-func NewShardConfigMsg(accPayload []byte, sibShards map[uint64]*SibShardInfo, configPayload []byte, sender *actor.PID) (*CrossShardMsg, error) {
-	ack := &ShardConfigMsg{
-		Account:   accPayload,
-		SibShards: sibShards,
-		Config:    configPayload,
-	}
-	payload := EncodeShardMsg(ack)
-
-	return &CrossShardMsg{
-		Version: SHARD_PROTOCOL_VERSION,
-		Type:    CONFIG_MSG,
-		Sender:  sender,
-		Data:    payload,
-	}, nil
-}
-
-func NewShardBlockRspMsg(fromShardID types.ShardID, header *types.Header, tx *ShardBlockTx, sender *actor.PID) (*CrossShardMsg, error) {
-	blkRsp := &ShardBlockRspMsg{
-		FromShardID: fromShardID,
-		Height:      header.Height,
-		BlockHeader: &ShardBlockHeader{header},
-		Txs:         make([]*ShardBlockTx, 0),
-	}
-	if tx != nil {
-		blkRsp.Txs = append(blkRsp.Txs, tx)
-	}
-
-	payload := EncodeShardMsg(blkRsp)
-
-	return &CrossShardMsg{
-		Version: SHARD_PROTOCOL_VERSION,
-		Type:    BLOCK_RSP_MSG,
-		Sender:  sender,
-		Data:    payload,
-	}, nil
-}
 
 //
 // NewCrossShardTxMsg: create cross-shard transaction, to remote ShardSysMsg contract
@@ -144,40 +91,15 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID types
 	return mutable.IntoImmutable()
 }
 
-func NewShardBlockInfo(shardID types.ShardID, header *types.Header) *ShardBlockInfo {
+func NewShardBlockInfo(shardID types.ShardID, block *types.Block) *ShardBlockInfo {
 	blockInfo := &ShardBlockInfo{
 		FromShardID: shardID,
-		Height:      header.Height,
+		Height:      block.Header.Height,
 		State:       ShardBlockNew,
-		Header: &ShardBlockHeader{
-			Header: header,
-		},
+		Block:       block,
 	}
 
 	// TODO: add event from block to blockInfo
 
 	return blockInfo
-}
-
-func NewShardBlockInfoFromRemote(ShardID types.ShardID, msg *ShardBlockRspMsg) (*ShardBlockInfo, error) {
-	if msg == nil {
-		return nil, fmt.Errorf("newShardBlockInfo, nil msg")
-	}
-
-	blockInfo := &ShardBlockInfo{
-		FromShardID: msg.FromShardID,
-		Height:      msg.BlockHeader.Header.Height,
-		State:       ShardBlockReceived,
-		Header: &ShardBlockHeader{
-			Header: msg.BlockHeader.Header,
-		},
-		ShardTxs: make(map[types.ShardID]*ShardBlockTx),
-	}
-
-	if len(msg.Txs) > 0 {
-		blockInfo.ShardTxs[ShardID] = msg.Txs[0]
-	}
-	// TODO: add event from msg to blockInfo
-
-	return blockInfo, nil
 }

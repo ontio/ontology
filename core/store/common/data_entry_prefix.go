@@ -46,11 +46,6 @@ const (
 
 	EVENT_NOTIFY DataEntryPrefix = 0x14 //Event notify key prefix
 
-	SHARD_CURR_ANCHOR_HEIGHT     DataEntryPrefix = 0x30 // the newest anchored height of parent shard chain
-	SHARD_SUBSHARD_ANCHOR_HEIGHT DataEntryPrefix = 0x31 // map[subshardid] -> anchored height, updated by chain manager
-	SHARD_EVENTS                 DataEntryPrefix = 0x32 // block height -> shard events
-	// block height where cross shard request txes have been send out updated by chain manager
-	SHARD_PROCESSED_BLOCK_HEIGHT DataEntryPrefix = 0x33
-	// contract meta data
+	SHARD_EVENTS          DataEntryPrefix = 0x32 // block height -> shard events
 	ST_CONTRACT_META_DATA DataEntryPrefix = 0x34 // contract meta data
 )

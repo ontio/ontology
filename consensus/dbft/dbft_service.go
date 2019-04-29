@@ -54,16 +54,18 @@ type DbftService struct {
 	poolActor         *actorTypes.TxPoolActor
 	p2p               *actorTypes.P2PActor
 
-	pid *actor.PID
-	sub *events.ActorSubscriber
+	pid     *actor.PID
+	sub     *events.ActorSubscriber
+	shardID types.ShardID
 }
 
-func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftService, error) {
+func NewDbftService(shardID types.ShardID, bkAccount *account.Account, txpool *actor.PID, lgr *ledger.Ledger, p2p *actor.PID) (*DbftService, error) {
 	service := &DbftService{
 		Account:       bkAccount,
 		timer:         time.NewTimer(time.Second * 15),
 		started:       false,
-		ledger:        ledger.DefLedger,
+		shardID:       shardID,
+		ledger:        lgr,
 		incrValidator: increment.NewIncrementValidator(20),
 		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
 		p2p:           &actorTypes.P2PActor{P2P: p2p},

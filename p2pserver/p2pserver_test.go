@@ -22,7 +22,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -34,7 +36,8 @@ func init() {
 func TestNewP2PServer(t *testing.T) {
 	fmt.Println("Start test new p2pserver...")
 
-	p2p := NewServer()
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	p2p := NewServer(shardId)
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
 		t.Error("TestNewP2PServer p2p version error", p2p.GetVersion())

@@ -100,7 +100,8 @@ func Test_RCV(t *testing.T) {
 	}
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
-	s = tp.NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s = tp.NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tp.NewVerifyRspActor(s)
@@ -151,7 +152,7 @@ func Test_RCV(t *testing.T) {
 	}
 	statelessV3.Register(rspPid)
 
-	statefulV, err := stateful.NewValidator("stateful")
+	statefulV, err := stateful.NewValidator("stateful", ledger.DefLedger)
 	if err != nil {
 		t.Errorf("failed to new stateful valdiator", err)
 		return

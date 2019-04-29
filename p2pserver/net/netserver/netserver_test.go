@@ -37,13 +37,13 @@ func creatPeers(cnt uint16) []*peer.Peer {
 	np := []*peer.Peer{}
 	var syncport uint16
 	var id uint64
-	var height uint64
 	for i := uint16(0); i < cnt; i++ {
 		syncport = 20224 + i
 		id = 0x7533345 + uint64(i)
-		height = 434923 + uint64(i)
+		heights := make(map[uint64]uint32)
+		heights[0] = uint32(434923 + uint32(i))
 		p := peer.NewPeer()
-		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, height, "1.5.2")
+		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, heights, "1.5.2")
 		p.SetState(4)
 		p.SetHttpInfoState(true)
 		p.Link.SetAddr("127.0.0.1:10338")
@@ -57,8 +57,12 @@ func TestNewNetServer(t *testing.T) {
 	server.Start()
 	defer server.Halt()
 
-	server.SetHeight(1000)
-	if server.GetHeight() != 1000 {
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(1000)
+	server.SetHeight(heights)
+
+	h := server.GetHeight()
+	if h[0] != 1000 {
 		t.Error("TestNewNetServer set server height error")
 	}
 

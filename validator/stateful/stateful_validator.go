@@ -40,12 +40,16 @@ type validator struct {
 	pid       *actor.PID
 	id        string
 	bestBlock db.BestBlock
+	ledger    *ledger.Ledger
 }
 
 // NewValidator returns Validator for stateful check of tx
-func NewValidator(id string) (Validator, error) {
+func NewValidator(id string, lgr *ledger.Ledger) (Validator, error) {
 
-	validator := &validator{id: id}
+	validator := &validator{
+		id:     id,
+		ledger: lgr,
+	}
 	props := actor.FromProducer(func() actor.Actor {
 		return validator
 	})
@@ -66,12 +70,12 @@ func (self *validator) Receive(context actor.Context) {
 	case *vatypes.CheckTx:
 		log.Debugf("stateful-validator: receive tx %x", msg.Tx.Hash())
 		sender := context.Sender()
-		height := ledger.DefLedger.GetCurrentBlockHeight()
+		height := self.ledger.GetCurrentBlockHeight()
 
 		errCode := errors.ErrNoError
 		hash := msg.Tx.Hash()
 
-		exist, err := ledger.DefLedger.IsContainTransaction(hash)
+		exist, err := self.ledger.IsContainTransaction(hash)
 		if err != nil {
 			log.Warn("query db error:", err)
 			errCode = errors.ErrUnknown

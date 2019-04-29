@@ -100,7 +100,9 @@ func TestVersionHandle(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Construct a version packet
-	buf := msgpack.NewVersion(network, 12345)
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
+	buf := msgpack.NewVersion(network, heights)
 	version := buf.(*types.Version)
 	version.P.Nonce = testID
 
@@ -122,7 +124,8 @@ func TestVersionHandle(t *testing.T) {
 	assert.Equal(t, tempPeer.GetServices(), network.GetServices())
 	assert.Equal(t, tempPeer.GetPort(), network.GetPort())
 	assert.Equal(t, tempPeer.GetHttpInfoPort(), network.GetHttpInfoPort())
-	assert.Equal(t, tempPeer.GetHeight(), uint64(12345))
+	h := tempPeer.GetHeight()
+	assert.Equal(t, h[0], uint32(12345))
 	assert.Equal(t, tempPeer.GetState(), uint32(msgCommon.HAND_SHAKE))
 
 	network.DelNbrNode(testID)
@@ -141,7 +144,10 @@ func TestVerAckHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.SetHttpInfoPort(20335)
-	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336, testID, 0, 12345, "1.5.2")
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
+	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
+		testID, 0, heights, "1.5.2")
 	network.AddNbrNode(remotePeer)
 	remotePeer.SetState(msgCommon.HAND_SHAKE)
 
@@ -177,8 +183,10 @@ func TestAddrReqHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		testID, 0, 12345, "1.5.2")
+		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -210,8 +218,10 @@ func TestHeadersReqHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		testID, 0, 12345, "1.5.2")
+		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -242,17 +252,16 @@ func TestPingHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		testID, 0, 12345, "1.5.2")
+		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
 	// Construct a ping packet
-	height := ledger.DefLedger.GetCurrentBlockHeight()
-	assert.Nil(t, err)
-
-	buf := msgpack.NewPingMsg(uint64(height))
+	buf := msgpack.NewPingMsg(heights)
 
 	msg := &types.MsgPayload{
 		Id:      testID,
@@ -277,17 +286,16 @@ func TestPongHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		testID, 0, 12345, "1.5.2")
+		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
 	// Construct a pong packet
-	height := ledger.DefLedger.GetCurrentBlockHeight()
-	assert.Nil(t, err)
-
-	buf := msgpack.NewPongMsg(uint64(height))
+	buf := msgpack.NewPongMsg(heights)
 
 	msg := &types.MsgPayload{
 		Id:      testID,
@@ -312,7 +320,10 @@ func TestBlkHeaderHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336, testID, 0, 12345, "1.5.2")
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
+	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
+		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -349,9 +360,11 @@ func TestBlockHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		testID, 0, 12345, "1.5.2")
-	remotePeer.Link.SetAddr("127.0.0.1:50010")
+		testID, 0, heights, "1.5.2")
+	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 
@@ -475,8 +488,10 @@ func TestDataReqHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		testID, 0, 12345, "1.5.2")
+		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -519,8 +534,10 @@ func TestInvHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		testID, 0, 12345, "1.5.2")
+		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
@@ -553,8 +570,10 @@ func TestDisconnectHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
+	heights := make(map[uint64]uint32)
+	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		testID, 0, 12345, "1.5.2")
+		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)

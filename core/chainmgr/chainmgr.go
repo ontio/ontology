@@ -20,89 +20,60 @@ package chainmgr
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"sync"
-	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology-eventbus/eventstream"
-	"github.com/ontio/ontology-eventbus/remote"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	actor2 "github.com/ontio/ontology/http/base/actor"
+	hserver "github.com/ontio/ontology/http/base/actor"
+	"github.com/ontio/ontology/p2pserver/actor/req"
+	"github.com/ontio/ontology/p2pserver/actor/server"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	"github.com/ontio/ontology/txnpool"
+	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/ontio/ontology/validator/stateful"
+	"github.com/ontio/ontology/validator/stateless"
 )
 
 const (
-	CAP_LOCAL_SHARDMSG_CHNL  = 64
-	CAP_REMOTE_SHARDMSG_CHNL = 64
-	CAP_SHARD_BLOCK_POOL     = 16
-	CONNECT_PARENT_TIMEOUT   = 5 * time.Second
-)
-
-const (
-	CONN_TYPE_UNKNOWN = iota
-	CONN_TYPE_SELF
-	CONN_TYPE_PARENT
-	CONN_TYPE_CHILD
-	CONN_TYPE_SIB
+	CAP_LOCAL_SHARDMSG_CHNL = 64
+	CAP_SHARD_BLOCK_POOL    = 16
 )
 
 var defaultChainManager *ChainManager = nil
 
 //
-// RemoteMsg: for messages received from event-bus.
-//  @Sender : where the message is sent from
-//  @Msg : msg payload
-//
-type RemoteMsg struct {
-	Sender *actor.PID
-	Msg    shardmsg.RemoteShardMsg
-}
-
-//
-// MsgSendReq: request BroadcastLoop() to send msg to other shard
-//
-type MsgSendReq struct {
-	targetShardID types.ShardID
-	msg           *shardmsg.CrossShardMsg
-}
-
-//
 // ShardInfo:
 //  . Configuration of other shards
-//  . EventBus ID of other shards
+//  . seed list of other shards
 //
 type ShardInfo struct {
-	ShardID       types.ShardID
-	ParentShardID types.ShardID
-	ShardAddress  string
-	SeedList      []string
-	ConnType      int
-	Connected     bool
-	Config        *config.OntologyConfig
-	Sender        *actor.PID
+	ShardID  types.ShardID
+	SeedList []string
+	Config   *config.OntologyConfig
 }
 
 type ChainManager struct {
-	shardID              types.ShardID
-	shardPort            uint
-	parentShardID        types.ShardID
-	parentShardIPAddress string
-	parentShardPort      uint
+	shardID types.ShardID
 
 	// ShardInfo management, indexing shards with ShardID / Sender-Addr
 	lock       sync.RWMutex
 	shards     map[types.ShardID]*ShardInfo
-	shardAddrs map[string]types.ShardID
+	mainLedger *ledger.Ledger
+	consensus  consensus.ConsensusService
 
 	// BlockHeader and Cross-Shard Txs of other shards
 	// FIXME: check if any lock needed (if not only accessed by remoteShardMsgLoop)
@@ -110,34 +81,18 @@ type ChainManager struct {
 	blockPool *shardmsg.ShardBlockPool
 
 	// last local block processed by ChainManager
-	// FIXME: on restart, make sure catchup with latest blocks
-	// TODO: persistent
-	processedBlockHeight uint32
-
-	account *account.Account
-
-	// Ontology process command arguments, for child-shard ontology process creation
-	cmdArgs map[string]string
-
-	ledger *ledger.Ledger
-	p2pPid *actor.PID
+	processedParentBlockHeight uint32
+	account                    *account.Account
 
 	// send transaction to local
 	txPoolPid *actor.PID
-
-	localBlockMsgC  chan *message.SaveBlockCompleteMsg
-	remoteShardMsgC chan *RemoteMsg
-	broadcastMsgC   chan *MsgSendReq
-	parentConnWait  chan bool
-
-	parentPid *actor.PID
+	p2pPid    *actor.PID
 	localPid  *actor.PID
+	mgr       *txnpool.TxnPoolManager
 
 	// subscribe local SHARD_EVENT from shard-system-contract and BLOCK-EVENT from ledger
-	localEventSub *events.ActorSubscriber
-
-	// subscribe event-bus disconnected event
-	busEventSub *eventstream.Subscription
+	localEventSub  *events.ActorSubscriber
+	localBlockMsgC chan *message.SaveBlockCompleteMsg
 
 	quitC  chan struct{}
 	quitWg sync.WaitGroup
@@ -146,8 +101,7 @@ type ChainManager struct {
 //
 // Initialize chain manager when ontology starting
 //
-func Initialize(shardID types.ShardID, parentAddr string, shardPort, parentPort uint, acc *account.Account, cmdArgs map[string]string) (*ChainManager, error) {
-	// fixme: change to sync.once
+func Initialize(shardID types.ShardID, acc *account.Account) (*ChainManager, error) {
 	if defaultChainManager != nil {
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
 	}
@@ -158,51 +112,22 @@ func Initialize(shardID types.ShardID, parentAddr string, shardPort, parentPort 
 	}
 
 	chainMgr := &ChainManager{
-		shardID:              shardID,
-		shardPort:            shardPort,
-		parentShardID:        shardID.ParentID(),
-		parentShardIPAddress: parentAddr,
-		parentShardPort:      parentPort,
-		shards:               make(map[types.ShardID]*ShardInfo),
-		shardAddrs:           make(map[string]types.ShardID),
-		blockPool:            blkPool,
-		localBlockMsgC:       make(chan *message.SaveBlockCompleteMsg, CAP_LOCAL_SHARDMSG_CHNL),
-		remoteShardMsgC:      make(chan *RemoteMsg, CAP_REMOTE_SHARDMSG_CHNL),
-		broadcastMsgC:        make(chan *MsgSendReq, CAP_REMOTE_SHARDMSG_CHNL),
-		parentConnWait:       make(chan bool),
-		quitC:                make(chan struct{}),
+		shardID:        shardID,
+		shards:         make(map[types.ShardID]*ShardInfo),
+		blockPool:      blkPool,
+		localBlockMsgC: make(chan *message.SaveBlockCompleteMsg, CAP_LOCAL_SHARDMSG_CHNL),
+		quitC:          make(chan struct{}),
 
 		account: acc,
-		cmdArgs: cmdArgs,
 	}
-
-	// start remote-eventBus
-	chainMgr.startRemoteEventbus()
-	// listening on remote-eventBus
-	if err := chainMgr.startListener(); err != nil {
-		return nil, fmt.Errorf("shard %d start listener failed: %s", chainMgr.shardID, err)
-	}
-
 	go chainMgr.localEventLoop()
-	go chainMgr.remoteShardMsgLoop()
-	go chainMgr.broadcastMsgLoop()
-
-	if err := chainMgr.connectParent(); err != nil {
-		chainMgr.Stop()
-		return nil, fmt.Errorf("connect parent shard failed: %s", err)
+	props := actor.FromProducer(func() actor.Actor {
+		return chainMgr
+	})
+	pid, err := actor.SpawnNamed(props, GetShardName(shardID))
+	if err == nil {
+		chainMgr.localPid = pid
 	}
-
-	// subscribe on event-bus disconnected event
-	chainMgr.busEventSub = eventstream.Subscribe(chainMgr.processEventBusEvent).
-		WithPredicate(func(m interface{}) bool {
-			switch m.(type) {
-			case *remote.EndpointTerminatedEvent:
-				return true
-			default:
-				return false
-			}
-		})
-
 	defaultChainManager = chainMgr
 	return defaultChainManager, nil
 }
@@ -210,78 +135,221 @@ func Initialize(shardID types.ShardID, parentAddr string, shardPort, parentPort 
 //
 // LoadFromLedger when ontology starting, after ledger initialized.
 //
-func (self *ChainManager) LoadFromLedger(lgr *ledger.Ledger) error {
-	self.ledger = lgr
-
-	processedBlockHeight, err := self.ledger.GetShardProcessedBlockHeight()
-	if err != nil {
-		return fmt.Errorf("chainmgr: failed to read processed block height: %s", err)
+func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
+	if err := self.initMainLedger(stateHashHeight); err != nil {
+		return err
 	}
-	self.processedBlockHeight = processedBlockHeight
 
-	// TODO: load parent-shard/sib-shard blockhdrs from ledger
+	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
+		// main-chain node, not need to process shard-events
+		return nil
+	}
 
+	shardState, err := GetShardState(self.mainLedger, self.shardID)
+	if err == com.ErrNotFound {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("get shard %d failed: %s", self.shardID, err)
+	}
+	// skip if shard is not active
+	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
+		return nil
+	}
+	if _, err := self.initShardInfo(self.shardID, shardState); err != nil {
+		return fmt.Errorf("init shard %d failed: %s", self.shardID, err)
+	}
+	shardInfo := self.shards[self.shardID]
+	if shardInfo == nil {
+		return nil
+	}
+	cfg, err := self.buildShardConfig(self.shardID, shardState)
+	if err != nil {
+		return fmt.Errorf("init shard %d, failed to build config: %s", self.shardID, err)
+	}
+	shardInfo.Config = cfg
+
+	if err := self.initShardLedger(shardInfo); err != nil {
+		return fmt.Errorf("init shard %d, failed to init ledger: %s", self.shardID, err)
+	}
+
+	return nil
+}
+
+func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
+	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
+	lgr, err := ledger.NewLedger(dbDir, stateHashHeight)
+	if err != nil {
+		return fmt.Errorf("NewLedger error:%s", err)
+	}
+	bookKeepers, err := config.DefConfig.GetBookkeepers()
+	if err != nil {
+		return fmt.Errorf("GetBookkeepers error:%s", err)
+	}
+	cfg := config.DefConfig
+	genesisConfig := config.DefConfig.Genesis
+	shardConfig := config.DefConfig.Shard
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
+	if err != nil {
+		return fmt.Errorf("genesisBlock error %s", err)
+	}
+	err = lgr.Init(bookKeepers, genesisBlock)
+	if err != nil {
+		return fmt.Errorf("Init ledger error:%s", err)
+	}
+
+	mainShardID := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	mainShardInfo := &ShardInfo{
+		ShardID:  mainShardID,
+		SeedList: cfg.Genesis.SeedList,
+		Config:   cfg,
+	}
+	self.shards[mainShardID] = mainShardInfo
+	self.mainLedger = lgr
+	self.processedParentBlockHeight = lgr.GetCurrentBlockHeight()
+	log.Infof("main ledger init success")
+	return nil
+}
+
+func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
+	if shardInfo != nil && ledger.GetShardLedger(shardInfo.ShardID) != nil {
+		return nil
+	}
+	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
+		return fmt.Errorf("init main ledger as shard ledger")
+	}
+	if self.mainLedger == nil {
+		return fmt.Errorf("init shard ledger with nil main ledger")
+	}
+	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
+	lgr, err := ledger.NewShardLedger(self.shardID, dbDir, self.mainLedger)
+	if err != nil {
+		return fmt.Errorf("init shard ledger: %s", err)
+	}
+
+	bookKeepers, err := shardInfo.Config.GetBookkeepers()
+	if err != nil {
+		return fmt.Errorf("init shard ledger: GetBookkeepers error:%s", err)
+	}
+	genesisConfig := shardInfo.Config.Genesis
+	shardConfig := shardInfo.Config.Shard
+	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
+	if err != nil {
+		return fmt.Errorf("init shard ledger: genesisBlock error %s", err)
+	}
+	err = lgr.Init(bookKeepers, genesisBlock)
+	if err != nil {
+		return fmt.Errorf("init shard ledger: :%s", err)
+	}
+	return nil
+}
+
+func (self *ChainManager) GetActiveShards() []types.ShardID {
+	shards := make([]types.ShardID, 0)
+	for _, shardInfo := range self.shards {
+		shards = append(shards, shardInfo.ShardID)
+	}
+	return shards
+}
+
+func (self *ChainManager) GetDefaultLedger() *ledger.Ledger {
+	if shardInfo := self.shards[self.shardID]; shardInfo != nil {
+		return ledger.GetShardLedger(self.shardID)
+	}
+	return self.mainLedger
+}
+
+func (self *ChainManager) startConsensus() error {
+	if self.consensus != nil {
+		return nil
+	}
+
+	// start consensus
+	shardInfo := self.shards[self.shardID]
+	if shardInfo == nil {
+		log.Infof("shard %d starting consensus, shard info not available", self.shardID.ToUint64())
+		return nil
+	}
+	if shardInfo.Config == nil {
+		log.Infof("shard %d starting consensus, shard config not available", self.shardID.ToUint64())
+		return nil
+	}
+	lgr := ledger.GetShardLedger(self.shardID)
+	if lgr == nil {
+		log.Infof("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
+		return nil
+	}
+
+	// TODO: check if peer should start consensus
+	if !shardInfo.Config.Consensus.EnableConsensus {
+		return nil
+	}
+
+	consensusType := shardInfo.Config.Genesis.ConsensusType
+	consensusService, err := consensus.NewConsensusService(consensusType, self.shardID, self.account,
+		self.txPoolPid, lgr, self.p2pPid)
+	if err != nil {
+		return fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
+	}
+	consensusService.Start()
+	self.consensus = consensusService
+
+	actor2.SetConsensusPid(consensusService.GetPID())
+	req.SetConsensusPid(consensusService.GetPID())
+	return nil
+}
+
+func (self *ChainManager) initTxPool() (*actor.PID, error) {
+	lgr := ledger.GetShardLedger(self.shardID)
+	if lgr == nil {
+		log.Infof("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
+		return nil, nil
+	}
+	srv, err := self.mgr.StartTxnPoolServer(self.shardID, lgr)
+	if err != nil {
+		return nil, fmt.Errorf("Init txpool error:%s", err)
+	}
+	stlValidator, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator_%d", self.shardID.ToUint64()))
+	stlValidator.Register(srv.GetPID(tc.VerifyRspActor))
+	stlValidator2, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator2_%d", self.shardID.ToUint64()))
+	stlValidator2.Register(srv.GetPID(tc.VerifyRspActor))
+	stfValidator, _ := stateful.NewValidator(fmt.Sprintf("stateful_validator_%d", self.shardID.ToUint64()), lgr)
+	stfValidator.Register(srv.GetPID(tc.VerifyRspActor))
+
+	hserver.SetTxnPoolPid(srv.GetPID(tc.TxPoolActor))
+	hserver.SetTxPid(srv.GetPID(tc.TxActor))
+	SetTxPool(srv.GetPID(tc.TxActor))
+	return self.mgr.GetPID(self.shardID, tc.TxActor), nil
+}
+
+func (self *ChainManager) Start(txPoolPid, p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolManager) error {
+	self.txPoolPid = txPoolPid
+	self.p2pPid = p2pPid
+	self.mgr = txPoolMgr
 	// start listen on local shard events
 	self.localEventSub = events.NewActorSubscriber(self.localPid)
 	self.localEventSub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
 	self.localEventSub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
-	// get child-shards from shard-mgmt contract
-	globalState, err := GetShardMgmtGlobalState(self.ledger)
-	if err != nil {
-		return fmt.Errorf("chainmgr: failed to read shard-mgmt global state: %s", err)
+	syncerToStart := make([]types.ShardID, 0)
+	for shardId := self.shardID; shardId.ToUint64() != config.DEFAULT_SHARD_ID; shardId = shardId.ParentID() {
+		syncerToStart = append(syncerToStart, shardId)
 	}
-	if globalState == nil {
-		// not initialized from ledger
-		log.Info("chainmgr: shard-mgmt not initialized, skipped loading from ledger")
-		return nil
+	// start syncing root-chain
+	syncerToStart = append(syncerToStart, types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+
+	// start syncing shard
+	for i := len(syncerToStart) - 1; i >= 0; i-- {
+		shardId := syncerToStart[i]
+		if self.shards[shardId] != nil {
+			p2pPid.Tell(&server.StartSync{
+				ShardID: shardId.ToUint64(),
+			})
+			log.Infof("start sync %d", shardId)
+		}
 	}
 
-	// load all child-shard from shard-mgmt contract
-	for i := uint16(1); i < globalState.NextSubShardIndex; i++ {
-		subShardID, err := self.shardID.GenSubShardID(i)
-		if err != nil {
-			return err
-		}
-		shard, err := GetShardState(self.ledger, subShardID)
-		if err == com.ErrNotFound {
-			continue
-		}
-		if err != nil {
-			return fmt.Errorf("get shard %d failed: %s", subShardID, err)
-		}
-		// skip if shard is not active
-		if shard.State != shardstates.SHARD_STATE_ACTIVE {
-			continue
-		}
-		if _, err := self.initShardInfo(subShardID, shard); err != nil {
-			return fmt.Errorf("init shard %d failed: %s", subShardID, err)
-		}
-		if shardInfo := self.shards[subShardID]; shardInfo != nil {
-			cfg, err := self.buildShardConfig(subShardID, shard)
-			if err != nil {
-				return fmt.Errorf("init shard %d, failed to build config: %s", subShardID, err)
-			}
-			shardInfo.Config = cfg
-		}
-	}
-	return nil
-}
-
-func (self *ChainManager) StartShardServer() error {
-	for shardID, _ := range self.shards {
-		err := self.restartChildShardProcess(shardID)
-		if err != nil {
-			return fmt.Errorf("StartShardServer shardId:%d,err:%s", shardID, err)
-		}
-		log.Infof("StartShardServer shardId succ:%d", shardID)
-	}
-	return nil
-}
-
-func (self *ChainManager) startRemoteEventbus() {
-	localRemote := fmt.Sprintf("%s:%d", config.DEFAULT_PARENTSHARD_IPADDR, self.shardPort)
-	remote.Start(localRemote)
+	return self.startConsensus()
 }
 
 func (self *ChainManager) Receive(context actor.Context) {
@@ -296,42 +364,11 @@ func (self *ChainManager) Receive(context actor.Context) {
 		log.Info("chain mgr actor started")
 	case *actor.Restart:
 		log.Info("chain mgr actor restart")
-	case *shardmsg.CrossShardMsg:
-		if msg == nil {
-			return
-		}
-		log.Tracef("chain mgr received shard msg: %v", msg)
-		smsg, err := shardmsg.DecodeShardMsg(msg.Type, msg.Data)
-		if err != nil {
-			log.Errorf("decode shard msg: %s", err)
-			return
-		}
-		self.remoteShardMsgC <- &RemoteMsg{
-			Sender: msg.Sender,
-			Msg:    smsg,
-		}
-
 	case *message.SaveBlockCompleteMsg:
 		self.localBlockMsgC <- msg
 
 	default:
 		log.Info("chain mgr actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
-	}
-}
-
-//
-// only process 'Disconnect' event from event stream
-//
-func (self *ChainManager) processEventBusEvent(evt interface{}) {
-	switch evt := evt.(type) {
-	case *remote.EndpointTerminatedEvent:
-		self.remoteShardMsgC <- &RemoteMsg{
-			Msg: &shardmsg.ShardDisconnectedMsg{
-				Address: evt.Address,
-			},
-		}
-	default:
-		return
 	}
 }
 
@@ -428,234 +465,13 @@ func (self *ChainManager) localEventLoop() {
 	}
 }
 
-//
-// broadcastMsgLoop: help broadcasting message to remote shards
-//  TODO: send msg to sibling-shards
-//
-func (self *ChainManager) broadcastMsgLoop() {
-	self.quitWg.Add(1)
-	defer self.quitWg.Done()
-
-	for {
-		select {
-		case msg := <-self.broadcastMsgC:
-			if msg.targetShardID.ToUint64() == math.MaxUint64 {
-				// broadcast
-				for _, s := range self.shards {
-					if s.Connected && s.Sender != nil {
-						s.Sender.Tell(msg.msg)
-					}
-				}
-			} else {
-				// send to shard
-				if s, present := self.shards[msg.targetShardID]; present {
-					if s.Connected && s.Sender != nil {
-						s.Sender.Tell(msg.msg)
-					}
-				} else {
-					// other shards
-					// TODO: send msg to sib shards
-				}
-			}
-		case <-self.quitC:
-			return
-		}
-	}
-}
-
-func (self *ChainManager) remoteShardMsgLoop() {
-	self.quitWg.Add(1)
-	defer self.quitWg.Done()
-
-	for {
-		if err := self.processRemoteShardMsg(); err != nil {
-			log.Errorf("chain mgr process remote shard msg failed: %s", err)
-		}
-		select {
-		case <-self.quitC:
-			return
-		default:
-		}
-	}
-}
-
-//
-// processRemoteShardMsg: process messages from all remote shards
-//
-func (self *ChainManager) processRemoteShardMsg() error {
-	select {
-	case remoteMsg := <-self.remoteShardMsgC:
-		msg := remoteMsg.Msg
-		log.Debugf("shard %d received remote shard msg type %d", self.shardID, msg.Type())
-		switch msg.Type() {
-		case shardmsg.HELLO_MSG:
-			helloMsg, ok := msg.(*shardmsg.ShardHelloMsg)
-			if !ok {
-				return fmt.Errorf("invalid hello msg")
-			}
-			if helloMsg.TargetShardID != self.shardID {
-				return fmt.Errorf("hello msg with invalid target %d, from %d", helloMsg.TargetShardID, helloMsg.SourceShardID)
-			}
-			log.Infof("received hello msg from %d", helloMsg.SourceShardID)
-			// response ack
-			return self.onNewShardConnected(remoteMsg.Sender, helloMsg)
-		case shardmsg.CONFIG_MSG:
-			shardCfgMsg, ok := msg.(*shardmsg.ShardConfigMsg)
-			if !ok {
-				return fmt.Errorf("invalid config msg")
-			}
-			log.Infof("shard %d received config msg", self.shardID)
-			return self.onShardConfig(remoteMsg.Sender, shardCfgMsg)
-		case shardmsg.BLOCK_REQ_MSG:
-			var header *types.Header
-			var shardTx *shardmsg.ShardBlockTx
-			var err error
-
-			req := msg.(*shardmsg.ShardBlockReqMsg)
-			info := self.getShardBlockInfo(self.shardID, req.BlockHeight)
-			if info != nil {
-				header = info.Header.Header
-				shardTx = info.ShardTxs[req.ShardID]
-			} else {
-				header, err = self.ledger.GetHeaderByHeight(req.BlockHeight)
-				if err != nil {
-					return err
-				}
-				evts, err := self.ledger.GetBlockShardEvents(req.BlockHeight)
-				if err != nil {
-					return err
-				}
-
-				shardEvts := make([]*message.ShardEventState, 0)
-				for _, evt := range evts {
-					shardEvt := evt.Event
-					if isShardGasEvent(shardEvt) && shardEvt.ToShard == req.ShardID {
-						shardEvts = append(shardEvts, shardEvt)
-					}
-				}
-				shardTx, err = newShardBlockTx(shardEvts)
-				if err != nil {
-					return err
-				}
-			}
-			msg, err := shardmsg.NewShardBlockRspMsg(self.shardID, header, shardTx, self.localPid)
-			if err != nil {
-				return fmt.Errorf("build shard block msg: %s", err)
-			}
-
-			// send msg to shard
-			self.sendShardMsg(req.ShardID, msg)
-		case shardmsg.BLOCK_RSP_MSG:
-			blkMsg, ok := msg.(*shardmsg.ShardBlockRspMsg)
-			if !ok {
-				return fmt.Errorf("invalid block rsp msg")
-			}
-			return self.onShardBlockReceived(remoteMsg.Sender, blkMsg)
-		case shardmsg.PEERINFO_REQ_MSG:
-		case shardmsg.PEERINFO_RSP_MSG:
-			return nil
-		case shardmsg.DISCONNECTED_MSG:
-			disconnMsg, ok := msg.(*shardmsg.ShardDisconnectedMsg)
-			if !ok {
-				return fmt.Errorf("invalid disconnect message")
-			}
-			return self.onShardDisconnected(disconnMsg)
-		default:
-			return nil
-		}
-	case <-self.quitC:
-		return nil
-	}
-	return nil
-}
-
-//
-// Connect to parent shard, send Hello message.
-// (root shard does not have parent shard)
-//
-func (self *ChainManager) connectParent() error {
-	// connect to parent
-	if self.parentShardID.ToUint64() == math.MaxUint64 {
-		return nil
-	}
-	if self.localPid == nil {
-		return fmt.Errorf("shard %d connect parent with nil localPid", self.shardID)
-	}
-
-	parentAddr := fmt.Sprintf("%s:%d", self.parentShardIPAddress, self.parentShardPort)
-	parentPid := actor.NewPID(parentAddr, GetShardName(self.parentShardID))
-	hellomsg, err := shardmsg.NewShardHelloMsg(self.shardID, self.parentShardID, self.localPid)
-	if err != nil {
-		return fmt.Errorf("build hello msg: %s", err)
-	}
-	parentPid.Request(hellomsg, self.localPid)
-	if err := self.waitConnectParent(CONNECT_PARENT_TIMEOUT); err != nil {
-		return fmt.Errorf("wait connection with parent err: %s", err)
-	}
-
-	self.parentPid = parentPid
-	log.Infof("shard %d connected with parent shard %d", self.shardID, self.parentShardID)
-	return nil
-}
-
-func (self *ChainManager) waitConnectParent(timeout time.Duration) error {
-	select {
-	case <-time.After(timeout):
-		return fmt.Errorf("wait parent connection timeout")
-	case connected := <-self.parentConnWait:
-		if connected {
-			return nil
-		}
-		return fmt.Errorf("connection failed")
-	}
-	return nil
-}
-
-func (self *ChainManager) notifyParentConnected() {
-	select {
-	case self.parentConnWait <- true:
-	default:
-		return
-	}
-}
-
-//
-// start listening on remote event bus
-//
-func (self *ChainManager) startListener() error {
-
-	// start local
-	props := actor.FromProducer(func() actor.Actor {
-		return self
-	})
-	pid, err := actor.SpawnNamed(props, GetShardName(self.shardID))
-	if err != nil {
-		return fmt.Errorf("init chain manager actor: %s", err)
-	}
-	self.localPid = pid
-
-	log.Infof("chain %d started listen on port %d", self.shardID, self.shardPort)
-	return nil
-}
-
-func (self *ChainManager) Stop() {
+func (self *ChainManager) Close() {
 	close(self.quitC)
 	self.quitWg.Wait()
 }
 
-func (self *ChainManager) broadcastShardMsg(msg *shardmsg.CrossShardMsg) {
-	self.broadcastMsgC <- &MsgSendReq{
-		targetShardID: types.NewShardIDUnchecked(math.MaxUint64),
-		msg:           msg,
-	}
-}
-
-func (self *ChainManager) sendShardMsg(shardId types.ShardID, msg *shardmsg.CrossShardMsg) {
-	log.Infof("send shard msg type %d from %d to %d", msg.GetType(), self.shardID, shardId)
-	self.broadcastMsgC <- &MsgSendReq{
-		targetShardID: shardId,
-		msg:           msg,
-	}
+func (self *ChainManager) Stop() {
+	// TODO
 }
 
 //
@@ -687,4 +503,9 @@ func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPLis
 	}
 
 	return nil
+}
+
+func (self *ChainManager) getShardRPCPort(shardID types.ShardID) uint {
+	// TODO: get from shardinfo
+	return 0
 }

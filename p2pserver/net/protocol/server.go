@@ -35,7 +35,7 @@ type P2P interface {
 	GetPort() uint16
 	GetHttpInfoPort() uint16
 	GetRelay() bool
-	GetHeight() uint64
+	GetHeight() map[uint64]uint32
 	GetTime() int64
 	GetServices() uint64
 	GetNeighbors() []*peer.Peer
@@ -43,7 +43,7 @@ type P2P interface {
 	GetConnectionCnt() uint32
 	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer
-	SetHeight(uint64)
+	SetHeight(map[uint64]uint32) // FIXME: UPDATE by P2P-Server
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, msg types.Message) error
 	GetMsgChan() chan *types.MsgPayload

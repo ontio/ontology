@@ -29,7 +29,8 @@ func initTestPeer() *Peer {
 	p.base.services = 1
 	p.base.port = 10338
 	p.base.relay = true
-	p.base.height = 123355
+	p.base.height = make(map[uint64]uint32)
+	p.base.height[0] = 123355
 	p.base.id = 29357734007
 
 	return p
@@ -74,11 +75,14 @@ func TestGetPeerComInfo(t *testing.T) {
 		}
 	}
 
-	if p.base.GetHeight() != 123355 {
+	h := p.base.GetHeight()
+	if h[0] != 123355 {
 		t.Errorf("PeerCom GetHeight error")
 	} else {
-		p.base.SetHeight(234343497)
-		if p.base.GetHeight() != 234343497 {
+		h[0] = uint32(234343497)
+		p.base.SetHeight(h)
+		h2 := p.base.GetHeight()
+		if h2[0] != 234343497 {
 			t.Errorf("PeerCom SetHeight error")
 		}
 	}
@@ -95,9 +99,10 @@ func TestGetPeerComInfo(t *testing.T) {
 
 func TestUpdatePeer(t *testing.T) {
 	p := initTestPeer()
-	p.UpdateInfo(time.Now(), 3, 3, 30334, 0x7533345, 0, 7322222, "1.5.2")
-	p.SetState(3)
-	p.SetHttpInfoState(true)
+	height := make(map[uint64]uint32)
+	height[0] = 123355
+	p.UpdateInfo(time.Now(), 3, 3, 30334, 0x7533345, 0, height, "1.5.2")
+	p.SetState(3)	p.SetHttpInfoState(true)
 	p.Link.SetAddr("127.0.0.1:20338")
 	p.DumpInfo()
 

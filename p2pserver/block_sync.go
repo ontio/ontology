@@ -222,6 +222,7 @@ type BlockInfo struct {
 
 //BlockSyncMgr is the manager class to deal with block sync
 type BlockSyncMgr struct {
+	shardID        types.ShardID
 	flightBlocks   map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
 	flightHeaders  map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
 	blocksCache    map[uint32]*BlockInfo                //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
@@ -236,13 +237,17 @@ type BlockSyncMgr struct {
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
-func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
+func NewBlockSyncMgr(shardID types.ShardID, server *P2PServer, lgr *ledger.Ledger) *BlockSyncMgr {
+	if lgr == nil {
+		return nil
+	}
 	return &BlockSyncMgr{
+		shardID:       shardID,
 		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo, 0),
 		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
 		blocksCache:   make(map[uint32]*BlockInfo, 0),
 		server:        server,
-		ledger:        server.ledger,
+		ledger:        lgr,
 		exitCh:        make(chan interface{}, 1),
 		nodeWeights:   make(map[uint64]*NodeWeight, 0),
 	}
@@ -803,7 +808,7 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 			continue
 		}
 		nodeBlockHeight := n.GetHeight()
-		if nextBlockHeight <= uint32(nodeBlockHeight) {
+		if nextBlockHeight <= nodeBlockHeight[this.shardID.ToUint64()] {
 			return n
 		}
 	}
@@ -899,7 +904,8 @@ func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 		if peer == nil {
 			continue
 		}
-		peerHeight := uint32(peer.GetHeight())
+		heights := peer.GetHeight()
+		peerHeight := heights[this.shardID.ToUint64()]
 		if peerHeight >= maxHeight {
 			maxHeight = peerHeight
 		}

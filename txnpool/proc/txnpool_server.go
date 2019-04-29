@@ -72,6 +72,8 @@ type registerValidators struct {
 
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
+	shardID               tx.ShardID
+	ledger                *ledger.Ledger
 	mu                    sync.RWMutex                        // Sync mutex
 	wg                    sync.WaitGroup                      // Worker sync
 	workers               []txPoolWorker                      // Worker pool
@@ -90,14 +92,17 @@ type TXPoolServer struct {
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
 // handle and filter inbound transactions from the network, http, and consensus.
-func NewTxPoolServer(num uint8, disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
-	s := &TXPoolServer{}
+func NewTxPoolServer(shardID tx.ShardID, lgr *ledger.Ledger, num uint8, disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
+	s := &TXPoolServer{
+		shardID: shardID,
+		ledger:  lgr,
+	}
 	s.init(num, disablePreExec, disableBroadcastNetTx)
 	return s
 }
 
 // getGlobalGasPrice returns a global gas price
-func getGlobalGasPrice() (uint64, error) {
+func getGlobalGasPrice(lgr *ledger.Ledger) (uint64, error) {
 	mutable, err := httpcom.NewNativeInvokeTransaction(0, 0, nutils.ParamContractAddress, 0, "getGlobalParam", []interface{}{[]interface{}{"gasPrice"}})
 	if err != nil {
 		return 0, fmt.Errorf("NewNativeInvokeTransaction error:%s", err)
@@ -106,7 +111,7 @@ func getGlobalGasPrice() (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	result, err := ledger.DefLedger.PreExecuteContract(tx)
+	result, err := lgr.PreExecuteContract(tx)
 	if err != nil {
 		return 0, fmt.Errorf("PreExecuteContract failed %v", err)
 	}
@@ -135,8 +140,8 @@ func getGlobalGasPrice() (uint64, error) {
 }
 
 // getGasPriceConfig returns the bigger one between global and cmd configured
-func getGasPriceConfig() uint64 {
-	globalGasPrice, err := getGlobalGasPrice()
+func getGasPriceConfig(lgr *ledger.Ledger) uint64 {
+	globalGasPrice, err := getGlobalGasPrice(lgr)
 	if err != nil {
 		log.Info(err)
 		return 0
@@ -175,7 +180,7 @@ func (s *TXPoolServer) init(num uint8, disablePreExec, disableBroadcastNetTx boo
 		s.slots <- struct{}{}
 	}
 
-	s.gasPrice = getGasPriceConfig()
+	s.gasPrice = getGasPriceConfig(s.ledger)
 	log.Infof("tx pool: the current local gas price is %d", s.gasPrice)
 
 	s.disablePreExec = disablePreExec
@@ -532,7 +537,7 @@ func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32
 	// Check whether to update the gas price and remove txs below the
 	// threshold
 	if height%tc.UPDATE_FREQUENCY == 0 {
-		gasPrice := getGasPriceConfig()
+		gasPrice := getGasPriceConfig(s.ledger)
 		s.mu.Lock()
 		oldGasPrice := s.gasPrice
 		s.gasPrice = gasPrice
@@ -550,7 +555,7 @@ func (s *TXPoolServer) cleanTransactionList(txs []*tx.Transaction, height uint32
 	if !s.disablePreExec {
 		remain := s.txPool.Remain()
 		for _, t := range remain {
-			if ok, _ := preExecCheck(t); !ok {
+			if ok, _ := preExecCheck(s.ledger, t); !ok {
 				log.Debugf("cleanTransactionList: preExecCheck tx %x failed", t.Hash())
 				continue
 			}

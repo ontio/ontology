@@ -24,7 +24,8 @@ import (
 
 func TestPingSerializationDeserialization(t *testing.T) {
 	var msg Ping
-	msg.Height = 1
+	msg.Height = make(map[uint64]uint32)
+	msg.Height[0] = uint32(1)
 
 	MessageTest(t, &msg)
 }

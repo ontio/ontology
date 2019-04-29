@@ -36,22 +36,6 @@ const (
 )
 
 //
-// Marshal-Helper for Block
-//
-type ShardBlockHeader struct {
-	Header *types.Header
-}
-
-func (this *ShardBlockHeader) Serialization(sink *common.ZeroCopySink) {
-	this.Header.Serialization(sink)
-}
-
-func (this *ShardBlockHeader) Deserialization(source *common.ZeroCopySource) error {
-	this.Header = &types.Header{}
-	return this.Header.Deserialization(source)
-}
-
-//
 // Marshal-Helper for transaction
 //
 type ShardBlockTx struct {
@@ -69,7 +53,7 @@ func (this *ShardBlockTx) Deserialization(source *common.ZeroCopySource) error {
 
 //
 // ShardBlockInfo contains:
-//  .Header: block header
+//  .Block: block
 //  .ShardTxs: Cross-Shard Tx from the block
 //  .Events: shard events generated from the block (only for local block)
 //
@@ -77,7 +61,7 @@ type ShardBlockInfo struct {
 	FromShardID types.ShardID                   `json:"from_shard_id"`
 	Height      uint32                          `json:"height"`
 	State       uint                            `json:"state"`
-	Header      *ShardBlockHeader               `json:"header"`
+	Block       *types.Block                    `json:"block"`
 	ShardTxs    map[types.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
 	Events      []*message.ShardEventState
 }
@@ -86,7 +70,7 @@ func (this *ShardBlockInfo) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteUint64(this.FromShardID.ToUint64())
 	sink.WriteUint32(this.Height)
 	sink.WriteUint64(uint64(this.State))
-	this.Header.Serialization(sink)
+	this.Block.Serialization(sink)
 	sink.WriteUint64(uint64(len(this.ShardTxs)))
 	for id, tx := range this.ShardTxs {
 		sink.WriteUint64(id.ToUint64())
@@ -115,8 +99,8 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 		return io.ErrUnexpectedEOF
 	}
 	this.State = uint(state)
-	this.Header = &ShardBlockHeader{}
-	if err := this.Header.Deserialization(source); err != nil {
+	this.Block = &types.Block{}
+	if err := this.Block.Deserialization(source); err != nil {
 		return fmt.Errorf("deserialization: read header failed, err: %s", err)
 	}
 	txNum, eof := source.NextUint64()
@@ -192,8 +176,8 @@ func (pool *ShardBlockPool) AddBlockInfo(blkInfo *ShardBlockInfo) error {
 		if blk.State != ShardBlockNew {
 			return fmt.Errorf("add shard block, new block on block state %d", blk.State)
 		}
-		if blk.Header != nil &&
-			bytes.Compare(blk.Header.Header.BlockRoot[:], blkInfo.Header.Header.BlockRoot[:]) == 0 {
+		hdr := blk.Block.Header
+		if hdr != nil && bytes.Compare(hdr.BlockRoot[:], blkInfo.Block.Header.BlockRoot[:]) == 0 {
 			return fmt.Errorf("add shard block, dup blk")
 		}
 

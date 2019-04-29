@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
+	types2 "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -50,7 +51,7 @@ func NewNetServer() p2p.P2P {
 
 //NetServer represent all the actions in net layer
 type NetServer struct {
-	base     peer.PeerCom
+	base         peer.PeerCom
 	listener net.Listener
 	NetChan  chan *types.MsgPayload
 	ConnectingNodes
@@ -133,12 +134,12 @@ func (this *NetServer) GetID() uint64 {
 }
 
 // SetHeight sets the local's height
-func (this *NetServer) SetHeight(height uint64) {
+func (this *NetServer) SetHeight(height map[uint64]uint32) {
 	this.base.SetHeight(height)
 }
 
 // GetHeight return peer's heigh
-func (this *NetServer) GetHeight() uint64 {
+func (this *NetServer) GetHeight() map[uint64]uint32 {
 	return this.base.GetHeight()
 }
 
@@ -216,13 +217,13 @@ func (this *NetServer) Xmit(msg types.Message) {
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
 func (this *NetServer) GetMsgChan() chan *types.MsgPayload {
 	return this.NetChan
-}
+	}
 
 //Tx send data buf to peer
 func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 	if p != nil {
 		return p.Send(msg)
-	}
+		}
 	log.Warn("[p2p]send to a invalid peer")
 	return errors.New("[p2p]send to a invalid peer")
 }
@@ -292,8 +293,8 @@ func (this *NetServer) Connect(addr string) error {
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
 		conn.RemoteAddr().Network())
 
-	this.AddOutConnRecord(addr)
-	remotePeer = peer.NewPeer()
+		this.AddOutConnRecord(addr)
+		remotePeer = peer.NewPeer()
 	this.AddPeerAddress(addr, remotePeer)
 	remotePeer.Link.SetAddr(addr)
 	remotePeer.Link.SetConn(conn)
@@ -301,10 +302,16 @@ func (this *NetServer) Connect(addr string) error {
 	go remotePeer.Link.Rx()
 	remotePeer.SetState(common.HAND)
 
-	version := msgpack.NewVersion(this, ledger.DefLedger.GetCurrentBlockHeight())
+
+	heights := make(map[uint64]uint32)
+	lgr := ledger.GetShardLedger(types2.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+	if lgr != nil {
+		heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+	}
+	version := msgpack.NewVersion(this, heights)
 	err = remotePeer.Send(version)
 	if err != nil {
-		this.RemoveFromOutConnRecord(addr)
+			this.RemoveFromOutConnRecord(addr)
 		log.Warn(err)
 		return err
 	}
@@ -320,7 +327,7 @@ func (this *NetServer) Halt() {
 	if this.listener != nil {
 		this.listener.Close()
 	}
-}
+	}
 
 //establishing the connection to remote peers and listening for inbound peers
 func (this *NetServer) startListening() error {
@@ -338,8 +345,8 @@ func (this *NetServer) startListening() error {
 		log.Error("[p2p]start sync listening fail")
 		return err
 	}
-	return nil
-}
+		return nil
+	}
 
 // startNetListening starts a sync listener on the port for the inbound peer
 func (this *NetServer) startNetListening(port uint16) error {

@@ -213,7 +213,7 @@ func SetTxPrepared(tx common.Uint256) error {
 	}
 
 	if txState.State != TxExec {
-		return fmt.Errorf("invalid state to prepared: %s", txState.State)
+		return fmt.Errorf("invalid state to prepared: %d", txState.State)
 	}
 
 	txState.State = TxPrepared
