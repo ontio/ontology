@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -34,7 +36,8 @@ import (
 
 func TestWorker(t *testing.T) {
 	t.Log("Starting worker test")
-	s := NewTxPoolServer(tc.MAX_WORKER_NUM, true, false)
+	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
 		return
