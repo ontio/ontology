@@ -1,6 +1,4 @@
-/*
- * Copyright (C) 2018 The ontology Authors
- * This file is part of The ontology library.
+/* This file is part of The ontology library.
  *
  * The ontology is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -126,18 +124,18 @@ func getPk(srvc *native.NativeService, encID []byte, index uint32) (*owner, erro
 	return owners[index-1], nil
 }
 
-func findPk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
+func findPk(srvc *native.NativeService, encID, pub []byte) (uint32, bool, error) {
 	key := append(encID, FIELD_PK)
 	owners, err := getAllPk(srvc, key)
 	if err != nil {
-		return 0, err
+		return 0, false, err
 	}
 	for i, v := range owners {
 		if bytes.Equal(pub, v.key) {
-			return uint32(i + 1), nil
+			return uint32(i + 1), v.revoked, nil
 		}
 	}
-	return 0, nil
+	return 0, false, nil
 }
 
 func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
@@ -167,13 +165,10 @@ func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
 }
 
 func isOwner(srvc *native.NativeService, encID, pub []byte) bool {
-	kID, err := findPk(srvc, encID, pub)
+	kID, revoked, err := findPk(srvc, encID, pub)
 	if err != nil {
 		log.Debug(err)
 		return false
 	}
-	if kID == 0 {
-		return false
-	}
-	return true
+	return kID != 0 && !revoked
 }
