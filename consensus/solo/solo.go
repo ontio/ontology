@@ -42,7 +42,7 @@ import (
 /*
 *Simple consensus for solo node in test environment.
  */
-const ContextVersion uint32 = types.CURR_HEADER_VERSION
+const ContextVersion uint32 = common.CURR_HEADER_VERSION
 
 type SoloService struct {
 	Account          *account.Account

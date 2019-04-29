@@ -19,7 +19,6 @@
 package payload
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -129,12 +128,12 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 }
 
 func (dc *DeployCode) ToArray() []byte {
-	b := new(bytes.Buffer)
-	dc.Serialize(b)
-	return b.Bytes()
+	sink := common.NewZeroCopySink(0)
+	dc.Serialization(sink)
+	return sink.Bytes()
 }
 
-func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
+func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(dc.Code)
 	sink.WriteBool(dc.NeedStorage)
 	sink.WriteString(dc.Name)
@@ -142,8 +141,6 @@ func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteString(dc.Author)
 	sink.WriteString(dc.Email)
 	sink.WriteString(dc.Description)
-
-	return nil
 }
 
 //note: DeployCode.Code has data reference of param source

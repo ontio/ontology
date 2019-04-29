@@ -51,4 +51,6 @@ const (
 	SHARD_EVENTS                 DataEntryPrefix = 0x32 // block height -> shard events
 	// block height where cross shard request txes have been send out updated by chain manager
 	SHARD_PROCESSED_BLOCK_HEIGHT DataEntryPrefix = 0x33
+	// contract meta data
+	ST_CONTRACT_META_DATA DataEntryPrefix = 0x34 // contract meta data
 )

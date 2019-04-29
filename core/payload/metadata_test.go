@@ -16,9 +16,26 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package types
+package payload
 
-const VERSION_SUPPORT_SHARD = 1 // add shard id in tx, add shard id and parent height in header
+import (
+	"bytes"
+	"testing"
 
-const CURR_TX_VERSION = 1
-const CURR_HEADER_VERSION = 1
+	"github.com/magiconair/properties/assert"
+)
+
+func TestMetaDataCode(t *testing.T) {
+	meta := NewDefaultMetaData()
+	bf := new(bytes.Buffer)
+	err := meta.Serialize(bf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newMeta := &MetaDataCode{}
+	err = newMeta.Deserialize(bf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, meta, newMeta)
+}

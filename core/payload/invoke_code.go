@@ -61,7 +61,6 @@ func (self *InvokeCode) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func (self *InvokeCode) Serialization(sink *common.ZeroCopySink) error {
+func (self *InvokeCode) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(self.Code)
-	return nil
 }

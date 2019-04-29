@@ -15,42 +15,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package payload
 
-import (
-	"bytes"
-	"testing"
+package common
 
-	"github.com/stretchr/testify/assert"
-)
+const VERSION_SUPPORT_SHARD = 1 // add shard id in tx, add shard id and parent height in header
 
-func TestDeployCode(t *testing.T) {
-	deploy := DeployCode{
-		Code:        []byte{1, 2, 3},
-		NeedStorage: true,
-		Name:        "test",
-		Version:     "1.0.0",
-		Author:      "ontology",
-		Email:       "1@1.com",
-		Description: "test",
-	}
-
-	buf := bytes.NewBuffer(nil)
-	err := deploy.Serialize(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	bs := buf.Bytes()
-	var deploy2 DeployCode
-	err = deploy2.Deserialize(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, deploy2, deploy)
-
-	buf = bytes.NewBuffer(bs)
-	err = deploy2.Deserialize(buf)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+const CURR_TX_VERSION = 1
+const CURR_HEADER_VERSION = 1
