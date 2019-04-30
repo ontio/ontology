@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils_test
+package utils
 
 import (
 	"bytes"
@@ -38,7 +38,6 @@ import (
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/message/utils"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
@@ -111,7 +110,7 @@ func TestVersionHandle(t *testing.T) {
 	}
 
 	// Invoke VersionHandle to handle the msg
-	utils.VersionHandle(msg, network, nil)
+	VersionHandle(msg, network, nil)
 
 	// Get the remote peer from the neighbor peers by peer id
 	tempPeer := network.GetPeer(testID)
@@ -157,7 +156,7 @@ func TestVerAckHandle(t *testing.T) {
 	}
 
 	// Invoke VerAckHandle to handle the msg
-	utils.VerAckHandle(msg, network, nil)
+	VerAckHandle(msg, network, nil)
 
 	// Get the remote peer from the neighbor peers by peer id
 	tempPeer := network.GetPeer(testID)
@@ -195,7 +194,7 @@ func TestAddrReqHandle(t *testing.T) {
 	}
 
 	// Invoke AddrReqHandle to handle the msg
-	utils.AddrReqHandle(msg, network, nil)
+	AddrReqHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -229,7 +228,7 @@ func TestHeadersReqHandle(t *testing.T) {
 	}
 
 	// Invoke HeadersReqhandle to handle the msg
-	utils.HeadersReqHandle(msg, network, nil)
+	HeadersReqHandle(msg, network, nil)
 	network.DelNbrNode(testID)
 }
 
@@ -263,7 +262,7 @@ func TestPingHandle(t *testing.T) {
 	}
 
 	// Invoke PingHandle to handle the msg
-	utils.PingHandle(msg, network, nil)
+	PingHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -298,7 +297,7 @@ func TestPongHandle(t *testing.T) {
 	}
 
 	// Invoke PingHandle to handle the msg
-	utils.PongHandle(msg, network, nil)
+	PongHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -324,7 +323,7 @@ func TestBlkHeaderHandle(t *testing.T) {
 	hash := ledger.DefLedger.GetBlockHash(0)
 	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 
-	headers, err := utils.GetHeadersFromHash(hash, hash)
+	headers, err := GetHeadersFromHash(hash, hash)
 	assert.Nil(t, err)
 
 	buf := msgpack.NewHeaders(headers)
@@ -336,7 +335,7 @@ func TestBlkHeaderHandle(t *testing.T) {
 	}
 
 	// Invoke BlkHeaderHandle to handle the msg
-	utils.BlkHeaderHandle(msg, network, nil)
+	BlkHeaderHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -376,7 +375,7 @@ func TestBlockHandle(t *testing.T) {
 	}
 
 	// Invoke BlockHandle to handle the msg
-	utils.BlockHandle(msg, network, nil)
+	BlockHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -411,7 +410,7 @@ func TestConsensusHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	utils.ConsensusHandle(msg, network, nil)
+	ConsensusHandle(msg, network, nil)
 }
 
 // TestNotFoundHandle tests Function NotFoundHandle handling a not found message
@@ -429,7 +428,7 @@ func TestNotFoundHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	utils.NotFoundHandle(msg, network, nil)
+	NotFoundHandle(msg, network, nil)
 }
 
 // TestTransactionHandle tests Function TransactionHandle handling a transaction message
@@ -452,7 +451,7 @@ func TestTransactionHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	utils.TransactionHandle(msg, network, nil)
+	TransactionHandle(msg, network, nil)
 }
 
 // TestAddrHandle tests Function AddrHandle handling a neighbor address response message
@@ -465,7 +464,7 @@ func TestAddrHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	utils.AddrHandle(msg, network, nil)
+	AddrHandle(msg, network, nil)
 }
 
 // TestDataReqHandle tests Function DataReqHandle handling a data req(block/Transaction)
@@ -494,7 +493,7 @@ func TestDataReqHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	utils.DataReqHandle(msg, network, nil)
+	DataReqHandle(msg, network, nil)
 
 	tempStr := "3369930accc1ddd067245e8edadcd9bea207ba5e1753ac18a51df77a343bfe92"
 	hex, _ := hex.DecodeString(tempStr)
@@ -507,7 +506,7 @@ func TestDataReqHandle(t *testing.T) {
 		Payload: buf,
 	}
 
-	utils.DataReqHandle(msg, network, nil)
+	DataReqHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -541,7 +540,7 @@ func TestInvHandle(t *testing.T) {
 		Payload: buffer,
 	}
 
-	utils.InvHandle(msg, network, nil)
+	InvHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }
@@ -569,7 +568,7 @@ func TestDisconnectHandle(t *testing.T) {
 		Payload: msgDisc,
 	}
 
-	utils.DisconnectHandle(msg, network, nil)
+	DisconnectHandle(msg, network, nil)
 
 	network.DelNbrNode(testID)
 }

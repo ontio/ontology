@@ -16,16 +16,16 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package common_test
+package common
 
 import (
+	"testing"
+	"time"
+
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
-	"github.com/ontio/ontology/txnpool/common"
 )
 
 var (
@@ -45,12 +45,12 @@ func init() {
 }
 
 func TestTxPool(t *testing.T) {
-	txPool := &common.TXPool{}
+	txPool := &TXPool{}
 	txPool.Init()
 
-	txEntry := &common.TXEntry{
+	txEntry := &TXEntry{
 		Tx:    txn,
-		Attrs: []*common.TXAttr{},
+		Attrs: []*TXAttr{},
 	}
 
 	ret := txPool.AddTxList(txEntry)

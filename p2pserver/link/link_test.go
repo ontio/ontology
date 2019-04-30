@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package link_test
+package link
 
 import (
 	"math/rand"
@@ -30,12 +30,11 @@ import (
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/link"
 )
 
 var (
-	cliLink    *link.Link
-	serverLink *link.Link
+	cliLink    *Link
+	serverLink *Link
 	cliChan    chan *mt.MsgPayload
 	serverChan chan *mt.MsgPayload
 	cliAddr    string
@@ -45,8 +44,8 @@ var (
 func init() {
 	log.InitLog(log.InfoLog, log.Stdout)
 
-	cliLink = link.NewLink()
-	serverLink = link.NewLink()
+	cliLink = NewLink()
+	serverLink = NewLink()
 
 	cliLink.SetID(0x733936)
 	serverLink.SetID(0x8274950)

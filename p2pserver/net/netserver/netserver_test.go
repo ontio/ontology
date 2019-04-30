@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package netserver_test
+package netserver
 
 import (
 	"fmt"
@@ -25,7 +25,6 @@ import (
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/net/netserver"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
@@ -57,7 +56,7 @@ func creatPeers(cnt uint16) []*peer.Peer {
 
 }
 func TestNewNetServer(t *testing.T) {
-	server := netserver.NewNetServer()
+	server := NewNetServer()
 	server.Start()
 	defer server.Halt()
 
@@ -86,7 +85,7 @@ func TestNewNetServer(t *testing.T) {
 }
 
 func TestNetServerNbrPeer(t *testing.T) {
-	server := netserver.NewNetServer()
+	server := NewNetServer()
 	server.Start()
 	defer server.Halt()
 

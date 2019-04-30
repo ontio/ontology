@@ -16,14 +16,13 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package p2pserver_test
+package p2pserver
 
 import (
 	"fmt"
 	"testing"
 
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -35,7 +34,7 @@ func init() {
 func TestNewP2PServer(t *testing.T) {
 	fmt.Println("Start test new p2pserver...")
 
-	p2p := p2pserver.NewServer()
+	p2p := NewServer()
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
 		t.Error("TestNewP2PServer p2p version error", p2p.GetVersion())

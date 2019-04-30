@@ -16,9 +16,10 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package txnpool_test
+package txnpool
 
 import (
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -34,18 +35,21 @@ import (
 	tp "github.com/ontio/ontology/txnpool/proc"
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
-	"os"
 )
 
-func testInit(t *testing.T) {
+func TestMain(m *testing.M) {
+	log.InitLog(log.InfoLog, log.Stdout)
+
 	var err error
 	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
-		t.Fatalf("failed  to new ledger")
+		log.Errorf("failed  to new ledger")
+		return
 	}
-}
 
-func testCleanup() {
+	m.Run()
+
+	// tear down
 	ledger.DefLedger.Close()
 	os.RemoveAll(config.DEFAULT_DATA_DIR)
 }
@@ -76,9 +80,6 @@ func startActor(obj interface{}) *actor.PID {
 func Test_RCV(t *testing.T) {
 	var s *tp.TXPoolServer
 	var wg sync.WaitGroup
-
-	testInit(t)
-	defer testCleanup()
 
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
