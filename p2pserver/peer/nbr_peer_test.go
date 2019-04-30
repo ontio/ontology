@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/ontio/ontology/common/log"
 )
 
 func createPeers(cnt uint16) []*Peer {
@@ -37,7 +35,7 @@ func createPeers(cnt uint16) []*Peer {
 		consport = 20335 + i
 		id = 0x7533345 + uint64(i)
 		height = 434923 + uint64(i)
-		p = NewPeer()
+		p := NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, "1.5.2")
 		p.SetConsState(2)
 		p.SetSyncState(3)
@@ -50,7 +48,6 @@ func createPeers(cnt uint16) []*Peer {
 }
 
 func initTestNbrPeers() *NbrPeers {
-	log.InitLog(log.InfoLog, log.Stdout)
 	nm := &NbrPeers{}
 	nm.Init()
 	np := createPeers(5)
@@ -81,6 +78,8 @@ func TestGetPeer(t *testing.T) {
 }
 
 func TestAddNbrNode(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := NewPeer()
 	p.UpdateInfo(time.Now(), 2, 3, 10335, 10336, 0x7123456, 0, 100, "1.5.2")
 	p.SetConsState(2)
@@ -148,6 +147,7 @@ func TestGetNeighborAddrs(t *testing.T) {
 }
 
 func TestGetNeighborHeights(t *testing.T) {
+	nm := initTestNbrPeers()
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestGetNeighborHeights:get peer error")

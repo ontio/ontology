@@ -21,12 +21,9 @@ package peer
 import (
 	"testing"
 	"time"
-
-	"github.com/ontio/ontology/common/log"
 )
 
 func initTestPeer() *Peer {
-	log.InitLog(log.InfoLog, log.Stdout)
 	p := NewPeer()
 	p.base.version = 1
 	p.base.services = 1
@@ -35,8 +32,12 @@ func initTestPeer() *Peer {
 	p.base.relay = true
 	p.base.height = 123355
 	p.base.id = 29357734007
+
+	return p
 }
+
 func TestGetPeerComInfo(t *testing.T) {
+	p := initTestPeer()
 	p.DumpInfo()
 	if p.base.GetVersion() != 1 {
 		t.Errorf("PeerCom GetVersion error")
@@ -103,6 +104,7 @@ func TestGetPeerComInfo(t *testing.T) {
 }
 
 func TestUpdatePeer(t *testing.T) {
+	p := initTestPeer()
 	p.UpdateInfo(time.Now(), 3, 3, 30334, 30335, 0x7533345, 0, 7322222, "1.5.2")
 	p.SetConsState(2)
 	p.SetSyncState(3)

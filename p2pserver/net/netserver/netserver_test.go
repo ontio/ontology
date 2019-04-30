@@ -83,7 +83,6 @@ func TestNewNetServer(t *testing.T) {
 	}
 
 	fmt.Printf("lastest server time is %s\n", time.Unix(server.GetTime()/1e9, 0).String())
-
 }
 
 func TestNetServerNbrPeer(t *testing.T) {

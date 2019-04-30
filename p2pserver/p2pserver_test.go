@@ -23,19 +23,19 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
 func init() {
-	log.InitLog(log.InfoLog)
+	log.InitLog(log.InfoLog, log.Stdout)
 	fmt.Println("Start test the netserver...")
 
 }
 func TestNewP2PServer(t *testing.T) {
-	log.Init(log.Stdout)
 	fmt.Println("Start test new p2pserver...")
 
-	p2p := NewServer()
+	p2p := p2pserver.NewServer()
 
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
 		t.Error("TestNewP2PServer p2p version error", p2p.GetVersion())
