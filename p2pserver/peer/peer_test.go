@@ -25,11 +25,9 @@ import (
 	"github.com/ontio/ontology/common/log"
 )
 
-var p *Peer
-
-func init() {
-	log.Init(log.Stdout)
-	p = NewPeer()
+func initTestPeer() *Peer {
+	log.InitLog(log.InfoLog, log.Stdout)
+	p := NewPeer()
 	p.base.version = 1
 	p.base.services = 1
 	p.base.syncPort = 10338

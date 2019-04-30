@@ -16,16 +16,18 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils
+package utils_test
 
 import (
+	"testing"
+
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/message/types"
+	"github.com/ontio/ontology/p2pserver/message/utils"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) {
@@ -35,7 +37,7 @@ func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...in
 // TestMsgRouter tests a basic function of a message router
 func TestMsgRouter(t *testing.T) {
 	network := netserver.NewNetServer()
-	msgRouter := NewMsgRouter(network)
+	msgRouter := utils.NewMsgRouter(network)
 	assert.NotNil(t, msgRouter)
 
 	msgRouter.RegisterMsgHandler("test", testHandler)

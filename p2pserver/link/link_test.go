@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package link
+package link_test
 
 import (
 	"math/rand"
@@ -30,11 +30,12 @@ import (
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
+	"github.com/ontio/ontology/p2pserver/link"
 )
 
 var (
-	cliLink    *Link
-	serverLink *Link
+	cliLink    *link.Link
+	serverLink *link.Link
 	cliChan    chan *mt.MsgPayload
 	serverChan chan *mt.MsgPayload
 	cliAddr    string
@@ -42,16 +43,16 @@ var (
 )
 
 func init() {
-	log.Init(log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 
-	cliLink = NewLink()
-	serverLink = NewLink()
+	cliLink = link.NewLink()
+	serverLink = link.NewLink()
 
-	cliLink.id = 0x733936
-	serverLink.id = 0x8274950
+	cliLink.SetID(0x733936)
+	serverLink.SetID(0x8274950)
 
-	cliLink.port = 50338
-	serverLink.port = 50339
+	cliLink.SetPort(50338)
+	serverLink.SetPort(50339)
 
 	cliChan = make(chan *mt.MsgPayload, 100)
 	serverChan = make(chan *mt.MsgPayload, 100)
@@ -90,8 +91,8 @@ func TestNewLink(t *testing.T) {
 	cliLink.UpdateRXTime(time.Now())
 
 	msg := &mt.MsgPayload{
-		Id:      cliLink.id,
-		Addr:    cliLink.addr,
+		Id:      cliLink.GetID(),
+		Addr:    cliLink.GetAddr(),
 		Payload: &mt.NotFound{comm.UINT256_EMPTY},
 	}
 	go func() {
@@ -101,7 +102,7 @@ func TestNewLink(t *testing.T) {
 
 	timeout := time.NewTimer(time.Second)
 	select {
-	case <-cliLink.recvChan:
+	case <-cliChan:
 		t.Log("read data from channel")
 	case <-timeout.C:
 		timeout.Stop()

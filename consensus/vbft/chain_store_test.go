@@ -19,7 +19,6 @@
 package vbft
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -31,19 +30,17 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 )
 
-func newChainStore() *ChainStore {
-	log.Init(log.PATH, log.Stdout)
+func newTestChainStore(t *testing.T) *ChainStore {
+	log.InitLog(log.InfoLog, log.Stdout)
 	var err error
 	acct := account.NewAccount("SHA256withECDSA")
 	if acct == nil {
-		fmt.Println("GetDefaultAccount error: acc is nil")
-		os.Exit(1)
+		t.Fatalf("GetDefaultAccount error: acc is nil")
 	}
 
 	db, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
-		log.Fatalf("NewLedger error %s", err)
-		os.Exit(1)
+		t.Fatalf("NewLedger error %s", err)
 	}
 	acc1 := account.NewAccount("")
 	acc2 := account.NewAccount("")
@@ -57,28 +54,31 @@ func newChainStore() *ChainStore {
 	genesisConfig := config.DefConfig.Genesis
 	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig)
 	if err != nil {
-		log.Errorf("BuildGenesisBlock error %s", err)
-		os.Exit(1)
+		t.Fatalf("BuildGenesisBlock error %s", err)
 	}
 	err = db.Init(bookkeepers, block)
 	if err != nil {
-		log.Errorf("InitLedgerStoreWithGenesisBlock error %s", err)
-		os.Exit(1)
+		t.Fatalf("InitLedgerStoreWithGenesisBlock error %s", err)
 	}
 	chainstore, err := OpenBlockStore(db, nil)
 	if err != nil {
-		log.Errorf("openblockstore failed: %v\n", err)
-		return nil
+		t.Fatalf("openblockstore failed: %v\n", err)
 	}
 	return chainstore
 }
 
+func cleanTestChainStore() {
+	os.RemoveAll(config.DEFAULT_DATA_DIR)
+}
+
 func TestGetChainedBlockNum(t *testing.T) {
-	chainstore := newChainStore()
+	chainstore := newTestChainStore(t)
 	if chainstore == nil {
 		t.Error("newChainStrore error")
 		return
 	}
+	defer cleanTestChainStore()
+
 	blocknum := chainstore.GetChainedBlockNum()
 	t.Logf("TestGetChainedBlockNum :%d", blocknum)
 }

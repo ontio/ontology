@@ -26,9 +26,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 )
 
-var nm *NbrPeers
-
-func creatPeers(cnt uint16) []*Peer {
+func createPeers(cnt uint16) []*Peer {
 	np := []*Peer{}
 	var syncport uint16
 	var consport uint16
@@ -51,17 +49,20 @@ func creatPeers(cnt uint16) []*Peer {
 
 }
 
-func init() {
-	log.Init(log.Stdout)
-	nm = &NbrPeers{}
+func initTestNbrPeers() *NbrPeers {
+	log.InitLog(log.InfoLog, log.Stdout)
+	nm := &NbrPeers{}
 	nm.Init()
-	np := creatPeers(5)
+	np := createPeers(5)
 	for _, v := range np {
 		nm.List[v.GetID()] = v
 	}
+	return nm
 }
 
 func TestNodeExisted(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	if nm.NodeExisted(0x7533345) == false {
 		t.Fatal("0x7533345 should in nbr peers")
 	}
@@ -71,6 +72,8 @@ func TestNodeExisted(t *testing.T) {
 }
 
 func TestGetPeer(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533345)
 	if p == nil {
 		t.Fatal("TestGetPeer error")
@@ -94,6 +97,8 @@ func TestAddNbrNode(t *testing.T) {
 }
 
 func TestDelNbrNode(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	cnt := len(nm.List)
 	p, ret := nm.DelNbrNode(0x7533345)
 	if p == nil || ret != true {
@@ -106,6 +111,8 @@ func TestDelNbrNode(t *testing.T) {
 }
 
 func TestNodeEstablished(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestNodeEstablished:get peer error")
@@ -117,6 +124,8 @@ func TestNodeEstablished(t *testing.T) {
 }
 
 func TestGetNeighborAddrs(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestGetNeighborAddrs:get peer error")
@@ -158,6 +167,8 @@ func TestGetNeighborHeights(t *testing.T) {
 }
 
 func TestGetNeighbors(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestGetNeighbors:get peer error")
@@ -177,6 +188,8 @@ func TestGetNeighbors(t *testing.T) {
 }
 
 func TestGetNbrNodeCnt(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestGetNbrNodeCnt:get peer error")

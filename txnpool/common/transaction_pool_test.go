@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package common
+package common_test
 
 import (
 	"github.com/ontio/ontology/common/log"
@@ -25,6 +25,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+	"github.com/ontio/ontology/txnpool/common"
 )
 
 var (
@@ -32,7 +33,7 @@ var (
 )
 
 func init() {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 
 	mutable := &types.MutableTransaction{
 		TxType:  types.Invoke,
@@ -44,12 +45,12 @@ func init() {
 }
 
 func TestTxPool(t *testing.T) {
-	txPool := &TXPool{}
+	txPool := &common.TXPool{}
 	txPool.Init()
 
-	txEntry := &TXEntry{
+	txEntry := &common.TXEntry{
 		Tx:    txn,
-		Attrs: []*TXAttr{},
+		Attrs: []*common.TXAttr{},
 	}
 
 	ret := txPool.AddTxList(txEntry)

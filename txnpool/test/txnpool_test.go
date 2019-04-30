@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package txnpool
+package txnpool_test
 
 import (
 	"sync"
@@ -34,16 +34,25 @@ import (
 	tp "github.com/ontio/ontology/txnpool/proc"
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
+	"os"
 )
 
-var (
-	tx    *types.Transaction
-	topic string
-)
+func testInit(t *testing.T) {
+	var err error
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
+	if err != nil {
+		t.Fatalf("failed  to new ledger")
+	}
+}
 
-func init() {
-	log.Init(log.PATH, log.Stdout)
-	topic = "TXN"
+func testCleanup() {
+	ledger.DefLedger.Close()
+	os.RemoveAll(config.DEFAULT_DATA_DIR)
+}
+
+func initTestTx() *types.Transaction {
+	log.InitLog(log.InfoLog, log.Stdout)
+	//topic := "TXN"
 
 	mutable := &types.MutableTransaction{
 		TxType:  types.Invoke,
@@ -51,7 +60,8 @@ func init() {
 		Payload: &payload.InvokeCode{Code: []byte{}},
 	}
 
-	tx, _ = mutable.IntoImmutable()
+	tx, _ := mutable.IntoImmutable()
+	return tx
 }
 
 func startActor(obj interface{}) *actor.PID {
@@ -66,12 +76,9 @@ func startActor(obj interface{}) *actor.PID {
 func Test_RCV(t *testing.T) {
 	var s *tp.TXPoolServer
 	var wg sync.WaitGroup
-	var err error
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
-	if err != nil {
-		t.Error("failed  to new ledger")
-		return
-	}
+
+	testInit(t)
+	defer testCleanup()
 
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
@@ -154,6 +161,8 @@ func Test_RCV(t *testing.T) {
 		go func() {
 			var j int
 			defer wg.Done()
+
+			tx := initTestTx()
 			for {
 				j++
 				txReq := &tc.TxReq{
