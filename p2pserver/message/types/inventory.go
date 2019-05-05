@@ -30,6 +30,7 @@ var LastInvHash common.Uint256
 type InvPayload struct {
 	InvType common.InventoryType
 	Blk     []common.Uint256
+	ShardID uint64
 }
 
 type Inv struct {
@@ -53,6 +54,7 @@ func (this Inv) Serialization(sink *common.ZeroCopySink) {
 	for _, hash := range this.P.Blk {
 		sink.WriteHash(hash)
 	}
+	sink.WriteUint64(this.P.ShardID)
 }
 
 //Deserialize message payload
@@ -78,5 +80,6 @@ func (this *Inv) Deserialization(source *common.ZeroCopySource) error {
 		blkCnt = p2pCommon.MAX_INV_BLK_CNT
 	}
 	this.P.Blk = this.P.Blk[:blkCnt]
+	this.P.ShardID, eof = source.NextUint64()
 	return nil
 }

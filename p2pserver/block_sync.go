@@ -307,7 +307,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 		flightInfo.SetNodeId(reqNode.GetID())
 
 		headerHash := this.ledger.GetCurrentHeaderHash()
-		msg := msgpack.NewHeadersReq(headerHash)
+		msg := msgpack.NewHeadersReq(this.shardID.ToUint64(), headerHash)
 		err := this.server.Send(reqNode, msg, false)
 		if err != nil {
 			log.Warn("[p2p]checkTimeout failed to send a new headersReq:s", err)
@@ -375,7 +375,7 @@ func (this *BlockSyncMgr) syncHeader() {
 	this.addFlightHeader(reqNode.GetID(), NextHeaderId)
 
 	headerHash := this.ledger.GetCurrentHeaderHash()
-	msg := msgpack.NewHeadersReq(headerHash)
+	msg := msgpack.NewHeadersReq(this.shardID.ToUint64(), headerHash)
 	err := this.server.Send(reqNode, msg, false)
 	if err != nil {
 		log.Warn("[p2p]syncHeader failed to send a new headersReq")

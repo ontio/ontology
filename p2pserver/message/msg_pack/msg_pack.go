@@ -61,17 +61,16 @@ func NewHeaders(headers []*ct.RawHeader) mt.Message {
 	log.Trace()
 	var blkHdr mt.RawBlockHeader
 	blkHdr.BlkHdr = headers
-
 	return &blkHdr
 }
 
 //blk hdr req package
-func NewHeadersReq(curHdrHash common.Uint256) mt.Message {
+func NewHeadersReq(shardId uint64, curHdrHash common.Uint256) mt.Message {
 	log.Trace()
 	var h mt.HeadersReq
 	h.Len = 1
 	h.HashEnd = curHdrHash
-
+	h.ShardID = shardId
 	return &h
 }
 

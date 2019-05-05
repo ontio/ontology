@@ -406,8 +406,9 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
 	}
 	msg := &p2pmsg.ConsensusPayload{
-		Data:  data,
-		Owner: self.account.PublicKey,
+		Data:    data,
+		Owner:   self.account.PublicKey,
+		ShardID: self.ShardID.ToUint64(),
 	}
 
 	buf := new(bytes.Buffer)
@@ -435,8 +436,9 @@ func (self *Server) broadcast(msg ConsensusMsg) {
 
 func (self *Server) broadcastToAll(data []byte) error {
 	msg := &p2pmsg.ConsensusPayload{
-		Data:  data,
-		Owner: self.account.PublicKey,
+		Data:    data,
+		Owner:   self.account.PublicKey,
+		ShardID: self.ShardID.ToUint64(),
 	}
 
 	buf := new(bytes.Buffer)

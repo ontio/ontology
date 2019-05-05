@@ -27,6 +27,7 @@ import (
 
 type HeadersReq struct {
 	Len       uint8
+	ShardID   uint64
 	HashStart common.Uint256
 	HashEnd   common.Uint256
 }
@@ -34,6 +35,7 @@ type HeadersReq struct {
 //Serialize message payload
 func (this *HeadersReq) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint8(this.Len)
+	sink.WriteUint64(this.ShardID)
 	sink.WriteHash(this.HashStart)
 	sink.WriteHash(this.HashEnd)
 }
@@ -46,6 +48,7 @@ func (this *HeadersReq) CmdType() string {
 func (this *HeadersReq) Deserialization(source *common.ZeroCopySource) error {
 	var eof bool
 	this.Len, eof = source.NextUint8()
+	this.ShardID, eof = source.NextUint64()
 	this.HashStart, eof = source.NextHash()
 	this.HashEnd, eof = source.NextHash()
 	if eof {

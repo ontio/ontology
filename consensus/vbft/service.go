@@ -261,6 +261,9 @@ func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bo
 }
 
 func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
+	if payload.ShardID != self.ShardID.ToUint64() {
+		return
+	}
 	peerID := vconfig.PubkeyID(payload.Owner)
 	peerIdx, present := self.peerPool.GetPeerIndex(peerID)
 	if !present {
@@ -2222,7 +2225,7 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
 //checkUpdateChainConfig query leveldb check is force update
 func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
 	if self.ShardID.IsRootShard() {
-		force, err := isUpdate(self.chainStore.GetExecWriteSet(blkNum-1), self.config.View)
+		force, err := isUpdate(self.ledger, self.chainStore.GetExecWriteSet(blkNum-1), self.config.View)
 		if err != nil {
 			log.Errorf("checkUpdateChainConfig err:%s", err)
 			return false
@@ -2287,7 +2290,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		var chainconfig *vconfig.ChainConfig
 		var err error
 		if isRootShard {
-			chainconfig, err = getRootChainConfig(self.chainStore.GetExecWriteSet(blkNum-1), blkNum)
+			chainconfig, err = getRootChainConfig(self.ledger, self.chainStore.GetExecWriteSet(blkNum-1), blkNum)
 			if err != nil {
 				return fmt.Errorf("getRootChainConfig failed:%s", err)
 			}

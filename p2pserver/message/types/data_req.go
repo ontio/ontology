@@ -28,12 +28,14 @@ import (
 type DataReq struct {
 	DataType common.InventoryType
 	Hash     common.Uint256
+	ShardID  uint64
 }
 
 //Serialize message payload
 func (this DataReq) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteByte(byte(this.DataType))
 	sink.WriteHash(this.Hash)
+	sink.WriteUint64(this.ShardID)
 }
 
 func (this *DataReq) CmdType() string {
@@ -49,6 +51,6 @@ func (this *DataReq) Deserialization(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-
+	this.ShardID, eof = source.NextUint64()
 	return nil
 }

@@ -206,6 +206,7 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 	}
 	self.shards[mainShardID] = mainShardInfo
 	self.mainLedger = lgr
+	ledger.DefLedger = lgr
 	self.processedParentBlockHeight = lgr.GetCurrentBlockHeight()
 	log.Infof("main ledger init success")
 	return nil
