@@ -124,6 +124,13 @@ func (this *P2PServer) StartSyncShard(shardID types.ShardID) error {
 		return fmt.Errorf("failed to init syncer for shard %d", shardID)
 	}
 	this.blockSyncers[shardID.ToUint64()] = syncer
+	for _, peer := range this.network.GetNeighbors() {
+		for s, _ := range peer.GetHeight() {
+			if s == shardID.ToUint64() {
+				syncer.OnAddNode(peer.SyncLink.GetID())
+			}
+		}
+	}
 	go syncer.Start()
 	log.Infof("syncer for shard %d started", shardID.ToUint64())
 	return nil

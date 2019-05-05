@@ -132,9 +132,9 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 	}
 	return nil
 }
-func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
+func GetVbftConfigInfo(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 	//get governance view,change view
-	changeview, err := GetChangeView(memdb)
+	changeview, err := GetChangeView(ledger, memdb)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +144,7 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 	contractAddress := nutils.GovernanceContractAddress
 	key := gov.PRE_CONFIG
 	vbft_key := gov.VBFT_CONFIG
-	data, err := GetStorageValue(memdb, ledger.DefLedger, contractAddress, []byte(key))
+	data, err := GetStorageValue(memdb, ledger, contractAddress, []byte(key))
 	if err != nil && err != scommon.ErrNotFound {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 			MaxBlockChangeView:   uint32(preCfg.Configuration.MaxBlockChangeView),
 		}
 	} else {
-		data, err := GetStorageValue(memdb, ledger.DefLedger, contractAddress, []byte(vbft_key))
+		data, err := GetStorageValue(memdb, ledger, contractAddress, []byte(vbft_key))
 		if err != nil {
 			return nil, err
 		}
@@ -191,15 +191,15 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 	return chainconfig, nil
 }
 
-func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error) {
-	changeview, err := GetChangeView(memdb)
+func GetPeersConfig(ledger *ledger.Ledger, memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error) {
+	changeview, err := GetChangeView(ledger, memdb)
 	if err != nil {
 		return nil, err
 	}
 	viewBytes := nutils.GetUint32Bytes(changeview.View)
 	key := append([]byte(gov.PEER_POOL), viewBytes...)
 	contractAddress := nutils.GovernanceContractAddress
-	data, err := GetStorageValue(memdb, ledger.DefLedger, contractAddress, key)
+	data, err := GetStorageValue(memdb, ledger, contractAddress, key)
 	if err != nil {
 		return nil, err
 	}
@@ -224,8 +224,8 @@ func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error)
 	return peerstakes, nil
 }
 
-func isUpdate(memdb *overlaydb.MemDB, view uint32) (bool, error) {
-	changeview, err := GetChangeView(memdb)
+func isUpdate(ledger *ledger.Ledger, memdb *overlaydb.MemDB, view uint32) (bool, error) {
+	changeview, err := GetChangeView(ledger, memdb)
 	if err != nil {
 		return false, err
 	}
@@ -259,10 +259,10 @@ func GetStorageValue(memdb *overlaydb.MemDB, backend *ledger.Ledger, addr common
 	return
 }
 
-func GetChangeView(memdb *overlaydb.MemDB) (*nutils.ChangeView, error) {
+func GetChangeView(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (*nutils.ChangeView, error) {
 	contractAddress := nutils.GovernanceContractAddress
 	key := gov.GOVERNANCE_VIEW
-	value, err := GetStorageValue(memdb, ledger.DefLedger, contractAddress, []byte(key))
+	value, err := GetStorageValue(memdb, ledger, contractAddress, []byte(key))
 	if err != nil {
 		return nil, err
 	}
@@ -274,17 +274,17 @@ func GetChangeView(memdb *overlaydb.MemDB) (*nutils.ChangeView, error) {
 	return changeView, nil
 }
 
-func getRootChainConfig(memdb *overlaydb.MemDB, blkNum uint32) (*vconfig.ChainConfig, error) {
-	config, err := GetVbftConfigInfo(memdb)
+func getRootChainConfig(ledger *ledger.Ledger, memdb *overlaydb.MemDB, blkNum uint32) (*vconfig.ChainConfig, error) {
+	config, err := GetVbftConfigInfo(ledger, memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get chainconfig from leveldb: %s", err)
 	}
 
-	peersinfo, err := GetPeersConfig(memdb)
+	peersinfo, err := GetPeersConfig(ledger, memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get peersinfo from leveldb: %s", err)
 	}
-	changeview, err := GetChangeView(memdb)
+	changeview, err := GetChangeView(ledger, memdb)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get governanceview failed:%s", err)
 	}
@@ -297,8 +297,8 @@ func getRootChainConfig(memdb *overlaydb.MemDB, blkNum uint32) (*vconfig.ChainCo
 	return cfg, err
 }
 
-func getShardGasBalance(memdb *overlaydb.MemDB) (uint64, error) {
-	value, err := GetStorageValue(memdb, ledger.DefLedger, nutils.OngContractAddress, nutils.ShardGasMgmtContractAddress[:])
+func getShardGasBalance(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (uint64, error) {
+	value, err := GetStorageValue(memdb, ledger, nutils.OngContractAddress, nutils.ShardGasMgmtContractAddress[:])
 	if err != nil {
 		return 0, err
 	}

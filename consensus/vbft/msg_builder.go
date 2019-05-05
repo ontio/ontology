@@ -28,7 +28,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
-	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 )
@@ -197,7 +196,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		}
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
-	blockRoot := ledger.DefLedger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
+	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
 
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,

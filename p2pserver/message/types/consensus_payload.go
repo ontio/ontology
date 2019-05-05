@@ -33,6 +33,7 @@ import (
 
 type ConsensusPayload struct {
 	Version         uint32
+	ShardID         uint64
 	PrevHash        common.Uint256
 	Height          uint32
 	BookkeeperIndex uint16
@@ -176,6 +177,9 @@ func (this *ConsensusPayload) Deserialize(r io.Reader) error {
 
 func (this *ConsensusPayload) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.Version)
+	if this.Version == common.VERSION_SUPPORT_SHARD {
+		sink.WriteUint64(this.ShardID)
+	}
 	sink.WriteHash(this.PrevHash)
 	sink.WriteUint32(this.Height)
 	sink.WriteUint16(this.BookkeeperIndex)
@@ -221,6 +225,9 @@ func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 func (this *ConsensusPayload) deserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	this.Version, eof = source.NextUint32()
+	if this.Version == common.VERSION_SUPPORT_SHARD {
+		this.ShardID, eof = source.NextUint64()
+	}
 	this.PrevHash, eof = source.NextHash()
 	this.Height, eof = source.NextUint32()
 	this.BookkeeperIndex, eof = source.NextUint16()

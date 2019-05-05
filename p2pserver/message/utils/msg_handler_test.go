@@ -223,13 +223,13 @@ func TestHeadersReqHandle(t *testing.T) {
 
 	// Construct a headers request of packet
 	headerHash := ledger.DefLedger.GetCurrentHeaderHash()
-	buf := msgpack.NewHeadersReq(headerHash)
+	buf := msgpack.NewHeadersReq(0, headerHash)
 
 	msg := &types.MsgPayload{
 		Id:      testID,
 		Addr:    "127.0.0.1:50010",
 		Payload: buf,
-	}
+}
 
 	// Invoke HeadersReqhandle to handle the msg
 	HeadersReqHandle(msg, network, nil)

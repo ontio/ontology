@@ -25,7 +25,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
 )
 
 type SyncCheckReq struct {
@@ -181,7 +180,7 @@ func (self *Syncer) run() {
 			for self.nextReqBlkNum <= self.targetBlkNum {
 				// FIXME: compete with ledger syncing
 				var blk *Block
-				if self.nextReqBlkNum <= ledger.DefLedger.GetCurrentBlockHeight() {
+				if self.nextReqBlkNum <= self.server.ledger.GetCurrentBlockHeight() {
 					blk, _ = self.server.chainStore.GetBlock(self.nextReqBlkNum)
 				}
 				if blk == nil {

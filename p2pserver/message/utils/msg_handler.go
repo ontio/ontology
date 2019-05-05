@@ -87,8 +87,12 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 
 	startHash := headersReq.HashStart
 	stopHash := headersReq.HashEnd
-
-	headers, err := GetHeadersFromHash(startHash, stopHash)
+	shardId, err := types.NewShardID(headersReq.ShardID)
+	if err != nil {
+		log.Warnf("get headers in HeadersReqHandle error: %s,shardID:%s", err.Error(), headersReq.ShardID)
+		return
+	}
+	headers, err := GetHeadersFromHash(shardId, startHash, stopHash)
 	if err != nil {
 		log.Warnf("get headers in HeadersReqHandle error: %s,startHash:%s,stopHash:%s", err.Error(), startHash.ToHexString(), stopHash.ToHexString())
 		return
@@ -519,22 +523,27 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		log.Debug("[p2p]remotePeer invalid in DataReqHandle")
 		return
 	}
+	shardId, err := types.NewShardID(dataReq.ShardID)
+	if err != nil {
+		log.Errorf("datareqhandle shardId invalid err:%s,shardID:%d", err, dataReq.ShardID)
+		return
+	}
 	reqType := common.InventoryType(dataReq.DataType)
 	hash := dataReq.Hash
 	switch reqType {
 	case common.BLOCK:
 		reqID := fmt.Sprintf("%x%s", reqType, hash.ToHexString())
-		data := getRespCacheValue(reqID)
+		cachedata := getRespCacheValue(reqID)
 		var msg msgTypes.Message
-		if data != nil {
-			switch data.(type) {
+		if cachedata != nil {
+			switch cachedata.(type) {
 			case *msgTypes.Block:
-				msg = data.(*msgTypes.Block)
+				msg = cachedata.(*msgTypes.Block)
 			}
 		}
 		if msg == nil {
 			var merkleRoot common.Uint256
-			block, err := ledger.DefLedger.GetBlockByHash(hash)
+			block, err := ledger.GetShardLedger(shardId).GetBlockByHash(hash)
 			if err != nil || block == nil || block.Header == nil {
 				log.Debug("[p2p]can't get block by hash: ", hash,
 					" ,send not found message")
@@ -568,7 +577,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 
 	case common.TRANSACTION:
-		txn, err := ledger.DefLedger.GetTransaction(hash)
+		txn, err := ledger.GetShardLedger(shardId).GetTransaction(hash)
 		if err != nil {
 			log.Debug("[p2p]Can't get transaction by hash: ",
 				hash, " ,send not found message")
@@ -603,6 +612,11 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		log.Debug("[p2p]empty inv payload in InvHandle")
 		return
 	}
+	shardId, err := types.NewShardID(inv.P.ShardID)
+	if err != nil {
+		log.Errorf("invhandle shardId invalid err:%s,shardID:%d", err, inv.P.ShardID)
+		return
+	}
 	var id common.Uint256
 	str := inv.P.Blk[0].ToHexString()
 	log.Debugf("[p2p]the inv type: 0x%x block len: %d, %s\n",
@@ -614,7 +628,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		log.Debug("[p2p]receive transaction message", id)
 		// TODO check the ID queue
 		id = inv.P.Blk[0]
-		trn, err := ledger.DefLedger.GetTransaction(id)
+		trn, err := ledger.GetShardLedger(shardId).GetTransaction(id)
 		if trn == nil || err != nil {
 			msg := msgpack.NewTxnDataReq(id)
 			err = p2p.Send(remotePeer, msg, false)
@@ -628,7 +642,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		for _, id = range inv.P.Blk {
 			log.Debug("[p2p]receive inv-block message, hash is ", id)
 			// TODO check the ID queue
-			isContainBlock, err := ledger.DefLedger.IsContainBlock(id)
+			isContainBlock, err := ledger.GetShardLedger(shardId).IsContainBlock(id)
 			if err != nil {
 				log.Warn(err)
 				return
@@ -685,12 +699,12 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 }
 
 //get blk hdrs from starthash to stophash
-func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*types.Header, error) {
+func GetHeadersFromHash(shardId types.ShardID, startHash common.Uint256, stopHash common.Uint256) ([]*types.Header, error) {
 	var count uint32 = 0
 	headers := []*types.Header{}
 	var startHeight uint32
 	var stopHeight uint32
-	curHeight := ledger.DefLedger.GetCurrentHeaderHeight()
+	curHeight := ledger.GetShardLedger(shardId).GetCurrentHeaderHeight()
 	if startHash == common.UINT256_EMPTY {
 		if stopHash == common.UINT256_EMPTY {
 			if curHeight > msgCommon.MAX_BLK_HDR_CNT {
@@ -699,7 +713,7 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 				count = curHeight
 			}
 		} else {
-			bkStop, err := ledger.DefLedger.GetHeaderByHash(stopHash)
+			bkStop, err := ledger.GetShardLedger(shardId).GetHeaderByHash(stopHash)
 			if err != nil || bkStop == nil {
 				return nil, err
 			}
@@ -710,13 +724,13 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 			}
 		}
 	} else {
-		bkStart, err := ledger.DefLedger.GetHeaderByHash(startHash)
+		bkStart, err := ledger.GetShardLedger(shardId).GetHeaderByHash(startHash)
 		if err != nil || bkStart == nil {
 			return nil, err
 		}
 		startHeight = bkStart.Height
 		if stopHash != common.UINT256_EMPTY {
-			bkStop, err := ledger.DefLedger.GetHeaderByHash(stopHash)
+			bkStop, err := ledger.GetShardLedger(shardId).GetHeaderByHash(stopHash)
 			if err != nil || bkStop == nil {
 				return nil, err
 			}
@@ -744,8 +758,8 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 
 	var i uint32
 	for i = 1; i <= count; i++ {
-		hash := ledger.DefLedger.GetBlockHash(stopHeight + i)
-		hd, err := ledger.DefLedger.GetHeaderByHash(hash)
+		hash := ledger.GetShardLedger(shardId).GetBlockHash(stopHeight + i)
+		hd, err := ledger.GetShardLedger(shardId).GetHeaderByHash(hash)
 		if err != nil {
 			log.Debugf("[p2p]net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
 			return nil, err
