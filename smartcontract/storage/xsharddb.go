@@ -83,7 +83,7 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_type
 	keys := comm.NewZeroCopySink(8)
 	val := comm.NewZeroCopySink(1024)
 	shards := comm.NewZeroCopySink(2 + 8*len(shardMsgMap))
-	shards.WriteVarUint(uint64(len(shardMsgMap)))
+	shards.WriteUint32(uint32(len(shardMsgMap)))
 	for shardID, shardMsgs := range shardMsgMap {
 		shards.WriteUint64(shardID.ToUint64())
 		keys.Reset()
@@ -91,10 +91,7 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_type
 		keys.WriteUint64(shardID.ToUint64())
 
 		val.Reset()
-		val.WriteVarUint(uint64(len(shardMsgs)))
-		for _, msg := range shardMsgs {
-			msg.Serialization(val)
-		}
+		xshard_types.EncodeShardCommonMsgs(val, shardMsgs)
 		self.cacheDB.put(common.XSHARD_KEY_REQS_IN_BLOCK, keys.Bytes(), val.Bytes())
 	}
 	keys.Reset()

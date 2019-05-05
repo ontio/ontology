@@ -201,7 +201,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	}
 
 	for height := self.processedParentBlockHeight + 1; height <= header.Height; height++ {
-		shards, err := GetRequestedRemoteShards(lgr, height)
+		shards, err := lgr.GetRelatedShardIDsInBlock(height)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
 		}
@@ -212,7 +212,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 		}
 
 		for _, s := range shards {
-			reqs, err := GetRequestsToRemoteShard(lgr, height, s)
+			reqs, err := lgr.GetShardMsgsInBlock(height, s)
 			if err != nil {
 				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
 			}

@@ -23,7 +23,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/xshard_types"
 	"hash"
 	"math"
@@ -948,8 +947,7 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 			log.Debugf("HandleChangeMetadataTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.Invoke:
-		txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
-		_, err := HandleInvokeTransaction(store, overlay, cache, xshardDB, txState, tx, header, notify)
+		_, err := HandleInvokeTransaction(store, overlay, cache, xshardDB, tx, header, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -1205,6 +1203,14 @@ func (this *LedgerStoreImp) getPreGas(config *smartcontract.Config, cache *stora
 
 func (self *LedgerStoreImp) GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error) {
 	return self.stateStore.GetBlockShardEvents(height)
+}
+
+func (self *LedgerStoreImp) GetShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) ([]xshard_types.CommonShardMsg, error) {
+	return self.stateStore.GetShardMsgsInBlock(blockHeight, shardID)
+}
+
+func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error) {
+	return self.stateStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
 //Close ledger store.

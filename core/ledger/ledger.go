@@ -20,6 +20,7 @@ package ledger
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/xshard_types"
 	"path"
 	"sync"
 
@@ -337,6 +338,14 @@ func (self *Ledger) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify
 
 func (self *Ledger) GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error) {
 	return self.ldgStore.GetBlockShardEvents(height)
+}
+
+func (self *Ledger) GetShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) ([]xshard_types.CommonShardMsg, error) {
+	return self.ldgStore.GetShardMsgsInBlock(blockHeight, shardID)
+}
+
+func (self *Ledger) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error) {
+	return self.ldgStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
 func (self *Ledger) Close() error {

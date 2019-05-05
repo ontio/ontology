@@ -80,37 +80,6 @@ type XShardTxReqResp struct {
 	Index uint32
 }
 
-type XShardReqMsg struct {
-	SourceShardID common.ShardID
-	SourceHeight  uint32
-	TargetShardID common.ShardID
-	SourceTxHash  common.Uint256
-	Req           *xshard_types.XShardTxReq
-}
-
-func (msg *XShardReqMsg) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteShardID(msg.SourceShardID)
-	sink.WriteUint32(msg.SourceHeight)
-	sink.WriteShardID(msg.TargetShardID)
-	sink.WriteHash(msg.SourceTxHash)
-	msg.Req.Serialization(sink)
-}
-
-func (self *XShardReqMsg) Deserialization(source *common.ZeroCopySource) (err error) {
-	self.SourceShardID, err = source.NextShardID()
-	if err != nil {
-		return
-	}
-	self.SourceHeight, _ = source.NextUint32()
-	self.TargetShardID, err = source.NextShardID()
-	if err != nil {
-		return
-	}
-	self.SourceTxHash, _ = source.NextHash()
-	self.Req = &xshard_types.XShardTxReq{}
-	return self.Req.Deserialization(source)
-}
-
 type TxState struct {
 	State         int
 	TxID          ShardTxID // cross shard tx id: userTxHash+notify1+notify2...
@@ -122,7 +91,7 @@ type TxState struct {
 	InReqResp     map[common.ShardID][]*XShardTxReqResp // todo: request id may conflict
 	TotalInReq    uint32
 	OutReqResp    []*XShardTxReqResp
-	PendingReq    *XShardReqMsg
+	PendingReq    *xshard_types.XShardTxReq
 	ExecState     ExecuteState
 	Result        []byte
 	ResultErr     string
@@ -248,7 +217,7 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 		return common.ErrIrregularData
 	}
 	if hasPending {
-		self.PendingReq = &XShardReqMsg{}
+		self.PendingReq = &xshard_types.XShardTxReq{}
 		err := self.PendingReq.Deserialization(source)
 		if err != nil {
 			return err

@@ -70,6 +70,10 @@ func TestRemoteInvokeAdd(t *testing.T) {
 	sink.WriteUint64(2)
 	sink.WriteUint64(3)
 	expected := &xshard_types.XShardTxReq{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			TargetShardID: ShardB,
+			SourceTxHash:  tx.Hash(),
+		},
 		IdxInTx: 0,
 		Payer:   tx.Payer,
 		Fee:     neovm.MIN_TRANSACTION_GAS,
@@ -118,16 +122,21 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		ContractEvent: txevent,
 	}
 
-	state := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
-	_, err := ledgerstore.HandleInvokeTransaction(nil, overlay, cache, xshardDB, state, tx, header, notify)
-
-	//assert.Equal(t, shardsysmsg.ErrYield, err) // error is wrapped
+	_, err := ledgerstore.HandleInvokeTransaction(nil, overlay, cache, xshardDB, tx, header, notify)
 	assert.NotNil(t, err)
+
+	shardID := xshard_state.ShardTxID(string(txHash[:]))
+	state, err := xshardDB.GetXShardState(shardID)
+	assert.Nil(t, err)
 	assert.NotNil(t, state.PendingReq)
 	sink := common.NewZeroCopySink(10)
 	sink.WriteUint64(2)
 	sink.WriteUint64(3)
 	expected := &xshard_types.XShardTxReq{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			TargetShardID: ShardB,
+			SourceTxHash:  txHash,
+		},
 		IdxInTx: 0,
 		Payer:   tx.Payer,
 		Fee:     neovm.MIN_TRANSACTION_GAS,
@@ -135,9 +144,8 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		Args:    sink.Bytes(),
 	}
 
-	assert.Equal(t, expected, state.PendingReq.Req)
+	assert.Equal(t, expected, state.PendingReq)
 	hs := tx.Hash()
-	xshardDB.SetXShardState(state)
 
 	sink.Reset()
 	sink.WriteUint64(5)

@@ -202,12 +202,12 @@ func HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb
 }
 
 func resumeTxState(txState *xshard_state.TxState, rspMsg *xshard_types.XShardTxRsp) (*types.Transaction, error) {
-	if txState.PendingReq == nil || txState.PendingReq.Req.IdxInTx != rspMsg.IdxInTx {
+	if txState.PendingReq == nil || txState.PendingReq.IdxInTx != rspMsg.IdxInTx {
 		// todo: system error or remote shard error
 		return nil, fmt.Errorf("invalid response id: %d", rspMsg.IdxInTx)
 	}
 
-	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq.Req, Resp: rspMsg})
+	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq, Resp: rspMsg})
 	txState.PendingReq = nil
 
 	txPayload := txState.TxPayload
@@ -545,7 +545,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 
 	if err != nil {
 		if txState.ExecState == xshard_state.ExecYielded {
-			notify.ShardMsg = append(notify.ShardMsg, txState.PendingReq.Req)
+			notify.ShardMsg = append(notify.ShardMsg, txState.PendingReq)
 
 			xshardDB.SetXShardState(txState)
 		}
@@ -651,11 +651,13 @@ func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.Over
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, xshardDB *storage.XShardDB, txState *xshard_state.TxState,
-	tx *types.Transaction, header *types.Header, notify *event.TransactionNotify) (result interface{}, err error) {
+	cache *storage.CacheDB, xshardDB *storage.XShardDB, tx *types.Transaction, header *types.Header,
+	notify *event.TransactionNotify) (result interface{}, err error) {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || header.Height == 0
+	txHash := tx.Hash()
+	txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
 
 	isCharge := !sysTransFlag && tx.GasPrice != 0
 
@@ -756,11 +758,11 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 		}
 
 		if txState.ExecState == xshard_state.ExecYielded {
-			notify.ShardMsg = append(notify.ShardMsg, txState.PendingReq.Req)
+			notify.ShardMsg = append(notify.ShardMsg, txState.PendingReq)
 
-			//todo persist txstate
-			xshardDB.Commit()
-		} // todo prepared
+			xshardDB.SetXShardState(txState)
+		}
+
 		return nil, err
 	}
 
@@ -789,8 +791,10 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	cnotify.GasConsumed = costGas
 	cnotify.State = event.CONTRACT_STATE_SUCCESS
 	sc.CacheDB.Commit()
-	//todo : add notify to xshardDB
-	xshardDB.Commit()
+	for _, msg := range txState.ShardNotifies {
+		notify.ShardMsg = append(notify.ShardMsg, msg)
+	}
+
 	return result, nil
 }
 

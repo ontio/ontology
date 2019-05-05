@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events/message"
 	"io"
 
@@ -253,6 +254,45 @@ func (self *StateStore) AddBlockShardEvents(height uint32, events []*message.Sha
 	}
 	self.store.BatchPut(genBlockShardEventsKey(height), buf)
 	return nil
+}
+
+func (self *StateStore) GetShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) ([]xshard_types.CommonShardMsg, error) {
+	keys := common.NewZeroCopySink(16)
+	keys.WriteByte(byte(scom.XSHARD_KEY_REQS_IN_BLOCK))
+	keys.WriteUint32(blockHeight)
+	keys.WriteShardID(shardID)
+	buf, err := self.store.Get(keys.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	return xshard_types.DecodeShardCommonMsgs(buf)
+}
+
+func (self *StateStore) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error) {
+	key := common.NewZeroCopySink(8)
+	key.WriteByte(byte(scom.XSHARD_KEY_SHARDS_IN_BLOCK))
+	key.WriteUint32(blockHeight)
+
+	buf, err := self.store.Get(key.Bytes())
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(buf)
+	count, eof := source.NextUint32()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	shards := make([]common.ShardID, 0)
+	for i := uint32(0); i < count; i++ {
+		id, err := source.NextShardID()
+		if err != nil {
+			return nil, err
+		}
+		shards = append(shards, id)
+	}
+
+	return shards, nil
 }
 
 //GetMerkleProof return merkle proof of block

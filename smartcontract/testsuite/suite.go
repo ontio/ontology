@@ -1,9 +1,7 @@
 package testsuite
 
 import (
-	"bytes"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract"
@@ -20,7 +18,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 func RandomAddress() common.Address {
@@ -37,77 +34,6 @@ func InstallNativeContract(addr common.Address, actions map[string]native.Handle
 		}
 	}
 	native.Contracts[addr] = contract
-}
-
-// runtime api
-func RemoteNotify(ctx *native.NativeService, param *shardsysmsg.NotifyReqParam) {
-	txState := ctx.MainShardTxState
-	// send with minimal gas fee
-	msg := &xshard_types.XShardNotify{
-		NotifyID: txState.NumNotifies,
-		Contract: param.ToContract,
-		Payer:    ctx.Tx.Payer,
-		Fee:      neovm.MIN_TRANSACTION_GAS,
-		Method:   param.Method,
-		Args:     param.Args,
-	}
-	txState.NumNotifies += 1
-	// todo: clean shardnotifies when replay transaction
-	txState.ShardNotifies = append(txState.ShardNotifies, msg)
-}
-
-// runtime api
-func RemoteInvoke(ctx *native.NativeService, reqParam *shardsysmsg.NotifyReqParam) ([]byte, error) {
-	txState := ctx.MainShardTxState
-	reqIdx := txState.NextReqID
-	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
-		return utils.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
-	}
-	msg := &xshard_types.XShardTxReq{
-		IdxInTx:  uint64(reqIdx),
-		Payer:    ctx.Tx.Payer,
-		Fee:      neovm.MIN_TRANSACTION_GAS,
-		Contract: reqParam.ToContract,
-		Method:   reqParam.Method,
-		Args:     reqParam.Args,
-	}
-	txState.NextReqID += 1
-
-	if reqIdx < uint32(len(txState.OutReqResp)) {
-		if xshard_types.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
-			return utils.BYTE_FALSE, xshard_state.ErrMismatchedRequest
-		}
-		rspMsg := txState.OutReqResp[reqIdx].Resp
-		var resultErr error
-		if rspMsg.Error {
-			resultErr = errors.New("remote invoke got error response")
-		}
-		return rspMsg.Result, resultErr
-	}
-
-	if len(txState.TxPayload) == 0 {
-		txPayload := bytes.NewBuffer(nil)
-		if err := ctx.Tx.Serialize(txPayload); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to get tx payload: %s", err)
-		}
-		txState.TxPayload = txPayload.Bytes()
-	}
-
-	// no response found in tx-statedb, send request
-	if err := txState.AddTxShard(reqParam.ToShard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
-	}
-
-	txState.PendingReq = &xshard_state.XShardReqMsg{
-		SourceShardID: ctx.ShardID,
-		SourceHeight:  ctx.Height,
-		TargetShardID: reqParam.ToShard,
-		SourceTxHash:  ctx.Tx.Hash(),
-		Req:           msg,
-	}
-	txState.ExecState = xshard_state.ExecYielded
-
-	return utils.BYTE_FALSE, shardsysmsg.ErrYield
 }
 
 func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_state.TxState,
@@ -157,12 +83,12 @@ func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_
 func resumeTx(shardTxID xshard_state.ShardTxID, rspMsg *xshard_types.XShardTxRsp) (*xshard_state.TxState, interface{}, error) {
 	txState := xshard_state.CreateTxState(shardTxID).Clone()
 
-	if txState.PendingReq == nil || txState.PendingReq.Req.IdxInTx != rspMsg.IdxInTx {
+	if txState.PendingReq == nil || txState.PendingReq.IdxInTx != rspMsg.IdxInTx {
 		// todo: system error or remote shard error
 		return nil, nil, fmt.Errorf("invalid response id: %d", rspMsg.IdxInTx)
 	}
 
-	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq.Req, Resp: rspMsg})
+	txState.OutReqResp = append(txState.OutReqResp, &xshard_state.XShardTxReqResp{Req: txState.PendingReq, Resp: rspMsg})
 	txState.PendingReq = nil
 
 	txPayload := txState.TxPayload
@@ -255,7 +181,7 @@ func RemoteNotifyPing(native *native.NativeService) ([]byte, error) {
 		Args:    sink.Bytes(),
 	}
 
-	RemoteNotify(native, &params)
+	shardsysmsg.RemoteNotifyApi(native, &params)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -271,7 +197,7 @@ func RemoteInvokeAddAndInc(native *native.NativeService) ([]byte, error) {
 		Args:    sink.Bytes(),
 	}
 
-	sum, err := RemoteInvoke(native, params)
+	sum, err := shardsysmsg.RemoteInvokeApi(native, params)
 	if err != nil {
 		return nil, err
 	}

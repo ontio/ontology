@@ -269,7 +269,7 @@ func (msg *XShardPreparedMsg) Type() uint32 {
 
 type ShardMsgHeader struct {
 	SourceShardID common.ShardID
-	SourceHeight  uint64
+	SourceHeight  uint64 //todo use uint32
 	TargetShardID common.ShardID
 	SourceTxHash  common.Uint256
 }
@@ -403,18 +403,25 @@ func (this *CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func DecodeShardCommonReqs(payload []byte) ([]CommonShardMsg, error) {
-	txs := &CrossShardTx{}
+func EncodeShardCommonMsgs(sink *common.ZeroCopySink, msgs []CommonShardMsg) {
+	sink.WriteUint32(uint32(len(msgs)))
+	for _, msg := range msgs {
+		EncodeShardCommonMsg(sink, msg)
+	}
+}
+
+func DecodeShardCommonMsgs(payload []byte) ([]CommonShardMsg, error) {
 	source := common.NewZeroCopySource(payload)
-	if err := txs.Deserialization(source); err != nil {
-		return nil, fmt.Errorf("deserialization payload failed, err: %s", err)
+	len, eof := source.NextUint32()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
 	}
 
 	reqs := make([]CommonShardMsg, 0)
-	for _, tx := range txs.Txs {
-		req, err := DecodeShardCommonMsg(common.NewZeroCopySource(tx))
+	for i := uint32(0); i < len; i++ {
+		req, err := DecodeShardCommonMsg(source)
 		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal req-tx: %s, %s", err, string(tx))
+			return nil, fmt.Errorf("failed to unmarshal req-tx: %s", err)
 		}
 		reqs = append(reqs, req)
 	}

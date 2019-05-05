@@ -21,6 +21,7 @@ package message_test
 import (
 	"bytes"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/xshard_types"
 	"testing"
 
 	"github.com/ontio/ontology/account"
@@ -32,7 +33,7 @@ func TestNewCrossShardTxMsg(t *testing.T) {
 	if acc == nil {
 		t.Fatalf("failed to new account")
 	}
-	payload := [][]byte{{1, 2, 3, 4}}
+	payload := []xshard_types.CommonShardMsg{&xshard_types.XShardCommitMsg{}}
 	tx, err := message.NewCrossShardTxMsg(acc, 100, common.NewShardIDUnchecked(10), 500, 20000, payload)
 	if err != nil {
 		t.Fatalf("failed to build cross shard tx: %s", err)

@@ -50,7 +50,7 @@ var ErrYield = errors.New("transaction execution yielded")
 const (
 	// function names
 	// 		processShardMsg: to process tx sent from remote shards
-	//      remoteSendShardMsg/remoteInvoke: invoked by local-contract, trigger remote-tx event
+	//      remoteSendShardMsg/RemoteInvokeApi: invoked by local-contract, trigger remote-tx event
 	INIT_NAME               = "init"
 	PROCESS_CROSS_SHARD_MSG = "processShardMsg"
 	REMOTE_NOTIFY           = "remoteSendShardMsg"
@@ -78,7 +78,7 @@ func ShardSysMsgInit(ctx *native.NativeService) ([]byte, error) {
 }
 
 // runtime api
-func remoteNotify(ctx *native.NativeService, param *NotifyReqParam) {
+func RemoteNotifyApi(ctx *native.NativeService, param *NotifyReqParam) {
 	txState := ctx.MainShardTxState
 	// send with minimal gas fee
 	msg := &xshard_types.XShardNotify{
@@ -95,13 +95,19 @@ func remoteNotify(ctx *native.NativeService, param *NotifyReqParam) {
 }
 
 // runtime api
-func remoteInvoke(ctx *native.NativeService, reqParam *NotifyReqParam) ([]byte, error) {
+func RemoteInvokeApi(ctx *native.NativeService, reqParam *NotifyReqParam) ([]byte, error) {
 	txState := ctx.MainShardTxState
 	reqIdx := txState.NextReqID
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
 		return utils.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
 	}
 	msg := &xshard_types.XShardTxReq{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: ctx.ShardID,
+			SourceHeight:  uint64(ctx.Height),
+			TargetShardID: reqParam.ToShard,
+			SourceTxHash:  ctx.Tx.Hash(),
+		},
 		IdxInTx:  uint64(reqIdx),
 		Payer:    ctx.Tx.Payer,
 		Fee:      neovm.MIN_TRANSACTION_GAS,
@@ -136,13 +142,7 @@ func remoteInvoke(ctx *native.NativeService, reqParam *NotifyReqParam) ([]byte, 
 		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
 	}
 
-	txState.PendingReq = &xshard_state.XShardReqMsg{
-		SourceShardID: ctx.ShardID,
-		SourceHeight:  ctx.Height,
-		TargetShardID: reqParam.ToShard,
-		SourceTxHash:  ctx.Tx.Hash(),
-		Req:           msg,
-	}
+	txState.PendingReq = msg
 	txState.ExecState = xshard_state.ExecYielded
 
 	return utils.BYTE_FALSE, ErrYield
@@ -160,7 +160,7 @@ func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid param: %s", err)
 	}
 
-	remoteNotify(ctx, reqParam)
+	RemoteNotifyApi(ctx, reqParam)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -178,7 +178,7 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	//todo: move out of testsuite
-	return remoteInvoke(ctx, reqParam)
+	return RemoteInvokeApi(ctx, reqParam)
 }
 
 // ProcessCrossShardMsg

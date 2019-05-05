@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstates "github.com/ontio/ontology/smartcontract/states"
@@ -67,4 +68,6 @@ type LedgerStore interface {
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
 	GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error)
+	GetShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) ([]xshard_types.CommonShardMsg, error)
+	GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error)
 }

@@ -20,19 +20,13 @@ package message
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/xshard_types"
-	"math"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	payload2 "github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/events/message"
-	bcommon "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/core/xshard_types"
 )
 
 //
@@ -42,34 +36,23 @@ import (
 //  One block can generated multiple cross-shard sub-txns, marshaled to [][]byte.
 //  NewCrossShardTXMsg creates one cross-shard forwarding Tx, which contains all sub-txns.
 //
-func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID common.ShardID, gasPrice, gasLimit uint64, payload [][]byte) (*types.Transaction, error) {
-	// marshal all sub-txns to one byte-array
-	tx := &xshard_types.CrossShardTx{payload}
-	sink := common.NewZeroCopySink(0)
-	tx.Serialization(sink)
+func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID common.ShardID, gasPrice, gasLimit uint64,
+	msgs []xshard_types.CommonShardMsg) (*types.Transaction, error) {
 	// cross-shard forwarding Tx payload
-	evt := &message.ShardEventState{
-		Version:    shardmgmt.VERSION_CONTRACT_SHARD_MGMT,
-		EventType:  xshard_types.EVENT_SHARD_MSG_COMMON,
-		ToShard:    toShardID,
-		FromHeight: height,
-		Payload:    sink.Bytes(),
-	}
-
-	// marshal to CrossShardMsgParam
-	param := &shardsysmsg.CrossShardMsgParam{
-		Events: []*message.ShardEventState{evt},
-	}
 	// build transaction
-	mutable, err := bcommon.NewNativeInvokeTransaction(0, math.MaxUint32, utils.ShardSysMsgContractAddress,
-		byte(0), shardsysmsg.PROCESS_CROSS_SHARD_MSG, []interface{}{param})
-	if err != nil {
-		return nil, fmt.Errorf("NewCrossShardTxMsg: build tx failed, err: %s", err)
+	shardCall := &payload2.ShardCall{
+		Msgs: msgs,
 	}
-	mutable.ShardID = toShardID.ToUint64()
-	mutable.GasPrice = gasPrice
-	mutable.GasLimit = gasLimit
-	mutable.Payer = account.Address
+	mutable := &types.MutableTransaction{
+		ShardID:  toShardID.ToUint64(),
+		GasPrice: gasPrice,
+		GasLimit: gasLimit,
+		Payer:    account.Address,
+		TxType:   types.ShardCall,
+		Nonce:    height, // use height as nonce
+		Payload:  shardCall,
+		Sigs:     nil,
+	}
 
 	// add signatures
 	txHash := mutable.Hash()
