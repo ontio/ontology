@@ -223,7 +223,7 @@ func TestHeadersReqHandle(t *testing.T) {
 
 	// Construct a headers request of packet
 	headerHash := ledger.DefLedger.GetCurrentHeaderHash()
-	buf := msgpack.NewHeadersReq(headerHash)
+	buf := msgpack.NewHeadersReq(0, headerHash)
 
 	msg := &types.MsgPayload{
 		Id:      testID,
@@ -327,7 +327,7 @@ func TestBlkHeaderHandle(t *testing.T) {
 	hash := ledger.DefLedger.GetBlockHash(0)
 	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 
-	headers, err := GetHeadersFromHash(hash, hash)
+	headers, err := GetHeadersFromHash(ct.NewShardIDUnchecked(0), hash, hash)
 	assert.Nil(t, err)
 
 	buf := msgpack.NewHeaders(headers)

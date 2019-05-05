@@ -160,6 +160,10 @@ func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shar
 	if err := self.initShardLedger(shardInfo); err != nil {
 		return fmt.Errorf("init shard %d, failed to init ledger: %s", self.shardID, err)
 	}
+	// set Default Ledger
+	if lgr := ledger.GetShardLedger(shardID); lgr != nil {
+		ledger.DefLedger = lgr
+	}
 	txPoolPid, err := self.initTxPool()
 	if err != nil {
 		return fmt.Errorf("init initTxPool %d, failed to init initTxPool: %s", self.shardID, err)
