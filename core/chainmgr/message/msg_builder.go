@@ -51,6 +51,7 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID commo
 		TxType:   types.ShardCall,
 		Nonce:    height, // use height as nonce
 		Payload:  shardCall,
+		Version:  common.VERSION_SUPPORT_SHARD,
 		Sigs:     nil,
 	}
 

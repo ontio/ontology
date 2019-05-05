@@ -300,12 +300,19 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
+	shard, err := GetShardState(native, contract, params.ShardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: get shard: %s", err)
+	}
+	if shard.State < shardstates.SHARD_STATE_CONFIGURED {
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: shard state unmatch")
+	}
 	state, err := getShardPeerState(native, contract, params.ShardId, params.PeerPubKey)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: faile, err: %s", err)
 	}
 	if state != state_default {
-		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer %s hasn't applied", params.PeerPubKey)
+		return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer %s has already applied", params.PeerPubKey)
 	}
 	setShardPeerState(native, contract, params.ShardId, state_applied, params.PeerPubKey)
 	return utils.BYTE_TRUE, nil
