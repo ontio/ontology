@@ -55,10 +55,6 @@ const (
 	PROCESS_CROSS_SHARD_MSG = "processShardMsg"
 	REMOTE_NOTIFY           = "remoteSendShardMsg"
 	REMOTE_INVOKE           = "remoteInvoke"
-
-	// key prefix
-	KEY_SHARDS_IN_BLOCK = "shardsInBlock" // with block#, contains to-shard list
-	KEY_REQS_IN_BLOCK   = "reqsInBlock"   // with block# - shard#, containers requests to shard#
 )
 
 func InitShardSystemMessageContract() {
