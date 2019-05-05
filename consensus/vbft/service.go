@@ -1060,10 +1060,6 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			return
 		}
 		msgBlkNum := pMsg.GetBlockNum()
-		if msgBlkNum > self.GetCurrentBlockNo() {
-			log.Errorf("failed to get submit msg (%d) to currentblock:%d", msgBlkNum, self.GetCurrentBlockNo())
-			return
-		}
 		if self.GetCurrentBlockNo() > msgBlkNum+1 {
 			return
 		}
