@@ -40,7 +40,7 @@ func InstallNativeContract(addr common.Address, actions map[string]native.Handle
 }
 
 // runtime api
-func RemoteNotify(ctx *native.NativeService, param shardsysmsg.NotifyReqParam) {
+func RemoteNotify(ctx *native.NativeService, param *shardsysmsg.NotifyReqParam) {
 	txState := ctx.MainShardTxState
 	// send with minimal gas fee
 	msg := &xshard_types.XShardNotify{
@@ -57,7 +57,7 @@ func RemoteNotify(ctx *native.NativeService, param shardsysmsg.NotifyReqParam) {
 }
 
 // runtime api
-func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam) ([]byte, error) {
+func RemoteInvoke(ctx *native.NativeService, reqParam *shardsysmsg.NotifyReqParam) ([]byte, error) {
 	txState := ctx.MainShardTxState
 	reqIdx := txState.NextReqID
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
@@ -106,12 +106,6 @@ func RemoteInvoke(ctx *native.NativeService, reqParam shardsysmsg.NotifyReqParam
 		Req:           msg,
 	}
 	txState.ExecState = xshard_state.ExecYielded
-
-	// put Tx-Request
-	// todo: clean
-	//if err := remoteSendShardMsg(ctx, txHash, reqParam.ToShard, msg); err != nil {
-	//	return utils.BYTE_FALSE, fmt.Errorf("remote invoke, notify: %s", err)
-	//}
 
 	return utils.BYTE_FALSE, shardsysmsg.ErrYield
 }
@@ -261,7 +255,7 @@ func RemoteNotifyPing(native *native.NativeService) ([]byte, error) {
 		Args:    sink.Bytes(),
 	}
 
-	RemoteNotify(native, params)
+	RemoteNotify(native, &params)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -271,7 +265,7 @@ func RemoteInvokeAddAndInc(native *native.NativeService) ([]byte, error) {
 	sink.WriteUint64(2)
 	sink.WriteUint64(3)
 
-	params := shardsysmsg.NotifyReqParam{
+	params := &shardsysmsg.NotifyReqParam{
 		ToShard: ShardB,
 		Method:  "handlePing",
 		Args:    sink.Bytes(),

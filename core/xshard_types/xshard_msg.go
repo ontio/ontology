@@ -39,7 +39,7 @@ const (
 )
 
 type XShardMsg interface {
-	Type() uint64
+	Type() uint32
 	GetContract() common.Address
 	GetMethod() string
 	GetArgs() []byte
@@ -47,7 +47,7 @@ type XShardMsg interface {
 	Deserialization(source *common.ZeroCopySource) error
 }
 
-func IsXShardMsgEqual(msg1, msg2 XShardMsg) bool {
+func IsXShardMsgEqual(msg1, msg2 CommonShardMsg) bool {
 	buf1 := common.SerializeToBytes(msg1)
 	buf2 := common.SerializeToBytes(msg2)
 
@@ -55,6 +55,7 @@ func IsXShardMsgEqual(msg1, msg2 XShardMsg) bool {
 }
 
 type XShardNotify struct {
+	ShardMsgHeader
 	NotifyID uint32
 	Contract common.Address
 	Payer    common.Address
@@ -63,7 +64,7 @@ type XShardNotify struct {
 	Args     []byte
 }
 
-func (msg *XShardNotify) Type() uint64 {
+func (msg *XShardNotify) Type() uint32 {
 	return EVENT_SHARD_NOTIFY
 }
 
@@ -80,6 +81,7 @@ func (msg *XShardNotify) GetArgs() []byte {
 }
 
 func (msg *XShardNotify) Serialization(sink *common.ZeroCopySink) {
+	msg.ShardMsgHeader.Serialization(sink)
 	sink.WriteUint32(msg.NotifyID)
 	sink.WriteAddress(msg.Contract)
 	sink.WriteAddress(msg.Payer)
@@ -89,6 +91,10 @@ func (msg *XShardNotify) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (msg *XShardNotify) Deserialization(source *common.ZeroCopySource) error {
+	err := msg.ShardMsgHeader.Deserialization(source)
+	if err != nil {
+		return err
+	}
 	var eof, irregular bool
 	msg.NotifyID, eof = source.NextUint32()
 	msg.Contract, eof = source.NextAddress()
@@ -111,6 +117,7 @@ func (msg *XShardNotify) Deserialization(source *common.ZeroCopySource) error {
 }
 
 type XShardTxReq struct {
+	ShardMsgHeader
 	IdxInTx  uint64
 	Contract common.Address
 	Payer    common.Address
@@ -119,7 +126,7 @@ type XShardTxReq struct {
 	Args     []byte
 }
 
-func (msg *XShardTxReq) Type() uint64 {
+func (msg *XShardTxReq) Type() uint32 {
 	return EVENT_SHARD_TXREQ
 }
 
@@ -136,6 +143,7 @@ func (msg *XShardTxReq) GetArgs() []byte {
 }
 
 func (msg *XShardTxReq) Serialization(sink *common.ZeroCopySink) {
+	msg.ShardMsgHeader.Serialization(sink)
 	sink.WriteUint64(msg.IdxInTx)
 	sink.WriteAddress(msg.Contract)
 	sink.WriteAddress(msg.Payer)
@@ -145,6 +153,10 @@ func (msg *XShardTxReq) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (msg *XShardTxReq) Deserialization(source *common.ZeroCopySource) error {
+	err := msg.ShardMsgHeader.Deserialization(source)
+	if err != nil {
+		return err
+	}
 	var eof, irregular bool
 	msg.IdxInTx, eof = source.NextUint64()
 	msg.Contract, eof = source.NextAddress()
@@ -167,13 +179,14 @@ func (msg *XShardTxReq) Deserialization(source *common.ZeroCopySource) error {
 }
 
 type XShardTxRsp struct {
+	ShardMsgHeader
 	IdxInTx uint64
 	FeeUsed uint64
 	Error   bool
 	Result  []byte
 }
 
-func (msg *XShardTxRsp) Type() uint64 {
+func (msg *XShardTxRsp) Type() uint32 {
 	return EVENT_SHARD_TXRSP
 }
 
@@ -190,6 +203,7 @@ func (msg *XShardTxRsp) GetArgs() []byte {
 }
 
 func (msg *XShardTxRsp) Serialization(sink *common.ZeroCopySink) {
+	msg.ShardMsgHeader.Serialization(sink)
 	sink.WriteUint64(msg.IdxInTx)
 	sink.WriteUint64(msg.FeeUsed)
 	sink.WriteBool(msg.Error)
@@ -197,6 +211,10 @@ func (msg *XShardTxRsp) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (msg *XShardTxRsp) Deserialization(source *common.ZeroCopySource) error {
+	err := msg.ShardMsgHeader.Deserialization(source)
+	if err != nil {
+		return err
+	}
 	var eof, irregular bool
 	msg.IdxInTx, eof = source.NextUint64()
 	msg.FeeUsed, eof = source.NextUint64()
@@ -218,36 +236,35 @@ func (msg *XShardTxRsp) Deserialization(source *common.ZeroCopySource) error {
 }
 
 type XShardCommitMsg struct {
-	MsgType uint64
+	ShardMsgHeader
 }
 
-func (msg *XShardCommitMsg) Type() uint64 {
-	return msg.MsgType
+func (msg *XShardCommitMsg) Type() uint32 {
+	return EVENT_SHARD_COMMIT
 }
 
-func (msg *XShardCommitMsg) GetContract() common.Address {
-	return common.ADDRESS_EMPTY
+type XShardAbortMsg struct {
+	ShardMsgHeader
 }
 
-func (msg *XShardCommitMsg) GetMethod() string {
-	return ""
+func (msg *XShardAbortMsg) Type() uint32 {
+	return EVENT_SHARD_ABORT
 }
 
-func (msg *XShardCommitMsg) GetArgs() []byte {
-	return nil
+type XShardPrepareMsg struct {
+	ShardMsgHeader
 }
 
-func (msg *XShardCommitMsg) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteUint64(msg.MsgType)
+type XShardPreparedMsg struct {
+	ShardMsgHeader
 }
 
-func (msg *XShardCommitMsg) Deserialization(source *common.ZeroCopySource) error {
-	var eof bool
-	msg.MsgType, eof = source.NextUint64()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
+func (msg *XShardPrepareMsg) Type() uint32 {
+	return EVENT_SHARD_PREPARE
+}
+
+func (msg *XShardPreparedMsg) Type() uint32 {
+	return EVENT_SHARD_PREPARED
 }
 
 type ShardMsgHeader struct {
@@ -255,6 +272,22 @@ type ShardMsgHeader struct {
 	SourceHeight  uint64
 	TargetShardID common.ShardID
 	SourceTxHash  common.Uint256
+}
+
+func (evt *ShardMsgHeader) GetSourceTxHash() common.Uint256 {
+	return evt.SourceTxHash
+}
+
+func (evt *ShardMsgHeader) GetSourceShardID() common.ShardID {
+	return evt.SourceShardID
+}
+
+func (evt *ShardMsgHeader) GetTargetShardID() common.ShardID {
+	return evt.TargetShardID
+}
+
+func (evt *ShardMsgHeader) GetHeight() uint64 {
+	return evt.SourceHeight
 }
 
 func (self *ShardMsgHeader) Serialization(sink *common.ZeroCopySink) {
@@ -286,96 +319,51 @@ func (self *ShardMsgHeader) Deserialization(source *common.ZeroCopySource) error
 	return nil
 }
 
-type CommonShardMsg struct {
-	ShardMsgHeader
-	Type          uint64
-	Payload       []byte
-	Msg           XShardMsg
+type CommonShardMsg interface {
+	GetSourceTxHash() common.Uint256
+	GetSourceShardID() common.ShardID
+	GetTargetShardID() common.ShardID
+	GetHeight() uint64
+	Type() uint32
+	Serialization(sink *common.ZeroCopySink)
+	Deserialization(source *common.ZeroCopySource) error
 }
 
-func (evt *CommonShardMsg) GetSourceShardID() common.ShardID {
-	return evt.SourceShardID
+func EncodeShardCommonMsg(sink *common.ZeroCopySink, msg CommonShardMsg) {
+	sink.WriteUint32(msg.Type())
+	msg.Serialization(sink)
 }
 
-func (evt *CommonShardMsg) GetTargetShardID() common.ShardID {
-	return evt.TargetShardID
-}
-
-func (evt *CommonShardMsg) GetHeight() uint64 {
-	return evt.SourceHeight
-}
-
-func (evt *CommonShardMsg) GetType() uint32 {
-	return EVENT_SHARD_MSG_COMMON
-}
-
-func (evt *CommonShardMsg) IsTransactional() bool {
-	return evt.Msg.Type() != EVENT_SHARD_NOTIFY
-}
-
-func (evt *CommonShardMsg) Serialization(sink *common.ZeroCopySink) {
-	evt.ShardMsgHeader.Serialization(sink)
-	sink.WriteUint64(evt.Type)
-	if len(evt.Payload) > 0 {
-		sink.WriteVarBytes(evt.Payload)
-	} else {
-		buf := common.SerializeToBytes(evt.Msg)
-		sink.WriteVarBytes(buf)
-	}
-}
-
-func (evt *CommonShardMsg) Deserialization(source *common.ZeroCopySource) error {
-	var irregular, eof bool
-	err := evt.ShardMsgHeader.Deserialization(source)
-	if err != nil {
-		return err
-	}
-	evt.Type, eof = source.NextUint64()
-	evt.Payload, _, irregular, eof = source.NextVarBytes()
-	if irregular {
-		return common.ErrIrregularData
-	}
+func DecodeShardCommonMsg(source *common.ZeroCopySource) (CommonShardMsg, error) {
+	msgType, eof := source.NextUint32()
 	if eof {
-		return io.ErrUnexpectedEOF
+		return nil, io.ErrUnexpectedEOF
 	}
 
-	switch evt.Type {
+	var msg CommonShardMsg
+	switch msgType {
 	case EVENT_SHARD_NOTIFY:
-		notify := &XShardNotify{}
-		if err := notify.Deserialization(common.NewZeroCopySource(evt.Payload)); err != nil {
-			return err
-		}
-		evt.Msg = notify
+		msg = &XShardNotify{}
 	case EVENT_SHARD_TXREQ:
-		req := &XShardTxReq{}
-		if err := req.Deserialization(common.NewZeroCopySource(evt.Payload)); err != nil {
-			return err
-		}
-		evt.Msg = req
+		msg = &XShardTxReq{}
 	case EVENT_SHARD_TXRSP:
-		rsp := &XShardTxRsp{}
-		if err := rsp.Deserialization(common.NewZeroCopySource(evt.Payload)); err != nil {
-			return err
-		}
-		evt.Msg = rsp
+		msg = &XShardTxRsp{}
 	case EVENT_SHARD_PREPARE:
-		fallthrough
+		msg = &XShardPrepareMsg{}
 	case EVENT_SHARD_PREPARED:
-		fallthrough
+		msg = &XShardPreparedMsg{}
 	case EVENT_SHARD_COMMIT:
-		fallthrough
+		msg = &XShardCommitMsg{}
 	case EVENT_SHARD_ABORT:
-		xcommitMsg := &XShardCommitMsg{}
-		if err := xcommitMsg.Deserialization(common.NewZeroCopySource(evt.Payload)); err != nil {
-			return err
-		}
-		if xcommitMsg.Type() != evt.Type {
-			return fmt.Errorf("invalid xcommit evt %d vs %d", xcommitMsg.Type(), evt.Type)
-		}
-		evt.Msg = xcommitMsg
+		msg = &XShardAbortMsg{}
+	default:
+		return nil, fmt.Errorf("unsupported msg type:%d", msgType)
 	}
-
-	return nil
+	err := msg.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return msg, nil
 }
 
 type CrossShardTx struct {
@@ -408,17 +396,17 @@ func (this *CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func DecodeShardCommonReqs(payload []byte) ([]*CommonShardMsg, error) {
+func DecodeShardCommonReqs(payload []byte) ([]CommonShardMsg, error) {
 	txs := &CrossShardTx{}
 	source := common.NewZeroCopySource(payload)
 	if err := txs.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("deserialization payload failed, err: %s", err)
 	}
 
-	reqs := make([]*CommonShardMsg, 0)
+	reqs := make([]CommonShardMsg, 0)
 	for _, tx := range txs.Txs {
-		req := &CommonShardMsg{}
-		if err := req.Deserialization(common.NewZeroCopySource(tx)); err != nil {
+		req, err := DecodeShardCommonMsg(common.NewZeroCopySource(tx))
+		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal req-tx: %s, %s", err, string(tx))
 		}
 		reqs = append(reqs, req)

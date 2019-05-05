@@ -75,10 +75,10 @@ func (self *XShardDB) SetXShardState(state *xshard_state.TxState) {
 	self.cacheDB.put(common.XSHARD_STATE, []byte(string(state.TxID)), buf)
 }
 
-func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []*xshard_types.CommonShardMsg) {
-	shardMsgMap := make(map[comm.ShardID][]*xshard_types.CommonShardMsg)
+func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_types.CommonShardMsg) {
+	shardMsgMap := make(map[comm.ShardID][]xshard_types.CommonShardMsg)
 	for _, msg := range msgs {
-		shardMsgMap[msg.TargetShardID] = append(shardMsgMap[msg.TargetShardID], msg)
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
 	keys := comm.NewZeroCopySink(8)
 	val := comm.NewZeroCopySink(1024)
