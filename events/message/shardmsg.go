@@ -64,7 +64,7 @@ func (this *ShardEventState) Deserialization(source *common.ZeroCopySource) erro
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	id, err := types.NewShardID(toShard)
+	id, err := common.NewShardID(toShard)
 	if err != nil {
 		return fmt.Errorf("serialization: generate shard id failed, err: %s", err)
 	}

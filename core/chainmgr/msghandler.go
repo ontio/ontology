@@ -191,7 +191,7 @@ func (self *ChainManager) handleBlockEvents(block *types.Block, shardEvts []*evt
 }
 
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
-	shardID, err := types.NewShardID(header.ShardID)
+	shardID, err := common.NewShardID(header.ShardID)
 		if err != nil {
 		return fmt.Errorf("invalid shard id %d", header.ShardID)
 		}

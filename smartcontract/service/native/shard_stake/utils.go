@@ -254,7 +254,7 @@ func setNodeMinStakeAmount(native *native.NativeService, id common.ShardID, amou
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 }
 
-func setShardStakeAssetAddr(native *native.NativeService, shardId types.ShardID, addr common.Address) {
+func setShardStakeAssetAddr(native *native.NativeService, shardId common.ShardID, addr common.Address) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genShardStakeAssetAddrKey(utils.ShardStakeAddress, shardIDBytes)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(addr[:]))

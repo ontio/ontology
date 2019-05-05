@@ -28,7 +28,7 @@ import (
 )
 
 type InitShardParam struct {
-	ShardId        types.ShardID
+	ShardId        common.ShardID
 	StakeAssetAddr common.Address
 	MinStake       uint64
 }
@@ -87,9 +87,9 @@ func (this *PeerAmount) Deserialize(r io.Reader) error {
 }
 
 type PeerStakeParam struct {
-	ShardId        common.ShardID
-	PeerOwner      common.Address
-	Value          *PeerAmount
+	ShardId   common.ShardID
+	PeerOwner common.Address
+	Value     *PeerAmount
 }
 
 func (this *PeerStakeParam) Serialize(w io.Writer) error {
@@ -469,7 +469,7 @@ func (this *PeerExitParam) Deserialize(r io.Reader) error {
 }
 
 type GetPeerInfoParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	View    uint64
 }
 
@@ -495,7 +495,7 @@ func (this *GetPeerInfoParam) Deserialize(r io.Reader) error {
 }
 
 type GetUserStakeInfoParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	View    uint64
 	User    common.Address
 }
