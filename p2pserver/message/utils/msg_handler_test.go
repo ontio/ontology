@@ -229,7 +229,7 @@ func TestHeadersReqHandle(t *testing.T) {
 		Id:      testID,
 		Addr:    "127.0.0.1:50010",
 		Payload: buf,
-}
+	}
 
 	// Invoke HeadersReqhandle to handle the msg
 	HeadersReqHandle(msg, network, nil)
@@ -327,7 +327,7 @@ func TestBlkHeaderHandle(t *testing.T) {
 	hash := ledger.DefLedger.GetBlockHash(0)
 	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 
-	headers, err := GetHeadersFromHash(hash, hash)
+	headers, err := GetHeadersFromHash(ct.NewShardIDUnchecked(0), hash, hash)
 	assert.Nil(t, err)
 
 	buf := msgpack.NewHeaders(headers)
