@@ -192,9 +192,9 @@ func (self *ChainManager) handleBlockEvents(block *types.Block, shardEvts []*evt
 
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	shardID, err := common.NewShardID(header.ShardID)
-		if err != nil {
+	if err != nil {
 		return fmt.Errorf("invalid shard id %d", header.ShardID)
-		}
+	}
 	lgr := ledger.GetShardLedger(shardID)
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)

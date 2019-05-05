@@ -147,9 +147,8 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		Result:  sink.Bytes(),
 	}
 
-	msgs := []*xshard_types.CommonShardMsg{{
-		SourceTxHash: hs,
-		Type:         xshard_types.EVENT_SHARD_TXRSP, Msg: rep}}
+	rep.SourceTxHash = hs
+	msgs := []xshard_types.CommonShardMsg{rep}
 	err = ledgerstore.HandleShardCallTransaction(nil, overlay, cache, xshardDB, msgs, header, notify)
 	assert.Nil(t, err)
 	sink.Reset()
@@ -157,23 +156,21 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 
 	state, err = xshardDB.GetXShardState(state.TxID)
 	assert.Nil(t, err)
-	res,_ := json.Marshal(state.Notify.Notify[0].States)
+	res, _ := json.Marshal(state.Notify.Notify[0].States)
 	buf, _ := json.Marshal(sink.Bytes())
 	assert.Equal(t, string(res), string(buf))
 
-	msgs = []*xshard_types.CommonShardMsg{{
-		SourceTxHash: hs,
-		Type:         xshard_types.EVENT_SHARD_COMMIT, Msg: &xshard_types.XShardCommitMsg{
-			MsgType:xshard_types.EVENT_SHARD_COMMIT,
-		}}}
+	commit := &xshard_types.XShardCommitMsg{}
+	commit.SourceTxHash = hs
 
+	msgs = []xshard_types.CommonShardMsg{commit}
 	err = ledgerstore.HandleShardCallTransaction(nil, overlay, cache, xshardDB, msgs, header, notify)
 	assert.Nil(t, err)
 	sink.Reset()
 	sink.WriteUint64(6)
 
 	assert.Nil(t, err)
-	res,_ = json.Marshal(notify.ContractEvent.Notify[0].States)
+	res, _ = json.Marshal(notify.ContractEvent.Notify[0].States)
 	buf, _ = json.Marshal(sink.Bytes())
 	assert.Equal(t, string(res), string(buf))
 

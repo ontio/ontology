@@ -74,8 +74,8 @@ const (
 	DEFAULT_DATA_DIR      = "./Chain"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
 
-	DEFAULT_SHARD_ID           = 0
-	DEFAULT_PARENT_HEIGHT      = 0
+	DEFAULT_SHARD_ID      = 0
+	DEFAULT_PARENT_HEIGHT = 0
 )
 
 const (
@@ -629,7 +629,7 @@ type WebSocketConfig struct {
 
 type ShardConfig struct {
 	ShardID             common.ShardID `json:"shard_id"`
-	GenesisParentHeight uint32        `json:"genesis_parent_height"`
+	GenesisParentHeight uint32         `json:"genesis_parent_height"`
 }
 
 type OntologyConfig struct {
@@ -682,16 +682,16 @@ func NewOntologyConfig() *OntologyConfig {
 			HttpLocalPort:     DEFAULT_RPC_LOCAL_PORT,
 		},
 		Restful: &RestfulConfig{
-			EnableHttpRestful:  true,
-			HttpRestPort:       DEFAULT_REST_PORT,
+			EnableHttpRestful: true,
+			HttpRestPort:      DEFAULT_REST_PORT,
 		},
 		Ws: &WebSocketConfig{
 			EnableHttpWs: true,
 			HttpWsPort:   DEFAULT_WS_PORT,
 		},
 		Shard: &ShardConfig{
-			ShardID:              common.NewShardIDUnchecked(DEFAULT_SHARD_ID),
-			GenesisParentHeight:  DEFAULT_PARENT_HEIGHT,
+			ShardID:             common.NewShardIDUnchecked(DEFAULT_SHARD_ID),
+			GenesisParentHeight: DEFAULT_PARENT_HEIGHT,
 		},
 	}
 }

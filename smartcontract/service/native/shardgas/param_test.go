@@ -21,12 +21,12 @@ package shardgas
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/ontio/ontology/common"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
-	"github.com/magiconair/properties/assert"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 )
 
 func TestPeerWithdrawGasParam(t *testing.T) {

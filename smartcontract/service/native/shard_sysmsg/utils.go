@@ -21,101 +21,12 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/xshard_types"
 	"sort"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
-
-func sendPrepareRequest(ctx *native.NativeService, txState *xshard_state.TxState, tx common.Uint256) ([]byte, error) {
-	for _, s := range txState.GetTxShards() {
-		msg := &xshard_types.XShardCommitMsg{
-			MsgType: xshard_types.EVENT_SHARD_PREPARE,
-		}
-		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
-			log.Errorf("send prepare to shard %d: %s", s.ToUint64(), err)
-		}
-	}
-
-	return nil, nil
-}
-
-func abortTx(ctx *native.NativeService, txState *xshard_state.TxState, tx common.Uint256) ([]byte, error) {
-	// TODO: clean resources held by tx
-	//
-
-	// send abort message to all shards
-	toShards := txState.GetTxShards()
-	for _, s := range toShards {
-		msg := &xshard_types.XShardCommitMsg{
-			MsgType: xshard_types.EVENT_SHARD_ABORT,
-		}
-		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
-			log.Errorf("send abort to shard %d: %s", s.ToUint64(), err)
-		}
-	}
-
-	// FIXME: cleanup resources
-
-	return nil, nil
-}
-
-func sendCommit(ctx *native.NativeService, txState *xshard_state.TxState, tx common.Uint256) ([]byte, error) {
-	toShards := txState.GetTxShards()
-
-	for _, s := range toShards {
-		msg := &xshard_types.XShardCommitMsg{
-			MsgType: xshard_types.EVENT_SHARD_COMMIT,
-		}
-		if err := remoteSendShardMsg(ctx, tx, s, msg); err != nil {
-			log.Errorf("send commit to shard %d: %s", s.ToUint64(), err)
-		}
-	}
-
-	return nil, nil
-}
-
-func remoteSendShardMsg(ctx *native.NativeService, tx common.Uint256, toShard common.ShardID, msg xshard_types.XShardMsg) error {
-	if !ctx.ContextRef.CheckUseGas(neovm.REMOTE_NOTIFY_GAS) {
-		return neovm.ERR_GAS_INSUFFICIENT
-	}
-	shardReq := &xshard_types.CommonShardMsg{
-		SourceShardID: ctx.ShardID,
-		SourceHeight:  uint64(ctx.Height),
-		TargetShardID: toShard,
-		SourceTxHash:  tx,
-		Msg:           msg,
-	}
-
-	// TODO: add evt to queue, update merkle root
-	log.Debugf("to send remote notify type %d: from %d to %d", msg.Type(), ctx.ShardID, toShard)
-	if err := addToShardsInBlock(ctx, toShard); err != nil {
-		return fmt.Errorf("remote notify, failed to add to-shard to block: %s", err)
-	}
-	if err := addReqsInBlock(ctx, shardReq); err != nil {
-		return fmt.Errorf("remote notify, failed to add req to block: %s", err)
-	}
-
-	return nil
-}
-
-func txCommitReady(txState *xshard_state.TxState) bool {
-	if txState.State != xshard_state.TxPrepared {
-		log.Errorf("shard tx state: %d", txState.State)
-		return false
-	}
-	for id, state := range txState.Shards {
-		if state != xshard_state.TxPrepared {
-			log.Errorf("shard %d not prepared: %d", id, state)
-			return false
-		}
-	}
-	return true
-}
 
 func lockTxContracts(ctx *native.NativeService, tx common.Uint256, result []byte, resultErr error) error {
 	if result != nil {
@@ -152,17 +63,6 @@ func unlockTxContract(ctx *native.NativeService, tx common.Uint256) error {
 
 	for _, c := range contracts {
 		xshard_state.UnlockContract(c)
-	}
-	return nil
-}
-
-func waitRemoteResponse(ctx *native.NativeService, tx common.Uint256) error {
-	// TODO: stop any further processing
-	if err := xshard_state.SetTxExecutionPaused(tx); err != nil {
-		return fmt.Errorf("set Tx execution paused: %s", err)
-	}
-	for ctx.ContextRef.CurrentContext() != ctx.ContextRef.EntryContext() {
-		ctx.ContextRef.PopContext()
 	}
 	return nil
 }

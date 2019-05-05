@@ -291,7 +291,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
 			heights := make(map[uint64]uint32)
-			lgr := ledger.GetShardLedger(types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 			if lgr != nil {
 				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
 			}
@@ -395,7 +395,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
 			heights := make(map[uint64]uint32)
-			lgr := ledger.GetShardLedger(types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 			if lgr != nil {
 				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
 			}

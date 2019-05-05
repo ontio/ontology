@@ -374,26 +374,26 @@ func (p *MemDB) ForEach(f func(key, val []byte)) {
 
 }
 
-func (self *MemDB)Serialiazation(sink *common.ZeroCopySink) {
+func (self *MemDB) Serialiazation(sink *common.ZeroCopySink) {
 	sink.WriteUint64(uint64(self.Len()))
-	self.ForEach(func (key, val []byte) {
+	self.ForEach(func(key, val []byte) {
 		sink.WriteVarBytes(key)
 		sink.WriteVarBytes(val)
 	})
 }
 
-func (self *MemDB)Dersialization(source *common.ZeroCopySource) error {
+func (self *MemDB) Dersialization(source *common.ZeroCopySource) error {
 	self.Reset()
 	len, eof := source.NextUint64()
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	for i:=uint64(0); i<len; i++ {
-		key,_, irr, eof := source.NextVarBytes()
+	for i := uint64(0); i < len; i++ {
+		key, _, irr, eof := source.NextVarBytes()
 		if irr {
 			return common.ErrIrregularData
 		}
-		val,_, irr, eof := source.NextVarBytes()
+		val, _, irr, eof := source.NextVarBytes()
 		if irr {
 			return common.ErrIrregularData
 		}

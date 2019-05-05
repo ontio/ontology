@@ -111,8 +111,8 @@ func (self *ChainManager) buildShardConfig(shardID common.ShardID, shardState *s
 
 	// init child shard config
 	shardConfig.Shard = &config.ShardConfig{
-		ShardID:              shardID,
-		GenesisParentHeight:  shardState.GenesisParentHeight,
+		ShardID:             shardID,
+		GenesisParentHeight: shardState.GenesisParentHeight,
 	}
 
 	shardConfig.Rpc = config.DefConfig.Rpc

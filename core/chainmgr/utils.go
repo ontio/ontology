@@ -53,8 +53,8 @@ func (self *ChainManager) setShardConfig(shardID common.ShardID, cfg *config.Ont
 	}
 
 	self.shards[shardID] = &ShardInfo{
-		ShardID:       shardID,
-		Config:        cfg,
+		ShardID: shardID,
+		Config:  cfg,
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView
 	return changeView, nil
 }
 
-func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
+func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
 	}

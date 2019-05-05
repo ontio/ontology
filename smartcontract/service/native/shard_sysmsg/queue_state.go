@@ -20,15 +20,10 @@ package shardsysmsg
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/xshard_types"
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
-	sComm "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -85,58 +80,6 @@ func (this *ToShardsInBlock) Deserialization(source *common.ZeroCopySource) erro
 		this.Shards[i] = shard
 	}
 	return nil
-}
-
-func addToShardsInBlock(ctx *native.NativeService, toShard common.ShardID) error {
-	toShards, err := getToShardsInBlock(ctx, ctx.Height)
-	if err != nil {
-		return err
-	}
-
-	for _, s := range toShards {
-		if s == toShard {
-			// already in
-			return nil
-		}
-	}
-	toShards = append(toShards, toShard)
-
-	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := utils.GetUint32Bytes(ctx.Height)
-
-	toShardsInBlk := &ToShardsInBlock{
-		Shards: toShards,
-	}
-	sink := common.NewZeroCopySink(0)
-	toShardsInBlk.Serialization(sink)
-
-	log.Debugf("put ToShards: height: %d, shards: %v", ctx.Height, toShards)
-
-	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	xshard_state.PutKV(key, sink.Bytes())
-	return nil
-}
-
-func getToShardsInBlock(ctx *native.NativeService, blockHeight uint32) ([]common.ShardID, error) {
-	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := utils.GetUint32Bytes(blockHeight)
-
-	key := utils.ConcatKey(contract, []byte(KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
-	if err != nil && err != xshard_state.ErrNotFound {
-		return nil, fmt.Errorf("get toShards: %s", err)
-	}
-	if toShardsBytes == nil {
-		// not found
-		return nil, nil
-	}
-
-	req := &ToShardsInBlock{}
-	if err := req.Deserialization(common.NewZeroCopySource(toShardsBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize toShards: %s: %s", err, string(toShardsBytes))
-	}
-
-	return req.Shards, nil
 }
 
 type ReqsInBlock struct {
@@ -196,50 +139,4 @@ func (this *ReqsInBlock) Deserialization(source *common.ZeroCopySource) error {
 		this.Reqs[i] = data
 	}
 	return nil
-}
-
-func addReqsInBlock(ctx *native.NativeService, req *xshard_types.CommonShardMsg) error {
-	reqs, err := getReqsInBlock(ctx, ctx.Height, req.GetTargetShardID())
-	if err != nil && err != sComm.ErrNotFound {
-		return err
-	}
-	buf := common.SerializeToBytes(req)
-	reqs = append(reqs, buf)
-
-	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := utils.GetUint32Bytes(ctx.Height)
-	shardIDBytes := utils.GetUint64Bytes(req.GetTargetShardID().ToUint64())
-
-	reqInBlk := &ReqsInBlock{
-		Reqs: reqs,
-	}
-	sink := common.NewZeroCopySink(0)
-	reqInBlk.Serialization(sink)
-
-	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	xshard_state.PutKV(key, sink.Bytes())
-	return nil
-}
-
-func getReqsInBlock(ctx *native.NativeService, blockHeight uint32, shardID common.ShardID) ([][]byte, error) {
-	contract := ctx.ContextRef.CurrentContext().ContractAddress
-	blockNumBytes := utils.GetUint32Bytes(blockHeight)
-	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
-
-	key := utils.ConcatKey(contract, []byte(KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	reqBytes, err := xshard_state.GetKVStorageItem(key)
-	if err != nil && err != xshard_state.ErrNotFound {
-		return nil, fmt.Errorf("get reqs in block: %s", err)
-	}
-	if reqBytes == nil {
-		// not found
-		return nil, nil
-	}
-
-	req := &ReqsInBlock{}
-	if err := req.Deserialization(common.NewZeroCopySource(reqBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize reqsInBlock: %s", err)
-	}
-
-	return req.Reqs, nil
 }

@@ -104,10 +104,10 @@ func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey s
 		return fmt.Errorf("peerInitStake: peer %s has already exist", peerPubKey)
 	}
 	peerViewInfo = &PeerViewInfo{
-		PeerPubKey:       peerPubKey,
-		Owner:            peerOwner,
+		PeerPubKey: peerPubKey,
+		Owner:      peerOwner,
 		InitPos:    amount,
-		CanStake:         true, // default can stake asset
+		CanStake:   true, // default can stake asset
 	}
 	initViewInfo.Peers[peerPubKey] = peerViewInfo
 	setShardViewInfo(native, id, currentView, initViewInfo)
@@ -426,9 +426,9 @@ func withdrawStakeAsset(native *native.NativeService, id common.ShardID, user co
 			currentViewInfo.Peers[peer] = currentPeerInfo
 		}
 		userPeerStakeInfo.CurrentViewStakeAmount = 0
-			userPeerStakeInfo.UnfreezeAmount = 0
-			lastUserStakeInfo.Peers[peer] = userPeerStakeInfo
-		}
+		userPeerStakeInfo.UnfreezeAmount = 0
+		lastUserStakeInfo.Peers[peer] = userPeerStakeInfo
+	}
 	setUserLastStakeView(native, id, user, nextView)
 	// update user stake info from last to current
 	setShardViewUserStake(native, id, currentView, user, lastUserStakeInfo)

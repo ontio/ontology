@@ -643,7 +643,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 	cache := storage.NewCacheDB(overlay)
 	xshardDB := storage.NewXShardDB(overlay)
-	var shardNotify []*xshard_types.CommonShardMsg
+	var shardNotify []xshard_types.CommonShardMsg
 
 	// execute shard txs
 	// sort shard Txs
@@ -940,7 +940,7 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.MetaData:
-		err := this.stateStore.HandleChangeMetadataTransaction(this, overlay, cache, tx, block, notify)
+		err := HandleChangeMetadataTransaction(store, overlay, cache, tx, header, notify.ContractEvent)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleChangeMetadataTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}

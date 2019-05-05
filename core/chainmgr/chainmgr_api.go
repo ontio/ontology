@@ -64,7 +64,7 @@ func SetTxPool(txPool *actor.PID) error {
 	return nil
 }
 
-func GetShardBlock(shardID types.ShardID, height uint32) *types.Block {
+func GetShardBlock(shardID common.ShardID, height uint32) *types.Block {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()

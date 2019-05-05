@@ -50,5 +50,5 @@ type ExecuteNotify struct {
 
 type TransactionNotify struct {
 	ContractEvent *ExecuteNotify
-	ShardMsg      []*xshard_types.CommonShardMsg
+	ShardMsg      []xshard_types.CommonShardMsg
 }

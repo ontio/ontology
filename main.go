@@ -139,8 +139,6 @@ func setupAPP() *cli.App {
 }
 
 func main() {
-	fmt.Println("common.haha", common.Haha)
-
 	if err := setupAPP().Run(os.Args); err != nil {
 		cmd.PrintErrorMsg(err.Error())
 		os.Exit(1)
@@ -281,12 +279,12 @@ func initChainManager(ctx *cli.Context, shardID common.ShardID, acc *account.Acc
 	if err := mgr.LoadFromLedger(stateHashHeight); err != nil {
 		log.Errorf("load chain mgr from ledger: %s", err)
 		return nil, err
-		}
+	}
 
 	// set Default Ledger
 	if lgr := ledger.GetShardLedger(shardID); lgr != nil {
 		ledger.DefLedger = lgr
-		}
+	}
 
 	return mgr, err
 }
@@ -299,15 +297,15 @@ func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID common.Shar
 		lgr, err = ledger.NewLedger(dbDir, stateHashHeight)
 		if err != nil {
 			return nil, fmt.Errorf("NewLedger error:%s", err)
-	}
+		}
 	} else {
 		if mainledger == nil {
 			return nil, fmt.Errorf("mainledger is nil")
 		}
 		lgr, err = ledger.NewShardLedger(shardID, dbDir, mainledger)
-	if err != nil {
-		return nil, fmt.Errorf("NewLedger error:%s", err)
-	}
+		if err != nil {
+			return nil, fmt.Errorf("NewLedger error:%s", err)
+		}
 	}
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
@@ -340,9 +338,9 @@ func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.Txn
 			continue
 		}
 		srv, err := mgr.StartTxnPoolServer(shardId, lgr)
-	if err != nil {
-		return nil, fmt.Errorf("Init txpool error:%s", err)
-	}
+		if err != nil {
+			return nil, fmt.Errorf("Init txpool error:%s", err)
+		}
 		stlValidator, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator_%d", shardId.ToUint64()))
 		stlValidator.Register(srv.GetPID(tc.VerifyRspActor))
 		stlValidator2, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator2_%d", shardId.ToUint64()))
@@ -361,7 +359,7 @@ func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.Txn
 	return mgr, nil
 }
 
-func initP2PNode(ctx *cli.Context, shardID types.ShardID, txpoolMgr *txnpool.TxnPoolManager) (*p2pserver.P2PServer, *actor.PID, error) {
+func initP2PNode(ctx *cli.Context, shardID common.ShardID, txpoolMgr *txnpool.TxnPoolManager) (*p2pserver.P2PServer, *actor.PID, error) {
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO && !ctx.Bool(utils.GetFlagName(utils.EnableSoloShardFlag)) {
 		return nil, nil, nil
 	}
@@ -387,7 +385,7 @@ func initP2PNode(ctx *cli.Context, shardID types.ShardID, txpoolMgr *txnpool.Txn
 	return p2p, p2pPID, nil
 }
 
-func initConsensus(ctx *cli.Context, shardID types.ShardID, p2pPid, txPoolPid *actor.PID, acc *account.Account) (consensus.ConsensusService, error) {
+func initConsensus(ctx *cli.Context, shardID common.ShardID, p2pPid, txPoolPid *actor.PID, acc *account.Account) (consensus.ConsensusService, error) {
 	if !config.DefConfig.Consensus.EnableConsensus {
 		return nil, nil
 	}

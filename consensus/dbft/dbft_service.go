@@ -56,10 +56,10 @@ type DbftService struct {
 
 	pid     *actor.PID
 	sub     *events.ActorSubscriber
-	shardID types.ShardID
+	shardID common.ShardID
 }
 
-func NewDbftService(shardID types.ShardID, bkAccount *account.Account, txpool *actor.PID, lgr *ledger.Ledger, p2p *actor.PID) (*DbftService, error) {
+func NewDbftService(shardID common.ShardID, bkAccount *account.Account, txpool *actor.PID, lgr *ledger.Ledger, p2p *actor.PID) (*DbftService, error) {
 	service := &DbftService{
 		Account:       bkAccount,
 		timer:         time.NewTimer(time.Second * 15),

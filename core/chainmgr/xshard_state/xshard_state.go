@@ -221,7 +221,7 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 	if irr {
 		return common.ErrIrregularData
 	}
-	for i:=uint64(0); i< lenOutReqResp; i++ {
+	for i := uint64(0); i < lenOutReqResp; i++ {
 		req := &xshard_types.XShardTxReq{}
 		err := req.Deserialization(source)
 		if err != nil {

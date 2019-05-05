@@ -39,8 +39,8 @@ const (
 
 // SmartContract describe smart contract execute engine
 type SmartContract struct {
-	Contexts         []*context.Context // all execute smart contract context
-	CacheDB          *storage.CacheDB   // state cache
+	Contexts         []*context.Context    // all execute smart contract context
+	CacheDB          *storage.CacheDB      // state cache
 	MainShardTxState *xshard_state.TxState // shardid is tx hash
 	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
 	Store            store.LedgerStore // ledger store

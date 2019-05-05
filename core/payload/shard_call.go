@@ -25,32 +25,19 @@ import (
 )
 
 type ShardCall struct {
-	Msgs []*xshard_types.CommonShardMsg
+	Msgs []xshard_types.CommonShardMsg
 }
 
 //note: InvokeCode.Code has data reference of param source
 func (self *ShardCall) Deserialization(source *common.ZeroCopySource) error {
-	n, _, irregular, eof := source.NextVarUint()
-	if irregular {
-		return common.ErrIrregularData
-	}
+	n, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
 
-	for i := uint64(0); i < n; i++ {
-		buf, _, irregular, eof := source.NextVarBytes()
-		if irregular {
-			return common.ErrIrregularData
-		}
-		if irregular {
-			return common.ErrIrregularData
-		}
-		if eof {
-			return io.ErrUnexpectedEOF
-		}
-		msg := &xshard_types.CommonShardMsg{}
-		if err := msg.Deserialization(common.NewZeroCopySource(buf)); err != nil {
+	for i := uint32(0); i < n; i++ {
+		msg, err := xshard_types.DecodeShardCommonMsg(source)
+		if err != nil {
 			return err
 		}
 
@@ -61,8 +48,8 @@ func (self *ShardCall) Deserialization(source *common.ZeroCopySource) error {
 }
 
 func (self *ShardCall) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarUint(uint64(len(self.Msgs)))
+	sink.WriteUint32(uint32(len(self.Msgs)))
 	for _, msg := range self.Msgs {
-		sink.WriteVarBytes(common.SerializeToBytes(msg))
+		xshard_types.EncodeShardCommonMsg(sink, msg)
 	}
 }

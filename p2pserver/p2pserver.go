@@ -52,7 +52,7 @@ type P2PServer struct {
 	network      p2pnet.P2P
 	msgRouter    *utils.MessageRouter
 	pid          *evtActor.PID
-	shardID      types.ShardID
+	shardID      comm.ShardID
 	blockSyncers map[uint64]*BlockSyncMgr
 	ReconnectAddrs
 	recentPeers    map[uint32][]string
@@ -68,7 +68,7 @@ type ReconnectAddrs struct {
 }
 
 //NewServer return a new p2pserver according to the pubkey
-func NewServer(shardID types.ShardID) *P2PServer {
+func NewServer(shardID comm.ShardID) *P2PServer {
 	n := netserver.NewNetServer()
 
 	p := &P2PServer{
@@ -114,7 +114,7 @@ func (this *P2PServer) Start() error {
 	return nil
 }
 
-func (this *P2PServer) StartSyncShard(shardID types.ShardID) error {
+func (this *P2PServer) StartSyncShard(shardID comm.ShardID) error {
 	lgr := ledger.GetShardLedger(shardID)
 	if lgr == nil {
 		return fmt.Errorf("failed to get shard ledger before starting syncing %d", shardID)

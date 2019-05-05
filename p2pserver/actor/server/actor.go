@@ -20,11 +20,11 @@ package server
 
 import (
 	"fmt"
+	common2 "github.com/ontio/ontology/common"
 	"reflect"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
 )
@@ -43,7 +43,7 @@ func NewP2PActor(p2pServer *p2pserver.P2PServer) *P2PActor {
 }
 
 //start a actor called net_server
-func (this *P2PActor) Start(shardID types.ShardID) (*actor.PID, error) {
+func (this *P2PActor) Start(shardID common2.ShardID) (*actor.PID, error) {
 	this.props = actor.FromProducer(func() actor.Actor { return this })
 	p2pPid, err := actor.SpawnNamed(this.props, "net_server"+fmt.Sprintf("%d", shardID.ToUint64()))
 	return p2pPid, err
@@ -97,7 +97,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 	case *common.AppendBlock:
 		this.server.OnBlockReceive(msg.FromID, msg.BlockSize, msg.Block, msg.MerkleRoot)
 	case *StartSync:
-		if shardID, err := types.NewShardID(msg.ShardID); err == nil {
+		if shardID, err := common2.NewShardID(msg.ShardID); err == nil {
 			if err := this.server.StartSyncShard(shardID); err != nil {
 				log.Errorf("[p2p] start syncing shard %d: %s", shardID, err)
 			}

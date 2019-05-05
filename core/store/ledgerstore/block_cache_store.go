@@ -34,13 +34,13 @@ const (
 )
 
 type BlockCacheStore struct {
-	shardID    types.ShardID
+	shardID    common.ShardID
 	dbDir      string
 	store      *leveldbstore.LevelDBStore
 	execResult map[uint32]exec.ExecuteResult
 }
 
-func ResetBlockCacheStore(shardID types.ShardID, dbDir string) (*BlockCacheStore, error) {
+func ResetBlockCacheStore(shardID common.ShardID, dbDir string) (*BlockCacheStore, error) {
 	dbPath := path.Join(dbDir, fmt.Sprintf("%s_%d", DBDirBlockCache, shardID.ToUint64()))
 
 	// reset block cache

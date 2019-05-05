@@ -233,9 +233,9 @@ func initStakeContractShard(native *native.NativeService, id common.ShardID, min
 
 func peerInitStake(native *native.NativeService, param *JoinShardParam) error {
 	callParam := &shard_stake.PeerStakeParam{
-		ShardId:        param.ShardID,
-		PeerOwner:      param.PeerOwner,
-		Value:          &shard_stake.PeerAmount{PeerPubKey: param.PeerPubKey, Amount: param.StakeAmount},
+		ShardId:   param.ShardID,
+		PeerOwner: param.PeerOwner,
+		Value:     &shard_stake.PeerAmount{PeerPubKey: param.PeerPubKey, Amount: param.StakeAmount},
 	}
 	bf := new(bytes.Buffer)
 	if err := callParam.Serialize(bf); err != nil {

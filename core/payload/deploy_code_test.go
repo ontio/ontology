@@ -26,7 +26,7 @@ import (
 
 func TestDeployCode(t *testing.T) {
 	deploy := DeployCode{
-		Code: []byte{1, 2, 3},
+		Code:        []byte{1, 2, 3},
 		NeedStorage: true,
 		Name:        "test",
 		Version:     "1.0.0",

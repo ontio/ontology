@@ -401,10 +401,10 @@ func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
 type TransactionType byte
 
 const (
-	Deploy     TransactionType = 0xd0
-	Invoke     TransactionType = 0xd1
-	MetaData   TransactionType = 0xd2
-	ShardCall  TransactionType = 0xd3
+	Deploy    TransactionType = 0xd0
+	Invoke    TransactionType = 0xd1
+	MetaData  TransactionType = 0xd2
+	ShardCall TransactionType = 0xd3
 )
 
 // Payload define the func for loading the payload data

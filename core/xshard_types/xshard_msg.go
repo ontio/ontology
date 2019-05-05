@@ -329,6 +329,13 @@ type CommonShardMsg interface {
 	Deserialization(source *common.ZeroCopySource) error
 }
 
+func EncodeShardCommonMsgToBytes(msg CommonShardMsg) []byte {
+	sink := common.NewZeroCopySink(256)
+	sink.WriteUint32(msg.Type())
+	msg.Serialization(sink)
+	return sink.Bytes()
+}
+
 func EncodeShardCommonMsg(sink *common.ZeroCopySink, msg CommonShardMsg) {
 	sink.WriteUint32(msg.Type())
 	msg.Serialization(sink)

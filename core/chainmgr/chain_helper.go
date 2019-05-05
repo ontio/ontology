@@ -50,7 +50,7 @@ func (this *ChainManager) getShardBlockInfo(shardID common.ShardID, height uint3
 	return this.blockPool.GetBlockInfo(shardID, height)
 }
 
-func (this *ChainManager) updateShardBlockInfo(shardID common.ShardID, header *types.Header, shardTxs map[common.ShardID]*message.ShardBlockTx) {
+func (this *ChainManager) updateShardBlockInfo(shardID common.ShardID, block *types.Block, shardTxs map[common.ShardID]*message.ShardBlockTx) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -79,7 +79,7 @@ func (self *ChainManager) initShardInfo(shardID common.ShardID, shard *shardstat
 		seedList = append(seedList, p.IpAddress)
 	}
 	info.SeedList = seedList
-		self.shards[shard.ShardID] = info
+	self.shards[shard.ShardID] = info
 	return info, nil
 }
 

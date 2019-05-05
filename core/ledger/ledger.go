@@ -42,7 +42,7 @@ var DefLedger *Ledger
 var DefLedgerMgr *LedgerMgr
 
 type Ledger struct {
-	ShardID          types.ShardID
+	ShardID          common.ShardID
 	ParentLedger     *Ledger
 	ParentBlockCache *ledgerstore.BlockCacheStore
 	ldgStore         store.LedgerStore
@@ -51,12 +51,12 @@ type Ledger struct {
 
 type LedgerMgr struct {
 	Lock    sync.RWMutex
-	Ledgers map[types.ShardID]*Ledger
+	Ledgers map[common.ShardID]*Ledger
 }
 
 func init() {
 	DefLedgerMgr = &LedgerMgr{
-		Ledgers: make(map[types.ShardID]*Ledger),
+		Ledgers: make(map[common.ShardID]*Ledger),
 	}
 }
 
@@ -70,7 +70,7 @@ func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
 	lgr := &Ledger{
-		ShardID:  types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID),
+		ShardID:  common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID),
 		ldgStore: ldgStore,
 	}
 
@@ -84,7 +84,7 @@ func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
 //
 // NewLedger : initialize ledger for shard-chain
 //
-func NewShardLedger(shardID types.ShardID, dataDir string, mainLedger *Ledger) (*Ledger, error) {
+func NewShardLedger(shardID common.ShardID, dataDir string, mainLedger *Ledger) (*Ledger, error) {
 	if shardID.ToUint64() == config.DEFAULT_SHARD_ID {
 		return mainLedger, nil
 	}
@@ -129,7 +129,7 @@ func NewShardLedger(shardID types.ShardID, dataDir string, mainLedger *Ledger) (
 	return lgr, nil
 }
 
-func GetShardLedger(shardID types.ShardID) *Ledger {
+func GetShardLedger(shardID common.ShardID) *Ledger {
 	DefLedgerMgr.Lock.RLock()
 	defer DefLedgerMgr.Lock.RUnlock()
 
@@ -142,7 +142,7 @@ func CloseLedgers() {
 	for _, lgr := range DefLedgerMgr.Ledgers {
 		lgr.Close()
 	}
-	DefLedgerMgr.Ledgers = make(map[types.ShardID]*Ledger)
+	DefLedgerMgr.Ledgers = make(map[common.ShardID]*Ledger)
 }
 
 func (self *Ledger) GetStore() store.LedgerStore {
