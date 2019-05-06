@@ -618,7 +618,7 @@ func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
 			return nil, fmt.Errorf("[relayer] getBlock  checkBlockHashConsistence failed")
 		}
 	}
-	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf}, nil
+	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf, StateRoot:meta.stateRoot}, nil
 }
 
 func checkBlockHashConsistence(buf []byte, meta BlockMeta) bool {
