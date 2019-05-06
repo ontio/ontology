@@ -357,7 +357,7 @@ type RawBlockMeta struct {
 }
 
 func NewRawBlockMeta(raw []byte) RawBlockMeta {
-	if  len(raw) != 32+8+4+4+4+32+4+32 &&  len(raw) != 32+8+4+4+4+32+4 {
+	if len(raw) != 32+8+4+4+4+32+4+32 && len(raw) != 32+8+4+4+4+32+4 {
 		fmt.Printf("raw length: %d\n", len(raw))
 		panic("wrong meta block len")
 	}
@@ -621,7 +621,7 @@ func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
 			return nil, fmt.Errorf("[relayer] getBlock  checkBlockHashConsistence failed")
 		}
 	}
-	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf, StateRoot:meta.stateRoot}, nil
+	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf, StateRoot: meta.stateRoot}, nil
 }
 
 func checkBlockHashConsistence(buf []byte, meta BlockMeta) bool {
