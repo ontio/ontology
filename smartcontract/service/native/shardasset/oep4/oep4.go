@@ -667,12 +667,15 @@ func GetPendingXShardTransfer(native *native.NativeService) ([]byte, error) {
 	}
 	increase := big.NewInt(1)
 	transfers := make([]*XShardTransferState, 0)
-	for i := big.NewInt(0); i.Cmp(transferNum) < 0; i.Add(i, increase) {
+	for i := big.NewInt(1); i.Cmp(transferNum) <= 0; i.Add(i, increase) {
 		transfer, err := getXShardTransfer(native, AssetId(param.Asset), param.Account, i)
 		if err != nil {
 			log.Debugf("GetPendingXShardTransfer: read transfer failed, tranId %s, err: %s", i.String(), err)
+			continue
 		}
-		transfers = append(transfers, transfer)
+		if transfer.Status == XSHARD_TRANSFER_PENDING {
+			transfers = append(transfers, transfer)
+		}
 	}
 	data, err := json.Marshal(transfers)
 	if err != nil {
