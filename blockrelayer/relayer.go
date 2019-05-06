@@ -115,7 +115,7 @@ func RevertToHeight(dbDir string, height uint32) error {
 		if err != nil {
 			return err
 		}
-		rawBlockMeta := NewRawBlockMeta(raw, h)
+		rawBlockMeta := NewRawBlockMeta(raw)
 		hash := rawBlockMeta.Hash()
 		batch.Delete(hash[:])
 		batch.Delete(metaKey[:])
@@ -180,6 +180,8 @@ func (self *Storage) SaveBlock(block *types.Block, stateRoot common.Uint256) err
 }
 
 func (self *Storage) blockSaveLoop(task <-chan Task) {
+	t := time.NewTicker(MAX_TIME_OUT)
+	tLog := time.NewTicker(3 * time.Second)
 	for {
 		select {
 		case t, ok := <-task:
@@ -200,9 +202,9 @@ func (self *Storage) blockSaveLoop(task <-chan Task) {
 				self.backend.flush()
 				task.finished <- self.backend.currInfo.nextHeight - 1
 			}
-		case <-time.After(MAX_TIME_OUT):
+		case <-tLog.C:
 			log.Infof("relayer status: %s", self.DumpStatus())
-
+		case <-t.C:
 			self.backend.flush()
 			nextHeight := self.backend.currInfo.nextHeight
 
@@ -354,8 +356,9 @@ type RawBlockMeta struct {
 	rawMeta []byte
 }
 
-func NewRawBlockMeta(raw []byte, height uint32) RawBlockMeta {
-	if (height >= CHECK_HEIGHT && len(raw) != 32+8+4+4+4+32+4+32) || (height < CHECK_HEIGHT && len(raw) != 32+8+4+4+4+32+4) {
+func NewRawBlockMeta(raw []byte) RawBlockMeta {
+	if len(raw) != 32+8+4+4+4+32+4+32 && len(raw) != 32+8+4+4+4+32+4 {
+		fmt.Printf("raw length: %d\n", len(raw))
 		panic("wrong meta block len")
 	}
 	return RawBlockMeta{rawMeta: raw}
@@ -591,7 +594,7 @@ func (self *Storage) GetBlockHash(height uint32) (common.Uint256, error) {
 		return common.UINT256_EMPTY, err
 	}
 
-	rawMeta := NewRawBlockMeta(raw, height)
+	rawMeta := NewRawBlockMeta(raw)
 	return rawMeta.Hash(), nil
 }
 
@@ -618,7 +621,7 @@ func (self *StorageBackend) getBlock(metaKey []byte) (*RawBlock, error) {
 			return nil, fmt.Errorf("[relayer] getBlock  checkBlockHashConsistence failed")
 		}
 	}
-	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf}, nil
+	return &RawBlock{Hash: meta.hash, HeaderSize: meta.headerSize, unSignedHeaderSize: meta.unSignedHeaderSize, Height: meta.height, Payload: buf, StateRoot: meta.stateRoot}, nil
 }
 
 func checkBlockHashConsistence(buf []byte, meta BlockMeta) bool {
