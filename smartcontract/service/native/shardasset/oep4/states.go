@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -63,7 +62,7 @@ const (
 )
 
 type XShardTransferState struct {
-	ToShard   types.ShardID  `json:"to_shard"`
+	ToShard   common.ShardID `json:"to_shard"`
 	ToAccount common.Address `json:"to_account"`
 	Amount    *big.Int       `json:"amount"`
 	Status    uint8          `json:"status"`

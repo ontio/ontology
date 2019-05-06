@@ -5,7 +5,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -36,7 +35,7 @@ func (this *ApproveEvent) ToNotify() []interface{} {
 type XShardTransferEvent struct {
 	*TransferEvent
 	TransferId *big.Int
-	ToShard    types.ShardID
+	ToShard    common.ShardID
 }
 
 func (this *XShardTransferEvent) ToNotify() []interface{} {
@@ -47,7 +46,7 @@ func (this *XShardTransferEvent) ToNotify() []interface{} {
 type XShardReceiveEvent struct {
 	*TransferEvent
 	TransferId *big.Int
-	FromShard  types.ShardID
+	FromShard  common.ShardID
 }
 
 func (this *XShardReceiveEvent) ToNotify() []interface{} {

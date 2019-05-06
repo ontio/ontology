@@ -22,12 +22,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"math/big"
 	"sort"
 	"strings"
 
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
@@ -537,7 +537,7 @@ func NotifyRootCommitDpos(native *native.NativeService) ([]byte, error) {
 	if !native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyRootCommitDpos: only can be invoked at shard")
 	}
-	rootShard := types.NewShardIDUnchecked(0)
+	rootShard := common.NewShardIDUnchecked(0)
 	bf := new(bytes.Buffer)
 	if err := utils.SerializeShardId(bf, native.ShardID); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyRootCommitDpos: serialize shardId failed, err: %s", err)
@@ -636,7 +636,7 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: get shard fee balance failed, err: %s", err)
 	}
-	rootShard := types.NewShardIDUnchecked(0)
+	rootShard := common.NewShardIDUnchecked(0)
 	xShardTransferParam := &oep4.XShardTransferParam{
 		From:    contract,
 		To:      utils.ShardStakeAddress,
@@ -701,7 +701,7 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := shardStakeCommitParam.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: serialize commit dpos param failed, err: %s", err)
 	}
-	rootShard := types.NewShardIDUnchecked(0)
+	rootShard := common.NewShardIDUnchecked(0)
 	err = shardsysmsg.NotifyShard(native, rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: xshard commit dpos failed, err: %s", err)

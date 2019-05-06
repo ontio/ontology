@@ -7,7 +7,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -272,7 +271,7 @@ func (this *TransferFromParam) Deserialize(r io.Reader) error {
 type XShardTransferParam struct {
 	From    common.Address
 	To      common.Address
-	ToShard types.ShardID
+	ToShard common.ShardID
 	Amount  *big.Int
 }
 
@@ -342,7 +341,7 @@ func (this *XShardTransferRetryParam) Deserialize(r io.Reader) error {
 type ShardMintParam struct {
 	Asset       uint64
 	Account     common.Address
-	FromShard   types.ShardID
+	FromShard   common.ShardID
 	FromAccount common.Address
 	TransferId  *big.Int
 	Amount      *big.Int

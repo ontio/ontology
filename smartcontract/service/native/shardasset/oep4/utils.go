@@ -8,7 +8,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -73,7 +72,7 @@ func genXShardTransferKey(asset AssetId, user common.Address, transferId *big.In
 		common.BigIntToNeoBytes(transferId)[:])
 }
 
-func genXShardReceiveKey(asset AssetId, user common.Address, fromShard types.ShardID, transferId *big.Int) []byte {
+func genXShardReceiveKey(asset AssetId, user common.Address, fromShard common.ShardID, transferId *big.Int) []byte {
 	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	shardIdBytes := utils.GetUint64Bytes(fromShard.ToUint64())
 	tranIdBytes := common.BigIntToNeoBytes(transferId)[:]
@@ -305,12 +304,12 @@ func deleteAssetId(native *native.NativeService, assetAddr common.Address) {
 	native.CacheDB.Delete(key)
 }
 
-func setShardSupplyInfo(native *native.NativeService, asset AssetId, supplyInfo map[types.ShardID]*big.Int) {
+func setShardSupplyInfo(native *native.NativeService, asset AssetId, supplyInfo map[common.ShardID]*big.Int) {
 	key := genShardSupplyInfoKey(asset)
 	sink := common.NewZeroCopySink(0)
 	num := uint64(len(supplyInfo))
 	sink.WriteUint64(num)
-	shards := make([]types.ShardID, 0)
+	shards := make([]common.ShardID, 0)
 	for shard, _ := range supplyInfo {
 		shards = append(shards, shard)
 	}
@@ -324,14 +323,14 @@ func setShardSupplyInfo(native *native.NativeService, asset AssetId, supplyInfo 
 	native.CacheDB.Put(key, states.GenRawStorageItem(sink.Bytes()))
 }
 
-func getShardSupplyInfo(native *native.NativeService, asset AssetId) (map[types.ShardID]*big.Int, error) {
+func getShardSupplyInfo(native *native.NativeService, asset AssetId) (map[common.ShardID]*big.Int, error) {
 	key := genShardSupplyInfoKey(asset)
 	raw, err := native.CacheDB.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("getShardSupplyInfo: read db failed, err: %s", err)
 	}
 	if len(raw) == 0 {
-		return map[types.ShardID]*big.Int{}, nil
+		return map[common.ShardID]*big.Int{}, nil
 	}
 	storeValue, err := states.GetValueFromRawStorageItem(raw)
 	if err != nil {
@@ -342,7 +341,7 @@ func getShardSupplyInfo(native *native.NativeService, asset AssetId) (map[types.
 	if eof {
 		return nil, fmt.Errorf("getShardSupplyInfo: deserialize shard num failed, err: %s", err)
 	}
-	shards := make(map[types.ShardID]*big.Int)
+	shards := make(map[common.ShardID]*big.Int)
 	for i := uint64(0); i < shardNum; i++ {
 		if shard, err := utils.DeserializationShardId(souce); err != nil {
 			return nil, fmt.Errorf("getShardSupplyInfo: deserialize shard failed, index %d, err: %s", i, err)

@@ -11,7 +11,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -100,7 +99,7 @@ func Init(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("Init: has already init")
 	}
 	initOep4ShardAsset(native)
-	supplyInfo := make(map[types.ShardID]*big.Int)
+	supplyInfo := make(map[common.ShardID]*big.Int)
 	supplyInfo[native.ShardID] = new(big.Int).SetUint64(constants.ONG_TOTAL_SUPPLY)
 	setShardSupplyInfo(native, ONG_ASSET_ID, supplyInfo)
 	registerAsset(native, utils.OngContractAddress, ONG_ASSET_ID)
@@ -141,7 +140,7 @@ func Register(native *native.NativeService) ([]byte, error) {
 		TotalSupply: param.TotalSupply,
 	}
 	setContract(native, assetId, oep4)
-	shardSupplyInfo := map[types.ShardID]*big.Int{native.ShardID: param.TotalSupply}
+	shardSupplyInfo := map[common.ShardID]*big.Int{native.ShardID: param.TotalSupply}
 	setShardSupplyInfo(native, assetId, shardSupplyInfo)
 	transferEvent := &TransferEvent{
 		From:   common.ADDRESS_EMPTY,

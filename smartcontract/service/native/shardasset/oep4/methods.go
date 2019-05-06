@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -80,7 +79,7 @@ func userMint(native *native.NativeService, asset AssetId, user common.Address, 
 	return nil
 }
 
-func xShardTransfer(native *native.NativeService, asset AssetId, from, to common.Address, toShard types.ShardID,
+func xShardTransfer(native *native.NativeService, asset AssetId, from, to common.Address, toShard common.ShardID,
 	amount *big.Int) (*big.Int, error) {
 	transferNum, err := getXShardTransferNum(native, asset, from)
 	if err != nil {
@@ -98,7 +97,7 @@ func xShardTransfer(native *native.NativeService, asset AssetId, from, to common
 	return transferNum, nil
 }
 
-func rootReceiveAsset(native *native.NativeService, fromShard types.ShardID, asset AssetId, amount *big.Int) error {
+func rootReceiveAsset(native *native.NativeService, fromShard common.ShardID, asset AssetId, amount *big.Int) error {
 	supplyInfo, err := getShardSupplyInfo(native, asset)
 	if err != nil {
 		return fmt.Errorf("rootReceiveAsset: failed, err: %s", err)
@@ -122,7 +121,7 @@ func rootReceiveAsset(native *native.NativeService, fromShard types.ShardID, ass
 	return nil
 }
 
-func rootTransferSucc(native *native.NativeService, toShard types.ShardID, asset AssetId, amount *big.Int) error {
+func rootTransferSucc(native *native.NativeService, toShard common.ShardID, asset AssetId, amount *big.Int) error {
 	supplyInfo, err := getShardSupplyInfo(native, asset)
 	if err != nil {
 		return fmt.Errorf("rootTransferSucc: failed, err: %s", err)
@@ -146,7 +145,7 @@ func rootTransferSucc(native *native.NativeService, toShard types.ShardID, asset
 	return nil
 }
 
-func notifyShardMint(native *native.NativeService, toShard types.ShardID, param *ShardMintParam) error {
+func notifyShardMint(native *native.NativeService, toShard common.ShardID, param *ShardMintParam) error {
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyShardMint: failed, err: %s", err)
@@ -157,7 +156,7 @@ func notifyShardMint(native *native.NativeService, toShard types.ShardID, param 
 	return nil
 }
 
-func notifyTransferSuccess(native *native.NativeService, toShard types.ShardID, param *ShardMintParam) error {
+func notifyTransferSuccess(native *native.NativeService, toShard common.ShardID, param *ShardMintParam) error {
 	event := &XShardReceiveEvent{
 		TransferEvent: &TransferEvent{
 			AssetId: AssetId(param.Asset),
@@ -185,7 +184,7 @@ func notifyTransferSuccess(native *native.NativeService, toShard types.ShardID, 
 	return nil
 }
 
-func notifyShardReceiveOng(native *native.NativeService, toShard types.ShardID, param *ShardMintParam) error {
+func notifyShardReceiveOng(native *native.NativeService, toShard common.ShardID, param *ShardMintParam) error {
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyShardReceiveOng: failed, err: %s", err)
