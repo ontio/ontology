@@ -35,7 +35,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardasset/oep4"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -544,13 +543,7 @@ func NotifyRootCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := utils.SerializeShardId(bf, native.ShardID); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyRootCommitDpos: serialize shardId failed, err: %s", err)
 	}
-	notifyParam := &shardsysmsg.NotifyReqParam{
-		ToShard:    rootShard,
-		ToContract: utils.ShardMgmtContractAddress,
-		Method:     COMMIT_DPOS_NAME,
-		Args:       bf.Bytes(),
-	}
-	shardsysmsg.RemoteNotifyApi(native, notifyParam)
+	native.NotifyRemoteShard(rootShard, utils.ShardMgmtContractAddress, COMMIT_DPOS_NAME, bf.Bytes())
 	return utils.BYTE_TRUE, nil
 }
 
@@ -602,13 +595,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	// TODO: update shard config, get shard current view stake info
 	setShardState(native, contract, shard)
-	notifyParam := &shardsysmsg.NotifyReqParam{
-		ToShard:    shardId,
-		ToContract: contract,
-		Method:     SHARD_COMMIT_DPOS,
-		Args:       []byte{},
-	}
-	shardsysmsg.RemoteNotifyApi(native, notifyParam)
+	native.NotifyRemoteShard(shardId, contract, SHARD_COMMIT_DPOS, []byte{})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -631,13 +618,7 @@ func NotifyShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: check witness failed, err: %s", err)
 	}
-	notifyParam := &shardsysmsg.NotifyReqParam{
-		ToShard:    shardId,
-		ToContract: contract,
-		Method:     SHARD_COMMIT_DPOS,
-		Args:       []byte{},
-	}
-	shardsysmsg.RemoteNotifyApi(native, notifyParam)
+	native.NotifyRemoteShard(shardId, contract, SHARD_COMMIT_DPOS, []byte{})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -679,13 +660,7 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := shardStakeCommitParam.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: serialize commit dpos param failed, err: %s", err)
 	}
-	notifyParam := &shardsysmsg.NotifyReqParam{
-		ToShard:    rootShard,
-		ToContract: utils.ShardStakeAddress,
-		Method:     shard_stake.COMMIT_DPOS,
-		Args:       bf.Bytes(),
-	}
-	shardsysmsg.RemoteNotifyApi(native, notifyParam)
+	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
 	info := &shardstates.ShardCommitDposInfo{TransferId: transferId, FeeAmount: balance, Height: native.Height,
 		Hash: native.Tx.Hash()}
 	setShardCommitDposInfo(native, info)
@@ -722,13 +697,7 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: serialize commit dpos param failed, err: %s", err)
 	}
 	rootShard := common.NewShardIDUnchecked(0)
-	notifyParam := &shardsysmsg.NotifyReqParam{
-		ToShard:    rootShard,
-		ToContract: utils.ShardStakeAddress,
-		Method:     shard_stake.COMMIT_DPOS,
-		Args:       bf.Bytes(),
-	}
-	shardsysmsg.RemoteNotifyApi(native, notifyParam)
+	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
 	return utils.BYTE_TRUE, nil
 }
 

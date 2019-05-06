@@ -232,7 +232,7 @@ func handleShardAbortMsg(msg *xshard_types.XShardAbortMsg, store store.LedgerSto
 		return
 	}
 	// update tx state
-	txState.State = xshard_state.TxAbort
+	txState.ExecState = xshard_state.ExecAborted
 	//unlockTxContract(ctx, tx)
 
 	xshardDB.SetXShardState(txState)
@@ -249,7 +249,7 @@ func handleShardCommitMsg(msg *xshard_types.XShardCommitMsg, store store.LedgerS
 	// update tx state
 	// commit the cached rwset
 	cache.SetCache(txState.WriteSet)
-	txState.State = xshard_state.TxCommit
+	txState.ExecState = xshard_state.ExecCommited
 	//todo : determine which tx the notification belong
 	notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, txState.Notify.Notify...)
 
@@ -294,7 +294,7 @@ func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, store store.Led
 
 	// commit cached rwset
 	cache.SetCache(txState.WriteSet)
-	txState.State = xshard_state.TxCommit
+	txState.ExecState = xshard_state.ExecCommited
 	//todo : determine which tx the notification belong
 	notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, txState.Notify.Notify...)
 	// todo:
@@ -365,7 +365,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 		// TODO: clean TX resources
 		notify.ShardMsg = append(notify.ShardMsg, abort)
 
-		txState.State = xshard_state.TxAbort
+		txState.ExecState = xshard_state.ExecAborted
 		xshardDB.SetXShardState(txState)
 		return
 	}
@@ -755,6 +755,7 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 			notify.ShardMsg = append(notify.ShardMsg, txState.PendingReq)
 
 			xshardDB.SetXShardState(txState)
+			return nil, nil
 		}
 
 		return nil, err

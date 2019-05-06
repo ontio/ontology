@@ -20,15 +20,11 @@ package shardsysmsg
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
-
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
 
 /////////
@@ -41,12 +37,10 @@ import (
 //
 /////////
 
-var ErrYield = errors.New("transaction execution yielded")
-
 const (
 	// function names
 	// 		processShardMsg: to process tx sent from remote shards
-	//      remoteSendShardMsg/RemoteInvokeApi: invoked by local-contract, trigger remote-tx event
+	//      remoteSendShardMsg/InvokeRemoteShard: invoked by local-contract, trigger remote-tx event
 	INIT_NAME               = "init"
 	PROCESS_CROSS_SHARD_MSG = "processShardMsg"
 	REMOTE_NOTIFY           = "remoteSendShardMsg"
@@ -69,83 +63,9 @@ func ShardSysMsgInit(ctx *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-// runtime api
-func RemoteNotifyApi(ctx *native.NativeService, param *NotifyReqParam) {
-	txState := ctx.MainShardTxState
-	// send with minimal gas fee
-	msg := &xshard_types.XShardNotify{
-		ShardMsgHeader: xshard_types.ShardMsgHeader{
-			SourceShardID: ctx.ShardID,
-			TargetShardID: param.ToShard,
-			SourceTxHash:  ctx.Tx.Hash(),
-		},
-		NotifyID: txState.NumNotifies,
-		Contract: param.ToContract,
-		Payer:    ctx.Tx.Payer,
-		Fee:      neovm.MIN_TRANSACTION_GAS,
-		Method:   param.Method,
-		Args:     param.Args,
-	}
-	txState.NumNotifies += 1
-	// todo: clean shardnotifies when replay transaction
-	txState.ShardNotifies = append(txState.ShardNotifies, msg)
-}
-
-// runtime api
-func RemoteInvokeApi(ctx *native.NativeService, reqParam *NotifyReqParam) ([]byte, error) {
-	txState := ctx.MainShardTxState
-	reqIdx := txState.NextReqID
-	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
-		return utils.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
-	}
-	msg := &xshard_types.XShardTxReq{
-		ShardMsgHeader: xshard_types.ShardMsgHeader{
-			SourceShardID: ctx.ShardID,
-			TargetShardID: reqParam.ToShard,
-			SourceTxHash:  ctx.Tx.Hash(),
-		},
-		IdxInTx:  uint64(reqIdx),
-		Payer:    ctx.Tx.Payer,
-		Fee:      neovm.MIN_TRANSACTION_GAS,
-		Contract: reqParam.ToContract,
-		Method:   reqParam.Method,
-		Args:     reqParam.Args,
-	}
-	txState.NextReqID += 1
-
-	if reqIdx < uint32(len(txState.OutReqResp)) {
-		if xshard_types.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
-			return utils.BYTE_FALSE, xshard_state.ErrMismatchedRequest
-		}
-		rspMsg := txState.OutReqResp[reqIdx].Resp
-		var resultErr error
-		if rspMsg.Error {
-			resultErr = errors.New("remote invoke got error response")
-		}
-		return rspMsg.Result, resultErr
-	}
-
-	if len(txState.TxPayload) == 0 {
-		txPayload := bytes.NewBuffer(nil)
-		if err := ctx.Tx.Serialize(txPayload); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to get tx payload: %s", err)
-		}
-		txState.TxPayload = txPayload.Bytes()
-	}
-
-	// no response found in tx-statedb, send request
-	if err := txState.AddTxShard(reqParam.ToShard); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
-	}
-
-	txState.PendingReq = msg
-	txState.ExecState = xshard_state.ExecYielded
-
-	return utils.BYTE_FALSE, ErrYield
-}
-
 // RemoteNotify
 // process requests from local-contract, to send notify-call to remote shard
+//todo remove this function
 func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 	if ctx.ContextRef.IsPreExec() {
 		return utils.BYTE_TRUE, nil
@@ -156,7 +76,7 @@ func RemoteNotify(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("remote notify, invalid param: %s", err)
 	}
 
-	RemoteNotifyApi(ctx, reqParam)
+	ctx.NotifyRemoteShard(reqParam.ToShard, reqParam.ToContract, reqParam.Method, reqParam.Args)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -173,8 +93,7 @@ func RemoteInvoke(ctx *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("remote invoke, invalid param: %s", err)
 	}
 
-	//todo: move out of testsuite
-	return RemoteInvokeApi(ctx, reqParam)
+	return ctx.InvokeRemoteShard(reqParam.ToShard, reqParam.ToContract, reqParam.Method, reqParam.Args)
 }
 
 // ProcessCrossShardMsg

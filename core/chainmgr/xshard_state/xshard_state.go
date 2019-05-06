@@ -22,12 +22,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ontio/ontology/core/xshard_types"
 	"io"
 	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
@@ -52,12 +52,15 @@ var (
 	ErrMismatchedResponse  = errors.New("mismatched response")
 )
 
-type ExecuteState uint8
+var ErrYield = errors.New("transaction execution yielded")
 
-const ExecNone = ExecuteState(0)
-const ExecYielded = ExecuteState(1)
-const ExecPrepared = ExecuteState(2)
-const ExecCompleted = ExecuteState(3)
+type ExecState uint8
+
+const ExecNone = ExecState(0)
+const ExecYielded = ExecState(1)
+const ExecPrepared = ExecState(2)
+const ExecCommited = ExecState(3)
+const ExecAborted = ExecState(4)
 
 //
 // TxState
@@ -82,8 +85,8 @@ type XShardTxReqResp struct {
 
 type TxState struct {
 	State         int
-	TxID          ShardTxID // cross shard tx id: userTxHash+notify1+notify2...
-	Shards        map[common.ShardID]int
+	TxID          ShardTxID              // cross shard tx id: userTxHash+notify1+notify2...
+	Shards        map[common.ShardID]int // shards in this shard transaction, not include notification
 	TxPayload     []byte
 	NumNotifies   uint32
 	ShardNotifies []*xshard_types.XShardNotify
@@ -92,7 +95,7 @@ type TxState struct {
 	TotalInReq    uint32
 	OutReqResp    []*XShardTxReqResp
 	PendingReq    *xshard_types.XShardTxReq
-	ExecState     ExecuteState
+	ExecState     ExecState
 	Result        []byte
 	ResultErr     string
 	WriteSet      *overlaydb.MemDB
@@ -100,8 +103,6 @@ type TxState struct {
 }
 
 func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
-	state, eof := source.NextUint32()
-	self.State = int(state)
 	id, _, irr, eof := source.NextString()
 	if irr {
 		return common.ErrIrregularData
@@ -225,7 +226,7 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 		}
 	}
 	st, eof := source.NextUint8()
-	self.ExecState = ExecuteState(st)
+	self.ExecState = ExecState(st)
 	self.Result, _, irr, eof = source.NextVarBytes()
 	if irr {
 		return common.ErrIrregularData
@@ -254,7 +255,6 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 }
 
 func (self *TxState) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteUint32(uint32(self.State))
 	sink.WriteString(string(self.TxID))
 	type shardState struct {
 		shard common.ShardID
@@ -352,7 +352,7 @@ func (self *TxState) GetTxShards() []common.ShardID {
 }
 
 func (self *TxState) IsCommitReady() bool {
-	if self.State != TxPrepared {
+	if self.ExecState != ExecPrepared {
 		return false
 	}
 	for _, state := range self.Shards {
@@ -373,57 +373,6 @@ func (self *TxState) AddTxShard(id common.ShardID) error {
 	return nil
 }
 
-func (self *TxState) IsTxExecutionPaused(tx common.Uint256) bool {
-	return self.State != TxExec
-}
-
-func IsTxExecutionPaused(tx common.Uint256) (bool, error) {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return false, err
-	}
-
-	return txState.State != TxExec, nil
-}
-
-func (txState *TxState) SetTxExecutionPaused() {
-	switch txState.State {
-	case TxExec:
-		txState.State = TxWait
-	}
-}
-
-func SetTxExecutionPaused(tx common.Uint256) error {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return err
-	}
-	switch txState.State {
-	case TxExec:
-		txState.State = TxWait
-	}
-	return nil
-}
-
-func (txState *TxState) SetTxExecutionContinued() {
-	switch txState.State {
-	case TxWait:
-		txState.State = TxExec
-	}
-}
-
-func SetTxExecutionContinued(tx common.Uint256) error {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return err
-	}
-	switch txState.State {
-	case TxWait:
-		txState.State = TxExec
-	}
-	return nil
-}
-
 func (self *TxState) SetShardPrepared(shardId common.ShardID) error {
 	if _, ok := self.Shards[shardId]; !ok {
 		return fmt.Errorf("invalid shard ID %d, in tx commit", shardId)
@@ -432,21 +381,8 @@ func (self *TxState) SetShardPrepared(shardId common.ShardID) error {
 	return nil
 }
 
-func (self *TxState) IsTxCommitReady() bool {
-	if self.State != TxPrepared {
-		return false
-	}
-	for _, state := range self.Shards {
-		if state != TxPrepared {
-			return false
-		}
-	}
-	return true
-}
-
 func (self *TxState) Clone() *TxState {
 	txs := &TxState{
-		State:      self.State,
 		Shards:     make(map[common.ShardID]int),
 		TxPayload:  self.TxPayload,
 		NextReqID:  self.NextReqID,
@@ -484,51 +420,12 @@ func CreateTxState(tx ShardTxID) *TxState {
 		return state
 	}
 	state := &TxState{
-		State:     TxExec,
 		Shards:    make(map[common.ShardID]int),
 		InReqResp: make(map[common.ShardID][]*XShardTxReqResp),
 		TxID:      tx,
 	}
 	shardTxStateTable.TxStates[tx] = state
 	return state
-}
-
-func PutTxState(txid ShardTxID, state *TxState) {
-	shardTxStateTable.TxStates[txid] = state
-}
-
-func GetTxState(tx common.Uint256) (*TxState, error) {
-	//todo:
-	txID := ShardTxID(string(tx[:]))
-	if state, present := shardTxStateTable.TxStates[txID]; present {
-		return state, nil
-	}
-	return nil, ErrNotFound
-}
-
-func (self *TxState) SetTxPrepared() error {
-	if self.State != TxExec {
-		return fmt.Errorf("invalid state to prepared: %s", self.State)
-	}
-
-	self.State = TxPrepared
-	return nil
-}
-
-func SetTxResult(tx common.Uint256, result []byte, resultErr error) error {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return err
-	}
-
-	txState.Result = result
-	txState.ResultErr = resultErr.Error()
-	return nil
-}
-
-func (self *TxState) VerifyStates() error {
-	// TODO
-	return nil
 }
 
 func GetTxContracts(tx common.Uint256) ([]common.Address, error) {

@@ -27,7 +27,7 @@ import (
 )
 
 type ConsensusMessage interface {
-	Serialization(sink *common.ZeroCopySink) error
+	Serialization(sink *common.ZeroCopySink)
 	Deserialization(source *common.ZeroCopySource) error
 	Type() ConsensusMessageType
 	ViewNumber() byte
@@ -85,7 +85,7 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error) {
 		return blockSigs, nil
 	}
 
-	return nil, errors.New("The message is invalid.")
+	return nil, errors.New("the message is invalid")
 }
 
 func (cd *ConsensusMessageData) Serialization(sink *common.ZeroCopySink) {

@@ -19,12 +19,14 @@
 package native
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/states"
@@ -40,6 +42,9 @@ type (
 var (
 	Contracts = make(map[common.Address]RegisterService)
 )
+
+var BYTE_FALSE = []byte{0}
+var BYTE_TRUE = []byte{1}
 
 // Native service struct
 // Invoke a native smart contract, new a native service
@@ -82,7 +87,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	this.Notifications = []*event.NotifyEventInfo{}
 	result, err := service(this)
 	if err != nil {
-		return result, errors.NewDetailErr(err, errors.ErrNoCode, "[Invoke] Native serivce function execute error!")
+		return result, errors.New("[Invoke] Native serivce function execute error")
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
@@ -99,4 +104,80 @@ func (this *NativeService) NativeCall(address common.Address, method string, arg
 	}
 	this.InvokeParam = c
 	return this.Invoke()
+}
+
+// runtime api
+func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.Address, method string, args []byte) {
+	txState := ctx.MainShardTxState
+	// send with minimal gas fee
+	msg := &xshard_types.XShardNotify{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: ctx.ShardID,
+			TargetShardID: target,
+			SourceTxHash:  ctx.Tx.Hash(),
+		},
+		NotifyID: txState.NumNotifies,
+		Contract: cont,
+		Payer:    ctx.Tx.Payer,
+		Fee:      20000, // Per transaction base cost.
+		Method:   method,
+		Args:     args,
+	}
+	txState.NumNotifies += 1
+	// todo: clean shardnotifies when replay transaction
+	txState.ShardNotifies = append(txState.ShardNotifies, msg)
+}
+
+// runtime api
+func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.Address,
+	method string, args []byte) ([]byte, error) {
+	txState := ctx.MainShardTxState
+	reqIdx := txState.NextReqID
+	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
+		return BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
+	}
+	msg := &xshard_types.XShardTxReq{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: ctx.ShardID,
+			TargetShardID: target,
+			SourceTxHash:  ctx.Tx.Hash(),
+		},
+		IdxInTx:  uint64(reqIdx),
+		Payer:    ctx.Tx.Payer,
+		Fee:      20000, // Per transaction base cost.
+		Contract: cont,
+		Method:   method,
+		Args:     args,
+	}
+	txState.NextReqID += 1
+
+	if reqIdx < uint32(len(txState.OutReqResp)) {
+		if xshard_types.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
+			return BYTE_FALSE, xshard_state.ErrMismatchedRequest
+		}
+		rspMsg := txState.OutReqResp[reqIdx].Resp
+		var resultErr error
+		if rspMsg.Error {
+			resultErr = errors.New("remote invoke got error response")
+		}
+		return rspMsg.Result, resultErr
+	}
+
+	if len(txState.TxPayload) == 0 {
+		txPayload := bytes.NewBuffer(nil)
+		if err := ctx.Tx.Serialize(txPayload); err != nil {
+			return BYTE_FALSE, fmt.Errorf("remote invoke, failed to get tx payload: %s", err)
+		}
+		txState.TxPayload = txPayload.Bytes()
+	}
+
+	// no response found in tx-statedb, send request
+	if err := txState.AddTxShard(target); err != nil {
+		return BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
+	}
+
+	txState.PendingReq = msg
+	txState.ExecState = xshard_state.ExecYielded
+
+	return BYTE_FALSE, xshard_state.ErrYield
 }

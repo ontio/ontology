@@ -31,9 +31,9 @@ import (
 func lockTxContracts(ctx *native.NativeService, tx common.Uint256, result []byte, resultErr error) error {
 	if result != nil {
 		// save result/err to txstate-db
-		if err := xshard_state.SetTxResult(tx, result, resultErr); err != nil {
-			return fmt.Errorf("save Tx result: %s", err)
-		}
+		//if err := xshard_state.SetTxResult(tx, result, resultErr); err != nil {
+		//	return fmt.Errorf("save Tx result: %s", err)
+		//}
 	}
 
 	contracts, err := xshard_state.GetTxContracts(tx)
