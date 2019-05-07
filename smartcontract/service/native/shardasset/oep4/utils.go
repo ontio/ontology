@@ -211,14 +211,14 @@ func getXShardTransferNum(native *native.NativeService, asset AssetId, user comm
 }
 
 func receiveTransfer(native *native.NativeService, param *ShardMintParam) {
-	key := genXShardReceiveKey(AssetId(param.Asset), param.Account, param.FromShard, param.TransferId)
+	key := genXShardReceiveKey(AssetId(param.Asset), param.FromAccount, param.FromShard, param.TransferId)
 	sink := common.NewZeroCopySink(0)
 	sink.WriteBool(true)
 	native.CacheDB.Put(key, states.GenRawStorageItem(sink.Bytes()))
 }
 
 func isTransferReceived(native *native.NativeService, param *ShardMintParam) (bool, error) {
-	key := genXShardReceiveKey(AssetId(param.Asset), param.Account, param.FromShard, param.TransferId)
+	key := genXShardReceiveKey(AssetId(param.Asset), param.FromAccount, param.FromShard, param.TransferId)
 	raw, err := native.CacheDB.Get(key)
 	if err != nil {
 		return false, fmt.Errorf("isTransferReceived: read db failed, err: %s", err)

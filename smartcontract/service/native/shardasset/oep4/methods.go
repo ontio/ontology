@@ -171,7 +171,7 @@ func notifyTransferSuccess(native *native.NativeService, toShard common.ShardID,
 
 	tranSuccParam := &XShardTranSuccParam{
 		Asset:      param.Asset,
-		Account:    param.Account,
+		Account:    param.FromAccount,
 		TransferId: param.TransferId,
 	}
 	bf := new(bytes.Buffer)
