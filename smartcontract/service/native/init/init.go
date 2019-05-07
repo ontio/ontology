@@ -20,8 +20,6 @@ package init
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
-	"github.com/ontio/ontology/smartcontract/service/native/shardasset"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
@@ -31,7 +29,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	"github.com/ontio/ontology/smartcontract/service/native/shardasset"
 	"github.com/ontio/ontology/smartcontract/service/native/shardccmc"
 	"github.com/ontio/ontology/smartcontract/service/native/shardhotel"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"

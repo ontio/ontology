@@ -20,8 +20,6 @@ package chainmgr
 
 import (
 	"fmt"
-	ontErr "github.com/ontio/ontology/errors"
-	bcomm "github.com/ontio/ontology/http/base/common"
 	"reflect"
 	"sync"
 
@@ -37,10 +35,12 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
+	ontErr "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
 	hserver "github.com/ontio/ontology/http/base/actor"
+	bcomm "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/actor/server"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"

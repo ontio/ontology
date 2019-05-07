@@ -68,17 +68,6 @@ func unlockTxContract(ctx *native.NativeService, tx common.Uint256) error {
 	return nil
 }
 
-func waitRemoteResponse(ctx *native.NativeService, tx common.Uint256) error {
-	// TODO: stop any further processing
-	if err := xshard_state.SetTxExecutionPaused(tx); err != nil {
-		return fmt.Errorf("set Tx execution paused: %s", err)
-	}
-	for ctx.ContextRef.CurrentContext() != ctx.ContextRef.EntryContext() {
-		ctx.ContextRef.PopContext()
-	}
-	return nil
-}
-
 func NotifyShard(native *native.NativeService, toShard common.ShardID, contract common.Address, method string, args []byte) error {
 	paramBytes := new(bytes.Buffer)
 	params := &NotifyReqParam{

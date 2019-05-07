@@ -21,11 +21,11 @@ package chainmgr
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology/common/config"
 	"math"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
@@ -35,7 +35,6 @@ import (
 	bcommon "github.com/ontio/ontology/http/base/common"
 	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-
 	nativeUtil "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -295,4 +294,3 @@ func newShardBlockTx(evts []*evtmsg.ShardEventState) (*message.ShardBlockTx, err
 	return &message.ShardBlockTx{Tx: tx}, nil
 
 }
-

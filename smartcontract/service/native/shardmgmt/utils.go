@@ -319,4 +319,3 @@ func preCommitDpos(native *native.NativeService, shardId common.ShardID) error {
 	}
 	return nil
 }
-
