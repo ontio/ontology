@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/types"
 	"math"
 	"math/big"
 
@@ -496,8 +497,8 @@ func XShardTransferRetry(native *native.NativeService) ([]byte, error) {
 }
 
 func XShardTransferSucc(native *native.NativeService) ([]byte, error) {
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardSysMsgContractAddress {
-		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: only can be invoked by shard sysmsg")
+	if native.Tx.TxType != types.ShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
 	}
 	param := &XShardTranSuccParam{}
 	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
@@ -529,8 +530,8 @@ func XShardTransferSucc(native *native.NativeService) ([]byte, error) {
 }
 
 func ShardReceiveAsset(native *native.NativeService) ([]byte, error) {
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardSysMsgContractAddress {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: only can be invoked by shard sysmsg")
+	if native.Tx.TxType != types.ShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
 	}
 	param := &ShardMintParam{}
 	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
@@ -625,8 +626,8 @@ func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
 }
 
 func XShardReceiveOng(native *native.NativeService) ([]byte, error) {
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardSysMsgContractAddress {
-		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: only can be invoked by shard sysmsg")
+	if native.Tx.TxType != types.ShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
 	}
 	param := &ShardMintParam{}
 	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {

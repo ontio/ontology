@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"math/big"
 	"strings"
 
@@ -264,8 +265,8 @@ func UserWithdrawSuccess(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawSuccess: only can be invoked at child shard")
 	}
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardSysMsgContractAddress {
-		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawSuccess: only can be invoked by shard sys msg contract")
+	if native.Tx.TxType != types.ShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
 	}
 	param := new(UserWithdrawSuccessParam)
 	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {

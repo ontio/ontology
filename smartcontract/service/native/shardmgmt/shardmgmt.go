@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"math/big"
 	"sort"
 	"strings"
@@ -565,7 +566,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: get shard: %s", err)
 	}
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardSysMsgContractAddress {
+	if native.Tx.TxType != types.ShardCall {
 		if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: checkwitness failed, err: %s", err)
 		}
@@ -628,8 +629,8 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
 	}
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardSysMsgContractAddress {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked at shard sysmsg contract")
+	if native.Tx.TxType != types.ShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	balance, err := ong.GetOngBalance(native, contract)
