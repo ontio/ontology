@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -95,6 +96,10 @@ func sendRawTx(tx *types.Transaction, shardPeerIp string, shardPort uint) error 
 	err := tx.Serialize(&buffer)
 	if err != nil {
 		return fmt.Errorf("serialize error:%s", err)
+	}
+	if strings.Contains(shardPeerIp, ":") {
+		addr := strings.Split(shardPeerIp, ":")
+		shardPeerIp = addr[0]
 	}
 	reqAddr := fmt.Sprintf("http://%s:%d", shardPeerIp, shardPort)
 

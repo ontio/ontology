@@ -20,6 +20,8 @@ package chainmgr
 
 import (
 	"fmt"
+	ontErr "github.com/ontio/ontology/errors"
+	bcomm "github.com/ontio/ontology/http/base/common"
 	"reflect"
 	"sync"
 
@@ -80,9 +82,7 @@ type ChainManager struct {
 	// TODO: persistent
 	blockPool *shardmsg.ShardBlockPool
 
-	// last local block processed by ChainManager
-	processedParentBlockHeight uint32
-	account                    *account.Account
+	account *account.Account
 
 	// send transaction to local
 	txPoolPid *actor.PID
@@ -207,7 +207,6 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 	self.shards[mainShardID] = mainShardInfo
 	self.mainLedger = lgr
 	ledger.DefLedger = lgr
-	self.processedParentBlockHeight = lgr.GetCurrentBlockHeight()
 	log.Infof("main ledger init success")
 	return nil
 }
@@ -482,31 +481,23 @@ func (self *ChainManager) Stop() {
 func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPList []string, shardPort uint) error {
 	// FIXME: broadcast Tx to seed nodes of target shard
 
-	// relay with parent shard
-	//payload := new(bytes.Buffer)
-	//if err := tx.Serialize(payload); err != nil {
-	//	return fmt.Errorf("failed to serialize tx: %s", err)
-	//}
-	//
-	//msg := &shardmsg.CrossShardMsg{
-	//	Version: shardmsg.SHARD_PROTOCOL_VERSION,
-	//	Type:    shardmsg.TXN_RELAY_MSG,
-	//	Sender:  self.parentPid,
-	//	Data:    payload.Bytes(),
-	//}
-	//self.sendShardMsg(self.parentShardID, msg)
-	//return nil
-	if len(shardPeerIPList) == 0 {
-		return fmt.Errorf("send raw tx failed: no shard peers")
+	if tx.ShardID == self.shardID.ToUint64() {
+		errCode, errString := bcomm.SendTxToPool(tx)
+		if errCode != ontErr.ErrNoError {
+			return fmt.Errorf(errString)
+		}
+	} else {
+		if len(shardPeerIPList) == 0 {
+			return fmt.Errorf("send raw tx failed: no shard peers")
+		}
+		if err := sendRawTx(tx, shardPeerIPList[0], shardPort); err != nil {
+			return fmt.Errorf("send raw tx failed: %s, shardAddr %s:%d", err, shardPeerIPList[0], shardPort)
+		}
 	}
-	if err := sendRawTx(tx, shardPeerIPList[0], shardPort); err != nil {
-		return fmt.Errorf("send raw tx failed: %s, shardAddr %s:%d", err, shardPeerIPList[0], shardPort)
-	}
-
 	return nil
 }
 
 func (self *ChainManager) getShardRPCPort(shardID common.ShardID) uint {
 	// TODO: get from shardinfo
-	return 0
+	return 20336
 }
