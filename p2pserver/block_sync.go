@@ -526,8 +526,11 @@ func (this *BlockSyncMgr) OnAddBlock(height uint32) {
 		}
 	}
 	this.lock.Unlock()
-	defer this.releaseSyncSaveBlockLock()
-	this.SaveSyncBlock(height)
+	if this.SaveSyncBlock(height) {
+		this.releaseSyncSaveBlockLock(true)
+	} else {
+		this.releaseSyncSaveBlockLock(false)
+	}
 }
 
 //OnAddNode to node list when a new node added
@@ -644,10 +647,10 @@ func (this *BlockSyncMgr) tryGetSyncSaveBlockLock() bool {
 	return false
 }
 
-func (this *BlockSyncMgr) releaseSyncSaveBlockLock() {
+func (this *BlockSyncMgr) releaseSyncSaveBlockLock(flag bool) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.syncSaveBlockLock = true
+	this.syncSaveBlockLock = flag
 }
 
 func (this *BlockSyncMgr) saveBlock() {
