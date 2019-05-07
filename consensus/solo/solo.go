@@ -54,12 +54,12 @@ type SoloService struct {
 	sub              *events.ActorSubscriber
 
 	// sharding
-	shardID      types.ShardID
+	shardID      common.ShardID
 	parentHeight uint32 // ParentHeight of last block
 	ledger       *ledger.Ledger
 }
 
-func NewSoloService(shardID types.ShardID, bkAccount *account.Account, txpool *actor.PID, lgr *ledger.Ledger) (*SoloService, error) {
+func NewSoloService(shardID common.ShardID, bkAccount *account.Account, txpool *actor.PID, lgr *ledger.Ledger) (*SoloService, error) {
 	service := &SoloService{
 		Account:          bkAccount,
 		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},

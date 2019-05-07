@@ -20,16 +20,16 @@ package shardmgmt_test
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/common"
 	"testing"
 
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 )
 
 func newCreateShardParam(t *testing.T, acc *account.Account) []byte {
 	param := &shardmgmt.CreateShardParam{
-		ParentShardID: types.NewShardIDUnchecked(100),
+		ParentShardID: common.NewShardIDUnchecked(100),
 		Creator:       acc.Address,
 	}
 

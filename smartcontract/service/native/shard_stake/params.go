@@ -24,12 +24,11 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type InitShardParam struct {
-	ShardId        types.ShardID
+	ShardId        common.ShardID
 	StakeAssetAddr common.Address
 	MinStake       uint64
 }
@@ -88,7 +87,7 @@ func (this *PeerAmount) Deserialize(r io.Reader) error {
 }
 
 type PeerStakeParam struct {
-	ShardId   types.ShardID
+	ShardId   common.ShardID
 	PeerOwner common.Address
 	Value     *PeerAmount
 }
@@ -122,7 +121,7 @@ func (this *PeerStakeParam) Deserialize(r io.Reader) error {
 }
 
 type UnfreezeFromShardParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	User    common.Address
 	Value   []*PeerAmount
 }
@@ -169,7 +168,7 @@ func (this *UnfreezeFromShardParam) Deserialize(r io.Reader) error {
 }
 
 type WithdrawStakeAssetParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	User    common.Address
 }
 
@@ -195,7 +194,7 @@ func (this *WithdrawStakeAssetParam) Deserialize(r io.Reader) error {
 }
 
 type WithdrawFeeParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	User    common.Address
 }
 
@@ -221,7 +220,7 @@ func (this *WithdrawFeeParam) Deserialize(r io.Reader) error {
 }
 
 type CommitDposParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	Value   []*PeerAmount
 }
 
@@ -261,7 +260,7 @@ func (this *CommitDposParam) Deserialize(r io.Reader) error {
 }
 
 type SetMinStakeParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	Amount  uint64
 }
 
@@ -287,7 +286,7 @@ func (this *SetMinStakeParam) Deserialize(r io.Reader) error {
 }
 
 type UserStakeParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	User    common.Address
 	Value   []*PeerAmount
 }
@@ -334,7 +333,7 @@ func (this *UserStakeParam) Deserialize(r io.Reader) error {
 }
 
 type ChangeMaxAuthorizationParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	User    common.Address
 	Value   *PeerAmount
 }
@@ -368,7 +367,7 @@ func (this *ChangeMaxAuthorizationParam) Deserialize(r io.Reader) error {
 }
 
 type ChangeProportionParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	User    common.Address
 	Value   *PeerAmount
 }
@@ -402,7 +401,7 @@ func (this *ChangeProportionParam) Deserialize(r io.Reader) error {
 }
 
 type DeletePeerParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	Peers   []string
 }
 
@@ -443,7 +442,7 @@ func (this *DeletePeerParam) Deserialize(r io.Reader) error {
 }
 
 type PeerExitParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	Peer    string
 }
 
@@ -470,7 +469,7 @@ func (this *PeerExitParam) Deserialize(r io.Reader) error {
 }
 
 type GetPeerInfoParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	View    uint64
 }
 
@@ -496,7 +495,7 @@ func (this *GetPeerInfoParam) Deserialize(r io.Reader) error {
 }
 
 type GetUserStakeInfoParam struct {
-	ShardId types.ShardID
+	ShardId common.ShardID
 	View    uint64
 	User    common.Address
 }

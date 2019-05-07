@@ -24,14 +24,13 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type DepositGasParam struct {
 	User    common.Address
-	ShardId types.ShardID
+	ShardId common.ShardID
 	Amount  uint64
 }
 
@@ -144,7 +143,7 @@ type PeerWithdrawGasParam struct {
 	Signer     common.Address
 	PeerPubKey string
 	User       common.Address
-	ShardId    types.ShardID
+	ShardId    common.ShardID
 	Amount     uint64
 	WithdrawId uint64
 }

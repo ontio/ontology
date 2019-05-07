@@ -22,7 +22,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/magiconair/properties/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMetaDataCode(t *testing.T) {

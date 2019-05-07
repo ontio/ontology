@@ -222,7 +222,7 @@ type BlockInfo struct {
 
 //BlockSyncMgr is the manager class to deal with block sync
 type BlockSyncMgr struct {
-	shardID        types.ShardID
+	shardID        common.ShardID
 	flightBlocks   map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
 	flightHeaders  map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
 	blocksCache    map[uint32]*BlockInfo                //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
@@ -237,7 +237,7 @@ type BlockSyncMgr struct {
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
-func NewBlockSyncMgr(shardID types.ShardID, server *P2PServer, lgr *ledger.Ledger) *BlockSyncMgr {
+func NewBlockSyncMgr(shardID common.ShardID, server *P2PServer, lgr *ledger.Ledger) *BlockSyncMgr {
 	if lgr == nil {
 		return nil
 	}

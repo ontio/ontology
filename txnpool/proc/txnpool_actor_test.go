@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
@@ -66,7 +67,7 @@ func TestMain(m *testing.M) {
 
 func TestTxActor(t *testing.T) {
 	t.Log("Starting tx actor test")
-	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -135,7 +136,7 @@ func TestTxActor(t *testing.T) {
 
 func TestTxPoolActor(t *testing.T) {
 	t.Log("Starting tx pool actor test")
-	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -190,7 +191,7 @@ func TestTxPoolActor(t *testing.T) {
 
 func TestVerifyRspActor(t *testing.T) {
 	t.Log("Starting validator response actor test")
-	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")

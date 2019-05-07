@@ -39,7 +39,6 @@ import (
 	com "github.com/ontio/ontology/core/store/common"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/core/types"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	state "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -309,7 +308,7 @@ func getShardGasBalance(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (uint64, 
 	return balance, nil
 }
 
-func getShardConfig(lgr *ledger.Ledger, shardID types.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
+func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
 	shardState, err := xshard.GetShardState(lgr, shardID)
 	if err == com.ErrNotFound {
 		return nil, fmt.Errorf("get shard %d failed: %s", shardID, err)

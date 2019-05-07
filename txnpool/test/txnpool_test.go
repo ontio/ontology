@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
@@ -100,7 +101,7 @@ func Test_RCV(t *testing.T) {
 	}
 
 	// Start txnpool server to receive msgs from p2p, consensus and valdiators
-	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	s = tp.NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 
 	// Initialize an actor to handle the msgs from valdiators

@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -116,7 +115,7 @@ func setGlobalState(native *native.NativeService, contract common.Address, state
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_GLOBAL_STATE)), cstates.GenRawStorageItem(sink.Bytes()))
 }
 
-func GetShardState(native *native.NativeService, contract common.Address, shardID types.ShardID) (*shardstates.ShardState, error) {
+func GetShardState(native *native.NativeService, contract common.Address, shardID common.ShardID) (*shardstates.ShardState, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	shardStateBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes))
 	if err != nil {
@@ -165,14 +164,14 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 	return nil
 }
 
-func setShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID, state peerState,
+func setShardPeerState(native *native.NativeService, contract common.Address, shardId common.ShardID, state peerState,
 	pubKey string) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genPeerStateKey(contract, shardIDBytes, pubKey)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem([]byte(state)))
 }
 
-func getShardPeerState(native *native.NativeService, contract common.Address, shardId types.ShardID,
+func getShardPeerState(native *native.NativeService, contract common.Address, shardId common.ShardID,
 	pubKey string) (peerState, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genPeerStateKey(contract, shardIDBytes, pubKey)
@@ -216,7 +215,7 @@ func getRootCurrentViewPeerMap(native *native.NativeService) (*utils.PeerPoolMap
 	return peerPoolMap, nil
 }
 
-func initStakeContractShard(native *native.NativeService, id types.ShardID, minStake uint64, stakeAsset common.Address) error {
+func initStakeContractShard(native *native.NativeService, id common.ShardID, minStake uint64, stakeAsset common.Address) error {
 	param := &shard_stake.InitShardParam{
 		ShardId:        id,
 		MinStake:       minStake,
@@ -248,7 +247,7 @@ func peerInitStake(native *native.NativeService, param *JoinShardParam) error {
 	return nil
 }
 
-func peerExit(native *native.NativeService, shardId types.ShardID, peer string) error {
+func peerExit(native *native.NativeService, shardId common.ShardID, peer string) error {
 	param := &shard_stake.PeerExitParam{
 		ShardId: shardId,
 		Peer:    peer,
@@ -263,7 +262,7 @@ func peerExit(native *native.NativeService, shardId types.ShardID, peer string) 
 	return nil
 }
 
-func deletePeer(native *native.NativeService, shardId types.ShardID, peers []string) error {
+func deletePeer(native *native.NativeService, shardId common.ShardID, peers []string) error {
 	param := &shard_stake.DeletePeerParam{
 		ShardId: shardId,
 		Peers:   peers,
@@ -278,7 +277,7 @@ func deletePeer(native *native.NativeService, shardId types.ShardID, peers []str
 	return nil
 }
 
-func commitDpos(native *native.NativeService, shardId types.ShardID, feeInfo []*shard_stake.PeerAmount) error {
+func commitDpos(native *native.NativeService, shardId common.ShardID, feeInfo []*shard_stake.PeerAmount) error {
 	param := &shard_stake.CommitDposParam{
 		ShardId: shardId,
 		Value:   feeInfo,

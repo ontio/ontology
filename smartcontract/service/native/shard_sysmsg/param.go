@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -109,7 +108,7 @@ func (this *CrossShardMsgParam) Deserialize(r io.Reader) error {
 }
 
 type NotifyReqParam struct {
-	ToShard    types.ShardID
+	ToShard    common.ShardID
 	ToContract common.Address
 	Method     string
 	Args       []byte
@@ -149,7 +148,7 @@ func (this *NotifyReqParam) Deserialize(r io.Reader) error {
 }
 
 type InvokeReqParam struct {
-	ToShard    types.ShardID
+	ToShard    common.ShardID
 	ToContract common.Address
 	Args       []byte
 }

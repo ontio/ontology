@@ -22,12 +22,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"math/big"
 	"strings"
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
@@ -209,7 +209,7 @@ func UserWithdrawGas(native *native.NativeService) ([]byte, error) {
 		WithdrawId: withdrawId,
 		Amount:     param.Amount,
 	}
-	rootShard, err := types.NewShardID(0)
+	rootShard, err := common.NewShardID(0)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawGas: generate root shard id failed, err: %s", err)
 	}
@@ -246,7 +246,7 @@ func UserWithdrawRetry(native *native.NativeService) ([]byte, error) {
 		WithdrawId: param.WithdrawId,
 		Amount:     frozenGasAmount,
 	}
-	rootShard, err := types.NewShardID(0)
+	rootShard, err := common.NewShardID(0)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UserWithdrawRetry: generate root shard id failed, err: %s", err)
 	}
@@ -299,7 +299,7 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 		Height:    native.Height,
 		FeeAmount: balance,
 	}
-	rootShard, err := types.NewShardID(0)
+	rootShard, err := common.NewShardID(0)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: generate root shard id failed, err: %s", err)
 	}
@@ -525,7 +525,7 @@ func GetShardGasBalance(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetShardGasBalance: deserialize param failed, err: %s", err)
 	}
-	shardId, err := types.NewShardID(param)
+	shardId, err := common.NewShardID(param)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetShardGasBalance: generate root shard id failed, err: %s", err)
 	}

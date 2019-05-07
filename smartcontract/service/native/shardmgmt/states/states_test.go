@@ -22,9 +22,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/magiconair/properties/assert"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEncodeByte(t *testing.T) {

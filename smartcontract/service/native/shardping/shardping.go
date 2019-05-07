@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardping/states"
@@ -91,7 +90,7 @@ func SendShardPingTest(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func appcallSendReq(native *native.NativeService, toShard types.ShardID, payload []byte) error {
+func appcallSendReq(native *native.NativeService, toShard common.ShardID, payload []byte) error {
 	paramBytes := new(bytes.Buffer)
 	params := shardsysmsg.NotifyReqParam{
 		ToShard: toShard,

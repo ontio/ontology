@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
@@ -99,7 +98,7 @@ func checkVersion(native *native.NativeService, contract common.Address) (bool, 
 	return ver == ShardGasMgmtVersion, nil
 }
 
-func checkShardID(native *native.NativeService, shardID types.ShardID) (bool, error) {
+func checkShardID(native *native.NativeService, shardID common.ShardID) (bool, error) {
 	shardState, err := shardmgmt.GetShardState(native, utils.ShardMgmtContractAddress, shardID)
 	if err != nil {
 		return false, err
@@ -108,14 +107,14 @@ func checkShardID(native *native.NativeService, shardID types.ShardID) (bool, er
 	return shardState.State == shardstates.SHARD_STATE_ACTIVE, nil
 }
 
-func setShardGasBalance(native *native.NativeService, contract common.Address, shardId types.ShardID, amount uint64) {
+func setShardGasBalance(native *native.NativeService, contract common.Address, shardId common.ShardID, amount uint64) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genShardGasBalance(contract, shardIDBytes)
 	data := utils.GetUint64Bytes(amount)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 }
 
-func getShardGasBalance(native *native.NativeService, contract common.Address, shardId types.ShardID) (uint64, error) {
+func getShardGasBalance(native *native.NativeService, contract common.Address, shardId common.ShardID) (uint64, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	key := genShardGasBalance(contract, shardIDBytes)
 	storeValue, err := native.CacheDB.Get(key)
@@ -136,7 +135,7 @@ func getShardGasBalance(native *native.NativeService, contract common.Address, s
 	return amount, nil
 }
 
-func getWithdrawConfirmNum(native *native.NativeService, contract, user common.Address, shardId types.ShardID,
+func getWithdrawConfirmNum(native *native.NativeService, contract, user common.Address, shardId common.ShardID,
 	withdrawId uint64) (uint64, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	idBytes := utils.GetUint64Bytes(withdrawId)
@@ -159,7 +158,7 @@ func getWithdrawConfirmNum(native *native.NativeService, contract, user common.A
 	return amount, nil
 }
 
-func setWithdrawConfirmNum(native *native.NativeService, contract, user common.Address, shardId types.ShardID,
+func setWithdrawConfirmNum(native *native.NativeService, contract, user common.Address, shardId common.ShardID,
 	withdrawId, num uint64) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	idBytes := utils.GetUint64Bytes(withdrawId)
@@ -168,7 +167,7 @@ func setWithdrawConfirmNum(native *native.NativeService, contract, user common.A
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
 }
 
-func peerConfirmWithdraw(native *native.NativeService, contract, user common.Address, peer string, shardId types.ShardID,
+func peerConfirmWithdraw(native *native.NativeService, contract, user common.Address, peer string, shardId common.ShardID,
 	withdrawId uint64) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	idBytes := utils.GetUint64Bytes(withdrawId)
@@ -177,7 +176,7 @@ func peerConfirmWithdraw(native *native.NativeService, contract, user common.Add
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
 }
 
-func isPeerConfirmWithdraw(native *native.NativeService, contract, user common.Address, peer string, shardId types.ShardID,
+func isPeerConfirmWithdraw(native *native.NativeService, contract, user common.Address, peer string, shardId common.ShardID,
 	withdrawId uint64) (bool, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	idBytes := utils.GetUint64Bytes(withdrawId)
@@ -200,7 +199,7 @@ func isPeerConfirmWithdraw(native *native.NativeService, contract, user common.A
 	return num == 1, nil
 }
 
-func getViewCommitNum(native *native.NativeService, contract common.Address, shardId types.ShardID,
+func getViewCommitNum(native *native.NativeService, contract common.Address, shardId common.ShardID,
 	view shard_stake.View) (uint64, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	viewBytes := utils.GetUint64Bytes(uint64(view))
@@ -223,7 +222,7 @@ func getViewCommitNum(native *native.NativeService, contract common.Address, sha
 	return amount, nil
 }
 
-func setViewCommitNum(native *native.NativeService, contract common.Address, shardId types.ShardID,
+func setViewCommitNum(native *native.NativeService, contract common.Address, shardId common.ShardID,
 	view shard_stake.View, num uint64) error {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	viewBytes := utils.GetUint64Bytes(uint64(view))
@@ -233,7 +232,7 @@ func setViewCommitNum(native *native.NativeService, contract common.Address, sha
 	return nil
 }
 
-func peerCommitView(native *native.NativeService, contract common.Address, peer string, shardId types.ShardID,
+func peerCommitView(native *native.NativeService, contract common.Address, peer string, shardId common.ShardID,
 	view shard_stake.View) error {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	viewBytes := utils.GetUint64Bytes(uint64(view))
@@ -243,7 +242,7 @@ func peerCommitView(native *native.NativeService, contract common.Address, peer 
 	return nil
 }
 
-func isPeerCommitView(native *native.NativeService, contract common.Address, peer string, shardId types.ShardID,
+func isPeerCommitView(native *native.NativeService, contract common.Address, peer string, shardId common.ShardID,
 	view shard_stake.View) (bool, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardId.ToUint64())
 	viewBytes := utils.GetUint64Bytes(uint64(view))

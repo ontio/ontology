@@ -31,7 +31,7 @@ import (
 var dbDir = "./testDB"
 
 func TestResetBlockCacheStore(t *testing.T) {
-	shardID, err := types.NewShardID(10)
+	shardID, err := common.NewShardID(10)
 	if err != nil {
 		t.Fatalf("init shard id: %s", err)
 	}
@@ -48,7 +48,7 @@ func TestResetBlockCacheStore(t *testing.T) {
 	ite.Release()
 }
 
-func newTestBlock(height uint32, shardID types.ShardID) *types.Block {
+func newTestBlock(height uint32, shardID common.ShardID) *types.Block {
 	header := &types.Header{}
 	header.Version = common.CURR_HEADER_VERSION
 	header.Height = height
@@ -64,7 +64,7 @@ func newTestBlock(height uint32, shardID types.ShardID) *types.Block {
 }
 
 func TestBlockCacheStore_Ops(t *testing.T) {
-	shardID, err := types.NewShardID(10)
+	shardID, err := common.NewShardID(10)
 	if err != nil {
 		t.Fatalf("init shard id: %s", err)
 	}

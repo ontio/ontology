@@ -24,7 +24,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -100,7 +99,7 @@ func (this *ShardHotelCheckoutParam) Deserialize(r io.Reader) error {
 type ShardHotelReserve2Param struct {
 	User             common.Address
 	RoomNo1          uint64
-	Shard2           types.ShardID
+	Shard2           common.ShardID
 	ContractAddress2 common.Address
 	RoomNo2          uint64
 	Transactional    bool

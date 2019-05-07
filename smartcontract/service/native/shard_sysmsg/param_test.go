@@ -20,9 +20,9 @@ package shardsysmsg_test
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/common"
 	"testing"
 
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 )
@@ -42,7 +42,7 @@ func Test_ParamSerialize(t *testing.T) {
 }
 
 func Test_ParamSerialize2(t *testing.T) {
-	toShardID, err := types.NewShardID(3)
+	toShardID, err := common.NewShardID(3)
 	if err != nil {
 		t.Fatalf("invalid shard id")
 	}

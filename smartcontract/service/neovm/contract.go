@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
@@ -277,7 +276,7 @@ func checkInitMeta(service *NeoVmService, meta *payload.MetaDataCode) bool {
 	if meta.Owner == common.ADDRESS_EMPTY {
 		return false
 	}
-	if _, err := types.NewShardID(meta.ShardId); err != nil {
+	if _, err := common.NewShardID(meta.ShardId); err != nil {
 		return false
 	}
 	// shard contract can only run at self shard while init meta

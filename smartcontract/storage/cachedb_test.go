@@ -18,6 +18,8 @@
 package storage
 
 import (
+	"encoding/hex"
+	"fmt"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -27,6 +29,7 @@ import (
 )
 
 func genRandKeyVal() (string, string) {
+
 	p := make([]byte, 100)
 	rand.Read(p)
 	key := string(p)
@@ -36,6 +39,10 @@ func genRandKeyVal() (string, string) {
 }
 
 func TestCacheDB(t *testing.T) {
+	str := "676574476c6f62616c506172616d6761735072696365"
+	b, _ := hex.DecodeString(str)
+	fmt.Println(string(b))
+	return
 	N := 10000
 	mem := make(map[string]string)
 	memback, _ := leveldbstore.NewMemLevelDBStore()

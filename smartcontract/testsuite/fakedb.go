@@ -15,29 +15,21 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package payload
+package testsuite
 
 import (
-	"github.com/ontio/ontology/common"
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/overlaydb"
 )
 
-func TestInvokeCode_Serialize(t *testing.T) {
-	code := InvokeCode{
-		Code: []byte{1, 2, 3},
-	}
+type FakeDB struct {
+	common.PersistStore
+}
 
-	bs := common.SerializeToBytes(&code)
-	var code2 InvokeCode
+func (self *FakeDB) Get(key []byte) ([]byte, error) {
+	return nil, common.ErrNotFound
+}
 
-	err := code2.Deserialization(common.NewZeroCopySource(bs))
-	assert.Nil(t, err)
-	assert.Equal(t, code, code2)
-
-	buf := common.NewZeroCopySource(bs[:len(bs)-2])
-	err = code.Deserialization(buf)
-
-	assert.NotNil(t, err)
+func NewOverlayDB() *overlaydb.OverlayDB {
+	return overlaydb.NewOverlayDB(&FakeDB{nil})
 }

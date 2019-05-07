@@ -84,6 +84,12 @@ func (self *ZeroCopySink) BackUp(n uint64) {
 	self.buf = self.buf[:l]
 }
 
+func (self *ZeroCopySink) Write(data ...Serializable) {
+	for _, val := range data {
+		val.Serialization(self)
+	}
+}
+
 func (self *ZeroCopySink) WriteUint8(data uint8) {
 	buf := self.NextBytes(1)
 	buf[0] = data
@@ -114,6 +120,10 @@ func (self *ZeroCopySink) WriteUint32(data uint32) {
 func (self *ZeroCopySink) WriteUint64(data uint64) {
 	buf := self.NextBytes(8)
 	binary.LittleEndian.PutUint64(buf, data)
+}
+
+func (self *ZeroCopySink) WriteShardID(data ShardID) {
+	self.WriteUint64(data.ToUint64())
 }
 
 func (self *ZeroCopySink) WriteInt64(data int64) {

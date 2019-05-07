@@ -61,17 +61,17 @@ var defaultChainManager *ChainManager = nil
 //  . seed list of other shards
 //
 type ShardInfo struct {
-	ShardID  types.ShardID
+	ShardID  common.ShardID
 	SeedList []string
 	Config   *config.OntologyConfig
 }
 
 type ChainManager struct {
-	shardID types.ShardID
+	shardID common.ShardID
 
 	// ShardInfo management, indexing shards with ShardID / Sender-Addr
 	lock       sync.RWMutex
-	shards     map[types.ShardID]*ShardInfo
+	shards     map[common.ShardID]*ShardInfo
 	mainLedger *ledger.Ledger
 	consensus  consensus.ConsensusService
 
@@ -101,7 +101,7 @@ type ChainManager struct {
 //
 // Initialize chain manager when ontology starting
 //
-func Initialize(shardID types.ShardID, acc *account.Account) (*ChainManager, error) {
+func Initialize(shardID common.ShardID, acc *account.Account) (*ChainManager, error) {
 	if defaultChainManager != nil {
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
 	}
@@ -113,7 +113,7 @@ func Initialize(shardID types.ShardID, acc *account.Account) (*ChainManager, err
 
 	chainMgr := &ChainManager{
 		shardID:        shardID,
-		shards:         make(map[types.ShardID]*ShardInfo),
+		shards:         make(map[common.ShardID]*ShardInfo),
 		blockPool:      blkPool,
 		localBlockMsgC: make(chan *message.SaveBlockCompleteMsg, CAP_LOCAL_SHARDMSG_CHNL),
 		quitC:          make(chan struct{}),
@@ -198,7 +198,7 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 		return fmt.Errorf("Init ledger error:%s", err)
 	}
 
-	mainShardID := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	mainShardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	mainShardInfo := &ShardInfo{
 		ShardID:  mainShardID,
 		SeedList: cfg.Genesis.SeedList,
@@ -245,8 +245,8 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	return nil
 }
 
-func (self *ChainManager) GetActiveShards() []types.ShardID {
-	shards := make([]types.ShardID, 0)
+func (self *ChainManager) GetActiveShards() []common.ShardID {
+	shards := make([]common.ShardID, 0)
 	for _, shardInfo := range self.shards {
 		shards = append(shards, shardInfo.ShardID)
 	}
@@ -332,12 +332,12 @@ func (self *ChainManager) Start(txPoolPid, p2pPid *actor.PID, txPoolMgr *txnpool
 	self.localEventSub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
 	self.localEventSub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
-	syncerToStart := make([]types.ShardID, 0)
+	syncerToStart := make([]common.ShardID, 0)
 	for shardId := self.shardID; shardId.ToUint64() != config.DEFAULT_SHARD_ID; shardId = shardId.ParentID() {
 		syncerToStart = append(syncerToStart, shardId)
 	}
 	// start syncing root-chain
-	syncerToStart = append(syncerToStart, types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+	syncerToStart = append(syncerToStart, common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 
 	// start syncing shard
 	for i := len(syncerToStart) - 1; i >= 0; i-- {
@@ -506,7 +506,7 @@ func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPLis
 	return nil
 }
 
-func (self *ChainManager) getShardRPCPort(shardID types.ShardID) uint {
+func (self *ChainManager) getShardRPCPort(shardID common.ShardID) uint {
 	// TODO: get from shardinfo
 	return 0
 }

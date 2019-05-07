@@ -21,17 +21,17 @@ package chainmgr
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"sort"
 
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 //
 // buildShardConfig: generate OntologyConfig for shard
 //
-func (self *ChainManager) buildShardConfig(shardID types.ShardID, shardState *shardstates.ShardState) (*config.OntologyConfig, error) {
+func (self *ChainManager) buildShardConfig(shardID common.ShardID, shardState *shardstates.ShardState) (*config.OntologyConfig, error) {
 	if cfg := self.GetShardConfig(shardID); cfg != nil {
 		return cfg, nil
 	}

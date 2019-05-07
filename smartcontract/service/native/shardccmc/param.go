@@ -23,12 +23,11 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type RegisterCCParam struct {
-	ShardID      types.ShardID
+	ShardID      common.ShardID
 	Owner        common.Address
 	ContractAddr common.Address
 	Dependencies []common.Address

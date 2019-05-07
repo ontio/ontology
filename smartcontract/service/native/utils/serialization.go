@@ -25,38 +25,37 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
-func SerializeShardId(w io.Writer, id ctypes.ShardID) error {
+func SerializeShardId(w io.Writer, id common.ShardID) error {
 	return WriteVarUint(w, id.ToUint64())
 }
 
-func DeserializeShardId(r io.Reader) (ctypes.ShardID, error) {
+func DeserializeShardId(r io.Reader) (common.ShardID, error) {
 	id, err := ReadVarUint(r)
 	if err != nil {
-		return ctypes.ShardID{}, err
+		return common.ShardID{}, err
 	}
-	shardId, err := ctypes.NewShardID(id)
+	shardId, err := common.NewShardID(id)
 	if err != nil {
-		return ctypes.ShardID{}, fmt.Errorf("generate shard id failed, err: %s", err)
+		return common.ShardID{}, fmt.Errorf("generate shard id failed, err: %s", err)
 	}
 	return shardId, nil
 }
 
-func SerializationShardId(sink *common.ZeroCopySink, id ctypes.ShardID) {
+func SerializationShardId(sink *common.ZeroCopySink, id common.ShardID) {
 	sink.WriteUint64(id.ToUint64())
 }
 
-func DeserializationShardId(source *common.ZeroCopySource) (ctypes.ShardID, error) {
+func DeserializationShardId(source *common.ZeroCopySource) (common.ShardID, error) {
 	id, eof := source.NextUint64()
 	if eof {
-		return ctypes.ShardID{}, io.ErrUnexpectedEOF
+		return common.ShardID{}, io.ErrUnexpectedEOF
 	}
-	shardId, err := ctypes.NewShardID(id)
+	shardId, err := common.NewShardID(id)
 	if err != nil {
-		return ctypes.ShardID{}, fmt.Errorf("generate shard id failed, err: %s", err)
+		return common.ShardID{}, fmt.Errorf("generate shard id failed, err: %s", err)
 	}
 	return shardId, nil
 }
@@ -93,6 +92,26 @@ func ReadAddress(r io.Reader) (common.Address, error) {
 		return common.Address{}, fmt.Errorf("[State] deserialize from error:%v", err)
 	}
 	return common.AddressParseFromBytes(from)
+}
+
+func WriteUint32(w io.Writer, num uint32) error {
+	buf := GetUint32Bytes(num)
+	if err := serialization.WriteVarBytes(w, buf); err != nil {
+		return fmt.Errorf("serialize value error:%v", err)
+	}
+
+	return nil
+}
+
+func ReadUint32(r io.Reader) (uint32, error) {
+	from, err := serialization.ReadVarBytes(r)
+	if err != nil {
+		return 0, fmt.Errorf("[State] deserialize from error:%v", err)
+	}
+	if len(from) != 4 {
+		return 0, fmt.Errorf("deserialize uint 32 error； wrong size")
+	}
+	return GetBytesUint32(from)
 }
 
 func EncodeAddress(sink *common.ZeroCopySink, addr common.Address) (size uint64) {

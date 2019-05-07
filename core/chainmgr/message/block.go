@@ -58,11 +58,11 @@ func (this *ShardBlockTx) Deserialization(source *common.ZeroCopySource) error {
 //  .Events: shard events generated from the block (only for local block)
 //
 type ShardBlockInfo struct {
-	FromShardID types.ShardID                   `json:"from_shard_id"`
-	Height      uint32                          `json:"height"`
-	State       uint                            `json:"state"`
-	Block       *types.Block                    `json:"block"`
-	ShardTxs    map[types.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
+	FromShardID common.ShardID                   `json:"from_shard_id"`
+	Height      uint32                           `json:"height"`
+	State       uint                             `json:"state"`
+	Block       *types.Block                     `json:"block"`
+	ShardTxs    map[common.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
 	Events      []*message.ShardEventState
 }
 
@@ -88,7 +88,7 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	id, err := types.NewShardID(fromShard)
+	id, err := common.NewShardID(fromShard)
 	if err != nil {
 		return fmt.Errorf("deserialization: generate from shard id failed, err: %s", err)
 	}
@@ -107,13 +107,13 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	this.ShardTxs = make(map[types.ShardID]*ShardBlockTx)
+	this.ShardTxs = make(map[common.ShardID]*ShardBlockTx)
 	for i := uint64(0); i < txNum; i++ {
 		id, eof := source.NextUint64()
 		if eof {
 			return fmt.Errorf("deserialization: read tx shardId failed, index %d, err: %s", i, io.ErrUnexpectedEOF)
 		}
-		shardId, err := types.NewShardID(id)
+		shardId, err := common.NewShardID(id)
 		if err != nil {
 			return fmt.Errorf("deserialization: generate tx shardId failed, index %d, err: %s", i, err)
 		}
@@ -145,18 +145,18 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 type ShardBlockMap map[uint32]*ShardBlockInfo // indexed by BlockHeight
 
 type ShardBlockPool struct {
-	Shards      map[types.ShardID]ShardBlockMap // indexed by FromShardID
+	Shards      map[common.ShardID]ShardBlockMap // indexed by FromShardID
 	MaxBlockCap uint32
 }
 
 func NewShardBlockPool(historyCap uint32) *ShardBlockPool {
 	return &ShardBlockPool{
-		Shards:      make(map[types.ShardID]ShardBlockMap),
+		Shards:      make(map[common.ShardID]ShardBlockMap),
 		MaxBlockCap: historyCap,
 	}
 }
 
-func (pool *ShardBlockPool) GetBlockInfo(shardID types.ShardID, height uint32) *ShardBlockInfo {
+func (pool *ShardBlockPool) GetBlockInfo(shardID common.ShardID, height uint32) *ShardBlockInfo {
 	if m, present := pool.Shards[shardID]; present && m != nil {
 		return m[height]
 	}

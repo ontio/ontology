@@ -19,6 +19,7 @@ package smartcontract
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -38,19 +39,21 @@ const (
 
 // SmartContract describe smart contract execute engine
 type SmartContract struct {
-	Contexts      []*context.Context // all execute smart contract context
-	CacheDB       *storage.CacheDB   // state cache
-	Store         store.LedgerStore  // ledger store
-	Config        *Config
-	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
-	Gas           uint64
-	ExecStep      int
-	PreExec       bool
+	Contexts         []*context.Context    // all execute smart contract context
+	CacheDB          *storage.CacheDB      // state cache
+	MainShardTxState *xshard_state.TxState // shardid is tx hash
+	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
+	Store            store.LedgerStore // ledger store
+	Config           *Config
+	Notifications    []*event.NotifyEventInfo // all execute smart contract event notify info
+	Gas              uint64
+	ExecStep         int
+	PreExec          bool
 }
 
 // Config describe smart contract need parameters configuration
 type Config struct {
-	ShardID   ctypes.ShardID      // TODO: init this field
+	ShardID   common.ShardID      // TODO: init this field
 	Time      uint32              // current block timestamp
 	Height    uint32              // current block height
 	BlockHash common.Uint256      // current block hash
@@ -128,17 +131,19 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		return nil, fmt.Errorf("%s", "engine over max limit!")
 	}
 	service := &neovm.NeoVmService{
-		Store:      this.Store,
-		CacheDB:    this.CacheDB,
-		ContextRef: this,
-		Code:       code,
-		Tx:         this.Config.Tx,
-		ShardID:    this.Config.ShardID,
-		Time:       this.Config.Time,
-		Height:     this.Config.Height,
-		BlockHash:  this.Config.BlockHash,
-		Engine:     vm.NewExecutionEngine(),
-		PreExec:    this.PreExec,
+		Store:            this.Store,
+		CacheDB:          this.CacheDB,
+		ContextRef:       this,
+		Code:             code,
+		Tx:               this.Config.Tx,
+		ShardID:          this.Config.ShardID,
+		MainShardTxState: this.MainShardTxState,
+		SubShardTxState:  this.SubShardTxState,
+		Time:             this.Config.Time,
+		Height:           this.Config.Height,
+		BlockHash:        this.Config.BlockHash,
+		Engine:           vm.NewExecutionEngine(),
+		PreExec:          this.PreExec,
 	}
 	return service, nil
 }
@@ -148,14 +153,16 @@ func (this *SmartContract) NewNativeService() (*native.NativeService, error) {
 		return nil, fmt.Errorf("%s", "engine over max limit!")
 	}
 	service := &native.NativeService{
-		CacheDB:    this.CacheDB,
-		ContextRef: this,
-		Tx:         this.Config.Tx,
-		ShardID:    this.Config.ShardID,
-		Time:       this.Config.Time,
-		Height:     this.Config.Height,
-		BlockHash:  this.Config.BlockHash,
-		ServiceMap: make(map[string]native.Handler),
+		CacheDB:          this.CacheDB,
+		ContextRef:       this,
+		MainShardTxState: this.MainShardTxState,
+		SubShardTxState:  this.SubShardTxState,
+		Tx:               this.Config.Tx,
+		ShardID:          this.Config.ShardID,
+		Time:             this.Config.Time,
+		Height:           this.Config.Height,
+		BlockHash:        this.Config.BlockHash,
+		ServiceMap:       make(map[string]native.Handler),
 	}
 	return service, nil
 }

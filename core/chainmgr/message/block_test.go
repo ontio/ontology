@@ -60,14 +60,14 @@ func newTestShardBlockInfo(t *testing.T) *message.ShardBlockInfo {
 	shardBlk.Header.ParentHeight = parentHeight
 
 	blkInfo := &message.ShardBlockInfo{
-		FromShardID: types.NewShardIDUnchecked(100),
+		FromShardID: common.NewShardIDUnchecked(100),
 		Height:      uint32(height),
 		Block:       shardBlk,
-		ShardTxs:    make(map[types.ShardID]*message.ShardBlockTx),
+		ShardTxs:    make(map[common.ShardID]*message.ShardBlockTx),
 	}
 
 	version := byte(1)
-	shardID := types.NewShardIDUnchecked(100)
+	shardID := common.NewShardIDUnchecked(100)
 	shardTx := newTestShardTx(t, version, shardID.ToUint64())
 	blkInfo.ShardTxs[shardID] = shardTx
 
