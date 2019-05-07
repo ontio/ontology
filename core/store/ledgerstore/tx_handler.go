@@ -278,7 +278,6 @@ func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, store store.Led
 	if !txState.IsCommitReady() {
 		xshardDB.SetXShardState(txState)
 		// wait for prepared from all shards
-		log.Info("commit not ready")
 		return
 	}
 
@@ -286,7 +285,6 @@ func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, store store.Led
 		cmt := &xshard_types.XShardCommitMsg{
 			ShardMsgHeader: xshard_types.ShardMsgHeader{
 				SourceShardID: common.NewShardIDUnchecked(header.ShardID),
-				SourceHeight:  uint64(header.Height),
 				TargetShardID: shard,
 				SourceTxHash:  msg.SourceTxHash,
 			},
@@ -359,7 +357,6 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 		abort := &xshard_types.XShardAbortMsg{
 			ShardMsgHeader: xshard_types.ShardMsgHeader{
 				SourceShardID: common.NewShardIDUnchecked(header.ShardID),
-				SourceHeight:  uint64(header.Height),
 				TargetShardID: prepMsg.SourceShardID,
 				SourceTxHash:  prepMsg.SourceTxHash,
 			},
@@ -377,7 +374,6 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 	preparedMsg := &xshard_types.XShardPreparedMsg{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			SourceShardID: common.NewShardIDUnchecked(header.ShardID),
-			SourceHeight:  uint64(header.Height),
 			TargetShardID: prepMsg.SourceShardID,
 			SourceTxHash:  prepMsg.SourceTxHash,
 		},
@@ -499,7 +495,6 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 	rspMsg := &xshard_types.XShardTxRsp{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			SourceShardID: common.NewShardIDUnchecked(header.ShardID),
-			SourceHeight:  uint64(header.Height),
 			TargetShardID: msg.SourceShardID,
 			SourceTxHash:  msg.SourceTxHash,
 		},
@@ -558,7 +553,6 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		msg := &xshard_types.XShardPrepareMsg{
 			ShardMsgHeader: xshard_types.ShardMsgHeader{
 				SourceShardID: common.NewShardIDUnchecked(header.ShardID),
-				SourceHeight:  uint64(header.Height),
 				TargetShardID: s,
 				SourceTxHash:  subTx.Hash(),
 			},

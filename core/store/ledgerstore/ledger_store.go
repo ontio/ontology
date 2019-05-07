@@ -961,8 +961,9 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
+		cache.Commit()
 		if err != nil {
-			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
+			log.Debugf("HandleShardCallTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	}
 

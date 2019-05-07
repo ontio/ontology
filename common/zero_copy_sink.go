@@ -84,6 +84,12 @@ func (self *ZeroCopySink) BackUp(n uint64) {
 	self.buf = self.buf[:l]
 }
 
+func (self *ZeroCopySink) Write(data ...Serializable) {
+	for _, val := range data {
+		val.Serialization(self)
+	}
+}
+
 func (self *ZeroCopySink) WriteUint8(data uint8) {
 	buf := self.NextBytes(1)
 	buf[0] = data

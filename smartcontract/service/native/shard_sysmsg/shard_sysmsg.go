@@ -78,6 +78,11 @@ func RemoteNotifyApi(ctx *native.NativeService, param *NotifyReqParam) {
 	txState := ctx.MainShardTxState
 	// send with minimal gas fee
 	msg := &xshard_types.XShardNotify{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: ctx.ShardID,
+			TargetShardID: param.ToShard,
+			SourceTxHash:  ctx.Tx.Hash(),
+		},
 		NotifyID: txState.NumNotifies,
 		Contract: param.ToContract,
 		Payer:    ctx.Tx.Payer,
@@ -100,7 +105,6 @@ func RemoteInvokeApi(ctx *native.NativeService, reqParam *NotifyReqParam) ([]byt
 	msg := &xshard_types.XShardTxReq{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			SourceShardID: ctx.ShardID,
-			SourceHeight:  uint64(ctx.Height),
 			TargetShardID: reqParam.ToShard,
 			SourceTxHash:  ctx.Tx.Hash(),
 		},

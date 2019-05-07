@@ -145,6 +145,7 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 	}
 	self.NextReqID, eof = source.NextUint32()
 
+	self.InReqResp = make(map[common.ShardID][]*XShardTxReqResp)
 	len, _, irr, eof = source.NextVarUint()
 	if irr {
 		return common.ErrIrregularData
@@ -483,9 +484,10 @@ func CreateTxState(tx ShardTxID) *TxState {
 		return state
 	}
 	state := &TxState{
-		State:  TxExec,
-		Shards: make(map[common.ShardID]int),
-		TxID:   tx,
+		State:     TxExec,
+		Shards:    make(map[common.ShardID]int),
+		InReqResp: make(map[common.ShardID][]*XShardTxReqResp),
+		TxID:      tx,
 	}
 	shardTxStateTable.TxStates[tx] = state
 	return state

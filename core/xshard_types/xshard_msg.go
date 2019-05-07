@@ -38,15 +38,6 @@ const (
 	EVENT_SHARD_ABORT
 )
 
-type XShardMsg interface {
-	Type() uint32
-	GetContract() common.Address
-	GetMethod() string
-	GetArgs() []byte
-	Serialization(sink *common.ZeroCopySink)
-	Deserialization(source *common.ZeroCopySource) error
-}
-
 func IsXShardMsgEqual(msg1, msg2 CommonShardMsg) bool {
 	buf1 := common.SerializeToBytes(msg1)
 	buf2 := common.SerializeToBytes(msg2)
@@ -269,7 +260,6 @@ func (msg *XShardPreparedMsg) Type() uint32 {
 
 type ShardMsgHeader struct {
 	SourceShardID common.ShardID
-	SourceHeight  uint64 //todo use uint32
 	TargetShardID common.ShardID
 	SourceTxHash  common.Uint256
 }
@@ -286,13 +276,8 @@ func (evt *ShardMsgHeader) GetTargetShardID() common.ShardID {
 	return evt.TargetShardID
 }
 
-func (evt *ShardMsgHeader) GetHeight() uint64 {
-	return evt.SourceHeight
-}
-
 func (self *ShardMsgHeader) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint64(self.SourceShardID.ToUint64())
-	sink.WriteUint64(self.SourceHeight)
 	sink.WriteUint64(self.TargetShardID.ToUint64())
 	sink.WriteHash(self.SourceTxHash)
 }
@@ -304,7 +289,6 @@ func (self *ShardMsgHeader) Deserialization(source *common.ZeroCopySource) error
 		return err
 	}
 	self.SourceShardID = id
-	self.SourceHeight, eof = source.NextUint64()
 	shardID, eof = source.NextUint64()
 	id, err = common.NewShardID(shardID)
 	if err != nil {
@@ -323,7 +307,6 @@ type CommonShardMsg interface {
 	GetSourceTxHash() common.Uint256
 	GetSourceShardID() common.ShardID
 	GetTargetShardID() common.ShardID
-	GetHeight() uint64
 	Type() uint32
 	Serialization(sink *common.ZeroCopySink)
 	Deserialization(source *common.ZeroCopySource) error

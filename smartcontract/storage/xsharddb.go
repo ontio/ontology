@@ -52,10 +52,7 @@ func (self *XShardDB) GetXShardState(id xshard_state.ShardTxID) (*xshard_state.T
 	}
 
 	if len(val) == 0 { // not found
-		state := &xshard_state.TxState{
-			Shards: make(map[comm.ShardID]int),
-			TxID:   id,
-		}
+		state := xshard_state.CreateTxState(id)
 
 		return state, nil
 	}
