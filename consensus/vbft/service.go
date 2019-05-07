@@ -2185,7 +2185,7 @@ func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
 
 		return force
 	} else {
-		shardView, err := xshard.GetShardView(self.ledger, self.ShardID)
+		shardView, err := xshard.GetShardView(self.ledger.ParentLedger, self.ShardID)
 		if err != nil {
 			log.Errorf("GetShardView err:%s", err)
 			return false

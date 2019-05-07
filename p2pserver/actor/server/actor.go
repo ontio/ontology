@@ -96,6 +96,8 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.server.OnHeaderReceive(msg.FromID, msg.Headers)
 	case *common.AppendBlock:
 		this.server.OnBlockReceive(msg.FromID, msg.BlockSize, msg.Block, msg.MerkleRoot)
+	case *common.AddBlock:
+		this.server.OnAddBlock(msg.Height, msg.ShardID)
 	case *StartSync:
 		if shardID, err := common2.NewShardID(msg.ShardID); err == nil {
 			if err := this.server.StartSyncShard(shardID); err != nil {

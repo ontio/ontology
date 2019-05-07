@@ -27,7 +27,12 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/ledger"
 	sComm "github.com/ontio/ontology/core/store/common"
+<<<<<<< HEAD
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
+=======
+	"github.com/ontio/ontology/core/types"
+	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+>>>>>>> fix start shard use vbft consensus
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -97,64 +102,46 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	return globalState, nil
 }
 
-func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.ShardState, error) {
+func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.ShardID, error) {
 	if lgr == nil {
-		return nil, fmt.Errorf("get shard state, nil ledger")
+		return nil, fmt.Errorf("uninitialized chain mgr")
 	}
-
-	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
-	key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
-	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
-	if err == sComm.ErrNotFound {
-		return nil, err
+	blockNumBytes := utils.GetUint32Bytes(blockNum)
+	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes)
+	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
+	if err == xshard_state.ErrNotFound {
+		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get shardmgmt shard state: %s", err)
+		return nil, fmt.Errorf("get remote msg toShards in blk %d: %s", blockNum, err)
 	}
 
-	shardState := &shardstates.ShardState{}
-	if err := shardState.Deserialization(common.NewZeroCopySource(data)); err != nil {
-		return nil, fmt.Errorf("des shardmgmt shard state: %s", err)
+	req := &shardsysmsg.ToShardsInBlock{}
+	if err := req.Deserialization(common.NewZeroCopySource(toShardsBytes)); err != nil {
+		return nil, fmt.Errorf("deserialize toShards: %s", err)
 	}
-
-	return shardState, nil
+	return req.Shards, nil
 }
 
-func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView, error) {
-	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
-	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
-	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
-	if err == sComm.ErrNotFound {
-		return nil, err
-	}
-	if err != nil {
-		return nil, fmt.Errorf("GetShardPeerStakeInfo: get current view: %s", err)
-	}
-	changeView := &utils.ChangeView{}
-	if err := changeView.Deserialize(bytes.NewBuffer(viewBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize, deserialize changeView error: %v", err)
-	}
-	return changeView, nil
-}
-
-func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
+func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard types.ShardID) ([][]byte, error) {
 	if lgr == nil {
-		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
+		return nil, fmt.Errorf("nil ledger")
 	}
-	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 
-	viewBytes := utils.GetUint32Bytes(shardView)
-	viewInfoKey := shard_stake.GenShardViewInfoKey(shardIDBytes, viewBytes)
-	infoData, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewInfoKey)
-	if err == sComm.ErrNotFound {
-		return nil, err
+	blockNumBytes := utils.GetUint32Bytes(blockHeight)
+	shardIDBytes := utils.GetUint64Bytes(toShard.ToUint64())
+	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
+	reqBytes, err := xshard_state.GetKVStorageItem(key)
+	if err == xshard_state.ErrNotFound {
+		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("GetShardPeerStakeInfo: get current view info: %s", err)
+		return nil, fmt.Errorf("get remote msg to shard %d in blk %d: %s", toShard, blockHeight, err)
 	}
-	info := shard_stake.ViewInfo{}
-	if err := info.Deserialization(common.NewZeroCopySource(infoData)); err != nil {
-		return nil, fmt.Errorf("GetShardPeerStakeInfo: deserialize view info: %s", err)
+
+	req := &shardsysmsg.ReqsInBlock{}
+	if err := req.Deserialization(common.NewZeroCopySource(reqBytes)); err != nil {
+		return nil, fmt.Errorf("deserialize remote msg to shard %d: %s", toShard, err)
 	}
-	return info.Peers, nil
+	return req.Reqs, nil
 }

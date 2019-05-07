@@ -516,6 +516,18 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 	this.syncBlock()
 }
 
+func (this *BlockSyncMgr) OnAddBlock(height uint32) {
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+	this.lock.Lock()
+	for height := range this.blocksCache {
+		if height <= curBlockHeight {
+			delete(this.blocksCache, height)
+		}
+	}
+	this.lock.Unlock()
+	this.SaveSyncBlock(height)
+}
+
 //OnAddNode to node list when a new node added
 func (this *BlockSyncMgr) OnAddNode(nodeId uint64) {
 	log.Debugf("[p2p]OnAddNode:%d", nodeId)
@@ -635,38 +647,49 @@ func (this *BlockSyncMgr) saveBlock() {
 		}
 	}
 	this.lock.Unlock()
-	for {
-		fromID, nextBlock, merkleRoot := this.getBlockCache(nextBlockHeight)
-		if nextBlock == nil {
-			return
-		}
-		err := this.ledger.AddBlock(nextBlock, merkleRoot)
-		this.delBlockCache(nextBlockHeight)
-		if err != nil {
-			this.addErrorRespCnt(fromID)
-			n := this.getNodeWeight(fromID)
-			if n != nil && n.GetErrorRespCnt() >= SYNC_MAX_ERROR_RESP_TIMES {
-				this.delNode(fromID)
-			}
-			log.Warnf("[p2p]saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
-			reqNode := this.getNextNode(nextBlockHeight)
-			if reqNode == nil {
-				return
-			}
-			this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlock.Hash())
-			msg := msgpack.NewBlkDataReq(nextBlock.Hash())
-			err := this.server.Send(reqNode, msg, false)
-			if err != nil {
-				log.Warn("[p2p]require new block error:", err)
-				return
-			} else {
-				this.appendReqTime(reqNode.GetID())
-			}
-			return
-		}
-		nextBlockHeight++
-		this.pingOutsyncNodes(nextBlockHeight - 1)
+	if nextBlockHeight < 2 {
+		this.SaveSyncBlock(curBlockHeight)
 	}
+}
+
+func (this *BlockSyncMgr) SaveSyncBlock(blockHeight uint32) bool {
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+	if curBlockHeight != blockHeight {
+		log.Errorf("curBlockHeight:%d,blockHeight:%d", curBlockHeight, blockHeight)
+		return false
+	}
+	nextBlockHeight := curBlockHeight + 1
+	fromID, nextBlock, merkleRoot := this.getBlockCache(nextBlockHeight)
+	if nextBlock == nil {
+		return false
+	}
+	err := this.ledger.AddBlock(nextBlock, merkleRoot)
+	this.delBlockCache(nextBlockHeight)
+	if err != nil {
+		this.addErrorRespCnt(fromID)
+		n := this.getNodeWeight(fromID)
+		if n != nil && n.GetErrorRespCnt() >= SYNC_MAX_ERROR_RESP_TIMES {
+			this.delNode(fromID)
+		}
+		log.Warnf("[p2p]saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
+		reqNode := this.getNextNode(nextBlockHeight)
+		if reqNode == nil {
+			return false
+		}
+		this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlock.Hash())
+		msg := msgpack.NewBlkDataReq(nextBlock.Hash())
+		err := this.server.Send(reqNode, msg, false)
+		if err != nil {
+			log.Warn("[p2p]require new block error:", err)
+			return false
+		} else {
+			this.appendReqTime(reqNode.GetID())
+		}
+		return true
+	}
+	nextBlockHeight++
+	this.pingOutsyncNodes(nextBlockHeight - 1)
+	return false
 }
 
 func (this *BlockSyncMgr) isInBlockCache(blockHeight uint32) bool {
