@@ -23,7 +23,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 )
 
 const (
@@ -41,7 +40,7 @@ type ShardSystemEventMsg struct {
 type ShardEventState struct {
 	Version    uint32
 	EventType  uint32
-	ToShard    types.ShardID
+	ToShard    common.ShardID
 	FromHeight uint32
 	Payload    []byte
 }
@@ -65,7 +64,7 @@ func (this *ShardEventState) Deserialization(source *common.ZeroCopySource) erro
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	id, err := types.NewShardID(toShard)
+	id, err := common.NewShardID(toShard)
 	if err != nil {
 		return fmt.Errorf("serialization: generate shard id failed, err: %s", err)
 	}

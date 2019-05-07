@@ -22,7 +22,6 @@ import (
 	"io"
 
 	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
@@ -112,7 +111,7 @@ func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 			if eof {
 				break
 			}
-			if _, err := types.NewShardID(shardId); err != nil {
+			if _, err := comm.NewShardID(shardId); err != nil {
 				break
 			}
 			this.P.ShardHeights[shardId] = shardHeight

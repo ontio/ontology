@@ -120,18 +120,20 @@ type Service struct {
 
 // NeoVmService is a struct for smart contract provide interop service
 type NeoVmService struct {
-	Store         store.LedgerStore
-	CacheDB       *storage.CacheDB
-	ContextRef    context.ContextRef
-	Notifications []*event.NotifyEventInfo
-	Code          []byte
-	Tx            *types.Transaction
-	ShardID       types.ShardID
-	Time          uint32
-	Height        uint32
-	BlockHash     scommon.Uint256
-	Engine        *vm.ExecutionEngine
-	PreExec       bool
+	Store            store.LedgerStore
+	CacheDB          *storage.CacheDB
+	ContextRef       context.ContextRef
+	Notifications    []*event.NotifyEventInfo
+	Code             []byte
+	Tx               *types.Transaction
+	ShardID          scommon.ShardID
+	MainShardTxState *xshard_state.TxState
+	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
+	Time             uint32
+	Height           uint32
+	BlockHash        scommon.Uint256
+	Engine           *vm.ExecutionEngine
+	PreExec          bool
 }
 
 // Invoke a smart contract
@@ -271,11 +273,12 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 		tx := this.Tx.Hash()
 		txPaused, err := xshard_state.IsTxExecutionPaused(tx)
 		if err != nil || !txPaused {
-			if shards, err := xshard_state.GetTxShards(tx); err != xshard_state.ErrNotFound {
-				for _, s := range shards {
-					log.Errorf("TODO: abort transaction %s on shard %d", scommon.ToHexString(tx[:]), s)
-				}
-			}
+			// todo:
+			//if shards, err := xshard_state.GetTxShards(tx); err != xshard_state.ErrNotFound {
+			//	for _, s := range shards {
+			//		log.Errorf("TODO: abort transaction %s on shard %d", scommon.ToHexString(tx[:]), s)
+			//	}
+			//}
 		}
 	}
 

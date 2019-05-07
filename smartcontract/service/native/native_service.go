@@ -20,6 +20,7 @@ package native
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
@@ -43,17 +44,19 @@ var (
 // Native service struct
 // Invoke a native smart contract, new a native service
 type NativeService struct {
-	CacheDB       *storage.CacheDB
-	ServiceMap    map[string]Handler
-	Notifications []*event.NotifyEventInfo
-	InvokeParam   sstates.ContractInvokeParam
-	Input         []byte
-	Tx            *types.Transaction
-	ShardID       types.ShardID
-	Height        uint32
-	Time          uint32
-	BlockHash     common.Uint256
-	ContextRef    context.ContextRef
+	CacheDB          *storage.CacheDB
+	ServiceMap       map[string]Handler
+	Notifications    []*event.NotifyEventInfo
+	InvokeParam      sstates.ContractInvokeParam
+	Input            []byte
+	Tx               *types.Transaction
+	ShardID          common.ShardID
+	Height           uint32
+	Time             uint32
+	BlockHash        common.Uint256
+	MainShardTxState *xshard_state.TxState
+	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
+	ContextRef       context.ContextRef
 }
 
 func (this *NativeService) Register(methodName string, handler Handler) {

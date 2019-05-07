@@ -87,7 +87,7 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 
 	startHash := headersReq.HashStart
 	stopHash := headersReq.HashEnd
-	shardId, err := types.NewShardID(headersReq.ShardID)
+	shardId, err := common.NewShardID(headersReq.ShardID)
 	if err != nil {
 		log.Warnf("get headers in HeadersReqHandle error: %s,shardID:%s", err.Error(), headersReq.ShardID)
 		return
@@ -291,7 +291,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		if s == msgCommon.INIT {
 			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
 			heights := make(map[uint64]uint32)
-			lgr := ledger.GetShardLedger(types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 			if lgr != nil {
 				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
 			}
@@ -395,7 +395,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		if s == msgCommon.INIT {
 			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
 			heights := make(map[uint64]uint32)
-			lgr := ledger.GetShardLedger(types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 			if lgr != nil {
 				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
 			}
@@ -523,7 +523,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		log.Debug("[p2p]remotePeer invalid in DataReqHandle")
 		return
 	}
-	shardId, err := types.NewShardID(dataReq.ShardID)
+	shardId, err := common.NewShardID(dataReq.ShardID)
 	if err != nil {
 		log.Errorf("datareqhandle shardId invalid err:%s,shardID:%d", err, dataReq.ShardID)
 		return
@@ -612,7 +612,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		log.Debug("[p2p]empty inv payload in InvHandle")
 		return
 	}
-	shardId, err := types.NewShardID(inv.P.ShardID)
+	shardId, err := common.NewShardID(inv.P.ShardID)
 	if err != nil {
 		log.Errorf("invhandle shardId invalid err:%s,shardID:%d", err, inv.P.ShardID)
 		return
@@ -699,7 +699,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 }
 
 //get blk hdrs from starthash to stophash
-func GetHeadersFromHash(shardId types.ShardID, startHash common.Uint256, stopHash common.Uint256) ([]*types.Header, error) {
+func GetHeadersFromHash(shardId common.ShardID, startHash common.Uint256, stopHash common.Uint256) ([]*types.Header, error) {
 	var count uint32 = 0
 	headers := []*types.Header{}
 	var startHeight uint32

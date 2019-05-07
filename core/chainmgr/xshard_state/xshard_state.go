@@ -19,16 +19,16 @@
 package xshard_state
 
 import (
-	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
+	"github.com/ontio/ontology/core/xshard_types"
+	"io"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 const (
@@ -40,8 +40,9 @@ const (
 	TxCommit
 )
 
+const MaxRemoteReqPerTx = 8
+
 var (
-	MaxRemoteReqPerTx      = int32(8)
 	ErrNotFound            = errors.New("not found")
 	ErrInvalidTxState      = errors.New("invalid transaction state")
 	ErrTooMuchRemoteReq    = errors.New("too much remote request")
@@ -50,6 +51,13 @@ var (
 	ErrMismatchedRequest   = errors.New("mismatched request")
 	ErrMismatchedResponse  = errors.New("mismatched response")
 )
+
+type ExecuteState uint8
+
+const ExecNone = ExecuteState(0)
+const ExecYielded = ExecuteState(1)
+const ExecPrepared = ExecuteState(2)
+const ExecCompleted = ExecuteState(3)
 
 //
 // TxState
@@ -66,60 +74,307 @@ var (
 // * WriteSet:
 // * Notify:
 //
-type TxState struct {
-	State     int
-	Shards    map[types.ShardID]int
-	TxPayload []byte
-	NextReqID int32
-	Reqs      map[uint64]*XShardTxReq
-	Rsps      map[uint64]*XShardTxRsp
-	Result    []byte
-	ResultErr error
-	WriteSet  *overlaydb.MemDB
-	Notify    *event.ExecuteNotify
+type XShardTxReqResp struct {
+	Req   *xshard_types.XShardTxReq
+	Resp  *xshard_types.XShardTxRsp
+	Index uint32
 }
 
+type TxState struct {
+	State         int
+	TxID          ShardTxID // cross shard tx id: userTxHash+notify1+notify2...
+	Shards        map[common.ShardID]int
+	TxPayload     []byte
+	NumNotifies   uint32
+	ShardNotifies []*xshard_types.XShardNotify
+	NextReqID     uint32
+	InReqResp     map[common.ShardID][]*XShardTxReqResp // todo: request id may conflict
+	TotalInReq    uint32
+	OutReqResp    []*XShardTxReqResp
+	PendingReq    *xshard_types.XShardTxReq
+	ExecState     ExecuteState
+	Result        []byte
+	ResultErr     string
+	WriteSet      *overlaydb.MemDB
+	Notify        *event.ExecuteNotify
+}
+
+func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
+	state, eof := source.NextUint32()
+	self.State = int(state)
+	id, _, irr, eof := source.NextString()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.TxID = ShardTxID(id)
+	lenShards, _, irr, eof := source.NextVarUint()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.Shards = make(map[common.ShardID]int)
+	for i := uint64(0); i < lenShards; i++ {
+		id, err := source.NextShardID()
+		if err != nil {
+			return err
+		}
+		state, eof := source.NextUint32()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+
+		self.Shards[id] = int(state)
+	}
+	self.TxPayload, _, irr, eof = source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.NumNotifies, eof = source.NextUint32()
+	len, _, irr, eof := source.NextVarUint()
+	if irr {
+		return common.ErrIrregularData
+	}
+
+	for i := uint64(0); i < len; i++ {
+		notify := &xshard_types.XShardNotify{}
+		err := notify.Deserialization(source)
+		if err != nil {
+			return err
+		}
+
+		self.ShardNotifies = append(self.ShardNotifies, notify)
+	}
+	self.NextReqID, eof = source.NextUint32()
+
+	self.InReqResp = make(map[common.ShardID][]*XShardTxReqResp)
+	len, _, irr, eof = source.NextVarUint()
+	if irr {
+		return common.ErrIrregularData
+	}
+	for i := uint64(0); i < len; i++ {
+		id, err := source.NextShardID()
+		if err != nil {
+			return err
+		}
+		inLen, _, irr, _ := source.NextVarUint()
+		if irr {
+			return common.ErrIrregularData
+		}
+
+		var inReqResp []*XShardTxReqResp
+		for j := uint64(0); j < inLen; j++ {
+			req := &xshard_types.XShardTxReq{}
+			err := req.Deserialization(source)
+			if err != nil {
+				return err
+			}
+			resp := &xshard_types.XShardTxRsp{}
+			err = resp.Deserialization(source)
+			if err != nil {
+				return err
+			}
+			index, eof := source.NextUint32()
+			if eof {
+				return io.ErrUnexpectedEOF
+			}
+			inReqResp = append(inReqResp, &XShardTxReqResp{
+				Index: index,
+				Req:   req,
+				Resp:  resp,
+			})
+		}
+
+		self.InReqResp[id] = inReqResp
+	}
+
+	self.TotalInReq, eof = source.NextUint32()
+	lenOutReqResp, _, irr, eof := source.NextVarUint()
+	if irr {
+		return common.ErrIrregularData
+	}
+	for i := uint64(0); i < lenOutReqResp; i++ {
+		req := &xshard_types.XShardTxReq{}
+		err := req.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		resp := &xshard_types.XShardTxRsp{}
+		err = resp.Deserialization(source)
+		if err != nil {
+			return err
+		}
+		index, eof := source.NextUint32()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		self.OutReqResp = append(self.OutReqResp, &XShardTxReqResp{
+			Index: index,
+			Req:   req,
+			Resp:  resp,
+		})
+	}
+
+	hasPending, irr, eof := source.NextBool()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if hasPending {
+		self.PendingReq = &xshard_types.XShardTxReq{}
+		err := self.PendingReq.Deserialization(source)
+		if err != nil {
+			return err
+		}
+	}
+	st, eof := source.NextUint8()
+	self.ExecState = ExecuteState(st)
+	self.Result, _, irr, eof = source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.ResultErr, _, irr, eof = source.NextString()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if self.WriteSet == nil {
+		self.WriteSet = overlaydb.NewMemDB(1024, 10)
+	}
+	err := self.WriteSet.Dersialization(source)
+	if err != nil {
+		return err
+	}
+
+	buf, _, irr, eof := source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	return json.Unmarshal(buf, &self.Notify)
+}
+
+func (self *TxState) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(uint32(self.State))
+	sink.WriteString(string(self.TxID))
+	type shardState struct {
+		shard common.ShardID
+		state int
+	}
+	var shards []shardState
+	for id, state := range self.Shards {
+		shards = append(shards, shardState{shard: id, state: state})
+	}
+	sort.Slice(shards, func(i, j int) bool {
+		return shards[i].shard.ToUint64() < shards[j].shard.ToUint64()
+	})
+	sink.WriteVarUint(uint64(len(shards)))
+	for _, s := range shards {
+		sink.WriteUint64(s.shard.ToUint64())
+		sink.WriteUint32(uint32(s.state))
+	}
+
+	sink.WriteVarBytes(self.TxPayload)
+	sink.WriteUint32(self.NumNotifies)
+	sink.WriteVarUint(uint64(len(self.ShardNotifies)))
+	for _, notify := range self.ShardNotifies {
+		notify.Serialization(sink)
+	}
+	sink.WriteUint32(self.NextReqID)
+
+	type shardReqResp struct {
+		shard     common.ShardID
+		InReqResp []*XShardTxReqResp
+	}
+	var shardInReqResp []shardReqResp
+	for shard, re := range self.InReqResp {
+		shardInReqResp = append(shardInReqResp, shardReqResp{shard: shard, InReqResp: re})
+	}
+	sort.Slice(shardInReqResp, func(i, j int) bool {
+		return shardInReqResp[i].shard.ToUint64() < shardInReqResp[j].shard.ToUint64()
+	})
+
+	sink.WriteVarUint(uint64(len(shardInReqResp)))
+	for _, s := range shardInReqResp {
+		sink.WriteUint64(s.shard.ToUint64())
+		sink.WriteVarUint(uint64(len(s.InReqResp)))
+		for _, reqResp := range s.InReqResp {
+			reqResp.Req.Serialization(sink)
+			reqResp.Resp.Serialization(sink)
+			sink.WriteUint32(reqResp.Index)
+		}
+	}
+	sink.WriteUint32(self.TotalInReq)
+	sink.WriteVarUint(uint64(len(self.OutReqResp)))
+	for _, reqResp := range self.OutReqResp {
+		reqResp.Req.Serialization(sink)
+		reqResp.Resp.Serialization(sink)
+		sink.WriteUint32(reqResp.Index)
+	}
+	sink.WriteBool(self.PendingReq != nil)
+	if self.PendingReq != nil {
+		self.PendingReq.Serialization(sink)
+	}
+	sink.WriteUint8(uint8(self.ExecState))
+	sink.WriteVarBytes(self.Result)
+	sink.WriteString(self.ResultErr)
+	if self.WriteSet == nil {
+		self.WriteSet = overlaydb.NewMemDB(1024, 10)
+	}
+	self.WriteSet.Serialiazation(sink)
+	buf, _ := json.Marshal(self.Notify)
+	sink.WriteVarBytes(buf)
+}
+
+type ShardTxInfo struct {
+	Index uint32
+	State *TxState
+}
+
+type ShardTxID string // cross shard tx id: userTxHash+notify1+notify2...
 //
 // ShardTxStateMap
 // stores all intermediate states of cross-shard transactions
 //
 type ShardTxStateMap struct {
-	TxStates map[common.Uint256]*TxState
+	TxStates map[ShardTxID]*TxState
 }
 
 var shardTxStateTable = ShardTxStateMap{
-	TxStates: make(map[common.Uint256]*TxState),
+	TxStates: make(map[ShardTxID]*TxState),
 }
 
-//
-// GetTxShards
-// get shards which participant with the procession of transaction
-//
-func GetTxShards(tx common.Uint256) ([]types.ShardID, error) {
-	if state, present := shardTxStateTable.TxStates[tx]; present {
-		shards := make([]types.ShardID, 0, len(state.Shards))
-		for id := range state.Shards {
-			shards = append(shards, id)
-		}
-		return shards, nil
+func (self *TxState) GetTxShards() []common.ShardID {
+	shards := make([]common.ShardID, 0, len(self.Shards))
+	for id := range self.Shards {
+		shards = append(shards, id)
 	}
-
-	return nil, ErrNotFound
+	return shards
 }
 
-//
-// AddTxShard
-// add participated shard to txState
-//
-func AddTxShard(tx common.Uint256, id types.ShardID) error {
-	txState := CreateTxState(tx)
-	if state, present := txState.Shards[id]; !present {
-		txState.Shards[id] = TxExec
+func (self *TxState) IsCommitReady() bool {
+	if self.State != TxPrepared {
+		return false
+	}
+	for _, state := range self.Shards {
+		if state != TxPrepared {
+			return false
+		}
+	}
+	return true
+}
+
+func (self *TxState) AddTxShard(id common.ShardID) error {
+	if state, present := self.Shards[id]; !present {
+		self.Shards[id] = TxExec
 	} else if state != TxExec {
 		return ErrInvalidTxState
 	}
 
 	return nil
+}
+
+func (self *TxState) IsTxExecutionPaused(tx common.Uint256) bool {
+	return self.State != TxExec
 }
 
 func IsTxExecutionPaused(tx common.Uint256) (bool, error) {
@@ -129,6 +384,13 @@ func IsTxExecutionPaused(tx common.Uint256) (bool, error) {
 	}
 
 	return txState.State != TxExec, nil
+}
+
+func (txState *TxState) SetTxExecutionPaused() {
+	switch txState.State {
+	case TxExec:
+		txState.State = TxWait
+	}
 }
 
 func SetTxExecutionPaused(tx common.Uint256) error {
@@ -143,6 +405,13 @@ func SetTxExecutionPaused(tx common.Uint256) error {
 	return nil
 }
 
+func (txState *TxState) SetTxExecutionContinued() {
+	switch txState.State {
+	case TxWait:
+		txState.State = TxExec
+	}
+}
+
 func SetTxExecutionContinued(tx common.Uint256) error {
 	txState, err := GetTxState(tx)
 	if err != nil {
@@ -155,88 +424,94 @@ func SetTxExecutionContinued(tx common.Uint256) error {
 	return nil
 }
 
-func GetTxCommitState(tx common.Uint256) (map[types.ShardID]int, error) {
-	if state, present := shardTxStateTable.TxStates[tx]; present {
-		return state.Shards, nil
+func (self *TxState) SetShardPrepared(shardId common.ShardID) error {
+	if _, ok := self.Shards[shardId]; !ok {
+		return fmt.Errorf("invalid shard ID %d, in tx commit", shardId)
 	}
-	return nil, ErrNotFound
+	self.Shards[shardId] = TxPrepared
+	return nil
+}
+
+func (self *TxState) IsTxCommitReady() bool {
+	if self.State != TxPrepared {
+		return false
+	}
+	for _, state := range self.Shards {
+		if state != TxPrepared {
+			return false
+		}
+	}
+	return true
+}
+
+func (self *TxState) Clone() *TxState {
+	txs := &TxState{
+		State:      self.State,
+		Shards:     make(map[common.ShardID]int),
+		TxPayload:  self.TxPayload,
+		NextReqID:  self.NextReqID,
+		Result:     make([]byte, len(self.Result)),
+		InReqResp:  make(map[common.ShardID][]*XShardTxReqResp),
+		PendingReq: self.PendingReq,
+		ResultErr:  self.ResultErr,
+		WriteSet:   nil,
+		Notify:     self.Notify,
+	}
+
+	for k, v := range self.Shards {
+		txs.Shards[k] = v
+	}
+	// todo: need deep clone?
+	for k, v := range self.InReqResp {
+		for _, res := range v {
+			txs.InReqResp[k] = append(txs.InReqResp[k], res)
+		}
+	}
+
+	for _, v := range self.OutReqResp {
+		txs.OutReqResp = append(txs.OutReqResp, v)
+	}
+	//todo: need clone?
+	txs.WriteSet = self.WriteSet
+
+	return txs
 }
 
 // CreateTxState
 // If txState available, return it.  Otherwise, Create txState.
-func CreateTxState(tx common.Uint256) *TxState {
+func CreateTxState(tx ShardTxID) *TxState {
 	if state, present := shardTxStateTable.TxStates[tx]; present {
 		return state
 	}
 	state := &TxState{
-		State:  TxExec,
-		Shards: make(map[types.ShardID]int),
-		Reqs:   make(map[uint64]*XShardTxReq),
-		Rsps:   make(map[uint64]*XShardTxRsp),
+		State:     TxExec,
+		Shards:    make(map[common.ShardID]int),
+		InReqResp: make(map[common.ShardID][]*XShardTxReqResp),
+		TxID:      tx,
 	}
 	shardTxStateTable.TxStates[tx] = state
 	return state
 }
 
+func PutTxState(txid ShardTxID, state *TxState) {
+	shardTxStateTable.TxStates[txid] = state
+}
+
 func GetTxState(tx common.Uint256) (*TxState, error) {
-	if state, present := shardTxStateTable.TxStates[tx]; present {
+	//todo:
+	txID := ShardTxID(string(tx[:]))
+	if state, present := shardTxStateTable.TxStates[txID]; present {
 		return state, nil
 	}
 	return nil, ErrNotFound
 }
 
-func GetNextReqIndex(tx common.Uint256) int32 {
-	txState := CreateTxState(tx)
-	if txState.NextReqID >= MaxRemoteReqPerTx {
-		return -1
+func (self *TxState) SetTxPrepared() error {
+	if self.State != TxExec {
+		return fmt.Errorf("invalid state to prepared: %s", self.State)
 	}
 
-	return txState.NextReqID
-}
-
-func SetNextReqIndex(tx common.Uint256, nextId uint64) error {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return err
-	}
-	if nextId > math.MaxInt32 {
-		return fmt.Errorf("SetNextReqIndex: next id %d is too large", nextId)
-	}
-	txState.NextReqID = int32(nextId)
-	return nil
-}
-
-func SetTxPrepared(tx common.Uint256) error {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return err
-	}
-
-	if txState.State != TxExec {
-		return fmt.Errorf("invalid state to prepared: %d", txState.State)
-	}
-
-	txState.State = TxPrepared
-	return nil
-}
-
-func SetTxCommitted(tx common.Uint256, isCommit bool) error {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return err
-	}
-
-	if isCommit && txState.State != TxPrepared {
-		return fmt.Errorf("invalid state to commit: %d", txState.State)
-	}
-
-	if isCommit {
-		txState.State = TxCommit
-	} else {
-		txState.State = TxAbort
-	}
-
-	txState.Shards = make(map[types.ShardID]int)
+	self.State = TxPrepared
 	return nil
 }
 
@@ -247,147 +522,11 @@ func SetTxResult(tx common.Uint256, result []byte, resultErr error) error {
 	}
 
 	txState.Result = result
-	txState.ResultErr = resultErr
+	txState.ResultErr = resultErr.Error()
 	return nil
 }
 
-//
-// GetTxResponse
-// get remote response of the request, if existed.
-// return nil if not existed
-//
-func GetTxResponse(tx common.Uint256, txReq *XShardTxReq) *XShardTxRsp {
-	txState := CreateTxState(tx)
-
-	if rspMsg, present := txState.Rsps[txReq.IdxInTx]; present {
-		return rspMsg
-	}
-	return nil
-}
-
-//
-// PutTxResponse
-// add remote response to txState.
-// if not matched with previous response, return ErrMismatchResponse
-//
-func PutTxResponse(tx common.Uint256, txRsp *XShardTxRsp) error {
-	txState := CreateTxState(tx)
-
-	// check if corresponding request existed
-	if _, present := txState.Reqs[txRsp.IdxInTx]; !present {
-		return ErrInvalidRemoteRsp
-	}
-	// check if duplicated response
-	if rspMsg, present := txState.Rsps[txRsp.IdxInTx]; present {
-		if bytes.Compare(rspMsg.Result, txRsp.Result) == 0 &&
-			rspMsg.Error == txRsp.Error {
-			return nil
-		}
-		return ErrMismatchedResponse
-	}
-
-	txState.Rsps[txRsp.IdxInTx] = txRsp
-	return nil
-}
-
-func GetTxPayload(tx common.Uint256) ([]byte, error) {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	if txState.TxPayload == nil {
-		return nil, ErrNotFound
-	}
-	return txState.TxPayload, nil
-}
-
-func GetTxRequests(tx common.Uint256) ([]*XShardTxReq, error) {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return nil, err
-	}
-	reqs := make([]*XShardTxReq, 0)
-	for _, req := range txState.Reqs {
-		reqs = append(reqs, req)
-	}
-	return reqs, nil
-}
-
-//
-// ValidateTxRequest
-// check if the remote request is consistent with previous request which has same Index
-//
-func ValidateTxRequest(tx common.Uint256, req *XShardTxReq) error {
-	txState, err := GetTxState(tx)
-	if err == ErrNotFound {
-		return nil
-	}
-
-	if reqMsg, present := txState.Reqs[req.IdxInTx]; present {
-		if reqMsg.Contract == req.Contract &&
-			reqMsg.Method == req.Method &&
-			bytes.Compare(reqMsg.Args, req.Args) == 0 {
-			return nil
-		} else {
-			return ErrMismatchedRequest
-		}
-	}
-
-	return nil
-}
-
-//
-// PutTxRequest
-// add remote request to txState
-//	1. check if remote request is valid
-//  2. add serialized tx to txState
-//  3. update next request index
-//
-func PutTxRequest(tx common.Uint256, txPayload []byte, req XShardMsg) error {
-	if req.Type() != EVENT_SHARD_TXREQ {
-		return fmt.Errorf("invalid type of txReq: %d", req.Type())
-	}
-
-	txReq, ok := req.(*XShardTxReq)
-	if !ok || txReq == nil {
-		return fmt.Errorf("invalid txReq")
-	}
-
-	if err := ValidateTxRequest(tx, txReq); err != nil {
-		return fmt.Errorf("validate tx request idx %d: %s", txReq.IdxInTx, err)
-	}
-
-	txState := CreateTxState(tx)
-
-	if txPayload != nil {
-		if txState.TxPayload != nil {
-			if bytes.Compare(txState.TxPayload, txPayload) != 0 {
-				return ErrMismatchedTxPayload
-			}
-		} else {
-			txState.TxPayload = txPayload
-		}
-	}
-	txState.Reqs[txReq.IdxInTx] = txReq
-	SetNextReqIndex(tx, txReq.IdxInTx+1)
-	return nil
-}
-
-//
-// UpdateTxResult
-// save writeset of the transaction to txState
-//
-func UpdateTxResult(tx common.Uint256, dataDB *storage.CacheDB) error {
-	txState, err := GetTxState(tx)
-	if err != nil {
-		return err
-	}
-	txState.WriteSet = dataDB.GetCache()
-	return nil
-}
-
-func VerifyStates(tx common.Uint256) error {
+func (self *TxState) VerifyStates() error {
 	// TODO
 	return nil
 }

@@ -20,16 +20,16 @@ package shardping
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"io"
 
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type ShardPingParam struct {
-	FromShard types.ShardID
-	ToShard   types.ShardID
+	FromShard common.ShardID
+	ToShard   common.ShardID
 	Param     string
 }
 

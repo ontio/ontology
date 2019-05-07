@@ -327,7 +327,7 @@ func TestBlkHeaderHandle(t *testing.T) {
 	hash := ledger.DefLedger.GetBlockHash(0)
 	assert.NotEqual(t, hash, common.UINT256_EMPTY)
 
-	headers, err := GetHeadersFromHash(ct.NewShardIDUnchecked(0), hash, hash)
+	headers, err := GetHeadersFromHash(common.NewShardIDUnchecked(0), hash, hash)
 	assert.Nil(t, err)
 
 	buf := msgpack.NewHeaders(headers)

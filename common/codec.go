@@ -15,29 +15,17 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package payload
+package common
 
-import (
-	"github.com/ontio/ontology/common"
-	"testing"
+type Serializable interface {
+	Serialization(sink *ZeroCopySink)
+}
 
-	"github.com/stretchr/testify/assert"
-)
-
-func TestInvokeCode_Serialize(t *testing.T) {
-	code := InvokeCode{
-		Code: []byte{1, 2, 3},
+func SerializeToBytes(values ...Serializable) []byte {
+	sink := NewZeroCopySink(0)
+	for _, val := range values {
+		val.Serialization(sink)
 	}
 
-	bs := common.SerializeToBytes(&code)
-	var code2 InvokeCode
-
-	err := code2.Deserialization(common.NewZeroCopySource(bs))
-	assert.Nil(t, err)
-	assert.Equal(t, code, code2)
-
-	buf := common.NewZeroCopySource(bs[:len(bs)-2])
-	err = code.Deserialization(buf)
-
-	assert.NotNil(t, err)
+	return sink.Bytes()
 }

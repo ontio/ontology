@@ -22,10 +22,10 @@ package txnpool
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/common"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -48,14 +48,14 @@ func startActor(obj interface{}, id string) (*actor.PID, error) {
 }
 
 type TxnPoolManager struct {
-	servers               map[types.ShardID]*tp.TXPoolServer
+	servers               map[common.ShardID]*tp.TXPoolServer
 	disablePreExec        bool
 	disableBroadcastNetTx bool
 }
 
 func NewTxnPoolManager(disablePreExec, disableBroadcastNetTx bool) *TxnPoolManager {
 	return &TxnPoolManager{
-		servers:               make(map[types.ShardID]*tp.TXPoolServer),
+		servers:               make(map[common.ShardID]*tp.TXPoolServer),
 		disablePreExec:        disablePreExec,
 		disableBroadcastNetTx: disableBroadcastNetTx,
 	}
@@ -64,7 +64,7 @@ func NewTxnPoolManager(disablePreExec, disableBroadcastNetTx bool) *TxnPoolManag
 // StartTxnPoolServer starts the txnpool server and registers
 // actors to handle the msgs from the network, http, consensus
 // and validators. Meanwhile subscribes the block complete  event.
-func (self *TxnPoolManager) StartTxnPoolServer(shardID types.ShardID, lgr *ledger.Ledger) (*tp.TXPoolServer, error) {
+func (self *TxnPoolManager) StartTxnPoolServer(shardID common.ShardID, lgr *ledger.Ledger) (*tp.TXPoolServer, error) {
 	var s *tp.TXPoolServer
 
 	/* Start txnpool server to receive msgs from p2p,
@@ -104,7 +104,7 @@ func (self *TxnPoolManager) StartTxnPoolServer(shardID types.ShardID, lgr *ledge
 	return s, nil
 }
 
-func (self *TxnPoolManager) GetPID(shardId types.ShardID, actor tc.ActorType) *actor.PID {
+func (self *TxnPoolManager) GetPID(shardId common.ShardID, actor tc.ActorType) *actor.PID {
 	if s := self.servers[shardId]; s != nil {
 		return s.GetPID(actor)
 	}

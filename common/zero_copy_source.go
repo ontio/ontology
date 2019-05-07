@@ -21,6 +21,7 @@ package common
 import (
 	"encoding/binary"
 	"errors"
+	"io"
 )
 
 var ErrIrregularData = errors.New("irregular data")
@@ -143,6 +144,16 @@ func (self *ZeroCopySource) NextUint64() (data uint64, eof bool) {
 	return binary.LittleEndian.Uint64(buf), eof
 }
 
+func (self *ZeroCopySource) NextShardID() (id ShardID, err error) {
+	data, eof := self.NextUint64()
+	if eof {
+		err = io.ErrUnexpectedEOF
+		return
+	}
+
+	return NewShardID(data)
+}
+
 func (self *ZeroCopySource) NextInt32() (data int32, eof bool) {
 	var val uint32
 	val, eof = self.NextUint32()
@@ -166,7 +177,9 @@ func (self *ZeroCopySource) NextVarBytes() (data []byte, size uint64, irregular 
 	count, size, irregular, eof = self.NextVarUint()
 	size += count
 
-	data, eof = self.NextBytes(count)
+	if count > 0 {
+		data, eof = self.NextBytes(count)
+	}
 
 	return
 }

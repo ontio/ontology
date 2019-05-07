@@ -23,7 +23,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -62,7 +61,7 @@ func (this *ShardCCMCState) Deserialization(source *common.ZeroCopySource) error
 
 type ShardCCInfo struct {
 	CCID         uint64
-	ShardID      types.ShardID
+	ShardID      common.ShardID
 	Owner        common.Address
 	ContractAddr common.Address
 	Dependencies []common.Address

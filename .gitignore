@@ -24,6 +24,12 @@ cscope*
 *.exe
 **/*.log
 **/*.txt
+**/*.ldb
+**/*.db
+**/LOCK
+**/CURRENT
+**/MANIFEST-*
+**/LOG
 neosnapshot/*
 glide.lock
 *.iml

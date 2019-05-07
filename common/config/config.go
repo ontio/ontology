@@ -31,7 +31,6 @@ import (
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 )
 
@@ -629,8 +628,8 @@ type WebSocketConfig struct {
 }
 
 type ShardConfig struct {
-	ShardID             types.ShardID `json:"shard_id"`
-	GenesisParentHeight uint32        `json:"genesis_parent_height"`
+	ShardID             common.ShardID `json:"shard_id"`
+	GenesisParentHeight uint32         `json:"genesis_parent_height"`
 }
 
 type OntologyConfig struct {
@@ -691,7 +690,7 @@ func NewOntologyConfig() *OntologyConfig {
 			HttpWsPort:   DEFAULT_WS_PORT,
 		},
 		Shard: &ShardConfig{
-			ShardID:             types.NewShardIDUnchecked(DEFAULT_SHARD_ID),
+			ShardID:             common.NewShardIDUnchecked(DEFAULT_SHARD_ID),
 			GenesisParentHeight: DEFAULT_PARENT_HEIGHT,
 		},
 	}

@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -42,14 +43,14 @@ func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) err
 	return this.blockPool.AddBlockInfo(blkInfo)
 }
 
-func (this *ChainManager) getShardBlockInfo(shardID types.ShardID, height uint32) *message.ShardBlockInfo {
+func (this *ChainManager) getShardBlockInfo(shardID common.ShardID, height uint32) *message.ShardBlockInfo {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
 	return this.blockPool.GetBlockInfo(shardID, height)
 }
 
-func (this *ChainManager) updateShardBlockInfo(shardID types.ShardID, block *types.Block, shardTxs map[types.ShardID]*message.ShardBlockTx) {
+func (this *ChainManager) updateShardBlockInfo(shardID common.ShardID, block *types.Block, shardTxs map[common.ShardID]*message.ShardBlockTx) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -62,7 +63,7 @@ func (this *ChainManager) updateShardBlockInfo(shardID types.ShardID, block *typ
 	blkInfo.ShardTxs = shardTxs
 }
 
-func (self *ChainManager) initShardInfo(shardID types.ShardID, shard *shardstates.ShardState) (*ShardInfo, error) {
+func (self *ChainManager) initShardInfo(shardID common.ShardID, shard *shardstates.ShardState) (*ShardInfo, error) {
 	if shardID != shard.ShardID {
 		return nil, fmt.Errorf("unmatched shard ID with shardstate")
 	}

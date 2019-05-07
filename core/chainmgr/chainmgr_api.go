@@ -20,6 +20,7 @@ package chainmgr
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/common"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
@@ -29,7 +30,7 @@ import (
 
 const shard_port_gap = 10
 
-func GetShardName(shardID types.ShardID) string {
+func GetShardName(shardID common.ShardID) string {
 	return fmt.Sprintf("shard_%d", shardID.ToUint64())
 }
 
@@ -42,7 +43,7 @@ func GetAccount() *account.Account {
 	return chainmgr.account
 }
 
-func GetShardID() types.ShardID {
+func GetShardID() common.ShardID {
 	return GetChainManager().shardID
 }
 
@@ -63,7 +64,7 @@ func SetTxPool(txPool *actor.PID) error {
 	return nil
 }
 
-func GetShardBlock(shardID types.ShardID, height uint32) *types.Block {
+func GetShardBlock(shardID common.ShardID, height uint32) *types.Block {
 	chainmgr := GetChainManager()
 	chainmgr.lock.RLock()
 	defer chainmgr.lock.RUnlock()
@@ -92,7 +93,7 @@ func GetShardBlock(shardID types.ShardID, height uint32) *types.Block {
 // @start : startHeight of parent block
 // @end : endHeight of parent block
 //
-func GetShardTxsByParentHeight(start, end uint32) map[types.ShardID][]*types.Transaction {
+func GetShardTxsByParentHeight(start, end uint32) map[common.ShardID][]*types.Transaction {
 	chainmgr := GetChainManager()
 
 	chainmgr.lock.RLock()
@@ -107,7 +108,7 @@ func GetShardTxsByParentHeight(start, end uint32) map[types.ShardID][]*types.Tra
 	if m == nil {
 		return nil
 	}
-	shardTxs := make(map[types.ShardID][]*types.Transaction)
+	shardTxs := make(map[common.ShardID][]*types.Transaction)
 	for ; start < end+1; start++ {
 		if blk, present := m[start]; present && blk != nil {
 			if shardTx, present := blk.ShardTxs[chainmgr.shardID]; present && shardTx != nil && shardTx.Tx != nil {

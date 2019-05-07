@@ -139,7 +139,7 @@ func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEven
 	}
 }
 
-func (self ChainManager) startChildShard(shardID types.ShardID, shardState *shardstates.ShardState) error {
+func (self ChainManager) startChildShard(shardID common.ShardID, shardState *shardstates.ShardState) error {
 	// TODO: start consensus / syncer / http / txpool
 
 	if _, err := self.initShardInfo(shardID, shardState); err != nil {
@@ -191,7 +191,7 @@ func (self *ChainManager) handleBlockEvents(block *types.Block, shardEvts []*evt
 }
 
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
-	shardID, err := types.NewShardID(header.ShardID)
+	shardID, err := common.NewShardID(header.ShardID)
 	if err != nil {
 		return fmt.Errorf("invalid shard id %d", header.ShardID)
 	}
@@ -201,7 +201,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	}
 
 	for height := self.processedParentBlockHeight + 1; height <= header.Height; height++ {
-		shards, err := GetRequestedRemoteShards(lgr, height)
+		shards, err := lgr.GetRelatedShardIDsInBlock(height)
 		if err != nil {
 			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
 		}
@@ -212,7 +212,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 		}
 
 		for _, s := range shards {
-			reqs, err := GetRequestsToRemoteShard(lgr, height, s)
+			reqs, err := lgr.GetShardMsgsInBlock(height, s)
 			if err != nil {
 				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
 			}
@@ -285,8 +285,8 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []
 	return nil
 }
 
-func constructShardBlockTx(evts []*evtmsg.ShardEventState) (map[types.ShardID]*message.ShardBlockTx, error) {
-	shardEvts := make(map[types.ShardID][]*evtmsg.ShardEventState)
+func constructShardBlockTx(evts []*evtmsg.ShardEventState) (map[common.ShardID]*message.ShardBlockTx, error) {
+	shardEvts := make(map[common.ShardID][]*evtmsg.ShardEventState)
 
 	// sort all ShardEvents by 'to-shard-id'
 	for _, evt := range evts {
@@ -299,7 +299,7 @@ func constructShardBlockTx(evts []*evtmsg.ShardEventState) (map[types.ShardID]*m
 	}
 
 	// build one ShardTx with events to the shard
-	shardTxs := make(map[types.ShardID]*message.ShardBlockTx)
+	shardTxs := make(map[common.ShardID]*message.ShardBlockTx)
 	for shardId, evts := range shardEvts {
 		tx, err := newShardBlockTx(evts)
 		if err != nil {

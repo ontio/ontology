@@ -72,7 +72,7 @@ type registerValidators struct {
 
 // TXPoolServer contains all api to external modules
 type TXPoolServer struct {
-	shardID               tx.ShardID
+	shardID               common.ShardID
 	ledger                *ledger.Ledger
 	mu                    sync.RWMutex                        // Sync mutex
 	wg                    sync.WaitGroup                      // Worker sync
@@ -92,7 +92,7 @@ type TXPoolServer struct {
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
 // handle and filter inbound transactions from the network, http, and consensus.
-func NewTxPoolServer(shardID tx.ShardID, lgr *ledger.Ledger, num uint8, disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
+func NewTxPoolServer(shardID common.ShardID, lgr *ledger.Ledger, num uint8, disablePreExec, disableBroadcastNetTx bool) *TXPoolServer {
 	s := &TXPoolServer{
 		shardID: shardID,
 		ledger:  lgr,

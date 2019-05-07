@@ -20,6 +20,7 @@ package proc
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"testing"
 	"time"
 
@@ -75,7 +76,7 @@ func startActor(obj interface{}) *actor.PID {
 
 func TestTxn(t *testing.T) {
 	t.Log("Starting test tx")
-	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -135,7 +136,7 @@ func TestTxn(t *testing.T) {
 
 func TestAssignRsp2Worker(t *testing.T) {
 	t.Log("Starting assign response to the worker testing")
-	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -178,7 +179,7 @@ func TestAssignRsp2Worker(t *testing.T) {
 
 func TestActor(t *testing.T) {
 	t.Log("Starting actor testing")
-	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")
@@ -246,7 +247,7 @@ func TestActor(t *testing.T) {
 
 func TestValidator(t *testing.T) {
 	t.Log("Starting validator testing")
-	shardId := types.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
+	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
 	if s == nil {
 		t.Error("Test case: new tx pool server failed")

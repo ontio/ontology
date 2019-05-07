@@ -91,7 +91,7 @@ type p2pMsgPayload struct {
 
 type Server struct {
 	Index         uint32
-	ShardID       types.ShardID
+	ShardID       common.ShardID
 	account       *account.Account
 	poolActor     *actorTypes.TxPoolActor
 	p2p           *actorTypes.P2PActor
@@ -134,7 +134,7 @@ type Server struct {
 	quitWg     sync.WaitGroup
 }
 
-func NewVbftServer(shardID types.ShardID, account *account.Account, txpool *actor.PID, lgr *ledger.Ledger, p2p *actor.PID) (*Server, error) {
+func NewVbftServer(shardID common.ShardID, account *account.Account, txpool *actor.PID, lgr *ledger.Ledger, p2p *actor.PID) (*Server, error) {
 	server := &Server{
 		msgHistoryDuration: 64,
 		account:            account,

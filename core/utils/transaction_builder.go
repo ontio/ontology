@@ -119,7 +119,7 @@ func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{
 		case uint64:
 			val := big.NewInt(0)
 			builder.EmitPushInteger(val.SetUint64(uint64(v)))
-		case types.ShardID:
+		case common.ShardID:
 			val := big.NewInt(0)
 			builder.EmitPushInteger(val.SetUint64(v.ToUint64()))
 		case string:

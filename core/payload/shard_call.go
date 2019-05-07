@@ -18,26 +18,38 @@
 package payload
 
 import (
-	"github.com/ontio/ontology/common"
-	"testing"
+	"github.com/ontio/ontology/core/xshard_types"
+	"io"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/ontio/ontology/common"
 )
 
-func TestInvokeCode_Serialize(t *testing.T) {
-	code := InvokeCode{
-		Code: []byte{1, 2, 3},
+type ShardCall struct {
+	Msgs []xshard_types.CommonShardMsg
+}
+
+//note: InvokeCode.Code has data reference of param source
+func (self *ShardCall) Deserialization(source *common.ZeroCopySource) error {
+	n, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 
-	bs := common.SerializeToBytes(&code)
-	var code2 InvokeCode
+	for i := uint32(0); i < n; i++ {
+		msg, err := xshard_types.DecodeShardCommonMsg(source)
+		if err != nil {
+			return err
+		}
 
-	err := code2.Deserialization(common.NewZeroCopySource(bs))
-	assert.Nil(t, err)
-	assert.Equal(t, code, code2)
+		self.Msgs = append(self.Msgs, msg)
+	}
 
-	buf := common.NewZeroCopySource(bs[:len(bs)-2])
-	err = code.Deserialization(buf)
+	return nil
+}
 
-	assert.NotNil(t, err)
+func (self *ShardCall) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(uint32(len(self.Msgs)))
+	for _, msg := range self.Msgs {
+		xshard_types.EncodeShardCommonMsg(sink, msg)
+	}
 }

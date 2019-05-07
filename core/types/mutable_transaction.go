@@ -21,11 +21,7 @@ package types
 import (
 	"errors"
 	"fmt"
-	"io"
-
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/payload"
 )
 
 type MutableTransaction struct {
@@ -116,82 +112,9 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	if tx.Payload == nil {
 		return errors.New("transaction payload is nil")
 	}
-	switch pl := tx.Payload.(type) {
-	case *payload.DeployCode:
-		pl.Serialization(sink)
-	case *payload.InvokeCode:
-		pl.Serialization(sink)
-	case *payload.MetaDataCode:
-		pl.Serialization(sink)
-	default:
-		return errors.New("wrong transaction payload type")
-	}
+	tx.Payload.Serialization(sink)
+
 	sink.WriteVarUint(uint64(tx.attributes))
-
-	return nil
-}
-
-func (tx *MutableTransaction) DeserializeUnsigned(r io.Reader) error {
-	var versiontype [2]byte
-	_, err := io.ReadFull(r, versiontype[:])
-	if err != nil {
-		return err
-	}
-	version := versiontype[0]
-	nonce, err := serialization.ReadUint32(r)
-	if err != nil {
-		return err
-	}
-	shardID := uint64(0)
-	if version >= common.VERSION_SUPPORT_SHARD {
-		shardID, err = serialization.ReadUint64(r)
-		if err != nil {
-			return err
-		}
-	}
-	gasPrice, err := serialization.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-	gasLimit, err := serialization.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-	tx.Version = version
-	tx.TxType = TransactionType(versiontype[1])
-	tx.ShardID = shardID
-	tx.Nonce = nonce
-	tx.GasPrice = gasPrice
-	tx.GasLimit = gasLimit
-	if err := tx.Payer.Deserialize(r); err != nil {
-		return err
-	}
-
-	switch tx.TxType {
-	case Invoke:
-		tx.Payload = new(payload.InvokeCode)
-	case Deploy:
-		tx.Payload = new(payload.DeployCode)
-	case MetaData:
-		tx.Payload = new(payload.MetaDataCode)
-	default:
-		return fmt.Errorf("unsupported tx type %v", tx.TxType)
-	}
-
-	err = tx.Payload.Deserialize(r)
-	if err != nil {
-		return err
-	}
-
-	//attributes
-	length, err := serialization.ReadVarUint(r, 0)
-	if err != nil {
-		return err
-	}
-	if length != 0 {
-		return fmt.Errorf("transaction attribute must be 0, got %d", length)
-	}
-	tx.attributes = 0
 
 	return nil
 }

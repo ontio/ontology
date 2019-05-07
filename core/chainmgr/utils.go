@@ -25,18 +25,15 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/ledger"
 	sComm "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
-	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.OntologyConfig {
+func (self *ChainManager) GetShardConfig(shardID common.ShardID) *config.OntologyConfig {
 	self.lock.RLock()
 	defer self.lock.RUnlock()
 	if s := self.shards[shardID]; s != nil {
@@ -45,7 +42,7 @@ func (self *ChainManager) GetShardConfig(shardID types.ShardID) *config.Ontology
 	return nil
 }
 
-func (self *ChainManager) setShardConfig(shardID types.ShardID, cfg *config.OntologyConfig) error {
+func (self *ChainManager) setShardConfig(shardID common.ShardID, cfg *config.OntologyConfig) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
 	if info := self.shards[shardID]; info != nil {
@@ -100,7 +97,7 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	return globalState, nil
 }
 
-func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.ShardState, error) {
+func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.ShardState, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard state, nil ledger")
 	}
@@ -123,7 +120,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	return shardState, nil
 }
 
-func GetShardView(lgr *ledger.Ledger, shardID types.ShardID) (*utils.ChangeView, error) {
+func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
 	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
@@ -140,7 +137,7 @@ func GetShardView(lgr *ledger.Ledger, shardID types.ShardID) (*utils.ChangeView,
 	return changeView, nil
 }
 
-func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
+func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: nil ledger")
 	}
@@ -160,48 +157,4 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID, shardView 
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: deserialize view info: %s", err)
 	}
 	return info.Peers, nil
-}
-
-func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.ShardID, error) {
-	if lgr == nil {
-		return nil, fmt.Errorf("uninitialized chain mgr")
-	}
-	blockNumBytes := utils.GetUint32Bytes(blockNum)
-	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
-	if err == xshard_state.ErrNotFound {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get remote msg toShards in blk %d: %s", blockNum, err)
-	}
-
-	req := &shardsysmsg.ToShardsInBlock{}
-	if err := req.Deserialization(common.NewZeroCopySource(toShardsBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize toShards: %s", err)
-	}
-	return req.Shards, nil
-}
-
-func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard types.ShardID) ([][]byte, error) {
-	if lgr == nil {
-		return nil, fmt.Errorf("nil ledger")
-	}
-
-	blockNumBytes := utils.GetUint32Bytes(blockHeight)
-	shardIDBytes := utils.GetUint64Bytes(toShard.ToUint64())
-	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	reqBytes, err := xshard_state.GetKVStorageItem(key)
-	if err == xshard_state.ErrNotFound {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get remote msg to shard %d in blk %d: %s", toShard, blockHeight, err)
-	}
-
-	req := &shardsysmsg.ReqsInBlock{}
-	if err := req.Deserialization(common.NewZeroCopySource(reqBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize remote msg to shard %d: %s", toShard, err)
-	}
-	return req.Reqs, nil
 }
