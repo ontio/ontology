@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/core/types"
 	"math"
 	"math/big"
 
@@ -497,11 +496,15 @@ func XShardTransferRetry(native *native.NativeService) ([]byte, error) {
 }
 
 func XShardTransferSucc(native *native.NativeService) ([]byte, error) {
-	if native.Tx.TxType != types.ShardCall {
-		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
+	//if native.Tx.TxType != types.ShardCall {
+	//	return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
+	//}
+	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: read input failed, err: %s", err)
 	}
 	param := &XShardTranSuccParam{}
-	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewReader(data)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: failed, err: %s", err)
 	}
 	transfer, err := getXShardTransfer(native, AssetId(param.Asset), param.Account, param.TransferId)
@@ -530,11 +533,15 @@ func XShardTransferSucc(native *native.NativeService) ([]byte, error) {
 }
 
 func ShardReceiveAsset(native *native.NativeService) ([]byte, error) {
-	if native.Tx.TxType != types.ShardCall {
-		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
+	//if native.Tx.TxType != types.ShardCall {
+	//	return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
+	//}
+	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: read input failed, err: %s", err)
 	}
 	param := &ShardMintParam{}
-	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewReader(data)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
 	}
 	isReceived, err := isTransferReceived(native, param)
@@ -626,11 +633,15 @@ func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
 }
 
 func XShardReceiveOng(native *native.NativeService) ([]byte, error) {
-	if native.Tx.TxType != types.ShardCall {
-		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
+	//if native.Tx.TxType != types.ShardCall {
+	//	return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
+	//}
+	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: read input failed, err: %s", err)
 	}
 	param := &ShardMintParam{}
-	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+	if err := param.Deserialize(bytes.NewReader(data)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: failed, err: %s", err)
 	}
 	isReceived, err := isTransferReceived(native, param)

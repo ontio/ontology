@@ -629,9 +629,9 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
 	}
-	if native.Tx.TxType != types.ShardCall {
-		return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
-	}
+	//if native.Tx.TxType != types.ShardCall {
+	//	return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
+	//}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	balance, err := ong.GetOngBalance(native, contract)
 	if err != nil {
