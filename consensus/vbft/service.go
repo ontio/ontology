@@ -1153,7 +1153,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 				return
 			}
 		}
-		log.Infof("BlockPrposalMessage: update self parent height fro %d to %d", self.parentHeight, parentHeight)
+		log.Infof("BlockPrposalMessage: update self parent height for %d to %d", self.parentHeight, parentHeight)
 		self.parentHeight = parentHeight
 	}
 

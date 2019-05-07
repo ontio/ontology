@@ -24,6 +24,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"sort"
+	"strconv"
+	"sync"
+
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -36,9 +40,6 @@ import (
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
-	"sort"
-	"strconv"
-	"sync"
 )
 
 type txStats struct {

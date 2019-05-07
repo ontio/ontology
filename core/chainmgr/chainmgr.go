@@ -456,16 +456,19 @@ func (self *ChainManager) localEventLoop() {
 	for {
 		select {
 		case msg := <-self.localBlockMsgC:
+			ledgerSize := len(ledger.DefLedgerMgr.Ledgers)
 			evts := self.handleShardSysEvents(msg.ShardSysEvents)
 			blk := msg.Block
 			if err := self.onBlockPersistCompleted(blk, evts); err != nil {
 				log.Errorf("processing shard %d, block %d, err: %s", self.shardID, blk.Header.Height, err)
 			}
-			self.p2pPid.Tell(
-				&p2p.AddBlock{
-					Height:  blk.Header.Height,
-					ShardID: blk.Header.ShardID,
-				})
+			if ledgerSize < 2 {
+				self.p2pPid.Tell(
+					&p2p.AddBlock{
+						Height:  blk.Header.Height,
+						ShardID: blk.Header.ShardID,
+					})
+			}
 		case <-self.quitC:
 			return
 		}
