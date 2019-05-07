@@ -377,11 +377,6 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 	var gasEvents []*message.ShardEventState
 	for _, evt := range shardEvts {
 		shardEvt := evt.Event
-		if isShardGasEvent(shardEvt) {
-			gasEvents = append(gasEvents, shardEvt)
-			continue
-		}
-
 		switch shardEvt.EventType {
 
 		case shardstates.EVENT_SHARD_CREATE:
@@ -421,26 +416,10 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 				log.Errorf("processing shard activation event: %s", err)
 			}
 		case shardstates.EVENT_SHARD_PEER_LEAVE:
-		case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
-			evt := &shardstates.WithdrawGasReqEvent{}
-			if err := evt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
-				log.Errorf("deserialize shard activation event: %s", err)
-				continue
-			}
-			self.onWithdrawGasReq(evt)
-		case shardstates.EVENT_SHARD_COMMIT_DPOS:
 		}
 	}
 
 	return gasEvents
-}
-
-func isShardGasEvent(evt *message.ShardEventState) bool {
-	switch evt.EventType {
-	case shardstates.EVENT_SHARD_GAS_DEPOSIT, shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
-		return true
-	}
-	return false
 }
 
 //

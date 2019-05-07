@@ -882,7 +882,6 @@ func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystem
 	for _, txEvents := range notify {
 		for _, n := range txEvents.Notify {
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
-				n.ContractAddress == utils.ShardGasMgmtContractAddress ||
 				n.ContractAddress == utils.ShardSysMsgContractAddress {
 				if shardEvt, ok := n.States.(*message.ShardEventState); ok {
 					shardSysMsg = append(shardSysMsg, &message.ShardSystemEventMsg{

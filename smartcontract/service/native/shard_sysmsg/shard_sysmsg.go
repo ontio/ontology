@@ -27,8 +27,6 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
@@ -203,16 +201,6 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 		}
 
 		switch evt.EventType {
-		case shardstates.EVENT_SHARD_GAS_DEPOSIT:
-			shardEvt, err := shardstates.DecodeShardGasEvent(evt.EventType, evt.Payload)
-			if err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("processing shard event %d: %s", evt.EventType, err)
-			}
-
-			if err := processShardGasDeposit(ctx, shardEvt.(*shardstates.DepositGasEvent)); err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
-			}
-		case shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
 		case xshard_types.EVENT_SHARD_MSG_COMMON:
 			panic("unimplemented")
 		default:
@@ -221,8 +209,4 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	return utils.BYTE_TRUE, nil
-}
-
-func processShardGasDeposit(ctx *native.NativeService, evt *shardstates.DepositGasEvent) error {
-	return ont.AppCallTransfer(ctx, utils.OngContractAddress, utils.ShardSysMsgContractAddress, evt.User, evt.Amount)
 }
