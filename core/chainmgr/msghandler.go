@@ -25,7 +25,6 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
@@ -139,7 +138,7 @@ func (self ChainManager) startChildShard(shardID common.ShardID, shardState *sha
 }
 
 func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
-	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
+	if self.shardID.IsRootShard() {
 		// main-chain has no parent-chain, and not support xshard-txn
 		return nil
 	}

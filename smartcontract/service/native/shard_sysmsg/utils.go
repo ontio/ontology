@@ -21,7 +21,6 @@ package shardsysmsg
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"sort"
 
 	"github.com/ontio/ontology/common"
@@ -64,23 +63,6 @@ func unlockTxContract(ctx *native.NativeService, tx common.Uint256) error {
 
 	for _, c := range contracts {
 		xshard_state.UnlockContract(c)
-	}
-	return nil
-}
-
-func NotifyShard(native *native.NativeService, toShard common.ShardID, contract common.Address, method string, args []byte) error {
-	paramBytes := new(bytes.Buffer)
-	params := &NotifyReqParam{
-		ToShard:    toShard,
-		ToContract: contract,
-		Method:     method,
-		Args:       args,
-	}
-	if err := params.Serialize(paramBytes); err != nil {
-		return fmt.Errorf("NotifyShard: serialize param failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, REMOTE_NOTIFY, paramBytes.Bytes()); err != nil {
-		return fmt.Errorf("NotifyShard: invoke failed, err: %s", err)
 	}
 	return nil
 }
