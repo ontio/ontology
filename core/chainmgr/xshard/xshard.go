@@ -36,7 +36,7 @@ func GetShardTxsByParentHeight(start, end uint32) map[common.ShardID][]*types.Tr
 	return nil
 }
 
-func GetShardView(lgr *ledger.Ledger, shardID types.ShardID) (*utils.ChangeView, error) {
+func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard view,ledger is nil")
 	}
@@ -56,7 +56,7 @@ func GetShardView(lgr *ledger.Ledger, shardID types.ShardID) (*utils.ChangeView,
 	return changeView, nil
 }
 
-func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.ShardState, error) {
+func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.ShardState, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard state,ledger is nil ")
 	}
@@ -77,7 +77,7 @@ func GetShardState(lgr *ledger.Ledger, shardID types.ShardID) (*shardstates.Shar
 	return shardState, nil
 }
 
-func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID types.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
+func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard peer stake info,ledger is nil")
 	}

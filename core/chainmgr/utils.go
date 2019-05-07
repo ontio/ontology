@@ -27,12 +27,6 @@ import (
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/ledger"
 	sComm "github.com/ontio/ontology/core/store/common"
-<<<<<<< HEAD
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
-=======
-	"github.com/ontio/ontology/core/types"
-	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
->>>>>>> fix start shard use vbft consensus
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -100,48 +94,4 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	}
 
 	return globalState, nil
-}
-
-func GetRequestedRemoteShards(lgr *ledger.Ledger, blockNum uint32) ([]types.ShardID, error) {
-	if lgr == nil {
-		return nil, fmt.Errorf("uninitialized chain mgr")
-	}
-	blockNumBytes := utils.GetUint32Bytes(blockNum)
-	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_SHARDS_IN_BLOCK), blockNumBytes)
-	toShardsBytes, err := xshard_state.GetKVStorageItem(key)
-	if err == xshard_state.ErrNotFound {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get remote msg toShards in blk %d: %s", blockNum, err)
-	}
-
-	req := &shardsysmsg.ToShardsInBlock{}
-	if err := req.Deserialization(common.NewZeroCopySource(toShardsBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize toShards: %s", err)
-	}
-	return req.Shards, nil
-}
-
-func GetRequestsToRemoteShard(lgr *ledger.Ledger, blockHeight uint32, toShard types.ShardID) ([][]byte, error) {
-	if lgr == nil {
-		return nil, fmt.Errorf("nil ledger")
-	}
-
-	blockNumBytes := utils.GetUint32Bytes(blockHeight)
-	shardIDBytes := utils.GetUint64Bytes(toShard.ToUint64())
-	key := utils.ConcatKey(utils.ShardSysMsgContractAddress, []byte(shardsysmsg.KEY_REQS_IN_BLOCK), blockNumBytes, shardIDBytes)
-	reqBytes, err := xshard_state.GetKVStorageItem(key)
-	if err == xshard_state.ErrNotFound {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("get remote msg to shard %d in blk %d: %s", toShard, blockHeight, err)
-	}
-
-	req := &shardsysmsg.ReqsInBlock{}
-	if err := req.Deserialization(common.NewZeroCopySource(reqBytes)); err != nil {
-		return nil, fmt.Errorf("deserialize remote msg to shard %d: %s", toShard, err)
-	}
-	return req.Reqs, nil
 }

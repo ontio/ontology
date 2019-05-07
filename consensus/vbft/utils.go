@@ -308,7 +308,7 @@ func getShardGasBalance(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (uint64, 
 	return balance, nil
 }
 
-func getShardConfig(lgr *ledger.Ledger, shardID types.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
+func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
 	shardState, err := xshard.GetShardState(lgr.ParentLedger, shardID)
 	if err == com.ErrNotFound {
 		return nil, fmt.Errorf("get shard %d failed: %s", shardID, err)
