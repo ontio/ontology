@@ -238,7 +238,7 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 	if self.WriteSet == nil {
 		self.WriteSet = overlaydb.NewMemDB(1024, 10)
 	}
-	err := self.WriteSet.Dersialization(source)
+	err := self.WriteSet.Deserialization(source)
 	if err != nil {
 		return err
 	}
@@ -320,7 +320,7 @@ func (self *TxState) Serialization(sink *common.ZeroCopySink) {
 	if self.WriteSet == nil {
 		self.WriteSet = overlaydb.NewMemDB(1024, 10)
 	}
-	self.WriteSet.Serialiazation(sink)
+	self.WriteSet.Serialization(sink)
 	buf, _ := json.Marshal(self.Notify)
 	sink.WriteVarBytes(buf)
 }

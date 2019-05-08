@@ -374,7 +374,7 @@ func (p *MemDB) ForEach(f func(key, val []byte)) {
 
 }
 
-func (self *MemDB) Serialiazation(sink *common.ZeroCopySink) {
+func (self *MemDB) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint64(uint64(self.Len()))
 	self.ForEach(func(key, val []byte) {
 		sink.WriteVarBytes(key)
@@ -382,7 +382,7 @@ func (self *MemDB) Serialiazation(sink *common.ZeroCopySink) {
 	})
 }
 
-func (self *MemDB) Dersialization(source *common.ZeroCopySource) error {
+func (self *MemDB) Deserialization(source *common.ZeroCopySource) error {
 	self.Reset()
 	len, eof := source.NextUint64()
 	if eof {
