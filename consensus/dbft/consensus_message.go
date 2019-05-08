@@ -85,7 +85,7 @@ func DeserializeMessage(data []byte) (ConsensusMessage, error) {
 		return blockSigs, nil
 	}
 
-	return nil, errors.New("The message is invalid.")
+	return nil, errors.New("the message is invalid")
 }
 
 func (cd *ConsensusMessageData) Serialization(sink *common.ZeroCopySink) {

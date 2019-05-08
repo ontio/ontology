@@ -19,21 +19,16 @@
 package payload
 
 import (
-	"bytes"
 	"testing"
 
+	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMetaDataCode(t *testing.T) {
 	meta := NewDefaultMetaData()
-	bf := new(bytes.Buffer)
-	err := meta.Serialize(bf)
-	if err != nil {
-		t.Fatal(err)
-	}
 	newMeta := &MetaDataCode{}
-	err = newMeta.Deserialize(bf)
+	err := newMeta.Deserialization(common.NewZeroCopySource(common.SerializeToBytes(meta)))
 	if err != nil {
 		t.Fatal(err)
 	}

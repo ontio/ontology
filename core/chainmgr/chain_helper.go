@@ -51,19 +51,6 @@ func (this *ChainManager) getShardBlockInfo(shardID common.ShardID, height uint3
 	return this.blockPool.GetBlockInfo(shardID, height)
 }
 
-func (this *ChainManager) updateShardBlockInfo(shardID common.ShardID, block *types.Block, shardTxs map[common.ShardID]*message.ShardBlockTx) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	blkInfo := this.blockPool.GetBlockInfo(shardID, block.Header.Height)
-	if blkInfo == nil {
-		return
-	}
-
-	blkInfo.Block = block
-	blkInfo.ShardTxs = shardTxs
-}
-
 func (self *ChainManager) initShardInfo(shardID common.ShardID, shard *shardstates.ShardState) (*ShardInfo, error) {
 	if shardID != shard.ShardID {
 		return nil, fmt.Errorf("unmatched shard ID with shardstate")

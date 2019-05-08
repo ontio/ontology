@@ -21,8 +21,6 @@ package chainmgr
 import (
 	"encoding/hex"
 	"fmt"
-	"math"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -32,10 +30,7 @@ import (
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	evtmsg "github.com/ontio/ontology/events/message"
-	bcommon "github.com/ontio/ontology/http/base/common"
-	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	nativeUtil "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 /////////////
@@ -145,7 +140,7 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []
 	}
 	log.Infof("chainmgr shard %d, get new block %d,blk shardId:%d", self.shardID, blk.Header.Height, blk.Header.ShardID)
 
-	if err := self.handleBlockEvents(blk, shardEvts); err != nil {
+	if err := self.addShardBlock(blk); err != nil {
 		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
 	}
 	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
@@ -157,16 +152,9 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []
 	return nil
 }
 
-func (self *ChainManager) handleBlockEvents(block *types.Block, shardEvts []*evtmsg.ShardEventState) error {
+func (self *ChainManager) addShardBlock(block *types.Block) error {
 	// construct one parent-block-completed message
-	header := block.Header
 	blkInfo := message.NewShardBlockInfo(self.shardID, block)
-	shardTxs, err := constructShardBlockTx(shardEvts)
-	if err != nil {
-		return fmt.Errorf("shard %d, block %d, construct shard tx: %s", self.shardID, header.Height, err)
-	}
-	blkInfo.ShardTxs = shardTxs
-	blkInfo.Events = shardEvts
 	if err := self.addShardBlockInfo(blkInfo); err != nil {
 		return fmt.Errorf("add shard block: %s", err)
 	}
@@ -228,6 +216,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 
 	return nil
 }
+
 func (self *ChainManager) handleRootChainBlock() error {
 	shardState, err := xshard.GetShardState(self.mainLedger, self.shardID)
 	if err == com.ErrNotFound {
@@ -248,49 +237,4 @@ func (self *ChainManager) handleRootChainBlock() error {
 		}
 	}
 	return nil
-}
-
-func constructShardBlockTx(evts []*evtmsg.ShardEventState) (map[common.ShardID]*message.ShardBlockTx, error) {
-	shardEvts := make(map[common.ShardID][]*evtmsg.ShardEventState)
-
-	// sort all ShardEvents by 'to-shard-id'
-	for _, evt := range evts {
-		toShard := evt.ToShard
-		if _, present := shardEvts[toShard]; !present {
-			shardEvts[toShard] = make([]*evtmsg.ShardEventState, 0)
-		}
-
-		shardEvts[toShard] = append(shardEvts[toShard], evt)
-	}
-
-	// build one ShardTx with events to the shard
-	shardTxs := make(map[common.ShardID]*message.ShardBlockTx)
-	for shardId, evts := range shardEvts {
-		tx, err := newShardBlockTx(evts)
-		if err != nil {
-			return nil, err
-		}
-		shardTxs[shardId] = tx
-	}
-
-	return shardTxs, nil
-}
-
-func newShardBlockTx(evts []*evtmsg.ShardEventState) (*message.ShardBlockTx, error) {
-	params := &shardsysmsg.CrossShardMsgParam{
-		Events: evts,
-	}
-	// build transaction
-	mutable, err := bcommon.NewNativeInvokeTransaction(0, math.MaxUint32, nativeUtil.ShardSysMsgContractAddress,
-		byte(0), shardsysmsg.PROCESS_CROSS_SHARD_MSG, []interface{}{params})
-	if err != nil {
-		return nil, fmt.Errorf("newShardBlockTx: build tx failed, err: %s", err)
-	}
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		return nil, fmt.Errorf("construct shardTx: %s", err)
-	}
-
-	return &message.ShardBlockTx{Tx: tx}, nil
-
 }

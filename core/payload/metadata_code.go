@@ -22,7 +22,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 )
 
 type MetaDataCode struct {
@@ -43,22 +42,6 @@ func NewDefaultMetaData() *MetaDataCode {
 		IsFrozen:   false,
 		ShardId:    0,
 	}
-}
-
-func (this *MetaDataCode) Serialize(w io.Writer) error {
-	sink := common.NewZeroCopySink(0)
-	this.Serialization(sink)
-	err := serialization.WriteVarBytes(w, sink.Bytes())
-	return err
-}
-func (this *MetaDataCode) Deserialize(r io.Reader) error {
-	data, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
-	}
-	source := common.NewZeroCopySource(data)
-	err = this.Deserialization(source)
-	return err
 }
 
 func (this *MetaDataCode) Serialization(sink *common.ZeroCopySink) {

@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -249,25 +248,11 @@ func appcallCheckoutRoom(ctx *native.NativeService, user common.Address, toShard
 
 func appcallSendReq(native *native.NativeService, toShard common.ShardID, method string, payload []byte,
 	transactional bool) error {
-	paramBytes := new(bytes.Buffer)
-	params := shardsysmsg.NotifyReqParam{
-		ToShard:    toShard,
-		ToContract: utils.ShardHotelAddress,
-		Method:     method,
-		Args:       payload,
-	}
-	if err := params.Serialize(paramBytes); err != nil {
-		return fmt.Errorf("hotel remote req, marshal param: %s", err)
-	}
-
 	if transactional {
-		if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_INVOKE, paramBytes.Bytes()); err != nil {
-			return fmt.Errorf("hotel remote req, appcallSend Tx: %s", err)
-		}
+		_, err := native.InvokeRemoteShard(toShard, utils.ShardHotelAddress, method, payload)
+		return err
 	} else {
-		if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_NOTIFY, paramBytes.Bytes()); err != nil {
-			return fmt.Errorf("hotel remote req, appcallSend Notify: %s", err)
-		}
+		native.NotifyRemoteShard(toShard, utils.ShardHotelAddress, method, payload)
 	}
 	return nil
 }
