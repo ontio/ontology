@@ -656,11 +656,9 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 		Height:    native.Height,
 		Hash:      native.Tx.Hash(),
 	}
-	bf.Reset()
-	if err := shardStakeCommitParam.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: serialize commit dpos param failed, err: %s", err)
-	}
-	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
+	sink := common.NewZeroCopySink(0)
+	shardStakeCommitParam.Serialization(sink)
+	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, sink.Bytes())
 	info := &shardstates.ShardCommitDposInfo{TransferId: transferId, FeeAmount: balance, Height: native.Height,
 		Hash: native.Tx.Hash()}
 	setShardCommitDposInfo(native, info)
@@ -693,11 +691,10 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 		Height:    info.Height,
 	}
 	bf.Reset()
-	if err := shardStakeCommitParam.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: serialize commit dpos param failed, err: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	shardStakeCommitParam.Serialization(sink)
 	rootShard := common.NewShardIDUnchecked(0)
-	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
+	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, sink.Bytes())
 	return utils.BYTE_TRUE, nil
 }
 
