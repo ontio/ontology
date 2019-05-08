@@ -24,9 +24,7 @@ import (
 	"math"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	cmdUtil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
@@ -36,8 +34,6 @@ import (
 	evtmsg "github.com/ontio/ontology/events/message"
 	bcommon "github.com/ontio/ontology/http/base/common"
 	shardsysmsg "github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	nativeUtil "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -108,38 +104,6 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	return nil
 }
 
-func (self *ChainManager) onWithdrawGasReq(evt *shardstates.WithdrawGasReqEvent) {
-	param := &shardgas.PeerWithdrawGasParam{
-		Signer:     self.account.Address,
-		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
-		User:       evt.User,
-		ShardId:    evt.SourceShardID,
-		Amount:     evt.Amount,
-		WithdrawId: evt.WithdrawId,
-	}
-	err := self.invokeRootNativeContract(nativeUtil.ShardGasMgmtContractAddress, shardgas.PEER_CONFIRM_WTIDHRAW_NAME,
-		[]interface{}{param})
-	if err != nil {
-		log.Errorf("onWithdrawGasReq: failed, err: %s", err)
-	}
-}
-
-func (self *ChainManager) onShardCommitDpos(evt *shardstates.ShardCommitDposEvent) {
-	param := &shardgas.CommitDposParam{
-		Signer:     self.account.Address,
-		PeerPubKey: hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey)),
-		CommitDposParam: &shardmgmt.CommitDposParam{
-			ShardID:   evt.SourceShardID,
-			FeeAmount: evt.FeeAmount,
-		},
-	}
-	err := self.invokeRootNativeContract(nativeUtil.ShardGasMgmtContractAddress, shardgas.COMMIT_DPOS_NAME,
-		[]interface{}{param})
-	if err != nil {
-		log.Errorf("onShardCommitDpos: failed, err: %s", err)
-	}
-}
-
 func (self ChainManager) startChildShard(shardID common.ShardID, shardState *shardstates.ShardState) error {
 	// TODO: start consensus / syncer / http / txpool
 
@@ -174,6 +138,25 @@ func (self ChainManager) startChildShard(shardID common.ShardID, shardState *sha
 	return nil
 }
 
+func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
+	if self.shardID.IsRootShard() {
+		// main-chain has no parent-chain, and not support xshard-txn
+		return nil
+	}
+	log.Infof("chainmgr shard %d, get new block %d,blk shardId:%d", self.shardID, blk.Header.Height, blk.Header.ShardID)
+
+	if err := self.handleBlockEvents(blk, shardEvts); err != nil {
+		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
+	}
+	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
+		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
+	}
+	if err := self.handleRootChainBlock(); err != nil {
+		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
+	}
+	return nil
+}
+
 func (self *ChainManager) handleBlockEvents(block *types.Block, shardEvts []*evtmsg.ShardEventState) error {
 	// construct one parent-block-completed message
 	header := block.Header
@@ -200,48 +183,47 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)
 	}
+	height := header.Height
+	shards, err := lgr.GetRelatedShardIDsInBlock(height)
+	if err != nil {
+		return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
+	}
+	if shards == nil || len(shards) == 0 {
+		return nil
+	}
 
-	for height := self.processedParentBlockHeight + 1; height <= header.Height; height++ {
-		shards, err := lgr.GetRelatedShardIDsInBlock(height)
-		if err != nil {
-			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
-		}
-		log.Infof("chainmgr get remote shards: height: %d, shards: %v", height, shards)
-		if shards == nil || len(shards) == 0 {
-			self.processedParentBlockHeight = height
+	log.Infof("[chainmgr]handleShardReqsInBlock: height: %d, shards: %v", height, shards)
+	for _, s := range shards {
+		// don't handle other shard req when block is from parent
+		if self.shardID.ParentID().ToUint64() == header.ShardID && s.ToUint64() != self.shardID.ToUint64() {
 			continue
 		}
-
-		for _, s := range shards {
-			reqs, err := lgr.GetShardMsgsInBlock(height, s)
-			if err != nil {
-				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
-			}
-			if len(reqs) == 0 {
-				continue
-			}
-			shardInfo, _ := self.shards[s]
-			if shardInfo == nil {
-				return fmt.Errorf("to send xshard tx to %d, no seeds", s)
-			}
-			if shardInfo.Config == nil || shardInfo.Config.Common == nil {
-				return fmt.Errorf("to send xshard tx to %d, mal-formed shard info", s)
-			}
-
-			gasPrice := shardInfo.Config.Common.GasPrice
-			gasLimit := shardInfo.Config.Common.GasLimit
-			tx, err := message.NewCrossShardTxMsg(self.account, height, s, gasPrice, gasLimit, reqs)
-			if err != nil {
-				return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
-			}
-			go func() {
-				if err := self.sendCrossShardTx(tx, shardInfo.SeedList, self.getShardRPCPort(s)); err != nil {
-					log.Errorf("send xshardTx to %d, ip %v, failed: %s", s.ToUint64(), shardInfo.SeedList, err)
-				}
-			}()
+		reqs, err := lgr.GetShardMsgsInBlock(height, s)
+		if err != nil {
+			return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
+		}
+		if len(reqs) == 0 {
+			continue
+		}
+		shardInfo, _ := self.shards[s]
+		if shardInfo == nil {
+			return fmt.Errorf("to send xshard tx to %d, no seeds", s)
+		}
+		if shardInfo.Config == nil || shardInfo.Config.Common == nil {
+			return fmt.Errorf("to send xshard tx to %d, mal-formed shard info", s)
 		}
 
-		self.processedParentBlockHeight = height
+		gasPrice := shardInfo.Config.Common.GasPrice
+		gasLimit := shardInfo.Config.Common.GasLimit
+		tx, err := message.NewCrossShardTxMsg(self.account, height, s, gasPrice, gasLimit, reqs)
+		if err != nil {
+			return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
+		}
+		go func() {
+			if err := self.sendCrossShardTx(tx, shardInfo.SeedList, self.getShardRPCPort(s)); err != nil {
+				log.Errorf("send xshardTx to %d, ip %v, failed: %s", s.ToUint64(), shardInfo.SeedList, err)
+			}
+		}()
 	}
 
 	return nil
@@ -264,24 +246,6 @@ func (self *ChainManager) handleRootChainBlock() error {
 		if err := self.setShardConfig(self.shardID, cfg); err != nil {
 			return fmt.Errorf("add shard %d config: %s", self.shardID, err)
 		}
-	}
-	return nil
-}
-func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
-	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
-		// main-chain has no parent-chain, and not support xshard-txn
-		return nil
-	}
-	log.Infof("chainmgr shard %d, get new block %d,blk shardId:%d", self.shardID, blk.Header.Height, blk.Header.ShardID)
-
-	if err := self.handleBlockEvents(blk, shardEvts); err != nil {
-		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
-	}
-	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
-		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
-	}
-	if err := self.handleRootChainBlock(); err != nil {
-		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 	return nil
 }
@@ -329,24 +293,4 @@ func newShardBlockTx(evts []*evtmsg.ShardEventState) (*message.ShardBlockTx, err
 
 	return &message.ShardBlockTx{Tx: tx}, nil
 
-}
-
-func (self *ChainManager) invokeRootNativeContract(contract common.Address, method string, args []interface{}) error {
-	mutable, err := bcommon.NewNativeInvokeTransaction(0, math.MaxUint32, contract, byte(0), method, args)
-	if err != nil {
-		return fmt.Errorf("invokeRootNativeContract: generate tx failed, err: %s", err)
-	}
-	err = cmdUtil.SignTransaction(self.account, mutable)
-	if err != nil {
-		return fmt.Errorf("invokeRootNativeContract: sign tx failed, err: %s", err)
-	}
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		return fmt.Errorf("invokeRootNativeContract: parse tx failed, err: %s", err)
-	}
-
-	// TODO: handle send-tx failure
-	// TODO: change 127.0.0.1 to seeds of root-shard
-	go self.sendCrossShardTx(tx, []string{"127.0.0.1"}, self.getShardRPCPort(self.shardID.ParentID()))
-	return nil
 }

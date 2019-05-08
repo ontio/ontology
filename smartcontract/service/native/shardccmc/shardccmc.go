@@ -25,7 +25,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/shardccmc/states"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -45,7 +44,7 @@ const (
 	INIT_CCID = 100
 )
 
-var ShardCCMCVersion = shardmgmt.VERSION_CONTRACT_SHARD_MGMT
+var ShardCCMCVersion = utils.VERSION_CONTRACT_SHARD_MGMT
 
 func InitShardCCMC() {
 	native.Contracts[utils.ShardCCMCAddress] = RegisterShardCCMC

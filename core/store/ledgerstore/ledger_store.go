@@ -882,7 +882,6 @@ func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystem
 	for _, txEvents := range notify {
 		for _, n := range txEvents.Notify {
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
-				n.ContractAddress == utils.ShardGasMgmtContractAddress ||
 				n.ContractAddress == utils.ShardSysMsgContractAddress {
 				if shardEvt, ok := n.States.(*message.ShardEventState); ok {
 					shardSysMsg = append(shardSysMsg, &message.ShardSystemEventMsg{
@@ -1154,6 +1153,8 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: preGas[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), preGas[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
+	} else if tx.TxType == types.ShardCall || tx.TxType == types.MetaData {
+		return stf, nil
 	} else {
 		return stf, errors.NewErr("transaction type error")
 	}

@@ -20,11 +20,12 @@ package message
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
-	payload2 "github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
 )
@@ -38,9 +39,8 @@ import (
 //
 func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID common.ShardID, gasPrice, gasLimit uint64,
 	msgs []xshard_types.CommonShardMsg) (*types.Transaction, error) {
-	// cross-shard forwarding Tx payload
 	// build transaction
-	shardCall := &payload2.ShardCall{
+	shardCall := &payload.ShardCall{
 		Msgs: msgs,
 	}
 	mutable := &types.MutableTransaction{
@@ -51,6 +51,7 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID commo
 		TxType:   types.ShardCall,
 		Nonce:    height, // use height as nonce
 		Payload:  shardCall,
+		Version:  common.VERSION_SUPPORT_SHARD,
 		Sigs:     nil,
 	}
 

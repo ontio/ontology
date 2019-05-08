@@ -27,10 +27,6 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 )
@@ -200,29 +196,11 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 
 	for _, evt := range param.Events {
 		log.Debugf("processing cross shard msg %d(height: %d)", evt.EventType, evt.FromHeight)
-		if evt.Version != shardmgmt.VERSION_CONTRACT_SHARD_MGMT {
+		if evt.Version != utils.VERSION_CONTRACT_SHARD_MGMT {
 			continue
 		}
 
 		switch evt.EventType {
-		case shardstates.EVENT_SHARD_GAS_DEPOSIT:
-			shardEvt, err := shardstates.DecodeShardGasEvent(evt.EventType, evt.Payload)
-			if err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("processing shard event %d: %s", evt.EventType, err)
-			}
-
-			if err := processShardGasDeposit(ctx, shardEvt.(*shardstates.DepositGasEvent)); err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
-			}
-		case shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
-			shardEvt, err := shardstates.DecodeShardGasEvent(evt.EventType, evt.Payload)
-			if err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("processing shard event %d: %s", evt.EventType, err)
-			}
-
-			if err := processShardGasWithdrawDone(ctx, shardEvt.(*shardstates.WithdrawGasDoneEvent)); err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("process gas deposit: %s", err)
-			}
 		case xshard_types.EVENT_SHARD_MSG_COMMON:
 			panic("unimplemented")
 		default:
@@ -231,25 +209,4 @@ func ProcessCrossShardMsg(ctx *native.NativeService) ([]byte, error) {
 	}
 
 	return utils.BYTE_TRUE, nil
-}
-
-func processShardGasDeposit(ctx *native.NativeService, evt *shardstates.DepositGasEvent) error {
-	return ont.AppCallTransfer(ctx, utils.OngContractAddress, utils.ShardSysMsgContractAddress, evt.User, evt.Amount)
-}
-
-func processShardGasWithdrawDone(ctx *native.NativeService, evt *shardstates.WithdrawGasDoneEvent) error {
-	param := &shardgas.UserWithdrawSuccessParam{
-		User:       evt.User,
-		WithdrawId: evt.WithdrawId,
-	}
-	bf := new(bytes.Buffer)
-	err := param.Serialize(bf)
-	if err != nil {
-		return fmt.Errorf("processShardGasWithdrawDone: failed, err: %s", err)
-	}
-	_, err = ctx.NativeCall(utils.ShardGasMgmtContractAddress, shardgas.USER_WITHDRAW_SUCCESS, bf.Bytes())
-	if err != nil {
-		return fmt.Errorf("processShardGasWithdrawDone: call shard gas contract failed, err: %s", err)
-	}
-	return nil
 }

@@ -20,6 +20,7 @@ package shard_stake
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
@@ -35,6 +36,8 @@ const (
 const (
 	KEY_VIEW_INDEX = "view_index"
 	KEY_VIEW_INFO  = "view_info"
+
+	KEY_IS_COMMITTING = "is_committing" // shard is committing dpos or not
 
 	KEY_SHARD_STAKE_ASSET_ADDR = "shard_stake_asset"
 
@@ -58,6 +61,11 @@ func genShardViewKey(contract common.Address, shardIdBytes []byte) []byte {
 func GenShardViewInfoKey(shardIdBytes []byte, viewBytes []byte) []byte {
 	temp := append(shardIdBytes, viewBytes...)
 	return append(temp, []byte(KEY_VIEW_INFO)...)
+}
+
+func genShardIsCommittingKey(shardId common.ShardID) []byte {
+	shardIdBytes := utils.GetUint64Bytes(shardId.ToUint64())
+	return utils.ConcatKey(utils.ShardStakeAddress, shardIdBytes, []byte(KEY_IS_COMMITTING))
 }
 
 func genShardViewInfoKey(contract common.Address, shardIdBytes []byte, viewBytes []byte) []byte {
@@ -134,6 +142,48 @@ func setShardViewInfo(native *native.NativeService, id common.ShardID, view View
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func setShardCommitting(native *native.NativeService, id common.ShardID, isCommitting bool) {
+	key := genShardIsCommittingKey(id)
+	sink := common.NewZeroCopySink(0)
+	sink.WriteBool(isCommitting)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func isShardCommitting(native *native.NativeService, id common.ShardID) (bool, error) {
+	key := genShardIsCommittingKey(id)
+	dataBytes, err := native.CacheDB.Get(key)
+	if err != nil {
+		return false, fmt.Errorf("isShardCommitting: read db failed, err: %s", err)
+	}
+	if len(dataBytes) == 0 {
+		return false, nil
+	}
+	value, err := cstates.GetValueFromRawStorageItem(dataBytes)
+	if err != nil {
+		return false, fmt.Errorf("isShardCommitting: parse store info failed, err: %s", err)
+	}
+	source := common.NewZeroCopySource(value)
+	isCommitting, irr, eof := source.NextBool()
+	if irr {
+		return false, fmt.Errorf("isShardCommitting: deserialize failed, err: %s", common.ErrIrregularData)
+	}
+	if eof {
+		return false, fmt.Errorf("isShardCommitting: deserialize failed, err: %s", io.ErrUnexpectedEOF)
+	}
+	return isCommitting, nil
+}
+
+func checkCommittingDpos(native *native.NativeService, id common.ShardID) error {
+	isCommitting, err := isShardCommitting(native, id)
+	if err != nil {
+		return fmt.Errorf("PeerInitStake: failed, err: %s", err)
+	}
+	if isCommitting {
+		return fmt.Errorf("PeerInitStake: shard is switching consensus")
+	}
+	return nil
 }
 
 func getShardViewUserStake(native *native.NativeService, id common.ShardID, view View, user common.Address) (*UserStakeInfo,

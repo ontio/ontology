@@ -31,45 +31,56 @@ import (
 )
 
 // set current+2 stake info to current+1 stake info, only update view info, don't settle
-func commitDpos(native *native.NativeService, shardId common.ShardID, feeInfo []*PeerAmount) error {
+func commitDpos(native *native.NativeService, shardId common.ShardID, feeAmount uint64, shardHeight uint32,
+	shardBlockHash common.Uint256) error {
 	currentView, err := GetShardCurrentView(native, shardId)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
 	}
-	currentViewInfo, err := GetShardViewInfo(native, shardId, currentView)
+	lastView := currentView - 1
+	lastViewInfo, err := GetShardViewInfo(native, shardId, lastView)
 	if err != nil {
-		return fmt.Errorf("commitDpos: get shard %d current view info failed, err: %s", shardId, err)
+		return fmt.Errorf("commitDpos: get shard %d last view info failed, err: %s", shardId, err)
 	}
-	nextView := currentView + 1
-	nextTwoView := nextView + 1
-	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
+	wholeNodeStakeAmount := uint64(0)
+	for _, info := range lastViewInfo.Peers {
+		wholeNodeStakeAmount += info.UserStakeAmount + info.InitPos
+	}
+	// TODO: candidate node and consensus node different rate
+	feeInfo := make([]*PeerAmount, 0)
+	for peer, info := range lastViewInfo.Peers {
+		peerFee := (info.UserStakeAmount + info.InitPos) * feeAmount / wholeNodeStakeAmount
+		feeInfo = append(feeInfo, &PeerAmount{PeerPubKey: peer, Amount: peerFee})
+	}
+	currentViewInfo, err := GetShardViewInfo(native, shardId, currentView)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get next view info failed, err: %s", err)
 	}
 	// if empty, use current view info as next view info
-	if nextViewInfo.Peers == nil || len(nextViewInfo.Peers) == 0 {
-		nextViewInfo = currentViewInfo
-		setShardViewInfo(native, shardId, nextView, nextViewInfo)
+	if currentViewInfo.Peers == nil || len(currentViewInfo.Peers) == 0 {
+		currentViewInfo = lastViewInfo
+		setShardViewInfo(native, shardId, currentView, currentViewInfo)
 	}
-	setShardViewInfo(native, shardId, nextTwoView, nextViewInfo)
+	// update next view info
+	setShardViewInfo(native, shardId, currentView+1, currentViewInfo)
 	// settle current fee
 	for _, info := range feeInfo {
 		peer := strings.ToLower(info.PeerPubKey)
 		feeAmount := info.Amount
-		peerInfo, ok := currentViewInfo.Peers[peer]
+		peerInfo, ok := lastViewInfo.Peers[peer]
 		if !ok {
 			return fmt.Errorf("commitDpos: peer %s not exist at current view",
 				hex.EncodeToString(keypair.SerializePublicKey(peer)))
 		}
 		peerInfo.WholeFee = feeAmount
 		peerInfo.FeeBalance = feeAmount
-		currentViewInfo.Peers[peer] = peerInfo
+		lastViewInfo.Peers[peer] = peerInfo
 	}
-	setShardViewInfo(native, shardId, currentView, currentViewInfo)
+	setShardViewInfo(native, shardId, lastView, lastViewInfo)
 	shardView := &utils.ChangeView{
-		View:   uint32(nextView),
-		Height: native.Height,
-		TxHash: native.Tx.Hash(),
+		View:   uint32(currentView),
+		Height: shardHeight,
+		TxHash: shardBlockHash,
 	}
 	// commit dpos
 	setShardView(native, shardId, shardView)

@@ -77,7 +77,7 @@ func OngShardInit(native *native.NativeService) ([]byte, error) {
 
 	// transfer all ong to shard-sysmsg contract
 	contract := native.ContextRef.CurrentContext().ContractAddress
-	addr := utils.ShardSysMsgContractAddress
+	addr := utils.ShardAssetAddress
 	amount := constants.ONG_TOTAL_SUPPLY
 	balanceKey := ont.GenBalanceKey(contract, addr)
 	item := utils.GenUInt64StorageItem(amount)
