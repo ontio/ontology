@@ -374,8 +374,7 @@ func (self *ChainManager) Receive(context actor.Context) {
 }
 
 // handle shard system contract event, other events are not handled and returned
-func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemEventMsg) []*message.ShardEventState {
-	var gasEvents []*message.ShardEventState
+func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemEventMsg) {
 	for _, evt := range shardEvts {
 		shardEvt := evt.Event
 		switch shardEvt.EventType {
@@ -418,8 +417,6 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 		case shardstates.EVENT_SHARD_PEER_LEAVE:
 		}
 	}
-
-	return gasEvents
 }
 
 //
@@ -434,11 +431,9 @@ func (self *ChainManager) localEventLoop() {
 		select {
 		case msg := <-self.localBlockMsgC:
 			ledgerSize := len(ledger.DefLedgerMgr.Ledgers)
-			evts := self.handleShardSysEvents(msg.ShardSysEvents)
+			self.handleShardSysEvents(msg.ShardSysEvents)
 			blk := msg.Block
-			if err := self.onBlockPersistCompleted(blk, evts); err != nil {
-				log.Errorf("processing shard %d, block %d, err: %s", self.shardID, blk.Header.Height, err)
-			}
+			self.onBlockPersistCompleted(blk)
 			if ledgerSize < 2 {
 				self.p2pPid.Tell(
 					&p2p.AddBlock{
