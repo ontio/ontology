@@ -25,9 +25,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
-	utils2 "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func newTestBlock() *types.Block {
@@ -37,19 +34,6 @@ func newTestBlock() *types.Block {
 	hdr.SigData = make([][]byte, 0)
 
 	return &types.Block{Header: hdr}
-}
-
-func newTestShardTx(t *testing.T, version byte, shardID uint64) *message.ShardBlockTx {
-	paramsBytes := []byte{1, 2, 3}
-	mutable := utils.BuildNativeTransaction(utils2.ShardSysMsgContractAddress, shardsysmsg.PROCESS_CROSS_SHARD_MSG, paramsBytes)
-	mutable.Version = version
-	mutable.ShardID = shardID
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		t.Errorf("build tx failed: %s", err)
-	}
-
-	return &message.ShardBlockTx{tx}
 }
 
 func newTestShardBlockInfo(t *testing.T) *message.ShardBlockInfo {
@@ -63,13 +47,7 @@ func newTestShardBlockInfo(t *testing.T) *message.ShardBlockInfo {
 		FromShardID: common.NewShardIDUnchecked(100),
 		Height:      uint32(height),
 		Block:       shardBlk,
-		ShardTxs:    make(map[common.ShardID]*message.ShardBlockTx),
 	}
-
-	version := byte(1)
-	shardID := common.NewShardIDUnchecked(100)
-	shardTx := newTestShardTx(t, version, shardID.ToUint64())
-	blkInfo.ShardTxs[shardID] = shardTx
 
 	return blkInfo
 }

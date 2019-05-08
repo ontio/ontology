@@ -122,15 +122,13 @@ func (ctx *ConsensusContext) MakeHeader() *types.Block {
 func (ctx *ConsensusContext) MakePayload(message ConsensusMessage) *msg.ConsensusPayload {
 	log.Debug()
 	message.ConsensusMessageData().ViewNumber = ctx.ViewNumber
-	sink := common.NewZeroCopySink(0)
-	message.Serialization(sink)
 	return &msg.ConsensusPayload{
 		Version:         ContextVersion,
 		PrevHash:        ctx.PrevHash,
 		Height:          ctx.Height,
 		BookkeeperIndex: uint16(ctx.BookkeeperIndex),
 		Timestamp:       ctx.Timestamp,
-		Data:            sink.Bytes(),
+		Data:            common.SerializeToBytes(message),
 		Owner:           ctx.Owner,
 	}
 }

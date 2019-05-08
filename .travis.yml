@@ -10,6 +10,7 @@ go:
   - 1.9.x
 
 script:
-  - make
+  - bash ./.travis.check-license.sh
   - bash ./.travis.gofmt.sh
+  - make
   - bash ./.travis.gotest.sh

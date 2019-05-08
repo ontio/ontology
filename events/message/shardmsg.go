@@ -25,13 +25,6 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
-const (
-	ShardGetGenesisBlockReq = iota
-	ShardGetGenesisBlockRsp
-	ShardGetPeerInfoReq
-	ShardGetPeerInfoRsp
-)
-
 type ShardSystemEventMsg struct {
 	FromAddress common.Address
 	Event       *ShardEventState

@@ -25,7 +25,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
 	"github.com/ontio/ontology/smartcontract/service/native/shardping/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -79,29 +78,9 @@ func SendShardPingTest(native *native.NativeService) ([]byte, error) {
 	pingEvt := &shardping_events.SendShardPingEvent{
 		Payload: "SendShardPingPayload",
 	}
-	sink := common.NewZeroCopySink(0)
-	pingEvt.Serialization(sink)
 
-	// call shard_sysmsg to send ping
-	if err := appcallSendReq(native, params.ToShard, sink.Bytes()); err != nil {
-		return utils.BYTE_FALSE, err
-	}
+	// send ping
+	native.NotifyRemoteShard(params.ToShard, common.ADDRESS_EMPTY, "", common.SerializeToBytes(pingEvt))
 
 	return utils.BYTE_TRUE, nil
-}
-
-func appcallSendReq(native *native.NativeService, toShard common.ShardID, payload []byte) error {
-	paramBytes := new(bytes.Buffer)
-	params := shardsysmsg.NotifyReqParam{
-		ToShard: toShard,
-		Args:    payload,
-	}
-	if err := params.Serialize(paramBytes); err != nil {
-		return fmt.Errorf("send ping shard, marshal param: %s", err)
-	}
-
-	if _, err := native.NativeCall(utils.ShardSysMsgContractAddress, shardsysmsg.REMOTE_NOTIFY, paramBytes.Bytes()); err != nil {
-		return fmt.Errorf("send ping shard, appcallSendReq: %s", err)
-	}
-	return nil
 }

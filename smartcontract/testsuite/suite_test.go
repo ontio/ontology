@@ -20,18 +20,14 @@ package testsuite
 import (
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
-	"github.com/ontio/ontology/core/store/ledgerstore"
-	types2 "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
-	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
-	"github.com/ontio/ontology/smartcontract/storage"
-	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestRemoteNotifyPing(t *testing.T) {
@@ -41,87 +37,26 @@ func TestRemoteNotifyPing(t *testing.T) {
 		"handlePing":       HandlePing,
 	})
 
-	tx := BuildInvokeTx(shardAContract, "remoteNotifyPing", []interface{}{""})
-	assert.NotNil(t, tx)
+	shardContext := NewShardContext(common.NewShardIDUnchecked(1), shardAContract, t)
+	txHash, notify := shardContext.InvokeShardContract("remoteNotifyPing", []interface{}{""})
 
-	overlay := NewOverlayDB()
-	cache := storage.NewCacheDB(overlay)
-
-	state, _, err := executeTransaction(tx, cache)
-
-	assert.Nil(t, err)
-	assert.Equal(t, len(state.ShardNotifies), 1)
-	notify := state.ShardNotifies[0]
 	sink := common.NewZeroCopySink(10)
-	sink.WriteString(fmt.Sprintf("hello from shard: %d", tx.ShardID))
+	sink.WriteString(fmt.Sprintf("hello from shard: %d", shardContext.shardID.ToUint64()))
 	expected := &xshard_types.XShardNotify{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
-			SourceShardID: common.NewShardIDUnchecked(tx.ShardID),
+			SourceShardID: shardContext.shardID,
 			TargetShardID: common.NewShardIDUnchecked(2),
-			SourceTxHash:  tx.Hash(),
+			SourceTxHash:  txHash,
 		},
 		NotifyID: 0,
-		Payer:    tx.Payer,
 		Fee:      neovm.MIN_TRANSACTION_GAS,
 		Method:   "handlePing",
+		Contract: shardAContract,
 		Args:     sink.Bytes(),
 	}
 
-	assert.Equal(t, expected, notify)
-}
-
-func TestRemoteInvokeAdd(t *testing.T) {
-	shardAContract := RandomAddress()
-	method := "remoteAddAndInc"
-	InstallNativeContract(shardAContract, map[string]native.Handler{
-		method: RemoteInvokeAddAndInc,
-	})
-
-	tx := BuildInvokeTx(shardAContract, method, []interface{}{""})
-	assert.NotNil(t, tx)
-
-	overlay := NewOverlayDB()
-	cache := storage.NewCacheDB(overlay)
-
-	state, _, err := executeTransaction(tx, cache)
-
-	//assert.Equal(t, shardsysmsg.ErrYield, err) // error is wrapped
-	assert.NotNil(t, err)
-	assert.NotNil(t, state.PendingReq)
-	sink := common.NewZeroCopySink(10)
-	sink.WriteUint64(2)
-	sink.WriteUint64(3)
-	expected := &xshard_types.XShardTxReq{
-		ShardMsgHeader: xshard_types.ShardMsgHeader{
-			TargetShardID: ShardB,
-			SourceTxHash:  tx.Hash(),
-		},
-		IdxInTx: 0,
-		Payer:   tx.Payer,
-		Fee:     neovm.MIN_TRANSACTION_GAS,
-		Method:  "handlePing",
-		Args:    sink.Bytes(),
-	}
-
-	assert.Equal(t, expected, state.PendingReq)
-	hs := tx.Hash()
-	shardTxID := xshard_state.ShardTxID(string(hs[:]))
-	xshard_state.PutTxState(shardTxID, state)
-
-	sink.Reset()
-	sink.WriteUint64(5)
-	rep := &xshard_types.XShardTxRsp{
-		IdxInTx: expected.IdxInTx,
-		Error:   false,
-		Result:  sink.Bytes(),
-	}
-
-	state, res, err := resumeTx(shardTxID, rep)
-	assert.Nil(t, err)
-	sink.Reset()
-	sink.WriteUint64(6)
-
-	assert.Equal(t, res.(*types.ByteArray), types.NewByteArray(sink.Bytes()))
+	assert.Equal(t, len(notify.ShardMsg), 1)
+	assert.Equal(t, expected, notify.ShardMsg[0])
 }
 
 func TestLedgerRemoteInvokeAdd(t *testing.T) {
@@ -131,24 +66,11 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		method: RemoteInvokeAddAndInc,
 	})
 
-	tx := BuildInvokeTx(shardAContract, method, []interface{}{""})
-	assert.NotNil(t, tx)
+	shardContext := NewShardContext(common.NewShardIDUnchecked(1), shardAContract, t)
+	txHash, notify := shardContext.InvokeShardContract(method, []interface{}{""})
 
-	overlay := NewOverlayDB()
-	cache := storage.NewCacheDB(overlay)
-	xshardDB := storage.NewXShardDB(overlay)
-	header := &types2.Header{}
-	txHash := tx.Hash()
-	txevent := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
-	notify := &event.TransactionNotify{
-		ContractEvent: txevent,
-	}
-
-	_, err := ledgerstore.HandleInvokeTransaction(nil, overlay, cache, xshardDB, tx, header, notify)
-	assert.NotNil(t, err)
-
-	shardID := xshard_state.ShardTxID(string(txHash[:]))
-	state, err := xshardDB.GetXShardState(shardID)
+	shardTxID := xshard_state.ShardTxID(string(txHash[:]))
+	state, err := shardContext.GetXShardState(shardTxID)
 	assert.Nil(t, err)
 	assert.NotNil(t, state.PendingReq)
 	sink := common.NewZeroCopySink(10)
@@ -158,16 +80,16 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			TargetShardID: ShardB,
 			SourceTxHash:  txHash,
+			SourceShardID: shardContext.shardID,
 		},
-		IdxInTx: 0,
-		Payer:   tx.Payer,
-		Fee:     neovm.MIN_TRANSACTION_GAS,
-		Method:  "handlePing",
-		Args:    sink.Bytes(),
+		IdxInTx:  0,
+		Fee:      neovm.MIN_TRANSACTION_GAS,
+		Contract: shardAContract,
+		Method:   "handlePing",
+		Args:     sink.Bytes(),
 	}
 
 	assert.Equal(t, expected, state.PendingReq)
-	hs := tx.Hash()
 
 	sink.Reset()
 	sink.WriteUint64(5)
@@ -177,25 +99,23 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		Result:  sink.Bytes(),
 	}
 
-	rep.SourceTxHash = hs
+	rep.SourceTxHash = txHash
 	msgs := []xshard_types.CommonShardMsg{rep}
-	err = ledgerstore.HandleShardCallTransaction(nil, overlay, cache, xshardDB, msgs, header, notify)
-	assert.Nil(t, err)
+	shardContext.HandleShardCallMsgs(msgs)
 	sink.Reset()
 	sink.WriteUint64(6)
 
-	state, err = xshardDB.GetXShardState(state.TxID)
+	state, err = shardContext.GetXShardState(shardTxID)
 	assert.Nil(t, err)
 	res, _ := json.Marshal(state.Notify.Notify[0].States)
 	buf, _ := json.Marshal(sink.Bytes())
 	assert.Equal(t, string(res), string(buf))
 
 	commit := &xshard_types.XShardCommitMsg{}
-	commit.SourceTxHash = hs
+	commit.SourceTxHash = txHash
 
 	msgs = []xshard_types.CommonShardMsg{commit}
-	err = ledgerstore.HandleShardCallTransaction(nil, overlay, cache, xshardDB, msgs, header, notify)
-	assert.Nil(t, err)
+	notify = shardContext.HandleShardCallMsgs(msgs)
 	sink.Reset()
 	sink.WriteUint64(6)
 
@@ -203,4 +123,40 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 	res, _ = json.Marshal(notify.ContractEvent.Notify[0].States)
 	buf, _ = json.Marshal(sink.Bytes())
 	assert.Equal(t, string(res), string(buf))
+}
+
+// test shard transaction mode:
+// shard0 -> invoke shard1
+//        -> invoke shard2
+//        -> ...
+func TestShardReverseBytes(t *testing.T) {
+	contract := RandomAddress()
+	method := "shardReverseBytes"
+	InstallNativeContract(contract, map[string]native.Handler{
+		method: ShardReverseBytes,
+	})
+
+	shards := make(map[common.ShardID]*ShardContext, 3)
+	shard0 := common.NewShardIDUnchecked(0)
+	shard1 := common.NewShardIDUnchecked(1)
+	shard2 := common.NewShardIDUnchecked(2)
+
+	shards[shard0] = NewShardContext(shard0, contract, t)
+	shards[shard1] = NewShardContext(shard1, contract, t)
+	shards[shard2] = NewShardContext(shard2, contract, t)
+
+	// shard0 -> invoke shard1
+	//        -> invoke shard2
+	args := common.SerializeToBytes(&ReverseStringParam{Origin: []byte("1234567"), Shards: []common.ShardID{shard1, shard2}})
+	totalShardMsg := RunShardTxToComplete(shards, shard0, method, args)
+	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit = 10
+	assert.Equal(t, 10, totalShardMsg)
+
+	// shard0 -> invoke shard1
+	//        -> invoke shard2
+	//        -> invoke shard1
+	args = common.SerializeToBytes(&ReverseStringParam{Origin: []byte("1234567"), Shards: []common.ShardID{shard1, shard2, shard1}})
+	totalShardMsg = RunShardTxToComplete(shards, shard0, method, args)
+	// 3 req, 3 rep, 2 prep, 2 preped, 2 commit = 12
+	assert.Equal(t, 12, totalShardMsg)
 }
