@@ -30,6 +30,21 @@ type ShardSystemEventMsg struct {
 	Event       *ShardEventState
 }
 
+func (this *ShardSystemEventMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteAddress(this.FromAddress)
+	this.Event.Serialization(sink)
+}
+
+func (this *ShardSystemEventMsg) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.FromAddress, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Event = &ShardEventState{}
+	return this.Event.Deserialization(source)
+}
+
 type ShardEventState struct {
 	Version    uint32
 	EventType  uint32
