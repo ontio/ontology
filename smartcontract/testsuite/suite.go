@@ -100,6 +100,78 @@ func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_
 	panic("unimplemented")
 }
 
+func ExecuteShardCommandLocal(shardID common.ShardID, command ShardCommand) []byte {
+	var result []byte
+	switch cmd := command.(type) {
+	case *MutliCommand:
+		for _, sub := range cmd.SubCmds {
+			result = append(result, ExecuteShardCommandLocal(shardID, sub)...)
+		}
+	case *NotifyCommand:
+	case *InvokeCommand:
+		result = append(result, ExecuteShardCommandLocal(cmd.Target, cmd.Cmd)...)
+	case *GreetCommand:
+		result = append(result, fmt.Sprintf("hi from:%d", shardID)...)
+	}
+
+	return result
+}
+
+func ExecuteShardCommandApi(native *native.NativeService) ([]byte, error) {
+	buf, _, _, eof := common.NewZeroCopySource(native.Input).NextVarBytes()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	cmd, err := DecodeShardCommand(common.NewZeroCopySource(buf))
+	if err != nil {
+		panic(err)
+	}
+
+	result, err := ExecuteShardCommand(native, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	expected := ExecuteShardCommandLocal(native.ShardID, cmd)
+
+	if string(expected) != string(result) {
+		panic(fmt.Errorf("execute result mismatch: expected: %s, got: %s", string(expected), string(result)))
+	}
+
+	fmt.Println("execute shard command success at shard", native.ShardID)
+
+	return result, nil
+}
+
+func ExecuteShardCommand(native *native.NativeService, command ShardCommand) ([]byte, error) {
+	cont := native.ContextRef.CurrentContext().ContractAddress
+	var result []byte
+	switch cmd := command.(type) {
+	case *MutliCommand:
+		for _, sub := range cmd.SubCmds {
+			res, err := ExecuteShardCommand(native, sub)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, res...)
+		}
+	case *NotifyCommand:
+		native.NotifyRemoteShard(cmd.Target, cont, "executeShardCommand", EncodeShardCommandToBytes(cmd.Cmd))
+	case *InvokeCommand:
+		res, err := native.InvokeRemoteShard(cmd.Target, cont, "executeShardCommand", EncodeShardCommandToBytes(cmd.Cmd))
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, res...)
+	case *GreetCommand:
+		result = append(result, fmt.Sprintf("hi from:%d", native.ShardID)...)
+	default:
+		panic("unkown command")
+	}
+
+	return result, nil
+}
+
 var ShardA = common.NewShardIDUnchecked(1)
 var ShardB = common.NewShardIDUnchecked(2)
 

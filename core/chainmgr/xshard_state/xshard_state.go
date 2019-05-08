@@ -331,17 +331,6 @@ type ShardTxInfo struct {
 }
 
 type ShardTxID string // cross shard tx id: userTxHash+notify1+notify2...
-//
-// ShardTxStateMap
-// stores all intermediate states of cross-shard transactions
-//
-type ShardTxStateMap struct {
-	TxStates map[ShardTxID]*TxState
-}
-
-var shardTxStateTable = ShardTxStateMap{
-	TxStates: make(map[ShardTxID]*TxState),
-}
 
 func (self *TxState) GetTxShards() []common.ShardID {
 	shards := make([]common.ShardID, 0, len(self.Shards))
@@ -416,15 +405,11 @@ func (self *TxState) Clone() *TxState {
 // CreateTxState
 // If txState available, return it.  Otherwise, Create txState.
 func CreateTxState(tx ShardTxID) *TxState {
-	if state, present := shardTxStateTable.TxStates[tx]; present {
-		return state
-	}
 	state := &TxState{
 		Shards:    make(map[common.ShardID]int),
 		InReqResp: make(map[common.ShardID][]*XShardTxReqResp),
 		TxID:      tx,
 	}
-	shardTxStateTable.TxStates[tx] = state
 	return state
 }
 
