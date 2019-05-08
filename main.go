@@ -187,7 +187,7 @@ func startMainChain(ctx *cli.Context, shardID common.ShardID) {
 	defer ledger.CloseLedgers()
 	defer chainmgr.Close()
 
-	txPoolMgr, err := initTxPool(ctx, chainmgr)
+	txPoolMgr, err := initTxPool(ctx, shardID, chainmgr)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
 		return
@@ -326,12 +326,18 @@ func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID common.Shar
 	return lgr, nil
 }
 
-func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.TxnPoolManager, error) {
+func initTxPool(ctx *cli.Context, shardID types.ShardID, chainMgr *chainmgr.ChainManager) (*txnpool.TxnPoolManager, error) {
 	disablePreExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecDisableFlag))
 	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
 	disableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.DisableBroadcastNetTxFlag))
 
-	mgr := txnpool.NewTxnPoolManager(disablePreExec, disableBroadcastNetTx)
+	mgr, err := txnpool.NewTxnPoolManager(shardID, disablePreExec, disableBroadcastNetTx)
+	if err != nil {
+		return nil, fmt.Errorf("init txPoolMgr failed: %s", err)
+	}
+	hserver.SetTxPid(mgr.GetPID(shardID, tc.TxActor))
+	chainmgr.SetTxPool(mgr.GetPID(shardID, tc.TxActor))
+
 	for _, shardId := range chainMgr.GetActiveShards() {
 		lgr := ledger.GetShardLedger(shardId)
 		if lgr == nil {
@@ -350,8 +356,6 @@ func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.Txn
 
 		if shardId == chainmgr.GetShardID() {
 			hserver.SetTxnPoolPid(srv.GetPID(tc.TxPoolActor))
-			hserver.SetTxPid(srv.GetPID(tc.TxActor))
-			chainmgr.SetTxPool(srv.GetPID(tc.TxActor))
 		}
 	}
 

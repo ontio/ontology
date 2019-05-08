@@ -290,15 +290,15 @@ func (self *ChainManager) startConsensus() error {
 	return nil
 }
 
-func (self *ChainManager) initTxPool() (*actor.PID, error) {
+func (self *ChainManager) initShardTxPool() error {
 	lgr := ledger.GetShardLedger(self.shardID)
 	if lgr == nil {
 		log.Infof("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
-		return nil, nil
+		return nil
 	}
 	srv, err := self.mgr.StartTxnPoolServer(self.shardID, lgr)
 	if err != nil {
-		return nil, fmt.Errorf("Init txpool error:%s", err)
+		return fmt.Errorf("Init txpool error:%s", err)
 	}
 	stlValidator, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator_%d", self.shardID.ToUint64()))
 	stlValidator.Register(srv.GetPID(tc.VerifyRspActor))
@@ -307,10 +307,8 @@ func (self *ChainManager) initTxPool() (*actor.PID, error) {
 	stfValidator, _ := stateful.NewValidator(fmt.Sprintf("stateful_validator_%d", self.shardID.ToUint64()), lgr)
 	stfValidator.Register(srv.GetPID(tc.VerifyRspActor))
 
-	hserver.SetTxnPoolPid(srv.GetPID(tc.TxPoolActor))
-	hserver.SetTxPid(srv.GetPID(tc.TxActor))
-	SetTxPool(srv.GetPID(tc.TxActor))
-	return self.mgr.GetPID(self.shardID, tc.TxActor), nil
+	hserver.SetTxnPoolPid(self.mgr.GetPID(self.shardID, tc.TxPoolActor))
+	return nil
 }
 
 func (self *ChainManager) Start(txPoolPid, p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolManager) error {
