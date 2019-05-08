@@ -186,7 +186,7 @@ func (tp *TXPool) GetTxStatus(hash common.Uint256) *TxStatus {
 	return ret
 }
 
-// getTransactionCount returns the tx number of the pool.
+// GetTransactionCount returns the tx number of the pool.
 func (tp *TXPool) GetTransactionCount() int {
 	tp.RLock()
 	defer tp.RUnlock()

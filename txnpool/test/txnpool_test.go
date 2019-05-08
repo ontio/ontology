@@ -19,23 +19,23 @@
 package txnpool
 
 import (
-	"github.com/ontio/ontology/common"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
 	tp "github.com/ontio/ontology/txnpool/proc"
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
-	"github.com/ontio/ontology/txnpool"
 )
 
 var (

@@ -1,23 +1,22 @@
-
 package txnpool
 
 import (
-	"github.com/ontio/ontology/common"
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	tc "github.com/ontio/ontology/txnpool/common"
-	"github.com/stretchr/testify/assert"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/events"
+	tc "github.com/ontio/ontology/txnpool/common"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
-	txn    *types.Transaction
+	txn *types.Transaction
 )
 
 func init() {
@@ -110,4 +109,3 @@ func TestTxActor(t *testing.T) {
 	s.Stop()
 	t.Log("Ending tx actor test")
 }
-
