@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
@@ -422,11 +423,12 @@ func buildNativeInvokeTx(payer, contract common.Address, method string, msg []by
 	return subTx, nil
 }
 
+// todo: handle pending case
 func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStore, overlay *overlaydb.OverlayDB,
 	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
 	shardId, err := common.NewShardID(header.ShardID)
 	if err == nil {
-		log.Debugf("handle shard notify check header shardId %s", err) // todo: handle pending case
+		log.Debugf("handle shard notify check header shardId %s", err)
 		return
 	}
 	nid := msg.NotifyID
@@ -445,8 +447,8 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 		Code: invokCode,
 	}
 	tx := &types.MutableTransaction{
-		Version:  0,
-		GasPrice: 0,
+		Version:  common.CURR_TX_VERSION,
+		GasPrice: config.DEFAULT_GAS_PRICE,
 		ShardID:  header.ShardID,
 		GasLimit: msg.Fee,
 		TxType:   types.Invoke,
@@ -462,6 +464,9 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 
 	cache.Reset()
 	result, gasConsume, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify.ContractEvent)
+	if gasConsume == 0 {
+		gasConsume = neovm.MIN_TRANSACTION_GAS
+	}
 	if tx.GasPrice > 0 {
 		cfg := &smartcontract.Config{
 			ShardID:   shardId,
@@ -472,7 +477,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 		}
 		minGas := tx.GasPrice * neovm.MIN_TRANSACTION_GAS
 		if err != nil {
-			log.Debugf("handle shard notify error %s", err) // todo: handle pending case
+			log.Debugf("handle shard notify error %s", err)
 			if err := costInvalidGas(subTx.Payer, minGas, cfg, cache, store, notify.ContractEvent, shardId); err != nil {
 				log.Debugf("handle shard notify: tx failed, cost invalid gas failed, %s", err)
 				return
