@@ -297,6 +297,9 @@ func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, store store.Led
 	txState.ExecState = xshard_state.ExecCommited
 	//todo : determine which tx the notification belong
 	notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, txState.Notify.Notify...)
+	for _, notifyMsg := range txState.ShardNotifies {
+		notify.ShardMsg = append(notify.ShardMsg, notifyMsg)
+	}
 	// todo:
 	//unlockTxContract(ctx, tx)
 	xshardDB.SetXShardState(txState)
@@ -322,6 +325,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 	log.Debugf("process prepare : reqs: %d", len(reqResp))
 
 	txState.NextReqID = 0
+	txState.ShardNotifies = nil
 	// 1. re-execute all requests
 	// 2. compare new responses with stored responses
 	contractEvent := &event.ExecuteNotify{}
@@ -346,6 +350,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 			res, _ = result2.(*ntypes.ByteArray).GetByteArray() // todo
 		}
 		if bytes.Compare(rspMsg.Result, res) != 0 || rspMsg.Error != isError {
+			fmt.Printf("%s, %s", string(rspMsg.Result), string(res))
 			prepareOK = false
 			break
 		}
@@ -515,6 +520,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 
 	notify.ShardMsg = append(notify.ShardMsg, rspMsg)
 
+	txState.ShardNotifies = nil
 	xshardDB.SetXShardState(txState)
 	log.Debugf("process xshard request result: %v", result)
 }
@@ -532,6 +538,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	}
 	// re-execute tx
 	txState.NextReqID = 0
+	txState.ShardNotifies = nil
 	cache.Reset()
 	evts := &event.ExecuteNotify{
 		TxHash: msg.SourceTxHash,
@@ -542,6 +549,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		if txState.ExecState == xshard_state.ExecYielded {
 			notify.ShardMsg = append(notify.ShardMsg, txState.PendingReq)
 
+			txState.ShardNotifies = nil
 			xshardDB.SetXShardState(txState)
 		}
 
