@@ -19,7 +19,6 @@
 package shardmgmt
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
@@ -27,8 +26,6 @@ import (
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -41,7 +38,8 @@ const (
 
 	KEY_SHARD_PEER_STATE = "peerState"
 
-	KEY_RETRY_COMMIT_DPOS = "retry_commit"
+	KEY_RETRY_COMMIT_DPOS   = "retry_commit"
+	KEY_XSHARD_HANDLING_FEE = "xshard_handling_fee"
 )
 
 type peerState string
@@ -59,6 +57,10 @@ func genPeerStateKey(contract common.Address, shardIdBytes []byte, pubKey string
 
 func genRetryCommitDposKey() []byte {
 	return utils.ConcatKey(utils.ShardMgmtContractAddress, []byte(KEY_RETRY_COMMIT_DPOS))
+}
+
+func genXShardHandlingFeeKey() []byte {
+	return utils.ConcatKey(utils.ShardMgmtContractAddress, []byte(KEY_XSHARD_HANDLING_FEE))
 }
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -221,101 +223,29 @@ func getShardCommitDposInfo(native *native.NativeService) (*shardstates.ShardCom
 	return retry, nil
 }
 
-func getRootCurrentViewPeerItem(native *native.NativeService, pubKey string) (*utils.PeerPoolItem, error) {
-	peerPoolMap, err := getRootCurrentViewPeerMap(native)
+func setXShardHandlingFee(native *native.NativeService, feeInfo *shardstates.XShardHandlingFee) {
+	key := genXShardHandlingFeeKey()
+	sink := common.NewZeroCopySink(0)
+	feeInfo.Serialization(sink)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func getXShardHandlingFee(native *native.NativeService) (*shardstates.XShardHandlingFee, error) {
+	raw, err := native.CacheDB.Get(genXShardHandlingFeeKey())
 	if err != nil {
-		return nil, fmt.Errorf("getRootCurrentViewPeerItem: failed, err: %s", err)
+		return nil, fmt.Errorf("getXShardHandlingFee: read db failed, err: %s", err)
 	}
-	item, ok := peerPoolMap.PeerPoolMap[pubKey]
-	if !ok {
-		return nil, fmt.Errorf("getRootCurrentViewPeerItem: peer not exist")
+	if len(raw) == 0 {
+		return nil, fmt.Errorf("getXShardHandlingFee: store is empty")
 	}
-	return item, nil
-}
-
-func getRootCurrentViewPeerMap(native *native.NativeService) (*utils.PeerPoolMap, error) {
-	//get current view
-	view, err := utils.GetView(native, utils.GovernanceContractAddress, []byte(gov.GOVERNANCE_VIEW))
+	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
 	if err != nil {
-		return nil, fmt.Errorf("getRootCurrentViewPeerMap: get view error: %s", err)
+		return nil, fmt.Errorf("getXShardHandlingFee: parse store value failed, err: %s", err)
 	}
-	//get peerPoolMap
-	peerPoolMap, err := utils.GetPeerPoolMap(native, utils.GovernanceContractAddress, view, gov.PEER_POOL)
-	if err != nil {
-		return nil, fmt.Errorf("getRootCurrentViewPeerMap: get peerPoolMap error: %s", err)
+	source := common.NewZeroCopySource(storeValue)
+	info := &shardstates.XShardHandlingFee{}
+	if err := info.Deserialization(source); err != nil {
+		return nil, fmt.Errorf("getXShardHandlingFee: deserialize failed, err: %s", err)
 	}
-	return peerPoolMap, nil
-}
-
-func initStakeContractShard(native *native.NativeService, id common.ShardID, minStake uint64, stakeAsset common.Address) error {
-	param := &shard_stake.InitShardParam{
-		ShardId:        id,
-		MinStake:       minStake,
-		StakeAssetAddr: stakeAsset,
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		return fmt.Errorf("initStakeContractShard: failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.INIT_SHARD, bf.Bytes()); err != nil {
-		return fmt.Errorf("initStakeContractShard: failed, err: %s", err)
-	}
-	return nil
-}
-
-func peerInitStake(native *native.NativeService, param *JoinShardParam) error {
-	callParam := &shard_stake.PeerStakeParam{
-		ShardId:   param.ShardID,
-		PeerOwner: param.PeerOwner,
-		Value:     &shard_stake.PeerAmount{PeerPubKey: param.PeerPubKey, Amount: param.StakeAmount},
-	}
-	bf := new(bytes.Buffer)
-	if err := callParam.Serialize(bf); err != nil {
-		return fmt.Errorf("peerInitStake: failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.PEER_STAKE, bf.Bytes()); err != nil {
-		return fmt.Errorf("peerInitStake: failed, err: %s", err)
-	}
-	return nil
-}
-
-func peerExit(native *native.NativeService, shardId common.ShardID, peer string) error {
-	param := &shard_stake.PeerExitParam{
-		ShardId: shardId,
-		Peer:    peer,
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		return fmt.Errorf("peerExit: failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.PEER_EXIT, bf.Bytes()); err != nil {
-		return fmt.Errorf("peerExit: failed, err: %s", err)
-	}
-	return nil
-}
-
-func deletePeer(native *native.NativeService, shardId common.ShardID, peers []string) error {
-	param := &shard_stake.DeletePeerParam{
-		ShardId: shardId,
-		Peers:   peers,
-	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		return fmt.Errorf("deletePeer: failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.DELETE_PEER, bf.Bytes()); err != nil {
-		return fmt.Errorf("deletePeer: failed, err: %s", err)
-	}
-	return nil
-}
-
-func preCommitDpos(native *native.NativeService, shardId common.ShardID) error {
-	bf := new(bytes.Buffer)
-	if err := utils.SerializeShardId(bf, shardId); err != nil {
-		return fmt.Errorf("preCommitDpos: serialize shardId failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.PRE_COMMIT_DPOS, bf.Bytes()); err != nil {
-		return fmt.Errorf("preCommitDpos: failed, err: %s", err)
-	}
-	return nil
+	return info, nil
 }
