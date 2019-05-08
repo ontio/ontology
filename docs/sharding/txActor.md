@@ -16,8 +16,7 @@ support consensus module
 
 requests processed by TxPoolActor
 
-1. http: count of pending transaction
-2. consensus: pending transaction to be consensused
+1. consensus: pending transaction to be consensused
 
 
 ## VerifyRspActor

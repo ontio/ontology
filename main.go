@@ -198,7 +198,7 @@ func startMainChain(ctx *cli.Context, shardID common.ShardID) {
 		return
 	}
 
-	chainmgr.Start(txPoolMgr.GetPID(shardID, tc.TxPoolActor), p2pSvr.GetPID(), txPoolMgr)
+	chainmgr.Start(p2pSvr.GetPID(), txPoolMgr)
 	defer chainmgr.Stop()
 
 	err = initRpc(ctx)
@@ -336,7 +336,6 @@ func initTxPool(ctx *cli.Context, shardID common.ShardID, chainMgr *chainmgr.Cha
 		return nil, fmt.Errorf("init txPoolMgr failed: %s", err)
 	}
 	hserver.SetTxPid(mgr.GetPID(shardID, tc.TxActor))
-	chainmgr.SetTxPool(mgr.GetPID(shardID, tc.TxActor))
 
 	for _, shardId := range chainMgr.GetActiveShards() {
 		lgr := ledger.GetShardLedger(shardId)
@@ -353,10 +352,6 @@ func initTxPool(ctx *cli.Context, shardID common.ShardID, chainMgr *chainmgr.Cha
 		stlValidator2.Register(srv.GetPID(tc.VerifyRspActor))
 		stfValidator, _ := stateful.NewValidator(fmt.Sprintf("stateful_validator_%d", shardId.ToUint64()), lgr)
 		stfValidator.Register(srv.GetPID(tc.VerifyRspActor))
-
-		if shardId == chainmgr.GetShardID() {
-			hserver.SetTxnPoolPid(srv.GetPID(tc.TxPoolActor))
-		}
 	}
 
 	log.Infof("TxPool init success")
