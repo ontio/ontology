@@ -1187,7 +1187,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 				return
 			}
 		}
-		log.Infof("BlockPrposalMessage: update self parent height fro %d to %d", self.parentHeight, parentHeight)
+		log.Infof("BlockPrposalMessage: update self parent height for %d to %d", self.parentHeight, parentHeight)
 		self.parentHeight = parentHeight
 	}
 
@@ -2234,7 +2234,7 @@ func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
 
 		return force
 	} else {
-		shardView, err := xshard.GetShardView(self.ledger, self.ShardID)
+		shardView, err := xshard.GetShardView(self.ledger.ParentLedger, self.ShardID)
 		if err != nil {
 			log.Errorf("GetShardView err:%s", err)
 			return false

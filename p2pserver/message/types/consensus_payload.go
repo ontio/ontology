@@ -191,8 +191,13 @@ func (this *ConsensusPayload) serializationUnsigned(sink *common.ZeroCopySink) {
 func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
 	err := serialization.WriteUint32(w, this.Version)
 	if err != nil {
-
 		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. version:%v", this.Version))
+	}
+	if this.Version == common.VERSION_SUPPORT_SHARD {
+		err = serialization.WriteUint64(w, this.ShardID)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. shardID:%v", this.ShardID))
+		}
 	}
 	err = this.PrevHash.Serialize(w)
 	if err != nil {
@@ -251,7 +256,12 @@ func (this *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
 
 		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read version error")
 	}
-
+	if this.Version == common.VERSION_SUPPORT_SHARD {
+		this.ShardID, err = serialization.ReadUint64(r)
+		if err != nil {
+			return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read ShardID error")
+		}
+	}
 	preBlock := new(common.Uint256)
 	err = preBlock.Deserialize(r)
 	if err != nil {
