@@ -43,6 +43,22 @@ func TestShardFlow(t *testing.T) {
 	shards[shard2] = NewShardContext(shard2, contract, t)
 	shards[shard3] = NewShardContext(shard3, contract, t)
 
+	{
+		// shard0 -> invoke shard1
+		//        -> invoke shard2 -> invoke shard3
+		flow := MutliCommand{}.SubCmd(
+			&GreetCommand{},
+		).SubCmd(
+			NewInvokeCommand(shard1, &GreetCommand{}),
+		).SubCmd(
+			NewInvokeCommand(shard2, NewInvokeCommand(shard3, &GreetCommand{})),
+		)
+
+		totalShardMsg := RunShardTxToComplete(shards, shard0, method, EncodeShardCommandToBytes(&flow))
+		// 2 req, 2 rep, 2 prep, 2 preped, 2 commit = 10
+		assert.Equal(t, 10, totalShardMsg)
+		return
+	}
 	// shard0 -> invoke shard1
 	//        -> invoke shard2 -> notify shard3
 	flow := MutliCommand{}.SubCmd(
@@ -71,4 +87,5 @@ func TestShardFlow(t *testing.T) {
 	totalShardMsg = RunShardTxToComplete(shards, shard0, method, EncodeShardCommandToBytes(&flow))
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit, 2 notify = 12
 	assert.Equal(t, 12, totalShardMsg)
+
 }

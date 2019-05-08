@@ -246,6 +246,7 @@ func handleShardCommitMsg(msg *xshard_types.XShardCommitMsg, store store.LedgerS
 	if err != nil {
 		return
 	}
+	txState.ExecState = xshard_state.ExecNone
 
 	// update tx state
 	// commit the cached rwset
@@ -313,6 +314,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 	if err != nil {
 		return
 	}
+	txState.ExecState = xshard_state.ExecNone
 
 	var reqResp []*xshard_state.XShardTxReqResp
 	for _, shardReq := range txState.InReqResp {
@@ -414,6 +416,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	sink.WriteUint32(nid)
 	shardTxID := xshard_state.ShardTxID(string(sink.Bytes()))
 	txState := xshard_state.CreateTxState(shardTxID)
+	txState.ExecState = xshard_state.ExecNone
 
 	tx, err := buildTx(msg.Payer, msg.Contract, msg.Method, []interface{}{msg.Args}, header.ShardID, msg.Fee,
 		msg.GasPrice, header.Timestamp)
@@ -473,6 +476,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 	if err != nil {
 		return
 	}
+	txState.ExecState = xshard_state.ExecNone
 
 	shardReq := txState.InReqResp[msg.SourceShardID]
 	lenReq := uint64(len(shardReq))
@@ -506,7 +510,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 	}
 	if err != nil {
 		rspMsg.Error = true // todo pending case
-	}
+	} else {
 	if subTx.GasPrice > 0 {
 		feeParam := &shardmgmt.XShardHandlingFeeParam{
 			IncomeShard: msg.SourceShardID,
@@ -515,8 +519,9 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 		recordXShardHandlingFee(txState, feeParam, store, overlay, cache, header, notify)
 	}
 
-	res, _ := result.(*ntypes.ByteArray).GetByteArray() // todo
-	rspMsg.Result = res
+		res, _ := result.(*ntypes.ByteArray).GetByteArray() // todo
+		rspMsg.Result = res
+	}
 
 	// FIXME: save notification
 	// FIXME: feeUsed
@@ -543,6 +548,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	if err != nil {
 		return
 	}
+	txState.ExecState = xshard_state.ExecNone
 	if msg.FeeUsed < neovm.MIN_TRANSACTION_GAS {
 		msg.FeeUsed = neovm.MIN_TRANSACTION_GAS
 	}
@@ -597,7 +603,22 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 			notify.ShardMsg = append(notify.ShardMsg, txState.PendingReq)
 			txState.ShardNotifies = nil
 			xshardDB.SetXShardState(txState)
+		} else {
+			for _, s := range txState.GetTxShards() {
+				abort := &xshard_types.XShardAbortMsg{
+					ShardMsgHeader: xshard_types.ShardMsgHeader{
+						SourceShardID: common.NewShardIDUnchecked(header.ShardID),
+						TargetShardID: s,
+						SourceTxHash:  msg.SourceTxHash,
+					},
+				}
+				notify.ShardMsg = append(notify.ShardMsg, abort)
+			}
+
+			txState.ExecState = xshard_state.ExecAborted
+			xshardDB.SetXShardState(txState)
 		}
+
 		return
 	}
 

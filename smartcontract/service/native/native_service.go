@@ -86,7 +86,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	this.Notifications = []*event.NotifyEventInfo{}
 	result, err := service(this)
 	if err != nil {
-		return result, errors.New("[Invoke] Native serivce function execute error")
+		return result, fmt.Errorf("[Invoke] Native serivce function execute error: %v", err.Error())
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
