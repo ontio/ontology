@@ -22,13 +22,11 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	utils2 "github.com/ontio/ontology/core/utils"
@@ -340,7 +338,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 		}
 
 		cache.Reset()
-		result2, err2 := executeTransaction(store, overlay, cache, txState, subTx, header, contractEvent)
+		result2, _, err2 := executeTransaction(store, overlay, cache, txState, subTx, header, contractEvent)
 
 		isError := false
 		var res []byte
@@ -426,6 +424,11 @@ func buildNativeInvokeTx(payer, contract common.Address, method string, msg []by
 
 func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStore, overlay *overlaydb.OverlayDB,
 	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
+	shardId, err := common.NewShardID(header.ShardID)
+	if err == nil {
+		log.Debugf("handle shard notify check header shardId %s", err) // todo: handle pending case
+		return
+	}
 	nid := msg.NotifyID
 	sink := common.NewZeroCopySink(0)
 	sink.WriteBytes(msg.SourceTxHash[:]) //todo : use shard tx id
@@ -444,6 +447,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	tx := &types.MutableTransaction{
 		Version:  0,
 		GasPrice: 0,
+		ShardID:  header.ShardID,
 		GasLimit: msg.Fee,
 		TxType:   types.Invoke,
 		Nonce:    header.Timestamp,
@@ -457,10 +461,34 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	}
 
 	cache.Reset()
-	result, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify.ContractEvent)
-	if err != nil {
-		log.Debugf("handle shard call tx error %s", err) // todo: handle pending case
-		return
+	result, gasConsume, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify.ContractEvent)
+	if tx.GasPrice > 0 {
+		cfg := &smartcontract.Config{
+			ShardID:   shardId,
+			Time:      header.Timestamp,
+			Height:    header.Height,
+			Tx:        subTx,
+			BlockHash: header.Hash(),
+		}
+		minGas := tx.GasPrice * neovm.MIN_TRANSACTION_GAS
+		if err != nil {
+			log.Debugf("handle shard notify error %s", err) // todo: handle pending case
+			if err := costInvalidGas(subTx.Payer, minGas, cfg, cache, store, notify.ContractEvent, shardId); err != nil {
+				log.Debugf("handle shard notify: tx failed, cost invalid gas failed, %s", err)
+				return
+			}
+			return
+		} else {
+			if chargeNotifies, err := chargeCostGas(subTx.Payer, gasConsume*tx.GasPrice, cfg, cache, store, shardId); err != nil {
+				log.Debugf("handle shard notify: charge failed, %s", err)
+				if err := costInvalidGas(subTx.Payer, minGas, cfg, cache, store, notify.ContractEvent, shardId); err != nil {
+					log.Debugf("handle shard notify: cost invalid gas failed, %s", err)
+					return
+				}
+			} else {
+				notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, chargeNotifies...)
+			}
+		}
 	}
 
 	// no shard transaction and tx completed
@@ -492,7 +520,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 	}
 
 	cache.Reset()
-	result, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify.ContractEvent)
+	result, _, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify.ContractEvent)
 
 	log.Debugf("xshard msg: method: %s, args: %v, result: %v, err: %s", msg.GetMethod(), msg.GetArgs(), result, err)
 
@@ -542,7 +570,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	evts := &event.ExecuteNotify{
 		TxHash: msg.SourceTxHash,
 	}
-	_, err = executeTransaction(store, overlay, cache, txState, subTx, header, evts)
+	_, _, err = executeTransaction(store, overlay, cache, txState, subTx, header, evts)
 
 	if err != nil {
 		if txState.ExecState == xshard_state.ExecYielded {
@@ -589,12 +617,12 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	return
 }
 
-func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, txState *xshard_state.TxState,
-	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) (result interface{}, err error) {
+func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
+	txState *xshard_state.TxState, tx *types.Transaction, header *types.Header,
+	notify *event.ExecuteNotify) (result interface{}, gasConsume uint64, err error) {
 	shardID, err := common.NewShardID(header.ShardID)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	config := &smartcontract.Config{
 		ShardID:   shardID,
@@ -612,14 +640,15 @@ func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
 			Store:            store,
 			MainShardTxState: txState,
 			CacheDB:          cache,
-			Gas:              100000000000000,
+			Gas:              math.MaxUint64,
 		}
 
 		//start the smart contract executive function
 		engine, _ := sc.NewExecuteEngine(invoke.Code)
 		res, err := engine.Invoke()
 		notify.Notify = append(notify.Notify, sc.Notifications...)
-		return res, err
+		gasConsume = math.MaxUint64 - sc.Gas
+		return res, gasConsume, err
 	}
 
 	panic("unimplemented")
@@ -798,17 +827,6 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	}
 
 	return result, nil
-}
-
-func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {
-	if !config.DefConfig.Common.EnableEventLog {
-		return nil
-	}
-	if err := eventStore.SaveEventNotifyByTx(txHash, notify); err != nil {
-		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
-	}
-	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notify)
-	return nil
 }
 
 func genNativeTransferCode(from, to common.Address, value uint64) []byte {
