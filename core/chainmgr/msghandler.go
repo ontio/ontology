@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
-	evtmsg "github.com/ontio/ontology/events/message"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -133,12 +132,12 @@ func (self ChainManager) startChildShard(shardID common.ShardID, shardState *sha
 	return nil
 }
 
-func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []*evtmsg.ShardEventState) error {
+func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) {
 	if self.shardID.IsRootShard() {
 		// main-chain has no parent-chain, and not support xshard-txn
-		return nil
+		return
 	}
-	log.Infof("chainmgr shard %d, get new block %d,blk shardId:%d", self.shardID, blk.Header.Height, blk.Header.ShardID)
+	log.Infof("chainmgr shard %d, get new block %d from shard %d", self.shardID, blk.Header.Height, blk.Header.ShardID)
 
 	if err := self.addShardBlock(blk); err != nil {
 		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
@@ -149,7 +148,6 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block, shardEvts []
 	if err := self.handleRootChainBlock(); err != nil {
 		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
-	return nil
 }
 
 func (self *ChainManager) addShardBlock(block *types.Block) error {
