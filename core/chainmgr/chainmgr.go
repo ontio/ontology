@@ -379,7 +379,6 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 	for _, evt := range shardEvts {
 		shardEvt := evt.Event
 		switch shardEvt.EventType {
-
 		case shardstates.EVENT_SHARD_CREATE:
 			createEvt := &shardstates.CreateShardEvent{}
 			if err := createEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {

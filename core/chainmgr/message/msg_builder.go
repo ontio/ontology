@@ -83,7 +83,5 @@ func NewShardBlockInfo(shardID common.ShardID, block *types.Block) *ShardBlockIn
 		Block:       block,
 	}
 
-	// TODO: add event from block to blockInfo
-
 	return blockInfo
 }

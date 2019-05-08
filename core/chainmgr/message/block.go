@@ -63,7 +63,6 @@ type ShardBlockInfo struct {
 	State       uint                             `json:"state"`
 	Block       *types.Block                     `json:"block"`
 	ShardTxs    map[common.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
-	Events      []*message.ShardEventState
 }
 
 func (this *ShardBlockInfo) Serialization(sink *common.ZeroCopySink) error {
@@ -71,15 +70,6 @@ func (this *ShardBlockInfo) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteUint32(this.Height)
 	sink.WriteUint64(uint64(this.State))
 	this.Block.Serialization(sink)
-	sink.WriteUint64(uint64(len(this.ShardTxs)))
-	for id, tx := range this.ShardTxs {
-		sink.WriteUint64(id.ToUint64())
-		tx.Serialization(sink)
-	}
-	sink.WriteUint64(uint64(len(this.Events)))
-	for _, event := range this.Events {
-		event.Serialization(sink)
-	}
 	return nil
 }
 
@@ -102,26 +92,6 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 	this.Block = &types.Block{}
 	if err := this.Block.Deserialization(source); err != nil {
 		return fmt.Errorf("deserialization: read header failed, err: %s", err)
-	}
-	txNum, eof := source.NextUint64()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	this.ShardTxs = make(map[common.ShardID]*ShardBlockTx)
-	for i := uint64(0); i < txNum; i++ {
-		id, eof := source.NextUint64()
-		if eof {
-			return fmt.Errorf("deserialization: read tx shardId failed, index %d, err: %s", i, io.ErrUnexpectedEOF)
-		}
-		shardId, err := common.NewShardID(id)
-		if err != nil {
-			return fmt.Errorf("deserialization: generate tx shardId failed, index %d, err: %s", i, err)
-		}
-		tx := &ShardBlockTx{}
-		if err := tx.Deserialization(source); err != nil {
-			return fmt.Errorf("deserialization: read tx failed, index %d, err: %s", i, err)
-		}
-		this.ShardTxs[shardId] = tx
 	}
 	eventNum, eof := source.NextUint64()
 	if eof {
@@ -180,9 +150,6 @@ func (pool *ShardBlockPool) AddBlockInfo(blkInfo *ShardBlockInfo) error {
 		if hdr != nil && bytes.Compare(hdr.BlockRoot[:], blkInfo.Block.Header.BlockRoot[:]) == 0 {
 			return fmt.Errorf("add shard block, dup blk")
 		}
-
-		// replace events
-		blkInfo.Events = blk.Events
 	}
 
 	log.Infof("chainmgr AddBlock from shard %d, block %d", blkInfo.FromShardID, blkInfo.Height)

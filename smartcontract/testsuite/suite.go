@@ -108,7 +108,7 @@ func RemoteNotifyPing(native *native.NativeService) ([]byte, error) {
 	sink.WriteString(fmt.Sprintf("hello from shard: %d", native.ShardID.ToUint64()))
 
 	cont := native.ContextRef.CurrentContext().ContractAddress
-	native.NotifyRemoteShard(native, ShardB, cont, "handlePing", sink.Bytes())
+	native.NotifyRemoteShard(ShardB, cont, "handlePing", sink.Bytes())
 
 	return utils.BYTE_TRUE, nil
 }

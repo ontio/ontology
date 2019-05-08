@@ -51,6 +51,7 @@ func TestRemoteNotifyPing(t *testing.T) {
 		NotifyID: 0,
 		Fee:      neovm.MIN_TRANSACTION_GAS,
 		Method:   "handlePing",
+		Contract: shardAContract,
 		Args:     sink.Bytes(),
 	}
 
@@ -81,10 +82,11 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 			SourceTxHash:  txHash,
 			SourceShardID: shardContext.shardID,
 		},
-		IdxInTx: 0,
-		Fee:     neovm.MIN_TRANSACTION_GAS,
-		Method:  "handlePing",
-		Args:    sink.Bytes(),
+		IdxInTx:  0,
+		Fee:      neovm.MIN_TRANSACTION_GAS,
+		Contract: shardAContract,
+		Method:   "handlePing",
+		Args:     sink.Bytes(),
 	}
 
 	assert.Equal(t, expected, state.PendingReq)
