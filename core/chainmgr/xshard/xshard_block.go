@@ -123,38 +123,34 @@ func AddBlockInfo(blkInfo *shardmsg.ShardBlockInfo) error {
 // @start : startHeight of parent block
 // @end : endHeight of parent block
 //
-func GetShardTxsByParentHeight(start, end uint32) map[common.ShardID][]*types.Transaction {
+func GetShardTxsByParentHeight(height uint32) map[common.ShardID][]*types.Transaction {
 	pool := shardBlockPool
 	shardID := pool.ShardID
 	if shardID.IsRootShard() {
 		return nil
 	}
-
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 
 	parentShard := shardID.ParentID()
-	log.Infof("shard %d get parent shard %d tx, %d - %d", shardID, parentShard, start, end)
+	log.Infof("shard %d get parent shard %d tx, %d - %d", shardID, parentShard, height)
 	m := pool.Shards[parentShard]
 	if m == nil {
 		return nil
 	}
 	shardTxs := make(map[common.ShardID][]*types.Transaction)
-	for ; start < end+1; start++ {
-		if blk, present := m[start]; present && blk != nil {
-			if shardTx, present := blk.ShardTxs[shardID]; present && shardTx != nil && shardTx.Tx != nil {
-				if shardTxs[parentShard] == nil {
-					shardTxs[parentShard] = make([]*types.Transaction, 0)
-				}
-				shardTxs[parentShard] = append(shardTxs[parentShard], shardTx.Tx)
-				log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d",
-					shardID, parentShard, start)
+	if blk, present := m[height]; present && blk != nil {
+		if shardTx, present := blk.ShardTxs[shardID]; present && shardTx != nil && shardTx.Tx != nil {
+			if shardTxs[parentShard] == nil {
+				shardTxs[parentShard] = make([]*types.Transaction, 0)
 			}
-		} else {
-			log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d, nil block",
-				shardID, parentShard, start)
+			shardTxs[parentShard] = append(shardTxs[parentShard], shardTx.Tx)
+			log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d",
+				shardID, parentShard, height)
 		}
+	} else {
+		log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d, nil block",
+			shardID, parentShard, height)
 	}
-
 	return shardTxs
 }

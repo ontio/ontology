@@ -229,7 +229,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {
 		// new parentBlock available
-		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+		temp := xshard.GetShardTxsByParentHeight(self.parentHeight - 1)
 		for id, txs := range temp {
 			shardTxs[id.ToUint64()] = txs
 		}

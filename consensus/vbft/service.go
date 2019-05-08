@@ -1127,7 +1127,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		return
 	}
 	if self.parentHeight < parentHeight {
-		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
+		temp := xshard.GetShardTxsByParentHeight(self.parentHeight - 1)
 		for id, txs := range temp {
 			msgtxs, present := msg.Block.Block.ShardTxs[id.ToUint64()]
 			if !present {

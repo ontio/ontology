@@ -151,7 +151,7 @@ func startOntology(ctx *cli.Context) {
 	if err != nil {
 		fmt.Printf("wrong shard id:%d", id)
 	}
-	initLog(ctx, shardID)
+	initLog(ctx)
 
 	log.Infof("ontology version %s", config.Version)
 
@@ -160,7 +160,7 @@ func startOntology(ctx *cli.Context) {
 }
 
 func startMainChain(ctx *cli.Context, shardID common.ShardID) {
-	initLog(ctx, shardID)
+	initLog(ctx)
 
 	if _, err := initConfig(ctx); err != nil {
 		log.Errorf("initConfig error:%s", err)
@@ -219,13 +219,10 @@ func startMainChain(ctx *cli.Context, shardID common.ShardID) {
 	waitToExit()
 }
 
-func initLog(ctx *cli.Context, shardID common.ShardID) {
+func initLog(ctx *cli.Context) {
 	//init log module
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	logPath := log.PATH
-	if !shardID.IsRootShard() {
-		logPath = path.Join(chainmgr.GetShardName(shardID), logPath)
-	}
 	alog.InitLog(logPath)
 	log.InitLog(logLevel, logPath, log.Stdout)
 }
