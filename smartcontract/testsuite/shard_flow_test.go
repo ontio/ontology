@@ -56,6 +56,10 @@ func TestShardFlow(t *testing.T) {
 	totalShardMsg := RunShardTxToComplete(shards, shard0, method, EncodeShardCommandToBytes(&flow))
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit, 1 notify = 11
 	assert.Equal(t, 11, totalShardMsg)
+
+	// shard0 -> notify3
+	//        -> invoke shard2 -> notify shard3
+	// 	      -> invoke shard1
 	flow = MutliCommand{}.SubCmd(
 		NewNotifyCommand(shard3, &GreetCommand{}),
 	).SubCmd(

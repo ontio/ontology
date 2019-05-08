@@ -350,7 +350,6 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 			res, _ = result2.(*ntypes.ByteArray).GetByteArray() // todo
 		}
 		if bytes.Compare(rspMsg.Result, res) != 0 || rspMsg.Error != isError {
-			fmt.Printf("%s, %s", string(rspMsg.Result), string(res))
 			prepareOK = false
 			break
 		}
