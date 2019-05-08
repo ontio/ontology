@@ -22,9 +22,9 @@ package txnpool
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
@@ -48,14 +48,14 @@ func startActor(obj interface{}, id string) (*actor.PID, error) {
 }
 
 type TxnPoolManager struct {
-	ShardID               types.ShardID
+	ShardID               common.ShardID
 	servers               map[common.ShardID]*tp.TXPoolServer
 	TxActor               *actor.PID
 	disablePreExec        bool
 	disableBroadcastNetTx bool
 }
 
-func NewTxnPoolManager(shardID types.ShardID, disablePreExec, disableBroadcastNetTx bool) (*TxnPoolManager, error) {
+func NewTxnPoolManager(shardID common.ShardID, disablePreExec, disableBroadcastNetTx bool) (*TxnPoolManager, error) {
 	mgr := &TxnPoolManager{
 		ShardID:               shardID,
 		servers:               make(map[common.ShardID]*tp.TXPoolServer),
@@ -118,7 +118,7 @@ func (self *TxnPoolManager) GetPID(shardId common.ShardID, actor tc.ActorType) *
 	return nil
 }
 
-func (self *TxnPoolManager) GetTxnPoolServer(shardID types.ShardID) *tp.TXPoolServer {
+func (self *TxnPoolManager) GetTxnPoolServer(shardID common.ShardID) *tp.TXPoolServer {
 	return self.servers[shardID]
 }
 

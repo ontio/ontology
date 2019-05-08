@@ -167,7 +167,7 @@ func (worker *txPoolWorker) putTxPool(pt *pendingTx) bool {
 		Tx:    pt.tx,
 		Attrs: pt.ret,
 	}
-	worker.server.addTxList(txEntry)
+	worker.server.AddTxList(txEntry)
 	worker.server.removePendingTx(pt.tx.Hash(), errors.ErrNoError)
 	return true
 }

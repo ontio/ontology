@@ -35,6 +35,7 @@ import (
 	tp "github.com/ontio/ontology/txnpool/proc"
 	"github.com/ontio/ontology/validator/stateful"
 	"github.com/ontio/ontology/validator/stateless"
+	"github.com/ontio/ontology/txnpool"
 )
 
 var (
@@ -43,7 +44,7 @@ var (
 )
 
 func init() {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	topic = "TXN"
 
 	mutable := &types.MutableTransaction{
@@ -115,7 +116,12 @@ func Test_RCV(t *testing.T) {
 	s.RegisterActor(tc.TxPoolActor, txPoolPid)
 
 	// Initialize an actor to handle the msgs from p2p and api
-	ta := tp.NewTxActor(s)
+	mgr, err := txnpool.NewTxnPoolManager(shardId, true, false)
+	if err != nil {
+		t.Fatalf("Test case: new tx pool server failed")
+	}
+
+	ta := txnpool.NewTxActor(mgr)
 	txPid := startActor(ta)
 	if txPid == nil {
 		t.Error("Fail to start txn actor")

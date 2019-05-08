@@ -22,6 +22,7 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -45,7 +46,7 @@ func NewTxActor(s *TxnPoolManager) *TxActor {
 // handleTransaction handles a transaction from network and http
 func (ta *TxActor) handleTransaction(sender tc.SenderType, self *actor.PID,
 	txn *tx.Transaction, txResultCh chan *tc.TxResult) {
-	shardID, err := tx.NewShardID(txn.ShardID)
+	shardID, err := common.NewShardID(txn.ShardID)
 	if err != nil {
 		if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
 			proc.ReplyTxResult(txResultCh, txn.Hash(), errors.ErrUnknown, "invalid shardID in tx")

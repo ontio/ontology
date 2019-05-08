@@ -117,7 +117,7 @@ func TestTxn(t *testing.T) {
 		Tx:    txn,
 		Attrs: []*tc.TXAttr{},
 	}
-	s.addTxList(txEntry)
+	s.AddTxList(txEntry)
 
 	ret := s.CheckTx(txn.Hash())
 	if ret == false {

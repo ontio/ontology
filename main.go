@@ -326,7 +326,7 @@ func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID common.Shar
 	return lgr, nil
 }
 
-func initTxPool(ctx *cli.Context, shardID types.ShardID, chainMgr *chainmgr.ChainManager) (*txnpool.TxnPoolManager, error) {
+func initTxPool(ctx *cli.Context, shardID common.ShardID, chainMgr *chainmgr.ChainManager) (*txnpool.TxnPoolManager, error) {
 	disablePreExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecDisableFlag))
 	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
 	disableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.DisableBroadcastNetTxFlag))

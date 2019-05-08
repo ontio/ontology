@@ -571,8 +571,8 @@ func (s *TXPoolServer) delTransaction(t *tx.Transaction) {
 	s.txPool.DelTxList(t)
 }
 
-// addTxList adds a valid transaction to the tx pool.
-func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
+// AddTxList adds a valid transaction to the tx pool.
+func (s *TXPoolServer) AddTxList(txEntry *tc.TXEntry) bool {
 	ret := s.txPool.AddTxList(txEntry)
 	if !ret {
 		s.increaseStats(tc.DuplicateStats)
