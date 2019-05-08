@@ -79,7 +79,6 @@ func NewShardBlockInfo(shardID common.ShardID, block *types.Block) *ShardBlockIn
 	blockInfo := &ShardBlockInfo{
 		FromShardID: shardID,
 		Height:      block.Header.Height,
-		State:       ShardBlockNew,
 		Block:       block,
 	}
 

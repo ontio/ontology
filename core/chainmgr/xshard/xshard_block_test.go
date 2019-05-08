@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package message_test
+package xshard
 
 import (
 	"testing"
@@ -52,44 +52,18 @@ func newTestShardBlockInfo(t *testing.T) *message.ShardBlockInfo {
 	return blkInfo
 }
 
-func TestShardBlockHeaderSerialize(t *testing.T) {
-	height := uint32(123)
-	parentHeight := uint32(321)
-
-	shardBlk := newTestBlock()
-	shardBlk.Header.Height = height
-	shardBlk.Header.ParentHeight = parentHeight
-	sink := common.NewZeroCopySink(0)
-	shardBlk.Serialization(sink)
-	bs := sink.Bytes()
-
-	source := common.NewZeroCopySource(bs)
-	shardBlk2 := new(types.Block)
-	if err := shardBlk2.Deserialization(source); err != nil {
-		t.Fatalf("deser shard header: %s", err)
-	}
-
-	if shardBlk2.Header.ParentHeight != parentHeight {
-		t.Fatalf("unmatched parent height: %d vs %d", shardBlk2.Header.ParentHeight, parentHeight)
-	}
-
-	if shardBlk2.Header.Height != height {
-		t.Fatalf("unmatched height: %d vs %d", shardBlk2.Header.Height, height)
-	}
-}
-
 func TestShardBlockPool(t *testing.T) {
-	pool := message.NewShardBlockPool(100)
+	InitShardBlockPool(common.NewShardIDUnchecked(1), 100)
 	blk := newTestShardBlockInfo(t)
 
 	shardID := blk.FromShardID
 	height := blk.Height
 
-	if err := pool.AddBlockInfo(blk); err != nil {
+	if err := AddBlockInfo(blk); err != nil {
 		t.Fatalf("failed add block: %s", err)
 	}
 
-	blk2 := pool.GetBlockInfo(shardID, height)
+	blk2 := GetBlockInfo(shardID, height)
 	if blk2 == nil {
 		t.Fatalf("failed get block")
 	}

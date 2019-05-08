@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
-	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
@@ -79,11 +78,6 @@ type ChainManager struct {
 	mainLedger *ledger.Ledger
 	consensus  consensus.ConsensusService
 
-	// BlockHeader and Cross-Shard Txs of other shards
-	// FIXME: check if any lock needed (if not only accessed by remoteShardMsgLoop)
-	// TODO: persistent
-	blockPool *shardmsg.ShardBlockPool
-
 	account *account.Account
 
 	// send transaction to local
@@ -108,15 +102,11 @@ func Initialize(shardID common.ShardID, acc *account.Account) (*ChainManager, er
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
 	}
 
-	blkPool := shardmsg.NewShardBlockPool(CAP_SHARD_BLOCK_POOL)
-	if blkPool == nil {
-		return nil, fmt.Errorf("chainmgr init: failed to init block pool")
-	}
+	xshard.InitShardBlockPool(shardID, CAP_SHARD_BLOCK_POOL)
 
 	chainMgr := &ChainManager{
 		shardID:        shardID,
 		shards:         make(map[common.ShardID]*ShardInfo),
-		blockPool:      blkPool,
 		localBlockMsgC: make(chan *message.SaveBlockCompleteMsg, CAP_LOCAL_SHARDMSG_CHNL),
 		quitC:          make(chan struct{}),
 

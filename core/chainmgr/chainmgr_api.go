@@ -20,12 +20,10 @@ package chainmgr
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/common"
 )
 
 const shard_port_gap = 10
@@ -62,68 +60,4 @@ func SetTxPool(txPool *actor.PID) error {
 	}
 	defaultChainManager.txPoolPid = txPool
 	return nil
-}
-
-func GetShardBlock(shardID common.ShardID, height uint32) *types.Block {
-	chainmgr := GetChainManager()
-	chainmgr.lock.RLock()
-	defer chainmgr.lock.RUnlock()
-	if chainmgr.shardID.IsRootShard() {
-		return nil
-	}
-
-	m := chainmgr.blockPool.Shards[shardID]
-	if m == nil {
-		return nil
-	}
-	if blk, present := m[height]; present && blk != nil {
-		return blk.Block
-	}
-
-	return nil
-}
-
-//
-// GetShardTxsByParentHeight
-// Get cross-shard Tx/Events from parent shard.
-// Cross-shard Tx/events of parent shard are delivered to child shards with parent-block propagation.
-// NOTE: all cross-shard tx/events should be indexed with (parentHeight, shardHeight)
-// TODO:
-//
-// @start : startHeight of parent block
-// @end : endHeight of parent block
-//
-func GetShardTxsByParentHeight(start, end uint32) map[common.ShardID][]*types.Transaction {
-	chainmgr := GetChainManager()
-
-	chainmgr.lock.RLock()
-	defer chainmgr.lock.RUnlock()
-	if chainmgr.shardID.IsRootShard() {
-		return nil
-	}
-
-	parentShard := chainmgr.shardID.ParentID()
-	log.Infof("shard %d get parent shard %d tx, %d - %d", chainmgr.shardID, parentShard, start, end)
-	m := chainmgr.blockPool.Shards[parentShard]
-	if m == nil {
-		return nil
-	}
-	shardTxs := make(map[common.ShardID][]*types.Transaction)
-	for ; start < end+1; start++ {
-		if blk, present := m[start]; present && blk != nil {
-			if shardTx, present := blk.ShardTxs[chainmgr.shardID]; present && shardTx != nil && shardTx.Tx != nil {
-				if shardTxs[parentShard] == nil {
-					shardTxs[parentShard] = make([]*types.Transaction, 0)
-				}
-				shardTxs[parentShard] = append(shardTxs[parentShard], shardTx.Tx)
-				log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d",
-					chainmgr.shardID, parentShard, start)
-			}
-		} else {
-			log.Infof(">>>> shard %d got remote Tx from parent %d, height: %d, nil block",
-				chainmgr.shardID, parentShard, start)
-		}
-	}
-
-	return shardTxs
 }
