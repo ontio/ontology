@@ -19,8 +19,10 @@ package common
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
+	"encoding/json"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUint256_Serialize(t *testing.T) {
@@ -54,4 +56,23 @@ func TestUint256ParseFromBytes(t *testing.T) {
 	_, err := Uint256ParseFromBytes(buf)
 
 	assert.NotNil(t, err)
+}
+
+func TestUint256Json(t *testing.T) {
+	hash, err := Uint256FromHexString("5b622cfbde2948ae61242fd5d7ee1c84983459e142339316bdb6ab09faee2e02")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := json.Marshal(hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("mashal hash is %s", string(data))
+	newHash := &Uint256{}
+	err = json.Unmarshal(data, newHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("unmarshal hash is %s", newHash.ToHexString())
+	assert.Equal(t, hash.ToHexString(), newHash.ToHexString())
 }

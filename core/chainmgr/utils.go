@@ -73,7 +73,7 @@ func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalSt
 	}
 
 	ver, err := serialization.ReadUint32(bytes.NewBuffer(data))
-	if ver != shardmgmt.VERSION_CONTRACT_SHARD_MGMT {
+	if ver != utils.VERSION_CONTRACT_SHARD_MGMT {
 		return nil, fmt.Errorf("uncompatible version: %d", ver)
 	}
 

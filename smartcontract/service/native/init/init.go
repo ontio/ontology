@@ -20,7 +20,6 @@ package init
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
@@ -30,9 +29,10 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_sysmsg"
+	"github.com/ontio/ontology/smartcontract/service/native/shardasset"
 	"github.com/ontio/ontology/smartcontract/service/native/shardccmc"
-	"github.com/ontio/ontology/smartcontract/service/native/shardgas"
 	"github.com/ontio/ontology/smartcontract/service/native/shardhotel"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardping"
@@ -54,11 +54,11 @@ func init() {
 	governance.InitGovernance()
 	shardmgmt.InitShardManagement()
 	shard_stake.InitShardStake()
-	shardgas.InitShardGasManagement()
 	shardsysmsg.InitShardSystemMessageContract()
 	shardccmc.InitShardCCMC()
 	shardping.InitShardPing()
 	shardhotel.InitShardHotel()
+	shardasset.InitShardAsset()
 }
 
 func InitBytes(addr common.Address, method string) []byte {

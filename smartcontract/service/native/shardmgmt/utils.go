@@ -40,6 +40,8 @@ const (
 	KEY_SHARD_STATE  = "shardState"
 
 	KEY_SHARD_PEER_STATE = "peerState"
+
+	KEY_RETRY_COMMIT_DPOS = "retry_commit"
 )
 
 type peerState string
@@ -53,6 +55,10 @@ const (
 
 func genPeerStateKey(contract common.Address, shardIdBytes []byte, pubKey string) []byte {
 	return utils.ConcatKey(contract, shardIdBytes, []byte(KEY_SHARD_PEER_STATE), []byte(pubKey))
+}
+
+func genRetryCommitDposKey() []byte {
+	return utils.ConcatKey(utils.ShardMgmtContractAddress, []byte(KEY_RETRY_COMMIT_DPOS))
 }
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -78,7 +84,7 @@ func getVersion(native *native.NativeService, contract common.Address) (uint32, 
 }
 
 func setVersion(native *native.NativeService, contract common.Address) {
-	data := utils.GetUint32Bytes(VERSION_CONTRACT_SHARD_MGMT)
+	data := utils.GetUint32Bytes(utils.VERSION_CONTRACT_SHARD_MGMT)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(KEY_VERSION)), cstates.GenRawStorageItem(data))
 }
 
@@ -87,7 +93,7 @@ func checkVersion(native *native.NativeService, contract common.Address) (bool, 
 	if err != nil {
 		return false, err
 	}
-	return ver == VERSION_CONTRACT_SHARD_MGMT, nil
+	return ver == utils.VERSION_CONTRACT_SHARD_MGMT, nil
 }
 
 func getGlobalState(native *native.NativeService, contract common.Address) (*shardstates.ShardMgmtGlobalState, error) {
@@ -150,7 +156,7 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	eventState := &message.ShardEventState{
-		Version:    VERSION_CONTRACT_SHARD_MGMT,
+		Version:    utils.VERSION_CONTRACT_SHARD_MGMT,
 		EventType:  info.GetType(),
 		ToShard:    info.GetTargetShardID(),
 		FromHeight: info.GetHeight(),
@@ -187,6 +193,32 @@ func getShardPeerState(native *native.NativeService, contract common.Address, sh
 		return state_default, fmt.Errorf("getShardPeerState: parse store value failed, err: %s", err)
 	}
 	return peerState(value), nil
+}
+
+func setShardCommitDposInfo(native *native.NativeService, retry *shardstates.ShardCommitDposInfo) {
+	sink := common.NewZeroCopySink(0)
+	retry.Serialization(sink)
+	native.CacheDB.Put(genRetryCommitDposKey(), cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func getShardCommitDposInfo(native *native.NativeService) (*shardstates.ShardCommitDposInfo, error) {
+	raw, err := native.CacheDB.Get(genRetryCommitDposKey())
+	if err != nil {
+		return nil, fmt.Errorf("getShardCommitDposInfo: read db failed, err: %s", err)
+	}
+	if len(raw) == 0 {
+		return nil, fmt.Errorf("getShardCommitDposInfo: store is empty")
+	}
+	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
+	if err != nil {
+		return nil, fmt.Errorf("getShardCommitDposInfo: parse store value failed, err: %s", err)
+	}
+	source := common.NewZeroCopySource(storeValue)
+	retry := &shardstates.ShardCommitDposInfo{}
+	if err := retry.Deserialization(source); err != nil {
+		return nil, fmt.Errorf("getShardCommitDposInfo: deserialize failed, err: %s", err)
+	}
+	return retry, nil
 }
 
 func getRootCurrentViewPeerItem(native *native.NativeService, pubKey string) (*utils.PeerPoolItem, error) {
@@ -277,17 +309,13 @@ func deletePeer(native *native.NativeService, shardId common.ShardID, peers []st
 	return nil
 }
 
-func commitDpos(native *native.NativeService, shardId common.ShardID, feeInfo []*shard_stake.PeerAmount) error {
-	param := &shard_stake.CommitDposParam{
-		ShardId: shardId,
-		Value:   feeInfo,
-	}
+func preCommitDpos(native *native.NativeService, shardId common.ShardID) error {
 	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		return fmt.Errorf("commitDpos: failed, err: %s", err)
+	if err := utils.SerializeShardId(bf, shardId); err != nil {
+		return fmt.Errorf("preCommitDpos: serialize shardId failed, err: %s", err)
 	}
-	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes()); err != nil {
-		return fmt.Errorf("commitDpos: failed, err: %s", err)
+	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.PRE_COMMIT_DPOS, bf.Bytes()); err != nil {
+		return fmt.Errorf("preCommitDpos: failed, err: %s", err)
 	}
 	return nil
 }

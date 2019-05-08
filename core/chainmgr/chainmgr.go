@@ -36,10 +36,12 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
+	ontErr "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
 	hserver "github.com/ontio/ontology/http/base/actor"
+	bcomm "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/actor/server"
 	p2p "github.com/ontio/ontology/p2pserver/common"
@@ -82,9 +84,7 @@ type ChainManager struct {
 	// TODO: persistent
 	blockPool *shardmsg.ShardBlockPool
 
-	// last local block processed by ChainManager
-	processedParentBlockHeight uint32
-	account                    *account.Account
+	account *account.Account
 
 	// send transaction to local
 	txPoolPid *actor.PID
@@ -209,7 +209,6 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 	self.shards[mainShardID] = mainShardInfo
 	self.mainLedger = lgr
 	ledger.DefLedger = lgr
-	self.processedParentBlockHeight = lgr.GetCurrentBlockHeight()
 	log.Infof("main ledger init success")
 	return nil
 }
@@ -379,11 +378,6 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 	var gasEvents []*message.ShardEventState
 	for _, evt := range shardEvts {
 		shardEvt := evt.Event
-		if isShardGasEvent(shardEvt) {
-			gasEvents = append(gasEvents, shardEvt)
-			continue
-		}
-
 		switch shardEvt.EventType {
 
 		case shardstates.EVENT_SHARD_CREATE:
@@ -423,26 +417,10 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 				log.Errorf("processing shard activation event: %s", err)
 			}
 		case shardstates.EVENT_SHARD_PEER_LEAVE:
-		case shardstates.EVENT_SHARD_GAS_WITHDRAW_REQ:
-			evt := &shardstates.WithdrawGasReqEvent{}
-			if err := evt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
-				log.Errorf("deserialize shard activation event: %s", err)
-				continue
-			}
-			self.onWithdrawGasReq(evt)
-		case shardstates.EVENT_SHARD_COMMIT_DPOS:
 		}
 	}
 
 	return gasEvents
-}
-
-func isShardGasEvent(evt *message.ShardEventState) bool {
-	switch evt.EventType {
-	case shardstates.EVENT_SHARD_GAS_DEPOSIT, shardstates.EVENT_SHARD_GAS_WITHDRAW_DONE:
-		return true
-	}
-	return false
 }
 
 //
@@ -491,31 +469,23 @@ func (self *ChainManager) Stop() {
 func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPList []string, shardPort uint) error {
 	// FIXME: broadcast Tx to seed nodes of target shard
 
-	// relay with parent shard
-	//payload := new(bytes.Buffer)
-	//if err := tx.Serialize(payload); err != nil {
-	//	return fmt.Errorf("failed to serialize tx: %s", err)
-	//}
-	//
-	//msg := &shardmsg.CrossShardMsg{
-	//	Version: shardmsg.SHARD_PROTOCOL_VERSION,
-	//	Type:    shardmsg.TXN_RELAY_MSG,
-	//	Sender:  self.parentPid,
-	//	Data:    payload.Bytes(),
-	//}
-	//self.sendShardMsg(self.parentShardID, msg)
-	//return nil
-	if len(shardPeerIPList) == 0 {
-		return fmt.Errorf("send raw tx failed: no shard peers")
+	if tx.ShardID == self.shardID.ToUint64() {
+		errCode, errString := bcomm.SendTxToPool(tx)
+		if errCode != ontErr.ErrNoError {
+			return fmt.Errorf(errString)
+		}
+	} else {
+		if len(shardPeerIPList) == 0 {
+			return fmt.Errorf("send raw tx failed: no shard peers")
+		}
+		if err := sendRawTx(tx, shardPeerIPList[0], shardPort); err != nil {
+			return fmt.Errorf("send raw tx failed: %s, shardAddr %s:%d", err, shardPeerIPList[0], shardPort)
+		}
 	}
-	if err := sendRawTx(tx, shardPeerIPList[0], shardPort); err != nil {
-		return fmt.Errorf("send raw tx failed: %s, shardAddr %s:%d", err, shardPeerIPList[0], shardPort)
-	}
-
 	return nil
 }
 
 func (self *ChainManager) getShardRPCPort(shardID common.ShardID) uint {
 	// TODO: get from shardinfo
-	return 0
+	return 20336
 }

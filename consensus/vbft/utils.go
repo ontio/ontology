@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
@@ -294,18 +293,6 @@ func getRootChainConfig(ledger *ledger.Ledger, memdb *overlaydb.MemDB, blkNum ui
 	}
 	cfg.View = changeview.View
 	return cfg, err
-}
-
-func getShardGasBalance(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (uint64, error) {
-	value, err := GetStorageValue(memdb, ledger, nutils.OngContractAddress, nutils.ShardGasMgmtContractAddress[:])
-	if err != nil {
-		return 0, err
-	}
-	balance, err := serialization.ReadUint64(bytes.NewBuffer(value))
-	if err != nil {
-		return 0, err
-	}
-	return balance, nil
 }
 
 func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {

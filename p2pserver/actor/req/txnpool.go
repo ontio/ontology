@@ -33,15 +33,24 @@ import (
 const txnPoolReqTimeout = p2pcommon.ACTOR_TIMEOUT * time.Second
 
 var txnPoolPid *actor.PID
+var shardId common.ShardID
 
 func SetTxnPoolPid(txnPid *actor.PID) {
 	txnPoolPid = txnPid
+}
+
+func SetShardId(id common.ShardID) {
+	shardId = id
 }
 
 //add txn to txnpool
 func AddTransaction(transaction *types.Transaction) {
 	if txnPoolPid == nil {
 		log.Error("[p2p]net_server AddTransaction(): txnpool pid is nil")
+		return
+	}
+	if transaction.ShardID != shardId.ToUint64() {
+		log.Error("[p2p]net_server AddTransaction(): shardId unmatch")
 		return
 	}
 	txReq := &tc.TxReq{

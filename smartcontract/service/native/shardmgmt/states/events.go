@@ -361,22 +361,3 @@ func (this *ShardActiveEvent) Deserialization(source *common.ZeroCopySource) err
 	}
 	return nil
 }
-
-func DecodeShardGasEvent(evtType uint32, evtPayload []byte) (ShardMgmtEvent, error) {
-	switch evtType {
-	case EVENT_SHARD_GAS_DEPOSIT:
-		evt := &DepositGasEvent{}
-		if err := evt.Deserialization(common.NewZeroCopySource(evtPayload)); err != nil {
-			return nil, fmt.Errorf("DecodeShardGasEvent: %s", err)
-		}
-		return evt, nil
-	case EVENT_SHARD_GAS_WITHDRAW_DONE:
-		evt := &WithdrawGasDoneEvent{}
-		if err := evt.Deserialization(common.NewZeroCopySource(evtPayload)); err != nil {
-			return nil, fmt.Errorf("DecodeShardGasEvent: %s", err)
-		}
-		return evt, nil
-	}
-
-	return nil, fmt.Errorf("DecodeShardGasEvent: unknown remote event type: %d", evtType)
-}

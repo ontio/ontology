@@ -21,6 +21,7 @@ package shardstates
 import (
 	"fmt"
 	"io"
+	"math/big"
 	"sort"
 	"strings"
 
@@ -387,6 +388,38 @@ func (this *ShardState) Deserialization(source *common.ZeroCopySource) error {
 			return fmt.Errorf("read peer, index %d, err: %s", i, err)
 		}
 		this.Peers[strings.ToLower(peer.PeerPubKey)] = peer
+	}
+	return nil
+}
+
+type ShardCommitDposInfo struct {
+	TransferId *big.Int       `json:"transfer_id"`
+	Height     uint32         `json:"height"`
+	Hash       common.Uint256 `json:"hash"`
+	FeeAmount  uint64         `json:"fee_amount"`
+}
+
+func (this *ShardCommitDposInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(common.BigIntToNeoBytes(this.TransferId))
+	sink.WriteUint32(this.Height)
+	sink.WriteHash(this.Hash)
+	sink.WriteUint64(this.FeeAmount)
+}
+
+func (this *ShardCommitDposInfo) Deserialization(source *common.ZeroCopySource) error {
+	id, _, irr, eof := source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.TransferId = common.BigIntFromNeoBytes(id)
+	this.Height, eof = source.NextUint32()
+	this.Hash, eof = source.NextHash()
+	this.FeeAmount, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	return nil
 }
