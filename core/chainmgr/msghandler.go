@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
@@ -66,7 +67,7 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
 	}
 
-	shardState, err := GetShardState(lgr, evt.ShardID)
+	shardState, err := xshard.GetShardState(lgr, evt.ShardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -93,7 +94,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
 	}
-	shardState, err := GetShardState(lgr, evt.ShardID)
+	shardState, err := xshard.GetShardState(lgr, evt.ShardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -246,7 +247,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	return nil
 }
 func (self *ChainManager) handleRootChainBlock() error {
-	shardState, err := GetShardState(self.mainLedger, self.shardID)
+	shardState, err := xshard.GetShardState(self.mainLedger, self.shardID)
 	if err == com.ErrNotFound {
 		log.Debugf("get shard %d failed: %s", self.shardID, err)
 		return nil

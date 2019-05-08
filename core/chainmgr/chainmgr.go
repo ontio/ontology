@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
@@ -41,6 +42,7 @@ import (
 	hserver "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/actor/server"
+	p2p "github.com/ontio/ontology/p2pserver/common"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -145,7 +147,7 @@ func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
 		return nil
 	}
 
-	shardState, err := GetShardState(self.mainLedger, self.shardID)
+	shardState, err := xshard.GetShardState(self.mainLedger, self.shardID)
 	if err == com.ErrNotFound {
 		return nil
 	}
@@ -227,7 +229,6 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	if err != nil {
 		return fmt.Errorf("init shard ledger: %s", err)
 	}
-
 	bookKeepers, err := shardInfo.Config.GetBookkeepers()
 	if err != nil {
 		return fmt.Errorf("init shard ledger: GetBookkeepers error:%s", err)
@@ -455,10 +456,18 @@ func (self *ChainManager) localEventLoop() {
 	for {
 		select {
 		case msg := <-self.localBlockMsgC:
+			ledgerSize := len(ledger.DefLedgerMgr.Ledgers)
 			evts := self.handleShardSysEvents(msg.ShardSysEvents)
 			blk := msg.Block
 			if err := self.onBlockPersistCompleted(blk, evts); err != nil {
 				log.Errorf("processing shard %d, block %d, err: %s", self.shardID, blk.Header.Height, err)
+			}
+			if ledgerSize < 2 {
+				self.p2pPid.Tell(
+					&p2p.AddBlock{
+						Height:  blk.Header.Height,
+						ShardID: blk.Header.ShardID,
+					})
 			}
 		case <-self.quitC:
 			return

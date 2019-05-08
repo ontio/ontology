@@ -309,7 +309,7 @@ func getShardGasBalance(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (uint64, 
 }
 
 func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
-	shardState, err := xshard.GetShardState(lgr, shardID)
+	shardState, err := xshard.GetShardState(lgr.ParentLedger, shardID)
 	if err == com.ErrNotFound {
 		return nil, fmt.Errorf("get shard %d failed: %s", shardID, err)
 	}
@@ -327,12 +327,12 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 		MaxBlockChangeView:   shardState.Config.VbftCfg.MaxBlockChangeView,
 	}
 
-	shardView, err := xshard.GetShardView(lgr, shardID)
+	shardView, err := xshard.GetShardView(lgr.ParentLedger, shardID)
 	if err != nil {
 		return nil, fmt.Errorf("GetShardView err:%s", err)
 	}
 	var peersinfo []*config.VBFTPeerStakeInfo
-	PeerStakesInfo, err := xshard.GetShardPeerStakeInfo(lgr, shardID, shardView.View+1)
+	PeerStakesInfo, err := xshard.GetShardPeerStakeInfo(lgr.ParentLedger, shardID, shardView.View+1)
 	if err != nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo err:%s", err)
 	}

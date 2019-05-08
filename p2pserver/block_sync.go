@@ -222,18 +222,19 @@ type BlockInfo struct {
 
 //BlockSyncMgr is the manager class to deal with block sync
 type BlockSyncMgr struct {
-	shardID        common.ShardID
-	flightBlocks   map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
-	flightHeaders  map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
-	blocksCache    map[uint32]*BlockInfo                //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
-	server         *P2PServer                           //Pointer to the local node
-	syncBlockLock  bool                                 //Help to avoid send block sync request duplicate
-	syncHeaderLock bool                                 //Help to avoid send header sync request duplicate
-	saveBlockLock  bool                                 //Help to avoid saving block concurrently
-	exitCh         chan interface{}                     //ExitCh to receive exit signal
-	ledger         *ledger.Ledger                       //ledger
-	lock           sync.RWMutex                         //lock
-	nodeWeights    map[uint64]*NodeWeight               //Map NodeID => NodeStatus, using for getNextNode
+	shardID           common.ShardID
+	flightBlocks      map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
+	flightHeaders     map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
+	blocksCache       map[uint32]*BlockInfo                //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
+	server            *P2PServer                           //Pointer to the local node
+	syncBlockLock     bool                                 //Help to avoid send block sync request duplicate
+	syncHeaderLock    bool                                 //Help to avoid send header sync request duplicate
+	saveBlockLock     bool                                 //Help to avoid saving block concurrently
+	syncSaveBlockLock bool
+	exitCh            chan interface{}       //ExitCh to receive exit signal
+	ledger            *ledger.Ledger         //ledger
+	lock              sync.RWMutex           //lock
+	nodeWeights       map[uint64]*NodeWeight //Map NodeID => NodeStatus, using for getNextNode
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
@@ -516,6 +517,22 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 	this.syncBlock()
 }
 
+func (this *BlockSyncMgr) OnAddBlock(height uint32) {
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
+	this.lock.Lock()
+	for height := range this.blocksCache {
+		if height <= curBlockHeight {
+			delete(this.blocksCache, height)
+		}
+	}
+	this.lock.Unlock()
+	if this.SaveSyncBlock(height) {
+		this.releaseSyncSaveBlockLock(true)
+	} else {
+		this.releaseSyncSaveBlockLock(false)
+	}
+}
+
 //OnAddNode to node list when a new node added
 func (this *BlockSyncMgr) OnAddNode(nodeId uint64) {
 	log.Debugf("[p2p]OnAddNode:%d", nodeId)
@@ -621,13 +638,27 @@ func (this *BlockSyncMgr) releaseSaveBlockLock() {
 	this.saveBlockLock = false
 }
 
+func (this *BlockSyncMgr) tryGetSyncSaveBlockLock() bool {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	if this.syncSaveBlockLock {
+		return true
+	}
+	return false
+}
+
+func (this *BlockSyncMgr) releaseSyncSaveBlockLock(flag bool) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.syncSaveBlockLock = flag
+}
+
 func (this *BlockSyncMgr) saveBlock() {
 	if this.tryGetSaveBlockLock() {
 		return
 	}
 	defer this.releaseSaveBlockLock()
 	curBlockHeight := this.ledger.GetCurrentBlockHeight()
-	nextBlockHeight := curBlockHeight + 1
 	this.lock.Lock()
 	for height := range this.blocksCache {
 		if height <= curBlockHeight {
@@ -635,38 +666,52 @@ func (this *BlockSyncMgr) saveBlock() {
 		}
 	}
 	this.lock.Unlock()
-	for {
-		fromID, nextBlock, merkleRoot := this.getBlockCache(nextBlockHeight)
-		if nextBlock == nil {
-			return
-		}
-		err := this.ledger.AddBlock(nextBlock, merkleRoot)
-		this.delBlockCache(nextBlockHeight)
-		if err != nil {
-			this.addErrorRespCnt(fromID)
-			n := this.getNodeWeight(fromID)
-			if n != nil && n.GetErrorRespCnt() >= SYNC_MAX_ERROR_RESP_TIMES {
-				this.delNode(fromID)
-			}
-			log.Warnf("[p2p]saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
-			reqNode := this.getNextNode(nextBlockHeight)
-			if reqNode == nil {
-				return
-			}
-			this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlock.Hash())
-			msg := msgpack.NewBlkDataReq(nextBlock.Hash())
-			err := this.server.Send(reqNode, msg, false)
-			if err != nil {
-				log.Warn("[p2p]require new block error:", err)
-				return
+
+	if len(ledger.DefLedgerMgr.Ledgers) > 1 {
+		for {
+			if this.SaveSyncBlock(curBlockHeight) {
+				curBlockHeight++
 			} else {
-				this.appendReqTime(reqNode.GetID())
+				break
 			}
-			return
 		}
-		nextBlockHeight++
-		this.pingOutsyncNodes(nextBlockHeight - 1)
+	} else if !this.tryGetSyncSaveBlockLock() {
+		this.SaveSyncBlock(curBlockHeight)
 	}
+}
+
+func (this *BlockSyncMgr) SaveSyncBlock(blockHeight uint32) bool {
+	nextBlockHeight := blockHeight + 1
+	fromID, nextBlock, merkleRoot := this.getBlockCache(nextBlockHeight)
+	if nextBlock == nil {
+		return false
+	}
+	err := this.ledger.AddBlock(nextBlock, merkleRoot)
+	this.delBlockCache(nextBlockHeight)
+	if err != nil {
+		this.addErrorRespCnt(fromID)
+		n := this.getNodeWeight(fromID)
+		if n != nil && n.GetErrorRespCnt() >= SYNC_MAX_ERROR_RESP_TIMES {
+			this.delNode(fromID)
+		}
+		log.Warnf("[p2p]saveBlock Height:%d AddBlock error:%s", nextBlockHeight, err)
+		reqNode := this.getNextNode(nextBlockHeight)
+		if reqNode == nil {
+			return false
+		}
+		this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlock.Hash())
+		msg := msgpack.NewBlkDataReq(nextBlock.Hash())
+		err := this.server.Send(reqNode, msg, false)
+		if err != nil {
+			log.Warn("[p2p]require new block error:", err)
+			return false
+		} else {
+			this.appendReqTime(reqNode.GetID())
+		}
+		return false
+	}
+	this.pingOutsyncNodes(nextBlockHeight)
+	return true
 }
 
 func (this *BlockSyncMgr) isInBlockCache(blockHeight uint32) bool {

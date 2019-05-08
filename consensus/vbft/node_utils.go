@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/signature"
@@ -413,11 +414,13 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 		return fmt.Errorf("send peer failed: failed to get peer %d", peerIdx)
 	}
 	msg := &p2pmsg.ConsensusPayload{
+		ShardID: self.ShardID.ToUint64(),
 		Data:    data,
 		Owner:   self.account.PublicKey,
-		ShardID: self.ShardID.ToUint64(),
 	}
-
+	if !self.ShardID.IsRootShard() {
+		msg.Version = common.VERSION_SUPPORT_SHARD
+	}
 	buf := new(bytes.Buffer)
 	if err := msg.SerializeUnsigned(buf); err != nil {
 		return fmt.Errorf("failed to serialize consensus msg: %s", err)
@@ -444,11 +447,13 @@ func (self *Server) broadcast(msg ConsensusMsg) error {
 
 func (self *Server) broadcastToAll(data []byte) error {
 	msg := &p2pmsg.ConsensusPayload{
+		ShardID: self.ShardID.ToUint64(),
 		Data:    data,
 		Owner:   self.account.PublicKey,
-		ShardID: self.ShardID.ToUint64(),
 	}
-
+	if !self.ShardID.IsRootShard() {
+		msg.Version = common.VERSION_SUPPORT_SHARD
+	}
 	buf := new(bytes.Buffer)
 	if err := msg.SerializeUnsigned(buf); err != nil {
 		return fmt.Errorf("failed to serialize consensus msg: %s", err)

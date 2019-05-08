@@ -255,6 +255,11 @@ func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32,
 		syncer.OnBlockReceive(fromID, blockSize, block, merkleRoot)
 	}
 }
+func (this *P2PServer) OnAddBlock(height uint32, shardID uint64) {
+	if syncer := this.blockSyncers[shardID]; syncer != nil {
+		syncer.OnAddBlock(height)
+	}
+}
 
 // Todo: remove it if no use
 func (this *P2PServer) GetConnectionState() uint32 {
