@@ -73,7 +73,7 @@ func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_
 		sc := smartcontract.SmartContract{
 			Config:           config,
 			Store:            nil,
-			MainShardTxState: txState,
+			ShardTxState: txState,
 			CacheDB:          cache,
 			Gas:              100000000000000,
 			PreExec:          true,

@@ -275,7 +275,7 @@ func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, store store.Led
 		log.Infof("invalid shard ID %d, in tx commit", msg.SourceShardID)
 		return
 	}
-	txState.Shards[msg.SourceShardID] = xshard_state.TxPrepared
+	txState.Shards[msg.SourceShardID] = xshard_state.ExecPrepared
 
 	if !txState.IsCommitReady() {
 		xshardDB.SetXShardState(txState)
@@ -688,7 +688,7 @@ func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, c
 		sc := smartcontract.SmartContract{
 			Config:           config,
 			Store:            store,
-			MainShardTxState: txState,
+			ShardTxState: txState,
 			CacheDB:          cache,
 			Gas:              tx.GasLimit - codeLenGasLimit,
 		}
@@ -814,7 +814,7 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	sc := smartcontract.SmartContract{
 		Config:           config,
 		CacheDB:          cache,
-		MainShardTxState: txState,
+		ShardTxState: txState,
 		Store:            store,
 		Gas:              availableGasLimit - codeLenGasLimit,
 	}

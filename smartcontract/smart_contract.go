@@ -41,8 +41,7 @@ const (
 type SmartContract struct {
 	Contexts         []*context.Context    // all execute smart contract context
 	CacheDB          *storage.CacheDB      // state cache
-	MainShardTxState *xshard_state.TxState // shardid is tx hash
-	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
+	ShardTxState *xshard_state.TxState // shardid is tx hash
 	Store            store.LedgerStore // ledger store
 	Config           *Config
 	Notifications    []*event.NotifyEventInfo // all execute smart contract event notify info
@@ -137,8 +136,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		Code:             code,
 		Tx:               this.Config.Tx,
 		ShardID:          this.Config.ShardID,
-		MainShardTxState: this.MainShardTxState,
-		SubShardTxState:  this.SubShardTxState,
+		ShardTxState: this.ShardTxState,
 		Time:             this.Config.Time,
 		Height:           this.Config.Height,
 		BlockHash:        this.Config.BlockHash,
@@ -155,8 +153,7 @@ func (this *SmartContract) NewNativeService() (*native.NativeService, error) {
 	service := &native.NativeService{
 		CacheDB:          this.CacheDB,
 		ContextRef:       this,
-		MainShardTxState: this.MainShardTxState,
-		SubShardTxState:  this.SubShardTxState,
+		ShardTxState: this.ShardTxState,
 		Tx:               this.Config.Tx,
 		ShardID:          this.Config.ShardID,
 		Time:             this.Config.Time,

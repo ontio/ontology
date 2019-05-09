@@ -31,15 +31,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
-const (
-	TxUnknownState = iota
-	TxExec
-	TxWait
-	TxPrepared
-	TxAbort
-	TxCommit
-)
-
 const MaxRemoteReqPerTx = 8
 
 var (
@@ -84,9 +75,8 @@ type XShardTxReqResp struct {
 }
 
 type TxState struct {
-	State         int
-	TxID          ShardTxID              // cross shard tx id: userTxHash+notify1+notify2...
-	Shards        map[common.ShardID]int // shards in this shard transaction, not include notification
+	TxID          ShardTxID                    // cross shard tx id: userTxHash+notify1+notify2...
+	Shards        map[common.ShardID]ExecState // shards in this shard transaction, not include notification
 	TxPayload     []byte
 	NumNotifies   uint32
 	ShardNotifies []*xshard_types.XShardNotify
@@ -112,7 +102,7 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 	if irr {
 		return common.ErrIrregularData
 	}
-	self.Shards = make(map[common.ShardID]int)
+	self.Shards = make(map[common.ShardID]ExecState)
 	for i := uint64(0); i < lenShards; i++ {
 		id, err := source.NextShardID()
 		if err != nil {
@@ -123,7 +113,7 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 			return io.ErrUnexpectedEOF
 		}
 
-		self.Shards[id] = int(state)
+		self.Shards[id] = ExecState(state)
 	}
 	self.TxPayload, _, irr, eof = source.NextVarBytes()
 	if irr {
@@ -258,7 +248,7 @@ func (self *TxState) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteString(string(self.TxID))
 	type shardState struct {
 		shard common.ShardID
-		state int
+		state ExecState
 	}
 	var shards []shardState
 	for id, state := range self.Shards {
@@ -345,7 +335,7 @@ func (self *TxState) IsCommitReady() bool {
 		return false
 	}
 	for _, state := range self.Shards {
-		if state != TxPrepared {
+		if state != ExecPrepared {
 			return false
 		}
 	}
@@ -354,8 +344,8 @@ func (self *TxState) IsCommitReady() bool {
 
 func (self *TxState) AddTxShard(id common.ShardID) error {
 	if state, present := self.Shards[id]; !present {
-		self.Shards[id] = TxExec
-	} else if state != TxExec {
+		self.Shards[id] = ExecNone
+	} else if state != ExecNone {
 		return ErrInvalidTxState
 	}
 
@@ -366,47 +356,15 @@ func (self *TxState) SetShardPrepared(shardId common.ShardID) error {
 	if _, ok := self.Shards[shardId]; !ok {
 		return fmt.Errorf("invalid shard ID %d, in tx commit", shardId)
 	}
-	self.Shards[shardId] = TxPrepared
+	self.Shards[shardId] = ExecPrepared
 	return nil
-}
-
-func (self *TxState) Clone() *TxState {
-	txs := &TxState{
-		Shards:     make(map[common.ShardID]int),
-		TxPayload:  self.TxPayload,
-		NextReqID:  self.NextReqID,
-		Result:     make([]byte, len(self.Result)),
-		InReqResp:  make(map[common.ShardID][]*XShardTxReqResp),
-		PendingReq: self.PendingReq,
-		ResultErr:  self.ResultErr,
-		WriteSet:   nil,
-		Notify:     self.Notify,
-	}
-
-	for k, v := range self.Shards {
-		txs.Shards[k] = v
-	}
-	// todo: need deep clone?
-	for k, v := range self.InReqResp {
-		for _, res := range v {
-			txs.InReqResp[k] = append(txs.InReqResp[k], res)
-		}
-	}
-
-	for _, v := range self.OutReqResp {
-		txs.OutReqResp = append(txs.OutReqResp, v)
-	}
-	//todo: need clone?
-	txs.WriteSet = self.WriteSet
-
-	return txs
 }
 
 // CreateTxState
 // If txState available, return it.  Otherwise, Create txState.
 func CreateTxState(tx ShardTxID) *TxState {
 	state := &TxState{
-		Shards:    make(map[common.ShardID]int),
+		Shards:    make(map[common.ShardID]ExecState),
 		InReqResp: make(map[common.ShardID][]*XShardTxReqResp),
 		TxID:      tx,
 	}

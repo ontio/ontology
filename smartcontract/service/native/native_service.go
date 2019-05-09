@@ -48,19 +48,18 @@ var BYTE_TRUE = []byte{1}
 // Native service struct
 // Invoke a native smart contract, new a native service
 type NativeService struct {
-	CacheDB          *storage.CacheDB
-	ServiceMap       map[string]Handler
-	Notifications    []*event.NotifyEventInfo
-	InvokeParam      sstates.ContractInvokeParam
-	Input            []byte
-	Tx               *types.Transaction
-	ShardID          common.ShardID
-	Height           uint32
-	Time             uint32
-	BlockHash        common.Uint256
-	MainShardTxState *xshard_state.TxState
-	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
-	ContextRef       context.ContextRef
+	CacheDB       *storage.CacheDB
+	ServiceMap    map[string]Handler
+	Notifications []*event.NotifyEventInfo
+	InvokeParam   sstates.ContractInvokeParam
+	Input         []byte
+	Tx            *types.Transaction
+	ShardID       common.ShardID
+	Height        uint32
+	Time          uint32
+	BlockHash     common.Uint256
+	ShardTxState  *xshard_state.TxState
+	ContextRef    context.ContextRef
 }
 
 func (this *NativeService) Register(methodName string, handler Handler) {
@@ -110,7 +109,7 @@ func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.A
 	if ctx.ContextRef.IsPreExec() {
 		return
 	}
-	txState := ctx.MainShardTxState
+	txState := ctx.ShardTxState
 	// send with minimal gas fee
 	msg := &xshard_types.XShardNotify{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
@@ -137,7 +136,7 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 	if ctx.ContextRef.IsPreExec() {
 		return BYTE_TRUE, nil
 	}
-	txState := ctx.MainShardTxState
+	txState := ctx.ShardTxState
 	reqIdx := txState.NextReqID
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
 		return BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
