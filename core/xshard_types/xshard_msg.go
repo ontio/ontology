@@ -50,6 +50,7 @@ type XShardNotify struct {
 	NotifyID uint32
 	Contract common.Address
 	Payer    common.Address
+	GasPrice uint64
 	Fee      uint64
 	Method   string
 	Args     []byte
@@ -76,6 +77,7 @@ func (msg *XShardNotify) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(msg.NotifyID)
 	sink.WriteAddress(msg.Contract)
 	sink.WriteAddress(msg.Payer)
+	sink.WriteUint64(msg.GasPrice)
 	sink.WriteUint64(msg.Fee)
 	sink.WriteString(msg.Method)
 	sink.WriteVarBytes(msg.Args)
@@ -90,6 +92,7 @@ func (msg *XShardNotify) Deserialization(source *common.ZeroCopySource) error {
 	msg.NotifyID, eof = source.NextUint32()
 	msg.Contract, eof = source.NextAddress()
 	msg.Payer, eof = source.NextAddress()
+	msg.GasPrice, eof = source.NextUint64()
 	msg.Fee, eof = source.NextUint64()
 	msg.Method, _, irregular, eof = source.NextString()
 	if irregular {
@@ -112,6 +115,7 @@ type XShardTxReq struct {
 	IdxInTx  uint64
 	Contract common.Address
 	Payer    common.Address
+	GasPrice uint64
 	Fee      uint64
 	Method   string
 	Args     []byte
@@ -138,6 +142,7 @@ func (msg *XShardTxReq) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint64(msg.IdxInTx)
 	sink.WriteAddress(msg.Contract)
 	sink.WriteAddress(msg.Payer)
+	sink.WriteUint64(msg.GasPrice)
 	sink.WriteUint64(msg.Fee)
 	sink.WriteString(msg.Method)
 	sink.WriteVarBytes(msg.Args)
@@ -152,6 +157,7 @@ func (msg *XShardTxReq) Deserialization(source *common.ZeroCopySource) error {
 	msg.IdxInTx, eof = source.NextUint64()
 	msg.Contract, eof = source.NextAddress()
 	msg.Payer, eof = source.NextAddress()
+	msg.GasPrice, eof = source.NextUint64()
 	msg.Fee, eof = source.NextUint64()
 	msg.Method, _, irregular, eof = source.NextString()
 	if irregular {

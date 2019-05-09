@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
@@ -119,7 +118,8 @@ func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.A
 		NotifyID: txState.NumNotifies,
 		Contract: cont,
 		Payer:    ctx.Tx.Payer,
-		Fee:      20000, // Per transaction base cost.
+		GasPrice: ctx.Tx.GasPrice,
+		Fee:      ctx.ContextRef.GetRemainGas(),
 		Method:   method,
 		Args:     args,
 	}
@@ -136,6 +136,10 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
 		return BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
 	}
+	// TODO: open this to check remain gas enough
+	//if ctx.ContextRef.GetRemainGas() < neovm.MIN_TRANSACTION_GAS {
+	//	return BYTE_FALSE, fmt.Errorf("remote invoke gas less than min gas")
+	//}
 	msg := &xshard_types.XShardTxReq{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			SourceShardID: ctx.ShardID,
@@ -144,7 +148,8 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 		},
 		IdxInTx:  uint64(reqIdx),
 		Payer:    ctx.Tx.Payer,
-		Fee:      20000, // Per transaction base cost.
+		GasPrice: ctx.Tx.GasPrice,
+		Fee:      ctx.ContextRef.GetRemainGas(), // use all remain gas to invoke remote shard
 		Contract: cont,
 		Method:   method,
 		Args:     args,
@@ -156,9 +161,13 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 			return BYTE_FALSE, xshard_state.ErrMismatchedRequest
 		}
 		rspMsg := txState.OutReqResp[reqIdx].Resp
-		var resultErr error
+		var resultErr error = nil
 		if rspMsg.Error {
 			resultErr = errors.New("remote invoke got error response")
+		}
+		if !ctx.ContextRef.CheckUseGas(rspMsg.FeeUsed) { // charge whole remain gas
+			resultErr = errors.New("remote invoke gas not enough")
+			ctx.ContextRef.CheckUseGas(ctx.ContextRef.GetRemainGas())
 		}
 		return rspMsg.Result, resultErr
 	}
