@@ -34,7 +34,7 @@ type CacheDB struct {
 	keyScratch []byte
 }
 
-const initCap = 16 * 1024
+const initCap = 1024
 const initKvNum = 16
 
 // NewCacheDB return a new contract cache
