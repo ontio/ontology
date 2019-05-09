@@ -133,7 +133,7 @@ func GetShardTxsByParentHeight(height uint32) map[common.ShardID][]*types.Transa
 	defer pool.lock.RUnlock()
 
 	parentShard := shardID.ParentID()
-	log.Infof("shard %d get parent shard %d tx, %d - %d", shardID, parentShard, height)
+	log.Infof("shard %d get parent shard %d tx, %d", shardID, parentShard, height)
 	m := pool.Shards[parentShard]
 	if m == nil {
 		return nil
