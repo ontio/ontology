@@ -38,7 +38,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstate "github.com/ontio/ontology/smartcontract/states"
-	"github.com/ontio/ontology/vm/neovm"
 	"strings"
 	"time"
 )
@@ -442,7 +441,7 @@ func NewNativeInvokeTransaction(gasPirce, gasLimit uint64, contractAddress commo
 }
 
 func NewNeovmInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common.Address, params []interface{}) (*types.MutableTransaction, error) {
-	invokeCode, err := BuildNeoVMInvokeCode(contractAddress, params)
+	invokeCode, err := cutils.BuildNeoVMInvokeCode(contractAddress, params)
 	if err != nil {
 		return nil, err
 	}
@@ -462,18 +461,6 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 		Sigs:     nil,
 	}
 	return tx, nil
-}
-
-//BuildNeoVMInvokeCode build NeoVM Invoke code for params
-func BuildNeoVMInvokeCode(smartContractAddress common.Address, params []interface{}) ([]byte, error) {
-	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
-	err := cutils.BuildNeoVMParam(builder, params)
-	if err != nil {
-		return nil, err
-	}
-	args := append(builder.ToArray(), 0x67)
-	args = append(args, smartContractAddress[:]...)
-	return args, nil
 }
 
 func GetAddress(str string) (common.Address, error) {

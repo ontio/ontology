@@ -95,6 +95,18 @@ func BuildNativeInvokeCode(contractAddress common.Address, version byte, method 
 	return builder.ToArray(), nil
 }
 
+//BuildNeoVMInvokeCode build NeoVM Invoke code for params
+func BuildNeoVMInvokeCode(smartContractAddress common.Address, params []interface{}) ([]byte, error) {
+	builder := vm.NewParamsBuilder(new(bytes.Buffer))
+	err := BuildNeoVMParam(builder, params)
+	if err != nil {
+		return nil, err
+	}
+	args := append(builder.ToArray(), 0x67)
+	args = append(args, smartContractAddress[:]...)
+	return args, nil
+}
+
 //buildNeoVMParamInter build neovm invoke param code
 func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{}) error {
 	//VM load params in reverse order
