@@ -76,7 +76,7 @@ func TestWorker(t *testing.T) {
 	worker.rspCh <- statefulRsp
 
 	time.Sleep(1 * time.Second)
-	ret := worker.server.getTransaction(txn.Hash())
+	ret := worker.server.GetTransaction(txn.Hash())
 	assert.NotNil(t, ret)
 	assert.Equal(t, ret.Hash(), txn.Hash())
 	/* Case 2: Duplicate input tx, worker should reject

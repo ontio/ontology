@@ -126,18 +126,6 @@ func GetConnectionCount(params []interface{}) map[string]interface{} {
 	return responseSuccess(count)
 }
 
-func GetRawMemPool(params []interface{}) map[string]interface{} {
-	txs := []*bcomn.Transactions{}
-	txpool := bactor.GetTxsFromPool(false)
-	for _, t := range txpool {
-		txs = append(txs, bcomn.TransArryByteToHexString(t))
-	}
-	if len(txs) == 0 {
-		return responsePack(berr.INVALID_PARAMS, nil)
-	}
-	return responseSuccess(txs)
-}
-
 //get memory pool transaction count
 func GetMemPoolTxCount(params []interface{}) map[string]interface{} {
 	count, err := bactor.GetTxnCount()

@@ -65,7 +65,9 @@ func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID) (*ChainStore, error
 }
 
 func (self *ChainStore) close() {
-	// TODO: any action on ledger actor??
+	if self.db != nil {
+		self.db.Close()
+	}
 }
 
 func (self *ChainStore) GetChainedBlockNum() uint32 {

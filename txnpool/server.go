@@ -22,9 +22,9 @@ package txnpool
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
@@ -48,17 +48,29 @@ func startActor(obj interface{}, id string) (*actor.PID, error) {
 }
 
 type TxnPoolManager struct {
+	ShardID               common.ShardID
 	servers               map[common.ShardID]*tp.TXPoolServer
+	TxActor               *actor.PID
 	disablePreExec        bool
 	disableBroadcastNetTx bool
 }
 
-func NewTxnPoolManager(disablePreExec, disableBroadcastNetTx bool) *TxnPoolManager {
-	return &TxnPoolManager{
+func NewTxnPoolManager(shardID common.ShardID, disablePreExec, disableBroadcastNetTx bool) (*TxnPoolManager, error) {
+	mgr := &TxnPoolManager{
+		ShardID:               shardID,
 		servers:               make(map[common.ShardID]*tp.TXPoolServer),
 		disablePreExec:        disablePreExec,
 		disableBroadcastNetTx: disableBroadcastNetTx,
 	}
+
+	txActor := NewTxActor(mgr)
+	txPid, err := startActor(txActor, "tx")
+	if txPid == nil {
+		return nil, err
+	}
+	mgr.TxActor = txPid
+
+	return mgr, nil
 }
 
 // StartTxnPoolServer starts the txnpool server and registers
@@ -88,14 +100,6 @@ func (self *TxnPoolManager) StartTxnPoolServer(shardID common.ShardID, lgr *ledg
 	}
 	s.RegisterActor(tc.TxPoolActor, txPoolPid)
 
-	// Initialize an actor to handle the msgs from p2p and api
-	ta := tp.NewTxActor(s)
-	txPid, err := startActor(ta, "tx")
-	if txPid == nil {
-		return nil, err
-	}
-	s.RegisterActor(tc.TxActor, txPid)
-
 	// Subscribe the block complete event
 	var sub = events.NewActorSubscriber(txPoolPid)
 	sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
@@ -105,10 +109,17 @@ func (self *TxnPoolManager) StartTxnPoolServer(shardID common.ShardID, lgr *ledg
 }
 
 func (self *TxnPoolManager) GetPID(shardId common.ShardID, actor tc.ActorType) *actor.PID {
+	if actor == tc.TxActor {
+		return self.TxActor
+	}
 	if s := self.servers[shardId]; s != nil {
 		return s.GetPID(actor)
 	}
 	return nil
+}
+
+func (self *TxnPoolManager) GetTxnPoolServer(shardID common.ShardID) *tp.TXPoolServer {
+	return self.servers[shardID]
 }
 
 func (self *TxnPoolManager) RegisterActor(actor tc.ActorType, pid *actor.PID) {

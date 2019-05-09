@@ -187,7 +187,7 @@ func startMainChain(ctx *cli.Context, shardID common.ShardID) {
 	defer ledger.CloseLedgers()
 	defer chainmgr.Close()
 
-	txPoolMgr, err := initTxPool(ctx, chainmgr)
+	txPoolMgr, err := initTxPool(ctx, shardID, chainmgr)
 	if err != nil {
 		log.Errorf("initTxPool error:%s", err)
 		return
@@ -198,7 +198,7 @@ func startMainChain(ctx *cli.Context, shardID common.ShardID) {
 		return
 	}
 
-	chainmgr.Start(txPoolMgr.GetPID(shardID, tc.TxPoolActor), p2pSvr.GetPID(), txPoolMgr)
+	chainmgr.Start(p2pSvr.GetPID(), txPoolMgr)
 	defer chainmgr.Stop()
 
 	err = initRpc(ctx)
@@ -326,12 +326,17 @@ func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID common.Shar
 	return lgr, nil
 }
 
-func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.TxnPoolManager, error) {
+func initTxPool(ctx *cli.Context, shardID common.ShardID, chainMgr *chainmgr.ChainManager) (*txnpool.TxnPoolManager, error) {
 	disablePreExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecDisableFlag))
 	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
 	disableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.DisableBroadcastNetTxFlag))
 
-	mgr := txnpool.NewTxnPoolManager(disablePreExec, disableBroadcastNetTx)
+	mgr, err := txnpool.NewTxnPoolManager(shardID, disablePreExec, disableBroadcastNetTx)
+	if err != nil {
+		return nil, fmt.Errorf("init txPoolMgr failed: %s", err)
+	}
+	hserver.SetTxPid(mgr.GetPID(shardID, tc.TxActor))
+
 	for _, shardId := range chainMgr.GetActiveShards() {
 		lgr := ledger.GetShardLedger(shardId)
 		if lgr == nil {
@@ -347,12 +352,6 @@ func initTxPool(ctx *cli.Context, chainMgr *chainmgr.ChainManager) (*txnpool.Txn
 		stlValidator2.Register(srv.GetPID(tc.VerifyRspActor))
 		stfValidator, _ := stateful.NewValidator(fmt.Sprintf("stateful_validator_%d", shardId.ToUint64()), lgr)
 		stfValidator.Register(srv.GetPID(tc.VerifyRspActor))
-
-		if shardId == chainmgr.GetShardID() {
-			hserver.SetTxnPoolPid(srv.GetPID(tc.TxPoolActor))
-			hserver.SetTxPid(srv.GetPID(tc.TxActor))
-			chainmgr.SetTxPool(srv.GetPID(tc.TxActor))
-		}
 	}
 
 	log.Infof("TxPool init success")

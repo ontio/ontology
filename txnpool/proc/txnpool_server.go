@@ -38,6 +38,7 @@ import (
 	httpcom "github.com/ontio/ontology/http/base/common"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/validator/types"
 )
@@ -281,7 +282,7 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 	}
 
 	if (pt.sender == tc.HttpSender || pt.sender == tc.ShardSender) && pt.ch != nil {
-		replyTxResult(pt.ch, hash, err, err.Error())
+		ReplyTxResult(pt.ch, hash, err, err.Error())
 	}
 
 	delete(s.allPendingTxs, hash)
@@ -335,7 +336,7 @@ func (s *TXPoolServer) assignTxToWorker(tx *tx.Transaction,
 	if ok := s.setPendingTx(tx, sender, txResultCh); !ok {
 		s.increaseStats(tc.DuplicateStats)
 		if (sender == tc.HttpSender || sender == tc.ShardSender) && txResultCh != nil {
-			replyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput,
+			ReplyTxResult(txResultCh, tx.Hash(), errors.ErrDuplicateInput,
 				"duplicated transaction input detected")
 		}
 		return false
@@ -382,7 +383,7 @@ func (s *TXPoolServer) assignRspToWorker(rsp *types.CheckResponse) bool {
 // GetPID returns an actor pid with the actor type, If the type
 // doesn't exist, return nil.
 func (s *TXPoolServer) GetPID(actor tc.ActorType) *actor.PID {
-	if actor < tc.TxActor || actor >= tc.MaxActor {
+	if actor < tc.TxPoolActor || actor >= tc.MaxActor {
 		return nil
 	}
 
@@ -493,8 +494,8 @@ func (s *TXPoolServer) Stop() {
 	}
 }
 
-// getTransaction returns a transaction with the transaction hash.
-func (s *TXPoolServer) getTransaction(hash common.Uint256) *tx.Transaction {
+// GetTransaction returns a transaction with the transaction hash.
+func (s *TXPoolServer) GetTransaction(hash common.Uint256) *tx.Transaction {
 	return s.txPool.GetTransaction(hash)
 }
 
@@ -512,8 +513,8 @@ func (s *TXPoolServer) getTxPool(byCount bool, height uint32) []*tc.TXEntry {
 	return avlTxList
 }
 
-// getTxCount returns current tx count, including pending and verified
-func (s *TXPoolServer) getTxCount() []uint32 {
+// GetTxCount returns current tx count, including pending and verified
+func (s *TXPoolServer) GetTxCount() []uint32 {
 	ret := make([]uint32, 0)
 	ret = append(ret, uint32(s.txPool.GetTransactionCount()))
 	ret = append(ret, uint32(s.getPendingListSize()))
@@ -570,8 +571,8 @@ func (s *TXPoolServer) delTransaction(t *tx.Transaction) {
 	s.txPool.DelTxList(t)
 }
 
-// addTxList adds a valid transaction to the tx pool.
-func (s *TXPoolServer) addTxList(txEntry *tc.TXEntry) bool {
+// AddTxList adds a valid transaction to the tx pool.
+func (s *TXPoolServer) AddTxList(txEntry *tc.TXEntry) bool {
 	ret := s.txPool.AddTxList(txEntry)
 	if !ret {
 		s.increaseStats(tc.DuplicateStats)
@@ -586,8 +587,8 @@ func (s *TXPoolServer) increaseStats(v tc.TxnStatsType) {
 	s.stats.count[v-1]++
 }
 
-// getStats returns the transaction statistics
-func (s *TXPoolServer) getStats() []uint64 {
+// GetStats returns the transaction statistics
+func (s *TXPoolServer) GetStats() []uint64 {
 	s.stats.RLock()
 	defer s.stats.RUnlock()
 	ret := make([]uint64, 0, len(s.stats.count))
@@ -597,9 +598,9 @@ func (s *TXPoolServer) getStats() []uint64 {
 	return ret
 }
 
-// checkTx checks whether a transaction is in the pending list or
+// CheckTx checks whether a transaction is in the pending list or
 // the transacton pool
-func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
+func (s *TXPoolServer) CheckTx(hash common.Uint256) bool {
 	// Check if the tx is in pending list
 	s.mu.RLock()
 	if ok := s.allPendingTxs[hash]; ok != nil {
@@ -617,7 +618,7 @@ func (s *TXPoolServer) checkTx(hash common.Uint256) bool {
 }
 
 // getTxStatusReq returns a transaction's status with the transaction hash.
-func (s *TXPoolServer) getTxStatusReq(hash common.Uint256) *tc.TxStatus {
+func (s *TXPoolServer) GetTxStatusReq(hash common.Uint256) *tc.TxStatus {
 	for i := 0; i < len(s.workers); i++ {
 		ret := s.workers[i].GetTxStatus(hash)
 		if ret != nil {
@@ -744,5 +745,76 @@ func (s *TXPoolServer) verifyBlock(req *tc.VerifyBlockReq, sender *actor.PID) {
 	 */
 	if len(s.pendingBlock.unProcessedTxs) == 0 {
 		s.sendBlkResult2Consensus()
+	}
+}
+
+func (server *TXPoolServer) HandleTransaction(sender tc.SenderType, txn *tx.Transaction, txResultCh chan *tc.TxResult) (errors.ErrCode, string) {
+	server.increaseStats(tc.RcvStats)
+	if len(txn.ToArray()) > tc.MAX_TX_SIZE {
+		log.Debugf("handleTransaction: reject a transaction due to size over 1M")
+		return errors.ErrUnknown, "size is over 1M"
+	}
+
+	if server.GetTransaction(txn.Hash()) != nil {
+		log.Debugf("handleTransaction: transaction %x already in the txn pool",
+			txn.Hash())
+
+		server.increaseStats(tc.DuplicateStats)
+		return errors.ErrDuplicateInput, fmt.Sprintf("transaction %x is already in the tx pool", txn.Hash())
+	} else if server.getTransactionCount() >= tc.MAX_CAPACITY {
+		log.Debugf("handleTransaction: transaction pool is full for tx %x",
+			txn.Hash())
+
+		server.increaseStats(tc.FailureStats)
+		return errors.ErrTxPoolFull, "transaction pool is full"
+	} else {
+		if _, overflow := common.SafeMul(txn.GasLimit, txn.GasPrice); overflow {
+			log.Debugf("handleTransaction: gasLimit %v, gasPrice %v overflow",
+				txn.GasLimit, txn.GasPrice)
+			return errors.ErrUnknown, fmt.Sprintf("gasLimit %d * gasPrice %d overflow",
+				txn.GasLimit, txn.GasPrice)
+		}
+
+		gasLimitConfig := config.DefConfig.Common.GasLimit
+		gasPriceConfig := server.getGasPrice()
+		if txn.GasLimit < gasLimitConfig || txn.GasPrice < gasPriceConfig {
+			log.Debugf("handleTransaction: invalid gasLimit %v, gasPrice %v",
+				txn.GasLimit, txn.GasPrice)
+			return errors.ErrUnknown, fmt.Sprintf("Please input gasLimit >= %d and gasPrice >= %d",
+				gasLimitConfig, gasPriceConfig)
+		}
+
+		if txn.TxType == tx.Deploy && txn.GasLimit < neovm.CONTRACT_CREATE_GAS {
+			log.Debugf("handleTransaction: deploy tx invalid gasLimit %v, gasPrice %v",
+				txn.GasLimit, txn.GasPrice)
+			return errors.ErrUnknown, fmt.Sprintf("Deploy tx gaslimit should >= %d",
+				neovm.CONTRACT_CREATE_GAS)
+		}
+
+		if !server.disablePreExec {
+			if ok, desc := preExecCheck(server.ledger, txn); !ok {
+				log.Debugf("handleTransaction: preExecCheck tx %x failed", txn.Hash())
+				return errors.ErrUnknown, desc
+			}
+			log.Debugf("handleTransaction: preExecCheck tx %x passed", txn.Hash())
+		}
+		<-server.slots
+		server.assignTxToWorker(txn, sender, txResultCh)
+	}
+
+	return errors.ErrNoError, ""
+}
+
+func ReplyTxResult(txResultCh chan *tc.TxResult, hash common.Uint256,
+	err errors.ErrCode, desc string) {
+	result := &tc.TxResult{
+		Err:  err,
+		Hash: hash,
+		Desc: desc,
+	}
+	select {
+	case txResultCh <- result:
+	default:
+		log.Debugf("handleTransaction: duplicated result")
 	}
 }
