@@ -26,8 +26,6 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
-const shard_port_gap = 10
-
 func GetShardName(shardID common.ShardID) string {
 	return fmt.Sprintf("shard_%d", shardID.ToUint64())
 }
@@ -51,13 +49,5 @@ func SetP2P(p2p *actor.PID) error {
 	}
 
 	defaultChainManager.p2pPid = p2p
-	return nil
-}
-
-func SetTxPool(txPool *actor.PID) error {
-	if defaultChainManager == nil {
-		return fmt.Errorf("uninitialized chain manager")
-	}
-	defaultChainManager.txPoolPid = txPool
 	return nil
 }

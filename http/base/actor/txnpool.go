@@ -32,14 +32,10 @@ import (
 )
 
 var txnPid *actor.PID
-var txnPoolPid *actor.PID
 var DisableSyncVerifyTx = false
 
 func SetTxPid(actr *actor.PID) {
 	txnPid = actr
-}
-func SetTxnPoolPid(actr *actor.PID) {
-	txnPoolPid = actr
 }
 
 //append transaction to pool to txpool actor
@@ -61,26 +57,6 @@ func AppendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
 		return msg.Err, msg.Desc
 	}
 	return ontErrors.ErrUnknown, ""
-}
-
-//GetTxsFromPool from txpool actor
-func GetTxsFromPool(byCount bool) map[common.Uint256]*types.Transaction {
-	future := txnPoolPid.RequestFuture(&tcomn.GetTxnPoolReq{ByCount: byCount}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return nil
-	}
-	txpool, ok := result.(*tcomn.GetTxnPoolRsp)
-	if !ok {
-		return nil
-	}
-	txMap := make(map[common.Uint256]*types.Transaction)
-	for _, v := range txpool.TxnPool {
-		txMap[v.Tx.Hash()] = v.Tx
-	}
-	return txMap
-
 }
 
 //GetTxFromPool from txpool actor

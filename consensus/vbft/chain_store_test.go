@@ -30,7 +30,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 )
 
-func newTestChainStore(t *testing.T) *ChainStore {
+func newChainStore(t *testing.T) *ChainStore {
 	log.InitLog(log.InfoLog, log.Stdout)
 	var err error
 	acct := account.NewAccount("SHA256withECDSA")
@@ -68,17 +68,18 @@ func newTestChainStore(t *testing.T) *ChainStore {
 	return chainstore
 }
 
-func cleanTestChainStore() {
+func cleanChainStore(t *testing.T, chainstore *ChainStore) {
+	chainstore.close()
 	os.RemoveAll(config.DEFAULT_DATA_DIR)
 }
 
 func TestGetChainedBlockNum(t *testing.T) {
-	chainstore := newTestChainStore(t)
+	chainstore := newChainStore(t)
 	if chainstore == nil {
 		t.Error("newChainStrore error")
 		return
 	}
-	defer cleanTestChainStore()
+	defer cleanChainStore(t, chainstore)
 
 	blocknum := chainstore.GetChainedBlockNum()
 	t.Logf("TestGetChainedBlockNum :%d", blocknum)

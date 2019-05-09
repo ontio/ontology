@@ -39,7 +39,6 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
-	hserver "github.com/ontio/ontology/http/base/actor"
 	bcomm "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/actor/server"
@@ -81,10 +80,9 @@ type ChainManager struct {
 	account *account.Account
 
 	// send transaction to local
-	txPoolPid *actor.PID
 	p2pPid    *actor.PID
 	localPid  *actor.PID
-	mgr       *txnpool.TxnPoolManager
+	txPoolMgr *txnpool.TxnPoolManager
 
 	// subscribe local SHARD_EVENT from shard-system-contract and BLOCK-EVENT from ledger
 	localEventSub  *events.ActorSubscriber
@@ -258,17 +256,14 @@ func (self *ChainManager) startConsensus() error {
 	// start consensus
 	shardInfo := self.shards[self.shardID]
 	if shardInfo == nil {
-		log.Infof("shard %d starting consensus, shard info not available", self.shardID.ToUint64())
-		return nil
+		return fmt.Errorf("shard %d starting consensus, shard info not available", self.shardID.ToUint64())
 	}
 	if shardInfo.Config == nil {
-		log.Infof("shard %d starting consensus, shard config not available", self.shardID.ToUint64())
-		return nil
+		return fmt.Errorf("shard %d starting consensus, shard config not available", self.shardID.ToUint64())
 	}
 	lgr := ledger.GetShardLedger(self.shardID)
 	if lgr == nil {
-		log.Infof("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
-		return nil
+		return fmt.Errorf("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
 	}
 
 	// TODO: check if peer should start consensus
@@ -276,9 +271,13 @@ func (self *ChainManager) startConsensus() error {
 		return nil
 	}
 
+	txPoolPid := self.txPoolMgr.GetPID(self.shardID, tc.TxPoolActor)
+	if txPoolPid == nil {
+		return fmt.Errorf("shard %d staring consensus, shard txPool not availed", self.shardID.ToUint64())
+	}
+
 	consensusType := shardInfo.Config.Genesis.ConsensusType
-	consensusService, err := consensus.NewConsensusService(consensusType, self.shardID, self.account,
-		self.txPoolPid, lgr, self.p2pPid)
+	consensusService, err := consensus.NewConsensusService(consensusType, self.shardID, self.account, txPoolPid, lgr, self.p2pPid)
 	if err != nil {
 		return fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
 	}
@@ -290,15 +289,15 @@ func (self *ChainManager) startConsensus() error {
 	return nil
 }
 
-func (self *ChainManager) initTxPool() (*actor.PID, error) {
+func (self *ChainManager) initShardTxPool() error {
 	lgr := ledger.GetShardLedger(self.shardID)
 	if lgr == nil {
 		log.Infof("shard %d starting consensus, shard ledger not available", self.shardID.ToUint64())
-		return nil, nil
+		return nil
 	}
-	srv, err := self.mgr.StartTxnPoolServer(self.shardID, lgr)
+	srv, err := self.txPoolMgr.StartTxnPoolServer(self.shardID, lgr)
 	if err != nil {
-		return nil, fmt.Errorf("Init txpool error:%s", err)
+		return fmt.Errorf("Init txpool error:%s", err)
 	}
 	stlValidator, _ := stateless.NewValidator(fmt.Sprintf("stateless_validator_%d", self.shardID.ToUint64()))
 	stlValidator.Register(srv.GetPID(tc.VerifyRspActor))
@@ -306,17 +305,12 @@ func (self *ChainManager) initTxPool() (*actor.PID, error) {
 	stlValidator2.Register(srv.GetPID(tc.VerifyRspActor))
 	stfValidator, _ := stateful.NewValidator(fmt.Sprintf("stateful_validator_%d", self.shardID.ToUint64()), lgr)
 	stfValidator.Register(srv.GetPID(tc.VerifyRspActor))
-
-	hserver.SetTxnPoolPid(srv.GetPID(tc.TxPoolActor))
-	hserver.SetTxPid(srv.GetPID(tc.TxActor))
-	SetTxPool(srv.GetPID(tc.TxActor))
-	return self.mgr.GetPID(self.shardID, tc.TxActor), nil
+	return nil
 }
 
-func (self *ChainManager) Start(txPoolPid, p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolManager) error {
-	self.txPoolPid = txPoolPid
+func (self *ChainManager) Start(p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolManager) error {
 	self.p2pPid = p2pPid
-	self.mgr = txPoolMgr
+	self.txPoolMgr = txPoolMgr
 	// start listen on local shard events
 	self.localEventSub = events.NewActorSubscriber(self.localPid)
 	self.localEventSub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)

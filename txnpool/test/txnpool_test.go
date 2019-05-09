@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
 	tp "github.com/ontio/ontology/txnpool/proc"
 	"github.com/ontio/ontology/validator/stateful"
@@ -123,7 +124,12 @@ func Test_RCV(t *testing.T) {
 	s.RegisterActor(tc.TxPoolActor, txPoolPid)
 
 	// Initialize an actor to handle the msgs from p2p and api
-	ta := tp.NewTxActor(s)
+	mgr, err := txnpool.NewTxnPoolManager(shardId, true, false)
+	if err != nil {
+		t.Fatalf("Test case: new tx pool server failed")
+	}
+
+	ta := txnpool.NewTxActor(mgr)
 	txPid := startActor(ta)
 	if txPid == nil {
 		t.Error("Fail to start txn actor")

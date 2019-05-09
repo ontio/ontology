@@ -123,11 +123,10 @@ func (self ChainManager) startChildShard(shardID common.ShardID, shardState *sha
 	if lgr := ledger.GetShardLedger(shardID); lgr != nil {
 		ledger.DefLedger = lgr
 	}
-	txPoolPid, err := self.initTxPool()
-	if err != nil {
-		return fmt.Errorf("init initTxPool %d, failed to init initTxPool: %s", self.shardID, err)
+
+	if err := self.initShardTxPool(); err != nil {
+		return fmt.Errorf("init initShardTxPool %d, failed to init initShardTxPool: %s", self.shardID, err)
 	}
-	self.txPoolPid = txPoolPid
 	self.startConsensus()
 	return nil
 }

@@ -65,75 +65,6 @@ func TestMain(m *testing.M) {
 	os.RemoveAll(config.DEFAULT_DATA_DIR)
 }
 
-func TestTxActor(t *testing.T) {
-	t.Log("Starting tx actor test")
-	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
-	s := NewTxPoolServer(shardId, ledger.DefLedger, tc.MAX_WORKER_NUM, true, false)
-	if s == nil {
-		t.Error("Test case: new tx pool server failed")
-		return
-	}
-
-	txActor := NewTxActor(s)
-	txPid := startActor(txActor)
-	if txPid == nil {
-		t.Error("Test case: start tx actor failed")
-		s.Stop()
-		return
-	}
-
-	txReq := &tc.TxReq{
-		Tx:     txn,
-		Sender: tc.NilSender,
-	}
-	txPid.Tell(txReq)
-
-	time.Sleep(1 * time.Second)
-
-	future := txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err := future.Result()
-	assert.Nil(t, err)
-	rsp := (result).(*tc.GetTxnRsp)
-	assert.Nil(t, rsp.Txn)
-
-	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-	future = txPid.RequestFuture(&tc.CheckTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	// Given the tx in the pool, test again
-	txEntry := &tc.TXEntry{
-		Tx:    txn,
-		Attrs: []*tc.TXAttr{},
-	}
-	s.addTxList(txEntry)
-
-	future = txPid.RequestFuture(&tc.GetTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	future = txPid.RequestFuture(&tc.GetTxnStats{}, 2*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-	future = txPid.RequestFuture(&tc.CheckTxnReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	future = txPid.RequestFuture(&tc.GetTxnStatusReq{Hash: txn.Hash()}, 1*time.Second)
-	result, err = future.Result()
-	assert.Nil(t, err)
-
-	txPid.Tell("test")
-	s.Stop()
-	t.Log("Ending tx actor test")
-}
-
 func TestTxPoolActor(t *testing.T) {
 	t.Log("Starting tx pool actor test")
 	shardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
@@ -162,7 +93,7 @@ func TestTxPoolActor(t *testing.T) {
 		ErrCode: errors.ErrNoError,
 	}
 	txEntry.Attrs = append(txEntry.Attrs, retAttr)
-	s.addTxList(txEntry)
+	s.AddTxList(txEntry)
 
 	future := txPoolPid.RequestFuture(&tc.GetTxnPoolReq{ByCount: false}, 2*time.Second)
 	result, err := future.Result()
