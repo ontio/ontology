@@ -45,6 +45,7 @@ func TestOep4(t *testing.T) {
 func TestXShardTransferState(t *testing.T) {
 	acc := account.NewAccount("")
 	state := &XShardTransferState{
+		Id:        big.NewInt(19),
 		ToShard:   common.NewShardIDUnchecked(39),
 		ToAccount: acc.Address,
 		Amount:    big.NewInt(384747),
