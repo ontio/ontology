@@ -403,6 +403,8 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 		gasConsume = neovm.MIN_TRANSACTION_GAS
 	}
 	if tx.GasPrice > 0 {
+		// add payer permission
+		tx.SignedAddr = append(tx.SignedAddr, tx.Payer) // TODO: consider risk
 		cfg := &smartcontract.Config{
 			ShardID:   shardId,
 			Time:      header.Timestamp,
@@ -537,7 +539,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 			ShardID:   shardId,
 			Time:      header.Timestamp,
 			Height:    header.Height,
-			Tx:        subTx,
+			Tx:        subTx, // original tx has payer signature
 			BlockHash: header.Hash(),
 		}
 		notifies, err := chargeCostGas(subTx.Payer, msg.FeeUsed*subTx.GasPrice, cfg, cache, store, shardId)

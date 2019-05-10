@@ -107,6 +107,9 @@ func (this *NativeService) NativeCall(address common.Address, method string, arg
 
 // runtime api
 func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.Address, method string, args []byte) {
+	if ctx.ContextRef.IsPreExec() {
+		return
+	}
 	txState := ctx.MainShardTxState
 	// send with minimal gas fee
 	msg := &xshard_types.XShardNotify{
@@ -131,6 +134,9 @@ func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.A
 // runtime api
 func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.Address,
 	method string, args []byte) ([]byte, error) {
+	if ctx.ContextRef.IsPreExec() {
+		return BYTE_TRUE, nil
+	}
 	txState := ctx.MainShardTxState
 	reqIdx := txState.NextReqID
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
