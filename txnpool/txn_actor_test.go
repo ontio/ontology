@@ -69,9 +69,9 @@ func TestTxActor(t *testing.T) {
 	}
 
 	txActor := NewTxActor(mgr)
-	txPid, err := startActor(txActor, "tx")
+	txPid, err := startActor(txActor, "tx_1")
 	if err != nil {
-		t.Fatalf("Test case: start tx actor failed")
+		t.Fatalf("Test case: start tx actor failed, err: %s", err)
 	}
 
 	s, err := mgr.StartTxnPoolServer(shardId, ledger.DefLedger)

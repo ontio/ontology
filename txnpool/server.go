@@ -39,10 +39,13 @@ func startActor(obj interface{}, id string) (*actor.PID, error) {
 		return obj.(actor.Actor)
 	})
 
-	pid, _ := actor.SpawnNamed(props, id)
+	pid, err := actor.SpawnNamed(props, id)
+	if err != nil {
+		return nil, fmt.Errorf("fail to start actor at props:%v id:%s, err: %s",
+			props, id, err)
+	}
 	if pid == nil {
-		return nil, fmt.Errorf("fail to start actor at props:%v id:%s",
-			props, id)
+		return nil, fmt.Errorf("actor is nil")
 	}
 	return pid, nil
 }
@@ -65,8 +68,8 @@ func NewTxnPoolManager(shardID common.ShardID, disablePreExec, disableBroadcastN
 
 	txActor := NewTxActor(mgr)
 	txPid, err := startActor(txActor, "tx")
-	if txPid == nil {
-		return nil, err
+	if err != nil {
+		return nil, fmt.Errorf("start tx acotr, err: %s", err)
 	}
 	mgr.TxActor = txPid
 
@@ -86,17 +89,17 @@ func (self *TxnPoolManager) StartTxnPoolServer(shardID common.ShardID, lgr *ledg
 
 	// Initialize an actor to handle the msgs from valdiators
 	rspActor := tp.NewVerifyRspActor(s)
-	rspPid, err := startActor(rspActor, "txVerifyRsp")
-	if rspPid == nil {
-		return nil, err
+	rspPid, err := startActor(rspActor, fmt.Sprintf("txVerifyRsp_%d", shardID.ToUint64()))
+	if err != nil {
+		return nil, fmt.Errorf("start verify rsp actor, %s", err)
 	}
 	s.RegisterActor(tc.VerifyRspActor, rspPid)
 
 	// Initialize an actor to handle the msgs from consensus
 	tpa := tp.NewTxPoolActor(s)
-	txPoolPid, err := startActor(tpa, "txPool")
-	if txPoolPid == nil {
-		return nil, err
+	txPoolPid, err := startActor(tpa, fmt.Sprintf("txPool_%d", shardID.ToUint64()))
+	if err != nil {
+		return nil, fmt.Errorf("start txPool actor, %s", err)
 	}
 	s.RegisterActor(tc.TxPoolActor, txPoolPid)
 
