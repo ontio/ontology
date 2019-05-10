@@ -122,7 +122,7 @@ func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.A
 		Contract: cont,
 		Payer:    ctx.Tx.Payer,
 		GasPrice: ctx.Tx.GasPrice,
-		Fee:      ctx.ContextRef.GetRemainGas(),
+		Fee:      ctx.ContextRef.GetRemainGas(), // TODO: fee should be defined by caller
 		Method:   method,
 		Args:     args,
 	}

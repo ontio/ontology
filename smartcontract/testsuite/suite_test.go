@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -49,14 +48,20 @@ func TestRemoteNotifyPing(t *testing.T) {
 			SourceTxHash:  txHash,
 		},
 		NotifyID: 0,
-		Fee:      neovm.MIN_TRANSACTION_GAS,
 		Method:   "handlePing",
 		Contract: shardAContract,
 		Args:     sink.Bytes(),
 	}
 
 	assert.Equal(t, len(notify.ShardMsg), 1)
-	assert.Equal(t, expected, notify.ShardMsg[0])
+	notifyMsg, ok := notify.ShardMsg[0].(*xshard_types.XShardNotify)
+	assert.True(t, ok)
+	assert.Equal(t, expected.ShardMsgHeader, notifyMsg.ShardMsgHeader)
+	assert.Equal(t, expected.NotifyID, notifyMsg.NotifyID)
+	assert.Equal(t, expected.Contract, notifyMsg.Contract)
+	assert.Equal(t, expected.Method, notifyMsg.Method)
+	assert.Equal(t, expected.Args, notifyMsg.Args)
+	t.Logf("notify fee is %d", notifyMsg.Fee)
 }
 
 func TestLedgerRemoteInvokeAdd(t *testing.T) {
@@ -83,13 +88,19 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 			SourceShardID: shardContext.shardID,
 		},
 		IdxInTx:  0,
-		Fee:      neovm.MIN_TRANSACTION_GAS,
 		Contract: shardAContract,
 		Method:   "handlePing",
 		Args:     sink.Bytes(),
 	}
 
-	assert.Equal(t, expected, state.PendingReq)
+	reqMsg, ok := notify.ShardMsg[0].(*xshard_types.XShardTxReq)
+	assert.True(t, ok)
+	assert.Equal(t, expected.ShardMsgHeader, reqMsg.ShardMsgHeader)
+	assert.Equal(t, expected.IdxInTx, reqMsg.IdxInTx)
+	assert.Equal(t, expected.Contract, reqMsg.Contract)
+	assert.Equal(t, expected.Method, reqMsg.Method)
+	assert.Equal(t, expected.Args, reqMsg.Args)
+	t.Logf("notify fee is %d", reqMsg.Fee)
 
 	sink.Reset()
 	sink.WriteUint64(5)
