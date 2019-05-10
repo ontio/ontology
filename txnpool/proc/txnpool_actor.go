@@ -159,7 +159,7 @@ type VerifyRspActor struct {
 func (vpa *VerifyRspActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Info("txpool-verify actor: started and be ready to receive validator's msg")
+		log.Info("txpool-verify actor: started and be ready to receive validator's msg, shard %d", vpa.server.shardID)
 
 	case *actor.Stopping:
 		log.Warn("txpool-verify actor: stopping")
@@ -168,7 +168,7 @@ func (vpa *VerifyRspActor) Receive(context actor.Context) {
 		log.Warn("txpool-verify actor: Restarting")
 
 	case *types.RegisterValidator:
-		log.Debugf("txpool-verify actor:: validator %v connected", msg.Sender)
+		log.Debugf("txpool-verify actor:: validator %v connected, shard %d", msg.Sender, vpa.server.shardID)
 		vpa.server.registerValidator(msg)
 
 	case *types.UnRegisterValidator:
