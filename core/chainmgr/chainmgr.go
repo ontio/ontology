@@ -103,7 +103,7 @@ func Initialize(shardID common.ShardID, acc *account.Account) (*ChainManager, er
 		return nil, fmt.Errorf("chain manager had been initialized for shard: %d", defaultChainManager.shardID)
 	}
 
-	xshard.InitShardBlockPool(shardID, CAP_SHARD_BLOCK_POOL)
+	xshard.InitCrossShardPool(shardID, CAP_SHARD_BLOCK_POOL)
 
 	chainMgr := &ChainManager{
 		shardID:        shardID,
@@ -420,11 +420,11 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 		log.Errorf("handleCrossShardMsg failed to Deserialize crossshard msg %s", err)
 		return
 	}
-	shardmsg := &crossshard.ShardBlockInfo{}
-	err := xshard.AddBlockInfo(shardmsg)
+	tx, err := crossshard.NewCrossShardTxMsg(self.account, msg.Header.Height, self.shardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
 	if err != nil {
-		log.Errorf("handleCrossShardMsg err:%s", err)
+		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.Header.Height, err)
 	}
+	xshard.AddCrossShardInfo(msg.ShardID, msg.Header.Height, tx)
 }
 
 //

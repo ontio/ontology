@@ -228,10 +228,9 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	// get Cross-Shard Txs from chain-mgr
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {
-		// new parentBlock available
-		temp := xshard.GetShardTxsByParentHeight(self.parentHeight - 1)
-		for id, txs := range temp {
-			shardTxs[id.ToUint64()] = txs
+		crossShards := xshard.GetCrossShardTxs()
+		for shardId, txs := range crossShards {
+			shardTxs[shardId] = txs
 		}
 	}
 	header := &types.Header{

@@ -32,16 +32,23 @@ import (
 )
 
 type CrossShardMsg struct {
+	ShardID  uint64
 	Header   *types.Header
 	ShardMsg []xshard_types.CommonShardMsg
 }
 
 func (this *CrossShardMsg) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(this.ShardID)
 	this.Header.Serialization(sink)
 	xshard_types.EncodeShardCommonMsgs(sink, this.ShardMsg)
 }
 
 func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.ShardID, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	err := this.Header.Deserialization(source)
 	if err != nil {
 		return err
@@ -105,14 +112,4 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID commo
 		},
 	}
 	return mutable.IntoImmutable()
-}
-
-func NewShardBlockInfo(shardID common.ShardID, block *types.Block) *ShardBlockInfo {
-	blockInfo := &ShardBlockInfo{
-		FromShardID: shardID,
-		Height:      block.Header.Height,
-		Block:       block,
-	}
-
-	return blockInfo
 }

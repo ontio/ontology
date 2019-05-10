@@ -190,9 +190,9 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	parentHeight := self.ledger.GetParentHeight() + 1
 	shardTxs := make(map[uint64][]*types.Transaction)
 	if self.parentHeight < parentHeight {
-		temp := xshard.GetShardTxsByParentHeight(self.parentHeight - 1)
-		for id, txs := range temp {
-			shardTxs[id.ToUint64()] = txs
+		crossShards := xshard.GetCrossShardTxs()
+		for shardId, txs := range crossShards {
+			shardTxs[shardId] = txs
 		}
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)

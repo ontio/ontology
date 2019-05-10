@@ -139,26 +139,12 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) {
 		return
 	}
 	log.Infof("chainmgr shard %d, get new block %d from shard %d", self.shardID, blk.Header.Height, blk.Header.ShardID)
-
-	if err := self.addShardBlock(blk); err != nil {
-		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
-	}
 	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
 		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 	if err := self.handleRootChainBlock(); err != nil {
 		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
-}
-
-func (self *ChainManager) addShardBlock(block *types.Block) error {
-	// construct one parent-block-completed message
-	blkInfo := message.NewShardBlockInfo(self.shardID, block)
-	if err := self.addShardBlockInfo(blkInfo); err != nil {
-		return fmt.Errorf("add shard block: %s", err)
-	}
-
-	return nil
 }
 
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
@@ -193,6 +179,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 			continue
 		}
 		crossShardMsg := &message.CrossShardMsg{
+			ShardID:  self.shardID.ToUint64(),
 			Header:   header,
 			ShardMsg: reqs,
 		}
