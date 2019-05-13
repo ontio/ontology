@@ -41,6 +41,7 @@ type ContextRef interface {
 	CheckUseGas(gas uint64) bool
 	CheckExecStep() bool
 	IsPreExec() bool
+	GetRemainGas() uint64
 }
 
 type Engine interface {

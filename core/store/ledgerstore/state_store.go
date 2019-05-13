@@ -21,7 +21,6 @@ package ledgerstore
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -229,14 +228,25 @@ func (self *StateStore) AddBlockMerkleTreeRoot(txRoot common.Uint256) error {
 	return nil
 }
 
-func (self *StateStore) GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error) {
-	var buf []byte
-	buf, err = self.store.Get(genBlockShardEventsKey(height))
+func (self *StateStore) GetBlockShardEvents(height uint32) ([]*message.ShardSystemEventMsg, error) {
+	store, err := self.store.Get(genBlockShardEventsKey(height))
 	if err != nil {
-		return
+		return nil, err
 	}
-	err = json.Unmarshal(buf, &events)
-	return
+	source := common.NewZeroCopySource(store)
+	num, eof := source.NextUint64()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	events := make([]*message.ShardSystemEventMsg, num)
+	for i := uint64(0); i < num; i++ {
+		evt := &message.ShardSystemEventMsg{}
+		if err := evt.Deserialization(source); err != nil {
+			return nil, fmt.Errorf("deserialize %d event err: %s", i, err)
+		}
+		events[i] = evt
+	}
+	return events, nil
 }
 
 func genBlockShardEventsKey(height uint32) []byte {
@@ -246,14 +256,13 @@ func genBlockShardEventsKey(height uint32) []byte {
 	return sink.Bytes()
 }
 
-func (self *StateStore) AddBlockShardEvents(height uint32, events []*message.ShardSystemEventMsg) error {
-	//todo: replace marshal method?
-	buf, err := json.Marshal(events)
-	if err != nil {
-		return err
+func (self *StateStore) AddBlockShardEvents(height uint32, events []*message.ShardSystemEventMsg) {
+	sink := common.NewZeroCopySink(0)
+	sink.WriteUint64(uint64(len(events)))
+	for _, evt := range events {
+		evt.Serialization(sink)
 	}
-	self.store.BatchPut(genBlockShardEventsKey(height), buf)
-	return nil
+	self.store.BatchPut(genBlockShardEventsKey(height), sink.Bytes())
 }
 
 func (self *StateStore) GetShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) ([]xshard_types.CommonShardMsg, error) {

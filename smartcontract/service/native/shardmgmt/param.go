@@ -348,3 +348,43 @@ func (this *CommitDposParam) Deserialize(r io.Reader) error {
 	}
 	return nil
 }
+
+type XShardHandlingFeeParam struct {
+	DebtShard   common.ShardID
+	Debt        uint64
+	IncomeShard common.ShardID
+	Income      uint64
+}
+
+func (this *XShardHandlingFeeParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.DebtShard); err != nil {
+		return fmt.Errorf("serialize: write debt shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.Debt); err != nil {
+		return fmt.Errorf("serialize: write debt failed, err: %s", err)
+	}
+	if err := utils.SerializeShardId(w, this.IncomeShard); err != nil {
+		return fmt.Errorf("serialize: write income shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.Income); err != nil {
+		return fmt.Errorf("serialize: write income failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *XShardHandlingFeeParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.DebtShard, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read debt shard id failed, err: %s", err)
+	}
+	if this.Debt, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read debt failed, err: %s", err)
+	}
+	if this.IncomeShard, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read income shard id failed, err: %s", err)
+	}
+	if this.Income, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read income failed, err: %s", err)
+	}
+	return nil
+}

@@ -35,11 +35,9 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
-	ontErr "github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
-	bcomm "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/actor/server"
 	p2p "github.com/ontio/ontology/p2pserver/common"
@@ -448,10 +446,13 @@ func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPLis
 	// FIXME: broadcast Tx to seed nodes of target shard
 
 	if tx.ShardID == self.shardID.ToUint64() {
-		errCode, errString := bcomm.SendTxToPool(tx)
-		if errCode != ontErr.ErrNoError {
-			return fmt.Errorf(errString)
+		txReq := &tc.TxReq{
+			Tx:         tx,
+			Sender:     tc.ShardSender,
+			TxResultCh: nil,
 		}
+		pid := self.txPoolMgr.GetPID(self.shardID, tc.TxActor)
+		pid.Tell(txReq)
 	} else {
 		if len(shardPeerIPList) == 0 {
 			return fmt.Errorf("send raw tx failed: no shard peers")

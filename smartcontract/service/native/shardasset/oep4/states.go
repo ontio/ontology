@@ -79,6 +79,7 @@ const (
 )
 
 type XShardTransferState struct {
+	Id        *big.Int       `json:"id"`
 	ToShard   common.ShardID `json:"to_shard"`
 	ToAccount common.Address `json:"to_account"`
 	Amount    *big.Int       `json:"amount"`
@@ -86,6 +87,7 @@ type XShardTransferState struct {
 }
 
 func (this *XShardTransferState) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(common.BigIntToNeoBytes(this.Id))
 	utils.SerializationShardId(sink, this.ToShard)
 	sink.WriteAddress(this.ToAccount)
 	sink.WriteVarBytes(common.BigIntToNeoBytes(this.Amount))
@@ -94,11 +96,18 @@ func (this *XShardTransferState) Serialization(sink *common.ZeroCopySink) {
 
 func (this *XShardTransferState) Deserialization(source *common.ZeroCopySource) error {
 	var err error = nil
+	id, _, irr, eof := source.NextVarBytes()
+	if irr {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Id = common.BigIntFromNeoBytes(id)
 	this.ToShard, err = utils.DeserializationShardId(source)
 	if err != nil {
 		return fmt.Errorf("deserialization: read to shard failed, err: %s", err)
 	}
-	var irr, eof bool
 	this.ToAccount, eof = source.NextAddress()
 	if eof {
 		return io.ErrUnexpectedEOF

@@ -731,14 +731,9 @@ func accumulateHash(hasher hash.Hash, iter scom.StoreIterator) error {
 	return iter.Error()
 }
 
-func (this *LedgerStoreImp) saveShardState(block *types.Block, result store.ExecuteResult) error {
+func (this *LedgerStoreImp) saveShardState(block *types.Block, result store.ExecuteResult) {
 	shardSysMsg := extractShardSysEvents(result.Notify)
-	err := this.stateStore.AddBlockShardEvents(block.Header.Height, shardSysMsg)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	this.stateStore.AddBlockShardEvents(block.Header.Height, shardSysMsg)
 }
 
 func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result store.ExecuteResult) error {
@@ -760,10 +755,7 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}
 
-	err = this.saveShardState(block, result)
-	if err != nil {
-		return fmt.Errorf("save shard state error: %v", err)
-	}
+	this.saveShardState(block, result)
 
 	log.Debugf("the state transition hash of block %d is:%s", blockHeight, result.Hash.ToHexString())
 
@@ -775,8 +767,13 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 		}
 	})
 
-	for _, notify := range result.Notify {
-		SaveNotify(this.eventStore, notify.TxHash, notify)
+	if config.DefConfig.Common.EnableEventLog {
+		for _, notify := range result.Notify {
+			if err := this.eventStore.SaveEventNotifyByTx(notify.TxHash, notify); err != nil {
+				return fmt.Errorf("SaveEventNotifyByTx error %s", err)
+			}
+			event.PushSmartCodeEvent(notify.TxHash, 0, event.EVENT_NOTIFY, notify)
+		}
 	}
 
 	return nil

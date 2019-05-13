@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"math/big"
@@ -462,15 +463,12 @@ func PreCommitDpos(native *native.NativeService) ([]byte, error) {
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
-	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only shard mgmt contract can invoke")
-	}
 	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("decode input failed, err: %s", err)
 	}
 	param := new(CommitDposParam)
-	if err := param.Deserialize(bytes.NewBuffer(data)); err != nil {
+	if err := param.Deserialization(common.NewZeroCopySource(data)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
 	}
 	isCommitting, err := isShardCommitting(native, param.ShardId)
