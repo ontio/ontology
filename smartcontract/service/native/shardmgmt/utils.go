@@ -20,6 +20,7 @@ package shardmgmt
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
@@ -223,27 +224,48 @@ func getShardCommitDposInfo(native *native.NativeService) (*shardstates.ShardCom
 	return retry, nil
 }
 
-func setXShardHandlingFee(native *native.NativeService, feeInfo *shardstates.XShardHandlingFee) {
-	key := genXShardHandlingFeeKey()
-	sink := common.NewZeroCopySink(0)
-	feeInfo.Serialization(sink)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+func updateXShardHandlingFee(native *native.NativeService, param *XShardHandlingFeeParam, view shard_stake.View) error {
+	originalInfo, err := getXShardHandlingFee(native)
+	if err != nil {
+		return fmt.Errorf("updateXShardHandlingFee: failed, err: %s", err)
+	}
+	if param.IsDebt {
+		viewInfo, ok := originalInfo.Debt[param.ShardId]
+		if !ok {
+			viewInfo = map[shard_stake.View]uint64{view: param.Fee}
+			originalInfo.Debt[param.ShardId] = viewInfo
+		} else {
+			viewInfo[view] += param.Fee
+		}
+	} else {
+		viewInfo, ok := originalInfo.Income[param.ShardId]
+		if !ok {
+			viewInfo = map[shard_stake.View]uint64{view: param.Fee}
+			originalInfo.Income[param.ShardId] = viewInfo
+		} else {
+			viewInfo[view] += param.Fee
+		}
+	}
+
+	return nil
 }
 
-func getXShardHandlingFee(native *native.NativeService) (*shardstates.XShardHandlingFee, error) {
+func getXShardHandlingFee(native *native.NativeService) (*shard_stake.XShardFeeInfo, error) {
 	raw, err := native.CacheDB.Get(genXShardHandlingFeeKey())
 	if err != nil {
 		return nil, fmt.Errorf("getXShardHandlingFee: read db failed, err: %s", err)
 	}
+	info := &shard_stake.XShardFeeInfo{}
 	if len(raw) == 0 {
-		return nil, fmt.Errorf("getXShardHandlingFee: store is empty")
+		info.Income = make(map[common.ShardID]map[shard_stake.View]uint64)
+		info.Debt = make(map[common.ShardID]map[shard_stake.View]uint64)
+		return info, nil
 	}
 	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
 	if err != nil {
 		return nil, fmt.Errorf("getXShardHandlingFee: parse store value failed, err: %s", err)
 	}
 	source := common.NewZeroCopySource(storeValue)
-	info := &shardstates.XShardHandlingFee{}
 	if err := info.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("getXShardHandlingFee: deserialize failed, err: %s", err)
 	}

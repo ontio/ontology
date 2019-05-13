@@ -626,7 +626,6 @@ func NotifyShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-// TODO: read xshard handing fee info
 func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
@@ -655,11 +654,17 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard transfer failed, err: %s", err)
 	}
 	transferId := nTypes.BigIntFromBytes(transferIdBytes.([]byte))
+	xshardHandlingFee, err := getXShardHandlingFee(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard transfer failed, err: %s", err)
+	}
 	shardStakeCommitParam := &shard_stake.CommitDposParam{
 		ShardId:   native.ShardID,
 		FeeAmount: balance,
 		Height:    native.Height,
 		Hash:      native.Tx.Hash(),
+		Debt:      xshardHandlingFee.Debt,
+		Income:    xshardHandlingFee.Income,
 	}
 	sink := common.NewZeroCopySink(0)
 	shardStakeCommitParam.Serialization(sink)
@@ -709,16 +714,16 @@ func UpdateXShardHandlingFee(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: only can be invoked at shard")
 	}
 	param := &XShardHandlingFeeParam{}
-	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+	if err := param.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: failed, err: %s", err)
 	}
-	feeInfo, err := getXShardHandlingFee(native)
+	shardViewIndex, err := shard_stake.GetShardCurrentView(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: failed, err: %s", err)
 	}
-	feeInfo.Debt[param.DebtShard] += param.Debt
-	feeInfo.Debt[param.IncomeShard] += param.Income
-	setXShardHandlingFee(native, feeInfo)
+	if err := updateXShardHandlingFee(native, param, shardViewIndex); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: failed, err: %s", err)
+	}
 	return utils.BYTE_TRUE, nil
 }
 

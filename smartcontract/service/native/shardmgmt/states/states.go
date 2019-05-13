@@ -38,9 +38,9 @@ const (
 
 const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED // all parameter configured
-	SHARD_STATE_ACTIVE     // started
-	SHARD_STATE_STOPPING   // started
+	SHARD_STATE_CONFIGURED  // all parameter configured
+	SHARD_STATE_ACTIVE      // started
+	SHARD_STATE_STOPPING    // started
 	SHARD_STATE_ARCHIVED
 )
 
@@ -420,73 +420,6 @@ func (this *ShardCommitDposInfo) Deserialization(source *common.ZeroCopySource) 
 	this.FeeAmount, eof = source.NextUint64()
 	if eof {
 		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-
-type XShardHandlingFee struct {
-	Debt   map[common.ShardID]uint64
-	Income map[common.ShardID]uint64
-}
-
-func (this *XShardHandlingFee) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteUint64(uint64(len(this.Debt)))
-	debtShards := make([]common.ShardID, 0)
-	for shard := range this.Debt {
-		debtShards = append(debtShards, shard)
-	}
-	sort.SliceStable(debtShards, func(i, j int) bool {
-		return debtShards[i].ToUint64() < debtShards[j].ToUint64()
-	})
-	for _, shard := range debtShards {
-		sink.WriteShardID(shard)
-		sink.WriteUint64(this.Debt[shard])
-	}
-	incomeShards := make([]common.ShardID, 0)
-	for shard := range this.Income {
-		incomeShards = append(incomeShards, shard)
-	}
-	sort.SliceStable(incomeShards, func(i, j int) bool {
-		return incomeShards[i].ToUint64() < incomeShards[j].ToUint64()
-	})
-	for _, shard := range incomeShards {
-		sink.WriteShardID(shard)
-		sink.WriteUint64(this.Income[shard])
-	}
-}
-
-func (this *XShardHandlingFee) Deserialization(source *common.ZeroCopySource) error {
-	debtNum, eof := source.NextUint64()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	this.Debt = make(map[common.ShardID]uint64)
-	for i := uint64(0); i < debtNum; i++ {
-		shard, err := source.NextShardID()
-		if err != nil {
-			return fmt.Errorf("deserialization: read debt shardId failed, err: %s", err)
-		}
-		fee, eof := source.NextUint64()
-		if eof {
-			return fmt.Errorf("deserialization: read debt fee failed, err: %s", err)
-		}
-		this.Debt[shard] = fee
-	}
-	incomeNum, eof := source.NextUint64()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	this.Income = make(map[common.ShardID]uint64)
-	for i := uint64(0); i < incomeNum; i++ {
-		shard, err := source.NextShardID()
-		if err != nil {
-			return fmt.Errorf("deserialization: read income shardId failed, err: %s", err)
-		}
-		fee, eof := source.NextUint64()
-		if eof {
-			return fmt.Errorf("deserialization: read income fee failed, err: %s", err)
-		}
-		this.Income[shard] = fee
 	}
 	return nil
 }

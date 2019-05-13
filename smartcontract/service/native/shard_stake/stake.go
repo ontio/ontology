@@ -52,10 +52,11 @@ const (
 	WITHDRAW_ONG             = "withdrawOng"
 
 	// for pre-execute
-	GET_CURRENT_VIEW  = "getCurrentView"
-	GET_PEER_INFO     = "getPeerInfo"
-	GET_USER_INFO     = "getUserInfo"
-	GET_IS_COMMITTING = "getIsCommitting"
+	GET_CURRENT_VIEW    = "getCurrentView"
+	GET_PEER_INFO       = "getPeerInfo"
+	GET_USER_INFO       = "getUserInfo"
+	GET_IS_COMMITTING   = "getIsCommitting"
+	GET_XSHARD_FEE_INFO = "getXShardFeeInfo"
 )
 
 func InitShardStake() {
@@ -83,6 +84,7 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(GET_CURRENT_VIEW, GetCurrentView)
 	native.Register(GET_PEER_INFO, GetPeerInfo)
 	native.Register(GET_USER_INFO, GetUserInfo)
+	native.Register(GET_XSHARD_FEE_INFO, GetXShardFeeInfo)
 }
 
 func InitShard(native *native.NativeService) ([]byte, error) {
@@ -479,8 +481,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: shard doesn't per-commit")
 	}
 	setShardCommitting(native, param.ShardId, false)
-	// TODO: process xshard handling fee
-	if err := commitDpos(native, param.ShardId, param.FeeAmount, param.Height, param.Hash); err != nil {
+	if err := commitDpos(native, param); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
@@ -622,6 +623,23 @@ func GetUserInfo(native *native.NativeService) ([]byte, error) {
 		}
 	}
 	data, err := json.Marshal(result)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: marshal info failed, err: %s", err)
+	}
+	return data, nil
+}
+
+// return xshard debt and income
+func GetXShardFeeInfo(native *native.NativeService) ([]byte, error) {
+	param := &GetXShardFeeInfoParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: failed, err: %s", err)
+	}
+	info, err := getXShardFeeInfo(native, param.ShardId, View(param.View))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: failed, err: %s", err)
+	}
+	data, err := json.Marshal(info)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: marshal info failed, err: %s", err)
 	}

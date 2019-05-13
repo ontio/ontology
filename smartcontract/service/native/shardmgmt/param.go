@@ -349,42 +349,36 @@ func (this *CommitDposParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
+// only can be invoked by ontology program
 type XShardHandlingFeeParam struct {
-	DebtShard   common.ShardID
-	Debt        uint64
-	IncomeShard common.ShardID
-	Income      uint64
+	IsDebt  bool // debt or income
+	ShardId common.ShardID
+	Fee     uint64
 }
 
-func (this *XShardHandlingFeeParam) Serialize(w io.Writer) error {
-	if err := utils.SerializeShardId(w, this.DebtShard); err != nil {
-		return fmt.Errorf("serialize: write debt shard id failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, this.Debt); err != nil {
-		return fmt.Errorf("serialize: write debt failed, err: %s", err)
-	}
-	if err := utils.SerializeShardId(w, this.IncomeShard); err != nil {
-		return fmt.Errorf("serialize: write income shard id failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, this.Income); err != nil {
-		return fmt.Errorf("serialize: write income failed, err: %s", err)
-	}
-	return nil
+func (this *XShardHandlingFeeParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteBool(this.IsDebt)
+	sink.WriteShardID(this.ShardId)
+	sink.WriteUint64(this.Fee)
 }
 
-func (this *XShardHandlingFeeParam) Deserialize(r io.Reader) error {
-	var err error = nil
-	if this.DebtShard, err = utils.DeserializeShardId(r); err != nil {
-		return fmt.Errorf("deserialize: read debt shard id failed, err: %s", err)
+func (this *XShardHandlingFeeParam) Deserialization(source *common.ZeroCopySource) error {
+	var irr, eof bool
+	this.IsDebt, irr, eof = source.NextBool()
+	if irr {
+		return common.ErrIrregularData
 	}
-	if this.Debt, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read debt failed, err: %s", err)
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	if this.IncomeShard, err = utils.DeserializeShardId(r); err != nil {
-		return fmt.Errorf("deserialize: read income shard id failed, err: %s", err)
+	shard, err := source.NextShardID()
+	if err != nil {
+		return err
 	}
-	if this.Income, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read income failed, err: %s", err)
+	this.ShardId = shard
+	this.Fee, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	return nil
 }

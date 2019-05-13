@@ -582,6 +582,14 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 		IdxInTx: msg.IdxInTx,
 		FeeUsed: feeUsed,
 	}
+	if subTx.GasPrice > 0 {
+		feeParam := &shardmgmt.XShardHandlingFeeParam{
+			IsDebt:  false,
+			ShardId: msg.SourceShardID,
+			Fee:     feeUsed * subTx.GasPrice,
+		}
+		recordXShardHandlingFee(txState, feeParam, store, overlay, cache, header, notify)
+	}
 	if err != nil {
 		if txState.ExecState == xshard_state.ExecYielded {
 			txState.PendingInReq = msg
@@ -593,14 +601,6 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 		}
 		rspMsg.Error = true // todo pending case
 	} else {
-		if subTx.GasPrice > 0 {
-			feeParam := &shardmgmt.XShardHandlingFeeParam{
-				IncomeShard: msg.SourceShardID,
-				Income:      feeUsed * subTx.GasPrice,
-			}
-			recordXShardHandlingFee(txState, feeParam, store, overlay, cache, header, notify)
-		}
-
 		res, _ := result.(*ntypes.ByteArray).GetByteArray() // todo
 		rspMsg.Result = res
 	}
@@ -661,8 +661,9 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 				log.Debugf("handle shard resp, cost invalid handling fee failed, err: %s", err)
 			} else {
 				feeParam := &shardmgmt.XShardHandlingFeeParam{
-					DebtShard: msg.SourceShardID,
-					Debt:      fee,
+					IsDebt:  true,
+					ShardId: msg.SourceShardID,
+					Fee:     fee,
 				}
 				recordXShardHandlingFee(txState, feeParam, store, overlay, cache, header, notify)
 			}
@@ -670,8 +671,9 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		} else {
 			notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, notifies...)
 			feeParam := &shardmgmt.XShardHandlingFeeParam{
-				DebtShard: msg.SourceShardID,
-				Debt:      msg.FeeUsed * subTx.GasPrice,
+				IsDebt:  true,
+				ShardId: msg.SourceShardID,
+				Fee:     msg.FeeUsed * subTx.GasPrice,
 			}
 			recordXShardHandlingFee(txState, feeParam, store, overlay, cache, header, notify)
 		}

@@ -31,26 +31,20 @@ import (
 )
 
 // set current+2 stake info to current+1 stake info, only update view info, don't settle
-func commitDpos(native *native.NativeService, shardId common.ShardID, feeAmount uint64, shardHeight uint32,
-	shardBlockHash common.Uint256) error {
+func commitDpos(native *native.NativeService, param *CommitDposParam) error {
+	shardId := param.ShardId
 	currentView, err := GetShardCurrentView(native, shardId)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
 	}
 	lastView := currentView - 1
+	if err := handleDebt(native, View(lastView), param); err != nil {
+		return fmt.Errorf("commitDpos: failed, err: %s", err)
+	}
+	feeAmount, shardHeight, shardBlockHash := param.FeeAmount, param.Height, param.Hash
 	lastViewInfo, err := GetShardViewInfo(native, shardId, lastView)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d last view info failed, err: %s", shardId, err)
-	}
-	wholeNodeStakeAmount := uint64(0)
-	for _, info := range lastViewInfo.Peers {
-		wholeNodeStakeAmount += info.UserStakeAmount + info.InitPos
-	}
-	// TODO: candidate node and consensus node different rate
-	feeInfo := make([]*PeerAmount, 0)
-	for peer, info := range lastViewInfo.Peers {
-		peerFee := (info.UserStakeAmount + info.InitPos) * feeAmount / wholeNodeStakeAmount
-		feeInfo = append(feeInfo, &PeerAmount{PeerPubKey: peer, Amount: peerFee})
 	}
 	currentViewInfo, err := GetShardViewInfo(native, shardId, currentView)
 	if err != nil {
@@ -64,6 +58,7 @@ func commitDpos(native *native.NativeService, shardId common.ShardID, feeAmount 
 	// update next view info
 	setShardViewInfo(native, shardId, currentView+1, currentViewInfo)
 	// settle current fee
+	feeInfo := calPeerFee(lastViewInfo, feeAmount)
 	for _, info := range feeInfo {
 		peer := strings.ToLower(info.PeerPubKey)
 		feeAmount := info.Amount
@@ -85,6 +80,49 @@ func commitDpos(native *native.NativeService, shardId common.ShardID, feeAmount 
 	// commit dpos
 	setShardView(native, shardId, shardView)
 	return nil
+}
+
+func handleDebt(native *native.NativeService, view View, param *CommitDposParam) error {
+	wholeDebt := uint64(0)
+	for debtShard, viewFeeInfo := range param.Debt {
+		for view, fee := range viewFeeInfo {
+			debtShardViewInfo, err := GetShardViewInfo(native, debtShard, View(view))
+			if err != nil {
+				return fmt.Errorf("handleDebt: failed, err: %s", err)
+			}
+			peerSplitFeeInfo := calPeerFee(debtShardViewInfo, fee)
+			for _, amount := range peerSplitFeeInfo {
+				debtShardViewInfo.Peers[amount.PeerPubKey].WholeFee += amount.Amount
+				debtShardViewInfo.Peers[amount.PeerPubKey].FeeBalance += amount.Amount
+			}
+			setShardViewInfo(native, debtShard, View(view), debtShardViewInfo)
+			wholeDebt += fee
+		}
+	}
+	if param.FeeAmount < wholeDebt {
+		return fmt.Errorf("handleDebt: whole fee not enough")
+	}
+	param.FeeAmount -= wholeDebt
+	xshardFeeInfo := &XShardFeeInfo{
+		Debt:   param.Debt,
+		Income: param.Income,
+	}
+	setXShardFeeInfo(native, param.ShardId, view, xshardFeeInfo)
+	return nil
+}
+
+// TODO: candidate node and consensus node different rate
+func calPeerFee(viewInfo *ViewInfo, wholeFee uint64) []*PeerAmount {
+	feeInfo := make([]*PeerAmount, 0)
+	wholeNodeStakeAmount := uint64(0)
+	for _, info := range viewInfo.Peers {
+		wholeNodeStakeAmount += info.UserStakeAmount + info.InitPos
+	}
+	for peer, info := range viewInfo.Peers {
+		peerFee := (info.UserStakeAmount + info.InitPos) * wholeFee / wholeNodeStakeAmount
+		feeInfo = append(feeInfo, &PeerAmount{PeerPubKey: peer, Amount: peerFee})
+	}
+	return feeInfo
 }
 
 func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey string, peerOwner common.Address,

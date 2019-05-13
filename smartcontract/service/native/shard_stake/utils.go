@@ -47,6 +47,8 @@ const (
 	KEY_SHARD_USER_LAST_STAKE_VIEW    = "shard_last_stake_view"    // user latest stake influence view index
 	KEY_SHARD_USER_LAST_WITHDRAW_VIEW = "shard_last_withdraw_view" // user latest withdraw view index, user's dividends at this view has not yet withdrawn
 
+	KEY_XSHARD_FEE = "xshard_fee"
+
 	KEY_UNBOUND_ONG = "unbound_ong"
 )
 
@@ -96,6 +98,13 @@ func genUserUnboundOngKey(contract, user common.Address) []byte {
 	return utils.ConcatKey(contract, []byte(KEY_UNBOUND_ONG), user[:])
 }
 
+func genXShardFeeKey(shardId common.ShardID, view View) []byte {
+	sink := common.NewZeroCopySink(0)
+	sink.WriteShardID(shardId)
+	sink.WriteUint32(uint32(view))
+	return utils.ConcatKey(utils.ShardStakeAddress, []byte(KEY_XSHARD_FEE), sink.Bytes())
+}
+
 func GetShardCurrentView(native *native.NativeService, id common.ShardID) (View, error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := GenShardViewKey(shardIDBytes)
@@ -122,6 +131,7 @@ func GetShardViewInfo(native *native.NativeService, id common.ShardID, view View
 	}
 	viewInfo := &ViewInfo{}
 	if len(dataBytes) == 0 {
+		viewInfo.Peers = make(map[string]*PeerViewInfo)
 		return viewInfo, nil
 	}
 	storeValue, err := cstates.GetValueFromRawStorageItem(dataBytes)
@@ -358,4 +368,32 @@ func setUserUnboundOngInfo(native *native.NativeService, user common.Address, in
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func setXShardFeeInfo(native *native.NativeService, shardId common.ShardID, view View, info *XShardFeeInfo) {
+	sink := common.NewZeroCopySink(0)
+	info.Serialization(sink)
+	key := genXShardFeeKey(shardId, view)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func getXShardFeeInfo(native *native.NativeService, shardId common.ShardID, view View) (*XShardFeeInfo, error) {
+	key := genXShardFeeKey(shardId, view)
+	storeValue, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("getXShardFeeInfo: read db failed, err: %s", err)
+	}
+	info := &XShardFeeInfo{}
+	if len(storeValue) == 0 {
+		return info, nil
+	}
+	data, err := cstates.GetValueFromRawStorageItem(storeValue)
+	if err != nil {
+		return nil, fmt.Errorf("getXShardFeeInfo: parse db value failed, err: %s", err)
+	}
+	source := common.NewZeroCopySource(data)
+	if err := info.Deserialization(source); err != nil {
+		return nil, fmt.Errorf("getXShardFeeInfo: deserialize failed, err: %s", err)
+	}
+	return info, nil
 }
