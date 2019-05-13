@@ -626,6 +626,7 @@ func NotifyShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+// TODO: read xshard handing fee info
 func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")

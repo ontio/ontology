@@ -479,6 +479,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: shard doesn't per-commit")
 	}
 	setShardCommitting(native, param.ShardId, false)
+	// TODO: process xshard handling fee
 	if err := commitDpos(native, param.ShardId, param.FeeAmount, param.Height, param.Hash); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
