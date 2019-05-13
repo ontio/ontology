@@ -246,7 +246,8 @@ func (this *Peer) SetConsPort(port uint16) {
 //SendToSync call sync link to send buffer
 func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
 	if this.SyncLink != nil && this.SyncLink.Valid() {
-		return this.SyncLink.SendRaw(msgPayload)
+		this.SyncLink.SendRaw(msgPayload)
+		return nil
 	}
 	return errors.New("[p2p]sync link invalid")
 }
@@ -254,7 +255,8 @@ func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
 //SendToCons call consensus link to send buffer
 func (this *Peer) SendToCons(msgType string, msgPayload []byte) error {
 	if this.ConsLink != nil && this.ConsLink.Valid() {
-		return this.ConsLink.SendRaw(msgPayload)
+		this.ConsLink.SendRaw(msgPayload)
+		return nil
 	}
 	return errors.New("[p2p]cons link invalid")
 }
