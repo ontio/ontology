@@ -70,7 +70,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	contract := this.InvokeParam
 	services, ok := Contracts[contract.Address]
 	if !ok {
-		return false, fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
+		return false, fmt.Errorf("native contract address %x haven't been registered", contract.Address)
 	}
 	services(this)
 	service, ok := this.ServiceMap[contract.Method]
@@ -116,6 +116,7 @@ func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.A
 			SourceShardID: ctx.ShardID,
 			TargetShardID: target,
 			SourceTxHash:  ctx.Tx.Hash(),
+			ShardTxID:  txState.TxID,
 		},
 		NotifyID: txState.NumNotifies,
 		Contract: cont,
@@ -150,6 +151,7 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 			SourceShardID: ctx.ShardID,
 			TargetShardID: target,
 			SourceTxHash:  ctx.Tx.Hash(),
+			ShardTxID:  txState.TxID,
 		},
 		IdxInTx:  uint64(reqIdx),
 		Payer:    ctx.Tx.Payer,
@@ -190,7 +192,7 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 		return BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
 	}
 
-	txState.PendingReq = msg
+	txState.PendingOutReq = msg
 	txState.ExecState = xshard_state.ExecYielded
 
 	return BYTE_FALSE, xshard_state.ErrYield

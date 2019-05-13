@@ -65,7 +65,7 @@ func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_
 	}
 
 	txHash := tx.Hash()
-	txState := xshard_state.CreateTxState(xshard_state.ShardTxID(string(txHash[:])))
+	txState := xshard_state.CreateTxState(xshard_types.ShardTxID(string(txHash[:])))
 
 	if tx.TxType == types.Invoke {
 		invoke := tx.Payload.(*payload.InvokeCode)
@@ -88,7 +88,7 @@ func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_
 			//	return txState, err
 			//}
 			// todo: handle error check
-			if txState.PendingReq != nil {
+			if txState.PendingOutReq != nil {
 				return txState, nil, xshard_state.ErrYield
 			}
 			return nil, nil, err
@@ -391,7 +391,7 @@ func (self *ShardContext) HandleShardCallMsgs(msgs []xshard_types.CommonShardMsg
 	return notify
 }
 
-func (self *ShardContext) GetXShardState(id xshard_state.ShardTxID) (*xshard_state.TxState, error) {
+func (self *ShardContext) GetXShardState(id xshard_types.ShardTxID) (*xshard_state.TxState, error) {
 	xshardDB := storage.NewXShardDB(self.overlay)
 	return xshardDB.GetXShardState(id)
 }
@@ -421,8 +421,8 @@ func type2string(ty uint32) string {
 
 func GetShardMsgInfo(msg xshard_types.CommonShardMsg) string {
 	ty := type2string(msg.Type())
-	return fmt.Sprintf("shardmsg: %s, shard%d->shard%d : txhash: %x", ty, msg.GetSourceShardID(),
-		msg.GetTargetShardID(), msg.GetSourceTxHash())
+	return fmt.Sprintf("shardmsg: %s, shard%d->shard%d : shardid: %x", ty, msg.GetSourceShardID(),
+		msg.GetTargetShardID(), msg.GetShardTxID())
 }
 
 func RunShardTxToComplete(shards map[common.ShardID]*ShardContext, shard common.ShardID, method string, args []byte) int {
