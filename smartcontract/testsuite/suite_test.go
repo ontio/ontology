@@ -56,7 +56,11 @@ func TestRemoteNotifyPing(t *testing.T) {
 	}
 
 	assert.Equal(t, len(notify.ShardMsg), 1)
-	assert.Equal(t, expected, notify.ShardMsg[0])
+	notifyMsg, ok := notify.ShardMsg[0].(*xshard_types.XShardNotify)
+	assert.True(t, ok)
+	expected.Fee = notifyMsg.Fee
+	assert.Equal(t, expected, notifyMsg)
+	t.Logf("notify fee is %d", notifyMsg.Fee)
 }
 
 func TestLedgerRemoteInvokeAdd(t *testing.T) {
@@ -89,7 +93,11 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		Args:     sink.Bytes(),
 	}
 
-	assert.Equal(t, expected, state.PendingReq)
+	reqMsg, ok := notify.ShardMsg[0].(*xshard_types.XShardTxReq)
+	assert.True(t, ok)
+	expected.Fee = reqMsg.Fee
+	assert.Equal(t, expected, reqMsg)
+	t.Logf("req fee is %d", reqMsg.Fee)
 
 	sink.Reset()
 	sink.WriteUint64(5)

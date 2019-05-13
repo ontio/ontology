@@ -196,6 +196,10 @@ func (this *SmartContract) IsPreExec() bool {
 	return this.PreExec
 }
 
+func (this *SmartContract) GetRemainGas() uint64 {
+	return this.Gas
+}
+
 func (this *SmartContract) checkContractAddress(address common.Address) bool {
 	if this.CallingContext() != nil && this.CallingContext().ContractAddress == address {
 		return true

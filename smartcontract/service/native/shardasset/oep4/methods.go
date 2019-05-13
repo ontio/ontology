@@ -103,6 +103,7 @@ func xShardTransfer(native *native.NativeService, asset AssetId, from, to common
 	}
 	transferNum.Add(transferNum, big.NewInt(1))
 	transfer := &XShardTransferState{
+		Id:        transferNum,
 		ToShard:   toShard,
 		ToAccount: to,
 		Amount:    amount,

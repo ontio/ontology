@@ -21,31 +21,32 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
+	"math"
+	"sort"
+	"strconv"
+
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
-	utils2 "github.com/ontio/ontology/core/utils"
+	cutils "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/storage"
 	ntypes "github.com/ontio/ontology/vm/neovm/types"
-	"math"
-	"sort"
-	"strconv"
 )
 
 //HandleDeployTransaction deal with smart contract deploy transaction
@@ -334,13 +335,14 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 		req := val.Req
 		rspMsg := val.Resp
 
-		subTx, err := buildNativeInvokeTx(req.Payer, req.Contract, req.Method, req.Args, req.Fee)
+		subTx, err := buildTx(req.Payer, req.Contract, req.Method, []interface{}{req.Args}, header.ShardID, req.Fee,
+			req.GasPrice, header.Timestamp)
 		if err != nil {
 			return
 		}
 
 		cache.Reset()
-		result2, err2 := executeTransaction(store, overlay, cache, txState, subTx, header, contractEvent)
+		result2, _, err2 := executeTransaction(store, overlay, cache, txState, subTx, header, contractEvent)
 
 		isError := false
 		var res []byte
@@ -398,69 +400,62 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 	return
 }
 
-func buildNativeInvokeTx(payer, contract common.Address, method string, msg []byte, fee uint64) (*types.Transaction, error) {
-	invokCode, err := utils2.BuildNativeInvokeCode(contract, 0, method, []interface{}{msg})
-	if err != nil {
-		return nil, err
-	}
-	invokePayload := &payload.InvokeCode{
-		Code: invokCode,
-	}
-	tx := &types.MutableTransaction{
-		Version:  0,
-		GasPrice: 0,
-		GasLimit: fee,
-		TxType:   types.Invoke,
-		//Nonce:    header.Timestamp,
-		Payer:   payer,
-		Payload: invokePayload,
-		Sigs:    make([]types.Sig, 0, 0),
-	}
-	subTx, err := tx.IntoImmutable()
-	if err != nil {
-		return nil, err
-	}
-
-	return subTx, nil
-}
-
+// todo: handle pending case
 func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStore, overlay *overlaydb.OverlayDB,
 	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
+	shardId, err := common.NewShardID(header.ShardID)
+	if err != nil {
+		log.Debugf("handle shard notify check header shardId %s", err)
+		return
+	}
 	nid := msg.NotifyID
 	sink := common.NewZeroCopySink(0)
 	sink.WriteBytes(msg.SourceTxHash[:]) //todo : use shard tx id
 	sink.WriteUint32(nid)
 	shardTxID := xshard_state.ShardTxID(string(sink.Bytes()))
-
 	txState := xshard_state.CreateTxState(shardTxID)
 
-	invokCode, err := utils2.BuildNativeInvokeCode(msg.Contract, 0, msg.Method, []interface{}{msg.Args})
+	tx, err := buildTx(msg.Payer, msg.Contract, msg.Method, []interface{}{msg.Args}, header.ShardID, msg.Fee,
+		msg.GasPrice, header.Timestamp)
 	if err != nil {
-		return
-	}
-	invokePayload := &payload.InvokeCode{
-		Code: invokCode,
-	}
-	tx := &types.MutableTransaction{
-		Version:  0,
-		GasPrice: 0,
-		GasLimit: msg.Fee,
-		TxType:   types.Invoke,
-		Nonce:    header.Timestamp,
-		Payer:    msg.Payer,
-		Payload:  invokePayload,
-		Sigs:     make([]types.Sig, 0, 0),
-	}
-	subTx, err := tx.IntoImmutable()
-	if err != nil {
+		log.Debugf("handle shard notify failed %s", err)
 		return
 	}
 
 	cache.Reset()
-	result, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify.ContractEvent)
-	if err != nil {
-		log.Debugf("handle shard call tx error %s", err) // todo: handle pending case
-		return
+	result, gasConsume, err := executeTransaction(store, overlay, cache, txState, tx, header, notify.ContractEvent)
+	if gasConsume < neovm.MIN_TRANSACTION_GAS {
+		gasConsume = neovm.MIN_TRANSACTION_GAS
+	}
+	if tx.GasPrice > 0 {
+		// add payer permission
+		tx.SignedAddr = append(tx.SignedAddr, tx.Payer) // TODO: consider risk
+		cfg := &smartcontract.Config{
+			ShardID:   shardId,
+			Time:      header.Timestamp,
+			Height:    header.Height,
+			Tx:        tx,
+			BlockHash: header.Hash(),
+		}
+		minGas := tx.GasPrice * neovm.MIN_TRANSACTION_GAS
+		if err != nil {
+			log.Debugf("handle shard notify error %s", err)
+			if err := costInvalidGas(tx.Payer, minGas, cfg, cache, store, notify.ContractEvent, shardId); err != nil {
+				log.Debugf("handle shard notify: tx failed, cost invalid gas failed, %s", err)
+				return
+			}
+			return
+		} else {
+			if chargeNotifies, err := chargeCostGas(tx.Payer, gasConsume*tx.GasPrice, cfg, cache, store, shardId); err != nil {
+				log.Debugf("handle shard notify: charge failed, %s", err)
+				if err := costInvalidGas(tx.Payer, minGas, cfg, cache, store, notify.ContractEvent, shardId); err != nil {
+					log.Debugf("handle shard notify: cost invalid gas failed, %s", err)
+					return
+				}
+			} else {
+				notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, chargeNotifies...)
+			}
+		}
 	}
 
 	// no shard transaction and tx completed
@@ -482,20 +477,24 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 	shardReq := txState.InReqResp[msg.SourceShardID]
 	lenReq := uint64(len(shardReq))
 	if lenReq > 0 && msg.IdxInTx <= shardReq[lenReq-1].Req.IdxInTx {
-		log.Debugf("handle shard call error: request is stale")
+		log.Debugf("handle shard req error: request is stale")
 		return
 	}
 
-	subTx, err := buildNativeInvokeTx(msg.Payer, msg.Contract, msg.Method, msg.Args, msg.Fee)
+	subTx, err := buildTx(msg.Payer, msg.Contract, msg.Method, []interface{}{msg.Args}, header.ShardID, msg.Fee,
+		msg.GasPrice, header.Timestamp)
 	if err != nil {
+		log.Debugf("handle shard req error: %s", err)
 		return
 	}
 
 	cache.Reset()
-	result, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify.ContractEvent)
-
+	result, feeUsed, err := executeTransaction(store, overlay, cache, txState, subTx, header, notify.ContractEvent)
 	log.Debugf("xshard msg: method: %s, args: %v, result: %v, err: %s", msg.GetMethod(), msg.GetArgs(), result, err)
 
+	if feeUsed < neovm.MIN_TRANSACTION_GAS {
+		feeUsed = neovm.MIN_TRANSACTION_GAS
+	}
 	rspMsg := &xshard_types.XShardTxRsp{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			SourceShardID: common.NewShardIDUnchecked(header.ShardID),
@@ -503,11 +502,19 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 			SourceTxHash:  msg.SourceTxHash,
 		},
 		IdxInTx: msg.IdxInTx,
-		FeeUsed: 0,
+		FeeUsed: feeUsed,
 	}
 	if err != nil {
 		rspMsg.Error = true // todo pending case
 	}
+	if subTx.GasPrice > 0 {
+		feeParam := &shardmgmt.XShardHandlingFeeParam{
+			IncomeShard: msg.SourceShardID,
+			Income:      feeUsed * subTx.GasPrice,
+		}
+		recordXShardHandlingFee(txState, feeParam, store, overlay, cache, header, notify)
+	}
+
 	res, _ := result.(*ntypes.ByteArray).GetByteArray() // todo
 	rspMsg.Result = res
 
@@ -526,10 +533,18 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, o
 
 func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, overlay *overlaydb.OverlayDB,
 	cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header, notify *event.TransactionNotify) {
+	shardId, err := common.NewShardID(header.ShardID)
+	if err != nil {
+		log.Debugf("handle shard resp check shardId failed, err: %s", err)
+		return
+	}
 	shardTxID := xshard_state.ShardTxID(string(msg.SourceTxHash[:]))
 	txState, err := xshardDB.GetXShardState(shardTxID)
 	if err != nil {
 		return
+	}
+	if msg.FeeUsed < neovm.MIN_TRANSACTION_GAS {
+		msg.FeeUsed = neovm.MIN_TRANSACTION_GAS
 	}
 	subTx, err := resumeTxState(txState, msg)
 	if err != nil {
@@ -542,16 +557,47 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	evts := &event.ExecuteNotify{
 		TxHash: msg.SourceTxHash,
 	}
-	_, err = executeTransaction(store, overlay, cache, txState, subTx, header, evts)
-
-	if err != nil {
+	isChargeFailed := false
+	if subTx.GasPrice > 0 {
+		// charge req handling fee
+		cfg := &smartcontract.Config{
+			ShardID:   shardId,
+			Time:      header.Timestamp,
+			Height:    header.Height,
+			Tx:        subTx, // original tx has payer signature
+			BlockHash: header.Hash(),
+		}
+		notifies, err := chargeCostGas(subTx.Payer, msg.FeeUsed*subTx.GasPrice, cfg, cache, store, shardId)
+		if err != nil {
+			log.Debugf("handle shard resp, charge xshard handling fee failed, err: %s", err)
+			fee := neovm.MIN_TRANSACTION_GAS * subTx.GasPrice
+			err = costInvalidGas(subTx.Payer, fee, cfg, cache, store, notify.ContractEvent, shardId)
+			if err != nil {
+				log.Debugf("handle shard resp, cost invalid handling fee failed, err: %s", err)
+			} else {
+				feeParam := &shardmgmt.XShardHandlingFeeParam{
+					DebtShard: msg.SourceShardID,
+					Debt:      fee,
+				}
+				recordXShardHandlingFee(txState, feeParam, store, overlay, cache, header, notify)
+			}
+			isChargeFailed = true
+		} else {
+			notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, notifies...)
+			feeParam := &shardmgmt.XShardHandlingFeeParam{
+				DebtShard: msg.SourceShardID,
+				Debt:      msg.FeeUsed * subTx.GasPrice,
+			}
+			recordXShardHandlingFee(txState, feeParam, store, overlay, cache, header, notify)
+		}
+	}
+	_, _, err = executeTransaction(store, overlay, cache, txState, subTx, header, evts)
+	if err != nil || isChargeFailed {
 		if txState.ExecState == xshard_state.ExecYielded {
 			notify.ShardMsg = append(notify.ShardMsg, txState.PendingReq)
-
 			txState.ShardNotifies = nil
 			xshardDB.SetXShardState(txState)
 		}
-
 		return
 	}
 
@@ -589,12 +635,14 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	return
 }
 
-func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
-	cache *storage.CacheDB, txState *xshard_state.TxState,
-	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) (result interface{}, err error) {
+func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
+	txState *xshard_state.TxState, tx *types.Transaction, header *types.Header,
+	notify *event.ExecuteNotify) (result interface{}, gasConsume uint64, err error) {
+	result = nil
+	gasConsume = 0
 	shardID, err := common.NewShardID(header.ShardID)
 	if err != nil {
-		return nil, err
+		return
 	}
 	config := &smartcontract.Config{
 		ShardID:   shardID,
@@ -606,20 +654,30 @@ func executeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB,
 
 	if tx.TxType == types.Invoke {
 		invoke := tx.Payload.(*payload.InvokeCode)
-
+		uintCodeGasPrice, ok := neovm.GAS_TABLE.Load(neovm.UINT_INVOKE_CODE_LEN_NAME)
+		if !ok {
+			err = fmt.Errorf("executeTransaction: get UINT_INVOKE_CODE_LEN_NAME gas failed")
+			return
+		}
+		codeLenGasLimit := calcGasByCodeLen(len(invoke.Code), uintCodeGasPrice.(uint64))
+		if tx.GasLimit < codeLenGasLimit {
+			err = fmt.Errorf("executeTransaction: gas not enough")
+			return
+		}
 		sc := smartcontract.SmartContract{
 			Config:           config,
 			Store:            store,
 			MainShardTxState: txState,
 			CacheDB:          cache,
-			Gas:              100000000000000,
+			Gas:              tx.GasLimit - codeLenGasLimit,
 		}
 
 		//start the smart contract executive function
 		engine, _ := sc.NewExecuteEngine(invoke.Code)
 		res, err := engine.Invoke()
 		notify.Notify = append(notify.Notify, sc.Notifications...)
-		return res, err
+		gasConsume = tx.GasLimit - sc.Gas
+		return res, gasConsume, err
 	}
 
 	panic("unimplemented")
@@ -800,17 +858,6 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	return result, nil
 }
 
-func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {
-	if !config.DefConfig.Common.EnableEventLog {
-		return nil
-	}
-	if err := eventStore.SaveEventNotifyByTx(txHash, notify); err != nil {
-		return fmt.Errorf("SaveEventNotifyByTx error %s", err)
-	}
-	event.PushSmartCodeEvent(txHash, 0, event.EVENT_NOTIFY, notify)
-	return nil
-}
-
 func genNativeTransferCode(from, to common.Address, value uint64) []byte {
 	transfer := ont.Transfers{States: []ont.State{{From: from, To: to, Value: value}}}
 	return common.SerializeToBytes(&transfer)
@@ -928,4 +975,52 @@ func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Co
 
 func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
+}
+
+func buildTx(payer, contract common.Address, method string, args []interface{}, shardId, gasLimit, gasPrice uint64,
+	nonce uint32) (*types.Transaction, error) {
+	invokeCode := []byte{}
+	var err error = nil
+	if _, ok := native.Contracts[contract]; ok {
+		invokeCode, err = cutils.BuildNativeInvokeCode(contract, 0, method, args)
+	} else {
+		invokeCode, err = cutils.BuildNeoVMInvokeCode(contract, []interface{}{method, args})
+	}
+	if err != nil {
+		return nil, fmt.Errorf("buildTx: build invoke failed, err: %s", err)
+	}
+	invokePayload := &payload.InvokeCode{
+		Code: invokeCode,
+	}
+	mutable := &types.MutableTransaction{
+		Version:  common.CURR_TX_VERSION,
+		GasPrice: gasPrice,
+		ShardID:  shardId,
+		GasLimit: gasLimit,
+		TxType:   types.Invoke,
+		Nonce:    nonce,
+		Payer:    payer,
+		Payload:  invokePayload,
+		Sigs:     make([]types.Sig, 0, 0),
+	}
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return nil, fmt.Errorf("buildTx: build tx failed, err: %s", err)
+	}
+	return tx, nil
+}
+
+func recordXShardHandlingFee(txState *xshard_state.TxState, feeParam *shardmgmt.XShardHandlingFeeParam,
+	store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB, header *types.Header,
+	notify *event.TransactionNotify) {
+	chargeFeeTx, err := buildTx(common.ADDRESS_EMPTY, utils.ShardMgmtContractAddress,
+		shardmgmt.UPDATE_XSHARD_HANDLING_FEE, []interface{}{feeParam}, header.ShardID, 0, 0, 0)
+	if err != nil {
+		log.Debugf("handle shard resp, build xshard fee tx error: %s", err)
+	} else {
+		_, _, err = executeTransaction(store, overlay, cache, txState, chargeFeeTx, header, notify.ContractEvent)
+		if err != nil {
+			log.Debugf("handle shard resp, record xshard fee tx error: %s", err)
+		}
+	}
 }

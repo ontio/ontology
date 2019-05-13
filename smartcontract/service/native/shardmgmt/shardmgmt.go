@@ -16,6 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// TODO: check shard call permission
 package shardmgmt
 
 import (
@@ -64,10 +65,11 @@ const (
 	ACTIVATE_SHARD_NAME      = "activateShard"
 	NOTIFY_SHARD_COMMIT_DPOS = "notifyShardCommitDpos"
 
-	NOTIFY_ROOT_COMMIT_DPOS = "notifyRootCommitDpos"
-	COMMIT_DPOS_NAME        = "commitDpos"
-	SHARD_COMMIT_DPOS       = "shardCommitDpos"
-	SHARD_RETRY_COMMIT_DPOS = "shardRetryCommitDpos"
+	NOTIFY_ROOT_COMMIT_DPOS    = "notifyRootCommitDpos"
+	COMMIT_DPOS_NAME           = "commitDpos"
+	SHARD_COMMIT_DPOS          = "shardCommitDpos"
+	SHARD_RETRY_COMMIT_DPOS    = "shardRetryCommitDpos"
+	UPDATE_XSHARD_HANDLING_FEE = "updateXShardHandlingFee"
 
 	// query shard commit Dpos info, include xshard transfer ong
 	// id, commit dpos height and block hash at shard, and whole handling fee at last consensus epoch at shard
@@ -93,6 +95,8 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(COMMIT_DPOS_NAME, CommitDpos)
 	native.Register(SHARD_COMMIT_DPOS, ShardCommitDpos)
 	native.Register(SHARD_RETRY_COMMIT_DPOS, ShardRetryCommitDpos)
+	native.Register(UPDATE_XSHARD_HANDLING_FEE, UpdateXShardHandlingFee)
+
 	native.Register(GET_SHARD_COMMIT_DPOS_INFO, GetShardCommitDPosInfo)
 }
 
@@ -656,11 +660,9 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 		Height:    native.Height,
 		Hash:      native.Tx.Hash(),
 	}
-	bf.Reset()
-	if err := shardStakeCommitParam.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: serialize commit dpos param failed, err: %s", err)
-	}
-	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
+	sink := common.NewZeroCopySink(0)
+	shardStakeCommitParam.Serialization(sink)
+	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, sink.Bytes())
 	info := &shardstates.ShardCommitDposInfo{TransferId: transferId, FeeAmount: balance, Height: native.Height,
 		Hash: native.Tx.Hash()}
 	setShardCommitDposInfo(native, info)
@@ -693,11 +695,29 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 		Height:    info.Height,
 	}
 	bf.Reset()
-	if err := shardStakeCommitParam.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: serialize commit dpos param failed, err: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	shardStakeCommitParam.Serialization(sink)
 	rootShard := common.NewShardIDUnchecked(0)
-	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, bf.Bytes())
+	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, sink.Bytes())
+	return utils.BYTE_TRUE, nil
+}
+
+// only can be invoke while shard call
+func UpdateXShardHandlingFee(native *native.NativeService) ([]byte, error) {
+	if native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: only can be invoked at shard")
+	}
+	param := &XShardHandlingFeeParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: failed, err: %s", err)
+	}
+	feeInfo, err := getXShardHandlingFee(native)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: failed, err: %s", err)
+	}
+	feeInfo.Debt[param.DebtShard] += param.Debt
+	feeInfo.Debt[param.IncomeShard] += param.Income
+	setXShardHandlingFee(native, feeInfo)
 	return utils.BYTE_TRUE, nil
 }
 
