@@ -20,6 +20,7 @@ package message
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
@@ -29,6 +30,37 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
 )
+
+type CrossShardMsg struct {
+	Header   *types.Header
+	ShardMsg []xshard_types.CommonShardMsg
+}
+
+func (this *CrossShardMsg) Serialization(sink *common.ZeroCopySink) {
+	this.Header.Serialization(sink)
+	xshard_types.EncodeShardCommonMsgs(sink, this.ShardMsg)
+}
+
+func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error {
+	err := this.Header.Deserialization(source)
+	if err != nil {
+		return err
+	}
+	len, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	reqs := make([]xshard_types.CommonShardMsg, 0)
+	for i := uint32(0); i < len; i++ {
+		req, err := xshard_types.DecodeShardCommonMsg(source)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal req-tx: %s", err)
+		}
+		reqs = append(reqs, req)
+	}
+	this.ShardMsg = reqs
+	return nil
+}
 
 //
 // NewCrossShardTxMsg: create cross-shard transaction, to remote ShardSysMsg contract

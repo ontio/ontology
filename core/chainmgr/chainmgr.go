@@ -30,17 +30,19 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
+	actorTypes "github.com/ontio/ontology/consensus/actor"
+	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/actor/server"
 	p2p "github.com/ontio/ontology/p2pserver/common"
+	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -50,6 +52,7 @@ import (
 
 const (
 	CAP_LOCAL_SHARDMSG_CHNL = 64
+	CAP_CROSS_SHARDMSG_CHNL = 64
 	CAP_SHARD_BLOCK_POOL    = 16
 )
 
@@ -79,12 +82,14 @@ type ChainManager struct {
 
 	// send transaction to local
 	p2pPid    *actor.PID
+	p2p       *actorTypes.P2PActor
 	localPid  *actor.PID
 	txPoolMgr *txnpool.TxnPoolManager
 
 	// subscribe local SHARD_EVENT from shard-system-contract and BLOCK-EVENT from ledger
 	localEventSub  *events.ActorSubscriber
 	localBlockMsgC chan *message.SaveBlockCompleteMsg
+	crossShardMsgC chan *p2pmsg.CrossShardPayload
 
 	quitC  chan struct{}
 	quitWg sync.WaitGroup
@@ -104,11 +109,13 @@ func Initialize(shardID common.ShardID, acc *account.Account) (*ChainManager, er
 		shardID:        shardID,
 		shards:         make(map[common.ShardID]*ShardInfo),
 		localBlockMsgC: make(chan *message.SaveBlockCompleteMsg, CAP_LOCAL_SHARDMSG_CHNL),
+		crossShardMsgC: make(chan *p2pmsg.CrossShardPayload, CAP_CROSS_SHARDMSG_CHNL),
 		quitC:          make(chan struct{}),
 
 		account: acc,
 	}
 	go chainMgr.localEventLoop()
+	go chainMgr.crossShardEventLoop()
 	props := actor.FromProducer(func() actor.Actor {
 		return chainMgr
 	})
@@ -308,6 +315,7 @@ func (self *ChainManager) initShardTxPool() error {
 
 func (self *ChainManager) Start(p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolManager) error {
 	self.p2pPid = p2pPid
+	self.p2p = &actorTypes.P2PActor{P2P: p2pPid}
 	self.txPoolMgr = txPoolMgr
 	// start listen on local shard events
 	self.localEventSub = events.NewActorSubscriber(self.localPid)
@@ -349,7 +357,8 @@ func (self *ChainManager) Receive(context actor.Context) {
 		log.Info("chain mgr actor restart")
 	case *message.SaveBlockCompleteMsg:
 		self.localBlockMsgC <- msg
-
+	case *p2pmsg.CrossShardPayload:
+		self.crossShardMsgC <- msg
 	default:
 		log.Info("chain mgr actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
@@ -401,6 +410,23 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 	}
 }
 
+func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload) {
+	if payload.ShardID != self.shardID.ToUint64() {
+		return
+	}
+	source := common.NewZeroCopySource(payload.Data)
+	msg := &crossshard.CrossShardMsg{}
+	if err := msg.Deserialization(source); err != nil {
+		log.Errorf("handleCrossShardMsg failed to Deserialize crossshard msg %s", err)
+		return
+	}
+	shardmsg := &crossshard.ShardBlockInfo{}
+	err := xshard.AddBlockInfo(shardmsg)
+	if err != nil {
+		log.Errorf("handleCrossShardMsg err:%s", err)
+	}
+}
+
 //
 // localEventLoop: process all local shard-event.
 //   shard-events are from shard system contracts (shard-mgmt, shard-gas, shard-mq, shard-ccmc)
@@ -429,6 +455,20 @@ func (self *ChainManager) localEventLoop() {
 	}
 }
 
+//crossShardEventLoop: process all shard to shard msg
+func (self *ChainManager) crossShardEventLoop() {
+	self.quitWg.Add(1)
+	defer self.quitWg.Done()
+	for {
+		select {
+		case msg := <-self.crossShardMsgC:
+			self.handleCrossShardMsg(msg)
+		case <-self.quitC:
+			return
+		}
+	}
+}
+
 func (self *ChainManager) Close() {
 	close(self.quitC)
 	self.quitWg.Wait()
@@ -436,35 +476,4 @@ func (self *ChainManager) Close() {
 
 func (self *ChainManager) Stop() {
 	// TODO
-}
-
-//
-// send Cross-Shard Tx to remote shard
-// TODO: get ip-address of remote shard node
-//
-func (self *ChainManager) sendCrossShardTx(tx *types.Transaction, shardPeerIPList []string, shardPort uint) error {
-	// FIXME: broadcast Tx to seed nodes of target shard
-
-	if tx.ShardID == self.shardID.ToUint64() {
-		txReq := &tc.TxReq{
-			Tx:         tx,
-			Sender:     tc.ShardSender,
-			TxResultCh: nil,
-		}
-		pid := self.txPoolMgr.GetPID(self.shardID, tc.TxActor)
-		pid.Tell(txReq)
-	} else {
-		if len(shardPeerIPList) == 0 {
-			return fmt.Errorf("send raw tx failed: no shard peers")
-		}
-		if err := sendRawTx(tx, shardPeerIPList[0], shardPort); err != nil {
-			return fmt.Errorf("send raw tx failed: %s, shardAddr %s:%d", err, shardPeerIPList[0], shardPort)
-		}
-	}
-	return nil
-}
-
-func (self *ChainManager) getShardRPCPort(shardID common.ShardID) uint {
-	// TODO: get from shardinfo
-	return 20336
 }

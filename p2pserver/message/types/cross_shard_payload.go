@@ -15,22 +15,24 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+package types
 
-package common
+import "github.com/ontio/ontology/common"
 
-type InventoryType byte
+type CrossShardPayload struct {
+	Version uint32
+	ShardID uint64
+	Data    []byte
+}
 
-const (
-	TRANSACTION InventoryType = 0x01
-	BLOCK       InventoryType = 0x02
-	CONSENSUS   InventoryType = 0xe0
-	CROSS_SHARD InventoryType = 0xf0
-)
+func (this *CrossShardPayload) Hash() common.Uint256 {
+	return common.Uint256{}
+}
 
-//TODO: temp inventory
-type Inventory interface {
-	//sig.SignableData
-	Hash() Uint256
-	Verify() error
-	Type() InventoryType
+func (this *CrossShardPayload) Verify() error {
+	return nil
+}
+
+func (this *CrossShardPayload) Type() common.InventoryType {
+	return common.CROSS_SHARD
 }

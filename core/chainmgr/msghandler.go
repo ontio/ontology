@@ -21,6 +21,7 @@ package chainmgr
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -29,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
+	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -190,27 +192,18 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 		if len(reqs) == 0 {
 			continue
 		}
-		shardInfo, _ := self.shards[s]
-		if shardInfo == nil {
-			return fmt.Errorf("to send xshard tx to %d, no seeds", s)
+		crossShardMsg := &message.CrossShardMsg{
+			Header:   header,
+			ShardMsg: reqs,
 		}
-		if shardInfo.Config == nil || shardInfo.Config.Common == nil {
-			return fmt.Errorf("to send xshard tx to %d, mal-formed shard info", s)
+		sink := common.ZeroCopySink{}
+		crossShardMsg.Serialization(&sink)
+		msg := &p2pmsg.CrossShardPayload{
+			ShardID: s.ToUint64(),
+			Data:    sink.Bytes(),
 		}
-
-		gasPrice := shardInfo.Config.Common.GasPrice
-		gasLimit := shardInfo.Config.Common.GasLimit
-		tx, err := message.NewCrossShardTxMsg(self.account, height, s, gasPrice, gasLimit, reqs)
-		if err != nil {
-			return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
-		}
-		go func() {
-			if err := self.sendCrossShardTx(tx, shardInfo.SeedList, self.getShardRPCPort(s)); err != nil {
-				log.Errorf("send xshardTx to %d, ip %v, failed: %s", s.ToUint64(), shardInfo.SeedList, err)
-			}
-		}()
+		self.p2p.Broadcast(msg)
 	}
-
 	return nil
 }
 
