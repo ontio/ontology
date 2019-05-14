@@ -250,143 +250,91 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 	}
 
-	if version.P.IsConsensus == true {
 
-		p := p2p.GetPeer(version.P.Nonce)
+	if version.P.Nonce == p2p.GetID() {
+		p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+		p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+		log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr())
+		p2p.SetOwnAddress(nodeAddr)
+		remotePeer.CloseSync()
+		return
+	}
 
-		if p == nil {
-			log.Warn("[p2p]sync link is not exist", version.P.Nonce, data.Addr)
-			remotePeer.CloseSync()
-			return
-		} else {
-			//p synclink must exist,merged
-			p.SyncLink = remotePeer.SyncLink
-			p.SyncLink.SetID(version.P.Nonce)
-			p.SetConsState(remotePeer.GetConsState())
-			remotePeer = p
+	s := remotePeer.GetSyncState()
+	if s != msgCommon.INIT && s != msgCommon.HAND {
+		log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
+		remotePeer.CloseSync()
+		return
+	}
 
-		}
-		if version.P.Nonce == p2p.GetID() {
-			log.Warn("[p2p]the node handshake with itself", data.Addr)
-			p2p.SetOwnAddress(nodeAddr)
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-			remotePeer.CloseSync()
-			return
-		}
-
-		s := remotePeer.GetConsState()
-		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, data.Addr)
-			remotePeer.CloseSync()
-			return
-		}
-
-		// Todo: change the method of input parameters
-		remotePeer.UpdateInfo(time.Now(), version.P.Version,
-			version.P.Services, version.P.SyncPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
-
-		var msg msgTypes.Message
-		if s == msgCommon.INIT {
-			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, true, ledger.DefLedger.GetCurrentBlockHeight())
-		} else if s == msgCommon.HAND {
-			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
-			msg = msgpack.NewVerAck(true)
-
-		}
-		err := p2p.Send(remotePeer, msg, true)
+	// Obsolete node
+	p := p2p.GetPeer(version.P.Nonce)
+	if p != nil {
+		ipOld, err := msgCommon.ParseIPAddr(p.GetAddr())
 		if err != nil {
-			log.Warn(err)
+			log.Warn("[p2p]exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr())
 			return
 		}
-	} else {
-		if version.P.Nonce == p2p.GetID() {
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-			log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr())
-			p2p.SetOwnAddress(nodeAddr)
+		ipNew, err := msgCommon.ParseIPAddr(data.Addr)
+		if err != nil {
 			remotePeer.CloseSync()
+			log.Warn("[p2p]connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
 			return
 		}
-
-		s := remotePeer.GetSyncState()
-		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
-			remotePeer.CloseSync()
-			return
-		}
-
-		// Obsolete node
-		p := p2p.GetPeer(version.P.Nonce)
-		if p != nil {
-			ipOld, err := msgCommon.ParseIPAddr(p.GetAddr())
-			if err != nil {
-				log.Warn("[p2p]exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr())
-				return
-			}
-			ipNew, err := msgCommon.ParseIPAddr(data.Addr)
-			if err != nil {
-				remotePeer.CloseSync()
-				log.Warn("[p2p]connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
-				return
-			}
-			if ipNew == ipOld {
-				//same id and same ip
-				n, ret := p2p.DelNbrNode(version.P.Nonce)
-				if ret == true {
-					log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
-					// Close the connection and release the node source
-					n.CloseSync()
-					if pid != nil {
-						input := &msgCommon.RemovePeerID{
-							ID: version.P.Nonce,
-						}
-						pid.Tell(input)
+		if ipNew == ipOld {
+			//same id and same ip
+			n, ret := p2p.DelNbrNode(version.P.Nonce)
+			if ret == true {
+				log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
+				// Close the connection and release the node source
+				n.CloseSync()
+				if pid != nil {
+					input := &msgCommon.RemovePeerID{
+						ID: version.P.Nonce,
 					}
+					pid.Tell(input)
 				}
-			} else {
-				log.Warnf("[p2p]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
-				remotePeer.CloseSync()
-				return
-
 			}
-		}
-
-		if version.P.Cap[msgCommon.HTTP_INFO_FLAG] == 0x01 {
-			remotePeer.SetHttpInfoState(true)
 		} else {
-			remotePeer.SetHttpInfoState(false)
-		}
-		remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
-
-		remotePeer.UpdateInfo(time.Now(), version.P.Version,
-			version.P.Services, version.P.SyncPort, version.P.Nonce,
-			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
-		remotePeer.SyncLink.SetID(version.P.Nonce)
-		p2p.AddNbrNode(remotePeer)
-
-		if pid != nil {
-			input := &msgCommon.AppendPeerID{
-				ID: version.P.Nonce,
-			}
-			pid.Tell(input)
-		}
-
-		var msg msgTypes.Message
-		if s == msgCommon.INIT {
-			remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-			msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
-		} else if s == msgCommon.HAND {
-			remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
-			msg = msgpack.NewVerAck(false)
-		}
-		err := p2p.Send(remotePeer, msg, false)
-		if err != nil {
-			log.Warn(err)
+			log.Warnf("[p2p]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
+			remotePeer.CloseSync()
 			return
+
 		}
+	}
+
+	if version.P.Cap[msgCommon.HTTP_INFO_FLAG] == 0x01 {
+		remotePeer.SetHttpInfoState(true)
+	} else {
+		remotePeer.SetHttpInfoState(false)
+	}
+	remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
+
+	remotePeer.UpdateInfo(time.Now(), version.P.Version,
+		version.P.Services, version.P.SyncPort, version.P.Nonce,
+		version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
+	remotePeer.SyncLink.SetID(version.P.Nonce)
+	p2p.AddNbrNode(remotePeer)
+
+	if pid != nil {
+		input := &msgCommon.AppendPeerID{
+			ID: version.P.Nonce,
+		}
+		pid.Tell(input)
+	}
+
+	var msg msgTypes.Message
+	if s == msgCommon.INIT {
+		remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
+		msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
+	} else if s == msgCommon.HAND {
+		remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
+		msg = msgpack.NewVerAck(false)
+	}
+	err = p2p.Send(remotePeer, msg, false)
+	if err != nil {
+		log.Warn(err)
+		return
 	}
 }
 

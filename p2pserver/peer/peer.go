@@ -131,7 +131,6 @@ type Peer struct {
 	cap       [32]byte
 	SyncLink  *conn.Link
 	syncState uint32
-	consState uint32
 	txnCnt    uint64
 	rxTxnCnt  uint64
 	connLock  sync.RWMutex
@@ -141,7 +140,6 @@ type Peer struct {
 func NewPeer() *Peer {
 	p := &Peer{
 		syncState: common.INIT,
-		consState: common.INIT,
 	}
 	p.SyncLink = conn.NewLink()
 	runtime.SetFinalizer(p, rmPeer)
@@ -157,7 +155,6 @@ func rmPeer(p *Peer) {
 func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]Node info:")
 	log.Debug("[p2p]\t syncState = ", this.syncState)
-	log.Debug("[p2p]\t consState = ", this.consState)
 	log.Debug("[p2p]\t id = ", this.GetID())
 	log.Debug("[p2p]\t addr = ", this.SyncLink.GetAddr())
 	log.Debug("[p2p]\t cap = ", this.cap)
@@ -191,16 +188,6 @@ func (this *Peer) GetSyncState() uint32 {
 //SetSyncState set sync state to peer
 func (this *Peer) SetSyncState(state uint32) {
 	atomic.StoreUint32(&(this.syncState), state)
-}
-
-//GetConsState return peer`s consensus state
-func (this *Peer) GetConsState() uint32 {
-	return this.consState
-}
-
-//SetConsState set consensus state to peer
-func (this *Peer) SetConsState(state uint32) {
-	atomic.StoreUint32(&(this.consState), state)
 }
 
 //GetSyncPort return peer`s sync port
