@@ -54,7 +54,7 @@ func runFlowCommand(t *testing.T, shard common.ShardID, cmd ShardCommand, totalM
 
 	shards := buildShardContexts(t, 100)
 
-	totalShardMsg := RunShardTxToComplete(shards, sid(0), method, EncodeShardCommandToBytes(cmd))
+	totalShardMsg := RunShardTxToComplete(shards, shard, method, EncodeShardCommandToBytes(cmd))
 	assert.Equal(t, totalMsg, totalShardMsg)
 }
 
@@ -101,40 +101,7 @@ func TestRecurInvoke3(t *testing.T) {
 	runFlowCommand(t, sid(0), &flow, 20)
 }
 
-func TestShardFlow(t *testing.T) {
-	contract := RandomAddress()
-	method := "executeShardCommand"
-	InstallNativeContract(contract, map[string]native.Handler{
-		method: ExecuteShardCommandApi,
-	})
-
-	shards := buildShardContexts(t, 4)
-
-	{
-		//shard0    -> invoke shard2 -> invoke shard3
-		flow := MutliCommand{}.SubCmd(
-			&GreetCommand{},
-		).SubCmd(
-			NewInvokeCommand(sid(2), NewInvokeCommand(sid(3), &GreetCommand{})),
-		)
-
-		totalShardMsg := RunShardTxToComplete(shards, sid(0), method, EncodeShardCommandToBytes(&flow))
-		// 2 req, 2 rep, 2 prep, 2 preped, 2 commit = 10
-		assert.Equal(t, 10, totalShardMsg)
-
-		//shard0 -> invoke shard1
-		//       -> invoke shard2 -> invoke shard3
-		flow = MutliCommand{}.SubCmd(
-			&GreetCommand{},
-		).SubCmd(
-			NewInvokeCommand(sid(1), &GreetCommand{}),
-		).SubCmd(
-			NewInvokeCommand(sid(2), NewInvokeCommand(sid(3), &GreetCommand{})),
-		)
-		RunShardTxToComplete(shards, sid(0), method, EncodeShardCommandToBytes(&flow))
-
-		return
-	}
+func TestShardFlowPattern1(t *testing.T) {
 	// shard0 -> invoke shard1
 	//        -> invoke shard2 -> notify shard3
 	flow := MutliCommand{}.SubCmd(
@@ -145,14 +112,15 @@ func TestShardFlow(t *testing.T) {
 		NewInvokeCommand(sid(2), NewNotifyCommand(sid(3), &GreetCommand{})),
 	)
 
-	totalShardMsg := RunShardTxToComplete(shards, sid(0), method, EncodeShardCommandToBytes(&flow))
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit, 1 notify = 11
-	assert.Equal(t, 11, totalShardMsg)
+	runFlowCommand(t, sid(0), &flow, 11)
+}
 
+func TestShardFlowPattern2(t *testing.T) {
 	// shard0 -> notify3
 	//        -> invoke shard2 -> notify shard3
 	// 	      -> invoke shard1
-	flow = MutliCommand{}.SubCmd(
+	flow := MutliCommand{}.SubCmd(
 		NewNotifyCommand(sid(3), &GreetCommand{}),
 	).SubCmd(
 		NewInvokeCommand(sid(2), NewNotifyCommand(sid(3), &GreetCommand{})),
@@ -160,8 +128,6 @@ func TestShardFlow(t *testing.T) {
 		NewInvokeCommand(sid(1), &GreetCommand{}),
 	)
 
-	totalShardMsg = RunShardTxToComplete(shards, sid(0), method, EncodeShardCommandToBytes(&flow))
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit, 2 notify = 12
-	assert.Equal(t, 12, totalShardMsg)
-
+	runFlowCommand(t, sid(0), &flow, 12)
 }
