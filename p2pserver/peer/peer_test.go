@@ -109,7 +109,7 @@ func TestUpdatePeer(t *testing.T) {
 	p.SetConsState(2)
 	p.SetSyncState(3)
 	p.SetHttpInfoState(true)
-	p.SyncLink.SetAddr("127.0.0.1:20338")
+	p.RecvLink.SetAddr("127.0.0.1:20338")
 	p.DumpInfo()
 
 }

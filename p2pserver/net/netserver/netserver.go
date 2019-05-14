@@ -298,10 +298,10 @@ func (this *NetServer) Connect(addr string) error {
 	this.AddOutConnRecord(addr)
 	remotePeer = peer.NewPeer()
 	this.AddPeerSyncAddress(addr, remotePeer)
-	remotePeer.SyncLink.SetAddr(addr)
-	remotePeer.SyncLink.SetConn(conn)
+	remotePeer.RecvLink.SetAddr(addr)
+	remotePeer.RecvLink.SetConn(conn)
 	remotePeer.AttachSyncChan(this.SyncChan)
-	go remotePeer.SyncLink.Rx()
+	go remotePeer.RecvLink.Rx()
 	remotePeer.SetSyncState(common.HAND)
 
 	version := msgpack.NewVersion(this, ledger.DefLedger.GetCurrentBlockHeight())
@@ -412,10 +412,10 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		this.AddPeerSyncAddress(addr, remotePeer)
 
-		remotePeer.SyncLink.SetAddr(addr)
-		remotePeer.SyncLink.SetConn(conn)
+		remotePeer.RecvLink.SetAddr(addr)
+		remotePeer.RecvLink.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
-		go remotePeer.SyncLink.Rx()
+		go remotePeer.RecvLink.Rx()
 	}
 }
 
@@ -491,7 +491,7 @@ func (this *NetServer) IsNbrPeerAddr(addr string) bool {
 	for _, p := range this.Np.List {
 		if p.GetSyncState() == common.HAND || p.GetSyncState() == common.HAND_SHAKE ||
 			p.GetSyncState() == common.ESTABLISH {
-			addrNew = p.SyncLink.GetAddr()
+			addrNew = p.RecvLink.GetAddr()
 			if strings.Compare(addrNew, addr) == 0 {
 				return true
 			}

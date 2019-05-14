@@ -312,7 +312,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	remotePeer.UpdateInfo(time.Now(), version.P.Version,
 		version.P.Services, version.P.SyncPort, version.P.Nonce,
 		version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
-	remotePeer.SyncLink.SetID(version.P.Nonce)
+	remotePeer.RecvLink.SetID(version.P.Nonce)
 	p2p.AddNbrNode(remotePeer)
 
 	if pid != nil {
@@ -325,7 +325,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	var msg msgTypes.Message
 	if s == msgCommon.INIT {
 		remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-		msg = msgpack.NewVersion(p2p,ledger.DefLedger.GetCurrentBlockHeight())
+		msg = msgpack.NewVersion(p2p, ledger.DefLedger.GetCurrentBlockHeight())
 	} else if s == msgCommon.HAND {
 		remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 		msg = msgpack.NewVerAck(false)
@@ -566,7 +566,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 	}
 	p2p.RemoveFromConnectingList(data.Addr)
 
-	if remotePeer.SyncLink.GetAddr() == data.Addr {
+	if remotePeer.RecvLink.GetAddr() == data.Addr {
 		p2p.RemovePeerSyncAddress(data.Addr)
 		remotePeer.CloseSync()
 	}

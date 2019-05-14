@@ -420,7 +420,7 @@ func (this *P2PServer) retryInactivePeer() {
 				this.network.RemoveFromConnectingList(addr)
 				remotePeer := this.network.GetPeerFromAddr(addr)
 				if remotePeer != nil {
-					if remotePeer.SyncLink.GetAddr() == addr {
+					if remotePeer.RecvLink.GetAddr() == addr {
 						this.network.RemovePeerSyncAddress(addr)
 					}
 					this.network.DelNbrNode(remotePeer.GetID())
@@ -528,7 +528,7 @@ func (this *P2PServer) timeout() {
 			t := p.GetContactTime()
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
-				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
+				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.RecvLink.GetAddr(), t.String())
 				p.CloseSync()
 			}
 		}

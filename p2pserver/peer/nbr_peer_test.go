@@ -44,7 +44,7 @@ func creatPeers(cnt uint16) []*Peer {
 		p.SetConsState(2)
 		p.SetSyncState(3)
 		p.SetHttpInfoState(true)
-		p.SyncLink.SetAddr("127.0.0.1:10338")
+		p.RecvLink.SetAddr("127.0.0.1:10338")
 		np = append(np, p)
 	}
 	return np
@@ -83,7 +83,7 @@ func TestAddNbrNode(t *testing.T) {
 	p.SetConsState(2)
 	p.SetSyncState(3)
 	p.SetHttpInfoState(true)
-	p.SyncLink.SetAddr("127.0.0.1")
+	p.RecvLink.SetAddr("127.0.0.1")
 	nm.AddNbrNode(p)
 	if nm.NodeExisted(0x7123456) == false {
 		t.Fatal("0x7123456 should be added in nbr peer")

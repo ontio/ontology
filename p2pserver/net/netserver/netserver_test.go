@@ -49,7 +49,7 @@ func creatPeers(cnt uint16) []*peer.Peer {
 		p.SetConsState(2)
 		p.SetSyncState(4)
 		p.SetHttpInfoState(true)
-		p.SyncLink.SetAddr("127.0.0.1:10338")
+		p.RecvLink.SetAddr("127.0.0.1:10338")
 		np = append(np, p)
 	}
 	return np

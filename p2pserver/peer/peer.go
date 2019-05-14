@@ -129,8 +129,8 @@ func (this *PeerCom) GetSoftVersion() string {
 type Peer struct {
 	base      PeerCom
 	cap       [32]byte
-	SyncLink  *conn.Link
-	syncState uint32
+	RecvLink  *conn.Link
+	linkState uint32
 	txnCnt    uint64
 	rxTxnCnt  uint64
 	connLock  sync.RWMutex
@@ -139,9 +139,9 @@ type Peer struct {
 //NewPeer return new peer without publickey initial
 func NewPeer() *Peer {
 	p := &Peer{
-		syncState: common.INIT,
+		linkState: common.INIT,
 	}
-	p.SyncLink = conn.NewLink()
+	p.RecvLink = conn.NewLink()
 	runtime.SetFinalizer(p, rmPeer)
 	return p
 }
@@ -154,9 +154,9 @@ func rmPeer(p *Peer) {
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]Node info:")
-	log.Debug("[p2p]\t syncState = ", this.syncState)
+	log.Debug("[p2p]\t linkState = ", this.linkState)
 	log.Debug("[p2p]\t id = ", this.GetID())
-	log.Debug("[p2p]\t addr = ", this.SyncLink.GetAddr())
+	log.Debug("[p2p]\t addr = ", this.RecvLink.GetAddr())
 	log.Debug("[p2p]\t cap = ", this.cap)
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
@@ -183,23 +183,23 @@ func (this *Peer) SetHeight(height uint64) {
 
 //GetSyncState return sync state
 func (this *Peer) GetSyncState() uint32 {
-	return this.syncState
+	return this.linkState
 }
 
 //SetSyncState set sync state to peer
 func (this *Peer) SetSyncState(state uint32) {
-	atomic.StoreUint32(&(this.syncState), state)
+	atomic.StoreUint32(&(this.linkState), state)
 }
 
 //GetSyncPort return peer`s sync port
 func (this *Peer) GetSyncPort() uint16 {
-	return this.SyncLink.GetPort()
+	return this.RecvLink.GetPort()
 }
 
 //SendToSync call sync link to send buffer
 func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
-	if this.SyncLink != nil && this.SyncLink.Valid() {
-		return this.SyncLink.SendRaw(msgPayload)
+	if this.RecvLink != nil && this.RecvLink.Valid() {
+		return this.RecvLink.SendRaw(msgPayload)
 	}
 	return errors.New("[p2p]sync link invalid")
 }
@@ -207,7 +207,7 @@ func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
 //CloseSync halt sync connection
 func (this *Peer) CloseSync() {
 	this.SetSyncState(common.INACTIVITY)
-	conn := this.SyncLink.GetConn()
+	conn := this.RecvLink.GetConn()
 	this.connLock.Lock()
 	if conn != nil {
 		conn.Close()
@@ -232,17 +232,17 @@ func (this *Peer) GetServices() uint64 {
 
 //GetTimeStamp return peer`s latest contact time in ticks
 func (this *Peer) GetTimeStamp() int64 {
-	return this.SyncLink.GetRXTime().UnixNano()
+	return this.RecvLink.GetRXTime().UnixNano()
 }
 
 //GetContactTime return peer`s latest contact time in Time struct
 func (this *Peer) GetContactTime() time.Time {
-	return this.SyncLink.GetRXTime()
+	return this.RecvLink.GetRXTime()
 }
 
 //GetAddr return peer`s sync link address
 func (this *Peer) GetAddr() string {
-	return this.SyncLink.GetAddr()
+	return this.RecvLink.GetAddr()
 }
 
 //GetAddr16 return peer`s sync link address in []byte
@@ -268,12 +268,12 @@ func (this *Peer) GetSoftVersion() string {
 
 //AttachSyncChan set msg chan to sync link
 func (this *Peer) AttachSyncChan(msgchan chan *types.MsgPayload) {
-	this.SyncLink.SetChan(msgchan)
+	this.RecvLink.SetChan(msgchan)
 }
 
 //AttachConsChan set msg chan to consensus link
 func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
-	this.SyncLink.SetChan(msgchan)
+	this.RecvLink.SetChan(msgchan)
 }
 
 //Send transfer buffer by sync or cons link
@@ -317,13 +317,13 @@ func (this *Peer) SetHttpInfoPort(port uint16) {
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	syncPort uint16, nonce uint64, relay uint8, height uint64, softVer string) {
 
-	this.SyncLink.UpdateRXTime(t)
+	this.RecvLink.UpdateRXTime(t)
 	this.base.SetID(nonce)
 	this.base.SetVersion(version)
 	this.base.SetServices(services)
 	this.base.SetSyncPort(syncPort)
 	this.base.SetSoftVersion(softVer)
-	this.SyncLink.SetPort(syncPort)
+	this.RecvLink.SetPort(syncPort)
 	if relay == 0 {
 		this.base.SetRelay(false)
 	} else {
