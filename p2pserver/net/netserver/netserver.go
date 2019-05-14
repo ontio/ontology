@@ -113,8 +113,6 @@ func (this *NetServer) init() error {
 		return errors.New("[p2p]invalid consensus port")
 	}
 
-	this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
-
 	this.base.SetRelay(true)
 
 	rand.Seed(time.Now().UnixNano())
@@ -170,10 +168,6 @@ func (this *NetServer) GetSyncPort() uint16 {
 	return this.base.GetSyncPort()
 }
 
-//GetConsPort return the cons port
-func (this *NetServer) GetConsPort() uint16 {
-	return this.base.GetConsPort()
-}
 
 //GetHttpInfoPort return the port support info via http
 func (this *NetServer) GetHttpInfoPort() uint16 {
@@ -326,10 +320,10 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	} else {
 		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
 		this.AddPeerConsAddress(addr, remotePeer)
-		remotePeer.ConsLink.SetAddr(addr)
-		remotePeer.ConsLink.SetConn(conn)
+		remotePeer.SyncLink.SetAddr(addr)
+		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachConsChan(this.ConsChan)
-		go remotePeer.ConsLink.Rx()
+		go remotePeer.SyncLink.Rx()
 		remotePeer.SetConsState(common.HAND)
 	}
 	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
@@ -349,7 +343,6 @@ func (this *NetServer) Halt() {
 	peers := this.Np.GetNeighbors()
 	for _, p := range peers {
 		p.CloseSync()
-		p.CloseCons()
 	}
 	if this.synclistener != nil {
 		this.synclistener.Close()
@@ -364,7 +357,6 @@ func (this *NetServer) startListening() error {
 	var err error
 
 	syncPort := this.base.GetSyncPort()
-	consPort := this.base.GetConsPort()
 
 	if syncPort == 0 {
 		log.Error("[p2p]sync port invalid")
@@ -375,17 +367,6 @@ func (this *NetServer) startListening() error {
 	if err != nil {
 		log.Error("[p2p]start sync listening fail")
 		return err
-	}
-
-	//consensus
-	if consPort == 0 || consPort == syncPort {
-		//still work
-		log.Warn("[p2p]consensus port invalid,keep single link")
-	} else {
-		err = this.startConsListening(consPort)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -401,20 +382,6 @@ func (this *NetServer) startSyncListening(port uint16) error {
 
 	go this.startSyncAccept(this.synclistener)
 	log.Infof("[p2p]start listen on sync port %d", port)
-	return nil
-}
-
-// startConsListening starts a sync listener on the port for the inbound peer
-func (this *NetServer) startConsListening(port uint16) error {
-	var err error
-	this.conslistener, err = createListener(port)
-	if err != nil {
-		log.Error("[p2p]failed to create cons listener")
-		return errors.New("[p2p]failed to create cons listener")
-	}
-
-	go this.startConsAccept(this.conslistener)
-	log.Infof("[p2p]Start listen on consensus port %d", port)
 	return nil
 }
 
@@ -476,43 +443,6 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 	}
 }
 
-//startConsAccept accepts the consensus connnection from the inbound peer
-func (this *NetServer) startConsAccept(listener net.Listener) {
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Error("[p2p]error accepting ", err.Error())
-			return
-		}
-		log.Debug("[p2p]remote cons node connect with ",
-			conn.RemoteAddr(), conn.LocalAddr())
-		if !this.AddrValid(conn.RemoteAddr().String()) {
-			log.Warnf("[p2p]remote %s not in reserved list, close it ", conn.RemoteAddr())
-			conn.Close()
-			continue
-		}
-
-		remoteIp, err := common.ParseIPAddr(conn.RemoteAddr().String())
-		if err != nil {
-			log.Warn("[p2p]parse ip error ", err.Error())
-			conn.Close()
-			continue
-		}
-		if !this.IsIPInInConnRecord(remoteIp) {
-			conn.Close()
-			continue
-		}
-
-		remotePeer := peer.NewPeer()
-		addr := conn.RemoteAddr().String()
-		this.AddPeerConsAddress(addr, remotePeer)
-
-		remotePeer.ConsLink.SetAddr(addr)
-		remotePeer.ConsLink.SetConn(conn)
-		remotePeer.AttachConsChan(this.ConsChan)
-		go remotePeer.ConsLink.Rx()
-	}
-}
 
 //record the peer which is going to be dialed and sent version message but not in establish state
 func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
@@ -586,11 +516,7 @@ func (this *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
 	for _, p := range this.Np.List {
 		if p.GetSyncState() == common.HAND || p.GetSyncState() == common.HAND_SHAKE ||
 			p.GetSyncState() == common.ESTABLISH {
-			if isConsensus {
-				addrNew = p.ConsLink.GetAddr()
-			} else {
-				addrNew = p.SyncLink.GetAddr()
-			}
+			addrNew = p.SyncLink.GetAddr()
 			if strings.Compare(addrNew, addr) == 0 {
 				return true
 			}

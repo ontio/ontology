@@ -42,7 +42,7 @@ func (this *NbrPeers) Broadcast(msg types.Message, isConsensus bool) {
 	defer this.RUnlock()
 	for _, node := range this.List {
 		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-			node.SendRaw(msg.CmdType(), sink.Bytes(), isConsensus)
+			node.SendRaw(msg.CmdType(), sink.Bytes())
 		}
 	}
 }

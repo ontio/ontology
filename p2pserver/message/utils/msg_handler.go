@@ -167,7 +167,6 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 			remotePeer := p2p.GetPeer(data.Id)
 			if remotePeer != nil {
 				remotePeer.CloseSync()
-				remotePeer.CloseCons()
 			}
 
 			return
@@ -245,7 +244,6 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 		if !found {
 			remotePeer.CloseSync()
-			remotePeer.CloseCons()
 			log.Debug("[p2p]peer not in reserved list,close", data.Addr)
 			return
 		}
@@ -258,13 +256,12 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 		if p == nil {
 			log.Warn("[p2p]sync link is not exist", version.P.Nonce, data.Addr)
-			remotePeer.CloseCons()
 			remotePeer.CloseSync()
 			return
 		} else {
 			//p synclink must exist,merged
-			p.ConsLink = remotePeer.ConsLink
-			p.ConsLink.SetID(version.P.Nonce)
+			p.SyncLink = remotePeer.SyncLink
+			p.SyncLink.SetID(version.P.Nonce)
 			p.SetConsState(remotePeer.GetConsState())
 			remotePeer = p
 
@@ -274,21 +271,20 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			p2p.SetOwnAddress(nodeAddr)
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
 			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-			remotePeer.CloseCons()
+			remotePeer.CloseSync()
 			return
 		}
 
 		s := remotePeer.GetConsState()
 		if s != msgCommon.INIT && s != msgCommon.HAND {
 			log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, data.Addr)
-			remotePeer.CloseCons()
+			remotePeer.CloseSync()
 			return
 		}
 
 		// Todo: change the method of input parameters
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
-			version.P.Services, version.P.SyncPort,
-			version.P.ConsPort, version.P.Nonce,
+			version.P.Services, version.P.SyncPort, version.P.Nonce,
 			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
 
 		var msg msgTypes.Message
@@ -343,7 +339,6 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 					log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
 					// Close the connection and release the node source
 					n.CloseSync()
-					n.CloseCons()
 					if pid != nil {
 						input := &msgCommon.RemovePeerID{
 							ID: version.P.Nonce,
@@ -367,8 +362,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
 
 		remotePeer.UpdateInfo(time.Now(), version.P.Version,
-			version.P.Services, version.P.SyncPort,
-			version.P.ConsPort, version.P.Nonce,
+			version.P.Services, version.P.SyncPort, version.P.Nonce,
 			version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
 		remotePeer.SyncLink.SetID(version.P.Nonce)
 		p2p.AddNbrNode(remotePeer)
@@ -400,7 +394,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Trace("[p2p]receive verAck message from ", data.Addr, data.Id)
 
-	verAck := data.Payload.(*msgTypes.VerACK)
+	//verAck := data.Payload.(*msgTypes.VerACK)
 	remotePeer := p2p.GetPeer(data.Id)
 
 	if remotePeer == nil {
@@ -408,54 +402,35 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		return
 	}
 
-	if verAck.IsConsensus == true {
-		s := remotePeer.GetConsState()
-		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
-			log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
-			return
-		}
-
-		remotePeer.SetConsState(msgCommon.ESTABLISH)
-		p2p.RemoveFromConnectingList(data.Addr)
-		remotePeer.SetConsConn(remotePeer.GetConsConn())
-
-		if s == msgCommon.HAND_SHAKE {
-			msg := msgpack.NewVerAck(true)
-			p2p.Send(remotePeer, msg, true)
-		}
-	} else {
-		s := remotePeer.GetSyncState()
-		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
-			log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
-			return
-		}
-
-		remotePeer.SetSyncState(msgCommon.ESTABLISH)
-		p2p.RemoveFromConnectingList(data.Addr)
-		remotePeer.DumpInfo()
-
-		addr := remotePeer.SyncLink.GetAddr()
-
-		if s == msgCommon.HAND_SHAKE {
-			msg := msgpack.NewVerAck(false)
-			p2p.Send(remotePeer, msg, false)
-		} else {
-			//consensus port connect
-			if remotePeer.GetConsPort() > 0 {
-				addrIp, err := msgCommon.ParseIPAddr(addr)
-				if err != nil {
-					log.Warn(err)
-					return
-				}
-				nodeConsensusAddr := addrIp + ":" +
-					strconv.Itoa(int(remotePeer.GetConsPort()))
-				go p2p.Connect(nodeConsensusAddr, true)
-			}
-		}
-
-		msg := msgpack.NewAddrReq()
-		go p2p.Send(remotePeer, msg, false)
+	s := remotePeer.GetSyncState()
+	if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
+		log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
+		return
 	}
+
+	remotePeer.SetSyncState(msgCommon.ESTABLISH)
+	p2p.RemoveFromConnectingList(data.Addr)
+	remotePeer.DumpInfo()
+
+	addr := remotePeer.SyncLink.GetAddr()
+
+	if s == msgCommon.HAND_SHAKE {
+		msg := msgpack.NewVerAck(false)
+		p2p.Send(remotePeer, msg, false)
+	} else {
+		//consensus port connect
+		addrIp, err := msgCommon.ParseIPAddr(addr)
+		if err != nil {
+			log.Warn(err)
+			return
+		}
+		nodeConsensusAddr := addrIp + ":" +
+			strconv.Itoa(int(remotePeer.GetSyncPort()))
+		go p2p.Connect(nodeConsensusAddr, true)
+	}
+
+	msg := msgpack.NewAddrReq()
+	go p2p.Send(remotePeer, msg, false)
 
 }
 
@@ -660,11 +635,6 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 		p2p.RemovePeerSyncAddress(data.Addr)
 		p2p.RemovePeerConsAddress(data.Addr)
 		remotePeer.CloseSync()
-		remotePeer.CloseCons()
-	}
-	if remotePeer.ConsLink.GetAddr() == data.Addr {
-		p2p.RemovePeerConsAddress(data.Addr)
-		remotePeer.CloseCons()
 	}
 }
 

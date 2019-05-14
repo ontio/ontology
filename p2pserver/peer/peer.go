@@ -41,7 +41,6 @@ type PeerCom struct {
 	relay        bool
 	httpInfoPort uint16
 	syncPort     uint16
-	consPort     uint16
 	height       uint64
 	softVersion  string
 }
@@ -96,16 +95,6 @@ func (this *PeerCom) GetSyncPort() uint16 {
 	return this.syncPort
 }
 
-// SetConsPort sets a peer's consensus port
-func (this *PeerCom) SetConsPort(port uint16) {
-	this.consPort = port
-}
-
-// GetConsPort returns a peer's consensus port
-func (this *PeerCom) GetConsPort() uint16 {
-	return this.consPort
-}
-
 // SetHttpInfoPort sets a peer's http info port
 func (this *PeerCom) SetHttpInfoPort(port uint16) {
 	this.httpInfoPort = port
@@ -141,7 +130,6 @@ type Peer struct {
 	base      PeerCom
 	cap       [32]byte
 	SyncLink  *conn.Link
-	ConsLink  *conn.Link
 	syncState uint32
 	consState uint32
 	txnCnt    uint64
@@ -156,7 +144,6 @@ func NewPeer() *Peer {
 		consState: common.INIT,
 	}
 	p.SyncLink = conn.NewLink()
-	p.ConsLink = conn.NewLink()
 	runtime.SetFinalizer(p, rmPeer)
 	return p
 }
@@ -177,7 +164,6 @@ func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
 	log.Debug("[p2p]\t syncPort = ", this.GetSyncPort())
-	log.Debug("[p2p]\t consPort = ", this.GetConsPort())
 	log.Debug("[p2p]\t relay = ", this.GetRelay())
 	log.Debug("[p2p]\t height = ", this.GetHeight())
 	log.Debug("[p2p]\t softVersion = ", this.GetSoftVersion())
@@ -197,17 +183,6 @@ func (this *Peer) GetHeight() uint64 {
 func (this *Peer) SetHeight(height uint64) {
 	this.base.SetHeight(height)
 }
-
-//GetConsConn return consensus link
-func (this *Peer) GetConsConn() *conn.Link {
-	return this.ConsLink
-}
-
-//SetConsConn set consensue link to peer
-func (this *Peer) SetConsConn(consLink *conn.Link) {
-	this.ConsLink = consLink
-}
-
 //GetSyncState return sync state
 func (this *Peer) GetSyncState() uint32 {
 	return this.syncState
@@ -233,15 +208,6 @@ func (this *Peer) GetSyncPort() uint16 {
 	return this.SyncLink.GetPort()
 }
 
-//GetConsPort return peer`s consensus port
-func (this *Peer) GetConsPort() uint16 {
-	return this.ConsLink.GetPort()
-}
-
-//SetConsPort set peer`s consensus port
-func (this *Peer) SetConsPort(port uint16) {
-	this.ConsLink.SetPort(port)
-}
 
 //SendToSync call sync link to send buffer
 func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
@@ -251,14 +217,6 @@ func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
 	return errors.New("[p2p]sync link invalid")
 }
 
-//SendToCons call consensus link to send buffer
-func (this *Peer) SendToCons(msgType string, msgPayload []byte) error {
-	if this.ConsLink != nil && this.ConsLink.Valid() {
-		return this.ConsLink.SendRaw(msgPayload)
-	}
-	return errors.New("[p2p]cons link invalid")
-}
-
 //CloseSync halt sync connection
 func (this *Peer) CloseSync() {
 	this.SetSyncState(common.INACTIVITY)
@@ -266,18 +224,6 @@ func (this *Peer) CloseSync() {
 	this.connLock.Lock()
 	if conn != nil {
 		conn.Close()
-	}
-	this.connLock.Unlock()
-}
-
-//CloseCons halt consensus connection
-func (this *Peer) CloseCons() {
-	this.SetConsState(common.INACTIVITY)
-	conn := this.ConsLink.GetConn()
-	this.connLock.Lock()
-	if conn != nil {
-		conn.Close()
-
 	}
 	this.connLock.Unlock()
 }
@@ -340,7 +286,7 @@ func (this *Peer) AttachSyncChan(msgchan chan *types.MsgPayload) {
 
 //AttachConsChan set msg chan to consensus link
 func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
-	this.ConsLink.SetChan(msgchan)
+	this.SyncLink.SetChan(msgchan)
 }
 
 //Send transfer buffer by sync or cons link
@@ -348,13 +294,11 @@ func (this *Peer) Send(msg types.Message, isConsensus bool) error {
 	sink := comm.NewZeroCopySink(nil)
 	types.WriteMessage(sink, msg)
 
-	return this.SendRaw(msg.CmdType(), sink.Bytes(), isConsensus)
+	return this.SendRaw(msg.CmdType(), sink.Bytes())
 }
 
-func (this *Peer) SendRaw(msgType string, msgPayload []byte, isConsensus bool) error {
-	if isConsensus && this.ConsLink.Valid() {
-		return this.SendToCons(msgType, msgPayload)
-	}
+func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
+
 	return this.SendToSync(msgType, msgPayload)
 }
 
@@ -384,17 +328,15 @@ func (this *Peer) SetHttpInfoPort(port uint16) {
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64, softVer string) {
+	syncPort uint16, nonce uint64, relay uint8, height uint64, softVer string) {
 
 	this.SyncLink.UpdateRXTime(t)
 	this.base.SetID(nonce)
 	this.base.SetVersion(version)
 	this.base.SetServices(services)
 	this.base.SetSyncPort(syncPort)
-	this.base.SetConsPort(consPort)
 	this.base.SetSoftVersion(softVer)
 	this.SyncLink.SetPort(syncPort)
-	this.ConsLink.SetPort(consPort)
 	if relay == 0 {
 		this.base.SetRelay(false)
 	} else {

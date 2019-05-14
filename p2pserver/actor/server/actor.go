@@ -113,11 +113,10 @@ func (this *P2PActor) handleStopServerReq(ctx actor.Context, req *StopServerReq)
 
 //get port handler
 func (this *P2PActor) handleGetPortReq(ctx actor.Context, req *GetPortReq) {
-	syncPort, consPort := this.server.GetPort()
+	syncPort := this.server.GetPort()
 	if ctx.Sender() != nil {
 		resp := &GetPortRsp{
 			SyncPort: syncPort,
-			ConsPort: consPort,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
 	}

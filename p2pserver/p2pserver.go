@@ -126,8 +126,8 @@ func (this *P2PServer) GetNetWork() p2pnet.P2P {
 }
 
 //GetPort return two network port
-func (this *P2PServer) GetPort() (uint16, uint16) {
-	return this.network.GetSyncPort(), this.network.GetConsPort()
+func (this *P2PServer) GetPort() uint16 {
+	return this.network.GetSyncPort()
 }
 
 //GetVersion return self version
@@ -387,7 +387,6 @@ func (this *P2PServer) retryInactivePeer() {
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
 			p.CloseSync()
-			p.CloseCons()
 		} else {
 			//add others to tmp node map
 			this.removeFromRetryList(nodeAddr)
@@ -423,9 +422,6 @@ func (this *P2PServer) retryInactivePeer() {
 				if remotePeer != nil {
 					if remotePeer.SyncLink.GetAddr() == addr {
 						this.network.RemovePeerSyncAddress(addr)
-						this.network.RemovePeerConsAddress(addr)
-					}
-					if remotePeer.ConsLink.GetAddr() == addr {
 						this.network.RemovePeerConsAddress(addr)
 					}
 					this.network.DelNbrNode(remotePeer.GetID())
@@ -535,7 +531,6 @@ func (this *P2PServer) timeout() {
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
 				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.SyncLink.GetAddr(), t.String())
 				p.CloseSync()
-				p.CloseCons()
 			}
 		}
 	}
