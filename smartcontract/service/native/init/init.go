@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/auth"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/smartcontract/service/native/homomorphic_encryption"
 	"github.com/ontio/ontology/smartcontract/service/native/ong"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/ontid"
@@ -45,6 +46,7 @@ func init() {
 	ontid.Init()
 	auth.Init()
 	governance.InitGovernance()
+	homomorphic_encryption.InitHomomorphicEncryption()
 }
 
 func InitBytes(addr common.Address, method string) []byte {
