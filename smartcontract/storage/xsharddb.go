@@ -45,7 +45,7 @@ func (self *XShardDB) Commit() {
 	self.cacheDB.Commit()
 }
 
-func (self *XShardDB) GetXShardState(id xshard_state.ShardTxID) (*xshard_state.TxState, error) {
+func (self *XShardDB) GetXShardState(id xshard_types.ShardTxID) (*xshard_state.TxState, error) {
 	val, err := self.cacheDB.get(common.XSHARD_STATE, []byte(string(id)))
 	if err != nil {
 		return nil, err

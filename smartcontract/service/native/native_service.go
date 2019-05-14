@@ -48,19 +48,18 @@ var BYTE_TRUE = []byte{1}
 // Native service struct
 // Invoke a native smart contract, new a native service
 type NativeService struct {
-	CacheDB          *storage.CacheDB
-	ServiceMap       map[string]Handler
-	Notifications    []*event.NotifyEventInfo
-	InvokeParam      sstates.ContractInvokeParam
-	Input            []byte
-	Tx               *types.Transaction
-	ShardID          common.ShardID
-	Height           uint32
-	Time             uint32
-	BlockHash        common.Uint256
-	MainShardTxState *xshard_state.TxState
-	SubShardTxState  map[xshard_state.ShardTxID]xshard_state.ShardTxInfo
-	ContextRef       context.ContextRef
+	CacheDB       *storage.CacheDB
+	ServiceMap    map[string]Handler
+	Notifications []*event.NotifyEventInfo
+	InvokeParam   sstates.ContractInvokeParam
+	Input         []byte
+	Tx            *types.Transaction
+	ShardID       common.ShardID
+	Height        uint32
+	Time          uint32
+	BlockHash     common.Uint256
+	ShardTxState  *xshard_state.TxState
+	ContextRef    context.ContextRef
 }
 
 func (this *NativeService) Register(methodName string, handler Handler) {
@@ -71,7 +70,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	contract := this.InvokeParam
 	services, ok := Contracts[contract.Address]
 	if !ok {
-		return false, fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
+		return false, fmt.Errorf("native contract address %x haven't been registered", contract.Address)
 	}
 	services(this)
 	service, ok := this.ServiceMap[contract.Method]
@@ -86,7 +85,7 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	this.Notifications = []*event.NotifyEventInfo{}
 	result, err := service(this)
 	if err != nil {
-		return result, errors.New("[Invoke] Native serivce function execute error")
+		return result, fmt.Errorf("[Invoke] Native serivce function execute error: %v", err.Error())
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
@@ -110,13 +109,14 @@ func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.A
 	if ctx.ContextRef.IsPreExec() {
 		return
 	}
-	txState := ctx.MainShardTxState
+	txState := ctx.ShardTxState
 	// send with minimal gas fee
 	msg := &xshard_types.XShardNotify{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			SourceShardID: ctx.ShardID,
 			TargetShardID: target,
 			SourceTxHash:  ctx.Tx.Hash(),
+			ShardTxID:     txState.TxID,
 		},
 		NotifyID: txState.NumNotifies,
 		Contract: cont,
@@ -137,7 +137,7 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 	if ctx.ContextRef.IsPreExec() {
 		return BYTE_TRUE, nil
 	}
-	txState := ctx.MainShardTxState
+	txState := ctx.ShardTxState
 	reqIdx := txState.NextReqID
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
 		return BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
@@ -151,6 +151,7 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 			SourceShardID: ctx.ShardID,
 			TargetShardID: target,
 			SourceTxHash:  ctx.Tx.Hash(),
+			ShardTxID:     txState.TxID,
 		},
 		IdxInTx:  uint64(reqIdx),
 		Payer:    ctx.Tx.Payer,
@@ -191,7 +192,7 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 		return BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
 	}
 
-	txState.PendingReq = msg
+	txState.PendingOutReq = msg
 	txState.ExecState = xshard_state.ExecYielded
 
 	return BYTE_FALSE, xshard_state.ErrYield

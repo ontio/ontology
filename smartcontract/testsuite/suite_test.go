@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
@@ -47,6 +46,7 @@ func TestRemoteNotifyPing(t *testing.T) {
 			SourceShardID: shardContext.shardID,
 			TargetShardID: common.NewShardIDUnchecked(2),
 			SourceTxHash:  txHash,
+			ShardTxID:     xshard_types.NewShardTxID(txHash),
 		},
 		NotifyID: 0,
 		Fee:      neovm.MIN_TRANSACTION_GAS,
@@ -73,10 +73,10 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 	shardContext := NewShardContext(common.NewShardIDUnchecked(1), shardAContract, t)
 	txHash, notify := shardContext.InvokeShardContract(method, []interface{}{""})
 
-	shardTxID := xshard_state.ShardTxID(string(txHash[:]))
+	shardTxID := xshard_types.ShardTxID(string(txHash[:]))
 	state, err := shardContext.GetXShardState(shardTxID)
 	assert.Nil(t, err)
-	assert.NotNil(t, state.PendingReq)
+	assert.NotNil(t, state.PendingOutReq)
 	sink := common.NewZeroCopySink(10)
 	sink.WriteUint64(2)
 	sink.WriteUint64(3)
@@ -85,6 +85,7 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 			TargetShardID: ShardB,
 			SourceTxHash:  txHash,
 			SourceShardID: shardContext.shardID,
+			ShardTxID:     xshard_types.NewShardTxID(txHash),
 		},
 		IdxInTx:  0,
 		Fee:      neovm.MIN_TRANSACTION_GAS,
@@ -107,7 +108,7 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 		Result:  sink.Bytes(),
 	}
 
-	rep.SourceTxHash = txHash
+	rep.ShardTxID = xshard_types.NewShardTxID(txHash)
 	msgs := []xshard_types.CommonShardMsg{rep}
 	shardContext.HandleShardCallMsgs(msgs)
 	sink.Reset()
@@ -120,7 +121,7 @@ func TestLedgerRemoteInvokeAdd(t *testing.T) {
 	assert.Equal(t, string(res), string(buf))
 
 	commit := &xshard_types.XShardCommitMsg{}
-	commit.SourceTxHash = txHash
+	commit.ShardTxID = xshard_types.NewShardTxID(txHash)
 
 	msgs = []xshard_types.CommonShardMsg{commit}
 	notify = shardContext.HandleShardCallMsgs(msgs)
