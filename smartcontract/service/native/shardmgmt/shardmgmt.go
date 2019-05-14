@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
+	"math"
 	"math/big"
 	"sort"
 	"strings"
@@ -386,11 +387,15 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 
 	if _, present := shard.Peers[strings.ToLower(params.PeerPubKey)]; present {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer already in shard")
+	} else if len(shard.Peers) >= math.MaxUint32-1 { // peer index is max uint32 and start from 1
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peers num exceed")
 	} else {
 		if shard.Peers == nil {
 			shard.Peers = make(map[string]*shardstates.PeerShardStakeInfo)
 		}
+		index := uint32(len(shard.Peers) + 1)
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
+			Index:      index,
 			IpAddress:  params.IpAddress,
 			PeerOwner:  params.PeerOwner,
 			PeerPubKey: params.PeerPubKey,
@@ -400,6 +405,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 			shard.Config.VbftCfg.Peers = make([]*config.VBFTPeerStakeInfo, 0)
 		}
 		vbftPeerInfo := &config.VBFTPeerStakeInfo{
+			Index:      index,
 			PeerPubkey: strings.ToLower(params.PeerPubKey),
 			Address:    params.PeerOwner.ToBase58(),
 			InitPos:    params.StakeAmount,
@@ -599,7 +605,9 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := preCommitDpos(native, shardId); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
-	// TODO: update shard config, get shard current view stake info
+	if err := shard.UpdateDposInfo(native); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	}
 	evt := &shardstates.ConfigShardEvent{
 		Height: native.Height,
 		Config: shard.Config,

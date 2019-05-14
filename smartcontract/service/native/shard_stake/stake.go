@@ -453,14 +453,27 @@ func PreCommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: deserialize shard id faield, err: %s", err)
 	}
 	if err := checkCommittingDpos(native, shardId); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: failed, err: %s", err)
 	}
 	setShardCommitting(native, shardId, true)
 	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
 	}
-	setShardView(native, shardId, &utils.ChangeView{View: uint32(currentView)})
+	nextView := currentView + 1
+	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
+	}
+	if nextViewInfo.Peers == nil || len(nextViewInfo.Peers) == 0 {
+		currentViewInfo, err := GetShardViewInfo(native, shardId, currentView)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
+		}
+		nextViewInfo = currentViewInfo
+		setShardViewInfo(native, shardId, nextView, currentViewInfo)
+	}
+	setShardView(native, shardId, &utils.ChangeView{View: uint32(nextView)})
 	return utils.BYTE_TRUE, nil
 }
 

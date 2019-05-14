@@ -50,10 +50,9 @@ func commitDpos(native *native.NativeService, param *CommitDposParam) error {
 	if err != nil {
 		return fmt.Errorf("commitDpos: get next view info failed, err: %s", err)
 	}
-	// if empty, use current view info as next view info
+	// empty currentViewInfo means that there are no pre-commit dpos
 	if currentViewInfo.Peers == nil || len(currentViewInfo.Peers) == 0 {
-		currentViewInfo = lastViewInfo
-		setShardViewInfo(native, shardId, currentView, currentViewInfo)
+		return fmt.Errorf("commitDpos: current view info is empty")
 	}
 	// update next view info
 	setShardViewInfo(native, shardId, currentView+1, currentViewInfo)

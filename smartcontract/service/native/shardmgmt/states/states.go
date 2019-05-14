@@ -20,6 +20,8 @@ package shardstates
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"io"
 	"math/big"
 	"sort"
@@ -159,7 +161,7 @@ func (this *ShardState) Serialization(sink *common.ZeroCopySink) {
 		peers = append(peers, peer)
 	}
 	sort.SliceStable(peers, func(i, j int) bool {
-		return peers[i].PeerPubKey < peers[j].PeerPubKey
+		return peers[i].PeerPubKey > peers[j].PeerPubKey
 	})
 	for _, peer := range peers {
 		peer.Serialization(sink)
@@ -195,6 +197,46 @@ func (this *ShardState) Deserialization(source *common.ZeroCopySource) error {
 			return fmt.Errorf("read peer, index %d, err: %s", i, err)
 		}
 		this.Peers[strings.ToLower(peer.PeerPubKey)] = peer
+	}
+	return nil
+}
+
+func (this *ShardState) UpdateDposInfo(native *native.NativeService) error {
+	currentView, err := shard_stake.GetShardCurrentViewIndex(native, this.ShardID)
+	if err != nil {
+		return fmt.Errorf("updateDposInfo: failed, err: %s", err)
+	}
+	currentViewInfo, err := shard_stake.GetShardViewInfo(native, this.ShardID, currentView)
+	if err != nil {
+		return fmt.Errorf("updateDposInfo: failed, err: %s", err)
+	}
+	peerStakeInfo := make([]*shard_stake.PeerViewInfo, 0)
+	for _, peer := range currentViewInfo.Peers {
+		peerStakeInfo = append(peerStakeInfo, peer)
+	}
+	sort.SliceStable(peerStakeInfo, func(i, j int) bool {
+		stakeI := peerStakeInfo[i].InitPos + peerStakeInfo[i].UserStakeAmount
+		stakeJ := peerStakeInfo[j].InitPos + peerStakeInfo[j].UserStakeAmount
+		if stakeI == stakeJ {
+			return peerStakeInfo[i].PeerPubKey > peerStakeInfo[j].PeerPubKey
+		} else {
+			return stakeI > stakeJ
+		}
+	})
+	consensusCount := uint32(0)
+	for _, peer := range peerStakeInfo {
+		peerState, ok := this.Peers[peer.PeerPubKey]
+		if !ok {
+			return fmt.Errorf("updateDposInfo: stake peer %s isn't exist in shard state", peer.PeerPubKey)
+		}
+		if peerState.NodeType == CONSENSUS_NODE || peerState.NodeType == CONDIDATE_NODE {
+			if consensusCount < this.Config.VbftCfg.K {
+				peerState.NodeType = CONSENSUS_NODE
+				consensusCount++
+			} else {
+				peerState.NodeType = CONDIDATE_NODE
+			}
+		}
 	}
 	return nil
 }
