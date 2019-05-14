@@ -19,7 +19,6 @@
 package shardstates_test
 
 import (
-	"bytes"
 	"github.com/ontio/ontology/common"
 	"testing"
 
@@ -33,13 +32,11 @@ func TestCreateShardEvent(t *testing.T) {
 		NewShardID:    common.NewShardIDUnchecked(1),
 	}
 
-	buf := new(bytes.Buffer)
-	if err := evt.Serialize(buf); err != nil {
-		t.Fatalf("serialize createEvt: %s", err)
-	}
+	sink := common.NewZeroCopySink(0)
+	evt.Serialization(sink)
 
 	evt2 := &shardstates.CreateShardEvent{}
-	if err := evt2.Deserialize(buf); err != nil {
+	if err := evt2.Deserialization(common.NewZeroCopySource(sink.Bytes())); err != nil {
 		t.Fatalf("deserialize createEvt: %s", err)
 	}
 
