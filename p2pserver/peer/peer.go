@@ -180,6 +180,7 @@ func (this *Peer) GetHeight() uint64 {
 func (this *Peer) SetHeight(height uint64) {
 	this.base.SetHeight(height)
 }
+
 //GetSyncState return sync state
 func (this *Peer) GetSyncState() uint32 {
 	return this.syncState
@@ -194,7 +195,6 @@ func (this *Peer) SetSyncState(state uint32) {
 func (this *Peer) GetSyncPort() uint16 {
 	return this.SyncLink.GetPort()
 }
-
 
 //SendToSync call sync link to send buffer
 func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {

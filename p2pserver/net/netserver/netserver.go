@@ -168,7 +168,6 @@ func (this *NetServer) GetSyncPort() uint16 {
 	return this.base.GetSyncPort()
 }
 
-
 //GetHttpInfoPort return the port support info via http
 func (this *NetServer) GetHttpInfoPort() uint16 {
 	return this.base.GetHttpInfoPort()
@@ -442,7 +441,6 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 		go remotePeer.SyncLink.Rx()
 	}
 }
-
 
 //record the peer which is going to be dialed and sent version message but not in establish state
 func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
