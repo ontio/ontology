@@ -155,7 +155,7 @@ func setShardState(native *native.NativeService, contract common.Address, state 
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 
-func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {
+func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) {
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	eventState := &message.ShardEventState{
@@ -170,7 +170,6 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 			ContractAddress: contract,
 			States:          eventState,
 		})
-	return nil
 }
 
 func setShardPeerState(native *native.NativeService, contract common.Address, shardId common.ShardID, state peerState,

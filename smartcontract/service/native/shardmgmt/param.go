@@ -382,3 +382,31 @@ func (this *XShardHandlingFeeParam) Deserialization(source *common.ZeroCopySourc
 	}
 	return nil
 }
+
+type NotifyRootCommitDPosParam struct {
+	ShardId common.ShardID
+	Height  uint32
+}
+
+func (this *NotifyRootCommitDPosParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, uint64(this.Height)); err != nil {
+		return fmt.Errorf("serialize: write fee amount failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *NotifyRootCommitDPosParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if height, err := utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read fee amount failed, err: %s", err)
+	} else {
+		this.Height = uint32(height)
+	}
+	return nil
+}

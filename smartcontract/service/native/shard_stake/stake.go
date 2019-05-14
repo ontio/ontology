@@ -98,8 +98,8 @@ func InitShard(native *native.NativeService) ([]byte, error) {
 	}
 	shardView := &utils.ChangeView{
 		View:   0,
-		Height: native.Height,
-		TxHash: native.Tx.Hash(),
+		Height: 0,
+		TxHash: common.Uint256{},
 	}
 	setShardView(native, param.ShardId, shardView)
 	setNodeMinStakeAmount(native, param.ShardId, param.MinStake)
@@ -220,7 +220,7 @@ func PeerExit(native *native.NativeService) ([]byte, error) {
 	if err := checkCommittingDpos(native, param.ShardId); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, param.ShardId)
+	currentView, err := GetShardCurrentViewIndex(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
 	}
@@ -265,7 +265,7 @@ func DeletePeer(native *native.NativeService) ([]byte, error) {
 	if err := checkCommittingDpos(native, param.ShardId); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, param.ShardId)
+	currentView, err := GetShardCurrentViewIndex(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
 	}
@@ -456,7 +456,7 @@ func PreCommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
 	}
 	setShardCommitting(native, shardId, true)
-	currentView, err := GetShardCurrentView(native, shardId)
+	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
 	}
@@ -578,7 +578,7 @@ func GetCurrentView(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: read shardId failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, shardId)
+	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: failed, err: %s", err)
 	}

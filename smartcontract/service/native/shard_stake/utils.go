@@ -105,14 +105,22 @@ func genXShardFeeKey(shardId common.ShardID, view View) []byte {
 	return utils.ConcatKey(utils.ShardStakeAddress, []byte(KEY_XSHARD_FEE), sink.Bytes())
 }
 
-func GetShardCurrentView(native *native.NativeService, id common.ShardID) (View, error) {
+func GetShardCurrentViewIndex(native *native.NativeService, id common.ShardID) (View, error) {
+	if changeView, err := GetShardCurrentChangeView(native, id); err != nil {
+		return 0, fmt.Errorf("GetShardCurrentViewIndex: failed, err: %s", err)
+	} else {
+		return View(changeView.View), nil
+	}
+}
+
+func GetShardCurrentChangeView(native *native.NativeService, id common.ShardID) (*utils.ChangeView, error) {
 	shardIDBytes := utils.GetUint64Bytes(id.ToUint64())
 	key := GenShardViewKey(shardIDBytes)
 	changeView, err := utils.GetChangeView(native, utils.ShardStakeAddress, key)
 	if err != nil {
-		return 0, fmt.Errorf("getShardView, getView error: %v", err)
+		return nil, fmt.Errorf("GetShardCurrentChangeView: failed, err: %s", err)
 	}
-	return View(changeView.View), nil
+	return changeView, nil
 }
 
 func setShardView(native *native.NativeService, id common.ShardID, shardView *utils.ChangeView) {
