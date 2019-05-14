@@ -34,7 +34,7 @@ import (
 )
 
 type (
-	Handler func(native *NativeService) ([]byte, error)
+	Handler         func(native *NativeService) ([]byte, error)
 	RegisterService func(native *NativeService)
 )
 

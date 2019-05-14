@@ -21,7 +21,6 @@ package vbft
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"math"
 	"reflect"
 	"sync"
@@ -46,6 +45,7 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/validator/increment"
 )
@@ -57,7 +57,7 @@ const (
 	EndorseBlock
 	CommitBlock
 	SealBlock
-	FastForward  // for syncer catch up
+	FastForward // for syncer catch up
 	ReBroadcast
 )
 
@@ -1101,7 +1101,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 
 	prevBlockTimestamp := blk.Block.Header.Timestamp
 	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
-	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute * 10).Unix()) {
+	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
 		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
 		self.msgPool.DropMsg(msg)
 		return

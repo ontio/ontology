@@ -20,13 +20,13 @@ package shardmgmt
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -269,4 +269,39 @@ func getXShardHandlingFee(native *native.NativeService) (*shard_stake.XShardFeeI
 		return nil, fmt.Errorf("getXShardHandlingFee: deserialize failed, err: %s", err)
 	}
 	return info, nil
+}
+
+//check the configuration while update shard config
+func checkNewCfg(configuration *utils.Configuration, shard *shardstates.ShardState) error {
+	candidateNum := uint32(0)
+	for _, peer := range shard.Peers {
+		if peer.NodeType == shardstates.CONSENSUS_NODE || peer.NodeType == shardstates.CONDIDATE_NODE {
+			candidateNum = candidateNum + 1
+		}
+	}
+	if configuration.C == 0 {
+		return fmt.Errorf(" checkNewCfg: C can not be 0 in config")
+	}
+	if configuration.K > candidateNum {
+		return fmt.Errorf(" checkNewCfg: K can not be larger than num of candidate peer in config")
+	}
+	if configuration.L < 16*configuration.K || configuration.L%configuration.K != 0 {
+		return fmt.Errorf(" checkNewCfg: L can not be less than 16*K and K must be times of L in config")
+	}
+	if configuration.K < 2*configuration.C+1 {
+		return fmt.Errorf(" checkNewCfg: K can not be less than 2*C+1 in config")
+	}
+	if configuration.N < configuration.K || configuration.K < 7 {
+		return fmt.Errorf(" checkNewCfg: config not match N >= K >= 7")
+	}
+	if configuration.BlockMsgDelay < 5000 {
+		return fmt.Errorf(" checkNewCfg: BlockMsgDelay must >= 5000")
+	}
+	if configuration.HashMsgDelay < 5000 {
+		return fmt.Errorf(" checkNewCfg: HashMsgDelay must >= 5000")
+	}
+	if configuration.PeerHandshakeTimeout < 10 {
+		return fmt.Errorf(" checkNewCfg: PeerHandshakeTimeout must >= 10")
+	}
+	return nil
 }

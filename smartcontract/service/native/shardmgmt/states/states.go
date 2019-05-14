@@ -20,8 +20,6 @@ package shardstates
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"io"
 	"math/big"
 	"sort"
@@ -29,6 +27,8 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -39,9 +39,9 @@ const (
 
 const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED  // all parameter configured
-	SHARD_STATE_ACTIVE      // started
-	SHARD_STATE_STOPPING    // started
+	SHARD_STATE_CONFIGURED // all parameter configured
+	SHARD_STATE_ACTIVE     // started
+	SHARD_STATE_STOPPING   // started
 	SHARD_STATE_ARCHIVED
 )
 

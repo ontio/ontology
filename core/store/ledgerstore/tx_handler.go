@@ -21,7 +21,6 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/genesis"
 	"math"
 	"sort"
 	"strconv"
@@ -30,6 +29,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
+	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/overlaydb"

@@ -139,6 +139,33 @@ func (this *ConfigShardParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
+type UpdateConfigParam struct {
+	ShardId common.ShardID
+	NewCfg  *utils.Configuration
+}
+
+func (this *UpdateConfigParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := this.NewCfg.Serialize(w); err != nil {
+		return fmt.Errorf("serialize: write new config failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *UpdateConfigParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	this.NewCfg = &utils.Configuration{}
+	if err = this.NewCfg.Deserialize(r); err != nil {
+		return fmt.Errorf("deserialize: read new config failed, err: %s", err)
+	}
+	return nil
+}
+
 type ApplyJoinShardParam struct {
 	ShardId    common.ShardID
 	PeerOwner  common.Address
@@ -384,8 +411,9 @@ func (this *XShardHandlingFeeParam) Deserialization(source *common.ZeroCopySourc
 }
 
 type NotifyRootCommitDPosParam struct {
-	ShardId common.ShardID
-	Height  uint32
+	ShardId     common.ShardID
+	Height      uint32
+	ForceCommit bool
 }
 
 func (this *NotifyRootCommitDPosParam) Serialize(w io.Writer) error {
@@ -394,6 +422,9 @@ func (this *NotifyRootCommitDPosParam) Serialize(w io.Writer) error {
 	}
 	if err := utils.WriteVarUint(w, uint64(this.Height)); err != nil {
 		return fmt.Errorf("serialize: write fee amount failed, err: %s", err)
+	}
+	if err := serialization.WriteBool(w, this.ForceCommit); err != nil {
+		return fmt.Errorf("serialize: write force commit failed, err: %s", err)
 	}
 	return nil
 }
@@ -407,6 +438,9 @@ func (this *NotifyRootCommitDPosParam) Deserialize(r io.Reader) error {
 		return fmt.Errorf("deserialize: read fee amount failed, err: %s", err)
 	} else {
 		this.Height = uint32(height)
+	}
+	if this.ForceCommit, err = serialization.ReadBool(r); err != nil {
+		return fmt.Errorf("deserialize: read force commit failed, err: %s", err)
 	}
 	return nil
 }

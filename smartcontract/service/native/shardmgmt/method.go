@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -114,6 +115,18 @@ func deletePeer(native *native.NativeService, shardId common.ShardID, peers []st
 		return fmt.Errorf("deletePeer: failed, err: %s", err)
 	}
 	return nil
+}
+
+func updateNewCfg(native *native.NativeService, shard *shardstates.ShardState, newCfg *utils.Configuration) {
+	shard.Config.VbftCfg.N = newCfg.N
+	shard.Config.VbftCfg.C = newCfg.C
+	shard.Config.VbftCfg.K = newCfg.K
+	shard.Config.VbftCfg.L = newCfg.L
+	shard.Config.VbftCfg.BlockMsgDelay = newCfg.BlockMsgDelay
+	shard.Config.VbftCfg.HashMsgDelay = newCfg.HashMsgDelay
+	shard.Config.VbftCfg.PeerHandshakeTimeout = newCfg.PeerHandshakeTimeout
+	shard.Config.VbftCfg.MaxBlockChangeView = newCfg.MaxBlockChangeView
+	setShardState(native, utils.ShardMgmtContractAddress, shard)
 }
 
 func preCommitDpos(native *native.NativeService, shardId common.ShardID) error {
