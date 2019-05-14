@@ -32,13 +32,13 @@ type VersionPayload struct {
 	SyncPort     uint16
 	HttpInfoPort uint16
 	//TODO
-	ConsPort     uint16
-	Cap          [32]byte
-	Nonce        uint64
-	StartHeight  uint64
-	Relay        uint8
-	IsConsensus  bool
-	SoftVersion  string
+	ConsPort    uint16
+	Cap         [32]byte
+	Nonce       uint64
+	StartHeight uint64
+	Relay       uint8
+	IsConsensus bool
+	SoftVersion string
 }
 
 type Version struct {

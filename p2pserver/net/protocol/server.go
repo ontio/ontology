@@ -46,7 +46,7 @@ type P2P interface {
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
-	GetMsgChan(isConsensus bool) chan *types.MsgPayload
+	GetMsgChan() chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddOutConnectingList(addr string) (added bool)
 	GetOutConnRecordLen() int
@@ -54,10 +54,8 @@ type P2P interface {
 	RemoveFromOutConnRecord(addr string)
 	RemoveFromInConnRecord(addr string)
 	AddPeerSyncAddress(addr string, p *peer.Peer)
-	AddPeerConsAddress(addr string, p *peer.Peer)
 	GetOutConnectingListLen() (count uint)
 	RemovePeerSyncAddress(addr string)
-	RemovePeerConsAddress(addr string)
 	AddNbrNode(*peer.Peer)
 	DelNbrNode(id uint64) (*peer.Peer, bool)
 	NodeEstablished(uint64) bool

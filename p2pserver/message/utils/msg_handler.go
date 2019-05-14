@@ -359,21 +359,9 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 	p2p.RemoveFromConnectingList(data.Addr)
 	remotePeer.DumpInfo()
 
-	addr := remotePeer.SyncLink.GetAddr()
-
 	if s == msgCommon.HAND_SHAKE {
 		msg := msgpack.NewVerAck(false)
 		p2p.Send(remotePeer, msg, false)
-	} else {
-		//consensus port connect
-		addrIp, err := msgCommon.ParseIPAddr(addr)
-		if err != nil {
-			log.Warn(err)
-			return
-		}
-		nodeConsensusAddr := addrIp + ":" +
-			strconv.Itoa(int(remotePeer.GetSyncPort()))
-		go p2p.Connect(nodeConsensusAddr, true)
 	}
 
 	msg := msgpack.NewAddrReq()
@@ -580,7 +568,6 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 
 	if remotePeer.SyncLink.GetAddr() == data.Addr {
 		p2p.RemovePeerSyncAddress(data.Addr)
-		p2p.RemovePeerConsAddress(data.Addr)
 		remotePeer.CloseSync()
 	}
 }

@@ -34,9 +34,7 @@ type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, ar
 type MessageRouter struct {
 	msgHandlers  map[string]MessageHandler // Msg handler mapped to msg type
 	RecvSyncChan chan *types.MsgPayload    // The channel to handle sync msg
-	RecvConsChan chan *types.MsgPayload    // The channel to handle consensus msg
 	stopSyncCh   chan bool                 // To stop sync channel
-	stopConsCh   chan bool                 // To stop consensus channel
 	p2p          p2p.P2P                   // Refer to the p2p network
 	pid          *actor.PID                // P2P actor
 }
@@ -51,10 +49,8 @@ func NewMsgRouter(p2p p2p.P2P) *MessageRouter {
 // init initializes the message router's attributes
 func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.msgHandlers = make(map[string]MessageHandler)
-	this.RecvSyncChan = p2p.GetMsgChan(false)
-	this.RecvConsChan = p2p.GetMsgChan(true)
+	this.RecvSyncChan = p2p.GetMsgChan()
 	this.stopSyncCh = make(chan bool)
-	this.stopConsCh = make(chan bool)
 	this.p2p = p2p
 
 	// Register message handler
@@ -95,7 +91,6 @@ func (this *MessageRouter) SetPID(pid *actor.PID) {
 // Start starts the loop to handle the message from the network
 func (this *MessageRouter) Start() {
 	go this.hookChan(this.RecvSyncChan, this.stopSyncCh)
-	go this.hookChan(this.RecvConsChan, this.stopConsCh)
 	log.Debug("[p2p]MessageRouter start to parse p2p message...")
 }
 
@@ -127,8 +122,5 @@ func (this *MessageRouter) Stop() {
 
 	if this.stopSyncCh != nil {
 		this.stopSyncCh <- true
-	}
-	if this.stopConsCh != nil {
-		this.stopConsCh <- true
 	}
 }

@@ -40,7 +40,6 @@ import (
 func NewNetServer() p2p.P2P {
 	n := &NetServer{
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
-		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 	}
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
@@ -56,7 +55,6 @@ type NetServer struct {
 	synclistener net.Listener
 	conslistener net.Listener
 	SyncChan     chan *types.MsgPayload
-	ConsChan     chan *types.MsgPayload
 	ConnectingNodes
 	PeerAddrMap
 	Np            *peer.NbrPeers
@@ -107,11 +105,6 @@ func (this *NetServer) init() error {
 	}
 
 	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
-
-	if config.DefConfig.P2PNode.NodeConsensusPort == 0 {
-		log.Error("[p2p]consensus port invalid")
-		return errors.New("[p2p]invalid consensus port")
-	}
 
 	this.base.SetRelay(true)
 
@@ -224,12 +217,8 @@ func (this *NetServer) Xmit(msg types.Message, isCons bool) {
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
-func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.MsgPayload {
-	if isConsensus {
-		return this.ConsChan
-	} else {
-		return this.SyncChan
-	}
+func (this *NetServer) GetMsgChan() chan *types.MsgPayload {
+	return this.SyncChan
 }
 
 //Tx send data buf to peer
@@ -316,14 +305,6 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		go remotePeer.SyncLink.Rx()
 		remotePeer.SetSyncState(common.HAND)
 
-	} else {
-		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
-		this.AddPeerConsAddress(addr, remotePeer)
-		remotePeer.SyncLink.SetAddr(addr)
-		remotePeer.SyncLink.SetConn(conn)
-		remotePeer.AttachConsChan(this.ConsChan)
-		go remotePeer.SyncLink.Rx()
-		remotePeer.SetSyncState(common.HAND)
 	}
 	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
 	err = remotePeer.Send(version, isConsensus)
@@ -529,14 +510,6 @@ func (this *NetServer) AddPeerSyncAddress(addr string, p *peer.Peer) {
 	defer this.PeerAddrMap.Unlock()
 	log.Debugf("[p2p]AddPeerSyncAddress %s", addr)
 	this.PeerSyncAddress[addr] = p
-}
-
-//AddPeerConsAddress add cons addr to peer-addr map
-func (this *NetServer) AddPeerConsAddress(addr string, p *peer.Peer) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
-	log.Debugf("[p2p]AddPeerConsAddress %s", addr)
-	this.PeerConsAddress[addr] = p
 }
 
 //RemovePeerSyncAddress remove sync addr from peer-addr map
