@@ -38,5 +38,6 @@ import:
   - unix
 - package: golang.org/x/net
   repo: https://github.com/golang/net.git
+- package: github.com/Nik-U/pbc
 ignore:
   - golang.org/x/sys/unix
