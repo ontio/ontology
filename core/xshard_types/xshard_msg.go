@@ -265,6 +265,7 @@ func (msg *XShardPreparedMsg) Type() uint32 {
 }
 
 type ShardMsgHeader struct {
+	ShardTxID     ShardTxID
 	SourceShardID common.ShardID
 	TargetShardID common.ShardID
 	SourceTxHash  common.Uint256
@@ -272,6 +273,10 @@ type ShardMsgHeader struct {
 
 func (evt *ShardMsgHeader) GetSourceTxHash() common.Uint256 {
 	return evt.SourceTxHash
+}
+
+func (evt *ShardMsgHeader) GetShardTxID() ShardTxID {
+	return evt.ShardTxID
 }
 
 func (evt *ShardMsgHeader) GetSourceShardID() common.ShardID {
@@ -283,12 +288,18 @@ func (evt *ShardMsgHeader) GetTargetShardID() common.ShardID {
 }
 
 func (self *ShardMsgHeader) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(string(self.ShardTxID))
 	sink.WriteUint64(self.SourceShardID.ToUint64())
 	sink.WriteUint64(self.TargetShardID.ToUint64())
 	sink.WriteHash(self.SourceTxHash)
 }
 
 func (self *ShardMsgHeader) Deserialization(source *common.ZeroCopySource) error {
+	s, _, irr, eof := source.NextString()
+	if irr {
+		return common.ErrIrregularData
+	}
+	self.ShardTxID = ShardTxID(s)
 	shardID, eof := source.NextUint64()
 	id, err := common.NewShardID(shardID)
 	if err != nil {
@@ -311,6 +322,7 @@ func (self *ShardMsgHeader) Deserialization(source *common.ZeroCopySource) error
 
 type CommonShardMsg interface {
 	GetSourceTxHash() common.Uint256
+	GetShardTxID() ShardTxID
 	GetSourceShardID() common.ShardID
 	GetTargetShardID() common.ShardID
 	Type() uint32
@@ -417,3 +429,9 @@ func DecodeShardCommonMsgs(payload []byte) ([]CommonShardMsg, error) {
 
 	return reqs, nil
 }
+
+func NewShardTxID(h common.Uint256) ShardTxID {
+	return ShardTxID(string(h[:]))
+}
+
+type ShardTxID string // cross shard tx id: userTxHash+notify1+notify2...
