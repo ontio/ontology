@@ -42,11 +42,12 @@ func InitHomomorphicEncryption() {
 	native.Contracts[utils.HomomorphicEncryptionContractAddress] = RegisterHomomorphicEncryptionContract
 }
 
-//Register methods of HomomorphicEncryption contract
+//RegisterHomomorphicEncryptionContract methods of HomomorphicEncryption contract
 func RegisterHomomorphicEncryptionContract(native *native.NativeService) {
 	native.Register(INIT_CONFIG, InitConfig)
 }
 
-//Init HomomorphicEncryption contract, include vbft config, global param and ontid admin.
+//InitConfig HomomorphicEncryption contract, include vbft config, global param and ontid admin.
 func InitConfig(native *native.NativeService) ([]byte, error) {
+	return utils.BYTE_TRUE, nil
 }
