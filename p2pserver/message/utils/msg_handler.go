@@ -253,11 +253,6 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	}
 
 	if version.P.IsConsensus == true {
-		if config.DefConfig.P2PNode.DualPortSupport == false {
-			log.Warn("[p2p]consensus port not surpport", data.Addr)
-			remotePeer.CloseCons()
-			return
-		}
 
 		p := p2p.GetPeer(version.P.Nonce)
 
@@ -414,10 +409,6 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 	}
 
 	if verAck.IsConsensus == true {
-		if config.DefConfig.P2PNode.DualPortSupport == false {
-			log.Warn("[p2p]consensus port not surpport")
-			return
-		}
 		s := remotePeer.GetConsState()
 		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
 			log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
@@ -450,7 +441,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 			p2p.Send(remotePeer, msg, false)
 		} else {
 			//consensus port connect
-			if config.DefConfig.P2PNode.DualPortSupport && remotePeer.GetConsPort() > 0 {
+			if remotePeer.GetConsPort() > 0 {
 				addrIp, err := msgCommon.ParseIPAddr(addr)
 				if err != nil {
 					log.Warn(err)

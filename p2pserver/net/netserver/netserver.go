@@ -108,16 +108,12 @@ func (this *NetServer) init() error {
 
 	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
 
-	if config.DefConfig.P2PNode.DualPortSupport {
-		if config.DefConfig.P2PNode.NodeConsensusPort == 0 {
-			log.Error("[p2p]consensus port invalid")
-			return errors.New("[p2p]invalid consensus port")
-		}
-
-		this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
-	} else {
-		this.base.SetConsPort(0)
+	if config.DefConfig.P2PNode.NodeConsensusPort == 0 {
+		log.Error("[p2p]consensus port invalid")
+		return errors.New("[p2p]invalid consensus port")
 	}
+
+	this.base.SetConsPort(uint16(config.DefConfig.P2PNode.NodeConsensusPort))
 
 	this.base.SetRelay(true)
 
@@ -246,9 +242,6 @@ func (this *NetServer) GetMsgChan(isConsensus bool) chan *types.MsgPayload {
 //Tx send data buf to peer
 func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
 	if p != nil {
-		if config.DefConfig.P2PNode.DualPortSupport == false {
-			return p.Send(msg, false)
-		}
 		return p.Send(msg, isConsensus)
 	}
 	log.Warn("[p2p]send to a invalid peer")
@@ -385,10 +378,6 @@ func (this *NetServer) startListening() error {
 	}
 
 	//consensus
-	if config.DefConfig.P2PNode.DualPortSupport == false {
-		log.Debug("[p2p]dual port mode not supported,keep single link")
-		return nil
-	}
 	if consPort == 0 || consPort == syncPort {
 		//still work
 		log.Warn("[p2p]consensus port invalid,keep single link")

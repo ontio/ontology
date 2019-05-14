@@ -509,7 +509,6 @@ type P2PNodeConfig struct {
 	NetworkName               string
 	NodePort                  uint
 	NodeConsensusPort         uint
-	DualPortSupport           bool
 	IsTLS                     bool
 	CertPath                  string
 	KeyPath                   string
@@ -574,7 +573,6 @@ func NewOntologyConfig() *OntologyConfig {
 			NetworkMagic:              GetNetworkMagic(NETWORK_ID_MAIN_NET),
 			NodePort:                  DEFAULT_NODE_PORT,
 			NodeConsensusPort:         DEFAULT_CONSENSUS_PORT,
-			DualPortSupport:           true,
 			IsTLS:                     false,
 			CertPath:                  "",
 			KeyPath:                   "",
