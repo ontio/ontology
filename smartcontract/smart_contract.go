@@ -42,7 +42,8 @@ type SmartContract struct {
 	Contexts      []*context.Context    // all execute smart contract context
 	CacheDB       *storage.CacheDB      // state cache
 	ShardTxState  *xshard_state.TxState // shardid is tx hash
-	Store         store.LedgerStore     // ledger store
+	IsShardCall   bool
+	Store         store.LedgerStore // ledger store
 	Config        *Config
 	Notifications []*event.NotifyEventInfo // all execute smart contract event notify info
 	Gas           uint64
@@ -137,6 +138,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte) (context.Engine, error)
 		Tx:           this.Config.Tx,
 		ShardID:      this.Config.ShardID,
 		ShardTxState: this.ShardTxState,
+		IsShardCall:  this.IsShardCall,
 		Time:         this.Config.Time,
 		Height:       this.Config.Height,
 		BlockHash:    this.Config.BlockHash,
