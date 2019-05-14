@@ -277,7 +277,7 @@ func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
 }
 
 //Send transfer buffer by sync or cons link
-func (this *Peer) Send(msg types.Message, isConsensus bool) error {
+func (this *Peer) Send(msg types.Message) error {
 	sink := comm.NewZeroCopySink(nil)
 	types.WriteMessage(sink, msg)
 

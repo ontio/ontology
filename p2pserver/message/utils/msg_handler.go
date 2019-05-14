@@ -72,7 +72,7 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 	}
 	msg := msgpack.NewAddrs(addrStr)
-	err := p2p.Send(remotePeer, msg, false)
+	err := p2p.Send(remotePeer, msg)
 	if err != nil {
 		log.Warn(err)
 		return
@@ -99,7 +99,7 @@ func HeadersReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 		return
 	}
 	msg := msgpack.NewHeaders(headers)
-	err = p2p.Send(remotePeer, msg, false)
+	err = p2p.Send(remotePeer, msg)
 	if err != nil {
 		log.Warn(err)
 		return
@@ -122,7 +122,7 @@ func PingHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 	p2p.SetHeight(uint64(height))
 	msg := msgpack.NewPongMsg(uint64(height))
 
-	err := p2p.Send(remotePeer, msg, false)
+	err := p2p.Send(remotePeer, msg)
 	if err != nil {
 		log.Warn(err)
 	}
@@ -325,12 +325,12 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	var msg msgTypes.Message
 	if s == msgCommon.INIT {
 		remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
-		msg = msgpack.NewVersion(p2p, false, ledger.DefLedger.GetCurrentBlockHeight())
+		msg = msgpack.NewVersion(p2p,ledger.DefLedger.GetCurrentBlockHeight())
 	} else if s == msgCommon.HAND {
 		remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
 		msg = msgpack.NewVerAck(false)
 	}
-	err = p2p.Send(remotePeer, msg, false)
+	err = p2p.Send(remotePeer, msg)
 	if err != nil {
 		log.Warn(err)
 		return
@@ -361,11 +361,11 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 
 	if s == msgCommon.HAND_SHAKE {
 		msg := msgpack.NewVerAck(false)
-		p2p.Send(remotePeer, msg, false)
+		p2p.Send(remotePeer, msg)
 	}
 
 	msg := msgpack.NewAddrReq()
-	go p2p.Send(remotePeer, msg, false)
+	go p2p.Send(remotePeer, msg)
 
 }
 
@@ -398,7 +398,7 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 			continue
 		}
 		log.Debug("[p2p]connect ip address:", address)
-		go p2p.Connect(address, false)
+		go p2p.Connect(address)
 	}
 }
 
@@ -433,7 +433,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				log.Debug("[p2p]can't get block by hash: ", hash,
 					" ,send not found message")
 				msg := msgpack.NewNotFound(hash)
-				err := p2p.Send(remotePeer, msg, false)
+				err := p2p.Send(remotePeer, msg)
 				if err != nil {
 					log.Warn(err)
 					return
@@ -445,7 +445,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				log.Debugf("[p2p]failed to get state merkel root at height %v, err %v",
 					block.Header.Height, err)
 				msg := msgpack.NewNotFound(hash)
-				err := p2p.Send(remotePeer, msg, false)
+				err := p2p.Send(remotePeer, msg)
 				if err != nil {
 					log.Warn(err)
 					return
@@ -455,7 +455,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			msg = msgpack.NewBlock(block, merkleRoot)
 			saveRespCache(reqID, msg)
 		}
-		err := p2p.Send(remotePeer, msg, false)
+		err := p2p.Send(remotePeer, msg)
 		if err != nil {
 			log.Warn(err)
 			return
@@ -467,14 +467,14 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			log.Debug("[p2p]Can't get transaction by hash: ",
 				hash, " ,send not found message")
 			msg := msgpack.NewNotFound(hash)
-			err = p2p.Send(remotePeer, msg, false)
+			err = p2p.Send(remotePeer, msg)
 			if err != nil {
 				log.Warn(err)
 				return
 			}
 		}
 		msg := msgpack.NewTxn(txn)
-		err = p2p.Send(remotePeer, msg, false)
+		err = p2p.Send(remotePeer, msg)
 		if err != nil {
 			log.Warn(err)
 			return
@@ -511,7 +511,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		trn, err := ledger.DefLedger.GetTransaction(id)
 		if trn == nil || err != nil {
 			msg := msgpack.NewTxnDataReq(id)
-			err = p2p.Send(remotePeer, msg, false)
+			err = p2p.Send(remotePeer, msg)
 			if err != nil {
 				log.Warn(err)
 				return
@@ -532,7 +532,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 				// send the block request
 				log.Infof("[p2p]inv request block hash: %x", id)
 				msg := msgpack.NewBlkDataReq(id)
-				err = p2p.Send(remotePeer, msg, false)
+				err = p2p.Send(remotePeer, msg)
 				if err != nil {
 					log.Warn(err)
 					return
@@ -543,7 +543,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		log.Debug("[p2p]receive consensus message")
 		id = inv.P.Blk[0]
 		msg := msgpack.NewConsensusDataReq(id)
-		err := p2p.Send(remotePeer, msg, true)
+		err := p2p.Send(remotePeer, msg)
 		if err != nil {
 			log.Warn(err)
 			return

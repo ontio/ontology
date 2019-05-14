@@ -174,7 +174,7 @@ func (this *P2PServer) Xmit(message interface{}) error {
 func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 	isConsensus bool) error {
 	if this.network.IsPeerEstablished(p) {
-		return this.network.Send(p, msg, isConsensus)
+		return this.network.Send(p, msg)
 	}
 	log.Warnf("[p2p]send to a not ESTABLISH peer %d",
 		p.GetID())
@@ -335,11 +335,11 @@ func (this *P2PServer) connectSeeds() {
 		this.reqNbrList(seedConnList[index])
 		if isSeed && len(seedDisconn) > 0 {
 			index := rand.Intn(len(seedDisconn))
-			go this.network.Connect(seedDisconn[index], false)
+			go this.network.Connect(seedDisconn[index])
 		}
 	} else { //not found
 		for _, nodeAddr := range seedNodes {
-			go this.network.Connect(nodeAddr, false)
+			go this.network.Connect(nodeAddr)
 		}
 	}
 }
@@ -435,7 +435,7 @@ func (this *P2PServer) retryInactivePeer() {
 			log.Debug("[p2p]Try to reconnect peer, peer addr is ", addr)
 			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
 			log.Debug("[p2p]Back off time`s up, start connect node")
-			this.network.Connect(addr, false)
+			this.network.Connect(addr)
 		}
 
 	}
@@ -579,7 +579,7 @@ func (this *P2PServer) tryRecentPeers() {
 			log.Info("[p2p]try to connect recent peer")
 		}
 		for _, v := range this.recentPeers[netID] {
-			go this.network.Connect(v, false)
+			go this.network.Connect(v)
 		}
 
 	}

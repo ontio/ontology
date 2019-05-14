@@ -26,6 +26,7 @@ import (
 )
 
 type VerACK struct {
+	//TODO
 	IsConsensus bool
 }
 

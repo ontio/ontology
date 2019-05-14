@@ -29,7 +29,7 @@ import (
 type P2P interface {
 	Start()
 	Halt()
-	Connect(addr string, isConsensus bool) error
+	Connect(addr string) error
 	GetID() uint64
 	GetVersion() uint32
 	GetSyncPort() uint16
@@ -45,7 +45,7 @@ type P2P interface {
 	GetPeer(uint64) *peer.Peer
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
-	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
+	Send(p *peer.Peer, msg types.Message) error
 	GetMsgChan() chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddOutConnectingList(addr string) (added bool)

@@ -222,9 +222,9 @@ func (this *NetServer) GetMsgChan() chan *types.MsgPayload {
 }
 
 //Tx send data buf to peer
-func (this *NetServer) Send(p *peer.Peer, msg types.Message, isConsensus bool) error {
+func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 	if p != nil {
-		return p.Send(msg, isConsensus)
+		return p.Send(msg)
 	}
 	log.Warn("[p2p]send to a invalid peer")
 	return errors.New("[p2p]send to a invalid peer")
@@ -239,9 +239,9 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 }
 
 //Connect used to connect net address under sync or cons mode
-func (this *NetServer) Connect(addr string, isConsensus bool) error {
+func (this *NetServer) Connect(addr string) error {
 	if this.IsAddrInOutConnRecord(addr) {
-		log.Debugf("[p2p]Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
+		log.Debugf("[p2p]Address: %s is in OutConnectionRecord,", addr)
 		return nil
 	}
 	if this.IsOwnAddress(addr) {
@@ -261,7 +261,7 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	}
 	this.connectLock.Unlock()
 
-	if this.IsNbrPeerAddr(addr, isConsensus) {
+	if this.IsNbrPeerAddr(addr) {
 		return nil
 	}
 	this.connectLock.Lock()
@@ -295,23 +295,19 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
 		conn.RemoteAddr().Network())
 
-	if !isConsensus {
-		this.AddOutConnRecord(addr)
-		remotePeer = peer.NewPeer()
-		this.AddPeerSyncAddress(addr, remotePeer)
-		remotePeer.SyncLink.SetAddr(addr)
-		remotePeer.SyncLink.SetConn(conn)
-		remotePeer.AttachSyncChan(this.SyncChan)
-		go remotePeer.SyncLink.Rx()
-		remotePeer.SetSyncState(common.HAND)
+	this.AddOutConnRecord(addr)
+	remotePeer = peer.NewPeer()
+	this.AddPeerSyncAddress(addr, remotePeer)
+	remotePeer.SyncLink.SetAddr(addr)
+	remotePeer.SyncLink.SetConn(conn)
+	remotePeer.AttachSyncChan(this.SyncChan)
+	go remotePeer.SyncLink.Rx()
+	remotePeer.SetSyncState(common.HAND)
 
-	}
-	version := msgpack.NewVersion(this, isConsensus, ledger.DefLedger.GetCurrentBlockHeight())
-	err = remotePeer.Send(version, isConsensus)
+	version := msgpack.NewVersion(this, ledger.DefLedger.GetCurrentBlockHeight())
+	err = remotePeer.Send(version)
 	if err != nil {
-		if !isConsensus {
-			this.RemoveFromOutConnRecord(addr)
-		}
+		this.RemoveFromOutConnRecord(addr)
 		log.Warn(err)
 		return err
 	}
@@ -488,7 +484,7 @@ func (this *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
 }
 
 //IsNbrPeerAddr return result whether the address is under connecting
-func (this *NetServer) IsNbrPeerAddr(addr string, isConsensus bool) bool {
+func (this *NetServer) IsNbrPeerAddr(addr string) bool {
 	var addrNew string
 	this.Np.RLock()
 	defer this.Np.RUnlock()
