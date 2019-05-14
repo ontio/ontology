@@ -71,12 +71,12 @@ func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		sc := smartcontract.SmartContract{
-			Config:           config,
-			Store:            nil,
+			Config:       config,
+			Store:        nil,
 			ShardTxState: txState,
-			CacheDB:          cache,
-			Gas:              100000000000000,
-			PreExec:          true,
+			CacheDB:      cache,
+			Gas:          100000000000000,
+			PreExec:      true,
 		}
 
 		//start the smart contract executive function

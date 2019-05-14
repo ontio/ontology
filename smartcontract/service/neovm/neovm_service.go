@@ -120,19 +120,19 @@ type Service struct {
 
 // NeoVmService is a struct for smart contract provide interop service
 type NeoVmService struct {
-	Store            store.LedgerStore
-	CacheDB          *storage.CacheDB
-	ContextRef       context.ContextRef
-	Notifications    []*event.NotifyEventInfo
-	Code             []byte
-	Tx               *types.Transaction
-	ShardID          scommon.ShardID
-	ShardTxState *xshard_state.TxState
-	Time             uint32
-	Height           uint32
-	BlockHash        scommon.Uint256
-	Engine           *vm.ExecutionEngine
-	PreExec          bool
+	Store         store.LedgerStore
+	CacheDB       *storage.CacheDB
+	ContextRef    context.ContextRef
+	Notifications []*event.NotifyEventInfo
+	Code          []byte
+	Tx            *types.Transaction
+	ShardID       scommon.ShardID
+	ShardTxState  *xshard_state.TxState
+	Time          uint32
+	Height        uint32
+	BlockHash     scommon.Uint256
+	Engine        *vm.ExecutionEngine
+	PreExec       bool
 }
 
 // Invoke a smart contract
