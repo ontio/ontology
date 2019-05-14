@@ -16,7 +16,6 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO: check shard call permission
 package oep4
 
 import (
@@ -515,9 +514,9 @@ func XShardTransferRetry(native *native.NativeService) ([]byte, error) {
 }
 
 func XShardTransferSucc(native *native.NativeService) ([]byte, error) {
-	//if native.Tx.TxType != types.ShardCall {
-	//	return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
-	//}
+	if !native.IsShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: only can be invoked by ShardCall")
+	}
 	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: read input failed, err: %s", err)
@@ -552,9 +551,9 @@ func XShardTransferSucc(native *native.NativeService) ([]byte, error) {
 }
 
 func ShardReceiveAsset(native *native.NativeService) ([]byte, error) {
-	//if native.Tx.TxType != types.ShardCall {
-	//	return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
-	//}
+	if !native.IsShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: only can be invoked by ShardCall")
+	}
 	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: read input failed, err: %s", err)
@@ -652,12 +651,12 @@ func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
 }
 
 func XShardReceiveOng(native *native.NativeService) ([]byte, error) {
-	//if native.Tx.TxType != types.ShardCall {
-	//	return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
-	//}
+	if !native.IsShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: only can be invoked by ShardCall")
+	}
 	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferSucc: read input failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: read input failed, err: %s", err)
 	}
 	param := &ShardMintParam{}
 	if err := param.Deserialize(bytes.NewReader(data)); err != nil {

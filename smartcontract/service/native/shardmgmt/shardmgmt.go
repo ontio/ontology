@@ -16,7 +16,6 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// TODO: check shard call permission
 package shardmgmt
 
 import (
@@ -616,6 +615,8 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: checkwitness failed, err: %s", err)
 		}
+	} else if !native.IsShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by ShardCall")
 	} else if param.Height < shardCurrentView.Height ||
 		param.Height-shardCurrentView.Height < shard.Config.VbftCfg.MaxBlockChangeView {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: shard height not enough")
@@ -683,9 +684,9 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
 	}
-	//if native.Tx.TxType != types.ShardCall {
-	//	return utils.BYTE_FALSE, fmt.Errorf("tx type unmatch")
-	//}
+	if !native.IsShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked by ShardCall")
+	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	balance, err := ong.GetOngBalance(native, contract)
 	if err != nil {

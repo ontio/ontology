@@ -478,6 +478,9 @@ func PreCommitDpos(native *native.NativeService) ([]byte, error) {
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
+	if !native.IsShardCall {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by ShardCall")
+	}
 	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("decode input failed, err: %s", err)
