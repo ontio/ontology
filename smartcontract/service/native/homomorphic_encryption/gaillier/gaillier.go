@@ -183,3 +183,44 @@ func crt(mp *big.Int, mq *big.Int, privKey *PrivateKey) *big.Int {
 	m := new(big.Int).Add(mp, new(big.Int).Mul(u, privKey.p))
 	return new(big.Int).Mod(m, privKey.n)
 }
+
+// AddCipher homomorphically adds together two cipher texts.
+// To do this we multiply the two cipher texts, upon decryption, the resulting
+// plain text will be the sum of the corresponding plain texts.
+func AddCipher(pubKey *PublicKey, cipher1, cipher2 []byte) []byte {
+	x := new(big.Int).SetBytes(cipher1)
+	y := new(big.Int).SetBytes(cipher2)
+
+	// x * y mod n^2
+	return new(big.Int).Mod(
+		new(big.Int).Mul(x, y),
+		pubKey.NSquared,
+	).Bytes()
+}
+
+// Add homomorphically adds a passed constant to the encrypted integer
+// (our cipher text). We do this by multiplying the constant with our
+// ciphertext. Upon decryption, the resulting plain text will be the sum of
+// the plaintext integer and the constant.
+func Add(pubKey *PublicKey, cipher, constant []byte) []byte {
+	c := new(big.Int).SetBytes(cipher)
+	x := new(big.Int).SetBytes(constant)
+
+	// c * g ^ x mod n^2
+	return new(big.Int).Mod(
+		new(big.Int).Mul(c, new(big.Int).Exp(pubKey.G, x, pubKey.NSquared)),
+		pubKey.NSquared,
+	).Bytes()
+}
+
+// Mul homomorphically multiplies an encrypted integer (cipher text) by a
+// constant. We do this by raising our cipher text to the power of the passed
+// constant. Upon decryption, the resulting plain text will be the product of
+// the plaintext integer and the constant.
+func Mul(pubKey *PublicKey, cipher []byte, constant []byte) []byte {
+	c := new(big.Int).SetBytes(cipher)
+	x := new(big.Int).SetBytes(constant)
+
+	// c ^ x mod n^2
+	return new(big.Int).Exp(c, x, pubKey.NSquared).Bytes()
+}
