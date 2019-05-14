@@ -131,3 +131,24 @@ func TestShardFlowPattern2(t *testing.T) {
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit, 2 notify = 12
 	runFlowCommand(t, sid(0), &flow, 12)
 }
+
+func TestShardFlowPattern3(t *testing.T) {
+	// shard0 -> notify2 -> invoke3
+	flow := MutliCommand{}.SubCmd(
+		NewNotifyCommand(sid(2), NewInvokeCommand(sid(3), &GreetCommand{})),
+	)
+
+	// 1 notify, 1 req, 1 rep, 1 prep, 1 preped, 1 commit = 6
+	runFlowCommand(t, sid(0), &flow, 6)
+}
+
+func TestShardFlowPattern4(t *testing.T) {
+	// shard0 -> notify2 -> invoke3 -> notify4 -> invoke5
+	flow := MutliCommand{}.SubCmd(
+		NewNotifyCommand(sid(2), NewInvokeCommand(sid(3),
+			NewNotifyCommand(sid(4), NewInvokeCommand(sid(5), &GreetCommand{})))),
+	)
+
+	// 2 notify, 2 req, 2 rep, 2 prep, 2 preped, 2 commit = 12
+	runFlowCommand(t, sid(0), &flow, 12)
+}
