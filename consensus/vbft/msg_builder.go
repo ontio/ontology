@@ -179,7 +179,7 @@ func (self *Server) constructHeartbeatMsg() (*peerHeartbeatMsg, error) {
 	return msg, nil
 }
 
-func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, txs []*types.Transaction, consensusPayload []byte, blocktimestamp uint32) (*types.Block, error) {
+func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, txs []*types.Transaction, shardTxs map[uint64][]*types.Transaction, consensusPayload []byte, blocktimestamp uint32) (*types.Block, error) {
 	txHash := []common.Uint256{}
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
@@ -190,13 +190,15 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		return nil, err
 	}
 	parentHeight := self.ledger.GetParentHeight() + 1
-	shardTxs := make(map[uint64][]*types.Transaction)
-	if self.parentHeight < parentHeight {
-		crossShards := xshard.GetCrossShardTxs()
-		for shardId, txs := range crossShards {
-			shardTxs[shardId] = txs
+	/*
+		shardTxs := make(map[uint64][]*types.Transaction)
+		if self.parentHeight < parentHeight {
+			crossShards := xshard.GetCrossShardTxs()
+			for shardId, txs := range crossShards {
+				shardTxs[shardId] = txs
+			}
 		}
-	}
+	*/
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
 
@@ -262,6 +264,28 @@ func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs,
 	}
 	return crossShardMsgs, nil
 }
+
+func (self *Server) constructShardTxs(blkNum uint32) (map[uint64][]*types.Transaction, *CrossTxMsgs, error) {
+	if self.ShardID.IsRootShard() {
+		return nil, nil, nil
+	}
+	crossTxs := make([]*CrossTxMsg, 0)
+	shardTxs, crossShards := xshard.GetCrossShardTxs()
+	for shardId, crossMsgInfo := range crossShards {
+		for _, crossMsg := range crossMsgInfo {
+			crossTxmsg := &CrossTxMsg{
+				ShardID: shardId,
+				TxMsg:   crossMsg,
+			}
+			crossTxs = append(crossTxs, crossTxmsg)
+		}
+	}
+	crossTxmsgs := &CrossTxMsgs{
+		CrossMsg: crossTxs,
+	}
+	return shardTxs, crossTxmsgs, nil
+}
+
 func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
 
 	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
@@ -296,12 +320,15 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, err
 	}
-
-	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayload, blocktimestamp)
+	shardTxs, crossTxMsgs, err := self.constructShardTxs(blkNum)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct shard tx :%s", err)
+	}
+	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, shardTxs, consensusPayload, blocktimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct empty block: %s", err)
 	}
-	blk, err := self.constructBlock(blkNum, prevBlkHash, append(sysTxs, userTxs...), consensusPayload, blocktimestamp)
+	blk, err := self.constructBlock(blkNum, prevBlkHash, append(sysTxs, userTxs...), shardTxs, consensusPayload, blocktimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to constuct blk: %s", err)
 	}
@@ -317,6 +344,7 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 			Info:                vbftBlkInfo,
 			PrevBlockMerkleRoot: merkleRoot,
 			CrossMsg:            crossShardMsgs,
+			CrossTxs:            crossTxMsgs,
 		},
 	}
 

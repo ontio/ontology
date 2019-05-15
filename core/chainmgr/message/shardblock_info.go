@@ -54,6 +54,22 @@ type ShardBlockInfo struct {
 	ShardTx  *ShardBlockTx `json:"shard_txs"`
 }
 
+func (this *CrossShardMsgInfo) Serialization(sink *common.ZeroCopySink) error {
+	this.ShardMsg.Serialization(sink)
+	this.ShardTx.Tx.Serialization(sink)
+	return nil
+}
+
+func (this *CrossShardMsgInfo) Deserialization(source *common.ZeroCopySource) error {
+	var err error
+	err = this.ShardMsg.Deserialization(source)
+	if err != nil {
+		return err
+	}
+	err = this.ShardTx.Deserialization(source)
+	return err
+}
+
 /*
 func (this *ShardBlockInfo) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteUint64(this.FromShardID.ToUint64())

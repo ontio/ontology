@@ -104,21 +104,25 @@ func AddCrossShardInfo(crossShardMsg *shardmsg.CrossShardMsg, tx *types.Transact
 // Cross-shard Tx/events of parent shard are delivered to child shards with parent-block propagation.
 // NOTE: all cross-shard tx/events should be indexed with (parentHeight, shardHeight)
 //
-func GetCrossShardTxs() map[uint64][]*types.Transaction {
+func GetCrossShardTxs() (map[uint64][]*types.Transaction, map[common.ShardID][]*shardmsg.CrossShardMsgInfo) {
 	pool := crossShardPool
 	shardID := pool.ShardID
 	if shardID.IsRootShard() {
-		return nil
+		return nil, nil
 	}
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
+	shardMsgs := make(map[common.ShardID][]*shardmsg.CrossShardMsgInfo)
 	shardTxs := make(map[uint64][]*types.Transaction)
-	for shardID, shardBlocks := range pool.Shards {
+	for shardID, shardMsgInfo := range pool.Shards {
 		txs := make([]*types.Transaction, 0)
-		for _, shard := range shardBlocks {
+		msgs := make([]*shardmsg.CrossShardMsgInfo, 0)
+		for _, shard := range shardMsgInfo {
 			txs = append(txs, shard.ShardTx.Tx)
+			msgs = append(msgs, shard)
 		}
+		shardMsgs[shardID] = msgs
 		shardTxs[shardID.ToUint64()] = txs
 	}
-	return shardTxs
+	return shardTxs, shardMsgs
 }

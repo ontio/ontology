@@ -34,6 +34,13 @@ type CrossShardMsgs struct {
 	Height    uint32
 	CrossMsgs []*shardmsg.CrossShardMsgHash
 }
+type CrossTxMsg struct {
+	ShardID common.ShardID
+	TxMsg   *shardmsg.CrossShardMsgInfo
+}
+type CrossTxMsgs struct {
+	CrossMsg []*CrossTxMsg
+}
 
 type Block struct {
 	Block               *types.Block
@@ -41,6 +48,7 @@ type Block struct {
 	Info                *vconfig.VbftBlockInfo
 	PrevBlockMerkleRoot common.Uint256
 	CrossMsg            *CrossShardMsgs
+	CrossTxs            *CrossTxMsgs
 }
 
 func (blk *Block) getProposer() uint32 {

@@ -56,6 +56,31 @@ func (self *ChainManager) setShardConfig(shardID common.ShardID, cfg *config.Ont
 	return nil
 }
 
+func (self *ChainManager) updateShardConfig(shardID common.ShardID, shardcfg *shardstates.ShardConfig) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	if info, present := self.shards[shardID]; present {
+		info.Config.Genesis.VBFT = shardcfg.VbftCfg
+		info.Config.Common.GasPrice = shardcfg.GasPrice
+		info.Config.Common.GasLimit = shardcfg.GasLimit
+	} else {
+		cfg := &config.OntologyConfig{
+			Genesis: &config.GenesisConfig{
+				VBFT: shardcfg.VbftCfg,
+			},
+			Common: &config.CommonConfig{
+				GasLimit: shardcfg.GasLimit,
+				GasPrice: shardcfg.GasPrice,
+			},
+		}
+		self.shards[shardID] = &ShardInfo{
+			ShardID: shardID,
+			Config:  cfg,
+		}
+	}
+	return nil
+}
+
 func GetShardMgmtGlobalState(lgr *ledger.Ledger) (*shardstates.ShardMgmtGlobalState, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard global state, nil ledger")
