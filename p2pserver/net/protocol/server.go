@@ -53,9 +53,9 @@ type P2P interface {
 	RemoveFromConnectingList(addr string)
 	RemoveFromOutConnRecord(addr string)
 	RemoveFromInConnRecord(addr string)
-	AddPeerSyncAddress(addr string, p *peer.Peer)
+	AddPeerAddress(addr string, p *peer.Peer)
 	GetOutConnectingListLen() (count uint)
-	RemovePeerSyncAddress(addr string)
+	RemovePeerAddress(addr string)
 	AddNbrNode(*peer.Peer)
 	DelNbrNode(id uint64) (*peer.Peer, bool)
 	NodeEstablished(uint64) bool

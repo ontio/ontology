@@ -421,7 +421,7 @@ func (this *P2PServer) retryInactivePeer() {
 				remotePeer := this.network.GetPeerFromAddr(addr)
 				if remotePeer != nil {
 					if remotePeer.Link.GetAddr() == addr {
-						this.network.RemovePeerSyncAddress(addr)
+						this.network.RemovePeerAddress(addr)
 					}
 					this.network.DelNbrNode(remotePeer.GetID())
 				}

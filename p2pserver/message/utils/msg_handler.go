@@ -567,7 +567,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 	p2p.RemoveFromConnectingList(data.Addr)
 
 	if remotePeer.Link.GetAddr() == data.Addr {
-		p2p.RemovePeerSyncAddress(data.Addr)
+		p2p.RemovePeerAddress(data.Addr)
 		remotePeer.Close()
 	}
 }

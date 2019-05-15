@@ -297,7 +297,7 @@ func (this *NetServer) Connect(addr string) error {
 
 	this.AddOutConnRecord(addr)
 	remotePeer = peer.NewPeer()
-	this.AddPeerSyncAddress(addr, remotePeer)
+	this.AddPeerAddress(addr, remotePeer)
 	remotePeer.Link.SetAddr(addr)
 	remotePeer.Link.SetConn(conn)
 	remotePeer.AttachChan(this.SyncChan)
@@ -410,7 +410,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 		addr := conn.RemoteAddr().String()
 		this.AddInConnRecord(addr)
 
-		this.AddPeerSyncAddress(addr, remotePeer)
+		this.AddPeerAddress(addr, remotePeer)
 
 		remotePeer.Link.SetAddr(addr)
 		remotePeer.Link.SetConn(conn)
@@ -500,16 +500,16 @@ func (this *NetServer) IsNbrPeerAddr(addr string) bool {
 	return false
 }
 
-//AddPeerSyncAddress add sync addr to peer-addr map
-func (this *NetServer) AddPeerSyncAddress(addr string, p *peer.Peer) {
+//AddPeerAddress add sync addr to peer-addr map
+func (this *NetServer) AddPeerAddress(addr string, p *peer.Peer) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
-	log.Debugf("[p2p]AddPeerSyncAddress %s", addr)
+	log.Debugf("[p2p]AddPeerAddress %s", addr)
 	this.PeerSyncAddress[addr] = p
 }
 
-//RemovePeerSyncAddress remove sync addr from peer-addr map
-func (this *NetServer) RemovePeerSyncAddress(addr string) {
+//RemovePeerAddress remove sync addr from peer-addr map
+func (this *NetServer) RemovePeerAddress(addr string) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
 	if _, ok := this.PeerSyncAddress[addr]; ok {
@@ -518,18 +518,8 @@ func (this *NetServer) RemovePeerSyncAddress(addr string) {
 	}
 }
 
-//RemovePeerConsAddress remove cons addr from peer-addr map
-func (this *NetServer) RemovePeerConsAddress(addr string) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
-	if _, ok := this.PeerConsAddress[addr]; ok {
-		delete(this.PeerConsAddress, addr)
-		log.Debugf("[p2p]delete Cons Address %s", addr)
-	}
-}
-
-//GetPeerSyncAddressCount return length of cons addr from peer-addr map
-func (this *NetServer) GetPeerSyncAddressCount() (count uint) {
+//GetPeerAddressCount return length of cons addr from peer-addr map
+func (this *NetServer) GetPeerAddressCount() (count uint) {
 	this.PeerAddrMap.RLock()
 	defer this.PeerAddrMap.RUnlock()
 	return uint(len(this.PeerSyncAddress))
