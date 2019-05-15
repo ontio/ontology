@@ -169,32 +169,32 @@ func setShardCommitting(native *native.NativeService, id common.ShardID, isCommi
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 
-func isShardCommitting(native *native.NativeService, id common.ShardID) (bool, error) {
+func IsShardCommitting(native *native.NativeService, id common.ShardID) (bool, error) {
 	key := genShardIsCommittingKey(id)
 	dataBytes, err := native.CacheDB.Get(key)
 	if err != nil {
-		return false, fmt.Errorf("isShardCommitting: read db failed, err: %s", err)
+		return false, fmt.Errorf("IsShardCommitting: read db failed, err: %s", err)
 	}
 	if len(dataBytes) == 0 {
 		return false, nil
 	}
 	value, err := cstates.GetValueFromRawStorageItem(dataBytes)
 	if err != nil {
-		return false, fmt.Errorf("isShardCommitting: parse store info failed, err: %s", err)
+		return false, fmt.Errorf("IsShardCommitting: parse store info failed, err: %s", err)
 	}
 	source := common.NewZeroCopySource(value)
 	isCommitting, irr, eof := source.NextBool()
 	if irr {
-		return false, fmt.Errorf("isShardCommitting: deserialize failed, err: %s", common.ErrIrregularData)
+		return false, fmt.Errorf("IsShardCommitting: deserialize failed, err: %s", common.ErrIrregularData)
 	}
 	if eof {
-		return false, fmt.Errorf("isShardCommitting: deserialize failed, err: %s", io.ErrUnexpectedEOF)
+		return false, fmt.Errorf("IsShardCommitting: deserialize failed, err: %s", io.ErrUnexpectedEOF)
 	}
 	return isCommitting, nil
 }
 
 func checkCommittingDpos(native *native.NativeService, id common.ShardID) error {
-	isCommitting, err := isShardCommitting(native, id)
+	isCommitting, err := IsShardCommitting(native, id)
 	if err != nil {
 		return fmt.Errorf("PeerInitStake: failed, err: %s", err)
 	}

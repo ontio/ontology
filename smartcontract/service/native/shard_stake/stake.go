@@ -489,7 +489,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if !native.ContextRef.CheckCallShard(param.ShardId) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: check call shard failed")
 	}
-	isCommitting, err := isShardCommitting(native, param.ShardId)
+	isCommitting, err := IsShardCommitting(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
@@ -579,7 +579,7 @@ func GetIsCommitting(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetIsCommitting: read shardId failed, err: %s", err)
 	}
-	isCommitting, err := isShardCommitting(native, shardId)
+	isCommitting, err := IsShardCommitting(native, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetIsCommitting: failed, err: %s", err)
 	}

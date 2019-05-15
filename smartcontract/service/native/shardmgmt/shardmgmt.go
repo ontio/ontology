@@ -676,6 +676,11 @@ func NotifyShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: check witness failed, err: %s", err)
 	}
+	if isShardCommitting, err := shard_stake.IsShardCommitting(native, shardId); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: failed, err: %s", err)
+	} else if !isShardCommitting {
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: shard isn't committing")
+	}
 	native.NotifyRemoteShard(shardId, contract, SHARD_COMMIT_DPOS, []byte{})
 	return utils.BYTE_TRUE, nil
 }
