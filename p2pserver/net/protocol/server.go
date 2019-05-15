@@ -32,7 +32,7 @@ type P2P interface {
 	Connect(addr string) error
 	GetID() uint64
 	GetVersion() uint32
-	GetSyncPort() uint16
+	GetPort() uint16
 	GetHttpInfoPort() uint16
 	GetRelay() bool
 	GetHeight() uint64

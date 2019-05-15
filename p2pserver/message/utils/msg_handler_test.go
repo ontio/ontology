@@ -307,8 +307,7 @@ func TestBlkHeaderHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
-		20337, testID, 0, 12345, "1.5.2")
+	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336, testID, 0, 12345, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)

@@ -156,7 +156,7 @@ func NewVersion(n p2pnet.P2P, height uint32) mt.Message {
 	version.P = mt.VersionPayload{
 		Version:      n.GetVersion(),
 		Services:     n.GetServices(),
-		SyncPort:     n.GetSyncPort(),
+		SyncPort:     n.GetPort(),
 		Nonce:        n.GetID(),
 		IsConsensus:  false,
 		HttpInfoPort: n.GetHttpInfoPort(),

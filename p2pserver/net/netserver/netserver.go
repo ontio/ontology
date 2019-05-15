@@ -157,8 +157,8 @@ func (this *NetServer) GetServices() uint64 {
 }
 
 //GetPort return the sync port
-func (this *NetServer) GetSyncPort() uint16 {
-	return this.base.GetSyncPort()
+func (this *NetServer) GetPort() uint16 {
+	return this.base.GetPort()
 }
 
 //GetHttpInfoPort return the port support info via http
@@ -332,7 +332,7 @@ func (this *NetServer) Halt() {
 func (this *NetServer) startListening() error {
 	var err error
 
-	syncPort := this.base.GetSyncPort()
+	syncPort := this.base.GetPort()
 
 	if syncPort == 0 {
 		log.Error("[p2p]sync port invalid")

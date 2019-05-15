@@ -40,7 +40,7 @@ type PeerCom struct {
 	services     uint64
 	relay        bool
 	httpInfoPort uint16
-	syncPort     uint16
+	port         uint16
 	height       uint64
 	softVersion  string
 }
@@ -87,12 +87,12 @@ func (this *PeerCom) GetRelay() bool {
 
 // SetPort sets a peer's sync port
 func (this *PeerCom) SetPort(port uint16) {
-	this.syncPort = port
+	this.port = port
 }
 
 // GetPort returns a peer's sync port
-func (this *PeerCom) GetSyncPort() uint16 {
-	return this.syncPort
+func (this *PeerCom) GetPort() uint16 {
+	return this.port
 }
 
 // SetHttpInfoPort sets a peer's http info port
@@ -160,7 +160,7 @@ func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]\t cap = ", this.cap)
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
-	log.Debug("[p2p]\t syncPort = ", this.GetPort())
+	log.Debug("[p2p]\t port = ", this.GetPort())
 	log.Debug("[p2p]\t relay = ", this.GetRelay())
 	log.Debug("[p2p]\t height = ", this.GetHeight())
 	log.Debug("[p2p]\t softVersion = ", this.GetSoftVersion())

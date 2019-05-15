@@ -127,7 +127,7 @@ func (this *P2PServer) GetNetWork() p2pnet.P2P {
 
 //GetPort return two network port
 func (this *P2PServer) GetPort() uint16 {
-	return this.network.GetSyncPort()
+	return this.network.GetPort()
 }
 
 //GetVersion return self version
