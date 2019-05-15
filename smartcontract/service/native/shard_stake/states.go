@@ -143,7 +143,7 @@ func (this *XShardFeeInfo) Deserialization(source *common.ZeroCopySource) error 
 type PeerViewInfo struct {
 	PeerPubKey             string
 	Owner                  common.Address
-	CanStake               bool   // if user can stake peer //todo modify param name
+	CanStake               bool   // if user can stake peer
 	WholeFee               uint64 // each epoch handling fee
 	FeeBalance             uint64 // each epoch handling fee not be withdrawn
 	InitPos                uint64 // node stake amount
