@@ -184,7 +184,7 @@ func (self *ChainStore) GetBlock(blockNum uint32) (*Block, error) {
 func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uint32) {
 	var hashes []common.Uint256
 	for _, crossShard := range crossShardMsgs.CrossMsgs {
-		hashes = append(hashes, crossShard.ShardMsgHash)
+		hashes = append(hashes, crossShard.MsgHash)
 	}
 	msgRoot := common.ComputeMerkleRoot(hashes)
 	for _, crossMsg := range crossShardMsgs.CrossMsgs {
@@ -202,7 +202,7 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 			SignMsgHeight:     height,
 			CrossShardMsgRoot: msgRoot,
 			ShardMsg:          reqs,
-			ShardMsgHash:      crossShardMsgs.CrossMsgs,
+			ShardMsgHashs:     crossShardMsgs.CrossMsgs,
 		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)

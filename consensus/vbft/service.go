@@ -38,6 +38,7 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
+	sign "github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -1122,79 +1123,12 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	if !self.ShardID.IsRootShard() {
-		shards, err := self.ledger.GetRelatedShardIDsInBlock(msgBlkNum - 1)
-		if err != nil {
-			log.Errorf("get remoteMsgShards of height %d: %s", msgBlkNum, err)
-			return
-		}
-		shardMsg := make(map[common.ShardID]common.Uint256)
-		if shards != nil && len(shards) != 0 && len(msg.Block.CrossMsg.CrossMsgs) != 0 {
-			for _, s := range shards {
-				reqs, err := self.ledger.GetShardMsgsInBlock(msgBlkNum, s)
-				if err != nil {
-					log.Errorf("get remoteMsg of height %d to shard %d: %s", msgBlkNum, s, err)
-					return
-				}
-				if len(reqs) != 0 {
-					msgHash := xshard_types.GetShardCommonMsgsHash(reqs)
-					shardMsg[s] = msgHash
-				}
-			}
-			if len(msg.Block.CrossMsg.CrossMsgs) != len(shardMsg) {
-				log.Errorf("BlockPrposalMessage msg CrossMsgs len :%d，not match shardmsg:%d", len(msg.Block.CrossMsg.CrossMsgs), len(shardMsg))
-				return
-			}
-			for _, crossMsg := range msg.Block.CrossMsg.CrossMsgs {
-				if msgHash, present := shardMsg[crossMsg.ShardID]; !present {
-					log.Errorf("BlockPrposalMessage ShardId:%v not found", crossMsg.ShardID)
-					return
-				} else {
-					if msgHash != crossMsg.ShardMsgHash {
-						log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgHash.ToHexString(), crossMsg.ShardMsgHash.ToHexString())
-						return
-					}
-				}
-			}
-		}
+	if !self.verifyShardEventMsg(msg) {
+		return
 	}
-	/*
-		parentHeight := self.ledger.GetParentHeight() + 1
-		if parentHeight < msg.Block.Block.Header.ParentHeight {
-			log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,ParentHeight:%d,self.parentHeight:%d", msg.GetBlockNum(), self.parentHeight, msg.Block.Block.Header.ParentHeight)
-			return
-		}
-		if self.parentHeight < parentHeight {
-			crossShard := xshard.GetCrossShardTxs()
-			for shardId, txs := range crossShard {
-				msgtxs, present := msg.Block.Block.ShardTxs[shardId]
-				if !present {
-					log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, shardId:%d", self.parentHeight, shardId)
-					return
-				}
-				if len(txs) != len(msgtxs) {
-					log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, len(txs):%d,len(msgtxs):%d", self.parentHeight, len(txs), len(msgtxs))
-					return
-				}
-				txHash := []common.Uint256{}
-				for _, t := range txs {
-					txHash = append(txHash, t.Hash())
-				}
-				msgtxHash := []common.Uint256{}
-				for _, msgtx := range msgtxs {
-					msgtxHash = append(msgtxHash, msgtx.Hash())
-				}
-				txRoot := common.ComputeMerkleRoot(txHash)
-				msgtxRoot := common.ComputeMerkleRoot(msgtxHash)
-				if txRoot != msgtxRoot {
-					log.Errorf("BlockPrposalMessage check parentHeight blocknum:%d,msg txRoot:%s,msgtxRoot:%s", self.parentHeight, txRoot.ToHexString(), msgtxRoot.ToHexString())
-					return
-				}
-			}
-			log.Infof("BlockPrposalMessage: update self parent height for %d to %d", self.parentHeight, parentHeight)
-			self.parentHeight = parentHeight
-		}
-	*/
+	if !self.verifyCrossShardTx(msg) {
+		return
+	}
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
 		height := uint32(msgBlkNum) - 1
@@ -1230,6 +1164,88 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		// empty block, process directly
 		self.processConsensusMsg(msg)
 	}
+}
+
+func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
+	msgBlkNum := msg.GetBlockNum()
+	shards, err := self.ledger.GetRelatedShardIDsInBlock(msgBlkNum - 1)
+	if err != nil {
+		log.Errorf("get remoteMsgShards of height %d: %s", msgBlkNum, err)
+		return false
+	}
+	shardMsg := make(map[common.ShardID]common.Uint256)
+	if shards != nil && len(shards) != 0 && len(msg.Block.CrossMsg.CrossMsgs) != 0 {
+		for _, s := range shards {
+			reqs, err := self.ledger.GetShardMsgsInBlock(msgBlkNum, s)
+			if err != nil {
+				log.Errorf("get remoteMsg of height %d to shard %d: %s", msgBlkNum, s, err)
+				return false
+			}
+			if len(reqs) != 0 {
+				msgHash := xshard_types.GetShardCommonMsgsHash(reqs)
+				shardMsg[s] = msgHash
+			}
+		}
+		if len(msg.Block.CrossMsg.CrossMsgs) != len(shardMsg) {
+			log.Errorf("BlockPrposalMessage msg CrossMsgs len :%d，not match shardmsg:%d", len(msg.Block.CrossMsg.CrossMsgs), len(shardMsg))
+			return false
+		}
+		for _, crossMsg := range msg.Block.CrossMsg.CrossMsgs {
+			if msgHash, present := shardMsg[crossMsg.ShardID]; !present {
+				log.Errorf("BlockPrposalMessage ShardId:%v not found", crossMsg.ShardID)
+				return false
+			} else {
+				if msgHash != crossMsg.MsgHash {
+					log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgHash.ToHexString(), crossMsg.MsgHash.ToHexString())
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
+	for _, crossTxmsg := range msg.Block.CrossTxs.CrossMsg {
+		//verify msg sign
+		for _, msgHash := range crossTxmsg.TxMsg.ShardMsg.ShardMsgHashs {
+			shardState, err := xshard.GetShardState(self.ledger.ParentLedger, msgHash.ShardID)
+			if err != nil {
+				log.Errorf("GetShardState err:%s", err)
+				return false
+			}
+			var bookkeepers []keypair.PublicKey
+			m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
+			for _, peer := range shardState.Config.VbftCfg.Peers {
+				pubkey, err := vconfig.Pubkey(peer.PeerPubkey)
+				if err != nil {
+					log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.PeerPubkey, err)
+					return false
+				}
+				bookkeepers = append(bookkeepers, pubkey)
+			}
+			err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, msgHash.SigData)
+			if err != nil {
+				log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d", err, len(bookkeepers), m)
+				return false
+			}
+		}
+		//verify msg hash
+		var hashes []common.Uint256
+		shardMsgRoot := crossTxmsg.TxMsg.ShardMsg.CrossShardMsgRoot
+		for _, shardMsg := range crossTxmsg.TxMsg.ShardMsg.ShardMsgHashs {
+			if shardMsg.ShardID != crossTxmsg.ShardID {
+				hashes = append(hashes, shardMsg.MsgHash)
+			}
+		}
+		hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(crossTxmsg.TxMsg.ShardMsg.ShardMsg))
+		msgRoot := common.ComputeMerkleRoot(hashes)
+		if shardMsgRoot != msgRoot {
+			log.Errorf("verifyCrossShardTx shard msgroot:%s,not match msgroot:%s", shardMsgRoot.ToHexString(), msgRoot.ToHexString())
+			return false
+		}
+	}
+	return true
 }
 
 func (self *Server) processConsensusMsg(msg ConsensusMsg) {

@@ -420,8 +420,8 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 	}
 	var hashes []common.Uint256
 	hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(msg.ShardMsg))
-	for _, msgHash := range msg.ShardMsgHash {
-		hashes = append(hashes, msgHash.ShardMsgHash)
+	for _, msgHash := range msg.ShardMsgHashs {
+		hashes = append(hashes, msgHash.MsgHash)
 	}
 	if msg.CrossShardMsgRoot != common.ComputeMerkleRoot(hashes) {
 		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.CrossShardMsgRoot.ToHexString())

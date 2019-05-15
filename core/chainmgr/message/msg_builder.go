@@ -32,9 +32,9 @@ import (
 )
 
 type CrossShardMsgHash struct {
-	ShardID      common.ShardID
-	ShardMsgHash common.Uint256
-	SigData      [][]byte
+	ShardID common.ShardID
+	MsgHash common.Uint256
+	SigData [][]byte
 }
 
 type CrossShardMsg struct {
@@ -43,7 +43,7 @@ type CrossShardMsg struct {
 	SignMsgHeight     uint32
 	CrossShardMsgRoot common.Uint256
 	ShardMsg          []xshard_types.CommonShardMsg
-	ShardMsgHash      []*CrossShardMsgHash
+	ShardMsgHashs     []*CrossShardMsgHash
 }
 
 func (this *CrossShardMsg) Serialization(sink *common.ZeroCopySink) {
@@ -52,10 +52,10 @@ func (this *CrossShardMsg) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.SignMsgHeight)
 	sink.WriteBytes(this.CrossShardMsgRoot[:])
 	xshard_types.EncodeShardCommonMsgs(sink, this.ShardMsg)
-	sink.WriteVarUint(uint64(len(this.ShardMsgHash)))
-	for _, shardMsgHash := range this.ShardMsgHash {
+	sink.WriteVarUint(uint64(len(this.ShardMsgHashs)))
+	for _, shardMsgHash := range this.ShardMsgHashs {
 		sink.WriteShardID(shardMsgHash.ShardID)
-		sink.WriteBytes(shardMsgHash.ShardMsgHash[:])
+		sink.WriteBytes(shardMsgHash.MsgHash[:])
 		sink.WriteVarUint(uint64(len(shardMsgHash.SigData)))
 		for _, sig := range shardMsgHash.SigData {
 			sink.WriteVarBytes(sig)
@@ -103,7 +103,7 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 		if err != nil {
 			return err
 		}
-		crossShardMsgHash.ShardMsgHash, eof = source.NextHash()
+		crossShardMsgHash.MsgHash, eof = source.NextHash()
 		n, _, irregular, eof := source.NextVarUint()
 		if eof {
 			return io.ErrUnexpectedEOF
@@ -121,7 +121,7 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 			}
 			crossShardMsgHash.SigData = append(crossShardMsgHash.SigData, sig)
 		}
-		this.ShardMsgHash = append(this.ShardMsgHash, crossShardMsgHash)
+		this.ShardMsgHashs = append(this.ShardMsgHashs, crossShardMsgHash)
 	}
 	return nil
 }
