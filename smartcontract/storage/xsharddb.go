@@ -96,3 +96,28 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_type
 
 	self.cacheDB.put(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes(), shards.Bytes())
 }
+
+func (self *XShardDB) SetXCrossShardMsgInBlock(blockHeight uint32, msgs []xshard_types.CommonShardMsg) {
+	shardMsgMap := make(map[comm.ShardID][]xshard_types.CommonShardMsg)
+	for _, msg := range msgs {
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	}
+	keys := comm.NewZeroCopySink(8)
+	val := comm.NewZeroCopySink(1024)
+	shards := comm.NewZeroCopySink(2 + 8*len(shardMsgMap))
+	shards.WriteUint32(uint32(len(shardMsgMap)))
+	for shardID, shardMsgs := range shardMsgMap {
+		shards.WriteUint64(shardID.ToUint64())
+		keys.Reset()
+		keys.WriteUint32(blockHeight)
+		keys.WriteUint64(shardID.ToUint64())
+
+		val.Reset()
+		xshard_types.EncodeShardCommonMsgs(val, shardMsgs)
+		self.cacheDB.put(common.XSHARD_KEY_CROSS_MSGS_IN_BLOCK, keys.Bytes(), val.Bytes())
+	}
+	keys.Reset()
+	keys.WriteUint32(blockHeight)
+
+	self.cacheDB.put(common.XSHARD_KEY_CROSS_MSGS_IN_BLOCK, keys.Bytes(), shards.Bytes())
+}

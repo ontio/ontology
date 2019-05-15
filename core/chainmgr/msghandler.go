@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
@@ -156,7 +157,7 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)
 	}
-	height := header.Height
+	height := header.Height - 1
 	shards, err := lgr.GetRelatedShardIDsInBlock(height)
 	if err != nil {
 		return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
@@ -165,9 +166,9 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 		return nil
 	}
 
-	log.Infof("[chainmgr]handleShardReqsInBlock: height: %d, shards: %v", height, shards)
+	msgHashs := make(map[common.ShardID]common.Uint256)
+	var hashes []common.Uint256
 	for _, s := range shards {
-		// don't handle other shard req when block is from parent
 		if self.shardID.ParentID().ToUint64() == header.ShardID && s.ToUint64() != self.shardID.ToUint64() {
 			continue
 		}
@@ -178,11 +179,31 @@ func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
 		if len(reqs) == 0 {
 			continue
 		}
-		crossShardMsg := &message.CrossShardMsg{
-			ShardID:  self.shardID.ToUint64(),
-			Header:   header,
-			ShardMsg: reqs,
+		msgHashs[s] = xshard_types.GetShardCommonMsgsHash(reqs)
+		hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(reqs))
+	}
+	root := common.ComputeMerkleRoot(hashes)
+	for _, s := range shards {
+		reqs, err := lgr.GetShardMsgsInBlock(height, s)
+		if err != nil {
+			return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
 		}
+		if len(reqs) == 0 {
+			continue
+		}
+		var hashs []common.Uint256
+		for shard, hash := range msgHashs {
+			if s != shard {
+				hashs = append(hashs, hash)
+			}
+		}
+		crossShardMsg := &message.CrossShardMsg{
+			ShardID:           self.shardID.ToUint64(),
+			Header:            header,
+			ShardMsg:          reqs,
+			OtherShardMsgHash: hashs,
+		}
+		crossShardMsg.Header.CrossShardMsgRoot = root
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{

@@ -50,16 +50,16 @@ func (this *ShardBlockTx) Deserialization(source *common.ZeroCopySource) error {
 //  .Events: shard events generated from the block (only for local block)
 //
 type ShardBlockInfo struct {
-	FromShardID common.ShardID                   `json:"from_shard_id"`
-	Height      uint32                           `json:"height"`
-	Block       *types.Block                     `json:"block"`
-	ShardTxs    map[common.ShardID]*ShardBlockTx `json:"shard_txs"` // indexed by ToShardID
+	FromShardID common.ShardID `json:"from_shard_id"`
+	Height      uint32         `json:"height"`
+	Header      *types.Header  `json:"header"`
+	ShardTx     *ShardBlockTx  `json:"shard_txs"`
 }
 
 func (this *ShardBlockInfo) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteUint64(this.FromShardID.ToUint64())
 	sink.WriteUint32(this.Height)
-	this.Block.Serialization(sink)
+	this.Header.Serialization(sink)
 	return nil
 }
 
@@ -77,8 +77,8 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	this.Block = &types.Block{}
-	if err := this.Block.Deserialization(source); err != nil {
+	this.Header = &types.Header{}
+	if err := this.Header.Deserialization(source); err != nil {
 		return fmt.Errorf("deserialization: read header failed, err: %s", err)
 	}
 	eventNum, eof := source.NextUint64()

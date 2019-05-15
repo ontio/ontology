@@ -32,15 +32,20 @@ import (
 )
 
 type CrossShardMsg struct {
-	ShardID  uint64
-	Header   *types.Header
-	ShardMsg []xshard_types.CommonShardMsg
+	ShardID           uint64
+	Header            *types.Header
+	ShardMsg          []xshard_types.CommonShardMsg
+	OtherShardMsgHash []common.Uint256
 }
 
 func (this *CrossShardMsg) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint64(this.ShardID)
 	this.Header.Serialization(sink)
 	xshard_types.EncodeShardCommonMsgs(sink, this.ShardMsg)
+	sink.WriteVarUint(uint64(len(this.OtherShardMsgHash)))
+	for _, hash := range this.OtherShardMsgHash {
+		sink.WriteBytes(hash[:])
+	}
 }
 
 func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error {
@@ -66,6 +71,18 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 		reqs = append(reqs, req)
 	}
 	this.ShardMsg = reqs
+	m, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+	var hash common.Uint256
+	for i := 0; i < int(m); i++ {
+		hash, eof = source.NextHash()
+		this.OtherShardMsgHash = append(this.OtherShardMsgHash, hash)
+	}
 	return nil
 }
 

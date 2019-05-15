@@ -19,21 +19,25 @@
 package xshard
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 )
 
 // cross  shard pool
-type ShardTxMap map[uint32]*types.Transaction // indexed by BlockHeight
+//type ShardTxMap map[uint32]*types.Transaction // indexed by BlockHeight
+
+type ShardBlockMap map[uint32]*shardmsg.ShardBlockInfo // indexed by BlockHeight
 
 type CrossShardPool struct {
 	lock        sync.RWMutex
 	ShardID     common.ShardID
-	Shards      map[uint64]ShardTxMap // indexed by FromShardID
+	Shards      map[common.ShardID]ShardBlockMap // indexed by FromShardID
 	MaxBlockCap uint32
 }
 
@@ -43,36 +47,42 @@ var crossShardPool *CrossShardPool
 func InitCrossShardPool(shard common.ShardID, historyCap uint32) {
 	crossShardPool = &CrossShardPool{
 		ShardID:     shard,
-		Shards:      make(map[uint64]ShardTxMap),
+		Shards:      make(map[common.ShardID]ShardBlockMap),
 		MaxBlockCap: historyCap,
 	}
 }
 
-func AddCrossShardInfo(shardID uint64, height uint32, tx *types.Transaction) error {
+func AddCrossShardInfo(shardID common.ShardID, header *types.Header, tx *types.Transaction) error {
 	pool := crossShardPool
-
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 	if _, present := pool.Shards[shardID]; !present {
-		pool.Shards[shardID] = make(ShardTxMap)
+		pool.Shards[shardID] = make(ShardBlockMap)
 	}
 	m := pool.Shards[shardID]
 	if m == nil {
 		return fmt.Errorf("add shard cross tx, nil map")
 	}
-	if crossTx, present := m[height]; present {
-		txhash := crossTx.Hash()
-		if tx != nil && txhash != tx.Hash() {
-			return fmt.Errorf("add shard cross tx, dup tx")
+	if blk, present := m[header.Height]; present {
+		hdr := blk.Header
+		if hdr != nil && bytes.Compare(hdr.BlockRoot[:], header.BlockRoot[:]) == 0 {
+			return fmt.Errorf("add shard block, dup blk")
 		}
 	}
-	log.Infof("chainmgr AddBlock from shard %d, block %d", shardID, height)
-	m[height] = tx
+	log.Infof("chainmgr AddBlock from shard %d, block %d", shardID.ToUint64(), header.Height)
+	shardBlockInfo := &shardmsg.ShardBlockInfo{
+		FromShardID: shardID,
+		Header:      header,
+		ShardTx: &shardmsg.ShardBlockTx{
+			Tx: tx,
+		},
+	}
+	m[header.Height] = shardBlockInfo
 	// if too much block cached in map, drop old blocks
 	if uint32(len(m)) < pool.MaxBlockCap {
 		return nil
 	}
-	h := height
+	h := header.Height
 	for height, _ := range m {
 		if height > h {
 			h = height
@@ -105,12 +115,12 @@ func GetCrossShardTxs() map[uint64][]*types.Transaction {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	shardTxs := make(map[uint64][]*types.Transaction)
-	for shardID, shardtxs := range pool.Shards {
+	for shardID, shardBlocks := range pool.Shards {
 		txs := make([]*types.Transaction, 0)
-		for _, tx := range shardtxs {
-			txs = append(txs, tx)
+		for _, shard := range shardBlocks {
+			txs = append(txs, shard.ShardTx.Tx)
 		}
-		shardTxs[shardID] = txs
+		shardTxs[shardID.ToUint64()] = txs
 	}
 	return shardTxs
 }

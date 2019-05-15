@@ -46,10 +46,11 @@ const (
 
 	EVENT_NOTIFY DataEntryPrefix = 0x14 //Event notify key prefix
 
-	SHARD_EVENTS          DataEntryPrefix = 0x32 // block height -> shard events
-	ST_CONTRACT_META_DATA DataEntryPrefix = 0x37 // contract meta data
+	SHARD_EVENTS DataEntryPrefix = 0x32 // block height -> shard events
 
-	XSHARD_STATE               DataEntryPrefix = 0x34
-	XSHARD_KEY_SHARDS_IN_BLOCK                 = 0x35 // with block#, contains to-shard list
-	XSHARD_KEY_REQS_IN_BLOCK                   = 0x36 // with block# - shard#, containers requests to shard#
+	XSHARD_STATE                   DataEntryPrefix = 0x34
+	XSHARD_KEY_SHARDS_IN_BLOCK                     = 0x35 // with block#, contains to-shard list
+	XSHARD_KEY_REQS_IN_BLOCK                       = 0x36 // with block# - shard#, containers requests to shard#
+	ST_CONTRACT_META_DATA          DataEntryPrefix = 0x37 // contract meta data
+	XSHARD_KEY_CROSS_MSGS_IN_BLOCK DataEntryPrefix = 0x38 //with block#,cross shard msg merkroot
 )

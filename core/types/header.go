@@ -28,17 +28,18 @@ import (
 )
 
 type Header struct {
-	Version          uint32
-	ShardID          uint64
-	ParentHeight     uint32
-	PrevBlockHash    common.Uint256
-	TransactionsRoot common.Uint256
-	BlockRoot        common.Uint256
-	Timestamp        uint32
-	Height           uint32
-	ConsensusData    uint64
-	ConsensusPayload []byte
-	NextBookkeeper   common.Address
+	Version           uint32
+	ShardID           uint64
+	ParentHeight      uint32
+	PrevBlockHash     common.Uint256
+	TransactionsRoot  common.Uint256
+	BlockRoot         common.Uint256
+	CrossShardMsgRoot common.Uint256
+	Timestamp         uint32
+	Height            uint32
+	ConsensusData     uint64
+	ConsensusPayload  []byte
+	NextBookkeeper    common.Address
 
 	//Program *program.Program
 	Bookkeepers []keypair.PublicKey
@@ -74,6 +75,7 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
 	sink.WriteBytes(bd.BlockRoot[:])
+	sink.WriteBytes(bd.CrossShardMsgRoot[:])
 	sink.WriteUint32(bd.Timestamp)
 	sink.WriteUint32(bd.Height)
 	sink.WriteUint64(bd.ConsensusData)
@@ -159,6 +161,7 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 	bd.PrevBlockHash, eof = source.NextHash()
 	bd.TransactionsRoot, eof = source.NextHash()
 	bd.BlockRoot, eof = source.NextHash()
+	bd.CrossShardMsgRoot, eof = source.NextHash()
 	bd.Timestamp, eof = source.NextUint32()
 	bd.Height, eof = source.NextUint32()
 	bd.ConsensusData, eof = source.NextUint64()

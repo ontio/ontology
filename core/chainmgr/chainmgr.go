@@ -36,6 +36,7 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
@@ -420,11 +421,24 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 		log.Errorf("handleCrossShardMsg failed to Deserialize crossshard msg %s", err)
 		return
 	}
+	var hashes []common.Uint256
+	hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(msg.ShardMsg))
+	hashes = append(hashes, msg.OtherShardMsgHash...)
+	if msg.Header.CrossShardMsgRoot != common.ComputeMerkleRoot(hashes) {
+		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.Header.CrossShardMsgRoot.ToHexString())
+		return
+	}
 	tx, err := crossshard.NewCrossShardTxMsg(self.account, msg.Header.Height, self.shardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
 	if err != nil {
 		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.Header.Height, err)
+		return
 	}
-	xshard.AddCrossShardInfo(msg.ShardID, msg.Header.Height, tx)
+	shardId, err := common.NewShardID(msg.ShardID)
+	if err != nil {
+		log.Errorf("handleCrossShardMsg newshardId shardId:%d, height:%d,err:%s", msg.ShardID, msg.Header.Height, err)
+		return
+	}
+	xshard.AddCrossShardInfo(shardId, msg.Header, tx)
 }
 
 //
