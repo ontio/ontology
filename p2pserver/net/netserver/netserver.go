@@ -39,11 +39,10 @@ import (
 //NewNetServer return the net object in p2p
 func NewNetServer() p2p.P2P {
 	n := &NetServer{
-		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
+		NetChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 	}
 
-	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
-	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
+	n.PeerAddrMap.PeerAddress = make(map[string]*peer.Peer)
 
 	n.init()
 	return n
@@ -51,10 +50,9 @@ func NewNetServer() p2p.P2P {
 
 //NetServer represent all the actions in net layer
 type NetServer struct {
-	base         peer.PeerCom
-	synclistener net.Listener
-	conslistener net.Listener
-	SyncChan     chan *types.MsgPayload
+	base     peer.PeerCom
+	listener net.Listener
+	NetChan  chan *types.MsgPayload
 	ConnectingNodes
 	PeerAddrMap
 	Np            *peer.NbrPeers
@@ -85,8 +83,7 @@ type ConnectingNodes struct {
 //PeerAddrMap include all addr-peer list
 type PeerAddrMap struct {
 	sync.RWMutex
-	PeerSyncAddress map[string]*peer.Peer
-	PeerConsAddress map[string]*peer.Peer
+	PeerAddress map[string]*peer.Peer
 }
 
 //init initializes attribute of network server
@@ -218,7 +215,7 @@ func (this *NetServer) Xmit(msg types.Message, isCons bool) {
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
 func (this *NetServer) GetMsgChan() chan *types.MsgPayload {
-	return this.SyncChan
+	return this.NetChan
 }
 
 //Tx send data buf to peer
@@ -300,7 +297,7 @@ func (this *NetServer) Connect(addr string) error {
 	this.AddPeerAddress(addr, remotePeer)
 	remotePeer.Link.SetAddr(addr)
 	remotePeer.Link.SetConn(conn)
-	remotePeer.AttachChan(this.SyncChan)
+	remotePeer.AttachChan(this.NetChan)
 	go remotePeer.Link.Rx()
 	remotePeer.SetState(common.HAND)
 
@@ -320,11 +317,8 @@ func (this *NetServer) Halt() {
 	for _, p := range peers {
 		p.Close()
 	}
-	if this.synclistener != nil {
-		this.synclistener.Close()
-	}
-	if this.conslistener != nil {
-		this.conslistener.Close()
+	if this.listener != nil {
+		this.listener.Close()
 	}
 }
 
@@ -339,7 +333,7 @@ func (this *NetServer) startListening() error {
 		return errors.New("[p2p]sync port invalid")
 	}
 
-	err = this.startSyncListening(syncPort)
+	err = this.startNetListening(syncPort)
 	if err != nil {
 		log.Error("[p2p]start sync listening fail")
 		return err
@@ -347,22 +341,22 @@ func (this *NetServer) startListening() error {
 	return nil
 }
 
-// startSyncListening starts a sync listener on the port for the inbound peer
-func (this *NetServer) startSyncListening(port uint16) error {
+// startNetListening starts a sync listener on the port for the inbound peer
+func (this *NetServer) startNetListening(port uint16) error {
 	var err error
-	this.synclistener, err = createListener(port)
+	this.listener, err = createListener(port)
 	if err != nil {
 		log.Error("[p2p]failed to create sync listener")
 		return errors.New("[p2p]failed to create sync listener")
 	}
 
-	go this.startSyncAccept(this.synclistener)
+	go this.startNetAccept(this.listener)
 	log.Infof("[p2p]start listen on sync port %d", port)
 	return nil
 }
 
-//startSyncAccept accepts the sync connection from the inbound peer
-func (this *NetServer) startSyncAccept(listener net.Listener) {
+//startNetAccept accepts the sync connection from the inbound peer
+func (this *NetServer) startNetAccept(listener net.Listener) {
 	for {
 		conn, err := listener.Accept()
 
@@ -414,7 +408,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		remotePeer.Link.SetAddr(addr)
 		remotePeer.Link.SetConn(conn)
-		remotePeer.AttachChan(this.SyncChan)
+		remotePeer.AttachChan(this.NetChan)
 		go remotePeer.Link.Rx()
 	}
 }
@@ -472,11 +466,7 @@ func (this *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
 	this.PeerAddrMap.RLock()
 	defer this.PeerAddrMap.RUnlock()
 
-	p, ok := this.PeerSyncAddress[addr]
-	if ok {
-		return p
-	}
-	p, ok = this.PeerConsAddress[addr]
+	p, ok := this.PeerAddress[addr]
 	if ok {
 		return p
 	}
@@ -505,15 +495,15 @@ func (this *NetServer) AddPeerAddress(addr string, p *peer.Peer) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
 	log.Debugf("[p2p]AddPeerAddress %s", addr)
-	this.PeerSyncAddress[addr] = p
+	this.PeerAddress[addr] = p
 }
 
 //RemovePeerAddress remove sync addr from peer-addr map
 func (this *NetServer) RemovePeerAddress(addr string) {
 	this.PeerAddrMap.Lock()
 	defer this.PeerAddrMap.Unlock()
-	if _, ok := this.PeerSyncAddress[addr]; ok {
-		delete(this.PeerSyncAddress, addr)
+	if _, ok := this.PeerAddress[addr]; ok {
+		delete(this.PeerAddress, addr)
 		log.Debugf("[p2p]delete Sync Address %s", addr)
 	}
 }
@@ -522,7 +512,7 @@ func (this *NetServer) RemovePeerAddress(addr string) {
 func (this *NetServer) GetPeerAddressCount() (count uint) {
 	this.PeerAddrMap.RLock()
 	defer this.PeerAddrMap.RUnlock()
-	return uint(len(this.PeerSyncAddress))
+	return uint(len(this.PeerAddress))
 }
 
 //AddInConnRecord add in connection to inConnRecord
