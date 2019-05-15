@@ -568,8 +568,7 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 }
 
 func NotifyRootCommitDpos(native *native.NativeService) ([]byte, error) {
-	// check shard block height at root
-	if !native.ShardID.IsRootShard() {
+	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyRootCommitDpos: only can be invoked at shard")
 	}
 	rootShard := common.NewShardIDUnchecked(0)
