@@ -21,7 +21,7 @@ import "github.com/ontio/ontology/common"
 
 type CrossShardPayload struct {
 	Version uint32
-	ShardID uint64
+	ShardID common.ShardID
 	Data    []byte
 }
 

@@ -31,33 +31,49 @@ import (
 	"github.com/ontio/ontology/core/xshard_types"
 )
 
+type CrossShardMsgHash struct {
+	ShardID      common.ShardID
+	ShardMsgHash common.Uint256
+	SigData      [][]byte
+}
+
 type CrossShardMsg struct {
-	ShardID           uint64
-	Header            *types.Header
+	FromShardID       common.ShardID
+	MsgHeight         uint32
+	SignMsgHeight     uint32
+	CrossShardMsgRoot common.Uint256
 	ShardMsg          []xshard_types.CommonShardMsg
-	OtherShardMsgHash []common.Uint256
+	ShardMsgHash      []*CrossShardMsgHash
 }
 
 func (this *CrossShardMsg) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteUint64(this.ShardID)
-	this.Header.Serialization(sink)
+	sink.WriteShardID(this.FromShardID)
+	sink.WriteUint32(this.MsgHeight)
+	sink.WriteUint32(this.SignMsgHeight)
+	sink.WriteBytes(this.CrossShardMsgRoot[:])
 	xshard_types.EncodeShardCommonMsgs(sink, this.ShardMsg)
-	sink.WriteVarUint(uint64(len(this.OtherShardMsgHash)))
-	for _, hash := range this.OtherShardMsgHash {
-		sink.WriteBytes(hash[:])
+	sink.WriteVarUint(uint64(len(this.ShardMsgHash)))
+	for _, shardMsgHash := range this.ShardMsgHash {
+		sink.WriteShardID(shardMsgHash.ShardID)
+		sink.WriteBytes(shardMsgHash.ShardMsgHash[:])
+		sink.WriteVarUint(uint64(len(shardMsgHash.SigData)))
+		for _, sig := range shardMsgHash.SigData {
+			sink.WriteVarBytes(sig)
+		}
 	}
 }
 
 func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error {
 	var eof bool
-	this.ShardID, eof = source.NextUint64()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	err := this.Header.Deserialization(source)
+	var err error
+	this.FromShardID, err = source.NextShardID()
 	if err != nil {
 		return err
 	}
+	this.MsgHeight, eof = source.NextUint32()
+	this.SignMsgHeight, eof = source.NextUint32()
+	this.CrossShardMsgRoot, eof = source.NextHash()
+
 	len, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -71,6 +87,9 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 		reqs = append(reqs, req)
 	}
 	this.ShardMsg = reqs
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	m, _, irregular, eof := source.NextVarUint()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -78,10 +97,31 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 	if irregular {
 		return common.ErrIrregularData
 	}
-	var hash common.Uint256
 	for i := 0; i < int(m); i++ {
-		hash, eof = source.NextHash()
-		this.OtherShardMsgHash = append(this.OtherShardMsgHash, hash)
+		crossShardMsgHash := &CrossShardMsgHash{}
+		crossShardMsgHash.ShardID, err = source.NextShardID()
+		if err != nil {
+			return err
+		}
+		crossShardMsgHash.ShardMsgHash, eof = source.NextHash()
+		n, _, irregular, eof := source.NextVarUint()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		for j := 0; j < int(n); j++ {
+			sig, _, irregular, eof := source.NextVarBytes()
+			if eof {
+				return io.ErrUnexpectedEOF
+			}
+			if irregular {
+				return common.ErrIrregularData
+			}
+			crossShardMsgHash.SigData = append(crossShardMsgHash.SigData, sig)
+		}
+		this.ShardMsgHash = append(this.ShardMsgHash, crossShardMsgHash)
 	}
 	return nil
 }

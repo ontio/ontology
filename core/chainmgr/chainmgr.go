@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
-	actorTypes "github.com/ontio/ontology/consensus/actor"
 	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/genesis"
@@ -83,7 +82,6 @@ type ChainManager struct {
 
 	// send transaction to local
 	p2pPid    *actor.PID
-	p2p       *actorTypes.P2PActor
 	localPid  *actor.PID
 	txPoolMgr *txnpool.TxnPoolManager
 
@@ -316,7 +314,6 @@ func (self *ChainManager) initShardTxPool() error {
 
 func (self *ChainManager) Start(p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolManager) error {
 	self.p2pPid = p2pPid
-	self.p2p = &actorTypes.P2PActor{P2P: p2pPid}
 	self.txPoolMgr = txPoolMgr
 	// start listen on local shard events
 	self.localEventSub = events.NewActorSubscriber(self.localPid)
@@ -412,7 +409,7 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 }
 
 func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload) {
-	if payload.ShardID != self.shardID.ToUint64() {
+	if payload.ShardID != self.shardID {
 		return
 	}
 	source := common.NewZeroCopySource(payload.Data)
@@ -423,22 +420,19 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 	}
 	var hashes []common.Uint256
 	hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(msg.ShardMsg))
-	hashes = append(hashes, msg.OtherShardMsgHash...)
-	if msg.Header.CrossShardMsgRoot != common.ComputeMerkleRoot(hashes) {
-		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.Header.CrossShardMsgRoot.ToHexString())
+	for _, msgHash := range msg.ShardMsgHash {
+		hashes = append(hashes, msgHash.ShardMsgHash)
+	}
+	if msg.CrossShardMsgRoot != common.ComputeMerkleRoot(hashes) {
+		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.CrossShardMsgRoot.ToHexString())
 		return
 	}
-	tx, err := crossshard.NewCrossShardTxMsg(self.account, msg.Header.Height, self.shardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
+	tx, err := crossshard.NewCrossShardTxMsg(self.account, msg.MsgHeight, self.shardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
 	if err != nil {
-		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.Header.Height, err)
+		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.MsgHeight, err)
 		return
 	}
-	shardId, err := common.NewShardID(msg.ShardID)
-	if err != nil {
-		log.Errorf("handleCrossShardMsg newshardId shardId:%d, height:%d,err:%s", msg.ShardID, msg.Header.Height, err)
-		return
-	}
-	xshard.AddCrossShardInfo(shardId, msg.Header, tx)
+	xshard.AddCrossShardInfo(msg, tx)
 }
 
 //

@@ -25,13 +25,10 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/xshard_types"
-	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -140,78 +137,82 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) {
 		return
 	}
 	log.Infof("chainmgr shard %d, get new block %d from shard %d", self.shardID, blk.Header.Height, blk.Header.ShardID)
-	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
-		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
-	}
+	/*
+		if err := self.handleShardReqsInBlock(blk.Header); err != nil {
+			log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
+		}
+	*/
 	if err := self.handleRootChainBlock(); err != nil {
 		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 }
 
 func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
-	shardID, err := common.NewShardID(header.ShardID)
-	if err != nil {
-		return fmt.Errorf("invalid shard id %d", header.ShardID)
-	}
-	lgr := ledger.GetShardLedger(shardID)
-	if lgr == nil {
-		return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)
-	}
-	height := header.Height - 1
-	shards, err := lgr.GetRelatedShardIDsInBlock(height)
-	if err != nil {
-		return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
-	}
-	if shards == nil || len(shards) == 0 {
-		return nil
-	}
+	/*
+		shardID, err := common.NewShardID(header.ShardID)
+		if err != nil {
+			return fmt.Errorf("invalid shard id %d", header.ShardID)
+		}
+		lgr := ledger.GetShardLedger(shardID)
+		if lgr == nil {
+			return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)
+		}
+		height := header.Height - 1
+		shards, err := lgr.GetRelatedShardIDsInBlock(height)
+		if err != nil {
+			return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
+		}
+		if shards == nil || len(shards) == 0 {
+			return nil
+		}
 
-	msgHashs := make(map[common.ShardID]common.Uint256)
-	var hashes []common.Uint256
-	for _, s := range shards {
-		if self.shardID.ParentID().ToUint64() == header.ShardID && s.ToUint64() != self.shardID.ToUint64() {
-			continue
-		}
-		reqs, err := lgr.GetShardMsgsInBlock(height, s)
-		if err != nil {
-			return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
-		}
-		if len(reqs) == 0 {
-			continue
-		}
-		msgHashs[s] = xshard_types.GetShardCommonMsgsHash(reqs)
-		hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(reqs))
-	}
-	root := common.ComputeMerkleRoot(hashes)
-	for _, s := range shards {
-		reqs, err := lgr.GetShardMsgsInBlock(height, s)
-		if err != nil {
-			return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
-		}
-		if len(reqs) == 0 {
-			continue
-		}
-		var hashs []common.Uint256
-		for shard, hash := range msgHashs {
-			if s != shard {
-				hashs = append(hashs, hash)
+		msgHashs := make(map[common.ShardID]common.Uint256)
+		var hashes []common.Uint256
+		for _, s := range shards {
+			if self.shardID.ParentID().ToUint64() == header.ShardID && s.ToUint64() != self.shardID.ToUint64() {
+				continue
 			}
+			reqs, err := lgr.GetShardMsgsInBlock(height, s)
+			if err != nil {
+				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
+			}
+			if len(reqs) == 0 {
+				continue
+			}
+			msgHashs[s] = xshard_types.GetShardCommonMsgsHash(reqs)
+			hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(reqs))
 		}
-		crossShardMsg := &message.CrossShardMsg{
-			ShardID:           self.shardID.ToUint64(),
-			Header:            header,
-			ShardMsg:          reqs,
-			OtherShardMsgHash: hashs,
+		root := common.ComputeMerkleRoot(hashes)
+		for _, s := range shards {
+			reqs, err := lgr.GetShardMsgsInBlock(height, s)
+			if err != nil {
+				return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
+			}
+			if len(reqs) == 0 {
+				continue
+			}
+			var hashs []common.Uint256
+			for shard, hash := range msgHashs {
+				if s != shard {
+					hashs = append(hashs, hash)
+				}
+			}
+			crossShardMsg := &message.CrossShardMsg{
+				ShardID:           self.shardID.ToUint64(),
+				Header:            header,
+				ShardMsg:          reqs,
+				OtherShardMsgHash: hashs,
+			}
+			crossShardMsg.Header.CrossShardMsgRoot = root
+			sink := common.ZeroCopySink{}
+			crossShardMsg.Serialization(&sink)
+			msg := &p2pmsg.CrossShardPayload{
+				ShardID: s.ToUint64(),
+				Data:    sink.Bytes(),
+			}
+			self.p2p.Broadcast(msg)
 		}
-		crossShardMsg.Header.CrossShardMsgRoot = root
-		sink := common.ZeroCopySink{}
-		crossShardMsg.Serialization(&sink)
-		msg := &p2pmsg.CrossShardPayload{
-			ShardID: s.ToUint64(),
-			Data:    sink.Bytes(),
-		}
-		self.p2p.Broadcast(msg)
-	}
+	*/
 	return nil
 }
 

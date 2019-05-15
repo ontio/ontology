@@ -19,12 +19,8 @@
 package message
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/events/message"
 )
 
 //
@@ -49,13 +45,16 @@ func (this *ShardBlockTx) Deserialization(source *common.ZeroCopySource) error {
 //  .ShardTxs: Cross-Shard Tx from the block
 //  .Events: shard events generated from the block (only for local block)
 //
+type CrossShardMsgInfo struct {
+	ShardMsg *CrossShardMsg `json:"shard_msg"`
+	ShardTx  *ShardBlockTx  `json:"shard_txs"`
+}
 type ShardBlockInfo struct {
-	FromShardID common.ShardID `json:"from_shard_id"`
-	Height      uint32         `json:"height"`
-	Header      *types.Header  `json:"header"`
-	ShardTx     *ShardBlockTx  `json:"shard_txs"`
+	ShardMsg CrossShardMsg `json:"shard_msg"`
+	ShardTx  *ShardBlockTx `json:"shard_txs"`
 }
 
+/*
 func (this *ShardBlockInfo) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteUint64(this.FromShardID.ToUint64())
 	sink.WriteUint32(this.Height)
@@ -93,3 +92,4 @@ func (this *ShardBlockInfo) Deserialization(source *common.ZeroCopySource) error
 	}
 	return nil
 }
+*/

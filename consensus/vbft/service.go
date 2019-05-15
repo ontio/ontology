@@ -40,6 +40,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
@@ -423,7 +424,7 @@ func (self *Server) initialize() error {
 	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
-	store, err := OpenBlockStore(self.ledger, self.pid)
+	store, err := OpenBlockStore(self.ledger, self.pid, self.ShardID)
 	if err != nil {
 		log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
@@ -1121,42 +1122,79 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	parentHeight := self.ledger.GetParentHeight() + 1
-	if parentHeight < msg.Block.Block.Header.ParentHeight {
-		log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,ParentHeight:%d,self.parentHeight:%d", msg.GetBlockNum(), self.parentHeight, msg.Block.Block.Header.ParentHeight)
-		return
-	}
-	if self.parentHeight < parentHeight {
-		crossShard := xshard.GetCrossShardTxs()
-		for shardId, txs := range crossShard {
-			msgtxs, present := msg.Block.Block.ShardTxs[shardId]
-			if !present {
-				log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, shardId:%d", self.parentHeight, shardId)
+	if !self.ShardID.IsRootShard() {
+		shards, err := self.ledger.GetRelatedShardIDsInBlock(msgBlkNum - 1)
+		if err != nil {
+			log.Errorf("get remoteMsgShards of height %d: %s", msgBlkNum, err)
+			return
+		}
+		shardMsg := make(map[common.ShardID]common.Uint256)
+		if shards != nil && len(shards) != 0 && len(msg.Block.CrossMsg.CrossMsgs) != 0 {
+			for _, s := range shards {
+				reqs, err := self.ledger.GetShardMsgsInBlock(msgBlkNum, s)
+				if err != nil {
+					log.Errorf("get remoteMsg of height %d to shard %d: %s", msgBlkNum, s, err)
+					return
+				}
+				if len(reqs) != 0 {
+					msgHash := xshard_types.GetShardCommonMsgsHash(reqs)
+					shardMsg[s] = msgHash
+				}
+			}
+			if len(msg.Block.CrossMsg.CrossMsgs) != len(shardMsg) {
+				log.Errorf("BlockPrposalMessage msg CrossMsgs len :%d，not match shardmsg:%d", len(msg.Block.CrossMsg.CrossMsgs), len(shardMsg))
 				return
 			}
-			if len(txs) != len(msgtxs) {
-				log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, len(txs):%d,len(msgtxs):%d", self.parentHeight, len(txs), len(msgtxs))
-				return
-			}
-			txHash := []common.Uint256{}
-			for _, t := range txs {
-				txHash = append(txHash, t.Hash())
-			}
-			msgtxHash := []common.Uint256{}
-			for _, msgtx := range msgtxs {
-				msgtxHash = append(msgtxHash, msgtx.Hash())
-			}
-			txRoot := common.ComputeMerkleRoot(txHash)
-			msgtxRoot := common.ComputeMerkleRoot(msgtxHash)
-			if txRoot != msgtxRoot {
-				log.Errorf("BlockPrposalMessage check parentHeight blocknum:%d,msg txRoot:%s,msgtxRoot:%s", self.parentHeight, txRoot.ToHexString(), msgtxRoot.ToHexString())
-				return
+			for _, crossMsg := range msg.Block.CrossMsg.CrossMsgs {
+				if msgHash, present := shardMsg[crossMsg.ShardID]; !present {
+					log.Errorf("BlockPrposalMessage ShardId:%v not found", crossMsg.ShardID)
+					return
+				} else {
+					if msgHash != crossMsg.ShardMsgHash {
+						log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgHash.ToHexString(), crossMsg.ShardMsgHash.ToHexString())
+						return
+					}
+				}
 			}
 		}
-		log.Infof("BlockPrposalMessage: update self parent height for %d to %d", self.parentHeight, parentHeight)
-		self.parentHeight = parentHeight
 	}
-
+	/*
+		parentHeight := self.ledger.GetParentHeight() + 1
+		if parentHeight < msg.Block.Block.Header.ParentHeight {
+			log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,ParentHeight:%d,self.parentHeight:%d", msg.GetBlockNum(), self.parentHeight, msg.Block.Block.Header.ParentHeight)
+			return
+		}
+		if self.parentHeight < parentHeight {
+			crossShard := xshard.GetCrossShardTxs()
+			for shardId, txs := range crossShard {
+				msgtxs, present := msg.Block.Block.ShardTxs[shardId]
+				if !present {
+					log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, shardId:%d", self.parentHeight, shardId)
+					return
+				}
+				if len(txs) != len(msgtxs) {
+					log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, len(txs):%d,len(msgtxs):%d", self.parentHeight, len(txs), len(msgtxs))
+					return
+				}
+				txHash := []common.Uint256{}
+				for _, t := range txs {
+					txHash = append(txHash, t.Hash())
+				}
+				msgtxHash := []common.Uint256{}
+				for _, msgtx := range msgtxs {
+					msgtxHash = append(msgtxHash, msgtx.Hash())
+				}
+				txRoot := common.ComputeMerkleRoot(txHash)
+				msgtxRoot := common.ComputeMerkleRoot(msgtxHash)
+				if txRoot != msgtxRoot {
+					log.Errorf("BlockPrposalMessage check parentHeight blocknum:%d,msg txRoot:%s,msgtxRoot:%s", self.parentHeight, txRoot.ToHexString(), msgtxRoot.ToHexString())
+					return
+				}
+			}
+			log.Infof("BlockPrposalMessage: update self parent height for %d to %d", self.parentHeight, parentHeight)
+			self.parentHeight = parentHeight
+		}
+	*/
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
 		height := uint32(msgBlkNum) - 1

@@ -27,9 +27,11 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 )
 
 type ConsensusMsgPayload struct {
@@ -226,6 +228,40 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	return blk, nil
 }
 
+func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs, error) {
+	if self.ShardID.IsRootShard() {
+		return nil, nil
+	}
+	crossShardMsgs := &CrossShardMsgs{}
+	shards, err := self.ledger.GetRelatedShardIDsInBlock(blkNum - 1)
+	if err != nil {
+		return nil, fmt.Errorf("get remoteMsgShards of height %d: %s", blkNum, err)
+	}
+	if shards == nil || len(shards) == 0 {
+		return nil, nil
+	}
+	for _, s := range shards {
+		reqs, err := self.ledger.GetShardMsgsInBlock(blkNum, s)
+		if err != nil {
+			return nil, fmt.Errorf("get remoteMsg of height %d to shard %d: %s", blkNum, s, err)
+		}
+		if len(reqs) == 0 {
+			continue
+		}
+		msgHash := xshard_types.GetShardCommonMsgsHash(reqs)
+		sig, err := signature.Sign(self.account, msgHash[:])
+		if err != nil {
+			return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", msgHash.ToHexString(), err)
+		}
+		crossShardMsg := &shardmsg.CrossShardMsgHash{
+			ShardID:      s,
+			ShardMsgHash: msgHash,
+			SigData:      [][]byte{sig},
+		}
+		crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossShardMsg)
+	}
+	return crossShardMsgs, nil
+}
 func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
 
 	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
@@ -273,13 +309,14 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
 	}
-
+	crossShardMsgs, err := self.constructCrossShardHashMsgs(blkNum)
 	msg := &blockProposalMsg{
 		Block: &Block{
 			Block:               blk,
 			EmptyBlock:          emptyBlk,
 			Info:                vbftBlkInfo,
 			PrevBlockMerkleRoot: merkleRoot,
+			CrossMsg:            crossShardMsgs,
 		},
 	}
 
@@ -310,6 +347,15 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	if err != nil {
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, err: %s", blkHash, err)
 	}
+	crossShardMsgs := &CrossShardMsgs{}
+	for _, crossMsg := range proposal.Block.CrossMsg.CrossMsgs {
+		sig, err := signature.Sign(self.account, crossMsg.ShardMsgHash[:])
+		if err != nil {
+			return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.ShardMsgHash[:], err)
+		}
+		crossMsg.SigData = append(crossMsg.SigData, sig)
+		crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
+	}
 
 	msg := &blockEndorseMsg{
 		Endorser:          self.Index,
@@ -319,6 +365,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		EndorseForEmpty:   forEmpty,
 		ProposerSig:       proposerSig,
 		EndorserSig:       endorserSig,
+		CrossMsg:          crossShardMsgs,
 	}
 
 	return msg, nil
@@ -350,8 +397,19 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	}
 
 	endorsersSig := make(map[uint32][]byte)
+	crossShardMsg := make(map[uint32]*CrossShardMsgs)
 	for _, e := range endorses {
 		endorsersSig[e.Endorser] = e.EndorserSig
+		crossShardMsgs := &CrossShardMsgs{}
+		for _, crossMsg := range e.CrossMsg.CrossMsgs {
+			sig, err := signature.Sign(self.account, crossMsg.ShardMsgHash[:])
+			if err != nil {
+				return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.ShardMsgHash[:], err)
+			}
+			crossMsg.SigData = append(crossMsg.SigData, sig)
+			crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
+		}
+		crossShardMsg[e.Endorser] = crossShardMsgs
 	}
 
 	msg := &blockCommitMsg{
@@ -363,6 +421,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		ProposerSig:     proposerSig,
 		EndorsersSig:    endorsersSig,
 		CommitterSig:    committerSig,
+		CrossMsgSig:     crossShardMsg,
 	}
 
 	return msg, nil

@@ -26,14 +26,21 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 )
+
+type CrossShardMsgs struct {
+	Height    uint32
+	CrossMsgs []*shardmsg.CrossShardMsgHash
+}
 
 type Block struct {
 	Block               *types.Block
 	EmptyBlock          *types.Block
 	Info                *vconfig.VbftBlockInfo
 	PrevBlockMerkleRoot common.Uint256
+	CrossMsg            *CrossShardMsgs
 }
 
 func (blk *Block) getProposer() uint32 {
