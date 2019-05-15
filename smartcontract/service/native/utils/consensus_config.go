@@ -354,7 +354,7 @@ func CheckVBFTConfig(configuration *config.VBFTConfig) error {
 	if configuration.C == 0 {
 		return fmt.Errorf("CheckVBFTConfig: C can not be 0 in config")
 	}
-	if int(configuration.K) != len(configuration.Peers) {
+	if len(configuration.Peers) > 0 && int(configuration.K) != len(configuration.Peers) {
 		return fmt.Errorf("CheckVBFTConfig: K must equal to length of peer in config")
 	}
 	if configuration.L < 16*configuration.K || configuration.L%configuration.K != 0 {

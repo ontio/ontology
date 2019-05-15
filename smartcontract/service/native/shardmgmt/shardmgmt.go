@@ -253,7 +253,6 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: only support ONG gas")
 	}
 
-	// TODO: validate input config
 	shard.Config = &shardstates.ShardConfig{
 		NetworkSize:       params.NetworkMin,
 		StakeAssetAddress: params.StakeAssetAddress,
@@ -264,6 +263,9 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	cfg, err := params.GetConfig()
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: decode config failed, err: %s", err)
+	}
+	if err := utils.CheckVBFTConfig(cfg); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: failed, err: %s", err)
 	}
 	shard.Config.VbftCfg = cfg
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
@@ -494,9 +496,6 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	}
 	if shard.ShardID.ParentID() != native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: not on parent shard")
-	}
-	if err := utils.CheckVBFTConfig(shard.Config.VbftCfg); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: failed, err: %s", err)
 	}
 	peers := shard.Config.VbftCfg.Peers
 	sort.SliceStable(peers, func(i, j int) bool {
