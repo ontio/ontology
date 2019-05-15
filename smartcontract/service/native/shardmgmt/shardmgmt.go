@@ -615,7 +615,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: checkwitness failed, err: %s", err)
 		}
-	} else if !native.IsShardCall {
+	} else if !native.ContextRef.CheckCallShard(param.ShardId) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by ShardCall")
 	} else if param.Height < shardCurrentView.Height ||
 		param.Height-shardCurrentView.Height < shard.Config.VbftCfg.MaxBlockChangeView {
@@ -684,7 +684,8 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
 	}
-	if !native.IsShardCall {
+	rootShard := common.NewShardIDUnchecked(0)
+	if !native.ContextRef.CheckCallShard(rootShard) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked by ShardCall")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -692,7 +693,6 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: get shard fee balance failed, err: %s", err)
 	}
-	rootShard := common.NewShardIDUnchecked(0)
 	xShardTransferParam := &oep4.XShardTransferParam{
 		From:    contract,
 		To:      utils.ShardStakeAddress,
@@ -764,6 +764,9 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 
 // only can be invoke while shard call
 func UpdateXShardHandlingFee(native *native.NativeService) ([]byte, error) {
+	if !native.ContextRef.CheckCallShard(native.ShardID) {
+		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: check call shard failed")
+	}
 	param := &XShardHandlingFeeParam{}
 	if err := param.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateXShardHandlingFee: failed, err: %s", err)

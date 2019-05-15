@@ -59,7 +59,6 @@ type NativeService struct {
 	Time          uint32
 	BlockHash     common.Uint256
 	ShardTxState  *xshard_state.TxState
-	IsShardCall   bool
 	ContextRef    context.ContextRef
 }
 
