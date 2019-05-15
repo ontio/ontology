@@ -125,7 +125,7 @@ func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 		addr.IpAddr, _ = p.GetAddr16()
 		addr.Time = p.GetTimeStamp()
 		addr.Services = p.GetServices()
-		addr.Port = p.GetSyncPort()
+		addr.Port = p.GetPort()
 		addr.ID = p.GetID()
 		addrs = append(addrs, addr)
 	}

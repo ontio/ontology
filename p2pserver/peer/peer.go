@@ -90,7 +90,7 @@ func (this *PeerCom) SetPort(port uint16) {
 	this.syncPort = port
 }
 
-// GetSyncPort returns a peer's sync port
+// GetPort returns a peer's sync port
 func (this *PeerCom) GetSyncPort() uint16 {
 	return this.syncPort
 }
@@ -160,7 +160,7 @@ func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]\t cap = ", this.cap)
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
-	log.Debug("[p2p]\t syncPort = ", this.GetSyncPort())
+	log.Debug("[p2p]\t syncPort = ", this.GetPort())
 	log.Debug("[p2p]\t relay = ", this.GetRelay())
 	log.Debug("[p2p]\t height = ", this.GetHeight())
 	log.Debug("[p2p]\t softVersion = ", this.GetSoftVersion())
@@ -186,27 +186,27 @@ func (this *Peer) GetState() uint32 {
 	return this.linkState
 }
 
-//SetSyncState set sync state to peer
-func (this *Peer) SetSyncState(state uint32) {
+//SetState set sync state to peer
+func (this *Peer) SetState(state uint32) {
 	atomic.StoreUint32(&(this.linkState), state)
 }
 
-//GetSyncPort return peer`s sync port
-func (this *Peer) GetSyncPort() uint16 {
+//GetPort return peer`s sync port
+func (this *Peer) GetPort() uint16 {
 	return this.Link.GetPort()
 }
 
-//SendToSync call sync link to send buffer
-func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
+//SendTo call sync link to send buffer
+func (this *Peer) SendTo(msgType string, msgPayload []byte) error {
 	if this.Link != nil && this.Link.Valid() {
 		return this.Link.SendRaw(msgPayload)
 	}
 	return errors.New("[p2p]sync link invalid")
 }
 
-//CloseSync halt sync connection
-func (this *Peer) CloseSync() {
-	this.SetSyncState(common.INACTIVITY)
+//Close halt sync connection
+func (this *Peer) Close() {
+	this.SetState(common.INACTIVITY)
 	conn := this.Link.GetConn()
 	this.connLock.Lock()
 	if conn != nil {
@@ -266,13 +266,8 @@ func (this *Peer) GetSoftVersion() string {
 	return this.base.GetSoftVersion()
 }
 
-//AttachSyncChan set msg chan to sync link
-func (this *Peer) AttachSyncChan(msgchan chan *types.MsgPayload) {
-	this.Link.SetChan(msgchan)
-}
-
-//AttachConsChan set msg chan to consensus link
-func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
+//AttachChan set msg chan to sync link
+func (this *Peer) AttachChan(msgchan chan *types.MsgPayload) {
 	this.Link.SetChan(msgchan)
 }
 
@@ -286,7 +281,7 @@ func (this *Peer) Send(msg types.Message) error {
 
 func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
 
-	return this.SendToSync(msgType, msgPayload)
+	return this.SendTo(msgType, msgPayload)
 }
 
 //SetHttpInfoState set peer`s httpinfo state

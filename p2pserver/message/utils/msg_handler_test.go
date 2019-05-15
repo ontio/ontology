@@ -113,7 +113,7 @@ func TestVersionHandle(t *testing.T) {
 	assert.Equal(t, tempPeer.GetID(), testID)
 	assert.Equal(t, tempPeer.GetVersion(), network.GetVersion())
 	assert.Equal(t, tempPeer.GetServices(), network.GetServices())
-	assert.Equal(t, tempPeer.GetSyncPort(), network.GetSyncPort())
+	assert.Equal(t, tempPeer.GetPort(), network.GetSyncPort())
 	assert.Equal(t, tempPeer.GetHttpInfoPort(), network.GetHttpInfoPort())
 	assert.Equal(t, tempPeer.GetConsPort(), network.GetConsPort())
 	assert.Equal(t, tempPeer.GetHeight(), uint64(12345))
@@ -138,7 +138,7 @@ func TestVerAckHandle(t *testing.T) {
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		20337, testID, 0, 12345, "1.5.2")
 	network.AddNbrNode(remotePeer)
-	remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
+	remotePeer.SetState(msgCommon.HAND_SHAKE)
 
 	// Construct a version ack packet
 	buf := msgpack.NewVerAck(false)

@@ -47,7 +47,7 @@ func creatPeers(cnt uint16) []*peer.Peer {
 		p := peer.NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, "1.5.2")
 		p.SetConsState(2)
-		p.SetSyncState(4)
+		p.SetState(4)
 		p.SetHttpInfoState(true)
 		p.Link.SetAddr("127.0.0.1:10338")
 		np = append(np, p)

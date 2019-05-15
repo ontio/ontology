@@ -307,7 +307,7 @@ func (this *P2PServer) connectSeeds() {
 	for _, tn := range np.List {
 		ipAddr, _ := tn.GetAddr16()
 		ip := net.IP(ipAddr[:])
-		addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetSyncPort()))
+		addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetPort()))
 		if tn.GetState() == common.ESTABLISH {
 			connPeers[addrString] = tn
 		}
@@ -381,12 +381,12 @@ func (this *P2PServer) retryInactivePeer() {
 		addr, _ := p.GetAddr16()
 		ip = addr[:]
 		nodeAddr := ip.To16().String() + ":" +
-			strconv.Itoa(int(p.GetSyncPort()))
+			strconv.Itoa(int(p.GetPort()))
 		if p.GetState() == common.INACTIVITY {
 			log.Debugf("[p2p] try reconnect %s", nodeAddr)
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
-			p.CloseSync()
+			p.Close()
 		} else {
 			//add others to tmp node map
 			this.removeFromRetryList(nodeAddr)
@@ -529,7 +529,7 @@ func (this *P2PServer) timeout() {
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
 				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.Link.GetAddr(), t.String())
-				p.CloseSync()
+				p.Close()
 			}
 		}
 	}
@@ -622,7 +622,7 @@ func (this *P2PServer) syncPeerAddr() {
 			addr, _ := p.GetAddr16()
 			ip = addr[:]
 			nodeAddr := ip.To16().String() + ":" +
-				strconv.Itoa(int(p.GetSyncPort()))
+				strconv.Itoa(int(p.GetPort()))
 			found := false
 			for i := 0; i < len(this.recentPeers[netID]); i++ {
 				if nodeAddr == this.recentPeers[netID][i] {

@@ -156,7 +156,7 @@ func (this *NetServer) GetServices() uint64 {
 	return this.base.GetServices()
 }
 
-//GetSyncPort return the sync port
+//GetPort return the sync port
 func (this *NetServer) GetSyncPort() uint16 {
 	return this.base.GetSyncPort()
 }
@@ -300,9 +300,9 @@ func (this *NetServer) Connect(addr string) error {
 	this.AddPeerSyncAddress(addr, remotePeer)
 	remotePeer.Link.SetAddr(addr)
 	remotePeer.Link.SetConn(conn)
-	remotePeer.AttachSyncChan(this.SyncChan)
+	remotePeer.AttachChan(this.SyncChan)
 	go remotePeer.Link.Rx()
-	remotePeer.SetSyncState(common.HAND)
+	remotePeer.SetState(common.HAND)
 
 	version := msgpack.NewVersion(this, ledger.DefLedger.GetCurrentBlockHeight())
 	err = remotePeer.Send(version)
@@ -318,7 +318,7 @@ func (this *NetServer) Connect(addr string) error {
 func (this *NetServer) Halt() {
 	peers := this.Np.GetNeighbors()
 	for _, p := range peers {
-		p.CloseSync()
+		p.Close()
 	}
 	if this.synclistener != nil {
 		this.synclistener.Close()
@@ -414,7 +414,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		remotePeer.Link.SetAddr(addr)
 		remotePeer.Link.SetConn(conn)
-		remotePeer.AttachSyncChan(this.SyncChan)
+		remotePeer.AttachChan(this.SyncChan)
 		go remotePeer.Link.Rx()
 	}
 }

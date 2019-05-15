@@ -166,7 +166,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 			log.Info("received block msg with empty merkle root")
 			remotePeer := p2p.GetPeer(data.Id)
 			if remotePeer != nil {
-				remotePeer.CloseSync()
+				remotePeer.Close()
 			}
 
 			return
@@ -243,7 +243,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			}
 		}
 		if !found {
-			remotePeer.CloseSync()
+			remotePeer.Close()
 			log.Debug("[p2p]peer not in reserved list,close", data.Addr)
 			return
 		}
@@ -255,14 +255,14 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
 		log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr())
 		p2p.SetOwnAddress(nodeAddr)
-		remotePeer.CloseSync()
+		remotePeer.Close()
 		return
 	}
 
 	s := remotePeer.GetState()
 	if s != msgCommon.INIT && s != msgCommon.HAND {
 		log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
-		remotePeer.CloseSync()
+		remotePeer.Close()
 		return
 	}
 
@@ -276,7 +276,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 		ipNew, err := msgCommon.ParseIPAddr(data.Addr)
 		if err != nil {
-			remotePeer.CloseSync()
+			remotePeer.Close()
 			log.Warn("[p2p]connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
 			return
 		}
@@ -286,7 +286,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			if ret == true {
 				log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
 				// Close the connection and release the node source
-				n.CloseSync()
+				n.Close()
 				if pid != nil {
 					input := &msgCommon.RemovePeerID{
 						ID: version.P.Nonce,
@@ -296,7 +296,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			}
 		} else {
 			log.Warnf("[p2p]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
-			remotePeer.CloseSync()
+			remotePeer.Close()
 			return
 
 		}
@@ -324,10 +324,10 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 	var msg msgTypes.Message
 	if s == msgCommon.INIT {
-		remotePeer.SetSyncState(msgCommon.HAND_SHAKE)
+		remotePeer.SetState(msgCommon.HAND_SHAKE)
 		msg = msgpack.NewVersion(p2p, ledger.DefLedger.GetCurrentBlockHeight())
 	} else if s == msgCommon.HAND {
-		remotePeer.SetSyncState(msgCommon.HAND_SHAKED)
+		remotePeer.SetState(msgCommon.HAND_SHAKED)
 		msg = msgpack.NewVerAck(false)
 	}
 	err = p2p.Send(remotePeer, msg)
@@ -355,7 +355,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		return
 	}
 
-	remotePeer.SetSyncState(msgCommon.ESTABLISH)
+	remotePeer.SetState(msgCommon.ESTABLISH)
 	p2p.RemoveFromConnectingList(data.Addr)
 	remotePeer.DumpInfo()
 
@@ -568,7 +568,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 
 	if remotePeer.Link.GetAddr() == data.Addr {
 		p2p.RemovePeerSyncAddress(data.Addr)
-		remotePeer.CloseSync()
+		remotePeer.Close()
 	}
 }
 
