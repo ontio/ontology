@@ -311,13 +311,3 @@ func (p *Plaintext) PolyEval() *big.Float {
 
 	return acc
 }
-
-func checkOverflow(x *big.Int) bool {
-	max := big.NewInt(9223372036854775807) // max value of int64
-	return x.Cmp(max) > 0
-}
-
-func (p *Plaintext) String() string {
-
-	return fmt.Sprintf("%s", p.PolyEval().String())
-}
