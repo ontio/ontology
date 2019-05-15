@@ -34,7 +34,7 @@ type NbrPeers struct {
 }
 
 //Broadcast tranfer msg buffer to all establish peer
-func (this *NbrPeers) Broadcast(msg types.Message, isConsensus bool) {
+func (this *NbrPeers) Broadcast(msg types.Message) {
 	sink := comm.NewZeroCopySink(nil)
 	types.WriteMessage(sink, msg)
 

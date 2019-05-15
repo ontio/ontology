@@ -209,8 +209,8 @@ func (this *NetServer) NodeEstablished(id uint64) bool {
 }
 
 //Xmit called by actor, broadcast msg
-func (this *NetServer) Xmit(msg types.Message, isCons bool) {
-	this.Np.Broadcast(msg, isCons)
+func (this *NetServer) Xmit(msg types.Message) {
+	this.Np.Broadcast(msg)
 }
 
 //GetMsgChan return sync or consensus channel when msgrouter need msg input

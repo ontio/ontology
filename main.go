@@ -105,8 +105,6 @@ func setupAPP() *cli.App {
 		utils.ReservedPeersFileFlag,
 		utils.NetworkIdFlag,
 		utils.NodePortFlag,
-		utils.ConsensusPortFlag,
-		utils.DualPortSupportFlag,
 		utils.HttpInfoPortFlag,
 		utils.MaxConnInBoundFlag,
 		utils.MaxConnOutBoundFlag,

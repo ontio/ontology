@@ -144,7 +144,6 @@ func (this *P2PServer) GetNeighborAddrs() []common.PeerAddr {
 func (this *P2PServer) Xmit(message interface{}) error {
 	log.Debug()
 	var msg msgtypes.Message
-	isConsensus := false
 	switch message.(type) {
 	case *types.Transaction:
 		log.Debug("[p2p]TX transaction message")
@@ -154,7 +153,6 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		log.Debug("[p2p]TX consensus message")
 		consensusPayload := message.(*msgtypes.ConsensusPayload)
 		msg = msgpack.NewConsensus(consensusPayload)
-		isConsensus = true
 	case comm.Uint256:
 		log.Debug("[p2p]TX block hash message")
 		hash := message.(comm.Uint256)
@@ -166,7 +164,7 @@ func (this *P2PServer) Xmit(message interface{}) error {
 			reflect.TypeOf(message))
 		return errors.New("[p2p]Unknown Xmit message type")
 	}
-	this.network.Xmit(msg, isConsensus)
+	this.network.Xmit(msg)
 	return nil
 }
 

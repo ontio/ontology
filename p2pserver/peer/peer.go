@@ -197,7 +197,7 @@ func (this *Peer) GetPort() uint16 {
 }
 
 //SendTo call sync link to send buffer
-func (this *Peer) SendTo(msgType string, msgPayload []byte) error {
+func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
 	if this.Link != nil && this.Link.Valid() {
 		return this.Link.SendRaw(msgPayload)
 	}
@@ -277,11 +277,6 @@ func (this *Peer) Send(msg types.Message) error {
 	types.WriteMessage(sink, msg)
 
 	return this.SendRaw(msg.CmdType(), sink.Bytes())
-}
-
-func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
-
-	return this.SendTo(msgType, msgPayload)
 }
 
 //SetHttpInfoState set peer`s httpinfo state

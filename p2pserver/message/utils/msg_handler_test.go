@@ -139,7 +139,7 @@ func TestVerAckHandle(t *testing.T) {
 	remotePeer.SetState(msgCommon.HAND_SHAKE)
 
 	// Construct a version ack packet
-	buf := msgpack.NewVerAck(false)
+	buf := msgpack.NewVerAck()
 
 	msg := &types.MsgPayload{
 		Id:      testID,

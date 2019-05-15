@@ -328,7 +328,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		msg = msgpack.NewVersion(p2p, ledger.DefLedger.GetCurrentBlockHeight())
 	} else if s == msgCommon.HAND {
 		remotePeer.SetState(msgCommon.HAND_SHAKED)
-		msg = msgpack.NewVerAck(false)
+		msg = msgpack.NewVerAck()
 	}
 	err = p2p.Send(remotePeer, msg)
 	if err != nil {
@@ -360,7 +360,7 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 	remotePeer.DumpInfo()
 
 	if s == msgCommon.HAND_SHAKE {
-		msg := msgpack.NewVerAck(false)
+		msg := msgpack.NewVerAck()
 		p2p.Send(remotePeer, msg)
 	}
 

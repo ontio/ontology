@@ -31,7 +31,7 @@ type VersionPayload struct {
 	TimeStamp    int64
 	SyncPort     uint16
 	HttpInfoPort uint16
-	//TODO
+	//TODO remove this legecy field
 	ConsPort    uint16
 	Cap         [32]byte
 	Nonce       uint64

@@ -140,11 +140,9 @@ func NewTxn(txn *ct.Transaction) mt.Message {
 }
 
 //version ack package
-func NewVerAck(isConsensus bool) mt.Message {
+func NewVerAck() mt.Message {
 	log.Trace()
 	var verAck mt.VerACK
-	//TODO
-	verAck.IsConsensus = isConsensus
 
 	return &verAck
 }
