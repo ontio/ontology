@@ -118,7 +118,7 @@ func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 
 	var addrs []common.PeerAddr
 	for _, p := range this.List {
-		if p.GetSyncState() != common.ESTABLISH {
+		if p.GetState() != common.ESTABLISH {
 			continue
 		}
 		var addr common.PeerAddr
@@ -140,7 +140,7 @@ func (this *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
 
 	hm := make(map[uint64]uint64)
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetState() == common.ESTABLISH {
 			hm[n.GetID()] = n.GetHeight()
 		}
 	}
@@ -153,7 +153,7 @@ func (this *NbrPeers) GetNeighbors() []*Peer {
 	defer this.RUnlock()
 	peers := []*Peer{}
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetState() == common.ESTABLISH {
 			node := n
 			peers = append(peers, node)
 		}
@@ -167,7 +167,7 @@ func (this *NbrPeers) GetNbrNodeCnt() uint32 {
 	defer this.RUnlock()
 	var count uint32
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetState() == common.ESTABLISH {
 			count++
 		}
 	}

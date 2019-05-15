@@ -308,7 +308,7 @@ func (this *P2PServer) connectSeeds() {
 		ipAddr, _ := tn.GetAddr16()
 		ip := net.IP(ipAddr[:])
 		addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetSyncPort()))
-		if tn.GetSyncState() == common.ESTABLISH {
+		if tn.GetState() == common.ESTABLISH {
 			connPeers[addrString] = tn
 		}
 	}
@@ -382,7 +382,7 @@ func (this *P2PServer) retryInactivePeer() {
 		ip = addr[:]
 		nodeAddr := ip.To16().String() + ":" +
 			strconv.Itoa(int(p.GetSyncPort()))
-		if p.GetSyncState() == common.INACTIVITY {
+		if p.GetState() == common.INACTIVITY {
 			log.Debugf("[p2p] try reconnect %s", nodeAddr)
 			//add addr to retry list
 			this.addToRetryList(nodeAddr)
@@ -420,7 +420,7 @@ func (this *P2PServer) retryInactivePeer() {
 				this.network.RemoveFromConnectingList(addr)
 				remotePeer := this.network.GetPeerFromAddr(addr)
 				if remotePeer != nil {
-					if remotePeer.RecvLink.GetAddr() == addr {
+					if remotePeer.Link.GetAddr() == addr {
 						this.network.RemovePeerSyncAddress(addr)
 					}
 					this.network.DelNbrNode(remotePeer.GetID())
@@ -510,7 +510,7 @@ func (this *P2PServer) ping() {
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
 	for _, p := range peers {
-		if p.GetSyncState() == common.ESTABLISH {
+		if p.GetState() == common.ESTABLISH {
 			height := this.ledger.GetCurrentBlockHeight()
 			ping := msgpack.NewPingMsg(uint64(height))
 			go this.Send(p, ping, false)
@@ -524,11 +524,11 @@ func (this *P2PServer) timeout() {
 	var periodTime uint
 	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	for _, p := range peers {
-		if p.GetSyncState() == common.ESTABLISH {
+		if p.GetState() == common.ESTABLISH {
 			t := p.GetContactTime()
 			if t.Before(time.Now().Add(-1 * time.Second *
 				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
-				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.RecvLink.GetAddr(), t.String())
+				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.Link.GetAddr(), t.String())
 				p.CloseSync()
 			}
 		}
@@ -607,7 +607,7 @@ func (this *P2PServer) syncPeerAddr() {
 	netID := config.DefConfig.P2PNode.NetworkMagic
 	for i := 0; i < len(this.recentPeers[netID]); i++ {
 		p := this.network.GetPeerFromAddr(this.recentPeers[netID][i])
-		if p == nil || (p != nil && p.GetSyncState() != common.ESTABLISH) {
+		if p == nil || (p != nil && p.GetState() != common.ESTABLISH) {
 			this.recentPeers[netID] = append(this.recentPeers[netID][:i], this.recentPeers[netID][i+1:]...)
 			changed = true
 			i--

@@ -104,7 +104,7 @@ func (this *NetServer) init() error {
 		return errors.New("[p2p]invalid link port")
 	}
 
-	this.base.SetSyncPort(uint16(config.DefConfig.P2PNode.NodePort))
+	this.base.SetPort(uint16(config.DefConfig.P2PNode.NodePort))
 
 	this.base.SetRelay(true)
 
@@ -298,10 +298,10 @@ func (this *NetServer) Connect(addr string) error {
 	this.AddOutConnRecord(addr)
 	remotePeer = peer.NewPeer()
 	this.AddPeerSyncAddress(addr, remotePeer)
-	remotePeer.RecvLink.SetAddr(addr)
-	remotePeer.RecvLink.SetConn(conn)
+	remotePeer.Link.SetAddr(addr)
+	remotePeer.Link.SetConn(conn)
 	remotePeer.AttachSyncChan(this.SyncChan)
-	go remotePeer.RecvLink.Rx()
+	go remotePeer.Link.Rx()
 	remotePeer.SetSyncState(common.HAND)
 
 	version := msgpack.NewVersion(this, ledger.DefLedger.GetCurrentBlockHeight())
@@ -412,10 +412,10 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 
 		this.AddPeerSyncAddress(addr, remotePeer)
 
-		remotePeer.RecvLink.SetAddr(addr)
-		remotePeer.RecvLink.SetConn(conn)
+		remotePeer.Link.SetAddr(addr)
+		remotePeer.Link.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
-		go remotePeer.RecvLink.Rx()
+		go remotePeer.Link.Rx()
 	}
 }
 
@@ -489,9 +489,9 @@ func (this *NetServer) IsNbrPeerAddr(addr string) bool {
 	this.Np.RLock()
 	defer this.Np.RUnlock()
 	for _, p := range this.Np.List {
-		if p.GetSyncState() == common.HAND || p.GetSyncState() == common.HAND_SHAKE ||
-			p.GetSyncState() == common.ESTABLISH {
-			addrNew = p.RecvLink.GetAddr()
+		if p.GetState() == common.HAND || p.GetState() == common.HAND_SHAKE ||
+			p.GetState() == common.ESTABLISH {
+			addrNew = p.Link.GetAddr()
 			if strings.Compare(addrNew, addr) == 0 {
 				return true
 			}

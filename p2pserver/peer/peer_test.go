@@ -61,9 +61,9 @@ func TestGetPeerComInfo(t *testing.T) {
 	if p.base.GetSyncPort() != 10338 {
 		t.Errorf("PeerCom GetSyncPort error")
 	} else {
-		p.base.SetSyncPort(20338)
+		p.base.SetPort(20338)
 		if p.base.GetSyncPort() != 20338 {
-			t.Errorf("PeerCom SetSyncPort error")
+			t.Errorf("PeerCom SetPort error")
 		}
 	}
 
@@ -109,7 +109,7 @@ func TestUpdatePeer(t *testing.T) {
 	p.SetConsState(2)
 	p.SetSyncState(3)
 	p.SetHttpInfoState(true)
-	p.RecvLink.SetAddr("127.0.0.1:20338")
+	p.Link.SetAddr("127.0.0.1:20338")
 	p.DumpInfo()
 
 }
