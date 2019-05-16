@@ -42,6 +42,7 @@ type ContextRef interface {
 	CheckExecStep() bool
 	IsPreExec() bool
 	GetRemainGas() uint64
+	CheckCallShard(fromShard common.ShardID) bool
 }
 
 type Engine interface {

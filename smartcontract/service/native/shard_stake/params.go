@@ -225,8 +225,8 @@ type CommitDposParam struct {
 	Height    uint32
 	Hash      common.Uint256
 	FeeAmount uint64
-	Debt      map[common.ShardID]uint64 // should pay handling fee to other shard
-	Income    map[common.ShardID]uint64 // should receive handling fee from other shard
+	Debt      map[common.ShardID]map[View]uint64 // should pay handling fee to other shard
+	Income    map[common.ShardID]map[View]uint64 // should receive handling fee from other shard
 }
 
 func (this *CommitDposParam) Serialization(sink *common.ZeroCopySink) {
@@ -235,14 +235,22 @@ func (this *CommitDposParam) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteHash(this.Hash)
 	sink.WriteUint64(this.FeeAmount)
 	sink.WriteUint64(uint64(len(this.Debt)))
-	for shard, fee := range this.Debt {
+	for shard, viewInfo := range this.Debt {
 		sink.WriteShardID(shard)
-		sink.WriteUint64(fee)
+		sink.WriteUint64(uint64(len(viewInfo)))
+		for view, fee := range viewInfo {
+			sink.WriteUint32(uint32(view))
+			sink.WriteUint64(fee)
+		}
 	}
 	sink.WriteUint64(uint64(len(this.Income)))
-	for shard, fee := range this.Income {
+	for shard, viewInfo := range this.Income {
 		sink.WriteShardID(shard)
-		sink.WriteUint64(fee)
+		sink.WriteUint64(uint64(len(viewInfo)))
+		for view, fee := range viewInfo {
+			sink.WriteUint32(uint32(view))
+			sink.WriteUint64(fee)
+		}
 	}
 }
 
@@ -260,33 +268,53 @@ func (this *CommitDposParam) Deserialization(source *common.ZeroCopySource) erro
 	if eof {
 		return fmt.Errorf("deseialization: %s", io.ErrUnexpectedEOF)
 	}
-	this.Debt = make(map[common.ShardID]uint64)
+	this.Debt = make(map[common.ShardID]map[View]uint64)
 	for i := uint64(0); i < debtNum; i++ {
 		shard, err := source.NextShardID()
 		if err != nil {
 			return fmt.Errorf("deseialization: read debt shard id failed, index %d, err: %s", i, err)
 		}
-		fee, eof := source.NextUint64()
+		num, eof := source.NextUint64()
 		if eof {
-			return fmt.Errorf("deseialization: read debt fee amount failed, index %d, err: %s", i, err)
+			return io.ErrUnexpectedEOF
 		}
-		this.Debt[shard] = fee
+		viewInfo := make(map[View]uint64)
+		for i := uint64(0); i < num; i++ {
+			view, eof := source.NextUint32()
+			fee, eof := source.NextUint64()
+			if eof {
+				return fmt.Errorf("deseialization: read debt view fee info failed, shard %d, index %d, err: %s",
+					shard.ToUint64(), i, err)
+			}
+			viewInfo[View(view)] = fee
+		}
+		this.Debt[shard] = viewInfo
 	}
 	incomeNum, eof := source.NextUint64()
 	if eof {
 		return fmt.Errorf("deseialization: %s", io.ErrUnexpectedEOF)
 	}
-	this.Income = make(map[common.ShardID]uint64)
+	this.Income = make(map[common.ShardID]map[View]uint64)
 	for i := uint64(0); i < incomeNum; i++ {
 		shard, err := source.NextShardID()
 		if err != nil {
 			return fmt.Errorf("deseialization: read income shard id failed, index %d, err: %s", i, err)
 		}
-		fee, eof := source.NextUint64()
+		num, eof := source.NextUint64()
 		if eof {
-			return fmt.Errorf("deseialization: read income fee amount failed, index %d, err: %s", i, err)
+			return io.ErrUnexpectedEOF
 		}
-		this.Debt[shard] = fee
+		viewInfo := make(map[View]uint64)
+		for i := uint64(0); i < num; i++ {
+			view, eof := source.NextUint32()
+			fee, eof := source.NextUint64()
+			if eof {
+				return fmt.Errorf("deseialization: read incom view fee info failed, shard %d, index %d, err: %s",
+					shard.ToUint64(), i, err)
+			}
+			viewInfo[View(view)] = fee
+		}
+		this.Income[shard] = viewInfo
 	}
 	return nil
 }
@@ -555,6 +583,32 @@ func (this *GetUserStakeInfoParam) Deserialize(r io.Reader) error {
 	}
 	if this.User, err = utils.ReadAddress(r); err != nil {
 		return fmt.Errorf("deserialize: read addr failed, err: %s", err)
+	}
+	return nil
+}
+
+type GetXShardFeeInfoParam struct {
+	ShardId common.ShardID
+	View    uint64
+}
+
+func (this *GetXShardFeeInfoParam) Serialize(w io.Writer) error {
+	if err := utils.SerializeShardId(w, this.ShardId); err != nil {
+		return fmt.Errorf("serialize: write shard id failed, err: %s", err)
+	}
+	if err := utils.WriteVarUint(w, this.View); err != nil {
+		return fmt.Errorf("serialize: write view failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *GetXShardFeeInfoParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.ShardId, err = utils.DeserializeShardId(r); err != nil {
+		return fmt.Errorf("deserialize: read shard id failed, err: %s", err)
+	}
+	if this.View, err = utils.ReadVarUint(r); err != nil {
+		return fmt.Errorf("deserialize: read view failed, err: %s", err)
 	}
 	return nil
 }

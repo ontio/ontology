@@ -23,7 +23,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -36,7 +35,6 @@ const (
 )
 
 type ShardMgmtEvent interface {
-	serialization.SerializableData
 	GetType() uint32
 	GetSourceShardID() common.ShardID
 	GetTargetShardID() common.ShardID
@@ -56,27 +54,6 @@ func (self *ImplSourceTargetShardID) GetSourceShardID() common.ShardID {
 
 func (self *ImplSourceTargetShardID) GetTargetShardID() common.ShardID {
 	return self.ShardID
-}
-
-func (self ImplSourceTargetShardID) Serialize(w io.Writer) error {
-	if err := utils.SerializeShardId(w, self.SourceShardID); err != nil {
-		return fmt.Errorf("serialize: write source shardId failed, err: %s", err)
-	}
-	if err := utils.SerializeShardId(w, self.ShardID); err != nil {
-		return fmt.Errorf("serialize: write shardId failed, err: %s", err)
-	}
-	return nil
-}
-
-func (self *ImplSourceTargetShardID) Deserialize(r io.Reader) error {
-	var err error = nil
-	if self.SourceShardID, err = utils.DeserializeShardId(r); err != nil {
-		return fmt.Errorf("deserialize: read source shardId failed, err: %s", err)
-	}
-	if self.ShardID, err = utils.DeserializeShardId(r); err != nil {
-		return fmt.Errorf("deserialize: read shardId failed, err: %s", err)
-	}
-	return nil
 }
 
 func (this *ImplSourceTargetShardID) Serialization(sink *common.ZeroCopySink) {
@@ -119,35 +96,6 @@ func (evt *CreateShardEvent) GetType() uint32 {
 	return EVENT_SHARD_CREATE
 }
 
-func (evt *CreateShardEvent) Serialize(w io.Writer) error {
-	if err := utils.SerializeShardId(w, evt.SourceShardID); err != nil {
-		return fmt.Errorf("serialize: write source shardId failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(evt.Height)); err != nil {
-		return fmt.Errorf("serialize: write height failed, err: %s", err)
-	}
-	if err := utils.SerializeShardId(w, evt.NewShardID); err != nil {
-		return fmt.Errorf("serialize: write new shardId failed, err: %s", err)
-	}
-	return nil
-}
-
-func (evt *CreateShardEvent) Deserialize(r io.Reader) error {
-	var err error = nil
-	if evt.SourceShardID, err = utils.DeserializeShardId(r); err != nil {
-		return fmt.Errorf("deserialize: read source shardId failed, err: %s", err)
-	}
-	height, err := utils.ReadVarUint(r)
-	if err != nil {
-		return fmt.Errorf("deserialize: read height failed, err: %s", err)
-	}
-	evt.Height = uint32(height)
-	if evt.NewShardID, err = utils.DeserializeShardId(r); err != nil {
-		return fmt.Errorf("deserialize: read new shardId failed, err: %s", err)
-	}
-	return nil
-}
-
 func (this *CreateShardEvent) Serialization(sink *common.ZeroCopySink) {
 	utils.SerializationShardId(sink, this.SourceShardID)
 	sink.WriteUint32(this.Height)
@@ -184,37 +132,6 @@ func (evt *ConfigShardEvent) GetHeight() uint32 {
 
 func (evt *ConfigShardEvent) GetType() uint32 {
 	return EVENT_SHARD_CONFIG_UPDATE
-}
-
-func (evt *ConfigShardEvent) Serialize(w io.Writer) error {
-	if err := evt.ImplSourceTargetShardID.Serialize(w); err != nil {
-		return fmt.Errorf("serialize: write impl shardId failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(evt.Height)); err != nil {
-		return fmt.Errorf("serialize: write height failed, err: %s", err)
-	}
-	if err := evt.Config.Serialize(w); err != nil {
-		return fmt.Errorf("serialize: write config failed, err: %s", err)
-	}
-	return nil
-}
-
-func (evt *ConfigShardEvent) Deserialize(r io.Reader) error {
-	var err error = nil
-	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
-	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
-		return fmt.Errorf("deserialize: read impl shardId failed, err: %s", err)
-	}
-	height, err := utils.ReadVarUint(r)
-	if err != nil {
-		return fmt.Errorf("deserialize: read height failed, err: %s", err)
-	}
-	evt.Height = uint32(height)
-	evt.Config = &ShardConfig{}
-	if err = evt.Config.Deserialize(r); err != nil {
-		return fmt.Errorf("deserialize: read config failed, err: %s", err)
-	}
-	return nil
 }
 
 func (this *ConfigShardEvent) Serialization(sink *common.ZeroCopySink) {
@@ -254,36 +171,6 @@ func (evt *PeerJoinShardEvent) GetType() uint32 {
 	return EVENT_SHARD_PEER_JOIN
 }
 
-func (evt *PeerJoinShardEvent) Serialize(w io.Writer) error {
-	if err := evt.ImplSourceTargetShardID.Serialize(w); err != nil {
-		return fmt.Errorf("serialize: write impl shardId failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(evt.Height)); err != nil {
-		return fmt.Errorf("serialize: write height failed, err: %s", err)
-	}
-	if err := serialization.WriteString(w, evt.PeerPubKey); err != nil {
-		return fmt.Errorf("serialize: write peer pub key failed, err: %s", err)
-	}
-	return nil
-}
-
-func (evt *PeerJoinShardEvent) Deserialize(r io.Reader) error {
-	var err error = nil
-	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
-	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
-		return fmt.Errorf("deserialize: read impl shardId failed, err: %s", err)
-	}
-	height, err := utils.ReadVarUint(r)
-	if err != nil {
-		return fmt.Errorf("deserialize: read height failed, err: %s", err)
-	}
-	evt.Height = uint32(height)
-	if evt.PeerPubKey, err = serialization.ReadString(r); err != nil {
-		return fmt.Errorf("deserialize: read peer pub key failed, err: %s", err)
-	}
-	return nil
-}
-
 func (this *PeerJoinShardEvent) Serialization(sink *common.ZeroCopySink) {
 	this.ImplSourceTargetShardID.Serialization(sink)
 	sink.WriteUint32(this.Height)
@@ -318,30 +205,6 @@ func (evt *ShardActiveEvent) GetHeight() uint32 {
 
 func (evt *ShardActiveEvent) GetType() uint32 {
 	return EVENT_SHARD_ACTIVATED
-}
-
-func (evt *ShardActiveEvent) Serialize(w io.Writer) error {
-	if err := evt.ImplSourceTargetShardID.Serialize(w); err != nil {
-		return fmt.Errorf("serialize: write impl shardId failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(evt.Height)); err != nil {
-		return fmt.Errorf("serialize: write height failed, err: %s", err)
-	}
-	return nil
-}
-
-func (evt *ShardActiveEvent) Deserialize(r io.Reader) error {
-	var err error = nil
-	evt.ImplSourceTargetShardID = ImplSourceTargetShardID{}
-	if err = evt.ImplSourceTargetShardID.Deserialize(r); err != nil {
-		return fmt.Errorf("deserialize: read impl shardId failed, err: %s", err)
-	}
-	height, err := utils.ReadVarUint(r)
-	if err != nil {
-		return fmt.Errorf("deserialize: read height failed, err: %s", err)
-	}
-	evt.Height = uint32(height)
-	return nil
 }
 
 func (this *ShardActiveEvent) Serialization(sink *common.ZeroCopySink) {

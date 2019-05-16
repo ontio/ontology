@@ -20,6 +20,8 @@ package neovm
 
 import "sync"
 
+var GAS_PRICE = uint64(0)
+
 var (
 	//Gas Limit
 	MIN_TRANSACTION_GAS           uint64 = 20000 // Per transaction base cost.

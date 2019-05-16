@@ -77,7 +77,6 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		Tx:           service.Tx,
 		ShardID:      service.ShardID,
 		ShardTxState: service.ShardTxState,
-		IsShardCall:  service.IsShardCall,
 		Height:       service.Height,
 		Time:         service.Time,
 		ContextRef:   service.ContextRef,
