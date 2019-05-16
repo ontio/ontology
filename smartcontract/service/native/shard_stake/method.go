@@ -235,12 +235,26 @@ func reduceInitPos(native *native.NativeService, id common.ShardID, owner common
 	if err != nil {
 		return fmt.Errorf("reduceInitPos: get user last stake info failed, err: %s", err)
 	}
+	if isUserStakePeerEmpty(lastUserStakeInfo) {
+		lastUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	}
 	if _, ok := lastUserStakeInfo.Peers[pubKeyString]; !ok {
 		lastUserStakeInfo.Peers[pubKeyString] = &UserPeerStakeInfo{PeerPubKey: pubKeyString}
 	}
 	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, owner)
 	if err != nil {
 		return fmt.Errorf("reduceInitPos: get user next stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(nextUserStakeInfo) {
+		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+		for peer, info := range lastUserStakeInfo.Peers {
+			nextUserStakeInfo.Peers[peer] = &UserPeerStakeInfo{
+				PeerPubKey:             info.PeerPubKey,
+				StakeAmount:            info.StakeAmount,
+				CurrentViewStakeAmount: info.CurrentViewStakeAmount,
+				UnfreezeAmount:         info.UnfreezeAmount,
+			}
+		}
 	}
 	if _, ok := nextUserStakeInfo.Peers[pubKeyString]; !ok {
 		nextUserStakeInfo.Peers[pubKeyString] = lastUserStakeInfo.Peers[pubKeyString]
@@ -443,6 +457,17 @@ func withdrawStakeAsset(native *native.NativeService, id common.ShardID, user co
 	if err != nil {
 		return 0, fmt.Errorf("withdrawStakeAsset: get user next stake info failed, err: %s", err)
 	}
+	if isUserStakePeerEmpty(nextUserStakeInfo) {
+		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+		for peer, info := range lastUserStakeInfo.Peers {
+			nextUserStakeInfo.Peers[peer] = &UserPeerStakeInfo{
+				PeerPubKey:             info.PeerPubKey,
+				StakeAmount:            info.StakeAmount,
+				CurrentViewStakeAmount: info.CurrentViewStakeAmount,
+				UnfreezeAmount:         info.UnfreezeAmount,
+			}
+		}
+	}
 	currentViewInfo, err := GetShardViewInfo(native, id, currentView)
 	if err != nil {
 		return 0, fmt.Errorf("withdrawStakeAsset: get current view info failed, err: %s", err)
@@ -583,7 +608,7 @@ func changePeerInfo(native *native.NativeService, shardId common.ShardID, peerOw
 	}
 	peerInfo, ok := nextViewInfo.Peers[strings.ToLower(info.PeerPubKey)]
 	if !ok {
-		return fmt.Errorf("changePeerInfo: failed, err: %s", err)
+		return fmt.Errorf("changePeerInfo: peer not exist in next view")
 	}
 	if peerInfo.Owner != peerOwner {
 		return fmt.Errorf("changePeerInfo: peer owner not match")
