@@ -275,3 +275,31 @@ func (sk *SecretKey) decryptL2(ct *Ciphertext, pk *PublicKey) *Plaintext {
 
 	return &Plaintext{pk, plaintextCoeffs, ct.Degree, ct.ScaleFactor}
 }
+
+// EAddL2 adds two level 2 (multiplied) ciphertexts together and returns the result
+func (pk *PublicKey) EAddL2(ciphertext1 *Ciphertext, ciphertext2 *Ciphertext) *Ciphertext {
+
+	ct1 := ciphertext1.Copy()
+	ct2 := ciphertext2.Copy()
+	ct1, ct2 = pk.alignCiphertexts(ct1, ct2, true)
+
+	degree := int(math.Max(float64(ct1.Degree), float64(ct2.Degree)))
+	result := make([]*pbc.Element, degree)
+
+	for i := degree - 1; i >= 0; i-- {
+
+		if i >= ct2.Degree {
+			result[i] = ct1.Coefficients[i]
+			continue
+		}
+
+		if i >= ct1.Degree {
+			result[i] = ct2.Coefficients[i]
+			continue
+		}
+
+		result[i] = pk.EAddL2Elements(ct1.Coefficients[i], ct2.Coefficients[i])
+	}
+
+	return &Ciphertext{result, degree, ct1.ScaleFactor, ct1.L2}
+}
