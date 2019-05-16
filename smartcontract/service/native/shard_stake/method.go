@@ -33,9 +33,16 @@ import (
 // set current+2 stake info to current+1 stake info, only update view info, don't settle
 func commitDpos(native *native.NativeService, param *CommitDposParam) error {
 	shardId := param.ShardId
+	currentChangeVIew, err := GetShardCurrentChangeView(native, shardId)
+	if err != nil {
+		return fmt.Errorf("commitDpos: failed, err: %s", shardId, err)
+	}
+	if param.Height <= currentChangeVIew.Height {
+		return fmt.Errorf("commitDpos: param height unmatch")
+	}
 	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
-		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
+		return fmt.Errorf("commitDpos: failed, err: %s", shardId, err)
 	}
 	lastView := currentView - 1
 	if err := handleDebt(native, View(lastView), param); err != nil {
