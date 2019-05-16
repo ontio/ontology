@@ -319,7 +319,7 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 		return nil, fmt.Errorf("GetShardView err:%s", err)
 	}
 	var peersinfo []*config.VBFTPeerStakeInfo
-	PeerStakesInfo, err := xshard.GetShardPeerStakeInfo(lgr.ParentLedger, shardID, shardView.View)
+	PeerStakesInfo, err := xshard.GetShardPeerStakeInfo(lgr.ParentLedger, shardID, shardView.View+1)
 	if err != nil {
 		return nil, fmt.Errorf("GetShardPeerStakeInfo err:%s", err)
 	}
