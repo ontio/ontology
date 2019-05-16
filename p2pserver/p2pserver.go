@@ -590,14 +590,10 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 //tryRecentPeers try connect recent contact peer when service start
 func (this *P2PServer) tryRecentPeers() {
 	netID := config.DefConfig.P2PNode.NetworkMagic
-	peerRecent := common.RECENT_FILE_NAME
-	if !config.DefConfig.Shard.ShardID.IsRootShard() {
-		peerRecent = config.DefConfig.P2PNode.NetworkName + string(os.PathSeparator) + common.RECENT_FILE_NAME
-	}
-	if comm.FileExisted(peerRecent) {
-		buf, err := ioutil.ReadFile(peerRecent)
+	if comm.FileExisted(common.RECENT_FILE_NAME) {
+		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
 		if err != nil {
-			log.Warn("[p2p]read %s fail:%s, connect recent peers cancel", peerRecent, err.Error())
+			log.Warn("[p2p]read %s fail:%s, connect recent peers cancel", common.RECENT_FILE_NAME, err.Error())
 			return
 		}
 
@@ -685,11 +681,7 @@ func (this *P2PServer) syncPeerAddr() {
 			log.Warn("[p2p]package recent peer fail: ", err)
 			return
 		}
-		peerRecent := common.RECENT_FILE_NAME
-		if !config.DefConfig.Shard.ShardID.IsRootShard() {
-			peerRecent = config.DefConfig.P2PNode.NetworkName + string(os.PathSeparator) + common.RECENT_FILE_NAME
-		}
-		err = ioutil.WriteFile(peerRecent, buf, os.ModePerm)
+		err = ioutil.WriteFile(common.RECENT_FILE_NAME, buf, os.ModePerm)
 		if err != nil {
 			log.Warn("[p2p]write recent peer fail: ", err)
 		}
