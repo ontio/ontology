@@ -34,15 +34,15 @@ type NbrPeers struct {
 }
 
 //Broadcast tranfer msg buffer to all establish peer
-func (this *NbrPeers) Broadcast(msg types.Message, isConsensus bool) {
+func (this *NbrPeers) Broadcast(msg types.Message) {
 	sink := comm.NewZeroCopySink(nil)
 	types.WriteMessage(sink, msg)
 
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
-		if node.syncState == common.ESTABLISH && node.GetRelay() == true {
-			node.SendRaw(msg.CmdType(), sink.Bytes(), isConsensus)
+		if node.linkState == common.ESTABLISH && node.GetRelay() == true {
+			node.SendRaw(msg.CmdType(), sink.Bytes())
 		}
 	}
 }
@@ -104,7 +104,7 @@ func (this *NbrPeers) NodeEstablished(id uint64) bool {
 		return false
 	}
 
-	if n.syncState != common.ESTABLISH {
+	if n.linkState != common.ESTABLISH {
 		return false
 	}
 
@@ -118,14 +118,14 @@ func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 
 	var addrs []common.PeerAddr
 	for _, p := range this.List {
-		if p.GetSyncState() != common.ESTABLISH {
+		if p.GetState() != common.ESTABLISH {
 			continue
 		}
 		var addr common.PeerAddr
 		addr.IpAddr, _ = p.GetAddr16()
 		addr.Time = p.GetTimeStamp()
 		addr.Services = p.GetServices()
-		addr.Port = p.GetSyncPort()
+		addr.Port = p.GetPort()
 		addr.ID = p.GetID()
 		addrs = append(addrs, addr)
 	}
@@ -140,7 +140,7 @@ func (this *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
 
 	hm := make(map[uint64]uint64)
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetState() == common.ESTABLISH {
 			hm[n.GetID()] = n.GetHeight()
 		}
 	}
@@ -153,7 +153,7 @@ func (this *NbrPeers) GetNeighbors() []*Peer {
 	defer this.RUnlock()
 	peers := []*Peer{}
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetState() == common.ESTABLISH {
 			node := n
 			peers = append(peers, node)
 		}
@@ -167,7 +167,7 @@ func (this *NbrPeers) GetNbrNodeCnt() uint32 {
 	defer this.RUnlock()
 	var count uint32
 	for _, n := range this.List {
-		if n.GetSyncState() == common.ESTABLISH {
+		if n.GetState() == common.ESTABLISH {
 			count++
 		}
 	}

@@ -40,8 +40,7 @@ type PeerCom struct {
 	services     uint64
 	relay        bool
 	httpInfoPort uint16
-	syncPort     uint16
-	consPort     uint16
+	port         uint16
 	height       uint64
 	softVersion  string
 }
@@ -86,24 +85,14 @@ func (this *PeerCom) GetRelay() bool {
 	return this.relay
 }
 
-// SetSyncPort sets a peer's sync port
-func (this *PeerCom) SetSyncPort(port uint16) {
-	this.syncPort = port
+// SetPort sets a peer's sync port
+func (this *PeerCom) SetPort(port uint16) {
+	this.port = port
 }
 
-// GetSyncPort returns a peer's sync port
-func (this *PeerCom) GetSyncPort() uint16 {
-	return this.syncPort
-}
-
-// SetConsPort sets a peer's consensus port
-func (this *PeerCom) SetConsPort(port uint16) {
-	this.consPort = port
-}
-
-// GetConsPort returns a peer's consensus port
-func (this *PeerCom) GetConsPort() uint16 {
-	return this.consPort
+// GetPort returns a peer's sync port
+func (this *PeerCom) GetPort() uint16 {
+	return this.port
 }
 
 // SetHttpInfoPort sets a peer's http info port
@@ -140,10 +129,8 @@ func (this *PeerCom) GetSoftVersion() string {
 type Peer struct {
 	base      PeerCom
 	cap       [32]byte
-	SyncLink  *conn.Link
-	ConsLink  *conn.Link
-	syncState uint32
-	consState uint32
+	Link      *conn.Link
+	linkState uint32
 	txnCnt    uint64
 	rxTxnCnt  uint64
 	connLock  sync.RWMutex
@@ -152,11 +139,9 @@ type Peer struct {
 //NewPeer return new peer without publickey initial
 func NewPeer() *Peer {
 	p := &Peer{
-		syncState: common.INIT,
-		consState: common.INIT,
+		linkState: common.INIT,
 	}
-	p.SyncLink = conn.NewLink()
-	p.ConsLink = conn.NewLink()
+	p.Link = conn.NewLink()
 	runtime.SetFinalizer(p, rmPeer)
 	return p
 }
@@ -169,15 +154,13 @@ func rmPeer(p *Peer) {
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]Node info:")
-	log.Debug("[p2p]\t syncState = ", this.syncState)
-	log.Debug("[p2p]\t consState = ", this.consState)
+	log.Debug("[p2p]\t linkState = ", this.linkState)
 	log.Debug("[p2p]\t id = ", this.GetID())
-	log.Debug("[p2p]\t addr = ", this.SyncLink.GetAddr())
+	log.Debug("[p2p]\t addr = ", this.Link.GetAddr())
 	log.Debug("[p2p]\t cap = ", this.cap)
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
-	log.Debug("[p2p]\t syncPort = ", this.GetSyncPort())
-	log.Debug("[p2p]\t consPort = ", this.GetConsPort())
+	log.Debug("[p2p]\t port = ", this.GetPort())
 	log.Debug("[p2p]\t relay = ", this.GetRelay())
 	log.Debug("[p2p]\t height = ", this.GetHeight())
 	log.Debug("[p2p]\t softVersion = ", this.GetSoftVersion())
@@ -198,86 +181,36 @@ func (this *Peer) SetHeight(height uint64) {
 	this.base.SetHeight(height)
 }
 
-//GetConsConn return consensus link
-func (this *Peer) GetConsConn() *conn.Link {
-	return this.ConsLink
+//GetState return sync state
+func (this *Peer) GetState() uint32 {
+	return this.linkState
 }
 
-//SetConsConn set consensue link to peer
-func (this *Peer) SetConsConn(consLink *conn.Link) {
-	this.ConsLink = consLink
+//SetState set sync state to peer
+func (this *Peer) SetState(state uint32) {
+	atomic.StoreUint32(&(this.linkState), state)
 }
 
-//GetSyncState return sync state
-func (this *Peer) GetSyncState() uint32 {
-	return this.syncState
+//GetPort return peer`s sync port
+func (this *Peer) GetPort() uint16 {
+	return this.Link.GetPort()
 }
 
-//SetSyncState set sync state to peer
-func (this *Peer) SetSyncState(state uint32) {
-	atomic.StoreUint32(&(this.syncState), state)
-}
-
-//GetConsState return peer`s consensus state
-func (this *Peer) GetConsState() uint32 {
-	return this.consState
-}
-
-//SetConsState set consensus state to peer
-func (this *Peer) SetConsState(state uint32) {
-	atomic.StoreUint32(&(this.consState), state)
-}
-
-//GetSyncPort return peer`s sync port
-func (this *Peer) GetSyncPort() uint16 {
-	return this.SyncLink.GetPort()
-}
-
-//GetConsPort return peer`s consensus port
-func (this *Peer) GetConsPort() uint16 {
-	return this.ConsLink.GetPort()
-}
-
-//SetConsPort set peer`s consensus port
-func (this *Peer) SetConsPort(port uint16) {
-	this.ConsLink.SetPort(port)
-}
-
-//SendToSync call sync link to send buffer
-func (this *Peer) SendToSync(msgType string, msgPayload []byte) error {
-	if this.SyncLink != nil && this.SyncLink.Valid() {
-		return this.SyncLink.SendRaw(msgPayload)
+//SendTo call sync link to send buffer
+func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
+	if this.Link != nil && this.Link.Valid() {
+		return this.Link.SendRaw(msgPayload)
 	}
 	return errors.New("[p2p]sync link invalid")
 }
 
-//SendToCons call consensus link to send buffer
-func (this *Peer) SendToCons(msgType string, msgPayload []byte) error {
-	if this.ConsLink != nil && this.ConsLink.Valid() {
-		return this.ConsLink.SendRaw(msgPayload)
-	}
-	return errors.New("[p2p]cons link invalid")
-}
-
-//CloseSync halt sync connection
-func (this *Peer) CloseSync() {
-	this.SetSyncState(common.INACTIVITY)
-	conn := this.SyncLink.GetConn()
+//Close halt sync connection
+func (this *Peer) Close() {
+	this.SetState(common.INACTIVITY)
+	conn := this.Link.GetConn()
 	this.connLock.Lock()
 	if conn != nil {
 		conn.Close()
-	}
-	this.connLock.Unlock()
-}
-
-//CloseCons halt consensus connection
-func (this *Peer) CloseCons() {
-	this.SetConsState(common.INACTIVITY)
-	conn := this.ConsLink.GetConn()
-	this.connLock.Lock()
-	if conn != nil {
-		conn.Close()
-
 	}
 	this.connLock.Unlock()
 }
@@ -299,17 +232,17 @@ func (this *Peer) GetServices() uint64 {
 
 //GetTimeStamp return peer`s latest contact time in ticks
 func (this *Peer) GetTimeStamp() int64 {
-	return this.SyncLink.GetRXTime().UnixNano()
+	return this.Link.GetRXTime().UnixNano()
 }
 
 //GetContactTime return peer`s latest contact time in Time struct
 func (this *Peer) GetContactTime() time.Time {
-	return this.SyncLink.GetRXTime()
+	return this.Link.GetRXTime()
 }
 
 //GetAddr return peer`s sync link address
 func (this *Peer) GetAddr() string {
-	return this.SyncLink.GetAddr()
+	return this.Link.GetAddr()
 }
 
 //GetAddr16 return peer`s sync link address in []byte
@@ -333,29 +266,17 @@ func (this *Peer) GetSoftVersion() string {
 	return this.base.GetSoftVersion()
 }
 
-//AttachSyncChan set msg chan to sync link
-func (this *Peer) AttachSyncChan(msgchan chan *types.MsgPayload) {
-	this.SyncLink.SetChan(msgchan)
-}
-
-//AttachConsChan set msg chan to consensus link
-func (this *Peer) AttachConsChan(msgchan chan *types.MsgPayload) {
-	this.ConsLink.SetChan(msgchan)
+//AttachChan set msg chan to sync link
+func (this *Peer) AttachChan(msgchan chan *types.MsgPayload) {
+	this.Link.SetChan(msgchan)
 }
 
 //Send transfer buffer by sync or cons link
-func (this *Peer) Send(msg types.Message, isConsensus bool) error {
+func (this *Peer) Send(msg types.Message) error {
 	sink := comm.NewZeroCopySink(nil)
 	types.WriteMessage(sink, msg)
 
-	return this.SendRaw(msg.CmdType(), sink.Bytes(), isConsensus)
-}
-
-func (this *Peer) SendRaw(msgType string, msgPayload []byte, isConsensus bool) error {
-	if isConsensus && this.ConsLink.Valid() {
-		return this.SendToCons(msgType, msgPayload)
-	}
-	return this.SendToSync(msgType, msgPayload)
+	return this.SendRaw(msg.CmdType(), sink.Bytes())
 }
 
 //SetHttpInfoState set peer`s httpinfo state
@@ -384,17 +305,15 @@ func (this *Peer) SetHttpInfoPort(port uint16) {
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, consPort uint16, nonce uint64, relay uint8, height uint64, softVer string) {
+	syncPort uint16, nonce uint64, relay uint8, height uint64, softVer string) {
 
-	this.SyncLink.UpdateRXTime(t)
+	this.Link.UpdateRXTime(t)
 	this.base.SetID(nonce)
 	this.base.SetVersion(version)
 	this.base.SetServices(services)
-	this.base.SetSyncPort(syncPort)
-	this.base.SetConsPort(consPort)
+	this.base.SetPort(syncPort)
 	this.base.SetSoftVersion(softVer)
-	this.SyncLink.SetPort(syncPort)
-	this.ConsLink.SetPort(consPort)
+	this.Link.SetPort(syncPort)
 	if relay == 0 {
 		this.base.SetRelay(false)
 	} else {

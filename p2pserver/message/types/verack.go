@@ -26,12 +26,13 @@ import (
 )
 
 type VerACK struct {
-	IsConsensus bool
+	//TODO remove this legecy field when upgrade network layer protocal
+	isConsensus bool
 }
 
 //Serialize message payload
 func (this *VerACK) Serialization(sink *comm.ZeroCopySink) {
-	sink.WriteBool(this.IsConsensus)
+	sink.WriteBool(this.isConsensus)
 }
 
 func (this *VerACK) CmdType() string {
@@ -41,7 +42,7 @@ func (this *VerACK) CmdType() string {
 //Deserialize message payload
 func (this *VerACK) Deserialization(source *comm.ZeroCopySource) error {
 	var irregular, eof bool
-	this.IsConsensus, irregular, eof = source.NextBool()
+	this.isConsensus, irregular, eof = source.NextBool()
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
