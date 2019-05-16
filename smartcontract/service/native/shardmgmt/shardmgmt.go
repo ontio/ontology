@@ -696,17 +696,11 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: get shard fee balance failed, err: %s", err)
 	}
-	xShardTransferParam := &oep4.XShardTransferParam{
-		From:    contract,
-		To:      utils.ShardStakeAddress,
-		ToShard: rootShard,
-		Amount:  new(big.Int).SetUint64(balance),
+	if ont.AppCallTransfer(native, utils.OngContractAddress, contract, utils.ShardAssetAddress, balance) != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: transfer ong failed, err: %s", err)
 	}
-	bf := new(bytes.Buffer)
-	if err := xShardTransferParam.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: serialize xshard param failed, err: %s", err)
-	}
-	transferIdBytes, err := native.NativeCall(utils.ShardAssetAddress, oep4.ONG_XSHARD_TRANSFER, bf.Bytes())
+	balanceParam := common.BigIntToNeoBytes(new(big.Int).SetUint64(balance))
+	transferIdBytes, err := native.NativeCall(utils.ShardAssetAddress, oep4.SUPPORT_COMMIT_DPOS, balanceParam)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard transfer failed, err: %s", err)
 	}
