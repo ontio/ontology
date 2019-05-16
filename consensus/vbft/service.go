@@ -1206,6 +1206,9 @@ func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
 }
 
 func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
+	if msg.Block.CrossTxs == nil {
+		return true
+	}
 	for _, crossTxmsg := range msg.Block.CrossTxs.CrossMsg {
 		//verify msg sign
 		for _, msgHash := range crossTxmsg.TxMsg.ShardMsg.ShardMsgHashs {
