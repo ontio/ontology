@@ -135,7 +135,9 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		if submitBlk, present := self.pendingBlocks[blkNum-1]; submitBlk != nil && present {
 			err := self.db.SubmitBlock(submitBlk.block.Block, *submitBlk.execResult)
 			//todo broadcast p2p block
-			self.broadCrossMsg(submitBlk.block.CrossMsg, blkNum-1)
+			if submitBlk.block.CrossMsg != nil {
+				self.broadCrossMsg(submitBlk.block.CrossMsg, blkNum-1)
+			}
 			if err != nil && blkNum > self.GetChainedBlockNum() {
 				return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 			}

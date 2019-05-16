@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
@@ -114,8 +115,7 @@ func (self ChainManager) startChildShard(shardID common.ShardID, shardState *sha
 	} else {
 		shardInfo.Config = cfg
 	}
-	log.Infof("startChildShard shard %d, received shard %d restart msg", self.shardID, shardID)
-
+	config.DefConfig = shardInfo.Config
 	if err := self.initShardLedger(shardInfo); err != nil {
 		return fmt.Errorf("init shard %d, failed to init ledger: %s", self.shardID, err)
 	}

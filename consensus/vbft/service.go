@@ -1170,11 +1170,11 @@ func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
 	msgBlkNum := msg.GetBlockNum()
 	shards, err := self.ledger.GetRelatedShardIDsInBlock(msgBlkNum - 1)
 	if err != nil {
-		log.Errorf("get remoteMsgShards of height %d: %s", msgBlkNum, err)
-		return false
+		log.Infof("get remoteMsgShards of shardID:%v height %d: %s", self.ShardID, msgBlkNum, err)
+		return true
 	}
 	shardMsg := make(map[common.ShardID]common.Uint256)
-	if shards != nil && len(shards) != 0 && len(msg.Block.CrossMsg.CrossMsgs) != 0 {
+	if shards != nil && len(shards) != 0 && msg.Block.CrossMsg != nil && len(msg.Block.CrossMsg.CrossMsgs) != 0 {
 		for _, s := range shards {
 			reqs, err := self.ledger.GetShardMsgsInBlock(msgBlkNum, s)
 			if err != nil {
