@@ -29,10 +29,121 @@ import (
 
 type View uint32 // shard consensus epoch index
 
+type XShardFeeInfo struct {
+	Debt   map[common.ShardID]map[View]uint64
+	Income map[common.ShardID]map[View]uint64
+}
+
+func (this *XShardFeeInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint64(uint64(len(this.Debt)))
+	debtShards := make([]common.ShardID, 0)
+	for shard := range this.Debt {
+		debtShards = append(debtShards, shard)
+	}
+	sort.SliceStable(debtShards, func(i, j int) bool {
+		return debtShards[i].ToUint64() < debtShards[j].ToUint64()
+	})
+	for _, shard := range debtShards {
+		sink.WriteShardID(shard)
+		debts := this.Debt[shard]
+		sink.WriteUint64(uint64(len(debts)))
+		views := make([]View, 0)
+		for view := range debts {
+			views = append(views, view)
+		}
+		sort.SliceStable(views, func(i, j int) bool {
+			return views[i] < views[j]
+		})
+		for _, view := range views {
+			sink.WriteUint32(uint32(view))
+			sink.WriteUint64(debts[view])
+		}
+	}
+	incomeShards := make([]common.ShardID, 0)
+	for shard := range this.Income {
+		incomeShards = append(incomeShards, shard)
+	}
+	sort.SliceStable(incomeShards, func(i, j int) bool {
+		return incomeShards[i].ToUint64() < incomeShards[j].ToUint64()
+	})
+	for _, shard := range incomeShards {
+		sink.WriteShardID(shard)
+		incomes := this.Income[shard]
+		sink.WriteUint64(uint64(len(incomes)))
+		views := make([]View, 0)
+		for view := range incomes {
+			views = append(views, view)
+		}
+		sort.SliceStable(views, func(i, j int) bool {
+			return views[i] < views[j]
+		})
+		for _, view := range views {
+			sink.WriteUint32(uint32(view))
+			sink.WriteUint64(incomes[view])
+		}
+	}
+}
+
+func (this *XShardFeeInfo) Deserialization(source *common.ZeroCopySource) error {
+	debtNum, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Debt = make(map[common.ShardID]map[View]uint64)
+	for i := uint64(0); i < debtNum; i++ {
+		shard, err := source.NextShardID()
+		if err != nil {
+			return fmt.Errorf("deserialization: read debt shardId failed, err: %s", err)
+		}
+		num, eof := source.NextUint64()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		viewFeeInfo := make(map[View]uint64)
+		for i := uint64(0); i < num; i++ {
+			view, eof := source.NextUint32()
+			fee, eof := source.NextUint64()
+			if eof {
+				return fmt.Errorf("deserialization: read debt view fee failed, shard %d, index %d, err: %s",
+					shard.ToUint64(), i, io.ErrUnexpectedEOF)
+			}
+			viewFeeInfo[View(view)] = fee
+		}
+		this.Debt[shard] = viewFeeInfo
+	}
+	incomeNum, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Income = make(map[common.ShardID]map[View]uint64)
+	for i := uint64(0); i < incomeNum; i++ {
+		shard, err := source.NextShardID()
+		if err != nil {
+			return fmt.Errorf("deserialization: read income shardId failed, err: %s", err)
+		}
+		num, eof := source.NextUint64()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		viewFeeInfo := make(map[View]uint64)
+		for i := uint64(0); i < num; i++ {
+			view, eof := source.NextUint32()
+			fee, eof := source.NextUint64()
+			if eof {
+				return fmt.Errorf("deserialization: read income view fee failed, shard %d, index %d, err: %s",
+					shard.ToUint64(), i, io.ErrUnexpectedEOF)
+			}
+			viewFeeInfo[View(view)] = fee
+		}
+		this.Income[shard] = viewFeeInfo
+	}
+	return nil
+}
+
 type PeerViewInfo struct {
 	PeerPubKey             string
 	Owner                  common.Address
-	CanStake               bool   // if user can stake peer //todo modify param name
+	CanStake               bool   // if user can stake peer
 	WholeFee               uint64 // each epoch handling fee
 	FeeBalance             uint64 // each epoch handling fee not be withdrawn
 	InitPos                uint64 // node stake amount

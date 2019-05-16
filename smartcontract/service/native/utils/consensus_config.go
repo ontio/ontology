@@ -352,37 +352,37 @@ func (this *PeerPoolMap) Deserialize(r io.Reader) error {
 
 func CheckVBFTConfig(configuration *config.VBFTConfig) error {
 	if configuration.C == 0 {
-		return fmt.Errorf("initConfig. C can not be 0 in config")
+		return fmt.Errorf("CheckVBFTConfig: C can not be 0 in config")
 	}
-	if int(configuration.K) != len(configuration.Peers) {
-		return fmt.Errorf("initConfig. K must equal to length of peer in config")
+	if len(configuration.Peers) > 0 && int(configuration.K) != len(configuration.Peers) {
+		return fmt.Errorf("CheckVBFTConfig: K must equal to length of peer in config")
 	}
 	if configuration.L < 16*configuration.K || configuration.L%configuration.K != 0 {
-		return fmt.Errorf("initConfig. L can not be less than 16*K and K must be times of L in config")
+		return fmt.Errorf("CheckVBFTConfig: L can not be less than 16*K and K must be times of L in config")
 	}
 	if configuration.K < 2*configuration.C+1 {
-		return fmt.Errorf("initConfig. K can not be less than 2*C+1 in config")
+		return fmt.Errorf("CheckVBFTConfig: K can not be less than 2*C+1 in config")
 	}
 	if configuration.N < configuration.K || configuration.K < 7 {
-		return fmt.Errorf("initConfig. config not match N >= K >= 7")
+		return fmt.Errorf("CheckVBFTConfig: config not match N >= K >= 7")
 	}
 	if configuration.BlockMsgDelay < 5000 {
-		return fmt.Errorf("initConfig. BlockMsgDelay must >= 5000")
+		return fmt.Errorf("CheckVBFTConfig: BlockMsgDelay must >= 5000")
 	}
 	if configuration.HashMsgDelay < 5000 {
-		return fmt.Errorf("initConfig. HashMsgDelay must >= 5000")
+		return fmt.Errorf("CheckVBFTConfig: HashMsgDelay must >= 5000")
 	}
 	if configuration.PeerHandshakeTimeout < 10 {
-		return fmt.Errorf("initConfig. PeerHandshakeTimeout must >= 10")
+		return fmt.Errorf("CheckVBFTConfig: PeerHandshakeTimeout must >= 10")
 	}
 	if configuration.MinInitStake < 10000 {
-		return fmt.Errorf("initConfig. MinInitStake must >= 10000")
+		return fmt.Errorf("CheckVBFTConfig: MinInitStake must >= 10000")
 	}
 	if len(configuration.VrfProof) < 128 {
-		return fmt.Errorf("initConfig. VrfProof must >= 128")
+		return fmt.Errorf("CheckVBFTConfig: VrfProof must >= 128")
 	}
 	if len(configuration.VrfValue) < 128 {
-		return fmt.Errorf("initConfig. VrfValue must >= 128")
+		return fmt.Errorf("CheckVBFTConfig: VrfValue must >= 128")
 	}
 
 	indexMap := make(map[uint32]struct{})
@@ -390,26 +390,26 @@ func CheckVBFTConfig(configuration *config.VBFTConfig) error {
 	for _, peer := range configuration.Peers {
 		_, ok := indexMap[peer.Index]
 		if ok {
-			return fmt.Errorf("initConfig, peer index is duplicated")
+			return fmt.Errorf("CheckVBFTConfig: peer index is duplicated")
 		}
 		indexMap[peer.Index] = struct{}{}
 
 		_, ok = peerPubkeyMap[peer.PeerPubkey]
 		if ok {
-			return fmt.Errorf("initConfig, peerPubkey is duplicated")
+			return fmt.Errorf("CheckVBFTConfig: peerPubkey is duplicated")
 		}
 		peerPubkeyMap[peer.PeerPubkey] = struct{}{}
 
 		if peer.Index <= 0 {
-			return fmt.Errorf("initConfig, peer index in config must > 0")
+			return fmt.Errorf("CheckVBFTConfig: peer index in config must > 0")
 		}
 		//check peerPubkey
 		if err := ValidatePeerPubKeyFormat(peer.PeerPubkey); err != nil {
-			return fmt.Errorf("invalid peer pubkey")
+			return fmt.Errorf("CheckVBFTConfig: invalid peer pubkey")
 		}
 		_, err := common.AddressFromBase58(peer.Address)
 		if err != nil {
-			return fmt.Errorf("common.AddressFromBase58, address format error: %v", err)
+			return fmt.Errorf("CheckVBFTConfig: address format error: %v", err)
 		}
 	}
 	return nil

@@ -31,39 +31,33 @@ import (
 )
 
 // set current+2 stake info to current+1 stake info, only update view info, don't settle
-func commitDpos(native *native.NativeService, shardId common.ShardID, feeAmount uint64, shardHeight uint32,
-	shardBlockHash common.Uint256) error {
-	currentView, err := GetShardCurrentView(native, shardId)
+func commitDpos(native *native.NativeService, param *CommitDposParam) error {
+	shardId := param.ShardId
+	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
 	}
 	lastView := currentView - 1
+	if err := handleDebt(native, View(lastView), param); err != nil {
+		return fmt.Errorf("commitDpos: failed, err: %s", err)
+	}
+	feeAmount, shardHeight, shardBlockHash := param.FeeAmount, param.Height, param.Hash
 	lastViewInfo, err := GetShardViewInfo(native, shardId, lastView)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get shard %d last view info failed, err: %s", shardId, err)
-	}
-	wholeNodeStakeAmount := uint64(0)
-	for _, info := range lastViewInfo.Peers {
-		wholeNodeStakeAmount += info.UserStakeAmount + info.InitPos
-	}
-	// TODO: candidate node and consensus node different rate
-	feeInfo := make([]*PeerAmount, 0)
-	for peer, info := range lastViewInfo.Peers {
-		peerFee := (info.UserStakeAmount + info.InitPos) * feeAmount / wholeNodeStakeAmount
-		feeInfo = append(feeInfo, &PeerAmount{PeerPubKey: peer, Amount: peerFee})
 	}
 	currentViewInfo, err := GetShardViewInfo(native, shardId, currentView)
 	if err != nil {
 		return fmt.Errorf("commitDpos: get next view info failed, err: %s", err)
 	}
-	// if empty, use current view info as next view info
+	// empty currentViewInfo means that there are no pre-commit dpos
 	if currentViewInfo.Peers == nil || len(currentViewInfo.Peers) == 0 {
-		currentViewInfo = lastViewInfo
-		setShardViewInfo(native, shardId, currentView, currentViewInfo)
+		return fmt.Errorf("commitDpos: current view info is empty")
 	}
 	// update next view info
 	setShardViewInfo(native, shardId, currentView+1, currentViewInfo)
 	// settle current fee
+	feeInfo := calPeerFee(lastViewInfo, feeAmount)
 	for _, info := range feeInfo {
 		peer := strings.ToLower(info.PeerPubKey)
 		feeAmount := info.Amount
@@ -87,9 +81,52 @@ func commitDpos(native *native.NativeService, shardId common.ShardID, feeAmount 
 	return nil
 }
 
+func handleDebt(native *native.NativeService, view View, param *CommitDposParam) error {
+	wholeDebt := uint64(0)
+	for debtShard, viewFeeInfo := range param.Debt {
+		for view, fee := range viewFeeInfo {
+			debtShardViewInfo, err := GetShardViewInfo(native, debtShard, View(view))
+			if err != nil {
+				return fmt.Errorf("handleDebt: failed, err: %s", err)
+			}
+			peerSplitFeeInfo := calPeerFee(debtShardViewInfo, fee)
+			for _, amount := range peerSplitFeeInfo {
+				debtShardViewInfo.Peers[amount.PeerPubKey].WholeFee += amount.Amount
+				debtShardViewInfo.Peers[amount.PeerPubKey].FeeBalance += amount.Amount
+			}
+			setShardViewInfo(native, debtShard, View(view), debtShardViewInfo)
+			wholeDebt += fee
+		}
+	}
+	if param.FeeAmount < wholeDebt {
+		return fmt.Errorf("handleDebt: whole fee not enough")
+	}
+	param.FeeAmount -= wholeDebt
+	xshardFeeInfo := &XShardFeeInfo{
+		Debt:   param.Debt,
+		Income: param.Income,
+	}
+	setXShardFeeInfo(native, param.ShardId, view, xshardFeeInfo)
+	return nil
+}
+
+// TODO: candidate node and consensus node different rate
+func calPeerFee(viewInfo *ViewInfo, wholeFee uint64) []*PeerAmount {
+	feeInfo := make([]*PeerAmount, 0)
+	wholeNodeStakeAmount := uint64(0)
+	for _, info := range viewInfo.Peers {
+		wholeNodeStakeAmount += info.UserStakeAmount + info.InitPos
+	}
+	for peer, info := range viewInfo.Peers {
+		peerFee := (info.UserStakeAmount + info.InitPos) * wholeFee / wholeNodeStakeAmount
+		feeInfo = append(feeInfo, &PeerAmount{PeerPubKey: peer, Amount: peerFee})
+	}
+	return feeInfo
+}
+
 func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey string, peerOwner common.Address,
 	amount uint64) error {
-	currentView, err := GetShardCurrentView(native, id)
+	currentView, err := GetShardCurrentViewIndex(native, id)
 	if err != nil {
 		return fmt.Errorf("peerInitStake: get current view peer stake info failed, err: %s", err)
 	}
@@ -130,7 +167,7 @@ func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey s
 }
 
 func addInitPos(native *native.NativeService, id common.ShardID, owner common.Address, info *PeerAmount) error {
-	currentView, err := GetShardCurrentView(native, id)
+	currentView, err := GetShardCurrentViewIndex(native, id)
 	if err != nil {
 		return fmt.Errorf("addInitPos: failed, err: %s", err)
 	}
@@ -154,7 +191,7 @@ func addInitPos(native *native.NativeService, id common.ShardID, owner common.Ad
 }
 
 func reduceInitPos(native *native.NativeService, id common.ShardID, owner common.Address, info *PeerAmount) error {
-	currentView, err := GetShardCurrentView(native, id)
+	currentView, err := GetShardCurrentViewIndex(native, id)
 	if err != nil {
 		return fmt.Errorf("reduceInitPos: failed, err: %s", err)
 	}
@@ -221,7 +258,7 @@ func userStake(native *native.NativeService, id common.ShardID, user common.Addr
 	if err != nil {
 		return fmt.Errorf("userStake: failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, id)
+	currentView, err := GetShardCurrentViewIndex(native, id)
 	if err != nil {
 		return fmt.Errorf("userStake: failed, err: %s", err)
 	}
@@ -308,7 +345,7 @@ func unfreezeStakeAsset(native *native.NativeService, id common.ShardID, user co
 	if err != nil {
 		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, id)
+	currentView, err := GetShardCurrentViewIndex(native, id)
 	if err != nil {
 		return fmt.Errorf("unfreezeStakeAsset: failed, err: %s", err)
 	}
@@ -384,7 +421,7 @@ func withdrawStakeAsset(native *native.NativeService, id common.ShardID, user co
 	if err != nil {
 		return 0, fmt.Errorf("withdrawStakeAsset: failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, id)
+	currentView, err := GetShardCurrentViewIndex(native, id)
 	if err != nil {
 		return 0, fmt.Errorf("withdrawStakeAsset: failed, err: %s", err)
 	}
@@ -454,7 +491,7 @@ func withdrawFee(native *native.NativeService, shardId common.ShardID, user comm
 	if err != nil {
 		return 0, fmt.Errorf("withdrawFee: failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, shardId)
+	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
 		return 0, fmt.Errorf("withdrawFee: failed, err: %s", err)
 	}
@@ -535,7 +572,7 @@ func withdrawFee(native *native.NativeService, shardId common.ShardID, user comm
 // change peer max authorization and proportion
 func changePeerInfo(native *native.NativeService, shardId common.ShardID, peerOwner common.Address, info *PeerAmount,
 	methodName string) error {
-	currentView, err := GetShardCurrentView(native, shardId)
+	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
 		return fmt.Errorf("changePeerInfo: failed, err: %s", err)
 	}

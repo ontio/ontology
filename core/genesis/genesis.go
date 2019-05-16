@@ -55,8 +55,10 @@ var (
 
 var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
 
+const NAME_GAS_PRICE = "gasPrice"
+
 var INIT_PARAM = map[string]string{
-	"gasPrice": "0",
+	NAME_GAS_PRICE: "0",
 }
 
 var GenesisBookkeepers []keypair.PublicKey

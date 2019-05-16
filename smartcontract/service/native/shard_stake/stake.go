@@ -52,10 +52,11 @@ const (
 	WITHDRAW_ONG             = "withdrawOng"
 
 	// for pre-execute
-	GET_CURRENT_VIEW  = "getCurrentView"
-	GET_PEER_INFO     = "getPeerInfo"
-	GET_USER_INFO     = "getUserInfo"
-	GET_IS_COMMITTING = "getIsCommitting"
+	GET_CURRENT_VIEW    = "getCurrentView"
+	GET_PEER_INFO       = "getPeerInfo"
+	GET_USER_INFO       = "getUserInfo"
+	GET_IS_COMMITTING   = "getIsCommitting"
+	GET_XSHARD_FEE_INFO = "getXShardFeeInfo"
 )
 
 func InitShardStake() {
@@ -83,6 +84,7 @@ func RegisterShardStake(native *native.NativeService) {
 	native.Register(GET_CURRENT_VIEW, GetCurrentView)
 	native.Register(GET_PEER_INFO, GetPeerInfo)
 	native.Register(GET_USER_INFO, GetUserInfo)
+	native.Register(GET_XSHARD_FEE_INFO, GetXShardFeeInfo)
 }
 
 func InitShard(native *native.NativeService) ([]byte, error) {
@@ -96,8 +98,8 @@ func InitShard(native *native.NativeService) ([]byte, error) {
 	}
 	shardView := &utils.ChangeView{
 		View:   0,
-		Height: native.Height,
-		TxHash: native.Tx.Hash(),
+		Height: 0,
+		TxHash: common.Uint256{},
 	}
 	setShardView(native, param.ShardId, shardView)
 	setNodeMinStakeAmount(native, param.ShardId, param.MinStake)
@@ -218,7 +220,7 @@ func PeerExit(native *native.NativeService) ([]byte, error) {
 	if err := checkCommittingDpos(native, param.ShardId); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, param.ShardId)
+	currentView, err := GetShardCurrentViewIndex(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerExit: failed, err: %s", err)
 	}
@@ -263,7 +265,7 @@ func DeletePeer(native *native.NativeService) ([]byte, error) {
 	if err := checkCommittingDpos(native, param.ShardId); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, param.ShardId)
+	currentView, err := GetShardCurrentViewIndex(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("DeletePeer: failed, err: %s", err)
 	}
@@ -451,14 +453,27 @@ func PreCommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: deserialize shard id faield, err: %s", err)
 	}
 	if err := checkCommittingDpos(native, shardId); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("WithdrawStake: failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: failed, err: %s", err)
 	}
 	setShardCommitting(native, shardId, true)
-	currentView, err := GetShardCurrentView(native, shardId)
+	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
 	}
-	setShardView(native, shardId, &utils.ChangeView{View: uint32(currentView)})
+	nextView := currentView + 1
+	nextViewInfo, err := GetShardViewInfo(native, shardId, nextView)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
+	}
+	if nextViewInfo.Peers == nil || len(nextViewInfo.Peers) == 0 {
+		currentViewInfo, err := GetShardViewInfo(native, shardId, currentView)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("PreCommitDpos: faield, err: %s", err)
+		}
+		nextViewInfo = currentViewInfo
+		setShardViewInfo(native, shardId, nextView, currentViewInfo)
+	}
+	setShardView(native, shardId, &utils.ChangeView{View: uint32(nextView)})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -471,7 +486,10 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := param.Deserialization(common.NewZeroCopySource(data)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: invalid param: %s", err)
 	}
-	isCommitting, err := isShardCommitting(native, param.ShardId)
+	if !native.ContextRef.CheckCallShard(param.ShardId) {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: check call shard failed")
+	}
+	isCommitting, err := IsShardCommitting(native, param.ShardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
@@ -479,7 +497,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: shard doesn't per-commit")
 	}
 	setShardCommitting(native, param.ShardId, false)
-	if err := commitDpos(native, param.ShardId, param.FeeAmount, param.Height, param.Hash); err != nil {
+	if err := commitDpos(native, param); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
@@ -561,7 +579,7 @@ func GetIsCommitting(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetIsCommitting: read shardId failed, err: %s", err)
 	}
-	isCommitting, err := isShardCommitting(native, shardId)
+	isCommitting, err := IsShardCommitting(native, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetIsCommitting: failed, err: %s", err)
 	}
@@ -576,7 +594,7 @@ func GetCurrentView(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: read shardId failed, err: %s", err)
 	}
-	currentView, err := GetShardCurrentView(native, shardId)
+	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: failed, err: %s", err)
 	}
@@ -621,6 +639,23 @@ func GetUserInfo(native *native.NativeService) ([]byte, error) {
 		}
 	}
 	data, err := json.Marshal(result)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: marshal info failed, err: %s", err)
+	}
+	return data, nil
+}
+
+// return xshard debt and income
+func GetXShardFeeInfo(native *native.NativeService) ([]byte, error) {
+	param := &GetXShardFeeInfoParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: failed, err: %s", err)
+	}
+	info, err := getXShardFeeInfo(native, param.ShardId, View(param.View))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: failed, err: %s", err)
+	}
+	data, err := json.Marshal(info)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetUserInfo: marshal info failed, err: %s", err)
 	}

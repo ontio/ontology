@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -154,7 +155,7 @@ func setShardState(native *native.NativeService, contract common.Address, state 
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 
-func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) error {
+func AddNotification(native *native.NativeService, contract common.Address, info shardstates.ShardMgmtEvent) {
 	sink := common.NewZeroCopySink(0)
 	info.Serialization(sink)
 	eventState := &message.ShardEventState{
@@ -169,7 +170,6 @@ func AddNotification(native *native.NativeService, contract common.Address, info
 			ContractAddress: contract,
 			States:          eventState,
 		})
-	return nil
 }
 
 func setShardPeerState(native *native.NativeService, contract common.Address, shardId common.ShardID, state peerState,
@@ -223,29 +223,85 @@ func getShardCommitDposInfo(native *native.NativeService) (*shardstates.ShardCom
 	return retry, nil
 }
 
-func setXShardHandlingFee(native *native.NativeService, feeInfo *shardstates.XShardHandlingFee) {
-	key := genXShardHandlingFeeKey()
-	sink := common.NewZeroCopySink(0)
-	feeInfo.Serialization(sink)
-	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+func updateXShardHandlingFee(native *native.NativeService, param *XShardHandlingFeeParam, view shard_stake.View) error {
+	originalInfo, err := getXShardHandlingFee(native)
+	if err != nil {
+		return fmt.Errorf("updateXShardHandlingFee: failed, err: %s", err)
+	}
+	if param.IsDebt {
+		viewInfo, ok := originalInfo.Debt[param.ShardId]
+		if !ok {
+			viewInfo = map[shard_stake.View]uint64{view: param.Fee}
+			originalInfo.Debt[param.ShardId] = viewInfo
+		} else {
+			viewInfo[view] += param.Fee
+		}
+	} else {
+		viewInfo, ok := originalInfo.Income[param.ShardId]
+		if !ok {
+			viewInfo = map[shard_stake.View]uint64{view: param.Fee}
+			originalInfo.Income[param.ShardId] = viewInfo
+		} else {
+			viewInfo[view] += param.Fee
+		}
+	}
+
+	return nil
 }
 
-func getXShardHandlingFee(native *native.NativeService) (*shardstates.XShardHandlingFee, error) {
+func getXShardHandlingFee(native *native.NativeService) (*shard_stake.XShardFeeInfo, error) {
 	raw, err := native.CacheDB.Get(genXShardHandlingFeeKey())
 	if err != nil {
 		return nil, fmt.Errorf("getXShardHandlingFee: read db failed, err: %s", err)
 	}
+	info := &shard_stake.XShardFeeInfo{}
 	if len(raw) == 0 {
-		return nil, fmt.Errorf("getXShardHandlingFee: store is empty")
+		info.Income = make(map[common.ShardID]map[shard_stake.View]uint64)
+		info.Debt = make(map[common.ShardID]map[shard_stake.View]uint64)
+		return info, nil
 	}
 	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
 	if err != nil {
 		return nil, fmt.Errorf("getXShardHandlingFee: parse store value failed, err: %s", err)
 	}
 	source := common.NewZeroCopySource(storeValue)
-	info := &shardstates.XShardHandlingFee{}
 	if err := info.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("getXShardHandlingFee: deserialize failed, err: %s", err)
 	}
 	return info, nil
+}
+
+//check the configuration while update shard config
+func checkNewCfg(configuration *utils.Configuration, shard *shardstates.ShardState) error {
+	candidateNum := uint32(0)
+	for _, peer := range shard.Peers {
+		if peer.NodeType == shardstates.CONSENSUS_NODE || peer.NodeType == shardstates.CONDIDATE_NODE {
+			candidateNum = candidateNum + 1
+		}
+	}
+	if configuration.C == 0 {
+		return fmt.Errorf(" checkNewCfg: C can not be 0 in config")
+	}
+	if configuration.K > candidateNum {
+		return fmt.Errorf(" checkNewCfg: K can not be larger than num of candidate peer in config")
+	}
+	if configuration.L < 16*configuration.K || configuration.L%configuration.K != 0 {
+		return fmt.Errorf(" checkNewCfg: L can not be less than 16*K and K must be times of L in config")
+	}
+	if configuration.K < 2*configuration.C+1 {
+		return fmt.Errorf(" checkNewCfg: K can not be less than 2*C+1 in config")
+	}
+	if configuration.N < configuration.K || configuration.K < 7 {
+		return fmt.Errorf(" checkNewCfg: config not match N >= K >= 7")
+	}
+	if configuration.BlockMsgDelay < 5000 {
+		return fmt.Errorf(" checkNewCfg: BlockMsgDelay must >= 5000")
+	}
+	if configuration.HashMsgDelay < 5000 {
+		return fmt.Errorf(" checkNewCfg: HashMsgDelay must >= 5000")
+	}
+	if configuration.PeerHandshakeTimeout < 10 {
+		return fmt.Errorf(" checkNewCfg: PeerHandshakeTimeout must >= 10")
+	}
+	return nil
 }

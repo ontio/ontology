@@ -45,7 +45,7 @@ import (
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
-	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/validator/increment"
 )
@@ -2127,7 +2127,7 @@ func (self *Server) msgSendLoop() {
 //create shard ong transaction
 func (self *Server) createShardGovTransaction(blkNum uint32) (*types.Transaction, error) {
 	//build transaction
-	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, shard_stake.COMMIT_DPOS, []byte{})
+	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, shardmgmt.NOTIFY_ROOT_COMMIT_DPOS, []byte{})
 	mutable.GasPrice = 0
 	mutable.Payer = self.account.Address
 	mutable.Nonce = blkNum

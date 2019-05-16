@@ -59,7 +59,6 @@ type NativeService struct {
 	Time          uint32
 	BlockHash     common.Uint256
 	ShardTxState  *xshard_state.TxState
-	IsShardCall   bool
 	ContextRef    context.ContextRef
 }
 
@@ -122,7 +121,6 @@ func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.A
 		NotifyID: txState.NumNotifies,
 		Contract: cont,
 		Payer:    ctx.Tx.Payer,
-		GasPrice: ctx.Tx.GasPrice,
 		Fee:      ctx.ContextRef.GetRemainGas(), // TODO: fee should be defined by caller
 		Method:   method,
 		Args:     args,
@@ -156,7 +154,6 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 		},
 		IdxInTx:  uint64(reqIdx),
 		Payer:    ctx.Tx.Payer,
-		GasPrice: ctx.Tx.GasPrice,
 		Fee:      ctx.ContextRef.GetRemainGas(), // use all remain gas to invoke remote shard
 		Contract: cont,
 		Method:   method,
