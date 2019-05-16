@@ -121,15 +121,6 @@ var (
 		Usage: "P2P network port `<number>`",
 		Value: config.DEFAULT_NODE_PORT,
 	}
-	DualPortSupportFlag = cli.BoolFlag{
-		Name:  "dual-port",
-		Usage: "Enable a dual network, P2P network for transaction messages and for consensus messages.",
-	}
-	ConsensusPortFlag = cli.UintFlag{
-		Name:  "consensus-port",
-		Usage: "Consensus network port `<number>`. Effectively after set --dual-port parameter",
-		Value: config.DEFAULT_CONSENSUS_PORT,
-	}
 	HttpInfoPortFlag = cli.UintFlag{
 		Name:  "httpinfo-port",
 		Usage: "The listening port of http server for viewing node information `<number>`",

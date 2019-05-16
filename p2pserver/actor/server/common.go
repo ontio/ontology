@@ -58,24 +58,6 @@ type GetIdRsp struct {
 	Id uint64
 }
 
-//get net sync port
-type GetSyncPortReq struct {
-}
-
-//response of net sync port
-type GetSyncPortRsp struct {
-	SyncPort uint16
-}
-
-//get net cons port
-type GetConsPortReq struct {
-}
-
-//response of net cons port
-type GetConsPortRsp struct {
-	ConsPort uint16
-}
-
 //get connection port requet
 type GetPortReq struct {
 }
@@ -83,7 +65,6 @@ type GetPortReq struct {
 //response of connection port requet
 type GetPortRsp struct {
 	SyncPort uint16
-	ConsPort uint16
 }
 
 //get connection state requet
