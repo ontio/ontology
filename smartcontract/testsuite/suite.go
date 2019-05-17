@@ -32,7 +32,6 @@ import (
 	"github.com/ontio/ontology/core/types"
 	utils2 "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/core/xshard_types"
-	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -54,50 +53,6 @@ func InstallNativeContract(addr common.Address, actions map[string]native.Handle
 		}
 	}
 	native.Contracts[addr] = contract
-}
-
-func executeTransaction(tx *types.Transaction, cache *storage.CacheDB) (*xshard_state.TxState,
-	interface{}, error) {
-	config := &smartcontract.Config{
-		ShardID: common.NewShardIDUnchecked(tx.ShardID),
-		Time:    uint32(time.Now().Unix()),
-		Tx:      tx,
-	}
-
-	txHash := tx.Hash()
-	txState := xshard_state.CreateTxState(xshard_types.ShardTxID(string(txHash[:])))
-
-	if tx.TxType == types.Invoke {
-		invoke := tx.Payload.(*payload.InvokeCode)
-
-		sc := smartcontract.SmartContract{
-			Config:       config,
-			Store:        nil,
-			ShardTxState: txState,
-			CacheDB:      cache,
-			Gas:          100000000000000,
-			PreExec:      true,
-		}
-
-		//start the smart contract executive function
-		engine, _ := sc.NewExecuteEngine(invoke.Code)
-		res, err := engine.Invoke()
-
-		if err != nil {
-			//if err == shardsysmsg.ErrYield {
-			//	return txState, err
-			//}
-			// todo: handle error check
-			if txState.PendingOutReq != nil {
-				return txState, nil, xshard_state.ErrYield
-			}
-			return nil, nil, err
-		}
-
-		return txState, res, nil
-	}
-
-	panic("unimplemented")
 }
 
 func ExecuteShardCommandLocal(shardID common.ShardID, command ShardCommand) []byte {
