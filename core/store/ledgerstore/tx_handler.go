@@ -544,7 +544,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	for _, notifyMsg := range txState.ShardNotifies {
 		notify.ShardMsg = append(notify.ShardMsg, notifyMsg)
 	}
-
+	cache.Commit()
 	log.Debugf("process xshard notify result: %v", result)
 }
 

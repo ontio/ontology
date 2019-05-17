@@ -30,12 +30,19 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-// set current+2 stake info to current+1 stake info, only update view info, don't settle
+// set current+1 stake info to current stake info, only update view info, don't settle
 func commitDpos(native *native.NativeService, param *CommitDposParam) error {
 	shardId := param.ShardId
+	currentChangeVIew, err := GetShardCurrentChangeView(native, shardId)
+	if err != nil {
+		return fmt.Errorf("commitDpos: failed, err: %s", shardId, err)
+	}
+	if param.Height <= currentChangeVIew.Height {
+		return fmt.Errorf("commitDpos: param height unmatch")
+	}
 	currentView, err := GetShardCurrentViewIndex(native, shardId)
 	if err != nil {
-		return fmt.Errorf("commitDpos: get shard %d current view failed, err: %s", shardId, err)
+		return fmt.Errorf("commitDpos: failed, err: %s", shardId, err)
 	}
 	lastView := currentView - 1
 	if err := handleDebt(native, View(lastView), param); err != nil {
@@ -147,6 +154,9 @@ func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey s
 		initViewInfo.Peers = make(map[string]*PeerViewInfo)
 		nextViewInfo.Peers = make(map[string]*PeerViewInfo)
 	}
+	if len(nextViewInfo.Peers) != len(initViewInfo.Peers) {
+		nextViewInfo.Peers = initViewInfo.Peers
+	}
 	peerViewInfo, ok := initViewInfo.Peers[peerPubKey]
 	if ok {
 		return fmt.Errorf("peerInitStake: peer %s has already exist", peerPubKey)
@@ -161,7 +171,39 @@ func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey s
 	setShardViewInfo(native, id, currentView, initViewInfo)
 	nextViewInfo.Peers[peerPubKey] = peerViewInfo
 	setShardViewInfo(native, id, nextView, nextViewInfo)
+
+	lastStakeView, err := getUserLastStakeView(native, id, peerOwner)
+	if err != nil {
+		return fmt.Errorf("reduceInitPos: failed, err: %s", err)
+	}
+	if lastStakeView > nextView {
+		return fmt.Errorf("reduceInitPos: user last stake view %d and next view %d unmatch", lastStakeView, nextView)
+	} else if lastStakeView == nextView {
+		lastStakeView = currentView
+	}
+	lastUserStakeInfo, err := getShardViewUserStake(native, id, lastStakeView, peerOwner)
+	if err != nil {
+		return fmt.Errorf("reduceInitPos: get user last stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(lastUserStakeInfo) {
+		lastUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	}
+	if _, ok := lastUserStakeInfo.Peers[peerPubKey]; !ok {
+		lastUserStakeInfo.Peers[peerPubKey] = &UserPeerStakeInfo{PeerPubKey: peerPubKey}
+	}
+	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, peerOwner)
+	if err != nil {
+		return fmt.Errorf("reduceInitPos: get user next stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(nextUserStakeInfo) {
+		nextUserStakeInfo.Peers = lastUserStakeInfo.Peers
+	}
+	if _, ok := nextUserStakeInfo.Peers[peerPubKey]; !ok {
+		nextUserStakeInfo.Peers[peerPubKey] = lastUserStakeInfo.Peers[peerPubKey]
+	}
 	// update user last stake view num
+	setShardViewUserStake(native, id, currentView, peerOwner, lastUserStakeInfo)
+	setShardViewUserStake(native, id, nextView, peerOwner, nextUserStakeInfo)
 	setUserLastStakeView(native, id, peerOwner, nextView)
 	return nil
 }
@@ -235,12 +277,18 @@ func reduceInitPos(native *native.NativeService, id common.ShardID, owner common
 	if err != nil {
 		return fmt.Errorf("reduceInitPos: get user last stake info failed, err: %s", err)
 	}
+	if isUserStakePeerEmpty(lastUserStakeInfo) {
+		lastUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	}
 	if _, ok := lastUserStakeInfo.Peers[pubKeyString]; !ok {
 		lastUserStakeInfo.Peers[pubKeyString] = &UserPeerStakeInfo{PeerPubKey: pubKeyString}
 	}
 	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, owner)
 	if err != nil {
 		return fmt.Errorf("reduceInitPos: get user next stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(nextUserStakeInfo) {
+		copyUserStakeInfo(lastUserStakeInfo, nextUserStakeInfo)
 	}
 	if _, ok := nextUserStakeInfo.Peers[pubKeyString]; !ok {
 		nextUserStakeInfo.Peers[pubKeyString] = lastUserStakeInfo.Peers[pubKeyString]
@@ -279,8 +327,8 @@ func userStake(native *native.NativeService, id common.ShardID, user common.Addr
 	if err != nil {
 		return fmt.Errorf("userStake: get user next stake info failed, err: %s", err)
 	}
-	if isUserStakePeerEmpty(nextUserStakeInfo) { // user stake peer firstly
-		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	if isUserStakePeerEmpty(nextUserStakeInfo) {
+		copyUserStakeInfo(lastUserStakeInfo, nextUserStakeInfo)
 	}
 	currentViewInfo, err := GetShardViewInfo(native, id, currentView)
 	if err != nil {
@@ -365,7 +413,7 @@ func unfreezeStakeAsset(native *native.NativeService, id common.ShardID, user co
 		return fmt.Errorf("unfreezeStakeAsset: get user next stake info failed, err: %s", err)
 	}
 	if isUserStakePeerEmpty(lastUserStakeInfo) || isUserStakePeerEmpty(nextUserStakeInfo) {
-		return fmt.Errorf("userStake: user stake peer info is empty")
+		return fmt.Errorf("unfreezeStakeAsset: user stake peer info is empty")
 	}
 	nextViewInfo, err := GetShardViewInfo(native, id, nextView)
 	if err != nil {
@@ -442,6 +490,9 @@ func withdrawStakeAsset(native *native.NativeService, id common.ShardID, user co
 	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, user)
 	if err != nil {
 		return 0, fmt.Errorf("withdrawStakeAsset: get user next stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(nextUserStakeInfo) {
+		copyUserStakeInfo(lastUserStakeInfo, nextUserStakeInfo)
 	}
 	currentViewInfo, err := GetShardViewInfo(native, id, currentView)
 	if err != nil {
@@ -537,28 +588,28 @@ func withdrawFee(native *native.NativeService, shardId common.ShardID, user comm
 			if peerStakeInfo.FeeBalance == 0 {
 				continue
 			}
-			dividends := uint64(0)
+			peerDiv := uint64(0)
 			wholeFee := new(big.Int).SetUint64(peerStakeInfo.WholeFee)
 			userProportion := new(big.Int).SetUint64(peerStakeInfo.Proportion)
 			peerProportion := new(big.Int).SetUint64(PEER_MAX_PROPORTION - peerStakeInfo.Proportion)
 			proportionBase := new(big.Int).SetUint64(PEER_MAX_PROPORTION)
 			if user == peerStakeInfo.Owner { // peer owner
 				if peerStakeInfo.UserStakeAmount == 0 {
-					dividends = peerStakeInfo.WholeFee
+					peerDiv = peerStakeInfo.WholeFee
 				} else {
 					temp := wholeFee.Mul(wholeFee, peerProportion)
-					dividends = temp.Div(temp, proportionBase).Uint64()
+					peerDiv = temp.Div(temp, proportionBase).Uint64()
 				}
 			} else {
 				temp := wholeFee.Mul(wholeFee, userProportion)
 				temp.Mul(temp, new(big.Int).SetUint64(info.StakeAmount))
 				temp.Div(temp, new(big.Int).SetUint64(peerStakeInfo.UserStakeAmount))
 				// wholeFee * proportion * stakeAmount / allStakeAmount / PEER_MAX_PROPORTION
-				dividends = temp.Div(temp, proportionBase).Uint64()
+				peerDiv = temp.Div(temp, proportionBase).Uint64()
 			}
-			peerStakeInfo.FeeBalance = peerStakeInfo.FeeBalance - dividends
+			peerStakeInfo.FeeBalance = peerStakeInfo.FeeBalance - peerDiv
 			viewStake.Peers[peer] = peerStakeInfo
-			dividends += dividends
+			dividends += peerDiv
 		}
 		setShardViewInfo(native, shardId, i, viewStake)
 		count++
@@ -583,7 +634,7 @@ func changePeerInfo(native *native.NativeService, shardId common.ShardID, peerOw
 	}
 	peerInfo, ok := nextViewInfo.Peers[strings.ToLower(info.PeerPubKey)]
 	if !ok {
-		return fmt.Errorf("changePeerInfo: failed, err: %s", err)
+		return fmt.Errorf("changePeerInfo: peer not exist in next view")
 	}
 	if peerInfo.Owner != peerOwner {
 		return fmt.Errorf("changePeerInfo: peer owner not match")
@@ -611,10 +662,17 @@ func isUserStakePeerEmpty(info *UserStakeInfo) bool {
 	if info.Peers == nil || len(info.Peers) == 0 {
 		return true
 	}
-	for _, stakeInfo := range info.Peers {
-		if stakeInfo.StakeAmount != 0 || stakeInfo.UnfreezeAmount != 0 || stakeInfo.CurrentViewStakeAmount != 0 {
-			return false
+	return false
+}
+
+func copyUserStakeInfo(lastUserStakeInfo, nextUserStakeInfo *UserStakeInfo) {
+	nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	for peer, info := range lastUserStakeInfo.Peers {
+		nextUserStakeInfo.Peers[peer] = &UserPeerStakeInfo{
+			PeerPubKey:             info.PeerPubKey,
+			StakeAmount:            info.StakeAmount,
+			CurrentViewStakeAmount: info.CurrentViewStakeAmount,
+			UnfreezeAmount:         info.UnfreezeAmount,
 		}
 	}
-	return true
 }
