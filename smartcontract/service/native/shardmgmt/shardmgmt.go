@@ -700,7 +700,7 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: transfer ong failed, err: %s", err)
 	}
 	balanceParam := common.BigIntToNeoBytes(new(big.Int).SetUint64(balance))
-	transferIdBytes, err := native.NativeCall(utils.ShardAssetAddress, oep4.SUPPORT_COMMIT_DPOS, balanceParam)
+	transferIdBytes, err := native.NativeCall(utils.ShardAssetAddress, oep4.COMMIT_DPOS, balanceParam)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard transfer failed, err: %s", err)
 	}
@@ -734,15 +734,8 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: failed, err: %s", err)
 	}
-	xshardTransferParam := &oep4.XShardTransferRetryParam{
-		From:       utils.ShardMgmtContractAddress,
-		TransferId: info.TransferId,
-	}
-	bf := new(bytes.Buffer)
-	if err := xshardTransferParam.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: serialize transfer retry failed, err: %s", err)
-	}
-	if _, err := native.NativeCall(utils.ShardAssetAddress, oep4.ONG_XSHARD_TRANSFER_RETRY, bf.Bytes()); err != nil {
+	retryParam := common.BigIntToNeoBytes(info.TransferId)
+	if _, err := native.NativeCall(utils.ShardAssetAddress, oep4.RETRY_COMMIT_DPOS, retryParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: xshard transfer retry failed, err: %s", err)
 	}
 	shardStakeCommitParam := &shard_stake.CommitDposParam{
@@ -751,7 +744,6 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 		Hash:      info.Hash,
 		Height:    info.Height,
 	}
-	bf.Reset()
 	sink := common.NewZeroCopySink(0)
 	shardStakeCommitParam.Serialization(sink)
 	rootShard := common.NewShardIDUnchecked(0)
