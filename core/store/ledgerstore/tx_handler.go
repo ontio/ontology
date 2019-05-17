@@ -484,7 +484,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	}
 	nid := msg.NotifyID
 	sink := common.NewZeroCopySink(0)
-	sink.WriteBytes([]byte(msg.ShardTxID)) //todo : use shard tx id
+	sink.WriteBytes([]byte(msg.ShardTxID))
 	sink.WriteUint32(nid)
 	shardTxID := xshard_types.ShardTxID(string(sink.Bytes()))
 	txState := xshard_state.CreateTxState(shardTxID)
@@ -499,6 +499,14 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 
 	cache.Reset()
 	result, gasConsume, err := execShardTransaction(msg.SourceShardID, store, cache, txState, tx, header, notify.ContractEvent)
+	if err != nil && txState.ExecState == xshard_state.ExecYielded {
+		notify.ShardMsg = append(notify.ShardMsg, txState.PendingOutReq)
+
+		txState.ShardNotifies = nil
+		xshardDB.SetXShardState(txState)
+		return
+	}
+
 	if gasConsume < neovm.MIN_TRANSACTION_GAS {
 		gasConsume = neovm.MIN_TRANSACTION_GAS
 	}
