@@ -154,6 +154,9 @@ func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey s
 		initViewInfo.Peers = make(map[string]*PeerViewInfo)
 		nextViewInfo.Peers = make(map[string]*PeerViewInfo)
 	}
+	if len(nextViewInfo.Peers) != len(initViewInfo.Peers) {
+		nextViewInfo.Peers = initViewInfo.Peers
+	}
 	peerViewInfo, ok := initViewInfo.Peers[peerPubKey]
 	if ok {
 		return fmt.Errorf("peerInitStake: peer %s has already exist", peerPubKey)
@@ -193,15 +196,7 @@ func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey s
 		return fmt.Errorf("reduceInitPos: get user next stake info failed, err: %s", err)
 	}
 	if isUserStakePeerEmpty(nextUserStakeInfo) {
-		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
-		for peer, info := range lastUserStakeInfo.Peers {
-			nextUserStakeInfo.Peers[peer] = &UserPeerStakeInfo{
-				PeerPubKey:             info.PeerPubKey,
-				StakeAmount:            info.StakeAmount,
-				CurrentViewStakeAmount: info.CurrentViewStakeAmount,
-				UnfreezeAmount:         info.UnfreezeAmount,
-			}
-		}
+		nextUserStakeInfo.Peers = lastUserStakeInfo.Peers
 	}
 	if _, ok := nextUserStakeInfo.Peers[peerPubKey]; !ok {
 		nextUserStakeInfo.Peers[peerPubKey] = lastUserStakeInfo.Peers[peerPubKey]
@@ -293,15 +288,7 @@ func reduceInitPos(native *native.NativeService, id common.ShardID, owner common
 		return fmt.Errorf("reduceInitPos: get user next stake info failed, err: %s", err)
 	}
 	if isUserStakePeerEmpty(nextUserStakeInfo) {
-		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
-		for peer, info := range lastUserStakeInfo.Peers {
-			nextUserStakeInfo.Peers[peer] = &UserPeerStakeInfo{
-				PeerPubKey:             info.PeerPubKey,
-				StakeAmount:            info.StakeAmount,
-				CurrentViewStakeAmount: info.CurrentViewStakeAmount,
-				UnfreezeAmount:         info.UnfreezeAmount,
-			}
-		}
+		copyUserStakeInfo(lastUserStakeInfo, nextUserStakeInfo)
 	}
 	if _, ok := nextUserStakeInfo.Peers[pubKeyString]; !ok {
 		nextUserStakeInfo.Peers[pubKeyString] = lastUserStakeInfo.Peers[pubKeyString]
@@ -340,8 +327,8 @@ func userStake(native *native.NativeService, id common.ShardID, user common.Addr
 	if err != nil {
 		return fmt.Errorf("userStake: get user next stake info failed, err: %s", err)
 	}
-	if isUserStakePeerEmpty(nextUserStakeInfo) { // user stake peer firstly
-		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	if isUserStakePeerEmpty(nextUserStakeInfo) {
+		copyUserStakeInfo(lastUserStakeInfo, nextUserStakeInfo)
 	}
 	currentViewInfo, err := GetShardViewInfo(native, id, currentView)
 	if err != nil {
@@ -426,7 +413,7 @@ func unfreezeStakeAsset(native *native.NativeService, id common.ShardID, user co
 		return fmt.Errorf("unfreezeStakeAsset: get user next stake info failed, err: %s", err)
 	}
 	if isUserStakePeerEmpty(lastUserStakeInfo) || isUserStakePeerEmpty(nextUserStakeInfo) {
-		return fmt.Errorf("userStake: user stake peer info is empty")
+		return fmt.Errorf("unfreezeStakeAsset: user stake peer info is empty")
 	}
 	nextViewInfo, err := GetShardViewInfo(native, id, nextView)
 	if err != nil {
@@ -505,15 +492,7 @@ func withdrawStakeAsset(native *native.NativeService, id common.ShardID, user co
 		return 0, fmt.Errorf("withdrawStakeAsset: get user next stake info failed, err: %s", err)
 	}
 	if isUserStakePeerEmpty(nextUserStakeInfo) {
-		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
-		for peer, info := range lastUserStakeInfo.Peers {
-			nextUserStakeInfo.Peers[peer] = &UserPeerStakeInfo{
-				PeerPubKey:             info.PeerPubKey,
-				StakeAmount:            info.StakeAmount,
-				CurrentViewStakeAmount: info.CurrentViewStakeAmount,
-				UnfreezeAmount:         info.UnfreezeAmount,
-			}
-		}
+		copyUserStakeInfo(lastUserStakeInfo, nextUserStakeInfo)
 	}
 	currentViewInfo, err := GetShardViewInfo(native, id, currentView)
 	if err != nil {
@@ -683,10 +662,17 @@ func isUserStakePeerEmpty(info *UserStakeInfo) bool {
 	if info.Peers == nil || len(info.Peers) == 0 {
 		return true
 	}
-	for _, stakeInfo := range info.Peers {
-		if stakeInfo.StakeAmount != 0 || stakeInfo.UnfreezeAmount != 0 || stakeInfo.CurrentViewStakeAmount != 0 {
-			return false
+	return false
+}
+
+func copyUserStakeInfo(lastUserStakeInfo, nextUserStakeInfo *UserStakeInfo) {
+	nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	for peer, info := range lastUserStakeInfo.Peers {
+		nextUserStakeInfo.Peers[peer] = &UserPeerStakeInfo{
+			PeerPubKey:             info.PeerPubKey,
+			StakeAmount:            info.StakeAmount,
+			CurrentViewStakeAmount: info.CurrentViewStakeAmount,
+			UnfreezeAmount:         info.UnfreezeAmount,
 		}
 	}
-	return true
 }
