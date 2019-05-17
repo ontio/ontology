@@ -126,6 +126,17 @@ func batchInsertAttr(srvc *native.NativeService, encID []byte, attr []attribute)
 	return nil
 }
 
+func deleteAttr(srvc *native.NativeService, encID, path []byte) error {
+	key := append(encID, FIELD_ATTR)
+	ok, err := utils.LinkedlistDelete(srvc, key, path)
+	if err != nil {
+		return err
+	} else if !ok {
+		return errors.New("attribute not exist")
+	}
+	return nil
+}
+
 func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 	key := append(encID, FIELD_ATTR)
 	item, err := utils.LinkedlistGetHead(srvc, key)
@@ -158,4 +169,12 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 		item = node.GetNext()
 	}
 	return res.Bytes(), nil
+}
+
+func getAttrKeys(attr []attribute) [][]byte {
+	var paths = make([][]byte, 0)
+	for _, v := range attr {
+		paths = append(paths, v.key)
+	}
+	return paths
 }

@@ -150,6 +150,27 @@ func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
 	return index, nil
 }
 
+func revokePkByIndex(srvc *native.NativeService, encID []byte, index uint32) ([]byte, error) {
+	key := append(encID, FIELD_PK)
+	owners, err := getAllPk(srvc, key)
+	if err != nil {
+		return nil, err
+	}
+	if uint32(len(owners)) < index {
+		return nil, errors.New("no such key")
+	}
+	index -= 1
+	if owners[index].revoked {
+		return nil, errors.New("already revoked")
+	}
+	owners[index].revoked = true
+	err = putAllPk(srvc, key, owners)
+	if err != nil {
+		return nil, err
+	}
+	return owners[index].key, nil
+}
+
 func isOwner(srvc *native.NativeService, encID, pub []byte) bool {
 	kID, revoked, err := findPk(srvc, encID, pub)
 	if err != nil {

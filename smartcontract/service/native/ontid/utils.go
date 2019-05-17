@@ -48,9 +48,10 @@ const (
 	FIELD_VERSION byte = 0
 	FLAG_VERSION  byte = 0x01
 
-	FIELD_PK       byte = 1
-	FIELD_ATTR     byte = 2
-	FIELD_RECOVERY byte = 3
+	FIELD_PK         byte = 1
+	FIELD_ATTR       byte = 2
+	FIELD_RECOVERY   byte = 3
+	FIELD_CONTROLLER byte = 4
 )
 
 func encodeID(id []byte) ([]byte, error) {
@@ -71,24 +72,6 @@ func decodeID(data []byte) ([]byte, error) {
 		return nil, errors.New("decode ONT ID error: invalid data length")
 	}
 	return data[prefix+1:], nil
-}
-
-func setRecovery(srvc *native.NativeService, encID []byte, recovery com.Address) error {
-	key := append(encID, FIELD_RECOVERY)
-	val := states.StorageItem{Value: recovery[:]}
-	srvc.CacheDB.Put(key, val.ToArray())
-	return nil
-}
-
-func getRecovery(srvc *native.NativeService, encID []byte) ([]byte, error) {
-	key := append(encID, FIELD_RECOVERY)
-	item, err := utils.GetStorageItem(srvc, key)
-	if err != nil {
-		return nil, errors.New("get recovery error: " + err.Error())
-	} else if item == nil {
-		return nil, nil
-	}
-	return item.Value, nil
 }
 
 func checkWitness(srvc *native.NativeService, key []byte) error {
