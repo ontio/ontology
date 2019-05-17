@@ -26,31 +26,6 @@ func computeTableG1(gen *pbc.Element, bound int64) {
 	}
 }
 
-func computeTableGT(gen *pbc.Element, bound int64) {
-
-	aux := gen.NewFieldElement()
-	aux.Set(gen)
-
-	for j := int64(0); j <= bound; j++ {
-		tableGT.Store(aux.String(), j)
-		aux.Mul(aux, gen)
-	}
-}
-
-// PrecomputeTables builds the maps necessary
-// for the giant step, baby step algorithm
-func (pk *PublicKey) PrecomputeTables(genG1 *pbc.Element, genGT *pbc.Element) {
-
-	// sqrt of the largest possible message
-	bound := int64(math.Ceil(math.Sqrt(float64(pk.T.Int64())))) + 1
-
-	// pre-compute the tables for the giant steps
-	computeTableGT(genGT, bound)
-	computeTableG1(genG1, bound)
-
-	tablesComputed = true
-}
-
 // obtain the discrete log in O(sqrt(T)) time using giant step baby step algorithm
 func (pk *PublicKey) getDL(csk *pbc.Element, gsk *pbc.Element, l2 bool) (*big.Int, error) {
 
