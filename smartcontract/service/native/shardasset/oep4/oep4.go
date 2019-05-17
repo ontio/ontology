@@ -64,10 +64,12 @@ const (
 	ONG_XSHARD_TRANSFER       = "ongXShardTransfer"
 	ONG_XSHARD_TRANSFER_RETRY = "ongXShardTransferRetry"
 
-	// call by shardsysmsg contract
 	XSHARD_TRANSFER_SUCC = "oep4XShardTransferSuccess"
 	XSHARD_RECEIVE_ASSET = "oep4ShardReceive"
 	ONG_XSHARD_RECEIVE   = "ongXShardReceive"
+
+	COMMIT_DPOS       = "commitDpos"
+	RETRY_COMMIT_DPOS = "retryCommitDpos"
 
 	GET_PENDING_TRANSFER = "getOep4PendingTransfer"
 	GET_TRANSFER         = "getOep4Transfer"
@@ -100,6 +102,9 @@ func RegisterOEP4(native *native.NativeService) {
 	native.Register(ONG_XSHARD_RECEIVE, XShardReceiveOng)
 
 	native.Register(XSHARD_TRANSFER_SUCC, XShardTransferSucc)
+
+	native.Register(COMMIT_DPOS, CommitDpos)
+	native.Register(RETRY_COMMIT_DPOS, RetryCommitDpos)
 
 	native.Register(GET_PENDING_TRANSFER, GetPendingXShardTransfer)
 	native.Register(GET_TRANSFER, GetXShardTransferState)
@@ -683,6 +688,55 @@ func XShardReceiveOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: failed, err: %s", err)
 	}
 	return utils.BYTE_TRUE, nil
+}
+
+// shard mgmt should transfer ong to self firstly
+func CommitDpos(native *native.NativeService) ([]byte, error) {
+	if native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked at shard")
+	}
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by shard mgmt")
+	}
+	feeAmount := common.BigIntFromNeoBytes(native.Input)
+	xShardTranParam := &XShardTransferParam{
+		From:    utils.ShardAssetAddress,
+		To:      utils.ShardStakeAddress,
+		ToShard: common.NewShardIDUnchecked(0),
+		Amount:  feeAmount,
+	}
+	bf := new(bytes.Buffer)
+	if err := xShardTranParam.Serialize(bf); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	}
+	if transferId, err := native.NativeCall(utils.ShardAssetAddress, ONG_XSHARD_TRANSFER, bf.Bytes()); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	} else {
+		return transferId.([]byte), nil
+	}
+}
+
+func RetryCommitDpos(native *native.NativeService) ([]byte, error) {
+	if native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("RetryCommitDpos: only can be invoked at shard")
+	}
+	if native.ContextRef.CallingContext().ContractAddress != utils.ShardMgmtContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("RetryCommitDpos: only can be invoked by shard mgmt")
+	}
+	transferId := common.BigIntFromNeoBytes(native.Input)
+	retryParam := &XShardTransferRetryParam{
+		From:       utils.ShardAssetAddress,
+		TransferId: transferId,
+	}
+	bf := new(bytes.Buffer)
+	if err := retryParam.Serialize(bf); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("RetryCommitDpos: failed, err: %s", err)
+	}
+	if _, err := native.NativeCall(utils.ShardAssetAddress, ONG_XSHARD_TRANSFER_RETRY, bf.Bytes()); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	} else {
+		return utils.BYTE_TRUE, nil
+	}
 }
 
 func GetPendingXShardTransfer(native *native.NativeService) ([]byte, error) {
