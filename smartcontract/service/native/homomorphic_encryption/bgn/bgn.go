@@ -352,3 +352,56 @@ func (pk *PublicKey) eMultC(ct *Ciphertext, constant *big.Float) *Ciphertext {
 
 	return product
 }
+
+// EMultCL2 multiplies a level 2 (multiplied) ciphertext with a plaintext constant
+// and returns the result
+func (pk *PublicKey) eMultCL2(ct *Ciphertext, constant *big.Float) *Ciphertext {
+
+	isNegative := constant.Cmp(big.NewFloat(0.0)) < 0
+	if isNegative {
+		constant.Mul(constant, big.NewFloat(-1.0))
+	}
+
+	poly := pk.NewUnbalancedPlaintext(constant)
+
+	degree := ct.Degree + poly.Degree
+	result := make([]*pbc.Element, degree)
+
+	// set all coefficients to zero
+	for i := 0; i < degree; i++ {
+		result[i] = pk.Pairing.NewGT().NewFieldElement()
+	}
+
+	for i := ct.Degree - 1; i >= 0; i-- {
+		for k := poly.Degree - 1; k >= 0; k-- {
+			index := i + k
+
+			coeff := pk.Pairing.NewGT().NewFieldElement()
+			coeff = pk.EMultCElementL2(ct.Coefficients[i], big.NewInt(poly.Coefficients[k]))
+			result[index] = pk.EAddL2Elements(result[index], coeff)
+		}
+	}
+
+	product := &Ciphertext{result, degree, ct.ScaleFactor + poly.ScaleFactor, ct.L2}
+
+	if isNegative {
+		return pk.AInv(product)
+	}
+
+	return product
+}
+
+func (pk *PublicKey) EMultCElement(el *pbc.Element, constant *big.Int) *pbc.Element {
+
+	res := el.NewFieldElement()
+	res.PowBig(el, constant)
+
+	if pk.Deterministic {
+		r := newCryptoRandom(pk.N)
+		q := el.NewFieldElement()
+		q.MulBig(pk.Q, r)
+		res.Mul(res, q)
+	}
+
+	return res
+}
