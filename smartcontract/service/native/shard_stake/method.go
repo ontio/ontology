@@ -588,28 +588,28 @@ func withdrawFee(native *native.NativeService, shardId common.ShardID, user comm
 			if peerStakeInfo.FeeBalance == 0 {
 				continue
 			}
-			dividends := uint64(0)
+			peerDiv := uint64(0)
 			wholeFee := new(big.Int).SetUint64(peerStakeInfo.WholeFee)
 			userProportion := new(big.Int).SetUint64(peerStakeInfo.Proportion)
 			peerProportion := new(big.Int).SetUint64(PEER_MAX_PROPORTION - peerStakeInfo.Proportion)
 			proportionBase := new(big.Int).SetUint64(PEER_MAX_PROPORTION)
 			if user == peerStakeInfo.Owner { // peer owner
 				if peerStakeInfo.UserStakeAmount == 0 {
-					dividends = peerStakeInfo.WholeFee
+					peerDiv = peerStakeInfo.WholeFee
 				} else {
 					temp := wholeFee.Mul(wholeFee, peerProportion)
-					dividends = temp.Div(temp, proportionBase).Uint64()
+					peerDiv = temp.Div(temp, proportionBase).Uint64()
 				}
 			} else {
 				temp := wholeFee.Mul(wholeFee, userProportion)
 				temp.Mul(temp, new(big.Int).SetUint64(info.StakeAmount))
 				temp.Div(temp, new(big.Int).SetUint64(peerStakeInfo.UserStakeAmount))
 				// wholeFee * proportion * stakeAmount / allStakeAmount / PEER_MAX_PROPORTION
-				dividends = temp.Div(temp, proportionBase).Uint64()
+				peerDiv = temp.Div(temp, proportionBase).Uint64()
 			}
-			peerStakeInfo.FeeBalance = peerStakeInfo.FeeBalance - dividends
+			peerStakeInfo.FeeBalance = peerStakeInfo.FeeBalance - peerDiv
 			viewStake.Peers[peer] = peerStakeInfo
-			dividends += dividends
+			dividends += peerDiv
 		}
 		setShardViewInfo(native, shardId, i, viewStake)
 		count++
