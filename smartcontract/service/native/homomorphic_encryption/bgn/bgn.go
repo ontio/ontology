@@ -303,3 +303,52 @@ func (pk *PublicKey) EAddL2(ciphertext1 *Ciphertext, ciphertext2 *Ciphertext) *C
 
 	return &Ciphertext{result, degree, ct1.ScaleFactor, ct1.L2}
 }
+
+// EMultC multiplies a level 1 (non-multiplied) ciphertext with a plaintext constant
+// and returns the result
+func (pk *PublicKey) EMultC(ct *Ciphertext, constant *big.Float) *Ciphertext {
+
+	if ct.L2 {
+		return pk.eMultCL2(ct, constant)
+	}
+
+	return pk.eMultC(ct, constant)
+}
+
+func (pk *PublicKey) eMultC(ct *Ciphertext, constant *big.Float) *Ciphertext {
+
+	isNegative := constant.Cmp(big.NewFloat(0.0)) < 0
+	if isNegative {
+		constant.Mul(constant, big.NewFloat(-1.0))
+	}
+
+	poly := pk.NewUnbalancedPlaintext(constant)
+
+	degree := ct.Degree + poly.Degree
+	result := make([]*pbc.Element, degree)
+
+	zero := pk.G1.NewFieldElement()
+
+	// set all coefficients to zero
+	for i := 0; i < degree; i++ {
+		result[i] = zero
+	}
+
+	for i := ct.Degree - 1; i >= 0; i-- {
+		for k := poly.Degree - 1; k >= 0; k-- {
+			index := i + k
+
+			coeff := zero.NewFieldElement()
+			coeff = pk.EMultCElement(ct.Coefficients[i], big.NewInt(poly.Coefficients[k]))
+			result[index] = pk.EAddElements(result[index], coeff)
+		}
+	}
+
+	product := &Ciphertext{result, degree, ct.ScaleFactor + poly.ScaleFactor, ct.L2}
+
+	if isNegative {
+		return pk.AInv(product)
+	}
+
+	return product
+}
