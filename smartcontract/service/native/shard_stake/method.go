@@ -30,7 +30,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-// set current+2 stake info to current+1 stake info, only update view info, don't settle
+// set current+1 stake info to current stake info, only update view info, don't settle
 func commitDpos(native *native.NativeService, param *CommitDposParam) error {
 	shardId := param.ShardId
 	currentChangeVIew, err := GetShardCurrentChangeView(native, shardId)
@@ -168,7 +168,47 @@ func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey s
 	setShardViewInfo(native, id, currentView, initViewInfo)
 	nextViewInfo.Peers[peerPubKey] = peerViewInfo
 	setShardViewInfo(native, id, nextView, nextViewInfo)
+
+	lastStakeView, err := getUserLastStakeView(native, id, peerOwner)
+	if err != nil {
+		return fmt.Errorf("reduceInitPos: failed, err: %s", err)
+	}
+	if lastStakeView > nextView {
+		return fmt.Errorf("reduceInitPos: user last stake view %d and next view %d unmatch", lastStakeView, nextView)
+	} else if lastStakeView == nextView {
+		lastStakeView = currentView
+	}
+	lastUserStakeInfo, err := getShardViewUserStake(native, id, lastStakeView, peerOwner)
+	if err != nil {
+		return fmt.Errorf("reduceInitPos: get user last stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(lastUserStakeInfo) {
+		lastUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+	}
+	if _, ok := lastUserStakeInfo.Peers[peerPubKey]; !ok {
+		lastUserStakeInfo.Peers[peerPubKey] = &UserPeerStakeInfo{PeerPubKey: peerPubKey}
+	}
+	nextUserStakeInfo, err := getShardViewUserStake(native, id, nextView, peerOwner)
+	if err != nil {
+		return fmt.Errorf("reduceInitPos: get user next stake info failed, err: %s", err)
+	}
+	if isUserStakePeerEmpty(nextUserStakeInfo) {
+		nextUserStakeInfo.Peers = make(map[string]*UserPeerStakeInfo)
+		for peer, info := range lastUserStakeInfo.Peers {
+			nextUserStakeInfo.Peers[peer] = &UserPeerStakeInfo{
+				PeerPubKey:             info.PeerPubKey,
+				StakeAmount:            info.StakeAmount,
+				CurrentViewStakeAmount: info.CurrentViewStakeAmount,
+				UnfreezeAmount:         info.UnfreezeAmount,
+			}
+		}
+	}
+	if _, ok := nextUserStakeInfo.Peers[peerPubKey]; !ok {
+		nextUserStakeInfo.Peers[peerPubKey] = lastUserStakeInfo.Peers[peerPubKey]
+	}
 	// update user last stake view num
+	setShardViewUserStake(native, id, currentView, peerOwner, lastUserStakeInfo)
+	setShardViewUserStake(native, id, nextView, peerOwner, nextUserStakeInfo)
 	setUserLastStakeView(native, id, peerOwner, nextView)
 	return nil
 }
