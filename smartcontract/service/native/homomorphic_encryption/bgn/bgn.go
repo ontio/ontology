@@ -2,8 +2,11 @@ package bgn
 
 import (
 	"crypto/rand"
+	"log"
 	"math"
 	"math/big"
+	"strconv"
+	"strings"
 
 	"github.com/Nik-U/pbc"
 )
@@ -592,4 +595,79 @@ func (pk *PublicKey) EPolyEval(ct *Ciphertext) *pbc.Element {
 	}
 
 	return acc
+}
+
+func (pk *PublicKey) alignCiphertexts(ct1 *Ciphertext, ct2 *Ciphertext, level2 bool) (*Ciphertext, *Ciphertext) {
+
+	if ct1.ScaleFactor > ct2.ScaleFactor {
+		diff := ct1.ScaleFactor - ct2.ScaleFactor
+
+		ct2 = pk.EMultC(ct2, big.NewFloat(math.Pow(float64(pk.FPScaleBase), float64(diff))))
+		ct2.ScaleFactor = ct1.ScaleFactor
+
+	} else if ct2.ScaleFactor > ct1.ScaleFactor {
+		// flip the ciphertexts
+		return pk.alignCiphertexts(ct2, ct1, level2)
+	}
+
+	return ct1, ct2
+}
+
+func (pk *PublicKey) encryptZero() *pbc.Element {
+	return pk.EncryptElement(big.NewInt(0))
+}
+
+func (pk *PublicKey) encryptZeroL2() *pbc.Element {
+
+	zero := pk.encryptZero()
+
+	result := pk.Pairing.NewGT().NewFieldElement()
+	result.Pair(zero, zero)
+
+	r := newCryptoRandom(pk.N)
+	pair := pk.Pairing.NewGT().Pair(pk.Q, pk.Q)
+	pair.PowBig(pair, r)
+
+	result.Mul(result, pair)
+
+	return result
+}
+
+// generates a new random number < max
+func newCryptoRandom(max *big.Int) *big.Int {
+	rand, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return rand
+}
+
+// TOTAL HACK to access the generated "l" in the C struct
+// which the PBC library holds. The golang wrapper has
+// no means of accessing the struct variable without
+// knowing the exact memory mapping. Better approach
+// would be to either compute l on the fly or figure
+// out the memory mapping between the C struct and
+// golang equivalent
+func parseLFromPBCParams(params *pbc.Params) (*big.Int, error) {
+
+	paramsStr := params.String()
+	lStr := paramsStr[strings.Index(paramsStr, "l")+2 : len(paramsStr)-1]
+	lInt, err := strconv.ParseInt(lStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	return big.NewInt(lInt), nil
+}
+
+func (c *Ciphertext) String() string {
+
+	str := ""
+	for _, coeff := range c.Coefficients {
+		str += coeff.String() + "\n"
+	}
+
+	return str
 }
