@@ -405,3 +405,191 @@ func (pk *PublicKey) EMultCElement(el *pbc.Element, constant *big.Int) *pbc.Elem
 
 	return res
 }
+
+func (pk *PublicKey) EMultCElementL2(el *pbc.Element, constant *big.Int) *pbc.Element {
+
+	res := pk.Pairing.NewGT().NewFieldElement()
+	res.PowBig(el, constant)
+
+	if !pk.Deterministic {
+		r := newCryptoRandom(pk.N)
+		pair := pk.Pairing.NewGT().NewFieldElement().Pair(pk.Q, pk.Q)
+		pair.PowBig(pair, r)
+		res.Mul(res, pair)
+	}
+
+	return res
+}
+
+// EMult multiplies two level 1 (non-multiplied) ciphertext together and returns the result
+func (pk *PublicKey) EMult(ct1 *Ciphertext, ct2 *Ciphertext) *Ciphertext {
+
+	degree := ct1.Degree + ct2.Degree
+	result := make([]*pbc.Element, degree)
+
+	// encrypt the padding zero coefficients
+	for i := 0; i < degree; i++ {
+		result[i] = pk.Pairing.NewGT().NewFieldElement()
+	}
+
+	for i := ct1.Degree - 1; i >= 0; i-- {
+		for k := ct2.Degree - 1; k >= 0; k-- {
+			index := i + k
+			coeff := pk.EMultElements(ct1.Coefficients[i], ct2.Coefficients[k])
+			result[index] = pk.EAddL2Elements(result[index], coeff)
+		}
+	}
+
+	return &Ciphertext{result, degree, ct1.ScaleFactor + ct2.ScaleFactor, true}
+}
+
+func (pk *PublicKey) EMultElements(el1 *pbc.Element, el2 *pbc.Element) *pbc.Element {
+
+	res := pk.Pairing.NewGT().NewFieldElement()
+	res.Pair(el1, el2)
+
+	if !pk.Deterministic {
+		r := newCryptoRandom(pk.N)
+		pair := pk.Pairing.NewGT().Pair(pk.Q, pk.Q)
+		pair.PowBig(pair, r)
+		res.Mul(res, pair)
+	}
+
+	return res
+}
+
+// MakeL2 moves a given ciphertext to the GT field
+func (pk *PublicKey) MakeL2(ct *Ciphertext) *Ciphertext {
+
+	one := pk.Encrypt(pk.NewPlaintext(big.NewFloat(1.0)))
+	return pk.EMult(one, ct)
+}
+
+func (pk *PublicKey) toL2Element(el *pbc.Element) *pbc.Element {
+
+	result := pk.Pairing.NewGT().NewFieldElement()
+	result.Pair(el, pk.EncryptElement(big.NewInt(1)))
+
+	r := newCryptoRandom(pk.N)
+	pair := pk.Pairing.NewGT().Pair(pk.Q, pk.Q)
+	pair.PowBig(pair, r)
+
+	return result.Mul(result, pair)
+}
+
+func (pk *PublicKey) ToDeterministicL2Element(el *pbc.Element) *pbc.Element {
+
+	result := pk.Pairing.NewGT().NewFieldElement()
+	result.Pair(el, pk.EncryptDeterministic(big.NewInt(1)))
+	return result
+}
+
+func (pk *PublicKey) EncryptDeterministic(x *big.Int) *pbc.Element {
+
+	G := pk.G1.NewFieldElement()
+	return G.PowBig(pk.P, x)
+}
+
+func (pk *PublicKey) EncryptElement(x *big.Int) *pbc.Element {
+
+	G := pk.G1.NewFieldElement()
+	G.PowBig(pk.P, x)
+
+	r := newCryptoRandom(pk.N)
+	H := pk.G1.NewFieldElement()
+	H.PowBig(pk.Q, r)
+
+	C := pk.G1.NewFieldElement()
+	return C.Mul(G, H)
+}
+
+func (pk *PublicKey) RecoverMessageWithDL(gsk *pbc.Element, csk *pbc.Element, l2 bool) (*big.Int, error) {
+
+	zero := gsk.NewFieldElement()
+
+	if zero.Equals(csk) {
+		return big.NewInt(0), nil
+	}
+
+	m, err := pk.getDL(csk, gsk, l2)
+
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+
+}
+
+func (pk *PublicKey) ESubElements(coeff1 *pbc.Element, coeff2 *pbc.Element) *pbc.Element {
+
+	result := pk.G1.NewFieldElement()
+	result.Div(coeff1, coeff2)
+	if pk.Deterministic {
+		return result // don't blind with randomness
+	}
+
+	rand := newCryptoRandom(pk.N)
+	h1 := pk.G1.NewFieldElement()
+	h1.PowBig(pk.Q, rand)
+	return result.Mul(result, h1)
+}
+
+func (pk *PublicKey) ESubL2Elements(coeff1 *pbc.Element, coeff2 *pbc.Element) *pbc.Element {
+
+	result := pk.Pairing.NewGT().NewFieldElement()
+	result.Div(coeff1, coeff2)
+
+	if pk.Deterministic {
+		return result // don't hide with randomness
+	}
+
+	r := newCryptoRandom(pk.N)
+
+	pair := pk.Pairing.NewGT().Pair(pk.Q, pk.Q)
+	pair.PowBig(pair, r)
+	return result.Mul(result, pair)
+}
+
+func (pk *PublicKey) EAddElements(coeff1 *pbc.Element, coeff2 *pbc.Element) *pbc.Element {
+
+	result := pk.G1.NewFieldElement()
+	result.Mul(coeff1, coeff2)
+
+	if pk.Deterministic {
+		return result // don't hide with randomness
+	}
+
+	rand := newCryptoRandom(pk.N)
+	h1 := pk.G1.NewFieldElement()
+	h1.PowBig(pk.Q, rand)
+
+	return result.Mul(result, h1)
+}
+
+func (pk *PublicKey) EAddL2Elements(coeff1 *pbc.Element, coeff2 *pbc.Element) *pbc.Element {
+
+	result := pk.Pairing.NewGT().NewFieldElement()
+	result.Mul(coeff1, coeff2)
+
+	if pk.Deterministic {
+		return result // don't hide with randomness
+	}
+
+	r := newCryptoRandom(pk.N)
+	pair := pk.Pairing.NewGT().Pair(pk.Q, pk.Q)
+	pair.PowBig(pair, r)
+
+	return result.Mul(result, pair)
+}
+
+func (pk *PublicKey) EPolyEval(ct *Ciphertext) *pbc.Element {
+	acc := pk.EncryptDeterministic(big.NewInt(0))
+	x := big.NewInt(int64(pk.PolyBase))
+
+	for i := ct.Degree - 1; i >= 0; i-- {
+		acc = pk.EMultCElement(acc, x)
+		acc = pk.EAddElements(acc, ct.Coefficients[i])
+	}
+
+	return acc
+}
