@@ -193,7 +193,6 @@ func (self *Server) Receive(context actor.Context) {
 		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
-
 	default:
 		log.Info("vbft actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
@@ -425,7 +424,7 @@ func (self *Server) initialize() error {
 	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
-	store, err := OpenBlockStore(self.ledger, self.pid, self.ShardID)
+	store, err := OpenBlockStore(self.ledger, self.pid, self.p2p, self.ShardID)
 	if err != nil {
 		log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
@@ -1167,38 +1166,24 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 }
 
 func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
-	msgBlkNum := msg.GetBlockNum()
-	shards, err := self.ledger.GetRelatedShardIDsInBlock(msgBlkNum - 1)
-	if err != nil {
-		log.Infof("get remoteMsgShards of shardID:%v height %d: %s", self.ShardID, msgBlkNum, err)
+	if msg.Block.CrossMsg == nil {
 		return true
 	}
-	shardMsg := make(map[common.ShardID]common.Uint256)
-	if shards != nil && len(shards) != 0 && msg.Block.CrossMsg != nil && len(msg.Block.CrossMsg.CrossMsgs) != 0 {
-		for _, s := range shards {
-			reqs, err := self.ledger.GetShardMsgsInBlock(msgBlkNum, s)
-			if err != nil {
-				log.Errorf("get remoteMsg of height %d to shard %d: %s", msgBlkNum, s, err)
-				return false
-			}
-			if len(reqs) != 0 {
-				msgHash := xshard_types.GetShardCommonMsgsHash(reqs)
-				shardMsg[s] = msgHash
-			}
-		}
-		if len(msg.Block.CrossMsg.CrossMsgs) != len(shardMsg) {
-			log.Errorf("BlockPrposalMessage msg CrossMsgs len :%d，not match shardmsg:%d", len(msg.Block.CrossMsg.CrossMsgs), len(shardMsg))
+	msgBlkNum := msg.GetBlockNum()
+	shardMsgs := self.chainStore.GetExecShardNotify(msgBlkNum - 1)
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	for _, msg := range shardMsgs {
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	}
+	for _, crossMsg := range msg.Block.CrossMsg.CrossMsgs {
+		if shardMsg, present := shardMsgMap[crossMsg.ShardID]; !present {
+			log.Errorf("BlockPrposalMessage ShardId:%v not found", crossMsg.ShardID)
 			return false
-		}
-		for _, crossMsg := range msg.Block.CrossMsg.CrossMsgs {
-			if msgHash, present := shardMsg[crossMsg.ShardID]; !present {
-				log.Errorf("BlockPrposalMessage ShardId:%v not found", crossMsg.ShardID)
+		} else {
+			msgHash := xshard_types.GetShardCommonMsgsHash(shardMsg)
+			if msgHash != crossMsg.MsgHash {
+				log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgHash.ToHexString(), crossMsg.MsgHash.ToHexString())
 				return false
-			} else {
-				if msgHash != crossMsg.MsgHash {
-					log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgHash.ToHexString(), crossMsg.MsgHash.ToHexString())
-					return false
-				}
 			}
 		}
 	}

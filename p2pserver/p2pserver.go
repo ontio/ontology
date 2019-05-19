@@ -189,6 +189,9 @@ func (this *P2PServer) Xmit(message interface{}) error {
 		// construct inv message
 		invPayload := msgpack.NewInvPayload(comm.BLOCK, []comm.Uint256{hash})
 		msg = msgpack.NewInv(invPayload)
+	case *msgtypes.CrossShardPayload:
+		crossShardPayload := message.(*msgtypes.CrossShardPayload)
+		msg = msgpack.NewCrossShard(crossShardPayload)
 	default:
 		log.Warnf("[p2p]Unknown Xmit message %v , type %v", message,
 			reflect.TypeOf(message))

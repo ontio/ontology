@@ -190,15 +190,6 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		return nil, err
 	}
 	parentHeight := self.ledger.GetParentHeight() + 1
-	/*
-		shardTxs := make(map[uint64][]*types.Transaction)
-		if self.parentHeight < parentHeight {
-			crossShards := xshard.GetCrossShardTxs()
-			for shardId, txs := range crossShards {
-				shardTxs[shardId] = txs
-			}
-		}
-	*/
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
 
@@ -231,37 +222,25 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 }
 
 func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs, error) {
-	if self.ShardID.IsRootShard() {
-		return nil, nil
-	}
 	crossShardMsgs := &CrossShardMsgs{}
-	shards, err := self.ledger.GetRelatedShardIDsInBlock(blkNum - 1)
-	if err != nil {
-		log.Infof("get remoteMsgShards of shardID:%v height %d: %s", self.ShardID, blkNum, err)
-		return nil, nil
+	msgs := self.chainStore.GetExecShardNotify(blkNum)
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	for _, msg := range msgs {
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
-	if shards == nil || len(shards) == 0 {
-		return nil, nil
-	}
-	for _, s := range shards {
-		reqs, err := self.ledger.GetShardMsgsInBlock(blkNum, s)
-		if err != nil {
-			return nil, fmt.Errorf("get remoteMsg of height %d to shard %d: %s", blkNum, s, err)
-		}
-		if len(reqs) == 0 {
-			continue
-		}
-		msgHash := xshard_types.GetShardCommonMsgsHash(reqs)
+	for shardID, shardMsgs := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
 		sig, err := signature.Sign(self.account, msgHash[:])
 		if err != nil {
 			return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", msgHash.ToHexString(), err)
 		}
 		crossShardMsg := &shardmsg.CrossShardMsgHash{
-			ShardID: s,
+			ShardID: shardID,
 			MsgHash: msgHash,
 			SigData: [][]byte{sig},
 		}
 		crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossShardMsg)
+		crossShardMsgs.Height = blkNum
 	}
 	return crossShardMsgs, nil
 }
@@ -337,7 +316,10 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
 	}
-	crossShardMsgs, err := self.constructCrossShardHashMsgs(blkNum)
+	crossShardMsgs, err := self.constructCrossShardHashMsgs(blkNum - 1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to CrossShardHashMsgs :%s,blkNum:%d", err, (blkNum - 1))
+	}
 	msg := &blockProposalMsg{
 		Block: &Block{
 			Block:               blk,

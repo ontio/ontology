@@ -24,11 +24,13 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	actorTypes "github.com/ontio/ontology/consensus/actor"
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/overlaydb"
-	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/core/xshard_types"
+	eventmsg "github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
@@ -43,9 +45,10 @@ type ChainStore struct {
 	pid             *actor.PID
 	needSubmitBlock bool
 	shardID         common.ShardID
+	p2p             *actorTypes.P2PActor
 }
 
-func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID, shardID common.ShardID) (*ChainStore, error) {
+func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID, p2p *actorTypes.P2PActor, shardID common.ShardID) (*ChainStore, error) {
 	chainstore := &ChainStore{
 		db:              db,
 		chainedBlockNum: db.GetCurrentBlockHeight(),
@@ -53,6 +56,7 @@ func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID, shardID common.Shar
 		pid:             serverPid,
 		needSubmitBlock: false,
 		shardID:         shardID,
+		p2p:             p2p,
 	}
 	merkleRoot, err := db.GetStateMerkleRoot(chainstore.chainedBlockNum)
 	if err != nil {
@@ -90,6 +94,14 @@ func (self *ChainStore) GetExecMerkleRoot(blkNum uint32) (common.Uint256, error)
 		return merkleRoot, nil
 	}
 
+}
+
+func (self *ChainStore) GetExecShardNotify(blkNum uint32) []xshard_types.CommonShardMsg {
+	if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
+		return blk.execResult.ShardNotify
+	} else {
+		return nil
+	}
 }
 
 func (self *ChainStore) GetExecWriteSet(blkNum uint32) *overlaydb.MemDB {
@@ -156,7 +168,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult}
 	self.needSubmitBlock = true
 	self.pid.Tell(
-		&message.BlockConsensusComplete{
+		&eventmsg.BlockConsensusComplete{
 			Block: block.Block,
 		})
 	self.chainedBlockNum = blkNum
@@ -188,14 +200,16 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 	for _, crossShard := range crossShardMsgs.CrossMsgs {
 		hashes = append(hashes, crossShard.MsgHash)
 	}
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	msgs := self.GetExecShardNotify(height - 1)
+	for _, msg := range msgs {
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	}
 	msgRoot := common.ComputeMerkleRoot(hashes)
 	for _, crossMsg := range crossShardMsgs.CrossMsgs {
-		reqs, err := self.db.GetShardMsgsInBlock(crossShardMsgs.Height, crossMsg.ShardID)
-		if err != nil {
-			log.Errorf("get remoteMsg of height %d to shard %d: %s", crossShardMsgs.Height, crossMsg.ShardID, err)
-			return
-		}
-		if len(reqs) == 0 {
+		shardMsg, present := shardMsgMap[crossMsg.ShardID]
+		if !present {
+			log.Errorf("broadcast cross msg not found :%v", crossMsg.ShardID)
 			continue
 		}
 		crossShardMsg := &shardmsg.CrossShardMsg{
@@ -203,7 +217,7 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 			MsgHeight:         crossShardMsgs.Height,
 			SignMsgHeight:     height,
 			CrossShardMsgRoot: msgRoot,
-			ShardMsg:          reqs,
+			ShardMsg:          shardMsg,
 			ShardMsgHashs:     crossShardMsgs.CrossMsgs,
 		}
 		sink := common.ZeroCopySink{}
@@ -212,6 +226,6 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 			ShardID: crossMsg.ShardID,
 			Data:    sink.Bytes(),
 		}
-		self.pid.Tell(msg)
+		self.p2p.Broadcast(msg)
 	}
 }

@@ -32,10 +32,11 @@ import (
 )
 
 type ExecuteResult struct {
-	WriteSet   *overlaydb.MemDB
-	Hash       common.Uint256
-	MerkleRoot common.Uint256
-	Notify     []*event.ExecuteNotify
+	WriteSet    *overlaydb.MemDB
+	Hash        common.Uint256
+	MerkleRoot  common.Uint256
+	Notify      []*event.ExecuteNotify
+	ShardNotify []xshard_types.CommonShardMsg
 }
 
 // LedgerStore provides func with store package.

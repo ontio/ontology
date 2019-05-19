@@ -188,6 +188,13 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 		actor.ConsensusPid.Tell(&consensus.Cons)
 	}
 }
+func CrossShardHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	if actor.ConsensusPid != nil {
+		var consensus = data.Payload.(*msgTypes.Consensus)
+		consensus.Cons.PeerId = data.Id
+		actor.ConsensusPid.Tell(&consensus.Cons)
+	}
+}
 
 // NotFoundHandle handles the not found message from peer
 func NotFoundHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {

@@ -17,7 +17,11 @@
  */
 package types
 
-import "github.com/ontio/ontology/common"
+import (
+	"io"
+
+	"github.com/ontio/ontology/common"
+)
 
 type CrossShardPayload struct {
 	Version uint32
@@ -35,4 +39,29 @@ func (this *CrossShardPayload) Verify() error {
 
 func (this *CrossShardPayload) Type() common.InventoryType {
 	return common.CROSS_SHARD
+}
+
+func (this *CrossShardPayload) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.Version)
+	if this.Version == common.VERSION_SUPPORT_SHARD {
+		sink.WriteShardID(this.ShardID)
+	}
+	sink.WriteVarBytes(this.Data)
+}
+
+func (this *CrossShardPayload) Deserialization(source *common.ZeroCopySource) error {
+	var irregular, eof bool
+	var err error
+	this.Version, eof = source.NextUint32()
+	if this.Version == common.VERSION_SUPPORT_SHARD {
+		this.ShardID, err = source.NextShardID()
+	}
+	this.Data, _, irregular, eof = source.NextVarBytes()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+	return err
 }

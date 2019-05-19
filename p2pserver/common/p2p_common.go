@@ -135,6 +135,7 @@ const (
 	GET_BLOCKS_TYPE  = "getblocks"  //req blks from peer
 	NOT_FOUND_TYPE   = "notfound"   //peer can`t find blk according to the hash
 	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
+	CROSS_SHARD_TYPE = "crossshard"
 )
 
 type AppendPeerID struct {

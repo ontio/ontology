@@ -37,6 +37,43 @@ type CrossShardMsgHash struct {
 	SigData [][]byte
 }
 
+func (this *CrossShardMsgHash) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteShardID(this.ShardID)
+	sink.WriteBytes(this.MsgHash[:])
+	sink.WriteVarUint(uint64(len(this.SigData)))
+	for _, sig := range this.SigData {
+		sink.WriteVarBytes(sig)
+	}
+}
+
+func (this *CrossShardMsgHash) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	var err error
+	this.ShardID, err = source.NextShardID()
+	if err != nil {
+		return err
+	}
+	this.MsgHash, eof = source.NextHash()
+	n, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+	for j := 0; j < int(n); j++ {
+		sig, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+		this.SigData = append(this.SigData, sig)
+	}
+	return nil
+}
+
 type CrossShardMsg struct {
 	FromShardID       common.ShardID
 	MsgHeight         uint32
@@ -54,12 +91,7 @@ func (this *CrossShardMsg) Serialization(sink *common.ZeroCopySink) {
 	xshard_types.EncodeShardCommonMsgs(sink, this.ShardMsg)
 	sink.WriteVarUint(uint64(len(this.ShardMsgHashs)))
 	for _, shardMsgHash := range this.ShardMsgHashs {
-		sink.WriteShardID(shardMsgHash.ShardID)
-		sink.WriteBytes(shardMsgHash.MsgHash[:])
-		sink.WriteVarUint(uint64(len(shardMsgHash.SigData)))
-		for _, sig := range shardMsgHash.SigData {
-			sink.WriteVarBytes(sig)
-		}
+		shardMsgHash.Serialization(sink)
 	}
 }
 
@@ -99,27 +131,9 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 	}
 	for i := 0; i < int(m); i++ {
 		crossShardMsgHash := &CrossShardMsgHash{}
-		crossShardMsgHash.ShardID, err = source.NextShardID()
+		err = crossShardMsgHash.Deserialization(source)
 		if err != nil {
 			return err
-		}
-		crossShardMsgHash.MsgHash, eof = source.NextHash()
-		n, _, irregular, eof := source.NextVarUint()
-		if eof {
-			return io.ErrUnexpectedEOF
-		}
-		if irregular {
-			return common.ErrIrregularData
-		}
-		for j := 0; j < int(n); j++ {
-			sig, _, irregular, eof := source.NextVarBytes()
-			if eof {
-				return io.ErrUnexpectedEOF
-			}
-			if irregular {
-				return common.ErrIrregularData
-			}
-			crossShardMsgHash.SigData = append(crossShardMsgHash.SigData, sig)
 		}
 		this.ShardMsgHashs = append(this.ShardMsgHashs, crossShardMsgHash)
 	}
