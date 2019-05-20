@@ -24,7 +24,7 @@ import (
 
 func TestVerackSerializationDeserialization(t *testing.T) {
 	var msg VerACK
-	msg.IsConsensus = false
+	msg.isConsensus = false
 
 	MessageTest(t, &msg)
 }
