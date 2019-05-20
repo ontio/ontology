@@ -32,16 +32,24 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+type ShardMgmtFeeType uint8
+
 const (
-	SHARD_CREATE_FEE  = 100 * 1000000000 // 100 ong
-	DEFAULT_MIN_STAKE = 100000
+	TYPE_CREATE_SHARD_FEE ShardMgmtFeeType = iota
+	TYPE_JOIN_SHARD_FEE
+)
+
+const (
+	DEFAULT_CREATE_SHARD_FEE = 100 * 1000000000 // 100 ong
+	DEFAULT_JOIN_SHARD_FEE   = 100 * 1000000000 // 100 ong
 )
 
 const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED // all parameter configured
-	SHARD_STATE_ACTIVE     // started
-	SHARD_STATE_STOPPING   // started
+	SHARD_STATE_CONFIGURED  // all parameter configured
+	SHARD_PEER_JOIND        // has some peer joined
+	SHARD_STATE_ACTIVE      // started
+	SHARD_STATE_STOPPING    // started
 	SHARD_STATE_ARCHIVED
 )
 
@@ -242,10 +250,11 @@ func (this *ShardState) UpdateDposInfo(native *native.NativeService) error {
 }
 
 type ShardCommitDposInfo struct {
-	TransferId *big.Int       `json:"transfer_id"`
-	Height     uint32         `json:"height"`
-	Hash       common.Uint256 `json:"hash"`
-	FeeAmount  uint64         `json:"fee_amount"`
+	TransferId          *big.Int                   `json:"transfer_id"`
+	Height              uint32                     `json:"height"`
+	Hash                common.Uint256             `json:"hash"`
+	FeeAmount           uint64                     `json:"fee_amount"`
+	XShardHandleFeeInfo *shard_stake.XShardFeeInfo `json:"xshard_handle_fee_info"`
 }
 
 func (this *ShardCommitDposInfo) Serialization(sink *common.ZeroCopySink) {
@@ -253,6 +262,7 @@ func (this *ShardCommitDposInfo) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.Height)
 	sink.WriteHash(this.Hash)
 	sink.WriteUint64(this.FeeAmount)
+	this.XShardHandleFeeInfo.Serialization(sink)
 }
 
 func (this *ShardCommitDposInfo) Deserialization(source *common.ZeroCopySource) error {
@@ -269,6 +279,10 @@ func (this *ShardCommitDposInfo) Deserialization(source *common.ZeroCopySource) 
 	this.FeeAmount, eof = source.NextUint64()
 	if eof {
 		return io.ErrUnexpectedEOF
+	}
+	this.XShardHandleFeeInfo = &shard_stake.XShardFeeInfo{}
+	if err := this.XShardHandleFeeInfo.Deserialization(source); err != nil {
+		return err
 	}
 	return nil
 }

@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common/log"
 	"math"
 	"math/big"
 	"sort"
@@ -53,8 +54,12 @@ import (
 /////////
 
 const (
-	// function names
-	INIT_NAME                = "init"
+	// only can be invoked by shard chain operator
+	INIT_NAME               = "init"
+	SET_MGMT_SHARD_FEE_ADDR = "setMgmtShardFeeAddr"
+	SET_CREATE_SHARD_FEE    = "setCreateShardFee"
+	SET_JOIN_SHARD_FEE      = "setJoinShardFee"
+
 	CREATE_SHARD_NAME        = "createShard"
 	CONFIG_SHARD_NAME        = "configShard"
 	APPLY_JOIN_SHARD_NAME    = "applyJoinShard"
@@ -82,6 +87,10 @@ func InitShardManagement() {
 
 func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(INIT_NAME, ShardMgmtInit)
+	native.Register(SET_MGMT_SHARD_FEE_ADDR, SetMgmtShardFeeAddr)
+	native.Register(SET_CREATE_SHARD_FEE, SetCreateShardFee)
+	native.Register(SET_JOIN_SHARD_FEE, SetJoinShardFee)
+
 	native.Register(CREATE_SHARD_NAME, CreateShard)
 	native.Register(CONFIG_SHARD_NAME, ConfigShard)
 	native.Register(APPLY_JOIN_SHARD_NAME, ApplyJoinShard)
@@ -102,21 +111,16 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
-	// check if admin
-	// get admin from database
-	adminAddress, err := global_params.GetStorageRole(native,
+	operator, err := global_params.GetStorageRole(native,
 		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("getAdmin, get admin error: %v", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ShardMgmtInit: get admin error: %v", err)
 	}
-
-	//check witness
-	if err := utils.ValidateOwner(native, adminAddress); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("init shard mgmt, checkWitness error: %v", err)
+	if err := utils.ValidateOwner(native, operator); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardMgmtInit: checkWitness error: %v", err)
 	}
 
 	contract := native.ContextRef.CurrentContext().ContractAddress
-
 	// check if shard-mgmt initialized
 	ver, err := getVersion(native, contract)
 	if err != nil {
@@ -125,7 +129,18 @@ func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
 	if ver == 0 {
 		// initialize shardmgmt version
 		setVersion(native, contract)
-
+		param := &InitShardParam{}
+		if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+			log.Debugf("ShardMgmtInit: %s, use default init param at shard %d", err, native.ShardID.ToUint64())
+			param = &InitShardParam{
+				MgmtShardFeeAddr: utils.OngContractAddress,
+				CreateShardFee:   new(big.Int).SetUint64(shardstates.DEFAULT_CREATE_SHARD_FEE),
+				JoinShardFee:     new(big.Int).SetUint64(shardstates.DEFAULT_JOIN_SHARD_FEE),
+			}
+		}
+		setMgmtShardFeeAddr(native, param.MgmtShardFeeAddr)
+		setCreateShardFee(native, param.CreateShardFee)
+		setJoinShardFee(native, param.JoinShardFee)
 		// initialize shard mgmt
 		globalState := &shardstates.ShardMgmtGlobalState{NextSubShardIndex: 1}
 		setGlobalState(native, contract, globalState)
@@ -196,13 +211,11 @@ func CreateShard(native *native.NativeService) ([]byte, error) {
 	setGlobalState(native, contract, globalState)
 	// save shard
 	setShardState(native, contract, shard)
-
-	// transfer create shard fee to root chain governance contract
-	err = ont.AppCallTransfer(native, utils.OngContractAddress, params.Creator, utils.GovernanceContractAddress,
-		shardstates.SHARD_CREATE_FEE)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: recharge create shard fee failed, err: %s", err)
+	// charge create shard fee
+	if err := chargeShardMgmtFee(native, shardstates.TYPE_CREATE_SHARD_FEE, params.Creator); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
 	}
+
 	evt := &shardstates.CreateShardEvent{
 		SourceShardID: native.ShardID,
 		Height:        native.Height,
@@ -226,6 +239,10 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	shard, err := GetShardState(native, contract, params.ShardID)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: get shard: %s", err)
+	}
+
+	if shard.State != shardstates.SHARD_STATE_CONFIGURED && shard.State != shardstates.SHARD_STATE_CREATED {
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: shard state unmatch")
 	}
 
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
@@ -377,6 +394,12 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer state %s unmatch", state)
 	}
 	setShardPeerState(native, contract, params.ShardID, state_joined, params.PeerPubKey)
+
+	// charge join shard fee
+	if err := chargeShardMgmtFee(native, shardstates.TYPE_CREATE_SHARD_FEE, params.PeerOwner); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
+	}
+
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
 		if err != nil {
@@ -414,7 +437,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		}
 		shard.Config.VbftCfg.Peers = append(shard.Config.VbftCfg.Peers, vbftPeerInfo)
 	}
-
+	shard.State = shardstates.SHARD_PEER_JOIND
 	setShardState(native, contract, shard)
 
 	// call shard stake contract
@@ -491,8 +514,12 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: invalid configurator: %s", err)
 	}
-	if shard.State != shardstates.SHARD_STATE_CONFIGURED {
+	if shard.State != shardstates.SHARD_PEER_JOIND {
 		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: invalid shard state: %d", shard.State)
+	}
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT &&
+		len(shard.Peers) < int(shard.Config.NetworkSize) {
+		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: num of peer not enough")
 	}
 	if shard.ShardID.ParentID() != native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: not on parent shard")
@@ -502,7 +529,6 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 		return peers[i].InitPos > peers[j].InitPos
 	})
 	for index, peer := range peers {
-		peer.Index = uint32(index) + 1
 		shardPeer, ok := shard.Peers[peer.PeerPubkey]
 		if !ok {
 			return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: unmatch peer pub key %s", peer.PeerPubkey)
@@ -539,6 +565,9 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: failed, err: %s", err)
 	}
+	if shard.State != shardstates.SHARD_STATE_ACTIVE {
+		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: shard state unmatch")
+	}
 	if err := utils.ValidateOwner(native, shard.Creator); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: check witness failed, err: %s", err)
 	}
@@ -563,6 +592,69 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if _, err := CommitDpos(native); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: failed, err: %s", err)
 	}
+	return utils.BYTE_TRUE, nil
+}
+
+func SetMgmtShardFeeAddr(native *native.NativeService) ([]byte, error) {
+	operator, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardMgmtInit: get admin error: %v", err)
+	}
+	if err := utils.ValidateOwner(native, operator); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardMgmtInit: checkWitness error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardMgmtInit: check version: %s", err)
+	}
+	addr, err := utils.ReadAddress(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardMgmtInit: read addr failed, err: %v", err)
+	}
+	setMgmtShardFeeAddr(native, addr)
+	return utils.BYTE_TRUE, nil
+}
+
+func SetCreateShardFee(native *native.NativeService) ([]byte, error) {
+	operator, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetCreateShardFee: get admin error: %v", err)
+	}
+	if err := utils.ValidateOwner(native, operator); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetCreateShardFee: checkWitness error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetCreateShardFee: check version: %s", err)
+	}
+	fee, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetCreateShardFee: read addr failed, err: %v", err)
+	}
+	setCreateShardFee(native, common.BigIntFromNeoBytes(fee))
+	return utils.BYTE_TRUE, nil
+}
+
+func SetJoinShardFee(native *native.NativeService) ([]byte, error) {
+	operator, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetJoinShardFee: get admin error: %v", err)
+	}
+	if err := utils.ValidateOwner(native, operator); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetJoinShardFee: checkWitness error: %v", err)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	if ok, err := checkVersion(native, contract); !ok || err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetJoinShardFee: check version: %s", err)
+	}
+	fee, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("SetJoinShardFee: read addr failed, err: %v", err)
+	}
+	setJoinShardFee(native, common.BigIntFromNeoBytes(fee))
 	return utils.BYTE_TRUE, nil
 }
 
@@ -720,8 +812,12 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	sink := common.NewZeroCopySink(0)
 	shardStakeCommitParam.Serialization(sink)
 	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, shard_stake.COMMIT_DPOS, sink.Bytes())
-	info := &shardstates.ShardCommitDposInfo{TransferId: transferId, FeeAmount: balance, Height: native.Height,
-		Hash: native.Tx.Hash()}
+	info := &shardstates.ShardCommitDposInfo{
+		TransferId:          transferId,
+		FeeAmount:           balance,
+		Height:              native.Height,
+		Hash:                native.Tx.Hash(),
+		XShardHandleFeeInfo: &shard_stake.XShardFeeInfo{Debt: xshardHandlingFee.Debt, Income: xshardHandlingFee.Income}}
 	setShardCommitDposInfo(native, info)
 	return utils.BYTE_TRUE, nil
 }
@@ -743,6 +839,8 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 		FeeAmount: info.FeeAmount,
 		Hash:      info.Hash,
 		Height:    info.Height,
+		Debt:      info.XShardHandleFeeInfo.Debt,
+		Income:    info.XShardHandleFeeInfo.Income,
 	}
 	sink := common.NewZeroCopySink(0)
 	shardStakeCommitParam.Serialization(sink)
