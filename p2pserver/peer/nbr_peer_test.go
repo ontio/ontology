@@ -33,7 +33,7 @@ func createPeers(cnt uint16) []*Peer {
 		syncport = 20224 + i
 		id = 0x7533345 + uint64(i)
 		height = 434923 + uint64(i)
-		p = NewPeer()
+		p := NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, height, "1.5.2")
 		p.SetState(3)
 		p.SetHttpInfoState(true)
