@@ -339,6 +339,10 @@ func accountSet(ctx *cli.Context) error {
 			return err
 		}
 		defer common.ClearPasswd(passwd)
+		// verify old password
+		if _, err := wallet.GetAccountByAddress(address, passwd); err != nil {
+			return fmt.Errorf("invalid old password: %s", err)
+		}
 		PrintInfoMsg("Please input new password:")
 		newPass, err := password.GetConfirmedPassword()
 		defer common.ClearPasswd(newPass)
