@@ -120,7 +120,7 @@ func TestGetProposerRankLocked(t *testing.T) {
 }
 
 func TestGetHighestRankProposal(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	server := constructServer()
 	server.peerPool = peerPool()
 	block, err := constructBlock()

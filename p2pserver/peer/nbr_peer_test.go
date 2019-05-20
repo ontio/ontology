@@ -22,13 +22,9 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/ontio/ontology/common/log"
 )
 
-var nm *NbrPeers
-
-func creatPeers(cnt uint16) []*Peer {
+func createPeers(cnt uint16) []*Peer {
 	np := []*Peer{}
 	var syncport uint16
 	var id uint64
@@ -37,7 +33,7 @@ func creatPeers(cnt uint16) []*Peer {
 		syncport = 20224 + i
 		id = 0x7533345 + uint64(i)
 		height = 434923 + uint64(i)
-		p = NewPeer()
+		p := NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, height, "1.5.2")
 		p.SetState(3)
 		p.SetHttpInfoState(true)
@@ -48,17 +44,19 @@ func creatPeers(cnt uint16) []*Peer {
 
 }
 
-func init() {
-	log.Init(log.Stdout)
-	nm = &NbrPeers{}
+func initTestNbrPeers() *NbrPeers {
+	nm := &NbrPeers{}
 	nm.Init()
-	np := creatPeers(5)
+	np := createPeers(5)
 	for _, v := range np {
 		nm.List[v.GetID()] = v
 	}
+	return nm
 }
 
 func TestNodeExisted(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	if nm.NodeExisted(0x7533345) == false {
 		t.Fatal("0x7533345 should in nbr peers")
 	}
@@ -68,6 +66,8 @@ func TestNodeExisted(t *testing.T) {
 }
 
 func TestGetPeer(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533345)
 	if p == nil {
 		t.Fatal("TestGetPeer error")
@@ -75,6 +75,8 @@ func TestGetPeer(t *testing.T) {
 }
 
 func TestAddNbrNode(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := NewPeer()
 	p.UpdateInfo(time.Now(), 2, 3, 10335, 0x7123456, 0, 100, "1.5.2")
 	p.SetState(3)
@@ -90,6 +92,8 @@ func TestAddNbrNode(t *testing.T) {
 }
 
 func TestDelNbrNode(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	cnt := len(nm.List)
 	p, ret := nm.DelNbrNode(0x7533345)
 	if p == nil || ret != true {
@@ -102,6 +106,8 @@ func TestDelNbrNode(t *testing.T) {
 }
 
 func TestNodeEstablished(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestNodeEstablished:get peer error")
@@ -113,6 +119,8 @@ func TestNodeEstablished(t *testing.T) {
 }
 
 func TestGetNeighborAddrs(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestGetNeighborAddrs:get peer error")
@@ -135,6 +143,7 @@ func TestGetNeighborAddrs(t *testing.T) {
 }
 
 func TestGetNeighborHeights(t *testing.T) {
+	nm := initTestNbrPeers()
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestGetNeighborHeights:get peer error")
@@ -154,6 +163,8 @@ func TestGetNeighborHeights(t *testing.T) {
 }
 
 func TestGetNeighbors(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestGetNeighbors:get peer error")
@@ -173,6 +184,8 @@ func TestGetNeighbors(t *testing.T) {
 }
 
 func TestGetNbrNodeCnt(t *testing.T) {
+	nm := initTestNbrPeers()
+
 	p := nm.GetPeer(0x7533346)
 	if p == nil {
 		t.Fatal("TestGetNbrNodeCnt:get peer error")

@@ -45,7 +45,7 @@ func signTransaction(signer *account.Account, tx *ctypes.MutableTransaction) err
 }
 
 func TestStatelessValidator(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	acc := account.NewAccount("")
 
 	code := []byte{1, 2, 3}

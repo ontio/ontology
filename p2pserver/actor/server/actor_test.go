@@ -29,7 +29,7 @@ import (
 )
 
 func TestP2PActorServer(t *testing.T) {
-	log.Init(log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	fmt.Println("Start test the p2pserver by actor...")
 
 	p2p := p2pserver.NewServer()
