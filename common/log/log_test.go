@@ -48,7 +48,7 @@ func TestLog(t *testing.T) {
 		os.RemoveAll("Log/")
 	}()
 
-	Init(PATH, Stdout)
+	InitLog(InfoLog, PATH, Stdout)
 	Log.SetDebugLevel(DebugLog)
 	logPrint()
 
@@ -64,7 +64,7 @@ func TestNewLogFile(t *testing.T) {
 	defer func() {
 		os.RemoveAll("Log/")
 	}()
-	Init(PATH, Stdout)
+	InitLog(InfoLog, PATH, Stdout)
 	logfileNum1, err1 := ioutil.ReadDir("Log/")
 	if err1 != nil {
 		fmt.Println(err1)
@@ -75,7 +75,7 @@ func TestNewLogFile(t *testing.T) {
 	assert.NotEqual(t, isNeedNewFile, true)
 	ClosePrintLog()
 	time.Sleep(time.Second * 2)
-	Init(PATH, Stdout)
+	InitLog(InfoLog, PATH, Stdout)
 	logfileNum2, err2 := ioutil.ReadDir("Log/")
 	if err2 != nil {
 		fmt.Println(err2)

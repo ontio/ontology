@@ -27,12 +27,11 @@ import (
 )
 
 func init() {
-	log.InitLog(log.InfoLog)
+	log.InitLog(log.InfoLog, log.Stdout)
 	fmt.Println("Start test the netserver...")
 
 }
 func TestNewP2PServer(t *testing.T) {
-	log.Init(log.Stdout)
 	fmt.Println("Start test new p2pserver...")
 
 	p2p := NewServer()

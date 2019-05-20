@@ -29,7 +29,7 @@ import (
 )
 
 func init() {
-	log.Init(log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	fmt.Println("Start test the netserver...")
 }
 
@@ -76,11 +76,9 @@ func TestNewNetServer(t *testing.T) {
 	}
 
 	fmt.Printf("lastest server time is %s\n", time.Unix(server.GetTime()/1e9, 0).String())
-
 }
 
 func TestNetServerNbrPeer(t *testing.T) {
-	log.Init(log.Stdout)
 	server := NewNetServer()
 	server.Start()
 	defer server.Halt()

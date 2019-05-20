@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"os"
 	"testing"
 	"time"
 
@@ -47,8 +48,8 @@ var (
 	network p2p.P2P
 )
 
-func init() {
-	log.Init(log.Stdout)
+func TestMain(m *testing.M) {
+	log.InitLog(log.InfoLog, log.Stdout)
 	// Start local network server and create message router
 	network = netserver.NewNetServer()
 
@@ -76,6 +77,11 @@ func init() {
 	if err != nil {
 		log.Fatalf("DefLedger.Init error %s", err)
 	}
+
+	m.Run()
+
+	ledger.DefLedger.Close()
+	os.RemoveAll(config.DEFAULT_DATA_DIR)
 }
 
 // TestVersionHandle tests Function VersionHandle handling a version message

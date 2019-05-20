@@ -19,12 +19,13 @@
 package common
 
 import (
+	"testing"
+	"time"
+
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 var (
@@ -32,7 +33,7 @@ var (
 )
 
 func init() {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 
 	mutable := &types.MutableTransaction{
 		TxType:  types.Invoke,

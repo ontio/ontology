@@ -114,7 +114,7 @@ func TestStateMgr_getState(t *testing.T) {
 }
 
 func TestStateMgr_onPeerUpdate(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	sev := constructServer()
 	peerstate := &PeerState{
 		peerIdx:           1,
@@ -223,7 +223,7 @@ func TestStateMgr_isSyncedReady(t *testing.T) {
 }
 
 func TestStateMgr_checkStartSyncing(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	statemgr := constructPeerState()
 	statemgr.server.syncer = newSyncer(statemgr.server)
 	statemgr.checkStartSyncing(1, true)
@@ -231,7 +231,7 @@ func TestStateMgr_checkStartSyncing(t *testing.T) {
 }
 
 func TestStateMgr_getConsensusedCommittedBlockNum(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	statemgr := constructPeerState()
 	maxcomit, flag := statemgr.getConsensusedCommittedBlockNum()
 	t.Logf("TestgetConsensusedCommittedBlockNum maxcommitted:%v, consensused:%v", maxcomit, flag)

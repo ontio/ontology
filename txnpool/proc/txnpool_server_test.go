@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -40,7 +39,6 @@ var (
 )
 
 func init() {
-	log.Init(log.PATH, log.Stdout)
 	topic = "TXN"
 
 	code := []byte("ont")

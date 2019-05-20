@@ -89,6 +89,6 @@ docker: Makefile docker/payload docker/Dockerfile
 	@touch $@
 
 clean:
-	rm -rf *.8 *.o *.out *.6 *exe
+	rm -rf *.8 *.o *.out *.6 *exe coverage
 	rm -rf ontology ontology-* tools docker/payload docker/build
 
