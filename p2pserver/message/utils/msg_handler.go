@@ -189,10 +189,9 @@ func ConsensusHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, 
 	}
 }
 func CrossShardHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	if actor.ConsensusPid != nil {
-		var consensus = data.Payload.(*msgTypes.Consensus)
-		consensus.Cons.PeerId = data.Id
-		actor.ConsensusPid.Tell(&consensus.Cons)
+	if actor.ChainMgrPid != nil {
+		var crossshard = data.Payload.(*msgTypes.CrossShard)
+		actor.ChainMgrPid.Tell(&crossshard.Cons)
 	}
 }
 

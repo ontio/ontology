@@ -1203,7 +1203,9 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 				return false
 			}
 			var bookkeepers []keypair.PublicKey
-			m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
+			//m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
+			//todo temp
+			m := int(shardState.Config.VbftCfg.N - ((shardState.Config.VbftCfg.N)*6)/7)
 			for _, peer := range shardState.Config.VbftCfg.Peers {
 				pubkey, err := vconfig.Pubkey(peer.PeerPubkey)
 				if err != nil {
@@ -1222,7 +1224,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 		var hashes []common.Uint256
 		shardMsgRoot := crossTxmsg.TxMsg.ShardMsg.CrossShardMsgRoot
 		for _, shardMsg := range crossTxmsg.TxMsg.ShardMsg.ShardMsgHashs {
-			if shardMsg.ShardID != crossTxmsg.ShardID {
+			if shardMsg.ShardID != self.ShardID {
 				hashes = append(hashes, shardMsg.MsgHash)
 			}
 		}

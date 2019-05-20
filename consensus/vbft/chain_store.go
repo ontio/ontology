@@ -223,6 +223,7 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{
+			Version: common.VERSION_SUPPORT_SHARD,
 			ShardID: crossMsg.ShardID,
 			Data:    sink.Bytes(),
 		}

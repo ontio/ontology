@@ -185,6 +185,7 @@ func (blk *Block) Deserialize(data []byte) error {
 			shardMsg := &shardmsg.CrossShardMsgHash{}
 			err = shardMsg.Deserialization(crossSource)
 			if err != nil {
+				log.Errorf("shardmsg deserialization err:%s", err)
 				return err
 			}
 			crossMsg.CrossMsgs = append(crossMsg.CrossMsgs, shardMsg)
@@ -213,10 +214,12 @@ func (blk *Block) Deserialize(data []byte) error {
 			if err != nil {
 				return err
 			}
-			err = crossTxmsg.TxMsg.Deserialization(txSource)
+			txmsg := &shardmsg.CrossShardMsgInfo{}
+			err = txmsg.Deserialization(txSource)
 			if err != nil {
 				return err
 			}
+			crossTxmsg.TxMsg = txmsg
 			crossTxs.CrossMsg = append(crossTxs.CrossMsg, crossTxmsg)
 		}
 	}

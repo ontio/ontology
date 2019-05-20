@@ -317,6 +317,7 @@ func (self *ChainManager) Start(p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolMan
 	self.txPoolMgr = txPoolMgr
 	// start listen on local shard events
 	self.localEventSub = events.NewActorSubscriber(self.localPid)
+	req.SetChainMgrPid(self.localPid)
 	self.localEventSub.Subscribe(message.TOPIC_SHARD_SYSTEM_EVENT)
 	self.localEventSub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
@@ -420,8 +421,10 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 	}
 	var hashes []common.Uint256
 	hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(msg.ShardMsg))
-	for _, msgHash := range msg.ShardMsgHashs {
-		hashes = append(hashes, msgHash.MsgHash)
+	for _, shardMsgHash := range msg.ShardMsgHashs {
+		if shardMsgHash.ShardID != self.shardID {
+			hashes = append(hashes, shardMsgHash.MsgHash)
+		}
 	}
 	if msg.CrossShardMsgRoot != common.ComputeMerkleRoot(hashes) {
 		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.CrossShardMsgRoot.ToHexString())

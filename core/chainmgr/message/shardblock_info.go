@@ -62,10 +62,17 @@ func (this *CrossShardMsgInfo) Serialization(sink *common.ZeroCopySink) error {
 
 func (this *CrossShardMsgInfo) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	err = this.ShardMsg.Deserialization(source)
+	shardMsg := &CrossShardMsg{}
+	err = shardMsg.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	err = this.ShardTx.Deserialization(source)
-	return err
+	this.ShardMsg = shardMsg
+	shardTx := &ShardBlockTx{}
+	err = shardTx.Deserialization(source)
+	if err != nil {
+		return err
+	}
+	this.ShardTx = shardTx
+	return nil
 }
