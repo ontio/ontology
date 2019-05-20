@@ -105,7 +105,11 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 
 				handler, ok := this.msgHandlers[msgType]
 				if ok {
-					go handler(data, this.p2p, this.pid)
+					if msgType == msgCommon.TX_TYPE {
+						handler(data, this.p2p, this.pid)
+					} else {
+						go handler(data, this.p2p, this.pid)
+					}
 				} else {
 					log.Warn("unknown message handler for the msg: ",
 						msgType)
