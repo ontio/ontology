@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/common/log"
 	"math"
 	"math/big"
 	"sort"
@@ -30,6 +29,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -70,7 +70,7 @@ const (
 	NOTIFY_SHARD_COMMIT_DPOS = "notifyShardCommitDpos"
 	UPDATE_CONFIG            = "updateConfig"
 
-	NOTIFY_ROOT_COMMIT_DPOS    = "notifyRootCommitDpos"
+	NOTIFY_PARENT_COMMIT_DPOS  = "notifyParentCommitDpos"
 	COMMIT_DPOS_NAME           = "commitDpos"
 	SHARD_COMMIT_DPOS          = "shardCommitDpos"
 	SHARD_RETRY_COMMIT_DPOS    = "shardRetryCommitDpos"
@@ -101,7 +101,7 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(NOTIFY_SHARD_COMMIT_DPOS, NotifyShardCommitDpos)
 	native.Register(UPDATE_CONFIG, UpdateConfig)
 
-	native.Register(NOTIFY_ROOT_COMMIT_DPOS, NotifyRootCommitDpos)
+	native.Register(NOTIFY_PARENT_COMMIT_DPOS, NotifyParentCommitDpos)
 	native.Register(COMMIT_DPOS_NAME, CommitDpos)
 	native.Register(SHARD_COMMIT_DPOS, ShardCommitDpos)
 	native.Register(SHARD_RETRY_COMMIT_DPOS, ShardRetryCommitDpos)
@@ -554,12 +554,12 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 }
 
 func UpdateConfig(native *native.NativeService) ([]byte, error) {
-	if !native.ShardID.IsRootShard() {
-		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: only can be invoked at shard")
-	}
 	param := &UpdateConfigParam{}
 	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: failed, err: %s", err)
+	}
+	if param.ShardId.ParentID() != native.ShardID {
+		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: only can be invoked at parent shard")
 	}
 	shard, err := GetShardState(native, utils.ShardMgmtContractAddress, param.ShardId)
 	if err != nil {
@@ -658,11 +658,10 @@ func SetJoinShardFee(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func NotifyRootCommitDpos(native *native.NativeService) ([]byte, error) {
+func NotifyParentCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.IsRootShard() {
-		return utils.BYTE_FALSE, fmt.Errorf("NotifyRootCommitDpos: only can be invoked at shard")
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyParentCommitDpos: only can be invoked at shard")
 	}
-	rootShard := common.NewShardIDUnchecked(0)
 	param := &NotifyRootCommitDPosParam{
 		Height:      native.Height,
 		ShardId:     native.ShardID,
@@ -670,16 +669,13 @@ func NotifyRootCommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	bf := new(bytes.Buffer)
 	if err := param.Serialize(bf); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("NotifyRootCommitDpos: failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("NotifyParentCommitDpos: failed, err: %s", err)
 	}
-	native.NotifyRemoteShard(rootShard, utils.ShardMgmtContractAddress, COMMIT_DPOS_NAME, bf.Bytes())
+	native.NotifyRemoteShard(native.ShardID.ParentID(), utils.ShardMgmtContractAddress, COMMIT_DPOS_NAME, bf.Bytes())
 	return utils.BYTE_TRUE, nil
 }
 
 func CommitDpos(native *native.NativeService) ([]byte, error) {
-	if !native.ShardID.IsRootShard() {
-		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked at root shard")
-	}
 	data, err := serialization.ReadVarBytes(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("decode input failed, err: %s", err)
@@ -687,6 +683,9 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	param := &NotifyRootCommitDPosParam{}
 	if err = param.Deserialize(bytes.NewReader(data)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: deserialize shardId failed, err: %s", err)
+	}
+	if param.ShardId.ParentID() != native.ShardID {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by child shard")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
@@ -748,12 +747,12 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 }
 
 func NotifyShardCommitDpos(native *native.NativeService) ([]byte, error) {
-	if !native.ShardID.IsRootShard() {
-		return utils.BYTE_TRUE, fmt.Errorf("NotifyShardCommitDpos: only can be invoked at root")
-	}
 	shardId, err := utils.DeserializeShardId(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: deserialize shardId failed, err: %s", err)
+	}
+	if shardId.ParentID() != native.ShardID {
+		return utils.BYTE_TRUE, fmt.Errorf("NotifyShardCommitDpos: only can notify child shard")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
@@ -776,7 +775,7 @@ func NotifyShardCommitDpos(native *native.NativeService) ([]byte, error) {
 }
 
 func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
-	if native.ShardID.IsRootShard() {
+	if native.ShardID.ParentID() == native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
 	}
 	rootShard := common.NewShardIDUnchecked(0)
@@ -823,7 +822,7 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 }
 
 func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
-	if native.ShardID.IsRootShard() {
+	if native.ShardID.ParentID() == native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardRetryCommitDpos: only can be invoked at shard")
 	}
 	info, err := getShardCommitDposInfo(native)
@@ -869,7 +868,7 @@ func UpdateXShardHandlingFee(native *native.NativeService) ([]byte, error) {
 }
 
 func GetShardCommitDPosInfo(native *native.NativeService) ([]byte, error) {
-	if native.ShardID.IsRootShard() {
+	if native.ShardID.ParentID() == native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: only can be invoked at shard")
 	}
 	info, err := getShardCommitDposInfo(native)

@@ -46,10 +46,10 @@ const (
 
 const (
 	SHARD_STATE_CREATED    = iota
-	SHARD_STATE_CONFIGURED  // all parameter configured
-	SHARD_PEER_JOIND        // has some peer joined
-	SHARD_STATE_ACTIVE      // started
-	SHARD_STATE_STOPPING    // started
+	SHARD_STATE_CONFIGURED // all parameter configured
+	SHARD_PEER_JOIND       // has some peer joined
+	SHARD_STATE_ACTIVE     // started
+	SHARD_STATE_STOPPING   // started
 	SHARD_STATE_ARCHIVED
 )
 
