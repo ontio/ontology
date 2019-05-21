@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"io"
 	"io/ioutil"
@@ -93,7 +94,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 	request := make(map[string]interface{})
 	defer r.Body.Close()
-	decoder := json.NewDecoder(io.LimitReader(r.Body, 1024*1024))
+	decoder := json.NewDecoder(io.LimitReader(r.Body, common.MAX_REQUEST_BODY_SIZE))
 	err := decoder.Decode(&request)
 	if err != nil {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)

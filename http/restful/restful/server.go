@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
 	"golang.org/x/net/netutil"
@@ -271,7 +272,7 @@ func (this *restServer) initGetHandler() {
 func (this *restServer) initPostHandler() {
 	for k, _ := range this.postMap {
 		this.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
-			decoder := json.NewDecoder(io.LimitReader(r.Body, 1024*1024))
+			decoder := json.NewDecoder(io.LimitReader(r.Body, common.MAX_REQUEST_BODY_SIZE))
 			defer r.Body.Close()
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
