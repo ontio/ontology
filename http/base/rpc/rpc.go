@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"github.com/ontio/ontology/common/log"
 	berr "github.com/ontio/ontology/http/base/error"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -79,7 +80,6 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
 	//check if there is Request Body to read
 	if r.Body == nil {
 		if mainMux.defaultFunction != nil {
@@ -91,19 +91,10 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-
-	//read the body of the request
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Error("HTTP JSON RPC Handle - ioutil.ReadAll: ", err)
-		return
-	}
-	if len(body) > 1024*1024 {
-		log.Error("HTTP JSON RPC request body is more than 1M")
-		return
-	}
 	request := make(map[string]interface{})
-	err = json.Unmarshal(body, &request)
+	defer r.Body.Close()
+	decoder := json.NewDecoder(io.LimitReader(r.Body, 1024*1024))
+	err := decoder.Decode(&request)
 	if err != nil {
 		log.Error("HTTP JSON RPC Handle - json.Unmarshal: ", err)
 		return
