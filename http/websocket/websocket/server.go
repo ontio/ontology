@@ -252,7 +252,7 @@ func (self *WsServer) checkSessionsTimeout(done chan bool) {
 
 func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	wsConn, err := self.Upgrader.Upgrade(w, r, nil)
-
+	wsConn.SetReadLimit(1024 * 1024)
 	if err != nil {
 		log.Error("websocket Upgrader: ", err)
 		return

@@ -25,10 +25,11 @@ import (
 	"encoding/json"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/http/base/rest"
 	"golang.org/x/net/netutil"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -271,16 +272,14 @@ func (this *restServer) initGetHandler() {
 func (this *restServer) initPostHandler() {
 	for k, _ := range this.postMap {
 		this.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
-
-			body, _ := ioutil.ReadAll(r.Body)
+			decoder := json.NewDecoder(io.LimitReader(r.Body, common.MAX_REQUEST_BODY_SIZE))
 			defer r.Body.Close()
-
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 
 			url := this.getPath(r.URL.Path)
 			if h, ok := this.postMap[url]; ok {
-				if err := json.Unmarshal(body, &req); err == nil {
+				if err := decoder.Decode(&req); err == nil {
 					req = this.getParams(r, url, req)
 					resp = h.handler(req)
 					resp["Action"] = h.name
