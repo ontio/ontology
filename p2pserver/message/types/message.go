@@ -174,7 +174,7 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 	case common.CONSENSUS_TYPE:
 		return &Consensus{}, nil
 	case common.CROSS_SHARD_TYPE:
-		return &CrossShard{},nil
+		return &CrossShard{}, nil
 	case common.NOT_FOUND_TYPE:
 		return &NotFound{}, nil
 	case common.DISCONNECT_TYPE:
