@@ -385,3 +385,39 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 
 	return utils.BYTE_TRUE, nil
 }
+
+func revokeID(srvc *native.NativeService) ([]byte, error) {
+	args := bytes.NewBuffer(srvc.Input)
+	// arg0: id
+	arg0, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
+	}
+	// arg1: index of public key
+	arg1, err := utils.ReadVarUint(args)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
+	}
+
+	encID, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
+	if !checkIDExistence(srvc, encID) {
+		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
+	}
+
+	pk, err := getPk(srvc, encID, uint32(arg1))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("get public key error: %s", err)
+	}
+
+	if checkWitness(srvc, pk.key) != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("authorization failed")
+	}
+
+	deleteID(srvc, encID)
+	newEvent(srvc, []interface{}{"Revoke", string(arg0)})
+	return utils.BYTE_TRUE, nil
+}

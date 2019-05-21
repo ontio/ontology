@@ -64,6 +64,34 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func revokeIDByController(srvc *native.NativeService) ([]byte, error) {
+	args := bytes.NewBuffer(srvc.Input)
+	// arg0: id
+	arg0, err := serialization.ReadVarBytes(args)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
+	}
+
+	encID, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+
+	if !checkIDExistence(srvc, encID) {
+		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
+	}
+
+	err = verifyControllerSignature(srvc, encID, args)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("authorization failed")
+	}
+
+	deleteID(srvc, encID)
+
+	newEvent(srvc, []interface{}{"Revoke", string(arg0)})
+	return utils.BYTE_TRUE, nil
+}
+
 func verifyController(srvc *native.NativeService) ([]byte, error) {
 	args := bytes.NewBuffer(srvc.Input)
 	// arg0: ID

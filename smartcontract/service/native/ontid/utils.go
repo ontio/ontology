@@ -43,7 +43,8 @@ func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
 }
 
 const (
-	flag_exist = 0x01
+	flag_exist  byte = 0x01
+	flag_revoke byte = 0x02
 
 	FIELD_VERSION byte = 0
 	FLAG_VERSION  byte = 0x01
@@ -91,4 +92,20 @@ func checkWitness(srvc *native.NativeService, key []byte) error {
 	}
 
 	return errors.New("check witness failed, " + hex.EncodeToString(key))
+}
+
+func deleteID(srvc *native.NativeService, encID []byte) {
+	key := append(encID, FIELD_PK)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_CONTROLLER)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_RECOVERY)
+	srvc.CacheDB.Delete(key)
+
+	//TODO delete attributes
+
+	//set flag to revoke
+	utils.PutBytes(srvc, encID, []byte{flag_revoke})
 }
