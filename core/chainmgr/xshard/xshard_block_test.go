@@ -21,54 +21,23 @@ package xshard
 import (
 	"testing"
 
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/message"
-	"github.com/ontio/ontology/core/types"
 )
 
-func newTestBlock() *types.Block {
-	hdr := &types.Header{}
-	hdr.Version = common.VERSION_SUPPORT_SHARD
-	hdr.Bookkeepers = make([]keypair.PublicKey, 0)
-	hdr.SigData = make([][]byte, 0)
-
-	return &types.Block{Header: hdr}
+func newTestShardMsg(t *testing.T) *message.CrossShardMsg {
+	shardMsg := &message.CrossShardMsg{
+		FromShardID:   common.NewShardIDUnchecked(0),
+		MsgHeight:     uint32(90),
+		SignMsgHeight: uint32(100),
+	}
+	return shardMsg
 }
 
-func newTestShardBlockInfo(t *testing.T) *message.ShardBlockInfo {
-	height := uint32(123)
-	parentHeight := uint32(321)
-	shardBlk := newTestBlock()
-	shardBlk.Header.Height = height
-	shardBlk.Header.ParentHeight = parentHeight
-
-	blkInfo := &message.ShardBlockInfo{
-		FromShardID: common.NewShardIDUnchecked(100),
-		Height:      uint32(height),
-		Block:       shardBlk,
-	}
-
-	return blkInfo
-}
-
-func TestShardBlockPool(t *testing.T) {
-	InitShardBlockPool(common.NewShardIDUnchecked(1), 100)
-	blk := newTestShardBlockInfo(t)
-
-	shardID := blk.FromShardID
-	height := blk.Height
-
-	if err := AddBlockInfo(blk); err != nil {
-		t.Fatalf("failed add block: %s", err)
-	}
-
-	blk2 := GetBlockInfo(shardID, height)
-	if blk2 == nil {
-		t.Fatalf("failed get block")
-	}
-
-	if blk != blk2 {
-		t.Fatalf("unmatched blk")
+func TestCrossShardPool(t *testing.T) {
+	InitCrossShardPool(common.NewShardIDUnchecked(1), 100)
+	shardMsg := newTestShardMsg(t)
+	if err := AddCrossShardInfo(shardMsg, nil); err != nil {
+		t.Fatalf("failed add CrossShardInfo:%s", err)
 	}
 }
