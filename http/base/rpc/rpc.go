@@ -99,7 +99,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if len(body) > 1024*1024 {
-		log.Error("HTTP JSON RPC request body is more than 1M: ", err)
+		log.Error("HTTP JSON RPC request body is more than 1M")
 		return
 	}
 	request := make(map[string]interface{})
