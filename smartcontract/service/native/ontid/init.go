@@ -29,6 +29,8 @@ func Init() {
 func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("regIDWithPublicKey", regIdWithPublicKey)
 	srvc.Register("regIDWithController", regIdWithController)
+	srvc.Register("revokeID", revokeID)
+	srvc.Register("revokeIDByController", revokeIDByController)
 	srvc.Register("removeController", removeController)
 	srvc.Register("addRecovery", addRecovery)
 	srvc.Register("changeRecovery", changeRecovery)
