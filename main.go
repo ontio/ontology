@@ -25,12 +25,10 @@ import (
 	"os/signal"
 	"path"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
-	"net/http"
 	_ "net/http/pprof"
 
 	"github.com/ethereum/go-ethereum/common/fdlimit"
@@ -161,14 +159,6 @@ func startOntology(ctx *cli.Context) {
 
 	setMaxOpenFiles()
 	startMainChain(ctx, shardID)
-	go func() {
-		http.HandleFunc("/goroutines", func(w http.ResponseWriter, r *http.Request) {
-			num := strconv.FormatInt(int64(runtime.NumGoroutine()), 10)
-			w.Write([]byte(num))
-		})
-		port := strconv.FormatUint(6060+shardID.ToUint64(), 10)
-		http.ListenAndServe("0.0.0.0:"+port, nil)
-	}()
 }
 
 func startMainChain(ctx *cli.Context, shardID common.ShardID) {
