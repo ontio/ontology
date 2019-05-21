@@ -474,8 +474,10 @@ func Mint(native *native.NativeService) ([]byte, error) {
 		supplyInfo[native.ShardID] = rootSupply
 		setShardSupplyInfo(native, asset, supplyInfo)
 	}
-	event := &MintEvent{User: param.User, AssetId: asset, Amount: param.Amount}
-	NotifyEvent(native, event.ToNotify())
+	mintEvent := &MintEvent{User: param.User, AssetId: asset, Amount: param.Amount}
+	NotifyEvent(native, mintEvent.ToNotify())
+	transferEvent := &TransferEvent{AssetId: asset, From: common.ADDRESS_EMPTY, To: param.User, Amount: param.Amount}
+	NotifyEvent(native, transferEvent.ToNotify())
 	return utils.BYTE_TRUE, nil
 }
 
@@ -511,8 +513,10 @@ func Burn(native *native.NativeService) ([]byte, error) {
 		supplyInfo[native.ShardID] = rootSupply
 		setShardSupplyInfo(native, asset, supplyInfo)
 	}
-	event := &BurnEvent{User: param.User, AssetId: asset, Amount: param.Amount}
-	NotifyEvent(native, event.ToNotify())
+	burnEvent := &BurnEvent{User: param.User, AssetId: asset, Amount: param.Amount}
+	NotifyEvent(native, burnEvent.ToNotify())
+	transferEvent := &TransferEvent{AssetId: asset, From: param.User, To: common.ADDRESS_EMPTY, Amount: param.Amount}
+	NotifyEvent(native, transferEvent.ToNotify())
 	return utils.BYTE_TRUE, nil
 }
 
