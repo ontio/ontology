@@ -22,12 +22,50 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
+
+type InitShardParam struct {
+	MgmtShardFeeAddr common.Address
+	CreateShardFee   *big.Int
+	JoinShardFee     *big.Int
+}
+
+func (this *InitShardParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.MgmtShardFeeAddr); err != nil {
+		return fmt.Errorf("serialize: write mgmt shard fee addr failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, common.BigIntToNeoBytes(this.CreateShardFee)); err != nil {
+		return fmt.Errorf("serialize: write create shard fee failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, common.BigIntToNeoBytes(this.JoinShardFee)); err != nil {
+		return fmt.Errorf("serialize: write join shard fee failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *InitShardParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.MgmtShardFeeAddr, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read mgmt shard fee addr failed, err: %s", err)
+	}
+	if createShardFee, err := serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read create shard fee failed, err: %s", err)
+	} else {
+		this.CreateShardFee = common.BigIntFromNeoBytes(createShardFee)
+	}
+	if joinShardFee, err := serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read join shard fee failed, err: %s", err)
+	} else {
+		this.JoinShardFee = common.BigIntFromNeoBytes(joinShardFee)
+	}
+	return nil
+}
 
 //
 // params for shard creation

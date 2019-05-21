@@ -140,6 +140,62 @@ func (this *AllowanceParam) Deserialize(r io.Reader) error {
 	return nil
 }
 
+type MintParam struct {
+	User   common.Address
+	Amount *big.Int
+}
+
+func (this *MintParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write user addr failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, common.BigIntToNeoBytes(this.Amount)); err != nil {
+		return fmt.Errorf("serialize: write amount failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *MintParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user addr failed, err: %s", err)
+	}
+	if amount, err := serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
+	} else {
+		this.Amount = common.BigIntFromNeoBytes(amount)
+	}
+	return nil
+}
+
+type BurnParam struct {
+	User   common.Address
+	Amount *big.Int
+}
+
+func (this *BurnParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.User); err != nil {
+		return fmt.Errorf("serialize: write user addr failed, err: %s", err)
+	}
+	if err := serialization.WriteVarBytes(w, common.BigIntToNeoBytes(this.Amount)); err != nil {
+		return fmt.Errorf("serialize: write amount failed, err: %s", err)
+	}
+	return nil
+}
+
+func (this *BurnParam) Deserialize(r io.Reader) error {
+	var err error = nil
+	if this.User, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read user addr failed, err: %s", err)
+	}
+	if amount, err := serialization.ReadVarBytes(r); err != nil {
+		return fmt.Errorf("deserialize: read amount failed, err: %s", err)
+	} else {
+		this.Amount = common.BigIntFromNeoBytes(amount)
+	}
+	return nil
+}
+
 type TransferParam struct {
 	From   common.Address
 	To     common.Address
