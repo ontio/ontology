@@ -59,7 +59,7 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 	key := append(encId, FIELD_CONTROLLER)
 	utils.PutBytes(srvc, key, arg1)
 
-	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_exist}))
+	srvc.CacheDB.Put(encId, states.GenRawStorageItem([]byte{flag_exist}))
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -114,7 +114,8 @@ func removeController(srvc *native.NativeService) ([]byte, error) {
 	}
 	key := append(encId, FIELD_CONTROLLER)
 	srvc.CacheDB.Delete(key)
-	//TODO event
+
+	newEvent(srvc, []interface{}{"RemoveController", string(arg0)})
 	return utils.BYTE_TRUE, nil
 }
 

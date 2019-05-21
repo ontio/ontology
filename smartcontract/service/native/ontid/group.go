@@ -2,6 +2,7 @@ package ontid
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ontio/ontology/common/serialization"
@@ -11,8 +12,13 @@ import (
 
 // Group defines a group control logic
 type Group struct {
-	members   []interface{}
-	threshold uint
+	Members   []interface{} `json:"members"`
+	Threshold uint          `json:"threshold"`
+}
+
+func (g *Group) ToJson() []byte {
+	j, _ := json.Marshal(g)
+	return j
 }
 
 func deserializeGroup(data []byte) (*Group, error) {
@@ -31,14 +37,14 @@ func deserializeGroup(data []byte) (*Group, error) {
 			return nil, fmt.Errorf("error parsing group members: %s", err)
 		}
 		if bytes.Equal(m[:8], []byte("did:ont:")) {
-			g.members = append(g.members, m)
+			g.Members = append(g.Members, string(m))
 		} else {
 			// parse recursively
 			g1, err := deserializeGroup(m)
 			if err != nil {
 				return nil, fmt.Errorf("error parsing group members: %s", err)
 			}
-			g.members[i] = g1
+			g.Members[i] = g1
 		}
 	}
 
@@ -48,13 +54,13 @@ func deserializeGroup(data []byte) (*Group, error) {
 		return nil, fmt.Errorf("error parsing group threshold: %s", err)
 	}
 
-	g.threshold = uint(t)
+	g.Threshold = uint(t)
 
 	return &g, nil
 }
 
 func validateMembers(srvc *native.NativeService, g *Group) error {
-	for _, m := range g.members {
+	for _, m := range g.Members {
 		switch t := m.(type) {
 		case []byte:
 			key, err := encodeID(t)
@@ -122,7 +128,7 @@ func findSigner(id []byte, signers []Signer) bool {
 
 func verifyThreshold(g *Group, signers []Signer) bool {
 	var signed uint = 0
-	for _, member := range g.members {
+	for _, member := range g.Members {
 		switch t := member.(type) {
 		case []byte:
 			if findSigner(t, signers) {
@@ -136,7 +142,7 @@ func verifyThreshold(g *Group, signers []Signer) bool {
 			panic("invalid group member type")
 		}
 	}
-	return signed >= g.threshold
+	return signed >= g.Threshold
 }
 
 func verifyGroupSignature(srvc *native.NativeService, g *Group, signers []Signer) bool {

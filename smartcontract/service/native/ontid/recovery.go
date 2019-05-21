@@ -49,12 +49,12 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("recovery is already set")
 	}
 
-	err = setRecovery(srvc, encId, arg1)
+	re, err = setRecovery(srvc, encId, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
 	}
 
-	//TODO triggerRecoveryEvent(srvc, "add", arg0, arg1)
+	newEvent(srvc, []interface{}{"recovery", "add", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -92,12 +92,12 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if !verifyGroupSignature(srvc, re, signers) {
 		return utils.BYTE_FALSE, errors.New("verification failed")
 	}
-	err = setRecovery(srvc, key, arg1)
+	re, err = setRecovery(srvc, key, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
 	}
 
-	//TODO triggerRecoveryEvent(srvc, "change", arg0, arg1)
+	newEvent(srvc, []interface{}{"Recovery", "change", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -193,18 +193,18 @@ func removeKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func setRecovery(srvc *native.NativeService, encID, data []byte) error {
+func setRecovery(srvc *native.NativeService, encID, data []byte) (*Group, error) {
 	rec, err := deserializeGroup(data)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = validateMembers(srvc, rec)
 	if err != nil {
-		return fmt.Errorf("invalid recovery member, %s", err)
+		return nil, fmt.Errorf("invalid recovery member, %s", err)
 	}
 	key := append(encID, FIELD_RECOVERY)
 	utils.PutBytes(srvc, key, data)
-	return nil
+	return rec, nil
 }
 
 func getRecovery(srvc *native.NativeService, encID []byte) (*Group, error) {

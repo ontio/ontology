@@ -45,13 +45,13 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	} else if len(arg0) == 0 {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid length of argument 0")
 	}
+	log.Debug("arg 0:", hex.EncodeToString(arg0), string(arg0))
 	// arg1: public key
 	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: parsing argument 1 failed")
 	}
 
-	log.Debug("arg 0:", hex.EncodeToString(arg0), string(arg0))
 	log.Debug("arg 1:", hex.EncodeToString(arg1))
 
 	if len(arg0) == 0 || len(arg1) == 0 {
