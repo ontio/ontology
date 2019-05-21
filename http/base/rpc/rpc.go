@@ -98,6 +98,10 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		log.Error("HTTP JSON RPC Handle - ioutil.ReadAll: ", err)
 		return
 	}
+	if len(body) > 1024*1024 {
+		log.Error("HTTP JSON RPC request body is more than 1M: ", err)
+		return
+	}
 	request := make(map[string]interface{})
 	err = json.Unmarshal(body, &request)
 	if err != nil {

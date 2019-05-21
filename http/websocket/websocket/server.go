@@ -276,6 +276,10 @@ func (self *WsServer) webSocketHandler(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, bysMsg, err := wsConn.ReadMessage()
 		if err == nil {
+			if len(bysMsg) > 1024*1024 {
+				log.Error("ReadMessage bysMsg size is more than 1M: ", err)
+				return
+			}
 			if self.OnDataHandle(nsSession, bysMsg, r) {
 				nsSession.UpdateActiveTime()
 			}

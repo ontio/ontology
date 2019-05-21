@@ -274,7 +274,10 @@ func (this *restServer) initPostHandler() {
 
 			body, _ := ioutil.ReadAll(r.Body)
 			defer r.Body.Close()
-
+			if len(body) > 1024*1024 {
+				log.Error("initPostHandler request body size is more than 1M: ")
+				return
+			}
 			var req = make(map[string]interface{})
 			var resp map[string]interface{}
 
