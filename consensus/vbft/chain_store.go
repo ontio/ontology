@@ -28,6 +28,7 @@ import (
 	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/xshard_types"
 	eventmsg "github.com/ontio/ontology/events/message"
@@ -205,6 +206,9 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 	for _, msg := range msgs {
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
+	if len(hashes) == 0 {
+		return
+	}
 	msgRoot := common.ComputeMerkleRoot(hashes)
 	for _, crossMsg := range crossShardMsgs.CrossMsgs {
 		shardMsg, present := shardMsgMap[crossMsg.ShardID]
@@ -219,6 +223,14 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 			CrossShardMsgRoot: msgRoot,
 			ShardMsg:          shardMsg,
 			ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+		}
+		preMsgHash, err := self.db.GetShardMsgHash(crossMsg.ShardID)
+		if err != nil {
+			if err != com.ErrNotFound {
+				log.Errorf("chainstore getshardmsghash err:%s", err)
+			}
+		} else {
+			crossShardMsg.PreCrossShardMsgHash = preMsgHash
 		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)

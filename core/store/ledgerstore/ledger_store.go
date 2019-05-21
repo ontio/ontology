@@ -38,6 +38,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -1211,6 +1212,17 @@ func (self *LedgerStoreImp) GetShardMsgsInBlock(blockHeight uint32, shardID comm
 
 func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error) {
 	return self.stateStore.GetRelatedShardIDsInBlock(blockHeight)
+}
+
+func (self *LedgerStoreImp) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
+	return self.stateStore.GetShardMsgHash(shardID)
+}
+
+func (self *LedgerStoreImp) GetCrossShardMsgsInBlock(blockHeight uint32) (*crossshard.CrossShardMsg, error) {
+	return self.stateStore.GetCrossShardMsgsInBlock(blockHeight)
+}
+func (self *LedgerStoreImp) GetCrossShardMsgHash(msghash common.Uint256) (uint32, error) {
+	return self.stateStore.GetCrossShardMsgHash(msghash)
 }
 
 //Close ledger store.

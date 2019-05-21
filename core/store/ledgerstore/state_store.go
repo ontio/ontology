@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
@@ -305,16 +306,51 @@ func (self *StateStore) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.
 	return shards, nil
 }
 
-func (self *StateStore) GetCrossShardMsgsInBlock(blockHeight uint32, msgRoot common.Uint256) ([]xshard_types.CommonShardMsg, error) {
+func (self *StateStore) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
 	keys := common.NewZeroCopySink(16)
-	keys.WriteByte(byte(scom.XSHARD_KEY_CROSS_MSGS_IN_BLOCK))
+	keys.WriteByte(byte(scom.XSHARD_KEY_MSG_HASH))
+	keys.WriteShardID(shardID)
+	buf, err := self.store.Get(keys.Bytes())
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	source := common.NewZeroCopySource(buf)
+	msgHash, eof := source.NextHash()
+	if eof {
+		return common.Uint256{}, io.ErrUnexpectedEOF
+	}
+	return msgHash, nil
+}
+
+func (self *StateStore) GetCrossShardMsgsInBlock(blockHeight uint32) (*crossshard.CrossShardMsg, error) {
+	keys := common.NewZeroCopySink(16)
+	keys.WriteByte(byte(scom.XSHARD_KEY_CROSS_MSG_IN_BLOCK))
 	keys.WriteUint32(blockHeight)
-	keys.WriteBytes(msgRoot[:])
 	buf, err := self.store.Get(keys.Bytes())
 	if err != nil {
 		return nil, err
 	}
-	return xshard_types.DecodeShardCommonMsgs(buf)
+	source := common.NewZeroCopySource(buf)
+	msg := &crossshard.CrossShardMsg{}
+	if err := msg.Deserialization(source); err != nil {
+		return nil, err
+	}
+	return msg, nil
+}
+
+func (self *StateStore) GetCrossShardMsgHash(msghash common.Uint256) (uint32, error) {
+	keys := common.NewZeroCopySink(1024)
+	keys.WriteByte(byte(scom.XSHARD_KEY_CROSS_MSG_HASH))
+	buf, err := self.store.Get(keys.Bytes())
+	if err != nil {
+		return 0, err
+	}
+	source := common.NewZeroCopySource(buf)
+	height, eof := source.NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+	return height, nil
 }
 
 //GetMerkleProof return merkle proof of block

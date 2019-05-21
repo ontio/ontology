@@ -20,6 +20,7 @@ package storage
 
 import (
 	comm "github.com/ontio/ontology/common"
+	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -79,6 +80,7 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_type
 	}
 	keys := comm.NewZeroCopySink(8)
 	val := comm.NewZeroCopySink(1024)
+	var hashes []comm.Uint256
 	shards := comm.NewZeroCopySink(2 + 8*len(shardMsgMap))
 	shards.WriteUint32(uint32(len(shardMsgMap)))
 	for shardID, shardMsgs := range shardMsgMap {
@@ -90,34 +92,33 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_type
 		val.Reset()
 		xshard_types.EncodeShardCommonMsgs(val, shardMsgs)
 		self.cacheDB.put(common.XSHARD_KEY_REQS_IN_BLOCK, keys.Bytes(), val.Bytes())
+		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
+		hashes = append(hashes, msgHash)
 	}
 	keys.Reset()
 	keys.WriteUint32(blockHeight)
-
 	self.cacheDB.put(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes(), shards.Bytes())
+	val.Reset()
+	msgRoot := comm.ComputeMerkleRoot(hashes)
+	val.WriteBytes(msgRoot[:])
+	for shardID, _ := range shardMsgMap {
+		keys.Reset()
+		keys.WriteUint64(shardID.ToUint64())
+		self.cacheDB.put(common.XSHARD_KEY_MSG_HASH, keys.Bytes(), val.Bytes())
+	}
 }
 
-func (self *XShardDB) SetXCrossShardMsgInBlock(blockHeight uint32, msgs []xshard_types.CommonShardMsg) {
-	shardMsgMap := make(map[comm.ShardID][]xshard_types.CommonShardMsg)
-	for _, msg := range msgs {
-		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
-	}
-	keys := comm.NewZeroCopySink(8)
-	val := comm.NewZeroCopySink(1024)
-	shards := comm.NewZeroCopySink(2 + 8*len(shardMsgMap))
-	shards.WriteUint32(uint32(len(shardMsgMap)))
-	for shardID, shardMsgs := range shardMsgMap {
-		shards.WriteUint64(shardID.ToUint64())
-		keys.Reset()
-		keys.WriteUint32(blockHeight)
-		keys.WriteUint64(shardID.ToUint64())
+func (self *XShardDB) SetXCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *shardmsg.CrossShardMsg) {
+	key := comm.NewZeroCopySink(1024)
+	val := comm.NewZeroCopySink(8)
+	key.WriteBytes(crossShardMsg.CrossShardMsgRoot[:])
+	val.WriteUint32(blockHeight)
+	self.cacheDB.put(common.XSHARD_KEY_CROSS_MSG_HASH, key.Bytes(), val.Bytes())
 
-		val.Reset()
-		xshard_types.EncodeShardCommonMsgs(val, shardMsgs)
-		self.cacheDB.put(common.XSHARD_KEY_CROSS_MSGS_IN_BLOCK, keys.Bytes(), val.Bytes())
-	}
+	keys := comm.NewZeroCopySink(8)
 	keys.Reset()
 	keys.WriteUint32(blockHeight)
-
-	self.cacheDB.put(common.XSHARD_KEY_CROSS_MSGS_IN_BLOCK, keys.Bytes(), shards.Bytes())
+	sink := comm.ZeroCopySink{}
+	crossShardMsg.Serialization(&sink)
+	self.cacheDB.put(common.XSHARD_KEY_CROSS_MSG_IN_BLOCK, keys.Bytes(), sink.Bytes())
 }

@@ -76,6 +76,7 @@ type ChainManager struct {
 	lock       sync.RWMutex
 	shards     map[common.ShardID]*ShardInfo
 	mainLedger *ledger.Ledger
+	db         *ledger.Ledger
 	consensus  consensus.ConsensusService
 
 	account *account.Account
@@ -220,6 +221,7 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	if err != nil {
 		return fmt.Errorf("init shard ledger: %s", err)
 	}
+	self.db = lgr
 	bookKeepers, err := shardInfo.Config.GetBookkeepers()
 	if err != nil {
 		return fmt.Errorf("init shard ledger: GetBookkeepers error:%s", err)
