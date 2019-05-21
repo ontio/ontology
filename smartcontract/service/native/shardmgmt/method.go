@@ -20,10 +20,12 @@ package shardmgmt
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -136,6 +138,71 @@ func preCommitDpos(native *native.NativeService, shardId common.ShardID) error {
 	}
 	if _, err := native.NativeCall(utils.ShardStakeAddress, shard_stake.PRE_COMMIT_DPOS, bf.Bytes()); err != nil {
 		return fmt.Errorf("preCommitDpos: failed, err: %s", err)
+	}
+	return nil
+}
+
+//check the configuration while update shard config
+func checkNewCfg(configuration *utils.Configuration, shard *shardstates.ShardState) error {
+	candidateNum := uint32(0)
+	for _, peer := range shard.Peers {
+		if peer.NodeType == shardstates.CONSENSUS_NODE || peer.NodeType == shardstates.CONDIDATE_NODE {
+			candidateNum = candidateNum + 1
+		}
+	}
+	if configuration.C == 0 {
+		return fmt.Errorf(" checkNewCfg: C can not be 0 in config")
+	}
+	if configuration.K > candidateNum {
+		return fmt.Errorf(" checkNewCfg: K can not be larger than num of candidate peer in config")
+	}
+	if configuration.L < 16*configuration.K || configuration.L%configuration.K != 0 {
+		return fmt.Errorf(" checkNewCfg: L can not be less than 16*K and K must be times of L in config")
+	}
+	if configuration.K < 2*configuration.C+1 {
+		return fmt.Errorf(" checkNewCfg: K can not be less than 2*C+1 in config")
+	}
+	if configuration.N < configuration.K || configuration.K < 7 {
+		return fmt.Errorf(" checkNewCfg: config not match N >= K >= 7")
+	}
+	if configuration.BlockMsgDelay < 5000 {
+		return fmt.Errorf(" checkNewCfg: BlockMsgDelay must >= 5000")
+	}
+	if configuration.HashMsgDelay < 5000 {
+		return fmt.Errorf(" checkNewCfg: HashMsgDelay must >= 5000")
+	}
+	if configuration.PeerHandshakeTimeout < 10 {
+		return fmt.Errorf(" checkNewCfg: PeerHandshakeTimeout must >= 10")
+	}
+	return nil
+}
+
+func chargeShardMgmtFee(native *native.NativeService, feeType shardstates.ShardMgmtFeeType, from common.Address) error {
+	var fee *big.Int = nil
+	var err error = nil
+	switch feeType {
+	case shardstates.TYPE_CREATE_SHARD_FEE:
+		fee, err = getCreateShardFee(native)
+	case shardstates.TYPE_JOIN_SHARD_FEE:
+		fee, err = getJoinShardFee(native)
+	default:
+		err = fmt.Errorf("fee type undefined")
+	}
+	if err != nil {
+		return fmt.Errorf("chargeShardMgmtFee: failed, err: %s", err)
+	}
+	feeAddr, err := getMgmtShardFeeAddr(native)
+	if err != nil {
+		return fmt.Errorf("chargeShardMgmtFee: failed, err: %s", err)
+	}
+	toAddr := utils.GovernanceContractAddress
+	if !native.ShardID.IsRootShard() {
+		toAddr = utils.ShardMgmtContractAddress
+	}
+	// TODO: change to neovm call
+	err = ont.AppCallTransfer(native, feeAddr, from, toAddr, fee.Uint64())
+	if err != nil {
+		return fmt.Errorf("chargeShardMgmtFee: recharge create shard fee failed, err: %s", err)
 	}
 	return nil
 }

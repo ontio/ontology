@@ -27,6 +27,15 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+const (
+	EVENT_TRANSFER        = "transfer"
+	EVENT_APPROVE         = "approve"
+	EVENT_MINT            = "mint"
+	EVENT_BURN            = "burn"
+	EVENT_XSHARD_TRANSFER = "xshardTransfer"
+	EVENT_XSHARD_RECEIVE  = "xshardReceive"
+)
+
 type TransferEvent struct {
 	AssetId AssetId
 	From    common.Address
@@ -34,8 +43,13 @@ type TransferEvent struct {
 	Amount  *big.Int
 }
 
-func (this *TransferEvent) ToNotify() []interface{} {
+func (this *TransferEvent) toNotify() []interface{} {
 	return []interface{}{uint64(this.AssetId), this.From.ToBase58(), this.To.ToBase58(), this.Amount.String()}
+}
+
+func (this *TransferEvent) ToNotify() []interface{} {
+	transferEvent := this.toNotify()
+	return append([]interface{}{EVENT_TRANSFER}, transferEvent...)
 }
 
 type ApproveEvent struct {
@@ -46,7 +60,8 @@ type ApproveEvent struct {
 }
 
 func (this *ApproveEvent) ToNotify() []interface{} {
-	return []interface{}{uint64(this.AssetId), this.Owner.ToBase58(), this.Spender.ToBase58(), this.Allowance.String()}
+	return []interface{}{EVENT_APPROVE, uint64(this.AssetId), this.Owner.ToBase58(), this.Spender.ToBase58(),
+		this.Allowance.String()}
 }
 
 type XShardTransferEvent struct {
@@ -56,8 +71,9 @@ type XShardTransferEvent struct {
 }
 
 func (this *XShardTransferEvent) ToNotify() []interface{} {
-	transferEvent := this.TransferEvent.ToNotify()
-	return append(transferEvent, this.TransferId.String(), this.ToShard.ToUint64())
+	transferEvent := this.TransferEvent.toNotify()
+	evts := append(transferEvent, this.TransferId.String(), this.ToShard.ToUint64())
+	return append([]interface{}{EVENT_XSHARD_TRANSFER}, evts...)
 }
 
 type XShardReceiveEvent struct {
@@ -67,8 +83,29 @@ type XShardReceiveEvent struct {
 }
 
 func (this *XShardReceiveEvent) ToNotify() []interface{} {
-	transferEvent := this.TransferEvent.ToNotify()
-	return append(transferEvent, this.TransferId.String(), this.FromShard.ToUint64())
+	transferEvent := this.TransferEvent.toNotify()
+	evts := append(transferEvent, this.TransferId.String(), this.FromShard.ToUint64())
+	return append([]interface{}{EVENT_XSHARD_RECEIVE}, evts...)
+}
+
+type MintEvent struct {
+	User    common.Address
+	AssetId AssetId
+	Amount  *big.Int
+}
+
+func (this *MintEvent) ToNotify() []interface{} {
+	return []interface{}{EVENT_MINT, this.User.ToBase58(), uint64(this.AssetId), this.Amount.String()}
+}
+
+type BurnEvent struct {
+	User    common.Address
+	AssetId AssetId
+	Amount  *big.Int
+}
+
+func (this *BurnEvent) ToNotify() []interface{} {
+	return []interface{}{EVENT_BURN, this.User.ToBase58(), uint64(this.AssetId), this.Amount.String()}
 }
 
 func NotifyEvent(native *native.NativeService, notify []interface{}) {

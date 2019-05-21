@@ -35,8 +35,6 @@ import (
 	ntypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
-// TODO: support user burn and mint
-
 const (
 	INIT = "ope4ShardAssetInit"
 
@@ -46,7 +44,7 @@ const (
 	NAME           = "oep4Name"
 	SYMBOL         = "oep4Symbol"
 	DECIMALS       = "oep4Decimals"
-	TOTAL_SUPPLY   = "oep4TotalSupply" // query total supply at shard
+	TOTAL_SUPPLY   = "oep4TotalSupply" // query total supply, if invoked at shard, there are no value
 	SHARD_SUPPLY   = "oep4ShardSupply" // query shard supply at root
 	WHOLE_SUPPLY   = "oep4WholeSupply" // sum supply at all shard, only can be invoked at root
 	SUPPLY_INFO    = "oep4SupplyInfo"  // query every shard supply at root
@@ -57,6 +55,8 @@ const (
 	TRANSFER_FROM  = "oep4TransferFrom"
 	ALLOWANCE      = "oep4Allowance"
 	ASSET_ID       = "oep4AssetId"
+	MINT           = "oep4Mint"
+	BURN           = "oep4Burn"
 
 	XSHARD_TRANSFER       = "oep4XShardTransfer"
 	XSHARD_TRANFSER_RETRY = "oep4XShardTransferRetry"
@@ -94,6 +94,9 @@ func RegisterOEP4(native *native.NativeService) {
 	native.Register(APPROVE, Approve)
 	native.Register(TRANSFER_FROM, TransferFrom)
 	native.Register(ALLOWANCE, Allowance)
+	native.Register(MINT, Mint)
+	native.Register(BURN, Burn)
+
 	native.Register(XSHARD_TRANSFER, XShardTransfer)
 	native.Register(XSHARD_TRANFSER_RETRY, XShardTransferRetry)
 	native.Register(XSHARD_RECEIVE_ASSET, ShardReceiveAsset)
@@ -165,6 +168,7 @@ func Register(native *native.NativeService) ([]byte, error) {
 	setContract(native, assetId, oep4)
 	shardSupplyInfo := map[common.ShardID]*big.Int{native.ShardID: param.TotalSupply}
 	setShardSupplyInfo(native, assetId, shardSupplyInfo)
+	setUserBalance(native, assetId, param.Account, param.TotalSupply)
 	transferEvent := &TransferEvent{
 		From:   common.ADDRESS_EMPTY,
 		To:     param.Account,
@@ -440,6 +444,80 @@ func Allowance(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("Allowance: failed, err: %s", err)
 	}
 	return ntypes.BigIntToBytes(allowance), nil
+}
+
+// user should check witness before call this function
+func Mint(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("Mint: only can be invoked at root")
+	}
+	param := &MintParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Mint: failed, err: %s", err)
+	}
+	callAddr := native.ContextRef.CallingContext().ContractAddress
+	asset, err := getAssetId(native, callAddr)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Mint: failed, err: %s", err)
+	}
+	if err = userMint(native, asset, param.User, param.Amount); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Mint: failed, err: %s", err)
+	}
+	supplyInfo, err := getShardSupplyInfo(native, asset)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Mint: failed, err: %s", err)
+	}
+	if rootSupply, ok := supplyInfo[native.ShardID]; !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("Mint: root supply not exist")
+	} else {
+		rootSupply.Add(rootSupply, param.Amount)
+		supplyInfo[native.ShardID] = rootSupply
+		setShardSupplyInfo(native, asset, supplyInfo)
+	}
+	mintEvent := &MintEvent{User: param.User, AssetId: asset, Amount: param.Amount}
+	NotifyEvent(native, mintEvent.ToNotify())
+	transferEvent := &TransferEvent{AssetId: asset, From: common.ADDRESS_EMPTY, To: param.User, Amount: param.Amount}
+	NotifyEvent(native, transferEvent.ToNotify())
+	return utils.BYTE_TRUE, nil
+}
+
+func Burn(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("Burn: only can be invoked at root")
+	}
+	param := &BurnParam{}
+	if err := param.Deserialize(bytes.NewReader(native.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Burn: failed, err: %s", err)
+	}
+	callAddr := native.ContextRef.CallingContext().ContractAddress
+	asset, err := getAssetId(native, callAddr)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Burn: failed, err: %s", err)
+	}
+	if err = utils.ValidateOwner(native, param.User); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Burn: check witness err: %s", err)
+	}
+	if err = userBurn(native, asset, param.User, param.Amount); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Burn: failed, err: %s", err)
+	}
+	supplyInfo, err := getShardSupplyInfo(native, asset)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("Burn: failed, err: %s", err)
+	}
+	if rootSupply, ok := supplyInfo[native.ShardID]; !ok {
+		return utils.BYTE_FALSE, fmt.Errorf("Burn: root supply not exist")
+	} else if rootSupply.Cmp(param.Amount) < 0 {
+		return utils.BYTE_FALSE, fmt.Errorf("Burn: root supply not enough")
+	} else {
+		rootSupply.Sub(rootSupply, param.Amount)
+		supplyInfo[native.ShardID] = rootSupply
+		setShardSupplyInfo(native, asset, supplyInfo)
+	}
+	burnEvent := &BurnEvent{User: param.User, AssetId: asset, Amount: param.Amount}
+	NotifyEvent(native, burnEvent.ToNotify())
+	transferEvent := &TransferEvent{AssetId: asset, From: param.User, To: common.ADDRESS_EMPTY, Amount: param.Amount}
+	NotifyEvent(native, transferEvent.ToNotify())
+	return utils.BYTE_TRUE, nil
 }
 
 func XShardTransfer(native *native.NativeService) ([]byte, error) {

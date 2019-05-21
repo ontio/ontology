@@ -20,6 +20,7 @@ package shardmgmt
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
@@ -41,6 +42,10 @@ const (
 
 	KEY_RETRY_COMMIT_DPOS   = "retry_commit"
 	KEY_XSHARD_HANDLING_FEE = "xshard_handling_fee"
+
+	KEY_MGMT_SHARD_FEE_ADDR = "mgmt_shard_fee_address"
+	KEY_CREATE_SHARD_FEE    = "create_shard_fee"
+	KEY_JOIN_SHARD_FEE      = "join_shard_fee"
 )
 
 type peerState string
@@ -62,6 +67,18 @@ func genRetryCommitDposKey() []byte {
 
 func genXShardHandlingFeeKey() []byte {
 	return utils.ConcatKey(utils.ShardMgmtContractAddress, []byte(KEY_XSHARD_HANDLING_FEE))
+}
+
+func genMgmtShardFeeAddrKey() []byte {
+	return utils.ConcatKey(utils.ShardMgmtContractAddress, []byte(KEY_MGMT_SHARD_FEE_ADDR))
+}
+
+func genCreateShardFeeKey() []byte {
+	return utils.ConcatKey(utils.ShardMgmtContractAddress, []byte(KEY_CREATE_SHARD_FEE))
+}
+
+func genJoinShardFeeKey() []byte {
+	return utils.ConcatKey(utils.ShardMgmtContractAddress, []byte(KEY_JOIN_SHARD_FEE))
 }
 
 func getVersion(native *native.NativeService, contract common.Address) (uint32, error) {
@@ -245,7 +262,9 @@ func updateXShardHandlingFee(native *native.NativeService, param *XShardHandling
 			viewInfo[view] += param.Fee
 		}
 	}
-
+	sink := common.NewZeroCopySink(0)
+	originalInfo.Serialization(sink)
+	native.CacheDB.Put(genXShardHandlingFeeKey(), cstates.GenRawStorageItem(sink.Bytes()))
 	return nil
 }
 
@@ -271,37 +290,73 @@ func getXShardHandlingFee(native *native.NativeService) (*shard_stake.XShardFeeI
 	return info, nil
 }
 
-//check the configuration while update shard config
-func checkNewCfg(configuration *utils.Configuration, shard *shardstates.ShardState) error {
-	candidateNum := uint32(0)
-	for _, peer := range shard.Peers {
-		if peer.NodeType == shardstates.CONSENSUS_NODE || peer.NodeType == shardstates.CONDIDATE_NODE {
-			candidateNum = candidateNum + 1
-		}
+func setMgmtShardFeeAddr(native *native.NativeService, addr common.Address) {
+	sink := common.NewZeroCopySink(0)
+	sink.WriteAddress(addr)
+	key := genMgmtShardFeeAddrKey()
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func getMgmtShardFeeAddr(native *native.NativeService) (common.Address, error) {
+	raw, err := native.CacheDB.Get(genMgmtShardFeeAddrKey())
+	if err != nil {
+		return common.ADDRESS_EMPTY, fmt.Errorf("getMgmtShardFeeAddr: read db failed, err: %s", err)
 	}
-	if configuration.C == 0 {
-		return fmt.Errorf(" checkNewCfg: C can not be 0 in config")
+	if len(raw) == 0 {
+		return common.ADDRESS_EMPTY, fmt.Errorf("getMgmtShardFeeAddr: fee addr isn't exist")
 	}
-	if configuration.K > candidateNum {
-		return fmt.Errorf(" checkNewCfg: K can not be larger than num of candidate peer in config")
+	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
+	if err != nil {
+		return common.ADDRESS_EMPTY, fmt.Errorf("getMgmtShardFeeAddr: parse store value failed, err: %s", err)
 	}
-	if configuration.L < 16*configuration.K || configuration.L%configuration.K != 0 {
-		return fmt.Errorf(" checkNewCfg: L can not be less than 16*K and K must be times of L in config")
+	source := common.NewZeroCopySource(storeValue)
+	addr, eof := source.NextAddress()
+	if eof {
+		return common.ADDRESS_EMPTY, fmt.Errorf("getMgmtShardFeeAddr: deserialize addr failed")
 	}
-	if configuration.K < 2*configuration.C+1 {
-		return fmt.Errorf(" checkNewCfg: K can not be less than 2*C+1 in config")
+	return addr, nil
+}
+
+func setCreateShardFee(native *native.NativeService, num *big.Int) {
+	data := common.BigIntToNeoBytes(num)
+	key := genCreateShardFeeKey()
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
+}
+
+func getCreateShardFee(native *native.NativeService) (*big.Int, error) {
+	key := genCreateShardFeeKey()
+	raw, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("getCreateShardFee: read db failed, err: %s", err)
 	}
-	if configuration.N < configuration.K || configuration.K < 7 {
-		return fmt.Errorf(" checkNewCfg: config not match N >= K >= 7")
+	if len(raw) == 0 {
+		return nil, fmt.Errorf("getCreateShardFee: fee isn't exist")
 	}
-	if configuration.BlockMsgDelay < 5000 {
-		return fmt.Errorf(" checkNewCfg: BlockMsgDelay must >= 5000")
+	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
+	if err != nil {
+		return nil, fmt.Errorf("getCreateShardFee: parse store value failed, err: %s", err)
 	}
-	if configuration.HashMsgDelay < 5000 {
-		return fmt.Errorf(" checkNewCfg: HashMsgDelay must >= 5000")
+	return common.BigIntFromNeoBytes(storeValue), nil
+}
+
+func setJoinShardFee(native *native.NativeService, num *big.Int) {
+	data := common.BigIntToNeoBytes(num)
+	key := genJoinShardFeeKey()
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(data))
+}
+
+func getJoinShardFee(native *native.NativeService) (*big.Int, error) {
+	key := genJoinShardFeeKey()
+	raw, err := native.CacheDB.Get(key)
+	if err != nil {
+		return nil, fmt.Errorf("getJoinShardFee: read db failed, err: %s", err)
 	}
-	if configuration.PeerHandshakeTimeout < 10 {
-		return fmt.Errorf(" checkNewCfg: PeerHandshakeTimeout must >= 10")
+	if len(raw) == 0 {
+		return nil, fmt.Errorf("getJoinShardFee: fee isn't exist")
 	}
-	return nil
+	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
+	if err != nil {
+		return nil, fmt.Errorf("getJoinShardFee: parse store value failed, err: %s", err)
+	}
+	return common.BigIntFromNeoBytes(storeValue), nil
 }
