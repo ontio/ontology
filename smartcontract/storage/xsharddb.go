@@ -20,7 +20,6 @@ package storage
 
 import (
 	comm "github.com/ontio/ontology/common"
-	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -106,19 +105,4 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_type
 		keys.WriteUint64(shardID.ToUint64())
 		self.cacheDB.put(common.XSHARD_KEY_MSG_HASH, keys.Bytes(), val.Bytes())
 	}
-}
-
-func (self *XShardDB) SetXCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *shardmsg.CrossShardMsg) {
-	key := comm.NewZeroCopySink(1024)
-	val := comm.NewZeroCopySink(8)
-	key.WriteBytes(crossShardMsg.CrossShardMsgRoot[:])
-	val.WriteUint32(blockHeight)
-	self.cacheDB.put(common.XSHARD_KEY_CROSS_MSG_HASH, key.Bytes(), val.Bytes())
-
-	keys := comm.NewZeroCopySink(8)
-	keys.Reset()
-	keys.WriteUint32(blockHeight)
-	sink := comm.ZeroCopySink{}
-	crossShardMsg.Serialization(&sink)
-	self.cacheDB.put(common.XSHARD_KEY_CROSS_MSG_IN_BLOCK, keys.Bytes(), sink.Bytes())
 }

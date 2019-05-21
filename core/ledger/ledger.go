@@ -353,11 +353,12 @@ func (self *Ledger) GetShardMsgHash(shardID common.ShardID) (common.Uint256, err
 	return self.ldgStore.GetShardMsgHash(shardID)
 }
 
-func (self *Ledger) GetCrossShardMsgsInBlock(blockHeight uint32) (*crossshard.CrossShardMsg, error) {
-	return self.ldgStore.GetCrossShardMsgsInBlock(blockHeight)
+func (self *Ledger) GetCrossShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) (*crossshard.CrossShardMsg, error) {
+	return self.ldgStore.GetCrossShardMsgsInBlock(blockHeight, shardID)
 }
-func (self *Ledger) GetCrossShardMsgHash(msghash common.Uint256) (uint32, error) {
-	return self.ldgStore.GetCrossShardMsgHash(msghash)
+
+func (self *Ledger) AddCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *crossshard.CrossShardMsg) {
+	self.ldgStore.AddCrossShardMsgInBlock(blockHeight, crossShardMsg)
 }
 
 func (self *Ledger) Close() error {

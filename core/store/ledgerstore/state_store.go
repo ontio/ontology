@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	crossshard "github.com/ontio/ontology/core/chainmgr/message"
+	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
@@ -322,11 +323,8 @@ func (self *StateStore) GetShardMsgHash(shardID common.ShardID) (common.Uint256,
 	return msgHash, nil
 }
 
-func (self *StateStore) GetCrossShardMsgsInBlock(blockHeight uint32) (*crossshard.CrossShardMsg, error) {
-	keys := common.NewZeroCopySink(16)
-	keys.WriteByte(byte(scom.XSHARD_KEY_CROSS_MSG_IN_BLOCK))
-	keys.WriteUint32(blockHeight)
-	buf, err := self.store.Get(keys.Bytes())
+func (self *StateStore) GetCrossShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) (*crossshard.CrossShardMsg, error) {
+	buf, err := self.store.Get(genCrossShardMsgKey(blockHeight, shardID))
 	if err != nil {
 		return nil, err
 	}
@@ -338,19 +336,18 @@ func (self *StateStore) GetCrossShardMsgsInBlock(blockHeight uint32) (*crossshar
 	return msg, nil
 }
 
-func (self *StateStore) GetCrossShardMsgHash(msghash common.Uint256) (uint32, error) {
-	keys := common.NewZeroCopySink(1024)
-	keys.WriteByte(byte(scom.XSHARD_KEY_CROSS_MSG_HASH))
-	buf, err := self.store.Get(keys.Bytes())
-	if err != nil {
-		return 0, err
-	}
-	source := common.NewZeroCopySource(buf)
-	height, eof := source.NextUint32()
-	if eof {
-		return 0, io.ErrUnexpectedEOF
-	}
-	return height, nil
+func (self *StateStore) AddCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *shardmsg.CrossShardMsg) {
+	sink := common.ZeroCopySink{}
+	crossShardMsg.Serialization(&sink)
+	self.store.BatchPut(genCrossShardMsgKey(blockHeight, crossShardMsg.FromShardID), sink.Bytes())
+}
+
+func genCrossShardMsgKey(height uint32, shardID common.ShardID) []byte {
+	sink := common.NewZeroCopySink(16)
+	sink.WriteByte(byte(scom.XSHARD_KEY_CROSS_MSG_IN_BLOCK))
+	sink.WriteUint32(height)
+	sink.WriteShardID(shardID)
+	return sink.Bytes()
 }
 
 //GetMerkleProof return merkle proof of block

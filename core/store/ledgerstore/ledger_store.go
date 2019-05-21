@@ -1218,11 +1218,12 @@ func (self *LedgerStoreImp) GetShardMsgHash(shardID common.ShardID) (common.Uint
 	return self.stateStore.GetShardMsgHash(shardID)
 }
 
-func (self *LedgerStoreImp) GetCrossShardMsgsInBlock(blockHeight uint32) (*crossshard.CrossShardMsg, error) {
-	return self.stateStore.GetCrossShardMsgsInBlock(blockHeight)
+func (self *LedgerStoreImp) GetCrossShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) (*crossshard.CrossShardMsg, error) {
+	return self.stateStore.GetCrossShardMsgsInBlock(blockHeight, shardID)
 }
-func (self *LedgerStoreImp) GetCrossShardMsgHash(msghash common.Uint256) (uint32, error) {
-	return self.stateStore.GetCrossShardMsgHash(msghash)
+
+func (self *LedgerStoreImp) AddCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *crossshard.CrossShardMsg) {
+	self.stateStore.AddCrossShardMsgInBlock(blockHeight, crossShardMsg)
 }
 
 //Close ledger store.
