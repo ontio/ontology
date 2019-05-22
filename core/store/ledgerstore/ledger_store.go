@@ -1094,6 +1094,9 @@ func (this *LedgerStoreImp) GetContractState(contractHash common.Address) (*payl
 
 //GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
 func (this *LedgerStoreImp) GetContractStateFromParentShard(contractHash common.Address) (*payload.DeployCode, error) {
+	if this.parentShardStore == nil {
+		return nil, fmt.Errorf("parent store is empty")
+	}
 	return this.parentShardStore.GetContractState(contractHash)
 }
 
