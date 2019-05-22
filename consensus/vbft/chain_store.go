@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	com "github.com/ontio/ontology/core/store/common"
@@ -240,5 +241,6 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 			Data:    sink.Bytes(),
 		}
 		self.p2p.Broadcast(msg)
+		xshard.DelCrossShardTxs(crossMsg.ShardID, msgRoot)
 	}
 }
