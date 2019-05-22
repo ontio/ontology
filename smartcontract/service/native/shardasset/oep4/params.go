@@ -412,15 +412,19 @@ func (this *XShardTransferRetryParam) Deserialize(r io.Reader) error {
 }
 
 type ShardMintParam struct {
-	Asset       uint64
-	Account     common.Address
-	FromShard   common.ShardID
-	FromAccount common.Address
-	TransferId  *big.Int
-	Amount      *big.Int
+	OriginalContract common.Address
+	Asset            uint64
+	Account          common.Address
+	FromShard        common.ShardID
+	FromAccount      common.Address
+	TransferId       *big.Int
+	Amount           *big.Int
 }
 
 func (this *ShardMintParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.OriginalContract); err != nil {
+		return fmt.Errorf("serialize: write original contract failed, err: %s", err)
+	}
 	if err := utils.WriteVarUint(w, this.Asset); err != nil {
 		return fmt.Errorf("serialize: write asset id failed, err: %s", err)
 	}
@@ -444,6 +448,9 @@ func (this *ShardMintParam) Serialize(w io.Writer) error {
 
 func (this *ShardMintParam) Deserialize(r io.Reader) error {
 	var err error = nil
+	if this.OriginalContract, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read original contract failed, err: %s", err)
+	}
 	if this.Asset, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read asset id failed, err: %s", err)
 	}

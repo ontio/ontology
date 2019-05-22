@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	scomm "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -174,7 +175,6 @@ func Register(native *native.NativeService) ([]byte, error) {
 		Amount: param.TotalSupply,
 	}
 	NotifyEvent(native, transferEvent.ToNotify())
-	log.Infof("Register: contract %s success", callAddr.ToHexString())
 	return utils.BYTE_TRUE, nil
 }
 
@@ -565,12 +565,13 @@ func XShardTransfer(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:       uint64(asset),
-		Account:     param.To,
-		FromShard:   native.ShardID,
-		FromAccount: param.From,
-		Amount:      param.Amount,
-		TransferId:  txId,
+		OriginalContract: callAddr,
+		Asset:            uint64(asset),
+		Account:          param.To,
+		FromShard:        native.ShardID,
+		FromAccount:      param.From,
+		Amount:           param.Amount,
+		TransferId:       txId,
 	}
 	if err := notifyShardMint(native, param.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
@@ -599,12 +600,13 @@ func XShardTransferRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:       uint64(asset),
-		Account:     transfer.ToAccount,
-		Amount:      transfer.Amount,
-		FromShard:   native.ShardID,
-		FromAccount: param.From,
-		TransferId:  param.TransferId,
+		OriginalContract: callAddr,
+		Asset:            uint64(asset),
+		Account:          transfer.ToAccount,
+		Amount:           transfer.Amount,
+		FromShard:        native.ShardID,
+		FromAccount:      param.From,
+		TransferId:       param.TransferId,
 	}
 	if err := notifyShardMint(native, transfer.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferRetry: failed, err: %s", err)
@@ -661,6 +663,21 @@ func ShardReceiveAsset(native *native.NativeService) ([]byte, error) {
 	if !native.ContextRef.CheckCallShard(param.FromShard) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: check call shard failed")
 	}
+	if param.OriginalContract == utils.OngContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: param original contract unmatch")
+	}
+	if param.Asset == uint64(ONG_ASSET_ID) {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: asset id unmatch")
+	}
+	assetId, err := getAssetId(native, param.OriginalContract)
+	if err == scomm.ErrNotFound {
+		registerAsset(native, param.OriginalContract, AssetId(param.Asset))
+	} else if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
+	} else if uint64(assetId) != param.Asset {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: assetId unmatch, local %d vs param %d",
+			assetId, param.Asset)
+	}
 	isReceived, err := isTransferReceived(native, param)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
@@ -707,12 +724,13 @@ func XShardTransferOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOng: failed, err: %s", err)
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:       uint64(ONG_ASSET_ID),
-		Account:     param.To,
-		Amount:      param.Amount,
-		FromShard:   native.ShardID,
-		FromAccount: param.From,
-		TransferId:  txId,
+		OriginalContract: utils.OngContractAddress,
+		Asset:            uint64(ONG_ASSET_ID),
+		Account:          param.To,
+		Amount:           param.Amount,
+		FromShard:        native.ShardID,
+		FromAccount:      param.From,
+		TransferId:       txId,
 	}
 	if err := notifyShardReceiveOng(native, param.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
@@ -736,12 +754,13 @@ func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:       uint64(ONG_ASSET_ID),
-		Account:     transfer.ToAccount,
-		Amount:      transfer.Amount,
-		FromShard:   native.ShardID,
-		FromAccount: param.From,
-		TransferId:  param.TransferId,
+		OriginalContract: utils.OngContractAddress,
+		Asset:            uint64(ONG_ASSET_ID),
+		Account:          transfer.ToAccount,
+		Amount:           transfer.Amount,
+		FromShard:        native.ShardID,
+		FromAccount:      param.From,
+		TransferId:       param.TransferId,
 	}
 	if err := notifyShardReceiveOng(native, transfer.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOngRetry: failed, err: %s", err)
@@ -760,6 +779,18 @@ func XShardReceiveOng(native *native.NativeService) ([]byte, error) {
 	}
 	if !native.ContextRef.CheckCallShard(param.FromShard) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: check call shard failed")
+	}
+	if param.OriginalContract != utils.OngContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: param original contract unmatch")
+	}
+	if param.Asset != uint64(ONG_ASSET_ID) {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: asset id unmatch")
+	}
+	_, err = getAssetId(native, utils.OngContractAddress)
+	if err == scomm.ErrNotFound {
+		registerAsset(native, utils.OngContractAddress, ONG_ASSET_ID)
+	} else if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: failed, err: %s", err)
 	}
 	isReceived, err := isTransferReceived(native, param)
 	if err != nil {

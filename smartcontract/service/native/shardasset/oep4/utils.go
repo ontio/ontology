@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
+	scomm "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -294,7 +295,7 @@ func getAssetId(native *native.NativeService, assetAddr common.Address) (AssetId
 		return 0, fmt.Errorf("getAssetId: read db failed, err: %s", err)
 	}
 	if len(raw) == 0 {
-		return 0, fmt.Errorf("getAssetId: asset not exist")
+		return 0, scomm.ErrNotFound
 	}
 	storeValue, err := states.GetValueFromRawStorageItem(raw)
 	if err != nil {
