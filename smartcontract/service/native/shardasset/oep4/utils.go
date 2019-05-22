@@ -284,7 +284,7 @@ func getAssetNum(native *native.NativeService) (uint64, error) {
 
 func registerAsset(native *native.NativeService, assetAddr common.Address, assetId AssetId) {
 	key := genAssetIdKey(assetAddr)
-	native.CacheDB.Put(key, utils.GetUint64Bytes(uint64(assetId)))
+	native.CacheDB.Put(key, states.GenRawStorageItem(utils.GetUint64Bytes(uint64(assetId))))
 }
 
 func getAssetId(native *native.NativeService, assetAddr common.Address) (AssetId, error) {

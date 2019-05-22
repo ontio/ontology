@@ -174,6 +174,7 @@ func Register(native *native.NativeService) ([]byte, error) {
 		Amount: param.TotalSupply,
 	}
 	NotifyEvent(native, transferEvent.ToNotify())
+	log.Infof("Register: contract %s success", callAddr.ToHexString())
 	return utils.BYTE_TRUE, nil
 }
 
@@ -254,6 +255,9 @@ func Decimals(native *native.NativeService) ([]byte, error) {
 }
 
 func TotalSupply(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
+	}
 	callAddr := native.ContextRef.CallingContext().ContractAddress
 	asset, err := getAssetId(native, callAddr)
 	if err != nil {
@@ -267,6 +271,9 @@ func TotalSupply(native *native.NativeService) ([]byte, error) {
 }
 
 func ShardSupply(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
+	}
 	callAddr := native.ContextRef.CallingContext().ContractAddress
 	asset, err := getAssetId(native, callAddr)
 	if err != nil {
@@ -289,6 +296,9 @@ func ShardSupply(native *native.NativeService) ([]byte, error) {
 }
 
 func WholeSupply(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
+	}
 	callAddr := native.ContextRef.CallingContext().ContractAddress
 	asset, err := getAssetId(native, callAddr)
 	if err != nil {
@@ -306,7 +316,10 @@ func WholeSupply(native *native.NativeService) ([]byte, error) {
 }
 
 func GetSupplyInfo(native *native.NativeService) ([]byte, error) {
-	assetId, err := serialization.ReadUint64(bytes.NewReader(native.Input))
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
+	}
+	assetId, err := utils.ReadVarUint(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: read param failed, err: %s", err)
 	}
@@ -314,7 +327,11 @@ func GetSupplyInfo(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: failed, err: %s", err)
 	}
-	data, err := json.Marshal(supplyInfo)
+	jsonSupply := make(map[uint64]string)
+	for shard, supply := range supplyInfo {
+		jsonSupply[shard.ToUint64()] = supply.String()
+	}
+	data, err := json.Marshal(jsonSupply)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: marshal supply info failed, err: %s", err)
 	}
@@ -540,8 +557,8 @@ func XShardTransfer(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
-	if err := userBurn(native, asset, param.To, param.Amount); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: check witness err: %s", err)
+	if err := userBurn(native, asset, param.From, param.Amount); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
 	txId, err := xShardTransfer(native, asset, param.From, param.To, param.ToShard, param.Amount)
 	if err != nil {

@@ -58,15 +58,18 @@ func transfer(native *native.NativeService, param *TransferParam) error {
 }
 
 func userBurn(native *native.NativeService, asset AssetId, user common.Address, amount *big.Int) error {
-	oep4, err := getContract(native, asset)
-	if err != nil {
-		return fmt.Errorf("userBurn: failed, err: %s", err)
+	if native.ShardID.IsRootShard() {
+		oep4, err := getContract(native, asset)
+		if err != nil {
+			return fmt.Errorf("userBurn: failed, err: %s", err)
+		}
+		if oep4.TotalSupply.Cmp(amount) < 0 {
+			return fmt.Errorf("userBurn: total supply not enough")
+		}
+		oep4.TotalSupply.Sub(oep4.TotalSupply, amount)
+		setContract(native, asset, oep4)
 	}
-	if oep4.TotalSupply.Cmp(amount) < 0 {
-		return fmt.Errorf("userBurn: total supply not enough")
-	}
-	oep4.TotalSupply.Sub(oep4.TotalSupply, amount)
-	setContract(native, asset, oep4)
+
 	balance, err := getUserBalance(native, asset, user)
 	if err != nil {
 		return fmt.Errorf("userBurn: failed, err: %s", err)
@@ -80,12 +83,14 @@ func userBurn(native *native.NativeService, asset AssetId, user common.Address, 
 }
 
 func userMint(native *native.NativeService, asset AssetId, user common.Address, amount *big.Int) error {
-	oep4, err := getContract(native, asset)
-	if err != nil {
-		return fmt.Errorf("userMint: failed, err: %s", err)
+	if native.ShardID.IsRootShard() {
+		oep4, err := getContract(native, asset)
+		if err != nil {
+			return fmt.Errorf("userMint: failed, err: %s", err)
+		}
+		oep4.TotalSupply.Add(oep4.TotalSupply, amount)
+		setContract(native, asset, oep4)
 	}
-	oep4.TotalSupply.Add(oep4.TotalSupply, amount)
-	setContract(native, asset, oep4)
 	balance, err := getUserBalance(native, asset, user)
 	if err != nil {
 		return fmt.Errorf("userMint: failed, err: %s", err)
