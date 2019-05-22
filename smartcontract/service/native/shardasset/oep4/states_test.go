@@ -27,21 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestOep4(t *testing.T) {
-	state := &Oep4{
-		Name:        "TestToken",
-		Symbol:      "TT",
-		Decimals:    12,
-		TotalSupply: big.NewInt(1000000000),
-	}
-	sink := common.NewZeroCopySink(0)
-	state.Serialization(sink)
-	source := common.NewZeroCopySource(sink.Bytes())
-	newState := &Oep4{}
-	err := newState.Deserialization(source)
-	assert.Nil(t, err)
-}
-
 func TestXShardTransferState(t *testing.T) {
 	acc := account.NewAccount("")
 	state := &XShardTransferState{

@@ -41,9 +41,6 @@ const (
 	REGISTER = "oep4Register"
 	MIGRATE  = "oep4Migrate"
 
-	NAME           = "oep4Name"
-	SYMBOL         = "oep4Symbol"
-	DECIMALS       = "oep4Decimals"
 	TOTAL_SUPPLY   = "oep4TotalSupply" // query total supply, if invoked at shard, there are no value
 	SHARD_SUPPLY   = "oep4ShardSupply" // query shard supply at root
 	WHOLE_SUPPLY   = "oep4WholeSupply" // sum supply at all shard, only can be invoked at root
@@ -81,9 +78,6 @@ func RegisterOEP4(native *native.NativeService) {
 	native.Register(ASSET_ID, GetAssetId)
 	native.Register(MIGRATE, Migrate)
 
-	native.Register(NAME, Name)
-	native.Register(SYMBOL, Symbol)
-	native.Register(DECIMALS, Decimals)
 	native.Register(TOTAL_SUPPLY, TotalSupply)
 	native.Register(SHARD_SUPPLY, ShardSupply)
 	native.Register(WHOLE_SUPPLY, WholeSupply)
@@ -159,13 +153,7 @@ func Register(native *native.NativeService) ([]byte, error) {
 	setAssetNum(native, assetNum+1)
 	assetId := AssetId(assetNum + 1)
 	registerAsset(native, callAddr, assetId)
-	oep4 := &Oep4{
-		Name:        param.Name,
-		Symbol:      param.Symbol,
-		Decimals:    param.Decimals,
-		TotalSupply: param.TotalSupply,
-	}
-	setContract(native, assetId, oep4)
+	setTotalSupply(native, assetId, param.TotalSupply)
 	shardSupplyInfo := map[common.ShardID]*big.Int{native.ShardID: param.TotalSupply}
 	setShardSupplyInfo(native, assetId, shardSupplyInfo)
 	setUserBalance(native, assetId, param.Account, param.TotalSupply)
@@ -215,45 +203,6 @@ func Migrate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func Name(native *native.NativeService) ([]byte, error) {
-	callAddr := native.ContextRef.CallingContext().ContractAddress
-	asset, err := getAssetId(native, callAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Name: failed, err: %s", err)
-	}
-	oep4, err := getContract(native, asset)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Name: failed, err: %s", err)
-	}
-	return []byte(oep4.Name), nil
-}
-
-func Symbol(native *native.NativeService) ([]byte, error) {
-	callAddr := native.ContextRef.CallingContext().ContractAddress
-	asset, err := getAssetId(native, callAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Symbol: failed, err: %s", err)
-	}
-	oep4, err := getContract(native, asset)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Symbol: failed, err: %s", err)
-	}
-	return []byte(oep4.Symbol), nil
-}
-
-func Decimals(native *native.NativeService) ([]byte, error) {
-	callAddr := native.ContextRef.CallingContext().ContractAddress
-	asset, err := getAssetId(native, callAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Decimals: failed, err: %s", err)
-	}
-	oep4, err := getContract(native, asset)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Decimals: failed, err: %s", err)
-	}
-	return common.BigIntToNeoBytes(new(big.Int).SetUint64(oep4.Decimals)), nil
-}
-
 func TotalSupply(native *native.NativeService) ([]byte, error) {
 	if !native.ShardID.IsRootShard() {
 		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
@@ -263,11 +212,11 @@ func TotalSupply(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
 	}
-	oep4, err := getContract(native, asset)
+	supply, err := getTotalSupply(native, asset)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
 	}
-	return common.BigIntToNeoBytes(oep4.TotalSupply), nil
+	return common.BigIntToNeoBytes(supply), nil
 }
 
 func ShardSupply(native *native.NativeService) ([]byte, error) {

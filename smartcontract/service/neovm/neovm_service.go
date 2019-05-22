@@ -100,7 +100,6 @@ var (
 	ERR_GAS_INSUFFICIENT         = errors.NewErr("[NeoVmService] gas insufficient")
 	VM_EXEC_STEP_EXCEED          = errors.NewErr("[NeoVmService] vm execute step exceed!")
 	CONTRACT_NOT_EXIST           = errors.NewErr("[NeoVmService] Get contract code from db fail")
-	CONTRACT_MEAT_NIL            = errors.NewErr("[NeoVmService] Contract meta data is empty")
 	CONTRACT_CANNOT_RUN_AT_SHARD = errors.NewErr("[NeoVmService] Contract cannot run at this shard")
 	CONTRACT_META_UNMATCH        = errors.NewErr("[NeoVmService] Contract and meta data unmatch")
 	DEPLOYCODE_TYPE_ERROR        = errors.NewErr("[NeoVmService] DeployCode type error!")
@@ -239,10 +238,13 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			if isSelfShardContract != isSelfShardMeta {
+			if meta == nil {
+				if !isSelfShardContract {
+					return nil, CONTRACT_CANNOT_RUN_AT_SHARD
+				}
+			} else if isSelfShardContract != isSelfShardMeta {
 				return nil, CONTRACT_META_UNMATCH
-			}
-			if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() {
+			} else if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() {
 				// check contract can be invoked at current shard
 				return nil, CONTRACT_CANNOT_RUN_AT_SHARD
 			}
@@ -328,7 +330,7 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, er
 	if dep == nil {
 		dep, err = this.Store.GetContractStateFromParentShard(address)
 		if err != nil {
-			return nil, false, errors.NewErr("[getContract] Get contract context error!")
+			return nil, false, errors.NewErr("[getContract] Get contract context from parent shard error!")
 		}
 		if dep == nil {
 			return nil, false, CONTRACT_NOT_EXIST
@@ -351,11 +353,7 @@ func (this *NeoVmService) getContractMetaData(address scommon.Address) (*payload
 		if err != nil {
 			return nil, false, fmt.Errorf("[getContractMetaData] from parent, err: %s", err)
 		}
-		if meta == nil {
-			return nil, false, CONTRACT_MEAT_NIL
-		} else {
-			return meta, false, nil
-		}
+		return meta, false, nil
 	} else {
 		return meta, true, nil
 	}

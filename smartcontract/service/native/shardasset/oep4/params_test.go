@@ -30,9 +30,6 @@ import (
 func TestRegisterParam(t *testing.T) {
 	acc := account.NewAccount("")
 	param := &RegisterParam{
-		Name:        "TestToken",
-		Symbol:      "TT",
-		Decimals:    12,
 		TotalSupply: big.NewInt(1000000000),
 		Account:     acc.Address,
 	}
