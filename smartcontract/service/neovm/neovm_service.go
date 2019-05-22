@@ -61,6 +61,7 @@ var (
 		TRANSACTION_GETHASH_NAME:             {Execute: TransactionGetHash, Validator: validatorTransaction},
 		TRANSACTION_GETTYPE_NAME:             {Execute: TransactionGetType, Validator: validatorTransaction},
 		TRANSACTION_GETATTRIBUTES_NAME:       {Execute: TransactionGetAttributes, Validator: validatorTransaction},
+		SHARD_GET_SHARD_ID_NAME:              {Execute: ShardGetShardId, Validator: validatorShard},
 		CONTRACT_CREATE_NAME:                 {Execute: ContractCreate},
 		CONTRACT_MIGRATE_NAME:                {Execute: ContractMigrate},
 		CONTRACT_SET_META_DATA_NAME:          {Execute: InitMetaData},
@@ -109,7 +110,7 @@ var (
 )
 
 type (
-	Execute func(service *NeoVmService, engine *vm.ExecutionEngine) error
+	Execute   func(service *NeoVmService, engine *vm.ExecutionEngine) error
 	Validator func(engine *vm.ExecutionEngine) error
 )
 

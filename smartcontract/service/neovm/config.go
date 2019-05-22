@@ -78,6 +78,8 @@ var (
 	HEADER_GETNEXTCONSENSUS_NAME = "Ontology.Header.GetNextConsensus"
 	HEADER_GETMERKLEROOT_NAME    = "Ontology.Header.GetMerkleRoot"
 
+	SHARD_GET_SHARD_ID_NAME = "Ontology.Shard.GetShardId"
+
 	TRANSACTION_GETHASH_NAME       = "System.Transaction.GetHash"
 	TRANSACTION_GETTYPE_NAME       = "Ontology.Transaction.GetType"
 	TRANSACTION_GETATTRIBUTES_NAME = "Ontology.Transaction.GetAttributes"

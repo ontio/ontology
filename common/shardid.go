@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 )
 
 type ShardID struct {
@@ -134,6 +135,13 @@ func (self *ShardID) UnmarshalJSON(input []byte) error {
 	}
 	self.id = id
 	return nil
+}
+
+func (self *ShardID) ToArray() []byte {
+	id := new(big.Int).SetUint64(self.ToUint64())
+	sink := NewZeroCopySink(0)
+	sink.WriteVarBytes(BigIntToNeoBytes(id))
+	return sink.Bytes()
 }
 
 func ShardIDFromLevels(l1, l2, l3, l4 uint16) (ShardID, error) {

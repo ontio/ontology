@@ -117,6 +117,17 @@ func validatorHeader(engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+func validatorShard(engine *vm.ExecutionEngine) error {
+	item, err := vm.PeekInteropInterface(engine)
+	if err != nil {
+		return err
+	}
+	if item == nil {
+		return errors.NewErr("[validatorShard] ShardId is nil!")
+	}
+	return nil
+}
+
 func validatorTransaction(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorTransaction] Too few input parameters ")
