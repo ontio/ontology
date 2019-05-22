@@ -50,7 +50,7 @@ func AddTransaction(transaction *types.Transaction) {
 		return
 	}
 	if transaction.ShardID != shardId.ToUint64() {
-		log.Error("[p2p]net_server AddTransaction(): shardId unmatch")
+		log.Errorf("[p2p]net_server AddTransaction(): transaction shardId:%d unmatch,shardId:%d", transaction.ShardID, shardId.ToUint64())
 		return
 	}
 	txReq := &tc.TxReq{

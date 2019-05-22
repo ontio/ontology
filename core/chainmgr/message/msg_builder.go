@@ -74,13 +74,3 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID commo
 	}
 	return mutable.IntoImmutable()
 }
-
-func NewShardBlockInfo(shardID common.ShardID, block *types.Block) *ShardBlockInfo {
-	blockInfo := &ShardBlockInfo{
-		FromShardID: shardID,
-		Height:      block.Header.Height,
-		Block:       block,
-	}
-
-	return blockInfo
-}

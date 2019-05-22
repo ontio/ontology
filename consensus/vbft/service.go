@@ -38,8 +38,10 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
+	sign "github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
@@ -191,7 +193,6 @@ func (self *Server) Receive(context actor.Context) {
 		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
-
 	default:
 		log.Info("vbft actor: Unknown msg ", msg, "type", reflect.TypeOf(msg))
 	}
@@ -423,7 +424,7 @@ func (self *Server) initialize() error {
 	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
-	store, err := OpenBlockStore(self.ledger, self.pid)
+	store, err := OpenBlockStore(self.ledger, self.pid, self.p2p, self.ShardID)
 	if err != nil {
 		log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
@@ -1121,42 +1122,12 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	parentHeight := self.ledger.GetParentHeight() + 1
-	if parentHeight < msg.Block.Block.Header.ParentHeight {
-		log.Errorf("BlockPrposalMessage  check parentHeight blocknum:%d,ParentHeight:%d,self.parentHeight:%d", msg.GetBlockNum(), self.parentHeight, msg.Block.Block.Header.ParentHeight)
+	if !self.verifyShardEventMsg(msg) {
 		return
 	}
-	if self.parentHeight < parentHeight {
-		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
-		for id, txs := range temp {
-			msgtxs, present := msg.Block.Block.ShardTxs[id.ToUint64()]
-			if !present {
-				log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, shardId:%d", self.parentHeight, id.ToUint64())
-				return
-			}
-			if len(txs) != len(msgtxs) {
-				log.Errorf("BlockPrposalMessage parentHeight blocknum:%d, len(txs):%d,len(msgtxs):%d", self.parentHeight, len(txs), len(msgtxs))
-				return
-			}
-			txHash := []common.Uint256{}
-			for _, t := range txs {
-				txHash = append(txHash, t.Hash())
-			}
-			msgtxHash := []common.Uint256{}
-			for _, msgtx := range msgtxs {
-				msgtxHash = append(msgtxHash, msgtx.Hash())
-			}
-			txRoot := common.ComputeMerkleRoot(txHash)
-			msgtxRoot := common.ComputeMerkleRoot(msgtxHash)
-			if txRoot != msgtxRoot {
-				log.Errorf("BlockPrposalMessage check parentHeight blocknum:%d,msg txRoot:%s,msgtxRoot:%s", self.parentHeight, txRoot.ToHexString(), msgtxRoot.ToHexString())
-				return
-			}
-		}
-		log.Infof("BlockPrposalMessage: update self parent height for %d to %d", self.parentHeight, parentHeight)
-		self.parentHeight = parentHeight
+	if !self.verifyCrossShardTx(msg) {
+		return
 	}
-
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
 		height := uint32(msgBlkNum) - 1
@@ -1192,6 +1163,81 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		// empty block, process directly
 		self.processConsensusMsg(msg)
 	}
+}
+
+func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
+	if msg.Block.CrossMsg == nil {
+		return true
+	}
+	msgBlkNum := msg.GetBlockNum()
+	shardMsgs := self.chainStore.GetExecShardNotify(msgBlkNum - 1)
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	for _, msg := range shardMsgs {
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	}
+	for _, crossMsg := range msg.Block.CrossMsg.CrossMsgs {
+		if shardMsg, present := shardMsgMap[crossMsg.ShardID]; !present {
+			log.Errorf("BlockPrposalMessage ShardId:%v not found", crossMsg.ShardID)
+			return false
+		} else {
+			msgHash := xshard_types.GetShardCommonMsgsHash(shardMsg)
+			if msgHash != crossMsg.MsgHash {
+				log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgHash.ToHexString(), crossMsg.MsgHash.ToHexString())
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
+	if len(msg.Block.Block.ShardTxs) == 0 {
+		return true
+	}
+	for _, crossTxMsgs := range msg.Block.Block.ShardTxs {
+		for _, crossTxMsg := range crossTxMsgs {
+			//verify msg sign
+			for _, msgHash := range crossTxMsg.ShardMsg.ShardMsgHashs {
+				shardState, err := xshard.GetShardState(self.ledger.ParentLedger, msgHash.ShardID)
+				if err != nil {
+					log.Errorf("GetShardState err:%s", err)
+					return false
+				}
+				var bookkeepers []keypair.PublicKey
+				//m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
+				//todo temp
+				m := int(shardState.Config.VbftCfg.N - ((shardState.Config.VbftCfg.N)*6)/7)
+				for _, peer := range shardState.Config.VbftCfg.Peers {
+					pubkey, err := vconfig.Pubkey(peer.PeerPubkey)
+					if err != nil {
+						log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.PeerPubkey, err)
+						return false
+					}
+					bookkeepers = append(bookkeepers, pubkey)
+				}
+				err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, msgHash.SigData)
+				if err != nil {
+					log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d", err, len(bookkeepers), m)
+					return false
+				}
+			}
+			//verify msg hash
+			var hashes []common.Uint256
+			shardMsgRoot := crossTxMsg.ShardMsg.CrossShardMsgRoot
+			for _, shardMsg := range crossTxMsg.ShardMsg.ShardMsgHashs {
+				if shardMsg.ShardID != self.ShardID {
+					hashes = append(hashes, shardMsg.MsgHash)
+				}
+			}
+			hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(crossTxMsg.ShardMsg.ShardMsg))
+			msgRoot := common.ComputeMerkleRoot(hashes)
+			if shardMsgRoot != msgRoot {
+				log.Errorf("verifyCrossShardTx shard msgroot:%s,not match msgroot:%s", shardMsgRoot.ToHexString(), msgRoot.ToHexString())
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (self *Server) processConsensusMsg(msg ConsensusMsg) {
@@ -2216,7 +2262,7 @@ func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
 			log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
 			return true
 		}
-		if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
+		if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 || bytes.Compare(invoke.Code, ninit.SHARD_COMMIT_DPOS_BYTES) == 0 {
 			return false
 		}
 	}

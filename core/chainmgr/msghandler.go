@@ -21,10 +21,11 @@ package chainmgr
 import (
 	"encoding/hex"
 	"fmt"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
@@ -43,7 +44,7 @@ func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) erro
 }
 
 func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) error {
-	return nil
+	return self.updateShardConfig(evt.ImplSourceTargetShardID.ShardID, evt.Config)
 }
 
 func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) error {
@@ -114,8 +115,7 @@ func (self ChainManager) startChildShard(shardID common.ShardID, shardState *sha
 	} else {
 		shardInfo.Config = cfg
 	}
-	log.Infof("startChildShard shard %d, received shard %d restart msg", self.shardID, shardID)
-
+	config.DefConfig = shardInfo.Config
 	if err := self.initShardLedger(shardInfo); err != nil {
 		return fmt.Errorf("init shard %d, failed to init ledger: %s", self.shardID, err)
 	}
@@ -137,81 +137,9 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) {
 		return
 	}
 	log.Infof("chainmgr shard %d, get new block %d from shard %d", self.shardID, blk.Header.Height, blk.Header.ShardID)
-
-	if err := self.addShardBlock(blk); err != nil {
-		log.Errorf("shard %d, handle block %d events: %s", self.shardID, blk.Header.Height, err)
-	}
-	if err := self.handleShardReqsInBlock(blk.Header); err != nil {
-		log.Errorf("shard %d, handle shardReqs in block %d: %s", self.shardID, blk.Header.Height, err)
-	}
 	if err := self.handleRootChainBlock(); err != nil {
 		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
-}
-
-func (self *ChainManager) addShardBlock(block *types.Block) error {
-	// construct one parent-block-completed message
-	blkInfo := message.NewShardBlockInfo(self.shardID, block)
-	if err := self.addShardBlockInfo(blkInfo); err != nil {
-		return fmt.Errorf("add shard block: %s", err)
-	}
-
-	return nil
-}
-
-func (self *ChainManager) handleShardReqsInBlock(header *types.Header) error {
-	shardID, err := common.NewShardID(header.ShardID)
-	if err != nil {
-		return fmt.Errorf("invalid shard id %d", header.ShardID)
-	}
-	lgr := ledger.GetShardLedger(shardID)
-	if lgr == nil {
-		return fmt.Errorf("failed to get ledger of shard %d", header.ShardID)
-	}
-	height := header.Height
-	shards, err := lgr.GetRelatedShardIDsInBlock(height)
-	if err != nil {
-		return fmt.Errorf("get remoteMsgShards of height %d: %s", height, err)
-	}
-	if shards == nil || len(shards) == 0 {
-		return nil
-	}
-
-	log.Infof("[chainmgr]handleShardReqsInBlock: height: %d, shards: %v", height, shards)
-	for _, s := range shards {
-		// don't handle other shard req when block is from parent
-		if self.shardID.ParentID().ToUint64() == header.ShardID && s.ToUint64() != self.shardID.ToUint64() {
-			continue
-		}
-		reqs, err := lgr.GetShardMsgsInBlock(height, s)
-		if err != nil {
-			return fmt.Errorf("get remoteMsg of height %d to shard %d: %s", height, s, err)
-		}
-		if len(reqs) == 0 {
-			continue
-		}
-		shardInfo, _ := self.shards[s]
-		if shardInfo == nil {
-			return fmt.Errorf("to send xshard tx to %d, no seeds", s)
-		}
-		if shardInfo.Config == nil || shardInfo.Config.Common == nil {
-			return fmt.Errorf("to send xshard tx to %d, mal-formed shard info", s)
-		}
-
-		gasPrice := shardInfo.Config.Common.GasPrice
-		gasLimit := shardInfo.Config.Common.GasLimit
-		tx, err := message.NewCrossShardTxMsg(self.account, height, s, gasPrice, gasLimit, reqs)
-		if err != nil {
-			return fmt.Errorf("construct remoteTxMsg of height %d to shard %d: %s", height, s, err)
-		}
-		go func() {
-			if err := self.sendCrossShardTx(tx, shardInfo.SeedList, self.getShardRPCPort(s)); err != nil {
-				log.Errorf("send xshardTx to %d, ip %v, failed: %s", s.ToUint64(), shardInfo.SeedList, err)
-			}
-		}()
-	}
-
-	return nil
 }
 
 func (self *ChainManager) handleRootChainBlock() error {

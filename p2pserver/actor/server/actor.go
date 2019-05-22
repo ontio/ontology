@@ -20,8 +20,9 @@ package server
 
 import (
 	"fmt"
-	common2 "github.com/ontio/ontology/common"
 	"reflect"
+
+	common2 "github.com/ontio/ontology/common"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"

@@ -653,9 +653,9 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	for _, id := range ids {
 		log.Infof("executing shard Tx from shard %d, txnum = %d", id, len(block.ShardTxs[id]))
-		for _, tx := range block.ShardTxs[id] {
+		for _, shardTx := range block.ShardTxs[id] {
 			cache.Reset()
-			notify, e := HandleTransaction(this, overlay, cache, xshardDB, block.Header, tx)
+			notify, e := HandleTransaction(this, overlay, cache, xshardDB, block.Header, shardTx.Tx)
 			if e != nil {
 				err = e
 				return
@@ -683,6 +683,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
+	result.ShardNotify = shardNotify
 	if block.Header.Height < this.stateHashCheckHeight {
 		result.MerkleRoot = common.UINT256_EMPTY
 	} else if block.Header.Height == this.stateHashCheckHeight {
@@ -1210,6 +1211,10 @@ func (self *LedgerStoreImp) GetShardMsgsInBlock(blockHeight uint32, shardID comm
 
 func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error) {
 	return self.stateStore.GetRelatedShardIDsInBlock(blockHeight)
+}
+
+func (self *LedgerStoreImp) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
+	return self.stateStore.GetShardMsgHash(shardID)
 }
 
 //Close ledger store.

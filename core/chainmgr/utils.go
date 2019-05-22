@@ -41,6 +41,16 @@ func (self *ChainManager) GetShardConfig(shardID common.ShardID) *config.Ontolog
 	return nil
 }
 
+func (self *ChainManager) GetShardID() []common.ShardID {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+	var shardIDs []common.ShardID
+	for shardID, _ := range self.shards {
+		shardIDs = append(shardIDs, shardID)
+	}
+	return shardIDs
+}
+
 func (self *ChainManager) setShardConfig(shardID common.ShardID, cfg *config.OntologyConfig) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()
@@ -52,6 +62,31 @@ func (self *ChainManager) setShardConfig(shardID common.ShardID, cfg *config.Ont
 	self.shards[shardID] = &ShardInfo{
 		ShardID: shardID,
 		Config:  cfg,
+	}
+	return nil
+}
+
+func (self *ChainManager) updateShardConfig(shardID common.ShardID, shardcfg *shardstates.ShardConfig) error {
+	self.lock.Lock()
+	defer self.lock.Unlock()
+	if info, present := self.shards[shardID]; present {
+		info.Config.Genesis.VBFT = shardcfg.VbftCfg
+		info.Config.Common.GasPrice = shardcfg.GasPrice
+		info.Config.Common.GasLimit = shardcfg.GasLimit
+	} else {
+		cfg := &config.OntologyConfig{
+			Genesis: &config.GenesisConfig{
+				VBFT: shardcfg.VbftCfg,
+			},
+			Common: &config.CommonConfig{
+				GasLimit: shardcfg.GasLimit,
+				GasPrice: shardcfg.GasPrice,
+			},
+		}
+		self.shards[shardID] = &ShardInfo{
+			ShardID: shardID,
+			Config:  cfg,
+		}
 	}
 	return nil
 }

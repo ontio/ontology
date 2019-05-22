@@ -134,6 +134,7 @@ type blockEndorseMsg struct {
 	FaultyProposals   []*FaultyReport `json:"faulty_proposals"`
 	ProposerSig       []byte          `json:"proposer_sig"`
 	EndorserSig       []byte          `json:"endorser_sig"`
+	CrossMsg          *CrossShardMsgs `json:"cross_msgs"`
 }
 
 func (msg *blockEndorseMsg) Type() MsgType {
@@ -161,15 +162,16 @@ func (msg *blockEndorseMsg) Serialize() ([]byte, error) {
 }
 
 type blockCommitMsg struct {
-	Committer       uint32            `json:"committer"`
-	BlockProposer   uint32            `json:"block_proposer"`
-	BlockNum        uint32            `json:"block_num"`
-	CommitBlockHash common.Uint256    `json:"commit_block_hash"`
-	CommitForEmpty  bool              `json:"commit_for_empty"`
-	FaultyVerifies  []*FaultyReport   `json:"faulty_verifies"`
-	ProposerSig     []byte            `json:"proposer_sig"`
-	EndorsersSig    map[uint32][]byte `json:"endorsers_sig"`
-	CommitterSig    []byte            `json:"committer_sig"`
+	Committer       uint32                     `json:"committer"`
+	BlockProposer   uint32                     `json:"block_proposer"`
+	BlockNum        uint32                     `json:"block_num"`
+	CommitBlockHash common.Uint256             `json:"commit_block_hash"`
+	CommitForEmpty  bool                       `json:"commit_for_empty"`
+	FaultyVerifies  []*FaultyReport            `json:"faulty_verifies"`
+	ProposerSig     []byte                     `json:"proposer_sig"`
+	EndorsersSig    map[uint32][]byte          `json:"endorsers_sig"`
+	CommitterSig    []byte                     `json:"committer_sig"`
+	CrossMsgSig     map[uint32]*CrossShardMsgs `json:"cross_msg"`
 }
 
 func (msg *blockCommitMsg) Type() MsgType {

@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 )
 
 type ConsensusMsgPayload struct {
@@ -188,16 +189,9 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		return nil, err
 	}
 	parentHeight := self.ledger.GetParentHeight() + 1
-	shardTxs := make(map[uint64][]*types.Transaction)
-	if self.parentHeight < parentHeight {
-		temp := xshard.GetShardTxsByParentHeight(self.parentHeight+1, parentHeight)
-		for id, txs := range temp {
-			shardTxs[id.ToUint64()] = txs
-		}
-	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
-
+	shardTxs := xshard.GetCrossShardTxs()
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,
 		Version:          common.CURR_HEADER_VERSION,
@@ -224,6 +218,30 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	blkHeader.SigData = [][]byte{sig}
 
 	return blk, nil
+}
+
+func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs, error) {
+	crossShardMsgs := &CrossShardMsgs{}
+	msgs := self.chainStore.GetExecShardNotify(blkNum)
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	for _, msg := range msgs {
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	}
+	for shardID, shardMsgs := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
+		sig, err := signature.Sign(self.account, msgHash[:])
+		if err != nil {
+			return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", msgHash.ToHexString(), err)
+		}
+		crossShardMsg := &types.CrossShardMsgHash{
+			ShardID: shardID,
+			MsgHash: msgHash,
+			SigData: [][]byte{sig},
+		}
+		crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossShardMsg)
+		crossShardMsgs.Height = blkNum
+	}
+	return crossShardMsgs, nil
 }
 
 func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
@@ -260,7 +278,6 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, err
 	}
-
 	emptyBlk, err := self.constructBlock(blkNum, prevBlkHash, sysTxs, consensusPayload, blocktimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct empty block: %s", err)
@@ -273,13 +290,17 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
 	}
-
+	crossShardMsgs, err := self.constructCrossShardHashMsgs(blkNum - 1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to CrossShardHashMsgs :%s,blkNum:%d", err, (blkNum - 1))
+	}
 	msg := &blockProposalMsg{
 		Block: &Block{
 			Block:               blk,
 			EmptyBlock:          emptyBlk,
 			Info:                vbftBlkInfo,
 			PrevBlockMerkleRoot: merkleRoot,
+			CrossMsg:            crossShardMsgs,
 		},
 	}
 
@@ -310,6 +331,17 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	if err != nil {
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, err: %s", blkHash, err)
 	}
+	crossShardMsgs := &CrossShardMsgs{}
+	if proposal.Block.CrossMsg != nil {
+		for _, crossMsg := range proposal.Block.CrossMsg.CrossMsgs {
+			sig, err := signature.Sign(self.account, crossMsg.MsgHash[:])
+			if err != nil {
+				return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.MsgHash[:], err)
+			}
+			crossMsg.SigData = append(crossMsg.SigData, sig)
+			crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
+		}
+	}
 
 	msg := &blockEndorseMsg{
 		Endorser:          self.Index,
@@ -319,6 +351,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		EndorseForEmpty:   forEmpty,
 		ProposerSig:       proposerSig,
 		EndorserSig:       endorserSig,
+		CrossMsg:          crossShardMsgs,
 	}
 
 	return msg, nil
@@ -350,8 +383,22 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	}
 
 	endorsersSig := make(map[uint32][]byte)
+	crossShardMsg := make(map[uint32]*CrossShardMsgs)
 	for _, e := range endorses {
 		endorsersSig[e.Endorser] = e.EndorserSig
+		crossShardMsgs := &CrossShardMsgs{}
+		if e.CrossMsg == nil {
+			continue
+		}
+		for _, crossMsg := range e.CrossMsg.CrossMsgs {
+			sig, err := signature.Sign(self.account, crossMsg.MsgHash[:])
+			if err != nil {
+				return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.MsgHash[:], err)
+			}
+			crossMsg.SigData = append(crossMsg.SigData, sig)
+			crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
+		}
+		crossShardMsg[e.Endorser] = crossShardMsgs
 	}
 
 	msg := &blockCommitMsg{
@@ -363,6 +410,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		ProposerSig:     proposerSig,
 		EndorsersSig:    endorsersSig,
 		CommitterSig:    committerSig,
+		CrossMsgSig:     crossShardMsg,
 	}
 
 	return msg, nil

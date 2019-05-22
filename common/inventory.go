@@ -24,6 +24,7 @@ const (
 	TRANSACTION InventoryType = 0x01
 	BLOCK       InventoryType = 0x02
 	CONSENSUS   InventoryType = 0xe0
+	CROSS_SHARD InventoryType = 0xf0
 )
 
 //TODO: temp inventory

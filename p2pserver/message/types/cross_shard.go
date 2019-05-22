@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The ontology Authors
+ * Copyright (C) 2018 The ontology Authors
  * This file is part of The ontology library.
  *
  * The ontology is free software: you can redistribute it and/or modify
@@ -16,28 +16,27 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package xshard
+package types
 
 import (
-	"testing"
-
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
+	comm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
-func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
-	shardMsg := &types.CrossShardMsg{
-		FromShardID:   common.NewShardIDUnchecked(0),
-		MsgHeight:     uint32(90),
-		SignMsgHeight: uint32(100),
-	}
-	return shardMsg
+type CrossShard struct {
+	Cons CrossShardPayload
 }
 
-func TestCrossShardPool(t *testing.T) {
-	InitCrossShardPool(common.NewShardIDUnchecked(1), 100)
-	shardMsg := newTestShardMsg(t)
-	if err := AddCrossShardInfo(shardMsg, nil); err != nil {
-		t.Fatalf("failed add CrossShardInfo:%s", err)
-	}
+//Serialize message payload
+func (this *CrossShard) Serialization(sink *comm.ZeroCopySink) {
+	this.Cons.Serialization(sink)
+}
+
+func (this *CrossShard) CmdType() string {
+	return common.CROSS_SHARD_TYPE
+}
+
+//Deserialize message payload
+func (this *CrossShard) Deserialization(source *comm.ZeroCopySource) error {
+	return this.Cons.Deserialization(source)
 }
