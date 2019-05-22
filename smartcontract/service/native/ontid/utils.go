@@ -104,7 +104,7 @@ func deleteID(srvc *native.NativeService, encID []byte) {
 	key = append(encID, FIELD_RECOVERY)
 	srvc.CacheDB.Delete(key)
 
-	//TODO delete attributes
+	deleteAllAttr(srvc, encID)
 
 	//set flag to revoke
 	utils.PutBytes(srvc, encID, []byte{flag_revoke})

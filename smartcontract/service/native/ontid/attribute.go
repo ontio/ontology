@@ -178,3 +178,8 @@ func getAttrKeys(attr []attribute) [][]byte {
 	}
 	return paths
 }
+
+func deleteAllAttr(srvc *native.NativeService, encID []byte) error {
+	key := append(encID, FIELD_ATTR)
+	return utils.LinkedlistDeleteAll(srvc, key)
+}
