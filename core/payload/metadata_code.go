@@ -83,3 +83,9 @@ func (this *MetaDataCode) Deserialization(source *common.ZeroCopySource) error {
 	}
 	return nil
 }
+
+func (this *MetaDataCode) ToArray() []byte {
+	sink := common.NewZeroCopySink(0)
+	this.Serialization(sink)
+	return sink.Bytes()
+}

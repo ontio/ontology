@@ -61,7 +61,7 @@ var (
 		TRANSACTION_GETHASH_NAME:             {Execute: TransactionGetHash, Validator: validatorTransaction},
 		TRANSACTION_GETTYPE_NAME:             {Execute: TransactionGetType, Validator: validatorTransaction},
 		TRANSACTION_GETATTRIBUTES_NAME:       {Execute: TransactionGetAttributes, Validator: validatorTransaction},
-		SHARD_GET_SHARD_ID_NAME:              {Execute: ShardGetShardId, Validator: validatorShard},
+		SHARD_GET_SHARD_ID_NAME:              {Execute: ShardGetShardId},
 		CONTRACT_CREATE_NAME:                 {Execute: ContractCreate},
 		CONTRACT_MIGRATE_NAME:                {Execute: ContractMigrate},
 		CONTRACT_SET_META_DATA_NAME:          {Execute: InitMetaData},
@@ -110,7 +110,7 @@ var (
 )
 
 type (
-	Execute   func(service *NeoVmService, engine *vm.ExecutionEngine) error
+	Execute func(service *NeoVmService, engine *vm.ExecutionEngine) error
 	Validator func(engine *vm.ExecutionEngine) error
 )
 
@@ -320,7 +320,6 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 
 // return contract code, if the contract doesn't exist in self ledger, return false
 func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, error) {
-	// TODO: fetch code from self ledger firstly, if not exist, fetch it from parent ledger
 	dep, err := this.CacheDB.GetContract(address)
 	if err != nil {
 		return nil, false, errors.NewErr("[getContract] Get contract context error!")

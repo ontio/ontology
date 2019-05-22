@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/common/log"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
@@ -66,7 +67,8 @@ func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	newMeta.OntVersion = common.CURR_TX_VERSION
 	newMeta.Contract = service.ContextRef.CurrentContext().ContractAddress
 	service.CacheDB.PutMetaData(newMeta)
-	vm.PushData(engine, oldMeta)
+	vm.PushData(engine, newMeta)
+	log.Infof("InitMetaData: contract %s success", contractAddress.ToHexString())
 	return nil
 }
 
