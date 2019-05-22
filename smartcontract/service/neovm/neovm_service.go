@@ -109,7 +109,7 @@ var (
 )
 
 type (
-	Execute   func(service *NeoVmService, engine *vm.ExecutionEngine) error
+	Execute func(service *NeoVmService, engine *vm.ExecutionEngine) error
 	Validator func(engine *vm.ExecutionEngine) error
 )
 
@@ -322,13 +322,22 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, er
 	// TODO: fetch code from self ledger firstly, if not exist, fetch it from parent ledger
 	dep, err := this.CacheDB.GetContract(address)
 	if err != nil {
-		return nil, false, errors.NewErr("[getContract] get contract context error!")
+		return nil, false, errors.NewErr("[getContract] Get contract context error!")
 	}
 	log.Debugf("invoke contract address: %s", address.ToHexString())
 	if dep == nil {
-		return nil, false, CONTRACT_NOT_EXIST
+		dep, err = this.Store.GetContractStateFromParentShard(address)
+		if err != nil {
+			return nil, false, errors.NewErr("[getContract] Get contract context error!")
+		}
+		if dep == nil {
+			return nil, false, CONTRACT_NOT_EXIST
+		} else {
+			return dep.Code, false, nil
+		}
+	} else {
+		return dep.Code, true, nil
 	}
-	return dep.Code, false, nil
 }
 
 func checkStackSize(engine *vm.ExecutionEngine) bool {

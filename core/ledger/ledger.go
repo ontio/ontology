@@ -66,7 +66,7 @@ func init() {
 //
 func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
 	dbPath := path.Join(dataDir, fmt.Sprintf("shard_%d", config.DEFAULT_SHARD_ID))
-	ldgStore, err := ledgerstore.NewLedgerStore(dbPath, stateHashHeight)
+	ldgStore, err := ledgerstore.NewLedgerStore(dbPath, stateHashHeight, nil)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
@@ -105,7 +105,7 @@ func NewShardLedger(shardID common.ShardID, dataDir string, mainLedger *Ledger) 
 
 	// load shard ledger
 	dbPath := path.Join(dataDir, fmt.Sprintf("shard_%d", shardID.ToUint64()))
-	ldgStore, err := ledgerstore.NewLedgerStore(dbPath, 0)
+	ldgStore, err := ledgerstore.NewLedgerStore(dbPath, 0, parentLedger.ldgStore)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
