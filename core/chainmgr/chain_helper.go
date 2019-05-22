@@ -30,21 +30,11 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/chainmgr/message"
-	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 const JSON_RPC_VERSION = "2.0"
-
-func (this *ChainManager) addShardBlockInfo(blkInfo *message.ShardBlockInfo) error {
-	return xshard.AddBlockInfo(blkInfo)
-}
-
-func (this *ChainManager) getShardBlockInfo(shardID common.ShardID, height uint32) *message.ShardBlockInfo {
-	return xshard.GetBlockInfo(shardID, height)
-}
 
 func (self *ChainManager) initShardInfo(shardID common.ShardID, shard *shardstates.ShardState) (*ShardInfo, error) {
 	if shardID != shard.ShardID {

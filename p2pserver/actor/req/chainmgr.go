@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 The ontology Authors
+ * Copyright (C) 2018 The ontology Authors
  * This file is part of The ontology library.
  *
  * The ontology is free software: you can redistribute it and/or modify
@@ -16,28 +16,14 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package xshard
+package req
 
 import (
-	"testing"
-
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology-eventbus/actor"
 )
 
-func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
-	shardMsg := &types.CrossShardMsg{
-		FromShardID:   common.NewShardIDUnchecked(0),
-		MsgHeight:     uint32(90),
-		SignMsgHeight: uint32(100),
-	}
-	return shardMsg
-}
+var ChainMgrPid *actor.PID
 
-func TestCrossShardPool(t *testing.T) {
-	InitCrossShardPool(common.NewShardIDUnchecked(1), 100)
-	shardMsg := newTestShardMsg(t)
-	if err := AddCrossShardInfo(shardMsg, nil); err != nil {
-		t.Fatalf("failed add CrossShardInfo:%s", err)
-	}
+func SetChainMgrPid(conPid *actor.PID) {
+	ChainMgrPid = conPid
 }

@@ -58,7 +58,7 @@ func newTestBlock(height uint32, shardID common.ShardID) *types.Block {
 
 	return &types.Block{
 		Header:       header,
-		ShardTxs:     make(map[uint64][]*types.Transaction),
+		ShardTxs:     make(map[uint64][]*types.CrossShardTxInfos),
 		Transactions: make([]*types.Transaction, 0),
 	}
 }

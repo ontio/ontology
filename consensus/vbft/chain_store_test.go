@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
@@ -61,7 +62,7 @@ func newChainStore(t *testing.T) *ChainStore {
 	if err != nil {
 		t.Fatalf("InitLedgerStoreWithGenesisBlock error %s", err)
 	}
-	chainstore, err := OpenBlockStore(db, nil)
+	chainstore, err := OpenBlockStore(db, nil, nil, common.NewShardIDUnchecked(0))
 	if err != nil {
 		t.Fatalf("openblockstore failed: %v\n", err)
 	}

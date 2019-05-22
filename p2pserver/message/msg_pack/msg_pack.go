@@ -83,6 +83,13 @@ func NewConsensus(cp *mt.ConsensusPayload) mt.Message {
 	return &cons
 }
 
+func NewCrossShard(cross *mt.CrossShardPayload) mt.Message {
+	log.Trace()
+	var crossmsg mt.CrossShard
+	crossmsg.Cons = *cross
+	return &crossmsg
+}
+
 //InvPayload
 func NewInvPayload(invType common.InventoryType, msg []common.Uint256) *mt.InvPayload {
 	log.Trace()

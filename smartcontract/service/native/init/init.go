@@ -42,7 +42,8 @@ import (
 )
 
 var (
-	COMMIT_DPOS_BYTES = InitBytes(utils.GovernanceContractAddress, governance.COMMIT_DPOS)
+	COMMIT_DPOS_BYTES       = InitBytes(utils.GovernanceContractAddress, governance.COMMIT_DPOS)
+	SHARD_COMMIT_DPOS_BYTES = InitBytes(utils.ShardMgmtContractAddress, shardmgmt.NOTIFY_PARENT_COMMIT_DPOS)
 )
 
 func init() {

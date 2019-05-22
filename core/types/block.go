@@ -28,7 +28,7 @@ import (
 
 type Block struct {
 	Header       *Header
-	ShardTxs     map[uint64][]*Transaction
+	ShardTxs     map[uint64][]*CrossShardTxInfos
 	Transactions []*Transaction
 }
 
@@ -144,43 +144,39 @@ func (b *Block) RebuildMerkleRoot() {
 	b.Header.TransactionsRoot = hash
 }
 
-func zcpSerializeShardTxs(sink *common.ZeroCopySink, shardID uint64, shardTxs []*Transaction) {
+func zcpSerializeShardTxs(sink *common.ZeroCopySink, shardID uint64, shardTxs []*CrossShardTxInfos) {
 	if shardTxs == nil {
 		return
 	}
 
 	sink.WriteUint64(shardID)
 	sink.WriteUint32(uint32(len(shardTxs)))
-	for _, tx := range shardTxs {
-		tx.Serialization(sink)
+	for _, shardTx := range shardTxs {
+		shardTx.Serialization(sink)
 	}
 }
 
-func zcpDeserializeShardTxs(source *common.ZeroCopySource, shardTxCnt uint32) (map[uint64][]*Transaction, error) {
-	shardTxs := make(map[uint64][]*Transaction)
-
+func zcpDeserializeShardTxs(source *common.ZeroCopySource, shardTxCnt uint32) (map[uint64][]*CrossShardTxInfos, error) {
+	shardTxs := make(map[uint64][]*CrossShardTxInfos)
 	for i := uint32(0); i < shardTxCnt; i++ {
 		shardID, eof := source.NextUint64()
 		if eof {
 			return nil, io.ErrUnexpectedEOF
 		}
-
 		txCnt, eof := source.NextUint32()
 		if eof {
 			return nil, io.ErrUnexpectedEOF
 		}
-
-		txs := make([]*Transaction, 0)
+		crossShardTxs := make([]*CrossShardTxInfos, 0)
 		for i := uint32(0); i < txCnt; i++ {
-			tx := new(Transaction)
-			err := tx.Deserialization(source)
+			crossShardTx := new(CrossShardTxInfos)
+			err := crossShardTx.Deserialization(source)
 			if err != nil {
 				return nil, fmt.Errorf("deserialize shard tx: %s", err)
 			}
-			txs = append(txs, tx)
+			crossShardTxs = append(crossShardTxs, crossShardTx)
 		}
-		shardTxs[shardID] = txs
+		shardTxs[shardID] = crossShardTxs
 	}
-
 	return shardTxs, nil
 }

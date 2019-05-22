@@ -23,9 +23,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events/message"
-	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -302,6 +303,30 @@ func (self *StateStore) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.
 	}
 
 	return shards, nil
+}
+
+func (self *StateStore) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
+	keys := common.NewZeroCopySink(16)
+	keys.WriteByte(byte(scom.XSHARD_KEY_MSG_HASH))
+	keys.WriteShardID(shardID)
+	buf, err := self.store.Get(keys.Bytes())
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	source := common.NewZeroCopySource(buf)
+	msgHash, eof := source.NextHash()
+	if eof {
+		return common.Uint256{}, io.ErrUnexpectedEOF
+	}
+	return msgHash, nil
+}
+
+func genCrossShardMsgKey(height uint32, shardID common.ShardID) []byte {
+	sink := common.NewZeroCopySink(16)
+	sink.WriteByte(byte(scom.XSHARD_KEY_CROSS_MSG_IN_BLOCK))
+	sink.WriteUint32(height)
+	sink.WriteShardID(shardID)
+	return sink.Bytes()
 }
 
 //GetMerkleProof return merkle proof of block

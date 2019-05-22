@@ -20,6 +20,7 @@ package xshard_types
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"io"
 
@@ -429,3 +430,8 @@ func NewShardTxID(h common.Uint256) ShardTxID {
 }
 
 type ShardTxID string // cross shard tx id: userTxHash+notify1+notify2...
+func GetShardCommonMsgsHash(msgs []CommonShardMsg) common.Uint256 {
+	sink := &common.ZeroCopySink{}
+	EncodeShardCommonMsgs(sink, msgs)
+	return common.Uint256(sha256.Sum256(sink.Bytes()))
+}
