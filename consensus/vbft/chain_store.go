@@ -32,7 +32,7 @@ import (
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
-	eventmsg "github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
@@ -152,6 +152,9 @@ func (self *ChainStore) AddBlock(block *Block) error {
 			if submitBlk.block.CrossMsg != nil {
 				self.broadCrossMsg(submitBlk.block.CrossMsg, blkNum-1)
 			}
+			if len(submitBlk.block.Block.ShardTxs) != 0 {
+				xshard.DelCrossShardTxs(submitBlk.block.Block.ShardTxs)
+			}
 			if err != nil && blkNum > self.GetChainedBlockNum() {
 				return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 			}
@@ -170,7 +173,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult}
 	self.needSubmitBlock = true
 	self.pid.Tell(
-		&eventmsg.BlockConsensusComplete{
+		&message.BlockConsensusComplete{
 			Block: block.Block,
 		})
 	self.chainedBlockNum = blkNum
@@ -241,6 +244,5 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 			Data:    sink.Bytes(),
 		}
 		self.p2p.Broadcast(msg)
-		xshard.DelCrossShardTxs(crossMsg.ShardID, msgRoot)
 	}
 }

@@ -92,18 +92,22 @@ func GetCrossShardTxs() map[uint64][]*types.CrossShardTxInfos {
 	return crossShardMapInfos
 }
 
-func DelCrossShardTxs(shardID common.ShardID, msgHash common.Uint256) error {
+func DelCrossShardTxs(crossShardTxs map[uint64][]*types.CrossShardTxInfos) error {
 	pool := crossShardPool
 	if pool.ShardID.IsRootShard() {
 		return nil
 	}
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
-	if crossShardTxInfos, present := pool.Shards[shardID.ToUint64()]; !present {
-		log.Infof("delcrossshardtxs shardID:%v,not exist", shardID)
-		return nil
-	} else {
-		delete(crossShardTxInfos, msgHash)
+	for shardID, shardTxs := range crossShardTxs {
+		for _, shardTx := range shardTxs {
+			if crossShardTxInfos, present := pool.Shards[shardID]; !present {
+				log.Infof("delcrossshardtxs shardID:%d,not exist", shardID)
+				return nil
+			} else {
+				delete(crossShardTxInfos, shardTx.ShardMsg.CrossShardMsgRoot)
+			}
+		}
 	}
 	return nil
 }

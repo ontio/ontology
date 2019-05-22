@@ -33,9 +33,12 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
+	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/validator/increment"
 )
 
@@ -43,6 +46,11 @@ import (
 *Simple consensus for solo node in test environment.
  */
 const ContextVersion uint32 = common.CURR_HEADER_VERSION
+
+type CrossShardMsgs struct {
+	Height    uint32
+	CrossMsgs []*types.CrossShardMsgHash
+}
 
 type SoloService struct {
 	Account          *account.Account
@@ -177,10 +185,73 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("submitBlock height:%d error:%s", block.Header.Height, err)
 	}
-
+	xshard.DelCrossShardTxs(block.ShardTxs)
+	self.broadCrossShardHashMsgs(block.Header.Height, result.ShardNotify)
 	// new block persisted, update parentHeight
 	self.parentHeight = block.Header.ParentHeight
 	return nil
+}
+
+func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xshard_types.CommonShardMsg) {
+	if len(shardMsgs) == 0 {
+		return
+	}
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	for _, msg := range shardMsgs {
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	}
+	var hashes []common.Uint256
+	crossShardMsgs := &CrossShardMsgs{}
+	for shardID, shardMsg := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsg)
+		sig, err := signature.Sign(self.Account, msgHash[:])
+		if err != nil {
+			log.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", msgHash.ToHexString(), err)
+			return
+		}
+		crossShardMsg := &types.CrossShardMsgHash{
+			ShardID: shardID,
+			MsgHash: msgHash,
+			SigData: [][]byte{sig},
+		}
+		crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossShardMsg)
+		crossShardMsgs.Height = blkNum
+	}
+	for _, crossShard := range crossShardMsgs.CrossMsgs {
+		hashes = append(hashes, crossShard.MsgHash)
+	}
+	msgRoot := common.ComputeMerkleRoot(hashes)
+	for _, crossMsg := range crossShardMsgs.CrossMsgs {
+		shardMsg, present := shardMsgMap[crossMsg.ShardID]
+		if !present {
+			log.Errorf("broadcast cross msg not found :%v", crossMsg.ShardID)
+			continue
+		}
+		crossShardMsg := &types.CrossShardMsg{
+			FromShardID:       self.shardID,
+			MsgHeight:         crossShardMsgs.Height,
+			SignMsgHeight:     blkNum,
+			CrossShardMsgRoot: msgRoot,
+			ShardMsg:          shardMsg,
+			ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+		}
+		preMsgHash, err := self.ledger.GetShardMsgHash(crossMsg.ShardID)
+		if err != nil {
+			if err != com.ErrNotFound {
+				log.Errorf("chainstore getshardmsghash err:%s", err)
+			}
+		} else {
+			crossShardMsg.PreCrossShardMsgHash = preMsgHash
+		}
+		sink := common.ZeroCopySink{}
+		crossShardMsg.Serialization(&sink)
+		msg := &p2pmsg.CrossShardPayload{
+			Version: common.VERSION_SUPPORT_SHARD,
+			ShardID: crossMsg.ShardID,
+			Data:    sink.Bytes(),
+		}
+		self.pid.Tell(msg)
+	}
 }
 
 func (self *SoloService) makeBlock() (*types.Block, error) {
