@@ -25,11 +25,11 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
-	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
 	eventmsg "github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
@@ -216,7 +216,7 @@ func (self *ChainStore) broadCrossMsg(crossShardMsgs *CrossShardMsgs, height uin
 			log.Errorf("broadcast cross msg not found :%v", crossMsg.ShardID)
 			continue
 		}
-		crossShardMsg := &shardmsg.CrossShardMsg{
+		crossShardMsg := &types.CrossShardMsg{
 			FromShardID:       self.shardID,
 			MsgHeight:         crossShardMsgs.Height,
 			SignMsgHeight:     height,

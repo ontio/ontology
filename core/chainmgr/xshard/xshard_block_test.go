@@ -22,11 +22,11 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/types"
 )
 
-func newTestShardMsg(t *testing.T) *message.CrossShardMsg {
-	shardMsg := &message.CrossShardMsg{
+func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
+	shardMsg := &types.CrossShardMsg{
 		FromShardID:   common.NewShardIDUnchecked(0),
 		MsgHeight:     uint32(90),
 		SignMsgHeight: uint32(100),

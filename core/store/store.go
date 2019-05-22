@@ -21,7 +21,6 @@ package store
 import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -73,6 +72,4 @@ type LedgerStore interface {
 	GetShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) ([]xshard_types.CommonShardMsg, error)
 	GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error)
 	GetShardMsgHash(shardID common.ShardID) (common.Uint256, error)
-	GetCrossShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) (*crossshard.CrossShardMsg, error)
-	AddCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *crossshard.CrossShardMsg)
 }

@@ -31,8 +31,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
-	crossshard "github.com/ontio/ontology/core/chainmgr/message"
-	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	scom "github.com/ontio/ontology/core/store/common"
@@ -321,25 +319,6 @@ func (self *StateStore) GetShardMsgHash(shardID common.ShardID) (common.Uint256,
 		return common.Uint256{}, io.ErrUnexpectedEOF
 	}
 	return msgHash, nil
-}
-
-func (self *StateStore) GetCrossShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) (*crossshard.CrossShardMsg, error) {
-	buf, err := self.store.Get(genCrossShardMsgKey(blockHeight, shardID))
-	if err != nil {
-		return nil, err
-	}
-	source := common.NewZeroCopySource(buf)
-	msg := &crossshard.CrossShardMsg{}
-	if err := msg.Deserialization(source); err != nil {
-		return nil, err
-	}
-	return msg, nil
-}
-
-func (self *StateStore) AddCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *shardmsg.CrossShardMsg) {
-	sink := common.ZeroCopySink{}
-	crossShardMsg.Serialization(&sink)
-	self.store.BatchPut(genCrossShardMsgKey(blockHeight, crossShardMsg.FromShardID), sink.Bytes())
 }
 
 func genCrossShardMsgKey(height uint32, shardID common.ShardID) []byte {

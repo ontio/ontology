@@ -24,77 +24,46 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 )
 
 // cross  shard pool
-//type ShardTxMap map[uint32]*types.Transaction // indexed by BlockHeight
 
-//type ShardBlockMap map[uint32]*shardmsg.ShardBlockInfo // indexed by BlockHeight
-
-type ShardMsgMap map[uint32]*shardmsg.CrossShardMsgInfo // indexed by BlockHeight
 type CrossShardPool struct {
 	lock        sync.RWMutex
 	ShardID     common.ShardID
-	Shards      map[common.ShardID]ShardMsgMap // indexed by FromShardID
+	Shards      map[uint64]map[common.Uint256]*types.CrossShardTxInfos // indexed by FromShardID
 	MaxBlockCap uint32
 }
 
 // BlockHeader and Cross-Shard Txs of other shards
 var crossShardPool *CrossShardPool
 
-func InitCrossShardPool(shard common.ShardID, historyCap uint32) {
+func InitCrossShardPool(shardID common.ShardID, historyCap uint32) {
 	crossShardPool = &CrossShardPool{
-		ShardID:     shard,
-		Shards:      make(map[common.ShardID]ShardMsgMap),
+		ShardID:     shardID,
+		Shards:      make(map[uint64]map[common.Uint256]*types.CrossShardTxInfos),
 		MaxBlockCap: historyCap,
 	}
 }
 
-func AddCrossShardInfo(crossShardMsg *shardmsg.CrossShardMsg, tx *types.Transaction) error {
+func AddCrossShardInfo(crossShardMsg *types.CrossShardMsg, tx *types.Transaction) error {
 	pool := crossShardPool
+	crossShardTxInfo := &types.CrossShardTxInfos{
+		ShardMsg: crossShardMsg,
+		Tx:       tx,
+	}
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
-	if _, present := pool.Shards[crossShardMsg.FromShardID]; !present {
-		pool.Shards[crossShardMsg.FromShardID] = make(ShardMsgMap)
+	if _, present := pool.Shards[crossShardMsg.FromShardID.ToUint64()]; !present {
+		pool.Shards[crossShardMsg.FromShardID.ToUint64()] = make(map[common.Uint256]*types.CrossShardTxInfos)
 	}
-	m := pool.Shards[crossShardMsg.FromShardID]
+	m := pool.Shards[crossShardMsg.FromShardID.ToUint64()]
 	if m == nil {
 		return fmt.Errorf("add shard cross tx, nil map")
 	}
-	if crossMsg, present := m[crossShardMsg.MsgHeight]; present {
-		if crossMsg.ShardMsg.CrossShardMsgRoot == crossShardMsg.CrossShardMsgRoot {
-			return fmt.Errorf("add shard block, dup blk")
-		}
-	}
+	m[crossShardTxInfo.ShardMsg.CrossShardMsgRoot] = crossShardTxInfo
 	log.Infof("chainmgr AddBlock from shard %d, block %d", crossShardMsg.FromShardID.ToUint64(), crossShardMsg.MsgHeight)
-	crossShardMsgInfo := &shardmsg.CrossShardMsgInfo{
-		ShardMsg: crossShardMsg,
-		ShardTx: &shardmsg.ShardBlockTx{
-			Tx: tx,
-		},
-	}
-	m[crossShardMsg.MsgHeight] = crossShardMsgInfo
-	// if too much block cached in map, drop old blocks
-	if uint32(len(m)) < pool.MaxBlockCap {
-		return nil
-	}
-	h := crossShardMsg.MsgHeight
-	for height, _ := range m {
-		if height > h {
-			h = height
-		}
-	}
-	toDrop := make([]uint32, 0)
-	for height, _ := range m {
-		if height < h-uint32(pool.MaxBlockCap) {
-			toDrop = append(toDrop, height)
-		}
-	}
-	for _, blkHeight := range toDrop {
-		delete(m, blkHeight)
-	}
 	return nil
 }
 
@@ -104,25 +73,37 @@ func AddCrossShardInfo(crossShardMsg *shardmsg.CrossShardMsg, tx *types.Transact
 // Cross-shard Tx/events of parent shard are delivered to child shards with parent-block propagation.
 // NOTE: all cross-shard tx/events should be indexed with (parentHeight, shardHeight)
 //
-func GetCrossShardTxs() (map[uint64][]*types.Transaction, map[common.ShardID][]*shardmsg.CrossShardMsgInfo) {
+
+func GetCrossShardTxs() map[uint64][]*types.CrossShardTxInfos {
 	pool := crossShardPool
-	shardID := pool.ShardID
-	if shardID.IsRootShard() {
-		return nil, nil
+	if pool.ShardID.IsRootShard() {
+		return nil
 	}
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
-	shardMsgs := make(map[common.ShardID][]*shardmsg.CrossShardMsgInfo)
-	shardTxs := make(map[uint64][]*types.Transaction)
-	for shardID, shardMsgInfo := range pool.Shards {
-		txs := make([]*types.Transaction, 0)
-		msgs := make([]*shardmsg.CrossShardMsgInfo, 0)
-		for _, shard := range shardMsgInfo {
-			txs = append(txs, shard.ShardTx.Tx)
-			msgs = append(msgs, shard)
+	crossShardInfo := make([]*types.CrossShardTxInfos, 0)
+	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
+	for shardID, shardTxs := range pool.Shards {
+		for _, shardTx := range shardTxs {
+			crossShardInfo = append(crossShardInfo, shardTx)
 		}
-		shardMsgs[shardID] = msgs
-		shardTxs[shardID.ToUint64()] = txs
+		crossShardMapInfos[shardID] = crossShardInfo
 	}
-	return shardTxs, shardMsgs
+	return crossShardMapInfos
+}
+
+func DelCrossShardTxs(shardID common.ShardID, msgHash common.Uint256) error {
+	pool := crossShardPool
+	if pool.ShardID.IsRootShard() {
+		return nil
+	}
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	if crossShardTxInfos, present := pool.Shards[shardID.ToUint64()]; !present {
+		log.Infof("delcrossshardtxs shardID:%v,not exist", shardID)
+		return nil
+	} else {
+		delete(crossShardTxInfos, msgHash)
+	}
+	return nil
 }

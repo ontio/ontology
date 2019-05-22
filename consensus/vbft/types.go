@@ -26,20 +26,12 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	shardmsg "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 )
 
 type CrossShardMsgs struct {
 	Height    uint32
-	CrossMsgs []*shardmsg.CrossShardMsgHash
-}
-type CrossTxMsg struct {
-	ShardID common.ShardID
-	TxMsg   *shardmsg.CrossShardMsgInfo
-}
-type CrossTxMsgs struct {
-	CrossMsg []*CrossTxMsg
+	CrossMsgs []*types.CrossShardMsgHash
 }
 
 type Block struct {
@@ -48,7 +40,6 @@ type Block struct {
 	Info                *vconfig.VbftBlockInfo
 	PrevBlockMerkleRoot common.Uint256
 	CrossMsg            *CrossShardMsgs
-	CrossTxs            *CrossTxMsgs
 }
 
 func (blk *Block) getProposer() uint32 {
@@ -107,15 +98,6 @@ func (blk *Block) Serialize() ([]byte, error) {
 			crossMsg.Serialization(sink3)
 		}
 		payload.WriteVarBytes(sink3.Bytes())
-	}
-	if blk.CrossTxs != nil {
-		sink4 := common.NewZeroCopySink(0)
-		sink4.WriteVarUint(uint64(len(blk.CrossTxs.CrossMsg)))
-		for _, crossMsg := range blk.CrossTxs.CrossMsg {
-			sink4.WriteShardID(crossMsg.ShardID)
-			crossMsg.TxMsg.Serialization(sink4)
-		}
-		payload.WriteVarBytes(sink4.Bytes())
 	}
 	return payload.Bytes(), nil
 }
@@ -182,7 +164,7 @@ func (blk *Block) Deserialize(data []byte) error {
 			return common.ErrIrregularData
 		}
 		for i := 0; i < int(m); i++ {
-			shardMsg := &shardmsg.CrossShardMsgHash{}
+			shardMsg := &types.CrossShardMsgHash{}
 			err = shardMsg.Deserialization(crossSource)
 			if err != nil {
 				log.Errorf("shardmsg deserialization err:%s", err)
@@ -191,44 +173,11 @@ func (blk *Block) Deserialize(data []byte) error {
 			crossMsg.CrossMsgs = append(crossMsg.CrossMsgs, shardMsg)
 		}
 	}
-	crossTxs := &CrossTxMsgs{}
-	if source.Len() > 0 {
-		buf4, _, irregular, eof := source.NextVarBytes()
-		if irregular {
-			return common.ErrIrregularData
-		}
-		if eof {
-			return io.ErrUnexpectedEOF
-		}
-		txSource := common.NewZeroCopySource(buf4)
-		m, _, irregular, eof := txSource.NextVarUint()
-		if eof {
-			return io.ErrUnexpectedEOF
-		}
-		if irregular {
-			return common.ErrIrregularData
-		}
-		for i := 0; i < int(m); i++ {
-			crossTxmsg := &CrossTxMsg{}
-			crossTxmsg.ShardID, err = txSource.NextShardID()
-			if err != nil {
-				return err
-			}
-			txmsg := &shardmsg.CrossShardMsgInfo{}
-			err = txmsg.Deserialization(txSource)
-			if err != nil {
-				return err
-			}
-			crossTxmsg.TxMsg = txmsg
-			crossTxs.CrossMsg = append(crossTxs.CrossMsg, crossTxmsg)
-		}
-	}
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
 	blk.Info = info
 	blk.PrevBlockMerkleRoot = merkleRoot
 	blk.CrossMsg = crossMsg
-	blk.CrossTxs = crossTxs
 	return nil
 }
 

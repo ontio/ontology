@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
@@ -351,14 +350,6 @@ func (self *Ledger) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.Shar
 
 func (self *Ledger) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
 	return self.ldgStore.GetShardMsgHash(shardID)
-}
-
-func (self *Ledger) GetCrossShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) (*crossshard.CrossShardMsg, error) {
-	return self.ldgStore.GetCrossShardMsgsInBlock(blockHeight, shardID)
-}
-
-func (self *Ledger) AddCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *crossshard.CrossShardMsg) {
-	self.ldgStore.AddCrossShardMsgInBlock(blockHeight, crossShardMsg)
 }
 
 func (self *Ledger) Close() error {

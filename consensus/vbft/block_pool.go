@@ -650,7 +650,6 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 			Info:                block.Info,
 			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
 			CrossMsg:            block.CrossMsg,
-			CrossTxs:            block.CrossTxs,
 		}
 	} else {
 		// replace with empty block
@@ -659,7 +658,6 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 			Info:                block.Info,
 			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
 			CrossMsg:            block.CrossMsg,
-			CrossTxs:            block.CrossTxs,
 		}
 	}
 

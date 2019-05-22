@@ -35,6 +35,7 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
@@ -416,7 +417,7 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 		return
 	}
 	source := common.NewZeroCopySource(payload.Data)
-	msg := &crossshard.CrossShardMsg{}
+	msg := &types.CrossShardMsg{}
 	if err := msg.Deserialization(source); err != nil {
 		log.Errorf("handleCrossShardMsg failed to Deserialize crossshard msg %s", err)
 		return
@@ -437,7 +438,6 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.MsgHeight, err)
 		return
 	}
-	self.db.AddCrossShardMsgInBlock(self.db.GetCurrentBlockHeight(), msg)
 	xshard.AddCrossShardInfo(msg, tx)
 }
 

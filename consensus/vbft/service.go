@@ -1191,48 +1191,50 @@ func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
 }
 
 func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
-	if msg.Block.CrossTxs == nil {
+	if len(msg.Block.Block.ShardTxs) == 0 {
 		return true
 	}
-	for _, crossTxmsg := range msg.Block.CrossTxs.CrossMsg {
-		//verify msg sign
-		for _, msgHash := range crossTxmsg.TxMsg.ShardMsg.ShardMsgHashs {
-			shardState, err := xshard.GetShardState(self.ledger.ParentLedger, msgHash.ShardID)
-			if err != nil {
-				log.Errorf("GetShardState err:%s", err)
-				return false
-			}
-			var bookkeepers []keypair.PublicKey
-			//m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
-			//todo temp
-			m := int(shardState.Config.VbftCfg.N - ((shardState.Config.VbftCfg.N)*6)/7)
-			for _, peer := range shardState.Config.VbftCfg.Peers {
-				pubkey, err := vconfig.Pubkey(peer.PeerPubkey)
+	for _, crossTxMsgs := range msg.Block.Block.ShardTxs {
+		for _, crossTxMsg := range crossTxMsgs {
+			//verify msg sign
+			for _, msgHash := range crossTxMsg.ShardMsg.ShardMsgHashs {
+				shardState, err := xshard.GetShardState(self.ledger.ParentLedger, msgHash.ShardID)
 				if err != nil {
-					log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.PeerPubkey, err)
+					log.Errorf("GetShardState err:%s", err)
 					return false
 				}
-				bookkeepers = append(bookkeepers, pubkey)
+				var bookkeepers []keypair.PublicKey
+				//m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
+				//todo temp
+				m := int(shardState.Config.VbftCfg.N - ((shardState.Config.VbftCfg.N)*6)/7)
+				for _, peer := range shardState.Config.VbftCfg.Peers {
+					pubkey, err := vconfig.Pubkey(peer.PeerPubkey)
+					if err != nil {
+						log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.PeerPubkey, err)
+						return false
+					}
+					bookkeepers = append(bookkeepers, pubkey)
+				}
+				err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, msgHash.SigData)
+				if err != nil {
+					log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d", err, len(bookkeepers), m)
+					return false
+				}
 			}
-			err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, msgHash.SigData)
-			if err != nil {
-				log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d", err, len(bookkeepers), m)
+			//verify msg hash
+			var hashes []common.Uint256
+			shardMsgRoot := crossTxMsg.ShardMsg.CrossShardMsgRoot
+			for _, shardMsg := range crossTxMsg.ShardMsg.ShardMsgHashs {
+				if shardMsg.ShardID != self.ShardID {
+					hashes = append(hashes, shardMsg.MsgHash)
+				}
+			}
+			hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(crossTxMsg.ShardMsg.ShardMsg))
+			msgRoot := common.ComputeMerkleRoot(hashes)
+			if shardMsgRoot != msgRoot {
+				log.Errorf("verifyCrossShardTx shard msgroot:%s,not match msgroot:%s", shardMsgRoot.ToHexString(), msgRoot.ToHexString())
 				return false
 			}
-		}
-		//verify msg hash
-		var hashes []common.Uint256
-		shardMsgRoot := crossTxmsg.TxMsg.ShardMsg.CrossShardMsgRoot
-		for _, shardMsg := range crossTxmsg.TxMsg.ShardMsg.ShardMsgHashs {
-			if shardMsg.ShardID != self.ShardID {
-				hashes = append(hashes, shardMsg.MsgHash)
-			}
-		}
-		hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(crossTxmsg.TxMsg.ShardMsg.ShardMsg))
-		msgRoot := common.ComputeMerkleRoot(hashes)
-		if shardMsgRoot != msgRoot {
-			log.Errorf("verifyCrossShardTx shard msgroot:%s,not match msgroot:%s", shardMsgRoot.ToHexString(), msgRoot.ToHexString())
-			return false
 		}
 	}
 	return true

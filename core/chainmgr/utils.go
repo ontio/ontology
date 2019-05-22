@@ -41,6 +41,16 @@ func (self *ChainManager) GetShardConfig(shardID common.ShardID) *config.Ontolog
 	return nil
 }
 
+func (self *ChainManager) GetShardID() []common.ShardID {
+	self.lock.RLock()
+	defer self.lock.RUnlock()
+	var shardIDs []common.ShardID
+	for shardID, _ := range self.shards {
+		shardIDs = append(shardIDs, shardID)
+	}
+	return shardIDs
+}
+
 func (self *ChainManager) setShardConfig(shardID common.ShardID, cfg *config.OntologyConfig) error {
 	self.lock.Lock()
 	defer self.lock.Unlock()

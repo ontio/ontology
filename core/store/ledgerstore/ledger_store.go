@@ -38,7 +38,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -654,9 +653,9 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	for _, id := range ids {
 		log.Infof("executing shard Tx from shard %d, txnum = %d", id, len(block.ShardTxs[id]))
-		for _, tx := range block.ShardTxs[id] {
+		for _, shardTx := range block.ShardTxs[id] {
 			cache.Reset()
-			notify, e := HandleTransaction(this, overlay, cache, xshardDB, block.Header, tx)
+			notify, e := HandleTransaction(this, overlay, cache, xshardDB, block.Header, shardTx.Tx)
 			if e != nil {
 				err = e
 				return
@@ -1216,14 +1215,6 @@ func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]com
 
 func (self *LedgerStoreImp) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
 	return self.stateStore.GetShardMsgHash(shardID)
-}
-
-func (self *LedgerStoreImp) GetCrossShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) (*crossshard.CrossShardMsg, error) {
-	return self.stateStore.GetCrossShardMsgsInBlock(blockHeight, shardID)
-}
-
-func (self *LedgerStoreImp) AddCrossShardMsgInBlock(blockHeight uint32, crossShardMsg *crossshard.CrossShardMsg) {
-	self.stateStore.AddCrossShardMsgInBlock(blockHeight, crossShardMsg)
 }
 
 //Close ledger store.
