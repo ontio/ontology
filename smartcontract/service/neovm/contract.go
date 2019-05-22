@@ -35,6 +35,10 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
 	}
 	contractAddress := contract.Address()
+	parentContract, _ := service.Store.GetContractStateFromParentShard(contractAddress)
+	if parentContract != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract existed in parent shard!")
+	}
 	dep, err := service.CacheDB.GetContract(contractAddress)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")

@@ -1100,6 +1100,19 @@ func (this *LedgerStoreImp) GetContractStateFromParentShard(contractHash common.
 	return this.parentShardStore.GetContractState(contractHash)
 }
 
+//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
+func (this *LedgerStoreImp) GetContractMetaData(contractHash common.Address) (*payload.MetaDataCode, error) {
+	return this.stateStore.GetContractMetaData(contractHash)
+}
+
+//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
+func (this *LedgerStoreImp) GetContractMetaDataFromParentShard(contractHash common.Address) (*payload.MetaDataCode, error) {
+	if this.parentShardStore == nil {
+		return nil, fmt.Errorf("parent store is nil")
+	}
+	return this.parentShardStore.GetContractMetaData(contractHash)
+}
+
 //GetStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState
 func (this *LedgerStoreImp) GetStorageItem(key *states.StorageKey) (*states.StorageItem, error) {
 	return this.stateStore.GetStorageState(key)
