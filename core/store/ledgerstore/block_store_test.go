@@ -44,7 +44,7 @@ func TestExtractHeaderHeight(t *testing.T) {
 		Timestamp:        uint32(1),
 		Height:           uint32(99999),
 	}
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(0)
 	header.Serialization(sink)
 	source := common.NewZeroCopySource(sink.Bytes())
 	height, err := extractHeaderHeight(source)

@@ -112,7 +112,7 @@ func ShardCCMCRegister(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("register cc, getCCID: %s", err)
 	}
 	if ccid != 0 {
-		return utils.BYTE_FALSE, fmt.Errorf("register cc, contract registered with ID: %s", ccid)
+		return utils.BYTE_FALSE, fmt.Errorf("register cc, contract registered with ID: %d", ccid)
 	}
 
 	ccmc, err := getCCMCState(native, contract)

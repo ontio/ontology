@@ -32,7 +32,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	ntypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
@@ -187,7 +186,7 @@ func GetAssetId(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetAssetId: failed, err: %s", err)
 	}
-	return ntypes.BigIntToBytes(new(big.Int).SetUint64(uint64(assetId))), nil
+	return common.BigIntToNeoBytes(new(big.Int).SetUint64(uint64(assetId))), nil
 }
 
 func Migrate(native *native.NativeService) ([]byte, error) {
@@ -251,7 +250,7 @@ func Decimals(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("Decimals: failed, err: %s", err)
 	}
-	return ntypes.BigIntToBytes(new(big.Int).SetUint64(oep4.Decimals)), nil
+	return common.BigIntToNeoBytes(new(big.Int).SetUint64(oep4.Decimals)), nil
 }
 
 func TotalSupply(native *native.NativeService) ([]byte, error) {
@@ -264,7 +263,7 @@ func TotalSupply(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
 	}
-	return ntypes.BigIntToBytes(oep4.TotalSupply), nil
+	return common.BigIntToNeoBytes(oep4.TotalSupply), nil
 }
 
 func ShardSupply(native *native.NativeService) ([]byte, error) {
@@ -283,9 +282,9 @@ func ShardSupply(native *native.NativeService) ([]byte, error) {
 	}
 	supply, ok := shardSupplyInfo[shardId]
 	if ok {
-		return ntypes.BigIntToBytes(supply), nil
+		return common.BigIntToNeoBytes(supply), nil
 	} else {
-		return ntypes.BigIntToBytes(big.NewInt(0)), nil
+		return common.BigIntToNeoBytes(big.NewInt(0)), nil
 	}
 }
 
@@ -303,7 +302,7 @@ func WholeSupply(native *native.NativeService) ([]byte, error) {
 	for _, supply := range shardSupplyInfo {
 		whole.Add(whole, supply)
 	}
-	return ntypes.BigIntToBytes(whole), nil
+	return common.BigIntToNeoBytes(whole), nil
 }
 
 func GetSupplyInfo(native *native.NativeService) ([]byte, error) {
@@ -336,7 +335,7 @@ func BalanceOf(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("BalanceOf: failed, err: %s", err)
 	}
-	return ntypes.BigIntToBytes(userBalance), nil
+	return common.BigIntToNeoBytes(userBalance), nil
 }
 
 func Transfer(native *native.NativeService) ([]byte, error) {
@@ -443,7 +442,7 @@ func Allowance(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("Allowance: failed, err: %s", err)
 	}
-	return ntypes.BigIntToBytes(allowance), nil
+	return common.BigIntToNeoBytes(allowance), nil
 }
 
 // user should check witness before call this function
@@ -701,7 +700,7 @@ func XShardTransferOng(native *native.NativeService) ([]byte, error) {
 	if err := notifyShardReceiveOng(native, param.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
-	return ntypes.BigIntToBytes(txId), nil
+	return common.BigIntToNeoBytes(txId), nil
 }
 
 func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {

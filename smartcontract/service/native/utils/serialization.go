@@ -25,7 +25,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func SerializeShardId(w io.Writer, id common.ShardID) error {

@@ -21,6 +21,7 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
+	ntypes "github.com/ontio/ontology/vm/neovm/types"
 	"math"
 	"sort"
 	"strconv"

@@ -37,8 +37,8 @@ import (
 )
 
 type PendingBlock struct {
-	block      *Block
-	execResult *store.ExecuteResult
+	block        *Block
+	execResult   *store.ExecuteResult
 	hasSubmitted bool
 }
 type ChainStore struct {
@@ -146,7 +146,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 	err := self.SubmitBlock(blkNum - 1)
 	if err != nil {
 		log.Errorf("chainstore blkNum:%d, SubmitBlock: %s", blkNum-1, err)
-			}
+	}
 	execResult, err := self.db.ExecuteBlock(block.Block)
 	if err != nil {
 		log.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
@@ -170,15 +170,15 @@ func (self *ChainStore) SubmitBlock(blkNum uint32) error {
 		if err != nil && blkNum > self.GetChainedBlockNum() {
 			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 		}
-			if len(submitBlk.block.Block.ShardTxs) != 0 {
-				xshard.DelCrossShardTxs(submitBlk.block.Block.ShardTxs)
-			}
-			if err != nil && blkNum > self.GetChainedBlockNum() {
-				return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
-			}
-			if _, present := self.pendingBlocks[blkNum-2]; present {
-				delete(self.pendingBlocks, blkNum-2)
-			}
+		if len(submitBlk.block.Block.ShardTxs) != 0 {
+			xshard.DelCrossShardTxs(submitBlk.block.Block.ShardTxs)
+		}
+		if err != nil && blkNum > self.GetChainedBlockNum() {
+			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
+		}
+		if _, present := self.pendingBlocks[blkNum-2]; present {
+			delete(self.pendingBlocks, blkNum-2)
+		}
 		submitBlk.hasSubmitted = true
 		if _, present := self.pendingBlocks[blkNum-1]; present {
 			delete(self.pendingBlocks, blkNum-1)

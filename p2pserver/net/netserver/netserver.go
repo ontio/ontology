@@ -51,7 +51,7 @@ func NewNetServer() p2p.P2P {
 
 //NetServer represent all the actions in net layer
 type NetServer struct {
-	base         peer.PeerCom
+	base     peer.PeerCom
 	listener net.Listener
 	NetChan  chan *types.MsgPayload
 	ConnectingNodes
@@ -217,13 +217,13 @@ func (this *NetServer) Xmit(msg types.Message) {
 //GetMsgChan return sync or consensus channel when msgrouter need msg input
 func (this *NetServer) GetMsgChan() chan *types.MsgPayload {
 	return this.NetChan
-	}
+}
 
 //Tx send data buf to peer
 func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 	if p != nil {
 		return p.Send(msg)
-		}
+	}
 	log.Warn("[p2p]send to a invalid peer")
 	return errors.New("[p2p]send to a invalid peer")
 }
@@ -293,15 +293,14 @@ func (this *NetServer) Connect(addr string) error {
 		conn.LocalAddr().String(), conn.RemoteAddr().String(),
 		conn.RemoteAddr().Network())
 
-		this.AddOutConnRecord(addr)
-		remotePeer = peer.NewPeer()
+	this.AddOutConnRecord(addr)
+	remotePeer = peer.NewPeer()
 	this.AddPeerAddress(addr, remotePeer)
 	remotePeer.Link.SetAddr(addr)
 	remotePeer.Link.SetConn(conn)
 	remotePeer.AttachChan(this.NetChan)
 	go remotePeer.Link.Rx()
 	remotePeer.SetState(common.HAND)
-
 
 	heights := make(map[uint64]uint32)
 	lgr := ledger.GetShardLedger(common2.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
@@ -311,7 +310,7 @@ func (this *NetServer) Connect(addr string) error {
 	version := msgpack.NewVersion(this, heights)
 	err = remotePeer.Send(version)
 	if err != nil {
-			this.RemoveFromOutConnRecord(addr)
+		this.RemoveFromOutConnRecord(addr)
 		log.Warn(err)
 		return err
 	}
@@ -327,7 +326,7 @@ func (this *NetServer) Halt() {
 	if this.listener != nil {
 		this.listener.Close()
 	}
-	}
+}
 
 //establishing the connection to remote peers and listening for inbound peers
 func (this *NetServer) startListening() error {
@@ -345,8 +344,8 @@ func (this *NetServer) startListening() error {
 		log.Error("[p2p]start sync listening fail")
 		return err
 	}
-		return nil
-	}
+	return nil
+}
 
 // startNetListening starts a sync listener on the port for the inbound peer
 func (this *NetServer) startNetListening(port uint16) error {

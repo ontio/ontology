@@ -33,7 +33,7 @@ type RawHeader struct {
 }
 
 func (hd *Header) GetRawHeader() *RawHeader {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(300)
 	hd.Serialization(sink)
 	return &RawHeader{
 		Height:  hd.Height,

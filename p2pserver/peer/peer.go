@@ -200,7 +200,7 @@ func (this *Peer) GetPort() uint16 {
 func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
 	if this.Link != nil && this.Link.Valid() {
 		return this.Link.SendRaw(msgPayload)
-}
+	}
 	return errors.New("[p2p]sync link invalid")
 }
 

@@ -127,7 +127,7 @@ func (this *P2PServer) StartSyncShard(shardID comm.ShardID) error {
 	for _, peer := range this.network.GetNeighbors() {
 		for s, _ := range peer.GetHeight() {
 			if s == shardID.ToUint64() {
-				syncer.OnAddNode(peer.SyncLink.GetID())
+				syncer.OnAddNode(peer.Link.GetID())
 			}
 		}
 	}

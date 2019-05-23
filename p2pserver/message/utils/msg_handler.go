@@ -259,107 +259,107 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 	}
 
-		if version.P.Nonce == p2p.GetID() {
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-			log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr())
-			p2p.SetOwnAddress(nodeAddr)
+	if version.P.Nonce == p2p.GetID() {
+		p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+		p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+		log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr())
+		p2p.SetOwnAddress(nodeAddr)
 		remotePeer.Close()
-			return
-		}
+		return
+	}
 
 	s := remotePeer.GetState()
-		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
+	if s != msgCommon.INIT && s != msgCommon.HAND {
+		log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
 		remotePeer.Close()
-			return
-		}
+		return
+	}
 
-		// Obsolete node
-		p := p2p.GetPeer(version.P.Nonce)
-		if p != nil {
-			ipOld, err := msgCommon.ParseIPAddr(p.GetAddr())
-			if err != nil {
-				log.Warn("[p2p]exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr())
-				return
-			}
-			ipNew, err := msgCommon.ParseIPAddr(data.Addr)
-			if err != nil {
-			remotePeer.Close()
-				log.Warn("[p2p]connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
-				return
-			}
-			if ipNew == ipOld {
-				//same id and same ip
-				n, ret := p2p.DelNbrNode(version.P.Nonce)
-				if ret == true {
-					log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
-					// Close the connection and release the node source
-				n.Close()
-					if pid != nil {
-						shards := make([]uint64, 0)
-						for s := range version.P.ShardHeights {
-							shards = append(shards, s)
-						}
-						input := &msgCommon.RemovePeerID{
-							ID:     version.P.Nonce,
-							Shards: shards,
-						}
-						pid.Tell(input)
-					}
-				}
-			} else {
-				log.Warnf("[p2p]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
-			remotePeer.Close()
-				return
-
-			}
-		}
-
-		if version.P.Cap[msgCommon.HTTP_INFO_FLAG] == 0x01 {
-			remotePeer.SetHttpInfoState(true)
-		} else {
-			remotePeer.SetHttpInfoState(false)
-		}
-		remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
-
-		remotePeer.UpdateInfo(time.Now(), version.P.Version,
-		version.P.Services, version.P.SyncPort, version.P.Nonce,
-			version.P.Relay, version.P.ShardHeights, version.P.SoftVersion)
-	remotePeer.Link.SetID(version.P.Nonce)
-		p2p.AddNbrNode(remotePeer)
-
-		if pid != nil {
-			shards := make([]uint64, 0)
-			for s, _ := range version.P.ShardHeights {
-				shards = append(shards, s)
-			}
-			input := &msgCommon.AppendPeerID{
-				ID:     version.P.Nonce,
-				Shards: shards,
-			}
-			pid.Tell(input)
-		}
-
-		var msg msgTypes.Message
-		if s == msgCommon.INIT {
-		remotePeer.SetState(msgCommon.HAND_SHAKE)
-			heights := make(map[uint64]uint32)
-			lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
-			if lgr != nil {
-				heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
-			}
-			msg = msgpack.NewVersion(p2p, false, heights)
-		} else if s == msgCommon.HAND {
-		remotePeer.SetState(msgCommon.HAND_SHAKED)
-		msg = msgpack.NewVerAck()
-		}
-	err = p2p.Send(remotePeer, msg)
+	// Obsolete node
+	p := p2p.GetPeer(version.P.Nonce)
+	if p != nil {
+		ipOld, err := msgCommon.ParseIPAddr(p.GetAddr())
 		if err != nil {
-			log.Warn(err)
+			log.Warn("[p2p]exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr())
 			return
+		}
+		ipNew, err := msgCommon.ParseIPAddr(data.Addr)
+		if err != nil {
+			remotePeer.Close()
+			log.Warn("[p2p]connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
+			return
+		}
+		if ipNew == ipOld {
+			//same id and same ip
+			n, ret := p2p.DelNbrNode(version.P.Nonce)
+			if ret == true {
+				log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
+				// Close the connection and release the node source
+				n.Close()
+				if pid != nil {
+					shards := make([]uint64, 0)
+					for s := range version.P.ShardHeights {
+						shards = append(shards, s)
+					}
+					input := &msgCommon.RemovePeerID{
+						ID:     version.P.Nonce,
+						Shards: shards,
+					}
+					pid.Tell(input)
+				}
+			}
+		} else {
+			log.Warnf("[p2p]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
+			remotePeer.Close()
+			return
+
 		}
 	}
+
+	if version.P.Cap[msgCommon.HTTP_INFO_FLAG] == 0x01 {
+		remotePeer.SetHttpInfoState(true)
+	} else {
+		remotePeer.SetHttpInfoState(false)
+	}
+	remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
+
+	remotePeer.UpdateInfo(time.Now(), version.P.Version,
+		version.P.Services, version.P.SyncPort, version.P.Nonce,
+		version.P.Relay, version.P.ShardHeights, version.P.SoftVersion)
+	remotePeer.Link.SetID(version.P.Nonce)
+	p2p.AddNbrNode(remotePeer)
+
+	if pid != nil {
+		shards := make([]uint64, 0)
+		for s, _ := range version.P.ShardHeights {
+			shards = append(shards, s)
+		}
+		input := &msgCommon.AppendPeerID{
+			ID:     version.P.Nonce,
+			Shards: shards,
+		}
+		pid.Tell(input)
+	}
+
+	var msg msgTypes.Message
+	if s == msgCommon.INIT {
+		remotePeer.SetState(msgCommon.HAND_SHAKE)
+		heights := make(map[uint64]uint32)
+		lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+		if lgr != nil {
+			heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+		}
+		msg = msgpack.NewVersion(p2p, heights)
+	} else if s == msgCommon.HAND {
+		remotePeer.SetState(msgCommon.HAND_SHAKED)
+		msg = msgpack.NewVerAck()
+	}
+	err = p2p.Send(remotePeer, msg)
+	if err != nil {
+		log.Warn(err)
+		return
+	}
+}
 
 // VerAckHandle handles the version ack from peer
 func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
@@ -374,21 +374,21 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 	}
 
 	s := remotePeer.GetState()
-		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
-			log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
-			return
-		}
+	if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
+		log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
+		return
+	}
 
 	remotePeer.SetState(msgCommon.ESTABLISH)
-		p2p.RemoveFromConnectingList(data.Addr)
-		remotePeer.DumpInfo()
+	p2p.RemoveFromConnectingList(data.Addr)
+	remotePeer.DumpInfo()
 
-		if s == msgCommon.HAND_SHAKE {
+	if s == msgCommon.HAND_SHAKE {
 		msg := msgpack.NewVerAck()
 		p2p.Send(remotePeer, msg)
-				}
+	}
 
-		msg := msgpack.NewAddrReq()
+	msg := msgpack.NewAddrReq()
 	go p2p.Send(remotePeer, msg)
 
 }
@@ -604,7 +604,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 		p2p.RemovePeerAddress(data.Addr)
 		remotePeer.Close()
 	}
-	}
+}
 
 //get blk hdrs from starthash to stophash
 func GetHeadersFromHash(shardId common.ShardID, startHash common.Uint256, stopHash common.Uint256) ([]*types.RawHeader, error) {

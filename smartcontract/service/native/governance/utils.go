@@ -512,7 +512,7 @@ func getGasAddress(native *native.NativeService, contract common.Address) (*GasA
 }
 
 func putGasAddress(native *native.NativeService, contract common.Address, gasAddress *GasAddress) error {
-	sink := common.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(32)
 	gasAddress.Serialization(sink)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(GAS_ADDRESS)),
 		cstates.GenRawStorageItem(sink.Bytes()))

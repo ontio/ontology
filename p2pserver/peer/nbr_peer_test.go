@@ -33,7 +33,7 @@ func createPeers(cnt uint16) []*Peer {
 		id = 0x7533345 + uint64(i)
 		heights := make(map[uint64]uint32)
 		heights[0] = uint32(434923 + uint32(i))
-		p = NewPeer()
+		p := NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, heights, "1.5.2")
 		p.SetState(3)
 		p.SetHttpInfoState(true)
@@ -140,26 +140,6 @@ func TestGetNeighborAddrs(t *testing.T) {
 	}
 	if len(pList) != 2 {
 		t.Fatal("TestGetNeighborAddrs error")
-	}
-}
-
-func TestGetNeighborHeights(t *testing.T) {
-	nm := initTestNbrPeers()
-	p := nm.GetPeer(0x7533346)
-	if p == nil {
-		t.Fatal("TestGetNeighborHeights:get peer error")
-	}
-	p.SetState(4)
-
-	p = nm.GetPeer(0x7533347)
-	if p == nil {
-		t.Fatal("TestGetNeighborHeights:get peer error")
-	}
-	p.SetState(4)
-
-	pMap := nm.GetNeighborHeights()
-	for k, v := range pMap {
-		fmt.Printf("peer id = %x height = %d \n", k, v)
 	}
 }
 

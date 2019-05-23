@@ -364,7 +364,7 @@ func TestBlockHandle(t *testing.T) {
 	heights[0] = uint32(12345)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, heights, "1.5.2")
-	remotePeer.SyncLink.SetAddr("127.0.0.1:50010")
+	remotePeer.Link.SetAddr("127.0.0.1:50010")
 
 	network.AddNbrNode(remotePeer)
 

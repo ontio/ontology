@@ -187,6 +187,6 @@ func GetOngBalance(native *native.NativeService, address common.Address) (uint64
 	if err != nil {
 		return 0, fmt.Errorf("getOngBalance, appCall error: %v", err)
 	}
-	balance := types.BigIntFromBytes(value.([]byte)).Uint64()
+	balance := common.BigIntFromNeoBytes(value.([]byte)).Uint64()
 	return balance, nil
 }

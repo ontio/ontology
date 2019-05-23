@@ -834,12 +834,12 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	}
 
 	//get current peerPoolMap
-	currentPeerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	currentPeerPoolMap, err := utils.GetPeerPoolMap(native, contract, view, PEER_POOL)
 	if err != nil {
 		return splitSum, fmt.Errorf("executeSplit, get currentPeerPoolMap error: %v", err)
 	}
 
-	balance, err := ong.getOngBalance(native, utils.GovernanceContractAddress)
+	balance, err := ong.GetOngBalance(native, utils.GovernanceContractAddress)
 	if err != nil {
 		return splitSum, fmt.Errorf("executeSplit, getOngBalance error: %v", err)
 	}

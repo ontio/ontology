@@ -93,15 +93,16 @@ var (
 )
 
 var (
-	ERR_CHECK_STACK_SIZE  = errors.NewErr("[NeoVmService] vm execution exceeded the max stack size!")
-	ERR_EXECUTE_CODE      = errors.NewErr("[NeoVmService] vm execution code was invalid!")
-	ERR_GAS_INSUFFICIENT  = errors.NewErr("[NeoVmService] insufficient gas for transaction!")
-	VM_EXEC_STEP_EXCEED   = errors.NewErr("[NeoVmService] vm execution exceeded the step limit!")
-	CONTRACT_NOT_EXIST    = errors.NewErr("[NeoVmService] the given contract does not exist!")
-	DEPLOYCODE_TYPE_ERROR = errors.NewErr("[NeoVmService] deploy code type error!")
-	VM_EXEC_FAULT         = errors.NewErr("[NeoVmService] vm execution encountered a state fault!")
+	ERR_CHECK_STACK_SIZE         = errors.NewErr("[NeoVmService] vm execution exceeded the max stack size!")
+	ERR_EXECUTE_CODE             = errors.NewErr("[NeoVmService] vm execution code was invalid!")
+	ERR_GAS_INSUFFICIENT         = errors.NewErr("[NeoVmService] insufficient gas for transaction!")
+	VM_EXEC_STEP_EXCEED          = errors.NewErr("[NeoVmService] vm execution exceeded the step limit!")
+	CONTRACT_NOT_EXIST           = errors.NewErr("[NeoVmService] the given contract does not exist!")
+	DEPLOYCODE_TYPE_ERROR        = errors.NewErr("[NeoVmService] deploy code type error!")
+	VM_EXEC_FAULT                = errors.NewErr("[NeoVmService] vm execution encountered a state fault!")
 	CONTRACT_READ_META_ERR       = errors.NewErr("[NeoVmService] Get contract meta data from db fail")
-	CONTRACT_CANNOT_RUN_AT_SHARD = errors.NewErr("[NeoVmService] Contract cannot run at this shard"))
+	CONTRACT_CANNOT_RUN_AT_SHARD = errors.NewErr("[NeoVmService] Contract cannot run at this shard")
+)
 
 var (
 	BYTE_ZERO_20 = []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -321,7 +322,7 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, er
 	// TODO: fetch code from self ledger firstly, if not exist, fetch it from parent ledger
 	dep, err := this.CacheDB.GetContract(address)
 	if err != nil {
-		return nil, errors.NewErr("[getContract] get contract context error!")
+		return nil, false, errors.NewErr("[getContract] get contract context error!")
 	}
 	log.Debugf("invoke contract address: %s", address.ToHexString())
 	if dep == nil {

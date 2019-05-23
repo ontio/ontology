@@ -31,7 +31,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	ntypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
@@ -598,7 +597,7 @@ func GetCurrentView(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetCurrentView: failed, err: %s", err)
 	}
-	return ntypes.BigIntToBytes(new(big.Int).SetUint64(uint64(currentView))), nil
+	return common.BigIntToNeoBytes(new(big.Int).SetUint64(uint64(currentView))), nil
 }
 
 func GetPeerInfo(native *native.NativeService) ([]byte, error) {

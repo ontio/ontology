@@ -102,7 +102,8 @@ func TestUpdatePeer(t *testing.T) {
 	height := make(map[uint64]uint32)
 	height[0] = 123355
 	p.UpdateInfo(time.Now(), 3, 3, 30334, 0x7533345, 0, height, "1.5.2")
-	p.SetState(3)	p.SetHttpInfoState(true)
+	p.SetState(3)
+	p.SetHttpInfoState(true)
 	p.Link.SetAddr("127.0.0.1:20338")
 	p.DumpInfo()
 

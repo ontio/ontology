@@ -39,7 +39,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/shardasset/oep4"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	nTypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 /////////
@@ -795,7 +794,7 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard transfer failed, err: %s", err)
 	}
-	transferId := nTypes.BigIntFromBytes(transferIdBytes.([]byte))
+	transferId := common.BigIntFromNeoBytes(transferIdBytes.([]byte))
 	xshardHandlingFee, err := getXShardHandlingFee(native)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: xshard transfer failed, err: %s", err)
