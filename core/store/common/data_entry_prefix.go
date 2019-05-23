@@ -52,5 +52,6 @@ const (
 	XSHARD_KEY_SHARDS_IN_BLOCK                 = 0x35 // with block#, contains to-shard list
 	XSHARD_KEY_REQS_IN_BLOCK                   = 0x36 // with block# - shard#, containers requests to shard#
 	ST_CONTRACT_META_DATA      DataEntryPrefix = 0x37 // contract meta data
-	XSHARD_KEY_MSG_HASH        DataEntryPrefix = 0x38
+	XSHARD_KEY_MSG_HASH        DataEntryPrefix = 0x38 //shard msg key
+	CROSS_SHARD_MSG            DataEntryPrefix = 0x39 //cross shard msg data
 )
