@@ -26,6 +26,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	conf "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
@@ -649,6 +650,10 @@ func LogStackTrace(e *ExecutionEngine, needStackCount int, desc string) error {
 }
 
 func validatorHasKey(e *ExecutionEngine) error {
+	if e.BlockHeight <= conf.DEFAULT_OPCODE_HEIGH_UPDATE_FIRST {
+		return errors.ERR_NOT_SUPPORT_OPCODE
+	}
+
 	if err := LogStackTrace(e, 2, "[validatorHasKey]"); err != nil {
 		return err
 	}
@@ -661,6 +666,10 @@ func validatorHasKey(e *ExecutionEngine) error {
 }
 
 func validatorKeys(e *ExecutionEngine) error {
+	if e.BlockHeight <= conf.DEFAULT_OPCODE_HEIGH_UPDATE_FIRST {
+		return errors.ERR_NOT_SUPPORT_OPCODE
+	}
+
 	if err := LogStackTrace(e, 1, "[validatorKeys]"); err != nil {
 		return err
 	}
@@ -669,6 +678,10 @@ func validatorKeys(e *ExecutionEngine) error {
 }
 
 func validatorValues(e *ExecutionEngine) error {
+	if e.BlockHeight <= conf.DEFAULT_OPCODE_HEIGH_UPDATE_FIRST {
+		return errors.ERR_NOT_SUPPORT_OPCODE
+	}
+
 	if err := LogStackTrace(e, 1, "[validatorValues]"); err != nil {
 		return err
 	}
@@ -677,6 +690,10 @@ func validatorValues(e *ExecutionEngine) error {
 }
 
 func validateDCALL(e *ExecutionEngine) error {
+	if e.BlockHeight <= conf.DEFAULT_OPCODE_HEIGH_UPDATE_FIRST {
+		return errors.ERR_NOT_SUPPORT_OPCODE
+	}
+
 	if err := LogStackTrace(e, 1, "[validatorValues]"); err != nil {
 		return err
 	}
