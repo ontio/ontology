@@ -147,6 +147,6 @@ func TestGetCommitConsensus(t *testing.T) {
 	}
 	var commitMsgs []*blockCommitMsg
 	commitMsgs = append(commitMsgs, blockcommitmsg)
-	blockproposer, flag := getCommitConsensus(commitMsgs, 2)
+	blockproposer, flag := getCommitConsensus(commitMsgs, 2, 7)
 	t.Logf("TestGetCommitConsensus %d ,%v", blockproposer, flag)
 }

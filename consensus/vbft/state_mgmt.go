@@ -450,6 +450,7 @@ func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 	}
 
 	C := int(self.server.config.C)
+	N := int(self.server.config.N)
 	// one block less than targetBlkNum is also acceptable for fastforward
 	for blkNum := self.server.GetCurrentBlockNo(); blkNum <= targetBlkNum; blkNum++ {
 		// check if pending messages for targetBlkNum reached consensus
@@ -459,7 +460,7 @@ func (self *StateMgr) canFastForward(targetBlkNum uint32) bool {
 				commitMsgs = append(commitMsgs, c)
 			}
 		}
-		proposer, _ := getCommitConsensus(commitMsgs, C)
+		proposer, _ := getCommitConsensus(commitMsgs, C, N)
 		if proposer == math.MaxUint32 {
 			log.Infof("server %d check fastforward false, no consensus in %d commit msg for block %d",
 				self.server.Index, len(commitMsgs), blkNum)

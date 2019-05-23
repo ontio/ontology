@@ -495,7 +495,7 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 	}
 
 	// check consensus with commit msgs
-	proposer, forEmpty := getCommitConsensus(candidate.CommitMsgs, int(C))
+	proposer, forEmpty := getCommitConsensus(candidate.CommitMsgs, int(C), int(N))
 
 	// enforce signature quorum if checking commit-consensus base on signature count
 	// if C <= (N-1)/3, N-1-C >= 2*C

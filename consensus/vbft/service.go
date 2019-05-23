@@ -243,7 +243,7 @@ func (self *Server) CheckSubmitBlock(blkNum uint32, stateRoot common.Uint256) bo
 			}
 		}
 	}
-	m := len(self.config.Peers) - (len(self.config.Peers)*3)/7
+	m := self.config.N - (self.config.N-1)/3
 	if stateRootCnt < uint32(m) {
 		return false
 	}
@@ -1426,6 +1426,7 @@ func (self *Server) actionLoop() {
 				for {
 					blkNum := self.GetCurrentBlockNo()
 					C := int(self.config.C)
+					N := int(self.config.N)
 
 					if err := self.updateParticipantConfig(); err != nil {
 						log.Errorf("server %d update config failed in forwarding: %s", self.Index, err)
@@ -1466,7 +1467,7 @@ func (self *Server) actionLoop() {
 					}
 
 					// check if consensused
-					proposer, forEmpty := getCommitConsensus(commitMsgs, C)
+					proposer, forEmpty := getCommitConsensus(commitMsgs, C, N)
 					if proposer == math.MaxUint32 {
 						if err := self.catchConsensus(blkNum); err != nil {
 							log.Infof("server %d fastforward done, catch consensus: %s", self.Index, err)
@@ -1886,7 +1887,9 @@ func (self *Server) processHeartbeatMsg(peerIdx uint32, msg *peerHeartbeatMsg) {
 
 func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) error {
 	// for each round, one node can only endorse one block, or empty block
-
+	if proposal.Block.getProposer() == self.Index {
+		return nil
+	}
 	blkNum := proposal.GetBlockNum()
 
 	// check if has endorsed
@@ -1944,7 +1947,9 @@ func (self *Server) endorseBlock(proposal *blockProposalMsg, forEmpty bool) erro
 
 func (self *Server) commitBlock(proposal *blockProposalMsg, forEmpty bool) error {
 	// for each round, we can only commit one block
-
+	if proposal.Block.getProposer() == self.Index {
+		return nil
+	}
 	blkNum := proposal.GetBlockNum()
 	if self.blockPool.committedForBlock(blkNum) {
 		return nil
