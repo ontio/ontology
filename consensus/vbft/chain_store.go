@@ -25,13 +25,14 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
-	eventmsg "github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
 
@@ -153,7 +154,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 	}
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
 	self.pid.Tell(
-		&eventmsg.BlockConsensusComplete{
+		&message.BlockConsensusComplete{
 			Block: block.Block,
 		})
 	self.chainedBlockNum = blkNum
@@ -169,6 +170,15 @@ func (self *ChainStore) SubmitBlock(blkNum uint32) error {
 		if err != nil && blkNum > self.GetChainedBlockNum() {
 			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 		}
+			if len(submitBlk.block.Block.ShardTxs) != 0 {
+				xshard.DelCrossShardTxs(submitBlk.block.Block.ShardTxs)
+			}
+			if err != nil && blkNum > self.GetChainedBlockNum() {
+				return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
+			}
+			if _, present := self.pendingBlocks[blkNum-2]; present {
+				delete(self.pendingBlocks, blkNum-2)
+			}
 		submitBlk.hasSubmitted = true
 		if _, present := self.pendingBlocks[blkNum-1]; present {
 			delete(self.pendingBlocks, blkNum-1)

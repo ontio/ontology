@@ -321,14 +321,6 @@ func (self *StateStore) GetShardMsgHash(shardID common.ShardID) (common.Uint256,
 	return msgHash, nil
 }
 
-func genCrossShardMsgKey(height uint32, shardID common.ShardID) []byte {
-	sink := common.NewZeroCopySink(16)
-	sink.WriteByte(byte(scom.XSHARD_KEY_CROSS_MSG_IN_BLOCK))
-	sink.WriteUint32(height)
-	sink.WriteShardID(shardID)
-	return sink.Bytes()
-}
-
 //GetMerkleProof return merkle proof of block
 func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
 	return self.merkleTree.InclusionProof(proofHeight, rootHeight+1)
