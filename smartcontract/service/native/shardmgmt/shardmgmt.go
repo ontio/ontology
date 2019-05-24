@@ -289,12 +289,16 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 	if err := initStakeContractShard(native, params.ShardID, uint64(cfg.MinInitStake), params.StakeAssetAddress); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
 	}
-
+	shardCurrentView, err := shard_stake.GetShardCurrentChangeView(native, native.ShardID)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
+	}
 	setShardState(native, contract, shard)
 
 	evt := &shardstates.ConfigShardEvent{
-		Height: native.Height,
-		Config: shard.Config,
+		Height:          native.Height,
+		Config:          shard.Config,
+		ShardChangeView: shardCurrentView,
 	}
 	evt.SourceShardID = native.ShardID
 	evt.ShardID = native.ShardID
@@ -734,8 +738,9 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
 	evt := &shardstates.ConfigShardEvent{
-		Height: native.Height,
-		Config: shard.Config,
+		Height:          native.Height,
+		Config:          shard.Config,
+		ShardChangeView: shardCurrentView,
 	}
 	evt.SourceShardID = native.ShardID
 	evt.ShardID = native.ShardID

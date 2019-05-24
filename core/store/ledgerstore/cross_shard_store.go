@@ -23,6 +23,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
+	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
 )
@@ -90,7 +91,26 @@ func (this *CrossShardStore) GetCrossShardMsgByShardID(shardID common.ShardID) (
 
 func (this *CrossShardStore) getCrossShardMsgKeyByShard(shardID common.ShardID) []byte {
 	key := common.NewZeroCopySink(8)
+	key.WriteByte(byte(scom.CROSS_SHARD_MSG))
 	key.WriteShardID(shardID)
+	return key.Bytes()
+}
+
+func (this *CrossShardStore) SaveShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
+	key := this.genShardConsensusConfig(shardID, height)
+	this.store.BatchPut(key, value)
+}
+
+func (this *CrossShardStore) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
+	key := this.genShardConsensusConfig(shardID, height)
+	return this.store.Get(key)
+}
+
+func (this *CrossShardStore) genShardConsensusConfig(shardID common.ShardID, height uint32) []byte {
+	key := common.NewZeroCopySink(16)
+	key.WriteByte(byte(scom.SHARD_CONFIG_DATA))
+	key.WriteShardID(shardID)
+	key.WriteUint32(height)
 	return key.Bytes()
 }
 

@@ -1274,6 +1274,13 @@ func (self *LedgerStoreImp) GetCrossShardMsgByShardID(shardID common.ShardID) ([
 	return self.crossShardStore.GetCrossShardMsgByShardID(shardID)
 }
 
+func (self *LedgerStoreImp) SaveShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
+	self.crossShardStore.SaveShardConsensusConfig(shardID, height, value)
+}
+func (self *LedgerStoreImp) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
+	return self.crossShardStore.GetShardConsensusConfig(shardID, height)
+}
+
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	err := this.blockStore.Close()
