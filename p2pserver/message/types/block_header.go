@@ -39,7 +39,7 @@ func (this *RawBlockHeader) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(uint32(len(this.BlkHdr)))
 
 	for _, header := range this.BlkHdr {
-		sink.WriteBytes(header.Payload)
+		header.Serialization(sink)
 	}
 }
 func (this *RawBlockHeader) Deserialization(source *common.ZeroCopySource) error {
