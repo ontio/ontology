@@ -106,6 +106,7 @@ type TxState struct {
 	ExecState      ExecState
 	Result         []byte
 	ResultErr      string
+	LockedAddress  []common.Address
 	WriteSet       *overlaydb.MemDB
 	Notify         *event.ExecuteNotify
 }
@@ -295,6 +296,11 @@ func (self *TxState) Deserialization(source *common.ZeroCopySource) error {
 		return err
 	}
 
+	self.LockedAddress, err = source.ReadAddrList()
+	if err != nil {
+		return err
+	}
+
 	buf, _, irr, eof := source.NextVarBytes()
 	if irr {
 		return common.ErrIrregularData
@@ -381,6 +387,9 @@ func (self *TxState) Serialization(sink *common.ZeroCopySink) {
 		self.WriteSet = overlaydb.NewMemDB(1024, 10)
 	}
 	self.WriteSet.Serialization(sink)
+
+	sink.WriteAddrList(self.LockedAddress)
+
 	buf, _ := json.Marshal(self.Notify)
 	sink.WriteVarBytes(buf)
 }

@@ -29,13 +29,7 @@ func sid(id int) common.ShardID {
 	return common.NewShardIDUnchecked(uint64(id))
 }
 
-func buildShardContexts(t *testing.T, numShards int) map[common.ShardID]*ShardContext {
-	contract := RandomAddress()
-	method := "executeShardCommand"
-	InstallNativeContract(contract, map[string]native.Handler{
-		method: ExecuteShardCommandApi,
-	})
-
+func buildShardContexts(t *testing.T, numShards int, contract common.Address) map[common.ShardID]*ShardContext {
 	shards := make(map[common.ShardID]*ShardContext, numShards)
 	for i := 0; i < numShards; i++ {
 		id := common.NewShardIDUnchecked(uint64(i))
@@ -52,10 +46,13 @@ func runFlowCommand(t *testing.T, shard common.ShardID, cmd ShardCommand, totalM
 		method: ExecuteShardCommandApi,
 	})
 
-	shards := buildShardContexts(t, 100)
+	shards := buildShardContexts(t, 100, contract)
 
 	totalShardMsg := RunShardTxToComplete(shards, shard, method, EncodeShardCommandToBytes(cmd))
 	assert.Equal(t, totalMsg, totalShardMsg)
+	for _, shard := range shards {
+		assert.Equal(t, 0, len(shard.LockedAddress))
+	}
 }
 
 func TestRecurInvoke1(t *testing.T) {

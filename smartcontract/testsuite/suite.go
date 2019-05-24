@@ -292,6 +292,8 @@ type ShardContext struct {
 	ContractAddress common.Address
 	overlay         *overlaydb.OverlayDB
 	height          uint32
+	LockedAddress   map[common.Address]struct{}
+	LockHistory     map[common.Address]struct{}
 	t               *testing.T
 }
 
@@ -301,10 +303,11 @@ func NewShardContext(shardID common.ShardID, contract common.Address, t *testing
 		ContractAddress: contract,
 		t:               t,
 		overlay:         NewOverlayDB(),
+		LockedAddress:   make(map[common.Address]struct{}),
+		LockHistory:     make(map[common.Address]struct{}),
 	}
 }
-
-func (self *ShardContext) InvokeShardContract(method string, args []interface{}) (common.Uint256, *event.TransactionNotify) {
+func (self *ShardContext) InvokeShardContractRaw(method string, args []interface{}) (common.Uint256, *event.TransactionNotify, error) {
 	t := self.t
 	if len(args) == 0 {
 		args = []interface{}{""}
@@ -322,10 +325,22 @@ func (self *ShardContext) InvokeShardContract(method string, args []interface{})
 	}
 
 	gasTable := make(map[string]uint64)
-	_, err := ledgerstore.HandleInvokeTransaction(nil, self.overlay, gasTable, cache, xshardDB, tx, header, notify)
-	assert.Nil(t, err)
+	_, err := ledgerstore.HandleInvokeTransaction(nil, self.overlay, gasTable, self.LockedAddress, cache, xshardDB, tx, header, notify)
+	if err != nil {
+		return txHash, nil, err
+	}
 	xshardDB.Commit()
 
+	for addr := range self.LockedAddress {
+		self.LockHistory[addr] = struct{}{}
+	}
+
+	return txHash, notify, nil
+}
+
+func (self *ShardContext) InvokeShardContract(method string, args []interface{}) (common.Uint256, *event.TransactionNotify) {
+	txHash, notify, err := self.InvokeShardContractRaw(method, args)
+	assert.Nil(self.t, err)
 	return txHash, notify
 }
 
@@ -342,9 +357,13 @@ func (self *ShardContext) HandleShardCallMsgs(msgs []xshard_types.CommonShardMsg
 	}
 
 	gasTable := make(map[string]uint64)
-	err := ledgerstore.HandleShardCallTransaction(nil, self.overlay, gasTable, cache, xshardDB, msgs, header, notify)
+	err := ledgerstore.HandleShardCallTransaction(nil, self.overlay, gasTable, self.LockedAddress, cache, xshardDB, msgs, header, notify)
 	assert.Nil(t, err)
 	xshardDB.Commit()
+
+	for addr := range self.LockedAddress {
+		self.LockHistory[addr] = struct{}{}
+	}
 
 	return notify
 }

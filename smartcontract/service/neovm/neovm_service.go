@@ -128,6 +128,7 @@ type NeoVmService struct {
 	Notifications []*event.NotifyEventInfo
 	Code          []byte
 	GasTable      map[string]uint64
+	LockedAddress map[scommon.Address]struct{}
 	Tx            *types.Transaction
 	ShardID       scommon.ShardID
 	ShardTxState  *xshard_state.TxState
@@ -143,7 +144,11 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
-	this.ContextRef.PushContext(&context.Context{ContractAddress: scommon.AddressFromVmCode(this.Code), Code: this.Code})
+	addr := scommon.AddressFromVmCode(this.Code)
+	if _, ok := this.LockedAddress[addr]; ok {
+		return false, fmt.Errorf("contract is locked to call: %s", addr.ToHexString())
+	}
+	this.ContextRef.PushContext(&context.Context{ContractAddress: addr, Code: this.Code})
 	this.Engine.PushContext(vm.NewExecutionContext(this.Engine, this.Code))
 	var gasTable [256]uint64
 	for {

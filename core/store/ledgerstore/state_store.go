@@ -279,6 +279,19 @@ func (self *StateStore) GetShardMsgsInBlock(blockHeight uint32, shardID common.S
 	return xshard_types.DecodeShardCommonMsgs(buf)
 }
 
+func (self *StateStore) GetCurrentLockedAddress() ([]common.Address, error) {
+	buf, err := self.store.Get([]byte{byte(scom.XSHARD_KEY_LOCKED_ADDRESS)})
+	if err == scom.ErrNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(buf)
+
+	return source.ReadAddrList()
+}
+
 func (self *StateStore) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error) {
 	key := common.NewZeroCopySink(8)
 	key.WriteByte(byte(scom.XSHARD_KEY_SHARDS_IN_BLOCK))

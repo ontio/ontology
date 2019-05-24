@@ -650,6 +650,16 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 		return true
 	})
 
+	addrList, err := this.stateStore.GetCurrentLockedAddress()
+	if err != nil {
+		return result, err
+	}
+
+	lockedAddress := make(map[common.Address]struct{}, len(addrList))
+	for _, addr := range addrList {
+		lockedAddress[addr] = struct{}{}
+	}
+
 	cache := storage.NewCacheDB(overlay)
 	xshardDB := storage.NewXShardDB(overlay)
 	var shardNotify []xshard_types.CommonShardMsg
@@ -665,7 +675,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 		log.Infof("executing shard Tx from shard %d, txnum = %d", id, len(block.ShardTxs[id]))
 		for _, shardTx := range block.ShardTxs[id] {
 			cache.Reset()
-			notify, e := HandleTransaction(this, overlay, cache, gasTable, xshardDB, block.Header, shardTx.Tx)
+			notify, e := HandleTransaction(this, overlay, cache, gasTable, lockedAddress, xshardDB, block.Header, shardTx.Tx)
 			if e != nil {
 				err = e
 				return
@@ -683,8 +693,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			log.Errorf("handleTransaction failed tx type:%d,txHash:%s", types.ShardCall, txHash.ToHexString())
 			continue
 		}
-		notify, e := HandleTransaction(this, overlay, cache, gasTable, xshardDB, block.Header, tx)
-		if e != nil {
+		notify, e := HandleTransaction(this, overlay, cache, gasTable, lockedAddress, xshardDB, block.Header, tx)		if e != nil {
 			err = e
 			return
 		}
@@ -694,6 +703,11 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 
 	xshardDB.SetXShardMsgInBlock(block.Header.Height, shardNotify)
+	addrList = addrList[:0]
+	for addr := range lockedAddress {
+		addrList = append(addrList, addr)
+	}
+	xshardDB.SetLockedAddress(addrList)
 	xshardDB.Commit()
 
 	result.Hash = overlay.ChangeHash()
@@ -934,7 +948,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 }
 
 func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
-	xshardDB *storage.XShardDB, header *types.Header, tx *types.Transaction) (*event.TransactionNotify, error) {
+	lockedAddress map[common.Address]struct{}, xshardDB *storage.XShardDB, header *types.Header, tx *types.Transaction) (*event.TransactionNotify, error) {
 	txHash := tx.Hash()
 	events := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	notify := &event.TransactionNotify{
@@ -959,7 +973,7 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 			log.Debugf("HandleChangeMetadataTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.Invoke:
-		_, err := HandleInvokeTransaction(store, overlay, gasTable, cache, xshardDB, tx, header, notify)
+		_, err := HandleInvokeTransaction(store, overlay, gasTable, lockedAddress, cache, xshardDB, tx, header, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
@@ -969,7 +983,7 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 		}
 	case types.ShardCall:
 		shardCall := tx.Payload.(*payload.ShardCall)
-		err := HandleShardCallTransaction(store, overlay, gasTable, cache, xshardDB, shardCall.Msgs, header, notify)
+		err := HandleShardCallTransaction(store, overlay, gasTable, lockedAddress, cache, xshardDB, shardCall.Msgs, header, notify)
 		if overlay.Error() != nil {
 			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
