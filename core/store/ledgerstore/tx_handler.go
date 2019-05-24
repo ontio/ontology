@@ -54,6 +54,11 @@ import (
 func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB,
 	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) error {
 	deploy := tx.Payload.(*payload.DeployCode)
+	address := deploy.Address()
+	parentContract, _ := store.GetContractStateFromParentShard(address)
+	if parentContract != nil {
+		return fmt.Errorf("[HandleDeployTransaction] contract existed in parent shard")
+	}
 	var (
 		notifies    []*event.NotifyEventInfo
 		gasConsumed uint64
@@ -108,7 +113,6 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 		}
 	}
 
-	address := deploy.Address()
 	log.Infof("deploy contract address:%s", address.ToHexString())
 	// store contract message
 	dep, err := cache.GetContract(address)

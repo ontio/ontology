@@ -64,6 +64,9 @@ type LedgerStore interface {
 	GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256
 	GetMerkleProof(m, n uint32) ([]common.Uint256, error)
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
+	GetContractStateFromParentShard(contractHash common.Address) (*payload.DeployCode, error)
+	GetContractMetaData(contractHash common.Address) (*payload.MetaDataCode, error)
+	GetContractMetaDataFromParentShard(contractHash common.Address) (*payload.MetaDataCode, error)
 	GetBookkeeperState() (*states.BookkeeperState, error)
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
 	PreExecuteContract(tx *types.Transaction) (*cstates.PreExecResult, error)

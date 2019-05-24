@@ -20,7 +20,6 @@ package neovm
 
 import (
 	"fmt"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/errors"
@@ -34,6 +33,10 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
 	}
 	contractAddress := contract.Address()
+	parentContract, _ := service.Store.GetContractStateFromParentShard(contractAddress)
+	if parentContract != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract existed in parent shard!")
+	}
 	dep, err := service.CacheDB.GetContract(contractAddress)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
@@ -66,7 +69,7 @@ func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	newMeta.OntVersion = common.CURR_TX_VERSION
 	newMeta.Contract = service.ContextRef.CurrentContext().ContractAddress
 	service.CacheDB.PutMetaData(newMeta)
-	vm.PushData(engine, oldMeta)
+	vm.PushData(engine, newMeta)
 	return nil
 }
 

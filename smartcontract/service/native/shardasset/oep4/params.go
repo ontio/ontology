@@ -28,23 +28,11 @@ import (
 )
 
 type RegisterParam struct {
-	Name        string
-	Symbol      string
-	Decimals    uint64
 	TotalSupply *big.Int
 	Account     common.Address // receive total supply asset while init
 }
 
 func (this *RegisterParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.Name); err != nil {
-		return fmt.Errorf("serialize: write name failed, err: %s", err)
-	}
-	if err := serialization.WriteString(w, this.Symbol); err != nil {
-		return fmt.Errorf("serialize: write name failed, err: %s", err)
-	}
-	if err := utils.WriteVarUint(w, this.Decimals); err != nil {
-		return fmt.Errorf("serialize: write decimals failed, err: %s", err)
-	}
 	if err := serialization.WriteVarBytes(w, common.BigIntToNeoBytes(this.TotalSupply)); err != nil {
 		return fmt.Errorf("serialize: write total supply failed, err: %s", err)
 	}
@@ -56,15 +44,6 @@ func (this *RegisterParam) Serialize(w io.Writer) error {
 
 func (this *RegisterParam) Deserialize(r io.Reader) error {
 	var err error = nil
-	if this.Name, err = serialization.ReadString(r); err != nil {
-		return fmt.Errorf("deserialize: read name failed, err: %s", err)
-	}
-	if this.Symbol, err = serialization.ReadString(r); err != nil {
-		return fmt.Errorf("deserialize: read symbol failed, err: %s", err)
-	}
-	if this.Decimals, err = utils.ReadVarUint(r); err != nil {
-		return fmt.Errorf("deserialize: read decimals failed, err: %s", err)
-	}
 	if supply, err := serialization.ReadVarBytes(r); err != nil {
 		return fmt.Errorf("deserialize: read total supply failed, err: %s", err)
 	} else {
@@ -412,15 +391,19 @@ func (this *XShardTransferRetryParam) Deserialize(r io.Reader) error {
 }
 
 type ShardMintParam struct {
-	Asset       uint64
-	Account     common.Address
-	FromShard   common.ShardID
-	FromAccount common.Address
-	TransferId  *big.Int
-	Amount      *big.Int
+	OriginalContract common.Address
+	Asset            uint64
+	Account          common.Address
+	FromShard        common.ShardID
+	FromAccount      common.Address
+	TransferId       *big.Int
+	Amount           *big.Int
 }
 
 func (this *ShardMintParam) Serialize(w io.Writer) error {
+	if err := utils.WriteAddress(w, this.OriginalContract); err != nil {
+		return fmt.Errorf("serialize: write original contract failed, err: %s", err)
+	}
 	if err := utils.WriteVarUint(w, this.Asset); err != nil {
 		return fmt.Errorf("serialize: write asset id failed, err: %s", err)
 	}
@@ -444,6 +427,9 @@ func (this *ShardMintParam) Serialize(w io.Writer) error {
 
 func (this *ShardMintParam) Deserialize(r io.Reader) error {
 	var err error = nil
+	if this.OriginalContract, err = utils.ReadAddress(r); err != nil {
+		return fmt.Errorf("deserialize: read original contract failed, err: %s", err)
+	}
 	if this.Asset, err = utils.ReadVarUint(r); err != nil {
 		return fmt.Errorf("deserialize: read asset id failed, err: %s", err)
 	}

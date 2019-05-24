@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	scomm "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -40,9 +41,6 @@ const (
 	REGISTER = "oep4Register"
 	MIGRATE  = "oep4Migrate"
 
-	NAME           = "oep4Name"
-	SYMBOL         = "oep4Symbol"
-	DECIMALS       = "oep4Decimals"
 	TOTAL_SUPPLY   = "oep4TotalSupply" // query total supply, if invoked at shard, there are no value
 	SHARD_SUPPLY   = "oep4ShardSupply" // query shard supply at root
 	WHOLE_SUPPLY   = "oep4WholeSupply" // sum supply at all shard, only can be invoked at root
@@ -80,9 +78,6 @@ func RegisterOEP4(native *native.NativeService) {
 	native.Register(ASSET_ID, GetAssetId)
 	native.Register(MIGRATE, Migrate)
 
-	native.Register(NAME, Name)
-	native.Register(SYMBOL, Symbol)
-	native.Register(DECIMALS, Decimals)
 	native.Register(TOTAL_SUPPLY, TotalSupply)
 	native.Register(SHARD_SUPPLY, ShardSupply)
 	native.Register(WHOLE_SUPPLY, WholeSupply)
@@ -158,13 +153,7 @@ func Register(native *native.NativeService) ([]byte, error) {
 	setAssetNum(native, assetNum+1)
 	assetId := AssetId(assetNum + 1)
 	registerAsset(native, callAddr, assetId)
-	oep4 := &Oep4{
-		Name:        param.Name,
-		Symbol:      param.Symbol,
-		Decimals:    param.Decimals,
-		TotalSupply: param.TotalSupply,
-	}
-	setContract(native, assetId, oep4)
+	setTotalSupply(native, assetId, param.TotalSupply)
 	shardSupplyInfo := map[common.ShardID]*big.Int{native.ShardID: param.TotalSupply}
 	setShardSupplyInfo(native, assetId, shardSupplyInfo)
 	setUserBalance(native, assetId, param.Account, param.TotalSupply)
@@ -214,59 +203,26 @@ func Migrate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func Name(native *native.NativeService) ([]byte, error) {
-	callAddr := native.ContextRef.CallingContext().ContractAddress
-	asset, err := getAssetId(native, callAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Name: failed, err: %s", err)
-	}
-	oep4, err := getContract(native, asset)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Name: failed, err: %s", err)
-	}
-	return []byte(oep4.Name), nil
-}
-
-func Symbol(native *native.NativeService) ([]byte, error) {
-	callAddr := native.ContextRef.CallingContext().ContractAddress
-	asset, err := getAssetId(native, callAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Symbol: failed, err: %s", err)
-	}
-	oep4, err := getContract(native, asset)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Symbol: failed, err: %s", err)
-	}
-	return []byte(oep4.Symbol), nil
-}
-
-func Decimals(native *native.NativeService) ([]byte, error) {
-	callAddr := native.ContextRef.CallingContext().ContractAddress
-	asset, err := getAssetId(native, callAddr)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Decimals: failed, err: %s", err)
-	}
-	oep4, err := getContract(native, asset)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("Decimals: failed, err: %s", err)
-	}
-	return common.BigIntToNeoBytes(new(big.Int).SetUint64(oep4.Decimals)), nil
-}
-
 func TotalSupply(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
+	}
 	callAddr := native.ContextRef.CallingContext().ContractAddress
 	asset, err := getAssetId(native, callAddr)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
 	}
-	oep4, err := getContract(native, asset)
+	supply, err := getTotalSupply(native, asset)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: failed, err: %s", err)
 	}
-	return common.BigIntToNeoBytes(oep4.TotalSupply), nil
+	return common.BigIntToNeoBytes(supply), nil
 }
 
 func ShardSupply(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
+	}
 	callAddr := native.ContextRef.CallingContext().ContractAddress
 	asset, err := getAssetId(native, callAddr)
 	if err != nil {
@@ -289,6 +245,9 @@ func ShardSupply(native *native.NativeService) ([]byte, error) {
 }
 
 func WholeSupply(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
+	}
 	callAddr := native.ContextRef.CallingContext().ContractAddress
 	asset, err := getAssetId(native, callAddr)
 	if err != nil {
@@ -306,7 +265,10 @@ func WholeSupply(native *native.NativeService) ([]byte, error) {
 }
 
 func GetSupplyInfo(native *native.NativeService) ([]byte, error) {
-	assetId, err := serialization.ReadUint64(bytes.NewReader(native.Input))
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("TotalSupply: only can be invoked at root")
+	}
+	assetId, err := utils.ReadVarUint(bytes.NewReader(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: read param failed, err: %s", err)
 	}
@@ -314,7 +276,11 @@ func GetSupplyInfo(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: failed, err: %s", err)
 	}
-	data, err := json.Marshal(supplyInfo)
+	jsonSupply := make(map[uint64]string)
+	for shard, supply := range supplyInfo {
+		jsonSupply[shard.ToUint64()] = supply.String()
+	}
+	data, err := json.Marshal(jsonSupply)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetSupplyInfo: marshal supply info failed, err: %s", err)
 	}
@@ -540,20 +506,21 @@ func XShardTransfer(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
-	if err := userBurn(native, asset, param.To, param.Amount); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: check witness err: %s", err)
+	if err := userBurn(native, asset, param.From, param.Amount); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
 	txId, err := xShardTransfer(native, asset, param.From, param.To, param.ToShard, param.Amount)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:       uint64(asset),
-		Account:     param.To,
-		FromShard:   native.ShardID,
-		FromAccount: param.From,
-		Amount:      param.Amount,
-		TransferId:  txId,
+		OriginalContract: callAddr,
+		Asset:            uint64(asset),
+		Account:          param.To,
+		FromShard:        native.ShardID,
+		FromAccount:      param.From,
+		Amount:           param.Amount,
+		TransferId:       txId,
 	}
 	if err := notifyShardMint(native, param.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
@@ -582,12 +549,13 @@ func XShardTransferRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:       uint64(asset),
-		Account:     transfer.ToAccount,
-		Amount:      transfer.Amount,
-		FromShard:   native.ShardID,
-		FromAccount: param.From,
-		TransferId:  param.TransferId,
+		OriginalContract: callAddr,
+		Asset:            uint64(asset),
+		Account:          transfer.ToAccount,
+		Amount:           transfer.Amount,
+		FromShard:        native.ShardID,
+		FromAccount:      param.From,
+		TransferId:       param.TransferId,
 	}
 	if err := notifyShardMint(native, transfer.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferRetry: failed, err: %s", err)
@@ -644,6 +612,21 @@ func ShardReceiveAsset(native *native.NativeService) ([]byte, error) {
 	if !native.ContextRef.CheckCallShard(param.FromShard) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: check call shard failed")
 	}
+	if param.OriginalContract == utils.OngContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: param original contract unmatch")
+	}
+	if param.Asset == uint64(ONG_ASSET_ID) {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: asset id unmatch")
+	}
+	assetId, err := getAssetId(native, param.OriginalContract)
+	if err == scomm.ErrNotFound {
+		registerAsset(native, param.OriginalContract, AssetId(param.Asset))
+	} else if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
+	} else if uint64(assetId) != param.Asset {
+		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: assetId unmatch, local %d vs param %d",
+			assetId, param.Asset)
+	}
 	isReceived, err := isTransferReceived(native, param)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardReceiveAsset: failed, err: %s", err)
@@ -690,12 +673,13 @@ func XShardTransferOng(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOng: failed, err: %s", err)
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:       uint64(ONG_ASSET_ID),
-		Account:     param.To,
-		Amount:      param.Amount,
-		FromShard:   native.ShardID,
-		FromAccount: param.From,
-		TransferId:  txId,
+		OriginalContract: utils.OngContractAddress,
+		Asset:            uint64(ONG_ASSET_ID),
+		Account:          param.To,
+		Amount:           param.Amount,
+		FromShard:        native.ShardID,
+		FromAccount:      param.From,
+		TransferId:       txId,
 	}
 	if err := notifyShardReceiveOng(native, param.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransfer: failed, err: %s", err)
@@ -719,12 +703,13 @@ func XShardTransferOngRetry(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_TRUE, nil
 	}
 	shardMintParam := &ShardMintParam{
-		Asset:       uint64(ONG_ASSET_ID),
-		Account:     transfer.ToAccount,
-		Amount:      transfer.Amount,
-		FromShard:   native.ShardID,
-		FromAccount: param.From,
-		TransferId:  param.TransferId,
+		OriginalContract: utils.OngContractAddress,
+		Asset:            uint64(ONG_ASSET_ID),
+		Account:          transfer.ToAccount,
+		Amount:           transfer.Amount,
+		FromShard:        native.ShardID,
+		FromAccount:      param.From,
+		TransferId:       param.TransferId,
 	}
 	if err := notifyShardReceiveOng(native, transfer.ToShard, shardMintParam); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardTransferOngRetry: failed, err: %s", err)
@@ -743,6 +728,18 @@ func XShardReceiveOng(native *native.NativeService) ([]byte, error) {
 	}
 	if !native.ContextRef.CheckCallShard(param.FromShard) {
 		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: check call shard failed")
+	}
+	if param.OriginalContract != utils.OngContractAddress {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: param original contract unmatch")
+	}
+	if param.Asset != uint64(ONG_ASSET_ID) {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: asset id unmatch")
+	}
+	_, err = getAssetId(native, utils.OngContractAddress)
+	if err == scomm.ErrNotFound {
+		registerAsset(native, utils.OngContractAddress, ONG_ASSET_ID)
+	} else if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("XShardReceiveOng: failed, err: %s", err)
 	}
 	isReceived, err := isTransferReceived(native, param)
 	if err != nil {

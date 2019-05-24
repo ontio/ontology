@@ -15,34 +15,14 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package oep4
+package neovm
 
 import (
-	"encoding/json"
-	"math/big"
-	"testing"
-
-	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common"
-	"github.com/stretchr/testify/assert"
+	vm "github.com/ontio/ontology/vm/neovm"
 )
 
-func TestXShardTransferState(t *testing.T) {
-	acc := account.NewAccount("")
-	state := &XShardTransferState{
-		Id:        big.NewInt(19),
-		ToShard:   common.NewShardIDUnchecked(39),
-		ToAccount: acc.Address,
-		Amount:    big.NewInt(384747),
-		Status:    XSHARD_TRANSFER_COMPLETE,
-	}
-	sink := common.NewZeroCopySink(0)
-	state.Serialization(sink)
-	source := common.NewZeroCopySource(sink.Bytes())
-	newState := &XShardTransferState{}
-	err := newState.Deserialization(source)
-	assert.Nil(t, err)
-	data, err := json.Marshal(state)
-	assert.Nil(t, err)
-	t.Logf("marshal state is %s", string(data))
+// ShardGetShardId push shardId to vm stack
+func ShardGetShardId(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	vm.PushData(engine, service.ShardID.ToUint64())
+	return nil
 }

@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
+	scomm "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -37,7 +38,7 @@ const (
 	KEY_OEP4_ASSET_NUM = "oep4_asset_num"
 	KEY_OEP4_ASSET_ID  = "oep4_asset_id"
 
-	KEY_OEP4                 = "oep4"
+	KEY_OEP4_TOTAL_SUPPLY    = "oep4_total_supply"
 	KEY_OEP4_BALANCE         = "oep4_balance"
 	KEY_OEP4_SHARD_SUPPLY    = "oep4_shard_supply" // asset distribute shard
 	KEY_OEP4_ALLOWANCE       = "oep4_allowance"
@@ -58,9 +59,9 @@ func genAssetIdKey(assetAddr common.Address) []byte {
 	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_ASSET_ID), assetAddr[:])
 }
 
-func genAssetKey(asset AssetId) []byte {
-	assetBytes := utils.GetUint64Bytes(uint64(asset))
-	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4))
+func genAssetTotalSupplyKey(id AssetId) []byte {
+	assetBytes := utils.GetUint64Bytes(uint64(id))
+	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_TOTAL_SUPPLY))
 }
 
 func genBalanceKey(asset AssetId, user common.Address) []byte {
@@ -112,29 +113,23 @@ func isOep4ShardAssetInit(native *native.NativeService) (bool, error) {
 	return len(raw) != 0, nil
 }
 
-func setContract(native *native.NativeService, asset AssetId, oep4 *Oep4) {
-	sink := common.NewZeroCopySink(0)
-	oep4.Serialization(sink)
-	native.CacheDB.Put(genAssetKey(asset), states.GenRawStorageItem(sink.Bytes()))
+func setTotalSupply(native *native.NativeService, asset AssetId, supply *big.Int) {
+	native.CacheDB.Put(genAssetTotalSupplyKey(asset), states.GenRawStorageItem(common.BigIntToNeoBytes(supply)))
 }
 
-func getContract(native *native.NativeService, asset AssetId) (*Oep4, error) {
-	raw, err := native.CacheDB.Get(genAssetKey(asset))
+func getTotalSupply(native *native.NativeService, asset AssetId) (*big.Int, error) {
+	raw, err := native.CacheDB.Get(genAssetTotalSupplyKey(asset))
 	if err != nil {
-		return nil, fmt.Errorf("getContract: read db failed, err: %s", err)
+		return nil, fmt.Errorf("getTotalSupply: read db failed, err: %s", err)
 	}
 	if len(raw) == 0 {
-		return nil, fmt.Errorf("getContract: store is empty")
+		return nil, fmt.Errorf("getTotalSupply: store is empty")
 	}
 	storeValue, err := states.GetValueFromRawStorageItem(raw)
 	if err != nil {
-		return nil, fmt.Errorf("getContract: parse store value failed, err: %s", err)
+		return nil, fmt.Errorf("getTotalSupply: parse store value failed, err: %s", err)
 	}
-	oep4 := &Oep4{}
-	if err := oep4.Deserialization(common.NewZeroCopySource(storeValue)); err != nil {
-		return nil, fmt.Errorf("getContract: deserialize failed, err: %s", err)
-	}
-	return oep4, nil
+	return common.BigIntFromNeoBytes(storeValue), nil
 }
 
 func setXShardTransfer(native *native.NativeService, asset AssetId, user common.Address, transferId *big.Int,
@@ -284,7 +279,7 @@ func getAssetNum(native *native.NativeService) (uint64, error) {
 
 func registerAsset(native *native.NativeService, assetAddr common.Address, assetId AssetId) {
 	key := genAssetIdKey(assetAddr)
-	native.CacheDB.Put(key, utils.GetUint64Bytes(uint64(assetId)))
+	native.CacheDB.Put(key, states.GenRawStorageItem(utils.GetUint64Bytes(uint64(assetId))))
 }
 
 func getAssetId(native *native.NativeService, assetAddr common.Address) (AssetId, error) {
@@ -294,7 +289,7 @@ func getAssetId(native *native.NativeService, assetAddr common.Address) (AssetId
 		return 0, fmt.Errorf("getAssetId: read db failed, err: %s", err)
 	}
 	if len(raw) == 0 {
-		return 0, fmt.Errorf("getAssetId: asset not exist")
+		return 0, scomm.ErrNotFound
 	}
 	storeValue, err := states.GetValueFromRawStorageItem(raw)
 	if err != nil {

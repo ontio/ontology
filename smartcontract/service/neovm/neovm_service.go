@@ -25,6 +25,7 @@ import (
 	scommon "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
@@ -61,6 +62,7 @@ var (
 		TRANSACTION_GETHASH_NAME:             {Execute: TransactionGetHash, Validator: validatorTransaction},
 		TRANSACTION_GETTYPE_NAME:             {Execute: TransactionGetType, Validator: validatorTransaction},
 		TRANSACTION_GETATTRIBUTES_NAME:       {Execute: TransactionGetAttributes, Validator: validatorTransaction},
+		SHARD_GET_SHARD_ID_NAME:              {Execute: ShardGetShardId},
 		CONTRACT_CREATE_NAME:                 {Execute: ContractCreate},
 		CONTRACT_MIGRATE_NAME:                {Execute: ContractMigrate},
 		CONTRACT_SET_META_DATA_NAME:          {Execute: InitMetaData},
@@ -93,15 +95,15 @@ var (
 )
 
 var (
-	ERR_CHECK_STACK_SIZE         = errors.NewErr("[NeoVmService] vm execution exceeded the max stack size!")
-	ERR_EXECUTE_CODE             = errors.NewErr("[NeoVmService] vm execution code was invalid!")
-	ERR_GAS_INSUFFICIENT         = errors.NewErr("[NeoVmService] insufficient gas for transaction!")
-	VM_EXEC_STEP_EXCEED          = errors.NewErr("[NeoVmService] vm execution exceeded the step limit!")
-	CONTRACT_NOT_EXIST           = errors.NewErr("[NeoVmService] the given contract does not exist!")
-	DEPLOYCODE_TYPE_ERROR        = errors.NewErr("[NeoVmService] deploy code type error!")
-	VM_EXEC_FAULT                = errors.NewErr("[NeoVmService] vm execution encountered a state fault!")
-	CONTRACT_READ_META_ERR       = errors.NewErr("[NeoVmService] Get contract meta data from db fail")
+	ERR_CHECK_STACK_SIZE         = errors.NewErr("[NeoVmService] vm over max stack size!")
+	ERR_EXECUTE_CODE             = errors.NewErr("[NeoVmService] vm execute code invalid!")
+	ERR_GAS_INSUFFICIENT         = errors.NewErr("[NeoVmService] gas insufficient")
+	VM_EXEC_STEP_EXCEED          = errors.NewErr("[NeoVmService] vm execute step exceed!")
+	CONTRACT_NOT_EXIST           = errors.NewErr("[NeoVmService] Get contract code from db fail")
 	CONTRACT_CANNOT_RUN_AT_SHARD = errors.NewErr("[NeoVmService] Contract cannot run at this shard")
+	CONTRACT_META_UNMATCH        = errors.NewErr("[NeoVmService] Contract and meta data unmatch")
+	DEPLOYCODE_TYPE_ERROR        = errors.NewErr("[NeoVmService] DeployCode type error!")
+	VM_EXEC_FAULT                = errors.NewErr("[NeoVmService] vm execute state fault!")
 )
 
 var (
@@ -228,19 +230,20 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			code, isSelfLedger, err := this.getContract(addr)
+			code, isSelfShardContract, err := this.getContract(addr)
 			if err != nil {
 				return nil, err
 			}
-			meta, err := this.CacheDB.GetMetaData(addr)
+			meta, isSelfShardMeta, err := this.getContractMetaData(addr)
 			if err != nil {
-				return nil, CONTRACT_READ_META_ERR
+				return nil, err
 			}
 			if meta == nil {
-				// can only be invoked at self shard ledger
-				if !isSelfLedger {
+				if !isSelfShardContract {
 					return nil, CONTRACT_CANNOT_RUN_AT_SHARD
 				}
+			} else if isSelfShardContract != isSelfShardMeta {
+				return nil, CONTRACT_META_UNMATCH
 			} else if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() {
 				// check contract can be invoked at current shard
 				return nil, CONTRACT_CANNOT_RUN_AT_SHARD
@@ -319,16 +322,41 @@ func (this *NeoVmService) SystemCall(engine *vm.ExecutionEngine) error {
 
 // return contract code, if the contract doesn't exist in self ledger, return false
 func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, error) {
-	// TODO: fetch code from self ledger firstly, if not exist, fetch it from parent ledger
 	dep, err := this.CacheDB.GetContract(address)
 	if err != nil {
-		return nil, false, errors.NewErr("[getContract] get contract context error!")
+		return nil, true, errors.NewErr("[getContract] Get contract context error!")
 	}
 	log.Debugf("invoke contract address: %s", address.ToHexString())
 	if dep == nil {
-		return nil, false, CONTRACT_NOT_EXIST
+		dep, err = this.Store.GetContractStateFromParentShard(address)
+		if err != nil {
+			return nil, false, errors.NewErr("[getContract] Get contract context from parent shard error!")
+		}
+		if dep == nil {
+			return nil, false, CONTRACT_NOT_EXIST
+		} else {
+			return dep.Code, false, nil
+		}
+	} else {
+		return dep.Code, true, nil
 	}
-	return dep.Code, false, nil
+}
+
+// return contract meta data
+func (this *NeoVmService) getContractMetaData(address scommon.Address) (*payload.MetaDataCode, bool, error) {
+	meta, err := this.CacheDB.GetMetaData(address)
+	if err != nil {
+		return nil, true, fmt.Errorf("[getContractMetaData] %s", err)
+	}
+	if meta == nil {
+		meta, err = this.Store.GetContractMetaDataFromParentShard(address)
+		if err != nil {
+			return nil, false, fmt.Errorf("[getContractMetaData] from parent, err: %s", err)
+		}
+		return meta, false, nil
+	} else {
+		return meta, true, nil
+	}
 }
 
 func checkStackSize(engine *vm.ExecutionEngine) bool {

@@ -75,6 +75,7 @@ var (
 
 //LedgerStoreImp is main store struct fo ledger
 type LedgerStoreImp struct {
+	parentShardStore     store.LedgerStore
 	blockStore           *BlockStore                      //BlockStore for saving block & transaction data
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
 	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
@@ -91,8 +92,9 @@ type LedgerStoreImp struct {
 }
 
 //NewLedgerStore return LedgerStoreImp instance
-func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, error) {
+func NewLedgerStore(dataDir string, stateHashHeight uint32, parentShardStore store.LedgerStore) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
+		parentShardStore:     parentShardStore,
 		headerIndex:          make(map[uint32]common.Uint256),
 		headerCache:          make(map[common.Uint256]*types.Header, 0),
 		vbftPeerInfoheader:   make(map[string]uint32),
@@ -1088,6 +1090,27 @@ func (this *LedgerStoreImp) GetMerkleProof(proofHeight, rootHeight uint32) ([]co
 //GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
 func (this *LedgerStoreImp) GetContractState(contractHash common.Address) (*payload.DeployCode, error) {
 	return this.stateStore.GetContractState(contractHash)
+}
+
+//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
+func (this *LedgerStoreImp) GetContractStateFromParentShard(contractHash common.Address) (*payload.DeployCode, error) {
+	if this.parentShardStore == nil {
+		return nil, nil
+	}
+	return this.parentShardStore.GetContractState(contractHash)
+}
+
+//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
+func (this *LedgerStoreImp) GetContractMetaData(contractHash common.Address) (*payload.MetaDataCode, error) {
+	return this.stateStore.GetContractMetaData(contractHash)
+}
+
+//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
+func (this *LedgerStoreImp) GetContractMetaDataFromParentShard(contractHash common.Address) (*payload.MetaDataCode, error) {
+	if this.parentShardStore == nil {
+		return nil, nil
+	}
+	return this.parentShardStore.GetContractMetaData(contractHash)
 }
 
 //GetStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState

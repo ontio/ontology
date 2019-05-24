@@ -28,51 +28,6 @@ import (
 
 type AssetId uint64
 
-type Oep4 struct {
-	Name        string
-	Symbol      string
-	Decimals    uint64
-	TotalSupply *big.Int
-}
-
-func (this *Oep4) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteString(this.Name)
-	sink.WriteString(this.Symbol)
-	sink.WriteUint64(this.Decimals)
-	sink.WriteVarBytes(common.BigIntToNeoBytes(this.TotalSupply))
-}
-
-func (this *Oep4) Deserialization(source *common.ZeroCopySource) error {
-	var irr, eof bool
-	this.Name, _, irr, eof = source.NextString()
-	if irr {
-		return common.ErrIrregularData
-	}
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	this.Symbol, _, irr, eof = source.NextString()
-	if irr {
-		return common.ErrIrregularData
-	}
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	this.Decimals, eof = source.NextUint64()
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	supply, _, irr, eof := source.NextVarBytes()
-	if irr {
-		return common.ErrIrregularData
-	}
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	this.TotalSupply = common.BigIntFromNeoBytes(supply)
-	return nil
-}
-
 const (
 	XSHARD_TRANSFER_PENDING  uint8 = 0x06
 	XSHARD_TRANSFER_COMPLETE uint8 = 0x07

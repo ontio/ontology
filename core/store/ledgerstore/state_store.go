@@ -355,6 +355,26 @@ func (self *StateStore) GetContractState(contractHash common.Address) (*payload.
 	return contractState, nil
 }
 
+//GetContractState return contract by contract address
+func (self *StateStore) GetContractMetaData(contractHash common.Address) (*payload.MetaDataCode, error) {
+	key, err := self.getContractMetaDataKey(contractHash)
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := self.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(value)
+	contractState := new(payload.MetaDataCode)
+	err = contractState.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return contractState, nil
+}
+
 //GetBookkeeperState return current book keeper states
 func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 	key, err := self.getBookkeeperKey()
@@ -455,6 +475,14 @@ func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte
 	data := contractHash[:]
 	key := make([]byte, 1+len(data))
 	key[0] = byte(scom.ST_CONTRACT)
+	copy(key[1:], []byte(data))
+	return key, nil
+}
+
+func (self *StateStore) getContractMetaDataKey(contractHash common.Address) ([]byte, error) {
+	data := contractHash[:]
+	key := make([]byte, 1+len(data))
+	key[0] = byte(scom.ST_CONTRACT_META_DATA)
 	copy(key[1:], []byte(data))
 	return key, nil
 }
