@@ -1267,6 +1267,13 @@ func (self *LedgerStoreImp) GetShardMsgHash(shardID common.ShardID) (common.Uint
 	return self.stateStore.GetShardMsgHash(shardID)
 }
 
+func (self *LedgerStoreImp) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
+	return self.crossShardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
+}
+func (self *LedgerStoreImp) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error) {
+	return self.crossShardStore.GetCrossShardMsgByShardID(shardID)
+}
+
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	err := this.blockStore.Close()

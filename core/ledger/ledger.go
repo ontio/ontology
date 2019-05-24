@@ -355,6 +355,13 @@ func (self *Ledger) GetShardMsgHash(shardID common.ShardID) (common.Uint256, err
 	return self.ldgStore.GetShardMsgHash(shardID)
 }
 
+func (self *Ledger) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
+	return self.ldgStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
+}
+func (self *Ledger) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error) {
+	return self.ldgStore.GetCrossShardMsgByShardID(shardID)
+}
+
 func (self *Ledger) Close() error {
 	if self.ParentBlockCache != nil {
 		self.ParentBlockCache.Close()
