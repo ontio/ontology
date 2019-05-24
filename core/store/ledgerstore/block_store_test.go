@@ -47,9 +47,10 @@ func TestExtractHeaderHeight(t *testing.T) {
 	sink := common.NewZeroCopySink(nil)
 	header.Serialization(sink)
 	source := common.NewZeroCopySource(sink.Bytes())
-	height, err := extractHeaderHeight(source)
+	raw := types.RawHeader{}
+	err := raw.Deserialization(source)
 	assert.Nil(t, err)
-	assert.Equal(t, uint32(99999), height)
+	assert.Equal(t, uint32(99999), raw.Height)
 }
 
 func TestVersion(t *testing.T) {
