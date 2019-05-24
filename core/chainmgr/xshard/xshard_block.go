@@ -88,7 +88,7 @@ func GetCrossShardTxs() map[uint64][]*types.CrossShardTxInfos {
 			continue
 		}
 		for _, shardTx := range shardTxs {
-			if id.IsRootShard() && shardTx.ShardMsg.SignMsgHeight < ledger.GetShardLedger(id).GetCurrentBlockHeight() {
+			if id.IsParentID() && shardTx.ShardMsg.SignMsgHeight < ledger.GetShardLedger(id).GetCurrentBlockHeight() {
 				continue
 			}
 			crossShardInfo = append(crossShardInfo, shardTx)
