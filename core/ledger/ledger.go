@@ -362,8 +362,8 @@ func (self *Ledger) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.
 	return self.ldgStore.GetCrossShardMsgByShardID(shardID)
 }
 
-func (self *Ledger) SaveShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
-	self.ldgStore.SaveShardConsensusConfig(shardID, height, value)
+func (self *Ledger) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
+	self.ldgStore.AddShardConsensusConfig(shardID, height, value)
 }
 func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
 	return self.ldgStore.GetShardConsensusConfig(shardID, height)

@@ -299,6 +299,7 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		Height:          native.Height,
 		Config:          shard.Config,
 		ShardChangeView: shardCurrentView,
+		Peers:           shard.Peers,
 	}
 	evt.SourceShardID = native.ShardID
 	evt.ShardID = native.ShardID
@@ -737,10 +738,12 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := shard.UpdateDposInfo(native); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: failed, err: %s", err)
 	}
+
 	evt := &shardstates.ConfigShardEvent{
 		Height:          native.Height,
 		Config:          shard.Config,
 		ShardChangeView: shardCurrentView,
+		Peers:           shard.Peers,
 	}
 	evt.SourceShardID = native.ShardID
 	evt.ShardID = native.ShardID

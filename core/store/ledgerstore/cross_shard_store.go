@@ -96,7 +96,7 @@ func (this *CrossShardStore) getCrossShardMsgKeyByShard(shardID common.ShardID) 
 	return key.Bytes()
 }
 
-func (this *CrossShardStore) SaveShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
+func (this *CrossShardStore) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
 	key := this.genShardConsensusConfig(shardID, height)
 	this.store.BatchPut(key, value)
 }
