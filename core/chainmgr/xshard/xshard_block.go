@@ -77,9 +77,6 @@ func AddCrossShardInfo(crossShardMsg *types.CrossShardMsg, tx *types.Transaction
 
 func GetCrossShardTxs() map[uint64][]*types.CrossShardTxInfos {
 	pool := crossShardPool
-	if pool.ShardID.IsRootShard() {
-		return nil
-	}
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	crossShardInfo := make([]*types.CrossShardTxInfos, 0)
@@ -103,9 +100,6 @@ func GetCrossShardTxs() map[uint64][]*types.CrossShardTxInfos {
 
 func DelCrossShardTxs(crossShardTxs map[uint64][]*types.CrossShardTxInfos) error {
 	pool := crossShardPool
-	if pool.ShardID.IsRootShard() {
-		return nil
-	}
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	for shardID, shardTxs := range crossShardTxs {
