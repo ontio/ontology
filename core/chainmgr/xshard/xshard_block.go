@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -84,7 +85,15 @@ func GetCrossShardTxs() map[uint64][]*types.CrossShardTxInfos {
 	crossShardInfo := make([]*types.CrossShardTxInfos, 0)
 	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
 	for shardID, shardTxs := range pool.Shards {
+		id, err := common.NewShardID(shardID)
+		if err != nil {
+			log.Errorf("shardID new shardID:%d,err:%s", shardID, err)
+			continue
+		}
 		for _, shardTx := range shardTxs {
+			if id.IsRootShard() && shardTx.ShardMsg.SignMsgHeight < ledger.GetShardLedger(id).GetCurrentBlockHeight() {
+				continue
+			}
 			crossShardInfo = append(crossShardInfo, shardTx)
 		}
 		crossShardMapInfos[shardID] = crossShardInfo

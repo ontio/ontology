@@ -662,6 +662,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 	if err := pool.chainStore.AddBlock(c.SealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
+	pool.server.SendCrossShardMsgToAll(blkNum - 1)
 	stateRoot, err := pool.chainStore.GetExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
 	if err != nil {
 		log.Errorf("handleBlockSubmit failed:%s", err)

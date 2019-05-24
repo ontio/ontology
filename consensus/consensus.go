@@ -51,7 +51,7 @@ func NewConsensusService(consensusType string, shardID common.ShardID, account *
 	case CONSENSUS_DBFT:
 		consensus, err = dbft.NewDbftService(shardID, account, txpool, ledger, p2p)
 	case CONSENSUS_SOLO:
-		consensus, err = solo.NewSoloService(shardID, account, txpool, ledger)
+		consensus, err = solo.NewSoloService(shardID, account, txpool, ledger, p2p)
 	case CONSENSUS_VBFT:
 		consensus, err = vbft.NewVbftServer(shardID, account, txpool, ledger, p2p)
 	}

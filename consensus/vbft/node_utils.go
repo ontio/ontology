@@ -27,6 +27,9 @@ import (
 	"github.com/ontio/ontology/common/log"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/signature"
+	com "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 )
@@ -454,4 +457,55 @@ func (self *Server) broadcastToAll(data []byte) error {
 
 	self.p2p.Broadcast(msg)
 	return nil
+}
+
+func (self *Server) SendCrossShardMsgToAll(height uint32) {
+	crossShardMsgs, isSend := self.chainStore.GetCrossMsg(height)
+	if isSend == false || crossShardMsgs == nil {
+		return
+	}
+	var hashes []common.Uint256
+	for _, crossShard := range crossShardMsgs.CrossMsgs {
+		hashes = append(hashes, crossShard.MsgHash)
+	}
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	msgs := self.chainStore.GetExecShardNotify(height - 1)
+	for _, msg := range msgs {
+		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	}
+	if len(hashes) == 0 {
+		return
+	}
+	msgRoot := common.ComputeMerkleRoot(hashes)
+	for _, crossMsg := range crossShardMsgs.CrossMsgs {
+		shardMsg, present := shardMsgMap[crossMsg.ShardID]
+		if !present {
+			log.Errorf("SendCrossShardMsgToAll cross msg not found :%v", crossMsg.ShardID)
+			continue
+		}
+		crossShardMsg := &types.CrossShardMsg{
+			FromShardID:       self.ShardID,
+			MsgHeight:         crossShardMsgs.Height,
+			SignMsgHeight:     height,
+			CrossShardMsgRoot: msgRoot,
+			ShardMsg:          shardMsg,
+			ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+		}
+		preMsgHash, err := self.ledger.GetShardMsgHash(crossMsg.ShardID)
+		if err != nil {
+			if err != com.ErrNotFound {
+				log.Errorf("SendCrossShardMsgToAll getshardmsghash err:%s", err)
+			}
+		} else {
+			crossShardMsg.PreCrossShardMsgHash = preMsgHash
+		}
+		sink := common.ZeroCopySink{}
+		crossShardMsg.Serialization(&sink)
+		msg := &p2pmsg.CrossShardPayload{
+			Version: common.VERSION_SUPPORT_SHARD,
+			ShardID: crossMsg.ShardID,
+			Data:    sink.Bytes(),
+		}
+		self.p2p.Broadcast(msg)
+	}
 }

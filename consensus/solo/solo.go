@@ -60,14 +60,14 @@ type SoloService struct {
 	genBlockInterval time.Duration
 	pid              *actor.PID
 	sub              *events.ActorSubscriber
-
+	p2p              *actorTypes.P2PActor
 	// sharding
 	shardID      common.ShardID
 	parentHeight uint32 // ParentHeight of last block
 	ledger       *ledger.Ledger
 }
 
-func NewSoloService(shardID common.ShardID, bkAccount *account.Account, txpool *actor.PID, lgr *ledger.Ledger) (*SoloService, error) {
+func NewSoloService(shardID common.ShardID, bkAccount *account.Account, txpool *actor.PID, lgr *ledger.Ledger, p2p *actor.PID) (*SoloService, error) {
 	service := &SoloService{
 		Account:          bkAccount,
 		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},
@@ -75,6 +75,7 @@ func NewSoloService(shardID common.ShardID, bkAccount *account.Account, txpool *
 		genBlockInterval: time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
 		shardID:          shardID,
 		ledger:           lgr,
+		p2p:              &actorTypes.P2PActor{P2P: p2p},
 	}
 
 	props := actor.FromProducer(func() actor.Actor {
@@ -250,7 +251,7 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 			ShardID: crossMsg.ShardID,
 			Data:    sink.Bytes(),
 		}
-		self.pid.Tell(msg)
+		self.p2p.Broadcast(msg)
 	}
 }
 
