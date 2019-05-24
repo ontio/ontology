@@ -445,7 +445,7 @@ func (self *Server) initialize() error {
 	selfNodeId := vconfig.PubkeyID(self.account.PublicKey)
 	log.Infof("server: %s starting", selfNodeId)
 
-	store, err := OpenBlockStore(self.ledger, self.pid, self.p2p, self.ShardID)
+	store, err := OpenBlockStore(self.ledger, self.pid)
 	if err != nil {
 		log.Errorf("failed to open block store: %s", err)
 		return fmt.Errorf("failed to open block store: %s", err)
@@ -1238,9 +1238,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					return false
 				}
 				var bookkeepers []keypair.PublicKey
-				//m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
-				//todo temp
-				m := int(shardState.Config.VbftCfg.N - ((shardState.Config.VbftCfg.N)*6)/7)
+				m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
 				for _, peer := range shardState.Config.VbftCfg.Peers {
 					pubkey, err := vconfig.Pubkey(peer.PeerPubkey)
 					if err != nil {
@@ -1703,6 +1701,7 @@ func (self *Server) actionLoop() {
 					continue
 				}
 				if self.CheckSubmitBlock(action.BlockNum, stateRoot) {
+					self.SendCrossShardMsgToAll(action.BlockNum)
 					if err := self.chainStore.SubmitBlock(action.BlockNum); err != nil {
 						log.Errorf("SubmitBlock err:%s", err)
 					}

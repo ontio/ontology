@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -76,15 +77,20 @@ func AddCrossShardInfo(crossShardMsg *types.CrossShardMsg, tx *types.Transaction
 
 func GetCrossShardTxs() map[uint64][]*types.CrossShardTxInfos {
 	pool := crossShardPool
-	if pool.ShardID.IsRootShard() {
-		return nil
-	}
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	crossShardInfo := make([]*types.CrossShardTxInfos, 0)
 	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
 	for shardID, shardTxs := range pool.Shards {
+		id, err := common.NewShardID(shardID)
+		if err != nil {
+			log.Errorf("shardID new shardID:%d,err:%s", shardID, err)
+			continue
+		}
 		for _, shardTx := range shardTxs {
+			if id.IsParentID() && shardTx.ShardMsg.SignMsgHeight < ledger.GetShardLedger(id).GetCurrentBlockHeight() {
+				continue
+			}
 			crossShardInfo = append(crossShardInfo, shardTx)
 		}
 		crossShardMapInfos[shardID] = crossShardInfo
@@ -94,9 +100,6 @@ func GetCrossShardTxs() map[uint64][]*types.CrossShardTxInfos {
 
 func DelCrossShardTxs(crossShardTxs map[uint64][]*types.CrossShardTxInfos) error {
 	pool := crossShardPool
-	if pool.ShardID.IsRootShard() {
-		return nil
-	}
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	for shardID, shardTxs := range crossShardTxs {
