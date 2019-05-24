@@ -97,20 +97,57 @@ func (this *CrossShardStore) getCrossShardMsgKeyByShard(shardID common.ShardID) 
 }
 
 func (this *CrossShardStore) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
-	key := this.genShardConsensusConfig(shardID, height)
+	key := this.genShardConsensusConfigKey(shardID, height)
 	this.store.BatchPut(key, value)
 }
 
 func (this *CrossShardStore) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
-	key := this.genShardConsensusConfig(shardID, height)
+	key := this.genShardConsensusConfigKey(shardID, height)
 	return this.store.Get(key)
 }
 
-func (this *CrossShardStore) genShardConsensusConfig(shardID common.ShardID, height uint32) []byte {
+func (this *CrossShardStore) genShardConsensusConfigKey(shardID common.ShardID, height uint32) []byte {
 	key := common.NewZeroCopySink(16)
 	key.WriteByte(byte(scom.SHARD_CONFIG_DATA))
 	key.WriteShardID(shardID)
 	key.WriteUint32(height)
+	return key.Bytes()
+}
+
+func (this *CrossShardStore) AddShardConsensusHeight(shardID common.ShardID, value []byte) {
+	key := this.genShardConsensusHeightKey(shardID)
+	this.store.BatchPut(key, value)
+}
+
+func (this *CrossShardStore) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
+	key := this.genShardConsensusHeightKey(shardID)
+	data, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	m, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return nil, common.ErrIrregularData
+	}
+	heights := make([]uint32, 0)
+	for i := 0; i < int(m); i++ {
+		config_height, eof := source.NextUint32()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
+		heights = append(heights, config_height)
+	}
+	return heights, nil
+}
+
+func (this *CrossShardStore) genShardConsensusHeightKey(shardID common.ShardID) []byte {
+	key := common.NewZeroCopySink(8)
+	key.WriteByte(byte(scom.CROSS_SHARD_HEIGHT))
+	key.WriteShardID(shardID)
 	return key.Bytes()
 }
 

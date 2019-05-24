@@ -55,4 +55,5 @@ const (
 	XSHARD_KEY_MSG_HASH        DataEntryPrefix = 0x38 //shard msg key
 	CROSS_SHARD_MSG            DataEntryPrefix = 0x39 //cross shard msg data
 	SHARD_CONFIG_DATA          DataEntryPrefix = 0x40 //all shard consensus config
+	CROSS_SHARD_HEIGHT         DataEntryPrefix = 0x41 //all shard consensus height info
 )

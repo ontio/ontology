@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
@@ -39,6 +40,7 @@ import (
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	state "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -340,5 +342,54 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 		return nil, fmt.Errorf("GenesisShardChainConfig failed: %s", err)
 	}
 	cfg.View = shardView.View
+	return cfg, err
+}
+
+func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
+	heights, err := lgr.GetShardConsensusHeight(shardID)
+	if err != nil {
+		log.Errorf("getShardConfig shardID:%v,err:%s", shardID, err)
+		return nil, err
+	}
+	var blkHeight uint32
+	for index, height := range heights {
+		if height > blkNum {
+			blkHeight = heights[index-1]
+		} else if height == blkNum {
+			blkHeight = heights[index-1]
+		}
+	}
+	data, err := lgr.GetShardConsensusConfig(shardID, blkHeight)
+	source := common.NewZeroCopySource(data)
+	shardEvent := &shardstates.ConfigShardEvent{}
+	err = shardEvent.Deserialization(source)
+	chainconfig := &config.VBFTConfig{
+		N:                    shardEvent.Config.VbftCfg.N,
+		C:                    shardEvent.Config.VbftCfg.C,
+		K:                    shardEvent.Config.VbftCfg.K,
+		L:                    shardEvent.Config.VbftCfg.L,
+		BlockMsgDelay:        shardEvent.Config.VbftCfg.BlockMsgDelay,
+		HashMsgDelay:         shardEvent.Config.VbftCfg.HashMsgDelay,
+		PeerHandshakeTimeout: shardEvent.Config.VbftCfg.PeerHandshakeTimeout,
+		MaxBlockChangeView:   shardEvent.Config.VbftCfg.MaxBlockChangeView,
+	}
+	var peersinfo []*config.VBFTPeerStakeInfo
+	for index, id := range shardEvent.Peers {
+		if id.NodeType == state.CONDIDATE_NODE || id.NodeType == state.CONSENSUS_NODE {
+			if stateInfo, present := PeerStakesInfo[index]; stateInfo != nil && present {
+				peerStakeInfo := &config.VBFTPeerStakeInfo{
+					Index:      id.Index,
+					PeerPubkey: id.PeerPubKey,
+					InitPos:    stateInfo.InitPos + stateInfo.UserStakeAmount,
+				}
+				peersinfo = append(peersinfo, peerStakeInfo)
+			}
+		}
+	}
+	cfg, err := vconfig.GenesisChainConfig(chainconfig, peersinfo, shardEvent.ShardChangeView.TxHash, blkNum)
+	if err != nil {
+		return nil, fmt.Errorf("GenesisShardChainConfig failed: %s", err)
+	}
+	cfg.View = shardEvent.ShardChangeView.View
 	return cfg, err
 }

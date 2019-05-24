@@ -175,4 +175,21 @@ func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.Shar
 	sink := common.ZeroCopySink{}
 	shardEvent.Serialization(&sink)
 	self.db.AddShardConsensusConfig(shardID, height, sink.Bytes())
+
+	heights, err := self.db.GetShardConsensusHeight(shardID)
+	if err != nil {
+		if err != com.ErrNotFound {
+			log.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
+			return
+		}
+	}
+	heights_db := make([]uint32, 0)
+	heights_db = append(heights_db, heights...)
+	heights_db = append(heights_db, height)
+	value := common.NewZeroCopySink(16)
+	value.WriteUint32(uint32(len(heights_db)))
+	for _, number := range heights_db {
+		value.WriteUint32(number)
+	}
+	self.db.AddShardConsensusHeight(shardID, value.Bytes())
 }
