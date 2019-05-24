@@ -633,10 +633,18 @@ func GetHeadersFromHash(startHash common.Uint256, stopHash common.Uint256) ([]*t
 	var i uint32
 	for i = 1; i <= count; i++ {
 		hash := ledger.DefLedger.GetBlockHash(stopHeight + i)
-		hd, err := ledger.DefLedger.GetRawHeaderByHash(hash)
+		header, err := ledger.DefLedger.GetHeaderByHash(hash)
 		if err != nil {
 			log.Debugf("[p2p]net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
 			return nil, err
+		}
+
+		sink := common.NewZeroCopySink(nil)
+		header.Serialization(sink)
+
+		hd := &types.RawHeader{
+			Height:  header.Height,
+			Payload: sink.Bytes(),
 		}
 		headers = append(headers, hd)
 	}
