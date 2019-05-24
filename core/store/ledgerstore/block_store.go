@@ -249,27 +249,13 @@ func (this *BlockStore) loadRawHeader(blockHash common.Uint256) (*types.RawHeade
 	if err != nil {
 		return nil, err
 	}
-	height, err := extractHeaderHeight(source)
+	header := &types.RawHeader{}
+	err = header.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}
-	header := &types.RawHeader{
-		Height:  height,
-		Payload: value[8:],
-	}
-	return header, nil
-}
 
-func extractHeaderHeight(source *common.ZeroCopySource) (uint32, error) {
-	eof := source.Skip(4 + 32 + 32 + 32 + 4)
-	if eof {
-		return 0, fmt.Errorf("[exactHeaderHeight] NextUint32 error")
-	}
-	height, eof := source.NextUint32()
-	if eof {
-		return 0, fmt.Errorf("[exactHeaderHeight] NextUint32 error")
-	}
-	return height, nil
+	return header, nil
 }
 
 //GetCurrentBlock return the current block hash and current block height
