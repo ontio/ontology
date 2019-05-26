@@ -360,36 +360,32 @@ func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum 
 		}
 	}
 	data, err := lgr.GetShardConsensusConfig(shardID, blkHeight)
+	if err != nil {
+		log.Errorf("getshardconsensusconfig shardID:%v,err:%s", shardID, err)
+		return nil, err
+	}
 	source := common.NewZeroCopySource(data)
 	shardEvent := &shardstates.ConfigShardEvent{}
 	err = shardEvent.Deserialization(source)
-	chainconfig := &config.VBFTConfig{
-		N:                    shardEvent.Config.VbftCfg.N,
-		C:                    shardEvent.Config.VbftCfg.C,
-		K:                    shardEvent.Config.VbftCfg.K,
-		L:                    shardEvent.Config.VbftCfg.L,
-		BlockMsgDelay:        shardEvent.Config.VbftCfg.BlockMsgDelay,
-		HashMsgDelay:         shardEvent.Config.VbftCfg.HashMsgDelay,
-		PeerHandshakeTimeout: shardEvent.Config.VbftCfg.PeerHandshakeTimeout,
-		MaxBlockChangeView:   shardEvent.Config.VbftCfg.MaxBlockChangeView,
+	if err != nil {
+		log.Errorf("getshardconfigbyshardID deserialization,shardID:%v err:%s", shardID, err)
+		return nil, err
 	}
-	var peersinfo []*config.VBFTPeerStakeInfo
-	for index, id := range shardEvent.Peers {
-		if id.NodeType == state.CONDIDATE_NODE || id.NodeType == state.CONSENSUS_NODE {
-			if stateInfo, present := PeerStakesInfo[index]; stateInfo != nil && present {
-				peerStakeInfo := &config.VBFTPeerStakeInfo{
-					Index:      id.Index,
-					PeerPubkey: id.PeerPubKey,
-					InitPos:    stateInfo.InitPos + stateInfo.UserStakeAmount,
-				}
-				peersinfo = append(peersinfo, peerStakeInfo)
+	var peersInfo []*vconfig.PeerConfig
+	for _, id := range shardEvent.Peers {
+		if id.NodeType == state.CONSENSUS_NODE {
+			peerInfo := &vconfig.PeerConfig{
+				Index: id.Index,
+				ID:    id.PeerPubKey,
 			}
+			peersInfo = append(peersInfo, peerInfo)
 		}
 	}
-	cfg, err := vconfig.GenesisChainConfig(chainconfig, peersinfo, shardEvent.ShardChangeView.TxHash, blkNum)
-	if err != nil {
-		return nil, fmt.Errorf("GenesisShardChainConfig failed: %s", err)
+	cfg := &vconfig.ChainConfig{
+		View:  shardEvent.ShardChangeView.View,
+		N:     shardEvent.Config.VbftCfg.N,
+		C:     shardEvent.Config.VbftCfg.C,
+		Peers: peersInfo,
 	}
-	cfg.View = shardEvent.ShardChangeView.View
 	return cfg, err
 }

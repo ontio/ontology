@@ -143,8 +143,12 @@ type CrossShardTxInfos struct {
 }
 
 func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) error {
-	this.ShardMsg.Serialization(sink)
-	this.Tx.Serialization(sink)
+	if this.ShardMsg != nil {
+		this.ShardMsg.Serialization(sink)
+	}
+	if this.Tx != nil {
+		this.Tx.Serialization(sink)
+	}
 	return nil
 }
 

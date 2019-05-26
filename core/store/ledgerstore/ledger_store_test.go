@@ -20,17 +20,19 @@ package ledgerstore
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
-	"os"
-	"testing"
 )
 
 var testBlockStore *BlockStore
 var testStateStore *StateStore
+var testCrossShardStore *CrossShardStore
 var testLedgerStore *LedgerStoreImp
 
 func TestMain(m *testing.M) {
@@ -56,6 +58,12 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "NewStateStore error %s\n", err)
 		return
 	}
+	testCrossShardDir := "test/crossshard"
+	testCrossShardStore, err = NewCrossShardStore(testCrossShardDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "NewCrossShardStore error %s\n", err)
+		return
+	}
 	m.Run()
 	err = testLedgerStore.Close()
 	if err != nil {
@@ -70,6 +78,11 @@ func TestMain(m *testing.M) {
 	err = testStateStore.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "testStateStore.Close error %s", err)
+		return
+	}
+	err = testCrossShardStore.Close()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "testCrossShardStore.Close error %s", err)
 		return
 	}
 	err = os.RemoveAll("./test")

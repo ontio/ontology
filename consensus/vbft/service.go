@@ -1231,18 +1231,18 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 	for _, crossTxMsgs := range msg.Block.Block.ShardTxs {
 		for _, crossTxMsg := range crossTxMsgs {
 			//verify msg sign
+			chainconfig, err := getShardConfigByShardID(self.ledger, crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight)
+			if err != nil {
+				log.Errorf("etShardConfigByShardID shardID:%v,height:%d err:%s", crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight, err)
+				return false
+			}
 			for _, msgHash := range crossTxMsg.ShardMsg.ShardMsgHashs {
-				shardState, err := xshard.GetShardState(self.ledger.ParentLedger, msgHash.ShardID)
-				if err != nil {
-					log.Errorf("GetShardState err:%s", err)
-					return false
-				}
 				var bookkeepers []keypair.PublicKey
-				m := int(shardState.Config.VbftCfg.N - (shardState.Config.VbftCfg.N-1)/3)
-				for _, peer := range shardState.Config.VbftCfg.Peers {
-					pubkey, err := vconfig.Pubkey(peer.PeerPubkey)
+				m := int(chainconfig.N - (chainconfig.N-1)/3)
+				for _, peer := range chainconfig.Peers {
+					pubkey, err := vconfig.Pubkey(peer.ID)
 					if err != nil {
-						log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.PeerPubkey, err)
+						log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.ID, err)
 						return false
 					}
 					bookkeepers = append(bookkeepers, pubkey)
