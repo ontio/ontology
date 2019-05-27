@@ -38,7 +38,14 @@ func TestHeader_Serialize(t *testing.T) {
 	var h2 Header
 	source := common.NewZeroCopySource(bs)
 	err := h2.Deserialization(source)
+	assert.Nil(t, err)
 	assert.Equal(t, fmt.Sprint(header), fmt.Sprint(h2))
 
+	var h3 RawHeader
+	source = common.NewZeroCopySource(bs)
+	err = h3.Deserialization(source)
 	assert.Nil(t, err)
+	assert.Equal(t, header.Height, h3.Height)
+	assert.Equal(t, bs, h3.Payload)
+
 }
