@@ -373,10 +373,8 @@ func initP2PNode(ctx *cli.Context, shardID common.ShardID, txpoolMgr *txnpool.Tx
 		return nil, nil, fmt.Errorf("p2p service start error %s", err)
 	}
 	netreqactor.SetTxnPoolPid(txpoolMgr.GetPID(shardID, tc.TxActor))
-	netreqactor.SetShardId(chainmgr.GetShardID())
 	txpoolMgr.RegisterActor(tc.NetActor, p2pPID)
 	hserver.SetNetServerPID(p2pPID)
-	chainmgr.SetP2P(p2pPID)
 	p2p.WaitForPeersStart()
 	log.Infof("P2P init success")
 	return p2p, p2pPID, nil

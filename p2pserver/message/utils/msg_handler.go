@@ -217,9 +217,12 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
 	var trn = data.Payload.(*msgTypes.Trn)
+	if trn.Txn.ShardID != p2p.GetShardID().ToUint64() {
+		log.Errorf("[p2p]receive transaction shardId:%d unmatch,shardId:%d", trn.Txn.ShardID, p2p.GetShardID().ToUint64())
+		return
+	}
 	actor.AddTransaction(trn.Txn)
 	log.Trace("[p2p]receive Transaction message hash", trn.Txn.Hash())
-
 }
 
 // VersionHandle handles version handshake protocol from peer

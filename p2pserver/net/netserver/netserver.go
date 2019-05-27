@@ -38,14 +38,14 @@ import (
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer() p2p.P2P {
+func NewNetServer(shardID common2.ShardID) p2p.P2P {
 	n := &NetServer{
 		NetChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 	}
 
 	n.PeerAddrMap.PeerAddress = make(map[string]*peer.Peer)
 
-	n.init()
+	n.init(shardID)
 	return n
 }
 
@@ -88,7 +88,7 @@ type PeerAddrMap struct {
 }
 
 //init initializes attribute of network server
-func (this *NetServer) init() error {
+func (this *NetServer) init(shardID common2.ShardID) error {
 	this.base.SetVersion(common.PROTOCOL_VERSION)
 
 	if config.DefConfig.Consensus.EnableConsensus {
@@ -110,6 +110,7 @@ func (this *NetServer) init() error {
 	id := rand.Uint64()
 
 	this.base.SetID(id)
+	this.base.SetShardID(shardID)
 
 	log.Infof("[p2p]init peer ID to %d", this.base.GetID())
 	this.Np = &peer.NbrPeers{}
@@ -141,6 +142,14 @@ func (this *NetServer) SetHeight(height map[uint64]uint32) {
 // GetHeight return peer's heigh
 func (this *NetServer) GetHeight() map[uint64]uint32 {
 	return this.base.GetHeight()
+}
+
+func (this *NetServer) SetShardID(id common2.ShardID) {
+	this.base.SetShardID(id)
+}
+
+func (this *NetServer) GetShardID() common2.ShardID {
+	return this.base.GetShardID()
 }
 
 //GetTime return the last contact time of self peer

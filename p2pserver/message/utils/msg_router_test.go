@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
@@ -35,7 +36,8 @@ func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...in
 
 // TestMsgRouter tests a basic function of a message router
 func TestMsgRouter(t *testing.T) {
-	network := netserver.NewNetServer()
+	shardId := common.NewShardIDUnchecked(10)
+	network := netserver.NewNetServer(shardId)
 	msgRouter := NewMsgRouter(network)
 	assert.NotNil(t, msgRouter)
 
