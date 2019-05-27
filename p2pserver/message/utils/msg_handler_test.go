@@ -51,7 +51,8 @@ var (
 func TestMain(m *testing.M) {
 	log.InitLog(log.InfoLog, log.Stdout)
 	// Start local network server and create message router
-	network = netserver.NewNetServer()
+	shardId := common.NewShardIDUnchecked(10)
+	network = netserver.NewNetServer(shardId)
 
 	events.Init()
 	// Initial a ledger

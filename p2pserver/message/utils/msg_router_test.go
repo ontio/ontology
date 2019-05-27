@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/stretchr/testify/assert"
+	"github.com/ontio/ontology/common"
 )
 
 func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) {
@@ -35,7 +36,8 @@ func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...in
 
 // TestMsgRouter tests a basic function of a message router
 func TestMsgRouter(t *testing.T) {
-	network := netserver.NewNetServer()
+	shardId := common.NewShardIDUnchecked(10)
+	network := netserver.NewNetServer(shardId)
 	msgRouter := NewMsgRouter(network)
 	assert.NotNil(t, msgRouter)
 

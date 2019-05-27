@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/peer"
+	common2 "github.com/ontio/ontology/common"
 )
 
 func init() {
@@ -53,7 +54,8 @@ func creatPeers(cnt uint16) []*peer.Peer {
 
 }
 func TestNewNetServer(t *testing.T) {
-	server := NewNetServer()
+	shardId := common2.NewShardIDUnchecked(10)
+	server := NewNetServer(shardId)
 	server.Start()
 	defer server.Halt()
 
@@ -83,7 +85,8 @@ func TestNewNetServer(t *testing.T) {
 }
 
 func TestNetServerNbrPeer(t *testing.T) {
-	server := NewNetServer()
+	shardId := common2.NewShardIDUnchecked(10)
+	server := NewNetServer(shardId)
 	server.Start()
 	defer server.Halt()
 
