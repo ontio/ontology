@@ -87,8 +87,19 @@ func (self *RawHeader) Deserialization(source *common.ZeroCopySource) error {
 }
 
 func (self *RawHeader) deserializationUnsigned(source *common.ZeroCopySource) error {
-	// version + preHash + tx root + block root + timestamp
-	source.Skip(4 + 32*3 + 4)
+	version, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if version > common.CURR_HEADER_VERSION {
+		return common.ErrIrregularData
+	}
+	if version == common.VERSION_SUPPORT_SHARD {
+		// shardid + parentheight
+		source.Skip(8 + 4)
+	}
+	// preHash + tx root + block root + timestamp
+	source.Skip(32*3 + 4)
 	self.Height, _ = source.NextUint32()
 	//ConsensusData    uint64
 	source.Skip(8)
