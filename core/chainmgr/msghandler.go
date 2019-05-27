@@ -190,12 +190,7 @@ func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.Shar
 	heights_db := make([]uint32, 0)
 	heights_db = append(heights_db, heights...)
 	heights_db = append(heights_db, height)
-	value := common.NewZeroCopySink(16)
-	value.WriteUint32(uint32(len(heights_db)))
-	for _, number := range heights_db {
-		value.WriteUint32(number)
-	}
-	err = self.db.AddShardConsensusHeight(shardID, value.Bytes())
+	err = self.db.AddShardConsensusHeight(shardID, heights_db)
 	if err != nil {
 		log.Errorf("AddShardConsensusHeight err:%s", err)
 		return

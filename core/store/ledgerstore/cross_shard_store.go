@@ -114,9 +114,14 @@ func (this *CrossShardStore) genShardConsensusConfigKey(shardID common.ShardID, 
 	return key.Bytes()
 }
 
-func (this *CrossShardStore) AddShardConsensusHeight(shardID common.ShardID, value []byte) {
+func (this *CrossShardStore) AddShardConsensusHeight(shardID common.ShardID, data []uint32) {
 	key := this.genShardConsensusHeightKey(shardID)
-	this.store.BatchPut(key, value)
+	value := common.NewZeroCopySink(16)
+	value.WriteUint32(uint32(len(data)))
+	for _, height := range data {
+		value.WriteUint32(height)
+	}
+	this.store.BatchPut(key, value.Bytes())
 }
 
 func (this *CrossShardStore) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
@@ -126,12 +131,9 @@ func (this *CrossShardStore) GetShardConsensusHeight(shardID common.ShardID) ([]
 		return nil, err
 	}
 	source := common.NewZeroCopySource(data)
-	m, _, irregular, eof := source.NextVarUint()
+	m, eof := source.NextUint32()
 	if eof {
 		return nil, io.ErrUnexpectedEOF
-	}
-	if irregular {
-		return nil, common.ErrIrregularData
 	}
 	heights := make([]uint32, 0)
 	for i := 0; i < int(m); i++ {

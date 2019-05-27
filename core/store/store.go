@@ -80,6 +80,6 @@ type LedgerStore interface {
 	GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error)
 	AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error
 	GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error)
-	AddShardConsensusHeight(shardID common.ShardID, value []byte) error
+	AddShardConsensusHeight(shardID common.ShardID, value []uint32) error
 	GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error)
 }

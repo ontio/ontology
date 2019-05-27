@@ -368,7 +368,7 @@ func (self *Ledger) AddShardConsensusConfig(shardID common.ShardID, height uint3
 func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
 	return self.ldgStore.GetShardConsensusConfig(shardID, height)
 }
-func (self *Ledger) AddShardConsensusHeight(shardID common.ShardID, value []byte) error {
+func (self *Ledger) AddShardConsensusHeight(shardID common.ShardID, value []uint32) error {
 	return self.ldgStore.AddShardConsensusHeight(shardID, value)
 }
 func (self *Ledger) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {

@@ -4,30 +4,38 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 
 	"github.com/ontio/ontology/common"
 	vbftcfg "github.com/ontio/ontology/common/config"
+	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 )
 
 func TestSaveCrossShardMsgByShardID(t *testing.T) {
+	acc1 := account.NewAccount("")
 	shardID := common.NewShardIDUnchecked(1)
 	shardMsg := &types.CrossShardMsg{
 		FromShardID:   common.NewShardIDUnchecked(2),
 		MsgHeight:     109,
 		SignMsgHeight: 1111,
 	}
+	tx, err := crossshard.NewCrossShardTxMsg(acc1, uint32(120), shardID, 0, 20000, nil)
+	if err != nil {
+		t.Errorf("handleCrossShardMsg NewCrossShardTxMsg err:%s", err)
+		return
+	}
 	crossShardTxInfo := &types.CrossShardTxInfos{
 		ShardMsg: shardMsg,
-		Tx:       nil,
+		Tx:       tx,
 	}
 	crossShardTxInfos := make([]*types.CrossShardTxInfos, 0)
 	crossShardTxInfos = append(crossShardTxInfos, crossShardTxInfo)
 	testCrossShardStore.NewBatch()
 	testCrossShardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
-	err := testCrossShardStore.CommitTo()
+	err = testCrossShardStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo err:%s", err)
 		return
@@ -91,16 +99,9 @@ func TestAddShardConsensusConfig(t *testing.T) {
 
 func TestAddShardConsensusHeight(t *testing.T) {
 	shardID := common.NewShardIDUnchecked(1)
-	heights := make([]uint32, 0)
-	blkNums := []uint32{100, 120, 150}
-	heights = append(heights, blkNums...)
-	value := common.NewZeroCopySink(16)
-	value.WriteUint32(uint32(len(heights)))
-	for _, number := range heights {
-		value.WriteUint32(number)
-	}
+	heights := []uint32{100, 120, 150}
 	testCrossShardStore.NewBatch()
-	testCrossShardStore.AddShardConsensusHeight(shardID, value.Bytes())
+	testCrossShardStore.AddShardConsensusHeight(shardID, heights)
 	err := testCrossShardStore.CommitTo()
 	if err != nil {
 		t.Errorf("TestAddShardConsensusHeight CommitTo err :%s", err)

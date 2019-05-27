@@ -154,17 +154,18 @@ func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) error {
 
 func (this *CrossShardTxInfos) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	shardMsg := &CrossShardMsg{}
-	err = shardMsg.Deserialization(source)
+	if this.ShardMsg == nil {
+		this.ShardMsg = new(CrossShardMsg)
+	}
+	err = this.ShardMsg.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	this.ShardMsg = shardMsg
-	transaction := new(Transaction)
-	err = transaction.Deserialization(source)
+	tx := &Transaction{}
+	err = tx.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	this.Tx = transaction
+	this.Tx = tx
 	return nil
 }

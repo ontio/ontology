@@ -1293,7 +1293,7 @@ func (self *LedgerStoreImp) GetShardConsensusConfig(shardID common.ShardID, heig
 	return self.crossShardStore.GetShardConsensusConfig(shardID, height)
 }
 
-func (self *LedgerStoreImp) AddShardConsensusHeight(shardID common.ShardID, value []byte) error {
+func (self *LedgerStoreImp) AddShardConsensusHeight(shardID common.ShardID, value []uint32) error {
 	self.crossShardStore.NewBatch()
 	self.crossShardStore.AddShardConsensusHeight(shardID, value)
 	err := self.crossShardStore.CommitTo()
