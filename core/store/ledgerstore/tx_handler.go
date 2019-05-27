@@ -895,12 +895,7 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 
 	availableGasLimit = tx.GasLimit
 	if isCharge {
-		uintCodeGasPrice, ok := gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]
-		if !ok {
-			err = errors.NewErr("[HandleInvokeTransaction] get UINT_INVOKE_CODE_LEN_NAME gas failed")
-			overlay.SetError(err)
-			return
-		}
+		uintCodeGasPrice := gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]
 
 		oldBalance, err = getBalanceFromNative(config, cache, store, tx.Payer)
 		if err != nil {
