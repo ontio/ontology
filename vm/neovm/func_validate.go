@@ -26,7 +26,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
-	conf "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
@@ -650,7 +650,8 @@ func LogStackTrace(e *ExecutionEngine, needStackCount int, desc string) error {
 }
 
 func validatorHasKey(e *ExecutionEngine) error {
-	if e.BlockHeight <= conf.DEFAULT_OPCODE_HEIGH_UPDATE_FIRST {
+	OpCodeUpdateHeight := config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	if e.BlockHeight <= OpCodeUpdateHeight {
 		return errors.ERR_NOT_SUPPORT_OPCODE
 	}
 
@@ -666,7 +667,8 @@ func validatorHasKey(e *ExecutionEngine) error {
 }
 
 func validatorKeys(e *ExecutionEngine) error {
-	if e.BlockHeight <= conf.DEFAULT_OPCODE_HEIGH_UPDATE_FIRST {
+	OpCodeUpdateHeight := config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	if e.BlockHeight <= OpCodeUpdateHeight {
 		return errors.ERR_NOT_SUPPORT_OPCODE
 	}
 
@@ -678,7 +680,8 @@ func validatorKeys(e *ExecutionEngine) error {
 }
 
 func validatorValues(e *ExecutionEngine) error {
-	if e.BlockHeight <= conf.DEFAULT_OPCODE_HEIGH_UPDATE_FIRST {
+	OpCodeUpdateHeight := config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	if e.BlockHeight <= OpCodeUpdateHeight {
 		return errors.ERR_NOT_SUPPORT_OPCODE
 	}
 
@@ -690,7 +693,8 @@ func validatorValues(e *ExecutionEngine) error {
 }
 
 func validateDCALL(e *ExecutionEngine) error {
-	if e.BlockHeight <= conf.DEFAULT_OPCODE_HEIGH_UPDATE_FIRST {
+	OpCodeUpdateHeight := config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	if e.BlockHeight <= OpCodeUpdateHeight {
 		return errors.ERR_NOT_SUPPORT_OPCODE
 	}
 

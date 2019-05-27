@@ -71,9 +71,8 @@ const (
 	DEFAULT_GAS_LIMIT                       = 20000
 	DEFAULT_GAS_PRICE                       = 500
 
-	DEFAULT_DATA_DIR                         = "./Chain"
-	DEFAULT_RESERVED_FILE                    = "./peers.rsv"
-	DEFAULT_OPCODE_HEIGH_UPDATE_FIRST uint32 = 4062597
+	DEFAULT_DATA_DIR      = "./Chain"
+	DEFAULT_RESERVED_FILE = "./peers.rsv"
 )
 
 const (
@@ -113,6 +112,16 @@ var STATE_HASH_CHECK_HEIGHT = map[uint32]uint32{
 
 func GetStateHashCheckHeight(id uint32) uint32 {
 	return STATE_HASH_CHECK_HEIGHT[id]
+}
+
+var OPCODE_UPDATE_CHECK_HEIGHT = map[uint32]uint32{
+	NETWORK_ID_MAIN_NET:    constants.OPCODE_HEIGHT_UPDATE_FIRST_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.OPCODE_HEIGHT_UPDATE_FIRST_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    0,                                            //Network solo
+}
+
+func GetOpcodeUpdateCheckHeight(id uint32) uint32 {
+	return OPCODE_UPDATE_CHECK_HEIGHT[id]
 }
 
 func GetNetworkName(id uint32) string {
