@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 
 	"github.com/ontio/ontology/common"
 	vbftcfg "github.com/ontio/ontology/common/config"
@@ -82,10 +81,6 @@ func TestAddShardConsensusConfig(t *testing.T) {
 	shardEvent := &shardstates.ConfigShardEvent{
 		Height: 120,
 		Config: cfg,
-		ShardChangeView: &utils.ChangeView{
-			View:   3,
-			Height: 109,
-		},
 	}
 	sink := common.ZeroCopySink{}
 	shardEvent.Serialization(&sink)
