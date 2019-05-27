@@ -23,10 +23,10 @@ import (
 	"testing"
 	"time"
 
+	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/peer"
-	common2 "github.com/ontio/ontology/common"
 )
 
 func init() {
