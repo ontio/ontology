@@ -21,8 +21,6 @@ package chainmgr
 import (
 	"fmt"
 
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 )
 
@@ -30,24 +28,6 @@ func GetShardName(shardID common.ShardID) string {
 	return fmt.Sprintf("shard_%d", shardID.ToUint64())
 }
 
-func GetChainManager() *ChainManager {
-	return defaultChainManager
-}
-
-func GetAccount() *account.Account {
-	chainmgr := GetChainManager()
-	return chainmgr.account
-}
-
 func GetShardID() common.ShardID {
-	return GetChainManager().shardID
-}
-
-func SetP2P(p2p *actor.PID) error {
-	if defaultChainManager == nil {
-		return fmt.Errorf("uninitialized chain manager")
-	}
-
-	defaultChainManager.p2pPid = p2p
-	return nil
+	return defaultChainManager.shardID
 }

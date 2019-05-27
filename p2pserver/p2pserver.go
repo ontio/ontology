@@ -52,7 +52,6 @@ type P2PServer struct {
 	network      p2pnet.P2P
 	msgRouter    *utils.MessageRouter
 	pid          *evtActor.PID
-	shardID      comm.ShardID
 	blockSyncers map[uint64]*BlockSyncMgr
 	ReconnectAddrs
 	recentPeers    map[uint32][]string
@@ -69,11 +68,10 @@ type ReconnectAddrs struct {
 
 //NewServer return a new p2pserver according to the pubkey
 func NewServer(shardID comm.ShardID) *P2PServer {
-	n := netserver.NewNetServer()
+	n := netserver.NewNetServer(shardID)
 
 	p := &P2PServer{
 		network: n,
-		shardID: shardID,
 	}
 
 	p.msgRouter = utils.NewMsgRouter(p.network)

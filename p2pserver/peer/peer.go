@@ -43,6 +43,7 @@ type PeerCom struct {
 	port         uint16
 	height       map[uint64]uint32
 	softVersion  string
+	shardID      comm.ShardID // Note: available on local-peer, TODO: update version message
 }
 
 // SetID sets a peer's id
@@ -53,6 +54,14 @@ func (this *PeerCom) SetID(id uint64) {
 // GetID returns a peer's id
 func (this *PeerCom) GetID() uint64 {
 	return this.id
+}
+
+func (this *PeerCom) SetShardID(id comm.ShardID) {
+	this.shardID = id
+}
+
+func (this *PeerCom) GetShardID() comm.ShardID {
+	return this.shardID
 }
 
 // SetVersion sets a peer's version

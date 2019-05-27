@@ -20,6 +20,7 @@
 package p2p
 
 import (
+	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
@@ -31,6 +32,7 @@ type P2P interface {
 	Halt()
 	Connect(addr string) error
 	GetID() uint64
+	GetShardID() common2.ShardID
 	GetVersion() uint32
 	GetPort() uint16
 	GetHttpInfoPort() uint16
