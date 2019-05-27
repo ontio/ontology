@@ -438,7 +438,7 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.MsgHeight, err)
 		return
 	}
-	xshard.AddCrossShardInfo(msg, tx)
+	xshard.AddCrossShardInfo(self.db, msg, tx)
 }
 
 //

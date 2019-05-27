@@ -382,7 +382,6 @@ func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum 
 		}
 	}
 	cfg := &vconfig.ChainConfig{
-		View:  shardEvent.ShardChangeView.View,
 		N:     shardEvent.Config.VbftCfg.N,
 		C:     shardEvent.Config.VbftCfg.C,
 		Peers: peersInfo,

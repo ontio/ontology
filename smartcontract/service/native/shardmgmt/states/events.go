@@ -124,10 +124,9 @@ func (this *CreateShardEvent) Deserialization(source *common.ZeroCopySource) err
 
 type ConfigShardEvent struct {
 	ImplSourceTargetShardID
-	Height          uint32                         `json:"height"`
-	Config          *ShardConfig                   `json:"config"`
-	ShardChangeView *utils.ChangeView              `json:"changeview"`
-	Peers           map[string]*PeerShardStakeInfo `json:"peers"`
+	Height uint32                         `json:"height"`
+	Config *ShardConfig                   `json:"config"`
+	Peers  map[string]*PeerShardStakeInfo `json:"peers"`
 }
 
 func (evt *ConfigShardEvent) GetHeight() uint32 {
@@ -142,7 +141,6 @@ func (this *ConfigShardEvent) Serialization(sink *common.ZeroCopySink) {
 	this.ImplSourceTargetShardID.Serialization(sink)
 	sink.WriteUint32(this.Height)
 	this.Config.Serialization(sink)
-	this.ShardChangeView.Serialization(sink)
 	sink.WriteUint64(uint64(len(this.Peers)))
 	peers := make([]*PeerShardStakeInfo, 0)
 	for _, peer := range this.Peers {
@@ -169,10 +167,6 @@ func (this *ConfigShardEvent) Deserialization(source *common.ZeroCopySource) err
 	this.Config = &ShardConfig{}
 	if err := this.Config.Deserialization(source); err != nil {
 		return fmt.Errorf("read config err: %s", err)
-	}
-	this.ShardChangeView = &utils.ChangeView{}
-	if err := this.ShardChangeView.Deserialization(source); err != nil {
-		return fmt.Errorf("read changeview err: %s", err)
 	}
 	peersNum, eof := source.NextUint64()
 	if eof {

@@ -31,7 +31,6 @@ import (
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 /////////////
@@ -45,7 +44,10 @@ func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) erro
 }
 
 func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) error {
-	self.AddShardEventConfig(evt.Height, evt.ImplSourceTargetShardID.ShardID, evt.Config, evt.Peers, evt.ShardChangeView)
+	if !self.shardID.IsParentID() {
+		return nil
+	}
+	self.AddShardEventConfig(evt.Height, evt.ImplSourceTargetShardID.ShardID, evt.Config, evt.Peers)
 	return self.updateShardConfig(evt.ImplSourceTargetShardID.ShardID, evt.Config)
 }
 
@@ -165,12 +167,11 @@ func (self *ChainManager) handleRootChainBlock() error {
 	return nil
 }
 
-func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.ShardID, config *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo, changeView *utils.ChangeView) {
+func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.ShardID, config *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo) {
 	shardEvent := &shardstates.ConfigShardEvent{
-		Height:          height,
-		Config:          config,
-		ShardChangeView: changeView,
-		Peers:           peers,
+		Height: height,
+		Config: config,
+		Peers:  peers,
 	}
 	sink := common.ZeroCopySink{}
 	shardEvent.Serialization(&sink)
