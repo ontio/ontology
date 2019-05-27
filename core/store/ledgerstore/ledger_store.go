@@ -1268,21 +1268,39 @@ func (self *LedgerStoreImp) GetShardMsgHash(shardID common.ShardID) (common.Uint
 }
 
 func (self *LedgerStoreImp) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
-	return self.crossShardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
+	self.crossShardStore.NewBatch()
+	self.crossShardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
+	err := self.crossShardStore.CommitTo()
+	if err != nil {
+		return fmt.Errorf("crossShardStore.CommitTo shardID:%v, error %s", shardID, err)
+	}
+	return nil
 }
 func (self *LedgerStoreImp) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error) {
 	return self.crossShardStore.GetCrossShardMsgByShardID(shardID)
 }
 
-func (self *LedgerStoreImp) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
+func (self *LedgerStoreImp) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
+	self.crossShardStore.NewBatch()
 	self.crossShardStore.AddShardConsensusConfig(shardID, height, value)
+	err := self.crossShardStore.CommitTo()
+	if err != nil {
+		return fmt.Errorf("crossShardStore.CommitTo shardID:%v,height:%d error %s", shardID, height, err)
+	}
+	return nil
 }
 func (self *LedgerStoreImp) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
 	return self.crossShardStore.GetShardConsensusConfig(shardID, height)
 }
 
-func (self *LedgerStoreImp) AddShardConsensusHeight(shardID common.ShardID, value []byte) {
+func (self *LedgerStoreImp) AddShardConsensusHeight(shardID common.ShardID, value []byte) error {
+	self.crossShardStore.NewBatch()
 	self.crossShardStore.AddShardConsensusHeight(shardID, value)
+	err := self.crossShardStore.CommitTo()
+	if err != nil {
+		return fmt.Errorf("crossShardStore.CommitTo shardID:%v error %s", shardID, err)
+	}
+	return nil
 }
 func (self *LedgerStoreImp) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
 	return self.crossShardStore.GetShardConsensusHeight(shardID)
