@@ -672,7 +672,7 @@ func GetHeadersFromHash(shardId common.ShardID, startHash common.Uint256, stopHa
 		hash := ledger.GetShardLedger(shardId).GetBlockHash(stopHeight + i)
 		hd, err := ledger.GetShardLedger(shardId).GetRawHeaderByHash(hash)
 		if err != nil {
-			log.Debugf("[p2p]net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d\n", err.Error(), hash, stopHeight+i)
+			log.Debugf("[p2p]net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d,shardID:%v,\n", err.Error(), hash, stopHeight+i, shardId)
 			return nil, err
 		}
 		headers = append(headers, hd)

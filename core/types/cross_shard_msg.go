@@ -143,24 +143,29 @@ type CrossShardTxInfos struct {
 }
 
 func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) error {
-	this.ShardMsg.Serialization(sink)
-	this.Tx.Serialization(sink)
+	if this.ShardMsg != nil {
+		this.ShardMsg.Serialization(sink)
+	}
+	if this.Tx != nil {
+		this.Tx.Serialization(sink)
+	}
 	return nil
 }
 
 func (this *CrossShardTxInfos) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	shardMsg := &CrossShardMsg{}
-	err = shardMsg.Deserialization(source)
+	if this.ShardMsg == nil {
+		this.ShardMsg = new(CrossShardMsg)
+	}
+	err = this.ShardMsg.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	this.ShardMsg = shardMsg
-	transaction := new(Transaction)
-	err = transaction.Deserialization(source)
+	tx := &Transaction{}
+	err = tx.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	this.Tx = transaction
+	this.Tx = tx
 	return nil
 }

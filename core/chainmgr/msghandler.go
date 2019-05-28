@@ -44,6 +44,10 @@ func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) erro
 }
 
 func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) error {
+	if !self.shardID.IsParentID() {
+		return nil
+	}
+	self.AddShardEventConfig(evt.Height, evt.ImplSourceTargetShardID.ShardID, evt.Config, evt.Peers)
 	return self.updateShardConfig(evt.ImplSourceTargetShardID.ShardID, evt.Config)
 }
 
@@ -92,7 +96,6 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
 		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
 	}
-
 	if err := self.startChildShard(evt.ShardID, shardState); err != nil {
 		return err
 	}
@@ -162,4 +165,35 @@ func (self *ChainManager) handleRootChainBlock() error {
 		}
 	}
 	return nil
+}
+
+func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.ShardID, config *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo) {
+	shardEvent := &shardstates.ConfigShardEvent{
+		Height: height,
+		Config: config,
+		Peers:  peers,
+	}
+	sink := common.ZeroCopySink{}
+	shardEvent.Serialization(&sink)
+	err := self.db.AddShardConsensusConfig(shardID, height, sink.Bytes())
+	if err != nil {
+		log.Errorf("AddShardConsensusConfig err:%s", err)
+		return
+	}
+
+	heights, err := self.db.GetShardConsensusHeight(shardID)
+	if err != nil {
+		if err != com.ErrNotFound {
+			log.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
+			return
+		}
+	}
+	heights_db := make([]uint32, 0)
+	heights_db = append(heights_db, heights...)
+	heights_db = append(heights_db, height)
+	err = self.db.AddShardConsensusHeight(shardID, heights_db)
+	if err != nil {
+		log.Errorf("AddShardConsensusHeight err:%s", err)
+		return
+	}
 }

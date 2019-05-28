@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -48,7 +49,7 @@ func InitCrossShardPool(shardID common.ShardID, historyCap uint32) {
 	}
 }
 
-func AddCrossShardInfo(crossShardMsg *types.CrossShardMsg, tx *types.Transaction) error {
+func AddCrossShardInfo(ledger *ledger.Ledger, crossShardMsg *types.CrossShardMsg, tx *types.Transaction) error {
 	pool := crossShardPool
 	crossShardTxInfo := &types.CrossShardTxInfos{
 		ShardMsg: crossShardMsg,
@@ -64,6 +65,18 @@ func AddCrossShardInfo(crossShardMsg *types.CrossShardMsg, tx *types.Transaction
 		return fmt.Errorf("add shard cross tx, nil map")
 	}
 	m[crossShardTxInfo.ShardMsg.CrossShardMsgRoot] = crossShardTxInfo
+	shardTxInfos, err := ledger.GetCrossShardMsgByShardID(crossShardMsg.FromShardID)
+	if err != nil {
+		if err != com.ErrNotFound {
+			return fmt.Errorf("GetCrossShardMsgByShardID shardID:%v,err:%s", crossShardMsg.FromShardID, err)
+		}
+	}
+	shardTxInfos = append(shardTxInfos, crossShardTxInfo)
+
+	err = ledger.SaveCrossShardMsgByShardID(crossShardMsg.FromShardID, shardTxInfos)
+	if err != nil {
+		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,err:%s", crossShardMsg.FromShardID, err)
+	}
 	log.Infof("chainmgr AddBlock from shard %d, block %d", crossShardMsg.FromShardID.ToUint64(), crossShardMsg.MsgHeight)
 	return nil
 }

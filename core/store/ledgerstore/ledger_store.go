@@ -122,7 +122,6 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32, parentShardStore sto
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}
 	ledgerStore.eventStore = eventState
-
 	return ledgerStore, nil
 }
 
@@ -145,6 +144,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("eventStore.ClearAll error %s", err)
 		}
+
 		defaultBookkeeper = keypair.SortPublicKeys(defaultBookkeeper)
 		bookkeeperState := &states.BookkeeperState{
 			CurrBookkeeper: defaultBookkeeper,
@@ -678,6 +678,11 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	// execute transactions
 	for _, tx := range block.Transactions {
 		cache.Reset()
+		if tx.TxType == types.ShardCall {
+			txHash := tx.Hash()
+			log.Errorf("handleTransaction failed tx type:%d,txHash:%s", types.ShardCall, txHash.ToHexString())
+			continue
+		}
 		notify, e := HandleTransaction(this, overlay, cache, gasTable, xshardDB, block.Header, tx)
 		if e != nil {
 			err = e

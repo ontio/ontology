@@ -21,7 +21,11 @@ package xshard
 import (
 	"testing"
 
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
+	crossshard "github.com/ontio/ontology/core/chainmgr/message"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -37,7 +41,18 @@ func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
 func TestCrossShardPool(t *testing.T) {
 	InitCrossShardPool(common.NewShardIDUnchecked(1), 100)
 	shardMsg := newTestShardMsg(t)
-	if err := AddCrossShardInfo(shardMsg, nil); err != nil {
+	acc1 := account.NewAccount("")
+	tx, err := crossshard.NewCrossShardTxMsg(acc1, uint32(120), shardMsg.FromShardID, 0, 20000, nil)
+	if err != nil {
+		t.Errorf("crossShardPool NewCrossShardTxMsg err:%s", err)
+		return
+	}
+	ldg, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
+	if err != nil {
+		t.Errorf("failed to new ledger")
+		return
+	}
+	if err = AddCrossShardInfo(ldg, shardMsg, tx); err != nil {
 		t.Fatalf("failed add CrossShardInfo:%s", err)
 	}
 }

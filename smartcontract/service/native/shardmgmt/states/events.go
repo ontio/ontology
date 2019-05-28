@@ -21,6 +21,8 @@ package shardstates
 import (
 	"fmt"
 	"io"
+	"sort"
+	"strings"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -122,8 +124,9 @@ func (this *CreateShardEvent) Deserialization(source *common.ZeroCopySource) err
 
 type ConfigShardEvent struct {
 	ImplSourceTargetShardID
-	Height uint32       `json:"height"`
-	Config *ShardConfig `json:"config"`
+	Height uint32                         `json:"height"`
+	Config *ShardConfig                   `json:"config"`
+	Peers  map[string]*PeerShardStakeInfo `json:"peers"`
 }
 
 func (evt *ConfigShardEvent) GetHeight() uint32 {
@@ -138,6 +141,17 @@ func (this *ConfigShardEvent) Serialization(sink *common.ZeroCopySink) {
 	this.ImplSourceTargetShardID.Serialization(sink)
 	sink.WriteUint32(this.Height)
 	this.Config.Serialization(sink)
+	sink.WriteUint64(uint64(len(this.Peers)))
+	peers := make([]*PeerShardStakeInfo, 0)
+	for _, peer := range this.Peers {
+		peers = append(peers, peer)
+	}
+	sort.SliceStable(peers, func(i, j int) bool {
+		return peers[i].PeerPubKey > peers[j].PeerPubKey
+	})
+	for _, peer := range peers {
+		peer.Serialization(sink)
+	}
 }
 
 func (this *ConfigShardEvent) Deserialization(source *common.ZeroCopySource) error {
@@ -153,6 +167,18 @@ func (this *ConfigShardEvent) Deserialization(source *common.ZeroCopySource) err
 	this.Config = &ShardConfig{}
 	if err := this.Config.Deserialization(source); err != nil {
 		return fmt.Errorf("read config err: %s", err)
+	}
+	peersNum, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.Peers = make(map[string]*PeerShardStakeInfo)
+	for i := uint64(0); i < peersNum; i++ {
+		peer := &PeerShardStakeInfo{}
+		if err := peer.Deserialization(source); err != nil {
+			return fmt.Errorf("read peer, index %d, err: %s", i, err)
+		}
+		this.Peers[strings.ToLower(peer.PeerPubKey)] = peer
 	}
 	return nil
 }

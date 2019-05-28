@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
@@ -39,6 +40,7 @@ import (
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	state "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -340,5 +342,49 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 		return nil, fmt.Errorf("GenesisShardChainConfig failed: %s", err)
 	}
 	cfg.View = shardView.View
+	return cfg, err
+}
+
+func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
+	heights, err := lgr.GetShardConsensusHeight(shardID)
+	if err != nil {
+		log.Errorf("getShardConfig shardID:%v,err:%s", shardID, err)
+		return nil, err
+	}
+	var blkHeight uint32
+	for index, height := range heights {
+		if height > blkNum {
+			blkHeight = heights[index-1]
+		} else if height == blkNum {
+			blkHeight = heights[index-1]
+		}
+	}
+	data, err := lgr.GetShardConsensusConfig(shardID, blkHeight)
+	if err != nil {
+		log.Errorf("getshardconsensusconfig shardID:%v,err:%s", shardID, err)
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	shardEvent := &shardstates.ConfigShardEvent{}
+	err = shardEvent.Deserialization(source)
+	if err != nil {
+		log.Errorf("getshardconfigbyshardID deserialization,shardID:%v err:%s", shardID, err)
+		return nil, err
+	}
+	var peersInfo []*vconfig.PeerConfig
+	for _, id := range shardEvent.Peers {
+		if id.NodeType == state.CONSENSUS_NODE {
+			peerInfo := &vconfig.PeerConfig{
+				Index: id.Index,
+				ID:    id.PeerPubKey,
+			}
+			peersInfo = append(peersInfo, peerInfo)
+		}
+	}
+	cfg := &vconfig.ChainConfig{
+		N:     shardEvent.Config.VbftCfg.N,
+		C:     shardEvent.Config.VbftCfg.C,
+		Peers: peersInfo,
+	}
 	return cfg, err
 }

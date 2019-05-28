@@ -61,7 +61,6 @@ func (self *ZeroCopySource) NextBytes(n uint64) (data []byte, eof bool) {
 	}
 	data = self.s[self.off:end]
 	self.off = end
-
 	return
 }
 
