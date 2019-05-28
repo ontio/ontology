@@ -47,6 +47,7 @@ type Ledger struct {
 	ParentLedger     *Ledger
 	ParentBlockCache *ledgerstore.BlockCacheStore
 	ldgStore         store.LedgerStore
+	cshardStore      store.CrossShardStore
 	ChildLedger      *Ledger
 }
 
@@ -70,9 +71,14 @@ func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
+	cshardStore, err := ledgerstore.NewCrossShardStore(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("NewCrossShardStore error %s", err)
+	}
 	lgr := &Ledger{
-		ShardID:  common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID),
-		ldgStore: ldgStore,
+		ShardID:     common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID),
+		ldgStore:    ldgStore,
+		cshardStore: cshardStore,
 	}
 
 	DefLedgerMgr.Lock.Lock()
@@ -109,7 +115,10 @@ func NewShardLedger(shardID common.ShardID, dataDir string, mainLedger *Ledger) 
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
-
+	cshardStore, err := ledgerstore.NewCrossShardStore(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("NewCrossShardStore error %s", err)
+	}
 	// init parent block cache
 	parentBlockCache, err := ledgerstore.ResetBlockCacheStore(shardID.ParentID(), dataDir)
 	if err != nil {
@@ -121,6 +130,7 @@ func NewShardLedger(shardID common.ShardID, dataDir string, mainLedger *Ledger) 
 		ParentLedger:     parentLedger,
 		ParentBlockCache: parentBlockCache,
 		ldgStore:         ldgStore,
+		cshardStore:      cshardStore,
 	}
 	parentLedger.ChildLedger = lgr
 	DefLedgerMgr.Lock.Lock()
@@ -148,6 +158,10 @@ func CloseLedgers() {
 
 func (self *Ledger) GetStore() store.LedgerStore {
 	return self.ldgStore
+}
+
+func (self *Ledger) GetCrossShardStore() store.CrossShardStore {
+	return self.cshardStore
 }
 
 func (self *Ledger) Init(defaultBookkeeper []keypair.PublicKey, genesisBlock *types.Block) error {
@@ -356,30 +370,34 @@ func (self *Ledger) GetShardMsgHash(shardID common.ShardID) (common.Uint256, err
 }
 
 func (self *Ledger) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
-	return self.ldgStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
+	return self.cshardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
 }
 func (self *Ledger) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error) {
-	return self.ldgStore.GetCrossShardMsgByShardID(shardID)
+	return self.cshardStore.GetCrossShardMsgByShardID(shardID)
 }
 
 func (self *Ledger) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
-	return self.ldgStore.AddShardConsensusConfig(shardID, height, value)
+	return self.cshardStore.AddShardConsensusConfig(shardID, height, value)
 }
 func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
-	return self.ldgStore.GetShardConsensusConfig(shardID, height)
+	return self.cshardStore.GetShardConsensusConfig(shardID, height)
 }
 func (self *Ledger) AddShardConsensusHeight(shardID common.ShardID, value []uint32) error {
-	return self.ldgStore.AddShardConsensusHeight(shardID, value)
+	return self.cshardStore.AddShardConsensusHeight(shardID, value)
 }
 func (self *Ledger) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
-	return self.ldgStore.GetShardConsensusHeight(shardID)
+	return self.cshardStore.GetShardConsensusHeight(shardID)
 }
 
 func (self *Ledger) Close() error {
 	if self.ParentBlockCache != nil {
 		self.ParentBlockCache.Close()
 	}
-	return self.ldgStore.Close()
+	err := self.ldgStore.Close()
+	if err != nil {
+		return err
+	}
+	return self.cshardStore.Close()
 }
 
 func (self *Ledger) GetParentHeight() uint32 {

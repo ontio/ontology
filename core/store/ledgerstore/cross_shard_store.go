@@ -21,11 +21,17 @@ package ledgerstore
 import (
 	"fmt"
 	"io"
+	"os"
 
 	"github.com/ontio/ontology/common"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
+)
+
+var (
+	//Storage save path.
+	DBDirCrossShard = "crossshard"
 )
 
 //saving cross shard msg
@@ -35,10 +41,11 @@ type CrossShardStore struct {
 }
 
 //NewCrossShardStore return cross shard store instance
-func NewCrossShardStore(dbDir string) (*CrossShardStore, error) {
+func NewCrossShardStore(dataDir string) (*CrossShardStore, error) {
+	dbDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirCrossShard)
 	store, err := leveldbstore.NewLevelDBStore(dbDir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("NewCrossShardStore error %s", err)
 	}
 	return &CrossShardStore{
 		dbDir: dbDir,
@@ -52,6 +59,7 @@ func (this *CrossShardStore) NewBatch() {
 }
 
 func (this *CrossShardStore) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
+	this.NewBatch()
 	key := this.getCrossShardMsgKeyByShard(shardID)
 
 	value := common.NewZeroCopySink(1024)
@@ -63,6 +71,10 @@ func (this *CrossShardStore) SaveCrossShardMsgByShardID(shardID common.ShardID, 
 		}
 	}
 	this.store.BatchPut(key, value.Bytes())
+	err := this.CommitTo()
+	if err != nil {
+		return fmt.Errorf("crossShardStore.CommitTo shardID:%v, error %s", shardID, err)
+	}
 	return nil
 }
 
@@ -96,9 +108,15 @@ func (this *CrossShardStore) getCrossShardMsgKeyByShard(shardID common.ShardID) 
 	return key.Bytes()
 }
 
-func (this *CrossShardStore) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) {
+func (this *CrossShardStore) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
+	this.NewBatch()
 	key := this.genShardConsensusConfigKey(shardID, height)
 	this.store.BatchPut(key, value)
+	err := this.CommitTo()
+	if err != nil {
+		return fmt.Errorf("crossShardStore.CommitTo shardID:%v,height:%d error %s", shardID, height, err)
+	}
+	return nil
 }
 
 func (this *CrossShardStore) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
@@ -114,7 +132,8 @@ func (this *CrossShardStore) genShardConsensusConfigKey(shardID common.ShardID, 
 	return key.Bytes()
 }
 
-func (this *CrossShardStore) AddShardConsensusHeight(shardID common.ShardID, data []uint32) {
+func (this *CrossShardStore) AddShardConsensusHeight(shardID common.ShardID, data []uint32) error {
+	this.NewBatch()
 	key := this.genShardConsensusHeightKey(shardID)
 	value := common.NewZeroCopySink(16)
 	value.WriteUint32(uint32(len(data)))
@@ -122,6 +141,11 @@ func (this *CrossShardStore) AddShardConsensusHeight(shardID common.ShardID, dat
 		value.WriteUint32(height)
 	}
 	this.store.BatchPut(key, value.Bytes())
+	err := this.CommitTo()
+	if err != nil {
+		return fmt.Errorf("crossShardStore.CommitTo shardID:%v error %s", shardID, err)
+	}
+	return nil
 }
 
 func (this *CrossShardStore) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {

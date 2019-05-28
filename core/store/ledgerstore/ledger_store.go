@@ -69,7 +69,6 @@ var (
 	DBDirEvent          = "ledgerevent"
 	DBDirBlock          = "block"
 	DBDirState          = "states"
-	DBDirCrossShard     = "crossshard"
 	DBDirBlockCache     = "blockCache"
 	MerkleTreeStorePath = "merkle_tree.db"
 )
@@ -80,7 +79,6 @@ type LedgerStoreImp struct {
 	blockStore           *BlockStore                      //BlockStore for saving block & transaction data
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
 	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
-	crossShardStore      *CrossShardStore                 //CrossShardStore for save cross shard msg,save all shard consensus config info
 	storedIndexCount     uint32                           //record the count of have saved block index
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
@@ -124,12 +122,6 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32, parentShardStore sto
 		return nil, fmt.Errorf("NewEventStore error %s", err)
 	}
 	ledgerStore.eventStore = eventState
-
-	crossShardState, err := NewCrossShardStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirCrossShard))
-	if err != nil {
-		return nil, fmt.Errorf("NewCrossShardStore error %s", err)
-	}
-	ledgerStore.crossShardStore = crossShardState
 	return ledgerStore, nil
 }
 
@@ -152,10 +144,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("eventStore.ClearAll error %s", err)
 		}
-		err = this.crossShardStore.ClearAll()
-		if err != nil {
-			return fmt.Errorf("crossShardStore.ClearAll error %s", err)
-		}
+
 		defaultBookkeeper = keypair.SortPublicKeys(defaultBookkeeper)
 		bookkeeperState := &states.BookkeeperState{
 			CurrBookkeeper: defaultBookkeeper,
@@ -1272,45 +1261,6 @@ func (self *LedgerStoreImp) GetShardMsgHash(shardID common.ShardID) (common.Uint
 	return self.stateStore.GetShardMsgHash(shardID)
 }
 
-func (self *LedgerStoreImp) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
-	self.crossShardStore.NewBatch()
-	self.crossShardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
-	err := self.crossShardStore.CommitTo()
-	if err != nil {
-		return fmt.Errorf("crossShardStore.CommitTo shardID:%v, error %s", shardID, err)
-	}
-	return nil
-}
-func (self *LedgerStoreImp) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error) {
-	return self.crossShardStore.GetCrossShardMsgByShardID(shardID)
-}
-
-func (self *LedgerStoreImp) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
-	self.crossShardStore.NewBatch()
-	self.crossShardStore.AddShardConsensusConfig(shardID, height, value)
-	err := self.crossShardStore.CommitTo()
-	if err != nil {
-		return fmt.Errorf("crossShardStore.CommitTo shardID:%v,height:%d error %s", shardID, height, err)
-	}
-	return nil
-}
-func (self *LedgerStoreImp) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
-	return self.crossShardStore.GetShardConsensusConfig(shardID, height)
-}
-
-func (self *LedgerStoreImp) AddShardConsensusHeight(shardID common.ShardID, value []uint32) error {
-	self.crossShardStore.NewBatch()
-	self.crossShardStore.AddShardConsensusHeight(shardID, value)
-	err := self.crossShardStore.CommitTo()
-	if err != nil {
-		return fmt.Errorf("crossShardStore.CommitTo shardID:%v error %s", shardID, err)
-	}
-	return nil
-}
-func (self *LedgerStoreImp) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
-	return self.crossShardStore.GetShardConsensusHeight(shardID)
-}
-
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	err := this.blockStore.Close()
@@ -1324,10 +1274,6 @@ func (this *LedgerStoreImp) Close() error {
 	err = this.eventStore.Close()
 	if err != nil {
 		return fmt.Errorf("eventStore close error %s", err)
-	}
-	err = this.crossShardStore.Close()
-	if err != nil {
-		return fmt.Errorf("crossShardStore close error %s", err)
 	}
 	return nil
 }
