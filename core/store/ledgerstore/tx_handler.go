@@ -546,8 +546,6 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 		gasConsume = neovm.MIN_TRANSACTION_GAS
 	}
 	if tx.GasPrice > 0 {
-		// add payer permission
-		tx.SignedAddr = append(tx.SignedAddr, tx.Payer) // TODO: consider risk
 		cfg := &smartcontract.Config{
 			ShardID:   shardId,
 			Time:      header.Timestamp,
@@ -1184,7 +1182,7 @@ func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
 }
 
-func buildTx(payer, contract common.Address, method string, args []interface{}, shardId, gasLimit uint64,
+func buildTx(originalPayer, contract common.Address, method string, args []interface{}, shardId, gasLimit uint64,
 	nonce uint32) (*types.Transaction, error) {
 	invokeCode := []byte{}
 	var err error = nil
@@ -1206,7 +1204,7 @@ func buildTx(payer, contract common.Address, method string, args []interface{}, 
 		GasLimit: gasLimit,
 		TxType:   types.Invoke,
 		Nonce:    nonce,
-		Payer:    payer,
+		Payer:    originalPayer,
 		Payload:  invokePayload,
 		Sigs:     make([]types.Sig, 0, 0),
 	}
@@ -1214,6 +1212,7 @@ func buildTx(payer, contract common.Address, method string, args []interface{}, 
 	if err != nil {
 		return nil, fmt.Errorf("buildTx: build tx failed, err: %s", err)
 	}
+	tx.SignedAddr = append(tx.SignedAddr, originalPayer)
 	return tx, nil
 }
 
