@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -66,7 +67,9 @@ func AddCrossShardInfo(ledger *ledger.Ledger, crossShardMsg *types.CrossShardMsg
 	m[crossShardTxInfo.ShardMsg.CrossShardMsgRoot] = crossShardTxInfo
 	shardTxInfos, err := ledger.GetCrossShardMsgByShardID(crossShardMsg.FromShardID)
 	if err != nil {
-		return fmt.Errorf("GetCrossShardMsgByShardID shardID:%v,err:%s", crossShardMsg.FromShardID, err)
+		if err != com.ErrNotFound {
+			return fmt.Errorf("GetCrossShardMsgByShardID shardID:%v,err:%s", crossShardMsg.FromShardID, err)
+		}
 	}
 	shardTxInfos = append(shardTxInfos, crossShardTxInfo)
 

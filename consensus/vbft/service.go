@@ -2369,6 +2369,11 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 
 	if !forEmpty {
 		for _, e := range self.poolActor.GetTxnPool(true, validHeight) {
+			if e.Tx.TxType == types.ShardCall {
+				txHash := e.Tx.Hash()
+				log.Errorf("consensus GetTxnPool failed tx type:%d,txHash:%s", types.ShardCall, txHash.ToHexString())
+				continue
+			}
 			if err := self.incrValidator.Verify(e.Tx, validHeight); err == nil {
 				userTxs = append(userTxs, e.Tx)
 			}
