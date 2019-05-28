@@ -321,7 +321,8 @@ func (self *ShardContext) InvokeShardContract(method string, args []interface{})
 		ContractEvent: txevent,
 	}
 
-	_, err := ledgerstore.HandleInvokeTransaction(nil, self.overlay, cache, xshardDB, tx, header, notify)
+	gasTable := make(map[string]uint64)
+	_, err := ledgerstore.HandleInvokeTransaction(nil, self.overlay, gasTable, cache, xshardDB, tx, header, notify)
 	assert.Nil(t, err)
 	xshardDB.Commit()
 
@@ -339,7 +340,9 @@ func (self *ShardContext) HandleShardCallMsgs(msgs []xshard_types.CommonShardMsg
 	notify := &event.TransactionNotify{
 		ContractEvent: txevent,
 	}
-	err := ledgerstore.HandleShardCallTransaction(nil, self.overlay, cache, xshardDB, msgs, header, notify)
+
+	gasTable := make(map[string]uint64)
+	err := ledgerstore.HandleShardCallTransaction(nil, self.overlay, gasTable, cache, xshardDB, msgs, header, notify)
 	assert.Nil(t, err)
 	xshardDB.Commit()
 
