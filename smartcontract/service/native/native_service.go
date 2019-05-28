@@ -28,13 +28,14 @@ import (
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	sstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
 type (
-	Handler         func(native *NativeService) ([]byte, error)
+	Handler func(native *NativeService) ([]byte, error)
 	RegisterService func(native *NativeService)
 )
 
@@ -71,6 +72,10 @@ func (this *NativeService) Invoke() (interface{}, error) {
 	contract := this.InvokeParam
 	if _, ok := this.LockedAddress[contract.Address]; ok {
 		return false, fmt.Errorf("contract is locked to call: %s", contract.Address.ToHexString())
+	}
+	if this.Tx.TxType == types.ShardCall &&
+		contract.Address != utils.OngContractAddress && contract.Address != utils.ShardAssetAddress {
+		return false, fmt.Errorf("native contract address %x cannot be invoked by shardcall", contract.Address)
 	}
 	services, ok := Contracts[contract.Address]
 	if !ok {

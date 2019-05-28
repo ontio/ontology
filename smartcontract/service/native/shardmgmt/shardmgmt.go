@@ -281,13 +281,13 @@ func ConfigShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: decode config failed, err: %s", err)
 	}
 	if err := utils.CheckVBFTConfig(cfg); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: failed, err: %s", err)
 	}
 	shard.Config.VbftCfg = cfg
 	shard.State = shardstates.SHARD_STATE_CONFIGURED
 
 	if err := initStakeContractShard(native, params.ShardID, uint64(cfg.MinInitStake), params.StakeAssetAddress); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("ConfigShard: failed, err: %s", err)
 	}
 	setShardState(native, contract, shard)
 
