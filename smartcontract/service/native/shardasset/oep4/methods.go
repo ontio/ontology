@@ -58,17 +58,15 @@ func transfer(native *native.NativeService, param *TransferParam) error {
 }
 
 func userBurn(native *native.NativeService, asset AssetId, user common.Address, amount *big.Int) error {
-	if native.ShardID.IsRootShard() {
-		totalSupply, err := getTotalSupply(native, asset)
-		if err != nil {
-			return fmt.Errorf("userBurn: failed, err: %s", err)
-		}
-		if totalSupply.Cmp(amount) < 0 {
-			return fmt.Errorf("userBurn: total supply not enough")
-		}
-		totalSupply.Sub(totalSupply, amount)
-		setTotalSupply(native, asset, totalSupply)
+	totalSupply, err := getTotalSupply(native, asset)
+	if err != nil {
+		return fmt.Errorf("userBurn: failed, err: %s", err)
 	}
+	if totalSupply.Cmp(amount) < 0 {
+		return fmt.Errorf("userBurn: total supply not enough")
+	}
+	totalSupply.Sub(totalSupply, amount)
+	setTotalSupply(native, asset, totalSupply)
 
 	balance, err := getUserBalance(native, asset, user)
 	if err != nil {
@@ -83,14 +81,12 @@ func userBurn(native *native.NativeService, asset AssetId, user common.Address, 
 }
 
 func userMint(native *native.NativeService, asset AssetId, user common.Address, amount *big.Int) error {
-	if native.ShardID.IsRootShard() {
-		totalSupply, err := getTotalSupply(native, asset)
-		if err != nil {
-			return fmt.Errorf("userMint: failed, err: %s", err)
-		}
-		totalSupply.Add(totalSupply, amount)
-		setTotalSupply(native, asset, totalSupply)
+	totalSupply, err := getTotalSupply(native, asset)
+	if err != nil {
+		return fmt.Errorf("userMint: failed, err: %s", err)
 	}
+	totalSupply.Add(totalSupply, amount)
+	setTotalSupply(native, asset, totalSupply)
 	balance, err := getUserBalance(native, asset, user)
 	if err != nil {
 		return fmt.Errorf("userMint: failed, err: %s", err)

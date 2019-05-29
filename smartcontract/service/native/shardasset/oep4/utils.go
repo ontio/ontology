@@ -123,7 +123,7 @@ func getTotalSupply(native *native.NativeService, asset AssetId) (*big.Int, erro
 		return nil, fmt.Errorf("getTotalSupply: read db failed, err: %s", err)
 	}
 	if len(raw) == 0 {
-		return nil, fmt.Errorf("getTotalSupply: store is empty")
+		return big.NewInt(0), nil
 	}
 	storeValue, err := states.GetValueFromRawStorageItem(raw)
 	if err != nil {
