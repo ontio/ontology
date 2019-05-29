@@ -1,0 +1,4 @@
+
+package TestConsts
+
+var TestRootDir = "./"
