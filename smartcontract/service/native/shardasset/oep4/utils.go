@@ -61,32 +61,32 @@ func genAssetIdKey(assetAddr common.Address) []byte {
 
 func genAssetTotalSupplyKey(id AssetId) []byte {
 	assetBytes := utils.GetUint64Bytes(uint64(id))
-	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_TOTAL_SUPPLY))
+	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_TOTAL_SUPPLY), assetBytes)
 }
 
 func genBalanceKey(asset AssetId, user common.Address) []byte {
 	assetBytes := utils.GetUint64Bytes(uint64(asset))
-	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_BALANCE), user[:])
+	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_BALANCE), assetBytes, user[:])
 }
 
 func genShardSupplyInfoKey(asset AssetId) []byte {
 	assetBytes := utils.GetUint64Bytes(uint64(asset))
-	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_SHARD_SUPPLY))
+	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_SHARD_SUPPLY), assetBytes)
 }
 
 func genAllowanceKey(asset AssetId, owner, spender common.Address) []byte {
 	assetBytes := utils.GetUint64Bytes(uint64(asset))
-	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_ALLOWANCE), owner[:], spender[:])
+	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_ALLOWANCE), assetBytes, owner[:], spender[:])
 }
 
 func genXShardTransferNumKey(asset AssetId, user common.Address) []byte {
 	assetBytes := utils.GetUint64Bytes(uint64(asset))
-	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_TRANSFER_NUM), user[:])
+	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_TRANSFER_NUM), assetBytes, user[:])
 }
 
 func genXShardTransferKey(asset AssetId, user common.Address, transferId *big.Int) []byte {
 	assetBytes := utils.GetUint64Bytes(uint64(asset))
-	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_XSHARD_TRANSFER), user[:],
+	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_XSHARD_TRANSFER), assetBytes, user[:],
 		common.BigIntToNeoBytes(transferId)[:])
 }
 
@@ -94,7 +94,7 @@ func genXShardReceiveKey(asset AssetId, user common.Address, fromShard common.Sh
 	assetBytes := utils.GetUint64Bytes(uint64(asset))
 	shardIdBytes := utils.GetUint64Bytes(fromShard.ToUint64())
 	tranIdBytes := common.BigIntToNeoBytes(transferId)[:]
-	return utils.ConcatKey(utils.ShardAssetAddress, assetBytes, []byte(KEY_OEP4_XSHARD_RECEIVE), shardIdBytes, user[:],
+	return utils.ConcatKey(utils.ShardAssetAddress, []byte(KEY_OEP4_XSHARD_RECEIVE), assetBytes, shardIdBytes, user[:],
 		tranIdBytes)
 }
 
