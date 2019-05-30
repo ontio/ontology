@@ -212,12 +212,12 @@ func (self *ZeroCopySource) ReadAddrList() ([]Address, error) {
 }
 
 func (self *ZeroCopySource) ReadVarBytesArray() ([][]byte, error) {
-	num, eof := self.NextUint64()
+	num, eof := self.NextUint32()
 	if eof {
 		return nil, io.ErrUnexpectedEOF
 	}
-	data := make([][]byte, num)
-	for i := uint64(0); i < num; i++ {
+	data := make([][]byte, 0)
+	for i := uint32(0); i < num; i++ {
 		b, _, irr, eof := self.NextVarBytes()
 		if irr {
 			return nil, ErrIrregularData
@@ -225,7 +225,7 @@ func (self *ZeroCopySource) ReadVarBytesArray() ([][]byte, error) {
 		if eof {
 			return nil, io.ErrUnexpectedEOF
 		}
-		data[i] = b
+		data = append(data, b)
 	}
 	return data, nil
 }

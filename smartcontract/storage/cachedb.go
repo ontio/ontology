@@ -179,7 +179,7 @@ func (self *CacheDB) get(prefix common.DataEntryPrefix, key []byte) ([]byte, err
 		}
 		value = v
 		if self.onReadBackend != nil {
-			self.onReadBackend(key, v)
+			self.onReadBackend(self.keyScratch, v)
 		}
 	}
 

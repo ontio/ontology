@@ -156,13 +156,13 @@ func (this *UnfreezeFromShardParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read value len failed, err: %s", err)
 	}
-	this.Value = make([]*PeerAmount, num)
+	this.Value = make([]*PeerAmount, 0)
 	for i := uint64(0); i < num; i++ {
 		value := &PeerAmount{}
 		if err := value.Deserialize(r); err != nil {
 			return fmt.Errorf("deserialize: read value failed, index %d, err: %s", i, err)
 		}
-		this.Value[i] = value
+		this.Value = append(this.Value, value)
 	}
 	return nil
 }
@@ -381,13 +381,13 @@ func (this *UserStakeParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read value len failed, err: %s", err)
 	}
-	this.Value = make([]*PeerAmount, num)
+	this.Value = make([]*PeerAmount, 0)
 	for i := uint64(0); i < num; i++ {
 		value := &PeerAmount{}
 		if err := value.Deserialize(r); err != nil {
 			return fmt.Errorf("deserialize: read value failed, index %d, err: %s", i, err)
 		}
-		this.Value[i] = value
+		this.Value = append(this.Value, value)
 	}
 	return nil
 }

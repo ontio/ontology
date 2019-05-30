@@ -226,7 +226,7 @@ func resumeTxState(txState *xshard_state.TxState, rspMsg *xshard_types.XShardTxR
 }
 
 func handleShardAbortMsg(msg *xshard_types.XShardAbortMsg, lockedAddress map[common.Address]struct{},
-	lockedKeys [][]byte, xshardDB *storage.XShardDB) {
+	lockedKeys map[string]struct{}, xshardDB *storage.XShardDB) {
 	shardTxID := msg.ShardTxID
 
 	txState, err := xshardDB.GetXShardState(shardTxID)
@@ -241,14 +241,14 @@ func handleShardAbortMsg(msg *xshard_types.XShardAbortMsg, lockedAddress map[com
 	}
 	// unlock key
 	for _, key := range txState.LockedKeys {
-		unlockKey(lockedKeys, key)
+		delete(lockedKeys, string(key))
 	}
 
 	xshardDB.SetXShardState(txState)
 }
 
 func handleShardCommitMsg(msg *xshard_types.XShardCommitMsg, lockedAddress map[common.Address]struct{},
-	lockedKeys [][]byte, cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header,
+	lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header,
 	notify *event.TransactionNotify) {
 	shardTxID := msg.ShardTxID
 	txState, err := xshardDB.GetXShardState(shardTxID)
@@ -288,14 +288,14 @@ func handleShardCommitMsg(msg *xshard_types.XShardCommitMsg, lockedAddress map[c
 	}
 	// unlock key
 	for _, key := range txState.LockedKeys {
-		unlockKey(lockedKeys, key)
+		delete(lockedKeys, string(key))
 	}
 
 	xshardDB.SetXShardState(txState)
 }
 
 func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, lockedAddress map[common.Address]struct{},
-	lockedKeys [][]byte, cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header,
+	lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB, header *types.Header,
 	notify *event.TransactionNotify) {
 	shardTxID := msg.ShardTxID
 	txState, err := xshardDB.GetXShardState(shardTxID)
@@ -357,14 +357,14 @@ func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, lockedAddress m
 	}
 	// unlock key
 	for _, key := range txState.LockedKeys {
-		unlockKey(lockedKeys, key)
+		delete(lockedKeys, string(key))
 	}
 
 	xshardDB.SetXShardState(txState)
 }
 
 func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.LedgerStore, gasTable map[string]uint64,
-	lockedAddress map[common.Address]struct{}, lockedKeys [][]byte, cache *storage.CacheDB, xshardDB *storage.XShardDB,
+	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	header *types.Header, notify *event.TransactionNotify) {
 	shardTxID := prepMsg.ShardTxID
 	txState, err := xshardDB.GetXShardState(shardTxID)
@@ -411,13 +411,13 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 	prepareOK := true
 	cache.Reset()
 	readContract := make(map[common.Address]struct{})
-	txLockedKeys := make([][]byte, 0)
+	txLockedKeys := make(map[string]struct{})
 	cache.SetOnReadBackendHandler(func(key, value []byte) {
-		if len(key) < 20 {
+		if len(key) < 21 {
 			return
 		}
 		var addr common.Address
-		copy(addr[:], key)
+		copy(addr[:], key[1:])
 		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress && addr != utils.OngContractAddress {
 			readContract[addr] = struct{}{}
 		}
@@ -490,12 +490,13 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 		// update total locked contract, following code can not fail, or else should revert this change
 		lockedAddress[addr] = struct{}{}
 	}
-	for _, key := range txLockedKeys {
-		lockKey(lockedKeys, key)
+	txState.LockedKeys = make([][]byte, 0)
+	for key := range txLockedKeys {
+		lockedKeys[string(key)] = struct{}{}
+		txState.LockedKeys = append(txState.LockedKeys, []byte(key))
 	}
 	common.SortAddress(shardTxLockAddr)
 	txState.LockedAddress = shardTxLockAddr
-	txState.LockedKeys = txLockedKeys
 	txState.Notify = contractEvent
 	cache = storage.NewCacheDB(cache.GetBackendDB())
 	txState.ExecState = xshard_state.ExecPrepared
@@ -534,7 +535,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 
 // todo: handle pending case
 func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStore, gasTable map[string]uint64,
-	lockedAddress map[common.Address]struct{}, lockedKeys [][]byte, cache *storage.CacheDB, xshardDB *storage.XShardDB,
+	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	header *types.Header, notify *event.TransactionNotify) {
 	shardId, err := common.NewShardID(header.ShardID)
 	if err != nil {
@@ -557,11 +558,9 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	}
 
 	cache.Reset()
-	txLockedKeys := make([][]byte, 0)
+	txLockedKeys := make(map[string]struct{})
 	cache.SetOnReadBackendHandler(func(key []byte, val []byte) {
-		if shouldLock(key) {
-			txLockedKeys = append(txLockedKeys, key)
-		}
+		lockKey(txLockedKeys, key)
 	})
 	result, gasConsume, err := execShardTransaction(msg.SourceShardID, store, gasTable, lockedAddress, cache, txState, tx, header, notify.ContractEvent)
 	if err != nil && txState.ExecState == xshard_state.ExecYielded {
@@ -604,15 +603,11 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 		}
 	}
 	cache.GetCache().ForEach(func(key, val []byte) {
-		if shouldLock(key) {
-			txLockedKeys = append(txLockedKeys, key)
-		}
+		lockKey(txLockedKeys, key)
 	})
-	for _, lockedKey := range lockedKeys {
-		for _, txLockedKey := range txLockedKeys {
-			if bytes.Equal(lockedKey, txLockedKey) {
-				return
-			}
+	for txLockedKey := range txLockedKeys {
+		if _, ok := lockedKeys[txLockedKey]; ok {
+			return
 		}
 	}
 	// no shard transaction and tx completed
@@ -624,7 +619,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 }
 
 func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, gasTable map[string]uint64,
-	lockedAddress map[common.Address]struct{}, lockedKeys [][]byte, cache *storage.CacheDB, xshardDB *storage.XShardDB,
+	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	header *types.Header, notify *event.TransactionNotify) {
 	shardTxID := msg.ShardTxID
 	txState, err := xshardDB.GetXShardState(shardTxID)
@@ -648,11 +643,9 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, g
 	}
 
 	cache.Reset()
-	txLockedKeys := make([][]byte, 0)
+	txLockedKeys := make(map[string]struct{})
 	cache.SetOnReadBackendHandler(func(key []byte, val []byte) {
-		if shouldLock(key) {
-			txLockedKeys = append(txLockedKeys, key)
-		}
+		lockKey(txLockedKeys, key)
 	})
 	evts := &event.ExecuteNotify{}
 	result, feeUsed, err := execShardTransaction(msg.SourceShardID, store, gasTable, lockedAddress, cache, txState, subTx, header, evts)
@@ -695,15 +688,11 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, g
 	}
 
 	cache.GetCache().ForEach(func(key, val []byte) {
-		if shouldLock(key) {
-			txLockedKeys = append(txLockedKeys, key)
-		}
+		lockKey(txLockedKeys, key)
 	})
-	for _, lockedKey := range lockedKeys {
-		for _, txLockedKey := range txLockedKeys {
-			if bytes.Equal(lockedKey, txLockedKey) {
-				return
-			}
+	for txLockedKey := range txLockedKeys {
+		if _, ok := lockedKeys[txLockedKey]; ok {
+			return
 		}
 	}
 	// FIXME: save notification
@@ -720,7 +709,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, g
 }
 
 func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, gasTable map[string]uint64,
-	lockedAddress map[common.Address]struct{}, lockedKeys [][]byte, cache *storage.CacheDB, xshardDB *storage.XShardDB,
+	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	header *types.Header, notify *event.TransactionNotify) {
 	shardId, err := common.NewShardID(header.ShardID)
 	if err != nil {
@@ -745,13 +734,13 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	txState.ShardNotifies = nil
 	cache.Reset()
 	readContract := make(map[common.Address]struct{})
-	txLockedKeys := make([][]byte, 0)
+	txLockedKeys := make(map[string]struct{}, 0)
 	cache.SetOnReadBackendHandler(func(key, value []byte) {
-		if len(key) < 20 {
+		if len(key) < 21 {
 			return
 		}
 		var addr common.Address
-		copy(addr[:], key)
+		copy(addr[:], key[1:])
 		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress && addr != utils.OngContractAddress {
 			readContract[addr] = struct{}{}
 		}
@@ -893,12 +882,13 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		// update total locked contract, following code can not fail, or else should revert this change
 		lockedAddress[addr] = struct{}{}
 	}
-	for _, key := range txLockedKeys {
-		lockKey(lockedKeys, key)
+	txState.LockedKeys = make([][]byte, 0)
+	for key := range txLockedKeys {
+		lockedKeys[string(key)] = struct{}{}
+		txState.LockedKeys = append(txState.LockedKeys, []byte(key))
 	}
 	common.SortAddress(shardTxLockAddr)
 	txState.LockedAddress = shardTxLockAddr
-	txState.LockedKeys = txLockedKeys
 	txState.Notify = evts
 	txState.ExecState = xshard_state.ExecPrepared
 	cache = storage.NewCacheDB(cache.GetBackendDB())
@@ -959,7 +949,7 @@ func execShardTransaction(fromShard common.ShardID, store store.LedgerStore, gas
 }
 
 func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64,
-	lockedAddress map[common.Address]struct{}, lockedKeys [][]byte, cache *storage.CacheDB, xshardDB *storage.XShardDB,
+	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	msgs []xshard_types.CommonShardMsg, header *types.Header, notify *event.TransactionNotify) error {
 	for _, req := range msgs {
 		switch msg := req.(type) {
@@ -985,7 +975,7 @@ func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.Over
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64,
-	lockedAddress map[common.Address]struct{}, lockedKeys [][]byte, cache *storage.CacheDB, xshardDB *storage.XShardDB,
+	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	tx *types.Transaction, header *types.Header, notify *event.TransactionNotify) (result interface{}, err error) {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
@@ -1018,11 +1008,9 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 		availableGasLimit uint64
 		minGas            uint64
 	)
-	txLockedKeys := make([][]byte, 0)
+	txLockedKeys := make(map[string]struct{}, 0)
 	cache.SetOnReadBackendHandler(func(key []byte, val []byte) {
-		if shouldLock(key) {
-			txLockedKeys = append(txLockedKeys, key)
-		}
+		lockKey(txLockedKeys, key)
 	})
 	availableGasLimit = tx.GasLimit
 	if isCharge {
@@ -1124,15 +1112,11 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 		}
 	}
 	cache.GetCache().ForEach(func(key, val []byte) {
-		if shouldLock(key) {
-			txLockedKeys = append(txLockedKeys, key)
-		}
+		lockKey(txLockedKeys, key)
 	})
-	for _, lockedKey := range lockedKeys {
-		for _, txLockedKey := range txLockedKeys {
-			if bytes.Equal(lockedKey, txLockedKey) {
-				return nil, fmt.Errorf("some status were locked")
-			}
+	for txLockedKey := range txLockedKeys {
+		if _, ok := lockedKeys[txLockedKey]; ok {
+			return
 		}
 	}
 	cnotify := notify.ContractEvent
@@ -1320,36 +1304,14 @@ func recordXShardHandlingFee(selfShard common.ShardID, txState *xshard_state.TxS
 	}
 }
 
-func lockKey(lockedKeys [][]byte, key []byte) {
+func lockKey(lockedKeys map[string]struct{}, key []byte) {
 	if shouldLock(key) {
-		for _, lockedKey := range lockedKeys {
-			if bytes.Equal(lockedKey, key) {
-				return
-			}
-		}
-		lockedKeys = append(lockedKeys, key)
-	}
-}
-
-func unlockKey(lockedKeys [][]byte, key []byte) {
-	for i, lockedKey := range lockedKeys {
-		if bytes.Equal(lockedKey, key) {
-			lockedKeys = append(lockedKeys[:i], lockedKeys[i+1:]...)
-			return
-		}
+		lockedKeys[string(key)] = struct{}{}
 	}
 }
 
 func shouldLock(key []byte) bool {
 	keyLen := len(key)
-	if keyLen < common.ADDR_LEN {
-		return false
-	}
-	if bytes.Equal(key[:common.ADDR_LEN], utils.ShardAssetAddress[:]) &&
-		bytes.Equal(key[:common.ADDR_LEN], utils.OngContractAddress[:]) &&
-		bytes.Equal(key[:common.ADDR_LEN], utils.ShardMgmtContractAddress[:]) {
-		return true
-	}
 	// key contains storage prefix
 	if keyLen < common.ADDR_LEN+1 {
 		return false

@@ -266,13 +266,13 @@ func (this *ApproveJoinShardParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read peers num failed, err: %s", err)
 	}
-	this.PeerPubKey = make([]string, num)
+	this.PeerPubKey = make([]string, 0)
 	for i := uint64(0); i < num; i++ {
 		peer, err := serialization.ReadString(r)
 		if err != nil {
 			return fmt.Errorf("deserialize: read peer failed, index %d, err: %s", i, err)
 		}
-		this.PeerPubKey[i] = peer
+		this.PeerPubKey = append(this.PeerPubKey, peer)
 	}
 	return nil
 }

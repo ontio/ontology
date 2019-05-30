@@ -37,6 +37,8 @@ const (
 
 	IX_HEADER_HASH_LIST DataEntryPrefix = 0x09 //Block height => block hash key prefix
 
+	ST_CONTRACT_META_DATA DataEntryPrefix = 0x0a // contract meta data
+
 	//SYSTEM
 	SYS_CURRENT_BLOCK      DataEntryPrefix = 0x10 //Current block key prefix
 	SYS_VERSION            DataEntryPrefix = 0x11 //Store version key prefix
@@ -51,11 +53,12 @@ const (
 	XSHARD_STATE               DataEntryPrefix = 0x34
 	XSHARD_KEY_SHARDS_IN_BLOCK                 = 0x35 // with block#, contains to-shard list
 	XSHARD_KEY_REQS_IN_BLOCK                   = 0x36 // with block# - shard#, containers requests to shard#
-	ST_CONTRACT_META_DATA      DataEntryPrefix = 0x37 // contract meta data
-	XSHARD_KEY_MSG_HASH        DataEntryPrefix = 0x38 //shard msg key
-	CROSS_SHARD_MSG            DataEntryPrefix = 0x39 //cross shard msg data
-	SHARD_CONFIG_DATA          DataEntryPrefix = 0x40 //all shard consensus config
-	CROSS_SHARD_HEIGHT         DataEntryPrefix = 0x41 //all shard consensus height info
-	XSHARD_KEY_LOCKED_ADDRESS                  = 0x42 // save current locked contrqct address
-	XSHARD_KEY_LOCKED_KEY      DataEntryPrefix = 0x43
+	XSHARD_KEY_MSG_HASH        DataEntryPrefix = 0x37 //shard msg key
+	XSHARD_KEY_LOCKED_ADDRESS                  = 0x38 // save current locked contrqct address
+	XSHARD_KEY_LOCKED_KEY      DataEntryPrefix = 0x39
+
+	CROSS_SHARD_MSG    DataEntryPrefix = 0x40 //cross shard msg data
+	CROSS_SHARD_HEIGHT DataEntryPrefix = 0x41 //all shard consensus height info
+
+	SHARD_CONFIG_DATA DataEntryPrefix = 0x42 //all shard consensus config
 )

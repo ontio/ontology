@@ -655,7 +655,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 		return result, err
 	}
 
-	lockedKeys, err := this.stateStore.GetCurrentLockedKeys()
+	keyList, err := this.stateStore.GetCurrentLockedKeys()
 	if err != nil {
 		return result, err
 	}
@@ -663,6 +663,10 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	lockedAddress := make(map[common.Address]struct{}, len(addrList))
 	for _, addr := range addrList {
 		lockedAddress[addr] = struct{}{}
+	}
+	lockedKeys := make(map[string]struct{})
+	for _, key := range keyList {
+		lockedKeys[string(key)] = struct{}{}
 	}
 
 	cache := storage.NewCacheDB(overlay)
@@ -720,8 +724,12 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	for addr := range lockedAddress {
 		addrList = append(addrList, addr)
 	}
+	keyList = keyList[:0]
+	for key := range lockedKeys {
+		keyList = append(keyList, []byte(key))
+	}
 	xshardDB.SetLockedAddress(addrList)
-	xshardDB.SetLockedKeys(lockedKeys)
+	xshardDB.SetLockedKeys(keyList)
 	xshardDB.Commit()
 
 	result.Hash = overlay.ChangeHash()
@@ -962,7 +970,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 }
 
 func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
-	lockedAddress map[common.Address]struct{}, lockedKeys [][]byte, xshardDB *storage.XShardDB, header *types.Header, tx *types.Transaction) (*event.TransactionNotify, error) {
+	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, xshardDB *storage.XShardDB, header *types.Header, tx *types.Transaction) (*event.TransactionNotify, error) {
 	txHash := tx.Hash()
 	events := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	notify := &event.TransactionNotify{
