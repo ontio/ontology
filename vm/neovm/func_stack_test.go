@@ -380,4 +380,3 @@ func TestStruct(t *testing.T) {
 
 	assert.False(t, CheckStackSize([]types.StackItems{s, s, s}))
 }
-

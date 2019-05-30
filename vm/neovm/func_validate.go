@@ -611,7 +611,7 @@ func CheckStackSize(items []types.StackItems) bool {
 		if i > STACK_LIMIT {
 			return false
 		}
-		if ok := checkStackSize(v, &i);!ok {
+		if ok := checkStackSize(v, &i); !ok {
 			return false
 		}
 	}
