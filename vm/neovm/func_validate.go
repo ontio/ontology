@@ -581,9 +581,6 @@ func validateAppend(e *ExecutionEngine) error {
 	if !CheckArraySize(arr.Count()+1) || !CheckArraySize(str.Count()+1) {
 		return fmt.Errorf("validateAppend error: %s", errors.ERR_OVER_MAX_ARRAY_SIZE)
 	}
-	if !CheckStackSize(append(e.EvaluationStack.GetStackItem(), e.AltStack.GetStackItem()...)) {
-		return fmt.Errorf("validateAppend error: %s", errors.ERR_OVER_MAX_ARRAY_SIZE)
-	}
 	return nil
 }
 

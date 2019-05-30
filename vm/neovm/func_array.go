@@ -19,9 +19,10 @@
 package neovm
 
 import (
+	"fmt"
 	"math/big"
 
-	"github.com/ontio/ontology/errors"
+	err "github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -170,6 +171,9 @@ func opAppend(e *ExecutionEngine) (VMState, error) {
 	if item, ok := items.(*types.Struct); ok {
 		item.Add(newItem)
 	}
+	if !CheckStackSize(append(e.EvaluationStack.GetStackItem(), e.AltStack.GetStackItem()...)) {
+		return FAULT, fmt.Errorf("validateAppend error: %s", err.ERR_OVER_MAX_ARRAY_SIZE)
+	}
 	return NONE, nil
 }
 
@@ -192,27 +196,27 @@ func opRemove(e *ExecutionEngine) (VMState, error) {
 	case *types.Array:
 		m, err := item.GetArray()
 		if err != nil {
-			return FAULT, errors.NewErr("[opRemove]get Array error!")
+			return FAULT, fmt.Errorf("%s", "[opRemove]get Array error!")
 		}
 
 		i, err := index.GetBigInteger()
 		if err != nil {
-			return FAULT, errors.NewErr("[opRemove] index not a interger!")
+			return FAULT, fmt.Errorf("%s", "[opRemove] index not a interger!")
 		}
 
 		if i.Sign() < 0 {
-			return FAULT, errors.NewErr("[opRemove] index out of bound!")
+			return FAULT, fmt.Errorf("%s", "[opRemove] index out of bound!")
 		}
 
 		len_t := big.NewInt(int64(len(m)))
 		if len_t.Cmp(i) <= 0 {
-			return FAULT, errors.NewErr("[opRemove] index out of bound!")
+			return FAULT, fmt.Errorf("%s", "[opRemove] index out of bound!")
 		}
 
 		ii := i.Int64()
 		item.(*types.Array).RemoveAt(int(ii) + 1)
 	default:
-		return FAULT, errors.NewErr("Not a supported remove type")
+		return FAULT, fmt.Errorf("%s", "Not a supported remove type")
 	}
 
 	return NONE, nil
@@ -233,7 +237,7 @@ func opHasKey(e *ExecutionEngine) (VMState, error) {
 
 		PushData(e, ok)
 	default:
-		return FAULT, errors.NewErr("Not a supported haskey type")
+		return FAULT, fmt.Errorf("%s", "Not a supported haskey type")
 	}
 	return NONE, nil
 }
@@ -249,7 +253,7 @@ func opKeys(e *ExecutionEngine) (VMState, error) {
 
 		PushData(e, types.NewArray(keys))
 	default:
-		return FAULT, errors.NewErr("Not a supported keys type")
+		return FAULT, fmt.Errorf("%s", "Not a supported keys type")
 	}
 	return NONE, nil
 }
@@ -275,7 +279,7 @@ func opValues(e *ExecutionEngine) (VMState, error) {
 
 		PushData(e, types.NewArray(values))
 	default:
-		return FAULT, errors.NewErr("Not a supported values type")
+		return FAULT, fmt.Errorf("%s", "Not a supported values type")
 	}
 	return NONE, nil
 }
