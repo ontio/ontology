@@ -699,25 +699,13 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	// execute transactions
 	for _, tx := range block.Transactions {
 		cache.Reset()
-		<<<<<<< HEAD
 		if tx.TxType == types.ShardCall {
 			txHash := tx.Hash()
 			err = fmt.Errorf("handleTransaction failed tx type:%d,txHash:%s", types.ShardCall, txHash.ToHexString())
 			return
 		}
-		notify, e := HandleTransaction(this, overlay, cache, gasTable, lockedAddress, xshardDB, block.Header, tx)
-		====== =
 		notify, e := HandleTransaction(this, overlay, cache, gasTable, lockedAddress, lockedKeys, xshardDB,
 			block.Header, tx)
-		>>>>>>> b2e40d2e... add
-		locked
-		keys
-		check
-		while
-		shard
-		call
-		and
-		invoke
 		if e != nil {
 			err = e
 			return
