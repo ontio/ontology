@@ -745,6 +745,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	txState.ShardNotifies = nil
 	cache.Reset()
 	readContract := make(map[common.Address]struct{})
+	txLockedKeys := make([][]byte, 0)
 	cache.SetOnReadBackendHandler(func(key, value []byte) {
 		if len(key) < 20 {
 			return
@@ -754,7 +755,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress && addr != utils.OngContractAddress {
 			readContract[addr] = struct{}{}
 		}
-		lockKey(lockedKeys, key)
+		lockKey(txLockedKeys, key)
 	})
 	isChargeFailed := false
 	if subTx.GasPrice > 0 {
@@ -883,7 +884,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress && addr != utils.OngContractAddress {
 			readContract[addr] = struct{}{}
 		}
-		lockKey(lockedKeys, key)
+		lockKey(txLockedKeys, key)
 	})
 
 	shardTxLockAddr := make([]common.Address, 0, len(readContract))
@@ -892,9 +893,12 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		// update total locked contract, following code can not fail, or else should revert this change
 		lockedAddress[addr] = struct{}{}
 	}
+	for _, key := range txLockedKeys {
+		lockKey(lockedKeys, key)
+	}
 	common.SortAddress(shardTxLockAddr)
 	txState.LockedAddress = shardTxLockAddr
-	txState.LockedKeys = lockedKeys
+	txState.LockedKeys = txLockedKeys
 	txState.Notify = evts
 	txState.ExecState = xshard_state.ExecPrepared
 	cache = storage.NewCacheDB(cache.GetBackendDB())
