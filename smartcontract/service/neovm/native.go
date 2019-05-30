@@ -27,7 +27,9 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	ctype "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/types"
@@ -49,6 +51,9 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	addr, err := common.AddressParseFromBytes(address)
 	if err != nil {
 		return fmt.Errorf("invoke native contract:%s, address invalid", address)
+	}
+	if service.Tx.TxType == ctype.ShardCall && addr != utils.OngContractAddress && addr != utils.ShardAssetAddress {
+		return fmt.Errorf("native contract address %x cannot be invoked by shardcall", addr)
 	}
 	method, err := vm.PopByteArray(engine)
 	if err != nil {

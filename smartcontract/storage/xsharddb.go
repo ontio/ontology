@@ -81,6 +81,14 @@ func (self *XShardDB) SetLockedAddress(addrs []comm.Address) {
 	self.cacheDB.put(common.XSHARD_KEY_LOCKED_ADDRESS, nil, sink.Bytes())
 }
 
+func (self *XShardDB) SetLockedKeys(keys [][]byte) {
+
+	sink := comm.NewZeroCopySink(0)
+	sink.WriteVarBytesArray(keys)
+
+	self.cacheDB.put(common.XSHARD_KEY_LOCKED_KEY, nil, sink.Bytes())
+}
+
 func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_types.CommonShardMsg) {
 	shardMsgMap := make(map[comm.ShardID][]xshard_types.CommonShardMsg)
 	for _, msg := range msgs {

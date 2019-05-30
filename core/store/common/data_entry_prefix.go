@@ -51,11 +51,11 @@ const (
 	XSHARD_STATE               DataEntryPrefix = 0x34
 	XSHARD_KEY_SHARDS_IN_BLOCK                 = 0x35 // with block#, contains to-shard list
 	XSHARD_KEY_REQS_IN_BLOCK                   = 0x36 // with block# - shard#, containers requests to shard#
-	XSHARD_KEY_LOCKED_ADDRESS                  = 0x37 // save current locked contrqct address
+	ST_CONTRACT_META_DATA      DataEntryPrefix = 0x37 // contract meta data
 	XSHARD_KEY_MSG_HASH        DataEntryPrefix = 0x38 //shard msg key
 	CROSS_SHARD_MSG            DataEntryPrefix = 0x39 //cross shard msg data
 	SHARD_CONFIG_DATA          DataEntryPrefix = 0x40 //all shard consensus config
 	CROSS_SHARD_HEIGHT         DataEntryPrefix = 0x41 //all shard consensus height info
-
-	ST_CONTRACT_META_DATA DataEntryPrefix = 0x40 // contract meta data
+	XSHARD_KEY_LOCKED_ADDRESS                  = 0x42 // save current locked contrqct address
+	XSHARD_KEY_LOCKED_KEY      DataEntryPrefix = 0x43
 )
