@@ -19,11 +19,13 @@
 package storage
 
 import (
+	"bytes"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/xshard_types"
+	"sort"
 )
 
 // CacheDB is smart contract execute cache, it contain transaction cache and block cache
@@ -83,6 +85,9 @@ func (self *XShardDB) SetLockedAddress(addrs []comm.Address) {
 
 func (self *XShardDB) SetLockedKeys(keys [][]byte) {
 
+	sort.SliceStable(keys, func(i, j int) bool {
+		return bytes.Compare(keys[i], keys[j]) < 0
+	})
 	sink := comm.NewZeroCopySink(0)
 	sink.WriteVarBytesArray(keys)
 

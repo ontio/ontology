@@ -495,6 +495,9 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 		lockedKeys[string(key)] = struct{}{}
 		txState.LockedKeys = append(txState.LockedKeys, []byte(key))
 	}
+	sort.SliceStable(txState.LockedKeys, func(i, j int) bool {
+		return bytes.Compare(txState.LockedKeys[i], txState.LockedKeys[j]) < 0
+	})
 	common.SortAddress(shardTxLockAddr)
 	txState.LockedAddress = shardTxLockAddr
 	txState.Notify = contractEvent
@@ -887,6 +890,9 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		lockedKeys[string(key)] = struct{}{}
 		txState.LockedKeys = append(txState.LockedKeys, []byte(key))
 	}
+	sort.SliceStable(txState.LockedKeys, func(i, j int) bool {
+		return bytes.Compare(txState.LockedKeys[i], txState.LockedKeys[j]) < 0
+	})
 	common.SortAddress(shardTxLockAddr)
 	txState.LockedAddress = shardTxLockAddr
 	txState.Notify = evts
