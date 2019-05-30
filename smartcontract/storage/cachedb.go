@@ -26,12 +26,15 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/util"
 )
 
+type ReadBackendHandler = func(key []byte, val []byte)
+
 // CacheDB is smart contract execute cache, it contain transaction cache and block cache
 // When smart contract execute finish, need to commit transaction cache to block cache
 type CacheDB struct {
-	memdb      *overlaydb.MemDB
-	backend    *overlaydb.OverlayDB
-	keyScratch []byte
+	memdb         *overlaydb.MemDB
+	backend       *overlaydb.OverlayDB
+	onReadBackend ReadBackendHandler
+	keyScratch    []byte
 }
 
 const initCap = 1024
@@ -43,6 +46,10 @@ func NewCacheDB(store *overlaydb.OverlayDB) *CacheDB {
 		backend: store,
 		memdb:   overlaydb.NewMemDB(initCap, initKvNum),
 	}
+}
+
+func (self *CacheDB) SetOnReadBackendHandler(handler ReadBackendHandler) {
+	self.onReadBackend = handler
 }
 
 func (self *CacheDB) Reset() {
@@ -171,6 +178,9 @@ func (self *CacheDB) get(prefix common.DataEntryPrefix, key []byte) ([]byte, err
 			return nil, err
 		}
 		value = v
+		if self.onReadBackend != nil {
+			self.onReadBackend(key, v)
+		}
 	}
 
 	return value, nil

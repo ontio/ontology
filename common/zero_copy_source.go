@@ -193,6 +193,23 @@ func (self *ZeroCopySource) NextAddress() (data Address, eof bool) {
 
 	return
 }
+func (self *ZeroCopySource) ReadAddrList() ([]Address, error) {
+	var addrs []Address
+	lenAddr, eof := self.NextUint32()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	for i := uint32(0); i < lenAddr; i++ {
+		addr, eof := self.NextAddress()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
+
+		addrs = append(addrs, addr)
+	}
+
+	return addrs, nil
+}
 
 func (self *ZeroCopySource) NextHash() (data Uint256, eof bool) {
 	var buf []byte

@@ -72,6 +72,15 @@ func (self *XShardDB) SetXShardState(state *xshard_state.TxState) {
 	self.cacheDB.put(common.XSHARD_STATE, []byte(string(state.TxID)), buf)
 }
 
+func (self *XShardDB) SetLockedAddress(addrs []comm.Address) {
+	comm.SortAddress(addrs)
+
+	sink := comm.NewZeroCopySink(len(addrs)*20 + 4)
+	sink.WriteAddrList(addrs)
+
+	self.cacheDB.put(common.XSHARD_KEY_LOCKED_ADDRESS, nil, sink.Bytes())
+}
+
 func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_types.CommonShardMsg) {
 	shardMsgMap := make(map[comm.ShardID][]xshard_types.CommonShardMsg)
 	for _, msg := range msgs {
@@ -100,7 +109,7 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_type
 	val.Reset()
 	msgRoot := comm.ComputeMerkleRoot(hashes)
 	val.WriteBytes(msgRoot[:])
-	for shardID, _ := range shardMsgMap {
+	for shardID := range shardMsgMap {
 		keys.Reset()
 		keys.WriteUint64(shardID.ToUint64())
 		self.cacheDB.put(common.XSHARD_KEY_MSG_HASH, keys.Bytes(), val.Bytes())

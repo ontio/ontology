@@ -17,7 +17,10 @@
  */
 package common
 
-import "sort"
+import (
+	"bytes"
+	"sort"
+)
 
 type Uint64Slice []uint64
 
@@ -27,4 +30,16 @@ func (p Uint64Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func SortUint64s(l []uint64) {
 	sort.Stable(Uint64Slice(l))
+}
+
+type AddressSlice []Address
+
+func (p AddressSlice) Len() int { return len(p) }
+func (p AddressSlice) Less(i, j int) bool {
+	return bytes.Compare(p[i][:], p[j][:]) < 0
+}
+func (p AddressSlice) Swap(i, j int) { p[i], p[j] = p[j], p[i] }
+
+func SortAddress(l []Address) {
+	sort.Stable(AddressSlice(l))
 }

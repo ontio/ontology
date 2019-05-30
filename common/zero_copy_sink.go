@@ -154,6 +154,13 @@ func (self *ZeroCopySink) WriteAddress(addr Address) {
 	self.WriteBytes(addr[:])
 }
 
+func (self *ZeroCopySink) WriteAddrList(addrs []Address) {
+	self.WriteUint32(uint32(len(addrs)))
+	for _, addr := range addrs {
+		self.WriteAddress(addr)
+	}
+}
+
 func (self *ZeroCopySink) WriteHash(hash Uint256) {
 	self.WriteBytes(hash[:])
 }

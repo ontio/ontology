@@ -52,6 +52,7 @@ type NativeService struct {
 	ServiceMap    map[string]Handler
 	Notifications []*event.NotifyEventInfo
 	InvokeParam   sstates.ContractInvokeParam
+	LockedAddress map[common.Address]struct{}
 	Input         []byte
 	Tx            *types.Transaction
 	ShardID       common.ShardID
@@ -68,6 +69,9 @@ func (this *NativeService) Register(methodName string, handler Handler) {
 
 func (this *NativeService) Invoke() (interface{}, error) {
 	contract := this.InvokeParam
+	if _, ok := this.LockedAddress[contract.Address]; ok {
+		return false, fmt.Errorf("contract is locked to call: %s", contract.Address.ToHexString())
+	}
 	services, ok := Contracts[contract.Address]
 	if !ok {
 		return false, fmt.Errorf("native contract address %x haven't been registered", contract.Address)
