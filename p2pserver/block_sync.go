@@ -226,7 +226,7 @@ type BlockSyncMgr struct {
 	flightBlocks      map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
 	flightHeaders     map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
 	blocksCache       map[uint32]*BlockInfo                //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
-	server            *P2PServer                           //Pointer to the local node
+	server            SyncNet                              //Pointer to the local node
 	syncBlockLock     bool                                 //Help to avoid send block sync request duplicate
 	syncHeaderLock    bool                                 //Help to avoid send header sync request duplicate
 	saveBlockLock     bool                                 //Help to avoid saving block concurrently
@@ -238,7 +238,7 @@ type BlockSyncMgr struct {
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
-func NewBlockSyncMgr(shardID common.ShardID, server *P2PServer, lgr *ledger.Ledger) *BlockSyncMgr {
+func NewBlockSyncMgr(shardID common.ShardID, server SyncNet, lgr *ledger.Ledger) *BlockSyncMgr {
 	if lgr == nil {
 		return nil
 	}
@@ -350,7 +350,7 @@ func (this *BlockSyncMgr) sync() {
 }
 
 func (this *BlockSyncMgr) syncHeader() {
-	if !this.server.reachMinConnection() {
+	if !this.server.ReachMinConnection() {
 		return
 	}
 	if this.tryGetSyncHeaderLock() {
@@ -845,7 +845,7 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 			return nil
 		}
 		triedNode[nextNodeId] = true
-		n := this.server.getNode(nextNodeId)
+		n := this.server.GetNode(nextNodeId)
 		if n == nil {
 			continue
 		}
@@ -945,7 +945,7 @@ func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 	this.lock.RLock()
 	maxHeight := curHeight
 	for id := range this.nodeWeights {
-		peer := this.server.getNode(id)
+		peer := this.server.GetNode(id)
 		if peer == nil {
 			continue
 		}
@@ -960,7 +960,7 @@ func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 	}
 	this.lock.RUnlock()
 	if curHeight > maxHeight-SYNC_MAX_HEIGHT_OFFSET && len(peers) > 0 {
-		this.server.pingTo(peers)
+		this.server.PingTo(peers)
 	}
 }
 
