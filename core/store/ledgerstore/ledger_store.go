@@ -675,6 +675,11 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 		log.Infof("executing shard Tx from shard %d, txnum = %d", id, len(block.ShardTxs[id]))
 		for _, shardTx := range block.ShardTxs[id] {
 			cache.Reset()
+			if shardTx.Tx.TxType != types.ShardCall {
+				txHash := shardTx.Tx.Hash()
+				err = fmt.Errorf("handleTransaction failed tx type:%d,txHash:%s", types.ShardCall, txHash.ToHexString())
+				return
+			}
 			notify, e := HandleTransaction(this, overlay, cache, gasTable, lockedAddress, xshardDB, block.Header, shardTx.Tx)
 			if e != nil {
 				err = e
@@ -690,10 +695,11 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 		cache.Reset()
 		if tx.TxType == types.ShardCall {
 			txHash := tx.Hash()
-			log.Errorf("handleTransaction failed tx type:%d,txHash:%s", types.ShardCall, txHash.ToHexString())
-			continue
+			err = fmt.Errorf("handleTransaction failed tx type:%d,txHash:%s", types.ShardCall, txHash.ToHexString())
+			return
 		}
-		notify, e := HandleTransaction(this, overlay, cache, gasTable, lockedAddress, xshardDB, block.Header, tx)		if e != nil {
+		notify, e := HandleTransaction(this, overlay, cache, gasTable, lockedAddress, xshardDB, block.Header, tx)
+		if e != nil {
 			err = e
 			return
 		}
