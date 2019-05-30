@@ -102,3 +102,7 @@ func (r *RandomAccessStack) Swap(i, j int) {
 func (r *RandomAccessStack) CopyTo(stack *RandomAccessStack) {
 	stack.e = append(stack.e, r.e...)
 }
+
+func (r *RandomAccessStack) GetStackItem() []types.StackItems {
+	return r.e
+}

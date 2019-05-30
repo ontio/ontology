@@ -573,10 +573,16 @@ func validateAppend(e *ExecutionEngine) error {
 		return err
 	}
 	arrItem := PeekNStackItem(1, e)
-	_, ok1 := arrItem.(*types.Array)
-	_, ok2 := arrItem.(*types.Struct)
+	arr, ok1 := arrItem.(*types.Array)
+	str, ok2 := arrItem.(*types.Struct)
 	if !ok1 && !ok2 {
 		return fmt.Errorf("validateAppend error: %s", errors.ERR_NOT_SUPPORT_TYPE)
+	}
+	if !CheckArraySize(arr.Count()+1) || !CheckArraySize(str.Count()+1) {
+		return fmt.Errorf("validateAppend error: %s", errors.ERR_OVER_MAX_ARRAY_SIZE)
+	}
+	if !CheckStackSize(append(e.EvaluationStack.GetStackItem(), e.AltStack.GetStackItem()...)) {
+		return fmt.Errorf("validateAppend error: %s", errors.ERR_OVER_MAX_ARRAY_SIZE)
 	}
 	return nil
 }
@@ -592,6 +598,52 @@ func validatorReverse(e *ExecutionEngine) error {
 		return fmt.Errorf("validatorReverse error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
 	return nil
+}
+
+func CheckArraySize(count int) bool {
+	if count > MAX_ARRAY_SIZE {
+		return false
+	}
+	return true
+}
+
+func CheckStackSize(items []types.StackItems) bool {
+	var i int
+	for _, v := range items {
+		i++
+		if i > STACK_LIMIT {
+			return false
+		}
+		if ok := checkStackSize(v, &i);!ok {
+			return false
+		}
+	}
+	return true
+}
+
+func checkStackSize(s types.StackItems, length *int) bool {
+	if *length > STACK_LIMIT {
+		return false
+	}
+	switch s.(type) {
+	case *types.Struct, *types.Array:
+		arr, _ := s.GetArray()
+		for _, v := range arr {
+			*length++
+			if !checkStackSize(v, length) {
+				return false
+			}
+		}
+	case *types.Map:
+		m, _ := s.GetMap()
+		for _, v := range m {
+			*length++
+			if !checkStackSize(v, length) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func validatorRemove(e *ExecutionEngine) error {

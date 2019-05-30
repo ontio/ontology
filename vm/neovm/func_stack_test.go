@@ -19,6 +19,7 @@
 package neovm
 
 import (
+	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
 
@@ -366,3 +367,17 @@ func TestOpTuck(t *testing.T) {
 		t.Fatal("NeoVM OpTuck test failed.")
 	}
 }
+
+func TestStruct(t *testing.T) {
+	s := types.NewStruct(nil)
+	k := types.NewStruct([]types.StackItems{types.NewInteger(big.NewInt(1))})
+	for i := 0; i < 1024; i++ {
+		k = types.NewStruct([]types.StackItems{k})
+	}
+
+	s.Add(k)
+	s.Add(s)
+
+	assert.False(t, CheckStackSize([]types.StackItems{s, s, s}))
+}
+
