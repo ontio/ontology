@@ -229,6 +229,9 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs, error) {
 	crossShardMsgs := &CrossShardMsgs{}
 	msgs := self.chainStore.GetExecShardNotify(blkNum)
+	if len(msgs) == 0 {
+		return nil, nil
+	}
 	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
 	for _, msg := range msgs {
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)

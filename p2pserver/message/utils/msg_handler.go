@@ -218,7 +218,11 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 
 	var trn = data.Payload.(*msgTypes.Trn)
 	if trn.Txn.ShardID != p2p.GetShardID().ToUint64() {
-		log.Errorf("[p2p]receive transaction shardId:%d unmatch,shardId:%d", trn.Txn.ShardID, p2p.GetShardID().ToUint64())
+		log.Warnf("[p2p]receive transaction shardId:%d unmatch,shardId:%d", trn.Txn.ShardID, p2p.GetShardID().ToUint64())
+		return
+	}
+	if trn.Txn.TxType == types.ShardCall {
+		log.Warnf("[p2p]receive transaction tx type:%d", types.ShardCall)
 		return
 	}
 	actor.AddTransaction(trn.Txn)

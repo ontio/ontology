@@ -229,12 +229,14 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 			continue
 		}
 		crossShardMsg := &types.CrossShardMsg{
-			FromShardID:       self.shardID,
-			MsgHeight:         crossShardMsgs.Height,
-			SignMsgHeight:     blkNum,
-			CrossShardMsgRoot: msgRoot,
-			ShardMsg:          shardMsg,
-			ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+			CrossShardMsgInfo: &types.CrossShardMsgInfo{
+				FromShardID:       self.shardID,
+				MsgHeight:         crossShardMsgs.Height,
+				SignMsgHeight:     blkNum,
+				CrossShardMsgRoot: msgRoot,
+				ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+			},
+			ShardMsg: shardMsg,
 		}
 		preMsgHash, err := self.ledger.GetShardMsgHash(crossMsg.ShardID)
 		if err != nil {
@@ -242,7 +244,7 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 				log.Errorf("chainstore getshardmsghash err:%s", err)
 			}
 		} else {
-			crossShardMsg.PreCrossShardMsgHash = preMsgHash
+			crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
 		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)

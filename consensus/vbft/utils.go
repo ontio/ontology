@@ -348,7 +348,6 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
 	heights, err := lgr.GetShardConsensusHeight(shardID)
 	if err != nil {
-		log.Errorf("getShardConfig shardID:%v,err:%s", shardID, err)
 		return nil, err
 	}
 	var blkHeight uint32

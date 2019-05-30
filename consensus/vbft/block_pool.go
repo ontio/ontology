@@ -40,6 +40,7 @@ type CandidateEndorseSigInfo struct {
 	EndorsedProposer uint32
 	Signature        []byte
 	ForEmpty         bool
+	CrossMsg         *CrossShardMsgs
 }
 
 type CandidateInfo struct {
@@ -289,6 +290,7 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
+		CrossMsg:         msg.CrossMsg,
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig)
 }
@@ -461,6 +463,9 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
+		if crossShardMsg, present := msg.CrossMsgSig[endorser]; present {
+			eSig.CrossMsg = crossShardMsg
+		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig)
 	}
 
@@ -579,7 +584,6 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 
 	bookkeepers := make([]keypair.PublicKey, 0)
 	sigData := make([][]byte, 0)
-
 	// add proposer sig
 	proposer := block.getProposer()
 	proposerPk := pool.server.peerPool.GetPeerPubKey(proposer)
@@ -603,8 +607,33 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
 				}
+				if block.CrossMsg != nil && sig.CrossMsg != nil {
+					for _, crossMsg := range block.CrossMsg.CrossMsgs {
+						//add sign
+						for _, sigcrossMsg := range sig.CrossMsg.CrossMsgs {
+							if crossMsg.MsgHash == sigcrossMsg.MsgHash {
+								crossMsg.SigData = append(crossMsg.SigData, sigcrossMsg.SigData...)
+							}
+						}
+					}
+				}
 				break
 			}
+		}
+	}
+	//dup sign data
+	if block.CrossMsg != nil {
+		for _, crossMsg := range block.CrossMsg.CrossMsgs {
+			sigDatas := make([][]byte, 0)
+			crossSignData := make(map[string]bool)
+			for _, sign := range crossMsg.SigData {
+				crossSignData[common.ToHexString(sign)] = true
+			}
+			for sign, _ := range crossSignData {
+				signdata, _ := common.HexToBytes(sign)
+				sigDatas = append(sigDatas, signdata)
+			}
+			crossMsg.SigData = sigDatas
 		}
 	}
 	if !forEmpty {

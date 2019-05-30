@@ -52,32 +52,32 @@ func InitCrossShardPool(shardID common.ShardID, historyCap uint32) {
 func AddCrossShardInfo(ledger *ledger.Ledger, crossShardMsg *types.CrossShardMsg, tx *types.Transaction) error {
 	pool := crossShardPool
 	crossShardTxInfo := &types.CrossShardTxInfos{
-		ShardMsg: crossShardMsg,
+		ShardMsg: crossShardMsg.CrossShardMsgInfo,
 		Tx:       tx,
 	}
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
-	if _, present := pool.Shards[crossShardMsg.FromShardID.ToUint64()]; !present {
-		pool.Shards[crossShardMsg.FromShardID.ToUint64()] = make(map[common.Uint256]*types.CrossShardTxInfos)
+	if _, present := pool.Shards[crossShardMsg.CrossShardMsgInfo.FromShardID.ToUint64()]; !present {
+		pool.Shards[crossShardMsg.CrossShardMsgInfo.FromShardID.ToUint64()] = make(map[common.Uint256]*types.CrossShardTxInfos)
 	}
-	m := pool.Shards[crossShardMsg.FromShardID.ToUint64()]
+	m := pool.Shards[crossShardMsg.CrossShardMsgInfo.FromShardID.ToUint64()]
 	if m == nil {
 		return fmt.Errorf("add shard cross tx, nil map")
 	}
 	m[crossShardTxInfo.ShardMsg.CrossShardMsgRoot] = crossShardTxInfo
-	shardTxInfos, err := ledger.GetCrossShardMsgByShardID(crossShardMsg.FromShardID)
+	shardTxInfos, err := ledger.GetCrossShardMsgByShardID(crossShardMsg.CrossShardMsgInfo.FromShardID)
 	if err != nil {
 		if err != com.ErrNotFound {
-			return fmt.Errorf("GetCrossShardMsgByShardID shardID:%v,err:%s", crossShardMsg.FromShardID, err)
+			return fmt.Errorf("GetCrossShardMsgByShardID shardID:%v,err:%s", crossShardMsg.CrossShardMsgInfo.FromShardID, err)
 		}
 	}
 	shardTxInfos = append(shardTxInfos, crossShardTxInfo)
 
-	err = ledger.SaveCrossShardMsgByShardID(crossShardMsg.FromShardID, shardTxInfos)
+	err = ledger.SaveCrossShardMsgByShardID(crossShardMsg.CrossShardMsgInfo.FromShardID, shardTxInfos)
 	if err != nil {
-		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,err:%s", crossShardMsg.FromShardID, err)
+		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,err:%s", crossShardMsg.CrossShardMsgInfo.FromShardID, err)
 	}
-	log.Infof("chainmgr AddBlock from shard %d, block %d", crossShardMsg.FromShardID.ToUint64(), crossShardMsg.MsgHeight)
+	log.Infof("chainmgr AddBlock from shard %d, block %d", crossShardMsg.CrossShardMsgInfo.FromShardID.ToUint64(), crossShardMsg.CrossShardMsgInfo.MsgHeight)
 	return nil
 }
 

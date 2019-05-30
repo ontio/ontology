@@ -39,6 +39,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	sign "github.com/ontio/ontology/core/signature"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -1233,8 +1234,12 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 			//verify msg sign
 			chainconfig, err := getShardConfigByShardID(self.ledger, crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight)
 			if err != nil {
-				log.Errorf("etShardConfigByShardID shardID:%v,height:%d err:%s", crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight, err)
-				return false
+				if err != com.ErrNotFound {
+					log.Errorf("getShardConfigByShardID shardID:%v,height:%d err:%s", crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight, err)
+					return false
+				} else {
+					return true
+				}
 			}
 			for _, msgHash := range crossTxMsg.ShardMsg.ShardMsgHashs {
 				var bookkeepers []keypair.PublicKey
@@ -1249,7 +1254,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 				}
 				err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, msgHash.SigData)
 				if err != nil {
-					log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d", err, len(bookkeepers), m)
+					log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(msgHash.SigData))
 					return false
 				}
 			}
@@ -1261,7 +1266,12 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					hashes = append(hashes, shardMsg.MsgHash)
 				}
 			}
-			hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(crossTxMsg.ShardMsg.ShardMsg))
+			if crossTxMsg.Tx.TxType != types.ShardCall {
+				log.Errorf("verifyCrossShardTx cross shard txtype:%d not shardcall", crossTxMsg.Tx.TxType)
+				return false
+			}
+			shardCall := crossTxMsg.Tx.Payload.(*payload.ShardCall)
+			hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
 			msgRoot := common.ComputeMerkleRoot(hashes)
 			if shardMsgRoot != msgRoot {
 				log.Errorf("verifyCrossShardTx shard msgroot:%s,not match msgroot:%s", shardMsgRoot.ToHexString(), msgRoot.ToHexString())

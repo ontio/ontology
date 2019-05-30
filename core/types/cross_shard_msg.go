@@ -69,40 +69,23 @@ func (this *CrossShardMsgHash) Deserialization(source *common.ZeroCopySource) er
 }
 
 type CrossShardMsg struct {
-	FromShardID          common.ShardID
-	MsgHeight            uint32
-	SignMsgHeight        uint32
-	PreCrossShardMsgHash common.Uint256
-	CrossShardMsgRoot    common.Uint256
-	ShardMsg             []xshard_types.CommonShardMsg
-	ShardMsgHashs        []*CrossShardMsgHash
+	CrossShardMsgInfo *CrossShardMsgInfo
+	ShardMsg          []xshard_types.CommonShardMsg
 }
 
 func (this *CrossShardMsg) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteShardID(this.FromShardID)
-	sink.WriteUint32(this.MsgHeight)
-	sink.WriteUint32(this.SignMsgHeight)
-	sink.WriteBytes(this.PreCrossShardMsgHash[:])
-	sink.WriteBytes(this.CrossShardMsgRoot[:])
+	this.CrossShardMsgInfo.Serialization(sink)
 	xshard_types.EncodeShardCommonMsgs(sink, this.ShardMsg)
-	sink.WriteVarUint(uint64(len(this.ShardMsgHashs)))
-	for _, shardMsgHash := range this.ShardMsgHashs {
-		shardMsgHash.Serialization(sink)
-	}
 }
 
 func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error {
-	var eof bool
-	var err error
-	this.FromShardID, err = source.NextShardID()
+	if this.CrossShardMsgInfo == nil {
+		this.CrossShardMsgInfo = new(CrossShardMsgInfo)
+	}
+	err := this.CrossShardMsgInfo.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	this.MsgHeight, eof = source.NextUint32()
-	this.SignMsgHeight, eof = source.NextUint32()
-	this.PreCrossShardMsgHash, eof = source.NextHash()
-	this.CrossShardMsgRoot, eof = source.NextHash()
-
 	len, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -116,9 +99,41 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 		reqs = append(reqs, req)
 	}
 	this.ShardMsg = reqs
-	if eof {
-		return io.ErrUnexpectedEOF
+	return nil
+}
+
+type CrossShardMsgInfo struct {
+	FromShardID          common.ShardID
+	MsgHeight            uint32
+	SignMsgHeight        uint32
+	PreCrossShardMsgHash common.Uint256
+	CrossShardMsgRoot    common.Uint256
+	ShardMsgHashs        []*CrossShardMsgHash
+}
+
+func (this *CrossShardMsgInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteShardID(this.FromShardID)
+	sink.WriteUint32(this.MsgHeight)
+	sink.WriteUint32(this.SignMsgHeight)
+	sink.WriteBytes(this.PreCrossShardMsgHash[:])
+	sink.WriteBytes(this.CrossShardMsgRoot[:])
+	sink.WriteVarUint(uint64(len(this.ShardMsgHashs)))
+	for _, shardMsgHash := range this.ShardMsgHashs {
+		shardMsgHash.Serialization(sink)
 	}
+}
+
+func (this *CrossShardMsgInfo) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	var err error
+	this.FromShardID, err = source.NextShardID()
+	if err != nil {
+		return err
+	}
+	this.MsgHeight, eof = source.NextUint32()
+	this.SignMsgHeight, eof = source.NextUint32()
+	this.PreCrossShardMsgHash, eof = source.NextHash()
+	this.CrossShardMsgRoot, eof = source.NextHash()
 	m, _, irregular, eof := source.NextVarUint()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -138,7 +153,7 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 }
 
 type CrossShardTxInfos struct {
-	ShardMsg *CrossShardMsg `json:"shard_msg"`
+	ShardMsg *CrossShardMsgInfo `json:"shard_msg"`
 	Tx       *Transaction
 }
 
@@ -155,7 +170,7 @@ func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) error {
 func (this *CrossShardTxInfos) Deserialization(source *common.ZeroCopySource) error {
 	var err error
 	if this.ShardMsg == nil {
-		this.ShardMsg = new(CrossShardMsg)
+		this.ShardMsg = new(CrossShardMsgInfo)
 	}
 	err = this.ShardMsg.Deserialization(source)
 	if err != nil {

@@ -77,7 +77,6 @@ type ChainManager struct {
 	lock       sync.RWMutex
 	shards     map[common.ShardID]*ShardInfo
 	mainLedger *ledger.Ledger
-	db         *ledger.Ledger
 	consensus  consensus.ConsensusService
 
 	account *account.Account
@@ -222,7 +221,6 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	if err != nil {
 		return fmt.Errorf("init shard ledger: %s", err)
 	}
-	self.db = lgr
 	bookKeepers, err := shardInfo.Config.GetBookkeepers()
 	if err != nil {
 		return fmt.Errorf("init shard ledger: GetBookkeepers error:%s", err)
@@ -424,21 +422,21 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 	}
 	var hashes []common.Uint256
 	hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(msg.ShardMsg))
-	for _, shardMsgHash := range msg.ShardMsgHashs {
+	for _, shardMsgHash := range msg.CrossShardMsgInfo.ShardMsgHashs {
 		if shardMsgHash.ShardID != self.shardID {
 			hashes = append(hashes, shardMsgHash.MsgHash)
 		}
 	}
-	if msg.CrossShardMsgRoot != common.ComputeMerkleRoot(hashes) {
-		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.CrossShardMsgRoot.ToHexString())
+	if msg.CrossShardMsgInfo.CrossShardMsgRoot != common.ComputeMerkleRoot(hashes) {
+		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString())
 		return
 	}
-	tx, err := crossshard.NewCrossShardTxMsg(self.account, msg.MsgHeight, self.shardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
+	tx, err := crossshard.NewCrossShardTxMsg(self.account, msg.CrossShardMsgInfo.MsgHeight, self.shardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
 	if err != nil {
-		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.MsgHeight, err)
+		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.CrossShardMsgInfo.MsgHeight, err)
 		return
 	}
-	xshard.AddCrossShardInfo(self.db, msg, tx)
+	xshard.AddCrossShardInfo(ledger.DefLedger, msg, tx)
 }
 
 //
