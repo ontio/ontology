@@ -1122,7 +1122,7 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	})
 	for txLockedKey := range txLockedKeys {
 		if _, ok := lockedKeys[txLockedKey]; ok {
-			return
+			return nil, fmt.Errorf("contract some status locked")
 		}
 	}
 	cnotify := notify.ContractEvent
@@ -1322,9 +1322,9 @@ func shouldLock(key []byte) bool {
 	if keyLen < common.ADDR_LEN+1 {
 		return false
 	}
-	if bytes.Equal(key[1:common.ADDR_LEN], utils.ShardAssetAddress[:]) &&
-		bytes.Equal(key[1:common.ADDR_LEN], utils.OngContractAddress[:]) &&
-		bytes.Equal(key[1:common.ADDR_LEN], utils.ShardMgmtContractAddress[:]) {
+	cmpKey := key[1 : common.ADDR_LEN+1]
+	if bytes.Equal(cmpKey, utils.ShardAssetAddress[:]) || bytes.Equal(cmpKey, utils.OngContractAddress[:]) ||
+		bytes.Equal(cmpKey, utils.ShardMgmtContractAddress[:]) {
 		return true
 	}
 	return false
