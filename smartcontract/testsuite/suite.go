@@ -293,6 +293,7 @@ type ShardContext struct {
 	overlay         *overlaydb.OverlayDB
 	height          uint32
 	LockedAddress   map[common.Address]struct{}
+	LockedKeys      map[string]struct{}
 	LockHistory     map[common.Address]struct{}
 	t               *testing.T
 }
@@ -304,6 +305,7 @@ func NewShardContext(shardID common.ShardID, contract common.Address, t *testing
 		t:               t,
 		overlay:         NewOverlayDB(),
 		LockedAddress:   make(map[common.Address]struct{}),
+		LockedKeys:      make(map[string]struct{}),
 		LockHistory:     make(map[common.Address]struct{}),
 	}
 }
@@ -325,7 +327,7 @@ func (self *ShardContext) InvokeShardContractRaw(method string, args []interface
 	}
 
 	gasTable := make(map[string]uint64)
-	_, err := ledgerstore.HandleInvokeTransaction(nil, self.overlay, gasTable, self.LockedAddress, cache, xshardDB, tx, header, notify)
+	_, err := ledgerstore.HandleInvokeTransaction(nil, self.overlay, gasTable, self.LockedAddress, self.LockedKeys, cache, xshardDB, tx, header, notify)
 	if err != nil {
 		return txHash, nil, err
 	}
@@ -357,7 +359,7 @@ func (self *ShardContext) HandleShardCallMsgs(msgs []xshard_types.CommonShardMsg
 	}
 
 	gasTable := make(map[string]uint64)
-	err := ledgerstore.HandleShardCallTransaction(nil, self.overlay, gasTable, self.LockedAddress, cache, xshardDB, msgs, header, notify)
+	err := ledgerstore.HandleShardCallTransaction(nil, self.overlay, gasTable, self.LockedAddress, self.LockedKeys, cache, xshardDB, msgs, header, notify)
 	assert.Nil(t, err)
 	xshardDB.Commit()
 
