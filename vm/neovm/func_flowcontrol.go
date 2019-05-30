@@ -78,7 +78,7 @@ func opDCALL(e *ExecutionEngine) (VMState, error) {
 		return FAULT, errors.ERR_DCALL_OFFSET_ERROR
 	}
 
-	if dest.Sign() < 0 || dest.Cmp(big.NewInt(int64(len(e.Context.Code)))) > 0 {
+	if dest.Sign() < 0 || dest.Cmp(big.NewInt(int64(len(e.Context.Code)))) >= 0 {
 		return FAULT, errors.ERR_DCALL_OFFSET_ERROR
 	}
 

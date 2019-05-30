@@ -47,8 +47,8 @@ func (r *RandomAccessStack) Insert(index int, t types.StackItems) {
 		return
 	}
 	index = l - index
-	r.e = append(r.e, r.e[l-1])
-	copy(r.e[index+1:l], r.e[index:])
+	r.e = append(r.e, t)
+	copy(r.e[index+1:], r.e[index:])
 	r.e[index] = t
 }
 

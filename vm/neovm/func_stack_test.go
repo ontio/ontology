@@ -141,10 +141,10 @@ func TestOpXTuck(t *testing.T) {
 	stack.Push(types.NewInteger(big.NewInt(8888)))
 	stack.Push(types.NewInteger(big.NewInt(7777)))
 
-	stack.Push(NewStackItem(types.NewInteger(big.NewInt(2))))
+	stack.Push(NewStackItem(types.NewInteger(big.NewInt(0))))
 	e.EvaluationStack = stack
 
-	opXSwap(&e)
+	opXTuck(&e)
 	v1, err := stack.Peek(0).GetBigInteger()
 	if err != nil {
 		t.Fatal("NeoVM OpXTuck test failed.")
@@ -156,7 +156,7 @@ func TestOpXTuck(t *testing.T) {
 	e1 := v1.Int64()
 	e2 := v2.Int64()
 
-	if stack.Count() != 3 || e1 != 9999 || e2 != 7777 {
+	if stack.Count() != 4 || e1 != 7777 || e2 != 8888 {
 		t.Fatal("NeoVM OpXTuck test failed.")
 	}
 }
