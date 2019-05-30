@@ -578,7 +578,7 @@ func validateAppend(e *ExecutionEngine) error {
 	if !ok1 && !ok2 {
 		return fmt.Errorf("validateAppend error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
-	if !CheckArraySize(arr.Count()+1) || !CheckArraySize(str.Count()+1) {
+	if (ok1 && !CheckArraySize(arr.Count()+1)) || (ok2 &&!CheckArraySize(str.Count()+1)) {
 		return fmt.Errorf("validateAppend error: %s", errors.ERR_OVER_MAX_ARRAY_SIZE)
 	}
 	return nil
