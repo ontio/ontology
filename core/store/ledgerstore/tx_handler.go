@@ -418,7 +418,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 		}
 		var addr common.Address
 		copy(addr[:], key)
-		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress {
+		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress && addr != utils.OngContractAddress {
 			readContract[addr] = struct{}{}
 		}
 		lockKey(txLockedKeys, key)
@@ -478,7 +478,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 		}
 		var addr common.Address
 		copy(addr[:], key[1:])
-		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress {
+		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress && addr != utils.OngContractAddress {
 			readContract[addr] = struct{}{}
 		}
 		lockKey(txLockedKeys, key)
@@ -751,7 +751,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		}
 		var addr common.Address
 		copy(addr[:], key)
-		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress {
+		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress && addr != utils.OngContractAddress {
 			readContract[addr] = struct{}{}
 		}
 		lockKey(lockedKeys, key)
@@ -880,7 +880,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 		}
 		var addr common.Address
 		copy(addr[:], key[1:])
-		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress {
+		if addr != utils.ShardAssetAddress && addr != utils.ShardMgmtContractAddress && addr != utils.OngContractAddress {
 			readContract[addr] = struct{}{}
 		}
 		lockKey(lockedKeys, key)
@@ -1342,12 +1342,17 @@ func shouldLock(key []byte) bool {
 		return false
 	}
 	if bytes.Equal(key[:common.ADDR_LEN], utils.ShardAssetAddress[:]) &&
-		bytes.Equal(key[:common.ADDR_LEN], utils.OngContractAddress[:]) {
+		bytes.Equal(key[:common.ADDR_LEN], utils.OngContractAddress[:]) &&
+		bytes.Equal(key[:common.ADDR_LEN], utils.ShardMgmtContractAddress[:]) {
 		return true
 	}
 	// key contains storage prefix
+	if keyLen < common.ADDR_LEN+1 {
+		return false
+	}
 	if bytes.Equal(key[1:common.ADDR_LEN], utils.ShardAssetAddress[:]) &&
-		bytes.Equal(key[1:common.ADDR_LEN], utils.OngContractAddress[:]) {
+		bytes.Equal(key[1:common.ADDR_LEN], utils.OngContractAddress[:]) &&
+		bytes.Equal(key[1:common.ADDR_LEN], utils.ShardMgmtContractAddress[:]) {
 		return true
 	}
 	return false

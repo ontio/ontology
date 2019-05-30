@@ -52,7 +52,8 @@ func NativeInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return fmt.Errorf("invoke native contract:%s, address invalid", address)
 	}
-	if service.Tx.TxType == ctype.ShardCall && addr != utils.OngContractAddress && addr != utils.ShardAssetAddress {
+	if service.Tx.TxType == ctype.ShardCall && addr != utils.OngContractAddress && addr != utils.ShardAssetAddress &&
+		addr != utils.ShardMgmtContractAddress {
 		return fmt.Errorf("native contract address %x cannot be invoked by shardcall", addr)
 	}
 	method, err := vm.PopByteArray(engine)
