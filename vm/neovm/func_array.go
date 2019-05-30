@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"math/big"
 
-	err "github.com/ontio/ontology/vm/neovm/errors"
+	errr "github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -76,16 +76,11 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 	items := PopStackItem(e)
 
 	switch items.(type) {
-	case *types.Array:
+	case *types.Array, *types.Struct:
 		bi, _ := index.GetBigInteger()
 		i := int(bi.Int64())
 		a, _ := items.GetArray()
 		PushData(e, a[i])
-	case *types.Struct:
-		bi, _ := index.GetBigInteger()
-		i := int(bi.Int64())
-		s, _ := items.GetStruct()
-		PushData(e, s[i])
 	case *types.Map:
 		PushData(e, items.(*types.Map).TryGetValue(index))
 	case *types.ByteArray:
@@ -126,7 +121,9 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 		i := int(bi.Int64())
 		items[i] = newItem
 	}
-
+	if !CheckStackSize(append(e.EvaluationStack.GetStackItem(), e.AltStack.GetStackItem()...)) {
+		return FAULT, fmt.Errorf("opSetItem error: %s", errr.ERR_OVER_MAX_ARRAY_SIZE)
+	}
 	return NONE, nil
 }
 
@@ -172,7 +169,7 @@ func opAppend(e *ExecutionEngine) (VMState, error) {
 		item.Add(newItem)
 	}
 	if !CheckStackSize(append(e.EvaluationStack.GetStackItem(), e.AltStack.GetStackItem()...)) {
-		return FAULT, fmt.Errorf("validateAppend error: %s", err.ERR_OVER_MAX_ARRAY_SIZE)
+		return FAULT, fmt.Errorf("validateAppend error: %s", errr.ERR_OVER_MAX_ARRAY_SIZE)
 	}
 	return NONE, nil
 }
