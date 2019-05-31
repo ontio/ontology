@@ -385,7 +385,7 @@ func (this *CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	this.Txs = make([][]byte, num)
+	this.Txs = make([][]byte, 0)
 	for i := uint64(0); i < num; i++ {
 		data, _, irr, eof := source.NextVarBytes()
 		if irr {
@@ -394,7 +394,7 @@ func (this *CrossShardTx) Deserialization(source *common.ZeroCopySource) error {
 		if eof {
 			return io.ErrUnexpectedEOF
 		}
-		this.Txs[i] = data
+		this.Txs = append(this.Txs, data)
 	}
 	return nil
 }

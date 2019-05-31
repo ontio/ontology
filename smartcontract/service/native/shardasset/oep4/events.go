@@ -29,7 +29,7 @@ import (
 
 const (
 	EVENT_TRANSFER        = "transfer"
-	EVENT_APPROVE         = "approve"
+	EVENT_APPROVE         = "approval"
 	EVENT_MINT            = "mint"
 	EVENT_BURN            = "burn"
 	EVENT_XSHARD_TRANSFER = "xshardTransfer"
@@ -89,23 +89,23 @@ func (this *XShardReceiveEvent) ToNotify() []interface{} {
 }
 
 type MintEvent struct {
-	User    common.Address
 	AssetId AssetId
+	User    common.Address
 	Amount  *big.Int
 }
 
 func (this *MintEvent) ToNotify() []interface{} {
-	return []interface{}{EVENT_MINT, this.User.ToBase58(), uint64(this.AssetId), this.Amount.String()}
+	return []interface{}{EVENT_MINT, uint64(this.AssetId), this.User.ToBase58(), this.Amount.String()}
 }
 
 type BurnEvent struct {
-	User    common.Address
 	AssetId AssetId
+	User    common.Address
 	Amount  *big.Int
 }
 
 func (this *BurnEvent) ToNotify() []interface{} {
-	return []interface{}{EVENT_BURN, this.User.ToBase58(), uint64(this.AssetId), this.Amount.String()}
+	return []interface{}{EVENT_BURN, uint64(this.AssetId), this.User.ToBase58(), this.Amount.String()}
 }
 
 func NotifyEvent(native *native.NativeService, notify []interface{}) {

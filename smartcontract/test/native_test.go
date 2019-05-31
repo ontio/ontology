@@ -20,6 +20,7 @@ package test
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -37,7 +38,7 @@ func TestBuildParamToNative(t *testing.T) {
 	config := &smartcontract.Config{
 		Time:   10,
 		Height: 10,
-		Tx:     nil,
+		Tx:     &types.Transaction{},
 	}
 	sc := smartcontract.SmartContract{
 		Config: config,

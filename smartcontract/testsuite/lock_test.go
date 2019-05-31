@@ -19,17 +19,23 @@ package testsuite
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/ontio/ontology/common"
+	scomm "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/ong"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/stretchr/testify/assert"
 )
 
-func WrapDbPut(handler native.Handler) native.Handler {
+func WrapDbPut(handler native.Handler, account common.Address) native.Handler {
 	wraperHandler := func(nat *native.NativeService) ([]byte, error) {
 		key := nat.ContextRef.CurrentContext().ContractAddress[:]
 		nat.CacheDB.Put(key, []byte{1})
+		nat.CacheDB.Put(ont.GenBalanceKey(utils.OngContractAddress, account), []byte{1, 2, 3})
 		return handler(nat)
 	}
 
@@ -51,11 +57,24 @@ func TestCallLockedAddress(t *testing.T) {
 	assert.True(t, strings.Contains(fmt.Sprintf("%s", err), "contract is locked to call"))
 }
 
+func TestCallLockedKeys(t *testing.T) {
+	ong.InitOng()
+	account := RandomAddress()
+	shardContext := NewShardContext(common.NewShardIDUnchecked(1), utils.OngContractAddress, t)
+	key := ont.GenBalanceKey(utils.OngContractAddress, account)
+	shardContext.LockedKeys[string(scomm.ST_STORAGE)+string(key)] = struct{}{}
+	method := ont.BALANCEOF_NAME
+	_, _, err := shardContext.InvokeShardContractRaw(method, []interface{}{account})
+	assert.NotNil(t, err)
+	t.Log(err)
+}
+
 func runLockedFlowCommand(t *testing.T, shard common.ShardID, cmd ShardCommand, totalMsg int) {
 	contract := RandomAddress()
 	method := "executeShardCommand"
+	account := RandomAddress()
 	InstallNativeContract(contract, map[string]native.Handler{
-		method: WrapDbPut(ExecuteShardCommandApi),
+		method: WrapDbPut(ExecuteShardCommandApi, account),
 	})
 
 	shards := buildShardContexts(t, 100, contract)

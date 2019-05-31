@@ -232,13 +232,13 @@ func (this *MultiTransferParam) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("deserialize: read transfers num failed, err: %s", err)
 	}
-	this.Transfers = make([]*TransferParam, num)
+	this.Transfers = make([]*TransferParam, 0)
 	for i := uint64(0); i < num; i++ {
 		tran := &TransferParam{}
 		if err := tran.Deserialize(r); err != nil {
 			return fmt.Errorf("deserialize: read transfer failed, index %d, err: %s", i, err)
 		}
-		this.Transfers[i] = tran
+		this.Transfers = append(this.Transfers, tran)
 	}
 	return nil
 }
