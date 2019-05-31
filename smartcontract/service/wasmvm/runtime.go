@@ -37,6 +37,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/states"
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
+	"encoding/json"
 )
 
 type ContractType byte
@@ -53,6 +54,10 @@ type Runtime struct {
 	Input      []byte
 	Output     []byte
 	CallOutPut []byte
+}
+
+type NotifyJson struct{
+	States []interface{} `json:"states"`
 }
 
 func TimeStamp(proc *exec.Process) uint64 {
@@ -156,7 +161,15 @@ func Notify(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	notify := &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, string(bs)}
+	var notify *event.NotifyEventInfo
+	nj := new(NotifyJson)
+	err = json.Unmarshal(bs,nj)
+	if err != nil{
+		notify = &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, string(bs)}
+	}else{
+		notify = &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, nj.States}
+	}
+
 	notifys := make([]*event.NotifyEventInfo, 1)
 	notifys[0] = notify
 	self.Service.ContextRef.PushNotifications(notifys)
