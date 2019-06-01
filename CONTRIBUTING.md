@@ -6,7 +6,7 @@ We welcome contributions. Please follow the guidelines when opening issues and c
 Contributing
 ------------
 
-We follow the [fork-and-pull](https://stackoverflow.com/a/11582996/3830876) Git workflow:
+We follow the [fork-and-pull](https://help.github.com/en/articles/about-collaborative-development-models) Git workflow:
 
  1. **Fork** the repo on GitHub
  2. **Clone** it to your own machine
