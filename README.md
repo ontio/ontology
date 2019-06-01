@@ -313,4 +313,4 @@ Signed-off-by: Your Name [youremail@yourhost.com](mailto:youremail@yourhost.com)
 
 ## License
 
-The Ontology library is licensed under the GNU Lesser General Public License v3.0, read the LICENSE file in the root directory of the project for details.
+The Ontology source code is available under the [LGPL-3.0](LICENSE) license.
