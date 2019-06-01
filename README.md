@@ -66,7 +66,7 @@ You can download a stable compiled version of the Ontology node software by eith
 ### Build from Source Code
 Alternatively, you can build the Ontology application directly from the source code. Note that the code in the `master` branch may not be stable.
 
-1) Clone the Ontology repository into the appropriate `$GOPATH/src/github.com/ontio` directory.
+1) Clone the Ontology repository into the appropriate `$GOPATH/src/github.com/ontio` directory:
 
 ```
 $ git clone https://github.com/ontio/ontology.git
@@ -76,21 +76,21 @@ or
 $ go get github.com/ontio/ontology
 ```
 
-2) Fetch the dependent third party packages with [Glide](https://glide.sh).
+2) Fetch the dependent third party packages with [Glide](https://glide.sh):
 
 ```
 $ cd $GOPATH/src/github.com/ontio/ontology
 $ glide install
 ```
 
-3) If necessary, update the dependent third party packages with Glide.
+3) If necessary, update the dependent third party packages with Glide:
 
 ```
 $ cd $GOPATH/src/github.com/ontio/ontology
 $ glide update
 ```
 
-4) Build the source code with make.
+4) Build the source code with make:
 
 ```
 $ make all
