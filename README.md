@@ -76,7 +76,7 @@ or
 $ go get github.com/ontio/ontology
 ```
 
-2) Fetch the dependent third party packages with [Glide]((https://glide.sh)).
+2) Fetch the dependent third party packages with [Glide](https://glide.sh).
 
 ```
 $ cd $GOPATH/src/github.com/ontio/ontology
