@@ -18,15 +18,15 @@ As a public blockchain project, Ontology is currently maintained by both the Ont
 New features are still being rapidly developed, therefore the master branch may be unstable. Stable versions can be found in the [releases section](https://github.com/ontio/ontology/releases).
 
 - [Features](#features)
-- [Build development environment](#build-development-environment)
-- [Get Ontology](#get-ontology)
-    - [Get from release](#get-from-release)
-    - [Get from source code](#get-from-source-code)
+- [Build Development Environment](#build-development-environment)
+- [Download Ontology](#download-ontology)
+    - [Download Release](#download-release)
+    - [Build from Source Code](#build-from-source-code)
 - [Run Ontology](#run-ontology)
-    - [MainNet sync node](#mainnet-sync-node)
-    - [Public test network Polaris sync node](#testnet-sync-node)
-    - [Testmode](#testmode)
-    - [Run in docker](#run-in-docker)
+    - [MainNet Sync Node](#mainnet-sync-node)
+    - [TestNet Sync Node](#testnet-sync-node)
+    - [Local PrivateNet](#local-privatenet)
+    - [Run with Docker](#run-in-docker)
 - [Examples](#examples)
     - [ONT transfer sample](#ont-transfer-sample)
     - [Query transfer status sample](#query-transfer-status-sample)
@@ -49,22 +49,24 @@ New features are still being rapidly developed, therefore the master branch may 
 - Quick block generation time (1-30 seconds)
 
 
-## Build development environment
+## Build Development Environment
 The requirements to build Ontology are:
 
 - [Golang](https://golang.org/doc/install) version 1.9 or later
 - [Glide](https://glide.sh) (a third party package management tool for Golang)
 
-## Get Ontology
+## Download Ontology
 
-### Get from release
-- You can download the latest Ontology binary file with ` curl https://dev.ont.io/ontology_install | sh `.
+### Download Release
+You can download a stable compiled version of the Ontology node software by either:
 
-- You can download other versions at [release page](https://github.com/ontio/ontology/releases).
+- Downloading the latest Ontology binary file with `curl https://dev.ont.io/ontology_install | sh`.
+- Downloading a specific version from the [release section](https://github.com/ontio/ontology/releases).
 
-### Get from source code
+### Build from Source Code
+Alternatively, you build your own version directly from the source code. Note that the code in the `master` branch may not be stable.
 
-Clone the Ontology repository into the appropriate $GOPATH/src/github.com/ontio directory.
+1) Clone the Ontology repository into the appropriate `$GOPATH/src/github.com/ontio` directory.
 
 ```
 $ git clone https://github.com/ontio/ontology.git
@@ -73,41 +75,42 @@ or
 ```
 $ go get github.com/ontio/ontology
 ```
-Fetch the dependent third party packages with glide.
+
+2) Fetch the dependent third party packages with [Glide]((https://glide.sh)).
 
 ```
 $ cd $GOPATH/src/github.com/ontio/ontology
 $ glide install
 ```
 
-If necessary, update dependent third party packages with glide.
+3) If necessary, update the dependent third party packages with Glide.
 
 ```
 $ cd $GOPATH/src/github.com/ontio/ontology
 $ glide update
 ```
 
-Build the source code with make.
+4) Build the source code with make.
 
 ```
 $ make all
 ```
 
-After building the source code sucessfully, you should see two executable programs:
+After building the source code successfully, you should see two executable programs:
 
-- `ontology`: the node program/command line program for node control.
-- `tools/sigsvr`: (optional) Ontology Signature Server - sigsvr is a RPC server for signing transactions for some special requirements. Detailed docs can be found [here](https://github.com/ontio/documentation/blob/master/docs/pages/doc_en/Ontology/sigsvr_en.md).
+- `ontology`: The primary Ontology node application and CLI.
+- `tools/sigsvr`: The Ontology Signature Server, `sigsvr` - an RPC server for signing transactions. Detailed documentation can be found [here](https://github.com/ontio/documentation/blob/master/docs/pages/doc_en/Ontology/sigsvr_en.md).
 
 ## Run Ontology
 
 You can run Ontology in four different modes:
 
-1) MainNet (./ontology)
-2) TestNet (./ontology --networkid 2)
-3) Testmode (./ontology --testmode)
+1) MainNet (`./ontology`)
+2) TestNet (`./ontology --networkid 2`)
+3) PrivateNet (`./ontology --testmode`)
 4) Docker
 
-E.g. for Windows (64-bit), use command prompt and cd to the dirctory where you installed the Ontology release, then type `start ontology-windows-amd64.exe --networkid 2`. This will sync to TestNet and you can explore further by the help command `ontology-windows-amd64.exe --networkid 2 help`.
+E.g. for Windows (64-bit), use command prompt and cd to the directory where you installed the Ontology release, then type `start ontology-windows-amd64.exe --networkid 2`. This will sync to TestNet and you can explore further by the help command `ontology-windows-amd64.exe --networkid 2 help`.
 
 ### MainNet Sync Node
 
@@ -128,7 +131,7 @@ Run ontology directly
 
 Then you can connect to the Ontology TestNet.
 
-### Testmode
+### Local PrivateNet
 
 Create a directory on the host and store the following files in the directory:
 - Node program `ontology`
@@ -147,7 +150,7 @@ Here's a example of a single-host configuration:
         └── wallet.dat
     ```
 
-### Run in docker
+### Run with Docker
 
 Please ensure there is a docker environment in your machine.
 
