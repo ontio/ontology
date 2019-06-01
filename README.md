@@ -64,7 +64,7 @@ You can download a stable compiled version of the Ontology node software by eith
 - Downloading a specific version from the [release section](https://github.com/ontio/ontology/releases).
 
 ### Build from Source Code
-Alternatively, you build your own version directly from the source code. Note that the code in the `master` branch may not be stable.
+Alternatively, you can build the Ontology application directly from the source code. Note that the code in the `master` branch may not be stable.
 
 1) Clone the Ontology repository into the appropriate `$GOPATH/src/github.com/ontio` directory.
 
