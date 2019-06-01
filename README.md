@@ -37,25 +37,23 @@ New features are still being rapidly developed, therefore the master branch may 
     - [Developer Discord Group](#developer-discord-group)
 - [License](#license)
 
-## Features 
+## Features
 
-- Scalable lightweight universal smart contract
+- Scalable lightweight universal smart contracts
 - Scalable WASM contract support
-- Crosschain interactive protocol (processing)
-- Multiple encryption algorithm support
+- Cross-chain interactive protocol
+- Multiple encryption algorithms supported
 - Highly optimized transaction processing speed
 - P2P link layer encryption (optional module)
-- Multiple consensus algorithm support (VBFT/DBFT/RBFT/SBFT/PoW)
-- Quick block generation time
+- Multiple consensus algorithms supported (VBFT/DBFT/RBFT/SBFT/PoW)
+- Quick block generation time (1-30 seconds)
 
 
 ## Build development environment
 The requirements to build Ontology are:
 
-- Golang version 1.9 or later
-- Glide (a third party package management tool)
-- Properly configured Go language environment
-- Golang supported operating system
+- [Golang](https://golang.org/doc/install) version 1.9 or later
+- [Glide](https://glide.sh) (a third party package management tool for Golang)
 
 ## Get Ontology
 
@@ -127,7 +125,7 @@ Run ontology directly
    ```
 	./ontology --networkid 2
    ```
-   
+
 Then you can connect to the Ontology TestNet.
 
 ### Testmode
