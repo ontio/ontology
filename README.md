@@ -1,6 +1,6 @@
 
-<h1 align="center">Ontology </h1>
-<h4 align="center">Version 1.0 </h4>
+<h1 align="center">Ontology</h1>
+<h4 align="center">Version 1.6.0</h4>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
@@ -11,22 +11,31 @@ English | [中文](README_CN.md)
 
 Welcome to the official source code repository for Ontology!
 
-Ontology is dedicated to developing a high-performance blockchain infrastructure, which is customizable to different business requirements. 
+Ontology is a high-performance public blockchain project and distributed trust collaboration platform. It is highly customizable and suitable for all kinds of business requirements. The Ontology MainNet was launched on June 30th, 2018.
 
-Prerequisites for getting started with development on the Ontology networks are:
+As a public blockchain project, Ontology is currently maintained by both the Ontology core tech team and community members who can all support you in development. There are many available tools for use for development - SDKs, the SmartX IDE, Ontology blockchain explorer and more.
 
-- Mainstream coding and development experience
-- Understanding of your business scenario/requirements
-- No need for previous blockchain engineering experience
+New features are still being rapidly developed, therefore the master branch may be unstable. Stable versions can be found in the [releases section](https://github.com/ontio/ontology/releases).
 
-The Ontology core tech team, the community, and the ecosystem can all support you in development. MainNet, TestNet, Docker image for Ontology, SmartX, and Ontology Explorer combined make it easy to start.
-
-Ontology makes getting started easier!
-
-Ontology MainNet has been launched on Jun 30, 2018. <br>
-And new features are still rapidly under development. The master branch may be unstable, but stable versions can be found under the [release page](https://github.com/ontio/ontology/releases).
-
-We openly welcome developers to Ontology.
+- [Features](#features)
+- [Build development environment](#build-development-environment)
+- [Get Ontology](#get-ontology)
+    - [Get from release](#get-from-release)
+    - [Get from source code](#get-from-source-code)
+- [Run Ontology](#run-ontology)
+    - [MainNet sync node](#mainnet-sync-node)
+    - [Public test network Polaris sync node](#testnet-sync-node)
+    - [Testmode](#testmode)
+    - [Run in docker](#run-in-docker)
+- [Examples](#examples)
+    - [ONT transfer sample](#ont-transfer-sample)
+    - [Query transfer status sample](#query-transfer-status-sample)
+    - [Query account balance sample](#query-account-balance-sample)
+- [Contributions](#contributions)
+- [Open source community](#open-source-community)
+    - [Site](#site)
+    - [Developer Discord Group](#developer-discord-group)
+- [License](#license)
 
 ## Features 
 
@@ -39,27 +48,6 @@ We openly welcome developers to Ontology.
 - Multiple consensus algorithm support (VBFT/DBFT/RBFT/SBFT/PoW)
 - Quick block generation time
 
-
-## Contents
-
-- [Build development environment](#build-development-environment)
-- [Get Ontology](#get-ontology)
-    - [Get from release](#get-from-release)
-    - [Get from source code](#get-from-source-code)
-- [Run Ontology](#run-ontology)
-    - [MainNet sync node](#mainnet-sync-node)
-    - [Public test network Polaris sync node](#public-test-network-polaris-sync-node)
-    - [Testmode](#testmode)
-    - [Run in docker](#run-in-docker)
-- [Some examples](#some-example)
-    - [ONT transfer sample](#ont-transfer-sample)
-    - [Query transfer status sample](#query-transfer-status-sample)
-    - [Query account balance sample](#query-account-balance-sample)
-- [Contributions](#contributions)
-- [Open source community](#open-source-community)
-    - [Site](#site)
-    - [Developer Discord Group](#developer-discord-group)
-- [License](#license)
 
 ## Build development environment
 The requirements to build Ontology are:
@@ -123,7 +111,7 @@ You can run Ontology in four different modes:
 
 E.g. for Windows (64-bit), use command prompt and cd to the dirctory where you installed the Ontology release, then type `start ontology-windows-amd64.exe --networkid 2`. This will sync to TestNet and you can explore further by the help command `ontology-windows-amd64.exe --networkid 2 help`.
 
-### MainNet sync node
+### MainNet Sync Node
 
 Run ontology directly
 
@@ -132,7 +120,7 @@ Run ontology directly
    ```
 then you can connect to Ontology MainNet.
 
-### Public test network Polaris sync node (TestNet)
+### TestNet Sync Node
 
 Run ontology directly
 
@@ -180,7 +168,7 @@ Please ensure there is a docker environment in your machine.
     - If you need to add Ontology parameters, you can add them directly after `docker run ontio/ontology` such as `docker run ontio/ontology --networkid 2`.
      The parameters of ontology command line refer to [here](./docs/specifications/cli_user_guide.md).
 
-## Some examples
+## Examples
 
 ### ONT transfer sample
  -- from: transfer from； -- to: transfer to； -- amount: ONT amount；
