@@ -9,7 +9,7 @@
 
 English | [中文](README_CN.md)
 
-Welcome to the official source code repository for Ontology!
+Welcome to the official Go implementation of the [Ontology](https://ont.io) blockchain!
 
 Ontology is a high-performance public blockchain project and distributed trust collaboration platform. It is highly customizable and suitable for all kinds of business requirements. The Ontology MainNet was launched on June 30th, 2018.
 
