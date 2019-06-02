@@ -230,7 +230,7 @@ func accountList(ctx *cli.Context) error {
 		addr := ctx.Args().Get(i)
 		accMeta := common.GetAccountMetadataMulti(wallet, addr)
 		if accMeta == nil {
-			PrintWarnMsg("cannot find account by %s in wallet: %s", addr, utils.GetFlagName(utils.WalletFileFlag))
+			PrintWarnMsg("Cannot find account by %s in wallet: %s", addr, utils.GetFlagName(utils.WalletFileFlag))
 			continue
 		}
 		accList[accMeta.Address] = ""
@@ -486,7 +486,7 @@ func accountImport(ctx *cli.Context) error {
 			addr := ctx.Args().Get(i)
 			accMeta := common.GetAccountMetadataMulti(sourceWallet, addr)
 			if accMeta == nil {
-				PrintWarnMsg("cannot find account %s in wallet %s.", addr, source)
+				PrintWarnMsg("Cannot find account %s in wallet %s.", addr, source)
 				continue
 			}
 			accList[accMeta.Address] = ""
