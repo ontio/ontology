@@ -4,12 +4,12 @@
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
-[![Travis](https://travis-ci.org/ontio/ontology.svg?branch=master)](https://travis-ci.org/ontio/ontology)
+[![Travis](https://travis-ci.com/ontio/ontology.svg?branch=master)](https://travis-ci.com/ontio/ontology)
 [![Discord](https://img.shields.io/discord/102860784329052160.svg)](https://discord.gg/gDkuCAq)
 
 [English](README.md) | 中文
 
-欢迎来到Ontology的源码库！ 
+欢迎来到Ontology的源码库！
 
 Ontology致力于创建一个组件化、可自由配置、跨链支持、高性能、横向可扩展的区块链底层基础设施。 让部署及调用去中心化应用变得更加非常简单。
 
@@ -18,19 +18,7 @@ Ontology MainNet 已经在2018年6月30日成功上线。<br>
 
 公开的主网和测试网都可以在下面找到，也非常欢迎及希望能有更多的开发者加入到Ontology中来。
 
-## 特性
-
-* 可扩展的轻量级通用智能合约
-* 可扩展的WASM合约的支持
-* 跨链交互协议（进行中）
-* 多种加密算法支持 
-* 高度优化的交易处理速度
-* P2P连接链路加密(可选择模块)
-* 多种共识算法支持 (VBFT/DBFT/SBFT/PoW/SOLO...)
-* 快速的区块生成时间
-
-## 目录
-
+* [特性](#特性)
 * [构建开发环境](#构建开发环境)
 * [获取ontology](#获取ontology)
     * [从release获取](#从release获取)
@@ -49,6 +37,17 @@ Ontology MainNet 已经在2018年6月30日成功上线。<br>
     * [网站](#网站)
     * [Discord开发者社区](#discord开发者社区)
 * [许可证](#许可证)
+
+## 特性
+
+* 可扩展的轻量级通用智能合约
+* 可扩展的WASM合约的支持
+* 跨链交互协议（进行中）
+* 多种加密算法支持
+* 高度优化的交易处理速度
+* P2P连接链路加密(可选择模块)
+* 多种共识算法支持 (VBFT/DBFT/SBFT/PoW/SOLO...)
+* 快速的区块生成时间
 
 ## 构建开发环境
 成功编译ontology需要以下准备：
