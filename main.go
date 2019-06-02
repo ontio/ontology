@@ -148,12 +148,12 @@ func startOntology(ctx *cli.Context) {
 
 	cfg, err := initConfig(ctx)
 	if err != nil {
-		log.Errorf("initConfig error:%s", err)
+		log.Errorf("initConfig error: %s", err)
 		return
 	}
 	acc, err := initAccount(ctx)
 	if err != nil {
-		log.Errorf("initWallet error:%s", err)
+		log.Errorf("initWallet error: %s", err)
 		return
 	}
 	stateHashHeight := config.GetStateHashCheckHeight(cfg.P2PNode.NetworkId)
@@ -165,27 +165,27 @@ func startOntology(ctx *cli.Context) {
 	defer ldg.Close()
 	txpool, err := initTxPool(ctx)
 	if err != nil {
-		log.Errorf("initTxPool error:%s", err)
+		log.Errorf("initTxPool error: %s", err)
 		return
 	}
 	p2pSvr, p2pPid, err := initP2PNode(ctx, txpool)
 	if err != nil {
-		log.Errorf("initP2PNode error:%s", err)
+		log.Errorf("initP2PNode error: %s", err)
 		return
 	}
 	_, err = initConsensus(ctx, p2pPid, txpool, acc)
 	if err != nil {
-		log.Errorf("initConsensus error:%s", err)
+		log.Errorf("initConsensus error: %s", err)
 		return
 	}
 	err = initRpc(ctx)
 	if err != nil {
-		log.Errorf("initRpc error:%s", err)
+		log.Errorf("initRpc error: %s", err)
 		return
 	}
 	err = initLocalRpc(ctx)
 	if err != nil {
-		log.Errorf("initLocalRpc error:%s", err)
+		log.Errorf("initLocalRpc error: %s", err)
 		return
 	}
 	initRestful(ctx)
@@ -222,14 +222,14 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 		return nil, fmt.Errorf("Please config wallet file using --wallet flag")
 	}
 	if !common.FileExisted(walletFile) {
-		return nil, fmt.Errorf("Cannot find wallet file:%s. Please create wallet first", walletFile)
+		return nil, fmt.Errorf("Cannot find wallet file: %s. Please create a wallet first", walletFile)
 	}
 
 	acc, err := cmdcom.GetAccount(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("get account error:%s", err)
+		return nil, fmt.Errorf("get account error: %s", err)
 	}
-	log.Infof("Using account:%s", acc.Address.ToBase58())
+	log.Infof("Using account: %s", acc.Address.ToBase58())
 
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
@@ -247,11 +247,11 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
 	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
 	if err != nil {
-		return nil, fmt.Errorf("NewLedger error:%s", err)
+		return nil, fmt.Errorf("NewLedger error: %s", err)
 	}
 	bookKeepers, err := config.DefConfig.GetBookkeepers()
 	if err != nil {
-		return nil, fmt.Errorf("GetBookkeepers error:%s", err)
+		return nil, fmt.Errorf("GetBookkeepers error: %s", err)
 	}
 	genesisConfig := config.DefConfig.Genesis
 	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig)
@@ -260,7 +260,7 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 	}
 	err = ledger.DefLedger.Init(bookKeepers, genesisBlock)
 	if err != nil {
-		return nil, fmt.Errorf("Init ledger error:%s", err)
+		return nil, fmt.Errorf("Init ledger error: %s", err)
 	}
 
 	log.Infof("Ledger init success")
@@ -273,7 +273,7 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	disableBroadcastNetTx := ctx.GlobalBool(utils.GetFlagName(utils.DisableBroadcastNetTxFlag))
 	txPoolServer, err := txnpool.StartTxnPoolServer(disablePreExec, disableBroadcastNetTx)
 	if err != nil {
-		return nil, fmt.Errorf("Init txpool error:%s", err)
+		return nil, fmt.Errorf("Init txpool error: %s", err)
 	}
 	stlValidator, _ := stateless.NewValidator("stateless_validator")
 	stlValidator.Register(txPoolServer.GetPID(tc.VerifyRspActor))
@@ -322,7 +322,7 @@ func initConsensus(ctx *cli.Context, p2pPid *actor.PID, txpoolSvr *proc.TXPoolSe
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	consensusService, err := consensus.NewConsensusService(consensusType, acc, pool, nil, p2pPid)
 	if err != nil {
-		return nil, fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
+		return nil, fmt.Errorf("NewConsensusService %s error: %s", consensusType, err)
 	}
 	consensusService.Start()
 
@@ -427,12 +427,12 @@ func logCurrBlockHeight() {
 func setMaxOpenFiles() {
 	max, err := fdlimit.Maximum()
 	if err != nil {
-		log.Errorf("failed to get maximum open files:%v", err)
+		log.Errorf("Failed to get maximum open files: %v", err)
 		return
 	}
 	_, err = fdlimit.Raise(uint64(max))
 	if err != nil {
-		log.Errorf("failed to set maximum open files:%v", err)
+		log.Errorf("Failed to set maximum open files: %v", err)
 		return
 	}
 }
@@ -443,7 +443,7 @@ func waitToExit() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
 		for sig := range sc {
-			log.Infof("Ontology received exit signal:%v.", sig.String())
+			log.Infof("Ontology received exit signal: %v.", sig.String())
 			close(exit)
 			break
 		}
