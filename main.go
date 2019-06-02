@@ -427,12 +427,12 @@ func logCurrBlockHeight() {
 func setMaxOpenFiles() {
 	max, err := fdlimit.Maximum()
 	if err != nil {
-		log.Errorf("Failed to get maximum open files: %v", err)
+		log.Errorf("failed to get maximum open files: %v", err)
 		return
 	}
 	_, err = fdlimit.Raise(uint64(max))
 	if err != nil {
-		log.Errorf("Failed to set maximum open files: %v", err)
+		log.Errorf("failed to set maximum open files: %v", err)
 		return
 	}
 }

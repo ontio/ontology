@@ -120,7 +120,7 @@ func NewClientImpl(path string) (*ClientImpl, error) {
 func (this *ClientImpl) load() error {
 	err := this.walletData.Load(this.path)
 	if err != nil {
-		return fmt.Errorf("Error loading wallet %s: %s", this.path, err)
+		return fmt.Errorf("error loading wallet %s: %s", this.path, err)
 	}
 	for _, accData := range this.walletData.Accounts {
 		this.accAddrs[accData.Address] = accData
@@ -190,7 +190,7 @@ func (this *ClientImpl) addAccountData(accData *AccountData) error {
 	err := this.save()
 	if err != nil {
 		this.walletData.DelAccount(accData.Address)
-		return fmt.Errorf("Save error: %s", err)
+		return fmt.Errorf("save error: %s", err)
 	}
 	this.accAddrs[accData.Address] = accData
 	if accData.IsDefault {
@@ -318,7 +318,7 @@ func (this *ClientImpl) getAccount(accData *AccountData, passwd []byte) (*Accoun
 	addr := types.AddressFromPubKey(publicKey)
 	scheme, err := s.GetScheme(accData.SigSch)
 	if err != nil {
-		return nil, fmt.Errorf("Signature scheme error: %s", err)
+		return nil, fmt.Errorf("signature scheme error: %s", err)
 	}
 	return &Account{
 		PrivateKey: privateKey,
@@ -385,7 +385,7 @@ func (this *ClientImpl) UnLockAccount(address string, expiredAt int, passwd []by
 	defer this.lock.Unlock()
 	accData, ok := this.accAddrs[address]
 	if !ok {
-		return fmt.Errorf("Cannot find account by address: %s", address)
+		return fmt.Errorf("cannot find account by address: %s", address)
 	}
 	if expiredAt < 0 {
 		return fmt.Errorf("Invalid expired time")
@@ -430,7 +430,7 @@ func (this *ClientImpl) SetDefaultAccount(address string) error {
 	}
 	accData, ok := this.accAddrs[address]
 	if !ok {
-		return fmt.Errorf("Cannot find account by address: %s", address)
+		return fmt.Errorf("cannot find account by address: %s", address)
 	}
 	old := this.defaultAcc
 	if old != nil {
@@ -445,7 +445,7 @@ func (this *ClientImpl) SetDefaultAccount(address string) error {
 			old.IsDefault = true
 		}
 		accData.IsDefault = false
-		return fmt.Errorf("Save error: %s", err)
+		return fmt.Errorf("save error: %s", err)
 	}
 	return nil
 }
@@ -459,7 +459,7 @@ func (this *ClientImpl) SetLabel(address, label string) error {
 	}
 	accData, ok := this.accAddrs[address]
 	if !ok {
-		return fmt.Errorf("Cannot find account by address: %s", address)
+		return fmt.Errorf("cannot find account by address: %s", address)
 	}
 	if accData.Label == label {
 		return nil
@@ -469,7 +469,7 @@ func (this *ClientImpl) SetLabel(address, label string) error {
 	err := this.save()
 	if err != nil {
 		accData.Label = oldLabel
-		return fmt.Errorf("Save error: %s", err)
+		return fmt.Errorf("save error: %s", err)
 	}
 	delete(this.accLabels, oldLabel)
 	this.accLabels[label] = accData
@@ -484,7 +484,7 @@ func (this *ClientImpl) ChangePassword(address string, oldPasswd, newPasswd []by
 	defer this.lock.Unlock()
 	accData, ok := this.accAddrs[address]
 	if !ok {
-		return fmt.Errorf("Cannot find account by address: %s", address)
+		return fmt.Errorf("cannot find account by address: %s", address)
 	}
 	oldPrvSecret := accData.GetKeyPair()
 	prv, err := keypair.DecryptWithCustomScrypt(accData.GetKeyPair(), oldPasswd, this.walletData.Scrypt)
@@ -500,7 +500,7 @@ func (this *ClientImpl) ChangePassword(address string, oldPasswd, newPasswd []by
 	err = this.save()
 	if err != nil {
 		accData.SetKeyPair(oldPrvSecret)
-		return fmt.Errorf("Save error: %s", err)
+		return fmt.Errorf("save error: %s", err)
 	}
 	return nil
 }
@@ -510,7 +510,7 @@ func (this *ClientImpl) ChangeSigScheme(address string, sigScheme s.SignatureSch
 	defer this.lock.Unlock()
 	accData, ok := this.accAddrs[address]
 	if !ok {
-		return fmt.Errorf("Cannot find account by address: %s", address)
+		return fmt.Errorf("cannot find account by address: %s", address)
 	}
 	if !this.checkSigScheme(accData.Alg, sigScheme.Name()) {
 		return fmt.Errorf("sigScheme: %s does not match KeyType: %s", sigScheme.Name(), accData.Alg)
@@ -521,7 +521,7 @@ func (this *ClientImpl) ChangeSigScheme(address string, sigScheme s.SignatureSch
 	err := this.save()
 	if err != nil {
 		accData.SigSch = oldSigScheme
-		return fmt.Errorf("Save error: %s", err)
+		return fmt.Errorf("save error: %s", err)
 	}
 	accInfo, ok := this.unlockAccs[address]
 	if ok {

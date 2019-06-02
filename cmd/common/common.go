@@ -37,7 +37,7 @@ func GetPasswd(ctx *cli.Context) ([]byte, error) {
 	} else {
 		passwd, err = password.GetAccountPassword()
 		if err != nil {
-			return nil, fmt.Errorf("Input password error: %s", err)
+			return nil, fmt.Errorf("input password error: %s", err)
 		}
 	}
 	return passwd, nil
@@ -49,7 +49,7 @@ func OpenWallet(ctx *cli.Context) (account.Client, error) {
 		walletFile = config.DEFAULT_WALLET_FILE_NAME
 	}
 	if !common.FileExisted(walletFile) {
-		return nil, fmt.Errorf("Cannot find wallet file: %s", walletFile)
+		return nil, fmt.Errorf("cannot find wallet file: %s", walletFile)
 	}
 	wallet, err := account.Open(walletFile)
 	if err != nil {
@@ -83,7 +83,7 @@ func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*acc
 	}
 	index, err := strconv.ParseInt(accAddr, 10, 32)
 	if err != nil {
-		return nil, fmt.Errorf("Cannot get account by address: %s", accAddr)
+		return nil, fmt.Errorf("cannot get account by address: %s", accAddr)
 	}
 	acc, err = wallet.GetAccountByIndex(int(index), passwd)
 	if err != nil {
@@ -92,7 +92,7 @@ func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*acc
 	if acc != nil {
 		return acc, nil
 	}
-	return nil, fmt.Errorf("Cannot get account by address: %s", accAddr)
+	return nil, fmt.Errorf("cannot get account by address: %s", accAddr)
 }
 
 func GetAccountMetadataMulti(wallet account.Client, accAddr string) *account.AccountMetadata {
@@ -158,13 +158,13 @@ func ParseAddress(address string, ctx *cli.Context) (string, error) {
 	}
 	index, err := strconv.ParseInt(address, 10, 32)
 	if err != nil {
-		return "", fmt.Errorf("Cannot get account by address: %s", address)
+		return "", fmt.Errorf("cannot get account by address: %s", address)
 	}
 	acc = wallet.GetAccountMetadataByIndex(int(index))
 	if acc != nil {
 		return acc.Address, nil
 	}
-	return "", fmt.Errorf("Cannot get account by address: %s", address)
+	return "", fmt.Errorf("cannot get account by address: %s", address)
 }
 
 func ClearPasswd(passwd []byte) {
