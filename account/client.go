@@ -388,7 +388,7 @@ func (this *ClientImpl) UnLockAccount(address string, expiredAt int, passwd []by
 		return fmt.Errorf("cannot find account by address: %s", address)
 	}
 	if expiredAt < 0 {
-		return fmt.Errorf("Invalid expired time")
+		return fmt.Errorf("invalid expired time")
 	}
 	acc, err := this.getAccount(accData, passwd)
 	if err != nil {
