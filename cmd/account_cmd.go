@@ -175,7 +175,7 @@ func accountCreate(ctx *cli.Context) error {
 	scheme := schemeMap[optionScheme].code
 	wallet, err := account.Open(optionFile)
 	if err != nil {
-		return fmt.Errorf("open wallet error:%s", err)
+		return fmt.Errorf("error opening wallet: %s", err)
 	}
 	defer common.ClearPasswd(pass)
 	if ctx.Bool(utils.IdentityFlag.Name) {
@@ -183,15 +183,15 @@ func accountCreate(ctx *cli.Context) error {
 		wd := wallet.GetWalletData()
 		id, err := account.NewIdentity(optionLabel, keyType, curve, pass)
 		if err != nil {
-			return fmt.Errorf("create ONT ID error: %s", err)
+			return fmt.Errorf("error creating ONT ID: %s", err)
 		}
 		wd.AddIdentity(id)
 		err = wd.Save(optionFile)
 		if err != nil {
-			return fmt.Errorf("save to %s error: %s", optionFile, err)
+			return fmt.Errorf("error saving to %s: %s", optionFile, err)
 		}
-		PrintInfoMsg("ONT ID created:%s", id.ID)
-		PrintInfoMsg("Bind public key:%s", id.Control[0].Public)
+		PrintInfoMsg("ONT ID created: %s", id.ID)
+		PrintInfoMsg("Bind public key: %s", id.Control[0].Public)
 		return nil
 	}
 	for i := 0; i < optionNumber; i++ {
@@ -201,7 +201,7 @@ func accountCreate(ctx *cli.Context) error {
 		}
 		acc, err := wallet.NewAccount(label, keyType, curve, scheme, pass)
 		if err != nil {
-			return fmt.Errorf("new account error:%s", err)
+			return fmt.Errorf("error creating new account: %s", err)
 		}
 		PrintInfoMsg("Index:%d", wallet.GetAccountNum())
 		PrintInfoMsg("Label:%s", label)
@@ -218,7 +218,7 @@ func accountList(ctx *cli.Context) error {
 	optionFile := checkFileName(ctx)
 	wallet, err := account.Open(optionFile)
 	if err != nil {
-		return fmt.Errorf("open wallet:%s error:%s", optionFile, err)
+		return fmt.Errorf("error opening wallet %s: %s", optionFile, err)
 	}
 	accNum := wallet.GetAccountNum()
 	if accNum == 0 {
@@ -230,7 +230,7 @@ func accountList(ctx *cli.Context) error {
 		addr := ctx.Args().Get(i)
 		accMeta := common.GetAccountMetadataMulti(wallet, addr)
 		if accMeta == nil {
-			PrintWarnMsg("Cannot find account by:%s in wallet:%s", addr, utils.GetFlagName(utils.WalletFileFlag))
+			PrintWarnMsg("Cannot find account by %s in wallet: %s", addr, utils.GetFlagName(utils.WalletFileFlag))
 			continue
 		}
 		accList[accMeta.Address] = ""
@@ -347,7 +347,7 @@ func accountSet(ctx *cli.Context) error {
 		newPass, err := password.GetConfirmedPassword()
 		defer common.ClearPasswd(newPass)
 		if err != nil {
-			return fmt.Errorf("input password error:%s", err)
+			return fmt.Errorf("input password error: %s", err)
 		}
 		err = wallet.ChangePassword(address, passwd, newPass)
 		if err != nil {
@@ -446,7 +446,7 @@ func accountImport(ctx *cli.Context) error {
 			PrintInfoMsg("Import account %s", b58addr)
 			k, err := keypair.EncryptPrivateKey(v, b58addr, pwd)
 			if err != nil {
-				PrintWarnMsg("Import account:%s error %s", b58addr, err)
+				PrintWarnMsg("Import account %s error: %s", b58addr, err)
 				fail += 1
 				continue
 			}
@@ -463,7 +463,7 @@ func accountImport(ctx *cli.Context) error {
 			accMeta.SigSch = signature.SHA256withECDSA.Name()
 			err = wallet.ImportAccount(&accMeta)
 			if err != nil {
-				PrintWarnMsg("Import account:%s error:%s", accMeta.Address, err)
+				PrintWarnMsg("Import account %s error: %s", accMeta.Address, err)
 				fail += 1
 				continue
 			}

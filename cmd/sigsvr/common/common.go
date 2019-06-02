@@ -51,7 +51,7 @@ func (this *CliRpcRequest) GetAccount() (*account.Account, error) {
 		return nil, err
 	}
 	if acc == nil {
-		return nil, fmt.Errorf("cannot find account by %s", this.Account)
+		return nil, fmt.Errorf("cannot find account by address: %s", this.Account)
 	}
 	return acc, nil
 }
