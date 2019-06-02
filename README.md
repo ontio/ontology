@@ -32,9 +32,6 @@ New features are still being rapidly developed, therefore the master branch may 
     - [Query transfer status sample](#query-transfer-status-sample)
     - [Query account balance sample](#query-account-balance-sample)
 - [Contributions](#contributions)
-- [Open source community](#open-source-community)
-    - [Site](#site)
-    - [Developer Discord Group](#developer-discord-group)
 - [License](#license)
 
 ## Features
