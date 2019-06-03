@@ -31,9 +31,11 @@ import (
 
 func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
 	shardMsg := &types.CrossShardMsg{
-		FromShardID:   common.NewShardIDUnchecked(0),
-		MsgHeight:     uint32(90),
-		SignMsgHeight: uint32(100),
+		CrossShardMsgInfo: &types.CrossShardMsgInfo{
+			FromShardID:   common.NewShardIDUnchecked(0),
+			MsgHeight:     uint32(90),
+			SignMsgHeight: uint32(100),
+		},
 	}
 	return shardMsg
 }
@@ -42,7 +44,7 @@ func TestCrossShardPool(t *testing.T) {
 	InitCrossShardPool(common.NewShardIDUnchecked(1), 100)
 	shardMsg := newTestShardMsg(t)
 	acc1 := account.NewAccount("")
-	tx, err := crossshard.NewCrossShardTxMsg(acc1, uint32(120), shardMsg.FromShardID, 0, 20000, nil)
+	tx, err := crossshard.NewCrossShardTxMsg(acc1, uint32(120), shardMsg.CrossShardMsgInfo.FromShardID, 0, 20000, nil)
 	if err != nil {
 		t.Errorf("crossShardPool NewCrossShardTxMsg err:%s", err)
 		return
