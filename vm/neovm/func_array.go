@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/big"
 
-	errr "github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -121,9 +120,6 @@ func opSetItem(e *ExecutionEngine) (VMState, error) {
 		i := int(bi.Int64())
 		items[i] = newItem
 	}
-	if !CheckStackSize(append(e.EvaluationStack.GetStackItem(), e.AltStack.GetStackItem()...)) {
-		return FAULT, fmt.Errorf("opSetItem error: %s", errr.ERR_OVER_MAX_ARRAY_SIZE)
-	}
 	return NONE, nil
 }
 
@@ -168,9 +164,7 @@ func opAppend(e *ExecutionEngine) (VMState, error) {
 	if item, ok := items.(*types.Struct); ok {
 		item.Add(newItem)
 	}
-	if !CheckStackSize(append(e.EvaluationStack.GetStackItem(), e.AltStack.GetStackItem()...)) {
-		return FAULT, fmt.Errorf("validateAppend error: %s", errr.ERR_OVER_MAX_ARRAY_SIZE)
-	}
+
 	return NONE, nil
 }
 
