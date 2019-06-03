@@ -73,10 +73,15 @@ func (self *Executor) Execute() error {
 		if self.State == FAULT || self.State == HALT || self.State == BREAK {
 			break
 		}
+		if self.Context == nil {
+			break
+		}
+
 		opcode, eof := self.Context.ReadOpCode()
 		if eof {
 			break
 		}
+
 		var err error
 		self.State, err = self.ExecuteOp(opcode, self.Context)
 		if err != nil {
@@ -133,6 +138,9 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 
 		data, err := context.OpReader.ReadBytes(numBytes)
+		if err != nil {
+			return FAULT, err
+		}
 		val, err := types.VmValueFromBytes(data)
 		if err != nil {
 			return FAULT, err
@@ -342,11 +350,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			}
 		}
 
-		if n == 0 {
-			return NONE, nil
-		}
-
-		// todo: clearly define the behave when n ==0 and stack is empty
+		// need clearly define the behave when n == 0 and stack is empty
 		val, err := self.EvalStack.Remove(n)
 		if err != nil {
 			return FAULT, err
@@ -507,7 +511,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		if err != nil {
 			return FAULT, err
 		}
-	case INC, DEC, SIGN, NEGATE, ABS, NZ:
+	case INC, DEC, SIGN, NEGATE, ABS:
 		x, err := self.EvalStack.PopAsIntValue()
 		if err != nil {
 			return FAULT, err
@@ -526,13 +530,6 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			val, err = types.IntValFromInt(0).Sub(x)
 		case ABS:
 			val = x.Abs()
-		case NZ:
-			cmp := x.Cmp(types.IntValFromInt(0))
-			if cmp == 0 {
-				val = types.IntValFromInt(0)
-			} else {
-				val = types.IntValFromInt(1)
-			}
 		default:
 			panic("unreachable")
 		}
@@ -541,6 +538,22 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 
 		err = self.EvalStack.Push(types.VmValueFromIntValue(val))
+		if err != nil {
+			return FAULT, err
+		}
+	case NZ:
+		x, err := self.EvalStack.PopAsIntValue()
+		if err != nil {
+			return FAULT, err
+		}
+
+		cmp := x.Cmp(types.IntValFromInt(0))
+		if cmp == 0 {
+			err = self.EvalStack.PushBool(false)
+		} else {
+			err = self.EvalStack.PushBool(true)
+		}
+
 		if err != nil {
 			return FAULT, err
 		}
@@ -838,6 +851,15 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 				return FAULT, errors.ERR_MAP_NOT_EXIST
 			}
 			val = value
+		} else if buf, err := item.AsBytes(); err == nil {
+			ind, err := index.AsInt64()
+			if err != nil {
+				return FAULT, err
+			}
+			if ind < 0 || ind >= int64(len(buf)) {
+				return FAULT, errors.ERR_INDEX_OUT_OF_BOUND
+			}
+			val = types.VmValueFromInt64(int64(buf[ind]))
 		} else {
 			return FAULT, errors.ERR_BAD_TYPE
 		}
@@ -955,12 +977,19 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			return FAULT, fmt.Errorf("[executor] ExecuteOp APPEND error, unknown datatype")
 		}
 	case REVERSE:
-		array, err := self.EvalStack.PopAsArray()
+		var data []types.VmValue
+		item, err := self.EvalStack.Pop()
 		if err != nil {
 			return FAULT, err
 		}
+		if array, err := item.AsArrayValue(); err == nil {
+			data = array.Data
+		} else if struc, err := item.AsStructValue(); err == nil {
+			data = struc.Data
+		} else {
+			return FAULT, errors.ERR_BAD_TYPE
+		}
 
-		data := array.Data
 		for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
 			data[i], data[j] = data[j], data[i]
 		}
@@ -1065,7 +1094,7 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			return FAULT, nil
 		}
 	default:
-		panic("unimplemented!")
+		return FAULT, errors.ERR_NOT_SUPPORT_OPCODE
 	}
 
 	return NONE, nil

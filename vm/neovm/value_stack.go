@@ -51,15 +51,15 @@ func (self *ValueStack) Insert(index int64, t types.VmValue) error {
 		return errors.ERR_INDEX_OUT_OF_BOUND
 	}
 	index = l - index
-	self.data = append(self.data, self.data[l-1])
-	copy(self.data[index+1:l], self.data[index:])
+	self.data = append(self.data, t)
+	copy(self.data[index+1:], self.data[index:])
 	self.data[index] = t
 	return nil
 }
 
 func (self *ValueStack) Peek(index int64) (value types.VmValue, err error) {
 	l := int64(len(self.data))
-	if index >= l {
+	if index >= l || index < 0 {
 		err = errors.ERR_INDEX_OUT_OF_BOUND
 		return
 	}
@@ -175,15 +175,12 @@ func (self *ValueStack) CopyTo(stack *ValueStack) error {
 	return nil
 }
 
-func (self *ValueStack) Dump() (string, error) {
+func (self *ValueStack) Dump() string {
 	data := fmt.Sprintf("stack[%d]:\n", len(self.data))
 	for i, item := range self.data {
 		i = len(self.data) - i
-		res, err := item.Dump()
-		if err != nil {
-			return "", err
-		}
+		res := item.Dump()
 		data += fmt.Sprintf("%d:\t%s\n", i, res)
 	}
-	return data, nil
+	return data
 }

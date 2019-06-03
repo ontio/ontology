@@ -480,7 +480,7 @@ func validatePickItem(e *ExecutionEngine) error {
 		if v := item.(*types.Map).TryGetValue(key); v == nil {
 			return errors.ERR_MAP_NOT_EXIST
 		}
-	case *types.ByteArray:
+	default:
 		index, err := PeekBigInteger(e)
 		if err != nil {
 			return err
@@ -495,8 +495,6 @@ func validatePickItem(e *ExecutionEngine) error {
 		if index.Cmp(big.NewInt(int64(len(barr)))) >= 0 {
 			return errors.ERR_OVER_MAX_ARRAY_SIZE
 		}
-	default:
-		return fmt.Errorf("validatePickItem error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
 	return nil
 }
