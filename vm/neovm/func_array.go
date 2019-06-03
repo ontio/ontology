@@ -87,7 +87,7 @@ func opPickItem(e *ExecutionEngine) (VMState, error) {
 		PushData(e, s[i])
 	case *types.Map:
 		PushData(e, items.(*types.Map).TryGetValue(index))
-	case *types.ByteArray:
+	default:
 		bi, _ := index.GetBigInteger()
 		i := int(bi.Int64())
 		a, _ := items.GetByteArray()

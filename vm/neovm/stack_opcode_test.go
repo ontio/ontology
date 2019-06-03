@@ -30,7 +30,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
@@ -500,6 +499,14 @@ func TestAssertEqual(t *testing.T) {
 	assertEqual(t, val1, val2)
 }
 
+func TestXTuck(t *testing.T) {
+	checkStackOpCode(t, XTUCK, []Value{3, 2, 1, 0, 0}, []Value{3, 2, 1, 0, 0})
+	checkStackOpCode(t, XTUCK, []Value{3, 2, 1, 0, 1}, []Value{3, 2, 1, 0, 0})
+	checkStackOpCode(t, XTUCK, []Value{3, 2, 1, 0, 2}, []Value{3, 2, 0, 1, 0})
+	checkStackOpCode(t, XTUCK, []Value{3, 2, 1, 0, 3}, []Value{3, 0, 2, 1, 0})
+	checkStackOpCode(t, XTUCK, []Value{3, 2, 1, 0, 4}, []Value{0, 3, 2, 1, 0})
+}
+
 func TestThrow(t *testing.T) {
 	checkStackOpCode(t, THROW, []Value{}, []Value{})
 	checkStackOpCode(t, THROWIFNOT, []Value{true}, []Value{})
@@ -534,7 +541,7 @@ func checkAltStackOpCodeOld(t *testing.T, code []byte, origin [2][]Value, expect
 
 func oldValue2json(t *testing.T, expect types.StackItems) string {
 	//e, err := common.ConvertNeoVmTypeHexString(expect)
-	e, err := common.Stringify(expect)
+	e, err := types.Stringify(expect)
 	assert.Nil(t, err)
 	exp, err := json.Marshal(e)
 	assert.Nil(t, err)
