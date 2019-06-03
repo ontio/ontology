@@ -166,7 +166,7 @@ func validateXTuck(e *ExecutionEngine) error {
 		return err
 	}
 	count := big.NewInt(0)
-	if index.Sign() < 0 || count.Add(index, big.NewInt(2)).Cmp(big.NewInt(int64(total))) >= 0 {
+	if index.Sign() < 0 || count.Add(index, big.NewInt(1)).Cmp(big.NewInt(int64(total))) > 0 {
 		return errors.ERR_BAD_VALUE
 	}
 
