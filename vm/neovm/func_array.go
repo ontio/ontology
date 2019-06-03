@@ -187,12 +187,12 @@ func opRemove(e *ExecutionEngine) (VMState, error) {
 	case *types.Array:
 		m, err := item.GetArray()
 		if err != nil {
-			return FAULT, fmt.Errorf("%s", "[opRemove]get Array error!")
+			return FAULT, fmt.Errorf("%s", "[opRemove] get Array error!")
 		}
 
 		i, err := index.GetBigInteger()
 		if err != nil {
-			return FAULT, fmt.Errorf("%s", "[opRemove] index not a interger!")
+			return FAULT, fmt.Errorf("%s", "[opRemove] index not a integer!")
 		}
 
 		if i.Sign() < 0 {
