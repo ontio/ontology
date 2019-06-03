@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"encoding/json"
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
@@ -37,7 +38,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/states"
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
-	"encoding/json"
 )
 
 type ContractType byte
@@ -56,7 +56,7 @@ type Runtime struct {
 	CallOutPut []byte
 }
 
-type NotifyJson struct{
+type NotifyJson struct {
 	States []interface{} `json:"states"`
 }
 
@@ -163,10 +163,10 @@ func Notify(proc *exec.Process, ptr uint32, len uint32) {
 
 	var notify *event.NotifyEventInfo
 	nj := new(NotifyJson)
-	err = json.Unmarshal(bs,nj)
-	if err != nil{
+	err = json.Unmarshal(bs, nj)
+	if err != nil {
 		notify = &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, string(bs)}
-	}else{
+	} else {
 		notify = &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, nj.States}
 	}
 
