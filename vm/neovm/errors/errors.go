@@ -25,6 +25,7 @@ var (
 	ERR_BAD_TYPE                 = errors.New("bad type")
 	ERR_OVER_STACK_LEN           = errors.New("the count over the stack length")
 	ERR_OVER_CODE_LEN            = errors.New("the count over the code length")
+	ERR_INTEGER_UNDERFLOW        = errors.New("integer underflow")
 	ERR_UNDER_STACK_LEN          = errors.New("the count under the stack length")
 	ERR_FAULT                    = errors.New("the exeution meet fault")
 	ERR_NOT_SUPPORT_SERVICE      = errors.New("the service is not registered")
