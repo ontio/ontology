@@ -157,7 +157,20 @@ func validateXSwap(e *ExecutionEngine) error {
 }
 
 func validateXTuck(e *ExecutionEngine) error {
-	return validateOpStack(e, "[validateXTuck]")
+	total := EvaluationStackCount(e)
+	if total < 1 {
+		return errors.ERR_UNDER_STACK_LEN
+	}
+	index, err := PeekBigInteger(e)
+	if err != nil {
+		return err
+	}
+	count := big.NewInt(0)
+	if index.Sign() < 0 || count.Add(index, big.NewInt(1)).Cmp(big.NewInt(int64(total))) > 0 {
+		return errors.ERR_BAD_VALUE
+	}
+
+	return nil
 }
 
 func validatePick(e *ExecutionEngine) error {
