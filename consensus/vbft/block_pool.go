@@ -468,12 +468,16 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig)
 	}
-
+	crossShardMsgs := &CrossShardMsgs{}
+	if crossShardMsg, present := msg.CrossMsgSig[msg.Committer]; present {
+		crossShardMsgs = crossShardMsg
+	}
 	// add committer sig
 	pool.addBlockEndorsementLocked(blkNum, msg.Committer, &CandidateEndorseSigInfo{
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
 		ForEmpty:         msg.CommitForEmpty,
+		CrossMsg:         crossShardMsgs,
 	})
 
 	// add msg to commit-msgs
