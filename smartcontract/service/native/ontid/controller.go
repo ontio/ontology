@@ -294,6 +294,8 @@ func getController(srvc *native.NativeService, encId []byte) (interface{}, error
 	item, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
 		return nil, err
+	} else if item == nil {
+		return nil, errors.New("empty controller storage")
 	}
 
 	if bytes.Equal(item.Value[:8], []byte("did:ont:")) {
