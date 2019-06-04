@@ -13,7 +13,7 @@ import (
 	"github.com/ontio/ontology/tests"
 )
 
-func CreateChain(t *testing.T, shardID common.ShardID, genesisParentHeight uint32) {
+func CreateChain(t *testing.T, name string, shardID common.ShardID, genesisParentHeight uint32) {
 	if lgr := ledger.GetShardLedger(shardID); lgr != nil {
 		return
 	}
@@ -23,7 +23,7 @@ func CreateChain(t *testing.T, shardID common.ShardID, genesisParentHeight uint3
 		t.Fatalf("nil config for shard %d", shardID)
 	}
 
-	dataDir := TestConsts.TestRootDir + "Chain/"
+	dataDir := TestConsts.TestRootDir + "Chain/" + name + "/"
 
 	var lgr *ledger.Ledger
 	var err error

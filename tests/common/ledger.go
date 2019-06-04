@@ -17,7 +17,7 @@ func init() {
 	resultCache = make(map[common.ShardID]BlockchainResult)
 }
 
-func addResult(t *testing.T, shardID common.ShardID, height uint32, result *store.ExecuteResult) {
+func AddResult(t *testing.T, shardID common.ShardID, height uint32, result *store.ExecuteResult) {
 	if _, present := resultCache[shardID]; !present {
 		resultCache[shardID] = make(BlockchainResult)
 	}
@@ -27,7 +27,7 @@ func addResult(t *testing.T, shardID common.ShardID, height uint32, result *stor
 	resultCache[shardID][height] = result
 }
 
-func getResult(t *testing.T, shardID common.ShardID, height uint32) *store.ExecuteResult {
+func GetResult(t *testing.T, shardID common.ShardID, height uint32) *store.ExecuteResult {
 	if _, present := resultCache[shardID]; !present {
 		return nil
 	}
@@ -35,7 +35,7 @@ func getResult(t *testing.T, shardID common.ShardID, height uint32) *store.Execu
 	return resultCache[shardID][height]
 }
 
-func delResult(t *testing.T, shardID common.ShardID, height uint32) {
+func DelResult(t *testing.T, shardID common.ShardID, height uint32) {
 	if _, present := resultCache[shardID]; !present {
 		t.Fatalf("del block result %d:%d, shard not exists", shardID, height)
 	}
@@ -55,7 +55,7 @@ func ExecBlock(t *testing.T, shardID common.ShardID, blk *types.Block) common.Ui
 	if err != nil {
 		t.Fatalf("execut shard %d block: %s", shardID, err)
 	}
-	addResult(t, shardID, blk.Header.Height, &result)
+	AddResult(t, shardID, blk.Header.Height, &result)
 
 	return result.MerkleRoot
 }
@@ -66,7 +66,7 @@ func SubmitBlock(t *testing.T, shardID common.ShardID, blk *types.Block) {
 		t.Fatalf("submit block failed to get shard ledger: %d", shardID)
 	}
 
-	result := getResult(t, shardID, blk.Header.Height)
+	result := GetResult(t, shardID, blk.Header.Height)
 	if result == nil {
 		t.Fatalf("submit block failed to get exec result: %d:%d", shardID, blk.Header.Height)
 	}
