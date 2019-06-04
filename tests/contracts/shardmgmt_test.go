@@ -22,7 +22,7 @@ func Test_ShardMgmtInit(t *testing.T) {
 
 	// 1. create root chain
 	shardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
-	TestCommon.CreateChain(t, shardID, 0)
+	TestCommon.CreateChain(t, "test", shardID, 0)
 
 	// 2. build shard-mgmt init tx
 
