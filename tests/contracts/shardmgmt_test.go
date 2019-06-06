@@ -1,17 +1,17 @@
 package TestContracts
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/tests"
 	"github.com/ontio/ontology/tests/common"
-	"github.com/ontio/ontology/core/ledger"
-	"fmt"
 )
 
 func init() {
@@ -29,7 +29,7 @@ func Test_ShardMgmtInit(t *testing.T) {
 	tx := TestCommon.CreateAdminTx(t, shardID, utils.ShardMgmtContractAddress, shardmgmt.INIT_NAME, nil)
 
 	// 3. create new block
-	blk := TestCommon.CreateBlock(t, shardID, []*types.Transaction{tx})
+	blk := TestCommon.CreateBlock(t, ledger.GetShardLedger(shardID), []*types.Transaction{tx})
 
 	// 4. add block
 	TestCommon.ExecBlock(t, shardID, blk)

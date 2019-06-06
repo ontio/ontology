@@ -8,7 +8,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/genesis"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/tests"
 )
@@ -65,14 +64,27 @@ func GetHeight(t *testing.T, shardID common.ShardID) uint32 {
 	return 0
 }
 
-func GetLastBlock(t *testing.T, shardID common.ShardID) *types.Block {
-	if lgr := ledger.GetShardLedger(shardID); lgr != nil {
-		blk, err := lgr.GetBlockByHeight(lgr.GetCurrentBlockHeight())
-		if err != nil {
-			t.Fatalf("get last block of shard %d: %s", shardID, err)
-		}
-		return blk
+func CloneChain(t *testing.T, name string, srcLgr *ledger.Ledger) *ledger.Ledger {
+	dataDir := TestConsts.TestRootDir + "Chain/" + name + "/"
+	shardID := srcLgr.ShardID
+
+	var lgr *ledger.Ledger
+	var err error
+	if shardID.IsRootShard() {
+		lgr, err = ledger.NewLedger(dataDir, 0)
+	} else {
+		rootLgr := ledger.GetShardLedger(shardID.ParentID())
+		lgr, err = ledger.NewShardLedger(shardID, dataDir, rootLgr)
 	}
-	t.Fatalf("get last block with invalid shard %d", shardID)
-	return nil
+
+	blk, err := srcLgr.GetBlockByHeight(0)
+	if err != nil {
+		t.Fatalf("chain %s: failed get geneis block of source ledger", name)
+	}
+
+	if err := lgr.Init(blk.Header.Bookkeepers, blk); err != nil {
+		t.Fatalf("init ledger %d failed: %s", shardID, err)
+	}
+
+	return lgr
 }
