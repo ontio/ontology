@@ -16,31 +16,35 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
-func CreateBlock(t *testing.T, shardID common.ShardID, txs []*types.Transaction) *types.Block {
+func CreateBlock(t *testing.T, lgr *ledger.Ledger, txs []*types.Transaction) *types.Block {
 	txHash := []common.Uint256{}
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
 	}
-	lastBlock := GetLastBlock(t, shardID)
+	lastBlock, _ := lgr.GetBlockByHeight(lgr.GetCurrentBlockHeight())
 	if lastBlock == nil {
-		t.Fatalf("nil chain of shard: %d", shardID)
+		t.Fatalf("nil chain of shard: %d", lgr.ShardID)
 	}
 	parentHeight := lastBlock.Header.ParentHeight
 	txRoot := common.ComputeMerkleRoot(txHash)
-	lgr := ledger.GetShardLedger(shardID)
 	blockRoot := lgr.GetBlockRootWithNewTxRoots(lastBlock.Header.Height, []common.Uint256{lastBlock.Header.TransactionsRoot, txRoot})
 	//shardTxs := xshard.GetCrossShardTxs()
 	shardTxs := make(map[uint64][]*types.CrossShardTxInfos)
 	consensusPayload := buildConsensusPayload(t, lastBlock)
 
+	timestamp := uint32(time.Now().Unix())
+	if timestamp <= lastBlock.Header.Timestamp {
+		timestamp = lastBlock.Header.Timestamp + 1
+	}
+
 	blkHeader := &types.Header{
 		PrevBlockHash:    lastBlock.Header.Hash(),
 		Version:          common.CURR_HEADER_VERSION,
-		ShardID:          shardID.ToUint64(),
+		ShardID:          lgr.ShardID.ToUint64(),
 		ParentHeight:     uint32(parentHeight),
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
-		Timestamp:        uint32(time.Now().Unix()),
+		Timestamp:        timestamp,
 		Height:           lastBlock.Header.Height + 1,
 		ConsensusData:    common.GetNonce(),
 		ConsensusPayload: consensusPayload,
@@ -51,7 +55,7 @@ func CreateBlock(t *testing.T, shardID common.ShardID, txs []*types.Transaction)
 		Transactions: txs,
 	}
 	blkHash := blk.Hash()
-	acc := GetAccount(chainmgr.GetShardName(shardID) + "_peerOwner0")
+	acc := GetAccount(chainmgr.GetShardName(lgr.ShardID) + "_peerOwner0")
 	if acc == nil {
 		t.Fatalf("failed to get account peerOwner0")
 	}

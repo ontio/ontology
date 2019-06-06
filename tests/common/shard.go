@@ -1,12 +1,12 @@
-
 package TestCommon
 
 import (
-	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"testing"
+
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
+	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func GetShardStateFromLedger(t *testing.T, lgr *ledger.Ledger, shardID common.ShardID) *shardstates.ShardState {

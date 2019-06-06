@@ -1,12 +1,12 @@
-
 package TestCommon
 
 import (
 	"testing"
+
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/types"
 )
 
 type BlockchainResult map[uint32]*store.ExecuteResult
@@ -75,7 +75,6 @@ func SubmitBlock(t *testing.T, shardID common.ShardID, blk *types.Block) {
 		t.Fatalf("submit block %d:%d failed, %s", shardID, blk.Header.Height, err)
 	}
 }
-
 
 func AddBlock(t *testing.T, shardID common.ShardID, block *types.Block, merkleRoot common.Uint256) {
 	if lgr := ledger.GetShardLedger(shardID); lgr != nil {

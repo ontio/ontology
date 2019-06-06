@@ -1,12 +1,15 @@
 package TestCommon
 
 import (
+	"errors"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/ledger"
+	types2 "github.com/ontio/ontology/core/types"
+	common2 "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/message/utils"
-	"github.com/ontio/ontology/core/ledger"
 )
 
 func (peer *MockPeer) handlePingMsg(from uint64, msg types.Message) {
@@ -21,7 +24,7 @@ func (peer *MockPeer) handlePingMsg(from uint64, msg types.Message) {
 	h := make(map[uint64]uint32)
 	h[peer.Lgr.ShardID.ToUint64()] = peer.Lgr.GetCurrentBlockHeight()
 	pong := msgpack.NewPongMsg(h)
-	peer.Net.Broadcast(from, pong)
+	peer.Net.Send(peer.Local.GetID(), from, pong)
 }
 
 func (peer *MockPeer) handlePongMsg(from uint64, msg types.Message) {
@@ -43,22 +46,19 @@ func (peer *MockPeer) handleGetHeadersReq(from uint64, msg types.Message) {
 
 	startHash := headersReq.HashStart
 	stopHash := headersReq.HashEnd
-	shardId, err := common.NewShardID(headersReq.ShardID)
-	if err != nil {
-		log.Warnf("get headers in HeadersReqHandle error: %s,shardID:%s", err.Error(), headersReq.ShardID)
-		return
-	}
-	headers, err := utils.GetHeadersFromHash(shardId, startHash, stopHash)
+	headers, err := GetHeadersFromHash(peer.Lgr, startHash, stopHash)
 	if err != nil {
 		log.Warnf("get headers in HeadersReqHandle error: %s,startHash:%s,stopHash:%s", err.Error(), startHash.ToHexString(), stopHash.ToHexString())
 		return
 	}
+	log.Infof("get headers req: %v", headersReq)
+	log.Infof("get headers rsp: %v", headers)
 	hdrsRsp := msgpack.NewHeaders(headers)
-	peer.Net.Broadcast(from, hdrsRsp)
+	peer.Net.Send(peer.Local.GetID(), from, hdrsRsp)
 }
 
 func (peer *MockPeer) handleHeaders(from uint64, msg types.Message) {
-	blkHdrs := msg.(*types.BlkHeader)
+	blkHdrs := msg.(*types.RawBlockHeader)
 	if blkHdrs == nil {
 		log.Errorf("invalid hdrs rsp from %d", from)
 		return
@@ -67,9 +67,17 @@ func (peer *MockPeer) handleHeaders(from uint64, msg types.Message) {
 		return
 	}
 
-	shardID := common.NewShardIDUnchecked(blkHdrs.BlkHdr[0].ShardID)
+	hdrs := make([]*types2.Header, 0)
+	for _, rawHdr := range blkHdrs.BlkHdr {
+		hdr := &types2.Header{}
+		hdr.Deserialization(common.NewZeroCopySource(rawHdr.Payload))
+		hdrs = append(hdrs, hdr)
+	}
+
+	shardID := common.NewShardIDUnchecked(hdrs[0].ShardID)
 	if syncer, present := peer.syncers[shardID]; present {
-		syncer.OnHeaderReceive(from, blkHdrs.BlkHdr)
+		log.Infof("receives headers")
+		syncer.OnHeaderReceive(from, hdrs)
 	}
 }
 
@@ -108,14 +116,14 @@ func (peer *MockPeer) handleGetDataReq(from uint64, msg types.Message) {
 			" ,send not found message")
 		return
 	}
-	merkleRoot, err = ledger.DefLedger.GetStateMerkleRoot(block.Header.Height)
+	merkleRoot, err = peer.Lgr.GetStateMerkleRoot(block.Header.Height)
 	if err != nil {
 		log.Debugf("[p2p]failed to get state merkel root at height %v, err %v",
 			block.Header.Height, err)
 		return
 	}
 	blkmsg := msgpack.NewBlock(block, merkleRoot)
-	peer.Net.Broadcast(from, blkmsg)
+	peer.Net.Send(peer.Local.GetID(), from, blkmsg)
 }
 
 func (peer *MockPeer) handleBlock(from uint64, msg types.Message) {
@@ -125,8 +133,83 @@ func (peer *MockPeer) handleBlock(from uint64, msg types.Message) {
 		return
 	}
 
+	log.Infof("peer %d received block %d", peer.Local.GetID(), blk.Blk.Header.Height)
 	shardID := common.NewShardIDUnchecked(blk.Blk.Header.ShardID)
 	if syncer, present := peer.syncers[shardID]; present {
 		syncer.OnBlockReceive(from, 100, blk.Blk, blk.MerkleRoot)
 	}
+}
+
+///////////////////////
+
+//get blk hdrs from starthash to stophash
+func GetHeadersFromHash(lgr *ledger.Ledger, startHash common.Uint256, stopHash common.Uint256) ([]*types2.RawHeader, error) {
+	var count uint32 = 0
+	headers := []*types2.RawHeader{}
+	var startHeight uint32
+	var stopHeight uint32
+	curHeight := lgr.GetCurrentHeaderHeight()
+	if startHash == common.UINT256_EMPTY {
+		if stopHash == common.UINT256_EMPTY {
+			if curHeight > common2.MAX_BLK_HDR_CNT {
+				count = common2.MAX_BLK_HDR_CNT
+			} else {
+				count = curHeight
+			}
+		} else {
+			bkStop, err := lgr.GetRawHeaderByHash(stopHash)
+			if err != nil || bkStop == nil {
+				return nil, err
+			}
+			stopHeight = bkStop.Height
+			count = curHeight - stopHeight
+			if count > common2.MAX_BLK_HDR_CNT {
+				count = common2.MAX_BLK_HDR_CNT
+			}
+		}
+	} else {
+		bkStart, err := lgr.GetRawHeaderByHash(startHash)
+		if err != nil || bkStart == nil {
+			return nil, err
+		}
+		startHeight = bkStart.Height
+		if stopHash != common.UINT256_EMPTY {
+			bkStop, err := lgr.GetRawHeaderByHash(stopHash)
+			if err != nil || bkStop == nil {
+				return nil, err
+			}
+			stopHeight = bkStop.Height
+
+			// avoid unsigned integer underflow
+			if startHeight < stopHeight {
+				return nil, errors.New("[p2p]do not have header to send")
+			}
+			count = startHeight - stopHeight
+
+			if count >= common2.MAX_BLK_HDR_CNT {
+				count = common2.MAX_BLK_HDR_CNT
+				stopHeight = startHeight - common2.MAX_BLK_HDR_CNT
+			}
+		} else {
+
+			if startHeight > common2.MAX_BLK_HDR_CNT {
+				count = common2.MAX_BLK_HDR_CNT
+			} else {
+				count = startHeight
+			}
+		}
+	}
+
+	var i uint32
+	for i = 1; i <= count; i++ {
+		hash := lgr.GetBlockHash(stopHeight + i)
+		hd, err := lgr.GetRawHeaderByHash(hash)
+		if err != nil {
+			log.Debugf("[p2p]net_server GetBlockWithHeight failed with err=%s, hash=%x,height=%d,shardID:%v,\n", err.Error(), hash, stopHeight+i, lgr.ShardID)
+			return nil, err
+		}
+		headers = append(headers, hd)
+	}
+
+	return headers, nil
 }

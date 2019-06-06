@@ -1,17 +1,17 @@
-
 package TestCommon
 
 import (
+	"fmt"
 	"testing"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
-	"github.com/ontio/ontology/core/chainmgr"
-	"fmt"
-	utils2 "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/account"
+	utils2 "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr"
+	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/utils"
 )
 
 func CreateAdminTx(t *testing.T, shard common.ShardID, addr common.Address, method string, args []byte) *types.Transaction {
@@ -24,7 +24,7 @@ func CreateAdminTx(t *testing.T, shard common.ShardID, addr common.Address, meth
 	pks := make([]keypair.PublicKey, 0)
 	accounts := make([]*account.Account, 0)
 	for i := 0; i < 7; i++ {
-		acc := GetAccount(shardName + "_peerOwner" + fmt.Sprintf("%d",i))
+		acc := GetAccount(shardName + "_peerOwner" + fmt.Sprintf("%d", i))
 		pks = append(pks, acc.PublicKey)
 		accounts = append(accounts, acc)
 	}

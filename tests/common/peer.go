@@ -1,10 +1,16 @@
 package TestCommon
 
 import (
+	"fmt"
+	"math/rand"
+	"time"
+
 	common2 "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/link"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
@@ -27,13 +33,19 @@ type MockPeer struct {
 }
 
 func NewPeer(lgr *ledger.Ledger) *MockPeer {
-	return &MockPeer{
+	p := &MockPeer{
+		Local:         &peer.Peer{},
 		Net:           MockNet,
 		Lgr:           lgr,
 		remoteHeights: make(map[uint64]uint32),
 		syncers:       make(map[common2.ShardID]*p2pserver.BlockSyncMgr),
 		msgChan:       make(chan *MockMsg, 1000),
 	}
+	p.Local.Link = link.NewLink()
+	heights := make(map[uint64]uint32)
+	heights[lgr.ShardID.ToUint64()] = lgr.GetCurrentBlockHeight()
+	p.Local.UpdateInfo(time.Now(), 1, 1, 20338, rand.Uint64(), 1, heights, "1")
+	return p
 }
 
 func (peer *MockPeer) Register() {
@@ -71,6 +83,8 @@ func (peer *MockPeer) Start() {
 				case common.BLOCK_TYPE:
 					// handle block msg from perr
 					peer.handleBlock(msg.from, msg.msg)
+				default:
+					panic(fmt.Sprintf("peer %d, not handle msg type: %d", peer.Local.GetID(), msg.msg.CmdType()))
 				}
 			}
 		}
@@ -103,7 +117,12 @@ func (peer *MockPeer) PingTo(peers []*peer.Peer) {
 }
 
 func (peer *MockPeer) Connected(newPeer uint64) {
+	p := peer.GetNode(newPeer)
+	if p != nil {
+		p.SetState(common.ESTABLISH)
+	}
 	for _, syncer := range peer.syncers {
+		log.Infof("peer %d connected with %d", peer.Local.GetID(), newPeer)
 		syncer.OnAddNode(newPeer)
 	}
 }

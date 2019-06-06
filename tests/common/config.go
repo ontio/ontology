@@ -41,7 +41,7 @@ func InitConfig(t *testing.T, shardID common.ShardID) {
 	CreateAccount(t, shardName+"_user1") // shard_0_user1
 
 	cfg := config.NewOntologyConfig()
-	acc := GetAccount(shardName+"_adminOntID")
+	acc := GetAccount(shardName + "_adminOntID")
 	cfg.Genesis.VBFT.AdminOntID = fmt.Sprintf("did:ont:%s", acc.Address.ToBase58())
 	cfg.Genesis.VBFT.Peers[0].Address = GetAccount(shardName + "_peerOwner0").Address.ToBase58()
 	cfg.Genesis.VBFT.Peers[1].Address = GetAccount(shardName + "_peerOwner1").Address.ToBase58()
