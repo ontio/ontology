@@ -81,6 +81,7 @@ type LedgerStoreImp struct {
 	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
 	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
 	savingBlockSemaphore chan bool
+	closing              bool
 	vbftPeerInfoheader   map[string]uint32 //pubInfo save pubkey,peerindex
 	vbftPeerInfoblock    map[string]uint32 //pubInfo save pubkey,peerindex
 	lock                 sync.RWMutex
@@ -546,6 +547,9 @@ func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.Execu
 func (this *LedgerStoreImp) SubmitBlock(block *types.Block, result store.ExecuteResult) error {
 	this.getSavingBlockLock()
 	defer this.releaseSavingBlockLock()
+	if this.closing {
+		return errors.NewErr("save block error: ledger is closing")
+	}
 	currBlockHeight := this.GetCurrentBlockHeight()
 	blockHeight := block.Header.Height
 	if blockHeight <= currBlockHeight {
@@ -830,6 +834,9 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 		return nil
 	}
 	defer this.releaseSavingBlockLock()
+	if this.closing {
+		return errors.NewErr("save block error: ledger is closing")
+	}
 	if blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1) {
 		return nil
 	}
@@ -1108,17 +1115,23 @@ func (this *LedgerStoreImp) getPreGas(config *smartcontract.Config, cache *stora
 
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
+	// wait block saving complete, and get the lock to avoid subsequent block saving
+	this.getSavingBlockLock()
+	defer this.releaseSavingBlockLock()
+
+	this.closing = true
+
 	err := this.blockStore.Close()
 	if err != nil {
 		return fmt.Errorf("blockStore close error %s", err)
 	}
-	err = this.stateStore.Close()
-	if err != nil {
-		return fmt.Errorf("stateStore close error %s", err)
-	}
 	err = this.eventStore.Close()
 	if err != nil {
 		return fmt.Errorf("eventStore close error %s", err)
+	}
+	err = this.stateStore.Close()
+	if err != nil {
+		return fmt.Errorf("stateStore close error %s", err)
 	}
 	return nil
 }

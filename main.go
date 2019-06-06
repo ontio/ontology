@@ -162,7 +162,6 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("%s", err)
 		return
 	}
-	defer ldg.Close()
 	txpool, err := initTxPool(ctx)
 	if err != nil {
 		log.Errorf("initTxPool error: %s", err)
@@ -193,7 +192,7 @@ func startOntology(ctx *cli.Context) {
 	initNodeInfo(ctx, p2pSvr)
 
 	go logCurrBlockHeight()
-	waitToExit()
+	waitToExit(ldg)
 }
 
 func initLog(ctx *cli.Context) {
@@ -437,13 +436,15 @@ func setMaxOpenFiles() {
 	}
 }
 
-func waitToExit() {
+func waitToExit(db *ledger.Ledger) {
 	exit := make(chan bool, 0)
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	go func() {
 		for sig := range sc {
 			log.Infof("Ontology received exit signal: %v.", sig.String())
+			log.Infof("closing ledger...")
+			db.Close()
 			close(exit)
 			break
 		}
