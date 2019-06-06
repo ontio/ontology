@@ -369,11 +369,25 @@ func (self *Ledger) GetShardMsgHash(shardID common.ShardID) (common.Uint256, err
 	return self.ldgStore.GetShardMsgHash(shardID)
 }
 
-func (self *Ledger) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
-	return self.cshardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
+func (self *Ledger) SaveCrossShardMsgByHash(msgHash common.Uint256, crossShardMsg *types.CrossShardMsg) error {
+	return self.cshardStore.SaveCrossShardMsgByHash(msgHash, crossShardMsg)
 }
-func (self *Ledger) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error) {
-	return self.cshardStore.GetCrossShardMsgByShardID(shardID)
+func (self *Ledger) GetCrossShardMsgByHash(msgHash common.Uint256) (*types.CrossShardMsg, error) {
+	return self.cshardStore.GetCrossShardMsgByHash(msgHash)
+}
+
+func (self *Ledger) SaveAllShardIDs(shardIDs []common.ShardID) error {
+	return self.cshardStore.SaveAllShardIDs(shardIDs)
+}
+func (self *Ledger) GetAllShardIDs() ([]common.ShardID, error) {
+	return self.cshardStore.GetAllShardIDs()
+}
+
+func (self *Ledger) SaveCrossShardHash(shardID common.ShardID, msgHash common.Uint256) error {
+	return self.cshardStore.SaveCrossShardHash(shardID, msgHash)
+}
+func (self *Ledger) GetCrossShardHash(shardID common.ShardID) (common.Uint256, error) {
+	return self.cshardStore.GetCrossShardHash(shardID)
 }
 
 func (self *Ledger) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {

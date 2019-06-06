@@ -26,8 +26,12 @@ import (
 //CrossShardStore provides func with cross shard msg store package
 type CrossShardStore interface {
 	Close() error
-	SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error
-	GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error)
+	SaveCrossShardMsgByHash(msgHash common.Uint256, crossShardMsg *types.CrossShardMsg) error
+	GetCrossShardMsgByHash(msgHash common.Uint256) (*types.CrossShardMsg, error)
+	SaveAllShardIDs(shardIDs []common.ShardID) error
+	GetAllShardIDs() ([]common.ShardID, error)
+	SaveCrossShardHash(shardID common.ShardID, msgHash common.Uint256) error
+	GetCrossShardHash(shardID common.ShardID) (common.Uint256, error)
 	AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error
 	GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error)
 	AddShardConsensusHeight(shardID common.ShardID, value []uint32) error

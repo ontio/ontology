@@ -58,52 +58,112 @@ func (this *CrossShardStore) NewBatch() {
 	this.store.NewBatch()
 }
 
-func (this *CrossShardStore) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
+func (this *CrossShardStore) SaveCrossShardMsgByHash(msgHash common.Uint256, crossShardMsg *types.CrossShardMsg) error {
 	this.NewBatch()
-	key := this.getCrossShardMsgKeyByShard(shardID)
+	key := this.getCrossShardMsgKeyByHash(msgHash)
 
 	value := common.NewZeroCopySink(1024)
-	value.WriteUint32(uint32(len(crossShardTxInfos)))
-	for _, crossShardTx := range crossShardTxInfos {
-		err := crossShardTx.Serialization(value)
-		if err != nil {
-			return err
-		}
-	}
+
+	crossShardMsg.Serialization(value)
 	this.store.BatchPut(key, value.Bytes())
 	err := this.CommitTo()
 	if err != nil {
-		return fmt.Errorf("crossShardStore.CommitTo shardID:%v, error %s", shardID, err)
+		return fmt.Errorf("crossShardStore.CommitTo msgHash:%s, error %s", msgHash.ToHexString(), err)
 	}
 	return nil
 }
 
-func (this *CrossShardStore) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error) {
-	key := this.getCrossShardMsgKeyByShard(shardID)
+func (this *CrossShardStore) GetCrossShardMsgByHash(msgHash common.Uint256) (*types.CrossShardMsg, error) {
+	key := this.getCrossShardMsgKeyByHash(msgHash)
 	data, err := this.store.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	source := common.NewZeroCopySource(data)
-	txCnt, eof := source.NextUint32()
+	crossShardMsg := &types.CrossShardMsg{}
+	crossShardMsg.Deserialization(source)
+	return crossShardMsg, nil
+}
+
+func (this *CrossShardStore) getCrossShardMsgKeyByHash(msgHash common.Uint256) []byte {
+	key := common.NewZeroCopySink(8)
+	key.WriteByte(byte(scom.CROSS_SHARD_MSG))
+	key.WriteBytes(msgHash[:])
+	return key.Bytes()
+}
+
+func (this *CrossShardStore) SaveAllShardIDs(shardIDs []common.ShardID) error {
+	this.NewBatch()
+	key := this.getCrossShardIDKey()
+	value := common.NewZeroCopySink(1024)
+	value.WriteUint32(uint32(len(shardIDs)))
+	for _, shardID := range shardIDs {
+		value.WriteShardID(shardID)
+	}
+	this.store.BatchPut(key, value.Bytes())
+	err := this.CommitTo()
+	if err != nil {
+		return fmt.Errorf("crossShardStore SaveAllShardIDs error %s", err)
+	}
+	return nil
+}
+func (this *CrossShardStore) GetAllShardIDs() ([]common.ShardID, error) {
+	key := this.getCrossShardIDKey()
+	data, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	shardIdCnt, eof := source.NextUint32()
 	if eof {
 		return nil, io.ErrUnexpectedEOF
 	}
-	crossShardTxInfos := make([]*types.CrossShardTxInfos, 0)
-	for i := uint32(0); i < txCnt; i++ {
-		crossShardTxInfo := new(types.CrossShardTxInfos)
-		err := crossShardTxInfo.Deserialization(source)
+	shardIds := make([]common.ShardID, 0)
+	for i := uint32(0); i < shardIdCnt; i++ {
+		shardId, err := source.NextShardID()
 		if err != nil {
-			return nil, fmt.Errorf("deserialize shard tx: %s", err)
+			return nil, io.ErrUnexpectedEOF
 		}
-		crossShardTxInfos = append(crossShardTxInfos, crossShardTxInfo)
+		shardIds = append(shardIds, shardId)
 	}
-	return crossShardTxInfos, nil
+	return shardIds, nil
+}
+func (this *CrossShardStore) getCrossShardIDKey() []byte {
+	key := common.NewZeroCopySink(8)
+	key.WriteByte(byte(scom.CROSS_ALL_SHARDS))
+	return key.Bytes()
 }
 
-func (this *CrossShardStore) getCrossShardMsgKeyByShard(shardID common.ShardID) []byte {
+func (this *CrossShardStore) SaveCrossShardHash(shardID common.ShardID, msgHash common.Uint256) error {
+	this.NewBatch()
+	key := this.getCrossShardKeyByHash(shardID)
+	value := common.NewZeroCopySink(64)
+	value.WriteVarBytes(msgHash[:])
+	this.store.BatchPut(key, value.Bytes())
+	err := this.CommitTo()
+	if err != nil {
+		return fmt.Errorf("crossShardStore.CommitTo shardID:%v,msgHash:%s, error %s", shardID, msgHash.ToHexString(), err)
+	}
+	return nil
+}
+
+func (this *CrossShardStore) GetCrossShardHash(shardID common.ShardID) (common.Uint256, error) {
+	key := this.getCrossShardKeyByHash(shardID)
+	buf, err := this.store.Get(key)
+	if err != nil {
+		return common.Uint256{}, err
+	}
+	source := common.NewZeroCopySource(buf)
+	msgHash, eof := source.NextHash()
+	if eof {
+		return common.Uint256{}, io.ErrUnexpectedEOF
+	}
+	return msgHash, nil
+}
+
+func (this *CrossShardStore) getCrossShardKeyByHash(shardID common.ShardID) []byte {
 	key := common.NewZeroCopySink(8)
-	key.WriteByte(byte(scom.CROSS_SHARD_MSG))
+	key.WriteByte(byte(scom.CROSS_SHARD_HASH))
 	key.WriteShardID(shardID)
 	return key.Bytes()
 }

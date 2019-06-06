@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
-	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
@@ -235,6 +234,7 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	if err != nil {
 		return fmt.Errorf("init shard ledger: :%s", err)
 	}
+	xshard.InitShardInfo(lgr)
 	return nil
 }
 
@@ -431,12 +431,7 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString())
 		return
 	}
-	tx, err := crossshard.NewCrossShardTxMsg(self.account, msg.CrossShardMsgInfo.MsgHeight, self.shardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
-	if err != nil {
-		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.CrossShardMsgInfo.MsgHeight, err)
-		return
-	}
-	xshard.AddCrossShardInfo(ledger.DefLedger, msg, tx)
+	xshard.AddCrossShardInfo(ledger.DefLedger, msg)
 }
 
 //

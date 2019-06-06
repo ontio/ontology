@@ -20,12 +20,14 @@ package chainmgr
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
@@ -145,9 +147,37 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) {
 		return
 	}
 	log.Infof("chainmgr shard %d, get new block %d from shard %d", self.shardID, blk.Header.Height, blk.Header.ShardID)
+	if err := self.handleRootChainConfig(blk); err != nil {
+		log.Errorf("shard %d, handle rootchain chainConfig block in block %d: %s", self.shardID, blk.Header.Height, err)
+	}
 	if err := self.handleRootChainBlock(); err != nil {
 		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
+}
+func (self *ChainManager) handleRootChainConfig(block *types.Block) error {
+	blkInfo := &vconfig.VbftBlockInfo{}
+	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
+		return fmt.Errorf("unmarshal blockInfo: %s", err)
+	}
+	if blkInfo.LastConfigBlockNum != block.Header.Height {
+		return nil
+	}
+	config := &shardstates.ShardConfig{
+		VbftCfg: &config.VBFTConfig{
+			N: blkInfo.NewChainConfig.N,
+			C: blkInfo.NewChainConfig.C,
+		},
+	}
+	peers := make(map[string]*shardstates.PeerShardStakeInfo)
+	for _, peer := range blkInfo.NewChainConfig.Peers {
+		peers[peer.ID] = &shardstates.PeerShardStakeInfo{
+			Index:      peer.Index,
+			PeerPubKey: peer.ID,
+			NodeType:   shardstates.CONSENSUS_NODE,
+		}
+	}
+	self.AddShardEventConfig(block.Header.Height, common.NewShardIDUnchecked(block.Header.ShardID), config, peers)
+	return nil
 }
 
 func (self *ChainManager) handleRootChainBlock() error {

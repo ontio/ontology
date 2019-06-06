@@ -497,10 +497,10 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 		if err != nil {
 			if err != com.ErrNotFound {
 				log.Errorf("SendCrossShardMsgToAll getshardmsghash err:%s", err)
+				continue
 			}
-		} else {
-			crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
 		}
+		crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{
