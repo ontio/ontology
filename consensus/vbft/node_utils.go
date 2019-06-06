@@ -484,12 +484,14 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 			continue
 		}
 		crossShardMsg := &types.CrossShardMsg{
-			FromShardID:       self.ShardID,
-			MsgHeight:         crossShardMsgs.Height,
-			SignMsgHeight:     height,
-			CrossShardMsgRoot: msgRoot,
-			ShardMsg:          shardMsg,
-			ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+			CrossShardMsgInfo: &types.CrossShardMsgInfo{
+				FromShardID:       self.ShardID,
+				MsgHeight:         crossShardMsgs.Height,
+				SignMsgHeight:     height,
+				CrossShardMsgRoot: msgRoot,
+				ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+			},
+			ShardMsg: shardMsg,
 		}
 		preMsgHash, err := self.ledger.GetShardMsgHash(crossMsg.ShardID)
 		if err != nil {
@@ -497,7 +499,7 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 				log.Errorf("SendCrossShardMsgToAll getshardmsghash err:%s", err)
 			}
 		} else {
-			crossShardMsg.PreCrossShardMsgHash = preMsgHash
+			crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
 		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)

@@ -229,6 +229,9 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs, error) {
 	crossShardMsgs := &CrossShardMsgs{}
 	msgs := self.chainStore.GetExecShardNotify(blkNum)
+	if len(msgs) == 0 {
+		return nil, nil
+	}
 	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
 	for _, msg := range msgs {
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
@@ -387,16 +390,19 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	if err != nil {
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, caused by: %s", blkHash, err)
 	}
-
 	endorsersSig := make(map[uint32][]byte)
 	crossShardMsg := make(map[uint32]*CrossShardMsgs)
+	commitShard := true
 	for _, e := range endorses {
 		endorsersSig[e.Endorser] = e.EndorserSig
-		crossShardMsgs := &CrossShardMsgs{}
-		if e.CrossMsg == nil {
-			continue
+		crossShardMsg[e.Endorser] = e.CrossMsg
+		if e.Endorser == self.Index {
+			commitShard = false
 		}
-		for _, crossMsg := range e.CrossMsg.CrossMsgs {
+	}
+	if proposal.Block.CrossMsg != nil && commitShard {
+		crossShardMsgs := &CrossShardMsgs{}
+		for _, crossMsg := range proposal.Block.CrossMsg.CrossMsgs {
 			sig, err := signature.Sign(self.account, crossMsg.MsgHash[:])
 			if err != nil {
 				return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.MsgHash[:], err)
@@ -404,7 +410,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 			crossMsg.SigData = append(crossMsg.SigData, sig)
 			crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
 		}
-		crossShardMsg[e.Endorser] = crossShardMsgs
+		crossShardMsg[self.Index] = crossShardMsgs
 	}
 
 	msg := &blockCommitMsg{

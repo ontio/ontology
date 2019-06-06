@@ -33,7 +33,7 @@ import (
 func TestSaveCrossShardMsgByShardID(t *testing.T) {
 	acc1 := account.NewAccount("")
 	shardID := common.NewShardIDUnchecked(1)
-	shardMsg := &types.CrossShardMsg{
+	shardMsg := &types.CrossShardMsgInfo{
 		FromShardID:   common.NewShardIDUnchecked(2),
 		MsgHeight:     109,
 		SignMsgHeight: 1111,
