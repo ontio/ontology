@@ -102,7 +102,7 @@ func (peer *MockPeer) Start() {
 					// handle block msg from perr
 					peer.handleBlock(msg.from, msg.msg)
 				default:
-					panic(fmt.Sprintf("peer %d, not handle msg type: %d", peer.Local.GetID(), msg.msg.CmdType()))
+					panic(fmt.Sprintf("peer %d, not handle msg type: %s", peer.Local.GetID(), msg.msg.CmdType()))
 				}
 			}
 		}
