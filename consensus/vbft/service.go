@@ -140,6 +140,10 @@ type Server struct {
 }
 
 func NewVbftServer(shardID common.ShardID, account *account.Account, txpool *actor.PID, lgr *ledger.Ledger, p2p *actor.PID) (*Server, error) {
+	if account == nil {
+		return nil, fmt.Errorf("new vbft service with nil account")
+	}
+
 	server := &Server{
 		msgHistoryDuration: 64,
 		account:            account,
@@ -155,7 +159,7 @@ func NewVbftServer(shardID common.ShardID, account *account.Account, txpool *act
 		return server
 	})
 
-	pid, err := actor.SpawnNamed(props, "consensus_vbft")
+	pid, err := actor.SpawnNamed(props, "consensus_vbft"+	account.Address.ToBase58())
 	if err != nil {
 		return nil, err
 	}
@@ -525,9 +529,6 @@ func (self *Server) initialize() error {
 	}
 
 	log.Infof("peer %d started", self.Index)
-
-	// TODO: start peer-conn-handlers
-
 	return nil
 }
 

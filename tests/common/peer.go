@@ -23,6 +23,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/ontio/ontology-eventbus/actor"
 	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
@@ -32,6 +33,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
+	"testing"
 )
 
 type MockMsg struct {
@@ -46,8 +48,10 @@ type MockPeer struct {
 
 	remoteHeights map[uint64]uint32
 	syncers       map[common2.ShardID]*p2pserver.BlockSyncMgr
+	ConsensusPid  *actor.PID
 
-	msgChan chan *MockMsg
+	MsgChain chan *MockMsg
+	Started  bool // peer state
 }
 
 func NewPeer(lgr *ledger.Ledger) *MockPeer {
@@ -57,7 +61,7 @@ func NewPeer(lgr *ledger.Ledger) *MockPeer {
 		Lgr:           lgr,
 		remoteHeights: make(map[uint64]uint32),
 		syncers:       make(map[common2.ShardID]*p2pserver.BlockSyncMgr),
-		msgChan:       make(chan *MockMsg, 1000),
+		MsgChain:      make(chan *MockMsg, 1000),
 	}
 	p.Local.Link = link.NewLink()
 	heights := make(map[uint64]uint32)
@@ -74,11 +78,19 @@ func (peer *MockPeer) AddBlockSyncer(shardID common2.ShardID, blockSyncer *p2pse
 	peer.syncers[shardID] = blockSyncer
 }
 
+func (peer *MockPeer) SetConsensusPid(t *testing.T, pid *actor.PID) {
+	if pid == nil {
+		t.Fatalf("set mock peer consensus nil pid")
+	}
+	peer.ConsensusPid = pid
+}
+
 func (peer *MockPeer) Start() {
+	peer.Started = true
 	go func() {
 		for {
 			select {
-			case msg := <-peer.msgChan:
+			case msg := <-peer.MsgChain:
 				switch msg.msg.CmdType() {
 				case common.PING_TYPE:
 					// update peer height, response pong
@@ -95,6 +107,9 @@ func (peer *MockPeer) Start() {
 				case common.INV_TYPE:
 					// handle inventory message
 					peer.handleInvMsg(msg.from, msg.msg)
+				case common.CONSENSUS_TYPE:
+					// handle consensus message
+					peer.handleConsensusMsg(msg.from, msg.msg)
 				case common.GET_DATA_TYPE:
 					// handle block/tx req from peer
 					peer.handleGetDataReq(msg.from, msg.msg)
@@ -152,7 +167,10 @@ func (peer *MockPeer) Disconnected(failedPeer uint64) {
 }
 
 func (peer *MockPeer) Receive(fromPeer uint64, msg types.Message) {
-	peer.msgChan <- &MockMsg{
+	if !peer.Started {
+		log.Errorf("peer %d, not started to receive msg from %d", peer.Local.GetID(), fromPeer)
+	}
+	peer.MsgChain <- &MockMsg{
 		from: fromPeer,
 		msg:  msg,
 	}

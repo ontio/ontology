@@ -108,6 +108,19 @@ func (peer *MockPeer) handleInvMsg(from uint64, msg types.Message) {
 	log.Infof("received inv msg from %d", from)
 }
 
+func (peer *MockPeer) handleConsensusMsg(from uint64, msg types.Message) {
+	consensus := msg.(*types.Consensus)
+	if consensus == nil {
+		log.Error("invalid consensus msg from %d", from)
+		return
+	}
+
+	consensus.Cons.PeerId = from
+	if peer.ConsensusPid != nil {
+		peer.ConsensusPid.Tell(&consensus.Cons)
+	}
+}
+
 func (peer *MockPeer) handleGetDataReq(from uint64, msg types.Message) {
 	req := msg.(*types.DataReq)
 	if req == nil {

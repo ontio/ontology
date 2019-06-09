@@ -20,6 +20,7 @@ package TestCommon
 
 import (
 	"github.com/ontio/ontology/p2pserver/message/types"
+	"github.com/ontio/ontology/common/log"
 )
 
 var MockNet *MockNetwork
@@ -50,6 +51,9 @@ func (net *MockNetwork) RegisterPeer(newPeer *MockPeer) {
 }
 
 func (net *MockNetwork) Broadcast(fromPeerID uint64, msg types.Message) {
+	if len(net.peers) < 2 {
+		log.Errorf("less than two peers in network")
+	}
 	for _, peer := range net.peers {
 		if peer.Local.GetID() != fromPeerID {
 			peer.Receive(fromPeerID, msg)

@@ -76,5 +76,8 @@ func InitConfig(t *testing.T, shardID common.ShardID) {
 	cfg.Genesis.VBFT.Peers[5].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner5").PublicKey))
 	cfg.Genesis.VBFT.Peers[6].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner6").PublicKey))
 
+	cfg.Genesis.VBFT.BlockMsgDelay = 3000
+	cfg.Genesis.VBFT.HashMsgDelay = 3000
+
 	TestConfigs[shardID] = cfg
 }
