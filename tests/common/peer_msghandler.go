@@ -37,10 +37,12 @@ func (peer *MockPeer) handlePingMsg(from uint64, msg types.Message) {
 		return
 	}
 	selfShardId := peer.Lgr.ShardID
-	peer.SetHeight(from, ping.Height[selfShardId.ToUint64()])
+	peer.SetHeight(from, ping.Height[selfShardId.ToUint64()].Height)
 
-	h := make(map[uint64]uint32)
-	h[peer.Lgr.ShardID.ToUint64()] = peer.Lgr.GetCurrentBlockHeight()
+	h := make(map[uint64]*types.HeightInfo)
+	h[peer.Lgr.ShardID.ToUint64()] = &types.HeightInfo{
+		Height: peer.Lgr.GetCurrentBlockHeight(),
+	}
 	pong := msgpack.NewPongMsg(h)
 	peer.Net.Send(peer.Local.GetID(), from, pong)
 }
@@ -52,7 +54,7 @@ func (peer *MockPeer) handlePongMsg(from uint64, msg types.Message) {
 		return
 	}
 	selfShardId := peer.Lgr.ShardID
-	peer.SetHeight(from, pong.Height[selfShardId.ToUint64()])
+	peer.SetHeight(from, pong.Height[selfShardId.ToUint64()].Height)
 }
 
 func (peer *MockPeer) handleGetHeadersReq(from uint64, msg types.Message) {

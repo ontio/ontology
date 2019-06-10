@@ -64,8 +64,10 @@ func NewPeer(lgr *ledger.Ledger) *MockPeer {
 		MsgChain:      make(chan *MockMsg, 1000),
 	}
 	p.Local.Link = link.NewLink()
-	heights := make(map[uint64]uint32)
-	heights[lgr.ShardID.ToUint64()] = lgr.GetCurrentBlockHeight()
+	heights := make(map[uint64]*types.HeightInfo)
+	heights[lgr.ShardID.ToUint64()] = &types.HeightInfo{
+		Height: lgr.GetCurrentBlockHeight(),
+	}
 	p.Local.UpdateInfo(time.Now(), 1, 1, 20338, rand.Uint64(), 1, heights, "1")
 	return p
 }
@@ -142,8 +144,10 @@ func (peer *MockPeer) SetHeight(id uint64, h uint32) {
 }
 
 func (peer *MockPeer) PingTo(peers []*peer.Peer) {
-	heights := make(map[uint64]uint32)
-	heights[peer.Lgr.ShardID.ToUint64()] = peer.Lgr.GetCurrentBlockHeight()
+	heights := make(map[uint64]*types.HeightInfo)
+	heights[peer.Lgr.ShardID.ToUint64()] = &types.HeightInfo{
+		Height: peer.Lgr.GetCurrentBlockHeight(),
+	}
 
 	pingMsg := msgpack.NewPingMsg(heights)
 	peer.Net.Broadcast(peer.Local.GetID(), pingMsg)

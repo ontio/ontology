@@ -68,7 +68,7 @@ func StartMockerConsensus(t *testing.T, shardID common.ShardID, name string, src
 	return service
 }
 
-func Test_NewConsensusService(t *testing.T) {
+func Test_NewConsensusService_7nodes(t *testing.T) {
 	shardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	events.Init()
 	xshard.InitCrossShardPool(shardID, 100)
@@ -101,4 +101,8 @@ func Test_NewConsensusService(t *testing.T) {
 		}
 		log.Infof("vbft %d, height %d", i, v.GetCurrentBlockNo())
 	}
+}
+
+func Test_MakeProposal(t *testing.T) {
+
 }
