@@ -202,7 +202,7 @@ func chargeShardMgmtFee(native *native.NativeService, feeType shardstates.ShardM
 	// TODO: change to neovm call
 	err = ont.AppCallTransfer(native, feeAddr, from, toAddr, fee.Uint64())
 	if err != nil {
-		return fmt.Errorf("chargeShardMgmtFee: recharge create shard fee failed, err: %s", err)
+		return fmt.Errorf("chargeShardMgmtFee: failed, err: %s", err)
 	}
 	return nil
 }

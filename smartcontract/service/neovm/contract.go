@@ -64,11 +64,11 @@ func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("[InitMetaData] invalid param: %s", err))
 	}
+	newMeta.Contract = service.ContextRef.CurrentContext().ContractAddress
 	if !checkInitMeta(service, newMeta) {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[InitMetaData] meta data should contain owner")
 	}
 	newMeta.OntVersion = common.CURR_TX_VERSION
-	newMeta.Contract = service.ContextRef.CurrentContext().ContractAddress
 	service.CacheDB.PutMetaData(newMeta)
 	vm.PushData(engine, newMeta)
 	return nil
@@ -281,8 +281,10 @@ func getMetaData(engine *vm.ExecutionEngine) (*payload.MetaDataCode, error) {
 	for _, item := range invokedContracts {
 		if addrCode, err := item.GetByteArray(); err != nil {
 			return nil, fmt.Errorf("parse invoked contract failed, err: %s", err)
+		} else if addr, err := common.AddressParseFromBytes(addrCode); err != nil {
+			return nil, fmt.Errorf("parse invoked contract to address failed, err: %s", err)
 		} else {
-			contracts[common.AddressFromVmCode(addrCode)] = true
+			contracts[addr] = true
 		}
 	}
 	meta.InvokedContract = make([]common.Address, 0)

@@ -396,7 +396,7 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 
 	// charge join shard fee
 	if err := chargeShardMgmtFee(native, shardstates.TYPE_CREATE_SHARD_FEE, params.PeerOwner); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("CreateShard: failed, err: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {

@@ -359,9 +359,8 @@ func (this *NeoVmService) checkMetaDataAndCode(isSelfShardContract bool, addr sc
 	} else if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() {
 		// check contract can be invoked at current shard
 		return CONTRACT_CANNOT_RUN_AT_SHARD
-	}
-	// check contract is frozen
-	if meta.IsFrozen {
+	} else if meta.IsFrozen {
+		// check contract is frozen
 		return CONTRACT_FROZEN
 	}
 	return nil
