@@ -20,6 +20,7 @@ package smartcontract
 import (
 	"fmt"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
+	"github.com/ontio/ontology/core/payload"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -207,6 +208,22 @@ func (this *SmartContract) GetRemainGas() uint64 {
 
 func (this *SmartContract) CheckCallShard(fromShard common.ShardID) bool {
 	return this.IsShardCall && this.FromShard.ToUint64() == fromShard.ToUint64()
+}
+
+func (this *SmartContract) GetMetaData(contract common.Address) (*payload.MetaDataCode, bool, error) {
+	meta, err := this.CacheDB.GetMetaData(contract)
+	if err != nil {
+		return nil, true, fmt.Errorf("GetMetaData %s", err)
+	}
+	if meta == nil {
+		meta, err = this.Store.GetContractMetaDataFromParentShard(contract)
+		if err != nil {
+			return nil, false, fmt.Errorf("GetMetaData from parent, err: %s", err)
+		}
+		return meta, false, nil
+	} else {
+		return meta, true, nil
+	}
 }
 
 func (this *SmartContract) checkContractAddress(address common.Address) bool {

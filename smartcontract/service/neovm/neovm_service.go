@@ -25,7 +25,6 @@ import (
 	scommon "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
-	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
@@ -102,6 +101,7 @@ var (
 	CONTRACT_NOT_EXIST           = errors.NewErr("[NeoVmService] Get contract code from db fail")
 	CONTRACT_CANNOT_RUN_AT_SHARD = errors.NewErr("[NeoVmService] Contract cannot run at this shard")
 	CONTRACT_META_UNMATCH        = errors.NewErr("[NeoVmService] Contract and meta data unmatch")
+	CONTRACT_FROZEN              = errors.NewErr("[NeoVmService] Contract is frozen")
 	DEPLOYCODE_TYPE_ERROR        = errors.NewErr("[NeoVmService] DeployCode type error!")
 	VM_EXEC_FAULT                = errors.NewErr("[NeoVmService] vm execute state fault!")
 )
@@ -248,19 +248,8 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			meta, isSelfShardMeta, err := this.getContractMetaData(addr)
-			if err != nil {
+			if err = this.checkMetaDataAndCode(isSelfShardContract, addr); err != nil {
 				return nil, err
-			}
-			if meta == nil {
-				if !isSelfShardContract {
-					return nil, CONTRACT_CANNOT_RUN_AT_SHARD
-				}
-			} else if isSelfShardContract != isSelfShardMeta {
-				return nil, CONTRACT_META_UNMATCH
-			} else if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() {
-				// check contract can be invoked at current shard
-				return nil, CONTRACT_CANNOT_RUN_AT_SHARD
 			}
 			service, err := this.ContextRef.NewExecuteEngine(code)
 			if err != nil {
@@ -356,21 +345,26 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, er
 	}
 }
 
-// return contract meta data
-func (this *NeoVmService) getContractMetaData(address scommon.Address) (*payload.MetaDataCode, bool, error) {
-	meta, err := this.CacheDB.GetMetaData(address)
+func (this *NeoVmService) checkMetaDataAndCode(isSelfShardContract bool, addr scommon.Address) error {
+	meta, isSelfShardMeta, err := this.ContextRef.GetMetaData(addr)
 	if err != nil {
-		return nil, true, fmt.Errorf("[getContractMetaData] %s", err)
+		return err
 	}
 	if meta == nil {
-		meta, err = this.Store.GetContractMetaDataFromParentShard(address)
-		if err != nil {
-			return nil, false, fmt.Errorf("[getContractMetaData] from parent, err: %s", err)
+		if !isSelfShardContract {
+			return CONTRACT_CANNOT_RUN_AT_SHARD
 		}
-		return meta, false, nil
-	} else {
-		return meta, true, nil
+	} else if isSelfShardContract != isSelfShardMeta {
+		return CONTRACT_META_UNMATCH
+	} else if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() {
+		// check contract can be invoked at current shard
+		return CONTRACT_CANNOT_RUN_AT_SHARD
 	}
+	// check contract is frozen
+	if meta.IsFrozen {
+		return CONTRACT_FROZEN
+	}
+	return nil
 }
 
 func checkStackSize(engine *vm.ExecutionEngine) bool {

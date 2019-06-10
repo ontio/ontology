@@ -1,0 +1,159 @@
+/*
+ * Copyright (C) 2018 The ontology Authors
+ * This file is part of The ontology library.
+ *
+ * The ontology is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The ontology is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package ledgerstore
+
+import (
+	"bytes"
+	"fmt"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/store"
+	"github.com/ontio/ontology/core/types"
+	cutils "github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/smartcontract/service/native"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/storage"
+	"math"
+)
+
+func lockKey(lockedKeys map[string]struct{}, key []byte) {
+	if shouldLock(key) {
+		lockedKeys[string(key)] = struct{}{}
+	}
+}
+
+func shouldLock(key []byte) bool {
+	keyLen := len(key)
+	// key contains storage prefix
+	if keyLen < common.ADDR_LEN+1 {
+		return false
+	}
+	cmpKey := key[1 : common.ADDR_LEN+1]
+	if bytes.Equal(cmpKey, utils.ShardAssetAddress[:]) || bytes.Equal(cmpKey, utils.OngContractAddress[:]) ||
+		bytes.Equal(cmpKey, utils.ShardMgmtContractAddress[:]) {
+		return true
+	}
+	return false
+}
+
+func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
+	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
+}
+
+func buildTx(originalPayer, contract common.Address, method string, args []interface{}, shardId, gasLimit uint64,
+	nonce uint32) (*types.Transaction, error) {
+	invokeCode := []byte{}
+	var err error = nil
+	if _, ok := native.Contracts[contract]; ok {
+		invokeCode, err = cutils.BuildNativeInvokeCode(contract, 0, method, args)
+	} else {
+		invokeCode, err = cutils.BuildNeoVMInvokeCode(contract, []interface{}{method, args})
+	}
+	if err != nil {
+		return nil, fmt.Errorf("buildTx: build invoke failed, err: %s", err)
+	}
+	invokePayload := &payload.InvokeCode{
+		Code: invokeCode,
+	}
+	mutable := &types.MutableTransaction{
+		Version:  common.CURR_TX_VERSION,
+		GasPrice: neovm.GAS_PRICE,
+		ShardID:  shardId,
+		GasLimit: gasLimit,
+		TxType:   types.Invoke,
+		Nonce:    nonce,
+		Payer:    originalPayer,
+		Payload:  invokePayload,
+		Sigs:     make([]types.Sig, 0, 0),
+	}
+	tx, err := mutable.IntoImmutable()
+	if err != nil {
+		return nil, fmt.Errorf("buildTx: build tx failed, err: %s", err)
+	}
+	tx.SignedAddr = append(tx.SignedAddr, originalPayer)
+	return tx, nil
+}
+
+func genNativeTransferCode(from, to common.Address, value uint64) []byte {
+	transfer := ont.Transfers{States: []ont.State{{From: from, To: to, Value: value}}}
+	return common.SerializeToBytes(&transfer)
+}
+
+// check whether payer ong balance sufficient
+func isBalanceSufficient(payer common.Address, cache *storage.CacheDB, config *smartcontract.Config, store store.LedgerStore, gas uint64) (uint64, error) {
+	balance, err := getBalanceFromNative(config, cache, store, payer)
+	if err != nil {
+		return 0, err
+	}
+	if balance < gas {
+		return 0, fmt.Errorf("payer gas insufficient, need %d , only have %d", gas, balance)
+	}
+	return balance, nil
+}
+
+func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, store store.LedgerStore, address common.Address) (uint64, error) {
+	bf := new(bytes.Buffer)
+	if err := utils.WriteAddress(bf, address); err != nil {
+		return 0, err
+	}
+	sc := smartcontract.SmartContract{
+		Config:  config,
+		CacheDB: cache,
+		Store:   store,
+		Gas:     math.MaxUint64,
+	}
+
+	service, _ := sc.NewNativeService()
+	result, err := service.NativeCall(utils.OngContractAddress, ont.BALANCEOF_NAME, bf.Bytes())
+	if err != nil {
+		return 0, err
+	}
+	return common.BigIntFromNeoBytes(result.([]byte)).Uint64(), nil
+}
+
+// check invoked contract of meta data
+func checkInvokedContract(invokedContract []common.Address, cache *storage.CacheDB) ([]common.Address, error) {
+	nestedContract := make(map[common.Address]bool)
+	for _, invokedAddr := range invokedContract {
+		invokedMeta, err := cache.GetMetaData(invokedAddr)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get contract %s meta data", invokedAddr.ToHexString())
+		}
+		if invokedMeta == nil {
+			return nil, fmt.Errorf("contract %s meta data is empty", invokedAddr.ToHexString())
+		}
+		if !invokedMeta.AllShard {
+			return nil, fmt.Errorf("contract %s doesn't support cross shard invoke", invokedAddr.ToHexString())
+		}
+		for _, nestedAddr := range invokedMeta.InvokedContract {
+			nestedContract[nestedAddr] = true
+		}
+	}
+	for _, invokedAddr := range invokedContract {
+		if _, ok := nestedContract[invokedAddr]; ok {
+			return nil, fmt.Errorf("unsupport recursive cross shard invoked")
+		}
+	}
+	for addr := range nestedContract {
+		invokedContract = append(invokedContract, addr)
+	}
+	return invokedContract, nil
+}

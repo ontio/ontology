@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -113,6 +114,10 @@ func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.A
 	if ctx.ContextRef.IsPreExec() {
 		return
 	}
+	if err := ctx.checkMetaData(cont); err != nil {
+		log.Errorf("NotifyRemoteShard: failed, err: %s", err)
+		return
+	}
 	txState := ctx.ShardTxState
 	// send with minimal gas fee
 	msg := &xshard_types.XShardNotify{
@@ -139,6 +144,9 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 	method string, args []byte) ([]byte, error) {
 	if ctx.ContextRef.IsPreExec() {
 		return BYTE_TRUE, nil
+	}
+	if err := ctx.checkMetaData(cont); err != nil {
+		return BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: failed, err: %s", err)
 	}
 	txState := ctx.ShardTxState
 	reqIdx := txState.NextReqID
@@ -198,4 +206,30 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 	txState.ExecState = xshard_state.ExecYielded
 
 	return BYTE_FALSE, xshard_state.ErrYield
+}
+
+func (ctx *NativeService) checkMetaData(destContract common.Address) error {
+	if _, ok := Contracts[destContract]; !ok {
+		caller := ctx.ContextRef.CallingContext().ContractAddress
+		meta, _, err := ctx.ContextRef.GetMetaData(caller)
+		if err != nil {
+			return fmt.Errorf("checkMetaData: cannot get %s meta", caller.ToHexString())
+
+		}
+		if meta == nil {
+			return fmt.Errorf("checkMetaData: self %s doesn't initialized meta", caller.ToHexString())
+		}
+		canInvoke := false
+		for _, addr := range meta.InvokedContract {
+			if addr == destContract {
+				canInvoke = true
+				break
+			}
+		}
+		if !canInvoke {
+			return fmt.Errorf("checkMetaData: contract %s unregister to self %s meta",
+				destContract.ToHexString(), caller.ToHexString())
+		}
+	}
+	return nil
 }

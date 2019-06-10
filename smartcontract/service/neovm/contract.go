@@ -272,6 +272,22 @@ func getMetaData(engine *vm.ExecutionEngine) (*payload.MetaDataCode, error) {
 		return nil, fmt.Errorf("read shardId failed, err: %s", err)
 	}
 	meta.ShardId = shardId.Uint64()
+	invokedContracts, err := vm.PopArray(engine)
+	if err != nil {
+		return nil, fmt.Errorf("read invoked contracts failed, err: %s", err)
+	}
+	contracts := make(map[common.Address]bool)
+	for _, item := range invokedContracts {
+		if addrCode, err := item.GetByteArray(); err != nil {
+			return nil, fmt.Errorf("parse invoked contract failed, err: %s", err)
+		} else {
+			contracts[common.AddressFromVmCode(addrCode)] = true
+		}
+	}
+	meta.InvokedContract = make([]common.Address, 0)
+	for addr := range contracts {
+		meta.InvokedContract = append(meta.InvokedContract, addr)
+	}
 	return meta, nil
 }
 
