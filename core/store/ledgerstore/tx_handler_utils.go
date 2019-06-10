@@ -128,32 +128,3 @@ func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, 
 	}
 	return common.BigIntFromNeoBytes(result.([]byte)).Uint64(), nil
 }
-
-// check invoked contract of meta data
-func checkInvokedContract(invokedContract []common.Address, cache *storage.CacheDB) ([]common.Address, error) {
-	nestedContract := make(map[common.Address]bool)
-	for _, invokedAddr := range invokedContract {
-		invokedMeta, err := cache.GetMetaData(invokedAddr)
-		if err != nil {
-			return nil, fmt.Errorf("cannot get contract %s meta data", invokedAddr.ToHexString())
-		}
-		if invokedMeta == nil {
-			return nil, fmt.Errorf("contract %s meta data is empty", invokedAddr.ToHexString())
-		}
-		if !invokedMeta.AllShard {
-			return nil, fmt.Errorf("contract %s doesn't support cross shard invoke", invokedAddr.ToHexString())
-		}
-		for _, nestedAddr := range invokedMeta.InvokedContract {
-			nestedContract[nestedAddr] = true
-		}
-	}
-	for _, invokedAddr := range invokedContract {
-		if _, ok := nestedContract[invokedAddr]; ok {
-			return nil, fmt.Errorf("unsupport recursive cross shard invoked")
-		}
-	}
-	for addr := range nestedContract {
-		invokedContract = append(invokedContract, addr)
-	}
-	return invokedContract, nil
-}

@@ -23,6 +23,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
@@ -302,7 +303,52 @@ func checkInitMeta(service *NeoVmService, meta *payload.MetaDataCode) bool {
 	if !service.ShardID.IsRootShard() {
 		return service.ShardID.ToUint64() == meta.ShardId
 	}
+
+	if err := CheckInvokedContract(meta, service.CacheDB); err != nil {
+		return false
+	}
 	return true
+}
+
+// only need check one level, because every contract call this function while change meta data
+func CheckInvokedContract(meta *payload.MetaDataCode, cache *storage.CacheDB) error {
+	invokedContracts, err := fetchInvokedTreeNode(meta, cache)
+	if err != nil {
+		return err
+	}
+	if _, ok := invokedContracts[meta.Contract]; ok {
+		return fmt.Errorf("unsupport recursive x-shard invoke")
+	}
+	return nil
+}
+
+func fetchInvokedTreeNode(meta *payload.MetaDataCode, cache *storage.CacheDB) (map[common.Address]bool, error) {
+	results := make(map[common.Address]bool)
+	// fetch child
+	for _, invokedAddr := range meta.InvokedContract {
+		if invokedAddr == meta.Contract {
+			continue
+		}
+		invokedMeta, err := cache.GetMetaData(invokedAddr)
+		if err != nil {
+			return nil, fmt.Errorf("cannot get contract %s meta data", invokedAddr.ToHexString())
+		}
+		if invokedMeta == nil {
+			return nil, fmt.Errorf("contract %s meta data is empty", invokedAddr.ToHexString())
+		}
+		if !invokedMeta.AllShard {
+			return nil, fmt.Errorf("contract %s doesn't support cross shard invoke", invokedAddr.ToHexString())
+		}
+		results[invokedAddr] = true
+		if childContract, err := fetchInvokedTreeNode(invokedMeta, cache); err != nil {
+			return nil, err
+		} else {
+			for addr := range childContract {
+				results[addr] = true
+			}
+		}
+	}
+	return results, nil
 }
 
 func isContractExist(service *NeoVmService, contractAddress common.Address) error {
