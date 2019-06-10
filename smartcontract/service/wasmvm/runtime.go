@@ -161,18 +161,23 @@ func Notify(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	var notify *event.NotifyEventInfo
-	nj := new(NotifyJson)
-	err = json.Unmarshal(bs, nj)
-	if err != nil {
-		notify = &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, string(bs)}
-	} else {
-		notify = &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, nj.States}
-	}
+	notify := ParseEventInfo(self.Service.ContextRef.CurrentContext().ContractAddress, bs)
 
 	notifys := make([]*event.NotifyEventInfo, 1)
 	notifys[0] = notify
 	self.Service.ContextRef.PushNotifications(notifys)
+}
+
+func ParseEventInfo(contractAddress common.Address, rawbytes []byte) *event.NotifyEventInfo {
+	var notify *event.NotifyEventInfo
+	nj := new(NotifyJson)
+	err := json.Unmarshal(rawbytes, nj)
+	if err != nil {
+		notify = &event.NotifyEventInfo{contractAddress, string(rawbytes)}
+	} else {
+		notify = &event.NotifyEventInfo{contractAddress, nj.States}
+	}
+	return notify
 }
 
 func InputLength(proc *exec.Process) uint32 {
