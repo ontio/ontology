@@ -31,6 +31,9 @@ type MetaDataCode struct {
 	AllShard   bool
 	IsFrozen   bool
 	ShardId    uint64
+
+	// all contract that can be invoked by self, include nested invoke
+	InvokedContract []common.Address
 }
 
 func NewDefaultMetaData() *MetaDataCode {
@@ -41,6 +44,8 @@ func NewDefaultMetaData() *MetaDataCode {
 		AllShard:   false,
 		IsFrozen:   false,
 		ShardId:    0,
+
+		InvokedContract: make([]common.Address, 0),
 	}
 }
 
@@ -51,6 +56,10 @@ func (this *MetaDataCode) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteBool(this.AllShard)
 	sink.WriteBool(this.IsFrozen)
 	sink.WriteUint64(this.ShardId)
+	sink.WriteUint64(uint64(len(this.InvokedContract)))
+	for _, addr := range this.InvokedContract {
+		sink.WriteAddress(addr)
+	}
 }
 
 func (this *MetaDataCode) Deserialization(source *common.ZeroCopySource) error {
@@ -80,6 +89,18 @@ func (this *MetaDataCode) Deserialization(source *common.ZeroCopySource) error {
 	this.ShardId, eof = source.NextUint64()
 	if eof {
 		return io.ErrUnexpectedEOF
+	}
+	addrNum, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	this.InvokedContract = make([]common.Address, 0)
+	for i := uint64(0); i < addrNum; i++ {
+		addr, eof := source.NextAddress()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.InvokedContract = append(this.InvokedContract, addr)
 	}
 	return nil
 }

@@ -20,6 +20,7 @@ package context
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
@@ -43,6 +44,7 @@ type ContextRef interface {
 	IsPreExec() bool
 	GetRemainGas() uint64
 	CheckCallShard(fromShard common.ShardID) bool
+	GetMetaData(contract common.Address) (*payload.MetaDataCode, bool, error)
 }
 
 type Engine interface {

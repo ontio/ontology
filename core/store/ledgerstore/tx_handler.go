@@ -34,15 +34,12 @@ import (
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
-	cutils "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
@@ -178,10 +175,13 @@ func HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb
 	if !checkWitness {
 		return fmt.Errorf("tx cannot have owner signature")
 	}
-	// can only change the owner and active or freeze contract
+	// can only change the owner and active or freeze contract, and invoked contract
 	// cannot change shard info
 	meta.Owner = newMeta.Owner
 	meta.IsFrozen = newMeta.IsFrozen
+	if err = neovm.CheckInvokedContract(newMeta, cache); err != nil {
+		return fmt.Errorf("checkInvokedContract err %s", err)
+	}
 	cache.PutMetaData(meta)
 	gasConsumed := uint64(0)
 	if tx.GasPrice > 0 {
@@ -1138,23 +1138,6 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	return result, nil
 }
 
-func genNativeTransferCode(from, to common.Address, value uint64) []byte {
-	transfer := ont.Transfers{States: []ont.State{{From: from, To: to, Value: value}}}
-	return common.SerializeToBytes(&transfer)
-}
-
-// check whether payer ong balance sufficient
-func isBalanceSufficient(payer common.Address, cache *storage.CacheDB, config *smartcontract.Config, store store.LedgerStore, gas uint64) (uint64, error) {
-	balance, err := getBalanceFromNative(config, cache, store, payer)
-	if err != nil {
-		return 0, err
-	}
-	if balance < gas {
-		return 0, fmt.Errorf("payer gas insufficient, need %d , only have %d", gas, balance)
-	}
-	return balance, nil
-}
-
 func chargeCostGas(payer common.Address, gas uint64, config *smartcontract.Config,
 	cache *storage.CacheDB, store store.LedgerStore, shardID common.ShardID) ([]*event.NotifyEventInfo, error) {
 	contractAddr := utils.GovernanceContractAddress
@@ -1224,26 +1207,6 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, st
 	return nil
 }
 
-func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, store store.LedgerStore, address common.Address) (uint64, error) {
-	bf := new(bytes.Buffer)
-	if err := utils.WriteAddress(bf, address); err != nil {
-		return 0, err
-	}
-	sc := smartcontract.SmartContract{
-		Config:  config,
-		CacheDB: cache,
-		Store:   store,
-		Gas:     math.MaxUint64,
-	}
-
-	service, _ := sc.NewNativeService()
-	result, err := service.NativeCall(utils.OngContractAddress, ont.BALANCEOF_NAME, bf.Bytes())
-	if err != nil {
-		return 0, err
-	}
-	return common.BigIntFromNeoBytes(result.([]byte)).Uint64(), nil
-}
-
 func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Config, cache *storage.CacheDB,
 	store store.LedgerStore, notify *event.ExecuteNotify, shardID common.ShardID) error {
 	cache.Reset()
@@ -1254,44 +1217,6 @@ func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Co
 	notify.GasConsumed = gas
 	notify.Notify = append(notify.Notify, notifies...)
 	return nil
-}
-
-func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
-	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
-}
-
-func buildTx(originalPayer, contract common.Address, method string, args []interface{}, shardId, gasLimit uint64,
-	nonce uint32) (*types.Transaction, error) {
-	invokeCode := []byte{}
-	var err error = nil
-	if _, ok := native.Contracts[contract]; ok {
-		invokeCode, err = cutils.BuildNativeInvokeCode(contract, 0, method, args)
-	} else {
-		invokeCode, err = cutils.BuildNeoVMInvokeCode(contract, []interface{}{method, args})
-	}
-	if err != nil {
-		return nil, fmt.Errorf("buildTx: build invoke failed, err: %s", err)
-	}
-	invokePayload := &payload.InvokeCode{
-		Code: invokeCode,
-	}
-	mutable := &types.MutableTransaction{
-		Version:  common.CURR_TX_VERSION,
-		GasPrice: neovm.GAS_PRICE,
-		ShardID:  shardId,
-		GasLimit: gasLimit,
-		TxType:   types.Invoke,
-		Nonce:    nonce,
-		Payer:    originalPayer,
-		Payload:  invokePayload,
-		Sigs:     make([]types.Sig, 0, 0),
-	}
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		return nil, fmt.Errorf("buildTx: build tx failed, err: %s", err)
-	}
-	tx.SignedAddr = append(tx.SignedAddr, originalPayer)
-	return tx, nil
 }
 
 func recordXShardHandlingFee(selfShard common.ShardID, txState *xshard_state.TxState,
@@ -1308,24 +1233,4 @@ func recordXShardHandlingFee(selfShard common.ShardID, txState *xshard_state.TxS
 			log.Debugf("handle shard resp, record xshard fee tx error: %s", err)
 		}
 	}
-}
-
-func lockKey(lockedKeys map[string]struct{}, key []byte) {
-	if shouldLock(key) {
-		lockedKeys[string(key)] = struct{}{}
-	}
-}
-
-func shouldLock(key []byte) bool {
-	keyLen := len(key)
-	// key contains storage prefix
-	if keyLen < common.ADDR_LEN+1 {
-		return false
-	}
-	cmpKey := key[1 : common.ADDR_LEN+1]
-	if bytes.Equal(cmpKey, utils.ShardAssetAddress[:]) || bytes.Equal(cmpKey, utils.OngContractAddress[:]) ||
-		bytes.Equal(cmpKey, utils.ShardMgmtContractAddress[:]) {
-		return true
-	}
-	return false
 }
