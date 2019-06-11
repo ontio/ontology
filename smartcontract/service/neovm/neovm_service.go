@@ -351,7 +351,7 @@ func (this *NeoVmService) checkMetaDataAndCode(isSelfShardContract bool, addr sc
 		return err
 	}
 	if meta == nil {
-		if !isSelfShardContract {
+		if !isSelfShardContract || this.Tx.TxType == types.ShardCall {
 			return CONTRACT_CANNOT_RUN_AT_SHARD
 		}
 	} else if isSelfShardContract != isSelfShardMeta {
