@@ -604,45 +604,6 @@ func CheckArraySize(count int) bool {
 	return true
 }
 
-func CheckStackSize(items []types.StackItems) bool {
-	var i int
-	for _, v := range items {
-		i++
-		if i > STACK_LIMIT {
-			return false
-		}
-		if ok := checkStackSize(v, &i); !ok {
-			return false
-		}
-	}
-	return true
-}
-
-func checkStackSize(s types.StackItems, length *int) bool {
-	if *length > STACK_LIMIT {
-		return false
-	}
-	switch s.(type) {
-	case *types.Struct, *types.Array:
-		arr, _ := s.GetArray()
-		for _, v := range arr {
-			*length++
-			if !checkStackSize(v, length) {
-				return false
-			}
-		}
-	case *types.Map:
-		m, _ := s.GetMap()
-		for _, v := range m {
-			*length++
-			if !checkStackSize(v, length) {
-				return false
-			}
-		}
-	}
-	return true
-}
-
 func validatorRemove(e *ExecutionEngine) error {
 	if err := LogStackTrace(e, 2, "[validatorRemove]"); err != nil {
 		return err
