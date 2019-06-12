@@ -100,6 +100,7 @@ var (
 	VM_EXEC_STEP_EXCEED          = errors.NewErr("[NeoVmService] vm execute step exceed!")
 	CONTRACT_NOT_EXIST           = errors.NewErr("[NeoVmService] Get contract code from db fail")
 	CONTRACT_CANNOT_RUN_AT_SHARD = errors.NewErr("[NeoVmService] Contract cannot run at this shard")
+	META_NOT_EXIST               = errors.NewErr("[NeoVmService] Meta not eixst")
 	CONTRACT_META_UNMATCH        = errors.NewErr("[NeoVmService] Contract and meta data unmatch")
 	CONTRACT_FROZEN              = errors.NewErr("[NeoVmService] Contract is frozen")
 	DEPLOYCODE_TYPE_ERROR        = errors.NewErr("[NeoVmService] DeployCode type error!")
@@ -350,18 +351,22 @@ func (this *NeoVmService) checkMetaDataAndCode(isSelfShardContract bool, addr sc
 	if err != nil {
 		return err
 	}
-	if meta == nil {
-		if !isSelfShardContract || this.Tx.TxType == types.ShardCall {
-			return CONTRACT_CANNOT_RUN_AT_SHARD
-		}
-	} else if isSelfShardContract != isSelfShardMeta {
+	if isSelfShardMeta != isSelfShardContract {
 		return CONTRACT_META_UNMATCH
-	} else if !meta.AllShard && meta.ShardId != this.ShardID.ToUint64() {
-		// check contract can be invoked at current shard
-		return CONTRACT_CANNOT_RUN_AT_SHARD
-	} else if meta.IsFrozen {
+	}
+	if isSelfShardContract {
 		// check contract is frozen
-		return CONTRACT_FROZEN
+		if meta != nil && meta.IsFrozen {
+			return CONTRACT_FROZEN
+		}
+	} else {
+		if meta == nil {
+			return META_NOT_EXIST
+		} else if !meta.AllShard {
+			return CONTRACT_CANNOT_RUN_AT_SHARD
+		} else if meta.IsFrozen {
+			return CONTRACT_FROZEN
+		}
 	}
 	return nil
 }

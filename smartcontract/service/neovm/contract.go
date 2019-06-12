@@ -268,11 +268,6 @@ func getMetaData(engine *vm.ExecutionEngine) (*payload.MetaDataCode, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read isFrozen failed, err: %s", err)
 	}
-	shardId, err := vm.PopBigInt(engine)
-	if err != nil {
-		return nil, fmt.Errorf("read shardId failed, err: %s", err)
-	}
-	meta.ShardId = shardId.Uint64()
 	invokedContracts, err := vm.PopArray(engine)
 	if err != nil {
 		return nil, fmt.Errorf("read invoked contracts failed, err: %s", err)
@@ -295,15 +290,8 @@ func getMetaData(engine *vm.ExecutionEngine) (*payload.MetaDataCode, error) {
 }
 
 func checkInitMeta(service *NeoVmService, meta *payload.MetaDataCode) bool {
-	if meta.Owner == common.ADDRESS_EMPTY {
+	if !service.ContextRef.CheckWitness(meta.Owner) {
 		return false
-	}
-	if _, err := common.NewShardID(meta.ShardId); err != nil {
-		return false
-	}
-	// shard contract can only run at self shard while init meta
-	if !service.ShardID.IsRootShard() {
-		return service.ShardID.ToUint64() == meta.ShardId
 	}
 
 	if err := CheckInvokedContract(meta, service.CacheDB); err != nil {
@@ -312,8 +300,13 @@ func checkInitMeta(service *NeoVmService, meta *payload.MetaDataCode) bool {
 	return true
 }
 
-// only need check one level, because every contract call this function while change meta data
 func CheckInvokedContract(meta *payload.MetaDataCode, cache *storage.CacheDB) error {
+	if !meta.AllShard && len(meta.InvokedContract) > 0 {
+		return fmt.Errorf("single shard contract cannot x-shard invoke other contract")
+	}
+	if len(meta.InvokedContract) == 0 {
+		return nil
+	}
 	invokedContracts, err := fetchInvokedTreeNode(meta, cache)
 	if err != nil {
 		return err
