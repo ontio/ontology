@@ -1157,6 +1157,10 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
+	//todo
+	if self.ledger.GetParentHeight() != msg.Block.Block.Header.ParentHeight {
+
+	}
 	if !self.verifyShardEventMsg(msg) {
 		return
 	}

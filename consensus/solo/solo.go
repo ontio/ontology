@@ -300,7 +300,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	parentHeight := self.ledger.GetParentHeight() + 1
 
 	// get Cross-Shard Txs from chain-mgr
-	shardTxs, err := xshard.GetCrossShardTxs(self.Account, self.shardID)
+	shardTxs, err := xshard.GetCrossShardTxs(self.ledger, self.Account, self.shardID)
 	if err != nil {
 		log.Errorf("GetCrossShardTxs err:%s", err)
 	}

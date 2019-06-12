@@ -41,7 +41,7 @@ type PeerCom struct {
 	relay        bool
 	httpInfoPort uint16
 	port         uint16
-	height       map[uint64]uint32
+	height       map[uint64]*types.HeightInfo
 	softVersion  string
 	shardID      comm.ShardID // Note: available on local-peer, TODO: update version message
 }
@@ -115,12 +115,12 @@ func (this *PeerCom) GetHttpInfoPort() uint16 {
 }
 
 // SetHeight sets a peer's height
-func (this *PeerCom) SetHeight(height map[uint64]uint32) {
+func (this *PeerCom) SetHeight(height map[uint64]*types.HeightInfo) {
 	this.height = height
 }
 
 // GetHeight returns a peer's height
-func (this *PeerCom) GetHeight() map[uint64]uint32 {
+func (this *PeerCom) GetHeight() map[uint64]*types.HeightInfo {
 	return this.height
 }
 
@@ -181,12 +181,12 @@ func (this *Peer) GetVersion() uint32 {
 }
 
 //GetHeight return peer`s block height
-func (this *Peer) GetHeight() map[uint64]uint32 {
+func (this *Peer) GetHeight() map[uint64]*types.HeightInfo {
 	return this.base.GetHeight()
 }
 
 //SetHeight set height to peer
-func (this *Peer) SetHeight(height map[uint64]uint32) {
+func (this *Peer) SetHeight(height map[uint64]*types.HeightInfo) {
 	this.base.SetHeight(height)
 }
 
@@ -314,7 +314,7 @@ func (this *Peer) SetHttpInfoPort(port uint16) {
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, nonce uint64, relay uint8, height map[uint64]uint32, softVer string) {
+	syncPort uint16, nonce uint64, relay uint8, height map[uint64]*types.HeightInfo, softVer string) {
 
 	this.Link.UpdateRXTime(t)
 	this.base.SetID(nonce)

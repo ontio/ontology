@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
@@ -351,10 +352,21 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	var msg msgTypes.Message
 	if s == msgCommon.INIT {
 		remotePeer.SetState(msgCommon.HAND_SHAKE)
-		heights := make(map[uint64]uint32)
+		heights := make(map[uint64]*msgTypes.HeightInfo)
 		lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 		if lgr != nil {
-			heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+			heightInfo := &msgTypes.HeightInfo{
+				Height: lgr.GetCurrentBlockHeight(),
+			}
+			msgHash, err := lgr.GetCrossShardHash(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+			if err != nil {
+				if err != com.ErrNotFound {
+					heightInfo.MsgHash = msgHash
+				}
+			} else {
+				heightInfo.MsgHash = msgHash
+			}
+			heights[config.DEFAULT_SHARD_ID] = heightInfo
 		}
 		msg = msgpack.NewVersion(p2p, heights)
 	} else if s == msgCommon.HAND {

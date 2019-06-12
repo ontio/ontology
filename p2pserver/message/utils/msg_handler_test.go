@@ -253,8 +253,12 @@ func TestPingHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	heights := make(map[uint64]uint32)
-	heights[0] = uint32(12345)
+	heights := make(map[uint64]*types.HeightInfo)
+	pingInfo := &types.HeightInfo{
+		Height:  uint32(12345),
+		MsgHash: common.Uint256{1, 2, 3},
+	}
+	heights[0] = pingInfo
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")

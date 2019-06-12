@@ -20,16 +20,18 @@ package netserver
 
 import (
 	"errors"
-	common2 "github.com/ontio/ontology/common"
 	"math/rand"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
+	common2 "github.com/ontio/ontology/common"
+
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -135,12 +137,12 @@ func (this *NetServer) GetID() uint64 {
 }
 
 // SetHeight sets the local's height
-func (this *NetServer) SetHeight(height map[uint64]uint32) {
+func (this *NetServer) SetHeight(height map[uint64]*types.HeightInfo) {
 	this.base.SetHeight(height)
 }
 
 // GetHeight return peer's heigh
-func (this *NetServer) GetHeight() map[uint64]uint32 {
+func (this *NetServer) GetHeight() map[uint64]*types.HeightInfo {
 	return this.base.GetHeight()
 }
 
@@ -311,10 +313,21 @@ func (this *NetServer) Connect(addr string) error {
 	go remotePeer.Link.Rx()
 	remotePeer.SetState(common.HAND)
 
-	heights := make(map[uint64]uint32)
+	heights := make(map[uint64]*types.HeightInfo)
 	lgr := ledger.GetShardLedger(common2.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 	if lgr != nil {
-		heights[config.DEFAULT_SHARD_ID] = lgr.GetCurrentBlockHeight()
+		heightInfo := &types.HeightInfo{
+			Height: lgr.GetCurrentBlockHeight(),
+		}
+		msgHash, err := lgr.GetCrossShardHash(common2.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+		if err != nil {
+			if err != com.ErrNotFound {
+				heightInfo.MsgHash = msgHash
+			}
+		} else {
+			heightInfo.MsgHash = msgHash
+		}
+		heights[config.DEFAULT_SHARD_ID] = heightInfo
 	}
 	version := msgpack.NewVersion(this, heights)
 	err = remotePeer.Send(version)

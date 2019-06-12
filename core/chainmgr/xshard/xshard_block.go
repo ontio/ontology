@@ -66,7 +66,7 @@ func InitShardInfo(lgr *ledger.Ledger) error {
 	}
 	for _, shardId := range shardIds {
 		pool.ShardInfo[shardId] = true
-		msgHash, err := GetCrossShardHashByShardID(shardId)
+		msgHash, err := GetCrossShardHashByShardID(lgr, shardId)
 		if err != nil {
 			if err != com.ErrNotFound {
 				return fmt.Errorf("InitShardInfo GetCrossShardHashByShardID shardID:%v,err:%s", shardId, err)
@@ -101,10 +101,8 @@ func InitShardInfo(lgr *ledger.Ledger) error {
 	return nil
 }
 
-func AddShardInfo(shardID common.ShardID) {
+func AddShardInfo(lgr *ledger.Ledger, shardID common.ShardID) {
 	pool := crossShardPool
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
 	if _, present := pool.ShardInfo[shardID]; present {
 		return
 	}
@@ -114,7 +112,7 @@ func AddShardInfo(shardID common.ShardID) {
 	for shardId, _ := range pool.ShardInfo {
 		shardIds = append(shardIds, shardId)
 	}
-	err := ledger.DefLedger.SaveAllShardIDs(shardIds)
+	err := lgr.SaveAllShardIDs(shardIds)
 	if err != nil {
 		log.Errorf("SaveAllShardIDs shardId:%v,err:%s", shardID, err)
 		return
@@ -123,25 +121,22 @@ func AddShardInfo(shardID common.ShardID) {
 
 func GetShardInfo() map[common.ShardID]bool {
 	pool := crossShardPool
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
 	return pool.ShardInfo
 }
 
-func GetCrossShardHashByShardID(shardID common.ShardID) (common.Uint256, error) {
+func GetCrossShardHashByShardID(lgr *ledger.Ledger, shardID common.ShardID) (common.Uint256, error) {
 	pool := crossShardPool
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
-	return ledger.DefLedger.GetCrossShardHash(shardID)
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return lgr.GetCrossShardHash(shardID)
 }
 func SaveCrossShardHash(shardID common.ShardID, msgHash common.Uint256) error {
-	pool := crossShardPool
-	pool.lock.Lock()
-	defer pool.lock.Unlock()
 	return ledger.DefLedger.SaveCrossShardHash(shardID, msgHash)
 }
 
-func AddCrossShardInfo(ledger *ledger.Ledger, crossShardMsg *types.CrossShardMsg) error {
+func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) error {
 	pool := crossShardPool
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -158,11 +153,11 @@ func AddCrossShardInfo(ledger *ledger.Ledger, crossShardMsg *types.CrossShardMsg
 		return nil
 	}
 	m[crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash] = crossShardMsg
-	err := ledger.SaveCrossShardMsgByHash(crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
+	err := lgr.SaveCrossShardMsgByHash(crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
 	if err != nil {
 		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,msgHash:%s,err:%s", crossShardMsg.CrossShardMsgInfo.FromShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), err)
 	}
-	AddShardInfo(crossShardMsg.CrossShardMsgInfo.FromShardID)
+	AddShardInfo(lgr, crossShardMsg.CrossShardMsgInfo.FromShardID)
 	log.Infof("chainmgr AddBlock from shard %d,msgHash:%v, block height %d", fromShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), crossShardMsg.CrossShardMsgInfo.MsgHeight)
 	return nil
 }
@@ -174,7 +169,7 @@ func AddCrossShardInfo(ledger *ledger.Ledger, crossShardMsg *types.CrossShardMsg
 // NOTE: all cross-shard tx/events should be indexed with (parentHeight, shardHeight)
 //
 
-func GetCrossShardTxs(account *account.Account, FromShardID common.ShardID) (map[uint64][]*types.CrossShardTxInfos, error) {
+func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID common.ShardID) (map[uint64][]*types.CrossShardTxInfos, error) {
 	pool := crossShardPool
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
@@ -186,17 +181,19 @@ func GetCrossShardTxs(account *account.Account, FromShardID common.ShardID) (map
 			log.Errorf("shardID new shardID:%d,err:%s", shardID, err)
 			continue
 		}
-		msgHash, err := GetCrossShardHashByShardID(common.NewShardIDUnchecked(shardID))
+		msgHash, err := GetCrossShardHashByShardID(lgr, common.NewShardIDUnchecked(shardID))
 		if err != nil {
 			if err != com.ErrNotFound {
 				log.Errorf("GetCrossShardHashByShardID shardID:%v,err:%s", shardID, err)
 				continue
+			} else {
+				log.Infof("not found")
 			}
 		}
 		crossShardMsgs := make([]*types.CrossShardMsg, 0)
 		for {
 			if shardMsg, persent := shardMsgs[msgHash]; !persent {
-				msg, err := ledger.DefLedger.GetCrossShardMsgByHash(msgHash)
+				msg, err := lgr.GetCrossShardMsgByHash(msgHash)
 				if err != nil {
 					if err != com.ErrNotFound {
 						break
@@ -204,7 +201,9 @@ func GetCrossShardTxs(account *account.Account, FromShardID common.ShardID) (map
 						return nil, fmt.Errorf("GetCrossShardMsgByHash msgHash:%s,err:%v", msgHash, err)
 					}
 				} else {
-					shardMsg = msg
+					crossShardMsgs = append(crossShardMsgs, msg)
+					msgHash = msg.CrossShardMsgInfo.PreCrossShardMsgHash
+					//shardMsg = msg
 				}
 			} else {
 				crossShardMsgs = append(crossShardMsgs, shardMsg)
@@ -233,8 +232,8 @@ func GetCrossShardTxs(account *account.Account, FromShardID common.ShardID) (map
 
 func DelCrossShardTxs(crossShardTxs map[uint64][]*types.CrossShardTxInfos) error {
 	pool := crossShardPool
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
 	for shardID, shardTxs := range crossShardTxs {
 		for _, shardTx := range shardTxs {
 			if crossShardTxInfos, present := pool.Shards[shardID]; !present {

@@ -524,10 +524,15 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
-	heights := make(map[uint64]uint32)
+	heights := make(map[uint64]*msgtypes.HeightInfo)
 
 	for id, syncer := range this.blockSyncers {
-		heights[id] = syncer.ledger.GetCurrentBlockHeight()
+		heightInfo := &msgtypes.HeightInfo{
+			Height: syncer.ledger.GetCurrentBlockHeight(),
+			//todo
+			//msgHash
+		}
+		heights[id] = heightInfo
 	}
 
 	for _, p := range peers {
