@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common"
 	vbftcfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
+	"bytes"
 )
 
 func TestSaveCrossShardMsgByHash(t *testing.T) {
@@ -138,5 +139,24 @@ func TestAddShardConsensusHeight(t *testing.T) {
 	if !reflect.DeepEqual(heights, blkHeights) {
 		t.Errorf("TestAddShardConsensusHeight faied heigts:%v,blkHeigts:%v", heights, blkHeights)
 		return
+	}
+}
+
+func TestSaveCrossShardHash(t *testing.T) {
+	shardID := common.NewShardIDUnchecked(1)
+	msgHash := common.Uint256{1,2,3}
+	testCrossShardStore.NewBatch()
+	testCrossShardStore.SaveCrossShardHash(shardID,msgHash)
+	err := testCrossShardStore.CommitTo()
+	if err != nil {
+		t.Errorf("TestSaveCrossShardHash CommitTo err :%s", err)
+		return
+	}
+	hash,err := testCrossShardStore.GetCrossShardHash(shardID)
+	if err != nil {
+		t.Errorf("GetCrossShardHash shardID:%v,err:%v",shardID,err)
+	}
+	if bytes.Compare(msgHash[:],hash[:]) != 0 {
+		t.Errorf("msg hash not match")
 	}
 }

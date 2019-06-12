@@ -173,7 +173,7 @@ func (self *ChainStore) SubmitBlock(blkNum uint32) error {
 			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 		}
 		if len(submitBlk.block.Block.ShardTxs) != 0 {
-			xshard.DelCrossShardTxs(submitBlk.block.Block.ShardTxs)
+			xshard.DelCrossShardTxs(self.db, submitBlk.block.Block.ShardTxs)
 		}
 		if err != nil && blkNum > self.GetChainedBlockNum() {
 			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)

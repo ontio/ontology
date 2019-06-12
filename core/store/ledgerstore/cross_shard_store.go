@@ -138,7 +138,7 @@ func (this *CrossShardStore) SaveCrossShardHash(shardID common.ShardID, msgHash 
 	this.NewBatch()
 	key := this.getCrossShardKeyByHash(shardID)
 	value := common.NewZeroCopySink(64)
-	value.WriteVarBytes(msgHash[:])
+	value.WriteBytes(msgHash[:])
 	this.store.BatchPut(key, value.Bytes())
 	err := this.CommitTo()
 	if err != nil {

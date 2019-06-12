@@ -127,13 +127,10 @@ func GetShardInfo() map[common.ShardID]bool {
 }
 
 func GetCrossShardHashByShardID(lgr *ledger.Ledger, shardID common.ShardID) (common.Uint256, error) {
-	pool := crossShardPool
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
 	return lgr.GetCrossShardHash(shardID)
 }
-func SaveCrossShardHash(shardID common.ShardID, msgHash common.Uint256) error {
-	return ledger.DefLedger.SaveCrossShardHash(shardID, msgHash)
+func SaveCrossShardHash(lgr *ledger.Ledger, shardID common.ShardID, msgHash common.Uint256) error {
+	return lgr.SaveCrossShardHash(shardID, msgHash)
 }
 
 func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) error {
@@ -156,6 +153,17 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 	err := lgr.SaveCrossShardMsgByHash(crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
 	if err != nil {
 		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,msgHash:%s,err:%s", crossShardMsg.CrossShardMsgInfo.FromShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), err)
+	}
+	_, err = GetCrossShardHashByShardID(lgr, crossShardMsg.CrossShardMsgInfo.FromShardID)
+	if err != nil {
+		if err != com.ErrNotFound {
+			return fmt.Errorf("GetCrossShardHashByShardID shardID:%v,err:%s", crossShardMsg.CrossShardMsgInfo.FromShardID, err)
+		} else {
+			err = SaveCrossShardHash(lgr, crossShardMsg.CrossShardMsgInfo.FromShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash)
+			if err != nil {
+				return fmt.Errorf("SaveCrossShardHash from shardID:%v,err:%s", crossShardMsg.CrossShardMsgInfo.FromShardID, err)
+			}
+		}
 	}
 	AddShardInfo(lgr, crossShardMsg.CrossShardMsgInfo.FromShardID)
 	log.Infof("chainmgr AddBlock from shard %d,msgHash:%v, block height %d", fromShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), crossShardMsg.CrossShardMsgInfo.MsgHeight)
@@ -181,13 +189,11 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 			log.Errorf("shardID new shardID:%d,err:%s", shardID, err)
 			continue
 		}
-		msgHash, err := GetCrossShardHashByShardID(lgr, common.NewShardIDUnchecked(shardID))
+		msgHash, err := GetCrossShardHashByShardID(lgr, id)
 		if err != nil {
 			if err != com.ErrNotFound {
 				log.Errorf("GetCrossShardHashByShardID shardID:%v,err:%s", shardID, err)
 				continue
-			} else {
-				log.Infof("not found")
 			}
 		}
 		crossShardMsgs := make([]*types.CrossShardMsg, 0)
@@ -196,18 +202,17 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 				msg, err := lgr.GetCrossShardMsgByHash(msgHash)
 				if err != nil {
 					if err != com.ErrNotFound {
-						break
-					} else {
 						return nil, fmt.Errorf("GetCrossShardMsgByHash msgHash:%s,err:%v", msgHash, err)
+					} else {
+						break
 					}
 				} else {
 					crossShardMsgs = append(crossShardMsgs, msg)
-					msgHash = msg.CrossShardMsgInfo.PreCrossShardMsgHash
-					//shardMsg = msg
+					msgHash = msg.CrossShardMsgInfo.CrossShardMsgRoot
 				}
 			} else {
 				crossShardMsgs = append(crossShardMsgs, shardMsg)
-				msgHash = shardMsg.CrossShardMsgInfo.PreCrossShardMsgHash
+				msgHash = shardMsg.CrossShardMsgInfo.CrossShardMsgRoot
 			}
 		}
 		for _, msg := range crossShardMsgs {
@@ -230,7 +235,7 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 	return crossShardMapInfos, nil
 }
 
-func DelCrossShardTxs(crossShardTxs map[uint64][]*types.CrossShardTxInfos) error {
+func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[uint64][]*types.CrossShardTxInfos) error {
 	pool := crossShardPool
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
@@ -241,7 +246,7 @@ func DelCrossShardTxs(crossShardTxs map[uint64][]*types.CrossShardTxInfos) error
 				return nil
 			} else {
 				delete(crossShardTxInfos, shardTx.ShardMsg.CrossShardMsgRoot)
-				SaveCrossShardHash(common.NewShardIDUnchecked(shardID), shardTx.ShardMsg.PreCrossShardMsgHash)
+				SaveCrossShardHash(lgr, common.NewShardIDUnchecked(shardID), shardTx.ShardMsg.PreCrossShardMsgHash)
 			}
 		}
 	}

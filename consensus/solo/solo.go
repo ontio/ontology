@@ -186,7 +186,7 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("submitBlock height:%d error:%s", block.Header.Height, err)
 	}
-	xshard.DelCrossShardTxs(block.ShardTxs)
+	xshard.DelCrossShardTxs(self.ledger, block.ShardTxs)
 	self.broadCrossShardHashMsgs(block.Header.Height, result.ShardNotify)
 	// new block persisted, update parentHeight
 	self.parentHeight = block.Header.ParentHeight
