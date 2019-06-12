@@ -179,7 +179,8 @@ func HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb
 	// cannot change shard info
 	meta.Owner = newMeta.Owner
 	meta.IsFrozen = newMeta.IsFrozen
-	if err = neovm.CheckInvokedContract(newMeta, cache); err != nil {
+	meta.InvokedContract = newMeta.InvokedContract
+	if err = neovm.CheckInvokedContract(meta, cache); err != nil {
 		return fmt.Errorf("checkInvokedContract err %s", err)
 	}
 	cache.PutMetaData(meta)
