@@ -132,12 +132,13 @@ func ParseNativeParamStruct(builder *neovm.ParamsBuilder, param interface{}, str
 	builder.Emit(neovm.NEWSTRUCT)
 	builder.Emit(neovm.TOALTSTACK)
 	for i, param := range params {
-		builder.Emit(neovm.DUPFROMALTSTACK)
 		paramAbi := structAbi.SubType[i]
 		err := ParseNativeParams(builder, []interface{}{param}, []*abi.NativeContractParamAbi{paramAbi})
 		if err != nil {
 			return fmt.Errorf("params struct:%s item:%s error:%s", structAbi.Name, paramAbi.Name, err)
 		}
+		builder.Emit(neovm.DUPFROMALTSTACK)
+		builder.Emit(neovm.SWAP)
 		builder.Emit(neovm.APPEND)
 	}
 	builder.Emit(neovm.FROMALTSTACK)
