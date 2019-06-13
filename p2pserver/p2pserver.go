@@ -260,6 +260,12 @@ func (this *P2PServer) OnAddBlock(height uint32, shardID uint64) {
 	}
 }
 
+func (this *P2PServer) OnSyncBlock(height uint32, shardID uint64) {
+	if syncer := this.blockSyncers[shardID]; syncer != nil {
+		syncer.sync()
+	}
+}
+
 // Todo: remove it if no use
 func (this *P2PServer) GetConnectionState() uint32 {
 	return common.INIT

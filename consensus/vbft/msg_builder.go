@@ -194,7 +194,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		log.Errorf("constructBlock getlastblock err:%s,blknum:%d", err, blkNum-1)
 		return nil, err
 	}
-	parentHeight := self.ledger.GetParentHeight()
+	parentHeight := lastBlock.Block.Header.ParentHeight
 	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
 		parentHeight = parentHeight + 1
 	}

@@ -45,6 +45,7 @@ import (
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
+	p2p "github.com/ontio/ontology/p2pserver/common"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
@@ -1157,9 +1158,18 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-	//todo
-	if self.ledger.GetParentHeight() != msg.Block.Block.Header.ParentHeight {
 
+	parentHeight := blk.Block.Header.ParentHeight
+	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+		parentHeight = parentHeight + 1
+	}
+	if parentHeight < msg.Block.Block.Header.ParentHeight {
+		self.pid.Tell(
+			&p2p.SyncBlock{
+				Height:  msg.Block.Block.Header.ParentHeight,
+				ShardID: self.ShardID.ParentID().ToUint64(),
+			})
+		return
 	}
 	if !self.verifyShardEventMsg(msg) {
 		return
