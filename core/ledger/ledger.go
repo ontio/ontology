@@ -425,8 +425,8 @@ func (self *Ledger) GetParentHeight() uint32 {
 	return 0
 }
 func (self *Ledger) HasParentBlockInCache(height uint32) bool {
-	if self.ChildLedger != nil && self.ChildLedger.ParentBlockCache != nil {
-		_, _, err := self.ChildLedger.ParentBlockCache.GetBlock(height)
+	if self.ParentBlockCache != nil {
+		_, _, err := self.ParentBlockCache.GetBlock(height)
 		if err != nil {
 			return false
 		}
