@@ -331,22 +331,6 @@ func (self *StateStore) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.
 	return shards, nil
 }
 
-func (self *StateStore) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
-	keys := common.NewZeroCopySink(16)
-	keys.WriteByte(byte(scom.XSHARD_KEY_MSG_HASH))
-	keys.WriteShardID(shardID)
-	buf, err := self.store.Get(keys.Bytes())
-	if err != nil {
-		return common.Uint256{}, err
-	}
-	source := common.NewZeroCopySource(buf)
-	msgHash, eof := source.NextHash()
-	if eof {
-		return common.Uint256{}, io.ErrUnexpectedEOF
-	}
-	return msgHash, nil
-}
-
 //GetMerkleProof return merkle proof of block
 func (self *StateStore) GetMerkleProof(proofHeight, rootHeight uint32) ([]common.Uint256, error) {
 	return self.merkleTree.InclusionProof(proofHeight, rootHeight+1)

@@ -23,14 +23,15 @@ import (
 
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 
+	"bytes"
+
 	"github.com/ontio/ontology/common"
 	vbftcfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
-	"bytes"
 )
 
 func TestSaveCrossShardMsgByHash(t *testing.T) {
-	crossShardRoot := common.Uint256{2}
+	crossShardRoot := common.Uint256{}
 	crossShardMsgInfo := &types.CrossShardMsgInfo{
 		FromShardID:       common.NewShardIDUnchecked(2),
 		MsgHeight:         109,
@@ -144,19 +145,19 @@ func TestAddShardConsensusHeight(t *testing.T) {
 
 func TestSaveCrossShardHash(t *testing.T) {
 	shardID := common.NewShardIDUnchecked(1)
-	msgHash := common.Uint256{1,2,3}
+	msgHash := common.Uint256{1, 2, 3}
 	testCrossShardStore.NewBatch()
-	testCrossShardStore.SaveCrossShardHash(shardID,msgHash)
+	testCrossShardStore.SaveCrossShardHash(shardID, msgHash)
 	err := testCrossShardStore.CommitTo()
 	if err != nil {
 		t.Errorf("TestSaveCrossShardHash CommitTo err :%s", err)
 		return
 	}
-	hash,err := testCrossShardStore.GetCrossShardHash(shardID)
+	hash, err := testCrossShardStore.GetCrossShardHash(shardID)
 	if err != nil {
-		t.Errorf("GetCrossShardHash shardID:%v,err:%v",shardID,err)
+		t.Errorf("GetCrossShardHash shardID:%v,err:%v", shardID, err)
 	}
-	if bytes.Compare(msgHash[:],hash[:]) != 0 {
+	if bytes.Compare(msgHash[:], hash[:]) != 0 {
 		t.Errorf("msg hash not match")
 	}
 }

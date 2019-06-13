@@ -501,6 +501,7 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 			}
 		}
 		crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
+		self.ledger.SaveShardMsgHash(crossMsg.ShardID, msgRoot)
 		self.ledger.SaveCrossShardMsgByHash(preMsgHash, crossShardMsg)
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)

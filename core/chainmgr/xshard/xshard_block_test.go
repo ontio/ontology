@@ -34,7 +34,8 @@ func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
 			FromShardID:          common.NewShardIDUnchecked(1),
 			MsgHeight:            uint32(90),
 			SignMsgHeight:        uint32(100),
-			PreCrossShardMsgHash: common.Uint256{1, 2, 3},
+			PreCrossShardMsgHash: common.Uint256{},
+			CrossShardMsgRoot: common.Uint256{1,2,3},
 		},
 	}
 	return shardMsg
