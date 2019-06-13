@@ -194,7 +194,10 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		log.Errorf("constructBlock getlastblock err:%s,blknum:%d", err, blkNum-1)
 		return nil, err
 	}
-	parentHeight := self.ledger.GetParentHeight() + 1
+	parentHeight := self.ledger.GetParentHeight()
+	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+		parentHeight = parentHeight + 1
+	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
 	shardTxs, err := xshard.GetCrossShardTxs(self.ledger, self.account, self.ShardID)

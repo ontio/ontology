@@ -297,8 +297,10 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
 
 	// get ParentHeight from chain-mgr
-	parentHeight := self.ledger.GetParentHeight() + 1
-
+	parentHeight := self.ledger.GetParentHeight()
+	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+		parentHeight = parentHeight + 1
+	}
 	// get Cross-Shard Txs from chain-mgr
 	shardTxs, err := xshard.GetCrossShardTxs(self.ledger, self.Account, self.shardID)
 	if err != nil {
