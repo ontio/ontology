@@ -190,52 +190,59 @@ func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256)
 
 func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 	if !self.ShardID.IsRootShard() {
-		parentBlock, merkleRoot, err := self.ParentBlockCache.GetBlock(b.Header.ParentHeight)
-		if err != nil {
-			if err == scommon.ErrNotFound {
-				return self.ldgStore.ExecuteBlock(b)
-			} else {
-				log.Errorf("Ledger ExecuteBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
-				return store.ExecuteResult{}, err
+		parentHeight := self.ParentLedger.GetCurrentBlockHeight()
+		if parentHeight != b.Header.ParentHeight {
+			parentBlock, merkleRoot, err := self.ParentBlockCache.GetBlock(b.Header.ParentHeight)
+			if err != nil {
+				if err == scommon.ErrNotFound {
+					return self.ldgStore.ExecuteBlock(b)
+				} else {
+					log.Errorf("Ledger ExecuteBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
+					return store.ExecuteResult{}, err
+				}
 			}
+			result, err := self.ParentLedger.ldgStore.ExecuteBlock(parentBlock)
+			if err != nil {
+				return result, err
+			}
+			if merkleRoot != result.MerkleRoot {
+				log.Errorf("ExecuteBlock check parentblock cache MerkleRoot blocknum:%d,MerkleRoot:%s,execute MerkleRoot:%s", b.Header.ParentHeight, merkleRoot.ToHexString(), result.MerkleRoot.ToHexString())
+				return store.ExecuteResult{}, fmt.Errorf("merkleroot not match")
+			}
+			self.ParentBlockCache.SaveBlockExecuteResult(b.Header.ParentHeight, result)
+
 		}
-		result, err := self.ParentLedger.ldgStore.ExecuteBlock(parentBlock)
-		if err != nil {
-			return result, err
-		}
-		if merkleRoot != result.MerkleRoot {
-			log.Errorf("ExecuteBlock check parentblock cache MerkleRoot blocknum:%d,MerkleRoot:%s,execute MerkleRoot:%s", b.Header.ParentHeight, merkleRoot.ToHexString(), result.MerkleRoot.ToHexString())
-			return store.ExecuteResult{}, fmt.Errorf("merkleroot not match")
-		}
-		self.ParentBlockCache.SaveBlockExecuteResult(b.Header.ParentHeight, result)
 	}
 	return self.ldgStore.ExecuteBlock(b)
 }
 
 func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
 	if !self.ShardID.IsRootShard() {
-		parentBlock, _, err := self.ParentBlockCache.GetBlock(b.Header.ParentHeight)
-		if err != nil {
-			if err == scommon.ErrNotFound {
-				err := self.ldgStore.SubmitBlock(b, exec)
-				if err != nil {
-					log.Errorf("Ledger SubmitBlock BlockHeight:%d BlockHash:%x error:%s", b.Header.Height, b.Hash(), err)
+		parentHeight := self.ParentLedger.GetCurrentBlockHeight()
+		if parentHeight != b.Header.ParentHeight {
+			parentBlock, _, err := self.ParentBlockCache.GetBlock(b.Header.ParentHeight)
+			if err != nil {
+				if err == scommon.ErrNotFound {
+					err := self.ldgStore.SubmitBlock(b, exec)
+					if err != nil {
+						log.Errorf("Ledger SubmitBlock BlockHeight:%d BlockHash:%x error:%s", b.Header.Height, b.Hash(), err)
+						return err
+					}
+					return nil
+				} else {
+					log.Errorf("Ledger SubmitBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
 					return err
 				}
-				return nil
-			} else {
-				log.Errorf("Ledger SubmitBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
-				return err
 			}
-		}
-		result, err := self.ParentBlockCache.GetBlockExecuteResult(b.Header.ParentHeight)
-		if err != nil {
-			return fmt.Errorf("SubmitBlock: get parent exec result failed, err: %s", err)
-		}
-		if err := self.ParentLedger.ldgStore.SubmitBlock(parentBlock, result); err != nil {
-			return fmt.Errorf("SubmitBlock: submit parent block failed, err: %s", err)
-		} else {
-			self.ParentBlockCache.DelBlock(b.Header.ParentHeight)
+			result, err := self.ParentBlockCache.GetBlockExecuteResult(b.Header.ParentHeight)
+			if err != nil {
+				return fmt.Errorf("SubmitBlock: get parent exec result failed, err: %s", err)
+			}
+			if err := self.ParentLedger.ldgStore.SubmitBlock(parentBlock, result); err != nil {
+				return fmt.Errorf("SubmitBlock: submit parent block failed, err: %s", err)
+			} else {
+				self.ParentBlockCache.DelBlock(b.Header.ParentHeight)
+			}
 		}
 	}
 	err := self.ldgStore.SubmitBlock(b, exec)
