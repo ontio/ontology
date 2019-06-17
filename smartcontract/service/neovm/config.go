@@ -78,7 +78,9 @@ var (
 	HEADER_GETNEXTCONSENSUS_NAME = "Ontology.Header.GetNextConsensus"
 	HEADER_GETMERKLEROOT_NAME    = "Ontology.Header.GetMerkleRoot"
 
-	SHARD_GET_SHARD_ID_NAME = "Ontology.Shard.GetShardId"
+	SHARD_GET_SHARD_ID_NAME        = "Ontology.Shard.GetShardId"
+	SHARD_NOTIFY_REMOTE_SHARD_NAME = "Ontology.Shard.NotifyRemoteShard"
+	SHARD_INVOKE_REMOTE_SHARD_NAME = "Ontology.Shard.InvokeRemoteShard"
 
 	TRANSACTION_GETHASH_NAME       = "System.Transaction.GetHash"
 	TRANSACTION_GETTYPE_NAME       = "Ontology.Transaction.GetType"
@@ -109,6 +111,7 @@ var (
 	RUNTIME_BASE58TOADDRESS_NAME     = "Ontology.Runtime.Base58ToAddress"
 	RUNTIME_ADDRESSTOBASE58_NAME     = "Ontology.Runtime.AddressToBase58"
 	RUNTIME_GETCURRENTBLOCKHASH_NAME = "Ontology.Runtime.GetCurrentBlockHash"
+	RUNTIME_GETREMAINGAS_NAME        = "Ontology.Runtime.GetRemainGas"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
 

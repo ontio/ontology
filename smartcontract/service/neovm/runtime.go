@@ -162,6 +162,11 @@ func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.ExecutionEngin
 	return nil
 }
 
+func RuntimeGetRemainGas(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	vm.PushData(engine, service.ContextRef.GetRemainGas())
+	return nil
+}
+
 func SerializeStackItem(item vmtypes.StackItems) ([]byte, error) {
 	if CircularRefAndDepthDetection(item) {
 		return nil, errors.NewErr("runtime serialize: can not serialize circular reference data")

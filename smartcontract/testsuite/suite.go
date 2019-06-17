@@ -112,7 +112,7 @@ func ExecuteShardCommand(native *native.NativeService, command ShardCommand) ([]
 			result = append(result, res...)
 		}
 	case *NotifyCommand:
-		native.NotifyRemoteShard(cmd.Target, cont, "executeShardCommand", EncodeShardCommandToBytes(cmd.Cmd))
+		native.NotifyRemoteShard(cmd.Target, cont, 0, "executeShardCommand", EncodeShardCommandToBytes(cmd.Cmd))
 	case *InvokeCommand:
 		res, err := native.InvokeRemoteShard(cmd.Target, cont, "executeShardCommand", EncodeShardCommandToBytes(cmd.Cmd))
 		if err != nil {
@@ -150,7 +150,7 @@ func RemoteNotifyPing(native *native.NativeService) ([]byte, error) {
 	sink.WriteString(fmt.Sprintf("hello from shard: %d", native.ShardID.ToUint64()))
 
 	cont := native.ContextRef.CurrentContext().ContractAddress
-	native.NotifyRemoteShard(ShardB, cont, "handlePing", sink.Bytes())
+	native.NotifyRemoteShard(ShardB, cont, 0, "handlePing", sink.Bytes())
 
 	return utils.BYTE_TRUE, nil
 }

@@ -252,7 +252,7 @@ func appcallSendReq(native *native.NativeService, toShard common.ShardID, method
 		_, err := native.InvokeRemoteShard(toShard, utils.ShardHotelAddress, method, payload)
 		return err
 	} else {
-		native.NotifyRemoteShard(toShard, utils.ShardHotelAddress, method, payload)
+		native.NotifyRemoteShard(toShard, utils.ShardHotelAddress, 0, method, payload)
 	}
 	return nil
 }

@@ -18,14 +18,15 @@
 package smartcontract
 
 import (
+	"bytes"
 	"fmt"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
 	ctypes "github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -231,4 +232,132 @@ func (this *SmartContract) checkContractAddress(address common.Address) bool {
 		return true
 	}
 	return false
+}
+
+func (this *SmartContract) NotifyRemoteShard(target common.ShardID, cont common.Address, fee uint64, method string,
+	args []byte) {
+	if this.IsPreExec() {
+		return
+	}
+	if !this.CheckUseGas(fee) {
+		log.Errorf("NotifyRemoteShard: gas not enough")
+		return
+	}
+	if err := this.checkMetaData(cont); err != nil {
+		log.Errorf("NotifyRemoteShard: failed, err: %s", err)
+		return
+	}
+	txState := this.ShardTxState
+	msg := &xshard_types.XShardNotify{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: this.Config.ShardID,
+			TargetShardID: target,
+			SourceTxHash:  this.Config.Tx.Hash(),
+			ShardTxID:     txState.TxID,
+		},
+		NotifyID: txState.NumNotifies,
+		Contract: cont,
+		Payer:    this.Config.Tx.Payer,
+		Fee:      fee,
+		Method:   method,
+		Args:     args,
+	}
+	txState.NumNotifies += 1
+	// todo: clean shardnotifies when replay transaction
+	txState.ShardNotifies = append(txState.ShardNotifies, msg)
+}
+
+func (this *SmartContract) InvokeRemoteShard(target common.ShardID, cont common.Address, method string,
+	args []byte) ([]byte, error) {
+	if this.IsPreExec() {
+		return native.BYTE_TRUE, nil
+	}
+	if err := this.checkMetaData(cont); err != nil {
+		return native.BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: failed, err: %s", err)
+	}
+	txState := this.ShardTxState
+	reqIdx := txState.NextReqID
+	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
+		return native.BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
+	}
+	if this.Gas < neovm.MIN_TRANSACTION_GAS {
+		return native.BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: gas less than min gas")
+	}
+	msg := &xshard_types.XShardTxReq{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: this.Config.ShardID,
+			TargetShardID: target,
+			SourceTxHash:  this.Config.Tx.Hash(),
+			ShardTxID:     txState.TxID,
+		},
+		IdxInTx:  uint64(reqIdx),
+		Payer:    this.Config.Tx.Payer,
+		Fee:      this.Gas, // use all remain gas to invoke remote shard
+		Contract: cont,
+		Method:   method,
+		Args:     args,
+	}
+	txState.NextReqID += 1
+
+	if reqIdx < uint32(len(txState.OutReqResp)) {
+		if xshard_types.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
+			return native.BYTE_FALSE, xshard_state.ErrMismatchedRequest
+		}
+		rspMsg := txState.OutReqResp[reqIdx].Resp
+		var resultErr error = nil
+		if rspMsg.Error {
+			resultErr = fmt.Errorf("InvokeRemoteShard: got error response")
+		}
+		if !this.CheckUseGas(rspMsg.FeeUsed) { // charge whole remain gas
+			resultErr = fmt.Errorf("InvokeRemoteShard: gas not enough")
+			this.CheckUseGas(this.Gas)
+		}
+		return rspMsg.Result, resultErr
+	}
+
+	if len(txState.TxPayload) == 0 {
+		txPayload := bytes.NewBuffer(nil)
+		if err := this.Config.Tx.Serialize(txPayload); err != nil {
+			return native.BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: failed to get tx payload: %s", err)
+		}
+		txState.TxPayload = txPayload.Bytes()
+	}
+
+	// no response found in tx-statedb, send request
+	if err := txState.AddTxShard(target); err != nil {
+		return native.BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: failed to add shard: %s", err)
+	}
+
+	txState.PendingOutReq = msg
+	txState.ExecState = xshard_state.ExecYielded
+
+	return native.BYTE_FALSE, xshard_state.ErrYield
+}
+
+func (this *SmartContract) checkMetaData(destContract common.Address) error {
+	// if caller is native contract, no need to check destContract
+	if _, ok := native.Contracts[this.CurrentContext().ContractAddress]; ok {
+		return nil
+	}
+	caller := this.CallingContext().ContractAddress
+	meta, _, err := this.GetMetaData(caller)
+	if err != nil {
+		return fmt.Errorf("checkMetaData: cannot get %s meta", caller.ToHexString())
+
+	}
+	if meta == nil {
+		return fmt.Errorf("checkMetaData: self %s doesn't initialized meta", caller.ToHexString())
+	}
+	canInvoke := false
+	for _, addr := range meta.InvokedContract {
+		if addr == destContract {
+			canInvoke = true
+			break
+		}
+	}
+	if !canInvoke {
+		return fmt.Errorf("checkMetaData: contract %s unregister to self %s meta",
+			destContract.ToHexString(), caller.ToHexString())
+	}
+	return nil
 }

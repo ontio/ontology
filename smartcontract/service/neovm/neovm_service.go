@@ -62,6 +62,8 @@ var (
 		TRANSACTION_GETTYPE_NAME:             {Execute: TransactionGetType, Validator: validatorTransaction},
 		TRANSACTION_GETATTRIBUTES_NAME:       {Execute: TransactionGetAttributes, Validator: validatorTransaction},
 		SHARD_GET_SHARD_ID_NAME:              {Execute: ShardGetShardId},
+		SHARD_NOTIFY_REMOTE_SHARD_NAME:       {Execute: NotifyRemoteShard},
+		SHARD_INVOKE_REMOTE_SHARD_NAME:       {Execute: InvokeRemoteShard},
 		CONTRACT_CREATE_NAME:                 {Execute: ContractCreate},
 		CONTRACT_MIGRATE_NAME:                {Execute: ContractMigrate},
 		CONTRACT_SET_META_DATA_NAME:          {Execute: InitMetaData},
@@ -90,6 +92,7 @@ var (
 		RUNTIME_BASE58TOADDRESS_NAME:     {Execute: RuntimeBase58ToAddress},
 		RUNTIME_ADDRESSTOBASE58_NAME:     {Execute: RuntimeAddressToBase58},
 		RUNTIME_GETCURRENTBLOCKHASH_NAME: {Execute: RuntimeGetCurrentBlockHash},
+		RUNTIME_GETREMAINGAS_NAME:        {Execute: RuntimeGetRemainGas},
 	}
 )
 

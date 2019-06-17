@@ -45,6 +45,8 @@ type ContextRef interface {
 	GetRemainGas() uint64
 	CheckCallShard(fromShard common.ShardID) bool
 	GetMetaData(contract common.Address) (*payload.MetaDataCode, bool, error)
+	NotifyRemoteShard(target common.ShardID, cont common.Address, fee uint64, method string, args []byte)
+	InvokeRemoteShard(target common.ShardID, cont common.Address, method string, args []byte) ([]byte, error)
 }
 
 type Engine interface {
