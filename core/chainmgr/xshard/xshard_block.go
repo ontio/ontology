@@ -177,60 +177,80 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 // NOTE: all cross-shard tx/events should be indexed with (parentHeight, shardHeight)
 //
 
-func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID common.ShardID) (map[uint64][]*types.CrossShardTxInfos, error) {
+func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID common.ShardID, parentblkNum uint32) (map[uint64][]*types.CrossShardTxInfos, error) {
 	pool := crossShardPool
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	crossShardInfo := make([]*types.CrossShardTxInfos, 0)
 	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
-	for shardID, shardMsgs := range pool.Shards {
-		id, err := common.NewShardID(shardID)
-		if err != nil {
-			log.Errorf("shardID new shardID:%d,err:%s", shardID, err)
-			continue
-		}
-		msgHash, err := GetCrossShardHashByShardID(lgr, id)
+	if !FromShardID.IsParentID() {
+		shardMsg, err := lgr.ParentLedger.GetShardMsgsInBlock(parentblkNum, FromShardID)
 		if err != nil {
 			if err != com.ErrNotFound {
-				log.Errorf("GetCrossShardHashByShardID shardID:%v,err:%s", shardID, err)
+				return nil, fmt.Errorf("GetShardMsgsInBlock parentblkNum:%d,shardID:%v,err:%s", parentblkNum, FromShardID, err)
+			} else {
+				return nil, nil
+			}
+		}
+		tx, err := crossshard.NewCrossShardTxMsg(account, parentblkNum, FromShardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, shardMsg)
+		if err != nil {
+			return nil, fmt.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", parentblkNum, err)
+		}
+		shardTxInfo := &types.CrossShardTxInfos{
+			Tx: tx,
+		}
+		crossShardInfo = append(crossShardInfo, shardTxInfo)
+		crossShardMapInfos[FromShardID.ToUint64()] = crossShardInfo
+	} else {
+		for shardID, shardMsgs := range pool.Shards {
+			id, err := common.NewShardID(shardID)
+			if err != nil {
+				log.Errorf("shardID new shardID:%d,err:%s", shardID, err)
 				continue
 			}
-		}
-		crossShardMsgs := make([]*types.CrossShardMsg, 0)
-		for {
-			if shardMsg, persent := shardMsgs[msgHash]; !persent {
-				msg, err := lgr.GetCrossShardMsgByHash(msgHash)
-				if err != nil {
-					if err != com.ErrNotFound {
-						return nil, fmt.Errorf("GetCrossShardMsgByHash msgHash:%s,err:%v", msgHash, err)
+			msgHash, err := GetCrossShardHashByShardID(lgr, id)
+			if err != nil {
+				if err != com.ErrNotFound {
+					log.Errorf("GetCrossShardHashByShardID shardID:%v,err:%s", shardID, err)
+					continue
+				}
+			}
+			crossShardMsgs := make([]*types.CrossShardMsg, 0)
+			for {
+				if shardMsg, persent := shardMsgs[msgHash]; !persent {
+					msg, err := lgr.GetCrossShardMsgByHash(msgHash)
+					if err != nil {
+						if err != com.ErrNotFound {
+							return nil, fmt.Errorf("GetCrossShardMsgByHash msgHash:%s,err:%v", msgHash, err)
+						} else {
+							break
+						}
 					} else {
-						break
+						crossShardMsgs = append(crossShardMsgs, msg)
+						msgHash = msg.CrossShardMsgInfo.CrossShardMsgRoot
 					}
 				} else {
-					crossShardMsgs = append(crossShardMsgs, msg)
-					msgHash = msg.CrossShardMsgInfo.CrossShardMsgRoot
+					crossShardMsgs = append(crossShardMsgs, shardMsg)
+					msgHash = shardMsg.CrossShardMsgInfo.CrossShardMsgRoot
 				}
-			} else {
-				crossShardMsgs = append(crossShardMsgs, shardMsg)
-				msgHash = shardMsg.CrossShardMsgInfo.CrossShardMsgRoot
 			}
+			for _, msg := range crossShardMsgs {
+				if id.IsParentID() && msg.CrossShardMsgInfo.SignMsgHeight < ledger.GetShardLedger(id).GetCurrentBlockHeight() {
+					break
+				}
+				tx, err := crossshard.NewCrossShardTxMsg(account, msg.CrossShardMsgInfo.MsgHeight, FromShardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
+				if err != nil {
+					log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.CrossShardMsgInfo.MsgHeight, err)
+					break
+				}
+				shardTxInfo := &types.CrossShardTxInfos{
+					ShardMsg: msg.CrossShardMsgInfo,
+					Tx:       tx,
+				}
+				crossShardInfo = append(crossShardInfo, shardTxInfo)
+			}
+			crossShardMapInfos[shardID] = crossShardInfo
 		}
-		for _, msg := range crossShardMsgs {
-			if id.IsParentID() && msg.CrossShardMsgInfo.SignMsgHeight < ledger.GetShardLedger(id).GetCurrentBlockHeight() {
-				break
-			}
-			tx, err := crossshard.NewCrossShardTxMsg(account, msg.CrossShardMsgInfo.MsgHeight, FromShardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
-			if err != nil {
-				log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.CrossShardMsgInfo.MsgHeight, err)
-				break
-			}
-			shardTxInfo := &types.CrossShardTxInfos{
-				ShardMsg: msg.CrossShardMsgInfo,
-				Tx:       tx,
-			}
-			crossShardInfo = append(crossShardInfo, shardTxInfo)
-		}
-		crossShardMapInfos[shardID] = crossShardInfo
 	}
 	return crossShardMapInfos, nil
 }
