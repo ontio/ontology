@@ -325,9 +325,6 @@ func checkInitMeta(service *NeoVmService, meta *payload.MetaDataCode) bool {
 }
 
 func CheckInvokedContract(meta *payload.MetaDataCode, cache *storage.CacheDB) error {
-	if !meta.AllShard && len(meta.InvokedContract) > 0 {
-		return fmt.Errorf("single shard contract cannot x-shard invoke other contract")
-	}
 	if len(meta.InvokedContract) == 0 {
 		return nil
 	}
