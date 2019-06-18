@@ -146,26 +146,26 @@ func TestShardReverseBytes(t *testing.T) {
 	})
 
 	shards := make(map[common.ShardID]*ShardContext, 3)
-	shard0 := common.NewShardIDUnchecked(0)
 	shard1 := common.NewShardIDUnchecked(1)
 	shard2 := common.NewShardIDUnchecked(2)
+	shard3 := common.NewShardIDUnchecked(3)
 
-	shards[shard0] = NewShardContext(shard0, contract, t)
+	shards[shard3] = NewShardContext(shard3, contract, t)
 	shards[shard1] = NewShardContext(shard1, contract, t)
 	shards[shard2] = NewShardContext(shard2, contract, t)
 
-	// shard0 -> invoke shard1
+	// shard3 -> invoke shard1
 	//        -> invoke shard2
 	args := common.SerializeToBytes(&ReverseStringParam{Origin: []byte("1234567"), Shards: []common.ShardID{shard1, shard2}})
-	totalShardMsg := RunShardTxToComplete(shards, shard0, method, args)
+	totalShardMsg := RunShardTxToComplete(shards, shard3, method, args)
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit = 10
 	assert.Equal(t, 10, totalShardMsg)
 
-	// shard0 -> invoke shard1
+	// shard3 -> invoke shard1
 	//        -> invoke shard2
 	//        -> invoke shard1
 	args = common.SerializeToBytes(&ReverseStringParam{Origin: []byte("1234567"), Shards: []common.ShardID{shard1, shard2, shard1}})
-	totalShardMsg = RunShardTxToComplete(shards, shard0, method, args)
+	totalShardMsg = RunShardTxToComplete(shards, shard3, method, args)
 	// 3 req, 3 rep, 2 prep, 2 preped, 2 commit = 12
 	assert.Equal(t, 12, totalShardMsg)
 }

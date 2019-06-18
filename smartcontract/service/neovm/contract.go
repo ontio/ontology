@@ -64,13 +64,13 @@ func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("[InitMetaData] invalid param: %s", err))
 	}
-	newMeta.Contract = service.ContextRef.CurrentContext().ContractAddress
+	newMeta.Contract = contractAddress
 	if !checkInitMeta(service, newMeta) {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[InitMetaData] meta data should contain owner")
+		return errors.NewDetailErr(err, errors.ErrNoCode, "[InitMetaData] new meta data invalid")
 	}
 	newMeta.OntVersion = common.CURR_TX_VERSION
 	service.CacheDB.PutMetaData(newMeta)
-	vm.PushData(engine, newMeta)
+	vm.PushData(engine, true)
 	return nil
 }
 
@@ -298,12 +298,24 @@ func checkInitMeta(service *NeoVmService, meta *payload.MetaDataCode) bool {
 	if meta.Owner == common.ADDRESS_EMPTY {
 		return false
 	}
-	if _, err := common.NewShardID(meta.ShardId); err != nil {
+	metaShardId, err := common.NewShardID(meta.ShardId)
+	if err != nil {
 		return false
 	}
-	// shard contract can only run at self shard while init meta
-	if !service.ShardID.IsRootShard() {
-		return service.ShardID.ToUint64() == meta.ShardId
+	// contract can only run on self shard or child shard
+	if metaShardId != service.ShardID && metaShardId.ParentID() != service.ShardID {
+		return false
+	}
+	// Whether or not the state of the contract has changed, contract can be initialized to all-shard mode
+	// So, only check while single-shard mode
+	if !meta.AllShard {
+		iter := service.CacheDB.NewIterator(meta.Contract[:])
+		if iter.First() { // if contract state has already changed
+			// check meta.shardId, contract can only run at self shard
+			if service.ShardID.ToUint64() != meta.ShardId {
+				return false
+			}
+		}
 	}
 
 	if err := CheckInvokedContract(meta, service.CacheDB); err != nil {
@@ -312,8 +324,10 @@ func checkInitMeta(service *NeoVmService, meta *payload.MetaDataCode) bool {
 	return true
 }
 
-// only need check one level, because every contract call this function while change meta data
 func CheckInvokedContract(meta *payload.MetaDataCode, cache *storage.CacheDB) error {
+	if len(meta.InvokedContract) == 0 {
+		return nil
+	}
 	invokedContracts, err := fetchInvokedTreeNode(meta, cache)
 	if err != nil {
 		return err

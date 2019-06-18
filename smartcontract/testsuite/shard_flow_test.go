@@ -64,7 +64,7 @@ func TestRecurInvoke1(t *testing.T) {
 	)
 
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit = 10
-	runFlowCommand(t, sid(0), &flow, 10)
+	runFlowCommand(t, sid(1), &flow, 10)
 }
 
 func TestRecurInvoke2(t *testing.T) {
@@ -79,7 +79,7 @@ func TestRecurInvoke2(t *testing.T) {
 	)
 
 	// 3 req, 3 rep, 3 prep, 3 preped, 3 commit = 15
-	runFlowCommand(t, sid(0), &flow, 15)
+	runFlowCommand(t, sid(1), &flow, 15)
 }
 
 func TestRecurInvoke3(t *testing.T) {
@@ -95,7 +95,7 @@ func TestRecurInvoke3(t *testing.T) {
 	)
 
 	// 4 req, 4 rep, 4 prep, 4 preped, 4 commit = 20
-	runFlowCommand(t, sid(0), &flow, 20)
+	runFlowCommand(t, sid(4), &flow, 20)
 }
 
 func TestShardFlowPattern1(t *testing.T) {
@@ -110,7 +110,7 @@ func TestShardFlowPattern1(t *testing.T) {
 	)
 
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit, 1 notify = 11
-	runFlowCommand(t, sid(0), &flow, 11)
+	runFlowCommand(t, sid(4), &flow, 11)
 }
 
 func TestShardFlowPattern2(t *testing.T) {
@@ -126,7 +126,7 @@ func TestShardFlowPattern2(t *testing.T) {
 	)
 
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit, 2 notify = 12
-	runFlowCommand(t, sid(0), &flow, 12)
+	runFlowCommand(t, sid(4), &flow, 12)
 }
 
 func TestShardFlowPattern3(t *testing.T) {
@@ -136,7 +136,7 @@ func TestShardFlowPattern3(t *testing.T) {
 	)
 
 	// 1 notify, 1 req, 1 rep, 1 prep, 1 preped, 1 commit = 6
-	runFlowCommand(t, sid(0), &flow, 6)
+	runFlowCommand(t, sid(1), &flow, 6)
 }
 
 func TestShardFlowPattern4(t *testing.T) {
@@ -147,5 +147,5 @@ func TestShardFlowPattern4(t *testing.T) {
 	)
 
 	// 2 notify, 2 req, 2 rep, 2 prep, 2 preped, 2 commit = 12
-	runFlowCommand(t, sid(0), &flow, 12)
+	runFlowCommand(t, sid(1), &flow, 12)
 }
