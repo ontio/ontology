@@ -168,7 +168,7 @@ func notifyShardMint(native *native.NativeService, toShard common.ShardID, param
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyShardMint: failed, err: %s", err)
 	}
-	native.NotifyRemoteShard(toShard, utils.ShardAssetAddress, 0, XSHARD_RECEIVE_ASSET, bf.Bytes())
+	native.NotifyRemoteShard(toShard, utils.ShardAssetAddress, 20000, XSHARD_RECEIVE_ASSET, bf.Bytes())
 	return nil
 }
 
@@ -194,7 +194,7 @@ func notifyTransferSuccess(native *native.NativeService, toShard common.ShardID,
 	if err := tranSuccParam.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyTransferSuccess: failed, err: %s", err)
 	}
-	native.NotifyRemoteShard(toShard, utils.ShardAssetAddress, 0, XSHARD_TRANSFER_SUCC, bf.Bytes())
+	native.NotifyRemoteShard(toShard, utils.ShardAssetAddress, 20000, XSHARD_TRANSFER_SUCC, bf.Bytes())
 	return nil
 }
 
@@ -203,6 +203,6 @@ func notifyShardReceiveOng(native *native.NativeService, toShard common.ShardID,
 	if err := param.Serialize(bf); err != nil {
 		return fmt.Errorf("notifyShardReceiveOng: failed, err: %s", err)
 	}
-	native.NotifyRemoteShard(toShard, utils.ShardAssetAddress, 0, ONG_XSHARD_RECEIVE, bf.Bytes())
+	native.NotifyRemoteShard(toShard, utils.ShardAssetAddress, 20000, ONG_XSHARD_RECEIVE, bf.Bytes())
 	return nil
 }

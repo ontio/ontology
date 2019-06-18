@@ -669,7 +669,7 @@ func NotifyParentCommitDpos(native *native.NativeService) ([]byte, error) {
 	if err := param.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyParentCommitDpos: failed, err: %s", err)
 	}
-	native.NotifyRemoteShard(native.ShardID.ParentID(), utils.ShardMgmtContractAddress, 0, COMMIT_DPOS_NAME, bf.Bytes())
+	native.NotifyRemoteShard(native.ShardID.ParentID(), utils.ShardMgmtContractAddress, 20000, COMMIT_DPOS_NAME, bf.Bytes())
 	return utils.BYTE_TRUE, nil
 }
 
@@ -743,7 +743,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	evt.ShardID = native.ShardID
 	AddNotification(native, contract, evt)
 	setShardState(native, contract, shard)
-	native.NotifyRemoteShard(shardId, contract, 0, SHARD_COMMIT_DPOS, []byte{})
+	native.NotifyRemoteShard(shardId, contract, 20000, SHARD_COMMIT_DPOS, []byte{})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -771,7 +771,7 @@ func NotifyShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	} else if !isShardCommitting {
 		return utils.BYTE_FALSE, fmt.Errorf("NotifyShardCommitDpos: shard isn't committing")
 	}
-	native.NotifyRemoteShard(shardId, contract, 0, SHARD_COMMIT_DPOS, []byte{})
+	native.NotifyRemoteShard(shardId, contract, 20000, SHARD_COMMIT_DPOS, []byte{})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -811,7 +811,7 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	sink := common.NewZeroCopySink(0)
 	shardStakeCommitParam.Serialization(sink)
-	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, 0, shard_stake.COMMIT_DPOS, sink.Bytes())
+	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, 20000, shard_stake.COMMIT_DPOS, sink.Bytes())
 	info := &shardstates.ShardCommitDposInfo{
 		TransferId:          transferId,
 		FeeAmount:           balance,
@@ -845,7 +845,7 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 	sink := common.NewZeroCopySink(0)
 	shardStakeCommitParam.Serialization(sink)
 	rootShard := common.NewShardIDUnchecked(0)
-	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, 0, shard_stake.COMMIT_DPOS, sink.Bytes())
+	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, 20000, shard_stake.COMMIT_DPOS, sink.Bytes())
 	return utils.BYTE_TRUE, nil
 }
 

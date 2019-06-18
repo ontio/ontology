@@ -67,7 +67,7 @@ func NotifyRemoteShard(service *NeoVmService, engine *vm.ExecutionEngine) error 
 }
 
 func InvokeRemoteShard(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 5 {
+	if vm.EvaluationStackCount(engine) < 4 {
 		return fmt.Errorf("too few input parameters")
 	}
 	shardId, err := vm.PopBigInt(engine)
@@ -95,7 +95,7 @@ func InvokeRemoteShard(service *NeoVmService, engine *vm.ExecutionEngine) error 
 		return fmt.Errorf("read args failed, err: %s", err)
 	}
 	_, err = service.ContextRef.InvokeRemoteShard(target, contract, string(method), args)
-	if err != nil {
+	if err == nil {
 		vm.PushData(engine, true)
 	}
 	return err

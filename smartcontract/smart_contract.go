@@ -239,7 +239,7 @@ func (this *SmartContract) NotifyRemoteShard(target common.ShardID, cont common.
 	if this.IsPreExec() {
 		return
 	}
-	if !this.CheckUseGas(fee) {
+	if this.Gas < fee {
 		log.Errorf("NotifyRemoteShard: gas not enough")
 		return
 	}
@@ -274,6 +274,9 @@ func (this *SmartContract) InvokeRemoteShard(target common.ShardID, cont common.
 	}
 	if err := this.checkMetaData(cont); err != nil {
 		return native.BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: failed, err: %s", err)
+	}
+	if this.Config.ShardID.IsRootShard() || target.IsRootShard() {
+		return native.BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: root cannot participate in")
 	}
 	txState := this.ShardTxState
 	reqIdx := txState.NextReqID
@@ -339,7 +342,7 @@ func (this *SmartContract) checkMetaData(destContract common.Address) error {
 	if _, ok := native.Contracts[this.CurrentContext().ContractAddress]; ok {
 		return nil
 	}
-	caller := this.CallingContext().ContractAddress
+	caller := this.CurrentContext().ContractAddress
 	meta, _, err := this.GetMetaData(caller)
 	if err != nil {
 		return fmt.Errorf("checkMetaData: cannot get %s meta", caller.ToHexString())
