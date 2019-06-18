@@ -100,5 +100,5 @@ func TestLockedRecurInvoke1(t *testing.T) {
 	)
 
 	// 2 req, 2 rep, 2 prep, 2 preped, 2 commit = 10
-	runLockedFlowCommand(t, sid(0), &flow, 10)
+	runLockedFlowCommand(t, sid(1), &flow, 10)
 }
