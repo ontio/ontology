@@ -160,6 +160,13 @@ func validatorCheckWitness(engine *vm.ExecutionEngine) error {
 	return nil
 }
 
+func validatorCheckShardCall(engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 1 {
+		return errors.NewErr("[validatorCheckShardCall] Too few input parameters ")
+	}
+	return nil
+}
+
 func validatorNotify(engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 1 {
 		return errors.NewErr("[validatorNotify] Too few input parameters ")

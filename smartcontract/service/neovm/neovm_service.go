@@ -72,6 +72,7 @@ var (
 		CONTRACT_GETSCRIPT_NAME:              {Execute: ContractGetCode, Validator: validatorGetCode},
 		RUNTIME_GETTIME_NAME:                 {Execute: RuntimeGetTime},
 		RUNTIME_CHECKWITNESS_NAME:            {Execute: RuntimeCheckWitness, Validator: validatorCheckWitness},
+		RUNTIME_CHECKSHARDCALL_NAME:          {Execute: RuntimeCheckShardCall, Validator: validatorCheckShardCall},
 		RUNTIME_NOTIFY_NAME:                  {Execute: RuntimeNotify, Validator: validatorNotify},
 		RUNTIME_LOG_NAME:                     {Execute: RuntimeLog, Validator: validatorLog},
 		RUNTIME_GETTRIGGER_NAME:              {Execute: RuntimeGetTrigger},
@@ -92,7 +93,6 @@ var (
 		RUNTIME_BASE58TOADDRESS_NAME:     {Execute: RuntimeBase58ToAddress},
 		RUNTIME_ADDRESSTOBASE58_NAME:     {Execute: RuntimeAddressToBase58},
 		RUNTIME_GETCURRENTBLOCKHASH_NAME: {Execute: RuntimeGetCurrentBlockHash},
-		RUNTIME_GETREMAINGAS_NAME:        {Execute: RuntimeGetRemainGas},
 	}
 )
 
@@ -114,7 +114,7 @@ var (
 )
 
 type (
-	Execute   func(service *NeoVmService, engine *vm.ExecutionEngine) error
+	Execute func(service *NeoVmService, engine *vm.ExecutionEngine) error
 	Validator func(engine *vm.ExecutionEngine) error
 )
 
