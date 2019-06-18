@@ -124,3 +124,19 @@ func TestUserUnboundOngInfo(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, state, newState)
 }
+func TestXShardFeeInfo(t *testing.T) {
+	info := &XShardFeeInfo{
+		Debt: map[common.ShardID]map[View]uint64{
+			common.NewShardIDUnchecked(0): {1: uint64(10)},
+		},
+		Income: map[common.ShardID]map[View]uint64{
+			common.NewShardIDUnchecked(0): {1: uint64(10)},
+		},
+	}
+	sink := common.NewZeroCopySink(0)
+	info.Serialization(sink)
+	source := common.NewZeroCopySource(sink.Bytes())
+	deseInfo := &XShardFeeInfo{}
+	err := deseInfo.Deserialization(source)
+	assert.Nil(t, err)
+}

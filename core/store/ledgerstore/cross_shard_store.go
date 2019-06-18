@@ -81,7 +81,10 @@ func (this *CrossShardStore) GetCrossShardMsgByHash(msgHash common.Uint256) (*ty
 	}
 	source := common.NewZeroCopySource(data)
 	crossShardMsg := &types.CrossShardMsg{}
-	crossShardMsg.Deserialization(source)
+	err = crossShardMsg.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
 	return crossShardMsg, nil
 }
 
@@ -239,7 +242,7 @@ func (this *CrossShardStore) genShardConsensusHeightKey(shardID common.ShardID) 
 
 func (this *CrossShardStore) SaveShardMsgHash(shardID common.ShardID, msgHash common.Uint256) error {
 	this.NewBatch()
-	key := this.getCrossShardKeyByHash(shardID)
+	key := this.getShardMsgKeyByShard(shardID)
 	value := common.NewZeroCopySink(64)
 	value.WriteBytes(msgHash[:])
 	this.store.BatchPut(key, value.Bytes())
@@ -250,11 +253,9 @@ func (this *CrossShardStore) SaveShardMsgHash(shardID common.ShardID, msgHash co
 	return nil
 }
 
-func (self *CrossShardStore) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
-	keys := common.NewZeroCopySink(16)
-	keys.WriteByte(byte(scom.XSHARD_KEY_MSG_HASH))
-	keys.WriteShardID(shardID)
-	buf, err := self.store.Get(keys.Bytes())
+func (this *CrossShardStore) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
+	key := this.getShardMsgKeyByShard(shardID)
+	buf, err := this.store.Get(key)
 	if err != nil {
 		return common.Uint256{}, err
 	}

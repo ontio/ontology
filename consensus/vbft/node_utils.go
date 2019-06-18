@@ -501,8 +501,16 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 			}
 		}
 		crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
-		self.ledger.SaveShardMsgHash(crossMsg.ShardID, msgRoot)
-		self.ledger.SaveCrossShardMsgByHash(preMsgHash, crossShardMsg)
+		err = self.ledger.SaveShardMsgHash(crossMsg.ShardID, msgRoot)
+		if err != nil {
+			log.Errorf("SaveShardMsgHash shardID:%v,msgHash:%s,err:%s", crossMsg.ShardID, msgRoot.ToHexString(), err)
+			continue
+		}
+		err = self.ledger.SaveCrossShardMsgByHash(preMsgHash, crossShardMsg)
+		if err != nil {
+			log.Errorf("SaveCrossShardMsgByHash preMsgHash:%s,err:%s", preMsgHash.ToHexString(), err)
+			continue
+		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{

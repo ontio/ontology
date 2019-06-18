@@ -183,8 +183,8 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 	defer pool.lock.RUnlock()
 	crossShardInfo := make([]*types.CrossShardTxInfos, 0)
 	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
-	if !FromShardID.IsParentID() {
-		shardMsg, err := lgr.ParentLedger.GetShardMsgsInBlock(parentblkNum, FromShardID)
+	if !FromShardID.IsRootShard() {
+		shardMsg, err := lgr.ParentLedger.GetShardMsgsInBlock(parentblkNum-1, FromShardID)
 		if err != nil {
 			if err != com.ErrNotFound {
 				return nil, fmt.Errorf("GetShardMsgsInBlock parentblkNum:%d,shardID:%v,err:%s", parentblkNum, FromShardID, err)
@@ -197,6 +197,10 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 			return nil, fmt.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", parentblkNum, err)
 		}
 		shardTxInfo := &types.CrossShardTxInfos{
+			ShardMsg: &types.CrossShardMsgInfo{
+				FromShardID: FromShardID,
+				MsgHeight:   parentblkNum,
+			},
 			Tx: tx,
 		}
 		crossShardInfo = append(crossShardInfo, shardTxInfo)

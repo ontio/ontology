@@ -1245,6 +1245,9 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 	}
 	for _, crossTxMsgs := range msg.Block.Block.ShardTxs {
 		for _, crossTxMsg := range crossTxMsgs {
+			if crossTxMsg.ShardMsg == nil {
+				continue
+			}
 			//verify msg sign
 			chainconfig, err := getShardConfigByShardID(self.ledger, crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight)
 			if err != nil {
@@ -2354,6 +2357,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
+	needChangeShardConsensus := true
 	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
 		isRootShard := self.ShardID.IsRootShard()
 		var chainconfig *vconfig.ChainConfig
@@ -2366,7 +2370,11 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 		} else {
 			chainconfig, err = getShardConfig(self.ledger, self.ShardID, blkNum)
 			if err != nil {
-				return fmt.Errorf("getShardChainConfig failed:%s", err)
+				if err == com.ErrNotFound {
+					needChangeShardConsensus = false
+				} else {
+					return fmt.Errorf("getShardChainConfig failed:%s", err)
+				}
 			}
 		}
 		//add transaction invoke governance native commit_pos contract
@@ -2382,10 +2390,14 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 				return fmt.Errorf("construct governace transaction error: %v", err)
 			}
 			sysTxs = append(sysTxs, tx)
-			chainconfig.View++
+			if needChangeShardConsensus {
+				chainconfig.View++
+			}
 		}
 		forEmpty = true
-		cfg = chainconfig
+		if needChangeShardConsensus {
+			cfg = chainconfig
+		}
 	}
 	if self.nonConsensusNode() {
 		return fmt.Errorf("%d quit consensus node", self.Index)

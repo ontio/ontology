@@ -55,7 +55,7 @@ func TestSaveCrossShardMsgByHash(t *testing.T) {
 	}
 	msgHash := msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString()
 	if crossShardRoot.ToHexString() != msgHash {
-		t.Errorf("crossShardMsg len not match:%d,%d", crossShardRoot.ToHexString(), msgHash)
+		t.Errorf("crossShardMsg len not match:%d,%d", crossShardRoot.ToHexString(), msgHash.ToHexString())
 		return
 	}
 }
@@ -157,6 +157,22 @@ func TestSaveCrossShardHash(t *testing.T) {
 	if err != nil {
 		t.Errorf("GetCrossShardHash shardID:%v,err:%v", shardID, err)
 	}
+	if bytes.Compare(msgHash[:], hash[:]) != 0 {
+		t.Errorf("msg hash not match")
+	}
+}
+
+func TestSaveShardMsgHash(t *testing.T) {
+	shardID := common.NewShardIDUnchecked(1)
+	msgHash := common.Uint256{1, 2, 3}
+	testCrossShardStore.NewBatch()
+	testCrossShardStore.SaveShardMsgHash(shardID, msgHash)
+	err := testCrossShardStore.CommitTo()
+	if err != nil {
+		t.Errorf("TestSaveShardMsgHash CommitTo err :%s", err)
+		return
+	}
+	hash, err := testCrossShardStore.GetShardMsgHash(shardID)
 	if bytes.Compare(msgHash[:], hash[:]) != 0 {
 		t.Errorf("msg hash not match")
 	}

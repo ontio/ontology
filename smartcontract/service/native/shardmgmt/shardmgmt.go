@@ -20,7 +20,6 @@ package shardmgmt
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
@@ -706,7 +705,8 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	} else if !native.ContextRef.CheckCallShard(param.ShardId) {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: only can be invoked by ShardCall")
 	} else if param.Height < shardCurrentView.Height ||
-		param.Height-shardCurrentView.Height < shard.Config.VbftCfg.MaxBlockChangeView {
+		shardCurrentView.Height > 0 && param.Height-shardCurrentView.Height < shard.Config.VbftCfg.MaxBlockChangeView ||
+		shardCurrentView.Height == 0 && param.Height-shardCurrentView.Height+1 < shard.Config.VbftCfg.MaxBlockChangeView {
 		return utils.BYTE_FALSE, fmt.Errorf("CommitDpos: shard height not enough")
 	}
 	quitPeers := make([]string, 0)
@@ -876,9 +876,6 @@ func GetShardCommitDPosInfo(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: failed, err: %s", err)
 	}
-	data, err := json.Marshal(info)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: marshal info failed, err: %s", err)
-	}
-	return data, nil
+	data := fmt.Sprintf("%v", info)
+	return []byte(data), nil
 }

@@ -33,5 +33,5 @@ func TestPingSerializationDeserialization(t *testing.T) {
 	}
 	msg.Height[0] = heightInfo
 
-	MessageTest(t, &msg
+	MessageTest(t, &msg)
 }
