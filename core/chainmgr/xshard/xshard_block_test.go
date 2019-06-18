@@ -35,7 +35,7 @@ func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
 			MsgHeight:            uint32(90),
 			SignMsgHeight:        uint32(100),
 			PreCrossShardMsgHash: common.Uint256{},
-			CrossShardMsgRoot: common.Uint256{1,2,3},
+			CrossShardMsgRoot:    common.Uint256{1, 2, 3},
 		},
 	}
 	return shardMsg
@@ -87,7 +87,7 @@ func TestAddCrossShardInfo(t *testing.T) {
 	acc1 := account.NewAccount("")
 	crossShardTx, err := GetCrossShardTxs(lgr, acc1, common.NewShardIDUnchecked(10))
 	if err != nil {
-		t.Errorf("GetCrossShardTxs failed:%s",err)
+		t.Errorf("GetCrossShardTxs failed:%s", err)
 	}
 	t.Logf("GetCrossShardTxs:%d", len(crossShardTx))
 }
