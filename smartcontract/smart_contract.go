@@ -243,7 +243,7 @@ func (this *SmartContract) NotifyRemoteShard(target common.ShardID, cont common.
 		log.Errorf("NotifyRemoteShard: gas not enough")
 		return
 	}
-	if err := this.checkMetaData(cont); err != nil {
+	if err := this.checkInvoke(cont); err != nil {
 		log.Errorf("NotifyRemoteShard: failed, err: %s", err)
 		return
 	}
@@ -272,7 +272,7 @@ func (this *SmartContract) InvokeRemoteShard(target common.ShardID, cont common.
 	if this.IsPreExec() {
 		return native.BYTE_TRUE, nil
 	}
-	if err := this.checkMetaData(cont); err != nil {
+	if err := this.checkInvoke(cont); err != nil {
 		return native.BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: failed, err: %s", err)
 	}
 	if this.Config.ShardID.IsRootShard() || target.IsRootShard() {
@@ -337,19 +337,21 @@ func (this *SmartContract) InvokeRemoteShard(target common.ShardID, cont common.
 	return native.BYTE_FALSE, xshard_state.ErrYield
 }
 
-func (this *SmartContract) checkMetaData(destContract common.Address) error {
+func (this *SmartContract) checkInvoke(destContract common.Address) error {
 	// if caller is native contract, no need to check destContract
 	if _, ok := native.Contracts[this.CurrentContext().ContractAddress]; ok {
 		return nil
+	} else if _, ok := native.Contracts[destContract]; ok {
+		return fmt.Errorf("checkInvoke: neovm contract cannot x-shard call native contract")
 	}
 	caller := this.CurrentContext().ContractAddress
 	meta, _, err := this.GetMetaData(caller)
 	if err != nil {
-		return fmt.Errorf("checkMetaData: cannot get %s meta", caller.ToHexString())
+		return fmt.Errorf("checkInvoke: cannot get %s meta", caller.ToHexString())
 
 	}
 	if meta == nil {
-		return fmt.Errorf("checkMetaData: self %s doesn't initialized meta", caller.ToHexString())
+		return fmt.Errorf("checkInvoke: self %s doesn't initialized meta", caller.ToHexString())
 	}
 	canInvoke := false
 	for _, addr := range meta.InvokedContract {
@@ -359,7 +361,7 @@ func (this *SmartContract) checkMetaData(destContract common.Address) error {
 		}
 	}
 	if !canInvoke {
-		return fmt.Errorf("checkMetaData: contract %s unregister to self %s meta",
+		return fmt.Errorf("checkInvoke: contract %s unregister to self %s meta",
 			destContract.ToHexString(), caller.ToHexString())
 	}
 	return nil
