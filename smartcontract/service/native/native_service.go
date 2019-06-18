@@ -149,6 +149,9 @@ func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.A
 	if err := ctx.checkMetaData(cont); err != nil {
 		return BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: failed, err: %s", err)
 	}
+	if ctx.ShardID.IsRootShard() || target.IsRootShard() {
+		return BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: root cannot participate in")
+	}
 	txState := ctx.ShardTxState
 	reqIdx := txState.NextReqID
 	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
