@@ -19,6 +19,8 @@
 package vbft
 
 import (
+	"crypto/rand"
+	"crypto/sha512"
 	"testing"
 
 	"github.com/ontio/ontology/common"
@@ -43,7 +45,6 @@ func constructServer() *Server {
 	}
 	blockparticipantconfig := &BlockParticipantConfig{
 		BlockNum:   1,
-		L:          uint32(2),
 		Proposers:  []uint32{1, 2, 3},
 		Endorsers:  []uint32{1, 2, 3},
 		Committers: []uint32{1, 2, 3},
@@ -52,11 +53,11 @@ func constructServer() *Server {
 		Version:              1,
 		View:                 12,
 		N:                    4,
-		C:                    3,
+		C:                    1,
 		BlockMsgDelay:        1000,
 		HashMsgDelay:         1000,
 		PeerHandshakeTimeout: 10000,
-		PosTable:             []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3},
+		PosTable:             []uint32{2, 3, 1, 3, 1, 3, 2, 3, 2, 3, 2, 1, 3, 0},
 	}
 	chainstore := &ChainStore{
 		chainedBlockNum: 2,
@@ -149,4 +150,64 @@ func TestGetCommitConsensus(t *testing.T) {
 	commitMsgs = append(commitMsgs, blockcommitmsg)
 	blockproposer, flag := getCommitConsensus(commitMsgs, 2, 7)
 	t.Logf("TestGetCommitConsensus %d ,%v", blockproposer, flag)
+}
+
+func newTestVrfValue() vconfig.VRFValue {
+	v := make([]byte, 1024)
+	rand.Read(v[:])
+	t := sha512.Sum512(v)
+	f := sha512.Sum512(t[:])
+	return vconfig.VRFValue(f)
+}
+
+func TestCalcParticipantPeers(t *testing.T) {
+	for i := 4; i < 100; i++ {
+		testCalcParticipantPeers(t, i, (i-1)/3)
+	}
+	for i := 5; i < 100; i++ {
+		testCalcParticipantPeers(t, i, (i-1)/4)
+	}
+}
+
+func testCalcParticipantPeers(t *testing.T, n, c int) {
+	server := constructServer()
+
+	pos := make([]uint32, 0)
+	for i := 0; i < n; i++ {
+		for j := 0; j < 4; j++ {
+			pos = append(pos, uint32(i))
+		}
+	}
+
+	chainCfg := server.config
+	chainCfg.N = uint32(n)
+	chainCfg.C = uint32(c)
+	chainCfg.PosTable = pos
+
+	cfg := &BlockParticipantConfig{
+		BlockNum:    100,
+		Vrf:         newTestVrfValue(),
+		ChainConfig: chainCfg,
+	}
+
+	pp, pe, pc := calcParticipantPeers(cfg, chainCfg)
+	if len(pp) != c+1 {
+		t.Fatalf("invalid peers(%d, %d): %v, %v, %v", n, c, pp, pe, pc)
+	}
+
+	peers := make(map[uint32]bool)
+	for _, p := range pp {
+		peers[p] = true
+	}
+	for _, p := range pe {
+		peers[p] = true
+	}
+	for _, p := range pc {
+		peers[p] = true
+	}
+	if len(peers) <= 3*c {
+		if len(peers) <= 2*c+1 {
+			t.Fatalf("peers(%d, %d, %d, %d, %d, %d): %v, %v, %v", n, c, len(peers), len(pp), len(pe), len(pc), pp, pe, pc)
+		}
+	}
 }

@@ -69,10 +69,9 @@ func HashMsg(msg ConsensusMsg) (common.Uint256, error) {
 }
 
 type seedData struct {
-	BlockNum          uint32         `json:"block_num"`
-	PrevBlockProposer uint32         `json:"prev_block_proposer"` // TODO: change to NodeID
-	BlockRoot         common.Uint256 `json:"block_root"`
-	VrfValue          []byte         `json:"vrf_value"`
+	BlockNum          uint32 `json:"block_num"`
+	PrevBlockProposer uint32 `json:"prev_block_proposer"`
+	VrfValue          []byte `json:"vrf_value"`
 }
 
 func getParticipantSelectionSeed(block *Block) vconfig.VRFValue {
@@ -80,7 +79,6 @@ func getParticipantSelectionSeed(block *Block) vconfig.VRFValue {
 	data, err := json.Marshal(&seedData{
 		BlockNum:          block.getBlockNum() + 1,
 		PrevBlockProposer: block.getProposer(),
-		BlockRoot:         block.Block.Header.BlockRoot,
 		VrfValue:          block.getVrfValue(),
 	})
 	if err != nil {
@@ -127,6 +125,7 @@ func verifyVrf(pk keypair.PublicKey, blkNum uint32, prevVrf, newVrf, proof []byt
 	}
 	return nil
 }
+
 func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 	//get governance view
 	goveranceview, err := GetGovernanceView(memdb)
