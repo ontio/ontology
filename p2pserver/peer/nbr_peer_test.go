@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
 func createPeers(cnt uint16) []*Peer {
@@ -31,8 +34,11 @@ func createPeers(cnt uint16) []*Peer {
 	for i := uint16(0); i < cnt; i++ {
 		syncport = 20224 + i
 		id = 0x7533345 + uint64(i)
-		heights := make(map[uint64]uint32)
-		heights[0] = uint32(434923 + uint32(i))
+		heights := make(map[uint64]*types.HeightInfo)
+		heights[0] = &types.HeightInfo{
+			Height:  uint32(434923 + uint32(i)),
+			MsgHash: common.Uint256{1, 2, 3},
+		}
 		p := NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, heights, "1.5.2")
 		p.SetState(3)
@@ -76,8 +82,11 @@ func TestGetPeer(t *testing.T) {
 
 func TestAddNbrNode(t *testing.T) {
 	nm := initTestNbrPeers()
-	heights := make(map[uint64]uint32)
-	heights[0] = uint32(100)
+	heights := make(map[uint64]*types.HeightInfo)
+	heights[0] = &types.HeightInfo{
+		Height:  100,
+		MsgHash: common.Uint256{1, 2, 3},
+	}
 	p := NewPeer()
 	p.UpdateInfo(time.Now(), 2, 3, 10335, 0x7123456, 0, heights, "1.5.2")
 	p.SetState(3)
