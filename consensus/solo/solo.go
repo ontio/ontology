@@ -246,6 +246,16 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 		} else {
 			crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
 		}
+		err = self.ledger.SaveShardMsgHash(crossMsg.ShardID, msgRoot)
+		if err != nil {
+			log.Errorf("SaveShardMsgHash shardID:%v,msgHash:%s,err:%s", crossMsg.ShardID, msgRoot.ToHexString(), err)
+			continue
+		}
+		err = self.ledger.SaveCrossShardMsgByHash(preMsgHash, crossShardMsg)
+		if err != nil {
+			log.Errorf("SaveCrossShardMsgByHash preMsgHash:%s,err:%s", preMsgHash.ToHexString(), err)
+			continue
+		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{

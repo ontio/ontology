@@ -80,12 +80,17 @@ func TestAddCrossShardInfo(t *testing.T) {
 		t.Errorf("failed to new ledger")
 		return
 	}
-	err = AddCrossShardInfo(lgr, crossmsg)
+	db, err := ledger.NewShardLedger(shardID, config.DEFAULT_DATA_DIR, lgr)
+	if err != nil {
+		t.Errorf("failed to new ledger")
+		return
+	}
+	err = AddCrossShardInfo(db, crossmsg)
 	if err != nil {
 		t.Errorf("AddCrossShardInfo error")
 	}
 	acc1 := account.NewAccount("")
-	crossShardTx, err := GetCrossShardTxs(lgr, acc1, common.NewShardIDUnchecked(10), 10)
+	crossShardTx, err := GetCrossShardTxs(db, acc1, common.NewShardIDUnchecked(10), 10)
 	if err != nil {
 		t.Errorf("GetCrossShardTxs failed:%s", err)
 	}
