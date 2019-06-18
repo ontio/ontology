@@ -114,7 +114,7 @@ var (
 )
 
 type (
-	Execute func(service *NeoVmService, engine *vm.ExecutionEngine) error
+	Execute   func(service *NeoVmService, engine *vm.ExecutionEngine) error
 	Validator func(engine *vm.ExecutionEngine) error
 )
 
