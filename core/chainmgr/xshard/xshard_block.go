@@ -185,7 +185,7 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
 	if !FromShardID.IsRootShard() {
 		if lgr.ParentLedger == nil {
-			return nil,nil
+			return nil, nil
 		}
 		shardMsg, err := lgr.ParentLedger.GetShardMsgsInBlock(parentblkNum-1, FromShardID)
 		if err != nil {

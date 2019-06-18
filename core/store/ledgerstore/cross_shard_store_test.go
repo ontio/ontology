@@ -55,7 +55,7 @@ func TestSaveCrossShardMsgByHash(t *testing.T) {
 	}
 	msgHash := msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString()
 	if crossShardRoot.ToHexString() != msgHash {
-		t.Errorf("crossShardMsg len not match:%d,%d", crossShardRoot.ToHexString(), msgHash.ToHexString())
+		t.Errorf("crossShardMsg len not match:%d,%d", crossShardRoot.ToHexString(), msgHash)
 		return
 	}
 }

@@ -43,7 +43,6 @@ func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
 func TestCrossShardPool(t *testing.T) {
 	InitCrossShardPool(common.NewShardIDUnchecked(1), 100)
 	shardMsg := newTestShardMsg(t)
-	//acc1 := account.NewAccount("")
 	ldg, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
 		t.Errorf("failed to new ledger")
@@ -52,6 +51,7 @@ func TestCrossShardPool(t *testing.T) {
 	if err = AddCrossShardInfo(ldg, shardMsg); err != nil {
 		t.Fatalf("failed add CrossShardInfo:%s", err)
 	}
+	ldg.Close()
 }
 func TestAddShardInfo(t *testing.T) {
 	shardID := common.NewShardIDUnchecked(0)
@@ -59,7 +59,7 @@ func TestAddShardInfo(t *testing.T) {
 	shardID = common.NewShardIDUnchecked(1)
 	ldg, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
-		t.Errorf("failed to new ledger")
+		t.Errorf("failed to new ledger err:%s", err)
 		return
 	}
 	AddShardInfo(ldg, shardID)
@@ -69,6 +69,7 @@ func TestAddShardInfo(t *testing.T) {
 	} else {
 		t.Logf("shardId found:%v", shardId)
 	}
+	ldg.Close()
 }
 
 func TestAddCrossShardInfo(t *testing.T) {
@@ -77,12 +78,12 @@ func TestAddCrossShardInfo(t *testing.T) {
 	crossmsg := newTestShardMsg(t)
 	lgr, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
-		t.Errorf("failed to new ledger")
+		t.Errorf("failed to new ledger err:%s", err)
 		return
 	}
 	db, err := ledger.NewShardLedger(shardID, config.DEFAULT_DATA_DIR, lgr)
 	if err != nil {
-		t.Errorf("failed to new ledger")
+		t.Errorf("failed to new ledger err:%s", err)
 		return
 	}
 	err = AddCrossShardInfo(db, crossmsg)
