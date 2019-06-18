@@ -112,7 +112,7 @@ func ExecuteShardCommand(native *native.NativeService, command ShardCommand) ([]
 			result = append(result, res...)
 		}
 	case *NotifyCommand:
-		native.NotifyRemoteShard(cmd.Target, cont, 20000, "executeShardCommand", EncodeShardCommandToBytes(cmd.Cmd))
+		native.NotifyRemoteShard(cmd.Target, cont, cmd.Fee, "executeShardCommand", EncodeShardCommandToBytes(cmd.Cmd))
 	case *InvokeCommand:
 		res, err := native.InvokeRemoteShard(cmd.Target, cont, "executeShardCommand", EncodeShardCommandToBytes(cmd.Cmd))
 		if err != nil {

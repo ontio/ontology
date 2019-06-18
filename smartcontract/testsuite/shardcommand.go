@@ -103,6 +103,7 @@ func (self *GreetCommand) Deserialization(source *common.ZeroCopySource) error {
 
 type NotifyCommand struct {
 	Target common.ShardID
+	Fee    uint64
 	Cmd    ShardCommand
 }
 
@@ -112,6 +113,7 @@ func (self *NotifyCommand) CmdType() CmdType {
 
 func (self *NotifyCommand) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteShardID(self.Target)
+	sink.WriteUint64(self.Fee)
 	EncodeShardCommand(sink, self.Cmd)
 }
 
@@ -120,6 +122,11 @@ func (self *NotifyCommand) Deserialization(source *common.ZeroCopySource) error 
 	if err != nil {
 		return err
 	}
+	fee, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	self.Fee = fee
 	cmd, err := DecodeShardCommand(source)
 	if err != nil {
 		return err
@@ -174,10 +181,11 @@ func (self *InvokeCommand) CmdType() CmdType {
 	return InvokeCmd
 }
 
-func NewNotifyCommand(target common.ShardID, cmd ShardCommand) *NotifyCommand {
+func NewNotifyCommand(target common.ShardID, fee uint64, cmd ShardCommand) *NotifyCommand {
 	var res NotifyCommand
 	res.Target = target
 	res.Cmd = cmd
+	res.Fee = fee
 	return &res
 }
 
@@ -185,5 +193,6 @@ func NewInvokeCommand(target common.ShardID, cmd ShardCommand) *InvokeCommand {
 	var res InvokeCommand
 	res.Target = target
 	res.Cmd = cmd
+	res.Fee = 20000
 	return &res
 }
