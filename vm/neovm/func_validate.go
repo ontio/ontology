@@ -551,6 +551,7 @@ func validateNewArray(e *ExecutionEngine) error {
 	}
 
 	count, err := PeekBigInteger(e)
+
 	if err != nil {
 		return err
 	}
@@ -591,6 +592,13 @@ func validateAppend(e *ExecutionEngine) error {
 	if !ok1 && !ok2 {
 		return fmt.Errorf("validateAppend error: %s", errors.ERR_NOT_SUPPORT_TYPE)
 	}
+
+	arr, _ := arrItem.GetArray()
+	count := big.NewInt(int64(len(arr) + 1))
+	if count.Cmp(big.NewInt(int64(MAX_ARRAY_SIZE))) > 0 {
+		return errors.ERR_OVER_MAX_ARRAY_SIZE
+	}
+
 	return nil
 }
 
