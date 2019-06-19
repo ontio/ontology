@@ -20,12 +20,18 @@ package types
 
 import (
 	"testing"
+
+	"github.com/ontio/ontology/common"
 )
 
 func TestPongSerializationDeserialization(t *testing.T) {
 	var msg Pong
-	msg.Height = make(map[uint64]uint32)
-	msg.Height[0] = uint32(1)
+	msg.Height = make(map[uint64]*HeightInfo)
+	heightInfo := &HeightInfo{
+		Height:  uint32(1),
+		MsgHash: common.Uint256{1, 2, 3},
+	}
+	msg.Height[0] = heightInfo
 
 	MessageTest(t, &msg)
 }

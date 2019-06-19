@@ -24,7 +24,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 )
@@ -32,29 +31,69 @@ import (
 func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
 	shardMsg := &types.CrossShardMsg{
 		CrossShardMsgInfo: &types.CrossShardMsgInfo{
-			FromShardID:   common.NewShardIDUnchecked(0),
-			MsgHeight:     uint32(90),
-			SignMsgHeight: uint32(100),
+			FromShardID:          common.NewShardIDUnchecked(1),
+			MsgHeight:            uint32(90),
+			SignMsgHeight:        uint32(100),
+			PreCrossShardMsgHash: common.Uint256{},
+			CrossShardMsgRoot:    common.Uint256{1, 2, 3},
 		},
 	}
 	return shardMsg
 }
-
 func TestCrossShardPool(t *testing.T) {
 	InitCrossShardPool(common.NewShardIDUnchecked(1), 100)
 	shardMsg := newTestShardMsg(t)
-	acc1 := account.NewAccount("")
-	tx, err := crossshard.NewCrossShardTxMsg(acc1, uint32(120), shardMsg.CrossShardMsgInfo.FromShardID, 0, 20000, nil)
-	if err != nil {
-		t.Errorf("crossShardPool NewCrossShardTxMsg err:%s", err)
-		return
-	}
 	ldg, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
 		t.Errorf("failed to new ledger")
 		return
 	}
-	if err = AddCrossShardInfo(ldg, shardMsg, tx); err != nil {
+	if err = AddCrossShardInfo(ldg, shardMsg); err != nil {
 		t.Fatalf("failed add CrossShardInfo:%s", err)
 	}
+	ldg.Close()
+}
+func TestAddShardInfo(t *testing.T) {
+	shardID := common.NewShardIDUnchecked(0)
+	InitCrossShardPool(shardID, 10)
+	shardID = common.NewShardIDUnchecked(1)
+	ldg, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
+	if err != nil {
+		t.Errorf("failed to new ledger err:%s", err)
+		return
+	}
+	AddShardInfo(ldg, shardID)
+	shardInfo := GetShardInfo()
+	if shardId, present := shardInfo[shardID]; !present {
+		t.Errorf("shardID not found:%v", shardID)
+	} else {
+		t.Logf("shardId found:%v", shardId)
+	}
+	ldg.Close()
+}
+
+func TestAddCrossShardInfo(t *testing.T) {
+	shardID := common.NewShardIDUnchecked(0)
+	InitCrossShardPool(shardID, 10)
+	crossmsg := newTestShardMsg(t)
+	lgr, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
+	if err != nil {
+		t.Errorf("failed to new ledger err:%s", err)
+		return
+	}
+	db, err := ledger.NewShardLedger(shardID, config.DEFAULT_DATA_DIR, lgr)
+	if err != nil {
+		t.Errorf("failed to new ledger err:%s", err)
+		return
+	}
+	err = AddCrossShardInfo(db, crossmsg)
+	if err != nil {
+		t.Errorf("AddCrossShardInfo error")
+	}
+	acc1 := account.NewAccount("")
+	crossShardTx, err := GetCrossShardTxs(db, acc1, common.NewShardIDUnchecked(10), 10)
+	if err != nil {
+		t.Errorf("GetCrossShardTxs failed:%s", err)
+	}
+	t.Logf("GetCrossShardTxs:%d", len(crossShardTx))
 }

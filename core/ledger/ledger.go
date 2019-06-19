@@ -365,15 +365,25 @@ func (self *Ledger) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.Shar
 	return self.ldgStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
-func (self *Ledger) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
-	return self.ldgStore.GetShardMsgHash(shardID)
+func (self *Ledger) SaveCrossShardMsgByHash(msgHash common.Uint256, crossShardMsg *types.CrossShardMsg) error {
+	return self.cshardStore.SaveCrossShardMsgByHash(msgHash, crossShardMsg)
+}
+func (self *Ledger) GetCrossShardMsgByHash(msgHash common.Uint256) (*types.CrossShardMsg, error) {
+	return self.cshardStore.GetCrossShardMsgByHash(msgHash)
 }
 
-func (self *Ledger) SaveCrossShardMsgByShardID(shardID common.ShardID, crossShardTxInfos []*types.CrossShardTxInfos) error {
-	return self.cshardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
+func (self *Ledger) SaveAllShardIDs(shardIDs []common.ShardID) error {
+	return self.cshardStore.SaveAllShardIDs(shardIDs)
 }
-func (self *Ledger) GetCrossShardMsgByShardID(shardID common.ShardID) ([]*types.CrossShardTxInfos, error) {
-	return self.cshardStore.GetCrossShardMsgByShardID(shardID)
+func (self *Ledger) GetAllShardIDs() ([]common.ShardID, error) {
+	return self.cshardStore.GetAllShardIDs()
+}
+
+func (self *Ledger) SaveCrossShardHash(shardID common.ShardID, msgHash common.Uint256) error {
+	return self.cshardStore.SaveCrossShardHash(shardID, msgHash)
+}
+func (self *Ledger) GetCrossShardHash(shardID common.ShardID) (common.Uint256, error) {
+	return self.cshardStore.GetCrossShardHash(shardID)
 }
 
 func (self *Ledger) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
@@ -387,6 +397,14 @@ func (self *Ledger) AddShardConsensusHeight(shardID common.ShardID, value []uint
 }
 func (self *Ledger) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
 	return self.cshardStore.GetShardConsensusHeight(shardID)
+}
+
+func (self *Ledger) SaveShardMsgHash(shardID common.ShardID, msgHash common.Uint256) error {
+	return self.cshardStore.SaveShardMsgHash(shardID, msgHash)
+}
+
+func (self *Ledger) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
+	return self.cshardStore.GetShardMsgHash(shardID)
 }
 
 func (self *Ledger) Close() error {
@@ -405,4 +423,14 @@ func (self *Ledger) GetParentHeight() uint32 {
 		return self.ParentLedger.GetCurrentBlockHeight()
 	}
 	return 0
+}
+func (self *Ledger) HasParentBlockInCache(height uint32) bool {
+	if self.ParentBlockCache != nil {
+		_, _, err := self.ParentBlockCache.GetBlock(height)
+		if err != nil {
+			return false
+		}
+		return true
+	}
+	return false
 }

@@ -21,6 +21,9 @@ package peer
 import (
 	"testing"
 	"time"
+
+	com "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
 func initTestPeer() *Peer {
@@ -29,8 +32,11 @@ func initTestPeer() *Peer {
 	p.base.services = 1
 	p.base.port = 10338
 	p.base.relay = true
-	p.base.height = make(map[uint64]uint32)
-	p.base.height[0] = 123355
+	p.base.height = make(map[uint64]*types.HeightInfo)
+	p.base.height[0] = &types.HeightInfo{
+		Height:  123355,
+		MsgHash: com.Uint256{1, 2, 3},
+	}
 	p.base.id = 29357734007
 
 	return p
@@ -76,13 +82,13 @@ func TestGetPeerComInfo(t *testing.T) {
 	}
 
 	h := p.base.GetHeight()
-	if h[0] != 123355 {
+	if h[0].Height != 123355 {
 		t.Errorf("PeerCom GetHeight error")
 	} else {
-		h[0] = uint32(234343497)
+		h[0].Height = uint32(234343497)
 		p.base.SetHeight(h)
 		h2 := p.base.GetHeight()
-		if h2[0] != 234343497 {
+		if h2[0].Height != 234343497 {
 			t.Errorf("PeerCom SetHeight error")
 		}
 	}
@@ -99,8 +105,11 @@ func TestGetPeerComInfo(t *testing.T) {
 
 func TestUpdatePeer(t *testing.T) {
 	p := initTestPeer()
-	height := make(map[uint64]uint32)
-	height[0] = 123355
+	height := make(map[uint64]*types.HeightInfo)
+	height[0] = &types.HeightInfo{
+		Height:  123355,
+		MsgHash: com.Uint256{1, 2, 3},
+	}
 	p.UpdateInfo(time.Now(), 3, 3, 30334, 0x7533345, 0, height, "1.5.2")
 	p.SetState(3)
 	p.SetHttpInfoState(true)

@@ -59,6 +59,7 @@ func (this *XShardFeeInfo) Serialization(sink *common.ZeroCopySink) {
 			sink.WriteUint64(debts[view])
 		}
 	}
+	sink.WriteUint64(uint64(len(this.Income)))
 	incomeShards := make([]common.ShardID, 0)
 	for shard := range this.Income {
 		incomeShards = append(incomeShards, shard)

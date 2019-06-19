@@ -20,12 +20,14 @@ package chainmgr
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
@@ -44,7 +46,7 @@ func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) erro
 }
 
 func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) error {
-	if !self.shardID.IsParentID() {
+	if evt.ImplSourceTargetShardID.ShardID.ParentID() == self.shardID {
 		return nil
 	}
 	self.AddShardEventConfig(evt.Height, evt.ImplSourceTargetShardID.ShardID, evt.Config, evt.Peers)
@@ -97,7 +99,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
 	}
 	self.AddShardEventConfig(0, evt.ShardID, shardState.Config, shardState.Peers)
-	if evt.ShardID == self.shardID && evt.ShardID.IsParentID() || self.shardID.IsRootShard() {
+	if evt.ShardID == self.shardID && evt.ShardID.ParentID() == self.shardID || self.shardID.IsRootShard() {
 		log.Infof("self shardID equal evt shardID or is rootshard:%v", evt.ShardID)
 		return nil
 	}
@@ -145,13 +147,44 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) {
 		return
 	}
 	log.Infof("chainmgr shard %d, get new block %d from shard %d", self.shardID, blk.Header.Height, blk.Header.ShardID)
+	if err := self.handleRootChainConfig(blk); err != nil {
+		log.Errorf("shard %d, handle rootchain chainConfig block in block %d: %s", self.shardID, blk.Header.Height, err)
+	}
 	if err := self.handleRootChainBlock(); err != nil {
 		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 }
+func (self *ChainManager) handleRootChainConfig(block *types.Block) error {
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		return nil
+	}
+	blkInfo := &vconfig.VbftBlockInfo{}
+	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
+		return fmt.Errorf("unmarshal blockInfo: %s", err)
+	}
+	if blkInfo.LastConfigBlockNum != block.Header.Height {
+		return nil
+	}
+	config := &shardstates.ShardConfig{
+		VbftCfg: &config.VBFTConfig{
+			N: blkInfo.NewChainConfig.N,
+			C: blkInfo.NewChainConfig.C,
+		},
+	}
+	peers := make(map[string]*shardstates.PeerShardStakeInfo)
+	for _, peer := range blkInfo.NewChainConfig.Peers {
+		peers[peer.ID] = &shardstates.PeerShardStakeInfo{
+			Index:      peer.Index,
+			PeerPubKey: peer.ID,
+			NodeType:   shardstates.CONSENSUS_NODE,
+		}
+	}
+	self.AddShardEventConfig(block.Header.Height, common.NewShardIDUnchecked(block.Header.ShardID), config, peers)
+	return nil
+}
 
 func (self *ChainManager) handleRootChainBlock() error {
-	shardState, err := xshard.GetShardState(self.mainLedger, self.shardID)
+	shardState, err := xshard.GetShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
 	if err == com.ErrNotFound {
 		log.Debugf("get shard %d failed: %s", self.shardID, err)
 		return nil
@@ -180,13 +213,13 @@ func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.Shar
 	}
 	sink := common.ZeroCopySink{}
 	shardEvent.Serialization(&sink)
-	err := ledger.DefLedger.AddShardConsensusConfig(shardID, height, sink.Bytes())
+	err := ledger.GetShardLedger(self.shardID).AddShardConsensusConfig(shardID, height, sink.Bytes())
 	if err != nil {
 		log.Errorf("AddShardConsensusConfig err:%s", err)
 		return
 	}
 
-	heights, err := ledger.DefLedger.GetShardConsensusHeight(shardID)
+	heights, err := ledger.GetShardLedger(self.shardID).GetShardConsensusHeight(shardID)
 	if err != nil {
 		if err != com.ErrNotFound {
 			log.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
@@ -196,7 +229,7 @@ func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.Shar
 	heights_db := make([]uint32, 0)
 	heights_db = append(heights_db, heights...)
 	heights_db = append(heights_db, height)
-	err = ledger.DefLedger.AddShardConsensusHeight(shardID, heights_db)
+	err = ledger.GetShardLedger(self.shardID).AddShardConsensusHeight(shardID, heights_db)
 	if err != nil {
 		log.Errorf("AddShardConsensusHeight err:%s", err)
 		return

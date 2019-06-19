@@ -186,7 +186,7 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("submitBlock height:%d error:%s", block.Header.Height, err)
 	}
-	xshard.DelCrossShardTxs(block.ShardTxs)
+	xshard.DelCrossShardTxs(self.ledger, block.ShardTxs)
 	self.broadCrossShardHashMsgs(block.Header.Height, result.ShardNotify)
 	// new block persisted, update parentHeight
 	self.parentHeight = block.Header.ParentHeight
@@ -246,6 +246,16 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 		} else {
 			crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
 		}
+		err = self.ledger.SaveShardMsgHash(crossMsg.ShardID, msgRoot)
+		if err != nil {
+			log.Errorf("SaveShardMsgHash shardID:%v,msgHash:%s,err:%s", crossMsg.ShardID, msgRoot.ToHexString(), err)
+			continue
+		}
+		err = self.ledger.SaveCrossShardMsgByHash(preMsgHash, crossShardMsg)
+		if err != nil {
+			log.Errorf("SaveCrossShardMsgByHash preMsgHash:%s,err:%s", preMsgHash.ToHexString(), err)
+			continue
+		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{
@@ -297,10 +307,15 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
 
 	// get ParentHeight from chain-mgr
-	parentHeight := self.ledger.GetParentHeight() + 1
-
+	parentHeight := self.ledger.GetParentHeight()
+	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+		parentHeight = parentHeight + 1
+	}
 	// get Cross-Shard Txs from chain-mgr
-	shardTxs := xshard.GetCrossShardTxs()
+	shardTxs, err := xshard.GetCrossShardTxs(self.ledger, self.Account, self.shardID, parentHeight)
+	if err != nil {
+		log.Errorf("GetCrossShardTxs err:%s", err)
+	}
 	header := &types.Header{
 		Version:          ContextVersion,
 		ShardID:          self.shardID.ToUint64(),

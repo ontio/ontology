@@ -21,52 +21,65 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+
+	"bytes"
 
 	"github.com/ontio/ontology/common"
 	vbftcfg "github.com/ontio/ontology/common/config"
-	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/types"
 )
 
-func TestSaveCrossShardMsgByShardID(t *testing.T) {
-	acc1 := account.NewAccount("")
-	shardID := common.NewShardIDUnchecked(1)
-	shardMsg := &types.CrossShardMsgInfo{
-		FromShardID:   common.NewShardIDUnchecked(2),
-		MsgHeight:     109,
-		SignMsgHeight: 1111,
+func TestSaveCrossShardMsgByHash(t *testing.T) {
+	crossShardRoot := common.Uint256{}
+	crossShardMsgInfo := &types.CrossShardMsgInfo{
+		FromShardID:       common.NewShardIDUnchecked(2),
+		MsgHeight:         109,
+		SignMsgHeight:     1111,
+		CrossShardMsgRoot: crossShardRoot,
 	}
-	tx, err := crossshard.NewCrossShardTxMsg(acc1, uint32(120), shardID, 0, 20000, nil)
-	if err != nil {
-		t.Errorf("handleCrossShardMsg NewCrossShardTxMsg err:%s", err)
-		return
+	crossShardMsg := &types.CrossShardMsg{
+		CrossShardMsgInfo: crossShardMsgInfo,
 	}
-	crossShardTxInfo := &types.CrossShardTxInfos{
-		ShardMsg: shardMsg,
-		Tx:       tx,
-	}
-	crossShardTxInfos := make([]*types.CrossShardTxInfos, 0)
-	crossShardTxInfos = append(crossShardTxInfos, crossShardTxInfo)
 	testCrossShardStore.NewBatch()
-	testCrossShardStore.SaveCrossShardMsgByShardID(shardID, crossShardTxInfos)
-	err = testCrossShardStore.CommitTo()
+	testCrossShardStore.SaveCrossShardMsgByHash(crossShardRoot, crossShardMsg)
+	err := testCrossShardStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo err:%s", err)
 		return
 	}
-	infos, err := testCrossShardStore.GetCrossShardMsgByShardID(shardID)
+	msg, err := testCrossShardStore.GetCrossShardMsgByHash(crossShardRoot)
 	if err != nil {
-		t.Errorf("getCrossShardMsgKeyByShard failed,shardID:%v,err:%s", shardID, err)
+		t.Errorf("getCrossShardMsgKeyByShard failed,crossmsghash:%v,err:%s", crossShardRoot.ToHexString(), err)
 		return
 	}
-	if len(infos) != len(crossShardTxInfos) {
-		t.Errorf("crossShardMsg len not match:%d,%d", len(crossShardTxInfos), len(infos))
+	msgHash := msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString()
+	if crossShardRoot.ToHexString() != msgHash {
+		t.Errorf("crossShardMsg len not match:%d,%d", crossShardRoot.ToHexString(), msgHash)
 		return
 	}
 }
 
+func TestSaveAllShardIDs(t *testing.T) {
+	shardIds := make([]common.ShardID, 0)
+	shardIds = append(shardIds, common.NewShardIDUnchecked(1))
+	shardIds = append(shardIds, common.NewShardIDUnchecked(2))
+	testCrossShardStore.SaveAllShardIDs(shardIds)
+	err := testCrossShardStore.CommitTo()
+	if err != nil {
+		t.Errorf("TestSaveAllShardIDs CommitTo err :%s", err)
+		return
+	}
+	data, err := testCrossShardStore.GetAllShardIDs()
+	if err != nil {
+		t.Errorf("GetAllShardIDs err:%s", err)
+		return
+	}
+	if len(shardIds) != len(data) {
+		t.Errorf("shardId len not match")
+		return
+	}
+}
 func TestAddShardConsensusConfig(t *testing.T) {
 	shardID := common.NewShardIDUnchecked(1)
 	height := 110
@@ -127,5 +140,40 @@ func TestAddShardConsensusHeight(t *testing.T) {
 	if !reflect.DeepEqual(heights, blkHeights) {
 		t.Errorf("TestAddShardConsensusHeight faied heigts:%v,blkHeigts:%v", heights, blkHeights)
 		return
+	}
+}
+
+func TestSaveCrossShardHash(t *testing.T) {
+	shardID := common.NewShardIDUnchecked(1)
+	msgHash := common.Uint256{1, 2, 3}
+	testCrossShardStore.NewBatch()
+	testCrossShardStore.SaveCrossShardHash(shardID, msgHash)
+	err := testCrossShardStore.CommitTo()
+	if err != nil {
+		t.Errorf("TestSaveCrossShardHash CommitTo err :%s", err)
+		return
+	}
+	hash, err := testCrossShardStore.GetCrossShardHash(shardID)
+	if err != nil {
+		t.Errorf("GetCrossShardHash shardID:%v,err:%v", shardID, err)
+	}
+	if bytes.Compare(msgHash[:], hash[:]) != 0 {
+		t.Errorf("msg hash not match")
+	}
+}
+
+func TestSaveShardMsgHash(t *testing.T) {
+	shardID := common.NewShardIDUnchecked(1)
+	msgHash := common.Uint256{1, 2, 3}
+	testCrossShardStore.NewBatch()
+	testCrossShardStore.SaveShardMsgHash(shardID, msgHash)
+	err := testCrossShardStore.CommitTo()
+	if err != nil {
+		t.Errorf("TestSaveShardMsgHash CommitTo err :%s", err)
+		return
+	}
+	hash, err := testCrossShardStore.GetShardMsgHash(shardID)
+	if bytes.Compare(msgHash[:], hash[:]) != 0 {
+		t.Errorf("msg hash not match")
 	}
 }

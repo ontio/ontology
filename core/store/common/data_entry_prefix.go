@@ -61,4 +61,7 @@ const (
 	CROSS_SHARD_HEIGHT DataEntryPrefix = 0x41 //all shard consensus height info
 
 	SHARD_CONFIG_DATA DataEntryPrefix = 0x42 //all shard consensus config
+
+	CROSS_ALL_SHARDS DataEntryPrefix = 0x43 //cross shard all shardId
+	CROSS_SHARD_HASH DataEntryPrefix = 0x44 //cross shard msg hash
 )

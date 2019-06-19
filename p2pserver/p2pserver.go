@@ -260,6 +260,12 @@ func (this *P2PServer) OnAddBlock(height uint32, shardID uint64) {
 	}
 }
 
+func (this *P2PServer) OnSyncBlock(height uint32, shardID uint64) {
+	if syncer := this.blockSyncers[shardID]; syncer != nil {
+		syncer.sync()
+	}
+}
+
 // Todo: remove it if no use
 func (this *P2PServer) GetConnectionState() uint32 {
 	return common.INIT
@@ -524,10 +530,15 @@ func (this *P2PServer) ping() {
 
 //pings send pkgs to get pong msg from others
 func (this *P2PServer) pingTo(peers []*peer.Peer) {
-	heights := make(map[uint64]uint32)
+	heights := make(map[uint64]*msgtypes.HeightInfo)
 
 	for id, syncer := range this.blockSyncers {
-		heights[id] = syncer.ledger.GetCurrentBlockHeight()
+		heightInfo := &msgtypes.HeightInfo{
+			Height: syncer.ledger.GetCurrentBlockHeight(),
+			//todo
+			//msgHash
+		}
+		heights[id] = heightInfo
 	}
 
 	for _, p := range peers {

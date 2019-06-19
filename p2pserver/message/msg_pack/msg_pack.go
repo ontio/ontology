@@ -119,7 +119,7 @@ func NewNotFound(hash common.Uint256) mt.Message {
 }
 
 //ping msg package
-func NewPingMsg(heights map[uint64]uint32) *mt.Ping {
+func NewPingMsg(heights map[uint64]*mt.HeightInfo) *mt.Ping {
 	log.Trace()
 	var ping mt.Ping
 	ping.Height = heights
@@ -128,7 +128,7 @@ func NewPingMsg(heights map[uint64]uint32) *mt.Ping {
 }
 
 //pong msg package
-func NewPongMsg(heights map[uint64]uint32) *mt.Pong {
+func NewPongMsg(heights map[uint64]*mt.HeightInfo) *mt.Pong {
 	log.Trace()
 	var pong mt.Pong
 	pong.Height = heights
@@ -154,7 +154,7 @@ func NewVerAck() mt.Message {
 }
 
 //Version package
-func NewVersion(n p2pnet.P2P, heights map[uint64]uint32) mt.Message {
+func NewVersion(n p2pnet.P2P, heights map[uint64]*mt.HeightInfo) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{

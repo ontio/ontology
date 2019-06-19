@@ -25,8 +25,13 @@ import (
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
+type HeightInfo struct {
+	Height  uint32
+	MsgHash comm.Uint256
+}
+
 type Ping struct {
-	Height map[uint64]uint32
+	Height map[uint64]*HeightInfo
 }
 
 //Serialize message payload
@@ -34,7 +39,8 @@ func (this Ping) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint32(uint32(len(this.Height)))
 	for id, h := range this.Height {
 		sink.WriteUint64(id)
-		sink.WriteUint32(h)
+		sink.WriteUint32(h.Height)
+		sink.WriteBytes(h.MsgHash[:])
 	}
 }
 
@@ -48,17 +54,22 @@ func (this *Ping) Deserialization(source *comm.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	heights := make(map[uint64]uint32)
+	heights := make(map[uint64]*HeightInfo)
 	for i := uint32(0); i < n; i++ {
 		id, eof := source.NextUint64()
 		if eof {
 			return io.ErrUnexpectedEOF
 		}
-		h, eof := source.NextUint32()
+		pingInfo := &HeightInfo{}
+		pingInfo.Height, eof = source.NextUint32()
 		if eof {
 			return io.ErrUnexpectedEOF
 		}
-		heights[id] = h
+		pingInfo.MsgHash, eof = source.NextHash()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		heights[id] = pingInfo
 	}
 	this.Height = heights
 	return nil

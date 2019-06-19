@@ -1295,10 +1295,6 @@ func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]com
 	return self.stateStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
-func (self *LedgerStoreImp) GetShardMsgHash(shardID common.ShardID) (common.Uint256, error) {
-	return self.stateStore.GetShardMsgHash(shardID)
-}
-
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	err := this.blockStore.Close()

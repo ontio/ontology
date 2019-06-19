@@ -20,12 +20,13 @@ package storage
 
 import (
 	"bytes"
+	"sort"
+
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/xshard_types"
-	"sort"
 )
 
 // CacheDB is smart contract execute cache, it contain transaction cache and block cache
@@ -119,12 +120,4 @@ func (self *XShardDB) SetXShardMsgInBlock(blockHeight uint32, msgs []xshard_type
 	keys.Reset()
 	keys.WriteUint32(blockHeight)
 	self.cacheDB.put(common.XSHARD_KEY_SHARDS_IN_BLOCK, keys.Bytes(), shards.Bytes())
-	val.Reset()
-	msgRoot := comm.ComputeMerkleRoot(hashes)
-	val.WriteBytes(msgRoot[:])
-	for shardID := range shardMsgMap {
-		keys.Reset()
-		keys.WriteUint64(shardID.ToUint64())
-		self.cacheDB.put(common.XSHARD_KEY_MSG_HASH, keys.Bytes(), val.Bytes())
-	}
 }

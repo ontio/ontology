@@ -166,6 +166,11 @@ type AddBlock struct {
 	ShardID uint64
 }
 
+type SyncBlock struct {
+	Height  uint32
+	ShardID uint64
+}
+
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {
 	i := strings.Index(s, ":")

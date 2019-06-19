@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus"
-	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
@@ -74,10 +73,9 @@ type ChainManager struct {
 	shardID common.ShardID
 
 	// ShardInfo management, indexing shards with ShardID / Sender-Addr
-	lock       sync.RWMutex
-	shards     map[common.ShardID]*ShardInfo
-	mainLedger *ledger.Ledger
-	consensus  consensus.ConsensusService
+	lock      sync.RWMutex
+	shards    map[common.ShardID]*ShardInfo
+	consensus consensus.ConsensusService
 
 	account *account.Account
 
@@ -140,7 +138,7 @@ func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
 		return nil
 	}
 
-	shardState, err := xshard.GetShardState(self.mainLedger, self.shardID)
+	shardState, err := xshard.GetShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
 	if err == com.ErrNotFound {
 		return nil
 	}
@@ -200,7 +198,6 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 		Config:   cfg,
 	}
 	self.shards[mainShardID] = mainShardInfo
-	self.mainLedger = lgr
 	ledger.DefLedger = lgr
 	log.Infof("main ledger init success")
 	return nil
@@ -213,11 +210,8 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {
 		return fmt.Errorf("init main ledger as shard ledger")
 	}
-	if self.mainLedger == nil {
-		return fmt.Errorf("init shard ledger with nil main ledger")
-	}
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	lgr, err := ledger.NewShardLedger(self.shardID, dbDir, self.mainLedger)
+	lgr, err := ledger.NewShardLedger(self.shardID, dbDir, ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)))
 	if err != nil {
 		return fmt.Errorf("init shard ledger: %s", err)
 	}
@@ -227,6 +221,7 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	}
 	genesisConfig := shardInfo.Config.Genesis
 	shardConfig := shardInfo.Config.Shard
+	shardConfig.GenesisParentHeight = lgr.GetParentHeight()
 	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
 	if err != nil {
 		return fmt.Errorf("init shard ledger: genesisBlock error %s", err)
@@ -235,6 +230,7 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	if err != nil {
 		return fmt.Errorf("init shard ledger: :%s", err)
 	}
+	xshard.InitShardInfo(lgr)
 	return nil
 }
 
@@ -244,13 +240,6 @@ func (self *ChainManager) GetActiveShards() []common.ShardID {
 		shards = append(shards, shardInfo.ShardID)
 	}
 	return shards
-}
-
-func (self *ChainManager) GetDefaultLedger() *ledger.Ledger {
-	if shardInfo := self.shards[self.shardID]; shardInfo != nil {
-		return ledger.GetShardLedger(self.shardID)
-	}
-	return self.mainLedger
 }
 
 func (self *ChainManager) startConsensus() error {
@@ -431,12 +420,7 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString())
 		return
 	}
-	tx, err := crossshard.NewCrossShardTxMsg(self.account, msg.CrossShardMsgInfo.MsgHeight, self.shardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
-	if err != nil {
-		log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.CrossShardMsgInfo.MsgHeight, err)
-		return
-	}
-	xshard.AddCrossShardInfo(ledger.DefLedger, msg, tx)
+	xshard.AddCrossShardInfo(ledger.GetShardLedger(self.shardID), msg)
 }
 
 //

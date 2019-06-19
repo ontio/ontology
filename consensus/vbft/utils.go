@@ -300,10 +300,12 @@ func getRootChainConfig(ledger *ledger.Ledger, memdb *overlaydb.MemDB, blkNum ui
 func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
 	shardState, err := xshard.GetShardState(lgr.ParentLedger, shardID)
 	if err == com.ErrNotFound {
-		return nil, fmt.Errorf("get shard %d failed: %s", shardID, err)
+		log.Errorf("get shard %d failed: %s", shardID, err)
+		return nil, err
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get shard %d failed: %s", shardID, err)
+		log.Errorf("get shard %d failed: %s", shardID, err)
+		return nil, err
 	}
 	chainconfig := &config.VBFTConfig{
 		N:                    shardState.Config.VbftCfg.N,
@@ -318,12 +320,14 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 
 	shardView, err := xshard.GetShardView(lgr.ParentLedger, shardID)
 	if err != nil {
-		return nil, fmt.Errorf("GetShardView err:%s", err)
+		log.Errorf("GetShardView err:%s", err)
+		return nil, err
 	}
 	var peersinfo []*config.VBFTPeerStakeInfo
 	PeerStakesInfo, err := xshard.GetShardPeerStakeInfo(lgr.ParentLedger, shardID, shardView.View+1)
 	if err != nil {
-		return nil, fmt.Errorf("GetShardPeerStakeInfo err:%s", err)
+		log.Errorf("GetShardPeerStakeInfo err:%s", err)
+		return nil, err
 	}
 	for index, id := range shardState.Peers {
 		if id.NodeType == state.CONDIDATE_NODE || id.NodeType == state.CONSENSUS_NODE {
@@ -339,7 +343,8 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 	}
 	cfg, err := vconfig.GenesisChainConfig(chainconfig, peersinfo, shardView.TxHash, blkNum)
 	if err != nil {
-		return nil, fmt.Errorf("GenesisShardChainConfig failed: %s", err)
+		log.Errorf("GenesisShardChainConfig failed: %s", err)
+		return nil, err
 	}
 	cfg.View = shardView.View
 	return cfg, err
