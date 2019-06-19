@@ -130,7 +130,7 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	args := bytes.NewBuffer(srvc.Input)
 	did, err := serialization.ReadVarBytes(args)
 	if err != nil {
-		return nil, fmt.Errorf("get public keys error: invalid argument", err)
+		return nil, fmt.Errorf("get public keys error: invalid argument, %s", err)
 	}
 	if len(did) == 0 {
 		return nil, errors.New("get attributes error: invalid ID")
