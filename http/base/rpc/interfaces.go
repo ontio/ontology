@@ -328,7 +328,7 @@ func GetContractState(params []interface{}) map[string]interface{} {
 		}
 		c, err := bactor.GetContractStateFromStore(address)
 		if err != nil {
-			return responsePack(berr.UNKNOWN_CONTRACT, "unknow contract")
+			return responsePack(berr.UNKNOWN_CONTRACT, berr.ErrMap[berr.UNKNOWN_CONTRACT])
 		}
 		contract = c
 	default:
