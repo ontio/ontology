@@ -70,9 +70,11 @@ func (this *BlockCacheStore) PutBlock(block *types.Block, stateMerkleRoot common
 	blkKey := fmt.Sprintf("blk-%d-%d", this.shardID.ToUint64(), block.Header.Height)
 	sink := common.NewZeroCopySink(0)
 	block.Serialization(sink)
-	this.store.Put([]byte(mklKey), stateMerkleRoot[:])
-	this.store.Put([]byte(blkKey), sink.Bytes())
-	return nil
+	err := this.store.Put([]byte(mklKey), stateMerkleRoot[:])
+	if err != nil {
+		return err
+	}
+	return this.store.Put([]byte(blkKey), sink.Bytes())
 }
 
 func (this *BlockCacheStore) GetBlock(height uint32) (*types.Block, common.Uint256, error) {
