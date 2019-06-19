@@ -27,6 +27,7 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
+	"github.com/ontio/ontology/core/ledger"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -61,11 +62,11 @@ func (self *ChainManager) buildShardConfig(shardID common.ShardID, shardState *s
 		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
 	} else if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
-		shardView, err := xshard.GetShardView(self.mainLedger, shardState.ShardID)
+		shardView, err := xshard.GetShardView(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), shardState.ShardID)
 		if err != nil {
 			return nil, fmt.Errorf("buildShardConfig GetShardView: failed, err: %s", err)
 		}
-		peerStakeInfo, err := xshard.GetShardPeerStakeInfo(self.mainLedger, shardState.ShardID, shardView.View)
+		peerStakeInfo, err := xshard.GetShardPeerStakeInfo(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), shardState.ShardID, shardView.View)
 		if err != nil {
 			return nil, fmt.Errorf("buildShardConfig GetShardPeerStakeInfo: failed, err: %s", err)
 		}

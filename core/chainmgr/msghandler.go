@@ -46,7 +46,7 @@ func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) erro
 }
 
 func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) error {
-	if !self.shardID.IsParentID() {
+	if evt.ImplSourceTargetShardID.ShardID.ParentID() == self.shardID {
 		return nil
 	}
 	self.AddShardEventConfig(evt.Height, evt.ImplSourceTargetShardID.ShardID, evt.Config, evt.Peers)
@@ -99,7 +99,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
 	}
 	self.AddShardEventConfig(0, evt.ShardID, shardState.Config, shardState.Peers)
-	if evt.ShardID == self.shardID && evt.ShardID.IsParentID() || self.shardID.IsRootShard() {
+	if evt.ShardID == self.shardID && evt.ShardID.ParentID() == self.shardID || self.shardID.IsRootShard() {
 		log.Infof("self shardID equal evt shardID or is rootshard:%v", evt.ShardID)
 		return nil
 	}
@@ -184,7 +184,7 @@ func (self *ChainManager) handleRootChainConfig(block *types.Block) error {
 }
 
 func (self *ChainManager) handleRootChainBlock() error {
-	shardState, err := xshard.GetShardState(self.mainLedger, self.shardID)
+	shardState, err := xshard.GetShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
 	if err == com.ErrNotFound {
 		log.Debugf("get shard %d failed: %s", self.shardID, err)
 		return nil
@@ -213,13 +213,13 @@ func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.Shar
 	}
 	sink := common.ZeroCopySink{}
 	shardEvent.Serialization(&sink)
-	err := self.ledger.AddShardConsensusConfig(shardID, height, sink.Bytes())
+	err := ledger.GetShardLedger(self.shardID).AddShardConsensusConfig(shardID, height, sink.Bytes())
 	if err != nil {
 		log.Errorf("AddShardConsensusConfig err:%s", err)
 		return
 	}
 
-	heights, err := self.ledger.GetShardConsensusHeight(shardID)
+	heights, err := ledger.GetShardLedger(self.shardID).GetShardConsensusHeight(shardID)
 	if err != nil {
 		if err != com.ErrNotFound {
 			log.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
@@ -229,7 +229,7 @@ func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.Shar
 	heights_db := make([]uint32, 0)
 	heights_db = append(heights_db, heights...)
 	heights_db = append(heights_db, height)
-	err = self.ledger.AddShardConsensusHeight(shardID, heights_db)
+	err = ledger.GetShardLedger(self.shardID).AddShardConsensusHeight(shardID, heights_db)
 	if err != nil {
 		log.Errorf("AddShardConsensusHeight err:%s", err)
 		return

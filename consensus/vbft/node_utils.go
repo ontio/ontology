@@ -497,19 +497,19 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 		if err != nil {
 			if err != com.ErrNotFound {
 				log.Errorf("SendCrossShardMsgToAll getshardmsghash err:%s", err)
-				continue
+				return
 			}
 		}
 		crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
 		err = self.ledger.SaveShardMsgHash(crossMsg.ShardID, msgRoot)
 		if err != nil {
 			log.Errorf("SaveShardMsgHash shardID:%v,msgHash:%s,err:%s", crossMsg.ShardID, msgRoot.ToHexString(), err)
-			continue
+			return
 		}
 		err = self.ledger.SaveCrossShardMsgByHash(preMsgHash, crossShardMsg)
 		if err != nil {
 			log.Errorf("SaveCrossShardMsgByHash preMsgHash:%s,err:%s", preMsgHash.ToHexString(), err)
-			continue
+			return
 		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)

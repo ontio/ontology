@@ -83,9 +83,6 @@ func isShardId(id uint64) bool {
 func (self ShardID) IsRootShard() bool {
 	return self.Level() == 0
 }
-func (self ShardID) IsParentID() bool {
-	return self == self.ParentID()
-}
 
 func NewShardID(id uint64) (ShardID, error) {
 	if isShardId(id) == false {
