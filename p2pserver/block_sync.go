@@ -853,8 +853,10 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 			continue
 		}
 		nodeBlockHeight := n.GetHeight()
-		if nextBlockHeight <= nodeBlockHeight[this.shardID.ToUint64()].Height {
-			return n
+		if heightInfo, present := nodeBlockHeight[this.shardID.ToUint64()]; present {
+			if nextBlockHeight <= heightInfo.Height {
+				return n
+			}
 		}
 	}
 }
