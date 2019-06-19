@@ -65,9 +65,9 @@ func constructServer() *Server {
 	server := &Server{
 		Index:                    1,
 		stateMgr:                 statemgr,
+		config:                   chainconfig,
+		chainStore:               chainstore,
 		currentParticipantConfig: blockparticipantconfig,
-		config:     chainconfig,
-		chainStore: chainstore,
 	}
 	return server
 }
@@ -195,6 +195,7 @@ func testCalcParticipantPeers(t *testing.T, n, c int) {
 		t.Fatalf("invalid peers(%d, %d): %v, %v, %v", n, c, pp, pe, pc)
 	}
 
+	// check how many peers are selected
 	peers := make(map[uint32]bool)
 	for _, p := range pp {
 		peers[p] = true
@@ -205,9 +206,7 @@ func testCalcParticipantPeers(t *testing.T, n, c int) {
 	for _, p := range pc {
 		peers[p] = true
 	}
-	if len(peers) <= 3*c {
-		if len(peers) <= 2*c+1 {
-			t.Fatalf("peers(%d, %d, %d, %d, %d, %d): %v, %v, %v", n, c, len(peers), len(pp), len(pe), len(pc), pp, pe, pc)
-		}
+	if len(peers) <= 2*c+1 {
+		t.Fatalf("peers(%d, %d, %d, %d, %d, %d): %v, %v, %v", n, c, len(peers), len(pp), len(pe), len(pc), pp, pe, pc)
 	}
 }

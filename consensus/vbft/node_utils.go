@@ -229,6 +229,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 	peers := make([]uint32, 0)
 	peerMap := make(map[uint32]bool)
 
+	// 1. select peers as many as possible
 	c := int(chain.C)
 	for i := 0; i < len(chain.PosTable); i++ {
 		peerId := calcParticipant(cfg.Vrf, chain.PosTable, uint32(i))
@@ -248,15 +249,20 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 		log.Errorf("failed to get enough peers %v", peers)
 		return []uint32{}, []uint32{}, []uint32{}
 	}
+
+	// [p0, p1, p2, .... p_c+1, ...    .. p_m, ....      pn]
+	//  <-- proposer  --><--- endorser --><-- committer -->
 	nCommitter := 2*c + 1
 	propsers := peers[0 : c+1]
 	n1 := (len(peers) - len(propsers)) / 2
 	endorsers0 := peers[c+1 : c+1+n1]
 	committers := peers[c+1+n1:]
 
+	// copy endorser0 to endorser
 	endorsers := make([]uint32, 0)
 	endorsers = append(endorsers, endorsers0...)
 	if len(endorsers) < nCommitter {
+		// not enough endorser, get more from committer/proposer
 		endorsers = append(endorsers, propsers[c])
 		for i := c - 1; i > (c-1)/2 && len(endorsers) < nCommitter; i-- {
 			endorsers = append(endorsers, propsers[i])
@@ -266,6 +272,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 		}
 	}
 	if len(committers) < nCommitter {
+		// not enough committer, get more from endorser/proposer
 		committers = append(committers, propsers[c])
 		for i := (c - 1) / 2; i > 0 && len(committers) < nCommitter; i-- {
 			committers = append(committers, propsers[i])
