@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/ontio/ontology/common"
 	vm "github.com/ontio/ontology/vm/neovm"
+	"math/big"
 )
 
 // ShardGetShardId push shardId to vm stack
@@ -52,6 +53,9 @@ func NotifyRemoteShard(service *NeoVmService, engine *vm.ExecutionEngine) error 
 	fee, err := vm.PopBigInt(engine)
 	if err != nil {
 		return fmt.Errorf("read fee failed, err: %s", err)
+	}
+	if fee.Cmp(big.NewInt(0)) <= 0 {
+		return fmt.Errorf("fee must larger than 0")
 	}
 	method, err := vm.PopByteArray(engine)
 	if err != nil {
