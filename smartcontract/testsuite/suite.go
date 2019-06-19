@@ -19,6 +19,7 @@ package testsuite
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"testing"
@@ -120,6 +121,20 @@ func ExecuteShardCommand(native *native.NativeService, command ShardCommand) ([]
 		result = append(result, res...)
 	case *GreetCommand:
 		result = append(result, fmt.Sprintf("hi from:%d", native.ShardID)...)
+	case *CallCounterCommand:
+		key := []byte("counter")
+		count := uint64(0)
+		raw, err := native.CacheDB.Get(key)
+		if err != nil {
+			return nil, err
+		}
+		if raw != nil {
+			count = binary.LittleEndian.Uint64(raw)
+		}
+		count += 1
+		value := [8]byte{0}
+		binary.LittleEndian.PutUint64(value[:], count)
+		native.CacheDB.Put(key, value[:])
 	default:
 		panic("unkown command")
 	}
@@ -361,6 +376,7 @@ func (self *ShardContext) HandleShardCallMsgs(msgs []xshard_types.CommonShardMsg
 	gasTable := make(map[string]uint64)
 	err := ledgerstore.HandleShardCallTransaction(nil, self.overlay, gasTable, self.LockedAddress, self.LockedKeys, cache, xshardDB, msgs, header, notify)
 	assert.Nil(t, err)
+	cache.Commit()
 	xshardDB.Commit()
 
 	for addr := range self.LockedAddress {

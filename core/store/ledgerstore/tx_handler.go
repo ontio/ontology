@@ -411,6 +411,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 	contractEvent := &event.ExecuteNotify{}
 	prepareOK := true
 	cache.Reset()
+	defer cache.Reset()
 	readContract := make(map[common.Address]struct{})
 	txLockedKeys := make(map[string]struct{})
 	cache.SetOnReadBackendHandler(func(key, value []byte) {
@@ -472,6 +473,7 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 	// save tx rwset and reset ctx.CacheDB
 	// TODO: add notification to cached DB
 	txState.WriteSet = cache.GetCache()
+	cache = storage.NewCacheDB(cache.GetBackendDB())
 	txState.WriteSet.ForEach(func(key, val []byte) {
 		// contains prefix
 		if len(key) < 21 {
@@ -502,7 +504,6 @@ func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.L
 	common.SortAddress(shardTxLockAddr)
 	txState.LockedAddress = shardTxLockAddr
 	txState.Notify = contractEvent
-	cache = storage.NewCacheDB(cache.GetBackendDB())
 	txState.ExecState = xshard_state.ExecPrepared
 
 	reqShards := txState.GetTxShards()
@@ -572,6 +573,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 
 		txState.ShardNotifies = nil
 		xshardDB.SetXShardState(txState)
+		cache.Reset()
 		return
 	}
 
@@ -647,6 +649,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, g
 	}
 
 	cache.Reset()
+	defer cache.Reset()
 	txLockedKeys := make(map[string]struct{})
 	cache.SetOnReadBackendHandler(func(key []byte, val []byte) {
 		lockKey(txLockedKeys, key)
@@ -737,6 +740,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	txState.NextReqID = 0
 	txState.ShardNotifies = nil
 	cache.Reset()
+	defer cache.Reset()
 	readContract := make(map[common.Address]struct{})
 	txLockedKeys := make(map[string]struct{}, 0)
 	cache.SetOnReadBackendHandler(func(key, value []byte) {
@@ -867,6 +871,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 
 	// save Tx rwset and reset ctx.CacheDB
 	txState.WriteSet = cache.GetCache()
+	cache = storage.NewCacheDB(cache.GetBackendDB())
 	txState.WriteSet.ForEach(func(key, val []byte) {
 		// contains prefix
 		if len(key) < 21 {
@@ -898,7 +903,6 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 	txState.LockedAddress = shardTxLockAddr
 	txState.Notify = evts
 	txState.ExecState = xshard_state.ExecPrepared
-	cache = storage.NewCacheDB(cache.GetBackendDB())
 
 	xshardDB.SetXShardState(txState)
 

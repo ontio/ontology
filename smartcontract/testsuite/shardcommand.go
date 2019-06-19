@@ -28,6 +28,7 @@ const NotifyCmd = 0
 const InvokeCmd = 1
 const GreetCmd = 2
 const MultiCmd = 3
+const CallCounterCmd = 4
 
 type ShardCommand interface {
 	common.Serializable
@@ -69,9 +70,24 @@ func DecodeShardCommand(source *common.ZeroCopySource) (ShardCommand, error) {
 		cmd := &GreetCommand{}
 		err := cmd.Deserialization(source)
 		return cmd, err
+	case CallCounterCmd:
+		cmd := &CallCounterCommand{}
+		err := cmd.Deserialization(source)
+		return cmd, err
 	default:
 		panic("unkown cmd")
 	}
+}
+
+type CallCounterCommand struct{}
+
+func (self *CallCounterCommand) CmdType() CmdType {
+	return CallCounterCmd
+}
+
+func (self *CallCounterCommand) Serialization(sink *common.ZeroCopySink) {}
+func (self *CallCounterCommand) Deserialization(source *common.ZeroCopySource) error {
+	return nil
 }
 
 type GreetCommand struct{}
