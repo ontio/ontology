@@ -74,7 +74,6 @@ type BftAction struct {
 
 type BlockParticipantConfig struct {
 	BlockNum    uint32
-	L           uint32
 	Vrf         vconfig.VRFValue
 	ChainConfig *vconfig.ChainConfig
 	Proposers   []uint32

@@ -19,6 +19,9 @@
 package vbft
 
 import (
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/ontio/ontology/account"
@@ -70,15 +73,35 @@ func TestHashMsg(t *testing.T) {
 	t.Logf("TestHashMsg succ: %v\n", uint256)
 }
 
-func TestVrf(t *testing.T) {
+func TestVrfParticipantSeed(t *testing.T) {
 	blk, err := constructBlock()
 	if err != nil {
 		t.Errorf("constructBlock failed: %v", err)
 	}
 	vrfvalue := getParticipantSelectionSeed(blk)
 	if len(vrfvalue) == 0 {
-		t.Errorf("TestVrf failed:")
+		t.Errorf("TestVrfParticipantSeed failed:")
 		return
 	}
-	t.Log("TestVrf succ")
+	t.Log("TestVrfParticipantSeed succ")
+}
+
+func TestVrf(t *testing.T) {
+	user := account.NewAccount("")
+	prevVrf := []byte("test string")
+	blkNum := uint32(10)
+	v1, p1, err := computeVrf(user.PrivKey(), blkNum, prevVrf)
+	if err != nil {
+		t.Fatalf("compute vrf: %s", err)
+	}
+
+	if err := verifyVrf(user.PubKey(), blkNum, prevVrf, v1, p1); err != nil {
+		t.Fatalf("verify vrf: %s", err)
+	}
+
+	// test json byte formatting
+	data, _ := json.Marshal(&vrfData{10, prevVrf})
+	fmt.Println(string(data))
+	x := base64.StdEncoding.EncodeToString(prevVrf)
+	fmt.Println(x)
 }
