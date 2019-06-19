@@ -24,8 +24,7 @@ import:
   repo: https://github.com/golang/text.git
 - package: golang.org/x/crypto
   repo: https://github.com/golang/crypto.git
-  subpackages:
-  - ripemd160
+  version: 57b3e21c3d5606066a87e63cfe07ec6b9f0db000
 - package: github.com/hashicorp/golang-lru
 - package: github.com/ethereum/go-ethereum
   version: v1.8.23
