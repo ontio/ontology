@@ -130,7 +130,7 @@ var (
 		HASH256: {Opcode: HASH256, Name: "HASH256", Exec: opHash, Validator: validateCount1},
 		VERIFY:  {Opcode: VERIFY, Name: "VERIFY"},
 		//CHECKSIG:      {Opcode: CHECKSIG, Name: "CHECKSIG", Exec: opCheckSig, Validator: validateCount2},
-		//CHECKMULTISIG: {Opcode: CHECKMULTISIG, Name: "CHECKMULTISIG", Exec: opCheckMultiSig, Validator: validateCount2},
+		//CHECKMULTISIG: {Opcode: CHECKMULTISIG, Name: "CHECKMULTISIG"},
 
 		//Array
 		ARRAYSIZE: {Opcode: ARRAYSIZE, Name: "ARRAYSIZE", Exec: opArraySize, Validator: validateCount1},
