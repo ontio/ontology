@@ -15,6 +15,9 @@ ABI=$(TOOLS)/abi
 NATIVE_ABI_SCRIPT=./cmd/abi/native_abi_script
 
 ontology: $(SRC_FILES)
+	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
+
+ontology: $(SRC_FILES)
 	$(GC)  $(BUILD_NODE_PAR) -o ontology-relayer block-relayer.go
 
 sigsvr: $(SRC_FILES) abi
@@ -33,13 +36,13 @@ all: ontology tools
 ontology-cross: ontology-windows ontology-linux ontology-darwin
 
 ontology-windows:
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-relayer-windows-amd64.exe block-relayer.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-windows-amd64.exe main.go
 
 ontology-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-relayer-linux-amd64 block-relayer.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-linux-amd64 main.go
 
 ontology-darwin:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-relayer-darwin-amd64 block-relayer.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-darwin-amd64 main.go
 
 tools-cross: tools-windows tools-linux tools-darwin
 
@@ -79,7 +82,7 @@ docker/build/bin/%: Makefile
 		-v $(GOPATH)/src:/go/src \
 		-w /go/src/github.com/ontio/ontology \
 		golang:1.9.5-stretch \
-		$(GC)  $(BUILD_NODE_PAR) -o docker/build/bin/ontology-relayer blocker-relayer.go
+		$(GC)  $(BUILD_NODE_PAR) -o docker/build/bin/ontology main.go
 	@touch $@
 
 docker: Makefile docker/payload docker/Dockerfile
@@ -89,5 +92,5 @@ docker: Makefile docker/payload docker/Dockerfile
 	@touch $@
 
 clean:
-	rm -rf *.8 *.o *.out *.6 *exe
-    rm -rf ontology ontology-* tools docker/payload docker/build
+	rm -rf *.8 *.o *.out *.6 *exe coverage
+	rm -rf ontology ontology-* tools docker/payload docker/build
