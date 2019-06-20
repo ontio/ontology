@@ -26,7 +26,7 @@ import (
 )
 
 func TestHash(t *testing.T) {
-	engine := NewExecutionEngine()
+	engine := NewExecutionEngine(0)
 	engine.OpCode = HASH160
 
 	data := []byte{1, 2, 3, 4, 5, 6, 7, 8}

@@ -22,12 +22,13 @@ import (
 	"github.com/ontio/ontology/vm/neovm/errors"
 )
 
-func NewExecutionEngine() *ExecutionEngine {
+func NewExecutionEngine(BlockHeight uint32) *ExecutionEngine {
 	var engine ExecutionEngine
 	engine.EvaluationStack = NewRandAccessStack()
 	engine.AltStack = NewRandAccessStack()
 	engine.State = BREAK
 	engine.OpCode = 0
+	engine.BlockHeight = BlockHeight
 	return &engine
 }
 
@@ -37,6 +38,7 @@ type ExecutionEngine struct {
 	State           VMState
 	Contexts        []*ExecutionContext
 	Context         *ExecutionContext
+	BlockHeight     uint32
 	OpCode          OpCode
 	OpExec          OpExec
 }

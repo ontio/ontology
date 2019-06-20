@@ -128,7 +128,7 @@ func TestStructRef(t *testing.T) {
 }
 
 func TestRuntimeBase58ToAddress(t *testing.T) {
-	vm := neovm.NewExecutionEngine()
+	vm := neovm.NewExecutionEngine(0)
 
 	acc := account.NewAccount("")
 	addr := acc.Address
@@ -152,7 +152,7 @@ func TestRuntimeBase58ToAddress(t *testing.T) {
 }
 
 func TestRuntimeAddressToBase58(t *testing.T) {
-	vm := neovm.NewExecutionEngine()
+	vm := neovm.NewExecutionEngine(0)
 
 	acc := account.NewAccount("")
 	addr := acc.Address
