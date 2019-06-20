@@ -454,6 +454,7 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 		Code: invokeCode,
 	}
 	tx := &types.MutableTransaction{
+		Version:  common.CURR_TX_VERSION,
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.Invoke,

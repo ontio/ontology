@@ -99,7 +99,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 		return fmt.Errorf("shard %d state %d is not active", evt.ShardID, shardState.State)
 	}
 	self.AddShardEventConfig(0, evt.ShardID, shardState.Config, shardState.Peers)
-	if evt.ShardID == self.shardID && evt.ShardID.ParentID() == self.shardID || self.shardID.IsRootShard() {
+	if evt.ShardID != self.shardID || self.shardID.IsRootShard() {
 		log.Infof("self shardID equal evt shardID or is rootshard:%v", evt.ShardID)
 		return nil
 	}

@@ -691,6 +691,7 @@ func InvokeWasmVMContract(
 
 //Invoke neo vm smart contract. if isPreExec is true, the invoke will not really execute
 func InvokeNeoVMContract(
+	shardId,
 	gasPrice,
 	gasLimit uint64,
 	signer *account.Account,
@@ -700,6 +701,7 @@ func InvokeNeoVMContract(
 	if err != nil {
 		return "", err
 	}
+	tx.ShardID = shardId
 	return InvokeSmartContract(signer, tx)
 }
 

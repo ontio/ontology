@@ -580,7 +580,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	if gasConsume < neovm.MIN_TRANSACTION_GAS {
 		gasConsume = neovm.MIN_TRANSACTION_GAS
 	}
-	if tx.GasPrice > 0 {
+	if tx.GasPrice > 0 && msg.Contract != utils.ShardMgmtContractAddress && msg.Contract != utils.ShardStakeAddress {
 		cfg := &smartcontract.Config{
 			ShardID:   shardId,
 			Time:      header.Timestamp,
@@ -990,7 +990,8 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	tx *types.Transaction, header *types.Header, notify *event.TransactionNotify) (result interface{}, err error) {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
-	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || header.Height == 0
+	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 ||
+		bytes.Compare(code, ninit.SHARD_COMMIT_DPOS_BYTES) == 0 || header.Height == 0
 	txHash := tx.Hash()
 	txState := xshard_state.CreateTxState(xshard_types.ShardTxID(string(txHash[:])))
 

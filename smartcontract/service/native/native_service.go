@@ -19,15 +19,11 @@
 package native
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/states"
@@ -111,129 +107,12 @@ func (this *NativeService) NativeCall(address common.Address, method string, arg
 }
 
 // runtime api
-func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.Address, method string, args []byte) {
-	if ctx.ContextRef.IsPreExec() {
-		return
-	}
-	if err := ctx.checkMetaData(cont); err != nil {
-		log.Errorf("NotifyRemoteShard: failed, err: %s", err)
-		return
-	}
-	txState := ctx.ShardTxState
-	// send with minimal gas fee
-	msg := &xshard_types.XShardNotify{
-		ShardMsgHeader: xshard_types.ShardMsgHeader{
-			SourceShardID: ctx.ShardID,
-			TargetShardID: target,
-			SourceTxHash:  ctx.Tx.Hash(),
-			ShardTxID:     txState.TxID,
-		},
-		NotifyID: txState.NumNotifies,
-		Contract: cont,
-		Payer:    ctx.Tx.Payer,
-		Fee:      ctx.ContextRef.GetRemainGas(), // TODO: fee should be defined by caller
-		Method:   method,
-		Args:     args,
-	}
-	txState.NumNotifies += 1
-	// todo: clean shardnotifies when replay transaction
-	txState.ShardNotifies = append(txState.ShardNotifies, msg)
+func (ctx *NativeService) NotifyRemoteShard(target common.ShardID, cont common.Address, fee uint64, method string, args []byte) {
+	ctx.ContextRef.NotifyRemoteShard(target, cont, fee, method, args)
 }
 
 // runtime api
 func (ctx *NativeService) InvokeRemoteShard(target common.ShardID, cont common.Address,
 	method string, args []byte) ([]byte, error) {
-	if ctx.ContextRef.IsPreExec() {
-		return BYTE_TRUE, nil
-	}
-	if err := ctx.checkMetaData(cont); err != nil {
-		return BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: failed, err: %s", err)
-	}
-	if ctx.ShardID.IsRootShard() || target.IsRootShard() {
-		return BYTE_FALSE, fmt.Errorf("InvokeRemoteShard: root cannot participate in")
-	}
-	txState := ctx.ShardTxState
-	reqIdx := txState.NextReqID
-	if reqIdx >= xshard_state.MaxRemoteReqPerTx {
-		return BYTE_FALSE, xshard_state.ErrTooMuchRemoteReq
-	}
-	// TODO: open this to check remain gas enough
-	//if ctx.ContextRef.GetRemainGas() < neovm.MIN_TRANSACTION_GAS {
-	//	return BYTE_FALSE, fmt.Errorf("remote invoke gas less than min gas")
-	//}
-	msg := &xshard_types.XShardTxReq{
-		ShardMsgHeader: xshard_types.ShardMsgHeader{
-			SourceShardID: ctx.ShardID,
-			TargetShardID: target,
-			SourceTxHash:  ctx.Tx.Hash(),
-			ShardTxID:     txState.TxID,
-		},
-		IdxInTx:  uint64(reqIdx),
-		Payer:    ctx.Tx.Payer,
-		Fee:      ctx.ContextRef.GetRemainGas(), // use all remain gas to invoke remote shard
-		Contract: cont,
-		Method:   method,
-		Args:     args,
-	}
-	txState.NextReqID += 1
-
-	if reqIdx < uint32(len(txState.OutReqResp)) {
-		if xshard_types.IsXShardMsgEqual(msg, txState.OutReqResp[reqIdx].Req) == false {
-			return BYTE_FALSE, xshard_state.ErrMismatchedRequest
-		}
-		rspMsg := txState.OutReqResp[reqIdx].Resp
-		var resultErr error = nil
-		if rspMsg.Error {
-			resultErr = errors.New("remote invoke got error response")
-		}
-		if !ctx.ContextRef.CheckUseGas(rspMsg.FeeUsed) { // charge whole remain gas
-			resultErr = errors.New("remote invoke gas not enough")
-			ctx.ContextRef.CheckUseGas(ctx.ContextRef.GetRemainGas())
-		}
-		return rspMsg.Result, resultErr
-	}
-
-	if len(txState.TxPayload) == 0 {
-		txPayload := bytes.NewBuffer(nil)
-		if err := ctx.Tx.Serialize(txPayload); err != nil {
-			return BYTE_FALSE, fmt.Errorf("remote invoke, failed to get tx payload: %s", err)
-		}
-		txState.TxPayload = txPayload.Bytes()
-	}
-
-	// no response found in tx-statedb, send request
-	if err := txState.AddTxShard(target); err != nil {
-		return BYTE_FALSE, fmt.Errorf("remote invoke, failed to add shard: %s", err)
-	}
-
-	txState.PendingOutReq = msg
-	txState.ExecState = xshard_state.ExecYielded
-
-	return BYTE_FALSE, xshard_state.ErrYield
-}
-
-func (ctx *NativeService) checkMetaData(destContract common.Address) error {
-	if _, ok := Contracts[destContract]; !ok {
-		caller := ctx.ContextRef.CallingContext().ContractAddress
-		meta, _, err := ctx.ContextRef.GetMetaData(caller)
-		if err != nil {
-			return fmt.Errorf("checkMetaData: cannot get %s meta", caller.ToHexString())
-
-		}
-		if meta == nil {
-			return fmt.Errorf("checkMetaData: self %s doesn't initialized meta", caller.ToHexString())
-		}
-		canInvoke := false
-		for _, addr := range meta.InvokedContract {
-			if addr == destContract {
-				canInvoke = true
-				break
-			}
-		}
-		if !canInvoke {
-			return fmt.Errorf("checkMetaData: contract %s unregister to self %s meta",
-				destContract.ToHexString(), caller.ToHexString())
-		}
-	}
-	return nil
+	return ctx.ContextRef.InvokeRemoteShard(target, cont, method, args)
 }

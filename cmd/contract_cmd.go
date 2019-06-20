@@ -92,6 +92,7 @@ var (
 					utils.ContractReturnTypeFlag,
 					utils.WalletFileFlag,
 					utils.AccountAddressFlag,
+					utils.ShardIDFlag,
 				},
 			},
 			{
@@ -332,6 +333,7 @@ func invokeContract(ctx *cli.Context) error {
 	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
+	shardId := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
 	networkId, err := utils.GetNetworkId()
 	if err != nil {
 		return err
@@ -340,7 +342,7 @@ func invokeContract(ctx *cli.Context) error {
 		gasPrice = 0
 	}
 
-	txHash, err := utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
+	txHash, err := utils.InvokeNeoVMContract(shardId, gasPrice, gasLimit, signer, contractAddr, params)
 	if err != nil {
 		return fmt.Errorf("invoke NeoVM contract error:%s", err)
 	}

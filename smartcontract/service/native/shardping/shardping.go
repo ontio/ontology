@@ -80,7 +80,7 @@ func SendShardPingTest(native *native.NativeService) ([]byte, error) {
 	}
 
 	// send ping
-	native.NotifyRemoteShard(params.ToShard, common.ADDRESS_EMPTY, "", common.SerializeToBytes(pingEvt))
+	native.NotifyRemoteShard(params.ToShard, common.ADDRESS_EMPTY, 20000, "", common.SerializeToBytes(pingEvt))
 
 	return utils.BYTE_TRUE, nil
 }

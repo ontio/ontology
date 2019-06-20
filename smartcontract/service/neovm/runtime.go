@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"reflect"
 	"sort"
@@ -64,6 +65,19 @@ func RuntimeCheckWitness(service *NeoVmService, engine *vm.ExecutionEngine) erro
 	}
 
 	vm.PushData(engine, result)
+	return nil
+}
+
+func RuntimeCheckShardCall(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	shardId, err := vm.PopBigInt(engine)
+	if err != nil {
+		return err
+	}
+	shard, err := common.NewShardID(shardId.Uint64())
+	if err != nil {
+		return fmt.Errorf("param invalid")
+	}
+	vm.PushData(engine, service.ContextRef.CheckCallShard(shard))
 	return nil
 }
 
