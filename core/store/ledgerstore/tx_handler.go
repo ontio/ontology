@@ -686,6 +686,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, g
 			}
 			recordXShardHandlingFee(msg.TargetShardID, txState, feeParam, store, gasTable, lockedAddress,
 				cache, header, notify)
+			cache.Commit()
 		}
 	}()
 	if err != nil {
@@ -786,6 +787,7 @@ func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, 
 			// charge fee
 			chargeHandleRespFee(store, cache, header, shardId, notify, subTx, txState, gasConsumed, execErr != nil)
 		}
+		cache.Commit()
 	}()
 	if hasOtherInvoke { // has another x-shard invoke
 		notify.ShardMsg = append(notify.ShardMsg, txState.PendingOutReq)
