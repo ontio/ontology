@@ -1269,7 +1269,11 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					}
 					bookkeepers = append(bookkeepers, pubkey)
 				}
-				err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, msgHash.SigData)
+				sigData := make([][]byte, len(msgHash.SigData))
+				for _, sig := range msgHash.SigData {
+					sigData = append(sigData, sig)
+				}
+				err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, sigData)
 				if err != nil {
 					log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(msgHash.SigData))
 					return false

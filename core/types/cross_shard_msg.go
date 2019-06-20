@@ -28,15 +28,21 @@ import (
 type CrossShardMsgHash struct {
 	ShardID common.ShardID
 	MsgHash common.Uint256
-	SigData [][]byte
+	SigData map[uint64][]byte
 }
 
 func (this *CrossShardMsgHash) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteShardID(this.ShardID)
 	sink.WriteBytes(this.MsgHash[:])
-	sink.WriteVarUint(uint64(len(this.SigData)))
-	for _, sig := range this.SigData {
-		sink.WriteVarBytes(sig)
+	sink.WriteUint32(uint32(len(this.SigData)))
+	IndexIds := make([]uint64, 0, len(this.SigData))
+	for id := range this.SigData {
+		IndexIds = append(IndexIds, id)
+	}
+	common.SortUint64s(IndexIds)
+	for _, shardID := range IndexIds {
+		evts := this.SigData[shardID]
+		zcpSerializeShardSigData(sink, shardID, evts)
 	}
 }
 
@@ -48,24 +54,43 @@ func (this *CrossShardMsgHash) Deserialization(source *common.ZeroCopySource) er
 		return err
 	}
 	this.MsgHash, eof = source.NextHash()
-	n, _, irregular, eof := source.NextVarUint()
+	nsigDatas, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	if irregular {
-		return common.ErrIrregularData
+	sigData, err := zcpDeserializeShardSigData(source, nsigDatas)
+	if err != nil {
+		return err
 	}
-	for j := 0; j < int(n); j++ {
+	this.SigData = sigData
+	return nil
+}
+
+func zcpSerializeShardSigData(sink *common.ZeroCopySink, shardID uint64, sigData []byte) {
+	if len(sigData) == 0 {
+		return
+	}
+	sink.WriteUint64(shardID)
+	sink.WriteVarBytes(sigData)
+}
+
+func zcpDeserializeShardSigData(source *common.ZeroCopySource, sigDataCnt uint32) (map[uint64][]byte, error) {
+	sigData := make(map[uint64][]byte)
+	for i := uint32(0); i < sigDataCnt; i++ {
+		shardID, eof := source.NextUint64()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
 		sig, _, irregular, eof := source.NextVarBytes()
 		if eof {
-			return io.ErrUnexpectedEOF
+			return nil, io.ErrUnexpectedEOF
 		}
 		if irregular {
-			return common.ErrIrregularData
+			return nil, common.ErrIrregularData
 		}
-		this.SigData = append(this.SigData, sig)
+		sigData[shardID] = sig
 	}
-	return nil
+	return sigData, nil
 }
 
 type CrossShardMsg struct {

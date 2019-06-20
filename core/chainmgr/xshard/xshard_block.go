@@ -242,7 +242,7 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 				}
 			}
 			for _, msg := range crossShardMsgs {
-				if msg.CrossShardMsgInfo.SignMsgHeight < ledger.GetShardLedger(id).GetCurrentBlockHeight() {
+				if msg.CrossShardMsgInfo.SignMsgHeight < lgr.GetCurrentBlockHeight() {
 					break
 				}
 				tx, err := crossshard.NewCrossShardTxMsg(account, msg.CrossShardMsgInfo.MsgHeight, FromShardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)

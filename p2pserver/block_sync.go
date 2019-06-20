@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
@@ -652,7 +651,7 @@ func (this *BlockSyncMgr) saveBlock() {
 	}
 	this.lock.Unlock()
 
-	if len(ledger.DefLedgerMgr.Ledgers) > 1 || config.DefConfig.Shard.ShardID.IsRootShard() {
+	if len(ledger.DefLedgerMgr.Ledgers) > 1 {
 		for {
 			if this.SaveSyncBlock(curBlockHeight) {
 				curBlockHeight++
