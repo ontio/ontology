@@ -624,7 +624,6 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	log.Debugf("process xshard notify result: %v", result)
 }
 
-// TODO: req msg should carry original shard gasPrice
 func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, gasTable map[string]uint64,
 	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	header *types.Header, notify *event.TransactionNotify) {
@@ -648,6 +647,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, g
 		log.Debugf("handle shard req error: %s", err)
 		return
 	}
+	subTx.GasPrice = msg.GasPrice
 
 	cache.Reset()
 	txLockedKeys := make(map[string]struct{})
@@ -655,11 +655,16 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, g
 		lockKey(txLockedKeys, key)
 	})
 	evts := &event.ExecuteNotify{}
-	result, feeUsed, err := execShardTransaction(msg.SourceShardID, store, gasTable, lockedAddress, cache, txState, subTx, header, evts)
-	log.Debugf("xshard msg: method: %s, args: %v, result: %v, err: %s", msg.GetMethod(), msg.GetArgs(), result, err)
-
-	if feeUsed < neovm.MIN_TRANSACTION_GAS {
-		feeUsed = neovm.MIN_TRANSACTION_GAS
+	var result interface{}
+	feeUsed := neovm.MIN_TRANSACTION_GAS
+	if msg.GasPrice < neovm.GAS_PRICE {
+		result = ntypes.NewByteArray([]byte{})
+		err = fmt.Errorf("req gasPrice is too low")
+	} else {
+		result, feeUsed, err = execShardTransaction(msg.SourceShardID, store, gasTable, lockedAddress, cache, txState,
+			subTx, header, evts)
+		log.Debugf("xshard msg: method: %s, args: %v, result: %v, err: %s", msg.GetMethod(), msg.GetArgs(),
+			result, err)
 	}
 	rspMsg := &xshard_types.XShardTxRsp{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
@@ -719,7 +724,7 @@ func handleShardReqMsg(msg *xshard_types.XShardTxReq, store store.LedgerStore, g
 	log.Debugf("process xshard request result: %v", result)
 }
 
-func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, gasTable map[string]uint64, overlay *overlaydb.OverlayDB,
+func handleShardRespMsg(msg *xshard_types.XShardTxRsp, store store.LedgerStore, gasTable map[string]uint64,
 	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	header *types.Header, notify *event.TransactionNotify) {
 	shardId, err := common.NewShardID(header.ShardID)
@@ -955,7 +960,7 @@ func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.Over
 		case *xshard_types.XShardTxReq:
 			handleShardReqMsg(msg, store, gasTable, lockedAddress, lockedKeys, cache, xshardDB, header, notify)
 		case *xshard_types.XShardTxRsp:
-			handleShardRespMsg(msg, store, gasTable, overlay, lockedAddress, lockedKeys, cache, xshardDB, header, notify)
+			handleShardRespMsg(msg, store, gasTable, lockedAddress, lockedKeys, cache, xshardDB, header, notify)
 		case *xshard_types.XShardPrepareMsg:
 			handleShardPrepareMsg(msg, store, gasTable, lockedAddress, lockedKeys, cache, xshardDB, header, notify)
 		case *xshard_types.XShardPreparedMsg:
