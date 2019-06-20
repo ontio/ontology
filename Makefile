@@ -16,13 +16,16 @@ NATIVE_ABI_SCRIPT=./cmd/abi/native_abi_script
 
 ontology: $(SRC_FILES)
 	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
- 
-sigsvr: $(SRC_FILES) abi 
+
+ontology: $(SRC_FILES)
+	$(GC)  $(BUILD_NODE_PAR) -o ontology-relayer block-relayer.go
+
+sigsvr: $(SRC_FILES) abi
 	$(GC)  $(BUILD_NODE_PAR) -o sigsvr sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr $(TOOLS)
 
-abi: 
+abi:
 	@if [ ! -d $(ABI) ];then mkdir -p $(ABI) ;fi
 	@cp $(NATIVE_ABI_SCRIPT)/*.json $(ABI)
 
@@ -43,17 +46,17 @@ ontology-darwin:
 
 tools-cross: tools-windows tools-linux tools-darwin
 
-tools-windows: abi 
+tools-windows: abi
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-windows-amd64.exe sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-windows-amd64.exe $(TOOLS)
 
-tools-linux: abi 
+tools-linux: abi
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-linux-amd64 sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-linux-amd64 $(TOOLS)
 
-tools-darwin: abi 
+tools-darwin: abi
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-darwin-amd64 $(TOOLS)
@@ -82,13 +85,12 @@ docker/build/bin/%: Makefile
 		$(GC)  $(BUILD_NODE_PAR) -o docker/build/bin/ontology main.go
 	@touch $@
 
-docker: Makefile docker/payload docker/Dockerfile 
+docker: Makefile docker/payload docker/Dockerfile
 	@echo "Building ontology docker"
 	@$(DBUILD) -t $(DOCKER_NS)/ontology docker/payload
 	@docker tag $(DOCKER_NS)/ontology $(DOCKER_NS)/ontology:$(DOCKER_TAG)
 	@touch $@
 
 clean:
-	rm -rf *.8 *.o *.out *.6 *exe
+	rm -rf *.8 *.o *.out *.6 *exe coverage
 	rm -rf ontology ontology-* tools docker/payload docker/build
-
