@@ -1248,6 +1248,9 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 			if crossTxMsg.ShardMsg == nil {
 				continue
 			}
+			if crossTxMsg.ShardMsg.FromShardID.IsRootShard() {
+				continue
+			}
 			//verify msg sign
 			chainconfig, err := getShardConfigByShardID(self.ledger, crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight)
 			if err != nil {
@@ -1269,7 +1272,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					}
 					bookkeepers = append(bookkeepers, pubkey)
 				}
-				sigData := make([][]byte, len(msgHash.SigData))
+				sigData := make([][]byte, 0)
 				for _, sig := range msgHash.SigData {
 					sigData = append(sigData, sig)
 				}

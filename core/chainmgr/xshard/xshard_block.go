@@ -201,7 +201,7 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 		}
 		shardTxInfo := &types.CrossShardTxInfos{
 			ShardMsg: &types.CrossShardMsgInfo{
-				FromShardID: FromShardID,
+				FromShardID: common.NewShardIDUnchecked(0),
 				MsgHeight:   parentblkNum,
 			},
 			Tx: tx,
@@ -242,9 +242,6 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 				}
 			}
 			for _, msg := range crossShardMsgs {
-				if msg.CrossShardMsgInfo.SignMsgHeight < lgr.GetCurrentBlockHeight() {
-					break
-				}
 				tx, err := crossshard.NewCrossShardTxMsg(account, msg.CrossShardMsgInfo.MsgHeight, FromShardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, msg.ShardMsg)
 				if err != nil {
 					log.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", msg.CrossShardMsgInfo.MsgHeight, err)
@@ -272,6 +269,7 @@ func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[uint64][]*types.Cros
 				log.Infof("delcrossshardtxs shardID:%d,not exist", shardID)
 				return nil
 			} else {
+				log.Infof("delcrossshardtxs shardID:%d", shardID)
 				delete(crossShardTxInfos, shardTx.ShardMsg.CrossShardMsgRoot)
 				SaveCrossShardHash(lgr, common.NewShardIDUnchecked(shardID), shardTx.ShardMsg.PreCrossShardMsgHash)
 			}
