@@ -93,9 +93,6 @@ func OngApprove(native *native.NativeService) ([]byte, error) {
 	if err := state.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
 	}
-	if state.Value == 0 {
-		return utils.BYTE_FALSE, nil
-	}
 	if state.Value > constants.ONG_TOTAL_SUPPLY {
 		return utils.BYTE_FALSE, fmt.Errorf("approve ong amount:%d over totalSupply:%d", state.Value, constants.ONG_TOTAL_SUPPLY)
 	}

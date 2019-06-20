@@ -46,6 +46,7 @@ const (
 	ProposalFetchMessage
 	BlockFetchMessage
 	BlockFetchRespMessage
+	BlockSubmitMessage
 )
 
 type ConsensusMsg interface {
@@ -382,5 +383,35 @@ func (msg *proposalFetchMsg) GetBlockNum() uint32 {
 }
 
 func (msg *proposalFetchMsg) Serialize() ([]byte, error) {
+	return json.Marshal(msg)
+}
+
+type blockSubmitMsg struct {
+	BlockStateRoot common.Uint256 `json:"block_state_root"`
+	BlockNum       uint32         `json:"block_num"`
+	SubmitMsgSig   []byte         `json:"submit_msg_sig"`
+}
+
+func (msg *blockSubmitMsg) Type() MsgType {
+	return BlockSubmitMessage
+}
+
+func (msg *blockSubmitMsg) Verify(pub keypair.PublicKey) error {
+	hash := msg.BlockStateRoot
+	sig, err := signature.Deserialize(msg.SubmitMsgSig)
+	if err != nil {
+		return fmt.Errorf("deserialize submitmsg sig: %s", err)
+	}
+	if !signature.Verify(pub, hash[:], sig) {
+		return fmt.Errorf("failed to verify submit sig")
+	}
+	return nil
+}
+
+func (msg *blockSubmitMsg) GetBlockNum() uint32 {
+	return msg.BlockNum
+}
+
+func (msg *blockSubmitMsg) Serialize() ([]byte, error) {
 	return json.Marshal(msg)
 }

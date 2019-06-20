@@ -150,8 +150,6 @@ var AppHelpFlagGroups = []flagGroup{
 			utils.ReservedPeersFileFlag,
 			utils.NetworkIdFlag,
 			utils.NodePortFlag,
-			utils.DualPortSupportFlag,
-			utils.ConsensusPortFlag,
 			utils.HttpInfoPortFlag,
 			utils.MaxConnInBoundFlag,
 			utils.MaxConnOutBoundFlag,

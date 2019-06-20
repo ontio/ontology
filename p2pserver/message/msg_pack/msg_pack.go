@@ -57,9 +57,9 @@ func NewBlock(bk *ct.Block, merkleRoot common.Uint256) mt.Message {
 }
 
 //blk hdr package
-func NewHeaders(headers []*ct.Header) mt.Message {
+func NewHeaders(headers []*ct.RawHeader) mt.Message {
 	log.Trace()
-	var blkHdr mt.BlkHeader
+	var blkHdr mt.RawBlockHeader
 	blkHdr.BlkHdr = headers
 
 	return &blkHdr
@@ -140,25 +140,23 @@ func NewTxn(txn *ct.Transaction) mt.Message {
 }
 
 //version ack package
-func NewVerAck(isConsensus bool) mt.Message {
+func NewVerAck() mt.Message {
 	log.Trace()
 	var verAck mt.VerACK
-	verAck.IsConsensus = isConsensus
 
 	return &verAck
 }
 
 //Version package
-func NewVersion(n p2pnet.P2P, isCons bool, height uint32) mt.Message {
+func NewVersion(n p2pnet.P2P, height uint32) mt.Message {
 	log.Trace()
 	var version mt.Version
 	version.P = mt.VersionPayload{
 		Version:      n.GetVersion(),
 		Services:     n.GetServices(),
-		SyncPort:     n.GetSyncPort(),
-		ConsPort:     n.GetConsPort(),
+		SyncPort:     n.GetPort(),
 		Nonce:        n.GetID(),
-		IsConsensus:  isCons,
+		IsConsensus:  false,
 		HttpInfoPort: n.GetHttpInfoPort(),
 		StartHeight:  uint64(height),
 		TimeStamp:    time.Now().UnixNano(),

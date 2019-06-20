@@ -29,11 +29,10 @@ import (
 type P2P interface {
 	Start()
 	Halt()
-	Connect(addr string, isConsensus bool) error
+	Connect(addr string) error
 	GetID() uint64
 	GetVersion() uint32
-	GetSyncPort() uint16
-	GetConsPort() uint16
+	GetPort() uint16
 	GetHttpInfoPort() uint16
 	GetRelay() bool
 	GetHeight() uint64
@@ -46,23 +45,21 @@ type P2P interface {
 	GetPeer(uint64) *peer.Peer
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
-	Send(p *peer.Peer, msg types.Message, isConsensus bool) error
-	GetMsgChan(isConsensus bool) chan *types.MsgPayload
+	Send(p *peer.Peer, msg types.Message) error
+	GetMsgChan() chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	AddOutConnectingList(addr string) (added bool)
 	GetOutConnRecordLen() int
 	RemoveFromConnectingList(addr string)
 	RemoveFromOutConnRecord(addr string)
 	RemoveFromInConnRecord(addr string)
-	AddPeerSyncAddress(addr string, p *peer.Peer)
-	AddPeerConsAddress(addr string, p *peer.Peer)
+	AddPeerAddress(addr string, p *peer.Peer)
 	GetOutConnectingListLen() (count uint)
-	RemovePeerSyncAddress(addr string)
-	RemovePeerConsAddress(addr string)
+	RemovePeerAddress(addr string)
 	AddNbrNode(*peer.Peer)
 	DelNbrNode(id uint64) (*peer.Peer, bool)
 	NodeEstablished(uint64) bool
-	Xmit(msg types.Message, isCons bool)
+	Xmit(msg types.Message)
 	SetOwnAddress(addr string)
 	IsOwnAddress(addr string) bool
 	IsAddrFromConnecting(addr string) bool

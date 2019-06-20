@@ -16,35 +16,39 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package types
+package test
 
 import (
-	"io"
-
-	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/vm/neovm/errors"
+	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
-type Ping struct {
-	Height uint64
-}
-
-//Serialize message payload
-func (this Ping) Serialization(sink *comm.ZeroCopySink) {
-	sink.WriteUint64(this.Height)
-}
-
-func (this *Ping) CmdType() string {
-	return common.PING_TYPE
-}
-
-//Deserialize message payload
-func (this *Ping) Deserialization(source *comm.ZeroCopySource) error {
-	var eof bool
-	this.Height, eof = source.NextUint64()
-	if eof {
-		return io.ErrUnexpectedEOF
+func TestAppendOverFlow(t *testing.T) {
+	// define 1024 len array
+	byteCode := []byte{
+		byte(0x04), //neovm.PUSHBYTES4
+		byte(0x00),
+		byte(0x04),
+		byte(0x00),
+		byte(0x00),
+		byte(neovm.NEWARRAY),
+		byte(neovm.PUSH2),
+		byte(neovm.APPEND),
 	}
 
-	return nil
+	config := &smartcontract.Config{
+		Time:   10,
+		Height: 10,
+	}
+	sc := smartcontract.SmartContract{
+		Config:  config,
+		Gas:     200,
+		CacheDB: nil,
+	}
+	engine, _ := sc.NewExecuteEngine(byteCode)
+	_, err := engine.Invoke()
+	assert.EqualError(t, err, "[NeoVmService] vm execution error!: "+errors.ERR_OVER_MAX_ARRAY_SIZE.Error())
 }

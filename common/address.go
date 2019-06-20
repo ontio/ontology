@@ -87,9 +87,10 @@ func AddressFromHexString(s string) (Address, error) {
 	return AddressParseFromBytes(ToArrayReverse(hx))
 }
 
+const MaxBase58AddrLen = 2048 // just to avoid dos
 // AddressFromBase58 returns Address from encoded base58 string
 func AddressFromBase58(encoded string) (Address, error) {
-	if encoded == "" {
+	if encoded == "" || len(encoded) > MaxBase58AddrLen {
 		return ADDRESS_EMPTY, errors.New("invalid address")
 	}
 	decoded, err := base58.BitcoinEncoding.Decode([]byte(encoded))

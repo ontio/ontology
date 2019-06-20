@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"sort"
 
 	"github.com/ontio/ontology/common"
@@ -37,6 +38,11 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//check pos
+	if params.InitPos < 1 {
+		return fmt.Errorf("registerCandidate, init pos must >= 1")
+	}
 
 	//check auth of OntID
 	err := appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, uint64(params.KeyNo))
@@ -185,6 +191,9 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		pos := params.PosList[i]
 
 		//check pos
+		if pos < 1 {
+			return fmt.Errorf("authorizeForPeer, pos must >= 1")
+		}
 		if pos < globalParam2.MinAuthorizePos || pos%globalParam2.MinAuthorizePos != 0 {
 			return fmt.Errorf("authorizeForPeer, pos must be times of %d", globalParam2.MinAuthorizePos)
 		}
@@ -826,6 +835,12 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		return splitSum, fmt.Errorf("executeSplit, get peerPoolMap error: %v", err)
 	}
 
+	//get current peerPoolMap
+	currentPeerPoolMap, err := GetPeerPoolMap(native, contract, view)
+	if err != nil {
+		return splitSum, fmt.Errorf("executeSplit, get currentPeerPoolMap error: %v", err)
+	}
+
 	balance, err := getOngBalance(native, utils.GovernanceContractAddress)
 	if err != nil {
 		return splitSum, fmt.Errorf("executeSplit, getOngBalance error: %v", err)
@@ -840,25 +855,26 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	income := balance - splitFee
 
 	//fee split to dapp address
-	dappIncome := income * uint64(globalParam2.DappFee) / 100
+	dappIncome := new(big.Int).Div(new(big.Int).Mul(new(big.Int).SetUint64(income),
+		new(big.Int).SetUint64(uint64(globalParam2.DappFee))), new(big.Int).SetUint64(100))
 	gasAddress, err := getGasAddress(native, contract)
 	if err != nil {
 		return splitSum, fmt.Errorf("getGasAddress, getGasAddress error: %v", err)
 	}
 	if gasAddress.Address == common.ADDRESS_EMPTY {
-		dappIncome = 0
+		dappIncome = new(big.Int).SetUint64(0)
 	} else {
-		err := appCallTransferOng(native, utils.GovernanceContractAddress, gasAddress.Address, dappIncome)
+		err := appCallTransferOng(native, utils.GovernanceContractAddress, gasAddress.Address, dappIncome.Uint64())
 		if err != nil {
 			return splitSum, fmt.Errorf("appCallTransferOng, appCallTransferOng error: %v", err)
 		}
 	}
 
 	//fee split to node
-	if income < dappIncome {
+	if income < dappIncome.Uint64() {
 		panic("income less than dappIncome!")
 	}
-	nodeIncome := income - dappIncome
+	nodeIncome := new(big.Int).Sub(new(big.Int).SetUint64(income), dappIncome)
 	//get globalParam
 	globalParam, err := getGlobalParam(native, contract)
 	if err != nil {
@@ -913,13 +929,23 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 
 	//fee split of consensus peer
 	for i := 0; i < int(config.K); i++ {
-		nodeAmount := nodeIncome * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
-		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address, true,
-			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount)
+		//nodeAmount := nodeIncome * uint64(globalParam.A) / 100 * peersCandidate[i].S / sumS
+		//consensusWeight := nodeIncome * uint64(globalParam.A)
+		//consensusAmount := consensusWeight / 100
+		//nodeWeight := consensusAmount * peersCandidate[i].S
+		//nodeAmount := nodeWeight / sumS
+		consensusWeight := new(big.Int).Mul(nodeIncome, new(big.Int).SetUint64(uint64(globalParam.A)))
+		consensusAmount := new(big.Int).Div(consensusWeight, new(big.Int).SetUint64(100))
+		nodeWeight := new(big.Int).Mul(consensusAmount, new(big.Int).SetUint64(peersCandidate[i].S))
+		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sumS))
+
+		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
+			currentPeerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
+			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
 		if err != nil {
 			return splitSum, fmt.Errorf("executeSplit2, splitNodeFee error: %v", err)
 		}
-		splitSum += nodeAmount
+		splitSum += nodeAmount.Uint64()
 	}
 
 	//fee split of candidate peer
@@ -938,13 +964,23 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		return splitSum, nil
 	}
 	for i := int(config.K); i < length; i++ {
-		nodeAmount := nodeIncome * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
-		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address, false,
-			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount)
+		//nodeAmount := nodeIncome * uint64(globalParam.B) / 100 * peersCandidate[i].Stake / sum
+		//candidateWeight := nodeIncome * uint64(globalParam.B)
+		//candidateAmount := candidateWeight / 100
+		//nodeWeight := candidateAmount * peersCandidate[i].Stake
+		//nodeAmount := nodeWeight / sum
+		candidateWeight := new(big.Int).Mul(nodeIncome, new(big.Int).SetUint64(uint64(globalParam.B)))
+		candidateAmount := new(big.Int).Div(candidateWeight, new(big.Int).SetUint64(100))
+		nodeWeight := new(big.Int).Mul(candidateAmount, new(big.Int).SetUint64(peersCandidate[i].Stake))
+		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sum))
+
+		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
+			currentPeerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
+			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
 		if err != nil {
 			return splitSum, fmt.Errorf("executeSplit2, splitNodeFee error: %v", err)
 		}
-		splitSum += nodeAmount
+		splitSum += nodeAmount.Uint64()
 	}
 
 	return splitSum, nil

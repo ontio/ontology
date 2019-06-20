@@ -114,7 +114,7 @@ func TestStateMgr_getState(t *testing.T) {
 }
 
 func TestStateMgr_onPeerUpdate(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	sev := constructServer()
 	peerstate := &PeerState{
 		peerIdx:           1,
@@ -161,9 +161,7 @@ func TestStateMgr_onPeerUpdate(t *testing.T) {
 				liveTicker:          tt.fields.liveTicker,
 				lastTickChainHeight: tt.fields.lastTickChainHeight,
 			}
-			if err := self.onPeerUpdate(tt.args.peerState); (err != nil) != tt.wantErr {
-				t.Errorf("StateMgr.onPeerUpdate() error = %v, wantErr %v", err, tt.wantErr)
-			}
+			self.onPeerUpdate(tt.args.peerState)
 		})
 	}
 }
@@ -184,11 +182,7 @@ func constructPeerState() *StateMgr {
 }
 func TestStateMgr_onPeerDisconnected(t *testing.T) {
 	statemgr := constructPeerState()
-	err := statemgr.onPeerDisconnected(1)
-	if err != nil {
-		t.Errorf("TestonPeerDisconnected failed:%v", err)
-		return
-	}
+	statemgr.onPeerDisconnected(1)
 	t.Logf("TestonPeerDisconnected succ")
 }
 
@@ -229,7 +223,7 @@ func TestStateMgr_isSyncedReady(t *testing.T) {
 }
 
 func TestStateMgr_checkStartSyncing(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	statemgr := constructPeerState()
 	statemgr.server.syncer = newSyncer(statemgr.server)
 	statemgr.checkStartSyncing(1, true)
@@ -237,7 +231,7 @@ func TestStateMgr_checkStartSyncing(t *testing.T) {
 }
 
 func TestStateMgr_getConsensusedCommittedBlockNum(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	statemgr := constructPeerState()
 	maxcomit, flag := statemgr.getConsensusedCommittedBlockNum()
 	t.Logf("TestgetConsensusedCommittedBlockNum maxcommitted:%v, consensused:%v", maxcomit, flag)

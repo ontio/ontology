@@ -97,9 +97,10 @@ const (
 	GAS_ADDRESS       = "gasAddress"
 
 	//global
-	PRECISE           = 1000000
-	NEW_VERSION_VIEW  = 6
-	NEW_VERSION_BLOCK = 414100
+	PRECISE            = 1000000
+	NEW_VERSION_VIEW   = 6
+	NEW_VERSION_BLOCK  = 414100
+	NEW_WITHDRAW_BLOCK = 2800000
 )
 
 // candidate fee must >= 1 ONG
@@ -840,6 +841,9 @@ func UnAuthorizeForPeer(native *native.NativeService) ([]byte, error) {
 		}
 
 		//check pos
+		if pos < 1 {
+			return utils.BYTE_FALSE, fmt.Errorf("unAuthorizeForPeer, pos must >= 1")
+		}
 		if authorizeInfo.ConsensusPos+authorizeInfo.CandidatePos+authorizeInfo.NewPos < uint64(globalParam2.MinAuthorizePos) {
 			pos = authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos
 		} else if pos < uint64(globalParam2.MinAuthorizePos) || pos%uint64(globalParam2.MinAuthorizePos) != 0 {
@@ -923,6 +927,12 @@ func Withdraw(native *native.NativeService) ([]byte, error) {
 	for i := 0; i < len(params.PeerPubkeyList); i++ {
 		peerPubkey := params.PeerPubkeyList[i]
 		pos := params.WithdrawList[i]
+
+		if native.Height > NEW_WITHDRAW_BLOCK {
+			if pos < 1 {
+				return utils.BYTE_FALSE, fmt.Errorf("withdraw, amount of withdraw must >= 1")
+			}
+		}
 		peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
@@ -1075,6 +1085,9 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if configuration.PeerHandshakeTimeout < 10 {
 		return utils.BYTE_FALSE, fmt.Errorf("updateConfig. PeerHandshakeTimeout must >= 10")
 	}
+	if configuration.MaxBlockChangeView < 10000 {
+		return utils.BYTE_FALSE, fmt.Errorf("updateConfig. MaxBlockChangeView must >= 10000")
+	}
 
 	preConfig := &PreConfig{
 		Configuration: configuration,
@@ -1133,6 +1146,9 @@ func UpdateGlobalParam(native *native.NativeService) ([]byte, error) {
 	}
 	if globalParam.CandidateFee != 0 && globalParam.CandidateFee < MIN_CANDIDATE_FEE {
 		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam. CandidateFee must >= %d", MIN_CANDIDATE_FEE)
+	}
+	if globalParam.MinInitStake < 1 {
+		return utils.BYTE_FALSE, fmt.Errorf("updateGlobalParam. MinInitStake must >= 1")
 	}
 	err = putGlobalParam(native, contract, globalParam)
 	if err != nil {
@@ -1465,6 +1481,11 @@ func AddInitPos(native *native.NativeService) ([]byte, error) {
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
+	//check pos
+	if params.Pos < 1 {
+		return utils.BYTE_FALSE, fmt.Errorf("addInitPos, pos must >= 1")
+	}
+
 	//check if is peer owner
 	//get current view
 	view, err := GetView(native, contract)
@@ -1525,6 +1546,11 @@ func ReduceInitPos(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("validateOwner, checkWitness error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	//check pos
+	if params.Pos < 1 {
+		return utils.BYTE_FALSE, fmt.Errorf("reduceInitPos, pos must >= 1")
+	}
 
 	//check if is peer owner
 	//get current view

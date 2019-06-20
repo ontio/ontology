@@ -34,7 +34,7 @@ type SignaturesData struct {
 	Index     uint16
 }
 
-func (self *BlockSignatures) Serialization(sink *common.ZeroCopySink) error {
+func (self *BlockSignatures) Serialization(sink *common.ZeroCopySink) {
 	self.msgData.Serialization(sink)
 	sink.WriteVarUint(uint64(len(self.Signatures)))
 
@@ -42,8 +42,6 @@ func (self *BlockSignatures) Serialization(sink *common.ZeroCopySink) error {
 		sink.WriteVarBytes(sign.Signature)
 		sink.WriteUint16(sign.Index)
 	}
-
-	return nil
 }
 
 func (self *BlockSignatures) Deserialization(source *common.ZeroCopySource) error {

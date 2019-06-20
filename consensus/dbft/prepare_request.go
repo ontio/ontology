@@ -35,19 +35,15 @@ type PrepareRequest struct {
 	Signature      []byte
 }
 
-func (pr *PrepareRequest) Serialization(sink *common.ZeroCopySink) error {
+func (pr *PrepareRequest) Serialization(sink *common.ZeroCopySink) {
 	pr.msgData.Serialization(sink)
 	sink.WriteVarUint(pr.Nonce)
 	sink.WriteAddress(pr.NextBookkeeper)
 	sink.WriteVarUint(uint64(len(pr.Transactions)))
 	for _, t := range pr.Transactions {
-		if err := t.Serialization(sink); err != nil {
-			return fmt.Errorf("[PrepareRequest] transactions serialization failed: %s", err)
-		}
+		t.Serialization(sink)
 	}
 	sink.WriteVarBytes(pr.Signature)
-
-	return nil
 }
 
 func (pr *PrepareRequest) Deserialization(source *common.ZeroCopySource) error {

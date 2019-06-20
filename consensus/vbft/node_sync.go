@@ -146,9 +146,7 @@ func (self *Syncer) run() {
 			if req.startBlockNum > req.targetBlockNum {
 				continue
 			}
-			if err := self.onNewBlockSyncReq(req); err != nil {
-				log.Errorf("server %d failed to handle new block sync req: %s", self.server.Index, err)
-			}
+			self.onNewBlockSyncReq(req)
 
 		case syncMsg := <-self.syncMsgC:
 			if p, present := self.peers[syncMsg.fromPeer]; present {
@@ -290,7 +288,7 @@ func (self *Syncer) isActive() bool {
 	return self.nextReqBlkNum <= self.targetBlkNum
 }
 
-func (self *Syncer) startPeerSyncer(syncer *PeerSyncer, targetBlkNum uint32) error {
+func (self *Syncer) startPeerSyncer(syncer *PeerSyncer, targetBlkNum uint32) {
 
 	syncer.lock.Lock()
 	defer syncer.lock.Unlock()
@@ -304,30 +302,26 @@ func (self *Syncer) startPeerSyncer(syncer *PeerSyncer, targetBlkNum uint32) err
 			syncer.run()
 		}()
 	}
-
-	return nil
 }
 
-func (self *Syncer) cancelFetcherForPeer(peer *PeerSyncer) error {
+func (self *Syncer) cancelFetcherForPeer(peer *PeerSyncer) {
 	if peer == nil {
-		return nil
+		return
 	}
 
 	peer.lock.Lock()
 	defer peer.lock.Unlock()
 
 	// TODO
-
-	return nil
 }
 
-func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) error {
+func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) {
 	if req.startBlockNum < self.nextReqBlkNum {
 		log.Errorf("server %d new blockSyncReq startblkNum %d vs %d",
 			self.server.Index, req.startBlockNum, self.nextReqBlkNum)
 	}
 	if req.targetBlockNum <= self.targetBlkNum {
-		return nil
+		return
 	}
 	if self.nextReqBlkNum == 1 {
 		self.nextReqBlkNum = req.startBlockNum
@@ -360,8 +354,6 @@ func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) error {
 		p := self.peers[peerIdx]
 		self.startPeerSyncer(p, self.targetBlkNum)
 	}
-
-	return nil
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -450,10 +442,7 @@ func (self *PeerSyncer) stop(force bool) bool {
 }
 
 func (self *PeerSyncer) requestBlock(blkNum uint32) (*Block, error) {
-	msg, err := self.server.constructBlockFetchMsg(blkNum)
-	if err != nil {
-		return nil, err
-	}
+	msg := self.server.constructBlockFetchMsg(blkNum)
 	self.server.msgSendC <- &SendMsgEvent{
 		ToPeer: self.peerIdx,
 		Msg:    msg,
@@ -484,11 +473,7 @@ func (self *PeerSyncer) requestBlock(blkNum uint32) (*Block, error) {
 }
 
 func (self *PeerSyncer) requestBlockInfo(startBlkNum uint32) ([]*BlockInfo_, error) {
-	msg, err := self.server.constructBlockInfoFetchMsg(startBlkNum)
-	if err != nil {
-		return nil, err
-	}
-
+	msg := self.server.constructBlockInfoFetchMsg(startBlkNum)
 	self.server.msgSendC <- &SendMsgEvent{
 		ToPeer: self.peerIdx,
 		Msg:    msg,

@@ -208,7 +208,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 		}
 	}
 
-	item, err := findPk(srvc, key, arg1)
+	item, _, err := findPk(srvc, key, arg1)
 	if item != 0 {
 		return utils.BYTE_FALSE, errors.New("add key failed: already exists")
 	}

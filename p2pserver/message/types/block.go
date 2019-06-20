@@ -20,25 +20,21 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
-	ct "github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/core/types"
 	comm "github.com/ontio/ontology/p2pserver/common"
 )
 
 type Block struct {
-	Blk        *ct.Block
+	Blk        *types.Block
 	MerkleRoot common.Uint256
 }
 
 //Serialize message payload
-func (this *Block) Serialization(sink *common.ZeroCopySink) error {
-	err := this.Blk.Serialization(sink)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. err:%v", err))
-	}
+func (this *Block) Serialization(sink *common.ZeroCopySink) {
+	this.Blk.Serialization(sink)
 	sink.WriteHash(this.MerkleRoot)
-	return nil
 }
 
 func (this *Block) CmdType() string {
@@ -47,10 +43,10 @@ func (this *Block) CmdType() string {
 
 //Deserialize message payload
 func (this *Block) Deserialization(source *common.ZeroCopySource) error {
-	this.Blk = new(ct.Block)
+	this.Blk = new(types.Block)
 	err := this.Blk.Deserialization(source)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, fmt.Sprintf("read Blk error. err:%v", err))
+		return fmt.Errorf("read Blk error. err:%v", err)
 	}
 
 	eof := false
@@ -59,5 +55,6 @@ func (this *Block) Deserialization(source *common.ZeroCopySource) error {
 		// to accept old node's block
 		this.MerkleRoot = common.UINT256_EMPTY
 	}
+
 	return nil
 }

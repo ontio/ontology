@@ -30,7 +30,7 @@ type Addr struct {
 }
 
 //Serialize message payload
-func (this Addr) Serialization(sink *common.ZeroCopySink) error {
+func (this Addr) Serialization(sink *common.ZeroCopySink) {
 	num := uint64(len(this.NodeAddrs))
 	sink.WriteUint64(num)
 
@@ -42,8 +42,6 @@ func (this Addr) Serialization(sink *common.ZeroCopySink) error {
 		sink.WriteUint16(addr.ConsensusPort)
 		sink.WriteUint64(addr.ID)
 	}
-
-	return nil
 }
 
 func (this *Addr) CmdType() string {

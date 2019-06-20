@@ -19,6 +19,7 @@
 package proc
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -34,8 +35,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	log.Init(log.PATH, log.Stdout)
+func TestMain(m *testing.M) {
+	log.InitLog(log.InfoLog, log.Stdout)
 	var err error
 	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
@@ -55,6 +56,11 @@ func init() {
 	if err != nil {
 		return
 	}
+
+	m.Run()
+
+	ledger.DefLedger.Close()
+	os.RemoveAll(config.DEFAULT_DATA_DIR)
 }
 
 func TestTxActor(t *testing.T) {

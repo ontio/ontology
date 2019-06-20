@@ -81,7 +81,7 @@ func constructConfig() (*config.VBFTConfig, error) {
 }
 
 func TestGenConsensusPayload(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	config, err := constructConfig()
 	if err != nil {
 		t.Errorf("constructConfig failed:%s", err)
@@ -96,7 +96,7 @@ func TestGenConsensusPayload(t *testing.T) {
 }
 
 func TestGenesisChainConfig(t *testing.T) {
-	log.Init(log.PATH, log.Stdout)
+	log.InitLog(log.InfoLog, log.Stdout)
 	config, err := constructConfig()
 	if err != nil {
 		t.Errorf("constructConfig failed:%s", err)

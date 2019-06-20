@@ -29,10 +29,9 @@ type ChangeView struct {
 	NewViewNumber byte
 }
 
-func (cv *ChangeView) Serialization(sink *common.ZeroCopySink) error {
+func (cv *ChangeView) Serialization(sink *common.ZeroCopySink) {
 	cv.msgData.Serialization(sink)
 	sink.WriteByte(cv.NewViewNumber)
-	return nil
 }
 
 //read data to reader

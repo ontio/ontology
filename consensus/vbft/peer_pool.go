@@ -115,10 +115,10 @@ func (pool *PeerPool) getActivePeerCount() int {
 	return n
 }
 
-func (pool *PeerPool) waitPeerConnected(peerIdx uint32) error {
+func (pool *PeerPool) waitPeerConnected(peerIdx uint32) {
 	if !pool.isNewPeer(peerIdx) {
 		// peer already connected
-		return nil
+		return
 	}
 
 	var C chan struct{}
@@ -132,10 +132,9 @@ func (pool *PeerPool) waitPeerConnected(peerIdx uint32) error {
 	pool.lock.Unlock()
 
 	<-C
-	return nil
 }
 
-func (pool *PeerPool) peerConnected(peerIdx uint32) error {
+func (pool *PeerPool) peerConnected(peerIdx uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -150,10 +149,9 @@ func (pool *PeerPool) peerConnected(peerIdx uint32) error {
 		delete(pool.peerConnectionWaitings, peerIdx)
 		close(C)
 	}
-	return nil
 }
 
-func (pool *PeerPool) peerDisconnected(peerIdx uint32) error {
+func (pool *PeerPool) peerDisconnected(peerIdx uint32) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -168,10 +166,9 @@ func (pool *PeerPool) peerDisconnected(peerIdx uint32) error {
 		LastUpdateTime: lastUpdateTime,
 		connected:      false,
 	}
-	return nil
 }
 
-func (pool *PeerPool) peerHandshake(peerIdx uint32, msg *peerHandshakeMsg) error {
+func (pool *PeerPool) peerHandshake(peerIdx uint32, msg *peerHandshakeMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -183,11 +180,9 @@ func (pool *PeerPool) peerHandshake(peerIdx uint32, msg *peerHandshakeMsg) error
 		LastUpdateTime: time.Now(),
 		connected:      true,
 	}
-
-	return nil
 }
 
-func (pool *PeerPool) peerHeartbeat(peerIdx uint32, msg *peerHeartbeatMsg) error {
+func (pool *PeerPool) peerHeartbeat(peerIdx uint32, msg *peerHeartbeatMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -205,8 +200,6 @@ func (pool *PeerPool) peerHeartbeat(peerIdx uint32, msg *peerHeartbeatMsg) error
 		LastUpdateTime: time.Now(),
 		connected:      true,
 	}
-
-	return nil
 }
 
 func (pool *PeerPool) getNeighbours() []*Peer {

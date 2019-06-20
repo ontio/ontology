@@ -26,6 +26,94 @@ import (
 	"github.com/ontio/ontology/common"
 )
 
+type RawHeader struct {
+	Height  uint32
+	Payload []byte
+}
+
+func (self *RawHeader) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteBytes(self.Payload)
+}
+
+// note: can only be called when source is trusted, like data from local ledger store
+func (self *RawHeader) Deserialization(source *common.ZeroCopySource) error {
+	pstart := source.Pos()
+	err := self.deserializationUnsigned(source)
+	if err != nil {
+		return err
+	}
+
+	n, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	for i := 0; i < int(n); i++ {
+		_, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+	}
+
+	m, _, irregular, eof := source.NextVarUint()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	for i := 0; i < int(m); i++ {
+		_, _, irregular, eof := source.NextVarBytes()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		if irregular {
+			return common.ErrIrregularData
+		}
+	}
+	plen := source.Pos() - pstart
+	source.BackUp(plen)
+	self.Payload, _ = source.NextBytes(plen)
+
+	return nil
+}
+
+func (self *RawHeader) deserializationUnsigned(source *common.ZeroCopySource) error {
+	// version + preHash + tx root + block root + timestamp
+	source.Skip(4 + 32*3 + 4)
+	self.Height, _ = source.NextUint32()
+	//ConsensusData    uint64
+	source.Skip(8)
+	// ConsensusPayload
+	_, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+
+	// next bookkeeper
+	eof = source.Skip(20)
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+
+func (hd *Header) GetRawHeader() *RawHeader {
+	sink := common.NewZeroCopySink(nil)
+	hd.Serialization(sink)
+	return &RawHeader{
+		Height:  hd.Height,
+		Payload: sink.Bytes(),
+	}
+}
+
 type Header struct {
 	Version          uint32
 	PrevBlockHash    common.Uint256
@@ -44,7 +132,7 @@ type Header struct {
 	hash *common.Uint256
 }
 
-func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
+func (bd *Header) Serialization(sink *common.ZeroCopySink) {
 	bd.serializationUnsigned(sink)
 	sink.WriteVarUint(uint64(len(bd.Bookkeepers)))
 
@@ -56,8 +144,6 @@ func (bd *Header) Serialization(sink *common.ZeroCopySink) error {
 	for _, sig := range bd.SigData {
 		sink.WriteVarBytes(sig)
 	}
-
-	return nil
 }
 
 //Serialize the blockheader data without program

@@ -390,12 +390,11 @@ type Payload interface {
 	Deserialize(r io.Reader) error
 }
 
-func (tx *Transaction) Serialization(sink *common.ZeroCopySink) error {
+func (tx *Transaction) Serialization(sink *common.ZeroCopySink) {
 	if tx.nonDirectConstracted == false || len(tx.Raw) == 0 {
 		panic("wrong constructed transaction")
 	}
 	sink.WriteBytes(tx.Raw)
-	return nil
 }
 
 // Serialize the Transaction

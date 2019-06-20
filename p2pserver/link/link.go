@@ -168,11 +168,7 @@ func (this *Link) CloseConn() {
 
 func (this *Link) Send(msg types.Message) error {
 	sink := comm.NewZeroCopySink(nil)
-	err := types.WriteMessage(sink, msg)
-	if err != nil {
-		log.Debugf("[p2p]error serialize messge ", err.Error())
-		return err
-	}
+	types.WriteMessage(sink, msg)
 
 	return this.SendRaw(sink.Bytes())
 }

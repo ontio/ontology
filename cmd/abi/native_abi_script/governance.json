@@ -391,13 +391,6 @@
       "returnType":"Bool"
     },
     {
-      "name":"callSplit",
-      "parameters":
-      [
-      ],
-      "returnType":"Bool"
-    },
-    {
       "name":"transferPenalty",
       "parameters":
       [
@@ -413,7 +406,7 @@
       "returnType":"Bool"
     },
     {
-      "name":"changeMaxAuthorizations",
+      "name":"changeMaxAuthorization",
       "parameters":
       [
         {

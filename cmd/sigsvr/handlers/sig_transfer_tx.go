@@ -98,12 +98,7 @@ func SigTransferTransaction(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpc
 		return
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigTransferTransaction tx Serialize error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
-		return
-	}
+	tx.Serialization(&sink)
 	resp.Result = &SinTransferTransactionRsp{
 		SignedTx: hex.EncodeToString(sink.Bytes()),
 	}

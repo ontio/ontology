@@ -27,12 +27,11 @@ import (
 )
 
 func init() {
-	log.InitLog(log.InfoLog)
+	log.InitLog(log.InfoLog, log.Stdout)
 	fmt.Println("Start test the netserver...")
 
 }
 func TestNewP2PServer(t *testing.T) {
-	log.Init(log.Stdout)
 	fmt.Println("Start test new p2pserver...")
 
 	p2p := NewServer()
@@ -44,12 +43,8 @@ func TestNewP2PServer(t *testing.T) {
 	if p2p.GetVersion() != common.PROTOCOL_VERSION {
 		t.Error("TestNewP2PServer p2p version error")
 	}
-	sync, cons := p2p.GetPort()
+	sync := p2p.GetPort()
 	if sync != 20338 {
 		t.Error("TestNewP2PServer sync port error")
-	}
-
-	if cons != 20339 {
-		t.Error("TestNewP2PServer consensus port error")
 	}
 }

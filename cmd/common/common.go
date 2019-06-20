@@ -37,7 +37,7 @@ func GetPasswd(ctx *cli.Context) ([]byte, error) {
 	} else {
 		passwd, err = password.GetAccountPassword()
 		if err != nil {
-			return nil, fmt.Errorf("Input password error:%s", err)
+			return nil, fmt.Errorf("input password error: %s", err)
 		}
 	}
 	return passwd, nil
@@ -49,7 +49,7 @@ func OpenWallet(ctx *cli.Context) (account.Client, error) {
 		walletFile = config.DEFAULT_WALLET_FILE_NAME
 	}
 	if !common.FileExisted(walletFile) {
-		return nil, fmt.Errorf("cannot find wallet file:%s", walletFile)
+		return nil, fmt.Errorf("cannot find wallet file: %s", walletFile)
 	}
 	wallet, err := account.Open(walletFile)
 	if err != nil {
@@ -69,36 +69,36 @@ func GetAccountMulti(wallet account.Client, passwd []byte, accAddr string) (*acc
 	}
 	acc, err := wallet.GetAccountByAddress(accAddr, passwd)
 	if err != nil {
-		return nil, fmt.Errorf("getAccountByAddress:%s error:%s", accAddr, err)
+		return nil, fmt.Errorf("getAccountByAddress %s error: %s", accAddr, err)
 	}
 	if acc != nil {
 		return acc, nil
 	}
 	acc, err = wallet.GetAccountByLabel(accAddr, passwd)
 	if err != nil {
-		return nil, fmt.Errorf("getAccountByLabel:%s error:%s", accAddr, err)
+		return nil, fmt.Errorf("getAccountByLabel %s error: %s", accAddr, err)
 	}
 	if acc != nil {
 		return acc, nil
 	}
 	index, err := strconv.ParseInt(accAddr, 10, 32)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get account by:%s", accAddr)
+		return nil, fmt.Errorf("cannot get account by address: %s", accAddr)
 	}
 	acc, err = wallet.GetAccountByIndex(int(index), passwd)
 	if err != nil {
-		return nil, fmt.Errorf("getAccountByIndex:%d error:%s", index, err)
+		return nil, fmt.Errorf("getAccountByIndex %d error: %s", index, err)
 	}
 	if acc != nil {
 		return acc, nil
 	}
-	return nil, fmt.Errorf("cannot get account by:%s", accAddr)
+	return nil, fmt.Errorf("cannot get account by address: %s", accAddr)
 }
 
 func GetAccountMetadataMulti(wallet account.Client, accAddr string) *account.AccountMetadata {
 	//Address maybe address in base58, label or index
 	if accAddr == "" {
-		fmt.Printf("Using default account:%s\n", accAddr)
+		fmt.Printf("Using default account: %s\n", accAddr)
 		return wallet.GetDefaultAccountMetadata()
 	}
 	acc := wallet.GetAccountMetadataByAddress(accAddr)
@@ -158,13 +158,13 @@ func ParseAddress(address string, ctx *cli.Context) (string, error) {
 	}
 	index, err := strconv.ParseInt(address, 10, 32)
 	if err != nil {
-		return "", fmt.Errorf("cannot get account by:%s", address)
+		return "", fmt.Errorf("cannot get account by address: %s", address)
 	}
 	acc = wallet.GetAccountMetadataByIndex(int(index))
 	if acc != nil {
 		return acc.Address, nil
 	}
-	return "", fmt.Errorf("cannot get account by:%s", address)
+	return "", fmt.Errorf("cannot get account by address: %s", address)
 }
 
 func ClearPasswd(passwd []byte) {

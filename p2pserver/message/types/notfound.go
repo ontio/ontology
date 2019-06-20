@@ -30,9 +30,8 @@ type NotFound struct {
 }
 
 //Serialize message payload
-func (this NotFound) Serialization(sink *common.ZeroCopySink) error {
+func (this NotFound) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteHash(this.Hash)
-	return nil
 }
 
 func (this NotFound) CmdType() string {

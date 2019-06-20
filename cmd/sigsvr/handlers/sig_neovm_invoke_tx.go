@@ -96,12 +96,7 @@ func SigNeoVMInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespon
 		return
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigNeoVMInvokeTx mutable Serialize error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
-		return
-	}
+	tx.Serialization(&sink)
 	resp.Result = &SigNeoVMInvokeTxRsp{
 		SignedTx: hex.EncodeToString(sink.Bytes()),
 	}

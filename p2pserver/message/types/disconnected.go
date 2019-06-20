@@ -26,8 +26,7 @@ import (
 type Disconnected struct{}
 
 //Serialize message payload
-func (this Disconnected) Serialization(sink *comm.ZeroCopySink) error {
-	return nil
+func (this Disconnected) Serialization(sink *comm.ZeroCopySink) {
 }
 
 func (this Disconnected) CmdType() string {

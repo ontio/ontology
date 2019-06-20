@@ -31,18 +31,32 @@ type BlkHeader struct {
 	BlkHdr []*ct.Header
 }
 
-//Serialize message payload
-func (this BlkHeader) Serialization(sink *common.ZeroCopySink) error {
+type RawBlockHeader struct {
+	BlkHdr []*ct.RawHeader
+}
+
+func (this *RawBlockHeader) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(uint32(len(this.BlkHdr)))
 
 	for _, header := range this.BlkHdr {
-		err := header.Serialization(sink)
-		if err != nil {
-			return err
-		}
+		header.Serialization(sink)
 	}
+}
+func (this *RawBlockHeader) Deserialization(source *common.ZeroCopySource) error {
+	panic("[block_header] unsupport")
+}
 
-	return nil
+func (this *RawBlockHeader) CmdType() string {
+	return comm.HEADERS_TYPE
+}
+
+//Serialize message payload
+func (this BlkHeader) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(uint32(len(this.BlkHdr)))
+
+	for _, header := range this.BlkHdr {
+		header.Serialization(sink)
+	}
 }
 
 func (this *BlkHeader) CmdType() string {

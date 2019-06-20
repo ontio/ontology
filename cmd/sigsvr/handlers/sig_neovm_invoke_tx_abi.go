@@ -108,7 +108,7 @@ func SigNeoVMInvokeAbiTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRes
 		return
 	}
 	sink := common.ZeroCopySink{}
-	err = tx.Serialization(&sink)
+	tx.Serialization(&sink)
 	buf := bytes.NewBuffer(nil)
 	err = tx.Serialize(buf)
 	if err != nil {

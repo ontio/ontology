@@ -249,40 +249,39 @@ func (pool *BlockPool) setProposalEndorsed(proposal *blockProposalMsg, forEmpty 
 	return nil
 }
 
-func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint32, endorser uint32, eSig *CandidateEndorseSigInfo) error {
+func (pool *BlockPool) addBlockEndorsementLocked(blkNum uint32, endorser uint32, eSig *CandidateEndorseSigInfo) {
 	candidate := pool.getCandidateInfoLocked(blkNum)
 
 	if eSigs, present := candidate.EndorseSigs[endorser]; present {
 		for _, eSig := range eSigs {
 			if eSig.ForEmpty {
 				// has endorsed for empty, ignore new endorsement
-				return nil
+				return
 			}
 		}
 		if eSig.ForEmpty {
 			// add empty endorsement
 			candidate.EndorseSigs[endorser] = append(eSigs, eSig)
-			return nil
+			return
 		}
 
 		// check dup endorsement
 		for _, esig := range eSigs {
 			if esig.EndorsedProposer == eSig.EndorsedProposer {
-				return nil
+				return
 			}
 		}
 		candidate.EndorseSigs[endorser] = append(eSigs, eSig)
 	} else {
 		candidate.EndorseSigs[endorser] = []*CandidateEndorseSigInfo{eSig}
 	}
-
-	return nil
+	return
 }
 
 //
 // add endorsement msg to CandidateInfo
 //
-func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) error {
+func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
 
@@ -291,7 +290,7 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) error {
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
 	}
-	return pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig)
+	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig)
 }
 
 //
@@ -462,9 +461,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
-		if err := pool.addBlockEndorsementLocked(blkNum, endorser, eSig); err != nil {
-			return fmt.Errorf("failed to verify endorse sig from %d: %s", endorser, err)
-		}
+		pool.addBlockEndorsementLocked(blkNum, endorser, eSig)
 	}
 
 	// add committer sig
@@ -498,7 +495,7 @@ func (pool *BlockPool) commitDone(blkNum uint32, C uint32, N uint32) (uint32, bo
 	}
 
 	// check consensus with commit msgs
-	proposer, forEmpty := getCommitConsensus(candidate.CommitMsgs, int(C))
+	proposer, forEmpty := getCommitConsensus(candidate.CommitMsgs, int(C), int(N))
 
 	// enforce signature quorum if checking commit-consensus base on signature count
 	// if C <= (N-1)/3, N-1-C >= 2*C
@@ -663,7 +660,19 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 	if err := pool.chainStore.AddBlock(c.SealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
-
+	stateRoot, err := pool.chainStore.GetExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
+	if err != nil {
+		log.Errorf("handleBlockSubmit failed:%s", err)
+		return nil
+	}
+	if blocksubmitMsg, _ := pool.server.constructBlockSubmitMsg(pool.chainStore.GetChainedBlockNum(), stateRoot); blocksubmitMsg != nil {
+		pool.server.broadcast(blocksubmitMsg)
+		pool.server.bftActionC <- &BftAction{
+			Type:     SubmitBlock,
+			BlockNum: pool.chainStore.GetChainedBlockNum(),
+			forEmpty: false,
+		}
+	}
 	return nil
 }
 

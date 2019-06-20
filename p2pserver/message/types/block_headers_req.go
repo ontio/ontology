@@ -32,11 +32,10 @@ type HeadersReq struct {
 }
 
 //Serialize message payload
-func (this *HeadersReq) Serialization(sink *common.ZeroCopySink) error {
+func (this *HeadersReq) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint8(this.Len)
 	sink.WriteHash(this.HashStart)
 	sink.WriteHash(this.HashEnd)
-	return nil
 }
 
 func (this *HeadersReq) CmdType() string {

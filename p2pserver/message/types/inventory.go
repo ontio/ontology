@@ -45,7 +45,7 @@ func (this *Inv) CmdType() string {
 }
 
 //Serialize message payload
-func (this Inv) Serialization(sink *common.ZeroCopySink) error {
+func (this Inv) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint8(uint8(this.P.InvType))
 
 	blkCnt := uint32(len(this.P.Blk))
@@ -53,8 +53,6 @@ func (this Inv) Serialization(sink *common.ZeroCopySink) error {
 	for _, hash := range this.P.Blk {
 		sink.WriteHash(hash)
 	}
-
-	return nil
 }
 
 //Deserialize message payload

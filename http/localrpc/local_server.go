@@ -45,7 +45,7 @@ func StartLocalServer() error {
 	rpc.HandleFunc("setdebuginfo", rpc.SetDebugInfo)
 
 	// TODO: only listen to local host
-	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpLocalPort)), nil)
+	err := http.ListenAndServe(LOCAL_HOST+":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpLocalPort)), nil)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)
 	}

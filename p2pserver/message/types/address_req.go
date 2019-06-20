@@ -26,8 +26,7 @@ import (
 type AddrReq struct{}
 
 //Serialize message payload
-func (this AddrReq) Serialization(sink *common.ZeroCopySink) error {
-	return nil
+func (this AddrReq) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *AddrReq) CmdType() string {
