@@ -50,8 +50,8 @@ type MockPeer struct {
 	syncers       map[common2.ShardID]*p2pserver.BlockSyncMgr
 	ConsensusPid  *actor.PID
 
-	MsgChain chan *MockMsg
-	Started  bool // peer state
+	MsgChan chan *MockMsg
+	Started bool // peer state
 }
 
 func NewPeer(lgr *ledger.Ledger) *MockPeer {
@@ -61,7 +61,7 @@ func NewPeer(lgr *ledger.Ledger) *MockPeer {
 		Lgr:           lgr,
 		remoteHeights: make(map[uint64]uint32),
 		syncers:       make(map[common2.ShardID]*p2pserver.BlockSyncMgr),
-		MsgChain:      make(chan *MockMsg, 1000),
+		MsgChan:       make(chan *MockMsg, 1000),
 	}
 	p.Local.Link = link.NewLink()
 	heights := make(map[uint64]*types.HeightInfo)
@@ -92,7 +92,7 @@ func (peer *MockPeer) Start() {
 	go func() {
 		for {
 			select {
-			case msg := <-peer.MsgChain:
+			case msg := <-peer.MsgChan:
 				switch msg.msg.CmdType() {
 				case common.PING_TYPE:
 					// update peer height, response pong
@@ -174,7 +174,7 @@ func (peer *MockPeer) Receive(fromPeer uint64, msg types.Message) {
 	if !peer.Started {
 		log.Errorf("peer %d, not started to receive msg from %d", peer.Local.GetID(), fromPeer)
 	}
-	peer.MsgChain <- &MockMsg{
+	peer.MsgChan <- &MockMsg{
 		from: fromPeer,
 		msg:  msg,
 	}
