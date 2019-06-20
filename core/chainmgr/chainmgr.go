@@ -41,7 +41,6 @@ import (
 	actor2 "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/p2pserver/actor/req"
 	"github.com/ontio/ontology/p2pserver/actor/server"
-	p2p "github.com/ontio/ontology/p2pserver/common"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/txnpool"
@@ -243,7 +242,7 @@ func (self *ChainManager) GetActiveShards() []common.ShardID {
 }
 
 func (self *ChainManager) startConsensus() error {
-	if self.consensus != nil {
+	if self.consensus != nil || self.account == nil {
 		return nil
 	}
 
@@ -323,9 +322,10 @@ func (self *ChainManager) Start(p2pPid *actor.PID, txPoolMgr *txnpool.TxnPoolMan
 		shardId := syncerToStart[i]
 		if self.shards[shardId] != nil {
 			p2pPid.Tell(&server.StartSync{
-				ShardID: shardId.ToUint64(),
+				ShardID:    shardId.ToUint64(),
+				ShardSeeds: self.shards[shardId].SeedList,
 			})
-			log.Infof("start sync %d", shardId)
+			log.Infof("chainmgr starting shard-sync %d", shardId)
 		}
 	}
 
@@ -434,17 +434,9 @@ func (self *ChainManager) localEventLoop() {
 	for {
 		select {
 		case msg := <-self.localBlockMsgC:
-			ledgerSize := len(ledger.DefLedgerMgr.Ledgers)
 			self.handleShardSysEvents(msg.ShardSysEvents)
 			blk := msg.Block
 			self.onBlockPersistCompleted(blk)
-			if ledgerSize < 2 {
-				self.p2pPid.Tell(
-					&p2p.AddBlock{
-						Height:  blk.Header.Height,
-						ShardID: blk.Header.ShardID,
-					})
-			}
 		case <-self.quitC:
 			return
 		}

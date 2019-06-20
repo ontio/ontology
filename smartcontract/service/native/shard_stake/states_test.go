@@ -139,4 +139,5 @@ func TestXShardFeeInfo(t *testing.T) {
 	deseInfo := &XShardFeeInfo{}
 	err := deseInfo.Deserialization(source)
 	assert.Nil(t, err)
+	assert.Equal(t, info, deseInfo)
 }

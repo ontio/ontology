@@ -159,7 +159,7 @@ type VerifyRspActor struct {
 func (vpa *VerifyRspActor) Receive(context actor.Context) {
 	switch msg := context.Message().(type) {
 	case *actor.Started:
-		log.Info("txpool-verify actor: started and be ready to receive validator's msg, shard %d", vpa.server.shardID)
+		log.Infof("txpool-verify actor: started and be ready to receive validator's msg, shard %d", vpa.server.shardID)
 
 	case *actor.Stopping:
 		log.Warn("txpool-verify actor: stopping")

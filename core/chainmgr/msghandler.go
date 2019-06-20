@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/p2pserver/actor/server"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
@@ -54,6 +55,11 @@ func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) e
 }
 
 func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) error {
+	if self.account == nil {
+		// peer is in sync mode, skip peer joint event
+		return nil
+	}
+
 	pubKey := hex.EncodeToString(keypair.SerializePublicKey(self.account.PublicKey))
 	if evt.PeerPubKey != pubKey {
 		return nil
@@ -137,8 +143,14 @@ func (self ChainManager) startChildShard(shardID common.ShardID, shardState *sha
 	if err := self.initShardTxPool(); err != nil {
 		return fmt.Errorf("init initShardTxPool %d, failed to init initShardTxPool: %s", self.shardID, err)
 	}
-	self.startConsensus()
-	return nil
+
+	self.p2pPid.Tell(&server.StartSync{
+		ShardID:    shardID.ToUint64(),
+		ShardSeeds: shardInfo.SeedList,
+	})
+	log.Infof("chainmgr starting shard-sync %d", shardID)
+
+	return self.startConsensus()
 }
 
 func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) {
@@ -205,21 +217,26 @@ func (self *ChainManager) handleRootChainBlock() error {
 	return nil
 }
 
-func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.ShardID, config *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo) {
+func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.ShardID, cfg *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo) {
 	shardEvent := &shardstates.ConfigShardEvent{
 		Height: height,
-		Config: config,
+		Config: cfg,
 		Peers:  peers,
 	}
 	sink := common.ZeroCopySink{}
 	shardEvent.Serialization(&sink)
-	err := ledger.GetShardLedger(self.shardID).AddShardConsensusConfig(shardID, height, sink.Bytes())
+	lgr := ledger.GetShardLedger(self.shardID)
+	if lgr == nil {
+		lgr = ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+	}
+
+	err := lgr.AddShardConsensusConfig(shardID, height, sink.Bytes())
 	if err != nil {
 		log.Errorf("AddShardConsensusConfig err:%s", err)
 		return
 	}
 
-	heights, err := ledger.GetShardLedger(self.shardID).GetShardConsensusHeight(shardID)
+	heights, err := lgr.GetShardConsensusHeight(shardID)
 	if err != nil {
 		if err != com.ErrNotFound {
 			log.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
@@ -229,7 +246,7 @@ func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.Shar
 	heights_db := make([]uint32, 0)
 	heights_db = append(heights_db, heights...)
 	heights_db = append(heights_db, height)
-	err = ledger.GetShardLedger(self.shardID).AddShardConsensusHeight(shardID, heights_db)
+	err = lgr.AddShardConsensusHeight(shardID, heights_db)
 	if err != nil {
 		log.Errorf("AddShardConsensusHeight err:%s", err)
 		return

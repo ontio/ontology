@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
@@ -332,7 +333,7 @@ func (this *BlockSyncMgr) checkTimeout() {
 			}
 			flightInfo.SetNodeId(reqNode.GetID())
 
-			msg := msgpack.NewBlkDataReq(blockHash)
+			msg := msgpack.NewBlkDataReq(this.shardID, blockHash)
 			err := this.server.Send(reqNode, msg, false)
 			if err != nil {
 				log.Warnf("[p2p]checkTimeout reqNode ID:%d Send error:%s", reqNode.GetID(), err)
@@ -444,7 +445,7 @@ func (this *BlockSyncMgr) syncBlock() {
 				return
 			}
 			this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlockHash)
-			msg := msgpack.NewBlkDataReq(nextBlockHash)
+			msg := msgpack.NewBlkDataReq(this.shardID, nextBlockHash)
 			err := this.server.Send(reqNode, msg, false)
 			if err != nil {
 				log.Warnf("[p2p]syncBlock Height:%d ReqBlkData error:%s", nextBlockHeight, err)
@@ -463,7 +464,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 	if len(headers) == 0 {
 		return
 	}
-	log.Infof("Header receive height:%d - %d", headers[0].Height, headers[len(headers)-1].Height)
+	log.Infof("Header receive shard %d height:%d - %d", headers[0].ShardID, headers[0].Height, headers[len(headers)-1].Height)
 	height := headers[0].Height
 	curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 
@@ -493,7 +494,7 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 	merkleRoot common.Uint256) {
 	height := block.Header.Height
 	blockHash := block.Hash()
-	log.Trace("[p2p]OnBlockReceive Height:%d", height)
+	log.Tracef("[p2p]OnBlockReceive shard(%d,%d) Height:%d", this.shardID, block.Header.ShardID, height)
 	flightInfo := this.getFlightBlock(blockHash, fromID)
 	if flightInfo != nil {
 		t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
@@ -515,22 +516,6 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 	this.addBlockCache(fromID, block, merkleRoot)
 	go this.saveBlock()
 	this.syncBlock()
-}
-
-func (this *BlockSyncMgr) OnAddBlock(height uint32) {
-	curBlockHeight := this.ledger.GetCurrentBlockHeight()
-	this.lock.Lock()
-	for height := range this.blocksCache {
-		if height <= curBlockHeight {
-			delete(this.blocksCache, height)
-		}
-	}
-	this.lock.Unlock()
-	if this.SaveSyncBlock(height) {
-		this.releaseSyncSaveBlockLock(true)
-	} else {
-		this.releaseSyncSaveBlockLock(false)
-	}
 }
 
 //OnAddNode to node list when a new node added
@@ -667,7 +652,7 @@ func (this *BlockSyncMgr) saveBlock() {
 	}
 	this.lock.Unlock()
 
-	if len(ledger.DefLedgerMgr.Ledgers) > 1 {
+	if len(ledger.DefLedgerMgr.Ledgers) > 1 || config.DefConfig.Shard.ShardID.IsRootShard() {
 		for {
 			if this.SaveSyncBlock(curBlockHeight) {
 				curBlockHeight++
@@ -700,7 +685,7 @@ func (this *BlockSyncMgr) SaveSyncBlock(blockHeight uint32) bool {
 			return false
 		}
 		this.addFlightBlock(reqNode.GetID(), nextBlockHeight, nextBlock.Hash())
-		msg := msgpack.NewBlkDataReq(nextBlock.Hash())
+		msg := msgpack.NewBlkDataReq(this.shardID, nextBlock.Hash())
 		err := this.server.Send(reqNode, msg, false)
 		if err != nil {
 			log.Warn("[p2p]require new block error:", err)

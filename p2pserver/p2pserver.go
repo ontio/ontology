@@ -54,6 +54,7 @@ type P2PServer struct {
 	pid          *evtActor.PID
 	blockSyncers map[uint64]*BlockSyncMgr
 	ReconnectAddrs
+	seeds          []string
 	recentPeers    map[uint32][]string
 	quitSyncRecent chan bool
 	quitOnline     chan bool
@@ -76,6 +77,7 @@ func NewServer(shardID comm.ShardID) *P2PServer {
 
 	p.msgRouter = utils.NewMsgRouter(p.network)
 	p.blockSyncers = make(map[uint64]*BlockSyncMgr)
+	p.seeds = config.DefConfig.Genesis.SeedList
 	p.recentPeers = make(map[uint32][]string)
 	p.quitSyncRecent = make(chan bool)
 	p.quitOnline = make(chan bool)
@@ -112,15 +114,24 @@ func (this *P2PServer) Start() error {
 	return nil
 }
 
-func (this *P2PServer) StartSyncShard(shardID comm.ShardID) error {
+func (this *P2PServer) StartSyncShard(shardID comm.ShardID, shardSeeds []string) error {
 	lgr := ledger.GetShardLedger(shardID)
 	if lgr == nil {
 		return fmt.Errorf("failed to get shard ledger before starting syncing %d", shardID)
 	}
+	if _, present := this.blockSyncers[shardID.ToUint64()]; present {
+		return nil
+	}
+
 	syncer := NewBlockSyncMgr(shardID, this, lgr)
 	if syncer == nil {
 		return fmt.Errorf("failed to init syncer for shard %d", shardID)
 	}
+
+	// update p2p seeds
+	this.seeds = append(this.seeds, shardSeeds...)
+	log.Tracef("updating seed to %v", this.seeds)
+
 	this.blockSyncers[shardID.ToUint64()] = syncer
 	for _, peer := range this.network.GetNeighbors() {
 		for s, _ := range peer.GetHeight() {
@@ -130,7 +141,7 @@ func (this *P2PServer) StartSyncShard(shardID comm.ShardID) error {
 		}
 	}
 	go syncer.Start()
-	log.Infof("syncer for shard %d started", shardID.ToUint64())
+	log.Infof("syncer for shard %d started, nodes: %d", shardID.ToUint64(), len(syncer.nodeWeights))
 	return nil
 }
 
@@ -254,11 +265,6 @@ func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32,
 		syncer.OnBlockReceive(fromID, blockSize, block, merkleRoot)
 	}
 }
-func (this *P2PServer) OnAddBlock(height uint32, shardID uint64) {
-	if syncer := this.blockSyncers[shardID]; syncer != nil {
-		syncer.OnAddBlock(height)
-	}
-}
 
 func (this *P2PServer) OnSyncBlock(height uint32, shardID uint64) {
 	if syncer := this.blockSyncers[shardID]; syncer != nil {
@@ -303,7 +309,7 @@ func (this *P2PServer) WaitForPeersStart() {
 //connectSeeds connect the seeds in seedlist and call for nbr list
 func (this *P2PServer) connectSeeds() {
 	seedNodes := make([]string, 0)
-	for _, n := range config.DefConfig.Genesis.SeedList {
+	for _, n := range this.seeds {
 		ip, err := common.ParseIPAddr(n)
 		if err != nil {
 			log.Warnf("[p2p]seed peer %s address format is wrong", n)
@@ -524,6 +530,16 @@ func (this *P2PServer) heartBeatService() {
 
 //ping send pkg to get pong msg from others
 func (this *P2PServer) ping() {
+	// update block-heights of local peer
+	heights := make(map[uint64]*msgtypes.HeightInfo)
+	for shardID, syncer := range this.blockSyncers {
+		heightInfo := &msgtypes.HeightInfo{
+			Height: syncer.ledger.GetCurrentBlockHeight(),
+		}
+		heights[shardID] = heightInfo
+	}
+	this.network.SetHeight(heights)
+
 	peers := this.network.GetNeighbors()
 	this.pingTo(peers)
 }

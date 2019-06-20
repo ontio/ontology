@@ -116,7 +116,9 @@ func (this *PeerCom) GetHttpInfoPort() uint16 {
 
 // SetHeight sets a peer's height
 func (this *PeerCom) SetHeight(height map[uint64]*types.HeightInfo) {
-	this.height = height
+	if len(height) > 0 {
+		this.height = height
+	}
 }
 
 // GetHeight returns a peer's height

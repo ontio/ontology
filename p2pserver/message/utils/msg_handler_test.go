@@ -524,9 +524,10 @@ func TestDataReqHandle(t *testing.T) {
 
 	network.AddNbrNode(remotePeer)
 
+	shardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	hash := ledger.DefLedger.GetBlockHash(0)
 	assert.NotEqual(t, hash, common.UINT256_EMPTY)
-	buf := msgpack.NewBlkDataReq(hash)
+	buf := msgpack.NewBlkDataReq(shardID, hash)
 
 	msg := &types.MsgPayload{
 		Id:      testID,
@@ -540,7 +541,7 @@ func TestDataReqHandle(t *testing.T) {
 	hex, _ := hex.DecodeString(tempStr)
 	var txHash common.Uint256
 	txHash.Deserialize(bytes.NewReader(hex))
-	buf = msgpack.NewTxnDataReq(txHash)
+	buf = msgpack.NewTxnDataReq(shardID, txHash)
 	msg = &types.MsgPayload{
 		Id:      testID,
 		Addr:    "127.0.0.1:50010",
