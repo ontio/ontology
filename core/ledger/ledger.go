@@ -235,7 +235,7 @@ func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error 
 		if err := self.ParentLedger.ldgStore.SubmitBlock(parentBlock, result); err != nil {
 			return fmt.Errorf("SubmitBlock: submit parent block failed, err: %s", err)
 		} else {
-			self.ParentBlockCache.DelBlock(b.Header.ParentHeight)
+			self.ParentBlockCache.DelBlock(b.Header.ParentHeight - 1)
 		}
 	}
 	err := self.ldgStore.SubmitBlock(b, exec)

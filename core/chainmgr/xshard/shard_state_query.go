@@ -23,21 +23,23 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	db "github.com/ontio/ontology/core/chainmgr/types"
 	"github.com/ontio/ontology/core/ledger"
 	sComm "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/smartcontract/service/native/shard_stake"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView, error) {
+func GetShardView(lgr *ledger.Ledger, memdb *overlaydb.MemDB, shardID common.ShardID) (*utils.ChangeView, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard view,ledger is nil")
 	}
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
-	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
+	viewBytes, err := db.GetStorageValue(memdb, lgr, utils.ShardStakeAddress, viewKey)
 	if err == sComm.ErrNotFound {
 		return nil, err
 	}
@@ -51,13 +53,13 @@ func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView
 	return changeView, nil
 }
 
-func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.ShardState, error) {
+func GetShardState(lgr *ledger.Ledger, memdb *overlaydb.MemDB, shardID common.ShardID) (*shardstates.ShardState, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard state,ledger is nil ")
 	}
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
-	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
+	data, err := db.GetStorageValue(memdb, lgr, utils.ShardMgmtContractAddress, key)
 	if err == sComm.ErrNotFound {
 		return nil, err
 	}
@@ -72,14 +74,14 @@ func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.Sha
 	return shardState, nil
 }
 
-func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
+func GetShardPeerStakeInfo(lgr *ledger.Ledger, memdb *overlaydb.MemDB, shardID common.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard peer stake info,ledger is nil")
 	}
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewBytes := utils.GetUint32Bytes(shardView)
 	viewInfoKey := shard_stake.GenShardViewInfoKey(shardIDBytes, viewBytes)
-	infoData, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewInfoKey)
+	infoData, err := db.GetStorageValue(memdb, lgr, utils.ShardStakeAddress, viewInfoKey)
 	if err == sComm.ErrNotFound {
 		return nil, err
 	}

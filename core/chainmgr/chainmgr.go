@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events"
@@ -137,8 +138,8 @@ func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
 		// main-chain node, not need to process shard-events
 		return nil
 	}
-
-	shardState, err := xshard.GetShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
+	writeSet := overlaydb.NewMemDB(1, 1)
+	shardState, err := xshard.GetShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), writeSet, self.shardID)
 	if err == com.ErrNotFound {
 		return nil
 	}

@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
@@ -63,8 +64,8 @@ func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) 
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
 	}
-
-	shardState, err := xshard.GetShardState(lgr, evt.ShardID)
+	writeSet := overlaydb.NewMemDB(1, 1)
+	shardState, err := xshard.GetShardState(lgr, writeSet, evt.ShardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -91,7 +92,8 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 	if lgr == nil {
 		return fmt.Errorf("failed to get ledger of shard %d", evt.ShardID)
 	}
-	shardState, err := xshard.GetShardState(lgr, evt.ShardID)
+	writeSet := overlaydb.NewMemDB(1, 1)
+	shardState, err := xshard.GetShardState(lgr, writeSet, evt.ShardID)
 	if err != nil {
 		return fmt.Errorf("get shardmgmt state: %s", err)
 	}
@@ -150,7 +152,7 @@ func (self *ChainManager) onBlockPersistCompleted(blk *types.Block) {
 	if err := self.handleRootChainConfig(blk); err != nil {
 		log.Errorf("shard %d, handle rootchain chainConfig block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
-	if err := self.handleRootChainBlock(); err != nil {
+	if err := self.handleRootChainBlock(blk.Header.Height); err != nil {
 		log.Errorf("shard %d, handle rootchain block in block %d: %s", self.shardID, blk.Header.Height, err)
 	}
 }
@@ -183,8 +185,18 @@ func (self *ChainManager) handleRootChainConfig(block *types.Block) error {
 	return nil
 }
 
-func (self *ChainManager) handleRootChainBlock() error {
-	shardState, err := xshard.GetShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
+func (self *ChainManager) handleRootChainBlock(blkNum uint32) error {
+	lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
+	writeSet := overlaydb.NewMemDB(1, 1)
+	if lgr.ParentBlockCache != nil {
+		exec, err := lgr.ParentBlockCache.GetBlockExecuteResult(blkNum)
+		if err != nil {
+			log.Errorf("GetBlockExecuteResult blkNum:%d,err:%s", blkNum, err)
+			return nil
+		}
+		writeSet = exec.WriteSet
+	}
+	shardState, err := xshard.GetShardState(lgr, writeSet, self.shardID)
 	if err == com.ErrNotFound {
 		log.Debugf("get shard %d failed: %s", self.shardID, err)
 		return nil

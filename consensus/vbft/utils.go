@@ -32,10 +32,10 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	db "github.com/ontio/ontology/core/chainmgr/types"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
-	"github.com/ontio/ontology/core/states"
 	com "github.com/ontio/ontology/core/store/common"
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -144,7 +144,7 @@ func GetVbftConfigInfo(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (*config.V
 	contractAddress := nutils.GovernanceContractAddress
 	key := gov.PRE_CONFIG
 	vbft_key := gov.VBFT_CONFIG
-	data, err := GetStorageValue(memdb, ledger, contractAddress, []byte(key))
+	data, err := db.GetStorageValue(memdb, ledger, contractAddress, []byte(key))
 	if err != nil && err != scommon.ErrNotFound {
 		return nil, err
 	}
@@ -168,7 +168,7 @@ func GetVbftConfigInfo(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (*config.V
 			MaxBlockChangeView:   uint32(preCfg.Configuration.MaxBlockChangeView),
 		}
 	} else {
-		data, err := GetStorageValue(memdb, ledger, contractAddress, []byte(vbft_key))
+		data, err := db.GetStorageValue(memdb, ledger, contractAddress, []byte(vbft_key))
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +199,7 @@ func GetPeersConfig(ledger *ledger.Ledger, memdb *overlaydb.MemDB) ([]*config.VB
 	viewBytes := nutils.GetUint32Bytes(changeview.View)
 	key := append([]byte(gov.PEER_POOL), viewBytes...)
 	contractAddress := nutils.GovernanceContractAddress
-	data, err := GetStorageValue(memdb, ledger, contractAddress, key)
+	data, err := db.GetStorageValue(memdb, ledger, contractAddress, key)
 	if err != nil {
 		return nil, err
 	}
@@ -235,34 +235,10 @@ func isUpdate(ledger *ledger.Ledger, memdb *overlaydb.MemDB, view uint32) (bool,
 	return false, nil
 }
 
-func getRawStorageItemFromMemDb(memdb *overlaydb.MemDB, addr common.Address, key []byte) (value []byte, unkown bool) {
-	rawKey := make([]byte, 0, 1+common.ADDR_LEN+len(key))
-	rawKey = append(rawKey, byte(scommon.ST_STORAGE))
-	rawKey = append(rawKey, addr[:]...)
-	rawKey = append(rawKey, key...)
-	return memdb.Get(rawKey)
-}
-
-func GetStorageValue(memdb *overlaydb.MemDB, backend *ledger.Ledger, addr common.Address, key []byte) (value []byte, err error) {
-	if memdb == nil {
-		return backend.GetStorageItem(addr, key)
-	}
-	rawValue, unknown := getRawStorageItemFromMemDb(memdb, addr, key)
-	if unknown {
-		return backend.GetStorageItem(addr, key)
-	}
-	if len(rawValue) == 0 {
-		return nil, scommon.ErrNotFound
-	}
-
-	value, err = states.GetValueFromRawStorageItem(rawValue)
-	return
-}
-
 func GetChangeView(ledger *ledger.Ledger, memdb *overlaydb.MemDB) (*nutils.ChangeView, error) {
 	contractAddress := nutils.GovernanceContractAddress
 	key := gov.GOVERNANCE_VIEW
-	value, err := GetStorageValue(memdb, ledger, contractAddress, []byte(key))
+	value, err := db.GetStorageValue(memdb, ledger, contractAddress, []byte(key))
 	if err != nil {
 		return nil, err
 	}
@@ -297,8 +273,8 @@ func getRootChainConfig(ledger *ledger.Ledger, memdb *overlaydb.MemDB, blkNum ui
 	return cfg, err
 }
 
-func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
-	shardState, err := xshard.GetShardState(lgr.ParentLedger, shardID)
+func getShardConfig(lgr *ledger.Ledger, memdb *overlaydb.MemDB, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
+	shardState, err := xshard.GetShardState(lgr.ParentLedger, memdb, shardID)
 	if err == com.ErrNotFound {
 		log.Errorf("get shard %d failed: %s", shardID, err)
 		return nil, err
@@ -318,13 +294,13 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 		MaxBlockChangeView:   shardState.Config.VbftCfg.MaxBlockChangeView,
 	}
 
-	shardView, err := xshard.GetShardView(lgr.ParentLedger, shardID)
+	shardView, err := xshard.GetShardView(lgr.ParentLedger, memdb, shardID)
 	if err != nil {
 		log.Errorf("GetShardView err:%s", err)
 		return nil, err
 	}
 	var peersinfo []*config.VBFTPeerStakeInfo
-	PeerStakesInfo, err := xshard.GetShardPeerStakeInfo(lgr.ParentLedger, shardID, shardView.View+1)
+	PeerStakesInfo, err := xshard.GetShardPeerStakeInfo(lgr.ParentLedger, memdb, shardID, shardView.View+1)
 	if err != nil {
 		log.Errorf("GetShardPeerStakeInfo err:%s", err)
 		return nil, err

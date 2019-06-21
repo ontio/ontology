@@ -40,6 +40,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	sign "github.com/ontio/ontology/core/signature"
 	com "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -2306,7 +2307,14 @@ func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
 
 		return force
 	} else {
-		shardView, err := xshard.GetShardView(self.ledger.ParentLedger, self.ShardID)
+		writeSet := overlaydb.NewMemDB(1, 1)
+		exec, err := self.ledger.ParentBlockCache.GetBlockExecuteResult(self.parentHeight)
+		if err == nil {
+			writeSet = exec.WriteSet
+		} else {
+			log.Warnf("GetBlockExecuteResult parentHeight:%d,err:%s", self.parentHeight, err)
+		}
+		shardView, err := xshard.GetShardView(self.ledger.ParentLedger, writeSet, self.ShardID)
 		if err != nil {
 			log.Errorf("GetShardView err:%s", err)
 			return false
@@ -2368,7 +2376,14 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 				return fmt.Errorf("getRootChainConfig failed:%s", err)
 			}
 		} else {
-			chainconfig, err = getShardConfig(self.ledger, self.ShardID, blkNum)
+			writeSet := overlaydb.NewMemDB(1, 1)
+			exec, err := self.ledger.ParentBlockCache.GetBlockExecuteResult(self.parentHeight)
+			if err == nil {
+				writeSet = exec.WriteSet
+			} else {
+				log.Warnf("GetBlockExecuteResult blkNum:%d,err:%s", self.parentHeight, err)
+			}
+			chainconfig, err = getShardConfig(self.ledger, writeSet, self.ShardID, blkNum)
 			if err != nil {
 				if err == com.ErrNotFound {
 					needChangeShardConsensus = false
