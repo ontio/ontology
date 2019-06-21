@@ -20,23 +20,30 @@ package TestCommon
 
 import (
 	"fmt"
+	bcomm "github.com/ontio/ontology/http/base/common"
+	"math"
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
-	utils2 "github.com/ontio/ontology/cmd/utils"
+	cutils "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/utils"
 )
 
-func CreateAdminTx(t *testing.T, shard common.ShardID, addr common.Address, method string, args []byte) *types.Transaction {
-	mutable := utils.BuildNativeTransaction(addr, method, args)
-	mutable.GasPrice = 0
-	mutable.GasLimit = 20000
-	mutable.Nonce = 123456
+func CreateAdminTx(t *testing.T, shard common.ShardID, gasPrice uint64, addr common.Address, method string,
+	args []interface{}) *types.Transaction {
+	if args == nil {
+		args = make([]interface{}, 0)
+	}
+	if len(args) == 0 {
+		args = append(args, "")
+	}
+	mutable, err := bcomm.NewNativeInvokeTransaction(gasPrice, math.MaxUint64, addr, byte(1), method, args)
+	if err != nil {
+		t.Fatalf("generate tx failed, err: %s", err)
+	}
 
 	shardName := chainmgr.GetShardName(shard)
 	pks := make([]keypair.PublicKey, 0)
@@ -48,7 +55,7 @@ func CreateAdminTx(t *testing.T, shard common.ShardID, addr common.Address, meth
 	}
 
 	for _, acc := range accounts {
-		if err := utils2.MultiSigTransaction(mutable, 5, pks, acc); err != nil {
+		if err := cutils.MultiSigTransaction(mutable, 5, pks, acc); err != nil {
 			t.Fatalf("multi sign tx: %s", err)
 		}
 	}
@@ -61,39 +68,31 @@ func CreateAdminTx(t *testing.T, shard common.ShardID, addr common.Address, meth
 	return tx
 }
 
-func CreateNativeTx(t *testing.T, user string, addr common.Address, method string, args []byte) *types.Transaction {
+func CreateNativeTx(t *testing.T, user string, gasPrice uint64, addr common.Address, method string,
+	args []interface{}) *types.Transaction {
+	if args == nil {
+		args = make([]interface{}, 0)
+	}
+	if len(args) == 0 {
+		args = append(args, "")
+	}
 	acc := GetAccount(user)
 	if acc == nil {
 		t.Fatalf("Invalid user: %s", user)
 	}
 
-	mutable := utils.BuildNativeTransaction(addr, method, args)
-	mutable.GasPrice = 0
-	mutable.GasLimit = 20000
-	mutable.Payer = acc.Address
-	mutable.Nonce = 123456
-
-	txHash := mutable.Hash()
-	sig, err := signature.Sign(acc.SigScheme, acc.PrivateKey, txHash.ToArray(), nil)
+	mutable, err := bcomm.NewNativeInvokeTransaction(gasPrice, math.MaxUint64, addr, byte(1), method, args)
 	if err != nil {
-		t.Fatalf("sign tx: %s", err)
+		t.Fatalf("generate tx failed, err: %s", err)
 	}
-	sigData, err := signature.Serialize(sig)
+	err = cutils.SignTransaction(acc, mutable)
 	if err != nil {
-		t.Fatalf("serialize sig: %s", err)
-	}
-	mutable.Sigs = []types.Sig{
-		{
-			PubKeys: []keypair.PublicKey{acc.PubKey()},
-			M:       1,
-			SigData: [][]byte{sigData},
-		},
+		t.Fatalf("sign tx failed, err: %s", err)
 	}
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		t.Fatalf("to immutable tx: %s", err)
 	}
-
 	return tx
 }
 

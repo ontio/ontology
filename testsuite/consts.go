@@ -19,3 +19,5 @@
 package TestConsts
 
 var TestRootDir = "./"
+
+const Wallet_File_Suffix = ".json"

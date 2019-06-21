@@ -19,6 +19,9 @@
 package TestCommon
 
 import (
+	"fmt"
+	common2 "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr"
 	"os"
 	"testing"
 
@@ -36,6 +39,14 @@ var allAccounts map[string]*account.Account
 func init() {
 	TestConsts.TestRootDir = "../"
 	allAccounts = make(map[string]*account.Account)
+}
+
+func GetOwnerName(shard common2.ShardID, index int) string {
+	return fmt.Sprintf("%s_peerOwner%d", chainmgr.GetShardName(shard), index)
+}
+
+func GetUserName(shard common2.ShardID, index int) string {
+	return fmt.Sprintf("%s_user%d", chainmgr.GetShardName(shard), index)
 }
 
 func GetAccount(name string) *account.Account {
@@ -85,5 +96,5 @@ func CreateAccount(t *testing.T, name string) {
 }
 
 func getWalletFileName(dir, name string) string {
-	return dir + name + "_wallet.dat"
+	return dir + name + "_wallet" + TestConsts.Wallet_File_Suffix
 }

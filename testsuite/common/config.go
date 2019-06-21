@@ -61,23 +61,17 @@ func InitConfig(t *testing.T, shardID common.ShardID) {
 	cfg := config.NewOntologyConfig()
 	acc := GetAccount(shardName + "_adminOntID")
 	cfg.Genesis.VBFT.AdminOntID = fmt.Sprintf("did:ont:%s", acc.Address.ToBase58())
-	cfg.Genesis.VBFT.Peers[0].Address = GetAccount(shardName + "_peerOwner0").Address.ToBase58()
-	cfg.Genesis.VBFT.Peers[1].Address = GetAccount(shardName + "_peerOwner1").Address.ToBase58()
-	cfg.Genesis.VBFT.Peers[2].Address = GetAccount(shardName + "_peerOwner2").Address.ToBase58()
-	cfg.Genesis.VBFT.Peers[3].Address = GetAccount(shardName + "_peerOwner3").Address.ToBase58()
-	cfg.Genesis.VBFT.Peers[4].Address = GetAccount(shardName + "_peerOwner4").Address.ToBase58()
-	cfg.Genesis.VBFT.Peers[5].Address = GetAccount(shardName + "_peerOwner5").Address.ToBase58()
-	cfg.Genesis.VBFT.Peers[6].Address = GetAccount(shardName + "_peerOwner6").Address.ToBase58()
-	cfg.Genesis.VBFT.Peers[0].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner0").PublicKey))
-	cfg.Genesis.VBFT.Peers[1].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner1").PublicKey))
-	cfg.Genesis.VBFT.Peers[2].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner2").PublicKey))
-	cfg.Genesis.VBFT.Peers[3].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner3").PublicKey))
-	cfg.Genesis.VBFT.Peers[4].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner4").PublicKey))
-	cfg.Genesis.VBFT.Peers[5].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner5").PublicKey))
-	cfg.Genesis.VBFT.Peers[6].PeerPubkey = hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner6").PublicKey))
-
-	cfg.Genesis.VBFT.BlockMsgDelay = 3000
-	cfg.Genesis.VBFT.HashMsgDelay = 3000
+	for i := 0; i < 7; i++ {
+		peer := GetAccount(GetOwnerName(shardID, i))
+		cfg.Genesis.VBFT.Peers[i] = &config.VBFTPeerStakeInfo{
+			Index:      uint32(i + 1),
+			Address:    peer.Address.ToBase58(),
+			PeerPubkey: hex.EncodeToString(keypair.SerializePublicKey(peer.PublicKey)),
+			InitPos:    100000,
+		}
+	}
+	cfg.Genesis.VBFT.BlockMsgDelay = 5000
+	cfg.Genesis.VBFT.HashMsgDelay = 5000
 
 	TestConfigs[shardID] = cfg
 }
