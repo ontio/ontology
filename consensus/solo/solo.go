@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	msg "github.com/ontio/ontology/consensus/vbft"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
@@ -46,11 +47,6 @@ import (
 *Simple consensus for solo node in test environment.
  */
 const ContextVersion uint32 = common.CURR_HEADER_VERSION
-
-type CrossShardMsgs struct {
-	Height    uint32
-	CrossMsgs []*types.CrossShardMsgHash
-}
 
 type SoloService struct {
 	Account          *account.Account
@@ -202,7 +198,7 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
 	var hashes []common.Uint256
-	crossShardMsgs := &CrossShardMsgs{}
+	crossShardMsgs := &msg.CrossShardMsgs{}
 	for shardID, shardMsg := range shardMsgMap {
 		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsg)
 		sig, err := signature.Sign(self.Account, msgHash[:])

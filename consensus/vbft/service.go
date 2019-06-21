@@ -2186,7 +2186,11 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 	// parentHeight order consistency check
-	parentHeight := self.ledger.GetParentHeight() + 1
+	blk, _ := self.blockPool.getSealedBlock(sealedBlkNum - 1)
+	if blk == nil {
+		return fmt.Errorf("failed to get last sealed block, current block: %d", sealedBlkNum)
+	}
+	parentHeight := blk.Block.Header.ParentHeight + 1
 	if parentHeight < block.Block.Header.ParentHeight {
 		return fmt.Errorf("invalid parent height: %d vs %d", parentHeight, block.Block.Header.ParentHeight)
 	}
