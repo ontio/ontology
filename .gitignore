@@ -19,7 +19,7 @@ Chain/*
 /config/*
 nodectl
 ontology
-wallet.dat
+*wallet.dat
 cscope*
 *.exe
 **/*.log
@@ -36,4 +36,4 @@ glide.lock
 docker/payload
 config.json
 peers.recent
-shard_*
+/shard_*

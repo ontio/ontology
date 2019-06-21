@@ -28,12 +28,12 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/tests"
-	"github.com/ontio/ontology/tests/common"
+	"github.com/ontio/ontology/testsuite"
+	"github.com/ontio/ontology/testsuite/common"
 )
 
 func init() {
-	TestConsts.TestRootDir = "../"
+	TestConsts.TestRootDir = "../../"
 }
 
 func Test_ShardMgmtInit(t *testing.T) {

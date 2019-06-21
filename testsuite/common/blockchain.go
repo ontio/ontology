@@ -27,7 +27,7 @@ import (
 	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/tests"
+	"github.com/ontio/ontology/testsuite"
 )
 
 func CreateChain(t *testing.T, name string, shardID common.ShardID, genesisParentHeight uint32) {

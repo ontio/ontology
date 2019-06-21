@@ -21,6 +21,7 @@ package TestCommon
 import (
 	"fmt"
 	"math/rand"
+	"testing"
 	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
@@ -33,7 +34,6 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
-	"testing"
 )
 
 type MockMsg struct {

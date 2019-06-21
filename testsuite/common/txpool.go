@@ -19,14 +19,15 @@
 package TestCommon
 
 import (
+	"sync"
+	"testing"
+
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
 	common2 "github.com/ontio/ontology/txnpool/common"
-	"sync"
-	"testing"
 )
 
 type MockTxPool struct {

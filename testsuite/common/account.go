@@ -26,7 +26,7 @@ import (
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/common"
-	"github.com/ontio/ontology/tests"
+	"github.com/ontio/ontology/testsuite"
 )
 
 const PASSWORD = "1"
@@ -44,7 +44,7 @@ func GetAccount(name string) *account.Account {
 
 func OpenAccount(t *testing.T, name string) {
 	walletDir := TestConsts.TestRootDir + "./wallets/"
-	walletFile := walletDir + name + ".dat"
+	walletFile := getWalletFileName(walletDir, name)
 	wallet, err := account.Open(walletFile)
 	if err != nil {
 		t.Fatalf("failed to open wallet file %s, %s", walletFile, err)
@@ -64,7 +64,7 @@ func CreateAccount(t *testing.T, name string) {
 		os.Mkdir(walletDir, 0755)
 	}
 
-	walletFile := walletDir + name + ".dat"
+	walletFile := getWalletFileName(walletDir, name)
 	_, err := os.Stat(walletFile)
 	if err == nil {
 		OpenAccount(t, name)
@@ -82,4 +82,8 @@ func CreateAccount(t *testing.T, name string) {
 		return
 	}
 	t.Fatalf("create account err: %s", err)
+}
+
+func getWalletFileName(dir, name string) string {
+	return dir + name + "_wallet.dat"
 }

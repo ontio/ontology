@@ -32,8 +32,8 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
-	"github.com/ontio/ontology/tests"
-	"github.com/ontio/ontology/tests/common"
+	"github.com/ontio/ontology/testsuite"
+	"github.com/ontio/ontology/testsuite/common"
 )
 
 func init() {
