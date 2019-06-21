@@ -28,21 +28,21 @@ import (
 type CrossShardMsgHash struct {
 	ShardID common.ShardID
 	MsgHash common.Uint256
-	SigData map[uint64][]byte
+	SigData map[uint32][]byte
 }
 
 func (this *CrossShardMsgHash) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteShardID(this.ShardID)
 	sink.WriteBytes(this.MsgHash[:])
 	sink.WriteUint32(uint32(len(this.SigData)))
-	IndexIds := make([]uint64, 0, len(this.SigData))
+	IndexIds := make([]uint32, 0, len(this.SigData))
 	for id := range this.SigData {
 		IndexIds = append(IndexIds, id)
 	}
-	common.SortUint64s(IndexIds)
-	for _, shardID := range IndexIds {
-		evts := this.SigData[shardID]
-		zcpSerializeShardSigData(sink, shardID, evts)
+	common.SortUint32s(IndexIds)
+	for _, index := range IndexIds {
+		evts := this.SigData[index]
+		zcpSerializeShardSigData(sink, index, evts)
 	}
 }
 
@@ -66,18 +66,18 @@ func (this *CrossShardMsgHash) Deserialization(source *common.ZeroCopySource) er
 	return nil
 }
 
-func zcpSerializeShardSigData(sink *common.ZeroCopySink, shardID uint64, sigData []byte) {
+func zcpSerializeShardSigData(sink *common.ZeroCopySink, index uint32, sigData []byte) {
 	if len(sigData) == 0 {
 		return
 	}
-	sink.WriteUint64(shardID)
+	sink.WriteUint32(index)
 	sink.WriteVarBytes(sigData)
 }
 
-func zcpDeserializeShardSigData(source *common.ZeroCopySource, sigDataCnt uint32) (map[uint64][]byte, error) {
-	sigData := make(map[uint64][]byte)
+func zcpDeserializeShardSigData(source *common.ZeroCopySource, sigDataCnt uint32) (map[uint32][]byte, error) {
+	sigData := make(map[uint32][]byte)
 	for i := uint32(0); i < sigDataCnt; i++ {
-		shardID, eof := source.NextUint64()
+		index, eof := source.NextUint32()
 		if eof {
 			return nil, io.ErrUnexpectedEOF
 		}
@@ -88,7 +88,7 @@ func zcpDeserializeShardSigData(source *common.ZeroCopySource, sigDataCnt uint32
 		if irregular {
 			return nil, common.ErrIrregularData
 		}
-		sigData[shardID] = sig
+		sigData[index] = sig
 	}
 	return sigData, nil
 }

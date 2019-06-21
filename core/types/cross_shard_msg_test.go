@@ -25,7 +25,7 @@ import (
 )
 
 func TestCrossShardMsgHash_Serialize(t *testing.T) {
-	sigData := make(map[uint64][]byte)
+	sigData := make(map[uint32][]byte)
 	sigData[0] = []byte("123456")
 	sigData[1] = []byte("345678")
 	crossShardMsgHash := &CrossShardMsgHash{

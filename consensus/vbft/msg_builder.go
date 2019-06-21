@@ -261,8 +261,8 @@ func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs,
 		if err != nil {
 			return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", msgHash.ToHexString(), err)
 		}
-		sigData := make(map[uint64][]byte)
-		sigData[uint64(self.Index)] = sig
+		sigData := make(map[uint32][]byte)
+		sigData[self.Index] = sig
 		crossShardMsg := &types.CrossShardMsgHash{
 			ShardID: shardID,
 			MsgHash: msgHash,
@@ -368,7 +368,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 			if err != nil {
 				return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.MsgHash[:], err)
 			}
-			crossMsg.SigData[uint64(self.Index)] = sig
+			crossMsg.SigData[self.Index] = sig
 			crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
 		}
 	}
@@ -428,7 +428,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 			if err != nil {
 				return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.MsgHash[:], err)
 			}
-			crossMsg.SigData[uint64(self.Index)] = sig
+			crossMsg.SigData[self.Index] = sig
 			crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
 		}
 		crossShardMsg[self.Index] = crossShardMsgs

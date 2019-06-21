@@ -22,6 +22,16 @@ import (
 	"sort"
 )
 
+type Uint32Slice []uint32
+
+func (p Uint32Slice) Len() int           { return len(p) }
+func (p Uint32Slice) Less(i, j int) bool { return p[i] < p[j] }
+func (p Uint32Slice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+func SortUint32s(l []uint32) {
+	sort.Stable(Uint32Slice(l))
+}
+
 type Uint64Slice []uint64
 
 func (p Uint64Slice) Len() int           { return len(p) }

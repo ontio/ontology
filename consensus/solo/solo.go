@@ -206,8 +206,8 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 			log.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", msgHash.ToHexString(), err)
 			return
 		}
-		sigData := make(map[uint64][]byte)
-		sigData[self.shardID.ToUint64()] = sig
+		sigData := make(map[uint32][]byte)
+		sigData[0] = sig
 		crossShardMsg := &types.CrossShardMsgHash{
 			ShardID: shardID,
 			MsgHash: msgHash,
