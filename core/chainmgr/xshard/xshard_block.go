@@ -207,7 +207,7 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, FromShardID 
 		}
 		crossShardInfo := make([]*types.CrossShardTxInfos, 0)
 		crossShardInfo = append(crossShardInfo, shardTxInfo)
-		crossShardMapInfos[FromShardID.ToUint64()] = crossShardInfo
+		crossShardMapInfos[FromShardID.ParentID().ToUint64()] = crossShardInfo
 	}
 	for shardID, shardMsgs := range pool.Shards {
 		crossShardInfo := make([]*types.CrossShardTxInfos, 0)
