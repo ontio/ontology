@@ -563,7 +563,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 		id = inv.P.Blk[0]
 		trn, err := ledger.GetShardLedger(shardId).GetTransaction(id)
 		if trn == nil || err != nil {
-			msg := msgpack.NewTxnDataReq(id)
+			msg := msgpack.NewTxnDataReq(shardId, id)
 			err = p2p.Send(remotePeer, msg)
 			if err != nil {
 				log.Warn(err)
@@ -584,7 +584,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 				msgTypes.LastInvHash = id
 				// send the block request
 				log.Infof("[p2p]inv request block hash: %x", id)
-				msg := msgpack.NewBlkDataReq(id)
+				msg := msgpack.NewBlkDataReq(shardId, id)
 				err = p2p.Send(remotePeer, msg)
 				if err != nil {
 					log.Warn(err)
@@ -595,7 +595,7 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 	case common.CONSENSUS:
 		log.Debug("[p2p]receive consensus message")
 		id = inv.P.Blk[0]
-		msg := msgpack.NewConsensusDataReq(id)
+		msg := msgpack.NewConsensusDataReq(shardId, id)
 		err := p2p.Send(remotePeer, msg)
 		if err != nil {
 			log.Warn(err)

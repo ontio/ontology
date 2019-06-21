@@ -115,5 +115,6 @@ type TransmitConsensusMsgReq struct {
 }
 
 type StartSync struct {
-	ShardID uint64
+	ShardID    uint64
+	ShardSeeds []string
 }

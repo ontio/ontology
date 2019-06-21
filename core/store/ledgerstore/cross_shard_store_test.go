@@ -18,16 +18,14 @@
 package ledgerstore
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
-
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-
-	"bytes"
 
 	"github.com/ontio/ontology/common"
 	vbftcfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func TestSaveCrossShardMsgByHash(t *testing.T) {

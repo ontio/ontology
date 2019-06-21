@@ -1248,6 +1248,9 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 			if crossTxMsg.ShardMsg == nil {
 				continue
 			}
+			if crossTxMsg.ShardMsg.FromShardID.IsRootShard() {
+				continue
+			}
 			//verify msg sign
 			chainconfig, err := getShardConfigByShardID(self.ledger, crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight)
 			if err != nil {
@@ -1269,7 +1272,11 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					}
 					bookkeepers = append(bookkeepers, pubkey)
 				}
-				err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, msgHash.SigData)
+				sigData := make([][]byte, 0)
+				for _, sig := range msgHash.SigData {
+					sigData = append(sigData, sig)
+				}
+				err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, sigData)
 				if err != nil {
 					log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(msgHash.SigData))
 					return false
@@ -2179,7 +2186,11 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 	// parentHeight order consistency check
-	parentHeight := self.ledger.GetParentHeight() + 1
+	blk, _ := self.blockPool.getSealedBlock(sealedBlkNum - 1)
+	if blk == nil {
+		return fmt.Errorf("failed to get last sealed block, current block: %d", sealedBlkNum)
+	}
+	parentHeight := blk.Block.Header.ParentHeight + 1
 	if parentHeight < block.Block.Header.ParentHeight {
 		return fmt.Errorf("invalid parent height: %d vs %d", parentHeight, block.Block.Header.ParentHeight)
 	}

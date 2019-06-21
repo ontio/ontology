@@ -479,11 +479,18 @@ func logCurrBlockHeight(shardID common.ShardID) {
 	for {
 		select {
 		case <-ticker.C:
-			lgr := ledger.GetShardLedger(shardID)
-			if lgr == nil {
-				continue
+			heights := make(map[uint64]uint32)
+			for id := shardID; !id.IsRootShard(); id = id.ParentID() {
+				if lgr := ledger.GetShardLedger(id); lgr != nil {
+					heights[id.ToUint64()] = lgr.GetCurrentBlockHeight()
+				}
 			}
-			log.Infof("CurrentBlockHeight = %d", lgr.GetCurrentBlockHeight())
+
+			if rootLgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)); rootLgr != nil {
+				heights[config.DEFAULT_SHARD_ID] = rootLgr.GetCurrentBlockHeight()
+			}
+
+			log.Infof("CurrentBlockHeight = %v", heights)
 			isNeedNewFile := log.CheckIfNeedNewFile()
 			if isNeedNewFile {
 				log.ClosePrintLog()

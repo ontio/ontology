@@ -123,6 +123,18 @@ func TestBlockEndorseMsg(t *testing.T) {
 
 func constructCommitMsg(acc *account.Account, proposal *blockProposalMsg, blkHash common.Uint256) (*blockCommitMsg, error) {
 	sig, _ := signature.Sign(acc, blkHash[:])
+	crossMsgSig := make(map[uint32]*CrossShardMsgs)
+	crossShardMsgHashs := make([]*types.CrossShardMsgHash, 0)
+	crossShardMsgHash := &types.CrossShardMsgHash{
+		ShardID: common.NewShardIDUnchecked(0),
+		MsgHash: common.Uint256{1, 2, 3},
+	}
+	crossShardMsgHashs = append(crossShardMsgHashs, crossShardMsgHash)
+	crossShardMsgs := &CrossShardMsgs{
+		Height:    123,
+		CrossMsgs: crossShardMsgHashs,
+	}
+	crossMsgSig[123] = crossShardMsgs
 	msg := &blockCommitMsg{
 		Committer:       5,
 		BlockProposer:   proposal.Block.getProposer(),
@@ -130,6 +142,7 @@ func constructCommitMsg(acc *account.Account, proposal *blockProposalMsg, blkHas
 		CommitBlockHash: blkHash,
 		CommitForEmpty:  true,
 		CommitterSig:    sig,
+		CrossMsgSig:     crossMsgSig,
 	}
 
 	return msg, nil
@@ -151,6 +164,10 @@ func TestBlockCommitMsg(t *testing.T) {
 	if err != nil {
 		t.Errorf("TestBlockCommitMsg Verify failed: %v", err)
 		return
+	}
+	_, err = commitmsg.Serialize()
+	if err != nil {
+		t.Errorf("TestBlockCommitMsg serialize failed:%v", err)
 	}
 	t.Log("TestBlockCommitMsg succ")
 }

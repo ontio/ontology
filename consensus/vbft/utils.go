@@ -358,9 +358,9 @@ func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum 
 	var blkHeight uint32
 	for index, height := range heights {
 		if height > blkNum {
-			blkHeight = heights[index-1]
+			blkHeight = heights[index]
 		} else if height == blkNum {
-			blkHeight = heights[index-1]
+			blkHeight = heights[index]
 		}
 	}
 	data, err := lgr.GetShardConsensusConfig(shardID, blkHeight)

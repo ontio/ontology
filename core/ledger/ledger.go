@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
-	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -102,7 +101,7 @@ func NewShardLedger(shardID common.ShardID, dataDir string, mainLedger *Ledger) 
 	for shardID.ParentID().ToUint64() != config.DEFAULT_SHARD_ID {
 		parentLedger, err = NewShardLedger(shardID.ParentID(), dataDir, mainLedger)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load shard ledger %d: %s", shardID.ParentID(), err)
+			return nil, fmt.Errorf("failed to load shard %d ledger %d: %s", shardID, shardID.ParentID(), err)
 		}
 	}
 	if parentLedger == nil {
@@ -113,11 +112,11 @@ func NewShardLedger(shardID common.ShardID, dataDir string, mainLedger *Ledger) 
 	dbPath := path.Join(dataDir, fmt.Sprintf("shard_%d", shardID.ToUint64()))
 	ldgStore, err := ledgerstore.NewLedgerStore(dbPath, 0, parentLedger.ldgStore)
 	if err != nil {
-		return nil, fmt.Errorf("NewLedgerStore error %s", err)
+		return nil, fmt.Errorf("NewLedgerStore %d error %s", shardID, err)
 	}
 	cshardStore, err := ledgerstore.NewCrossShardStore(dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("NewCrossShardStore error %s", err)
+		return nil, fmt.Errorf("NewCrossShardStore %d error %s", shardID, err)
 	}
 	// init parent block cache
 	parentBlockCache, err := ledgerstore.ResetBlockCacheStore(shardID.ParentID(), dataDir)
@@ -179,68 +178,89 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
 	if len(DefLedgerMgr.Ledgers) > 1 && self.ShardID.IsRootShard() {
 		return self.ChildLedger.ParentBlockCache.PutBlock(block, stateMerkleRoot)
-	} else {
-		err := self.ldgStore.AddBlock(block, stateMerkleRoot)
-		if err != nil {
-			log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
-		}
-		return err
 	}
+
+	if self.ParentLedger != nil {
+		currentParentHeight := self.ParentLedger.GetCurrentBlockHeight()
+		if block.Header.ParentHeight > currentParentHeight {
+			// check if parent block available
+			for h := currentParentHeight + 1; h <= block.Header.ParentHeight; h++ {
+				if _, _, err := self.ParentBlockCache.GetBlock(h); err != nil {
+					return fmt.Errorf("shard %d get parent block %d failed: %s", self.ShardID, h, err)
+				}
+			}
+		}
+	}
+
+	// FIXME:
+	// 1. ExecuteBlock/SubmitBlock requires saving block
+	// 2. lock released and re-acquired after ExecuteBlock(block)
+	execResult, err := self.ExecuteBlock(block)
+	if err != nil {
+		return fmt.Errorf("shard %d execute block %d failed: %s", self.ShardID, block.Header.Height, err)
+	}
+
+	if err := self.SubmitBlock(block, execResult); err != nil {
+		return fmt.Errorf("shard %d submit block %d failed: %s", self.ShardID, block.Header.Height, err)
+	}
+
+	return nil
 }
 
 func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 	if !self.ShardID.IsRootShard() {
-		parentBlock, merkleRoot, err := self.ParentBlockCache.GetBlock(b.Header.ParentHeight)
-		if err != nil {
-			if err == scommon.ErrNotFound {
-				return self.ldgStore.ExecuteBlock(b)
-			} else {
-				log.Errorf("Ledger ExecuteBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
+		currentParentHeight := self.ParentLedger.GetCurrentBlockHeight()
+		ph := b.Header.ParentHeight
+		if ph > currentParentHeight {
+			if ph != currentParentHeight+1 {
+				return store.ExecuteResult{}, fmt.Errorf("ledger %d execute parent block %d, last parent height %d", self.ShardID, ph, currentParentHeight)
+			}
+			parentBlock, merkleRoot, err := self.ParentBlockCache.GetBlock(ph)
+			if err != nil {
+				log.Errorf("Ledger %d ExecuteBlock GetBlock shard height:%d,ParentHeight:%d error:%s", self.ShardID, b.Header.Height, ph, err)
 				return store.ExecuteResult{}, err
 			}
+			result, err := self.ParentLedger.ldgStore.ExecuteBlock(parentBlock)
+			if err != nil {
+				log.Errorf("ledger %d execute parent block %d, %d", self.ShardID, ph, parentBlock.Header.Height)
+				return result, err
+			}
+			if merkleRoot != result.MerkleRoot {
+				log.Errorf("ExecuteBlock %d check parentblock cache MerkleRoot blocknum:%d,MerkleRoot:%s,execute MerkleRoot:%s", self.ShardID, ph, merkleRoot.ToHexString(), result.MerkleRoot.ToHexString())
+				return store.ExecuteResult{}, fmt.Errorf("merkleroot not match")
+			}
+			self.ParentBlockCache.SaveBlockExecuteResult(ph, result)
 		}
-		result, err := self.ParentLedger.ldgStore.ExecuteBlock(parentBlock)
-		if err != nil {
-			return result, err
-		}
-		if merkleRoot != result.MerkleRoot {
-			log.Errorf("ExecuteBlock check parentblock cache MerkleRoot blocknum:%d,MerkleRoot:%s,execute MerkleRoot:%s", b.Header.ParentHeight, merkleRoot.ToHexString(), result.MerkleRoot.ToHexString())
-			return store.ExecuteResult{}, fmt.Errorf("merkleroot not match")
-		}
-		self.ParentBlockCache.SaveBlockExecuteResult(b.Header.ParentHeight, result)
 	}
 	return self.ldgStore.ExecuteBlock(b)
 }
 
 func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
 	if !self.ShardID.IsRootShard() {
-		parentBlock, _, err := self.ParentBlockCache.GetBlock(b.Header.ParentHeight)
-		if err != nil {
-			if err == scommon.ErrNotFound {
-				err := self.ldgStore.SubmitBlock(b, exec)
-				if err != nil {
-					log.Errorf("Ledger SubmitBlock BlockHeight:%d BlockHash:%x error:%s", b.Header.Height, b.Hash(), err)
-					return err
-				}
-				return nil
-			} else {
-				log.Errorf("Ledger SubmitBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", b.Header.Height, b.Header.ParentHeight, err)
+		currentParentHeight := self.ParentLedger.GetCurrentBlockHeight()
+		ph := b.Header.ParentHeight
+		if ph > currentParentHeight {
+			if ph != currentParentHeight+1 {
+				return fmt.Errorf("ledger %d submit parent block %d, last parent height %d", self.ShardID, ph, currentParentHeight)
+			}
+			parentBlock, _, err := self.ParentBlockCache.GetBlock(ph)
+			if err != nil {
+				log.Errorf("Ledger %d SubmitBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", self.ShardID, b.Header.Height, b.Header.ParentHeight, err)
 				return err
 			}
-		}
-		result, err := self.ParentBlockCache.GetBlockExecuteResult(b.Header.ParentHeight)
-		if err != nil {
-			return fmt.Errorf("SubmitBlock: get parent exec result failed, err: %s", err)
-		}
-		if err := self.ParentLedger.ldgStore.SubmitBlock(parentBlock, result); err != nil {
-			return fmt.Errorf("SubmitBlock: submit parent block failed, err: %s", err)
-		} else {
-			self.ParentBlockCache.DelBlock(b.Header.ParentHeight)
+			result, err := self.ParentBlockCache.GetBlockExecuteResult(ph)
+			if err != nil {
+				return fmt.Errorf("ledger %d SubmitBlock: get parent %d exec result failed, err: %s", self.ShardID, ph, err)
+			}
+			if err := self.ParentLedger.ldgStore.SubmitBlock(parentBlock, result); err != nil {
+				return fmt.Errorf("ledger %d SubmitBlock: submit parent block %d failed, err: %s", self.ShardID, ph, err)
+			}
+			self.ParentBlockCache.DelBlock(ph)
 		}
 	}
 	err := self.ldgStore.SubmitBlock(b, exec)
 	if err != nil {
-		log.Errorf("Ledger SubmitBlock BlockHeight:%d BlockHash:%x error:%s", b.Header.Height, b.Hash(), err)
+		log.Errorf("Ledger %d SubmitBlock BlockHeight:%d BlockHash:%x error:%s", self.ShardID, b.Header.Height, b.Hash(), err)
 		return err
 	}
 	return nil

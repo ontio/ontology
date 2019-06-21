@@ -574,32 +574,6 @@ func (this *LedgerStoreImp) SubmitBlock(block *types.Block, result store.Execute
 	return nil
 }
 
-//AddBlock add the block to store.
-//When the block is not the next block, it will be cache. until the missing block arrived
-func (this *LedgerStoreImp) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	currBlockHeight := this.GetCurrentBlockHeight()
-	blockHeight := block.Header.Height
-	if blockHeight <= currBlockHeight {
-		return nil
-	}
-	nextBlockHeight := currBlockHeight + 1
-	if blockHeight != nextBlockHeight {
-		return fmt.Errorf("block height %d not equal next block height %d", blockHeight, nextBlockHeight)
-	}
-	var err error
-	this.vbftPeerInfoblock, err = this.verifyHeader(block.Header, this.vbftPeerInfoblock)
-	if err != nil {
-		return fmt.Errorf("verifyHeader error %s", err)
-	}
-
-	err = this.saveBlock(block, stateMerkleRoot)
-	if err != nil {
-		return fmt.Errorf("saveBlock error %s", err)
-	}
-	this.delHeaderCache(block.Hash())
-	return nil
-}
-
 func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
@@ -943,30 +917,6 @@ func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystem
 	}
 
 	return shardSysMsg
-}
-
-//saveBlock do the job of execution samrt contract and commit block to store.
-func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	blockHeight := block.Header.Height
-	if this.tryGetSavingBlockLock() {
-		//hash already saved or is saving
-		return nil
-	}
-	defer this.releaseSavingBlockLock()
-	if blockHeight > 0 && blockHeight != (this.GetCurrentBlockHeight()+1) {
-		return nil
-	}
-
-	result, err := this.executeBlock(block)
-	if err != nil {
-		return err
-	}
-
-	if result.MerkleRoot != stateMerkleRoot {
-		return errors.NewErr("state merkle root mismatch!")
-	}
-
-	return this.submitBlock(block, result)
 }
 
 func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,

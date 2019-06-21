@@ -183,31 +183,34 @@ func NewVersion(n p2pnet.P2P, heights map[uint64]*mt.HeightInfo) mt.Message {
 }
 
 //transaction request package
-func NewTxnDataReq(hash common.Uint256) mt.Message {
+func NewTxnDataReq(shardID common.ShardID, hash common.Uint256) mt.Message {
 	log.Trace()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.TRANSACTION
 	dataReq.Hash = hash
+	dataReq.ShardID = shardID.ToUint64()
 
 	return &dataReq
 }
 
 //block request package
-func NewBlkDataReq(hash common.Uint256) mt.Message {
+func NewBlkDataReq(shardID common.ShardID, hash common.Uint256) mt.Message {
 	log.Trace()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.BLOCK
 	dataReq.Hash = hash
+	dataReq.ShardID = shardID.ToUint64()
 
 	return &dataReq
 }
 
 //consensus request package
-func NewConsensusDataReq(hash common.Uint256) mt.Message {
+func NewConsensusDataReq(shardID common.ShardID, hash common.Uint256) mt.Message {
 	log.Trace()
 	var dataReq mt.DataReq
 	dataReq.DataType = common.CONSENSUS
 	dataReq.Hash = hash
+	dataReq.ShardID = shardID.ToUint64()
 
 	return &dataReq
 }

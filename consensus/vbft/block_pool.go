@@ -616,28 +616,17 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 						//add sign
 						for _, sigcrossMsg := range sig.CrossMsg.CrossMsgs {
 							if crossMsg.MsgHash == sigcrossMsg.MsgHash {
-								crossMsg.SigData = append(crossMsg.SigData, sigcrossMsg.SigData...)
+								for index, sig := range sigcrossMsg.SigData {
+									if _, present := crossMsg.SigData[index]; !present {
+										crossMsg.SigData[index] = sig
+									}
+								}
 							}
 						}
 					}
 				}
 				break
 			}
-		}
-	}
-	//dup sign data
-	if block.CrossMsg != nil {
-		for _, crossMsg := range block.CrossMsg.CrossMsgs {
-			sigDatas := make([][]byte, 0)
-			crossSignData := make(map[string]bool)
-			for _, sign := range crossMsg.SigData {
-				crossSignData[common.ToHexString(sign)] = true
-			}
-			for sign, _ := range crossSignData {
-				signdata, _ := common.HexToBytes(sign)
-				sigDatas = append(sigDatas, signdata)
-			}
-			crossMsg.SigData = sigDatas
 		}
 	}
 	if !forEmpty {
