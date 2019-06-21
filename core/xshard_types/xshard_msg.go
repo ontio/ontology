@@ -114,6 +114,7 @@ type XShardTxReq struct {
 	Contract common.Address
 	Payer    common.Address
 	Fee      uint64
+	GasPrice uint64
 	Method   string
 	Args     []byte
 }
@@ -140,6 +141,7 @@ func (msg *XShardTxReq) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteAddress(msg.Contract)
 	sink.WriteAddress(msg.Payer)
 	sink.WriteUint64(msg.Fee)
+	sink.WriteUint64(msg.GasPrice)
 	sink.WriteString(msg.Method)
 	sink.WriteVarBytes(msg.Args)
 }
@@ -154,6 +156,7 @@ func (msg *XShardTxReq) Deserialization(source *common.ZeroCopySource) error {
 	msg.Contract, eof = source.NextAddress()
 	msg.Payer, eof = source.NextAddress()
 	msg.Fee, eof = source.NextUint64()
+	msg.GasPrice, eof = source.NextUint64()
 	msg.Method, _, irregular, eof = source.NextString()
 	if irregular {
 		return common.ErrIrregularData

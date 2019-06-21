@@ -296,6 +296,7 @@ func (this *SmartContract) InvokeRemoteShard(target common.ShardID, cont common.
 		IdxInTx:  uint64(reqIdx),
 		Payer:    this.Config.Tx.Payer,
 		Fee:      this.Gas, // use all remain gas to invoke remote shard
+		GasPrice: this.Config.Tx.GasPrice,
 		Contract: cont,
 		Method:   method,
 		Args:     args,

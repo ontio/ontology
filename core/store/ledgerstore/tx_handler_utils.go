@@ -23,11 +23,13 @@ import (
 	"math"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -128,4 +130,56 @@ func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, 
 		return 0, err
 	}
 	return common.BigIntFromNeoBytes(result.([]byte)).Uint64(), nil
+}
+
+func chargeHandleRespFee(store store.LedgerStore, cache *storage.CacheDB, header *types.Header, shardId common.ShardID,
+	notify *event.TransactionNotify, subTx *types.Transaction, txState *xshard_state.TxState, gasConsumed uint64,
+	isExecFailed bool) bool {
+	if subTx.GasPrice == 0 {
+		return true
+	}
+	if isExecFailed {
+		// exec failed, only charge x-shard invoke fee, because:
+		// 1. x-shard invoke fee is debt of dest shard
+		// 2. tx failed fee is charged by original invoke tx
+		return chargeWholeRespFee(txState, subTx, header, cache, store, shardId, notify)
+	} else {
+		// exec complete, charge all tx fee except original invoke tx failed fee
+		if gasConsumed > neovm.MIN_TRANSACTION_GAS {
+			config := &smartcontract.Config{
+				ShardID:   shardId,
+				Time:      header.Timestamp,
+				Height:    header.Height,
+				Tx:        subTx,
+				BlockHash: header.Hash(),
+			}
+			fee := gasConsumed - neovm.MIN_TRANSACTION_GAS
+			if notifies, err := chargeCostGas(subTx.Payer, fee, config, cache, store, shardId); err == nil {
+				notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, notifies...)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func chargeWholeRespFee(txState *xshard_state.TxState, tx *types.Transaction, header *types.Header,
+	cache *storage.CacheDB, store store.LedgerStore, shardId common.ShardID, notify *event.TransactionNotify) bool {
+	config := &smartcontract.Config{
+		ShardID:   shardId,
+		Time:      header.Timestamp,
+		Height:    header.Height,
+		Tx:        tx,
+		BlockHash: header.Hash(),
+	}
+	wholeXShardInvokeFee := uint64(0)
+	for _, resp := range txState.OutReqResp {
+		wholeXShardInvokeFee += resp.Resp.FeeUsed
+	}
+	if notifies, err := chargeCostGas(tx.Payer, wholeXShardInvokeFee, config, cache, store, shardId); err != nil {
+		return false
+	} else {
+		notify.ContractEvent.Notify = append(notify.ContractEvent.Notify, notifies...)
+		return true
+	}
 }
