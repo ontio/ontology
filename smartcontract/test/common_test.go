@@ -36,9 +36,10 @@ func TestConvertNeoVmTypeHexString(t *testing.T) {
 	}
 
 	config := &smartcontract.Config{
-		Time:   10,
-		Height: 10,
-		Tx:     nil,
+		Time:         10,
+		Height:       10,
+		ParentHeight: 9,
+		Tx:           nil,
 	}
 	sc := smartcontract.SmartContract{
 		Config: config,

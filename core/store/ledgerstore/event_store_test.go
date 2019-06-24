@@ -20,6 +20,7 @@ package ledgerstore
 
 import (
 	"math/rand"
+	"reflect"
 	"testing"
 
 	"github.com/ontio/ontology/common"
@@ -27,7 +28,7 @@ import (
 	msg "github.com/ontio/ontology/events/message"
 )
 
-func TestSaveMetatEventMsg(t *testing.T) {
+func TestSaveContractMetaData(t *testing.T) {
 	var addr common.Address
 	rand.Read(addr[:])
 	metaDataCode := &payload.MetaDataCode{
@@ -40,7 +41,7 @@ func TestSaveMetatEventMsg(t *testing.T) {
 		MetaData: metaDataCode,
 	}
 	testEventStore.NewBatch()
-	err := testEventStore.SaveMetaDataEvent(metaDataEvent.Height, metaDataCode)
+	err := testEventStore.SaveContractMetaDataEvent(metaDataEvent.Height, metaDataEvent.MetaData)
 	if err != nil {
 		t.Errorf("SaveMetaEvent err:%s", err)
 		return
@@ -50,11 +51,63 @@ func TestSaveMetatEventMsg(t *testing.T) {
 		t.Errorf("CommitTo err :%s", err)
 		return
 	}
-	msg, err := testEventStore.GetMetaDataEvent(metaDataEvent.Height, metaDataCode.Contract)
+	msg, err := testEventStore.GetContractMetaDataEvent(metaDataEvent.Height, metaDataCode.Contract)
 	if err != nil {
 		t.Errorf("GetMeteEvent err:%s", err)
 	}
 	if metaDataCode.ShardId != msg.ShardId {
 		t.Errorf("metaData shardId:%d not match msg shardID:%d", metaDataCode.ShardId, msg.ShardId)
+	}
+}
+
+func TestSaveContractEvent(t *testing.T) {
+	var addr common.Address
+	rand.Read(addr[:])
+	deployCode := &payload.DeployCode{
+		NeedStorage: true,
+		Name:        "code",
+	}
+	contractEvent := &msg.ContractEvent{
+		Height:   123,
+		Contract: deployCode,
+	}
+	testEventStore.NewBatch()
+	err := testEventStore.SaveContractEvent(contractEvent.Height, contractEvent.Contract)
+	if err != nil {
+		t.Errorf("SaveContractEvent err:%s", err)
+		return
+	}
+	err = testEventStore.CommitTo()
+	if err != nil {
+		t.Errorf("CommitTo err :%s", err)
+		return
+	}
+	msg, err := testEventStore.GetContractEvent(contractEvent.Height, deployCode.Address())
+	if err != nil {
+		t.Errorf("GetMeteEvent err:%s", err)
+	}
+	if deployCode.Name != msg.Name {
+		t.Errorf("metaData name:%s not match msg name:%s", deployCode.Name, msg.Name)
+	}
+}
+
+func TestAddShardConsensusHeight(t *testing.T) {
+	shardID := common.NewShardIDUnchecked(1)
+	heights := []uint32{100, 120, 150}
+	testEventStore.NewBatch()
+	testEventStore.AddShardConsensusHeight(shardID, heights)
+	err := testEventStore.CommitTo()
+	if err != nil {
+		t.Errorf("TestAddShardConsensusHeight CommitTo err :%s", err)
+		return
+	}
+	blkHeights, err := testEventStore.GetShardConsensusHeight(shardID)
+	if err != nil {
+		t.Errorf("TestAddShardConsensusHeight failed GetShardConsensusHeight err:%s", err)
+		return
+	}
+	if !reflect.DeepEqual(heights, blkHeights) {
+		t.Errorf("TestAddShardConsensusHeight faied heigts:%v,blkHeigts:%v", heights, blkHeights)
+		return
 	}
 }

@@ -20,6 +20,7 @@ package smartcontract
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
@@ -59,11 +60,12 @@ type SmartContract struct {
 
 // Config describe smart contract need parameters configuration
 type Config struct {
-	ShardID   common.ShardID
-	Time      uint32              // current block timestamp
-	Height    uint32              // current block height
-	BlockHash common.Uint256      // current block hash
-	Tx        *ctypes.Transaction // current transaction
+	ShardID      common.ShardID
+	Time         uint32              // current block timestamp
+	Height       uint32              // current block height
+	ParentHeight uint32              // parent block height
+	BlockHash    common.Uint256      // current block hash
+	Tx           *ctypes.Transaction // current transaction
 }
 
 // PushContext push current context to smart contract
@@ -217,7 +219,7 @@ func (this *SmartContract) GetMetaData(contract common.Address) (*payload.MetaDa
 		return nil, true, fmt.Errorf("GetMetaData %s", err)
 	}
 	if meta == nil {
-		meta, err = this.Store.GetContractMetaDataFromParentShard(contract)
+		meta, err = this.Store.GetContractMetaDataEvent(this.Config.ParentHeight, contract)
 		if err != nil {
 			return nil, false, fmt.Errorf("GetMetaData from parent, err: %s", err)
 		}

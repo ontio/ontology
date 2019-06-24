@@ -34,8 +34,6 @@ type CrossShardStore interface {
 	GetCrossShardHash(shardID common.ShardID) (common.Uint256, error)
 	AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error
 	GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error)
-	AddShardConsensusHeight(shardID common.ShardID, value []uint32) error
-	GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error)
 	SaveShardMsgHash(shardID common.ShardID, msgHash common.Uint256) error
 	GetShardMsgHash(shardID common.ShardID) (common.Uint256, error)
 }

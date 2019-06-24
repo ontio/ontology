@@ -19,7 +19,6 @@ package ledgerstore
 
 import (
 	"bytes"
-	"reflect"
 	"testing"
 
 	"github.com/ontio/ontology/common"
@@ -116,27 +115,6 @@ func TestAddShardConsensusConfig(t *testing.T) {
 	}
 	if shardEventInfo.Height != shardEvent.Height {
 		t.Errorf("height not match:%d,%d", shardEventInfo.Height, shardEvent.Height)
-		return
-	}
-}
-
-func TestAddShardConsensusHeight(t *testing.T) {
-	shardID := common.NewShardIDUnchecked(1)
-	heights := []uint32{100, 120, 150}
-	testCrossShardStore.NewBatch()
-	testCrossShardStore.AddShardConsensusHeight(shardID, heights)
-	err := testCrossShardStore.CommitTo()
-	if err != nil {
-		t.Errorf("TestAddShardConsensusHeight CommitTo err :%s", err)
-		return
-	}
-	blkHeights, err := testCrossShardStore.GetShardConsensusHeight(shardID)
-	if err != nil {
-		t.Errorf("TestAddShardConsensusHeight failed GetShardConsensusHeight err:%s", err)
-		return
-	}
-	if !reflect.DeepEqual(heights, blkHeights) {
-		t.Errorf("TestAddShardConsensusHeight faied heigts:%v,blkHeigts:%v", heights, blkHeights)
 		return
 	}
 }

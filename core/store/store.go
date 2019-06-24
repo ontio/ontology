@@ -63,9 +63,7 @@ type LedgerStore interface {
 	GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256
 	GetMerkleProof(m, n uint32) ([]common.Uint256, error)
 	GetContractState(contractHash common.Address) (*payload.DeployCode, error)
-	GetContractStateFromParentShard(contractHash common.Address) (*payload.DeployCode, error)
 	GetContractMetaData(contractHash common.Address) (*payload.MetaDataCode, error)
-	GetContractMetaDataFromParentShard(contractHash common.Address) (*payload.MetaDataCode, error)
 	GetBookkeeperState() (*states.BookkeeperState, error)
 	GetStorageItem(key *states.StorageKey) (*states.StorageItem, error)
 	PreExecuteContract(tx *types.Transaction) (*cstates.PreExecResult, error)
@@ -74,5 +72,7 @@ type LedgerStore interface {
 	GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error)
 	GetShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) ([]xshard_types.CommonShardMsg, error)
 	GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error)
-	GetMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error)
+	GetContractMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error)
+	GetContractEvent(blockHeight uint32, addr common.Address) (*payload.DeployCode, error)
+	GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error)
 }

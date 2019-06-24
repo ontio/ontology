@@ -38,6 +38,7 @@ func TestBuildParamToNative(t *testing.T) {
 	config := &smartcontract.Config{
 		Time:   10,
 		Height: 10,
+		ParentHeight:9,
 		Tx:     &types.Transaction{},
 	}
 	sc := smartcontract.SmartContract{

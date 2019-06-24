@@ -62,7 +62,8 @@ const (
 
 	SHARD_CONFIG_DATA DataEntryPrefix = 0x42 //all shard consensus config
 
-	CROSS_ALL_SHARDS          DataEntryPrefix = 0x43 //cross shard all shardId
-	CROSS_SHARD_HASH          DataEntryPrefix = 0x44 //cross shard msg hash
-	CROSS_SHARD_CONTRACT_META DataEntryPrefix = 0x45 //cross shard constract metaEvents
+	CROSS_ALL_SHARDS           DataEntryPrefix = 0x43 //cross shard all shardId
+	CROSS_SHARD_HASH           DataEntryPrefix = 0x44 //cross shard msg hash
+	CROSS_SHARD_CONTRACT_META  DataEntryPrefix = 0x45 //cross shard contract meta
+	CROSS_SHARD_CONTRACT_EVENT DataEntryPrefix = 0x46 //cross shard contract event
 )

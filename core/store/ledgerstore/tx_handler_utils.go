@@ -147,11 +147,12 @@ func chargeHandleRespFee(store store.LedgerStore, cache *storage.CacheDB, header
 		// exec complete, charge all tx fee except original invoke tx failed fee
 		if gasConsumed > neovm.MIN_TRANSACTION_GAS {
 			config := &smartcontract.Config{
-				ShardID:   shardId,
-				Time:      header.Timestamp,
-				Height:    header.Height,
-				Tx:        subTx,
-				BlockHash: header.Hash(),
+				ShardID:      shardId,
+				Time:         header.Timestamp,
+				Height:       header.Height,
+				ParentHeight: header.ParentHeight,
+				Tx:           subTx,
+				BlockHash:    header.Hash(),
 			}
 			fee := gasConsumed - neovm.MIN_TRANSACTION_GAS
 			if notifies, err := chargeCostGas(subTx.Payer, fee, config, cache, store, shardId); err == nil {
@@ -166,11 +167,12 @@ func chargeHandleRespFee(store store.LedgerStore, cache *storage.CacheDB, header
 func chargeWholeRespFee(txState *xshard_state.TxState, tx *types.Transaction, header *types.Header,
 	cache *storage.CacheDB, store store.LedgerStore, shardId common.ShardID, notify *event.TransactionNotify) bool {
 	config := &smartcontract.Config{
-		ShardID:   shardId,
-		Time:      header.Timestamp,
-		Height:    header.Height,
-		Tx:        tx,
-		BlockHash: header.Hash(),
+		ShardID:      shardId,
+		Time:         header.Timestamp,
+		Height:       header.Height,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    header.Hash(),
 	}
 	wholeXShardInvokeFee := uint64(0)
 	for _, resp := range txState.OutReqResp {

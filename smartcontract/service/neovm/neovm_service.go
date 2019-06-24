@@ -21,6 +21,7 @@ package neovm
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	scommon "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -334,7 +335,7 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, er
 	}
 	log.Debugf("invoke contract address: %s", address.ToHexString())
 	if dep == nil {
-		dep, err = this.Store.GetContractStateFromParentShard(address)
+		dep, err = this.Store.GetContractEvent(this.Height, address)
 		if err != nil {
 			return nil, false, errors.NewErr("[getContract] Get contract context from parent shard error!")
 		}

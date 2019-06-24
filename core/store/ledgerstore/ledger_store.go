@@ -604,10 +604,11 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			return
 		}
 		config := &smartcontract.Config{
-			ShardID: shardID,
-			Time:    block.Header.Timestamp,
-			Height:  block.Header.Height,
-			Tx:      &types.Transaction{},
+			ShardID:      shardID,
+			Time:         block.Header.Timestamp,
+			Height:       block.Header.Height,
+			ParentHeight: block.Header.ParentHeight,
+			Tx:           &types.Transaction{},
 		}
 
 		err = refreshGlobalParam(config, storage.NewCacheDB(this.stateStore.NewOverlayDB()), this)
@@ -827,13 +828,16 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 }
 
 func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result store.ExecuteResult) error {
-	// TODO: save contract event
-	shardSysMsg, metaEvents, _ := extractShardEvents(result.Notify)
+	shardSysMsg, metaEvents, contractEvent := extractShardEvents(result.Notify)
 	err := this.saveCrossShardGovernanceData(block, shardSysMsg)
 	if err != nil {
 		return err
 	}
 	err = this.saveCrossShardConstactMetaData(metaEvents)
+	if err != nil {
+		return err
+	}
+	err = this.saveCrossShardContractEventData(contractEvent)
 	if err != nil {
 		return err
 	}
@@ -846,7 +850,16 @@ func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, sha
 
 func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message.MetaDataEvent) error {
 	for _, metaEvent := range metaEvents {
-		err := this.eventStore.SaveMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
+		err := this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (this *LedgerStoreImp) saveCrossShardContractEventData(contractEvents []*message.ContractEvent) error {
+	for _, contractEvent := range contractEvents {
+		err := this.eventStore.SaveContractEvent(contractEvent.Height, contractEvent.Contract)
 		if err != nil {
 			return err
 		}
@@ -1133,24 +1146,8 @@ func (this *LedgerStoreImp) GetContractState(contractHash common.Address) (*payl
 }
 
 //GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
-func (this *LedgerStoreImp) GetContractStateFromParentShard(contractHash common.Address) (*payload.DeployCode, error) {
-	if this.parentShardStore == nil {
-		return nil, nil
-	}
-	return this.parentShardStore.GetContractState(contractHash)
-}
-
-//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
 func (this *LedgerStoreImp) GetContractMetaData(contractHash common.Address) (*payload.MetaDataCode, error) {
 	return this.stateStore.GetContractMetaData(contractHash)
-}
-
-//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
-func (this *LedgerStoreImp) GetContractMetaDataFromParentShard(contractHash common.Address) (*payload.MetaDataCode, error) {
-	if this.parentShardStore == nil {
-		return nil, nil
-	}
-	return this.parentShardStore.GetContractMetaData(contractHash)
 }
 
 //GetStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState
@@ -1284,8 +1281,16 @@ func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]com
 	return self.stateStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
-func (self *LedgerStoreImp) GetMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
-	return self.eventStore.GetMetaDataEvent(blockHeight, contractAddr)
+func (self *LedgerStoreImp) GetContractMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
+	return self.eventStore.GetContractMetaDataEvent(blockHeight, contractAddr)
+}
+
+func (self *LedgerStoreImp) GetContractEvent(blockHeight uint32, addr common.Address) (*payload.DeployCode, error) {
+	return self.eventStore.GetContractEvent(blockHeight, addr)
+}
+
+func (self *LedgerStoreImp) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
+	return self.eventStore.GetShardConsensusHeight(shardID)
 }
 
 //Close ledger store.

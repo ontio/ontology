@@ -21,10 +21,11 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/events/message"
 	"math"
 	"sort"
 	"strconv"
+
+	"github.com/ontio/ontology/events/message"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -53,7 +54,7 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 	address := deploy.Address()
-	parentContract, _ := store.GetContractStateFromParentShard(address)
+	parentContract, _ := store.GetContractEvent(header.ParentHeight, address)
 	if parentContract != nil {
 		return fmt.Errorf("[HandleDeployTransaction] contract existed in parent shard")
 	}
@@ -71,11 +72,12 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	if tx.GasPrice != 0 {
 		// init smart contract configuration info
 		config := &smartcontract.Config{
-			ShardID:   shardID,
-			Time:      header.Timestamp,
-			Height:    header.Height,
-			Tx:        tx,
-			BlockHash: header.Hash(),
+			ShardID:      shardID,
+			Time:         header.Timestamp,
+			Height:       header.Height,
+			ParentHeight: header.ParentHeight,
+			Tx:           tx,
+			BlockHash:    header.Hash(),
 		}
 		createGasPrice, ok := gasTable[neovm.CONTRACT_CREATE_NAME]
 		if !ok {
@@ -143,11 +145,12 @@ func HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb
 		return fmt.Errorf("generate shardId failed, %s", err)
 	}
 	cfg := &smartcontract.Config{
-		ShardID:   shardID,
-		Time:      header.Timestamp,
-		Height:    header.Height,
-		Tx:        tx,
-		BlockHash: header.Hash(),
+		ShardID:      shardID,
+		Time:         header.Timestamp,
+		Height:       header.Height,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    header.Hash(),
 	}
 	defer func() {
 		if err != nil {
@@ -930,11 +933,12 @@ func execShardTransaction(fromShard common.ShardID, store store.LedgerStore, gas
 		return
 	}
 	config := &smartcontract.Config{
-		ShardID:   shardID,
-		Time:      header.Timestamp,
-		Height:    header.Height,
-		Tx:        tx,
-		BlockHash: header.Hash(),
+		ShardID:      shardID,
+		Time:         header.Timestamp,
+		Height:       header.Height,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    header.Hash(),
 	}
 
 	if tx.TxType == types.Invoke {
@@ -1013,11 +1017,12 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	}
 	// init smart contract configuration info
 	config := &smartcontract.Config{
-		ShardID:   shardID,
-		Time:      header.Timestamp,
-		Height:    header.Height,
-		Tx:        tx,
-		BlockHash: header.Hash(),
+		ShardID:      shardID,
+		Time:         header.Timestamp,
+		Height:       header.Height,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    header.Hash(),
 	}
 
 	var (

@@ -385,8 +385,16 @@ func (self *Ledger) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.Shar
 	return self.ldgStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
-func (self *Ledger) GetMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
-	return self.ldgStore.GetMetaDataEvent(blockHeight, contractAddr)
+func (self *Ledger) GetContractMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
+	return self.ldgStore.GetContractMetaDataEvent(blockHeight, contractAddr)
+}
+
+func (self *Ledger) GetContractEvent(blockHeight uint32, addr common.Address) (*payload.DeployCode, error) {
+	return self.ldgStore.GetContractEvent(blockHeight, addr)
+}
+
+func (self *Ledger) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
+	return self.ldgStore.GetShardConsensusHeight(shardID)
 }
 
 func (self *Ledger) SaveCrossShardMsgByHash(msgHash common.Uint256, crossShardMsg *types.CrossShardMsg) error {
@@ -415,12 +423,6 @@ func (self *Ledger) AddShardConsensusConfig(shardID common.ShardID, height uint3
 }
 func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
 	return self.cshardStore.GetShardConsensusConfig(shardID, height)
-}
-func (self *Ledger) AddShardConsensusHeight(shardID common.ShardID, value []uint32) error {
-	return self.cshardStore.AddShardConsensusHeight(shardID, value)
-}
-func (self *Ledger) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
-	return self.cshardStore.GetShardConsensusHeight(shardID)
 }
 
 func (self *Ledger) SaveShardMsgHash(shardID common.ShardID, msgHash common.Uint256) error {
