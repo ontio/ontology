@@ -24,8 +24,10 @@ import (
 	"testing"
 
 	"github.com/ontio/ontology/common"
+	vbftcfg "github.com/ontio/ontology/common/config"
 	payload "github.com/ontio/ontology/core/payload"
 	msg "github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func TestSaveContractMetaData(t *testing.T) {
@@ -108,6 +110,48 @@ func TestAddShardConsensusHeight(t *testing.T) {
 	}
 	if !reflect.DeepEqual(heights, blkHeights) {
 		t.Errorf("TestAddShardConsensusHeight faied heigts:%v,blkHeigts:%v", heights, blkHeights)
+		return
+	}
+}
+
+func TestAddShardConsensusConfig(t *testing.T) {
+	shardID := common.NewShardIDUnchecked(1)
+	height := 110
+	cfg := &shardstates.ShardConfig{
+		GasPrice: 20000,
+		GasLimit: 10000,
+		VbftCfg: &vbftcfg.VBFTConfig{
+			N: 1,
+			C: 7,
+		},
+	}
+	shardEvent := &shardstates.ConfigShardEvent{
+		Height: 120,
+		Config: cfg,
+	}
+	sink := common.ZeroCopySink{}
+	shardEvent.Serialization(&sink)
+	testEventStore.NewBatch()
+	testEventStore.AddShardConsensusConfig(shardID, uint32(height), sink.Bytes())
+	err := testEventStore.CommitTo()
+	if err != nil {
+		t.Errorf("TestAddShardConsensusHeight CommitTo err :%s", err)
+		return
+	}
+	data, err := testEventStore.GetShardConsensusConfig(shardID, uint32(height))
+	if err != nil {
+		t.Errorf("GetShardConsensusConfig failed shardID:%v,height:%d", shardID, height)
+		return
+	}
+	source := common.NewZeroCopySource(data)
+	shardEventInfo := &shardstates.ConfigShardEvent{}
+	err = shardEventInfo.Deserialization(source)
+	if err != nil {
+		t.Errorf("Deserialization failed:%s", err)
+		return
+	}
+	if shardEventInfo.Height != shardEvent.Height {
+		t.Errorf("height not match:%d,%d", shardEventInfo.Height, shardEvent.Height)
 		return
 	}
 }

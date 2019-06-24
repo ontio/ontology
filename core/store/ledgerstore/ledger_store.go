@@ -22,6 +22,7 @@ package ledgerstore
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"math"
@@ -53,6 +54,7 @@ import (
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
@@ -833,6 +835,10 @@ func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result
 	if err != nil {
 		return err
 	}
+	err = this.saveParentShardConfig(block)
+	if err != nil {
+		return err
+	}
 	err = this.saveCrossShardConstactMetaData(metaEvents)
 	if err != nil {
 		return err
@@ -845,6 +851,77 @@ func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result
 }
 
 func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, shardEvts []*message.ShardSystemEventMsg) error {
+	for _, evt := range shardEvts {
+		shardEvt := evt.Event
+		switch shardEvt.EventType {
+		case shardstates.EVENT_SHARD_CONFIG_UPDATE:
+			cfgEvt := &shardstates.ConfigShardEvent{}
+			if err := cfgEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
+				log.Errorf("deserialize update shard config event: %s", err)
+				continue
+			}
+			return this.addShardEventConfig(cfgEvt.Height, cfgEvt.ImplSourceTargetShardID.ShardID, cfgEvt.Config, cfgEvt.Peers)
+		}
+	}
+	return nil
+}
+
+func (this *LedgerStoreImp) saveParentShardConfig(block *types.Block) error {
+	blkInfo := &vconfig.VbftBlockInfo{}
+	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
+		return fmt.Errorf("unmarshal blockInfo: %s", err)
+	}
+	if blkInfo.LastConfigBlockNum != block.Header.Height {
+		return nil
+	}
+	config := &shardstates.ShardConfig{
+		VbftCfg: &config.VBFTConfig{
+			N: blkInfo.NewChainConfig.N,
+			C: blkInfo.NewChainConfig.C,
+		},
+	}
+	peers := make(map[string]*shardstates.PeerShardStakeInfo)
+	for _, peer := range blkInfo.NewChainConfig.Peers {
+		peers[peer.ID] = &shardstates.PeerShardStakeInfo{
+			Index:      peer.Index,
+			PeerPubKey: peer.ID,
+			NodeType:   shardstates.CONSENSUS_NODE,
+		}
+	}
+	return this.addShardEventConfig(block.Header.Height, common.NewShardIDUnchecked(block.Header.ShardID), config, peers)
+}
+
+func (this *LedgerStoreImp) addShardEventConfig(height uint32, shardID common.ShardID, cfg *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo) error {
+	shardEvent := &shardstates.ConfigShardEvent{
+		Height: height,
+		Config: cfg,
+		Peers:  peers,
+	}
+	sink := common.ZeroCopySink{}
+	shardEvent.Serialization(&sink)
+	err := this.eventStore.AddShardConsensusConfig(shardID, height, sink.Bytes())
+	if err != nil {
+		return fmt.Errorf("AddShardConsensusConfig err:%s", err)
+	}
+
+	heights, err := this.eventStore.GetShardConsensusHeight(shardID)
+	if err != nil {
+		if err != scom.ErrNotFound {
+			return fmt.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
+		}
+	}
+	if len(heights) != 0 {
+		if heights[len(heights)-1] >= height {
+			return fmt.Errorf("addShardEventConfig height orderly increment db heights:%v,height:%d", heights, height)
+		}
+	}
+	heights_db := make([]uint32, 0)
+	heights_db = append(heights_db, heights...)
+	heights_db = append(heights_db, height)
+	err = this.eventStore.AddShardConsensusHeight(shardID, heights_db)
+	if err != nil {
+		return fmt.Errorf("AddShardConsensusHeight err:%s", err)
+	}
 	return nil
 }
 
@@ -1174,12 +1251,18 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	if err != nil {
 		return stf, err
 	}
+	header, err := this.GetHeaderByHeight(height)
+	if err != nil {
+		return stf, err
+	}
+
 	config := &smartcontract.Config{
-		ShardID:   shardID,
-		Time:      uint32(time.Now().Unix()),
-		Height:    height + 1,
-		Tx:        tx,
-		BlockHash: this.GetBlockHash(height),
+		ShardID:      shardID,
+		Time:         uint32(time.Now().Unix()),
+		Height:       height + 1,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    this.GetBlockHash(height),
 	}
 
 	overlay := this.stateStore.NewOverlayDB()
@@ -1291,6 +1374,10 @@ func (self *LedgerStoreImp) GetContractEvent(blockHeight uint32, addr common.Add
 
 func (self *LedgerStoreImp) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
 	return self.eventStore.GetShardConsensusHeight(shardID)
+}
+
+func (self *LedgerStoreImp) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
+	return self.eventStore.GetShardConsensusConfig(shardID, height)
 }
 
 //Close ledger store.

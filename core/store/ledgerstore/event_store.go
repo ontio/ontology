@@ -312,3 +312,22 @@ func genShardConsensusHeightKey(shardID common.ShardID) []byte {
 	key.WriteShardID(shardID)
 	return key.Bytes()
 }
+
+func (this *EventStore) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
+	key := genShardConsensusConfigKey(shardID, height)
+	this.store.BatchPut(key, value)
+	return nil
+}
+
+func (this *EventStore) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
+	key := genShardConsensusConfigKey(shardID, height)
+	return this.store.Get(key)
+}
+
+func genShardConsensusConfigKey(shardID common.ShardID, height uint32) []byte {
+	key := common.NewZeroCopySink(16)
+	key.WriteByte(byte(scom.SHARD_CONFIG_DATA))
+	key.WriteShardID(shardID)
+	key.WriteUint32(height)
+	return key.Bytes()
+}

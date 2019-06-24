@@ -397,6 +397,10 @@ func (self *Ledger) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, e
 	return self.ldgStore.GetShardConsensusHeight(shardID)
 }
 
+func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
+	return self.ldgStore.GetShardConsensusConfig(shardID, height)
+}
+
 func (self *Ledger) SaveCrossShardMsgByHash(msgHash common.Uint256, crossShardMsg *types.CrossShardMsg) error {
 	return self.cshardStore.SaveCrossShardMsgByHash(msgHash, crossShardMsg)
 }
@@ -416,13 +420,6 @@ func (self *Ledger) SaveCrossShardHash(shardID common.ShardID, msgHash common.Ui
 }
 func (self *Ledger) GetCrossShardHash(shardID common.ShardID) (common.Uint256, error) {
 	return self.cshardStore.GetCrossShardHash(shardID)
-}
-
-func (self *Ledger) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
-	return self.cshardStore.AddShardConsensusConfig(shardID, height, value)
-}
-func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
-	return self.cshardStore.GetShardConsensusConfig(shardID, height)
 }
 
 func (self *Ledger) SaveShardMsgHash(shardID common.ShardID, msgHash common.Uint256) error {

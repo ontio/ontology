@@ -210,37 +210,4 @@ func (self *ChainManager) handleRootChainBlock() error {
 }
 
 func (self *ChainManager) AddShardEventConfig(height uint32, shardID common.ShardID, cfg *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo) {
-	shardEvent := &shardstates.ConfigShardEvent{
-		Height: height,
-		Config: cfg,
-		Peers:  peers,
-	}
-	sink := common.ZeroCopySink{}
-	shardEvent.Serialization(&sink)
-	lgr := ledger.GetShardLedger(self.shardID)
-	if lgr == nil {
-		lgr = ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
-	}
-
-	err := lgr.AddShardConsensusConfig(shardID, height, sink.Bytes())
-	if err != nil {
-		log.Errorf("AddShardConsensusConfig err:%s", err)
-		return
-	}
-
-	heights, err := lgr.GetShardConsensusHeight(shardID)
-	if err != nil {
-		if err != com.ErrNotFound {
-			log.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
-			return
-		}
-	}
-	heights_db := make([]uint32, 0)
-	heights_db = append(heights_db, heights...)
-	heights_db = append(heights_db, height)
-	err = lgr.AddShardConsensusHeight(shardID, heights_db)
-	if err != nil {
-		log.Errorf("AddShardConsensusHeight err:%s", err)
-		return
-	}
 }

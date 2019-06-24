@@ -152,30 +152,6 @@ func genCrossShardKeyByHash(shardID common.ShardID) []byte {
 	return key.Bytes()
 }
 
-func (this *CrossShardStore) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
-	this.NewBatch()
-	key := this.genShardConsensusConfigKey(shardID, height)
-	this.store.BatchPut(key, value)
-	err := this.CommitTo()
-	if err != nil {
-		return fmt.Errorf("crossShardStore.CommitTo shardID:%v,height:%d error %s", shardID, height, err)
-	}
-	return nil
-}
-
-func (this *CrossShardStore) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
-	key := this.genShardConsensusConfigKey(shardID, height)
-	return this.store.Get(key)
-}
-
-func (this *CrossShardStore) genShardConsensusConfigKey(shardID common.ShardID, height uint32) []byte {
-	key := common.NewZeroCopySink(16)
-	key.WriteByte(byte(scom.SHARD_CONFIG_DATA))
-	key.WriteShardID(shardID)
-	key.WriteUint32(height)
-	return key.Bytes()
-}
-
 func (this *CrossShardStore) SaveShardMsgHash(shardID common.ShardID, msgHash common.Uint256) error {
 	key := genShardMsgKeyByShard(shardID)
 	return this.store.Put(key, msgHash[:])

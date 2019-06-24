@@ -75,4 +75,5 @@ type LedgerStore interface {
 	GetContractMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error)
 	GetContractEvent(blockHeight uint32, addr common.Address) (*payload.DeployCode, error)
 	GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error)
+	GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error)
 }
