@@ -20,6 +20,7 @@ package shardmgmt
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
@@ -77,6 +78,8 @@ const (
 	// query shard commit Dpos info, include xshard transfer ong
 	// id, commit dpos height and block hash at shard, and whole handling fee at last consensus epoch at shard
 	GET_SHARD_COMMIT_DPOS_INFO = "getShardCommitDPosInfo"
+	// query shard detail after create it
+	GET_SHARD_DETAIL = "getShardDetail"
 )
 
 func InitShardManagement() {
@@ -106,6 +109,7 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(UPDATE_XSHARD_HANDLING_FEE, UpdateXShardHandlingFee)
 
 	native.Register(GET_SHARD_COMMIT_DPOS_INFO, GetShardCommitDPosInfo)
+	native.Register(GET_SHARD_DETAIL, GetShardDetail)
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -881,4 +885,28 @@ func GetShardCommitDPosInfo(native *native.NativeService) ([]byte, error) {
 	}
 	data := fmt.Sprintf("%v", info)
 	return []byte(data), nil
+}
+
+func GetShardDetail(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: only can be invoked at root")
+	}
+	shardId, err := utils.ReadVarUint(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: read param failed, err: %s", err)
+	}
+	shard, err := common.NewShardID(shardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: invalid shardId %d", shard)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	state, err := GetShardState(native, contract, shard)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: read db failed, err: %s", err)
+	}
+	data, err := json.Marshal(state)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: marshal detail failed, err: %s", err)
+	}
+	return data, nil
 }
