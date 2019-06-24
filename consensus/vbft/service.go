@@ -2255,6 +2255,7 @@ func (self *Server) createShardGovTransaction(blkNum uint32) (*types.Transaction
 	//build transaction
 	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, shardmgmt.NOTIFY_PARENT_COMMIT_DPOS, []byte{})
 	mutable.GasPrice = 0
+	mutable.GasLimit = 200000
 	mutable.Payer = self.account.Address
 	mutable.Nonce = blkNum
 	// add signatures

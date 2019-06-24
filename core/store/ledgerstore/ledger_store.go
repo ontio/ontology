@@ -826,6 +826,21 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 	return nil
 }
 
+func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result store.ExecuteResult) error {
+	shardSysMsg := extractShardSysEvents(result.Notify)
+	this.saveCrossShardGovernanceData(block, shardSysMsg)
+	this.saveCrossShardConstactMetaData(block, shardSysMsg)
+	return nil
+}
+
+func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, shardEvts []*message.ShardSystemEventMsg) error {
+	return nil
+}
+
+func (this *LedgerStoreImp) saveCrossShardConstactMetaData(block *types.Block, shardEvts []*message.ShardSystemEventMsg) error {
+	return nil
+}
+
 func (this *LedgerStoreImp) tryGetSavingBlockLock() (hasLocked bool) {
 	select {
 	case this.savingBlockSemaphore <- true:
@@ -872,6 +887,10 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	err = this.saveBlockToEventStore(block)
 	if err != nil {
 		return fmt.Errorf("save to event store height:%d error:%s", blockHeight, err)
+	}
+	err = this.saveCrossShardDataToStore(block, result)
+	if err != nil {
+		return fmt.Errorf("save to save cross shard data height:%d error:%s", blockHeight, err)
 	}
 	err = this.blockStore.CommitTo()
 	if err != nil {
