@@ -53,7 +53,7 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 				States: &message.ContractEvent{
 					Version:  common.CURR_HEADER_VERSION,
 					Height:   service.Height,
-					Contract: contractAddress,
+					Contract: contract,
 				}})
 	}
 	vm.PushData(engine, dep)
@@ -112,7 +112,7 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 			States: &message.ContractEvent{
 				Version:  common.CURR_HEADER_VERSION,
 				Height:   service.Height,
-				Contract: newAddr,
+				Contract: contract,
 			}})
 	service.CacheDB.PutContract(contract)
 	service.CacheDB.DeleteContract(oldAddr)

@@ -1,7 +1,6 @@
 package message
 
 import (
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 )
 
@@ -14,5 +13,5 @@ type MetaDataEvent struct {
 type ContractEvent struct {
 	Version  uint32
 	Height   uint32
-	Contract common.Address
+	Contract *payload.DeployCode
 }

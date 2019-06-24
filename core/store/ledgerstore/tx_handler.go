@@ -128,7 +128,7 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 			States: &message.ContractEvent{
 				Version:  common.CURR_HEADER_VERSION,
 				Height:   header.Height,
-				Contract: address,
+				Contract: deploy,
 			}})
 	notify.GasConsumed = gasConsumed
 	notify.State = event.CONTRACT_STATE_SUCCESS
