@@ -74,4 +74,5 @@ type LedgerStore interface {
 	GetBlockShardEvents(height uint32) (events []*message.ShardSystemEventMsg, err error)
 	GetShardMsgsInBlock(blockHeight uint32, shardID common.ShardID) ([]xshard_types.CommonShardMsg, error)
 	GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error)
+	GetMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error)
 }

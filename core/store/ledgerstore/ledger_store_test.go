@@ -32,6 +32,7 @@ import (
 
 var testBlockStore *BlockStore
 var testStateStore *StateStore
+var testEventStore *EventStore
 var testCrossShardStore *CrossShardStore
 var testLedgerStore *LedgerStoreImp
 
@@ -58,6 +59,12 @@ func TestMain(m *testing.M) {
 		fmt.Fprintf(os.Stderr, "NewStateStore error %s\n", err)
 		return
 	}
+	testEventDir := "test/event"
+	testEventStore,err = NewEventStore(testEventDir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "NewEventStore error %s\n", err)
+		return
+	}
 	testCrossShardDir := "test/crossshard"
 	testCrossShardStore, err = NewCrossShardStore(testCrossShardDir)
 	if err != nil {
@@ -78,6 +85,11 @@ func TestMain(m *testing.M) {
 	err = testStateStore.Close()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "testStateStore.Close error %s", err)
+		return
+	}
+	err = testEventStore.Close()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "testEventStore.Close error %s", err)
 		return
 	}
 	err = testCrossShardStore.Close()

@@ -385,6 +385,10 @@ func (self *Ledger) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.Shar
 	return self.ldgStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
+func (self *Ledger) GetMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
+	return self.ldgStore.GetMetaDataEvent(blockHeight, contractAddr)
+}
+
 func (self *Ledger) SaveCrossShardMsgByHash(msgHash common.Uint256, crossShardMsg *types.CrossShardMsg) error {
 	return self.cshardStore.SaveCrossShardMsgByHash(msgHash, crossShardMsg)
 }

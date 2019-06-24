@@ -827,9 +827,15 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 }
 
 func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result store.ExecuteResult) error {
-	shardSysMsg := extractShardSysEvents(result.Notify)
-	this.saveCrossShardGovernanceData(block, shardSysMsg)
-	this.saveCrossShardConstactMetaData(block, shardSysMsg)
+	shardSysMsg, metaEvents := extractShardEvents(result.Notify)
+	err := this.saveCrossShardGovernanceData(block, shardSysMsg)
+	if err != nil {
+		return err
+	}
+	err = this.saveCrossShardConstactMetaData(metaEvents)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -837,7 +843,13 @@ func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, sha
 	return nil
 }
 
-func (this *LedgerStoreImp) saveCrossShardConstactMetaData(block *types.Block, shardEvts []*message.ShardSystemEventMsg) error {
+func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message.MetaDataEvent) error {
+	for _, metaEvent := range metaEvents {
+		err := this.eventStore.SaveMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -1266,6 +1278,10 @@ func (self *LedgerStoreImp) GetShardMsgsInBlock(blockHeight uint32, shardID comm
 
 func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.ShardID, error) {
 	return self.stateStore.GetRelatedShardIDsInBlock(blockHeight)
+}
+
+func (self *LedgerStoreImp) GetMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
+	return self.eventStore.GetMetaDataEvent(blockHeight, contractAddr)
 }
 
 //Close ledger store.

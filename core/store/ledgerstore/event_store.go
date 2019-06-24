@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/payload"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -207,4 +208,35 @@ func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) []byte {
 	key[0] = byte(scom.EVENT_NOTIFY)
 	copy(key[1:], data)
 	return key
+}
+
+func (this *EventStore) SaveMetaDataEvent(height uint32, metaData *payload.MetaDataCode) error {
+	key := this.getMetaEventNotifyByKey(height, metaData.Contract)
+	value := common.NewZeroCopySink(64)
+	metaData.Serialization(value)
+	this.store.BatchPut(key, value.Bytes())
+	return nil
+}
+
+func (this *EventStore) GetMetaDataEvent(height uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
+	key := this.getMetaEventNotifyByKey(height, contractAddr)
+	data, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	metaData := &payload.MetaDataCode{}
+	err = metaData.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return metaData, nil
+}
+
+func (this *EventStore) getMetaEventNotifyByKey(height uint32, contractAddr common.Address) []byte {
+	key := common.NewZeroCopySink(8)
+	key.WriteByte(byte(scom.CROSS_SHARD_CONTRACT_META))
+	key.WriteUint32(height)
+	key.WriteBytes(contractAddr[:])
+	return key.Bytes()
 }
