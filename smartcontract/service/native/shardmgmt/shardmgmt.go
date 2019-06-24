@@ -315,8 +315,10 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	}
 	// verify peer is exist in root chain consensus
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
-		if _, err := getRootCurrentViewPeerItem(native, params.PeerPubKey); err != nil {
+		if parentPeer, err := getRootCurrentViewPeerItem(native, params.PeerPubKey); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: failed, err: %s", err)
+		} else if parentPeer.Address != params.PeerOwner {
+			return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer owner unmatch")
 		}
 	}
 
