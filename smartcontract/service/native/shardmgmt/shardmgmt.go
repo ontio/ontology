@@ -377,6 +377,19 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: invalid peer owner: %s", err)
 	}
 
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
+		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
+		}
+		if rootChainPeerItem.InitPos < params.StakeAmount {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
+		}
+		if rootChainPeerItem.Address != params.PeerOwner {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer owner unmatch")
+		}
+	}
+
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: check version: %s", err)
@@ -402,16 +415,6 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	// charge join shard fee
 	if err := chargeShardMgmtFee(native, shardstates.TYPE_CREATE_SHARD_FEE, params.PeerOwner); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
-	}
-
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
-		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
-		}
-		if rootChainPeerItem.InitPos < params.StakeAmount {
-			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
-		}
 	}
 
 	if _, present := shard.Peers[strings.ToLower(params.PeerPubKey)]; present {
