@@ -393,13 +393,6 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 	}
 }
 
-// TODO: handle meta data changed event here
-func (self *ChainManager) handleMetaEvents(events []*message.MetaDataEvent) {
-	for _, event := range events {
-		log.Infof("handleMetaEvents: height %d, meta is %v", event.Height, event.MetaData)
-	}
-}
-
 func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload) {
 	if payload.ShardID != self.shardID {
 		return
@@ -436,7 +429,6 @@ func (self *ChainManager) localEventLoop() {
 		select {
 		case msg := <-self.localBlockMsgC:
 			self.handleShardSysEvents(msg.ShardSysEvents)
-			self.handleMetaEvents(msg.MetaDataEvents)
 			blk := msg.Block
 			self.onBlockPersistCompleted(blk)
 		case <-self.quitC:

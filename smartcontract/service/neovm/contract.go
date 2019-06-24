@@ -47,6 +47,14 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if dep == nil {
 		service.CacheDB.PutContract(contract)
 		dep = contract
+		service.Notifications = append(service.Notifications,
+			&event.NotifyEventInfo{
+				ContractAddress: contractAddress,
+				States: &message.ContractEvent{
+					Version:  common.CURR_HEADER_VERSION,
+					Height:   service.Height,
+					Contract: contractAddress,
+				}})
 	}
 	vm.PushData(engine, dep)
 	return nil
@@ -98,6 +106,14 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context := service.ContextRef.CurrentContext()
 	oldAddr := context.ContractAddress
 
+	service.Notifications = append(service.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: newAddr,
+			States: &message.ContractEvent{
+				Version:  common.CURR_HEADER_VERSION,
+				Height:   service.Height,
+				Contract: newAddr,
+			}})
 	service.CacheDB.PutContract(contract)
 	service.CacheDB.DeleteContract(oldAddr)
 

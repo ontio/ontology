@@ -122,6 +122,14 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	}
 
 	notify.Notify = append(notify.Notify, notifies...)
+	notify.Notify = append(notify.Notify,
+		&event.NotifyEventInfo{
+			ContractAddress: address,
+			States: &message.ContractEvent{
+				Version:  common.CURR_HEADER_VERSION,
+				Height:   header.Height,
+				Contract: address,
+			}})
 	notify.GasConsumed = gasConsumed
 	notify.State = event.CONTRACT_STATE_SUCCESS
 	return nil

@@ -758,7 +758,7 @@ func accumulateHash(hasher hash.Hash, iter scom.StoreIterator) error {
 }
 
 func (this *LedgerStoreImp) saveShardState(block *types.Block, result store.ExecuteResult) {
-	shardSysMsg, _ := extractShardEvents(result.Notify)
+	shardSysMsg, _, _ := extractShardEvents(result.Notify)
 	this.stateStore.AddBlockShardEvents(block.Header.Height, shardSysMsg)
 }
 
@@ -827,7 +827,8 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 }
 
 func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result store.ExecuteResult) error {
-	shardSysMsg, metaEvents := extractShardEvents(result.Notify)
+	// TODO: save contract event
+	shardSysMsg, metaEvents, _ := extractShardEvents(result.Notify)
 	err := this.saveCrossShardGovernanceData(block, shardSysMsg)
 	if err != nil {
 		return err
@@ -919,22 +920,23 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
 
-	shardSysMsg, metaEvents := extractShardEvents(result.Notify)
+	shardSysMsg, _, _ := extractShardEvents(result.Notify)
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
 			&message.SaveBlockCompleteMsg{
 				Block:          block,
 				ShardSysEvents: shardSysMsg,
-				MetaDataEvents: metaEvents,
 			})
 	}
 	return nil
 }
 
-func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent) {
+func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent,
+	[]*message.ContractEvent) {
 	var shardSysMsg []*message.ShardSystemEventMsg
 	metaEvents := make([]*message.MetaDataEvent, 0)
+	contractEvents := make([]*message.ContractEvent, 0)
 	for _, txEvents := range notify {
 		for _, n := range txEvents.Notify {
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
@@ -947,11 +949,13 @@ func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEv
 				}
 			} else if evt, ok := n.States.(*message.MetaDataEvent); ok {
 				metaEvents = append(metaEvents, evt)
+			} else if evt, ok := n.States.(*message.ContractEvent); ok {
+				contractEvents = append(contractEvents, evt)
 			}
 		}
 	}
 
-	return shardSysMsg, metaEvents
+	return shardSysMsg, metaEvents, contractEvents
 }
 
 func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
