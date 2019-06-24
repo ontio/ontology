@@ -758,7 +758,7 @@ func accumulateHash(hasher hash.Hash, iter scom.StoreIterator) error {
 }
 
 func (this *LedgerStoreImp) saveShardState(block *types.Block, result store.ExecuteResult) {
-	shardSysMsg := extractShardSysEvents(result.Notify)
+	shardSysMsg, _ := extractShardEvents(result.Notify)
 	this.stateStore.AddBlockShardEvents(block.Header.Height, shardSysMsg)
 }
 
@@ -888,20 +888,22 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
 
-	shardSysMsg := extractShardSysEvents(result.Notify)
+	shardSysMsg, metaEvents := extractShardEvents(result.Notify)
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
 			&message.SaveBlockCompleteMsg{
 				Block:          block,
 				ShardSysEvents: shardSysMsg,
+				MetaDataEvents: metaEvents,
 			})
 	}
 	return nil
 }
 
-func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystemEventMsg {
+func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent) {
 	var shardSysMsg []*message.ShardSystemEventMsg
+	metaEvents := make([]*message.MetaDataEvent, 0)
 	for _, txEvents := range notify {
 		for _, n := range txEvents.Notify {
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
@@ -912,11 +914,13 @@ func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystem
 						Event:       shardEvt,
 					})
 				}
+			} else if evt, ok := n.States.(*message.MetaDataEvent); ok {
+				metaEvents = append(metaEvents, evt)
 			}
 		}
 	}
 
-	return shardSysMsg
+	return shardSysMsg, metaEvents
 }
 
 func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,

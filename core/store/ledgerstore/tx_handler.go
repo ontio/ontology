@@ -21,6 +21,7 @@ package ledgerstore
 import (
 	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/events/message"
 	"math"
 	"sort"
 	"strconv"
@@ -200,6 +201,13 @@ func HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb
 	}
 	notify.GasConsumed = gasConsumed
 	notify.State = event.CONTRACT_STATE_SUCCESS
+	notify.Notify = append(notify.Notify, &event.NotifyEventInfo{
+		ContractAddress: newMeta.Contract,
+		States: &message.MetaDataEvent{
+			Version:  common.CURR_HEADER_VERSION,
+			Height:   header.Height,
+			MetaData: meta,
+		}})
 	cache.Commit()
 	return nil
 }

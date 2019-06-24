@@ -23,6 +23,8 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
@@ -70,6 +72,14 @@ func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 	newMeta.OntVersion = common.CURR_TX_VERSION
 	service.CacheDB.PutMetaData(newMeta)
+	service.Notifications = append(service.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contractAddress,
+			States: &message.MetaDataEvent{
+				Version:  common.CURR_HEADER_VERSION,
+				Height:   service.Height,
+				MetaData: newMeta,
+			}})
 	vm.PushData(engine, true)
 	return nil
 }
@@ -99,6 +109,14 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		meta.Contract = newAddr
 		service.CacheDB.PutMetaData(meta)
 		service.CacheDB.DeleteMetaData(oldAddr)
+		service.Notifications = append(service.Notifications,
+			&event.NotifyEventInfo{
+				ContractAddress: newAddr,
+				States: &message.MetaDataEvent{
+					Version:  common.CURR_HEADER_VERSION,
+					Height:   service.Height,
+					MetaData: meta,
+				}})
 	}
 
 	iter := service.CacheDB.NewIterator(oldAddr[:])
