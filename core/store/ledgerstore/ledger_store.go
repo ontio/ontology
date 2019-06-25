@@ -840,7 +840,10 @@ func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result
 		return err
 	}
 	this.saveCrossShardConstactMetaData(metaEvents)
-	this.saveCrossShardDeployContractEventData(deployContractEvent)
+	err = this.saveCrossShardDeployContractEventData(deployContractEvent)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -917,13 +920,14 @@ func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message
 		this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
 	}
 }
-func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.DeployContractEvent) {
+func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.DeployContractEvent) error {
 	for _, contractEvent := range contractEvents {
 		err := this.eventStore.SaveContractEvent(contractEvent)
 		if err != nil {
 			return err
 		}
 	}
+	return nil
 }
 
 func (this *LedgerStoreImp) tryGetSavingBlockLock() (hasLocked bool) {

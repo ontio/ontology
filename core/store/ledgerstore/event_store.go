@@ -242,7 +242,7 @@ func getContractMetaDataKey(height uint32, contractAddr common.Address) []byte {
 	return key.Bytes()
 }
 
-func (this *EventStore) SaveContractEvent(evt *message.ContractEvent) error {
+func (this *EventStore) SaveContractEvent(evt *message.DeployContractEvent) error {
 	oldEvt, err := this.GetContractEvent(evt.Contract.Address())
 	if err != nil && err != scom.ErrNotFound {
 		return fmt.Errorf("read old contract evt failed, err: %s", err)
@@ -256,16 +256,17 @@ func (this *EventStore) SaveContractEvent(evt *message.ContractEvent) error {
 	value := common.NewZeroCopySink(0)
 	evt.Serialization(value)
 	this.store.BatchPut(key, value.Bytes())
+	return nil
 }
 
-func (this *EventStore) GetContractEvent(addr common.Address) (*message.ContractEvent, error) {
+func (this *EventStore) GetContractEvent(addr common.Address) (*message.DeployContractEvent, error) {
 	key := getContractEventKey(addr)
 	data, err := this.store.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	source := common.NewZeroCopySource(data)
-	evt := &message.ContractEvent{}
+	evt := &message.DeployContractEvent{}
 	err = evt.Deserialization(source)
 	if err != nil {
 		return nil, err

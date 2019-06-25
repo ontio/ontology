@@ -51,7 +51,7 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		service.Notifications = append(service.Notifications,
 			&event.NotifyEventInfo{
 				ContractAddress: contractAddress,
-				States: &message.ContractEvent{
+				States: &message.DeployContractEvent{
 					Version:       common.CURR_HEADER_VERSION,
 					DeployHeight:  service.Height,
 					Contract:      contract,
@@ -111,7 +111,7 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 
 	newContractEvt := &event.NotifyEventInfo{
 		ContractAddress: newAddr,
-		States: &message.ContractEvent{
+		States: &message.DeployContractEvent{
 			Version:       common.CURR_HEADER_VERSION,
 			DeployHeight:  service.Height,
 			Contract:      contract,
@@ -120,7 +120,7 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		}}
 	oldContractEvt := &event.NotifyEventInfo{
 		ContractAddress: oldAddr,
-		States: &message.ContractEvent{
+		States: &message.DeployContractEvent{
 			Version:       common.CURR_HEADER_VERSION,
 			DeployHeight:  0,
 			Contract:      &payload.DeployCode{},
@@ -183,7 +183,7 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	service.CacheDB.DeleteContract(addr)
 	oldContractEvt := &event.NotifyEventInfo{
 		ContractAddress: addr,
-		States: &message.ContractEvent{
+		States: &message.DeployContractEvent{
 			Version:       common.CURR_HEADER_VERSION,
 			DeployHeight:  0,
 			Contract:      &payload.DeployCode{},
