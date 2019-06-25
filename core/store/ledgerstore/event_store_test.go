@@ -65,7 +65,7 @@ func TestSaveDeployCode(t *testing.T) {
 		NeedStorage: true,
 		Name:        "code",
 	}
-	contractEvent := &msg.ContractEvent{
+	contractEvent := &msg.ContractLifetimeEvent{
 		DeployHeight: 123,
 		Contract:     deployCode,
 	}

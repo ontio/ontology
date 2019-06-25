@@ -121,19 +121,19 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	}
 	if dep == nil {
 		cache.PutContract(deploy)
+		notify.Notify = append(notify.Notify,
+			&event.NotifyEventInfo{
+				ContractAddress: address,
+				States: &message.ContractLifetimeEvent{
+					Version:       common.CURR_HEADER_VERSION,
+					DeployHeight:  header.Height,
+					Contract:      deploy,
+					Destroyed:     false,
+					DestroyHeight: 0,
+				}})
 	}
 
 	notify.Notify = append(notify.Notify, notifies...)
-	notify.Notify = append(notify.Notify,
-		&event.NotifyEventInfo{
-			ContractAddress: address,
-			States: &message.ContractEvent{
-				Version:       common.CURR_HEADER_VERSION,
-				DeployHeight:  header.Height,
-				Contract:      deploy,
-				Destroyed:     false,
-				DestroyHeight: 0,
-			}})
 	notify.GasConsumed = gasConsumed
 	notify.State = event.CONTRACT_STATE_SUCCESS
 	return nil

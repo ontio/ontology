@@ -920,7 +920,7 @@ func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message
 		this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
 	}
 }
-func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.ContractEvent) error {
+func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.ContractLifetimeEvent) error {
 	for _, contractEvent := range contractEvents {
 		err := this.eventStore.SaveContractEvent(contractEvent)
 		if err != nil {
@@ -1009,10 +1009,10 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 }
 
 func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent,
-	[]*message.ContractEvent) {
+	[]*message.ContractLifetimeEvent) {
 	var shardSysMsg []*message.ShardSystemEventMsg
 	metaEvents := make([]*message.MetaDataEvent, 0)
-	contractEvents := make([]*message.ContractEvent, 0)
+	contractEvents := make([]*message.ContractLifetimeEvent, 0)
 	for _, txEvents := range notify {
 		for _, n := range txEvents.Notify {
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
@@ -1025,7 +1025,7 @@ func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEv
 				}
 			} else if evt, ok := n.States.(*message.MetaDataEvent); ok {
 				metaEvents = append(metaEvents, evt)
-			} else if evt, ok := n.States.(*message.ContractEvent); ok {
+			} else if evt, ok := n.States.(*message.ContractLifetimeEvent); ok {
 				contractEvents = append(contractEvents, evt)
 			}
 		}
@@ -1396,7 +1396,7 @@ func (this *LedgerStoreImp) Close() error {
 	return nil
 }
 
-func (this *LedgerStoreImp) GetContractEvent(addr common.Address) (*message.ContractEvent, error) {
+func (this *LedgerStoreImp) GetContractEvent(addr common.Address) (*message.ContractLifetimeEvent, error) {
 	return this.eventStore.GetContractEvent(addr)
 }
 
