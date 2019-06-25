@@ -37,7 +37,7 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
 	}
 	contractAddress := contract.Address()
-	parentContract, _ := service.Store.GetContractEvent(service.Height, contractAddress)
+	parentContract, _ := service.Store.GetParentContract(service.ContextRef.GetParentHeight(), contractAddress)
 	if parentContract != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract existed in parent shard!")
 	}
@@ -52,9 +52,11 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 			&event.NotifyEventInfo{
 				ContractAddress: contractAddress,
 				States: &message.ContractEvent{
-					Version:  common.CURR_HEADER_VERSION,
-					Height:   service.Height,
-					Contract: contract,
+					Version:       common.CURR_HEADER_VERSION,
+					DeployHeight:  service.Height,
+					Contract:      contract,
+					Destroyed:     false,
+					DestroyHeight: 0,
 				}})
 	}
 	vm.PushData(engine, dep)
@@ -107,14 +109,26 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context := service.ContextRef.CurrentContext()
 	oldAddr := context.ContractAddress
 
-	service.Notifications = append(service.Notifications,
-		&event.NotifyEventInfo{
-			ContractAddress: newAddr,
-			States: &message.ContractEvent{
-				Version:  common.CURR_HEADER_VERSION,
-				Height:   service.Height,
-				Contract: contract,
-			}})
+	newContractEvt := &event.NotifyEventInfo{
+		ContractAddress: newAddr,
+		States: &message.ContractEvent{
+			Version:       common.CURR_HEADER_VERSION,
+			DeployHeight:  service.Height,
+			Contract:      contract,
+			Destroyed:     false,
+			DestroyHeight: 0,
+		}}
+	oldContractEvt := &event.NotifyEventInfo{
+		ContractAddress: oldAddr,
+		States: &message.ContractEvent{
+			Version:       common.CURR_HEADER_VERSION,
+			DeployHeight:  0,
+			Contract:      &payload.DeployCode{},
+			Destroyed:     true,
+			DestroyHeight: service.Height,
+		}}
+	service.Notifications = append(service.Notifications, newContractEvt, oldContractEvt)
+
 	service.CacheDB.PutContract(contract)
 	service.CacheDB.DeleteContract(oldAddr)
 
@@ -167,6 +181,16 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 
 	service.CacheDB.DeleteContract(addr)
+	oldContractEvt := &event.NotifyEventInfo{
+		ContractAddress: addr,
+		States: &message.ContractEvent{
+			Version:       common.CURR_HEADER_VERSION,
+			DeployHeight:  0,
+			Contract:      &payload.DeployCode{},
+			Destroyed:     true,
+			DestroyHeight: service.Height,
+		}}
+	service.Notifications = append(service.Notifications, oldContractEvt)
 
 	iter := service.CacheDB.NewIterator(addr[:])
 	for has := iter.First(); has; has = iter.Next() {

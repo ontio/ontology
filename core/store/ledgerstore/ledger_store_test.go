@@ -60,7 +60,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 	testEventDir := "test/event"
-	testEventStore,err = NewEventStore(testEventDir)
+	testEventStore, err = NewEventStore(testEventDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "NewEventStore error %s\n", err)
 		return

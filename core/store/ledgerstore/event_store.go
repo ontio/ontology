@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
@@ -242,33 +243,41 @@ func getContractMetaDataKey(height uint32, contractAddr common.Address) []byte {
 	return key.Bytes()
 }
 
-func (this *EventStore) SaveContractEvent(height uint32, deployCode *payload.DeployCode) error {
-	key := getContractEventKey(height, deployCode.Address())
-	value := common.NewZeroCopySink(64)
-	deployCode.Serialization(value)
+func (this *EventStore) SaveContractEvent(evt *message.ContractEvent) error {
+	oldEvt, err := this.GetContractEvent(evt.Contract.Address())
+	if err != nil && err != scom.ErrNotFound {
+		return fmt.Errorf("read old contract evt failed, err: %s", err)
+	}
+	// update event because contract destroyed or migrated
+	if oldEvt != nil {
+		evt.DeployHeight = oldEvt.DeployHeight
+		evt.Contract = oldEvt.Contract
+	}
+	key := getContractEventKey(evt.Contract.Address())
+	value := common.NewZeroCopySink(0)
+	evt.Serialization(value)
 	this.store.BatchPut(key, value.Bytes())
 	return nil
 }
 
-func (this *EventStore) GetContractEvent(height uint32, addr common.Address) (*payload.DeployCode, error) {
-	key := getContractEventKey(height, addr)
+func (this *EventStore) GetContractEvent(addr common.Address) (*message.ContractEvent, error) {
+	key := getContractEventKey(addr)
 	data, err := this.store.Get(key)
 	if err != nil {
 		return nil, err
 	}
 	source := common.NewZeroCopySource(data)
-	deployCode := &payload.DeployCode{}
-	err = deployCode.Deserialization(source)
+	evt := &message.ContractEvent{}
+	err = evt.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}
-	return deployCode, nil
+	return evt, nil
 }
 
-func getContractEventKey(height uint32, contractAddr common.Address) []byte {
+func getContractEventKey(contractAddr common.Address) []byte {
 	key := common.NewZeroCopySink(10)
 	key.WriteByte(byte(scom.CROSS_SHARD_CONTRACT_EVENT))
-	key.WriteUint32(height)
 	key.WriteBytes(contractAddr[:])
 	return key.Bytes()
 }

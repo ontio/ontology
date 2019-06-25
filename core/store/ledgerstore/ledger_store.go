@@ -936,7 +936,7 @@ func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message
 }
 func (this *LedgerStoreImp) saveCrossShardContractEventData(contractEvents []*message.ContractEvent) error {
 	for _, contractEvent := range contractEvents {
-		err := this.eventStore.SaveContractEvent(contractEvent.Height, contractEvent.Contract)
+		err := this.eventStore.SaveContractEvent(contractEvent)
 		if err != nil {
 			return err
 		}
@@ -1364,12 +1364,19 @@ func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]com
 	return self.stateStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
-func (self *LedgerStoreImp) GetContractMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
+func (self *LedgerStoreImp) GetParentMetaData(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
 	return self.eventStore.GetContractMetaDataEvent(blockHeight, contractAddr)
 }
 
-func (self *LedgerStoreImp) GetContractEvent(blockHeight uint32, addr common.Address) (*payload.DeployCode, error) {
-	return self.eventStore.GetContractEvent(blockHeight, addr)
+func (self *LedgerStoreImp) GetParentContract(blockHeight uint32, addr common.Address) (*payload.DeployCode, error) {
+	evt, err := self.eventStore.GetContractEvent(addr)
+	if err != nil {
+		return nil, err
+	}
+	if evt.Destroyed && evt.DestroyHeight < blockHeight {
+		return nil, fmt.Errorf("contract has already destoryed")
+	}
+	return evt.Contract, nil
 }
 
 func (self *LedgerStoreImp) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {

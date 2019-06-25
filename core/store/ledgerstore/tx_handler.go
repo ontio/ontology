@@ -54,7 +54,7 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 	address := deploy.Address()
-	parentContract, _ := store.GetContractEvent(header.ParentHeight, address)
+	parentContract, _ := store.GetParentContract(header.ParentHeight, address)
 	if parentContract != nil {
 		return fmt.Errorf("[HandleDeployTransaction] contract existed in parent shard")
 	}
@@ -128,9 +128,11 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 		&event.NotifyEventInfo{
 			ContractAddress: address,
 			States: &message.ContractEvent{
-				Version:  common.CURR_HEADER_VERSION,
-				Height:   header.Height,
-				Contract: deploy,
+				Version:       common.CURR_HEADER_VERSION,
+				DeployHeight:  header.Height,
+				Contract:      deploy,
+				Destroyed:     false,
+				DestroyHeight: 0,
 			}})
 	notify.GasConsumed = gasConsumed
 	notify.State = event.CONTRACT_STATE_SUCCESS

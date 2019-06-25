@@ -70,11 +70,11 @@ func TestSaveContractEvent(t *testing.T) {
 		Name:        "code",
 	}
 	contractEvent := &msg.ContractEvent{
-		Height:   123,
-		Contract: deployCode,
+		DeployHeight: 123,
+		Contract:     deployCode,
 	}
 	testEventStore.NewBatch()
-	err := testEventStore.SaveContractEvent(contractEvent.Height, contractEvent.Contract)
+	err := testEventStore.SaveContractEvent(contractEvent.DeployHeight, contractEvent.Contract)
 	if err != nil {
 		t.Errorf("SaveContractEvent err:%s", err)
 		return
@@ -84,7 +84,7 @@ func TestSaveContractEvent(t *testing.T) {
 		t.Errorf("CommitTo err :%s", err)
 		return
 	}
-	msg, err := testEventStore.GetContractEvent(contractEvent.Height, deployCode.Address())
+	msg, err := testEventStore.GetContractEvent(contractEvent.DeployHeight, deployCode.Address())
 	if err != nil {
 		t.Errorf("GetMeteEvent err:%s", err)
 	}

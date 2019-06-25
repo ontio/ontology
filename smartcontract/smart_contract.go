@@ -125,6 +125,10 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	return true
 }
 
+func (this *SmartContract) GetParentHeight() uint32 {
+	return this.Config.ParentHeight
+}
+
 func (this *SmartContract) checkContexts() bool {
 	if len(this.Contexts) > MAX_EXECUTE_ENGINE {
 		return false
@@ -219,7 +223,7 @@ func (this *SmartContract) GetMetaData(contract common.Address) (*payload.MetaDa
 		return nil, true, fmt.Errorf("GetMetaData %s", err)
 	}
 	if meta == nil {
-		meta, err = this.Store.GetContractMetaDataEvent(this.Config.ParentHeight, contract)
+		meta, err = this.Store.GetParentMetaData(this.Config.ParentHeight, contract)
 		if err != nil {
 			return nil, false, fmt.Errorf("GetMetaData from parent, err: %s", err)
 		}

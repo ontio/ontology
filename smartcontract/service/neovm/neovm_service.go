@@ -335,7 +335,7 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, er
 	}
 	log.Debugf("invoke contract address: %s", address.ToHexString())
 	if dep == nil {
-		dep, err = this.Store.GetContractEvent(this.Height, address)
+		dep, err = this.Store.GetParentContract(this.ContextRef.GetParentHeight(), address)
 		if err != nil {
 			return nil, false, errors.NewErr("[getContract] Get contract context from parent shard error!")
 		}

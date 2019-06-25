@@ -386,11 +386,11 @@ func (self *Ledger) GetRelatedShardIDsInBlock(blockHeight uint32) ([]common.Shar
 }
 
 func (self *Ledger) GetContractMetaDataEvent(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
-	return self.ldgStore.GetContractMetaDataEvent(blockHeight, contractAddr)
+	return self.ldgStore.GetParentMetaData(blockHeight, contractAddr)
 }
 
-func (self *Ledger) GetContractEvent(blockHeight uint32, addr common.Address) (*payload.DeployCode, error) {
-	return self.ldgStore.GetContractEvent(blockHeight, addr)
+func (self *Ledger) GetParentContract(blockHeight uint32, addr common.Address) (*payload.DeployCode, error) {
+	return self.ldgStore.GetParentContract(blockHeight, addr)
 }
 
 func (self *Ledger) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {

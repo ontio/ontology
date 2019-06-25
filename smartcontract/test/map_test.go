@@ -69,10 +69,10 @@ func TestMap(t *testing.T) {
 		//store := statestore.NewMemDatabase()
 		//testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
 		config := &smartcontract.Config{
-			Time:   10,
-			Height: 10,
-			ParentHeight:9,
-			Tx:     &types.Transaction{},
+			Time:         10,
+			Height:       10,
+			ParentHeight: 9,
+			Tx:           &types.Transaction{},
 		}
 		sc := smartcontract.SmartContract{
 			Config:  config,
