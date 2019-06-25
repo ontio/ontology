@@ -148,13 +148,7 @@ func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
 	if shardState.State != shardstates.SHARD_STATE_ACTIVE {
 		return nil
 	}
-	if _, err := self.initShardInfo(self.shardID, shardState); err != nil {
-		return fmt.Errorf("init shard %d failed: %s", self.shardID, err)
-	}
-	shardInfo := self.shards[self.shardID]
-	if shardInfo == nil {
-		return nil
-	}
+	shardInfo := self.initShardInfo(shardState)
 	cfg, err := self.buildShardConfig(self.shardID, shardState)
 	if err != nil {
 		return fmt.Errorf("init shard %d, failed to build config: %s", self.shardID, err)

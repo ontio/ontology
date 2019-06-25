@@ -172,12 +172,12 @@ func (blk *Block) Deserialize(data []byte) error {
 			}
 			crossMsg.CrossMsgs = append(crossMsg.CrossMsgs, shardMsg)
 		}
+		blk.CrossMsg = crossMsg
 	}
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
 	blk.Info = info
 	blk.PrevBlockMerkleRoot = merkleRoot
-	blk.CrossMsg = crossMsg
 	return nil
 }
 

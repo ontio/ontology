@@ -454,17 +454,3 @@ func CreateTxState(tx xshard_types.ShardTxID) *TxState {
 	}
 	return state
 }
-
-func GetTxContracts(tx common.Uint256) ([]common.Address, error) {
-	// TODO
-	return []common.Address{}, nil
-}
-
-func LockContract(contract common.Address) error {
-	// TODO: lock contract if it does not support concurrency (shard-sysmsg contract support concurrency)
-	return nil
-}
-
-func UnlockContract(contract common.Address) error {
-	return nil
-}

@@ -47,11 +47,11 @@ func (self *ChainManager) onShardCreated(evt *shardstates.CreateShardEvent) erro
 }
 
 func (self *ChainManager) onShardConfigured(evt *shardstates.ConfigShardEvent) error {
-	if evt.ImplSourceTargetShardID.ShardID.ParentID() == self.shardID {
+	if evt.ShardID.ParentID() == self.shardID {
 		return nil
 	}
-	self.AddShardEventConfig(evt.Height, evt.ImplSourceTargetShardID.ShardID, evt.Config, evt.Peers)
-	return self.updateShardConfig(evt.ImplSourceTargetShardID.ShardID, evt.Config)
+	self.AddShardEventConfig(evt.Height, evt.ShardID, evt.Config, evt.Peers)
+	return self.updateShardConfig(evt.ShardID, evt.Config)
 }
 
 func (self *ChainManager) onShardPeerJoint(evt *shardstates.PeerJoinShardEvent) error {
@@ -117,15 +117,7 @@ func (self *ChainManager) onShardActivated(evt *shardstates.ShardActiveEvent) er
 
 func (self ChainManager) startChildShard(shardID common.ShardID, shardState *shardstates.ShardState) error {
 	// TODO: start consensus / syncer / http / txpool
-
-	if _, err := self.initShardInfo(shardID, shardState); err != nil {
-		return fmt.Errorf("startChildShard init shard %d info: %s", shardID, err)
-	}
-	shardInfo := self.shards[shardID]
-	if shardInfo == nil {
-		return fmt.Errorf("startChildShard shard %d, nil shard info", shardID)
-	}
-
+	shardInfo := self.initShardInfo(shardState)
 	if cfg, err := self.buildShardConfig(shardID, shardState); err != nil {
 		return fmt.Errorf("startChildShard shard %d, build shard %d config: %s", self.shardID, shardID, err)
 	} else {
