@@ -444,7 +444,10 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		}
 		shard.Config.VbftCfg.Peers = append(shard.Config.VbftCfg.Peers, vbftPeerInfo)
 	}
-	shard.State = shardstates.SHARD_PEER_JOIND
+	// peer would join after shard activate
+	if shard.State != shardstates.SHARD_STATE_ACTIVE {
+		shard.State = shardstates.SHARD_PEER_JOIND
+	}
 	setShardState(native, contract, shard)
 
 	// call shard stake contract

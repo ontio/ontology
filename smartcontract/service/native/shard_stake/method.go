@@ -131,14 +131,16 @@ func calPeerFee(viewInfo *ViewInfo, wholeFee uint64) []*PeerAmount {
 	return feeInfo
 }
 
-func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey string, peerOwner common.Address,
-	amount uint64) error {
+func peerInitStake(native *native.NativeService, param *PeerStakeParam) error {
+	id := param.ShardId
+	peerPubKey := param.Value.PeerPubKey
+	peerOwner := param.PeerOwner
 	currentView, err := GetShardCurrentViewIndex(native, id)
 	if err != nil {
 		return fmt.Errorf("peerInitStake: get current view peer stake info failed, err: %s", err)
 	}
-	// if peer join after view 0, the stake should effective from next round
-	if currentView > 0 {
+	// if peer join after shard activate, the stake should effective from next round
+	if param.IsShardActivate {
 		currentView++
 	}
 	nextView := currentView + 1
@@ -164,7 +166,7 @@ func peerInitStake(native *native.NativeService, id common.ShardID, peerPubKey s
 	peerViewInfo = &PeerViewInfo{
 		PeerPubKey: peerPubKey,
 		Owner:      peerOwner,
-		InitPos:    amount,
+		InitPos:    param.Value.Amount,
 		CanStake:   true, // default can stake asset
 	}
 	initViewInfo.Peers[peerPubKey] = peerViewInfo
