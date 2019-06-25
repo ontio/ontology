@@ -155,6 +155,9 @@ func (this *CrossShardMsgInfo) Deserialization(source *common.ZeroCopySource) er
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
+	if this.ShardMsgInfo == nil {
+		this.ShardMsgInfo = new(CrossShardMsgHash)
+	}
 	err := this.ShardMsgInfo.Deserialization(source)
 	if err != nil {
 		return err
@@ -168,16 +171,8 @@ type CrossShardTxInfos struct {
 }
 
 func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) error {
-	if this.ShardMsg != nil {
-		this.ShardMsg.Serialization(sink)
-	} else {
-		return io.ErrUnexpectedEOF
-	}
-	if this.Tx != nil {
-		this.Tx.Serialization(sink)
-	} else {
-		return io.ErrUnexpectedEOF
-	}
+	this.ShardMsg.Serialization(sink)
+	this.Tx.Serialization(sink)
 	return nil
 }
 
@@ -190,11 +185,12 @@ func (this *CrossShardTxInfos) Deserialization(source *common.ZeroCopySource) er
 	if err != nil {
 		return err
 	}
-	tx := &Transaction{}
-	err = tx.Deserialization(source)
+	if this.Tx == nil {
+		this.Tx = new(Transaction)
+	}
+	err = this.Tx.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	this.Tx = tx
 	return nil
 }

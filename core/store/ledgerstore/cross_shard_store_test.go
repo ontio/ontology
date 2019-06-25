@@ -26,11 +26,11 @@ import (
 )
 
 func TestSaveCrossShardMsgByHash(t *testing.T) {
-	sigData := make(map[uint32][]byte, 0)
-	sigData[1] = []byte("123")
-	sigData[2] = []byte("234")
+	sigData := make(map[uint32][]byte)
+	sigData[0] = []byte("123456")
+	sigData[1] = []byte("345678")
 	hashes := make([]common.Uint256, 0)
-	hashes = append(hashes, common.Uint256{1, 2, 3, 4})
+	hashes = append(hashes, common.Uint256{1, 2, 3})
 	crossShardMsgHash := &types.CrossShardMsgHash{
 		ShardMsgHashs: hashes,
 		SigData:       sigData,
