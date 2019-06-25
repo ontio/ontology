@@ -124,7 +124,6 @@ func TestBlockEndorseMsg(t *testing.T) {
 func constructCommitMsg(acc *account.Account, proposal *blockProposalMsg, blkHash common.Uint256) (*blockCommitMsg, error) {
 	sig, _ := signature.Sign(acc, blkHash[:])
 	crossMsgSig := make(map[uint32][]byte)
-	crossShardMsgHashs := make([]*types.CrossShardMsgHash, 0)
 	crossMsgSig[123] = []byte("123")
 	msg := &blockCommitMsg{
 		Committer:        5,
