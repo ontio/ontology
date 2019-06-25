@@ -44,7 +44,6 @@ var DefLedgerMgr *LedgerMgr
 type Ledger struct {
 	ShardID          common.ShardID
 	ParentLedger     *Ledger
-	ParentBlockCache *ledgerstore.BlockCacheStore
 	ldgStore         store.LedgerStore
 	cshardStore      store.CrossShardStore
 	ChildLedger      *Ledger
@@ -118,16 +117,10 @@ func NewShardLedger(shardID common.ShardID, dataDir string, mainLedger *Ledger) 
 	if err != nil {
 		return nil, fmt.Errorf("NewCrossShardStore %d error %s", shardID, err)
 	}
-	// init parent block cache
-	parentBlockCache, err := ledgerstore.ResetBlockCacheStore(shardID.ParentID(), dataDir)
-	if err != nil {
-		return nil, fmt.Errorf("reset shard %d parent blockcache failed: %s", shardID, err)
-	}
 
 	lgr := &Ledger{
 		ShardID:          shardID,
 		ParentLedger:     parentLedger,
-		ParentBlockCache: parentBlockCache,
 		ldgStore:         ldgStore,
 		cshardStore:      cshardStore,
 	}
@@ -176,19 +169,14 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 }
 
 func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	if len(DefLedgerMgr.Ledgers) > 1 && self.ShardID.IsRootShard() {
-		return self.ChildLedger.ParentBlockCache.PutBlock(block, stateMerkleRoot)
+	if block.Header.ShardID != self.ShardID.ToUint64() {
+		return fmt.Errorf("add block from shard %d on ledger %d", block.Header.ShardID, self.ShardID.ToUint64())
 	}
 
 	if self.ParentLedger != nil {
 		currentParentHeight := self.ParentLedger.GetCurrentBlockHeight()
 		if block.Header.ParentHeight > currentParentHeight {
-			// check if parent block available
-			for h := currentParentHeight + 1; h <= block.Header.ParentHeight; h++ {
-				if _, _, err := self.ParentBlockCache.GetBlock(h); err != nil {
-					return fmt.Errorf("shard %d get parent block %d failed: %s", self.ShardID, h, err)
-				}
-			}
+			return fmt.Errorf("failed to add block(%d, %d) with parent height %d", block.Header.Height, block.Header.ShardID, currentParentHeight)
 		}
 	}
 
@@ -208,56 +196,32 @@ func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256)
 }
 
 func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
-	if !self.ShardID.IsRootShard() {
+	if b.Header.ShardID != self.ShardID.ToUint64() {
+		return store.ExecuteResult{}, fmt.Errorf("execute block from shard %d on ledger %d", b.Header.ShardID, self.ShardID.ToUint64())
+	}
+
+	if self.ParentLedger != nil {
 		currentParentHeight := self.ParentLedger.GetCurrentBlockHeight()
-		ph := b.Header.ParentHeight
-		if ph > currentParentHeight {
-			if ph != currentParentHeight+1 {
-				return store.ExecuteResult{}, fmt.Errorf("ledger %d execute parent block %d, last parent height %d", self.ShardID, ph, currentParentHeight)
-			}
-			parentBlock, merkleRoot, err := self.ParentBlockCache.GetBlock(ph)
-			if err != nil {
-				log.Errorf("Ledger %d ExecuteBlock GetBlock shard height:%d,ParentHeight:%d error:%s", self.ShardID, b.Header.Height, ph, err)
-				return store.ExecuteResult{}, err
-			}
-			result, err := self.ParentLedger.ldgStore.ExecuteBlock(parentBlock)
-			if err != nil {
-				log.Errorf("ledger %d execute parent block %d, %d", self.ShardID, ph, parentBlock.Header.Height)
-				return result, err
-			}
-			if merkleRoot != result.MerkleRoot {
-				log.Errorf("ExecuteBlock %d check parentblock cache MerkleRoot blocknum:%d,MerkleRoot:%s,execute MerkleRoot:%s", self.ShardID, ph, merkleRoot.ToHexString(), result.MerkleRoot.ToHexString())
-				return store.ExecuteResult{}, fmt.Errorf("merkleroot not match")
-			}
-			self.ParentBlockCache.SaveBlockExecuteResult(ph, result)
+		if b.Header.ParentHeight > currentParentHeight {
+			return store.ExecuteResult{}, fmt.Errorf("failed to execute block(%d, %d) with parent height %d", b.Header.Height, b.Header.ShardID, currentParentHeight)
 		}
 	}
+
 	return self.ldgStore.ExecuteBlock(b)
 }
 
 func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
-	if !self.ShardID.IsRootShard() {
+	if b.Header.ShardID != self.ShardID.ToUint64() {
+		return fmt.Errorf("submit block from shard %d on ledger %d", b.Header.ShardID, self.ShardID.ToUint64())
+	}
+
+	if self.ParentLedger != nil {
 		currentParentHeight := self.ParentLedger.GetCurrentBlockHeight()
-		ph := b.Header.ParentHeight
-		if ph > currentParentHeight {
-			if ph != currentParentHeight+1 {
-				return fmt.Errorf("ledger %d submit parent block %d, last parent height %d", self.ShardID, ph, currentParentHeight)
-			}
-			parentBlock, _, err := self.ParentBlockCache.GetBlock(ph)
-			if err != nil {
-				log.Errorf("Ledger %d SubmitBlock GetBlock sharad height:%d,ParentHeight:%d error:%s", self.ShardID, b.Header.Height, b.Header.ParentHeight, err)
-				return err
-			}
-			result, err := self.ParentBlockCache.GetBlockExecuteResult(ph)
-			if err != nil {
-				return fmt.Errorf("ledger %d SubmitBlock: get parent %d exec result failed, err: %s", self.ShardID, ph, err)
-			}
-			if err := self.ParentLedger.ldgStore.SubmitBlock(parentBlock, result); err != nil {
-				return fmt.Errorf("ledger %d SubmitBlock: submit parent block %d failed, err: %s", self.ShardID, ph, err)
-			}
-			self.ParentBlockCache.DelBlock(ph)
+		if b.Header.ParentHeight > currentParentHeight {
+			return fmt.Errorf("failed to submit block(%d, %d) with parent height %d", b.Header.Height, b.Header.ShardID, currentParentHeight)
 		}
 	}
+
 	err := self.ldgStore.SubmitBlock(b, exec)
 	if err != nil {
 		log.Errorf("Ledger %d SubmitBlock BlockHeight:%d BlockHash:%x error:%s", self.ShardID, b.Header.Height, b.Hash(), err)
@@ -431,9 +395,6 @@ func (self *Ledger) GetShardMsgHash(shardID common.ShardID) (common.Uint256, err
 }
 
 func (self *Ledger) Close() error {
-	if self.ParentBlockCache != nil {
-		self.ParentBlockCache.Close()
-	}
 	err := self.ldgStore.Close()
 	if err != nil {
 		return err
@@ -446,14 +407,4 @@ func (self *Ledger) GetParentHeight() uint32 {
 		return self.ParentLedger.GetCurrentBlockHeight()
 	}
 	return 0
-}
-func (self *Ledger) HasParentBlockInCache(height uint32) bool {
-	if self.ParentBlockCache != nil {
-		_, _, err := self.ParentBlockCache.GetBlock(height)
-		if err != nil {
-			return false
-		}
-		return true
-	}
-	return false
 }

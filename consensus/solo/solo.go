@@ -316,7 +316,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 
 	// get ParentHeight from chain-mgr
 	parentHeight := self.ledger.GetParentHeight()
-	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+	if self.ledger.GetParentHeight() > parentHeight {
 		parentHeight = parentHeight + 1
 	}
 	// get Cross-Shard Txs from chain-mgr

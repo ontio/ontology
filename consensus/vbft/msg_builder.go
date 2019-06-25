@@ -195,7 +195,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		return nil, err
 	}
 	parentHeight := lastBlock.Block.Header.ParentHeight
-	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+	if self.ledger.GetParentHeight() > parentHeight {
 		parentHeight = parentHeight + 1
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)

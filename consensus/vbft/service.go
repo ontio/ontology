@@ -1160,7 +1160,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	}
 
 	parentHeight := blk.Block.Header.ParentHeight
-	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+	if self.ledger.GetParentHeight() > parentHeight {
 		parentHeight = parentHeight + 1
 	}
 	if parentHeight < msg.Block.Block.Header.ParentHeight {
