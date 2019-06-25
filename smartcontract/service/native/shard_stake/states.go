@@ -19,6 +19,7 @@
 package shard_stake
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -32,6 +33,53 @@ type View uint32 // shard consensus epoch index
 type XShardFeeInfo struct {
 	Debt   map[common.ShardID]map[View]uint64
 	Income map[common.ShardID]map[View]uint64
+}
+
+type JsonXShardFeeInfo struct {
+	Debt   map[uint64]map[View]uint64
+	Income map[uint64]map[View]uint64
+}
+
+func (self XShardFeeInfo) MarshalJSON() ([]byte, error) {
+	jsonFeeInfo := &JsonXShardFeeInfo{
+		Debt:   make(map[uint64]map[View]uint64),
+		Income: make(map[uint64]map[View]uint64),
+	}
+	for shard, info := range self.Debt {
+		jsonFeeInfo.Debt[shard.ToUint64()] = info
+	}
+	for shard, info := range self.Income {
+		jsonFeeInfo.Income[shard.ToUint64()] = info
+	}
+	return json.Marshal(jsonFeeInfo)
+}
+
+func (self *XShardFeeInfo) UnmarshalJSON(input []byte) error {
+	jsonFeeInfo := &JsonXShardFeeInfo{
+		Debt:   make(map[uint64]map[View]uint64),
+		Income: make(map[uint64]map[View]uint64),
+	}
+	err := json.Unmarshal(input, jsonFeeInfo)
+	if err != nil {
+		return err
+	}
+	self.Debt = make(map[common.ShardID]map[View]uint64)
+	self.Income = make(map[common.ShardID]map[View]uint64)
+	for shardId, info := range jsonFeeInfo.Debt {
+		shard, err := common.NewShardID(shardId)
+		if err != nil {
+			return fmt.Errorf("generate shardId failed, err: %s", err)
+		}
+		self.Debt[shard] = info
+	}
+	for shardId, info := range jsonFeeInfo.Income {
+		shard, err := common.NewShardID(shardId)
+		if err != nil {
+			return fmt.Errorf("generate shardId failed, err: %s", err)
+		}
+		self.Income[shard] = info
+	}
+	return nil
 }
 
 func (this *XShardFeeInfo) Serialization(sink *common.ZeroCopySink) {

@@ -891,7 +891,10 @@ func GetShardCommitDPosInfo(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: failed, err: %s", err)
 	}
-	data := fmt.Sprintf("%v", info)
+	data, err := json.Marshal(info)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: marshal info failed, err: %s", err)
+	}
 	return []byte(data), nil
 }
 
