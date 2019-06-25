@@ -232,6 +232,7 @@ func (this *ShardState) UpdateDposInfo(native *native.NativeService) error {
 		}
 	})
 	consensusCount := uint32(0)
+	this.Config.VbftCfg.Peers = make([]*config.VBFTPeerStakeInfo, 0)
 	for _, peer := range peerStakeInfo {
 		peerState, ok := this.Peers[peer.PeerPubKey]
 		if !ok {
@@ -240,6 +241,12 @@ func (this *ShardState) UpdateDposInfo(native *native.NativeService) error {
 		if peerState.NodeType == CONSENSUS_NODE || peerState.NodeType == CONDIDATE_NODE {
 			if consensusCount < this.Config.VbftCfg.K {
 				peerState.NodeType = CONSENSUS_NODE
+				this.Config.VbftCfg.Peers = append(this.Config.VbftCfg.Peers, &config.VBFTPeerStakeInfo{
+					Index:      peerState.Index,
+					PeerPubkey: peerState.PeerPubKey,
+					Address:    peerState.PeerOwner.ToBase58(),
+					InitPos:    peer.InitPos,
+				})
 				consensusCount++
 			} else {
 				peerState.NodeType = CONDIDATE_NODE

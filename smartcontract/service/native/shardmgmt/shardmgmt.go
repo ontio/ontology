@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"sort"
 	"strings"
 
 	"github.com/ontio/ontology/common"
@@ -377,19 +376,6 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: invalid peer owner: %s", err)
 	}
 
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
-		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
-		}
-		if rootChainPeerItem.InitPos < params.StakeAmount {
-			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
-		}
-		if rootChainPeerItem.Address != params.PeerOwner {
-			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer owner unmatch")
-		}
-	}
-
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	if ok, err := checkVersion(native, contract); !ok || err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: check version: %s", err)
@@ -401,6 +387,21 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 	}
 	if shard.ShardID.ParentID() != native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: not on parent shard")
+	}
+
+	peerIndex := uint32(len(shard.Peers) + 1)
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
+		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
+		}
+		if rootChainPeerItem.InitPos < params.StakeAmount {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
+		}
+		if rootChainPeerItem.Address != params.PeerOwner {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer owner unmatch")
+		}
+		peerIndex = rootChainPeerItem.Index
 	}
 
 	state, err := getShardPeerState(native, contract, params.ShardID, params.PeerPubKey)
@@ -425,24 +426,13 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		if shard.Peers == nil {
 			shard.Peers = make(map[string]*shardstates.PeerShardStakeInfo)
 		}
-		index := uint32(len(shard.Peers) + 1)
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
-			Index:      index,
+			Index:      peerIndex,
 			IpAddress:  params.IpAddress,
 			PeerOwner:  params.PeerOwner,
 			PeerPubKey: params.PeerPubKey,
 		}
 		shard.Peers[strings.ToLower(params.PeerPubKey)] = peerStakeInfo
-		if shard.Config.VbftCfg.Peers == nil {
-			shard.Config.VbftCfg.Peers = make([]*config.VBFTPeerStakeInfo, 0)
-		}
-		vbftPeerInfo := &config.VBFTPeerStakeInfo{
-			Index:      index,
-			PeerPubkey: strings.ToLower(params.PeerPubKey),
-			Address:    params.PeerOwner.ToBase58(),
-			InitPos:    params.StakeAmount,
-		}
-		shard.Config.VbftCfg.Peers = append(shard.Config.VbftCfg.Peers, vbftPeerInfo)
 	}
 	// peer would join after shard activate
 	isShardActivate := shard.State == shardstates.SHARD_STATE_ACTIVE
@@ -535,24 +525,9 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	if shard.ShardID.ParentID() != native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: not on parent shard")
 	}
-	peers := shard.Config.VbftCfg.Peers
-	sort.SliceStable(peers, func(i, j int) bool {
-		return peers[i].InitPos > peers[j].InitPos
-	})
-	for index, peer := range peers {
-		shardPeer, ok := shard.Peers[peer.PeerPubkey]
-		if !ok {
-			return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: unmatch peer pub key %s", peer.PeerPubkey)
-		}
-		shardPeer.Index = uint32(index) + 1
-		if uint32(index) < shard.Config.VbftCfg.K {
-			shardPeer.NodeType = shardstates.CONSENSUS_NODE
-		} else {
-			shardPeer.NodeType = shardstates.CONDIDATE_NODE
-		}
-		shard.Peers[peer.PeerPubkey] = shardPeer
+	if err = shard.UpdateDposInfo(native); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: failed, err: %s", err)
 	}
-	shard.Config.VbftCfg.Peers = peers
 	shard.GenesisParentHeight = native.Height
 	shard.State = shardstates.SHARD_STATE_ACTIVE
 	setShardState(native, contract, shard)
