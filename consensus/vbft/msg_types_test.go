@@ -123,26 +123,17 @@ func TestBlockEndorseMsg(t *testing.T) {
 
 func constructCommitMsg(acc *account.Account, proposal *blockProposalMsg, blkHash common.Uint256) (*blockCommitMsg, error) {
 	sig, _ := signature.Sign(acc, blkHash[:])
-	crossMsgSig := make(map[uint32]*CrossShardMsgs)
+	crossMsgSig := make(map[uint32][]byte)
 	crossShardMsgHashs := make([]*types.CrossShardMsgHash, 0)
-	crossShardMsgHash := &types.CrossShardMsgHash{
-		ShardID: common.NewShardIDUnchecked(0),
-		MsgHash: common.Uint256{1, 2, 3},
-	}
-	crossShardMsgHashs = append(crossShardMsgHashs, crossShardMsgHash)
-	crossShardMsgs := &CrossShardMsgs{
-		Height:    123,
-		CrossMsgs: crossShardMsgHashs,
-	}
-	crossMsgSig[123] = crossShardMsgs
+	crossMsgSig[123] = []byte("123")
 	msg := &blockCommitMsg{
-		Committer:       5,
-		BlockProposer:   proposal.Block.getProposer(),
-		BlockNum:        proposal.Block.getBlockNum(),
-		CommitBlockHash: blkHash,
-		CommitForEmpty:  true,
-		CommitterSig:    sig,
-		CrossMsgSig:     crossMsgSig,
+		Committer:        5,
+		BlockProposer:    proposal.Block.getProposer(),
+		BlockNum:         proposal.Block.getBlockNum(),
+		CommitBlockHash:  blkHash,
+		CommitForEmpty:   true,
+		CommitterSig:     sig,
+		CrossShardMsgSig: crossMsgSig,
 	}
 
 	return msg, nil

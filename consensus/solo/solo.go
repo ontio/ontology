@@ -197,9 +197,11 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
 	var hashes []common.Uint256
-	for _, shardMsgs := range shardMsgMap {
+	shardHashMap := make(map[common.Uint256]common.ShardID)
+	for shardID, shardMsgs := range shardMsgMap {
 		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
 		hashes = append(hashes, msgHash)
+		shardHashMap[msgHash] = shardID
 	}
 	msgRoot := common.ComputeMerkleRoot(hashes)
 	sig, err := signature.Sign(self.Account, msgRoot[:])
@@ -207,11 +209,7 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 		log.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
 		return
 	}
-	shardHashMap := make(map[common.Uint256]common.ShardID)
-	for shardID, shardMsgs := range shardMsgMap {
-		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
-		shardHashMap[msgHash] = shardID
-	}
+
 	sigData := make(map[uint32][]byte)
 	sigData[0] = sig
 	crossShardMsgHash := &types.CrossShardMsgHash{

@@ -86,9 +86,8 @@ func (blk *Block) Serialize() ([]byte, error) {
 	}
 	payload.WriteHash(blk.PrevBlockMerkleRoot)
 	if blk.CrossMsgHash != nil {
-		sink3 := common.NewZeroCopySink(0)
-		blk.CrossMsgHash.Serialization(sink3)
-		payload.WriteVarBytes(sink3.Bytes())
+		buf := common.SerializeToBytes(blk.CrossMsgHash)
+		payload.WriteVarBytes(buf)
 	}
 	return payload.Bytes(), nil
 }

@@ -43,12 +43,8 @@ func TestSaveContractMetaData(t *testing.T) {
 		MetaData: metaDataCode,
 	}
 	testEventStore.NewBatch()
-	err := testEventStore.SaveContractMetaDataEvent(metaDataEvent.Height, metaDataEvent.MetaData)
-	if err != nil {
-		t.Errorf("SaveMetaEvent err:%s", err)
-		return
-	}
-	err = testEventStore.CommitTo()
+	testEventStore.SaveContractMetaDataEvent(metaDataEvent.Height, metaDataEvent.MetaData)
+	err := testEventStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo err :%s", err)
 		return
@@ -62,7 +58,7 @@ func TestSaveContractMetaData(t *testing.T) {
 	}
 }
 
-func TestSaveContractEvent(t *testing.T) {
+func TestSaveDeployCode(t *testing.T) {
 	var addr common.Address
 	rand.Read(addr[:])
 	deployCode := &payload.DeployCode{

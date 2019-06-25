@@ -830,7 +830,7 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 }
 
 func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result store.ExecuteResult) error {
-	shardSysMsg, metaEvents, contractEvent := extractShardEvents(result.Notify)
+	shardSysMsg, metaEvents, deployContractEvent := extractShardEvents(result.Notify)
 	err := this.saveCrossShardGovernanceData(block, shardSysMsg)
 	if err != nil {
 		return err
@@ -839,14 +839,8 @@ func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result
 	if err != nil {
 		return err
 	}
-	err = this.saveCrossShardConstactMetaData(metaEvents)
-	if err != nil {
-		return err
-	}
-	err = this.saveCrossShardContractEventData(contractEvent)
-	if err != nil {
-		return err
-	}
+	this.saveCrossShardConstactMetaData(metaEvents)
+	this.saveCrossShardDeployContractEventData(deployContractEvent)
 	return nil
 }
 
@@ -910,38 +904,26 @@ func (this *LedgerStoreImp) addShardEventConfig(height uint32, shardID common.Sh
 			return fmt.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
 		}
 	}
-	if len(heights) != 0 {
-		if heights[len(heights)-1] >= height {
-			return fmt.Errorf("addShardEventConfig height orderly increment db heights:%v,height:%d", heights, height)
-		}
-	}
-	heights_db := make([]uint32, 0)
-	heights_db = append(heights_db, heights...)
-	heights_db = append(heights_db, height)
-	err = this.eventStore.AddShardConsensusHeight(shardID, heights_db)
+	heights = append(heights, height)
+	err = this.eventStore.AddShardConsensusHeight(shardID, heights)
 	if err != nil {
 		return fmt.Errorf("AddShardConsensusHeight err:%s", err)
 	}
 	return nil
 }
 
-func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message.MetaDataEvent) error {
+func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message.MetaDataEvent) {
 	for _, metaEvent := range metaEvents {
-		err := this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
-		if err != nil {
-			return err
-		}
+		this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
 	}
-	return nil
 }
-func (this *LedgerStoreImp) saveCrossShardContractEventData(contractEvents []*message.ContractEvent) error {
+func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.DeployContractEvent) {
 	for _, contractEvent := range contractEvents {
 		err := this.eventStore.SaveContractEvent(contractEvent)
 		if err != nil {
 			return err
 		}
 	}
-	return nil
 }
 
 func (this *LedgerStoreImp) tryGetSavingBlockLock() (hasLocked bool) {
@@ -1023,10 +1005,10 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 }
 
 func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent,
-	[]*message.ContractEvent) {
+	[]*message.DeployContractEvent) {
 	var shardSysMsg []*message.ShardSystemEventMsg
 	metaEvents := make([]*message.MetaDataEvent, 0)
-	contractEvents := make([]*message.ContractEvent, 0)
+	contractEvents := make([]*message.DeployContractEvent, 0)
 	for _, txEvents := range notify {
 		for _, n := range txEvents.Notify {
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
@@ -1039,7 +1021,7 @@ func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEv
 				}
 			} else if evt, ok := n.States.(*message.MetaDataEvent); ok {
 				metaEvents = append(metaEvents, evt)
-			} else if evt, ok := n.States.(*message.ContractEvent); ok {
+			} else if evt, ok := n.States.(*message.DeployContractEvent); ok {
 				contractEvents = append(contractEvents, evt)
 			}
 		}

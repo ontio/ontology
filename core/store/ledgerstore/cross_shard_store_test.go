@@ -26,31 +26,39 @@ import (
 )
 
 func TestSaveCrossShardMsgByHash(t *testing.T) {
-	crossShardRoot := common.Uint256{}
+	sigData := make(map[uint32][]byte, 0)
+	sigData[1] = []byte("123")
+	sigData[2] = []byte("234")
+	hashes := make([]common.Uint256, 0)
+	hashes = append(hashes, common.Uint256{1, 2, 3, 4})
+	crossShardMsgHash := &types.CrossShardMsgHash{
+		ShardMsgHashs: hashes,
+		SigData:       sigData,
+	}
 	crossShardMsgInfo := &types.CrossShardMsgInfo{
-		FromShardID:       common.NewShardIDUnchecked(2),
-		MsgHeight:         109,
-		SignMsgHeight:     1111,
-		CrossShardMsgRoot: crossShardRoot,
+		SignMsgHeight:        1111,
+		PreCrossShardMsgHash: common.Uint256{1, 2, 3},
+		Index:                2,
+		ShardMsgInfo:         crossShardMsgHash,
 	}
 	crossShardMsg := &types.CrossShardMsg{
 		CrossShardMsgInfo: crossShardMsgInfo,
 	}
 	testCrossShardStore.NewBatch()
-	testCrossShardStore.SaveCrossShardMsgByHash(crossShardRoot, crossShardMsg)
+	testCrossShardStore.SaveCrossShardMsgByHash(crossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
 	err := testCrossShardStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo err:%s", err)
 		return
 	}
-	msg, err := testCrossShardStore.GetCrossShardMsgByHash(crossShardRoot)
+	msg, err := testCrossShardStore.GetCrossShardMsgByHash(crossShardMsgInfo.PreCrossShardMsgHash)
 	if err != nil {
-		t.Errorf("getCrossShardMsgKeyByShard failed,crossmsghash:%v,err:%s", crossShardRoot.ToHexString(), err)
+		t.Errorf("getCrossShardMsgKeyByShard failed,crossmsghash:%v,err:%s", crossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), err)
 		return
 	}
-	msgHash := msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString()
-	if crossShardRoot.ToHexString() != msgHash {
-		t.Errorf("crossShardMsg len not match:%s, %s", crossShardRoot.ToHexString(), msgHash)
+	msgHash := msg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString()
+	if crossShardMsgInfo.PreCrossShardMsgHash.ToHexString() != msgHash {
+		t.Errorf("crossShardMsg len not match:%s, %s", crossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), msgHash)
 		return
 	}
 }

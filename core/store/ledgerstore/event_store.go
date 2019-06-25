@@ -212,12 +212,11 @@ func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) []byte {
 	return key
 }
 
-func (this *EventStore) SaveContractMetaDataEvent(height uint32, metaData *payload.MetaDataCode) error {
+func (this *EventStore) SaveContractMetaDataEvent(height uint32, metaData *payload.MetaDataCode) {
 	key := getContractMetaDataKey(height, metaData.Contract)
 	value := common.NewZeroCopySink(64)
 	metaData.Serialization(value)
 	this.store.BatchPut(key, value.Bytes())
-	return nil
 }
 
 func (this *EventStore) GetContractMetaDataEvent(height uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
@@ -257,7 +256,6 @@ func (this *EventStore) SaveContractEvent(evt *message.ContractEvent) error {
 	value := common.NewZeroCopySink(0)
 	evt.Serialization(value)
 	this.store.BatchPut(key, value.Bytes())
-	return nil
 }
 
 func (this *EventStore) GetContractEvent(addr common.Address) (*message.ContractEvent, error) {
