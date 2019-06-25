@@ -732,6 +732,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 			// delete peer at mgmt contract
 			delete(shard.Peers, peer)
 			quitPeers = append(quitPeers, peer)
+			setShardPeerState(native, contract, param.ShardId, state_default, peer)
 		}
 	}
 	// delete peers at stake contract
