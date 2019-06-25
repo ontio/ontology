@@ -30,7 +30,7 @@ type MetaDataEvent struct {
 	MetaData *payload.MetaDataCode
 }
 
-type DeployContractEvent struct {
+type ContractEvent struct {
 	Version       uint32
 	DeployHeight  uint32
 	Contract      *payload.DeployCode
@@ -38,7 +38,7 @@ type DeployContractEvent struct {
 	DestroyHeight uint32
 }
 
-func (this *DeployContractEvent) Serialization(sink *common.ZeroCopySink) {
+func (this *ContractEvent) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.Version)
 	sink.WriteUint32(this.DeployHeight)
 	this.Contract.Serialization(sink)
@@ -46,7 +46,7 @@ func (this *DeployContractEvent) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.DestroyHeight)
 }
 
-func (this *DeployContractEvent) Deserialization(source *common.ZeroCopySource) error {
+func (this *ContractEvent) Deserialization(source *common.ZeroCopySource) error {
 	var eof bool
 	this.Version, eof = source.NextUint32()
 	this.DeployHeight, eof = source.NextUint32()

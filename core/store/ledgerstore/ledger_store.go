@@ -920,7 +920,7 @@ func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message
 		this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
 	}
 }
-func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.DeployContractEvent) error {
+func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.ContractEvent) error {
 	for _, contractEvent := range contractEvents {
 		err := this.eventStore.SaveContractEvent(contractEvent)
 		if err != nil {
@@ -1009,10 +1009,10 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 }
 
 func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent,
-	[]*message.DeployContractEvent) {
+	[]*message.ContractEvent) {
 	var shardSysMsg []*message.ShardSystemEventMsg
 	metaEvents := make([]*message.MetaDataEvent, 0)
-	contractEvents := make([]*message.DeployContractEvent, 0)
+	contractEvents := make([]*message.ContractEvent, 0)
 	for _, txEvents := range notify {
 		for _, n := range txEvents.Notify {
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
@@ -1025,7 +1025,7 @@ func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEv
 				}
 			} else if evt, ok := n.States.(*message.MetaDataEvent); ok {
 				metaEvents = append(metaEvents, evt)
-			} else if evt, ok := n.States.(*message.DeployContractEvent); ok {
+			} else if evt, ok := n.States.(*message.ContractEvent); ok {
 				contractEvents = append(contractEvents, evt)
 			}
 		}
@@ -1351,11 +1351,17 @@ func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]com
 }
 
 func (self *LedgerStoreImp) GetParentMetaData(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
-	return self.eventStore.GetContractMetaDataEvent(blockHeight, contractAddr)
+	if self.parentShardStore == nil {
+		return nil, fmt.Errorf("parent ledger nil")
+	}
+	return self.parentShardStore.GetMetaDataEvnet(blockHeight, contractAddr)
 }
 
 func (self *LedgerStoreImp) GetParentContract(blockHeight uint32, addr common.Address) (*payload.DeployCode, error) {
-	evt, err := self.eventStore.GetContractEvent(addr)
+	if self.parentShardStore == nil {
+		return nil, fmt.Errorf("parent ledger nil")
+	}
+	evt, err := self.parentShardStore.GetContractEvent(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -1388,4 +1394,12 @@ func (this *LedgerStoreImp) Close() error {
 		return fmt.Errorf("eventStore close error %s", err)
 	}
 	return nil
+}
+
+func (this *LedgerStoreImp) GetContractEvent(addr common.Address) (*message.ContractEvent, error) {
+	return this.eventStore.GetContractEvent(addr)
+}
+
+func (this *LedgerStoreImp) GetMetaDataEvnet(height uint32, addr common.Address) (*payload.MetaDataCode, error) {
+	return this.eventStore.GetContractMetaDataEvent(height, addr)
 }

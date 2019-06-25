@@ -127,7 +127,7 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	notify.Notify = append(notify.Notify,
 		&event.NotifyEventInfo{
 			ContractAddress: address,
-			States: &message.DeployContractEvent{
+			States: &message.ContractEvent{
 				Version:       common.CURR_HEADER_VERSION,
 				DeployHeight:  header.Height,
 				Contract:      deploy,
