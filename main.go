@@ -198,8 +198,12 @@ func startMainChain(ctx *cli.Context, shardID common.ShardID) {
 		return
 	}
 
-	chainmgr.Start(p2pSvr.GetPID(), txPoolMgr)
+	err = chainmgr.Start(p2pSvr.GetPID(), txPoolMgr)
 	defer chainmgr.Stop()
+	if err != nil {
+		log.Errorf("chainmgr Start error:%s", err)
+		return
+	}
 
 	err = initRpc(ctx)
 	if err != nil {
