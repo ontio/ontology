@@ -196,7 +196,7 @@ func (self *SoloService) broadcastCrossShardMsgs(blkNum uint32, shardMsgs []xsha
 		return
 	}
 
-	for targetShardID, msg := range crossShardMsgs {
+	for targetShardID, crossShardMsg := range crossShardMsgs {
 		// get last shard-msg-root of the target shard
 		prevMsgHash, err := self.ledger.GetShardMsgHash(targetShardID)
 		if err != nil {
@@ -212,7 +212,7 @@ func (self *SoloService) broadcastCrossShardMsgs(blkNum uint32, shardMsgs []xsha
 			return
 		}
 		// save cross-shard-msg
-		err = self.ledger.SaveCrossShardMsgByHash(prevMsgHash, msg)
+		err = self.ledger.SaveCrossShardMsgByHash(prevMsgHash, crossShardMsg)
 		if err != nil {
 			log.Errorf("SaveCrossShardMsgByHash preMsgHash:%s,err:%s", prevMsgHash.ToHexString(), err)
 			return
@@ -220,7 +220,7 @@ func (self *SoloService) broadcastCrossShardMsgs(blkNum uint32, shardMsgs []xsha
 
 		// broadcast
 		sink := common.ZeroCopySink{}
-		msg.Serialization(&sink)
+		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{
 			Version: common.VERSION_SUPPORT_SHARD,
 			ShardID: targetShardID,
@@ -269,10 +269,10 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(height+1, []common.Uint256{txRoot})
 
-	// get ParentHeight from chain-mgr
-	parentHeight := self.ledger.GetParentHeight()
-	if self.ledger.GetParentHeight() > self.parentHeight {
-		parentHeight = parentHeight + 1
+	// get ParentHeight for new block
+	parentHeight := self.parentHeight
+	if self.ledger.GetParentHeight() > parentHeight {
+		parentHeight += 1
 	}
 	// get Cross-Shard Txs from chain-mgr
 	shardTxs, err := xshard.GetCrossShardTxs(self.ledger, self.Account, self.shardID, parentHeight)
