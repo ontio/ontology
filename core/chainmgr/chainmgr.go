@@ -35,7 +35,6 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	actor2 "github.com/ontio/ontology/http/base/actor"
@@ -401,17 +400,6 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 	msg := &types.CrossShardMsg{}
 	if err := msg.Deserialization(source); err != nil {
 		log.Errorf("handleCrossShardMsg failed to Deserialize crossshard msg %s", err)
-		return
-	}
-	var hashes []common.Uint256
-	hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(msg.ShardMsg))
-	for _, shardMsgHash := range msg.CrossShardMsgInfo.ShardMsgHashs {
-		if shardMsgHash.ShardID != self.shardID {
-			hashes = append(hashes, shardMsgHash.MsgHash)
-		}
-	}
-	if msg.CrossShardMsgInfo.CrossShardMsgRoot != common.ComputeMerkleRoot(hashes) {
-		log.Errorf("handleCrossShardMsg msgroot not match:%s", msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString())
 		return
 	}
 	xshard.AddCrossShardInfo(ledger.GetShardLedger(self.shardID), msg)

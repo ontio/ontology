@@ -29,17 +29,12 @@ import (
 	"github.com/ontio/ontology/core/types"
 )
 
-type CrossShardMsgs struct {
-	Height    uint32
-	CrossMsgs []*types.CrossShardMsgHash
-}
-
 type Block struct {
 	Block               *types.Block
 	EmptyBlock          *types.Block
 	Info                *vconfig.VbftBlockInfo
 	PrevBlockMerkleRoot common.Uint256
-	CrossMsg            *CrossShardMsgs
+	CrossMsgHash        *types.CrossShardMsgHash
 }
 
 func (blk *Block) getProposer() uint32 {
@@ -90,13 +85,9 @@ func (blk *Block) Serialize() ([]byte, error) {
 		payload.WriteVarBytes(sink2.Bytes())
 	}
 	payload.WriteHash(blk.PrevBlockMerkleRoot)
-	if blk.CrossMsg != nil {
+	if blk.CrossMsgHash != nil {
 		sink3 := common.NewZeroCopySink(0)
-		sink3.WriteUint32(blk.CrossMsg.Height)
-		sink3.WriteVarUint(uint64(len(blk.CrossMsg.CrossMsgs)))
-		for _, crossMsg := range blk.CrossMsg.CrossMsgs {
-			crossMsg.Serialization(sink3)
-		}
+		blk.CrossMsgHash.Serialization(sink3)
 		payload.WriteVarBytes(sink3.Bytes())
 	}
 	return payload.Bytes(), nil
@@ -141,7 +132,6 @@ func (blk *Block) Deserialize(data []byte) error {
 			return io.ErrUnexpectedEOF
 		}
 	}
-	crossMsg := &CrossShardMsgs{}
 	if source.Len() > 0 {
 		buf3, _, irregular, eof := source.NextVarBytes()
 		if irregular {
@@ -151,28 +141,13 @@ func (blk *Block) Deserialize(data []byte) error {
 			return io.ErrUnexpectedEOF
 		}
 		crossSource := common.NewZeroCopySource(buf3)
-		crossMsg.Height, eof = crossSource.NextUint32()
-		if eof {
-			log.Errorf("crossMsg Deserialize height")
-			return io.ErrUnexpectedEOF
+		crossShardMsgHash := &types.CrossShardMsgHash{}
+		err = crossShardMsgHash.Deserialization(crossSource)
+		if err != nil {
+			log.Errorf("shardmsg deserialization err:%s", err)
+			return err
 		}
-		m, _, irregular, eof := crossSource.NextVarUint()
-		if eof {
-			return io.ErrUnexpectedEOF
-		}
-		if irregular {
-			return common.ErrIrregularData
-		}
-		for i := 0; i < int(m); i++ {
-			shardMsg := &types.CrossShardMsgHash{}
-			err = shardMsg.Deserialization(crossSource)
-			if err != nil {
-				log.Errorf("shardmsg deserialization err:%s", err)
-				return err
-			}
-			crossMsg.CrossMsgs = append(crossMsg.CrossMsgs, shardMsg)
-		}
-		blk.CrossMsg = crossMsg
+		blk.CrossMsgHash = crossShardMsgHash
 	}
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock

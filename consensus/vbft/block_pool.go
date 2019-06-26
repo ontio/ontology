@@ -40,7 +40,7 @@ type CandidateEndorseSigInfo struct {
 	EndorsedProposer uint32
 	Signature        []byte
 	ForEmpty         bool
-	CrossMsg         *CrossShardMsgs
+	CrossShardMsgSig map[uint32][]byte
 }
 
 type CandidateInfo struct {
@@ -290,7 +290,7 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
-		CrossMsg:         msg.CrossMsg,
+		CrossShardMsgSig: msg.CrossShardMsgSig,
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig)
 }
@@ -463,21 +463,14 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
-		if crossShardMsg, present := msg.CrossMsgSig[endorser]; present {
-			eSig.CrossMsg = crossShardMsg
-		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig)
-	}
-	crossShardMsgs := &CrossShardMsgs{}
-	if crossShardMsg, present := msg.CrossMsgSig[msg.Committer]; present {
-		crossShardMsgs = crossShardMsg
 	}
 	// add committer sig
 	pool.addBlockEndorsementLocked(blkNum, msg.Committer, &CandidateEndorseSigInfo{
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
 		ForEmpty:         msg.CommitForEmpty,
-		CrossMsg:         crossShardMsgs,
+		CrossShardMsgSig: msg.CrossShardMsgSig,
 	})
 
 	// add msg to commit-msgs
@@ -611,19 +604,8 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
 				}
-				if block.CrossMsg != nil && sig.CrossMsg != nil {
-					for _, crossMsg := range block.CrossMsg.CrossMsgs {
-						//add sign
-						for _, sigcrossMsg := range sig.CrossMsg.CrossMsgs {
-							if crossMsg.MsgHash == sigcrossMsg.MsgHash {
-								for index, sig := range sigcrossMsg.SigData {
-									if _, present := crossMsg.SigData[index]; !present {
-										crossMsg.SigData[index] = sig
-									}
-								}
-							}
-						}
-					}
+				for index, sig := range sig.CrossShardMsgSig {
+					block.CrossMsgHash.SigData[index] = sig
 				}
 				break
 			}
@@ -668,7 +650,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 			Block:               block.Block,
 			Info:                block.Info,
 			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-			CrossMsg:            block.CrossMsg,
+			CrossMsgHash:        block.CrossMsgHash,
 		}
 	} else {
 		// replace with empty block
@@ -676,7 +658,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 			Block:               block.EmptyBlock,
 			Info:                block.Info,
 			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-			CrossMsg:            block.CrossMsg,
+			CrossMsgHash:        block.CrossMsgHash,
 		}
 	}
 

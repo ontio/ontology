@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/events/message"
 )
@@ -97,12 +98,12 @@ func (self *ChainStore) GetExecShardNotify(blkNum uint32) []xshard_types.CommonS
 	}
 }
 
-func (self *ChainStore) GetCrossMsg(blkNum uint32) (*CrossShardMsgs, bool) {
+func (self *ChainStore) GetCrossMsgHash(blkNum uint32) (*types.CrossShardMsgHash, bool) {
 	if blkNum == 0 {
 		return nil, false
 	}
 	if submitBlk, present := self.pendingBlocks[blkNum]; submitBlk != nil && submitBlk.hasSubmitted == false && present {
-		return submitBlk.block.CrossMsg, true
+		return submitBlk.block.CrossMsgHash, true
 	}
 	return nil, false
 }

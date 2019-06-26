@@ -460,40 +460,50 @@ func (self *Server) broadcastToAll(data []byte) error {
 }
 
 func (self *Server) SendCrossShardMsgToAll(height uint32) {
-	crossShardMsgs, isSend := self.chainStore.GetCrossMsg(height)
-	if isSend == false || crossShardMsgs == nil {
+	crossShardMsgHash, isSend := self.chainStore.GetCrossMsgHash(height)
+	if isSend == false || crossShardMsgHash == nil {
 		return
-	}
-	var hashes []common.Uint256
-	for _, crossShard := range crossShardMsgs.CrossMsgs {
-		hashes = append(hashes, crossShard.MsgHash)
 	}
 	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
 	msgs := self.chainStore.GetExecShardNotify(height - 1)
 	for _, msg := range msgs {
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
-	if len(hashes) == 0 {
-		return
+	shardHashMap := make(map[common.Uint256]common.ShardID)
+	for shardID, shardMsgs := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
+		shardHashMap[msgHash] = shardID
 	}
-	msgRoot := common.ComputeMerkleRoot(hashes)
-	for _, crossMsg := range crossShardMsgs.CrossMsgs {
-		shardMsg, present := shardMsgMap[crossMsg.ShardID]
+	for index, msgHash := range crossShardMsgHash.ShardMsgHashs {
+		shardID, present := shardHashMap[msgHash]
 		if !present {
-			log.Errorf("SendCrossShardMsgToAll cross msg not found :%v", crossMsg.ShardID)
+			log.Errorf("SendCrossShardMsgToAll shard msg hash not found :%s", msgHash.ToHexString())
 			continue
+		}
+		shardMsg, present := shardMsgMap[shardID]
+		if !present {
+			log.Errorf("SendCrossShardMsgToAll cross msg not found :%v", shardID)
+			continue
+		}
+		hashes := make([]common.Uint256, 0)
+		for _, hash := range crossShardMsgHash.ShardMsgHashs {
+			if hash != msgHash {
+				hashes = append(hashes, hash)
+			}
+		}
+		shardMsgInfo := &types.CrossShardMsgHash{
+			ShardMsgHashs: hashes,
+			SigData:       crossShardMsgHash.SigData,
 		}
 		crossShardMsg := &types.CrossShardMsg{
 			CrossShardMsgInfo: &types.CrossShardMsgInfo{
-				FromShardID:       self.ShardID,
-				MsgHeight:         crossShardMsgs.Height,
-				SignMsgHeight:     height,
-				CrossShardMsgRoot: msgRoot,
-				ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+				SignMsgHeight: height,
+				Index:         uint32(index),
+				ShardMsgInfo:  shardMsgInfo,
 			},
 			ShardMsg: shardMsg,
 		}
-		preMsgHash, err := self.ledger.GetShardMsgHash(crossMsg.ShardID)
+		preMsgHash, err := self.ledger.GetShardMsgHash(shardID)
 		if err != nil {
 			if err != com.ErrNotFound {
 				log.Errorf("SendCrossShardMsgToAll getshardmsghash err:%s", err)
@@ -501,9 +511,10 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 			}
 		}
 		crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
-		err = self.ledger.SaveShardMsgHash(crossMsg.ShardID, msgRoot)
+		msgRoot := common.ComputeMerkleRoot(crossShardMsgHash.ShardMsgHashs)
+		err = self.ledger.SaveShardMsgHash(shardID, msgRoot)
 		if err != nil {
-			log.Errorf("SaveShardMsgHash shardID:%v,msgHash:%s,err:%s", crossMsg.ShardID, msgRoot.ToHexString(), err)
+			log.Errorf("SaveShardMsgHash shardID:%v,msgHash:%s,err:%s", shardID, msgRoot.ToHexString(), err)
 			return
 		}
 		err = self.ledger.SaveCrossShardMsgByHash(preMsgHash, crossShardMsg)
@@ -515,7 +526,7 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{
 			Version: common.VERSION_SUPPORT_SHARD,
-			ShardID: crossMsg.ShardID,
+			ShardID: shardID,
 			Data:    sink.Bytes(),
 		}
 		self.p2p.Broadcast(msg)

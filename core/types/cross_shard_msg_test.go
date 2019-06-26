@@ -28,10 +28,11 @@ func TestCrossShardMsgHash_Serialize(t *testing.T) {
 	sigData := make(map[uint32][]byte)
 	sigData[0] = []byte("123456")
 	sigData[1] = []byte("345678")
+	hashes := make([]common.Uint256, 0)
+	hashes = append(hashes, common.Uint256{1, 2, 3})
 	crossShardMsgHash := &CrossShardMsgHash{
-		ShardID: common.NewShardIDUnchecked(0),
-		MsgHash: common.Uint256{1, 2, 3},
-		SigData: sigData,
+		ShardMsgHashs: hashes,
+		SigData:       sigData,
 	}
 	sink := common.NewZeroCopySink(0)
 	crossShardMsgHash.Serialization(sink)

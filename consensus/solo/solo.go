@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
-	msg "github.com/ontio/ontology/consensus/vbft"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
@@ -198,67 +197,80 @@ func (self *SoloService) broadCrossShardHashMsgs(blkNum uint32, shardMsgs []xsha
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
 	var hashes []common.Uint256
-	crossShardMsgs := &msg.CrossShardMsgs{}
-	for shardID, shardMsg := range shardMsgMap {
-		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsg)
-		sig, err := signature.Sign(self.Account, msgHash[:])
-		if err != nil {
-			log.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", msgHash.ToHexString(), err)
-			return
-		}
-		sigData := make(map[uint32][]byte)
-		sigData[0] = sig
-		crossShardMsg := &types.CrossShardMsgHash{
-			ShardID: shardID,
-			MsgHash: msgHash,
-			SigData: sigData,
-		}
-		crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossShardMsg)
-		crossShardMsgs.Height = blkNum
-	}
-	for _, crossShard := range crossShardMsgs.CrossMsgs {
-		hashes = append(hashes, crossShard.MsgHash)
+	for _, shardMsgs := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
+		hashes = append(hashes, msgHash)
 	}
 	msgRoot := common.ComputeMerkleRoot(hashes)
-	for _, crossMsg := range crossShardMsgs.CrossMsgs {
-		shardMsg, present := shardMsgMap[crossMsg.ShardID]
+	sig, err := signature.Sign(self.Account, msgRoot[:])
+	if err != nil {
+		log.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
+		return
+	}
+	shardHashMap := make(map[common.Uint256]common.ShardID)
+	for shardID, shardMsgs := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
+		shardHashMap[msgHash] = shardID
+	}
+	sigData := make(map[uint32][]byte)
+	sigData[0] = sig
+	crossShardMsgHash := &types.CrossShardMsgHash{
+		ShardMsgHashs: hashes,
+		SigData:       sigData,
+	}
+	for index, msgHash := range crossShardMsgHash.ShardMsgHashs {
+		shardID, present := shardHashMap[msgHash]
 		if !present {
-			log.Errorf("broadcast cross msg not found :%v", crossMsg.ShardID)
+			log.Errorf("SendCrossShardMsgToAll shard msg hash not found :%s", msgHash.ToHexString())
 			continue
+		}
+		shardMsg, present := shardMsgMap[shardID]
+		if !present {
+			log.Errorf("SendCrossShardMsgToAll cross msg not found :%v", shardID)
+			continue
+		}
+		hashes := make([]common.Uint256, 0)
+		for _, hash := range crossShardMsgHash.ShardMsgHashs {
+			if hash != msgHash {
+				hashes = append(hashes, hash)
+			}
+		}
+		shardMsgInfo := &types.CrossShardMsgHash{
+			ShardMsgHashs: hashes,
+			SigData:       crossShardMsgHash.SigData,
 		}
 		crossShardMsg := &types.CrossShardMsg{
 			CrossShardMsgInfo: &types.CrossShardMsgInfo{
-				FromShardID:       self.shardID,
-				MsgHeight:         crossShardMsgs.Height,
-				SignMsgHeight:     blkNum,
-				CrossShardMsgRoot: msgRoot,
-				ShardMsgHashs:     crossShardMsgs.CrossMsgs,
+				SignMsgHeight: blkNum,
+				Index:         uint32(index),
+				ShardMsgInfo:  shardMsgInfo,
 			},
 			ShardMsg: shardMsg,
 		}
-		preMsgHash, err := self.ledger.GetShardMsgHash(crossMsg.ShardID)
+		preMsgHash, err := self.ledger.GetShardMsgHash(shardID)
 		if err != nil {
 			if err != com.ErrNotFound {
-				log.Errorf("chainstore getshardmsghash err:%s", err)
+				log.Errorf("SendCrossShardMsgToAll getshardmsghash err:%s", err)
+				return
 			}
-		} else {
-			crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
 		}
-		err = self.ledger.SaveShardMsgHash(crossMsg.ShardID, msgRoot)
+		crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash = preMsgHash
+		msgRoot := common.ComputeMerkleRoot(crossShardMsgHash.ShardMsgHashs)
+		err = self.ledger.SaveShardMsgHash(shardID, msgRoot)
 		if err != nil {
-			log.Errorf("SaveShardMsgHash shardID:%v,msgHash:%s,err:%s", crossMsg.ShardID, msgRoot.ToHexString(), err)
-			continue
+			log.Errorf("SaveShardMsgHash shardID:%v,msgHash:%s,err:%s", shardID, msgRoot.ToHexString(), err)
+			return
 		}
 		err = self.ledger.SaveCrossShardMsgByHash(preMsgHash, crossShardMsg)
 		if err != nil {
 			log.Errorf("SaveCrossShardMsgByHash preMsgHash:%s,err:%s", preMsgHash.ToHexString(), err)
-			continue
+			return
 		}
 		sink := common.ZeroCopySink{}
 		crossShardMsg.Serialization(&sink)
 		msg := &p2pmsg.CrossShardPayload{
 			Version: common.VERSION_SUPPORT_SHARD,
-			ShardID: crossMsg.ShardID,
+			ShardID: shardID,
 			Data:    sink.Bytes(),
 		}
 		self.p2p.Broadcast(msg)
