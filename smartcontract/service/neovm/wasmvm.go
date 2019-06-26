@@ -31,7 +31,7 @@ import (
 func WASMInvoke(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	count := vm.EvaluationStackCount(engine)
 	if count < 2 {
-		return fmt.Errorf("invoke wasm contract invalid parameters %d < 1 ", count)
+		return fmt.Errorf("invoke wasm contract invalid parameters %d < 2 ", count)
 	}
 
 	address, err := vm.PopByteArray(engine)
