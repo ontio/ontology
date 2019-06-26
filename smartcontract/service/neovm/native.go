@@ -19,18 +19,11 @@
 package neovm
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
-	"math/big"
-	"reflect"
-
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
-	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func NativeInvoke(service *NeoVmService, engine *vm.Executor) error {
@@ -86,49 +79,3 @@ func NativeInvoke(service *NeoVmService, engine *vm.Executor) error {
 	return engine.EvalStack.PushBytes(result)
 }
 
-func BuildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
-	if CircularRefAndDepthDetection(item) {
-		return errors.New("invoke native circular reference!")
-	}
-	return buildParamToNative(bf, item)
-}
-
-func buildParamToNative(bf *bytes.Buffer, item types.StackItems) error {
-	switch item.(type) {
-	case *types.ByteArray:
-		a, _ := item.GetByteArray()
-		if err := serialization.WriteVarBytes(bf, a); err != nil {
-			return err
-		}
-	case *types.Integer:
-		i, _ := item.GetByteArray()
-		if err := serialization.WriteVarBytes(bf, i); err != nil {
-			return err
-		}
-	case *types.Boolean:
-		b, _ := item.GetBoolean()
-		if err := serialization.WriteBool(bf, b); err != nil {
-			return err
-		}
-	case *types.Array:
-		arr, _ := item.GetArray()
-		if err := serialization.WriteVarBytes(bf, common.BigIntToNeoBytes(big.NewInt(int64(len(arr))))); err != nil {
-			return err
-		}
-		for _, v := range arr {
-			if err := buildParamToNative(bf, v); err != nil {
-				return err
-			}
-		}
-	case *types.Struct:
-		st, _ := item.GetStruct()
-		for _, v := range st {
-			if err := buildParamToNative(bf, v); err != nil {
-				return err
-			}
-		}
-	default:
-		return fmt.Errorf("convert neovm params to native invalid type support: %s", reflect.TypeOf(item))
-	}
-	return nil
-}
