@@ -1263,7 +1263,11 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 				continue
 			}
 			//verify msg sign
-			chainconfig, err := getShardConfigByShardID(self.ledger.ParentLedger, shardCall.Msgs[0].GetSourceShardID(), crossTxMsg.ShardMsg.SignMsgHeight)
+			ledger := self.ledger
+			if !self.ShardID.IsRootShard() {
+				ledger = self.ledger.ParentLedger
+			}
+			chainconfig, err := getShardConfigByShardID(ledger, shardCall.Msgs[0].GetSourceShardID(), crossTxMsg.ShardMsg.SignMsgHeight)
 			if err != nil {
 				if err != com.ErrNotFound {
 					log.Errorf("getShardConfigByShardID shardID:%v,height:%d err:%s", shardCall.Msgs[0].GetSourceShardID(), crossTxMsg.ShardMsg.SignMsgHeight, err)

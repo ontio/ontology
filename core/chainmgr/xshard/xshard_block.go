@@ -101,11 +101,9 @@ func InitShardInfo(lgr *ledger.Ledger) error {
 	return nil
 }
 
-func AddShardInfo(lgr *ledger.Ledger, shardID common.ShardID) {
+func addShardInfo(lgr *ledger.Ledger, shardID common.ShardID) {
 	pool := crossShardPool
-	pool.lock.Lock()
 	if _, present := pool.ShardInfo[shardID]; present {
-		pool.lock.Unlock()
 		return
 	}
 	pool.ShardInfo[shardID] = true
@@ -114,7 +112,6 @@ func AddShardInfo(lgr *ledger.Ledger, shardID common.ShardID) {
 	for shardId := range pool.ShardInfo {
 		shardIds = append(shardIds, shardId)
 	}
-	pool.lock.Unlock()
 	err := lgr.SaveAllShardIDs(shardIds)
 	if err != nil {
 		log.Errorf("SaveAllShardIDs shardId:%v,err:%s", shardID, err)
@@ -172,7 +169,7 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 			}
 		}
 	}
-	AddShardInfo(lgr, sourceShardID)
+	addShardInfo(lgr, sourceShardID)
 	log.Infof("chainmgr AddBlock from shard %d,msgHash:%v, block height %d", sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), crossShardMsg.CrossShardMsgInfo.SignMsgHeight)
 	return nil
 }

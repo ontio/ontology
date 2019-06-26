@@ -401,7 +401,10 @@ func (self *ChainManager) handleCrossShardMsg(payload *p2pmsg.CrossShardPayload)
 		log.Errorf("handleCrossShardMsg failed to Deserialize crossshard msg %s", err)
 		return
 	}
-	xshard.AddCrossShardInfo(ledger.GetShardLedger(self.shardID), msg)
+	err := xshard.AddCrossShardInfo(ledger.GetShardLedger(self.shardID), msg)
+	if err != nil {
+		log.Errorf("handleCrossShardMsg AddCrossShardInfo err:%s", err)
+	}
 }
 
 //
