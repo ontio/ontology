@@ -213,7 +213,6 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	}
 	genesisConfig := shardInfo.Config.Genesis
 	shardConfig := shardInfo.Config.Shard
-	shardConfig.GenesisParentHeight = lgr.GetParentHeight()
 	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
 	if err != nil {
 		return fmt.Errorf("init shard ledger: genesisBlock error %s", err)

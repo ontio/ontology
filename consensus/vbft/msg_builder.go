@@ -359,6 +359,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	if err != nil {
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, err: %s", blkHash, err)
 	}
+	crossShardMsgHashSig := map[uint32][]byte(nil)
 	if proposal.Block.CrossMsgHash != nil {
 		msgRoot := common.ComputeMerkleRoot(proposal.Block.CrossMsgHash.ShardMsgHashs)
 		sig, err := signature.Sign(self.account, msgRoot[:])
@@ -366,6 +367,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
 		}
 		proposal.Block.CrossMsgHash.SigData[self.Index] = sig
+		crossShardMsgHashSig = proposal.Block.CrossMsgHash.SigData
 	}
 	msg := &blockEndorseMsg{
 		Endorser:          self.Index,
@@ -375,7 +377,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		EndorseForEmpty:   forEmpty,
 		ProposerSig:       proposerSig,
 		EndorserSig:       endorserSig,
-		CrossShardMsgSig:  proposal.Block.CrossMsgHash.SigData,
+		CrossShardMsgSig:  crossShardMsgHashSig,
 	}
 
 	return msg, nil
