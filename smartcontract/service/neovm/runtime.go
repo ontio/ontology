@@ -94,21 +94,18 @@ func RuntimeDeserialize(service *NeoVmService, engine *vm.Executor) error {
 	return engine.EvalStack.Push(vmValue)
 }
 
-func RuntimeVerifyMutiSig(service *NeoVmService, engine *vm.ExecutionEngine) error {
-	if vm.EvaluationStackCount(engine) < 4 {
-		return errors.NewErr("[RuntimeVerifyMutiSig] Too few input parameters")
-	}
-	data, err := vm.PopByteArray(engine)
+func RuntimeVerifyMutiSig(service *NeoVmService, engine *vm.Executor) error {
+	data, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
 	}
-	arr1, err := vm.PopArray(engine)
+	arr1, err := engine.EvalStack.PopAsArray()
 	if err != nil {
 		return err
 	}
-	pks := make([]keypair.PublicKey, 0, len(arr1))
-	for i := 0; i < len(arr1); i++ {
-		value, err := arr1[i].GetByteArray()
+	pks := make([]keypair.PublicKey, 0, len(arr1.Data))
+	for i := 0; i < len(arr1.Data); i++ {
+		value, err := arr1.Data[i].AsBytes()
 		if err != nil {
 			return err
 		}
@@ -119,28 +116,28 @@ func RuntimeVerifyMutiSig(service *NeoVmService, engine *vm.ExecutionEngine) err
 		pks = append(pks, pk)
 	}
 
-	m, err := vm.PopInt(engine)
+	m, err := engine.EvalStack.PopAsInt64()
 	if err != nil {
 		return err
 	}
-	arr2, err := vm.PopArray(engine)
+	if m > int64(len(pks)) || m < 0 {
+		return fmt.Errorf("runtime verify multisig error: wrong m %d", m)
+
+	}
+	arr2, err := engine.EvalStack.PopAsArray()
 	if err != nil {
 		return err
 	}
-	signs := make([][]byte, 0, len(arr2))
-	for i := 0; i < len(arr2); i++ {
-		value, err := arr2[i].GetByteArray()
+	signs := make([][]byte, 0, len(arr2.Data))
+	for i := 0; i < len(arr2.Data); i++ {
+		value, err := arr2.Data[i].AsBytes()
 		if err != nil {
 			return err
 		}
 		signs = append(signs, value)
 	}
-	if err := signature.VerifyMultiSignature(data, pks, m, signs); err != nil {
-		vm.PushData(engine, false)
-	} else {
-		vm.PushData(engine, true)
-	}
-	return nil
+	err = signature.VerifyMultiSignature(data, pks, int(m), signs)
+	return engine.EvalStack.PushBool(err == nil)
 }
 
 // RuntimeNotify put smart contract execute event notify to notifications

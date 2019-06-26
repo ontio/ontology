@@ -136,13 +136,13 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			Store:      this.Store,
 			CacheDB:    this.CacheDB,
 			ContextRef: this,
-		GasTable:   this.GasTable,
+			GasTable:   this.GasTable,
 			Code:       code,
 			Tx:         this.Config.Tx,
 			Time:       this.Config.Time,
 			Height:     this.Config.Height,
 			BlockHash:  this.Config.BlockHash,
-		Engine:     vm.NewExecutor(code),
+			Engine:     vm.NewExecutor(code),
 			PreExec:    this.PreExec,
 		}
 	}
