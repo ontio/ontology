@@ -293,6 +293,7 @@ func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error
 	return input, nil
 }
 
+//create paramters for neovm contract
 func CreateNeoInvokeParam(contractAddress common.Address, input []byte) ([]byte, error) {
 
 	list, err := DeserializeInput(input)
@@ -445,6 +446,7 @@ func buildWasmContractParam(params []interface{}, bf *common.ZeroCopySink) ([]by
 
 }
 
+//transform neovm contract result to encoded byte array
 func BuildResultFromNeo(item neotypes.StackItems, bf *bytes.Buffer) error {
 
 	switch item.(type) {
