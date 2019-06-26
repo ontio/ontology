@@ -212,6 +212,18 @@ func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.ExecutionEngin
 	return nil
 }
 
+func RuntimeJsonMarshal(service *NeoVmService, engine *vm.ExecutionEngine) error{
+
+	return nil
+}
+
+func RuntimeJsonUnmarshal(service *NeoVmService, engine *vm.ExecutionEngine) error{
+
+	return nil
+}
+
+
+
 func SerializeStackItem(item vmtypes.StackItems) ([]byte, error) {
 	if CircularRefAndDepthDetection(item) {
 		return nil, errors.NewErr("runtime serialize: can not serialize circular reference data")
