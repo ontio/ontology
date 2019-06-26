@@ -151,3 +151,25 @@ func TestAddShardConsensusConfig(t *testing.T) {
 		return
 	}
 }
+
+func TestSaveContractMetaHeights(t *testing.T) {
+	var addr common.Address
+	rand.Read(addr[:])
+	heights := []uint32{100, 120, 150}
+	testEventStore.NewBatch()
+	testEventStore.SaveContractMetaHeights(addr, heights)
+	err := testEventStore.CommitTo()
+	if err != nil {
+		t.Errorf("TestSaveContractMetaHeights CommitTo err :%s", err)
+		return
+	}
+	blkHeights, err := testEventStore.GetContractMetaHeights(addr)
+	if err != nil {
+		t.Errorf("TestSaveContractMetaHeights failed GetContractMetaHeights err:%s", err)
+		return
+	}
+	if !reflect.DeepEqual(heights, blkHeights) {
+		t.Errorf("TestSaveContractMetaHeights faied heigts:%v,blkHeigts:%v", heights, blkHeights)
+		return
+	}
+}

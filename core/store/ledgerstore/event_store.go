@@ -242,6 +242,46 @@ func getContractMetaDataKey(height uint32, contractAddr common.Address) []byte {
 	return key.Bytes()
 }
 
+func (this *EventStore) SaveContractMetaHeights(contractAddr common.Address, data []uint32) {
+	key := getContractMetaDataHeightsKey(contractAddr)
+	value := common.NewZeroCopySink(16)
+	value.WriteUint32(uint32(len(data)))
+	for _, height := range data {
+		value.WriteUint32(height)
+	}
+	this.store.BatchPut(key, value.Bytes())
+}
+
+func (this *EventStore) GetContractMetaHeights(contractAddr common.Address) ([]uint32, error) {
+	key := getContractMetaDataHeightsKey(contractAddr)
+	data, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	m, eof := source.NextUint32()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	heights := make([]uint32, 0)
+	for i := 0; i < int(m); i++ {
+		configheight, eof := source.NextUint32()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
+		heights = append(heights, configheight)
+	}
+	return heights, nil
+
+}
+
+func getContractMetaDataHeightsKey(contractAddr common.Address) []byte {
+	key := common.NewZeroCopySink(10)
+	key.WriteByte(byte(scom.CROSS_SHARD_CONTRACT_META_HEIGHT))
+	key.WriteBytes(contractAddr[:])
+	return key.Bytes()
+}
+
 func (this *EventStore) SaveContractEvent(evt *message.ContractLifetimeEvent) error {
 	oldEvt, err := this.GetContractEvent(evt.Contract.Address())
 	if err != nil && err != scom.ErrNotFound {
@@ -281,7 +321,7 @@ func getContractEventKey(contractAddr common.Address) []byte {
 	return key.Bytes()
 }
 
-func (this *EventStore) AddShardConsensusHeight(shardID common.ShardID, data []uint32) error {
+func (this *EventStore) AddShardConsensusHeight(shardID common.ShardID, data []uint32) {
 	key := genShardConsensusHeightKey(shardID)
 	value := common.NewZeroCopySink(16)
 	value.WriteUint32(uint32(len(data)))
@@ -289,7 +329,6 @@ func (this *EventStore) AddShardConsensusHeight(shardID common.ShardID, data []u
 		value.WriteUint32(height)
 	}
 	this.store.BatchPut(key, value.Bytes())
-	return nil
 }
 
 func (this *EventStore) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {

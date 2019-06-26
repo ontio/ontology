@@ -908,10 +908,7 @@ func (this *LedgerStoreImp) addShardEventConfig(height uint32, shardID common.Sh
 		}
 	}
 	heights = append(heights, height)
-	err = this.eventStore.AddShardConsensusHeight(shardID, heights)
-	if err != nil {
-		return fmt.Errorf("AddShardConsensusHeight err:%s", err)
-	}
+	this.eventStore.AddShardConsensusHeight(shardID, heights)
 	return nil
 }
 
