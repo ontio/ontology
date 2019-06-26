@@ -42,11 +42,11 @@ var DefLedger *Ledger
 var DefLedgerMgr *LedgerMgr
 
 type Ledger struct {
-	ShardID          common.ShardID
-	ParentLedger     *Ledger
-	ldgStore         store.LedgerStore
-	cshardStore      store.CrossShardStore
-	ChildLedger      *Ledger
+	ShardID      common.ShardID
+	ParentLedger *Ledger
+	ldgStore     store.LedgerStore
+	cshardStore  store.CrossShardStore
+	ChildLedger  *Ledger
 }
 
 type LedgerMgr struct {
@@ -119,10 +119,10 @@ func NewShardLedger(shardID common.ShardID, dataDir string, mainLedger *Ledger) 
 	}
 
 	lgr := &Ledger{
-		ShardID:          shardID,
-		ParentLedger:     parentLedger,
-		ldgStore:         ldgStore,
-		cshardStore:      cshardStore,
+		ShardID:      shardID,
+		ParentLedger: parentLedger,
+		ldgStore:     ldgStore,
+		cshardStore:  cshardStore,
 	}
 	parentLedger.ChildLedger = lgr
 	DefLedgerMgr.Lock.Lock()
