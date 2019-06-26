@@ -73,7 +73,7 @@ func BenchmarkExecuteAdd(b *testing.B) {
 			Config: config,
 			Gas:    1000000,
 		}
-		engine, err := sc.NewExecuteEngine(code)
+		engine, err := sc.NewExecuteEngine(code, types.InvokeNeo)
 		if err != nil {
 			panic(err)
 		}
