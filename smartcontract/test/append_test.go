@@ -19,6 +19,7 @@
 package test
 
 import (
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/errors"
@@ -48,7 +49,7 @@ func TestAppendOverFlow(t *testing.T) {
 		Gas:     200,
 		CacheDB: nil,
 	}
-	engine, _ := sc.NewExecuteEngine(byteCode)
+	engine, _ := sc.NewExecuteEngine(byteCode, types.InvokeNeo)
 	_, err := engine.Invoke()
 	assert.EqualError(t, err, "[NeoVmService] vm execution error!: "+errors.ERR_OVER_MAX_ARRAY_SIZE.Error())
 }

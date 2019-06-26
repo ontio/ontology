@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	svm "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/vm/neovm"
@@ -78,7 +79,7 @@ func TestVerifySig(t *testing.T) {
 		Config: config,
 		Gas:    100000,
 	}
-	engine, err := sc.NewExecuteEngine(hex)
+	engine, err := sc.NewExecuteEngine(hex, types.InvokeNeo)
 
 	if err != nil {
 		t.Fatal("hex to byte error:", err)
