@@ -106,6 +106,7 @@ var (
 	RUNTIME_VERIFYMUTISIG_NAME       = "Ontology.Runtime.VerifyMutiSig"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
+	WASM_INVOKE_NAME   = "Ontology.Wasm.InvokeWasm"
 
 	GETSCRIPTCONTAINER_NAME     = "System.ExecutionEngine.GetScriptContainer"
 	GETEXECUTINGSCRIPTHASH_NAME = "System.ExecutionEngine.GetExecutingScriptHash"
