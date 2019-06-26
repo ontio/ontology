@@ -34,7 +34,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/states"
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
 )
@@ -292,7 +291,7 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 			panic(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
 		}
 
-		result = tmpRes.([]byte)
+		result = tmpRes
 
 	case WASMVM_CONTRACT:
 		conParam := states.WasmContractParam{Address: contractAddress, Args: inputs}
@@ -319,17 +318,17 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		if err != nil {
 			panic(err)
 		}
-		switch tmp.(type) {
-		case neotypes.StackItems:
-			result, err = tmp.(neotypes.StackItems).GetByteArray()
+		if tmp != nil {
+			val := tmp.(*neotypes.VmValue)
+			result, err = val.AsBytes()
 			if err != nil {
-				result, err = neovm.SerializeStackItem(tmp.(neotypes.StackItems))
+				sink := new(common.ZeroCopySink)
+				err = val.Serialize(sink)
 				if err != nil {
 					panic(err)
 				}
+				result = sink.Bytes()
 			}
-		default:
-			panic(errors.NewErr("Invalid return type of NeoVM"))
 		}
 
 	default:

@@ -127,7 +127,7 @@ type NeoVmService struct {
 }
 
 // Invoke a smart contract
-func (this *NeoVmService) Invoke() (*vmty.VmValue, error) {
+func (this *NeoVmService) Invoke() (interface{}, error) {
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
@@ -210,7 +210,8 @@ func (this *NeoVmService) Invoke() (*vmty.VmValue, error) {
 				return nil, err
 			}
 			if result != nil {
-				err := this.Engine.EvalStack.Push(*result)
+				val := result.(*vmty.VmValue)
+				err := this.Engine.EvalStack.Push(*val)
 				if err != nil {
 					return nil, err
 				}
