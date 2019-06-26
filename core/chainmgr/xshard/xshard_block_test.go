@@ -26,19 +26,37 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/core/xshard_types"
 )
 
 func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
-	shardMsg := &types.CrossShardMsg{
+	shardMsg := []xshard_types.CommonShardMsg{&xshard_types.XShardCommitMsg{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: common.NewShardIDUnchecked(1),
+			TargetShardID: common.NewShardIDUnchecked(0),
+			SourceTxHash:  common.Uint256{1, 2, 3},
+			ShardTxID:     "2",
+		},
+	}}
+	sigData := make(map[uint32][]byte)
+	sigData[0] = []byte("123456")
+	sigData[1] = []byte("345678")
+	hashes := make([]common.Uint256, 0)
+	hashes = append(hashes, common.Uint256{1, 2, 3})
+	crossShardMsgHash := &types.CrossShardMsgHash{
+		ShardMsgHashs: hashes,
+		SigData:       sigData,
+	}
+	crossShardMsg := &types.CrossShardMsg{
 		CrossShardMsgInfo: &types.CrossShardMsgInfo{
-			FromShardID:          common.NewShardIDUnchecked(1),
-			MsgHeight:            uint32(90),
 			SignMsgHeight:        uint32(100),
 			PreCrossShardMsgHash: common.Uint256{},
-			CrossShardMsgRoot:    common.Uint256{1, 2, 3},
+			Index:                1,
+			ShardMsgInfo:         crossShardMsgHash,
 		},
+		ShardMsg: shardMsg,
 	}
-	return shardMsg
+	return crossShardMsg
 }
 func TestCrossShardPool(t *testing.T) {
 	InitCrossShardPool(common.NewShardIDUnchecked(1), 100)
@@ -62,7 +80,7 @@ func TestAddShardInfo(t *testing.T) {
 		t.Errorf("failed to new ledger err:%s", err)
 		return
 	}
-	AddShardInfo(ldg, shardID)
+	addShardInfo(ldg, shardID)
 	shardInfo := GetShardInfo()
 	if shardId, present := shardInfo[shardID]; !present {
 		t.Errorf("shardID not found:%v", shardID)

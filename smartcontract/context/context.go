@@ -47,6 +47,7 @@ type ContextRef interface {
 	GetMetaData(contract common.Address) (*payload.MetaDataCode, bool, error)
 	NotifyRemoteShard(target common.ShardID, cont common.Address, fee uint64, method string, args []byte)
 	InvokeRemoteShard(target common.ShardID, cont common.Address, method string, args []byte) ([]byte, error)
+	GetParentHeight() uint32
 }
 
 type Engine interface {

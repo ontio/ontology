@@ -19,11 +19,12 @@
 package test
 
 import (
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/vm/neovm"
-	"os"
-	"testing"
 )
 
 func TestPackCrash(t *testing.T) {
@@ -53,9 +54,10 @@ func TestPackCrash(t *testing.T) {
 	//store := statestore.NewMemDatabase()
 	//testBatch := statestore.NewStateStoreBatch(store, testLevelDB)
 	config := &smartcontract.Config{
-		Time:   10,
-		Height: 10,
-		Tx:     &types.Transaction{},
+		Time:         10,
+		Height:       10,
+		ParentHeight: 9,
+		Tx:           &types.Transaction{},
 	}
 	sc := smartcontract.SmartContract{
 		Config:  config,

@@ -19,41 +19,46 @@ package ledgerstore
 
 import (
 	"bytes"
-	"reflect"
 	"testing"
 
 	"github.com/ontio/ontology/common"
-	vbftcfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func TestSaveCrossShardMsgByHash(t *testing.T) {
-	crossShardRoot := common.Uint256{}
+	sigData := make(map[uint32][]byte)
+	sigData[0] = []byte("123456")
+	sigData[1] = []byte("345678")
+	hashes := make([]common.Uint256, 0)
+	hashes = append(hashes, common.Uint256{1, 2, 3})
+	crossShardMsgHash := &types.CrossShardMsgHash{
+		ShardMsgHashs: hashes,
+		SigData:       sigData,
+	}
 	crossShardMsgInfo := &types.CrossShardMsgInfo{
-		FromShardID:       common.NewShardIDUnchecked(2),
-		MsgHeight:         109,
-		SignMsgHeight:     1111,
-		CrossShardMsgRoot: crossShardRoot,
+		SignMsgHeight:        1111,
+		PreCrossShardMsgHash: common.Uint256{1, 2, 3},
+		Index:                2,
+		ShardMsgInfo:         crossShardMsgHash,
 	}
 	crossShardMsg := &types.CrossShardMsg{
 		CrossShardMsgInfo: crossShardMsgInfo,
 	}
 	testCrossShardStore.NewBatch()
-	testCrossShardStore.SaveCrossShardMsgByHash(crossShardRoot, crossShardMsg)
+	testCrossShardStore.SaveCrossShardMsgByHash(crossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
 	err := testCrossShardStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo err:%s", err)
 		return
 	}
-	msg, err := testCrossShardStore.GetCrossShardMsgByHash(crossShardRoot)
+	msg, err := testCrossShardStore.GetCrossShardMsgByHash(crossShardMsgInfo.PreCrossShardMsgHash)
 	if err != nil {
-		t.Errorf("getCrossShardMsgKeyByShard failed,crossmsghash:%v,err:%s", crossShardRoot.ToHexString(), err)
+		t.Errorf("getCrossShardMsgKeyByShard failed,crossmsghash:%v,err:%s", crossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), err)
 		return
 	}
-	msgHash := msg.CrossShardMsgInfo.CrossShardMsgRoot.ToHexString()
-	if crossShardRoot.ToHexString() != msgHash {
-		t.Errorf("crossShardMsg len not match:%s, %s", crossShardRoot.ToHexString(), msgHash)
+	msgHash := msg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString()
+	if crossShardMsgInfo.PreCrossShardMsgHash.ToHexString() != msgHash {
+		t.Errorf("crossShardMsg len not match:%s, %s", crossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), msgHash)
 		return
 	}
 }
@@ -75,68 +80,6 @@ func TestSaveAllShardIDs(t *testing.T) {
 	}
 	if len(shardIds) != len(data) {
 		t.Errorf("shardId len not match")
-		return
-	}
-}
-func TestAddShardConsensusConfig(t *testing.T) {
-	shardID := common.NewShardIDUnchecked(1)
-	height := 110
-	cfg := &shardstates.ShardConfig{
-		GasPrice: 20000,
-		GasLimit: 10000,
-		VbftCfg: &vbftcfg.VBFTConfig{
-			N: 1,
-			C: 7,
-		},
-	}
-	shardEvent := &shardstates.ConfigShardEvent{
-		Height: 120,
-		Config: cfg,
-	}
-	sink := common.ZeroCopySink{}
-	shardEvent.Serialization(&sink)
-	testCrossShardStore.NewBatch()
-	testCrossShardStore.AddShardConsensusConfig(shardID, uint32(height), sink.Bytes())
-	err := testCrossShardStore.CommitTo()
-	if err != nil {
-		t.Errorf("TestAddShardConsensusHeight CommitTo err :%s", err)
-		return
-	}
-	data, err := testCrossShardStore.GetShardConsensusConfig(shardID, uint32(height))
-	if err != nil {
-		t.Errorf("GetShardConsensusConfig failed shardID:%v,height:%d", shardID, height)
-		return
-	}
-	source := common.NewZeroCopySource(data)
-	shardEventInfo := &shardstates.ConfigShardEvent{}
-	err = shardEventInfo.Deserialization(source)
-	if err != nil {
-		t.Errorf("Deserialization failed:%s", err)
-		return
-	}
-	if shardEventInfo.Height != shardEvent.Height {
-		t.Errorf("height not match:%d,%d", shardEventInfo.Height, shardEvent.Height)
-		return
-	}
-}
-
-func TestAddShardConsensusHeight(t *testing.T) {
-	shardID := common.NewShardIDUnchecked(1)
-	heights := []uint32{100, 120, 150}
-	testCrossShardStore.NewBatch()
-	testCrossShardStore.AddShardConsensusHeight(shardID, heights)
-	err := testCrossShardStore.CommitTo()
-	if err != nil {
-		t.Errorf("TestAddShardConsensusHeight CommitTo err :%s", err)
-		return
-	}
-	blkHeights, err := testCrossShardStore.GetShardConsensusHeight(shardID)
-	if err != nil {
-		t.Errorf("TestAddShardConsensusHeight failed GetShardConsensusHeight err:%s", err)
-		return
-	}
-	if !reflect.DeepEqual(heights, blkHeights) {
-		t.Errorf("TestAddShardConsensusHeight faied heigts:%v,blkHeigts:%v", heights, blkHeights)
 		return
 	}
 }

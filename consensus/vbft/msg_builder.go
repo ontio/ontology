@@ -195,7 +195,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		return nil, err
 	}
 	parentHeight := lastBlock.Block.Header.ParentHeight
-	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+	if self.ledger.GetParentHeight() > parentHeight {
 		parentHeight = parentHeight + 1
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
@@ -242,11 +242,10 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	return blk, nil
 }
 
-func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs, error) {
+func (self *Server) constructCrossShardHashMsg(blkNum uint32) (*types.CrossShardMsgHash, error) {
 	if self.ShardID.IsRootShard() {
 		return nil, nil
 	}
-	crossShardMsgs := &CrossShardMsgs{}
 	msgs := self.chainStore.GetExecShardNotify(blkNum)
 	if len(msgs) == 0 {
 		return nil, nil
@@ -255,23 +254,22 @@ func (self *Server) constructCrossShardHashMsgs(blkNum uint32) (*CrossShardMsgs,
 	for _, msg := range msgs {
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
-	for shardID, shardMsgs := range shardMsgMap {
+	var hashes []common.Uint256
+	for _, shardMsgs := range shardMsgMap {
 		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
-		sig, err := signature.Sign(self.account, msgHash[:])
-		if err != nil {
-			return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", msgHash.ToHexString(), err)
-		}
-		sigData := make(map[uint32][]byte)
-		sigData[self.Index] = sig
-		crossShardMsg := &types.CrossShardMsgHash{
-			ShardID: shardID,
-			MsgHash: msgHash,
-			SigData: sigData,
-		}
-		crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossShardMsg)
-		crossShardMsgs.Height = blkNum
+		hashes = append(hashes, msgHash)
 	}
-	return crossShardMsgs, nil
+	msgRoot := common.ComputeMerkleRoot(hashes)
+	sig, err := signature.Sign(self.account, msgRoot[:])
+	if err != nil {
+		return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
+	}
+	sigData := make(map[uint32][]byte)
+	sigData[self.Index] = sig
+	return &types.CrossShardMsgHash{
+		ShardMsgHashs: hashes,
+		SigData:       sigData,
+	}, nil
 }
 
 func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
@@ -320,7 +318,7 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
 	}
-	crossShardMsgs, err := self.constructCrossShardHashMsgs(blkNum - 1)
+	crossShardMsgHash, err := self.constructCrossShardHashMsg(blkNum - 1)
 	if err != nil {
 		return nil, fmt.Errorf("failed to CrossShardHashMsgs :%s,blkNum:%d", err, (blkNum - 1))
 	}
@@ -330,7 +328,7 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 			EmptyBlock:          emptyBlk,
 			Info:                vbftBlkInfo,
 			PrevBlockMerkleRoot: merkleRoot,
-			CrossMsg:            crossShardMsgs,
+			CrossMsgHash:        crossShardMsgHash,
 		},
 	}
 
@@ -361,18 +359,16 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	if err != nil {
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, err: %s", blkHash, err)
 	}
-	crossShardMsgs := &CrossShardMsgs{}
-	if proposal.Block.CrossMsg != nil {
-		for _, crossMsg := range proposal.Block.CrossMsg.CrossMsgs {
-			sig, err := signature.Sign(self.account, crossMsg.MsgHash[:])
-			if err != nil {
-				return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.MsgHash[:], err)
-			}
-			crossMsg.SigData[self.Index] = sig
-			crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
+	crossShardMsgHashSig := map[uint32][]byte(nil)
+	if proposal.Block.CrossMsgHash != nil {
+		msgRoot := common.ComputeMerkleRoot(proposal.Block.CrossMsgHash.ShardMsgHashs)
+		sig, err := signature.Sign(self.account, msgRoot[:])
+		if err != nil {
+			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
 		}
+		proposal.Block.CrossMsgHash.SigData[self.Index] = sig
+		crossShardMsgHashSig = proposal.Block.CrossMsgHash.SigData
 	}
-
 	msg := &blockEndorseMsg{
 		Endorser:          self.Index,
 		EndorsedProposer:  proposal.Block.getProposer(),
@@ -381,7 +377,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		EndorseForEmpty:   forEmpty,
 		ProposerSig:       proposerSig,
 		EndorserSig:       endorserSig,
-		CrossMsg:          crossShardMsgs,
+		CrossShardMsgSig:  crossShardMsgHashSig,
 	}
 
 	return msg, nil
@@ -412,38 +408,35 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, caused by: %s", blkHash, err)
 	}
 	endorsersSig := make(map[uint32][]byte)
-	crossShardMsg := make(map[uint32]*CrossShardMsgs)
+	crossshardmsgSig := make(map[uint32][]byte)
 	commitShard := true
 	for _, e := range endorses {
 		endorsersSig[e.Endorser] = e.EndorserSig
-		crossShardMsg[e.Endorser] = e.CrossMsg
+		for index, sig := range e.CrossShardMsgSig {
+			crossshardmsgSig[index] = sig
+		}
 		if e.Endorser == self.Index {
 			commitShard = false
 		}
 	}
-	if proposal.Block.CrossMsg != nil && commitShard {
-		crossShardMsgs := &CrossShardMsgs{}
-		for _, crossMsg := range proposal.Block.CrossMsg.CrossMsgs {
-			sig, err := signature.Sign(self.account, crossMsg.MsgHash[:])
-			if err != nil {
-				return nil, fmt.Errorf("sign cross shard msg failed, msg hash:%s, error: %s", crossMsg.MsgHash[:], err)
-			}
-			crossMsg.SigData[self.Index] = sig
-			crossShardMsgs.CrossMsgs = append(crossShardMsgs.CrossMsgs, crossMsg)
+	if proposal.Block.CrossMsgHash != nil && commitShard {
+		msgRoot := common.ComputeMerkleRoot(proposal.Block.CrossMsgHash.ShardMsgHashs)
+		sig, err := signature.Sign(self.account, msgRoot[:])
+		if err != nil {
+			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
 		}
-		crossShardMsg[self.Index] = crossShardMsgs
+		crossshardmsgSig[self.Index] = sig
 	}
-
 	msg := &blockCommitMsg{
-		Committer:       self.Index,
-		BlockProposer:   proposal.Block.getProposer(),
-		BlockNum:        proposal.Block.getBlockNum(),
-		CommitBlockHash: blkHash,
-		CommitForEmpty:  forEmpty,
-		ProposerSig:     proposerSig,
-		EndorsersSig:    endorsersSig,
-		CommitterSig:    committerSig,
-		CrossMsgSig:     crossShardMsg,
+		Committer:        self.Index,
+		BlockProposer:    proposal.Block.getProposer(),
+		BlockNum:         proposal.Block.getBlockNum(),
+		CommitBlockHash:  blkHash,
+		CommitForEmpty:   forEmpty,
+		ProposerSig:      proposerSig,
+		EndorsersSig:     endorsersSig,
+		CommitterSig:     committerSig,
+		CrossShardMsgSig: crossshardmsgSig,
 	}
 
 	return msg, nil

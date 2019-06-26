@@ -25,6 +25,8 @@ import (
 	"sort"
 	"strconv"
 
+	"github.com/ontio/ontology/events/message"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
@@ -52,7 +54,7 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	tx *types.Transaction, header *types.Header, notify *event.ExecuteNotify) error {
 	deploy := tx.Payload.(*payload.DeployCode)
 	address := deploy.Address()
-	parentContract, _ := store.GetContractStateFromParentShard(address)
+	parentContract, _ := store.GetParentContract(header.ParentHeight, address)
 	if parentContract != nil {
 		return fmt.Errorf("[HandleDeployTransaction] contract existed in parent shard")
 	}
@@ -70,11 +72,12 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	if tx.GasPrice != 0 {
 		// init smart contract configuration info
 		config := &smartcontract.Config{
-			ShardID:   shardID,
-			Time:      header.Timestamp,
-			Height:    header.Height,
-			Tx:        tx,
-			BlockHash: header.Hash(),
+			ShardID:      shardID,
+			Time:         header.Timestamp,
+			Height:       header.Height,
+			ParentHeight: header.ParentHeight,
+			Tx:           tx,
+			BlockHash:    header.Hash(),
 		}
 		createGasPrice, ok := gasTable[neovm.CONTRACT_CREATE_NAME]
 		if !ok {
@@ -118,6 +121,16 @@ func HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	}
 	if dep == nil {
 		cache.PutContract(deploy)
+		notify.Notify = append(notify.Notify,
+			&event.NotifyEventInfo{
+				ContractAddress: address,
+				States: &message.ContractLifetimeEvent{
+					Version:       common.CURR_HEADER_VERSION,
+					DeployHeight:  header.Height,
+					Contract:      deploy,
+					Destroyed:     false,
+					DestroyHeight: 0,
+				}})
 	}
 
 	notify.Notify = append(notify.Notify, notifies...)
@@ -134,11 +147,12 @@ func HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb
 		return fmt.Errorf("generate shardId failed, %s", err)
 	}
 	cfg := &smartcontract.Config{
-		ShardID:   shardID,
-		Time:      header.Timestamp,
-		Height:    header.Height,
-		Tx:        tx,
-		BlockHash: header.Hash(),
+		ShardID:      shardID,
+		Time:         header.Timestamp,
+		Height:       header.Height,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    header.Hash(),
 	}
 	defer func() {
 		if err != nil {
@@ -200,6 +214,13 @@ func HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb
 	}
 	notify.GasConsumed = gasConsumed
 	notify.State = event.CONTRACT_STATE_SUCCESS
+	notify.Notify = append(notify.Notify, &event.NotifyEventInfo{
+		ContractAddress: newMeta.Contract,
+		States: &message.MetaDataEvent{
+			Version:  common.CURR_HEADER_VERSION,
+			Height:   header.Height,
+			MetaData: meta,
+		}})
 	cache.Commit()
 	return nil
 }
@@ -914,11 +935,12 @@ func execShardTransaction(fromShard common.ShardID, store store.LedgerStore, gas
 		return
 	}
 	config := &smartcontract.Config{
-		ShardID:   shardID,
-		Time:      header.Timestamp,
-		Height:    header.Height,
-		Tx:        tx,
-		BlockHash: header.Hash(),
+		ShardID:      shardID,
+		Time:         header.Timestamp,
+		Height:       header.Height,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    header.Hash(),
 	}
 
 	if tx.TxType == types.Invoke {
@@ -997,11 +1019,12 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	}
 	// init smart contract configuration info
 	config := &smartcontract.Config{
-		ShardID:   shardID,
-		Time:      header.Timestamp,
-		Height:    header.Height,
-		Tx:        tx,
-		BlockHash: header.Hash(),
+		ShardID:      shardID,
+		Time:         header.Timestamp,
+		Height:       header.Height,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    header.Hash(),
 	}
 
 	var (

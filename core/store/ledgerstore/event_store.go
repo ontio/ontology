@@ -23,12 +23,15 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/payload"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
+	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
@@ -207,4 +210,171 @@ func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) []byte {
 	key[0] = byte(scom.EVENT_NOTIFY)
 	copy(key[1:], data)
 	return key
+}
+
+func (this *EventStore) SaveContractMetaDataEvent(height uint32, metaData *payload.MetaDataCode) {
+	key := getContractMetaDataKey(height, metaData.Contract)
+	value := common.NewZeroCopySink(64)
+	metaData.Serialization(value)
+	this.store.BatchPut(key, value.Bytes())
+}
+
+func (this *EventStore) GetContractMetaDataEvent(height uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
+	key := getContractMetaDataKey(height, contractAddr)
+	data, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	metaData := &payload.MetaDataCode{}
+	err = metaData.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return metaData, nil
+}
+
+func getContractMetaDataKey(height uint32, contractAddr common.Address) []byte {
+	key := common.NewZeroCopySink(10)
+	key.WriteByte(byte(scom.CROSS_SHARD_CONTRACT_META))
+	key.WriteUint32(height)
+	key.WriteBytes(contractAddr[:])
+	return key.Bytes()
+}
+
+func (this *EventStore) SaveContractMetaHeights(contractAddr common.Address, data []uint32) {
+	key := getContractMetaDataHeightsKey(contractAddr)
+	value := common.NewZeroCopySink(16)
+	value.WriteUint32(uint32(len(data)))
+	for _, height := range data {
+		value.WriteUint32(height)
+	}
+	this.store.BatchPut(key, value.Bytes())
+}
+
+func (this *EventStore) GetContractMetaHeights(contractAddr common.Address) ([]uint32, error) {
+	key := getContractMetaDataHeightsKey(contractAddr)
+	data, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	m, eof := source.NextUint32()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	heights := make([]uint32, 0)
+	for i := 0; i < int(m); i++ {
+		configheight, eof := source.NextUint32()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
+		heights = append(heights, configheight)
+	}
+	return heights, nil
+
+}
+
+func getContractMetaDataHeightsKey(contractAddr common.Address) []byte {
+	key := common.NewZeroCopySink(10)
+	key.WriteByte(byte(scom.CROSS_SHARD_CONTRACT_META_HEIGHT))
+	key.WriteBytes(contractAddr[:])
+	return key.Bytes()
+}
+
+func (this *EventStore) SaveContractEvent(evt *message.ContractLifetimeEvent) error {
+	oldEvt, err := this.GetContractEvent(evt.Contract.Address())
+	if err != nil && err != scom.ErrNotFound {
+		return fmt.Errorf("read old contract evt failed, err: %s", err)
+	}
+	// update event because contract destroyed or migrated
+	if oldEvt != nil {
+		evt.DeployHeight = oldEvt.DeployHeight
+		evt.Contract = oldEvt.Contract
+	}
+	key := getContractEventKey(evt.Contract.Address())
+	value := common.NewZeroCopySink(0)
+	evt.Serialization(value)
+	this.store.BatchPut(key, value.Bytes())
+	return nil
+}
+
+func (this *EventStore) GetContractEvent(addr common.Address) (*message.ContractLifetimeEvent, error) {
+	key := getContractEventKey(addr)
+	data, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	evt := &message.ContractLifetimeEvent{}
+	err = evt.Deserialization(source)
+	if err != nil {
+		return nil, err
+	}
+	return evt, nil
+}
+
+func getContractEventKey(contractAddr common.Address) []byte {
+	key := common.NewZeroCopySink(10)
+	key.WriteByte(byte(scom.CROSS_SHARD_CONTRACT_EVENT))
+	key.WriteBytes(contractAddr[:])
+	return key.Bytes()
+}
+
+func (this *EventStore) AddShardConsensusHeight(shardID common.ShardID, data []uint32) {
+	key := genShardConsensusHeightKey(shardID)
+	value := common.NewZeroCopySink(16)
+	value.WriteUint32(uint32(len(data)))
+	for _, height := range data {
+		value.WriteUint32(height)
+	}
+	this.store.BatchPut(key, value.Bytes())
+}
+
+func (this *EventStore) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
+	key := genShardConsensusHeightKey(shardID)
+	data, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	m, eof := source.NextUint32()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	heights := make([]uint32, 0)
+	for i := 0; i < int(m); i++ {
+		configheight, eof := source.NextUint32()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
+		heights = append(heights, configheight)
+	}
+	return heights, nil
+}
+
+func genShardConsensusHeightKey(shardID common.ShardID) []byte {
+	key := common.NewZeroCopySink(9)
+	key.WriteByte(byte(scom.CROSS_SHARD_HEIGHT))
+	key.WriteShardID(shardID)
+	return key.Bytes()
+}
+
+func (this *EventStore) AddShardConsensusConfig(shardID common.ShardID, height uint32, value []byte) error {
+	key := genShardConsensusConfigKey(shardID, height)
+	this.store.BatchPut(key, value)
+	return nil
+}
+
+func (this *EventStore) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
+	key := genShardConsensusConfigKey(shardID, height)
+	return this.store.Get(key)
+}
+
+func genShardConsensusConfigKey(shardID common.ShardID, height uint32) []byte {
+	key := common.NewZeroCopySink(16)
+	key.WriteByte(byte(scom.SHARD_CONFIG_DATA))
+	key.WriteShardID(shardID)
+	key.WriteUint32(height)
+	return key.Bytes()
 }

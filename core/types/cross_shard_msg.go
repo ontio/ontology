@@ -26,14 +26,15 @@ import (
 )
 
 type CrossShardMsgHash struct {
-	ShardID common.ShardID
-	MsgHash common.Uint256
-	SigData map[uint32][]byte
+	ShardMsgHashs []common.Uint256
+	SigData       map[uint32][]byte
 }
 
 func (this *CrossShardMsgHash) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteShardID(this.ShardID)
-	sink.WriteBytes(this.MsgHash[:])
+	sink.WriteUint32(uint32(len(this.ShardMsgHashs)))
+	for _, shardMsgHash := range this.ShardMsgHashs {
+		sink.WriteBytes(shardMsgHash[:])
+	}
 	sink.WriteUint32(uint32(len(this.SigData)))
 	IndexIds := make([]uint32, 0, len(this.SigData))
 	for id := range this.SigData {
@@ -47,18 +48,22 @@ func (this *CrossShardMsgHash) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *CrossShardMsgHash) Deserialization(source *common.ZeroCopySource) error {
-	var eof bool
-	var err error
-	this.ShardID, err = source.NextShardID()
-	if err != nil {
-		return err
-	}
-	this.MsgHash, eof = source.NextHash()
-	nsigDatas, eof := source.NextUint32()
+	m, eof := source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	sigData, err := zcpDeserializeShardSigData(source, nsigDatas)
+	for i := 0; i < int(m); i++ {
+		msghash, eof := source.NextHash()
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		this.ShardMsgHashs = append(this.ShardMsgHashs, msghash)
+	}
+	n, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	sigData, err := zcpDeserializeShardSigData(source, n)
 	if err != nil {
 		return err
 	}
@@ -128,51 +133,34 @@ func (this *CrossShardMsg) Deserialization(source *common.ZeroCopySource) error 
 }
 
 type CrossShardMsgInfo struct {
-	FromShardID          common.ShardID
-	MsgHeight            uint32
 	SignMsgHeight        uint32
 	PreCrossShardMsgHash common.Uint256
-	CrossShardMsgRoot    common.Uint256
-	ShardMsgHashs        []*CrossShardMsgHash
+	Index                uint32
+	ShardMsgInfo         *CrossShardMsgHash
 }
 
 func (this *CrossShardMsgInfo) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteShardID(this.FromShardID)
-	sink.WriteUint32(this.MsgHeight)
 	sink.WriteUint32(this.SignMsgHeight)
 	sink.WriteBytes(this.PreCrossShardMsgHash[:])
-	sink.WriteBytes(this.CrossShardMsgRoot[:])
-	sink.WriteVarUint(uint64(len(this.ShardMsgHashs)))
-	for _, shardMsgHash := range this.ShardMsgHashs {
-		shardMsgHash.Serialization(sink)
-	}
+	sink.WriteUint32(this.Index)
+	this.ShardMsgInfo.Serialization(sink)
+
 }
 
 func (this *CrossShardMsgInfo) Deserialization(source *common.ZeroCopySource) error {
 	var eof bool
-	var err error
-	this.FromShardID, err = source.NextShardID()
-	if err != nil {
-		return err
-	}
-	this.MsgHeight, eof = source.NextUint32()
 	this.SignMsgHeight, eof = source.NextUint32()
 	this.PreCrossShardMsgHash, eof = source.NextHash()
-	this.CrossShardMsgRoot, eof = source.NextHash()
-	m, _, irregular, eof := source.NextVarUint()
+	this.Index, eof = source.NextUint32()
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	if irregular {
-		return common.ErrIrregularData
+	if this.ShardMsgInfo == nil {
+		this.ShardMsgInfo = new(CrossShardMsgHash)
 	}
-	for i := 0; i < int(m); i++ {
-		crossShardMsgHash := &CrossShardMsgHash{}
-		err = crossShardMsgHash.Deserialization(source)
-		if err != nil {
-			return err
-		}
-		this.ShardMsgHashs = append(this.ShardMsgHashs, crossShardMsgHash)
+	err := this.ShardMsgInfo.Deserialization(source)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -183,12 +171,8 @@ type CrossShardTxInfos struct {
 }
 
 func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) error {
-	if this.ShardMsg != nil {
-		this.ShardMsg.Serialization(sink)
-	}
-	if this.Tx != nil {
-		this.Tx.Serialization(sink)
-	}
+	this.ShardMsg.Serialization(sink)
+	this.Tx.Serialization(sink)
 	return nil
 }
 
@@ -201,11 +185,12 @@ func (this *CrossShardTxInfos) Deserialization(source *common.ZeroCopySource) er
 	if err != nil {
 		return err
 	}
-	tx := &Transaction{}
-	err = tx.Deserialization(source)
+	if this.Tx == nil {
+		this.Tx = new(Transaction)
+	}
+	err = this.Tx.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	this.Tx = tx
 	return nil
 }

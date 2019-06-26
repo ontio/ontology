@@ -20,9 +20,12 @@ package neovm
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/errors"
+	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
@@ -34,7 +37,7 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract parameters invalid!")
 	}
 	contractAddress := contract.Address()
-	parentContract, _ := service.Store.GetContractStateFromParentShard(contractAddress)
+	parentContract, _ := service.Store.GetParentContract(service.ContextRef.GetParentHeight(), contractAddress)
 	if parentContract != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] contract existed in parent shard!")
 	}
@@ -45,6 +48,16 @@ func ContractCreate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if dep == nil {
 		service.CacheDB.PutContract(contract)
 		dep = contract
+		service.Notifications = append(service.Notifications,
+			&event.NotifyEventInfo{
+				ContractAddress: contractAddress,
+				States: &message.ContractLifetimeEvent{
+					Version:       common.CURR_HEADER_VERSION,
+					DeployHeight:  service.Height,
+					Contract:      contract,
+					Destroyed:     false,
+					DestroyHeight: 0,
+				}})
 	}
 	vm.PushData(engine, dep)
 	return nil
@@ -70,6 +83,14 @@ func InitMetaData(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 	newMeta.OntVersion = common.CURR_TX_VERSION
 	service.CacheDB.PutMetaData(newMeta)
+	service.Notifications = append(service.Notifications,
+		&event.NotifyEventInfo{
+			ContractAddress: contractAddress,
+			States: &message.MetaDataEvent{
+				Version:  common.CURR_HEADER_VERSION,
+				Height:   service.Height,
+				MetaData: newMeta,
+			}})
 	vm.PushData(engine, true)
 	return nil
 }
@@ -88,6 +109,26 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	context := service.ContextRef.CurrentContext()
 	oldAddr := context.ContractAddress
 
+	newContractEvt := &event.NotifyEventInfo{
+		ContractAddress: newAddr,
+		States: &message.ContractLifetimeEvent{
+			Version:       common.CURR_HEADER_VERSION,
+			DeployHeight:  service.Height,
+			Contract:      contract,
+			Destroyed:     false,
+			DestroyHeight: 0,
+		}}
+	oldContractEvt := &event.NotifyEventInfo{
+		ContractAddress: oldAddr,
+		States: &message.ContractLifetimeEvent{
+			Version:       common.CURR_HEADER_VERSION,
+			DeployHeight:  0,
+			Contract:      &payload.DeployCode{},
+			Destroyed:     true,
+			DestroyHeight: service.Height,
+		}}
+	service.Notifications = append(service.Notifications, newContractEvt, oldContractEvt)
+
 	service.CacheDB.PutContract(contract)
 	service.CacheDB.DeleteContract(oldAddr)
 
@@ -99,6 +140,14 @@ func ContractMigrate(service *NeoVmService, engine *vm.ExecutionEngine) error {
 		meta.Contract = newAddr
 		service.CacheDB.PutMetaData(meta)
 		service.CacheDB.DeleteMetaData(oldAddr)
+		service.Notifications = append(service.Notifications,
+			&event.NotifyEventInfo{
+				ContractAddress: newAddr,
+				States: &message.MetaDataEvent{
+					Version:  common.CURR_HEADER_VERSION,
+					Height:   service.Height,
+					MetaData: meta,
+				}})
 	}
 
 	iter := service.CacheDB.NewIterator(oldAddr[:])
@@ -132,6 +181,16 @@ func ContractDestory(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	}
 
 	service.CacheDB.DeleteContract(addr)
+	oldContractEvt := &event.NotifyEventInfo{
+		ContractAddress: addr,
+		States: &message.ContractLifetimeEvent{
+			Version:       common.CURR_HEADER_VERSION,
+			DeployHeight:  0,
+			Contract:      &payload.DeployCode{},
+			Destroyed:     true,
+			DestroyHeight: service.Height,
+		}}
+	service.Notifications = append(service.Notifications, oldContractEvt)
 
 	iter := service.CacheDB.NewIterator(addr[:])
 	for has := iter.First(); has; has = iter.Next() {

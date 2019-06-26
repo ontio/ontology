@@ -22,6 +22,7 @@ package ledgerstore
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"hash"
 	"math"
@@ -53,6 +54,7 @@ import (
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
@@ -604,10 +606,11 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			return
 		}
 		config := &smartcontract.Config{
-			ShardID: shardID,
-			Time:    block.Header.Timestamp,
-			Height:  block.Header.Height,
-			Tx:      &types.Transaction{},
+			ShardID:      shardID,
+			Time:         block.Header.Timestamp,
+			Height:       block.Header.Height,
+			ParentHeight: block.Header.ParentHeight,
+			Tx:           &types.Transaction{},
 		}
 
 		err = refreshGlobalParam(config, storage.NewCacheDB(this.stateStore.NewOverlayDB()), this)
@@ -758,7 +761,7 @@ func accumulateHash(hasher hash.Hash, iter scom.StoreIterator) error {
 }
 
 func (this *LedgerStoreImp) saveShardState(block *types.Block, result store.ExecuteResult) {
-	shardSysMsg := extractShardSysEvents(result.Notify)
+	shardSysMsg, _, _ := extractShardEvents(result.Notify)
 	this.stateStore.AddBlockShardEvents(block.Header.Height, shardSysMsg)
 }
 
@@ -826,6 +829,104 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 	return nil
 }
 
+func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result store.ExecuteResult) error {
+	shardSysMsg, metaEvents, deployContractEvent := extractShardEvents(result.Notify)
+	err := this.saveCrossShardGovernanceData(block, shardSysMsg)
+	if err != nil {
+		return err
+	}
+	err = this.saveParentShardConfig(block)
+	if err != nil {
+		return err
+	}
+	this.saveCrossShardConstactMetaData(metaEvents)
+	err = this.saveCrossShardDeployContractEventData(deployContractEvent)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, shardEvts []*message.ShardSystemEventMsg) error {
+	for _, evt := range shardEvts {
+		shardEvt := evt.Event
+		switch shardEvt.EventType {
+		case shardstates.EVENT_SHARD_CONFIG_UPDATE:
+			cfgEvt := &shardstates.ConfigShardEvent{}
+			if err := cfgEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
+				log.Errorf("deserialize update shard config event: %s", err)
+				continue
+			}
+			return this.addShardEventConfig(cfgEvt.Height, cfgEvt.ImplSourceTargetShardID.ShardID, cfgEvt.Config, cfgEvt.Peers)
+		}
+	}
+	return nil
+}
+
+func (this *LedgerStoreImp) saveParentShardConfig(block *types.Block) error {
+	blkInfo := &vconfig.VbftBlockInfo{}
+	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
+		return fmt.Errorf("unmarshal blockInfo: %s", err)
+	}
+	if blkInfo.LastConfigBlockNum != block.Header.Height {
+		return nil
+	}
+	config := &shardstates.ShardConfig{
+		VbftCfg: &config.VBFTConfig{
+			N: blkInfo.NewChainConfig.N,
+			C: blkInfo.NewChainConfig.C,
+		},
+	}
+	peers := make(map[string]*shardstates.PeerShardStakeInfo)
+	for _, peer := range blkInfo.NewChainConfig.Peers {
+		peers[peer.ID] = &shardstates.PeerShardStakeInfo{
+			Index:      peer.Index,
+			PeerPubKey: peer.ID,
+			NodeType:   shardstates.CONSENSUS_NODE,
+		}
+	}
+	return this.addShardEventConfig(block.Header.Height, common.NewShardIDUnchecked(block.Header.ShardID), config, peers)
+}
+
+func (this *LedgerStoreImp) addShardEventConfig(height uint32, shardID common.ShardID, cfg *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo) error {
+	shardEvent := &shardstates.ConfigShardEvent{
+		Height: height,
+		Config: cfg,
+		Peers:  peers,
+	}
+	sink := common.ZeroCopySink{}
+	shardEvent.Serialization(&sink)
+	err := this.eventStore.AddShardConsensusConfig(shardID, height, sink.Bytes())
+	if err != nil {
+		return fmt.Errorf("AddShardConsensusConfig err:%s", err)
+	}
+
+	heights, err := this.eventStore.GetShardConsensusHeight(shardID)
+	if err != nil {
+		if err != scom.ErrNotFound {
+			return fmt.Errorf("GetShardConsensusHeight shardID:%v, err:%s", shardID, err)
+		}
+	}
+	heights = append(heights, height)
+	this.eventStore.AddShardConsensusHeight(shardID, heights)
+	return nil
+}
+
+func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message.MetaDataEvent) {
+	for _, metaEvent := range metaEvents {
+		this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
+	}
+}
+func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.ContractLifetimeEvent) error {
+	for _, contractEvent := range contractEvents {
+		err := this.eventStore.SaveContractEvent(contractEvent)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (this *LedgerStoreImp) tryGetSavingBlockLock() (hasLocked bool) {
 	select {
 	case this.savingBlockSemaphore <- true:
@@ -873,6 +974,10 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	if err != nil {
 		return fmt.Errorf("save to event store height:%d error:%s", blockHeight, err)
 	}
+	err = this.saveCrossShardDataToStore(block, result)
+	if err != nil {
+		return fmt.Errorf("save to save cross shard data height:%d error:%s", blockHeight, err)
+	}
 	err = this.blockStore.CommitTo()
 	if err != nil {
 		return fmt.Errorf("blockStore.CommitTo height:%d error %s", blockHeight, err)
@@ -888,7 +993,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	}
 	this.setCurrentBlock(blockHeight, blockHash)
 
-	shardSysMsg := extractShardSysEvents(result.Notify)
+	shardSysMsg, _, _ := extractShardEvents(result.Notify)
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
@@ -900,8 +1005,11 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	return nil
 }
 
-func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystemEventMsg {
+func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent,
+	[]*message.ContractLifetimeEvent) {
 	var shardSysMsg []*message.ShardSystemEventMsg
+	metaEvents := make([]*message.MetaDataEvent, 0)
+	contractEvents := make([]*message.ContractLifetimeEvent, 0)
 	for _, txEvents := range notify {
 		for _, n := range txEvents.Notify {
 			if n.ContractAddress == utils.ShardMgmtContractAddress ||
@@ -912,11 +1020,15 @@ func extractShardSysEvents(notify []*event.ExecuteNotify) []*message.ShardSystem
 						Event:       shardEvt,
 					})
 				}
+			} else if evt, ok := n.States.(*message.MetaDataEvent); ok {
+				metaEvents = append(metaEvents, evt)
+			} else if evt, ok := n.States.(*message.ContractLifetimeEvent); ok {
+				contractEvents = append(contractEvents, evt)
 			}
 		}
 	}
 
-	return shardSysMsg
+	return shardSysMsg, metaEvents, contractEvents
 }
 
 func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
@@ -1094,24 +1206,8 @@ func (this *LedgerStoreImp) GetContractState(contractHash common.Address) (*payl
 }
 
 //GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
-func (this *LedgerStoreImp) GetContractStateFromParentShard(contractHash common.Address) (*payload.DeployCode, error) {
-	if this.parentShardStore == nil {
-		return nil, nil
-	}
-	return this.parentShardStore.GetContractState(contractHash)
-}
-
-//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
 func (this *LedgerStoreImp) GetContractMetaData(contractHash common.Address) (*payload.MetaDataCode, error) {
 	return this.stateStore.GetContractMetaData(contractHash)
-}
-
-//GetContractState return contract by contract address. Wrap function of StateStore.GetContractState
-func (this *LedgerStoreImp) GetContractMetaDataFromParentShard(contractHash common.Address) (*payload.MetaDataCode, error) {
-	if this.parentShardStore == nil {
-		return nil, nil
-	}
-	return this.parentShardStore.GetContractMetaData(contractHash)
 }
 
 //GetStorageItem return the storage value of the key in smart contract. Wrap function of StateStore.GetStorageState
@@ -1138,12 +1234,18 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	if err != nil {
 		return stf, err
 	}
+	header, err := this.GetHeaderByHeight(height)
+	if err != nil {
+		return stf, err
+	}
+
 	config := &smartcontract.Config{
-		ShardID:   shardID,
-		Time:      uint32(time.Now().Unix()),
-		Height:    height + 1,
-		Tx:        tx,
-		BlockHash: this.GetBlockHash(height),
+		ShardID:      shardID,
+		Time:         uint32(time.Now().Unix()),
+		Height:       height + 1,
+		ParentHeight: header.ParentHeight,
+		Tx:           tx,
+		BlockHash:    this.GetBlockHash(height),
 	}
 
 	overlay := this.stateStore.NewOverlayDB()
@@ -1245,6 +1347,35 @@ func (self *LedgerStoreImp) GetRelatedShardIDsInBlock(blockHeight uint32) ([]com
 	return self.stateStore.GetRelatedShardIDsInBlock(blockHeight)
 }
 
+func (self *LedgerStoreImp) GetParentMetaData(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
+	if self.parentShardStore == nil {
+		return nil, fmt.Errorf("parent ledger nil")
+	}
+	return self.parentShardStore.GetMetaDataEvnet(blockHeight, contractAddr)
+}
+
+func (self *LedgerStoreImp) GetParentContract(blockHeight uint32, addr common.Address) (*payload.DeployCode, error) {
+	if self.parentShardStore == nil {
+		return nil, fmt.Errorf("parent ledger nil")
+	}
+	evt, err := self.parentShardStore.GetContractEvent(addr)
+	if err != nil {
+		return nil, err
+	}
+	if evt.Destroyed && evt.DestroyHeight < blockHeight {
+		return nil, fmt.Errorf("contract has already destoryed")
+	}
+	return evt.Contract, nil
+}
+
+func (self *LedgerStoreImp) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
+	return self.eventStore.GetShardConsensusHeight(shardID)
+}
+
+func (self *LedgerStoreImp) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
+	return self.eventStore.GetShardConsensusConfig(shardID, height)
+}
+
 //Close ledger store.
 func (this *LedgerStoreImp) Close() error {
 	err := this.blockStore.Close()
@@ -1260,4 +1391,12 @@ func (this *LedgerStoreImp) Close() error {
 		return fmt.Errorf("eventStore close error %s", err)
 	}
 	return nil
+}
+
+func (this *LedgerStoreImp) GetContractEvent(addr common.Address) (*message.ContractLifetimeEvent, error) {
+	return this.eventStore.GetContractEvent(addr)
+}
+
+func (this *LedgerStoreImp) GetMetaDataEvnet(height uint32, addr common.Address) (*payload.MetaDataCode, error) {
+	return this.eventStore.GetContractMetaDataEvent(height, addr)
 }

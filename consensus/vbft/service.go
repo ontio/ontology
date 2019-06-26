@@ -1160,7 +1160,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	}
 
 	parentHeight := blk.Block.Header.ParentHeight
-	if self.ledger.HasParentBlockInCache(parentHeight + 1) {
+	if self.ledger.GetParentHeight() > parentHeight {
 		parentHeight = parentHeight + 1
 	}
 	if parentHeight < msg.Block.Block.Header.ParentHeight {
@@ -1215,7 +1215,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 }
 
 func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
-	if msg.Block.CrossMsg == nil {
+	if msg.Block.CrossMsgHash == nil {
 		return true
 	}
 	msgBlkNum := msg.GetBlockNum()
@@ -1224,17 +1224,20 @@ func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
 	for _, msg := range shardMsgs {
 		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
 	}
-	for _, crossMsg := range msg.Block.CrossMsg.CrossMsgs {
-		if shardMsg, present := shardMsgMap[crossMsg.ShardID]; !present {
-			log.Errorf("BlockPrposalMessage ShardId:%v not found", crossMsg.ShardID)
-			return false
-		} else {
-			msgHash := xshard_types.GetShardCommonMsgsHash(shardMsg)
-			if msgHash != crossMsg.MsgHash {
-				log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgHash.ToHexString(), crossMsg.MsgHash.ToHexString())
-				return false
-			}
-		}
+	var hashes []common.Uint256
+	for _, shardMsgs := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
+		hashes = append(hashes, msgHash)
+	}
+	if len(msg.Block.CrossMsgHash.ShardMsgHashs) != len(hashes) {
+		log.Errorf("BlockPrposalMessage msgHash len:%d not equal shardmsghash len:%d", len(msg.Block.CrossMsgHash.ShardMsgHashs), len(hashes))
+		return false
+	}
+	msgRoot := common.ComputeMerkleRoot(hashes)
+	proposalMsgRoot := common.ComputeMerkleRoot(msg.Block.CrossMsgHash.ShardMsgHashs)
+	if msgRoot != proposalMsgRoot {
+		log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgRoot.ToHexString(), proposalMsgRoot.ToHexString())
+		return false
 	}
 	return true
 }
@@ -1242,57 +1245,58 @@ func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
 func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 	for _, crossTxMsgs := range msg.Block.Block.ShardTxs {
 		for _, crossTxMsg := range crossTxMsgs {
-			if crossTxMsg.ShardMsg.FromShardID.IsRootShard() {
+			if crossTxMsg.ShardMsg == nil {
 				continue
 			}
-			//verify msg sign
-			chainconfig, err := getShardConfigByShardID(self.ledger, crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight)
-			if err != nil {
-				if err != com.ErrNotFound {
-					log.Errorf("getShardConfigByShardID shardID:%v,height:%d err:%s", crossTxMsg.ShardMsg.FromShardID, crossTxMsg.ShardMsg.SignMsgHeight, err)
-					return false
-				} else {
-					return true
-				}
+			shardCall := crossTxMsg.Tx.Payload.(*payload.ShardCall)
+			if len(shardCall.Msgs) == 0 {
+				continue
 			}
-			for _, msgHash := range crossTxMsg.ShardMsg.ShardMsgHashs {
-				var bookkeepers []keypair.PublicKey
-				m := int(chainconfig.N - (chainconfig.N-1)/3)
-				for _, peer := range chainconfig.Peers {
-					pubkey, err := vconfig.Pubkey(peer.ID)
-					if err != nil {
-						log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.ID, err)
-						return false
-					}
-					bookkeepers = append(bookkeepers, pubkey)
-				}
-				sigData := make([][]byte, 0)
-				for _, sig := range msgHash.SigData {
-					sigData = append(sigData, sig)
-				}
-				err = sign.VerifyMultiSignature(msgHash.MsgHash[:], bookkeepers, m, sigData)
-				if err != nil {
-					log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(msgHash.SigData))
-					return false
-				}
-			}
-			//verify msg hash
-			var hashes []common.Uint256
-			shardMsgRoot := crossTxMsg.ShardMsg.CrossShardMsgRoot
-			for _, shardMsg := range crossTxMsg.ShardMsg.ShardMsgHashs {
-				if shardMsg.ShardID != self.ShardID {
-					hashes = append(hashes, shardMsg.MsgHash)
-				}
+			if shardCall.Msgs[0].GetSourceShardID().IsRootShard() {
+				continue
 			}
 			if crossTxMsg.Tx.TxType != types.ShardCall {
 				log.Errorf("verifyCrossShardTx cross shard txtype:%d not shardcall", crossTxMsg.Tx.TxType)
 				return false
 			}
-			shardCall := crossTxMsg.Tx.Payload.(*payload.ShardCall)
-			hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
-			msgRoot := common.ComputeMerkleRoot(hashes)
-			if shardMsgRoot != msgRoot {
-				log.Errorf("verifyCrossShardTx shard msgroot:%s,not match msgroot:%s", shardMsgRoot.ToHexString(), msgRoot.ToHexString())
+			if shardCall.Msgs[0].GetSourceShardID().IsRootShard() {
+				continue
+			}
+			//verify msg sign
+			ledger := self.ledger
+			if !self.ShardID.IsRootShard() {
+				ledger = self.ledger.ParentLedger
+			}
+			chainconfig, err := getShardConfigByShardID(ledger, shardCall.Msgs[0].GetSourceShardID(), crossTxMsg.ShardMsg.SignMsgHeight)
+			if err != nil {
+				if err != com.ErrNotFound {
+					log.Errorf("getShardConfigByShardID shardID:%v,height:%d err:%s", shardCall.Msgs[0].GetSourceShardID(), crossTxMsg.ShardMsg.SignMsgHeight, err)
+					return false
+				} else {
+					return true
+				}
+			}
+			var bookkeepers []keypair.PublicKey
+			m := int(chainconfig.N - (chainconfig.N-1)/3)
+			for _, peer := range chainconfig.Peers {
+				pubkey, err := vconfig.Pubkey(peer.ID)
+				if err != nil {
+					log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.ID, err)
+					return false
+				}
+				bookkeepers = append(bookkeepers, pubkey)
+			}
+			sigData := make([][]byte, 0)
+			for _, sig := range crossTxMsg.ShardMsg.ShardMsgInfo.SigData {
+				sigData = append(sigData, sig)
+			}
+			hashes := crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs
+			hash := xshard_types.GetShardCommonMsgsHash(shardCall.Msgs)
+			hashes = append(hashes, hash)
+			msgHash := common.ComputeMerkleRoot(hashes)
+			err = sign.VerifyMultiSignature(msgHash[:], bookkeepers, m, sigData)
+			if err != nil {
+				log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(crossTxMsg.ShardMsg.ShardMsgInfo.SigData))
 				return false
 			}
 		}
@@ -2255,6 +2259,7 @@ func (self *Server) createShardGovTransaction(blkNum uint32) (*types.Transaction
 	//build transaction
 	mutable := utils.BuildNativeTransaction(nutils.ShardMgmtContractAddress, shardmgmt.NOTIFY_PARENT_COMMIT_DPOS, []byte{})
 	mutable.GasPrice = 0
+	mutable.GasLimit = 200000
 	mutable.Payer = self.account.Address
 	mutable.Nonce = blkNum
 	// add signatures
