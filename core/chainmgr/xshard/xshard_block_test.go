@@ -24,9 +24,11 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
+	"github.com/stretchr/testify/assert"
 )
 
 func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
@@ -114,4 +116,51 @@ func TestAddCrossShardInfo(t *testing.T) {
 		t.Errorf("GetCrossShardTxs failed:%s", err)
 	}
 	t.Logf("GetCrossShardTxs:%d", len(crossShardTx))
+}
+
+func TestCrossShardTxInfos_Serialize(t *testing.T) {
+	acc := account.NewAccount("")
+	if acc == nil {
+		t.Fatalf("failed to new account")
+	}
+	shardMsg := []xshard_types.CommonShardMsg{&xshard_types.XShardCommitMsg{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: common.NewShardIDUnchecked(1),
+			TargetShardID: common.NewShardIDUnchecked(0),
+			SourceTxHash:  common.Uint256{1, 2, 3},
+			ShardTxID:     "2",
+		},
+	}}
+	sigData := make(map[uint32][]byte)
+	sigData[0] = []byte("123456")
+	sigData[1] = []byte("345678")
+	hashes := make([]common.Uint256, 0)
+	hashes = append(hashes, common.Uint256{1, 2, 3})
+	crossShardMsgHash := &types.CrossShardMsgHash{
+		ShardMsgHashs: hashes,
+		SigData:       sigData,
+	}
+	tx, err := message.NewCrossShardTxMsg(acc, 100, common.NewShardIDUnchecked(10), 500, 20000, shardMsg)
+	if err != nil {
+		t.Fatalf("failed to build cross shard tx: %s", err)
+	}
+	crossShardTxInfos := &types.CrossShardTxInfos{
+		ShardMsg: &types.CrossShardMsgInfo{
+			SignMsgHeight:        uint32(100),
+			PreCrossShardMsgHash: common.Uint256{1, 2, 3},
+			Index:                1,
+			ShardMsgInfo:         crossShardMsgHash,
+		},
+		Tx: tx,
+	}
+	sink := common.NewZeroCopySink(0)
+	crossShardTxInfos.Serialization(sink)
+	msg := sink.Bytes()
+	var sharTxInfos types.CrossShardTxInfos
+	source := common.NewZeroCopySource(msg)
+	err = sharTxInfos.Deserialization(source)
+	assert.Nil(t, err)
+	if crossShardTxInfos.ShardMsg.Index != sharTxInfos.ShardMsg.Index {
+		t.Errorf("cross shardTx info index:%d not equal index:%d", crossShardTxInfos.ShardMsg.Index, sharTxInfos.ShardMsg.Index)
+	}
 }
