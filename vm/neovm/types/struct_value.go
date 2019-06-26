@@ -20,6 +20,11 @@ package types
 
 import "fmt"
 
+const (
+	MAX_STRUCT_DEPTH = 10
+	MAX_CLONE_LENGTH = 1024
+)
+
 // struct value is value type
 type StructValue struct {
 	Data []VmValue
