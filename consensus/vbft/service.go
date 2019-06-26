@@ -1240,14 +1240,8 @@ func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
 }
 
 func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
-	if len(msg.Block.Block.ShardTxs) == 0 {
-		return true
-	}
 	for _, crossTxMsgs := range msg.Block.Block.ShardTxs {
 		for _, crossTxMsg := range crossTxMsgs {
-			if crossTxMsg.ShardMsg == nil {
-				continue
-			}
 			if crossTxMsg.ShardMsg.FromShardID.IsRootShard() {
 				continue
 			}
