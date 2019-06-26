@@ -254,11 +254,6 @@ func TestVmValue_AsBool(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, true, res)
 
-	m_old := NewMap()
-	res2, err := m_old.GetBoolean()
-	assert.Nil(t, err)
-	assert.Equal(t, res2, true)
-
 	val_bs, err := VmValueFromBytes(common.BigIntToNeoBytes(b))
 	assert.Nil(t, err)
 	val_b, err := VmValueFromBigInt(b)

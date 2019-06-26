@@ -89,45 +89,12 @@ func newVmValue(t *testing.T, data Value) types.VmValue {
 	}
 }
 
-func newVmValueOld(t *testing.T, data Value) types.StackItems {
-	switch v := data.(type) {
-	case int8, int16, int32, int64, int, uint8, uint16, uint32, uint64, *big.Int, big.Int:
-		val := types.NewInteger(ToBigInt(v))
-		return val
-	case bool:
-		return types.NewBoolean(v)
-	case []byte:
-		val := types.NewByteArray(v)
-		return val
-	case string:
-		val := types.NewByteArray([]byte(v))
-		return val
-	case []Value:
-		var arr []types.StackItems
-		for _, item := range v {
-			arr = append(arr, newVmValueOld(t, item))
-		}
-
-		return types.NewArray(arr)
-	case map[interface{}]interface{}:
-		mp := types.NewMap()
-		for k, value := range v {
-			mp.Add(newVmValueOld(t, k), newVmValueOld(t, value))
-		}
-		return mp
-	case interfaces.Interop:
-		return types.NewInteropInterface(v)
-	default:
-		panic(fmt.Sprintf("newVmValue Invalid Type:%t", v))
-	}
-}
-
 func checkStackOpCode(t *testing.T, code OpCode, origin, expected []Value) {
 	checkAltStackOpCode(t, code, [2][]Value{origin, {}}, [2][]Value{expected, {}})
 }
 
 func checkAltStackOpCode(t *testing.T, code OpCode, origin [2][]Value, expected [2][]Value) {
-	checkAltStackOpCodeOld(t, []byte{byte(code)}, origin, expected)
+	//checkAltStackOpCodeOld(t, []byte{byte(code)}, origin, expected)
 	checkAltStackOpCodeNew(t, []byte{byte(code)}, origin, expected)
 }
 
@@ -143,7 +110,7 @@ func checkMultiAltStackOpCode(t *testing.T, code []byte, origin [2][]Value, expe
 	for _, c := range code {
 		raw = append(raw, byte(c))
 	}
-	checkAltStackOpCodeOld(t, raw, origin, expected)
+	//checkAltStackOpCodeOld(t, raw, origin, expected)
 	checkAltStackOpCodeNew(t, raw, origin, expected)
 }
 func checkMultiOpCode(t *testing.T, code []byte, origin []Value, expected []Value) {
@@ -151,7 +118,7 @@ func checkMultiOpCode(t *testing.T, code []byte, origin []Value, expected []Valu
 	for _, c := range code {
 		raw = append(raw, byte(c))
 	}
-	checkAltStackOpCodeOld(t, raw, [2][]Value{origin}, [2][]Value{expected})
+	//checkAltStackOpCodeOld(t, raw, [2][]Value{origin}, [2][]Value{expected})
 	checkAltStackOpCodeNew(t, raw, [2][]Value{origin}, [2][]Value{expected})
 }
 
@@ -510,48 +477,4 @@ func TestXTuck(t *testing.T) {
 func TestThrow(t *testing.T) {
 	checkStackOpCode(t, THROW, []Value{}, []Value{})
 	checkStackOpCode(t, THROWIFNOT, []Value{true}, []Value{})
-}
-
-func checkAltStackOpCodeOld(t *testing.T, code []byte, origin [2][]Value, expected [2][]Value) {
-	executor := NewExecutionEngine()
-	context := NewExecutionContext(code)
-	executor.PushContext(context)
-	for _, val := range origin[0] {
-		executor.EvaluationStack.Push(newVmValueOld(t, val))
-	}
-	for _, val := range origin[1] {
-		executor.AltStack.Push(newVmValueOld(t, val))
-	}
-	err := executor.Execute()
-	assert.Nil(t, err)
-	assert.Equal(t, len(expected[0]), executor.EvaluationStack.Count())
-	assert.Equal(t, len(expected[1]), executor.AltStack.Count())
-
-	stacks := [2]*RandomAccessStack{executor.EvaluationStack, executor.AltStack}
-	for s, stack := range stacks {
-		expect := expected[s]
-		for i := 0; i < len(expect); i++ {
-			val := expect[len(expect)-i-1]
-			res := stack.Pop()
-			exp := newVmValueOld(t, val)
-			assertEqualOld(t, res, exp)
-		}
-	}
-}
-
-func oldValue2json(t *testing.T, expect types.StackItems) string {
-	//e, err := common.ConvertNeoVmTypeHexString(expect)
-	e, err := types.Stringify(expect)
-	assert.Nil(t, err)
-	exp, err := json.Marshal(e)
-	assert.Nil(t, err)
-
-	return string(exp)
-}
-
-func assertEqualOld(t *testing.T, expect, actual types.StackItems) {
-	ex := oldValue2json(t, expect)
-	act := oldValue2json(t, actual)
-
-	assert.Equal(t, ex, act)
 }

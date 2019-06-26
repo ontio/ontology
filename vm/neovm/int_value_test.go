@@ -176,6 +176,16 @@ func compareFuncBigInt(left, right *big.Int, opcode OpCode) ([]byte, error) {
 	return common.BigIntToNeoBytes(nb), nil
 }
 
+func CheckBigInteger(value *big.Int) bool {
+	if value == nil {
+		return false
+	}
+	if len(common.BigIntToNeoBytes(value)) > MAX_SIZE_FOR_BIGINTEGER {
+		return false
+	}
+	return true
+}
+
 func TestRsh(t *testing.T) {
 	val := types.IntValFromInt(math.MaxInt64)
 	b := new(big.Int).SetUint64(math.MaxUint64)
