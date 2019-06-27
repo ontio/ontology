@@ -78,4 +78,3 @@ func NativeInvoke(service *NeoVmService, engine *vm.Executor) error {
 	}
 	return engine.EvalStack.PushBytes(result)
 }
-

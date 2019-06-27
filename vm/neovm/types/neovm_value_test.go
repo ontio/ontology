@@ -27,11 +27,27 @@ import (
 	"testing"
 )
 
+func buildStruct(item []VmValue) *StructValue {
+	s := NewStructValue()
+	for _, val := range item {
+		s.Append(val)
+	}
+	return s
+}
+
+func buildArray(item []VmValue) *ArrayValue {
+	arr := NewArrayValue()
+	for _, val := range item {
+		arr.Append(val)
+	}
+	return arr
+}
+
 func TestSerialize(t *testing.T) {
 
 	bsValue, err := VmValueFromBytes([]byte("test"))
-	fmt.Println(common.ToHexString([]byte("test")))
 	assert.Equal(t, err, nil)
+
 	boolValue := VmValueFromBool(true)
 
 	bigin := new(big.Int)
@@ -40,30 +56,19 @@ func TestSerialize(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	uint64Value := VmValueFromUint64(uint64(100))
-	s := NewStructValue()
-	s.Append(bsValue)
-	s.Append(boolValue)
-	s.Append(biginValue)
-	s.Append(uint64Value)
+
+	s := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
 	structValue := VmValueFromStructVal(s)
 	sink := new(common.ZeroCopySink)
 	structValue.Serialize(sink)
-	fmt.Println(common.ToHexString(sink.Bytes()))
 	assert.Equal(t, common.ToHexString(sink.Bytes()), "810400047465737401010202e803020164")
-
-	structValueStr, err := structValue.ConvertNeoVmValueHexString()
-	fmt.Println("structValueStr:", structValueStr)
 
 	source := common.NewZeroCopySource(sink.Bytes())
 	vs := VmValue{}
 	vs.Deserialize(source)
 	assert.Equal(t, structValue, vs)
 
-	arr := NewArrayValue()
-	arr.Append(bsValue)
-	arr.Append(boolValue)
-	arr.Append(biginValue)
-	arr.Append(uint64Value)
+	arr := buildArray([]VmValue{bsValue, boolValue, biginValue, uint64Value})
 	sinkArr := new(common.ZeroCopySink)
 	arrValue := VmValueFromArrayVal(arr)
 	arrValue.Serialize(sinkArr)
@@ -111,12 +116,7 @@ func TestStructValue_Clone(t *testing.T) {
 
 	m := NewMapValue()
 	m.Set(bsValue, bsValue)
-	s := NewStructValue()
-	s.Append(bsValue)
-	s.Append(boolValue)
-	s.Append(biginValue)
-	s.Append(uint64Value)
-	s.Append(VmValueFromMapValue(m))
+	s := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value, VmValueFromMapValue(m)})
 	s2, _ := s.Clone()
 	structValue := VmValueFromStructVal(s)
 	m2 := s2.Data[s2.Len()-1]
@@ -137,18 +137,10 @@ func TestVmValue_Equals(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	uint64Value := VmValueFromUint64(uint64(100))
-	s := NewStructValue()
-	s.Append(bsValue)
-	s.Append(boolValue)
-	s.Append(biginValue)
-	s.Append(uint64Value)
+	s := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
 	structValue := VmValueFromStructVal(s)
 
-	s2 := NewStructValue()
-	s2.Append(bsValue)
-	s2.Append(boolValue)
-	s2.Append(biginValue)
-	s2.Append(uint64Value)
+	s2 := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
 	structValue2 := VmValueFromStructVal(s2)
 	res := structValue.Equals(structValue2)
 	assert.True(t, res)
@@ -180,10 +172,7 @@ func TestVmValue_BuildParamToNative(t *testing.T) {
 	bs, err := VmValueFromBytes([]byte("hello"))
 	assert.Nil(t, err)
 
-	stru := NewStructValue()
-	stru.Append(inte)
-	stru.Append(boo)
-	stru.Append(bs)
+	stru := buildStruct([]VmValue{inte, boo, bs})
 	arr := NewArrayValue()
 	s := VmValueFromStructVal(stru)
 	r, _ := s.AsBool()
@@ -278,4 +267,78 @@ func TestVmValueFromInteropValue(t *testing.T) {
 	val_u2 := NewInteropValue(&u2)
 	vmVal_u2 := VmValueFromInteropValue(val_u2)
 	assert.False(t, vmVal_u.Equals(vmVal_u2))
+}
+
+func TestVmValue_CircularRefAndDepthDetection(t *testing.T) {
+	a := NewArrayValue()
+	aVal := VmValueFromArrayVal(a)
+
+	b := NewArrayValue()
+	b.Append(aVal)
+	bVal := VmValueFromArrayVal(b)
+
+	abool, err := aVal.CircularRefAndDepthDetection()
+	assert.Nil(t, err)
+	assert.False(t, abool)
+
+	bbool, err := bVal.CircularRefAndDepthDetection()
+	assert.Nil(t, err)
+	assert.False(t, bbool)
+}
+
+func TestVmValue_CircularRefAndDepthDetection2(t *testing.T) {
+	ba1, err := VmValueFromBytes([]byte{1, 2, 3})
+	assert.Nil(t, err)
+	ba2, err := VmValueFromBytes([]byte{4, 5, 6})
+	assert.Nil(t, err)
+
+	bf := VmValueFromBool(false)
+	bt := VmValueFromBool(true)
+
+	checkVal(t, ba1)
+	checkVal(t, ba2)
+	checkVal(t, bf)
+	checkVal(t, bt)
+
+	array := buildArray([]VmValue{ba1, ba2, bf, bt})
+	arrayVal := VmValueFromArrayVal(array)
+	checkVal(t, arrayVal)
+
+	stru := buildStruct([]VmValue{ba1, ba2, bf, bt})
+	struVal := VmValueFromStructVal(stru)
+	checkVal(t, struVal)
+
+	array.Append(struVal)
+	arrayVal = VmValueFromArrayVal(array)
+	checkVal(t, arrayVal)
+
+	stru.Append(arrayVal)
+	checkVal(t, VmValueFromStructVal(stru))
+
+	map1 := NewMapValue()
+	map1Val := VmValueFromMapValue(map1)
+	checkVal(t, map1Val)
+
+	map1.Set(arrayVal, bf)
+	checkVal(t, VmValueFromMapValue(map1))
+
+	stru2 := NewStructValue()
+	array2 := NewArrayValue()
+
+	stru2.Append(VmValueFromArrayVal(array2))
+	array2.Append(VmValueFromStructVal(stru2))
+
+	stru2.Append(VmValueFromArrayVal(array2))
+	array2.Append(VmValueFromStructVal(stru2))
+
+	arrayVal = VmValueFromArrayVal(array2)
+	boo, err := arrayVal.CircularRefAndDepthDetection()
+	assert.Nil(t, err)
+	assert.True(t, boo)
+}
+
+func checkVal(t *testing.T, value VmValue) {
+	boo, err := value.CircularRefAndDepthDetection()
+	assert.Nil(t, err)
+	assert.False(t, boo)
 }
