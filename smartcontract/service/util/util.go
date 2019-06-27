@@ -37,7 +37,7 @@ const (
 	IntType       byte = 0x03
 	H256Type      byte = 0x04
 	//reserved for other types
-	ListType      byte = 0x10
+	ListType byte = 0x10
 
 	MAX_PARAM_LENGTH      = 1024
 	VERSION          byte = 0
@@ -132,43 +132,25 @@ func anaylzeInput(input []byte, ret *[]interface{}) error {
 		sizebytes := input[1:5]
 		size := binary.LittleEndian.Uint32(sizebytes)
 		if size == 0 {
+			*ret = append(*ret, big.NewInt(int64(0)))
+			return anaylzeInput(input[5:], ret)
+		}
+		if len(input[5:]) < int(size) {
 			return ERROR_PARAM_FORMAT
 		}
+
 		bs := input[5 : 5+size]
-		big.NewInt()
-
-
-		*ret = append(*ret, i32)
-		return anaylzeInput(input[5:], ret)
-	case Int64Type:
-		if len(input[1:]) < 8 {
-			return ERROR_PARAM_FORMAT
-		}
-		i64bytes := input[1:9]
-		tmpbf := bytes.NewBuffer(i64bytes)
-		var x int64
-		binary.Read(tmpbf, binary.LittleEndian, &x)
-		*ret = append(*ret, x)
-		return anaylzeInput(input[9:], ret)
-	case Uint64Type:
-		if len(input[1:]) < 8 {
-			return ERROR_PARAM_FORMAT
-		}
-		ui64bytes := input[1:9]
-		ui64 := binary.LittleEndian.Uint64(ui64bytes)
-		*ret = append(*ret, ui64)
-		return anaylzeInput(input[9:], ret)
-	case Uint256Type:
+		bi := common.BigIntFromNeoBytes(bs)
+		*ret = append(*ret, bi)
+		return anaylzeInput(input[5+size:], ret)
+	case H256Type:
 		if len(input[1:]) < 32 {
 			return ERROR_PARAM_FORMAT
 		}
-		u256bytes := input[1:33]
-		u256, err := common.Uint256ParseFromBytes(u256bytes)
-		if err != nil {
-			return err
-		}
-		*ret = append(*ret, u256)
+		h256 := input[1:33]
+		*ret = append(*ret, h256)
 		return anaylzeInput(input[33:], ret)
+
 	case ListType:
 		if len(input[1:]) < 4 {
 			return ERROR_PARAM_FORMAT
@@ -239,43 +221,35 @@ func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error
 			}
 			*list = append(*list, boolvalue)
 			input = input[2:]
-		case UsizeType:
+		case IntType:
 			if len(input[1:]) < 4 {
 				return nil, ERROR_PARAM_FORMAT
 			}
-			i32bytes := input[1:5]
-			i32 := binary.LittleEndian.Uint32(i32bytes)
-			*list = append(*list, i32)
-			input = input[5:]
-		case Int64Type:
-			if len(input[1:]) < 8 {
-				return nil, ERROR_PARAM_FORMAT
+			sizebytes := input[1:5]
+			size := binary.LittleEndian.Uint32(sizebytes)
+			if size == 0 {
+				*list = append(*list, big.NewInt(int64(0)))
+				input = input[5:]
+			} else {
+				if len(input[5:]) < int(size) {
+					return nil, ERROR_PARAM_FORMAT
+				}
+
+				bs := input[5 : 5+size]
+
+				bi := common.BigIntFromNeoBytes(bs)
+				*list = append(*list, bi)
+				input = input[5+size:]
 			}
-			i64bytes := input[1:9]
-			tmpbf := bytes.NewBuffer(i64bytes)
-			var x int64
-			binary.Read(tmpbf, binary.LittleEndian, &x)
-			*list = append(*list, x)
-			input = input[9:]
-		case Uint64Type:
-			if len(input[1:]) < 8 {
-				return nil, ERROR_PARAM_FORMAT
-			}
-			ui64bytes := input[1:9]
-			ui64 := binary.LittleEndian.Uint64(ui64bytes)
-			*list = append(*list, ui64)
-			input = input[9:]
-		case Uint256Type:
+
+		case H256Type:
 			if len(input[1:]) < 32 {
 				return nil, ERROR_PARAM_FORMAT
 			}
-			u256bytes := input[1:33]
-			u256, err := common.Uint256ParseFromBytes(u256bytes)
-			if err != nil {
-				return nil, err
-			}
-			*list = append(*list, u256)
+			h256 := input[1:33]
+			*list = append(*list, h256)
 			input = input[33:]
+
 		case ListType:
 			if len(input[1:]) < 4 {
 				return nil, ERROR_PARAM_FORMAT
@@ -463,9 +437,7 @@ func BuildResultFromNeo(item neotypes.StackItems, bf *bytes.Buffer) error {
 		}
 		bf.WriteByte(byte(ByteArrayType))
 		size := uint32(len(bs))
-		tmpbytes := make([]byte, 4)
-		binary.LittleEndian.PutUint32(tmpbytes, size)
-		bf.Write(tmpbytes)
+		bf.Write(uint32ToLittleEndiaBytes(size))
 		bf.Write(bs)
 
 	case *neotypes.Integer:
@@ -473,13 +445,13 @@ func BuildResultFromNeo(item neotypes.StackItems, bf *bytes.Buffer) error {
 		if err != nil {
 			return err
 		}
-		bf.WriteByte(byte(Int64Type))
-		tmpbf := bytes.NewBuffer(nil)
-		err = binary.Write(tmpbf, binary.LittleEndian, val.Int64())
-		if err != nil {
-			return err
-		}
-		bf.Write(tmpbf.Bytes())
+		bf.WriteByte(byte(IntType))
+
+		bytes := common.BigIntToNeoBytes(val)
+		len := uint32(len(bytes))
+		bf.Write(uint32ToLittleEndiaBytes(len))
+		bf.Write(bytes)
+
 	case *neotypes.Boolean:
 		val, err := item.GetBoolean()
 		if err != nil {
@@ -502,9 +474,7 @@ func BuildResultFromNeo(item neotypes.StackItems, bf *bytes.Buffer) error {
 
 		bf.WriteByte(byte(ListType))
 		size := uint32(len(val))
-		tmpbs := make([]byte, 4)
-		binary.LittleEndian.PutUint32(tmpbs, size)
-		bf.Write(tmpbs)
+		bf.Write(uint32ToLittleEndiaBytes(size))
 		for _, si := range val {
 			err = BuildResultFromNeo(si, bf)
 			if err != nil {
@@ -516,4 +486,10 @@ func BuildResultFromNeo(item neotypes.StackItems, bf *bytes.Buffer) error {
 		return fmt.Errorf("not a supported return type")
 	}
 	return nil
+}
+
+func uint32ToLittleEndiaBytes(i uint32) []byte {
+	tmpbs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(tmpbs, i)
+	return tmpbs
 }
