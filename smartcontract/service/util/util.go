@@ -34,11 +34,10 @@ const (
 	ByteArrayType byte = 0x00
 	AddressType   byte = 0x01
 	BooleanType   byte = 0x02
-	UsizeType     byte = 0x03
-	Int64Type     byte = 0x04
-	Uint64Type    byte = 0x05
-	Uint256Type   byte = 0x06
-	ListType      byte = 0x07
+	IntType       byte = 0x03
+	H256Type      byte = 0x04
+	//reserved for other types
+	ListType      byte = 0x10
 
 	MAX_PARAM_LENGTH      = 1024
 	VERSION          byte = 0
@@ -126,12 +125,19 @@ func anaylzeInput(input []byte, ret *[]interface{}) error {
 		}
 		*ret = append(*ret, boolvalue)
 		return anaylzeInput(input[2:], ret)
-	case UsizeType:
+	case IntType:
 		if len(input[1:]) < 4 {
 			return ERROR_PARAM_FORMAT
 		}
-		i32bytes := input[1:5]
-		i32 := binary.LittleEndian.Uint32(i32bytes)
+		sizebytes := input[1:5]
+		size := binary.LittleEndian.Uint32(sizebytes)
+		if size == 0 {
+			return ERROR_PARAM_FORMAT
+		}
+		bs := input[5 : 5+size]
+		big.NewInt()
+
+
 		*ret = append(*ret, i32)
 		return anaylzeInput(input[5:], ret)
 	case Int64Type:
