@@ -106,6 +106,7 @@ var (
 	RUNTIME_VERIFYMUTISIG_NAME       = "Ontology.Runtime.VerifyMutiSig"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
+	WASM_INVOKE_NAME   = "Ontology.Wasm.InvokeWasm"
 
 	GETSCRIPTCONTAINER_NAME     = "System.ExecutionEngine.GetScriptContainer"
 	GETEXECUTINGSCRIPTHASH_NAME = "System.ExecutionEngine.GetExecutingScriptHash"
@@ -165,6 +166,7 @@ var (
 		HASH256_NAME:                   HASH256_GAS,
 		UINT_DEPLOY_CODE_LEN_NAME:      UINT_DEPLOY_CODE_LEN_GAS,
 		UINT_INVOKE_CODE_LEN_NAME:      UINT_INVOKE_CODE_LEN_GAS,
+		WASM_INVOKE_NAME:               APPCALL_GAS,
 	}
 )
 
@@ -194,6 +196,7 @@ func initGAS_TABLE() *sync.Map {
 	m.Store(RUNTIME_ADDRESSTOBASE58_NAME, RUNTIME_ADDRESSTOBASE58_GAS)
 
 	m.Store(RUNTIME_VERIFYMUTISIG_NAME, RUNTIME_VERIFYMUTISIG_GAS)
+	m.Store(WASM_INVOKE_NAME, APPCALL_GAS)
 
 	return &m
 }

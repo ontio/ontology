@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/smartcontract/service/util"
 	"github.com/ontio/ontology/smartcontract/states"
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
 )
@@ -155,7 +156,12 @@ func Notify(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	notify := &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, string(bs)}
+	list, err := util.DeserializeInput(bs)
+	if err != nil {
+		panic(err)
+	}
+
+	notify := &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, list}
 	notifys := make([]*event.NotifyEventInfo, 1)
 	notifys[0] = notify
 	self.Service.ContextRef.PushNotifications(notifys)
@@ -321,14 +327,12 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		if tmp != nil {
 			val := tmp.(*neotypes.VmValue)
 			result, err = val.AsBytes()
+			bf := bytes.NewBuffer([]byte{byte(util.VERSION)})
+			err = neotypes.BuildResultFromNeo(*val, bf)
 			if err != nil {
-				sink := new(common.ZeroCopySink)
-				err = val.Serialize(sink)
-				if err != nil {
-					panic(err)
-				}
-				result = sink.Bytes()
+				panic(err)
 			}
+			result = bf.Bytes()
 		}
 
 	default:

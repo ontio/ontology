@@ -27,6 +27,7 @@ import (
 	"reflect"
 	"sort"
 
+	"encoding/binary"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
@@ -41,6 +42,14 @@ const (
 	arrayType     byte = 0x80
 	structType    byte = 0x81
 	mapType       byte = 0x82
+
+	Encode_ByteArrayType byte = 0x00
+	Encode_AddressType   byte = 0x01
+	Encode_BooleanType   byte = 0x02
+	Encode_IntType       byte = 0x03
+	Encode_H256Type      byte = 0x04
+	//reserved for other types
+	Encode_ListType byte = 0x10
 )
 
 const (
@@ -733,4 +742,74 @@ func (self *VmValue) dump() string {
 		panic("unreacheable!")
 	}
 	return ""
+}
+
+//encode the neovm return vmval
+//transform neovm contract result to encoded byte array
+func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
+
+	switch item.GetType() {
+	case bytearrayType:
+		bs := item.byteArray
+
+		bf.WriteByte(byte(Encode_ByteArrayType))
+		size := uint32(len(bs))
+		bf.Write(uint32ToLittleEndiaBytes(size))
+		bf.Write(bs)
+
+	case integerType:
+		val := item.integer
+
+		bf.WriteByte(byte(Encode_IntType))
+
+		bytes := common.BigIntToNeoBytes(big.NewInt(val))
+		len := uint32(len(bytes))
+		bf.Write(uint32ToLittleEndiaBytes(len))
+		bf.Write(bytes)
+
+	case bigintType:
+		val := item.bigInt
+		bf.WriteByte(byte(Encode_IntType))
+		bytes := common.BigIntToNeoBytes(val)
+		len := uint32(len(bytes))
+		bf.Write(uint32ToLittleEndiaBytes(len))
+		bf.Write(bytes)
+
+	case boolType:
+		val, err := item.AsBool()
+		if err != nil {
+			return err
+		}
+		bf.WriteByte(byte(Encode_BooleanType))
+		if val {
+			bf.WriteByte(byte(1))
+		} else {
+			bf.WriteByte(byte(0))
+		}
+	case arrayType:
+		val := item.array
+
+		if val == nil {
+			return fmt.Errorf("get array error")
+		}
+
+		bf.WriteByte(byte(Encode_ListType))
+		size := uint32(len(val.Data))
+		bf.Write(uint32ToLittleEndiaBytes(size))
+		for _, si := range val.Data {
+			err := BuildResultFromNeo(si, bf)
+			if err != nil {
+				return err
+			}
+		}
+
+	default:
+		return fmt.Errorf("not a supported return type")
+	}
+	return nil
+}
+func uint32ToLittleEndiaBytes(i uint32) []byte {
+	tmpbs := make([]byte, 4)
+	binary.LittleEndian.PutUint32(tmpbs, i)
+	return tmpbs
 }
