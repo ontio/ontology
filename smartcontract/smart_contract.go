@@ -222,6 +222,9 @@ func (this *SmartContract) GetMetaData(contract common.Address) (*payload.MetaDa
 	if err != nil {
 		return nil, true, fmt.Errorf("GetMetaData %s", err)
 	}
+	if this.Config.ShardID.IsRootShard() {
+		return nil, true, nil
+	}
 	if meta == nil {
 		meta, err = this.Store.GetParentMetaData(this.Config.ParentHeight, contract)
 		if err != nil {
