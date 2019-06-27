@@ -40,15 +40,15 @@ var (
 	RUNTIME_JSON_MARSHAL_GAS      uint64 = 400
 	RUNTIME_JSON_UNMARSHAL_GAS    uint64 = 400
 
-	RUNTIME_ADDRESSTOBASE58_GAS   uint64 = 40
-	RUNTIME_BASE58TOADDRESS_GAS   uint64 = 30
-	APPCALL_GAS                   uint64 = 10
-	TAILCALL_GAS                  uint64 = 10
-	SHA1_GAS                      uint64 = 10
-	SHA256_GAS                    uint64 = 10
-	HASH160_GAS                   uint64 = 20
-	HASH256_GAS                   uint64 = 20
-	OPCODE_GAS                    uint64 = 1
+	RUNTIME_ADDRESSTOBASE58_GAS uint64 = 40
+	RUNTIME_BASE58TOADDRESS_GAS uint64 = 30
+	APPCALL_GAS                 uint64 = 10
+	TAILCALL_GAS                uint64 = 10
+	SHA1_GAS                    uint64 = 10
+	SHA256_GAS                  uint64 = 10
+	HASH160_GAS                 uint64 = 20
+	HASH256_GAS                 uint64 = 20
+	OPCODE_GAS                  uint64 = 1
 
 	PER_UNIT_CODE_LEN    int = 1024
 	METHOD_LENGTH_LIMIT  int = 1024
@@ -200,8 +200,8 @@ func initGAS_TABLE() *sync.Map {
 
 	m.Store(RUNTIME_VERIFYMUTISIG_NAME, RUNTIME_VERIFYMUTISIG_GAS)
 
-	m.Store(RUNTIME_JSON_MARSHAL_NAME,RUNTIME_JSON_MARSHAL_GAS)
-	m.Store(RUNTIME_JSON_UNMARSHAL_NAME,RUNTIME_JSON_UNMARSHAL_GAS)
+	m.Store(RUNTIME_JSON_MARSHAL_NAME, RUNTIME_JSON_MARSHAL_GAS)
+	m.Store(RUNTIME_JSON_UNMARSHAL_NAME, RUNTIME_JSON_UNMARSHAL_GAS)
 
 	return &m
 }
