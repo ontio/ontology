@@ -51,9 +51,6 @@ var ERROR_PARAM_NOT_SUPPORTED_TYPE = fmt.Errorf("error param format:not supporte
 // version(1byte) + type(1byte) + usize( bytearray or list) (4 bytes) + data...
 
 func DeserializeInput(input []byte) ([]interface{}, error) {
-	if input == nil {
-		return nil, nil
-	}
 	if len(input) == 0 {
 		return nil, ERROR_PARAM_FORMAT
 	}
@@ -67,210 +64,92 @@ func DeserializeInput(input []byte) ([]interface{}, error) {
 	}
 
 	paramlist := make([]interface{}, 0)
-	err := anaylzeInput(input[1:], &paramlist)
-	if err != nil {
-		return nil, err
+	source := common.NewZeroCopySource(input[1:])
+	for source.Len() != 0 {
+		val, err := decodeValue(source)
+		if err != nil {
+			return nil, err
+		}
+		paramlist = append(paramlist, val)
 	}
 
 	return paramlist, nil
 }
 
-func anaylzeInput(input []byte, ret *[]interface{}) error {
-
-	if input == nil || len(input) == 0 {
-		return nil
+func decodeValue(source *common.ZeroCopySource) (interface{}, error) {
+	ty, eof := source.NextByte()
+	if eof {
+		return nil, ERROR_PARAM_FORMAT
 	}
 
-	switch input[0] {
+	switch ty {
 	case ByteArrayType:
-		//usize is 4 bytes
-		if len(input[1:]) < 4 {
-			return ERROR_PARAM_FORMAT
-		}
-
-		sizebytes := input[1:5]
-		size := binary.LittleEndian.Uint32(sizebytes)
-		if size == 0 {
-			return ERROR_PARAM_FORMAT
-		}
-
-		if len(input[5:]) < int(size) {
-			return ERROR_PARAM_FORMAT
-		}
-
-		bs := input[5 : 5+size]
-		*ret = append(*ret, bs)
-		return anaylzeInput(input[5+size:], ret)
-
-	case AddressType:
-		if len(input[1:]) < 20 {
-			return ERROR_PARAM_FORMAT
-		}
-		addrbytes := input[1:21]
-		address, err := common.AddressParseFromBytes(addrbytes)
-		if err != nil {
-			return err
-		}
-		*ret = append(*ret, address)
-		return anaylzeInput(input[21:], ret)
-
-	case BooleanType:
-		if len(input[1:]) < 1 {
-			return ERROR_PARAM_FORMAT
-		}
-		boolbyte := input[1]
-		boolvalue := true
-		if boolbyte != byte(1) {
-			boolvalue = false
-		}
-		*ret = append(*ret, boolvalue)
-		return anaylzeInput(input[2:], ret)
-	case IntType:
-		if len(input[1:]) < 4 {
-			return ERROR_PARAM_FORMAT
-		}
-		sizebytes := input[1:5]
-		size := binary.LittleEndian.Uint32(sizebytes)
-		if size == 0 {
-			*ret = append(*ret, big.NewInt(int64(0)))
-			return anaylzeInput(input[5:], ret)
-		}
-		if len(input[5:]) < int(size) {
-			return ERROR_PARAM_FORMAT
-		}
-
-		bs := input[5 : 5+size]
-		bi := common.BigIntFromNeoBytes(bs)
-		*ret = append(*ret, bi)
-		return anaylzeInput(input[5+size:], ret)
-	case H256Type:
-		if len(input[1:]) < 32 {
-			return ERROR_PARAM_FORMAT
-		}
-		h256 := input[1:33]
-		*ret = append(*ret, h256)
-		return anaylzeInput(input[33:], ret)
-
-	case ListType:
-		if len(input[1:]) < 4 {
-			return ERROR_PARAM_FORMAT
-		}
-
-		sizebytes := input[1:5]
-		size := binary.LittleEndian.Uint32(sizebytes)
-		list := make([]interface{}, 0)
-		rest, err := anaylzeList(input[5:], int(size), &list)
-
-		if err != nil {
-			return err
-		}
-
-		*ret = append(*ret, list)
-		return anaylzeInput(rest, ret)
-	default:
-		return ERROR_PARAM_NOT_SUPPORTED_TYPE
-	}
-
-}
-
-func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error) {
-	if input == nil || len(input) == 0 {
-		return nil, nil
-	}
-
-	for i := 0; i < listsize; i++ {
-		switch input[0] {
-		case ByteArrayType:
-			//usize is 4 bytes
-			if len(input[1:]) < 4 {
-				return nil, ERROR_PARAM_FORMAT
-			}
-			sizebytes := input[1:5]
-			size := binary.LittleEndian.Uint32(sizebytes)
-			if size == 0 {
-				return nil, ERROR_PARAM_FORMAT
-			}
-
-			if len(input[5:]) < int(size) {
-				return nil, ERROR_PARAM_FORMAT
-			}
-			bs := input[5 : 5+size]
-			*list = append(*list, bs)
-			input = input[5+size:]
-
-		case AddressType:
-			if len(input[1:]) < 20 {
-				return nil, ERROR_PARAM_FORMAT
-			}
-			addrbytes := input[1:21]
-			address, err := common.AddressParseFromBytes(addrbytes)
-			if err != nil {
-				return nil, err
-			}
-			*list = append(*list, address)
-			input = input[21:]
-
-		case BooleanType:
-			if len(input[1:]) < 1 {
-				return nil, ERROR_PARAM_FORMAT
-			}
-			boolbyte := input[1]
-			boolvalue := true
-			if boolbyte != byte(1) {
-				boolvalue = false
-			}
-			*list = append(*list, boolvalue)
-			input = input[2:]
-		case IntType:
-			if len(input[1:]) < 4 {
-				return nil, ERROR_PARAM_FORMAT
-			}
-			sizebytes := input[1:5]
-			size := binary.LittleEndian.Uint32(sizebytes)
-			if size == 0 {
-				*list = append(*list, big.NewInt(int64(0)))
-				input = input[5:]
-			} else {
-				if len(input[5:]) < int(size) {
-					return nil, ERROR_PARAM_FORMAT
-				}
-
-				bs := input[5 : 5+size]
-
-				bi := common.BigIntFromNeoBytes(bs)
-				*list = append(*list, bi)
-				input = input[5+size:]
-			}
-
-		case H256Type:
-			if len(input[1:]) < 32 {
-				return nil, ERROR_PARAM_FORMAT
-			}
-			h256 := input[1:33]
-			*list = append(*list, h256)
-			input = input[33:]
-
-		case ListType:
-			if len(input[1:]) < 4 {
-				return nil, ERROR_PARAM_FORMAT
-			}
-			sizebytes := input[1:5]
-			size := binary.LittleEndian.Uint32(sizebytes)
-			sublist := make([]interface{}, 0)
-			bs := input[5:]
-			rest, err := anaylzeList(bs, int(size), &sublist)
-			if err != nil {
-				return nil, err
-			}
-
-			*list = append(*list, sublist)
-			input = rest
-		default:
+		size, eof := source.NextUint32()
+		if eof {
 			return nil, ERROR_PARAM_FORMAT
 		}
-	}
 
-	return input, nil
+		buf, eof := source.NextBytes(uint64(size))
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+
+		return buf, nil
+	case AddressType:
+		addr, eof := source.NextAddress()
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+
+		return addr, nil
+	case BooleanType:
+		by, eof := source.NextByte()
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+
+		return by != 0, nil
+	case IntType:
+		size, eof := source.NextUint32()
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+		if size == 0 {
+			return big.NewInt(0), nil
+		}
+
+		buf, eof := source.NextBytes(uint64(size))
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+		bi := common.BigIntFromNeoBytes(buf)
+		return bi, nil
+	case H256Type:
+		hash, eof := source.NextHash()
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+
+		return hash, nil
+	case ListType:
+		size, eof := source.NextUint32()
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+
+		list := make([]interface{}, 0)
+		for i := uint32(0); i < size; i++ {
+			val, err := decodeValue(source)
+			if err != nil {
+				return nil, err
+			}
+			list = append(list, val)
+		}
+
+		return list, nil
+	default:
+		return nil, ERROR_PARAM_NOT_SUPPORTED_TYPE
+	}
 }
 
 //create paramters for neovm contract

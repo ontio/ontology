@@ -136,17 +136,17 @@ func TestDeserializeInput(t *testing.T) {
 	bf.WriteByte(byte(0))
 	bf.WriteByte(H256Type)
 
-	h256bytes := make([]byte, 32)
+	var h256 common.Uint256
 	for i := 0; i < 32; i++ {
-		h256bytes[i] = byte(i)
+		h256[i] = byte(i)
 	}
-	bf.Write(h256bytes)
+	bf.Write(h256[:])
 
 	list, err = DeserializeInput(bf.Bytes())
 	assert.Nil(t, err)
 	assert.NotNil(t, list)
 	assert.Equal(t, len(list), 1)
-	assert.Equal(t, list[0].([]byte), h256bytes)
+	assert.Equal(t, list[0].(common.Uint256), h256)
 
 	fmt.Println("===test 2 simple elements list===")
 	bf = bytes.NewBuffer(nil)
