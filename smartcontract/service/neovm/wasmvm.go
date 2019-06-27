@@ -20,9 +20,7 @@ package neovm
 import (
 	"fmt"
 
-	"bytes"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/util"
@@ -77,11 +75,7 @@ func WASMInvoke(service *NeoVmService, engine *vm.Executor) error {
 		return err
 	}
 
-	bs, err := serialization.ReadVarBytes(bytes.NewBuffer(tmpRes.([]byte)))
-	if err != nil {
-		return err
-	}
-	engine.EvalStack.PushBytes(bs)
+	engine.EvalStack.PushBytes(tmpRes.([]byte))
 	return nil
 
 }
