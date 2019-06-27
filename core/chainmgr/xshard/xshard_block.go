@@ -203,8 +203,7 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID co
 			return nil, fmt.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", parentblkNum, err)
 		}
 		shardTxInfo := &types.CrossShardTxInfos{
-			ShardMsg: &types.CrossShardMsgInfo{},
-			Tx:       tx,
+			Tx: tx,
 		}
 		crossShardInfo := make([]*types.CrossShardTxInfos, 0)
 		crossShardInfo = append(crossShardInfo, shardTxInfo)

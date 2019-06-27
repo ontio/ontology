@@ -171,19 +171,31 @@ type CrossShardTxInfos struct {
 }
 
 func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) error {
-	this.ShardMsg.Serialization(sink)
+	sink.WriteBool(this.ShardMsg != nil)
+	if this.ShardMsg != nil {
+		this.ShardMsg.Serialization(sink)
+	}
 	this.Tx.Serialization(sink)
 	return nil
 }
 
 func (this *CrossShardTxInfos) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	if this.ShardMsg == nil {
-		this.ShardMsg = new(CrossShardMsgInfo)
+	hasShardMsg, irr, eof := source.NextBool()
+	if irr {
+		return common.ErrIrregularData
 	}
-	err = this.ShardMsg.Deserialization(source)
-	if err != nil {
-		return err
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if hasShardMsg {
+		if this.ShardMsg == nil {
+			this.ShardMsg = new(CrossShardMsgInfo)
+		}
+		err = this.ShardMsg.Deserialization(source)
+		if err != nil {
+			return err
+		}
 	}
 	if this.Tx == nil {
 		this.Tx = new(Transaction)
