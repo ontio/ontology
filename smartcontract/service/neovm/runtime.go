@@ -254,7 +254,7 @@ func RuntimeJsonUnmarshal(service *NeoVmService, engine *vm.ExecutionEngine) err
 	}
 
 	m := make(map[string]interface{})
-	err = json.Unmarshal(jsonbytes, m)
+	err = json.Unmarshal(jsonbytes, &m)
 	if err != nil {
 		return err
 	}
