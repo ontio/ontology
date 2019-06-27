@@ -350,6 +350,13 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, bool, er
 }
 
 func (this *NeoVmService) checkMetaDataAndCode(isSelfShardContract bool, addr scommon.Address) error {
+	caller := this.ContextRef.CallingContext()
+	if caller != nil {
+		callerContract, err := this.CacheDB.GetContract(caller.ContractAddress)
+		if err != nil || callerContract == nil {
+			return fmt.Errorf("cannot be invoked by other shard contract")
+		}
+	}
 	meta, isSelfShardMeta, err := this.ContextRef.GetMetaData(addr)
 	if err != nil {
 		return err
