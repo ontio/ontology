@@ -118,7 +118,7 @@ func PeerInitStake(native *native.NativeService) ([]byte, error) {
 	if err := checkCommittingDpos(native, param.ShardId); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: failed, err: %s", err)
 	}
-	err := peerInitStake(native, param.ShardId, param.Value.PeerPubKey, param.PeerOwner, param.Value.Amount)
+	err := peerInitStake(native, param)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("PeerInitStake: deserialize param pub key failed, err: %s", err)
 	}

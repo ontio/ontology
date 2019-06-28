@@ -20,10 +20,10 @@ package shardmgmt
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
-	"sort"
 	"strings"
 
 	"github.com/ontio/ontology/common"
@@ -77,6 +77,8 @@ const (
 	// query shard commit Dpos info, include xshard transfer ong
 	// id, commit dpos height and block hash at shard, and whole handling fee at last consensus epoch at shard
 	GET_SHARD_COMMIT_DPOS_INFO = "getShardCommitDPosInfo"
+	// query shard detail after create it
+	GET_SHARD_DETAIL = "getShardDetail"
 )
 
 func InitShardManagement() {
@@ -106,6 +108,7 @@ func RegisterShardMgmtContract(native *native.NativeService) {
 	native.Register(UPDATE_XSHARD_HANDLING_FEE, UpdateXShardHandlingFee)
 
 	native.Register(GET_SHARD_COMMIT_DPOS_INFO, GetShardCommitDPosInfo)
+	native.Register(GET_SHARD_DETAIL, GetShardDetail)
 }
 
 func ShardMgmtInit(native *native.NativeService) ([]byte, error) {
@@ -311,8 +314,10 @@ func ApplyJoinShard(native *native.NativeService) ([]byte, error) {
 	}
 	// verify peer is exist in root chain consensus
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
-		if _, err := getRootCurrentViewPeerItem(native, params.PeerPubKey); err != nil {
+		if parentPeer, err := getRootCurrentViewPeerItem(native, params.PeerPubKey); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: failed, err: %s", err)
+		} else if parentPeer.Address != params.PeerOwner {
+			return utils.BYTE_FALSE, fmt.Errorf("ApplyJoinShard: peer owner unmatch")
 		}
 	}
 
@@ -384,6 +389,21 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: not on parent shard")
 	}
 
+	peerIndex := uint32(len(shard.Peers) + 1)
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
+		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
+		}
+		if rootChainPeerItem.InitPos < params.StakeAmount {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
+		}
+		if rootChainPeerItem.Address != params.PeerOwner {
+			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer owner unmatch")
+		}
+		peerIndex = rootChainPeerItem.Index
+	}
+
 	state, err := getShardPeerState(native, contract, params.ShardID, params.PeerPubKey)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
@@ -398,16 +418,6 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
-		rootChainPeerItem, err := getRootCurrentViewPeerItem(native, params.PeerPubKey)
-		if err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
-		}
-		if rootChainPeerItem.InitPos < params.StakeAmount {
-			return utils.BYTE_FALSE, fmt.Errorf("JoinShard: shard stake amount should less than root chain")
-		}
-	}
-
 	if _, present := shard.Peers[strings.ToLower(params.PeerPubKey)]; present {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: peer already in shard")
 	} else if len(shard.Peers) >= math.MaxUint32-1 { // peer index is max uint32 and start from 1
@@ -416,30 +426,23 @@ func JoinShard(native *native.NativeService) ([]byte, error) {
 		if shard.Peers == nil {
 			shard.Peers = make(map[string]*shardstates.PeerShardStakeInfo)
 		}
-		index := uint32(len(shard.Peers) + 1)
 		peerStakeInfo := &shardstates.PeerShardStakeInfo{
-			Index:      index,
+			Index:      peerIndex,
 			IpAddress:  params.IpAddress,
 			PeerOwner:  params.PeerOwner,
 			PeerPubKey: params.PeerPubKey,
 		}
 		shard.Peers[strings.ToLower(params.PeerPubKey)] = peerStakeInfo
-		if shard.Config.VbftCfg.Peers == nil {
-			shard.Config.VbftCfg.Peers = make([]*config.VBFTPeerStakeInfo, 0)
-		}
-		vbftPeerInfo := &config.VBFTPeerStakeInfo{
-			Index:      index,
-			PeerPubkey: strings.ToLower(params.PeerPubKey),
-			Address:    params.PeerOwner.ToBase58(),
-			InitPos:    params.StakeAmount,
-		}
-		shard.Config.VbftCfg.Peers = append(shard.Config.VbftCfg.Peers, vbftPeerInfo)
 	}
-	shard.State = shardstates.SHARD_PEER_JOIND
+	// peer would join after shard activate
+	isShardActivate := shard.State == shardstates.SHARD_STATE_ACTIVE
+	if !isShardActivate {
+		shard.State = shardstates.SHARD_PEER_JOIND
+	}
 	setShardState(native, contract, shard)
 
 	// call shard stake contract
-	if err := peerInitStake(native, params); err != nil {
+	if err := peerInitStake(native, params, isShardActivate); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("JoinShard: failed, err: %s", err)
 	}
 
@@ -522,24 +525,9 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	if shard.ShardID.ParentID() != native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: not on parent shard")
 	}
-	peers := shard.Config.VbftCfg.Peers
-	sort.SliceStable(peers, func(i, j int) bool {
-		return peers[i].InitPos > peers[j].InitPos
-	})
-	for index, peer := range peers {
-		shardPeer, ok := shard.Peers[peer.PeerPubkey]
-		if !ok {
-			return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: unmatch peer pub key %s", peer.PeerPubkey)
-		}
-		shardPeer.Index = uint32(index) + 1
-		if uint32(index) < shard.Config.VbftCfg.K {
-			shardPeer.NodeType = shardstates.CONSENSUS_NODE
-		} else {
-			shardPeer.NodeType = shardstates.CONDIDATE_NODE
-		}
-		shard.Peers[peer.PeerPubkey] = shardPeer
+	if err = shard.UpdateDposInfo(native); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ActivateShard: failed, err: %s", err)
 	}
-	shard.Config.VbftCfg.Peers = peers
 	shard.GenesisParentHeight = native.Height
 	shard.State = shardstates.SHARD_STATE_ACTIVE
 	setShardState(native, contract, shard)
@@ -720,6 +708,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 			// delete peer at mgmt contract
 			delete(shard.Peers, peer)
 			quitPeers = append(quitPeers, peer)
+			setShardPeerState(native, contract, param.ShardId, state_default, peer)
 		}
 	}
 	// delete peers at stake contract
@@ -879,6 +868,33 @@ func GetShardCommitDPosInfo(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: failed, err: %s", err)
 	}
-	data := fmt.Sprintf("%v", info)
+	data, err := json.Marshal(info)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardCommitDPosInfo: marshal info failed, err: %s", err)
+	}
 	return []byte(data), nil
+}
+
+func GetShardDetail(native *native.NativeService) ([]byte, error) {
+	if !native.ShardID.IsRootShard() {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: only can be invoked at root")
+	}
+	shardId, err := utils.ReadVarUint(bytes.NewReader(native.Input))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: read param failed, err: %s", err)
+	}
+	shard, err := common.NewShardID(shardId)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: invalid shardId %d", shard)
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	state, err := GetShardState(native, contract, shard)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: read db failed, err: %s", err)
+	}
+	data, err := json.Marshal(state)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("GetShardDetail: marshal detail failed, err: %s", err)
+	}
+	return data, nil
 }

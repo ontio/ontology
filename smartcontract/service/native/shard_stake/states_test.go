@@ -19,6 +19,7 @@ package shard_stake
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -124,6 +125,7 @@ func TestUserUnboundOngInfo(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, state, newState)
 }
+
 func TestXShardFeeInfo(t *testing.T) {
 	info := &XShardFeeInfo{
 		Debt: map[common.ShardID]map[View]uint64{
@@ -140,4 +142,42 @@ func TestXShardFeeInfo(t *testing.T) {
 	err := deseInfo.Deserialization(source)
 	assert.Nil(t, err)
 	assert.Equal(t, info, deseInfo)
+}
+
+func TestXShardFeeInfoJson(t *testing.T) {
+	shard1 := common.NewShardIDUnchecked(1)
+	shard2 := common.NewShardIDUnchecked(2)
+	shard3 := common.NewShardIDUnchecked(3)
+	feeInfo := &XShardFeeInfo{
+		Debt: map[common.ShardID]map[View]uint64{
+			shard1: {
+				View(9): 11111,
+				View(1): 111211,
+			},
+			shard2: {
+				View(9): 11111,
+				View(1): 111211,
+			},
+		},
+		Income: map[common.ShardID]map[View]uint64{
+			shard3: {
+				View(9): 11111,
+				View(1): 111211,
+			},
+			shard2: {
+				View(9): 11111,
+				View(1): 111211,
+			},
+		},
+	}
+	data, err := json.Marshal(feeInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unmarshalFeeInfo := &XShardFeeInfo{}
+	err = json.Unmarshal(data, unmarshalFeeInfo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, feeInfo, unmarshalFeeInfo)
 }
