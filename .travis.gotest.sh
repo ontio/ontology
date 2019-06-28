@@ -8,10 +8,10 @@ do
         go test -v $d
 done
 
-testcases=('smartcontract' 'smartcontract/sys-contract' 'sync' 'p2p' 'xshard')
+testcases=('smartcontract' 'smartcontract/sys-contract' 'sync')
 for d in ${testcases[*]}
 do
         rm -rf testsuite/Chain
-        go test -v githubcom/ontio/ontology/testsuite/$d
+        go test -v github.com/ontio/ontology/testsuite/$d
 done
 
