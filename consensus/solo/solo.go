@@ -190,7 +190,7 @@ func (self *SoloService) genBlock() error {
 }
 
 func (self *SoloService) broadcastCrossShardMsgs(blkNum uint32, shardMsgs []xshard_types.CommonShardMsg) {
-	crossShardMsgs, hashRoot, err := utils.BuildCrossShardMsgs(self.Account, self.ledger, blkNum, shardMsgs)
+	crossShardMsgs, hashRoot, err := utils.BuildCrossShardMsgs(self.Account, self.ledger, blkNum, shardMsgs, nil)
 	if err != nil {
 		log.Errorf("%s", err)
 		return

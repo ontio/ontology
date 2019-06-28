@@ -31,7 +31,7 @@ import (
 	"github.com/ontio/ontology/core/xshard_types"
 )
 
-func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uint32, shardMsgs []xshard_types.CommonShardMsg) (map[common.ShardID]*types.CrossShardMsg, common.Uint256, error) {
+func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uint32, shardMsgs []xshard_types.CommonShardMsg, crossShardMsgHash *types.CrossShardMsgHash) (map[common.ShardID]*types.CrossShardMsg, common.Uint256, error) {
 	builtMsgs := make(map[common.ShardID]*types.CrossShardMsg)
 	hashRoot := common.UINT256_EMPTY
 	if len(shardMsgs) == 0 {
@@ -65,15 +65,18 @@ func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uin
 		hashes = append(hashes, shardMsgHashMap[shardID])
 	}
 	hashRoot = common.ComputeMerkleRoot(hashes)
-
-	// sign on the hash root
-	sig, err := signature.Sign(signer, hashRoot[:])
-	if err != nil {
-		return builtMsgs, hashRoot, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", hashRoot.ToHexString(), err)
-	}
 	sigData := make(map[uint32][]byte)
-	sigData[0] = sig
-
+	if crossShardMsgHash == nil {
+		// sign on the hash root
+		sig, err := signature.Sign(signer, hashRoot[:])
+		if err != nil {
+			return builtMsgs, hashRoot, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", hashRoot.ToHexString(), err)
+		}
+		//sigData := make(map[uint32][]byte)
+		sigData[0] = sig
+	} else {
+		sigData = crossShardMsgHash.SigData
+	}
 	// broadcasting shard msgs to target shards
 	for index, targetShardID := range shardList {
 		// get msg-hash of other-shards
