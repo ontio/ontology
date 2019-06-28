@@ -236,19 +236,11 @@ func isUpdate(ledger *ledger.Ledger, memdb *overlaydb.MemDB, view uint32) (bool,
 	return false, nil
 }
 
-func getRawStorageItemFromMemDb(memdb *overlaydb.MemDB, addr common.Address, key []byte) (value []byte, unkown bool) {
-	rawKey := make([]byte, 0, 1+common.ADDR_LEN+len(key))
-	rawKey = append(rawKey, byte(scommon.ST_STORAGE))
-	rawKey = append(rawKey, addr[:]...)
-	rawKey = append(rawKey, key...)
-	return memdb.Get(rawKey)
-}
-
 func GetStorageValue(memdb *overlaydb.MemDB, backend *ledger.Ledger, addr common.Address, key []byte) (value []byte, err error) {
 	if memdb == nil {
 		return backend.GetStorageItem(addr, key)
 	}
-	rawValue, unknown := getRawStorageItemFromMemDb(memdb, addr, key)
+	rawValue, unknown := vconfig.GetRawStorageItemFromMemDb(memdb, addr, key)
 	if unknown {
 		return backend.GetStorageItem(addr, key)
 	}

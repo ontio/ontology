@@ -871,12 +871,13 @@ func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, sha
 			shardState := &shardstates.ShardState{}
 			shardIDBytes := utils.GetUint64Bytes(evt.ShardID.ToUint64())
 			key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
-			storageKey := &states.StorageKey{
-				ContractAddress: utils.ShardMgmtContractAddress,
-				Key:             key,
-			}
-			data, unkown := overlayDB.Get(key)
+			data, unkown := vconfig.GetRawStorageItemFromMemDb(overlayDB, utils.ShardMgmtContractAddress, key)
 			if unkown {
+				key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
+				storageKey := &states.StorageKey{
+					ContractAddress: utils.ShardMgmtContractAddress,
+					Key:             key,
+				}
 				storageItem, err := this.GetStorageItem(storageKey)
 				if err != nil || storageItem == nil {
 					log.Errorf("GetStorageItem err:%s", err)
@@ -887,8 +888,13 @@ func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, sha
 					continue
 				}
 			} else {
-				if err := shardState.Deserialization(common.NewZeroCopySource(data)); err != nil {
-					log.Errorf("deserialization storageitem value shard state: %s", err)
+				value, err := states.GetValueFromRawStorageItem(data)
+				if err != nil {
+					log.Errorf("get shard state, deserialize from raw storage: %s", err)
+					continue
+				}
+				if err := shardState.Deserialization(common.NewZeroCopySource(value)); err != nil {
+					log.Errorf("deserialization storageitem value shrd state: %s", err)
 					continue
 				}
 			}
