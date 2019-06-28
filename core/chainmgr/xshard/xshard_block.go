@@ -140,12 +140,9 @@ func GetCrossShardMsg(lgr *ledger.Ledger, sourceShardID common.ShardID, msgHash 
 	if csMsg, present := pool.Shards[sourceShardID]; present {
 		if msg, p := csMsg[msgHash]; p {
 			return msg, nil
-		} else {
-			return lgr.GetCrossShardMsgByHash(msgHash)
 		}
-	} else {
-		return lgr.GetCrossShardMsgByHash(msgHash)
 	}
+	return lgr.GetCrossShardMsgByHash(msgHash)
 }
 
 func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) error {
