@@ -27,20 +27,10 @@ import (
 	"github.com/ontio/ontology/common"
 	cstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/common/serialization"
 )
 
-const (
-	ByteArrayType byte = 0x00
-	AddressType   byte = 0x01
-	BooleanType   byte = 0x02
-	IntType       byte = 0x03
-	H256Type      byte = 0x04
-	//reserved for other types
-	ListType byte = 0x10
 
-	MAX_PARAM_LENGTH      = 1024
-	VERSION          byte = 0
-)
 
 var ERROR_PARAM_FORMAT = fmt.Errorf("error param format")
 var ERROR_PARAM_TOO_LONG = fmt.Errorf("param length is exceeded")
@@ -56,12 +46,12 @@ func DeserializeInput(input []byte) ([]interface{}, error) {
 	if len(input) == 0 {
 		return nil, ERROR_PARAM_FORMAT
 	}
-	if len(input) > MAX_PARAM_LENGTH {
+	if len(input) > serialization.MAX_PARAM_LENGTH {
 		return nil, ERROR_PARAM_TOO_LONG
 	}
 	version := input[0]
 	//current only support "0" version
-	if version != VERSION {
+	if version != serialization.VERSION {
 		return nil, ERROR_PARAM_FORMAT
 	}
 
@@ -81,7 +71,7 @@ func anaylzeInput(input []byte, ret *[]interface{}) error {
 	}
 
 	switch input[0] {
-	case ByteArrayType:
+	case serialization.ByteArrayType:
 		//usize is 4 bytes
 		if len(input[1:]) < 4 {
 			return ERROR_PARAM_FORMAT
@@ -101,7 +91,7 @@ func anaylzeInput(input []byte, ret *[]interface{}) error {
 		*ret = append(*ret, bs)
 		return anaylzeInput(input[5+size:], ret)
 
-	case AddressType:
+	case serialization.AddressType:
 		if len(input[1:]) < 20 {
 			return ERROR_PARAM_FORMAT
 		}
@@ -113,7 +103,7 @@ func anaylzeInput(input []byte, ret *[]interface{}) error {
 		*ret = append(*ret, address)
 		return anaylzeInput(input[21:], ret)
 
-	case BooleanType:
+	case serialization.BooleanType:
 		if len(input[1:]) < 1 {
 			return ERROR_PARAM_FORMAT
 		}
@@ -124,7 +114,7 @@ func anaylzeInput(input []byte, ret *[]interface{}) error {
 		}
 		*ret = append(*ret, boolvalue)
 		return anaylzeInput(input[2:], ret)
-	case IntType:
+	case serialization.IntType:
 		if len(input[1:]) < 4 {
 			return ERROR_PARAM_FORMAT
 		}
@@ -142,7 +132,7 @@ func anaylzeInput(input []byte, ret *[]interface{}) error {
 		bi := common.BigIntFromNeoBytes(bs)
 		*ret = append(*ret, bi)
 		return anaylzeInput(input[5+size:], ret)
-	case H256Type:
+	case serialization.H256Type:
 		if len(input[1:]) < 32 {
 			return ERROR_PARAM_FORMAT
 		}
@@ -150,7 +140,7 @@ func anaylzeInput(input []byte, ret *[]interface{}) error {
 		*ret = append(*ret, h256)
 		return anaylzeInput(input[33:], ret)
 
-	case ListType:
+	case serialization.ListType:
 		if len(input[1:]) < 4 {
 			return ERROR_PARAM_FORMAT
 		}
@@ -179,7 +169,7 @@ func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error
 
 	for i := 0; i < listsize; i++ {
 		switch input[0] {
-		case ByteArrayType:
+		case serialization.ByteArrayType:
 			//usize is 4 bytes
 			if len(input[1:]) < 4 {
 				return nil, ERROR_PARAM_FORMAT
@@ -197,7 +187,7 @@ func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error
 			*list = append(*list, bs)
 			input = input[5+size:]
 
-		case AddressType:
+		case serialization.AddressType:
 			if len(input[1:]) < 20 {
 				return nil, ERROR_PARAM_FORMAT
 			}
@@ -209,7 +199,7 @@ func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error
 			*list = append(*list, address)
 			input = input[21:]
 
-		case BooleanType:
+		case serialization.BooleanType:
 			if len(input[1:]) < 1 {
 				return nil, ERROR_PARAM_FORMAT
 			}
@@ -220,7 +210,7 @@ func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error
 			}
 			*list = append(*list, boolvalue)
 			input = input[2:]
-		case IntType:
+		case serialization.IntType:
 			if len(input[1:]) < 4 {
 				return nil, ERROR_PARAM_FORMAT
 			}
@@ -241,7 +231,7 @@ func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error
 				input = input[5+size:]
 			}
 
-		case H256Type:
+		case serialization.H256Type:
 			if len(input[1:]) < 32 {
 				return nil, ERROR_PARAM_FORMAT
 			}
@@ -249,7 +239,7 @@ func anaylzeList(input []byte, listsize int, list *[]interface{}) ([]byte, error
 			*list = append(*list, h256)
 			input = input[33:]
 
-		case ListType:
+		case serialization.ListType:
 			if len(input[1:]) < 4 {
 				return nil, ERROR_PARAM_FORMAT
 			}

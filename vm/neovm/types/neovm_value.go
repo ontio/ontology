@@ -31,6 +31,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
+	"github.com/ontio/ontology/common/serialization"
 )
 
 const (
@@ -42,14 +43,6 @@ const (
 	arrayType     byte = 0x80
 	structType    byte = 0x81
 	mapType       byte = 0x82
-
-	Encode_ByteArrayType byte = 0x00
-	Encode_AddressType   byte = 0x01
-	Encode_BooleanType   byte = 0x02
-	Encode_IntType       byte = 0x03
-	Encode_H256Type      byte = 0x04
-	//reserved for other types
-	Encode_ListType byte = 0x10
 )
 
 const (
@@ -748,11 +741,14 @@ func (self *VmValue) dump() string {
 //transform neovm contract result to encoded byte array
 func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
 
+	if bf.Len() > serialization.MAX_PARAM_LENGTH{
+		return fmt.Errorf("parameter buf is too long")
+	}
 	switch item.GetType() {
 	case bytearrayType:
 		bs := item.byteArray
 
-		bf.WriteByte(byte(Encode_ByteArrayType))
+		bf.WriteByte(byte(serialization.ByteArrayType))
 		size := uint32(len(bs))
 		bf.Write(uint32ToLittleEndiaBytes(size))
 		bf.Write(bs)
@@ -760,7 +756,7 @@ func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
 	case integerType:
 		val := item.integer
 
-		bf.WriteByte(byte(Encode_IntType))
+		bf.WriteByte(byte(serialization.IntType))
 
 		bytes := common.BigIntToNeoBytes(big.NewInt(val))
 		len := uint32(len(bytes))
@@ -769,7 +765,7 @@ func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
 
 	case bigintType:
 		val := item.bigInt
-		bf.WriteByte(byte(Encode_IntType))
+		bf.WriteByte(byte(serialization.IntType))
 		bytes := common.BigIntToNeoBytes(val)
 		len := uint32(len(bytes))
 		bf.Write(uint32ToLittleEndiaBytes(len))
@@ -780,7 +776,7 @@ func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
 		if err != nil {
 			return err
 		}
-		bf.WriteByte(byte(Encode_BooleanType))
+		bf.WriteByte(byte(serialization.BooleanType))
 		if val {
 			bf.WriteByte(byte(1))
 		} else {
@@ -793,7 +789,7 @@ func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
 			return fmt.Errorf("get array error")
 		}
 
-		bf.WriteByte(byte(Encode_ListType))
+		bf.WriteByte(byte(serialization.ListType))
 		size := uint32(len(val.Data))
 		bf.Write(uint32ToLittleEndiaBytes(size))
 		for _, si := range val.Data {

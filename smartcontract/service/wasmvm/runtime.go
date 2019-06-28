@@ -326,8 +326,7 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		}
 		if tmp != nil {
 			val := tmp.(*neotypes.VmValue)
-			result, err = val.AsBytes()
-			bf := bytes.NewBuffer([]byte{byte(util.VERSION)})
+			bf := bytes.NewBuffer([]byte{byte(serialization.VERSION)})
 			err = neotypes.BuildResultFromNeo(*val, bf)
 			if err != nil {
 				panic(err)
