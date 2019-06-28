@@ -1287,7 +1287,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					}
 					hashes = append(hashes, hash)
 				}
-				if crossTxMsg.ShardMsg.Index > uint32(len(crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs)) {
+				if crossTxMsg.ShardMsg.Index > uint32(len(crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs)) || len(crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs) == 0 {
 					hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
 				}
 				msgRoot := common.ComputeMerkleRoot(hashes)
