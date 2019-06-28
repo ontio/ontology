@@ -25,7 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	vbftcfg "github.com/ontio/ontology/common/config"
-	payload "github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/payload"
 	msg "github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
@@ -43,8 +43,12 @@ func TestSaveContractMetaData(t *testing.T) {
 		MetaData: metaDataCode,
 	}
 	testEventStore.NewBatch()
-	testEventStore.SaveContractMetaDataEvent(metaDataEvent.Height, metaDataEvent.MetaData)
-	err := testEventStore.CommitTo()
+	err := testEventStore.SaveContractMetaDataEvent(metaDataEvent.Height, metaDataEvent.MetaData)
+	if err != nil {
+		t.Errorf("SaveContractMetaDataEvent err :%s", err)
+		return
+	}
+	err = testEventStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo err :%s", err)
 		return

@@ -212,15 +212,56 @@ func (this *EventStore) getEventNotifyByTxKey(txHash common.Uint256) []byte {
 	return key
 }
 
-func (this *EventStore) SaveContractMetaDataEvent(height uint32, metaData *payload.MetaDataCode) {
+func (this *EventStore) SaveContractMetaDataEvent(height uint32, metaData *payload.MetaDataCode) error {
+	heightsList, err := this.GetContractMetaHeights(metaData.Contract)
+	if err != nil && err != scom.ErrNotFound {
+		return fmt.Errorf("SaveContractMetaDataEvent: get contract meta heights failed, err: %s", err)
+	}
+	heightsNum := len(heightsList)
+	if heightsNum > 0 {
+		if height < heightsList[heightsNum-1] {
+			return fmt.Errorf("SaveContractMetaDataEvent: save height unmatch")
+		} else if height > heightsList[heightsNum-1] {
+			heightsList = append(heightsList, height)
+		}
+	} else {
+		heightsList = []uint32{height}
+	}
+	this.SaveContractMetaHeights(metaData.Contract, heightsList)
 	key := getContractMetaDataKey(height, metaData.Contract)
 	value := common.NewZeroCopySink(64)
 	metaData.Serialization(value)
 	this.store.BatchPut(key, value.Bytes())
+	return nil
 }
 
 func (this *EventStore) GetContractMetaDataEvent(height uint32, contractAddr common.Address) (*payload.MetaDataCode, error) {
-	key := getContractMetaDataKey(height, contractAddr)
+	heightsList, err := this.GetContractMetaHeights(contractAddr)
+	if err != nil {
+		return nil, fmt.Errorf("GetContractMetaDataEvent: get contract meta heights failed, err: %s", err)
+	}
+	heightNum := len(heightsList)
+	if heightNum == 0 {
+		return nil, fmt.Errorf("GetContractMetaDataEvent: heights list empty")
+	}
+	destHeight := height
+	if heightsList[heightNum-1] < height {
+		destHeight = heightsList[heightNum-1]
+	} else if heightsList[0] > height {
+		return nil, fmt.Errorf("GetContractMetaDataEvent: height is too low")
+	} else {
+		for i, h := range heightsList {
+			if h > height {
+				destHeight = heightsList[i-1]
+				break
+			} else if h == height {
+				destHeight = heightsList[i]
+				break
+			}
+		}
+	}
+
+	key := getContractMetaDataKey(destHeight, contractAddr)
 	data, err := this.store.Get(key)
 	if err != nil {
 		return nil, err
