@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	csm "github.com/ontio/ontology/consensus/utils"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
@@ -1220,23 +1221,18 @@ func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
 	}
 	msgBlkNum := msg.GetBlockNum()
 	shardMsgs := self.chainStore.GetExecShardNotify(msgBlkNum - 1)
-	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
-	for _, msg := range shardMsgs {
-		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	if len(shardMsgs) == 0 {
+		log.Errorf("verifyshardeventmsg  GetExecShardNotify blkNum:%d is nil", msgBlkNum-1)
+		return false
 	}
-	var hashes []common.Uint256
-	for _, shardMsgs := range shardMsgMap {
-		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
-		hashes = append(hashes, msgHash)
-	}
+	hashes, msgRoot := csm.BuildCrossShardMsgHash(shardMsgs)
 	if len(msg.Block.CrossMsgHash.ShardMsgHashs) != len(hashes) {
 		log.Errorf("BlockPrposalMessage msgHash len:%d not equal shardmsghash len:%d", len(msg.Block.CrossMsgHash.ShardMsgHashs), len(hashes))
 		return false
 	}
-	msgRoot := common.ComputeMerkleRoot(hashes)
-	proposalMsgRoot := common.ComputeMerkleRoot(msg.Block.CrossMsgHash.ShardMsgHashs)
-	if msgRoot != proposalMsgRoot {
-		log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgRoot.ToHexString(), proposalMsgRoot.ToHexString())
+	hashRoot := common.ComputeMerkleRoot(hashes)
+	if msgRoot != hashRoot {
+		log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgRoot.ToHexString(), hashRoot.ToHexString())
 		return false
 	}
 	return true
@@ -1247,9 +1243,9 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 		for _, crossTxMsg := range crossTxMsgs {
 			shardCall := crossTxMsg.Tx.Payload.(*payload.ShardCall)
 			if common.NewShardIDUnchecked(sourceShardID).IsRootShard() {
-				shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(msg.Block.Block.Header.ParentHeight-1, common.NewShardIDUnchecked(sourceShardID))
+				shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(msg.Block.Block.Header.ParentHeight-1, self.ShardID)
 				if err != nil {
-					log.Infof("verifycrossshardtx GetShardMsgsInBlock err:%s", err)
+					log.Errorf("verifycrossshardtx GetShardMsgsInBlock shardID:%v,height:%d err:%s", self.ShardID, msg.Block.Block.Header.ParentHeight-1, err)
 					return false
 				}
 				if xshard_types.GetShardCommonMsgsHash(shardCall.Msgs) != xshard_types.GetShardCommonMsgsHash(shardMsg) {
