@@ -25,5 +25,3 @@ import (
 func init() {
 	TestConsts.TestRootDir = "../"
 }
-
-

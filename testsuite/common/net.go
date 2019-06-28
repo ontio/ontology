@@ -19,8 +19,8 @@
 package TestCommon
 
 import (
-	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
 var MockNet *MockNetwork

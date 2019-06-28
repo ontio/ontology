@@ -159,7 +159,7 @@ func NewVbftServer(shardID common.ShardID, account *account.Account, txpool *act
 		return server
 	})
 
-	pid, err := actor.SpawnNamed(props, "consensus_vbft"+	account.Address.ToBase58())
+	pid, err := actor.SpawnNamed(props, "consensus_vbft"+account.Address.ToBase58())
 	if err != nil {
 		return nil, err
 	}

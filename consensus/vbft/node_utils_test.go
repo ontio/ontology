@@ -65,8 +65,8 @@ func constructServer() *Server {
 		Index:                    1,
 		stateMgr:                 statemgr,
 		currentParticipantConfig: blockparticipantconfig,
-		config:                   chainconfig,
-		chainStore:               chainstore,
+		config:     chainconfig,
+		chainStore: chainstore,
 	}
 	return server
 }

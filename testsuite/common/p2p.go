@@ -19,14 +19,15 @@
 package TestCommon
 
 import (
+	"reflect"
+	"testing"
+
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/chainmgr"
-	"testing"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/message/types"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
-	"reflect"
+	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
 type MockP2PActor struct {
