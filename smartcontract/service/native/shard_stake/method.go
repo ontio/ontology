@@ -534,6 +534,7 @@ func withdrawStakeAsset(native *native.NativeService, id common.ShardID, user co
 	// update user stake info from last to current
 	setShardViewUserStake(native, id, currentView, user, lastUserStakeInfo)
 	setShardViewUserStake(native, id, nextView, user, nextUserStakeInfo)
+	setShardViewInfo(native, id, currentView, currentViewInfo)
 	setShardViewInfo(native, id, nextView, nextViewInfo)
 	return amount, nil
 }
