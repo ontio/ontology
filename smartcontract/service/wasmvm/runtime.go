@@ -36,6 +36,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/util"
 	"github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/vm/crossvm_codec"
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -156,7 +157,7 @@ func Notify(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	list, err := util.DeserializeInput(bs)
+	list, err := crossvm_codec.DeserializeInput(bs)
 	if err != nil {
 		panic(err)
 	}
@@ -316,7 +317,13 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		result = tmpRes.([]byte)
 
 	case NEOVM_CONTRACT:
-		neoservice, err := self.Service.ContextRef.NewExecuteEngine(inputs, types.InvokeNeo)
+
+		parambytes, err := util.CreateNeoInvokeParam(contractAddress, inputs)
+		if err != nil {
+			panic(err)
+		}
+
+		neoservice, err := self.Service.ContextRef.NewExecuteEngine(parambytes, types.InvokeNeo)
 		if err != nil {
 			panic(err)
 		}
@@ -326,12 +333,13 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		}
 		if tmp != nil {
 			val := tmp.(*neotypes.VmValue)
-			bf := bytes.NewBuffer([]byte{byte(serialization.VERSION)})
-			err = neotypes.BuildResultFromNeo(*val, bf)
+			source := common.NewZeroCopySink([]byte{byte(crossvm_codec.VERSION)})
+
+			err = neotypes.BuildResultFromNeo(*val, source)
 			if err != nil {
 				panic(err)
 			}
-			result = bf.Bytes()
+			result = source.Bytes()
 		}
 
 	default:

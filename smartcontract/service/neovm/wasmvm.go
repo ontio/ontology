@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/util"
+	"github.com/ontio/ontology/vm/crossvm_codec"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
@@ -55,7 +56,7 @@ func WASMInvoke(service *NeoVmService, engine *vm.Executor) error {
 	if err != nil {
 		return err
 	}
-	list, err := util.DeserializeInput(parambytes)
+	list, err := crossvm_codec.DeserializeInput(parambytes)
 	if err != nil {
 		return err
 	}

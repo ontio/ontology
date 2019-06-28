@@ -27,11 +27,10 @@ import (
 	"reflect"
 	"sort"
 
-	"encoding/binary"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/vm/crossvm_codec"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
-	"github.com/ontio/ontology/common/serialization"
 )
 
 const (
@@ -739,44 +738,41 @@ func (self *VmValue) dump() string {
 
 //encode the neovm return vmval
 //transform neovm contract result to encoded byte array
-func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
+func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
 
-	if bf.Len() > serialization.MAX_PARAM_LENGTH{
+	if len(bf.Bytes()) > crossvm_codec.MAX_PARAM_LENGTH {
 		return fmt.Errorf("parameter buf is too long")
 	}
 	switch item.GetType() {
 	case bytearrayType:
 		bs := item.byteArray
 
-		bf.WriteByte(byte(serialization.ByteArrayType))
-		size := uint32(len(bs))
-		bf.Write(uint32ToLittleEndiaBytes(size))
-		bf.Write(bs)
+		bf.WriteByte(crossvm_codec.ByteArrayType)
+		bf.WriteUint32(uint32(len(bs)))
+		bf.WriteBytes(bs)
 
 	case integerType:
 		val := item.integer
 
-		bf.WriteByte(byte(serialization.IntType))
+		bf.WriteByte(crossvm_codec.IntType)
 
 		bytes := common.BigIntToNeoBytes(big.NewInt(val))
-		len := uint32(len(bytes))
-		bf.Write(uint32ToLittleEndiaBytes(len))
-		bf.Write(bytes)
+		bf.WriteUint32(uint32(len(bytes)))
+		bf.WriteBytes(bytes)
 
 	case bigintType:
 		val := item.bigInt
-		bf.WriteByte(byte(serialization.IntType))
+		bf.WriteByte(crossvm_codec.IntType)
 		bytes := common.BigIntToNeoBytes(val)
-		len := uint32(len(bytes))
-		bf.Write(uint32ToLittleEndiaBytes(len))
-		bf.Write(bytes)
+		bf.WriteUint32(uint32(len(bytes)))
+		bf.WriteBytes(bytes)
 
 	case boolType:
 		val, err := item.AsBool()
 		if err != nil {
 			return err
 		}
-		bf.WriteByte(byte(serialization.BooleanType))
+		bf.WriteByte(crossvm_codec.BooleanType)
 		if val {
 			bf.WriteByte(byte(1))
 		} else {
@@ -784,14 +780,12 @@ func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
 		}
 	case arrayType:
 		val := item.array
-
 		if val == nil {
 			return fmt.Errorf("get array error")
 		}
 
-		bf.WriteByte(byte(serialization.ListType))
-		size := uint32(len(val.Data))
-		bf.Write(uint32ToLittleEndiaBytes(size))
+		bf.WriteByte(crossvm_codec.ListType)
+		bf.WriteUint32(uint32(len(val.Data)))
 		for _, si := range val.Data {
 			err := BuildResultFromNeo(si, bf)
 			if err != nil {
@@ -803,9 +797,4 @@ func BuildResultFromNeo(item VmValue, bf *bytes.Buffer) error {
 		return fmt.Errorf("not a supported return type")
 	}
 	return nil
-}
-func uint32ToLittleEndiaBytes(i uint32) []byte {
-	tmpbs := make([]byte, 4)
-	binary.LittleEndian.PutUint32(tmpbs, i)
-	return tmpbs
 }
