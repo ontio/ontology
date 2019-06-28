@@ -434,3 +434,31 @@ func TestBlockFetchRespMsgDeserialize(t *testing.T) {
 	}
 	t.Logf("BlockFetchRespMsg Serialize succ: %v\n", respmsg.BlockNumber)
 }
+
+func TestBlockSerialization(t *testing.T) {
+	blk, err := constructBlock()
+	if err != nil {
+		t.Errorf("constructBlock failed: %v", err)
+		return
+	}
+
+	data, err := blk.Serialize()
+	if err != nil {
+		t.Fatalf("serialize blk: %s", err)
+	}
+
+	blk2 := &Block{}
+	if err := blk2.Deserialize(data); err != nil {
+		t.Fatalf("deserialize blk: %s", err)
+	}
+
+	blk.EmptyBlock = nil
+	data2, err := blk.Serialize()
+	if err != nil {
+		t.Fatalf("serialize blk2: %s", err)
+	}
+	blk3 := &Block{}
+	if err := blk3.Deserialize(data2); err != nil {
+		t.Fatalf("deserialize blk2: %s", err)
+	}
+}
