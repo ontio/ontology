@@ -24,7 +24,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
 )
@@ -78,6 +77,7 @@ func (blk *Block) Serialize() ([]byte, error) {
 	payload := common.NewZeroCopySink(nil)
 	payload.WriteVarBytes(sink.Bytes())
 
+	payload.WriteBool(blk.EmptyBlock != nil)
 	if blk.EmptyBlock != nil {
 		sink2 := common.NewZeroCopySink(nil)
 		blk.EmptyBlock.Serialization(sink2)
@@ -109,22 +109,29 @@ func (blk *Block) Deserialize(data []byte) error {
 	}
 
 	var emptyBlock *types.Block
-	if source.Len() > 0 {
-		buf2, _, irregular, eof := source.NextVarBytes()
-		if irregular == false && eof == false {
-			block2, err := types.BlockFromRawBytes(buf2)
-			if err == nil {
-				emptyBlock = block2
-			}
-		}
+	hasEmptyBlock, irr, eof := source.NextBool()
+	if irr {
+		return fmt.Errorf("read empty-block-bool: %s", common.ErrIrregularData)
 	}
-	var merkleRoot common.Uint256
-	if source.Len() > 0 {
-		merkleRoot, eof = source.NextHash()
-		if eof {
-			log.Errorf("Block Deserialize merkleRoot")
-			return io.ErrUnexpectedEOF
+	if eof {
+		return fmt.Errorf("read empty-block-bool: %s", io.ErrUnexpectedEOF)
+	}
+	if hasEmptyBlock {
+		buf2, _, irregular, eof := source.NextVarBytes()
+		if irregular || eof {
+			return fmt.Errorf("read empty block failed: %v, %v", irregular, eof)
 		}
+		block2, err := types.BlockFromRawBytes(buf2)
+		if err != nil {
+			return fmt.Errorf("deserialize empty blk failed: %s", err)
+		}
+		emptyBlock = block2
+	}
+
+	var merkleRoot common.Uint256
+	merkleRoot, eof = source.NextHash()
+	if eof {
+		return fmt.Errorf("block deserialize merkleRoot: %s", io.ErrUnexpectedEOF)
 	}
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
