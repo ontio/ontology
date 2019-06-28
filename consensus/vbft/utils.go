@@ -24,6 +24,7 @@ import (
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/vrf"
@@ -356,11 +357,14 @@ func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum 
 		return nil, err
 	}
 	var blkHeight uint32
+	sort.Slice(heights, func(i, j int) bool { return heights[i] < heights[j] })
 	for index, height := range heights {
-		if height > blkNum {
-			blkHeight = heights[index]
-		} else if height == blkNum {
-			blkHeight = heights[index]
+		if height == blkNum {
+			if index == 0 {
+				blkHeight = heights[index]
+			} else {
+				blkHeight = heights[index-1]
+			}
 		}
 	}
 	data, err := lgr.GetShardConsensusConfig(shardID, blkHeight)

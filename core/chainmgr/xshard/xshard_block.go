@@ -133,6 +133,21 @@ func SaveCrossShardHash(lgr *ledger.Ledger, shardID common.ShardID, msgHash comm
 	return lgr.SaveCrossShardHash(shardID, msgHash)
 }
 
+func GetCrossShardMsg(lgr *ledger.Ledger, sourceShardID common.ShardID, msgHash common.Uint256) (*types.CrossShardMsg, error) {
+	pool := crossShardPool
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	if csMsg, present := pool.Shards[sourceShardID]; present {
+		if msg, p := csMsg[msgHash]; p {
+			return msg, nil
+		} else {
+			return lgr.GetCrossShardMsgByHash(msgHash)
+		}
+	} else {
+		return lgr.GetCrossShardMsgByHash(msgHash)
+	}
+}
+
 func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) error {
 	pool := crossShardPool
 	pool.lock.Lock()

@@ -110,3 +110,31 @@ func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uin
 
 	return builtMsgs, hashRoot, nil
 }
+
+func BuildCrossShardMsgHash(shardMsgs []xshard_types.CommonShardMsg) ([]common.Uint256, common.Uint256) {
+	shardList := make([]common.ShardID, 0)
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	for _, msg := range shardMsgs {
+		targetShardID := msg.GetTargetShardID()
+		if _, present := shardMsgMap[targetShardID]; !present {
+			shardList = append(shardList, targetShardID)
+		}
+		shardMsgMap[targetShardID] = append(shardMsgMap[targetShardID], msg)
+	}
+
+	// sort shards by shard-id
+	sort.Slice(shardList, func(i, j int) bool { return shardList[i].ToUint64() < shardList[j].ToUint64() })
+
+	// hash of serialized shard msgs
+	shardMsgHashMap := make(map[common.ShardID]common.Uint256)
+	for shardID, msgs := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(msgs)
+		shardMsgHashMap[shardID] = msgHash
+	}
+	// compute hash Root in order of shard-id
+	hashes := make([]common.Uint256, 0)
+	for _, shardID := range shardList {
+		hashes = append(hashes, shardMsgHashMap[shardID])
+	}
+	return hashes, common.ComputeMerkleRoot(hashes)
+}

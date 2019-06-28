@@ -54,6 +54,7 @@ import (
 	scommon "github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
+	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
@@ -831,7 +832,7 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 
 func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result store.ExecuteResult) error {
 	shardSysMsg, metaEvents, deployContractEvent := extractShardEvents(result.Notify)
-	err := this.saveCrossShardGovernanceData(block, shardSysMsg)
+	err := this.saveCrossShardGovernanceData(block, shardSysMsg, result.WriteSet)
 	if err != nil {
 		return err
 	}
@@ -850,7 +851,7 @@ func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result
 	return nil
 }
 
-func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, shardEvts []*message.ShardSystemEventMsg) error {
+func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, shardEvts []*message.ShardSystemEventMsg, overlayDB *overlaydb.MemDB) error {
 	for _, evt := range shardEvts {
 		shardEvt := evt.Event
 		switch shardEvt.EventType {
@@ -861,6 +862,37 @@ func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, sha
 				continue
 			}
 			return this.addShardEventConfig(cfgEvt.Height, cfgEvt.ImplSourceTargetShardID.ShardID, cfgEvt.Config, cfgEvt.Peers)
+		case shardstates.EVENT_SHARD_ACTIVATED:
+			evt := &shardstates.ShardActiveEvent{}
+			if err := evt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
+				log.Errorf("deserialize shard activation event: %s", err)
+				continue
+			}
+			shardState := &shardstates.ShardState{}
+			shardIDBytes := utils.GetUint64Bytes(evt.ShardID.ToUint64())
+			key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
+			storageKey := &states.StorageKey{
+				ContractAddress: utils.ShardMgmtContractAddress,
+				Key:             key,
+			}
+			data, unkown := overlayDB.Get(key)
+			if unkown {
+				storageItem, err := this.GetStorageItem(storageKey)
+				if err != nil || storageItem == nil {
+					log.Errorf("GetStorageItem err:%s", err)
+					continue
+				}
+				if err := shardState.Deserialization(common.NewZeroCopySource(storageItem.Value)); err != nil {
+					log.Errorf("deserialization storageitem value shard state: %s", err)
+					continue
+				}
+			} else {
+				if err := shardState.Deserialization(common.NewZeroCopySource(data)); err != nil {
+					log.Errorf("deserialization storageitem value shard state: %s", err)
+					continue
+				}
+			}
+			return this.addShardEventConfig(0, evt.ShardID, shardState.Config, shardState.Peers)
 		}
 	}
 	return nil
