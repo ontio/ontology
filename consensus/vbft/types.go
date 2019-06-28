@@ -117,15 +117,15 @@ func (blk *Block) Deserialize(data []byte) error {
 		return fmt.Errorf("read empty-block-bool: %s", io.ErrUnexpectedEOF)
 	}
 	if hasEmptyBlock {
-		if source.Len() > 0 {
-			buf2, _, irregular, eof := source.NextVarBytes()
-			if irregular == false && eof == false {
-				block2, err := types.BlockFromRawBytes(buf2)
-				if err == nil {
-					emptyBlock = block2
-				}
-			}
+		buf2, _, irregular, eof := source.NextVarBytes()
+		if irregular || eof {
+			return fmt.Errorf("read empty block failed: %v, %v", irregular, eof)
 		}
+		block2, err := types.BlockFromRawBytes(buf2)
+		if err != nil {
+			return fmt.Errorf("deserialize empty blk failed: %s", err)
+		}
+		emptyBlock = block2
 	}
 
 	var merkleRoot common.Uint256
