@@ -189,7 +189,10 @@ func EncodeList(sink *common.ZeroCopySink, list []interface{}) error {
 		case common.Uint256:
 			EncodeH256(sink, elem.(common.Uint256))
 		case []interface{}:
-			EncodeList(sink, elem.([]interface{}))
+			err := EncodeList(sink, elem.([]interface{}))
+			if err != nil {
+				return err
+			}
 		default:
 			return ERROR_PARAM_NOT_SUPPORTED_TYPE
 		}
