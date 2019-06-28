@@ -494,7 +494,9 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 			log.Errorf("SaveCrossShardMsgByHash preMsgHash:%s,err:%s", prevMsgHash.ToHexString(), err)
 			return
 		}
-
+		for index, sig := range crossShardMsgHash.SigData {
+			msg.CrossShardMsgInfo.ShardMsgInfo.SigData[index] = sig
+		}
 		// broadcast
 		sink := common.ZeroCopySink{}
 		msg.Serialization(&sink)

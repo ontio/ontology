@@ -283,12 +283,12 @@ func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[uint64][]*types.Cros
 	for id, shardTxs := range crossShardTxs {
 		shardID := common.NewShardIDUnchecked(id)
 		for _, shardTx := range shardTxs {
-			if _, present := pool.Shards[shardID]; !present {
+			if msg, present := pool.Shards[shardID]; !present {
 				log.Infof("delcrossshardtxs shardID:%d,not exist", shardID)
 				return nil
 			} else {
 				log.Infof("delcrossshardtxs shardID:%d", shardID)
-				//delete(crossShardTxInfos, shardTx.ShardMsg.CrossShardMsgRoot)
+				delete(msg, shardTx.ShardMsg.PreCrossShardMsgHash)
 				SaveCrossShardHash(lgr, shardID, shardTx.ShardMsg.PreCrossShardMsgHash)
 			}
 		}
