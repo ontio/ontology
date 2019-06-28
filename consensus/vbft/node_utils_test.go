@@ -223,7 +223,7 @@ func testCalcParticipantPeers(t *testing.T, n, c int) {
 	for _, p := range pc {
 		peers[p] = true
 	}
-	if len(peers) <= 2*c+1 {
+	if len(peers) < 2*c+1 {
 		t.Fatalf("peers(%d, %d, %d, %d, %d, %d): %v, %v, %v", n, c, len(peers), len(pp), len(pe), len(pc), pp, pe, pc)
 	}
 }
