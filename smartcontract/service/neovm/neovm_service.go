@@ -73,6 +73,7 @@ var (
 		RUNTIME_DESERIALIZE_NAME:             {Execute: RuntimeDeserialize},
 		RUNTIME_VERIFYMUTISIG_NAME:           {Execute: RuntimeVerifyMutiSig},
 		NATIVE_INVOKE_NAME:                   {Execute: NativeInvoke},
+		WASM_INVOKE_NAME:                     {Execute: WASMInvoke},
 		STORAGE_GET_NAME:                     {Execute: StorageGet},
 		STORAGE_PUT_NAME:                     {Execute: StoragePut},
 		STORAGE_DELETE_NAME:                  {Execute: StorageDelete},
