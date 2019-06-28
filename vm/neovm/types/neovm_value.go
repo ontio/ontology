@@ -746,44 +746,24 @@ func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
 	switch item.GetType() {
 	case bytearrayType:
 		bs := item.byteArray
-
-		bf.WriteByte(crossvm_codec.ByteArrayType)
-		bf.WriteUint32(uint32(len(bs)))
-		bf.WriteBytes(bs)
-
+		crossvm_codec.EncodeBytes(bf, bs)
 	case integerType:
 		val := item.integer
-
-		bf.WriteByte(crossvm_codec.IntType)
-
-		bytes := common.BigIntToNeoBytes(big.NewInt(val))
-		bf.WriteUint32(uint32(len(bytes)))
-		bf.WriteBytes(bytes)
-
+		crossvm_codec.EncodeInt(bf, big.NewInt(val))
 	case bigintType:
 		val := item.bigInt
-		bf.WriteByte(crossvm_codec.IntType)
-		bytes := common.BigIntToNeoBytes(val)
-		bf.WriteUint32(uint32(len(bytes)))
-		bf.WriteBytes(bytes)
-
+		crossvm_codec.EncodeInt(bf, val)
 	case boolType:
 		val, err := item.AsBool()
 		if err != nil {
 			return err
 		}
-		bf.WriteByte(crossvm_codec.BooleanType)
-		if val {
-			bf.WriteByte(byte(1))
-		} else {
-			bf.WriteByte(byte(0))
-		}
+		crossvm_codec.EncodeBool(bf, val)
 	case arrayType:
 		val := item.array
 		if val == nil {
 			return fmt.Errorf("get array error")
 		}
-
 		bf.WriteByte(crossvm_codec.ListType)
 		bf.WriteUint32(uint32(len(val.Data)))
 		for _, si := range val.Data {

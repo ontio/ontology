@@ -172,6 +172,7 @@ func EncodeInt(sink *common.ZeroCopySink, intval *big.Int) {
 	sink.WriteByte(IntType)
 	sink.WriteBytes(common.BigIntToNeoBytes(intval))
 }
+
 func EncodeList(sink *common.ZeroCopySink, list []interface{}) error {
 	sink.WriteByte(ListType)
 	sink.WriteUint32(uint32(len(list)))
