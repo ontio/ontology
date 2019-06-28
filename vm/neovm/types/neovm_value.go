@@ -28,6 +28,7 @@ import (
 	"sort"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/vm/crossvm_codec"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
 )
@@ -733,4 +734,47 @@ func (self *VmValue) dump() string {
 		panic("unreacheable!")
 	}
 	return ""
+}
+
+//encode the neovm return vmval
+//transform neovm contract result to encoded byte array
+func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
+
+	if len(bf.Bytes()) > crossvm_codec.MAX_PARAM_LENGTH {
+		return fmt.Errorf("parameter buf is too long")
+	}
+	switch item.GetType() {
+	case bytearrayType:
+		bs := item.byteArray
+		crossvm_codec.EncodeBytes(bf, bs)
+	case integerType:
+		val := item.integer
+		crossvm_codec.EncodeInt(bf, big.NewInt(val))
+	case bigintType:
+		val := item.bigInt
+		crossvm_codec.EncodeInt(bf, val)
+	case boolType:
+		val, err := item.AsBool()
+		if err != nil {
+			return err
+		}
+		crossvm_codec.EncodeBool(bf, val)
+	case arrayType:
+		val := item.array
+		if val == nil {
+			return fmt.Errorf("get array error")
+		}
+		bf.WriteByte(crossvm_codec.ListType)
+		bf.WriteUint32(uint32(len(val.Data)))
+		for _, si := range val.Data {
+			err := BuildResultFromNeo(si, bf)
+			if err != nil {
+				return err
+			}
+		}
+
+	default:
+		return fmt.Errorf("not a supported return type")
+	}
+	return nil
 }
