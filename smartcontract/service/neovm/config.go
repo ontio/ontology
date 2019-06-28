@@ -166,7 +166,7 @@ var (
 		HASH256_NAME:                   HASH256_GAS,
 		UINT_DEPLOY_CODE_LEN_NAME:      UINT_DEPLOY_CODE_LEN_GAS,
 		UINT_INVOKE_CODE_LEN_NAME:      UINT_INVOKE_CODE_LEN_GAS,
-		WASM_INVOKE_NAME:               APPCALL_GAS,
+		// warn: this table cannot be modified, since it is included in genesis block
 	}
 )
 
