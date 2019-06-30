@@ -22,13 +22,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"net"
-	"time"
-
+	lru "github.com/hashicorp/golang-lru"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
+	"net"
+	"time"
 )
 
 //Link used to establish
@@ -40,14 +40,19 @@ type Link struct {
 	time       time.Time              // The latest time the node activity
 	recvChan   chan *types.MsgPayload //msgpayload channel
 	reqRecord  map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
-	txMsgCache map[comm.Uint256]bool
+	txMsgCache *lru.Cache             //Map txHash to bool, using for rejecting duplicate tx
 }
 
-func NewLink() *Link {
-	link := &Link{
-		reqRecord: make(map[string]int64, 0),
+func NewLink() (*Link, error) {
+	txMsgCache, err := lru.New(100000)
+	if err != nil {
+		return nil, err
 	}
-	return link
+	link := &Link{
+		reqRecord:  make(map[string]int64, 0),
+		txMsgCache: txMsgCache,
+	}
+	return link, nil
 }
 
 //SetID set peer id to link
@@ -227,7 +232,12 @@ func (this *Link) checkRepeatTx(msg types.Message) (bool, comm.Uint256) {
 	}
 	var tx = msg.(*types.Trn)
 	txHash := tx.Txn.Hash()
-	return this.txMsgCache[txHash], txHash
+	if this.txMsgCache.Contains(txHash) {
+		return true, txHash
+	} else {
+		this.txMsgCache.Add(txHash, nil)
+	}
+	return false, comm.UINT256_EMPTY
 }
 
 //addReqRecord add request record by removing outdated request records

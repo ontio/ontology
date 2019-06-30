@@ -87,7 +87,8 @@ func TestMain(m *testing.M) {
 // TestVersionHandle tests Function VersionHandle handling a version message
 func TestVersionHandle(t *testing.T) {
 	// Simulate a remote peer to connect to the local
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 
 	network.AddPeerAddress("127.0.0.1:50010", remotePeer)
@@ -95,7 +96,7 @@ func TestVersionHandle(t *testing.T) {
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
 	key := keypair.SerializePublicKey(testPub)
-	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
+	err = binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
 	// Construct a version packet
@@ -136,7 +137,8 @@ func TestVerAckHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.SetHttpInfoPort(20335)
@@ -173,7 +175,8 @@ func TestAddrReqHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
@@ -206,7 +209,8 @@ func TestHeadersReqHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
@@ -239,7 +243,8 @@ func TestPingHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")
@@ -274,7 +279,8 @@ func TestPongHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")
@@ -309,7 +315,8 @@ func TestBlkHeaderHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336, testID, 0, 12345, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
@@ -346,7 +353,8 @@ func TestBlockHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")
@@ -472,7 +480,8 @@ func TestDataReqHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")
@@ -516,7 +525,8 @@ func TestInvHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")
@@ -550,7 +560,8 @@ func TestDisconnectHandle(t *testing.T) {
 	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
 	assert.Nil(t, err)
 
-	remotePeer := peer.NewPeer()
+	remotePeer, err := peer.NewPeer()
+	assert.Nil(t, err)
 	assert.NotNil(t, remotePeer)
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")

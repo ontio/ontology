@@ -44,8 +44,8 @@ var (
 func init() {
 	log.InitLog(log.InfoLog, log.Stdout)
 
-	cliLink = NewLink()
-	serverLink = NewLink()
+	cliLink,_ = NewLink()
+	serverLink,_ = NewLink()
 
 	cliLink.SetID(0x733936)
 	serverLink.SetID(0x8274950)
