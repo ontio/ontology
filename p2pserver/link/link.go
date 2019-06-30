@@ -33,13 +33,14 @@ import (
 
 //Link used to establish
 type Link struct {
-	id        uint64
-	addr      string                 // The address of the node
-	conn      net.Conn               // Connect socket with the peer node
-	port      uint16                 // The server port of the node
-	time      time.Time              // The latest time the node activity
-	recvChan  chan *types.MsgPayload //msgpayload channel
-	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
+	id         uint64
+	addr       string                 // The address of the node
+	conn       net.Conn               // Connect socket with the peer node
+	port       uint16                 // The server port of the node
+	time       time.Time              // The latest time the node activity
+	recvChan   chan *types.MsgPayload //msgpayload channel
+	reqRecord  map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
+	txMsgCache map[comm.Uint256]bool
 }
 
 func NewLink() *Link {
@@ -131,6 +132,12 @@ func (this *Link) Rx() {
 			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
 			continue
 		}
+		boo, txHash := this.checkRepeatTx(msg)
+		if boo {
+			log.Debugf("skip handle msgType:%s from:%d, txHash: %s", msg.CmdType(), this.id, txHash.ToHexString())
+			continue
+		}
+
 		this.addReqRecord(msg)
 		this.recvChan <- &types.MsgPayload{
 			Id:          this.id,
@@ -212,6 +219,15 @@ func (this *Link) needSendMsg(msg types.Message) bool {
 		}
 	}
 	return true
+}
+
+func (this *Link) checkRepeatTx(msg types.Message) (bool, comm.Uint256) {
+	if msg.CmdType() != common.TX_TYPE {
+		return false, comm.UINT256_EMPTY
+	}
+	var tx = msg.(*types.Trn)
+	txHash := tx.Txn.Hash()
+	return this.txMsgCache[txHash], txHash
 }
 
 //addReqRecord add request record by removing outdated request records
