@@ -147,7 +147,7 @@ func NewPeer() (*Peer, error) {
 		return nil, err
 	}
 	runtime.SetFinalizer(p, rmPeer)
-	return p,nil
+	return p, nil
 }
 
 //rmPeer print a debug log when peer be finalized by system
