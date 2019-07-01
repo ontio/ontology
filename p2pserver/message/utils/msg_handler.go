@@ -44,7 +44,7 @@ import (
 var respCache *lru.ARCCache
 
 //Store txHash, using for rejecting duplicate tx
-var txCache *lru.ARCCache
+var txCache, _ = lru.NewARC(100000)
 
 // AddrReqHandle handles the neighbor address request from peer
 func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
@@ -687,10 +687,6 @@ func saveRespCache(key string, value interface{}) bool {
 func checkDuplicateTx(tx *types.Transaction) bool {
 
 	txHash := tx.Hash()
-	if txCache == nil {
-		txCache, _ = lru.NewARC(100000)
-		return false
-	}
 	if txCache.Contains(txHash) {
 		return true
 	} else {
