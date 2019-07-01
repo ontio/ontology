@@ -214,7 +214,7 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	boo := checkDuplicateTx(trn.Txn)
 	if !boo {
 		actor.AddTransaction(trn.Txn)
-		log.Tracef("[p2p]receive Transaction message hash: %v\n", trn.Txn.Hash())
+		log.Tracef("[p2p]receive Transaction message hash: %x\n", trn.Txn.Hash())
 	} else {
 		log.Tracef("[p2p]receive duplicate Transaction message, txHash: %x\n", trn.Txn.Hash())
 	}
