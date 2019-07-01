@@ -32,18 +32,18 @@ import (
 
 //Link used to establish
 type Link struct {
-	id         uint64
-	addr       string                 // The address of the node
-	conn       net.Conn               // Connect socket with the peer node
-	port       uint16                 // The server port of the node
-	time       time.Time              // The latest time the node activity
-	recvChan   chan *types.MsgPayload //msgpayload channel
-	reqRecord  map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
+	id        uint64
+	addr      string                 // The address of the node
+	conn      net.Conn               // Connect socket with the peer node
+	port      uint16                 // The server port of the node
+	time      time.Time              // The latest time the node activity
+	recvChan  chan *types.MsgPayload //msgpayload channel
+	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
 }
 
 func NewLink() *Link {
 	link := &Link{
-		reqRecord:  make(map[string]int64, 0),
+		reqRecord: make(map[string]int64, 0),
 	}
 	return link
 }
@@ -213,7 +213,6 @@ func (this *Link) needSendMsg(msg types.Message) bool {
 	}
 	return true
 }
-
 
 //addReqRecord add request record by removing outdated request records
 func (this *Link) addReqRecord(msg types.Message) {
