@@ -354,7 +354,7 @@ func userStake(native *native.NativeService, id common.ShardID, user common.Addr
 		if !ok {
 			return fmt.Errorf("userStake: next view cannot find peer %s", pubKeyString)
 		}
-		if !nextPeerStakeInfo.CanStake {
+		if !currentPeerStakeInfo.CanStake || !nextPeerStakeInfo.CanStake { // peer is exiting
 			return fmt.Errorf("userStake: peer %s cannot stake", pubKeyString)
 		}
 		if nextPeerStakeInfo.Owner == user {
