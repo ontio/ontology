@@ -22,7 +22,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	lru "github.com/hashicorp/golang-lru"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -40,19 +39,13 @@ type Link struct {
 	time       time.Time              // The latest time the node activity
 	recvChan   chan *types.MsgPayload //msgpayload channel
 	reqRecord  map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
-	txMsgCache *lru.Cache             //Map txHash to bool, using for rejecting duplicate tx
 }
 
-func NewLink() (*Link, error) {
-	txMsgCache, err := lru.New(100000)
-	if err != nil {
-		return nil, err
-	}
+func NewLink() *Link {
 	link := &Link{
 		reqRecord:  make(map[string]int64, 0),
-		txMsgCache: txMsgCache,
 	}
-	return link, nil
+	return link
 }
 
 //SetID set peer id to link
@@ -135,11 +128,6 @@ func (this *Link) Rx() {
 
 		if !this.needSendMsg(msg) {
 			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
-			continue
-		}
-		boo, txHash := this.checkRepeatTx(msg)
-		if boo {
-			log.Debugf("skip handle msgType:%s from:%d, txHash: %s", msg.CmdType(), this.id, txHash.ToHexString())
 			continue
 		}
 
@@ -226,19 +214,6 @@ func (this *Link) needSendMsg(msg types.Message) bool {
 	return true
 }
 
-func (this *Link) checkRepeatTx(msg types.Message) (bool, comm.Uint256) {
-	if msg.CmdType() != common.TX_TYPE {
-		return false, comm.UINT256_EMPTY
-	}
-	var tx = msg.(*types.Trn)
-	txHash := tx.Txn.Hash()
-	if this.txMsgCache.Contains(txHash) {
-		return true, txHash
-	} else {
-		this.txMsgCache.Add(txHash, nil)
-	}
-	return false, comm.UINT256_EMPTY
-}
 
 //addReqRecord add request record by removing outdated request records
 func (this *Link) addReqRecord(msg types.Message) {

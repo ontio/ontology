@@ -137,17 +137,13 @@ type Peer struct {
 }
 
 //NewPeer return new peer without publickey initial
-func NewPeer() (*Peer, error) {
+func NewPeer() *Peer {
 	p := &Peer{
 		linkState: common.INIT,
 	}
-	var err error
-	p.Link, err = conn.NewLink()
-	if err != nil {
-		return nil, err
-	}
+	p.Link = conn.NewLink()
 	runtime.SetFinalizer(p, rmPeer)
-	return p, nil
+	return p
 }
 
 //rmPeer print a debug log when peer be finalized by system

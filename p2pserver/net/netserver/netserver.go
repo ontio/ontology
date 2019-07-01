@@ -293,10 +293,7 @@ func (this *NetServer) Connect(addr string) error {
 		conn.RemoteAddr().Network())
 
 	this.AddOutConnRecord(addr)
-	remotePeer, err = peer.NewPeer()
-	if err != nil {
-		return err
-	}
+	remotePeer = peer.NewPeer()
 	this.AddPeerAddress(addr, remotePeer)
 	remotePeer.Link.SetAddr(addr)
 	remotePeer.Link.SetConn(conn)
@@ -403,11 +400,7 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 			continue
 		}
 
-		remotePeer, err := peer.NewPeer()
-		if err != nil {
-			log.Errorf("[p2p] NetAccept :NewPeer error: %s\n", err)
-			continue
-		}
+		remotePeer := peer.NewPeer()
 		addr := conn.RemoteAddr().String()
 		this.AddInConnRecord(addr)
 
