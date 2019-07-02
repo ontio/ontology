@@ -9,7 +9,7 @@ DRUN=docker run
 DOCKER_NS ?= ontio
 DOCKER_TAG=$(ARCH)-$(VERSION)
 
-SRC_FILES = $(shell git ls-files | grep -e .go$ | grep -v _test.go)
+SRC_FILES = $(shell git ls-files | grep -e .go$ | grep -v ^testsuite | grep -v _test.go)
 TOOLS=./tools
 ABI=$(TOOLS)/abi
 NATIVE_ABI_SCRIPT=./cmd/abi/native_abi_script

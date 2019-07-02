@@ -20,8 +20,6 @@ package TestCommon
 
 import (
 	"fmt"
-	common2 "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/chainmgr"
 	"os"
 	"testing"
 
@@ -29,6 +27,8 @@ import (
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/common"
+	common2 "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/testsuite"
 )
 

@@ -20,22 +20,22 @@ package TestContracts
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/chainmgr"
-	"github.com/ontio/ontology/smartcontract/service/native/shardasset/oep4"
-	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	tutils "github.com/ontio/ontology/testsuite/utils"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/shardasset/oep4"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/testsuite"
 	"github.com/ontio/ontology/testsuite/common"
+	tutils "github.com/ontio/ontology/testsuite/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
