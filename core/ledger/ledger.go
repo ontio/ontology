@@ -139,6 +139,14 @@ func GetShardLedger(shardID common.ShardID) *Ledger {
 	return DefLedgerMgr.Ledgers[shardID]
 }
 
+// Note: helper for test
+func RemoveLedger(shardID common.ShardID) {
+	DefLedgerMgr.Lock.RLock()
+	defer DefLedgerMgr.Lock.RUnlock()
+
+	delete(DefLedgerMgr.Ledgers, shardID)
+}
+
 func CloseLedgers() {
 	DefLedgerMgr.Lock.Lock()
 	defer DefLedgerMgr.Lock.Unlock()

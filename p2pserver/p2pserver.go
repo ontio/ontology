@@ -298,7 +298,7 @@ func (this *P2PServer) WaitForPeersStart() {
 	periodTime := config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	for {
 		log.Info("[p2p]Wait for minimum connection...")
-		if this.reachMinConnection() {
+		if this.ReachMinConnection() {
 			break
 		}
 
@@ -372,7 +372,7 @@ func (this *P2PServer) connectSeeds() {
 }
 
 //reachMinConnection return whether net layer have enough link under different config
-func (this *P2PServer) reachMinConnection() bool {
+func (this *P2PServer) ReachMinConnection() bool {
 	if config.DefConfig.Consensus.EnableConsensus == false {
 		//just sync
 		return true
@@ -394,7 +394,7 @@ func (this *P2PServer) reachMinConnection() bool {
 }
 
 //getNode returns the peer with the id
-func (this *P2PServer) getNode(id uint64) *peer.Peer {
+func (this *P2PServer) GetNode(id uint64) *peer.Peer {
 	return this.network.GetPeer(id)
 }
 
@@ -476,7 +476,7 @@ func (this *P2PServer) connectSeedService() {
 		case <-t.C:
 			this.connectSeeds()
 			t.Stop()
-			if this.reachMinConnection() {
+			if this.ReachMinConnection() {
 				t.Reset(time.Second * time.Duration(10*common.CONN_MONITOR))
 			} else {
 				t.Reset(time.Second * common.CONN_MONITOR)
@@ -541,11 +541,11 @@ func (this *P2PServer) ping() {
 	this.network.SetHeight(heights)
 
 	peers := this.network.GetNeighbors()
-	this.pingTo(peers)
+	this.PingTo(peers)
 }
 
 //pings send pkgs to get pong msg from others
-func (this *P2PServer) pingTo(peers []*peer.Peer) {
+func (this *P2PServer) PingTo(peers []*peer.Peer) {
 	heights := make(map[uint64]*msgtypes.HeightInfo)
 
 	for id, syncer := range this.blockSyncers {
