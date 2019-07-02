@@ -173,7 +173,10 @@ func buildWasmContractParam(params []interface{}, bf *common.ZeroCopySink) ([]by
 		case byte:
 			bf.WriteByte(param.(byte))
 		case []interface{}:
-			buildWasmContractParam(param.([]interface{}), bf)
+			_, err := buildWasmContractParam(param.([]interface{}), bf)
+			if err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("not a supported type :%v\n", param)
 		}
