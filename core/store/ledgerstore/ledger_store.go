@@ -839,7 +839,10 @@ func (this *LedgerStoreImp) saveCrossShardDataToStore(block *types.Block, result
 	if err != nil {
 		return err
 	}
-	this.saveCrossShardConstactMetaData(metaEvents)
+	err = this.saveContractMetaData(metaEvents)
+	if err != nil {
+		return err
+	}
 	err = this.saveCrossShardDeployContractEventData(deployContractEvent)
 	if err != nil {
 		return err
@@ -864,6 +867,9 @@ func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, sha
 }
 
 func (this *LedgerStoreImp) saveParentShardConfig(block *types.Block) error {
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		return nil
+	}
 	blkInfo := &vconfig.VbftBlockInfo{}
 	if err := json.Unmarshal(block.Header.ConsensusPayload, blkInfo); err != nil {
 		return fmt.Errorf("unmarshal blockInfo: %s", err)
@@ -912,10 +918,13 @@ func (this *LedgerStoreImp) addShardEventConfig(height uint32, shardID common.Sh
 	return nil
 }
 
-func (this *LedgerStoreImp) saveCrossShardConstactMetaData(metaEvents []*message.MetaDataEvent) {
+func (this *LedgerStoreImp) saveContractMetaData(metaEvents []*message.MetaDataEvent) error {
 	for _, metaEvent := range metaEvents {
-		this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData)
+		if err := this.eventStore.SaveContractMetaDataEvent(metaEvent.Height, metaEvent.MetaData); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 func (this *LedgerStoreImp) saveCrossShardDeployContractEventData(contractEvents []*message.ContractLifetimeEvent) error {
 	for _, contractEvent := range contractEvents {
