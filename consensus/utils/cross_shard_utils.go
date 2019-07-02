@@ -120,6 +120,7 @@ func BuildCrossShardMsgHash(shardMsgs []xshard_types.CommonShardMsg) ([]common.U
 	for _, msg := range shardMsgs {
 		targetShardID := msg.GetTargetShardID()
 		if _, present := shardMsgMap[targetShardID]; !present {
+			shardMsgMap[targetShardID] = make([]xshard_types.CommonShardMsg, 0)
 			shardList = append(shardList, targetShardID)
 		}
 		shardMsgMap[targetShardID] = append(shardMsgMap[targetShardID], msg)

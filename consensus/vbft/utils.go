@@ -349,6 +349,7 @@ func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum 
 		return nil, err
 	}
 	var blkHeight uint32
+	heights = append(heights, blkNum)
 	sort.Slice(heights, func(i, j int) bool { return heights[i] < heights[j] })
 	for index, height := range heights {
 		if height == blkNum {

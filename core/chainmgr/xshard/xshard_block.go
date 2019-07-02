@@ -281,12 +281,15 @@ func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[uint64][]*types.Cros
 		shardID := common.NewShardIDUnchecked(id)
 		for _, shardTx := range shardTxs {
 			if msg, present := pool.Shards[shardID]; !present {
-				log.Infof("delcrossshardtxs shardID:%d,not exist", shardID)
+				log.Infof("delcrossshardtxs shardID:%v,not exist", shardID)
 				return nil
 			} else {
-				log.Infof("delcrossshardtxs shardID:%d", shardID)
+				log.Infof("delcrossshardtxs shardID:%v", shardID)
 				delete(msg, shardTx.ShardMsg.PreCrossShardMsgHash)
-				SaveCrossShardHash(lgr, shardID, shardTx.ShardMsg.PreCrossShardMsgHash)
+				err := SaveCrossShardHash(lgr, shardID, shardTx.ShardMsg.PreCrossShardMsgHash)
+				if err != nil {
+					log.Errorf("SaveCrossShardHash shardID:%v,preMsgHash:%s,failed err:%s", shardID, shardTx.ShardMsg.PreCrossShardMsgHash.ToHexString(), err)
+				}
 			}
 		}
 	}

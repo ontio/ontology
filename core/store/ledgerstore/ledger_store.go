@@ -871,8 +871,8 @@ func (this *LedgerStoreImp) saveCrossShardGovernanceData(block *types.Block, sha
 			shardState := &shardstates.ShardState{}
 			shardIDBytes := utils.GetUint64Bytes(evt.ShardID.ToUint64())
 			key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
-			data, unkown := vconfig.GetRawStorageItemFromMemDb(overlayDB, utils.ShardMgmtContractAddress, key)
-			if unkown {
+			data, unknown := vconfig.GetRawStorageItemFromMemDb(overlayDB, utils.ShardMgmtContractAddress, key)
+			if unknown {
 				key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
 				storageKey := &states.StorageKey{
 					ContractAddress: utils.ShardMgmtContractAddress,
