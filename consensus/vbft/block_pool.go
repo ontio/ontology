@@ -462,6 +462,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			EndorsedProposer: msg.BlockProposer,
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
+			CrossShardMsgSig: msg.CrossShardMsgSig,
 		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig)
 	}

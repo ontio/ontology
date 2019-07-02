@@ -466,7 +466,7 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 
 	msgs := self.chainStore.GetExecShardNotify(height - 1)
 
-	crossShardMsgs, hashRoot, err := utils.BuildCrossShardMsgs(self.account, self.ledger, height, msgs)
+	crossShardMsgs, hashRoot, err := utils.BuildCrossShardMsgs(self.account, self.ledger, height, msgs, crossShardMsgHash)
 	if err != nil {
 		log.Errorf("%s", err)
 		return
@@ -494,7 +494,6 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 			log.Errorf("SaveCrossShardMsgByHash preMsgHash:%s,err:%s", prevMsgHash.ToHexString(), err)
 			return
 		}
-
 		// broadcast
 		sink := common.ZeroCopySink{}
 		msg.Serialization(&sink)

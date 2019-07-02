@@ -31,7 +31,7 @@ import (
 	"github.com/ontio/ontology/core/xshard_types"
 )
 
-func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uint32, shardMsgs []xshard_types.CommonShardMsg) (map[common.ShardID]*types.CrossShardMsg, common.Uint256, error) {
+func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uint32, shardMsgs []xshard_types.CommonShardMsg, crossShardMsgHash *types.CrossShardMsgHash) (map[common.ShardID]*types.CrossShardMsg, common.Uint256, error) {
 	builtMsgs := make(map[common.ShardID]*types.CrossShardMsg)
 	hashRoot := common.UINT256_EMPTY
 	if len(shardMsgs) == 0 {
@@ -65,15 +65,18 @@ func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uin
 		hashes = append(hashes, shardMsgHashMap[shardID])
 	}
 	hashRoot = common.ComputeMerkleRoot(hashes)
-
-	// sign on the hash root
-	sig, err := signature.Sign(signer, hashRoot[:])
-	if err != nil {
-		return builtMsgs, hashRoot, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", hashRoot.ToHexString(), err)
-	}
 	sigData := make(map[uint32][]byte)
-	sigData[0] = sig
-
+	if crossShardMsgHash == nil {
+		// sign on the hash root
+		sig, err := signature.Sign(signer, hashRoot[:])
+		if err != nil {
+			return builtMsgs, hashRoot, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", hashRoot.ToHexString(), err)
+		}
+		//sigData := make(map[uint32][]byte)
+		sigData[0] = sig
+	} else {
+		sigData = crossShardMsgHash.SigData
+	}
 	// broadcasting shard msgs to target shards
 	for index, targetShardID := range shardList {
 		// get msg-hash of other-shards
@@ -109,4 +112,33 @@ func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uin
 	}
 
 	return builtMsgs, hashRoot, nil
+}
+
+func BuildCrossShardMsgHash(shardMsgs []xshard_types.CommonShardMsg) ([]common.Uint256, common.Uint256) {
+	shardList := make([]common.ShardID, 0)
+	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
+	for _, msg := range shardMsgs {
+		targetShardID := msg.GetTargetShardID()
+		if _, present := shardMsgMap[targetShardID]; !present {
+			shardMsgMap[targetShardID] = make([]xshard_types.CommonShardMsg, 0)
+			shardList = append(shardList, targetShardID)
+		}
+		shardMsgMap[targetShardID] = append(shardMsgMap[targetShardID], msg)
+	}
+
+	// sort shards by shard-id
+	sort.Slice(shardList, func(i, j int) bool { return shardList[i].ToUint64() < shardList[j].ToUint64() })
+
+	// hash of serialized shard msgs
+	shardMsgHashMap := make(map[common.ShardID]common.Uint256)
+	for shardID, msgs := range shardMsgMap {
+		msgHash := xshard_types.GetShardCommonMsgsHash(msgs)
+		shardMsgHashMap[shardID] = msgHash
+	}
+	// compute hash Root in order of shard-id
+	hashes := make([]common.Uint256, 0)
+	for _, shardID := range shardList {
+		hashes = append(hashes, shardMsgHashMap[shardID])
+	}
+	return hashes, common.ComputeMerkleRoot(hashes)
 }

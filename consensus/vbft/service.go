@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
+	csm "github.com/ontio/ontology/consensus/utils"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
@@ -1220,84 +1221,86 @@ func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
 	}
 	msgBlkNum := msg.GetBlockNum()
 	shardMsgs := self.chainStore.GetExecShardNotify(msgBlkNum - 1)
-	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
-	for _, msg := range shardMsgs {
-		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
+	if len(shardMsgs) == 0 {
+		log.Errorf("verifyshardeventmsg  GetExecShardNotify blkNum:%d is nil", msgBlkNum-1)
+		return false
 	}
-	var hashes []common.Uint256
-	for _, shardMsgs := range shardMsgMap {
-		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
-		hashes = append(hashes, msgHash)
-	}
+	hashes, msgRoot := csm.BuildCrossShardMsgHash(shardMsgs)
 	if len(msg.Block.CrossMsgHash.ShardMsgHashs) != len(hashes) {
 		log.Errorf("BlockPrposalMessage msgHash len:%d not equal shardmsghash len:%d", len(msg.Block.CrossMsgHash.ShardMsgHashs), len(hashes))
 		return false
 	}
-	msgRoot := common.ComputeMerkleRoot(hashes)
-	proposalMsgRoot := common.ComputeMerkleRoot(msg.Block.CrossMsgHash.ShardMsgHashs)
-	if msgRoot != proposalMsgRoot {
-		log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgRoot.ToHexString(), proposalMsgRoot.ToHexString())
+	hashRoot := common.ComputeMerkleRoot(hashes)
+	if msgRoot != hashRoot {
+		log.Errorf("BlockPrposalMessage msgHash:%s not match shardmsghash:%s", msgRoot.ToHexString(), hashRoot.ToHexString())
 		return false
 	}
 	return true
 }
 
 func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
-	for _, crossTxMsgs := range msg.Block.Block.ShardTxs {
+	for sourceShardID, crossTxMsgs := range msg.Block.Block.ShardTxs {
 		for _, crossTxMsg := range crossTxMsgs {
-			if crossTxMsg.ShardMsg == nil {
-				continue
-			}
 			shardCall := crossTxMsg.Tx.Payload.(*payload.ShardCall)
-			if len(shardCall.Msgs) == 0 {
-				continue
-			}
-			if shardCall.Msgs[0].GetSourceShardID().IsRootShard() {
-				continue
-			}
-			if crossTxMsg.Tx.TxType != types.ShardCall {
-				log.Errorf("verifyCrossShardTx cross shard txtype:%d not shardcall", crossTxMsg.Tx.TxType)
-				return false
-			}
-			if shardCall.Msgs[0].GetSourceShardID().IsRootShard() {
-				continue
-			}
-			//verify msg sign
-			ledger := self.ledger
-			if !self.ShardID.IsRootShard() {
-				ledger = self.ledger.ParentLedger
-			}
-			chainconfig, err := getShardConfigByShardID(ledger, shardCall.Msgs[0].GetSourceShardID(), crossTxMsg.ShardMsg.SignMsgHeight)
-			if err != nil {
-				if err != com.ErrNotFound {
-					log.Errorf("getShardConfigByShardID shardID:%v,height:%d err:%s", shardCall.Msgs[0].GetSourceShardID(), crossTxMsg.ShardMsg.SignMsgHeight, err)
-					return false
-				} else {
-					return true
-				}
-			}
-			var bookkeepers []keypair.PublicKey
-			m := int(chainconfig.N - (chainconfig.N-1)/3)
-			for _, peer := range chainconfig.Peers {
-				pubkey, err := vconfig.Pubkey(peer.ID)
+			if common.NewShardIDUnchecked(sourceShardID).IsRootShard() {
+				shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(msg.Block.Block.Header.ParentHeight-1, self.ShardID)
 				if err != nil {
-					log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.ID, err)
+					log.Errorf("verifycrossshardtx GetShardMsgsInBlock shardID:%v,height:%d err:%s", self.ShardID, msg.Block.Block.Header.ParentHeight-1, err)
 					return false
 				}
-				bookkeepers = append(bookkeepers, pubkey)
-			}
-			sigData := make([][]byte, 0)
-			for _, sig := range crossTxMsg.ShardMsg.ShardMsgInfo.SigData {
-				sigData = append(sigData, sig)
-			}
-			hashes := crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs
-			hash := xshard_types.GetShardCommonMsgsHash(shardCall.Msgs)
-			hashes = append(hashes, hash)
-			msgHash := common.ComputeMerkleRoot(hashes)
-			err = sign.VerifyMultiSignature(msgHash[:], bookkeepers, m, sigData)
-			if err != nil {
-				log.Errorf("VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(crossTxMsg.ShardMsg.ShardMsgInfo.SigData))
-				return false
+				if xshard_types.GetShardCommonMsgsHash(shardCall.Msgs) != xshard_types.GetShardCommonMsgsHash(shardMsg) {
+					log.Errorf("verifycrossShardtx msg hash not match")
+					return false
+				}
+			} else {
+				ledger := self.ledger
+				if !self.ShardID.IsRootShard() {
+					ledger = self.ledger.ParentLedger
+				}
+				chainconfig, err := getShardConfigByShardID(ledger, common.NewShardIDUnchecked(sourceShardID), crossTxMsg.ShardMsg.SignMsgHeight)
+				if err != nil {
+					log.Errorf("getShardConfigByShardID shardID:%v,height:%d err:%s", common.NewShardIDUnchecked(sourceShardID), crossTxMsg.ShardMsg.SignMsgHeight, err)
+					return false
+				}
+				var bookkeepers []keypair.PublicKey
+				m := int(chainconfig.N - (chainconfig.N-1)/3)
+				for _, peer := range chainconfig.Peers {
+					pubkey, err := vconfig.Pubkey(peer.ID)
+					if err != nil {
+						log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.ID, err)
+						return false
+					}
+					bookkeepers = append(bookkeepers, pubkey)
+				}
+				sigData := make([][]byte, 0)
+				for _, sig := range crossTxMsg.ShardMsg.ShardMsgInfo.SigData {
+					sigData = append(sigData, sig)
+				}
+				hashes := make([]common.Uint256, 0)
+				for index, hash := range crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs {
+					if uint32(index) == crossTxMsg.ShardMsg.Index {
+						hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
+					}
+					hashes = append(hashes, hash)
+				}
+				if crossTxMsg.ShardMsg.Index > uint32(len(crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs)) || len(crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs) == 0 {
+					hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
+				}
+				msgRoot := common.ComputeMerkleRoot(hashes)
+				err = sign.VerifyMultiSignature(msgRoot[:], bookkeepers, m, sigData)
+				if err != nil {
+					log.Errorf("verifyCrossShardTx VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(sigData))
+					return false
+				}
+				txMsg, err := xshard.GetCrossShardMsg(self.ledger, common.NewShardIDUnchecked(sourceShardID), crossTxMsg.ShardMsg.PreCrossShardMsgHash)
+				if err != nil {
+					log.Errorf("GetCrossShardMsg err:%s", err)
+					return false
+				}
+				if xshard_types.GetShardCommonMsgsHash(shardCall.Msgs) != xshard_types.GetShardCommonMsgsHash(txMsg.ShardMsg) {
+					log.Errorf("verifycrossShardtx msg hash not match")
+					return false
+				}
 			}
 		}
 	}

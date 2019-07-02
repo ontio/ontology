@@ -24,6 +24,9 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
+	scommon "github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -51,4 +54,12 @@ func VbftBlock(header *types.Header) (*VbftBlockInfo, error) {
 		return nil, fmt.Errorf("unmarshal blockInfo: %s", err)
 	}
 	return blkInfo, nil
+}
+
+func GetRawStorageItemFromMemDb(memdb *overlaydb.MemDB, addr common.Address, key []byte) (value []byte, unkown bool) {
+	rawKey := make([]byte, 0, 1+common.ADDR_LEN+len(key))
+	rawKey = append(rawKey, byte(scommon.ST_STORAGE))
+	rawKey = append(rawKey, addr[:]...)
+	rawKey = append(rawKey, key...)
+	return memdb.Get(rawKey)
 }

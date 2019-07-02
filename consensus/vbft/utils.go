@@ -235,19 +235,11 @@ func isUpdate(ledger *ledger.Ledger, memdb *overlaydb.MemDB, view uint32) (bool,
 	return false, nil
 }
 
-func getRawStorageItemFromMemDb(memdb *overlaydb.MemDB, addr common.Address, key []byte) (value []byte, unkown bool) {
-	rawKey := make([]byte, 0, 1+common.ADDR_LEN+len(key))
-	rawKey = append(rawKey, byte(scommon.ST_STORAGE))
-	rawKey = append(rawKey, addr[:]...)
-	rawKey = append(rawKey, key...)
-	return memdb.Get(rawKey)
-}
-
 func GetStorageValue(memdb *overlaydb.MemDB, backend *ledger.Ledger, addr common.Address, key []byte) (value []byte, err error) {
 	if memdb == nil {
 		return backend.GetStorageItem(addr, key)
 	}
-	rawValue, unknown := getRawStorageItemFromMemDb(memdb, addr, key)
+	rawValue, unknown := vconfig.GetRawStorageItemFromMemDb(memdb, addr, key)
 	if unknown {
 		return backend.GetStorageItem(addr, key)
 	}
@@ -355,15 +347,22 @@ func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum 
 	if err != nil {
 		return nil, err
 	}
-	var blkHeight uint32
-	for index, height := range heights {
-		if height > blkNum {
-			blkHeight = heights[index]
-		} else if height == blkNum {
-			blkHeight = heights[index]
+	heightNum := len(heights)
+	if heightNum == 0 {
+		return nil, fmt.Errorf("getShardConfigByShardID: heights list empty")
+	}
+	destHeight := blkNum
+	if heights[0] > blkNum {
+		return nil, fmt.Errorf("getShardConfigByShardID: height is too low")
+	} else {
+		for i := heightNum - 1; i >= 0; i-- {
+			if heights[i] <= blkNum {
+				destHeight = heights[i]
+				break
+			}
 		}
 	}
-	data, err := lgr.GetShardConsensusConfig(shardID, blkHeight)
+	data, err := lgr.GetShardConsensusConfig(shardID, destHeight)
 	if err != nil {
 		log.Errorf("getshardconsensusconfig shardID:%v,err:%s", shardID, err)
 		return nil, err

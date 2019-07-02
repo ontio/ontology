@@ -133,6 +133,18 @@ func SaveCrossShardHash(lgr *ledger.Ledger, shardID common.ShardID, msgHash comm
 	return lgr.SaveCrossShardHash(shardID, msgHash)
 }
 
+func GetCrossShardMsg(lgr *ledger.Ledger, sourceShardID common.ShardID, msgHash common.Uint256) (*types.CrossShardMsg, error) {
+	pool := crossShardPool
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	if csMsg, present := pool.Shards[sourceShardID]; present {
+		if msg, p := csMsg[msgHash]; p {
+			return msg, nil
+		}
+	}
+	return lgr.GetCrossShardMsgByHash(msgHash)
+}
+
 func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) error {
 	pool := crossShardPool
 	pool.lock.Lock()
@@ -268,13 +280,16 @@ func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[uint64][]*types.Cros
 	for id, shardTxs := range crossShardTxs {
 		shardID := common.NewShardIDUnchecked(id)
 		for _, shardTx := range shardTxs {
-			if _, present := pool.Shards[shardID]; !present {
-				log.Infof("delcrossshardtxs shardID:%d,not exist", shardID)
+			if msg, present := pool.Shards[shardID]; !present {
+				log.Infof("delcrossshardtxs shardID:%v,not exist", shardID)
 				return nil
 			} else {
-				log.Infof("delcrossshardtxs shardID:%d", shardID)
-				//delete(crossShardTxInfos, shardTx.ShardMsg.CrossShardMsgRoot)
-				SaveCrossShardHash(lgr, shardID, shardTx.ShardMsg.PreCrossShardMsgHash)
+				log.Infof("delcrossshardtxs shardID:%v", shardID)
+				delete(msg, shardTx.ShardMsg.PreCrossShardMsgHash)
+				err := SaveCrossShardHash(lgr, shardID, shardTx.ShardMsg.PreCrossShardMsgHash)
+				if err != nil {
+					log.Errorf("SaveCrossShardHash shardID:%v,preMsgHash:%s,failed err:%s", shardID, shardTx.ShardMsg.PreCrossShardMsgHash.ToHexString(), err)
+				}
 			}
 		}
 	}

@@ -26,11 +26,11 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus/utils"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/core/xshard_types"
 )
 
 type ConsensusMsgPayload struct {
@@ -250,16 +250,7 @@ func (self *Server) constructCrossShardHashMsg(blkNum uint32) (*types.CrossShard
 	if len(msgs) == 0 {
 		return nil, nil
 	}
-	shardMsgMap := make(map[common.ShardID][]xshard_types.CommonShardMsg)
-	for _, msg := range msgs {
-		shardMsgMap[msg.GetTargetShardID()] = append(shardMsgMap[msg.GetTargetShardID()], msg)
-	}
-	var hashes []common.Uint256
-	for _, shardMsgs := range shardMsgMap {
-		msgHash := xshard_types.GetShardCommonMsgsHash(shardMsgs)
-		hashes = append(hashes, msgHash)
-	}
-	msgRoot := common.ComputeMerkleRoot(hashes)
+	hashes, msgRoot := utils.BuildCrossShardMsgHash(msgs)
 	sig, err := signature.Sign(self.account, msgRoot[:])
 	if err != nil {
 		return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
@@ -359,16 +350,6 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 	if err != nil {
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, err: %s", blkHash, err)
 	}
-	crossShardMsgHashSig := map[uint32][]byte(nil)
-	if proposal.Block.CrossMsgHash != nil {
-		msgRoot := common.ComputeMerkleRoot(proposal.Block.CrossMsgHash.ShardMsgHashs)
-		sig, err := signature.Sign(self.account, msgRoot[:])
-		if err != nil {
-			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
-		}
-		proposal.Block.CrossMsgHash.SigData[self.Index] = sig
-		crossShardMsgHashSig = proposal.Block.CrossMsgHash.SigData
-	}
 	msg := &blockEndorseMsg{
 		Endorser:          self.Index,
 		EndorsedProposer:  proposal.Block.getProposer(),
@@ -377,9 +358,16 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		EndorseForEmpty:   forEmpty,
 		ProposerSig:       proposerSig,
 		EndorserSig:       endorserSig,
-		CrossShardMsgSig:  crossShardMsgHashSig,
 	}
-
+	if proposal.Block.CrossMsgHash != nil {
+		msgRoot := common.ComputeMerkleRoot(proposal.Block.CrossMsgHash.ShardMsgHashs)
+		sig, err := signature.Sign(self.account, msgRoot[:])
+		if err != nil {
+			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
+		}
+		proposal.Block.CrossMsgHash.SigData[self.Index] = sig
+		msg.CrossShardMsgSig = proposal.Block.CrossMsgHash.SigData
+	}
 	return msg, nil
 }
 
