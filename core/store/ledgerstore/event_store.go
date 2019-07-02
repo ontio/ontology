@@ -245,18 +245,12 @@ func (this *EventStore) GetContractMetaDataEvent(height uint32, contractAddr com
 		return nil, fmt.Errorf("GetContractMetaDataEvent: heights list empty")
 	}
 	destHeight := height
-	if heightsList[heightNum-1] < height {
-		destHeight = heightsList[heightNum-1]
-	} else if heightsList[0] > height {
+	if heightsList[0] > height {
 		return nil, fmt.Errorf("GetContractMetaDataEvent: height is too low")
 	} else {
-		for i, h := range heightsList {
-			if h > height {
-				destHeight = heightsList[i-1]
-				break
-			} else if h == height {
+		for i := heightNum - 1; i >= 0; i-- {
+			if heightsList[i] <= height {
 				destHeight = heightsList[i]
-				break
 			}
 		}
 	}
