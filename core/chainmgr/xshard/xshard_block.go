@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/payload"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -286,9 +287,21 @@ func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[uint64][]*types.Cros
 			} else {
 				log.Infof("delcrossshardtxs shardID:%v", shardID)
 				delete(msg, shardTx.ShardMsg.PreCrossShardMsgHash)
-				err := SaveCrossShardHash(lgr, shardID, shardTx.ShardMsg.PreCrossShardMsgHash)
+				shardCall := shardTx.Tx.Payload.(*payload.ShardCall)
+				hashes := make([]common.Uint256, 0)
+				for index, hash := range shardTx.ShardMsg.ShardMsgInfo.ShardMsgHashs {
+					if uint32(index) == shardTx.ShardMsg.Index {
+						hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
+					}
+					hashes = append(hashes, hash)
+				}
+				if shardTx.ShardMsg.Index > uint32(len(shardTx.ShardMsg.ShardMsgInfo.ShardMsgHashs)) || len(shardTx.ShardMsg.ShardMsgInfo.ShardMsgHashs) == 0 {
+					hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
+				}
+				msgRoot := common.ComputeMerkleRoot(hashes)
+				err := SaveCrossShardHash(lgr, shardID, msgRoot)
 				if err != nil {
-					log.Errorf("SaveCrossShardHash shardID:%v,preMsgHash:%s,failed err:%s", shardID, shardTx.ShardMsg.PreCrossShardMsgHash.ToHexString(), err)
+					log.Errorf("SaveCrossShardHash shardID:%v,preMsgHash:%s,failed err:%s", shardID, msgRoot.ToHexString(), err)
 				}
 			}
 		}
