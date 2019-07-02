@@ -251,6 +251,7 @@ func (this *EventStore) GetContractMetaDataEvent(height uint32, contractAddr com
 		for i := heightNum - 1; i >= 0; i-- {
 			if heightsList[i] <= height {
 				destHeight = heightsList[i]
+				break
 			}
 		}
 	}
