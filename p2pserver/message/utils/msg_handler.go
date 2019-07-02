@@ -44,7 +44,8 @@ import (
 var respCache *lru.ARCCache
 
 //Store txHash, using for rejecting duplicate tx
-var txCache, _ = lru.NewARC(100000)
+// thread safe
+var txCache, _ = lru.NewARC(msgCommon.MAX_TX_CACHE_SIZE)
 
 // AddrReqHandle handles the neighbor address request from peer
 func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
@@ -211,10 +212,9 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
 	var trn = data.Payload.(*msgTypes.Trn)
-	boo := checkDuplicateTx(trn.Txn)
-	if !boo {
+	if !txCache.Contains(trn.Txn) {
+		txCache.Add(trn.Txn, nil)
 		actor.AddTransaction(trn.Txn)
-		log.Tracef("[p2p]receive Transaction message hash: %x\n", trn.Txn.Hash())
 	} else {
 		log.Tracef("[p2p]receive duplicate Transaction message, txHash: %x\n", trn.Txn.Hash())
 	}
@@ -682,15 +682,4 @@ func saveRespCache(key string, value interface{}) bool {
 	}
 	respCache.Add(key, value)
 	return true
-}
-
-func checkDuplicateTx(tx *types.Transaction) bool {
-
-	txHash := tx.Hash()
-	if txCache.Contains(txHash) {
-		return true
-	} else {
-		txCache.Add(txHash, nil)
-	}
-	return false
 }

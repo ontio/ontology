@@ -22,12 +22,13 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"net"
+	"time"
+
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
-	"net"
-	"time"
 )
 
 //Link used to establish
