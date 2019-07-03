@@ -723,6 +723,7 @@ func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) 
 }
 
 func PrepareInvokeNeoVMContract(
+	shardId uint64,
 	contractAddress common.Address,
 	params []interface{},
 ) (*cstates.PreExecResult, error) {
@@ -730,12 +731,12 @@ func PrepareInvokeNeoVMContract(
 	if err != nil {
 		return nil, err
 	}
+	mutable.ShardID = shardId
 
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		return nil, err
 	}
-
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
 	if err != nil {
