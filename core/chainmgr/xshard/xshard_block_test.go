@@ -111,7 +111,7 @@ func TestAddCrossShardInfo(t *testing.T) {
 		t.Errorf("AddCrossShardInfo error")
 	}
 	acc1 := account.NewAccount("")
-	crossShardTx, err := GetCrossShardTxs(db, acc1, common.NewShardIDUnchecked(10), 10)
+	crossShardTx, err := GetCrossShardTxs(db, acc1, common.NewShardIDUnchecked(10), 10, 0)
 	if err != nil {
 		t.Errorf("GetCrossShardTxs failed:%s", err)
 	}

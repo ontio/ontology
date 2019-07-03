@@ -194,7 +194,7 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 // NOTE: all cross-shard tx/events should be indexed with (parentHeight, shardHeight)
 //
 
-func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID common.ShardID, parentblkNum uint32) (map[uint64][]*types.CrossShardTxInfos, error) {
+func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID common.ShardID, beginParentblkNum, endParentblkNum uint32) (map[uint64][]*types.CrossShardTxInfos, error) {
 	pool := crossShardPool
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
@@ -203,23 +203,25 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID co
 		if lgr.ParentLedger == nil {
 			return nil, nil
 		}
-		shardMsg, err := lgr.ParentLedger.GetShardMsgsInBlock(parentblkNum-1, toShardID)
-		if err != nil {
-			if err != com.ErrNotFound {
-				return nil, fmt.Errorf("GetShardMsgsInBlock parentblkNum:%d,shardID:%v,err:%s", parentblkNum, toShardID, err)
-			} else {
-				return nil, nil
-			}
-		}
-		tx, err := crossshard.NewCrossShardTxMsg(account, parentblkNum, toShardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, shardMsg)
-		if err != nil {
-			return nil, fmt.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", parentblkNum, err)
-		}
-		shardTxInfo := &types.CrossShardTxInfos{
-			Tx: tx,
-		}
 		crossShardInfo := make([]*types.CrossShardTxInfos, 0)
-		crossShardInfo = append(crossShardInfo, shardTxInfo)
+		for blkNum := beginParentblkNum; blkNum < endParentblkNum; blkNum++ {
+			shardMsg, err := lgr.ParentLedger.GetShardMsgsInBlock(blkNum, toShardID)
+			if err != nil {
+				if err != com.ErrNotFound {
+					return nil, fmt.Errorf("GetShardMsgsInBlock parentblkNum:%d,shardID:%v,err:%s", blkNum, toShardID, err)
+				} else {
+					return nil, nil
+				}
+			}
+			tx, err := crossshard.NewCrossShardTxMsg(account, blkNum, toShardID, config.DefConfig.Common.GasPrice, config.DefConfig.Common.GasLimit, shardMsg)
+			if err != nil {
+				return nil, fmt.Errorf("handleCrossShardMsg NewCrossShardTxMsg height:%d,err:%s", blkNum, err)
+			}
+			shardTxInfo := &types.CrossShardTxInfos{
+				Tx: tx,
+			}
+			crossShardInfo = append(crossShardInfo, shardTxInfo)
+		}
 		crossShardMapInfos[toShardID.ParentID().ToUint64()] = crossShardInfo
 	}
 	for shardID, shardMsgs := range pool.Shards {

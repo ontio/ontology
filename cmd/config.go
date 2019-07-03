@@ -41,6 +41,7 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 	setRpcConfig(ctx, cfg.Rpc)
 	setRestfulConfig(ctx, cfg.Restful)
 	setWebSocketConfig(ctx, cfg.Ws)
+	setShardConfig(ctx, cfg.Shard)
 	if cfg.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		cfg.Genesis.SeedList = []string{"127.0.0.1:20338"}
 		cfg.Ws.EnableHttpWs = true
@@ -192,4 +193,8 @@ func SetRpcPort(ctx *cli.Context) {
 	if ctx.IsSet(utils.GetFlagName(utils.RPCPortFlag)) {
 		config.DefConfig.Rpc.HttpJsonPort = ctx.Uint(utils.GetFlagName(utils.RPCPortFlag))
 	}
+}
+
+func setShardConfig(ctx *cli.Context, cfg *config.ShardConfig) {
+	cfg.ParentHeightIncrement = ctx.Uint(utils.GetFlagName(utils.ShardParentHeightFlag))
 }

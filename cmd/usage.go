@@ -260,6 +260,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.ShardIDFlag,
 			utils.EnableSoloShardFlag,
+			utils.ShardParentHeightFlag,
 		},
 	},
 }

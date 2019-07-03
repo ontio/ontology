@@ -1161,16 +1161,13 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		return
 	}
 
-	parentHeight := blk.Block.Header.ParentHeight
-	if self.ledger.GetParentHeight() > parentHeight {
-		parentHeight = parentHeight + 1
-	}
-	if parentHeight < msg.Block.Block.Header.ParentHeight {
+	if self.ledger.GetParentHeight() < msg.Block.Block.Header.ParentHeight {
 		self.pid.Tell(
 			&p2p.SyncBlock{
 				Height:  msg.Block.Block.Header.ParentHeight,
 				ShardID: self.ShardID.ParentID().ToUint64(),
 			})
+		log.Infof("consensus tell sync block height:%d", msg.Block.Block.Header.ParentHeight)
 		return
 	}
 	if !self.verifyShardEventMsg(msg) {
@@ -1244,12 +1241,21 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 		for _, crossTxMsg := range crossTxMsgs {
 			shardCall := crossTxMsg.Tx.Payload.(*payload.ShardCall)
 			if common.NewShardIDUnchecked(sourceShardID).IsRootShard() {
-				shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(msg.Block.Block.Header.ParentHeight-1, self.ShardID)
-				if err != nil {
-					log.Errorf("verifycrossshardtx GetShardMsgsInBlock shardID:%v,height:%d err:%s", self.ShardID, msg.Block.Block.Header.ParentHeight-1, err)
+				blk, _ := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
+				if blk == nil {
+					log.Errorf("verifyCrossShardTx failed to GetPreBlock:%d", (msg.GetBlockNum() - 1))
 					return false
 				}
-				if xshard_types.GetShardCommonMsgsHash(shardCall.Msgs) != xshard_types.GetShardCommonMsgsHash(shardMsg) {
+				shardMsgs := make([]xshard_types.CommonShardMsg, 0)
+				for blkNum := blk.Block.Header.ParentHeight; blkNum < msg.Block.Block.Header.ParentHeight; blkNum++ {
+					shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(blkNum, self.ShardID)
+					if err != nil {
+						log.Errorf("verifycrossshardtx GetShardMsgsInBlock shardID:%v,height:%d err:%s", self.ShardID, blkNum, err)
+						return false
+					}
+					shardMsgs = append(shardMsgs, shardMsg...)
+				}
+				if xshard_types.GetShardCommonMsgsHash(shardCall.Msgs) != xshard_types.GetShardCommonMsgsHash(shardMsgs) {
 					log.Errorf("verifycrossShardtx msg hash not match")
 					return false
 				}
