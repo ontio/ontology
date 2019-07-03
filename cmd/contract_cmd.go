@@ -296,9 +296,9 @@ func invokeContract(ctx *cli.Context) error {
 
 	paramData, _ := json.Marshal(params)
 	PrintInfoMsg("Invoke:%x Params:%s", contractAddr[:], paramData)
-
+	shardId := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
-		preResult, err := utils.PrepareInvokeNeoVMContract(contractAddr, params)
+		preResult, err := utils.PrepareInvokeNeoVMContract(shardId, contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
 		}
@@ -333,7 +333,6 @@ func invokeContract(ctx *cli.Context) error {
 	}
 	gasPrice := ctx.Uint64(utils.GetFlagName(utils.TransactionGasPriceFlag))
 	gasLimit := ctx.Uint64(utils.GetFlagName(utils.TransactionGasLimitFlag))
-	shardId := ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))
 	networkId, err := utils.GetNetworkId()
 	if err != nil {
 		return err
