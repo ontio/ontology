@@ -497,6 +497,12 @@ var (
 		Name:  "enable-solo-shard",
 		Usage: "Start Shard in testmode",
 	}
+	//set shard get parent height increment
+	ShardParentHeightFlag = cli.Uint64Flag{
+		Name:  "ShardParentHeightIncrement",
+		Usage: "Parent Height `<number>`",
+		Value: config.DEFAULT_PARENT_HEIGHT_INCREMENT,
+	}
 )
 
 //GetFlagName deal with short flag, and return the flag name whether flag name have short name

@@ -130,6 +130,7 @@ func setupAPP() *cli.App {
 		//sharding setting
 		utils.ShardIDFlag,
 		utils.EnableSoloShardFlag,
+		utils.ShardParentHeightFlag,
 	}
 	app.Before = func(context *cli.Context) error {
 		runtime.GOMAXPROCS(runtime.NumCPU())

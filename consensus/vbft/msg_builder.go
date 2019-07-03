@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/consensus/utils"
 	"github.com/ontio/ontology/consensus/vbft/config"
@@ -195,20 +196,22 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		return nil, err
 	}
 	parentHeight := lastBlock.Block.Header.ParentHeight
-	if self.ledger.GetParentHeight() > parentHeight {
-		parentHeight = parentHeight + 1
+	if self.ledger.GetParentHeight() >= parentHeight+uint32(config.DefConfig.Shard.ParentHeightIncrement) {
+		parentHeight = parentHeight + uint32(config.DefConfig.Shard.ParentHeightIncrement)
+	} else {
+		parentHeight = self.ledger.GetParentHeight()
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
 	var shardTxs map[uint64][]*types.CrossShardTxInfos
 	if self.ShardID.IsRootShard() {
-		shardTxs, err = xshard.GetCrossShardTxs(self.ledger, self.account, self.ShardID, parentHeight)
+		shardTxs, err = xshard.GetCrossShardTxs(self.ledger, self.account, self.ShardID, parentHeight, 0)
 		if err != nil {
 			log.Errorf("GetCrossShardTxs err:%s", err)
 		}
 	} else {
 		if parentHeight > lastBlock.Block.Header.ParentHeight {
-			shardTxs, err = xshard.GetCrossShardTxs(self.ledger, self.account, self.ShardID, parentHeight)
+			shardTxs, err = xshard.GetCrossShardTxs(self.ledger, self.account, self.ShardID, lastBlock.Block.Header.ParentHeight+1, parentHeight)
 			if err != nil {
 				log.Errorf("GetCrossShardTxs err:%s", err)
 			}
