@@ -20,7 +20,6 @@ package TestContracts
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/ontio/ontology/common"
@@ -40,17 +39,6 @@ import (
 
 func init() {
 	TestConsts.TestRootDir = "../../"
-}
-
-func TestClearData(t *testing.T) {
-	err := os.RemoveAll(TestConsts.TestRootDir + "Chain/")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = os.RemoveAll(TestConsts.TestRootDir + "wallets/")
-	if err != nil {
-		t.Fatal(err)
-	}
 }
 
 func Test_ShardMgmtInit(t *testing.T) {

@@ -34,10 +34,12 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/testsuite"
 	"github.com/ontio/ontology/testsuite/common"
+	"github.com/ontio/ontology/testsuite/utils"
 )
 
 func init() {
 	TestConsts.TestRootDir = "../"
+	events.Init()
 }
 
 func StartMockerConsensus(t *testing.T, shardID common.ShardID, name string, srcLgr *ledger.Ledger) consensus.ConsensusService {
@@ -68,7 +70,7 @@ func StartMockerConsensus(t *testing.T, shardID common.ShardID, name string, src
 	return service
 }
 
-func StartMokerSoloConsensus(t *testing.T, shardID common.ShardID, name string, srcLgr *ledger.Ledger) consensus.ConsensusService {
+func StartMokerSoloConsensus(t *testing.T, shardID common.ShardID, name string, srcLgr *ledger.Ledger) (consensus.ConsensusService, *ledger.Ledger) {
 	shardName := chainmgr.GetShardName(shardID)
 
 	acc := TestCommon.GetAccount(shardName + "_" + name)
@@ -79,7 +81,7 @@ func StartMokerSoloConsensus(t *testing.T, shardID common.ShardID, name string, 
 	lgr := TestCommon.CloneChain(t, name, srcLgr)
 	ledger.RemoveLedger(shardID)
 
-	txPool := TestCommon.NewTxnPool(t, name, shardID)
+	txPool := TestCommon.NewTxnPool(t, fmt.Sprintf("%s%d", name, time.Now().Unix()), shardID)
 	peer := TestCommon.NewPeer(lgr)
 	peer.Register()
 	p2pActor := TestCommon.NewP2PActor(t, name, peer)
@@ -94,12 +96,13 @@ func StartMokerSoloConsensus(t *testing.T, shardID common.ShardID, name string, 
 		t.Fatalf("start consensus: %s", err)
 	}
 	peer.SetConsensusPid(t, service.GetPID())
-	return service
+	return service, lgr
 }
 
 func Test_NewConsensusService_7nodes(t *testing.T) {
+	utils.ClearTestChain(t)
+
 	shardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
-	events.Init()
 	xshard.InitCrossShardPool(shardID, 100)
 
 	// . create template chain
@@ -133,8 +136,10 @@ func Test_NewConsensusService_7nodes(t *testing.T) {
 }
 
 func Test_SoloConsensus(t *testing.T) {
+	utils.ClearTestChain(t)
 	shardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
-	events.Init()
+	TestCommon.InitSoloConfig(t, shardID)
+
 	xshard.InitCrossShardPool(shardID, 100)
 
 	// . create template chain
@@ -143,13 +148,13 @@ func Test_SoloConsensus(t *testing.T) {
 	ledger.RemoveLedger(shardID)
 
 	name := "peerOwner0"
-	s := StartMokerSoloConsensus(t, shardID, name, lgr)
+	s, soloLgr := StartMokerSoloConsensus(t, shardID, name, lgr)
 	s.Start()
 
-	time.Sleep(15)
+	time.Sleep(15 * time.Second)
 
-	if lgr.GetCurrentBlockHeight() == 0 {
-		t.Fatalf("solo block height: %d", lgr.GetCurrentBlockHeight())
+	if soloLgr.GetCurrentBlockHeight() == 0 {
+		t.Fatalf("solo block height: %d", soloLgr.GetCurrentBlockHeight())
 	}
-	log.Infof("solo block height %d", lgr.GetCurrentBlockHeight())
+	log.Infof("solo block height %d", soloLgr.GetCurrentBlockHeight())
 }

@@ -19,8 +19,10 @@
 package TestCommon
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -57,7 +59,7 @@ func (this *MockP2PActor) GetPID(t *testing.T) *actor.PID {
 
 func (this *MockP2PActor) Start(t *testing.T) {
 	props := actor.FromProducer(func() actor.Actor { return this })
-	p2pPid, err := actor.SpawnNamed(props, "mock_p2pactor"+chainmgr.GetShardName(this.ShardID)+this.Name)
+	p2pPid, err := actor.SpawnNamed(props, fmt.Sprintf("mock_p2pactor%s%s%d", chainmgr.GetShardName(this.ShardID), this.Name, time.Now().Unix()))
 	if err != nil {
 		t.Fatalf("init p2p actor %s failed: %s", this.Name, err)
 	}
