@@ -211,7 +211,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 		}
 	} else {
 		if parentHeight > lastBlock.Block.Header.ParentHeight {
-			shardTxs, err = xshard.GetCrossShardTxs(self.ledger, self.account, self.ShardID, lastBlock.Block.Header.ParentHeight, parentHeight)
+			shardTxs, err = xshard.GetCrossShardTxs(self.ledger, self.account, self.ShardID, lastBlock.Block.Header.ParentHeight+1, parentHeight)
 			if err != nil {
 				log.Errorf("GetCrossShardTxs err:%s", err)
 			}
