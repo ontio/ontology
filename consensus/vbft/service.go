@@ -1283,17 +1283,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 				for _, sig := range crossTxMsg.ShardMsg.ShardMsgInfo.SigData {
 					sigData = append(sigData, sig)
 				}
-				hashes := make([]common.Uint256, 0)
-				for index, hash := range crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs {
-					if uint32(index) == crossTxMsg.ShardMsg.Index {
-						hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
-					}
-					hashes = append(hashes, hash)
-				}
-				if crossTxMsg.ShardMsg.Index > uint32(len(crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs)) || len(crossTxMsg.ShardMsg.ShardMsgInfo.ShardMsgHashs) == 0 {
-					hashes = append(hashes, xshard_types.GetShardCommonMsgsHash(shardCall.Msgs))
-				}
-				msgRoot := common.ComputeMerkleRoot(hashes)
+				msgRoot := xshard.CrossShardMsgHash(crossTxMsg.ShardMsg, shardCall.Msgs)
 				err = sign.VerifyMultiSignature(msgRoot[:], bookkeepers, m, sigData)
 				if err != nil {
 					log.Errorf("verifyCrossShardTx VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(sigData))
