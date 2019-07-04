@@ -40,7 +40,6 @@ import (
 	scommon "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
-	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	state "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -339,55 +338,5 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 		return nil, err
 	}
 	cfg.View = shardView.View
-	return cfg, err
-}
-
-func getShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
-	heights, err := lgr.GetShardConsensusHeight(shardID)
-	if err != nil {
-		return nil, err
-	}
-	heightNum := len(heights)
-	if heightNum == 0 {
-		return nil, fmt.Errorf("getShardConfigByShardID: heights list empty")
-	}
-	destHeight := blkNum
-	if heights[0] > blkNum {
-		return nil, fmt.Errorf("getShardConfigByShardID: height is too low")
-	} else {
-		for i := heightNum - 1; i >= 0; i-- {
-			if heights[i] <= blkNum {
-				destHeight = heights[i]
-				break
-			}
-		}
-	}
-	data, err := lgr.GetShardConsensusConfig(shardID, destHeight)
-	if err != nil {
-		log.Errorf("getshardconsensusconfig shardID:%v,err:%s", shardID, err)
-		return nil, err
-	}
-	source := common.NewZeroCopySource(data)
-	shardEvent := &shardstates.ConfigShardEvent{}
-	err = shardEvent.Deserialization(source)
-	if err != nil {
-		log.Errorf("getshardconfigbyshardID deserialization,shardID:%v err:%s", shardID, err)
-		return nil, err
-	}
-	var peersInfo []*vconfig.PeerConfig
-	for _, id := range shardEvent.Peers {
-		if id.NodeType == state.CONSENSUS_NODE {
-			peerInfo := &vconfig.PeerConfig{
-				Index: id.Index,
-				ID:    id.PeerPubKey,
-			}
-			peersInfo = append(peersInfo, peerInfo)
-		}
-	}
-	cfg := &vconfig.ChainConfig{
-		N:     shardEvent.Config.VbftCfg.N,
-		C:     shardEvent.Config.VbftCfg.C,
-		Peers: peersInfo,
-	}
 	return cfg, err
 }

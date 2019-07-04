@@ -39,7 +39,6 @@ import (
 	"github.com/ontio/ontology/core/chainmgr/xshard"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
-	sign "github.com/ontio/ontology/core/signature"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
@@ -1260,33 +1259,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					return false
 				}
 			} else {
-				ledger := self.ledger
-				if !self.ShardID.IsRootShard() {
-					ledger = self.ledger.ParentLedger
-				}
-				chainconfig, err := getShardConfigByShardID(ledger, common.NewShardIDUnchecked(sourceShardID), crossTxMsg.ShardMsg.SignMsgHeight)
-				if err != nil {
-					log.Errorf("getShardConfigByShardID shardID:%v,height:%d err:%s", common.NewShardIDUnchecked(sourceShardID), crossTxMsg.ShardMsg.SignMsgHeight, err)
-					return false
-				}
-				var bookkeepers []keypair.PublicKey
-				m := int(chainconfig.N - (chainconfig.N-1)/3)
-				for _, peer := range chainconfig.Peers {
-					pubkey, err := vconfig.Pubkey(peer.ID)
-					if err != nil {
-						log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.ID, err)
-						return false
-					}
-					bookkeepers = append(bookkeepers, pubkey)
-				}
-				sigData := make([][]byte, 0)
-				for _, sig := range crossTxMsg.ShardMsg.ShardMsgInfo.SigData {
-					sigData = append(sigData, sig)
-				}
-				msgRoot := xshard.CrossShardMsgHash(crossTxMsg.ShardMsg, shardCall.Msgs)
-				err = sign.VerifyMultiSignature(msgRoot[:], bookkeepers, m, sigData)
-				if err != nil {
-					log.Errorf("verifyCrossShardTx VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(sigData))
+				if !xshard.VerifyCrossShardMsg(self.ShardID,common.NewShardIDUnchecked(sourceShardID),self.ledger,crossTxMsg.ShardMsg,shardCall.Msgs) {
 					return false
 				}
 				txMsg, err := xshard.GetCrossShardMsg(self.ledger, common.NewShardIDUnchecked(sourceShardID), crossTxMsg.ShardMsg.PreCrossShardMsgHash)

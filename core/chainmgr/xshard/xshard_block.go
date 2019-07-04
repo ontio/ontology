@@ -22,13 +22,18 @@ import (
 	"fmt"
 	"sync"
 
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	csm "github.com/ontio/ontology/consensus/utils"
 	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
+	sign "github.com/ontio/ontology/core/signature"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -165,6 +170,9 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 	if _, present := m[crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash]; present {
 		log.Debugf("SaveCrossShardMsgByShardID premsgHash:%s had save", crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString())
 		return nil
+	}
+	if !VerifyCrossShardMsg(pool.ShardID, sourceShardID, lgr, crossShardMsg.CrossShardMsgInfo, crossShardMsg.ShardMsg) {
+		return fmt.Errorf("verify cross shard msg err")
 	}
 	m[crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash] = crossShardMsg
 	err := lgr.SaveCrossShardMsgByHash(crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
@@ -304,4 +312,36 @@ func CrossShardMsgHash(crossShardMsgInfo *types.CrossShardMsgInfo, msgs []xshard
 	}
 	msgRoot := common.ComputeMerkleRoot(hashes)
 	return msgRoot
+}
+
+func VerifyCrossShardMsg(shardID common.ShardID, sourceShardID common.ShardID, lgr *ledger.Ledger, crossShardMsgInfo *types.CrossShardMsgInfo, shardMsg []xshard_types.CommonShardMsg) bool {
+	if !shardID.IsRootShard() {
+		lgr = lgr.ParentLedger
+	}
+	chainconfig, err := csm.GetShardConfigByShardID(lgr, sourceShardID, crossShardMsgInfo.SignMsgHeight)
+	if err != nil {
+		log.Errorf("GetShardConfigByShardID shardID:%v,height:%d err:%s", sourceShardID, crossShardMsgInfo.SignMsgHeight, err)
+		return false
+	}
+	var bookkeepers []keypair.PublicKey
+	m := int(chainconfig.N - (chainconfig.N-1)/3)
+	for _, peer := range chainconfig.Peers {
+		pubkey, err := vconfig.Pubkey(peer.ID)
+		if err != nil {
+			log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.ID, err)
+			return false
+		}
+		bookkeepers = append(bookkeepers, pubkey)
+	}
+	sigData := make([][]byte, 0)
+	for _, sig := range crossShardMsgInfo.ShardMsgInfo.SigData {
+		sigData = append(sigData, sig)
+	}
+	msgRoot := CrossShardMsgHash(crossShardMsgInfo, shardMsg)
+	err = sign.VerifyMultiSignature(msgRoot[:], bookkeepers, m, sigData)
+	if err != nil {
+		log.Errorf("verifycrossshardMsg VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(sigData))
+		return false
+	}
+	return true
 }
