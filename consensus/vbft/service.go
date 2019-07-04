@@ -1249,9 +1249,11 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 				shardMsgs := make([]xshard_types.CommonShardMsg, 0)
 				for blkNum := blk.Block.Header.ParentHeight + 1; blkNum <= msg.Block.Block.Header.ParentHeight; blkNum++ {
 					shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(blkNum, self.ShardID)
-					if err != nil {
+					if err != nil && err != com.ErrNotFound {
 						log.Errorf("verifycrossshardtx GetShardMsgsInBlock shardID:%v,height:%d err:%s", self.ShardID, blkNum, err)
 						return false
+					} else if err == com.ErrNotFound {
+						continue
 					}
 					shardMsgs = append(shardMsgs, shardMsg...)
 				}
