@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common"
 	vbftcfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/payload"
+	com "github.com/ontio/ontology/core/store/common"
 	msg "github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
@@ -139,8 +140,11 @@ func TestAddShardConsensusConfig(t *testing.T) {
 		return
 	}
 	data, err := testEventStore.GetShardConsensusConfig(shardID, uint32(height))
-	if err != nil {
-		t.Errorf("GetShardConsensusConfig failed shardID:%v,height:%d", shardID, height)
+	if err != nil && err != com.ErrNotFound {
+		t.Errorf("GetShardConsensusConfig failed shardID:%v,height:%d,err:%s", shardID, height, err)
+		return
+	}
+	if err == com.ErrNotFound {
 		return
 	}
 	source := common.NewZeroCopySource(data)

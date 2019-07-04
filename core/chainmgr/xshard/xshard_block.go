@@ -22,13 +22,18 @@ import (
 	"fmt"
 	"sync"
 
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	csm "github.com/ontio/ontology/consensus/utils"
 	crossshard "github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
+	sign "github.com/ontio/ontology/core/signature"
 	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
@@ -166,12 +171,10 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 		log.Debugf("SaveCrossShardMsgByShardID premsgHash:%s had save", crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString())
 		return nil
 	}
-	m[crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash] = crossShardMsg
-	err := lgr.SaveCrossShardMsgByHash(crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
-	if err != nil {
-		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,msgHash:%s,err:%s", sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), err)
+	if !VerifyCrossShardMsg(pool.ShardID, sourceShardID, lgr, crossShardMsg.CrossShardMsgInfo, crossShardMsg.ShardMsg) {
+		return fmt.Errorf("verify cross shard msg err")
 	}
-	_, err = GetCrossShardHashByShardID(lgr, sourceShardID)
+	hash, err := GetCrossShardHashByShardID(lgr, sourceShardID)
 	if err != nil {
 		if err != com.ErrNotFound {
 			return fmt.Errorf("GetCrossShardHashByShardID shardID:%v,err:%s", sourceShardID, err)
@@ -181,6 +184,28 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 				return fmt.Errorf("SaveCrossShardHash from shardID:%v,err:%s", sourceShardID, err)
 			}
 		}
+	} else {
+		if shardmsg, present := m[hash]; present {
+			if shardmsg.CrossShardMsgInfo.SignMsgHeight >= crossShardMsg.CrossShardMsgInfo.SignMsgHeight {
+				return fmt.Errorf("AddCrossShardInfo cross shard msg sign msg height:%d,last msg sign msg height:%d,sourceShardID:%v,preHash:%s", shardmsg.CrossShardMsgInfo.SignMsgHeight,
+					crossShardMsg.CrossShardMsgInfo.SignMsgHeight, sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString())
+			}
+		} else {
+			msg, err := lgr.GetCrossShardMsgByHash(hash)
+			if err != nil && err != com.ErrNotFound {
+				return fmt.Errorf("AddCrossShardInfo before hash:%s not found in db sourceShardID:%v,preHash:%s", hash.ToHexString(), sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString())
+			} else if err == nil {
+				if msg.CrossShardMsgInfo.SignMsgHeight >= crossShardMsg.CrossShardMsgInfo.SignMsgHeight {
+					return fmt.Errorf("AddCrossShardInfo cross shard msg sign msg height:%d,last msg sign msg height:%d,sourceShardID:%v,preHash:%s", shardmsg.CrossShardMsgInfo.SignMsgHeight,
+						crossShardMsg.CrossShardMsgInfo.SignMsgHeight, sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString())
+				}
+			}
+		}
+	}
+	m[crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash] = crossShardMsg
+	err = lgr.SaveCrossShardMsgByHash(crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
+	if err != nil {
+		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,msgHash:%s,err:%s", sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), err)
 	}
 	addShardInfo(lgr, sourceShardID)
 	log.Infof("chainmgr AddBlock from shard %d,msgHash:%v, block height %d", sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), crossShardMsg.CrossShardMsgInfo.SignMsgHeight)
@@ -201,7 +226,7 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID co
 	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
 	if !toShardID.IsRootShard() && lgr.ParentLedger != nil {
 		crossShardInfo := make([]*types.CrossShardTxInfos, 0)
-		for blkNum := beginParentblkNum; blkNum <= endParentblkNum; blkNum++ {
+		for blkNum := beginParentblkNum + 1; blkNum <= endParentblkNum; blkNum++ {
 			shardMsg, err := lgr.ParentLedger.GetShardMsgsInBlock(blkNum, toShardID)
 			if err != nil && err != com.ErrNotFound {
 				return nil, fmt.Errorf("GetShardMsgsInBlock parentblkNum:%d,shardID:%v,err:%s", blkNum, toShardID, err)
@@ -304,4 +329,36 @@ func CrossShardMsgHash(crossShardMsgInfo *types.CrossShardMsgInfo, msgs []xshard
 	}
 	msgRoot := common.ComputeMerkleRoot(hashes)
 	return msgRoot
+}
+
+func VerifyCrossShardMsg(shardID common.ShardID, sourceShardID common.ShardID, lgr *ledger.Ledger, crossShardMsgInfo *types.CrossShardMsgInfo, shardMsg []xshard_types.CommonShardMsg) bool {
+	if !shardID.IsRootShard() {
+		lgr = lgr.ParentLedger
+	}
+	chainconfig, err := csm.GetShardConfigByShardID(lgr, sourceShardID, crossShardMsgInfo.SignMsgHeight)
+	if err != nil {
+		log.Errorf("GetShardConfigByShardID shardID:%v,height:%d err:%s", sourceShardID, crossShardMsgInfo.SignMsgHeight, err)
+		return false
+	}
+	var bookkeepers []keypair.PublicKey
+	m := int(chainconfig.N - (chainconfig.N-1)/3)
+	for _, peer := range chainconfig.Peers {
+		pubkey, err := vconfig.Pubkey(peer.ID)
+		if err != nil {
+			log.Errorf("pubKey peer.PeerPubkey:%s, err:%s", peer.ID, err)
+			return false
+		}
+		bookkeepers = append(bookkeepers, pubkey)
+	}
+	sigData := make([][]byte, 0)
+	for _, sig := range crossShardMsgInfo.ShardMsgInfo.SigData {
+		sigData = append(sigData, sig)
+	}
+	msgRoot := CrossShardMsgHash(crossShardMsgInfo, shardMsg)
+	err = sign.VerifyMultiSignature(msgRoot[:], bookkeepers, m, sigData)
+	if err != nil {
+		log.Errorf("verifycrossshardMsg VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(sigData))
+		return false
+	}
+	return true
 }

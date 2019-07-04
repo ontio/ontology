@@ -76,6 +76,5 @@ type LedgerStore interface {
 	GetMetaDataEvnet(height uint32, addr common.Address) (*payload.MetaDataCode, error)
 	GetParentMetaData(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error)
 	GetParentContract(blockHeight uint32, addr common.Address) (*payload.DeployCode, error)
-	GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error)
 	GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error)
 }

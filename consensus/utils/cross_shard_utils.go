@@ -24,11 +24,15 @@ import (
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	common2 "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/xshard_types"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
+	state "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 )
 
 func BuildCrossShardMsgs(signer *account.Account, lgr *ledger.Ledger, blkNum uint32, shardMsgs []xshard_types.CommonShardMsg, crossShardMsgHash *types.CrossShardMsgHash) (map[common.ShardID]*types.CrossShardMsg, common.Uint256, error) {
@@ -141,4 +145,35 @@ func BuildCrossShardMsgHash(shardMsgs []xshard_types.CommonShardMsg) ([]common.U
 		hashes = append(hashes, shardMsgHashMap[shardID])
 	}
 	return hashes, common.ComputeMerkleRoot(hashes)
+}
+
+func GetShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
+	data, err := lgr.GetShardConsensusConfig(shardID, blkNum)
+	if err != nil {
+		log.Errorf("getshardconsensusconfig shardID:%v,err:%s", shardID, err)
+		return nil, err
+	}
+	source := common.NewZeroCopySource(data)
+	shardEvent := &shardstates.ConfigShardEvent{}
+	err = shardEvent.Deserialization(source)
+	if err != nil {
+		log.Errorf("getshardconfigbyshardID deserialization,shardID:%v err:%s", shardID, err)
+		return nil, err
+	}
+	var peersInfo []*vconfig.PeerConfig
+	for _, id := range shardEvent.Peers {
+		if id.NodeType == state.CONSENSUS_NODE {
+			peerInfo := &vconfig.PeerConfig{
+				Index: id.Index,
+				ID:    id.PeerPubKey,
+			}
+			peersInfo = append(peersInfo, peerInfo)
+		}
+	}
+	cfg := &vconfig.ChainConfig{
+		N:     shardEvent.Config.VbftCfg.N,
+		C:     shardEvent.Config.VbftCfg.C,
+		Peers: peersInfo,
+	}
+	return cfg, err
 }
