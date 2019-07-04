@@ -190,14 +190,14 @@ func (self *Server) Receive(context actor.Context) {
 	case *actorTypes.StopConsensus:
 		self.stop()
 	case *message.SaveBlockCompleteMsg:
-		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, numtx=%d, numShardTx=%d",
-			msg.Block.Header.Height, len(msg.Block.Transactions), len(msg.Block.ShardTxs))
+		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, parent=%d, numtx=%d, numShardTx=%d",
+			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions), len(msg.Block.ShardTxs))
 		if self.ShardID.ToUint64() == msg.Block.Header.ShardID {
 			self.handleBlockPersistCompleted(msg.Block)
 		}
 	case *message.BlockConsensusComplete:
-		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d,parent=%d, numtx=%d",
-			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions))
+		log.Infof("vbft actor BlockConsensusComplete receives block complete event. block height=%d, parent=%d, numtx=%d, numShardTx=%d",
+			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions), len(msg.Block.ShardTxs))
 		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
@@ -1140,7 +1140,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 
 	prevBlockTimestamp := blk.Block.Header.Timestamp
 	currentBlockTimestamp := msg.Block.Block.Header.Timestamp
-	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute*10).Unix()) {
+	if currentBlockTimestamp <= prevBlockTimestamp || currentBlockTimestamp > uint32(time.Now().Add(time.Minute * 10).Unix()) {
 		log.Errorf("BlockPrposalMessage check  blocknum:%d,prevBlockTimestamp:%d,currentBlockTimestamp:%d", msg.GetBlockNum(), prevBlockTimestamp, currentBlockTimestamp)
 		self.msgPool.DropMsg(msg)
 		return
