@@ -174,12 +174,7 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 	if !VerifyCrossShardMsg(pool.ShardID, sourceShardID, lgr, crossShardMsg.CrossShardMsgInfo, crossShardMsg.ShardMsg) {
 		return fmt.Errorf("verify cross shard msg err")
 	}
-	m[crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash] = crossShardMsg
-	err := lgr.SaveCrossShardMsgByHash(crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
-	if err != nil {
-		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,msgHash:%s,err:%s", sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), err)
-	}
-	_, err = GetCrossShardHashByShardID(lgr, sourceShardID)
+	hash, err := GetCrossShardHashByShardID(lgr, sourceShardID)
 	if err != nil {
 		if err != com.ErrNotFound {
 			return fmt.Errorf("GetCrossShardHashByShardID shardID:%v,err:%s", sourceShardID, err)
@@ -189,6 +184,28 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 				return fmt.Errorf("SaveCrossShardHash from shardID:%v,err:%s", sourceShardID, err)
 			}
 		}
+	} else {
+		if shardmsg, present := m[hash]; present {
+			if shardmsg.CrossShardMsgInfo.SignMsgHeight >= crossShardMsg.CrossShardMsgInfo.SignMsgHeight {
+				return fmt.Errorf("AddCrossShardInfo cross shard msg sign msg height:%d,last msg sign msg height:%d,sourceShardID:%v,preHash:%s", shardmsg.CrossShardMsgInfo.SignMsgHeight,
+					crossShardMsg.CrossShardMsgInfo.SignMsgHeight, sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString())
+			}
+		} else {
+			msg, err := lgr.GetCrossShardMsgByHash(hash)
+			if err != nil && err != com.ErrNotFound {
+				return fmt.Errorf("AddCrossShardInfo before hash:%s not found in db sourceShardID:%v,preHash:%s", hash.ToHexString(), sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString())
+			} else if err == nil {
+				if msg.CrossShardMsgInfo.SignMsgHeight >= crossShardMsg.CrossShardMsgInfo.SignMsgHeight {
+					return fmt.Errorf("AddCrossShardInfo cross shard msg sign msg height:%d,last msg sign msg height:%d,sourceShardID:%v,preHash:%s", shardmsg.CrossShardMsgInfo.SignMsgHeight,
+						crossShardMsg.CrossShardMsgInfo.SignMsgHeight, sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString())
+				}
+			}
+		}
+	}
+	m[crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash] = crossShardMsg
+	err = lgr.SaveCrossShardMsgByHash(crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash, crossShardMsg)
+	if err != nil {
+		return fmt.Errorf("SaveCrossShardMsgByShardID shardID:%v,msgHash:%s,err:%s", sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), err)
 	}
 	addShardInfo(lgr, sourceShardID)
 	log.Infof("chainmgr AddBlock from shard %d,msgHash:%v, block height %d", sourceShardID, crossShardMsg.CrossShardMsgInfo.PreCrossShardMsgHash.ToHexString(), crossShardMsg.CrossShardMsgInfo.SignMsgHeight)
