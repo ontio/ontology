@@ -1214,7 +1214,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 }
 
 func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
-	if msg.Block.CrossMsgHash == nil {
+	if msg.Block.CrossMsgHash == nil || len(msg.Block.CrossMsgHash.ShardMsgHashs) == 0 {
 		return true
 	}
 	msgBlkNum := msg.GetBlockNum()

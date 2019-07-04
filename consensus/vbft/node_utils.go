@@ -217,7 +217,7 @@ func (self *Server) buildParticipantConfig(blkNum uint32, block *Block, chainCfg
 	if uint32(len(Proposers)) < chainCfg.C+1 {
 		return nil, fmt.Errorf("cfg Proposers length less than chainCfg.C:%d,%d", uint32(len(cfg.Proposers)), chainCfg.C)
 	}
-	cfg.Proposers = []uint32{1, 2, 3}
+	cfg.Proposers = Proposers[:chainCfg.C+1]
 	s += vconfig.MAX_PROPOSER_COUNT
 	cfg.Endorsers = calcParticipantPeers(cfg, chainCfg, s, s+vconfig.MAX_ENDORSER_COUNT)
 	if uint32(len(cfg.Endorsers)) < 2*chainCfg.C {
