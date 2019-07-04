@@ -1249,11 +1249,12 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 				shardMsgs := make([]xshard_types.CommonShardMsg, 0)
 				for blkNum := blk.Block.Header.ParentHeight + 1; blkNum <= msg.Block.Block.Header.ParentHeight; blkNum++ {
 					shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(blkNum, self.ShardID)
-					if err != nil && err != com.ErrNotFound {
+					if err == com.ErrNotFound {
+						continue
+					}
+					if err != nil {
 						log.Errorf("verifycrossshardtx GetShardMsgsInBlock shardID:%v,height:%d err:%s", self.ShardID, blkNum, err)
 						return false
-					} else if err == com.ErrNotFound {
-						continue
 					}
 					shardMsgs = append(shardMsgs, shardMsg...)
 				}
@@ -2165,7 +2166,8 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		return fmt.Errorf("failed to get last sealed block, current block: %d", sealedBlkNum)
 	}
 	parentHeight := blk.Block.Header.ParentHeight + uint32(config.DefConfig.Shard.ParentHeightIncrement)
-	if parentHeight < block.Block.Header.ParentHeight {
+	if parentHeight < block.Block.Header.ParentHeight || block.Block.Header.ParentHeight < blk.Block.Header.ParentHeight {
+		// increase too much or not increase
 		return fmt.Errorf("invalid parent height: %d vs %d", parentHeight, block.Block.Header.ParentHeight)
 	}
 	if err := self.blockPool.setBlockSealed(block, empty, sigdata); err != nil {
