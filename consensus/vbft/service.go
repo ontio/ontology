@@ -2161,14 +2161,15 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 	// parentHeight order consistency check
-	blk, _ := self.blockPool.getSealedBlock(sealedBlkNum - 1)
-	if blk == nil {
+	preBlock, _ := self.blockPool.getSealedBlock(sealedBlkNum - 1)
+	if preBlock == nil {
 		return fmt.Errorf("failed to get last sealed block, current block: %d", sealedBlkNum)
 	}
-	parentHeight := blk.Block.Header.ParentHeight + uint32(config.DefConfig.Shard.ParentHeightIncrement)
-	if parentHeight < block.Block.Header.ParentHeight || block.Block.Header.ParentHeight < blk.Block.Header.ParentHeight {
+	maxParentHeight := preBlock.Block.Header.ParentHeight + uint32(config.DefConfig.Shard.ParentHeightIncrement)
+	if maxParentHeight < block.Block.Header.ParentHeight ||
+		block.Block.Header.ParentHeight < preBlock.Block.Header.ParentHeight {
 		// increase too much or not increase
-		return fmt.Errorf("invalid parent height: %d vs %d", parentHeight, block.Block.Header.ParentHeight)
+		return fmt.Errorf("invalid parent height: %d vs %d", maxParentHeight, block.Block.Header.ParentHeight)
 	}
 	if err := self.blockPool.setBlockSealed(block, empty, sigdata); err != nil {
 		return fmt.Errorf("failed to seal proposal: %s", err)
