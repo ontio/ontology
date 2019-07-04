@@ -196,10 +196,10 @@ func IsShardCommitting(native *native.NativeService, id common.ShardID) (bool, e
 func checkCommittingDpos(native *native.NativeService, id common.ShardID) error {
 	isCommitting, err := IsShardCommitting(native, id)
 	if err != nil {
-		return fmt.Errorf("PeerInitStake: failed, err: %s", err)
+		return fmt.Errorf("checkCommittingDpos: failed, err: %s", err)
 	}
 	if isCommitting {
-		return fmt.Errorf("PeerInitStake: shard is switching consensus")
+		return fmt.Errorf("checkCommittingDpos: shard is switching consensus")
 	}
 	return nil
 }
