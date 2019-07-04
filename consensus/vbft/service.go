@@ -1259,7 +1259,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					return false
 				}
 			} else {
-				if !xshard.VerifyCrossShardMsg(self.ShardID,common.NewShardIDUnchecked(sourceShardID),self.ledger,crossTxMsg.ShardMsg,shardCall.Msgs) {
+				if !xshard.VerifyCrossShardMsg(self.ShardID, common.NewShardIDUnchecked(sourceShardID), self.ledger, crossTxMsg.ShardMsg, shardCall.Msgs) {
 					return false
 				}
 				txMsg, err := xshard.GetCrossShardMsg(self.ledger, common.NewShardIDUnchecked(sourceShardID), crossTxMsg.ShardMsg.PreCrossShardMsgHash)

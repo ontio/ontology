@@ -80,8 +80,6 @@ func TestAddShardInfo(t *testing.T) {
 	ldg.Close()
 }
 
-
-
 func TestCrossShardTxInfos_Serialize(t *testing.T) {
 	acc := account.NewAccount("")
 	if acc == nil {
