@@ -244,18 +244,10 @@ func (this *EventStore) GetContractMetaDataEvent(height uint32, contractAddr com
 	if heightNum == 0 {
 		return nil, fmt.Errorf("GetContractMetaDataEvent: heights list empty")
 	}
-	destHeight := height
-	if heightsList[0] > height {
+	destHeight, err := getConsensusHeight(heightsList, height)
+	if err != nil {
 		return nil, fmt.Errorf("GetContractMetaDataEvent: height is too low")
-	} else {
-		for i := heightNum - 1; i >= 0; i-- {
-			if heightsList[i] <= height {
-				destHeight = heightsList[i]
-				break
-			}
-		}
 	}
-
 	key := getContractMetaDataKey(destHeight, contractAddr)
 	data, err := this.store.Get(key)
 	if err != nil {
@@ -403,7 +395,19 @@ func (this *EventStore) AddShardConsensusConfig(shardID common.ShardID, height u
 }
 
 func (this *EventStore) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
-	key := genShardConsensusConfigKey(shardID, height)
+	heightsList, err := this.GetShardConsensusHeight(shardID)
+	if err != nil {
+		return nil, err
+	}
+	heightNum := len(heightsList)
+	if heightNum == 0 {
+		return nil, fmt.Errorf("getShardConfigByShardID: heights list empty")
+	}
+	destHeight, err := getConsensusHeight(heightsList, height)
+	if err != nil {
+		return nil, fmt.Errorf("getConsensusHeight: height is too low")
+	}
+	key := genShardConsensusConfigKey(shardID, destHeight)
 	return this.store.Get(key)
 }
 
@@ -413,4 +417,20 @@ func genShardConsensusConfigKey(shardID common.ShardID, height uint32) []byte {
 	key.WriteShardID(shardID)
 	key.WriteUint32(height)
 	return key.Bytes()
+}
+
+func getConsensusHeight(heightsList []uint32, height uint32) (uint32, error) {
+	heightNum := len(heightsList)
+	destHeight := height
+	if heightsList[0] > height {
+		return 0, fmt.Errorf("height:%d is too low", height)
+	} else {
+		for i := heightNum - 1; i >= 0; i-- {
+			if heightsList[i] <= height {
+				destHeight = heightsList[i]
+				break
+			}
+		}
+	}
+	return destHeight, nil
 }

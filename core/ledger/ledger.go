@@ -365,10 +365,6 @@ func (self *Ledger) GetParentContract(blockHeight uint32, addr common.Address) (
 	return self.ldgStore.GetParentContract(blockHeight, addr)
 }
 
-func (self *Ledger) GetShardConsensusHeight(shardID common.ShardID) ([]uint32, error) {
-	return self.ldgStore.GetShardConsensusHeight(shardID)
-}
-
 func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
 	return self.ldgStore.GetShardConsensusConfig(shardID, height)
 }

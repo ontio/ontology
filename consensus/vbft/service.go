@@ -1246,7 +1246,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					return false
 				}
 				shardMsgs := make([]xshard_types.CommonShardMsg, 0)
-				for blkNum := blk.Block.Header.ParentHeight; blkNum < msg.Block.Block.Header.ParentHeight; blkNum++ {
+				for blkNum := blk.Block.Header.ParentHeight + 1; blkNum <= msg.Block.Block.Header.ParentHeight; blkNum++ {
 					shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(blkNum, self.ShardID)
 					if err != nil {
 						log.Errorf("verifycrossshardtx GetShardMsgsInBlock shardID:%v,height:%d err:%s", self.ShardID, blkNum, err)

@@ -226,7 +226,7 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID co
 	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
 	if !toShardID.IsRootShard() && lgr.ParentLedger != nil {
 		crossShardInfo := make([]*types.CrossShardTxInfos, 0)
-		for blkNum := beginParentblkNum; blkNum <= endParentblkNum; blkNum++ {
+		for blkNum := beginParentblkNum + 1; blkNum <= endParentblkNum; blkNum++ {
 			shardMsg, err := lgr.ParentLedger.GetShardMsgsInBlock(blkNum, toShardID)
 			if err != nil && err != com.ErrNotFound {
 				return nil, fmt.Errorf("GetShardMsgsInBlock parentblkNum:%d,shardID:%v,err:%s", blkNum, toShardID, err)

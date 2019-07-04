@@ -148,26 +148,7 @@ func BuildCrossShardMsgHash(shardMsgs []xshard_types.CommonShardMsg) ([]common.U
 }
 
 func GetShardConfigByShardID(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (*vconfig.ChainConfig, error) {
-	heights, err := lgr.GetShardConsensusHeight(shardID)
-	if err != nil {
-		return nil, err
-	}
-	heightNum := len(heights)
-	if heightNum == 0 {
-		return nil, fmt.Errorf("getShardConfigByShardID: heights list empty")
-	}
-	destHeight := blkNum
-	if heights[0] > blkNum {
-		return nil, fmt.Errorf("getShardConfigByShardID: height is too low")
-	} else {
-		for i := heightNum - 1; i >= 0; i-- {
-			if heights[i] <= blkNum {
-				destHeight = heights[i]
-				break
-			}
-		}
-	}
-	data, err := lgr.GetShardConsensusConfig(shardID, destHeight)
+	data, err := lgr.GetShardConsensusConfig(shardID, blkNum)
 	if err != nil {
 		log.Errorf("getshardconsensusconfig shardID:%v,err:%s", shardID, err)
 		return nil, err
