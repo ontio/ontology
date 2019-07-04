@@ -125,5 +125,6 @@ func (self *ChainManager) buildShardConfig(shardID common.ShardID, shardState *s
 
 	shardConfig.Common.GasPrice = shardState.Config.GasPrice
 	shardConfig.Common.GasLimit = shardState.Config.GasLimit
+	shardConfig.Shard.ParentHeightIncrement = config.DEFAULT_PARENT_HEIGHT_INCREMENT
 	return shardConfig, nil
 }

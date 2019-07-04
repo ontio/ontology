@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	csm "github.com/ontio/ontology/consensus/utils"
@@ -61,7 +62,7 @@ const (
 	EndorseBlock
 	CommitBlock
 	SealBlock
-	FastForward // for syncer catch up
+	FastForward  // for syncer catch up
 	ReBroadcast
 	SubmitBlock
 )
@@ -2161,7 +2162,7 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 	if blk == nil {
 		return fmt.Errorf("failed to get last sealed block, current block: %d", sealedBlkNum)
 	}
-	parentHeight := blk.Block.Header.ParentHeight + 1
+	parentHeight := blk.Block.Header.ParentHeight + uint32(config.DefConfig.Shard.ParentHeightIncrement)
 	if parentHeight < block.Block.Header.ParentHeight {
 		return fmt.Errorf("invalid parent height: %d vs %d", parentHeight, block.Block.Header.ParentHeight)
 	}
