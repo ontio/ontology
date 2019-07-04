@@ -42,6 +42,7 @@ func init() {
 }
 
 func Test_ShardMgmtInit(t *testing.T) {
+	tutils.ClearTestChain(t)
 
 	// 1. create root chain
 	shardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
@@ -64,6 +65,8 @@ func Test_ShardMgmtInit(t *testing.T) {
 }
 
 func TestStartShard(t *testing.T) {
+	tutils.ClearTestChain(t)
+
 	rootShardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	rootLedger := ledger.GetShardLedger(rootShardId)
 	if rootLedger == nil {

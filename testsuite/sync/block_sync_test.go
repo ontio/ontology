@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/p2pserver"
 	"github.com/ontio/ontology/testsuite"
 	"github.com/ontio/ontology/testsuite/common"
+	"github.com/ontio/ontology/testsuite/utils"
 )
 
 func init() {
@@ -37,6 +38,7 @@ func init() {
 }
 
 func Test_RootChainBlockSync(t *testing.T) {
+	utils.ClearTestChain(t)
 
 	// . create blockchains for peer1 and peer2 (with same genesis block)
 	shardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
