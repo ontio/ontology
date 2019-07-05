@@ -32,8 +32,8 @@ func initTestPeer() *Peer {
 	p.base.services = 1
 	p.base.port = 10338
 	p.base.relay = true
-	p.base.height = make(map[uint64]*types.HeightInfo)
-	p.base.height[0] = &types.HeightInfo{
+	p.base.height = make(map[com.ShardID]*types.HeightInfo)
+	p.base.height[com.RootShardID] = &types.HeightInfo{
 		Height:  123355,
 		MsgHash: com.Uint256{1, 2, 3},
 	}
@@ -82,13 +82,13 @@ func TestGetPeerComInfo(t *testing.T) {
 	}
 
 	h := p.base.GetHeight()
-	if h[0].Height != 123355 {
+	if h[com.RootShardID].Height != 123355 {
 		t.Errorf("PeerCom GetHeight error")
 	} else {
-		h[0].Height = uint32(234343497)
+		h[com.RootShardID].Height = uint32(234343497)
 		p.base.SetHeight(h)
 		h2 := p.base.GetHeight()
-		if h2[0].Height != 234343497 {
+		if h2[com.RootShardID].Height != 234343497 {
 			t.Errorf("PeerCom SetHeight error")
 		}
 	}
@@ -105,8 +105,8 @@ func TestGetPeerComInfo(t *testing.T) {
 
 func TestUpdatePeer(t *testing.T) {
 	p := initTestPeer()
-	height := make(map[uint64]*types.HeightInfo)
-	height[0] = &types.HeightInfo{
+	height := make(map[com.ShardID]*types.HeightInfo)
+	height[com.RootShardID] = &types.HeightInfo{
 		Height:  123355,
 		MsgHash: com.Uint256{1, 2, 3},
 	}

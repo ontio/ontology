@@ -35,7 +35,7 @@ func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
 	shardMsg := []xshard_types.CommonShardMsg{&xshard_types.XShardCommitMsg{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			SourceShardID: common.NewShardIDUnchecked(1),
-			TargetShardID: common.NewShardIDUnchecked(0),
+			TargetShardID: common.RootShardID,
 			SourceTxHash:  common.Uint256{1, 2, 3},
 			ShardTxID:     "2",
 		},
@@ -62,7 +62,7 @@ func newTestShardMsg(t *testing.T) *types.CrossShardMsg {
 }
 
 func TestAddShardInfo(t *testing.T) {
-	shardID := common.NewShardIDUnchecked(0)
+	shardID := common.RootShardID
 	InitCrossShardPool(shardID, 10)
 	shardID = common.NewShardIDUnchecked(1)
 	ldg, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
@@ -88,7 +88,7 @@ func TestCrossShardTxInfos_Serialize(t *testing.T) {
 	shardMsg := []xshard_types.CommonShardMsg{&xshard_types.XShardCommitMsg{
 		ShardMsgHeader: xshard_types.ShardMsgHeader{
 			SourceShardID: common.NewShardIDUnchecked(1),
-			TargetShardID: common.NewShardIDUnchecked(0),
+			TargetShardID: common.RootShardID,
 			SourceTxHash:  common.Uint256{1, 2, 3},
 			ShardTxID:     "2",
 		},

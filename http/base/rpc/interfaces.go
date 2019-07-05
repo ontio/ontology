@@ -347,12 +347,12 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 
 		log.Debugf("SendRawTransaction send to %d, %d txpool %s", txn.ShardID, chainmgr.GetShardID(), hash.ToHexString())
-		if txn.ShardID == chainmgr.GetShardID().ToUint64() {
+		if txn.ShardID == chainmgr.GetShardID() {
 			if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 				log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 				return responsePack(int64(errCode), desc)
 			}
-		} else if txn.ShardID == config.DEFAULT_SHARD_ID {
+		} else if txn.ShardID == common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID) {
 			return responsePack(int64(ontErrors.ErrXmitFail), "")
 		} else {
 			return responsePack(int64(ontErrors.ErrInValidShard), "")

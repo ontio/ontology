@@ -137,12 +137,12 @@ func (this *NetServer) GetID() uint64 {
 }
 
 // SetHeight sets the local's height
-func (this *NetServer) SetHeight(height map[uint64]*types.HeightInfo) {
+func (this *NetServer) SetHeight(height map[common2.ShardID]*types.HeightInfo) {
 	this.base.SetHeight(height)
 }
 
 // GetHeight return peer's heigh
-func (this *NetServer) GetHeight() map[uint64]*types.HeightInfo {
+func (this *NetServer) GetHeight() map[common2.ShardID]*types.HeightInfo {
 	return this.base.GetHeight()
 }
 
@@ -313,7 +313,7 @@ func (this *NetServer) Connect(addr string) error {
 	go remotePeer.Link.Rx()
 	remotePeer.SetState(common.HAND)
 
-	heights := make(map[uint64]*types.HeightInfo)
+	heights := make(map[common2.ShardID]*types.HeightInfo)
 	lgr := ledger.GetShardLedger(common2.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 	if lgr != nil {
 		heightInfo := &types.HeightInfo{
@@ -327,7 +327,11 @@ func (this *NetServer) Connect(addr string) error {
 		} else {
 			heightInfo.MsgHash = msgHash
 		}
-		heights[config.DEFAULT_SHARD_ID] = heightInfo
+		shardId, err := common2.NewShardID(config.DEFAULT_SHARD_ID)
+		if err != nil {
+			return err
+		}
+		heights[shardId] = heightInfo
 	}
 	version := msgpack.NewVersion(this, heights)
 	err = remotePeer.Send(version)

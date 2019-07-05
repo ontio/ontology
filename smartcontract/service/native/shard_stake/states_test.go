@@ -129,10 +129,10 @@ func TestUserUnboundOngInfo(t *testing.T) {
 func TestXShardFeeInfo(t *testing.T) {
 	info := &XShardFeeInfo{
 		Debt: map[common.ShardID]map[View]uint64{
-			common.NewShardIDUnchecked(0): {1: uint64(10)},
+			common.RootShardID: {1: uint64(10)},
 		},
 		Income: map[common.ShardID]map[View]uint64{
-			common.NewShardIDUnchecked(0): {1: uint64(10)},
+			common.RootShardID: {1: uint64(10)},
 		},
 	}
 	sink := common.NewZeroCopySink(0)

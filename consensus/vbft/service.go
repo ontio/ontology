@@ -192,7 +192,7 @@ func (self *Server) Receive(context actor.Context) {
 	case *message.SaveBlockCompleteMsg:
 		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, parent=%d, numtx=%d, numShardTx=%d",
 			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions), len(msg.Block.ShardTxs))
-		if self.ShardID.ToUint64() == msg.Block.Header.ShardID {
+		if self.ShardID == msg.Block.Header.ShardID {
 			self.handleBlockPersistCompleted(msg.Block)
 		}
 	case *message.BlockConsensusComplete:
@@ -1165,7 +1165,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.pid.Tell(
 			&p2p.SyncBlock{
 				Height:  msg.Block.Block.Header.ParentHeight,
-				ShardID: self.ShardID.ParentID().ToUint64(),
+				ShardID: self.ShardID.ParentID(),
 			})
 		log.Infof("consensus tell sync block height:%d", msg.Block.Block.Header.ParentHeight)
 		return
@@ -1240,7 +1240,7 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 	for sourceShardID, crossTxMsgs := range msg.Block.Block.ShardTxs {
 		for _, crossTxMsg := range crossTxMsgs {
 			shardCall := crossTxMsg.Tx.Payload.(*payload.ShardCall)
-			if common.NewShardIDUnchecked(sourceShardID).IsRootShard() {
+			if sourceShardID.IsRootShard() {
 				blk, _ := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
 				if blk == nil {
 					log.Errorf("verifyCrossShardTx failed to GetPreBlock:%d", (msg.GetBlockNum() - 1))
@@ -1263,10 +1263,10 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					return false
 				}
 			} else {
-				if !xshard.VerifyCrossShardMsg(self.ShardID, common.NewShardIDUnchecked(sourceShardID), self.ledger, crossTxMsg.ShardMsg, shardCall.Msgs) {
+				if !xshard.VerifyCrossShardMsg(self.ShardID, sourceShardID, self.ledger, crossTxMsg.ShardMsg, shardCall.Msgs) {
 					return false
 				}
-				txMsg, err := xshard.GetCrossShardMsg(self.ledger, common.NewShardIDUnchecked(sourceShardID), crossTxMsg.ShardMsg.PreCrossShardMsgHash)
+				txMsg, err := xshard.GetCrossShardMsg(self.ledger, sourceShardID, crossTxMsg.ShardMsg.PreCrossShardMsgHash)
 				if err != nil {
 					log.Errorf("GetCrossShardMsg err:%s", err)
 					return false

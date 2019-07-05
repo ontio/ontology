@@ -28,7 +28,7 @@ import (
 
 type Block struct {
 	Header       *Header
-	ShardTxs     map[uint64][]*CrossShardTxInfos
+	ShardTxs     map[common.ShardID][]*CrossShardTxInfos
 	Transactions []*Transaction
 }
 
@@ -37,13 +37,13 @@ func (b *Block) Serialization(sink *common.ZeroCopySink) {
 
 	// serialize cross-shard txs, ordered by ShardID
 	sink.WriteUint32(uint32(len(b.ShardTxs)))
-	shardIds := make([]uint64, 0, len(b.ShardTxs))
+	shardIds := make([]common.ShardID, 0, len(b.ShardTxs))
 
 	for id := range b.ShardTxs {
 		shardIds = append(shardIds, id)
 	}
 
-	common.SortUint64s(shardIds)
+	common.SortShardID(shardIds)
 
 	for _, shardID := range shardIds {
 		evts := b.ShardTxs[shardID]
@@ -144,24 +144,24 @@ func (b *Block) RebuildMerkleRoot() {
 	b.Header.TransactionsRoot = hash
 }
 
-func zcpSerializeShardTxs(sink *common.ZeroCopySink, shardID uint64, shardTxs []*CrossShardTxInfos) {
+func zcpSerializeShardTxs(sink *common.ZeroCopySink, shardID common.ShardID, shardTxs []*CrossShardTxInfos) {
 	if shardTxs == nil {
 		return
 	}
 
-	sink.WriteUint64(shardID)
+	sink.WriteShardID(shardID)
 	sink.WriteUint32(uint32(len(shardTxs)))
 	for _, shardTx := range shardTxs {
 		shardTx.Serialization(sink)
 	}
 }
 
-func zcpDeserializeShardTxs(source *common.ZeroCopySource, shardTxCnt uint32) (map[uint64][]*CrossShardTxInfos, error) {
-	shardTxs := make(map[uint64][]*CrossShardTxInfos)
+func zcpDeserializeShardTxs(source *common.ZeroCopySource, shardTxCnt uint32) (map[common.ShardID][]*CrossShardTxInfos, error) {
+	shardTxs := make(map[common.ShardID][]*CrossShardTxInfos)
 	for i := uint32(0); i < shardTxCnt; i++ {
-		shardID, eof := source.NextUint64()
-		if eof {
-			return nil, io.ErrUnexpectedEOF
+		shardID, err := source.NextShardID()
+		if err != nil {
+			return nil, err
 		}
 		txCnt, eof := source.NextUint32()
 		if eof {

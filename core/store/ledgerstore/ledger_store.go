@@ -601,13 +601,8 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	overlay := this.stateStore.NewOverlayDB()
 	if block.Header.Height != 0 {
-		var shardID common.ShardID
-		shardID, err = common.NewShardID(block.Header.ShardID)
-		if err != nil {
-			return
-		}
 		config := &smartcontract.Config{
-			ShardID:      shardID,
+			ShardID:      block.Header.ShardID,
 			Time:         block.Header.Timestamp,
 			Height:       block.Header.Height,
 			ParentHeight: block.Header.ParentHeight,
@@ -653,13 +648,13 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 	// execute shard txs
 	// sort shard Txs
-	ids := make([]uint64, 0)
+	ids := make([]common.ShardID, 0)
 	for shardId := range block.ShardTxs {
 		ids = append(ids, shardId)
 	}
-	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	sort.Slice(ids, func(i, j int) bool { return ids[i].ToUint64() < ids[j].ToUint64() })
 	for _, id := range ids {
-		log.Infof("block shard %d: height %d executing shard Tx shard %d: txnum %d", block.Header.ShardID,
+		log.Infof("block shard %v: height %d executing shard Tx shard %v: txnum %d", block.Header.ShardID,
 			block.Header.Height, id, len(block.ShardTxs[id]))
 		for _, shardTx := range block.ShardTxs[id] {
 			cache.Reset()
@@ -930,7 +925,7 @@ func (this *LedgerStoreImp) saveParentShardConfig(block *types.Block) error {
 			NodeType:   shardstates.CONSENSUS_NODE,
 		}
 	}
-	return this.addShardEventConfig(block.Header.Height, common.NewShardIDUnchecked(block.Header.ShardID), config, peers)
+	return this.addShardEventConfig(block.Header.Height, block.Header.ShardID, config, peers)
 }
 
 func (this *LedgerStoreImp) addShardEventConfig(height uint32, shardID common.ShardID, cfg *shardstates.ShardConfig, peers map[string]*shardstates.PeerShardStakeInfo) error {
@@ -1277,18 +1272,13 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.Execu
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
 	height := this.GetCurrentBlockHeight()
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
-
-	shardID, err := common.NewShardID(tx.ShardID)
-	if err != nil {
-		return stf, err
-	}
 	header, err := this.GetHeaderByHeight(height)
 	if err != nil {
 		return stf, err
 	}
 
 	config := &smartcontract.Config{
-		ShardID:      shardID,
+		ShardID:      tx.ShardID,
 		Time:         uint32(time.Now().Unix()),
 		Height:       height + 1,
 		ParentHeight: header.ParentHeight,

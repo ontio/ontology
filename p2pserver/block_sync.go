@@ -808,7 +808,7 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 			continue
 		}
 		nodeBlockHeight := n.GetHeight()
-		if heightInfo, present := nodeBlockHeight[this.shardID.ToUint64()]; present {
+		if heightInfo, present := nodeBlockHeight[this.shardID]; present {
 			if nextBlockHeight <= heightInfo.Height {
 				return n
 			}
@@ -907,7 +907,7 @@ func (this *BlockSyncMgr) pingOutsyncNodes(curHeight uint32) {
 			continue
 		}
 		heights := peer.GetHeight()
-		peerHeight := heights[this.shardID.ToUint64()].Height
+		peerHeight := heights[this.shardID].Height
 		if peerHeight >= maxHeight {
 			maxHeight = peerHeight
 		}

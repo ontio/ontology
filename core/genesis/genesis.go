@@ -147,7 +147,7 @@ func buildShardGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig
 	//blockdata
 	genesisHeader := &types.Header{
 		Version:          BlockVersion,
-		ShardID:          shardConfig.ShardID.ToUint64(),
+		ShardID:          shardConfig.ShardID,
 		ParentHeight:     uint32(shardConfig.GenesisParentHeight),
 		PrevBlockHash:    common.Uint256{},
 		TransactionsRoot: common.Uint256{},

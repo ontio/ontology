@@ -61,7 +61,7 @@ func calcGasByCodeLen(codeLen int, codeGas uint64) uint64 {
 	return uint64(codeLen/neovm.PER_UNIT_CODE_LEN) * codeGas
 }
 
-func buildTx(originalPayer, contract common.Address, method string, args []interface{}, shardId, gasLimit uint64,
+func buildTx(originalPayer, contract common.Address, method string, args []interface{}, shardId common.ShardID, gasLimit uint64,
 	nonce uint32) (*types.Transaction, error) {
 	invokeCode := []byte{}
 	var err error = nil

@@ -333,7 +333,7 @@ func (self *ShardContext) InvokeShardContractRaw(method string, args []interface
 	assert.NotNil(t, tx)
 	cache := storage.NewCacheDB(self.overlay)
 	xshardDB := storage.NewXShardDB(self.overlay)
-	header := &types.Header{Height: self.height, ShardID: self.shardID.ToUint64()}
+	header := &types.Header{Height: self.height, ShardID: self.shardID}
 	self.height += 1
 	txHash := tx.Hash()
 	txevent := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
@@ -365,7 +365,7 @@ func (self *ShardContext) HandleShardCallMsgs(msgs []xshard_types.CommonShardMsg
 	t := self.t
 	cache := storage.NewCacheDB(self.overlay)
 	xshardDB := storage.NewXShardDB(self.overlay)
-	header := &types.Header{Height: self.height, ShardID: self.shardID.ToUint64()}
+	header := &types.Header{Height: self.height, ShardID: self.shardID}
 	self.height += 1
 	txevent := &event.ExecuteNotify{}
 	txevent.State = event.CONTRACT_STATE_FAIL

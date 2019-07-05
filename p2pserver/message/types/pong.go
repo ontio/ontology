@@ -26,14 +26,14 @@ import (
 )
 
 type Pong struct {
-	Height map[uint64]*HeightInfo
+	Height map[comm.ShardID]*HeightInfo
 }
 
 //Serialize message payload
 func (this *Pong) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteUint32(uint32(len(this.Height)))
 	for id, h := range this.Height {
-		sink.WriteUint64(id)
+		sink.WriteShardID(id)
 		sink.WriteUint32(h.Height)
 		sink.WriteBytes(h.MsgHash[:])
 	}
@@ -49,11 +49,11 @@ func (this *Pong) Deserialization(source *comm.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	heights := make(map[uint64]*HeightInfo)
+	heights := make(map[comm.ShardID]*HeightInfo)
 	for i := uint32(0); i < n; i++ {
-		id, eof := source.NextUint64()
-		if eof {
-			return io.ErrUnexpectedEOF
+		id, err := source.NextShardID()
+		if err != nil {
+			return err
 		}
 		pingInfo := &HeightInfo{}
 		pingInfo.Height, eof = source.NextUint32()

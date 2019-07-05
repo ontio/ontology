@@ -177,8 +177,8 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 }
 
 func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	if block.Header.ShardID != self.ShardID.ToUint64() {
-		return fmt.Errorf("add block from shard %d on ledger %d", block.Header.ShardID, self.ShardID.ToUint64())
+	if block.Header.ShardID != self.ShardID {
+		return fmt.Errorf("add block from shard %v on ledger %v", block.Header.ShardID, self.ShardID)
 	}
 
 	if self.ParentLedger != nil {
@@ -204,8 +204,8 @@ func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256)
 }
 
 func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
-	if b.Header.ShardID != self.ShardID.ToUint64() {
-		return store.ExecuteResult{}, fmt.Errorf("execute block from shard %d on ledger %d", b.Header.ShardID, self.ShardID.ToUint64())
+	if b.Header.ShardID != self.ShardID {
+		return store.ExecuteResult{}, fmt.Errorf("execute block from shard %v on ledger %v", b.Header.ShardID, self.ShardID)
 	}
 
 	if self.ParentLedger != nil {
@@ -219,8 +219,8 @@ func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 }
 
 func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
-	if b.Header.ShardID != self.ShardID.ToUint64() {
-		return fmt.Errorf("submit block from shard %d on ledger %d", b.Header.ShardID, self.ShardID.ToUint64())
+	if b.Header.ShardID != self.ShardID {
+		return fmt.Errorf("submit block from shard %v on ledger %v", b.Header.ShardID, self.ShardID)
 	}
 
 	if self.ParentLedger != nil {

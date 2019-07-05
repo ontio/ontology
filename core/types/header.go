@@ -128,7 +128,7 @@ func (hd *Header) GetRawHeader() *RawHeader {
 
 type Header struct {
 	Version          uint32
-	ShardID          uint64
+	ShardID          common.ShardID
 	ParentHeight     uint32
 	PrevBlockHash    common.Uint256
 	TransactionsRoot common.Uint256
@@ -167,7 +167,7 @@ func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 		panic(fmt.Errorf("invalid header version:%d", bd.Version))
 	}
 	if bd.Version == common.VERSION_SUPPORT_SHARD {
-		sink.WriteUint64(bd.ShardID)
+		sink.WriteShardID(bd.ShardID)
 		sink.WriteUint32(bd.ParentHeight)
 	}
 	sink.WriteBytes(bd.PrevBlockHash[:])
@@ -252,7 +252,11 @@ func (bd *Header) deserializationUnsigned(source *common.ZeroCopySource) error {
 		return common.ErrIrregularData
 	}
 	if bd.Version == common.VERSION_SUPPORT_SHARD {
-		bd.ShardID, eof = source.NextUint64()
+		shardID, err := source.NextShardID()
+		if err != nil {
+			return err
+		}
+		bd.ShardID = shardID
 		bd.ParentHeight, eof = source.NextUint32()
 	}
 	bd.PrevBlockHash, eof = source.NextHash()

@@ -47,7 +47,7 @@ func CreateBlock(t *testing.T, lgr *ledger.Ledger, txs []*types.Transaction) *ty
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := lgr.GetBlockRootWithNewTxRoots(lastBlock.Header.Height, []common.Uint256{lastBlock.Header.TransactionsRoot, txRoot})
 	//shardTxs := xshard.GetCrossShardTxs()
-	shardTxs := make(map[uint64][]*types.CrossShardTxInfos)
+	shardTxs := make(map[common.ShardID][]*types.CrossShardTxInfos)
 	consensusPayload := buildConsensusPayload(t, lastBlock)
 
 	timestamp := uint32(time.Now().Unix())
@@ -58,7 +58,7 @@ func CreateBlock(t *testing.T, lgr *ledger.Ledger, txs []*types.Transaction) *ty
 	blkHeader := &types.Header{
 		PrevBlockHash:    lastBlock.Header.Hash(),
 		Version:          common.CURR_HEADER_VERSION,
-		ShardID:          lgr.ShardID.ToUint64(),
+		ShardID:          lgr.ShardID,
 		ParentHeight:     uint32(parentHeight),
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,
@@ -88,8 +88,7 @@ func CreateBlock(t *testing.T, lgr *ledger.Ledger, txs []*types.Transaction) *ty
 }
 
 func buildConsensusPayload(t *testing.T, prevBlk *types.Block) []byte {
-	shardID := common.NewShardIDUnchecked(prevBlk.Header.ShardID)
-	acc := GetAccount(chainmgr.GetShardName(shardID) + "_peerOwner0")
+	acc := GetAccount(chainmgr.GetShardName(prevBlk.Header.ShardID) + "_peerOwner0")
 	if acc == nil {
 		t.Fatalf("failed to get account peerOwner0")
 	}

@@ -34,6 +34,8 @@ const MAX_CHILD_SHARDS = math.MaxUint16 - 1
 
 var ErrInvalidShardID = errors.New("invalid shard id")
 
+var RootShardID = NewShardIDUnchecked(0)
+
 func (self ShardID) Level() int {
 	id := self.id
 	l1 := id & math.MaxUint16

@@ -137,7 +137,7 @@ func (self *SoloService) Receive(context actor.Context) {
 		log.Infof("solo actor receives block complete event from shard %d. block height=%d parent=%d txnum=%d shardTxNum=%d",
 			msg.Block.Header.ShardID, msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions),
 			len(msg.Block.ShardTxs))
-		if self.shardID.ToUint64() == msg.Block.Header.ShardID {
+		if self.shardID == msg.Block.Header.ShardID {
 			self.incrValidator.AddBlock(msg.Block)
 		}
 
@@ -284,7 +284,7 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	}
 	header := &types.Header{
 		Version:          ContextVersion,
-		ShardID:          self.shardID.ToUint64(),
+		ShardID:          self.shardID,
 		ParentHeight:     uint32(parentHeight),
 		PrevBlockHash:    prevHash,
 		TransactionsRoot: txRoot,

@@ -203,7 +203,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	}
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := self.ledger.GetBlockRootWithNewTxRoots(lastBlock.Block.Header.Height, []common.Uint256{lastBlock.Block.Header.TransactionsRoot, txRoot})
-	var shardTxs map[uint64][]*types.CrossShardTxInfos
+	var shardTxs map[common.ShardID][]*types.CrossShardTxInfos
 	if self.ShardID.IsRootShard() {
 		shardTxs, err = xshard.GetCrossShardTxs(self.ledger, self.account, self.ShardID, parentHeight, 0)
 		if err != nil {
@@ -220,7 +220,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	blkHeader := &types.Header{
 		PrevBlockHash:    prevBlkHash,
 		Version:          common.CURR_HEADER_VERSION,
-		ShardID:          self.ShardID.ToUint64(),
+		ShardID:          self.ShardID,
 		ParentHeight:     uint32(parentHeight),
 		TransactionsRoot: txRoot,
 		BlockRoot:        blockRoot,

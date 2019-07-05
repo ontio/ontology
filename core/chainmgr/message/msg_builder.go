@@ -44,7 +44,7 @@ func NewCrossShardTxMsg(account *account.Account, height uint32, toShardID commo
 		Msgs: msgs,
 	}
 	mutable := &types.MutableTransaction{
-		ShardID:  toShardID.ToUint64(),
+		ShardID:  toShardID,
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		Payer:    account.Address,
