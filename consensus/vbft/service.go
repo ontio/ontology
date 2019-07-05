@@ -32,6 +32,7 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
 	csm "github.com/ontio/ontology/consensus/utils"
@@ -189,14 +190,14 @@ func (self *Server) Receive(context actor.Context) {
 	case *actorTypes.StopConsensus:
 		self.stop()
 	case *message.SaveBlockCompleteMsg:
-		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, numtx=%d",
-			msg.Block.Header.Height, len(msg.Block.Transactions))
+		log.Infof("vbft actor SaveBlockCompleteMsg receives block complete event. block height=%d, parent=%d, numtx=%d, numShardTx=%d",
+			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions), len(msg.Block.ShardTxs))
 		if self.ShardID.ToUint64() == msg.Block.Header.ShardID {
 			self.handleBlockPersistCompleted(msg.Block)
 		}
 	case *message.BlockConsensusComplete:
-		log.Infof("vbft actor  BlockConsensusComplete receives block complete event. block height=%d,parent=%d, numtx=%d",
-			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions))
+		log.Infof("vbft actor BlockConsensusComplete receives block complete event. block height=%d, parent=%d, numtx=%d, numShardTx=%d",
+			msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions), len(msg.Block.ShardTxs))
 		self.handleBlockPersistCompleted(msg.Block)
 	case *p2pmsg.ConsensusPayload:
 		self.NewConsensusPayload(msg)
@@ -1213,7 +1214,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 }
 
 func (self *Server) verifyShardEventMsg(msg *blockProposalMsg) bool {
-	if msg.Block.CrossMsgHash == nil {
+	if msg.Block.CrossMsgHash == nil || len(msg.Block.CrossMsgHash.ShardMsgHashs) == 0 {
 		return true
 	}
 	msgBlkNum := msg.GetBlockNum()
@@ -1248,6 +1249,9 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 				shardMsgs := make([]xshard_types.CommonShardMsg, 0)
 				for blkNum := blk.Block.Header.ParentHeight + 1; blkNum <= msg.Block.Block.Header.ParentHeight; blkNum++ {
 					shardMsg, err := self.ledger.ParentLedger.GetShardMsgsInBlock(blkNum, self.ShardID)
+					if err == com.ErrNotFound {
+						continue
+					}
 					if err != nil {
 						log.Errorf("verifycrossshardtx GetShardMsgsInBlock shardID:%v,height:%d err:%s", self.ShardID, blkNum, err)
 						return false
@@ -2157,13 +2161,15 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
 	// parentHeight order consistency check
-	blk, _ := self.blockPool.getSealedBlock(sealedBlkNum - 1)
-	if blk == nil {
+	preBlock, _ := self.blockPool.getSealedBlock(sealedBlkNum - 1)
+	if preBlock == nil {
 		return fmt.Errorf("failed to get last sealed block, current block: %d", sealedBlkNum)
 	}
-	parentHeight := blk.Block.Header.ParentHeight + 1
-	if parentHeight < block.Block.Header.ParentHeight {
-		return fmt.Errorf("invalid parent height: %d vs %d", parentHeight, block.Block.Header.ParentHeight)
+	maxParentHeight := preBlock.Block.Header.ParentHeight + uint32(config.DefConfig.Shard.ParentHeightIncrement)
+	if maxParentHeight < block.Block.Header.ParentHeight ||
+		block.Block.Header.ParentHeight < preBlock.Block.Header.ParentHeight {
+		// increase too much or not increase
+		return fmt.Errorf("invalid parent height: %d vs %d", maxParentHeight, block.Block.Header.ParentHeight)
 	}
 	if err := self.blockPool.setBlockSealed(block, empty, sigdata); err != nil {
 		return fmt.Errorf("failed to seal proposal: %s", err)

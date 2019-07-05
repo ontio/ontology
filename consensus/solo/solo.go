@@ -134,8 +134,9 @@ func (self *SoloService) Receive(context actor.Context) {
 			self.sub.Unsubscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 		}
 	case *message.SaveBlockCompleteMsg:
-		log.Infof("solo actor receives block complete event from shard %d. block height=%d parent=%d txnum=%d",
-			msg.Block.Header.ShardID, msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions))
+		log.Infof("solo actor receives block complete event from shard %d. block height=%d parent=%d txnum=%d shardTxNum=%d",
+			msg.Block.Header.ShardID, msg.Block.Header.Height, msg.Block.Header.ParentHeight, len(msg.Block.Transactions),
+			len(msg.Block.ShardTxs))
 		if self.shardID.ToUint64() == msg.Block.Header.ShardID {
 			self.incrValidator.AddBlock(msg.Block)
 		}

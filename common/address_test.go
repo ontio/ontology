@@ -65,8 +65,8 @@ func TestAddress_Serialize(t *testing.T) {
 }
 
 func TestAddress_MarshalJSON(t *testing.T) {
-	addr, _ := AddressFromBase58("AN9PD1zC4moFWjDzY4xG9bAr7R7UvHwmLL")
-	data, err := json.Marshal(addr)
+	base58Addr, _ := AddressFromBase58("AN9PD1zC4moFWjDzY4xG9bAr7R7UvHwmLL")
+	data, err := json.Marshal(base58Addr)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,5 +77,18 @@ func TestAddress_MarshalJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Logf("unmarshal addr is %s", newAddr.ToBase58())
-	assert.Equal(t, addr, *newAddr)
+	assert.Equal(t, base58Addr, *newAddr)
+
+	hexAddr, _ := AddressFromHexString("061d7b2cf105f284e9befe01fc67c71b3702cb80")
+	data, err = json.Marshal(hexAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("marshal addr is %s", string(data))
+	err = json.Unmarshal(data, newAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("unmarshal addr is %s", newAddr.ToHexString())
+	assert.Equal(t, hexAddr, *newAddr)
 }

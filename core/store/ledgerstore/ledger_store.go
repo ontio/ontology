@@ -659,7 +659,8 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 	for _, id := range ids {
-		log.Infof("executing shard Tx from shard %d, txnum = %d,height:%d", id, len(block.ShardTxs[id]), block.Header.Height)
+		log.Infof("block shard %d: height %d executing shard Tx shard %d: txnum %d", block.Header.ShardID,
+			block.Header.Height, id, len(block.ShardTxs[id]))
 		for _, shardTx := range block.ShardTxs[id] {
 			cache.Reset()
 			if shardTx.Tx.TxType != types.ShardCall {

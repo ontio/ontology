@@ -55,11 +55,13 @@ func (self *ChainManager) buildShardConfig(shardID common.ShardID, shardState *s
 
 	if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		// add seeds and bookkeepers to config
-		bookkeepers := make([]string, 0)
-		for peerPK, _ := range shardState.Peers {
-			bookkeepers = append(bookkeepers, peerPK)
+		if shardConfig.Genesis.SOLO.Bookkeepers == nil || len(shardConfig.Genesis.SOLO.Bookkeepers) == 0 {
+			bookkeepers := make([]string, 0)
+			for peerPK, _ := range shardState.Peers {
+				bookkeepers = append(bookkeepers, peerPK)
+			}
+			shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
 		}
-		shardConfig.Genesis.SOLO.Bookkeepers = bookkeepers
 	} else if shardConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
 		peers := make([]*config.VBFTPeerStakeInfo, 0)
 		shardView, err := xshard.GetShardView(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), shardState.ShardID)
@@ -123,5 +125,6 @@ func (self *ChainManager) buildShardConfig(shardID common.ShardID, shardState *s
 
 	shardConfig.Common.GasPrice = shardState.Config.GasPrice
 	shardConfig.Common.GasLimit = shardState.Config.GasLimit
+	shardConfig.Shard.ParentHeightIncrement = config.DEFAULT_PARENT_HEIGHT_INCREMENT
 	return shardConfig, nil
 }
