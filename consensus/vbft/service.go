@@ -2357,8 +2357,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			chainconfig, err = getShardConfig(self.ledger, self.ShardID, blkNum)
 			if err == com.ErrNotFound {
 				needChangeShardConsensus = false
-			}
-			if err != nil {
+			} else if err != nil {
 				return fmt.Errorf("getShardChainConfig failed:%s", err)
 			}
 		}
