@@ -26,12 +26,12 @@ import (
 
 func TestPingSerializationDeserialization(t *testing.T) {
 	var msg Ping
-	msg.Height = make(map[uint64]*HeightInfo)
+	msg.Height = make(map[common.ShardID]*HeightInfo)
 	heightInfo := &HeightInfo{
 		Height:  uint32(1),
 		MsgHash: common.Uint256{1, 2, 3},
 	}
-	msg.Height[0] = heightInfo
+	msg.Height[common.NewShardIDUnchecked(0)] = heightInfo
 
 	MessageTest(t, &msg)
 }

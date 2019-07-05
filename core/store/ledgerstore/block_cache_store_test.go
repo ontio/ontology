@@ -52,13 +52,13 @@ func newTestBlock(height uint32, shardID common.ShardID) *types.Block {
 	header := &types.Header{}
 	header.Version = common.CURR_HEADER_VERSION
 	header.Height = height
-	header.ShardID = shardID.ToUint64()
+	header.ShardID = shardID
 	header.Bookkeepers = make([]keypair.PublicKey, 0)
 	header.SigData = make([][]byte, 0)
 
 	return &types.Block{
 		Header:       header,
-		ShardTxs:     make(map[uint64][]*types.CrossShardTxInfos),
+		ShardTxs:     make(map[common.ShardID][]*types.CrossShardTxInfos),
 		Transactions: make([]*types.Transaction, 0),
 	}
 }
@@ -89,7 +89,7 @@ func TestBlockCacheStore_Ops(t *testing.T) {
 	if bytes.Compare(hashRoot[:], hashRoot2[:]) != 0 {
 		t.Fatalf("get block unmatched hashroot")
 	}
-	if blk2.Header.ShardID != shardID.ToUint64() {
+	if blk2.Header.ShardID != shardID {
 		t.Fatalf("get block unmatched shard id")
 	}
 	cacheStore.DelBlock(height)

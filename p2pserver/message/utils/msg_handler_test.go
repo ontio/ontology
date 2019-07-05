@@ -101,8 +101,8 @@ func TestVersionHandle(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Construct a version packet
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -146,8 +146,8 @@ func TestVerAckHandle(t *testing.T) {
 	assert.NotNil(t, remotePeer)
 
 	remotePeer.SetHttpInfoPort(20335)
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -188,8 +188,8 @@ func TestAddrReqHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked((0))] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -226,8 +226,8 @@ func TestHeadersReqHandle(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
 
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -263,12 +263,12 @@ func TestPingHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	heights := make(map[uint64]*types.HeightInfo)
+	heights := make(map[common.ShardID]*types.HeightInfo)
 	pingInfo := &types.HeightInfo{
 		Height:  uint32(12345),
 		MsgHash: common.Uint256{1, 2, 3},
 	}
-	heights[0] = pingInfo
+	heights[common.NewShardIDUnchecked(0)] = pingInfo
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, heights, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:50010")
@@ -301,8 +301,8 @@ func TestPongHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -338,8 +338,8 @@ func TestBlkHeaderHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -381,8 +381,8 @@ func TestBlockHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -513,8 +513,8 @@ func TestDataReqHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -563,8 +563,8 @@ func TestInvHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}
@@ -602,8 +602,8 @@ func TestDisconnectHandle(t *testing.T) {
 
 	remotePeer := peer.NewPeer()
 	assert.NotNil(t, remotePeer)
-	heights := make(map[uint64]*types.HeightInfo)
-	heights[0] = &types.HeightInfo{
+	heights := make(map[common.ShardID]*types.HeightInfo)
+	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
 		Height:  123,
 		MsgHash: common.Uint256{1, 2, 3},
 	}

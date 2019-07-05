@@ -39,7 +39,7 @@ type VersionPayload struct {
 	Relay        uint8
 	IsConsensus  bool
 	SoftVersion  string
-	ShardHeights map[uint64]*HeightInfo
+	ShardHeights map[comm.ShardID]*HeightInfo
 }
 
 type Version struct {
@@ -62,7 +62,7 @@ func (this *Version) Serialization(sink *comm.ZeroCopySink) {
 	sink.WriteString(this.P.SoftVersion)
 	sink.WriteUint32(uint32(len(this.P.ShardHeights)))
 	for id, h := range this.P.ShardHeights {
-		sink.WriteUint64(id)
+		sink.WriteShardID(id)
 		sink.WriteUint32(h.Height)
 		sink.WriteBytes(h.MsgHash[:])
 	}
@@ -101,13 +101,13 @@ func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 		this.P.SoftVersion = ""
 	}
 
-	this.P.ShardHeights = make(map[uint64]*HeightInfo)
+	this.P.ShardHeights = make(map[comm.ShardID]*HeightInfo)
 	shardCnt, eof := source.NextUint32()
 	if !eof {
 		for i := uint32(0); i < shardCnt; i++ {
-			shardId, eof := source.NextUint64()
-			if eof {
-				break
+			shardId, err := source.NextShardID()
+			if err != nil {
+				return err
 			}
 			pingInfo := &HeightInfo{}
 			pingInfo.Height, eof = source.NextUint32()
@@ -117,9 +117,6 @@ func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 			pingInfo.MsgHash, eof = source.NextHash()
 			if eof {
 				return io.ErrUnexpectedEOF
-			}
-			if _, err := comm.NewShardID(shardId); err != nil {
-				break
 			}
 			this.P.ShardHeights[shardId] = pingInfo
 		}

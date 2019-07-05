@@ -219,11 +219,11 @@ func AddCrossShardInfo(lgr *ledger.Ledger, crossShardMsg *types.CrossShardMsg) e
 // NOTE: all cross-shard tx/events should be indexed with (parentHeight, shardHeight)
 //
 
-func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID common.ShardID, beginParentblkNum, endParentblkNum uint32) (map[uint64][]*types.CrossShardTxInfos, error) {
+func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID common.ShardID, beginParentblkNum, endParentblkNum uint32) (map[common.ShardID][]*types.CrossShardTxInfos, error) {
 	pool := crossShardPool
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
-	crossShardMapInfos := make(map[uint64][]*types.CrossShardTxInfos)
+	crossShardMapInfos := make(map[common.ShardID][]*types.CrossShardTxInfos)
 	if !toShardID.IsRootShard() && lgr.ParentLedger != nil {
 		crossShardInfo := make([]*types.CrossShardTxInfos, 0)
 		for blkNum := beginParentblkNum + 1; blkNum <= endParentblkNum; blkNum++ {
@@ -243,8 +243,8 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID co
 			}
 			crossShardInfo = append(crossShardInfo, shardTxInfo)
 		}
-		crossShardMapInfos[toShardID.ParentID().ToUint64()] = crossShardInfo
-		log.Infof("GetCrossShardTxs, shardId %d, txNum %d", toShardID.ParentID().ToUint64(), len(crossShardInfo))
+		crossShardMapInfos[toShardID.ParentID()] = crossShardInfo
+		log.Infof("GetCrossShardTxs, shardId %v, txNum %d", toShardID.ParentID(), len(crossShardInfo))
 	}
 	for shardID, shardMsgs := range pool.Shards {
 		crossShardInfo := make([]*types.CrossShardTxInfos, 0)
@@ -287,18 +287,17 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID co
 			}
 			crossShardInfo = append(crossShardInfo, shardTxInfo)
 		}
-		crossShardMapInfos[shardID.ToUint64()] = crossShardInfo
-		log.Infof("GetCrossShardTxs, shardId %d, txNum %d", shardID.ToUint64(), len(crossShardInfo))
+		crossShardMapInfos[shardID] = crossShardInfo
+		log.Infof("GetCrossShardTxs, shardId %v, txNum %d", shardID, len(crossShardInfo))
 	}
 	return crossShardMapInfos, nil
 }
 
-func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[uint64][]*types.CrossShardTxInfos) error {
+func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[common.ShardID][]*types.CrossShardTxInfos) error {
 	pool := crossShardPool
 	pool.lock.Lock()
 	defer pool.lock.Unlock()
-	for id, shardTxs := range crossShardTxs {
-		shardID := common.NewShardIDUnchecked(id)
+	for shardID, shardTxs := range crossShardTxs {
 		for _, shardTx := range shardTxs {
 			if msg, present := pool.Shards[shardID]; !present {
 				log.Infof("delcrossshardtxs shardID:%v,not exist", shardID)

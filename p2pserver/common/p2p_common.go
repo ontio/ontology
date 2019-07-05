@@ -141,12 +141,12 @@ const (
 
 type AppendPeerID struct {
 	ID     uint64 // The peer id
-	Shards []uint64
+	Shards []com.ShardID
 }
 
 type RemovePeerID struct {
 	ID     uint64 // The peer id
-	Shards []uint64
+	Shards []com.ShardID
 }
 
 type AppendHeaders struct {
@@ -168,7 +168,7 @@ type AddBlock struct {
 
 type SyncBlock struct {
 	Height  uint32
-	ShardID uint64
+	ShardID com.ShardID
 }
 
 //ParseIPAddr return ip address

@@ -21,8 +21,9 @@ package rest
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/core/chainmgr"
 	"strconv"
+
+	"github.com/ontio/ontology/core/chainmgr"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -279,14 +280,14 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 		}
 	}
 	log.Debugf("SendRawTransaction send to %d, %d txpool %s", txn.ShardID, chainmgr.GetShardID(), hash.ToHexString())
-	if txn.ShardID == chainmgr.GetShardID().ToUint64() {
+	if txn.ShardID == chainmgr.GetShardID() {
 		if errCode, desc := bcomn.SendTxToPool(txn); errCode != ontErrors.ErrNoError {
 			resp["Error"] = int64(errCode)
 			resp["Result"] = desc
 			log.Warnf("SendRawTransaction verified %s error: %s", hash.ToHexString(), desc)
 			return resp
 		}
-	} else if txn.ShardID == config.DEFAULT_SHARD_ID {
+	} else if txn.ShardID == common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID) {
 		resp["Error"] = ontErrors.ErrXmitFail
 		resp["Result"] = ""
 		log.Warnf("SendRawTransaction transaction in default shard sent to shard %d", chainmgr.GetShardID())

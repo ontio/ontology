@@ -37,10 +37,10 @@ func (peer *MockPeer) handlePingMsg(from uint64, msg types.Message) {
 		return
 	}
 	selfShardId := peer.Lgr.ShardID
-	peer.SetHeight(from, ping.Height[selfShardId.ToUint64()].Height)
+	peer.SetHeight(from, ping.Height[selfShardId].Height)
 
-	h := make(map[uint64]*types.HeightInfo)
-	h[peer.Lgr.ShardID.ToUint64()] = &types.HeightInfo{
+	h := make(map[common.ShardID]*types.HeightInfo)
+	h[peer.Lgr.ShardID] = &types.HeightInfo{
 		Height: peer.Lgr.GetCurrentBlockHeight(),
 	}
 	pong := msgpack.NewPongMsg(h)
@@ -54,7 +54,7 @@ func (peer *MockPeer) handlePongMsg(from uint64, msg types.Message) {
 		return
 	}
 	selfShardId := peer.Lgr.ShardID
-	peer.SetHeight(from, pong.Height[selfShardId.ToUint64()].Height)
+	peer.SetHeight(from, pong.Height[selfShardId].Height)
 }
 
 func (peer *MockPeer) handleGetHeadersReq(from uint64, msg types.Message) {
@@ -94,8 +94,7 @@ func (peer *MockPeer) handleHeaders(from uint64, msg types.Message) {
 		hdrs = append(hdrs, hdr)
 	}
 
-	shardID := common.NewShardIDUnchecked(hdrs[0].ShardID)
-	if syncer, present := peer.syncers[shardID]; present {
+	if syncer, present := peer.syncers[hdrs[0].ShardID]; present {
 		log.Infof("receives headers")
 		syncer.OnHeaderReceive(from, hdrs)
 	}
@@ -167,8 +166,7 @@ func (peer *MockPeer) handleBlock(from uint64, msg types.Message) {
 	}
 
 	log.Infof("peer %d received block %d", peer.Local.GetID(), blk.Blk.Header.Height)
-	shardID := common.NewShardIDUnchecked(blk.Blk.Header.ShardID)
-	if syncer, present := peer.syncers[shardID]; present {
+	if syncer, present := peer.syncers[blk.Blk.Header.ShardID]; present {
 		syncer.OnBlockReceive(from, 100, blk.Blk, blk.MerkleRoot)
 	}
 }

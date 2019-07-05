@@ -183,7 +183,7 @@ func (self *ChainManager) handleRootChainConfig(block *types.Block) error {
 			NodeType:   shardstates.CONSENSUS_NODE,
 		}
 	}
-	self.AddShardEventConfig(block.Header.Height, common.NewShardIDUnchecked(block.Header.ShardID), config, peers)
+	self.AddShardEventConfig(block.Header.Height, block.Header.ShardID, config, peers)
 	return nil
 }
 

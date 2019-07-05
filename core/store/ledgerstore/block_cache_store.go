@@ -63,7 +63,7 @@ func (this *BlockCacheStore) Close() error {
 }
 
 func (this *BlockCacheStore) PutBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	if this.shardID.ToUint64() != block.Header.ShardID {
+	if this.shardID != block.Header.ShardID {
 		return fmt.Errorf("unmatched shard id: %d vs %d", this.shardID, block.Header.ShardID)
 	}
 	mklKey := fmt.Sprintf("mkl-%d-%d", this.shardID.ToUint64(), block.Header.Height)

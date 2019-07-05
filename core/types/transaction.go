@@ -42,7 +42,7 @@ type Transaction struct {
 	GasPrice uint64
 	GasLimit uint64
 	Payer    common.Address
-	ShardID  uint64
+	ShardID  common.ShardID
 	Payload  Payload
 	//Attributes []*TxAttribute
 	attributes byte //this must be 0 now, Attribute Array length use VarUint encoding, so byte is enough for extension
@@ -163,9 +163,17 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 		return common.ErrIrregularData
 	}
 	if tx.Version == common.VERSION_SUPPORT_SHARD {
-		tx.ShardID, eof = source.NextUint64()
+		shardID, err := source.NextShardID()
+		if err != nil {
+			return err
+		}
+		tx.ShardID = shardID
 	} else {
-		tx.ShardID = 0
+		shardID, err := common.NewShardID(0)
+		if err != nil {
+			return err
+		}
+		tx.ShardID = shardID
 	}
 
 	switch tx.TxType {

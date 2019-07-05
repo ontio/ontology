@@ -21,6 +21,7 @@ package types
 import (
 	"errors"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 )
 
@@ -28,7 +29,7 @@ type MutableTransaction struct {
 	Version  byte
 	TxType   TransactionType
 	Nonce    uint32
-	ShardID  uint64
+	ShardID  common.ShardID
 	GasPrice uint64
 	GasLimit uint64
 	Payer    common.Address
@@ -105,7 +106,7 @@ func (tx *MutableTransaction) serializeUnsigned(sink *common.ZeroCopySink) error
 	sink.WriteUint64(tx.GasLimit)
 	sink.WriteBytes(tx.Payer[:])
 	if tx.Version == common.VERSION_SUPPORT_SHARD {
-		sink.WriteUint64(tx.ShardID)
+		sink.WriteShardID(tx.ShardID)
 	}
 
 	//Payload

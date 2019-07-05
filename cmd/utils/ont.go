@@ -24,6 +24,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"math/rand"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
@@ -41,11 +47,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	cstates "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/wasmvm/exec"
-	"math/rand"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -691,7 +692,7 @@ func InvokeWasmVMContract(
 
 //Invoke neo vm smart contract. if isPreExec is true, the invoke will not really execute
 func InvokeNeoVMContract(
-	shardId,
+	shardId common.ShardID,
 	gasPrice,
 	gasLimit uint64,
 	signer *account.Account,
@@ -723,7 +724,7 @@ func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) 
 }
 
 func PrepareInvokeNeoVMContract(
-	shardId uint64,
+	shardId common.ShardID,
 	contractAddress common.Address,
 	params []interface{},
 ) (*cstates.PreExecResult, error) {

@@ -218,8 +218,8 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	log.Trace("[p2p]receive transaction message", data.Addr, data.Id)
 
 	var trn = data.Payload.(*msgTypes.Trn)
-	if trn.Txn.ShardID != p2p.GetShardID().ToUint64() {
-		log.Warnf("[p2p]receive transaction shardId:%d unmatch,shardId:%d", trn.Txn.ShardID, p2p.GetShardID().ToUint64())
+	if trn.Txn.ShardID != p2p.GetShardID() {
+		log.Warnf("[p2p]receive transaction shardId:%v unmatch,shardId:%v", trn.Txn.ShardID, p2p.GetShardID())
 		return
 	}
 	if trn.Txn.TxType == types.ShardCall {
@@ -305,7 +305,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				// Close the connection and release the node source
 				n.Close()
 				if pid != nil {
-					shards := make([]uint64, 0)
+					shards := make([]common.ShardID, 0)
 					for s := range version.P.ShardHeights {
 						shards = append(shards, s)
 					}
@@ -338,7 +338,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	p2p.AddNbrNode(remotePeer)
 
 	if pid != nil {
-		shards := make([]uint64, 0)
+		shards := make([]common.ShardID, 0)
 		for s, _ := range version.P.ShardHeights {
 			shards = append(shards, s)
 		}
@@ -352,7 +352,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	var msg msgTypes.Message
 	if s == msgCommon.INIT {
 		remotePeer.SetState(msgCommon.HAND_SHAKE)
-		heights := make(map[uint64]*msgTypes.HeightInfo)
+		heights := make(map[common.ShardID]*msgTypes.HeightInfo)
 		lgr := ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID))
 		if lgr != nil {
 			heightInfo := &msgTypes.HeightInfo{
@@ -366,7 +366,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 			} else {
 				heightInfo.MsgHash = msgHash
 			}
-			heights[config.DEFAULT_SHARD_ID] = heightInfo
+			heights[common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)] = heightInfo
 		}
 		msg = msgpack.NewVersion(p2p, heights)
 	} else if s == msgCommon.HAND {
