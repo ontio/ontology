@@ -47,7 +47,7 @@ func (b *Block) Serialization(sink *common.ZeroCopySink) {
 
 	for _, shardID := range shardIds {
 		evts := b.ShardTxs[shardID]
-		zcpSerializeShardTxs(sink,shardID, evts)
+		zcpSerializeShardTxs(sink, shardID, evts)
 	}
 
 	// serialize transactions
