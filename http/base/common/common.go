@@ -104,8 +104,15 @@ type Sig struct {
 	M       uint16
 	SigData []string
 }
+
+type CrossShardTransactions struct {
+	ShardMsg *types.CrossShardMsgInfo `json:"shard_msg"`
+	Tx       *Transactions
+}
+
 type Transactions struct {
 	Version    byte
+	ShardId    uint64
 	Nonce      uint32
 	GasPrice   uint64
 	GasLimit   uint64
@@ -139,6 +146,7 @@ type BlockInfo struct {
 	Hash         string
 	Size         int
 	Header       *BlockHead
+	ShardTxs     map[uint64][]*CrossShardTransactions
 	Transactions []*Transactions
 }
 
@@ -198,6 +206,7 @@ func ConvertPreExecuteResult(obj *cstate.PreExecResult) PreExecuteResult {
 func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	trans := new(Transactions)
 	trans.TxType = ptx.TxType
+	trans.ShardId = ptx.ShardID.ToUint64()
 	trans.Nonce = ptx.Nonce
 	trans.GasLimit = ptx.GasLimit
 	trans.GasPrice = ptx.GasPrice
@@ -266,9 +275,21 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 		trans[i] = TransArryByteToHexString(block.Transactions[i])
 	}
 
+	shardTxs := make(map[uint64][]*CrossShardTransactions)
+	for shardId, infos := range block.ShardTxs {
+		trans := make([]*CrossShardTransactions, 0)
+		for _, info := range infos {
+			trans = append(trans, &CrossShardTransactions{
+				ShardMsg: info.ShardMsg, Tx: TransArryByteToHexString(info.Tx),
+			})
+		}
+		shardTxs[shardId.ToUint64()] = trans
+	}
+
 	b := BlockInfo{
 		Hash:         hash.ToHexString(),
 		Size:         len(block.ToArray()),
+		ShardTxs:     shardTxs,
 		Header:       blockHead,
 		Transactions: trans,
 	}
