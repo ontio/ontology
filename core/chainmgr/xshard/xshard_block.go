@@ -92,10 +92,7 @@ func InitShardInfo(lgr *ledger.Ledger) error {
 			if len(shardMsgMap) >= int(pool.MaxBlockCap) {
 				break
 			}
-			hashes := msg.CrossShardMsgInfo.ShardMsgInfo.ShardMsgHashs
-			hash := xshard_types.GetShardCommonMsgsHash(msg.ShardMsg)
-			hashes = append(hashes, hash)
-			msgHash = common.ComputeMerkleRoot(hashes)
+			msgHash = CalCrossShardMsgRootHash(msg.CrossShardMsgInfo, msg.ShardMsg)
 		}
 	}
 	return nil
@@ -252,19 +249,16 @@ func GetCrossShardTxs(lgr *ledger.Ledger, account *account.Account, toShardID co
 		for {
 			if shardMsg, persent := shardMsgs[msgHash]; !persent {
 				msg, err := lgr.GetCrossShardMsgByHash(msgHash)
-				if err != nil {
-					if err != com.ErrNotFound {
-						return nil, fmt.Errorf("GetCrossShardMsgByHash msgHash:%s,err:%v", msgHash, err)
-					} else {
-						break
-					}
-				} else {
-					crossShardMsgs = append(crossShardMsgs, msg)
-					msgHash = CrossShardMsgHash(msg.CrossShardMsgInfo, msg.ShardMsg)
+				if err == com.ErrNotFound {
+					break
+				} else if err != nil {
+					return nil, fmt.Errorf("GetCrossShardMsgByHash msgHash:%s,err:%v", msgHash, err)
 				}
+				crossShardMsgs = append(crossShardMsgs, msg)
+				msgHash = CalCrossShardMsgRootHash(msg.CrossShardMsgInfo, msg.ShardMsg)
 			} else {
 				crossShardMsgs = append(crossShardMsgs, shardMsg)
-				msgHash = CrossShardMsgHash(shardMsg.CrossShardMsgInfo, shardMsg.ShardMsg)
+				msgHash = CalCrossShardMsgRootHash(shardMsg.CrossShardMsgInfo, shardMsg.ShardMsg)
 			}
 		}
 		for _, msg := range crossShardMsgs {
@@ -298,7 +292,7 @@ func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[common.ShardID][]*ty
 				log.Infof("delcrossshardtxs shardID:%v,msgHash:%s", shardID, shardTx.ShardMsg.PreCrossShardMsgHash.ToHexString())
 				delete(msg, shardTx.ShardMsg.PreCrossShardMsgHash)
 				shardCall := shardTx.Tx.Payload.(*payload.ShardCall)
-				msgRoot := CrossShardMsgHash(shardTx.ShardMsg, shardCall.Msgs)
+				msgRoot := CalCrossShardMsgRootHash(shardTx.ShardMsg, shardCall.Msgs)
 				err := SaveCrossShardHash(lgr, shardID, msgRoot)
 				if err != nil {
 					log.Errorf("SaveCrossShardHash shardID:%v,preMsgHash:%s,failed err:%s", shardID, msgRoot.ToHexString(), err)
@@ -309,7 +303,7 @@ func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[common.ShardID][]*ty
 	return nil
 }
 
-func CrossShardMsgHash(crossShardMsgInfo *types.CrossShardMsgInfo, msgs []xshard_types.CommonShardMsg) common.Uint256 {
+func CalCrossShardMsgRootHash(crossShardMsgInfo *types.CrossShardMsgInfo, msgs []xshard_types.CommonShardMsg) common.Uint256 {
 	hashes := make([]common.Uint256, 0)
 	for index, hash := range crossShardMsgInfo.ShardMsgInfo.ShardMsgHashs {
 		if uint32(index) == crossShardMsgInfo.Index {
@@ -347,7 +341,7 @@ func VerifyCrossShardMsg(shardID common.ShardID, sourceShardID common.ShardID, l
 	for _, sig := range crossShardMsgInfo.ShardMsgInfo.SigData {
 		sigData = append(sigData, sig)
 	}
-	msgRoot := CrossShardMsgHash(crossShardMsgInfo, shardMsg)
+	msgRoot := CalCrossShardMsgRootHash(crossShardMsgInfo, shardMsg)
 	err = sign.VerifyMultiSignature(msgRoot[:], bookkeepers, m, sigData)
 	if err != nil {
 		log.Errorf("verifycrossshardMsg VerifyMultiSignature:%s,Bookkeepers:%d,pubkey:%d,signnum:%d", err, len(bookkeepers), m, len(sigData))
