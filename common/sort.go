@@ -32,6 +32,16 @@ func SortUint32s(l []uint32) {
 	sort.Stable(Uint32Slice(l))
 }
 
+type ShardIDSlice []ShardID
+
+func (p ShardIDSlice) Len() int           { return len(p) }
+func (p ShardIDSlice) Less(i, j int) bool { return p[i].ToUint64() < p[j].ToUint64() }
+func (p ShardIDSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+func SortShardID(l []ShardID) {
+	sort.Stable(ShardIDSlice(l))
+}
+
 type Uint64Slice []uint64
 
 func (p Uint64Slice) Len() int           { return len(p) }

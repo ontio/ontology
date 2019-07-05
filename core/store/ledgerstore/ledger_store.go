@@ -648,16 +648,15 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 	// execute shard txs
 	// sort shard Txs
-	ids := make([]uint64, 0)
+	ids := make([]common.ShardID, 0)
 	for shardId := range block.ShardTxs {
-		ids = append(ids, shardId.ToUint64())
+		ids = append(ids, shardId)
 	}
-	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	sort.Slice(ids, func(i, j int) bool { return ids[i].ToUint64() < ids[j].ToUint64() })
 	for _, id := range ids {
-		shardid := common.NewShardIDUnchecked(id)
-		log.Infof("block shard %d: height %d executing shard Tx shard %d: txnum %d", block.Header.ShardID,
-			block.Header.Height, id, len(block.ShardTxs[shardid]))
-		for _, shardTx := range block.ShardTxs[shardid] {
+		log.Infof("block shard %v: height %d executing shard Tx shard %v: txnum %d", block.Header.ShardID,
+			block.Header.Height, id, len(block.ShardTxs[id]))
+		for _, shardTx := range block.ShardTxs[id] {
 			cache.Reset()
 			if shardTx.Tx.TxType != types.ShardCall {
 				txHash := shardTx.Tx.Hash()

@@ -35,7 +35,7 @@ func createPeers(cnt uint16) []*Peer {
 		syncport = 20224 + i
 		id = 0x7533345 + uint64(i)
 		heights := make(map[common.ShardID]*types.HeightInfo)
-		heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
+		heights[common.RootShardID] = &types.HeightInfo{
 			Height:  uint32(434923 + uint32(i)),
 			MsgHash: common.Uint256{1, 2, 3},
 		}
@@ -83,7 +83,7 @@ func TestGetPeer(t *testing.T) {
 func TestAddNbrNode(t *testing.T) {
 	nm := initTestNbrPeers()
 	heights := make(map[common.ShardID]*types.HeightInfo)
-	heights[common.NewShardIDUnchecked(0)] = &types.HeightInfo{
+	heights[common.RootShardID] = &types.HeightInfo{
 		Height:  100,
 		MsgHash: common.Uint256{1, 2, 3},
 	}

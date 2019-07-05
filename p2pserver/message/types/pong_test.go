@@ -31,7 +31,7 @@ func TestPongSerializationDeserialization(t *testing.T) {
 		Height:  uint32(1),
 		MsgHash: common.Uint256{1, 2, 3},
 	}
-	msg.Height[common.NewShardIDUnchecked(0)] = heightInfo
+	msg.Height[common.RootShardID] = heightInfo
 
 	MessageTest(t, &msg)
 }

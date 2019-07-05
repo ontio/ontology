@@ -297,7 +297,10 @@ func invokeContract(ctx *cli.Context) error {
 
 	paramData, _ := json.Marshal(params)
 	PrintInfoMsg("Invoke:%x Params:%s", contractAddr[:], paramData)
-	shardId := common.NewShardIDUnchecked(ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag)))
+	shardId, err := common.NewShardID((ctx.Uint64(utils.GetFlagName(utils.ShardIDFlag))))
+	if err != nil {
+		return err
+	}
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
 		preResult, err := utils.PrepareInvokeNeoVMContract(shardId, contractAddr, params)
 		if err != nil {

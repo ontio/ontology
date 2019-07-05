@@ -776,7 +776,7 @@ func CommitDpos(native *native.NativeService) ([]byte, error) {
 	xShardTranParam := &XShardTransferParam{
 		From:    utils.ShardAssetAddress,
 		To:      utils.ShardStakeAddress,
-		ToShard: common.NewShardIDUnchecked(0),
+		ToShard: common.RootShardID,
 		Amount:  feeAmount,
 	}
 	bf := new(bytes.Buffer)

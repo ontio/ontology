@@ -769,7 +769,7 @@ func ShardCommitDpos(native *native.NativeService) ([]byte, error) {
 	if native.ShardID.ParentID() == native.ShardID {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked at child shard")
 	}
-	rootShard := common.NewShardIDUnchecked(0)
+	rootShard := common.RootShardID
 	if !native.ContextRef.CheckCallShard(rootShard) {
 		return utils.BYTE_FALSE, fmt.Errorf("ShardCommitDpos: only can be invoked by ShardCall")
 	}
@@ -835,7 +835,7 @@ func ShardRetryCommitDpos(native *native.NativeService) ([]byte, error) {
 	}
 	sink := common.NewZeroCopySink(0)
 	shardStakeCommitParam.Serialization(sink)
-	rootShard := common.NewShardIDUnchecked(0)
+	rootShard := common.RootShardID
 	native.NotifyRemoteShard(rootShard, utils.ShardStakeAddress, native.ContextRef.GetRemainGas(),
 		shard_stake.COMMIT_DPOS, sink.Bytes())
 	return utils.BYTE_TRUE, nil

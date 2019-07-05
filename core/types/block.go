@@ -37,17 +37,17 @@ func (b *Block) Serialization(sink *common.ZeroCopySink) {
 
 	// serialize cross-shard txs, ordered by ShardID
 	sink.WriteUint32(uint32(len(b.ShardTxs)))
-	shardIds := make([]uint64, 0, len(b.ShardTxs))
+	shardIds := make([]common.ShardID, 0, len(b.ShardTxs))
 
 	for id := range b.ShardTxs {
-		shardIds = append(shardIds, id.ToUint64())
+		shardIds = append(shardIds, id)
 	}
 
-	common.SortUint64s(shardIds)
+	common.SortShardID(shardIds)
 
 	for _, shardID := range shardIds {
-		evts := b.ShardTxs[common.NewShardIDUnchecked(shardID)]
-		zcpSerializeShardTxs(sink, common.NewShardIDUnchecked(shardID), evts)
+		evts := b.ShardTxs[shardID]
+		zcpSerializeShardTxs(sink,shardID, evts)
 	}
 
 	// serialize transactions
