@@ -1263,9 +1263,6 @@ func (self *Server) verifyCrossShardTx(msg *blockProposalMsg) bool {
 					return false
 				}
 			} else {
-				if !xshard.VerifyCrossShardMsg(self.ShardID, sourceShardID, self.ledger, crossTxMsg.ShardMsg, shardCall.Msgs) {
-					return false
-				}
 				txMsg, err := xshard.GetCrossShardMsg(self.ledger, sourceShardID, crossTxMsg.ShardMsg.PreCrossShardMsgHash)
 				if err != nil {
 					log.Errorf("GetCrossShardMsg err:%s", err)
@@ -2358,12 +2355,11 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			}
 		} else {
 			chainconfig, err = getShardConfig(self.ledger, self.ShardID, blkNum)
+			if err == com.ErrNotFound {
+				needChangeShardConsensus = false
+			}
 			if err != nil {
-				if err == com.ErrNotFound {
-					needChangeShardConsensus = false
-				} else {
-					return fmt.Errorf("getShardChainConfig failed:%s", err)
-				}
+				return fmt.Errorf("getShardChainConfig failed:%s", err)
 			}
 		}
 		//add transaction invoke governance native commit_pos contract
