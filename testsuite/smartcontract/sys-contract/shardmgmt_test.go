@@ -20,40 +20,29 @@ package TestContracts
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/chainmgr"
-	"github.com/ontio/ontology/smartcontract/service/native/shardasset/oep4"
-	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
-	tutils "github.com/ontio/ontology/testsuite/utils"
-	"github.com/stretchr/testify/assert"
-	"os"
 	"testing"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/core/chainmgr"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/service/native/shardasset/oep4"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
+	shardstates "github.com/ontio/ontology/smartcontract/service/native/shardmgmt/states"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/testsuite"
 	"github.com/ontio/ontology/testsuite/common"
+	tutils "github.com/ontio/ontology/testsuite/utils"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
 	TestConsts.TestRootDir = "../../"
 }
 
-func TestClearData(t *testing.T) {
-	err := os.RemoveAll(TestConsts.TestRootDir + "Chain/")
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = os.RemoveAll(TestConsts.TestRootDir + "wallets/")
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
 func Test_ShardMgmtInit(t *testing.T) {
+	tutils.ClearTestChain(t)
 
 	// 1. create root chain
 	shardID := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
@@ -76,6 +65,8 @@ func Test_ShardMgmtInit(t *testing.T) {
 }
 
 func TestStartShard(t *testing.T) {
+	tutils.ClearTestChain(t)
+
 	rootShardId := common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)
 	rootLedger := ledger.GetShardLedger(rootShardId)
 	if rootLedger == nil {

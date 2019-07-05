@@ -21,6 +21,9 @@ package utils
 import (
 	"bytes"
 	"encoding/hex"
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -29,8 +32,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/shardmgmt"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"github.com/ontio/ontology/testsuite"
 	TestCommon "github.com/ontio/ontology/testsuite/common"
-	"testing"
 )
 
 func GenInitShardAssetBlock(t *testing.T) *types.Block {
@@ -144,4 +147,11 @@ func GenRunShardBlock(t *testing.T, shardID, childShard common.ShardID, creatorN
 		shardmgmt.ACTIVATE_SHARD_NAME, []interface{}{activateParam})
 	runShardTxs = append(runShardTxs, activateTx)
 	return TestCommon.CreateBlock(t, ledger.GetShardLedger(shardID), runShardTxs)
+}
+
+func ClearTestChain(t *testing.T) {
+	err := os.RemoveAll(TestConsts.TestRootDir + "Chain/")
+	if err != nil {
+		t.Fatal(err)
+	}
 }

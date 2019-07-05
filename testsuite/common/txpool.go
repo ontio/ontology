@@ -19,8 +19,10 @@
 package TestCommon
 
 import (
+	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -55,7 +57,7 @@ func (this *MockTxPool) GetPID(t *testing.T) *actor.PID {
 
 func (this *MockTxPool) Start(t *testing.T) {
 	props := actor.FromProducer(func() actor.Actor { return this })
-	p2pPid, err := actor.SpawnNamed(props, "mock_txnpool"+chainmgr.GetShardName(this.ShardID)+this.Name)
+	p2pPid, err := actor.SpawnNamed(props, fmt.Sprintf("mock_txnpool%s%s%d", chainmgr.GetShardName(this.ShardID), this.Name, time.Now().Unix()))
 	if err != nil {
 		t.Fatalf("init txnpool actor %s failed: %s", this.Name, err)
 	}

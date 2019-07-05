@@ -43,10 +43,6 @@ func GetConfig(t *testing.T, shardID common.ShardID) *config.OntologyConfig {
 }
 
 func InitConfig(t *testing.T, shardID common.ShardID) {
-	if TestConfigs[shardID] != nil {
-		return
-	}
-
 	shardName := chainmgr.GetShardName(shardID)
 	CreateAccount(t, shardName+"_adminOntID")
 	CreateAccount(t, shardName+"_peerOwner0")
@@ -73,5 +69,19 @@ func InitConfig(t *testing.T, shardID common.ShardID) {
 	cfg.Genesis.VBFT.BlockMsgDelay = 5000
 	cfg.Genesis.VBFT.HashMsgDelay = 5000
 
+	TestConfigs[shardID] = cfg
+}
+
+func InitSoloConfig(t *testing.T, shardID common.ShardID) {
+	shardName := chainmgr.GetShardName(shardID)
+	CreateAccount(t, shardName+"_adminOntID")
+	CreateAccount(t, shardName+"_peerOwner0")
+
+	cfg := config.NewOntologyConfig()
+	cfg.Genesis.ConsensusType = config.CONSENSUS_TYPE_SOLO
+	cfg.Genesis.SOLO.GenBlockTime = 1
+
+	curPk := hex.EncodeToString(keypair.SerializePublicKey(GetAccount(shardName + "_peerOwner0").PublicKey))
+	cfg.Genesis.SOLO.Bookkeepers = []string{curPk}
 	TestConfigs[shardID] = cfg
 }
