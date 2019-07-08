@@ -27,6 +27,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/payload"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
@@ -80,6 +81,28 @@ func (this *BlockStore) SaveBlock(block *types.Block) error {
 	if err != nil {
 		return fmt.Errorf("SaveHeader error %s", err)
 	}
+	shardIds := make([]common.ShardID, 0, len(block.ShardTxs))
+	for id := range block.ShardTxs {
+		shardIds = append(shardIds, id)
+	}
+	shardTxHashes := make([]common.Uint256, 0)
+	common.SortShardID(shardIds)
+	for _, shardID := range shardIds {
+		shardTxs := block.ShardTxs[shardID]
+		for _, shardTx := range shardTxs {
+			err := this.SaveShardTx(shardTx, blockHeight)
+			if err != nil {
+				shardTxHash := shardTx.Tx.Hash()
+				return fmt.Errorf("SaveShardTx block height %d tx %s err %s", blockHeight, shardTxHash.ToHexString(), err)
+			} else {
+				shardTxHashes = append(shardTxHashes, shardTx.Tx.Hash())
+			}
+		}
+	}
+	err = this.SaveShardTxHashes(block.Hash(), shardTxHashes)
+	if err != nil {
+		return fmt.Errorf("SaveShardTxHashs err:%s", err)
+	}
 	for _, tx := range block.Transactions {
 		err = this.SaveTransaction(tx, blockHeight)
 		if err != nil {
@@ -121,6 +144,24 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 	if err != nil {
 		return nil, err
 	}
+	shardTxHashes, err := this.loadShardTxHashes(blockHash)
+	if err != nil && err != scom.ErrNotFound {
+		return nil, err
+	}
+	crossShardMapInfos := make(map[common.ShardID][]*types.CrossShardTxInfos)
+	for _, shardTxHash := range shardTxHashes {
+		shardTx, _, err := this.GetShardTx(shardTxHash)
+		if err != nil {
+			return nil, fmt.Errorf("GetShardTx %s error %s", shardTxHash.ToHexString(), err)
+		}
+		shardCall := shardTx.Tx.Payload.(*payload.ShardCall)
+		sourceShardID := shardCall.Msgs[0].GetSourceShardID()
+		if _, present := crossShardMapInfos[sourceShardID]; !present {
+			crossShardMapInfos[sourceShardID] = make([]*types.CrossShardTxInfos, 0)
+		}
+		crossShardMapInfos[sourceShardID] = append(crossShardMapInfos[sourceShardID], shardTx)
+	}
+
 	txList := make([]*types.Transaction, 0, len(txHashes))
 	for _, txHash := range txHashes {
 		tx, _, err := this.GetTransaction(txHash)
@@ -134,6 +175,7 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 	}
 	block = &types.Block{
 		Header:       header,
+		ShardTxs:     crossShardMapInfos,
 		Transactions: txList,
 	}
 	return block, nil
@@ -354,6 +396,119 @@ func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256) {
 	this.store.BatchPut(key, blockHash.ToArray())
 }
 
+//SaveShardTxHashs persist to store
+func (this *BlockStore) SaveShardTxHashes(blockHash common.Uint256, shardTxHashes []common.Uint256) error {
+	key := this.getShardTxHashesKey(blockHash)
+	sink := common.NewZeroCopySink(0)
+	sink.WriteUint32(uint32(len(shardTxHashes)))
+	for _, shardTxHash := range shardTxHashes {
+		sink.WriteHash(shardTxHash)
+	}
+	this.store.BatchPut(key, sink.Bytes())
+	return nil
+}
+
+func (this *BlockStore) loadShardTxHashes(blockHash common.Uint256) ([]common.Uint256, error) {
+	key := this.getShardTxHashesKey(blockHash)
+	value, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(value)
+	shardTxSize, eof := source.NextUint32()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	shardTxHashes := make([]common.Uint256, 0, int(shardTxSize))
+	for i := uint32(0); i < shardTxSize; i++ {
+		shardTxHash, eof := source.NextHash()
+		if eof {
+			return nil, io.ErrUnexpectedEOF
+		}
+		shardTxHashes = append(shardTxHashes, shardTxHash)
+	}
+	return shardTxHashes, nil
+}
+
+//SaveShardTx persist shardtx to store
+func (this *BlockStore) SaveShardTx(shardTx *types.CrossShardTxInfos, height uint32) error {
+	if this.enableCache {
+		this.cache.AddShardTx(shardTx, height)
+	}
+	return this.putShardTx(shardTx, height)
+}
+
+func (this *BlockStore) putShardTx(shardTx *types.CrossShardTxInfos, height uint32) error {
+	shardTxHash := shardTx.Tx.Hash()
+	key := this.getShardTxKey(shardTxHash)
+	sink := common.ZeroCopySink{}
+	sink.WriteUint32(height)
+	err := shardTx.Serialization(&sink)
+	if err != nil {
+		return err
+	}
+	this.store.BatchPut(key, sink.Bytes())
+	return nil
+}
+
+//GetShardTx return shardTx by tx hash
+func (this *BlockStore) GetShardTx(shardTxHash common.Uint256) (*types.CrossShardTxInfos, uint32, error) {
+	if this.enableCache {
+		shardTx, height := this.cache.GetShardTx(shardTxHash)
+		if shardTx != nil {
+			return shardTx, height, nil
+		}
+	}
+	return this.loadShardTx(shardTxHash)
+}
+
+func (this *BlockStore) loadShardTx(shardTxHash common.Uint256) (*types.CrossShardTxInfos, uint32, error) {
+	var shardTx *types.CrossShardTxInfos
+	var height uint32
+	if this.enableCache {
+		shardTx, height = this.cache.GetShardTx(shardTxHash)
+		if shardTx != nil {
+			return shardTx, height, nil
+		}
+	}
+	key := this.getShardTxKey(shardTxHash)
+	value, err := this.store.Get(key)
+	if err != nil {
+		return nil, 0, err
+	}
+	source := common.NewZeroCopySource(value)
+	var eof bool
+	height, eof = source.NextUint32()
+	if eof {
+		return nil, 0, io.ErrUnexpectedEOF
+	}
+	shardTx = new(types.CrossShardTxInfos)
+	err = shardTx.Deserialization(source)
+	if err != nil {
+		return nil, 0, fmt.Errorf("shardTx deserialize error %s", err)
+	}
+	return shardTx, height, nil
+
+}
+
+//IsContainShardTx return whether the shardTx is in store
+func (this *BlockStore) ContainShardTx(shardTxHash common.Uint256) (bool, error) {
+	if this.enableCache {
+		if this.cache.ContainShardTx(shardTxHash) {
+			return true, nil
+		}
+	}
+	key := this.getShardTxKey(shardTxHash)
+	_, err := this.store.Get(key)
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 //SaveTransaction persist transaction to store
 func (this *BlockStore) SaveTransaction(tx *types.Transaction, height uint32) error {
 	if this.enableCache {
@@ -473,6 +628,20 @@ func (this *BlockStore) CommitTo() error {
 //Close block store
 func (this *BlockStore) Close() error {
 	return this.store.Close()
+}
+
+func (this *BlockStore) getShardTxKey(shardTxHash common.Uint256) []byte {
+	key := bytes.NewBuffer(nil)
+	key.WriteByte(byte(scom.DATA_SHARD_TX))
+	shardTxHash.Serialize(key)
+	return key.Bytes()
+}
+
+func (this *BlockStore) getShardTxHashesKey(blockHash common.Uint256) []byte {
+	key := bytes.NewBuffer(nil)
+	key.WriteByte(byte(scom.DATA_SHARD_TX_HASHES))
+	blockHash.Serialize(key)
+	return key.Bytes()
 }
 
 func (this *BlockStore) getTransactionKey(txHash common.Uint256) []byte {

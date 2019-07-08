@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	BLOCK_CAHE_SIZE        = 10    //Block cache size
+	BLOCK_CACHE_SIZE       = 10    //Block cache size
+	SHARD_TX_CACHE_SIZE    = 20    //block shardTx cache size
 	TRANSACTION_CACHE_SIZE = 10000 //Transaction cache size
 )
 
@@ -37,17 +38,27 @@ type TransactionCacheaValue struct {
 	Height uint32
 }
 
+type ShardTxCacheValue struct {
+	ShardTx *types.CrossShardTxInfos
+	Height  uint32
+}
+
 //BlockCache with block cache and transaction hash
 type BlockCache struct {
 	blockCache       *lru.ARCCache
+	shardTxCache     *lru.ARCCache
 	transactionCache *lru.ARCCache
 }
 
 //NewBlockCache return BlockCache instance
 func NewBlockCache() (*BlockCache, error) {
-	blockCache, err := lru.NewARC(BLOCK_CAHE_SIZE)
+	blockCache, err := lru.NewARC(BLOCK_CACHE_SIZE)
 	if err != nil {
 		return nil, fmt.Errorf("NewARC block error %s", err)
+	}
+	shardTxCache, err := lru.NewARC(SHARD_TX_CACHE_SIZE)
+	if err != nil {
+		return nil, fmt.Errorf("NewARC shardTx err :%s", err)
 	}
 	transactionCache, err := lru.NewARC(TRANSACTION_CACHE_SIZE)
 	if err != nil {
@@ -55,6 +66,7 @@ func NewBlockCache() (*BlockCache, error) {
 	}
 	return &BlockCache{
 		blockCache:       blockCache,
+		shardTxCache:     shardTxCache,
 		transactionCache: transactionCache,
 	}, nil
 }
@@ -77,6 +89,27 @@ func (this *BlockCache) GetBlock(blockHash common.Uint256) *types.Block {
 //ContainBlock return whether block is in cache
 func (this *BlockCache) ContainBlock(blockHash common.Uint256) bool {
 	return this.blockCache.Contains(string(blockHash.ToArray()))
+}
+
+func (this *BlockCache) AddShardTx(tx *types.CrossShardTxInfos, height uint32) {
+	shardTxHash := tx.Tx.Hash()
+	this.shardTxCache.Add(string(shardTxHash.ToArray()), &ShardTxCacheValue{
+		ShardTx: tx,
+		Height:  height,
+	})
+}
+
+func (this *BlockCache) GetShardTx(shardTxHash common.Uint256) (*types.CrossShardTxInfos, uint32) {
+	value, ok := this.shardTxCache.Get(string(shardTxHash.ToArray()))
+	if !ok {
+		return nil, 0
+	}
+	txValue := value.(*ShardTxCacheValue)
+	return txValue.ShardTx, txValue.Height
+}
+
+func (this *BlockCache) ContainShardTx(shardTxHash common.Uint256) bool {
+	return this.shardTxCache.Contains(string(shardTxHash.ToArray()))
 }
 
 //AddTransaction add transaction to block cache
