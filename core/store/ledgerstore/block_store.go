@@ -443,10 +443,7 @@ func (this *BlockStore) putShardTx(shardTx *types.CrossShardTxInfos, height uint
 	key := this.getShardTxKey(shardTxHash)
 	sink := common.ZeroCopySink{}
 	sink.WriteUint32(height)
-	err := shardTx.Serialization(&sink)
-	if err != nil {
-		return err
-	}
+	shardTx.Serialization(&sink)
 	this.store.BatchPut(key, sink.Bytes())
 	return nil
 }
