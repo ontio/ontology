@@ -478,11 +478,7 @@ func TestSaveShardTx(t *testing.T) {
 	}
 
 	testBlockStore.NewBatch()
-	err = testBlockStore.SaveShardTx(shardTx, blockHeight)
-	if err != nil {
-		t.Errorf("SaveShardTx error %s", err)
-		return
-	}
+	testBlockStore.SaveShardTx(shardTx, blockHeight)
 	err = testBlockStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo error %s", err)
