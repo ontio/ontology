@@ -201,7 +201,7 @@ func initLog(ctx *cli.Context) {
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
 	//if true, the log will not be output to the file
 	disableLogFile := ctx.GlobalBool(utils.GetFlagName(utils.DisableLogFileFlag))
-	if disableLogFile{
+	if disableLogFile {
 		log.InitLog(logLevel, log.Stdout)
 	} else {
 		alog.InitLog(log.PATH)
