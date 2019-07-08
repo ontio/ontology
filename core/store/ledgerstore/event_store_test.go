@@ -140,11 +140,10 @@ func TestAddShardConsensusConfig(t *testing.T) {
 		return
 	}
 	data, err := testEventStore.GetShardConsensusConfig(shardID, uint32(height))
-	if err != nil && err != com.ErrNotFound {
-		t.Errorf("GetShardConsensusConfig failed shardID:%v,height:%d,err:%s", shardID, height, err)
-		return
-	}
 	if err == com.ErrNotFound {
+		return
+	} else if err != nil {
+		t.Errorf("GetShardConsensusConfig failed shardID:%v,height:%d,err:%s", shardID, height, err)
 		return
 	}
 	source := common.NewZeroCopySource(data)

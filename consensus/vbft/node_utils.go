@@ -475,13 +475,10 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 	for targetShardID, msg := range crossShardMsgs {
 		// get last shard-msg-root of the target shard
 		prevMsgHash, err := self.ledger.GetShardMsgHash(targetShardID)
-		if err != nil {
-			if err != com.ErrNotFound {
-				log.Errorf("SendCrossShardMsgToAll getshardmsghash err:%s", err)
-				return
-			}
+		if err != nil && err != com.ErrNotFound {
+			log.Errorf("SendCrossShardMsgToAll getshardmsghash err:%s", err)
+			return
 		}
-
 		// save shard-msg-root
 		err = self.ledger.SaveShardMsgHash(targetShardID, hashRoot)
 		if err != nil {
