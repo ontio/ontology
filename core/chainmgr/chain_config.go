@@ -107,8 +107,6 @@ func (self *ChainManager) buildShardConfig(shardID common.ShardID, shardState *s
 		return nil, fmt.Errorf("only solo suppported")
 	}
 	// TODO: init config for shard $shardID, including genesis config, data dir, net port, etc
-	shardName := GetShardName(shardID)
-	shardConfig.P2PNode.NetworkName = shardName
 
 	// init child shard config
 	shardConfig.Shard = &config.ShardConfig{
