@@ -96,6 +96,7 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		sink := common.NewZeroCopySink(0)
 		object.Serialization(sink)
 		obj.Code = common.ToHexString(sink.Bytes())
+		return obj
 	}
 	return nil
 }
