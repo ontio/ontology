@@ -22,17 +22,20 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr/message"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/core/xshard_types"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestExtractHeaderHeight(t *testing.T) {
@@ -424,4 +427,94 @@ func newInvokeTransaction(gasPirce, gasLimit uint64, code []byte) *types.Transac
 		return nil
 	}
 	return res
+}
+
+func TestSaveShardTx(t *testing.T) {
+	acc := account.NewAccount("")
+	if acc == nil {
+		t.Fatalf("failed to new account")
+	}
+	shardMsg := []xshard_types.CommonShardMsg{&xshard_types.XShardCommitMsg{
+		ShardMsgHeader: xshard_types.ShardMsgHeader{
+			SourceShardID: common.NewShardIDUnchecked(1),
+			TargetShardID: common.RootShardID,
+			SourceTxHash:  common.Uint256{1, 2, 3},
+			ShardTxID:     "2",
+		},
+	}}
+	sigData := make(map[uint32][]byte)
+	sigData[0] = []byte("12345")
+	sigData[1] = []byte("45678")
+	hashes := make([]common.Uint256, 0)
+	hashes = append(hashes, common.Uint256{1, 2, 3})
+	crossShardMsgHash := &types.CrossShardMsgHash{
+		ShardMsgHashs: hashes,
+		SigData:       sigData,
+	}
+	tx, err := message.NewCrossShardTxMsg(acc, 100, common.NewShardIDUnchecked(10), 500, 20000, shardMsg)
+	if err != nil {
+		t.Fatalf("failed to build cross shard tx: %s", err)
+	}
+	shardTx := &types.CrossShardTxInfos{
+		ShardMsg: &types.CrossShardMsgInfo{
+			SignMsgHeight:        uint32(100),
+			PreCrossShardMsgHash: common.Uint256{1, 2, 3},
+			Index:                1,
+			ShardMsgInfo:         crossShardMsgHash,
+		},
+		Tx: tx,
+	}
+	blockHeight := uint32(1)
+	shardTxHash := shardTx.Tx.Hash()
+
+	exist, err := testBlockStore.ContainShardTx(shardTxHash)
+	if err != nil {
+		t.Errorf("ContainShardTx error %s", err)
+		return
+	}
+	if exist {
+		t.Errorf("TestSaveShardTx ContainShardTx should be false.")
+		return
+	}
+
+	testBlockStore.NewBatch()
+	err = testBlockStore.SaveShardTx(shardTx, blockHeight)
+	if err != nil {
+		t.Errorf("SaveShardTx error %s", err)
+		return
+	}
+	err = testBlockStore.CommitTo()
+	if err != nil {
+		t.Errorf("CommitTo error %s", err)
+		return
+	}
+
+	shardTx1, height, err := testBlockStore.GetShardTx(shardTxHash)
+	if err != nil {
+		t.Errorf("GetShardTx error %s", err)
+		return
+	}
+	if blockHeight != height {
+		t.Errorf("TestSaveShardTx failed BlockHeight %d != %d", height, blockHeight)
+		return
+	}
+	if shardTx.Tx.TxType != shardTx1.Tx.TxType {
+		t.Errorf("TestSaveShardTx failed TxType %d != %d", shardTx.Tx.TxType, shardTx1.Tx.TxType)
+		return
+	}
+	shardTxHash1 := shardTx1.Tx.Hash()
+	if shardTxHash != shardTxHash1 {
+		t.Errorf("TestSaveShardTx failed TxHash %x != %x", shardTxHash.ToHexString(), shardTxHash1.ToHexString())
+		return
+	}
+
+	exist, err = testBlockStore.ContainShardTx(shardTxHash)
+	if err != nil {
+		t.Errorf("ContainShardTx error %s", err)
+		return
+	}
+	if !exist {
+		t.Errorf("TestSaveShardTx ContainShardTx should be true.")
+		return
+	}
 }

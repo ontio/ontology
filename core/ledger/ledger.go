@@ -294,6 +294,10 @@ func (self *Ledger) GetCurrentHeaderHash() common.Uint256 {
 	return self.ldgStore.GetCurrentHeaderHash()
 }
 
+func (self *Ledger) IsContainShardTx(shardTxHash common.Uint256) (bool, error) {
+	return self.ldgStore.IsContainShardTx(shardTxHash)
+}
+
 func (self *Ledger) IsContainTransaction(txHash common.Uint256) (bool, error) {
 	return self.ldgStore.IsContainTransaction(txHash)
 }

@@ -67,4 +67,6 @@ const (
 	CROSS_SHARD_CONTRACT_META        DataEntryPrefix = 0x45 //cross shard contract meta
 	CROSS_SHARD_CONTRACT_META_HEIGHT DataEntryPrefix = 0x46 //all cross shard contract meta height info
 	CROSS_SHARD_CONTRACT_EVENT       DataEntryPrefix = 0x47 //cross shard contract event
+	DATA_SHARD_TX                                    = 0x48 //shardTx hash = > shardTx key prefix
+	DATA_SHARD_TX_HASHES                             = 0x49 //shardTx hashes = > shardTx hashes key prefix
 )

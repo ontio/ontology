@@ -1162,6 +1162,11 @@ func (this *LedgerStoreImp) IsContainTransaction(txHash common.Uint256) (bool, e
 	return this.blockStore.ContainTransaction(txHash)
 }
 
+//IsContainShardTx return whether the ShardTx is in store. Wrap function of BlockStore.ContainShardTx
+func (this *LedgerStoreImp) IsContainShardTx(shardTxHash common.Uint256) (bool, error) {
+	return this.blockStore.ContainShardTx(shardTxHash)
+}
+
 //GetBlockRootWithNewTxRoots return the block root(merkle root of blocks) after add a new tx root of block
 func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
 	this.lock.RLock()
