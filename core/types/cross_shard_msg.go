@@ -170,13 +170,12 @@ type CrossShardTxInfos struct {
 	Tx       *Transaction
 }
 
-func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) error {
+func (this *CrossShardTxInfos) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteBool(this.ShardMsg != nil)
 	if this.ShardMsg != nil {
 		this.ShardMsg.Serialization(sink)
 	}
 	this.Tx.Serialization(sink)
-	return nil
 }
 
 func (this *CrossShardTxInfos) Deserialization(source *common.ZeroCopySource) error {
