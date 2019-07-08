@@ -92,7 +92,10 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		obj.Description = object.Description
 		return obj
 	case *payload.ShardCall:
-		//todo
+		obj := new(InvokeCodeInfo)
+		sink := common.NewZeroCopySink(0)
+		object.Serialization(sink)
+		obj.Code = common.ToHexString(sink.Bytes())
 	}
 	return nil
 }
