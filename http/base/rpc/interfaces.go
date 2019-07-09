@@ -489,11 +489,17 @@ func GetBalance(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	addrBase58, ok := params[0].(string)
+	strAddr, ok := params[0].(string)
 	if !ok {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	address, err := common.AddressFromBase58(addrBase58)
+	var address common.Address
+	var err error = nil
+	if len(strAddr) == 40 {
+		address, err = common.AddressFromHexString(strAddr)
+	} else {
+		address, err = common.AddressFromBase58(strAddr)
+	}
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}

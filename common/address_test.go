@@ -79,13 +79,9 @@ func TestAddress_MarshalJSON(t *testing.T) {
 	t.Logf("unmarshal addr is %s", newAddr.ToBase58())
 	assert.Equal(t, base58Addr, *newAddr)
 
-	hexAddr, _ := AddressFromHexString("061d7b2cf105f284e9befe01fc67c71b3702cb80")
-	data, err = json.Marshal(hexAddr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Logf("marshal addr is %s", string(data))
-	err = json.Unmarshal(data, newAddr)
+	hexStrAddr := "061d7b2cf105f284e9befe01fc67c71b3702cb80"
+	hexAddr, _ := AddressFromHexString(hexStrAddr)
+	err = json.Unmarshal([]byte("\""+hexStrAddr+"\""), newAddr)
 	if err != nil {
 		t.Fatal(err)
 	}
