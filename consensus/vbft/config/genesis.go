@@ -194,12 +194,12 @@ func GenesisChainConfig(conf *config.VBFTConfig, peers []*config.VBFTPeerStakeIn
 	return chainConfig, nil
 }
 
-func GenesisConsensusPayload(txhash common.Uint256, height uint32) ([]byte, error) {
+func GenesisConsensusPayload(vbftConfig *config.VBFTConfig, txhash common.Uint256, height uint32) ([]byte, error) {
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 
 	switch consensusType {
 	case "vbft":
-		return genConsensusPayload(config.DefConfig.Genesis.VBFT, txhash, height)
+		return genConsensusPayload(vbftConfig, txhash, height)
 	}
 	return nil, nil
 }

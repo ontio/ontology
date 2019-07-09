@@ -179,7 +179,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 			return fmt.Errorf("HashBlockExist error %s", err)
 		}
 		if !exist {
-			return fmt.Errorf("GenesisBlock arenot init correctly")
+			return fmt.Errorf("GenesisBlock arenot init correctly, hash %s", genesisHash.ToHexString())
 		}
 		err = this.init()
 		if err != nil {

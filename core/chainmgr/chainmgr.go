@@ -221,7 +221,10 @@ func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
 	if err != nil {
 		return fmt.Errorf("init shard ledger: :%s", err)
 	}
-	xshard.InitShardInfo(lgr)
+	err = xshard.InitShardInfo(lgr)
+	if err != nil {
+		return fmt.Errorf("init shard ledger: :%s", err)
+	}
 	return nil
 }
 

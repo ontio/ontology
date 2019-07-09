@@ -81,7 +81,7 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 		genesisConfig.VBFT.Serialize(conf)
 	}
 	govConfig := newGoverConfigInit(conf.Bytes())
-	consensusPayload, err := vconfig.GenesisConsensusPayload(govConfig.Hash(), 0)
+	consensusPayload, err := vconfig.GenesisConsensusPayload(genesisConfig.VBFT, govConfig.Hash(), 0)
 	if err != nil {
 		return nil, fmt.Errorf("consensus genesis init failed: %s", err)
 	}
@@ -137,10 +137,10 @@ func buildShardGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig
 	}
 	shardCfg := bytes.NewBuffer(nil)
 	if genesisConfig.VBFT != nil {
-		genesisConfig.VBFT.Serialize(shardCfg)
+		err = genesisConfig.VBFT.Serialize(shardCfg)
 	}
 	shardConfigTx := newGoverConfigInit(shardCfg.Bytes())
-	consensusPayload, err := vconfig.GenesisConsensusPayload(shardConfigTx.Hash(), 0)
+	consensusPayload, err := vconfig.GenesisConsensusPayload(genesisConfig.VBFT, shardConfigTx.Hash(), 0)
 	if err != nil {
 		return nil, fmt.Errorf("consensus genesus init failed: %s", err)
 	}

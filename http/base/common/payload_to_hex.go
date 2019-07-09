@@ -33,6 +33,11 @@ type BookKeepingInfo struct {
 type InvokeCodeInfo struct {
 	Code string
 }
+
+type ShardCallCodeInfo struct {
+	Code []string
+}
+
 type DeployCodeInfo struct {
 	Code        string
 	NeedStorage bool
@@ -92,7 +97,13 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 		obj.Description = object.Description
 		return obj
 	case *payload.ShardCall:
-		//todo
+		obj := new(ShardCallCodeInfo)
+		for _, msg := range object.Msgs {
+			sink := common.NewZeroCopySink(0)
+			msg.Serialization(sink)
+			obj.Code = append(obj.Code, common.ToHexString(sink.Bytes()))
+		}
+		return obj
 	}
 	return nil
 }

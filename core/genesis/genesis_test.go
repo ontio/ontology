@@ -35,7 +35,7 @@ func TestMain(m *testing.M) {
 
 func TestGenesisBlockInit(t *testing.T) {
 	_, pub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
-	conf := &config.GenesisConfig{}
+	conf := config.DefConfig.Genesis
 	shardCfg := &config.ShardConfig{
 		ShardID:             common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID),
 		GenesisParentHeight: config.DEFAULT_PARENT_HEIGHT,

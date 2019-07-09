@@ -25,7 +25,6 @@ import (
 	"os/signal"
 	"path"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
@@ -42,9 +41,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/consensus"
 	"github.com/ontio/ontology/core/chainmgr"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/events"
 	bactor "github.com/ontio/ontology/http/base/actor"
@@ -287,43 +284,6 @@ func initChainManager(ctx *cli.Context, shardID common.ShardID, acc *account.Acc
 	return mgr, err
 }
 
-func initLedger(ctx *cli.Context, mainledger *ledger.Ledger, shardID common.ShardID, stateHashHeight uint32) (*ledger.Ledger, error) {
-	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
-	var lgr *ledger.Ledger
-	var err error
-	if shardID.IsRootShard() {
-		lgr, err = ledger.NewLedger(dbDir, stateHashHeight)
-		if err != nil {
-			return nil, fmt.Errorf("NewLedger error:%s", err)
-		}
-	} else {
-		if mainledger == nil {
-			return nil, fmt.Errorf("mainledger is nil")
-		}
-		lgr, err = ledger.NewShardLedger(shardID, dbDir, mainledger)
-		if err != nil {
-			return nil, fmt.Errorf("NewLedger error:%s", err)
-		}
-	}
-	bookKeepers, err := config.DefConfig.GetBookkeepers()
-	if err != nil {
-		return nil, fmt.Errorf("GetBookkeepers error:%s", err)
-	}
-	genesisConfig := config.DefConfig.Genesis
-	shardConfig := config.DefConfig.Shard
-	genesisBlock, err := genesis.BuildGenesisBlock(bookKeepers, genesisConfig, shardConfig)
-	if err != nil {
-		return nil, fmt.Errorf("genesisBlock error %s", err)
-	}
-	err = lgr.Init(bookKeepers, genesisBlock)
-	if err != nil {
-		return nil, fmt.Errorf("Init ledger error:%s", err)
-	}
-
-	log.Infof("Ledger init success")
-	return lgr, nil
-}
-
 func initTxPool(ctx *cli.Context, shardID common.ShardID, chainMgr *chainmgr.ChainManager) (*txnpool.TxnPoolManager, error) {
 	disablePreExec := ctx.GlobalBool(utils.GetFlagName(utils.TxpoolPreExecDisableFlag))
 	bactor.DisableSyncVerifyTx = ctx.GlobalBool(utils.GetFlagName(utils.DisableSyncVerifyTxFlag))
@@ -379,24 +339,6 @@ func initP2PNode(ctx *cli.Context, shardID common.ShardID, txpoolMgr *txnpool.Tx
 	p2p.WaitForPeersStart()
 	log.Infof("P2P init success")
 	return p2p, p2pPID, nil
-}
-
-func initConsensus(ctx *cli.Context, shardID common.ShardID, p2pPid, txPoolPid *actor.PID, acc *account.Account) (consensus.ConsensusService, error) {
-	if !config.DefConfig.Consensus.EnableConsensus {
-		return nil, nil
-	}
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	consensusService, err := consensus.NewConsensusService(consensusType, shardID, acc, txPoolPid, nil, p2pPid)
-	if err != nil {
-		return nil, fmt.Errorf("NewConsensusService:%s error:%s", consensusType, err)
-	}
-	consensusService.Start()
-
-	netreqactor.SetConsensusPid(consensusService.GetPID())
-	hserver.SetConsensusPid(consensusService.GetPID())
-
-	log.Infof("Consensus init success")
-	return consensusService, nil
 }
 
 func initRpc(ctx *cli.Context) error {
