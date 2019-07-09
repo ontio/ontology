@@ -68,6 +68,7 @@ const (
 	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
 	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
+	GET_SHARD_TX_HASH     = "/api/v1/shardtxhash/hash/:hash"
 	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
 	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
 	GET_GAS_PRICE         = "/api/v1/gasprice"
@@ -146,6 +147,7 @@ func (this *restServer) registryMethod() {
 		GET_CONTRACT_STATE:    {name: "getcontract", handler: rest.GetContractState},
 		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
 		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
+		GET_SHARD_TX_HASH:     {name: "getshardtxhash", handler: rest.GetShardTxHashBySourceTxHash},
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
 		GET_SHARD_STORAGE:     {name: "getshardstorage", handler: rest.GetShardStorage},
@@ -185,6 +187,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_SMTCOCE_EVT_TXS
 	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVTS, ":hash")) {
 		return GET_SMTCOCE_EVTS
+	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_HASH, ":hash")) {
+		return GET_SHARD_TX_HASH
 	} else if strings.Contains(url, strings.TrimRight(GET_BLK_HGT_BY_TXHASH, ":hash")) {
 		return GET_BLK_HGT_BY_TXHASH
 	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_STORAGE, ":shardid/:hash/:key")) {
@@ -233,6 +237,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:
+		req["Hash"] = getParam(r, "hash")
+	case GET_SHARD_TX_HASH:
 		req["Hash"] = getParam(r, "hash")
 	case GET_BLK_HGT_BY_TXHASH:
 		req["Hash"] = getParam(r, "hash")
