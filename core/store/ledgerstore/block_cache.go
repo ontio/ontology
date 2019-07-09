@@ -71,10 +71,10 @@ func NewBlockCache() (*BlockCache, error) {
 		return nil, fmt.Errorf("NewARC sourceTxHash error %s", err)
 	}
 	return &BlockCache{
-		blockCache:       blockCache,
-		shardTxCache:     shardTxCache,
-		transactionCache: transactionCache,
-		sourceTxHashCache:sourceTxHashCache,
+		blockCache:        blockCache,
+		shardTxCache:      shardTxCache,
+		transactionCache:  transactionCache,
+		sourceTxHashCache: sourceTxHashCache,
 	}, nil
 }
 

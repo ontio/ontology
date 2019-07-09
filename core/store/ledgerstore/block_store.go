@@ -472,7 +472,7 @@ func (this *BlockStore) ContainSourceTxHash(sourceTxHash common.Uint256) (bool, 
 			return true, nil
 		}
 	}
-	shardTxHash , err := this.loadShardTxHash(sourceTxHash)
+	shardTxHash, err := this.loadShardTxHash(sourceTxHash)
 	if err != nil {
 		return false, err
 	}

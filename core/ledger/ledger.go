@@ -298,7 +298,7 @@ func (self *Ledger) IsContainShardTx(shardTxHash common.Uint256) (bool, error) {
 	return self.ldgStore.IsContainShardTx(shardTxHash)
 }
 
-func (self *Ledger) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error)  {
+func (self *Ledger) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {
 	return self.ldgStore.GetShardTxHashBySourceTxHash(sourceTxHash)
 }
 
