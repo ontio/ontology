@@ -23,6 +23,7 @@ import (
 	"math/big"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	gov "github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
@@ -145,6 +146,9 @@ func preCommitDpos(native *native.NativeService, shardId common.ShardID) error {
 
 //check the configuration while update shard config
 func checkNewCfg(configuration *utils.Configuration, shard *shardstates.ShardState) error {
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		return nil
+	}
 	candidateNum := uint32(0)
 	for _, peer := range shard.Peers {
 		if peer.NodeType == shardstates.CONSENSUS_NODE || peer.NodeType == shardstates.CONDIDATE_NODE {
