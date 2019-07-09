@@ -411,6 +411,30 @@ func GetContractState(params []interface{}) map[string]interface{} {
 	return responseSuccess(common.ToHexString(w.Bytes()))
 }
 
+func GetShardTxHash(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	switch params[0].(type) {
+	case string:
+		str := params[0].(string)
+		hash, err := common.Uint256FromHexString(str)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		shardTxHash, err := bactor.GetShardTxHashBySourceTxHash(hash)
+		if err != nil {
+			if err == scom.ErrNotFound {
+				return responseSuccess(nil)
+			}
+			return responsePack(berr.INTERNAL_ERROR, err)
+		}
+		return responseSuccess(shardTxHash)
+	default:
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+}
+
 //get smartconstract event
 func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	if !config.DefConfig.Common.EnableEventLog {

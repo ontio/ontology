@@ -955,6 +955,9 @@ func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.Over
 	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	msgs []xshard_types.CommonShardMsg, header *types.Header, notify *event.TransactionNotify) error {
 	for _, req := range msgs {
+		if notify.SourceTxHash == common.UINT256_EMPTY {
+			notify.SourceTxHash = req.GetSourceTxHash()
+		}
 		switch msg := req.(type) {
 		case *xshard_types.XShardNotify:
 			handleShardNotifyMsg(msg, store, gasTable, lockedAddress, lockedKeys, cache, xshardDB, header, notify)
