@@ -90,13 +90,8 @@ func (this *BlockStore) SaveBlock(block *types.Block) error {
 	for _, shardID := range shardIds {
 		shardTxs := block.ShardTxs[shardID]
 		for _, shardTx := range shardTxs {
-			err := this.SaveShardTx(shardTx, blockHeight)
-			if err != nil {
-				shardTxHash := shardTx.Tx.Hash()
-				return fmt.Errorf("SaveShardTx block height %d tx %s err %s", blockHeight, shardTxHash.ToHexString(), err)
-			} else {
-				shardTxHashes = append(shardTxHashes, shardTx.Tx.Hash())
-			}
+			this.SaveShardTx(shardTx, blockHeight)
+			shardTxHashes = append(shardTxHashes, shardTx.Tx.Hash())
 		}
 	}
 	err = this.SaveShardTxHashes(block.Hash(), shardTxHashes)
@@ -431,24 +426,20 @@ func (this *BlockStore) loadShardTxHashes(blockHash common.Uint256) ([]common.Ui
 }
 
 //SaveShardTx persist shardtx to store
-func (this *BlockStore) SaveShardTx(shardTx *types.CrossShardTxInfos, height uint32) error {
+func (this *BlockStore) SaveShardTx(shardTx *types.CrossShardTxInfos, height uint32) {
 	if this.enableCache {
 		this.cache.AddShardTx(shardTx, height)
 	}
-	return this.putShardTx(shardTx, height)
+	this.putShardTx(shardTx, height)
 }
 
-func (this *BlockStore) putShardTx(shardTx *types.CrossShardTxInfos, height uint32) error {
+func (this *BlockStore) putShardTx(shardTx *types.CrossShardTxInfos, height uint32) {
 	shardTxHash := shardTx.Tx.Hash()
 	key := this.getShardTxKey(shardTxHash)
 	sink := common.ZeroCopySink{}
 	sink.WriteUint32(height)
-	err := shardTx.Serialization(&sink)
-	if err != nil {
-		return err
-	}
+	shardTx.Serialization(&sink)
 	this.store.BatchPut(key, sink.Bytes())
-	return nil
 }
 
 //GetShardTx return shardTx by tx hash
