@@ -289,6 +289,9 @@ func DelCrossShardTxs(lgr *ledger.Ledger, crossShardTxs map[common.ShardID][]*ty
 				log.Infof("delcrossshardtxs shardID:%v,not exist", shardID)
 				return nil
 			} else {
+				if shardTx.ShardMsg == nil {
+					continue
+				}
 				log.Infof("delcrossshardtxs shardID:%v,msgHash:%s", shardID, shardTx.ShardMsg.PreCrossShardMsgHash.ToHexString())
 				delete(msg, shardTx.ShardMsg.PreCrossShardMsgHash)
 				shardCall := shardTx.Tx.Payload.(*payload.ShardCall)
@@ -319,6 +322,9 @@ func CalCrossShardMsgRootHash(crossShardMsgInfo *types.CrossShardMsgInfo, msgs [
 }
 
 func VerifyCrossShardMsg(shardID common.ShardID, sourceShardID common.ShardID, lgr *ledger.Ledger, crossShardMsgInfo *types.CrossShardMsgInfo, shardMsg []xshard_types.CommonShardMsg) bool {
+	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
+		return true
+	}
 	if !shardID.IsRootShard() {
 		lgr = lgr.ParentLedger
 	}
