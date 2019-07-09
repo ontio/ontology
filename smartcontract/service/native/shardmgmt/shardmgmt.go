@@ -569,7 +569,8 @@ func UpdateConfig(native *native.NativeService) ([]byte, error) {
 	if err := commitDposParam.Serialize(bf); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: failed, err: %s", err)
 	}
-	data := bf.Bytes()
+	data := make([]byte, len(bf.Bytes()))
+	copy(data, bf.Bytes())
 	bf.Reset()
 	if err := serialization.WriteVarBytes(bf, data); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("UpdateConfig: encage commit dpos param failed, err: %s", err)
