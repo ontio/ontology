@@ -284,7 +284,7 @@ func (self *Server) constructProposalMsg(blkNum, lastConfigBlkHeight uint32, sys
 
 	lastConfigBlkNum := prevBlk.Info.LastConfigBlockNum
 	if prevBlk.Info.NewChainConfig != nil {
-		lastConfigBlkNum = prevBlk.getBlockNum()
+		lastConfigBlkNum = prevBlk.getLastConfigBlockNum()
 	}
 	if chainconfig != nil {
 		lastConfigBlkNum = lastConfigBlkHeight
