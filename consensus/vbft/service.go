@@ -2361,7 +2361,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			} else if err != nil {
 				return fmt.Errorf("getShardChainConfig failed:%s", err)
 			} else {
-				height, dposerr := xshard.GetShardCommitDposInfo(self.ledger)
+				height, dposerr := xshard.GetShardCommitDposHeight(self.ledger)
 				if dposerr == com.ErrNotFound {
 					needChangeShardConsensus = false
 				} else if dposerr != nil {

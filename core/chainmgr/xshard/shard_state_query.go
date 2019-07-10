@@ -84,7 +84,7 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView
 	return info.Peers, nil
 }
 
-func GetShardCommitDposInfo(lgr *ledger.Ledger) (uint32, error) {
+func GetShardCommitDposHeight(lgr *ledger.Ledger) (uint32, error) {
 	key := append([]byte(shardmgmt.KEY_RETRY_COMMIT_DPOS))
 	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
 	if err == sComm.ErrNotFound {
