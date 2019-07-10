@@ -198,6 +198,9 @@ func (self *SoloService) broadcastCrossShardMsgs(blkNum uint32, shardMsgs []xsha
 	}
 
 	for targetShardID, crossShardMsg := range crossShardMsgs {
+		if targetShardID.ParentID() == self.shardID {
+			continue
+		}
 		// get last shard-msg-root of the target shard
 		prevMsgHash, err := self.ledger.GetShardMsgHash(targetShardID)
 		if err != nil && err != com.ErrNotFound {

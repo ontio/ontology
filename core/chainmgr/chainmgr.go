@@ -196,7 +196,7 @@ func (self *ChainManager) initMainLedger(stateHashHeight uint32) error {
 }
 
 func (self *ChainManager) initShardLedger(shardInfo *ShardInfo) error {
-	if shardInfo != nil && ledger.GetShardLedger(shardInfo.ShardID) != nil {
+	if ledger.GetShardLedger(shardInfo.ShardID) != nil {
 		return nil
 	}
 	if self.shardID.ToUint64() == config.DEFAULT_SHARD_ID {

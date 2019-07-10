@@ -473,6 +473,9 @@ func (self *Server) SendCrossShardMsgToAll(height uint32) {
 	}
 
 	for targetShardID, msg := range crossShardMsgs {
+		if targetShardID.ParentID() == self.ShardID {
+			continue
+		}
 		// get last shard-msg-root of the target shard
 		prevMsgHash, err := self.ledger.GetShardMsgHash(targetShardID)
 		if err != nil && err != com.ErrNotFound {
