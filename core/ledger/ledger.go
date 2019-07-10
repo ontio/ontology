@@ -229,7 +229,6 @@ func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error 
 			return fmt.Errorf("failed to submit block(%d, %d) with parent height %d", b.Header.Height, b.Header.ShardID, currentParentHeight)
 		}
 	}
-
 	err := self.ldgStore.SubmitBlock(b, exec)
 	if err != nil {
 		log.Errorf("Ledger %d SubmitBlock BlockHeight:%d BlockHash:%x error:%s", self.ShardID, b.Header.Height, b.Hash(), err)
@@ -296,10 +295,6 @@ func (self *Ledger) GetCurrentHeaderHash() common.Uint256 {
 
 func (self *Ledger) IsContainShardTx(shardTxHash common.Uint256) (bool, error) {
 	return self.ldgStore.IsContainShardTx(shardTxHash)
-}
-
-func (self *Ledger) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {
-	return self.ldgStore.GetShardTxHashBySourceTxHash(sourceTxHash)
 }
 
 func (self *Ledger) IsContainTransaction(txHash common.Uint256) (bool, error) {
@@ -377,6 +372,12 @@ func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint3
 	return self.ldgStore.GetShardConsensusConfig(shardID, height)
 }
 
+func (self *Ledger) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {
+	return self.cshardStore.GetShardTxHashBySourceTxHash(sourceTxHash)
+}
+func (self *Ledger) SaveShardTxHashWithSourceTxHash(sourceTxHash, shardTxHash common.Uint256) error {
+	return self.cshardStore.SaveShardTxHashWithSourceTxHash(sourceTxHash, shardTxHash)
+}
 func (self *Ledger) SaveCrossShardMsgByHash(msgHash common.Uint256, crossShardMsg *types.CrossShardMsg) error {
 	return self.cshardStore.SaveCrossShardMsgByHash(msgHash, crossShardMsg)
 }

@@ -424,63 +424,6 @@ func (this *BlockStore) loadShardTxHashes(blockHash common.Uint256) ([]common.Ui
 	}
 	return shardTxHashes, nil
 }
-func (this *BlockStore) SaveSourceAndShardTxHash(sourceTxHash, shardTxHash common.Uint256) {
-	if this.enableCache {
-		this.cache.AddSourceAndShardTxHash(sourceTxHash, shardTxHash)
-	}
-	this.putSourceAndShardTxHash(sourceTxHash, shardTxHash)
-}
-func (this *BlockStore) putSourceAndShardTxHash(sourceTxHash, shardTxHash common.Uint256) {
-	key := this.getSourceTxHashKey(sourceTxHash)
-	sink := common.ZeroCopySink{}
-	sink.WriteHash(shardTxHash)
-	this.store.BatchPut(key, sink.Bytes())
-}
-
-func (this *BlockStore) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {
-	if this.enableCache {
-		shardTxHash := this.cache.GetShardTxHashBySourceTxHash(sourceTxHash)
-		if shardTxHash != common.UINT256_EMPTY {
-			return shardTxHash, nil
-		}
-	}
-	return this.loadShardTxHash(sourceTxHash)
-}
-func (this *BlockStore) loadShardTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {
-	if this.enableCache {
-		shardTxHash := this.cache.GetShardTxHashBySourceTxHash(sourceTxHash)
-		if shardTxHash != common.UINT256_EMPTY {
-			return shardTxHash, nil
-		}
-	}
-	key := this.getSourceTxHashKey(sourceTxHash)
-	value, err := this.store.Get(key)
-	if err != nil {
-		return common.UINT256_EMPTY, err
-	}
-	source := common.NewZeroCopySource(value)
-	shardTxHash, eof := source.NextHash()
-	if eof {
-		return common.UINT256_EMPTY, io.ErrUnexpectedEOF
-	}
-	return shardTxHash, nil
-}
-
-func (this *BlockStore) ContainSourceTxHash(sourceTxHash common.Uint256) (bool, error) {
-	if this.enableCache {
-		if this.cache.ContainSourceTxHash(sourceTxHash) {
-			return true, nil
-		}
-	}
-	shardTxHash, err := this.loadShardTxHash(sourceTxHash)
-	if err != nil {
-		return false, err
-	}
-	if shardTxHash != common.UINT256_EMPTY {
-		return true, nil
-	}
-	return false, nil
-}
 
 //SaveShardTx persist shardtx to store
 func (this *BlockStore) SaveShardTx(shardTx *types.CrossShardTxInfos, height uint32) {
@@ -678,12 +621,6 @@ func (this *BlockStore) Close() error {
 	return this.store.Close()
 }
 
-func (this *BlockStore) getSourceTxHashKey(sourceTxHash common.Uint256) []byte {
-	key := bytes.NewBuffer(nil)
-	key.WriteByte(byte(scom.DATA_SOURCE_TX_HASH))
-	sourceTxHash.Serialize(key)
-	return key.Bytes()
-}
 func (this *BlockStore) getShardTxKey(shardTxHash common.Uint256) []byte {
 	key := bytes.NewBuffer(nil)
 	key.WriteByte(byte(scom.DATA_SHARD_TX))

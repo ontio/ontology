@@ -82,6 +82,7 @@ type PreExecuteResult struct {
 type NotifyEventInfo struct {
 	ContractAddress string
 	States          interface{}
+	SourceTxHash    string
 }
 
 type TxAttributeInfo struct {
@@ -188,7 +189,11 @@ func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify)
 	evts := []NotifyEventInfo{}
 	var contractAddrs = make(map[string]bool)
 	for _, v := range obj.Notify {
-		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
+		sourceTxHash := ""
+		if v.SourceTxHash != common.UINT256_EMPTY {
+			sourceTxHash = v.SourceTxHash.ToHexString()
+		}
+		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States, sourceTxHash})
 		contractAddrs[v.ContractAddress.ToHexString()] = true
 	}
 	txhash := obj.TxHash.ToHexString()
@@ -198,7 +203,7 @@ func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify)
 func ConvertPreExecuteResult(obj *cstate.PreExecResult) PreExecuteResult {
 	evts := []NotifyEventInfo{}
 	for _, v := range obj.Notify {
-		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
+		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States, v.SourceTxHash.ToHexString()})
 	}
 	return PreExecuteResult{obj.State, obj.Gas, obj.Result, evts}
 }

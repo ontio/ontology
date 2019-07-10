@@ -37,7 +37,6 @@ type ExecuteResult struct {
 	MerkleRoot           common.Uint256
 	Notify               []*event.ExecuteNotify
 	ShardNotify          []xshard_types.CommonShardMsg
-	SourceAndShardTxHash map[common.Uint256]common.Uint256 //sourceTxHash => shardTxHash
 }
 
 // LedgerStore provides func with store package.
@@ -79,8 +78,4 @@ type LedgerStore interface {
 	GetParentMetaData(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error)
 	GetParentContract(blockHeight uint32, addr common.Address) (*payload.DeployCode, error)
 	GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error)
-
-	IsContainSourceTxHash(sourceTxHash common.Uint256) (bool, error)
-	GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error)
-	SaveSourceAndShardTxHash(sourceTxHash, shardTxHash common.Uint256)
 }

@@ -955,9 +955,6 @@ func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.Over
 	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,
 	msgs []xshard_types.CommonShardMsg, header *types.Header, notify *event.TransactionNotify) error {
 	for _, req := range msgs {
-		if notify.SourceTxHash == common.UINT256_EMPTY {
-			notify.SourceTxHash = req.GetSourceTxHash()
-		}
 		switch msg := req.(type) {
 		case *xshard_types.XShardNotify:
 			handleShardNotifyMsg(msg, store, gasTable, lockedAddress, lockedKeys, cache, xshardDB, header, notify)
@@ -974,11 +971,39 @@ func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.Over
 		case *xshard_types.XShardAbortMsg:
 			handleShardAbortMsg(msg, lockedAddress, lockedKeys, xshardDB)
 		}
+		sourceTxHash := req.GetSourceTxHash()
+		if notify.ContractEvent.SourceTxHash == nil {
+			notify.ContractEvent.SourceTxHash = make([]common.Uint256, 0)
+			notify.ContractEvent.SourceTxHash = append(notify.ContractEvent.SourceTxHash, sourceTxHash)
+		} else {
+			if !hasTxHash(sourceTxHash, notify.ContractEvent) {
+				notify.ContractEvent.SourceTxHash = append(notify.ContractEvent.SourceTxHash, sourceTxHash)
+			}
+		}
+		if notify.ContractEvent.Notify != nil {
+			for _, info := range notify.ContractEvent.Notify {
+				if info != nil {
+					info.SourceTxHash = sourceTxHash
+				}
+			}
+		}
 	}
-
 	return nil
 }
-
+func hasTxHash(txHash common.Uint256, notify *event.ExecuteNotify) bool {
+	if notify == nil {
+		return false
+	}
+	if notify.SourceTxHash == nil || len(notify.SourceTxHash) ==0 {
+		return false
+	}
+	for _, sourceTxHash := range notify.SourceTxHash {
+		if sourceTxHash == txHash {
+			return true
+		}
+	}
+	return false
+}
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64,
 	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,

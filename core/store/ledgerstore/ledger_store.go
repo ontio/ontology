@@ -597,11 +597,6 @@ func (this *LedgerStoreImp) saveBlockToBlockStore(block *types.Block) error {
 	}
 	return nil
 }
-func (this *LedgerStoreImp) saveSourceTxHash(result store.ExecuteResult) {
-	for sourceTxHash, shardTxHash := range result.SourceAndShardTxHash {
-		this.blockStore.SaveSourceAndShardTxHash(sourceTxHash, shardTxHash)
-	}
-}
 
 func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.ExecuteResult, err error) {
 	overlay := this.stateStore.NewOverlayDB()
@@ -676,10 +671,6 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			}
 			shardNotify = append(shardNotify, notify.ShardMsg...)
 			result.Notify = append(result.Notify, notify.ContractEvent)
-			if result.SourceAndShardTxHash == nil {
-				result.SourceAndShardTxHash = make(map[common.Uint256]common.Uint256, 0)
-			}
-			result.SourceAndShardTxHash[notify.SourceTxHash] = shardTx.Tx.Hash()
 		}
 	}
 
@@ -808,11 +799,13 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 				return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 			}
 			event.PushSmartCodeEvent(notify.TxHash, 0, event.EVENT_NOTIFY, notify)
+
 		}
 	}
 
 	return nil
 }
+
 
 func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 	blockHash := block.Hash()
@@ -1016,8 +1009,6 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	if err != nil {
 		return fmt.Errorf("save to block store height:%d error:%s", blockHeight, err)
 	}
-	log.Errorf("submitBlock result.SourceAndShardTxHash: %d", len(result.SourceAndShardTxHash))
-	this.saveSourceTxHash(result)
 	err = this.saveBlockToStateStore(block, result)
 	if err != nil {
 		return fmt.Errorf("save to state store height:%d error:%s", blockHeight, err)
@@ -1026,6 +1017,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	if err != nil {
 		return fmt.Errorf("save to event store height:%d error:%s", blockHeight, err)
 	}
+
 	err = this.saveCrossShardDataToStore(block, result)
 	if err != nil {
 		return fmt.Errorf("save to save cross shard data height:%d error:%s", blockHeight, err)
@@ -1046,17 +1038,35 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	this.setCurrentBlock(blockHeight, blockHash)
 
 	shardSysMsg, _, _ := extractShardEvents(result.Notify)
+	sourceAndShardTxHashMap := extractSourceAndShardTxHash(result.Notify)
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
 			&message.SaveBlockCompleteMsg{
-				Block:          block,
-				ShardSysEvents: shardSysMsg,
+				Block:                   block,
+				ShardSysEvents:          shardSysMsg,
+				SourceAndShardTxHashMap: sourceAndShardTxHashMap,
 			})
 	}
 	return nil
 }
 
+func extractSourceAndShardTxHash(notify []*event.ExecuteNotify) map[common.Uint256]common.Uint256 {
+	sourceAndShardTxHash := make(map[common.Uint256]common.Uint256, 0)
+	if notify == nil {
+		return nil
+	}
+	for _, n := range notify {
+		if n.SourceTxHash == nil || len(n.SourceTxHash) == 0 {
+			continue
+		}
+		for _, sourceTxHash := range n.SourceTxHash {
+			log.Infof("extractSourceAndShardTxHash, sourceTxHash: %s, notify.TxHash: %s", sourceTxHash.ToHexString(), n.TxHash.ToHexString())
+			sourceAndShardTxHash[sourceTxHash] = n.TxHash
+		}
+	}
+	return sourceAndShardTxHash
+}
 func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent,
 	[]*message.ContractLifetimeEvent) {
 	var shardSysMsg []*message.ShardSystemEventMsg
@@ -1089,9 +1099,7 @@ func HandleTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, ca
 	events := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	notify := &event.TransactionNotify{
 		ContractEvent: events,
-		SourceTxHash:  common.UINT256_EMPTY,
 	}
-	log.Errorf("HandleTransactionHandleTransaction")
 	switch tx.TxType {
 	case types.Deploy:
 		err := HandleDeployTransaction(store, overlay, gasTable, cache, tx, header, notify.ContractEvent)
@@ -1453,15 +1461,4 @@ func (this *LedgerStoreImp) GetContractEvent(addr common.Address) (*message.Cont
 
 func (this *LedgerStoreImp) GetMetaDataEvnet(height uint32, addr common.Address) (*payload.MetaDataCode, error) {
 	return this.eventStore.GetContractMetaDataEvent(height, addr)
-}
-func (this *LedgerStoreImp) IsContainSourceTxHash(sourceTxHash common.Uint256) (bool, error) {
-	return this.blockStore.ContainSourceTxHash(sourceTxHash)
-}
-
-func (this *LedgerStoreImp) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {
-	return this.blockStore.GetShardTxHashBySourceTxHash(sourceTxHash)
-}
-
-func (this *LedgerStoreImp) SaveSourceAndShardTxHash(sourceTxHash, shardTxHash common.Uint256) {
-	this.blockStore.SaveSourceAndShardTxHash(sourceTxHash, shardTxHash)
 }

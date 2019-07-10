@@ -67,6 +67,7 @@ const (
 	GET_BALANCE           = "/api/v1/balance/:addr"
 	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
+	GET_SMTCOCE_EVTS_S    = "/api/v1/smartcode/event/txhash/:hash/:sourcetxhash"
 	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
 	GET_SHARD_TX_HASH     = "/api/v1/shardtxhash/hash/:hash"
 	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
@@ -147,6 +148,7 @@ func (this *restServer) registryMethod() {
 		GET_CONTRACT_STATE:    {name: "getcontract", handler: rest.GetContractState},
 		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
 		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
+		GET_SMTCOCE_EVTS_S:    {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
 		GET_SHARD_TX_HASH:     {name: "getshardtxhash", handler: rest.GetShardTxHashBySourceTxHash},
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
@@ -185,7 +187,7 @@ func (this *restServer) getPath(url string) string {
 		return GET_CONTRACT_STATE
 	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVT_TXS, ":height")) {
 		return GET_SMTCOCE_EVT_TXS
-	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVTS, ":hash")) {
+	} else if strings.Contains(url, strings.TrimRight(GET_SMTCOCE_EVTS, ":hash/:sourcetxhash")) {
 		return GET_SMTCOCE_EVTS
 	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_HASH, ":hash")) {
 		return GET_SHARD_TX_HASH
@@ -238,6 +240,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:
 		req["Hash"] = getParam(r, "hash")
+		req["SourceTxHash"] = getParam(r, "sourcetxhash")
 	case GET_SHARD_TX_HASH:
 		req["Hash"] = getParam(r, "hash")
 	case GET_BLK_HGT_BY_TXHASH:

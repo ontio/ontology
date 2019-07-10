@@ -435,7 +435,7 @@ func GetShardTxHash(params []interface{}) map[string]interface{} {
 	}
 }
 
-//get smartconstract event
+//get smartconstract event by txhash, sourcetxhash
 func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 	if !config.DefConfig.Common.EnableEventLog {
 		return responsePack(berr.INVALID_METHOD, "")
@@ -476,6 +476,20 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INTERNAL_ERROR, "")
 		}
 		_, notify := bcomn.GetExecuteNotify(eventInfo)
+		if len(params) == 2 {
+			switch params[1].(type) {
+			case string:
+				sourceTxHash := params[1].(string)
+				info := make([]bcomn.NotifyEventInfo, 0)
+				for _, n := range notify.Notify {
+					if n.SourceTxHash == sourceTxHash {
+						info = append(info, n)
+					}
+				}
+				notify.Notify = info
+				return responseSuccess(notify)
+			}
+		}
 		return responseSuccess(notify)
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")

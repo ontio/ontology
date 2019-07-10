@@ -173,7 +173,26 @@ func genShardMsgKeyByShard(shardID common.ShardID) []byte {
 	key.WriteShardID(shardID)
 	return key.Bytes()
 }
+func genShardTxHashKey(sourceTxHash common.Uint256) []byte {
+	key := common.NewZeroCopySink(21)
+	key.WriteByte(scom.DATA_SOURCE_TX_HASH)
+	key.WriteHash(sourceTxHash)
+	return key.Bytes()
+}
 
+func (this *CrossShardStore) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {
+	key := genShardTxHashKey(sourceTxHash)
+	buf, err := this.store.Get(key)
+	if err != nil {
+		return common.Uint256{}, nil
+	}
+	return common.Uint256ParseFromBytes(buf)
+}
+
+func (this *CrossShardStore) SaveShardTxHashWithSourceTxHash(sourceTxHash, shardTxHash common.Uint256) error {
+	key := genShardTxHashKey(sourceTxHash)
+	return this.store.Put(key, shardTxHash[:])
+}
 //CommitTo cross shard store batch to store
 func (this *CrossShardStore) CommitTo() error {
 	return this.store.BatchCommit()

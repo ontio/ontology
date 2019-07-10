@@ -361,6 +361,15 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 		return ResponsePack(berr.INVALID_TRANSACTION)
 	}
 	_, notify := bcomn.GetExecuteNotify(eventInfo)
+	if cmd["SourceTxHash"] != nil && cmd["SourceTxHash"] != "" {
+		info := make([]bcomn.NotifyEventInfo, 0)
+		for _, n := range notify.Notify {
+			if n.SourceTxHash == cmd["SourceTxHash"] {
+				info = append(info, n)
+			}
+		}
+		notify.Notify = info
+	}
 	resp["Result"] = notify
 	return resp
 }
