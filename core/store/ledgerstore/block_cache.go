@@ -45,9 +45,9 @@ type ShardTxCacheValue struct {
 
 //BlockCache with block cache and transaction hash
 type BlockCache struct {
-	blockCache        *lru.ARCCache
-	shardTxCache      *lru.ARCCache
-	transactionCache  *lru.ARCCache
+	blockCache       *lru.ARCCache
+	shardTxCache     *lru.ARCCache
+	transactionCache *lru.ARCCache
 }
 
 //NewBlockCache return BlockCache instance
@@ -65,9 +65,9 @@ func NewBlockCache() (*BlockCache, error) {
 		return nil, fmt.Errorf("NewARC header error %s", err)
 	}
 	return &BlockCache{
-		blockCache:        blockCache,
-		shardTxCache:      shardTxCache,
-		transactionCache:  transactionCache,
+		blockCache:       blockCache,
+		shardTxCache:     shardTxCache,
+		transactionCache: transactionCache,
 	}, nil
 }
 
