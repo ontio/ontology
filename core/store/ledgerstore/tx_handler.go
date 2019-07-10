@@ -994,7 +994,7 @@ func hasTxHash(txHash common.Uint256, notify *event.ExecuteNotify) bool {
 	if notify == nil {
 		return false
 	}
-	if notify.SourceTxHash == nil || len(notify.SourceTxHash) ==0 {
+	if notify.SourceTxHash == nil || len(notify.SourceTxHash) == 0 {
 		return false
 	}
 	for _, sourceTxHash := range notify.SourceTxHash {
@@ -1004,6 +1004,7 @@ func hasTxHash(txHash common.Uint256, notify *event.ExecuteNotify) bool {
 	}
 	return false
 }
+
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64,
 	lockedAddress map[common.Address]struct{}, lockedKeys map[string]struct{}, cache *storage.CacheDB, xshardDB *storage.XShardDB,

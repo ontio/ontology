@@ -806,7 +806,6 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 	return nil
 }
 
-
 func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height

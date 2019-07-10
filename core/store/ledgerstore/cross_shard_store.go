@@ -193,6 +193,7 @@ func (this *CrossShardStore) SaveShardTxHashWithSourceTxHash(sourceTxHash, shard
 	key := genShardTxHashKey(sourceTxHash)
 	return this.store.Put(key, shardTxHash[:])
 }
+
 //CommitTo cross shard store batch to store
 func (this *CrossShardStore) CommitTo() error {
 	return this.store.BatchCommit()

@@ -43,11 +43,11 @@ type NotifyEventInfo struct {
 }
 
 type ExecuteNotify struct {
-	TxHash        common.Uint256
-	State         byte
-	GasConsumed   uint64
-	Notify        []*NotifyEventInfo
-	SourceTxHash  []common.Uint256
+	TxHash       common.Uint256
+	State        byte
+	GasConsumed  uint64
+	Notify       []*NotifyEventInfo
+	SourceTxHash []common.Uint256
 }
 
 type TransactionNotify struct {
