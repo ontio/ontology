@@ -93,7 +93,7 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView
 	return info.Peers, nil
 }
 
-func GetShardCommitDposInfo(lgr *ledger.Ledger) (*shardstates.ShardCommitDposInfo,error) {
+func GetShardCommitDposInfo(lgr *ledger.Ledger) (*shardstates.ShardCommitDposInfo, error) {
 	if lgr == nil {
 		return nil, fmt.Errorf("get shard state,ledger is nil ")
 	}

@@ -2360,14 +2360,15 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 				needChangeShardConsensus = false
 			} else if err != nil {
 				return fmt.Errorf("getShardChainConfig failed:%s", err)
-			}
-			height, dposerr := getShardCommitDposInfo(self.ledger)
-			if dposerr == com.ErrNotFound {
-				needChangeShardConsensus = false
-			} else if dposerr != nil {
-				return fmt.Errorf("getShardCommitDposInfo failed:%s", err)
 			} else {
-				lastConfigBlkHeight = height
+				height, dposerr := getShardCommitDposInfo(self.ledger)
+				if dposerr == com.ErrNotFound {
+					needChangeShardConsensus = false
+				} else if dposerr != nil {
+					return fmt.Errorf("getShardCommitDposInfo failed:%s", err)
+				} else {
+					lastConfigBlkHeight = height
+				}
 			}
 		}
 		//add transaction invoke governance native commit_pos contract
