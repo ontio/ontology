@@ -30,7 +30,6 @@ const (
 	BLOCK_CACHE_SIZE       = 10    //Block cache size
 	SHARD_TX_CACHE_SIZE    = 20    //block shardTx cache size
 	TRANSACTION_CACHE_SIZE = 10000 //Transaction cache size
-	SOURCE_TX_HASH_SIZE    = 1000
 )
 
 //Value of transaction cache
@@ -49,7 +48,6 @@ type BlockCache struct {
 	blockCache        *lru.ARCCache
 	shardTxCache      *lru.ARCCache
 	transactionCache  *lru.ARCCache
-	sourceTxHashCache *lru.ARCCache
 }
 
 //NewBlockCache return BlockCache instance
@@ -66,15 +64,10 @@ func NewBlockCache() (*BlockCache, error) {
 	if err != nil {
 		return nil, fmt.Errorf("NewARC header error %s", err)
 	}
-	sourceTxHashCache, err := lru.NewARC(SOURCE_TX_HASH_SIZE)
-	if err != nil {
-		return nil, fmt.Errorf("NewARC sourceTxHash error %s", err)
-	}
 	return &BlockCache{
 		blockCache:        blockCache,
 		shardTxCache:      shardTxCache,
 		transactionCache:  transactionCache,
-		sourceTxHashCache: sourceTxHashCache,
 	}, nil
 }
 
@@ -98,19 +91,6 @@ func (this *BlockCache) ContainBlock(blockHash common.Uint256) bool {
 	return this.blockCache.Contains(string(blockHash.ToArray()))
 }
 
-func (this *BlockCache) AddSourceAndShardTxHash(sourceTxHash, shardTxHash common.Uint256) {
-	this.sourceTxHashCache.Add(string(sourceTxHash.ToArray()), shardTxHash)
-}
-func (this *BlockCache) ContainSourceTxHash(sourceTxHash common.Uint256) bool {
-	return this.sourceTxHashCache.Contains(string(sourceTxHash.ToArray()))
-}
-func (this *BlockCache) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) common.Uint256 {
-	value, ok := this.sourceTxHashCache.Get(string(sourceTxHash.ToArray()))
-	if !ok {
-		return common.UINT256_EMPTY
-	}
-	return value.(common.Uint256)
-}
 func (this *BlockCache) AddShardTx(tx *types.CrossShardTxInfos, height uint32) {
 	shardTxHash := tx.Tx.Hash()
 	this.shardTxCache.Add(string(shardTxHash.ToArray()), &ShardTxCacheValue{
