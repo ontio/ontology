@@ -340,3 +340,11 @@ func getShardConfig(lgr *ledger.Ledger, shardID common.ShardID, blkNum uint32) (
 	cfg.View = shardView.View
 	return cfg, err
 }
+
+func getShardCommitDposInfo(lgr *ledger.Ledger) (uint32, error) {
+	shardCommitDposInfo, err := xshard.GetShardCommitDposInfo(lgr)
+	if err != nil {
+		return 0, err
+	}
+	return shardCommitDposInfo.Height, nil
+}

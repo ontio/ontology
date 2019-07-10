@@ -92,3 +92,22 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView
 	}
 	return info.Peers, nil
 }
+
+func GetShardCommitDposInfo(lgr *ledger.Ledger) (*shardstates.ShardCommitDposInfo,error) {
+	if lgr == nil {
+		return nil, fmt.Errorf("get shard state,ledger is nil ")
+	}
+	key := append([]byte(shardmgmt.KEY_RETRY_COMMIT_DPOS))
+	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
+	if err == sComm.ErrNotFound {
+		return nil, err
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get shardmgmt shard commit dpos info: %s", err)
+	}
+	shardCommitDposInfo := &shardstates.ShardCommitDposInfo{}
+	if err := shardCommitDposInfo.Deserialization(common.NewZeroCopySource(data)); err != nil {
+		return nil, fmt.Errorf("des shardmgmt shard commit dpos info: %s", err)
+	}
+	return shardCommitDposInfo, nil
+}

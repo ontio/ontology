@@ -2344,6 +2344,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
 	needChangeShardConsensus := true
+	lastConfigBlkHeight := blkNum
 	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
 		isRootShard := self.ShardID.IsRootShard()
 		var chainconfig *vconfig.ChainConfig
@@ -2359,6 +2360,14 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 				needChangeShardConsensus = false
 			} else if err != nil {
 				return fmt.Errorf("getShardChainConfig failed:%s", err)
+			}
+			height, dposerr := getShardCommitDposInfo(self.ledger)
+			if dposerr == com.ErrNotFound {
+				needChangeShardConsensus = false
+			} else if dposerr != nil {
+				return fmt.Errorf("getShardCommitDposInfo failed:%s", err)
+			} else {
+				lastConfigBlkHeight = height
 			}
 		}
 		//add transaction invoke governance native commit_pos contract
@@ -2399,7 +2408,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			}
 		}
 	}
-	proposal, err := self.constructProposalMsg(blkNum, sysTxs, userTxs, cfg)
+	proposal, err := self.constructProposalMsg(blkNum, lastConfigBlkHeight, sysTxs, userTxs, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to construct proposal: %s", err)
 	}
