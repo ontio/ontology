@@ -603,6 +603,8 @@ func withdrawFee(native *native.NativeService, shardId common.ShardID, user comm
 					temp := wholeFee.Mul(wholeFee, peerProportion)
 					peerDiv = temp.Div(temp, proportionBase).Uint64()
 				}
+			} else if peerStakeInfo.UserStakeAmount == 0 {
+				continue
 			} else {
 				temp := wholeFee.Mul(wholeFee, userProportion)
 				temp.Mul(temp, new(big.Int).SetUint64(info.StakeAmount))
