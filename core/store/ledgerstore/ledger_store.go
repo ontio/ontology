@@ -1051,10 +1051,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 }
 
 func extractSourceAndShardTxHash(notify []*event.ExecuteNotify) map[common.Uint256]common.Uint256 {
-	sourceAndShardTxHash := make(map[common.Uint256]common.Uint256, 0)
-	if notify == nil {
-		return nil
-	}
+	sourceAndShardTxHash := make(map[common.Uint256]common.Uint256)
 	for _, n := range notify {
 		if n.SourceTxHash == nil || len(n.SourceTxHash) == 0 {
 			continue

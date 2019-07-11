@@ -991,12 +991,6 @@ func HandleShardCallTransaction(store store.LedgerStore, overlay *overlaydb.Over
 	return nil
 }
 func hasTxHash(txHash common.Uint256, notify *event.ExecuteNotify) bool {
-	if notify == nil {
-		return false
-	}
-	if notify.SourceTxHash == nil || len(notify.SourceTxHash) == 0 {
-		return false
-	}
 	for _, sourceTxHash := range notify.SourceTxHash {
 		if sourceTxHash == txHash {
 			return true
