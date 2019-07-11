@@ -947,9 +947,7 @@ func execShardTransaction(fromShard common.ShardID, store store.LedgerStore, gas
 		engine, _ := sc.NewExecuteEngine(invoke.Code)
 		res, err := engine.Invoke()
 		for _, n := range sc.Notifications {
-			if n.SourceTxHash == common.UINT256_EMPTY && sourceTxHash != common.UINT256_EMPTY {
-				n.SourceTxHash = sourceTxHash
-			}
+			n.SourceTxHash = sourceTxHash
 		}
 		notify.Notify = append(notify.Notify, sc.Notifications...)
 		gasConsume = tx.GasLimit - sc.Gas
