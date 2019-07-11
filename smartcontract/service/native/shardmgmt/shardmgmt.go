@@ -484,6 +484,10 @@ func ExitShard(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ExitShard: failed, err: %s", err)
 	}
 	if shardPeerInfo.NodeType == shardstates.CONSENSUS_NODE {
+		if len(shard.Peers)-1 < int(shard.Config.VbftCfg.K) &&
+			config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_VBFT {
+			return utils.BYTE_FALSE, fmt.Errorf("ExitShard: peer cannot exit")
+		}
 		shardPeerInfo.NodeType = shardstates.QUIT_CONSENSUS_NODE
 	} else if shardPeerInfo.NodeType == shardstates.CONDIDATE_NODE {
 		shardPeerInfo.NodeType = shardstates.QUITING_CONSENSUS_NODE
