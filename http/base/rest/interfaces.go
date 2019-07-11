@@ -365,7 +365,6 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	return resp
 }
 
-
 //get shard smartcontract event by transaction hash
 func GetShardSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{} {
 	if !config.DefConfig.Common.EnableEventLog {
