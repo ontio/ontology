@@ -184,7 +184,7 @@ func (this *CrossShardStore) GetShardTxHashBySourceTxHash(sourceTxHash common.Ui
 	key := genShardTxHashKey(sourceTxHash)
 	buf, err := this.store.Get(key)
 	if err != nil {
-		return common.Uint256{}, nil
+		return common.Uint256{}, err
 	}
 	return common.Uint256ParseFromBytes(buf)
 }

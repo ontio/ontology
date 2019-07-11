@@ -476,20 +476,52 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INTERNAL_ERROR, "")
 		}
 		_, notify := bcomn.GetExecuteNotify(eventInfo)
-		if len(params) == 2 {
-			switch params[1].(type) {
-			case string:
-				sourceTxHash := params[1].(string)
-				info := make([]bcomn.NotifyEventInfo, 0)
-				for _, n := range notify.Notify {
-					if n.SourceTxHash == sourceTxHash {
-						info = append(info, n)
-					}
-				}
-				notify.Notify = info
-				return responseSuccess(notify)
+		return responseSuccess(notify)
+	default:
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	return responsePack(berr.INVALID_PARAMS, "")
+}
+
+//get shard smartcontract event by sourcetxhash
+func GetShardSmartCodeEvent(params []interface{}) map[string]interface{} {
+	if !config.DefConfig.Common.EnableEventLog {
+		return responsePack(berr.INVALID_METHOD, "")
+	}
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+
+	switch (params[0]).(type) {
+	//txhash
+	case string:
+		sourceTxHashStr := params[0].(string)
+		sourceTxHash, err := common.Uint256FromHexString(sourceTxHashStr)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		shardTxHash, err := bactor.GetShardTxHashBySourceTxHash(sourceTxHash)
+		if err != nil {
+			if scom.ErrNotFound == err {
+				return responseSuccess(nil)
+			}
+			return responsePack(berr.INTERNAL_ERROR, err)
+		}
+		eventInfo, err := bactor.GetEventNotifyByTxHash(shardTxHash)
+		if err != nil {
+			if scom.ErrNotFound == err {
+				return responseSuccess(nil)
+			}
+			return responsePack(berr.INTERNAL_ERROR, "")
+		}
+		_, notify := bcomn.GetExecuteNotify(eventInfo)
+		info := make([]bcomn.NotifyEventInfo, 0)
+		for _, n := range notify.Notify {
+			if n.SourceTxHash == sourceTxHashStr {
+				info = append(info, n)
 			}
 		}
+		notify.Notify = info
 		return responseSuccess(notify)
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")

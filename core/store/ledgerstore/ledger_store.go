@@ -1057,7 +1057,6 @@ func extractSourceAndShardTxHash(notify []*event.ExecuteNotify) map[common.Uint2
 			continue
 		}
 		for _, sourceTxHash := range n.SourceTxHash {
-			log.Infof("extractSourceAndShardTxHash, sourceTxHash: %s, notify.TxHash: %s", sourceTxHash.ToHexString(), n.TxHash.ToHexString())
 			sourceAndShardTxHash[sourceTxHash] = n.TxHash
 		}
 	}
