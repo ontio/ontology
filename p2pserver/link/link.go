@@ -131,6 +131,7 @@ func (this *Link) Rx() {
 			log.Debugf("skip handle msgType:%s from:%d", msg.CmdType(), this.id)
 			continue
 		}
+
 		this.addReqRecord(msg)
 		this.recvChan <- &types.MsgPayload{
 			Id:          this.id,
