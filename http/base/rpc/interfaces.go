@@ -303,6 +303,39 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 	return responseSuccess(hash.ToHexString())
 }
 
+// multi pre tx, [tx1, tx2,tx3]
+func MultiPreTransaction(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	res := make([]interface{}, 0)
+	for _, param := range params {
+		txStr, ok := param.(string)
+		if !ok {
+			continue
+		}
+		raw, err := common.HexToBytes(txStr)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, err.Error())
+		}
+		txn, err := types.TransactionFromRawBytes(raw)
+		if err != nil {
+			return responsePack(berr.INVALID_TRANSACTION, "")
+		}
+		hash := txn.Hash()
+		log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
+		if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+			result, err := bactor.PreExecuteContract(txn)
+			if err != nil {
+				log.Infof("PreExec: ", err)
+				return responsePack(berr.SMARTCODE_ERROR, err.Error())
+			}
+			res = append(res, result)
+		}
+	}
+	return responseSuccess(res)
+}
+
 //get node version
 func GetNodeVersion(params []interface{}) map[string]interface{} {
 	return responseSuccess(config.Version)

@@ -287,6 +287,45 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+// multi pre tx, [tx1, tx2,tx3]
+func MultiPreTransaction(params map[string]interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	res := make([]interface{}, 0)
+	paras := params["Data"].([]interface{})
+	if len(params) < 1 {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	for _, param := range paras {
+		txStr, ok := param.(string)
+		if !ok {
+			continue
+		}
+		raw, err := common.HexToBytes(txStr)
+		if err != nil {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+		txn, err := types.TransactionFromRawBytes(raw)
+		if err != nil {
+			return ResponsePack(berr.INVALID_TRANSACTION)
+		}
+		hash := txn.Hash()
+		log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
+		if txn.TxType == types.Invoke || txn.TxType == types.Deploy {
+			result, err := bactor.PreExecuteContract(txn)
+			if err != nil {
+				log.Infof("PreExec: ", err)
+				return ResponsePack(berr.SMARTCODE_ERROR)
+			}
+			res = append(res, result)
+		}
+	}
+	resp := ResponsePack(berr.SUCCESS)
+	resp["result"] = res
+	return resp
+}
+
 //get smartcontract event by height
 func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)

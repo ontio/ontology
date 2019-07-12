@@ -42,6 +42,7 @@ func StartRPCServer() error {
 
 	rpc.HandleFunc("getrawtransaction", rpc.GetRawTransaction)
 	rpc.HandleFunc("sendrawtransaction", rpc.SendRawTransaction)
+	rpc.HandleFunc("multipretransaction", rpc.MultiPreTransaction)
 	rpc.HandleFunc("getstorage", rpc.GetStorage)
 	rpc.HandleFunc("getversion", rpc.GetNodeVersion)
 	rpc.HandleFunc("getnetworkid", rpc.GetNetworkId)

@@ -76,7 +76,8 @@ const (
 	GET_VERSION           = "/api/v1/version"
 	GET_NETWORKID         = "/api/v1/networkid"
 
-	POST_RAW_TX = "/api/v1/transaction"
+	POST_RAW_TX       = "/api/v1/transaction"
+	POST_MULTI_RAW_TX = "/api/v1/multitransaction"
 )
 
 //init restful server
@@ -158,7 +159,8 @@ func (this *restServer) registryMethod() {
 	}
 
 	postMethodMap := map[string]Action{
-		POST_RAW_TX: {name: "sendrawtransaction", handler: rest.SendRawTransaction},
+		POST_RAW_TX:       {name: "sendrawtransaction", handler: rest.SendRawTransaction},
+		POST_MULTI_RAW_TX: {name: "multipretransaction", handler: rest.MultiPreTransaction},
 	}
 	this.postMap = postMethodMap
 	this.getMap = getMethodMap
@@ -219,6 +221,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case GET_CONTRACT_STATE:
 		req["Hash"], req["Raw"] = getParam(r, "hash"), r.FormValue("raw")
 	case POST_RAW_TX:
+		req["PreExec"] = r.FormValue("preExec")
+	case POST_MULTI_RAW_TX:
 		req["PreExec"] = r.FormValue("preExec")
 	case GET_STORAGE:
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")

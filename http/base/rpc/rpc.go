@@ -127,6 +127,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 		w.Header().Set("content-type", "application/json;charset=utf-8")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		log.Errorf("data: %s", string(data))
 		w.Write(data)
 	} else {
 		//if the function does not exist
