@@ -293,7 +293,7 @@ func MultiPreTransaction(params map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	paras, ok := params["Data"].([]interface{})
-	if !ok || len(paras) < 1 {
+	if !ok || len(paras) < 1 || len(paras) > bcomn.MAX_MULTI_TX_SIZE {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	res := make([]interface{}, 0)
