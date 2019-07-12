@@ -41,6 +41,7 @@ const (
 	REQ_INTERVAL        = 3          //single request max interval in second
 	MAX_REQ_RECORD_SIZE = 1000       //the maximum request record size
 	MAX_RESP_CACHE_SIZE = 50         //the maximum response cache
+	MAX_TX_CACHE_SIZE   = 100000     //the maximum txHash cache size
 )
 
 //msg cmd const
