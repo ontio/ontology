@@ -143,9 +143,20 @@ func IsBase58Address(address string) bool {
 	return err == nil
 }
 
+func IsHexAddress(address string) bool {
+	if address == "" {
+		return false
+	}
+	_, err := common.AddressFromHexString(address)
+	return err == nil
+}
+
 //ParseAddress return base58 address from base58, label or index
 func ParseAddress(address string, ctx *cli.Context) (string, error) {
 	if IsBase58Address(address) {
+		return address, nil
+	}
+	if IsHexAddress(address) {
 		return address, nil
 	}
 	wallet, err := OpenWallet(ctx)

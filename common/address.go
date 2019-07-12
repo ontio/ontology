@@ -144,7 +144,7 @@ func (self *Address) UnmarshalJSON(input []byte) error {
 		return err
 	}
 	var addr Address
-	if len(strAddr) == 20 {
+	if len(strAddr) == 40 {
 		addr, err = AddressFromHexString(strAddr)
 	} else {
 		addr, err = AddressFromBase58(strAddr)
