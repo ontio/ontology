@@ -365,6 +365,78 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 	return resp
 }
 
+//get shard smartcontract event by transaction hash
+func GetShardSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{} {
+	if !config.DefConfig.Common.EnableEventLog {
+		return ResponsePack(berr.INVALID_METHOD)
+	}
+
+	resp := ResponsePack(berr.SUCCESS)
+
+	sourceTxHashStr, ok := cmd["SourceTxHash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	sourceTxHash, err := common.Uint256FromHexString(sourceTxHashStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	shardTxHash, err := bactor.GetShardTxHashBySourceTxHash(sourceTxHash)
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	if shardTxHash == common.UINT256_EMPTY {
+		return ResponsePack(berr.SUCCESS)
+	}
+	eventInfo, err := bactor.GetEventNotifyByTxHash(shardTxHash)
+	if err != nil {
+		if scom.ErrNotFound == err {
+			return ResponsePack(berr.SUCCESS)
+		}
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	if eventInfo == nil {
+		return ResponsePack(berr.INVALID_TRANSACTION)
+	}
+	_, notify := bcomn.GetExecuteNotify(eventInfo)
+	info := make([]bcomn.NotifyEventInfo, 0)
+	for _, n := range notify.Notify {
+		if n.SourceTxHash == sourceTxHashStr {
+			info = append(info, n)
+		}
+	}
+	notify.Notify = info
+	resp["Result"] = notify
+	return resp
+}
+
+//get shardtxhash by sourcetxhash
+func GetShardTxHashBySourceTxHash(cmd map[string]interface{}) map[string]interface{} {
+
+	resp := ResponsePack(berr.SUCCESS)
+
+	str, ok := cmd["Hash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	hash, err := common.Uint256FromHexString(str)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	shardTxHash, err := bactor.GetShardTxHashBySourceTxHash(hash)
+	if err != nil {
+		if scom.ErrNotFound == err {
+			return ResponsePack(berr.SUCCESS)
+		}
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	if shardTxHash == common.UINT256_EMPTY {
+		return ResponsePack(berr.INVALID_TRANSACTION)
+	}
+	resp["Result"] = shardTxHash
+	return resp
+}
+
 //get contract state
 func GetContractState(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)

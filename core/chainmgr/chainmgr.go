@@ -424,8 +424,19 @@ func (self *ChainManager) localEventLoop() {
 			self.handleShardSysEvents(msg.ShardSysEvents)
 			blk := msg.Block
 			self.onBlockPersistCompleted(blk)
+			self.saveSourceAndShardTxHash(msg.SourceAndShardTxHashMap)
 		case <-self.quitC:
 			return
+		}
+	}
+}
+
+func (self *ChainManager) saveSourceAndShardTxHash(sourceAndShardTxHash map[common.Uint256]common.Uint256) {
+	lgr := ledger.GetShardLedger(self.shardID)
+	for sourceTxHash, shardTxHash := range sourceAndShardTxHash {
+		err := lgr.SaveShardTxHashWithSourceTxHash(sourceTxHash, shardTxHash)
+		if err != nil {
+			log.Errorf("[saveSourceAndShardTxHash] error: %s", err)
 		}
 	}
 }

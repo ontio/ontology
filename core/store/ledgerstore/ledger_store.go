@@ -801,6 +801,7 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 				return fmt.Errorf("SaveEventNotifyByTx error %s", err)
 			}
 			event.PushSmartCodeEvent(notify.TxHash, 0, event.EVENT_NOTIFY, notify)
+
 		}
 	}
 
@@ -1017,6 +1018,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	if err != nil {
 		return fmt.Errorf("save to event store height:%d error:%s", blockHeight, err)
 	}
+
 	err = this.saveCrossShardDataToStore(block, result)
 	if err != nil {
 		return fmt.Errorf("save to save cross shard data height:%d error:%s", blockHeight, err)
@@ -1037,17 +1039,31 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	this.setCurrentBlock(blockHeight, blockHash)
 
 	shardSysMsg, _, _ := extractShardEvents(result.Notify)
+	sourceAndShardTxHashMap := extractSourceAndShardTxHash(result.Notify)
 	if events.DefActorPublisher != nil {
 		events.DefActorPublisher.Publish(
 			message.TOPIC_SAVE_BLOCK_COMPLETE,
 			&message.SaveBlockCompleteMsg{
-				Block:          block,
-				ShardSysEvents: shardSysMsg,
+				Block:                   block,
+				ShardSysEvents:          shardSysMsg,
+				SourceAndShardTxHashMap: sourceAndShardTxHashMap,
 			})
 	}
 	return nil
 }
 
+func extractSourceAndShardTxHash(notify []*event.ExecuteNotify) map[common.Uint256]common.Uint256 {
+	sourceAndShardTxHash := make(map[common.Uint256]common.Uint256)
+	for _, n := range notify {
+		if n.SourceTxHash == nil || len(n.SourceTxHash) == 0 {
+			continue
+		}
+		for _, sourceTxHash := range n.SourceTxHash {
+			sourceAndShardTxHash[sourceTxHash] = n.TxHash
+		}
+	}
+	return sourceAndShardTxHash
+}
 func extractShardEvents(notify []*event.ExecuteNotify) ([]*message.ShardSystemEventMsg, []*message.MetaDataEvent,
 	[]*message.ContractLifetimeEvent) {
 	var shardSysMsg []*message.ShardSystemEventMsg

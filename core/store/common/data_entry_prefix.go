@@ -69,4 +69,5 @@ const (
 	CROSS_SHARD_CONTRACT_EVENT       DataEntryPrefix = 0x47 //cross shard contract event
 	DATA_SHARD_TX                                    = 0x48 //shardTx hash = > shardTx key prefix
 	DATA_SHARD_TX_HASHES                             = 0x49 //shardTx hashes = > shardTx hashes key prefix
+	DATA_SOURCE_TX_HASH                              = 0x50 // sourceTx hash = > shardTx hash
 )

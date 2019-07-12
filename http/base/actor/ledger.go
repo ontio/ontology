@@ -89,6 +89,10 @@ func PreExecuteContract(tx *types.Transaction) (*cstate.PreExecResult, error) {
 	return ledger.DefLedger.PreExecuteContract(tx)
 }
 
+func GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {
+	return ledger.DefLedger.GetShardTxHashBySourceTxHash(sourceTxHash)
+}
+
 //GetEventNotifyByTxHash from ledger
 func GetEventNotifyByTxHash(txHash common.Uint256) (*event.ExecuteNotify, error) {
 	return ledger.DefLedger.GetEventNotifyByTx(txHash)

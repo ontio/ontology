@@ -33,8 +33,9 @@ const (
 )
 
 type SaveBlockCompleteMsg struct {
-	Block          *types.Block
-	ShardSysEvents []*ShardSystemEventMsg
+	Block                   *types.Block
+	ShardSysEvents          []*ShardSystemEventMsg
+	SourceAndShardTxHashMap map[common.Uint256]common.Uint256
 }
 
 type NewInventoryMsg struct {

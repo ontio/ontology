@@ -34,4 +34,6 @@ type CrossShardStore interface {
 	GetCrossShardHash(shardID common.ShardID) (common.Uint256, error)
 	SaveShardMsgHash(shardID common.ShardID, msgHash common.Uint256) error
 	GetShardMsgHash(shardID common.ShardID) (common.Uint256, error)
+	GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error)
+	SaveShardTxHashWithSourceTxHash(sourceTxHash, shardTxHash common.Uint256) error
 }
