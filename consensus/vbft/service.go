@@ -119,6 +119,7 @@ type Server struct {
 	currentBlockNum          uint32
 	LastConfigBlockNum       uint32
 	parentHeight             uint32 // ParentHeight of last block
+	shardLastConsensusHeight uint32
 	config                   *vconfig.ChainConfig
 	currentParticipantConfig *BlockParticipantConfig
 
@@ -239,11 +240,22 @@ func (self *Server) handleBlockPersistCompleted(block *types.Block) {
 		}
 		self.metaLock.Unlock()
 	}
-
-	if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig(self.completedBlockNum) {
-		err := self.updateChainConfig()
-		if err != nil {
-			log.Errorf("updateChainConfig failed:%s", err)
+	if self.ShardID.IsRootShard() {
+		if self.checkNeedUpdateChainConfig(self.completedBlockNum) || self.checkUpdateChainConfig(self.completedBlockNum) {
+			err := self.updateChainConfig()
+			if err != nil {
+				log.Errorf("updateChainConfig failed:%s", err)
+			}
+		}
+	} else {
+		height, isChangeConsensus := self.shardCheckUpdateChainConfig(self.completedBlockNum)
+		if isChangeConsensus {
+			err := self.updateChainConfig()
+			if err != nil {
+				log.Errorf("update shard ChainConfig failed:%s", err)
+			} else {
+				self.shardLastConsensusHeight = height
+			}
 		}
 	}
 }
@@ -358,7 +370,6 @@ func (self *Server) LoadChainConfig(chainStore *ChainStore) error {
 	if err != nil {
 		return fmt.Errorf("failed to build participant config: %s", err)
 	}
-
 	return nil
 }
 
@@ -481,7 +492,13 @@ func (self *Server) initialize() error {
 		return fmt.Errorf("failed to load config: %s", err)
 	}
 	log.Infof("chain config loaded from local, current blockNum: %d", self.GetCurrentBlockNo())
-
+	if !self.ShardID.IsRootShard() {
+		self.shardLastConsensusHeight, err = xshard.GetShardCommitDposHeight(self.ledger)
+		if err != nil && err != com.ErrNotFound {
+			log.Errorf("getShardCommitDposHeight failed:%s", err)
+			return fmt.Errorf("getShardCommitDposHeight failed:%s", err)
+		}
+	}
 	// add all consensus peers to peer_pool
 	for _, p := range self.config.Peers {
 		// check if peer pubkey support VRF
@@ -2282,26 +2299,25 @@ func (self *Server) checkNeedUpdateChainConfig(blockNum uint32) bool {
 
 //checkUpdateChainConfig query leveldb check is force update
 func (self *Server) checkUpdateChainConfig(blkNum uint32) bool {
-	if self.ShardID.IsRootShard() {
-		force, err := isUpdate(self.ledger, self.chainStore.GetExecWriteSet(blkNum-1), self.config.View)
-		if err != nil {
-			log.Errorf("checkUpdateChainConfig err:%s", err)
-			return false
-		}
-		log.Debugf("checkUpdateChainConfig force: %v", force)
-
-		return force
-	} else {
-		shardView, err := xshard.GetShardView(self.ledger.ParentLedger, self.ShardID)
-		if err != nil {
-			log.Errorf("GetShardView err:%s", err)
-			return false
-		}
-		if shardView.View > self.config.View {
-			return true
-		}
+	force, err := isUpdate(self.ledger, self.chainStore.GetExecWriteSet(blkNum-1), self.config.View)
+	if err != nil {
+		log.Errorf("checkUpdateChainConfig err:%s", err)
+		return false
 	}
-	return false
+	log.Debugf("checkUpdateChainConfig force: %v", force)
+	return force
+}
+
+func (self *Server) shardCheckUpdateChainConfig(blkNum uint32) (uint32, bool) {
+	height, err := xshard.GetShardCommitDposHeight(self.ledger)
+	if err != nil && err != com.ErrNotFound {
+		log.Errorf("getShardCommitDposHeight failed:%s", err)
+		return 0, false
+	}
+	if height > self.shardLastConsensusHeight || blkNum-height > self.config.MaxBlockChangeView {
+		return height, true
+	}
+	return 0, false
 }
 
 func (self *Server) validHeight(blkNum uint32) uint32 {
@@ -2317,14 +2333,28 @@ func (self *Server) validHeight(blkNum uint32) uint32 {
 }
 
 func (self *Server) nonSystxs(sysTxs []*types.Transaction, blkNum uint32) bool {
-	if self.checkNeedUpdateChainConfig(blkNum) && len(sysTxs) == 1 {
-		invoke := sysTxs[0].Payload.(*payload.InvokeCode)
-		if invoke == nil {
-			log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
-			return true
+	if self.ShardID.IsRootShard() {
+		if self.checkNeedUpdateChainConfig(blkNum) && len(sysTxs) == 1 {
+			invoke := sysTxs[0].Payload.(*payload.InvokeCode)
+			if invoke == nil {
+				log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
+				return true
+			}
+			if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 {
+				return false
+			}
 		}
-		if bytes.Compare(invoke.Code, ninit.COMMIT_DPOS_BYTES) == 0 || bytes.Compare(invoke.Code, ninit.SHARD_COMMIT_DPOS_BYTES) == 0 {
-			return false
+	} else {
+		_, isChangeConsensus := self.shardCheckUpdateChainConfig(blkNum)
+		if isChangeConsensus && len(sysTxs) == 1 {
+			invoke := sysTxs[0].Payload.(*payload.InvokeCode)
+			if invoke == nil {
+				log.Errorf("nonSystxs invoke is nil,blocknum:%d", blkNum)
+				return true
+			}
+			if bytes.Compare(invoke.Code, ninit.SHARD_COMMIT_DPOS_BYTES) == 0 {
+				return false
+			}
 		}
 	}
 	return true
@@ -2343,54 +2373,43 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 	//check need upate chainconfig
 	cfg := &vconfig.ChainConfig{}
 	cfg = nil
-	needChangeShardConsensus := true
-	lastConfigBlkHeight := blkNum
-	if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
-		isRootShard := self.ShardID.IsRootShard()
-		var chainconfig *vconfig.ChainConfig
-		var err error
-		if isRootShard {
-			chainconfig, err = getRootChainConfig(self.ledger, self.chainStore.GetExecWriteSet(blkNum-1), blkNum)
+	if self.ShardID.IsRootShard() {
+		if self.checkNeedUpdateChainConfig(blkNum) || self.checkUpdateChainConfig(blkNum) {
+			chainconfig, err := getRootChainConfig(self.ledger, self.chainStore.GetExecWriteSet(blkNum-1), blkNum)
 			if err != nil {
 				return fmt.Errorf("getRootChainConfig failed:%s", err)
 			}
-		} else {
-			chainconfig, err = getShardConfig(self.ledger, self.ShardID, blkNum)
-			if err == com.ErrNotFound {
-				needChangeShardConsensus = false
-			} else if err != nil {
-				return fmt.Errorf("getShardChainConfig failed:%s", err)
-			} else {
-				height, dposerr := xshard.GetShardCommitDposHeight(self.ledger)
-				if dposerr == com.ErrNotFound {
-					needChangeShardConsensus = false
-				} else if dposerr != nil {
-					return fmt.Errorf("getShardCommitDposInfo failed:%s", err)
-				} else {
-					lastConfigBlkHeight = height
+			//add transaction invoke governance native commit_pos contract
+			if self.checkNeedUpdateChainConfig(blkNum) {
+				tx, err := self.creategovernaceTransaction(blkNum)
+				if err != nil {
+					return fmt.Errorf("construct governace transaction error: %v", err)
 				}
-			}
-		}
-		//add transaction invoke governance native commit_pos contract
-		if self.checkNeedUpdateChainConfig(blkNum) {
-			var tx *types.Transaction
-			var err error = nil
-			if isRootShard {
-				tx, err = self.creategovernaceTransaction(blkNum)
-			} else {
-				tx, err = self.createShardGovTransaction(blkNum)
-			}
-			if err != nil {
-				return fmt.Errorf("construct governace transaction error: %v", err)
-			}
-			sysTxs = append(sysTxs, tx)
-			if needChangeShardConsensus {
+				sysTxs = append(sysTxs, tx)
 				chainconfig.View++
 			}
-		}
-		forEmpty = true
-		if needChangeShardConsensus {
+			forEmpty = true
 			cfg = chainconfig
+		}
+	} else {
+		height, isChangeConsensus := self.shardCheckUpdateChainConfig(blkNum)
+		if isChangeConsensus {
+			chainconfig, err := getShardConfig(self.ledger, self.ShardID, blkNum)
+			if err != nil && err != com.ErrNotFound {
+				return fmt.Errorf("getShardChainConfig failed:%s,height:%d,blkNum:%d", err, height, blkNum)
+			}
+			if err == nil {
+				if blkNum-height > self.config.MaxBlockChangeView {
+					tx, err := self.createShardGovTransaction(blkNum)
+					if err != nil {
+						return fmt.Errorf("construct governace transaction error: %v", err)
+					}
+					sysTxs = append(sysTxs, tx)
+					chainconfig.View++
+				}
+				forEmpty = true
+				cfg = chainconfig
+			}
 		}
 	}
 	if self.nonConsensusNode() {
@@ -2409,7 +2428,7 @@ func (self *Server) makeProposal(blkNum uint32, forEmpty bool) error {
 			}
 		}
 	}
-	proposal, err := self.constructProposalMsg(blkNum, lastConfigBlkHeight, sysTxs, userTxs, cfg)
+	proposal, err := self.constructProposalMsg(blkNum, sysTxs, userTxs, cfg)
 	if err != nil {
 		return fmt.Errorf("failed to construct proposal: %s", err)
 	}

@@ -266,7 +266,7 @@ func (self *Server) constructCrossShardHashMsg(blkNum uint32) (*types.CrossShard
 	}, nil
 }
 
-func (self *Server) constructProposalMsg(blkNum, lastConfigBlkHeight uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
+func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {
 
 	prevBlk, prevBlkHash := self.blockPool.getSealedBlock(blkNum - 1)
 	if prevBlk == nil {
@@ -284,10 +284,10 @@ func (self *Server) constructProposalMsg(blkNum, lastConfigBlkHeight uint32, sys
 
 	lastConfigBlkNum := prevBlk.Info.LastConfigBlockNum
 	if prevBlk.Info.NewChainConfig != nil {
-		lastConfigBlkNum = prevBlk.getLastConfigBlockNum()
+		lastConfigBlkNum = prevBlk.getBlockNum()
 	}
 	if chainconfig != nil {
-		lastConfigBlkNum = lastConfigBlkHeight
+		lastConfigBlkNum = blkNum
 	}
 	vbftBlkInfo := &vconfig.VbftBlockInfo{
 		Proposer:           self.Index,
