@@ -644,29 +644,21 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 			return fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}
-
-	if !forEmpty {
-		// remove empty block
-		c.SealedBlock = &Block{
-			Block:               block.Block,
-			Info:                block.Info,
-			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-			CrossMsgHash:        block.CrossMsgHash,
-		}
-	} else {
-		// replace with empty block
-		c.SealedBlock = &Block{
-			Block:               block.EmptyBlock,
-			Info:                block.Info,
-			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-			CrossMsgHash:        block.CrossMsgHash,
-		}
+	sealedBlock := &Block{
+		Info:                block.Info,
+		PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
+		CrossMsgHash:        block.CrossMsgHash,
 	}
-
+	if !forEmpty {
+		sealedBlock.Block = block.Block
+	} else {
+		sealedBlock.Block = block.EmptyBlock
+	}
 	// add block to chain store
-	if err := pool.chainStore.AddBlock(c.SealedBlock); err != nil {
+	if err := pool.chainStore.AddBlock(sealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
+	c.SealedBlock = sealedBlock
 	pool.server.SendCrossShardMsgToAll(blkNum - 1)
 	stateRoot, err := pool.chainStore.GetExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
 	if err != nil {

@@ -24,6 +24,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	cstates "github.com/ontio/ontology/core/states"
+	com "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -226,7 +227,7 @@ func getShardCommitDposInfo(native *native.NativeService) (*shardstates.ShardCom
 		return nil, fmt.Errorf("getShardCommitDposInfo: read db failed, err: %s", err)
 	}
 	if len(raw) == 0 {
-		return nil, fmt.Errorf("getShardCommitDposInfo: store is empty")
+		return nil, com.ErrNotFound
 	}
 	storeValue, err := cstates.GetValueFromRawStorageItem(raw)
 	if err != nil {

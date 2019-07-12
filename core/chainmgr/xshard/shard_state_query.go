@@ -32,9 +32,6 @@ import (
 )
 
 func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView, error) {
-	if lgr == nil {
-		return nil, fmt.Errorf("get shard view,ledger is nil")
-	}
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewKey := shard_stake.GenShardViewKey(shardIDBytes)
 	viewBytes, err := lgr.GetStorageItem(utils.ShardStakeAddress, viewKey)
@@ -52,9 +49,6 @@ func GetShardView(lgr *ledger.Ledger, shardID common.ShardID) (*utils.ChangeView
 }
 
 func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.ShardState, error) {
-	if lgr == nil {
-		return nil, fmt.Errorf("get shard state,ledger is nil ")
-	}
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	key := append([]byte(shardmgmt.KEY_SHARD_STATE), shardIDBytes...)
 	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
@@ -73,9 +67,6 @@ func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.Sha
 }
 
 func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
-	if lgr == nil {
-		return nil, fmt.Errorf("get shard peer stake info,ledger is nil")
-	}
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewBytes := utils.GetUint32Bytes(shardView)
 	viewInfoKey := shard_stake.GenShardViewInfoKey(shardIDBytes, viewBytes)
@@ -91,4 +82,20 @@ func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView
 		return nil, fmt.Errorf("GetShardPeerStakeInfo: deserialize view info: %s", err)
 	}
 	return info.Peers, nil
+}
+
+func GetShardCommitDposHeight(lgr *ledger.Ledger) (uint32, error) {
+	key := append([]byte(shardmgmt.KEY_RETRY_COMMIT_DPOS))
+	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
+	if err == sComm.ErrNotFound {
+		return 0, err
+	}
+	if err != nil {
+		return 0, fmt.Errorf("get shardmgmt shard commit dpos info: %s", err)
+	}
+	shardCommitDposInfo := &shardstates.ShardCommitDposInfo{}
+	if err := shardCommitDposInfo.Deserialization(common.NewZeroCopySource(data)); err != nil {
+		return 0, fmt.Errorf("des shardmgmt shard commit dpos info: %s", err)
+	}
+	return shardCommitDposInfo.Height, nil
 }

@@ -211,7 +211,7 @@ func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 	if self.ParentLedger != nil {
 		currentParentHeight := self.ParentLedger.GetCurrentBlockHeight()
 		if b.Header.ParentHeight > currentParentHeight {
-			return store.ExecuteResult{}, fmt.Errorf("failed to execute block(%d, %d) with parent height %d", b.Header.Height, b.Header.ShardID, currentParentHeight)
+			return store.ExecuteResult{}, fmt.Errorf("failed to execute block(%d, %d),block parent height:%d, with parent ledger parent height %d", b.Header.Height, b.Header.ShardID, b.Header.ParentHeight, currentParentHeight)
 		}
 	}
 
