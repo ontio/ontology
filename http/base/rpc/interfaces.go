@@ -312,7 +312,7 @@ func MultiPreTransaction(params []interface{}) map[string]interface{} {
 	for _, param := range params {
 		txStr, ok := param.(string)
 		if !ok {
-			continue
+			return responsePack(berr.INVALID_PARAMS, "")
 		}
 		raw, err := common.HexToBytes(txStr)
 		if err != nil {
