@@ -294,7 +294,7 @@ func MultiPreTransaction(params map[string]interface{}) map[string]interface{} {
 	}
 	res := make([]interface{}, 0)
 	paras := params["Data"].([]interface{})
-	if len(params) < 1 {
+	if len(paras) < 1 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	for _, param := range paras {
