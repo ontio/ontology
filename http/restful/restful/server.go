@@ -77,7 +77,7 @@ const (
 	GET_NETWORKID         = "/api/v1/networkid"
 
 	POST_RAW_TX       = "/api/v1/transaction"
-	POST_MULTI_RAW_TX = "/api/v1/multitransaction"
+	POST_MULTI_RAW_TX = "/api/v1/pretransactions"
 )
 
 //init restful server
@@ -160,7 +160,7 @@ func (this *restServer) registryMethod() {
 
 	postMethodMap := map[string]Action{
 		POST_RAW_TX:       {name: "sendrawtransaction", handler: rest.SendRawTransaction},
-		POST_MULTI_RAW_TX: {name: "multipretransaction", handler: rest.MultiPreTransaction},
+		POST_MULTI_RAW_TX: {name: "sendpretransactions", handler: rest.SendPreTransactions},
 	}
 	this.postMap = postMethodMap
 	this.getMap = getMethodMap

@@ -47,6 +47,7 @@ This document describes the restful api format for the http/https used in the On
 | [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | send transaction to ontology network |
 | [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | return the networkid |
 | [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | get grant ong |
+| [sendpretransactions](#24-sendpretransactions) |  POST /api/v1/pretransactions | Batch execution of pre-executed transactions |
 
 ### 1 get_conn_count
 
@@ -871,6 +872,73 @@ curl -i http://localhost:20334/api/v1/grantong/AKDFapcoUhewN9Kaj6XhHusurfHzUiZqU
     "Result": 4995625
 }
 ```
+
+### 24 sendpretransactions
+
+Batch execution of pre-executed transactions
+
+POST
+```
+/api/v1/pretransactions
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/pretransactions
+```
+
+#### post parameters
+
+```json
+{
+	"jsonrpc": "2.0",
+    "Action": "sendpretransactions",
+    "Data": [
+    	"00d1de5655540000000000000000000000000000000000000000000000000000000000000000000000004d14322df60ebaddf100501817f2171930d79ae81f660962616c616e63654f661400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000",
+    	"00d1c9657e8b0000000000000000000000000000000000000000000000000000000000000000000000004d1498dee28a01a16f116f8c6e6b437af92a190e2c750962616c616e63654f661400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000",
+    	"00d11aec11060000000000000000000000000000000000000000000000000000000000000000000000004d149e1969e4c7813787a8214e73d1b1206f3d2ffbcc0962616c616e63654f661400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000",
+    	"00d1452edb510000000000000000000000000000000000000000000000000000000000000000000000004d14e224ca2cd7482712bdd64b2cc02b10db21494fd90962616c616e63654f661400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000"
+    	],
+    "id": 0
+
+}
+```
+
+#### Response
+```
+{
+    "Action": "sendpretransactions",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": [
+        {
+            "State": 1,
+            "Gas": 20000,
+            "Result": "",
+            "Notify": null
+        },
+        {
+            "State": 1,
+            "Gas": 20000,
+            "Result": "",
+            "Notify": null
+        },
+        {
+            "State": 1,
+            "Gas": 20000,
+            "Result": "",
+            "Notify": null
+        },
+        {
+            "State": 1,
+            "Gas": 20000,
+            "Result": "",
+            "Notify": null
+        }
+    ],
+    "Version": "1.0.0"
+}
+```
+
 
 ## Error Code
 

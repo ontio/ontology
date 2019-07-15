@@ -288,7 +288,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 }
 
 // multi pre tx, [tx1, tx2,tx3]
-func MultiPreTransaction(params map[string]interface{}) map[string]interface{} {
+func SendPreTransactions(params map[string]interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -322,7 +322,7 @@ func MultiPreTransaction(params map[string]interface{}) map[string]interface{} {
 		}
 	}
 	resp := ResponsePack(berr.SUCCESS)
-	resp["result"] = res
+	resp["Result"] = res
 	return resp
 }
 

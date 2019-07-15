@@ -304,7 +304,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 }
 
 // multi pre tx, [tx1, tx2,tx3]
-func MultiPreTransaction(params []interface{}) map[string]interface{} {
+func SendPreTransactions(params []interface{}) map[string]interface{} {
 	if len(params) < 1 || len(params) > bcomn.MAX_MULTI_TX_SIZE {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
