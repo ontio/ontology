@@ -28,6 +28,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/store/overlaydb"
 )
 
 type BlockList []*Block
@@ -88,7 +89,7 @@ func newBlockPool(server *Server, historyLen uint32, store *ChainStore) (*BlockP
 
 	// load history blocks from chainstore
 	for ; blkNum <= store.GetChainedBlockNum(); blkNum++ {
-		blk, err := store.GetBlock(blkNum)
+		blk, err := store.getBlock(blkNum)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load block %d: %s", blkNum, err)
 		}
@@ -660,7 +661,7 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 	if err := pool.chainStore.AddBlock(c.SealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
-	stateRoot, err := pool.chainStore.GetExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
+	stateRoot, err := pool.chainStore.getExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
 	if err != nil {
 		log.Errorf("handleBlockSubmit failed:%s", err)
 		return nil
@@ -691,7 +692,7 @@ func (pool *BlockPool) getSealedBlock(blockNum uint32) (*Block, common.Uint256) 
 	}
 
 	// get from chainstore
-	blk, err := pool.chainStore.GetBlock(blockNum)
+	blk, err := pool.chainStore.getBlock(blockNum)
 	if err != nil {
 		log.Errorf("getSealedBlock %d err:%v", blockNum, err)
 		return nil, common.Uint256{}
@@ -754,4 +755,28 @@ func (pool *BlockPool) onBlockSealed(blockNum uint32) {
 	for _, n := range toFreeCandidates {
 		delete(pool.candidateBlocks, n)
 	}
+}
+
+func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.chainStore.getExecMerkleRoot(blkNum)
+}
+
+func (pool *BlockPool) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.chainStore.getExecWriteSet(blkNum)
+}
+
+func (pool *BlockPool) submitBlock(blkNum uint32) error {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.chainStore.submitBlock(blkNum)
+}
+
+func (pool *BlockPool) getBlock(blockNum uint32) (*Block, error) {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.chainStore.getBlock(blockNum)
 }
