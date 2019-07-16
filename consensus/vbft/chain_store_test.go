@@ -19,15 +19,14 @@
 package vbft
 
 import (
-	"os"
-	"testing"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
+	"os"
+	"testing"
 )
 
 func newTestChainStore(t *testing.T) *ChainStore {
@@ -37,7 +36,7 @@ func newTestChainStore(t *testing.T) *ChainStore {
 	if acct == nil {
 		t.Fatalf("GetDefaultAccount error: acc is nil")
 	}
-
+	os.RemoveAll(config.DEFAULT_DATA_DIR)
 	db, err := ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
 		t.Fatalf("NewLedger error %s", err)

@@ -136,10 +136,12 @@ func (self *ChainStore) AddBlock(block *Block) error {
 	if _, present := self.pendingBlocks[blkNum-2]; present {
 		delete(self.pendingBlocks, blkNum-2)
 	}
-	self.pid.Tell(
-		&message.BlockConsensusComplete{
-			Block: block.Block,
-		})
+	if self.pid != nil {
+		self.pid.Tell(
+			&message.BlockConsensusComplete{
+				Block: block.Block,
+			})
+	}
 	self.chainedBlockNum = blkNum
 	return nil
 }
