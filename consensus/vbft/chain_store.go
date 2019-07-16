@@ -133,9 +133,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		return fmt.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 	}
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
-	if _, present := self.pendingBlocks[blkNum-2]; present {
-		delete(self.pendingBlocks, blkNum-2)
-	}
+
 	if self.pid != nil {
 		self.pid.Tell(
 			&message.BlockConsensusComplete{
@@ -154,6 +152,9 @@ func (self *ChainStore) submitBlock(blkNum uint32) error {
 		err := self.db.SubmitBlock(submitBlk.block.Block, *submitBlk.execResult)
 		if err != nil && blkNum > self.GetChainedBlockNum() {
 			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
+		}
+		if _, present := self.pendingBlocks[blkNum-1]; present {
+			delete(self.pendingBlocks, blkNum-1)
 		}
 		submitBlk.hasSubmitted = true
 	}

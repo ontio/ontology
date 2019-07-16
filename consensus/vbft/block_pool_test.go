@@ -65,9 +65,9 @@ func TestAddBlock(t *testing.T) {
 	if err != nil {
 		t.Errorf("buildTestBlockPool err:%s", err)
 	}
-	lastBlock, err := blockpool.chainStore.getBlock(0)
-	if err != nil {
-		t.Errorf("getblock err:%s", err)
+	lastBlock, _ := blockpool.getSealedBlock(0)
+	if lastBlock == nil {
+		t.Errorf("getblock err")
 	}
 	t.Logf("block height:%d", blockpool.chainStore.GetChainedBlockNum())
 	blk, err := buildTestBlock(t, lastBlock.Block, blockpool.chainStore.db)
@@ -78,12 +78,12 @@ func TestAddBlock(t *testing.T) {
 	if err != nil {
 		t.Errorf("AddBlock err:%s", err)
 	}
-	merkleRoot, err := blockpool.chainStore.getExecMerkleRoot(blockpool.chainStore.GetChainedBlockNum())
+	merkleRoot, err := blockpool.getExecMerkleRoot(blockpool.chainStore.GetChainedBlockNum())
 	if err != nil {
 		t.Errorf("getExecMerkleRoot err:%s", err)
 	}
 	t.Logf("block height:%d,merkleRoot:%s", blockpool.chainStore.GetChainedBlockNum(), merkleRoot.ToHexString())
-	err = blockpool.chainStore.submitBlock(blockpool.chainStore.GetChainedBlockNum())
+	err = blockpool.submitBlock(blockpool.chainStore.GetChainedBlockNum())
 	if err != nil {
 		t.Errorf("submitBlock err:%s", err)
 	}

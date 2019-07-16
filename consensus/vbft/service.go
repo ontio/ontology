@@ -278,9 +278,9 @@ func (self *Server) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 func (self *Server) LoadChainConfig(blkNum uint32) error {
 	//get chainconfig from genesis block
 
-	block, err := self.blockPool.getBlock(blkNum)
-	if err != nil {
-		return err
+	block, _ := self.blockPool.getSealedBlock(blkNum)
+	if block == nil {
+		return fmt.Errorf("getSealedBlock err height:%d", blkNum)
 	}
 	var cfg vconfig.ChainConfig
 	if block.getNewChainConfig() != nil {
@@ -289,9 +289,9 @@ func (self *Server) LoadChainConfig(blkNum uint32) error {
 	} else {
 		cfgBlock := block
 		if block.getLastConfigBlockNum() != math.MaxUint32 {
-			cfgBlock, err = self.blockPool.getBlock(block.getLastConfigBlockNum())
-			if err != nil {
-				return fmt.Errorf("failed to get cfg block: %s", err)
+			cfgBlock, _ = self.blockPool.getSealedBlock(block.getLastConfigBlockNum())
+			if cfgBlock == nil {
+				return fmt.Errorf("failed to get cfg block height:%d", block.getLastConfigBlockNum())
 			}
 		}
 		if cfgBlock.getNewChainConfig() == nil {
@@ -329,11 +329,11 @@ func (self *Server) LoadChainConfig(blkNum uint32) error {
 	if block == nil {
 		return fmt.Errorf("failed to get sealed block (%d)", self.GetCommittedBlockNo())
 	}
-
-	self.currentParticipantConfig, err = self.buildParticipantConfig(self.GetCurrentBlockNo(), block, self.config)
+	currentParticipantConfig, err := self.buildParticipantConfig(self.GetCurrentBlockNo(), block, self.config)
 	if err != nil {
 		return fmt.Errorf("failed to build participant config: %s", err)
 	}
+	self.currentParticipantConfig = currentParticipantConfig
 
 	return nil
 }

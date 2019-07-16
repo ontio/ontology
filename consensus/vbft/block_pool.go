@@ -770,13 +770,7 @@ func (pool *BlockPool) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
 }
 
 func (pool *BlockPool) submitBlock(blkNum uint32) error {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
+	pool.lock.Lock()
+	defer pool.lock.Unlock()
 	return pool.chainStore.submitBlock(blkNum)
-}
-
-func (pool *BlockPool) getBlock(blockNum uint32) (*Block, error) {
-	pool.lock.RLock()
-	defer pool.lock.RUnlock()
-	return pool.chainStore.getBlock(blockNum)
 }

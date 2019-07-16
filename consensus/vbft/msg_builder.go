@@ -188,10 +188,10 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 	for _, t := range txs {
 		txHash = append(txHash, t.Hash())
 	}
-	lastBlock, err := self.blockPool.getBlock(blkNum - 1)
-	if err != nil {
-		log.Errorf("constructBlock getlastblock err:%s,blknum:%d", err, blkNum-1)
-		return nil, err
+	lastBlock, _ := self.blockPool.getSealedBlock(blkNum - 1)
+	if lastBlock == nil {
+		log.Errorf("constructBlock getlastblock failed blknum:%d", blkNum-1)
+		return nil, fmt.Errorf("constructBlock getlastblock failed blknum:%d", blkNum-1)
 	}
 
 	txRoot := common.ComputeMerkleRoot(txHash)

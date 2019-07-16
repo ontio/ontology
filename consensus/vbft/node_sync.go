@@ -131,7 +131,7 @@ func (self *Syncer) run() {
 					self.server.Index, req.startBlockNum)
 			}
 			for ; req.startBlockNum <= req.targetBlockNum; req.startBlockNum++ {
-				blk, _ := self.server.blockPool.getBlock(req.startBlockNum)
+				blk, _ := self.server.blockPool.getSealedBlock(req.startBlockNum)
 				if blk == nil {
 					log.Infof("server %d, on starting syncing %d, nil block from ledger",
 						self.server.Index, req.startBlockNum)
@@ -180,7 +180,7 @@ func (self *Syncer) run() {
 				// FIXME: compete with ledger syncing
 				var blk *Block
 				if self.nextReqBlkNum <= ledger.DefLedger.GetCurrentBlockHeight() {
-					blk, _ = self.server.blockPool.getBlock(self.nextReqBlkNum)
+					blk, _ = self.server.blockPool.getSealedBlock(self.nextReqBlkNum)
 				}
 				if blk == nil {
 					blk = self.blockConsensusDone(self.pendingBlocks[self.nextReqBlkNum])
