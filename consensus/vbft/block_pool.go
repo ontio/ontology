@@ -608,7 +608,7 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 					sigData = append(sigData, sig.Signature)
 				}
 				if block.CrossMsgHash != nil {
-					block.CrossMsgHash.SigData[sig.EndorsedProposer] = sig.CrossShardMsgSig
+					block.CrossMsgHash.SigData[endorser] = sig.CrossShardMsgSig
 				}
 				break
 			}
