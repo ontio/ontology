@@ -433,7 +433,7 @@ func (self *ChainManager) localEventLoop() {
 	}
 }
 
-func (self *ChainManager) saveSourceAndShardTxHash(shardID common.ShardID,sourceAndShardTxHash map[common.Uint256]common.Uint256) {
+func (self *ChainManager) saveSourceAndShardTxHash(shardID common.ShardID, sourceAndShardTxHash map[common.Uint256]common.Uint256) {
 	lgr := ledger.GetShardLedger(shardID)
 	if lgr == nil {
 		log.Error("lgr is nil")
