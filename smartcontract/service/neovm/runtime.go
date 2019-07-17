@@ -27,6 +27,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -34,7 +35,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	vm "github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
-	"github.com/ontio/ontology/common/log"
 )
 
 // HeaderGetNextConsensus put current block time to vm stack

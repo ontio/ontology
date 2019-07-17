@@ -648,13 +648,13 @@ func parseShardNotifies(notifys []*xshard_types.XShardNotify) []XShardNotify {
 			SourceTxHash:  xNotify.ShardMsgHeader.SourceTxHash.ToHexString(),
 		}
 		n := XShardNotify{
-			ShardMsgHeader:header,
-			NotifyID: xNotify.NotifyID,
-			Contract: xNotify.Contract.ToHexString(),
-			Payer:    xNotify.Payer.ToBase58(),
-			Fee:      xNotify.Fee,
-			Method:   xNotify.Method,
-			Args:     common.ToHexString(xNotify.Args),
+			ShardMsgHeader: header,
+			NotifyID:       xNotify.NotifyID,
+			Contract:       xNotify.Contract.ToHexString(),
+			Payer:          xNotify.Payer.ToBase58(),
+			Fee:            xNotify.Fee,
+			Method:         xNotify.Method,
+			Args:           common.ToHexString(xNotify.Args),
 		}
 		xShardnotifys = append(xShardnotifys, n)
 	}

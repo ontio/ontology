@@ -20,12 +20,12 @@ package actor
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstate "github.com/ontio/ontology/smartcontract/states"
-	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 )
 
 const (

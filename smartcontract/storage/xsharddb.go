@@ -23,11 +23,11 @@ import (
 	"sort"
 
 	comm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/xshard_types"
-	"github.com/ontio/ontology/common/log"
 )
 
 // CacheDB is smart contract execute cache, it contain transaction cache and block cache
