@@ -234,6 +234,17 @@ func (pool *PeerPool) GetPeerPubKey(peerIdx uint32) keypair.PublicKey {
 	return nil
 }
 
+func (pool *PeerPool) GetAllPubKeys() map[uint32]keypair.PublicKey {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+
+	keys := make(map[uint32]keypair.PublicKey)
+	for idx, peer := range pool.peers {
+		keys[idx] = peer.PubKey
+	}
+	return keys
+}
+
 func (pool *PeerPool) isPeerAlive(peerIdx uint32) bool {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
