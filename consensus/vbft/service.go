@@ -403,7 +403,7 @@ func (self *Server) updateChainConfig() error {
 			log.Infof("updateChainConfig add peer index:%v,id:%v", p.ID, p.Index)
 		}
 	}
-	for index, peer := range self.peerPool.peers {
+	for index, peerPubKey := range self.peerPool.GetAllPubKeys() {
 		_, present := peermap[index]
 		if !present {
 			if index == self.Index {
@@ -411,7 +411,7 @@ func (self *Server) updateChainConfig() error {
 				log.Infof("updateChainConfig remove index :%d", index)
 			} else {
 				if C, present := self.msgRecvC[index]; present {
-					pubkey := vconfig.PubkeyID(peer.PubKey)
+					pubkey := vconfig.PubkeyID(peerPubKey)
 					self.peerPool.RemovePeerIndex(pubkey)
 					log.Infof("updateChainConfig remove consensus:index:%d,id:%v", index, pubkey)
 					C <- nil
