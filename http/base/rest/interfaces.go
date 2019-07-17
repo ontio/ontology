@@ -545,8 +545,8 @@ func GetShardTxState(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
 	value, err := bactor.GetShardTxState(txHash)
-    if err != nil {
-    	return ResponsePack(berr.INTERNAL_ERROR)
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	r, err := bcomn.ParseShardState(value)
 	if err != nil {
