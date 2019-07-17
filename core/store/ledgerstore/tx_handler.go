@@ -189,6 +189,8 @@ func HandleChangeMetadataTransaction(store store.LedgerStore, overlay *overlaydb
 		return fmt.Errorf("checkInvokedContract err %s", err)
 	}
 	cache.PutMetaData(meta)
+	log.Error("meta:", meta)
+	log.Errorf("metaShardId: %d\n", meta.ShardId)
 	gasConsumed := uint64(0)
 	if tx.GasPrice > 0 {
 		wholeGas := gasTable[neovm.CONTRACT_SET_META_DATA_NAME]
@@ -1097,6 +1099,8 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	}
 
 	costGas = costGasLimit * tx.GasPrice
+	log.Error("err:", err)
+	log.Errorf("**************************, txState.ExecState: %d", uint8(txState.ExecState))
 	if err != nil {
 		if isCharge {
 			if err = costInvalidGas(tx.Payer, costGas, config, cache, store, notify.ContractEvent, header.ShardID); err != nil {

@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
@@ -370,6 +371,9 @@ func (self *Ledger) GetParentContract(blockHeight uint32, addr common.Address) (
 
 func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
 	return self.ldgStore.GetShardConsensusConfig(shardID, height)
+}
+func (self *Ledger) GetShardTxState(txHash common.Uint256) ([]*xshard_state.TxState, error) {
+	return self.ldgStore.GetShardTxState(txHash)
 }
 
 func (self *Ledger) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {

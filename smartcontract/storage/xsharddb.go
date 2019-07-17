@@ -27,6 +27,7 @@ import (
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/xshard_types"
+	"github.com/ontio/ontology/common/log"
 )
 
 // CacheDB is smart contract execute cache, it contain transaction cache and block cache
@@ -71,6 +72,8 @@ func (self *XShardDB) GetXShardState(id xshard_types.ShardTxID) (*xshard_state.T
 }
 
 func (self *XShardDB) SetXShardState(state *xshard_state.TxState) {
+	log.Error("txState:", state)
+	log.Errorf("txId: %s", comm.ToHexString([]byte(string(state.TxID))))
 	buf := comm.SerializeToBytes(state)
 	self.cacheDB.put(common.XSHARD_STATE, []byte(string(state.TxID)), buf)
 }

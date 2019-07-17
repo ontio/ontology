@@ -22,16 +22,20 @@ package common
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
+	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	cutils "github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/core/xshard_types"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -500,4 +504,200 @@ func GetAddress(str string) (common.Address, error) {
 		address, err = common.AddressFromBase58(str)
 	}
 	return address, err
+}
+
+type TxStateInfo struct {
+	TxID           string           // cross shard tx id: userTxHash+notify1+notify2...
+	Shards         map[uint64]uint8 // shards in this shard transaction, not include notification
+	NumNotifies    uint32
+	ShardNotifies  []XShardNotify
+	NextReqID      uint32
+	InReqResp      map[uint64][]XShardTxReqResp // todo: request id may conflict
+	PendingInReq   XShardTxReq
+	TotalInReq     uint32
+	OutReqResp     []XShardTxReqResp
+	TxPayload      string
+	PendingOutReq  XShardTxReq
+	PendingPrepare *xshard_types.XShardPrepareMsg
+	ExecState      uint8
+	Result         string
+	ResultErr      string
+	LockedAddress  []string
+	LockedKeys     []string
+	WriteSet       *overlaydb.MemDB
+	Notify         ExecuteNotify
+}
+type ShardMsgHeader struct {
+	ShardTxID     string
+	SourceShardID uint64
+	TargetShardID uint64
+	SourceTxHash  string
+}
+type XShardTxReq struct {
+	ShardMsgHeader
+	IdxInTx  uint64
+	Contract string
+	Payer    string
+	Fee      uint64
+	GasPrice uint64
+	Method   string
+	Args     string
+}
+type XShardTxRsp struct {
+	ShardMsgHeader
+	IdxInTx uint64
+	FeeUsed uint64
+	Error   bool
+	Result  string
+}
+type XShardTxReqResp struct {
+	Req   XShardTxReq
+	Resp  XShardTxRsp
+	Index uint32
+}
+
+type XShardNotify struct {
+	ShardMsgHeader
+	NotifyID uint32
+	Contract string
+	Payer    string
+	Fee      uint64
+	Method   string
+	Args     string
+}
+
+func ParseShardState(txStates []*xshard_state.TxState) ([]string, error) {
+	txStateInfos := make([]string, 0)
+	for _, txState := range txStates {
+		shards := make(map[uint64]uint8)
+		for k, v := range txState.Shards {
+			shards[k.ToUint64()] = uint8(v)
+		}
+		lockedAddress := make([]string, 0)
+		for _, addr := range txState.LockedAddress {
+			lockedAddress = append(lockedAddress, addr.ToBase58())
+		}
+		lockedKeys := make([]string, 0)
+		for _, key := range txState.LockedKeys {
+			lockedKeys = append(lockedKeys, common.ToHexString(key))
+		}
+		var notify ExecuteNotify
+		if txState.Notify != nil {
+			_, notify = GetExecuteNotify(txState.Notify)
+		}
+		inReqResp := make(map[uint64][]XShardTxReqResp)
+		if txState.InReqResp != nil {
+			for k, v := range txState.InReqResp {
+				xShardTxReqResps := parseXShardTxReqResp(v)
+				inReqResp[k.ToUint64()] = xShardTxReqResps
+			}
+		}
+		var pendingInReq XShardTxReq
+		if txState.PendingInReq != nil {
+			pendingInReq, _ = parseXShardTxReq(txState.PendingInReq)
+		}
+		var outReqResp []XShardTxReqResp
+		if txState.OutReqResp != nil {
+			outReqResp = parseXShardTxReqResp(txState.OutReqResp)
+		}
+		var pendingOutReq XShardTxReq
+		if txState.PendingOutReq != nil {
+			pendingOutReq, _ = parseXShardTxReq(txState.PendingOutReq)
+		}
+		var xns []XShardNotify
+		if txState.ShardNotifies != nil {
+			xns = parseShardNotifies(txState.ShardNotifies)
+		}
+		txStateInfo := TxStateInfo{
+			TxID:           common.ToHexString([]byte(string(txState.TxID))),
+			Shards:         shards,
+			NumNotifies:    txState.NumNotifies,
+			ShardNotifies:  xns,
+			NextReqID:      txState.NextReqID,
+			InReqResp:      inReqResp,
+			PendingInReq:   pendingInReq,
+			TotalInReq:     txState.TotalInReq,
+			OutReqResp:     outReqResp,
+			TxPayload:      common.ToHexString(txState.TxPayload),
+			PendingOutReq:  pendingOutReq,
+			PendingPrepare: txState.PendingPrepare,
+			ExecState:      uint8(txState.ExecState),
+			Result:         common.ToHexString(txState.Result),
+			ResultErr:      txState.ResultErr,
+			LockedAddress:  lockedAddress,
+			LockedKeys:     lockedKeys,
+			WriteSet:       txState.WriteSet,
+			Notify:         notify,
+		}
+		txStateInfoBytes, err := json.Marshal(txStateInfo)
+		if err != nil {
+			return nil, err
+		}
+		txStateInfos = append(txStateInfos, string(txStateInfoBytes))
+	}
+	return txStateInfos, nil
+}
+
+func parseShardNotifies(notifys []*xshard_types.XShardNotify) []XShardNotify {
+	xShardnotifys := make([]XShardNotify, 0, len(notifys))
+	for _, xNotify := range notifys {
+		header := ShardMsgHeader{
+			ShardTxID:     common.ToHexString([]byte(string(xNotify.ShardMsgHeader.ShardTxID))),
+			SourceShardID: xNotify.ShardMsgHeader.SourceShardID.ToUint64(),
+			TargetShardID: xNotify.ShardMsgHeader.TargetShardID.ToUint64(),
+			SourceTxHash:  xNotify.ShardMsgHeader.SourceTxHash.ToHexString(),
+		}
+		n := XShardNotify{
+			ShardMsgHeader:header,
+			NotifyID: xNotify.NotifyID,
+			Contract: xNotify.Contract.ToHexString(),
+			Payer:    xNotify.Payer.ToBase58(),
+			Fee:      xNotify.Fee,
+			Method:   xNotify.Method,
+			Args:     common.ToHexString(xNotify.Args),
+		}
+		xShardnotifys = append(xShardnotifys, n)
+	}
+	return xShardnotifys
+}
+
+func parseXShardTxReqResp(reqRsp []*xshard_state.XShardTxReqResp) []XShardTxReqResp {
+	xShardTxReqResps := make([]XShardTxReqResp, 0, len(reqRsp))
+	for _, item := range reqRsp {
+		xShardTxReq, shardMsgHeader := parseXShardTxReq(item.Req)
+		xShardTxRsp := XShardTxRsp{
+			ShardMsgHeader: shardMsgHeader,
+			IdxInTx:        item.Resp.IdxInTx,
+			FeeUsed:        item.Resp.FeeUsed,
+			Error:          item.Resp.Error,
+			Result:         common.ToHexString(item.Resp.Result),
+		}
+		xShardTxReqResp := XShardTxReqResp{
+			Req:   xShardTxReq,
+			Resp:  xShardTxRsp,
+			Index: item.Index,
+		}
+		xShardTxReqResps = append(xShardTxReqResps, xShardTxReqResp)
+	}
+	return xShardTxReqResps
+}
+func parseXShardTxReq(req *xshard_types.XShardTxReq) (XShardTxReq, ShardMsgHeader) {
+
+	shardMsgHeader := ShardMsgHeader{
+		ShardTxID:     string(req.ShardTxID),
+		SourceShardID: req.SourceShardID.ToUint64(),
+		TargetShardID: req.TargetShardID.ToUint64(),
+		SourceTxHash:  req.SourceTxHash.ToHexString(),
+	}
+	xShardTxReq := XShardTxReq{
+		ShardMsgHeader: shardMsgHeader,
+		IdxInTx:        req.IdxInTx,
+		Contract:       req.Contract.ToHexString(),
+		Payer:          req.Payer.ToBase58(),
+		Fee:            req.Fee,
+		GasPrice:       req.GasPrice,
+		Method:         req.Method,
+		Args:           common.ToHexString(req.Args),
+	}
+	return xShardTxReq, shardMsgHeader
 }

@@ -64,6 +64,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getgrantong", rpc.GetGrantOng)
 
 	rpc.HandleFunc("getshardstorage", rpc.GetShardStorage)
+	rpc.HandleFunc("getshardtxstate", rpc.GetShardTxState)
 	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {
 		return fmt.Errorf("ListenAndServe error:%s", err)

@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstates "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 )
 
 type ExecuteResult struct {
@@ -78,4 +79,5 @@ type LedgerStore interface {
 	GetParentMetaData(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error)
 	GetParentContract(blockHeight uint32, addr common.Address) (*payload.DeployCode, error)
 	GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error)
+    GetShardTxState(txHash common.Uint256) ([]*xshard_state.TxState, error)
 }

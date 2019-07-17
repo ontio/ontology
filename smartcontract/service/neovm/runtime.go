@@ -34,6 +34,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	vm "github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/ontology/common/log"
 )
 
 // HeaderGetNextConsensus put current block time to vm stack
@@ -118,6 +119,7 @@ func RuntimeNotify(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if err != nil {
 		return err
 	}
+	log.Error("**RuntimeNotify:", states)
 	service.Notifications = append(service.Notifications, &event.NotifyEventInfo{ContractAddress: context.ContractAddress, States: states})
 	return nil
 }

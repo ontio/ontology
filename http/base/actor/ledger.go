@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	cstate "github.com/ontio/ontology/smartcontract/states"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 )
 
 const (
@@ -70,6 +71,11 @@ func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 //GetStorageItem from ledger
 func GetStorageItem(address common.Address, key []byte) ([]byte, error) {
 	return ledger.DefLedger.GetStorageItem(address, key)
+}
+
+//GetStorageItem from ledger
+func GetShardTxState(txHash common.Uint256) ([]*xshard_state.TxState, error) {
+	return ledger.DefLedger.GetShardTxState(txHash)
 }
 
 //GetContractStateFromStore from ledger
