@@ -1473,6 +1473,7 @@ func (this *LedgerStoreImp) GetShardTxState(txHash common.Uint256) ([]*xshard_st
 	txStates = append(txStates, sourceTxState)
 	sink := common.NewZeroCopySink(0)
 	for notifyID := uint32(0); notifyID < sourceTxState.NumNotifies; notifyID++ {
+		sink.Reset()
 		sink.WriteBytes([]byte(shardTxID))
 		sink.WriteUint32(notifyID)
 		crossShardTxID := xshard_types.ShardTxID(string(sink.Bytes()))
