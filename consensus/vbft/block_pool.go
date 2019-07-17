@@ -463,7 +463,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
-		if crossShardMsgSig,present := msg.CrossShardMsgSig[endorser]; present {
+		if crossShardMsgSig, present := msg.CrossShardMsgSig[endorser]; present {
 			eSig.CrossShardMsgSig = crossShardMsgSig
 		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig)
@@ -607,7 +607,9 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
 				}
-				block.CrossMsgHash.SigData[sig.EndorsedProposer] = sig.CrossShardMsgSig
+				if block.CrossMsgHash != nil {
+					block.CrossMsgHash.SigData[sig.EndorsedProposer] = sig.CrossShardMsgSig
+				}
 				break
 			}
 		}
