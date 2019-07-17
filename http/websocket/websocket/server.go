@@ -180,6 +180,7 @@ func (self *WsServer) registryMethod() {
 	actionMap := map[string]Handler{
 		"getblockheightbytxhash":    {handler: rest.GetBlockHeightByTxHash},
 		"getsmartcodeeventbyhash":   {handler: rest.GetSmartCodeEventByTxHash},
+		"getshardsmartcodeevent":    {handler: rest.GetShardSmartCodeEvent},
 		"getshardtxhash":            {handler: rest.GetShardTxHashBySourceTxHash},
 		"getsmartcodeeventbyheight": {handler: rest.GetSmartCodeEventTxsByHeight},
 		"getcontract":               {handler: rest.GetContractState},
@@ -195,6 +196,7 @@ func (self *WsServer) registryMethod() {
 		"subscribe":                 {handler: subscribe},
 		"getstorage":                {handler: rest.GetStorage},
 		"getshardstorage":           {handler: rest.GetShardStorage},
+		"getshardtxstate":           {handler: rest.GetShardTxState},
 		"getallowance":              {handler: rest.GetAllowance},
 		"getmerkleproof":            {handler: rest.GetMerkleProof},
 		"getblocktxsbyheight":       {handler: rest.GetBlockTxsByHeight},

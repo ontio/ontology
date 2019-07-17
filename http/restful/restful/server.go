@@ -64,6 +64,7 @@ const (
 	GET_TX                = "/api/v1/transaction/:hash"
 	GET_STORAGE           = "/api/v1/storage/:hash/:key"
 	GET_SHARD_STORAGE     = "/api/v1/shardstorage/:shardid/:hash/:key"
+	GET_SHARD_TX_STATE    = "/api/v1/shardtxstate/:txhash"
 	GET_BALANCE           = "/api/v1/balance/:addr"
 	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
@@ -148,11 +149,12 @@ func (this *restServer) registryMethod() {
 		GET_CONTRACT_STATE:    {name: "getcontract", handler: rest.GetContractState},
 		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
 		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
-		GET_SHARD_EVTS:        {name: "getshardsmartcodeeventbyhash", handler: rest.GetShardSmartCodeEventByTxHash},
+		GET_SHARD_EVTS:        {name: "getshardsmartcodeevent", handler: rest.GetShardSmartCodeEvent},
 		GET_SHARD_TX_HASH:     {name: "getshardtxhash", handler: rest.GetShardTxHashBySourceTxHash},
 		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
 		GET_SHARD_STORAGE:     {name: "getshardstorage", handler: rest.GetShardStorage},
+		GET_SHARD_TX_STATE:    {name: "getshardtxstate", handler: rest.GetShardTxState},
 		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
 		GET_ALLOWANCE:         {name: "getallowance", handler: rest.GetAllowance},
 		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
@@ -197,6 +199,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_BLK_HGT_BY_TXHASH
 	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_STORAGE, ":shardid/:hash/:key")) {
 		return GET_SHARD_STORAGE
+	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE, ":txhash")) {
+		return GET_SHARD_TX_STATE
 	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
 		return GET_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
@@ -238,6 +242,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
 	case GET_SHARD_STORAGE:
 		req["ShardID"], req["Hash"], req["Key"] = getParam(r, "shardid"), getParam(r, "hash"), getParam(r, "key")
+	case GET_SHARD_TX_STATE:
+		req["TxHash"] = getParam(r, "txhash")
 	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:
