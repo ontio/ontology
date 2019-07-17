@@ -22,7 +22,6 @@ package common
 import (
 	"bytes"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -566,8 +565,8 @@ type XShardNotify struct {
 	Args     string
 }
 
-func ParseShardState(txStates []*xshard_state.TxState) ([]string, error) {
-	txStateInfos := make([]string, 0)
+func ParseShardState(txStates []*xshard_state.TxState) ([]TxStateInfo, error) {
+	txStateInfos := make([]TxStateInfo, 0)
 	for _, txState := range txStates {
 		shards := make(map[uint64]uint8)
 		for k, v := range txState.Shards {
@@ -629,11 +628,7 @@ func ParseShardState(txStates []*xshard_state.TxState) ([]string, error) {
 			WriteSet:       txState.WriteSet,
 			Notify:         notify,
 		}
-		txStateInfoBytes, err := json.Marshal(txStateInfo)
-		if err != nil {
-			return nil, err
-		}
-		txStateInfos = append(txStateInfos, string(txStateInfoBytes))
+		txStateInfos = append(txStateInfos, txStateInfo)
 	}
 	return txStateInfos, nil
 }
@@ -684,7 +679,7 @@ func parseXShardTxReqResp(reqRsp []*xshard_state.XShardTxReqResp) []XShardTxReqR
 func parseXShardTxReq(req *xshard_types.XShardTxReq) (XShardTxReq, ShardMsgHeader) {
 
 	shardMsgHeader := ShardMsgHeader{
-		ShardTxID:     string(req.ShardTxID),
+		ShardTxID:     common.ToHexString([]byte(string(req.ShardTxID))),
 		SourceShardID: req.SourceShardID.ToUint64(),
 		TargetShardID: req.TargetShardID.ToUint64(),
 		SourceTxHash:  req.SourceTxHash.ToHexString(),

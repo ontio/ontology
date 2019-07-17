@@ -338,12 +338,10 @@ func GetShardTxState(params []interface{}) map[string]interface{} {
 		}
 		return responsePack(berr.INVALID_PARAMS, err.Error())
 	}
-	log.Info("value:", value)
 	r, err := bcomn.ParseShardState(value)
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, err.Error())
 	}
-	log.Info("res:", r)
 	return responseSuccess(r)
 }
 
