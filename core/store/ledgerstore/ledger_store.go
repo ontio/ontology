@@ -39,6 +39,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/states"
@@ -1458,4 +1459,20 @@ func (this *LedgerStoreImp) GetContractEvent(addr common.Address) (*message.Cont
 
 func (this *LedgerStoreImp) GetMetaDataEvnet(height uint32, addr common.Address) (*payload.MetaDataCode, error) {
 	return this.eventStore.GetContractMetaDataEvent(height, addr)
+}
+
+func (this *LedgerStoreImp) GetShardTxState(txHash common.Uint256, notifyId uint32, hasNotifyId bool) (*xshard_state.TxState, error) {
+	overlay := this.stateStore.NewOverlayDB()
+	xshardDB := storage.NewXShardDB(overlay)
+
+	var shardTxID xshard_types.ShardTxID
+	shardTxID = xshard_types.ShardTxID(string(txHash[:]))
+	if !hasNotifyId {
+		return xshardDB.GetXShardState(shardTxID)
+	}
+	sink := common.NewZeroCopySink(0)
+	sink.WriteBytes([]byte(shardTxID))
+	sink.WriteUint32(notifyId)
+	crossShardTxID := xshard_types.ShardTxID(string(sink.Bytes()))
+	return xshardDB.GetXShardState(crossShardTxID)
 }

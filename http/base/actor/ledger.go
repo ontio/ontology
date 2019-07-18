@@ -20,6 +20,7 @@ package actor
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -70,6 +71,11 @@ func GetTransaction(hash common.Uint256) (*types.Transaction, error) {
 //GetStorageItem from ledger
 func GetStorageItem(address common.Address, key []byte) ([]byte, error) {
 	return ledger.DefLedger.GetStorageItem(address, key)
+}
+
+//GetStorageItem from ledger
+func GetShardTxState(txHash common.Uint256, notifyId uint32, hasNotifyId bool) (*xshard_state.TxState, error) {
+	return ledger.DefLedger.GetShardTxState(txHash, notifyId, hasNotifyId)
 }
 
 //GetContractStateFromStore from ledger

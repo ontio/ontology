@@ -311,6 +311,48 @@ func GetShardStorage(params []interface{}) map[string]interface{} {
 	return responseSuccess(common.ToHexString(value))
 }
 
+//get storage from contract
+//   {"jsonrpc": "2.0", "method": "getshardtxstate", "params": ["tx hash", "notify id"], "id": 0}
+func GetShardTxState(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+
+	str, ok := params[0].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	txHash, err := common.Uint256FromHexString(str)
+	if err != nil {
+		return responsePack(berr.INVALID_PARAMS, err.Error())
+	}
+	var notifyId uint64
+	var isHasNotify bool
+	if len(params) > 1 {
+		str, ok := params[1].(string)
+		if !ok {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		notifyId, err = strconv.ParseUint(str, 10, 64)
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		isHasNotify = true
+	}
+	value, err := bactor.GetShardTxState(txHash, uint32(notifyId), isHasNotify)
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return responseSuccess(nil)
+		}
+		return responsePack(berr.INVALID_PARAMS, err.Error())
+	}
+	r, err := bcomn.ParseShardState(value)
+	if err != nil {
+		return responsePack(berr.INTERNAL_ERROR, err.Error())
+	}
+	return responseSuccess(r)
+}
+
 //send raw transaction
 // A JSON example for sendrawtransaction method as following:
 //   {"jsonrpc": "2.0", "method": "sendrawtransaction", "params": ["raw transactioin in hex"], "id": 0}

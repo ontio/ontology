@@ -366,7 +366,7 @@ func GetSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{
 }
 
 //get shard smartcontract event by transaction hash
-func GetShardSmartCodeEventByTxHash(cmd map[string]interface{}) map[string]interface{} {
+func GetShardSmartCodeEvent(cmd map[string]interface{}) map[string]interface{} {
 	if !config.DefConfig.Common.EnableEventLog {
 		return ResponsePack(berr.INVALID_METHOD)
 	}
@@ -530,6 +530,38 @@ func GetShardStorage(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	resp["Result"] = common.ToHexString(value)
+	return resp
+}
+
+//get storage from contract
+func GetShardTxState(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	txHashStr, ok := cmd["TxHash"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	txHash, err := common.Uint256FromHexString(txHashStr)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	notifyId, ok := cmd["NotifyId"]
+	var nid uint32
+	if ok {
+		var nok bool
+		nid, nok = notifyId.(uint32)
+		if nok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+	}
+	value, err := bactor.GetShardTxState(txHash, nid, ok)
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	r, err := bcomn.ParseShardState(value)
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = r
 	return resp
 }
 

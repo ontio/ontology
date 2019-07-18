@@ -516,6 +516,23 @@ func GetShardSmartContractEventInfo(sourceTxHash string) ([]byte, error) {
 	return nil, ontErr.Error
 }
 
+func GetShardTxState(txHash string, notifyId string, hasNotifyId bool) ([]byte, error) {
+	params := make([]interface{}, 0)
+	params = append(params, txHash)
+	if hasNotifyId {
+		params = append(params, notifyId)
+	}
+	data, ontErr := sendRpcRequest("getshardtxstate", params)
+	if ontErr == nil {
+		return data, nil
+	}
+	switch ontErr.ErrorCode {
+	case ERROR_INVALID_PARAMS:
+		return nil, fmt.Errorf("invalid TxHash:%s", txHash)
+	}
+	return nil, ontErr.Error
+}
+
 func GetRawTransaction(txHash string) ([]byte, error) {
 	data, ontErr := sendRpcRequest("getrawtransaction", []interface{}{txHash, 1})
 	if ontErr == nil {

@@ -63,11 +63,11 @@ var InfoCommand = cli.Command{
 			},
 		},
 		{
-			Action:      shardTxStatus,
-			Name:        "shardtxstatus",
-			Usage:       "Display shardtransaction status through sourceTxHash",
-			ArgsUsage:   "<sourcetxhash>",
-			Description: `Display shard transaction status with source transaction hash.`,
+			Action:      txState,
+			Name:        "txstate",
+			Usage:       "Display transaction state",
+			ArgsUsage:   "<txhash, [notifyid]>",
+			Description: `Display tx state if tx invoke remote shard, or tx is shard tx.`,
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 			},
@@ -182,6 +182,34 @@ func shardTxStatus(ctx *cli.Context) error {
 	}
 	PrintInfoMsg("Transaction states:")
 	PrintJsonData(evtInfos)
+	return nil
+}
+
+func txState(ctx *cli.Context) error {
+	SetRpcPort(ctx)
+	if ctx.NArg() < 1 {
+		PrintErrorMsg("Missing argument. TxHash expected.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	txHash := ctx.Args().First()
+	var notifyId string
+	var hasNotifyId bool
+	if ctx.NArg() > 1 {
+		args := ctx.Args().Tail()
+		notifyId = args[0]
+		hasNotifyId = true
+	}
+	txState, err := utils.GetShardTxState(txHash, notifyId, hasNotifyId)
+	if err != nil {
+		return fmt.Errorf("GetShardTxState error:%s", err)
+	}
+	if string(txState) == "null" {
+		PrintInfoMsg("Cannot get shard transaction state by TxHash:%s.", txHash)
+		return nil
+	}
+	PrintInfoMsg("Transaction states:")
+	PrintJsonData(txState)
 	return nil
 }
 
