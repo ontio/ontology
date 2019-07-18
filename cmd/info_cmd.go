@@ -66,7 +66,7 @@ var InfoCommand = cli.Command{
 			Action:      txState,
 			Name:        "txstate",
 			Usage:       "Display transaction state",
-			ArgsUsage:   "<txhash|notifyid>",
+			ArgsUsage:   "<txhash> <[notifyid]>",
 			Description: `Display tx state if tx invoke remote shard, or tx is shard tx.`,
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
