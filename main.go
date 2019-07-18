@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path"
 	"runtime"
 	"syscall"
 	"time"
@@ -437,11 +436,7 @@ func logCurrBlockHeight(shardID common.ShardID) {
 			isNeedNewFile := log.CheckIfNeedNewFile()
 			if isNeedNewFile {
 				log.ClosePrintLog()
-				logPath := log.PATH
-				if !shardID.IsRootShard() {
-					logPath = path.Join(chainmgr.GetShardName(shardID), logPath)
-				}
-				log.InitLog(int(config.DefConfig.Common.LogLevel), logPath, log.Stdout)
+				log.InitLog(int(config.DefConfig.Common.LogLevel), log.PATH, log.Stdout)
 			}
 		}
 	}

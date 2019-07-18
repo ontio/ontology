@@ -368,8 +368,8 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		if err != nil {
 			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
 		}
-		proposal.Block.CrossMsgHash.SigData[self.Index] = sig
-		msg.CrossShardMsgSig = proposal.Block.CrossMsgHash.SigData
+		msg.CrossShardMsgProposerSig = proposal.Block.CrossMsgHash.SigData[proposal.Block.getProposer()]
+		msg.CrossShardMsgEndorserSig = sig
 	}
 	return msg, nil
 }
@@ -399,24 +399,14 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		return nil, fmt.Errorf("endorser failed to sign block. hash:%x, caused by: %s", blkHash, err)
 	}
 	endorsersSig := make(map[uint32][]byte)
-	crossshardmsgSig := make(map[uint32][]byte)
+	crossSMEndorserSig := make(map[uint32][]byte)
 	commitShard := true
 	for _, e := range endorses {
 		endorsersSig[e.Endorser] = e.EndorserSig
-		for index, sig := range e.CrossShardMsgSig {
-			crossshardmsgSig[index] = sig
-		}
+		crossSMEndorserSig[e.Endorser] = e.CrossShardMsgEndorserSig
 		if e.Endorser == self.Index {
 			commitShard = false
 		}
-	}
-	if proposal.Block.CrossMsgHash != nil && commitShard {
-		msgRoot := common.ComputeMerkleRoot(proposal.Block.CrossMsgHash.ShardMsgHashs)
-		sig, err := signature.Sign(self.account, msgRoot[:])
-		if err != nil {
-			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
-		}
-		crossshardmsgSig[self.Index] = sig
 	}
 	msg := &blockCommitMsg{
 		Committer:        self.Index,
@@ -427,9 +417,16 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		ProposerSig:      proposerSig,
 		EndorsersSig:     endorsersSig,
 		CommitterSig:     committerSig,
-		CrossShardMsgSig: crossshardmsgSig,
+		CrossShardMsgSig: crossSMEndorserSig,
 	}
-
+	if proposal.Block.CrossMsgHash != nil && commitShard {
+		msgRoot := common.ComputeMerkleRoot(proposal.Block.CrossMsgHash.ShardMsgHashs)
+		sig, err := signature.Sign(self.account, msgRoot[:])
+		if err != nil {
+			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
+		}
+		msg.CrossShardMsgCommitterSig = sig
+	}
 	return msg, nil
 }
 

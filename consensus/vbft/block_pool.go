@@ -40,7 +40,7 @@ type CandidateEndorseSigInfo struct {
 	EndorsedProposer uint32
 	Signature        []byte
 	ForEmpty         bool
-	CrossShardMsgSig map[uint32][]byte
+	CrossShardMsgSig []byte
 }
 
 type CandidateInfo struct {
@@ -290,7 +290,7 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
-		CrossShardMsgSig: msg.CrossShardMsgSig,
+		CrossShardMsgSig: msg.CrossShardMsgEndorserSig,
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig)
 }
@@ -462,7 +462,9 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			EndorsedProposer: msg.BlockProposer,
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
-			CrossShardMsgSig: msg.CrossShardMsgSig,
+		}
+		if crossShardMsgSig, present := msg.CrossShardMsgSig[endorser]; present {
+			eSig.CrossShardMsgSig = crossShardMsgSig
 		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig)
 	}
@@ -471,7 +473,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
 		ForEmpty:         msg.CommitForEmpty,
-		CrossShardMsgSig: msg.CrossShardMsgSig,
+		CrossShardMsgSig: msg.CrossShardMsgCommitterSig,
 	})
 
 	// add msg to commit-msgs
@@ -605,8 +607,8 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
 				}
-				for index, sig := range sig.CrossShardMsgSig {
-					block.CrossMsgHash.SigData[index] = sig
+				if block.CrossMsgHash != nil {
+					block.CrossMsgHash.SigData[endorser] = sig.CrossShardMsgSig
 				}
 				break
 			}
