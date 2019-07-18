@@ -164,6 +164,26 @@ func txStatus(ctx *cli.Context) error {
 	PrintJsonData(evtInfos)
 	return nil
 }
+func shardTxStatus(ctx *cli.Context) error {
+	SetRpcPort(ctx)
+	if ctx.NArg() < 1 {
+		PrintErrorMsg("Missing argument. SourceTxHash expected.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	txHash := ctx.Args().First()
+	evtInfos, err := utils.GetShardSmartContractEventInfo(txHash)
+	if err != nil {
+		return fmt.Errorf("GetSmartContractEvent error:%s", err)
+	}
+	if string(evtInfos) == "null" {
+		PrintInfoMsg("Cannot get SmartContractEvent by TxHash:%s.", txHash)
+		return nil
+	}
+	PrintInfoMsg("Transaction states:")
+	PrintJsonData(evtInfos)
+	return nil
+}
 
 func txState(ctx *cli.Context) error {
 	SetRpcPort(ctx)
