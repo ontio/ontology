@@ -74,8 +74,8 @@ func GetStorageItem(address common.Address, key []byte) ([]byte, error) {
 }
 
 //GetStorageItem from ledger
-func GetShardTxState(txHash common.Uint256) ([]*xshard_state.TxState, error) {
-	return ledger.DefLedger.GetShardTxState(txHash)
+func GetShardTxState(txHash common.Uint256, notifyId uint32, isHasNotifyId bool) (*xshard_state.TxState, error) {
+	return ledger.DefLedger.GetShardTxState(txHash, notifyId, isHasNotifyId)
 }
 
 //GetContractStateFromStore from ledger

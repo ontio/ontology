@@ -64,7 +64,7 @@ const (
 	GET_TX                = "/api/v1/transaction/:hash"
 	GET_STORAGE           = "/api/v1/storage/:hash/:key"
 	GET_SHARD_STORAGE     = "/api/v1/shardstorage/:shardid/:hash/:key"
-	GET_SHARD_TX_STATE    = "/api/v1/shardtxstate/:txhash"
+	GET_SHARD_TX_STATE    = "/api/v1/shardtxstate/:txhash/:notifyid"
 	GET_BALANCE           = "/api/v1/balance/:addr"
 	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
@@ -199,7 +199,7 @@ func (this *restServer) getPath(url string) string {
 		return GET_BLK_HGT_BY_TXHASH
 	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_STORAGE, ":shardid/:hash/:key")) {
 		return GET_SHARD_STORAGE
-	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE, ":txhash")) {
+	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE, ":txhash/notifyid")) {
 		return GET_SHARD_TX_STATE
 	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
 		return GET_STORAGE
@@ -244,6 +244,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["ShardID"], req["Hash"], req["Key"] = getParam(r, "shardid"), getParam(r, "hash"), getParam(r, "key")
 	case GET_SHARD_TX_STATE:
 		req["TxHash"] = getParam(r, "txhash")
+		req["NotifyId"] = getParam(r, "notifyid")
 	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:

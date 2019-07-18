@@ -372,8 +372,8 @@ func (self *Ledger) GetParentContract(blockHeight uint32, addr common.Address) (
 func (self *Ledger) GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error) {
 	return self.ldgStore.GetShardConsensusConfig(shardID, height)
 }
-func (self *Ledger) GetShardTxState(txHash common.Uint256) ([]*xshard_state.TxState, error) {
-	return self.ldgStore.GetShardTxState(txHash)
+func (self *Ledger) GetShardTxState(txHash common.Uint256, notifyId uint32, isHasNotifyId bool) (*xshard_state.TxState, error) {
+	return self.ldgStore.GetShardTxState(txHash, notifyId, isHasNotifyId)
 }
 
 func (self *Ledger) GetShardTxHashBySourceTxHash(sourceTxHash common.Uint256) (common.Uint256, error) {

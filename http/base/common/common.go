@@ -565,72 +565,68 @@ type XShardNotify struct {
 	Args     string
 }
 
-func ParseShardState(txStates []*xshard_state.TxState) ([]TxStateInfo, error) {
-	txStateInfos := make([]TxStateInfo, 0)
-	for _, txState := range txStates {
-		shards := make(map[uint64]uint8)
-		for k, v := range txState.Shards {
-			shards[k.ToUint64()] = uint8(v)
-		}
-		lockedAddress := make([]string, 0)
-		for _, addr := range txState.LockedAddress {
-			lockedAddress = append(lockedAddress, addr.ToBase58())
-		}
-		lockedKeys := make([]string, 0)
-		for _, key := range txState.LockedKeys {
-			lockedKeys = append(lockedKeys, common.ToHexString(key))
-		}
-		var notify ExecuteNotify
-		if txState.Notify != nil {
-			_, notify = GetExecuteNotify(txState.Notify)
-		}
-		inReqResp := make(map[uint64][]XShardTxReqResp)
-		if txState.InReqResp != nil {
-			for k, v := range txState.InReqResp {
-				xShardTxReqResps := parseXShardTxReqResp(v)
-				inReqResp[k.ToUint64()] = xShardTxReqResps
-			}
-		}
-		var pendingInReq XShardTxReq
-		if txState.PendingInReq != nil {
-			pendingInReq, _ = parseXShardTxReq(txState.PendingInReq)
-		}
-		var outReqResp []XShardTxReqResp
-		if txState.OutReqResp != nil {
-			outReqResp = parseXShardTxReqResp(txState.OutReqResp)
-		}
-		var pendingOutReq XShardTxReq
-		if txState.PendingOutReq != nil {
-			pendingOutReq, _ = parseXShardTxReq(txState.PendingOutReq)
-		}
-		var xns []XShardNotify
-		if txState.ShardNotifies != nil {
-			xns = parseShardNotifies(txState.ShardNotifies)
-		}
-		txStateInfo := TxStateInfo{
-			TxID:           common.ToHexString([]byte(string(txState.TxID))),
-			Shards:         shards,
-			NumNotifies:    txState.NumNotifies,
-			ShardNotifies:  xns,
-			NextReqID:      txState.NextReqID,
-			InReqResp:      inReqResp,
-			PendingInReq:   pendingInReq,
-			TotalInReq:     txState.TotalInReq,
-			OutReqResp:     outReqResp,
-			TxPayload:      common.ToHexString(txState.TxPayload),
-			PendingOutReq:  pendingOutReq,
-			PendingPrepare: txState.PendingPrepare,
-			ExecState:      uint8(txState.ExecState),
-			Result:         common.ToHexString(txState.Result),
-			ResultErr:      txState.ResultErr,
-			LockedAddress:  lockedAddress,
-			LockedKeys:     lockedKeys,
-			WriteSet:       txState.WriteSet,
-			Notify:         notify,
-		}
-		txStateInfos = append(txStateInfos, txStateInfo)
+func ParseShardState(txState *xshard_state.TxState) (TxStateInfo, error) {
+
+	shards := make(map[uint64]uint8)
+	for k, v := range txState.Shards {
+		shards[k.ToUint64()] = uint8(v)
 	}
-	return txStateInfos, nil
+	lockedAddress := make([]string, 0)
+	for _, addr := range txState.LockedAddress {
+		lockedAddress = append(lockedAddress, addr.ToBase58())
+	}
+	lockedKeys := make([]string, 0)
+	for _, key := range txState.LockedKeys {
+		lockedKeys = append(lockedKeys, common.ToHexString(key))
+	}
+	var notify ExecuteNotify
+	if txState.Notify != nil {
+		_, notify = GetExecuteNotify(txState.Notify)
+	}
+	inReqResp := make(map[uint64][]XShardTxReqResp)
+	if txState.InReqResp != nil {
+		for k, v := range txState.InReqResp {
+			xShardTxReqResps := parseXShardTxReqResp(v)
+			inReqResp[k.ToUint64()] = xShardTxReqResps
+		}
+	}
+	var pendingInReq XShardTxReq
+	if txState.PendingInReq != nil {
+		pendingInReq, _ = parseXShardTxReq(txState.PendingInReq)
+	}
+	var outReqResp []XShardTxReqResp
+	if txState.OutReqResp != nil {
+		outReqResp = parseXShardTxReqResp(txState.OutReqResp)
+	}
+	var pendingOutReq XShardTxReq
+	if txState.PendingOutReq != nil {
+		pendingOutReq, _ = parseXShardTxReq(txState.PendingOutReq)
+	}
+	var xns []XShardNotify
+	if txState.ShardNotifies != nil {
+		xns = parseShardNotifies(txState.ShardNotifies)
+	}
+	return TxStateInfo{
+		TxID:           common.ToHexString([]byte(string(txState.TxID))),
+		Shards:         shards,
+		NumNotifies:    txState.NumNotifies,
+		ShardNotifies:  xns,
+		NextReqID:      txState.NextReqID,
+		InReqResp:      inReqResp,
+		PendingInReq:   pendingInReq,
+		TotalInReq:     txState.TotalInReq,
+		OutReqResp:     outReqResp,
+		TxPayload:      common.ToHexString(txState.TxPayload),
+		PendingOutReq:  pendingOutReq,
+		PendingPrepare: txState.PendingPrepare,
+		ExecState:      uint8(txState.ExecState),
+		Result:         common.ToHexString(txState.Result),
+		ResultErr:      txState.ResultErr,
+		LockedAddress:  lockedAddress,
+		LockedKeys:     lockedKeys,
+		WriteSet:       txState.WriteSet,
+		Notify:         notify,
+	}, nil
 }
 
 func parseShardNotifies(notifys []*xshard_types.XShardNotify) []XShardNotify {

@@ -1461,27 +1461,18 @@ func (this *LedgerStoreImp) GetMetaDataEvnet(height uint32, addr common.Address)
 	return this.eventStore.GetContractMetaDataEvent(height, addr)
 }
 
-func (this *LedgerStoreImp) GetShardTxState(txHash common.Uint256) ([]*xshard_state.TxState, error) {
-	shardTxID := xshard_types.ShardTxID(string(txHash[:]))
+func (this *LedgerStoreImp) GetShardTxState(txHash common.Uint256, notifyId uint32, isHasNotifyId bool) (*xshard_state.TxState, error) {
 	overlay := this.stateStore.NewOverlayDB()
 	xshardDB := storage.NewXShardDB(overlay)
-	sourceTxState, err := xshardDB.GetXShardState(shardTxID)
-	if err != nil {
-		return nil, err
+
+	var shardTxID xshard_types.ShardTxID
+	shardTxID = xshard_types.ShardTxID(string(txHash[:]))
+	if !isHasNotifyId {
+		return xshardDB.GetXShardState(shardTxID)
 	}
-	txStates := make([]*xshard_state.TxState, 0)
-	txStates = append(txStates, sourceTxState)
 	sink := common.NewZeroCopySink(0)
-	for notifyID := uint32(0); notifyID < sourceTxState.NumNotifies; notifyID++ {
-		sink.Reset()
-		sink.WriteBytes([]byte(shardTxID))
-		sink.WriteUint32(notifyID)
-		crossShardTxID := xshard_types.ShardTxID(string(sink.Bytes()))
-		txState, err := xshardDB.GetXShardState(crossShardTxID)
-		if err != nil {
-			return nil, err
-		}
-		txStates = append(txStates, txState)
-	}
-	return txStates, nil
+	sink.WriteBytes([]byte(shardTxID))
+	sink.WriteUint32(notifyId)
+	crossShardTxID := xshard_types.ShardTxID(string(sink.Bytes()))
+	return xshardDB.GetXShardState(crossShardTxID)
 }

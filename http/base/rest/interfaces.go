@@ -544,7 +544,16 @@ func GetShardTxState(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	value, err := bactor.GetShardTxState(txHash)
+	notifyId,ok := cmd["NotifyId"]
+	var nid uint32
+	if ok {
+		var nok bool
+		nid,nok = notifyId.(uint32)
+		if nok {
+			return ResponsePack(berr.INVALID_PARAMS)
+		}
+	}
+	value, err := bactor.GetShardTxState(txHash, nid, ok)
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}

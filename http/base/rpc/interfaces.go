@@ -312,7 +312,7 @@ func GetShardStorage(params []interface{}) map[string]interface{} {
 }
 
 //get storage from contract
-//   {"jsonrpc": "2.0", "method": "getshardtxstate", "params": ["tx hash"], "id": 0}
+//   {"jsonrpc": "2.0", "method": "getshardtxstate", "params": ["tx hash", "notify id"], "id": 0}
 func GetShardTxState(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
@@ -330,8 +330,15 @@ func GetShardTxState(params []interface{}) map[string]interface{} {
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-
-	value, err := bactor.GetShardTxState(txHash)
+	var notifyId uint32
+	var ok bool
+	if len(params) > 1 {
+		notifyId, ok = params[1].(uint32)
+		if !ok {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+	}
+	value, err := bactor.GetShardTxState(txHash, notifyId, ok)
 	if err != nil {
 		if err == scom.ErrNotFound {
 			return responseSuccess(nil)
