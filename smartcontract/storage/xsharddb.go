@@ -23,7 +23,6 @@ import (
 	"sort"
 
 	comm "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/overlaydb"
@@ -72,8 +71,6 @@ func (self *XShardDB) GetXShardState(id xshard_types.ShardTxID) (*xshard_state.T
 }
 
 func (self *XShardDB) SetXShardState(state *xshard_state.TxState) {
-	log.Error("txState:", state)
-	log.Errorf("txId: %s", comm.ToHexString([]byte(string(state.TxID))))
 	buf := comm.SerializeToBytes(state)
 	self.cacheDB.put(common.XSHARD_STATE, []byte(string(state.TxID)), buf)
 }
