@@ -26,21 +26,20 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/urfave/cli"
 	"strconv"
-	"github.com/ontio/ontology/common/password"
 )
 
 func GetPasswd(ctx *cli.Context) ([]byte, error) {
-	var passwd []byte
-	var err error
-	if ctx.IsSet(utils.GetFlagName(utils.AccountPassFlag)) {
-		passwd = []byte(ctx.String(utils.GetFlagName(utils.AccountPassFlag)))
-	} else {
-		passwd, err = password.GetAccountPassword()
-		if err != nil {
-			return nil, fmt.Errorf("Input password error:%s", err)
-		}
-	}
-	return passwd, nil
+	//var passwd []byte
+	//var err error
+	//if ctx.IsSet(utils.GetFlagName(utils.AccountPassFlag)) {
+	//	passwd = []byte(ctx.String(utils.GetFlagName(utils.AccountPassFlag)))
+	//} else {
+	//	passwd, err = password.GetAccountPassword()
+	//	if err != nil {
+	//		return nil, fmt.Errorf("Input password error:%s", err)
+	//	}
+	//}
+	return []byte("111111"), nil
 }
 
 func OpenWallet(ctx *cli.Context) (account.Client, error) {

@@ -55,32 +55,33 @@ type restServer struct {
 }
 
 const (
-	GET_CONN_COUNT        = "/api/v1/node/connectioncount"
-	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
-	GET_BLK_BY_HEIGHT     = "/api/v1/block/details/height/:height"
-	GET_BLK_BY_HASH       = "/api/v1/block/details/hash/:hash"
-	GET_BLK_HEIGHT        = "/api/v1/block/height"
-	GET_BLK_HASH          = "/api/v1/block/hash/:height"
-	GET_TX                = "/api/v1/transaction/:hash"
-	GET_STORAGE           = "/api/v1/storage/:hash/:key"
-	GET_SHARD_STORAGE     = "/api/v1/shardstorage/:shardid/:hash/:key"
-	GET_SHARD_TX_STATE    = "/api/v1/shardtxstate/:txhash/:notifyid"
-	GET_BALANCE           = "/api/v1/balance/:addr"
-	GET_CONTRACT_STATE    = "/api/v1/contract/:hash"
-	GET_SMTCOCE_EVT_TXS   = "/api/v1/smartcode/event/transactions/:height"
-	GET_SHARD_EVTS        = "/api/v1/shard/smartcode/event/txhash/:sourcetxhash"
-	GET_SMTCOCE_EVTS      = "/api/v1/smartcode/event/txhash/:hash"
-	GET_SHARD_TX_HASH     = "/api/v1/shardtxhash/hash/:hash"
-	GET_BLK_HGT_BY_TXHASH = "/api/v1/block/height/txhash/:hash"
-	GET_MERKLE_PROOF      = "/api/v1/merkleproof/:hash"
-	GET_GAS_PRICE         = "/api/v1/gasprice"
-	GET_ALLOWANCE         = "/api/v1/allowance/:asset/:from/:to"
-	GET_UNBOUNDONG        = "/api/v1/unboundong/:addr"
-	GET_GRANTONG          = "/api/v1/grantong/:addr"
-	GET_MEMPOOL_TXCOUNT   = "/api/v1/mempool/txcount"
-	GET_MEMPOOL_TXSTATE   = "/api/v1/mempool/txstate/:hash"
-	GET_VERSION           = "/api/v1/version"
-	GET_NETWORKID         = "/api/v1/networkid"
+	GET_CONN_COUNT         = "/api/v1/node/connectioncount"
+	GET_BLK_TXS_BY_HEIGHT  = "/api/v1/block/transactions/height/:height"
+	GET_BLK_BY_HEIGHT      = "/api/v1/block/details/height/:height"
+	GET_BLK_BY_HASH        = "/api/v1/block/details/hash/:hash"
+	GET_BLK_HEIGHT         = "/api/v1/block/height"
+	GET_BLK_HASH           = "/api/v1/block/hash/:height"
+	GET_TX                 = "/api/v1/transaction/:hash"
+	GET_STORAGE            = "/api/v1/storage/:hash/:key"
+	GET_SHARD_STORAGE      = "/api/v1/shardstorage/:shardid/:hash/:key"
+	GET_SHARD_TX_STATE_NID = "/api/v1/shardtxstate/:txhash/:notifyid"
+	GET_SHARD_TX_STATE     = "/api/v1/shardtxstate/:txhash"
+	GET_BALANCE            = "/api/v1/balance/:addr"
+	GET_CONTRACT_STATE     = "/api/v1/contract/:hash"
+	GET_SMTCOCE_EVT_TXS    = "/api/v1/smartcode/event/transactions/:height"
+	GET_SHARD_EVTS         = "/api/v1/shard/smartcode/event/txhash/:sourcetxhash"
+	GET_SMTCOCE_EVTS       = "/api/v1/smartcode/event/txhash/:hash"
+	GET_SHARD_TX_HASH      = "/api/v1/shardtxhash/hash/:hash"
+	GET_BLK_HGT_BY_TXHASH  = "/api/v1/block/height/txhash/:hash"
+	GET_MERKLE_PROOF       = "/api/v1/merkleproof/:hash"
+	GET_GAS_PRICE          = "/api/v1/gasprice"
+	GET_ALLOWANCE          = "/api/v1/allowance/:asset/:from/:to"
+	GET_UNBOUNDONG         = "/api/v1/unboundong/:addr"
+	GET_GRANTONG           = "/api/v1/grantong/:addr"
+	GET_MEMPOOL_TXCOUNT    = "/api/v1/mempool/txcount"
+	GET_MEMPOOL_TXSTATE    = "/api/v1/mempool/txstate/:hash"
+	GET_VERSION            = "/api/v1/version"
+	GET_NETWORKID          = "/api/v1/networkid"
 
 	POST_RAW_TX = "/api/v1/transaction"
 )
@@ -139,32 +140,33 @@ func (this *restServer) Start() error {
 func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
-		GET_CONN_COUNT:        {name: "getconnectioncount", handler: rest.GetConnectionCount},
-		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
-		GET_BLK_BY_HEIGHT:     {name: "getblockbyheight", handler: rest.GetBlockByHeight},
-		GET_BLK_BY_HASH:       {name: "getblockbyhash", handler: rest.GetBlockByHash},
-		GET_BLK_HEIGHT:        {name: "getblockheight", handler: rest.GetBlockHeight},
-		GET_BLK_HASH:          {name: "getblockhash", handler: rest.GetBlockHash},
-		GET_TX:                {name: "gettransaction", handler: rest.GetTransactionByHash},
-		GET_CONTRACT_STATE:    {name: "getcontract", handler: rest.GetContractState},
-		GET_SMTCOCE_EVT_TXS:   {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
-		GET_SMTCOCE_EVTS:      {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
-		GET_SHARD_EVTS:        {name: "getshardsmartcodeevent", handler: rest.GetShardSmartCodeEvent},
-		GET_SHARD_TX_HASH:     {name: "getshardtxhash", handler: rest.GetShardTxHashBySourceTxHash},
-		GET_BLK_HGT_BY_TXHASH: {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
-		GET_STORAGE:           {name: "getstorage", handler: rest.GetStorage},
-		GET_SHARD_STORAGE:     {name: "getshardstorage", handler: rest.GetShardStorage},
-		GET_SHARD_TX_STATE:    {name: "getshardtxstate", handler: rest.GetShardTxState},
-		GET_BALANCE:           {name: "getbalance", handler: rest.GetBalance},
-		GET_ALLOWANCE:         {name: "getallowance", handler: rest.GetAllowance},
-		GET_MERKLE_PROOF:      {name: "getmerkleproof", handler: rest.GetMerkleProof},
-		GET_GAS_PRICE:         {name: "getgasprice", handler: rest.GetGasPrice},
-		GET_UNBOUNDONG:        {name: "getunboundong", handler: rest.GetUnboundOng},
-		GET_GRANTONG:          {name: "getgrantong", handler: rest.GetGrantOng},
-		GET_MEMPOOL_TXCOUNT:   {name: "getmempooltxcount", handler: rest.GetMemPoolTxCount},
-		GET_MEMPOOL_TXSTATE:   {name: "getmempooltxstate", handler: rest.GetMemPoolTxState},
-		GET_VERSION:           {name: "getversion", handler: rest.GetNodeVersion},
-		GET_NETWORKID:         {name: "getnetworkid", handler: rest.GetNetworkId},
+		GET_CONN_COUNT:         {name: "getconnectioncount", handler: rest.GetConnectionCount},
+		GET_BLK_TXS_BY_HEIGHT:  {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
+		GET_BLK_BY_HEIGHT:      {name: "getblockbyheight", handler: rest.GetBlockByHeight},
+		GET_BLK_BY_HASH:        {name: "getblockbyhash", handler: rest.GetBlockByHash},
+		GET_BLK_HEIGHT:         {name: "getblockheight", handler: rest.GetBlockHeight},
+		GET_BLK_HASH:           {name: "getblockhash", handler: rest.GetBlockHash},
+		GET_TX:                 {name: "gettransaction", handler: rest.GetTransactionByHash},
+		GET_CONTRACT_STATE:     {name: "getcontract", handler: rest.GetContractState},
+		GET_SMTCOCE_EVT_TXS:    {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
+		GET_SMTCOCE_EVTS:       {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
+		GET_SHARD_EVTS:         {name: "getshardsmartcodeevent", handler: rest.GetShardSmartCodeEvent},
+		GET_SHARD_TX_HASH:      {name: "getshardtxhash", handler: rest.GetShardTxHashBySourceTxHash},
+		GET_BLK_HGT_BY_TXHASH:  {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
+		GET_STORAGE:            {name: "getstorage", handler: rest.GetStorage},
+		GET_SHARD_STORAGE:      {name: "getshardstorage", handler: rest.GetShardStorage},
+		GET_SHARD_TX_STATE_NID: {name: "getshardtxstate", handler: rest.GetShardTxState},
+		GET_SHARD_TX_STATE:     {name: "getshardtxstate", handler: rest.GetShardTxState},
+		GET_BALANCE:            {name: "getbalance", handler: rest.GetBalance},
+		GET_ALLOWANCE:          {name: "getallowance", handler: rest.GetAllowance},
+		GET_MERKLE_PROOF:       {name: "getmerkleproof", handler: rest.GetMerkleProof},
+		GET_GAS_PRICE:          {name: "getgasprice", handler: rest.GetGasPrice},
+		GET_UNBOUNDONG:         {name: "getunboundong", handler: rest.GetUnboundOng},
+		GET_GRANTONG:           {name: "getgrantong", handler: rest.GetGrantOng},
+		GET_MEMPOOL_TXCOUNT:    {name: "getmempooltxcount", handler: rest.GetMemPoolTxCount},
+		GET_MEMPOOL_TXSTATE:    {name: "getmempooltxstate", handler: rest.GetMemPoolTxState},
+		GET_VERSION:            {name: "getversion", handler: rest.GetNodeVersion},
+		GET_NETWORKID:          {name: "getnetworkid", handler: rest.GetNetworkId},
 	}
 
 	postMethodMap := map[string]Action{
@@ -199,8 +201,10 @@ func (this *restServer) getPath(url string) string {
 		return GET_BLK_HGT_BY_TXHASH
 	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_STORAGE, ":shardid/:hash/:key")) {
 		return GET_SHARD_STORAGE
-	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE, ":txhash/notifyid")) {
+	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE, ":txhash")) {
 		return GET_SHARD_TX_STATE
+	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE_NID, ":txhash/notifyid")) {
+		return GET_SHARD_TX_STATE_NID
 	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
 		return GET_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
@@ -242,8 +246,10 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["Hash"], req["Key"] = getParam(r, "hash"), getParam(r, "key")
 	case GET_SHARD_STORAGE:
 		req["ShardID"], req["Hash"], req["Key"] = getParam(r, "shardid"), getParam(r, "hash"), getParam(r, "key")
-	case GET_SHARD_TX_STATE:
+	case GET_SHARD_TX_STATE_NID:
 		req["TxHash"], req["NotifyId"] = getParam(r, "txhash"), getParam(r, "notifyid")
+	case GET_SHARD_TX_STATE:
+		req["TxHash"] = getParam(r, "txhash")
 	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:
