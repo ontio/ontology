@@ -131,7 +131,7 @@ func (self *Syncer) run() {
 					self.server.Index, req.startBlockNum)
 			}
 			for ; req.startBlockNum <= req.targetBlockNum; req.startBlockNum++ {
-				blk, _ := self.server.chainStore.GetBlock(req.startBlockNum)
+				blk, _ := self.server.blockPool.getSealedBlock(req.startBlockNum)
 				if blk == nil {
 					log.Infof("server %d, on starting syncing %d, nil block from ledger",
 						self.server.Index, req.startBlockNum)
@@ -180,7 +180,7 @@ func (self *Syncer) run() {
 				// FIXME: compete with ledger syncing
 				var blk *Block
 				if self.nextReqBlkNum <= ledger.DefLedger.GetCurrentBlockHeight() {
-					blk, _ = self.server.chainStore.GetBlock(self.nextReqBlkNum)
+					blk, _ = self.server.blockPool.getSealedBlock(self.nextReqBlkNum)
 				}
 				if blk == nil {
 					blk = self.blockConsensusDone(self.pendingBlocks[self.nextReqBlkNum])
@@ -192,7 +192,7 @@ func (self *Syncer) run() {
 						break
 					}
 				} else {
-					merkleRoot, err := self.server.chainStore.GetExecMerkleRoot(blkNum - 1)
+					merkleRoot, err := self.server.blockPool.getExecMerkleRoot(blkNum - 1)
 					if err != nil {
 						log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
 						break
