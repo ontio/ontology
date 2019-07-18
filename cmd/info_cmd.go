@@ -63,6 +63,16 @@ var InfoCommand = cli.Command{
 			},
 		},
 		{
+			Action:      txState,
+			Name:        "shardtxstate",
+			Usage:       "Display transaction state",
+			ArgsUsage:   "<txhash>",
+			Description: `Display status of transaction.`,
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
+		},
+		{
 			Action:      curBlockHeight,
 			Name:        "curblockheight",
 			Usage:       "Display the current block height",
@@ -152,6 +162,34 @@ func txStatus(ctx *cli.Context) error {
 	}
 	PrintInfoMsg("Transaction states:")
 	PrintJsonData(evtInfos)
+	return nil
+}
+
+func txState(ctx *cli.Context) error {
+	SetRpcPort(ctx)
+	if ctx.NArg() < 1 {
+		PrintErrorMsg("Missing argument. TxHash expected.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	txHash := ctx.Args().First()
+	var notifyId string
+	var isHasNotifyId bool
+	if ctx.NArg() > 1 {
+		args := ctx.Args().Tail()
+		notifyId = args[0]
+		isHasNotifyId = true
+	}
+	txState, err := utils.GetShardTxState(txHash, notifyId, isHasNotifyId)
+	if err != nil {
+		return fmt.Errorf("GetShardTxState error:%s", err)
+	}
+	if string(txState) == "null" {
+		PrintInfoMsg("Cannot get SmartContractEvent by TxHash:%s.", txHash)
+		return nil
+	}
+	PrintInfoMsg("Transaction states:")
+	PrintJsonData(txState)
 	return nil
 }
 

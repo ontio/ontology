@@ -330,15 +330,21 @@ func GetShardTxState(params []interface{}) map[string]interface{} {
 	default:
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	var notifyId uint32
-	var ok bool
+	var notifyId uint64
+	var isHasNotify bool
 	if len(params) > 1 {
-		notifyId, ok = params[1].(uint32)
-		if !ok {
+		switch str := params[1].(type) {
+		case string:
+			notifyId, err = strconv.ParseUint(str, 10, 64)
+			if err != nil {
+				return responsePack(berr.INVALID_PARAMS, "")
+			}
+			isHasNotify = true
+		default:
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 	}
-	value, err := bactor.GetShardTxState(txHash, notifyId, ok)
+	value, err := bactor.GetShardTxState(txHash, uint32(notifyId), isHasNotify)
 	if err != nil {
 		if err == scom.ErrNotFound {
 			return responseSuccess(nil)
