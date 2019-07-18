@@ -368,8 +368,8 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		if err != nil {
 			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
 		}
-		msg.CrossSMProposerSig = proposal.Block.CrossMsgHash.SigData[proposal.Block.getProposer()]
-		msg.CrossSMEndorserSig = sig
+		msg.CrossShardMsgProposerSig = proposal.Block.CrossMsgHash.SigData[proposal.Block.getProposer()]
+		msg.CrossShardMsgEndorserSig = sig
 	}
 	return msg, nil
 }
@@ -403,7 +403,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	commitShard := true
 	for _, e := range endorses {
 		endorsersSig[e.Endorser] = e.EndorserSig
-		crossSMEndorserSig[e.Endorser] = e.CrossSMEndorserSig
+		crossSMEndorserSig[e.Endorser] = e.CrossShardMsgEndorserSig
 		if e.Endorser == self.Index {
 			commitShard = false
 		}
@@ -425,7 +425,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		if err != nil {
 			return nil, fmt.Errorf("sign cross shard msg root failed,msg hash:%s,err:%s", msgRoot.ToHexString(), err)
 		}
-		msg.CrossSMCommitterSig = sig
+		msg.CrossShardMsgCommitterSig = sig
 	}
 	return msg, nil
 }

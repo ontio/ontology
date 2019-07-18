@@ -290,7 +290,7 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
-		CrossShardMsgSig: msg.CrossSMEndorserSig,
+		CrossShardMsgSig: msg.CrossShardMsgEndorserSig,
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig)
 }
@@ -473,7 +473,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
 		ForEmpty:         msg.CommitForEmpty,
-		CrossShardMsgSig: msg.CrossSMCommitterSig,
+		CrossShardMsgSig: msg.CrossShardMsgCommitterSig,
 	})
 
 	// add msg to commit-msgs
