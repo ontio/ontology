@@ -63,6 +63,16 @@ var InfoCommand = cli.Command{
 			},
 		},
 		{
+			Action:      shardTxStatus,
+			Name:        "shardtxstatus",
+			Usage:       "Display shardtransaction status through sourceTxHash",
+			ArgsUsage:   "<sourcetxhash>",
+			Description: `Display shard transaction status with source transaction hash.`,
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
+		},
+		{
 			Action:      curBlockHeight,
 			Name:        "curblockheight",
 			Usage:       "Display the current block height",
@@ -143,6 +153,26 @@ func txStatus(ctx *cli.Context) error {
 	}
 	txHash := ctx.Args().First()
 	evtInfos, err := utils.GetSmartContractEventInfo(txHash)
+	if err != nil {
+		return fmt.Errorf("GetSmartContractEvent error:%s", err)
+	}
+	if string(evtInfos) == "null" {
+		PrintInfoMsg("Cannot get SmartContractEvent by TxHash:%s.", txHash)
+		return nil
+	}
+	PrintInfoMsg("Transaction states:")
+	PrintJsonData(evtInfos)
+	return nil
+}
+func shardTxStatus(ctx *cli.Context) error {
+	SetRpcPort(ctx)
+	if ctx.NArg() < 1 {
+		PrintErrorMsg("Missing argument. SourceTxHash expected.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	txHash := ctx.Args().First()
+	evtInfos, err := utils.GetShardSmartContractEventInfo(txHash)
 	if err != nil {
 		return fmt.Errorf("GetSmartContractEvent error:%s", err)
 	}

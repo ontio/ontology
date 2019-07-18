@@ -504,6 +504,17 @@ func GetSmartContractEventInfo(txHash string) ([]byte, error) {
 	}
 	return nil, ontErr.Error
 }
+func GetShardSmartContractEventInfo(sourceTxHash string) ([]byte, error) {
+	data, ontErr := sendRpcRequest("getshardsmartcodeevent", []interface{}{sourceTxHash})
+	if ontErr == nil {
+		return data, nil
+	}
+	switch ontErr.ErrorCode {
+	case ERROR_INVALID_PARAMS:
+		return nil, fmt.Errorf("invalid TxHash:%s", sourceTxHash)
+	}
+	return nil, ontErr.Error
+}
 
 func GetRawTransaction(txHash string) ([]byte, error) {
 	data, ontErr := sendRpcRequest("getrawtransaction", []interface{}{txHash, 1})
