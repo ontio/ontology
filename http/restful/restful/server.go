@@ -243,8 +243,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 	case GET_SHARD_STORAGE:
 		req["ShardID"], req["Hash"], req["Key"] = getParam(r, "shardid"), getParam(r, "hash"), getParam(r, "key")
 	case GET_SHARD_TX_STATE:
-		req["TxHash"] = getParam(r, "txhash")
-		req["NotifyId"] = getParam(r, "notifyid")
+		req["TxHash"], req["NotifyId"] = getParam(r, "txhash"), getParam(r, "notifyid")
 	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:
