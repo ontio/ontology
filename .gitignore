@@ -16,6 +16,7 @@ GoOnchain.iml
 vendor/*
 !vendor/github.com/ontio/ontology-crypto/*
 Chain/*
+Chain
 /config/*
 nodectl
 ontology
