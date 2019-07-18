@@ -85,6 +85,7 @@ func setupAPP() *cli.App {
 		//common setting
 		utils.ConfigFlag,
 		utils.LogLevelFlag,
+		utils.DisableLogFileFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
 		//account setting
@@ -198,8 +199,14 @@ func startOntology(ctx *cli.Context) {
 func initLog(ctx *cli.Context) {
 	//init log module
 	logLevel := ctx.GlobalInt(utils.GetFlagName(utils.LogLevelFlag))
-	alog.InitLog(log.PATH)
-	log.InitLog(logLevel, log.PATH, log.Stdout)
+	//if true, the log will not be output to the file
+	disableLogFile := ctx.GlobalBool(utils.GetFlagName(utils.DisableLogFileFlag))
+	if disableLogFile {
+		log.InitLog(logLevel, log.Stdout)
+	} else {
+		alog.InitLog(log.PATH)
+		log.InitLog(logLevel, log.PATH, log.Stdout)
+	}
 }
 
 func initConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
