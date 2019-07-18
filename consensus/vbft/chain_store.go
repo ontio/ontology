@@ -55,7 +55,7 @@ func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID) (*ChainStore, error
 		return nil, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", chainstore.chainedBlockNum, err)
 	}
 	writeSet := overlaydb.NewMemDB(1, 1)
-	block, err := chainstore.GetBlock(chainstore.chainedBlockNum)
+	block, err := chainstore.getBlock(chainstore.chainedBlockNum)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (self *ChainStore) GetChainedBlockNum() uint32 {
 	return self.chainedBlockNum
 }
 
-func (self *ChainStore) GetExecMerkleRoot(blkNum uint32) (common.Uint256, error) {
+func (self *ChainStore) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) {
 	if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
 		return blk.execResult.MerkleRoot, nil
 	}
@@ -85,7 +85,7 @@ func (self *ChainStore) GetExecMerkleRoot(blkNum uint32) (common.Uint256, error)
 
 }
 
-func (self *ChainStore) GetExecWriteSet(blkNum uint32) *overlaydb.MemDB {
+func (self *ChainStore) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
 	if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
 		return blk.execResult.WriteSet
 	}
@@ -123,7 +123,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		panic("nil block header")
 	}
 	blkNum := self.GetChainedBlockNum() + 1
-	err := self.SubmitBlock(blkNum - 1)
+	err := self.submitBlock(blkNum - 1)
 	if err != nil {
 		log.Errorf("chainstore blkNum:%d, SubmitBlock: %s", blkNum-1, err)
 	}
@@ -133,15 +133,18 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		return fmt.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 	}
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
-	self.pid.Tell(
-		&message.BlockConsensusComplete{
-			Block: block.Block,
-		})
+
+	if self.pid != nil {
+		self.pid.Tell(
+			&message.BlockConsensusComplete{
+				Block: block.Block,
+			})
+	}
 	self.chainedBlockNum = blkNum
 	return nil
 }
 
-func (self *ChainStore) SubmitBlock(blkNum uint32) error {
+func (self *ChainStore) submitBlock(blkNum uint32) error {
 	if blkNum == 0 {
 		return nil
 	}
@@ -150,15 +153,15 @@ func (self *ChainStore) SubmitBlock(blkNum uint32) error {
 		if err != nil && blkNum > self.GetChainedBlockNum() {
 			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
 		}
-		submitBlk.hasSubmitted = true
 		if _, present := self.pendingBlocks[blkNum-1]; present {
 			delete(self.pendingBlocks, blkNum-1)
 		}
+		submitBlk.hasSubmitted = true
 	}
 	return nil
 }
 
-func (self *ChainStore) GetBlock(blockNum uint32) (*Block, error) {
+func (self *ChainStore) getBlock(blockNum uint32) (*Block, error) {
 	if blk, present := self.pendingBlocks[blockNum]; present {
 		return blk.block, nil
 	}
