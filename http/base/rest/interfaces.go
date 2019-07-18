@@ -544,11 +544,11 @@ func GetShardTxState(cmd map[string]interface{}) map[string]interface{} {
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	notifyId,ok := cmd["NotifyId"]
+	notifyId, ok := cmd["NotifyId"]
 	var nid uint32
 	if ok {
 		var nok bool
-		nid,nok = notifyId.(uint32)
+		nid, nok = notifyId.(uint32)
 		if nok {
 			return ResponsePack(berr.INVALID_PARAMS)
 		}
