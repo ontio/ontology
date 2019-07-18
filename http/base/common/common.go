@@ -573,7 +573,7 @@ func ParseShardState(txState *xshard_state.TxState) (TxStateInfo, error) {
 	}
 	lockedAddress := make([]string, 0)
 	for _, addr := range txState.LockedAddress {
-		lockedAddress = append(lockedAddress, addr.ToBase58())
+		lockedAddress = append(lockedAddress, addr.ToHexString())
 	}
 	lockedKeys := make([]string, 0)
 	for _, key := range txState.LockedKeys {

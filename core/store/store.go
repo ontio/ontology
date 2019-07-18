@@ -79,5 +79,5 @@ type LedgerStore interface {
 	GetParentMetaData(blockHeight uint32, contractAddr common.Address) (*payload.MetaDataCode, error)
 	GetParentContract(blockHeight uint32, addr common.Address) (*payload.DeployCode, error)
 	GetShardConsensusConfig(shardID common.ShardID, height uint32) ([]byte, error)
-	GetShardTxState(txHash common.Uint256, notifyId uint32, isHasNotifyId bool) (*xshard_state.TxState, error)
+	GetShardTxState(txHash common.Uint256, notifyId uint32, hasNotifyId bool) (*xshard_state.TxState, error)
 }

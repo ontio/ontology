@@ -194,18 +194,18 @@ func txState(ctx *cli.Context) error {
 	}
 	txHash := ctx.Args().First()
 	var notifyId string
-	var isHasNotifyId bool
+	var hasNotifyId bool
 	if ctx.NArg() > 1 {
 		args := ctx.Args().Tail()
 		notifyId = args[0]
-		isHasNotifyId = true
+		hasNotifyId = true
 	}
-	txState, err := utils.GetShardTxState(txHash, notifyId, isHasNotifyId)
+	txState, err := utils.GetShardTxState(txHash, notifyId, hasNotifyId)
 	if err != nil {
 		return fmt.Errorf("GetShardTxState error:%s", err)
 	}
 	if string(txState) == "null" {
-		PrintInfoMsg("Cannot get SmartContractEvent by TxHash:%s.", txHash)
+		PrintInfoMsg("Cannot get shard transaction state by TxHash:%s.", txHash)
 		return nil
 	}
 	PrintInfoMsg("Transaction states:")

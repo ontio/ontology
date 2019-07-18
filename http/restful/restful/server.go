@@ -150,7 +150,7 @@ func (this *restServer) registryMethod() {
 		GET_CONTRACT_STATE:     {name: "getcontract", handler: rest.GetContractState},
 		GET_SMTCOCE_EVT_TXS:    {name: "getsmartcodeeventbyheight", handler: rest.GetSmartCodeEventTxsByHeight},
 		GET_SMTCOCE_EVTS:       {name: "getsmartcodeeventbyhash", handler: rest.GetSmartCodeEventByTxHash},
-		GET_SHARD_EVTS:         {name: "getshardsmartcodeevent", handler: rest.GetShardSmartCodeEvent},
+		GET_SHARD_EVTS:         {name: "getshardsmartcodeevent", handler: rest.GetShardSmartCodeEvent},//TODO rename shardsmartcodeevent
 		GET_SHARD_TX_HASH:      {name: "getshardtxhash", handler: rest.GetShardTxHashBySourceTxHash},
 		GET_BLK_HGT_BY_TXHASH:  {name: "getblockheightbytxhash", handler: rest.GetBlockHeightByTxHash},
 		GET_STORAGE:            {name: "getstorage", handler: rest.GetStorage},
@@ -201,11 +201,11 @@ func (this *restServer) getPath(url string) string {
 		return GET_BLK_HGT_BY_TXHASH
 	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_STORAGE, ":shardid/:hash/:key")) {
 		return GET_SHARD_STORAGE
-	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE, ":txhash")) {
-		return GET_SHARD_TX_STATE
 	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE_NID, ":txhash/notifyid")) {
 		return GET_SHARD_TX_STATE_NID
-	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
+	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE, ":txhash")) {
+		return GET_SHARD_TX_STATE
+	}  else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
 		return GET_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
 		return GET_BALANCE

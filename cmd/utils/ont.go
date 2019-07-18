@@ -516,10 +516,10 @@ func GetShardSmartContractEventInfo(sourceTxHash string) ([]byte, error) {
 	return nil, ontErr.Error
 }
 
-func GetShardTxState(txHash string, notifyId string, isHasNotifyId bool) ([]byte, error) {
+func GetShardTxState(txHash string, notifyId string, hasNotifyId bool) ([]byte, error) {
 	params := make([]interface{}, 0)
 	params = append(params, txHash)
-	if isHasNotifyId {
+	if hasNotifyId {
 		params = append(params, notifyId)
 	}
 	data, ontErr := sendRpcRequest("getshardtxstate", params)

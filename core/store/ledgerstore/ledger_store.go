@@ -1461,13 +1461,13 @@ func (this *LedgerStoreImp) GetMetaDataEvnet(height uint32, addr common.Address)
 	return this.eventStore.GetContractMetaDataEvent(height, addr)
 }
 
-func (this *LedgerStoreImp) GetShardTxState(txHash common.Uint256, notifyId uint32, isHasNotifyId bool) (*xshard_state.TxState, error) {
+func (this *LedgerStoreImp) GetShardTxState(txHash common.Uint256, notifyId uint32, hasNotifyId bool) (*xshard_state.TxState, error) {
 	overlay := this.stateStore.NewOverlayDB()
 	xshardDB := storage.NewXShardDB(overlay)
 
 	var shardTxID xshard_types.ShardTxID
 	shardTxID = xshard_types.ShardTxID(string(txHash[:]))
-	if !isHasNotifyId {
+	if !hasNotifyId {
 		return xshardDB.GetXShardState(shardTxID)
 	}
 	sink := common.NewZeroCopySink(0)
