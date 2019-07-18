@@ -1097,8 +1097,6 @@ func HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.Overlay
 	}
 
 	costGas = costGasLimit * tx.GasPrice
-	log.Error("err:", err)
-	log.Errorf("**************************, txState.ExecState: %d", uint8(txState.ExecState))
 	if err != nil {
 		if isCharge {
 			if err = costInvalidGas(tx.Payer, costGas, config, cache, store, notify.ContractEvent, header.ShardID); err != nil {
