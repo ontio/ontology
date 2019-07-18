@@ -44,6 +44,10 @@ var (
 		Usage: "Set the log level to `<level>` (0~6). 0:Trace 1:Debug 2:Info 3:Warn 4:Error 5:Fatal 6:MaxLevel",
 		Value: config.DEFAULT_LOG_LEVEL,
 	}
+	DisableLogFileFlag = cli.BoolFlag{
+		Name:  "disable-log-file",
+		Usage: "Discard log output to file",
+	}
 	DisableEventLogFlag = cli.BoolFlag{
 		Name:  "disable-event-log",
 		Usage: "Discard event log output by smart contract execution",
