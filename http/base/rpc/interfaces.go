@@ -789,9 +789,5 @@ func GetShardChainConfig(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.UNKNOWN_CHAINCONFIG, "")
 	}
-	data, err := chainConfig.ToArray()
-	if err != nil {
-		return responsePack(berr.UNKNOWN_CHAINCONFIG, "")
-	}
-	return responseSuccess(common.ToHexString(data))
+	return responseSuccess(chainConfig)
 }

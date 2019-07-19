@@ -24,12 +24,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"math/rand"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
@@ -623,7 +624,7 @@ func GetTxHeight(txHash string) (uint32, error) {
 }
 
 func GetShardChainConfig(shardID uint64, height uint64) (*vconfig.ChainConfig, error) {
-	data, ontErr := sendRpcRequest("getshardChainConfig", []interface{}{shardID, height})
+	data, ontErr := sendRpcRequest("getshardchainconfig", []interface{}{shardID, height})
 	if ontErr != nil {
 		switch ontErr.ErrorCode {
 		case ERROR_INVALID_PARAMS:
@@ -632,7 +633,7 @@ func GetShardChainConfig(shardID uint64, height uint64) (*vconfig.ChainConfig, e
 		return nil, ontErr.Error
 	}
 	cfg := &vconfig.ChainConfig{}
-	err := json.Unmarshal(data, &cfg)
+	err := json.Unmarshal(data, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
 	}

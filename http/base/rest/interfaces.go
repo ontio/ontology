@@ -567,24 +567,31 @@ func GetShardTxState(cmd map[string]interface{}) map[string]interface{} {
 
 func GetShardChainConfig(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	id, ok := cmd["shardID"].(uint32)
+	idStr, ok := cmd["ShardID"].(string)
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	height, ok := cmd["height"].(uint32)
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	heightStr, ok := cmd["Height"].(string)
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	shardID, err := common.NewShardID(uint64(id))
+	height, err := strconv.ParseInt(heightStr, 10, 64)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	shardID, err := common.NewShardID(id)
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
-	chainConfig, err := bactor.GetShardChainConfig(shardID, height)
+	chainConfig, err := bactor.GetShardChainConfig(shardID, uint32(height))
 	if err != nil {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
-	value, err := chainConfig.ToArray()
-	resp["Result"] = common.ToHexString(value)
+	resp["Result"] = chainConfig
 	return resp
 }
 

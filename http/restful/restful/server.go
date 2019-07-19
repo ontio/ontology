@@ -207,6 +207,8 @@ func (this *restServer) getPath(url string) string {
 		return GET_SHARD_TX_STATE_NID
 	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_TX_STATE, ":txhash")) {
 		return GET_SHARD_TX_STATE
+	} else if strings.Contains(url, strings.TrimRight(GET_SHARD_CHAIN_CONFIG, ":shardid/:height")) {
+		return GET_SHARD_CHAIN_CONFIG
 	} else if strings.Contains(url, strings.TrimRight(GET_STORAGE, ":hash/:key")) {
 		return GET_STORAGE
 	} else if strings.Contains(url, strings.TrimRight(GET_BALANCE, ":addr")) {
@@ -252,6 +254,8 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 		req["TxHash"], req["NotifyId"] = getParam(r, "txhash"), getParam(r, "notifyid")
 	case GET_SHARD_TX_STATE:
 		req["TxHash"] = getParam(r, "txhash")
+	case GET_SHARD_CHAIN_CONFIG:
+		req["ShardID"], req["Height"] = getParam(r, "shardid"), getParam(r, "height")
 	case GET_SMTCOCE_EVT_TXS:
 		req["Height"] = getParam(r, "height")
 	case GET_SMTCOCE_EVTS:

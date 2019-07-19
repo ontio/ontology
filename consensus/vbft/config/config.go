@@ -101,14 +101,6 @@ func (cc *ChainConfig) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (cc *ChainConfig) ToArray() ([]byte, error) {
-	data, err := json.Marshal(cc)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
 func (pc *PeerConfig) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, pc.Index); err != nil {
 		return fmt.Errorf("ChainConfig peer index length serialization failed %s", err)

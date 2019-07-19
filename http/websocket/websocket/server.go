@@ -197,6 +197,7 @@ func (self *WsServer) registryMethod() {
 		"getstorage":                {handler: rest.GetStorage},
 		"getshardstorage":           {handler: rest.GetShardStorage},
 		"getshardtxstate":           {handler: rest.GetShardTxState},
+		"getshardchainconfig":       {handler: rest.GetShardChainConfig},
 		"getallowance":              {handler: rest.GetAllowance},
 		"getmerkleproof":            {handler: rest.GetMerkleProof},
 		"getblocktxsbyheight":       {handler: rest.GetBlockTxsByHeight},

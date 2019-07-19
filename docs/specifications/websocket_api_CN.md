@@ -51,6 +51,7 @@
 | [getversion](#24-getversion) |  | 得到版本信息 |
 | [getnetworkid](#25-getnetworkid) |  | 得到network id |
 | [getgrantong](#26-getgrantong) |  | 得到grant ong |
+| [getshardchainconfig](#27-getshardchainconfig) |shardid,height  | 获取指定 shard chainconfig |
 
 ###  1. heartbeat
 
