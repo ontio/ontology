@@ -20,6 +20,8 @@ package actor
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/consensus/utils"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/chainmgr/xshard_state"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
@@ -112,4 +114,13 @@ func GetEventNotifyByHeight(height uint32) ([]*event.ExecuteNotify, error) {
 //GetMerkleProof from ledger
 func GetMerkleProof(proofHeight uint32, rootHeight uint32) ([]common.Uint256, error) {
 	return ledger.DefLedger.GetMerkleProof(proofHeight, rootHeight)
+}
+
+//GetShardChainConfig
+func GetShardChainConfig(shardID common.ShardID, height uint32) (*vconfig.ChainConfig, error) {
+	if ledger.DefLedger.ParentLedger != nil {
+		return utils.GetShardConfigByShardID(ledger.DefLedger.ParentLedger, shardID, height)
+	} else {
+		return nil, nil
+	}
 }

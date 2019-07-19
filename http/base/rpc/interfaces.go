@@ -764,3 +764,34 @@ func GetGrantOng(params []interface{}) map[string]interface{} {
 	}
 	return responseSuccess(rsp)
 }
+
+//get shard chainconfig
+func GetShardChainConfig(params []interface{}) map[string]interface{} {
+	if len(params) < 2 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	var shardID common.ShardID
+	var height uint32
+	switch params[0].(type) {
+	case float64:
+		id := uint32(params[0].(float64))
+		shardId, err := common.NewShardID(uint64(id))
+		if err != nil {
+			return responsePack(berr.INVALID_PARAMS, "")
+		}
+		shardID = shardId
+	}
+	switch params[1].(type) {
+	case float64:
+		height = uint32(params[0].(float64))
+	}
+	chainConfig, err := bactor.GetShardChainConfig(shardID, height)
+	if err != nil {
+		return responsePack(berr.UNKNOWN_CHAINCONFIG, "")
+	}
+	data, err := chainConfig.ToArray()
+	if err != nil {
+		return responsePack(berr.UNKNOWN_CHAINCONFIG, "")
+	}
+	return responseSuccess(common.ToHexString(data))
+}

@@ -66,6 +66,7 @@ const (
 	GET_SHARD_STORAGE      = "/api/v1/shardstorage/:shardid/:hash/:key"
 	GET_SHARD_TX_STATE_NID = "/api/v1/shardtxstate/:txhash/:notifyid"
 	GET_SHARD_TX_STATE     = "/api/v1/shardtxstate/:txhash"
+	GET_SHARD_CHAIN_CONFIG = "/api/v1/shardchainconfig/:shardid/:height"
 	GET_BALANCE            = "/api/v1/balance/:addr"
 	GET_CONTRACT_STATE     = "/api/v1/contract/:hash"
 	GET_SMTCOCE_EVT_TXS    = "/api/v1/smartcode/event/transactions/:height"
@@ -157,6 +158,7 @@ func (this *restServer) registryMethod() {
 		GET_SHARD_STORAGE:      {name: "getshardstorage", handler: rest.GetShardStorage},
 		GET_SHARD_TX_STATE_NID: {name: "getshardtxstate", handler: rest.GetShardTxState},
 		GET_SHARD_TX_STATE:     {name: "getshardtxstate", handler: rest.GetShardTxState},
+		GET_SHARD_CHAIN_CONFIG: {name: "getshardchainconfig", handler: rest.GetShardChainConfig},
 		GET_BALANCE:            {name: "getbalance", handler: rest.GetBalance},
 		GET_ALLOWANCE:          {name: "getallowance", handler: rest.GetAllowance},
 		GET_MERKLE_PROOF:       {name: "getmerkleproof", handler: rest.GetMerkleProof},

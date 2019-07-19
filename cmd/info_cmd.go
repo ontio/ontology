@@ -21,11 +21,12 @@ package cmd
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
+
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/types"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
-	"strconv"
 )
 
 var InfoCommand = cli.Command{
@@ -88,6 +89,16 @@ var InfoCommand = cli.Command{
 			Usage:       "Display the current block height",
 			ArgsUsage:   "",
 			Description: `Display the current block height.`,
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
+		},
+		{
+			Action:      getShardChainConfig,
+			Name:        "shardChainConfig",
+			Usage:       "Display chain config by shardID,block height",
+			ArgsUsage:   "<shardID,height>",
+			Description: `Display shard chainconfig by shardID,block height`,
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 			},
@@ -255,5 +266,22 @@ func showTx(ctx *cli.Context) error {
 	height, _ := utils.GetTxHeight(txHash.ToHexString())
 	txInfo.Height = height
 	PrintJsonObject(txInfo)
+	return nil
+}
+
+func getShardChainConfig(ctx *cli.Context) error {
+	SetRpcPort(ctx)
+	if ctx.NArg() < 2 {
+		PrintErrorMsg("Missing argument. shardID,height expected.")
+		cli.ShowSubcommandHelp(ctx)
+		return nil
+	}
+	shardID, _ := strconv.ParseUint(ctx.Args().First(), 10, 32)
+	height, _ := strconv.ParseUint(ctx.Args().Get(1), 10, 32)
+	chainConfig, err := utils.GetShardChainConfig(uint64(shardID), height)
+	if err != nil {
+		return fmt.Errorf("GetShardChainConfig err:%s", err)
+	}
+	PrintJsonObject(chainConfig)
 	return nil
 }

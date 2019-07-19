@@ -24,6 +24,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -619,6 +620,23 @@ func GetTxHeight(txHash string) (uint32, error) {
 		return 0, fmt.Errorf("json.Unmarshal error:%s", err)
 	}
 	return height, nil
+}
+
+func GetShardChainConfig(shardID uint64, height uint64) (*vconfig.ChainConfig, error) {
+	data, ontErr := sendRpcRequest("getshardChainConfig", []interface{}{shardID, height})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("cannot find shard chainconfig by sharID:%d,height:%d", shardID, height)
+		}
+		return nil, ontErr.Error
+	}
+	cfg := &vconfig.ChainConfig{}
+	err := json.Unmarshal(data, &cfg)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	return cfg, nil
 }
 
 func DeployContract(
