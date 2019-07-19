@@ -63,6 +63,16 @@ var InfoCommand = cli.Command{
 			},
 		},
 		{
+			Action:      shardTxStatus,
+			Name:        "shardtxstatus",
+			Usage:       "Display shardtransaction status through sourceTxHash",
+			ArgsUsage:   "<sourcetxhash>",
+			Description: `Display shard transaction status with source transaction hash.`,
+			Flags: []cli.Flag{
+				utils.RPCPortFlag,
+			},
+		},
+		{
 			Action:      txState,
 			Name:        "txstate",
 			Usage:       "Display transaction state",
