@@ -783,7 +783,7 @@ func GetShardChainConfig(params []interface{}) map[string]interface{} {
 	}
 	switch params[1].(type) {
 	case float64:
-		height = uint32(params[0].(float64))
+		height = uint32(params[1].(float64))
 	}
 	chainConfig, err := bactor.GetShardChainConfig(shardID, height)
 	if err != nil {
