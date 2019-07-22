@@ -30,14 +30,13 @@ import (
 	"strings"
 	"time"
 
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -626,11 +625,7 @@ func GetTxHeight(txHash string) (uint32, error) {
 func GetShardChainConfig(shardID uint64, height uint64) (*vconfig.ChainConfig, error) {
 	data, ontErr := sendRpcRequest("getshardchainconfig", []interface{}{shardID, height})
 	if ontErr != nil {
-		switch ontErr.ErrorCode {
-		case ERROR_INVALID_PARAMS:
-			return nil, fmt.Errorf("cannot find shard chainconfig by sharID:%d,height:%d", shardID, height)
-		}
-		return nil, ontErr.Error
+		return nil, fmt.Errorf("getshardchainconfig shardID:%d,height:%d,err:%s", shardID, height, ontErr.Error)
 	}
 	cfg := &vconfig.ChainConfig{}
 	err := json.Unmarshal(data, cfg)

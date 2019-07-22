@@ -98,7 +98,7 @@ var InfoCommand = cli.Command{
 			Name:        "shardChainConfig",
 			Usage:       "Display chain config by shardID,block height",
 			ArgsUsage:   "<shardID,height>",
-			Description: `Display shard chainconfig by shardID,block height`,
+			Description: `Display shard chain config by shardID,block height`,
 			Flags: []cli.Flag{
 				utils.RPCPortFlag,
 			},
@@ -276,9 +276,15 @@ func getShardChainConfig(ctx *cli.Context) error {
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	shardID, _ := strconv.ParseUint(ctx.Args().First(), 10, 32)
-	height, _ := strconv.ParseUint(ctx.Args().Get(1), 10, 32)
-	chainConfig, err := utils.GetShardChainConfig(uint64(shardID), height)
+	shardID, err := strconv.ParseUint(ctx.Args().First(), 10, 64)
+	if err != nil {
+		return fmt.Errorf("ParseUint shardID error:%s", err)
+	}
+	height, err := strconv.ParseUint(ctx.Args().Get(1), 10, 32)
+	if err != nil {
+		return fmt.Errorf("ParseUint height error:%s", err)
+	}
+	chainConfig, err := utils.GetShardChainConfig(shardID, height)
 	if err != nil {
 		return fmt.Errorf("GetShardChainConfig err:%s", err)
 	}
