@@ -47,6 +47,7 @@
 | [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | 向ontology网络发送交易 |
 | [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | 得到network id |
 | [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | 得到grant ong |
+| [get_shard_smtcode_evts](#12-get_shard_smtcode_evts) | GET /api/v1/shard/smartcode/event/txhash/:sourcetxhash | 通过source交易哈希得到该交易调用的shard交易的事件 |
 
 ### 1 get_conn_count
 
@@ -868,6 +869,45 @@ curl -i http://localhost:20334/api/v1/grantong/AKDFapcoUhewN9Kaj6XhHusurfHzUiZqU
     "Error": 0,
     "Version": "1.0.0",
     "Result": 4995625
+}
+```
+
+
+### 24 get_shard_smtcode_evts
+
+通过source交易哈希得到该交易调用的shard交易的事件。
+
+GET
+```
+/api/v1/shard/smartcode/event/txhash/:sourcetxhash
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/shard/smartcode/event/txhash/20046da68ef6a91f6959caa798a5ac7660cc80cf4098921bc63604d93208a8ac
+```
+#### Response:
+```
+{
+    "Action": "getsmartcodeeventbyhash",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Version": "1.0.0",
+    "Result": {
+             "TxHash": "20046da68ef6a91f6959caa798a5ac7660cc80cf4098921bc63604d93208a8ac",
+             "State": 1,
+             "GasConsumed": 0,
+             "Notify": [
+                    {
+                      "ContractAddress": "ff00000000000000000000000000000000000001",
+                      "States": [
+                            "transfer",
+                            "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb",
+                            "TA4WVfUB1ipHL8s3PRSYgeV1HhAU3KcKTq",
+                            1000000000
+                         ]
+                     }
+              ]
+    }
 }
 ```
 
