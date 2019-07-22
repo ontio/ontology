@@ -571,7 +571,7 @@ func GetShardChainConfig(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	id, err := strconv.ParseUint(idStr, 10, 32)
+	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
@@ -579,7 +579,7 @@ func GetShardChainConfig(cmd map[string]interface{}) map[string]interface{} {
 	if !ok {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}
-	height, err := strconv.ParseInt(heightStr, 10, 64)
+	height, err := strconv.ParseUint(heightStr, 10, 32)
 	if err != nil {
 		return ResponsePack(berr.INVALID_PARAMS)
 	}

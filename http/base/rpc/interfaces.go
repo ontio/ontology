@@ -774,8 +774,8 @@ func GetShardChainConfig(params []interface{}) map[string]interface{} {
 	var height uint32
 	switch params[0].(type) {
 	case float64:
-		id := uint32(params[0].(float64))
-		shardId, err := common.NewShardID(uint64(id))
+		id := uint64(params[0].(float64))
+		shardId, err := common.NewShardID(id)
 		if err != nil {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
