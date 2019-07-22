@@ -622,7 +622,7 @@ func GetTxHeight(txHash string) (uint32, error) {
 	return height, nil
 }
 
-func GetShardChainConfig(shardID uint64, height uint64) (*vconfig.ChainConfig, error) {
+func GetShardChainConfig(shardID uint64, height uint32) (*vconfig.ChainConfig, error) {
 	data, ontErr := sendRpcRequest("getshardchainconfig", []interface{}{shardID, height})
 	if ontErr != nil {
 		return nil, fmt.Errorf("getshardchainconfig shardID:%d,height:%d,err:%s", shardID, height, ontErr.Error)

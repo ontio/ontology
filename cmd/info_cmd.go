@@ -284,7 +284,7 @@ func getShardChainConfig(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("ParseUint height error:%s", err)
 	}
-	chainConfig, err := utils.GetShardChainConfig(shardID, height)
+	chainConfig, err := utils.GetShardChainConfig(shardID, uint32(height))
 	if err != nil {
 		return fmt.Errorf("GetShardChainConfig err:%s", err)
 	}
