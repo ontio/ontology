@@ -178,15 +178,14 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return fmt.Errorf("init error %s", err)
 		}
-		if this.currBlockHeight == 0 {
-			genesisHash := genesisBlock.Hash()
-			exist, err := this.blockStore.ContainBlock(genesisHash)
-			if err != nil {
-				return fmt.Errorf("HashBlockExist error %s", err)
-			}
-			if !exist {
-				return fmt.Errorf("GenesisBlock arenot init correctly, hash %s", genesisHash.ToHexString())
-			}
+		genesisHash := genesisBlock.Hash()
+		exist, err := this.blockStore.ContainBlock(genesisHash)
+		if err != nil {
+			return fmt.Errorf("HashBlockExist error %s", err)
+		}
+
+		if !exist {
+			return fmt.Errorf("GenesisBlock arenot init correctly, hash %s", genesisHash.ToHexString())
 		}
 	}
 	//load vbft peerInfo

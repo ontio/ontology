@@ -39,6 +39,7 @@ const (
 	KEY_GLOBAL_STATE = "globalState"
 	KEY_SHARD_STATE  = "shardState"
 
+	KEY_INIT_SHARD_STATE = "initShardState"
 	KEY_SHARD_PEER_STATE = "peerState"
 
 	KEY_RETRY_COMMIT_DPOS   = "retry_commit"
@@ -170,6 +171,14 @@ func setShardState(native *native.NativeService, contract common.Address, state 
 	sink := common.NewZeroCopySink(0)
 	state.Serialization(sink)
 	key := utils.ConcatKey(contract, []byte(KEY_SHARD_STATE), shardIDBytes)
+	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
+}
+
+func setInitShardState(native *native.NativeService, contract common.Address, state *shardstates.ShardState) {
+	shardIDBytes := utils.GetUint64Bytes(state.ShardID.ToUint64())
+	sink := common.NewZeroCopySink(0)
+	state.Serialization(sink)
+	key := utils.ConcatKey(contract, []byte(KEY_INIT_SHARD_STATE), shardIDBytes)
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(sink.Bytes()))
 }
 

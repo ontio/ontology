@@ -136,7 +136,7 @@ func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
 		return nil
 	}
 
-	shardState, err := xshard.GetShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
+	shardState, err := xshard.GetInitShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
 	if err == com.ErrNotFound {
 		return nil
 	}

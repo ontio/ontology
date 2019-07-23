@@ -66,6 +66,24 @@ func GetShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.Sha
 	return shardState, nil
 }
 
+func GetInitShardState(lgr *ledger.Ledger, shardID common.ShardID) (*shardstates.ShardState, error) {
+	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
+	key := append([]byte(shardmgmt.KEY_INIT_SHARD_STATE), shardIDBytes...)
+	data, err := lgr.GetStorageItem(utils.ShardMgmtContractAddress, key)
+	if err == sComm.ErrNotFound {
+		return nil, err
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get shardmgmt init shard state: %s", err)
+	}
+
+	shardState := &shardstates.ShardState{}
+	if err := shardState.Deserialization(common.NewZeroCopySource(data)); err != nil {
+		return nil, fmt.Errorf("des shardmgmt init shard state: %s", err)
+	}
+	return shardState, nil
+}
+
 func GetShardPeerStakeInfo(lgr *ledger.Ledger, shardID common.ShardID, shardView uint32) (map[string]*shard_stake.PeerViewInfo, error) {
 	shardIDBytes := utils.GetUint64Bytes(shardID.ToUint64())
 	viewBytes := utils.GetUint32Bytes(shardView)
