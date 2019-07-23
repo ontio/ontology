@@ -535,6 +535,7 @@ func ActivateShard(native *native.NativeService) ([]byte, error) {
 	shard.GenesisParentHeight = native.Height
 	shard.State = shardstates.SHARD_STATE_ACTIVE
 	setShardState(native, contract, shard)
+	setInitShardState(native, contract, shard)
 
 	evt := &shardstates.ShardActiveEvent{Height: native.Height}
 	evt.SourceShardID = native.ShardID

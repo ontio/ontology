@@ -136,7 +136,7 @@ func (self *ChainManager) LoadFromLedger(stateHashHeight uint32) error {
 		return nil
 	}
 
-	shardState, err := xshard.GetShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
+	shardState, err := xshard.GetInitShardState(ledger.GetShardLedger(common.NewShardIDUnchecked(config.DEFAULT_SHARD_ID)), self.shardID)
 	if err == com.ErrNotFound {
 		return nil
 	}
@@ -353,15 +353,6 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 	for _, evt := range shardEvts {
 		shardEvt := evt.Event
 		switch shardEvt.EventType {
-		case shardstates.EVENT_SHARD_CREATE:
-			createEvt := &shardstates.CreateShardEvent{}
-			if err := createEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
-				log.Errorf("deserialize create shard event: %s", err)
-				continue
-			}
-			if err := self.onShardCreated(createEvt); err != nil {
-				log.Errorf("processing create shard event: %s", err)
-			}
 		case shardstates.EVENT_SHARD_CONFIG_UPDATE:
 			cfgEvt := &shardstates.ConfigShardEvent{}
 			if err := cfgEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
@@ -370,15 +361,6 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 			}
 			if err := self.onShardConfigured(cfgEvt); err != nil {
 				log.Errorf("processing update shard config event: %s", err)
-			}
-		case shardstates.EVENT_SHARD_PEER_JOIN:
-			jointEvt := &shardstates.PeerJoinShardEvent{}
-			if err := jointEvt.Deserialization(common.NewZeroCopySource(shardEvt.Payload)); err != nil {
-				log.Errorf("deserialize join shard event: %s", err)
-				continue
-			}
-			if err := self.onShardPeerJoint(jointEvt); err != nil {
-				log.Errorf("processing join shard event: %s", err)
 			}
 		case shardstates.EVENT_SHARD_ACTIVATED:
 			evt := &shardstates.ShardActiveEvent{}
@@ -389,7 +371,6 @@ func (self *ChainManager) handleShardSysEvents(shardEvts []*message.ShardSystemE
 			if err := self.onShardActivated(evt); err != nil {
 				log.Errorf("processing shard activation event: %s", err)
 			}
-		case shardstates.EVENT_SHARD_PEER_LEAVE:
 		}
 	}
 }
