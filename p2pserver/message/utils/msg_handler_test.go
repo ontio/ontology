@@ -23,6 +23,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -43,7 +44,6 @@ import (
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/stretchr/testify/assert"
-	"net"
 )
 
 var (
@@ -52,7 +52,7 @@ var (
 
 type MockP2P struct {
 	p2p.P2P
-	SentMsgs []types.Message
+	SentMsgs []types.Message // stores all mock msgs
 }
 
 func (mock *MockP2P) Send(p *peer.Peer, msg types.Message) error {
@@ -181,7 +181,10 @@ func TestVerAckHandle(t *testing.T) {
 }
 
 // TestAddrReqHandle tests Function AddrReqHandle handling an address req
+// testcase: no-mask neighbor
 func TestAddrReqHandle(t *testing.T) {
+	network = NewMockP2p()
+
 	// Simulate a remote peer to be added to the neighbor peers
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
@@ -212,10 +215,11 @@ func TestAddrReqHandle(t *testing.T) {
 	// Invoke AddrReqHandle to handle the msg
 	AddrReqHandle(msg, network, nil)
 
+	// all neighbor peers should be in rsp msg
 	for _, msg := range network.SentMsgs {
 		addrMsg, ok := msg.(*types.Addr)
 		if !ok {
-			t.Fatalf("invalid addr msg")
+			t.Fatalf("invalid addr msg %s", msg.CmdType())
 		}
 		if len(addrMsg.NodeAddrs) != 1 {
 			t.Fatalf("invalid addr count: %v", addrMsg.NodeAddrs)
@@ -236,6 +240,8 @@ func TestAddrReqHandle(t *testing.T) {
 // send addr-req from un-mask peer, get itself in addr-rsp
 //
 func TestAddrReqHandle_maskok(t *testing.T) {
+	network = NewMockP2p()
+
 	// Simulate a remote peer to be added to the neighbor peers
 	testID := uint64(123456)
 	remotePeer := peer.NewPeer()
@@ -274,7 +280,7 @@ func TestAddrReqHandle_maskok(t *testing.T) {
 	for _, msg := range network.SentMsgs {
 		addrMsg, ok := msg.(*types.Addr)
 		if !ok {
-			t.Fatalf("invalid addr msg")
+			t.Fatalf("invalid addr msg %s", msg.CmdType())
 		}
 		if len(addrMsg.NodeAddrs) != 1 {
 			t.Fatalf("invalid addr count: %v", addrMsg.NodeAddrs)
@@ -295,6 +301,8 @@ func TestAddrReqHandle_maskok(t *testing.T) {
 // send addr-req, get itself in addr-rsp
 //
 func TestAddrReqHandle_unmaskok(t *testing.T) {
+	network = NewMockP2p()
+
 	// Simulate a remote peer to be added to the neighbor peers
 	var testID uint64
 	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
@@ -331,7 +339,7 @@ func TestAddrReqHandle_unmaskok(t *testing.T) {
 	for _, msg := range network.SentMsgs {
 		addrMsg, ok := msg.(*types.Addr)
 		if !ok {
-			t.Fatalf("invalid addr msg")
+			t.Fatalf("invalid addr msg %s", msg.CmdType())
 		}
 		if len(addrMsg.NodeAddrs) != 1 {
 			t.Fatalf("invalid addr count: %v", addrMsg.NodeAddrs)

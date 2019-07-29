@@ -66,7 +66,7 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 
 		// get remote peer IP
-		// if get remotePeerAddr failed, do masking
+		// if get remotePeerAddr failed, do masking anyway
 		remoteAddr, _ := remotePeer.GetAddr16()
 		var remoteIp net.IP = remoteAddr[:]
 
