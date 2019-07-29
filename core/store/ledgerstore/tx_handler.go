@@ -305,6 +305,7 @@ func handleShardCommitMsg(msg *xshard_types.XShardCommitMsg, lockedAddress map[c
 	}
 
 	xshardDB.SetXShardState(txState)
+	notify.ContractEvent.State = event.CONTRACT_STATE_SUCCESS
 }
 
 func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, lockedAddress map[common.Address]struct{},
@@ -374,6 +375,7 @@ func handleShardPreparedMsg(msg *xshard_types.XShardPreparedMsg, lockedAddress m
 	}
 
 	xshardDB.SetXShardState(txState)
+	notify.ContractEvent.State = event.CONTRACT_STATE_SUCCESS
 }
 
 func handleShardPrepareMsg(prepMsg *xshard_types.XShardPrepareMsg, store store.LedgerStore, gasTable map[string]uint64,
@@ -630,6 +632,7 @@ func handleShardNotifyMsg(msg *xshard_types.XShardNotify, store store.LedgerStor
 	for _, notifyMsg := range txState.ShardNotifies {
 		notify.ShardMsg = append(notify.ShardMsg, notifyMsg)
 	}
+	notify.ContractEvent.State = event.CONTRACT_STATE_SUCCESS
 	cache.Commit()
 	log.Debugf("process xshard notify result: %v", result)
 }
