@@ -56,25 +56,37 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		return
 	}
 
-	var addrStr []msgCommon.PeerAddr
-	addrStr = p2p.GetNeighborAddrs()
+	addrStr := p2p.GetNeighborAddrs()
 	//check mask peers
 	mskPeers := config.DefConfig.P2PNode.ReservedCfg.MaskPeers
 	if config.DefConfig.P2PNode.ReservedPeersOnly && len(mskPeers) > 0 {
-		for i := 0; i < len(addrStr); i++ {
-			var ip net.IP
-			ip = addrStr[i].IpAddr[:]
-			address := ip.To16().String()
-			for j := 0; j < len(mskPeers); j++ {
-				if address == mskPeers[j] {
-					addrStr = append(addrStr[:i], addrStr[i+1:]...)
-					i--
-					break
-				}
-			}
+		mskPeerMap := make(map[string]bool)
+		for _, mskAddr := range mskPeers {
+			mskPeerMap[mskAddr] = true
 		}
 
+		// get remote peer IP
+		// if get remotePeerAddr failed, do masking anyway
+		remoteAddr, _ := remotePeer.GetAddr16()
+		var remoteIp net.IP = remoteAddr[:]
+
+		// remove msk peers from neigh-addr-list
+		// if remotePeer is in msk-list, skip masking
+		if _, isMskPeer := mskPeerMap[remoteIp.String()]; !isMskPeer {
+			mskAddrList := make([]msgCommon.PeerAddr, 0)
+			for _, addr := range addrStr {
+				var ip net.IP
+				ip = addr.IpAddr[:]
+				address := ip.To16().String()
+				if _, present := mskPeerMap[address]; !present {
+					mskAddrList = append(mskAddrList, addr)
+				}
+			}
+			// replace with mskAddrList
+			addrStr = mskAddrList
+		}
 	}
+
 	msg := msgpack.NewAddrs(addrStr)
 	err := p2p.Send(remotePeer, msg)
 	if err != nil {
