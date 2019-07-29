@@ -48,6 +48,8 @@ Ontology CLI is an Ontology node command line client for starting and managing O
 		* [4.1 Query Block Information](#41-query-block-information)
 		* [4.2 Query Transaction Information](#42-query-transaction-information)
 		* [4.3 Query Transaction Execution Information](#43-query-transaction-execution-information)
+		* [4.4 Query Shard Transaction Information](#44-query-shard-transaction-information)
+        * [4.5 Query Shard Transaction Execution Information](#45-query-shard-transaction-execution-information)
 	* [5. Smart Contract](#5-smart-contract)
 		* [5.1 Smart Contract Deployment](#51-smart-contract-deployment)
 			* [5.1.1 Smart Contract Deployment Parameters](#511-smart-contract-deployment-parameters)
@@ -588,6 +590,150 @@ You can query the transaction execution information through the transaction hash
 }
 ```
 Among them, State represents the execution result of the transaction. The value of State is 1, indicating that the transaction execution is successful. When the State value is 0, it indicates that the execution failed. GasConsumed indicates the ONG consumed by the transaction execution. Notify represents the Event log output when the transaction is executed. Different transactions may output different event logs.
+
+### [4.4 Query Shard Transaction Information](#44-query-shard-transaction-information)
+```
+./ontology info shardtxstatus <SourceTxHash>
+```
+query shard tx info through source txhash which includes cross-shard transaction, and the following example is as follows:
+
+```
+{
+   "TxHash": "342f20da502b89942dc0ebdd9c9c47c8555eed469e6f277c6cd9a61d8aba084d",
+   "State": 1,
+   "GasConsumed": 0,
+   "Notify": [
+      {
+         "ContractAddress": "f638fe8c4b2c50d917a77956f44cb115c20a4ddd",
+         "States": [
+            "01",
+            "02",
+            "31"
+         ],
+         "SourceTxHash": "675d1aee0fe31a3df55a0a8c07a47ff86eacb26f6c85b12945db342f1386351a"
+      }
+   ]
+}
+```
+Among them, State represents the execution result of the transaction. The value of State is 1, indicating that the transaction execution is successful. When the State value is 0, it indicates that the execution failed. SourceTxHash represents raw txhash that includes invoking other shard transaction. events are also rolled out in the called Shard. GasConsumed indicates the ONG consumed by the transaction execution. Notify represents the Event log output when the transaction is executed. Different transactions may output different event logs.
+
+### [4.5 Query Shard Transaction Execution Information](#45-query-shard-transaction-execution-information)
+
+```
+./ontology info txstate <SourceTxHash, [NotifyId]>
+```
+You can query the transaction execution information through the source transaction hash and notify id, notify id is not necessary, and the following example is as follows:
+
+```
+{
+   "TxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+   "Shards": {
+      "2": 0
+   },
+   "NumNotifies": 0,
+   "ShardNotifies": null,
+   "NextReqID": 1,
+   "InReqResp": {},
+   "PendingInReq": {
+      "ShardTxID": "",
+      "SourceShardID": 0,
+      "TargetShardID": 0,
+      "SourceTxHash": "",
+      "IdxInTx": 0,
+      "Contract": "",
+      "Payer": "",
+      "Fee": 0,
+      "GasPrice": 0,
+      "Method": "",
+      "Args": ""
+   },
+   "TotalInReq": 0,
+   "OutReqResp": [
+      {
+         "Req": {
+            "ShardTxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+            "SourceShardID": 1,
+            "TargetShardID": 2,
+            "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+            "IdxInTx": 0,
+            "Contract": "c49bbef937514f0e56a0b90cf89a0ea71661915f",
+            "Payer": "AK9yDLXx2axjL3kzE2RFA1NgHPVUq5HMRP",
+            "Fee": 1970940,
+            "GasPrice": 0,
+            "Method": "invokeCallee",
+            "Args": "8002020101020102"
+         },
+         "Resp": {
+            "ShardTxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+            "SourceShardID": 1,
+            "TargetShardID": 2,
+            "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+            "IdxInTx": 0,
+            "FeeUsed": 20000,
+            "Error": false,
+            "Result": "020103"
+         },
+         "Index": 0
+      }
+   ],
+   "TxPayload": "01d1f8102f5d000000000000000080841e000000000025162cc897920256e0b4707debb8e940484f26b1010000000000000029525152c10f696e766f6b65436f6e747261637442676cde2dae0c7b4924a69d73d932c6688c343c40550001414007ccba4e35743fed7da50924b6dfa45baaa7a923bb773374a052a804b0007e80315cdf8f945a4549b58438ba83a4661b7973328233975d04b5e4449b8132f71423210227e8c96864440185a9774c8e7b8b553ce10657d684d94dc4970ab8a70bb0c085ac",
+   "PendingOutReq": {
+      "ShardTxID": "",
+      "SourceShardID": 0,
+      "TargetShardID": 0,
+      "SourceTxHash": "",
+      "IdxInTx": 0,
+      "Contract": "",
+      "Payer": "",
+      "Fee": 0,
+      "GasPrice": 0,
+      "Method": "",
+      "Args": ""
+   },
+   "PendingPrepare": null,
+   "ExecState": 2,
+   "Result": "",
+   "ResultErr": "",
+   "LockedAddress": [
+      "55403c348c68c632d9739da624497b0cae2dde6c"
+   ],
+   "LockedKeys": [],
+   "WriteSet": {},
+   "Notify": {
+      "TxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+      "State": 0,
+      "GasConsumed": 0,
+      "Notify": [
+         {
+            "ContractAddress": "55403c348c68c632d9739da624497b0cae2dde6c",
+            "States": "01",
+            "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e"
+         }
+      ]
+   }
+}
+```
+`TxID` consists by `TxHash` and `NotifyId`，txid used to store txstate as key。
+`Shards` Is a set of key-value pairs, key is shardId, value is transaction execution status（Execution status of other shard transactions triggered by current shard transactions, excluding notify）, There are five cases of execution status values, 0 represents unexecuted，1 represents suspension of execution，2 represents execution completion，and tx at stage `prepare`, 3 represents tx at stage `commited`, At this point, the transaction can be committed, 4 represents transaction cancel
+`NumNotifies` Represents the number of notify that the transaction has launched
+`ShardNotifies` Represents the notify rolled out in shard of the transaction call
+`NextReqID` Number of cross-shard requests
+`InReqResp` Used to store completed requests and results in received requests
+`PendingInReq` Used to store uncompleted requests in received requests
+`TotalInReq` Used to store the number of received requests
+`OutReqResp` Used to store completed requests and results in outgoing requests
+`TxPayload`  Used to store source transaction send by user
+`PendingOutReq`Used to store unprocessed requests from current Shard
+`PendingPrepare` Header information of requests at the stage prepare
+`ExecState` execution status of current transaction ，
+`Result` execution result of current transaction
+`ResultErr` execution error information
+`LockedAddress` Locked contract address triggered by current transaction
+`LockedKeys` locked key list
+`WriteSet` transaction execution result
+`Notify` smartcontract event
+
+
 
 ## 5. Smart Contract
 

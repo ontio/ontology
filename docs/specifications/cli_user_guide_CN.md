@@ -48,6 +48,8 @@ Ontology cli 是Ontology命令行客户端，用于启动和管理Ontology节点
 		* [4.1 查询区块信息](#41-查询区块信息)
 		* [4.2 查询交易信息](#42-查询交易信息)
 		* [4.3 查询交易执行信息](#43-查询交易执行信息)
+		* [4.4 查询shard交易信息](#44-查询shard交易信息)
+		* [4.5 查询shard交易执行信息](#45-查询shard交易执行信息)
 	* [5、智能合约](#5-智能合约)
 		* [5.1 智能合约部署](#51-智能合约部署)
 			* [5.1.1 智能合约部署参数](#511-智能合约部署参数)
@@ -588,6 +590,151 @@ gaslimit参数指定转账交易的gas limit。交易的gas limit不能小于接
 }
 ```
 其中，State表示交易执行结果，State的值为1，表示交易执行成功，State值为0时，表示执行失败。GasConsumed表示交易执行消耗的ONG。Notify表示交易执行时输出的Event log。不同的交易可能会输出不同的Event log。
+
+
+### 4.4 查询shard交易信息
+
+```
+./ontology info shardtxstatus <SourceTxHash>
+```
+可以通过source交易Hash查询交易的执行信息，调用该方法的交易需要包含跨分片调用，返回示例如下：
+
+```
+{
+   "TxHash": "342f20da502b89942dc0ebdd9c9c47c8555eed469e6f277c6cd9a61d8aba084d",
+   "State": 1,
+   "GasConsumed": 0,
+   "Notify": [
+      {
+         "ContractAddress": "f638fe8c4b2c50d917a77956f44cb115c20a4ddd",
+         "States": [
+            "01",
+            "02",
+            "31"
+         ],
+         "SourceTxHash": "675d1aee0fe31a3df55a0a8c07a47ff86eacb26f6c85b12945db342f1386351a"
+      }
+   ]
+}
+```
+其中，State表示交易执行结果，State的值为1，表示交易执行成功，State值为0时，表示执行失败。SourceTxHash是原始交易hash，也就是用户发的交易Hash，该交易会调用其他shard中的合约方法，查询的事件也是被调用的shard中推出来。GasConsumed表示交易执行消耗的ONG。Notify表示交易执行时输出的Event log。不同的交易可能会输出不同的Event log。
+
+### 4.5 查询shard交易执行信息
+
+```
+./ontology info txstate <SourceTxHash, [NotifyId]>
+```
+
+可以通过source交易Hash和notifyId查询交易的执行信息，调用该方法的交易需要包含跨分片调用，返回示例如下：
+
+```
+{
+   "TxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+   "Shards": {
+      "2": 0
+   },
+   "NumNotifies": 0,
+   "ShardNotifies": null,
+   "NextReqID": 1,
+   "InReqResp": {},
+   "PendingInReq": {
+      "ShardTxID": "",
+      "SourceShardID": 0,
+      "TargetShardID": 0,
+      "SourceTxHash": "",
+      "IdxInTx": 0,
+      "Contract": "",
+      "Payer": "",
+      "Fee": 0,
+      "GasPrice": 0,
+      "Method": "",
+      "Args": ""
+   },
+   "TotalInReq": 0,
+   "OutReqResp": [
+      {
+         "Req": {
+            "ShardTxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+            "SourceShardID": 1,
+            "TargetShardID": 2,
+            "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+            "IdxInTx": 0,
+            "Contract": "c49bbef937514f0e56a0b90cf89a0ea71661915f",
+            "Payer": "AK9yDLXx2axjL3kzE2RFA1NgHPVUq5HMRP",
+            "Fee": 1970940,
+            "GasPrice": 0,
+            "Method": "invokeCallee",
+            "Args": "8002020101020102"
+         },
+         "Resp": {
+            "ShardTxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+            "SourceShardID": 1,
+            "TargetShardID": 2,
+            "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+            "IdxInTx": 0,
+            "FeeUsed": 20000,
+            "Error": false,
+            "Result": "020103"
+         },
+         "Index": 0
+      }
+   ],
+   "TxPayload": "01d1f8102f5d000000000000000080841e000000000025162cc897920256e0b4707debb8e940484f26b1010000000000000029525152c10f696e766f6b65436f6e747261637442676cde2dae0c7b4924a69d73d932c6688c343c40550001414007ccba4e35743fed7da50924b6dfa45baaa7a923bb773374a052a804b0007e80315cdf8f945a4549b58438ba83a4661b7973328233975d04b5e4449b8132f71423210227e8c96864440185a9774c8e7b8b553ce10657d684d94dc4970ab8a70bb0c085ac",
+   "PendingOutReq": {
+      "ShardTxID": "",
+      "SourceShardID": 0,
+      "TargetShardID": 0,
+      "SourceTxHash": "",
+      "IdxInTx": 0,
+      "Contract": "",
+      "Payer": "",
+      "Fee": 0,
+      "GasPrice": 0,
+      "Method": "",
+      "Args": ""
+   },
+   "PendingPrepare": null,
+   "ExecState": 2,
+   "Result": "",
+   "ResultErr": "",
+   "LockedAddress": [
+      "55403c348c68c632d9739da624497b0cae2dde6c"
+   ],
+   "LockedKeys": [],
+   "WriteSet": {},
+   "Notify": {
+      "TxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+      "State": 0,
+      "GasConsumed": 0,
+      "Notify": [
+         {
+            "ContractAddress": "55403c348c68c632d9739da624497b0cae2dde6c",
+            "States": "01",
+            "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e"
+         }
+      ]
+   }
+}
+```
+`TxID`有`TxHash`和`NotifyId`组成，用来作为存储TxState的key。
+`Shards` 是一组键值对，key是shardId, value是执行状态（当前shard交易触发的其他shard的交易的执行状态，不包括notify），执行状态值有5中情况，0表示未执行，1表示正在执行中断，2表示交易已完成，处于`prepare`阶段，3表示交易处于`commited`阶段，此时交易可以落账，4表示交易取消
+`NumNotifies` 表示该交易推出来的notify数量
+`ShardNotifies` 表示该交易调用的shard中推出来的notify
+`NextReqID` 用来标记跨分片请求的个数
+`InReqResp` 用来存储接收到的请求中已经完成的请求和结果
+`PendingInReq`用来存储接收到的请求中尚未完成的请求
+`TotalInReq`用来统计接收到的请求个数
+`OutReqResp` 用来存储发出去的请求中已经完成的请求和结果
+`TxPayload` 用于存储用户发的sourceTx
+`PendingOutReq`用于存储当前shard发出去的请求，该请求还未被处理
+`PendingPrepare`处于prepare阶段的请求Header信息
+`ExecState` 当前tx的执行状态，
+`Result`当前交易的执行结果
+`ResultErr` 执行的错误信息
+`LockedAddress`当前交易锁定的合约地址列表，
+`LockedKeys` 当前交易锁定的key列表
+`WriteSet` 交易执行的结果
+`Notify` 交易推出来的事件
 
 ## 5、智能合约
 

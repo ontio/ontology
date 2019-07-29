@@ -47,6 +47,8 @@
 | [post_raw_tx](#21-post_raw_tx) | post /api/v1/transaction?preExec=0 | 向ontology网络发送交易 |
 | [get_networkid](#22-get_networkid) |  GET /api/v1/networkid | 得到network id |
 | [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | 得到grant ong |
+| [get_shard_smtcode_evts](#24-get_shard_smtcode_evts) | GET /api/v1/shard/smartcode/event/txhash/:sourcetxhash | 通过source交易哈希得到该交易调用的shard交易的事件 |
+| [get_shard_tx_state](#25-get_shard_tx_state) | GET /api/v1/shardtxstate/:txhash/:notifyid | 通过txhash和notifyid查询txstate |
 
 ### 1 get_conn_count
 
@@ -868,6 +870,157 @@ curl -i http://localhost:20334/api/v1/grantong/AKDFapcoUhewN9Kaj6XhHusurfHzUiZqU
     "Error": 0,
     "Version": "1.0.0",
     "Result": 4995625
+}
+```
+
+
+### 24 get_shard_smtcode_evts
+
+通过source交易哈希得到该交易调用的shard交易的事件。
+
+GET
+```
+/api/v1/shard/smartcode/event/txhash/:sourcetxhash
+```
+#### Request Example:
+```
+curl -i http://localhost:20334/api/v1/shard/smartcode/event/txhash/cb93074c6e9ca615cc1c6139f3bfdb348184024c4ae827a05bbbbd198eb931a6
+```
+#### Response:
+```
+{
+    "Action": "getshardsmartcodeevent",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "TxHash": "44d6e78025cecbb9cc493850f8b8d016de76e76c2a82d1225b65f8c37c57f510",
+        "State": 0,
+        "GasConsumed": 0,
+        "Notify": [
+            {
+                "ContractAddress": "f638fe8c4b2c50d917a77956f44cb115c20a4ddd",
+                "States": [
+                    "01",
+                    "02",
+                    "2f"
+                ],
+                "SourceTxHash": "cb93074c6e9ca615cc1c6139f3bfdb348184024c4ae827a05bbbbd198eb931a6"
+            }
+        ]
+    },
+    "Version": "1.0.0"
+}
+```
+
+### 25 get_shard_tx_state
+
+通过source交易哈希得到该交易调用的shard交易的事件。
+
+GET
+```
+/api/v1/shardtxstate/:txhash/:notifyid
+```
+
+notifyid参数可有可无
+
+#### Request Example:
+```
+curl -i http://127.0.0.1:30334/api/v1/shardtxstate/fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e
+```
+#### Response:
+```
+{
+    "Action": "getshardtxstate",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": {
+        "TxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+        "Shards": {
+            "2": 0
+        },
+        "NumNotifies": 0,
+        "ShardNotifies": null,
+        "NextReqID": 1,
+        "InReqResp": {},
+        "PendingInReq": {
+            "ShardTxID": "",
+            "SourceShardID": 0,
+            "TargetShardID": 0,
+            "SourceTxHash": "",
+            "IdxInTx": 0,
+            "Contract": "",
+            "Payer": "",
+            "Fee": 0,
+            "GasPrice": 0,
+            "Method": "",
+            "Args": ""
+        },
+        "TotalInReq": 0,
+        "OutReqResp": [
+            {
+                "Req": {
+                    "ShardTxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+                    "SourceShardID": 1,
+                    "TargetShardID": 2,
+                    "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+                    "IdxInTx": 0,
+                    "Contract": "c49bbef937514f0e56a0b90cf89a0ea71661915f",
+                    "Payer": "AK9yDLXx2axjL3kzE2RFA1NgHPVUq5HMRP",
+                    "Fee": 1970940,
+                    "GasPrice": 0,
+                    "Method": "invokeCallee",
+                    "Args": "8002020101020102"
+                },
+                "Resp": {
+                    "ShardTxID": "4ec4067d1e9dd2a8dc3f2130630001ef4489f633af0235e67e230a900d4164fb",
+                    "SourceShardID": 1,
+                    "TargetShardID": 2,
+                    "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+                    "IdxInTx": 0,
+                    "FeeUsed": 20000,
+                    "Error": false,
+                    "Result": "020103"
+                },
+                "Index": 0
+            }
+        ],
+        "TxPayload": "01d1f8102f5d000000000000000080841e000000000025162cc897920256e0b4707debb8e940484f26b1010000000000000029525152c10f696e766f6b65436f6e747261637442676cde2dae0c7b4924a69d73d932c6688c343c40550001414007ccba4e35743fed7da50924b6dfa45baaa7a923bb773374a052a804b0007e80315cdf8f945a4549b58438ba83a4661b7973328233975d04b5e4449b8132f71423210227e8c96864440185a9774c8e7b8b553ce10657d684d94dc4970ab8a70bb0c085ac",
+        "PendingOutReq": {
+            "ShardTxID": "",
+            "SourceShardID": 0,
+            "TargetShardID": 0,
+            "SourceTxHash": "",
+            "IdxInTx": 0,
+            "Contract": "",
+            "Payer": "",
+            "Fee": 0,
+            "GasPrice": 0,
+            "Method": "",
+            "Args": ""
+        },
+        "PendingPrepare": null,
+        "ExecState": 2,
+        "Result": "",
+        "ResultErr": "",
+        "LockedAddress": [
+            "55403c348c68c632d9739da624497b0cae2dde6c"
+        ],
+        "LockedKeys": [],
+        "WriteSet": {},
+        "Notify": {
+            "TxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e",
+            "State": 0,
+            "GasConsumed": 0,
+            "Notify": [
+                {
+                    "ContractAddress": "55403c348c68c632d9739da624497b0cae2dde6c",
+                    "States": "01",
+                    "SourceTxHash": "fb64410d900a237ee63502af33f68944ef01006330213fdca8d29d1e7d06c44e"
+                }
+            ]
+        }
+    },
+    "Version": "1.0.0"
 }
 ```
 
