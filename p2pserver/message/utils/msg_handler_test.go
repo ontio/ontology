@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -42,16 +43,31 @@ import (
 	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/stretchr/testify/assert"
+	"net"
 )
 
 var (
-	network p2p.P2P
+	network *MockP2P
 )
+
+type MockP2P struct {
+	p2p.P2P
+	SentMsgs []types.Message
+}
+
+func (mock *MockP2P) Send(p *peer.Peer, msg types.Message) error {
+	mock.SentMsgs = append(mock.SentMsgs, msg)
+	return nil
+}
+
+func NewMockP2p() *MockP2P {
+	return &MockP2P{netserver.NewNetServer(), make([]types.Message, 0)}
+}
 
 func TestMain(m *testing.M) {
 	log.InitLog(log.InfoLog, log.Stdout)
 	// Start local network server and create message router
-	network = netserver.NewNetServer()
+	network = NewMockP2p()
 
 	events.Init()
 	// Initial a ledger
@@ -178,21 +194,155 @@ func TestAddrReqHandle(t *testing.T) {
 
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")
-	remotePeer.Link.SetAddr("127.0.0.1:50010")
+	remotePeer.Link.SetAddr("127.0.0.1:1234")
+	remotePeer.Link.SetPort(1234)
 
 	network.AddNbrNode(remotePeer)
+	remotePeer.SetState(msgCommon.ESTABLISH)
 
 	// Construct an address request packet
 	buf := msgpack.NewAddrReq()
 
 	msg := &types.MsgPayload{
 		Id:      testID,
-		Addr:    "127.0.0.1:50010",
+		Addr:    "test",
 		Payload: buf,
 	}
 
 	// Invoke AddrReqHandle to handle the msg
 	AddrReqHandle(msg, network, nil)
+
+	for _, msg := range network.SentMsgs {
+		addrMsg, ok := msg.(*types.Addr)
+		if !ok {
+			t.Fatalf("invalid addr msg")
+		}
+		if len(addrMsg.NodeAddrs) != 1 {
+			t.Fatalf("invalid addr count: %v", addrMsg.NodeAddrs)
+		}
+		var ip net.IP
+		ip = addrMsg.NodeAddrs[0].IpAddr[:]
+		addr := fmt.Sprintf("%v:%d", ip, addrMsg.NodeAddrs[0].Port)
+		if addr != remotePeer.Link.GetAddr() {
+			t.Fatalf("invalid addr: %s vs %s", addr, remotePeer.Link.GetAddr())
+		}
+	}
+
+	network.DelNbrNode(testID)
+}
+
+//
+// create two neighbors, one masked, one un-masked
+// send addr-req from un-mask peer, get itself in addr-rsp
+//
+func TestAddrReqHandle_maskok(t *testing.T) {
+	// Simulate a remote peer to be added to the neighbor peers
+	testID := uint64(123456)
+	remotePeer := peer.NewPeer()
+	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
+		testID, 0, 12345, "1.5.2")
+	remotePeer.Link.SetAddr("1.2.3.4:5001")
+	remotePeer.Link.SetPort(5001)
+	network.AddNbrNode(remotePeer)
+	remotePeer.SetState(msgCommon.ESTABLISH)
+
+	testID2 := uint64(1234567)
+	remotePeer2 := peer.NewPeer()
+	remotePeer2.UpdateInfo(time.Now(), 1, 12345678, 20336,
+		testID2, 0, 12345, "1.5.2")
+	remotePeer2.Link.SetAddr("1.2.3.5:5002")
+	remotePeer2.Link.SetPort(5002)
+	network.AddNbrNode(remotePeer2)
+	remotePeer2.SetState(msgCommon.ESTABLISH)
+
+	// Construct an address request packet
+	buf := msgpack.NewAddrReq()
+
+	msg := &types.MsgPayload{
+		Id:      testID2,
+		Addr:    "test",
+		Payload: buf,
+	}
+
+	config.DefConfig.P2PNode.ReservedPeersOnly = true
+	config.DefConfig.P2PNode.ReservedCfg.MaskPeers = []string{"1.2.3.4"}
+
+	// Invoke AddrReqHandle to handle the msg
+	AddrReqHandle(msg, network, nil)
+
+	// verify 1.2.3.4 is masked
+	for _, msg := range network.SentMsgs {
+		addrMsg, ok := msg.(*types.Addr)
+		if !ok {
+			t.Fatalf("invalid addr msg")
+		}
+		if len(addrMsg.NodeAddrs) != 1 {
+			t.Fatalf("invalid addr count: %v", addrMsg.NodeAddrs)
+		}
+		var ip net.IP
+		ip = addrMsg.NodeAddrs[0].IpAddr[:]
+		addr := fmt.Sprintf("%v:%d", ip, addrMsg.NodeAddrs[0].Port)
+		if addr != remotePeer2.Link.GetAddr() {
+			t.Fatalf("invalid addr: %s vs %s", addr, remotePeer2.Link.GetAddr())
+		}
+	}
+
+	network.DelNbrNode(testID)
+}
+
+//
+// create one masked neighbor
+// send addr-req, get itself in addr-rsp
+//
+func TestAddrReqHandle_unmaskok(t *testing.T) {
+	// Simulate a remote peer to be added to the neighbor peers
+	var testID uint64
+	_, testPub, _ := keypair.GenerateKeyPair(keypair.PK_ECDSA, keypair.P256)
+	key := keypair.SerializePublicKey(testPub)
+	err := binary.Read(bytes.NewBuffer(key[:8]), binary.LittleEndian, &(testID))
+	assert.Nil(t, err)
+
+	remotePeer := peer.NewPeer()
+	assert.NotNil(t, remotePeer)
+
+	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
+		testID, 0, 12345, "1.5.2")
+	remotePeer.Link.SetAddr("1.2.3.4:5001")
+	remotePeer.Link.SetPort(5001)
+
+	network.AddNbrNode(remotePeer)
+	remotePeer.SetState(msgCommon.ESTABLISH)
+
+	// Construct an address request packet
+	buf := msgpack.NewAddrReq()
+
+	msg := &types.MsgPayload{
+		Id:      testID,
+		Addr:    "test",
+		Payload: buf,
+	}
+
+	config.DefConfig.P2PNode.ReservedPeersOnly = true
+	config.DefConfig.P2PNode.ReservedCfg.MaskPeers = []string{"1.2.3.4"}
+
+	// Invoke AddrReqHandle to handle the msg
+	AddrReqHandle(msg, network, nil)
+
+	for _, msg := range network.SentMsgs {
+		addrMsg, ok := msg.(*types.Addr)
+		if !ok {
+			t.Fatalf("invalid addr msg")
+		}
+		if len(addrMsg.NodeAddrs) != 1 {
+			t.Fatalf("invalid addr count: %v", addrMsg.NodeAddrs)
+		}
+		var ip net.IP
+		ip = addrMsg.NodeAddrs[0].IpAddr[:]
+		addr := fmt.Sprintf("%v:%d", ip, addrMsg.NodeAddrs[0].Port)
+		if addr != remotePeer.Link.GetAddr() {
+			t.Fatalf("invalid addr: %s vs %s", addr, remotePeer.Link.GetAddr())
+		}
+	}
 
 	network.DelNbrNode(testID)
 }
