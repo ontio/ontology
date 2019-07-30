@@ -67,7 +67,7 @@ var (
 	//max memory size of wasm vm
 	WASM_MEM_LIMITATION uint64 = 10 * 1024 * 1024
 	VM_STEP_LIMIT              = 40000000
-
+	CALL_STACK_DEPTH    uint32 = 1000
 	CodeCache *lru.ARCCache
 )
 
@@ -140,6 +140,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 	vm.RecoverPanic = true
 	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasPrice: this.GasPrice}
+	vm.CallStackDepth = CALL_STACK_DEPTH
 
 	entryName := CONTRACT_METHOD_NAME
 
