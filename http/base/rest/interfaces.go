@@ -565,6 +565,36 @@ func GetShardTxState(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func GetShardChainConfig(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	idStr, ok := cmd["ShardID"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	heightStr, ok := cmd["Height"].(string)
+	if !ok {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	height, err := strconv.ParseUint(heightStr, 10, 32)
+	if err != nil {
+		return ResponsePack(berr.INVALID_PARAMS)
+	}
+	shardID, err := common.NewShardID(id)
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	chainConfig, err := bactor.GetShardChainConfig(shardID, uint32(height))
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = chainConfig
+	return resp
+}
+
 //get balance of address
 func GetBalance(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)

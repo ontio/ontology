@@ -49,6 +49,7 @@
 | [get_grantong](#23-get_grantong) |  GET /api/v1/grantong/:addr | 得到grant ong |
 | [get_shard_smtcode_evts](#24-get_shard_smtcode_evts) | GET /api/v1/shard/smartcode/event/txhash/:sourcetxhash | 通过source交易哈希得到该交易调用的shard交易的事件 |
 | [get_shard_tx_state](#25-get_shard_tx_state) | GET /api/v1/shardtxstate/:txhash/:notifyid | 通过txhash和notifyid查询txstate |
+| [get_shard_chainconfig](#26-get_shard_chainconfig) |  GET/api/v1/shardchainconfig/:shardid/:height| 得到 shardchainconfig |
 
 ### 1 get_conn_count
 
@@ -1024,6 +1025,14 @@ curl -i http://127.0.0.1:30334/api/v1/shardtxstate/fb64410d900a237ee63502af33f68
 }
 ```
 
+### 26 get_shard_chainconfig
+
+获取 shardchainconfig.
+
+GET
+```
+/api/v1/shardchainconfig/:shardid/:height
+```
 ## 错误代码
 
 | Field | Type | Description |

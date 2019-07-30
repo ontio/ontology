@@ -36,6 +36,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/serialization"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -619,6 +620,19 @@ func GetTxHeight(txHash string) (uint32, error) {
 		return 0, fmt.Errorf("json.Unmarshal error:%s", err)
 	}
 	return height, nil
+}
+
+func GetShardChainConfig(shardID uint64, height uint32) (*vconfig.ChainConfig, error) {
+	data, ontErr := sendRpcRequest("getshardchainconfig", []interface{}{shardID, height})
+	if ontErr != nil {
+		return nil, fmt.Errorf("getshardchainconfig shardID:%d,height:%d,err:%s", shardID, height, ontErr.Error)
+	}
+	cfg := &vconfig.ChainConfig{}
+	err := json.Unmarshal(data, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	return cfg, nil
 }
 
 func DeployContract(

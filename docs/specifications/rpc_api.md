@@ -99,7 +99,7 @@ There are some description of parameter used in rpc:
 | [getgrantong](#22-getgrantong) |  | Get grant ong |  |
 | [getshardsmartcodeevent](#23-getshardsmartcodeevent) |  | Get shard smart contract event |  |
 | [getshardtxstate](#24-getshardtxstate) |  | Get tx state |  |
-
+| [getshardchainconfig](#25-getshardchainconfig) | shardid,height | get chainconfig by shardid and height|  |
 ### 1. getbestblockhash
 
 Get the hash of the highest height block in the main chain.
@@ -1261,6 +1261,20 @@ Response:
 }
 ```
 
+#### 25. getshardchainconfig
+
+get shard chainconfig by shardid and height.
+
+#### Example
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getshardchainconfig",
+  "params": [1,12],
+  "id": 0
+}
+```
 
 ## Error Code
 

@@ -99,6 +99,7 @@
 | [getgrantong](#22-getgrantong) |  | 获取 grant ong |  |
 | [getshardsmartcodeevent](#23-getshardsmartcodeevent) |  | 获取 shard smart contract event |  |
 | [getshardtxstate](#24-getshardtxstate) |  | 获取tx state |  |
+| [getshardchainconfig](#25-getshardchainconfig) | shardid,height | 获取指定shard chainconfig |  |
 
 ### 1. getbestblockhash
 
@@ -1270,6 +1271,23 @@ Response:
             ]
         }
     }
+}
+```
+
+#### 25. getshardchainconfig
+
+获取指定shard chainconfig.
+
+#### Example
+
+Request:
+
+```
+{
+  "jsonrpc": "2.0",
+  "method": "getshardchainconfig",
+  "params": [1,12],
+  "id": 0
 }
 ```
 

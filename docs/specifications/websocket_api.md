@@ -51,6 +51,7 @@ This document describes the Websocket api format for the ws/wss used in the Onch
 | [getversion](#24-getversion) |  | get the version information of the node |
 | [getnetworkid](#25-getnetworkid) |  | get the network id |
 | [getgrantong](#26-getgrantong) |  | get grant ong |
+| [getshardchainconfig](#27-getshardchainconfig) |shardid,height  | get shard chainconfig |
 
 ###  1. heartbeat
 If don't send heartbeat, the session expire after 5min.
