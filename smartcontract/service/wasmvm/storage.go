@@ -29,7 +29,8 @@ func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vle
 
 	self := proc.HostData().(*Runtime)
 	self.checkGas(STORAGE_GET_GAS)
-	keybytes := make([]byte, klen)
+	klength := min(uint64(klen), MAX_KEY_LEN)
+	keybytes := make([]byte, klength)
 	_, err := proc.ReadAt(keybytes, int64(keyPtr))
 	if err != nil {
 		panic(err)
@@ -70,13 +71,14 @@ func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vle
 
 func StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint32, valPtr uint32, valLen uint32) {
 	self := proc.HostData().(*Runtime)
-	keybytes := make([]byte, keylen)
+	klen := min(uint64(keylen), MAX_KEY_LEN)
+	keybytes := make([]byte, klen)
 	_, err := proc.ReadAt(keybytes, int64(keyPtr))
 	if err != nil {
 		panic(err)
 	}
-
-	valbytes := make([]byte, valLen)
+	vlen := min(MAX_VAL_LEN, uint64(valLen))
+	valbytes := make([]byte, vlen)
 	_, err = proc.ReadAt(valbytes, int64(valPtr))
 	if err != nil {
 		panic(err)
@@ -93,7 +95,8 @@ func StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint32, valPtr uint3
 func StorageDelete(proc *exec.Process, keyPtr uint32, keylen uint32) {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(STORAGE_DELETE_GAS)
-	keybytes := make([]byte, keylen)
+	klen := min(uint64(keylen), MAX_KEY_LEN)
+	keybytes := make([]byte, klen)
 	_, err := proc.ReadAt(keybytes, int64(keyPtr))
 	if err != nil {
 		panic(err)
