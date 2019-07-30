@@ -1259,6 +1259,7 @@ Response:
         }
     }
 }
+```
 
 #### 25. getshardchainconfig
 
