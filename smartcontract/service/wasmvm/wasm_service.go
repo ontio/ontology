@@ -68,7 +68,7 @@ var (
 	WASM_MEM_LIMITATION uint64 = 10 * 1024 * 1024
 	VM_STEP_LIMIT              = 40000000
 	CALL_STACK_DEPTH    uint32 = 1000
-	CodeCache *lru.ARCCache
+	CodeCache           *lru.ARCCache
 )
 
 func init() {
