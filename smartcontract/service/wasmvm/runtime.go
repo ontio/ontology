@@ -128,8 +128,7 @@ func Checkwitness(proc *exec.Process, dst uint32) uint32 {
 
 func Ret(proc *exec.Process, ptr uint32, len uint32) {
 	self := proc.HostData().(*Runtime)
-	bs := make([]byte, len)
-	_, err := proc.ReadAt(bs, int64(ptr))
+	bs, err := ReadWasmMemory(proc, ptr, len)
 	if err != nil {
 		panic(err)
 	}
@@ -139,8 +138,7 @@ func Ret(proc *exec.Process, ptr uint32, len uint32) {
 }
 
 func Debug(proc *exec.Process, ptr uint32, len uint32) {
-	bs := make([]byte, len)
-	_, err := proc.ReadAt(bs, int64(ptr))
+	bs, err := ReadWasmMemory(proc, ptr, len)
 	if err != nil {
 		//do not panic on debug
 		return
@@ -151,8 +149,7 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 
 func Notify(proc *exec.Process, ptr uint32, len uint32) {
 	self := proc.HostData().(*Runtime)
-	bs := make([]byte, len)
-	_, err := proc.ReadAt(bs, int64(ptr))
+	bs, err := ReadWasmMemory(proc, ptr, len)
 	if err != nil {
 		panic(err)
 	}
@@ -209,8 +206,7 @@ func GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
 }
 
 func RaiseException(proc *exec.Process, ptr uint32, len uint32) {
-	bs := make([]byte, len)
-	_, err := proc.ReadAt(bs, int64(ptr))
+	bs, err := ReadWasmMemory(proc, ptr, len)
 	if err != nil {
 		//do not panic on debug
 		return
@@ -223,23 +219,13 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 	self := proc.HostData().(*Runtime)
 
 	self.checkGas(CALL_CONTRACT_GAS)
-	contractAddrbytes := make([]byte, 20)
-	_, err := proc.ReadAt(contractAddrbytes, int64(contractAddr))
+	var contractAddress common.Address
+	_, err := proc.ReadAt(contractAddress[:], int64(contractAddr))
 	if err != nil {
 		panic(err)
 	}
 
-	contractAddress, err := common.AddressParseFromBytes(contractAddrbytes)
-	if err != nil {
-		panic(err)
-	}
-
-	if uint32(proc.MemAllocated()) < inputLen {
-		panic(errors.NewErr("inputLen is greater than memory size"))
-	}
-
-	inputs := make([]byte, inputLen)
-	_, err = proc.ReadAt(inputs, int64(inputPtr))
+	inputs, err := ReadWasmMemory(proc, inputPtr, inputLen)
 	if err != nil {
 		panic(err)
 	}
