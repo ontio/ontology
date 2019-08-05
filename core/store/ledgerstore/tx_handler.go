@@ -55,7 +55,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 		err         error
 	)
 
-	_, err = wasmvm.ReadWasmModuleToVerify(deploy)
+	_, err = wasmvm.ReadWasmModuleToVerify(deploy, true)
 	if deploy.VmType == payload.WASMVM_TYPE && err != nil {
 		return err
 	}

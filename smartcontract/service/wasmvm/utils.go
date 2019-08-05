@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/go-interpreter/wagon/exec"
+	"github.com/go-interpreter/wagon/validate"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/core/payload"
 )
@@ -40,7 +41,7 @@ func ReadWasmMemory(proc *exec.Process, ptr uint32, len uint32) ([]byte, error) 
 	return keybytes, nil
 }
 
-func ReadWasmModuleToVerify(dep *payload.DeployCode) (*exec.CompiledModule, error) {
+func ReadWasmModuleToVerify(dep *payload.DeployCode, verify bool) (*exec.CompiledModule, error) {
 	if dep.VmType == payload.NEOVM_TYPE {
 		return nil, errors.New("only wasm contract need verify")
 	}
@@ -60,9 +61,17 @@ func ReadWasmModuleToVerify(dep *payload.DeployCode) (*exec.CompiledModule, erro
 		return nil, errors.New("[Call]No export in wasm!")
 	}
 
+	if verify {
+		err = validate.VerifyModule(m)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	compiled, err := exec.CompileModule(m)
 	if err != nil {
 		return nil, err
 	}
+
 	return compiled, nil
 }
