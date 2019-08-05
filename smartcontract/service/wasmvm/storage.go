@@ -26,11 +26,9 @@ import (
 )
 
 func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {
-
 	self := proc.HostData().(*Runtime)
 	self.checkGas(STORAGE_GET_GAS)
-	keybytes := make([]byte, klen)
-	_, err := proc.ReadAt(keybytes, int64(keyPtr))
+	keybytes, err := ReadWasmMemory(proc, keyPtr, klen)
 	if err != nil {
 		panic(err)
 	}
@@ -68,21 +66,19 @@ func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vle
 	return uint32(len(item))
 }
 
-func StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint32, valPtr uint32, valLen uint32) {
+func StorageWrite(proc *exec.Process, keyPtr uint32, keyLen uint32, valPtr uint32, valLen uint32) {
 	self := proc.HostData().(*Runtime)
-	keybytes := make([]byte, keylen)
-	_, err := proc.ReadAt(keybytes, int64(keyPtr))
+	keybytes, err := ReadWasmMemory(proc, keyPtr, keyLen)
 	if err != nil {
 		panic(err)
 	}
 
-	valbytes := make([]byte, valLen)
-	_, err = proc.ReadAt(valbytes, int64(valPtr))
+	valbytes, err := ReadWasmMemory(proc, valPtr, valLen)
 	if err != nil {
 		panic(err)
 	}
 
-	cost := uint64(((len(keybytes)+len(valbytes)-1)/1024 + 1)) * STORAGE_PUT_GAS
+	cost := uint64((len(keybytes)+len(valbytes)-1)/1024+1) * STORAGE_PUT_GAS
 	self.checkGas(cost)
 
 	key := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
@@ -90,11 +86,10 @@ func StorageWrite(proc *exec.Process, keyPtr uint32, keylen uint32, valPtr uint3
 	self.Service.CacheDB.Put(key, states.GenRawStorageItem(valbytes))
 }
 
-func StorageDelete(proc *exec.Process, keyPtr uint32, keylen uint32) {
+func StorageDelete(proc *exec.Process, keyPtr uint32, keyLen uint32) {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(STORAGE_DELETE_GAS)
-	keybytes := make([]byte, keylen)
-	_, err := proc.ReadAt(keybytes, int64(keyPtr))
+	keybytes, err := ReadWasmMemory(proc, keyPtr, keyLen)
 	if err != nil {
 		panic(err)
 	}
