@@ -18,9 +18,13 @@
 package wasmvm
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 
 	"github.com/go-interpreter/wagon/exec"
+	"github.com/go-interpreter/wagon/wasm"
+	"github.com/ontio/ontology/core/payload"
 )
 
 func ReadWasmMemory(proc *exec.Process, ptr uint32, len uint32) ([]byte, error) {
@@ -34,4 +38,31 @@ func ReadWasmMemory(proc *exec.Process, ptr uint32, len uint32) ([]byte, error) 
 	}
 
 	return keybytes, nil
+}
+
+func ReadWasmModuleToVerify(dep *payload.DeployCode) (*exec.CompiledModule, error) {
+	if dep.VmType == payload.NEOVM_TYPE {
+		return nil, errors.New("only wasm contract need verify")
+	}
+
+	m, err := wasm.ReadModule(bytes.NewReader(dep.Code), func(name string) (*wasm.Module, error) {
+		switch name {
+		case "env":
+			return NewHostModule(), nil
+		}
+		return nil, fmt.Errorf("module %q unknown", name)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if m.Export == nil {
+		return nil, errors.New("[Call]No export in wasm!")
+	}
+
+	compiled, err := exec.CompileModule(m)
+	if err != nil {
+		return nil, err
+	}
+	return compiled, nil
 }
