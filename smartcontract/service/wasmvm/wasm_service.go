@@ -103,7 +103,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	if compiled == nil {
-		compiled, err := ReadWasmModuleToVerify(code, false)
+		compiled, err := ReadWasmModule(code, false)
 		if err != nil {
 			return nil, err
 		}
