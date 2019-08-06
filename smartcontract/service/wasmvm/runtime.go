@@ -30,7 +30,6 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/event"
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -235,12 +234,6 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		panic(err)
 	}
 
-	currentCtx := &context.Context{
-		Code:            self.Service.Code,
-		ContractAddress: self.Service.ContextRef.CurrentContext().ContractAddress,
-	}
-	self.Service.ContextRef.PushContext(currentCtx)
-
 	var result []byte
 
 	switch contracttype {
@@ -331,7 +324,6 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 	default:
 		panic(errors.NewErr("Not a supported contract type"))
 	}
-	self.Service.ContextRef.PopContext()
 
 	self.CallOutPut = result
 	return uint32(len(self.CallOutPut))
