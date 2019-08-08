@@ -93,7 +93,7 @@ func (self *Executor) Execute() error {
 
 func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMState, error) {
 	if opcode >= PUSHBYTES1 && opcode <= PUSHBYTES75 {
-		buf, err := context.OpReader.ReadBytes(int(opcode))
+		buf, err := context.OpReader.ReadBytes(uint32(opcode))
 		if err != nil {
 			return FAULT, err
 		}
@@ -115,26 +115,26 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			return FAULT, err
 		}
 	case PUSHDATA1, PUSHDATA2, PUSHDATA4:
-		var numBytes int
+		var numBytes uint32
 		if opcode == PUSHDATA1 {
 			d, err := context.OpReader.ReadByte()
 			if err != nil {
 				return FAULT, err
 			}
 
-			numBytes = int(d)
+			numBytes = uint32(d)
 		} else if opcode == PUSHDATA2 {
 			num, err := context.OpReader.ReadUint16()
 			if err != nil {
 				return FAULT, err
 			}
-			numBytes = int(num)
+			numBytes = uint32(num)
 		} else {
 			num, err := context.OpReader.ReadUint32()
 			if err != nil {
 				return FAULT, err
 			}
-			numBytes = int(num)
+			numBytes = uint32(num)
 		}
 
 		data, err := context.OpReader.ReadBytes(numBytes)

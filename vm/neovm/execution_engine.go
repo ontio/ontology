@@ -76,7 +76,7 @@ func (this *ExecutionEngine) Execute() error {
 		}
 
 		if this.OpCode >= PUSHBYTES1 && this.OpCode <= PUSHBYTES75 {
-			bs, err := this.Context.OpReader.ReadBytes(int(this.OpCode))
+			bs, err := this.Context.OpReader.ReadBytes(uint32(this.OpCode))
 			if err != nil {
 				this.State = FAULT
 				return err
@@ -129,7 +129,7 @@ func (this *ExecutionEngine) StepInto() error {
 
 func (this *ExecutionEngine) ExecuteOp() (VMState, error) {
 	if this.OpCode >= PUSHBYTES1 && this.OpCode <= PUSHBYTES75 {
-		bs, err := this.Context.OpReader.ReadBytes(int(this.OpCode))
+		bs, err := this.Context.OpReader.ReadBytes(uint32(this.OpCode))
 		if err != nil {
 			return FAULT, err
 		}
