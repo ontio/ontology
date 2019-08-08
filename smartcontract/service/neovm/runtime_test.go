@@ -19,9 +19,12 @@
 package neovm
 
 import (
+	"errors"
 	"fmt"
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	scommon "github.com/ontio/ontology/smartcontract/common"
+	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
 	"math/big"
@@ -152,4 +155,53 @@ func TestStructRef(t *testing.T) {
 	map8.Add(ba1, map7)
 
 	assert.False(t, CircularRefAndDepthDetection(map8))
+}
+
+func TestRuntimeBase58ToAddress(t *testing.T) {
+	vm := neovm.NewExecutor([]byte(""))
+
+	acc := account.NewAccount("")
+	addr := acc.Address
+	base58 := acc.Address.ToBase58()
+
+	err := RuntimeBase58ToAddress(nil, vm)
+
+	if assert.Error(t, err) {
+		assert.Equal(t, errors.New("the index out of bound"), err)
+	}
+
+	vm.EvalStack.PushBytes([]byte(base58))
+
+	err = RuntimeBase58ToAddress(nil, vm)
+
+	assert.NoError(t, err)
+
+	result, err := vm.EvalStack.PopAsBytes()
+	assert.NoError(t, err)
+	assert.Equal(t, addr[:], result)
+}
+
+func TestRuntimeAddressToBase58(t *testing.T) {
+	vm := neovm.NewExecutor([]byte(""))
+
+	acc := account.NewAccount("")
+	addr := acc.Address
+	base58 := acc.Address.ToBase58()
+
+	err := RuntimeAddressToBase58(nil, vm)
+
+	if assert.Error(t, err) {
+		assert.Equal(t, errors.New("the index out of bound"), err)
+	}
+
+	vm.EvalStack.PushBytes(addr[:])
+
+	err = RuntimeAddressToBase58(nil, vm)
+
+	assert.NoError(t, err)
+
+	result, err := vm.EvalStack.PopAsBytes()
+
+	assert.NoError(t, err)
+	assert.Equal(t, base58, string(result))
 }
