@@ -24,8 +24,20 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20190724013045-ca1201d0de80
+	golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f
+	golang.org/x/sys v0.0.0-20190412213103-97732733099d
+	golang.org/x/text v0.3.0
+	golang.org/x/tools v0.0.0-20180221164845-07fd8470d635
 )
 
-replace golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 => github.com/golang/crypto v0.0.0-20190701094942-4def268fd1a4
+replace golang.org/x/crypto => github.com/golang/crypto v0.0.0-20190701094942-4def268fd1a4
 
-replace golang.org/x/net v0.0.0-20190724013045-ca1201d0de80 => github.com/golang/net v0.0.0-20190724013045-ca1201d0de80
+replace golang.org/x/net => github.com/golang/net v0.0.0-20190724013045-ca1201d0de80
+
+replace golang.org/x/sys => github.com/golang/sys v0.0.0-20190412213103-97732733099d
+
+replace golang.org/x/text => github.com/golang/text v0.3.0
+
+replace golang.org/x/sync => github.com/golang/sync v0.0.0-20180314180146-1d60e4601c6f
+
+replace golang.org/x/tools => github.com/golang/tools v0.0.0-20180221164845-07fd8470d635
