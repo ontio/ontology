@@ -11,7 +11,7 @@ go:
   - 1.12.x
 
 script:
+  - make all-cross
   - bash ./.travis.check-license.sh
   - bash ./.travis.gofmt.sh
-  - make all-cross
   - bash ./.travis.gotest.sh
