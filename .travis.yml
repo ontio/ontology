@@ -2,12 +2,13 @@ language: go
 
 go_import_path: github.com/ontio/ontology
 
-install:
-  - go get github.com/Masterminds/glide
-  - glide install
+os:
+  - linux
+  - osx
+  - windows
 
 go:
-  - 1.10.x
+  - 1.12.x
 
 script:
   - bash ./.travis.check-license.sh
