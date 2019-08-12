@@ -66,6 +66,11 @@ func ReadWasmModule(dep *payload.DeployCode, verify bool) (*exec.CompiledModule,
 		if err != nil {
 			return nil, err
 		}
+
+		err = validate.VerifyWasmCodeFromRust(dep.Code)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	compiled, err := exec.CompileModule(m)
