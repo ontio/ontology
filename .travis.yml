@@ -8,10 +8,11 @@ os:
   - windows
 
 go:
-  - 1.12.x
+  - "1.12.x"
 
 script:
-  - make all-cross
+  - env GO111MODULE=on make ontology
+  - env GO111MODULE=on go mod vendor
   - bash ./.travis.check-license.sh
   - bash ./.travis.gofmt.sh
   - bash ./.travis.gotest.sh
