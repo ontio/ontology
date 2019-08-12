@@ -18,11 +18,7 @@
 package wasmvm
 
 import (
-	"bytes"
-	"fmt"
-
 	"github.com/go-interpreter/wagon/exec"
-	"github.com/go-interpreter/wagon/wasm"
 	"github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
@@ -107,22 +103,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	if compiled == nil {
-		m, err := wasm.ReadModule(bytes.NewReader(code.Code), func(name string) (*wasm.Module, error) {
-			switch name {
-			case "env":
-				return NewHostModule(), nil
-			}
-			return nil, fmt.Errorf("module %q unknown", name)
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		if m.Export == nil {
-			return nil, errors.NewErr("[Call]No export in wasm!")
-		}
-
-		compiled, err = exec.CompileModule(m)
+		compiled, err := ReadWasmModule(code, false)
 		if err != nil {
 			return nil, err
 		}
