@@ -233,6 +233,7 @@ func validateDeployCode(dep *DeployCode) error {
 	if dep.VmType != WASMVM_TYPE && dep.VmType != NEOVM_TYPE {
 		return errors.NewErr("[descPtr] VmType invalid!")
 	}
+
 	return nil
 }
 

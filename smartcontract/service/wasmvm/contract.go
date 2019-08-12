@@ -79,6 +79,11 @@ func ContractCreate(proc *exec.Process,
 		panic(err)
 	}
 
+	_, err = ReadWasmModule(dep, true)
+	if dep.VmType == payload.WASMVM_TYPE && err != nil {
+		panic(err)
+	}
+
 	contractAddr := dep.Address()
 	if self.isContractExist(contractAddr) {
 		panic(errors.NewErr("contract has been deployed"))
@@ -147,6 +152,11 @@ func ContractMigrate(proc *exec.Process,
 
 	dep, err := payload.CreateDeployCode(code, needStorage, name, version, author, email, desc)
 	if err != nil {
+		panic(err)
+	}
+
+	_, err = ReadWasmModule(dep, true)
+	if dep.VmType == payload.WASMVM_TYPE && err != nil {
 		panic(err)
 	}
 
