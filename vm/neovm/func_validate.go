@@ -482,6 +482,11 @@ func validatePickItem(e *ExecutionEngine) error {
 			return errors.ERR_MAP_NOT_EXIST
 		}
 	default:
+		OpCodeUpdateHeight := config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
+		if e.BlockHeight <= OpCodeUpdateHeight {
+			return errors.ERR_NOT_SUPPORT_OPCODE
+		}
+
 		index, err := PeekBigInteger(e)
 		if err != nil {
 			return err
