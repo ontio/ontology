@@ -19,6 +19,7 @@
 package neovm
 
 import (
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/vm/neovm/errors"
 )
 
@@ -29,6 +30,7 @@ func NewExecutionEngine(BlockHeight uint32) *ExecutionEngine {
 	engine.State = BREAK
 	engine.OpCode = 0
 	engine.BlockHeight = BlockHeight
+	engine.BlockHtLevel0 = config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
 	return &engine
 }
 
@@ -39,6 +41,7 @@ type ExecutionEngine struct {
 	Contexts        []*ExecutionContext
 	Context         *ExecutionContext
 	BlockHeight     uint32
+	BlockHtLevel0   uint32
 	OpCode          OpCode
 	OpExec          OpExec
 }
