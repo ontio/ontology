@@ -264,7 +264,9 @@ func GetBlockInfo(block *types.Block) BlockInfo {
 
 	trans := make([]*Transactions, len(block.Transactions))
 	for i := 0; i < len(block.Transactions); i++ {
-		trans[i] = TransArryByteToHexString(block.Transactions[i])
+		tran := TransArryByteToHexString(block.Transactions[i])
+		tran.Height = block.Header.Height
+		trans[i] = tran
 	}
 
 	b := BlockInfo{
