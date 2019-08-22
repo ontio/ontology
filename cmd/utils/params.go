@@ -21,10 +21,10 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"reflect"
 	"strconv"
 	"strings"
-	"github.com/ontio/ontology/common"
 )
 
 const (
@@ -197,11 +197,11 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 			return nil, fmt.Errorf("parse boolean param:%s failed", pValue)
 		}
 	case PARAM_TYPE_ADDRESS:
-		address,err := common.AddressFromBase58(pValue)
-		if err != nil{
-			return nil,fmt.Errorf("parse address param:%s failed",pValue)
+		address, err := common.AddressFromBase58(pValue)
+		if err != nil {
+			return nil, fmt.Errorf("parse address param:%s failed", pValue)
 		}
-		return address[:],nil
+		return address[:], nil
 	default:
 		return nil, fmt.Errorf("unspport param type:%s", pType)
 	}
