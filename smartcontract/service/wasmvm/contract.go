@@ -25,7 +25,7 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
-func ContractCreate(proc *exec.Process,
+func ontio_ContractCreate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
 	needStorage uint32,
@@ -99,7 +99,7 @@ func ContractCreate(proc *exec.Process,
 
 }
 
-func ContractMigrate(proc *exec.Process,
+func ontio_ContractMigrate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
 	needStorage uint32,
@@ -196,7 +196,7 @@ func ContractMigrate(proc *exec.Process,
 	return uint32(length)
 }
 
-func ContractDelete(proc *exec.Process) {
+func ontio_ContractDelete(proc *exec.Process) {
 	self := proc.HostData().(*Runtime)
 	contractAddress := self.Service.ContextRef.CurrentContext().ContractAddress
 	iter := self.Service.CacheDB.NewIterator(contractAddress[:])

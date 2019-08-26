@@ -25,7 +25,7 @@ import (
 	"github.com/ontio/ontology/core/states"
 )
 
-func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {
+func ontio_StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(STORAGE_GET_GAS)
 	keybytes, err := ReadWasmMemory(proc, keyPtr, klen)
@@ -66,7 +66,7 @@ func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vle
 	return uint32(len(item))
 }
 
-func StorageWrite(proc *exec.Process, keyPtr uint32, keyLen uint32, valPtr uint32, valLen uint32) {
+func ontio_StorageWrite(proc *exec.Process, keyPtr uint32, keyLen uint32, valPtr uint32, valLen uint32) {
 	self := proc.HostData().(*Runtime)
 	keybytes, err := ReadWasmMemory(proc, keyPtr, keyLen)
 	if err != nil {
@@ -86,7 +86,7 @@ func StorageWrite(proc *exec.Process, keyPtr uint32, keyLen uint32, valPtr uint3
 	self.Service.CacheDB.Put(key, states.GenRawStorageItem(valbytes))
 }
 
-func StorageDelete(proc *exec.Process, keyPtr uint32, keyLen uint32) {
+func ontio_StorageDelete(proc *exec.Process, keyPtr uint32, keyLen uint32) {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(STORAGE_DELETE_GAS)
 	keybytes, err := ReadWasmMemory(proc, keyPtr, keyLen)

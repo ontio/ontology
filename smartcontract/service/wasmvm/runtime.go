@@ -19,6 +19,7 @@ package wasmvm
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"reflect"
 
@@ -55,19 +56,19 @@ type Runtime struct {
 	CallOutPut []byte
 }
 
-func TimeStamp(proc *exec.Process) uint64 {
+func ontio_TimeStamp(proc *exec.Process) uint64 {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(TIME_STAMP_GAS)
 	return uint64(self.Service.Time)
 }
 
-func BlockHeight(proc *exec.Process) uint32 {
+func ontio_BlockHeight(proc *exec.Process) uint32 {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(BLOCK_HEGHT_GAS)
 	return self.Service.Height
 }
 
-func SelfAddress(proc *exec.Process, dst uint32) {
+func ontio_SelfAddress(proc *exec.Process, dst uint32) {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(SELF_ADDRESS_GAS)
 	selfaddr := self.Service.ContextRef.CurrentContext().ContractAddress
@@ -77,7 +78,7 @@ func SelfAddress(proc *exec.Process, dst uint32) {
 	}
 }
 
-func CallerAddress(proc *exec.Process, dst uint32) {
+func ontio_CallerAddress(proc *exec.Process, dst uint32) {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(CALLER_ADDRESS_GAS)
 	if self.Service.ContextRef.CallingContext() != nil {
@@ -95,7 +96,7 @@ func CallerAddress(proc *exec.Process, dst uint32) {
 
 }
 
-func EntryAddress(proc *exec.Process, dst uint32) {
+func ontio_EntryAddress(proc *exec.Process, dst uint32) {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(ENTRY_ADDRESS_GAS)
 	entryAddress := self.Service.ContextRef.EntryContext().ContractAddress
@@ -105,7 +106,7 @@ func EntryAddress(proc *exec.Process, dst uint32) {
 	}
 }
 
-func Checkwitness(proc *exec.Process, dst uint32) uint32 {
+func ontio_Checkwitness(proc *exec.Process, dst uint32) uint32 {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(CHECKWITNESS_GAS)
 	var addr common.Address
@@ -125,7 +126,7 @@ func Checkwitness(proc *exec.Process, dst uint32) uint32 {
 	return 0
 }
 
-func Ret(proc *exec.Process, ptr uint32, len uint32) {
+func ontio_Ret(proc *exec.Process, ptr uint32, len uint32) {
 	self := proc.HostData().(*Runtime)
 	bs, err := ReadWasmMemory(proc, ptr, len)
 	if err != nil {
@@ -136,7 +137,7 @@ func Ret(proc *exec.Process, ptr uint32, len uint32) {
 	proc.Terminate()
 }
 
-func Debug(proc *exec.Process, ptr uint32, len uint32) {
+func ontio_Debug(proc *exec.Process, ptr uint32, len uint32) {
 	bs, err := ReadWasmMemory(proc, ptr, len)
 	if err != nil {
 		//do not panic on debug
@@ -146,7 +147,7 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 	log.Debugf("[WasmContract]Debug:%s\n", bs)
 }
 
-func Notify(proc *exec.Process, ptr uint32, len uint32) {
+func ontio_Notify(proc *exec.Process, ptr uint32, len uint32) {
 	self := proc.HostData().(*Runtime)
 	bs, err := ReadWasmMemory(proc, ptr, len)
 	if err != nil {
@@ -164,12 +165,12 @@ func Notify(proc *exec.Process, ptr uint32, len uint32) {
 	self.Service.ContextRef.PushNotifications(notifys)
 }
 
-func InputLength(proc *exec.Process) uint32 {
+func ontio_InputLength(proc *exec.Process) uint32 {
 	self := proc.HostData().(*Runtime)
 	return uint32(len(self.Input))
 }
 
-func GetInput(proc *exec.Process, dst uint32) {
+func ontio_GetInput(proc *exec.Process, dst uint32) {
 	self := proc.HostData().(*Runtime)
 	_, err := proc.WriteAt(self.Input, int64(dst))
 	if err != nil {
@@ -177,12 +178,28 @@ func GetInput(proc *exec.Process, dst uint32) {
 	}
 }
 
-func CallOutputLength(proc *exec.Process) uint32 {
+func ontio_sha256(proc *exec.Process, src uint32, len uint32, dst uint32) {
+	bs, err := ReadWasmMemory(proc, src, len)
+	if err != nil {
+		panic(err)
+	}
+
+	sh := sha256.New()
+	sh.Write(bs[:])
+	hash := sh.Sum(nil)
+
+	_, err = proc.WriteAt(hash[:], int64(dst))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ontio_CallOutputLength(proc *exec.Process) uint32 {
 	self := proc.HostData().(*Runtime)
 	return uint32(len(self.CallOutPut))
 }
 
-func GetCallOut(proc *exec.Process, dst uint32) {
+func ontio_GetCallOut(proc *exec.Process, dst uint32) {
 	self := proc.HostData().(*Runtime)
 	_, err := proc.WriteAt(self.CallOutPut, int64(dst))
 	if err != nil {
@@ -190,7 +207,7 @@ func GetCallOut(proc *exec.Process, dst uint32) {
 	}
 }
 
-func GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
+func ontio_GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
 	self := proc.HostData().(*Runtime)
 	self.checkGas(CURRENT_TX_HASH_GAS)
 
@@ -204,7 +221,7 @@ func GetCurrentTxHash(proc *exec.Process, ptr uint32) uint32 {
 	return uint32(length)
 }
 
-func RaiseException(proc *exec.Process, ptr uint32, len uint32) {
+func ontio_RaiseException(proc *exec.Process, ptr uint32, len uint32) {
 	bs, err := ReadWasmMemory(proc, ptr, len)
 	if err != nil {
 		//do not panic on debug
@@ -214,7 +231,7 @@ func RaiseException(proc *exec.Process, ptr uint32, len uint32) {
 	panic(fmt.Errorf("[RaiseException]Contract RaiseException:%s\n", bs))
 }
 
-func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32) uint32 {
+func ontio_CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inputLen uint32) uint32 {
 	self := proc.HostData().(*Runtime)
 
 	self.checkGas(CALL_CONTRACT_GAS)
@@ -395,122 +412,132 @@ func NewHostModule() *wasm.Module {
 			{
 				Form: 0, // value for the 'func' type constructor
 			},
+			//func(uint32,uint32,uint32)  [11]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
+			},
 		},
 	}
 	m.FunctionIndexSpace = []wasm.Function{
 		{ //0
 			Sig:  &m.Types.Entries[0],
-			Host: reflect.ValueOf(TimeStamp),
+			Host: reflect.ValueOf(ontio_TimeStamp),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //1
 			Sig:  &m.Types.Entries[1],
-			Host: reflect.ValueOf(BlockHeight),
+			Host: reflect.ValueOf(ontio_BlockHeight),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //2
 			Sig:  &m.Types.Entries[1],
-			Host: reflect.ValueOf(InputLength),
+			Host: reflect.ValueOf(ontio_InputLength),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //3
 			Sig:  &m.Types.Entries[1],
-			Host: reflect.ValueOf(CallOutputLength),
+			Host: reflect.ValueOf(ontio_CallOutputLength),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //4
 			Sig:  &m.Types.Entries[2],
-			Host: reflect.ValueOf(SelfAddress),
+			Host: reflect.ValueOf(ontio_SelfAddress),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //5
 			Sig:  &m.Types.Entries[2],
-			Host: reflect.ValueOf(CallerAddress),
+			Host: reflect.ValueOf(ontio_CallerAddress),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //6
 			Sig:  &m.Types.Entries[2],
-			Host: reflect.ValueOf(EntryAddress),
+			Host: reflect.ValueOf(ontio_EntryAddress),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //7
 			Sig:  &m.Types.Entries[2],
-			Host: reflect.ValueOf(GetInput),
+			Host: reflect.ValueOf(ontio_GetInput),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //8
 			Sig:  &m.Types.Entries[2],
-			Host: reflect.ValueOf(GetCallOut),
+			Host: reflect.ValueOf(ontio_GetCallOut),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //9
 			Sig:  &m.Types.Entries[3],
-			Host: reflect.ValueOf(Checkwitness),
+			Host: reflect.ValueOf(ontio_Checkwitness),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //10
 			Sig:  &m.Types.Entries[3],
-			Host: reflect.ValueOf(GetCurrentBlockHash),
+			Host: reflect.ValueOf(ontio_GetCurrentBlockHash),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //11
 			Sig:  &m.Types.Entries[3],
-			Host: reflect.ValueOf(GetCurrentTxHash),
+			Host: reflect.ValueOf(ontio_GetCurrentTxHash),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //12
 			Sig:  &m.Types.Entries[4],
-			Host: reflect.ValueOf(Ret),
+			Host: reflect.ValueOf(ontio_Ret),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //13
 			Sig:  &m.Types.Entries[4],
-			Host: reflect.ValueOf(Notify),
+			Host: reflect.ValueOf(ontio_Notify),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //14
 			Sig:  &m.Types.Entries[4],
-			Host: reflect.ValueOf(Debug),
+			Host: reflect.ValueOf(ontio_Debug),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //15
 			Sig:  &m.Types.Entries[5],
-			Host: reflect.ValueOf(CallContract),
+			Host: reflect.ValueOf(ontio_CallContract),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //16
 			Sig:  &m.Types.Entries[6],
-			Host: reflect.ValueOf(StorageRead),
+			Host: reflect.ValueOf(ontio_StorageRead),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //17
 			Sig:  &m.Types.Entries[7],
-			Host: reflect.ValueOf(StorageWrite),
+			Host: reflect.ValueOf(ontio_StorageWrite),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //18
 			Sig:  &m.Types.Entries[4],
-			Host: reflect.ValueOf(StorageDelete),
+			Host: reflect.ValueOf(ontio_StorageDelete),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //19
 			Sig:  &m.Types.Entries[9],
-			Host: reflect.ValueOf(ContractCreate),
+			Host: reflect.ValueOf(ontio_ContractCreate),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //20
 			Sig:  &m.Types.Entries[9],
-			Host: reflect.ValueOf(ContractMigrate),
+			Host: reflect.ValueOf(ontio_ContractMigrate),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //21
 			Sig:  &m.Types.Entries[10],
-			Host: reflect.ValueOf(ContractDelete),
+			Host: reflect.ValueOf(ontio_ContractDelete),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //22
 			Sig:  &m.Types.Entries[4],
-			Host: reflect.ValueOf(RaiseException),
+			Host: reflect.ValueOf(ontio_RaiseException),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
+		{ //23
+			Sig:  &m.Types.Entries[11],
+			Host: reflect.ValueOf(ontio_sha256),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 	}
@@ -631,6 +658,11 @@ func NewHostModule() *wasm.Module {
 				FieldStr: "panic",
 				Kind:     wasm.ExternalFunction,
 				Index:    22,
+			},
+			"sha256": {
+				FieldStr: "sha256",
+				Kind:     wasm.ExternalFunction,
+				Index:    23,
 			},
 		},
 	}
