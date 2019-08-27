@@ -19,6 +19,7 @@ package wasmvm
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
 	"reflect"
 
@@ -72,6 +73,26 @@ func SelfAddress(proc *exec.Process, dst uint32) {
 	self.checkGas(SELF_ADDRESS_GAS)
 	selfaddr := self.Service.ContextRef.CurrentContext().ContractAddress
 	_, err := proc.WriteAt(selfaddr[:], int64(dst))
+	if err != nil {
+		panic(err)
+	}
+}
+
+func Sha256(proc *exec.Process, src uint32, slen uint32, dst uint32) {
+	self := proc.HostData().(*Runtime)
+	cost := uint64((slen/1024)+1) * SHA256_GAS
+	self.checkGas(cost)
+
+	bs, err := ReadWasmMemory(proc, src, slen)
+	if err != nil {
+		panic(err)
+	}
+
+	sh := sha256.New()
+	sh.Write(bs[:])
+	hash := sh.Sum(nil)
+
+	_, err = proc.WriteAt(hash[:], int64(dst))
 	if err != nil {
 		panic(err)
 	}
@@ -331,6 +352,11 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 
 func NewHostModule() *wasm.Module {
 	m := wasm.NewModule()
+	paramTypes := make([]wasm.ValueType, 14)
+	for i := 0; i < len(paramTypes); i++ {
+		paramTypes[i] = wasm.ValueTypeI32
+	}
+
 	m.Types = &wasm.SectionTypes{
 		Entries: []wasm.FunctionSig{
 			//func()uint64    [0]
@@ -382,18 +408,20 @@ func NewHostModule() *wasm.Module {
 				ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
-			//func(uint32 * 12)uint32   [9]
+			//func(uint32 * 14)uint32   [9]
 			{
-				Form: 0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-					wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-					wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-					wasm.ValueTypeI32, wasm.ValueTypeI32},
+				Form:        0, // value for the 'func' type constructor
+				ParamTypes:  paramTypes,
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
 			//funct()   [10]
 			{
 				Form: 0, // value for the 'func' type constructor
+			},
+			//func(uint32,uint32,uint32)  [11]
+			{
+				Form:       0, // value for the 'func' type constructor
+				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32},
 			},
 		},
 	}
@@ -513,124 +541,134 @@ func NewHostModule() *wasm.Module {
 			Host: reflect.ValueOf(RaiseException),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
+		{ //23
+			Sig:  &m.Types.Entries[11],
+			Host: reflect.ValueOf(Sha256),
+			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
+		},
 	}
 
 	m.Export = &wasm.SectionExports{
 		Entries: map[string]wasm.ExportEntry{
-			"timestamp": {
-				FieldStr: "timestamp",
+			"ontio_timestamp": {
+				FieldStr: "ontio_timestamp",
 				Kind:     wasm.ExternalFunction,
 				Index:    0,
 			},
-			"block_height": {
-				FieldStr: "block_height",
+			"ontio_block_height": {
+				FieldStr: "ontio_block_height",
 				Kind:     wasm.ExternalFunction,
 				Index:    1,
 			},
-			"input_length": {
-				FieldStr: "input_length",
+			"ontio_input_length": {
+				FieldStr: "ontio_input_length",
 				Kind:     wasm.ExternalFunction,
 				Index:    2,
 			},
-			"call_output_length": {
-				FieldStr: "call_output_length",
+			"ontio_call_output_length": {
+				FieldStr: "ontio_call_output_length",
 				Kind:     wasm.ExternalFunction,
 				Index:    3,
 			},
-			"self_address": {
-				FieldStr: "self_address",
+			"ontio_self_address": {
+				FieldStr: "ontio_self_address",
 				Kind:     wasm.ExternalFunction,
 				Index:    4,
 			},
-			"caller_address": {
-				FieldStr: "caller_address",
+			"ontio_caller_address": {
+				FieldStr: "ontio_caller_address",
 				Kind:     wasm.ExternalFunction,
 				Index:    5,
 			},
-			"entry_address": {
-				FieldStr: "entry_address",
+			"ontio_entry_address": {
+				FieldStr: "ontio_entry_address",
 				Kind:     wasm.ExternalFunction,
 				Index:    6,
 			},
-			"get_input": {
-				FieldStr: "get_input",
+			"ontio_get_input": {
+				FieldStr: "ontio_get_input",
 				Kind:     wasm.ExternalFunction,
 				Index:    7,
 			},
-			"get_call_output": {
-				FieldStr: "get_call_output",
+			"ontio_get_call_output": {
+				FieldStr: "ontio_get_call_output",
 				Kind:     wasm.ExternalFunction,
 				Index:    8,
 			},
-			"check_witness": {
-				FieldStr: "check_witness",
+			"ontio_check_witness": {
+				FieldStr: "ontio_check_witness",
 				Kind:     wasm.ExternalFunction,
 				Index:    9,
 			},
-			"current_blockhash": {
-				FieldStr: "current_blockhash",
+			"ontio_current_blockhash": {
+				FieldStr: "ontio_current_blockhash",
 				Kind:     wasm.ExternalFunction,
 				Index:    10,
 			},
-			"current_txhash": {
-				FieldStr: "current_txhash",
+			"ontio_current_txhash": {
+				FieldStr: "ontio_current_txhash",
 				Kind:     wasm.ExternalFunction,
 				Index:    11,
 			},
-			"ret": {
-				FieldStr: "ret",
+			"ontio_return": {
+				FieldStr: "ontio_return",
 				Kind:     wasm.ExternalFunction,
 				Index:    12,
 			},
-			"notify": {
-				FieldStr: "notify",
+			"ontio_notify": {
+				FieldStr: "ontio_notify",
 				Kind:     wasm.ExternalFunction,
 				Index:    13,
 			},
-			"debug": {
-				FieldStr: "debug",
+			"ontio_debug": {
+				FieldStr: "ontio_debug",
 				Kind:     wasm.ExternalFunction,
 				Index:    14,
 			},
-			"call_contract": {
-				FieldStr: "call_contract",
+			"ontio_call_contract": {
+				FieldStr: "ontio_call_contract",
 				Kind:     wasm.ExternalFunction,
 				Index:    15,
 			},
-			"storage_read": {
-				FieldStr: "storage_read",
+			"ontio_storage_read": {
+				FieldStr: "ontio_storage_read",
 				Kind:     wasm.ExternalFunction,
 				Index:    16,
 			},
-			"storage_write": {
-				FieldStr: "storage_write",
+			"ontio_storage_write": {
+				FieldStr: "ontio_storage_write",
 				Kind:     wasm.ExternalFunction,
 				Index:    17,
 			},
-			"storage_delete": {
-				FieldStr: "storage_delete",
+			"ontio_storage_delete": {
+				FieldStr: "ontio_storage_delete",
 				Kind:     wasm.ExternalFunction,
 				Index:    18,
 			},
-			"contract_create": {
-				FieldStr: "contract_create",
+			"ontio_contract_create": {
+				FieldStr: "ontio_contract_create",
 				Kind:     wasm.ExternalFunction,
 				Index:    19,
 			},
-			"contract_migrate": {
-				FieldStr: "contract_migrate",
+			"ontio_contract_migrate": {
+				FieldStr: "ontio_contract_migrate",
 				Kind:     wasm.ExternalFunction,
 				Index:    20,
 			},
-			"contract_delete": {
-				FieldStr: "contract_delete",
+			"ontio_contract_delete": {
+				FieldStr: "ontio_contract_delete",
 				Kind:     wasm.ExternalFunction,
 				Index:    21,
 			},
-			"panic": {
-				FieldStr: "panic",
+			"ontio_panic": {
+				FieldStr: "ontio_panic",
 				Kind:     wasm.ExternalFunction,
 				Index:    22,
+			},
+			"ontio_sha256": {
+				FieldStr: "ontio_sha256",
+				Kind:     wasm.ExternalFunction,
+				Index:    23,
 			},
 		},
 	}
