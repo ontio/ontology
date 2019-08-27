@@ -7,7 +7,7 @@ os:
   - osx
 
 go:
-  - "1.12.x"
+  - 1.12.x
 
 script:
   - env GO111MODULE=on make all-cross
