@@ -37,4 +37,6 @@ var (
 	STORAGE_DELETE_GAS       uint64 = 100
 	UINT_DEPLOY_CODE_LEN_GAS uint64 = 200000
 	PER_UNIT_CODE_LEN        uint64 = 1024
+
+	SHA256_GAS uint64 = 10
 )
