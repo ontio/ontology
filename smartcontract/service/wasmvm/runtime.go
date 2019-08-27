@@ -78,8 +78,12 @@ func SelfAddress(proc *exec.Process, dst uint32) {
 	}
 }
 
-func Sha256(proc *exec.Process, src uint32, len uint32, dst uint32) {
-	bs, err := ReadWasmMemory(proc, src, len)
+func Sha256(proc *exec.Process, src uint32, slen uint32, dst uint32) {
+	self := proc.HostData().(*Runtime)
+	cost := uint64((slen/1024)+1) * SHA256_GAS
+	self.checkGas(cost)
+
+	bs, err := ReadWasmMemory(proc, src, slen)
 	if err != nil {
 		panic(err)
 	}
@@ -348,6 +352,11 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 
 func NewHostModule() *wasm.Module {
 	m := wasm.NewModule()
+	paramTypes := make([]wasm.ValueType, 14)
+	for i := 0; i < len(paramTypes); i++ {
+		paramTypes[i] = wasm.ValueTypeI32
+	}
+
 	m.Types = &wasm.SectionTypes{
 		Entries: []wasm.FunctionSig{
 			//func()uint64    [0]
@@ -399,13 +408,10 @@ func NewHostModule() *wasm.Module {
 				ParamTypes:  []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32},
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
-			//func(uint32 * 12)uint32   [9]
+			//func(uint32 * 14)uint32   [9]
 			{
-				Form: 0, // value for the 'func' type constructor
-				ParamTypes: []wasm.ValueType{wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-					wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-					wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32, wasm.ValueTypeI32,
-					wasm.ValueTypeI32, wasm.ValueTypeI32},
+				Form:        0, // value for the 'func' type constructor
+				ParamTypes:  paramTypes,
 				ReturnTypes: []wasm.ValueType{wasm.ValueTypeI32},
 			},
 			//funct()   [10]
