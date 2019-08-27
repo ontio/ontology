@@ -610,8 +610,8 @@ func NewHostModule() *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    11,
 			},
-			"ontio_ret": {
-				FieldStr: "ontio_ret",
+			"ontio_return": {
+				FieldStr: "ontio_return",
 				Kind:     wasm.ExternalFunction,
 				Index:    12,
 			},
