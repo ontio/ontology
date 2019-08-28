@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"reflect"
 	"sort"
@@ -209,6 +210,24 @@ func RuntimeAddressToBase58(service *NeoVmService, engine *vm.ExecutionEngine) e
 
 func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	vm.PushData(engine, service.BlockHash.ToArray())
+	return nil
+}
+
+func RuntimeAssert(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 2 {
+		return errors.NewErr("[RuntimeAssert] Too few input parameters")
+	}
+	ok, err := vm.PopBoolean(engine)
+	if err != nil {
+		return err
+	}
+	msg, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("%s", string(msg))
+	}
 	return nil
 }
 

@@ -175,3 +175,13 @@ func TestRuntimeAddressToBase58(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, base58, string(result))
 }
+
+func TestRuntimeAssert(t *testing.T) {
+	engine := neovm.NewExecutionEngine(0)
+
+	msg := "invalid parameters"
+	engine.EvaluationStack.Push(types.NewByteArray([]byte(msg)))
+	engine.EvaluationStack.Push(types.NewBoolean(false))
+	err := RuntimeAssert(nil, engine)
+	assert.Equal(t, msg, err.Error())
+}
