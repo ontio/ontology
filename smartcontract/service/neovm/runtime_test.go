@@ -182,6 +182,6 @@ func TestRuntimeAssert(t *testing.T) {
 	msg := "invalid parameters"
 	engine.EvaluationStack.Push(types.NewByteArray([]byte(msg)))
 	engine.EvaluationStack.Push(types.NewBoolean(false))
-	err := RuntimeAssert(nil, engine)
+	err := RuntimeOntAssert(nil, engine)
 	assert.Equal(t, msg, err.Error())
 }
