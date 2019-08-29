@@ -213,9 +213,9 @@ func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.ExecutionEngin
 	return nil
 }
 
-func RuntimeAssert(service *NeoVmService, engine *vm.ExecutionEngine) error {
+func RuntimeOntAssert(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	if vm.EvaluationStackCount(engine) < 2 {
-		return errors.NewErr("[RuntimeAssert] Too few input parameters")
+		return errors.NewErr("[RuntimeOntAssert] Too few input parameters")
 	}
 	ok, err := vm.PopBoolean(engine)
 	if err != nil {
