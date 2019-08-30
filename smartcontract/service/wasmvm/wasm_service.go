@@ -150,11 +150,15 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	this.vm = vm
 
 	_, err = vm.ExecCode(index)
+
+	//here sub the sc.Gas.
+	if !this.ContextRef.CheckUseGas(this.GasLimit - vm.AvaliableGas.GasLimit) {
+		return nil, ERR_GAS_INSUFFICIENT
+	}
+
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 	}
-
-	this.GasLimit = vm.AvaliableGas.GasLimit
 
 	//pop the current context
 	this.ContextRef.PopContext()
