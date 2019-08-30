@@ -61,8 +61,9 @@ var (
 	CONTRACT_METHOD_NAME = "invoke"
 
 	//max memory size of wasm vm
-	WASM_MEM_LIMITATION uint64 = 10 * 1024 * 1024
-	VM_STEP_LIMIT              = 40000000
+	WASM_MEM_LIMITATION  uint64 = 10 * 1024 * 1024
+	VM_STEP_LIMIT               = 40000000
+	WASM_CALLSTACK_LIMIT        = 1024
 
 	CodeCache *lru.ARCCache
 )
@@ -86,7 +87,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, err
 	}
 
-	code, err := this.Store.GetContractState(contract.Address)
+	code, err := this.CacheDB.GetContract(contract.Address)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	if compiled == nil {
-		compiled, err := ReadWasmModule(code, false)
+		compiled, err = ReadWasmModule(code, false)
 		if err != nil {
 			return nil, err
 		}
@@ -121,6 +122,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 	vm.RecoverPanic = true
 	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasPrice: this.GasPrice}
+	vm.CallStackDepth = uint32(WASM_CALLSTACK_LIMIT)
 
 	entryName := CONTRACT_METHOD_NAME
 
@@ -148,6 +150,12 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	this.vm = vm
 
 	_, err = vm.ExecCode(index)
+
+	//here sub the sc.Gas.
+	if !this.ContextRef.CheckUseGas(this.GasLimit - vm.AvaliableGas.GasLimit) {
+		return nil, ERR_GAS_INSUFFICIENT
+	}
+
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 	}
