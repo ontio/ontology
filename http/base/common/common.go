@@ -449,7 +449,7 @@ func NewNeovmInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common
 	if err != nil {
 		return nil, err
 	}
-	return NewWasmSmartContractTransaction(gasPrice, gasLimit, invokeCode)
+	return NewSmartContractTransaction(gasPrice, gasLimit, invokeCode)
 }
 
 func NewWasmVMInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common.Address, params []interface{}) (*types.MutableTransaction, error) {
