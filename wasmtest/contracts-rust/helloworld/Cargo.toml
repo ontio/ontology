@@ -1,0 +1,17 @@
+[package]
+name = "helloworld"
+version = "0.1.0"
+authors = ["laizy <laizhichao@onchain.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[dependencies]
+ontio-std = {git="https://github.com/ontio/ontology-wasm-cdt-rust"}
+
+[features]
+mock = ["ontio-std/mock"]

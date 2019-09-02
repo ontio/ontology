@@ -10,6 +10,7 @@ go:
   - 1.12.x
 
 script:
+  - cd ./wasmtest && bash ./run-wasm-tests.sh && cd ../
   - bash ./.travis.check-license.sh
   - bash ./.travis.gofmt.sh
   - make all-cross

@@ -1,0 +1,11 @@
+[workspace]
+members = [
+    "helloworld",
+]
+
+[profile.release]
+panic = "abort"
+lto = true
+debug = true
+opt-level = "s"
+
