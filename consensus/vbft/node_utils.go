@@ -276,7 +276,7 @@ func calcParticipantPeers(cfg *BlockParticipantConfig, chain *vconfig.ChainConfi
 		for i := len(committers) - 1; i >= 0 && len(endorsers) < nCommitter; i-- {
 			endorsers = append(endorsers, committers[i])
 		}
-		// 3. add proposal if not enough
+		// 3. add proposers if not enough
 		for i := c - 1; i > 0 && len(endorsers) < nCommitter; i-- {
 			endorsers = append(endorsers, propsers[i])
 		}
