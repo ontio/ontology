@@ -21,6 +21,7 @@ package vbft
 import (
 	"crypto/rand"
 	"crypto/sha512"
+	"fmt"
 	"testing"
 
 	"github.com/ontio/ontology/common"
@@ -167,6 +168,10 @@ func TestCalcParticipantPeers(t *testing.T) {
 	for i := 5; i < 100; i++ {
 		testCalcParticipantPeers(t, i, (i-1)/4)
 	}
+	for i := 0; i < 10000; i++ {
+		testCalcParticipantPeers(t, 7, 2)
+		testCalcParticipantPeers(t, 4, 1)
+	}
 }
 
 func testCalcParticipantPeers(t *testing.T, n, c int) {
@@ -183,6 +188,12 @@ func testCalcParticipantPeers(t *testing.T, n, c int) {
 	chainCfg.N = uint32(n)
 	chainCfg.C = uint32(c)
 	chainCfg.PosTable = pos
+	chainCfg.Peers = make([]*vconfig.PeerConfig, 0)
+	for i := 0; i < n; i++ {
+		chainCfg.Peers = append(chainCfg.Peers, &vconfig.PeerConfig{
+			Index: uint32(i),
+			ID:    fmt.Sprintf("test-%d", i)})
+	}
 
 	cfg := &BlockParticipantConfig{
 		BlockNum:    100,
@@ -192,7 +203,13 @@ func testCalcParticipantPeers(t *testing.T, n, c int) {
 
 	pp, pe, pc := calcParticipantPeers(cfg, chainCfg)
 	if len(pp) != c+1 {
-		t.Fatalf("invalid peers(%d, %d): %v, %v, %v", n, c, pp, pe, pc)
+		t.Fatalf("invalid proposal peer(%d, %d): %v, %v, %v", n, c, pp, pe, pc)
+	}
+	if len(pe) < 2*c {
+		t.Fatalf("invalid endorse peer(%d, %d): %v, %v, %v", n, c, pp, pe, pc)
+	}
+	if len(pc) < 2*c {
+		t.Fatalf("invalid commit peer(%d, %d): %v, %v, %v", n, c, pp, pe, pc)
 	}
 
 	// check how many peers are selected
