@@ -1028,10 +1028,15 @@ func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.Execu
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
 	height := this.GetCurrentBlockHeight()
+	// use previous block time to make it predictable for easy test
+	blockTime := uint32(time.Now().Unix())
+	if header, err := this.GetHeaderByHeight(height); err == nil {
+		blockTime = header.Timestamp + 1
+	}
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
 	config := &smartcontract.Config{
-		Time:      uint32(time.Now().Unix()),
+		Time:      blockTime,
 		Height:    height + 1,
 		Tx:        tx,
 		BlockHash: this.GetBlockHash(height),

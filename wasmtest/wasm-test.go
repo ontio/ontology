@@ -43,8 +43,10 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
+	utils2 "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
+	"github.com/ontio/ontology/smartcontract/states"
 	common3 "github.com/ontio/ontology/wasmtest/common"
 )
 
@@ -187,9 +189,64 @@ func main() {
 
 			res, err := database.PreExecuteContract(tx)
 			checkErr(err)
-			assertEq(res.State, byte(1))
 
-			fmt.Println("res", res)
+			height := database.GetCurrentBlockHeight()
+			header, err := database.GetHeaderByHeight(height)
+			checkErr(err)
+			blockTime := header.Timestamp + 1
+
+			execEnv := ExecEnv{Time: blockTime, Height: height + 1, Tx: tx, BlockHash: header.Hash(), Contract: addr}
+			checkExecResult(testCase, res, execEnv)
+
+			block, _ := makeBlock(acct, []*types.Transaction{tx})
+			err = database.AddBlock(block, common.UINT256_EMPTY)
+			checkErr(err)
+		}
+	}
+
+	log.Info("contract test succeed")
+}
+
+type ExecEnv struct {
+	Contract  common.Address
+	Time      uint32
+	Height    uint32
+	Tx        *types.Transaction
+	BlockHash common.Uint256
+}
+
+func checkExecResult(testCase common3.TestCase, result *states.PreExecResult, execEnv ExecEnv) {
+	assertEq(result.State, byte(1))
+	ret := result.Result.(string)
+	switch testCase.Method {
+	case "timestamp":
+		sink := common.NewZeroCopySink(nil)
+		sink.WriteUint64(uint64(execEnv.Time))
+		assertEq(ret, hex.EncodeToString(sink.Bytes()))
+	case "block_height":
+		sink := common.NewZeroCopySink(nil)
+		sink.WriteUint32(uint32(execEnv.Height))
+		assertEq(ret, hex.EncodeToString(sink.Bytes()))
+	case "self_address", "entry_address":
+		assertEq(ret, hex.EncodeToString(execEnv.Contract[:]))
+	case "caller_address":
+		assertEq(ret, hex.EncodeToString(common.ADDRESS_EMPTY[:]))
+	case "current_txhash":
+		hash := execEnv.Tx.Hash()
+		assertEq(ret, hex.EncodeToString(hash[:]))
+	case "current_blockhash":
+		assertEq(ret, hex.EncodeToString(execEnv.BlockHash[:]))
+	//case "sha256":
+	//	let data :&[u8]= source.read().unwrap();
+	//	sink.write(runtime::sha256(&data))
+	//}
+	default:
+		if len(testCase.Expect) != 0 {
+			expect, err := utils.ParseParams(testCase.Expect)
+			checkErr(err)
+			exp, err := utils2.BuildWasmContractParam(expect)
+			checkErr(err)
+			assertEq(ret, hex.EncodeToString(exp))
 		}
 	}
 }

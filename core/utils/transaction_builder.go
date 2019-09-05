@@ -181,7 +181,7 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 	contract := &states.WasmContractParam{}
 	contract.Address = contractAddress
 	//bf := bytes.NewBuffer(nil)
-	argbytes, err := buildWasmContractParam(params)
+	argbytes, err := BuildWasmContractParam(params)
 	if err != nil {
 		return nil, fmt.Errorf("build wasm contract param failed:%s", err)
 	}
@@ -193,7 +193,7 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 }
 
 //build param bytes for wasm contract
-func buildWasmContractParam(params []interface{}) ([]byte, error) {
+func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 	bf := common.NewZeroCopySink(nil)
 	for _, param := range params {
 		switch param.(type) {
@@ -218,7 +218,7 @@ func buildWasmContractParam(params []interface{}) ([]byte, error) {
 		case byte:
 			bf.WriteByte(param.(byte))
 		case []interface{}:
-			val, err := buildWasmContractParam(param.([]interface{}))
+			val, err := BuildWasmContractParam(param.([]interface{}))
 			if err != nil {
 				return nil, err
 			}
