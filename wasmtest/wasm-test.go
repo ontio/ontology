@@ -180,7 +180,8 @@ func main() {
 	err = database.AddBlock(block, common.UINT256_EMPTY)
 	checkErr(err)
 
-	for _, cont := range contract {
+	for file, cont := range contract {
+		log.Infof("exacting testcase from %s", file)
 		testCases := ExactTestCase(cont)
 		addr := common.AddressFromVmCode(cont)
 		for _, testCase := range testCases[0] { // only handle group 0 currently

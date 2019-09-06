@@ -68,7 +68,7 @@ type TestCase struct {
 	Env    TestEnv `json:"env"`
 	Method string  `json:"method"`
 	Param  string  `json:"param"`
-	Expect string  `json:"expect"`
+	Expect string  `json:"expected"`
 }
 
 func GenWasmTransaction(testCase TestCase, contract common.Address) (*types.Transaction, error) {

@@ -3,7 +3,10 @@ set -e
 set -x
 
 # install build tools
-which rustup || `curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly && source $HOME/.cargo/env`
+if ! which rustup ; then
+	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly 
+	source $HOME/.cargo/env
+fi
 rustup target add wasm32-unknown-unknown
 which ontio-wasm-build || cargo install --git=https://github.com/ontio/ontio-wasm-build
 
