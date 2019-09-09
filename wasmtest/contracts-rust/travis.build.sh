@@ -2,7 +2,7 @@
 set -e
 set -x
 
-rm -rf js-vm && git clone --depth=1 https://github.com/laizy/ontio-js-vm js-vm
+#rm -rf js-vm && git clone --depth=1 https://github.com/laizy/ontio-js-vm js-vm
 cd js-vm
 RUSTFLAGS="-C link-arg=-zstack-size=32768" cargo build --lib --release --target=wasm32-unknown-unknown
 cd ..

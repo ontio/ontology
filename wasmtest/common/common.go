@@ -20,6 +20,7 @@ package common
 import (
 	"encoding/json"
 	utils2 "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/utils"
 
 	"github.com/ontio/ontology/common"
@@ -71,7 +72,7 @@ type TestCase struct {
 	Expect string  `json:"expected"`
 }
 
-func GenWasmTransaction(testCase TestCase, contract common.Address) (*types.Transaction, error) {
+func GenWasmTransaction(testCase TestCase, contract common.Address, addrMap map[string]common.Address) (*types.Transaction, error) {
 	params, err := utils2.ParseParams(testCase.Param)
 	if err != nil {
 		return nil, err
@@ -83,6 +84,9 @@ func GenWasmTransaction(testCase TestCase, contract common.Address) (*types.Tran
 		return nil, err
 	}
 
+	mapParam := buildAddrMapParam(addrMap)
+	tx.Payload.(*payload.InvokeCode).Code = append( tx.Payload.(*payload.InvokeCode).Code, mapParam...)
+
 	imt, err := tx.IntoImmutable()
 	if err != nil {
 		return nil, err
@@ -91,4 +95,15 @@ func GenWasmTransaction(testCase TestCase, contract common.Address) (*types.Tran
 	imt.SignedAddr = append(imt.SignedAddr, testCase.Env.Witness...)
 
 	return imt, nil
+}
+
+func buildAddrMapParam(addrMap map[string]common.Address) []byte {
+	bf := common.NewZeroCopySink(nil)
+	bf.WriteUint32(uint32(len(addrMap)))
+	for file, addr := range addrMap {
+		bf.WriteString(file)
+		bf.WriteAddress(addr)
+	}
+
+	return bf.Bytes()
 }

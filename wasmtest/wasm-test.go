@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -119,14 +120,14 @@ func LoadContracts(dir string) (map[string][]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		contracts[name] = raw
+		contracts[path.Base(name)] = raw
 	}
 
 	return contracts, nil
 }
 
 func init() {
-	log.InitLog(log.InfoLog, log.PATH, log.Stdout)
+	log.InitLog(log.DebugLog, log.PATH, log.Stdout)
 	runtime.GOMAXPROCS(4)
 }
 
@@ -180,12 +181,18 @@ func main() {
 	err = database.AddBlock(block, common.UINT256_EMPTY)
 	checkErr(err)
 
+	addrMap := make(map[string]common.Address)
+	for file, code := range contract {
+		addrMap[path.Base(file)] = common.AddressFromVmCode(code)
+	}
 	for file, cont := range contract {
 		log.Infof("exacting testcase from %s", file)
 		testCases := ExactTestCase(cont)
 		addr := common.AddressFromVmCode(cont)
 		for _, testCase := range testCases[0] { // only handle group 0 currently
-			tx, err := common3.GenWasmTransaction(testCase, addr)
+			val, _ := json.Marshal(testCase)
+			log.Info("executing testcase: ", string(val))
+			tx, err := common3.GenWasmTransaction(testCase, addr, addrMap)
 			checkErr(err)
 
 			res, err := database.PreExecuteContract(tx)

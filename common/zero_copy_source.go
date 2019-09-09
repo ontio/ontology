@@ -213,6 +213,7 @@ func (self *ZeroCopySource) NextVarUint() (data uint64, size uint64, irregular b
 	case 0xFD:
 		val, e := self.NextUint16()
 		if e {
+			eof = e
 			return
 		}
 		data = uint64(val)
@@ -220,6 +221,7 @@ func (self *ZeroCopySource) NextVarUint() (data uint64, size uint64, irregular b
 	case 0xFE:
 		val, e := self.NextUint32()
 		if e {
+			eof = e
 			return
 		}
 		data = uint64(val)
@@ -227,6 +229,7 @@ func (self *ZeroCopySource) NextVarUint() (data uint64, size uint64, irregular b
 	case 0xFF:
 		val, e := self.NextUint64()
 		if e {
+			eof = e
 			return
 		}
 		data = uint64(val)
