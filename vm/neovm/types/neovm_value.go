@@ -649,12 +649,18 @@ func (self *VmValue) Stringify() (string, error) {
 }
 func (self *VmValue) stringify() string {
 	switch self.valType {
-	case boolType, bytearrayType, bigintType, integerType:
+	case boolType:
+		bs, _ := self.AsBool()
+		return fmt.Sprintf("bool(%v)", bs)
+	case bytearrayType:
 		bs, _ := self.AsBytes()
-		if len(bs) == 0 {
-			bs = []byte{0}
-		}
-		return fmt.Sprintf("bytes(hex:%x)", bs)
+		return fmt.Sprintf("string(\"%s\")", string(bs))
+	case integerType:
+		bs, _ := self.AsInt64()
+		return fmt.Sprintf("int(%d)", bs)
+	case bigintType:
+		bs, _ := self.AsIntValue()
+		return fmt.Sprintf("bigint(%d)", (*bs.bigint))
 	case arrayType:
 		data := ""
 		for _, v := range self.array.Data {

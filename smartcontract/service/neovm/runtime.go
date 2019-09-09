@@ -23,6 +23,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -153,6 +154,7 @@ func RuntimeNotify(service *NeoVmService, engine *vm.Executor) error {
 
 // RuntimeLog push smart contract execute event log to client
 func RuntimeLog(service *NeoVmService, engine *vm.Executor) error {
+	sitem, err := engine.EvalStack.Peek(0)
 	item, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
@@ -160,6 +162,13 @@ func RuntimeLog(service *NeoVmService, engine *vm.Executor) error {
 	context := service.ContextRef.CurrentContext()
 	txHash := service.Tx.Hash()
 	event.PushSmartCodeEvent(txHash, 0, event.EVENT_LOG, &event.LogEventArgs{TxHash: txHash, ContractAddress: context.ContractAddress, Message: string(item)})
+
+	scv, err := sitem.Stringify()
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("[NeoContract]Debug:%s\n", scv)
 	return nil
 }
 
