@@ -72,6 +72,12 @@ type TestCase struct {
 	Expect string  `json:"expected"`
 }
 
+
+type TestContext struct {
+	admin common.Address
+	addrMap map[string]common.Address
+}
+
 func GenWasmTransaction(testCase TestCase, contract common.Address, addrMap map[string]common.Address) (*types.Transaction, error) {
 	params, err := utils2.ParseParams(testCase.Param)
 	if err != nil {
