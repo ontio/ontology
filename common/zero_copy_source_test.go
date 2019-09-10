@@ -67,3 +67,9 @@ func TestReadFromNil(t *testing.T) {
 	_, _, _, eof := s.NextString()
 	assert.True(t, eof)
 }
+
+func TestReadVarInt(t *testing.T) {
+	s := NewZeroCopySource([]byte{0xfd})
+	_, _, _, eof := s.NextString()
+	assert.True(t, eof)
+}
