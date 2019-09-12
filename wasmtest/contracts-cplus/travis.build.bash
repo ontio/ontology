@@ -16,5 +16,6 @@ done
 rm -rf ontology-wasm-cdt-cpp
 mv *.wasm ../testwasmdata/
 rm *.wasm.str
+cp  *.avm ../testwasmdata/
 
 cd $oldir

@@ -660,7 +660,7 @@ func (self *VmValue) stringify() string {
 		return fmt.Sprintf("int(%d)", bs)
 	case bigintType:
 		bs, _ := self.AsIntValue()
-		return fmt.Sprintf("bigint(%d)", (*bs.bigint))
+		return fmt.Sprintf("bigint(0x%x)", (bs.bigint))
 	case arrayType:
 		data := ""
 		for _, v := range self.array.Data {
@@ -749,7 +749,8 @@ func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
 	if len(bf.Bytes()) > crossvm_codec.MAX_PARAM_LENGTH {
 		return fmt.Errorf("parameter buf is too long")
 	}
-	switch item.GetType() {
+
+	switch item.valType {
 	case bytearrayType:
 		bs := item.byteArray
 		crossvm_codec.EncodeBytes(bf, bs)
