@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "helloworld",
+	"js-vm"
+]
+
+[profile.release]
+panic = "abort"
+lto = true
+debug = true
+opt-level = "s"
+

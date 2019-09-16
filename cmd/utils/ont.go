@@ -666,7 +666,7 @@ func InvokeWasmVMContract(
 	signer *account.Account,
 	smartcodeAddress common.Address,
 	params []interface{}) (string, error) {
-	tx, err := httpcom.NewWasmVMInvokeTransaction(gasPrice, gasLimit, smartcodeAddress, params)
+	tx, err := cutils.NewWasmVMInvokeTransaction(gasPrice, gasLimit, smartcodeAddress, params)
 	if err != nil {
 		return "", err
 	}
@@ -733,7 +733,7 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error)
 
 //prepare invoke wasm
 func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interface{}) (*cstates.PreExecResult, error) {
-	mutable, err := httpcom.NewWasmVMInvokeTransaction(0, 0, contractAddress, params)
+	mutable, err := cutils.NewWasmVMInvokeTransaction(0, 0, contractAddress, params)
 	if err != nil {
 		return nil, err
 	}
