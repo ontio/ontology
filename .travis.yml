@@ -10,6 +10,7 @@ go:
   - 1.12.x
 
 script:
+  - cd ./wasmtest && bash ./run-wasm-tests.sh && cd ../
   - env GO111MODULE=on make all-cross
   - env GO111MODULE=on go mod vendor
   - bash ./.travis.check-license.sh
