@@ -21,7 +21,7 @@ using namespace ontio;
 class hello: public contract {
 	public:
 	using contract::contract;
-	void test_contract_delete(void) {
+	void test_contract_destroy(void) {
 		int64_t b;
 		int64_t a = VAL_MIGRAGE_STORE;
 		key t = {KEY_MIGRATE_STORE};
@@ -35,18 +35,18 @@ class hello: public contract {
 		check(storage_get(t, b), "get failed");
 		check(b == a, "get wrong");
 
-		ontio::contract_delete();
+		ontio::contract_destroy();
 		check(false, "should not be here");
 	}
 
 	string testcase(void) {
 		return string(R"(
 		[
-			[{"method":"test_contract_delete", "param":"", "expected":""}
+			[{"method":"test_contract_destroy", "param":"", "expected":""}
 			]
 		]
 		)");
 	}
 };
 
-ONTIO_DISPATCH( hello, (testcase)(test_contract_delete))
+ONTIO_DISPATCH( hello, (testcase)(test_contract_destroy))
