@@ -225,8 +225,6 @@ func main() {
 		testCases := ExactTestCase(cont)
 		addr := common.AddressFromVmCode(cont)
 		for _, testCase := range testCases[0] { // only handle group 0 currently
-			val, _ := json.Marshal(testCase)
-			log.Info("executing testcase: ", string(val))
 			tx, err := common3.GenWasmTransaction(testCase, addr, &testContext)
 			checkErr(err)
 
