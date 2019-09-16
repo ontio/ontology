@@ -940,6 +940,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sumS))
 
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
+			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
 			currentPeerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
 		if err != nil {
@@ -975,6 +976,7 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 		nodeAmount := new(big.Int).Div(nodeWeight, new(big.Int).SetUint64(sum))
 
 		err = splitNodeFee(native, contract, peersCandidate[i].PeerPubkey, peersCandidate[i].Address,
+			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
 			currentPeerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].Status == ConsensusStatus,
 			peerPoolMap.PeerPoolMap[peersCandidate[i].PeerPubkey].TotalPos, nodeAmount.Uint64())
 		if err != nil {
@@ -986,9 +988,9 @@ func executeSplit2(native *native.NativeService, contract common.Address, view u
 	return splitSum, nil
 }
 
-func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, ifConsensus bool, totalPos uint64, totalAmount uint64, peerAddress common.Address) (uint64, error) {
+func executeAddressSplit(native *native.NativeService, contract common.Address, authorizeInfo *AuthorizeInfo, preIfConsensus, ifConsensus bool, totalPos uint64, totalAmount uint64, peerAddress common.Address) (uint64, error) {
 	var validatePos uint64
-	if ifConsensus {
+	if ifConsensus || preIfConsensus {
 		validatePos = authorizeInfo.ConsensusPos + authorizeInfo.WithdrawConsensusPos
 	} else {
 		validatePos = authorizeInfo.CandidatePos + authorizeInfo.WithdrawCandidatePos
@@ -1330,7 +1332,7 @@ func executeCommitDpos2(native *native.NativeService, contract common.Address) e
 	return nil
 }
 
-func splitNodeFee(native *native.NativeService, contract common.Address, peerPubkey string, peerAddress common.Address, ifConsensus bool, totalPos uint64, nodeAmount uint64) error {
+func splitNodeFee(native *native.NativeService, contract common.Address, peerPubkey string, peerAddress common.Address, preIfConsensus, ifConsensus bool, totalPos uint64, nodeAmount uint64) error {
 	peerPubkeyPrefix, err := hex.DecodeString(peerPubkey)
 	if err != nil {
 		return fmt.Errorf("hex.DecodeString, peerPubkey format error: %v", err)
@@ -1356,7 +1358,7 @@ func splitNodeFee(native *native.NativeService, contract common.Address, peerPub
 		}
 
 		//fee split
-		splitAmount, err := executeAddressSplit(native, contract, &authorizeInfo, ifConsensus, totalPos, amount, peerAddress)
+		splitAmount, err := executeAddressSplit(native, contract, &authorizeInfo, preIfConsensus, ifConsensus, totalPos, amount, peerAddress)
 		if err != nil {
 			return fmt.Errorf("excuteAddressSplit, excuteAddressSplit error: %v", err)
 		}
