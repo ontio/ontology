@@ -17,7 +17,7 @@ cd contracts-rust && bash travis.build.sh && cd ../
 cd contracts-cplus && bash travis.build.bash && cd ../
 
 # verify and optimize wasm contract
-for wasm in testwasmdata/* ; do
+for wasm in testwasmdata/*.wasm ; do
 	ontio-wasm-build $wasm $wasm
 done
 
