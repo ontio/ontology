@@ -1,9 +1,8 @@
-OntCversion='2.0.0'
+OntCversion = '2.0.0'
 from ontology.interop.System.ExecutionEngine import GetExecutingScriptHash
 
+
 def Main(operation, args):
-    print(operation)
-    print(args)
     if operation == "bytearray":
         address = args
         return testbytearray(address)
@@ -16,6 +15,8 @@ def Main(operation, args):
     elif operation == "H256":
         h256 = args
         return testh256(h256)
+    elif operation == "neolist":
+        return testlist(*args)
     else:
         assert(False)
 
@@ -25,14 +26,23 @@ def testbytearray(addr):
     assert(len(addr) == 20)
     return addr
 
+
 def testboolean(istrue):
     assert(istrue == True or istrue == False)
     return istrue == True
 
+
 def testintype(num):
     res = num + 0x101
-    print(res)
     return res
+
 
 def testh256(h256):
     return h256
+
+
+def testlist(*arg):
+    assert(len(arg) == 3)
+    arg[0] += 1
+    arg[2] -= 1
+    return arg

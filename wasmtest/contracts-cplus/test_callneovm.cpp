@@ -23,7 +23,6 @@ class hello: public contract {
 		std::copy(s.begin(), s.end(), arg0.begin());
 		arg1.value = test_neo;
 
-		test_neo.debugout();
 		auto neoargs = serialize_args_forneo(arg0, arg1);
 		call_neo_contract(test_neo, neoargs, res);
 		address res_addr;
@@ -89,6 +88,25 @@ class hello: public contract {
 	}
 
 	void callneo_listype(test_conext &tc) {
+		NeoInt<int64_t>  arg1{0x349872};
+		NeoInt<int64_t>  arg3{0x349872};
+		NeoByteArray arg0;
+		string s("neolist");
+		address test_neo = tc.addrmap["neo_contract.avm"];
+		arg0.resize(s.size());
+		std::copy(s.begin(), s.end(), arg0.begin());
+
+		NeoList<NeoInt<int64_t>, NeoByteArray, NeoInt<int64_t>> args;
+		std::get<0>(args.value) = arg1;
+		std::get<1>(args.value) = arg0;
+		std::get<2>(args.value) = arg3;
+		auto neoargs = serialize_args_forneo(arg0, args);
+
+		NeoList<NeoInt<int64_t>, NeoByteArray, NeoInt<int64_t>> res;
+		call_neo_contract(test_neo, neoargs, res);
+		check(std::get<0>(res.value).value == 0x349873, "list get first result error");
+		check(std::get<1>(res.value) == arg0, "list get result second error");
+		check(std::get<2>(res.value).value == 0x349871, "list get third result error");
 	}
 
 	string testcase(void) {
@@ -97,11 +115,12 @@ class hello: public contract {
     	    [{"needenv":true,"env":{"witness":[]}, "method":"callneo_address", "param":"", "expected":""},
 			{"needenv":true,"env":{"witness":[]}, "method":"callneo_bool", "param":"", "expected":""},
 			{"needenv":true,"env":{"witness":[]}, "method":"callneo_intype", "param":"", "expected":""},
-			{"needenv":true,"env":{"witness":[]}, "method":"callneo_H256", "param":"", "expected":""}
+			{"needenv":true,"env":{"witness":[]}, "method":"callneo_H256", "param":"", "expected":""},
+			{"needenv":true,"env":{"witness":[]}, "method":"callneo_listype", "param":"", "expected":""}
     	    ]
 		]
 		)");
 	}
 };
 
-ONTIO_DISPATCH( hello, (testcase)(callneo_address)(callneo_bool)(callneo_intype)(callneo_H256))
+ONTIO_DISPATCH( hello, (testcase)(callneo_address)(callneo_bool)(callneo_intype)(callneo_H256)(callneo_listype))

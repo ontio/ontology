@@ -192,7 +192,6 @@ func main() {
 	log.Infof("deploying %d wasm contracts", len(contract))
 	txes := make([]*types.Transaction, 0, len(contract))
 	for file, cont := range contract {
-		fmt.Printf("filename %s\n", file)
 		if hasSuffix(file, ".wasm") {
 			tx, err := NewDeployWasmContract(acct, cont)
 			checkErr(err)
