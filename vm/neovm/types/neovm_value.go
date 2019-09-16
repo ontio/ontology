@@ -649,18 +649,12 @@ func (self *VmValue) Stringify() (string, error) {
 }
 func (self *VmValue) stringify() string {
 	switch self.valType {
-	case boolType:
-		bs, _ := self.AsBool()
-		return fmt.Sprintf("bool(%v)", bs)
-	case bytearrayType:
+	case boolType, bytearrayType, bigintType, integerType:
 		bs, _ := self.AsBytes()
-		return fmt.Sprintf("string(\"%s\")", string(bs))
-	case integerType:
-		bs, _ := self.AsInt64()
-		return fmt.Sprintf("int(%d)", bs)
-	case bigintType:
-		bs, _ := self.AsIntValue()
-		return fmt.Sprintf("bigint(0x%x)", (bs.bigint))
+		if len(bs) == 0 {
+			bs = []byte{0}
+		}
+		return fmt.Sprintf("bytes(hex:%x)", bs)
 	case arrayType:
 		data := ""
 		for _, v := range self.array.Data {
@@ -707,9 +701,9 @@ func (self *VmValue) dump() string {
 	case integerType:
 		return fmt.Sprintf("int(%d)", self.integer)
 	case bigintType:
-		return fmt.Sprintf("int(%d)", self.bigInt)
+		return fmt.Sprintf("bigint(0x%d)", self.bigInt)
 	case bytearrayType:
-		return fmt.Sprintf("bytes(hex:%x)", self.byteArray)
+		return fmt.Sprintf("string(\"%s\")", self.byteArray)
 	case arrayType:
 		data := ""
 		for _, v := range self.array.Data {
@@ -749,7 +743,6 @@ func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
 	if len(bf.Bytes()) > crossvm_codec.MAX_PARAM_LENGTH {
 		return fmt.Errorf("parameter buf is too long")
 	}
-
 	switch item.valType {
 	case bytearrayType:
 		bs := item.byteArray
