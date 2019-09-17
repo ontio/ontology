@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
@@ -53,10 +54,6 @@ import (
 
 const contractDir = "testwasmdata"
 const testcaseMethod = "testcase"
-
-func hasSuffix(s string, suffix string) bool {
-	return len(s) >= len(suffix) && s[(len(s)-len(suffix)):] == suffix
-}
 
 func NewDeployWasmContract(signer *account.Account, code []byte) (*types.Transaction, error) {
 	mutable := utils.NewDeployCodeTransaction(0, 100000000, code, payload.WASMVM_TYPE, "name", "version",
@@ -132,7 +129,7 @@ func LoadContracts(dir string) (map[string][]byte, error) {
 		return nil, err
 	}
 	for _, name := range fnames {
-		if !(hasSuffix(name, ".wasm") || hasSuffix(name, ".avm")) {
+		if !(strings.HasSuffix(name, ".wasm") || strings.HasSuffix(name, ".avm")) {
 			continue
 		}
 		raw, err := ioutil.ReadFile(name)
@@ -192,11 +189,11 @@ func main() {
 	log.Infof("deploying %d wasm contracts", len(contract))
 	txes := make([]*types.Transaction, 0, len(contract))
 	for file, cont := range contract {
-		if hasSuffix(file, ".wasm") {
+		if strings.HasSuffix(file, ".wasm") {
 			tx, err := NewDeployWasmContract(acct, cont)
 			checkErr(err)
 			txes = append(txes, tx)
-		} else if hasSuffix(file, ".avm") {
+		} else if strings.HasSuffix(file, ".avm") {
 			tx, err := NewDeployNeoContract(acct, cont)
 			checkErr(err)
 			txes = append(txes, tx)
@@ -217,7 +214,7 @@ func main() {
 	}
 
 	for file, cont := range contract {
-		if !hasSuffix(file, ".wasm") {
+		if !strings.HasSuffix(file, ".wasm") {
 			continue
 		}
 
@@ -225,6 +222,8 @@ func main() {
 		testCases := ExactTestCase(cont)
 		addr := common.AddressFromVmCode(cont)
 		for _, testCase := range testCases[0] { // only handle group 0 currently
+			val, _ := json.Marshal(testCase)
+			log.Info("executing testcase: ", string(val))
 			tx, err := common3.GenWasmTransaction(testCase, addr, &testContext)
 			checkErr(err)
 
