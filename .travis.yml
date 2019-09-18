@@ -1,3 +1,5 @@
+dist: bionic
+
 language: go
 
 go_import_path: github.com/ontio/ontology

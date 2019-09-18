@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"runtime"
@@ -53,8 +54,24 @@ import (
 const contractDir = "testwasmdata"
 const testcaseMethod = "testcase"
 
+func hasSuffix(s string, suffix string) bool {
+	return len(s) >= len(suffix) && s[(len(s)-len(suffix)):] == suffix
+}
+
 func NewDeployWasmContract(signer *account.Account, code []byte) (*types.Transaction, error) {
 	mutable := utils.NewDeployCodeTransaction(0, 100000000, code, payload.WASMVM_TYPE, "name", "version",
+		"author", "email", "desc")
+
+	err := utils.SignTransaction(signer, mutable)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := mutable.IntoImmutable()
+	return tx, err
+}
+
+func NewDeployNeoContract(signer *account.Account, code []byte) (*types.Transaction, error) {
+	mutable := utils.NewDeployCodeTransaction(0, 100000000, code, payload.NEOVM_TYPE, "name", "version",
 		"author", "email", "desc")
 
 	err := utils.SignTransaction(signer, mutable)
@@ -110,16 +127,19 @@ func ExactTestCase(code []byte) [][]common3.TestCase {
 
 func LoadContracts(dir string) (map[string][]byte, error) {
 	contracts := make(map[string][]byte)
-	fnames, err := filepath.Glob(filepath.Join(dir, "*.wasm"))
+	fnames, err := filepath.Glob(filepath.Join(dir, "*"))
 	if err != nil {
 		return nil, err
 	}
 	for _, name := range fnames {
+		if !(hasSuffix(name, ".wasm") || hasSuffix(name, ".avm")) {
+			continue
+		}
 		raw, err := ioutil.ReadFile(name)
 		if err != nil {
 			return nil, err
 		}
-		contracts[name] = raw
+		contracts[path.Base(name)] = raw
 	}
 
 	return contracts, nil
@@ -171,21 +191,41 @@ func main() {
 
 	log.Infof("deploying %d wasm contracts", len(contract))
 	txes := make([]*types.Transaction, 0, len(contract))
-	for _, cont := range contract {
-		tx, err := NewDeployWasmContract(acct, cont)
-		checkErr(err)
-		txes = append(txes, tx)
+	for file, cont := range contract {
+		if hasSuffix(file, ".wasm") {
+			tx, err := NewDeployWasmContract(acct, cont)
+			checkErr(err)
+			txes = append(txes, tx)
+		} else if hasSuffix(file, ".avm") {
+			tx, err := NewDeployNeoContract(acct, cont)
+			checkErr(err)
+			txes = append(txes, tx)
+		}
 	}
 	block, _ := makeBlock(acct, txes)
 	err = database.AddBlock(block, common.UINT256_EMPTY)
 	checkErr(err)
 
+	addrMap := make(map[string]common.Address)
+	for file, code := range contract {
+		addrMap[path.Base(file)] = common.AddressFromVmCode(code)
+	}
+
+	testContext := common3.TestContext{
+		Admin:   acct.Address,
+		AddrMap: addrMap,
+	}
+
 	for file, cont := range contract {
+		if !hasSuffix(file, ".wasm") {
+			continue
+		}
+
 		log.Infof("exacting testcase from %s", file)
 		testCases := ExactTestCase(cont)
 		addr := common.AddressFromVmCode(cont)
 		for _, testCase := range testCases[0] { // only handle group 0 currently
-			tx, err := common3.GenWasmTransaction(testCase, addr)
+			tx, err := common3.GenWasmTransaction(testCase, addr, &testContext)
 			checkErr(err)
 
 			res, err := database.PreExecuteContract(tx)
