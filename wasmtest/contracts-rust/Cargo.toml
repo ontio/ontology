@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "helloworld",
+    "contractop",
 	"js-vm"
 ]
 
