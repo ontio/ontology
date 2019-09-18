@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "mock"), no_std)]
-#![feature(proc_macro_hygiene)]
 extern crate ontio_std as ostd;
 use ostd::abi::{Sink, ZeroCopySource};
 use ostd::prelude::*;
@@ -8,11 +7,6 @@ use ostd::runtime;
 extern crate alloc;
 use alloc::collections::BTreeMap;
 use ontio_std::console::debug;
-
-#[no_mangle]
-pub fn add(a: u64, b: u64) -> u64 {
-    a + b
-}
 
 pub struct TestContext<'a> {
     admin: &'a Addr,
@@ -26,10 +20,6 @@ pub fn invoke() {
     let action: &[u8] = source.read().unwrap();
     let mut sink = Sink::new(12);
     match action {
-        b"add" => {
-            let (a, b) = source.read().unwrap();
-            sink.write(add(a, b))
-        }
         b"test_migrate" => {
             /** file: test_migrate3.wat
             (module
@@ -105,19 +95,14 @@ pub fn invoke() {
                 0x41, 0x08, 0x41, 0x08, 0x10, 0x00, 0x0b,
             ];
 
-            if let Some(address) =
+            let address =
                 runtime::contract_migrate(code, 3, "name", "version", "author", "email", "desc")
-            {
-                if let Some(resv) = runtime::call_contract(&address, &[]) {
-                    let mut source = ZeroCopySource::new(&resv);
-                    let val: u64 = source.read().unwrap();
-                    assert!(val == 0x32733);
-                } else {
-                    panic!("call migrate failed");
-                }
-            } else {
-                panic!("migrate failed");
-            }
+                    .expect("migrate failed");
+            let resv = runtime::call_contract(&address, &[]).expect("call_contract failed");
+            let mut source = ZeroCopySource::new(&resv);
+            let val: u64 = source.read().unwrap();
+
+            assert!(val == 0x32733);
         }
         b"storage_write" => {
             let mut sink = Sink::new(8);
@@ -125,13 +110,10 @@ pub fn invoke() {
             let val: u64 = 0x138297;
             sink.write(val);
             runtime::storage_write(&key, sink.bytes());
-            if let Some(val) = runtime::storage_read(&key) {
-                let mut ressource = ZeroCopySource::new(&val);
-                let res: u64 = ressource.read().unwrap();
-                assert!(res == 0x138297);
-            } else {
-                panic!("write do not get val");
-            }
+            let val = runtime::storage_read(&key).expect("read val error");
+            let mut ressource = ZeroCopySource::new(&val);
+            let res: u64 = ressource.read().unwrap();
+            assert!(res == 0x138297);
         }
         b"storage_write2" => {
             let mut sink = Sink::new(8);
@@ -139,13 +121,10 @@ pub fn invoke() {
             let val: u64 = 0x32733;
             sink.write(val);
             runtime::storage_write(&key, sink.bytes());
-            if let Some(val) = runtime::storage_read(&key) {
-                let mut ressource = ZeroCopySource::new(&val);
-                let res: u64 = ressource.read().unwrap();
-                assert!(res == 0x32733);
-            } else {
-                panic!("write2 do not get val");
-            }
+            let val = runtime::storage_read(&key).expect("read val error");
+            let mut ressource = ZeroCopySource::new(&val);
+            let res: u64 = ressource.read().unwrap();
+            assert!(res == 0x32733);
         }
         b"test_callwasm" => {
             let mut isink = Sink::new(20);
@@ -158,14 +137,11 @@ pub fn invoke() {
             isink.write(b);
             let tc = get_tc(&mut source);
             let address = tc.map[&String::from("helloworld.wasm")];
-            if let Some(resv) = runtime::call_contract(&address, isink.bytes()) {
-                runtime::ret(&resv);
-                return;
-            } else {
-                panic!("get no return");
-            }
+
+            let resv = runtime::call_contract(&address, isink.bytes()).expect("get no return");
+            runtime::ret(&resv);
+            return;
         }
-        b"test_native" => {}
         b"testcase" => sink.write(testcase()),
         _ => panic!("unsupported action!"),
     }
