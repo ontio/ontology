@@ -20,7 +20,9 @@ package common
 import (
 	"encoding/json"
 	utils2 "github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/smartcontract/states"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
@@ -65,13 +67,19 @@ func (self *TestEnv) UnmarshalJSON(buf []byte) error {
 }
 
 type TestCase struct {
-	Env    TestEnv `json:"env"`
-	Method string  `json:"method"`
-	Param  string  `json:"param"`
-	Expect string  `json:"expected"`
+	Env         TestEnv `json:"env"`
+	NeedContext bool    `json:"needcontext"`
+	Method      string  `json:"method"`
+	Param       string  `json:"param"`
+	Expect      string  `json:"expected"`
 }
 
-func GenWasmTransaction(testCase TestCase, contract common.Address) (*types.Transaction, error) {
+type TestContext struct {
+	Admin   common.Address
+	AddrMap map[string]common.Address
+}
+
+func GenWasmTransaction(testCase TestCase, contract common.Address, testConext *TestContext) (*types.Transaction, error) {
 	params, err := utils2.ParseParams(testCase.Param)
 	if err != nil {
 		return nil, err
@@ -83,12 +91,43 @@ func GenWasmTransaction(testCase TestCase, contract common.Address) (*types.Tran
 		return nil, err
 	}
 
+	if testCase.NeedContext {
+		source := common.NewZeroCopySource(tx.Payload.(*payload.InvokeCode).Code)
+		contract := &states.WasmContractParam{}
+		err := contract.Deserialization(source)
+		if err != nil {
+			return nil, err
+		}
+		contextParam := buildTestConext(testConext)
+		contract.Args = append(contract.Args, contextParam...)
+
+		sink := common.NewZeroCopySink(nil)
+		contract.Serialization(sink)
+
+		tx.Payload.(*payload.InvokeCode).Code = sink.Bytes()
+	}
+
 	imt, err := tx.IntoImmutable()
 	if err != nil {
 		return nil, err
 	}
 
 	imt.SignedAddr = append(imt.SignedAddr, testCase.Env.Witness...)
+	imt.SignedAddr = append(imt.SignedAddr, testConext.Admin)
 
 	return imt, nil
+}
+
+func buildTestConext(testConext *TestContext) []byte {
+	bf := common.NewZeroCopySink(nil)
+	addrMap := testConext.AddrMap
+
+	bf.WriteAddress(testConext.Admin)
+	bf.WriteVarUint(uint64(len(addrMap)))
+	for file, addr := range addrMap {
+		bf.WriteString(file)
+		bf.WriteAddress(addr)
+	}
+
+	return bf.Bytes()
 }

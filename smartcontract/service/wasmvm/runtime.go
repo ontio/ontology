@@ -655,8 +655,8 @@ func NewHostModule() *wasm.Module {
 				Kind:     wasm.ExternalFunction,
 				Index:    20,
 			},
-			"ontio_contract_delete": {
-				FieldStr: "ontio_contract_delete",
+			"ontio_contract_destroy": {
+				FieldStr: "ontio_contract_destroy",
 				Kind:     wasm.ExternalFunction,
 				Index:    21,
 			},
