@@ -8,11 +8,16 @@ RUSTFLAGS="-C link-arg=-zstack-size=32768" cargo build --lib --release --target=
 cd ..
 mv ./target/wasm32-unknown-unknown/release/boa.wasm ../testwasmdata/jsvm.wasm
 
-cd helloworld
-RUSTFLAGS="-C link-arg=-zstack-size=32768" cargo build --release --target=wasm32-unknown-unknown
-# use cargo test in root dir will cause compile error, should be a cargo bug
-cargo test --features=mock 
-cd ..
+for dir in $(ls)
+do
+	[[ -d $dir ]] && {
+		cd $dir
+		echo $dir
+		RUSTFLAGS="-C link-arg=-zstack-size=32768" cargo build --release --target=wasm32-unknown-unknown
+		cd ..
+	}
+done
+
 
 cp ./target/wasm32-unknown-unknown/release/*.wasm ../testwasmdata
 
