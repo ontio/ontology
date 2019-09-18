@@ -190,7 +190,7 @@ fn testcase() -> String {
     [
         [{"method":"storage_write"},
         {"method":"storage_write2"},
-        {"needenv":true, "env":{"witness":[]}, "method":"test_callwasm", "param":"string:add, int:1, int:2", "expected":"int:3"},
+        {"needcontext":true, "env":{"witness":[]}, "method":"test_callwasm", "param":"string:add, int:1, int:2", "expected":"int:3"},
         {"method":"test_migrate"}
         ]
     ]
