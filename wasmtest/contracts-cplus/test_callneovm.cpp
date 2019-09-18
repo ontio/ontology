@@ -112,11 +112,11 @@ class hello: public contract {
 	string testcase(void) {
 		return string(R"(
 		[
-    	    [{"needenv":true,"env":{"witness":[]}, "method":"callneo_address", "param":"", "expected":""},
-			{"needenv":true,"env":{"witness":[]}, "method":"callneo_bool", "param":"", "expected":""},
-			{"needenv":true,"env":{"witness":[]}, "method":"callneo_intype", "param":"", "expected":""},
-			{"needenv":true,"env":{"witness":[]}, "method":"callneo_H256", "param":"", "expected":""},
-			{"needenv":true,"env":{"witness":[]}, "method":"callneo_listype", "param":"", "expected":""}
+    	    [{"needcontext":true,"env":{"witness":[]}, "method":"callneo_address", "param":"", "expected":""},
+			{"needcontext":true,"env":{"witness":[]}, "method":"callneo_bool", "param":"", "expected":""},
+			{"needcontext":true,"env":{"witness":[]}, "method":"callneo_intype", "param":"", "expected":""},
+			{"needcontext":true,"env":{"witness":[]}, "method":"callneo_H256", "param":"", "expected":""},
+			{"needcontext":true,"env":{"witness":[]}, "method":"callneo_listype", "param":"", "expected":""}
     	    ]
 		]
 		)");

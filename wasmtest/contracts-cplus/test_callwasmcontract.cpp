@@ -28,7 +28,7 @@ class hello: public contract {
 	string testcase(void) {
 		return string(R"(
 		[
-    	    [{"needenv":true,"method":"call_wasm_contract", "param":"int:1,int:2", "expected":"int:3"}
+    	    [{"needcontext":true,"method":"call_wasm_contract", "param":"int:1,int:2", "expected":"int:3"}
     	    ]
 		]
 		)");

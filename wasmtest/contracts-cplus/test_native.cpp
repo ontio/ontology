@@ -43,9 +43,9 @@ class hello: public contract {
 	string testcase(void) {
 		return string(R"(
 		[
-    	    [{"needenv":true, "method":"test_native_ont", "param":"string:balanceOf,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"},
-    	    {"env":{"witness":["Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT","Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"]}, "needenv":true, "method":"test_native_ont", "param":"string:transfer,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"},
-    	    {"env":{"witness":["Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT","Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"]}, "needenv":true, "method":"test_native_ont", "param":"string:approve,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"}
+    	    [{"needcontext":true, "method":"test_native_ont", "param":"string:balanceOf,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"},
+    	    {"env":{"witness":["Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT","Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"]}, "needcontext":true, "method":"test_native_ont", "param":"string:transfer,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"},
+    	    {"env":{"witness":["Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT","Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"]}, "needcontext":true, "method":"test_native_ont", "param":"string:approve,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"}
     	    ]
 		]
 		)");

@@ -164,10 +164,6 @@ func RuntimeLog(service *NeoVmService, engine *vm.Executor) error {
 	event.PushSmartCodeEvent(txHash, 0, event.EVENT_LOG, &event.LogEventArgs{TxHash: txHash, ContractAddress: context.ContractAddress, Message: string(item)})
 
 	scv := sitem.Dump()
-	if err != nil {
-		return err
-	}
-
 	log.Debugf("[NeoContract]Debug:%s\n", scv)
 	return nil
 }

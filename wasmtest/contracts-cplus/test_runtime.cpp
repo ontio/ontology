@@ -69,7 +69,7 @@ class hello: public contract {
     	    {"env":{"witness":[]}, "method":"entry_address", "param":"", "expected":""},
     	    {"env":{"witness":[]}, "method":"caller_address", "param":"", "expected":""},
     	    {"env":{"witness":[]}, "method":"timestamp", "param":"", "expected":""},
-    	    {"needenv":true, "method":"check_witness", "expected":"int:1"},
+    	    {"needcontext":true, "method":"check_witness", "expected":"int:1"},
     	    {"env":{"witness":[]}, "method":"block_height", "param":"", "expected":""},
     	    {"env":{"witness":[]}, "method":"current_blockhash", "param":"", "expected":""},
     	    {"env":{"witness":[]}, "method":"current_txhash", "param":"", "expected":""},

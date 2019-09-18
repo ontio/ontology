@@ -67,11 +67,11 @@ func (self *TestEnv) UnmarshalJSON(buf []byte) error {
 }
 
 type TestCase struct {
-	Env     TestEnv `json:"env"`
-	NeedEnv bool    `json:"needenv"`
-	Method  string  `json:"method"`
-	Param   string  `json:"param"`
-	Expect  string  `json:"expected"`
+	Env         TestEnv `json:"env"`
+	NeedContext bool    `json:"needcontext"`
+	Method      string  `json:"method"`
+	Param       string  `json:"param"`
+	Expect      string  `json:"expected"`
 }
 
 type TestContext struct {
@@ -91,7 +91,7 @@ func GenWasmTransaction(testCase TestCase, contract common.Address, testConext *
 		return nil, err
 	}
 
-	if testCase.NeedEnv {
+	if testCase.NeedContext {
 		source := common.NewZeroCopySource(tx.Payload.(*payload.InvokeCode).Code)
 		contract := &states.WasmContractParam{}
 		err := contract.Deserialization(source)
