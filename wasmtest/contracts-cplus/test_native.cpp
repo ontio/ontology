@@ -15,7 +15,7 @@ using namespace ontio;
 class hello: public contract {
 	public:
 	using contract::contract;
-	uint64_t test_native_ont(string &method, address &from, address &to, asset &amount, test_conext &tc) {
+	uint128_t test_native_ont(string &method, address &from, address &to, asset &amount, test_conext &tc) {
 		if (method == "balanceOf") {
 			asset balance = ont::balanceof(tc.admin);
 			check(balance == 1000000000, "init balance wrong");

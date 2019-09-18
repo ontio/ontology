@@ -16,8 +16,8 @@ class hello: public contract {
 	public:
 	using contract::contract;
 
-	int64_t call_wasm_contract(int64_t a, int64_t b, test_conext &tc) {
-		int64_t res;
+	int128_t call_wasm_contract(int128_t a, int128_t b, test_conext &tc) {
+		int128_t res;
 		address test_add = tc.addrmap["test_add.wasm"];
 		auto args = pack(string("add"), a, b);
 		call_contract(test_add, args, res);
