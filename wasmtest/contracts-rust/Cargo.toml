@@ -1,7 +1,8 @@
 [workspace]
 members = [
     "helloworld",
-	"js-vm"
+	"js-vm",
+	"wasm-call-wasm"
 ]
 
 [profile.release]
