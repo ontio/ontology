@@ -169,8 +169,10 @@ func EncodeH256(sink *common.ZeroCopySink, hash common.Uint256) {
 	sink.WriteBytes(hash[:])
 }
 func EncodeInt(sink *common.ZeroCopySink, intval *big.Int) {
+	buf := common.BigIntToNeoBytes(intval)
 	sink.WriteByte(IntType)
-	sink.WriteBytes(common.BigIntToNeoBytes(intval))
+	sink.WriteUint32(uint32(len(buf)))
+	sink.WriteBytes(buf)
 }
 
 func EncodeList(sink *common.ZeroCopySink, list []interface{}) error {
