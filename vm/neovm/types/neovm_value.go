@@ -45,8 +45,8 @@ const (
 )
 
 const (
-	MAX_COUNT  = 1024
-	MAX_LENGTH = 64 * 1024 //64Kb
+	MAX_COUNT         = 1024
+	MAX_NOTIFY_LENGTH = 64 * 1024 //64Kb
 )
 
 type VmValue struct {
@@ -209,7 +209,7 @@ func (self *VmValue) ConvertNeoVmValueHexString() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	if length > MAX_LENGTH {
+	if length > MAX_NOTIFY_LENGTH {
 		return nil, fmt.Errorf("length over max parameters convert length")
 	}
 	return res, nil
@@ -218,7 +218,7 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 	if *count > MAX_COUNT {
 		return nil, fmt.Errorf("over max parameters convert length")
 	}
-	if *length > MAX_LENGTH {
+	if *length > MAX_NOTIFY_LENGTH {
 		return nil, fmt.Errorf("length over max parameters convert length")
 	}
 	switch self.valType {
@@ -274,8 +274,12 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 		panic("unreacheable!")
 	}
 }
+func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
+	var depth int
+	return self.deserialize(source, &depth)
+}
 
-func (self *VmValue) Deserialize(source *common.ZeroCopySource, depth *int) error {
+func (self *VmValue) deserialize(source *common.ZeroCopySource, depth *int) error {
 	if *depth > MAX_COUNT {
 		return fmt.Errorf("vmvalue depth over the uplimit")
 	}
@@ -331,7 +335,7 @@ func (self *VmValue) Deserialize(source *common.ZeroCopySource, depth *int) erro
 		for i := 0; i < int(l); i++ {
 			v := VmValue{}
 			*depth++
-			err := v.Deserialize(source, depth)
+			err := v.deserialize(source, depth)
 			if err != nil {
 				return err
 			}
@@ -353,12 +357,12 @@ func (self *VmValue) Deserialize(source *common.ZeroCopySource, depth *int) erro
 		for i := 0; i < int(l); i++ {
 			keyValue := VmValue{}
 			*depth++
-			err := keyValue.Deserialize(source, depth)
+			err := keyValue.deserialize(source, depth)
 			if err != nil {
 				return err
 			}
 			v := VmValue{}
-			err = v.Deserialize(source, depth)
+			err = v.deserialize(source, depth)
 			if err != nil {
 				return err
 			}
@@ -380,7 +384,7 @@ func (self *VmValue) Deserialize(source *common.ZeroCopySource, depth *int) erro
 		for i := 0; i < int(l); i++ {
 			v := VmValue{}
 			*depth++
-			err := v.Deserialize(source, depth)
+			err := v.deserialize(source, depth)
 			if err != nil {
 				return err
 			}

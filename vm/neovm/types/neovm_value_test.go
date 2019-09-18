@@ -65,8 +65,7 @@ func TestSerialize(t *testing.T) {
 
 	source := common.NewZeroCopySource(sink.Bytes())
 	vs := VmValue{}
-	var depth int
-	vs.Deserialize(source, &depth)
+	vs.Deserialize(source)
 	assert.Equal(t, structValue, vs)
 
 	arr := buildArray([]VmValue{bsValue, boolValue, biginValue, uint64Value})
@@ -77,8 +76,7 @@ func TestSerialize(t *testing.T) {
 
 	arrValue2 := VmValue{}
 	source = common.NewZeroCopySource(sinkArr.Bytes())
-	depth = 0
-	arrValue2.Deserialize(source, &depth)
+	arrValue2.Deserialize(source)
 	assert.Equal(t, arrValue2, arrValue)
 
 	m := NewMapValue()
@@ -215,8 +213,7 @@ func TestVmValue_Deserialize(t *testing.T) {
 	bss, err := common.HexToBytes("820100036b65790209ffffc58e4ae6b68900")
 	assert.Nil(t, err)
 	source := common.NewZeroCopySource(bss)
-	var depth int
-	val_m2.Deserialize(source, &depth)
+	val_m2.Deserialize(source)
 	assert.Equal(t, val_m, val_m2)
 }
 
