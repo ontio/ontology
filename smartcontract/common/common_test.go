@@ -31,9 +31,14 @@ func TestConvertNeoVmTypeHexString(t *testing.T) {
 	for i := 0; i < MAX_NOTIFY_LENGTH; i++ {
 		bs = append(bs, 1)
 	}
-	bs = append(bs, 1)
 	b := types.NewByteArray(bs)
 	arr.Add(b)
 	_, err := ConvertNeoVmTypeHexString(arr)
+	assert.Nil(t, err)
+
+	bs = append(bs, 1)
+	b = types.NewByteArray(bs)
+	arr.Add(b)
+	_, err = ConvertNeoVmTypeHexString(arr)
 	assert.NotNil(t, err)
 }
