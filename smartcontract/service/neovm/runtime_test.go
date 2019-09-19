@@ -25,6 +25,7 @@ import (
 
 	"errors"
 	"github.com/ontio/ontology/account"
+	"github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
@@ -54,6 +55,27 @@ func TestRuntimeDeserializeBigInteger(t *testing.T) {
 
 	assert.Equal(t, result, i)
 
+}
+
+func TestRuntimeDeserializeDepth(t *testing.T) {
+	bsTemp := make([]byte, 0)
+	for i := 0; i < common.MAX_COUNT; i++ {
+		bsTemp = append(bsTemp, []byte{types.ArrayType, 0x01}...)
+	}
+	bsTemp = append(bsTemp, types.ByteArrayType)
+	bsTemp = append(bsTemp, []byte{0x01, 0x01}...)
+	_, err := DeserializeStackItem(bytes.NewReader(bsTemp))
+	assert.Nil(t, err)
+}
+func TestRuntimeDeserializeDepthInvalid(t *testing.T) {
+	bsTemp := make([]byte, 0)
+	for i := 0; i < common.MAX_COUNT+1; i++ {
+		bsTemp = append(bsTemp, []byte{types.ArrayType, 0x01}...)
+	}
+	bsTemp = append(bsTemp, types.ByteArrayType)
+	bsTemp = append(bsTemp, []byte{0x01, 0x01}...)
+	_, err := DeserializeStackItem(bytes.NewReader(bsTemp))
+	assert.NotNil(t, err)
 }
 
 func TestArrayRef(t *testing.T) {
