@@ -6,7 +6,7 @@ use ostd::prelude::*;
 use ostd::runtime;
 
 #[no_mangle]
-pub fn add(a: u64, b: u64) -> u64 {
+pub fn add(a: U128, b: U128) -> U128 {
     a + b
 }
 

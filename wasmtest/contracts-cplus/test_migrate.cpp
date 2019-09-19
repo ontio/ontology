@@ -28,7 +28,7 @@ class hello: public contract {
 	public:
 	using contract::contract;
 
-	int64_t test_contract_migrate(void) {
+	void test_contract_migrate(void) {
 		int64_t res;
 		/** file: test_migrate3.wat
 		(module
@@ -99,23 +99,20 @@ class hello: public contract {
 		uint64_t b;
 		check(!storage_get(t1, b), "should not get storage");
 		check(!storage_get(t2, b), "should not get storage");
-		return res;
 	}
 
-	int64_t testStorage(void) {
+	void testStorage(void) {
 		int64_t b;
 		storage_put(t1, val1);
 		check(storage_get(t1, b), "get failed");
 		check(b == val1, "get wrong");
-		return b;
 	}
 
-	int64_t testStorage2(void) {
+	void testStorage2(void) {
 		int64_t b;
 		storage_put(t2, val2);
 		check(storage_get(t2, b), "get failed");
 		check(b == val2, "get wrong");
-		return b;
 	}
 
 	string testcase(void) {
