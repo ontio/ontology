@@ -32,7 +32,7 @@ class hello: public contract {
 		return ontio::entry_address();
 	}
 
-	uint64_t check_witness(test_conext &tc) {
+	uint128_t check_witness(test_conext &tc) {
 		if(ontio::check_witness(tc.admin))
 			return 1;
 		else
@@ -51,7 +51,7 @@ class hello: public contract {
 		return ontio::block_height();
 	}
 
-	string testStorage(int64_t index, string s) {
+	string testStorage(int128_t index, string s) {
 		string res;
 		key t = make_key(index);
 		storage_put(t,s);

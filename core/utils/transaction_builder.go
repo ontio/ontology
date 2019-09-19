@@ -196,39 +196,38 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 	bf := common.NewZeroCopySink(nil)
 	for _, param := range params {
-		switch param.(type) {
+		switch val := param.(type) {
 		case string:
-			bf.WriteString(param.(string))
+			bf.WriteString(val)
 		case int:
-			bf.WriteInt32(param.(int32))
+			bf.WriteU128(common.U128FromInt64(int64(val)))
 		case int64:
-			bf.WriteInt64(param.(int64))
+			bf.WriteU128(common.U128FromInt64(int64(val)))
 		case uint16:
-			bf.WriteUint16(param.(uint16))
+			bf.WriteU128(common.U128FromUint64(uint64(val)))
 		case uint32:
-			bf.WriteUint32(param.(uint32))
+			bf.WriteU128(common.U128FromUint64(uint64(val)))
 		case uint64:
-			bf.WriteUint64(param.(uint64))
+			bf.WriteU128(common.U128FromUint64(uint64(val)))
 		case []byte:
-			bf.WriteVarBytes(param.([]byte))
+			bf.WriteVarBytes(val)
 		case common.Uint256:
-			bf.WriteHash(param.(common.Uint256))
+			bf.WriteHash(val)
 		case common.Address:
-			bf.WriteAddress(param.(common.Address))
+			bf.WriteAddress(val)
 		case byte:
-			bf.WriteByte(param.(byte))
+			bf.WriteByte(val)
 		case []interface{}:
-			val, err := BuildWasmContractParam(param.([]interface{}))
+			value, err := BuildWasmContractParam(val)
 			if err != nil {
 				return nil, err
 			}
-			bf.WriteBytes(val)
+			bf.WriteBytes(value)
 		default:
 			return nil, fmt.Errorf("not a supported type :%v\n", param)
 		}
 	}
 	return bf.Bytes(), nil
-
 }
 
 func NewWasmVMInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common.Address, params []interface{}) (*types.MutableTransaction, error) {

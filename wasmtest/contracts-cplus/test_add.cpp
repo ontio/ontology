@@ -6,7 +6,7 @@ using std::string;
 class hello: public contract {
 	public:
 	using contract::contract;
-	int64_t add(int64_t a, int64_t b) {
+	int128_t add(int128_t a, int128_t b) {
 		return a + b;
 	}
 
