@@ -275,12 +275,11 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 	}
 }
 func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
-	var depth int
-	return self.deserialize(source, &depth)
+	return self.deserialize(source, 0)
 }
 
-func (self *VmValue) deserialize(source *common.ZeroCopySource, depth *int) error {
-	if *depth > MAX_COUNT {
+func (self *VmValue) deserialize(source *common.ZeroCopySource, depth int) error {
+	if depth > MAX_COUNT {
 		return fmt.Errorf("vmvalue depth over the uplimit")
 	}
 	t, eof := source.NextByte()
@@ -334,8 +333,7 @@ func (self *VmValue) deserialize(source *common.ZeroCopySource, depth *int) erro
 		arr := new(ArrayValue)
 		for i := 0; i < int(l); i++ {
 			v := VmValue{}
-			*depth++
-			err := v.deserialize(source, depth)
+			err := v.deserialize(source, depth+1)
 			if err != nil {
 				return err
 			}
@@ -356,13 +354,12 @@ func (self *VmValue) deserialize(source *common.ZeroCopySource, depth *int) erro
 		mapValue := NewMapValue()
 		for i := 0; i < int(l); i++ {
 			keyValue := VmValue{}
-			*depth++
-			err := keyValue.deserialize(source, depth)
+			err := keyValue.deserialize(source, depth+1)
 			if err != nil {
 				return err
 			}
 			v := VmValue{}
-			err = v.deserialize(source, depth)
+			err = v.deserialize(source, depth+1)
 			if err != nil {
 				return err
 			}
@@ -383,8 +380,7 @@ func (self *VmValue) deserialize(source *common.ZeroCopySource, depth *int) erro
 		structValue := NewStructValue()
 		for i := 0; i < int(l); i++ {
 			v := VmValue{}
-			*depth++
-			err := v.deserialize(source, depth)
+			err := v.deserialize(source, depth+1)
 			if err != nil {
 				return err
 			}
@@ -393,6 +389,9 @@ func (self *VmValue) deserialize(source *common.ZeroCopySource, depth *int) erro
 		*self = VmValueFromStructVal(structValue)
 	default:
 		return errors.ERR_BAD_TYPE
+	}
+	if depth > MAX_COUNT {
+		return fmt.Errorf("vmvalue depth over the uplimit")
 	}
 	return nil
 }

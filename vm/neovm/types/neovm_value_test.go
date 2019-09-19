@@ -217,6 +217,106 @@ func TestVmValue_Deserialize(t *testing.T) {
 	assert.Equal(t, val_m, val_m2)
 }
 
+func TestVmValue_DeserializeArray(t *testing.T) {
+	val := VmValue{}
+	sink := common.NewZeroCopySink(nil)
+	for i := 0; i < MAX_COUNT; i++ {
+		sink.WriteByte(arrayType)
+		sink.WriteVarUint(1)
+	}
+	sink.WriteByte(boolType)
+	sink.WriteBool(true)
+	source := common.NewZeroCopySource(sink.Bytes())
+	err := val.Deserialize(source)
+	assert.Nil(t, err)
+
+	val2 := VmValue{}
+	sink2 := common.NewZeroCopySink(nil)
+	for i := 0; i < MAX_COUNT+1; i++ {
+		sink2.WriteByte(arrayType)
+		sink2.WriteVarUint(1)
+	}
+	sink2.WriteByte(boolType)
+	sink2.WriteBool(true)
+	source2 := common.NewZeroCopySource(sink2.Bytes())
+	err = val2.Deserialize(source2)
+	assert.NotNil(t, err)
+}
+
+func TestVmValue_DeserializeMap(t *testing.T) {
+	val := VmValue{}
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteByte(mapType)
+	sink.WriteVarUint(1)
+	for i := 0; i < MAX_COUNT-1; i++ {
+		sink.WriteByte(bytearrayType)
+		sink.WriteVarUint(1)
+		sink.WriteByte(1)
+		sink.WriteByte(mapType)
+		sink.WriteVarUint(1)
+	}
+	sink.WriteByte(bytearrayType)
+	sink.WriteVarUint(1)
+	sink.WriteByte(1)
+
+	sink.WriteByte(bytearrayType)
+	sink.WriteVarUint(1)
+	sink.WriteByte(1)
+
+	source := common.NewZeroCopySource(sink.Bytes())
+	err := val.Deserialize(source)
+	assert.Nil(t, err)
+
+	val2 := VmValue{}
+	sink2 := common.NewZeroCopySink(nil)
+	sink2.WriteByte(mapType)
+	sink2.WriteVarUint(1)
+	for i := 0; i < MAX_COUNT; i++ {
+		sink2.WriteByte(bytearrayType)
+		sink2.WriteVarUint(1)
+		sink2.WriteByte(1)
+		sink2.WriteByte(mapType)
+		sink2.WriteVarUint(1)
+	}
+	sink2.WriteByte(boolType)
+	sink2.WriteBool(true)
+	sink2.WriteByte(boolType)
+	sink2.WriteBool(true)
+
+	source2 := common.NewZeroCopySource(sink2.Bytes())
+	err = val2.Deserialize(source2)
+	assert.Equal(t, "vmvalue depth over the uplimit", err.Error())
+}
+
+func TestVmValue_DeserializeStruct(t *testing.T) {
+	sink := common.NewZeroCopySink(nil)
+
+	for i := 0; i < MAX_COUNT-1; i++ {
+		sink.WriteByte(structType)
+		sink.WriteVarUint(1)
+	}
+	sink.WriteByte(boolType)
+	sink.WriteBool(true)
+
+	source := common.NewZeroCopySource(sink.Bytes())
+	val := VmValue{}
+	err := val.Deserialize(source)
+	assert.Nil(t, err)
+
+	val2 := VmValue{}
+	sink2 := common.NewZeroCopySink(nil)
+	for i := 0; i < MAX_COUNT+1; i++ {
+		sink2.WriteByte(structType)
+		sink2.WriteVarUint(1)
+	}
+	sink2.WriteByte(boolType)
+	sink2.WriteBool(true)
+
+	source2 := common.NewZeroCopySource(sink2.Bytes())
+	err = val2.Deserialize(source2)
+	assert.Equal(t, "vmvalue depth over the uplimit", err.Error())
+}
+
 func TestVmValue_AsBool(t *testing.T) {
 	b, _ := new(big.Int).SetString("9923372036854775807", 10)
 	val, err := VmValueFromBigInt(b)
