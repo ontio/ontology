@@ -334,11 +334,18 @@ func serializeStackItem(item vmtypes.StackItems, w io.Writer) error {
 }
 
 func DeserializeStackItem(r io.Reader) (items vmtypes.StackItems, err error) {
+	var depth int
+	return deserializeStackItem(r, &depth)
+}
+
+func deserializeStackItem(r io.Reader, depth *int) (items vmtypes.StackItems, err error) {
 	t, err := serialization.ReadByte(r)
 	if err != nil {
 		return nil, errors.NewErr("Deserialize error: " + err.Error())
 	}
-
+	if *depth > scommon.MAX_COUNT {
+		return nil, errors.NewErr("Deserialize error: " + "depth over the uplimit")
+	}
 	switch t {
 	case vmtypes.ByteArrayType:
 		b, err := serialization.ReadVarBytes(r)
@@ -367,8 +374,9 @@ func DeserializeStackItem(r io.Reader) (items vmtypes.StackItems, err error) {
 		}
 
 		var arr []vmtypes.StackItems
+		*depth++
 		for count > 0 {
-			item, err := DeserializeStackItem(r)
+			item, err := deserializeStackItem(r, depth)
 			if err != nil {
 				return nil, err
 			}
@@ -390,12 +398,13 @@ func DeserializeStackItem(r io.Reader) (items vmtypes.StackItems, err error) {
 
 		mp := vmtypes.NewMap()
 		for count > 0 {
-			key, err := DeserializeStackItem(r)
+			*depth++
+			key, err := deserializeStackItem(r, depth)
 			if err != nil {
 				return nil, err
 			}
 
-			value, err := DeserializeStackItem(r)
+			value, err := deserializeStackItem(r, depth)
 			if err != nil {
 				return nil, err
 			}
