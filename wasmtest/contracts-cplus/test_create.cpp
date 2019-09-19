@@ -15,7 +15,7 @@ using namespace ontio;
 class hello: public contract {
 	public:
 	using contract::contract;
-	int64_t test_contract_create(void) {
+	void test_contract_create(void) {
 		int64_t res;
 		/** file: test_create.wat
 			(module
@@ -41,7 +41,6 @@ class hello: public contract {
 		vector<char> args = {};
 		call_contract(t,args, res);
 		check(res == 2222, "migrate failed");
-		return res;
 	}
 	
 	string testcase(void) {

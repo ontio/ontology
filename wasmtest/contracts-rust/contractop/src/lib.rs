@@ -129,7 +129,7 @@ pub fn invoke() {
         b"test_callwasm" => {
             let mut isink = Sink::new(20);
             let helloaction: &[u8] = source.read().unwrap();
-            let (a, b): (u64, u64) = source.read().unwrap();
+            let (a, b): (u128, u128) = source.read().unwrap();
             //debug(&format!("{:}", String::from_utf8(helloaction.to_vec()).unwrap()));
 
             isink.write(helloaction);
