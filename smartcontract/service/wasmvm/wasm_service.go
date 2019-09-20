@@ -21,6 +21,7 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -133,6 +134,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	vm.HostData = host
 	if this.PreExec {
 		*this.GasLimit = uint64(VM_STEP_LIMIT)
+		this.GasFactor = config.DEFAULT_WASM_GAS_FACTOR
 	}
 	vm.RecoverPanic = true
 
