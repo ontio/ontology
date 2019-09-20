@@ -311,6 +311,9 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		}
 
 		tmpRes, err := newservice.Invoke()
+		if err != nil {
+			panic(error)
+		}
 
 		result = tmpRes.([]byte)
 
@@ -325,7 +328,11 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		if err != nil {
 			panic(err)
 		}
+
 		tmp, err := neoservice.Invoke()
+		if err != nil {
+			panic(error)
+		}
 
 		if tmp != nil {
 			val := tmp.(*neotypes.VmValue)
