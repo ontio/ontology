@@ -305,12 +305,17 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		sink := common.NewZeroCopySink(nil)
 		conParam.Serialization(sink)
 
+		self.Service.RecoverGas()
+
 		newservice, err := self.Service.ContextRef.NewExecuteEngine(sink.Bytes(), types.InvokeWasm)
 		if err != nil {
 			panic(err)
 		}
 
 		tmpRes, err := newservice.Invoke()
+
+		self.Service.MutipleGasFactor()
+
 		if err != nil {
 			panic(err)
 		}
@@ -323,11 +328,16 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 			panic(err)
 		}
 
+		self.Service.RecoverGas()
+
 		neoservice, err := self.Service.ContextRef.NewExecuteEngine(parambytes, types.InvokeNeo)
 		if err != nil {
 			panic(err)
 		}
 		tmp, err := neoservice.Invoke()
+
+		self.Service.MutipleGasFactor()
+
 		if err != nil {
 			panic(err)
 		}
@@ -698,8 +708,14 @@ func (self *Runtime) getContractType(addr common.Address) (ContractType, error) 
 
 func (self *Runtime) checkGas(gaslimit uint64) {
 	gas := self.Service.vm.AvaliableGas
-	if gas.GasLimit >= gaslimit {
-		gas.GasLimit -= gaslimit
+	factor := gaslimit * gas.GasFactor
+
+	if factor/gas.GasFactor != gaslimit {
+		panic(errors.NewErr("[wasm_Service] overflow"))
+	}
+
+	if *gas.GasLimit >= factor {
+		*gas.GasLimit -= factor
 	} else {
 		panic(errors.NewErr("[wasm_Service]Insufficient gas limit"))
 	}

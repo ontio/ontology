@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
 	ctypes "github.com/ontio/ontology/core/types"
@@ -157,7 +158,8 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			Height:     this.Config.Height,
 			BlockHash:  this.Config.BlockHash,
 			PreExec:    this.PreExec,
-			GasLimit:   this.Gas,
+			GasLimit:   &this.Gas,
+			GasFactor:  this.GasTable[config.WASM_GAS_FACTOR],
 		}
 	}
 

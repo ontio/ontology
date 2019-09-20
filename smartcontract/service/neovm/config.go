@@ -18,7 +18,10 @@
 
 package neovm
 
-import "sync"
+import (
+	"github.com/ontio/ontology/common/config"
+	"sync"
+)
 
 var (
 	//Gas Limit
@@ -144,6 +147,7 @@ var (
 		HASH256_NAME,
 		UINT_DEPLOY_CODE_LEN_NAME,
 		UINT_INVOKE_CODE_LEN_NAME,
+		config.WASM_GAS_FACTOR,
 	}
 
 	INIT_GAS_TABLE = map[string]uint64{
@@ -197,6 +201,8 @@ func initGAS_TABLE() *sync.Map {
 
 	m.Store(RUNTIME_VERIFYMUTISIG_NAME, RUNTIME_VERIFYMUTISIG_GAS)
 	m.Store(WASM_INVOKE_NAME, APPCALL_GAS)
+
+	m.Store(config.WASM_GAS_FACTOR, config.DEFAULT_WASM_GAS_FACTOR)
 
 	return &m
 }
