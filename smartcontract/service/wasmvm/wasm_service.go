@@ -21,7 +21,6 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -120,10 +119,8 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	vm.HostData = host
 
-	if this.PreExec {
-		this.GasFactor = config.DEFAULT_WASM_GAS_FACTOR
-	}
-
+	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasLimitL: 0, GasPrice: this.GasPrice, GasFactor: this.GasFactor}
+	vm.CallStackDepth = uint32(WASM_CALLSTACK_LIMIT)
 	vm.RecoverPanic = true
 
 	entryName := CONTRACT_METHOD_NAME
@@ -148,8 +145,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, errors.NewErr("[Call]ExecCode error! Invoke function sig error")
 	}
 
-	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasLimitL: 0, GasPrice: this.GasPrice, GasFactor: this.GasFactor}
-	vm.CallStackDepth = uint32(WASM_CALLSTACK_LIMIT)
 	//no args for passed in, all args in runtime input buffer
 	this.vm = vm
 

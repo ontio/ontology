@@ -148,6 +148,11 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 		}
 	}
 	if txtype == ctypes.InvokeWasm {
+		gasFactor := this.GasTable[config.WASM_GAS_FACTOR]
+		if gasFactor == 0 {
+			gasFactor = config.DEFAULT_WASM_GAS_FACTOR
+		}
+
 		service = &wasmvm.WasmVmService{
 			Store:      this.Store,
 			CacheDB:    this.CacheDB,
@@ -159,7 +164,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			BlockHash:  this.Config.BlockHash,
 			PreExec:    this.PreExec,
 			GasLimit:   &this.Gas,
-			GasFactor:  this.GasTable[config.WASM_GAS_FACTOR],
+			GasFactor:  gasFactor,
 		}
 	}
 
