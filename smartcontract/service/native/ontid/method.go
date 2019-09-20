@@ -417,7 +417,10 @@ func revokeID(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("authorization failed")
 	}
 
-	deleteID(srvc, encID)
+	err = deleteID(srvc, encID)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("delete id error, %s", err)
+	}
 	newEvent(srvc, []interface{}{"Revoke", string(arg0)})
 	return utils.BYTE_TRUE, nil
 }

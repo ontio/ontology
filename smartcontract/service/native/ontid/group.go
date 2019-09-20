@@ -45,7 +45,7 @@ func deserializeGroup(data []byte) (*Group, error) {
 	// parse members
 	num, err := utils.ReadVarUint(buf)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing group members: %s", err)
+		return nil, fmt.Errorf("error parsing number: %s", err)
 	}
 
 	for i := uint64(0); i < num; i++ {
@@ -53,15 +53,15 @@ func deserializeGroup(data []byte) (*Group, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error parsing group members: %s", err)
 		}
-		if bytes.Equal(m[:8], []byte("did:ont:")) {
-			g.Members = append(g.Members, string(m))
+		if len(m) > 8 && bytes.Equal(m[:8], []byte("did:ont:")) {
+			g.Members = append(g.Members, m)
 		} else {
 			// parse recursively
 			g1, err := deserializeGroup(m)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing group members: %s", err)
+				return nil, fmt.Errorf("error parsing subgroup: %s", err)
 			}
-			g.Members[i] = g1
+			g.Members = append(g.Members, g1)
 		}
 	}
 
@@ -69,6 +69,9 @@ func deserializeGroup(data []byte) (*Group, error) {
 	t, err := utils.ReadVarUint(buf)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing group threshold: %s", err)
+	}
+	if t > uint64(len(g.Members)) {
+		return nil, fmt.Errorf("invalid threshold")
 	}
 
 	g.Threshold = uint(t)

@@ -94,7 +94,7 @@ func checkWitness(srvc *native.NativeService, key []byte) error {
 	return errors.New("check witness failed, " + hex.EncodeToString(key))
 }
 
-func deleteID(srvc *native.NativeService, encID []byte) {
+func deleteID(srvc *native.NativeService, encID []byte) error {
 	key := append(encID, FIELD_PK)
 	srvc.CacheDB.Delete(key)
 
@@ -104,8 +104,12 @@ func deleteID(srvc *native.NativeService, encID []byte) {
 	key = append(encID, FIELD_RECOVERY)
 	srvc.CacheDB.Delete(key)
 
-	deleteAllAttr(srvc, encID)
+	err := deleteAllAttr(srvc, encID)
+	if err != nil {
+		return err
+	}
 
 	//set flag to revoke
 	utils.PutBytes(srvc, encID, []byte{flag_revoke})
+	return nil
 }
