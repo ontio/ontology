@@ -34,7 +34,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
+	commonconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
@@ -180,7 +180,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		}
 	}
 	//load vbft peerInfo
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
+	consensusType := strings.ToLower(commonconfig.DefConfig.Genesis.ConsensusType)
 	if consensusType == "vbft" {
 		header, err := this.GetHeaderByHash(this.currBlockHash)
 		if err != nil {
@@ -438,7 +438,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header, vbftPeerInfo map[
 	if prevHeader.Timestamp >= header.Timestamp {
 		return vbftPeerInfo, fmt.Errorf("block timestamp is incorrect")
 	}
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
+	consensusType := strings.ToLower(commonconfig.DefConfig.Genesis.ConsensusType)
 	if consensusType == "vbft" {
 		//check bookkeeppers
 		m := len(vbftPeerInfo) - (len(vbftPeerInfo)*6)/7
@@ -1052,11 +1052,12 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	if tx.TxType == types.InvokeNeo || tx.TxType == types.InvokeWasm {
 		invoke := tx.Payload.(*payload.InvokeCode)
 
+		initgas := math.MaxUint64 / commonconfig.DEFAULT_WASM_GAS_FACTOR
 		sc := smartcontract.SmartContract{
 			Config:  config,
 			Store:   this,
 			CacheDB: cache,
-			Gas:     math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), preGas[neovm.UINT_INVOKE_CODE_LEN_NAME]),
+			Gas:     initgas - calcGasByCodeLen(len(invoke.Code), preGas[neovm.UINT_INVOKE_CODE_LEN_NAME]),
 			PreExec: true,
 		}
 		//start the smart contract executive function
@@ -1066,7 +1067,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		if err != nil {
 			return stf, err
 		}
-		gasCost := math.MaxUint64 - sc.Gas
+		gasCost := initgas - sc.Gas
 		mixGas := neovm.MIN_TRANSACTION_GAS
 		if gasCost < mixGas {
 			gasCost = mixGas

@@ -132,10 +132,11 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	vm.HostData = host
+
 	if this.PreExec {
-		*this.GasLimit = uint64(VM_STEP_LIMIT)
 		this.GasFactor = config.DEFAULT_WASM_GAS_FACTOR
 	}
+
 	vm.RecoverPanic = true
 
 	entryName := CONTRACT_METHOD_NAME
