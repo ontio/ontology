@@ -241,7 +241,7 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 		*length += len(bs)
 		return common.ToHexString(bs), nil
 	case bigintType:
-		bs := common.BigIntToNeoBytes(big.NewInt(self.integer))
+		bs := common.BigIntToNeoBytes(self.bigInt)
 		*length += len(bs)
 		return common.ToHexString(bs), nil
 	case structType:
