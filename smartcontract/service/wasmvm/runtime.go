@@ -312,7 +312,7 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 
 		tmpRes, err := newservice.Invoke()
 		if err != nil {
-			panic(error)
+			panic(err)
 		}
 
 		result = tmpRes.([]byte)
@@ -331,7 +331,7 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 
 		tmp, err := neoservice.Invoke()
 		if err != nil {
-			panic(error)
+			panic(err)
 		}
 
 		if tmp != nil {
