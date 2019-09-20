@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "mock"), no_std)]
 extern crate ontio_std as ostd;
-use ostd::abi::{Sink, ZeroCopySource};
+use ostd::abi::{Sink, Source};
 use ostd::prelude::*;
 use ostd::runtime;
 
@@ -9,14 +9,14 @@ use alloc::collections::BTreeMap;
 use ontio_std::console::debug;
 
 pub struct TestContext<'a> {
-    admin: &'a Addr,
-    map: BTreeMap<String, &'a Addr>,
+    admin: &'a Address,
+    map: BTreeMap<String, &'a Address>,
 }
 
 #[no_mangle]
 pub fn invoke() {
     let input = runtime::input();
-    let mut source = ZeroCopySource::new(&input);
+    let mut source = Source::new(&input);
     let action: &[u8] = source.read().unwrap();
     let mut sink = Sink::new(12);
     match action {
@@ -99,7 +99,7 @@ pub fn invoke() {
                 runtime::contract_migrate(code, 3, "name", "version", "author", "email", "desc")
                     .expect("migrate failed");
             let resv = runtime::call_contract(&address, &[]).expect("call_contract failed");
-            let mut source = ZeroCopySource::new(&resv);
+            let mut source = Source::new(&resv);
             let val: u64 = source.read().unwrap();
 
             assert!(val == 0x32733);
@@ -111,7 +111,7 @@ pub fn invoke() {
             sink.write(val);
             runtime::storage_write(&key, sink.bytes());
             let val = runtime::storage_read(&key).expect("read val error");
-            let mut ressource = ZeroCopySource::new(&val);
+            let mut ressource = Source::new(&val);
             let res: u64 = ressource.read().unwrap();
             assert!(res == 0x138297);
         }
@@ -122,7 +122,7 @@ pub fn invoke() {
             sink.write(val);
             runtime::storage_write(&key, sink.bytes());
             let val = runtime::storage_read(&key).expect("read val error");
-            let mut ressource = ZeroCopySource::new(&val);
+            let mut ressource = Source::new(&val);
             let res: u64 = ressource.read().unwrap();
             assert!(res == 0x32733);
         }
@@ -149,16 +149,16 @@ pub fn invoke() {
     runtime::ret(sink.bytes())
 }
 
-fn get_tc<'a>(source: &mut ZeroCopySource<'a>) -> TestContext<'a> {
+fn get_tc<'a>(source: &mut Source<'a>) -> TestContext<'a> {
     let mut map = BTreeMap::new();
-    let addr = source.read_addr().unwrap();
+    let admin = source.read().unwrap();
     let n = source.read_varuint().unwrap();
     for _i in 0..n {
-        let (file, addr): (&str, &Addr) = source.read().unwrap();
+        let (file, addr): (&str, &Address) = source.read().unwrap();
         map.insert(file.to_string(), addr);
     }
 
-    TestContext { admin: addr, map: map }
+    TestContext { admin, map }
 }
 
 fn testcase() -> String {
