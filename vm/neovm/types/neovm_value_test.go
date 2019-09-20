@@ -27,12 +27,13 @@ import (
 	"testing"
 )
 
-func buildStruct(item []VmValue) *StructValue {
+func buildStruct(item []VmValue) (*StructValue, error) {
 	s := NewStructValue()
 	for _, val := range item {
-		s.Append(val)
+		err := s.Append(val)
+		return nil, err
 	}
-	return s
+	return s, nil
 }
 
 func buildArray(item []VmValue) *ArrayValue {
@@ -57,7 +58,8 @@ func TestSerialize(t *testing.T) {
 
 	uint64Value := VmValueFromUint64(uint64(100))
 
-	s := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
+	s, err := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
+	assert.Nil(t, err)
 	structValue := VmValueFromStructVal(s)
 	sink := new(common.ZeroCopySink)
 	structValue.Serialize(sink)
@@ -116,7 +118,8 @@ func TestStructValue_Clone(t *testing.T) {
 
 	m := NewMapValue()
 	m.Set(bsValue, bsValue)
-	s := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value, VmValueFromMapValue(m)})
+	s,err := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value, VmValueFromMapValue(m)})
+	assert.Nil(t, err)
 	s2, _ := s.Clone()
 	structValue := VmValueFromStructVal(s)
 	m2 := s2.Data[s2.Len()-1]
@@ -137,10 +140,12 @@ func TestVmValue_Equals(t *testing.T) {
 	assert.Equal(t, err, nil)
 
 	uint64Value := VmValueFromUint64(uint64(100))
-	s := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
+	s,err := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
+	assert.Nil(t, err)
 	structValue := VmValueFromStructVal(s)
 
-	s2 := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
+	s2,err := buildStruct([]VmValue{bsValue, boolValue, biginValue, uint64Value})
+	assert.Nil(t, err)
 	structValue2 := VmValueFromStructVal(s2)
 	res := structValue.Equals(structValue2)
 	assert.True(t, res)
@@ -172,7 +177,8 @@ func TestVmValue_BuildParamToNative(t *testing.T) {
 	bs, err := VmValueFromBytes([]byte("hello"))
 	assert.Nil(t, err)
 
-	stru := buildStruct([]VmValue{inte, boo, bs})
+	stru,err := buildStruct([]VmValue{inte, boo, bs})
+	assert.Nil(t, err)
 	arr := NewArrayValue()
 	s := VmValueFromStructVal(stru)
 	r, _ := s.AsBool()
@@ -404,7 +410,8 @@ func TestVmValue_CircularRefAndDepthDetection2(t *testing.T) {
 	arrayVal := VmValueFromArrayVal(array)
 	checkVal(t, arrayVal)
 
-	stru := buildStruct([]VmValue{ba1, ba2, bf, bt})
+	stru,err := buildStruct([]VmValue{ba1, ba2, bf, bt})
+	assert.Nil(t, err)
 	struVal := VmValueFromStructVal(stru)
 	checkVal(t, struVal)
 
@@ -412,7 +419,8 @@ func TestVmValue_CircularRefAndDepthDetection2(t *testing.T) {
 	arrayVal = VmValueFromArrayVal(array)
 	checkVal(t, arrayVal)
 
-	stru.Append(arrayVal)
+	err = stru.Append(arrayVal)
+	assert.Nil(t, err)
 	checkVal(t, VmValueFromStructVal(stru))
 
 	map1 := NewMapValue()

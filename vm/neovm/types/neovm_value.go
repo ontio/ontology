@@ -384,7 +384,10 @@ func (self *VmValue) deserialize(source *common.ZeroCopySource, depth int) error
 			if err != nil {
 				return err
 			}
-			structValue.Append(v)
+			err = structValue.Append(v)
+			if err != nil {
+				return err
+			}
 		}
 		*self = VmValueFromStructVal(structValue)
 	default:
