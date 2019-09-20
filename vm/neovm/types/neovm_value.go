@@ -390,9 +390,6 @@ func (self *VmValue) deserialize(source *common.ZeroCopySource, depth int) error
 	default:
 		return errors.ERR_BAD_TYPE
 	}
-	if depth > MAX_COUNT {
-		return fmt.Errorf("vmvalue depth over the uplimit")
-	}
 	return nil
 }
 
