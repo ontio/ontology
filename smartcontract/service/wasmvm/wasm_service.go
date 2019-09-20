@@ -77,19 +77,6 @@ func init() {
 	//}
 }
 
-func (this *WasmVmService) MutipleGasFactor() error {
-	initgas := *this.GasLimit
-	*this.GasLimit = (*this.GasLimit) * this.GasFactor
-	if *this.GasLimit/initgas != this.GasFactor {
-		return VM_INIT_FAULT
-	}
-	return nil
-}
-
-func (this *WasmVmService) RecoverGas() {
-	*this.GasLimit = (*this.GasLimit) / this.GasFactor
-}
-
 func (this *WasmVmService) Invoke() (interface{}, error) {
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
@@ -161,17 +148,12 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, errors.NewErr("[Call]ExecCode error! Invoke function sig error")
 	}
 
-	err = this.MutipleGasFactor()
-	if err != nil {
-		return nil, err
-	}
-	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasPrice: this.GasPrice, GasFactor: this.GasFactor}
+	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasLimitL: 0, GasPrice: this.GasPrice, GasFactor: this.GasFactor}
 	vm.CallStackDepth = uint32(WASM_CALLSTACK_LIMIT)
 	//no args for passed in, all args in runtime input buffer
 	this.vm = vm
 
 	_, err = vm.ExecCode(index)
-	this.RecoverGas()
 
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
