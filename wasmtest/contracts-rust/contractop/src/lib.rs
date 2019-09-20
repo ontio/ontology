@@ -3,6 +3,7 @@ extern crate ontio_std as ostd;
 use ostd::abi::{Sink, Source};
 use ostd::prelude::*;
 use ostd::runtime;
+use ostd::contract::ont;
 
 extern crate alloc;
 use alloc::collections::BTreeMap;
@@ -102,7 +103,7 @@ pub fn invoke() {
             let mut source = Source::new(&resv);
             let val: u64 = source.read().unwrap();
 
-            assert!(val == 0x32733);
+            assert_eq!(val, 0x32733);
         }
         b"storage_write" => {
             let mut sink = Sink::new(8);
@@ -113,7 +114,7 @@ pub fn invoke() {
             let val = runtime::storage_read(&key).expect("read val error");
             let mut ressource = Source::new(&val);
             let res: u64 = ressource.read().unwrap();
-            assert!(res == 0x138297);
+            assert_eq!(res, 0x138297);
         }
         b"storage_write2" => {
             let mut sink = Sink::new(8);
@@ -124,7 +125,7 @@ pub fn invoke() {
             let val = runtime::storage_read(&key).expect("read val error");
             let mut ressource = Source::new(&val);
             let res: u64 = ressource.read().unwrap();
-            assert!(res == 0x32733);
+            assert_eq!(res, 0x32733);
         }
         b"test_callwasm" => {
             let mut isink = Sink::new(20);
@@ -136,11 +137,34 @@ pub fn invoke() {
             isink.write(a);
             isink.write(b);
             let tc = get_tc(&mut source);
-            let address = tc.map[&String::from("helloworld.wasm")];
+            let address = tc.map["helloworld.wasm"];
 
             let resv = runtime::call_contract(&address, isink.bytes()).expect("get no return");
             runtime::ret(&resv);
             return;
+        }
+        b"balanceOf" => {
+            let balance = ont::balance_of(&runtime::address());
+            sink.write(balance)
+        }
+        b"transferFromAdmin" => {
+            let amount = source.read().unwrap();
+            let tc = get_tc(&mut source);
+            ont::transfer(tc.admin, &runtime::address(), amount);
+            sink.write(true)
+        }
+        b"transferToAdmin" => {
+            let amount = source.read().unwrap();
+            let tc = get_tc(&mut source);
+            ont::transfer(&runtime::address(),tc.admin, amount);
+            sink.write(true)
+        }
+        b"approveAndTransferFromAdmin" => {
+            let amount = source.read().unwrap();
+            let tc = get_tc(&mut source);
+            ont::approve(tc.admin, &runtime::address(), amount);
+            ont::transfer_from(&runtime::address(), tc.admin, &runtime::address(), amount);
+            sink.write(true)
         }
         b"testcase" => sink.write(testcase()),
         _ => panic!("unsupported action!"),
@@ -164,7 +188,16 @@ fn get_tc<'a>(source: &mut Source<'a>) -> TestContext<'a> {
 fn testcase() -> String {
     r#"
     [
-        [{"method":"storage_write"},
+        [
+        {"method":"balanceOf", "expected":"int:0"},
+        {"method":"transferFromAdmin", "needcontext":true, "param":"int:100", "expected":"bool:true"},
+        {"method":"balanceOf", "expected":"int:100"},
+        {"method":"approveAndTransferFromAdmin", "needcontext":true, "param":"int:100", "expected":"bool:true"},
+        {"method":"balanceOf", "expected":"int:200"},
+        {"method":"transferToAdmin", "needcontext":true, "param":"int:200", "expected":"bool:true"},
+        {"method":"balanceOf", "expected":"int:0"},
+
+        {"method":"storage_write"},
         {"method":"storage_write2"},
         {"needcontext":true, "env":{"witness":[]}, "method":"test_callwasm", "param":"string:add, int:1, int:2", "expected":"int:3"},
         {"method":"test_migrate"}

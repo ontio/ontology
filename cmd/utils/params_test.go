@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -46,6 +47,12 @@ func TestParseRawParamsArray(t *testing.T) {
 		t.Errorf("TestParseArrayParams faild, res:%s != %s", res, expect)
 		return
 	}
+}
+func TestParseParam(t *testing.T) {
+	_, err := ParseParams("bool:true")
+
+	assert.Nil(t, err)
+
 }
 
 func TestParseParams(t *testing.T) {
