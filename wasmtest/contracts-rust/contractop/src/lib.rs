@@ -150,21 +150,21 @@ pub fn invoke() {
         b"transferFromAdmin" => {
             let amount = source.read().unwrap();
             let tc = get_tc(&mut source);
-            ont::transfer(tc.admin, &runtime::address(), amount);
-            sink.write(true)
+            sink.write(ont::transfer(tc.admin, &runtime::address(), amount))
         }
         b"transferToAdmin" => {
             let amount = source.read().unwrap();
             let tc = get_tc(&mut source);
-            ont::transfer(&runtime::address(),tc.admin, amount);
-            sink.write(true)
+            sink.write(ont::transfer(&runtime::address(),tc.admin, amount))
         }
         b"approveAndTransferFromAdmin" => {
             let amount = source.read().unwrap();
             let tc = get_tc(&mut source);
-            ont::approve(tc.admin, &runtime::address(), amount);
-            ont::transfer_from(&runtime::address(), tc.admin, &runtime::address(), amount);
-            sink.write(true)
+            let res = ont::approve(tc.admin, &runtime::address(), amount);
+            assert_eq!(res, true);
+            let allo = ont::allowance(tc.admin, &runtime::address());
+            assert_eq!(allo, amount);
+            sink.write(ont::transfer_from(&runtime::address(), tc.admin, &runtime::address(), amount))
         }
         b"testcase" => sink.write(testcase()),
         _ => panic!("unsupported action!"),
