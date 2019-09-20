@@ -70,7 +70,7 @@ const (
 	DEFUALT_CLI_RPC_ADDRESS                 = "127.0.0.1"
 	DEFAULT_GAS_LIMIT                       = 20000
 	DEFAULT_GAS_PRICE                       = 500
-	DEFAULT_WASM_GAS_FACTOR                 = uint64(5)
+	DEFAULT_WASM_GAS_FACTOR                 = uint64(10)
 
 	DEFAULT_DATA_DIR      = "./Chain"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
