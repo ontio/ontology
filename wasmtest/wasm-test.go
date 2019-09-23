@@ -100,7 +100,8 @@ func ExactTestCase(code []byte) [][]common3.TestCase {
 	host := &wasmvm.Runtime{Input: param.Bytes()}
 	vm.HostData = host
 	vm.RecoverPanic = true
-	vm.AvaliableGas = &exec.Gas{GasLimit: 100000000000000, GasPrice: 0}
+	envGasLimit := uint64(100000000000000)
+	vm.AvaliableGas = &exec.Gas{GasLimit: &envGasLimit, GasPrice: 0, GasFactor: 5}
 	vm.CallStackDepth = 1024
 
 	entry := compiled.RawModule.Export.Entries["invoke"]
