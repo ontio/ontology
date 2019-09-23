@@ -289,6 +289,10 @@ func checkExecResult(testCase common3.TestCase, result *states.PreExecResult, ex
 			checkErr(err)
 			assertEq(ret, hex.EncodeToString(exp))
 		}
+		if len(testCase.Notify) != 0 {
+			js, _ := json.Marshal(result.Notify)
+			assertEq(true, strings.Contains(string(js), testCase.Notify))
+		}
 	}
 }
 

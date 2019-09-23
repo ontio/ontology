@@ -72,6 +72,7 @@ type TestCase struct {
 	Method      string  `json:"method"`
 	Param       string  `json:"param"`
 	Expect      string  `json:"expected"`
+	Notify      string  `json:"notify"`
 }
 
 type TestContext struct {
