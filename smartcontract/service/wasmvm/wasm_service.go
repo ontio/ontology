@@ -42,7 +42,8 @@ type WasmVmService struct {
 	BlockHash     common.Uint256
 	PreExec       bool
 	GasPrice      uint64
-	GasLimit      uint64
+	GasLimit      *uint64
+	GasFactor     uint64
 	IsTerminate   bool
 	vm            *exec.VM
 }
@@ -117,12 +118,10 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	vm.HostData = host
-	if this.PreExec {
-		this.GasLimit = uint64(VM_STEP_LIMIT)
-	}
-	vm.RecoverPanic = true
-	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, GasPrice: this.GasPrice}
+
+	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, LocalGasCounter: 0, GasPrice: this.GasPrice, GasFactor: this.GasFactor}
 	vm.CallStackDepth = uint32(WASM_CALLSTACK_LIMIT)
+	vm.RecoverPanic = true
 
 	entryName := CONTRACT_METHOD_NAME
 
@@ -150,11 +149,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	this.vm = vm
 
 	_, err = vm.ExecCode(index)
-
-	//here sub the sc.Gas.
-	if !this.ContextRef.CheckUseGas(this.GasLimit - vm.AvaliableGas.GasLimit) {
-		return nil, ERR_GAS_INSUFFICIENT
-	}
 
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())

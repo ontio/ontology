@@ -314,6 +314,7 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		if err != nil {
 			panic(err)
 		}
+
 		result = tmpRes.([]byte)
 
 	case NEOVM_CONTRACT:
@@ -327,10 +328,12 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		if err != nil {
 			panic(err)
 		}
+
 		tmp, err := neoservice.Invoke()
 		if err != nil {
 			panic(err)
 		}
+
 		if tmp != nil {
 			val := tmp.(*neotypes.VmValue)
 			source := common.NewZeroCopySink([]byte{byte(crossvm_codec.VERSION)})
@@ -698,8 +701,8 @@ func (self *Runtime) getContractType(addr common.Address) (ContractType, error) 
 
 func (self *Runtime) checkGas(gaslimit uint64) {
 	gas := self.Service.vm.AvaliableGas
-	if gas.GasLimit >= gaslimit {
-		gas.GasLimit -= gaslimit
+	if *gas.GasLimit >= gaslimit {
+		*gas.GasLimit -= gaslimit
 	} else {
 		panic(errors.NewErr("[wasm_Service]Insufficient gas limit"))
 	}

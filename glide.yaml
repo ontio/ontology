@@ -35,6 +35,7 @@ import:
   version: v0.0.1
 - package: golang.org/x/sys
   repo: https://github.com/golang/sys.git
+  version: 5c00192e8ce6429d705e1e4d83b4b22e79482964
   subpackages:
   - unix
 - package: golang.org/x/net
