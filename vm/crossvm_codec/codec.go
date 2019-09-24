@@ -21,15 +21,19 @@ package crossvm_codec
 import (
 	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"math/big"
+	"reflect"
 )
 
 const (
 	ByteArrayType byte = 0x00
-	AddressType   byte = 0x01
-	BooleanType   byte = 0x02
-	IntType       byte = 0x03
-	H256Type      byte = 0x04
+	StringType    byte = 0x01
+	AddressType   byte = 0x02
+	BooleanType   byte = 0x03
+	IntType       byte = 0x04
+	H256Type      byte = 0x05
+
 	//reserved for other types
 	ListType byte = 0x10
 
@@ -42,8 +46,7 @@ var ERROR_PARAM_TOO_LONG = fmt.Errorf("param length is exceeded")
 var ERROR_PARAM_NOT_SUPPORTED_TYPE = fmt.Errorf("error param format:not supported type")
 
 //input byte array should be the following format
-// version(1byte) + type(1byte) + usize( bytearray or list) (4 bytes) + data...
-
+// version(1byte) + type(1byte) + data...
 func DeserializeInput(input []byte) ([]interface{}, error) {
 	if len(input) == 0 {
 		return nil, ERROR_PARAM_FORMAT
@@ -70,6 +73,38 @@ func DeserializeInput(input []byte) ([]interface{}, error) {
 	return paramlist, nil
 }
 
+// currently only used by test case
+func EncodeValue(value interface{}) ([]byte, error) {
+	sink := common.NewZeroCopySink(nil)
+	switch val := value.(type) {
+	case []byte :
+		EncodeBytes(sink, val)
+	case string:
+		EncodeString(sink, val)
+	case common.Address:
+		EncodeAddress(sink, val)
+	case bool:
+		EncodeBool(sink, val)
+	case common.Uint256:
+		EncodeH256(sink, val)
+	case *big.Int:
+		EncodeBigInt(sink, val)
+	case int:
+		EncodeInt128(sink, common.U128FromInt64(int64(val)))
+	case int64:
+		EncodeInt128(sink, common.U128FromInt64(val))
+	case []interface{}:
+		err := EncodeList(sink, val)
+		if err != nil {
+			 return nil, err
+		}
+	default:
+		log.Warn("encode value: unsupported type:", reflect.TypeOf(val).String())
+	}
+
+	return sink.Bytes(), nil
+}
+
 func DecodeValue(source *common.ZeroCopySource) (interface{}, error) {
 	ty, eof := source.NextByte()
 	if eof {
@@ -89,6 +124,18 @@ func DecodeValue(source *common.ZeroCopySource) (interface{}, error) {
 		}
 
 		return buf, nil
+	case StringType:
+		size, eof := source.NextUint32()
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+
+		buf, eof := source.NextBytes(uint64(size))
+		if eof {
+			return nil, ERROR_PARAM_FORMAT
+		}
+
+		return string(buf), nil
 	case AddressType:
 		addr, eof := source.NextAddress()
 		if eof {
@@ -97,27 +144,23 @@ func DecodeValue(source *common.ZeroCopySource) (interface{}, error) {
 
 		return addr, nil
 	case BooleanType:
-		by, eof := source.NextByte()
+		by, irr, eof := source.NextBool()
 		if eof {
 			return nil, ERROR_PARAM_FORMAT
 		}
 
-		return by != 0, nil
+		if irr {
+			return nil, ERROR_PARAM_FORMAT
+		}
+
+		return by, nil
 	case IntType:
-		size, eof := source.NextUint32()
+		val, eof := source.NextI128()
 		if eof {
 			return nil, ERROR_PARAM_FORMAT
-		}
-		if size == 0 {
-			return big.NewInt(0), nil
 		}
 
-		buf, eof := source.NextBytes(uint64(size))
-		if eof {
-			return nil, ERROR_PARAM_FORMAT
-		}
-		bi := common.BigIntFromNeoBytes(buf)
-		return bi, nil
+		return val.ToBigInt(), nil
 	case H256Type:
 		hash, eof := source.NextHash()
 		if eof {
@@ -144,7 +187,6 @@ func DecodeValue(source *common.ZeroCopySource) (interface{}, error) {
 	default:
 		return nil, ERROR_PARAM_NOT_SUPPORTED_TYPE
 	}
-
 }
 
 func EncodeBytes(sink *common.ZeroCopySink, buf []byte) {
@@ -152,10 +194,18 @@ func EncodeBytes(sink *common.ZeroCopySink, buf []byte) {
 	sink.WriteUint32(uint32(len(buf)))
 	sink.WriteBytes(buf)
 }
+
+func EncodeString(sink *common.ZeroCopySink, buf string) {
+	sink.WriteByte(StringType)
+	sink.WriteUint32(uint32(len(buf)))
+	sink.WriteBytes([]byte(buf))
+}
+
 func EncodeAddress(sink *common.ZeroCopySink, addr common.Address) {
 	sink.WriteByte(AddressType)
 	sink.WriteBytes(addr[:])
 }
+
 func EncodeBool(sink *common.ZeroCopySink, b bool) {
 	sink.WriteByte(BooleanType)
 	if b {
@@ -164,39 +214,54 @@ func EncodeBool(sink *common.ZeroCopySink, b bool) {
 		sink.WriteByte(byte(0))
 	}
 }
+
 func EncodeH256(sink *common.ZeroCopySink, hash common.Uint256) {
 	sink.WriteByte(H256Type)
 	sink.WriteBytes(hash[:])
 }
-func EncodeInt(sink *common.ZeroCopySink, intval *big.Int) {
-	buf := common.BigIntToNeoBytes(intval)
+
+func EncodeInt128(sink *common.ZeroCopySink, val common.U128) {
 	sink.WriteByte(IntType)
-	sink.WriteUint32(uint32(len(buf)))
-	sink.WriteBytes(buf)
+	sink.WriteBytes(val[:])
+}
+
+func EncodeBigInt(sink *common.ZeroCopySink, intval *big.Int) {
+	val := common.U128FromBigInt(intval)
+	EncodeInt128(sink, val)
 }
 
 func EncodeList(sink *common.ZeroCopySink, list []interface{}) error {
 	sink.WriteByte(ListType)
 	sink.WriteUint32(uint32(len(list)))
 	for _, elem := range list {
-		switch elem.(type) {
+		switch val := elem.(type) {
 		case []byte:
-			EncodeBytes(sink, elem.([]byte))
+			EncodeBytes(sink, val)
 		case string:
-			EncodeBytes(sink, []byte(elem.(string)))
+			EncodeString(sink, val)
+		case bool:
+			EncodeBool(sink, val)
+		case int:
+			EncodeInt128(sink, common.U128FromInt64(int64(val)))
+		case int64:
+			EncodeInt128(sink, common.U128FromInt64(val))
+		case int32:
+			EncodeInt128(sink, common.U128FromInt64(int64(val)))
+		case uint32:
+			EncodeInt128(sink, common.U128FromInt64(int64(val)))
 		case *big.Int:
-			EncodeInt(sink, elem.(*big.Int))
+			EncodeBigInt(sink, val)
 		case common.Address:
-			EncodeAddress(sink, elem.(common.Address))
+			EncodeAddress(sink, val)
 		case common.Uint256:
-			EncodeH256(sink, elem.(common.Uint256))
+			EncodeH256(sink, val)
 		case []interface{}:
-			err := EncodeList(sink, elem.([]interface{}))
+			err := EncodeList(sink, val)
 			if err != nil {
 				return err
 			}
 		default:
-			return ERROR_PARAM_NOT_SUPPORTED_TYPE
+			return fmt.Errorf("encode list: unsupported type: %v", reflect.TypeOf(val).String())
 		}
 	}
 	return nil

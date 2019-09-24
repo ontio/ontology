@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "mock"), no_std)]
 #![feature(proc_macro_hygiene)]
 extern crate ontio_std as ostd;
-use ostd::abi::{Sink, Source};
+use ostd::abi::{Sink, Source, EventBuilder};
 use ostd::prelude::*;
 use ostd::runtime;
 
@@ -50,7 +50,9 @@ pub fn invoke() {
             let data: &[u8] = source.read().unwrap();
             sink.write(runtime::sha256(&data))
         }
-        b"notify" => runtime::notify(b"hello"),
+        b"notify" => {
+            EventBuilder::new().string("hello").notify();
+        },
         b"testcase" => sink.write(testcase()),
         _ => panic!("unsupported action!"),
     }

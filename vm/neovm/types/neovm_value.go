@@ -748,11 +748,11 @@ func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
 		bs := item.byteArray
 		crossvm_codec.EncodeBytes(bf, bs)
 	case integerType:
-		val := item.integer
-		crossvm_codec.EncodeInt(bf, big.NewInt(val))
+		val := common.U128FromInt64(item.integer)
+		crossvm_codec.EncodeInt128(bf, val)
 	case bigintType:
 		val := item.bigInt
-		crossvm_codec.EncodeInt(bf, val)
+		crossvm_codec.EncodeBigInt(bf, val)
 	case boolType:
 		val, err := item.AsBool()
 		if err != nil {

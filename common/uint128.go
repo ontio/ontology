@@ -24,14 +24,15 @@ import (
 	"math/big"
 )
 
-const U128_SIZE = 16
+const I128_SIZE = 16
 
-type U128 [U128_SIZE]byte // little endian u128
+type U128 [I128_SIZE]byte // little endian u128
+type I128 [I128_SIZE]byte // little endian i128
 
 var U128_EMPTY = U128{}
 var U128_MAX = func() U128 {
 	var u128 U128
-	for i := 0; i < U128_SIZE; i++ {
+	for i := 0; i < I128_SIZE; i++ {
 		u128[i] = 255
 	}
 	return u128
@@ -74,6 +75,26 @@ func U128FromBigInt(val *big.Int) U128 {
 	copy(u128[:], buf)
 
 	return u128
+}
+
+func (self U128)ToBigInt() *big.Int {
+	buf := append(self[:], 0)
+	buf= ToArrayReverse(buf)
+	return new(big.Int).SetBytes(buf)
+}
+
+func (self U128) ToI128() I128{
+	return I128(self)
+}
+
+func (self I128)ToBigInt() *big.Int {
+	val := U128(self).ToBigInt()
+
+	if val.Cmp(maxBigS128) > 0 {
+		val.Sub(val, pow128)
+	}
+
+	return val
 }
 
 // to big endian hex string

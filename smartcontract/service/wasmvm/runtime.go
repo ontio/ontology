@@ -175,12 +175,8 @@ func Notify(proc *exec.Process, ptr uint32, len uint32) {
 	}
 
 	notify := &event.NotifyEventInfo{ContractAddress: self.Service.ContextRef.CurrentContext().ContractAddress}
-	list, err := crossvm_codec.DeserializeInput(bs)
-	if err != nil {
-		notify.States = string(bs)
-	} else {
-		notify.States = list
-	}
+	val := crossvm_codec.DeserializeNotify(bs)
+	notify.States = val
 
 	notifys := make([]*event.NotifyEventInfo, 1)
 	notifys[0] = notify
@@ -320,7 +316,6 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		result = tmpRes.([]byte)
 
 	case NEOVM_CONTRACT:
-
 		parambytes, err := util.CreateNeoInvokeParam(contractAddress, inputs)
 		if err != nil {
 			panic(err)
