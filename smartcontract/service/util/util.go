@@ -31,7 +31,7 @@ func CreateNeoInvokeParam(contractAddress common.Address, input []byte) ([]byte,
 		return nil, err
 	}
 
-	list , ok := params.([]interface{})
+	list, ok := params.([]interface{})
 	if ok == false {
 		return nil, errors.New("invoke neovm param is not list type")
 	}

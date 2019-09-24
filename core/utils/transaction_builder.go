@@ -26,10 +26,10 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
+	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 

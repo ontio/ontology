@@ -34,14 +34,14 @@ func TestDe1(t *testing.T) {
 }
 
 func EncodeNotify(t *testing.T, value interface{}) []byte {
-	val , err := EncodeValue(value)
+	val, err := EncodeValue(value)
 	assert.Nil(t, err)
 
 	return append([]byte("evt\x00"), val...)
 }
 
 func TestDeserializeNotify(t *testing.T) {
-	addr :=  common.AddressFromVmCode([]byte("123"))
+	addr := common.AddressFromVmCode([]byte("123"))
 	value := []interface{}{"helloworld", []byte("1234"), 123, -1, -128, -260, true, big.NewInt(100), addr, common.UINT256_EMPTY}
 	expected := []interface{}{"helloworld", hex.EncodeToString([]byte("1234")), "123", "-1", "-128", "-260", true, "100", addr.ToBase58(), common.UINT256_EMPTY.ToHexString()}
 	for i, val := range value {

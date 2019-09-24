@@ -77,17 +77,17 @@ func U128FromBigInt(val *big.Int) U128 {
 	return u128
 }
 
-func (self U128)ToBigInt() *big.Int {
+func (self U128) ToBigInt() *big.Int {
 	buf := append(self[:], 0)
-	buf= ToArrayReverse(buf)
+	buf = ToArrayReverse(buf)
 	return new(big.Int).SetBytes(buf)
 }
 
-func (self U128) ToI128() I128{
+func (self U128) ToI128() I128 {
 	return I128(self)
 }
 
-func (self I128)ToBigInt() *big.Int {
+func (self I128) ToBigInt() *big.Int {
 	val := U128(self).ToBigInt()
 
 	if val.Cmp(maxBigS128) > 0 {

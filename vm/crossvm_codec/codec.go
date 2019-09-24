@@ -77,7 +77,7 @@ func DeserializeInput(input []byte) ([]interface{}, error) {
 func EncodeValue(value interface{}) ([]byte, error) {
 	sink := common.NewZeroCopySink(nil)
 	switch val := value.(type) {
-	case []byte :
+	case []byte:
 		EncodeBytes(sink, val)
 	case string:
 		EncodeString(sink, val)
@@ -96,7 +96,7 @@ func EncodeValue(value interface{}) ([]byte, error) {
 	case []interface{}:
 		err := EncodeList(sink, val)
 		if err != nil {
-			 return nil, err
+			return nil, err
 		}
 	default:
 		log.Warn("encode value: unsupported type:", reflect.TypeOf(val).String())
