@@ -217,6 +217,8 @@ func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 			bf.WriteAddress(val)
 		case byte:
 			bf.WriteByte(val)
+		case bool:
+			bf.WriteBool(val)
 		case []interface{}:
 			value, err := BuildWasmContractParam(val)
 			if err != nil {
