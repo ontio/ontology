@@ -10,8 +10,9 @@ edition = "2018"
 crate-type = ["cdylib"]
 path = "src/lib.rs"
 
-[dependencies]
-ontio-std = {git="https://github.com/ontio/ontology-wasm-cdt-rust", rev="bf3eea0dca0974165872f6a26f0d4b0374124789"}
+[dependencies.ontio-std]
+git="https://github.com/ontio/ontology-wasm-cdt-rust"
+rev="f4b1b559a46535a7ecdd0aa95aea74a53eed6c38"
 
 [features]
 mock = ["ontio-std/mock"]
