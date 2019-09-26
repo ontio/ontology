@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -181,8 +182,8 @@ func putDelegateStatus(native *native.NativeService, contractAddr common.Address
 	return nil
 }
 
-//remote duplicates in the slice of string
-func stringSliceUniq(s []string) []string {
+//remove duplicates in the slice of string and sorts the slice in increasing order.
+func StringsDedupAndSort(s []string) []string {
 	smap := make(map[string]int)
 	for i, str := range s {
 		if str == "" {
@@ -192,10 +193,11 @@ func stringSliceUniq(s []string) []string {
 	}
 	ret := make([]string, len(smap))
 	i := 0
-	for str, _ := range smap {
+	for str := range smap {
 		ret[i] = str
 		i++
 	}
+	sort.Strings(ret)
 	return ret
 }
 
