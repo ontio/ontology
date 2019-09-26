@@ -212,9 +212,9 @@ func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 		case string:
 			bf.WriteString(val)
 		case int:
-			bf.WriteU128(common.I128FromInt64(int64(val)))
+			bf.WriteI128(common.I128FromInt64(int64(val)))
 		case int64:
-			bf.WriteU128(common.I128FromInt64(int64(val)))
+			bf.WriteI128(common.I128FromInt64(int64(val)))
 		case uint16:
 			bf.WriteI128(common.I128FromUint64(uint64(val)))
 		case uint32:
