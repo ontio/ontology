@@ -533,7 +533,7 @@ func NewHostModule() *wasm.Module {
 		},
 		{ //21
 			Sig:  &m.Types.Entries[10],
-			Host: reflect.ValueOf(ContractDelete),
+			Host: reflect.ValueOf(ContractDestroy),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //22

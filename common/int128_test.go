@@ -27,7 +27,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestU128LittleInt(t *testing.T) {
+func TestI128LittleInt(t *testing.T) {
 	for _, test := range []struct {
 		input  int
 		output string
@@ -53,12 +53,12 @@ func TestU128LittleInt(t *testing.T) {
 			"fffffffffffffffffffffffffffffffe",
 		},
 	} {
-		u128 := U128FromInt64(int64(test.input))
-		assert.Equal(t, u128.ToBEHex(), test.output)
+		i128 := I128FromInt64(int64(test.input))
+		assert.Equal(t, i128.ToBEHex(), test.output)
 	}
 }
 
-func TestU128BigInt(t *testing.T) {
+func TestI128BigInt(t *testing.T) {
 	for _, test := range []struct {
 		input  *big.Int
 		output string
@@ -100,12 +100,13 @@ func TestU128BigInt(t *testing.T) {
 			"000000000000000000000000000000ff",
 		},
 	} {
-		u128 := U128FromBigInt(test.input)
+		u128, err := I128FromBigInt(test.input)
+		assert.Nil(t, err)
 		assert.Equal(t, u128.ToBEHex(), test.output)
 	}
 }
 
-func TestU128Conv(t *testing.T) {
+func TestI128Conv(t *testing.T) {
 	var buf [16]byte
 	const N = 1000000
 	for i := 0; i < N; i++ {
@@ -113,9 +114,23 @@ func TestU128Conv(t *testing.T) {
 		assert.Nil(t, err)
 		randInt := int64(binary.LittleEndian.Uint64(buf[:]))
 
-		u1 := U128FromInt64(randInt)
-		u2 := U128FromBigInt(big.NewInt(randInt))
+		u1 := I128FromInt64(randInt)
+		u2, err := I128FromBigInt(big.NewInt(randInt))
+		assert.Nil(t, err)
 
 		assert.Equal(t, u1, u2)
+	}
+}
+
+func TestI128ToNumString(t *testing.T) {
+	numbers := []int64{1, 255, 256, 123456, -1, -127, -128, -255, -256}
+	strings := []string{"1", "255", "256", "123456", "-1", "-127", "-128", "-255", "-256"}
+	for i, num := range numbers {
+		u1 := I128FromInt64(num)
+		u2, err := I128FromBigInt(big.NewInt(num))
+
+		assert.Nil(t, err)
+		assert.Equal(t, u1, u2)
+		assert.Equal(t, u2.ToNumString(), strings[i])
 	}
 }

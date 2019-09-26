@@ -88,11 +88,14 @@ func EncodeValue(value interface{}) ([]byte, error) {
 	case common.Uint256:
 		EncodeH256(sink, val)
 	case *big.Int:
-		EncodeBigInt(sink, val)
+		err := EncodeBigInt(sink, val)
+		if err != nil {
+			return nil, err
+		}
 	case int:
-		EncodeInt128(sink, common.U128FromInt64(int64(val)))
+		EncodeInt128(sink, common.I128FromInt64(int64(val)))
 	case int64:
-		EncodeInt128(sink, common.U128FromInt64(val))
+		EncodeInt128(sink, common.I128FromInt64(val))
 	case []interface{}:
 		err := EncodeList(sink, val)
 		if err != nil {
@@ -220,14 +223,18 @@ func EncodeH256(sink *common.ZeroCopySink, hash common.Uint256) {
 	sink.WriteBytes(hash[:])
 }
 
-func EncodeInt128(sink *common.ZeroCopySink, val common.U128) {
+func EncodeInt128(sink *common.ZeroCopySink, val common.I128) {
 	sink.WriteByte(IntType)
 	sink.WriteBytes(val[:])
 }
 
-func EncodeBigInt(sink *common.ZeroCopySink, intval *big.Int) {
-	val := common.U128FromBigInt(intval)
+func EncodeBigInt(sink *common.ZeroCopySink, intval *big.Int) error {
+	val, err := common.I128FromBigInt(intval)
+	if err != nil {
+		return err
+	}
 	EncodeInt128(sink, val)
+	return nil
 }
 
 func EncodeList(sink *common.ZeroCopySink, list []interface{}) error {
@@ -242,15 +249,18 @@ func EncodeList(sink *common.ZeroCopySink, list []interface{}) error {
 		case bool:
 			EncodeBool(sink, val)
 		case int:
-			EncodeInt128(sink, common.U128FromInt64(int64(val)))
+			EncodeInt128(sink, common.I128FromInt64(int64(val)))
 		case int64:
-			EncodeInt128(sink, common.U128FromInt64(val))
+			EncodeInt128(sink, common.I128FromInt64(val))
 		case int32:
-			EncodeInt128(sink, common.U128FromInt64(int64(val)))
+			EncodeInt128(sink, common.I128FromInt64(int64(val)))
 		case uint32:
-			EncodeInt128(sink, common.U128FromInt64(int64(val)))
+			EncodeInt128(sink, common.I128FromInt64(int64(val)))
 		case *big.Int:
-			EncodeBigInt(sink, val)
+			err := EncodeBigInt(sink, val)
+			if err != nil {
+				return err
+			}
 		case common.Address:
 			EncodeAddress(sink, val)
 		case common.Uint256:

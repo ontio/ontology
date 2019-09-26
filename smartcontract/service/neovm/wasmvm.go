@@ -81,7 +81,5 @@ func WASMInvoke(service *NeoVmService, engine *vm.Executor) error {
 		return err
 	}
 
-	engine.EvalStack.PushBytes(tmpRes.([]byte))
-	return nil
-
+	return engine.EvalStack.PushBytes(tmpRes.([]byte))
 }
