@@ -20,6 +20,7 @@ package auth
 
 import (
 	"io"
+	"strings"
 
 	"github.com/ontio/ontology/common/serialization"
 )
@@ -31,10 +32,26 @@ type roleFuncs struct {
 	funcNames []string
 }
 
+func (this *roleFuncs) AppendFuncs(fns []string) {
+	funcNames := append(this.funcNames, fns...)
+	this.funcNames = StringsDedupAndSort(funcNames)
+}
+
+func (this *roleFuncs) ContainsFunc(fn string) bool {
+	for _, f := range this.funcNames {
+		if strings.Compare(fn, f) == 0 {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (this *roleFuncs) Serialize(w io.Writer) error {
 	if err := serialization.WriteUint32(w, uint32(len(this.funcNames))); err != nil {
 		return err
 	}
+	this.funcNames = StringsDedupAndSort(this.funcNames)
 	for _, fn := range this.funcNames {
 		if err := serialization.WriteString(w, fn); err != nil {
 			return err
@@ -49,14 +66,17 @@ func (this *roleFuncs) Deserialize(rd io.Reader) error {
 	if err != nil {
 		return err
 	}
-	this.funcNames = make([]string, 0)
+	funcNames := make([]string, 0)
 	for i := uint32(0); i < fnLen; i++ {
 		fn, err := serialization.ReadString(rd)
 		if err != nil {
 			return err
 		}
-		this.funcNames = append(this.funcNames, fn)
+		funcNames = append(funcNames, fn)
 	}
+
+	this.funcNames = StringsDedupAndSort(funcNames)
+
 	return nil
 }
 
