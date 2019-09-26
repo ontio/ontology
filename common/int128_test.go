@@ -84,12 +84,12 @@ func TestI128BigInt(t *testing.T) {
 			"fffffffffffffffffffffffffffffffe",
 		},
 		{
-			new(big.Int).Sub(bigPow(2, 128), big.NewInt(1)),
-			"ffffffffffffffffffffffffffffffff",
+			new(big.Int).Sub(bigPow(2, 127), big.NewInt(1)),
+			"7fffffffffffffffffffffffffffffff",
 		},
 		{
-			new(big.Int).Neg(bigPow(2, 128)),
-			"00000000000000000000000000000000",
+			new(big.Int).Neg(bigPow(2, 127)),
+			"80000000000000000000000000000000",
 		},
 		{
 			big.NewInt(130),
