@@ -22,6 +22,7 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"fmt"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/signature"
@@ -31,13 +32,18 @@ import (
 	"golang.org/x/crypto/ripemd160"
 )
 
-func NewExecutor(code []byte) *Executor {
+type VmFeatureFlag struct {
+	DisableHasKey bool // disable haskey, dcall, values opcode
+}
+
+func NewExecutor(code []byte, feature VmFeatureFlag) *Executor {
 	var engine Executor
 	engine.EvalStack = NewValueStack(STACK_LIMIT)
 	engine.AltStack = NewValueStack(STACK_LIMIT)
 	context := NewExecutionContext(code)
 	engine.Context = context
 	engine.State = BREAK
+	engine.Features = feature
 	return &engine
 }
 
@@ -45,6 +51,7 @@ type Executor struct {
 	EvalStack *ValueStack
 	AltStack  *ValueStack
 	State     VMState
+	Features  VmFeatureFlag
 	Callers   []*ExecutionContext
 	Context   *ExecutionContext
 }
@@ -91,7 +98,22 @@ func (self *Executor) Execute() error {
 	return nil
 }
 
+func (self *Executor) checkFeaturesEnabled(opcode OpCode) error {
+	switch opcode {
+	case HASKEY, KEYS, DCALL, VALUES:
+		if self.Features.DisableHasKey {
+			return errors.ERR_NOT_SUPPORT_OPCODE
+		}
+	}
+
+	return nil
+}
+
 func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMState, error) {
+	if err := self.checkFeaturesEnabled(opcode); err != nil {
+		return FAULT, err
+	}
+
 	if opcode >= PUSHBYTES1 && opcode <= PUSHBYTES75 {
 		buf, err := context.OpReader.ReadBytes(int(opcode))
 		if err != nil {
