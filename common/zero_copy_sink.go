@@ -152,6 +152,10 @@ func (self *ZeroCopySink) WriteU128(u128 U128) {
 	self.WriteBytes(u128[:])
 }
 
+func (self *ZeroCopySink) WriteI128(i128 I128) {
+	self.WriteBytes(i128[:])
+}
+
 func (self *ZeroCopySink) WriteVarUint(data uint64) (size uint64) {
 	buf := self.NextBytes(9)
 	if data < 0xFD {

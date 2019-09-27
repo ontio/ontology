@@ -196,7 +196,7 @@ func ContractMigrate(proc *exec.Process,
 	return uint32(length)
 }
 
-func ContractDelete(proc *exec.Process) {
+func ContractDestroy(proc *exec.Process) {
 	self := proc.HostData().(*Runtime)
 	contractAddress := self.Service.ContextRef.CurrentContext().ContractAddress
 	iter := self.Service.CacheDB.NewIterator(contractAddress[:])
@@ -211,7 +211,6 @@ func ContractDelete(proc *exec.Process) {
 
 	//the contract has been deleted ,quit the contract operation
 	proc.Terminate()
-
 }
 
 func (self *Runtime) isContractExist(contractAddress common.Address) bool {

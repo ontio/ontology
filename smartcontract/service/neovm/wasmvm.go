@@ -19,18 +19,18 @@ package neovm
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/utils"
+	"reflect"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/service/util"
 	"github.com/ontio/ontology/vm/crossvm_codec"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 //neovm contract call wasmvm contract
 func WASMInvoke(service *NeoVmService, engine *vm.Executor) error {
-
 	address, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
 		return err
@@ -56,12 +56,17 @@ func WASMInvoke(service *NeoVmService, engine *vm.Executor) error {
 	if err != nil {
 		return err
 	}
-	list, err := crossvm_codec.DeserializeInput(parambytes)
+	list, err := crossvm_codec.DeserializeCallParam(parambytes)
 	if err != nil {
 		return err
 	}
 
-	inputs, err := util.BuildWasmVMInvokeCode(contractAddress, list)
+	params, ok := list.([]interface{})
+	if ok == false {
+		return fmt.Errorf("wasm invoke error: wrong param type:%s", reflect.TypeOf(list).String())
+	}
+
+	inputs, err := utils.BuildWasmVMInvokeCode(contractAddress, params)
 	if err != nil {
 		return err
 	}
@@ -76,7 +81,5 @@ func WASMInvoke(service *NeoVmService, engine *vm.Executor) error {
 		return err
 	}
 
-	engine.EvalStack.PushBytes(tmpRes.([]byte))
-	return nil
-
+	return engine.EvalStack.PushBytes(tmpRes.([]byte))
 }

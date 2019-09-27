@@ -739,7 +739,6 @@ func (self *VmValue) dump() string {
 //encode the neovm return vmval
 //transform neovm contract result to encoded byte array
 func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
-
 	if len(bf.Bytes()) > crossvm_codec.MAX_PARAM_LENGTH {
 		return fmt.Errorf("parameter buf is too long")
 	}
@@ -748,11 +747,14 @@ func BuildResultFromNeo(item VmValue, bf *common.ZeroCopySink) error {
 		bs := item.byteArray
 		crossvm_codec.EncodeBytes(bf, bs)
 	case integerType:
-		val := item.integer
-		crossvm_codec.EncodeInt(bf, big.NewInt(val))
+		val := common.I128FromInt64(item.integer)
+		crossvm_codec.EncodeInt128(bf, val)
 	case bigintType:
 		val := item.bigInt
-		crossvm_codec.EncodeInt(bf, val)
+		err := crossvm_codec.EncodeBigInt(bf, val)
+		if err != nil {
+			return err
+		}
 	case boolType:
 		val, err := item.AsBool()
 		if err != nil {
