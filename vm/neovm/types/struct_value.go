@@ -26,6 +26,7 @@ import (
 const (
 	MAX_STRUCT_DEPTH = 10
 	MAX_CLONE_LENGTH = 1024
+	MAX_ARRAY_LENGTH = 1024
 )
 
 // struct value is value type
@@ -38,7 +39,7 @@ func NewStructValue() *StructValue {
 }
 
 func (self *StructValue) Append(item VmValue) error {
-	if len(self.Data) >= MAX_CLONE_LENGTH {
+	if len(self.Data) >= MAX_ARRAY_LENGTH {
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	self.Data = append(self.Data, item)
