@@ -21,12 +21,12 @@ package types
 import (
 	"fmt"
 	"github.com/ontio/ontology/vm/neovm/errors"
+	"github.com/ontio/ontology/vm/neovm/constants"
 )
 
 const (
 	MAX_STRUCT_DEPTH = 10
 	MAX_CLONE_LENGTH = 1024
-	MAX_ARRAY_LENGTH = 1024
 )
 
 // struct value is value type
@@ -39,7 +39,7 @@ func NewStructValue() *StructValue {
 }
 
 func (self *StructValue) Append(item VmValue) error {
-	if len(self.Data) >= MAX_ARRAY_LENGTH {
+	if len(self.Data) >= constants.MAX_ARRAY_SIZE {
 		return errors.ERR_OVER_MAX_ARRAY_SIZE
 	}
 	self.Data = append(self.Data, item)
