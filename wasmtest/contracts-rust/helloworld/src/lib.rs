@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "mock"), no_std)]
 #![feature(proc_macro_hygiene)]
 extern crate ontio_std as ostd;
-use ostd::abi::{Sink, Source};
+use ostd::abi::{Sink, Source, EventBuilder};
 use ostd::prelude::*;
 use ostd::runtime;
 
@@ -50,6 +50,9 @@ pub fn invoke() {
             let data: &[u8] = source.read().unwrap();
             sink.write(runtime::sha256(&data))
         }
+        b"notify" => {
+            EventBuilder::new().string("hello").notify();
+        },
         b"testcase" => sink.write(testcase()),
         _ => panic!("unsupported action!"),
     }
@@ -66,7 +69,8 @@ fn testcase() -> String {
         {"method":"current_txhash"}, {"method":"current_blockhash"},
         {"method":"storage_write", "param":"string:abc, string:123"},
         {"method":"storage_read", "param":"string:abc", "expected":"string:123"},
-        {"method":"storage_delete", "param":"string:abc", "expected":""}
+        {"method":"storage_delete", "param":"string:abc", "expected":""},
+        {"method":"notify", "notify":"hello"}
         ]
     ]
         "#

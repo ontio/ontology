@@ -15,32 +15,22 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package common
+
+package crossvm_codec
 
 import (
-	"encoding/json"
+	"bytes"
+
 	"github.com/ontio/ontology/common"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
-func TestTestEnv(t *testing.T) {
-	a := TestEnv{Witness: []common.Address{common.ADDRESS_EMPTY}}
+//input byte array should be the following format
+// version(1byte) + type(1byte) + data...
+func DeserializeCallParam(input []byte) (interface{}, error) {
+	if bytes.HasPrefix(input, []byte{0}) == false {
+		return nil, ERROR_PARAM_FORMAT
+	}
 
-	encoded, _ := json.Marshal(&a)
-	assert.Equal(t, string(encoded), `{"witness":["AFmseVrdL9f9oyCzZefL9tG6UbvhPbdYzM"]}`)
-
-	var b TestEnv
-	err := json.Unmarshal(encoded, &b)
-	assert.Nil(t, err)
-	assert.Equal(t, a, b)
-}
-
-func TestTestCase(t *testing.T) {
-	a := TestEnv{Witness: []common.Address{common.ADDRESS_EMPTY}}
-	ts := TestCase{Env: a, Method: "func1", Param: "int:100, bool:true", Expect: "int:10"}
-
-	encoded, _ := json.Marshal(ts)
-
-	assert.Equal(t, string(encoded), `{"env":{"witness":["AFmseVrdL9f9oyCzZefL9tG6UbvhPbdYzM"]},"needcontext":false,"method":"func1","param":"int:100, bool:true","expected":"int:10","notify":""}`)
+	source := common.NewZeroCopySource(input[1:])
+	return DecodeValue(source)
 }

@@ -174,12 +174,10 @@ func Notify(proc *exec.Process, ptr uint32, len uint32) {
 		panic(err)
 	}
 
-	list, err := crossvm_codec.DeserializeInput(bs)
-	if err != nil {
-		panic(err)
-	}
+	notify := &event.NotifyEventInfo{ContractAddress: self.Service.ContextRef.CurrentContext().ContractAddress}
+	val := crossvm_codec.DeserializeNotify(bs)
+	notify.States = val
 
-	notify := &event.NotifyEventInfo{self.Service.ContextRef.CurrentContext().ContractAddress, list}
 	notifys := make([]*event.NotifyEventInfo, 1)
 	notifys[0] = notify
 	self.Service.ContextRef.PushNotifications(notifys)
@@ -318,7 +316,6 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		result = tmpRes.([]byte)
 
 	case NEOVM_CONTRACT:
-
 		parambytes, err := util.CreateNeoInvokeParam(contractAddress, inputs)
 		if err != nil {
 			panic(err)
@@ -536,7 +533,7 @@ func NewHostModule() *wasm.Module {
 		},
 		{ //21
 			Sig:  &m.Types.Entries[10],
-			Host: reflect.ValueOf(ContractDelete),
+			Host: reflect.ValueOf(ContractDestroy),
 			Body: &wasm.FunctionBody{}, // create a dummy wasm body (the actual value will be taken from Host.)
 		},
 		{ //22

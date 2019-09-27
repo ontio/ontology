@@ -184,6 +184,17 @@ func (self *ZeroCopySource) NextAddress() (data Address, eof bool) {
 	return
 }
 
+func (self *ZeroCopySource) NextI128() (data I128, eof bool) {
+	var buf []byte
+	buf, eof = self.NextBytes(I128_SIZE)
+	if eof {
+		return
+	}
+	copy(data[:], buf)
+
+	return
+}
+
 func (self *ZeroCopySource) NextHash() (data Uint256, eof bool) {
 	var buf []byte
 	buf, eof = self.NextBytes(UINT256_SIZE)
