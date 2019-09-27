@@ -123,7 +123,7 @@ func checkMultiOpCode(t *testing.T, code []byte, origin []Value, expected []Valu
 }
 
 func checkAltStackOpCodeNew(t *testing.T, code []byte, origin [2][]Value, expected [2][]Value) {
-	executor := NewExecutor(code)
+	executor := NewExecutor(code, VmFeatureFlag{})
 	for _, val := range origin[0] {
 		err := executor.EvalStack.Push(newVmValue(t, val))
 		assert.Nil(t, err)

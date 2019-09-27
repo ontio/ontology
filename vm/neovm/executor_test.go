@@ -32,7 +32,7 @@ func BenchmarkNewExecutor(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		exec := NewExecutor(code)
+		exec := NewExecutor(code, VmFeatureFlag{})
 		err := exec.Execute()
 		if err != nil {
 			panic(err)

@@ -169,6 +169,7 @@ func main() {
 	config.DefConfig.Genesis.ConsensusType = "solo"
 	config.DefConfig.Genesis.SOLO.GenBlockTime = 3
 	config.DefConfig.Genesis.SOLO.Bookkeepers = []string{hex.EncodeToString(buf)}
+	config.DefConfig.P2PNode.NetworkId = 0
 
 	bookkeepers := []keypair.PublicKey{acct.PublicKey}
 	//Init event hub

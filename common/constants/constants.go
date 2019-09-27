@@ -82,3 +82,7 @@ const (
 // ledger state hash check height
 const STATE_HASH_HEIGHT_MAINNET = 3000000
 const STATE_HASH_HEIGHT_POLARIS = 850000
+
+// neovm opcode update check height
+const OPCODE_HEIGHT_UPDATE_FIRST_MAINNET = 6300000
+const OPCODE_HEIGHT_UPDATE_FIRST_POLARIS = 2100000
