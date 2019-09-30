@@ -106,6 +106,26 @@ func TestSerialize(t *testing.T) {
 	assert.Equal(t, "ffffc58e4ae6b68900", res_t.([]interface{})[0])
 }
 
+func TestVmValue_ConvertNeoVmValueHexString(t *testing.T) {
+	bs := make([]byte, 0, 64*1024)
+	for i := 0; i < 64*1024; i++ {
+		bs = append(bs, byte(1))
+	}
+	vm, err := VmValueFromBytes(bs)
+	assert.Nil(t, err)
+	_, err = vm.ConvertNeoVmValueHexString()
+	assert.Nil(t, err)
+
+	bs2 := make([]byte, 0, 64*1024)
+	for i := 0; i < 64*1024+1; i++ {
+		bs2 = append(bs2, byte(1))
+	}
+	vm2, err := VmValueFromBytes(bs2)
+	assert.Nil(t, err)
+	_, err = vm2.ConvertNeoVmValueHexString()
+	assert.NotNil(t, err)
+}
+
 func TestStructValue_Clone(t *testing.T) {
 	bsValue, err := VmValueFromBytes([]byte("test"))
 	assert.Equal(t, err, nil)
