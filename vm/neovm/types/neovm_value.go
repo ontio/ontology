@@ -518,7 +518,7 @@ func (self *VmValue) AsInt64() (int64, error) {
 }
 
 // urgly hack: only used in cmp opcode to lift the 32byte limit of integer
-func (self *VmValue)AsBigInt()(*big.Int, error) {
+func (self *VmValue) AsBigInt() (*big.Int, error) {
 	switch self.valType {
 	case integerType, boolType:
 		return big.NewInt(self.integer), nil
