@@ -662,7 +662,15 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 			return FAULT, err
 		}
 	case LT, GT, LTE, GTE:
-		left, right, err := self.EvalStack.PopPairAsIntVal()
+		leftVal, rightVal, err := self.EvalStack.PopPair()
+		if err != nil {
+			return FAULT, err
+		}
+		left, err := leftVal.AsBigInt()
+		if err != nil {
+			return FAULT, err
+		}
+		right, err := rightVal.AsBigInt()
 		if err != nil {
 			return FAULT, err
 		}
