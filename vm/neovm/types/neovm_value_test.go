@@ -104,6 +104,7 @@ func TestSerialize(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Println("res_t:", res_t)
 	assert.Equal(t, "ffffc58e4ae6b68900", res_t.([]interface{})[0])
+
 }
 
 func TestVmValue_ConvertNeoVmValueHexString(t *testing.T) {

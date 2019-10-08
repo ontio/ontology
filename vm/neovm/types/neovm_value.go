@@ -28,6 +28,7 @@ import (
 	"sort"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/vm/crossvm_codec"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
@@ -146,7 +147,7 @@ func (self *VmValue) AsBytes() ([]byte, error) {
 	case arrayType, mapType, structType, interopType:
 		return nil, errors.ERR_BAD_TYPE
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 }
 
@@ -214,6 +215,7 @@ func (self *VmValue) ConvertNeoVmValueHexString() (interface{}, error) {
 	}
 	return res, nil
 }
+
 func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interface{}, error) {
 	if *count > MAX_COUNT {
 		return nil, fmt.Errorf("over max parameters convert length")
@@ -271,7 +273,8 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 		*length += len(bs)
 		return common.ToHexString(bs), nil
 	default:
-		panic("unreacheable!")
+		log.Errorf("[ConvertTypes] Invalid Types!, %x", self.valType)
+		return nil, fmt.Errorf("[ConvertTypes] Invalid Types!, %x", self.valType)
 	}
 }
 func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
@@ -458,8 +461,10 @@ func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
 				return err
 			}
 		}
+	case interopType:
+		return fmt.Errorf("not support type: interopType")
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 	if sink.Size() > constants.MAX_BYTEARRAY_SIZE {
 		return fmt.Errorf("runtime serialize: can not serialize length over the uplimit")
@@ -719,6 +724,9 @@ func (self *VmValue) stringify() string {
 			data += fmt.Sprintf("%x: %s,", key, v.stringify())
 		}
 		return fmt.Sprintf("map[%d]{%s}", len(self.mapval.Data), data)
+	case interopType:
+		ty := reflect.TypeOf(self.interop.Data).String()
+		return fmt.Sprintf("interop{type:%s}", ty)
 	case structType:
 		data := ""
 		for _, v := range self.structval.Data {
@@ -726,7 +734,7 @@ func (self *VmValue) stringify() string {
 		}
 		return fmt.Sprintf("struct[%d]{%s}", len(self.structval.Data), data)
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 	return ""
 }
@@ -782,7 +790,7 @@ func (self *VmValue) dump() string {
 	case interopType:
 		return fmt.Sprintf("interop[%x]", self.interop.Data)
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 	return ""
 }
