@@ -147,7 +147,7 @@ func (self *VmValue) AsBytes() ([]byte, error) {
 	case arrayType, mapType, structType, interopType:
 		return nil, errors.ERR_BAD_TYPE
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 }
 
@@ -724,6 +724,9 @@ func (self *VmValue) stringify() string {
 			data += fmt.Sprintf("%x: %s,", key, v.stringify())
 		}
 		return fmt.Sprintf("map[%d]{%s}", len(self.mapval.Data), data)
+	case interopType:
+		ty := reflect.TypeOf(self.interop.Data).String()
+		return fmt.Sprintf("interop{type:%s}", ty)
 	case structType:
 		data := ""
 		for _, v := range self.structval.Data {
@@ -731,7 +734,7 @@ func (self *VmValue) stringify() string {
 		}
 		return fmt.Sprintf("struct[%d]{%s}", len(self.structval.Data), data)
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 	return ""
 }
@@ -787,7 +790,7 @@ func (self *VmValue) dump() string {
 	case interopType:
 		return fmt.Sprintf("interop[%x]", self.interop.Data)
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 	return ""
 }
