@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"sort"
 
+	"encoding/json"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
@@ -34,7 +35,14 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	vm "github.com/ontio/ontology/vm/neovm"
 	vmtypes "github.com/ontio/ontology/vm/neovm/types"
+	"math/big"
 )
+
+//allow json depth
+var JSON_DEPTH = 10
+
+//max json string length
+var MAX_JSONBYTES_LENGTH = 1024
 
 // HeaderGetNextConsensus put current block time to vm stack
 func RuntimeGetTime(service *NeoVmService, engine *vm.ExecutionEngine) error {
@@ -210,6 +218,251 @@ func RuntimeAddressToBase58(service *NeoVmService, engine *vm.ExecutionEngine) e
 func RuntimeGetCurrentBlockHash(service *NeoVmService, engine *vm.ExecutionEngine) error {
 	vm.PushData(engine, service.BlockHash.ToArray())
 	return nil
+}
+
+func RuntimeJsonMarshal(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 1 {
+		return errors.NewErr("[RuntimeJsonMarshal] Too few input parameters")
+	}
+	item := vm.PopStackItem(engine)
+
+	m := make(map[string]interface{})
+	err := StackitemToMap(item, m, 0)
+	if err != nil {
+		return err
+	}
+	res, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+	vm.PushData(engine, []byte(res))
+	return nil
+
+}
+
+func RuntimeJsonUnmarshal(service *NeoVmService, engine *vm.ExecutionEngine) error {
+	if vm.EvaluationStackCount(engine) < 1 {
+		return errors.NewErr("[RuntimeJsonUnmarshal] Too few input parameters")
+	}
+
+	jsonbytes, err := vm.PopByteArray(engine)
+	if err != nil {
+		return err
+	}
+	if len(jsonbytes) > MAX_JSONBYTES_LENGTH {
+		return errors.NewErr("[RuntimeJsonUnmarshal] Input Json bytes too long")
+	}
+
+	m := make(map[string]interface{})
+	err = json.Unmarshal(jsonbytes, &m)
+	if err != nil {
+		return err
+	}
+
+	mapitem := vmtypes.NewMap()
+	err = MapToStackitem(m, *mapitem)
+	if err != nil {
+		return err
+	}
+	vm.PushData(engine, mapitem)
+
+	return nil
+}
+
+func MapToStackitem(m map[string]interface{}, mapitem vmtypes.Map) error {
+
+	for k, v := range m {
+		vi, err := makeStackItem(v)
+		if err != nil {
+			return err
+		}
+		key := vmtypes.NewByteArray([]byte(k))
+		mapitem.Add(key, vi)
+	}
+	return nil
+
+}
+
+func ArrayToStackItem(arr []interface{}, arritem *vmtypes.Array) error {
+
+	for _, v := range arr {
+		vi, err := makeStackItem(v)
+		if err != nil {
+			return err
+		}
+		arritem.Add(vi)
+	}
+	return nil
+
+}
+
+func makeStackItem(v interface{}) (vmtypes.StackItems, error) {
+	switch v.(type) {
+	case []byte:
+		return vmtypes.NewByteArray(v.([]byte)), nil
+
+	case string:
+		return vmtypes.NewByteArray([]byte(v.(string))), nil
+
+	case float64:
+		return vmtypes.NewInteger(big.NewInt(int64(v.(float64)))), nil
+
+	case bool:
+		return vmtypes.NewBoolean(v.(bool)), nil
+
+	case map[string]interface{}:
+		item := vmtypes.NewMap()
+		err := MapToStackitem(v.(map[string]interface{}), *item)
+		if err != nil {
+			return nil, err
+		}
+		return item, nil
+
+	case []interface{}:
+		item := vmtypes.NewArray(nil)
+		err := ArrayToStackItem(v.([]interface{}), item)
+		if err != nil {
+			return nil, err
+		}
+		return item, nil
+
+	default:
+		return nil, errors.NewErr("not supported type")
+	}
+}
+
+func StackitemToMap(item vmtypes.StackItems, m map[string]interface{}, depth int) error {
+
+	depth, err := checkDepth(depth)
+	if err != nil {
+		return err
+	}
+
+	itemMap, err := item.GetMap()
+	if err != nil {
+		return err
+	}
+
+	for k, v := range itemMap {
+		switch k.(type) {
+		case *vmtypes.ByteArray:
+			key, err := k.GetByteArray()
+			if err != nil {
+				return err
+			}
+			switch v.(type) {
+			case *vmtypes.ByteArray:
+				val, err := v.GetByteArray()
+				if err != nil {
+					return err
+				}
+				m[string(key)] = string(val)
+			case *vmtypes.Integer, *vmtypes.Boolean:
+				val, err := v.GetByteArray()
+				if err != nil {
+					return err
+				}
+				m[string(key)] = common.ToHexString(val)
+			case *vmtypes.Array:
+				arr, err := v.GetArray()
+				if err != nil {
+					return err
+				}
+				err = StackitemArrayToMap(arr, m, string(key), depth)
+				if err != nil {
+					return err
+				}
+			case *vmtypes.Map:
+				tmp := make(map[string]interface{})
+				m[string(key)] = tmp
+				err := StackitemToMap(v, tmp, depth)
+				if err != nil {
+					return err
+				}
+			default:
+				return errors.NewErr("Not support json value type")
+			}
+
+		default:
+			return errors.NewErr("Not support json key type")
+		}
+
+	}
+	return nil
+}
+
+func StackitemArrayToMap(items []vmtypes.StackItems, m map[string]interface{}, key string, depth int) error {
+	depth, err := checkDepth(depth)
+	if err != nil {
+		return err
+	}
+
+	tmparr := make([]interface{}, len(items))
+	m[key] = tmparr
+	for i, v := range items {
+		switch v.(type) {
+		case *vmtypes.Array:
+			arr, err := v.GetArray()
+			if err != nil {
+				return err
+			}
+			subarr := make([]interface{}, len(arr))
+			tmparr[i] = subarr
+			err = StackitemArrayToArray(arr, subarr, depth)
+			if err != nil {
+				return err
+			}
+		case *vmtypes.Map:
+			tmp := make(map[string]interface{})
+			tmparr[i] = tmp
+			err = StackitemToMap(v, tmp, depth)
+			if err != nil {
+				return err
+			}
+		default:
+			return errors.NewErr("Not a supported type")
+		}
+	}
+	return nil
+}
+
+func StackitemArrayToArray(items []vmtypes.StackItems, arr []interface{}, depth int) error {
+	depth, err := checkDepth(depth)
+	if err != nil {
+		return err
+	}
+	for i, item := range items {
+		switch item.(type) {
+		case *vmtypes.Map:
+			m := make(map[string]interface{})
+			arr[i] = m
+			err = StackitemToMap(item, m, depth)
+			if err != nil {
+				return err
+			}
+		case *vmtypes.Array:
+			arritem, err := item.GetArray()
+			if err != nil {
+				return err
+			}
+			tmparr := make([]interface{}, len(arritem))
+			arr[i] = tmparr
+			err = StackitemArrayToArray(arritem, tmparr, depth)
+			if err != nil {
+				return err
+			}
+		default:
+			return errors.NewErr("Not a supported type")
+		}
+	}
+	return nil
+}
+
+func checkDepth(depth int) (int, error) {
+	if depth >= JSON_DEPTH {
+		return -1, errors.NewErr("json depth exceed!")
+	}
+	return depth + 1, nil
 }
 
 func SerializeStackItem(item vmtypes.StackItems) ([]byte, error) {

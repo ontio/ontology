@@ -37,15 +37,18 @@ var (
 	STORAGE_DELETE_GAS            uint64 = 100
 	RUNTIME_CHECKWITNESS_GAS      uint64 = 200
 	RUNTIME_VERIFYMUTISIG_GAS     uint64 = 400
-	RUNTIME_ADDRESSTOBASE58_GAS   uint64 = 40
-	RUNTIME_BASE58TOADDRESS_GAS   uint64 = 30
-	APPCALL_GAS                   uint64 = 10
-	TAILCALL_GAS                  uint64 = 10
-	SHA1_GAS                      uint64 = 10
-	SHA256_GAS                    uint64 = 10
-	HASH160_GAS                   uint64 = 20
-	HASH256_GAS                   uint64 = 20
-	OPCODE_GAS                    uint64 = 1
+	RUNTIME_JSON_MARSHAL_GAS      uint64 = 400
+	RUNTIME_JSON_UNMARSHAL_GAS    uint64 = 400
+
+	RUNTIME_ADDRESSTOBASE58_GAS uint64 = 40
+	RUNTIME_BASE58TOADDRESS_GAS uint64 = 30
+	APPCALL_GAS                 uint64 = 10
+	TAILCALL_GAS                uint64 = 10
+	SHA1_GAS                    uint64 = 10
+	SHA256_GAS                  uint64 = 10
+	HASH160_GAS                 uint64 = 20
+	HASH256_GAS                 uint64 = 20
+	OPCODE_GAS                  uint64 = 1
 
 	PER_UNIT_CODE_LEN    int = 1024
 	METHOD_LENGTH_LIMIT  int = 1024
@@ -104,6 +107,8 @@ var (
 	RUNTIME_ADDRESSTOBASE58_NAME     = "Ontology.Runtime.AddressToBase58"
 	RUNTIME_GETCURRENTBLOCKHASH_NAME = "Ontology.Runtime.GetCurrentBlockHash"
 	RUNTIME_VERIFYMUTISIG_NAME       = "Ontology.Runtime.VerifyMutiSig"
+	RUNTIME_JSON_MARSHAL_NAME        = "Ontology.Runtime.JsonMarshal"
+	RUNTIME_JSON_UNMARSHAL_NAME      = "Ontology.Runtime.JsonUnmarshal"
 
 	NATIVE_INVOKE_NAME = "Ontology.Native.Invoke"
 
@@ -194,6 +199,9 @@ func initGAS_TABLE() *sync.Map {
 	m.Store(RUNTIME_ADDRESSTOBASE58_NAME, RUNTIME_ADDRESSTOBASE58_GAS)
 
 	m.Store(RUNTIME_VERIFYMUTISIG_NAME, RUNTIME_VERIFYMUTISIG_GAS)
+
+	m.Store(RUNTIME_JSON_MARSHAL_NAME, RUNTIME_JSON_MARSHAL_GAS)
+	m.Store(RUNTIME_JSON_UNMARSHAL_NAME, RUNTIME_JSON_UNMARSHAL_GAS)
 
 	return &m
 }

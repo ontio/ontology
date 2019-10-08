@@ -74,6 +74,8 @@ var (
 		RUNTIME_SERIALIZE_NAME:               {Execute: RuntimeSerialize, Validator: validatorSerialize},
 		RUNTIME_DESERIALIZE_NAME:             {Execute: RuntimeDeserialize, Validator: validatorDeserialize},
 		RUNTIME_VERIFYMUTISIG_NAME:           {Execute: RuntimeVerifyMutiSig},
+		RUNTIME_JSON_MARSHAL_NAME:            {Execute: RuntimeJsonMarshal},
+		RUNTIME_JSON_UNMARSHAL_NAME:          {Execute: RuntimeJsonUnmarshal},
 		NATIVE_INVOKE_NAME:                   {Execute: NativeInvoke},
 		STORAGE_GET_NAME:                     {Execute: StorageGet},
 		STORAGE_PUT_NAME:                     {Execute: StoragePut},

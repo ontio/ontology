@@ -23,7 +23,9 @@ import (
 	"math/big"
 	"testing"
 
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/smartcontract/common"
 	"github.com/ontio/ontology/vm/neovm"
@@ -213,4 +215,119 @@ func TestRuntimeAddressToBase58(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, base58, string(result))
+}
+
+func TestRuntimeJsonMashalMap(t *testing.T) {
+	key := types.NewByteArray([]byte("keys"))
+	val := types.NewInteger(big.NewInt(123))
+	item := types.NewMap()
+	item.Add(key, val)
+
+	item2 := types.NewMap()
+	item2.Add(types.NewByteArray([]byte("keys2")), types.NewByteArray([]byte("values2")))
+
+	item.Add(types.NewByteArray([]byte("mkey")), item2)
+
+	item3 := types.NewMap()
+	item3.Add(types.NewByteArray([]byte("keys3")), types.NewByteArray([]byte("values3")))
+
+	item4 := types.NewMap()
+	item4.Add(types.NewByteArray([]byte("keys4")), types.NewByteArray([]byte("values4")))
+	arr := types.NewArray([]types.StackItems{item3, item4})
+
+	item.Add(types.NewByteArray([]byte("arraykey")), arr)
+
+	item5 := types.NewMap()
+	item5.Add(types.NewByteArray([]byte("keys5")), types.NewByteArray([]byte("values5")))
+
+	iarr1 := types.NewArray([]types.StackItems{item5})
+
+	item6 := types.NewMap()
+	item6.Add(types.NewByteArray([]byte("keys6")), types.NewByteArray([]byte("values6")))
+
+	iarr2 := types.NewArray([]types.StackItems{item6})
+
+	iarr3 := types.NewArray([]types.StackItems{iarr1, iarr2})
+
+	item.Add(types.NewByteArray([]byte("bigarr")), iarr3)
+	m := make(map[string]interface{})
+	err := StackitemToMap(item, m, 0)
+	assert.NoError(t, err)
+
+	res, err := json.Marshal(m)
+	assert.NoError(t, err)
+
+	assert.Equal(t, res, []byte(`{"arraykey":[{"keys3":"values3"},{"keys4":"values4"}],"bigarr":[[{"keys5":"values5"}],[{"keys6":"values6"}]],"keys":"7b","mkey":{"keys2":"values2"}}`))
+}
+
+func TestRuntimeJsonUnmarshal(t *testing.T) {
+	fmt.Println("===test simple json")
+	json1 := []byte(`{"key1":"value1"}`)
+	m := make(map[string]interface{})
+	err := json.Unmarshal(json1, &m)
+	assert.Nil(t, err)
+
+	mapitem := types.NewMap()
+	err = MapToStackitem(m, *mapitem)
+	assert.Nil(t, err)
+
+	key := types.NewByteArray([]byte("key1"))
+	val := mapitem.TryGetValue(key)
+	valbytes, _ := val.GetByteArray()
+	assert.Equal(t, valbytes, []byte("value1"))
+
+	fmt.Println("===test simple json: int value")
+
+	json2 := []byte(`{"key1":100}`)
+	m = make(map[string]interface{})
+	err = json.Unmarshal(json2, &m)
+	assert.Nil(t, err)
+	mapitem = types.NewMap()
+	err = MapToStackitem(m, *mapitem)
+	assert.Nil(t, err)
+
+	key = types.NewByteArray([]byte("key1"))
+	val = mapitem.TryGetValue(key)
+	valint, _ := val.GetBigInteger()
+	assert.Equal(t, valint.Int64(), int64(100))
+
+	fmt.Println("===test simple json: int value")
+	json3 := []byte(`{"key1":"value1","key2":100}`)
+	m = make(map[string]interface{})
+	err = json.Unmarshal(json3, &m)
+	assert.Nil(t, err)
+	mapitem = types.NewMap()
+	err = MapToStackitem(m, *mapitem)
+	assert.Nil(t, err)
+	key1 := types.NewByteArray([]byte("key1"))
+	val1 := mapitem.TryGetValue(key1)
+	valbytes, _ = val1.GetByteArray()
+	assert.Equal(t, valbytes, []byte("value1"))
+
+	key2 := types.NewByteArray([]byte("key2"))
+	val2 := mapitem.TryGetValue(key2)
+	valint, _ = val2.GetBigInteger()
+	assert.Equal(t, valint.Int64(), int64(100))
+
+	fmt.Println("===test simple json: array value")
+	json4 := []byte(`{"arr1":[{"key1":"value1"},{"key2":100}]}`)
+	m = make(map[string]interface{})
+	err = json.Unmarshal(json4, &m)
+	assert.Nil(t, err)
+	mapitem = types.NewMap()
+	err = MapToStackitem(m, *mapitem)
+
+	assert.Nil(t, err)
+
+	keyarr := types.NewByteArray([]byte("arr1"))
+	arrval := mapitem.TryGetValue(keyarr)
+	arritem, _ := arrval.GetArray()
+	assert.Equal(t, len(arritem), 2)
+	tmpmap1, _ := arritem[0].(*types.Map)
+	val1bytes, _ := tmpmap1.TryGetValue(key1).GetByteArray()
+	assert.Equal(t, val1bytes, []byte("value1"))
+	tmpmap2, _ := arritem[1].(*types.Map)
+	val2int, _ := tmpmap2.TryGetValue(key2).GetBigInteger()
+	assert.Equal(t, val2int.Int64(), int64(100))
+
 }
