@@ -19,7 +19,6 @@
 package ledgerstore
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
@@ -27,7 +26,6 @@ import (
 	"math"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -36,7 +34,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
@@ -50,8 +47,6 @@ import (
 	"github.com/ontio/ontology/events/message"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
-	"github.com/ontio/ontology/smartcontract/service/native/global_params"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -1044,20 +1039,25 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 
 	overlay := this.stateStore.NewOverlayDB()
 	cache := storage.NewCacheDB(overlay)
-	preGas, err := this.getPreGas(config, cache)
-	if err != nil {
-		return stf, err
-	}
+	gasTable := make(map[string]uint64)
+	neovm.GAS_TABLE.Range(func(k, value interface{}) bool {
+		key := k.(string)
+		val := value.(uint64)
+		gasTable[key] = val
+
+		return true
+	})
 
 	if tx.TxType == types.InvokeNeo || tx.TxType == types.InvokeWasm {
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		sc := smartcontract.SmartContract{
-			Config:  config,
-			Store:   this,
-			CacheDB: cache,
-			Gas:     math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), preGas[neovm.UINT_INVOKE_CODE_LEN_NAME]),
-			PreExec: true,
+			Config:   config,
+			Store:    this,
+			CacheDB:  cache,
+			GasTable: gasTable,
+			Gas:      math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
+			PreExec:  true,
 		}
 		//start the smart contract executive function
 		engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
@@ -1088,53 +1088,10 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: sc.Notifications}, nil
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: preGas[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), preGas[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasTable[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
 	} else {
 		return stf, errors.NewErr("transaction type error")
 	}
-}
-
-func (this *LedgerStoreImp) getPreGas(config *smartcontract.Config, cache *storage.CacheDB) (map[string]uint64, error) {
-	bf := new(bytes.Buffer)
-	names := []string{neovm.CONTRACT_CREATE_NAME, neovm.UINT_INVOKE_CODE_LEN_NAME, neovm.UINT_DEPLOY_CODE_LEN_NAME}
-	if err := utils.WriteVarUint(bf, uint64(len(names))); err != nil {
-		return nil, fmt.Errorf("write gas_table_keys length error:%s", err)
-	}
-
-	for _, v := range names {
-		if err := serialization.WriteString(bf, v); err != nil {
-			return nil, fmt.Errorf("serialize param name error:%s", err)
-		}
-	}
-
-	sc := smartcontract.SmartContract{
-		Config:  config,
-		CacheDB: cache,
-		Store:   this,
-		Gas:     math.MaxUint64,
-	}
-
-	service, _ := sc.NewNativeService()
-	result, err := service.NativeCall(utils.ParamContractAddress, "getGlobalParam", bf.Bytes())
-	if err != nil {
-		return nil, err
-	}
-	params := new(global_params.Params)
-	if err := params.Deserialize(bytes.NewBuffer(result.([]byte))); err != nil {
-		return nil, fmt.Errorf("deserialize global params error:%s", err)
-	}
-	m := make(map[string]uint64, 0)
-	for _, v := range names {
-		n, ps := params.GetParam(v)
-		if n != -1 && ps.Value != "" {
-			pu, err := strconv.ParseUint(ps.Value, 10, 64)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse uint %v", err)
-			}
-			m[v] = pu
-		}
-	}
-	return m, nil
 }
 
 //Close ledger store.
