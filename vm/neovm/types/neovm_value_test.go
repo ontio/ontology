@@ -104,6 +104,19 @@ func TestSerialize(t *testing.T) {
 	assert.Nil(t, err)
 	fmt.Println("res_t:", res_t)
 	assert.Equal(t, "ffffc58e4ae6b68900", res_t.([]interface{})[0])
+
+	mapVal := NewMapValue()
+	mapVal.Set(bi, val_arr)
+	vm := VmValueFromMapValue(mapVal)
+	res, err := vm.ConvertNeoVmValueHexString()
+	assert.Nil(t, err)
+	expectRes := make(map[interface{}]interface{})
+	k, err := bi.ConvertNeoVmValueHexString()
+	assert.Nil(t, err)
+	v, err := val_arr.ConvertNeoVmValueHexString()
+	assert.Nil(t, err)
+	expectRes[k] = v
+	assert.Equal(t, res, expectRes)
 }
 
 func TestVmValue_ConvertNeoVmValueHexString(t *testing.T) {

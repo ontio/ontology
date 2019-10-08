@@ -270,6 +270,23 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 		bs := self.interop.Data.ToArray()
 		*length += len(bs)
 		return common.ToHexString(bs), nil
+	case mapType:
+		mapValue := make(map[interface{}]interface{})
+		keys := self.mapval.getMapSortedKey()
+		for _, v := range keys {
+			kValue := self.mapval.Data[v][0]
+			k, err := kValue.convertNeoVmValueHexString(count, length)
+			if err != nil {
+				return nil, err
+			}
+			vValue := self.mapval.Data[v][1]
+			val, err := vValue.convertNeoVmValueHexString(count, length)
+			if err != nil {
+				return nil, err
+			}
+			mapValue[k] = val
+		}
+		return mapValue, nil
 	default:
 		panic("unreacheable!")
 	}
