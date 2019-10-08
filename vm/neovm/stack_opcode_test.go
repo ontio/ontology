@@ -322,21 +322,25 @@ func TestStructValue(t *testing.T) {
 	assert.Equal(t, err, nil)
 	v, err := types.VmValueFromBytes([]byte("value"))
 	assert.Equal(t, err, nil)
-	s.Append(k)
-	s.Append(v)
-
+	err = s.Append(k)
+	assert.Nil(t, err)
+	err = s.Append(v)
+	assert.Nil(t, err)
 	s4 := types.NewStructValue()
 	v2, err := types.VmValueFromBytes([]byte("value2"))
 	assert.Equal(t, err, nil)
-	s4.Append(k)
-	s4.Append(v2)
-
+	err = s4.Append(k)
+	assert.Nil(t, err)
+	err = s4.Append(v2)
+	assert.Nil(t, err)
 	s3 := types.NewStructValue()
-	s3.Append(k)
-
+	err = s3.Append(k)
+	assert.Nil(t, err)
 	s5 := types.NewStructValue()
-	s5.Append(k)
-	s5.Append(types.VmValueFromStructVal(s3))
+	err = s5.Append(k)
+	assert.Nil(t, err)
+	err = s5.Append(types.VmValueFromStructVal(s3))
+	assert.Nil(t, err)
 
 	//checkMultiStackOpCode(t, []OpCode{PICKITEM}, []Value{s, int64(1)}, []Value{"value"})
 	checkAltStackOpCodeNew(t, []byte{byte(PICKITEM)}, [2][]Value{[]Value{s, int64(1)}, {}}, [2][]Value{[]Value{[]byte("value")}, {}})
@@ -349,17 +353,20 @@ func TestStructValue(t *testing.T) {
 		[2][]Value{[]Value{s5}})
 
 	s2 := types.NewStructValue()
-	s2.Append(types.VmValueFromBool(false))
+	err = s2.Append(types.VmValueFromBool(false))
+	assert.Nil(t, err)
 	checkAltStackOpCodeNew(t, []byte{byte(NEWSTRUCT)},
 		[2][]Value{[]Value{int64(1)}}, [2][]Value{[]Value{s2}})
 
 	s7 := types.NewStructValue()
-	s7.Append(types.VmValueFromBool(false))
-	s7.Append(types.VmValueFromStructVal(s3))
+	err = s7.Append(types.VmValueFromBool(false))
+	assert.Nil(t, err)
+	err = s7.Append(types.VmValueFromStructVal(s3))
+	assert.Nil(t, err)
 
 	s6 := types.NewStructValue()
-	s6.Append(types.VmValueFromBool(false))
-
+	err = s6.Append(types.VmValueFromBool(false))
+	assert.Nil(t, err)
 	checkAltStackOpCodeNew(t, []byte{byte(TOALTSTACK), byte(DUPFROMALTSTACK), byte(PUSH1), byte(XSWAP), byte(APPEND), byte(FROMALTSTACK)},
 		[2][]Value{[]Value{s3, s6}}, [2][]Value{[]Value{s7}})
 

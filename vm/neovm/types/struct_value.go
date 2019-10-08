@@ -18,7 +18,11 @@
 
 package types
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/ontio/ontology/vm/neovm/constants"
+	"github.com/ontio/ontology/vm/neovm/errors"
+)
 
 const (
 	MAX_STRUCT_DEPTH = 10
@@ -34,8 +38,12 @@ func NewStructValue() *StructValue {
 	return &StructValue{Data: make([]VmValue, 0, initArraySize)}
 }
 
-func (self *StructValue) Append(item VmValue) {
+func (self *StructValue) Append(item VmValue) error {
+	if len(self.Data) >= constants.MAX_ARRAY_SIZE {
+		return errors.ERR_OVER_MAX_ARRAY_SIZE
+	}
 	self.Data = append(self.Data, item)
+	return nil
 }
 
 func (self *StructValue) Len() int64 {
