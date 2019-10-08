@@ -517,6 +517,23 @@ func (self *VmValue) AsInt64() (int64, error) {
 	return val.integer, nil
 }
 
+// urgly hack: only used in cmp opcode to lift the 32byte limit of integer
+func (self *VmValue) AsBigInt() (*big.Int, error) {
+	switch self.valType {
+	case integerType, boolType:
+		return big.NewInt(self.integer), nil
+	case bigintType:
+		return self.bigInt, nil
+	case bytearrayType:
+		value := common.BigIntFromNeoBytes(self.byteArray)
+		return value, nil
+	case arrayType, mapType, structType, interopType:
+		return nil, errors.ERR_BAD_TYPE
+	default:
+		panic("unreachable!")
+	}
+}
+
 func (self *VmValue) AsIntValue() (IntValue, error) {
 	switch self.valType {
 	case integerType, boolType:
