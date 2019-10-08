@@ -769,7 +769,8 @@ func (self *VmValue) dump() string {
 		data := ""
 		for _, key := range unsortKey {
 			v := self.mapval.Data[key][1]
-			data += fmt.Sprintf("%x: %s,", key, v.dump())
+			k := self.mapval.Data[key][0]
+			data += fmt.Sprintf("%s: %s,", k.dump(), v.dump())
 		}
 		return fmt.Sprintf("map[%d]{%s}", len(self.mapval.Data), data)
 	case structType:

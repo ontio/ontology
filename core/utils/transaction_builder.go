@@ -221,6 +221,18 @@ func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 			bf.WriteI128(common.I128FromUint64(uint64(val)))
 		case uint64:
 			bf.WriteI128(common.I128FromUint64(uint64(val)))
+		case *big.Int:
+			bint, err := common.I128FromBigInt(val)
+			if err != nil {
+				return nil, err
+			}
+			bf.WriteI128(bint)
+		case big.Int:
+			bint, err := common.I128FromBigInt(&val)
+			if err != nil {
+				return nil, err
+			}
+			bf.WriteI128(bint)
 		case []byte:
 			bf.WriteVarBytes(val)
 		case common.Uint256:
@@ -232,6 +244,9 @@ func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 		case bool:
 			bf.WriteBool(val)
 		case []interface{}:
+			// actually if different type will pass tuple to wasm. or will pass array.
+			vnum := len(val)
+			bf.WriteVarUint(uint64(vnum))
 			value, err := BuildWasmContractParam(val)
 			if err != nil {
 				return nil, err

@@ -47,8 +47,10 @@ import (
 	"github.com/ontio/ontology/core/types"
 	utils2 "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
+	common2 "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	"github.com/ontio/ontology/smartcontract/states"
+	vmtypes "github.com/ontio/ontology/vm/neovm/types"
 	common3 "github.com/ontio/ontology/wasmtest/common"
 )
 
@@ -77,6 +79,40 @@ func NewDeployNeoContract(signer *account.Account, code []byte) (*types.Transact
 	}
 	tx, err := mutable.IntoImmutable()
 	return tx, err
+}
+
+func GenNeoTextCaseTransaction(contract common.Address, database *ledger.Ledger) [][]common3.TestCase {
+	params := make([]interface{}, 0)
+	method := string("testcase")
+	// neovm entry api is def Main(method, args). and testcase method api need no other args, so pass a random args to entry api.
+	operation := 1
+	params = append(params, method)
+	params = append(params, operation)
+	tx, err := common2.NewNeovmInvokeTransaction(0, 100000000, contract, params)
+	imt, err := tx.IntoImmutable()
+	if err != nil {
+		panic(err)
+	}
+	res, err := database.PreExecuteContract(imt)
+	if err != nil {
+		panic(err)
+	}
+
+	ret := res.Result.(string)
+	jsonCase, err := common.HexToBytes(ret)
+
+	if err != nil {
+		panic(err)
+	}
+	if len(jsonCase) == 0 {
+		panic("failed to get testcase data from contract")
+	}
+	var testCase [][]common3.TestCase
+	err = json.Unmarshal([]byte(jsonCase), &testCase)
+	if err != nil {
+		panic("failed Unmarshal")
+	}
+	return testCase
 }
 
 func ExactTestCase(code []byte) [][]common3.TestCase {
@@ -154,6 +190,23 @@ func checkErr(err error) {
 	}
 }
 
+func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *ledger.Ledger, addr common.Address, acct *account.Account) {
+	res, err := database.PreExecuteContract(tx)
+	checkErr(err)
+
+	height := database.GetCurrentBlockHeight()
+	header, err := database.GetHeaderByHeight(height)
+	checkErr(err)
+	blockTime := header.Timestamp + 1
+
+	execEnv := ExecEnv{Time: blockTime, Height: height + 1, Tx: tx, BlockHash: header.Hash(), Contract: addr}
+	checkExecResult(testCase, res, execEnv)
+
+	block, _ := makeBlock(acct, []*types.Transaction{tx})
+	err = database.AddBlock(block, common.UINT256_EMPTY)
+	checkErr(err)
+}
+
 func main() {
 	datadir := "testdata"
 	err := os.RemoveAll(datadir)
@@ -216,33 +269,28 @@ func main() {
 	}
 
 	for file, cont := range contract {
-		if !strings.HasSuffix(file, ".wasm") {
-			continue
-		}
-
 		log.Infof("exacting testcase from %s", file)
-		testCases := ExactTestCase(cont)
 		addr := common.AddressFromVmCode(cont)
-		for _, testCase := range testCases[0] { // only handle group 0 currently
-			val, _ := json.Marshal(testCase)
-			log.Info("executing testcase: ", string(val))
-			tx, err := common3.GenWasmTransaction(testCase, addr, &testContext)
-			checkErr(err)
+		if strings.HasSuffix(file, ".avm") {
+			testCases := GenNeoTextCaseTransaction(addr, database)
+			for _, testCase := range testCases[0] { // only handle group 0 currently
+				val, _ := json.Marshal(testCase)
+				log.Info("executing testcase: ", string(val))
+				tx, err := common3.GenNeoVMTransaction(testCase, addr, &testContext)
+				checkErr(err)
 
-			res, err := database.PreExecuteContract(tx)
-			checkErr(err)
+				execTxCheckRes(tx, testCase, database, addr, acct)
+			}
+		} else if strings.HasSuffix(file, ".wasm") {
+			testCases := ExactTestCase(cont)
+			for _, testCase := range testCases[0] { // only handle group 0 currently
+				val, _ := json.Marshal(testCase)
+				log.Info("executing testcase: ", string(val))
+				tx, err := common3.GenWasmTransaction(testCase, addr, &testContext)
+				checkErr(err)
 
-			height := database.GetCurrentBlockHeight()
-			header, err := database.GetHeaderByHeight(height)
-			checkErr(err)
-			blockTime := header.Timestamp + 1
-
-			execEnv := ExecEnv{Time: blockTime, Height: height + 1, Tx: tx, BlockHash: header.Hash(), Contract: addr}
-			checkExecResult(testCase, res, execEnv)
-
-			block, _ := makeBlock(acct, []*types.Transaction{tx})
-			err = database.AddBlock(block, common.UINT256_EMPTY)
-			checkErr(err)
+				execTxCheckRes(tx, testCase, database, addr, acct)
+			}
 		}
 	}
 
@@ -286,14 +334,61 @@ func checkExecResult(testCase common3.TestCase, result *states.PreExecResult, ex
 		if len(testCase.Expect) != 0 {
 			expect, err := utils.ParseParams(testCase.Expect)
 			checkErr(err)
-			exp, err := utils2.BuildWasmContractParam(expect)
-			checkErr(err)
-			assertEq(ret, hex.EncodeToString(exp))
+			if execEnv.Tx.TxType == types.InvokeNeo {
+				val := buildNeoVmValueFromExpect(expect)
+				cv, err := val.ConvertNeoVmValueHexString()
+				checkErr(err)
+				assertEq(cv, result.Result)
+			} else if execEnv.Tx.TxType == types.InvokeWasm {
+				exp, err := utils2.BuildWasmContractParam(expect)
+				checkErr(err)
+				assertEq(ret, hex.EncodeToString(exp))
+			} else {
+				panic("error tx type")
+			}
 		}
 		if len(testCase.Notify) != 0 {
 			js, _ := json.Marshal(result.Notify)
 			assertEq(true, strings.Contains(string(js), testCase.Notify))
 		}
+	}
+}
+
+func buildNeoVmValueFromExpect(expectlist []interface{}) *vmtypes.VmValue {
+	if len(expectlist) > 1 {
+		panic("only support return one value")
+	}
+	expect := expectlist[0]
+
+	switch expect.(type) {
+	case string:
+		val, err := vmtypes.VmValueFromBytes([]byte(expect.(string)))
+		if err != nil {
+			panic(err)
+		}
+		return &val
+	case []byte:
+		val, err := vmtypes.VmValueFromBytes(expect.([]byte))
+		if err != nil {
+			panic(err)
+		}
+		return &val
+	case int64:
+		val := vmtypes.VmValueFromInt64(expect.(int64))
+		return &val
+	case bool:
+		val := vmtypes.VmValueFromBool(expect.(bool))
+		return &val
+	case common.Address:
+		addr := expect.(common.Address)
+		val, err := vmtypes.VmValueFromBytes(addr[:])
+		if err != nil {
+			panic(err)
+		}
+		return &val
+	default:
+		fmt.Printf("unspport param type %s", reflect.TypeOf(expect))
+		panic("unspport param type")
 	}
 }
 
