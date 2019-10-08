@@ -45,6 +45,7 @@ import (
 
 const MAX_SEARCH_HEIGHT uint32 = 100
 const MAX_REQUEST_BODY_SIZE = 1 << 20
+const MAX_MULTI_TX_SIZE = 100
 
 type BalanceOfRsp struct {
 	Ont string `json:"ont"`

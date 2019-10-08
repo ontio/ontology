@@ -97,6 +97,7 @@
 | [getblocktxsbyheight](#20-getblocktxsbyheight) | height | 返回该高度对应的区块落账的交易的哈希 |  |
 | [getnetworkid](#21-getnetworkid) |  | 获取 network id |  |
 | [getgrantong](#22-getgrantong) |  | 获取 grant ong |  |
+| [sendpretransactions](#23-sendpretransactions) |  POST /api/v1/sendpretransactions | 预执行交易批量执行 |
 
 ### 1. getbestblockhash
 
@@ -1110,6 +1111,73 @@ Response:
   "result": 4995625
 }
 ```
+
+### 23 sendpretransactions
+
+批量执行预执行交易
+
+POST
+```
+/api/v1/sendpretransactions
+```
+#### Request Example:
+```
+curl -i http://localhost:20336/api/v1/sendpretransactions
+```
+
+#### post parameters
+
+```json
+{
+	"jsonrpc": "2.0",
+    "method": "sendpretransactions",
+    "params": [
+    	"00d1de5655540000000000000000000000000000000000000000000000000000000000000000000000004d14322df60ebaddf100501817f2171930d79ae81f660962616c616e63654f661400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000",
+    	"00d1c9657e8b0000000000000000000000000000000000000000000000000000000000000000000000004d1498dee28a01a16f116f8c6e6b437af92a190e2c750962616c616e63654f661400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000",
+    	"00d11aec11060000000000000000000000000000000000000000000000000000000000000000000000004d149e1969e4c7813787a8214e73d1b1206f3d2ffbcc0962616c616e63654f661400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000",
+    	"00d1452edb510000000000000000000000000000000000000000000000000000000000000000000000004d14e224ca2cd7482712bdd64b2cc02b10db21494fd90962616c616e63654f661400000000000000000000000000000000000000010068164f6e746f6c6f67792e4e61746976652e496e766f6b650000"
+    	],
+    "id": 0
+
+}
+```
+
+#### Response
+```
+{
+    "Action": "sendpretransactions",
+    "Desc": "SUCCESS",
+    "Error": 0,
+    "Result": [
+        {
+            "State": 1,
+            "Gas": 20000,
+            "Result": "",
+            "Notify": null
+        },
+        {
+            "State": 1,
+            "Gas": 20000,
+            "Result": "",
+            "Notify": null
+        },
+        {
+            "State": 1,
+            "Gas": 20000,
+            "Result": "",
+            "Notify": null
+        },
+        {
+            "State": 1,
+            "Gas": 20000,
+            "Result": "",
+            "Notify": null
+        }
+    ],
+    "Version": "1.0.0"
+}
+```
+
 
 ## 错误代码
 
