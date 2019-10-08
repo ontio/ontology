@@ -84,6 +84,7 @@ func NewDeployNeoContract(signer *account.Account, code []byte) (*types.Transact
 func GenNeoTextCaseTransaction(contract common.Address, database *ledger.Ledger) [][]common3.TestCase {
 	params := make([]interface{}, 0)
 	method := string("testcase")
+	// neovm entry api is def Main(method, args). and testcase method api need no other args, so pass a random args to entry api.
 	operation := 1
 	params = append(params, method)
 	params = append(params, operation)
@@ -189,6 +190,23 @@ func checkErr(err error) {
 	}
 }
 
+func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *ledger.Ledger, addr common.Address, acct *account.Account) {
+	res, err := database.PreExecuteContract(tx)
+	checkErr(err)
+
+	height := database.GetCurrentBlockHeight()
+	header, err := database.GetHeaderByHeight(height)
+	checkErr(err)
+	blockTime := header.Timestamp + 1
+
+	execEnv := ExecEnv{Time: blockTime, Height: height + 1, Tx: tx, BlockHash: header.Hash(), Contract: addr}
+	checkExecResult(testCase, res, execEnv)
+
+	block, _ := makeBlock(acct, []*types.Transaction{tx})
+	err = database.AddBlock(block, common.UINT256_EMPTY)
+	checkErr(err)
+}
+
 func main() {
 	datadir := "testdata"
 	err := os.RemoveAll(datadir)
@@ -261,20 +279,7 @@ func main() {
 				tx, err := common3.GenNeoVMTransaction(testCase, addr, &testContext)
 				checkErr(err)
 
-				res, err := database.PreExecuteContract(tx)
-				checkErr(err)
-
-				height := database.GetCurrentBlockHeight()
-				header, err := database.GetHeaderByHeight(height)
-				checkErr(err)
-				blockTime := header.Timestamp + 1
-
-				execEnv := ExecEnv{Time: blockTime, Height: height + 1, Tx: tx, BlockHash: header.Hash(), Contract: addr}
-				checkExecResult(testCase, res, execEnv)
-
-				block, _ := makeBlock(acct, []*types.Transaction{tx})
-				err = database.AddBlock(block, common.UINT256_EMPTY)
-				checkErr(err)
+				execTxCheckRes(tx, testCase, database, addr, acct)
 			}
 		} else if strings.HasSuffix(file, ".wasm") {
 			testCases := ExactTestCase(cont)
@@ -284,20 +289,7 @@ func main() {
 				tx, err := common3.GenWasmTransaction(testCase, addr, &testContext)
 				checkErr(err)
 
-				res, err := database.PreExecuteContract(tx)
-				checkErr(err)
-
-				height := database.GetCurrentBlockHeight()
-				header, err := database.GetHeaderByHeight(height)
-				checkErr(err)
-				blockTime := header.Timestamp + 1
-
-				execEnv := ExecEnv{Time: blockTime, Height: height + 1, Tx: tx, BlockHash: header.Hash(), Contract: addr}
-				checkExecResult(testCase, res, execEnv)
-
-				block, _ := makeBlock(acct, []*types.Transaction{tx})
-				err = database.AddBlock(block, common.UINT256_EMPTY)
-				checkErr(err)
+				execTxCheckRes(tx, testCase, database, addr, acct)
 			}
 		}
 	}

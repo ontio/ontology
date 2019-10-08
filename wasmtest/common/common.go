@@ -124,6 +124,7 @@ func GenWasmTransaction(testCase TestCase, contract common.Address, testConext *
 	return imt, nil
 }
 
+// when need pass testConext to neovm contract, must write contract as def Main(operation, args) api. and args need be a list.
 func buildTestConextForNeo(testConext *TestContext) []byte {
 	addrMap := testConext.AddrMap
 	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
@@ -156,9 +157,10 @@ func buildTestConextForNeo(testConext *TestContext) []byte {
 	builder.Emit(neovm.PUSH1)
 	builder.Emit(neovm.ADD)
 	builder.Emit(neovm.PACK)
-	// [operation, [[admin, map], args...]]
+	// [operation, [args,[admin, map]]]
 	builder.Emit(neovm.SWAP)
-	// [[[admin, map], args...], operation] ==> topof the stack.
+	// the second list of last elt is the testConext
+	// [[args,[admin, map]], operation] ==> topof the stack.
 	return builder.ToArray()
 }
 
