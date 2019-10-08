@@ -28,6 +28,7 @@ import (
 	"sort"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/vm/crossvm_codec"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
@@ -214,6 +215,7 @@ func (self *VmValue) ConvertNeoVmValueHexString() (interface{}, error) {
 	}
 	return res, nil
 }
+
 func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interface{}, error) {
 	if *count > MAX_COUNT {
 		return nil, fmt.Errorf("over max parameters convert length")
@@ -270,25 +272,9 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 		bs := self.interop.Data.ToArray()
 		*length += len(bs)
 		return common.ToHexString(bs), nil
-	case mapType:
-		mapValue := make(map[interface{}]interface{})
-		keys := self.mapval.getMapSortedKey()
-		for _, v := range keys {
-			kValue := self.mapval.Data[v][0]
-			k, err := kValue.convertNeoVmValueHexString(count, length)
-			if err != nil {
-				return nil, err
-			}
-			vValue := self.mapval.Data[v][1]
-			val, err := vValue.convertNeoVmValueHexString(count, length)
-			if err != nil {
-				return nil, err
-			}
-			mapValue[k] = val
-		}
-		return mapValue, nil
 	default:
-		panic("unreacheable!")
+		log.Errorf("[ConvertTypes] Invalid Types!, %s", common.ToHexString([]byte{self.valType}))
+		return nil, fmt.Errorf("[ConvertTypes] Invalid Types!, %s", common.ToHexString([]byte{self.valType}))
 	}
 }
 func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
@@ -475,6 +461,8 @@ func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
 				return err
 			}
 		}
+	case interopType:
+		return fmt.Errorf("not support type: interopType")
 	default:
 		panic("unreacheable!")
 	}
