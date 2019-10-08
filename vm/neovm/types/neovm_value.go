@@ -464,7 +464,7 @@ func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
 	case interopType:
 		return fmt.Errorf("not support type: interopType")
 	default:
-		panic("unreacheable!")
+		panic("unreachable!")
 	}
 	if sink.Size() > constants.MAX_BYTEARRAY_SIZE {
 		return fmt.Errorf("runtime serialize: can not serialize length over the uplimit")
