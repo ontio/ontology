@@ -273,8 +273,8 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 		*length += len(bs)
 		return common.ToHexString(bs), nil
 	default:
-		log.Errorf("[ConvertTypes] Invalid Types!, %s", common.ToHexString([]byte{self.valType}))
-		return nil, fmt.Errorf("[ConvertTypes] Invalid Types!, %s", common.ToHexString([]byte{self.valType}))
+		log.Errorf("[ConvertTypes] Invalid Types!, %x", self.valType)
+		return nil, fmt.Errorf("[ConvertTypes] Invalid Types!, %x", self.valType)
 	}
 }
 func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
