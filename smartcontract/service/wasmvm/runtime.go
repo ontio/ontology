@@ -167,13 +167,15 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 	log.Debugf("[WasmContract]Debug:%s\n", bs)
 }
 
-func Notify(proc *exec.Process, ptr uint32, len uint32) {
+func Notify(proc *exec.Process, ptr uint32, l uint32) {
 	self := proc.HostData().(*Runtime)
-	bs, err := ReadWasmMemory(proc, ptr, len)
+	if l >= neotypes.MAX_NOTIFY_LENGTH {
+		panic("notify length over the uplimit")
+	}
+	bs, err := ReadWasmMemory(proc, ptr, l)
 	if err != nil {
 		panic(err)
 	}
-
 	notify := &event.NotifyEventInfo{ContractAddress: self.Service.ContextRef.CurrentContext().ContractAddress}
 	val := crossvm_codec.DeserializeNotify(bs)
 	notify.States = val

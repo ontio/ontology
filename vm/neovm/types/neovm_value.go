@@ -45,7 +45,8 @@ const (
 )
 
 const (
-	MAX_COUNT = 1024
+	MAX_COUNT         = 1024
+	MAX_NOTIFY_LENGTH = 64 * 1024 //64Kb
 )
 
 type VmValue struct {
@@ -203,11 +204,22 @@ func (self *VmValue) buildParamToNative(sink *common.ZeroCopySink) error {
 }
 func (self *VmValue) ConvertNeoVmValueHexString() (interface{}, error) {
 	var count int
-	return self.convertNeoVmValueHexString(&count)
+	var length int
+	res, err := self.convertNeoVmValueHexString(&count, &length)
+	if err != nil {
+		return nil, err
+	}
+	if length > MAX_NOTIFY_LENGTH {
+		return nil, fmt.Errorf("length over max parameters convert length")
+	}
+	return res, nil
 }
-func (self *VmValue) convertNeoVmValueHexString(count *int) (interface{}, error) {
+func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interface{}, error) {
 	if *count > MAX_COUNT {
 		return nil, fmt.Errorf("over max parameters convert length")
+	}
+	if *length > MAX_NOTIFY_LENGTH {
+		return nil, fmt.Errorf("length over max parameters convert length")
 	}
 	switch self.valType {
 	case boolType:
@@ -215,22 +227,28 @@ func (self *VmValue) convertNeoVmValueHexString(count *int) (interface{}, error)
 		if err != nil {
 			return nil, err
 		}
+		*length++
 		if boo {
 			return common.ToHexString([]byte{1}), nil
 		} else {
 			return common.ToHexString([]byte{0}), nil
 		}
 	case bytearrayType:
+		*length += len(self.byteArray)
 		return common.ToHexString(self.byteArray), nil
 	case integerType:
-		return common.ToHexString(common.BigIntToNeoBytes(big.NewInt(self.integer))), nil
+		bs := common.BigIntToNeoBytes(big.NewInt(self.integer))
+		*length += len(bs)
+		return common.ToHexString(bs), nil
 	case bigintType:
-		return common.ToHexString(common.BigIntToNeoBytes(self.bigInt)), nil
+		bs := common.BigIntToNeoBytes(self.bigInt)
+		*length += len(bs)
+		return common.ToHexString(bs), nil
 	case structType:
 		var sstr []interface{}
 		for i := 0; i < len(self.structval.Data); i++ {
 			*count++
-			t, err := self.structval.Data[i].convertNeoVmValueHexString(count)
+			t, err := self.structval.Data[i].convertNeoVmValueHexString(count, length)
 			if err != nil {
 				return nil, err
 			}
@@ -241,7 +259,7 @@ func (self *VmValue) convertNeoVmValueHexString(count *int) (interface{}, error)
 		var sstr []interface{}
 		for i := 0; i < len(self.array.Data); i++ {
 			*count++
-			t, err := self.array.Data[i].convertNeoVmValueHexString(count)
+			t, err := self.array.Data[i].convertNeoVmValueHexString(count, length)
 			if err != nil {
 				return nil, err
 			}
@@ -249,13 +267,21 @@ func (self *VmValue) convertNeoVmValueHexString(count *int) (interface{}, error)
 		}
 		return sstr, nil
 	case interopType:
-		return common.ToHexString(self.interop.Data.ToArray()), nil
+		bs := self.interop.Data.ToArray()
+		*length += len(bs)
+		return common.ToHexString(bs), nil
 	default:
 		panic("unreacheable!")
 	}
 }
-
 func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
+	return self.deserialize(source, 0)
+}
+
+func (self *VmValue) deserialize(source *common.ZeroCopySource, depth int) error {
+	if depth > MAX_COUNT {
+		return fmt.Errorf("vmvalue depth over the uplimit")
+	}
 	t, eof := source.NextByte()
 	if eof {
 		return io.ErrUnexpectedEOF
@@ -307,7 +333,7 @@ func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
 		arr := new(ArrayValue)
 		for i := 0; i < int(l); i++ {
 			v := VmValue{}
-			err := v.Deserialize(source)
+			err := v.deserialize(source, depth+1)
 			if err != nil {
 				return err
 			}
@@ -328,12 +354,12 @@ func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
 		mapValue := NewMapValue()
 		for i := 0; i < int(l); i++ {
 			keyValue := VmValue{}
-			err := keyValue.Deserialize(source)
+			err := keyValue.deserialize(source, depth+1)
 			if err != nil {
 				return err
 			}
 			v := VmValue{}
-			err = v.Deserialize(source)
+			err = v.deserialize(source, depth+1)
 			if err != nil {
 				return err
 			}
@@ -354,11 +380,14 @@ func (self *VmValue) Deserialize(source *common.ZeroCopySource) error {
 		structValue := NewStructValue()
 		for i := 0; i < int(l); i++ {
 			v := VmValue{}
-			err := v.Deserialize(source)
+			err := v.deserialize(source, depth+1)
 			if err != nil {
 				return err
 			}
-			structValue.Append(v)
+			err = structValue.Append(v)
+			if err != nil {
+				return err
+			}
 		}
 		*self = VmValueFromStructVal(structValue)
 	default:
@@ -401,6 +430,7 @@ func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
 			if err != nil {
 				return err
 			}
+
 		}
 	case mapType:
 		sink.WriteByte(mapType)
@@ -430,6 +460,9 @@ func (self *VmValue) Serialize(sink *common.ZeroCopySink) error {
 		}
 	default:
 		panic("unreacheable!")
+	}
+	if sink.Size() > constants.MAX_BYTEARRAY_SIZE {
+		return fmt.Errorf("runtime serialize: can not serialize length over the uplimit")
 	}
 	return nil
 }

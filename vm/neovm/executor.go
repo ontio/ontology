@@ -969,7 +969,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		}
 		array := types.NewStructValue()
 		for i := int64(0); i < count; i++ {
-			array.Append(types.VmValueFromBool(false))
+			err = array.Append(types.VmValueFromBool(false))
+			if err != nil {
+				return FAULT, err
+			}
 		}
 		err = self.EvalStack.Push(types.VmValueFromStructVal(array))
 		if err != nil {
@@ -996,7 +999,10 @@ func (self *Executor) ExecuteOp(opcode OpCode, context *ExecutionContext) (VMSta
 		switch val.GetType() {
 		case types.StructType:
 			array, _ := val.AsStructValue()
-			array.Append(item)
+			err = array.Append(item)
+			if err != nil {
+				return FAULT, err
+			}
 		case types.ArrayType:
 			array, _ := val.AsArrayValue()
 			err = array.Append(item)
