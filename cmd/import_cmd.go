@@ -136,39 +136,56 @@ func importBlocks(ctx *cli.Context) error {
 
 	PrintInfoMsg("Start import blocks.")
 
-	for i := uint32(startBlockHeight); i <= endBlockHeight; i++ {
-		size, err := serialization.ReadUint32(fReader)
-		if err != nil {
-			return fmt.Errorf("read block height:%d error:%s", i, err)
-		}
-		compressData := make([]byte, size)
-		_, err = io.ReadFull(fReader, compressData)
-		if err != nil {
-			return fmt.Errorf("read block data height:%d error:%s", i, err)
-		}
+	var readErr error
+	blockes := make(chan *types.Block, 10)
+	go func() {
+		defer close(blockes)
+		for i := uint32(startBlockHeight); i <= endBlockHeight; i++ {
+			size, err := serialization.ReadUint32(fReader)
+			if err != nil {
+				readErr = fmt.Errorf("read block height:%d error:%s", i, err)
+				break
+			}
+			compressData := make([]byte, size)
+			_, err = io.ReadFull(fReader, compressData)
+			if err != nil {
+				readErr = fmt.Errorf("read block data height:%d error:%s", i, err)
+				break
+			}
 
-		if i <= currBlockHeight {
-			continue
-		}
+			if i <= currBlockHeight {
+				continue
+			}
 
-		blockData, err := utils.DecompressBlockData(compressData, metadata.CompressType)
-		if err != nil {
-			return fmt.Errorf("block height:%d decompress error:%s", i, err)
+			blockData, err := utils.DecompressBlockData(compressData, metadata.CompressType)
+			if err != nil {
+				readErr = fmt.Errorf("block height:%d decompress error:%s", i, err)
+				break
+			}
+			block, err := types.BlockFromRawBytes(blockData)
+			if err != nil {
+				readErr = fmt.Errorf("block height:%d deserialize error:%s", i, err)
+				break
+			}
+			blockes <- block
 		}
-		block, err := types.BlockFromRawBytes(blockData)
-		if err != nil {
-			return fmt.Errorf("block height:%d deserialize error:%s", i, err)
-		}
+	}()
+
+	for block := range blockes {
 		execResult, err := ledger.DefLedger.ExecuteBlock(block)
 		if err != nil {
-			return fmt.Errorf("block height:%d ExecuteBlock error:%s", i, err)
+			return fmt.Errorf("block height:%d ExecuteBlock error:%s", block.Header.Height, err)
 		}
 		err = ledger.DefLedger.SubmitBlock(block, execResult)
 		if err != nil {
-			return fmt.Errorf("SubmitBlock block height:%d error:%s", i, err)
+			return fmt.Errorf("SubmitBlock block height:%d error:%s", block.Header.Height, err)
 		}
 		bar.Incr()
 	}
+	if readErr != nil {
+		return readErr
+	}
+
 	uiprogress.Stop()
 	PrintInfoMsg("Import block completed, current block height:%d.", ledger.DefLedger.GetCurrentBlockHeight())
 	return nil
