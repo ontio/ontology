@@ -690,7 +690,7 @@ func (self *Runtime) getContractType(addr common.Address) (ContractType, error) 
 	if dep == nil {
 		return UNKOWN_CONTRACT, errors.NewErr("contract is not exist.")
 	}
-	if dep.VmType == payload.WASMVM_TYPE {
+	if dep.VmType() == payload.WASMVM_TYPE {
 		return WASMVM_CONTRACT, nil
 	}
 

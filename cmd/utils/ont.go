@@ -593,7 +593,7 @@ func DeployContract(
 	gasPrice,
 	gasLimit uint64,
 	signer *account.Account,
-	vmtype byte,
+	vmtype payload.VmType,
 	code,
 	cname,
 	cversion,
@@ -623,7 +623,7 @@ func DeployContract(
 }
 
 func PrepareDeployContract(
-	needStorage byte,
+	vmtype payload.VmType,
 	code,
 	cname,
 	cversion,
@@ -634,7 +634,7 @@ func PrepareDeployContract(
 	if err != nil {
 		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	mutable := NewDeployCodeTransaction(0, 0, c, needStorage, cname, cversion, cauthor, cemail, cdesc)
+	mutable := NewDeployCodeTransaction(0, 0, c, vmtype, cname, cversion, cauthor, cemail, cdesc)
 	tx, _ := mutable.IntoImmutable()
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
@@ -775,18 +775,18 @@ func PrepareInvokeNativeContract(
 }
 
 //NewDeployCodeTransaction return a smart contract deploy transaction instance
-func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType byte,
+func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType payload.VmType,
 	cname, cversion, cauthor, cemail, cdesc string) *types.MutableTransaction {
 
 	deployPayload := &payload.DeployCode{
 		Code:        code,
-		VmType:      vmType,
 		Name:        cname,
 		Version:     cversion,
 		Author:      cauthor,
 		Email:       cemail,
 		Description: cdesc,
 	}
+	deployPayload.SetVmType(vmType)
 	tx := &types.MutableTransaction{
 		Version:  VERSION_TRANSACTION,
 		TxType:   types.Deploy,

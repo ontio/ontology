@@ -100,7 +100,7 @@ func TransPayloadToHex(p types.Payload) PayloadInfo {
 	case *payload.DeployCode:
 		obj := new(DeployCodeInfo)
 		obj.Code = common.ToHexString(object.Code)
-		obj.VmType = object.VmType
+		obj.VmType = byte(object.VmType())
 		obj.Name = object.Name
 		obj.CodeVersion = object.Version
 		obj.Author = object.Author

@@ -80,7 +80,7 @@ func ContractCreate(proc *exec.Process,
 	}
 
 	_, err = ReadWasmModule(dep, true)
-	if dep.VmType == payload.WASMVM_TYPE && err != nil {
+	if dep.VmType() == payload.WASMVM_TYPE && err != nil {
 		panic(err)
 	}
 
@@ -156,7 +156,7 @@ func ContractMigrate(proc *exec.Process,
 	}
 
 	_, err = ReadWasmModule(dep, true)
-	if dep.VmType == payload.WASMVM_TYPE && err != nil {
+	if dep.VmType() == payload.WASMVM_TYPE && err != nil {
 		panic(err)
 	}
 

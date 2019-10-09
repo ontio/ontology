@@ -117,7 +117,7 @@ func checkTransactionPayload(tx *types.Transaction) error {
 	case *payload.DeployCode:
 		deploy := tx.Payload.(*payload.DeployCode)
 		_, err := wasmvm.ReadWasmModule(deploy, true)
-		if deploy.VmType == payload.WASMVM_TYPE && err != nil {
+		if deploy.VmType() == payload.WASMVM_TYPE && err != nil {
 			return err
 		}
 		return nil
