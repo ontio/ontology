@@ -45,7 +45,6 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
-	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
@@ -653,10 +652,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
-	if block.Header.Height < this.stateHashCheckHeight {
-		result.MerkleRoot = this.stateStore.GetStateMerkleRootWithNewHash(result.Hash)
-	} else if block.Header.Height == this.stateHashCheckHeight {
-		this.stateStore.deltaMerkleTree = merkle.NewTree(0, nil, nil)
+	if block.Header.Height == this.stateHashCheckHeight {
 		res, e := calculateTotalStateHash(overlay)
 		if e != nil {
 			err = e
