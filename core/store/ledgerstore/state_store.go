@@ -116,16 +116,7 @@ func (self *StateStore) init(currBlockHeight uint32) error {
 		log.Warn("merkle store is inconsistent with ChainStore. persistence will be disabled")
 	}
 	self.merkleTree = merkle.NewTree(treeSize, hashes, self.merkleHashStore)
-	if currBlockHeight < self.stateHashCheckHeight {
-		treeSize, hashes, err := self.GetStateMerkleTree()
-		if err != nil && err != scom.ErrNotFound {
-			return err
-		}
-		if treeSize > 0 && treeSize != currBlockHeight-self.stateHashCheckHeight+1 {
-			return fmt.Errorf("merkle tree size is inconsistent with blockheight: %d", currBlockHeight+1)
-		}
-		self.deltaMerkleTree = merkle.NewTree(treeSize, hashes, nil)
-	} else if currBlockHeight == self.stateHashCheckHeight {
+	if currBlockHeight == self.stateHashCheckHeight {
 		self.deltaMerkleTree = merkle.NewTree(0, nil, nil)
 	} else {
 		treeSize, hashes, err := self.GetStateMerkleTree()
