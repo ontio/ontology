@@ -116,8 +116,18 @@ func (self *StateStore) init(currBlockHeight uint32) error {
 		log.Warn("merkle store is inconsistent with ChainStore. persistence will be disabled")
 	}
 	self.merkleTree = merkle.NewTree(treeSize, hashes, self.merkleHashStore)
-
-	if currBlockHeight >= self.stateHashCheckHeight {
+	if currBlockHeight < self.stateHashCheckHeight {
+		treeSize, hashes, err := self.GetStateMerkleTree()
+		if err != nil && err != scom.ErrNotFound {
+			return err
+		}
+		if treeSize > 0 && treeSize != currBlockHeight-self.stateHashCheckHeight+1 {
+			return fmt.Errorf("merkle tree size is inconsistent with blockheight: %d", currBlockHeight+1)
+		}
+		self.deltaMerkleTree = merkle.NewTree(treeSize, hashes, nil)
+	} else if currBlockHeight == self.stateHashCheckHeight {
+		self.deltaMerkleTree = merkle.NewTree(0, nil, nil)
+	} else {
 		treeSize, hashes, err := self.GetStateMerkleTree()
 		if err != nil && err != scom.ErrNotFound {
 			return err
@@ -165,9 +175,7 @@ func (self *StateStore) getMerkleTree(key []byte) (uint32, []common.Uint256, err
 }
 
 func (self *StateStore) GetStateMerkleRoot(height uint32) (result common.Uint256, err error) {
-	if height < self.stateHashCheckHeight {
-		return
-	}
+
 	key := self.genStateMerkleRootKey(height)
 	var value []byte
 	value, err = self.store.Get(key)
@@ -184,9 +192,7 @@ func (self *StateStore) GetStateMerkleRoot(height uint32) (result common.Uint256
 }
 
 func (self *StateStore) AddStateMerkleTreeRoot(blockHeight uint32, writeSetHash common.Uint256) error {
-	if blockHeight < self.stateHashCheckHeight {
-		return nil
-	} else if blockHeight == self.stateHashCheckHeight {
+	if blockHeight == self.stateHashCheckHeight {
 		self.deltaMerkleTree = merkle.NewTree(0, nil, nil)
 	}
 	key := self.genStateMerkleTreeKey()
