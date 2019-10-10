@@ -121,9 +121,9 @@ func (self *StateStore) init(currBlockHeight uint32) error {
 	if err != nil && err != scom.ErrNotFound {
 		return err
 	}
-	expectedTreeSize := currBlockHeight+1
+	expectedTreeSize := currBlockHeight + 1
 	if currBlockHeight >= self.stateHashCheckHeight {
-		expectedTreeSize = currBlockHeight-self.stateHashCheckHeight+1
+		expectedTreeSize = currBlockHeight - self.stateHashCheckHeight + 1
 	}
 	if treeSize > 0 && treeSize != expectedTreeSize {
 		return fmt.Errorf("merkle tree size is inconsistent with blockheight: %d", currBlockHeight+1)
