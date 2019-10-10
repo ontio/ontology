@@ -116,25 +116,19 @@ func (self *StateStore) init(currBlockHeight uint32) error {
 		log.Warn("merkle store is inconsistent with ChainStore. persistence will be disabled")
 	}
 	self.merkleTree = merkle.NewTree(treeSize, hashes, self.merkleHashStore)
-	if currBlockHeight < self.stateHashCheckHeight {
-		treeSize, hashes, err := self.GetStateMerkleTree()
-		if err != nil && err != scom.ErrNotFound {
-			return err
-		}
-		if treeSize > 0 && treeSize != currBlockHeight+1 {
-			return fmt.Errorf("merkle tree size is inconsistent with blockheight: %d", currBlockHeight+1)
-		}
-		self.deltaMerkleTree = merkle.NewTree(treeSize, hashes, nil)
-	} else {
-		treeSize, hashes, err := self.GetStateMerkleTree()
-		if err != nil && err != scom.ErrNotFound {
-			return err
-		}
-		if treeSize > 0 && treeSize != currBlockHeight-self.stateHashCheckHeight+1 {
-			return fmt.Errorf("merkle tree size is inconsistent with blockheight: %d", currBlockHeight+1)
-		}
-		self.deltaMerkleTree = merkle.NewTree(treeSize, hashes, nil)
+
+	treeSize, hashes, err = self.GetStateMerkleTree()
+	if err != nil && err != scom.ErrNotFound {
+		return err
 	}
+	expectedTreeSize := currBlockHeight+1
+	if currBlockHeight >= self.stateHashCheckHeight {
+		expectedTreeSize = currBlockHeight-self.stateHashCheckHeight+1
+	}
+	if treeSize > 0 && treeSize != expectedTreeSize {
+		return fmt.Errorf("merkle tree size is inconsistent with blockheight: %d", currBlockHeight+1)
+	}
+	self.deltaMerkleTree = merkle.NewTree(treeSize, hashes, nil)
 	return nil
 }
 
