@@ -28,14 +28,18 @@ type ExecutionContext struct {
 	Code               []byte
 	OpReader           *utils.VmReader
 	InstructionPointer int
+	vmFlags            VmFeatureFlag
 }
 
-func NewExecutionContext(code []byte) *ExecutionContext {
-	var executionContext ExecutionContext
-	executionContext.Code = code
-	executionContext.OpReader = utils.NewVmReader(code)
-	executionContext.InstructionPointer = 0
-	return &executionContext
+func NewExecutionContext(code []byte, flag VmFeatureFlag) *ExecutionContext {
+	var context ExecutionContext
+	context.Code = code
+	context.OpReader = utils.NewVmReader(code)
+	context.OpReader.AllowEOF = flag.AllowReaderEOF
+	context.vmFlags = flag
+
+	context.InstructionPointer = 0
+	return &context
 }
 
 func (ec *ExecutionContext) GetInstructionPointer() int {
@@ -62,8 +66,8 @@ func (self *ExecutionContext) ReadOpCode() (val OpCode, eof bool) {
 }
 
 func (ec *ExecutionContext) Clone() *ExecutionContext {
-	executionContext := NewExecutionContext(ec.Code)
-	executionContext.InstructionPointer = ec.InstructionPointer
-	_ = executionContext.SetInstructionPointer(int64(ec.GetInstructionPointer()))
-	return executionContext
+	context := NewExecutionContext(ec.Code, ec.vmFlags)
+	context.InstructionPointer = ec.InstructionPointer
+	_ = context.SetInstructionPointer(int64(ec.GetInstructionPointer()))
+	return context
 }

@@ -128,6 +128,7 @@ func NewVmFeatureFlag(blockHeight uint32) vm.VmFeatureFlag {
 	var feature vm.VmFeatureFlag
 	enableHeight := config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
 	feature.DisableHasKey = blockHeight <= enableHeight
+	feature.AllowReaderEOF = blockHeight <= enableHeight
 
 	return feature
 }
