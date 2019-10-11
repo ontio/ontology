@@ -181,7 +181,7 @@ func (dc *DeployCode) ToArray() []byte {
 	return b.Bytes()
 }
 
-func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
+func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(dc.Code)
 	sink.WriteByte(dc.vmFlags)
 	sink.WriteString(dc.Name)
@@ -189,8 +189,6 @@ func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) error {
 	sink.WriteString(dc.Author)
 	sink.WriteString(dc.Email)
 	sink.WriteString(dc.Description)
-
-	return nil
 }
 
 //note: DeployCode.Code has data reference of param source

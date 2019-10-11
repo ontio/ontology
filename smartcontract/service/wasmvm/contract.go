@@ -93,10 +93,7 @@ func ContractCreate(proc *exec.Process,
 		panic(errors.NewErr("contract has been deployed"))
 	}
 
-	err = self.Service.CacheDB.PutContract(dep)
-	if err != nil {
-		panic(err)
-	}
+	self.Service.CacheDB.PutContract(dep)
 
 	length, err := proc.WriteAt(contractAddr[:], int64(newAddressPtr))
 	return uint32(length)
@@ -174,10 +171,7 @@ func ContractMigrate(proc *exec.Process,
 	}
 	oldAddress := self.Service.ContextRef.CurrentContext().ContractAddress
 
-	err = self.Service.CacheDB.PutContract(dep)
-	if err != nil {
-		panic(err)
-	}
+	self.Service.CacheDB.PutContract(dep)
 	self.Service.CacheDB.DeleteContract(oldAddress)
 
 	iter := self.Service.CacheDB.NewIterator(oldAddress[:])

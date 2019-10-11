@@ -100,18 +100,14 @@ func (self *CacheDB) GetContract(addr comm.Address) (*payload.DeployCode, error)
 	return contract, nil
 }
 
-func (self *CacheDB) PutContract(contract *payload.DeployCode) error {
+func (self *CacheDB) PutContract(contract *payload.DeployCode) {
 	address := contract.Address()
 
 	sink := comm.NewZeroCopySink(nil)
-	err := contract.Serialization(sink)
-	if err != nil {
-		return err
-	}
+	contract.Serialization(sink)
 
 	value := sink.Bytes()
 	self.put(common.ST_CONTRACT, address[:], value)
-	return nil
 }
 
 func (self *CacheDB) DeleteContract(address comm.Address) {

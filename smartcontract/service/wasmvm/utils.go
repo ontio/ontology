@@ -40,6 +40,45 @@ func ReadWasmMemory(proc *exec.Process, ptr uint32, len uint32) ([]byte, error) 
 	return keybytes, nil
 }
 
+func checkOntoWasm(m *wasm.Module) error {
+	if m.Start != nil {
+		return errors.New("[Validate] start section is not allowed.")
+	}
+
+	if m.Export == nil {
+		return errors.New("[Validate] No export in wasm!")
+	}
+
+	if len(m.Export.Entries) != 1 {
+		return errors.New("[Validate] Can only export one entry.")
+	}
+
+	entry, ok := m.Export.Entries["invoke"]
+	if ok == false {
+		return errors.New("[Validate] invoke entry function does not export.")
+	}
+
+	if entry.Kind != wasm.ExternalFunction {
+		return errors.New("[Validate] Can only export invoke function entry.")
+	}
+
+	//get entry index
+	index := int64(entry.Index)
+	//get function index
+	fidx := m.Function.Types[int(index)]
+	//get  function type
+	ftype := m.Types.Entries[int(fidx)]
+
+	if len(ftype.ReturnTypes) > 0 {
+		return errors.New("[Validate] ExecCode error! Invoke function return sig error")
+	}
+	if len(ftype.ParamTypes) > 0 {
+		return errors.New("[Validate] ExecCode error! Invoke function param sig error")
+	}
+
+	return nil
+}
+
 func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
 	m, err := wasm.ReadModule(bytes.NewReader(Code), func(name string) (*wasm.Module, error) {
 		switch name {
@@ -52,11 +91,12 @@ func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
 		return nil, err
 	}
 
-	if m.Export == nil {
-		return nil, errors.New("[Call]No export in wasm!")
-	}
-
 	if verify {
+		err = checkOntoWasm(m)
+		if err != nil {
+			return nil, err
+		}
+
 		err = validate.VerifyModule(m)
 		if err != nil {
 			return nil, err

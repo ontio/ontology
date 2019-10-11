@@ -93,6 +93,10 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, err
 	}
 
+	if code == nil {
+		return nil, errors.NewErr("wasm contract does not exist")
+	}
+
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
 	host := &Runtime{Service: this, Input: contract.Args}
 
