@@ -11,7 +11,7 @@ compilerdir="./ontology-wasm-cdt-cpp/install/bin"
 
 for f in $(ls *.cpp)
 do
-	$compilerdir/ont_cpp $f -lbase58 -lcrypto -lbuiltins -o  ${f%.cpp}.wasm
+	$compilerdir/ont_cpp $f -lbase58 -lbuiltins -o  ${f%.cpp}.wasm
 done
 
 rm -rf ontology-wasm-cdt-cpp
