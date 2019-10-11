@@ -27,6 +27,7 @@ import (
 type VmReader struct {
 	reader     *bytes.Reader
 	BaseStream []byte
+	AllowEOF   bool // allow VmReader.ReadBytes got EOF and return 0 bytes
 }
 
 func NewVmReader(b []byte) *VmReader {
@@ -43,10 +44,16 @@ func (r *VmReader) ReadByte() (byte, error) {
 
 func (r *VmReader) ReadBytes(count int) ([]byte, error) {
 	// first check to avoid memory attack
-	if r.reader.Len() < count {
+	amount := r.reader.Len()
+	if r.AllowEOF {
+		amount = 1 * 1024 * 1024
+	}
+	if amount < count {
 		return nil, io.EOF
 	}
 	b := make([]byte, count)
+	// when reader does not has enough bytes, it will return the actual length and error is nil
+	// this is a bug previously(it should use io.ReadFull), but we have to keep it to avoid hard fork
 	_, err := r.reader.Read(b)
 	if err != nil {
 		return nil, err
