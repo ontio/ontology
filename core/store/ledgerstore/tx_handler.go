@@ -55,9 +55,11 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 		err         error
 	)
 
-	_, err = wasmvm.ReadWasmModule(deploy, true)
-	if deploy.VmType() == payload.WASMVM_TYPE && err != nil {
-		return err
+	if deploy.VmType() == payload.WASMVM_TYPE {
+		_, err = wasmvm.ReadWasmModule(deploy.Code, true)
+		if err != nil {
+			return err
+		}
 	}
 
 	if tx.GasPrice != 0 {

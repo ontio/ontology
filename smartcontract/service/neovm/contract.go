@@ -186,9 +186,12 @@ func isContractParamValid(engine *vm.Executor) (*payload.DeployCode, error) {
 	}
 
 	contract, err := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
-
 	if err != nil {
 		return nil, err
+	}
+
+	if contract.VmType() != payload.NEOVM_TYPE {
+		return nil, fmt.Errorf("[Contract] expect NEOVM_TYPE. get WASMVM_TYPE")
 	}
 
 	return contract, nil
