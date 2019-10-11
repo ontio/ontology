@@ -25,7 +25,6 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/validate"
 	"github.com/go-interpreter/wagon/wasm"
-	"github.com/ontio/ontology/core/payload"
 )
 
 func ReadWasmMemory(proc *exec.Process, ptr uint32, len uint32) ([]byte, error) {
@@ -41,12 +40,8 @@ func ReadWasmMemory(proc *exec.Process, ptr uint32, len uint32) ([]byte, error) 
 	return keybytes, nil
 }
 
-func ReadWasmModule(dep *payload.DeployCode, verify bool) (*exec.CompiledModule, error) {
-	if dep.VmType() == payload.NEOVM_TYPE {
-		return nil, errors.New("only wasm contract need verify")
-	}
-
-	m, err := wasm.ReadModule(bytes.NewReader(dep.Code), func(name string) (*wasm.Module, error) {
+func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
+	m, err := wasm.ReadModule(bytes.NewReader(Code), func(name string) (*wasm.Module, error) {
 		switch name {
 		case "env":
 			return NewHostModule(), nil
@@ -67,7 +62,7 @@ func ReadWasmModule(dep *payload.DeployCode, verify bool) (*exec.CompiledModule,
 			return nil, err
 		}
 
-		err = validate.VerifyWasmCodeFromRust(dep.Code)
+		err = validate.VerifyWasmCodeFromRust(Code)
 		if err != nil {
 			return nil, err
 		}

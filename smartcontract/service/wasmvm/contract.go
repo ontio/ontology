@@ -79,8 +79,12 @@ func ContractCreate(proc *exec.Process,
 		panic(err)
 	}
 
-	_, err = ReadWasmModule(dep, true)
-	if dep.VmType() == payload.WASMVM_TYPE && err != nil {
+	if dep.VmType() != payload.WASMVM_TYPE {
+		panic("[Contract] expect WASMVM_TYPE. get NEOVM_TYPE")
+	}
+
+	_, err = ReadWasmModule(dep.Code, true)
+	if err != nil {
 		panic(err)
 	}
 
@@ -155,8 +159,12 @@ func ContractMigrate(proc *exec.Process,
 		panic(err)
 	}
 
-	_, err = ReadWasmModule(dep, true)
-	if dep.VmType() == payload.WASMVM_TYPE && err != nil {
+	if dep.VmType() != payload.WASMVM_TYPE {
+		panic("[Contract] expect WASMVM_TYPE. get NEOVM_TYPE")
+	}
+
+	_, err = ReadWasmModule(dep.Code, true)
+	if err != nil {
 		panic(err)
 	}
 
