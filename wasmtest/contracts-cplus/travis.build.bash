@@ -6,7 +6,7 @@ currentdir=$(dirname $0)
 cd $currentdir
 
 git clone --recursive https://github.com/ontio/ontology-wasm-cdt-cpp
-cd ontology-wasm-cdt-cpp; git checkout 764c658ec159c8c5ad4b8010006816644ccf83a1;bash compiler_install.bash;cd ../
+cd ontology-wasm-cdt-cpp; git checkout v1.0 -b testframe; bash compiler_install.bash;cd ../
 compilerdir="./ontology-wasm-cdt-cpp/install/bin"
 
 for f in $(ls *.cpp)
