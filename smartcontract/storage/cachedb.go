@@ -104,10 +104,7 @@ func (self *CacheDB) PutContract(contract *payload.DeployCode) error {
 	address := contract.Address()
 
 	sink := comm.NewZeroCopySink(nil)
-	err := contract.Serialization(sink)
-	if err != nil {
-		return err
-	}
+	contract.Serialization(sink)
 
 	value := sink.Bytes()
 	self.put(common.ST_CONTRACT, address[:], value)
