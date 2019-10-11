@@ -209,7 +209,7 @@ func parseRawParamValue(pType string, pValue string) (interface{}, error) {
 //Return type can be: bytearray, string, int, bool.
 //Types can be split with "," each other, such as int,string,bool
 //Type array can be express with "[]", such [int,string], param array can be nested, such as [int,[int,bool]]
-func ParseReturnValue(rawValue interface{}, rawReturnTypeStr string, vmtype byte) ([]interface{}, error) {
+func ParseReturnValue(rawValue interface{}, rawReturnTypeStr string, vmtype payload.VmType) ([]interface{}, error) {
 	returnTypes, _, err := parseRawParamsString(rawReturnTypeStr)
 	if err != nil {
 		return nil, fmt.Errorf("parse raw return types:%s error:%s", rawReturnTypeStr, err)

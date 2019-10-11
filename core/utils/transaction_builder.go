@@ -36,21 +36,21 @@ import (
 const NATIVE_INVOKE_NAME = "Ontology.Native.Invoke" // copy from smartcontract/service/neovm/config.go to avoid cycle dependences
 
 // NewDeployTransaction returns a deploy Transaction
-func NewDeployTransaction(code []byte, name, version, author, email, desp string, vmType byte) *types.MutableTransaction {
+func NewDeployTransaction(code []byte, name, version, author, email, desp string, vmType payload.VmType) *types.MutableTransaction {
 	//TODO: check arguments
-	DeployCodePayload := &payload.DeployCode{
+	depCode := &payload.DeployCode{
 		Code:        code,
-		VmType:      vmType,
 		Name:        name,
 		Version:     version,
 		Author:      author,
 		Email:       email,
 		Description: desp,
 	}
+	depCode.SetVmType(vmType)
 
 	return &types.MutableTransaction{
 		TxType:  types.Deploy,
-		Payload: DeployCodePayload,
+		Payload: depCode,
 	}
 }
 

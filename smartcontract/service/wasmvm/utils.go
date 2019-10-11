@@ -42,7 +42,7 @@ func ReadWasmMemory(proc *exec.Process, ptr uint32, len uint32) ([]byte, error) 
 }
 
 func ReadWasmModule(dep *payload.DeployCode, verify bool) (*exec.CompiledModule, error) {
-	if dep.VmType == payload.NEOVM_TYPE {
+	if dep.VmType() == payload.NEOVM_TYPE {
 		return nil, errors.New("only wasm contract need verify")
 	}
 
