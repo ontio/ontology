@@ -249,7 +249,7 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 		return common.ToHexString(bs), nil
 	case bigintType:
 		var bs []byte
-		if self.bigInt.Int64() == 0 {
+		if self.bigInt.Sign() == 0 {
 			bs = []byte{0}
 		} else {
 			bs = common.BigIntToNeoBytes(self.bigInt)
