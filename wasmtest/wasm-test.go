@@ -192,6 +192,7 @@ func checkErr(err error) {
 
 func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *ledger.Ledger, addr common.Address, acct *account.Account) {
 	res, err := database.PreExecuteContract(tx)
+	log.Infof("testcase consume gas: %d", res.Gas)
 	checkErr(err)
 
 	height := database.GetCurrentBlockHeight()
@@ -244,16 +245,22 @@ func main() {
 	log.Infof("deploying %d wasm contracts", len(contract))
 	txes := make([]*types.Transaction, 0, len(contract))
 	for file, cont := range contract {
+		var tx *types.Transaction
+		var err error
 		if strings.HasSuffix(file, ".wasm") {
-			tx, err := NewDeployWasmContract(acct, cont)
-			checkErr(err)
-			txes = append(txes, tx)
+			tx, err = NewDeployWasmContract(acct, cont)
 		} else if strings.HasSuffix(file, ".avm") {
-			tx, err := NewDeployNeoContract(acct, cont)
-			checkErr(err)
-			txes = append(txes, tx)
+			tx, err = NewDeployNeoContract(acct, cont)
 		}
+
+		checkErr(err)
+
+		res, err := database.PreExecuteContract(tx)
+		log.Infof("deploy %s consume gas: %d", file, res.Gas)
+		checkErr(err)
+		txes = append(txes, tx)
 	}
+
 	block, _ := makeBlock(acct, txes)
 	err = database.AddBlock(block, common.UINT256_EMPTY)
 	checkErr(err)
