@@ -48,6 +48,7 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
+	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
 )
@@ -1031,7 +1032,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	}
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
-	config := &smartcontract.Config{
+	sconfig := &smartcontract.Config{
 		Time:      blockTime,
 		Height:    height + 1,
 		Tx:        tx,
@@ -1053,12 +1054,13 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		sc := smartcontract.SmartContract{
-			Config:   config,
-			Store:    this,
-			CacheDB:  cache,
-			GasTable: gasTable,
-			Gas:      math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
-			PreExec:  true,
+			Config:       sconfig,
+			Store:        this,
+			CacheDB:      cache,
+			GasTable:     gasTable,
+			Gas:          math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
+			WasmExecStep: config.DEFAULT_WASM_MAX_STEPCOUNT,
+			PreExec:      true,
 		}
 		//start the smart contract executive function
 		engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
@@ -1089,6 +1091,14 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasCost, Result: cv, Notify: sc.Notifications}, nil
 	} else if tx.TxType == types.Deploy {
 		deploy := tx.Payload.(*payload.DeployCode)
+
+		if deploy.VmType() == payload.WASMVM_TYPE {
+			_, err := wasmvm.ReadWasmModule(deploy.Code, true)
+			if err != nil {
+				return stf, err
+			}
+		}
+
 		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasTable[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
 	} else {
 		return stf, errors.NewErr("transaction type error")
