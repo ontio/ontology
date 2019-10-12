@@ -1032,7 +1032,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	}
 	stf := &sstate.PreExecResult{State: event.CONTRACT_STATE_FAIL, Gas: neovm.MIN_TRANSACTION_GAS, Result: nil}
 
-	config := &smartcontract.Config{
+	sconfig := &smartcontract.Config{
 		Time:      blockTime,
 		Height:    height + 1,
 		Tx:        tx,
@@ -1054,12 +1054,13 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		invoke := tx.Payload.(*payload.InvokeCode)
 
 		sc := smartcontract.SmartContract{
-			Config:   config,
-			Store:    this,
-			CacheDB:  cache,
-			GasTable: gasTable,
-			Gas:      math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
-			PreExec:  true,
+			Config:       sconfig,
+			Store:        this,
+			CacheDB:      cache,
+			GasTable:     gasTable,
+			Gas:          math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
+			WasmExecStep: config.DEFAULT_WASM_MAX_STEPCOUNT,
+			PreExec:      true,
 		}
 		//start the smart contract executive function
 		engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)

@@ -137,7 +137,8 @@ func ExactTestCase(code []byte) [][]common3.TestCase {
 	vm.HostData = host
 	vm.RecoverPanic = true
 	envGasLimit := uint64(100000000000000)
-	vm.AvaliableGas = &exec.Gas{GasLimit: &envGasLimit, GasPrice: 0, GasFactor: 5}
+	envExecStep := uint64(100000000000000)
+	vm.AvaliableGas = &exec.Gas{GasLimit: &envGasLimit, GasPrice: 0, GasFactor: 5, ExecStep: &envExecStep}
 	vm.CallStackDepth = 1024
 
 	entry := compiled.RawModule.Export.Entries["invoke"]
