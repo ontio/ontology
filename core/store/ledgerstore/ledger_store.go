@@ -19,6 +19,7 @@
 package ledgerstore
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"fmt"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
@@ -960,10 +961,6 @@ func (this *LedgerStoreImp) GetRawHeaderByHash(blockHash common.Uint256) (*types
 //GetHeaderByHash return the block header by block height
 func (this *LedgerStoreImp) GetHeaderByHeight(height uint32) (*types.Header, error) {
 	blockHash := this.GetBlockHash(height)
-	var empty common.Uint256
-	if blockHash == empty {
-		return nil, nil
-	}
 	return this.GetHeaderByHash(blockHash)
 }
 
@@ -1096,6 +1093,14 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), true)
 			if err != nil {
 				return stf, err
+			}
+		} else {
+			wasmMagicversion := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00}
+
+			if len(deploy.GetRawCode()) >= len(wasmMagicversion) {
+				if bytes.Compare(wasmMagicversion, deploy.GetRawCode()[:8]) == 0 {
+					return stf, errors.NewErr("this code is wasm binary. can not deployed as neo contract")
+				}
 			}
 		}
 
