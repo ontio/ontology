@@ -58,10 +58,12 @@ const contractDir = "testwasmdata"
 const testcaseMethod = "testcase"
 
 func NewDeployWasmContract(signer *account.Account, code []byte) (*types.Transaction, error) {
-	mutable := utils.NewDeployCodeTransaction(0, 100000000, code, payload.WASMVM_TYPE, "name", "version",
+	mutable, err := utils.NewDeployCodeTransaction(0, 100000000, code, payload.WASMVM_TYPE, "name", "version",
 		"author", "email", "desc")
-
-	err := utils.SignTransaction(signer, mutable)
+	if err != nil {
+		return nil, err
+	}
+	err = utils.SignTransaction(signer, mutable)
 	if err != nil {
 		return nil, err
 	}
@@ -70,10 +72,12 @@ func NewDeployWasmContract(signer *account.Account, code []byte) (*types.Transac
 }
 
 func NewDeployNeoContract(signer *account.Account, code []byte) (*types.Transaction, error) {
-	mutable := utils.NewDeployCodeTransaction(0, 100000000, code, payload.NEOVM_TYPE, "name", "version",
+	mutable, err := utils.NewDeployCodeTransaction(0, 100000000, code, payload.NEOVM_TYPE, "name", "version",
 		"author", "email", "desc")
-
-	err := utils.SignTransaction(signer, mutable)
+	if err != nil {
+		return nil, err
+	}
+	err = utils.SignTransaction(signer, mutable)
 	if err != nil {
 		return nil, err
 	}
