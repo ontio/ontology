@@ -20,6 +20,7 @@ package ledgerstore
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
 	"hash"
@@ -1096,6 +1097,17 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), true)
 			if err != nil {
 				return stf, err
+			}
+		} else {
+			var wasmMagic uint32 = 0x6d736100
+			var wasmVersion uint32 = 0x1
+
+			if len(deploy.Code) >= 8 {
+				magic := binary.LittleEndian.Uint32(deploy.Code[:4])
+				version := binary.LittleEndian.Uint32(deploy.Code[4:8])
+				if magic == wasmMagic && version == wasmVersion {
+					return stf, errors.NewErr("this code is wasm binary. can not deployed as neo contract")
+				}
 			}
 		}
 
