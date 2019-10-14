@@ -605,7 +605,10 @@ func DeployContract(
 	if err != nil {
 		return "", fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	mutable := NewDeployCodeTransaction(gasPrice, gasLimit, c, vmtype, cname, cversion, cauthor, cemail, cdesc)
+	mutable, err := NewDeployCodeTransaction(gasPrice, gasLimit, c, vmtype, cname, cversion, cauthor, cemail, cdesc)
+	if err != nil {
+		return "", err
+	}
 
 	err = SignTransaction(signer, mutable)
 	if err != nil {
@@ -634,7 +637,10 @@ func PrepareDeployContract(
 	if err != nil {
 		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	mutable := NewDeployCodeTransaction(0, 0, c, vmtype, cname, cversion, cauthor, cemail, cdesc)
+	mutable, err := NewDeployCodeTransaction(0, 0, c, vmtype, cname, cversion, cauthor, cemail, cdesc)
+	if err != nil {
+		return nil, fmt.Errorf("NewDeployCodeTransaction error:%s", err)
+	}
 	tx, _ := mutable.IntoImmutable()
 	var buffer bytes.Buffer
 	err = tx.Serialize(&buffer)
@@ -776,17 +782,12 @@ func PrepareInvokeNativeContract(
 
 //NewDeployCodeTransaction return a smart contract deploy transaction instance
 func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType payload.VmType,
-	cname, cversion, cauthor, cemail, cdesc string) *types.MutableTransaction {
+	cname, cversion, cauthor, cemail, cdesc string) (*types.MutableTransaction, error) {
 
-	deployPayload := &payload.DeployCode{
-		Code:        code,
-		Name:        cname,
-		Version:     cversion,
-		Author:      cauthor,
-		Email:       cemail,
-		Description: cdesc,
+	deployPayload, err := payload.NewDeployCode(code, vmType, cname, cversion, cauthor, cemail, cdesc)
+	if err != nil {
+		return nil, err
 	}
-	deployPayload.SetVmType(vmType)
 	tx := &types.MutableTransaction{
 		Version:  VERSION_TRANSACTION,
 		TxType:   types.Deploy,
@@ -796,7 +797,7 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType pay
 		GasLimit: gasLimit,
 		Sigs:     make([]types.Sig, 0, 0),
 	}
-	return tx
+	return tx, nil
 }
 
 //ParseNeoVMContractReturnTypeBool return bool value of smart contract execute code.

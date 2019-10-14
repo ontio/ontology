@@ -386,9 +386,8 @@ const (
 // base on payload type which have different struture
 type Payload interface {
 	//Serialize payload data
-	Serialize(w io.Writer) error
-
-	Deserialize(r io.Reader) error
+	Serialization(sink *common.ZeroCopySink)
+	Deserialization(source *common.ZeroCopySource) error
 }
 
 func (tx *Transaction) Serialization(sink *common.ZeroCopySink) {

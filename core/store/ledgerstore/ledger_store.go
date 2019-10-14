@@ -1093,13 +1093,13 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		deploy := tx.Payload.(*payload.DeployCode)
 
 		if deploy.VmType() == payload.WASMVM_TYPE {
-			_, err := wasmvm.ReadWasmModule(deploy.Code, true)
+			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), true)
 			if err != nil {
 				return stf, err
 			}
 		}
 
-		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasTable[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.Code), gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
+		return &sstate.PreExecResult{State: event.CONTRACT_STATE_SUCCESS, Gas: gasTable[neovm.CONTRACT_CREATE_NAME] + calcGasByCodeLen(len(deploy.GetRawCode()), gasTable[neovm.UINT_DEPLOY_CODE_LEN_NAME]), Result: nil}, nil
 	} else {
 		return stf, errors.NewErr("transaction type error")
 	}

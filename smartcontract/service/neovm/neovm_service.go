@@ -192,7 +192,7 @@ func (this *NeoVmService) Invoke() (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			code, err := this.getContract(addr)
+			code, err := this.getNeoContract(addr)
 			if err != nil {
 				return nil, err
 			}
@@ -260,14 +260,14 @@ func (this *NeoVmService) SystemCall(engine *vm.Executor) error {
 	return nil
 }
 
-func (this *NeoVmService) getContract(address scommon.Address) ([]byte, error) {
+func (this *NeoVmService) getNeoContract(address scommon.Address) ([]byte, error) {
 	dep, err := this.CacheDB.GetContract(address)
 	if err != nil {
-		return nil, errors.NewErr("[getContract] get contract context error!")
+		return nil, errors.NewErr("[getNeoContract] get contract context error!")
 	}
 	log.Debugf("invoke contract address:%s", address.ToHexString())
 	if dep == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}
-	return dep.Code, nil
+	return dep.GetNeoCode()
 }

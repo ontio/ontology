@@ -98,7 +98,11 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, errors.NewErr("wasm contract does not exist")
 	}
 
-	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
+	wasmCode, err := code.GetWasmCode()
+	if err != nil {
+		return nil, errors.NewErr("not a wasm contract")
+	}
+	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: wasmCode})
 	host := &Runtime{Service: this, Input: contract.Args}
 
 	var compiled *exec.CompiledModule
@@ -110,7 +114,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	if compiled == nil {
-		compiled, err = ReadWasmModule(code.Code, false)
+		compiled, err = ReadWasmModule(wasmCode, false)
 		if err != nil {
 			return nil, err
 		}
