@@ -56,7 +56,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	)
 
 	if deploy.VmType() == payload.WASMVM_TYPE {
-		_, err = wasmvm.ReadWasmModule(deploy.Code, true)
+		_, err = wasmvm.ReadWasmModule(deploy.GetRawCode(), true)
 		if err != nil {
 			return err
 		}
@@ -82,7 +82,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 			return nil
 		}
 
-		gasLimit := createGasPrice + calcGasByCodeLen(len(deploy.Code), uintCodePrice)
+		gasLimit := createGasPrice + calcGasByCodeLen(len(deploy.GetRawCode()), uintCodePrice)
 		balance, err := isBalanceSufficient(tx.Payer, cache, config, store, gasLimit*tx.GasPrice)
 		if err != nil {
 			if err := costInvalidGas(tx.Payer, balance, config, overlay, store, notify); err != nil {

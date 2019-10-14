@@ -46,7 +46,7 @@ func VmTypeFromByte(ty byte) (VmType, error) {
 
 // DeployCode is an implementation of transaction payload for deploy smartcontract
 type DeployCode struct {
-	Code []byte
+	code []byte
 	//0, 1 means NEOVM_TYPE, 3 means WASMVM_TYPE
 	vmFlags     byte
 	Name        string
@@ -58,15 +58,51 @@ type DeployCode struct {
 	address common.Address
 }
 
+func NewDeployCode(code []byte, name, version, author, email, description string) (*DeployCode, error) {
+	dc := &DeployCode{
+		code:        code,
+		Name:        name,
+		Version:     version,
+		Author:      author,
+		Email:       email,
+		Description: description,
+	}
+	err := validateDeployCode(dc)
+	if err != nil {
+		return nil, err
+	}
+	return dc, nil
+}
+
 func (dc *DeployCode) Address() common.Address {
 	if dc.address == common.ADDRESS_EMPTY {
-		dc.address = common.AddressFromVmCode(dc.Code)
+		dc.address = common.AddressFromVmCode(dc.code)
 	}
 	return dc.address
 }
 
 func (dc *DeployCode) SetVmType(ty VmType) {
 	dc.vmFlags = byte(ty)
+}
+
+func (dc *DeployCode) GetRawCode() []byte {
+	return dc.code
+}
+
+func (dc *DeployCode) GetWasmCode() ([]byte, error) {
+	if dc.VmType() == WASMVM_TYPE {
+		return dc.code, nil
+	} else {
+		return nil, errors.NewErr("not wasm contract")
+	}
+}
+
+func (dc *DeployCode) GetNeoCode() ([]byte, error) {
+	if dc.VmType() == NEOVM_TYPE {
+		return dc.code, nil
+	} else {
+		return nil, errors.NewErr("not neo contract")
+	}
 }
 
 func checkVmFlags(vmFlags byte) error {
@@ -92,7 +128,7 @@ func (dc *DeployCode) VmType() VmType {
 func (dc *DeployCode) Serialize(w io.Writer) error {
 	var err error
 
-	err = serialization.WriteVarBytes(w, dc.Code)
+	err = serialization.WriteVarBytes(w, dc.code)
 	if err != nil {
 		return fmt.Errorf("DeployCode Code Serialize failed: %s", err)
 	}
@@ -135,7 +171,7 @@ func (dc *DeployCode) Deserialize(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("DeployCode Code Deserialize failed: %s", err)
 	}
-	dc.Code = code
+	dc.code = code
 
 	dc.vmFlags, err = serialization.ReadByte(r)
 	if err != nil {
@@ -182,7 +218,7 @@ func (dc *DeployCode) ToArray() []byte {
 }
 
 func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(dc.Code)
+	sink.WriteVarBytes(dc.code)
 	sink.WriteByte(dc.vmFlags)
 	sink.WriteString(dc.Name)
 	sink.WriteString(dc.Version)
@@ -194,7 +230,7 @@ func (dc *DeployCode) Serialization(sink *common.ZeroCopySink) {
 //note: DeployCode.Code has data reference of param source
 func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 	var eof, irregular bool
-	dc.Code, _, irregular, eof = source.NextVarBytes()
+	dc.code, _, irregular, eof = source.NextVarBytes()
 	if irregular {
 		return common.ErrIrregularData
 	}
@@ -246,11 +282,11 @@ func validateDeployCode(dep *DeployCode) error {
 	}
 
 	if dep.VmType() == WASMVM_TYPE {
-		if len(dep.Code) > maxWasmCodeSize {
+		if len(dep.code) > maxWasmCodeSize {
 			return errors.NewErr("[contract] Code too long!")
 		}
 	} else {
-		if len(dep.Code) > 1024*1024 {
+		if len(dep.code) > 1024*1024 {
 			return errors.NewErr("[contract] Code too long!")
 		}
 	}
@@ -290,7 +326,7 @@ func CreateDeployCode(code []byte,
 	}
 
 	contract := &DeployCode{
-		Code:        code,
+		code:        code,
 		vmFlags:     byte(vmType),
 		Name:        string(name),
 		Version:     string(version),

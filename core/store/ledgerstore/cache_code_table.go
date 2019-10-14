@@ -32,8 +32,8 @@ type CacheCodeTable struct {
 func (table *CacheCodeTable) GetCode(address []byte) ([]byte, error) {
 	value, _ := table.store.TryGet(scom.ST_CONTRACT, address)
 	if value == nil {
-		return nil, fmt.Errorf("[GetCode] TryGet contract error! address:%x", address)
+		return nil, fmt.Errorf("[GetRawCode] TryGet contract error! address:%x", address)
 	}
 
-	return value.Value.(*payload.DeployCode).Code, nil
+	return value.Value.(*payload.DeployCode).GetRawCode(), nil
 }

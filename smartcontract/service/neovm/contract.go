@@ -136,7 +136,7 @@ func ContractGetCode(service *NeoVmService, engine *vm.Executor) error {
 		return err
 	}
 	if d, ok := i.Data.(*payload.DeployCode); ok {
-		return engine.EvalStack.PushBytes(d.Code)
+		return engine.EvalStack.PushBytes(d.GetRawCode())
 	}
 	return fmt.Errorf("[ContractGetCode] Type error ")
 }

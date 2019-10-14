@@ -120,8 +120,11 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 }
 
 func newGoverningToken() *types.Transaction {
-	mutable := utils.NewDeployTransaction(nutils.OntContractAddress[:], "ONT", "1.0",
+	mutable, err := utils.NewDeployTransaction(nutils.OntContractAddress[:], "ONT", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT Token", payload.NEOVM_TYPE)
+	if err != nil {
+		panic("[NewDeployTransaction] construct genesis governing token transaction error ")
+	}
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("construct genesis governing token transaction error ")
@@ -130,8 +133,11 @@ func newGoverningToken() *types.Transaction {
 }
 
 func newUtilityToken() *types.Transaction {
-	mutable := utils.NewDeployTransaction(nutils.OngContractAddress[:], "ONG", "1.0",
+	mutable, err := utils.NewDeployTransaction(nutils.OngContractAddress[:], "ONG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONG Token", payload.NEOVM_TYPE)
+	if err != nil {
+		panic("[NewDeployTransaction] construct genesis governing token transaction error ")
+	}
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("construct genesis utility token transaction error ")
@@ -140,9 +146,12 @@ func newUtilityToken() *types.Transaction {
 }
 
 func newParamContract() *types.Transaction {
-	mutable := utils.NewDeployTransaction(nutils.ParamContractAddress[:],
+	mutable, err := utils.NewDeployTransaction(nutils.ParamContractAddress[:],
 		"ParamConfig", "1.0", "Ontology Team", "contact@ont.io",
 		"Chain Global Environment Variables Manager ", payload.NEOVM_TYPE)
+	if err != nil {
+		panic("[NewDeployTransaction] construct genesis governing token transaction error ")
+	}
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("construct genesis param transaction error ")
@@ -151,8 +160,11 @@ func newParamContract() *types.Transaction {
 }
 
 func newGovConfigTx() *types.Transaction {
-	mutable := utils.NewDeployTransaction(nutils.GovernanceContractAddress[:], "CONFIG", "1.0",
+	mutable, err := utils.NewDeployTransaction(nutils.GovernanceContractAddress[:], "CONFIG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Consensus Config", payload.NEOVM_TYPE)
+	if err != nil {
+		panic("[NewDeployTransaction] construct genesis governing token transaction error ")
+	}
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("construct genesis config transaction error ")
@@ -161,8 +173,11 @@ func newGovConfigTx() *types.Transaction {
 }
 
 func deployAuthContract() *types.Transaction {
-	mutable := utils.NewDeployTransaction(nutils.AuthContractAddress[:], "AuthContract", "1.0",
+	mutable, err := utils.NewDeployTransaction(nutils.AuthContractAddress[:], "AuthContract", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Authorization Contract", payload.NEOVM_TYPE)
+	if err != nil {
+		panic("[NewDeployTransaction] construct genesis governing token transaction error ")
+	}
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("construct genesis auth transaction error ")
@@ -171,8 +186,11 @@ func deployAuthContract() *types.Transaction {
 }
 
 func deployOntIDContract() *types.Transaction {
-	mutable := utils.NewDeployTransaction(nutils.OntIDContractAddress[:], "OID", "1.0",
+	mutable, err := utils.NewDeployTransaction(nutils.OntIDContractAddress[:], "OID", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT ID", payload.NEOVM_TYPE)
+	if err != nil {
+		panic("[NewDeployTransaction] construct genesis governing token transaction error ")
+	}
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("construct genesis ontid transaction error ")
