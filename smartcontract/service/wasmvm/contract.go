@@ -79,7 +79,7 @@ func ContractCreate(proc *exec.Process,
 		panic(err)
 	}
 
-	wasmCode, err := dep.GetWasmContract()
+	wasmCode, err := dep.GetWasmCode()
 	if err != nil {
 		panic(err)
 	}
@@ -156,7 +156,7 @@ func ContractMigrate(proc *exec.Process,
 		panic(err)
 	}
 
-	wasmCode, err := dep.GetWasmContract()
+	wasmCode, err := dep.GetWasmCode()
 	if err != nil {
 		panic(err)
 	}
