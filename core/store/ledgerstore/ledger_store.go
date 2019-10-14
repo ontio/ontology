@@ -1097,8 +1097,8 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		} else {
 			wasmMagicversion := []byte{0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00}
 
-			if len(deploy.Code) >= len(wasmMagicversion) {
-				if bytes.Compare(wasmMagicversion, deploy.Code[:8]) == 0 {
+			if len(deploy.GetRawCode()) >= len(wasmMagicversion) {
+				if bytes.Compare(wasmMagicversion, deploy.GetRawCode()[:8]) == 0 {
 					return stf, errors.NewErr("this code is wasm binary. can not deployed as neo contract")
 				}
 			}
