@@ -50,7 +50,7 @@ func (self *Bookkeeper) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(keypair.SerializePublicKey(self.Issuer))
 }
 func (self *Bookkeeper) Deserialization(source *common.ZeroCopySource) error {
-	data, _, irregular, eof := source.NextVarBytes()
+	pubKey, _, irregular, eof := source.NextVarBytes()
 	if irregular {
 		return common.ErrIrregularData
 	}
@@ -58,7 +58,7 @@ func (self *Bookkeeper) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 	var err error
-	self.PubKey, err = keypair.DeserializePublicKey(data)
+	self.PubKey, err = keypair.DeserializePublicKey(pubKey)
 	if err != nil {
 		return fmt.Errorf("[Bookkeeper], deserializing PubKey failed: %s", err)
 	}
