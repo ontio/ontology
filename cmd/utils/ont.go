@@ -784,11 +784,10 @@ func PrepareInvokeNativeContract(
 func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType payload.VmType,
 	cname, cversion, cauthor, cemail, cdesc string) (*types.MutableTransaction, error) {
 
-	deployPayload, err := payload.NewDeployCode(code, cname, cversion, cauthor, cemail, cdesc)
+	deployPayload, err := payload.NewDeployCode(code, vmType, cname, cversion, cauthor, cemail, cdesc)
 	if err != nil {
 		return nil, err
 	}
-	deployPayload.SetVmType(vmType)
 	tx := &types.MutableTransaction{
 		Version:  VERSION_TRANSACTION,
 		TxType:   types.Deploy,

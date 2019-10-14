@@ -25,18 +25,17 @@ import (
 )
 
 func TestDeployCode_Serialize(t *testing.T) {
-	deploy := DeployCode{
-		Code: []byte{1, 2, 3},
-	}
-
+	ty, _ := VmTypeFromByte(1)
+	deploy, err := NewDeployCode([]byte{1, 2, 3}, ty, "", "", "", "", "")
+	assert.Nil(t, err)
 	buf := bytes.NewBuffer(nil)
 	deploy.Serialize(buf)
 	bs := buf.Bytes()
 	var deploy2 DeployCode
 	deploy2.Deserialize(buf)
-	assert.Equal(t, deploy2, deploy)
+	assert.Equal(t, &deploy2, deploy)
 
 	buf = bytes.NewBuffer(bs[:len(bs)-1])
-	err := deploy2.Deserialize(buf)
+	err = deploy2.Deserialize(buf)
 	assert.NotNil(t, err)
 }

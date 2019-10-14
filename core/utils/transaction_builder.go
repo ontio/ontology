@@ -38,12 +38,10 @@ const NATIVE_INVOKE_NAME = "Ontology.Native.Invoke" // copy from smartcontract/s
 // NewDeployTransaction returns a deploy Transaction
 func NewDeployTransaction(code []byte, name, version, author, email, desp string, vmType payload.VmType) (*types.MutableTransaction, error) {
 	//TODO: check arguments
-	depCode, err := payload.NewDeployCode(code, name, version, author, email, desp)
+	depCode, err := payload.NewDeployCode(code, vmType, name, version, author, email, desp)
 	if err != nil {
 		return nil, err
 	}
-	depCode.SetVmType(vmType)
-
 	return &types.MutableTransaction{
 		TxType:  types.Deploy,
 		Payload: depCode,

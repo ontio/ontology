@@ -58,9 +58,10 @@ type DeployCode struct {
 	address common.Address
 }
 
-func NewDeployCode(code []byte, name, version, author, email, description string) (*DeployCode, error) {
+func NewDeployCode(code []byte, vmType VmType, name, version, author, email, description string) (*DeployCode, error) {
 	dc := &DeployCode{
 		code:        code,
+		vmFlags:     byte(vmType),
 		Name:        name,
 		Version:     version,
 		Author:      author,
@@ -79,10 +80,6 @@ func (dc *DeployCode) Address() common.Address {
 		dc.address = common.AddressFromVmCode(dc.code)
 	}
 	return dc.address
-}
-
-func (dc *DeployCode) SetVmType(ty VmType) {
-	dc.vmFlags = byte(ty)
 }
 
 func (dc *DeployCode) GetRawCode() []byte {
