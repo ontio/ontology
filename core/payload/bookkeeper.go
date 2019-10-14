@@ -23,6 +23,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 )
 
@@ -41,6 +42,55 @@ type Bookkeeper struct {
 	Action BookkeeperAction
 	Cert   []byte
 	Issuer keypair.PublicKey
+}
+
+func (self *Bookkeeper) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(keypair.SerializePublicKey(self.PubKey))
+	sink.WriteVarBytes([]byte{byte(self.Action)})
+	sink.WriteVarBytes(self.Cert)
+	sink.WriteVarBytes(keypair.SerializePublicKey(self.Issuer))
+}
+func (self *Bookkeeper) Deserialization(source *common.ZeroCopySource) error {
+	data, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	var err error
+	self.PubKey, err = keypair.DeserializePublicKey(data)
+	if err != nil {
+		return fmt.Errorf("[Bookkeeper], deserializing PubKey failed: %s", err)
+	}
+	data, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	self.Action = BookkeeperAction(data[0])
+	data, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	self.Cert = data
+	data, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	self.Issuer, err = keypair.DeserializePublicKey(data)
+	if err != nil {
+		return fmt.Errorf("[Bookkeeper], deserializing Issuer failed: %s", err)
+	}
+	return nil
 }
 
 // Serialize serialize Bookkeeper into io.Writer

@@ -251,9 +251,9 @@ func (self *StateStore) GetContractState(contractHash common.Address) (*payload.
 	if err != nil {
 		return nil, err
 	}
-	reader := bytes.NewReader(value)
+	source := common.NewZeroCopySource(value)
 	contractState := new(payload.DeployCode)
-	err = contractState.Deserialize(reader)
+	err = contractState.Deserialization(source)
 	if err != nil {
 		return nil, err
 	}

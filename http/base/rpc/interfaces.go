@@ -345,9 +345,9 @@ func GetContractState(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 	}
-	w := bytes.NewBuffer(nil)
-	contract.Serialize(w)
-	return responseSuccess(common.ToHexString(w.Bytes()))
+	sink := common.NewZeroCopySink(nil)
+	contract.Serialization(sink)
+	return responseSuccess(common.ToHexString(sink.Bytes()))
 }
 
 //get smartconstract event
