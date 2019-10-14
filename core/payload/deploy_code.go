@@ -84,7 +84,7 @@ func (dc *DeployCode) GetRawCode() []byte {
 	return dc.code
 }
 
-func (dc *DeployCode) GetWasmCode() ([]byte, error) {
+func (dc *DeployCode) GetWasmContract() ([]byte, error) {
 	if dc.VmType() == WASMVM_TYPE {
 		return dc.code, nil
 	} else {
@@ -92,7 +92,7 @@ func (dc *DeployCode) GetWasmCode() ([]byte, error) {
 	}
 }
 
-func (dc *DeployCode) GetNeoCode() ([]byte, error) {
+func (dc *DeployCode) GetNeoContract() ([]byte, error) {
 	if dc.VmType() == NEOVM_TYPE {
 		return dc.code, nil
 	} else {

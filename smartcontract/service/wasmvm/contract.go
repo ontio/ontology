@@ -28,7 +28,7 @@ import (
 func ContractCreate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
-	needStorage uint32,
+	vmType uint32,
 	namePtr uint32,
 	nameLen uint32,
 	verPtr uint32,
@@ -74,12 +74,12 @@ func ContractCreate(proc *exec.Process,
 		panic(err)
 	}
 
-	dep, err := payload.CreateDeployCode(code, needStorage, name, version, author, email, desc)
+	dep, err := payload.CreateDeployCode(code, vmType, name, version, author, email, desc)
 	if err != nil {
 		panic(err)
 	}
 
-	wasmCode, err := dep.GetWasmCode()
+	wasmCode, err := dep.GetWasmContract()
 	if err != nil {
 		panic(err)
 	}
@@ -103,7 +103,7 @@ func ContractCreate(proc *exec.Process,
 func ContractMigrate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
-	needStorage uint32,
+	vmType uint32,
 	namePtr uint32,
 	nameLen uint32,
 	verPtr uint32,
@@ -151,12 +151,12 @@ func ContractMigrate(proc *exec.Process,
 		panic(err)
 	}
 
-	dep, err := payload.CreateDeployCode(code, needStorage, name, version, author, email, desc)
+	dep, err := payload.CreateDeployCode(code, vmType, name, version, author, email, desc)
 	if err != nil {
 		panic(err)
 	}
 
-	wasmCode, err := dep.GetWasmCode()
+	wasmCode, err := dep.GetWasmContract()
 	if err != nil {
 		panic(err)
 	}

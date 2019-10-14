@@ -98,7 +98,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, errors.NewErr("wasm contract does not exist")
 	}
 
-	wasmCode, err := code.GetWasmCode()
+	wasmCode, err := code.GetWasmContract()
 	if err != nil {
 		return nil, errors.NewErr("not a wasm contract")
 	}

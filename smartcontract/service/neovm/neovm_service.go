@@ -269,5 +269,5 @@ func (this *NeoVmService) getContract(address scommon.Address) ([]byte, error) {
 	if dep == nil {
 		return nil, CONTRACT_NOT_EXIST
 	}
-	return dep.GetNeoCode()
+	return dep.GetNeoContract()
 }
