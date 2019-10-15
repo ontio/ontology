@@ -307,10 +307,7 @@ func (this *LedgerStoreImp) recoverStore() error {
 		if err != nil {
 			return fmt.Errorf("save to state store height:%d error:%s", i, err)
 		}
-		err = this.saveBlockToEventStore(block)
-		if err != nil {
-			return fmt.Errorf("save to event store height:%d error:%s", i, err)
-		}
+		this.saveBlockToEventStore(block)
 		err = this.eventStore.CommitTo()
 		if err != nil {
 			return fmt.Errorf("eventStore.CommitTo height:%d error %s", i, err)
@@ -738,7 +735,7 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 	return nil
 }
 
-func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
+func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 	txs := make([]common.Uint256, 0)
@@ -747,16 +744,9 @@ func (this *LedgerStoreImp) saveBlockToEventStore(block *types.Block) error {
 		txs = append(txs, txHash)
 	}
 	if len(txs) > 0 {
-		err := this.eventStore.SaveEventNotifyByBlock(block.Header.Height, txs)
-		if err != nil {
-			return fmt.Errorf("SaveEventNotifyByBlock error %s", err)
-		}
+		this.eventStore.SaveEventNotifyByBlock(block.Header.Height, txs)
 	}
-	err := this.eventStore.SaveCurrentBlock(blockHeight, blockHash)
-	if err != nil {
-		return fmt.Errorf("SaveCurrentBlock error %s", err)
-	}
-	return nil
+	this.eventStore.SaveCurrentBlock(blockHeight, blockHash)
 }
 
 func (this *LedgerStoreImp) tryGetSavingBlockLock() (hasLocked bool) {
@@ -802,10 +792,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	if err != nil {
 		return fmt.Errorf("save to state store height:%d error:%s", blockHeight, err)
 	}
-	err = this.saveBlockToEventStore(block)
-	if err != nil {
-		return fmt.Errorf("save to event store height:%d error:%s", blockHeight, err)
-	}
+	this.saveBlockToEventStore(block)
 	err = this.blockStore.CommitTo()
 	if err != nil {
 		return fmt.Errorf("blockStore.CommitTo height:%d error %s", blockHeight, err)
@@ -901,10 +888,7 @@ func (this *LedgerStoreImp) saveHeaderIndexList() error {
 	}
 	this.lock.RUnlock()
 
-	err := this.blockStore.SaveHeaderIndexList(storeCount, headerList)
-	if err != nil {
-		return fmt.Errorf("SaveHeaderIndexList start %d error %s", storeCount, err)
-	}
+	this.blockStore.SaveHeaderIndexList(storeCount, headerList)
 
 	this.lock.Lock()
 	this.storedIndexCount += HEADER_INDEX_BATCH_SIZE

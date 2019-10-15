@@ -302,10 +302,9 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 
 	case WASMVM_CONTRACT:
 		conParam := states.WasmContractParam{Address: contractAddress, Args: inputs}
-		sink := common.NewZeroCopySink(nil)
-		conParam.Serialization(sink)
+		param := common.SerializeToBytes(&conParam)
 
-		newservice, err := self.Service.ContextRef.NewExecuteEngine(sink.Bytes(), types.InvokeWasm)
+		newservice, err := self.Service.ContextRef.NewExecuteEngine(param, types.InvokeWasm)
 		if err != nil {
 			panic(err)
 		}

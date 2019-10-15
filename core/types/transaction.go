@@ -19,7 +19,6 @@
 package types
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -397,19 +396,8 @@ func (tx *Transaction) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteBytes(tx.Raw)
 }
 
-// Serialize the Transaction
-func (tx *Transaction) Serialize(w io.Writer) error {
-	if tx.nonDirectConstracted == false || len(tx.Raw) == 0 {
-		panic("wrong constructed transaction")
-	}
-	_, err := w.Write(tx.Raw)
-	return err
-}
-
 func (tx *Transaction) ToArray() []byte {
-	b := new(bytes.Buffer)
-	tx.Serialize(b)
-	return b.Bytes()
+	return common.SerializeToBytes(tx)
 }
 
 func (tx *Transaction) Hash() common.Uint256 {

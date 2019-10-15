@@ -80,11 +80,7 @@ func (this *BlockStore) SaveBlock(block *types.Block) error {
 		return fmt.Errorf("SaveHeader error %s", err)
 	}
 	for _, tx := range block.Transactions {
-		err = this.SaveTransaction(tx, blockHeight)
-		if err != nil {
-			txHash := tx.Hash()
-			return fmt.Errorf("SaveTransaction block height %d tx %s err %s", blockHeight, txHash.ToHexString(), err)
-		}
+		this.SaveTransaction(tx, blockHeight)
 	}
 	return nil
 }
@@ -281,9 +277,9 @@ func (this *BlockStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 //SaveCurrentBlock persist the current block height and current block hash to store
 func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
 	key := this.getCurrentBlockKey()
-	value := bytes.NewBuffer(nil)
-	blockHash.Serialize(value)
-	serialization.WriteUint32(value, height)
+	value := common.NewZeroCopySink(nil)
+	value.WriteHash(blockHash)
+	value.WriteUint32(height)
 	this.store.BatchPut(key, value.Bytes())
 	return nil
 }
@@ -320,17 +316,16 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) 
 }
 
 //SaveHeaderIndexList persist header index list to store
-func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList []common.Uint256) error {
+func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList []common.Uint256) {
 	indexKey := this.getHeaderIndexListKey(startIndex)
 	indexSize := uint32(len(indexList))
-	value := bytes.NewBuffer(nil)
-	serialization.WriteUint32(value, indexSize)
+	value := common.NewZeroCopySink(nil)
+	value.WriteUint32(indexSize)
 	for _, hash := range indexList {
-		hash.Serialize(value)
+		value.WriteHash(hash)
 	}
 
 	this.store.BatchPut(indexKey, value.Bytes())
-	return nil
 }
 
 //GetBlockHash return block hash by block height
@@ -354,24 +349,20 @@ func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256) {
 }
 
 //SaveTransaction persist transaction to store
-func (this *BlockStore) SaveTransaction(tx *types.Transaction, height uint32) error {
+func (this *BlockStore) SaveTransaction(tx *types.Transaction, height uint32) {
 	if this.enableCache {
 		this.cache.AddTransaction(tx, height)
 	}
-	return this.putTransaction(tx, height)
+	this.putTransaction(tx, height)
 }
 
-func (this *BlockStore) putTransaction(tx *types.Transaction, height uint32) error {
+func (this *BlockStore) putTransaction(tx *types.Transaction, height uint32) {
 	txHash := tx.Hash()
 	key := this.getTransactionKey(txHash)
-	value := bytes.NewBuffer(nil)
-	serialization.WriteUint32(value, height)
-	err := tx.Serialize(value)
-	if err != nil {
-		return err
-	}
+	value := common.NewZeroCopySink(nil)
+	value.WriteUint32(height)
+	tx.Serialization(value)
 	this.store.BatchPut(key, value.Bytes())
-	return nil
 }
 
 //GetTransaction return transaction by transaction hash
@@ -510,10 +501,10 @@ func (this *BlockStore) getVersionKey() []byte {
 }
 
 func (this *BlockStore) getHeaderIndexListKey(startHeight uint32) []byte {
-	key := bytes.NewBuffer(nil)
-	key.WriteByte(byte(scom.IX_HEADER_HASH_LIST))
-	serialization.WriteUint32(key, startHeight)
-	return key.Bytes()
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteByte(byte(scom.IX_HEADER_HASH_LIST))
+	sink.WriteUint32(startHeight)
+	return sink.Bytes()
 }
 
 func (this *BlockStore) getStartHeightByHeaderIndexKey(key []byte) (uint32, error) {

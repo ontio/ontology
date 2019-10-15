@@ -68,9 +68,12 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	if err != nil {
 		return nil, fmt.Errorf("[Block],BuildGenesisBlock err with GetBookkeeperAddress: %s", err)
 	}
-	conf := bytes.NewBuffer(nil)
+	conf := common.NewZeroCopySink(nil)
 	if genesisConfig.VBFT != nil {
-		genesisConfig.VBFT.Serialize(conf)
+		err := genesisConfig.VBFT.Serialization(conf)
+		if err != nil {
+			return nil, err
+		}
 	}
 	govConfig := newGoverConfigInit(conf.Bytes())
 	consensusPayload, err := vconfig.GenesisConsensusPayload(govConfig.Hash(), 0)

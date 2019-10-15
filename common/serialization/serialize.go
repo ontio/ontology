@@ -249,12 +249,6 @@ func WriteUint64(writer io.Writer, val uint64) error {
 	return err
 }
 
-func ToArray(data SerializableData) []byte {
-	buf := new(bytes.Buffer)
-	data.Serialize(buf)
-	return buf.Bytes()
-}
-
 //**************************************************************************
 //**    internal func                                                    ***
 //**************************************************************************

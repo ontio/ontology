@@ -19,7 +19,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"github.com/ontio/ontology/cmd/abi"
@@ -102,14 +101,7 @@ func SigNativeInvokeTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRespo
 		return
 	}
 
-	buf := bytes.NewBuffer(nil)
-	err = immutable.Serialize(buf)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigNativeInvokeTx tx Serialize error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
-		return
-	}
 	resp.Result = &SigNativeInvokeTxRsp{
-		SignedTx: hex.EncodeToString(buf.Bytes()),
+		SignedTx: hex.EncodeToString(common.SerializeToBytes(immutable)),
 	}
 }

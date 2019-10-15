@@ -309,51 +309,26 @@ type VBFTConfig struct {
 	Peers                []*VBFTPeerStakeInfo `json:"peers"`
 }
 
-func (this *VBFTConfig) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, this.N); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize n error!")
-	}
-	if err := serialization.WriteUint32(w, this.C); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize c error!")
-	}
-	if err := serialization.WriteUint32(w, this.K); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize k error!")
-	}
-	if err := serialization.WriteUint32(w, this.L); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize l error!")
-	}
-	if err := serialization.WriteUint32(w, this.BlockMsgDelay); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize block_msg_delay error!")
-	}
-	if err := serialization.WriteUint32(w, this.HashMsgDelay); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize hash_msg_delay error!")
-	}
-	if err := serialization.WriteUint32(w, this.PeerHandshakeTimeout); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize peer_handshake_timeout error!")
-	}
-	if err := serialization.WriteUint32(w, this.MaxBlockChangeView); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize max_block_change_view error!")
-	}
-	if err := serialization.WriteUint32(w, this.MinInitStake); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize min_init_stake error!")
-	}
-	if err := serialization.WriteString(w, this.AdminOntID); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize admin_ont_id error!")
-	}
-	if err := serialization.WriteString(w, this.VrfValue); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize vrf_value error!")
-	}
-	if err := serialization.WriteString(w, this.VrfProof); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteString, serialize vrf_proof error!")
-	}
-	if err := serialization.WriteVarUint(w, uint64(len(this.Peers))); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteVarUint, serialize peer length error!")
-	}
-	for _, peer := range this.Peers {
-		if err := peer.Serialize(w); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, "serialize peer error!")
+func (self *VBFTConfig) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteUint32(self.N)
+	sink.WriteUint32(self.C)
+	sink.WriteUint32(self.K)
+	sink.WriteUint32(self.L)
+	sink.WriteUint32(self.BlockMsgDelay)
+	sink.WriteUint32(self.HashMsgDelay)
+	sink.WriteUint32(self.PeerHandshakeTimeout)
+	sink.WriteUint32(self.MaxBlockChangeView)
+	sink.WriteUint32(self.MinInitStake)
+	sink.WriteString(self.AdminOntID)
+	sink.WriteString(self.VrfValue)
+	sink.WriteString(self.VrfProof)
+	sink.WriteVarUint(uint64(len(self.Peers)))
+	for _, peer := range self.Peers {
+		if err := peer.Serialization(sink); err != nil {
+			return err
 		}
 	}
+
 	return nil
 }
 
@@ -442,23 +417,16 @@ type VBFTPeerStakeInfo struct {
 	InitPos    uint64 `json:"initPos"`
 }
 
-func (this *VBFTPeerStakeInfo) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, this.Index); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize index error!")
-	}
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize peerPubkey error!")
-	}
+func (this *VBFTPeerStakeInfo) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteUint32(this.Index)
+	sink.WriteString(this.PeerPubkey)
+
 	address, err := common.AddressFromBase58(this.Address)
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "common.AddressFromBase58, address format error!")
+		return fmt.Errorf("serialize VBFTPeerStackInfo error: %v", err)
 	}
-	if err := address.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize address error!")
-	}
-	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "serialization.WriteUint32, serialize initPos error!")
-	}
+	sink.WriteAddress(address)
+	sink.WriteUint64(this.InitPos)
 	return nil
 }
 

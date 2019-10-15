@@ -138,10 +138,8 @@ func appCallTransfer(native *native.NativeService, contract common.Address, from
 	transfers := ont.Transfers{
 		States: sts,
 	}
-	sink := common.NewZeroCopySink(nil)
-	transfers.Serialization(sink)
 
-	if _, err := native.NativeCall(contract, "transfer", sink.Bytes()); err != nil {
+	if _, err := native.NativeCall(contract, "transfer", common.SerializeToBytes(&transfers)); err != nil {
 		return fmt.Errorf("appCallTransfer, appCall error: %v", err)
 	}
 	return nil
@@ -170,10 +168,8 @@ func appCallTransferFrom(native *native.NativeService, contract common.Address, 
 		To:     to,
 		Value:  amount,
 	}
-	sink := common.NewZeroCopySink(nil)
-	params.Serialization(sink)
 
-	if _, err := native.NativeCall(contract, "transferFrom", sink.Bytes()); err != nil {
+	if _, err := native.NativeCall(contract, "transferFrom", common.SerializeToBytes(params)); err != nil {
 		return fmt.Errorf("appCallTransferFrom, appCall error: %v", err)
 	}
 	return nil
@@ -814,9 +810,7 @@ func getGasAddress(native *native.NativeService, contract common.Address) (*GasA
 }
 
 func putGasAddress(native *native.NativeService, contract common.Address, gasAddress *GasAddress) error {
-	sink := common.NewZeroCopySink(nil)
-	gasAddress.Serialization(sink)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(GAS_ADDRESS)),
-		cstates.GenRawStorageItem(sink.Bytes()))
+		cstates.GenRawStorageItem(common.SerializeToBytes(gasAddress)))
 	return nil
 }

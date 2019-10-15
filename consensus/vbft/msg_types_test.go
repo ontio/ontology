@@ -442,10 +442,7 @@ func TestBlockSerialization(t *testing.T) {
 		return
 	}
 
-	data, err := blk.Serialize()
-	if err != nil {
-		t.Fatalf("serialize blk: %s", err)
-	}
+	data := blk.Serialize()
 
 	blk2 := &Block{}
 	if err := blk2.Deserialize(data); err != nil {
@@ -453,10 +450,7 @@ func TestBlockSerialization(t *testing.T) {
 	}
 
 	blk.EmptyBlock = nil
-	data2, err := blk.Serialize()
-	if err != nil {
-		t.Fatalf("serialize blk2: %s", err)
-	}
+	data2 := blk.Serialize()
 	blk3 := &Block{}
 	if err := blk3.Deserialize(data2); err != nil {
 		t.Fatalf("deserialize blk2: %s", err)

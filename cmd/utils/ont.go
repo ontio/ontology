@@ -436,12 +436,7 @@ func Sign(data []byte, signer *account.Account) ([]byte, error) {
 
 //SendRawTransaction send a transaction to ontology network, and return hash of the transaction
 func SendRawTransaction(tx *types.Transaction) (string, error) {
-	var buffer bytes.Buffer
-	err := tx.Serialize(&buffer)
-	if err != nil {
-		return "", fmt.Errorf("serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	txData := hex.EncodeToString(common.SerializeToBytes(tx))
 	return SendRawTransactionData(txData)
 }
 
@@ -641,13 +636,11 @@ func PrepareDeployContract(
 	if err != nil {
 		return nil, fmt.Errorf("NewDeployCodeTransaction error:%s", err)
 	}
-	tx, _ := mutable.IntoImmutable()
-	var buffer bytes.Buffer
-	err = tx.Serialize(&buffer)
+	tx, err := mutable.IntoImmutable()
 	if err != nil {
-		return nil, fmt.Errorf("tx serialize error:%s", err)
+		return nil, err
 	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	txData := hex.EncodeToString(common.SerializeToBytes(tx))
 	return PrepareSendRawTransaction(txData)
 }
 
@@ -710,12 +703,7 @@ func PrepareInvokeNeoVMContract(
 		return nil, err
 	}
 
-	var buffer bytes.Buffer
-	err = tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("tx serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	txData := hex.EncodeToString(common.SerializeToBytes(tx))
 	return PrepareSendRawTransaction(txData)
 }
 
@@ -728,12 +716,7 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error)
 	if err != nil {
 		return nil, err
 	}
-	var buffer bytes.Buffer
-	err = tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("tx serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	txData := hex.EncodeToString(common.SerializeToBytes(tx))
 	return PrepareSendRawTransaction(txData)
 }
 
@@ -749,12 +732,7 @@ func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interf
 		return nil, err
 	}
 
-	var buffer bytes.Buffer
-	err = tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("tx serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	txData := hex.EncodeToString(common.SerializeToBytes(tx))
 	return PrepareSendRawTransaction(txData)
 }
 
@@ -771,12 +749,7 @@ func PrepareInvokeNativeContract(
 	if err != nil {
 		return nil, err
 	}
-	var buffer bytes.Buffer
-	err = tx.Serialize(&buffer)
-	if err != nil {
-		return nil, fmt.Errorf("tx serialize error:%s", err)
-	}
-	txData := hex.EncodeToString(buffer.Bytes())
+	txData := hex.EncodeToString(common.SerializeToBytes(tx))
 	return PrepareSendRawTransaction(txData)
 }
 

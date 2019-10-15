@@ -147,11 +147,7 @@ func TestSaveTransaction(t *testing.T) {
 	}
 
 	testBlockStore.NewBatch()
-	err = testBlockStore.SaveTransaction(tx, blockHeight)
-	if err != nil {
-		t.Errorf("SaveTransaction error %s", err)
-		return
-	}
+	testBlockStore.SaveTransaction(tx, blockHeight)
 	err = testBlockStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo error %s", err)
@@ -199,11 +195,7 @@ func TestHeaderIndexList(t *testing.T) {
 		indexMap[i] = hash
 		indexList = append(indexList, hash)
 	}
-	err := testBlockStore.SaveHeaderIndexList(startHeight, indexList)
-	if err != nil {
-		t.Errorf("SaveHeaderIndexList error %s", err)
-		return
-	}
+	testBlockStore.SaveHeaderIndexList(startHeight, indexList)
 	startHeight = uint32(100)
 	size = uint32(100)
 	indexMap = make(map[uint32]common.Uint256, size)
@@ -212,7 +204,7 @@ func TestHeaderIndexList(t *testing.T) {
 		indexMap[i] = hash
 		indexList = append(indexList, hash)
 	}
-	err = testBlockStore.CommitTo()
+	err := testBlockStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo error %s", err)
 		return

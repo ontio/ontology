@@ -87,7 +87,7 @@ type EventStore interface {
 	//SaveEventNotifyByTx save event notify gen by smart contract execution
 	SaveEventNotifyByTx(txHash common.Uint256, notify *event.ExecuteNotify) error
 	//Save transaction hashes which have event notify gen
-	SaveEventNotifyByBlock(height uint32, txHashs []common.Uint256) error
+	SaveEventNotifyByBlock(height uint32, txHashs []common.Uint256)
 	//GetEventNotifyByTx return event notify by transaction hash
 	GetEventNotifyByTx(txHash common.Uint256) (*event.ExecuteNotify, error)
 	//Commit event notify to store
