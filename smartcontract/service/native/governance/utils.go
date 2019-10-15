@@ -256,7 +256,7 @@ func getGlobalParam(native *native.NativeService, contract common.Address) (*Glo
 		if err != nil {
 			return nil, fmt.Errorf("getGlobalParam, deserialize from raw storage item err:%v", err)
 		}
-		if err := globalParam.Deserialize(bytes.NewBuffer(value)); err != nil {
+		if err := globalParam.Deserialization(common.NewZeroCopySource(value)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize globalParam error: %v", err)
 		}
 	}
@@ -293,7 +293,7 @@ func getGlobalParam2(native *native.NativeService, contract common.Address) (*Gl
 		if err != nil {
 			return nil, fmt.Errorf("getGlobalParam2, globalParam2Bytes is not available")
 		}
-		if err := globalParam2.Deserialize(bytes.NewBuffer(value)); err != nil {
+		if err := globalParam2.Deserialization(common.NewZeroCopySource(value)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize getGlobalParam2 error: %v", err)
 		}
 	}
@@ -398,7 +398,7 @@ func getConfig(native *native.NativeService, contract common.Address) (*Configur
 	if err != nil {
 		return nil, fmt.Errorf("getConfig, deserialize from raw storage item err:%v", err)
 	}
-	if err := config.Deserialize(bytes.NewBuffer(value)); err != nil {
+	if err := config.Deserialization(common.NewZeroCopySource(value)); err != nil {
 		return nil, fmt.Errorf("deserialize, deserialize config error: %v", err)
 	}
 	return config, nil
@@ -424,7 +424,7 @@ func getPreConfig(native *native.NativeService, contract common.Address) (*PreCo
 		if err != nil {
 			return nil, fmt.Errorf("getConfig, preConfigBytes is not available")
 		}
-		if err := preConfig.Deserialize(bytes.NewBuffer(preConfigStore)); err != nil {
+		if err := preConfig.Deserialization(common.NewZeroCopySource(preConfigStore)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize preConfig error: %v", err)
 		}
 	}
@@ -651,7 +651,7 @@ func getSplitCurve(native *native.NativeService, contract common.Address) (*Spli
 		if err != nil {
 			return nil, fmt.Errorf("getSplitCurve, deserialize from raw storage item err:%v", err)
 		}
-		if err := splitCurve.Deserialize(bytes.NewBuffer(splitCurveStore)); err != nil {
+		if err := splitCurve.Deserialization(common.NewZeroCopySource(splitCurveStore)); err != nil {
 			return nil, fmt.Errorf("deserialize, deserialize splitCurve error: %v", err)
 		}
 	}
@@ -771,7 +771,7 @@ func getPromisePos(native *native.NativeService, contract common.Address, peerPu
 		return nil, fmt.Errorf("get value from promisePosBytes err:%v", err)
 	}
 	promisePos := new(PromisePos)
-	if err := promisePos.Deserialize(bytes.NewBuffer(promisePosStore)); err != nil {
+	if err := promisePos.Deserialization(common.NewZeroCopySource(promisePosStore)); err != nil {
 		return nil, fmt.Errorf("deserialize, deserialize promisePos error: %v", err)
 	}
 	return promisePos, nil

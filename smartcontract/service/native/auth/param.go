@@ -67,16 +67,22 @@ func (this *TransferParam) Serialize(w io.Writer) error {
 	}
 	return nil
 }
+func (this *TransferParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteAddress(this.ContractAddr)
+	sink.WriteVarBytes(this.NewAdminOntID)
+	sink.WriteVarUint(this.KeyNo)
+}
 
-func (this *TransferParam) Deserialize(rd io.Reader) error {
+func (this *TransferParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	if this.ContractAddr, err = utils.ReadAddress(rd); err != nil {
+	if this.ContractAddr, err = utils.DecodeAddress(source); err != nil {
 		return err
 	}
-	if this.NewAdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
-		return err
+	var irregular, eof bool
+	if this.NewAdminOntID, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular:%v, eof:%v", irregular, eof)
 	}
-	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
+	if this.KeyNo, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
 	return nil
@@ -115,32 +121,44 @@ func (this *FuncsToRoleParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *FuncsToRoleParam) Deserialize(rd io.Reader) error {
+func (this *FuncsToRoleParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteAddress(this.ContractAddr)
+	sink.WriteVarBytes(this.AdminOntID)
+	sink.WriteVarBytes(this.Role)
+	sink.WriteVarUint(uint64(len(this.FuncNames)))
+	for _, fn := range this.FuncNames {
+		sink.WriteString(fn)
+	}
+	utils.EncodeVarUint(sink, this.KeyNo)
+}
+
+func (this *FuncsToRoleParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
 	var fnLen uint64
 	var i uint64
 
-	if this.ContractAddr, err = utils.ReadAddress(rd); err != nil {
+	if this.ContractAddr, err = utils.DecodeAddress(source); err != nil {
 		return err
 	}
-	if this.AdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
+	var irregular, eof bool
+	if this.AdminOntID, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular:%v, eof:%v", irregular, eof)
+	}
+	if this.Role, _, irregular, eof = source.NextVarBytes(); irregular || eof {
 		return err
 	}
-	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
-		return err
-	}
-	if fnLen, err = utils.ReadVarUint(rd); err != nil {
+	if fnLen, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
 	this.FuncNames = make([]string, 0)
 	for i = 0; i < fnLen; i++ {
-		fn, err := serialization.ReadString(rd)
-		if err != nil {
-			return err
+		fn, _, irregular, eof := source.NextString()
+		if irregular || eof {
+			return fmt.Errorf("irregular: %s, eof:%s")
 		}
 		this.FuncNames = append(this.FuncNames, fn)
 	}
-	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
+	if this.KeyNo, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
 	return nil
@@ -154,54 +172,43 @@ type OntIDsToRoleParam struct {
 	KeyNo        uint64
 }
 
-func (this *OntIDsToRoleParam) Serialize(w io.Writer) error {
-	if err := serializeAddress(w, this.ContractAddr); err != nil {
-		return err
-	}
-	if err := serialization.WriteVarBytes(w, this.AdminOntID); err != nil {
-		return err
-	}
-	if err := serialization.WriteVarBytes(w, this.Role); err != nil {
-		return err
-	}
-	if err := utils.WriteVarUint(w, uint64(len(this.Persons))); err != nil {
-		return err
-	}
+func (this *OntIDsToRoleParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteAddress(this.ContractAddr)
+	sink.WriteVarBytes(this.AdminOntID)
+	sink.WriteVarBytes(this.Role)
+
+	sink.WriteVarUint(uint64(len(this.Persons)))
 	for _, p := range this.Persons {
-		if err := serialization.WriteVarBytes(w, p); err != nil {
-			return err
-		}
+		sink.WriteVarBytes(p)
 	}
-	if err := utils.WriteVarUint(w, this.KeyNo); err != nil {
-		return nil
-	}
-	return nil
+	sink.WriteVarUint(this.KeyNo)
 }
 
-func (this *OntIDsToRoleParam) Deserialize(rd io.Reader) error {
+func (this *OntIDsToRoleParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
 	var pLen uint64
-	if this.ContractAddr, err = utils.ReadAddress(rd); err != nil {
+	if this.ContractAddr, err = utils.DecodeAddress(source); err != nil {
 		return err
 	}
-	if this.AdminOntID, err = serialization.ReadVarBytes(rd); err != nil {
-		return err
+	var irregular, eof bool
+	if this.AdminOntID, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
 	}
-	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
-		return err
+	if this.Role, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
 	}
-	if pLen, err = utils.ReadVarUint(rd); err != nil {
+	if pLen, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
 	this.Persons = make([][]byte, 0)
 	for i := uint64(0); i < pLen; i++ {
-		p, err := serialization.ReadVarBytes(rd)
-		if err != nil {
-			return err
+		p, _, irregular, eof := source.NextVarBytes()
+		if irregular || eof {
+			return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
 		}
 		this.Persons = append(this.Persons, p)
 	}
-	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
+	if this.KeyNo, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
 	return nil
@@ -242,28 +249,29 @@ func (this *DelegateParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *DelegateParam) Deserialize(rd io.Reader) error {
+func (this *DelegateParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
 	var level uint64
-	if this.ContractAddr, err = utils.ReadAddress(rd); err != nil {
+	if this.ContractAddr, err = utils.DecodeAddress(source); err != nil {
 		return err
 	}
-	if this.From, err = serialization.ReadVarBytes(rd); err != nil {
+	var irregular, eof bool
+	if this.From, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
+	}
+	if this.To, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
+	}
+	if this.Role, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
+	}
+	if this.Period, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
-	if this.To, err = serialization.ReadVarBytes(rd); err != nil {
+	if level, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
-	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
-		return err
-	}
-	if this.Period, err = utils.ReadVarUint(rd); err != nil {
-		return err
-	}
-	if level, err = utils.ReadVarUint(rd); err != nil {
-		return err
-	}
-	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
+	if this.KeyNo, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
 	if level > math.MaxInt8 || this.Period > math.MaxUint32 {
@@ -299,21 +307,22 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 	}
 	return nil
 }
-func (this *WithdrawParam) Deserialize(rd io.Reader) error {
+func (this *WithdrawParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	if this.ContractAddr, err = utils.ReadAddress(rd); err != nil {
+	if this.ContractAddr, err = utils.DecodeAddress(source); err != nil {
 		return err
 	}
-	if this.Initiator, err = serialization.ReadVarBytes(rd); err != nil {
-		return err
+	var irregular, eof bool
+	if this.Initiator, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
 	}
-	if this.Delegate, err = serialization.ReadVarBytes(rd); err != nil {
-		return err
+	if this.Delegate, _, irregular, eof = source.NextVarBytes(); err != nil {
+		return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
 	}
-	if this.Role, err = serialization.ReadVarBytes(rd); err != nil {
-		return err
+	if this.Role, _, irregular, eof = source.NextVarBytes(); err != nil {
+		return fmt.Errorf("irregular: %s, eof: %s", irregular, eof)
 	}
-	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
+	if this.KeyNo, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
 	return nil
@@ -342,18 +351,19 @@ func (this *VerifyTokenParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *VerifyTokenParam) Deserialize(rd io.Reader) error {
+func (this *VerifyTokenParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	if this.ContractAddr, err = utils.ReadAddress(rd); err != nil {
+	if this.ContractAddr, err = utils.DecodeAddress(source); err != nil {
 		return err
 	}
-	if this.Caller, err = serialization.ReadVarBytes(rd); err != nil {
-		return err //deserialize caller error
+	var irregular, eof bool
+	if this.Caller, _, irregular, eof = source.NextVarBytes(); irregular || eof {
+		return fmt.Errorf("irregular:%v, eof:%v", irregular, eof)
 	}
-	if this.Fn, err = serialization.ReadString(rd); err != nil {
-		return err
+	if this.Fn, _, irregular, eof = source.NextString(); irregular || eof {
+		return fmt.Errorf("irregular:%v, eof:%v", irregular, eof)
 	}
-	if this.KeyNo, err = utils.ReadVarUint(rd); err != nil {
+	if this.KeyNo, err = utils.DecodeVarUint(source); err != nil {
 		return err
 	}
 	return nil

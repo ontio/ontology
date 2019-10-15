@@ -43,9 +43,7 @@ func getRoleStorageItem(role common.Address) *cstates.StorageItem {
 }
 
 func getParamStorageItem(params Params) *cstates.StorageItem {
-	bf := new(bytes.Buffer)
-	params.Serialize(bf)
-	return &cstates.StorageItem{Value: bf.Bytes()}
+	return &cstates.StorageItem{Value: common.SerializeToBytes(&params)}
 }
 
 func generateParamKey(contract common.Address, valueType paramType) []byte {
@@ -72,8 +70,7 @@ func getStorageParam(native *native.NativeService, key []byte) (Params, error) {
 	if err != nil || item == nil {
 		return params, err
 	}
-	bf := bytes.NewBuffer(item.Value)
-	err = params.Deserialize(bf)
+	err = params.Deserialization(common.NewZeroCopySource(item.Value))
 	return params, err
 }
 

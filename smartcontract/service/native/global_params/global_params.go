@@ -71,15 +71,15 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, read native input failed!")
 	}
-	argsBuffer := bytes.NewBuffer(args)
-	if err := initParams.Deserialize(argsBuffer); err != nil {
+	source := common.NewZeroCopySource(args)
+	if err := initParams.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, deserialize params failed!")
 	}
 	native.CacheDB.Put(generateParamKey(contract, CURRENT_VALUE), getParamStorageItem(initParams).ToArray())
 	native.CacheDB.Put(generateParamKey(contract, PREPARE_VALUE), getParamStorageItem(initParams).ToArray())
 
 	var admin common.Address
-	if admin, err = utils.ReadAddress(argsBuffer); err != nil {
+	if admin, err = utils.DecodeAddress(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, deserialize admin failed!")
 	}
 	native.CacheDB.Put(generateAdminKey(contract, false), getRoleStorageItem(admin).ToArray())
@@ -160,7 +160,7 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("set param, authentication failed!")
 	}
 	params := Params{}
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("set param, deserialize failed!")
 	}
 	if len(params) == 0 {
@@ -185,7 +185,7 @@ func SetGlobalParam(native *native.NativeService) ([]byte, error) {
 
 func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 	var paramNameList ParamNameList
-	if err := paramNameList.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := paramNameList.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("get param, deserialize failed!")
 	}
 	if len(paramNameList) == 0 {
@@ -209,12 +209,7 @@ func GetGlobalParam(native *native.NativeService) ([]byte, error) {
 			params.SetParam(Param{Key: paramName, Value: ""})
 		}
 	}
-	result := new(bytes.Buffer)
-	err = params.Serialize(result)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "get param, serialize result error!")
-	}
-	return result.Bytes(), nil
+	return common.SerializeToBytes(params), nil
 }
 
 func CreateSnapshot(native *native.NativeService) ([]byte, error) {

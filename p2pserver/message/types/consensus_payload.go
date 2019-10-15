@@ -19,14 +19,11 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/errors"
 )
@@ -51,27 +48,19 @@ func (this *ConsensusPayload) Hash() common.Uint256 {
 
 //Check whether header is correct
 func (this *ConsensusPayload) Verify() error {
-	buf := new(bytes.Buffer)
-	err := this.SerializeUnsigned(buf)
+	sink := common.NewZeroCopySink(nil)
+	this.SerializationUnsigned(sink)
+
+	err := signature.Verify(this.Owner, sink.Bytes(), this.Signature)
 	if err != nil {
-		return err
-	}
-	err = signature.Verify(this.Owner, buf.Bytes(), this.Signature)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("signature verify error. buf:%v", buf))
+		return errors.NewDetailErr(err, errors.ErrNetVerifyFail, fmt.Sprintf("signature verify error. buf:%v", sink.Bytes()))
 	}
 	return nil
 }
 
 //serialize the consensus payload
 func (this *ConsensusPayload) ToArray() []byte {
-	b := new(bytes.Buffer)
-	err := this.Serialize(b)
-	if err != nil {
-		log.Errorf("consensus payload serialize error in ToArray(). payload:%v", this)
-		return nil
-	}
-	return b.Bytes()
+	return common.SerializeToBytes(this)
 }
 
 //return inventory type
@@ -92,35 +81,15 @@ func (this *ConsensusPayload) Type() common.InventoryType {
 }
 
 func (this *ConsensusPayload) Serialization(sink *common.ZeroCopySink) {
-	this.serializationUnsigned(sink)
+	this.SerializationUnsigned(sink)
 	buf := keypair.SerializePublicKey(this.Owner)
 	sink.WriteVarBytes(buf)
 	sink.WriteVarBytes(this.Signature)
 }
 
-//Serialize message payload
-func (this *ConsensusPayload) Serialize(w io.Writer) error {
-	err := this.SerializeUnsigned(w)
-	if err != nil {
-		return err
-	}
-	buf := keypair.SerializePublicKey(this.Owner)
-	err = serialization.WriteVarBytes(w, buf)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write publickey error. publickey buf:%v", buf))
-	}
-
-	err = serialization.WriteVarBytes(w, this.Signature)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write Signature error. Signature:%v", this.Signature))
-	}
-
-	return nil
-}
-
 //Deserialize message payload
 func (this *ConsensusPayload) Deserialization(source *common.ZeroCopySource) error {
-	err := this.deserializationUnsigned(source)
+	err := this.DeserializationUnsigned(source)
 	if err != nil {
 		return err
 	}
@@ -148,33 +117,7 @@ func (this *ConsensusPayload) Deserialization(source *common.ZeroCopySource) err
 	return nil
 }
 
-//Deserialize message payload
-func (this *ConsensusPayload) Deserialize(r io.Reader) error {
-	err := this.DeserializeUnsigned(r)
-	if err != nil {
-		return err
-	}
-	buf, err := serialization.ReadVarBytes(r)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read buf error")
-	}
-	this.Owner, err = keypair.DeserializePublicKey(buf)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "deserialize publickey error")
-	}
-
-	this.Signature, err = serialization.ReadVarBytes(r)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Signature error")
-	}
-
-	return err
-}
-
-func (this *ConsensusPayload) serializationUnsigned(sink *common.ZeroCopySink) {
+func (this *ConsensusPayload) SerializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteUint32(this.Version)
 	sink.WriteHash(this.PrevHash)
 	sink.WriteUint32(this.Height)
@@ -183,42 +126,7 @@ func (this *ConsensusPayload) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(this.Data)
 }
 
-//Serialize message payload
-func (this *ConsensusPayload) SerializeUnsigned(w io.Writer) error {
-	err := serialization.WriteUint32(w, this.Version)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. version:%v", this.Version))
-	}
-	err = this.PrevHash.Serialize(w)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("serialize error. PrevHash:%v", this.PrevHash))
-	}
-	err = serialization.WriteUint32(w, this.Height)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Height:%v", this.Height))
-	}
-	err = serialization.WriteUint16(w, this.BookkeeperIndex)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. BookkeeperIndex:%v", this.BookkeeperIndex))
-	}
-	err = serialization.WriteUint32(w, this.Timestamp)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Timestamp:%v", this.Timestamp))
-	}
-	err = serialization.WriteVarBytes(w, this.Data)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetPackFail, fmt.Sprintf("write error. Data:%v", this.Data))
-	}
-	return nil
-}
-
-func (this *ConsensusPayload) deserializationUnsigned(source *common.ZeroCopySource) error {
+func (this *ConsensusPayload) DeserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	this.Version, eof = source.NextUint32()
 	this.PrevHash, eof = source.NextHash()
@@ -231,50 +139,6 @@ func (this *ConsensusPayload) deserializationUnsigned(source *common.ZeroCopySou
 	}
 	if irregular {
 		return common.ErrIrregularData
-	}
-
-	return nil
-}
-
-//Deserialize message payload
-func (this *ConsensusPayload) DeserializeUnsigned(r io.Reader) error {
-	var err error
-	this.Version, err = serialization.ReadUint32(r)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read version error")
-	}
-
-	preBlock := new(common.Uint256)
-	err = preBlock.Deserialize(r)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read preBlock error")
-	}
-	this.PrevHash = *preBlock
-
-	this.Height, err = serialization.ReadUint32(r)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Height error")
-	}
-
-	this.BookkeeperIndex, err = serialization.ReadUint16(r)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read BookkeeperIndex error")
-	}
-
-	this.Timestamp, err = serialization.ReadUint32(r)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Timestamp error")
-	}
-
-	this.Data, err = serialization.ReadVarBytes(r)
-	if err != nil {
-
-		return errors.NewDetailErr(err, errors.ErrNetUnPackFail, "read Data error")
 	}
 
 	return nil

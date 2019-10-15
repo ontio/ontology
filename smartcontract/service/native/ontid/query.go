@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -149,14 +150,14 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 
 func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetKeyState")
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
-	if err != nil {
-		return nil, fmt.Errorf("get key state failed: argument 0 error, %s", err)
+	arg0, _, irregular, eof := source.NextVarBytes()
+	if irregular || eof {
+		return nil, fmt.Errorf("get key state failed: argument 0 error")
 	}
 	// arg1: public key ID
-	arg1, err := utils.ReadVarUint(args)
+	arg1, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return nil, fmt.Errorf("get key state failed: argument 1 error, %s", err)
 	}

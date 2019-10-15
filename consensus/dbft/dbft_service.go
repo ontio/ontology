@@ -19,7 +19,6 @@
 package dbft
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 	"time"
@@ -609,9 +608,9 @@ func (ds *DbftService) RequestChangeView() {
 }
 
 func (ds *DbftService) SignAndRelay(payload *p2pmsg.ConsensusPayload) {
-	buf := new(bytes.Buffer)
-	payload.SerializeUnsigned(buf)
-	payload.Signature, _ = signature.Sign(ds.Account, buf.Bytes())
+	sink := common.NewZeroCopySink(nil)
+	payload.SerializationUnsigned(sink)
+	payload.Signature, _ = signature.Sign(ds.Account, sink.Bytes())
 
 	ds.p2p.Broadcast(payload)
 }

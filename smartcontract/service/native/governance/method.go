@@ -34,7 +34,7 @@ import (
 
 func registerCandidate(native *native.NativeService, flag string) error {
 	params := new(RegisterCandidateParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -150,7 +150,7 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		PeerPubkeyList: make([]string, 0),
 		PosList:        make([]uint32, 0),
 	}
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress

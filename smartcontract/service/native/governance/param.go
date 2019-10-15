@@ -36,46 +36,36 @@ type RegisterCandidateParam struct {
 	KeyNo      uint32
 }
 
-func (this *RegisterCandidateParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, request peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.InitPos)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize initPos error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Caller); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize caller error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.KeyNo)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize keyNo error: %v", err)
-	}
+func (this *RegisterCandidateParam) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteVarBytes(this.Address[:])
+	sink.WriteVarUint(uint64(this.InitPos))
+	sink.WriteVarBytes(this.Caller)
+	sink.WriteVarUint(uint64(this.KeyNo))
 	return nil
 }
 
-func (this *RegisterCandidateParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+func (this *RegisterCandidateParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, _, irregular, eof := source.NextString()
+	if irregular || eof {
+		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey irregular: %v, eof: %v", irregular, eof)
 	}
-	address, err := utils.ReadAddress(r)
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	initPos, err := utils.ReadVarUint(r)
+	initPos, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize initPos error: %v", err)
 	}
 	if initPos > math.MaxUint32 {
 		return fmt.Errorf("initPos larger than max of uint32")
 	}
-	caller, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadVarBytes, deserialize caller error: %v", err)
+	caller, _, irregular, eof := source.NextVarBytes()
+	if irregular || eof {
+		return fmt.Errorf("serialization.ReadVarBytes, deserialize caller irregular: %v, eof: %v", irregular, eof)
 	}
-	keyNo, err := utils.ReadVarUint(r)
+	keyNo, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize keyNo error: %v", err)
 	}
@@ -204,16 +194,16 @@ func (this *BlackNodeParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *BlackNodeParam) Deserialize(r io.Reader) error {
-	n, err := utils.ReadVarUint(r)
+func (this *BlackNodeParam) Deserialization(source *common.ZeroCopySource) error {
+	n, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarUint, deserialize peerPubkeyList length error: %v", err)
 	}
 	peerPubkeyList := make([]string, 0)
 	for i := 0; uint64(i) < n; i++ {
-		k, err := serialization.ReadString(r)
-		if err != nil {
-			return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+		k, _, irregular, eof := source.NextString()
+		if irregular || eof {
+			return fmt.Errorf("serialization.ReadString, deserialize peerPubkey irregular:%v, eof: %v", irregular, eof)
 		}
 		peerPubkeyList = append(peerPubkeyList, k)
 	}
@@ -276,12 +266,12 @@ func (this *AuthorizeForPeerParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *AuthorizeForPeerParam) Deserialize(r io.Reader) error {
-	address, err := utils.ReadAddress(r)
+func (this *AuthorizeForPeerParam) Deserialization(source *common.ZeroCopySource) error {
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	n, err := utils.ReadVarUint(r)
+	n, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarUint, deserialize peerPubkeyList length error: %v", err)
 	}
@@ -290,19 +280,19 @@ func (this *AuthorizeForPeerParam) Deserialize(r io.Reader) error {
 	}
 	peerPubkeyList := make([]string, 0)
 	for i := 0; uint64(i) < n; i++ {
-		k, err := serialization.ReadString(r)
-		if err != nil {
-			return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
+		k, _, irregular, eof := source.NextString()
+		if irregular || eof {
+			return fmt.Errorf("serialization.ReadString, deserialize peerPubkey irregular: %v,eof: %v", irregular, eof)
 		}
 		peerPubkeyList = append(peerPubkeyList, k)
 	}
-	m, err := utils.ReadVarUint(r)
+	m, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarUint, deserialize posList length error: %v", err)
 	}
 	posList := make([]uint32, 0)
 	for i := 0; uint64(i) < m; i++ {
-		k, err := utils.ReadVarUint(r)
+		k, err := utils.DecodeVarUint(source)
 		if err != nil {
 			return fmt.Errorf("utils.ReadVarUint, deserialize pos error: %v", err)
 		}
@@ -355,12 +345,12 @@ func (this *WithdrawParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *WithdrawParam) Deserialize(r io.Reader) error {
-	address, err := utils.ReadAddress(r)
+func (this *WithdrawParam) Deserialization(source *common.ZeroCopySource) error {
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	n, err := utils.ReadVarUint(r)
+	n, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarUint, deserialize peerPubkeyList length error: %v", err)
 	}
@@ -369,19 +359,19 @@ func (this *WithdrawParam) Deserialize(r io.Reader) error {
 	}
 	peerPubkeyList := make([]string, 0)
 	for i := 0; uint64(i) < n; i++ {
-		k, err := serialization.ReadString(r)
+		k, err := utils.DecodeString(source)
 		if err != nil {
 			return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 		}
 		peerPubkeyList = append(peerPubkeyList, k)
 	}
-	m, err := utils.ReadVarUint(r)
+	m, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarUint, deserialize withdrawList length error: %v", err)
 	}
 	withdrawList := make([]uint32, 0)
 	for i := 0; uint64(i) < m; i++ {
-		k, err := utils.ReadVarUint(r)
+		k, err := utils.DecodeVarUint(source)
 		if err != nil {
 			return fmt.Errorf("utils.ReadVarUint, deserialize withdraw error: %v", err)
 		}
@@ -438,36 +428,36 @@ func (this *Configuration) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *Configuration) Deserialize(r io.Reader) error {
-	n, err := utils.ReadVarUint(r)
+func (this *Configuration) Deserialization(source *common.ZeroCopySource) error {
+	n, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize n error: %v", err)
 	}
-	c, err := utils.ReadVarUint(r)
+	c, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize c error: %v", err)
 	}
-	k, err := utils.ReadVarUint(r)
+	k, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize k error: %v", err)
 	}
-	l, err := utils.ReadVarUint(r)
+	l, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize l error: %v", err)
 	}
-	blockMsgDelay, err := utils.ReadVarUint(r)
+	blockMsgDelay, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize blockMsgDelay error: %v", err)
 	}
-	hashMsgDelay, err := utils.ReadVarUint(r)
+	hashMsgDelay, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize hashMsgDelay error: %v", err)
 	}
-	peerHandshakeTimeout, err := utils.ReadVarUint(r)
+	peerHandshakeTimeout, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize peerHandshakeTimeout error: %v", err)
 	}
-	maxBlockChangeView, err := utils.ReadVarUint(r)
+	maxBlockChangeView, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize maxBlockChangeView error: %v", err)
 	}
@@ -521,13 +511,13 @@ func (this *PreConfig) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *PreConfig) Deserialize(r io.Reader) error {
+func (this *PreConfig) Deserialization(source *common.ZeroCopySource) error {
 	config := new(Configuration)
-	err := config.Deserialize(r)
+	err := config.Deserialization(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize configuration error: %v", err)
 	}
-	setView, err := utils.ReadVarUint(r)
+	setView, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize setView error: %v", err)
 	}
@@ -578,36 +568,36 @@ func (this *GlobalParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *GlobalParam) Deserialize(r io.Reader) error {
-	candidateFee, err := utils.ReadVarUint(r)
+func (this *GlobalParam) Deserialization(source *common.ZeroCopySource) error {
+	candidateFee, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize candidateFee error: %v", err)
 	}
-	minInitStake, err := utils.ReadVarUint(r)
+	minInitStake, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize minInitStake error: %v", err)
 	}
-	candidateNum, err := utils.ReadVarUint(r)
+	candidateNum, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize candidateNum error: %v", err)
 	}
-	posLimit, err := utils.ReadVarUint(r)
+	posLimit, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize posLimit error: %v", err)
 	}
-	a, err := utils.ReadVarUint(r)
+	a, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize a error: %v", err)
 	}
-	b, err := utils.ReadVarUint(r)
+	b, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize b error: %v", err)
 	}
-	yita, err := utils.ReadVarUint(r)
+	yita, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize yita error: %v", err)
 	}
-	penalty, err := utils.ReadVarUint(r)
+	penalty, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize penalty error: %v", err)
 	}
@@ -688,36 +678,36 @@ func (this *GlobalParam2) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *GlobalParam2) Deserialize(r io.Reader) error {
-	minAuthorizePos, err := utils.ReadVarUint(r)
+func (this *GlobalParam2) Deserialization(source *common.ZeroCopySource) error {
+	minAuthorizePos, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize minAuthorizePos error: %v", err)
 	}
-	candidateFeeSplitNum, err := utils.ReadVarUint(r)
+	candidateFeeSplitNum, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize candidateFeeSplitNum error: %v", err)
 	}
-	dappFee, err := utils.ReadVarUint(r)
+	dappFee, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize dappFee error: %v", err)
 	}
-	field2, err := serialization.ReadVarBytes(r)
+	field2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes, deserialize field2 error: %v", err)
 	}
-	field3, err := serialization.ReadVarBytes(r)
+	field3, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes, deserialize field3 error: %v", err)
 	}
-	field4, err := serialization.ReadVarBytes(r)
+	field4, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes, deserialize field4 error: %v", err)
 	}
-	field5, err := serialization.ReadVarBytes(r)
+	field5, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes, deserialize field5 error: %v", err)
 	}
-	field6, err := serialization.ReadVarBytes(r)
+	field6, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize field6 error: %v", err)
 	}
@@ -763,14 +753,14 @@ func (this *SplitCurve) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *SplitCurve) Deserialize(r io.Reader) error {
-	n, err := utils.ReadVarUint(r)
+func (this *SplitCurve) Deserialization(source *common.ZeroCopySource) error {
+	n, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarUint, deserialize Yi length error: %v", err)
 	}
 	yi := make([]uint32, 0)
 	for i := 0; uint64(i) < n; i++ {
-		k, err := utils.ReadVarUint(r)
+		k, err := utils.DecodeVarUint(source)
 		if err != nil {
 			return fmt.Errorf("utils.ReadVarUint, deserialize splitCurve error: %v", err)
 		}
@@ -851,16 +841,16 @@ func (this *ChangeMaxAuthorizationParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *ChangeMaxAuthorizationParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *ChangeMaxAuthorizationParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	address, err := utils.ReadAddress(r)
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	maxAuthorize, err := utils.ReadVarUint(r)
+	maxAuthorize, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadVarUint, deserialize maxAuthorize error: %v", err)
 	}
@@ -892,16 +882,16 @@ func (this *SetPeerCostParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *SetPeerCostParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *SetPeerCostParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	address, err := utils.ReadAddress(r)
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	peerCost, err := utils.ReadVarUint(r)
+	peerCost, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadBool, deserialize peerCost error: %v", err)
 	}
@@ -949,12 +939,12 @@ func (this *PromisePos) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *PromisePos) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *PromisePos) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	promisePos, err := utils.ReadVarUint(r)
+	promisePos, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadBool, deserialize promisePos error: %v", err)
 	}
@@ -982,16 +972,16 @@ func (this *ChangeInitPosParam) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (this *ChangeInitPosParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *ChangeInitPosParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	address, err := utils.ReadAddress(r)
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
-	pos, err := utils.ReadVarUint(r)
+	pos, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadBool, deserialize pos error: %v", err)
 	}

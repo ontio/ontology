@@ -34,10 +34,10 @@ func WriteVarUint(w io.Writer, value uint64) error {
 	return nil
 }
 
-func ReadVarUint(r io.Reader) (uint64, error) {
-	value, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return 0, fmt.Errorf("deserialize value error:%v", err)
+func ReadVarUint(source *common.ZeroCopySource) (uint64, error) {
+	value, _, irregular, eof := source.NextVarBytes()
+	if irregular || eof {
+		return 0, fmt.Errorf("deserialize value error")
 	}
 	v := common.BigIntFromNeoBytes(value)
 	if v.Cmp(big.NewInt(0)) < 0 {
@@ -94,4 +94,26 @@ func DecodeAddress(source *common.ZeroCopySource) (common.Address, error) {
 	}
 
 	return common.AddressParseFromBytes(from)
+}
+func DecodeVarBytes(source *common.ZeroCopySource) ([]byte, error) {
+	data, _, irregular, eof := source.NextVarBytes()
+	if eof {
+		return nil, io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return nil, common.ErrIrregularData
+	}
+
+	return data, nil
+}
+func DecodeString(source *common.ZeroCopySource) (string, error) {
+	data, _, irregular, eof := source.NextString()
+	if eof {
+		return "", io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return "", common.ErrIrregularData
+	}
+
+	return data, nil
 }

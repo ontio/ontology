@@ -262,8 +262,8 @@ func newParamInit() *types.Transaction {
 	for _, v := range s {
 		params.SetParam(global_params.Param{Key: v, Value: INIT_PARAM[v]})
 	}
-	bf := new(bytes.Buffer)
-	params.Serialize(bf)
+	sink := common.NewZeroCopySink(nil)
+	params.Serialization(sink)
 
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
 	var addr common.Address
@@ -277,9 +277,9 @@ func newParamInit() *types.Transaction {
 		}
 		addr = temp
 	}
-	nutils.WriteAddress(bf, addr)
+	nutils.EncodeAddress(sink, addr)
 
-	mutable := utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
+	mutable := utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, sink.Bytes())
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("construct genesis governing token transaction error ")
