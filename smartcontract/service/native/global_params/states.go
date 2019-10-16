@@ -62,7 +62,7 @@ func (params *Params) Serialization(sink *common.ZeroCopySink) {
 	}
 }
 func (params *Params) Deserialization(source *common.ZeroCopySource) error {
-	paramNum, err := utils.DecodeVarUint(source)
+	paramNum, err := utils.ReadVarUint(source)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize params length error!")
 	}

@@ -19,11 +19,9 @@
 package states
 
 import (
-	"io"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
+	"io"
 )
 
 type VoteState struct {
@@ -32,39 +30,32 @@ type VoteState struct {
 	Count      common.Fixed64
 }
 
-func (this *VoteState) Serialize(w io.Writer) error {
-	err := this.StateBase.Serialize(w)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteUint32(w, uint32(len(this.PublicKeys)))
-	if err != nil {
-		return err
-	}
+func (this *VoteState) Serialization(sink *common.ZeroCopySink) {
+	this.StateBase.Serialization(sink)
+	sink.WriteUint32(uint32(len(this.PublicKeys)))
 	for _, v := range this.PublicKeys {
 		buf := keypair.SerializePublicKey(v)
-		err := serialization.WriteVarBytes(w, buf)
-		if err != nil {
-			return err
-		}
+		sink.WriteVarBytes(buf)
 	}
-
-	return serialization.WriteUint64(w, uint64(this.Count))
+	sink.WriteUint64(uint64(this.Count))
 }
 
-func (this *VoteState) Deserialize(r io.Reader) error {
-	err := this.StateBase.Deserialize(r)
+func (this *VoteState) Deserialization(source *common.ZeroCopySource) error {
+	err := this.StateBase.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	n, err := serialization.ReadUint32(r)
-	if err != nil {
-		return err
+	n, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	for i := 0; i < int(n); i++ {
-		buf, err := serialization.ReadVarBytes(r)
-		if err != nil {
-			return err
+		buf, _, irregular, eof := source.NextVarBytes()
+		if irregular {
+			return common.ErrIrregularData
+		}
+		if eof {
+			return io.ErrUnexpectedEOF
 		}
 		pk, err := keypair.DeserializePublicKey(buf)
 		if err != nil {
@@ -72,9 +63,9 @@ func (this *VoteState) Deserialize(r io.Reader) error {
 		}
 		this.PublicKeys = append(this.PublicKeys, pk)
 	}
-	c, err := serialization.ReadUint64(r)
-	if err != nil {
-		return err
+	c, eof := source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	this.Count = common.Fixed64(int64(c))
 	return nil
