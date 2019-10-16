@@ -199,7 +199,7 @@ func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error)
 	peerMap := &gov.PeerPoolMap{
 		PeerPoolMap: make(map[string]*gov.PeerPoolItem),
 	}
-	err = peerMap.Deserialize(bytes.NewBuffer(data))
+	err = peerMap.Deserialization(common.NewZeroCopySource(data))
 	if err != nil {
 		return nil, err
 	}

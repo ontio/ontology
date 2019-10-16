@@ -161,7 +161,7 @@ func InitConfig(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("serialization.ReadVarBytes, contract params deserialize error: %v", err)
 	}
-	if err := configuration.Deserialize(bytes.NewBuffer(buf)); err != nil {
+	if err := configuration.Deserialization(common.NewZeroCopySource(buf)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress

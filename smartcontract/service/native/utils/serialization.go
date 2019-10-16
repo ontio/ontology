@@ -106,6 +106,20 @@ func DecodeVarBytes(source *common.ZeroCopySource) ([]byte, error) {
 
 	return data, nil
 }
+func DecodeUint64(source *common.ZeroCopySource) (uint64, error) {
+	data, eof := source.NextUint64()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+	return data, nil
+}
+func DecodeUint32(source *common.ZeroCopySource) (uint32, error) {
+	data, eof := source.NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+	return data, nil
+}
 func DecodeBool(source *common.ZeroCopySource) (bool, error) {
 	data, irregular, eof := source.NextBool()
 	if eof {

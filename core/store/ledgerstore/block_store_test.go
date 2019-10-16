@@ -365,17 +365,12 @@ func TestBlock(t *testing.T) {
 }
 
 func transferTx(from, to common.Address, amount uint64) (*types.Transaction, error) {
-	sink := common.NewZeroCopySink(nil)
 	var sts []ont.State
 	sts = append(sts, ont.State{
 		From:  from,
 		To:    to,
 		Value: amount,
 	})
-	transfers := &ont.Transfers{
-		States: sts,
-	}
-	transfers.Serialization(sink)
 	var cversion byte
 	return invokeSmartContractTx(0, 30000, cversion, nutils.OntContractAddress, "transfer", []interface{}{sts})
 }
