@@ -34,7 +34,7 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
-var Version = "" //Set value when build project
+var Version = "1.0.0" //Set value when build project
 
 const (
 	DEFAULT_CONFIG_FILE_NAME = "./config.json"
@@ -71,7 +71,6 @@ const (
 	DEFAULT_GAS_LIMIT                       = 20000
 	DEFAULT_GAS_PRICE                       = 500
 	DEFAULT_WASM_GAS_FACTOR                 = uint64(10)
-	DEFAULT_WASM_MAX_STEPCOUNT              = uint64(8000000)
 
 	DEFAULT_DATA_DIR      = "./Chain"
 	DEFAULT_RESERVED_FILE = "./peers.rsv"
@@ -89,6 +88,8 @@ const (
 	NETWORK_NAME_POLARIS_NET = "polaris"
 	NETWORK_NAME_SOLO_NET    = "testmode"
 )
+
+var DEFAULT_WASM_MAX_STEPCOUNT uint64 = uint64(8000000)
 
 var NETWORK_MAGIC = map[uint32]uint32{
 	NETWORK_ID_MAIN_NET:    constants.NETWORK_MAGIC_MAINNET, //Network main

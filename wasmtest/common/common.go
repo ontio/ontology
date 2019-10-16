@@ -86,11 +86,14 @@ type TestContext struct {
 }
 
 func GenWasmTransaction(testCase TestCase, contract common.Address, testConext *TestContext) (*types.Transaction, error) {
+	var allParam []interface{}
 	params, err := utils2.ParseParams(testCase.Param)
 	if err != nil {
 		return nil, err
 	}
-	allParam := append([]interface{}{}, testCase.Method)
+	if len(testCase.Method) != 0 {
+		allParam = append([]interface{}{}, testCase.Method)
+	}
 	allParam = append(allParam, params...)
 	tx, err := utils.NewWasmVMInvokeTransaction(0, 100000000, contract, allParam)
 	if err != nil {
@@ -165,11 +168,14 @@ func buildTestConextForNeo(testConext *TestContext) []byte {
 }
 
 func GenNeoVMTransaction(testCase TestCase, contract common.Address, testConext *TestContext) (*types.Transaction, error) {
+	var allParam []interface{}
 	params, err := utils2.ParseParams(testCase.Param)
 	if err != nil {
 		return nil, err
 	}
-	allParam := append([]interface{}{}, testCase.Method)
+	if len(testCase.Method) != 0 {
+		allParam = append([]interface{}{}, testCase.Method)
+	}
 	allParam = append(allParam, params...)
 	tx, err := common2.NewNeovmInvokeTransaction(0, 100000000, contract, allParam)
 	if err != nil {
