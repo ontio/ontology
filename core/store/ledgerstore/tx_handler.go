@@ -303,8 +303,7 @@ func chargeCostGas(payer common.Address, gas uint64, config *smartcontract.Confi
 
 func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, store store.LedgerStore) error {
 	sink := common.NewZeroCopySink(nil)
-	sink.WriteVarUint(uint64(len(neovm.GAS_TABLE_KEYS)))
-
+	utils.EncodeVarUint(sink, uint64(len(neovm.GAS_TABLE_KEYS)))
 	for _, value := range neovm.GAS_TABLE_KEYS {
 		sink.WriteString(value)
 	}
