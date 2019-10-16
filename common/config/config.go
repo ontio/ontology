@@ -34,7 +34,7 @@ import (
 	"github.com/ontio/ontology/errors"
 )
 
-var Version = "1.0.0" //Set value when build project
+var Version = "" //Set value when build project
 
 const (
 	DEFAULT_CONFIG_FILE_NAME = "./config.json"
