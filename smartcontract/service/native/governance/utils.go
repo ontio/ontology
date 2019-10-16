@@ -227,12 +227,10 @@ func GetBytesUint32(b []byte) (uint32, error) {
 	return num, nil
 }
 
-func GetUint64Bytes(num uint64) ([]byte, error) {
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteUint64(bf, num); err != nil {
-		return nil, fmt.Errorf("serialization.WriteUint64, serialize uint64 error: %v", err)
-	}
-	return bf.Bytes(), nil
+func GetUint64Bytes(num uint64) []byte {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint64(num)
+	return sink.Bytes()
 }
 
 func GetBytesUint64(b []byte) (uint64, error) {
@@ -489,10 +487,7 @@ func getSplitFee(native *native.NativeService, contract common.Address) (uint64,
 }
 
 func putSplitFee(native *native.NativeService, contract common.Address, splitFee uint64) error {
-	splitFeeBytes, err := GetUint64Bytes(splitFee)
-	if err != nil {
-		return fmt.Errorf("GetUint64Bytes, get splitFeeBytes error: %v", err)
-	}
+	splitFeeBytes := GetUint64Bytes(splitFee)
 	native.CacheDB.Put(utils.ConcatKey(contract, []byte(SPLIT_FEE)), cstates.GenRawStorageItem(splitFeeBytes))
 	return nil
 }

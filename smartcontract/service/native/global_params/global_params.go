@@ -23,7 +23,6 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -67,7 +66,7 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 	}
 
 	initParams := Params{}
-	args, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	args, err := utils.DecodeVarBytes(common.NewZeroCopySource(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "init param, read native input failed!")
 	}

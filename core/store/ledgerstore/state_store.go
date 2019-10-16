@@ -424,8 +424,8 @@ func (self *StateStore) CheckStorage() error {
 	val, err := db.Get(flag)
 	if err == nil {
 		item := &states.StorageItem{}
-		buf := bytes.NewBuffer(val)
-		err := item.Deserialize(buf)
+		source := common.NewZeroCopySource(val)
+		err := item.Deserialization(source)
 		if err == nil && item.Value[0] == ontid.FLAG_VERSION {
 			return nil
 		} else if err == nil {

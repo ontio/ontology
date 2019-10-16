@@ -24,7 +24,6 @@ import (
 	"math"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -194,15 +193,12 @@ type WhiteNodeParam struct {
 	PeerPubkey string
 }
 
-func (this *WhiteNodeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	return nil
+func (this *WhiteNodeParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
 }
 
-func (this *WhiteNodeParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *WhiteNodeParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}

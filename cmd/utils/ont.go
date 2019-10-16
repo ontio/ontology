@@ -38,6 +38,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstates "github.com/ontio/ontology/smartcontract/states"
+	"io"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -806,10 +807,13 @@ func ParseWasmVMContractReturnTypeByteArray(hexStr string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
 	}
-	bf := bytes.NewBuffer(hexbs)
-	bs, err := serialization.ReadVarBytes(bf)
-	if err != nil {
-		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, err)
+	source := common.NewZeroCopySource(hexbs)
+	bs, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, common.ErrIrregularData)
+	}
+	if eof {
+		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, io.ErrUnexpectedEOF)
 	}
 	return common.ToHexString(bs), nil
 }
@@ -820,8 +824,15 @@ func ParseWasmVMContractReturnTypeString(hexStr string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
 	}
-	bf := bytes.NewBuffer(hexbs)
-	return serialization.ReadString(bf)
+	source := common.NewZeroCopySource(hexbs)
+	data, _, irregular, eof := source.NextString()
+	if irregular {
+		return "", common.ErrIrregularData
+	}
+	if eof {
+		return "", io.ErrUnexpectedEOF
+	}
+	return data, nil
 }
 
 //ParseWasmVMContractReturnTypeInteger return integer value of smart contract execute code.

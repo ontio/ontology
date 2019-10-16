@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -38,16 +37,16 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("registerIdWithPublicKey")
 	log.Debug("srvc.Input:", srvc.Input)
 	// parse arguments
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: parsing argument 0 failed")
 	} else if len(arg0) == 0 {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid length of argument 0")
 	}
 	// arg1: public key
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: parsing argument 1 failed")
 	}
@@ -99,10 +98,10 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	// parse arguments
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, _, irregular, eof := source.NextVarBytes()
+	arg0, err := utils.DecodeVarBytes(source)
 
-	if irregular || eof {
-		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error, ")
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error, " + err.Error())
 	} else if len(arg0) == 0 {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 0 error, invalid length")
 	}
@@ -111,9 +110,9 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	// arg1: public key
-	arg1, _, irregular, eof := source.NextVarBytes()
-	if irregular || eof {
-		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 1 error, ")
+	arg1, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 1 error," + err.Error())
 	}
 	// arg2: attributes
 	// first get number
@@ -166,23 +165,23 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 
 func addKey(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: AddKey")
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: argument 0 error, " + err.Error())
 	}
 	log.Debug("arg 0:", hex.EncodeToString(arg0))
 
 	// arg1: public key
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: argument 1 error, " + err.Error())
 	}
 	log.Debug("arg 1:", hex.EncodeToString(arg1))
 
 	// arg2: operator's public key / address
-	arg2, err := serialization.ReadVarBytes(args)
+	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: argument 2 error, " + err.Error())
 	}
@@ -226,21 +225,21 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 }
 
 func removeKey(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 0 error, %s", err)
 	}
 
 	// arg1: public key
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 1 error, %s", err)
 	}
 
 	// arg2: operator's public key / address
-	arg2, err := serialization.ReadVarBytes(args)
+	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 2 error, %s", err)
 	}
@@ -277,19 +276,19 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 }
 
 func addRecovery(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	args := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 0 error")
 	}
 	// arg1: recovery address
-	arg1, err := utils.ReadAddress(args)
+	arg1, err := utils.DecodeAddress(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 1 error")
 	}
 	// arg2: operator's public key
-	arg2, err := serialization.ReadVarBytes(args)
+	arg2, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 2 error")
 	}
@@ -326,19 +325,19 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 }
 
 func changeRecovery(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	args := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 0 error")
 	}
 	// arg1: new recovery address
-	arg1, err := utils.ReadAddress(args)
+	arg1, err := utils.DecodeAddress(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 1 error")
 	}
 	// arg2: operator's address, who should be the old recovery
-	arg2, err := utils.ReadAddress(args)
+	arg2, err := utils.DecodeAddress(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 2 error")
 	}
@@ -373,9 +372,9 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 func addAttributes(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, _, irregular, eof := source.NextVarBytes()
-	if irregular || eof {
-		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 0")
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 0, error: %s", err)
 	}
 	// arg1: attributes
 	// first get number
@@ -394,9 +393,9 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		arg1 = append(arg1, v)
 	}
 	// arg2: opperator's public key
-	arg2, _, irregular, eof := source.NextVarBytes()
-	if irregular || eof {
-		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 2")
+	arg2, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 2, error: %s", err)
 	}
 
 	key, err := encodeID(arg0)
@@ -428,19 +427,19 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 }
 
 func removeAttribute(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	args := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: argument 0 error")
 	}
 	// arg1: path
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: argument 1 error")
 	}
 	// arg2: operator's public key
-	arg2, err := serialization.ReadVarBytes(args)
+	arg2, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: argument 2 error")
 	}
@@ -475,9 +474,9 @@ func removeAttribute(srvc *native.NativeService) ([]byte, error) {
 func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, _, irregular, eof := source.NextVarBytes()
-	if irregular || eof {
-		return utils.BYTE_FALSE, errors.New("verify signature error: argument 0 error, ")
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("verify signature error: argument 0 error, error: " + err.Error())
 	}
 	// arg1: index of public key
 	arg1, err := utils.DecodeVarUint(source)

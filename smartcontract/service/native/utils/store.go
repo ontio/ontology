@@ -74,9 +74,9 @@ func GetStorageUInt32(native *native.NativeService, key []byte) (uint32, error) 
 }
 
 func GenUInt64StorageItem(value uint64) *cstates.StorageItem {
-	bf := new(bytes.Buffer)
-	serialization.WriteUint64(bf, value)
-	return &cstates.StorageItem{Value: bf.Bytes()}
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint64(value)
+	return &cstates.StorageItem{Value: sink.Bytes()}
 }
 
 func GenUInt32StorageItem(value uint32) *cstates.StorageItem {

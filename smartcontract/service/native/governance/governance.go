@@ -22,7 +22,6 @@
 package governance
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math"
@@ -30,7 +29,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
-	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
@@ -157,7 +155,7 @@ func RegisterGovernanceContract(native *native.NativeService) {
 //Init governance contract, include vbft config, global param and ontid admin.
 func InitConfig(native *native.NativeService) ([]byte, error) {
 	configuration := new(config.VBFTConfig)
-	buf, err := serialization.ReadVarBytes(bytes.NewBuffer(native.Input))
+	buf, err := utils.DecodeVarBytes(common.NewZeroCopySource(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("serialization.ReadVarBytes, contract params deserialize error: %v", err)
 	}
@@ -662,7 +660,7 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 //Remove a node from black list, allow it to be registered
 func WhiteNode(native *native.NativeService) ([]byte, error) {
 	params := new(WhiteNodeParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 

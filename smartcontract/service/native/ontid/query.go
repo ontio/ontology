@@ -18,27 +18,25 @@
 package ontid
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	args := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return nil, errors.New("get public key failed: argument 0 error")
 	}
 	// arg1: key ID
-	arg1, err := serialization.ReadUint32(args)
+	arg1, err := utils.DecodeUint32(args)
 	if err != nil {
 		return nil, errors.New("get public key failed: argument 1 error")
 	}
@@ -90,8 +88,8 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 
 func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetPublicKeys")
-	args := bytes.NewBuffer(srvc.Input)
-	did, err := serialization.ReadVarBytes(args)
+	args := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: invalid argument, %s", err)
 	}

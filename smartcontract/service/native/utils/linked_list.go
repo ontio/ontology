@@ -18,11 +18,8 @@
 package utils
 
 import (
-	"bytes"
-
 	"fmt"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -62,17 +59,17 @@ func (this *LinkedlistNode) Serialization() ([]byte, error) {
 	return sink.Bytes(), nil
 }
 
-func (this *LinkedlistNode) Deserialize(r []byte) error {
-	bf := bytes.NewReader(r)
-	next, err := serialization.ReadVarBytes(bf)
+func (this *LinkedlistNode) Deserialization(r []byte) error {
+	source := common.NewZeroCopySource(r)
+	next, err := DecodeVarBytes(source)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[linked list] deserialize next error!")
 	}
-	prev, err := serialization.ReadVarBytes(bf)
+	prev, err := DecodeVarBytes(source)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[linked list] deserialize prev error!")
 	}
-	payload, err := serialization.ReadVarBytes(bf)
+	payload, err := DecodeVarBytes(source)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[linked list] deserialize payload error!")
 	}
@@ -113,7 +110,7 @@ func getListNode(native *native.NativeService, index []byte, item []byte) (*Link
 	if len(rawNode) == 0 {
 		return nil, nil
 	}
-	err = node.Deserialize(rawNode)
+	err = node.Deserialization(rawNode)
 	if err != nil {
 		//log.Tracef("[index: %s, item: %s] error %s", hex.EncodeToString(index), hex.EncodeToString(item), err)
 		return nil, err
