@@ -19,7 +19,6 @@
 package ledgerstore
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -366,7 +365,7 @@ func TestBlock(t *testing.T) {
 }
 
 func transferTx(from, to common.Address, amount uint64) (*types.Transaction, error) {
-	buf := bytes.NewBuffer(nil)
+	sink := common.NewZeroCopySink(nil)
 	var sts []ont.State
 	sts = append(sts, ont.State{
 		From:  from,
@@ -376,10 +375,7 @@ func transferTx(from, to common.Address, amount uint64) (*types.Transaction, err
 	transfers := &ont.Transfers{
 		States: sts,
 	}
-	err := transfers.Serialize(buf)
-	if err != nil {
-		return nil, fmt.Errorf("transfers.Serialize error %s", err)
-	}
+	transfers.Serialization(sink)
 	var cversion byte
 	return invokeSmartContractTx(0, 30000, cversion, nutils.OntContractAddress, "transfer", []interface{}{sts})
 }

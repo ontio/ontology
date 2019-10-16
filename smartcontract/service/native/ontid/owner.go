@@ -21,10 +21,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -35,22 +34,17 @@ type owner struct {
 	revoked bool
 }
 
-func (this *owner) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.key); err != nil {
-		return err
-	}
-	if err := serialization.WriteBool(w, this.revoked); err != nil {
-		return err
-	}
-	return nil
+func (this *owner) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.key)
+	sink.WriteBool(this.revoked)
 }
 
-func (this *owner) Deserialize(r io.Reader) error {
-	v1, err := serialization.ReadVarBytes(r)
+func (this *owner) Deserialization(source *common.ZeroCopySource) error {
+	v1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return err
 	}
-	v2, err := serialization.ReadBool(r)
+	v2, err := utils.DecodeBool(source)
 	if err != nil {
 		return err
 	}
@@ -67,11 +61,11 @@ func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
 	if val == nil {
 		return nil, nil
 	}
-	buf := bytes.NewBuffer(val.Value)
+	source := common.NewZeroCopySource(val.Value)
 	owners := make([]*owner, 0)
-	for buf.Len() > 0 {
+	for source.Len() > 0 {
 		var t = new(owner)
-		err = t.Deserialize(buf)
+		err = t.Deserialization(source)
 		if err != nil {
 			return nil, fmt.Errorf("deserialize owners error, %s", err)
 		}
@@ -80,18 +74,14 @@ func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
 	return owners, nil
 }
 
-func putAllPk(srvc *native.NativeService, key []byte, val []*owner) error {
-	var buf bytes.Buffer
+func putAllPk(srvc *native.NativeService, key []byte, val []*owner) {
+	sink := common.NewZeroCopySink(nil)
 	for _, i := range val {
-		err := i.Serialize(&buf)
-		if err != nil {
-			return fmt.Errorf("serialize owner error, %s", err)
-		}
+		i.Serialization(sink)
 	}
 	var v states.StorageItem
-	v.Value = buf.Bytes()
+	v.Value = sink.Bytes()
 	srvc.CacheDB.Put(key, v.ToArray())
-	return nil
 }
 
 func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
@@ -107,10 +97,7 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 		return 0, errors.New("reach the max limit, cannot add more keys")
 	}
 	owners = append(owners, &owner{pk, false})
-	err = putAllPk(srvc, key, owners)
-	if err != nil {
-		return 0, err
-	}
+	putAllPk(srvc, key, owners)
 	return uint32(size + 1), nil
 }
 
@@ -159,10 +146,7 @@ func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
 	if index == 0 {
 		return 0, errors.New("revoke failed, public key not found")
 	}
-	err = putAllPk(srvc, key, owners)
-	if err != nil {
-		return 0, err
-	}
+	putAllPk(srvc, key, owners)
 	return index, nil
 }
 

@@ -85,22 +85,17 @@ type UnRegisterCandidateParam struct {
 	Address    common.Address
 }
 
-func (this *UnRegisterCandidateParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, request peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
-	}
-	return nil
+func (this *UnRegisterCandidateParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteVarBytes(this.Address[:])
 }
 
-func (this *UnRegisterCandidateParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *UnRegisterCandidateParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	address, err := utils.ReadAddress(r)
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
@@ -114,22 +109,17 @@ type QuitNodeParam struct {
 	Address    common.Address
 }
 
-func (this *QuitNodeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, deserialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
-	}
-	return nil
+func (this *QuitNodeParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteVarBytes(this.Address[:])
 }
 
-func (this *QuitNodeParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *QuitNodeParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	address, err := utils.ReadAddress(r)
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
@@ -142,15 +132,12 @@ type ApproveCandidateParam struct {
 	PeerPubkey string
 }
 
-func (this *ApproveCandidateParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	return nil
+func (this *ApproveCandidateParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
 }
 
-func (this *ApproveCandidateParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *ApproveCandidateParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
@@ -162,15 +149,12 @@ type RejectCandidateParam struct {
 	PeerPubkey string
 }
 
-func (this *RejectCandidateParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	return nil
+func (this *RejectCandidateParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
 }
 
-func (this *RejectCandidateParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *RejectCandidateParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
@@ -182,16 +166,11 @@ type BlackNodeParam struct {
 	PeerPubkeyList []string
 }
 
-func (this *BlackNodeParam) Serialize(w io.Writer) error {
-	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
-		return fmt.Errorf("serialization.WriteVarUint, serialize peerPubkeyList length error: %v", err)
-	}
+func (this *BlackNodeParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarUint(sink, uint64(len(this.PeerPubkeyList)))
 	for _, v := range this.PeerPubkeyList {
-		if err := serialization.WriteString(w, v); err != nil {
-			return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-		}
+		sink.WriteString(v)
 	}
-	return nil
 }
 
 func (this *BlackNodeParam) Deserialization(source *common.ZeroCopySource) error {
@@ -237,31 +216,21 @@ type AuthorizeForPeerParam struct {
 	PosList        []uint32
 }
 
-func (this *AuthorizeForPeerParam) Serialize(w io.Writer) error {
+func (this *AuthorizeForPeerParam) Serialization(sink *common.ZeroCopySink) error {
 	if len(this.PeerPubkeyList) > 1024 {
 		return fmt.Errorf("length of input list > 1024")
 	}
 	if len(this.PeerPubkeyList) != len(this.PosList) {
 		return fmt.Errorf("length of PeerPubkeyList != length of PosList")
 	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
-		return fmt.Errorf("serialization.WriteVarUint, serialize peerPubkeyList length error: %v", err)
-	}
+	sink.WriteVarBytes(this.Address[:])
+	sink.WriteVarUint(uint64(len(this.PeerPubkeyList)))
 	for _, v := range this.PeerPubkeyList {
-		if err := serialization.WriteString(w, v); err != nil {
-			return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-		}
+		sink.WriteString(v)
 	}
-	if err := utils.WriteVarUint(w, uint64(len(this.PosList))); err != nil {
-		return fmt.Errorf("serialization.WriteVarUint, serialize posList length error: %v", err)
-	}
+	utils.EncodeVarUint(sink, uint64(len(this.PosList)))
 	for _, v := range this.PosList {
-		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
-			return fmt.Errorf("utils.WriteVarUint, serialize pos error: %v", err)
-		}
+		utils.EncodeVarUint(sink, uint64(v))
 	}
 	return nil
 }
@@ -316,31 +285,22 @@ type WithdrawParam struct {
 	WithdrawList   []uint32
 }
 
-func (this *WithdrawParam) Serialize(w io.Writer) error {
+func (this *WithdrawParam) Serialization(sink *common.ZeroCopySink) error {
 	if len(this.PeerPubkeyList) > 1024 {
 		return fmt.Errorf("length of input list > 1024")
 	}
 	if len(this.PeerPubkeyList) != len(this.WithdrawList) {
 		return fmt.Errorf("length of PeerPubkeyList != length of WithdrawList, contract params error")
 	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, address address error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(len(this.PeerPubkeyList))); err != nil {
-		return fmt.Errorf("serialization.WriteVarUint, serialize peerPubkeyList length error: %v", err)
-	}
+	sink.WriteVarBytes(this.Address[:])
+
+	utils.EncodeVarUint(sink, uint64(len(this.PeerPubkeyList)))
 	for _, v := range this.PeerPubkeyList {
-		if err := serialization.WriteString(w, v); err != nil {
-			return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-		}
+		sink.WriteString(v)
 	}
-	if err := utils.WriteVarUint(w, uint64(len(this.WithdrawList))); err != nil {
-		return fmt.Errorf("serialization.WriteVarUint, serialize withdrawList length error: %v", err)
-	}
+	utils.EncodeVarUint(sink, uint64(len(this.WithdrawList)))
 	for _, v := range this.WithdrawList {
-		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
-			return fmt.Errorf("utils.WriteVarUint, serialize withdraw error: %v", err)
-		}
+		utils.EncodeVarUint(sink, uint64(v))
 	}
 	return nil
 }
@@ -644,37 +604,22 @@ type GlobalParam2 struct {
 	Field6               []byte //reserved field
 }
 
-func (this *GlobalParam2) Serialize(w io.Writer) error {
+func (this *GlobalParam2) Serialization(sink *common.ZeroCopySink) error {
 	if this.MinAuthorizePos == 0 {
 		return fmt.Errorf("globalParam2.MinAuthorizePos can not be 0")
 	}
 	if this.DappFee > 100 {
 		return fmt.Errorf("globalParam2.DappFee must <= 100")
 	}
-	if err := utils.WriteVarUint(w, uint64(this.MinAuthorizePos)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize minAuthorizePos error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.CandidateFeeSplitNum)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize candidateFeeSplitNum error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.DappFee)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize dappFee error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field2); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field2 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field3); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field3 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field4); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field4 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field5); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field5 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field6); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field6 error: %v", err)
-	}
+	utils.EncodeVarUint(sink, uint64(this.MinAuthorizePos))
+	utils.EncodeVarUint(sink, uint64(this.CandidateFeeSplitNum))
+
+	utils.EncodeVarUint(sink, uint64(this.DappFee))
+	sink.WriteVarBytes(this.Field2)
+	sink.WriteVarBytes(this.Field3)
+	sink.WriteVarBytes(this.Field4)
+	sink.WriteVarBytes(this.Field5)
+	sink.WriteVarBytes(this.Field6)
 	return nil
 }
 
@@ -778,22 +723,17 @@ type TransferPenaltyParam struct {
 	Address    common.Address
 }
 
-func (this *TransferPenaltyParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
-	}
-	return nil
+func (this *TransferPenaltyParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteVarBytes(this.Address[:])
 }
 
-func (this *TransferPenaltyParam) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *TransferPenaltyParam) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	address, err := utils.ReadAddress(r)
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
@@ -806,15 +746,12 @@ type WithdrawOngParam struct {
 	Address common.Address
 }
 
-func (this *WithdrawOngParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
-	}
-	return nil
+func (this *WithdrawOngParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.Address[:])
 }
 
-func (this *WithdrawOngParam) Deserialize(r io.Reader) error {
-	address, err := utils.ReadAddress(r)
+func (this *WithdrawOngParam) Deserialization(source *common.ZeroCopySource) error {
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
@@ -828,17 +765,11 @@ type ChangeMaxAuthorizationParam struct {
 	MaxAuthorize uint32
 }
 
-func (this *ChangeMaxAuthorizationParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.MaxAuthorize)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize maxAuthorize error: %v", err)
-	}
-	return nil
+func (this *ChangeMaxAuthorizationParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteVarBytes(this.Address[:])
+
+	utils.EncodeVarUint(sink, uint64(this.MaxAuthorize))
 }
 
 func (this *ChangeMaxAuthorizationParam) Deserialization(source *common.ZeroCopySource) error {
@@ -869,16 +800,10 @@ type SetPeerCostParam struct {
 	PeerCost   uint32
 }
 
-func (this *SetPeerCostParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.PeerCost)); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize peerCost error: %v", err)
-	}
+func (this *SetPeerCostParam) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteVarBytes(this.Address[:])
+	utils.EncodeVarUint(sink, uint64(this.PeerCost))
 	return nil
 }
 
@@ -908,15 +833,12 @@ type WithdrawFeeParam struct {
 	Address common.Address
 }
 
-func (this *WithdrawFeeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
-	}
-	return nil
+func (this *WithdrawFeeParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.Address[:])
 }
 
-func (this *WithdrawFeeParam) Deserialize(r io.Reader) error {
-	address, err := utils.ReadAddress(r)
+func (this *WithdrawFeeParam) Deserialization(source *common.ZeroCopySource) error {
+	address, err := utils.DecodeAddress(source)
 	if err != nil {
 		return fmt.Errorf("utils.ReadAddress, deserialize address error: %v", err)
 	}
@@ -929,14 +851,9 @@ type PromisePos struct {
 	PromisePos uint64
 }
 
-func (this *PromisePos) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, this.PromisePos); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize promisePos error: %v", err)
-	}
-	return nil
+func (this *PromisePos) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	utils.EncodeVarUint(sink, this.PromisePos)
 }
 
 func (this *PromisePos) Deserialization(source *common.ZeroCopySource) error {
@@ -959,17 +876,10 @@ type ChangeInitPosParam struct {
 	Pos        uint32
 }
 
-func (this *ChangeInitPosParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Address[:]); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize address error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.Pos)); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize pos error: %v", err)
-	}
-	return nil
+func (this *ChangeInitPosParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteVarBytes(this.Address[:])
+	utils.EncodeVarUint(sink, uint64(this.Pos))
 }
 
 func (this *ChangeInitPosParam) Deserialization(source *common.ZeroCopySource) error {

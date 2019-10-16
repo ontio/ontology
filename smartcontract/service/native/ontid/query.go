@@ -69,19 +69,21 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 		log.Debug("DDO: null")
 		return nil, nil
 	}
-	var buf bytes.Buffer
-	serialization.WriteVarBytes(&buf, var0)
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarBytes(var0)
 
 	var1, err := GetAttributes(srvc)
-	serialization.WriteVarBytes(&buf, var1)
+	sink.WriteVarBytes(var1)
 
-	args := bytes.NewBuffer(srvc.Input)
-	did, _ := serialization.ReadVarBytes(args)
+	source := common.NewZeroCopySource(srvc.Input)
+	did, _, irregular, eof := source.NextVarBytes()
+	if irregular || eof {
+		return nil, fmt.Errorf("read did failed")
+	}
 	key, _ := encodeID(did)
 	var2, err := getRecovery(srvc, key)
-	serialization.WriteVarBytes(&buf, var2)
-
-	res := buf.Bytes()
+	sink.WriteVarBytes(var2)
+	res := sink.Bytes()
 	log.Debug("DDO:", hex.EncodeToString(res))
 	return res, nil
 }
@@ -108,28 +110,22 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 		return nil, nil
 	}
 
-	var res bytes.Buffer
+	sink := common.NewZeroCopySink(nil)
 	for i, v := range list {
 		if v.revoked {
 			continue
 		}
-		err = serialization.WriteUint32(&res, uint32(i+1))
-		if err != nil {
-			return nil, fmt.Errorf("get public keys error: %s", err)
-		}
-		err = serialization.WriteVarBytes(&res, v.key)
-		if err != nil {
-			return nil, fmt.Errorf("get public keys error: %s", err)
-		}
+		sink.WriteUint32(uint32(i + 1))
+		sink.WriteVarBytes(v.key)
 	}
 
-	return res.Bytes(), nil
+	return sink.Bytes(), nil
 }
 
 func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetAttributes")
-	args := bytes.NewBuffer(srvc.Input)
-	did, err := serialization.ReadVarBytes(args)
+	source := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return nil, fmt.Errorf("get public keys error: invalid argument, %s", err)
 	}

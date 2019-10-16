@@ -19,13 +19,10 @@
 package auth
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"sort"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -84,9 +81,9 @@ func getRoleFunc(native *native.NativeService, contractAddr common.Address, role
 	if item == nil { //is not set
 		return nil, nil
 	}
-	rd := bytes.NewReader(item.Value)
+	source := common.NewZeroCopySource(item.Value)
 	rF := new(roleFuncs)
-	err = rF.Deserialize(rd)
+	err = rF.Deserialization(source)
 	if err != nil {
 		return nil, fmt.Errorf("deserialize roleFuncs object failed. data: %x", item.Value)
 	}
@@ -95,12 +92,7 @@ func getRoleFunc(native *native.NativeService, contractAddr common.Address, role
 
 func putRoleFunc(native *native.NativeService, contractAddr common.Address, role []byte, funcs *roleFuncs) error {
 	key := concatRoleFuncKey(native, contractAddr, role)
-	bf := new(bytes.Buffer)
-	err := funcs.Serialize(bf)
-	if err != nil {
-		return fmt.Errorf("serialize roleFuncs failed, caused by %v", err)
-	}
-	utils.PutBytes(native, key, bf.Bytes())
+	utils.PutBytes(native, key, common.SerializeToBytes(funcs))
 	return nil
 }
 
@@ -123,9 +115,9 @@ func getOntIDToken(native *native.NativeService, contractAddr common.Address, on
 	if item == nil { //is not set
 		return nil, nil
 	}
-	rd := bytes.NewReader(item.Value)
+	source := common.NewZeroCopySource(item.Value)
 	rT := new(roleTokens)
-	err = rT.Deserialize(rd)
+	err = rT.Deserialization(source)
 	if err != nil {
 		return nil, fmt.Errorf("deserialize roleTokens object failed. data: %x", item.Value)
 	}
@@ -134,12 +126,7 @@ func getOntIDToken(native *native.NativeService, contractAddr common.Address, on
 
 func putOntIDToken(native *native.NativeService, contractAddr common.Address, ontID []byte, tokens *roleTokens) error {
 	key := concatOntIDTokenKey(native, contractAddr, ontID)
-	bf := new(bytes.Buffer)
-	err := tokens.Serialize(bf)
-	if err != nil {
-		return fmt.Errorf("serialize roleFuncs failed, caused by %v", err)
-	}
-	utils.PutBytes(native, key, bf.Bytes())
+	utils.PutBytes(native, key, common.SerializeToBytes(tokens))
 	return nil
 }
 
@@ -163,8 +150,8 @@ func getDelegateStatus(native *native.NativeService, contractAddr common.Address
 		return nil, nil
 	}
 	status := new(Status)
-	rd := bytes.NewReader(item.Value)
-	err = status.Deserialize(rd)
+	source := common.NewZeroCopySource(item.Value)
+	err = status.Deserialization(source)
 	if err != nil {
 		return nil, fmt.Errorf("deserialize Status object failed. data: %x", item.Value)
 	}
@@ -173,12 +160,7 @@ func getDelegateStatus(native *native.NativeService, contractAddr common.Address
 
 func putDelegateStatus(native *native.NativeService, contractAddr common.Address, ontID []byte, status *Status) error {
 	key := concatDelegateStatusKey(native, contractAddr, ontID)
-	bf := new(bytes.Buffer)
-	err := status.Serialize(bf)
-	if err != nil {
-		return fmt.Errorf("serialize Status failed, caused by %v", err)
-	}
-	utils.PutBytes(native, key, bf.Bytes())
+	utils.PutBytes(native, key, common.SerializeToBytes(status))
 	return nil
 }
 
@@ -208,10 +190,6 @@ func pushEvent(native *native.NativeService, s interface{}) {
 	native.Notifications = append(native.Notifications, event)
 }
 
-func serializeAddress(w io.Writer, addr common.Address) error {
-	err := serialization.WriteVarBytes(w, addr[:])
-	if err != nil {
-		return err
-	}
-	return nil
+func serializeAddress(sink *common.ZeroCopySink, addr common.Address) {
+	sink.WriteVarBytes(addr[:])
 }

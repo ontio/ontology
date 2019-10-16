@@ -20,6 +20,7 @@ package auth
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/common"
 	"testing"
 )
 
@@ -28,13 +29,11 @@ func TestSerRoleFuncs(t *testing.T) {
 		[]string{"foo1", "foo2"},
 		//[]string{},
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	bf := common.NewZeroCopySink(nil)
+	param.Serialization(bf)
+	rd := common.NewZeroCopySource(bf.Bytes())
 	param2 := new(roleFuncs)
-	if err := param2.Deserialize(rd); err != nil {
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 
@@ -55,13 +54,11 @@ func TestSerAuthToken(t *testing.T) {
 		level:      2,
 	}
 
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	bf := common.NewZeroCopySink(nil)
+	param.Serialization(bf)
+	rd := common.NewZeroCopySource(bf.Bytes())
 	param2 := new(AuthToken)
-	if err := param2.Deserialize(rd); err != nil {
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 
@@ -82,13 +79,11 @@ func TestSerDelegateStatus(t *testing.T) {
 		root:      []byte{0x01, 0x02, 0x03, 0x04, 0x05},
 		AuthToken: *token,
 	}
-	bf := new(bytes.Buffer)
-	if err := s1.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	bf := common.NewZeroCopySink(nil)
+	s1.Serialization(bf)
+	rd := common.NewZeroCopySource(bf.Bytes())
 	s2 := new(DelegateStatus)
-	if err := s2.Deserialize(rd); err != nil {
+	if err := s2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 

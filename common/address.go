@@ -45,6 +45,19 @@ func (self *Address) Serialize(w io.Writer) error {
 	_, err := w.Write(self[:])
 	return err
 }
+func (self *Address) Serialization(sink *ZeroCopySink) {
+	sink.WriteBytes(self[:])
+}
+
+// Deserialize deserialize Address from io.Reader
+func (self *Address) Deserialization(source *ZeroCopySource) error {
+	data, eof := source.NextBytes(ADDR_LEN)
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	copy(self[:], data)
+	return nil
+}
 
 // Deserialize deserialize Address from io.Reader
 func (self *Address) Deserialize(r io.Reader) error {

@@ -21,6 +21,7 @@ import (
 	"bytes"
 
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
@@ -47,24 +48,18 @@ func (this *LinkedlistNode) GetPayload() []byte {
 
 func makeLinkedlistNode(next []byte, prev []byte, payload []byte) ([]byte, error) {
 	node := &LinkedlistNode{next: next, prev: prev, payload: payload}
-	node_bytes, err := node.Serialize()
+	node_bytes, err := node.Serialization()
 	if err != nil {
 		return nil, err
 	}
 	return node_bytes, nil
 }
-func (this *LinkedlistNode) Serialize() ([]byte, error) {
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteVarBytes(bf, this.next); err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[linked list] serialize next error!")
-	}
-	if err := serialization.WriteVarBytes(bf, this.prev); err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[linked list] serialize prev error!")
-	}
-	if err := serialization.WriteVarBytes(bf, this.payload); err != nil {
-		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[linked list] serialize payload error!")
-	}
-	return bf.Bytes(), nil
+func (this *LinkedlistNode) Serialization() ([]byte, error) {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarBytes(this.next)
+	sink.WriteVarBytes(this.prev)
+	sink.WriteVarBytes(this.payload)
+	return sink.Bytes(), nil
 }
 
 func (this *LinkedlistNode) Deserialize(r []byte) error {

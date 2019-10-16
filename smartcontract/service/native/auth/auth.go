@@ -61,8 +61,8 @@ func initContractAdmin(native *native.NativeService, contractAddr common.Address
 
 func InitContractAdmin(native *native.NativeService) ([]byte, error) {
 	param := new(InitContractAdminParam)
-	rd := bytes.NewReader(native.Input)
-	if err := param.Deserialize(rd); err != nil {
+	source := common.NewZeroCopySource(native.Input)
+	if err := param.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("[initContractAdmin] deserialize param failed: %v", err)
 	}
 	cxt := native.ContextRef.CallingContext()

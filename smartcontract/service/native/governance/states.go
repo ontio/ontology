@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type Status uint8
@@ -51,32 +52,25 @@ type BlackListItem struct {
 	InitPos    uint64         //initPos of this peer
 }
 
-func (this *BlackListItem) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize initPos error: %v", err)
-	}
-	return nil
+func (this *BlackListItem) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	this.Address.Serialization(sink)
+	sink.WriteUint64(this.InitPos)
 }
 
-func (this *BlackListItem) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *BlackListItem) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	address := new(common.Address)
-	err = address.Deserialize(r)
+	err = address.Deserialization(source)
 	if err != nil {
 		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
 	}
-	initPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", err)
+	initPos, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", io.ErrUnexpectedEOF)
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = *address
@@ -438,71 +432,52 @@ type PeerAttributes struct {
 	Field4       []byte //reserved field
 }
 
-func (this *PeerAttributes) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.MaxAuthorize); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize maxAuthorize error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.T2PeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize oldPeerCost error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.T1PeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize newPeerCost error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.TPeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize newPeerCost error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field1); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field1 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field2); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field2 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field3); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field3 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field4); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field4 error: %v", err)
-	}
-	return nil
+func (this *PeerAttributes) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteUint64(this.MaxAuthorize)
+	sink.WriteUint64(this.T2PeerCost)
+	sink.WriteUint64(this.T1PeerCost)
+	sink.WriteUint64(this.TPeerCost)
+	sink.WriteVarBytes(this.Field1)
+	sink.WriteVarBytes(this.Field2)
+	sink.WriteVarBytes(this.Field3)
+	sink.WriteVarBytes(this.Field4)
 }
 
-func (this *PeerAttributes) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *PeerAttributes) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	maxAuthorize, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", err)
+	maxAuthorize, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", io.ErrUnexpectedEOF)
 	}
-	t2PeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize t2PeerCost error: %v", err)
+	t2PeerCost, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize t2PeerCost error: %v", io.ErrUnexpectedEOF)
 	}
-	t1PeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize t1PeerCost error: %v", err)
+	t1PeerCost, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize t1PeerCost error: %v", io.ErrUnexpectedEOF)
 	}
-	tPeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize tPeerCost error: %v", err)
+	tPeerCost, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize tPeerCost error: %v", io.ErrUnexpectedEOF)
 	}
-	field1, err := serialization.ReadVarBytes(r)
+	field1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes. deserialize field1 error: %v", err)
 	}
-	field2, err := serialization.ReadVarBytes(r)
+	field2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes. deserialize field2 error: %v", err)
 	}
-	field3, err := serialization.ReadVarBytes(r)
+	field3, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes, deserialize field3 error: %v", err)
 	}
-	field4, err := serialization.ReadVarBytes(r)
+	field4, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes. deserialize field4 error: %v", err)
 	}

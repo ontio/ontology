@@ -106,6 +106,16 @@ func DecodeVarBytes(source *common.ZeroCopySource) ([]byte, error) {
 
 	return data, nil
 }
+func DecodeBool(source *common.ZeroCopySource) (bool, error) {
+	data, irregular, eof := source.NextBool()
+	if eof {
+		return false, io.ErrUnexpectedEOF
+	}
+	if irregular {
+		return false, common.ErrIrregularData
+	}
+	return data, nil
+}
 func DecodeString(source *common.ZeroCopySource) (string, error) {
 	data, _, irregular, eof := source.NextString()
 	if eof {

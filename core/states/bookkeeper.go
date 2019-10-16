@@ -32,7 +32,7 @@ type BookkeeperState struct {
 	NextBookkeeper []keypair.PublicKey
 }
 
-func (this *BookkeeperState) Serialization(sink common.ZeroCopySink) {
+func (this *BookkeeperState) Serialization(sink *common.ZeroCopySink) {
 	this.StateBase.Serialization(sink)
 	sink.WriteUint32(uint32(len(this.CurrBookkeeper)))
 	for _, v := range this.CurrBookkeeper {
@@ -46,7 +46,7 @@ func (this *BookkeeperState) Serialization(sink common.ZeroCopySink) {
 	}
 }
 
-func (this *BookkeeperState) Deserialization(source common.ZeroCopySource) error {
+func (this *BookkeeperState) Deserialization(source *common.ZeroCopySource) error {
 	err := this.StateBase.Deserialization(source)
 	if err != nil {
 		return err

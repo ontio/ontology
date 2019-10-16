@@ -20,9 +20,8 @@ package states
 import (
 	"testing"
 
-	"bytes"
-
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,15 +37,16 @@ func TestBookkeeper_Deserialize_Serialize(t *testing.T) {
 		NextBookkeeper: []keypair.PublicKey{pubKey3, pubKey4},
 	}
 
-	buf := bytes.NewBuffer(nil)
-	bk.Serialize(buf)
-	bs := buf.Bytes()
+	sink := common.NewZeroCopySink(nil)
+	bk.Serialization(sink)
+	bs := sink.Bytes()
 
 	var bk2 BookkeeperState
-	bk2.Deserialize(buf)
+	source := common.NewZeroCopySource(bs)
+	bk2.Deserialization(source)
 	assert.Equal(t, bk, bk2)
 
-	buf = bytes.NewBuffer(bs[:len(bs)-1])
-	err := bk2.Deserialize(buf)
+	source = common.NewZeroCopySource(bs[:len(bs)-1])
+	err := bk2.Deserialization(source)
 	assert.NotNil(t, err)
 }

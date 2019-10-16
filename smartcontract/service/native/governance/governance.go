@@ -334,7 +334,7 @@ func RegisterCandidateTransferFrom(native *native.NativeService) ([]byte, error)
 //Unregister a registered candidate node, will remove node from pool, and unfreeze deposit ont.
 func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(UnRegisterCandidateParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	address := params.Address
@@ -397,7 +397,7 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 //Only approved candidate node can participate in consensus selection and get ong bonus.
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(ApproveCandidateParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 
@@ -527,7 +527,7 @@ func ApproveCandidate(native *native.NativeService) ([]byte, error) {
 //Only approved candidate node can participate in consensus selection and get ong bonus.
 func RejectCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(RejectCandidateParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 
@@ -635,12 +635,8 @@ func BlackNode(native *native.NativeService) ([]byte, error) {
 			Address:    peerPoolItem.Address,
 			InitPos:    peerPoolItem.InitPos,
 		}
-		bf := new(bytes.Buffer)
-		if err := blackListItem.Serialize(bf); err != nil {
-			return utils.BYTE_FALSE, fmt.Errorf("serialize, serialize blackListItem error: %v", err)
-		}
 		//put peer into black list
-		native.CacheDB.Put(utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix), cstates.GenRawStorageItem(bf.Bytes()))
+		native.CacheDB.Put(utils.ConcatKey(contract, []byte(BLACK_LIST), peerPubkeyPrefix), cstates.GenRawStorageItem(common.SerializeToBytes(blackListItem)))
 		//change peerPool status
 		if peerPoolItem.Status == ConsensusStatus {
 			commit = true
@@ -708,7 +704,7 @@ func WhiteNode(native *native.NativeService) ([]byte, error) {
 //Remove node from pool and unfreeze deposit next epoch(candidate node) / next next epoch(consensus node)
 func QuitNode(native *native.NativeService) ([]byte, error) {
 	params := new(QuitNodeParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	address := params.Address
@@ -1244,7 +1240,7 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 	}
 
 	param := new(TransferPenaltyParam)
-	if err := param.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := param.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize transferPenaltyParam error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -1260,7 +1256,7 @@ func TransferPenalty(native *native.NativeService) ([]byte, error) {
 //Withdraw unbounded ONG according to deposit ONT in this governance contract
 func WithdrawOng(native *native.NativeService) ([]byte, error) {
 	params := new(WithdrawOngParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize transferPenaltyParam error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -1421,7 +1417,7 @@ func WithdrawFee(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("block num is not reached for this func")
 	}
 	params := new(WithdrawFeeParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("deserialize, deserialize withdrawFeeParam error: %v", err)
 	}
 
