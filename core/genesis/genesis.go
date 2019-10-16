@@ -19,7 +19,6 @@
 package genesis
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strconv"
@@ -221,11 +220,11 @@ func newGoverningInit() *types.Transaction {
 		value uint64
 	}{{addr, constants.ONT_TOTAL_SUPPLY}}
 
-	args := bytes.NewBuffer(nil)
-	nutils.WriteVarUint(args, uint64(len(distribute)))
+	args := common.NewZeroCopySink(nil)
+	nutils.EncodeVarUint(args, uint64(len(distribute)))
 	for _, part := range distribute {
-		nutils.WriteAddress(args, part.addr)
-		nutils.WriteVarUint(args, part.value)
+		nutils.EncodeAddress(args, part.addr)
+		nutils.EncodeVarUint(args, part.value)
 	}
 
 	mutable := utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())

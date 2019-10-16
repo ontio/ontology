@@ -19,7 +19,6 @@
 package global_params
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
@@ -89,7 +88,7 @@ func ParamInit(native *native.NativeService) ([]byte, error) {
 
 func AcceptAdmin(native *native.NativeService) ([]byte, error) {
 	var destinationAdmin common.Address
-	destinationAdmin, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
+	destinationAdmin, err := utils.DecodeAddress(common.NewZeroCopySource(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("accept admin, deserialize admin failed!")
 	}
@@ -119,7 +118,7 @@ func TransferAdmin(native *native.NativeService) ([]byte, error) {
 	if !native.ContextRef.CheckWitness(admin) {
 		return utils.BYTE_FALSE, errors.NewErr("transfer admin, authentication failed!")
 	}
-	destinationAdmin, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
+	destinationAdmin, err := utils.DecodeAddress(common.NewZeroCopySource(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("transfer admin, deserialize admin failed!")
 	}
@@ -139,7 +138,7 @@ func SetOperator(native *native.NativeService) ([]byte, error) {
 	if !native.ContextRef.CheckWitness(admin) {
 		return utils.BYTE_FALSE, errors.NewErr("set operator, authentication failed!")
 	}
-	destinationOperator, err := utils.ReadAddress(bytes.NewBuffer(native.Input))
+	destinationOperator, err := utils.DecodeAddress(common.NewZeroCopySource(native.Input))
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("set operator, deserialize operator failed!")
 	}

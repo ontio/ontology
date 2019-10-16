@@ -640,7 +640,7 @@ func VerifyToken(native *native.NativeService) ([]byte, error) {
 func verifySig(native *native.NativeService, ontID []byte, keyNo uint64) (bool, error) {
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteVarBytes(ontID)
-	sink.WriteVarUint(keyNo)
+	utils.EncodeVarUint(sink, keyNo)
 	args := sink.Bytes()
 	ret, err := native.NativeCall(utils.OntIDContractAddress, "verifySignature", args)
 	if err != nil {

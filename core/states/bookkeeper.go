@@ -19,7 +19,6 @@
 package states
 
 import (
-	"bytes"
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -91,7 +90,5 @@ func (this *BookkeeperState) Deserialization(source *common.ZeroCopySource) erro
 }
 
 func (v *BookkeeperState) ToArray() []byte {
-	b := new(bytes.Buffer)
-	v.Serialize(b)
-	return b.Bytes()
+	return common.SerializeToBytes(v)
 }

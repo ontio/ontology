@@ -341,10 +341,8 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, st
 }
 
 func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, store store.LedgerStore, address common.Address) (uint64, error) {
-	bf := new(bytes.Buffer)
-	if err := utils.WriteAddress(bf, address); err != nil {
-		return 0, err
-	}
+	bf := common.NewZeroCopySink(nil)
+	utils.EncodeAddress(bf, address)
 	sc := smartcontract.SmartContract{
 		Config:  config,
 		CacheDB: cache,

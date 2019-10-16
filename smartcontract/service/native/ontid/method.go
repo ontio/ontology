@@ -116,7 +116,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	}
 	// arg2: attributes
 	// first get number
-	num, err := utils.ReadVarUint(source)
+	num, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: argument 2 error, " + err.Error())
 	}

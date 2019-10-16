@@ -19,9 +19,6 @@
 package ont
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -59,19 +56,6 @@ type State struct {
 	Value uint64
 }
 
-func (this *State) Serialize(w io.Writer) error {
-	if err := utils.WriteAddress(w, this.From); err != nil {
-		return fmt.Errorf("[State] serialize from error:%v", err)
-	}
-	if err := utils.WriteAddress(w, this.To); err != nil {
-		return fmt.Errorf("[State] serialize to error:%v", err)
-	}
-	if err := utils.WriteVarUint(w, this.Value); err != nil {
-		return fmt.Errorf("[State] serialize value error:%v", err)
-	}
-	return nil
-}
-
 func (this *State) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeAddress(sink, this.From)
 	utils.EncodeAddress(sink, this.To)
@@ -100,22 +84,6 @@ type TransferFrom struct {
 	From   common.Address
 	To     common.Address
 	Value  uint64
-}
-
-func (this *TransferFrom) Serialize(w io.Writer) error {
-	if err := utils.WriteAddress(w, this.Sender); err != nil {
-		return fmt.Errorf("[TransferFrom] serialize sender error:%v", err)
-	}
-	if err := utils.WriteAddress(w, this.From); err != nil {
-		return fmt.Errorf("[TransferFrom] serialize from error:%v", err)
-	}
-	if err := utils.WriteAddress(w, this.To); err != nil {
-		return fmt.Errorf("[TransferFrom] serialize to error:%v", err)
-	}
-	if err := utils.WriteVarUint(w, this.Value); err != nil {
-		return fmt.Errorf("[TransferFrom] serialize value error:%v", err)
-	}
-	return nil
 }
 
 func (this *TransferFrom) Serialization(sink *common.ZeroCopySink) {

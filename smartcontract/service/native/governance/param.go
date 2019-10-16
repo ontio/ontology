@@ -20,7 +20,6 @@ package governance
 
 import (
 	"fmt"
-	"io"
 	"math"
 
 	"github.com/ontio/ontology/common"
@@ -356,32 +355,15 @@ type Configuration struct {
 	MaxBlockChangeView   uint32
 }
 
-func (this *Configuration) Serialize(w io.Writer) error {
-	if err := utils.WriteVarUint(w, uint64(this.N)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize n error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.C)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize c error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.K)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize k error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.L)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize l error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.BlockMsgDelay)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize block_msg_delay error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.HashMsgDelay)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize hash_msg_delay error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.PeerHandshakeTimeout)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize peer_handshake_timeout error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.MaxBlockChangeView)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize max_block_change_view error: %v", err)
-	}
-	return nil
+func (this *Configuration) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarUint(sink, uint64(this.N))
+	utils.EncodeVarUint(sink, uint64(this.C))
+	utils.EncodeVarUint(sink, uint64(this.K))
+	utils.EncodeVarUint(sink, uint64(this.L))
+	utils.EncodeVarUint(sink, uint64(this.BlockMsgDelay))
+	utils.EncodeVarUint(sink, uint64(this.HashMsgDelay))
+	utils.EncodeVarUint(sink, uint64(this.PeerHandshakeTimeout))
+	utils.EncodeVarUint(sink, uint64(this.MaxBlockChangeView))
 }
 
 func (this *Configuration) Deserialization(source *common.ZeroCopySource) error {
@@ -457,14 +439,9 @@ type PreConfig struct {
 	SetView       uint32
 }
 
-func (this *PreConfig) Serialize(w io.Writer) error {
-	if err := this.Configuration.Serialize(w); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize configuration error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.SetView)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize setView error: %v", err)
-	}
-	return nil
+func (this *PreConfig) Serialization(sink *common.ZeroCopySink) {
+	this.Configuration.Serialization(sink)
+	utils.EncodeVarUint(sink, uint64(this.SetView))
 }
 
 func (this *PreConfig) Deserialization(source *common.ZeroCopySource) error {
@@ -496,32 +473,14 @@ type GlobalParam struct {
 	Penalty      uint32 //authorize pos penalty percentage
 }
 
-func (this *GlobalParam) Serialize(w io.Writer) error {
-	if err := utils.WriteVarUint(w, this.CandidateFee); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize candidateFee error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.MinInitStake)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize minInitStake error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.CandidateNum)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize candidateNum error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.PosLimit)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize posLimit error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.A)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize a error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.B)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize b error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.Yita)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize yita error: %v", err)
-	}
-	if err := utils.WriteVarUint(w, uint64(this.Penalty)); err != nil {
-		return fmt.Errorf("utils.WriteVarUint, serialize penalty error: %v", err)
-	}
-	return nil
+func (this *GlobalParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarUint(sink, this.CandidateFee)
+	utils.EncodeVarUint(sink, uint64(this.CandidateNum))
+	utils.EncodeVarUint(sink, uint64(this.PosLimit))
+	utils.EncodeVarUint(sink, uint64(this.A))
+	utils.EncodeVarUint(sink, uint64(this.B))
+	utils.EncodeVarUint(sink, uint64(this.Yita))
+	utils.EncodeVarUint(sink, uint64(this.Penalty))
 }
 
 func (this *GlobalParam) Deserialization(source *common.ZeroCopySource) error {
@@ -679,17 +638,13 @@ type SplitCurve struct {
 	Yi []uint32
 }
 
-func (this *SplitCurve) Serialize(w io.Writer) error {
+func (this *SplitCurve) Serialization(sink *common.ZeroCopySink) error {
 	if len(this.Yi) != 101 {
 		return fmt.Errorf("length of split curve != 101")
 	}
-	if err := utils.WriteVarUint(w, uint64(len(this.Yi))); err != nil {
-		return fmt.Errorf("serialization.WriteVarUint, serialize Yi length error: %v", err)
-	}
+	utils.EncodeVarUint(sink, uint64(len(this.Yi)))
 	for _, v := range this.Yi {
-		if err := utils.WriteVarUint(w, uint64(v)); err != nil {
-			return fmt.Errorf("utils.WriteVarUint, serialize splitCurve error: %v", err)
-		}
+		utils.EncodeVarUint(sink, uint64(v))
 	}
 	return nil
 }

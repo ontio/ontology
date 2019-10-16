@@ -436,7 +436,7 @@ func (this *VBFTPeerStakeInfo) Serialization(sink *common.ZeroCopySink) error {
 	if err != nil {
 		return fmt.Errorf("serialize VBFTPeerStackInfo error: %v", err)
 	}
-	sink.WriteAddress(address)
+	address.Serialization(sink)
 	sink.WriteUint64(this.InitPos)
 	return nil
 }

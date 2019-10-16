@@ -58,7 +58,7 @@ type TransferParam struct {
 func (this *TransferParam) Serialization(sink *common.ZeroCopySink) {
 	serializeAddress(sink, this.ContractAddr)
 	sink.WriteVarBytes(this.NewAdminOntID)
-	sink.WriteVarUint(this.KeyNo)
+	utils.EncodeVarUint(sink, this.KeyNo)
 }
 
 func (this *TransferParam) Deserialization(source *common.ZeroCopySource) error {
