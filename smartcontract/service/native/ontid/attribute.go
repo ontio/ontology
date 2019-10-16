@@ -136,7 +136,7 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 		return nil, nil
 	}
 
-	var res *common.ZeroCopySink
+	res := common.NewZeroCopySink(nil)
 	var i uint16 = 0
 	for len(item) > 0 {
 		node, err := utils.LinkedlistGetItem(srvc, key, item)
