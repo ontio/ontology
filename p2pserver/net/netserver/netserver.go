@@ -316,6 +316,7 @@ func (this *NetServer) Halt() {
 	peers := this.Np.GetNeighbors()
 	for _, p := range peers {
 		p.Close()
+		p.Link.CloseConn()
 	}
 	if this.listener != nil {
 		this.listener.Close()

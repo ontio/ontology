@@ -264,6 +264,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 		if !found {
 			remotePeer.Close()
+			remotePeer.Link.CloseConn()
 			log.Debug("[p2p]peer not in reserved list,close", data.Addr)
 			return
 		}
@@ -276,6 +277,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr())
 		p2p.SetOwnAddress(nodeAddr)
 		remotePeer.Close()
+		remotePeer.Link.CloseConn()
 		return
 	}
 
@@ -283,6 +285,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 	if s != msgCommon.INIT && s != msgCommon.HAND {
 		log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
 		remotePeer.Close()
+		remotePeer.Link.CloseConn()
 		return
 	}
 
@@ -297,6 +300,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		ipNew, err := msgCommon.ParseIPAddr(data.Addr)
 		if err != nil {
 			remotePeer.Close()
+			remotePeer.Link.CloseConn()
 			log.Warn("[p2p]connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
 			return
 		}
@@ -317,6 +321,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		} else {
 			log.Warnf("[p2p]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
 			remotePeer.Close()
+			remotePeer.Link.CloseConn()
 			return
 
 		}

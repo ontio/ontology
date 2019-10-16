@@ -21,6 +21,7 @@ package peer
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -30,7 +31,8 @@ import (
 //NbrPeers: The neigbor list
 type NbrPeers struct {
 	sync.RWMutex
-	List map[uint64]*Peer
+	List    map[uint64]*Peer
+	trashCh chan *Peer
 }
 
 //Broadcast tranfer msg buffer to all establish peer
@@ -86,12 +88,27 @@ func (this *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
 		return nil, false
 	}
 	delete(this.List, id)
+	this.trashCh <- n
 	return n, true
 }
 
 //initialize nbr list
 func (this *NbrPeers) Init() {
 	this.List = make(map[uint64]*Peer)
+	this.trashCh = make(chan *Peer, 3)
+	go this.cleanUnderlineSocket()
+}
+
+func (np *NbrPeers) cleanUnderlineSocket() {
+	for curPeer := range np.trashCh {
+		go func(p *Peer) {
+			timer := time.NewTimer(time.Minute)
+			select {
+			case <-timer.C:
+				p.Link.CloseConn()
+			}
+		}(curPeer)
+	}
 }
 
 //NodeEstablished whether peer established according to id

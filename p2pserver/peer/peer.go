@@ -196,7 +196,7 @@ func (this *Peer) GetPort() uint16 {
 	return this.Link.GetPort()
 }
 
-//SendTo call sync link to send buffer
+//SendRaw call sync link to send buffer
 func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
 	if this.Link != nil && this.Link.Valid() {
 		return this.Link.SendRaw(msgPayload)
@@ -206,12 +206,9 @@ func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
 
 //Close halt sync connection
 func (this *Peer) Close() {
-	this.SetState(common.INACTIVITY)
-	conn := this.Link.GetConn()
 	this.connLock.Lock()
-	if conn != nil {
-		conn.Close()
-	}
+	this.SetState(common.INACTIVITY)
+	this.Link.CloseLink()
 	this.connLock.Unlock()
 }
 
