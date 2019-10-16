@@ -144,7 +144,7 @@ func (this *OntIDsToRoleParam) Serialization(sink *common.ZeroCopySink) {
 	for _, p := range this.Persons {
 		sink.WriteVarBytes(p)
 	}
-	sink.WriteVarUint(this.KeyNo)
+	utils.EncodeVarUint(sink, this.KeyNo)
 }
 
 func (this *OntIDsToRoleParam) Deserialization(source *common.ZeroCopySource) error {

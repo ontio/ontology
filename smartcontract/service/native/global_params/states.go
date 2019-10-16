@@ -89,6 +89,7 @@ func (nameList *ParamNameList) Serialization(sink *common.ZeroCopySink) {
 		sink.WriteString(value)
 	}
 }
+
 func (nameList *ParamNameList) Deserialization(source *common.ZeroCopySource) error {
 	nameNum, err := utils.DecodeVarUint(source)
 	if err != nil {

@@ -34,13 +34,12 @@ type RegisterCandidateParam struct {
 	KeyNo      uint32
 }
 
-func (this *RegisterCandidateParam) Serialization(sink *common.ZeroCopySink) error {
+func (this *RegisterCandidateParam) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteString(this.PeerPubkey)
 	sink.WriteVarBytes(this.Address[:])
-	sink.WriteVarUint(uint64(this.InitPos))
+	utils.EncodeVarUint(sink, uint64(this.InitPos))
 	sink.WriteVarBytes(this.Caller)
-	sink.WriteVarUint(uint64(this.KeyNo))
-	return nil
+	utils.EncodeVarUint(sink, uint64(this.KeyNo))
 }
 
 func (this *RegisterCandidateParam) Deserialization(source *common.ZeroCopySource) error {
@@ -219,7 +218,7 @@ func (this *AuthorizeForPeerParam) Serialization(sink *common.ZeroCopySink) erro
 		return fmt.Errorf("length of PeerPubkeyList != length of PosList")
 	}
 	sink.WriteVarBytes(this.Address[:])
-	sink.WriteVarUint(uint64(len(this.PeerPubkeyList)))
+	utils.EncodeVarUint(sink, uint64(len(this.PeerPubkeyList)))
 	for _, v := range this.PeerPubkeyList {
 		sink.WriteString(v)
 	}
