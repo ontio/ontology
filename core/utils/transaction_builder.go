@@ -193,9 +193,8 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 		return nil, fmt.Errorf("build wasm contract param failed:%s", err)
 	}
 	contract.Args = argbytes
-	sink := common.NewZeroCopySink(nil)
-	contract.Serialization(sink)
-	return sink.Bytes(), nil
+
+	return common.SerializeToBytes(contract), nil
 }
 
 //build param bytes for wasm contract

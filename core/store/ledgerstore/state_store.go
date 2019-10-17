@@ -271,9 +271,9 @@ func (self *StateStore) GetBookkeeperState() (*states.BookkeeperState, error) {
 	if err != nil {
 		return nil, err
 	}
-	reader := bytes.NewReader(value)
+	reader := common.NewZeroCopySource(value)
 	bookkeeperState := new(states.BookkeeperState)
-	err = bookkeeperState.Deserialize(reader)
+	err = bookkeeperState.Deserialization(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -286,11 +286,8 @@ func (self *StateStore) SaveBookkeeperState(bookkeeperState *states.BookkeeperSt
 	if err != nil {
 		return err
 	}
-	value := bytes.NewBuffer(nil)
-	err = bookkeeperState.Serialize(value)
-	if err != nil {
-		return err
-	}
+	value := common.NewZeroCopySink(nil)
+	bookkeeperState.Serialization(value)
 
 	return self.store.Put(key, value.Bytes())
 }
@@ -306,9 +303,9 @@ func (self *StateStore) GetStorageState(key *states.StorageKey) (*states.Storage
 	if err != nil {
 		return nil, err
 	}
-	reader := bytes.NewReader(data)
+	reader := common.NewZeroCopySource(data)
 	storageState := new(states.StorageItem)
-	err = storageState.Deserialize(reader)
+	err = storageState.Deserialization(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -424,8 +421,8 @@ func (self *StateStore) CheckStorage() error {
 	val, err := db.Get(flag)
 	if err == nil {
 		item := &states.StorageItem{}
-		buf := bytes.NewBuffer(val)
-		err := item.Deserialize(buf)
+		source := common.NewZeroCopySource(val)
+		err := item.Deserialization(source)
 		if err == nil && item.Value[0] == ontid.FLAG_VERSION {
 			return nil
 		} else if err == nil {
@@ -452,8 +449,8 @@ func (self *StateStore) CheckStorage() error {
 
 	tag := states.StorageItem{}
 	tag.Value = []byte{ontid.FLAG_VERSION}
-	buf := bytes.NewBuffer(nil)
-	tag.Serialize(buf)
+	buf := common.NewZeroCopySink(nil)
+	tag.Serialization(buf)
 	db.BatchPut(flag, buf.Bytes())
 	err = db.BatchCommit()
 

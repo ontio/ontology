@@ -20,7 +20,6 @@ package states
 import (
 	"testing"
 
-	"bytes"
 	"crypto/rand"
 
 	"github.com/ontio/ontology/common"
@@ -36,15 +35,16 @@ func TestStorageKey_Deserialize_Serialize(t *testing.T) {
 		Key:             []byte{1, 2, 3},
 	}
 
-	buf := bytes.NewBuffer(nil)
-	storage.Serialize(buf)
-	bs := buf.Bytes()
+	sink := common.NewZeroCopySink(nil)
+	storage.Serialization(sink)
+	bs := sink.Bytes()
 
 	var storage2 StorageKey
-	storage2.Deserialize(buf)
+	source := common.NewZeroCopySource(sink.Bytes())
+	storage2.Deserialization(source)
 	assert.Equal(t, storage, storage2)
 
-	buf = bytes.NewBuffer(bs[:len(bs)-1])
-	err := storage2.Deserialize(buf)
+	buf := common.NewZeroCopySource(bs[:len(bs)-1])
+	err := storage2.Deserialization(buf)
 	assert.NotNil(t, err)
 }

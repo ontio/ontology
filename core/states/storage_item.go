@@ -19,10 +19,9 @@
 package states
 
 import (
-	"bytes"
 	"io"
 
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 )
 
@@ -31,34 +30,34 @@ type StorageItem struct {
 	Value []byte
 }
 
-func (this *StorageItem) Serialize(w io.Writer) error {
-	this.StateBase.Serialize(w)
-	serialization.WriteVarBytes(w, this.Value)
-	return nil
+func (this *StorageItem) Serialization(sink *common.ZeroCopySink) {
+	this.StateBase.Serialization(sink)
+	sink.WriteVarBytes(this.Value)
 }
 
-func (this *StorageItem) Deserialize(r io.Reader) error {
-	err := this.StateBase.Deserialize(r)
+func (this *StorageItem) Deserialization(source *common.ZeroCopySource) error {
+	err := this.StateBase.Deserialization(source)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageItem], StateBase Deserialize failed.")
 	}
-	value, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[StorageItem], Value Deserialize failed.")
+	value, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return errors.NewDetailErr(common.ErrIrregularData, errors.ErrNoCode, "[StorageItem], Value Deserialize failed.")
+	}
+	if eof {
+		return errors.NewDetailErr(io.ErrUnexpectedEOF, errors.ErrNoCode, "[StorageItem], Value Deserialize failed.")
 	}
 	this.Value = value
 	return nil
 }
 
 func (storageItem *StorageItem) ToArray() []byte {
-	b := new(bytes.Buffer)
-	storageItem.Serialize(b)
-	return b.Bytes()
+	return common.SerializeToBytes(storageItem)
 }
 
 func GetValueFromRawStorageItem(raw []byte) ([]byte, error) {
 	item := StorageItem{}
-	err := item.Deserialize(bytes.NewBuffer(raw))
+	err := item.Deserialization(common.NewZeroCopySource(raw))
 	if err != nil {
 		return nil, err
 	}

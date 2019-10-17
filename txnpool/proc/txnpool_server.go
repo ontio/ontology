@@ -21,7 +21,6 @@
 package proc
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-eventbus/actor"
@@ -117,7 +116,7 @@ func getGlobalGasPrice() (uint64, error) {
 		return 0, fmt.Errorf("decode result error %v", err)
 	}
 
-	err = queriedParams.Deserialize(bytes.NewBuffer([]byte(data)))
+	err = queriedParams.Deserialization(common.NewZeroCopySource([]byte(data)))
 	if err != nil {
 		return 0, fmt.Errorf("deserialize result error %v", err)
 	}

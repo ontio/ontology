@@ -19,8 +19,6 @@
 package global_params
 
 import (
-	"bytes"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	cstates "github.com/ontio/ontology/core/states"
@@ -37,15 +35,13 @@ const (
 )
 
 func getRoleStorageItem(role common.Address) *cstates.StorageItem {
-	bf := new(bytes.Buffer)
-	utils.WriteAddress(bf, role)
+	bf := common.NewZeroCopySink(nil)
+	utils.EncodeAddress(bf, role)
 	return &cstates.StorageItem{Value: bf.Bytes()}
 }
 
 func getParamStorageItem(params Params) *cstates.StorageItem {
-	bf := new(bytes.Buffer)
-	params.Serialize(bf)
-	return &cstates.StorageItem{Value: bf.Bytes()}
+	return &cstates.StorageItem{Value: common.SerializeToBytes(&params)}
 }
 
 func generateParamKey(contract common.Address, valueType paramType) []byte {
@@ -72,8 +68,7 @@ func getStorageParam(native *native.NativeService, key []byte) (Params, error) {
 	if err != nil || item == nil {
 		return params, err
 	}
-	bf := bytes.NewBuffer(item.Value)
-	err = params.Deserialize(bf)
+	err = params.Deserialization(common.NewZeroCopySource(item.Value))
 	return params, err
 }
 
@@ -83,8 +78,8 @@ func GetStorageRole(native *native.NativeService, key []byte) (common.Address, e
 	if err != nil || item == nil {
 		return role, err
 	}
-	bf := bytes.NewBuffer(item.Value)
-	role, err = utils.ReadAddress(bf)
+	bf := common.NewZeroCopySource(item.Value)
+	role, err = utils.DecodeAddress(bf)
 	return role, err
 }
 

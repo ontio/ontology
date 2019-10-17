@@ -20,6 +20,7 @@ package utils
 
 import (
 	"bytes"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
@@ -35,7 +36,7 @@ func GetStorageItem(native *native.NativeService, key []byte) (*cstates.StorageI
 		return nil, nil
 	}
 	item := new(cstates.StorageItem)
-	err = item.Deserialize(bytes.NewBuffer(store))
+	err = item.Deserialization(common.NewZeroCopySource(store))
 	if err != nil {
 		return nil, errors.NewDetailErr(err, errors.ErrNoCode, "[GetStorageItem] instance doesn't StorageItem!")
 	}
@@ -73,9 +74,9 @@ func GetStorageUInt32(native *native.NativeService, key []byte) (uint32, error) 
 }
 
 func GenUInt64StorageItem(value uint64) *cstates.StorageItem {
-	bf := new(bytes.Buffer)
-	serialization.WriteUint64(bf, value)
-	return &cstates.StorageItem{Value: bf.Bytes()}
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint64(value)
+	return &cstates.StorageItem{Value: sink.Bytes()}
 }
 
 func GenUInt32StorageItem(value uint32) *cstates.StorageItem {

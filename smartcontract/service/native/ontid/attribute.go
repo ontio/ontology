@@ -18,14 +18,12 @@
 package ontid
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
-
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"io"
 )
 
 type attribute struct {
@@ -34,62 +32,65 @@ type attribute struct {
 	valueType []byte
 }
 
-func (this *attribute) Value() ([]byte, error) {
-	var buf bytes.Buffer
-	err := serialization.WriteVarBytes(&buf, this.value)
-	if err != nil {
-		return nil, err
-	}
-	err = serialization.WriteVarBytes(&buf, this.valueType)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+func (this *attribute) Value() []byte {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarBytes(this.value)
+	sink.WriteVarBytes(this.valueType)
+	return sink.Bytes()
 }
 
 func (this *attribute) SetValue(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	val, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return err
+	source := common.NewZeroCopySource(data)
+	val, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	vt, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return err
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
+
+	vt, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	this.valueType = vt
 	this.value = val
 	return nil
 }
 
-func (this *attribute) Serialize(w io.Writer) error {
-	err := serialization.WriteVarBytes(w, this.key)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteVarBytes(w, this.valueType)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteVarBytes(w, this.value)
-	if err != nil {
-		return err
-	}
-	return nil
+func (this *attribute) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.key)
+	sink.WriteVarBytes(this.valueType)
+	sink.WriteVarBytes(this.value)
 }
 
-func (this *attribute) Deserialize(r io.Reader) error {
-	k, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
+func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
+	k, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	vt, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	v, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
+
+	vt, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	v, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	this.key = k
 	this.value = v
@@ -99,11 +100,8 @@ func (this *attribute) Deserialize(r io.Reader) error {
 
 func insertOrUpdateAttr(srvc *native.NativeService, encID []byte, attr *attribute) error {
 	key := append(encID, FIELD_ATTR)
-	val, err := attr.Value()
-	if err != nil {
-		return errors.New("serialize attribute value error: " + err.Error())
-	}
-	err = utils.LinkedlistInsert(srvc, key, attr.key, val)
+	val := attr.Value()
+	err := utils.LinkedlistInsert(srvc, key, attr.key, val)
 	if err != nil {
 		return errors.New("store attribute error: " + err.Error())
 	}
@@ -138,7 +136,7 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 		return nil, nil
 	}
 
-	var res bytes.Buffer
+	res := common.NewZeroCopySink(nil)
 	var i uint16 = 0
 	for len(item) > 0 {
 		node, err := utils.LinkedlistGetItem(srvc, key, item)
@@ -154,10 +152,7 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 			return nil, fmt.Errorf("parse attribute failed, %s", err)
 		}
 		attr.key = item
-		err = attr.Serialize(&res)
-		if err != nil {
-			return nil, fmt.Errorf("serialize error, %s", err)
-		}
+		attr.Serialization(res)
 
 		i += 1
 		item = node.GetNext()

@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -62,8 +61,8 @@ func initContractAdmin(native *native.NativeService, contractAddr common.Address
 
 func InitContractAdmin(native *native.NativeService) ([]byte, error) {
 	param := new(InitContractAdminParam)
-	rd := bytes.NewReader(native.Input)
-	if err := param.Deserialize(rd); err != nil {
+	source := common.NewZeroCopySource(native.Input)
+	if err := param.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("[initContractAdmin] deserialize param failed: %v", err)
 	}
 	cxt := native.ContextRef.CallingContext()
@@ -115,8 +114,7 @@ func transfer(native *native.NativeService, contractAddr common.Address, newAdmi
 func Transfer(native *native.NativeService) ([]byte, error) {
 	//deserialize param
 	param := new(TransferParam)
-	rd := bytes.NewReader(native.Input)
-	err := param.Deserialize(rd)
+	err := param.Deserialization(common.NewZeroCopySource(native.Input))
 	if err != nil {
 		return nil, fmt.Errorf("[transfer] deserialize param failed: %v", err)
 	}
@@ -146,8 +144,8 @@ func Transfer(native *native.NativeService) ([]byte, error) {
 func AssignFuncsToRole(native *native.NativeService) ([]byte, error) {
 	//deserialize input param
 	param := new(FuncsToRoleParam)
-	rd := bytes.NewReader(native.Input)
-	if err := param.Deserialize(rd); err != nil {
+	source := common.NewZeroCopySource(native.Input)
+	if err := param.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("[assignFuncsToRole] deserialize param failed: %v", err)
 	}
 
@@ -270,8 +268,8 @@ func assignToRole(native *native.NativeService, param *OntIDsToRoleParam) (bool,
 func AssignOntIDsToRole(native *native.NativeService) ([]byte, error) {
 	//deserialize param
 	param := new(OntIDsToRoleParam)
-	rd := bytes.NewReader(native.Input)
-	if err := param.Deserialize(rd); err != nil {
+	source := common.NewZeroCopySource(native.Input)
+	if err := param.Deserialization(source); err != nil {
 		return nil, fmt.Errorf("[assignOntIDsToRole] deserialize param failed: %v", err)
 	}
 
@@ -460,8 +458,8 @@ func delegate(native *native.NativeService, contractAddr common.Address, from []
 func Delegate(native *native.NativeService) ([]byte, error) {
 	//deserialize param
 	param := &DelegateParam{}
-	rd := bytes.NewReader(native.Input)
-	err := param.Deserialize(rd)
+	source := common.NewZeroCopySource(native.Input)
+	err := param.Deserialization(source)
 	if err != nil {
 		return nil, fmt.Errorf("[delegate] deserialize param failed: %v", err)
 	}
@@ -537,8 +535,8 @@ func withdraw(native *native.NativeService, contractAddr common.Address, initiat
 func Withdraw(native *native.NativeService) ([]byte, error) {
 	//deserialize param
 	param := &WithdrawParam{}
-	rd := bytes.NewReader(native.Input)
-	err := param.Deserialize(rd)
+	source := common.NewZeroCopySource(native.Input)
+	err := param.Deserialization(source)
 	if err != nil {
 		return nil, fmt.Errorf("[withdraw] deserialize param failed: %v", err)
 	}
@@ -617,8 +615,8 @@ func verifyToken(native *native.NativeService, contractAddr common.Address, call
 func VerifyToken(native *native.NativeService) ([]byte, error) {
 	//deserialize param
 	param := &VerifyTokenParam{}
-	rd := bytes.NewReader(native.Input)
-	err := param.Deserialize(rd)
+	source := common.NewZeroCopySource(native.Input)
+	err := param.Deserialization(source)
 	if err != nil {
 		return nil, fmt.Errorf("[verifyToken] deserialize param failed: %v", err)
 	}
@@ -640,14 +638,10 @@ func VerifyToken(native *native.NativeService) ([]byte, error) {
 }
 
 func verifySig(native *native.NativeService, ontID []byte, keyNo uint64) (bool, error) {
-	bf := new(bytes.Buffer)
-	if err := serialization.WriteVarBytes(bf, ontID); err != nil {
-		return false, err
-	}
-	if err := utils.WriteVarUint(bf, keyNo); err != nil {
-		return false, err
-	}
-	args := bf.Bytes()
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarBytes(ontID)
+	utils.EncodeVarUint(sink, keyNo)
+	args := sink.Bytes()
 	ret, err := native.NativeCall(utils.OntIDContractAddress, "verifySignature", args)
 	if err != nil {
 		return false, err

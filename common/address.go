@@ -22,11 +22,11 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 
 	"github.com/itchyny/base58-go"
 	"golang.org/x/crypto/ripemd160"
+	"io"
 )
 
 const ADDR_LEN = 20
@@ -41,16 +41,16 @@ func (self *Address) ToHexString() string {
 }
 
 // Serialize serialize Address into io.Writer
-func (self *Address) Serialize(w io.Writer) error {
-	_, err := w.Write(self[:])
-	return err
+func (self *Address) Serialization(sink *ZeroCopySink) {
+	sink.WriteAddress(*self)
 }
 
 // Deserialize deserialize Address from io.Reader
-func (self *Address) Deserialize(r io.Reader) error {
-	_, err := io.ReadFull(r, self[:])
-	if err != nil {
-		return errors.New("deserialize Address error")
+func (self *Address) Deserialization(source *ZeroCopySource) error {
+	var eof bool
+	*self, eof = source.NextAddress()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	return nil
 }

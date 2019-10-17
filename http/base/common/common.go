@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -39,6 +38,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/neovm"
+	"io"
 	"strings"
 	"time"
 )
@@ -299,9 +299,10 @@ func GetGrantOng(addr common.Address) (string, error) {
 	if err != nil {
 		value = []byte{0, 0, 0, 0}
 	}
-	v, err := serialization.ReadUint32(bytes.NewBuffer(value))
-	if err != nil {
-		return fmt.Sprintf("%v", 0), err
+	source := common.NewZeroCopySource(value)
+	v, eof := source.NextUint32()
+	if eof {
+		return fmt.Sprintf("%v", 0), io.ErrUnexpectedEOF
 	}
 	ont, err := GetContractBalance(0, utils.OntContractAddress, addr)
 	if err != nil {

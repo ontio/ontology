@@ -19,12 +19,10 @@
 package ont
 
 import (
-	"bytes"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -59,9 +57,9 @@ func AddNotifications(native *native.NativeService, contract common.Address, sta
 }
 
 func GetToUInt64StorageItem(toBalance, value uint64) *cstates.StorageItem {
-	bf := new(bytes.Buffer)
-	serialization.WriteUint64(bf, toBalance+value)
-	return &cstates.StorageItem{Value: bf.Bytes()}
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint64(toBalance + value)
+	return &cstates.StorageItem{Value: sink.Bytes()}
 }
 
 func GenTotalSupplyKey(contract common.Address) []byte {

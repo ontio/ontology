@@ -15,39 +15,17 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
+package common
 
-package states
-
-import (
-	"github.com/ontio/ontology/common"
-	"io"
-)
-
-type StorageKey struct {
-	ContractAddress common.Address
-	Key             []byte
+type Serializable interface {
+	Serialization(sink *ZeroCopySink)
 }
 
-func (this *StorageKey) Serialization(sink *common.ZeroCopySink) {
-	this.ContractAddress.Serialization(sink)
-	sink.WriteVarBytes(this.Key)
-}
+func SerializeToBytes(values ...Serializable) []byte {
+	sink := NewZeroCopySink(nil)
+	for _, val := range values {
+		val.Serialization(sink)
+	}
 
-func (this *StorageKey) Deserialization(source *common.ZeroCopySource) error {
-	if err := this.ContractAddress.Deserialization(source); err != nil {
-		return err
-	}
-	key, _, irregular, eof := source.NextVarBytes()
-	if irregular {
-		return common.ErrIrregularData
-	}
-	if eof {
-		return io.ErrUnexpectedEOF
-	}
-	this.Key = key
-	return nil
-}
-
-func (this *StorageKey) ToArray() []byte {
-	return common.SerializeToBytes(this)
+	return sink.Bytes()
 }

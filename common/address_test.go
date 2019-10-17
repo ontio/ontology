@@ -19,7 +19,6 @@
 package common
 
 import (
-	"bytes"
 	"crypto/rand"
 	"testing"
 
@@ -55,10 +54,11 @@ func TestAddress_Serialize(t *testing.T) {
 	var addr Address
 	rand.Read(addr[:])
 
-	buf := bytes.NewBuffer(nil)
-	addr.Serialize(buf)
+	sink := NewZeroCopySink(nil)
+	addr.Serialization(sink)
 
 	var addr2 Address
-	addr2.Deserialize(buf)
+	source := NewZeroCopySource(sink.Bytes())
+	addr2.Deserialization(source)
 	assert.Equal(t, addr, addr2)
 }

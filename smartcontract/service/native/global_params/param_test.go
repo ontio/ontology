@@ -19,10 +19,10 @@
 package global_params
 
 import (
-	"bytes"
 	"strconv"
 	"testing"
 
+	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,12 +33,11 @@ func TestParams_Serialize_Deserialize(t *testing.T) {
 		v := "value" + strconv.Itoa(i)
 		params.SetParam(Param{k, v})
 	}
-	bf := new(bytes.Buffer)
-	if err := params.Serialize(bf); err != nil {
-		t.Fatalf("params serialize error: %v", err)
-	}
+	sink := common.NewZeroCopySink(nil)
+	params.Serialization(sink)
 	deserializeParams := Params{}
-	if err := deserializeParams.Deserialize(bf); err != nil {
+	source := common.NewZeroCopySource(sink.Bytes())
+	if err := deserializeParams.Deserialization(source); err != nil {
 		t.Fatalf("params deserialize error: %v", err)
 	}
 	for i := 0; i < 10; i++ {
@@ -55,11 +54,11 @@ func TestParamNameList_Serialize_Deserialize(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		nameList = append(nameList, strconv.Itoa(i))
 	}
-	bf := new(bytes.Buffer)
-	err := nameList.Serialize(bf)
-	assert.Nil(t, err)
+	sink := common.NewZeroCopySink(nil)
+	nameList.Serialization(sink)
 	deserializeNameList := ParamNameList{}
-	err = deserializeNameList.Deserialize(bf)
+	source := common.NewZeroCopySource(sink.Bytes())
+	err := deserializeNameList.Deserialization(source)
 	assert.Nil(t, err)
 	assert.Equal(t, nameList, deserializeNameList)
 }
