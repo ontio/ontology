@@ -474,6 +474,7 @@ type GlobalParam struct {
 
 func (this *GlobalParam) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, this.CandidateFee)
+	utils.EncodeVarUint(sink, uint64(this.MinInitStake))
 	utils.EncodeVarUint(sink, uint64(this.CandidateNum))
 	utils.EncodeVarUint(sink, uint64(this.PosLimit))
 	utils.EncodeVarUint(sink, uint64(this.A))
