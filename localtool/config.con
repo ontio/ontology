@@ -1,0 +1,28 @@
+{
+	"testconfig":[
+		{
+			"contract" : "a.wasm",
+			"balanceaddr": [
+				{
+					"address":"Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT",
+					"balance":30
+				},
+				{
+					"address":"Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV",
+					"balance":20
+				}
+			],
+			"testcase": [
+				[{"method":"balanceOf", "param":"address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT"},
+				{"method":"balanceOf", "param":"address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"},
+				{"needcontext":true, "method":"setadmin"},
+				{"env":{"witness":["Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT","Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"]}, "method":"transfertoowner", "param":"address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:20"},
+				{"env":{"witness":["Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT","Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"]}, "method":"transfertoowner", "param":"address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,int:30"},
+				{"needcontext":true, "method":"test_native_ont", "param":"string:balanceOf,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"},
+    	    	{"env":{"witness":["Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT","Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"]}, "needcontext":true, "method":"test_native_ont", "param":"string:transfer,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"},
+    	    	{"env":{"witness":["Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT","Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV"]}, "needcontext":true, "method":"test_native_ont", "param":"string:approve,address:Ad4pjz2bqep4RhQrUAzMuZJkBC3qJ1tZuT,address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,int:1000", "expected":"int:1"}
+    	    	]
+			]
+		}
+	]
+}
