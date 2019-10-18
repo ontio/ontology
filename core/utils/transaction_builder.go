@@ -198,6 +198,14 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 	return sink.Bytes(), nil
 }
 
+type tuple struct {
+	values []interface{}
+}
+
+func Tuple(values ...interface{}) tuple {
+	return tuple{values: values}
+}
+
 //build param bytes for wasm contract
 func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 	bf := common.NewZeroCopySink(nil)
@@ -246,6 +254,12 @@ func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 				return nil, err
 			}
 			bf.WriteBytes(value)
+		case tuple:
+			value, err := BuildWasmContractParam(val.values)
+			if err != nil {
+				return nil, err
+			}
+			bf.WriteBytes(value)
 		default:
 			object := reflect.ValueOf(val)
 			kind := object.Kind().String()
@@ -259,7 +273,9 @@ func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 				for i := 0; i < object.Len(); i++ {
 					ps = append(ps, object.Index(i).Interface())
 				}
-				value, err := BuildWasmContractParam([]interface{}{ps})
+				vnum := len(ps)
+				bf.WriteVarUint(uint64(vnum))
+				value, err := BuildWasmContractParam(ps)
 				if err != nil {
 					return nil, err
 				}
