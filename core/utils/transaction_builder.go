@@ -247,7 +247,35 @@ func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 			}
 			bf.WriteBytes(value)
 		default:
-			return nil, fmt.Errorf("not a supported type :%v\n", param)
+			object := reflect.ValueOf(val)
+			kind := object.Kind().String()
+			if kind == "ptr" {
+				object = object.Elem()
+				kind = object.Kind().String()
+			}
+			switch kind {
+			case "slice":
+				ps := make([]interface{}, 0)
+				for i := 0; i < object.Len(); i++ {
+					ps = append(ps, object.Index(i).Interface())
+				}
+				value, err := BuildWasmContractParam([]interface{}{ps})
+				if err != nil {
+					return nil, err
+				}
+				bf.WriteBytes(value)
+			case "struct":
+				for i := 0; i < object.NumField(); i++ {
+					field := object.Field(i)
+					value, err := BuildWasmContractParam([]interface{}{field.Interface()})
+					if err != nil {
+						return nil, err
+					}
+					bf.WriteBytes(value)
+				}
+			default:
+				return nil, fmt.Errorf("not a supported type :%v\n", param)
+			}
 		}
 	}
 	return bf.Bytes(), nil
