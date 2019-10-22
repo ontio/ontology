@@ -76,19 +76,12 @@ func decodeID(data []byte) ([]byte, error) {
 }
 
 func checkWitness(srvc *native.NativeService, key []byte) error {
-	// try as if key is a public key
 	pk, err := keypair.DeserializePublicKey(key)
 	if err == nil {
 		addr := types.AddressFromPubKey(pk)
 		if srvc.ContextRef.CheckWitness(addr) {
 			return nil
 		}
-	}
-
-	// try as if key is an address
-	addr, err := com.AddressParseFromBytes(key)
-	if srvc.ContextRef.CheckWitness(addr) {
-		return nil
 	}
 
 	return errors.New("check witness failed, " + hex.EncodeToString(key))
