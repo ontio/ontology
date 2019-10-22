@@ -479,6 +479,32 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 		log.Warnf("[p2p]OnHeaderReceive AddHeaders error:%s", err)
 		return
 	}
+	sort.Slice(headers, func(i, j int) bool {
+		return headers[i].Height < headers[j].Height
+	})
+	for _, header := range headers {
+		//handle empty block
+		if header.TransactionsRoot == common.UINT256_EMPTY {
+			log.Trace("[p2p]OnHeaderReceive empty block Height:%d", header.Height)
+			height := header.Height
+			blockHash := header.Hash()
+			this.delFlightBlock(blockHash)
+			curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
+			nextHeader := curHeaderHeight + 1
+			if height > nextHeader {
+				return
+			}
+			curBlockHeight := this.ledger.GetCurrentBlockHeight()
+			if height <= curBlockHeight {
+				continue
+			}
+			block := &types.Block{
+				Header: header,
+			}
+			this.addBlockCache(fromID, block, common.UINT256_EMPTY)
+			go this.saveBlock()
+		}
+	}
 	this.syncHeader()
 }
 
