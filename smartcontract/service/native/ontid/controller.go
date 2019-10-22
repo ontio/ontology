@@ -338,6 +338,9 @@ func verifySingleController(srvc *native.NativeService, id []byte, args *common.
 	if err != nil {
 		return err
 	}
+	if pk.revoked {
+		return fmt.Errorf("revoked key")
+	}
 	err = checkWitness(srvc, pk.key)
 	if err != nil {
 		return err

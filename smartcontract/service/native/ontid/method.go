@@ -375,6 +375,8 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verify signature error: get key failed, " + err.Error())
 	} else if owner == nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: public key not found")
+	} else if owner.revoked {
+		return utils.BYTE_FALSE, errors.New("verify signature error: revoked key")
 	}
 
 	err = checkWitness(srvc, owner.key)
@@ -410,6 +412,8 @@ func revokeID(srvc *native.NativeService) ([]byte, error) {
 	pk, err := getPk(srvc, encID, uint32(arg1))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("get public key error: %s", err)
+	} else if pk.revoked {
+		return utils.BYTE_FALSE, fmt.Errorf("revoked key")
 	}
 
 	if checkWitness(srvc, pk.key) != nil {
