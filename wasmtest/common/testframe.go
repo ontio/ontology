@@ -128,7 +128,7 @@ func InitBalanceAddress(balanceAddr []BalanceAddr, acct *account.Account, databa
 
 		tx.SignedAddr = append(tx.SignedAddr, acct.Address)
 
-		block, _ := makeBlock(acct, []*types.Transaction{tx})
+		block, _ := MakeBlock(acct, []*types.Transaction{tx})
 		err = database.AddBlock(block, common.UINT256_EMPTY)
 		checkErr(err)
 		event, err := database.GetEventNotifyByTx(tx.Hash())
@@ -233,7 +233,7 @@ func buildNeoVmValueFromExpect(expectlist []interface{}) *vmtypes.VmValue {
 	}
 }
 
-func makeBlock(acc *account.Account, txs []*types.Transaction) (*types.Block, error) {
+func MakeBlock(acc *account.Account, txs []*types.Transaction) (*types.Block, error) {
 	nextBookkeeper, err := types.AddressFromBookkeepers([]keypair.PublicKey{acc.PublicKey})
 	if err != nil {
 		return nil, fmt.Errorf("GetBookkeeperAddress error:%s", err)
@@ -311,7 +311,7 @@ func ExecTxCheckRes(tx *types.Transaction, testCase TestCase, database *ledger.L
 	execEnv := ExecEnv{Time: blockTime, Height: height + 1, Tx: tx, BlockHash: header.Hash(), Contract: addr}
 	checkExecResult(testCase, res, execEnv)
 
-	block, _ := makeBlock(acct, []*types.Transaction{tx})
+	block, _ := MakeBlock(acct, []*types.Transaction{tx})
 	err = database.AddBlock(block, common.UINT256_EMPTY)
 	checkErr(err)
 	return nil
@@ -371,7 +371,7 @@ func DeployContract(acct *account.Account, database *ledger.Ledger, contract map
 		txes = append(txes, tx)
 	}
 
-	block, err := makeBlock(acct, txes)
+	block, err := MakeBlock(acct, txes)
 	checkErr(err)
 	err = database.AddBlock(block, common.UINT256_EMPTY)
 	checkErr(err)
@@ -431,7 +431,7 @@ func InvokeSpecifiedContract(acct *account.Account, database *ledger.Ledger, con
 	if err != nil {
 		return err
 	}
-	block, err := makeBlock(acct, []*types.Transaction{tx})
+	block, err := MakeBlock(acct, []*types.Transaction{tx})
 	checkErr(err)
 	err = database.AddBlock(block, common.UINT256_EMPTY)
 	checkErr(err)
