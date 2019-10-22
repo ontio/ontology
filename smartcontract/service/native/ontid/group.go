@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -40,16 +40,16 @@ func (g *Group) ToJson() []byte {
 
 func deserializeGroup(data []byte) (*Group, error) {
 	g := Group{}
-	buf := bytes.NewBuffer(data)
+	buf := common.NewZeroCopySource(data)
 
 	// parse members
-	num, err := utils.ReadVarUint(buf)
+	num, err := utils.DecodeVarUint(buf)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing number: %s", err)
 	}
 
 	for i := uint64(0); i < num; i++ {
-		m, err := serialization.ReadVarBytes(buf)
+		m, err := utils.DecodeVarBytes(buf)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing group members: %s", err)
 		}
@@ -66,7 +66,7 @@ func deserializeGroup(data []byte) (*Group, error) {
 	}
 
 	// parse threshold
-	t, err := utils.ReadVarUint(buf)
+	t, err := utils.DecodeVarUint(buf)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing group threshold: %s", err)
 	}
@@ -113,19 +113,19 @@ type Signer struct {
 }
 
 func deserializeSigners(data []byte) ([]Signer, error) {
-	buf := bytes.NewBuffer(data)
-	num, err := utils.ReadVarUint(buf)
+	buf := common.NewZeroCopySource(data)
+	num, err := utils.DecodeVarUint(buf)
 	if err != nil {
 		return nil, err
 	}
 
 	signers := []Signer{}
 	for i := uint64(0); i < num; i++ {
-		id, err := serialization.ReadVarBytes(buf)
+		id, err := utils.DecodeVarBytes(buf)
 		if err != nil {
 			return nil, err
 		}
-		index, err := utils.ReadVarUint(buf)
+		index, err := utils.DecodeVarUint(buf)
 		if err != nil {
 			return nil, err
 		}

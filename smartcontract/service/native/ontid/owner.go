@@ -164,10 +164,7 @@ func revokePkByIndex(srvc *native.NativeService, encID []byte, index uint32) ([]
 		return nil, errors.New("already revoked")
 	}
 	owners[index].revoked = true
-	err = putAllPk(srvc, key, owners)
-	if err != nil {
-		return nil, err
-	}
+	putAllPk(srvc, key, owners)
 	return owners[index].key, nil
 }
 

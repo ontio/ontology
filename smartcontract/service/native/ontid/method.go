@@ -18,7 +18,6 @@
 package ontid
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -181,7 +180,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("arg 1:", hex.EncodeToString(arg1))
 
 	// arg2: operator's public key
-	arg2, err := serialization.ReadVarBytes(args)
+	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: argument 2 error, " + err.Error())
 	}
@@ -387,14 +386,14 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 }
 
 func revokeID(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
 	}
 	// arg1: index of public key
-	arg1, err := utils.ReadVarUint(args)
+	arg1, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
 	}

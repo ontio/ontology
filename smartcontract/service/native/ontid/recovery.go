@@ -18,29 +18,28 @@
 package ontid
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func addRecovery(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 0 error")
 	}
 	// arg1: recovery struct
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 1 error")
 	}
 	// arg2: operator's public key index
-	arg2, err := utils.ReadVarUint(args)
+	arg2, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 2 error")
 	}
@@ -76,19 +75,19 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 }
 
 func changeRecovery(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 0 error")
 	}
 	// arg1: new recovery
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
 	}
 	// arg2: signers
-	arg2, err := serialization.ReadVarBytes(args)
+	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 2 error")
 	}
@@ -119,19 +118,19 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 }
 
 func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 0 error")
 	}
 	// arg1: public key
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
 	}
 	// arg2: signers
-	arg2, err := serialization.ReadVarBytes(args)
+	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 2 error")
 	}
@@ -165,19 +164,19 @@ func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 }
 
 func removeKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 0 error")
 	}
 	// arg1: public key index
-	arg1, err := utils.ReadVarUint(args)
+	arg1, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
 	}
 	// arg2: signers
-	arg2, err := serialization.ReadVarBytes(args)
+	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 2 error")
 	}

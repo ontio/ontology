@@ -21,19 +21,18 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/ontio/ontology/account"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func regIdWithController(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
 	}
@@ -52,13 +51,13 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	// arg1: controller
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
 	}
 
 	if bytes.Equal(arg1[:8], []byte("did:ont:")) {
-		err = verifySingleController(srvc, arg1, args)
+		err = verifySingleController(srvc, arg1, source)
 		if err != nil {
 			return utils.BYTE_FALSE, err
 		}
@@ -67,7 +66,7 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, errors.New("deserialize controller error")
 		}
-		err = verifyGroupController(srvc, controller, args)
+		err = verifyGroupController(srvc, controller, source)
 		if err != nil {
 			return utils.BYTE_FALSE, err
 		}
@@ -82,9 +81,9 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 }
 
 func revokeIDByController(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
 	}
@@ -98,7 +97,7 @@ func revokeIDByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
 	}
 
-	err = verifyControllerSignature(srvc, encID, args)
+	err = verifyControllerSignature(srvc, encID, source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("authorization failed")
 	}
@@ -113,9 +112,9 @@ func revokeIDByController(srvc *native.NativeService) ([]byte, error) {
 }
 
 func verifyController(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error, %s", err)
 	}
@@ -125,7 +124,7 @@ func verifyController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
-	err = verifyControllerSignature(srvc, key, args)
+	err = verifyControllerSignature(srvc, key, source)
 	if err == nil {
 		return utils.BYTE_TRUE, nil
 	} else {
@@ -134,14 +133,14 @@ func verifyController(srvc *native.NativeService) ([]byte, error) {
 }
 
 func removeController(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
 	}
 	// arg1: public key index
-	arg1, err := utils.ReadVarUint(args)
+	arg1, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
 	}
@@ -168,15 +167,15 @@ func removeController(srvc *native.NativeService) ([]byte, error) {
 }
 
 func addKeyByController(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
 	}
 
 	// arg1: public key
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
 	}
@@ -186,7 +185,7 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
-	err = verifyControllerSignature(srvc, encId, args)
+	err = verifyControllerSignature(srvc, encId, source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("verification failed, %s", err)
 	}
@@ -201,15 +200,15 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 }
 
 func removeKeyByController(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 0")
 	}
 
 	// arg1: public key index
-	arg1, err := utils.ReadVarUint(args)
+	arg1, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1")
 	}
@@ -219,7 +218,7 @@ func removeKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New(err.Error())
 	}
 
-	err = verifyControllerSignature(srvc, encId, args)
+	err = verifyControllerSignature(srvc, encId, source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verifying signature failed")
 	}
@@ -234,22 +233,22 @@ func removeKeyByController(srvc *native.NativeService) ([]byte, error) {
 }
 
 func addAttributesByController(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
 	}
 
 	// arg1: attributes
-	num, err := utils.ReadVarUint(args)
+	num, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error: %s", err)
 	}
 	var arg1 = make([]attribute, 0)
 	for i := 0; i < int(num); i++ {
 		var v attribute
-		err = v.Deserialize(args)
+		err = v.Deserialization(source)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("argument 1 error: %s", err)
 		}
@@ -261,7 +260,7 @@ func addAttributesByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
-	err = verifyControllerSignature(srvc, encId, args)
+	err = verifyControllerSignature(srvc, encId, source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("verification failed, %s", err)
 	}
@@ -277,15 +276,15 @@ func addAttributesByController(srvc *native.NativeService) ([]byte, error) {
 }
 
 func removeAttributeByController(srvc *native.NativeService) ([]byte, error) {
-	args := bytes.NewBuffer(srvc.Input)
+	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
-	arg0, err := serialization.ReadVarBytes(args)
+	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 0 error")
 	}
 
 	// arg1: path
-	arg1, err := serialization.ReadVarBytes(args)
+	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("argument 1 error")
 	}
@@ -295,7 +294,7 @@ func removeAttributeByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
-	err = verifyControllerSignature(srvc, encId, args)
+	err = verifyControllerSignature(srvc, encId, source)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verifying signature failed")
 	}
@@ -325,9 +324,9 @@ func getController(srvc *native.NativeService, encId []byte) (interface{}, error
 	}
 }
 
-func verifySingleController(srvc *native.NativeService, id []byte, args io.Reader) error {
+func verifySingleController(srvc *native.NativeService, id []byte, args *common.ZeroCopySource) error {
 	// public key index
-	index, err := utils.ReadVarUint(args)
+	index, err := utils.DecodeVarUint(args)
 	if err != nil {
 		return fmt.Errorf("index error, %s", err)
 	}
@@ -346,9 +345,9 @@ func verifySingleController(srvc *native.NativeService, id []byte, args io.Reade
 	return nil
 }
 
-func verifyGroupController(srvc *native.NativeService, group *Group, args io.Reader) error {
+func verifyGroupController(srvc *native.NativeService, group *Group, args *common.ZeroCopySource) error {
 	// signers
-	buf, err := serialization.ReadVarBytes(args)
+	buf, err := utils.DecodeVarBytes(args)
 	if err != nil {
 		return fmt.Errorf("signers error, %s", err)
 	}
@@ -362,7 +361,7 @@ func verifyGroupController(srvc *native.NativeService, group *Group, args io.Rea
 	return nil
 }
 
-func verifyControllerSignature(srvc *native.NativeService, encId []byte, args io.Reader) error {
+func verifyControllerSignature(srvc *native.NativeService, encId []byte, args *common.ZeroCopySource) error {
 	ctrl, err := getController(srvc, encId)
 	if err != nil {
 		return err

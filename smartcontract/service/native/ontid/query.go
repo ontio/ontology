@@ -71,10 +71,10 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	sink.WriteVarBytes(var0)
 
 	var1, _ := GetAttributes(srvc)
-	serialization.WriteVarBytes(&buf, var1)
+	sink.WriteVarBytes(var1)
 
-	args := bytes.NewBuffer(srvc.Input)
-	did, _ := serialization.ReadVarBytes(args)
+	source := common.NewZeroCopySource(srvc.Input)
+	did, _ := utils.DecodeVarBytes(source)
 	key, _ := encodeID(did)
 	// controller
 	con, err := getController(srvc, key)
@@ -87,7 +87,7 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 			var2 = t.ToJson()
 		}
 	}
-	serialization.WriteVarBytes(&buf, var2)
+	sink.WriteVarBytes(var2)
 
 	//recovery
 	var3 := []byte{}
@@ -95,9 +95,9 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	if rec != nil && err == nil {
 		var3 = rec.ToJson()
 	}
-	serialization.WriteVarBytes(&buf, var3)
+	sink.WriteVarBytes(var3)
 
-	res := buf.Bytes()
+	res := sink.Bytes()
 	log.Debug("DDO:", hex.EncodeToString(res))
 	return res, nil
 }
