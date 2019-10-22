@@ -227,7 +227,7 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 1 error, %s", err)
 	}
 
-	// arg2: operator's public key / address
+	// arg2: operator's public key
 	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 2 error, %s", err)

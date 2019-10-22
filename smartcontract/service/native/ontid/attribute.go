@@ -114,13 +114,11 @@ func findAttr(srvc *native.NativeService, encID, item []byte) (*utils.Linkedlist
 }
 
 func batchInsertAttr(srvc *native.NativeService, encID []byte, attr []attribute) error {
-	res := make([][]byte, len(attr))
 	for i, v := range attr {
 		err := insertOrUpdateAttr(srvc, encID, &v)
 		if err != nil {
 			return errors.New("store attributes error: " + err.Error())
 		}
-		res[i] = v.key
 	}
 
 	return nil
