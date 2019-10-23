@@ -124,12 +124,14 @@ func TestConnectingNodeAPI(t *testing.T) {
 
 	a.Equal(server.GetOutConnectingListLen(), uint(0), "fail to test GetOutConnectingListLen")
 
-	server.AddOutConnectingList("192.168.1.1:28339")
+	addOK := server.AddOutConnectingList("192.168.1.1:28339")
 	a.Equal(server.GetOutConnectingListLen(), uint(1), "fail to test AddOutConnectingList")
+	a.Equal(addOK, true, "fail to test AddOutConnectingList")
 
 	// add same
-	server.AddOutConnectingList("192.168.1.1:28339")
+	addOK = server.AddOutConnectingList("192.168.1.1:28339")
 	a.Equal(server.GetOutConnectingListLen(), uint(1), "fail to test AddOutConnectingList")
+	a.Equal(addOK, false, "fail to test AddOutConnectingList")
 
 	// add new
 	server.AddOutConnectingList("192.168.2.2:2")
@@ -143,14 +145,13 @@ func TestConnectingNodeAPI(t *testing.T) {
 	a.Equal(server.GetOutConnectingListLen(), uint(1), "fail to test RemoveFromConnectingList")
 }
 
-
 func TestInConnAPI(t *testing.T) {
 	a := require.New(t)
 	si := NewNetServer()
 	server, ok := si.(*NetServer)
 	a.True(ok, "fail to cast P2PServer")
 
-	a.Equal(server.GetInConnRecordLen(),  int(0),  "fail to test GetInConnRecordLen")
+	a.Equal(server.GetInConnRecordLen(), int(0), "fail to test GetInConnRecordLen")
 	server.AddInConnRecord("192.168.1.1:1024")
 	a.Equal(server.GetInConnRecordLen(), int(1), "fail to test AddInConnRecord")
 	server.AddInConnRecord("192.168.1.1:1024")
@@ -165,7 +166,6 @@ func TestInConnAPI(t *testing.T) {
 
 	a.Equal(server.GetIpCountInInConnRecord("192.168.1.1"), uint(2), "fail to test GetIpCountInInConnRecord")
 }
-
 
 func TestOutConnAPI(t *testing.T) {
 	a := require.New(t)
