@@ -235,13 +235,6 @@ type BlockSyncMgr struct {
 	nodeWeights    map[uint64]*NodeWeight               //Map NodeID => NodeStatus, using for getNextNode
 }
 
-func (this *BlockSyncMgr) ExportInfo() {
-	log.Errorf("flightBlocks:                %d", len(this.flightBlocks))
-	log.Errorf("flightHeaders:               %d", len(this.flightHeaders))
-	log.Errorf("blocksCache emptyblocksize:  %d", this.blocksCache.emptyBlockAmount)
-	log.Errorf("blocksCache blocksize:       %d", len(this.blocksCache.blocksCache))
-}
-
 //NewBlockSyncMgr return a BlockSyncMgr instance
 func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 	return &BlockSyncMgr{
@@ -342,18 +335,6 @@ func (this *BlockCache) getEmptyBlockSize() int {
 
 //Start to sync
 func (this *BlockSyncMgr) Start() {
-
-	go func() {
-		ticker := time.NewTicker(3 * time.Second)
-		for {
-			select {
-			case <-this.exitCh:
-				return
-			case <-ticker.C:
-				this.ExportInfo()
-			}
-		}
-	}()
 	go this.sync()
 	ticker := time.NewTicker(time.Second)
 	for {
