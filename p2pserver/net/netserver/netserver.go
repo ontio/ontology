@@ -30,6 +30,7 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/ontio/ontology/p2pserver/common/set"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
@@ -53,7 +54,7 @@ type NetServer struct {
 	base     peer.PeerCom
 	listener net.Listener
 	NetChan  chan *types.MsgPayload
-	ConnectingNodes
+	connectingNodes
 	PeerAddrMap
 	Np            *peer.NbrPeers
 	connectLock   sync.Mutex
@@ -65,19 +66,19 @@ type NetServer struct {
 //InConnectionRecord include all addr connected
 type InConnectionRecord struct {
 	sync.RWMutex
-	InConnectingAddrs []string
+	InConnectingAddrs set.String
 }
 
 //OutConnectionRecord include all addr accepted
 type OutConnectionRecord struct {
 	sync.RWMutex
-	OutConnectingAddrs []string
+	OutConnectingAddrs set.String
 }
 
-//ConnectingNodes include all addr in connecting state
-type ConnectingNodes struct {
+//connectingNodes include all addr in connecting state
+type connectingNodes struct {
 	sync.RWMutex
-	ConnectingAddrs []string
+	ConnectingAddrs set.String
 }
 
 //PeerAddrMap include all addr-peer list
@@ -113,6 +114,10 @@ func (this *NetServer) init() error {
 	log.Infof("[p2p]init peer ID to %d", this.base.GetID())
 	this.Np = &peer.NbrPeers{}
 	this.Np.Init()
+
+	this.connectingNodes.ConnectingAddrs = set.NewString()
+	this.inConnRecord.InConnectingAddrs = set.NewString()
+	this.outConnRecord.OutConnectingAddrs = set.NewString()
 
 	return nil
 }
@@ -415,49 +420,37 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 
 //record the peer which is going to be dialed and sent version message but not in establish state
 func (this *NetServer) AddOutConnectingList(addr string) (added bool) {
-	this.ConnectingNodes.Lock()
-	defer this.ConnectingNodes.Unlock()
-	for _, a := range this.ConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return false
-		}
+	this.connectingNodes.Lock()
+	defer this.connectingNodes.Unlock()
+	if this.connectingNodes.ConnectingAddrs.Has(addr) {
+		return false
 	}
+
 	log.Trace("[p2p]add to out connecting list", addr)
-	this.ConnectingAddrs = append(this.ConnectingAddrs, addr)
+	this.connectingNodes.ConnectingAddrs.Insert(addr)
 	return true
 }
 
 //Remove the peer from connecting list if the connection is established
 func (this *NetServer) RemoveFromConnectingList(addr string) {
-	this.ConnectingNodes.Lock()
-	defer this.ConnectingNodes.Unlock()
-	addrs := this.ConnectingAddrs[:0]
-	for _, a := range this.ConnectingAddrs {
-		if a != addr {
-			addrs = append(addrs, a)
-		}
-	}
+	this.connectingNodes.Lock()
+	defer this.connectingNodes.Unlock()
+	this.connectingNodes.ConnectingAddrs.Delete(addr)
 	log.Trace("[p2p]remove from out connecting list", addr)
-	this.ConnectingAddrs = addrs
 }
 
 //record the peer which is going to be dialed and sent version message but not in establish state
 func (this *NetServer) GetOutConnectingListLen() (count uint) {
-	this.ConnectingNodes.RLock()
-	defer this.ConnectingNodes.RUnlock()
-	return uint(len(this.ConnectingAddrs))
+	this.connectingNodes.RLock()
+	defer this.connectingNodes.RUnlock()
+	return uint(this.connectingNodes.ConnectingAddrs.Len())
 }
 
 //check  peer from connecting list
 func (this *NetServer) IsAddrFromConnecting(addr string) bool {
-	this.ConnectingNodes.Lock()
-	defer this.ConnectingNodes.Unlock()
-	for _, a := range this.ConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return true
-		}
-	}
-	return false
+	this.connectingNodes.Lock()
+	defer this.connectingNodes.Unlock()
+	return this.connectingNodes.ConnectingAddrs.Has(addr)
 }
 
 //find exist peer from addr map
@@ -519,12 +512,7 @@ func (this *NetServer) GetPeerAddressCount() (count uint) {
 func (this *NetServer) AddInConnRecord(addr string) {
 	this.inConnRecord.Lock()
 	defer this.inConnRecord.Unlock()
-	for _, a := range this.inConnRecord.InConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return
-		}
-	}
-	this.inConnRecord.InConnectingAddrs = append(this.inConnRecord.InConnectingAddrs, addr)
+	this.inConnRecord.InConnectingAddrs.Insert(addr)
 	log.Debugf("[p2p]add in record  %s", addr)
 }
 
@@ -532,12 +520,8 @@ func (this *NetServer) AddInConnRecord(addr string) {
 func (this *NetServer) IsAddrInInConnRecord(addr string) bool {
 	this.inConnRecord.RLock()
 	defer this.inConnRecord.RUnlock()
-	for _, a := range this.inConnRecord.InConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return true
-		}
-	}
-	return false
+
+	return this.inConnRecord.InConnectingAddrs.Has(addr)
 }
 
 //IsIPInInConnRecord return result whether the IP is in inConnRecordList
@@ -545,7 +529,7 @@ func (this *NetServer) IsIPInInConnRecord(ip string) bool {
 	this.inConnRecord.RLock()
 	defer this.inConnRecord.RUnlock()
 	var ipRecord string
-	for _, addr := range this.inConnRecord.InConnectingAddrs {
+	for addr := range this.inConnRecord.InConnectingAddrs {
 		ipRecord, _ = common.ParseIPAddr(addr)
 		if 0 == strings.Compare(ipRecord, ip) {
 			return true
@@ -558,21 +542,15 @@ func (this *NetServer) IsIPInInConnRecord(ip string) bool {
 func (this *NetServer) RemoveFromInConnRecord(addr string) {
 	this.inConnRecord.Lock()
 	defer this.inConnRecord.Unlock()
-	addrs := []string{}
-	for _, a := range this.inConnRecord.InConnectingAddrs {
-		if strings.Compare(a, addr) != 0 {
-			addrs = append(addrs, a)
-		}
-	}
 	log.Debugf("[p2p]remove in record  %s", addr)
-	this.inConnRecord.InConnectingAddrs = addrs
+	this.inConnRecord.InConnectingAddrs.Delete(addr)
 }
 
 //GetInConnRecordLen return length of inConnRecordList
 func (this *NetServer) GetInConnRecordLen() int {
 	this.inConnRecord.RLock()
 	defer this.inConnRecord.RUnlock()
-	return len(this.inConnRecord.InConnectingAddrs)
+	return this.inConnRecord.InConnectingAddrs.Len()
 }
 
 //GetIpCountInInConnRecord return count of in connections with single ip
@@ -581,7 +559,7 @@ func (this *NetServer) GetIpCountInInConnRecord(ip string) uint {
 	defer this.inConnRecord.RUnlock()
 	var count uint
 	var ipRecord string
-	for _, addr := range this.inConnRecord.InConnectingAddrs {
+	for addr := range this.inConnRecord.InConnectingAddrs {
 		ipRecord, _ = common.ParseIPAddr(addr)
 		if 0 == strings.Compare(ipRecord, ip) {
 			count++
@@ -594,12 +572,7 @@ func (this *NetServer) GetIpCountInInConnRecord(ip string) uint {
 func (this *NetServer) AddOutConnRecord(addr string) {
 	this.outConnRecord.Lock()
 	defer this.outConnRecord.Unlock()
-	for _, a := range this.outConnRecord.OutConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return
-		}
-	}
-	this.outConnRecord.OutConnectingAddrs = append(this.outConnRecord.OutConnectingAddrs, addr)
+	this.outConnRecord.OutConnectingAddrs.Insert(addr)
 	log.Debugf("[p2p]add out record  %s", addr)
 }
 
@@ -607,33 +580,21 @@ func (this *NetServer) AddOutConnRecord(addr string) {
 func (this *NetServer) IsAddrInOutConnRecord(addr string) bool {
 	this.outConnRecord.RLock()
 	defer this.outConnRecord.RUnlock()
-	for _, a := range this.outConnRecord.OutConnectingAddrs {
-		if strings.Compare(a, addr) == 0 {
-			return true
-		}
-	}
-	return false
+	return this.outConnRecord.OutConnectingAddrs.Has(addr)
 }
 
 //RemoveOutConnRecord remove out connection from outConnRecord
 func (this *NetServer) RemoveFromOutConnRecord(addr string) {
 	this.outConnRecord.Lock()
 	defer this.outConnRecord.Unlock()
-	addrs := []string{}
-	for _, a := range this.outConnRecord.OutConnectingAddrs {
-		if strings.Compare(a, addr) != 0 {
-			addrs = append(addrs, a)
-		}
-	}
-	log.Debugf("[p2p]remove out record  %s", addr)
-	this.outConnRecord.OutConnectingAddrs = addrs
+	this.outConnRecord.OutConnectingAddrs.Delete(addr)
 }
 
 //GetOutConnRecordLen return length of outConnRecord
 func (this *NetServer) GetOutConnRecordLen() int {
 	this.outConnRecord.RLock()
 	defer this.outConnRecord.RUnlock()
-	return len(this.outConnRecord.OutConnectingAddrs)
+	return this.outConnRecord.OutConnectingAddrs.Len()
 }
 
 //AddrValid whether the addr could be connect or accept
@@ -664,5 +625,4 @@ func (this *NetServer) SetOwnAddress(addr string) {
 		log.Infof("[p2p]set own address %s", addr)
 		this.OwnAddress = addr
 	}
-
 }
