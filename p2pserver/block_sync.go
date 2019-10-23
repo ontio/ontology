@@ -224,7 +224,7 @@ type BlockInfo struct {
 type BlockSyncMgr struct {
 	flightBlocks   map[common.Uint256][]*SyncFlightInfo //Map BlockHash => []SyncFlightInfo, using for manager all of those block flights
 	flightHeaders  map[uint32]*SyncFlightInfo           //Map HeaderHeight => SyncFlightInfo, using for manager all of those header flights
-	blocksCache    map[uint32]*BlockInfo                //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
+	blocksCache    *BlockCache                          //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
 	server         *P2PServer                           //Pointer to the local node
 	syncBlockLock  bool                                 //Help to avoid send block sync request duplicate
 	syncHeaderLock bool                                 //Help to avoid send header sync request duplicate
@@ -235,12 +235,19 @@ type BlockSyncMgr struct {
 	nodeWeights    map[uint64]*NodeWeight               //Map NodeID => NodeStatus, using for getNextNode
 }
 
+func (this *BlockSyncMgr) ExportInfo() {
+	log.Errorf("flightBlocks:                %d", len(this.flightBlocks))
+	log.Errorf("flightHeaders:               %d", len(this.flightHeaders))
+	log.Errorf("blocksCache emptyblocksize:  %d", this.blocksCache.emptyBlockAmount)
+	log.Errorf("blocksCache blocksize:       %d", len(this.blocksCache.blocksCache))
+}
+
 //NewBlockSyncMgr return a BlockSyncMgr instance
 func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 	return &BlockSyncMgr{
 		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo, 0),
 		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
-		blocksCache:   make(map[uint32]*BlockInfo, 0),
+		blocksCache:   NewBlockCache(),
 		server:        server,
 		ledger:        server.ledger,
 		exitCh:        make(chan interface{}, 1),
@@ -248,8 +255,105 @@ func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 	}
 }
 
+type BlockCache struct {
+	emptyBlockAmount int
+	blocksCache      map[uint32]*BlockInfo //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
+	lock             sync.RWMutex          //lock
+}
+
+func NewBlockCache() *BlockCache {
+	return &BlockCache{
+		emptyBlockAmount: 0,
+		blocksCache:      make(map[uint32]*BlockInfo, 0),
+	}
+}
+
+func (this *BlockCache) addBlockCache(nodeID uint64, block *types.Block,
+	merkleRoot common.Uint256) bool {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	blockInfo := &BlockInfo{
+		nodeID:     nodeID,
+		block:      block,
+		merkleRoot: merkleRoot,
+	}
+	this.blocksCache[block.Header.Height] = blockInfo
+	if block.Header.TransactionsRoot == common.UINT256_EMPTY {
+		this.emptyBlockAmount += 1
+	}
+	return true
+}
+
+func (this *BlockCache) clear(curBlockHeight uint32) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	for height := range this.blocksCache {
+		if height < curBlockHeight {
+			this.delBlock(height)
+		}
+	}
+}
+
+func (this *BlockCache) getBlockCache(blockHeight uint32) (uint64, *types.Block,
+	common.Uint256) {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	blockInfo, ok := this.blocksCache[blockHeight]
+	if !ok {
+		return 0, nil, common.UINT256_EMPTY
+	}
+	return blockInfo.nodeID, blockInfo.block, blockInfo.merkleRoot
+}
+
+func (this *BlockCache) delBlockCache(blockHeight uint32) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.delBlock(blockHeight)
+}
+
+func (this *BlockCache) delBlock(blockHeight uint32) {
+	blockInfo, ok := this.blocksCache[blockHeight]
+	if ok {
+		if blockInfo.block.Header.TransactionsRoot == common.UINT256_EMPTY {
+			this.emptyBlockAmount -= 1
+		}
+	}
+	delete(this.blocksCache, blockHeight)
+}
+
+func (this *BlockCache) isInBlockCache(blockHeight uint32) bool {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	_, ok := this.blocksCache[blockHeight]
+	return ok
+}
+
+func (this *BlockCache) getBlockCacheSize() int {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	return len(this.blocksCache)
+}
+
+func (this *BlockCache) getEmptyBlockSize() int {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	return this.emptyBlockAmount
+}
+
 //Start to sync
 func (this *BlockSyncMgr) Start() {
+
+	go func() {
+		ticker := time.NewTicker(3 * time.Second)
+		for {
+			select {
+			case <-this.exitCh:
+				return
+			case <-ticker.C:
+				this.ExportInfo()
+			}
+		}
+	}()
 	go this.sync()
 	ticker := time.NewTicker(time.Second)
 	for {
@@ -400,7 +504,7 @@ func (this *BlockSyncMgr) syncBlock() {
 	if count > availCount {
 		count = availCount
 	}
-	cacheCap := SYNC_MAX_BLOCK_CACHE_SIZE - this.getBlockCacheSize()
+	cacheCap := SYNC_MAX_BLOCK_CACHE_SIZE - (this.getBlockCacheSize() - this.blocksCache.getEmptyBlockSize())
 	if count > cacheCap {
 		count = cacheCap
 	}
@@ -492,7 +596,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 			curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 			nextHeader := curHeaderHeight + 1
 			if height > nextHeader {
-				return
+				break
 			}
 			curBlockHeight := this.ledger.GetCurrentBlockHeight()
 			if height <= curBlockHeight {
@@ -502,9 +606,9 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 				Header: header,
 			}
 			this.addBlockCache(fromID, block, common.UINT256_EMPTY)
-			go this.saveBlock()
 		}
 	}
+	go this.saveBlock()
 	this.syncHeader()
 }
 
@@ -513,7 +617,7 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 	merkleRoot common.Uint256) {
 	height := block.Header.Height
 	blockHash := block.Hash()
-	log.Trace("[p2p]OnBlockReceive Height:%d", height)
+	log.Tracef("[p2p]OnBlockReceive Height:%d", height)
 	flightInfo := this.getFlightBlock(blockHash, fromID)
 	if flightInfo != nil {
 		t := (time.Now().UnixNano() - flightInfo.GetStartTime().UnixNano()) / int64(time.Millisecond)
@@ -600,30 +704,20 @@ func (this *BlockSyncMgr) addBlockCache(nodeID uint64, block *types.Block,
 	merkleRoot common.Uint256) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	blockInfo := &BlockInfo{
-		nodeID:     nodeID,
-		block:      block,
-		merkleRoot: merkleRoot,
-	}
-	this.blocksCache[block.Header.Height] = blockInfo
-	return true
+	return this.blocksCache.addBlockCache(nodeID, block, merkleRoot)
 }
 
 func (this *BlockSyncMgr) getBlockCache(blockHeight uint32) (uint64, *types.Block,
 	common.Uint256) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	blockInfo, ok := this.blocksCache[blockHeight]
-	if !ok {
-		return 0, nil, common.UINT256_EMPTY
-	}
-	return blockInfo.nodeID, blockInfo.block, blockInfo.merkleRoot
+	return this.blocksCache.getBlockCache(blockHeight)
 }
 
 func (this *BlockSyncMgr) delBlockCache(blockHeight uint32) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	delete(this.blocksCache, blockHeight)
+	this.blocksCache.delBlockCache(blockHeight)
 }
 
 func (this *BlockSyncMgr) tryGetSaveBlockLock() bool {
@@ -649,13 +743,7 @@ func (this *BlockSyncMgr) saveBlock() {
 	defer this.releaseSaveBlockLock()
 	curBlockHeight := this.ledger.GetCurrentBlockHeight()
 	nextBlockHeight := curBlockHeight + 1
-	this.lock.Lock()
-	for height := range this.blocksCache {
-		if height <= curBlockHeight {
-			delete(this.blocksCache, height)
-		}
-	}
-	this.lock.Unlock()
+	this.blocksCache.clear(curBlockHeight)
 	for {
 		fromID, nextBlock, merkleRoot := this.getBlockCache(nextBlockHeight)
 		if nextBlock == nil {
@@ -691,16 +779,11 @@ func (this *BlockSyncMgr) saveBlock() {
 }
 
 func (this *BlockSyncMgr) isInBlockCache(blockHeight uint32) bool {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	_, ok := this.blocksCache[blockHeight]
-	return ok
+	return this.blocksCache.isInBlockCache(blockHeight)
 }
 
 func (this *BlockSyncMgr) getBlockCacheSize() int {
-	this.lock.RLock()
-	defer this.lock.RUnlock()
-	return len(this.blocksCache)
+	return this.blocksCache.getBlockCacheSize()
 }
 
 func (this *BlockSyncMgr) addFlightHeader(nodeId uint64, height uint32) {
