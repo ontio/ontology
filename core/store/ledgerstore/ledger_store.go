@@ -838,7 +838,8 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 		return err
 	}
 
-	if result.MerkleRoot != stateMerkleRoot {
+	//empty block does not check stateMerkleRoot
+	if len(block.Transactions) != 0 && result.MerkleRoot != stateMerkleRoot {
 		return fmt.Errorf("state merkle root mismatch. expected: %s, got: %s",
 			result.MerkleRoot.ToHexString(), stateMerkleRoot.ToHexString())
 	}
