@@ -556,6 +556,8 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 	sort.Slice(headers, func(i, j int) bool {
 		return headers[i].Height < headers[j].Height
 	})
+	curHeaderHeight = this.ledger.GetCurrentHeaderHeight()
+	curBlockHeight := this.ledger.GetCurrentBlockHeight()
 	for _, header := range headers {
 		//handle empty block
 		if header.TransactionsRoot == common.UINT256_EMPTY {
@@ -563,12 +565,10 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 			height := header.Height
 			blockHash := header.Hash()
 			this.delFlightBlock(blockHash)
-			curHeaderHeight := this.ledger.GetCurrentHeaderHeight()
 			nextHeader := curHeaderHeight + 1
 			if height > nextHeader {
 				break
 			}
-			curBlockHeight := this.ledger.GetCurrentBlockHeight()
 			if height <= curBlockHeight {
 				continue
 			}
