@@ -248,8 +248,6 @@ func addAttributesByController(srvc *native.NativeService) ([]byte, error) {
 	num, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error: %s", err)
-	} else if num > MAX_NUM {
-		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error: too many attributes, max is %d in each calling", MAX_NUM)
 	}
 	var arg1 = make([]attribute, 0)
 	for i := 0; i < int(num); i++ {

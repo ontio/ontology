@@ -31,7 +31,7 @@ const (
 	MAX_TYPE_SIZE  = 16
 	MAX_VALUE_SIZE = 512 * 1024
 
-	MAX_NUM = 16
+	MAX_NUM = 100
 )
 
 type attribute struct {
@@ -137,6 +137,15 @@ func batchInsertAttr(srvc *native.NativeService, encID []byte, attr []attribute)
 		if err != nil {
 			return errors.New("store attributes error: " + err.Error())
 		}
+	}
+
+	key := append(encID, FIELD_ATTR)
+	n, err := utils.LinkedlistGetNumOfItems(srvc, key)
+	if err != nil {
+		return err
+	}
+	if n > MAX_NUM {
+		return fmt.Errorf("too many attributes, max is %d", MAX_NUM)
 	}
 
 	return nil
