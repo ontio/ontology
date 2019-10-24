@@ -250,7 +250,7 @@ func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
 
 type BlockCache struct {
 	emptyBlockAmount int
-	blocksCache      map[uint32]*BlockInfo //Map BlockHash => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
+	blocksCache      map[uint32]*BlockInfo //Map BlockHeight => BlockInfo, using for cache the blocks receive from net, and waiting for commit to ledger
 }
 
 func NewBlockCache() *BlockCache {
