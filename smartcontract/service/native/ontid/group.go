@@ -27,6 +27,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+const MAX_DEPTH = 8
+
 // Group defines a group control logic
 type Group struct {
 	Members   []interface{} `json:"members"`
@@ -38,7 +40,11 @@ func (g *Group) ToJson() []byte {
 	return j
 }
 
-func deserializeGroup(data []byte) (*Group, error) {
+func rDeserialize(data []byte, depth uint) (*Group, error) {
+	if depth == MAX_DEPTH {
+		return nil, errors.New("recursion is too deep")
+	}
+
 	g := Group{}
 	buf := common.NewZeroCopySource(data)
 
@@ -57,7 +63,7 @@ func deserializeGroup(data []byte) (*Group, error) {
 			g.Members = append(g.Members, m)
 		} else {
 			// parse recursively
-			g1, err := deserializeGroup(m)
+			g1, err := rDeserialize(m, depth+1)
 			if err != nil {
 				return nil, fmt.Errorf("error parsing subgroup: %s", err)
 			}
@@ -77,6 +83,10 @@ func deserializeGroup(data []byte) (*Group, error) {
 	g.Threshold = uint(t)
 
 	return &g, nil
+}
+
+func deserializeGroup(data []byte) (*Group, error) {
+	return rDeserialize(data, 0)
 }
 
 func validateMembers(srvc *native.NativeService, g *Group) error {

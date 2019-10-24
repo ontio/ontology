@@ -26,6 +26,14 @@ import (
 	"io"
 )
 
+const (
+	MAX_KEY_SIZE   = 32
+	MAX_TYPE_SIZE  = 16
+	MAX_VALUE_SIZE = 512 * 1024
+
+	MAX_NUM = 16
+)
+
 type attribute struct {
 	key       []byte
 	value     []byte
@@ -69,29 +77,39 @@ func (this *attribute) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
-	k, _, irregular, eof := source.NextVarBytes()
+	k, size, irregular, eof := source.NextVarBytes()
 	if irregular {
 		return common.ErrIrregularData
 	}
 	if eof {
 		return io.ErrUnexpectedEOF
+	}
+	if size > MAX_KEY_SIZE {
+		return errors.New("key is too large")
 	}
 
-	vt, _, irregular, eof := source.NextVarBytes()
+	vt, size, irregular, eof := source.NextVarBytes()
 	if irregular {
 		return common.ErrIrregularData
 	}
 	if eof {
 		return io.ErrUnexpectedEOF
+	}
+	if size > MAX_TYPE_SIZE {
+		return errors.New("type is too large")
 	}
 
-	v, _, irregular, eof := source.NextVarBytes()
+	v, size, irregular, eof := source.NextVarBytes()
 	if irregular {
 		return common.ErrIrregularData
 	}
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
+	if size > MAX_VALUE_SIZE {
+		return errors.New("value is too large")
+	}
+
 	this.key = k
 	this.value = v
 	this.valueType = vt
