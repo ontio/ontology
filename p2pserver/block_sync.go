@@ -262,13 +262,14 @@ func NewBlockCache() *BlockCache {
 
 func (this *BlockCache) addBlock(nodeID uint64, block *types.Block,
 	merkleRoot common.Uint256) bool {
+	this.delBlockLocked(block.Header.Height)
 	blockInfo := &BlockInfo{
 		nodeID:     nodeID,
 		block:      block,
 		merkleRoot: merkleRoot,
 	}
 	this.blocksCache[block.Header.Height] = blockInfo
-	if !this.isInBlockCache(block.Header.Height) && block.Header.TransactionsRoot == common.UINT256_EMPTY {
+	if block.Header.TransactionsRoot == common.UINT256_EMPTY {
 		this.emptyBlockAmount += 1
 	}
 	return true
