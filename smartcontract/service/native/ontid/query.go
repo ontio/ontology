@@ -60,22 +60,32 @@ func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
 
 func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetDDO")
+	// keys
 	var0, err := GetPublicKeys(srvc)
 	if err != nil {
 		return nil, fmt.Errorf("get DDO error: %s", err)
-	} else if var0 == nil {
-		log.Debug("DDO: null")
-		return nil, nil
 	}
+
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteVarBytes(var0)
 
-	var1, _ := GetAttributes(srvc)
+	// attributes
+	var1, err := GetAttributes(srvc)
+	if err != nil {
+		return nil, fmt.Errorf("get attribute error, %s", err)
+	}
 	sink.WriteVarBytes(var1)
 
 	source := common.NewZeroCopySource(srvc.Input)
-	did, _ := utils.DecodeVarBytes(source)
-	key, _ := encodeID(did)
+	did, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get id error, %s", err)
+	}
+	key, err := encodeID(did)
+	if err != nil {
+		return nil, err
+	}
+
 	// controller
 	con, err := getController(srvc, key)
 	var2 := []byte{}
