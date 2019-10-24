@@ -51,7 +51,7 @@ func (p *ParamsBuilder) EmitPushInteger(data *big.Int) {
 		p.Emit(PUSHM1)
 		return
 	}
-	if data.Cmp(big.NewInt(int64(0))) == 0 {
+	if data.Sign() == 0 {
 		p.Emit(PUSH0)
 		return
 	}
