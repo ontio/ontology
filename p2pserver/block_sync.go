@@ -283,7 +283,7 @@ func (this *BlockSyncMgr) clearBlocks(curBlockHeight uint32) {
 func (this *BlockCache) clearBlocks(curBlockHeight uint32) {
 	for height := range this.blocksCache {
 		if height < curBlockHeight {
-			this.delBlock(height)
+			this.delBlockLocked(height)
 		}
 	}
 }
@@ -295,10 +295,6 @@ func (this *BlockCache) getBlock(blockHeight uint32) (uint64, *types.Block,
 		return 0, nil, common.UINT256_EMPTY
 	}
 	return blockInfo.nodeID, blockInfo.block, blockInfo.merkleRoot
-}
-
-func (this *BlockCache) delBlock(blockHeight uint32) {
-	this.delBlockLocked(blockHeight)
 }
 
 func (this *BlockCache) delBlockLocked(blockHeight uint32) {
@@ -690,7 +686,7 @@ func (this *BlockSyncMgr) getBlockCache(blockHeight uint32) (uint64, *types.Bloc
 func (this *BlockSyncMgr) delBlockCache(blockHeight uint32) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.blocksCache.delBlock(blockHeight)
+	this.blocksCache.delBlockLocked(blockHeight)
 }
 
 func (this *BlockSyncMgr) tryGetSaveBlockLock() bool {
@@ -752,6 +748,8 @@ func (this *BlockSyncMgr) saveBlock() {
 }
 
 func (this *BlockSyncMgr) isInBlockCache(blockHeight uint32) bool {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
 	return this.blocksCache.isInBlockCache(blockHeight)
 }
 
