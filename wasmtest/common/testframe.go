@@ -106,7 +106,6 @@ type BalanceAddr struct {
 }
 
 func InitBalanceAddress(balanceAddr []BalanceAddr, acct *account.Account, database *ledger.Ledger) error {
-	fmt.Printf("========%v\n", balanceAddr)
 	for _, elt := range balanceAddr {
 		to, err := common.AddressFromBase58(elt.Address)
 		if err != nil {
@@ -188,8 +187,19 @@ func checkExecResult(testCase TestCase, result *states.PreExecResult, execEnv Ex
 				panic("error tx type")
 			}
 		}
+
+		var js []byte
+		if len(result.Notify) != 0 {
+			js, _ = json.Marshal(result.Notify)
+			log.Infof("Notify info : %s", string(js))
+		}
+
+		if result.Result != nil {
+			jsres, _ := json.Marshal(result.Result)
+			log.Infof("Return result: %s", string(jsres))
+		}
+
 		if len(testCase.Notify) != 0 {
-			js, _ := json.Marshal(result.Notify)
 			assertEq(true, strings.Contains(string(js), testCase.Notify))
 		}
 	}
@@ -536,12 +546,18 @@ func testSpecifiedContractWithbatchMode(acct *account.Account, database *ledger.
 	if strings.HasSuffix(file, ".avm") || strings.HasSuffix(file, ".avm.str") {
 		testCases := GenNeoTextCaseTransaction(addr, database)
 		for _, testCase := range testCases[0] { // only handle group 0 currently
-			TestWithConfigElt(acct, database, file, testCase, testContext)
+			err := TestWithConfigElt(acct, database, file, testCase, testContext)
+			if err != nil {
+				panic(err)
+			}
 		}
 	} else if strings.HasSuffix(file, ".wasm") || strings.HasSuffix(file, ".wasm.str") {
 		testCases := ExactTestCase(cont)
 		for _, testCase := range testCases[0] { // only handle group 0 currently
-			TestWithConfigElt(acct, database, file, testCase, testContext)
+			err := TestWithConfigElt(acct, database, file, testCase, testContext)
+			if err != nil {
+				panic(err)
+			}
 		}
 	} else {
 		panic("testSpecifiedContractWithbatchMode: error suffix contract name")
