@@ -66,19 +66,19 @@ type NetServer struct {
 //InConnectionRecord include all addr connected
 type InConnectionRecord struct {
 	sync.RWMutex
-	InConnectingAddrs set.String
+	InConnectingAddrs set.StringSet
 }
 
 //OutConnectionRecord include all addr accepted
 type OutConnectionRecord struct {
 	sync.RWMutex
-	OutConnectingAddrs set.String
+	OutConnectingAddrs set.StringSet
 }
 
 //connectingNodes include all addr in connecting state
 type connectingNodes struct {
 	sync.RWMutex
-	ConnectingAddrs set.String
+	ConnectingAddrs set.StringSet
 }
 
 //PeerAddrMap include all addr-peer list
@@ -115,9 +115,9 @@ func (this *NetServer) init() error {
 	this.Np = &peer.NbrPeers{}
 	this.Np.Init()
 
-	this.connectingNodes.ConnectingAddrs = set.NewString()
-	this.inConnRecord.InConnectingAddrs = set.NewString()
-	this.outConnRecord.OutConnectingAddrs = set.NewString()
+	this.connectingNodes.ConnectingAddrs = set.NewStringSet()
+	this.inConnRecord.InConnectingAddrs = set.NewStringSet()
+	this.outConnRecord.OutConnectingAddrs = set.NewStringSet()
 
 	return nil
 }
