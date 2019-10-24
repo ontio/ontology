@@ -47,15 +47,16 @@ func (p *ParamsBuilder) EmitPushBool(data bool) {
 }
 
 func (p *ParamsBuilder) EmitPushInteger(data *big.Int) {
-	if data.Int64() == -1 {
+	if data.Cmp(big.NewInt(int64(-1))) == 0 {
 		p.Emit(PUSHM1)
 		return
 	}
-	if data.Int64() == 0 {
+	if data.Sign() == 0 {
 		p.Emit(PUSH0)
 		return
 	}
-	if data.Int64() > 0 && data.Int64() < 16 {
+
+	if data.Cmp(big.NewInt(int64(0))) == 1 && data.Cmp(big.NewInt(int64(16))) == -1 {
 		p.Emit(OpCode((int(PUSH1) - 1 + int(data.Int64()))))
 		return
 	}
