@@ -56,7 +56,7 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
 	}
 
-	if account.VerifyID(arg1) {
+	if account.VerifyID(string(arg1)) {
 		err = verifySingleController(srvc, arg1, source)
 		if err != nil {
 			return utils.BYTE_FALSE, err
@@ -179,7 +179,7 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
 	}
-	_, err := keypair.DeserializePublicKey(arg1)
+	_, err = keypair.DeserializePublicKey(arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("invalid key")
 	}
@@ -321,7 +321,7 @@ func getController(srvc *native.NativeService, encId []byte) (interface{}, error
 		return nil, errors.New("empty controller storage")
 	}
 
-	if account.VerifyID(item.Value) {
+	if account.VerifyID(string(item.Value)) {
 		return item.Value, nil
 	} else {
 		return deserializeGroup(item.Value)

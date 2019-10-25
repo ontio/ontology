@@ -179,7 +179,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("add key failed: argument 1 error, " + err.Error())
 	}
 	log.Debug("arg 1:", hex.EncodeToString(arg1))
-	_, err := keypair.DeserializePublicKey(arg1)
+	_, err = keypair.DeserializePublicKey(arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key error: invalid key")
 	}

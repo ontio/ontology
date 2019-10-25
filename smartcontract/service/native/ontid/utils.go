@@ -22,7 +22,6 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"

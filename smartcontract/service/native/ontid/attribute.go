@@ -77,7 +77,7 @@ func (this *attribute) Serialization(sink *common.ZeroCopySink) {
 }
 
 func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
-	k, size, irregular, eof := source.NextVarBytes()
+	k, _, irregular, eof := source.NextVarBytes()
 	if irregular {
 		return common.ErrIrregularData
 	}
@@ -88,7 +88,7 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 		return errors.New("key is too large")
 	}
 
-	vt, size, irregular, eof := source.NextVarBytes()
+	vt, _, irregular, eof := source.NextVarBytes()
 	if irregular {
 		return common.ErrIrregularData
 	}
@@ -99,7 +99,7 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 		return errors.New("type is too large")
 	}
 
-	v, size, irregular, eof := source.NextVarBytes()
+	v, _, irregular, eof := source.NextVarBytes()
 	if irregular {
 		return common.ErrIrregularData
 	}
@@ -135,7 +135,7 @@ func batchInsertAttr(srvc *native.NativeService, encID []byte, attr []attribute)
 	for i, v := range attr {
 		err := insertOrUpdateAttr(srvc, encID, &v)
 		if err != nil {
-			return errors.New("store attributes error: " + err.Error())
+			return fmt.Errorf("store attribute %d error: %s", i, err)
 		}
 	}
 

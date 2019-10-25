@@ -42,7 +42,7 @@ func (g *Group) ToJson() []byte {
 
 func rDeserialize(data []byte, depth uint) (*Group, error) {
 	if depth == MAX_DEPTH {
-		return nil, errors.New("recursion is too deep")
+		return nil, fmt.Errorf("recursion is too deep")
 	}
 
 	g := Group{}
