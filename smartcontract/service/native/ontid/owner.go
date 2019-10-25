@@ -29,6 +29,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+const OWNER_MAX_SIZE = 2048
+
 type owner struct {
 	key     []byte
 	revoked bool
@@ -91,7 +93,7 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 		owners = make([]*owner, 0)
 	}
 	size := len(owners)
-	if size >= 0xFFFFFFFF {
+	if size >= OWNER_MAX_SIZE {
 		//FIXME currently the limit is for all the keys, including the
 		//      revoked ones.
 		return 0, errors.New("reach the max limit, cannot add more keys")
