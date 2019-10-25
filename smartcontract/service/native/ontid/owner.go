@@ -29,7 +29,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-const OWNER_MAX_SIZE = 2048
+const OWNER_TOTAL_SIZE = 1024 * 1024 // 1MB
 
 type owner struct {
 	key     []byte
@@ -76,14 +76,18 @@ func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
 	return owners, nil
 }
 
-func putAllPk(srvc *native.NativeService, key []byte, val []*owner) {
+func putAllPk(srvc *native.NativeService, key []byte, val []*owner) error {
 	sink := common.NewZeroCopySink(nil)
 	for _, i := range val {
 		i.Serialization(sink)
 	}
 	var v states.StorageItem
 	v.Value = sink.Bytes()
+	if len(v.Value) > OWNER_TOTAL_SIZE {
+		return errors.New("total key size is out of range")
+	}
 	srvc.CacheDB.Put(key, v.ToArray())
+	return nil
 }
 
 func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
@@ -93,13 +97,11 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 		owners = make([]*owner, 0)
 	}
 	size := len(owners)
-	if size >= OWNER_MAX_SIZE {
-		//FIXME currently the limit is for all the keys, including the
-		//      revoked ones.
-		return 0, errors.New("reach the max limit, cannot add more keys")
-	}
 	owners = append(owners, &owner{pk, false})
-	putAllPk(srvc, key, owners)
+	err = putAllPk(srvc, key, owners)
+	if err != nil {
+		return 0, err
+	}
 	return uint32(size + 1), nil
 }
 
