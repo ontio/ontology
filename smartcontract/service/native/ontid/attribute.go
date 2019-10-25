@@ -84,7 +84,7 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	if size > MAX_KEY_SIZE {
+	if len(k) > MAX_KEY_SIZE {
 		return errors.New("key is too large")
 	}
 
@@ -95,7 +95,7 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	if size > MAX_TYPE_SIZE {
+	if len(vt) > MAX_TYPE_SIZE {
 		return errors.New("type is too large")
 	}
 
@@ -106,7 +106,7 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	if size > MAX_VALUE_SIZE {
+	if len(v) > MAX_VALUE_SIZE {
 		return errors.New("value is too large")
 	}
 
