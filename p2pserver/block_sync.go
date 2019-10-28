@@ -313,13 +313,13 @@ func (this *BlockCache) isInBlockCache(blockHeight uint32) bool {
 	return ok
 }
 
-func (this *BlockCache) getNonEmptyBlockSize() int {
+func (this *BlockCache) getNonEmptyBlockCount() int {
 	return len(this.blocksCache) - this.emptyBlockAmount
 }
-func (this *BlockSyncMgr) getNonEmptyBlockSize() int {
+func (this *BlockSyncMgr) getNonEmptyBlockCount() int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	return this.blocksCache.getNonEmptyBlockSize()
+	return this.blocksCache.getNonEmptyBlockCount()
 }
 
 //Start to sync
@@ -474,7 +474,7 @@ func (this *BlockSyncMgr) syncBlock() {
 	if count > availCount {
 		count = availCount
 	}
-	cacheCap := SYNC_MAX_BLOCK_CACHE_SIZE - this.getNonEmptyBlockSize()
+	cacheCap := SYNC_MAX_BLOCK_CACHE_SIZE - this.getNonEmptyBlockCount()
 	if count > cacheCap {
 		count = cacheCap
 	}
