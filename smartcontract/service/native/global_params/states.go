@@ -19,10 +19,8 @@
 package global_params
 
 import (
-	"io"
-
 	"fmt"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -55,63 +53,51 @@ func (params *Params) GetParam(key string) (int, Param) {
 	return -1, Param{}
 }
 
-func (params *Params) Serialize(w io.Writer) error {
+func (params *Params) Serialization(sink *common.ZeroCopySink) {
 	paramNum := len(*params)
-	if err := utils.WriteVarUint(w, uint64(paramNum)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize params length error!")
-	}
+	utils.EncodeVarUint(sink, uint64(paramNum))
 	for _, param := range *params {
-		if err := serialization.WriteString(w, param.Key); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, serialize param key %v error!", param.Key))
-		}
-		if err := serialization.WriteString(w, param.Value); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, serialize param value %v error!", param.Value))
-		}
+		sink.WriteString(param.Key)
+		sink.WriteString(param.Value)
 	}
-	return nil
 }
-
-func (params *Params) Deserialize(r io.Reader) error {
-	paramNum, err := utils.ReadVarUint(r)
+func (params *Params) Deserialization(source *common.ZeroCopySource) error {
+	paramNum, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize params length error!")
 	}
+
 	for i := 0; uint64(i) < paramNum; i++ {
 		param := Param{}
-		param.Key, err = serialization.ReadString(r)
-		if err != nil {
+		var irregular, eof bool
+		param.Key, _, irregular, eof = source.NextString()
+		if irregular || eof {
 			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, deserialize param key %v error!", param.Key))
 		}
-		param.Value, err = serialization.ReadString(r)
-		if err != nil {
+		param.Value, _, irregular, eof = source.NextString()
+		if irregular || eof {
 			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, deserialize param value %v error!", param.Value))
 		}
 		*params = append(*params, param)
 	}
 	return nil
 }
-
-func (nameList *ParamNameList) Serialize(w io.Writer) error {
+func (nameList *ParamNameList) Serialization(sink *common.ZeroCopySink) {
 	nameNum := len(*nameList)
-	if err := utils.WriteVarUint(w, uint64(nameNum)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, serialize param name list length error!")
-	}
+	utils.EncodeVarUint(sink, uint64(nameNum))
 	for _, value := range *nameList {
-		if err := serialization.WriteString(w, value); err != nil {
-			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, serialize param name %v error!", value))
-		}
+		sink.WriteString(value)
 	}
-	return nil
 }
 
-func (nameList *ParamNameList) Deserialize(r io.Reader) error {
-	nameNum, err := utils.ReadVarUint(r)
+func (nameList *ParamNameList) Deserialization(source *common.ZeroCopySource) error {
+	nameNum, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "param config, deserialize param name list length error!")
 	}
 	for i := 0; uint64(i) < nameNum; i++ {
-		name, err := serialization.ReadString(r)
-		if err != nil {
+		name, _, irregular, eof := source.NextString()
+		if irregular || eof {
 			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("param config, deserialize param name %v error!", name))
 		}
 		*nameList = append(*nameList, name)

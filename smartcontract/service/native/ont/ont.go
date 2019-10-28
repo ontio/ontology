@@ -19,7 +19,6 @@
 package ont
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 
@@ -274,7 +273,7 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 }
 
 func getApproveArgs(native *native.NativeService, contract, ongContract, address common.Address, value uint64) ([]byte, error) {
-	bf := new(bytes.Buffer)
+	bf := common.NewZeroCopySink(nil)
 	approve := State{
 		From:  contract,
 		To:    address,
@@ -287,9 +286,6 @@ func getApproveArgs(native *native.NativeService, contract, ongContract, address
 	}
 
 	approve.Value += stateValue
-
-	if err := approve.Serialize(bf); err != nil {
-		return nil, err
-	}
+	approve.Serialization(bf)
 	return bf.Bytes(), nil
 }

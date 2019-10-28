@@ -21,36 +21,32 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
+
+const OWNER_TOTAL_SIZE = 1024 * 1024 // 1MB
 
 type owner struct {
 	key     []byte
 	revoked bool
 }
 
-func (this *owner) Serialize(w io.Writer) error {
-	if err := serialization.WriteVarBytes(w, this.key); err != nil {
-		return err
-	}
-	if err := serialization.WriteBool(w, this.revoked); err != nil {
-		return err
-	}
-	return nil
+func (this *owner) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.key)
+	sink.WriteBool(this.revoked)
 }
 
-func (this *owner) Deserialize(r io.Reader) error {
-	v1, err := serialization.ReadVarBytes(r)
+func (this *owner) Deserialization(source *common.ZeroCopySource) error {
+	v1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return err
 	}
-	v2, err := serialization.ReadBool(r)
+	v2, err := utils.DecodeBool(source)
 	if err != nil {
 		return err
 	}
@@ -67,11 +63,11 @@ func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
 	if val == nil {
 		return nil, nil
 	}
-	buf := bytes.NewBuffer(val.Value)
+	source := common.NewZeroCopySource(val.Value)
 	owners := make([]*owner, 0)
-	for buf.Len() > 0 {
+	for source.Len() > 0 {
 		var t = new(owner)
-		err = t.Deserialize(buf)
+		err = t.Deserialization(source)
 		if err != nil {
 			return nil, fmt.Errorf("deserialize owners error, %s", err)
 		}
@@ -81,15 +77,15 @@ func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
 }
 
 func putAllPk(srvc *native.NativeService, key []byte, val []*owner) error {
-	var buf bytes.Buffer
+	sink := common.NewZeroCopySink(nil)
 	for _, i := range val {
-		err := i.Serialize(&buf)
-		if err != nil {
-			return fmt.Errorf("serialize owner error, %s", err)
-		}
+		i.Serialization(sink)
 	}
 	var v states.StorageItem
-	v.Value = buf.Bytes()
+	v.Value = sink.Bytes()
+	if len(v.Value) > OWNER_TOTAL_SIZE {
+		return errors.New("total key size is out of range")
+	}
 	srvc.CacheDB.Put(key, v.ToArray())
 	return nil
 }
@@ -101,11 +97,6 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 		owners = make([]*owner, 0)
 	}
 	size := len(owners)
-	if size >= 0xFFFFFFFF {
-		//FIXME currently the limit is for all the keys, including the
-		//      revoked ones.
-		return 0, errors.New("reach the max limit, cannot add more keys")
-	}
 	owners = append(owners, &owner{pk, false})
 	err = putAllPk(srvc, key, owners)
 	if err != nil {
@@ -159,11 +150,26 @@ func revokePk(srvc *native.NativeService, encID, pub []byte) (uint32, error) {
 	if index == 0 {
 		return 0, errors.New("revoke failed, public key not found")
 	}
-	err = putAllPk(srvc, key, owners)
-	if err != nil {
-		return 0, err
-	}
+	putAllPk(srvc, key, owners)
 	return index, nil
+}
+
+func revokePkByIndex(srvc *native.NativeService, encID []byte, index uint32) ([]byte, error) {
+	key := append(encID, FIELD_PK)
+	owners, err := getAllPk(srvc, key)
+	if err != nil {
+		return nil, err
+	}
+	if uint32(len(owners)) < index {
+		return nil, errors.New("no such key")
+	}
+	index -= 1
+	if owners[index].revoked {
+		return nil, errors.New("already revoked")
+	}
+	owners[index].revoked = true
+	putAllPk(srvc, key, owners)
+	return owners[index].key, nil
 }
 
 func isOwner(srvc *native.NativeService, encID, pub []byte) bool {

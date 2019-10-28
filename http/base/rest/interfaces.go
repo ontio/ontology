@@ -19,7 +19,6 @@
 package rest
 
 import (
-	"bytes"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -231,9 +230,7 @@ func GetTransactionByHash(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.UNKNOWN_TRANSACTION)
 	}
 	if raw, ok := cmd["Raw"].(string); ok && raw == "1" {
-		w := bytes.NewBuffer(nil)
-		tx.Serialize(w)
-		resp["Result"] = common.ToHexString(w.Bytes())
+		resp["Result"] = common.ToHexString(common.SerializeToBytes(tx))
 		return resp
 	}
 	tran := bcomn.TransArryByteToHexString(tx)

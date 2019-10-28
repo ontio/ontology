@@ -19,7 +19,6 @@
 package governance
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -34,7 +33,7 @@ import (
 
 func registerCandidate(native *native.NativeService, flag string) error {
 	params := new(RegisterCandidateParam)
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -150,7 +149,7 @@ func authorizeForPeer(native *native.NativeService, flag string) error {
 		PeerPubkeyList: make([]string, 0),
 		PosList:        make([]uint32, 0),
 	}
-	if err := params.Deserialize(bytes.NewBuffer(native.Input)); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(native.Input)); err != nil {
 		return fmt.Errorf("deserialize, contract params deserialize error: %v", err)
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
@@ -283,7 +282,7 @@ func normalQuit(native *native.NativeService, contract common.Address, peerPoolI
 			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
 		var authorizeInfo AuthorizeInfo
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
+		if err := authorizeInfo.Deserialization(common.NewZeroCopySource(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		authorizeInfo.WithdrawUnfreezePos = authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos +
@@ -354,7 +353,7 @@ func blackQuit(native *native.NativeService, contract common.Address, peerPoolIt
 			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
 		var authorizeInfo AuthorizeInfo
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
+		if err := authorizeInfo.Deserialization(common.NewZeroCopySource(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		total := authorizeInfo.ConsensusPos + authorizeInfo.CandidatePos + authorizeInfo.NewPos + authorizeInfo.WithdrawConsensusPos +
@@ -406,7 +405,7 @@ func consensusToConsensus(native *native.NativeService, contract common.Address,
 			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
 		var authorizeInfo AuthorizeInfo
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
+		if err := authorizeInfo.Deserialization(common.NewZeroCopySource(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.CandidatePos != 0 {
@@ -449,7 +448,7 @@ func unConsensusToConsensus(native *native.NativeService, contract common.Addres
 			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
 		var authorizeInfo AuthorizeInfo
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
+		if err := authorizeInfo.Deserialization(common.NewZeroCopySource(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.ConsensusPos != 0 {
@@ -492,7 +491,7 @@ func consensusToUnConsensus(native *native.NativeService, contract common.Addres
 			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
 		var authorizeInfo AuthorizeInfo
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
+		if err := authorizeInfo.Deserialization(common.NewZeroCopySource(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.CandidatePos != 0 {
@@ -535,7 +534,7 @@ func unConsensusToUnConsensus(native *native.NativeService, contract common.Addr
 			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
 		var authorizeInfo AuthorizeInfo
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
+		if err := authorizeInfo.Deserialization(common.NewZeroCopySource(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 		if authorizeInfo.ConsensusPos != 0 {
@@ -1353,7 +1352,7 @@ func splitNodeFee(native *native.NativeService, contract common.Address, peerPub
 			return fmt.Errorf("authorizeInfoStore is not available!:%v", err)
 		}
 		var authorizeInfo AuthorizeInfo
-		if err := authorizeInfo.Deserialize(bytes.NewBuffer(authorizeInfoStore)); err != nil {
+		if err := authorizeInfo.Deserialization(common.NewZeroCopySource(authorizeInfoStore)); err != nil {
 			return fmt.Errorf("deserialize, deserialize authorizeInfo error: %v", err)
 		}
 

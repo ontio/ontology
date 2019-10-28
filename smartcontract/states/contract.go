@@ -22,8 +22,6 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 )
 
@@ -39,53 +37,11 @@ type ContractInvokeParam struct {
 	Args    []byte
 }
 
-// Serialize contract
-func (this *ContractInvokeParam) Serialize(w io.Writer) error {
-	if err := serialization.WriteByte(w, this.Version); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Version serialize error!")
-	}
-	if err := this.Address.Serialize(w); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Address serialize error!")
-	}
-	if err := serialization.WriteVarBytes(w, []byte(this.Method)); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Method serialize error!")
-	}
-	if err := serialization.WriteVarBytes(w, this.Args); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Args serialize error!")
-	}
-	return nil
-}
-
 func (this *ContractInvokeParam) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteByte(this.Version)
 	sink.WriteAddress(this.Address)
 	sink.WriteVarBytes([]byte(this.Method))
 	sink.WriteVarBytes([]byte(this.Args))
-}
-
-// Deserialize contract
-func (this *ContractInvokeParam) Deserialize(r io.Reader) error {
-	var err error
-	this.Version, err = serialization.ReadByte(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Version deserialize error!")
-	}
-
-	if err := this.Address.Deserialize(r); err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Address deserialize error!")
-	}
-
-	method, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Method deserialize error!")
-	}
-	this.Method = string(method)
-
-	this.Args, err = serialization.ReadVarBytes(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractInvokeParam] Args deserialize error!")
-	}
-	return nil
 }
 
 // `ContractInvokeParam.Args` has reference of `source`

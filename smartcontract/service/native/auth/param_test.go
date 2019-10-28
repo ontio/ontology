@@ -24,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -53,14 +54,13 @@ func TestSerialization_Init(t *testing.T) {
 	param := &InitContractAdminParam{
 		AdminOntID: admin,
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	sink := common.NewZeroCopySink(nil)
+	param.Serialization(sink)
+	rd := common.NewZeroCopySource(sink.Bytes())
 
 	param2 := new(InitContractAdminParam)
-	if err := param2.Deserialize(rd); err != nil {
+
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 
@@ -74,14 +74,12 @@ func TestSerialization_Transfer(t *testing.T) {
 		ContractAddr:  OntContractAddr,
 		NewAdminOntID: newAdmin,
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	sink := common.NewZeroCopySink(nil)
+	param.Serialization(sink)
+	rd := common.NewZeroCopySource(sink.Bytes())
 
 	param2 := new(TransferParam)
-	if err := param2.Deserialize(rd); err != nil {
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 
@@ -95,14 +93,12 @@ func TestSerialization_AssignFuncs(t *testing.T) {
 		Role:         []byte("role"),
 		FuncNames:    funcs,
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	bf := common.NewZeroCopySink(nil)
+	param.Serialization(bf)
+	rd := common.NewZeroCopySource(bf.Bytes())
 
 	param2 := new(FuncsToRoleParam)
-	if err := param2.Deserialize(rd); err != nil {
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 
@@ -116,13 +112,11 @@ func TestSerialization_AssignOntIDs(t *testing.T) {
 		Role:         []byte(role),
 		Persons:      [][]byte{[]byte{0x03, 0x04, 0x05, 0x06}, []byte{0x07, 0x08, 0x09, 0x0a}},
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	bf := common.NewZeroCopySink(nil)
+	param.Serialization(bf)
+	rd := common.NewZeroCopySource(bf.Bytes())
 	param2 := new(OntIDsToRoleParam)
-	if err := param2.Deserialize(rd); err != nil {
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 
@@ -138,13 +132,11 @@ func TestSerialization_Delegate(t *testing.T) {
 		Period:       60 * 60 * 24,
 		Level:        3,
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	bf := common.NewZeroCopySink(nil)
+	param.Serialization(bf)
+	rd := common.NewZeroCopySource(bf.Bytes())
 	param2 := new(DelegateParam)
-	if err := param2.Deserialize(rd); err != nil {
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, param, param2)
@@ -157,13 +149,11 @@ func TestSerialization_Withdraw(t *testing.T) {
 		Delegate:     p2,
 		Role:         []byte(role),
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	bf := common.NewZeroCopySink(nil)
+	param.Serialization(bf)
+	rd := common.NewZeroCopySource(bf.Bytes())
 	param2 := new(WithdrawParam)
-	if err := param2.Deserialize(rd); err != nil {
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, param, param2)
@@ -175,13 +165,11 @@ func TestSerialization_VerifyToken(t *testing.T) {
 		Caller:       p1,
 		Fn:           "foo1",
 	}
-	bf := new(bytes.Buffer)
-	if err := param.Serialize(bf); err != nil {
-		t.Fatal(err)
-	}
-	rd := bytes.NewReader(bf.Bytes())
+	bf := common.NewZeroCopySink(nil)
+	param.Serialization(bf)
+	rd := common.NewZeroCopySource(bf.Bytes())
 	param2 := new(VerifyTokenParam)
-	if err := param2.Deserialize(rd); err != nil {
+	if err := param2.Deserialization(rd); err != nil {
 		t.Fatal(err)
 	}
 	assert.Equal(t, param, param2)

@@ -104,7 +104,7 @@ func (msg *blockProposalMsg) GetBlockNum() uint32 {
 }
 
 func (msg *blockProposalMsg) Serialize() ([]byte, error) {
-	return msg.Block.Serialize()
+	return msg.Block.Serialize(), nil
 }
 
 func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
@@ -118,7 +118,7 @@ func (msg *blockProposalMsg) UnmarshalJSON(data []byte) error {
 }
 
 func (msg *blockProposalMsg) MarshalJSON() ([]byte, error) {
-	return msg.Block.Serialize()
+	return msg.Block.Serialize(), nil
 }
 
 type FaultyReport struct {
@@ -337,10 +337,7 @@ func (msg *BlockFetchRespMsg) Serialize() ([]byte, error) {
 	buffer := bytes.NewBuffer([]byte{})
 	serialization.WriteUint32(buffer, msg.BlockNumber)
 	msg.BlockHash.Serialize(buffer)
-	blockbuff, err := msg.BlockData.Serialize()
-	if err != nil {
-		return nil, err
-	}
+	blockbuff := msg.BlockData.Serialize()
 	buffer.Write(blockbuff)
 	return buffer.Bytes(), nil
 }

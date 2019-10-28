@@ -22,7 +22,6 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	com "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -43,14 +42,16 @@ func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
 }
 
 const (
-	flag_exist = 0x01
+	flag_exist  byte = 0x01
+	flag_revoke byte = 0x02
 
 	FIELD_VERSION byte = 0
 	FLAG_VERSION  byte = 0x01
 
-	FIELD_PK       byte = 1
-	FIELD_ATTR     byte = 2
-	FIELD_RECOVERY byte = 3
+	FIELD_PK         byte = 1
+	FIELD_ATTR       byte = 2
+	FIELD_RECOVERY   byte = 3
+	FIELD_CONTROLLER byte = 4
 )
 
 func encodeID(id []byte) ([]byte, error) {
@@ -73,26 +74,7 @@ func decodeID(data []byte) ([]byte, error) {
 	return data[prefix+1:], nil
 }
 
-func setRecovery(srvc *native.NativeService, encID []byte, recovery com.Address) error {
-	key := append(encID, FIELD_RECOVERY)
-	val := states.StorageItem{Value: recovery[:]}
-	srvc.CacheDB.Put(key, val.ToArray())
-	return nil
-}
-
-func getRecovery(srvc *native.NativeService, encID []byte) ([]byte, error) {
-	key := append(encID, FIELD_RECOVERY)
-	item, err := utils.GetStorageItem(srvc, key)
-	if err != nil {
-		return nil, errors.New("get recovery error: " + err.Error())
-	} else if item == nil {
-		return nil, nil
-	}
-	return item.Value, nil
-}
-
 func checkWitness(srvc *native.NativeService, key []byte) error {
-	// try as if key is a public key
 	pk, err := keypair.DeserializePublicKey(key)
 	if err == nil {
 		addr := types.AddressFromPubKey(pk)
@@ -101,11 +83,25 @@ func checkWitness(srvc *native.NativeService, key []byte) error {
 		}
 	}
 
-	// try as if key is an address
-	addr, err := com.AddressParseFromBytes(key)
-	if srvc.ContextRef.CheckWitness(addr) {
-		return nil
+	return errors.New("check witness failed, " + hex.EncodeToString(key))
+}
+
+func deleteID(srvc *native.NativeService, encID []byte) error {
+	key := append(encID, FIELD_PK)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_CONTROLLER)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_RECOVERY)
+	srvc.CacheDB.Delete(key)
+
+	err := deleteAllAttr(srvc, encID)
+	if err != nil {
+		return err
 	}
 
-	return errors.New("check witness failed, " + hex.EncodeToString(key))
+	//set flag to revoke
+	utils.PutBytes(srvc, encID, []byte{flag_revoke})
+	return nil
 }

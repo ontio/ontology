@@ -19,7 +19,6 @@
 package ledgerstore
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -147,11 +146,7 @@ func TestSaveTransaction(t *testing.T) {
 	}
 
 	testBlockStore.NewBatch()
-	err = testBlockStore.SaveTransaction(tx, blockHeight)
-	if err != nil {
-		t.Errorf("SaveTransaction error %s", err)
-		return
-	}
+	testBlockStore.SaveTransaction(tx, blockHeight)
 	err = testBlockStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo error %s", err)
@@ -199,11 +194,7 @@ func TestHeaderIndexList(t *testing.T) {
 		indexMap[i] = hash
 		indexList = append(indexList, hash)
 	}
-	err := testBlockStore.SaveHeaderIndexList(startHeight, indexList)
-	if err != nil {
-		t.Errorf("SaveHeaderIndexList error %s", err)
-		return
-	}
+	testBlockStore.SaveHeaderIndexList(startHeight, indexList)
 	startHeight = uint32(100)
 	size = uint32(100)
 	indexMap = make(map[uint32]common.Uint256, size)
@@ -212,7 +203,7 @@ func TestHeaderIndexList(t *testing.T) {
 		indexMap[i] = hash
 		indexList = append(indexList, hash)
 	}
-	err = testBlockStore.CommitTo()
+	err := testBlockStore.CommitTo()
 	if err != nil {
 		t.Errorf("CommitTo error %s", err)
 		return
@@ -374,20 +365,12 @@ func TestBlock(t *testing.T) {
 }
 
 func transferTx(from, to common.Address, amount uint64) (*types.Transaction, error) {
-	buf := bytes.NewBuffer(nil)
 	var sts []ont.State
 	sts = append(sts, ont.State{
 		From:  from,
 		To:    to,
 		Value: amount,
 	})
-	transfers := &ont.Transfers{
-		States: sts,
-	}
-	err := transfers.Serialize(buf)
-	if err != nil {
-		return nil, fmt.Errorf("transfers.Serialize error %s", err)
-	}
 	var cversion byte
 	return invokeSmartContractTx(0, 30000, cversion, nutils.OntContractAddress, "transfer", []interface{}{sts})
 }

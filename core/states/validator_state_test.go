@@ -20,9 +20,8 @@ package states
 import (
 	"testing"
 
-	"bytes"
-
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,15 +33,16 @@ func TestValidatorState_Deserialize_Serialize(t *testing.T) {
 		PublicKey: pubKey,
 	}
 
-	buf := bytes.NewBuffer(nil)
-	vs.Serialize(buf)
-	bs := buf.Bytes()
+	sink := common.NewZeroCopySink(nil)
+	vs.Serialization(sink)
+	bs := sink.Bytes()
 
 	var vs2 ValidatorState
-	vs2.Deserialize(buf)
+	source := common.NewZeroCopySource(sink.Bytes())
+	vs2.Deserialization(source)
 	assert.Equal(t, vs, vs2)
 
-	buf = bytes.NewBuffer(bs[:len(bs)-1])
-	err := vs2.Deserialize(buf)
+	source = common.NewZeroCopySource(bs[:len(bs)-1])
+	err := vs2.Deserialization(source)
 	assert.NotNil(t, err)
 }

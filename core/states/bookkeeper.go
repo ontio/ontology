@@ -19,11 +19,10 @@
 package states
 
 import (
-	"bytes"
 	"io"
 
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 )
 
 type BookkeeperState struct {
@@ -32,62 +31,64 @@ type BookkeeperState struct {
 	NextBookkeeper []keypair.PublicKey
 }
 
-func (this *BookkeeperState) Serialize(w io.Writer) error {
-	this.StateBase.Serialize(w)
-	serialization.WriteUint32(w, uint32(len(this.CurrBookkeeper)))
+func (this *BookkeeperState) Serialization(sink *common.ZeroCopySink) {
+	this.StateBase.Serialization(sink)
+	sink.WriteUint32(uint32(len(this.CurrBookkeeper)))
 	for _, v := range this.CurrBookkeeper {
 		buf := keypair.SerializePublicKey(v)
-		err := serialization.WriteVarBytes(w, buf)
-		if err != nil {
-			return err
-		}
+		sink.WriteVarBytes(buf)
 	}
-	serialization.WriteUint32(w, uint32(len(this.NextBookkeeper)))
+	sink.WriteUint32(uint32(len(this.NextBookkeeper)))
 	for _, v := range this.NextBookkeeper {
 		buf := keypair.SerializePublicKey(v)
-		err := serialization.WriteVarBytes(w, buf)
-		if err != nil {
-			return err
-		}
+		sink.WriteVarBytes(buf)
 	}
-	return nil
 }
 
-func (this *BookkeeperState) Deserialize(r io.Reader) error {
-	err := this.StateBase.Deserialize(r)
+func (this *BookkeeperState) Deserialization(source *common.ZeroCopySource) error {
+	err := this.StateBase.Deserialization(source)
 	if err != nil {
 		return err
 	}
-	n, err := serialization.ReadUint32(r)
-	if err != nil {
-		return err
+	n, eof := source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	for i := 0; i < int(n); i++ {
-		buf, err := serialization.ReadVarBytes(r)
+		buf, _, irregular, eof := source.NextVarBytes()
+		if irregular {
+			return common.ErrIrregularData
+		}
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		key, err := keypair.DeserializePublicKey(buf)
 		if err != nil {
 			return err
 		}
-		key, err := keypair.DeserializePublicKey(buf)
 		this.CurrBookkeeper = append(this.CurrBookkeeper, key)
 	}
-
-	n, err = serialization.ReadUint32(r)
-	if err != nil {
-		return err
+	n, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
 	for i := 0; i < int(n); i++ {
-		buf, err := serialization.ReadVarBytes(r)
+		buf, _, irregular, eof := source.NextVarBytes()
+		if irregular {
+			return common.ErrIrregularData
+		}
+		if eof {
+			return io.ErrUnexpectedEOF
+		}
+		key, err := keypair.DeserializePublicKey(buf)
 		if err != nil {
 			return err
 		}
-		key, err := keypair.DeserializePublicKey(buf)
 		this.NextBookkeeper = append(this.NextBookkeeper, key)
 	}
 	return nil
 }
 
 func (v *BookkeeperState) ToArray() []byte {
-	b := new(bytes.Buffer)
-	v.Serialize(b)
-	return b.Bytes()
+	return common.SerializeToBytes(v)
 }

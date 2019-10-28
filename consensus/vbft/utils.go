@@ -140,7 +140,7 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 		return nil, err
 	}
 	if data != nil {
-		err = preCfg.Deserialize(bytes.NewBuffer(data))
+		err = preCfg.Deserialization(common.NewZeroCopySource(data))
 		if err != nil {
 			return nil, err
 		}
@@ -164,7 +164,7 @@ func GetVbftConfigInfo(memdb *overlaydb.MemDB) (*config.VBFTConfig, error) {
 			return nil, err
 		}
 		cfg := new(gov.Configuration)
-		err = cfg.Deserialize(bytes.NewBuffer(data))
+		err = cfg.Deserialization(common.NewZeroCopySource(data))
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +199,7 @@ func GetPeersConfig(memdb *overlaydb.MemDB) ([]*config.VBFTPeerStakeInfo, error)
 	peerMap := &gov.PeerPoolMap{
 		PeerPoolMap: make(map[string]*gov.PeerPoolItem),
 	}
-	err = peerMap.Deserialize(bytes.NewBuffer(data))
+	err = peerMap.Deserialization(common.NewZeroCopySource(data))
 	if err != nil {
 		return nil, err
 	}

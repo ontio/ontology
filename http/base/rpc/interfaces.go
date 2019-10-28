@@ -19,7 +19,6 @@
 package rpc
 
 import (
-	"bytes"
 	"encoding/hex"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -209,9 +208,8 @@ func GetRawTransaction(params []interface{}) map[string]interface{} {
 			return responsePack(berr.INVALID_PARAMS, "")
 		}
 	}
-	w := bytes.NewBuffer(nil)
-	tx.Serialize(w)
-	return responseSuccess(common.ToHexString(w.Bytes()))
+
+	return responseSuccess(common.ToHexString(common.SerializeToBytes(tx)))
 }
 
 //get storage from contract

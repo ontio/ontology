@@ -19,7 +19,6 @@
 package ont
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/ontio/ontology/common"
@@ -32,13 +31,12 @@ func TestState_Serialize(t *testing.T) {
 		To:    common.AddressFromVmCode([]byte{4, 5, 6}),
 		Value: 1,
 	}
-	bf := new(bytes.Buffer)
-	if err := state.Serialize(bf); err != nil {
-		t.Fatal("state serialize fail!")
-	}
+	sink := common.NewZeroCopySink(nil)
+	state.Serialization(sink)
 
 	state2 := State{}
-	if err := state2.Deserialize(bf); err != nil {
+	source := common.NewZeroCopySource(sink.Bytes())
+	if err := state2.Deserialization(source); err != nil {
 		t.Fatal("state deserialize fail!")
 	}
 

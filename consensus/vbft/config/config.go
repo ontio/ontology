@@ -27,7 +27,6 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/serialization"
 )
 
 var (
@@ -101,26 +100,21 @@ func (cc *ChainConfig) Serialize(w io.Writer) error {
 	return nil
 }
 
-func (pc *PeerConfig) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, pc.Index); err != nil {
-		return fmt.Errorf("ChainConfig peer index length serialization failed %s", err)
-	}
-	if err := serialization.WriteString(w, pc.ID); err != nil {
-		return fmt.Errorf("ChainConfig peer ID length serialization failed %s", err)
-	}
-	return nil
+func (pc *PeerConfig) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(pc.Index)
+	sink.WriteString(pc.ID)
 }
 
-func (pc *PeerConfig) Deserialize(r io.Reader) error {
-	index, err := serialization.ReadUint32(r)
-	if err != nil {
-		return fmt.Errorf("serialization PeerConfig index err:%s", err)
+func (pc *PeerConfig) Deserialization(source *common.ZeroCopySource) error {
+	index, eof := source.NextUint32()
+	if eof {
+		return fmt.Errorf("Deserialization PeerConfig index err:%s", io.ErrUnexpectedEOF)
 	}
 	pc.Index = index
 
-	nodeid, err := serialization.ReadString(r)
-	if err != nil {
-		return fmt.Errorf("serialization PeerConfig nodeid err:%s", err)
+	nodeid, _, irregular, eof := source.NextString()
+	if irregular || eof {
+		return fmt.Errorf("serialization PeerConfig nodeid irregular:%v, eof:%v", irregular, eof)
 	}
 	pc.ID = nodeid
 	return nil

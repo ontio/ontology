@@ -19,7 +19,6 @@
 package genesis
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strconv"
@@ -68,9 +67,12 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	if err != nil {
 		return nil, fmt.Errorf("[Block],BuildGenesisBlock err with GetBookkeeperAddress: %s", err)
 	}
-	conf := bytes.NewBuffer(nil)
+	conf := common.NewZeroCopySink(nil)
 	if genesisConfig.VBFT != nil {
-		genesisConfig.VBFT.Serialize(conf)
+		err := genesisConfig.VBFT.Serialization(conf)
+		if err != nil {
+			return nil, err
+		}
 	}
 	govConfig := newGoverConfigInit(conf.Bytes())
 	consensusPayload, err := vconfig.GenesisConsensusPayload(govConfig.Hash(), 0)
@@ -218,11 +220,11 @@ func newGoverningInit() *types.Transaction {
 		value uint64
 	}{{addr, constants.ONT_TOTAL_SUPPLY}}
 
-	args := bytes.NewBuffer(nil)
-	nutils.WriteVarUint(args, uint64(len(distribute)))
+	args := common.NewZeroCopySink(nil)
+	nutils.EncodeVarUint(args, uint64(len(distribute)))
 	for _, part := range distribute {
-		nutils.WriteAddress(args, part.addr)
-		nutils.WriteVarUint(args, part.value)
+		nutils.EncodeAddress(args, part.addr)
+		nutils.EncodeVarUint(args, part.value)
 	}
 
 	mutable := utils.BuildNativeTransaction(nutils.OntContractAddress, ont.INIT_NAME, args.Bytes())
@@ -259,8 +261,8 @@ func newParamInit() *types.Transaction {
 	for _, v := range s {
 		params.SetParam(global_params.Param{Key: v, Value: INIT_PARAM[v]})
 	}
-	bf := new(bytes.Buffer)
-	params.Serialize(bf)
+	sink := common.NewZeroCopySink(nil)
+	params.Serialization(sink)
 
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
 	var addr common.Address
@@ -274,9 +276,9 @@ func newParamInit() *types.Transaction {
 		}
 		addr = temp
 	}
-	nutils.WriteAddress(bf, addr)
+	nutils.EncodeAddress(sink, addr)
 
-	mutable := utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, bf.Bytes())
+	mutable := utils.BuildNativeTransaction(nutils.ParamContractAddress, global_params.INIT_NAME, sink.Bytes())
 	tx, err := mutable.IntoImmutable()
 	if err != nil {
 		panic("construct genesis governing token transaction error ")

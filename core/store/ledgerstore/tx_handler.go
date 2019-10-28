@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common"
 	sysconfig "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/store"
 	scommon "github.com/ontio/ontology/core/store/common"
@@ -266,10 +265,8 @@ func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *ev
 }
 
 func genNativeTransferCode(from, to common.Address, value uint64) []byte {
-	transfer := ont.Transfers{States: []ont.State{{From: from, To: to, Value: value}}}
-	tr := new(bytes.Buffer)
-	transfer.Serialize(tr)
-	return tr.Bytes()
+	transfer := &ont.Transfers{States: []ont.State{{From: from, To: to, Value: value}}}
+	return common.SerializeToBytes(transfer)
 }
 
 // check whether payer ong balance sufficient
@@ -305,14 +302,10 @@ func chargeCostGas(payer common.Address, gas uint64, config *smartcontract.Confi
 }
 
 func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, store store.LedgerStore) error {
-	bf := new(bytes.Buffer)
-	if err := utils.WriteVarUint(bf, uint64(len(neovm.GAS_TABLE_KEYS))); err != nil {
-		return fmt.Errorf("write gas_table_keys length error:%s", err)
-	}
+	sink := common.NewZeroCopySink(nil)
+	utils.EncodeVarUint(sink, uint64(len(neovm.GAS_TABLE_KEYS)))
 	for _, value := range neovm.GAS_TABLE_KEYS {
-		if err := serialization.WriteString(bf, value); err != nil {
-			return fmt.Errorf("serialize param name error:%s", value)
-		}
+		sink.WriteString(value)
 	}
 
 	sc := smartcontract.SmartContract{
@@ -323,12 +316,12 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, st
 	}
 
 	service, _ := sc.NewNativeService()
-	result, err := service.NativeCall(utils.ParamContractAddress, "getGlobalParam", bf.Bytes())
+	result, err := service.NativeCall(utils.ParamContractAddress, "getGlobalParam", sink.Bytes())
 	if err != nil {
 		return err
 	}
 	params := new(global_params.Params)
-	if err := params.Deserialize(bytes.NewBuffer(result.([]byte))); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(result.([]byte))); err != nil {
 		return fmt.Errorf("deserialize global params error:%s", err)
 	}
 	neovm.GAS_TABLE.Range(func(key, value interface{}) bool {
@@ -347,10 +340,8 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, st
 }
 
 func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, store store.LedgerStore, address common.Address) (uint64, error) {
-	bf := new(bytes.Buffer)
-	if err := utils.WriteAddress(bf, address); err != nil {
-		return 0, err
-	}
+	bf := common.NewZeroCopySink(nil)
+	utils.EncodeAddress(bf, address)
 	sc := smartcontract.SmartContract{
 		Config:  config,
 		CacheDB: cache,
