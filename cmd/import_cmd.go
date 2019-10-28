@@ -137,9 +137,9 @@ func importBlocks(ctx *cli.Context) error {
 	PrintInfoMsg("Start import blocks.")
 
 	var readErr error
-	blockes := make(chan *types.Block, 10)
+	blocks := make(chan *types.Block, 10)
 	go func() {
-		defer close(blockes)
+		defer close(blocks)
 		for i := uint32(startBlockHeight); i <= endBlockHeight; i++ {
 			size, err := serialization.ReadUint32(fReader)
 			if err != nil {
@@ -167,11 +167,11 @@ func importBlocks(ctx *cli.Context) error {
 				readErr = fmt.Errorf("block height:%d deserialize error:%s", i, err)
 				break
 			}
-			blockes <- block
+			blocks <- block
 		}
 	}()
 
-	for block := range blockes {
+	for block := range blocks {
 		execResult, err := ledger.DefLedger.ExecuteBlock(block)
 		if err != nil {
 			return fmt.Errorf("block height:%d ExecuteBlock error:%s", block.Header.Height, err)
