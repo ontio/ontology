@@ -26,6 +26,14 @@ import (
 	"io"
 )
 
+const (
+	MAX_KEY_SIZE   = 32
+	MAX_TYPE_SIZE  = 16
+	MAX_VALUE_SIZE = 512 * 1024
+
+	MAX_NUM = 100
+)
+
 type attribute struct {
 	key       []byte
 	value     []byte
@@ -76,6 +84,9 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
+	if len(k) > MAX_KEY_SIZE {
+		return errors.New("key is too large")
+	}
 
 	vt, _, irregular, eof := source.NextVarBytes()
 	if irregular {
@@ -83,6 +94,9 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 	}
 	if eof {
 		return io.ErrUnexpectedEOF
+	}
+	if len(vt) > MAX_TYPE_SIZE {
+		return errors.New("type is too large")
 	}
 
 	v, _, irregular, eof := source.NextVarBytes()
@@ -92,6 +106,10 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
+	if len(v) > MAX_VALUE_SIZE {
+		return errors.New("value is too large")
+	}
+
 	this.key = k
 	this.value = v
 	this.valueType = vt
@@ -114,15 +132,33 @@ func findAttr(srvc *native.NativeService, encID, item []byte) (*utils.Linkedlist
 }
 
 func batchInsertAttr(srvc *native.NativeService, encID []byte, attr []attribute) error {
-	res := make([][]byte, len(attr))
 	for i, v := range attr {
 		err := insertOrUpdateAttr(srvc, encID, &v)
 		if err != nil {
-			return errors.New("store attributes error: " + err.Error())
+			return fmt.Errorf("store attribute %d error: %s", i, err)
 		}
-		res[i] = v.key
 	}
 
+	key := append(encID, FIELD_ATTR)
+	n, err := utils.LinkedlistGetNumOfItems(srvc, key)
+	if err != nil {
+		return err
+	}
+	if n > MAX_NUM {
+		return fmt.Errorf("too many attributes, max is %d", MAX_NUM)
+	}
+
+	return nil
+}
+
+func deleteAttr(srvc *native.NativeService, encID, path []byte) error {
+	key := append(encID, FIELD_ATTR)
+	ok, err := utils.LinkedlistDelete(srvc, key, path)
+	if err != nil {
+		return err
+	} else if !ok {
+		return errors.New("attribute not exist")
+	}
 	return nil
 }
 
@@ -158,4 +194,17 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 		item = node.GetNext()
 	}
 	return res.Bytes(), nil
+}
+
+func getAttrKeys(attr []attribute) [][]byte {
+	var paths = make([][]byte, 0)
+	for _, v := range attr {
+		paths = append(paths, v.key)
+	}
+	return paths
+}
+
+func deleteAllAttr(srvc *native.NativeService, encID []byte) error {
+	key := append(encID, FIELD_ATTR)
+	return utils.LinkedlistDeleteAll(srvc, key)
 }

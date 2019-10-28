@@ -60,27 +60,53 @@ func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
 
 func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetDDO")
+	// keys
 	var0, err := GetPublicKeys(srvc)
 	if err != nil {
 		return nil, fmt.Errorf("get DDO error: %s", err)
-	} else if var0 == nil {
-		log.Debug("DDO: null")
-		return nil, nil
 	}
+
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteVarBytes(var0)
 
+	// attributes
 	var1, err := GetAttributes(srvc)
+	if err != nil {
+		return nil, fmt.Errorf("get attribute error, %s", err)
+	}
 	sink.WriteVarBytes(var1)
 
 	source := common.NewZeroCopySource(srvc.Input)
-	did, _, irregular, eof := source.NextVarBytes()
-	if irregular || eof {
-		return nil, fmt.Errorf("read did failed")
+	did, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get id error, %s", err)
 	}
-	key, _ := encodeID(did)
-	var2, err := getRecovery(srvc, key)
+	key, err := encodeID(did)
+	if err != nil {
+		return nil, err
+	}
+
+	// controller
+	con, err := getController(srvc, key)
+	var2 := []byte{}
+	if err == nil {
+		switch t := con.(type) {
+		case []byte:
+			var2 = t
+		case *Group:
+			var2 = t.ToJson()
+		}
+	}
 	sink.WriteVarBytes(var2)
+
+	//recovery
+	var3 := []byte{}
+	rec, err := getRecovery(srvc, key)
+	if rec != nil && err == nil {
+		var3 = rec.ToJson()
+	}
+	sink.WriteVarBytes(var3)
+
 	res := sink.Bytes()
 	log.Debug("DDO:", hex.EncodeToString(res))
 	return res, nil
