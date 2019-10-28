@@ -1,6 +1,6 @@
 
 <h1 align="center">Ontology</h1>
-<h4 align="center">Version 1.6.0</h4>
+<h4 align="center">Version 1.8.0</h4>
 
 [![GoDoc](https://godoc.org/github.com/ontio/ontology?status.svg)](https://godoc.org/github.com/ontio/ontology)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ontio/ontology)](https://goreportcard.com/report/github.com/ontio/ontology)
@@ -49,7 +49,7 @@ New features are still being rapidly developed, therefore the master branch may 
 ## Build Development Environment
 The requirements to build Ontology are:
 
-- [Golang](https://golang.org/doc/install) version 1.9 or later
+- [Golang](https://golang.org/doc/install) version 1.11 or later
 - [Glide](https://glide.sh) (a third party package management tool for Golang)
 
 ## Download Ontology
