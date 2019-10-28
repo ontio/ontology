@@ -846,10 +846,7 @@ func (this *BlockSyncMgr) getFlightBlockCount() int {
 
 func (this *BlockSyncMgr) isBlockOnFlight(blockHash common.Uint256) bool {
 	flightInfos := this.getFlightBlocks(blockHash)
-	if len(flightInfos) != 0 {
-		return true
-	}
-	return false
+	return len(flightInfos) != 0
 }
 
 func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {

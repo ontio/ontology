@@ -41,7 +41,7 @@ func (this *NbrPeers) Broadcast(msg types.Message) {
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
-		if node.linkState == common.ESTABLISH && node.GetRelay() == true {
+		if node.linkState == common.ESTABLISH && node.GetRelay() {
 			node.SendRaw(msg.CmdType(), sink.Bytes())
 		}
 	}
@@ -57,8 +57,8 @@ func (this *NbrPeers) NodeExisted(uid uint64) bool {
 func (this *NbrPeers) GetPeer(id uint64) *Peer {
 	this.Lock()
 	defer this.Unlock()
-	n, ok := this.List[id]
-	if ok == false {
+	n, exist := this.List[id]
+	if !exist {
 		return nil
 	}
 	return n
@@ -81,8 +81,8 @@ func (this *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
 	this.Lock()
 	defer this.Unlock()
 
-	n, ok := this.List[id]
-	if ok == false {
+	n, exist := this.List[id]
+	if !exist {
 		return nil, false
 	}
 	delete(this.List, id)
@@ -99,16 +99,12 @@ func (this *NbrPeers) NodeEstablished(id uint64) bool {
 	this.RLock()
 	defer this.RUnlock()
 
-	n, ok := this.List[id]
-	if ok == false {
+	n, exist := this.List[id]
+	if !exist {
 		return false
 	}
 
-	if n.linkState != common.ESTABLISH {
-		return false
-	}
-
-	return true
+	return n.linkState == common.ESTABLISH
 }
 
 //GetNeighborAddrs return all establish peer address

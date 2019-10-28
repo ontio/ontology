@@ -234,10 +234,10 @@ func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 
 //IsPeerEstablished return the establise state of given peer`s id
 func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
-	if p != nil {
-		return this.Np.NodeEstablished(p.GetID())
+	if p == nil {
+		return false
 	}
-	return false
+	return this.Np.NodeEstablished(p.GetID())
 }
 
 //Connect used to connect net address under sync or cons mode
@@ -267,7 +267,7 @@ func (this *NetServer) Connect(addr string) error {
 		return nil
 	}
 	this.connectLock.Lock()
-	if added := this.AddOutConnectingList(addr); added == false {
+	if addOK := this.AddOutConnectingList(addr); !addOK {
 		log.Debug("[p2p]node exist in connecting list", addr)
 	}
 	this.connectLock.Unlock()
@@ -613,10 +613,7 @@ func (this *NetServer) AddrValid(addr string) bool {
 
 //check own network address
 func (this *NetServer) IsOwnAddress(addr string) bool {
-	if addr == this.OwnAddress {
-		return true
-	}
-	return false
+	return addr == this.OwnAddress
 }
 
 //Set own network address

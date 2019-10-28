@@ -344,7 +344,7 @@ func (this *P2PServer) connectSeeds() {
 
 //reachMinConnection return whether net layer have enough link under different config
 func (this *P2PServer) reachMinConnection() bool {
-	if config.DefConfig.Consensus.EnableConsensus == false {
+	if !config.DefConfig.Consensus.EnableConsensus {
 		//just sync
 		return true
 	}

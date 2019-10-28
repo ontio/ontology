@@ -302,8 +302,8 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		}
 		if ipNew == ipOld {
 			//same id and same ip
-			n, ret := p2p.DelNbrNode(version.P.Nonce)
-			if ret == true {
+			n, delOK := p2p.DelNbrNode(version.P.Nonce)
+			if delOK {
 				log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
 				// Close the connection and release the node source
 				n.Close()

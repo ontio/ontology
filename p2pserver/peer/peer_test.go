@@ -65,11 +65,11 @@ func TestGetPeerComInfo(t *testing.T) {
 		}
 	}
 
-	if p.base.GetRelay() != true {
+	if !p.base.GetRelay() {
 		t.Errorf("PeerCom GetRelay error")
 	} else {
 		p.base.SetRelay(false)
-		if p.base.GetRelay() != false {
+		if p.base.GetRelay() {
 			t.Errorf("PeerCom SetRelay error")
 		}
 	}
