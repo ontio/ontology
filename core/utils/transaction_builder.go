@@ -198,6 +198,14 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 	return sink.Bytes(), nil
 }
 
+type tuple struct {
+	values []interface{}
+}
+
+func Tuple(values ...interface{}) tuple {
+	return tuple{values: values}
+}
+
 //build param bytes for wasm contract
 func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 	bf := common.NewZeroCopySink(nil)
@@ -246,8 +254,44 @@ func BuildWasmContractParam(params []interface{}) ([]byte, error) {
 				return nil, err
 			}
 			bf.WriteBytes(value)
+		case tuple:
+			value, err := BuildWasmContractParam(val.values)
+			if err != nil {
+				return nil, err
+			}
+			bf.WriteBytes(value)
 		default:
-			return nil, fmt.Errorf("not a supported type :%v\n", param)
+			object := reflect.ValueOf(val)
+			kind := object.Kind().String()
+			if kind == "ptr" {
+				object = object.Elem()
+				kind = object.Kind().String()
+			}
+			switch kind {
+			case "slice":
+				ps := make([]interface{}, 0)
+				for i := 0; i < object.Len(); i++ {
+					ps = append(ps, object.Index(i).Interface())
+				}
+				vnum := len(ps)
+				bf.WriteVarUint(uint64(vnum))
+				value, err := BuildWasmContractParam(ps)
+				if err != nil {
+					return nil, err
+				}
+				bf.WriteBytes(value)
+			case "struct":
+				for i := 0; i < object.NumField(); i++ {
+					field := object.Field(i)
+					value, err := BuildWasmContractParam([]interface{}{field.Interface()})
+					if err != nil {
+						return nil, err
+					}
+					bf.WriteBytes(value)
+				}
+			default:
+				return nil, fmt.Errorf("not a supported type :%v\n", param)
+			}
 		}
 	}
 	return bf.Bytes(), nil
