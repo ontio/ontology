@@ -40,6 +40,23 @@ func (g *Group) ToJson() []byte {
 	return j
 }
 
+func (g *Group) Serialize() []byte {
+	sink := common.NewZeroCopySink(nil)
+	utils.EncodeVarUint(sink, uint64(len(g.Members)))
+	for _, m := range g.Members {
+		switch t := m.(type) {
+		case []byte:
+			sink.WriteVarBytes(t)
+		case *Group:
+			sink.WriteVarBytes(t.Serialize())
+		default:
+			panic("invlid member type")
+		}
+	}
+	utils.EncodeVarUint(sink, uint64(g.Threshold))
+	return sink.Bytes()
+}
+
 func rDeserialize(data []byte, depth uint) (*Group, error) {
 	if depth == MAX_DEPTH {
 		return nil, fmt.Errorf("recursion is too deep")
@@ -120,6 +137,16 @@ func validateMembers(srvc *native.NativeService, g *Group) error {
 type Signer struct {
 	id    []byte
 	index uint32
+}
+
+func SerializeSigners(s []Signer) []byte {
+	sink := common.NewZeroCopySink(nil)
+	utils.EncodeVarUint(sink, uint64(len(s)))
+	for _, v := range s {
+		sink.WriteVarBytes(v.id)
+		utils.EncodeVarUint(sink, uint64(v.index))
+	}
+	return sink.Bytes()
 }
 
 func deserializeSigners(data []byte) ([]Signer, error) {
