@@ -322,7 +322,7 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		result = tmpRes.([]byte)
 
 	case NEOVM_CONTRACT:
-		evalstack, err := util.GenerateNeoParamAndCode(inputs)
+		evalstack, err := util.GenerateNeoVMParamEvalStack(inputs)
 		if err != nil {
 			panic(err)
 		}

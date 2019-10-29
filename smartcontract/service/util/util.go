@@ -45,7 +45,7 @@ func BuildNeoVMParamEvalStack(params []interface{}) (*neovm.ValueStack, error) {
 }
 
 //create paramters for neovm contract
-func GenerateNeoParamAndCode(input []byte) (*neovm.ValueStack, error) {
+func GenerateNeoVMParamEvalStack(input []byte) (*neovm.ValueStack, error) {
 	params, err := crossvm_codec.DeserializeCallParam(input)
 	if err != nil {
 		return nil, err
