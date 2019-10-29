@@ -220,7 +220,7 @@ func CaseRecovery(t *testing.T, n *native.NativeService) {
 	utils.EncodeVarUint(sink, 1)
 	n.Input = sink.Bytes()
 	n.Tx.SignedAddr = []common.Address{a0.Address}
-	_, err = addRecovery(n)
+	_, err = setRecovery(n)
 	assert.Nil(t, err, "add recovery error")
 	//3. add new key by recovery id
 	a3 := account.NewAccount("")

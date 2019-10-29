@@ -22,6 +22,7 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology-crypto/keypair"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -75,12 +76,19 @@ func decodeID(data []byte) ([]byte, error) {
 }
 
 func checkWitness(srvc *native.NativeService, key []byte) error {
+	// try as if key is a public key
 	pk, err := keypair.DeserializePublicKey(key)
 	if err == nil {
 		addr := types.AddressFromPubKey(pk)
 		if srvc.ContextRef.CheckWitness(addr) {
 			return nil
 		}
+	}
+
+	// try as if key is an address
+	addr, err := common.AddressParseFromBytes(key)
+	if srvc.ContextRef.CheckWitness(addr) {
+		return nil
 	}
 
 	return errors.New("check witness failed, " + hex.EncodeToString(key))
