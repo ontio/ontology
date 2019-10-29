@@ -79,10 +79,7 @@ func SetNeoServiceParamAndEngine(addr common.Address, engine context.Engine, sta
 	service.Engine = neovm.NewExecutor(code, feature)
 	service.Code = code
 
-	err = stack.CopyTo(service.Engine.EvalStack)
-	if err != nil {
-		return err
-	}
+	service.Engine.EvalStack = stack
 
 	return nil
 }
