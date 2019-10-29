@@ -18,6 +18,7 @@
 package ontid
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -199,8 +200,18 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: " + err.Error())
 	}
-	if !isOwner(srvc, key, arg2) {
-		return utils.BYTE_FALSE, errors.New("add key failed: operator has no authorization")
+	if !checkIDExistence(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("add key failed: ID not registered")
+	}
+	var auth bool = false
+	rec, _ := getOldRecovery(srvc, key)
+	if len(rec) > 0 {
+		auth = bytes.Equal(rec, arg2)
+	}
+	if !auth {
+		if !isOwner(srvc, key, arg2) {
+			return utils.BYTE_FALSE, errors.New("add key failed: operator has no authorization")
+		}
 	}
 
 	item, _, err := findPk(srvc, key, arg1)
@@ -248,8 +259,15 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 	if !checkIDExistence(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("remove key failed: ID not registered")
 	}
-	if !isOwner(srvc, key, arg2) {
-		return utils.BYTE_FALSE, errors.New("remove key failed: operator has no authorization")
+	var auth = false
+	rec, err := getOldRecovery(srvc, key)
+	if len(rec) > 0 {
+		auth = bytes.Equal(rec, arg2)
+	}
+	if !auth {
+		if !isOwner(srvc, key, arg2) {
+			return utils.BYTE_FALSE, errors.New("remove key failed: operator has no authorization")
+		}
 	}
 
 	keyID, err := revokePk(srvc, key, arg1)
