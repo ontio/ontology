@@ -3,6 +3,12 @@ set -e
 set -x
 
 # install build tools
+if ! which clang-9 ; then
+	wget releases.llvm.org/9.0.0/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+	tar xf clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04.tar.xz
+	export PATH="$(pwd)/clang+llvm-9.0.0-x86_64-linux-gnu-ubuntu-18.04/bin":$PATH
+fi
+
 if ! which rustup ; then
 	curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly 
 	source $HOME/.cargo/env

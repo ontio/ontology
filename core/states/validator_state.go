@@ -19,11 +19,10 @@
 package states
 
 import (
-	"io"
-
 	"github.com/ontio/ontology-crypto/keypair"
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
+	"io"
 )
 
 type ValidatorState struct {
@@ -31,23 +30,23 @@ type ValidatorState struct {
 	PublicKey keypair.PublicKey
 }
 
-func (this *ValidatorState) Serialize(w io.Writer) error {
-	this.StateBase.Serialize(w)
+func (this *ValidatorState) Serialization(sink *common.ZeroCopySink) {
+	this.StateBase.Serialization(sink)
 	buf := keypair.SerializePublicKey(this.PublicKey)
-	if err := serialization.WriteVarBytes(w, buf); err != nil {
-		return err
-	}
-	return nil
+	sink.WriteVarBytes(buf)
 }
 
-func (this *ValidatorState) Deserialize(r io.Reader) error {
-	err := this.StateBase.Deserialize(r)
+func (this *ValidatorState) Deserialization(source *common.ZeroCopySource) error {
+	err := this.StateBase.Deserialization(source)
 	if err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ValidatorState], StateBase Deserialize failed.")
 	}
-	buf, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
+	buf, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return errors.NewDetailErr(common.ErrIrregularData, errors.ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
+	}
+	if eof {
+		return errors.NewDetailErr(io.ErrUnexpectedEOF, errors.ErrNoCode, "[ValidatorState], PublicKey Deserialize failed.")
 	}
 	pk, err := keypair.DeserializePublicKey(buf)
 	if err != nil {

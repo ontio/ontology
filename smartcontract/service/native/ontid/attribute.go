@@ -18,14 +18,20 @@
 package ontid
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
-
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"io"
+)
+
+const (
+	MAX_KEY_SIZE   = 32
+	MAX_TYPE_SIZE  = 16
+	MAX_VALUE_SIZE = 512 * 1024
+
+	MAX_NUM = 100
 )
 
 type attribute struct {
@@ -34,63 +40,76 @@ type attribute struct {
 	valueType []byte
 }
 
-func (this *attribute) Value() ([]byte, error) {
-	var buf bytes.Buffer
-	err := serialization.WriteVarBytes(&buf, this.value)
-	if err != nil {
-		return nil, err
-	}
-	err = serialization.WriteVarBytes(&buf, this.valueType)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+func (this *attribute) Value() []byte {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarBytes(this.value)
+	sink.WriteVarBytes(this.valueType)
+	return sink.Bytes()
 }
 
 func (this *attribute) SetValue(data []byte) error {
-	buf := bytes.NewBuffer(data)
-	val, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return err
+	source := common.NewZeroCopySource(data)
+	val, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	vt, err := serialization.ReadVarBytes(buf)
-	if err != nil {
-		return err
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
+
+	vt, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
 	this.valueType = vt
 	this.value = val
 	return nil
 }
 
-func (this *attribute) Serialize(w io.Writer) error {
-	err := serialization.WriteVarBytes(w, this.key)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteVarBytes(w, this.valueType)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteVarBytes(w, this.value)
-	if err != nil {
-		return err
-	}
-	return nil
+func (this *attribute) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.key)
+	sink.WriteVarBytes(this.valueType)
+	sink.WriteVarBytes(this.value)
 }
 
-func (this *attribute) Deserialize(r io.Reader) error {
-	k, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
+func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
+	k, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
 	}
-	vt, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
+	if eof {
+		return io.ErrUnexpectedEOF
 	}
-	v, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
+	if len(k) > MAX_KEY_SIZE {
+		return errors.New("key is too large")
 	}
+
+	vt, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if len(vt) > MAX_TYPE_SIZE {
+		return errors.New("type is too large")
+	}
+
+	v, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return common.ErrIrregularData
+	}
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	if len(v) > MAX_VALUE_SIZE {
+		return errors.New("value is too large")
+	}
+
 	this.key = k
 	this.value = v
 	this.valueType = vt
@@ -99,11 +118,8 @@ func (this *attribute) Deserialize(r io.Reader) error {
 
 func insertOrUpdateAttr(srvc *native.NativeService, encID []byte, attr *attribute) error {
 	key := append(encID, FIELD_ATTR)
-	val, err := attr.Value()
-	if err != nil {
-		return errors.New("serialize attribute value error: " + err.Error())
-	}
-	err = utils.LinkedlistInsert(srvc, key, attr.key, val)
+	val := attr.Value()
+	err := utils.LinkedlistInsert(srvc, key, attr.key, val)
 	if err != nil {
 		return errors.New("store attribute error: " + err.Error())
 	}
@@ -116,15 +132,33 @@ func findAttr(srvc *native.NativeService, encID, item []byte) (*utils.Linkedlist
 }
 
 func batchInsertAttr(srvc *native.NativeService, encID []byte, attr []attribute) error {
-	res := make([][]byte, len(attr))
 	for i, v := range attr {
 		err := insertOrUpdateAttr(srvc, encID, &v)
 		if err != nil {
-			return errors.New("store attributes error: " + err.Error())
+			return fmt.Errorf("store attribute %d error: %s", i, err)
 		}
-		res[i] = v.key
 	}
 
+	key := append(encID, FIELD_ATTR)
+	n, err := utils.LinkedlistGetNumOfItems(srvc, key)
+	if err != nil {
+		return err
+	}
+	if n > MAX_NUM {
+		return fmt.Errorf("too many attributes, max is %d", MAX_NUM)
+	}
+
+	return nil
+}
+
+func deleteAttr(srvc *native.NativeService, encID, path []byte) error {
+	key := append(encID, FIELD_ATTR)
+	ok, err := utils.LinkedlistDelete(srvc, key, path)
+	if err != nil {
+		return err
+	} else if !ok {
+		return errors.New("attribute not exist")
+	}
 	return nil
 }
 
@@ -138,7 +172,7 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 		return nil, nil
 	}
 
-	var res bytes.Buffer
+	res := common.NewZeroCopySink(nil)
 	var i uint16 = 0
 	for len(item) > 0 {
 		node, err := utils.LinkedlistGetItem(srvc, key, item)
@@ -154,13 +188,23 @@ func getAllAttr(srvc *native.NativeService, encID []byte) ([]byte, error) {
 			return nil, fmt.Errorf("parse attribute failed, %s", err)
 		}
 		attr.key = item
-		err = attr.Serialize(&res)
-		if err != nil {
-			return nil, fmt.Errorf("serialize error, %s", err)
-		}
+		attr.Serialization(res)
 
 		i += 1
 		item = node.GetNext()
 	}
 	return res.Bytes(), nil
+}
+
+func getAttrKeys(attr []attribute) [][]byte {
+	var paths = make([][]byte, 0)
+	for _, v := range attr {
+		paths = append(paths, v.key)
+	}
+	return paths
+}
+
+func deleteAllAttr(srvc *native.NativeService, encID []byte) error {
+	key := append(encID, FIELD_ATTR)
+	return utils.LinkedlistDeleteAll(srvc, key)
 }

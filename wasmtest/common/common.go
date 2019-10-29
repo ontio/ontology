@@ -107,10 +107,7 @@ func GenWasmTransaction(testCase TestCase, contract common.Address, testConext *
 		contextParam := buildTestConext(testConext)
 		contract.Args = append(contract.Args, contextParam...)
 
-		sink := common.NewZeroCopySink(nil)
-		contract.Serialization(sink)
-
-		tx.Payload.(*payload.InvokeCode).Code = sink.Bytes()
+		tx.Payload.(*payload.InvokeCode).Code = common.SerializeToBytes(contract)
 	}
 
 	imt, err := tx.IntoImmutable()

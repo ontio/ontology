@@ -28,7 +28,7 @@ import (
 func ContractCreate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
-	needStorage uint32,
+	vmType uint32,
 	namePtr uint32,
 	nameLen uint32,
 	verPtr uint32,
@@ -74,13 +74,17 @@ func ContractCreate(proc *exec.Process,
 		panic(err)
 	}
 
-	dep, err := payload.CreateDeployCode(code, needStorage, name, version, author, email, desc)
+	dep, err := payload.CreateDeployCode(code, vmType, name, version, author, email, desc)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = ReadWasmModule(dep, true)
-	if dep.VmType == payload.WASMVM_TYPE && err != nil {
+	wasmCode, err := dep.GetWasmCode()
+	if err != nil {
+		panic(err)
+	}
+	_, err = ReadWasmModule(wasmCode, true)
+	if err != nil {
 		panic(err)
 	}
 
@@ -89,10 +93,7 @@ func ContractCreate(proc *exec.Process,
 		panic(errors.NewErr("contract has been deployed"))
 	}
 
-	err = self.Service.CacheDB.PutContract(dep)
-	if err != nil {
-		panic(err)
-	}
+	self.Service.CacheDB.PutContract(dep)
 
 	length, err := proc.WriteAt(contractAddr[:], int64(newAddressPtr))
 	return uint32(length)
@@ -102,7 +103,7 @@ func ContractCreate(proc *exec.Process,
 func ContractMigrate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
-	needStorage uint32,
+	vmType uint32,
 	namePtr uint32,
 	nameLen uint32,
 	verPtr uint32,
@@ -150,13 +151,17 @@ func ContractMigrate(proc *exec.Process,
 		panic(err)
 	}
 
-	dep, err := payload.CreateDeployCode(code, needStorage, name, version, author, email, desc)
+	dep, err := payload.CreateDeployCode(code, vmType, name, version, author, email, desc)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = ReadWasmModule(dep, true)
-	if dep.VmType == payload.WASMVM_TYPE && err != nil {
+	wasmCode, err := dep.GetWasmCode()
+	if err != nil {
+		panic(err)
+	}
+	_, err = ReadWasmModule(wasmCode, true)
+	if err != nil {
 		panic(err)
 	}
 
@@ -166,10 +171,7 @@ func ContractMigrate(proc *exec.Process,
 	}
 	oldAddress := self.Service.ContextRef.CurrentContext().ContractAddress
 
-	err = self.Service.CacheDB.PutContract(dep)
-	if err != nil {
-		panic(err)
-	}
+	self.Service.CacheDB.PutContract(dep)
 	self.Service.CacheDB.DeleteContract(oldAddress)
 
 	iter := self.Service.CacheDB.NewIterator(oldAddress[:])

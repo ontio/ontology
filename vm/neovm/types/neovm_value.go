@@ -239,11 +239,21 @@ func (self *VmValue) convertNeoVmValueHexString(count *int, length *int) (interf
 		*length += len(self.byteArray)
 		return common.ToHexString(self.byteArray), nil
 	case integerType:
-		bs := common.BigIntToNeoBytes(big.NewInt(self.integer))
+		var bs []byte
+		if self.integer == 0 {
+			bs = []byte{0}
+		} else {
+			bs = common.BigIntToNeoBytes(big.NewInt(self.integer))
+		}
 		*length += len(bs)
 		return common.ToHexString(bs), nil
 	case bigintType:
-		bs := common.BigIntToNeoBytes(self.bigInt)
+		var bs []byte
+		if self.bigInt.Sign() == 0 {
+			bs = []byte{0}
+		} else {
+			bs = common.BigIntToNeoBytes(self.bigInt)
+		}
 		*length += len(bs)
 		return common.ToHexString(bs), nil
 	case structType:

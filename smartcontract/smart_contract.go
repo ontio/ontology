@@ -49,6 +49,7 @@ type SmartContract struct {
 	GasTable      map[string]uint64
 	Gas           uint64
 	ExecStep      int
+	WasmExecStep  uint64
 	PreExec       bool
 }
 
@@ -128,6 +129,7 @@ func NewVmFeatureFlag(blockHeight uint32) vm.VmFeatureFlag {
 	var feature vm.VmFeatureFlag
 	enableHeight := config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
 	feature.DisableHasKey = blockHeight <= enableHeight
+	feature.AllowReaderEOF = blockHeight <= enableHeight
 
 	return feature
 }
@@ -172,6 +174,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			Height:     this.Config.Height,
 			BlockHash:  this.Config.BlockHash,
 			PreExec:    this.PreExec,
+			ExecStep:   &this.WasmExecStep,
 			GasLimit:   &this.Gas,
 			GasFactor:  gasFactor,
 		}

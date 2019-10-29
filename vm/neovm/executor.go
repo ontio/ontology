@@ -33,14 +33,15 @@ import (
 )
 
 type VmFeatureFlag struct {
-	DisableHasKey bool // disable haskey, dcall, values opcode
+	DisableHasKey  bool // disable haskey, dcall, values opcode
+	AllowReaderEOF bool // allow VmReader.ReadBytes got EOF and return 0 bytes
 }
 
 func NewExecutor(code []byte, feature VmFeatureFlag) *Executor {
 	var engine Executor
 	engine.EvalStack = NewValueStack(STACK_LIMIT)
 	engine.AltStack = NewValueStack(STACK_LIMIT)
-	context := NewExecutionContext(code)
+	context := NewExecutionContext(code, feature)
 	engine.Context = context
 	engine.State = BREAK
 	engine.Features = feature

@@ -39,10 +39,7 @@ func ContractCreate(service *NeoVmService, engine *vm.Executor) error {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[ContractCreate] GetOrAdd error!")
 	}
 	if dep == nil {
-		err := service.CacheDB.PutContract(contract)
-		if err != nil {
-			return err
-		}
+		service.CacheDB.PutContract(contract)
 		dep = contract
 	}
 	return engine.EvalStack.PushAsInteropValue(dep)
@@ -62,10 +59,7 @@ func ContractMigrate(service *NeoVmService, engine *vm.Executor) error {
 	context := service.ContextRef.CurrentContext()
 	oldAddr := context.ContractAddress
 
-	err = service.CacheDB.PutContract(contract)
-	if err != nil {
-		return err
-	}
+	service.CacheDB.PutContract(contract)
 	service.CacheDB.DeleteContract(oldAddr)
 
 	iter := service.CacheDB.NewIterator(oldAddr[:])
@@ -142,7 +136,7 @@ func ContractGetCode(service *NeoVmService, engine *vm.Executor) error {
 		return err
 	}
 	if d, ok := i.Data.(*payload.DeployCode); ok {
-		return engine.EvalStack.PushBytes(d.Code)
+		return engine.EvalStack.PushBytes(d.GetRawCode())
 	}
 	return fmt.Errorf("[ContractGetCode] Type error ")
 }
@@ -186,9 +180,12 @@ func isContractParamValid(engine *vm.Executor) (*payload.DeployCode, error) {
 	}
 
 	contract, err := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
-
 	if err != nil {
 		return nil, err
+	}
+
+	if contract.VmType() != payload.NEOVM_TYPE {
+		return nil, fmt.Errorf("[Contract] expect NEOVM_TYPE. get WASMVM_TYPE")
 	}
 
 	return contract, nil

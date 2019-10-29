@@ -18,7 +18,6 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
@@ -107,16 +106,7 @@ func SigNeoVMInvokeAbiTx(req *clisvrcom.CliRpcRequest, resp *clisvrcom.CliRpcRes
 		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
 		return
 	}
-	sink := common.ZeroCopySink{}
-	tx.Serialization(&sink)
-	buf := bytes.NewBuffer(nil)
-	err = tx.Serialize(buf)
-	if err != nil {
-		log.Infof("Cli Qid:%s SigNeoVMInvokeAbiTx tx Serialize error:%s", req.Qid, err)
-		resp.ErrorCode = clisvrcom.CLIERR_INTERNAL_ERR
-		return
-	}
 	resp.Result = &SigNeoVMInvokeTxAbiRsp{
-		SignedTx: hex.EncodeToString(buf.Bytes()),
+		SignedTx: hex.EncodeToString(common.SerializeToBytes(tx)),
 	}
 }

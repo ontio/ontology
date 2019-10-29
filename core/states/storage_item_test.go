@@ -18,7 +18,7 @@
 package states
 
 import (
-	"bytes"
+	"github.com/ontio/ontology/common"
 	"testing"
 )
 
@@ -29,13 +29,12 @@ func TestStorageItem_Serialize_Deserialize(t *testing.T) {
 		Value:     []byte{1},
 	}
 
-	bf := new(bytes.Buffer)
-	if err := item.Serialize(bf); err != nil {
-		t.Fatalf("StorageItem serialize error: %v", err)
-	}
+	bf := common.NewZeroCopySink(nil)
+	item.Serialization(bf)
 
 	var storage = new(StorageItem)
-	if err := storage.Deserialize(bf); err != nil {
+	source := common.NewZeroCopySource(bf.Bytes())
+	if err := storage.Deserialization(source); err != nil {
 		t.Fatalf("StorageItem deserialize error: %v", err)
 	}
 }

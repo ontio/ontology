@@ -125,7 +125,12 @@ func deployContract(ctx *cli.Context) error {
 		return nil
 	}
 
-	vmtype := ctx.Uint(utils.GetFlagName(utils.ContractVmTypeFlag))
+	vmtypeFlag := ctx.Uint(utils.GetFlagName(utils.ContractVmTypeFlag))
+	vmtype, err := payload.VmTypeFromByte(byte(vmtypeFlag))
+	if err != nil {
+		return err
+	}
+
 	codeFile := ctx.String(utils.GetFlagName(utils.ContractCodeFileFlag))
 	if "" == codeFile {
 		return fmt.Errorf("please specific code file")
@@ -154,7 +159,7 @@ func deployContract(ctx *cli.Context) error {
 	cversion := fmt.Sprintf("%s", version)
 
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareDeployFlag)) {
-		preResult, err := utils.PrepareDeployContract(byte(vmtype), code, name, cversion, author, email, desc)
+		preResult, err := utils.PrepareDeployContract(vmtype, code, name, cversion, author, email, desc)
 		if err != nil {
 			return fmt.Errorf("PrepareDeployContract error:%s", err)
 		}
@@ -171,7 +176,7 @@ func deployContract(ctx *cli.Context) error {
 		return fmt.Errorf("get signer account error:%s", err)
 	}
 
-	txHash, err := utils.DeployContract(gasPrice, gasLimit, signer, byte(vmtype), code, name, cversion, author, email, desc)
+	txHash, err := utils.DeployContract(gasPrice, gasLimit, signer, vmtype, code, name, cversion, author, email, desc)
 	if err != nil {
 		return fmt.Errorf("DeployContract error:%s", err)
 	}
@@ -289,9 +294,10 @@ func invokeContract(ctx *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("invalid contract address error:%s", err)
 	}
-	vmtype := ctx.Uint(utils.GetFlagName(utils.ContractVmTypeFlag))
-	if byte(vmtype) != payload.NEOVM_TYPE && byte(vmtype) != payload.WASMVM_TYPE {
-		return fmt.Errorf("invalid vmtype")
+	vmtypeFlag := ctx.Uint(utils.GetFlagName(utils.ContractVmTypeFlag))
+	vmtype, err := payload.VmTypeFromByte(byte(vmtypeFlag))
+	if err != nil {
+		return err
 	}
 	paramsStr := ctx.String(utils.GetFlagName(utils.ContractParamsFlag))
 	params, err := utils.ParseParams(paramsStr)
@@ -304,11 +310,11 @@ func invokeContract(ctx *cli.Context) error {
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
 
 		var preResult *states.PreExecResult
-		if byte(vmtype) == payload.NEOVM_TYPE {
+		if vmtype == payload.NEOVM_TYPE {
 			preResult, err = utils.PrepareInvokeNeoVMContract(contractAddr, params)
 
 		}
-		if byte(vmtype) == payload.WASMVM_TYPE {
+		if vmtype == payload.WASMVM_TYPE {
 			preResult, err = utils.PrepareInvokeWasmVMContract(contractAddr, params)
 		}
 
@@ -327,7 +333,7 @@ func invokeContract(ctx *cli.Context) error {
 			PrintInfoMsg("  Return:%s (raw value)", preResult.Result)
 			return nil
 		}
-		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes, byte(vmtype))
+		values, err := utils.ParseReturnValue(preResult.Result, rawReturnTypes, vmtype)
 		if err != nil {
 			return fmt.Errorf("parseReturnValue values:%+v types:%s error:%s", values, rawReturnTypes, err)
 		}
@@ -356,13 +362,13 @@ func invokeContract(ctx *cli.Context) error {
 	}
 
 	var txHash string
-	if byte(vmtype) == payload.NEOVM_TYPE {
+	if vmtype == payload.NEOVM_TYPE {
 		txHash, err = utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("invoke NeoVM contract error:%s", err)
 		}
 	}
-	if byte(vmtype) == payload.WASMVM_TYPE {
+	if vmtype == payload.WASMVM_TYPE {
 		txHash, err = utils.InvokeWasmVMContract(gasPrice, gasLimit, signer, contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("invoke NeoVM contract error:%s", err)

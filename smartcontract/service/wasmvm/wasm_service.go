@@ -43,6 +43,7 @@ type WasmVmService struct {
 	PreExec       bool
 	GasPrice      uint64
 	GasLimit      *uint64
+	ExecStep      *uint64
 	GasFactor     uint64
 	IsTerminate   bool
 	vm            *exec.VM
@@ -93,7 +94,15 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, err
 	}
 
-	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: code.Code})
+	if code == nil {
+		return nil, errors.NewErr("wasm contract does not exist")
+	}
+
+	wasmCode, err := code.GetWasmCode()
+	if err != nil {
+		return nil, errors.NewErr("not a wasm contract")
+	}
+	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: wasmCode})
 	host := &Runtime{Service: this, Input: contract.Args}
 
 	var compiled *exec.CompiledModule
@@ -105,7 +114,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	if compiled == nil {
-		compiled, err = ReadWasmModule(code, false)
+		compiled, err = ReadWasmModule(wasmCode, false)
 		if err != nil {
 			return nil, err
 		}
@@ -119,7 +128,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	vm.HostData = host
 
-	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, LocalGasCounter: 0, GasPrice: this.GasPrice, GasFactor: this.GasFactor}
+	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, LocalGasCounter: 0, GasPrice: this.GasPrice, GasFactor: this.GasFactor, ExecStep: this.ExecStep}
 	vm.CallStackDepth = uint32(WASM_CALLSTACK_LIMIT)
 	vm.RecoverPanic = true
 

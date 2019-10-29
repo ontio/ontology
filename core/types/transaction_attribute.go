@@ -19,12 +19,11 @@
 package types
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 
-	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/common"
 )
 
 type TransactionAttributeUsage byte
@@ -60,38 +59,38 @@ func (u *TxAttribute) GetSize() uint32 {
 	return 0
 }
 
-func (tx *TxAttribute) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint8(w, byte(tx.Usage)); err != nil {
-		return fmt.Errorf("Transaction attribute Usage serialization error: %s", err)
-	}
+func (tx *TxAttribute) Serialization(sink *common.ZeroCopySink) error {
 	if !IsValidAttributeType(tx.Usage) {
 		return errors.New("Unsupported attribute Description.")
 	}
-	if err := serialization.WriteVarBytes(w, tx.Data); err != nil {
-		return fmt.Errorf("Transaction attribute Data serialization error: %s", err)
-	}
+	sink.WriteUint8(byte(tx.Usage))
+	sink.WriteVarBytes(tx.Data)
 	return nil
 }
 
-func (tx *TxAttribute) Deserialize(r io.Reader) error {
-	val, err := serialization.ReadBytes(r, 1)
-	if err != nil {
-		return fmt.Errorf("Transaction attribute Usage deserialization error: %s", err)
+func (tx *TxAttribute) Deserialization(source *common.ZeroCopySource) error {
+	val, eof := source.NextBytes(1)
+	if eof {
+		return fmt.Errorf("Transaction attribute Usage deserialization error: %s", io.ErrUnexpectedEOF)
 	}
 	tx.Usage = TransactionAttributeUsage(val[0])
 	if !IsValidAttributeType(tx.Usage) {
 		return errors.New("[TxAttribute] Unsupported attribute Description.")
 	}
-	tx.Data, err = serialization.ReadVarBytes(r)
-	if err != nil {
-		return fmt.Errorf("Transaction attribute Data deserialization error: %s", err)
+	var irregular bool
+	tx.Data, _, irregular, eof = source.NextVarBytes()
+	if irregular {
+		return fmt.Errorf("Transaction attribute Data deserialization error: %s", common.ErrIrregularData)
+	}
+	if eof {
+		return fmt.Errorf("Transaction attribute Data deserialization error: %s", io.ErrUnexpectedEOF)
 	}
 	return nil
 
 }
 
 func (tx *TxAttribute) ToArray() []byte {
-	bf := new(bytes.Buffer)
-	tx.Serialize(bf)
-	return bf.Bytes()
+	sink := common.NewZeroCopySink(nil)
+	tx.Serialization(sink)
+	return sink.Bytes()
 }

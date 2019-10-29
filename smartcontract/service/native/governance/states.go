@@ -25,21 +25,19 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 type Status uint8
 
-func (this *Status) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint8(w, uint8(*this)); err != nil {
-		return fmt.Errorf("serialization.WriteUint8, serialize status error: %v", err)
-	}
-	return nil
+func (this *Status) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint8(uint8(*this))
 }
 
-func (this *Status) Deserialize(r io.Reader) error {
-	status, err := serialization.ReadUint8(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint8, deserialize status error: %v", err)
+func (this *Status) Deserialization(source *common.ZeroCopySource) error {
+	status, eof := source.NextUint8()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint8, deserialize status error: %v", io.ErrUnexpectedEOF)
 	}
 	*this = Status(status)
 	return nil
@@ -51,32 +49,25 @@ type BlackListItem struct {
 	InitPos    uint64         //initPos of this peer
 }
 
-func (this *BlackListItem) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize initPos error: %v", err)
-	}
-	return nil
+func (this *BlackListItem) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	this.Address.Serialization(sink)
+	sink.WriteUint64(this.InitPos)
 }
 
-func (this *BlackListItem) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *BlackListItem) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	address := new(common.Address)
-	err = address.Deserialize(r)
+	err = address.Deserialization(source)
 	if err != nil {
 		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
 	}
-	initPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", err)
+	initPos, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", io.ErrUnexpectedEOF)
 	}
 	this.PeerPubkey = peerPubkey
 	this.Address = *address
@@ -92,10 +83,9 @@ type PeerPoolMap struct {
 	PeerPoolMap map[string]*PeerPoolItem
 }
 
-func (this *PeerPoolMap) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, uint32(len(this.PeerPoolMap))); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize PeerPoolMap length error: %v", err)
-	}
+func (this *PeerPoolMap) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteUint32(uint32(len(this.PeerPoolMap)))
+
 	var peerPoolItemList []*PeerPoolItem
 	for _, v := range this.PeerPoolMap {
 		peerPoolItemList = append(peerPoolItemList, v)
@@ -104,22 +94,21 @@ func (this *PeerPoolMap) Serialize(w io.Writer) error {
 		return peerPoolItemList[i].PeerPubkey > peerPoolItemList[j].PeerPubkey
 	})
 	for _, v := range peerPoolItemList {
-		if err := v.Serialize(w); err != nil {
-			return fmt.Errorf("serialize peerPool error: %v", err)
-		}
+		v.Serialization(sink)
 	}
 	return nil
 }
 
-func (this *PeerPoolMap) Deserialize(r io.Reader) error {
-	n, err := serialization.ReadUint32(r)
+func (this *PeerPoolMap) Deserialization(source *common.ZeroCopySource) error {
+
+	n, err := utils.DecodeUint32(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint32, deserialize PeerPoolMap length error: %v", err)
 	}
 	peerPoolMap := make(map[string]*PeerPoolItem)
 	for i := 0; uint32(i) < n; i++ {
 		peerPoolItem := new(PeerPoolItem)
-		if err := peerPoolItem.Deserialize(r); err != nil {
+		if err := peerPoolItem.Deserialization(source); err != nil {
 			return fmt.Errorf("deserialize peerPool error: %v", err)
 		}
 		peerPoolMap[peerPoolItem.PeerPubkey] = peerPoolItem
@@ -137,52 +126,39 @@ type PeerPoolItem struct {
 	TotalPos   uint64         //total authorize pos this peer received
 }
 
-func (this *PeerPoolItem) Serialize(w io.Writer) error {
-	if err := serialization.WriteUint32(w, this.Index); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize address error: %v", err)
-	}
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := this.Status.Serialize(w); err != nil {
-		return fmt.Errorf("this.Status.Serialize, serialize Status error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize initPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.TotalPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize totalPos error: %v", err)
-	}
-	return nil
+func (this *PeerPoolItem) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteUint32(this.Index)
+	sink.WriteString(this.PeerPubkey)
+	this.Address.Serialization(sink)
+	this.Status.Serialization(sink)
+	sink.WriteUint64(this.InitPos)
+	sink.WriteUint64(this.TotalPos)
 }
 
-func (this *PeerPoolItem) Deserialize(r io.Reader) error {
-	index, err := serialization.ReadUint32(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint32, deserialize index error: %v", err)
+func (this *PeerPoolItem) Deserialization(source *common.ZeroCopySource) error {
+	index, eof := source.NextUint32()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint32, deserialize index error: %v", io.ErrUnexpectedEOF)
 	}
-	peerPubkey, err := serialization.ReadString(r)
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	address := new(common.Address)
-	err = address.Deserialize(r)
+	err = address.Deserialization(source)
 	if err != nil {
 		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
 	}
 	status := new(Status)
-	err = status.Deserialize(r)
+	err = status.Deserialization(source)
 	if err != nil {
 		return fmt.Errorf("status.Deserialize. deserialize status error: %v", err)
 	}
-	initPos, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", err)
+	initPos, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize initPos error: %v", io.ErrUnexpectedEOF)
 	}
-	totalPos, err := serialization.ReadUint64(r)
+	totalPos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64, deserialize totalPos error: %v", err)
 	}
@@ -206,65 +182,48 @@ type AuthorizeInfo struct {
 	WithdrawUnfreezePos  uint64 //unfrozen pos, can withdraw at any time
 }
 
-func (this *AuthorizeInfo) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, request peerPubkey error: %v", err)
-	}
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.ConsensusPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize consensusPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.CandidatePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize candidatePos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.NewPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize newPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.WithdrawConsensusPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize withdrawConsensusPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.WithdrawCandidatePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize withdrawCandidatePos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.WithdrawUnfreezePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize withDrawUnfreezePos error: %v", err)
-	}
-	return nil
+func (this *AuthorizeInfo) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	this.Address.Serialization(sink)
+	sink.WriteUint64(this.ConsensusPos)
+	sink.WriteUint64(this.CandidatePos)
+	sink.WriteUint64(this.NewPos)
+	sink.WriteUint64(this.WithdrawConsensusPos)
+	sink.WriteUint64(this.WithdrawCandidatePos)
+	sink.WriteUint64(this.WithdrawUnfreezePos)
 }
 
-func (this *AuthorizeInfo) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *AuthorizeInfo) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
 	address := new(common.Address)
-	err = address.Deserialize(r)
+	err = address.Deserialization(source)
 	if err != nil {
 		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
 	}
-	consensusPos, err := serialization.ReadUint64(r)
+	consensusPos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize consensusPos error: %v", err)
 	}
-	candidatePos, err := serialization.ReadUint64(r)
+	candidatePos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize candidatePos error: %v", err)
 	}
-	newPos, err := serialization.ReadUint64(r)
+	newPos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize newPos error: %v", err)
 	}
-	withDrawConsensusPos, err := serialization.ReadUint64(r)
+	withDrawConsensusPos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawConsensusPos error: %v", err)
 	}
-	withDrawCandidatePos, err := serialization.ReadUint64(r)
+	withDrawCandidatePos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawCandidatePos error: %v", err)
 	}
-	withDrawUnfreezePos, err := serialization.ReadUint64(r)
+	withDrawUnfreezePos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize withDrawUnfreezePos error: %v", err)
 	}
@@ -329,30 +288,23 @@ type TotalStake struct { //table record each address's total stake in this contr
 	TimeOffset uint32
 }
 
-func (this *TotalStake) Serialize(w io.Writer) error {
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.Stake); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize stake error: %v", err)
-	}
-	if err := serialization.WriteUint32(w, this.TimeOffset); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize timeOffset error: %v", err)
-	}
-	return nil
+func (this *TotalStake) Serialization(sink *common.ZeroCopySink) {
+	this.Address.Serialization(sink)
+	sink.WriteUint64(this.Stake)
+	sink.WriteUint32(this.TimeOffset)
 }
 
-func (this *TotalStake) Deserialize(r io.Reader) error {
+func (this *TotalStake) Deserialization(source *common.ZeroCopySource) error {
 	address := new(common.Address)
-	err := address.Deserialize(r)
+	err := address.Deserialization(source)
 	if err != nil {
 		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
 	}
-	stake, err := serialization.ReadUint64(r)
+	stake, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64, deserialize stake error: %v", err)
 	}
-	timeOffset, err := serialization.ReadUint32(r)
+	timeOffset, err := utils.DecodeUint32(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64, deserialize timeOffset error: %v", err)
 	}
@@ -370,43 +322,32 @@ type PenaltyStake struct { //table record penalty stake of peer
 	Amount       uint64 //unbound ong that this penalty unbounded
 }
 
-func (this *PenaltyStake) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteString, serialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.InitPos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize initPos error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.AuthorizePos); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize authorizePos error: %v", err)
-	}
-	if err := serialization.WriteUint32(w, this.TimeOffset); err != nil {
-		return fmt.Errorf("serialization.WriteUint32, serialize timeOffset error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.Amount); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize amount error: %v", err)
-	}
-	return nil
+func (this *PenaltyStake) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteUint64(this.InitPos)
+	sink.WriteUint64(this.AuthorizePos)
+	sink.WriteUint32(this.TimeOffset)
+	sink.WriteUint64(this.Amount)
 }
 
-func (this *PenaltyStake) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *PenaltyStake) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	initPos, err := serialization.ReadUint64(r)
+	initPos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize initPos error: %v", err)
 	}
-	authorizePos, err := serialization.ReadUint64(r)
+	authorizePos, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize authorizePos error: %v", err)
 	}
-	timeOffset, err := serialization.ReadUint32(r)
+	timeOffset, err := utils.DecodeUint32(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64, deserialize timeOffset error: %v", err)
 	}
-	amount, err := serialization.ReadUint64(r)
+	amount, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64. deserialize amount error: %v", err)
 	}
@@ -438,71 +379,52 @@ type PeerAttributes struct {
 	Field4       []byte //reserved field
 }
 
-func (this *PeerAttributes) Serialize(w io.Writer) error {
-	if err := serialization.WriteString(w, this.PeerPubkey); err != nil {
-		return fmt.Errorf("serialization.WriteBool, serialize peerPubkey error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.MaxAuthorize); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize maxAuthorize error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.T2PeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize oldPeerCost error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.T1PeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize newPeerCost error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.TPeerCost); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize newPeerCost error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field1); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field1 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field2); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field2 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field3); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field3 error: %v", err)
-	}
-	if err := serialization.WriteVarBytes(w, this.Field4); err != nil {
-		return fmt.Errorf("serialization.WriteVarBytes, serialize field4 error: %v", err)
-	}
-	return nil
+func (this *PeerAttributes) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.PeerPubkey)
+	sink.WriteUint64(this.MaxAuthorize)
+	sink.WriteUint64(this.T2PeerCost)
+	sink.WriteUint64(this.T1PeerCost)
+	sink.WriteUint64(this.TPeerCost)
+	sink.WriteVarBytes(this.Field1)
+	sink.WriteVarBytes(this.Field2)
+	sink.WriteVarBytes(this.Field3)
+	sink.WriteVarBytes(this.Field4)
 }
 
-func (this *PeerAttributes) Deserialize(r io.Reader) error {
-	peerPubkey, err := serialization.ReadString(r)
+func (this *PeerAttributes) Deserialization(source *common.ZeroCopySource) error {
+	peerPubkey, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize peerPubkey error: %v", err)
 	}
-	maxAuthorize, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", err)
+	maxAuthorize, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadBool, deserialize maxAuthorize error: %v", io.ErrUnexpectedEOF)
 	}
-	t2PeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize t2PeerCost error: %v", err)
+	t2PeerCost, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize t2PeerCost error: %v", io.ErrUnexpectedEOF)
 	}
-	t1PeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize t1PeerCost error: %v", err)
+	t1PeerCost, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize t1PeerCost error: %v", io.ErrUnexpectedEOF)
 	}
-	tPeerCost, err := serialization.ReadUint64(r)
-	if err != nil {
-		return fmt.Errorf("serialization.ReadUint64, deserialize tPeerCost error: %v", err)
+	tPeerCost, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("serialization.ReadUint64, deserialize tPeerCost error: %v", io.ErrUnexpectedEOF)
 	}
-	field1, err := serialization.ReadVarBytes(r)
+	field1, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes. deserialize field1 error: %v", err)
 	}
-	field2, err := serialization.ReadVarBytes(r)
+	field2, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes. deserialize field2 error: %v", err)
 	}
-	field3, err := serialization.ReadVarBytes(r)
+	field3, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes, deserialize field3 error: %v", err)
 	}
-	field4, err := serialization.ReadVarBytes(r)
+	field4, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadVarBytes. deserialize field4 error: %v", err)
 	}
@@ -523,23 +445,18 @@ type SplitFeeAddress struct { //table record each address's ong motivation
 	Amount  uint64
 }
 
-func (this *SplitFeeAddress) Serialize(w io.Writer) error {
-	if err := this.Address.Serialize(w); err != nil {
-		return fmt.Errorf("address.Serialize, serialize address error: %v", err)
-	}
-	if err := serialization.WriteUint64(w, this.Amount); err != nil {
-		return fmt.Errorf("serialization.WriteUint64, serialize amount error: %v", err)
-	}
-	return nil
+func (this *SplitFeeAddress) Serialization(sink *common.ZeroCopySink) {
+	this.Address.Serialization(sink)
+	sink.WriteUint64(this.Amount)
 }
 
-func (this *SplitFeeAddress) Deserialize(r io.Reader) error {
+func (this *SplitFeeAddress) Deserialization(source *common.ZeroCopySource) error {
 	address := new(common.Address)
-	err := address.Deserialize(r)
+	err := address.Deserialization(source)
 	if err != nil {
 		return fmt.Errorf("address.Deserialize, deserialize address error: %v", err)
 	}
-	amount, err := serialization.ReadUint64(r)
+	amount, err := utils.DecodeUint64(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadUint64, deserialize amount error: %v", err)
 	}

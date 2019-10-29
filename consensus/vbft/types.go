@@ -70,21 +70,16 @@ func (blk *Block) getVrfProof() []byte {
 	return blk.Info.VrfProof
 }
 
-func (blk *Block) Serialize() ([]byte, error) {
-	sink := common.NewZeroCopySink(nil)
-	blk.Block.Serialization(sink)
-
+func (blk *Block) Serialize() []byte {
 	payload := common.NewZeroCopySink(nil)
-	payload.WriteVarBytes(sink.Bytes())
+	payload.WriteVarBytes(common.SerializeToBytes(blk.Block))
 
 	payload.WriteBool(blk.EmptyBlock != nil)
 	if blk.EmptyBlock != nil {
-		sink2 := common.NewZeroCopySink(nil)
-		blk.EmptyBlock.Serialization(sink2)
-		payload.WriteVarBytes(sink2.Bytes())
+		payload.WriteVarBytes(common.SerializeToBytes(blk.EmptyBlock))
 	}
 	payload.WriteHash(blk.PrevBlockMerkleRoot)
-	return payload.Bytes(), nil
+	return payload.Bytes()
 }
 
 func (blk *Block) Deserialize(data []byte) error {

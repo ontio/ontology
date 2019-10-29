@@ -494,7 +494,7 @@ func (this *P2PServer) heartBeatService() {
 			this.timeout()
 		case <-this.quitHeartBeat:
 			t.Stop()
-			break
+			return
 		}
 	}
 }

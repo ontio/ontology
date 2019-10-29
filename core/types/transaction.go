@@ -19,7 +19,6 @@
 package types
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -28,7 +27,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
-	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/program"
 )
@@ -204,34 +202,6 @@ func (self *RawSig) Serialization(sink *common.ZeroCopySink) error {
 	return nil
 }
 
-func (self *RawSig) Serialize(w io.Writer) error {
-	err := serialization.WriteVarBytes(w, self.Invoke)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteVarBytes(w, self.Verify)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (self *RawSig) Deserialize(r io.Reader) error {
-	invoke, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
-	}
-	verify, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
-	}
-	self.Invoke = invoke
-	self.Verify = verify
-
-	return nil
-}
-
 func (self *RawSig) Deserialization(source *common.ZeroCopySource) error {
 	var eof, irregular bool
 	self.Invoke, _, irregular, eof = source.NextVarBytes()
@@ -308,57 +278,6 @@ func (self *Sig) Serialization(sink *common.ZeroCopySink) error {
 	return nil
 }
 
-func (self *Sig) Serialize(w io.Writer) error {
-	invocationScript := program.ProgramFromParams(self.SigData)
-	var verificationScript []byte
-	if len(self.PubKeys) == 0 {
-		return errors.New("no pubkeys in sig")
-	} else if len(self.PubKeys) == 1 {
-		verificationScript = program.ProgramFromPubKey(self.PubKeys[0])
-	} else {
-		script, err := program.ProgramFromMultiPubKey(self.PubKeys, int(self.M))
-		if err != nil {
-			return err
-		}
-		verificationScript = script
-	}
-	err := serialization.WriteVarBytes(w, invocationScript)
-	if err != nil {
-		return err
-	}
-	err = serialization.WriteVarBytes(w, verificationScript)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (self *Sig) Deserialize(r io.Reader) error {
-	invocationScript, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
-	}
-	verificationScript, err := serialization.ReadVarBytes(r)
-	if err != nil {
-		return err
-	}
-	sigs, err := program.GetParamInfo(invocationScript)
-	if err != nil {
-		return err
-	}
-	info, err := program.GetProgramInfo(verificationScript)
-	if err != nil {
-		return err
-	}
-
-	self.SigData = sigs
-	self.M = info.M
-	self.PubKeys = info.PubKeys
-
-	return nil
-}
-
 func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
 	if len(self.SignedAddr) == 0 {
 		addrs := make([]common.Address, 0, len(self.Sigs))
@@ -386,9 +305,8 @@ const (
 // base on payload type which have different struture
 type Payload interface {
 	//Serialize payload data
-	Serialize(w io.Writer) error
-
-	Deserialize(r io.Reader) error
+	Serialization(sink *common.ZeroCopySink)
+	Deserialization(source *common.ZeroCopySource) error
 }
 
 func (tx *Transaction) Serialization(sink *common.ZeroCopySink) {
@@ -398,19 +316,8 @@ func (tx *Transaction) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteBytes(tx.Raw)
 }
 
-// Serialize the Transaction
-func (tx *Transaction) Serialize(w io.Writer) error {
-	if tx.nonDirectConstracted == false || len(tx.Raw) == 0 {
-		panic("wrong constructed transaction")
-	}
-	_, err := w.Write(tx.Raw)
-	return err
-}
-
 func (tx *Transaction) ToArray() []byte {
-	b := new(bytes.Buffer)
-	tx.Serialize(b)
-	return b.Bytes()
+	return common.SerializeToBytes(tx)
 }
 
 func (tx *Transaction) Hash() common.Uint256 {

@@ -36,22 +36,16 @@ import (
 const NATIVE_INVOKE_NAME = "Ontology.Native.Invoke" // copy from smartcontract/service/neovm/config.go to avoid cycle dependences
 
 // NewDeployTransaction returns a deploy Transaction
-func NewDeployTransaction(code []byte, name, version, author, email, desp string, vmType byte) *types.MutableTransaction {
+func NewDeployTransaction(code []byte, name, version, author, email, desp string, vmType payload.VmType) (*types.MutableTransaction, error) {
 	//TODO: check arguments
-	DeployCodePayload := &payload.DeployCode{
-		Code:        code,
-		VmType:      vmType,
-		Name:        name,
-		Version:     version,
-		Author:      author,
-		Email:       email,
-		Description: desp,
+	depCode, err := payload.NewDeployCode(code, vmType, name, version, author, email, desp)
+	if err != nil {
+		return nil, err
 	}
-
 	return &types.MutableTransaction{
 		TxType:  types.Deploy,
-		Payload: DeployCodePayload,
-	}
+		Payload: depCode,
+	}, nil
 }
 
 // NewInvokeTransaction returns an invoke Transaction
@@ -199,9 +193,8 @@ func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{})
 		return nil, fmt.Errorf("build wasm contract param failed:%s", err)
 	}
 	contract.Args = argbytes
-	sink := common.NewZeroCopySink(nil)
-	contract.Serialization(sink)
-	return sink.Bytes(), nil
+
+	return common.SerializeToBytes(contract), nil
 }
 
 //build param bytes for wasm contract
