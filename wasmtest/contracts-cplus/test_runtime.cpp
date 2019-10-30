@@ -17,7 +17,7 @@ class hello: public contract {
 	using contract::contract;
 
 	uint64_t timestamp(void) {
-		return ontio::timestamp();
+		return ontio::time_stamp();
 	}
 
 	address self_address(void) {
