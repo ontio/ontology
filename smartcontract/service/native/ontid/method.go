@@ -399,7 +399,7 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	} else if owner == nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: public key not found")
 	} else if owner.revoked {
-		return utils.BYTE_FALSE, nil
+		return utils.BYTE_FALSE, errors.New("verify signature error: revoked key")
 	}
 
 	err = checkWitness(srvc, owner.key)

@@ -33,22 +33,22 @@ func setRecovery(srvc *native.NativeService) ([]byte, error) {
 	// arg0: ID
 	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 0 error")
+		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 0 error")
 	}
 	// arg1: recovery struct
 	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 1 error")
+		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 1 error")
 	}
 	// arg2: operator's public key index
 	arg2, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 2 error")
+		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 2 error")
 	}
 
 	encId, err := encodeID(arg0)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("set recovery failed: " + err.Error())
 	}
 	pk, err := getPk(srvc, encId, uint32(arg2))
 	if err != nil {
@@ -69,10 +69,10 @@ func setRecovery(srvc *native.NativeService) ([]byte, error) {
 
 	re, err = putRecovery(srvc, encId, arg1)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("set recovery failed: " + err.Error())
 	}
 
-	newEvent(srvc, []interface{}{"recovery", "add", string(arg0), re.ToJson()})
+	newEvent(srvc, []interface{}{"recovery", "set", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -96,11 +96,11 @@ func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 
 	key, err := encodeID(arg0)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("update recovery failed: " + err.Error())
 	}
 	re, err := getRecovery(srvc, key)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: recovery not set")
+		return utils.BYTE_FALSE, errors.New("update recovery failed: recovery not set")
 	}
 	signers, err := deserializeSigners(arg2)
 	if err != nil {
@@ -112,10 +112,10 @@ func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 	}
 	re, err = putRecovery(srvc, key, arg1)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("update recovery failed: " + err.Error())
 	}
 
-	newEvent(srvc, []interface{}{"Recovery", "change", string(arg0), re.ToJson()})
+	newEvent(srvc, []interface{}{"Recovery", "update", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
 
