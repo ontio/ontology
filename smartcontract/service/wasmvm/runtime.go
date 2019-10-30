@@ -322,12 +322,17 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		result = tmpRes.([]byte)
 
 	case NEOVM_CONTRACT:
-		parambytes, err := util.CreateNeoInvokeParam(contractAddress, inputs)
+		evalstack, err := util.GenerateNeoVMParamEvalStack(inputs)
 		if err != nil {
 			panic(err)
 		}
 
-		neoservice, err := self.Service.ContextRef.NewExecuteEngine(parambytes, types.InvokeNeo)
+		neoservice, err := self.Service.ContextRef.NewExecuteEngine([]byte{}, types.InvokeNeo)
+		if err != nil {
+			panic(err)
+		}
+
+		err = util.SetNeoServiceParamAndEngine(contractAddress, neoservice, evalstack)
 		if err != nil {
 			panic(err)
 		}

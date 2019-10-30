@@ -18,14 +18,34 @@
 package util
 
 import (
+	"bytes"
+
 	"errors"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/utils"
+	"github.com/ontio/ontology/smartcontract/context"
+	neovms "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/vm/crossvm_codec"
+	"github.com/ontio/ontology/vm/neovm"
 )
 
+func BuildNeoVMParamEvalStack(params []interface{}) (*neovm.ValueStack, error) {
+	builder := neovm.NewParamsBuilder(new(bytes.Buffer))
+	err := utils.BuildNeoVMParam(builder, params)
+	if err != nil {
+		return nil, err
+	}
+
+	exec := neovm.NewExecutor(builder.ToArray(), neovm.VmFeatureFlag{true, true})
+	err = exec.Execute()
+	if err != nil {
+		return nil, err
+	}
+	return exec.EvalStack, nil
+}
+
 //create paramters for neovm contract
-func CreateNeoInvokeParam(contractAddress common.Address, input []byte) ([]byte, error) {
+func GenerateNeoVMParamEvalStack(input []byte) (*neovm.ValueStack, error) {
 	params, err := crossvm_codec.DeserializeCallParam(input)
 	if err != nil {
 		return nil, err
@@ -36,5 +56,30 @@ func CreateNeoInvokeParam(contractAddress common.Address, input []byte) ([]byte,
 		return nil, errors.New("invoke neovm param is not list type")
 	}
 
-	return utils.BuildNeoVMInvokeCode(contractAddress, list)
+	stack, err := BuildNeoVMParamEvalStack(list)
+	if err != nil {
+		return nil, err
+	}
+
+	return stack, nil
+}
+
+func SetNeoServiceParamAndEngine(addr common.Address, engine context.Engine, stack *neovm.ValueStack) error {
+	service, ok := engine.(*neovms.NeoVmService)
+	if ok == false {
+		return errors.New("engine should be NeoVmService")
+	}
+
+	code, err := service.GetNeoContract(addr)
+	if err != nil {
+		return err
+	}
+
+	feature := service.Engine.Features
+	service.Engine = neovm.NewExecutor(code, feature)
+	service.Code = code
+
+	service.Engine.EvalStack = stack
+
+	return nil
 }

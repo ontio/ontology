@@ -8,8 +8,12 @@ def Main(operation, args):
         address = args
         return testbytearray(address)
     elif operation == "boolean":
-        istrue = args
-        return testboolean(istrue)
+        istrue = args[0]
+        vectorint = args[1]
+        return testboolean(istrue, vectorint)
+    elif operation == "string":
+        s = args
+        return teststring(s)
     elif operation == "intype":
         num = args
         return testintype(num)
@@ -17,7 +21,10 @@ def Main(operation, args):
         h256 = args
         return testh256(h256)
     elif operation == "neolist":
-        return testlist(*args)
+        return testlist(args)
+    elif operation == "std":
+        vectorint = args[0]
+        return teststd(args, vectorint)
     elif operation == "testcase":
         return testcase()
     elif operation == "add":
@@ -26,6 +33,10 @@ def Main(operation, args):
         return testcallwasm(args[1])
     else:
         assert(False)
+
+
+def teststring(s):
+    return concat(s, " hello my name is steven");
 
 
 def testcallwasm(textContext):
@@ -82,9 +93,15 @@ def add(a, b):
     return a + b
 
 
-def testboolean(istrue):
-    assert(istrue == True or istrue == False)
-    return istrue == True
+def testboolean(istrue, vectorint):
+    if not vectorint:
+        assert(istrue == True or istrue == False)
+        return istrue == True
+    else:
+        if istrue == True:
+            return 1
+        else:
+            return False+0
 
 
 def testintype(num):
@@ -96,8 +113,16 @@ def testh256(h256):
     return h256
 
 
-def testlist(*arg):
+def testlist(arg):
     assert(len(arg) == 3)
     arg[0] += 1
     arg[2] -= 1
+    return arg
+
+
+def teststd(arg, vectorint):
+    if vectorint:
+        for i in range(len(arg)):
+            arg[i] += 0
+        
     return arg
