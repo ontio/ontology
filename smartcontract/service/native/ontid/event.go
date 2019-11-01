@@ -20,6 +20,7 @@ package ontid
 import (
 	"encoding/hex"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
@@ -53,5 +54,10 @@ func triggerAttributeEvent(srvc *native.NativeService, op string, id []byte, pat
 		attr = t
 	}
 	st := []interface{}{"Attribute", op, string(id), attr}
+	newEvent(srvc, st)
+}
+
+func triggerRecoveryEvent(srvc *native.NativeService, op string, id []byte, addr common.Address) {
+	st := []string{"Recovery", op, string(id), addr.ToHexString()}
 	newEvent(srvc, st)
 }

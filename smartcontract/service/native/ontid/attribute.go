@@ -27,8 +27,8 @@ import (
 )
 
 const (
-	MAX_KEY_SIZE   = 32
-	MAX_TYPE_SIZE  = 16
+	MAX_KEY_SIZE   = 80
+	MAX_TYPE_SIZE  = 64
 	MAX_VALUE_SIZE = 512 * 1024
 
 	MAX_NUM = 100
@@ -85,7 +85,7 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 	if len(k) > MAX_KEY_SIZE {
-		return errors.New("key is too large")
+		return fmt.Errorf("key size %d is too large, max limit is %d", len(k), MAX_KEY_SIZE)
 	}
 
 	vt, _, irregular, eof := source.NextVarBytes()
@@ -96,7 +96,7 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 	if len(vt) > MAX_TYPE_SIZE {
-		return errors.New("type is too large")
+		return fmt.Errorf("type size %d is too large, max limit is %d", len(vt), MAX_TYPE_SIZE)
 	}
 
 	v, _, irregular, eof := source.NextVarBytes()
@@ -107,7 +107,7 @@ func (this *attribute) Deserialization(source *common.ZeroCopySource) error {
 		return io.ErrUnexpectedEOF
 	}
 	if len(v) > MAX_VALUE_SIZE {
-		return errors.New("value is too large")
+		return fmt.Errorf("value size %d is too large, max limit is %d", len(v), MAX_VALUE_SIZE)
 	}
 
 	this.key = k

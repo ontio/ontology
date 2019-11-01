@@ -34,6 +34,8 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("removeController", removeController)
 	srvc.Register("addRecovery", addRecovery)
 	srvc.Register("changeRecovery", changeRecovery)
+	srvc.Register("setRecovery", setRecovery)
+	srvc.Register("updateRecovery", updateRecovery)
 	srvc.Register("addKey", addKey)
 	srvc.Register("removeKey", removeKey)
 	srvc.Register("addKeyByController", addKeyByController)

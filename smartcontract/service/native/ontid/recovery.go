@@ -18,35 +18,37 @@
 package ontid
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func addRecovery(srvc *native.NativeService) ([]byte, error) {
+func setRecovery(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
 	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 0 error")
+		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 0 error")
 	}
 	// arg1: recovery struct
 	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 1 error")
+		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 1 error")
 	}
 	// arg2: operator's public key index
 	arg2, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 2 error")
+		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 2 error")
 	}
 
 	encId, err := encodeID(arg0)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("set recovery failed: " + err.Error())
 	}
 	pk, err := getPk(srvc, encId, uint32(arg2))
 	if err != nil {
@@ -65,16 +67,16 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("recovery is already set")
 	}
 
-	re, err = setRecovery(srvc, encId, arg1)
+	re, err = putRecovery(srvc, encId, arg1)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("set recovery failed: " + err.Error())
 	}
 
-	newEvent(srvc, []interface{}{"recovery", "add", string(arg0), re.ToJson()})
+	newEvent(srvc, []interface{}{"recovery", "set", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
 
-func changeRecovery(srvc *native.NativeService) ([]byte, error) {
+func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
 	arg0, err := utils.DecodeVarBytes(source)
@@ -94,11 +96,11 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 
 	key, err := encodeID(arg0)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("update recovery failed: " + err.Error())
 	}
 	re, err := getRecovery(srvc, key)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: recovery not set")
+		return utils.BYTE_FALSE, errors.New("update recovery failed: recovery not set")
 	}
 	signers, err := deserializeSigners(arg2)
 	if err != nil {
@@ -108,12 +110,12 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if !verifyGroupSignature(srvc, re, signers) {
 		return utils.BYTE_FALSE, errors.New("verification failed")
 	}
-	re, err = setRecovery(srvc, key, arg1)
+	re, err = putRecovery(srvc, key, arg1)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("update recovery failed: " + err.Error())
 	}
 
-	newEvent(srvc, []interface{}{"Recovery", "change", string(arg0), re.ToJson()})
+	newEvent(srvc, []interface{}{"Recovery", "update", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
 
@@ -209,7 +211,7 @@ func removeKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func setRecovery(srvc *native.NativeService, encID, data []byte) (*Group, error) {
+func putRecovery(srvc *native.NativeService, encID, data []byte) (*Group, error) {
 	rec, err := deserializeGroup(data)
 	if err != nil {
 		return nil, err
@@ -232,4 +234,124 @@ func getRecovery(srvc *native.NativeService, encID []byte) (*Group, error) {
 		return nil, errors.New("empty storage item")
 	}
 	return deserializeGroup(item.Value)
+}
+
+// deprecated
+// retain for conpatibility
+func addRecovery(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 0 error")
+	}
+	// arg1: recovery address
+	arg1, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 1 error")
+	}
+	// arg2: operator's public key
+	arg2, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: argument 2 error")
+	}
+
+	err = checkWitness(srvc, arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
+	}
+	if !checkIDExistence(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: ID not registered")
+	}
+	if !isOwner(srvc, key, arg2) {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: not authorized")
+	}
+
+	re, err := getOldRecovery(srvc, key)
+	if err == nil && len(re) > 0 {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: already set recovery")
+	}
+
+	err = setOldRecovery(srvc, key, arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
+	}
+
+	triggerRecoveryEvent(srvc, "add", arg0, arg1)
+
+	return utils.BYTE_TRUE, nil
+}
+
+// deprecated
+// retain for conpatibility
+func changeRecovery(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 0 error")
+	}
+	// arg1: new recovery address
+	arg1, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 1 error")
+	}
+	// arg2: operator's address, who should be the old recovery
+	arg2, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: argument 2 error")
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+	}
+	re, err := getOldRecovery(srvc, key)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: recovery not set")
+	}
+	if !bytes.Equal(re, arg2[:]) {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: operator is not the recovery")
+	}
+	err = checkWitness(srvc, arg2[:])
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+	}
+	if !checkIDExistence(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: ID not registered")
+	}
+	err = setOldRecovery(srvc, key, arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
+	}
+
+	triggerRecoveryEvent(srvc, "change", arg0, arg1)
+	return utils.BYTE_TRUE, nil
+}
+
+// deprecated
+// retain for conpatibility
+func setOldRecovery(srvc *native.NativeService, encID []byte, recovery common.Address) error {
+	key := append(encID, FIELD_RECOVERY)
+	val := states.StorageItem{Value: recovery[:]}
+	srvc.CacheDB.Put(key, val.ToArray())
+	return nil
+}
+
+// deprecated
+// retain for conpatibility
+func getOldRecovery(srvc *native.NativeService, encID []byte) ([]byte, error) {
+	key := append(encID, FIELD_RECOVERY)
+	item, err := utils.GetStorageItem(srvc, key)
+	if err != nil {
+		return nil, errors.New("get recovery error: " + err.Error())
+	} else if item == nil {
+		return nil, nil
+	}
+	return item.Value, nil
 }
