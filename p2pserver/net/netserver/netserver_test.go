@@ -63,7 +63,7 @@ func TestNewNetServer(t *testing.T) {
 		t.Error("TestNewNetServer set server height error")
 	}
 
-	if server.GetRelay() != true {
+	if !server.GetRelay() {
 		t.Error("TestNewNetServer server relay state error", server.GetRelay())
 	}
 	if server.GetServices() != 1 {
@@ -97,14 +97,14 @@ func TestNetServerNbrPeer(t *testing.T) {
 	if len(addrs) != 5 {
 		t.Error("TestNetServerNbrPeer GetNeighborAddrs error")
 	}
-	if server.NodeEstablished(0x7533345) == false {
+	if !server.NodeEstablished(0x7533345) {
 		t.Error("TestNetServerNbrPeer NodeEstablished error")
 	}
 	if server.GetPeer(0x7533345) == nil {
 		t.Error("TestNetServerNbrPeer GetPeer error")
 	}
 	p, ok := server.DelNbrNode(0x7533345)
-	if ok != true || p == nil {
+	if !ok || p == nil {
 		t.Error("TestNetServerNbrPeer DelNbrNode error")
 	}
 	if len(server.GetNeighbors()) != 4 {

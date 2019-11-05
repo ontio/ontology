@@ -57,10 +57,10 @@ func initTestNbrPeers() *NbrPeers {
 func TestNodeExisted(t *testing.T) {
 	nm := initTestNbrPeers()
 
-	if nm.NodeExisted(0x7533345) == false {
+	if !nm.NodeExisted(0x7533345) {
 		t.Fatal("0x7533345 should in nbr peers")
 	}
-	if nm.NodeExisted(0x5533345) == true {
+	if nm.NodeExisted(0x5533345) {
 		t.Fatal("0x5533345 should not in nbr peers")
 	}
 }
@@ -83,7 +83,7 @@ func TestAddNbrNode(t *testing.T) {
 	p.SetHttpInfoState(true)
 	p.Link.SetAddr("127.0.0.1")
 	nm.AddNbrNode(p)
-	if nm.NodeExisted(0x7123456) == false {
+	if !nm.NodeExisted(0x7123456) {
 		t.Fatal("0x7123456 should be added in nbr peer")
 	}
 	if len(nm.List) != 6 {
@@ -95,8 +95,8 @@ func TestDelNbrNode(t *testing.T) {
 	nm := initTestNbrPeers()
 
 	cnt := len(nm.List)
-	p, ret := nm.DelNbrNode(0x7533345)
-	if p == nil || ret != true {
+	p, delOK := nm.DelNbrNode(0x7533345)
+	if p == nil || !delOK {
 		t.Fatal("TestDelNbrNode err")
 	}
 	if len(nm.List) != cnt-1 {
@@ -113,7 +113,7 @@ func TestNodeEstablished(t *testing.T) {
 		t.Fatal("TestNodeEstablished:get peer error")
 	}
 	p.SetState(4)
-	if nm.NodeEstablished(0x7533346) == false {
+	if !nm.NodeEstablished(0x7533346) {
 		t.Fatal("TestNodeEstablished error")
 	}
 }
