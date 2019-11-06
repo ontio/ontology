@@ -46,7 +46,7 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
-	if checkIDExistence(srvc, encId) {
+	if checkIDState(srvc, encId) != flag_not_exist {
 		return utils.BYTE_FALSE, fmt.Errorf("%s already registered", string(arg0))
 	}
 
@@ -75,7 +75,7 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 	key := append(encId, FIELD_CONTROLLER)
 	utils.PutBytes(srvc, key, arg1)
 
-	srvc.CacheDB.Put(encId, states.GenRawStorageItem([]byte{flag_exist}))
+	srvc.CacheDB.Put(encId, states.GenRawStorageItem([]byte{flag_valid}))
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -93,7 +93,7 @@ func revokeIDByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
-	if !checkIDExistence(srvc, encID) {
+	if !isValid(srvc, encID) {
 		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
 	}
 

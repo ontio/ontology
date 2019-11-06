@@ -265,7 +265,7 @@ func addRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: " + err.Error())
 	}
-	if !checkIDExistence(srvc, key) {
+	if !isValid(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("add recovery failed: ID not registered")
 	}
 	if !isOwner(srvc, key, arg2) {
@@ -322,7 +322,7 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: " + err.Error())
 	}
-	if !checkIDExistence(srvc, key) {
+	if !isValid(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("change recovery failed: ID not registered")
 	}
 	err = setOldRecovery(srvc, key, arg1)

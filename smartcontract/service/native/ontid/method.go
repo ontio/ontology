@@ -67,7 +67,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: " + err.Error())
 	}
 
-	if checkIDExistence(srvc, key) {
+	if checkIDState(srvc, key) != flag_not_exist {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: already registered")
 	}
 
@@ -87,7 +87,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
 	}
 	// set flags
-	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_exist}))
+	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 
 	triggerRegisterEvent(srvc, arg0)
 
@@ -137,7 +137,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: " + err.Error())
 	}
 
-	if checkIDExistence(srvc, key) {
+	if checkIDState(srvc, key) != flag_not_exist {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: already registered")
 	}
 	public, err := keypair.DeserializePublicKey(arg1)
@@ -159,7 +159,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: insert attribute error: " + err.Error())
 	}
 
-	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_exist}))
+	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -200,7 +200,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: " + err.Error())
 	}
-	if !checkIDExistence(srvc, key) {
+	if !isValid(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("add key failed: ID not registered")
 	}
 	var auth bool = false
@@ -256,7 +256,7 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: %s", err)
 	}
-	if !checkIDExistence(srvc, key) {
+	if !isValid(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("remove key failed: ID not registered")
 	}
 	var auth = false
@@ -313,7 +313,7 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed: %s", err)
 	}
-	if !checkIDExistence(srvc, key) {
+	if !isValid(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("add attributes failed, ID not registered")
 	}
 	if !isOwner(srvc, key, arg2) {
@@ -360,7 +360,7 @@ func removeAttribute(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: " + err.Error())
 	}
-	if !checkIDExistence(srvc, key) {
+	if !isValid(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: ID not registered")
 	}
 	if !isOwner(srvc, key, arg2) {
@@ -428,7 +428,7 @@ func revokeID(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
-	if !checkIDExistence(srvc, encID) {
+	if !isValid(srvc, encID) {
 		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
 	}
 
