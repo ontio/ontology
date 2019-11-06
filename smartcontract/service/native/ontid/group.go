@@ -98,7 +98,7 @@ func validateMembers(srvc *native.NativeService, g *Group) error {
 				return fmt.Errorf("invalid id: %s", string(t))
 			}
 			// ID must exists
-			if !checkIDExistence(srvc, key) {
+			if !isValid(srvc, key) {
 				return fmt.Errorf("id %s not registered", string(t))
 			}
 			// Group member must have its own public key

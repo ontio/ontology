@@ -69,13 +69,13 @@ func TestDeserializeGroup(t *testing.T) {
 
 	key, _ := encodeID(id0)
 	insertPk(srvc, key, []byte("test pk"))
-	cache.Put(key, states.GenRawStorageItem([]byte{flag_exist}))
+	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 	key, _ = encodeID(id1)
 	insertPk(srvc, key, []byte("test pk"))
-	cache.Put(key, states.GenRawStorageItem([]byte{flag_exist}))
+	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 	key, _ = encodeID(id2)
 	insertPk(srvc, key, []byte("test pk"))
-	cache.Put(key, states.GenRawStorageItem([]byte{flag_exist}))
+	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 
 	err = validateMembers(srvc, g)
 	if err != nil {

@@ -60,6 +60,23 @@ func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
 
 func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetDDO")
+	source := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get id error, %s", err)
+	}
+
+	key, err := encodeID(did)
+	if err != nil {
+		return nil, err
+	}
+	// check state
+	switch checkIDState(srvc, key) {
+	case flag_not_exist:
+		return nil, nil
+	case flag_revoke:
+		return nil, fmt.Errorf("id is already revoked")
+	}
 	// keys
 	var0, err := GetPublicKeys(srvc)
 	if err != nil {
@@ -75,16 +92,6 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 		return nil, fmt.Errorf("get attribute error, %s", err)
 	}
 	sink.WriteVarBytes(var1)
-
-	source := common.NewZeroCopySource(srvc.Input)
-	did, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		return nil, fmt.Errorf("get id error, %s", err)
-	}
-	key, err := encodeID(did)
-	if err != nil {
-		return nil, err
-	}
 
 	// controller
 	con, err := getController(srvc, key)

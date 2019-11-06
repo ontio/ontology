@@ -4,8 +4,7 @@
  *
  * The ontology is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * the Free Software Foundation, either version 3 of the License, or * (at your option) any later version.
  *
  * The ontology is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -29,22 +28,27 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func checkIDExistence(srvc *native.NativeService, encID []byte) bool {
+func isValid(srvc *native.NativeService, encID []byte) bool {
+	return checkIDState(srvc, encID) == flag_valid
+}
+
+func checkIDState(srvc *native.NativeService, encID []byte) byte {
 	val, err := srvc.CacheDB.Get(encID)
 	if err == nil {
 		val, err := states.GetValueFromRawStorageItem(val)
 		if err == nil {
-			if len(val) > 0 && val[0] == flag_exist {
-				return true
+			if len(val) > 0 {
+				return val[0]
 			}
 		}
 	}
-	return false
+	return flag_not_exist
 }
 
 const (
-	flag_exist  byte = 0x01
-	flag_revoke byte = 0x02
+	flag_not_exist byte = 0x00
+	flag_valid     byte = 0x01
+	flag_revoke    byte = 0x02
 
 	FIELD_VERSION byte = 0
 	FLAG_VERSION  byte = 0x01
