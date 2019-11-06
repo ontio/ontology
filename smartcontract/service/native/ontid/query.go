@@ -93,6 +93,9 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	}
 	sink.WriteVarBytes(var1)
 
+	// old recovery, always 0
+	sink.WriteVarBytes([]byte{})
+
 	// controller
 	con, err := getController(srvc, key)
 	var2 := []byte{}
@@ -106,7 +109,7 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	}
 	sink.WriteVarBytes(var2)
 
-	//recovery
+	// new recovery
 	var3 := []byte{}
 	rec, err := getRecovery(srvc, key)
 	if rec != nil && err == nil {
