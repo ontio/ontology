@@ -454,7 +454,7 @@ func (this *P2PServer) connectSeedService() {
 			}
 		case <-this.quitOnline:
 			t.Stop()
-			break
+			return
 		}
 	}
 }
@@ -470,7 +470,7 @@ func (this *P2PServer) keepOnlineService() {
 			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quitOnline:
 			t.Stop()
-			break
+			return
 		}
 	}
 }
@@ -593,7 +593,7 @@ func (this *P2PServer) syncUpRecentPeers() {
 			this.syncPeerAddr()
 		case <-this.quitSyncRecent:
 			t.Stop()
-			break
+			return
 		}
 	}
 

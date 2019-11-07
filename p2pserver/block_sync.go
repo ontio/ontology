@@ -326,6 +326,7 @@ func (this *BlockSyncMgr) getNonEmptyBlockCount() int {
 func (this *BlockSyncMgr) Start() {
 	go this.sync()
 	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-this.exitCh:
