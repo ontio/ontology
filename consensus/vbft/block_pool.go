@@ -147,6 +147,15 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 
 	// add msg to proposals
 	candidate.Proposals = append(candidate.Proposals, msg)
+
+	// add endorse-sig
+	proposer := msg.Block.getProposer()
+	eSig := &CandidateEndorseSigInfo{
+		EndorsedProposer: proposer,
+		Signature:        msg.Block.Block.Header.SigData[0],
+		ForEmpty:         false,
+	}
+	pool.addBlockEndorsementLocked(msg.GetBlockNum(), proposer, eSig)
 	return nil
 }
 
