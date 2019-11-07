@@ -417,6 +417,7 @@ func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 
 func logCurrBlockHeight() {
 	ticker := time.NewTicker(config.DEFAULT_GEN_BLOCK_TIME * time.Second)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ticker.C:
