@@ -20,10 +20,11 @@ package peer
 
 import (
 	"fmt"
-	p2pcomm "github.com/ontio/ontology/p2pserver/common"
 	"os"
 	"testing"
 	"time"
+
+	p2pcomm "github.com/ontio/ontology/p2pserver/common"
 )
 
 var (
@@ -72,10 +73,10 @@ func initTestNbrPeers() *NbrPeers {
 
 func TestNodeExisted(t *testing.T) {
 	if !nm.nodeExisted(startID) {
-		t.Fatal("0x7533345 should in nbr peers")
+		t.Fatalf("%d should in nbr peers", startID)
 	}
 	if nm.nodeExisted(startID - 1) {
-		t.Fatal("0x5533345 should not in nbr peers")
+		t.Fatalf("%d should not in nbr peers", startID-1)
 	}
 }
 
@@ -94,11 +95,12 @@ func TestAddAndDelNbrNode(t *testing.T) {
 	p.SetState(p2pcomm.HAND_SHAKE)
 	p.SetHttpInfoState(true)
 	p.Link.SetAddr("127.0.0.1")
+	orignLen := len(nm.List)
 	nm.AddNbrNode(p)
 	if !nm.nodeExisted(newID) {
-		t.Fatal("0x7123456 should be added in nbr peer")
+		t.Fatalf("%d should be added in nbr peer", newID)
 	}
-	if len(nm.List) != 6 {
+	if len(nm.List) != orignLen+1 {
 		t.Fatal("0x7123456 should be added in nbr peer")
 	}
 
