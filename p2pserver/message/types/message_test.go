@@ -22,7 +22,6 @@ import (
 	"encoding/binary"
 	"io"
 	"testing"
-	"time"
 
 	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -66,22 +65,21 @@ func TestMsgHdr2(t *testing.T) {
 	}
 }
 
-func TestMsgHdrDesPerformance(t *testing.T) {
+func BenchmarkHdrDesPerformanceSink(b *testing.B) {
 	hdr := newMessageHeader("hdrtest2", 20, common.Checksum([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}))
+	sink := common2.NewZeroCopySink(nil)
+	writeMessageHeaderInto(sink, hdr)
+	for i := 0; i < b.N; i++ {
+		readMessageHeader(bytes.NewBuffer(sink.Bytes()))
+	}
+}
 
+func BenchmarkHdrDesPerformanceOld(b *testing.B) {
+	hdr := newMessageHeader("hdrtest2", 20, common.Checksum([]byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}))
 	sink := common2.NewZeroCopySink(nil)
 	writeMessageHeaderInto(sink, hdr)
 
-	cnt := 1000000
-	startTime := time.Now()
-	for i := 0; i < cnt; i++ {
-		readMessageHeader(bytes.NewBuffer(sink.Bytes()))
-	}
-	t.Logf("hdr1: time: %v", time.Since(startTime))
-
-	startTime = time.Now()
-	for i := 0; i < cnt; i++ {
+	for i := 0; i < b.N; i++ {
 		readMessageHeader_old(bytes.NewBuffer(sink.Bytes()))
 	}
-	t.Logf("hdr1: time: %v", time.Since(startTime))
 }

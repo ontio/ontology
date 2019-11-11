@@ -605,7 +605,7 @@ func (this *P2PServer) syncPeerAddr() {
 	netID := config.DefConfig.P2PNode.NetworkMagic
 	for i := 0; i < len(this.recentPeers[netID]); i++ {
 		p := this.network.GetPeerFromAddr(this.recentPeers[netID][i])
-		if p == nil || (p != nil && p.GetState() != common.ESTABLISH) {
+		if p == nil || p.GetState() != common.ESTABLISH {
 			this.recentPeers[netID] = append(this.recentPeers[netID][:i], this.recentPeers[netID][i+1:]...)
 			changed = true
 			i--

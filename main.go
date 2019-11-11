@@ -344,23 +344,23 @@ func initRpc(ctx *cli.Context) error {
 		return nil
 	}
 	var err error
-	exitCh := make(chan interface{}, 0)
+	exitCh := make(chan struct{}, 0)
 	go func() {
 		err = jsonrpc.StartRPCServer()
 		close(exitCh)
 	}()
 
-	flag := false
+	// StartRPCServer will call http.ListenAndServe
+	// so when return immediately means it does not start OK
+	// regist 30 handler and call http.ListenAndServe consume
+	// 150us approximately, 5ms here is enough
 	select {
 	case <-exitCh:
-		if !flag {
-			return err
-		}
+		return err
 	case <-time.After(time.Millisecond * 5):
-		flag = true
+		log.Infof("Rpc init success")
+		return nil
 	}
-	log.Infof("Rpc init success")
-	return nil
 }
 
 func initLocalRpc(ctx *cli.Context) error {
@@ -368,24 +368,23 @@ func initLocalRpc(ctx *cli.Context) error {
 		return nil
 	}
 	var err error
-	exitCh := make(chan interface{}, 0)
+	exitCh := make(chan struct{}, 0)
 	go func() {
 		err = localrpc.StartLocalServer()
 		close(exitCh)
 	}()
 
-	flag := false
+	// StartLocalServer will call http.ListenAndServe
+	// so when return immediately means it does not start OK
+	// regist 30 handler and call http.ListenAndServe consume
+	// 150us approximately, 5ms here is enough
 	select {
 	case <-exitCh:
-		if !flag {
-			return err
-		}
+		return err
 	case <-time.After(time.Millisecond * 5):
-		flag = true
+		log.Infof("Local rpc init success")
+		return nil
 	}
-
-	log.Infof("Local rpc init success")
-	return nil
 }
 
 func initRestful(ctx *cli.Context) {
