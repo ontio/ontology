@@ -60,7 +60,7 @@ func TestMsgHdr2(t *testing.T) {
 	if hdr1.Length != hdr.Length ||
 		hdr1.Magic != hdr.Magic ||
 		hdr1.CMD != hdr.CMD ||
-		hdr1.Checksum != hdr1.Checksum {
+		hdr1.Checksum != hdr.Checksum {
 		t.Fatalf("invalid hdr1: %v", hdr1)
 	}
 }

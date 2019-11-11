@@ -540,9 +540,7 @@ func (this *P2PServer) addToRetryList(addr string) {
 	if this.RetryAddrs == nil {
 		this.RetryAddrs = make(map[string]int)
 	}
-	if _, ok := this.RetryAddrs[addr]; ok {
-		delete(this.RetryAddrs, addr)
-	}
+	delete(this.RetryAddrs, addr)
 	//alway set retry to 0
 	this.RetryAddrs[addr] = 0
 }
@@ -552,9 +550,7 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 	this.ReconnectAddrs.Lock()
 	defer this.ReconnectAddrs.Unlock()
 	if len(this.RetryAddrs) > 0 {
-		if _, ok := this.RetryAddrs[addr]; ok {
-			delete(this.RetryAddrs, addr)
-		}
+		delete(this.RetryAddrs, addr)
 	}
 }
 
