@@ -34,14 +34,16 @@ type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, ar
 type MessageRouter struct {
 	msgHandlers map[string]MessageHandler // Msg handler mapped to msg type
 	RecvChan    chan *types.MsgPayload    // The channel to handle sync msg
-	stopRecvCh  chan bool                 // To stop sync channel
+	stopCh      chan struct{}             // To stop sync channel
 	p2p         p2p.P2P                   // Refer to the p2p network
 	pid         *actor.PID                // P2P actor
 }
 
 // NewMsgRouter returns a message router object
-func NewMsgRouter(p2p p2p.P2P) *MessageRouter {
-	msgRouter := &MessageRouter{}
+func NewMsgRouter(p2p p2p.P2P, stopCh chan struct{}) *MessageRouter {
+	msgRouter := &MessageRouter{
+		stopCh: stopCh,
+	}
 	msgRouter.init(p2p)
 	return msgRouter
 }
@@ -50,7 +52,6 @@ func NewMsgRouter(p2p p2p.P2P) *MessageRouter {
 func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.msgHandlers = make(map[string]MessageHandler)
 	this.RecvChan = p2p.GetMsgChan()
-	this.stopRecvCh = make(chan bool)
 	this.p2p = p2p
 
 	// Register message handler
@@ -90,13 +91,13 @@ func (this *MessageRouter) SetPID(pid *actor.PID) {
 
 // Start starts the loop to handle the message from the network
 func (this *MessageRouter) Start() {
-	go this.hookChan(this.RecvChan, this.stopRecvCh)
+	go this.hookChan(this.RecvChan, this.stopCh)
 	log.Debug("[p2p]MessageRouter start to parse p2p message...")
 }
 
 // hookChan loops to handle the message from the network
 func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
-	stopCh chan bool) {
+	stopCh <-chan struct{}) {
 	for {
 		select {
 		case data, ok := <-channel:
@@ -118,13 +119,5 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 		case <-stopCh:
 			return
 		}
-	}
-}
-
-// Stop stops the message router's loop
-func (this *MessageRouter) Stop() {
-
-	if this.stopRecvCh != nil {
-		this.stopRecvCh <- true
 	}
 }

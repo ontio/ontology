@@ -20,6 +20,7 @@ package utils
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
@@ -36,11 +37,14 @@ func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...in
 // TestMsgRouter tests a basic function of a message router
 func TestMsgRouter(t *testing.T) {
 	network := netserver.NewNetServer()
-	msgRouter := NewMsgRouter(network)
+	stopCh := make(chan struct{})
+	msgRouter := NewMsgRouter(network, stopCh)
 	assert.NotNil(t, msgRouter)
 
 	msgRouter.RegisterMsgHandler("test", testHandler)
 	msgRouter.UnRegisterMsgHandler("test")
 	msgRouter.Start()
-	msgRouter.Stop()
+
+	<-time.After(time.Second * 1)
+	close(stopCh)
 }

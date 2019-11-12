@@ -229,21 +229,21 @@ type BlockSyncMgr struct {
 	syncBlockLock  bool                                 //Help to avoid send block sync request duplicate
 	syncHeaderLock bool                                 //Help to avoid send header sync request duplicate
 	saveBlockLock  bool                                 //Help to avoid saving block concurrently
-	exitCh         chan interface{}                     //ExitCh to receive exit signal
+	stopCh         chan struct{}                        //ExitCh to receive exit signal
 	ledger         *ledger.Ledger                       //ledger
 	lock           sync.RWMutex                         //lock
 	nodeWeights    map[uint64]*NodeWeight               //Map NodeID => NodeStatus, using for getNextNode
 }
 
 //NewBlockSyncMgr return a BlockSyncMgr instance
-func NewBlockSyncMgr(server *P2PServer) *BlockSyncMgr {
+func NewBlockSyncMgr(server *P2PServer, stopCh chan struct{}) *BlockSyncMgr {
 	return &BlockSyncMgr{
 		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo, 0),
 		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
 		blocksCache:   NewBlockCache(),
 		server:        server,
 		ledger:        server.ledger,
-		exitCh:        make(chan interface{}, 1),
+		stopCh:        stopCh,
 		nodeWeights:   make(map[uint64]*NodeWeight, 0),
 	}
 }
@@ -329,7 +329,7 @@ func (this *BlockSyncMgr) Start() {
 	defer ticker.Stop()
 	for {
 		select {
-		case <-this.exitCh:
+		case <-this.stopCh:
 			return
 		case <-ticker.C:
 			go this.checkTimeout()
@@ -907,11 +907,6 @@ func (this *BlockSyncMgr) getNodeWithMinFailedTimes(flightInfo *SyncFlightInfo, 
 			minFailedTimesNode = nextNode
 		}
 	}
-}
-
-//Stop to sync
-func (this *BlockSyncMgr) Close() {
-	close(this.exitCh)
 }
 
 //getNodeWeight get nodeweight by id
