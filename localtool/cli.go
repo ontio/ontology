@@ -23,6 +23,7 @@ import (
 	//"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"runtime"
 
 	"github.com/ontio/ontology/cmd/utils"
@@ -88,7 +89,7 @@ func ontologyCLI(ctx *cli.Context) error {
 			}
 		}
 	} else {
-		err = common.InvokeSpecifiedContract(acct, database, deployobject, paramsStr, testContext)
+		err = common.InvokeSpecifiedContract(acct, database, path.Base(deployobject), paramsStr, testContext)
 		if err != nil {
 			return err
 		}

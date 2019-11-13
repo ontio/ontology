@@ -418,6 +418,10 @@ func NewDeployNeoContract(signer *account.Account, code []byte) (*types.Transact
 
 func InvokeSpecifiedContract(acct *account.Account, database *ledger.Ledger, contractfile string, paramsStr string, testContext *TestContext) error {
 	var tx *types.Transaction
+	if _, exist := testContext.AddrMap[contractfile]; !exist {
+		panic("Contract not exist")
+	}
+
 	if strings.HasSuffix(contractfile, ".avm") || strings.HasSuffix(contractfile, ".avm.str") {
 		testCase := TestCase{Param: paramsStr}
 		t, err := GenNeoVMTransaction(testCase, testContext.AddrMap[contractfile], testContext)
