@@ -129,6 +129,16 @@ func GetOpcodeUpdateCheckHeight(id uint32) uint32 {
 	return OPCODE_HASKEY_ENABLE_HEIGHT[id]
 }
 
+var CONTRACT_DESTROY_ENABLE_HEIGHT = map[uint32]uint32{
+	NETWORK_ID_MAIN_NET:    constants.OPCODE_HEIGHT_UPDATE_FIRST_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.OPCODE_HEIGHT_UPDATE_FIRST_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    0,                                            //Network solo
+}
+
+func GetContractDestroyCheckHeight(id uint32) uint32 {
+	return CONTRACT_DESTROY_ENABLE_HEIGHT[id]
+}
+
 func GetNetworkName(id uint32) string {
 	name, ok := NETWORK_NAME[id]
 	if ok {

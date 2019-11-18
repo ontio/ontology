@@ -210,7 +210,9 @@ func ContractDestroy(proc *exec.Process) {
 	if err := iter.Error(); err != nil {
 		panic(err)
 	}
-	self.Service.CacheDB.DeleteContract(contractAddress)
+	if !self.Feature.AllowContractDestroyBug {
+		self.Service.CacheDB.DeleteContract(contractAddress)
+	}
 	//the contract has been deleted ,quit the contract operation
 	proc.Terminate()
 }

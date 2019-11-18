@@ -26,6 +26,7 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"github.com/go-interpreter/wagon/wasm"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -54,6 +55,18 @@ type Runtime struct {
 	Input      []byte
 	Output     []byte
 	CallOutPut []byte
+	Feature    VmFeatureFlag
+}
+
+type VmFeatureFlag struct {
+	AllowContractDestroyBug bool
+}
+
+func NewVmFeatureFlag(blockHeight uint32) VmFeatureFlag {
+	var feature VmFeatureFlag
+	enableHeight := config.GetContractDestroyCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	feature.AllowContractDestroyBug = blockHeight <= enableHeight
+	return feature
 }
 
 func TimeStamp(proc *exec.Process) uint64 {

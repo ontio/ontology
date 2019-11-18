@@ -103,7 +103,9 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 		return nil, errors.NewErr("not a wasm contract")
 	}
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: wasmCode})
-	host := &Runtime{Service: this, Input: contract.Args}
+
+	feature := NewVmFeatureFlag(this.Height)
+	host := &Runtime{Service: this, Input: contract.Args, Feature: feature}
 
 	var compiled *exec.CompiledModule
 	if CodeCache != nil {
