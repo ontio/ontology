@@ -28,40 +28,45 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+const (
+	_VERSION_0 byte = 0x00
+	_VERSION_1 byte = 0x01
+)
+
 func setRecovery(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
 	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 0 error")
+		return utils.BYTE_FALSE, errors.New("setRecovery: argument 0 error")
 	}
 	// arg1: recovery struct
 	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 1 error")
+		return utils.BYTE_FALSE, errors.New("setRecovery: argument 1 error")
 	}
 	// arg2: operator's public key index
 	arg2, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("set recovery failed: argument 2 error")
+		return utils.BYTE_FALSE, errors.New("setRecovery: argument 2 error")
 	}
 
 	encId, err := encodeID(arg0)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("set recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("setRecovery: " + err.Error())
 	}
 	if err := checkWitnessByIndex(srvc, encId, uint32(arg2)); err != nil {
-		return utils.BYTE_FALSE, errors.New("authentication failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("setRecovery: authentication failed: " + err.Error())
 	}
 
 	re, err := getRecovery(srvc, encId)
 	if err == nil && re != nil {
-		return utils.BYTE_FALSE, errors.New("recovery is already set")
+		return utils.BYTE_FALSE, errors.New("setRecovery: recovery is already set")
 	}
 
 	re, err = putRecovery(srvc, encId, arg1)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("set recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("setRecovery: " + err.Error())
 	}
 
 	newEvent(srvc, []interface{}{"recovery", "set", string(arg0), re.ToJson()})
@@ -73,38 +78,38 @@ func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 	// arg0: ID
 	arg0, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("argument 0 error")
+		return utils.BYTE_FALSE, errors.New("updateRecovery: argument 0 error")
 	}
 	// arg1: new recovery
 	arg1, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("argument 1 error")
+		return utils.BYTE_FALSE, errors.New("updateRecovery: argument 1 error")
 	}
 	// arg2: signers
 	arg2, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("argument 2 error")
+		return utils.BYTE_FALSE, errors.New("updateRecovery: argument 2 error")
 	}
 
 	key, err := encodeID(arg0)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("update recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("update recovery: " + err.Error())
 	}
 	re, err := getRecovery(srvc, key)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("update recovery failed: recovery not set")
+		return utils.BYTE_FALSE, errors.New("update recovery: get old recovery error, " + err.Error())
 	}
 	signers, err := deserializeSigners(arg2)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("signers error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("update recovery: signers error: " + err.Error())
 	}
 
 	if !verifyGroupSignature(srvc, re, signers) {
-		return utils.BYTE_FALSE, errors.New("verification failed")
+		return utils.BYTE_FALSE, errors.New("update recovery: verification failed")
 	}
 	re, err = putRecovery(srvc, key, arg1)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("update recovery failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("update recovery: " + err.Error())
 	}
 
 	newEvent(srvc, []interface{}{"Recovery", "update", string(arg0), re.ToJson()})
@@ -213,7 +218,10 @@ func putRecovery(srvc *native.NativeService, encID, data []byte) (*Group, error)
 		return nil, fmt.Errorf("invalid recovery member, %s", err)
 	}
 	key := append(encID, FIELD_RECOVERY)
-	utils.PutBytes(srvc, key, data)
+	item := states.StorageItem{}
+	item.Value = data
+	item.StateVersion = _VERSION_1 // storage version
+	srvc.CacheDB.Put(key, item.ToArray())
 	return rec, nil
 }
 
@@ -224,6 +232,9 @@ func getRecovery(srvc *native.NativeService, encID []byte) (*Group, error) {
 		return nil, err
 	} else if item == nil {
 		return nil, errors.New("empty storage item")
+	}
+	if item.StateVersion != _VERSION_1 {
+		return nil, errors.New("unexpected storage version")
 	}
 	return deserializeGroup(item.Value)
 }
@@ -331,6 +342,7 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 func setOldRecovery(srvc *native.NativeService, encID []byte, recovery common.Address) error {
 	key := append(encID, FIELD_RECOVERY)
 	val := states.StorageItem{Value: recovery[:]}
+	//val.StateVersion = _VERSION_0
 	srvc.CacheDB.Put(key, val.ToArray())
 	return nil
 }
@@ -344,6 +356,9 @@ func getOldRecovery(srvc *native.NativeService, encID []byte) ([]byte, error) {
 		return nil, errors.New("get recovery error: " + err.Error())
 	} else if item == nil {
 		return nil, nil
+	}
+	if item.StateVersion != _VERSION_0 {
+		return nil, errors.New("unexpected storage version")
 	}
 	return item.Value, nil
 }
