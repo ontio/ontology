@@ -98,6 +98,17 @@ func checkWitness(srvc *native.NativeService, key []byte) error {
 	return errors.New("check witness failed, " + hex.EncodeToString(key))
 }
 
+func checkWitnessByIndex(srvc *native.NativeService, encID []byte, index uint32) error {
+	pk, err := getPk(srvc, encID, index)
+	if err != nil {
+		return err
+	} else if pk.revoked {
+		return errors.New("revoked key")
+	}
+
+	return checkWitness(srvc, pk.key)
+}
+
 func deleteID(srvc *native.NativeService, encID []byte) error {
 	key := append(encID, FIELD_PK)
 	srvc.CacheDB.Delete(key)

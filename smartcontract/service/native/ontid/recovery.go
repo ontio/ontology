@@ -50,16 +50,8 @@ func setRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("set recovery failed: " + err.Error())
 	}
-	pk, err := getPk(srvc, encId, uint32(arg2))
-	if err != nil {
-		return utils.BYTE_FALSE, err
-	}
-	if pk.revoked {
-		return utils.BYTE_FALSE, errors.New("authentication failed, public key is revoked")
-	}
-	err = checkWitness(srvc, pk.key)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("checkWitness failed")
+	if err := checkWitnessByIndex(srvc, encId, uint32(arg2)); err != nil {
+		return utils.BYTE_FALSE, errors.New("authentication failed: " + err.Error())
 	}
 
 	re, err := getRecovery(srvc, encId)

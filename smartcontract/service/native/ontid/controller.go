@@ -24,7 +24,6 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -75,7 +74,7 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 	key := append(encId, FIELD_CONTROLLER)
 	utils.PutBytes(srvc, key, arg1)
 
-	srvc.CacheDB.Put(encId, states.GenRawStorageItem([]byte{flag_valid}))
+	utils.PutBytes(srvc, encId, []byte{flag_valid})
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }

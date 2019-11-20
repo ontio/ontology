@@ -18,6 +18,7 @@
 package ontid
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -26,7 +27,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/testsuite"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"github.com/stretchr/testify/assert"
 )
 
 func testcase(t *testing.T, f func(t *testing.T, n *native.NativeService)) {
@@ -38,12 +38,12 @@ func testcase(t *testing.T, f func(t *testing.T, n *native.NativeService)) {
 	)
 }
 
-func TestCaseController(t *testing.T) {
-	testcase(t, CaseController)
+func TestReg(t *testing.T) {
+	testcase(t, CaseRegID)
 }
 
-func TestGroupController(t *testing.T) {
-	testcase(t, CaseGroupController)
+func TestOwner(t *testing.T) {
+	testcase(t, CaseOwner)
 }
 
 func TestRecovery(t *testing.T) {
@@ -65,167 +65,153 @@ func regID(n *native.NativeService, id string, a *account.Account) error {
 	return err
 }
 
-// Register id0 which is controlled by id1
-func regControlledID(n *native.NativeService, id0, id1 string, a *account.Account) error {
-	// make arguments
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteVarBytes([]byte(id0))
-	sink.WriteVarBytes([]byte(id1))
-	utils.EncodeVarUint(sink, 1)
-	n.Input = sink.Bytes()
-	// set signing address
-	n.Tx.SignedAddr = []common.Address{a.Address}
-	// call
-	_, err := regIdWithController(n)
-	return err
-}
-
-// Test case: register an ID controlled by another ID
-func CaseController(t *testing.T, n *native.NativeService) {
-	// 1. register the controller
-	// create account and id
-	a0 := account.NewAccount("")
-	id0, err := account.GenerateID()
-	assert.Nil(t, err, "generate id0 error")
-	assert.Nil(t, regID(n, id0, a0), "register ID error")
-
-	// 2. register the controlled ID
-	id1, err := account.GenerateID()
-	assert.Nil(t, err, "generate id1 error")
-	assert.Nil(t, regControlledID(n, id1, id0, a0), "register by controller error")
-
-	// 3. add attribute
-	attr := attribute{
-		[]byte("test key"),
-		[]byte("test value"),
-		[]byte("test type"),
-	}
-	sink := common.NewZeroCopySink(nil)
-	// id
-	sink.WriteVarBytes([]byte(id1))
-	// attribute
-	utils.EncodeVarUint(sink, 1)
-	attr.Serialization(sink)
-	// signer
-	utils.EncodeVarUint(sink, 1)
-	n.Input = sink.Bytes()
-	_, err = addAttributesByController(n)
-	assert.Nil(t, err, "add attribute error")
-
-	// 4. verify signature
-	sink.Reset()
-	// id
-	sink.WriteVarBytes([]byte(id1))
-	// signer
-	utils.EncodeVarUint(sink, 1)
-	n.Input = sink.Bytes()
-	res, err := verifyController(n)
-	assert.Nil(t, err, "verify signature error")
-	assert.Equal(t, res, utils.BYTE_TRUE, "verify signature failed")
-
-	// 5. add key
-	a1 := account.NewAccount("")
-	sink.Reset()
-	// id
-	sink.WriteVarBytes([]byte(id1))
-	// key
-	pk := keypair.SerializePublicKey(a1.PubKey())
-	sink.WriteVarBytes(pk)
-	// signer
-	utils.EncodeVarUint(sink, 1)
-	n.Input = sink.Bytes()
-	_, err = addKeyByController(n)
-	assert.Nil(t, err, "add key error")
-
-	// 6. remove controller
-	sink.Reset()
-	// id
-	sink.WriteVarBytes([]byte(id1))
-	// signing key index
-	utils.EncodeVarUint(sink, 1)
-	n.Input = sink.Bytes()
-	// set signing address to a1
-	n.Tx.SignedAddr = []common.Address{a1.Address}
-	_, err = removeController(n)
-	assert.Nil(t, err, "remove controller error")
-}
-
-func CaseGroupController(t *testing.T, n *native.NativeService) {
-	//1. create and register controllers
-	id0, err := account.GenerateID()
-	assert.Nil(t, err, "create id0 error")
-	id1, err := account.GenerateID()
-	assert.Nil(t, err, "create id1 error")
-	id2, err := account.GenerateID()
-	assert.Nil(t, err, "create id2 error")
-	a0 := account.NewAccount("")
-	a1 := account.NewAccount("")
-	a2 := account.NewAccount("")
-	assert.Nil(t, regID(n, id0, a0), "register id0 error")
-	assert.Nil(t, regID(n, id1, a1), "register id1 error")
-	assert.Nil(t, regID(n, id2, a2), "register id2 error")
-	// controller group
-	g := Group{
-		Threshold: 1,
-		Members: []interface{}{
-			[]byte(id0),
-			&Group{
-				Threshold: 1,
-				Members: []interface{}{
-					[]byte(id1),
-					[]byte(id2),
-				},
-			},
-		},
-	}
-
-	//2. generate and register the controlled id
+func CaseRegID(t *testing.T, n *native.NativeService) {
 	id, err := account.GenerateID()
-	assert.Nil(t, err, "generate controlled id error")
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteVarBytes([]byte(id))
-	sink.WriteVarBytes(g.Serialize())
-	// signers
-	signers := []Signer{
-		Signer{[]byte(id0), 1},
-		Signer{[]byte(id1), 1},
-		Signer{[]byte(id2), 1},
+	if err != nil {
+		t.Fatal(err)
 	}
-	sink.WriteVarBytes(SerializeSigners(signers))
-	n.Input = sink.Bytes()
-	// set signing address
-	n.Tx.SignedAddr = []common.Address{a0.Address, a1.Address, a2.Address}
-	_, err = regIdWithController(n)
-	assert.Nil(t, err, "register controlled id error")
+	a := account.NewAccount("")
 
-	//3. verify signature
-	sink.Reset()
-	sink.WriteVarBytes([]byte(id))
-	signers = []Signer{
-		Signer{[]byte(id2), 1},
+	// 1. register invalid id, should fail
+	if err := regID(n, "did:ont:abcd1234", a); err == nil {
+		t.Error("invalid id registered")
 	}
-	sink.WriteVarBytes(SerializeSigners(signers))
+
+	// 2. register without valid signature, should fail
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a.PubKey()))
 	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a2.Address}
-	res, err := verifyController(n)
-	assert.Nil(t, err, "verify group signature error")
-	assert.Equal(t, res, utils.BYTE_TRUE, "verify signature failed")
+	n.Tx.SignedAddr = []common.Address{}
+	if _, err := regIdWithPublicKey(n); err == nil {
+		t.Error("id registered without signature")
+	}
+
+	// 3. register with invalid key, should fail
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes([]byte("invalid public key"))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a.Address}
+	if _, err := regIdWithPublicKey(n); err == nil {
+		t.Error("id registered with invalid key")
+	}
+
+	// 4. register id
+	if err := regID(n, id, a); err != nil {
+		t.Fatal(err)
+	}
+
+	// 5. register again, should fail
+	if err := regID(n, id, a); err == nil {
+		t.Error("id registered twice")
+	}
+
+	// 6. revoke id
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 1)
+	n.Input = sink.Bytes()
+	if _, err := revokeID(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 7. register again, should fail
+	if err := regID(n, id, a); err == nil {
+		t.Error("revoked id should not be registered again")
+	}
+}
+
+func CaseOwner(t *testing.T, n *native.NativeService) {
+	// 1. register ID
+	id, err := account.GenerateID()
+	if err != nil {
+		t.Fatal("generate ID error")
+	}
+	a0 := account.NewAccount("")
+	if err := regID(n, id, a0); err != nil {
+		t.Fatal("register ID error", err)
+	}
+
+	// 2. add new key
+	a1 := account.NewAccount("")
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	n.Input = sink.Bytes()
+	// tx signer remains the same
+	if _, err = addKey(n); err != nil {
+		t.Fatal("add key error", err)
+	}
+
+	// 3. verify new key
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 2)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a1.Address}
+	res, err := verifySignature(n)
+	if err != nil || !bytes.Equal(res, utils.BYTE_TRUE) {
+		t.Fatal("verify signature failed")
+	}
+
+	// 4. remove key
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	n.Input = sink.Bytes()
+	if _, err = removeKey(n); err != nil {
+		t.Fatal("remove key error")
+	}
+
+	// 5. check removed key
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 1)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	res, err = verifySignature(n)
+	if err == nil && bytes.Equal(res, utils.BYTE_TRUE) {
+		t.Fatal("signature passed unexpectedly")
+	}
 }
 
 func CaseRecovery(t *testing.T, n *native.NativeService) {
 	//1. generate and register id
 	id0, err := account.GenerateID()
-	assert.Nil(t, err, "generate id0 error")
+	if err != nil {
+		t.Fatal("generate id0 error")
+	}
 	a0 := account.NewAccount("")
-	assert.Nil(t, regID(n, id0, a0), "register id0 error")
+	if regID(n, id0, a0) != nil {
+		t.Fatal("register id0 error")
+	}
 	id1, err := account.GenerateID()
-	assert.Nil(t, err, "generate id1 error")
+	if err != nil {
+		t.Fatal("generate id1 error")
+	}
 	a1 := account.NewAccount("")
-	assert.Nil(t, regID(n, id1, a1), "register id1 error")
+	if regID(n, id1, a1) != nil {
+		t.Fatal("register id1 error")
+	}
 	id2, err := account.GenerateID()
-	assert.Nil(t, err, "generate id2 error")
+	if err != nil {
+		t.Fatal("generate id2 error")
+	}
 	a2 := account.NewAccount("")
-	assert.Nil(t, regID(n, id2, a2), "register id2 error")
+	if regID(n, id2, a2) != nil {
+		t.Fatal("register id2 error")
+	}
+	id3, err := account.GenerateID()
+	if err != nil {
+		t.Fatal("generate id3 error")
+	}
+	a3 := account.NewAccount("")
+	if regID(n, id3, a3) != nil {
+		t.Fatal("register id3 error")
+	}
 	//2. set id1 and id2 as id0's recovery id
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteVarBytes([]byte(id0))
@@ -237,21 +223,47 @@ func CaseRecovery(t *testing.T, n *native.NativeService) {
 	utils.EncodeVarUint(sink, 1)
 	n.Input = sink.Bytes()
 	n.Tx.SignedAddr = []common.Address{a0.Address}
-	_, err = setRecovery(n)
-	assert.Nil(t, err, "add recovery error")
-	//3. add new key by recovery id
-	a3 := account.NewAccount("")
+	if _, err = setRecovery(n); err != nil {
+		t.Fatal("add recovery error", err)
+	}
+	//3. update recovery
+	g = Group{
+		Threshold: 1,
+		Members: []interface{}{
+			[]byte(id1),
+			&Group{
+				Threshold: 1,
+				Members: []interface{}{
+					[]byte(id2),
+					[]byte(id3),
+				},
+			},
+		},
+	}
+	s := []Signer{Signer{[]byte(id1), 1}}
 	sink.Reset()
 	sink.WriteVarBytes([]byte(id0))
-	pk := keypair.SerializePublicKey(a3.PubKey())
-	sink.WriteVarBytes(pk)
-	s := []Signer{Signer{[]byte(id1), 1}}
+	sink.WriteVarBytes(g.Serialize())
 	sink.WriteVarBytes(SerializeSigners(s))
 	n.Input = sink.Bytes()
 	n.Tx.SignedAddr = []common.Address{a1.Address}
-	_, err = addKeyByRecovery(n)
-	assert.Nil(t, err, "add key by recovery error")
-	//4. remove key
+	if _, err = updateRecovery(n); err != nil {
+		t.Fatal("update recovery error", err)
+	}
+	//4. add new key by recovery id
+	a4 := account.NewAccount("")
+	sink.Reset()
+	sink.WriteVarBytes([]byte(id0))
+	pk := keypair.SerializePublicKey(a4.PubKey())
+	sink.WriteVarBytes(pk)
+	s = []Signer{Signer{[]byte(id3), 1}}
+	sink.WriteVarBytes(SerializeSigners(s))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a3.Address}
+	if _, err = addKeyByRecovery(n); err != nil {
+		t.Fatal("add key by recovery error", err)
+	}
+	//5. remove key
 	sink.Reset()
 	sink.WriteVarBytes([]byte(id0))
 	utils.EncodeVarUint(sink, 1)
@@ -259,24 +271,28 @@ func CaseRecovery(t *testing.T, n *native.NativeService) {
 	sink.WriteVarBytes(SerializeSigners(s))
 	n.Input = sink.Bytes()
 	n.Tx.SignedAddr = []common.Address{a2.Address}
-	_, err = removeKeyByRecovery(n)
-	assert.Nil(t, err, "remove key by recovery error")
-	//5. verify signature
+	if _, err = removeKeyByRecovery(n); err != nil {
+		t.Fatal("remove key by recovery error", err)
+	}
+	//6. verify signature
 	sink.Reset()
 	sink.WriteVarBytes([]byte(id0))
 	utils.EncodeVarUint(sink, 2)
 	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a3.Address}
+	n.Tx.SignedAddr = []common.Address{a4.Address}
 	res, err := verifySignature(n)
-	assert.Nil(t, err, "verify signature error")
-	assert.Equal(t, utils.BYTE_TRUE, res, "verify signature failed")
-	//6. verify signature generated by removed key
+	if err != nil || !bytes.Equal(res, utils.BYTE_TRUE) {
+		t.Fatal("verify signature failed")
+	}
+	//7. verify signature generated by removed key
 	// this should fail
 	sink.Reset()
 	sink.WriteVarBytes([]byte(id0))
 	utils.EncodeVarUint(sink, 1)
 	n.Input = sink.Bytes()
 	n.Tx.SignedAddr = []common.Address{a0.Address}
-	_, err = verifySignature(n)
-	assert.Error(t, err, "signature generated by removed key passed")
+	res, err = verifySignature(n)
+	if err == nil && bytes.Equal(res, utils.BYTE_TRUE) {
+		t.Fatal("signature passed unexpectedly")
+	}
 }

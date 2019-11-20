@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -73,7 +72,6 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 
 	public, err := keypair.DeserializePublicKey(arg1)
 	if err != nil {
-		log.Error(err)
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid public key")
 	}
 	addr := types.AddressFromPubKey(public)
@@ -87,7 +85,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
 	}
 	// set flags
-	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
+	utils.PutBytes(srvc, key, []byte{flag_valid})
 
 	triggerRegisterEvent(srvc, arg0)
 
@@ -159,7 +157,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: insert attribute error: " + err.Error())
 	}
 
-	srvc.CacheDB.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
+	utils.PutBytes(srvc, key, []byte{flag_valid})
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -393,17 +391,7 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature error: " + err.Error())
 	}
-	owner, err := getPk(srvc, key, uint32(arg1))
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: get key failed, " + err.Error())
-	} else if owner == nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: public key not found")
-	} else if owner.revoked {
-		return utils.BYTE_FALSE, errors.New("verify signature error: revoked key")
-	}
-
-	err = checkWitness(srvc, owner.key)
-	if err != nil {
+	if err := checkWitnessByIndex(srvc, key, uint32(arg1)); err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
 	}
 
@@ -432,15 +420,8 @@ func revokeID(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
 	}
 
-	pk, err := getPk(srvc, encID, uint32(arg1))
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("get public key error: %s", err)
-	} else if pk.revoked {
-		return utils.BYTE_FALSE, fmt.Errorf("revoked key")
-	}
-
-	if checkWitness(srvc, pk.key) != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("authorization failed")
+	if err := checkWitnessByIndex(srvc, encID, uint32(arg1)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("authorization failed, %s", err)
 	}
 
 	err = deleteID(srvc, encID)

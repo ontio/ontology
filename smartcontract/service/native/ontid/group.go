@@ -212,14 +212,7 @@ func verifyGroupSignature(srvc *native.NativeService, g *Group, signers []Signer
 		if err != nil {
 			return false
 		}
-		pk, err := getPk(srvc, key, signer.index)
-		if err != nil {
-			return false
-		}
-		if pk.revoked {
-			return false
-		}
-		if checkWitness(srvc, pk.key) != nil {
+		if checkWitnessByIndex(srvc, key, signer.index) != nil {
 			return false
 		}
 	}
