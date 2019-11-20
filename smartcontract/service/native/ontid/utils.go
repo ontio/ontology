@@ -91,7 +91,7 @@ func checkWitness(srvc *native.NativeService, key []byte) error {
 
 	// try as if key is an address
 	addr, err := common.AddressParseFromBytes(key)
-	if srvc.ContextRef.CheckWitness(addr) {
+	if err == nil && srvc.ContextRef.CheckWitness(addr) {
 		return nil
 	}
 

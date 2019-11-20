@@ -96,6 +96,11 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 	if err != nil {
 		owners = make([]*owner, 0)
 	}
+	for _, k := range owners {
+		if bytes.Equal(k.key, pk) {
+			return 0, errors.New("the key is already added")
+		}
+	}
 	size := len(owners)
 	owners = append(owners, &owner{pk, false})
 	err = putAllPk(srvc, key, owners)

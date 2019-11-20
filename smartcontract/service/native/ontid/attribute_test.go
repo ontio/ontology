@@ -44,32 +44,91 @@ func CaseAttribute(t *testing.T, n *native.NativeService) {
 		t.Fatal(err)
 	}
 
-	// 2. add attribute
 	attr := attribute{
 		key:       []byte("test key"),
 		valueType: []byte("test type"),
 		value:     []byte("test value"),
 	}
-	if err := addAttr(n, id, attr, a); err != nil {
-		t.Fatal(err)
-	}
 
-	// 3. check attribute
-	if err := checkAttribute(n, id, []attribute{attr}); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func addAttr(n *native.NativeService, id string, attr attribute, a *account.Account) error {
+	// 2. add attribute by invalid owner
+	a1 := account.NewAccount("")
 	sink := common.NewZeroCopySink(nil)
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 1)
+	attr.Serialization(sink)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a1.Address}
+	if _, err := addAttributes(n); err == nil {
+		t.Error("attribute added by invalid owner")
+	}
+
+	// 3. add invalid attribute, should fail
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 1)
+	sink.WriteVarBytes([]byte("invalid attribute"))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a.Address}
+	if _, err := addAttributes(n); err == nil {
+		t.Error("invalid attribute added")
+	}
+
+	// 4. add attribute
+	sink.Reset()
 	sink.WriteString(id)
 	utils.EncodeVarUint(sink, 1)
 	attr.Serialization(sink)
 	sink.WriteVarBytes(keypair.SerializePublicKey(a.PubKey()))
 	n.Input = sink.Bytes()
 	n.Tx.SignedAddr = []common.Address{a.Address}
-	_, err := addAttributes(n)
-	return err
+	if _, err := addAttributes(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 5. check attribute
+	if err := checkAttribute(n, id, []attribute{attr}); err != nil {
+		t.Fatal(err)
+	}
+
+	// 6. remove attribute by invalid owner
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(attr.key)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a1.Address}
+	if _, err := removeAttribute(n); err == nil {
+		t.Error("attribute removed by invalid owner")
+	}
+
+	// 7. remove nonexistent attribute
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes([]byte("invalid attribute key"))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a.Address}
+	if _, err := removeAttribute(n); err == nil {
+		t.Error("attribute removed by invalid owner")
+	}
+
+	// 8. remove attribute
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(attr.key)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a.Address}
+	if _, err := removeAttribute(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 9. check attribute
+	if err := checkAttribute(n, id, []attribute{}); err != nil {
+		t.Error("check attribute error,", err)
+	}
 }
 
 func checkAttribute(n *native.NativeService, id string, attributes []attribute) error {

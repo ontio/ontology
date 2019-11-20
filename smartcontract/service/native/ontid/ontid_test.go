@@ -46,10 +46,6 @@ func TestOwner(t *testing.T) {
 	testcase(t, CaseOwner)
 }
 
-func TestRecovery(t *testing.T) {
-	testcase(t, CaseRecovery)
-}
-
 // Register id with account acc
 func regID(n *native.NativeService, id string, a *account.Account) error {
 	// make arguments
@@ -107,16 +103,36 @@ func CaseRegID(t *testing.T, n *native.NativeService) {
 		t.Error("id registered twice")
 	}
 
-	// 6. revoke id
+	// 6. revoke with invalid key, should fail
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 2)
+	n.Input = sink.Bytes()
+	if _, err := revokeID(n); err == nil {
+		t.Error("revoked by invalid key")
+	}
+
+	// 7. revoke without valid signature, should fail
 	sink.Reset()
 	sink.WriteString(id)
 	utils.EncodeVarUint(sink, 1)
 	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{common.ADDRESS_EMPTY}
+	if _, err := revokeID(n); err == nil {
+		t.Error("revoked without valid signature")
+	}
+
+	// 8. revoke id
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 1)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a.Address}
 	if _, err := revokeID(n); err != nil {
 		t.Fatal(err)
 	}
 
-	// 7. register again, should fail
+	// 9. register again, should fail
 	if err := regID(n, id, a); err == nil {
 		t.Error("revoked id should not be registered again")
 	}
@@ -133,19 +149,53 @@ func CaseOwner(t *testing.T, n *native.NativeService) {
 		t.Fatal("register ID error", err)
 	}
 
-	// 2. add new key
+	// 2. add key without valid signature, should fail
 	a1 := account.NewAccount("")
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteString(id)
 	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
 	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
 	n.Input = sink.Bytes()
-	// tx signer remains the same
-	if _, err = addKey(n); err != nil {
-		t.Fatal("add key error", err)
+	n.Tx.SignedAddr = []common.Address{common.ADDRESS_EMPTY}
+	if _, err = addKey(n); err == nil {
+		t.Error("key added without valid signature")
 	}
 
-	// 3. verify new key
+	// 3. add key by invalid owner, should fail
+	a2 := account.NewAccount("")
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a2.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a2.Address}
+	if _, err = addKey(n); err == nil {
+		t.Error("key added by invalid owner")
+	}
+
+	// 4. add invalid key, should fail
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes([]byte("test invalid key"))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	if _, err = addKey(n); err == nil {
+		t.Error("invalid key added")
+	}
+
+	// 5. add key
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	if _, err = addKey(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 6. verify new key
 	sink.Reset()
 	sink.WriteString(id)
 	utils.EncodeVarUint(sink, 2)
@@ -153,20 +203,64 @@ func CaseOwner(t *testing.T, n *native.NativeService) {
 	n.Tx.SignedAddr = []common.Address{a1.Address}
 	res, err := verifySignature(n)
 	if err != nil || !bytes.Equal(res, utils.BYTE_TRUE) {
-		t.Fatal("verify signature failed")
+		t.Fatal("verify the added key failed")
 	}
 
-	// 4. remove key
+	// 7. add key again, should fail
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	if _, err = addKey(n); err == nil {
+		t.Fatal("should not add the same key twice")
+	}
+
+	// 8. remove key without valid signature, should fail
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a2.Address}
+	if _, err = removeKey(n); err == nil {
+		t.Error("key removed without valid signature")
+	}
+
+	// 9. remove key by invalid owner, should fail
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a2.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a2.Address}
+	if _, err = removeKey(n); err == nil {
+		t.Error("key removed by invalid owner")
+	}
+
+	// 10. remove invalid key, should fail
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a2.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a1.Address}
+	if _, err = removeKey(n); err == nil {
+		t.Error("invalid key removed")
+	}
+
+	// 11. remove key
 	sink.Reset()
 	sink.WriteString(id)
 	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
 	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
 	n.Input = sink.Bytes()
 	if _, err = removeKey(n); err != nil {
-		t.Fatal("remove key error")
+		t.Fatal(err)
 	}
 
-	// 5. check removed key
+	// 12. check removed key
 	sink.Reset()
 	sink.WriteString(id)
 	utils.EncodeVarUint(sink, 1)
@@ -174,125 +268,17 @@ func CaseOwner(t *testing.T, n *native.NativeService) {
 	n.Tx.SignedAddr = []common.Address{a0.Address}
 	res, err = verifySignature(n)
 	if err == nil && bytes.Equal(res, utils.BYTE_TRUE) {
-		t.Fatal("signature passed unexpectedly")
+		t.Fatal("removed key passed verification")
 	}
-}
 
-func CaseRecovery(t *testing.T, n *native.NativeService) {
-	//1. generate and register id
-	id0, err := account.GenerateID()
-	if err != nil {
-		t.Fatal("generate id0 error")
-	}
-	a0 := account.NewAccount("")
-	if regID(n, id0, a0) != nil {
-		t.Fatal("register id0 error")
-	}
-	id1, err := account.GenerateID()
-	if err != nil {
-		t.Fatal("generate id1 error")
-	}
-	a1 := account.NewAccount("")
-	if regID(n, id1, a1) != nil {
-		t.Fatal("register id1 error")
-	}
-	id2, err := account.GenerateID()
-	if err != nil {
-		t.Fatal("generate id2 error")
-	}
-	a2 := account.NewAccount("")
-	if regID(n, id2, a2) != nil {
-		t.Fatal("register id2 error")
-	}
-	id3, err := account.GenerateID()
-	if err != nil {
-		t.Fatal("generate id3 error")
-	}
-	a3 := account.NewAccount("")
-	if regID(n, id3, a3) != nil {
-		t.Fatal("register id3 error")
-	}
-	//2. set id1 and id2 as id0's recovery id
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteVarBytes([]byte(id0))
-	g := Group{
-		Threshold: 1,
-		Members:   []interface{}{[]byte(id1), []byte(id2)},
-	}
-	sink.WriteVarBytes(g.Serialize())
-	utils.EncodeVarUint(sink, 1)
-	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a0.Address}
-	if _, err = setRecovery(n); err != nil {
-		t.Fatal("add recovery error", err)
-	}
-	//3. update recovery
-	g = Group{
-		Threshold: 1,
-		Members: []interface{}{
-			[]byte(id1),
-			&Group{
-				Threshold: 1,
-				Members: []interface{}{
-					[]byte(id2),
-					[]byte(id3),
-				},
-			},
-		},
-	}
-	s := []Signer{Signer{[]byte(id1), 1}}
+	// 13. add removed key again, should fail
 	sink.Reset()
-	sink.WriteVarBytes([]byte(id0))
-	sink.WriteVarBytes(g.Serialize())
-	sink.WriteVarBytes(SerializeSigners(s))
+	sink.WriteString(id)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a0.PubKey()))
+	sink.WriteVarBytes(keypair.SerializePublicKey(a1.PubKey()))
 	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a1.Address}
-	if _, err = updateRecovery(n); err != nil {
-		t.Fatal("update recovery error", err)
-	}
-	//4. add new key by recovery id
-	a4 := account.NewAccount("")
-	sink.Reset()
-	sink.WriteVarBytes([]byte(id0))
-	pk := keypair.SerializePublicKey(a4.PubKey())
-	sink.WriteVarBytes(pk)
-	s = []Signer{Signer{[]byte(id3), 1}}
-	sink.WriteVarBytes(SerializeSigners(s))
-	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a3.Address}
-	if _, err = addKeyByRecovery(n); err != nil {
-		t.Fatal("add key by recovery error", err)
-	}
-	//5. remove key
-	sink.Reset()
-	sink.WriteVarBytes([]byte(id0))
-	utils.EncodeVarUint(sink, 1)
-	s = []Signer{Signer{[]byte(id2), 1}}
-	sink.WriteVarBytes(SerializeSigners(s))
-	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a2.Address}
-	if _, err = removeKeyByRecovery(n); err != nil {
-		t.Fatal("remove key by recovery error", err)
-	}
-	//6. verify signature
-	sink.Reset()
-	sink.WriteVarBytes([]byte(id0))
-	utils.EncodeVarUint(sink, 2)
-	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a4.Address}
-	res, err := verifySignature(n)
-	if err != nil || !bytes.Equal(res, utils.BYTE_TRUE) {
-		t.Fatal("verify signature failed")
-	}
-	//7. verify signature generated by removed key
-	// this should fail
-	sink.Reset()
-	sink.WriteVarBytes([]byte(id0))
-	utils.EncodeVarUint(sink, 1)
-	n.Input = sink.Bytes()
-	n.Tx.SignedAddr = []common.Address{a0.Address}
 	res, err = verifySignature(n)
 	if err == nil && bytes.Equal(res, utils.BYTE_TRUE) {
-		t.Fatal("signature passed unexpectedly")
+		t.Error("the removed key should not be added again")
 	}
 }
