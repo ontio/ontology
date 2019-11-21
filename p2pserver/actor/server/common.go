@@ -40,13 +40,22 @@ type GetVersionRsp struct {
 	Version uint32
 }
 
-//connection count requet
+//connection count request
 type GetConnectionCntReq struct {
 }
 
-//response of connection count requet
+//response of connection count request
 type GetConnectionCntRsp struct {
 	Cnt uint32
+}
+
+//request of max peer block height
+type GetMaxPeerBlockHeightReq struct {
+}
+
+//response of max peer block height
+type GetMaxPeerBlockHeightRsp struct {
+	MaxPeerBlockHeight uint64
 }
 
 //get net module id

@@ -499,3 +499,28 @@ func GetAddress(str string) (common.Address, error) {
 	}
 	return address, err
 }
+
+type SyncStatus struct {
+	CurrentBlockHeight uint32
+	ConnectCount       uint32
+	MaxPeerBlockHeight uint64
+}
+
+func GetSyncStatus() (SyncStatus, error) {
+	var status SyncStatus
+	height, err := bactor.GetMaxPeerBlockHeight()
+	if err != nil {
+		return status, err
+	}
+	cnt, err := bactor.GetConnectionCnt()
+	if err != nil {
+		return status, err
+	}
+	curBlockHeight := bactor.GetCurrentBlockHeight()
+
+	return SyncStatus{
+		CurrentBlockHeight: curBlockHeight,
+		ConnectCount:       cnt,
+		MaxPeerBlockHeight: height,
+	}, nil
+}

@@ -68,6 +68,8 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 		this.handleGetVersionReq(ctx, msg)
 	case *GetConnectionCntReq:
 		this.handleGetConnectionCntReq(ctx, msg)
+	case *GetMaxPeerBlockHeightReq:
+		this.handleGetMaxPeerBlockHeightReq(ctx, msg)
 	case *GetIdReq:
 		this.handleGetIDReq(ctx, msg)
 	case *GetConnectionStateReq:
@@ -135,6 +137,17 @@ func (this *P2PActor) handleGetConnectionCntReq(ctx actor.Context, req *GetConne
 	if ctx.Sender() != nil {
 		resp := &GetConnectionCntRsp{
 			Cnt: cnt,
+		}
+		ctx.Sender().Request(resp, ctx.Self())
+	}
+}
+
+//max peer blockheight handler
+func (this *P2PActor) handleGetMaxPeerBlockHeightReq(ctx actor.Context, req *GetMaxPeerBlockHeightReq) {
+	height := this.server.GetMaxPeerBlockHeight()
+	if ctx.Sender() != nil {
+		resp := &GetMaxPeerBlockHeightRsp{
+			MaxPeerBlockHeight: height,
 		}
 		ctx.Sender().Request(resp, ctx.Self())
 	}

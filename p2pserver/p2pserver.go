@@ -89,6 +89,11 @@ func (this *P2PServer) GetConnectionCnt() uint32 {
 	return this.network.GetConnectionCnt()
 }
 
+//GetMaxPeerBlockHeight return the established connect count
+func (this *P2PServer) GetMaxPeerBlockHeight() uint64 {
+	return this.network.GetMaxPeerBlockHeight()
+}
+
 //Start create all services
 func (this *P2PServer) Start() error {
 	if this.network != nil {

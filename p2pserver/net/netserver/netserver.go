@@ -193,6 +193,11 @@ func (this *NetServer) GetConnectionCnt() uint32 {
 	return this.Np.GetNbrNodeCnt()
 }
 
+//GetMaxPeerBlockHeight return the most height of valid connections
+func (this *NetServer) GetMaxPeerBlockHeight() uint64 {
+	return this.Np.GetNeighborMostHeight()
+}
+
 //AddNbrNode add peer to nbr peer list
 func (this *NetServer) AddNbrNode(remotePeer *peer.Peer) {
 	this.Np.AddNbrNode(remotePeer)

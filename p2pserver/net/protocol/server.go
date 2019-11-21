@@ -41,6 +41,7 @@ type P2P interface {
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() []common.PeerAddr
 	GetConnectionCnt() uint32
+	GetMaxPeerBlockHeight() uint64
 	GetNp() *peer.NbrPeers
 	GetPeer(uint64) *peer.Peer
 	SetHeight(uint64)

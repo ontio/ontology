@@ -121,6 +121,17 @@ func GetConnectionCount(params []interface{}) map[string]interface{} {
 	return responseSuccess(count)
 }
 
+//get node connection most height
+func GetSyncStatus(params []interface{}) map[string]interface{} {
+	status, err := bcomn.GetSyncStatus()
+	if err != nil {
+		log.Errorf("GetSyncStatus error:%s", err)
+		return responsePack(berr.INTERNAL_ERROR, false)
+	}
+
+	return responseSuccess(status)
+}
+
 func GetRawMemPool(params []interface{}) map[string]interface{} {
 	txs := []*bcomn.Transactions{}
 	txpool := bactor.GetTxsFromPool(false)
