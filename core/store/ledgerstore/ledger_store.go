@@ -1003,6 +1003,7 @@ func (this *LedgerStoreImp) GetEventNotifyByTx(tx common.Uint256) (*event.Execut
 func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error) {
 	return this.eventStore.GetEventNotifyByBlock(height)
 }
+
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*sstate.PreExecResult, uint32, error) {
 	if atomic {

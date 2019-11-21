@@ -47,8 +47,8 @@ const MAX_SEARCH_HEIGHT uint32 = 100
 const MAX_REQUEST_BODY_SIZE = 1 << 20
 
 type BalanceOfRsp struct {
-	Ont string `json:"ont"`
-	Ong string `json:"ong"`
+	Ont    string `json:"ont"`
+	Ong    string `json:"ong"`
 	Height string `json:"height"`
 }
 
@@ -285,8 +285,8 @@ func GetBalance(address common.Address) (*BalanceOfRsp, error) {
 		return nil, fmt.Errorf("get ont balance error:%s", err)
 	}
 	return &BalanceOfRsp{
-		Ont: fmt.Sprintf("%d", balances[0]),
-		Ong: fmt.Sprintf("%d", balances[1]),
+		Ont:    fmt.Sprintf("%d", balances[0]),
+		Ong:    fmt.Sprintf("%d", balances[1]),
 		Height: fmt.Sprintf("%d", height),
 	}, nil
 }
@@ -347,7 +347,7 @@ func GetContractBalance(cVersion byte, contractAddres []common.Address, accAddr 
 		return nil, 0, fmt.Errorf("PrepareInvokeContract error:%s", err)
 	}
 	balances := make([]uint64, 0, len(contractAddres))
-	for _, result :=range results {
+	for _, result := range results {
 		if result.State == 0 {
 			return nil, 0, fmt.Errorf("prepare invoke failed")
 		}
