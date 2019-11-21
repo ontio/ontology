@@ -61,6 +61,24 @@ func GetConnectionCnt() (uint32, error) {
 	return r.Cnt, nil
 }
 
+//GetMaxPeerBlockHeight from netSever actor
+func GetMaxPeerBlockHeight() (uint64, error) {
+	if netServerPid == nil {
+		return 1, nil
+	}
+	future := netServerPid.RequestFuture(&ac.GetMaxPeerBlockHeightReq{}, REQ_TIMEOUT*time.Second)
+	result, err := future.Result()
+	if err != nil {
+		log.Errorf(ERR_ACTOR_COMM, err)
+		return 0, err
+	}
+	r, ok := result.(*ac.GetMaxPeerBlockHeightRsp)
+	if !ok {
+		return 0, errors.New("fail")
+	}
+	return r.MaxPeerBlockHeight, nil
+}
+
 //GetNeighborAddrs from netSever actor
 func GetNeighborAddrs() []common.PeerAddr {
 	if netServerPid == nil {

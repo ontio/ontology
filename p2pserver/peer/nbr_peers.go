@@ -143,6 +143,22 @@ func (this *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
 	return hm
 }
 
+//GetNeighborMostHeight return the most height of nbr peers
+func (this *NbrPeers) GetNeighborMostHeight() uint64 {
+	this.RLock()
+	defer this.RUnlock()
+	mostHeight := uint64(0)
+	for _, n := range this.List {
+		if n.GetState() == common.ESTABLISH {
+			height := n.GetHeight()
+			if mostHeight < height {
+				mostHeight = height
+			}
+		}
+	}
+	return mostHeight
+}
+
 //GetNeighbors return all establish peers in nbr list
 func (this *NbrPeers) GetNeighbors() []*Peer {
 	this.RLock()
