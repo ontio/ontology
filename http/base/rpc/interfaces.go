@@ -123,29 +123,13 @@ func GetConnectionCount(params []interface{}) map[string]interface{} {
 
 //get node connection most height
 func GetSyncStatus(params []interface{}) map[string]interface{} {
-	height, err := bactor.GetMaxPeerBlockHeight()
+	status, err := bcomn.GetSyncStatus()
 	if err != nil {
-		log.Errorf("GetMaxPeerBlockHeight error:%s", err)
+		log.Errorf("GetSyncStatus error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
-	cnt, err := bactor.GetConnectionCnt()
-	if err != nil {
-		log.Errorf("GetConnectionCount error:%s", err)
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	curBlockHeight := bactor.GetCurrentBlockHeight()
 
-	return responseSuccess(SyncStatus{
-		CurrentBlockHeight: curBlockHeight,
-		ConnectCount:       cnt,
-		MaxPeerBlockHeight: height,
-	})
-}
-
-type SyncStatus struct {
-	CurrentBlockHeight uint32
-	ConnectCount       uint32
-	MaxPeerBlockHeight uint64
+	return responseSuccess(status)
 }
 
 func GetRawMemPool(params []interface{}) map[string]interface{} {

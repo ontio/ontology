@@ -64,6 +64,16 @@ func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 	return resp
 }
 
+func GetNodeSyncStatus(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	status, err := bcomn.GetSyncStatus()
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = status
+	return resp
+}
+
 //get block height
 func GetBlockHeight(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)

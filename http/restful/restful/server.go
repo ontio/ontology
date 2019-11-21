@@ -54,6 +54,7 @@ type restServer struct {
 
 const (
 	GET_CONN_COUNT        = "/api/v1/node/connectioncount"
+	GET_SYNC_STATUS       = "/api/v1/node/syncstatus"
 	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
 	GET_BLK_BY_HEIGHT     = "/api/v1/block/details/height/:height"
 	GET_BLK_BY_HASH       = "/api/v1/block/details/hash/:hash"
@@ -134,6 +135,7 @@ func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
 		GET_CONN_COUNT:        {name: "getconnectioncount", handler: rest.GetConnectionCount},
+		GET_SYNC_STATUS:       {name: "getsyncstatus", handler: rest.GetNodeSyncStatus},
 		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
 		GET_BLK_BY_HEIGHT:     {name: "getblockbyheight", handler: rest.GetBlockByHeight},
 		GET_BLK_BY_HASH:       {name: "getblockbyhash", handler: rest.GetBlockByHash},
