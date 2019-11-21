@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cross_chain
+package cross_chain_manager
 
 import (
 	"fmt"

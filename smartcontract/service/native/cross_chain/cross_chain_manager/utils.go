@@ -16,50 +16,22 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cross_chain
+package cross_chain_manager
 
 import (
 	"encoding/hex"
 	"fmt"
+
 	acommon "github.com/ontio/multi-chain/common"
 	ancommon "github.com/ontio/multi-chain/native/service/cross_chain_manager/common"
-	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/header_sync"
-	"github.com/ontio/ontology/smartcontract/service/native/ont"
+	header_sync2 "github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
-
-func appCallTransferOng(native *native.NativeService, from common.Address, to common.Address, amount uint64) error {
-	err := appCallTransfer(native, utils.OngContractAddress, from, to, amount)
-	if err != nil {
-		return fmt.Errorf("appCallTransferOng, appCallTransfer error: %v", err)
-	}
-	return nil
-}
-
-func appCallTransfer(native *native.NativeService, contract common.Address, from common.Address, to common.Address, amount uint64) error {
-	var sts []ont.State
-	sts = append(sts, ont.State{
-		From:  from,
-		To:    to,
-		Value: amount,
-	})
-	transfers := ont.Transfers{
-		States: sts,
-	}
-	sink := common.NewZeroCopySink(nil)
-	transfers.Serialization(sink)
-
-	if _, err := native.NativeCall(contract, "transfer", sink.Bytes()); err != nil {
-		return fmt.Errorf("appCallTransfer, appCall error: %v", err)
-	}
-	return nil
-}
 
 func putDoneTx(native *native.NativeService, txHash []byte, chainID uint64) error {
 	contract := utils.CrossChainContractAddress
@@ -128,7 +100,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 
 func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint64, height uint32) (*ancommon.ToMerkleValue, error) {
 	//get block header
-	header, err := header_sync.GetHeaderByHeight(native, fromChainid, height)
+	header, err := header_sync2.GetHeaderByHeight(native, fromChainid, height)
 	if err != nil {
 		return nil, fmt.Errorf("VerifyToOntTx, get header by height %d from chain %d error: %v",
 			height, fromChainid, err)
