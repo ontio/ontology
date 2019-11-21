@@ -821,10 +821,10 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 //saveBlock do the job of execution samrt contract and commit block to store.
 func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
 	blockHeight := block.Header.Height
-	if this.tryGetSavingBlockLock() {
-		//hash already saved or is saving
+	if blockHeight > 0 && blockHeight <= this.GetCurrentBlockHeight() {
 		return nil
 	}
+	this.getSavingBlockLock()
 	defer this.releaseSavingBlockLock()
 	if this.closing {
 		return errors.NewErr("save block error: ledger is closing")
@@ -1002,6 +1002,26 @@ func (this *LedgerStoreImp) GetEventNotifyByTx(tx common.Uint256) (*event.Execut
 //GetEventNotifyByBlock return the transaction hash which have event notice after execution of smart contract. Wrap function of EventStore.GetEventNotifyByBlock
 func (this *LedgerStoreImp) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error) {
 	return this.eventStore.GetEventNotifyByBlock(height)
+}
+
+//PreExecuteContract return the result of smart contract execution without commit to store
+func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*sstate.PreExecResult, uint32, error) {
+	if atomic {
+		this.getSavingBlockLock()
+		defer this.releaseSavingBlockLock()
+	}
+	height := this.GetCurrentBlockHeight()
+	results := make([]*sstate.PreExecResult, 0, len(txes))
+	for _, tx := range txes {
+		res, err := this.PreExecuteContract(tx)
+		if err != nil {
+			return nil, height, err
+		}
+
+		results = append(results, res)
+	}
+
+	return results, height, nil
 }
 
 //PreExecuteContract return the result of smart contract execution without commit to store

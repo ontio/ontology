@@ -179,6 +179,10 @@ func (self *Ledger) PreExecuteContract(tx *types.Transaction) (*cstate.PreExecRe
 	return self.ldgStore.PreExecuteContract(tx)
 }
 
+func (self *Ledger) PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*cstate.PreExecResult, uint32, error) {
+	return self.ldgStore.PreExecuteContractBatch(txes, atomic)
+}
+
 func (self *Ledger) GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error) {
 	return self.ldgStore.GetEventNotifyByTx(tx)
 }
