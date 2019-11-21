@@ -66,6 +66,8 @@ func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vle
 	return uint32(len(item))
 }
 
+
+
 func StorageWrite(proc *exec.Process, keyPtr uint32, keyLen uint32, valPtr uint32, valLen uint32) {
 	self := proc.HostData().(*Runtime)
 	keybytes, err := ReadWasmMemory(proc, keyPtr, keyLen)
