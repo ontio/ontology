@@ -34,6 +34,14 @@ func EncodeVarUint(sink *common.ZeroCopySink, value uint64) (size uint64) {
 	return sink.WriteVarBytes(common.BigIntToNeoBytes(big.NewInt(int64(value))))
 }
 
+func EncodeVarBytes(sink *common.ZeroCopySink, v []byte) (size uint64) {
+	return sink.WriteVarBytes(v)
+}
+
+func EncodeString(sink *common.ZeroCopySink, str string) (size uint64) {
+	return sink.WriteVarBytes([]byte(str))
+}
+
 func DecodeVarUint(source *common.ZeroCopySource) (uint64, error) {
 	value, _, irregular, eof := source.NextVarBytes()
 	if eof {
