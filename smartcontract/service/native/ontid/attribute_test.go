@@ -129,6 +129,53 @@ func CaseAttribute(t *testing.T, n *native.NativeService) {
 	if err := checkAttribute(n, id, []attribute{}); err != nil {
 		t.Error("check attribute error,", err)
 	}
+
+	// 10. attribute size limit
+	attr = attribute{
+		key:       make([]byte, MAX_KEY_SIZE+1),
+		valueType: []byte("test type"),
+		value:     []byte("test value"),
+	}
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 1)
+	attr.Serialization(sink)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a.Address}
+	if _, err := addAttributes(n); err == nil {
+		t.Error("attribute key size limit error")
+	}
+	attr = attribute{
+		key:       []byte("test key"),
+		valueType: []byte("test type"),
+		value:     make([]byte, MAX_VALUE_SIZE+1),
+	}
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 1)
+	attr.Serialization(sink)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a.Address}
+	if _, err := addAttributes(n); err == nil {
+		t.Error("attribute value size limit error")
+	}
+	attr = attribute{
+		key:       []byte("test key"),
+		valueType: make([]byte, MAX_TYPE_SIZE+1),
+		value:     []byte("test value"),
+	}
+	sink.Reset()
+	sink.WriteString(id)
+	utils.EncodeVarUint(sink, 1)
+	attr.Serialization(sink)
+	sink.WriteVarBytes(keypair.SerializePublicKey(a.PubKey()))
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a.Address}
+	if _, err := addAttributes(n); err == nil {
+		t.Error("attribute type size limit error")
+	}
 }
 
 func checkAttribute(n *native.NativeService, id string, attributes []attribute) error {

@@ -46,6 +46,10 @@ func TestOwner(t *testing.T) {
 	testcase(t, CaseOwner)
 }
 
+func TestOwnerSize(t *testing.T) {
+	testcase(t, CaseOwnerSize)
+}
+
 // Register id with account acc
 func regID(n *native.NativeService, id string, a *account.Account) error {
 	// make arguments
@@ -309,5 +313,25 @@ func CaseOwner(t *testing.T, n *native.NativeService) {
 	_, err = GetPublicKeyByID(n)
 	if err == nil {
 		t.Error("query removed key should fail")
+	}
+}
+
+func CaseOwnerSize(t *testing.T, n *native.NativeService) {
+	id, _ := account.GenerateID()
+	a := account.NewAccount("")
+	err := regID(n, id, a)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	enc, err := encodeID([]byte(id))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := make([]byte, OWNER_TOTAL_SIZE)
+	_, err = insertPk(n, enc, buf)
+	if err == nil {
+		t.Fatal("total size of the owner's key should be limited")
 	}
 }
