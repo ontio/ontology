@@ -91,11 +91,22 @@ func checkWitness(srvc *native.NativeService, key []byte) error {
 
 	// try as if key is an address
 	addr, err := common.AddressParseFromBytes(key)
-	if srvc.ContextRef.CheckWitness(addr) {
+	if err == nil && srvc.ContextRef.CheckWitness(addr) {
 		return nil
 	}
 
 	return errors.New("check witness failed, " + hex.EncodeToString(key))
+}
+
+func checkWitnessByIndex(srvc *native.NativeService, encID []byte, index uint32) error {
+	pk, err := getPk(srvc, encID, index)
+	if err != nil {
+		return err
+	} else if pk.revoked {
+		return errors.New("revoked key")
+	}
+
+	return checkWitness(srvc, pk.key)
 }
 
 func deleteID(srvc *native.NativeService, encID []byte) error {
