@@ -342,7 +342,7 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 func setOldRecovery(srvc *native.NativeService, encID []byte, recovery common.Address) error {
 	key := append(encID, FIELD_RECOVERY)
 	val := states.StorageItem{Value: recovery[:]}
-	//val.StateVersion = _VERSION_0
+	val.StateVersion = _VERSION_0
 	srvc.CacheDB.Put(key, val.ToArray())
 	return nil
 }
