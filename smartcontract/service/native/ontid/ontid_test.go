@@ -98,12 +98,21 @@ func CaseRegID(t *testing.T, n *native.NativeService) {
 		t.Fatal(err)
 	}
 
-	// 5. register again, should fail
+	// 5. get DDO
+	sink.Reset()
+	sink.WriteString(id)
+	n.Input = sink.Bytes()
+	_, err = GetDDO(n)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// 6. register again, should fail
 	if err := regID(n, id, a); err == nil {
 		t.Error("id registered twice")
 	}
 
-	// 6. revoke with invalid key, should fail
+	// 7. revoke with invalid key, should fail
 	sink.Reset()
 	sink.WriteString(id)
 	utils.EncodeVarUint(sink, 2)
@@ -112,7 +121,7 @@ func CaseRegID(t *testing.T, n *native.NativeService) {
 		t.Error("revoked by invalid key")
 	}
 
-	// 7. revoke without valid signature, should fail
+	// 8. revoke without valid signature, should fail
 	sink.Reset()
 	sink.WriteString(id)
 	utils.EncodeVarUint(sink, 1)
@@ -122,7 +131,7 @@ func CaseRegID(t *testing.T, n *native.NativeService) {
 		t.Error("revoked without valid signature")
 	}
 
-	// 8. revoke id
+	// 9. revoke id
 	sink.Reset()
 	sink.WriteString(id)
 	utils.EncodeVarUint(sink, 1)
@@ -132,10 +141,20 @@ func CaseRegID(t *testing.T, n *native.NativeService) {
 		t.Fatal(err)
 	}
 
-	// 9. register again, should fail
+	// 10. register again, should fail
 	if err := regID(n, id, a); err == nil {
 		t.Error("revoked id should not be registered again")
 	}
+
+	// 11. get DDO of the revoked id
+	sink.Reset()
+	sink.WriteString(id)
+	n.Input = sink.Bytes()
+	_, err = GetDDO(n)
+	if err == nil {
+		t.Error("get DDO of the revoked id should fail")
+	}
+
 }
 
 func CaseOwner(t *testing.T, n *native.NativeService) {
@@ -280,5 +299,15 @@ func CaseOwner(t *testing.T, n *native.NativeService) {
 	res, err = verifySignature(n)
 	if err == nil && bytes.Equal(res, utils.BYTE_TRUE) {
 		t.Error("the removed key should not be added again")
+	}
+
+	// 14. query removed key
+	sink.Reset()
+	sink.WriteString(id)
+	sink.WriteInt32(1)
+	n.Input = sink.Bytes()
+	_, err = GetPublicKeyByID(n)
+	if err == nil {
+		t.Error("query removed key should fail")
 	}
 }
