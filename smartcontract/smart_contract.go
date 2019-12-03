@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
 	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -164,7 +163,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			gasFactor = config.DEFAULT_WASM_GAS_FACTOR
 		}
 
-		service = &wasmvm.WasmVmService{
+		wasmService := &wasmvm.WasmVmService{
 			Store:      this.Store,
 			CacheDB:    this.CacheDB,
 			ContextRef: this,
@@ -178,6 +177,9 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			GasLimit:   &this.Gas,
 			GasFactor:  gasFactor,
 		}
+
+		wasmService.SetContextData()
+		service = wasmService
 	default:
 		return nil, errors.New("failed to construct execute engine, wrong transaction type")
 	}
@@ -214,11 +216,8 @@ func (this *SmartContract) CheckWitness(address common.Address) bool {
 }
 
 func (this *SmartContract) checkAccountAddress(address common.Address) bool {
-	addresses, err := this.Config.Tx.GetSignatureAddresses()
-	if err != nil {
-		log.Errorf("get signature address error:%v", err)
-		return false
-	}
+	addresses := this.Config.Tx.GetSignatureAddresses()
+
 	for _, v := range addresses {
 		if v == address {
 			return true
@@ -232,4 +231,14 @@ func (this *SmartContract) checkContractAddress(address common.Address) bool {
 		return true
 	}
 	return false
+}
+
+func (this *SmartContract) GetCallerAddress() []common.Address {
+	callersNum := len(this.Contexts)
+	addrs := make([]common.Address, 0, callersNum)
+
+	for _, ctx := range this.Contexts {
+		addrs = append(addrs, ctx.ContractAddress)
+	}
+	return addrs
 }
