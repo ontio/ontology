@@ -49,6 +49,7 @@ type SmartContract struct {
 	Gas           uint64
 	ExecStep      int
 	WasmExecStep  uint64
+	JitMode       bool
 	PreExec       bool
 }
 
@@ -176,6 +177,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			ExecStep:   &this.WasmExecStep,
 			GasLimit:   &this.Gas,
 			GasFactor:  gasFactor,
+			JitMode:    this.JitMode,
 		}
 
 		wasmService.SetContextData()

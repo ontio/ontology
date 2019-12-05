@@ -49,6 +49,7 @@ type WasmVmService struct {
 	ExecStep      *uint64
 	GasFactor     uint64
 	IsTerminate   bool
+	JitMode       bool
 	ServiceIndex  uint64
 	vm            *exec.VM
 }
@@ -139,7 +140,13 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: wasmCode})
 
-	output, err := invokeJit(this, contract, wasmCode)
+	var output []byte
+	if this.JitMode {
+		output, err = invokeJit(this, contract, wasmCode)
+	} else {
+		output, err = invokeInterpreter(this, contract, wasmCode)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +155,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	return output, nil
 }
 
-func invokeInterPre(this *WasmVmService, contract *states.WasmContractParam, wasmCode []byte) ([]byte, error) {
+func invokeInterpreter(this *WasmVmService, contract *states.WasmContractParam, wasmCode []byte) ([]byte, error) {
 	host := &Runtime{Service: this, Input: contract.Args}
 
 	var compiled *exec.CompiledModule
