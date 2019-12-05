@@ -197,6 +197,7 @@ func (this *SmartContract) NewNativeService() (*native.NativeService, error) {
 		Height:     this.Config.Height,
 		BlockHash:  this.Config.BlockHash,
 		ServiceMap: make(map[string]native.Handler),
+		PreExec:    this.PreExec,
 	}
 	return service, nil
 }
