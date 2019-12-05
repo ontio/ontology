@@ -239,6 +239,9 @@ func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 }
 
 func grantOng(native *native.NativeService, contract, address common.Address, balance uint64) error {
+	if native.PreExec {
+		return nil
+	}
 	startOffset, err := getUnboundOffset(native, contract, address)
 	if err != nil {
 		return err

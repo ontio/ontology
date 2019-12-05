@@ -70,6 +70,7 @@ func NativeInvoke(service *NeoVmService, engine *vm.Executor) error {
 		Time:        service.Time,
 		ContextRef:  service.ContextRef,
 		ServiceMap:  make(map[string]native.Handler),
+		PreExec:     service.PreExec,
 	}
 
 	result, err := nat.Invoke()

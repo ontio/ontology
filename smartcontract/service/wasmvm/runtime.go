@@ -296,6 +296,7 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 			Time:        self.Service.Time,
 			ContextRef:  self.Service.ContextRef,
 			ServiceMap:  make(map[string]native2.Handler),
+			PreExec:     self.Service.PreExec,
 		}
 
 		tmpRes, err := native.Invoke()
