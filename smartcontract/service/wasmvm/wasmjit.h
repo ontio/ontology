@@ -1,5 +1,5 @@
 #ifndef WASMJIT_H
-#define WASMJIT_h
+#define WASMJIT_H
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
