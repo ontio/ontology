@@ -239,9 +239,6 @@ func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 }
 
 func grantOng(native *native.NativeService, contract, address common.Address, balance uint64) error {
-	if native.PreExec {
-		return nil
-	}
 	startOffset, err := getUnboundOffset(native, contract, address)
 	if err != nil {
 		return err
@@ -251,6 +248,9 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 	}
 	endOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
 	if endOffset < startOffset {
+		if native.PreExec {
+			return nil
+		}
 		errstr := fmt.Sprintf("grant Ong error: wrong timestamp endOffset: %d < startOffset: %d", endOffset, startOffset)
 		log.Error(errstr)
 		return errors.NewErr(errstr)
