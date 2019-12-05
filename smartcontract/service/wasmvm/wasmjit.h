@@ -56,6 +56,8 @@ wasmjit_chain_context_t *wasmjit_chain_context_create(uint32_t height,
                                                       wasmjit_slice_t callers_raw,
                                                       wasmjit_slice_t witness_raw,
                                                       wasmjit_slice_t input_raw,
+                                                      uint64_t exec_step,
+                                                      uint64_t gas_factor,
                                                       uint64_t gas_left,
                                                       uint64_t service_index);
 

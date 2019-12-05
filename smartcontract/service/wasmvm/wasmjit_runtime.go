@@ -47,11 +47,12 @@ import (
 )
 
 const (
-	wasmjit_result_success      uint = 0
-	wasmjit_result_err_internal uint = 1
-	wasmjit_result_err_compile  uint = 2
-	wasmjit_result_err_link     uint = 3
-	wasmjit_result_err_trap     uint = 4
+	wasmjit_result_success      uint   = 0
+	wasmjit_result_err_internal uint   = 1
+	wasmjit_result_err_compile  uint   = 2
+	wasmjit_result_err_link     uint   = 3
+	wasmjit_result_err_trap     uint   = 4
+	wasmjit_gas_mod             uint64 = 200
 )
 
 func getContractType(Service *WasmVmService, addr common.Address) (ContractType, error) {
@@ -352,6 +353,11 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 
 	Service := jitService(vmctx)
 
+	exec_step := C.wasmjit_get_exec_step(vmctx)
+	gas_left := C.wasmjit_get_gas(vmctx)
+	*Service.ExecStep = uint64(exec_step)
+	*Service.GasLimit = uint64(gas_left)
+
 	buff := jitSliceToBytes(C.wasmjit_slice_t{data: ((*C.uchar)((unsafe.Pointer)(contractAddr))), len: 20})
 
 	copy(contractAddress[:], buff[:])
@@ -406,6 +412,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 		}
 
 		tmpRes, err := native.Invoke()
+		C.wasmjit_set_gas(vmctx, C.ulong(*Service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.ulong(*Service.ExecStep))
 		if err != nil {
 			return jitErr(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
 		}
@@ -422,6 +430,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 		}
 
 		tmpRes, err := newservice.Invoke()
+		C.wasmjit_set_gas(vmctx, C.ulong(*Service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.ulong(*Service.ExecStep))
 		if err != nil {
 			return jitErr(err)
 		}
@@ -445,6 +455,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 		}
 
 		tmp, err := neoservice.Invoke()
+		C.wasmjit_set_gas(vmctx, C.ulong(*Service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.ulong(*Service.ExecStep))
 		if err != nil {
 			return jitErr(err)
 		}
@@ -466,6 +478,22 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 
 	setCallOutPut(vmctx, result)
 	return C.wasmjit_result_t{kind: C.uint(wasmjit_result_success)}
+}
+
+func tuneGas(gas uint64, mod uint64) uint64 {
+	return mod*(gas/mod) + mod
+}
+
+func destroy_wasmjit_ret(ret C.wasmjit_ret) {
+	buffer := ret.buffer
+	msg := ret.res.msg
+	if buffer.data != (*C.uchar)((unsafe.Pointer)(nil)) {
+		C.wasmjit_bytes_destroy(buffer)
+	}
+
+	if msg.data != (*C.uchar)((unsafe.Pointer)(nil)) {
+		C.wasmjit_bytes_destroy(msg)
+	}
 }
 
 // call to c
@@ -495,6 +523,7 @@ func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode
 		inputPtr = (*C.uchar)((unsafe.Pointer)(&contract.Args[0]))
 	}
 
+	// note here uint64 should condsider as ulonglong.
 	height := C.uint(this.Height)
 	block_hash := (*C.h256_t)((unsafe.Pointer)(&this.BlockHash[0]))
 	timestamp := C.ulong(this.Time)
@@ -503,19 +532,23 @@ func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode
 	witness_raw := C.wasmjit_slice_t{data: witnessPtr, len: C.uint(witness_len)}
 	input_raw := C.wasmjit_slice_t{data: inputPtr, len: C.uint(input_len)}
 	service_index := C.ulong(this.ServiceIndex)
+	exec_step := C.ulong(*this.ExecStep)
+	gas_factor := C.ulong(this.GasFactor)
 	gas_left := C.ulong(*this.GasLimit)
 	codeSlice := C.wasmjit_slice_t{data: (*C.uchar)((unsafe.Pointer)(&wasmCode[0])), len: C.uint(len(wasmCode))}
 
-	ctx := C.wasmjit_chain_context_create(height, block_hash, timestamp, tx_hash, caller_raw, witness_raw, input_raw, gas_left, service_index)
-	jit_buffer := C.wasmjit_invoke(codeSlice, ctx)
+	ctx := C.wasmjit_chain_context_create(height, block_hash, timestamp, tx_hash, caller_raw, witness_raw, input_raw, exec_step, gas_factor, gas_left, service_index)
+	jit_ret := C.wasmjit_invoke(codeSlice, ctx)
+	*this.ExecStep = uint64(jit_ret.exec_step)
+	*this.GasLimit = tuneGas(uint64(jit_ret.gas_left), wasmjit_gas_mod)
 
-	if jit_buffer.res.kind != C.uint(wasmjit_result_success) {
-		err := errors.NewErr(C.GoStringN((*C.char)((unsafe.Pointer)(jit_buffer.res.msg.data)), C.int(jit_buffer.res.msg.len)))
-		C.wasmjit_bytes_destroy(jit_buffer.res.msg)
+	if jit_ret.res.kind != C.uint(wasmjit_result_success) {
+		err := errors.NewErr(C.GoStringN((*C.char)((unsafe.Pointer)(jit_ret.res.msg.data)), C.int(jit_ret.res.msg.len)))
+		destroy_wasmjit_ret(jit_ret)
 		return nil, err
 	}
 
-	output := C.GoBytes((unsafe.Pointer)(jit_buffer.buffer.data), (C.int)(jit_buffer.buffer.len))
-	C.wasmjit_bytes_destroy(jit_buffer.buffer)
+	output := C.GoBytes((unsafe.Pointer)(jit_ret.buffer.data), (C.int)(jit_ret.buffer.len))
+	destroy_wasmjit_ret(jit_ret)
 	return output, nil
 }
