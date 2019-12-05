@@ -1001,7 +1001,10 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			log.Errorf("invalid msg with blockfetch msg type")
 			return
 		}
-		blk, blkHash := self.blockPool.getSealedBlock(pMsg.BlockNum)
+		blk, blkHash := self.blockPool.getChainedBlock(pMsg.BlockNum)
+		if blk == nil {
+			return
+		}
 		msg := self.constructBlockFetchRespMsg(pMsg.BlockNum, blk, blkHash)
 		log.Infof("server %d, handle blockfetch %d from %d",
 			self.Index, pMsg.BlockNum, peerIdx)

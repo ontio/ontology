@@ -709,6 +709,19 @@ func (pool *BlockPool) getSealedBlock(blockNum uint32) (*Block, common.Uint256) 
 	return blk, blk.Block.Hash()
 }
 
+func (pool *BlockPool) getChainedBlock(blockNum uint32) (*Block, common.Uint256) {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+
+	// get from chainstore
+	blk, err := pool.chainStore.getBlock(blockNum)
+	if err != nil {
+		log.Errorf("getSealedBlock %d err:%v", blockNum, err)
+		return nil, common.Uint256{}
+	}
+	return blk, blk.Block.Hash()
+}
+
 func (pool *BlockPool) findConsensusEmptyProposal(blockNum uint32) (*blockProposalMsg, error) {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
