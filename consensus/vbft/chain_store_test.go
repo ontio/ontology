@@ -19,15 +19,19 @@
 package vbft
 
 import (
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
-	"os"
-	"testing"
 )
+
+var testBookkeeperAccounts []*account.Account
 
 func newTestChainStore(t *testing.T) *ChainStore {
 	log.InitLog(log.InfoLog, log.Stdout)
@@ -41,20 +45,29 @@ func newTestChainStore(t *testing.T) *ChainStore {
 	if err != nil {
 		t.Fatalf("NewLedger error %s", err)
 	}
-	acc1 := account.NewAccount("")
-	acc2 := account.NewAccount("")
-	acc3 := account.NewAccount("")
-	acc4 := account.NewAccount("")
-	acc5 := account.NewAccount("")
-	acc6 := account.NewAccount("")
-	acc7 := account.NewAccount("")
 
-	bookkeepers := []keypair.PublicKey{acc1.PublicKey, acc2.PublicKey, acc3.PublicKey, acc4.PublicKey, acc5.PublicKey, acc6.PublicKey, acc7.PublicKey}
+	var bookkeepers []keypair.PublicKey
+	if len(testBookkeeperAccounts) == 0 {
+		for i := 0; i < 7; i++ {
+			acc := account.NewAccount("")
+			testBookkeeperAccounts = append(testBookkeeperAccounts, acc)
+			bookkeepers = append(bookkeepers, acc.PublicKey)
+		}
+	}
+
 	genesisConfig := config.DefConfig.Genesis
+
+	// update peers in genesis
+	for i, p := range genesisConfig.VBFT.Peers {
+		if i > 0 && i <= len(testBookkeeperAccounts) {
+			p.PeerPubkey = vconfig.PubkeyID(testBookkeeperAccounts[i-1].PublicKey)
+		}
+	}
 	block, err := genesis.BuildGenesisBlock(bookkeepers, genesisConfig)
 	if err != nil {
 		t.Fatalf("BuildGenesisBlock error %s", err)
 	}
+
 	err = db.Init(bookkeepers, block)
 	if err != nil {
 		t.Fatalf("InitLedgerStoreWithGenesisBlock error %s", err)
