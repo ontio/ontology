@@ -89,6 +89,8 @@ func TestAddBlock(t *testing.T) {
 	if err != nil {
 		t.Errorf("buildTestBlockPool err:%s", err)
 	}
+	defer cleanTestChainStore()
+
 	lastBlock, _ := blockpool.getSealedBlock(0)
 	if lastBlock == nil {
 		t.Errorf("getblock err")

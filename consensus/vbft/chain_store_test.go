@@ -81,6 +81,7 @@ func newTestChainStore(t *testing.T) *ChainStore {
 
 func cleanTestChainStore() {
 	os.RemoveAll(config.DEFAULT_DATA_DIR)
+	testBookkeeperAccounts = make([]*account.Account, 0)
 }
 
 func TestGetChainedBlockNum(t *testing.T) {
