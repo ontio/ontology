@@ -342,6 +342,52 @@ func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	return nil
 }
 
+func (self *StateStore) getCrossStates(height uint32) ([]common.Uint256, error) {
+	key := self.getCrossStatesKey()
+	data, err := self.store.Get(key)
+	if err != nil {
+		return []common.Uint256{}, err
+	}
+	source := common.NewZeroCopySource(data)
+	l := len(data) / common.UINT256_SIZE
+	hashes := make([]common.Uint256, 0, l)
+	for i := 0; i < l; i++ {
+		u256, eof := source.NextHash()
+		if eof {
+			return []common.Uint256{}, fmt.Errorf("%s", "Get states hash error!")
+		}
+		hashes = append(hashes, u256)
+	}
+	return hashes, nil
+}
+
+func (self *StateStore) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
+	states, err := self.getCrossStates(height)
+	if err != nil {
+		return common.UINT256_EMPTY, err
+	}
+	return merkle.TreeHasher{}.HashFullTreeWithLeafHash(states), nil
+}
+
+func (self *StateStore) SaveCrossStates(height uint32, crossStates []common.Uint256) error {
+	//save cross states hash
+	key := self.getCrossStatesKey()
+	sink := common.NewZeroCopySink(nil)
+	for _, v := range crossStates {
+		sink.WriteBytes(v[:])
+	}
+	self.store.BatchPut(key, sink.Bytes())
+
+	//save cross states info
+	merkle.TreeHasher{}.HashFullTreeWithLeafHash(crossStates)
+
+	return nil
+}
+
+func (self *StateStore) getCrossStatesKey() []byte {
+	return []byte{byte(scom.SYS_CURRENT_CROSS_STATES)}
+}
+
 func (self *StateStore) getCurrentBlockKey() []byte {
 	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
@@ -349,7 +395,7 @@ func (self *StateStore) getCurrentBlockKey() []byte {
 func (self *StateStore) getBookkeeperKey() ([]byte, error) {
 	key := make([]byte, 1+len(BOOKKEEPER))
 	key[0] = byte(scom.ST_BOOKKEEPER)
-	copy(key[1:], []byte(BOOKKEEPER))
+	copy(key[1:], BOOKKEEPER)
 	return key, nil
 }
 
@@ -357,7 +403,7 @@ func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte
 	data := contractHash[:]
 	key := make([]byte, 1+len(data))
 	key[0] = byte(scom.ST_CONTRACT)
-	copy(key[1:], []byte(data))
+	copy(key[1:], data)
 	return key, nil
 }
 

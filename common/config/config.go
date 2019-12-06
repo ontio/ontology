@@ -119,6 +119,16 @@ func GetStateHashCheckHeight(id uint32) uint32 {
 	return STATE_HASH_CHECK_HEIGHT[id]
 }
 
+var CROSS_CHAIN_CHECK_HEIGHT = map[uint32]uint32{
+	NETWORK_ID_MAIN_NET:    constants.CROSS_CHAIN_HEIGHT_MAINNET,
+	NETWORK_ID_POLARIS_NET: constants.CROSS_CHAIN_HEIGHT_POLARIS,
+	NETWORK_ID_SOLO_NET:    0,
+}
+
+func GetCrossChainCheckHeight(id uint32) uint32 {
+	return CROSS_CHAIN_CHECK_HEIGHT[id]
+}
+
 var OPCODE_HASKEY_ENABLE_HEIGHT = map[uint32]uint32{
 	NETWORK_ID_MAIN_NET:    constants.OPCODE_HEIGHT_UPDATE_FIRST_MAINNET, //Network main
 	NETWORK_ID_POLARIS_NET: constants.OPCODE_HEIGHT_UPDATE_FIRST_POLARIS, //Network polaris
@@ -636,6 +646,7 @@ func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
+	fmt.Println("defaultNetworkId:", defaultNetworkId, " mainNetId:", mainNetId, " polaridId:", polaridId)
 	switch defaultNetworkId {
 	case mainNetId:
 		return NETWORK_ID_MAIN_NET, nil
@@ -648,6 +659,7 @@ func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
 func (this *OntologyConfig) getDefNetworkIDFromGenesisConfig(genCfg *GenesisConfig) (uint32, error) {
 	var configData []byte
 	var err error
+	fmt.Println("this.Genesis.ConsensusType:", this.Genesis.ConsensusType)
 	switch this.Genesis.ConsensusType {
 	case CONSENSUS_TYPE_VBFT:
 		configData, err = json.Marshal(genCfg.VBFT)
@@ -661,6 +673,9 @@ func (this *OntologyConfig) getDefNetworkIDFromGenesisConfig(genCfg *GenesisConf
 	if err != nil {
 		return 0, fmt.Errorf("json.Marshal error:%s", err)
 	}
+	fmt.Println("configData:", configData)
 	data := sha256.Sum256(configData)
+	fmt.Println("v:", data)
+	fmt.Println("data:", binary.LittleEndian.Uint32(data[0:4]))
 	return binary.LittleEndian.Uint32(data[0:4]), nil
 }

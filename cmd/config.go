@@ -55,11 +55,13 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("GetDefaultNetworkId error:%s", err)
 		}
+		fmt.Println("defNetworkId:", defNetworkId, " cfg.P2PNode.NetworkId:", cfg.P2PNode.NetworkId)
 		if defNetworkId != cfg.P2PNode.NetworkId {
 			cfg.P2PNode.NetworkId = defNetworkId
 			cfg.P2PNode.NetworkMagic = config.GetNetworkMagic(defNetworkId)
 			cfg.P2PNode.NetworkName = config.GetNetworkName(defNetworkId)
 		}
+		fmt.Println("defNetworkId:", cfg.P2PNode.NetworkId, " cfg.P2PNode.NetworkId:", cfg.P2PNode.NetworkMagic)
 	}
 	return cfg, nil
 }
@@ -138,6 +140,7 @@ func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
 func setP2PNodeConfig(ctx *cli.Context, cfg *config.P2PNodeConfig) {
 	cfg.NetworkId = uint32(ctx.Uint(utils.GetFlagName(utils.NetworkIdFlag)))
 	cfg.NetworkMagic = config.GetNetworkMagic(cfg.NetworkId)
+	fmt.Println("cfg.NetworkMagic:", cfg.NetworkMagic)
 	cfg.NetworkName = config.GetNetworkName(cfg.NetworkId)
 	cfg.NodePort = ctx.Uint(utils.GetFlagName(utils.NodePortFlag))
 	cfg.HttpInfoPort = ctx.Uint(utils.GetFlagName(utils.HttpInfoPortFlag))

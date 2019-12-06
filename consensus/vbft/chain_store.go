@@ -20,6 +20,7 @@ package vbft
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -31,9 +32,10 @@ import (
 )
 
 type PendingBlock struct {
-	block        *Block
-	execResult   *store.ExecuteResult
-	hasSubmitted bool
+	block         *Block
+	crossChainMsg *types.CrossChainMsg
+	execResult    *store.ExecuteResult
+	hasSubmitted  bool
 }
 type ChainStore struct {
 	db              *ledger.Ledger
@@ -54,13 +56,18 @@ func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID) (*ChainStore, error
 		log.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", chainstore.chainedBlockNum, err)
 		return nil, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", chainstore.chainedBlockNum, err)
 	}
+	crossStatesRoot, err := db.GetCrossStatesRoot(chainstore.chainedBlockNum)
+	if err != nil {
+		log.Errorf("GetCrossStatesRoot blockNum:%d, error :%s", chainstore.chainedBlockNum, err)
+		return nil, fmt.Errorf("GetCrossStatesRoot blockNum:%d, error :%s", chainstore.chainedBlockNum, err)
+	}
 	writeSet := overlaydb.NewMemDB(1, 1)
 	block, err := chainstore.getBlock(chainstore.chainedBlockNum)
 	if err != nil {
 		return nil, err
 	}
 	log.Debugf("chainstore openblockstore pendingBlocks height:%d,", chainstore.chainedBlockNum)
-	chainstore.pendingBlocks[chainstore.chainedBlockNum] = &PendingBlock{block: block, execResult: &store.ExecuteResult{WriteSet: writeSet, MerkleRoot: merkleRoot}, hasSubmitted: true}
+	chainstore.pendingBlocks[chainstore.chainedBlockNum] = &PendingBlock{block: block, execResult: &store.ExecuteResult{WriteSet: writeSet, MerkleRoot: merkleRoot, CrossStatesRoot: crossStatesRoot}, hasSubmitted: true}
 	return chainstore, nil
 }
 
@@ -83,7 +90,13 @@ func (self *ChainStore) getExecMerkleRoot(blkNum uint32) (common.Uint256, error)
 	} else {
 		return merkleRoot, nil
 	}
+}
 
+func (self *ChainStore) getCrossStatesRoot(blkNum uint32) common.Uint256 {
+	if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
+		return blk.execResult.CrossStatesRoot
+	}
+	return common.UINT256_EMPTY
 }
 
 func (self *ChainStore) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
@@ -152,7 +165,7 @@ func (self *ChainStore) submitBlock(blkNum uint32) error {
 		return nil
 	}
 	if submitBlk, present := self.pendingBlocks[blkNum]; submitBlk != nil && submitBlk.hasSubmitted == false && present {
-		err := self.db.SubmitBlock(submitBlk.block.Block, *submitBlk.execResult)
+		err := self.db.SubmitBlock(submitBlk.block.Block, submitBlk.crossChainMsg, *submitBlk.execResult)
 		if err != nil {
 			return fmt.Errorf("ledger add submitBlk (%d, %d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), self.db.GetCurrentBlockHeight(), err)
 		}

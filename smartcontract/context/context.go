@@ -41,6 +41,7 @@ type ContextRef interface {
 	NewExecuteEngine(code []byte, txtype types.TransactionType) (Engine, error)
 	CheckUseGas(gas uint64) bool
 	CheckExecStep() bool
+	PutMerkleVal(data []byte)
 }
 
 type Engine interface {

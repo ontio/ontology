@@ -21,14 +21,14 @@ package cross_chain_manager
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/common"
 
-	acommon "github.com/ontio/multi-chain/common"
-	ancommon "github.com/ontio/multi-chain/native/service/cross_chain_manager/common"
 	"github.com/ontio/ontology/common/config"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
 	header_sync2 "github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -72,7 +72,7 @@ func putRequest(native *native.NativeService, txHash []byte, chainID uint64, req
 func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxParam) error {
 	//record cross chain tx
 	txHash := native.Tx.Hash()
-	merkleValue := &ancommon.MakeTxParam{
+	merkleValue := &ccom.MakeTxParam{
 		TxHash:              txHash.ToArray(),
 		FromContractAddress: native.ContextRef.CallingContext().ContractAddress[:],
 		ToChainID:           params.ToChainID,
@@ -80,7 +80,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 		Method:              params.Method,
 		Args:                params.Args,
 	}
-	sink := acommon.NewZeroCopySink(nil)
+	sink := common.NewZeroCopySink(nil)
 	merkleValue.Serialization(sink)
 	err := putRequest(native, merkleValue.TxHash, params.ToChainID, sink.Bytes())
 	if err != nil {
@@ -98,7 +98,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 	return nil
 }
 
-func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint64, height uint32) (*ancommon.ToMerkleValue, error) {
+func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint64, height uint32) (*ccom.ToMerkleValue, error) {
 	//get block header
 	header, err := header_sync2.GetHeaderByHeight(native, fromChainid, height)
 	if err != nil {
@@ -111,8 +111,8 @@ func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint6
 		return nil, fmt.Errorf("VerifyToOntTx, merkle.MerkleProve verify merkle proof error")
 	}
 
-	s := acommon.NewZeroCopySource(v)
-	merkleValue := new(ancommon.ToMerkleValue)
+	s := common.NewZeroCopySource(v)
+	merkleValue := new(ccom.ToMerkleValue)
 	if err := merkleValue.Deserialization(s); err != nil {
 		return nil, fmt.Errorf("VerifyToOntTx, deserialize merkleValue error:%s", err)
 	}

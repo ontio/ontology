@@ -22,11 +22,11 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
+	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	ntypes "github.com/ontio/ontology/vm/neovm/types"
-	ctypes "github.com/ontio/ontology/core/types"
 )
 
 func CrossChainNeoVMCall(this *native.NativeService, address common.Address, method string, args []byte,
@@ -78,4 +78,3 @@ func CrossChainNeoVMCall(this *native.NativeService, address common.Address, met
 	}
 	return engine.Invoke()
 }
-

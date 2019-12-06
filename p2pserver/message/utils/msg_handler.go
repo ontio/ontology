@@ -192,6 +192,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 			FromID:     data.Id,
 			BlockSize:  data.PayloadSize,
 			Block:      block.Blk,
+			CCMsg:      block.CCMsg,
 			MerkleRoot: block.MerkleRoot,
 		}
 		pid.Tell(input)

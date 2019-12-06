@@ -21,11 +21,11 @@ package header_sync
 import (
 	"fmt"
 
-	mtypes "github.com/ontio/multi-chain/core/types"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
+	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -72,12 +72,12 @@ func SyncGenesisHeader(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("SyncGenesisHeader, checkWitness error: %v", err)
 	}
 
-	header, err := mtypes.HeaderFromRawBytes(params.GenesisHeader)
+	header, err := ccom.HeaderFromRawBytes(params.GenesisHeader)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("SyncGenesisHeader, deserialize header err: %v", err)
 	}
 	//block header storage
-	err = PutBlockHeader(native, header)
+	err = PutBlockHeader(native, header, params.GenesisHeader)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("SyncGenesisHeader, put blockHeader error: %v", err)
 	}
@@ -96,7 +96,7 @@ func SyncBlockHeader(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, contract params deserialize error: %v", err)
 	}
 	for _, v := range params.Headers {
-		header, err := mtypes.HeaderFromRawBytes(v)
+		header, err := ccom.HeaderFromRawBytes(v)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, new_types.HeaderFromRawBytes error: %v", err)
 		}
@@ -108,7 +108,7 @@ func SyncBlockHeader(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, verifyHeader error: %v", err)
 		}
-		err = PutBlockHeader(native, header)
+		err = PutBlockHeader(native, header, v)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, put BlockHeader error: %v", err)
 		}

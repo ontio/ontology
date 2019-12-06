@@ -41,6 +41,7 @@ type CandidateEndorseSigInfo struct {
 	EndorsedProposer uint32
 	Signature        []byte
 	ForEmpty         bool
+	CrossChainMsgSig []byte
 }
 
 type CandidateInfo struct {
@@ -471,6 +472,9 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
+		if crossChainMsgSig, present := msg.CrossChainMsgSig[endorser]; present {
+			eSig.CrossChainMsgSig = crossChainMsgSig
+		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig, false)
 	}
 
@@ -479,6 +483,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
 		ForEmpty:         msg.CommitForEmpty,
+		CrossChainMsgSig: msg.CrossChainMsgCommitterSig,
 	}, true)
 
 	// add msg to commit-msgs
@@ -613,6 +618,9 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
 				}
+				if block.CrossChainMsg != nil {
+					block.CrossChainMsg.SigData[endorser] = sig.CrossChainMsgSig
+				}
 				break
 			}
 		}
@@ -649,27 +657,24 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 			return fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}
-
+	sealedBlock := &Block{
+		Info:                block.Info,
+		PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
+		CrossChainMsg:       block.CrossChainMsg,
+	}
 	if !forEmpty {
 		// remove empty block
-		c.SealedBlock = &Block{
-			Block:               block.Block,
-			Info:                block.Info,
-			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-		}
+		sealedBlock.Block = block.Block
 	} else {
 		// replace with empty block
-		c.SealedBlock = &Block{
-			Block:               block.EmptyBlock,
-			Info:                block.Info,
-			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-		}
+		sealedBlock.Block = block.EmptyBlock
 	}
 
 	// add block to chain store
-	if err := pool.chainStore.AddBlock(c.SealedBlock); err != nil {
+	if err := pool.chainStore.AddBlock(sealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
+	c.SealedBlock = sealedBlock
 	stateRoot, err := pool.chainStore.getExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
 	if err != nil {
 		log.Errorf("handleBlockSubmit failed:%s", err)

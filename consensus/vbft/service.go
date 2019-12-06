@@ -1081,6 +1081,18 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 	}
 }
 
+func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
+	if msg.Block.CrossChainMsg == nil {
+		return true
+	}
+	root := self.chainStore.getCrossStatesRoot(msg.Block.CrossChainMsg.Height - 1)
+	if msg.Block.CrossChainMsg.StatesRoot != root ||
+		msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
+		return false
+	}
+	return true
+}
+
 func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
 	blk, prevBlkHash := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
@@ -1143,10 +1155,12 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-
+	if !self.verifyCrossChainMsg(msg) {
+		return
+	}
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
-		height := uint32(msgBlkNum) - 1
+		height := msgBlkNum - 1
 		start, end := self.incrValidator.BlockRange()
 
 		validHeight := height

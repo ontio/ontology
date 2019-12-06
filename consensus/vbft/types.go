@@ -33,6 +33,7 @@ type Block struct {
 	EmptyBlock          *types.Block
 	Info                *vconfig.VbftBlockInfo
 	PrevBlockMerkleRoot common.Uint256
+	CrossChainMsg       *types.CrossChainMsg
 }
 
 func (blk *Block) getProposer() uint32 {

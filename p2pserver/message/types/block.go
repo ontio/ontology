@@ -28,12 +28,14 @@ import (
 
 type Block struct {
 	Blk        *types.Block
+	CCMsg      *types.CrossChainMsg
 	MerkleRoot common.Uint256
 }
 
 //Serialize message payload
 func (this *Block) Serialization(sink *common.ZeroCopySink) {
 	this.Blk.Serialization(sink)
+	this.CCMsg.Serialization(sink)
 	sink.WriteHash(this.MerkleRoot)
 }
 
@@ -49,6 +51,11 @@ func (this *Block) Deserialization(source *common.ZeroCopySource) error {
 		return fmt.Errorf("read Blk error. err:%v", err)
 	}
 
+	this.CCMsg = new(types.CrossChainMsg)
+	err = this.CCMsg.Deserialization(source)
+	if err != nil {
+		return fmt.Errorf("read CrossChainMsg error. err:%v", err)
+	}
 	eof := false
 	this.MerkleRoot, eof = source.NextHash()
 	if eof {

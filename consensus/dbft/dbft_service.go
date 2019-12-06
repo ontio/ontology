@@ -225,7 +225,7 @@ func (ds *DbftService) CheckSignatures() error {
 			if err != nil {
 				return fmt.Errorf("CheckSignatures DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 			}
-			err = ds.ledger.SubmitBlock(block, result)
+			err = ds.ledger.SubmitBlock(block, nil, result)
 			if err != nil {
 				return fmt.Errorf("CheckSignatures DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 			}

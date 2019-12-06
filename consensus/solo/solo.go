@@ -151,7 +151,7 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 	}
-	err = ledger.DefLedger.SubmitBlock(block, result)
+	err = ledger.DefLedger.SubmitBlock(block, nil, result)
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 	}

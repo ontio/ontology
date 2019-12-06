@@ -301,7 +301,7 @@ func putGlobalParam2(native *native.NativeService, contract common.Address, glob
 func validatePeerPubKeyFormat(pubkey string) error {
 	pk, err := vbftconfig.Pubkey(pubkey)
 	if err != nil {
-		return fmt.Errorf("failed to parse pubkey")
+		return fmt.Errorf("failed to parse pubkey, %s", err)
 	}
 	if !vrf.ValidatePublicKey(pk) {
 		return fmt.Errorf("invalid for VRF")
@@ -364,7 +364,7 @@ func CheckVBFTConfig(configuration *config.VBFTConfig) error {
 		}
 		//check peerPubkey
 		if err := validatePeerPubKeyFormat(peer.PeerPubkey); err != nil {
-			return fmt.Errorf("invalid peer pubkey")
+			return fmt.Errorf("invalid peer pubkey, %s", err)
 		}
 		_, err := common.AddressFromBase58(peer.Address)
 		if err != nil {

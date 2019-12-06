@@ -38,8 +38,8 @@ type Ledger struct {
 	ldgStore store.LedgerStore
 }
 
-func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
-	ldgStore, err := ledgerstore.NewLedgerStore(dataDir, stateHashHeight)
+func NewLedger(dataDir string, stateHashHeight, crossChainHeight uint32) (*Ledger, error) {
+	ldgStore, err := ledgerstore.NewLedgerStore(dataDir, stateHashHeight, crossChainHeight)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}
@@ -64,8 +64,8 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 	return self.ldgStore.AddHeaders(headers)
 }
 
-func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	err := self.ldgStore.AddBlock(block, stateMerkleRoot)
+func (self *Ledger) AddBlock(block *types.Block, ccMsg *types.CrossChainMsg, stateMerkleRoot common.Uint256) error {
+	err := self.ldgStore.AddBlock(block, ccMsg, stateMerkleRoot)
 	if err != nil {
 		log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
 	}
@@ -76,12 +76,16 @@ func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 	return self.ldgStore.ExecuteBlock(b)
 }
 
-func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
-	return self.ldgStore.SubmitBlock(b, exec)
+func (self *Ledger) SubmitBlock(b *types.Block, crossChainMsg *types.CrossChainMsg, exec store.ExecuteResult) error {
+	return self.ldgStore.SubmitBlock(b, crossChainMsg, exec)
 }
 
 func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, err error) {
 	return self.ldgStore.GetStateMerkleRoot(height)
+}
+
+func (self *Ledger) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
+	return self.ldgStore.GetCrossStatesRoot(height)
 }
 
 func (self *Ledger) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {

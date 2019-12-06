@@ -124,7 +124,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
-	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
+	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify, crossHashes []common.Uint256) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
@@ -203,6 +203,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		Gas:          availableGasLimit - codeLenGasLimit,
 		WasmExecStep: sysconfig.DEFAULT_WASM_MAX_STEPCOUNT,
 		PreExec:      false,
+		CrossHashes:  crossHashes,
 	}
 
 	//start the smart contract executive function
