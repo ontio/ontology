@@ -150,8 +150,8 @@ func (self *ChainStore) submitBlock(blkNum uint32) error {
 	}
 	if submitBlk, present := self.pendingBlocks[blkNum]; submitBlk != nil && submitBlk.hasSubmitted == false && present {
 		err := self.db.SubmitBlock(submitBlk.block.Block, *submitBlk.execResult)
-		if err != nil && blkNum > self.GetChainedBlockNum() {
-			return fmt.Errorf("ledger add submitBlk (%d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), err)
+		if err != nil {
+			return fmt.Errorf("ledger add submitBlk (%d, %d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), self.db.GetCurrentBlockHeight(), err)
 		}
 		if _, present := self.pendingBlocks[blkNum-1]; present {
 			delete(self.pendingBlocks, blkNum-1)

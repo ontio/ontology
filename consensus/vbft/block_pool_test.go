@@ -19,11 +19,15 @@
 package vbft
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
+	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -42,6 +46,11 @@ func buildTestBlock(t *testing.T, lastBlock *types.Block, lgr *ledger.Ledger) (*
 	txRoot := common.ComputeMerkleRoot(txHash)
 	blockRoot := lgr.GetBlockRootWithNewTxRoots(lastBlock.Header.Height, []common.Uint256{lastBlock.Header.TransactionsRoot, txRoot})
 
+	consensusPayload, err := json.Marshal(&vconfig.VbftBlockInfo{})
+	if err != nil {
+		t.Fatalf("failed to build consensus payload: %s", err)
+	}
+
 	blkHeader := &types.Header{
 		PrevBlockHash:    lastBlock.Header.Hash(),
 		TransactionsRoot: txRoot,
@@ -49,8 +58,23 @@ func buildTestBlock(t *testing.T, lastBlock *types.Block, lgr *ledger.Ledger) (*
 		Timestamp:        timestamp,
 		Height:           lastBlock.Header.Height + 1,
 		ConsensusData:    common.GetNonce(),
-		ConsensusPayload: nil,
+		ConsensusPayload: consensusPayload,
+		Bookkeepers:      make([]keypair.PublicKey, 0),
+		SigData:          make([][]byte, 0),
 	}
+
+	// add sigs
+	hash := blkHeader.Hash()
+	for i := 0; i < 5; i++ {
+		acc := testBookkeeperAccounts[i]
+		sig, err := signature.Sign(acc, hash[:])
+		if err != nil {
+			t.Fatalf("bookkeeper %d sign block: %s", i, err)
+		}
+		blkHeader.Bookkeepers = append(blkHeader.Bookkeepers, acc.PublicKey)
+		blkHeader.SigData = append(blkHeader.SigData, sig)
+	}
+
 	blk := &types.Block{
 		Header:       blkHeader,
 		Transactions: txs,
@@ -65,6 +89,8 @@ func TestAddBlock(t *testing.T) {
 	if err != nil {
 		t.Errorf("buildTestBlockPool err:%s", err)
 	}
+	defer cleanTestChainStore()
+
 	lastBlock, _ := blockpool.getSealedBlock(0)
 	if lastBlock == nil {
 		t.Errorf("getblock err")
