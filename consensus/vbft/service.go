@@ -2036,7 +2036,7 @@ func (self *Server) fastForwardBlock(block *Block) error {
 	if self.GetCurrentBlockNo() == block.getBlockNum() {
 		// block from peer syncer, there should only one candidate block
 		flag := false
-		if len(block.Block.Header.SigData) == 0 {
+		if len(block.Block.Header.SigData) <= 1 {
 			flag = true
 		}
 		return self.sealBlock(block, false, flag)
