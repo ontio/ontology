@@ -21,6 +21,7 @@ package common
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -538,12 +539,18 @@ type CrossChainMsg struct {
 
 	Bookkeepers []keypair.PublicKey
 	SigData     [][]byte
+
+	hash *common.Uint256
 }
 
-func (this *CrossChainMsg) Serialization(sink *common.ZeroCopySink) error {
+func (this *CrossChainMsg) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteByte(this.Version)
 	sink.WriteUint32(this.Height)
 	sink.WriteBytes(this.StatesRoot[:])
+}
+
+func (this *CrossChainMsg) Serialization(sink *common.ZeroCopySink) error {
+	this.serializationUnsigned(sink)
 	sink.WriteVarUint(uint64(len(this.Bookkeepers)))
 	for _, v := range this.Bookkeepers {
 		sink.WriteVarBytes(keypair.SerializePublicKey(v))
@@ -600,4 +607,16 @@ func (this *CrossChainMsg) Deserialization(source *common.ZeroCopySource) error 
 	}
 
 	return nil
+}
+
+func (this *CrossChainMsg) Hash() common.Uint256 {
+	if this.hash != nil {
+		return *this.hash
+	}
+	sink := common.NewZeroCopySink(nil)
+	this.serializationUnsigned(sink)
+	temp := sha256.Sum256(sink.Bytes())
+	hash := common.Uint256(sha256.Sum256(temp[:]))
+	this.hash = &hash
+	return hash
 }
