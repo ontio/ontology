@@ -48,6 +48,22 @@ func (this *CrossChainStore) SaveMsgToCrossChainStore(crossChainMsg *types.Cross
 	return nil
 }
 
+func (this *CrossChainStore) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
+	sink := common.NewZeroCopySink(nil)
+	key := this.genCrossChainMsgKey(sink, height)
+	sink.Reset()
+	value, err := this.store.Get(key)
+	if err != nil {
+		return nil, err
+	}
+	source := common.NewZeroCopySource(value)
+	msg := new(types.CrossChainMsg)
+	if err := msg.Deserialization(source); err != nil {
+		return nil, err
+	}
+	return msg, nil
+}
+
 func (this *CrossChainStore) genCrossChainMsgKey(sink *common.ZeroCopySink, height uint32) []byte {
 	sink.WriteByte(byte(scom.SYS_CROSS_CHAIN_MSG))
 	sink.WriteUint32(height)

@@ -70,6 +70,7 @@ type LedgerStore interface {
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
 
-	//cross chain
+	//cross chain states root
 	GetCrossStatesRoot(height uint32) (common.Uint256, error)
+	GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error)
 }

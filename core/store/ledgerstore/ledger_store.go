@@ -603,7 +603,6 @@ func (this *LedgerStoreImp) SubmitBlock(block *types.Block, ccMsg *types.CrossCh
 		}
 	}
 
-
 	err = this.submitBlock(block, ccMsg, result)
 	if err != nil {
 		return fmt.Errorf("saveBlock error %s", err)
@@ -992,6 +991,10 @@ func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoo
 
 func (this *LedgerStoreImp) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
 	return this.stateStore.GetCrossStatesRoot(height)
+}
+
+func (this *LedgerStoreImp) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
+	return this.crossChainStore.GetCrossChainMsg(height)
 }
 
 //GetBlockHash return the block hash by block height

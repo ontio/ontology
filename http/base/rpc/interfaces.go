@@ -594,3 +594,19 @@ func GetGrantOng(params []interface{}) map[string]interface{} {
 	}
 	return responseSuccess(rsp)
 }
+
+//get cross chain message by height
+func GetCrossChainMsg(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	height, ok := (params[0]).(float64)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	rsp, err := bactor.GetCrossChainMsg(uint32(height))
+	if err != nil {
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	return responseSuccess(rsp)
+}

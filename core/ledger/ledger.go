@@ -195,6 +195,10 @@ func (self *Ledger) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify
 	return self.ldgStore.GetEventNotifyByBlock(height)
 }
 
+func (self *Ledger) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
+	return self.ldgStore.GetCrossChainMsg(height)
+}
+
 func (self *Ledger) Close() error {
 	return self.ldgStore.Close()
 }

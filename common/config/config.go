@@ -659,7 +659,6 @@ func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
 func (this *OntologyConfig) getDefNetworkIDFromGenesisConfig(genCfg *GenesisConfig) (uint32, error) {
 	var configData []byte
 	var err error
-	fmt.Println("this.Genesis.ConsensusType:", this.Genesis.ConsensusType)
 	switch this.Genesis.ConsensusType {
 	case CONSENSUS_TYPE_VBFT:
 		configData, err = json.Marshal(genCfg.VBFT)
@@ -673,9 +672,6 @@ func (this *OntologyConfig) getDefNetworkIDFromGenesisConfig(genCfg *GenesisConf
 	if err != nil {
 		return 0, fmt.Errorf("json.Marshal error:%s", err)
 	}
-	fmt.Println("configData:", configData)
 	data := sha256.Sum256(configData)
-	fmt.Println("v:", data)
-	fmt.Println("data:", binary.LittleEndian.Uint32(data[0:4]))
 	return binary.LittleEndian.Uint32(data[0:4]), nil
 }
