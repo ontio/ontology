@@ -111,3 +111,7 @@ func GetMerkleProof(proofHeight uint32, rootHeight uint32) ([]common.Uint256, er
 func GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
 	return ledger.DefLedger.GetCrossChainMsg(height)
 }
+
+func GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	return ledger.DefLedger.GetCrossStatesProof(height, key)
+}

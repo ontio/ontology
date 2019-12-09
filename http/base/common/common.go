@@ -106,6 +106,12 @@ type Sig struct {
 	M       uint16
 	SigData []string
 }
+
+type CrossStatesProof struct {
+	Type      string
+	AuditPath string
+}
+
 type Transactions struct {
 	Version    byte
 	Nonce      uint32

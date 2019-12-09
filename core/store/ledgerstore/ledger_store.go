@@ -23,6 +23,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"github.com/ontio/ontology/merkle"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
 	"hash"
 	"math"
@@ -995,6 +996,22 @@ func (this *LedgerStoreImp) GetCrossStatesRoot(height uint32) (common.Uint256, e
 
 func (this *LedgerStoreImp) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
 	return this.crossChainStore.GetCrossChainMsg(height)
+}
+
+func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	hashes, err := this.stateStore.GetCrossStates(height)
+	if err != nil {
+		return nil, fmt.Errorf("GetCrossStates:%s", err)
+	}
+	item, err := this.stateStore.GetStorageState(&states.StorageKey{ContractAddress: utils.CrossChainContractAddress, Key: key})
+	if err != nil {
+		return nil, fmt.Errorf("GetStorageState key:%x", key)
+	}
+	path, err := merkle.MerkleLeafPath(item.Value, hashes)
+	if err != nil {
+		return nil, err
+	}
+	return path, nil
 }
 
 //GetBlockHash return the block hash by block height

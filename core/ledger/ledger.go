@@ -199,6 +199,10 @@ func (self *Ledger) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error
 	return self.ldgStore.GetCrossChainMsg(height)
 }
 
+func (self *Ledger) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	return self.ldgStore.GetCrossStatesProof(height, key)
+}
+
 func (self *Ledger) Close() error {
 	return self.ldgStore.Close()
 }

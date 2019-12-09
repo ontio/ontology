@@ -342,8 +342,8 @@ func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	return nil
 }
 
-func (self *StateStore) getCrossStates(height uint32) ([]common.Uint256, error) {
-	key := self.getCrossStatesKey()
+func (self *StateStore) GetCrossStates(height uint32) ([]common.Uint256, error) {
+	key := self.genCrossStatesKey(height)
 	data, err := self.store.Get(key)
 	if err != nil {
 		return []common.Uint256{}, err
@@ -362,7 +362,7 @@ func (self *StateStore) getCrossStates(height uint32) ([]common.Uint256, error) 
 }
 
 func (self *StateStore) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
-	states, err := self.getCrossStates(height)
+	states, err := self.GetCrossStates(height)
 	if err != nil {
 		return common.UINT256_EMPTY, err
 	}
@@ -371,21 +371,20 @@ func (self *StateStore) GetCrossStatesRoot(height uint32) (common.Uint256, error
 
 func (self *StateStore) SaveCrossStates(height uint32, crossStates []common.Uint256) error {
 	//save cross states hash
-	key := self.getCrossStatesKey()
+	key := self.genCrossStatesKey(height)
 	sink := common.NewZeroCopySink(nil)
 	for _, v := range crossStates {
 		sink.WriteBytes(v[:])
 	}
 	self.store.BatchPut(key, sink.Bytes())
-
-	//save cross states info
-	merkle.TreeHasher{}.HashFullTreeWithLeafHash(crossStates)
-
 	return nil
 }
 
-func (self *StateStore) getCrossStatesKey() []byte {
-	return []byte{byte(scom.SYS_CURRENT_CROSS_STATES)}
+func (self *StateStore) genCrossStatesKey(height uint32) []byte {
+	key := make([]byte, 5)
+	key[0] = byte(scom.ST_BOOKKEEPER)
+	binary.LittleEndian.PutUint32(key[1:], height)
+	return key
 }
 
 func (self *StateStore) getCurrentBlockKey() []byte {
