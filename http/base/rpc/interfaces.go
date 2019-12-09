@@ -604,11 +604,25 @@ func GetCrossChainMsg(params []interface{}) map[string]interface{} {
 	if !ok {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	rsp, err := bactor.GetCrossChainMsg(uint32(height))
+	msg, err := bactor.GetCrossChainMsg(uint32(height))
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
-	return responseSuccess(rsp)
+	block, err := bactor.GetBlockByHeight(uint32(height))
+	if err != nil {
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	sigData := make([][]byte, len(msg.SigData))
+	for _, v := range msg.SigData {
+		sigData = append(sigData, v)
+	}
+	return responseSuccess(bcomn.CrossChainMsg{
+		Version: msg.Version,
+		Height: msg.Height,
+		StatesRoot: msg.StatesRoot,
+		Bookkeepers: block.Header.Bookkeepers,
+		SigData: sigData,
+	})
 }
 
 //get cross chain state proof

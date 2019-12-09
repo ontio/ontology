@@ -112,6 +112,15 @@ type CrossStatesProof struct {
 	AuditPath string
 }
 
+type CrossChainMsg struct {
+	Version    byte
+	Height     uint32
+	StatesRoot common.Uint256
+
+	Bookkeepers []keypair.PublicKey
+	SigData [][]byte
+}
+
 type Transactions struct {
 	Version    byte
 	Nonce      uint32
