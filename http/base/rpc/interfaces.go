@@ -617,11 +617,11 @@ func GetCrossChainMsg(params []interface{}) map[string]interface{} {
 		sigData = append(sigData, v)
 	}
 	return responseSuccess(bcomn.CrossChainMsg{
-		Version: msg.Version,
-		Height: msg.Height,
-		StatesRoot: msg.StatesRoot,
+		Version:     msg.Version,
+		Height:      msg.Height,
+		StatesRoot:  msg.StatesRoot,
 		Bookkeepers: block.Header.Bookkeepers,
-		SigData: sigData,
+		SigData:     sigData,
 	})
 }
 

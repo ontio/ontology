@@ -112,15 +112,6 @@ type CrossStatesProof struct {
 	AuditPath string
 }
 
-type CrossChainMsg struct {
-	Version    byte
-	Height     uint32
-	StatesRoot common.Uint256
-
-	Bookkeepers []keypair.PublicKey
-	SigData [][]byte
-}
-
 type Transactions struct {
 	Version    byte
 	Nonce      uint32
@@ -538,4 +529,75 @@ func GetSyncStatus() (SyncStatus, error) {
 		ConnectCount:       cnt,
 		MaxPeerBlockHeight: height,
 	}, nil
+}
+
+type CrossChainMsg struct {
+	Version    byte
+	Height     uint32
+	StatesRoot common.Uint256
+
+	Bookkeepers []keypair.PublicKey
+	SigData     [][]byte
+}
+
+func (this *CrossChainMsg) Serialization(sink *common.ZeroCopySink) error {
+	sink.WriteByte(this.Version)
+	sink.WriteUint32(this.Height)
+	sink.WriteBytes(this.StatesRoot[:])
+	sink.WriteVarUint(uint64(len(this.Bookkeepers)))
+	for _, v := range this.Bookkeepers {
+		sink.WriteVarBytes(keypair.SerializePublicKey(v))
+	}
+	sink.WriteVarUint(uint64(len(this.SigData)))
+	for _, sig := range this.SigData {
+		sink.WriteVarBytes(sig)
+	}
+	return nil
+}
+
+func (this *CrossChainMsg) Deserialization(source *common.ZeroCopySource) error {
+	var eof bool
+	this.Version, eof = source.NextByte()
+	if eof {
+		return fmt.Errorf("CrossChainMsg, deserialization read version error")
+	}
+	this.Height, eof = source.NextUint32()
+	if eof {
+		return fmt.Errorf("CrossChainMsg, deserialization read height error")
+	}
+	this.StatesRoot, eof = source.NextHash()
+	if eof {
+		return fmt.Errorf("CrossChainMsg, deserialization read statesRoot error")
+	}
+	n, _, irregular, eof := source.NextVarUint()
+	if eof || irregular {
+		return fmt.Errorf("CrossChainMsg, deserialization read bookkeeper lenght error")
+	}
+
+	for i := 0; i < int(n); i++ {
+		buf, _, irregular, eof := source.NextVarBytes()
+		if eof || irregular {
+			return fmt.Errorf("CrossChainMsg, deserialization read bookkeeper error")
+		}
+		pubkey, err := keypair.DeserializePublicKey(buf)
+		if err != nil {
+			return err
+		}
+		this.Bookkeepers = append(this.Bookkeepers, pubkey)
+	}
+
+	m, _, irregular, eof := source.NextVarUint()
+	if eof || irregular {
+		return fmt.Errorf("CrossChainMsg, deserialization read sigData lenght error")
+	}
+
+	for i := 0; i < int(m); i++ {
+		sig, _, irregular, eof := source.NextVarBytes()
+		if eof || irregular {
+			return fmt.Errorf("CrossChainMsg, deserialization read sigData error")
+		}
+		this.SigData = append(this.SigData, sig)
+	}
+
+	return nil
 }
