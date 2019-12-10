@@ -915,6 +915,12 @@ func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoo
 	if this.currBlockHeight > startHeight+uint32(len(txRoots))-1 {
 		// or return error?
 		return common.UINT256_EMPTY
+	} else if this.currBlockHeight+1 < startHeight {
+		// this should never happen in normal case
+		log.Fatalf("GetBlockRootWithNewTxRoots: invalid param: curr height: %d, start height: %d",
+			this.currBlockHeight, startHeight)
+
+		return common.UINT256_EMPTY
 	}
 
 	needs := txRoots[this.currBlockHeight+1-startHeight:]
