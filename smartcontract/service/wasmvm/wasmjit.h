@@ -94,7 +94,7 @@ void wasmjit_resolver_destroy(wasmjit_resolver_t *resolver);
 
 wasmjit_resolver_t *wasmjit_simple_resolver_create(void);
 
-bool wasmjit_validate(wasmjit_slice_t wasm);
+wasmjit_result_t wasmjit_validate(wasmjit_slice_t wasm);
 
 wasmjit_result_t wasmjit_vmctx_memory(wasmjit_vmctx_t *ctx, wasmjit_slice_t *result);
 #endif

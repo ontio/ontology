@@ -55,7 +55,8 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	)
 
 	if deploy.VmType() == payload.WASMVM_TYPE {
-		_, err = wasmvm.ReadWasmModule(deploy.GetRawCode(), true)
+		code := deploy.GetRawCode()
+		err := wasmvm.WasmjitValidate(code)
 		if err != nil {
 			return err
 		}

@@ -1101,7 +1101,8 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 		deploy := tx.Payload.(*payload.DeployCode)
 
 		if deploy.VmType() == payload.WASMVM_TYPE {
-			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), true)
+			wasmCode := deploy.GetRawCode()
+			err := wasmvm.WasmjitValidate(wasmCode)
 			if err != nil {
 				return stf, err
 			}

@@ -55,6 +55,18 @@ const (
 	wasmjit_gas_mod             uint64 = 200
 )
 
+func WasmjitValidate(wasmCode []byte) error {
+	codeSlice := C.wasmjit_slice_t{data: (*C.uchar)((unsafe.Pointer)(&wasmCode[0])), len: C.uint(len(wasmCode))}
+	result := C.wasmjit_validate(codeSlice)
+	if result.kind != C.uint(wasmjit_result_success) {
+		err := errors.NewErr(C.GoStringN((*C.char)((unsafe.Pointer)(result.msg.data)), C.int(result.msg.len)))
+		C.wasmjit_bytes_destroy(result.msg)
+		return err
+	}
+
+	return nil
+}
+
 func getContractType(Service *WasmVmService, addr common.Address) (ContractType, error) {
 	if utils.IsNativeContract(addr) {
 		return NATIVE_CONTRACT, nil
