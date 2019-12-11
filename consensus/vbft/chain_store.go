@@ -157,7 +157,7 @@ func (self *ChainStore) submitBlock(blkNum uint32) error {
 			return fmt.Errorf("ledger add submitBlk (%d, %d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), self.db.GetCurrentBlockHeight(), err)
 		}
 		if _, present := self.pendingBlocks[blkNum-1]; present {
-			log.Infof("chainstore submitBlock delete pendingBlocks height:%d,block height:%d",blkNum-1)
+			log.Infof("chainstore submitBlock delete pendingBlocks height:%d",blkNum-1)
 			delete(self.pendingBlocks, blkNum-1)
 		}
 		submitBlk.hasSubmitted = true
