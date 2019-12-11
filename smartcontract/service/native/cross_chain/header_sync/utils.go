@@ -118,7 +118,7 @@ func GetHeaderByHash(native *native.NativeService, chainID uint64, hash common.U
 
 //verify header of any height
 //find key height and get consensus peer first, then check the sign
-func verifyHeader(native *native.NativeService, header *ccom.Header) error {
+func VerifyHeader(native *native.NativeService, header *ccom.Header) error {
 	height := header.Height
 	//search consensus peer
 	keyHeight, err := findKeyHeight(native, height, header.ChainID)

@@ -75,6 +75,7 @@ type ProcessCrossChainTxParam struct {
 	FromChainID uint64
 	Height      uint32
 	Proof       string
+	Header      []byte
 }
 
 func (this *ProcessCrossChainTxParam) Serialization(sink *common.ZeroCopySink) {
@@ -82,6 +83,7 @@ func (this *ProcessCrossChainTxParam) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, this.FromChainID)
 	utils.EncodeVarUint(sink, uint64(this.Height))
 	utils.EncodeString(sink, this.Proof)
+	utils.EncodeVarBytes(sink, this.Header)
 }
 
 func (this *ProcessCrossChainTxParam) Deserialization(source *common.ZeroCopySource) error {
@@ -101,10 +103,15 @@ func (this *ProcessCrossChainTxParam) Deserialization(source *common.ZeroCopySou
 	if err != nil {
 		return fmt.Errorf("ProcessCrossChainTxParam deserialize proof error:%s", err)
 	}
+	header, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("ProcessCrossChainTxParam deserialize header error:%s", err)
+	}
 	this.Address = address
 	this.FromChainID = fromChainID
 	this.Height = uint32(height)
 	this.Proof = proof
+	this.Header = header
 	return nil
 }
 

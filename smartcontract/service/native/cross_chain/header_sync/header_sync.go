@@ -104,7 +104,7 @@ func SyncBlockHeader(native *native.NativeService) ([]byte, error) {
 		if err == nil {
 			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, %d, %d", header.ChainID, header.Height)
 		}
-		err = verifyHeader(native, header)
+		err = VerifyHeader(native, header)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, verifyHeader error: %v", err)
 		}

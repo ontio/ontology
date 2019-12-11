@@ -21,6 +21,7 @@ package cross_chain_manager
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
@@ -75,11 +76,34 @@ func ProcessCrossChainTx(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, contract params deserialize error: %v", err)
 	}
 
+	//get block header
+	header, err := header_sync.GetHeaderByHeight(native, params.FromChainID, params.Height)
+	if header == nil {
+		header2 := new(ccom.Header)
+		err := header2.Deserialization(common.NewZeroCopySource(params.Header))
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, deserialize header error: %v", err)
+		}
+		err = header_sync.VerifyHeader(native, header2)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, header_sync.VerifyHeader error: %v", err)
+		}
+		err = header_sync.PutBlockHeader(native, header, params.Header)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, put BlockHeader error: %v", err)
+		}
+		err = header_sync.UpdateConsensusPeer(native, header)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, update ConsensusPeer error: %v", err)
+		}
+		header = header2
+	}
+
 	proof, err := hex.DecodeString(params.Proof)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, proof hex.DecodeString error: %v", err)
 	}
-	merkleValue, err := VerifyToOntTx(native, proof, params.FromChainID, params.Height)
+	merkleValue, err := VerifyToOntTx(native, proof, params.FromChainID, header)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, VerifyOntTx error: %v", err)
 	}

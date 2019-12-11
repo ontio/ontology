@@ -29,7 +29,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
-	header_sync2 "github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -98,14 +97,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 	return nil
 }
 
-func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint64, height uint32) (*ccom.ToMerkleValue, error) {
-	//get block header
-	header, err := header_sync2.GetHeaderByHeight(native, fromChainid, height)
-	if err != nil {
-		return nil, fmt.Errorf("VerifyToOntTx, get header by height %d from chain %d error: %v",
-			height, fromChainid, err)
-	}
-
+func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint64, header *ccom.Header) (*ccom.ToMerkleValue, error) {
 	v, err := merkle.MerkleProve(proof, header.CrossStatesRoot.ToArray())
 	if err != nil {
 		return nil, fmt.Errorf("VerifyToOntTx, merkle.MerkleProve verify merkle proof error")
