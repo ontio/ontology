@@ -345,7 +345,7 @@ func (self *StateMgr) isSyncedReady() bool {
 	if !ok {
 		return false
 	}
-	if self.server.GetCommittedBlockNo() >= committedBlkNum {
+	if self.server.GetCommittedBlockNo() > committedBlkNum {
 		return true
 	}
 
@@ -440,7 +440,9 @@ func (self *StateMgr) getConsensusedCommittedBlockNum() (uint32, bool) {
 			}
 		}
 	}
-
+	if maxCommitted > 1 {
+		return maxCommitted-1, consensused
+	}
 	return maxCommitted, consensused
 }
 
