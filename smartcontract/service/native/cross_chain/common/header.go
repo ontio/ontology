@@ -60,9 +60,14 @@ func HeaderFromRawBytes(raw []byte) (*Header, error) {
 }
 
 func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
+	if bd.Version > CURR_HEADER_VERSION {
+		panic(fmt.Errorf("invalid header %d over max version:%d", bd.Version, CURR_HEADER_VERSION))
+	}
 	sink.WriteUint32(bd.Version)
+	sink.WriteUint64(bd.ChainID)
 	sink.WriteBytes(bd.PrevBlockHash[:])
 	sink.WriteBytes(bd.TransactionsRoot[:])
+	sink.WriteBytes(bd.CrossStatesRoot[:])
 	sink.WriteBytes(bd.BlockRoot[:])
 	sink.WriteUint32(bd.Timestamp)
 	sink.WriteUint32(bd.Height)
