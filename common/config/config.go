@@ -646,7 +646,6 @@ func (this *OntologyConfig) GetDefaultNetworkId() (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	fmt.Println("defaultNetworkId:", defaultNetworkId, " mainNetId:", mainNetId, " polaridId:", polaridId)
 	switch defaultNetworkId {
 	case mainNetId:
 		return NETWORK_ID_MAIN_NET, nil
