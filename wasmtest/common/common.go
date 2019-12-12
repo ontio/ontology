@@ -19,6 +19,7 @@ package common
 
 import (
 	"bytes"
+	"fmt"
 
 	"encoding/json"
 	utils2 "github.com/ontio/ontology/cmd/utils"
@@ -86,11 +87,14 @@ type TestContext struct {
 }
 
 func GenWasmTransaction(testCase TestCase, contract common.Address, testConext *TestContext) (*types.Transaction, error) {
+	var allParam []interface{}
 	params, err := utils2.ParseParams(testCase.Param)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[%s]: You follow example \"int:2,string:\"hello world\",address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,[int:1,int:2],bytearray:60c56b6a00527a\" ", err)
 	}
-	allParam := append([]interface{}{}, testCase.Method)
+	if len(testCase.Method) != 0 {
+		allParam = append([]interface{}{}, testCase.Method)
+	}
 	allParam = append(allParam, params...)
 	tx, err := utils.NewWasmVMInvokeTransaction(0, 100000000, contract, allParam)
 	if err != nil {
@@ -162,11 +166,14 @@ func buildTestConextForNeo(testConext *TestContext) []byte {
 }
 
 func GenNeoVMTransaction(testCase TestCase, contract common.Address, testConext *TestContext) (*types.Transaction, error) {
+	var allParam []interface{}
 	params, err := utils2.ParseParams(testCase.Param)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("[%s]: You follow example \"int:2,string:\"hello world\",address:Ab1z3Sxy7ovn4AuScdmMh4PRMvcwCMzSNV,[int:1,int:2],bytearray:60c56b6a00527a\" ", err)
 	}
-	allParam := append([]interface{}{}, testCase.Method)
+	if len(testCase.Method) != 0 {
+		allParam = append([]interface{}{}, testCase.Method)
+	}
 	allParam = append(allParam, params...)
 	tx, err := common2.NewNeovmInvokeTransaction(0, 100000000, contract, allParam)
 	if err != nil {
