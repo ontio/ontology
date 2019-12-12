@@ -224,20 +224,20 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg, error) {
 	root := self.chainStore.getCrossStatesRoot(blkNum)
 
-	info := &types.CrossChainMsg{
+	msg := &types.CrossChainMsg{
 		Version:    types.CURR_CROSS_STATES_VERSION,
 		Height:     blkNum,
 		StatesRoot: root,
 	}
-	hash := info.Hash()
+	hash := msg.Hash()
 	sig, err := signature.Sign(self.account, hash[:])
 	if err != nil {
 		return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
 	}
 	sigData := make(map[uint32][]byte)
 	sigData[self.Index] = sig
-	info.SigData = sigData
-	return info, nil
+	msg.SigData = sigData
+	return msg, nil
 }
 
 func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types.Transaction, chainconfig *vconfig.ChainConfig) (*blockProposalMsg, error) {

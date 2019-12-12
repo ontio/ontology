@@ -20,7 +20,6 @@ package vbft
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -32,10 +31,9 @@ import (
 )
 
 type PendingBlock struct {
-	block         *Block
-	crossChainMsg *types.CrossChainMsg
-	execResult    *store.ExecuteResult
-	hasSubmitted  bool
+	block        *Block
+	execResult   *store.ExecuteResult
+	hasSubmitted bool
 }
 type ChainStore struct {
 	db              *ledger.Ledger
@@ -165,7 +163,7 @@ func (self *ChainStore) submitBlock(blkNum uint32) error {
 		return nil
 	}
 	if submitBlk, present := self.pendingBlocks[blkNum]; submitBlk != nil && submitBlk.hasSubmitted == false && present {
-		err := self.db.SubmitBlock(submitBlk.block.Block, submitBlk.crossChainMsg, *submitBlk.execResult)
+		err := self.db.SubmitBlock(submitBlk.block.Block, submitBlk.block.CrossChainMsg, *submitBlk.execResult)
 		if err != nil {
 			return fmt.Errorf("ledger add submitBlk (%d, %d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), self.db.GetCurrentBlockHeight(), err)
 		}

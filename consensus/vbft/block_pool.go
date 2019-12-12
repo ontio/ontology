@@ -300,6 +300,7 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
+		CrossChainMsgSig: msg.CrossChainMsgEndorserSig,
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig, false)
 }
