@@ -70,10 +70,10 @@ func CrossChainNeoVMCall(this *native.NativeService, address common.Address, met
 		return nil, err
 	}
 	evalStack := engine.(*neovm.NeoVmService).Engine.EvalStack
-	if err := evalStack.Push(m); err != nil {
+	if err := evalStack.Push(ntypes.VmValueFromArrayVal(array)); err != nil {
 		return nil, err
 	}
-	if err := evalStack.Push(ntypes.VmValueFromArrayVal(array)); err != nil {
+	if err := evalStack.Push(m); err != nil {
 		return nil, err
 	}
 	return engine.Invoke()
