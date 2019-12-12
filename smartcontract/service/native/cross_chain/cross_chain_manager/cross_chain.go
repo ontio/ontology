@@ -88,11 +88,11 @@ func ProcessCrossChainTx(native *native.NativeService) ([]byte, error) {
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, header_sync.VerifyHeader error: %v", err)
 		}
-		err = header_sync.PutBlockHeader(native, header, params.Header)
+		err = header_sync.PutBlockHeader(native, header2, params.Header)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, put BlockHeader error: %v", err)
 		}
-		err = header_sync.UpdateConsensusPeer(native, header)
+		err = header_sync.UpdateConsensusPeer(native, header2)
 		if err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, update ConsensusPeer error: %v", err)
 		}
