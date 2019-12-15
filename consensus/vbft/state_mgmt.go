@@ -379,7 +379,7 @@ func (self *StateMgr) checkStartSyncing(startBlkNum uint32, forceSync bool) {
 	var maxCommitted uint32
 	peers := make(map[uint32][]uint32)
 	for _, p := range self.peers {
-		n := p.committedBlockNum
+		n := p.committedBlockNum - 1
 		if n > startBlkNum {
 			if _, present := peers[n]; !present {
 				peers[n] = make([]uint32, 0)
