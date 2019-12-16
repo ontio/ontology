@@ -2081,7 +2081,7 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		self.restartSyncing()
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
-	log.Infof("seal block cross chian message:%+v\n", block.CrossChainMsg)
+	
 	if err := self.blockPool.setBlockSealed(block, empty, sigdata); err != nil {
 		return fmt.Errorf("failed to seal proposal: %s", err)
 	}
