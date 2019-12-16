@@ -43,7 +43,7 @@ func (this *CrossChainMsg) serializationUnsigned(sink *common.ZeroCopySink) {
 	sink.WriteBytes(this.StatesRoot[:])
 }
 
-func (this *CrossChainMsg) Serialization(sink *common.ZeroCopySink) error {
+func (this *CrossChainMsg) Serialization(sink *common.ZeroCopySink) {
 	this.serializationUnsigned(sink)
 	sink.WriteVarUint(uint64(len(this.SigData)))
 	index := make([]uint32, 0, len(this.SigData))
@@ -55,7 +55,6 @@ func (this *CrossChainMsg) Serialization(sink *common.ZeroCopySink) error {
 		sink.WriteUint32(sig)
 		sink.WriteVarBytes(this.SigData[sig])
 	}
-	return nil
 }
 
 func (this *CrossChainMsg) Deserialization(source *common.ZeroCopySource) error {

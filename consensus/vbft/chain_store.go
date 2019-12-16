@@ -20,6 +20,7 @@ package vbft
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -185,12 +186,18 @@ func (self *ChainStore) getBlock(blockNum uint32) (*Block, error) {
 		return nil, err
 	}
 	prevMerkleRoot := common.Uint256{}
+	var crossChainMsg *types.CrossChainMsg
 	if blockNum > 1 {
 		prevMerkleRoot, err = self.db.GetStateMerkleRoot(blockNum - 1)
 		if err != nil {
 			log.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blockNum, err)
 			return nil, fmt.Errorf("GetStateMerkleRoot blockNum:%d, error :%s", blockNum, err)
 		}
+		crossChainMsg, err = self.db.GetCrossChainMsg(blockNum - 1)
+		if err != nil {
+			log.Errorf("GetCrossChainMsg blockNum:%d, error :%s", blockNum, err)
+			return nil, fmt.Errorf("v blockNum:%d, error :%s", blockNum, err)
+		}
 	}
-	return initVbftBlock(block, prevMerkleRoot)
+	return initVbftBlock(block, crossChainMsg, prevMerkleRoot)
 }

@@ -287,10 +287,13 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
 	}
-
-	crossChainMsg, err := self.constructCrossChainMsg(blkNum - 1)
-	if err != nil {
-		return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, (blkNum - 1))
+	var crossChainMsg *types.CrossChainMsg
+	if blkNum > 1 {
+		var err error
+		crossChainMsg, err = self.constructCrossChainMsg(blkNum - 1)
+		if err != nil {
+			return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, (blkNum - 1))
+		}
 	}
 
 	msg := &blockProposalMsg{

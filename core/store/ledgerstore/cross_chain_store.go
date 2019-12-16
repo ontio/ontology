@@ -1,6 +1,7 @@
 package ledgerstore
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/ontio/ontology/common"
 	scom "github.com/ontio/ontology/core/store/common"
@@ -39,19 +40,15 @@ func (this *CrossChainStore) SaveMsgToCrossChainStore(crossChainMsg *types.Cross
 		return nil
 	}
 	sink := common.NewZeroCopySink(nil)
-	key := this.genCrossChainMsgKey(sink, crossChainMsg.Height)
+	key := this.genCrossChainMsgKey(crossChainMsg.Height)
 	sink.Reset()
-	if err := crossChainMsg.Serialization(sink); err != nil {
-		return err
-	}
+	crossChainMsg.Serialization(sink)
 	this.store.Put(key, sink.Bytes())
 	return nil
 }
 
 func (this *CrossChainStore) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
-	sink := common.NewZeroCopySink(nil)
-	key := this.genCrossChainMsgKey(sink, height)
-	sink.Reset()
+	key := this.genCrossChainMsgKey(height)
 	value, err := this.store.Get(key)
 	if err != nil {
 		return nil, err
@@ -64,8 +61,9 @@ func (this *CrossChainStore) GetCrossChainMsg(height uint32) (*types.CrossChainM
 	return msg, nil
 }
 
-func (this *CrossChainStore) genCrossChainMsgKey(sink *common.ZeroCopySink, height uint32) []byte {
-	sink.WriteByte(byte(scom.SYS_CROSS_CHAIN_MSG))
-	sink.WriteUint32(height)
-	return sink.Bytes()
+func (this *CrossChainStore) genCrossChainMsgKey(height uint32) []byte {
+	temp := make([]byte, 5)
+	temp[0] = byte(scom.SYS_CROSS_CHAIN_MSG)
+	binary.LittleEndian.PutUint32(temp[1:], height)
+	return temp
 }

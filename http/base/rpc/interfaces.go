@@ -606,12 +606,12 @@ func GetCrossChainMsg(params []interface{}) map[string]interface{} {
 	}
 	msg, err := bactor.GetCrossChainMsg(uint32(height))
 	if err != nil {
-		log.Errorf("GetCrossChainMsg, get cross chain msg from db error:", err)
+		log.Errorf("GetCrossChainMsg, get cross chain msg from db error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
 	block, err := bactor.GetBlockByHeight(uint32(height))
 	if err != nil {
-		log.Errorf("GetCrossChainMsg, get block by height from db error:", err)
+		log.Errorf("GetCrossChainMsg, get block by height from db error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
 	sigData := make([][]byte, len(msg.SigData))

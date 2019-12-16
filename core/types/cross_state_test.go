@@ -18,6 +18,7 @@
 package types
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/ontio/ontology/common"
@@ -37,14 +38,12 @@ func TestCrossState(t *testing.T) {
 		SigData:    sigData,
 	}
 	sink := common.NewZeroCopySink(nil)
-	err := msg.Serialization(sink)
-
-	assert.NoError(t, err)
+	msg.Serialization(sink)
 
 	source := common.NewZeroCopySource(sink.Bytes())
 
 	var msg1 CrossChainMsg
-	err = msg1.Deserialization(source)
+	err := msg1.Deserialization(source)
 
 	assert.NoError(t, err)
 	assert.Equal(t, *msg, msg1)

@@ -382,7 +382,7 @@ func (self *StateStore) SaveCrossStates(height uint32, crossStates []common.Uint
 
 func (self *StateStore) genCrossStatesKey(height uint32) []byte {
 	key := make([]byte, 5)
-	key[0] = byte(scom.ST_BOOKKEEPER)
+	key[0] = byte(scom.SYS_CURRENT_CROSS_STATES)
 	binary.LittleEndian.PutUint32(key[1:], height)
 	return key
 }

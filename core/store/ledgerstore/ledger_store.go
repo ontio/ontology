@@ -495,7 +495,7 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header, vbftPeerInfo map[
 	return vbftPeerInfo, nil
 }
 
-func (this *LedgerStoreImp) verifyCrossChainMsg(crossChainMsg *types.CrossChainMsg, bookkeepers []keypair.PublicKey, vbftPeerInfo map[string]uint32) error {
+func (this *LedgerStoreImp) verifyCrossChainMsg(crossChainMsg *types.CrossChainMsg, bookkeepers []keypair.PublicKey) error {
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	hash := crossChainMsg.Hash()
 	sigData := make([][]byte, 0, len(crossChainMsg.SigData))
@@ -503,7 +503,7 @@ func (this *LedgerStoreImp) verifyCrossChainMsg(crossChainMsg *types.CrossChainM
 		sigData = append(sigData, v)
 	}
 	if consensusType == "vbft" {
-		m := len(vbftPeerInfo) - (len(vbftPeerInfo)*6)/7
+		m := len(bookkeepers) - (len(bookkeepers)*6)/7
 		err := signature.VerifyMultiSignature(hash[:], bookkeepers, m, sigData)
 		if err != nil {
 			log.Errorf("vbft VerifyMultiSignature:%s,heigh:%d", err, crossChainMsg.Height)
@@ -599,7 +599,7 @@ func (this *LedgerStoreImp) SubmitBlock(block *types.Block, ccMsg *types.CrossCh
 		if ccMsg.Height != currBlockHeight {
 			return fmt.Errorf("cross chain msg height %d not equal next block height %d", blockHeight, ccMsg.Height)
 		}
-		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers, this.vbftPeerInfoblock); err != nil {
+		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers); err != nil {
 			return fmt.Errorf("verifyCrossChainMsg error: %s", err)
 		}
 	}
@@ -633,7 +633,7 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, ccMsg *types.CrossChain
 		if ccMsg.Height != currBlockHeight {
 			return fmt.Errorf("cross chain msg height %d not equal next block height %d", blockHeight, ccMsg.Height)
 		}
-		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers, this.vbftPeerInfoblock); err != nil {
+		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers); err != nil {
 			return fmt.Errorf("verifyCrossChainMsg error: %s", err)
 		}
 	}

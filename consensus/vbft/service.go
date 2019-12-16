@@ -1082,13 +1082,15 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 }
 
 func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
-	if msg.Block.CrossChainMsg == nil {
-		return true
-	}
-	root := self.chainStore.getCrossStatesRoot(msg.Block.CrossChainMsg.Height - 1)
-	if msg.Block.CrossChainMsg.StatesRoot != root ||
-		msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
-		return false
+	if msg.Block.getBlockNum() > 1 {
+		if msg.Block.CrossChainMsg == nil {
+			return false
+		}
+		root := self.chainStore.getCrossStatesRoot(msg.Block.CrossChainMsg.Height)
+		if msg.Block.CrossChainMsg.StatesRoot != root ||
+			msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
+			return false
+		}
 	}
 	return true
 }
@@ -1156,6 +1158,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		return
 	}
 	if !self.verifyCrossChainMsg(msg) {
+		log.Errorf("verify cross chain message error:%+v\n", msg.Block.CrossChainMsg)
 		return
 	}
 	txs := msg.Block.Block.Transactions
@@ -2078,7 +2081,7 @@ func (self *Server) sealBlock(block *Block, empty bool, sigdata bool) error {
 		self.restartSyncing()
 		return fmt.Errorf("future seal of %d, current blknum: %d", sealedBlkNum, self.GetCurrentBlockNo())
 	}
-
+	log.Infof("seal block cross chian message:%+v\n", block.CrossChainMsg)
 	if err := self.blockPool.setBlockSealed(block, empty, sigdata); err != nil {
 		return fmt.Errorf("failed to seal proposal: %s", err)
 	}
