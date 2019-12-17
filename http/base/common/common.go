@@ -21,7 +21,6 @@ package common
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"github.com/ontio/ontology-crypto/keypair"
@@ -111,6 +110,14 @@ type Sig struct {
 type CrossStatesProof struct {
 	Type      string
 	AuditPath string
+}
+
+type CrossChainMsg struct {
+	Version     byte
+	Height      uint32
+	StatesRoot  string
+	Bookkeepers []string
+	SigData     []string
 }
 
 type Transactions struct {
@@ -231,6 +238,22 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	mhash := ptx.Hash()
 	trans.Hash = mhash.ToHexString()
 	return trans
+}
+
+func TransferCrossChainMsg(msg *types.CrossChainMsg, pks []keypair.PublicKey) *CrossChainMsg {
+	ccm := new(CrossChainMsg)
+	ccm.Version = msg.Version
+	ccm.Height = msg.Height
+	ccm.StatesRoot = msg.StatesRoot.ToHexString()
+	pks = common.RemoveRepeatedPK(pks)
+	for _, pk := range pks {
+		key := keypair.SerializePublicKey(pk)
+		ccm.Bookkeepers = append(ccm.Bookkeepers, common.ToHexString(key))
+	}
+	for _, sd := range msg.SigData {
+		ccm.SigData = append(ccm.SigData, common.ToHexString(sd))
+	}
+	return ccm
 }
 
 func SendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {

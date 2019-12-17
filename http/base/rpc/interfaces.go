@@ -609,22 +609,12 @@ func GetCrossChainMsg(params []interface{}) map[string]interface{} {
 		log.Errorf("GetCrossChainMsg, get cross chain msg from db error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
-	block, err := bactor.GetBlockByHeight(uint32(height))
+	block, err := bactor.GetBlockByHeight(uint32(height) + 1)
 	if err != nil {
 		log.Errorf("GetCrossChainMsg, get block by height from db error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
-	sigData := make([][]byte, 0, len(msg.SigData))
-	for _, v := range msg.SigData {
-		sigData = append(sigData, v)
-	}
-	return responseSuccess(bcomn.CrossChainMsg{
-		Version:     msg.Version,
-		Height:      msg.Height,
-		StatesRoot:  msg.StatesRoot,
-		Bookkeepers: block.Header.Bookkeepers,
-		SigData:     sigData,
-	})
+	return responseSuccess(bcomn.TransferCrossChainMsg(msg, block.Header.Bookkeepers))
 }
 
 //get cross chain state proof
