@@ -503,8 +503,7 @@ func (this *LedgerStoreImp) verifyCrossChainMsg(crossChainMsg *types.CrossChainM
 		sigData = append(sigData, v)
 	}
 	if consensusType == "vbft" {
-		m := len(bookkeepers) - (len(bookkeepers)*6)/7
-		err := signature.VerifyMultiSignature(hash[:], bookkeepers, m, sigData)
+		err := signature.VerifyMultiSignature(hash[:], bookkeepers, len(bookkeepers), sigData)
 		if err != nil {
 			log.Errorf("vbft VerifyMultiSignature:%s,heigh:%d", err, crossChainMsg.Height)
 			return err

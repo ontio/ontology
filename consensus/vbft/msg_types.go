@@ -135,7 +135,6 @@ type blockEndorseMsg struct {
 	FaultyProposals          []*FaultyReport `json:"faulty_proposals"`
 	ProposerSig              []byte          `json:"proposer_sig"`
 	EndorserSig              []byte          `json:"endorser_sig"`
-	CrossChainMsgProposerSig []byte          `json:"cross_chain_msg_proposer_sig"`
 	CrossChainMsgEndorserSig []byte          `json:"cross_chain_msg_endorser_sig"`
 }
 
@@ -173,7 +172,7 @@ type blockCommitMsg struct {
 	ProposerSig               []byte            `json:"proposer_sig"`
 	EndorsersSig              map[uint32][]byte `json:"endorsers_sig"`
 	CommitterSig              []byte            `json:"committer_sig"`
-	CrossChainMsgSig          map[uint32][]byte `json:"cross_chain_msg_sig"`
+	CrossChainMsgEndorserSig  map[uint32][]byte `json:"cross_chain_msg_endorser_sig"`
 	CrossChainMsgCommitterSig []byte            `json:"cross_chain_msg_committer_sig"`
 }
 

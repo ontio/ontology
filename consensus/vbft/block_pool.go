@@ -156,6 +156,9 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 		Signature:        msg.Block.Block.Header.SigData[0],
 		ForEmpty:         false,
 	}
+	if msg.Block.Block.Header.Height > 1 {
+		eSig.CrossChainMsgSig = msg.Block.CrossChainMsg.SigData[proposer]
+	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), proposer, eSig, false)
 	return nil
 }
@@ -473,7 +476,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
-		if crossChainMsgSig, present := msg.CrossChainMsgSig[endorser]; present {
+		if crossChainMsgSig, present := msg.CrossChainMsgEndorserSig[endorser]; present {
 			eSig.CrossChainMsgSig = crossChainMsgSig
 		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig, false)

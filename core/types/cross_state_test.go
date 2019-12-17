@@ -18,7 +18,6 @@
 package types
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ontio/ontology/common"
