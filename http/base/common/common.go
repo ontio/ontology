@@ -240,20 +240,16 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	return trans
 }
 
-func TransferCrossChainMsg(msg *types.CrossChainMsg, pks []keypair.PublicKey) *CrossChainMsg {
-	ccm := new(CrossChainMsg)
-	ccm.Version = msg.Version
-	ccm.Height = msg.Height
-	ccm.StatesRoot = msg.StatesRoot.ToHexString()
+func TransferCrossChainMsg(msg *types.CrossChainMsg, pks []keypair.PublicKey) string {
+	sink := common.NewZeroCopySink(nil)
+	msg.Serialization(sink)
 	pks = common.RemoveRepeatedPK(pks)
+	sink.WriteVarUint(uint64(len(pks)))
 	for _, pk := range pks {
 		key := keypair.SerializePublicKey(pk)
-		ccm.Bookkeepers = append(ccm.Bookkeepers, common.ToHexString(key))
+		sink.WriteVarBytes(key)
 	}
-	for _, sd := range msg.SigData {
-		ccm.SigData = append(ccm.SigData, common.ToHexString(sd))
-	}
-	return ccm
+	return common.ToHexString(sink.Bytes())
 }
 
 func SendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
