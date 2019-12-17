@@ -614,7 +614,7 @@ func GetCrossChainMsg(params []interface{}) map[string]interface{} {
 		log.Errorf("GetCrossChainMsg, get block by height from db error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
-	sigData := make([][]byte, len(msg.SigData))
+	sigData := make([][]byte, 0, len(msg.SigData))
 	for _, v := range msg.SigData {
 		sigData = append(sigData, v)
 	}
