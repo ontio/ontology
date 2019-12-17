@@ -32,7 +32,7 @@ type CrossChainMsg struct {
 	Height     uint32
 	StatesRoot common.Uint256
 
-	SigData map[uint32][]byte
+	SigData [][]byte
 
 	hash *common.Uint256
 }
@@ -46,14 +46,8 @@ func (this *CrossChainMsg) serializationUnsigned(sink *common.ZeroCopySink) {
 func (this *CrossChainMsg) Serialization(sink *common.ZeroCopySink) {
 	this.serializationUnsigned(sink)
 	sink.WriteVarUint(uint64(len(this.SigData)))
-	index := make([]uint32, 0, len(this.SigData))
-	for id := range this.SigData {
-		index = append(index, id)
-	}
-	common.SortUint32s(index)
-	for _, sig := range index {
-		sink.WriteUint32(sig)
-		sink.WriteVarBytes(this.SigData[sig])
+	for _, sig := range this.SigData {
+		sink.WriteVarBytes(sig)
 	}
 }
 
@@ -75,17 +69,13 @@ func (this *CrossChainMsg) Deserialization(source *common.ZeroCopySource) error 
 	if irr || eof {
 		return fmt.Errorf("CrossChainMsg, deserialization read sigData lenght error")
 	}
-	sigData := make(map[uint32][]byte, sigLen)
+	sigData := make([][]byte, 0, sigLen)
 	for i := 0; i < int(sigLen); i++ {
-		k, eof := source.NextUint32()
-		if eof {
-			return fmt.Errorf("CrossChainMsg, deserialization read sigData key error")
-		}
 		v, _, irr, eof := source.NextVarBytes()
 		if irr || eof {
 			return fmt.Errorf("CrossChainMsg, deserialization read sigData value error")
 		}
-		sigData[k] = v
+		sigData = append(sigData, v)
 	}
 	this.SigData = sigData
 	return nil

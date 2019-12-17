@@ -234,9 +234,7 @@ func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg,
 	if err != nil {
 		return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
 	}
-	sigData := make(map[uint32][]byte)
-	sigData[self.Index] = sig
-	msg.SigData = sigData
+	msg.SigData = append(msg.SigData, sig)
 	return msg, nil
 }
 

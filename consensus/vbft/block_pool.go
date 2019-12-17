@@ -110,9 +110,7 @@ func (pool *BlockPool) clean() {
 }
 
 func (pool *BlockPool) getCandidateInfoLocked(blkNum uint32) *CandidateInfo {
-
 	// NOTE: call this function only when pool.lock locked
-
 	if candidate, present := pool.candidateBlocks[blkNum]; !present {
 		// new candiateInfo for blockNum
 		candidate = &CandidateInfo{
@@ -157,7 +155,7 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 		ForEmpty:         false,
 	}
 	if msg.Block.Block.Header.Height > 1 {
-		eSig.CrossChainMsgSig = msg.Block.CrossChainMsg.SigData[proposer]
+		eSig.CrossChainMsgSig = msg.Block.CrossChainMsg.SigData[0]
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), proposer, eSig, false)
 	return nil
@@ -623,7 +621,16 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 					sigData = append(sigData, sig.Signature)
 				}
 				if block.CrossChainMsg != nil {
-					block.CrossChainMsg.SigData[endorser] = sig.CrossChainMsgSig
+					var isExist bool
+					for _, v := range block.CrossChainMsg.SigData {
+						if bytes.Equal(v, sig.CrossChainMsgSig) {
+							isExist = true
+						}
+					}
+					if !isExist {
+						block.CrossChainMsg.SigData = append(block.CrossChainMsg.SigData, sig.CrossChainMsgSig)
+					}
+					isExist = false
 				}
 				break
 			}

@@ -25,7 +25,7 @@ import (
 )
 
 func TestCrossState(t *testing.T) {
-	sigData := make(map[uint32][]byte)
+	sigData := make([][]byte, 3)
 	sigData[0] = []byte{1, 2, 3, 4, 5}
 	sigData[1] = []byte{2, 3, 4, 5, 6}
 	sigData[2] = []byte{3, 4, 5, 6, 7}
