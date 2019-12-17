@@ -1264,6 +1264,11 @@ func (self *Server) processMsgEvent() error {
 
 				// if had committed for current round, skip the following steps
 				if self.blockPool.committedForBlock(msgBlkNum) {
+					// get more endorse msg after committed, trigger seal-block-timeout
+					if err := self.timer.StartCommitTimer(msgBlkNum); err != nil {
+						log.Errorf("server %d start commit timer for %d(%d), block %d, err: %s",
+							self.Index, pMsg.Endorser, pMsg.EndorsedProposer, msgBlkNum, err)
+					}
 					return nil
 				}
 
