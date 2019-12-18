@@ -413,6 +413,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 			Args:    args,
 		}
 
+		*Service.GasLimit -= NATIVE_INVOKE_GAS
+
 		native := &native2.NativeService{
 			CacheDB:     Service.CacheDB,
 			InvokeParam: contract,
