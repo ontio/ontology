@@ -56,9 +56,9 @@ const (
 )
 
 func WasmjitValidate(wasmCode []byte) error {
-	codeSlice := C.wasmjit_slice_t{data: (*C.uchar)((unsafe.Pointer)(&wasmCode[0])), len: C.uint(len(wasmCode))}
+	codeSlice := C.wasmjit_slice_t{data: (*C.uint8_t)((unsafe.Pointer)(&wasmCode[0])), len: C.uint32_t(len(wasmCode))}
 	result := C.wasmjit_validate(codeSlice)
-	if result.kind != C.uint(wasmjit_result_success) {
+	if result.kind != C.wasmjit_result_kind(wasmjit_result_success) {
 		err := errors.NewErr(C.GoStringN((*C.char)((unsafe.Pointer)(result.msg.data)), C.int(result.msg.len)))
 		C.wasmjit_bytes_destroy(result.msg)
 		return err
@@ -95,14 +95,14 @@ func jitSliceWrite(data []byte, slice C.wasmjit_slice_t) {
 		return
 	}
 
-	C.memcpy((unsafe.Pointer)(slice.data), ((unsafe.Pointer)(&data[0])), C.ulong(slice.len))
+	C.memcpy(((unsafe.Pointer)(slice.data)), ((unsafe.Pointer)(&data[0])), C.ulong(slice.len))
 }
 
 func jitErr(err error) C.wasmjit_result_t {
 	s := err.Error()
 	ptr := []byte(s)
 	l := len(s)
-	result := C.wasmjit_construct_result((*C.uchar)((unsafe.Pointer)(&ptr[0])), (C.uint)(l), C.uint(wasmjit_result_err_trap))
+	result := C.wasmjit_construct_result((*C.uint8_t)((unsafe.Pointer)(&ptr[0])), (C.uint32_t)(l), C.wasmjit_result_kind(wasmjit_result_err_trap))
 	return result
 }
 
@@ -112,21 +112,21 @@ func jitService(vmctx *C.wasmjit_vmctx_t) *WasmVmService {
 }
 
 func setCallOutPut(vmctx *C.wasmjit_vmctx_t, result []byte) {
-	var output *C.uchar
+	var output *C.uint8_t
 	if len(result) != 0 {
-		output = (*C.uchar)((unsafe.Pointer)(&result[0]))
+		output = (*C.uint8_t)((unsafe.Pointer)(&result[0]))
 	} else {
-		output = (*C.uchar)((unsafe.Pointer)(nil))
+		output = (*C.uint8_t)((unsafe.Pointer)(nil))
 	}
-	C.wasmjit_set_call_output(vmctx, output, C.uint(len(result)))
+	C.wasmjit_set_call_output(vmctx, output, C.uint32_t(len(result)))
 }
 
 // c to call go interface
 
 //export ontio_contract_create_cgo
-func ontio_contract_create_cgo(service_index C.ulonglong,
+func ontio_contract_create_cgo(service_index C.uint64_t,
 	code_s C.wasmjit_slice_t,
-	vmType uint32,
+	vmType C.uint32_t,
 	name_s C.wasmjit_slice_t,
 	ver_s C.wasmjit_slice_t,
 	author_s C.wasmjit_slice_t,
@@ -143,7 +143,7 @@ func ontio_contract_create_cgo(service_index C.ulonglong,
 	email := jitSliceToBytes(email_s)
 	desc := jitSliceToBytes(desc_s)
 
-	dep, errs := payload.CreateDeployCode(code, vmType, name, version, author, email, desc)
+	dep, errs := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
 	if errs != nil {
 		return jitErr(errs)
 	}
@@ -173,13 +173,13 @@ func ontio_contract_create_cgo(service_index C.ulonglong,
 
 	C.memcpy((unsafe.Pointer)(newaddress), ((unsafe.Pointer)(&contractAddr[0])), C.ulong(20))
 
-	return C.wasmjit_result_t{kind: C.uint(wasmjit_result_success)}
+	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
 //export ontio_contract_migrate_cgo
-func ontio_contract_migrate_cgo(service_index C.ulonglong,
+func ontio_contract_migrate_cgo(service_index C.uint64_t,
 	code_s C.wasmjit_slice_t,
-	vmType uint32,
+	vmType C.uint32_t,
 	name_s C.wasmjit_slice_t,
 	ver_s C.wasmjit_slice_t,
 	author_s C.wasmjit_slice_t,
@@ -196,7 +196,7 @@ func ontio_contract_migrate_cgo(service_index C.ulonglong,
 	email := jitSliceToBytes(email_s)
 	desc := jitSliceToBytes(desc_s)
 
-	dep, errs := payload.CreateDeployCode(code, vmType, name, version, author, email, desc)
+	dep, errs := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
 	if errs != nil {
 		return jitErr(errs)
 	}
@@ -244,11 +244,11 @@ func ontio_contract_migrate_cgo(service_index C.ulonglong,
 
 	C.memcpy((unsafe.Pointer)(newaddress), ((unsafe.Pointer)(&contractAddr[0])), C.ulong(20))
 
-	return C.wasmjit_result_t{kind: C.uint(wasmjit_result_success)}
+	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
 //export ontio_contract_destroy_cgo
-func ontio_contract_destroy_cgo(service_index C.ulonglong) C.wasmjit_result_t {
+func ontio_contract_destroy_cgo(service_index C.uint64_t) C.wasmjit_result_t {
 	Service := GetWasmVmService(uint64(service_index))
 
 	contractAddress := Service.ContextRef.CurrentContext().ContractAddress
@@ -264,11 +264,11 @@ func ontio_contract_destroy_cgo(service_index C.ulonglong) C.wasmjit_result_t {
 
 	Service.CacheDB.DeleteContract(contractAddress)
 
-	return C.wasmjit_result_t{kind: C.uint(wasmjit_result_success)}
+	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
 //export ontio_storage_read_cgo
-func ontio_storage_read_cgo(service_index C.ulonglong, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t, offset uint32) C.wasmjit_u32 {
+func ontio_storage_read_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t, offset C.uint32_t) C.wasmjit_u32 {
 	Service := GetWasmVmService(uint64(service_index))
 
 	keybytes := jitSliceToBytes(key_s)
@@ -281,7 +281,7 @@ func ontio_storage_read_cgo(service_index C.ulonglong, key_s C.wasmjit_slice_t, 
 	}
 
 	if raw == nil {
-		return C.wasmjit_u32{v: C.uint(math.MaxUint32), res: C.wasmjit_result_t{kind: C.uint(wasmjit_result_success)}}
+		return C.wasmjit_u32{v: C.uint32_t(math.MaxUint32), res: C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}}
 	}
 
 	item, errs := states2.GetValueFromRawStorageItem(raw)
@@ -295,18 +295,18 @@ func ontio_storage_read_cgo(service_index C.ulonglong, key_s C.wasmjit_slice_t, 
 		length = itemlen // choose the smaller one. so C.memcpy is safe.
 	}
 
-	if uint32(len(item)) < offset {
+	if uint32(len(item)) < uint32(offset) {
 		return C.wasmjit_u32{v: 0, res: jitErr(errors.NewErr("offset is invalid"))}
 	}
 
-	item_s := item[offset : offset+length]
+	item_s := item[uint32(offset) : uint32(offset)+length]
 	C.memcpy((unsafe.Pointer)(val_s.data), ((unsafe.Pointer)(&item_s[0])), C.ulong(length))
 
-	return C.wasmjit_u32{v: C.uint(len(item)), res: C.wasmjit_result_t{kind: C.uint(wasmjit_result_success)}}
+	return C.wasmjit_u32{v: C.uint32_t(len(item)), res: C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}}
 }
 
 //export ontio_storage_write_cgo
-func ontio_storage_write_cgo(service_index C.ulonglong, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t) {
+func ontio_storage_write_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t) {
 	Service := GetWasmVmService(uint64(service_index))
 
 	keybytes := jitSliceToBytes(key_s)
@@ -319,7 +319,7 @@ func ontio_storage_write_cgo(service_index C.ulonglong, key_s C.wasmjit_slice_t,
 }
 
 //export ontio_storage_delete_cgo
-func ontio_storage_delete_cgo(service_index C.ulonglong, key_s C.wasmjit_slice_t) {
+func ontio_storage_delete_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t) {
 	Service := GetWasmVmService(uint64(service_index))
 
 	//self.checkGas(STORAGE_DELETE_GAS)
@@ -332,7 +332,7 @@ func ontio_storage_delete_cgo(service_index C.ulonglong, key_s C.wasmjit_slice_t
 }
 
 //export ontio_notify_cgo
-func ontio_notify_cgo(service_index C.ulonglong, data C.wasmjit_slice_t) C.wasmjit_result_t {
+func ontio_notify_cgo(service_index C.uint64_t, data C.wasmjit_slice_t) C.wasmjit_result_t {
 	if uint(data.len) >= neotypes.MAX_NOTIFY_LENGTH {
 		return jitErr(errors.NewErr("notify length over the uplimit"))
 	}
@@ -349,7 +349,7 @@ func ontio_notify_cgo(service_index C.ulonglong, data C.wasmjit_slice_t) C.wasmj
 	notifys[0] = notify
 	Service.ContextRef.PushNotifications(notifys)
 
-	return C.wasmjit_result_t{kind: C.uint(wasmjit_result_success)}
+	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
 //export ontio_debug_cgo
@@ -370,7 +370,7 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 	*Service.ExecStep = uint64(exec_step)
 	*Service.GasLimit = uint64(gas_left)
 
-	buff := jitSliceToBytes(C.wasmjit_slice_t{data: ((*C.uchar)((unsafe.Pointer)(contractAddr))), len: 20})
+	buff := jitSliceToBytes(C.wasmjit_slice_t{data: ((*C.uint8_t)((unsafe.Pointer)(contractAddr))), len: 20})
 
 	copy(contractAddress[:], buff[:])
 
@@ -426,8 +426,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 		}
 
 		tmpRes, err := native.Invoke()
-		C.wasmjit_set_gas(vmctx, C.ulong(*Service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.ulong(*Service.ExecStep))
+		C.wasmjit_set_gas(vmctx, C.uint64_t(*Service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*Service.ExecStep))
 		if err != nil {
 			return jitErr(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
 		}
@@ -444,8 +444,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 		}
 
 		tmpRes, err := newservice.Invoke()
-		C.wasmjit_set_gas(vmctx, C.ulong(*Service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.ulong(*Service.ExecStep))
+		C.wasmjit_set_gas(vmctx, C.uint64_t(*Service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*Service.ExecStep))
 		if err != nil {
 			return jitErr(err)
 		}
@@ -469,8 +469,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 		}
 
 		tmp, err := neoservice.Invoke()
-		C.wasmjit_set_gas(vmctx, C.ulong(*Service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.ulong(*Service.ExecStep))
+		C.wasmjit_set_gas(vmctx, C.uint64_t(*Service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*Service.ExecStep))
 		if err != nil {
 			return jitErr(err)
 		}
@@ -491,7 +491,7 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 	}
 
 	setCallOutPut(vmctx, result)
-	return C.wasmjit_result_t{kind: C.uint(wasmjit_result_success)}
+	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
 func tuneGas(gas uint64, mod uint64) uint64 {
@@ -501,11 +501,11 @@ func tuneGas(gas uint64, mod uint64) uint64 {
 func destroy_wasmjit_ret(ret C.wasmjit_ret) {
 	buffer := ret.buffer
 	msg := ret.res.msg
-	if buffer.data != (*C.uchar)((unsafe.Pointer)(nil)) {
+	if buffer.data != (*C.uint8_t)((unsafe.Pointer)(nil)) {
 		C.wasmjit_bytes_destroy(buffer)
 	}
 
-	if msg.data != (*C.uchar)((unsafe.Pointer)(nil)) {
+	if msg.data != (*C.uint8_t)((unsafe.Pointer)(nil)) {
 		C.wasmjit_bytes_destroy(msg)
 	}
 }
@@ -516,47 +516,46 @@ func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode
 	witnessAddrBuff, witness_len := GetAddressBuff(this.Tx.GetSignatureAddresses())
 	callersAddrBuff, callers_len := GetAddressBuff(this.ContextRef.GetCallerAddress())
 
-	var witnessPtr, callersPtr, inputPtr *C.uchar
+	var witnessPtr, callersPtr, inputPtr *C.uint8_t
 
 	if witness_len == 0 {
-		witnessPtr = (*C.uchar)((unsafe.Pointer)(nil))
+		witnessPtr = (*C.uint8_t)((unsafe.Pointer)(nil))
 	} else {
-		witnessPtr = (*C.uchar)((unsafe.Pointer)(&witnessAddrBuff[0]))
+		witnessPtr = (*C.uint8_t)((unsafe.Pointer)(&witnessAddrBuff[0]))
 	}
 
 	if callers_len == 0 {
-		callersPtr = (*C.uchar)((unsafe.Pointer)(nil))
+		callersPtr = (*C.uint8_t)((unsafe.Pointer)(nil))
 	} else {
-		callersPtr = (*C.uchar)((unsafe.Pointer)(&callersAddrBuff[0]))
+		callersPtr = (*C.uint8_t)((unsafe.Pointer)(&callersAddrBuff[0]))
 	}
 
 	input_len := len(contract.Args)
 	if len(contract.Args) == 0 {
-		inputPtr = (*C.uchar)((unsafe.Pointer)(nil))
+		inputPtr = (*C.uint8_t)((unsafe.Pointer)(nil))
 	} else {
-		inputPtr = (*C.uchar)((unsafe.Pointer)(&contract.Args[0]))
+		inputPtr = (*C.uint8_t)((unsafe.Pointer)(&contract.Args[0]))
 	}
 
-	// note here uint64 should condsider as ulonglong.
-	height := C.uint(this.Height)
+	height := C.uint32_t(this.Height)
 	block_hash := (*C.h256_t)((unsafe.Pointer)(&this.BlockHash[0]))
-	timestamp := C.ulong(this.Time)
+	timestamp := C.uint64_t(this.Time)
 	tx_hash := (*C.h256_t)((unsafe.Pointer)(&(txHash[0])))
-	caller_raw := C.wasmjit_slice_t{data: callersPtr, len: C.uint(callers_len)}
-	witness_raw := C.wasmjit_slice_t{data: witnessPtr, len: C.uint(witness_len)}
-	input_raw := C.wasmjit_slice_t{data: inputPtr, len: C.uint(input_len)}
-	service_index := C.ulong(this.ServiceIndex)
-	exec_step := C.ulong(*this.ExecStep)
-	gas_factor := C.ulong(this.GasFactor)
-	gas_left := C.ulong(*this.GasLimit)
-	codeSlice := C.wasmjit_slice_t{data: (*C.uchar)((unsafe.Pointer)(&wasmCode[0])), len: C.uint(len(wasmCode))}
+	caller_raw := C.wasmjit_slice_t{data: callersPtr, len: C.uint32_t(callers_len)}
+	witness_raw := C.wasmjit_slice_t{data: witnessPtr, len: C.uint32_t(witness_len)}
+	input_raw := C.wasmjit_slice_t{data: inputPtr, len: C.uint32_t(input_len)}
+	service_index := C.uint64_t(this.ServiceIndex)
+	exec_step := C.uint64_t(*this.ExecStep)
+	gas_factor := C.uint64_t(this.GasFactor)
+	gas_left := C.uint64_t(*this.GasLimit)
+	codeSlice := C.wasmjit_slice_t{data: (*C.uint8_t)((unsafe.Pointer)(&wasmCode[0])), len: C.uint32_t(len(wasmCode))}
 
 	ctx := C.wasmjit_chain_context_create(height, block_hash, timestamp, tx_hash, caller_raw, witness_raw, input_raw, exec_step, gas_factor, gas_left, service_index)
 	jit_ret := C.wasmjit_invoke(codeSlice, ctx)
 	*this.ExecStep = uint64(jit_ret.exec_step)
 	*this.GasLimit = tuneGas(uint64(jit_ret.gas_left), wasmjit_gas_mod)
 
-	if jit_ret.res.kind != C.uint(wasmjit_result_success) {
+	if jit_ret.res.kind != C.wasmjit_result_kind(wasmjit_result_success) {
 		err := errors.NewErr(C.GoStringN((*C.char)((unsafe.Pointer)(jit_ret.res.msg.data)), C.int(jit_ret.res.msg.len)))
 		destroy_wasmjit_ret(jit_ret)
 		return nil, err
