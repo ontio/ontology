@@ -636,7 +636,8 @@ func GetCrossStatesProof(params []interface{}) map[string]interface{} {
 	}
 	proof, err := bactor.GetCrossStatesProof(uint32(height), key)
 	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, err.Error())
+		log.Errorf("GetCrossStatesProof, bactor.GetCrossStatesProof error:%s", err)
+		return responsePack(berr.INTERNAL_ERROR, "")
 	}
 	return responseSuccess(bcomn.CrossStatesProof{"CrossStatesProof", hex.EncodeToString(proof)})
 }
