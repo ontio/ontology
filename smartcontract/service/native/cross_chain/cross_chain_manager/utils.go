@@ -90,7 +90,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 	if err != nil {
 		return fmt.Errorf("MakeFromOntProof, get chainIDBytes error: %v", err)
 	}
-	key := hex.EncodeToString(utils.ConcatKey(utils.CrossChainContractAddress, []byte(REQUEST), chainIDBytes, merkleValue.TxHash))
+	key := hex.EncodeToString(utils.ConcatBytes([]byte(REQUEST), chainIDBytes, merkleValue.TxHash))
 	args := hex.EncodeToString(params.Args)
 	notifyMakeFromOntProof(native, hex.EncodeToString(merkleValue.TxHash), params.ToChainID, key,
 		hex.EncodeToString(merkleValue.FromContractAddress), args)

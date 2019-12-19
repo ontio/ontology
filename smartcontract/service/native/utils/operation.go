@@ -24,20 +24,19 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
-func AddCommonEvent(native *native.NativeService, contract common.Address, name string, params interface{}) {
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			ContractAddress: contract,
-			States:          []interface{}{name, params},
-		})
-}
-
 func ConcatKey(contract common.Address, args ...[]byte) []byte {
 	temp := contract[:]
+	for _, arg := range args {
+		temp = append(temp, arg...)
+	}
+	return temp
+}
+
+func ConcatBytes(args ...[]byte) []byte {
+	temp := []byte{}
 	for _, arg := range args {
 		temp = append(temp, arg...)
 	}
