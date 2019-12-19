@@ -39,9 +39,8 @@ func (this *CrossChainStore) SaveMsgToCrossChainStore(crossChainMsg *types.Cross
 	if crossChainMsg == nil || crossChainMsg.Height < this.crossChainCheckHeight {
 		return nil
 	}
-	sink := common.NewZeroCopySink(nil)
 	key := this.genCrossChainMsgKey(crossChainMsg.Height)
-	sink.Reset()
+	sink := common.NewZeroCopySink(nil)
 	crossChainMsg.Serialization(sink)
 	this.store.Put(key, sink.Bytes())
 	return nil

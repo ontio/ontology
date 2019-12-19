@@ -924,7 +924,8 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChai
 	return this.submitBlock(block, ccMsg, result)
 }
 
-func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64, block *types.Block, tx *types.Transaction, crossHashes *common.ZeroCopySink) (*event.ExecuteNotify, error) {
+func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
+	block *types.Block, tx *types.Transaction, crossHashes *common.ZeroCopySink) (*event.ExecuteNotify, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	switch tx.TxType {
@@ -1170,6 +1171,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			Gas:          math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
 			WasmExecStep: config.DEFAULT_WASM_MAX_STEPCOUNT,
 			PreExec:      true,
+			CrossHashes:  common.NewZeroCopySink(nil),
 		}
 		//start the smart contract executive function
 		engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
