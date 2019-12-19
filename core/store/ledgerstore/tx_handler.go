@@ -124,7 +124,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
-	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify, crossHashes []common.Uint256) error {
+	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify, crossHashes *common.ZeroCopySink) error {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0

@@ -690,10 +690,10 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	})
 
 	cache := storage.NewCacheDB(overlay)
-	crossHashes := make([]common.Uint256, 0)
+	sink := common.NewZeroCopySink(nil)
 	for _, tx := range block.Transactions {
 		cache.Reset()
-		notify, e := this.handleTransaction(overlay, cache, gasTable, block, tx, crossHashes)
+		notify, e := this.handleTransaction(overlay, cache, gasTable, block, tx, sink)
 		if e != nil {
 			err = e
 			return
@@ -703,8 +703,8 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
-	result.CrossStates = crossHashes
-	result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(crossHashes)
+	result.CrossStates = sink.Bytes()
+	result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(genCrossStatesHash(result.CrossStates))
 	if block.Header.Height < this.stateHashCheckHeight {
 		result.MerkleRoot = common.UINT256_EMPTY
 	} else if block.Header.Height == this.stateHashCheckHeight {
@@ -721,6 +721,20 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 
 	return
+}
+
+func genCrossStatesHash(data []byte) []common.Uint256 {
+	l := len(data) / common.UINT256_SIZE
+	hashes := make([]common.Uint256, 0, l)
+	source := common.NewZeroCopySource(data)
+	for i := 0; i < l; i++ {
+		u256, eof := source.NextHash()
+		if eof {
+			return []common.Uint256{}
+		}
+		hashes = append(hashes, u256)
+	}
+	return hashes
 }
 
 func calculateTotalStateHash(overlay *overlaydb.OverlayDB) (result common.Uint256, err error) {
@@ -910,7 +924,7 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChai
 	return this.submitBlock(block, ccMsg, result)
 }
 
-func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64, block *types.Block, tx *types.Transaction, crossHashes []common.Uint256) (*event.ExecuteNotify, error) {
+func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64, block *types.Block, tx *types.Transaction, crossHashes *common.ZeroCopySink) (*event.ExecuteNotify, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
 	switch tx.TxType {

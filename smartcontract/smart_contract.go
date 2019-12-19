@@ -52,7 +52,7 @@ type SmartContract struct {
 	ExecStep      int
 	WasmExecStep  uint64
 	PreExec       bool
-	CrossHashes   []common.Uint256
+	CrossHashes   *common.ZeroCopySink
 }
 
 // Config describe smart contract need parameters configuration
@@ -121,7 +121,7 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 }
 
 func (this *SmartContract) PutMerkleVal(data []byte) {
-	this.CrossHashes = append(this.CrossHashes, merkle.HashLeaf(data))
+	this.CrossHashes.WriteHash(merkle.HashLeaf(data))
 }
 
 func (this *SmartContract) checkContexts() bool {
