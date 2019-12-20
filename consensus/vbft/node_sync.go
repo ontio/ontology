@@ -405,16 +405,16 @@ func (self *PeerSyncer) run() {
 		var proposalBlock *Block
 		proposalBlock, _ = self.server.blockPool.getSealedBlock(blkNum)
 		/*
-		for _, p := range self.server.msgPool.GetProposalMsgs(blkNum) {
-			m, ok := p.(*blockProposalMsg)
-			if !ok {
-				panic("")
+			for _, p := range self.server.msgPool.GetProposalMsgs(blkNum) {
+				m, ok := p.(*blockProposalMsg)
+				if !ok {
+					panic("")
+				}
+				if m.Block.getProposer() == blkProposers[blkNum] {
+					proposalBlock = m.Block
+					break
+				}
 			}
-			if m.Block.getProposer() == blkProposers[blkNum] {
-				proposalBlock = m.Block
-				break
-			}
-		}
 		*/
 		if proposalBlock == nil {
 			if proposalBlock, err = self.requestBlock(blkNum); err != nil {
