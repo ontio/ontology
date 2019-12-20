@@ -404,18 +404,6 @@ func (self *PeerSyncer) run() {
 
 		var proposalBlock *Block
 		proposalBlock, _ = self.server.blockPool.getSealedBlock(blkNum)
-		/*
-			for _, p := range self.server.msgPool.GetProposalMsgs(blkNum) {
-				m, ok := p.(*blockProposalMsg)
-				if !ok {
-					panic("")
-				}
-				if m.Block.getProposer() == blkProposers[blkNum] {
-					proposalBlock = m.Block
-					break
-				}
-			}
-		*/
 		if proposalBlock == nil {
 			if proposalBlock, err = self.requestBlock(blkNum); err != nil {
 				log.Errorf("failed to get block %d from peer %d: %s", blkNum, self.peerIdx, err)

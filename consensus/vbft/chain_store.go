@@ -59,7 +59,7 @@ func OpenBlockStore(db *ledger.Ledger, serverPid *actor.PID) (*ChainStore, error
 	if err != nil {
 		return nil, err
 	}
-	log.Infof("chainstore openblockstore pendingBlocks height:%d,", chainstore.chainedBlockNum)
+	log.Debugf("chainstore openblockstore pendingBlocks height:%d,", chainstore.chainedBlockNum)
 	chainstore.pendingBlocks[chainstore.chainedBlockNum] = &PendingBlock{block: block, execResult: &store.ExecuteResult{WriteSet: writeSet, MerkleRoot: merkleRoot}, hasSubmitted: true}
 	return chainstore, nil
 }
@@ -105,7 +105,7 @@ func (self *ChainStore) ReloadFromLedger() {
 				newPending[blkNum] = blk
 			}
 		}
-		log.Infof("chainstore ReloadFromLedger pendingBlocks")
+		log.Debug("chainstore ReloadFromLedger pendingBlocks")
 		// update pending blocks
 		self.pendingBlocks = newPending
 	}
@@ -134,7 +134,7 @@ func (self *ChainStore) AddBlock(block *Block) error {
 		log.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 		return fmt.Errorf("chainstore AddBlock GetBlockExecResult: %s", err)
 	}
-	log.Infof("chainstore addblock pendingBlocks height:%d,block height:%d", blkNum, block.getBlockNum())
+	log.Debugf("chainstore addblock pendingBlocks height:%d,block height:%d", blkNum, block.getBlockNum())
 	self.pendingBlocks[blkNum] = &PendingBlock{block: block, execResult: &execResult, hasSubmitted: false}
 
 	if self.pid != nil {
