@@ -607,7 +607,7 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 	// add endorsers' sig
 	for endorser, eSigs := range c.EndorseSigs {
 		for _, sig := range eSigs {
-			if sig.EndorsedProposer == proposer && sig.ForEmpty == forEmpty {
+			if sig.EndorsedProposer == proposer && sig.ForEmpty == forEmpty && endorser != proposer {
 				endoresrPk := pool.server.peerPool.GetPeerPubKey(endorser)
 				if endoresrPk != nil {
 					bookkeepers = append(bookkeepers, endoresrPk)
