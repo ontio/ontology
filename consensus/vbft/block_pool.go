@@ -617,39 +617,11 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 			if sig.EndorsedProposer == proposer && sig.ForEmpty == forEmpty && endorser != proposer {
 				endoresrPk := pool.server.peerPool.GetPeerPubKey(endorser)
 				if endoresrPk != nil {
-					var isBKExist bool
-					for _, v := range bookkeepers {
-						if v == endoresrPk {
-							isBKExist = true
-							break
-						}
-					}
-					if !isBKExist {
-						bookkeepers = append(bookkeepers, endoresrPk)
-					}
-					var isSigExist bool
-					for _, v := range sigData {
-						if bytes.Equal(v, sig.Signature) {
-							isSigExist = true
-							break
-						}
-					}
-					if !isSigExist {
-						sigData = append(sigData, sig.Signature)
-					}
+					bookkeepers = append(bookkeepers, endoresrPk)
+					sigData = append(sigData, sig.Signature)
 				}
 				if block.CrossChainMsg != nil {
-					var isExist bool
-					for _, v := range block.CrossChainMsg.SigData {
-						if bytes.Equal(v, sig.CrossChainMsgSig) {
-							isExist = true
-							break
-						}
-					}
-					if !isExist {
-						block.CrossChainMsg.SigData = append(block.CrossChainMsg.SigData, sig.CrossChainMsgSig)
-					}
-					isExist = false
+					block.CrossChainMsg.SigData = append(block.CrossChainMsg.SigData, sig.CrossChainMsgSig)
 				}
 				break
 			}

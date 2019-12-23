@@ -22,8 +22,6 @@ import (
 	"encoding/hex"
 	"math/rand"
 	"os"
-
-	"github.com/ontio/ontology-crypto/keypair"
 )
 
 // GetNonce returns random nonce
@@ -56,22 +54,4 @@ func ToArrayReverse(arr []byte) []byte {
 func FileExisted(filename string) bool {
 	_, err := os.Stat(filename)
 	return err == nil || os.IsExist(err)
-}
-
-// remove repeated public key
-func RemoveRepeatedPK(arr []keypair.PublicKey) []keypair.PublicKey {
-	newArr := make([]keypair.PublicKey, 0)
-	for i := 0; i < len(arr); i++ {
-		repeat := false
-		for j := i + 1; j < len(arr); j++ {
-			if arr[i] == arr[j] {
-				repeat = true
-				break
-			}
-		}
-		if !repeat {
-			newArr = append(newArr, arr[i])
-		}
-	}
-	return newArr
 }
