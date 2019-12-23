@@ -42,6 +42,6 @@ import:
   repo: https://github.com/golang/net.git
 - package: github.com/go-interpreter/wagon
   repo: https://github.com/ontio/wagon.git
-  version: ef8d35ecd300631b16c7f65e7a7fddd9c06eb336
+  version: db6073fb277612b196eac4f10fa8ca787b292f96
 ignore:
   - golang.org/x/sys/unix
