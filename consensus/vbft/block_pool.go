@@ -154,7 +154,7 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 		Signature:        msg.Block.Block.Header.SigData[0],
 		ForEmpty:         false,
 	}
-	if msg.Block.Block.Header.Height > 1 {
+	if msg.Block.Block.Header.Height > 1 && msg.Block.CrossChainMsg != nil {
 		eSig.CrossChainMsgSig = msg.Block.CrossChainMsg.SigData[0]
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), proposer, eSig, false)
@@ -617,14 +617,33 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 			if sig.EndorsedProposer == proposer && sig.ForEmpty == forEmpty && endorser != proposer {
 				endoresrPk := pool.server.peerPool.GetPeerPubKey(endorser)
 				if endoresrPk != nil {
-					bookkeepers = append(bookkeepers, endoresrPk)
-					sigData = append(sigData, sig.Signature)
+					var isBKExist bool
+					for _, v := range bookkeepers {
+						if v == endoresrPk {
+							isBKExist = true
+							break
+						}
+					}
+					if !isBKExist {
+						bookkeepers = append(bookkeepers, endoresrPk)
+					}
+					var isSigExist bool
+					for _, v := range sigData {
+						if bytes.Equal(v, sig.Signature) {
+							isSigExist = true
+							break
+						}
+					}
+					if !isSigExist {
+						sigData = append(sigData, sig.Signature)
+					}
 				}
 				if block.CrossChainMsg != nil {
 					var isExist bool
 					for _, v := range block.CrossChainMsg.SigData {
 						if bytes.Equal(v, sig.CrossChainMsgSig) {
 							isExist = true
+							break
 						}
 					}
 					if !isExist {

@@ -233,9 +233,11 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 }
 
 func TransferCrossChainMsg(msg *types.CrossChainMsg, pks []keypair.PublicKey) string {
+	if msg == nil {
+		return ""
+	}
 	sink := common.NewZeroCopySink(nil)
 	msg.Serialization(sink)
-	pks = common.RemoveRepeatedPK(pks)
 	sink.WriteVarUint(uint64(len(pks)))
 	for _, pk := range pks {
 		key := keypair.SerializePublicKey(pk)

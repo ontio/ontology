@@ -503,8 +503,7 @@ func (this *LedgerStoreImp) verifyCrossChainMsg(crossChainMsg *types.CrossChainM
 		sigData = append(sigData, v)
 	}
 	if consensusType == "vbft" {
-		bks := common.RemoveRepeatedPK(bookkeepers)
-		err := signature.VerifyMultiSignature(hash[:], bks, len(bks), sigData)
+		err := signature.VerifyMultiSignature(hash[:], bookkeepers, len(bookkeepers), sigData)
 		if err != nil {
 			log.Errorf("vbft VerifyMultiSignature:%s,heigh:%d", err, crossChainMsg.Height)
 			return err
@@ -704,7 +703,11 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
 	result.CrossStates = sink.Bytes()
-	result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(genCrossStatesHash(result.CrossStates))
+	if len(result.CrossStates) != 0 {
+		result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(genCrossStatesHash(result.CrossStates))
+	} else {
+		result.CrossStatesRoot = common.UINT256_EMPTY
+	}
 	if block.Header.Height < this.stateHashCheckHeight {
 		result.MerkleRoot = common.UINT256_EMPTY
 	} else if block.Header.Height == this.stateHashCheckHeight {

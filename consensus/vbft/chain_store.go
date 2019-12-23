@@ -181,7 +181,7 @@ func (self *ChainStore) getBlock(blockNum uint32) (*Block, error) {
 	if blk, present := self.pendingBlocks[blockNum]; present {
 		return blk.block, nil
 	}
-	block, err := self.db.GetBlockByHeight(uint32(blockNum))
+	block, err := self.db.GetBlockByHeight(blockNum)
 	if err != nil {
 		return nil, err
 	}

@@ -363,14 +363,20 @@ func (self *StateStore) GetCrossStates(height uint32) ([]common.Uint256, error) 
 
 func (self *StateStore) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
 	states, err := self.GetCrossStates(height)
-	if err != nil {
+	if err != nil && err != scom.ErrNotFound {
 		return common.UINT256_EMPTY, err
+	}
+	if err == scom.ErrNotFound {
+		return common.UINT256_EMPTY, nil
 	}
 	return merkle.TreeHasher{}.HashFullTreeWithLeafHash(states), nil
 }
 
 func (self *StateStore) SaveCrossStates(height uint32, crossStates []byte) error {
 	//save cross states hash
+	if len(crossStates) == 0 {
+		return nil
+	}
 	key := self.genCrossStatesKey(height)
 	self.store.BatchPut(key, crossStates)
 	return nil

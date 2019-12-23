@@ -223,7 +223,9 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 
 func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg, error) {
 	root := self.chainStore.getCrossStatesRoot(blkNum)
-
+	if root == common.UINT256_EMPTY {
+		return nil, nil
+	}
 	msg := &types.CrossChainMsg{
 		Version:    types.CURR_CROSS_STATES_VERSION,
 		Height:     blkNum,
@@ -285,15 +287,10 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	if err != nil {
 		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
 	}
-	var crossChainMsg *types.CrossChainMsg
-	if blkNum > 1 {
-		var err error
-		crossChainMsg, err = self.constructCrossChainMsg(blkNum - 1)
-		if err != nil {
-			return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, (blkNum - 1))
-		}
+	crossChainMsg, err := self.constructCrossChainMsg(blkNum - 1)
+	if err != nil {
+		return nil, fmt.Errorf("failed to crossChainMsgHash :%s,blkNum:%d", err, (blkNum - 1))
 	}
-
 	msg := &blockProposalMsg{
 		Block: &Block{
 			Block:               blk,

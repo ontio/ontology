@@ -1082,15 +1082,13 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 }
 
 func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
-	if msg.Block.getBlockNum() > 1 {
-		if msg.Block.CrossChainMsg == nil {
-			return false
-		}
-		root := self.chainStore.getCrossStatesRoot(msg.Block.CrossChainMsg.Height)
-		if msg.Block.CrossChainMsg.StatesRoot != root ||
-			msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
-			return false
-		}
+	if msg.Block.CrossChainMsg == nil {
+		return true
+	}
+	root := self.chainStore.getCrossStatesRoot(msg.Block.CrossChainMsg.Height)
+	if msg.Block.CrossChainMsg.StatesRoot != root ||
+		msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
+		return false
 	}
 	return true
 }
