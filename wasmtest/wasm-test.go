@@ -29,6 +29,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"sort"
 	"strings"
 
 	"github.com/ontio/ontology-crypto/keypair"
@@ -42,6 +43,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/core/store/ledgerstore"
 	"github.com/ontio/ontology/core/types"
 	utils2 "github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/events"
@@ -164,12 +166,20 @@ func ExactTestCase(code []byte) [][]common3.TestCase {
 	return testCase
 }
 
-func LoadContracts(dir string) (map[string][]byte, error) {
-	contracts := make(map[string][]byte)
+type Item struct {
+	File     string
+	Contract []byte
+}
+
+func LoadContracts(dir string) ([]Item, error) {
+	contracts := make([]Item, 0)
 	fnames, err := filepath.Glob(filepath.Join(dir, "*"))
 	if err != nil {
 		return nil, err
 	}
+
+	sort.Strings(fnames)
+
 	for _, name := range fnames {
 		if !(strings.HasSuffix(name, ".wasm") || strings.HasSuffix(name, ".avm")) {
 			continue
@@ -178,7 +188,11 @@ func LoadContracts(dir string) (map[string][]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		contracts[path.Base(name)] = raw
+		con := Item{
+			File:     path.Base(name),
+			Contract: raw,
+		}
+		contracts = append(contracts, con)
 	}
 
 	return contracts, nil
@@ -195,10 +209,47 @@ func checkErr(err error) {
 	}
 }
 
-func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *ledger.Ledger, addr common.Address, acct *account.Account) {
-	res, err := database.PreExecuteContract(tx)
-	log.Infof("testcase consume gas: %d", res.Gas)
+func execTxGasTest(tx *types.Transaction, database *ledger.Ledger) {
+	//
+	res_jit, err := database.GetStore().(*ledgerstore.LedgerStoreImp).PreExecuteContractWithParam(tx, ledgerstore.PrexecuteParam{
+		JitMode:    true,
+		WasmFactor: 1,
+		MinGas:     false,
+	})
 	checkErr(err)
+
+	res_inter, err := database.GetStore().(*ledgerstore.LedgerStoreImp).PreExecuteContractWithParam(tx, ledgerstore.PrexecuteParam{
+		JitMode:    false,
+		WasmFactor: 1,
+		MinGas:     false,
+	})
+	checkErr(err)
+
+	assertEq(res_jit, res_inter)
+
+	//
+	res_jit, err = database.GetStore().(*ledgerstore.LedgerStoreImp).PreExecuteContractWithParam(tx, ledgerstore.PrexecuteParam{
+		JitMode:    true,
+		WasmFactor: config.DEFAULT_WASM_GAS_FACTOR,
+		MinGas:     false,
+	})
+	checkErr(err)
+
+	res_inter, err = database.GetStore().(*ledgerstore.LedgerStoreImp).PreExecuteContractWithParam(tx, ledgerstore.PrexecuteParam{
+		JitMode:    false,
+		WasmFactor: config.DEFAULT_WASM_GAS_FACTOR,
+		MinGas:     false,
+	})
+	checkErr(err)
+	assertEq(res_jit, res_inter)
+}
+
+func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *ledger.Ledger, addr common.Address, acct *account.Account) {
+	execTxGasTest(tx, database)
+
+	res, err := database.PreExecuteContract(tx)
+	checkErr(err)
+	log.Infof("testcase consume gas: %d", res.Gas)
 
 	height := database.GetCurrentBlockHeight()
 	header, err := database.GetHeaderByHeight(height)
@@ -249,7 +300,9 @@ func main() {
 
 	log.Infof("deploying %d wasm contracts", len(contract))
 	txes := make([]*types.Transaction, 0, len(contract))
-	for file, cont := range contract {
+	for _, item := range contract {
+		file := item.File
+		cont := item.Contract
 		var tx *types.Transaction
 		var err error
 		if strings.HasSuffix(file, ".wasm") {
@@ -270,9 +323,16 @@ func main() {
 	err = database.AddBlock(block, common.UINT256_EMPTY)
 	checkErr(err)
 
-	addrMap := make(map[string]common.Address)
-	for file, code := range contract {
-		addrMap[path.Base(file)] = common.AddressFromVmCode(code)
+	addrMap := make([]common3.ConAddr, 0)
+	for _, item := range contract {
+		file := item.File
+		code := item.Contract
+		conaddr := common3.ConAddr{
+			File:    file,
+			Address: common.AddressFromVmCode(code),
+		}
+
+		addrMap = append(addrMap, conaddr)
 	}
 
 	testContext := common3.TestContext{
@@ -280,7 +340,9 @@ func main() {
 		AddrMap: addrMap,
 	}
 
-	for file, cont := range contract {
+	for _, item := range contract {
+		file := item.File
+		cont := item.Contract
 		log.Infof("exacting testcase from %s", file)
 		addr := common.AddressFromVmCode(cont)
 		if strings.HasSuffix(file, ".avm") {

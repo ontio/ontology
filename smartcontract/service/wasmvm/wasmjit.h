@@ -59,6 +59,7 @@ wasmjit_chain_context_t *wasmjit_chain_context_create(uint32_t height,
                                                       uint64_t exec_step,
                                                       uint64_t gas_factor,
                                                       uint64_t gas_left,
+													  uint64_t depth_left,
                                                       uint64_t service_index);
 
 uint64_t wasmjit_chain_context_get_gas(wasmjit_chain_context_t *ctx);
@@ -69,7 +70,7 @@ void wasmjit_chain_context_push_caller(wasmjit_chain_context_t *ctx, address_t c
 
 void wasmjit_chain_context_set_gas(wasmjit_chain_context_t *ctx, uint64_t gas);
 
-void wasmjit_chain_context_set_output(wasmjit_chain_context_t *ctx, wasmjit_bytes_t bytes);
+void wasmjit_chain_context_set_calloutput(wasmjit_chain_context_t *ctx, wasmjit_bytes_t bytes);
 
 wasmjit_bytes_t wasmjit_chain_context_take_output(wasmjit_chain_context_t *ctx);
 

@@ -120,7 +120,7 @@ func setCallOutPut(vmctx *C.wasmjit_vmctx_t, result []byte) {
 	} else {
 		output = (*C.uint8_t)((unsafe.Pointer)(nil))
 	}
-	C.wasmjit_set_call_output(vmctx, output, C.uint32_t(len(result)))
+	C.wasmjit_set_calloutput(vmctx, output, C.uint32_t(len(result)))
 }
 
 // c to call go interface
@@ -497,7 +497,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 }
 
 func tuneGas(gas uint64, mod uint64) uint64 {
-	return mod*(gas/mod) + mod
+	//return mod*(gas/mod) + mod
+	return gas
 }
 
 func destroy_wasmjit_ret(ret C.wasmjit_ret) {
@@ -550,9 +551,10 @@ func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode
 	exec_step := C.uint64_t(*this.ExecStep)
 	gas_factor := C.uint64_t(this.GasFactor)
 	gas_left := C.uint64_t(*this.GasLimit)
+	depth_left := C.uint64_t(WASM_CALLSTACK_LIMIT)
 	codeSlice := C.wasmjit_slice_t{data: (*C.uint8_t)((unsafe.Pointer)(&wasmCode[0])), len: C.uint32_t(len(wasmCode))}
 
-	ctx := C.wasmjit_chain_context_create(height, block_hash, timestamp, tx_hash, caller_raw, witness_raw, input_raw, exec_step, gas_factor, gas_left, service_index)
+	ctx := C.wasmjit_chain_context_create(height, block_hash, timestamp, tx_hash, caller_raw, witness_raw, input_raw, exec_step, gas_factor, gas_left, depth_left, service_index)
 	jit_ret := C.wasmjit_invoke(codeSlice, ctx)
 	*this.ExecStep = uint64(jit_ret.exec_step)
 	*this.GasLimit = tuneGas(uint64(jit_ret.gas_left), wasmjit_gas_mod)

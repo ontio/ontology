@@ -67,6 +67,12 @@ var (
 	MerkleTreeStorePath = "merkle_tree.db"
 )
 
+type PrexecuteParam struct {
+	JitMode    bool
+	WasmFactor uint64
+	MinGas     bool
+}
+
 //LedgerStoreImp is main store struct fo ledger
 type LedgerStoreImp struct {
 	blockStore           *BlockStore                      //BlockStore for saving block & transaction data
@@ -1031,7 +1037,7 @@ func (this *LedgerStoreImp) PreExecuteContractBatch(txes []*types.Transaction, a
 }
 
 //PreExecuteContract return the result of smart contract execution without commit to store
-func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
+func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, preParam PrexecuteParam) (*sstate.PreExecResult, error) {
 	height := this.GetCurrentBlockHeight()
 	// use previous block time to make it predictable for easy test
 	blockTime := uint32(time.Now().Unix())
@@ -1053,7 +1059,11 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	neovm.GAS_TABLE.Range(func(k, value interface{}) bool {
 		key := k.(string)
 		val := value.(uint64)
-		gasTable[key] = val
+		if key == config.WASM_GAS_FACTOR && preParam.WasmFactor != 0 {
+			gasTable[key] = preParam.WasmFactor
+		} else {
+			gasTable[key] = val
+		}
 
 		return true
 	})
@@ -1068,6 +1078,7 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			GasTable:     gasTable,
 			Gas:          math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
 			WasmExecStep: config.DEFAULT_WASM_MAX_STEPCOUNT,
+			JitMode:      preParam.JitMode,
 			PreExec:      true,
 		}
 		//start the smart contract executive function
@@ -1078,9 +1089,12 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			return stf, err
 		}
 		gasCost := math.MaxUint64 - sc.Gas
-		mixGas := neovm.MIN_TRANSACTION_GAS
-		if gasCost < mixGas {
-			gasCost = mixGas
+
+		if preParam.MinGas {
+			mixGas := neovm.MIN_TRANSACTION_GAS
+			if gasCost < mixGas {
+				gasCost = mixGas
+			}
 		}
 
 		var cv interface{}
@@ -1120,6 +1134,17 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 	} else {
 		return stf, errors.NewErr("transaction type error")
 	}
+}
+
+//PreExecuteContract return the result of smart contract execution without commit to store
+func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
+	param := PrexecuteParam{
+		JitMode:    false,
+		WasmFactor: config.DEFAULT_WASM_GAS_FACTOR,
+		MinGas:     true,
+	}
+
+	return this.PreExecuteContractWithParam(tx, param)
 }
 
 //Close ledger store.

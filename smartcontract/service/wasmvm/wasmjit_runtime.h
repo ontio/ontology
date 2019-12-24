@@ -21,7 +21,7 @@ uint64_t wasmjit_service_index(wasmjit_vmctx_t *ctx);
 
 wasmjit_ret wasmjit_invoke(wasmjit_slice_t code, wasmjit_chain_context_t *ctx);
 
-void wasmjit_set_call_output(wasmjit_vmctx_t *ctx, uint8_t *data, uint32_t len);
+void wasmjit_set_calloutput(wasmjit_vmctx_t *ctx, uint8_t *data, uint32_t len);
 
 uint64_t wasmjit_get_gas(wasmjit_vmctx_t *ctx);
 uint64_t wasmjit_get_exec_step(wasmjit_vmctx_t *ctx);
