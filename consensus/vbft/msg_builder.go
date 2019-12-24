@@ -376,25 +376,27 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 	commitCrossChain := true
 	endorsersSig := make(map[uint32][]byte)
 	crossChainEndorserSig := make(map[uint32][]byte)
-
+	var ccmCommitSig []byte
 	for _, e := range endorses {
 		endorsersSig[e.Endorser] = e.EndorserSig
 		crossChainEndorserSig[e.Endorser] = e.CrossChainMsgEndorserSig
 		if e.Endorser == self.Index {
 			commitCrossChain = false
+			ccmCommitSig = e.CrossChainMsgEndorserSig
 		}
 	}
 
 	msg := &blockCommitMsg{
-		Committer:                self.Index,
-		BlockProposer:            proposal.Block.getProposer(),
-		BlockNum:                 proposal.Block.getBlockNum(),
-		CommitBlockHash:          blkHash,
-		CommitForEmpty:           forEmpty,
-		ProposerSig:              proposerSig,
-		EndorsersSig:             endorsersSig,
-		CommitterSig:             committerSig,
-		CrossChainMsgEndorserSig: crossChainEndorserSig,
+		Committer:                 self.Index,
+		BlockProposer:             proposal.Block.getProposer(),
+		BlockNum:                  proposal.Block.getBlockNum(),
+		CommitBlockHash:           blkHash,
+		CommitForEmpty:            forEmpty,
+		ProposerSig:               proposerSig,
+		EndorsersSig:              endorsersSig,
+		CommitterSig:              committerSig,
+		CrossChainMsgEndorserSig:  crossChainEndorserSig,
+		CrossChainMsgCommitterSig: ccmCommitSig,
 	}
 
 	if proposal.Block.CrossChainMsg != nil && commitCrossChain {
@@ -405,7 +407,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		}
 		msg.CrossChainMsgCommitterSig = sig
 	}
-
 	return msg, nil
 }
 
