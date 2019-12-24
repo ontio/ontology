@@ -35,7 +35,10 @@ type Block struct {
 //Serialize message payload
 func (this *Block) Serialization(sink *common.ZeroCopySink) {
 	this.Blk.Serialization(sink)
-	this.CCMsg.Serialization(sink)
+	sink.WriteBool(this.CCMsg != nil)
+	if this.CCMsg != nil {
+		this.CCMsg.Serialization(sink)
+	}
 	sink.WriteHash(this.MerkleRoot)
 }
 
@@ -50,13 +53,18 @@ func (this *Block) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return fmt.Errorf("read Blk error. err:%v", err)
 	}
-
-	this.CCMsg = new(types.CrossChainMsg)
-	err = this.CCMsg.Deserialization(source)
-	if err != nil {
-		return fmt.Errorf("read CrossChainMsg error. err:%v", err)
+	hasEmptyCCM, irr, eof := source.NextBool()
+	if irr || eof {
+		return fmt.Errorf("read empty-crosschainmsg-bool.")
 	}
-	eof := false
+	var ccMsg *types.CrossChainMsg
+	if hasEmptyCCM {
+		ccMsg = new(types.CrossChainMsg)
+		if err := ccMsg.Deserialization(source); err != nil {
+			return err
+		}
+	}
+	this.CCMsg = ccMsg
 	this.MerkleRoot, eof = source.NextHash()
 	if eof {
 		// to accept old node's block
