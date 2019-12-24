@@ -21,8 +21,13 @@ package common
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
@@ -38,9 +43,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/neovm"
-	"io"
-	"strings"
-	"time"
 )
 
 const MAX_SEARCH_HEIGHT uint32 = 100
