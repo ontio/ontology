@@ -31,7 +31,7 @@ import (
 
 func TestPreExecuteContractWasmDeploy(t *testing.T) {
 	acct := account.NewAccount("")
-	testLedgerStore, err := ledgerstore.NewLedgerStore("test/ledgerfortmp", 0)
+	testLedgerStore, err := ledgerstore.NewLedgerStore("test/ledgerfortmp", 0, 0)
 	/** file: test_create.wat
 		(module
 		  (type (;0;) (func))

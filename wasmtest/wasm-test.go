@@ -209,7 +209,7 @@ func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *
 	checkExecResult(testCase, res, execEnv)
 
 	block, _ := makeBlock(acct, []*types.Transaction{tx})
-	err = database.AddBlock(block, common.UINT256_EMPTY)
+	err = database.AddBlock(block, nil, common.UINT256_EMPTY)
 	checkErr(err)
 }
 
@@ -235,7 +235,7 @@ func main() {
 	events.Init()
 
 	log.Info("1. Loading the Ledger")
-	database, err := ledger.NewLedger(datadir, 1000000)
+	database, err := ledger.NewLedger(datadir, 1000000, 0)
 	checkErr(err)
 	ledger.DefLedger = database
 	genblock, err := genesis.BuildGenesisBlock(bookkeepers, config.DefConfig.Genesis)
@@ -267,7 +267,7 @@ func main() {
 	}
 
 	block, _ := makeBlock(acct, txes)
-	err = database.AddBlock(block, common.UINT256_EMPTY)
+	err = database.AddBlock(block, nil, common.UINT256_EMPTY)
 	checkErr(err)
 
 	addrMap := make(map[string]common.Address)
