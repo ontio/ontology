@@ -23,8 +23,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/ontio/wagon/exec"
-	"github.com/ontio/wagon/wasm"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
@@ -37,6 +35,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/crossvm_codec"
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
+	"github.com/ontio/wagon/exec"
+	"github.com/ontio/wagon/wasm"
 	"io"
 )
 

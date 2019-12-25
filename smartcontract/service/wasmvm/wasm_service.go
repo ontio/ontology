@@ -18,7 +18,6 @@
 package wasmvm
 
 import (
-	"github.com/ontio/wagon/exec"
 	"github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
@@ -28,6 +27,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/wagon/exec"
 )
 
 type WasmVmService struct {
