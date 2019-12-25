@@ -31,8 +31,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/go-interpreter/wagon/exec"
-	"github.com/go-interpreter/wagon/wasm"
+	"github.com/ontio/wagon/exec"
+	"github.com/ontio/wagon/wasm"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"

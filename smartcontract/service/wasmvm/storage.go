@@ -21,7 +21,7 @@ import (
 	"errors"
 	"math"
 
-	"github.com/go-interpreter/wagon/exec"
+	"github.com/ontio/wagon/exec"
 	"github.com/ontio/ontology/core/states"
 )
 

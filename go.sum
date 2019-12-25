@@ -57,8 +57,10 @@ github.com/ontio/ontology-crypto v1.0.5 h1:VYIEL9yF1d8vWxgLedqoQXKdyw2oY46NliGCQ
 github.com/ontio/ontology-crypto v1.0.5/go.mod h1:ebrQJ4/VS2F6pwHGktHDYtY/7Y2ca/ogfnlYABrQI2c=
 github.com/ontio/ontology-eventbus v0.9.1 h1:nt3AXWx3gOyqtLiU4EwI92Yc4ik/pWHu9xRK15uHSOs=
 github.com/ontio/ontology-eventbus v0.9.1/go.mod h1:hCQIlbdPckcfykMeVUdWrqHZ8d30TBdmLfXCVWGkYhM=
-github.com/ontio/wagon v0.3.1-0.20191223040208-db6073fb2776 h1:cfHznrh9WsSH7F253Lr6TkYa38p/3Cgk0PJS7238cRQ=
-github.com/ontio/wagon v0.3.1-0.20191223040208-db6073fb2776/go.mod h1:zHOMvbitcZek8oshsMO5VpyBjWjV9X8cn8WTZwdebpM=
+github.com/ontio/wagon v0.4.0 h1:0v0VOtcrh/vZWiXSyc5pS2FpoiD8OwExack/LthjyqI=
+github.com/ontio/wagon v0.4.0/go.mod h1:oTPdgWT7WfPlEyzVaHSn1vQPMSbOpQPv+WphxibWlhg=
+github.com/ontio/wagon v0.4.1 h1:3A8BxTMVGrQnyWxD1h8w5PLvN9GZMWjC75Jw+5Vgpe0=
+github.com/ontio/wagon v0.4.1/go.mod h1:oTPdgWT7WfPlEyzVaHSn1vQPMSbOpQPv+WphxibWlhg=
 github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6 h1:lNCW6THrCKBiJBpz8kbVGjC7MgdCGKwuvBgc7LoD6sw=
 github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6/go.mod h1:Lu3tH6HLW3feq74c2GC+jIMS/K2CFcDWnWD9XkenwhI=
 github.com/pborman/uuid v1.2.0 h1:J7Q5mO4ysT1dv8hyrUGHb9+ooztCXu1D8MY8DZYsu3g=

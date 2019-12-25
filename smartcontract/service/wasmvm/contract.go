@@ -19,7 +19,7 @@
 package wasmvm
 
 import (
-	"github.com/go-interpreter/wagon/exec"
+	"github.com/ontio/wagon/exec"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/errors"
