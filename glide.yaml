@@ -40,8 +40,7 @@ import:
   - unix
 - package: golang.org/x/net
   repo: https://github.com/golang/net.git
-- package: github.com/go-interpreter/wagon
-  repo: https://github.com/ontio/wagon.git
-  version: db6073fb277612b196eac4f10fa8ca787b292f96
+- package: github.com/ontio/wagon
+  version: v0.4.1
 ignore:
   - golang.org/x/sys/unix
