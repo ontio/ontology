@@ -112,7 +112,14 @@ func GetWasmVmService(index uint64) *WasmVmService {
 	return ctxData[index]
 }
 
+func DelWasmVmService(index uint64) {
+	defer ctxDataMtx.Unlock()
+	ctxDataMtx.Lock()
+	delete(ctxData, index)
+}
+
 func (this *WasmVmService) Invoke() (interface{}, error) {
+	defer DelWasmVmService(this.ServiceIndex)
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}
