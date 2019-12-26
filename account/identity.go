@@ -89,10 +89,8 @@ func VerifyID(id string) bool {
 	data := buf[:pos]
 	check := buf[pos:]
 	sum := checksum(data)
-	if !bytes.Equal(sum, check) {
-		return false
-	}
-	return true
+
+	return bytes.Equal(sum, check)
 }
 
 func checksum(data []byte) []byte {

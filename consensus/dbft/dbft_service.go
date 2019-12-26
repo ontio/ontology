@@ -309,18 +309,6 @@ func (ds *DbftService) InitializeConsensus(viewNum byte) error {
 	return nil
 }
 
-func (ds *DbftService) LocalNodeNewInventory(v interface{}) {
-	log.Debug()
-	if inventory, ok := v.(common.Inventory); ok {
-		if inventory.Type() == common.CONSENSUS {
-			payload, ret := inventory.(*p2pmsg.ConsensusPayload)
-			if ret == true {
-				ds.NewConsensusPayload(payload)
-			}
-		}
-	}
-}
-
 func (ds *DbftService) NewConsensusPayload(payload *p2pmsg.ConsensusPayload) {
 	//if payload from current peer, ignore it
 	if int(payload.BookkeeperIndex) == ds.context.BookkeeperIndex {
