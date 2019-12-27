@@ -25,4 +25,3 @@ const (
 	BLOCK       InventoryType = 0x02
 	CONSENSUS   InventoryType = 0xe0
 )
-

@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	TOPIC_SAVE_BLOCK_COMPLETE       = "svblkcmp"
-	TOPIC_SMART_CODE_EVENT          = "scevt"
+	TOPIC_SAVE_BLOCK_COMPLETE = "svblkcmp"
+	TOPIC_SMART_CODE_EVENT    = "scevt"
 )
 
 type SaveBlockCompleteMsg struct {

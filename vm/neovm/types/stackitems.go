@@ -18,7 +18,6 @@
 
 package types
 
-
 const (
 	ByteArrayType byte = 0x00
 	BooleanType   byte = 0x01
