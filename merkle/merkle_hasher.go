@@ -21,9 +21,9 @@ package merkle
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ontio/ontology/common/serialization"
 	"math"
 
 	"github.com/ontio/ontology/common"
@@ -32,6 +32,7 @@ import (
 const (
 	LEFT byte = iota
 	RIGHT
+	MAX_SIZE = 1024*1024
 )
 
 var debugCheck = false
@@ -136,19 +137,19 @@ func HashChildren(left, right common.Uint256) common.Uint256 {
 }
 
 func MerkleLeafPath(data []byte, hashes []common.Uint256) ([]byte, error) {
-	buf := bytes.NewBuffer(make([]byte, 0, len(hashes)*common.UINT256_SIZE+len(data)))
+	size := len(hashes)*(common.UINT256_SIZE+1) + len(data) + 8
+	if len(data) > MAX_SIZE {
+		return nil, fmt.Errorf("data lenght over max value:%d", MAX_SIZE)
+	}
+	buf := bytes.NewBuffer(make([]byte, 0, size))
 	index := getIndex(HashLeaf(data), hashes)
 	if index < 0 {
 		return nil, fmt.Errorf("%s", "values doesn't exist!")
 	}
+	binary.LittleEndian.PutUint64(buf.Bytes()[:8], uint64(len(data)))
+	buf.Write(data)
 	d := depth(len(hashes))
 	merkleTree := MerkleHashes(hashes, d)
-	if err := serialization.WriteUint64(buf, uint64(len(data))); err != nil {
-		return nil, err
-	}
-	if _, err := buf.Write(data); err != nil {
-		return nil, err
-	}
 	for i := d; i > 0; i-- {
 		subTree := merkleTree[i]
 		subLen := len(subTree)
@@ -158,19 +159,11 @@ func MerkleLeafPath(data []byte, hashes []common.Uint256) ([]byte, error) {
 			continue
 		}
 		if index%2 != 0 {
-			if err := buf.WriteByte(LEFT); err != nil {
-				return nil, err
-			}
-			if _, err := buf.Write(subTree[index-1][:]); err != nil {
-				return nil, err
-			}
+			buf.WriteByte(LEFT)
+			buf.Write(subTree[index-1][:])
 		} else {
-			if err := buf.WriteByte(RIGHT); err != nil {
-				return nil, err
-			}
-			if _, err := buf.Write(subTree[index+1][:]); err != nil {
-				return nil, err
-			}
+			buf.WriteByte(RIGHT)
+			buf.Write(subTree[index+1][:])
 		}
 		index = nIndex
 	}
