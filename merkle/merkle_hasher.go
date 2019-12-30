@@ -141,11 +141,11 @@ func MerkleLeafPath(data []byte, hashes []common.Uint256) ([]byte, error) {
 	if len(data) > MAX_SIZE {
 		return nil, fmt.Errorf("data lenght over max value:%d", MAX_SIZE)
 	}
-	buf := bytes.NewBuffer(make([]byte, 0, size))
 	index := getIndex(HashLeaf(data), hashes)
 	if index < 0 {
 		return nil, fmt.Errorf("%s", "values doesn't exist!")
 	}
+	buf := bytes.NewBuffer(make([]byte, 0, size))
 	binary.LittleEndian.PutUint64(buf.Bytes()[:8], uint64(len(data)))
 	buf.Write(data)
 	d := depth(len(hashes))
