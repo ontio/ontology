@@ -32,7 +32,7 @@ import (
 const (
 	LEFT byte = iota
 	RIGHT
-	MAX_SIZE = 1024*1024
+	MAX_SIZE = 1024 * 1024
 )
 
 var debugCheck = false
