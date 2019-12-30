@@ -498,19 +498,15 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header, vbftPeerInfo map[
 func (this *LedgerStoreImp) verifyCrossChainMsg(crossChainMsg *types.CrossChainMsg, bookkeepers []keypair.PublicKey) error {
 	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
 	hash := crossChainMsg.Hash()
-	sigData := make([][]byte, 0, len(crossChainMsg.SigData))
-	for _, v := range crossChainMsg.SigData {
-		sigData = append(sigData, v)
-	}
 	if consensusType == "vbft" {
-		err := signature.VerifyMultiSignature(hash[:], bookkeepers, len(bookkeepers), sigData)
+		err := signature.VerifyMultiSignature(hash[:], bookkeepers, len(bookkeepers), crossChainMsg.SigData)
 		if err != nil {
 			log.Errorf("vbft VerifyMultiSignature:%s,heigh:%d", err, crossChainMsg.Height)
 			return err
 		}
 	} else {
 		m := len(bookkeepers) - (len(bookkeepers)-1)/3
-		err := signature.VerifyMultiSignature(hash[:], bookkeepers, m, sigData)
+		err := signature.VerifyMultiSignature(hash[:], bookkeepers, m, crossChainMsg.SigData)
 		if err != nil {
 			log.Errorf("VerifyMultiSignature:%s,heigh:%d", err, crossChainMsg.Height)
 			return err
