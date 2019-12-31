@@ -222,7 +222,10 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 }
 
 func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg, error) {
-	root := self.chainStore.getCrossStatesRoot(blkNum)
+	root, err := self.chainStore.getCrossStatesRoot(blkNum)
+	if err != nil {
+		return nil, err
+	}
 	if root == common.UINT256_EMPTY {
 		return nil, nil
 	}
@@ -344,6 +347,7 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 			return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
 		}
 		msg.CrossChainMsgEndorserSig = sig
+		msg.CrossChainMsgHash = hash
 	}
 	return msg, nil
 }

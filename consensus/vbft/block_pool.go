@@ -671,12 +671,11 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 		// replace with empty block
 		sealedBlock.Block = block.EmptyBlock
 	}
-
+	c.SealedBlock = sealedBlock
 	// add block to chain store
 	if err := pool.chainStore.AddBlock(sealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
-	c.SealedBlock = sealedBlock
 	stateRoot, err := pool.chainStore.getExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
 	if err != nil {
 		log.Errorf("handleBlockSubmit failed:%s", err)

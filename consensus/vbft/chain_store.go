@@ -91,11 +91,17 @@ func (self *ChainStore) getExecMerkleRoot(blkNum uint32) (common.Uint256, error)
 	}
 }
 
-func (self *ChainStore) getCrossStatesRoot(blkNum uint32) common.Uint256 {
+func (self *ChainStore) getCrossStatesRoot(blkNum uint32) (common.Uint256, error) {
 	if blk, present := self.pendingBlocks[blkNum]; blk != nil && present {
-		return blk.execResult.CrossStatesRoot
+		return blk.execResult.CrossStatesRoot, nil
 	}
-	return common.UINT256_EMPTY
+	statesRoot, err := self.db.GetCrossStatesRoot(blkNum)
+	if err != nil {
+		log.Infof("getCrossStatesRoot blockNum:%d, error :%s", blkNum, err)
+		return common.UINT256_EMPTY, fmt.Errorf("getCrossStatesRoot blockNum:%d, error :%s", blkNum, err)
+	} else {
+		return statesRoot, nil
+	}
 }
 
 func (self *ChainStore) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
