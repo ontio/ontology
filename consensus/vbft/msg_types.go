@@ -79,6 +79,16 @@ func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 	if !signature.Verify(pub, hash[:], sig) {
 		return fmt.Errorf("failed to verify block sig")
 	}
+	if msg.Block.CrossChainMsg != nil {
+		cSig, err := signature.Deserialize(msg.Block.CrossChainMsg.SigData[0])
+		if err != nil {
+			return fmt.Errorf("deserialize block sig: %s", err)
+		}
+		cHash := msg.Block.CrossChainMsg.Hash()
+		if !signature.Verify(pub, cHash[:], cSig) {
+			return fmt.Errorf("failed to verify block sig")
+		}
+	}
 
 	// verify empty block
 	if msg.Block.EmptyBlock != nil {
@@ -152,13 +162,15 @@ func (msg *blockEndorseMsg) Verify(pub keypair.PublicKey) error {
 	if !signature.Verify(pub, hash[:], sig) {
 		return fmt.Errorf("failed to verify block sig")
 	}
-	//verify cross states endorse sig
-	cSig, err := signature.Deserialize(msg.CrossChainMsgEndorserSig)
-	if err != nil {
-		return fmt.Errorf("deserialize cross msg sig: %s", err)
-	}
-	if !signature.Verify(pub, msg.CrossChainMsgHash[:], cSig) {
-		return fmt.Errorf("failed to verify cross chain endorse sig")
+	if msg.CrossChainMsgEndorserSig != nil {
+		//verify cross states endorse sig
+		cSig, err := signature.Deserialize(msg.CrossChainMsgEndorserSig)
+		if err != nil {
+			return fmt.Errorf("deserialize cross msg sig: %s", err)
+		}
+		if !signature.Verify(pub, msg.CrossChainMsgHash[:], cSig) {
+			return fmt.Errorf("failed to verify cross chain endorse sig")
+		}
 	}
 	return nil
 }
@@ -199,13 +211,15 @@ func (msg *blockCommitMsg) Verify(pub keypair.PublicKey) error {
 	if !signature.Verify(pub, hash[:], sig) {
 		return fmt.Errorf("failed to verify block sig")
 	}
-	//verify cross chain msg commit sig
-	cSig, err := signature.Deserialize(msg.CrossChainMsgCommitterSig)
-	if err != nil {
-		return fmt.Errorf("deserialize cross chain msg sig: %s", err)
-	}
-	if !signature.Verify(pub, msg.CommitCCMHash[:], cSig) {
-		return fmt.Errorf("failed to verify cross chain msg sig")
+	if msg.CrossChainMsgCommitterSig != nil {
+		//verify cross chain msg commit sig
+		cSig, err := signature.Deserialize(msg.CrossChainMsgCommitterSig)
+		if err != nil {
+			return fmt.Errorf("deserialize cross chain msg sig: %s", err)
+		}
+		if !signature.Verify(pub, msg.CommitCCMHash[:], cSig) {
+			return fmt.Errorf("failed to verify cross chain msg sig")
+		}
 	}
 	return nil
 }
