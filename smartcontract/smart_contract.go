@@ -164,7 +164,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			gasFactor = config.DEFAULT_WASM_GAS_FACTOR
 		}
 
-		wasmService := &wasmvm.WasmVmService{
+		service = &wasmvm.WasmVmService{
 			Store:      this.Store,
 			CacheDB:    this.CacheDB,
 			ContextRef: this,
@@ -179,9 +179,6 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			GasFactor:  gasFactor,
 			JitMode:    this.JitMode,
 		}
-
-		wasmService.SetContextData()
-		service = wasmService
 	default:
 		return nil, errors.New("failed to construct execute engine, wrong transaction type")
 	}

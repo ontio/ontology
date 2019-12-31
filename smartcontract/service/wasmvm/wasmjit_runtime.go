@@ -110,7 +110,7 @@ func jitErr(err error) C.wasmjit_result_t {
 
 func jitService(vmctx *C.wasmjit_vmctx_t) *WasmVmService {
 	index := C.wasmjit_service_index(vmctx)
-	return GetWasmVmService(uint64(index))
+	return getWasmVmService(uint64(index))
 }
 
 func setCallOutPut(vmctx *C.wasmjit_vmctx_t, result []byte) {
@@ -136,7 +136,7 @@ func ontio_contract_create_cgo(service_index C.uint64_t,
 	desc_s C.wasmjit_slice_t,
 	newaddress *C.address_t,
 ) C.wasmjit_result_t {
-	Service := GetWasmVmService(uint64(service_index))
+	Service := getWasmVmService(uint64(service_index))
 
 	code := jitSliceToBytes(code_s)
 	name := jitSliceToBytes(name_s)
@@ -189,7 +189,7 @@ func ontio_contract_migrate_cgo(service_index C.uint64_t,
 	desc_s C.wasmjit_slice_t,
 	newaddress *C.address_t,
 ) C.wasmjit_result_t {
-	Service := GetWasmVmService(uint64(service_index))
+	Service := getWasmVmService(uint64(service_index))
 
 	code := jitSliceToBytes(code_s)
 	name := jitSliceToBytes(name_s)
@@ -251,7 +251,7 @@ func ontio_contract_migrate_cgo(service_index C.uint64_t,
 
 //export ontio_contract_destroy_cgo
 func ontio_contract_destroy_cgo(service_index C.uint64_t) C.wasmjit_result_t {
-	Service := GetWasmVmService(uint64(service_index))
+	Service := getWasmVmService(uint64(service_index))
 
 	contractAddress := Service.ContextRef.CurrentContext().ContractAddress
 	iter := Service.CacheDB.NewIterator(contractAddress[:])
@@ -271,7 +271,7 @@ func ontio_contract_destroy_cgo(service_index C.uint64_t) C.wasmjit_result_t {
 
 //export ontio_storage_read_cgo
 func ontio_storage_read_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t, offset C.uint32_t) C.wasmjit_u32 {
-	Service := GetWasmVmService(uint64(service_index))
+	Service := getWasmVmService(uint64(service_index))
 
 	keybytes := jitSliceToBytes(key_s)
 
@@ -309,7 +309,7 @@ func ontio_storage_read_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, v
 
 //export ontio_storage_write_cgo
 func ontio_storage_write_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t) {
-	Service := GetWasmVmService(uint64(service_index))
+	Service := getWasmVmService(uint64(service_index))
 
 	keybytes := jitSliceToBytes(key_s)
 
@@ -322,7 +322,7 @@ func ontio_storage_write_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, 
 
 //export ontio_storage_delete_cgo
 func ontio_storage_delete_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t) {
-	Service := GetWasmVmService(uint64(service_index))
+	Service := getWasmVmService(uint64(service_index))
 
 	//self.checkGas(STORAGE_DELETE_GAS)
 
@@ -339,7 +339,7 @@ func ontio_notify_cgo(service_index C.uint64_t, data C.wasmjit_slice_t) C.wasmji
 		return jitErr(errors.NewErr("notify length over the uplimit"))
 	}
 
-	Service := GetWasmVmService(uint64(service_index))
+	Service := getWasmVmService(uint64(service_index))
 
 	bs := jitSliceToBytes(data)
 
@@ -515,6 +515,9 @@ func destroy_wasmjit_ret(ret C.wasmjit_ret) {
 
 // call to c
 func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode []byte) ([]byte, error) {
+	index := registerWasmVmService(this)
+	defer unregisterWasmVmService(index)
+
 	txHash := this.Tx.Hash()
 	witnessAddrBuff, witness_len := GetAddressBuff(this.Tx.GetSignatureAddresses())
 	callersAddrBuff, callers_len := GetAddressBuff(this.ContextRef.GetCallerAddress())

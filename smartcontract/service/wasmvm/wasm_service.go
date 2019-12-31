@@ -19,7 +19,6 @@ package wasmvm
 
 import (
 	"sync"
-	"unsafe"
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
@@ -74,52 +73,55 @@ var (
 
 	CodeCache *lru.ARCCache
 
-	ctxData        = make(map[uint64]*WasmVmService)
-	nextCtxDataIdx uint64
-	ctxDataMtx     sync.RWMutex
+	serviceData        = make(map[uint64]*WasmVmService)
+	nextServiceDataIdx uint64
+	serviceDataMtx     sync.RWMutex
 )
 
 func init() {
 	CodeCache, _ = lru.NewARC(CODE_CACHE_SIZE)
-	nextCtxDataIdx = 0
+	nextServiceDataIdx = 1
 	//if err != nil{
 	//	log.Info("NewARC block error %s", err)
 	//}
 }
 
 func GetAddressBuff(addrs []common.Address) ([]byte, int) {
-	addrsLen := len(addrs) * 20
-	addrsBuff := make([]byte, addrsLen)
-	for off, addr := range addrs {
-		ptr := (*[20]byte)(unsafe.Pointer(&addr[0]))
-		copy(addrsBuff[off*20:off*20+20], (*ptr)[:])
+	sink := common.NewZeroCopySink(nil)
+	for _, addr := range addrs {
+		sink.WriteAddress(addr)
 	}
 
-	return addrsBuff, addrsLen
+	return sink.Bytes(), int(sink.Size())
 }
 
-func (this *WasmVmService) SetContextData() {
-	defer ctxDataMtx.Unlock()
-	ctxDataMtx.Lock()
-	ctxData[nextCtxDataIdx] = this
-	this.ServiceIndex = nextCtxDataIdx
-	nextCtxDataIdx++
+func registerWasmVmService(this *WasmVmService) uint64 {
+	defer func() {
+		nextServiceDataIdx++
+		if nextServiceDataIdx == 0 {
+			nextServiceDataIdx++
+		}
+		serviceDataMtx.Unlock()
+	}()
+	serviceDataMtx.Lock()
+	serviceData[nextServiceDataIdx] = this
+	this.ServiceIndex = nextServiceDataIdx
+	return nextServiceDataIdx
 }
 
-func GetWasmVmService(index uint64) *WasmVmService {
-	defer ctxDataMtx.Unlock()
-	ctxDataMtx.Lock()
-	return ctxData[index]
+func getWasmVmService(index uint64) *WasmVmService {
+	defer serviceDataMtx.Unlock()
+	serviceDataMtx.Lock()
+	return serviceData[index]
 }
 
-func DelWasmVmService(index uint64) {
-	defer ctxDataMtx.Unlock()
-	ctxDataMtx.Lock()
-	delete(ctxData, index)
+func unregisterWasmVmService(index uint64) {
+	defer serviceDataMtx.Unlock()
+	serviceDataMtx.Lock()
+	delete(serviceData, index)
 }
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
-	defer DelWasmVmService(this.ServiceIndex)
 	if len(this.Code) == 0 {
 		return nil, ERR_EXECUTE_CODE
 	}

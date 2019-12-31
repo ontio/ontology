@@ -1140,7 +1140,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
 	param := PrexecuteParam{
 		JitMode:    false,
-		WasmFactor: config.DEFAULT_WASM_GAS_FACTOR,
+		WasmFactor: 0,
 		MinGas:     true,
 	}
 
