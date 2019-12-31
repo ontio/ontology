@@ -139,7 +139,7 @@ func HashChildren(left, right common.Uint256) common.Uint256 {
 func MerkleLeafPath(data []byte, hashes []common.Uint256) ([]byte, error) {
 	size := len(hashes)*(common.UINT256_SIZE+1) + len(data) + 8
 	if size > MAX_SIZE {
-		return nil, fmt.Errorf("data lenght over max value:%d", MAX_SIZE)
+		return nil, fmt.Errorf("data length over max value:%d", MAX_SIZE)
 	}
 	index := getIndex(HashLeaf(data), hashes)
 	if index < 0 {
