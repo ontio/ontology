@@ -167,6 +167,16 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 	log.Debugf("[WasmContract]Debug:%s\n", bs)
 }
 
+func notify(service *WasmVmService, bs []byte) {
+	notify := &event.NotifyEventInfo{ContractAddress: service.ContextRef.CurrentContext().ContractAddress}
+	val := crossvm_codec.DeserializeNotify(bs)
+	notify.States = val
+
+	notifys := make([]*event.NotifyEventInfo, 1)
+	notifys[0] = notify
+	service.ContextRef.PushNotifications(notifys)
+}
+
 func Notify(proc *exec.Process, ptr uint32, l uint32) {
 	self := proc.HostData().(*Runtime)
 	if l >= neotypes.MAX_NOTIFY_LENGTH {
@@ -176,13 +186,8 @@ func Notify(proc *exec.Process, ptr uint32, l uint32) {
 	if err != nil {
 		panic(err)
 	}
-	notify := &event.NotifyEventInfo{ContractAddress: self.Service.ContextRef.CurrentContext().ContractAddress}
-	val := crossvm_codec.DeserializeNotify(bs)
-	notify.States = val
 
-	notifys := make([]*event.NotifyEventInfo, 1)
-	notifys[0] = notify
-	self.Service.ContextRef.PushNotifications(notifys)
+	notify(self.Service, bs)
 }
 
 func InputLength(proc *exec.Process) uint32 {
@@ -688,12 +693,12 @@ func NewHostModule() *wasm.Module {
 	return m
 }
 
-func (self *Runtime) getContractType(addr common.Address) (ContractType, error) {
+func getContractTypeInner(service *WasmVmService, addr common.Address) (ContractType, error) {
 	if utils.IsNativeContract(addr) {
 		return NATIVE_CONTRACT, nil
 	}
 
-	dep, err := self.Service.CacheDB.GetContract(addr)
+	dep, err := service.CacheDB.GetContract(addr)
 	if err != nil {
 		return UNKOWN_CONTRACT, err
 	}
@@ -705,7 +710,10 @@ func (self *Runtime) getContractType(addr common.Address) (ContractType, error) 
 	}
 
 	return NEOVM_CONTRACT, nil
+}
 
+func (self *Runtime) getContractType(addr common.Address) (ContractType, error) {
+	return getContractTypeInner(self.Service, addr)
 }
 
 func (self *Runtime) checkGas(gaslimit uint64) {

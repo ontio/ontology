@@ -25,6 +25,45 @@ import (
 	"github.com/ontio/wagon/exec"
 )
 
+func migrateContractStorage(service *WasmVmService, newAddress common.Address) error {
+	oldAddress := service.ContextRef.CurrentContext().ContractAddress
+	service.CacheDB.DeleteContract(oldAddress)
+
+	iter := service.CacheDB.NewIterator(oldAddress[:])
+	for has := iter.First(); has; has = iter.Next() {
+		key := iter.Key()
+		val := iter.Value()
+
+		newkey := serializeStorageKey(newAddress, key[20:])
+
+		service.CacheDB.Put(newkey, val)
+		service.CacheDB.Delete(key)
+	}
+
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteContractStorage(service *WasmVmService) error {
+	contractAddress := service.ContextRef.CurrentContext().ContractAddress
+	iter := service.CacheDB.NewIterator(contractAddress[:])
+
+	for has := iter.First(); has; has = iter.Next() {
+		service.CacheDB.Delete(iter.Key())
+	}
+	iter.Release()
+	if err := iter.Error(); err != nil {
+		return err
+	}
+
+	service.CacheDB.DeleteContract(contractAddress)
+	return nil
+}
+
 func ContractCreate(proc *exec.Process,
 	codePtr uint32,
 	codeLen uint32,
@@ -169,24 +208,10 @@ func ContractMigrate(proc *exec.Process,
 	if self.isContractExist(contractAddr) {
 		panic(errors.NewErr("contract has been deployed"))
 	}
-	oldAddress := self.Service.ContextRef.CurrentContext().ContractAddress
-
 	self.Service.CacheDB.PutContract(dep)
-	self.Service.CacheDB.DeleteContract(oldAddress)
 
-	iter := self.Service.CacheDB.NewIterator(oldAddress[:])
-	for has := iter.First(); has; has = iter.Next() {
-		key := iter.Key()
-		val := iter.Value()
-
-		newkey := serializeStorageKey(contractAddr, key[20:])
-
-		self.Service.CacheDB.Put(newkey, val)
-		self.Service.CacheDB.Delete(key)
-	}
-
-	iter.Release()
-	if err := iter.Error(); err != nil {
+	err = migrateContractStorage(self.Service, contractAddr)
+	if err != nil {
 		panic(err)
 	}
 
@@ -200,17 +225,10 @@ func ContractMigrate(proc *exec.Process,
 
 func ContractDestroy(proc *exec.Process) {
 	self := proc.HostData().(*Runtime)
-	contractAddress := self.Service.ContextRef.CurrentContext().ContractAddress
-	iter := self.Service.CacheDB.NewIterator(contractAddress[:])
-
-	for has := iter.First(); has; has = iter.Next() {
-		self.Service.CacheDB.Delete(iter.Key())
-	}
-	iter.Release()
-	if err := iter.Error(); err != nil {
+	err := deleteContractStorage(self.Service)
+	if err != nil {
 		panic(err)
 	}
-	self.Service.CacheDB.DeleteContract(contractAddress)
 	//the contract has been deleted ,quit the contract operation
 	proc.Terminate()
 }

@@ -39,9 +39,7 @@ import (
 	states2 "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/event"
 	native2 "github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/util"
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/crossvm_codec"
@@ -67,25 +65,6 @@ func WasmjitValidate(wasmCode []byte) error {
 	}
 
 	return nil
-}
-
-func getContractType(Service *WasmVmService, addr common.Address) (ContractType, error) {
-	if utils.IsNativeContract(addr) {
-		return NATIVE_CONTRACT, nil
-	}
-
-	dep, err := Service.CacheDB.GetContract(addr)
-	if err != nil {
-		return UNKOWN_CONTRACT, err
-	}
-	if dep == nil {
-		return UNKOWN_CONTRACT, errors.NewErr("contract is not exist.")
-	}
-	if dep.VmType() == payload.WASMVM_TYPE {
-		return WASMVM_CONTRACT, nil
-	}
-
-	return NEOVM_CONTRACT, nil
 }
 
 func jitSliceToBytes(slice C.wasmjit_slice_t) []byte {
@@ -123,214 +102,151 @@ func setCallOutPut(vmctx *C.wasmjit_vmctx_t, result []byte) {
 	C.wasmjit_set_calloutput(vmctx, output, C.uint32_t(len(result)))
 }
 
+func jitContractCreate(serviceIndex C.uint64_t,
+	codeSlice C.wasmjit_slice_t,
+	vmType C.uint32_t,
+	nameSlice C.wasmjit_slice_t,
+	verSlice C.wasmjit_slice_t,
+	authorSlice C.wasmjit_slice_t,
+	emailSlice C.wasmjit_slice_t,
+	descSlice C.wasmjit_slice_t,
+	newAddress *C.address_t,
+) (C.wasmjit_result_t, *WasmVmService, common.Address) {
+	service := getWasmVmService(uint64(serviceIndex))
+
+	code := jitSliceToBytes(codeSlice)
+	name := jitSliceToBytes(nameSlice)
+	version := jitSliceToBytes(verSlice)
+	author := jitSliceToBytes(authorSlice)
+	email := jitSliceToBytes(emailSlice)
+	desc := jitSliceToBytes(descSlice)
+
+	dep, errs := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
+	if errs != nil {
+		return jitErr(errs), nil, common.ADDRESS_EMPTY
+	}
+
+	wasmCode, errs := dep.GetWasmCode()
+	if errs != nil {
+		return jitErr(errs), nil, common.ADDRESS_EMPTY
+	}
+
+	errs = WasmjitValidate(wasmCode)
+	if errs != nil {
+		return jitErr(errs), nil, common.ADDRESS_EMPTY
+	}
+
+	contractAddr := dep.Address()
+
+	item, errs := service.CacheDB.GetContract(contractAddr)
+	if errs != nil {
+		return jitErr(errs), nil, common.ADDRESS_EMPTY
+	}
+
+	if item != nil {
+		return jitErr(errors.NewErr("contract has been deployed")), nil, common.ADDRESS_EMPTY
+	}
+
+	service.CacheDB.PutContract(dep)
+	C.memcpy((unsafe.Pointer)(newAddress), ((unsafe.Pointer)(&contractAddr[0])), C.ulong(20))
+	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}, service, contractAddr
+}
+
 // c to call go interface
 
 //export ontio_contract_create_cgo
-func ontio_contract_create_cgo(service_index C.uint64_t,
-	code_s C.wasmjit_slice_t,
+func ontio_contract_create_cgo(serviceIndex C.uint64_t,
+	codeSlice C.wasmjit_slice_t,
 	vmType C.uint32_t,
-	name_s C.wasmjit_slice_t,
-	ver_s C.wasmjit_slice_t,
-	author_s C.wasmjit_slice_t,
-	email_s C.wasmjit_slice_t,
-	desc_s C.wasmjit_slice_t,
-	newaddress *C.address_t,
+	nameSlice C.wasmjit_slice_t,
+	verSlice C.wasmjit_slice_t,
+	authorSlice C.wasmjit_slice_t,
+	emailSlice C.wasmjit_slice_t,
+	descSlice C.wasmjit_slice_t,
+	newAddress *C.address_t,
 ) C.wasmjit_result_t {
-	Service := getWasmVmService(uint64(service_index))
-
-	code := jitSliceToBytes(code_s)
-	name := jitSliceToBytes(name_s)
-	version := jitSliceToBytes(ver_s)
-	author := jitSliceToBytes(author_s)
-	email := jitSliceToBytes(email_s)
-	desc := jitSliceToBytes(desc_s)
-
-	dep, errs := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
-	if errs != nil {
-		return jitErr(errs)
-	}
-
-	wasmCode, errs := dep.GetWasmCode()
-	if errs != nil {
-		return jitErr(errs)
-	}
-
-	_, errs = ReadWasmModule(wasmCode, true)
-	if errs != nil {
-		return jitErr(errs)
-	}
-
-	contractAddr := dep.Address()
-
-	item, errs := Service.CacheDB.GetContract(contractAddr)
-	if errs != nil {
-		return jitErr(errs)
-	}
-
-	if item != nil {
-		return jitErr(errors.NewErr("contract has been deployed"))
-	}
-
-	Service.CacheDB.PutContract(dep)
-
-	C.memcpy((unsafe.Pointer)(newaddress), ((unsafe.Pointer)(&contractAddr[0])), C.ulong(20))
-
-	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
+	cResult, _, _ := jitContractCreate(serviceIndex, codeSlice, vmType, nameSlice, verSlice, authorSlice, emailSlice, descSlice, newAddress)
+	return cResult
 }
 
 //export ontio_contract_migrate_cgo
-func ontio_contract_migrate_cgo(service_index C.uint64_t,
-	code_s C.wasmjit_slice_t,
+func ontio_contract_migrate_cgo(serviceIndex C.uint64_t,
+	codeSlice C.wasmjit_slice_t,
 	vmType C.uint32_t,
-	name_s C.wasmjit_slice_t,
-	ver_s C.wasmjit_slice_t,
-	author_s C.wasmjit_slice_t,
-	email_s C.wasmjit_slice_t,
-	desc_s C.wasmjit_slice_t,
-	newaddress *C.address_t,
+	nameSlice C.wasmjit_slice_t,
+	verSlice C.wasmjit_slice_t,
+	authorSlice C.wasmjit_slice_t,
+	emailSlice C.wasmjit_slice_t,
+	descSlice C.wasmjit_slice_t,
+	newAddress *C.address_t,
 ) C.wasmjit_result_t {
-	Service := getWasmVmService(uint64(service_index))
+	cResult, service, contractAddr := jitContractCreate(serviceIndex, codeSlice, vmType, nameSlice, verSlice, authorSlice, emailSlice, descSlice, newAddress)
+	if cResult.kind != C.wasmjit_result_kind(wasmjit_result_success) {
+		return cResult
+	}
 
-	code := jitSliceToBytes(code_s)
-	name := jitSliceToBytes(name_s)
-	version := jitSliceToBytes(ver_s)
-	author := jitSliceToBytes(author_s)
-	email := jitSliceToBytes(email_s)
-	desc := jitSliceToBytes(desc_s)
-
-	dep, errs := payload.CreateDeployCode(code, uint32(vmType), name, version, author, email, desc)
+	errs := migrateContractStorage(service, contractAddr)
 	if errs != nil {
 		return jitErr(errs)
 	}
-
-	wasmCode, errs := dep.GetWasmCode()
-	if errs != nil {
-		return jitErr(errs)
-	}
-	_, errs = ReadWasmModule(wasmCode, true)
-	if errs != nil {
-		return jitErr(errs)
-	}
-
-	contractAddr := dep.Address()
-
-	item, errs := Service.CacheDB.GetContract(contractAddr)
-	if errs != nil {
-		return jitErr(errs)
-	}
-
-	if item != nil {
-		return jitErr(errors.NewErr("contract has been deployed"))
-	}
-
-	oldAddress := Service.ContextRef.CurrentContext().ContractAddress
-
-	Service.CacheDB.PutContract(dep)
-	Service.CacheDB.DeleteContract(oldAddress)
-
-	iter := Service.CacheDB.NewIterator(oldAddress[:])
-	for has := iter.First(); has; has = iter.Next() {
-		key := iter.Key()
-		val := iter.Value()
-
-		newkey := serializeStorageKey(contractAddr, key[20:])
-
-		Service.CacheDB.Put(newkey, val)
-		Service.CacheDB.Delete(key)
-	}
-
-	iter.Release()
-	if errs := iter.Error(); errs != nil {
-		return jitErr(errs)
-	}
-
-	C.memcpy((unsafe.Pointer)(newaddress), ((unsafe.Pointer)(&contractAddr[0])), C.ulong(20))
 
 	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
 //export ontio_contract_destroy_cgo
 func ontio_contract_destroy_cgo(service_index C.uint64_t) C.wasmjit_result_t {
-	Service := getWasmVmService(uint64(service_index))
+	service := getWasmVmService(uint64(service_index))
 
-	contractAddress := Service.ContextRef.CurrentContext().ContractAddress
-	iter := Service.CacheDB.NewIterator(contractAddress[:])
-
-	for has := iter.First(); has; has = iter.Next() {
-		Service.CacheDB.Delete(iter.Key())
-	}
-	iter.Release()
-	if errs := iter.Error(); errs != nil {
+	errs := deleteContractStorage(service)
+	if errs != nil {
 		return jitErr(errs)
 	}
-
-	Service.CacheDB.DeleteContract(contractAddress)
 
 	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
 //export ontio_storage_read_cgo
-func ontio_storage_read_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t, offset C.uint32_t) C.wasmjit_u32 {
-	Service := getWasmVmService(uint64(service_index))
+func ontio_storage_read_cgo(serviceIndex C.uint64_t, keySlice C.wasmjit_slice_t, valSlice C.wasmjit_slice_t, offset C.uint32_t) C.wasmjit_u32 {
+	service := getWasmVmService(uint64(serviceIndex))
 
-	keybytes := jitSliceToBytes(key_s)
+	keybytes := jitSliceToBytes(keySlice)
 
-	key := serializeStorageKey(Service.ContextRef.CurrentContext().ContractAddress, keybytes)
-
-	raw, errs := Service.CacheDB.Get(key)
-	if errs != nil {
-		return C.wasmjit_u32{v: 0, res: jitErr(errs)}
+	itemWrite, originLen, err := storageRead(service, keybytes, uint32(keySlice.len), uint32(valSlice.len), uint32(offset))
+	if err != nil {
+		return C.wasmjit_u32{v: 0, res: jitErr(err)}
 	}
 
-	if raw == nil {
-		return C.wasmjit_u32{v: C.uint32_t(math.MaxUint32), res: C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}}
+	if originLen != math.MaxUint32 {
+		C.memcpy((unsafe.Pointer)(valSlice.data), ((unsafe.Pointer)(&itemWrite[0])), C.ulong(len(itemWrite)))
 	}
 
-	item, errs := states2.GetValueFromRawStorageItem(raw)
-	if errs != nil {
-		return C.wasmjit_u32{v: 0, res: jitErr(errs)}
-	}
-
-	length := uint32(val_s.len)
-	itemlen := uint32(len(item))
-	if itemlen < uint32(val_s.len) {
-		length = itemlen // choose the smaller one. so C.memcpy is safe.
-	}
-
-	if uint32(len(item)) < uint32(offset) {
-		return C.wasmjit_u32{v: 0, res: jitErr(errors.NewErr("offset is invalid"))}
-	}
-
-	item_s := item[uint32(offset) : uint32(offset)+length]
-	C.memcpy((unsafe.Pointer)(val_s.data), ((unsafe.Pointer)(&item_s[0])), C.ulong(length))
-
-	return C.wasmjit_u32{v: C.uint32_t(len(item)), res: C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}}
+	return C.wasmjit_u32{v: C.uint32_t(originLen), res: C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}}
 }
 
 //export ontio_storage_write_cgo
 func ontio_storage_write_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t) {
-	Service := getWasmVmService(uint64(service_index))
+	service := getWasmVmService(uint64(service_index))
 
 	keybytes := jitSliceToBytes(key_s)
 
 	valbytes := jitSliceToBytes(val_s)
 
-	key := serializeStorageKey(Service.ContextRef.CurrentContext().ContractAddress, keybytes)
+	key := serializeStorageKey(service.ContextRef.CurrentContext().ContractAddress, keybytes)
 
-	Service.CacheDB.Put(key, states2.GenRawStorageItem(valbytes))
+	service.CacheDB.Put(key, states2.GenRawStorageItem(valbytes))
 }
 
 //export ontio_storage_delete_cgo
 func ontio_storage_delete_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t) {
-	Service := getWasmVmService(uint64(service_index))
+	service := getWasmVmService(uint64(service_index))
 
 	//self.checkGas(STORAGE_DELETE_GAS)
 
 	keybytes := jitSliceToBytes(key_s)
 
-	key := serializeStorageKey(Service.ContextRef.CurrentContext().ContractAddress, keybytes)
+	key := serializeStorageKey(service.ContextRef.CurrentContext().ContractAddress, keybytes)
 
-	Service.CacheDB.Delete(key)
+	service.CacheDB.Delete(key)
 }
 
 //export ontio_notify_cgo
@@ -339,18 +255,11 @@ func ontio_notify_cgo(service_index C.uint64_t, data C.wasmjit_slice_t) C.wasmji
 		return jitErr(errors.NewErr("notify length over the uplimit"))
 	}
 
-	Service := getWasmVmService(uint64(service_index))
+	service := getWasmVmService(uint64(service_index))
 
 	bs := jitSliceToBytes(data)
 
-	notify := &event.NotifyEventInfo{ContractAddress: Service.ContextRef.CurrentContext().ContractAddress}
-	val := crossvm_codec.DeserializeNotify(bs)
-	notify.States = val
-
-	notifys := make([]*event.NotifyEventInfo, 1)
-	notifys[0] = notify
-	Service.ContextRef.PushNotifications(notifys)
-
+	notify(service, bs)
 	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
@@ -365,12 +274,12 @@ func ontio_debug_cgo(data C.wasmjit_slice_t) {
 func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t, input C.wasmjit_slice_t) C.wasmjit_result_t {
 	var contractAddress common.Address
 
-	Service := jitService(vmctx)
+	service := jitService(vmctx)
 
 	exec_step := C.wasmjit_get_exec_step(vmctx)
 	gas_left := C.wasmjit_get_gas(vmctx)
-	*Service.ExecStep = uint64(exec_step)
-	*Service.GasLimit = uint64(gas_left)
+	*service.ExecStep = uint64(exec_step)
+	*service.GasLimit = uint64(gas_left)
 
 	buff := jitSliceToBytes(C.wasmjit_slice_t{data: ((*C.uint8_t)((unsafe.Pointer)(contractAddr))), len: 20})
 
@@ -378,7 +287,7 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 
 	inputs := jitSliceToBytes(input)
 
-	contracttype, errs := getContractType(Service, contractAddress)
+	contracttype, errs := getContractTypeInner(service, contractAddress)
 	if errs != nil {
 		return jitErr(errs)
 	}
@@ -415,21 +324,21 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 			Args:    args,
 		}
 
-		*Service.GasLimit -= NATIVE_INVOKE_GAS
+		*service.GasLimit -= NATIVE_INVOKE_GAS
 
 		native := &native2.NativeService{
-			CacheDB:     Service.CacheDB,
+			CacheDB:     service.CacheDB,
 			InvokeParam: contract,
-			Tx:          Service.Tx,
-			Height:      Service.Height,
-			Time:        Service.Time,
-			ContextRef:  Service.ContextRef,
+			Tx:          service.Tx,
+			Height:      service.Height,
+			Time:        service.Time,
+			ContextRef:  service.ContextRef,
 			ServiceMap:  make(map[string]native2.Handler),
 		}
 
 		tmpRes, err := native.Invoke()
-		C.wasmjit_set_gas(vmctx, C.uint64_t(*Service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*Service.ExecStep))
+		C.wasmjit_set_gas(vmctx, C.uint64_t(*service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*service.ExecStep))
 		if err != nil {
 			return jitErr(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
 		}
@@ -440,14 +349,14 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 		conParam := states.WasmContractParam{Address: contractAddress, Args: inputs}
 		param := common.SerializeToBytes(&conParam)
 
-		newservice, err := Service.ContextRef.NewExecuteEngine(param, types.InvokeWasm)
+		newservice, err := service.ContextRef.NewExecuteEngine(param, types.InvokeWasm)
 		if err != nil {
 			return jitErr(err)
 		}
 
 		tmpRes, err := newservice.Invoke()
-		C.wasmjit_set_gas(vmctx, C.uint64_t(*Service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*Service.ExecStep))
+		C.wasmjit_set_gas(vmctx, C.uint64_t(*service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*service.ExecStep))
 		if err != nil {
 			return jitErr(err)
 		}
@@ -460,7 +369,7 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 			return jitErr(err)
 		}
 
-		neoservice, err := Service.ContextRef.NewExecuteEngine([]byte{}, types.InvokeNeo)
+		neoservice, err := service.ContextRef.NewExecuteEngine([]byte{}, types.InvokeNeo)
 		if err != nil {
 			return jitErr(err)
 		}
@@ -471,8 +380,8 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 		}
 
 		tmp, err := neoservice.Invoke()
-		C.wasmjit_set_gas(vmctx, C.uint64_t(*Service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*Service.ExecStep))
+		C.wasmjit_set_gas(vmctx, C.uint64_t(*service.GasLimit))
+		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*service.ExecStep))
 		if err != nil {
 			return jitErr(err)
 		}
@@ -501,7 +410,7 @@ func tuneGas(gas uint64, mod uint64) uint64 {
 	return gas
 }
 
-func destroy_wasmjit_ret(ret C.wasmjit_ret) {
+func destroyWasmjitRet(ret C.wasmjit_ret) {
 	buffer := ret.buffer
 	msg := ret.res.msg
 	if buffer.data != (*C.uint8_t)((unsafe.Pointer)(nil)) {
@@ -564,11 +473,11 @@ func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode
 
 	if jit_ret.res.kind != C.wasmjit_result_kind(wasmjit_result_success) {
 		err := errors.NewErr(C.GoStringN((*C.char)((unsafe.Pointer)(jit_ret.res.msg.data)), C.int(jit_ret.res.msg.len)))
-		destroy_wasmjit_ret(jit_ret)
+		destroyWasmjitRet(jit_ret)
 		return nil, err
 	}
 
 	output := C.GoBytes((unsafe.Pointer)(jit_ret.buffer.data), (C.int)(jit_ret.buffer.len))
-	destroy_wasmjit_ret(jit_ret)
+	destroyWasmjitRet(jit_ret)
 	return output, nil
 }
