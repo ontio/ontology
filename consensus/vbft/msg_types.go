@@ -166,7 +166,7 @@ func (msg *blockEndorseMsg) Verify(pub keypair.PublicKey) error {
 		//verify cross states endorse sig
 		cSig, err := signature.Deserialize(msg.CrossChainMsgEndorserSig)
 		if err != nil {
-			return fmt.Errorf("deserialize cross msg sig: %s", err)
+			return fmt.Errorf("endorse deserialize cross msg sig: %s", err)
 		}
 		if !signature.Verify(pub, msg.CrossChainMsgHash[:], cSig) {
 			return fmt.Errorf("failed to verify cross chain endorse sig")
@@ -193,7 +193,7 @@ type blockCommitMsg struct {
 	ProposerSig               []byte            `json:"proposer_sig"`
 	EndorsersSig              map[uint32][]byte `json:"endorsers_sig"`
 	CommitterSig              []byte            `json:"committer_sig"`
-	CommitCCMHash             common.Uint256    `json:"commit_ccm_sig"`
+	CommitCCMHash             common.Uint256    `json:"commit_ccm_hash"`
 	CrossChainMsgEndorserSig  map[uint32][]byte `json:"cross_chain_msg_endorser_sig"`
 	CrossChainMsgCommitterSig []byte            `json:"cross_chain_msg_committer_sig"`
 }
@@ -215,7 +215,7 @@ func (msg *blockCommitMsg) Verify(pub keypair.PublicKey) error {
 		//verify cross chain msg commit sig
 		cSig, err := signature.Deserialize(msg.CrossChainMsgCommitterSig)
 		if err != nil {
-			return fmt.Errorf("deserialize cross chain msg sig: %s", err)
+			return fmt.Errorf("committer deserialize cross chain msg sig: %s", err)
 		}
 		if !signature.Verify(pub, msg.CommitCCMHash[:], cSig) {
 			return fmt.Errorf("failed to verify cross chain msg sig")
