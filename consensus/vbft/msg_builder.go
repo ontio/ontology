@@ -410,6 +410,7 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 			return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
 		}
 		msg.CrossChainMsgCommitterSig = sig
+		msg.CommitCCMHash = hash
 	}
 	return msg, nil
 }

@@ -169,7 +169,7 @@ func (msg *blockEndorseMsg) Verify(pub keypair.PublicKey) error {
 			return fmt.Errorf("endorse deserialize cross msg sig: %s", err)
 		}
 		if !signature.Verify(pub, msg.CrossChainMsgHash[:], cSig) {
-			return fmt.Errorf("failed to verify cross chain endorse sig")
+			return fmt.Errorf("endorse failed to verify cross chain endorse sig")
 		}
 	}
 	return nil
@@ -218,7 +218,7 @@ func (msg *blockCommitMsg) Verify(pub keypair.PublicKey) error {
 			return fmt.Errorf("committer deserialize cross chain msg sig: %s", err)
 		}
 		if !signature.Verify(pub, msg.CommitCCMHash[:], cSig) {
-			return fmt.Errorf("failed to verify cross chain msg sig")
+			return fmt.Errorf("committer failed to verify cross chain msg sig")
 		}
 	}
 	return nil
