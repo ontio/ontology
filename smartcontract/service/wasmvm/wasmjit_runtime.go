@@ -282,11 +282,6 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
-func tuneGas(gas uint64, mod uint64) uint64 {
-	//return mod*(gas/mod) + mod
-	return gas
-}
-
 func destroyWasmjitRet(ret C.wasmjit_ret) {
 	buffer := ret.buffer
 	msg := ret.res.msg
@@ -346,7 +341,7 @@ func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode
 	ctx := C.wasmjit_chain_context_create(height, block_hash, timestamp, tx_hash, caller_raw, witness_raw, input_raw, exec_step, gas_factor, gas_left, depth_left, service_index)
 	jit_ret := C.wasmjit_invoke(codeSlice, ctx)
 	*this.ExecStep = uint64(jit_ret.exec_step)
-	*this.GasLimit = tuneGas(uint64(jit_ret.gas_left), wasmjit_gas_mod)
+	*this.GasLimit = uint64(jit_ret.gas_left)
 
 	if jit_ret.res.kind != C.wasmjit_result_kind(wasmjit_result_success) {
 		err := errors.NewErr(C.GoStringN((*C.char)((unsafe.Pointer)(jit_ret.res.msg.data)), C.int(jit_ret.res.msg.len)))
