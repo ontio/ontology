@@ -124,7 +124,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
-	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify, crossHashes *common.ZeroCopySink) error {
+	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) ([]common.Uint256, error) {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
@@ -155,37 +155,37 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		uintCodeGasPrice, ok := gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]
 		if !ok {
 			overlay.SetError(errors.NewErr("[HandleInvokeTransaction] get UINT_INVOKE_CODE_LEN_NAME gas failed"))
-			return nil
+			return nil, nil
 		}
 
 		oldBalance, err = getBalanceFromNative(config, cache, store, tx.Payer)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		minGas = neovm.MIN_TRANSACTION_GAS * tx.GasPrice
 
 		if oldBalance < minGas {
 			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
-			return fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
+			return nil, fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
 		}
 
 		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), uintCodeGasPrice)
 
 		if oldBalance < codeLenGasLimit*tx.GasPrice {
 			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
-			return fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
+			return nil, fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
 		}
 
 		if tx.GasLimit < codeLenGasLimit {
 			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
-			return fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
+			return nil, fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
 		}
 
 		maxAvaGasLimit := oldBalance / tx.GasPrice
@@ -203,7 +203,6 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		Gas:          availableGasLimit - codeLenGasLimit,
 		WasmExecStep: sysconfig.DEFAULT_WASM_MAX_STEPCOUNT,
 		PreExec:      false,
-		CrossHashes:  crossHashes,
 	}
 
 	//start the smart contract executive function
@@ -220,29 +219,29 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	if err != nil {
 		if isCharge {
 			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
 		}
-		return err
+		return nil, err
 	}
 
 	var notifies []*event.NotifyEventInfo
 	if isCharge {
 		newBalance, err = getBalanceFromNative(config, cache, store, tx.Payer)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if newBalance < costGas {
 			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
-			return fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
+			return nil, fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
 		}
 
 		notifies, err = chargeCostGas(tx.Payer, costGas, config, sc.CacheDB, store)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -251,7 +250,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	notify.GasConsumed = costGas
 	notify.State = event.CONTRACT_STATE_SUCCESS
 	sc.CacheDB.Commit()
-	return nil
+	return sc.CrossHashes, nil
 }
 
 func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {

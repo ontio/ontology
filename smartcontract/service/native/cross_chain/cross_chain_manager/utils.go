@@ -85,7 +85,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 	if err != nil {
 		return fmt.Errorf("MakeFromOntProof, putRequest error:%s", err)
 	}
-	native.ContextRef.PutMerkleVal(sink.Bytes())
+	native.PushCrossState(sink.Bytes())
 	chainIDBytes, err := utils.GetUint64Bytes(params.ToChainID)
 	if err != nil {
 		return fmt.Errorf("MakeFromOntProof, get chainIDBytes error: %v", err)

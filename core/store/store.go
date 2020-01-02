@@ -33,7 +33,7 @@ type ExecuteResult struct {
 	WriteSet        *overlaydb.MemDB
 	Hash            common.Uint256
 	MerkleRoot      common.Uint256
-	CrossStates     []byte
+	CrossStates     []common.Uint256
 	CrossStatesRoot common.Uint256
 	Notify          []*event.ExecuteNotify
 }

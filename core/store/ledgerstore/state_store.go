@@ -372,13 +372,17 @@ func (self *StateStore) GetCrossStatesRoot(height uint32) (common.Uint256, error
 	return merkle.TreeHasher{}.HashFullTreeWithLeafHash(states), nil
 }
 
-func (self *StateStore) SaveCrossStates(height uint32, crossStates []byte) error {
+func (self *StateStore) SaveCrossStates(height uint32, crossStates []common.Uint256) error {
 	//save cross states hash
 	if len(crossStates) == 0 {
 		return nil
 	}
 	key := self.genCrossStatesKey(height)
-	self.store.BatchPut(key, crossStates)
+	sink := common.NewZeroCopySink(make([]byte, 0, len(crossStates)*common.UINT256_SIZE))
+	for _, v := range crossStates {
+		sink.WriteHash(v)
+	}
+	self.store.BatchPut(key, sink.Bytes())
 	return nil
 }
 

@@ -390,6 +390,11 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		}
 	}
 
+	var hash common.Uint256
+	if proposal.Block.CrossChainMsg != nil {
+		hash = proposal.Block.CrossChainMsg.Hash()
+	}
+
 	msg := &blockCommitMsg{
 		Committer:                 self.Index,
 		BlockProposer:             proposal.Block.getProposer(),
@@ -399,18 +404,17 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		ProposerSig:               proposerSig,
 		EndorsersSig:              endorsersSig,
 		CommitterSig:              committerSig,
+		CommitCCMHash:             hash,
 		CrossChainMsgEndorserSig:  crossChainEndorserSig,
 		CrossChainMsgCommitterSig: ccmCommitSig,
 	}
 
 	if proposal.Block.CrossChainMsg != nil && commitCrossChain {
-		hash := proposal.Block.CrossChainMsg.Hash()
 		sig, err := signature.Sign(self.account, hash[:])
 		if err != nil {
 			return nil, fmt.Errorf("sign cross chain msg root failed,msg hash:%s,err:%s", hash.ToHexString(), err)
 		}
 		msg.CrossChainMsgCommitterSig = sig
-		msg.CommitCCMHash = hash
 	}
 	return msg, nil
 }

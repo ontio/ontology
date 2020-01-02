@@ -20,7 +20,6 @@ package smartcontract
 import (
 	"errors"
 	"fmt"
-	"github.com/ontio/ontology/merkle"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -52,7 +51,7 @@ type SmartContract struct {
 	ExecStep      int
 	WasmExecStep  uint64
 	PreExec       bool
-	CrossHashes   *common.ZeroCopySink
+	CrossHashes   []common.Uint256
 }
 
 // Config describe smart contract need parameters configuration
@@ -120,8 +119,8 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	return true
 }
 
-func (this *SmartContract) PutMerkleVal(data []byte) {
-	this.CrossHashes.WriteHash(merkle.HashLeaf(data))
+func (this *SmartContract) PutCrossStateHashes(hashes []common.Uint256) {
+	this.CrossHashes = append(this.CrossHashes, hashes...)
 }
 
 func (this *SmartContract) checkContexts() bool {

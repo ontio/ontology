@@ -685,22 +685,22 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	})
 
 	cache := storage.NewCacheDB(overlay)
-	sink := common.NewZeroCopySink(nil)
+	var csh []common.Uint256
 	for _, tx := range block.Transactions {
 		cache.Reset()
-		notify, e := this.handleTransaction(overlay, cache, gasTable, block, tx, sink)
+		notify, crossStateHashes, e := this.handleTransaction(overlay, cache, gasTable, block, tx)
 		if e != nil {
 			err = e
 			return
 		}
-
 		result.Notify = append(result.Notify, notify)
+		csh = crossStateHashes
 	}
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
-	result.CrossStates = sink.Bytes()
+	result.CrossStates = csh
 	if len(result.CrossStates) != 0 {
-		result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(genCrossStatesHash(result.CrossStates))
+		result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(csh)
 	} else {
 		result.CrossStatesRoot = common.UINT256_EMPTY
 	}
@@ -720,20 +720,6 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 
 	return
-}
-
-func genCrossStatesHash(data []byte) []common.Uint256 {
-	l := len(data) / common.UINT256_SIZE
-	hashes := make([]common.Uint256, 0, l)
-	source := common.NewZeroCopySource(data)
-	for i := 0; i < l; i++ {
-		u256, eof := source.NextHash()
-		if eof {
-			return []common.Uint256{}
-		}
-		hashes = append(hashes, u256)
-	}
-	return hashes
 }
 
 func calculateTotalStateHash(overlay *overlaydb.OverlayDB) (result common.Uint256, err error) {
@@ -924,30 +910,30 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChai
 }
 
 func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
-	block *types.Block, tx *types.Transaction, crossHashes *common.ZeroCopySink) (*event.ExecuteNotify, error) {
+	block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, []common.Uint256, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
+	var crossStateHashes []common.Uint256
+	var err error
 	switch tx.TxType {
 	case types.Deploy:
-		err := this.stateStore.HandleDeployTransaction(this, overlay, gasTable, cache, tx, block, notify)
+		err = this.stateStore.HandleDeployTransaction(this, overlay, gasTable, cache, tx, block, notify)
 		if overlay.Error() != nil {
-			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+			return nil, nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.InvokeNeo, types.InvokeWasm:
-		err := this.stateStore.HandleInvokeTransaction(this, overlay, gasTable, cache, tx, block, notify, crossHashes)
+		crossStateHashes, err = this.stateStore.HandleInvokeTransaction(this, overlay, gasTable, cache, tx, block, notify)
 		if overlay.Error() != nil {
-			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-
 	}
-
-	return notify, nil
+	return notify, crossStateHashes, nil
 }
 
 func (this *LedgerStoreImp) saveHeaderIndexList() error {
@@ -1170,7 +1156,6 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			Gas:          math.MaxUint64 - calcGasByCodeLen(len(invoke.Code), gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]),
 			WasmExecStep: config.DEFAULT_WASM_MAX_STEPCOUNT,
 			PreExec:      true,
-			CrossHashes:  common.NewZeroCopySink(nil),
 		}
 		//start the smart contract executive function
 		engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
