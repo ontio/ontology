@@ -290,7 +290,7 @@ func TestTreeHasher(t *testing.T) {
 
 func TestAudit(t *testing.T) {
 	var hashes []common.Uint256
-	n := 1
+	n := 10
 	tree := TreeHasher{}
 	for i := 0; i < n; i++ {
 		hashes = append(hashes, HashLeaf([]byte(fmt.Sprintf("%d", i))))
@@ -301,7 +301,7 @@ func TestAudit(t *testing.T) {
 	for i := 0; i < n; i++ {
 		auditPath, err := MerkleLeafPath([]byte(fmt.Sprintf("%d", i)), hashes)
 		assert.NoError(t, err)
-		value, err := MerkleProve(auditPath, root[:])
+		value, err := MerkleProve(auditPath, root)
 		assert.NoError(t, err)
 		assert.Equal(t, []byte(fmt.Sprintf("%d", i)), value)
 	}

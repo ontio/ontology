@@ -98,7 +98,7 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 }
 
 func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint64, header *ccom.Header) (*ccom.ToMerkleValue, error) {
-	v, err := merkle.MerkleProve(proof, header.CrossStatesRoot.ToArray())
+	v, err := merkle.MerkleProve(proof, header.CrossStatesRoot)
 	if err != nil {
 		return nil, fmt.Errorf("VerifyToOntTx, merkle.MerkleProve verify merkle proof error: %v", err)
 	}

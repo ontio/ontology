@@ -192,7 +192,7 @@ func MerkleHashes(preLeaves []common.Uint256, depth int) [][]common.Uint256 {
 	return levels
 }
 
-func MerkleProve(path []byte, root []byte) ([]byte, error) {
+func MerkleProve(path []byte, root common.Uint256) ([]byte, error) {
 	source := common.NewZeroCopySource(path)
 	value, _, irr, eof := source.NextVarBytes()
 	if eof || irr {
@@ -216,8 +216,8 @@ func MerkleProve(path []byte, root []byte) ([]byte, error) {
 		}
 	}
 
-	if !bytes.Equal(hash[:], root) {
-		return nil, fmt.Errorf("except root is not equal actual root, except:%x, actual:%x", hash, root)
+	if hash != root {
+		return nil, fmt.Errorf("excepted root is not equal actual root, excepted:%x, actual:%x", hash, root)
 	}
 	return value, nil
 }
