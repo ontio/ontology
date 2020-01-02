@@ -29,7 +29,6 @@ package wasmvm
 import "C"
 
 import (
-	"io"
 	"math"
 	"unsafe"
 
@@ -37,12 +36,8 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	states2 "github.com/ontio/ontology/core/states"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
-	native2 "github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/util"
 	"github.com/ontio/ontology/smartcontract/states"
-	"github.com/ontio/ontology/vm/crossvm_codec"
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
@@ -287,118 +282,12 @@ func ontio_call_contract_cgo(vmctx *C.wasmjit_vmctx_t, contractAddr *C.address_t
 
 	inputs := jitSliceToBytes(input)
 
-	contracttype, errs := getContractTypeInner(service, contractAddress)
+	result, errs := callContractInner(service, contractAddress, inputs)
+	// here need set the Gas back to JIT context before err return.
+	C.wasmjit_set_gas(vmctx, C.uint64_t(*service.GasLimit))
+	C.wasmjit_set_exec_step(vmctx, C.uint64_t(*service.ExecStep))
 	if errs != nil {
 		return jitErr(errs)
-	}
-
-	var result []byte
-
-	switch contracttype {
-	case NATIVE_CONTRACT:
-		source := common.NewZeroCopySource(inputs)
-		ver, eof := source.NextByte()
-		if eof {
-			return jitErr(io.ErrUnexpectedEOF)
-		}
-		method, _, irregular, eof := source.NextString()
-		if irregular {
-			return jitErr(common.ErrIrregularData)
-		}
-		if eof {
-			return jitErr(io.ErrUnexpectedEOF)
-		}
-
-		args, _, irregular, eof := source.NextVarBytes()
-		if irregular {
-			return jitErr(common.ErrIrregularData)
-		}
-		if eof {
-			return jitErr(io.ErrUnexpectedEOF)
-		}
-
-		contract := states.ContractInvokeParam{
-			Version: ver,
-			Address: contractAddress,
-			Method:  method,
-			Args:    args,
-		}
-
-		*service.GasLimit -= NATIVE_INVOKE_GAS
-
-		native := &native2.NativeService{
-			CacheDB:     service.CacheDB,
-			InvokeParam: contract,
-			Tx:          service.Tx,
-			Height:      service.Height,
-			Time:        service.Time,
-			ContextRef:  service.ContextRef,
-			ServiceMap:  make(map[string]native2.Handler),
-		}
-
-		tmpRes, err := native.Invoke()
-		C.wasmjit_set_gas(vmctx, C.uint64_t(*service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*service.ExecStep))
-		if err != nil {
-			return jitErr(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
-		}
-
-		result = tmpRes
-
-	case WASMVM_CONTRACT:
-		conParam := states.WasmContractParam{Address: contractAddress, Args: inputs}
-		param := common.SerializeToBytes(&conParam)
-
-		newservice, err := service.ContextRef.NewExecuteEngine(param, types.InvokeWasm)
-		if err != nil {
-			return jitErr(err)
-		}
-
-		tmpRes, err := newservice.Invoke()
-		C.wasmjit_set_gas(vmctx, C.uint64_t(*service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*service.ExecStep))
-		if err != nil {
-			return jitErr(err)
-		}
-
-		result = tmpRes.([]byte)
-
-	case NEOVM_CONTRACT:
-		evalstack, err := util.GenerateNeoVMParamEvalStack(inputs)
-		if err != nil {
-			return jitErr(err)
-		}
-
-		neoservice, err := service.ContextRef.NewExecuteEngine([]byte{}, types.InvokeNeo)
-		if err != nil {
-			return jitErr(err)
-		}
-
-		err = util.SetNeoServiceParamAndEngine(contractAddress, neoservice, evalstack)
-		if err != nil {
-			return jitErr(err)
-		}
-
-		tmp, err := neoservice.Invoke()
-		C.wasmjit_set_gas(vmctx, C.uint64_t(*service.GasLimit))
-		C.wasmjit_set_exec_step(vmctx, C.uint64_t(*service.ExecStep))
-		if err != nil {
-			return jitErr(err)
-		}
-
-		if tmp != nil {
-			val := tmp.(*neotypes.VmValue)
-			source := common.NewZeroCopySink([]byte{byte(crossvm_codec.VERSION)})
-
-			err = neotypes.BuildResultFromNeo(*val, source)
-			if err != nil {
-				return jitErr(err)
-			}
-			result = source.Bytes()
-		}
-
-	default:
-		return jitErr(errors.NewErr("Not a supported contract type"))
 	}
 
 	setCallOutPut(vmctx, result)
