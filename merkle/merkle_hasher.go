@@ -21,7 +21,6 @@ package merkle
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math"
@@ -145,9 +144,8 @@ func MerkleLeafPath(data []byte, hashes []common.Uint256) ([]byte, error) {
 	if index < 0 {
 		return nil, fmt.Errorf("%s", "values doesn't exist!")
 	}
-	buf := bytes.NewBuffer(make([]byte, 0, size))
-	binary.LittleEndian.PutUint64(buf.Bytes()[:8], uint64(len(data)))
-	buf.Write(data)
+	sink := common.NewZeroCopySink(make([]byte, 0, size))
+	sink.WriteVarBytes(data)
 	d := depth(len(hashes))
 	merkleTree := MerkleHashes(hashes, d)
 	for i := d; i > 0; i-- {
@@ -159,15 +157,15 @@ func MerkleLeafPath(data []byte, hashes []common.Uint256) ([]byte, error) {
 			continue
 		}
 		if index%2 != 0 {
-			buf.WriteByte(LEFT)
-			buf.Write(subTree[index-1][:])
+			sink.WriteByte(LEFT)
+			sink.WriteHash(subTree[index-1])
 		} else {
-			buf.WriteByte(RIGHT)
-			buf.Write(subTree[index+1][:])
+			sink.WriteByte(RIGHT)
+			sink.WriteHash(subTree[index+1])
 		}
 		index = nIndex
 	}
-	return buf.Bytes(), nil
+	return sink.Bytes(), nil
 }
 
 func MerkleHashes(preLeaves []common.Uint256, depth int) [][]common.Uint256 {
@@ -196,12 +194,8 @@ func MerkleHashes(preLeaves []common.Uint256, depth int) [][]common.Uint256 {
 
 func MerkleProve(path []byte, root []byte) ([]byte, error) {
 	source := common.NewZeroCopySource(path)
-	l, eof := source.NextUint64()
-	if eof {
-		return nil, errors.New("read uint64 error")
-	}
-	value, eof := source.NextBytes(l)
-	if eof {
+	value, _, irr, eof := source.NextVarBytes()
+	if eof || irr {
 		return nil, errors.New("read bytes error")
 	}
 	hash := HashLeaf(value)
