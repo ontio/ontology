@@ -33,12 +33,10 @@ import (
 	"unsafe"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	states2 "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/states"
-	neotypes "github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
@@ -221,48 +219,38 @@ func ontio_storage_read_cgo(serviceIndex C.uint64_t, keySlice C.wasmjit_slice_t,
 //export ontio_storage_write_cgo
 func ontio_storage_write_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t, val_s C.wasmjit_slice_t) {
 	service := getWasmVmService(uint64(service_index))
-
 	keybytes := jitSliceToBytes(key_s)
-
 	valbytes := jitSliceToBytes(val_s)
 
 	key := serializeStorageKey(service.ContextRef.CurrentContext().ContractAddress, keybytes)
-
 	service.CacheDB.Put(key, states2.GenRawStorageItem(valbytes))
 }
 
 //export ontio_storage_delete_cgo
 func ontio_storage_delete_cgo(service_index C.uint64_t, key_s C.wasmjit_slice_t) {
 	service := getWasmVmService(uint64(service_index))
-
-	//self.checkGas(STORAGE_DELETE_GAS)
-
 	keybytes := jitSliceToBytes(key_s)
 
 	key := serializeStorageKey(service.ContextRef.CurrentContext().ContractAddress, keybytes)
-
 	service.CacheDB.Delete(key)
 }
 
 //export ontio_notify_cgo
 func ontio_notify_cgo(service_index C.uint64_t, data C.wasmjit_slice_t) C.wasmjit_result_t {
-	if uint(data.len) >= neotypes.MAX_NOTIFY_LENGTH {
-		return jitErr(errors.NewErr("notify length over the uplimit"))
-	}
-
 	service := getWasmVmService(uint64(service_index))
-
 	bs := jitSliceToBytes(data)
 
-	notify(service, bs)
+	err := notify(service, bs)
+	if err != nil {
+		return jitErr(err)
+	}
 	return C.wasmjit_result_t{kind: C.wasmjit_result_kind(wasmjit_result_success)}
 }
 
 //export ontio_debug_cgo
 func ontio_debug_cgo(data C.wasmjit_slice_t) {
 	bs := jitSliceToBytes(data)
-
-	log.Infof("[WasmContract]Debug:%s\n", bs)
+	debugLog(bs)
 }
 
 //export ontio_call_contract_cgo

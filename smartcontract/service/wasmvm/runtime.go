@@ -164,10 +164,14 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 		return
 	}
 
-	log.Debugf("[WasmContract]Debug:%s\n", bs)
+	debugLog(bs)
 }
 
-func notify(service *WasmVmService, bs []byte) {
+func notify(service *WasmVmService, bs []byte) error {
+	if len(bs) >= neotypes.MAX_NOTIFY_LENGTH {
+		return errors.NewErr("notify length over the uplimit")
+	}
+
 	notify := &event.NotifyEventInfo{ContractAddress: service.ContextRef.CurrentContext().ContractAddress}
 	val := crossvm_codec.DeserializeNotify(bs)
 	notify.States = val
@@ -175,19 +179,20 @@ func notify(service *WasmVmService, bs []byte) {
 	notifys := make([]*event.NotifyEventInfo, 1)
 	notifys[0] = notify
 	service.ContextRef.PushNotifications(notifys)
+	return nil
 }
 
 func Notify(proc *exec.Process, ptr uint32, l uint32) {
 	self := proc.HostData().(*Runtime)
-	if l >= neotypes.MAX_NOTIFY_LENGTH {
-		panic("notify length over the uplimit")
-	}
 	bs, err := ReadWasmMemory(proc, ptr, l)
 	if err != nil {
 		panic(err)
 	}
 
-	notify(self.Service, bs)
+	err = notify(self.Service, bs)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func InputLength(proc *exec.Process) uint32 {
@@ -636,6 +641,10 @@ func serializeStorageKey(contractAddress common.Address, key []byte) []byte {
 	bf.Write(key)
 
 	return bf.Bytes()
+}
+
+func debugLog(bs []byte) {
+	log.Debugf("[WasmContract]Debug:%s\n", bs)
 }
 
 func callContractInner(service *WasmVmService, contractAddress common.Address, inputs []byte) ([]byte, error) {
