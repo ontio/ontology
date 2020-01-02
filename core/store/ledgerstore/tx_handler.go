@@ -189,6 +189,12 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		}
 
 		maxAvaGasLimit := oldBalance / tx.GasPrice
+
+		gasTuneheight := sysconfig.GetGasRoundTuneHeight(sysconfig.DefConfig.P2PNode.NetworkId)
+		if config.Height > gasTuneheight {
+			maxAvaGasLimit = maxAvaGasLimit - neovm.MIN_TRANSACTION_GAS
+		}
+
 		if availableGasLimit > maxAvaGasLimit {
 			availableGasLimit = maxAvaGasLimit
 		}
@@ -211,9 +217,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	_, err = engine.Invoke()
 
 	costGasLimit = availableGasLimit - sc.Gas
-	if costGasLimit < neovm.MIN_TRANSACTION_GAS {
-		costGasLimit = neovm.MIN_TRANSACTION_GAS
-	}
+	costGasLimit = smartcontract.TuneGasLimitByHeight(config.Height, costGasLimit)
 
 	costGas = costGasLimit * tx.GasPrice
 	if err != nil {

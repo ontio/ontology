@@ -1078,10 +1078,8 @@ func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.P
 			return stf, err
 		}
 		gasCost := math.MaxUint64 - sc.Gas
-		mixGas := neovm.MIN_TRANSACTION_GAS
-		if gasCost < mixGas {
-			gasCost = mixGas
-		}
+
+		gasCost = smartcontract.TuneGasLimitByHeight(sconfig.Height, gasCost)
 
 		var cv interface{}
 		if tx.TxType == types.InvokeNeo { //neovm

@@ -20,6 +20,7 @@ package smartcontract
 import (
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -232,4 +233,19 @@ func (this *SmartContract) checkContractAddress(address common.Address) bool {
 		return true
 	}
 	return false
+}
+
+func TuneGasLimitByHeight(height uint32, gasLimit uint64) uint64 {
+	gasTuneheight := config.GetGasRoundTuneHeight(config.DefConfig.P2PNode.NetworkId)
+	if height > gasTuneheight {
+		if gasLimit > (math.MaxUint64 - neovm.MIN_TRANSACTION_GAS) {
+			return math.MaxUint64
+		}
+
+		return neovm.MIN_TRANSACTION_GAS * ((gasLimit + neovm.MIN_TRANSACTION_GAS) / neovm.MIN_TRANSACTION_GAS)
+	} else if gasLimit < neovm.MIN_TRANSACTION_GAS {
+		return neovm.MIN_TRANSACTION_GAS
+	}
+
+	return gasLimit
 }
