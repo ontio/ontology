@@ -59,7 +59,7 @@ func (this *Block) Deserialization(source *common.ZeroCopySource) error {
 		// to accept old node's block
 		this.MerkleRoot = common.UINT256_EMPTY
 	}
-	hasEmptyCCM, irr, eof := source.NextBool()
+	hasCCM, irr, eof := source.NextBool()
 	if irr || eof {
 		// to accept old node's block
 		this.CCMsg = new(types.CrossChainMsg)
@@ -67,7 +67,7 @@ func (this *Block) Deserialization(source *common.ZeroCopySource) error {
 		return nil
 	}
 	var ccMsg *types.CrossChainMsg
-	if hasEmptyCCM {
+	if hasCCM {
 		ccMsg = new(types.CrossChainMsg)
 		if err := ccMsg.Deserialization(source); err != nil {
 			return err
