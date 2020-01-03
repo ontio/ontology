@@ -592,6 +592,9 @@ func (this *LedgerStoreImp) SubmitBlock(block *types.Block, ccMsg *types.CrossCh
 		if ccMsg.Height != currBlockHeight {
 			return fmt.Errorf("cross chain msg height %d not equal next block height %d", blockHeight, ccMsg.Height)
 		}
+		if ccMsg.Version != types.CURR_CROSS_STATES_VERSION {
+			return fmt.Errorf("error cross chain msg version excepted:%d actual:%d", types.CURR_CROSS_STATES_VERSION, ccMsg.Version)
+		}
 		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers); err != nil {
 			return fmt.Errorf("verifyCrossChainMsg error: %s", err)
 		}
@@ -625,6 +628,9 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, ccMsg *types.CrossChain
 	if ccMsg != nil {
 		if ccMsg.Height != currBlockHeight {
 			return fmt.Errorf("cross chain msg height %d not equal next block height %d", blockHeight, ccMsg.Height)
+		}
+		if ccMsg.Version != types.CURR_CROSS_STATES_VERSION {
+			return fmt.Errorf("error cross chain msg version excepted:%d actual:%d", types.CURR_CROSS_STATES_VERSION, ccMsg.Version)
 		}
 		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers); err != nil {
 			return fmt.Errorf("verifyCrossChainMsg error: %s", err)
