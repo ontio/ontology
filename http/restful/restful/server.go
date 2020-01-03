@@ -251,7 +251,7 @@ func (this *restServer) getParams(r *http.Request, url string, req map[string]in
 //init get handler
 func (this *restServer) initGetHandler() {
 
-	for k, _ := range this.getMap {
+	for k := range this.getMap {
 		this.router.Get(k, func(w http.ResponseWriter, r *http.Request) {
 
 			var req = make(map[string]interface{})
@@ -272,7 +272,7 @@ func (this *restServer) initGetHandler() {
 
 //init post handler
 func (this *restServer) initPostHandler() {
-	for k, _ := range this.postMap {
+	for k := range this.postMap {
 		this.router.Post(k, func(w http.ResponseWriter, r *http.Request) {
 			decoder := json.NewDecoder(io.LimitReader(r.Body, common.MAX_REQUEST_BODY_SIZE))
 			defer r.Body.Close()
@@ -296,7 +296,7 @@ func (this *restServer) initPostHandler() {
 		})
 	}
 	//Options
-	for k, _ := range this.postMap {
+	for k := range this.postMap {
 		this.router.Options(k, func(w http.ResponseWriter, r *http.Request) {
 			this.write(w, []byte{})
 		})

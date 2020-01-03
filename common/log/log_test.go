@@ -81,5 +81,5 @@ func TestNewLogFile(t *testing.T) {
 		fmt.Println(err2)
 		return
 	}
-	assert.Equal(t, len(logfileNum1), (len(logfileNum2) - 1))
+	assert.Equal(t, len(logfileNum1), len(logfileNum2) - 1)
 }

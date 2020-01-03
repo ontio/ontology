@@ -90,7 +90,7 @@ func TestMerkle(t *testing.T) {
 	if tree.Root() != sha256.Sum256(nil) {
 		t.Fatal("root error")
 	}
-	for i, _ := range leafs {
+	for i := range leafs {
 		tree.Append([]byte{byte(i + 1)})
 	}
 

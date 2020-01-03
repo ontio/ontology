@@ -97,8 +97,8 @@ func CaseRecovery(t *testing.T, n *native.NativeService) {
 
 	// 6. update recovery by invalid recovery, should fail
 	s := []Signer{
-		Signer{[]byte(id0), 1},
-		Signer{[]byte(id1), 1},
+		{[]byte(id0), 1},
+		{[]byte(id1), 1},
 	}
 	addr := []common.Address{a0.Address, a1.Address}
 	if err := updateRec(n, id0, g, s, addr); err == nil {

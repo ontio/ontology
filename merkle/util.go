@@ -22,7 +22,7 @@ package merkle
 func countBit(num uint32) uint {
 	var count uint
 	for num != 0 {
-		num &= (num - 1)
+		num &= num - 1
 		count += 1
 	}
 	return count

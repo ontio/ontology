@@ -30,7 +30,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	// neovms "github.com/ontio/ontology/smartcontract/service/neovm"
-	neovm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/vm/neovm"
 )
 
 type TestEnv struct {

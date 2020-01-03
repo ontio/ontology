@@ -343,20 +343,20 @@ func TestStructValue(t *testing.T) {
 	assert.Nil(t, err)
 
 	//checkMultiStackOpCode(t, []OpCode{PICKITEM}, []Value{s, int64(1)}, []Value{"value"})
-	checkAltStackOpCodeNew(t, []byte{byte(PICKITEM)}, [2][]Value{[]Value{s, int64(1)}, {}}, [2][]Value{[]Value{[]byte("value")}, {}})
+	checkAltStackOpCodeNew(t, []byte{byte(PICKITEM)}, [2][]Value{{s, int64(1)}, {}}, [2][]Value{{[]byte("value")}, {}})
 	checkAltStackOpCodeNew(t, []byte{byte(TOALTSTACK), byte(PUSH1), byte(DUPFROMALTSTACK), byte(PUSH2), byte(XSWAP), byte(SETITEM), byte(FROMALTSTACK)},
-		[2][]Value{[]Value{[]byte("value2"), s}},
-		[2][]Value{[]Value{s4}})
+		[2][]Value{{[]byte("value2"), s}},
+		[2][]Value{{s4}})
 
 	checkAltStackOpCodeNew(t, []byte{byte(TOALTSTACK), byte(PUSH1), byte(DUPFROMALTSTACK), byte(PUSH2), byte(XSWAP), byte(SETITEM), byte(FROMALTSTACK)},
-		[2][]Value{[]Value{s3, s}},
-		[2][]Value{[]Value{s5}})
+		[2][]Value{{s3, s}},
+		[2][]Value{{s5}})
 
 	s2 := types.NewStructValue()
 	err = s2.Append(types.VmValueFromBool(false))
 	assert.Nil(t, err)
 	checkAltStackOpCodeNew(t, []byte{byte(NEWSTRUCT)},
-		[2][]Value{[]Value{int64(1)}}, [2][]Value{[]Value{s2}})
+		[2][]Value{{int64(1)}}, [2][]Value{{s2}})
 
 	s7 := types.NewStructValue()
 	err = s7.Append(types.VmValueFromBool(false))
@@ -368,9 +368,9 @@ func TestStructValue(t *testing.T) {
 	err = s6.Append(types.VmValueFromBool(false))
 	assert.Nil(t, err)
 	checkAltStackOpCodeNew(t, []byte{byte(TOALTSTACK), byte(DUPFROMALTSTACK), byte(PUSH1), byte(XSWAP), byte(APPEND), byte(FROMALTSTACK)},
-		[2][]Value{[]Value{s3, s6}}, [2][]Value{[]Value{s7}})
+		[2][]Value{{s3, s6}}, [2][]Value{{s7}})
 
-	checkAltStackOpCodeNew(t, []byte{byte(PUSH1), byte(PICKITEM)}, [2][]Value{[]Value{s7}}, [2][]Value{[]Value{s3}})
+	checkAltStackOpCodeNew(t, []byte{byte(PUSH1), byte(PICKITEM)}, [2][]Value{{s7}}, [2][]Value{{s3}})
 }
 
 func TestStringOpcode(t *testing.T) {
@@ -462,7 +462,7 @@ func TestVerify(t *testing.T) {
 	sigBytes, err := s.Serialize(sig)
 	assert.Equal(t, err, nil)
 	checkAltStackOpCodeNew(t, []byte{byte(VERIFY)},
-		[2][]Value{[]Value{keypair.SerializePublicKey(pub), sigBytes, []byte("test")}, {}}, [2][]Value{[]Value{true}, {}})
+		[2][]Value{{keypair.SerializePublicKey(pub), sigBytes, []byte("test")}, {}}, [2][]Value{{true}, {}})
 }
 
 func TestAssertEqual(t *testing.T) {
