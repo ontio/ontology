@@ -685,7 +685,6 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	})
 
 	cache := storage.NewCacheDB(overlay)
-	var csh []common.Uint256
 	for _, tx := range block.Transactions {
 		cache.Reset()
 		notify, crossStateHashes, e := this.handleTransaction(overlay, cache, gasTable, block, tx)
@@ -694,13 +693,12 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 			return
 		}
 		result.Notify = append(result.Notify, notify)
-		csh = crossStateHashes
+		result.CrossStates = append(result.CrossStates, crossStateHashes...)
 	}
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
-	result.CrossStates = csh
 	if len(result.CrossStates) != 0 {
-		result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(csh)
+		result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(result.CrossStates)
 	} else {
 		result.CrossStatesRoot = common.UINT256_EMPTY
 	}
