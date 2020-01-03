@@ -222,7 +222,7 @@ func (self *Server) constructBlock(blkNum uint32, prevBlkHash common.Uint256, tx
 }
 
 func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg, error) {
-	root, err := self.chainStore.getCrossStatesRoot(blkNum)
+	root, err := self.blockPool.getCrossStatesRoot(blkNum)
 	if err != nil {
 		return nil, err
 	}

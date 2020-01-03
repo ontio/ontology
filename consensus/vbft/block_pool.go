@@ -791,6 +791,12 @@ func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) 
 	return pool.chainStore.getExecMerkleRoot(blkNum)
 }
 
+func (pool *BlockPool) getCrossStatesRoot(blkNum uint32) (common.Uint256, error) {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.chainStore.getCrossStatesRoot(blkNum)
+}
+
 func (pool *BlockPool) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()

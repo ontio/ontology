@@ -1085,7 +1085,7 @@ func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
 	if msg.Block.CrossChainMsg == nil {
 		return true
 	}
-	root, err := self.chainStore.getCrossStatesRoot(msg.Block.CrossChainMsg.Height)
+	root, err := self.blockPool.getCrossStatesRoot(msg.Block.CrossChainMsg.Height)
 	if err != nil {
 		log.Errorf("verifyCrossChainMsg:%s", err)
 		return false
