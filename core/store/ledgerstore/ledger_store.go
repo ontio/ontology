@@ -595,6 +595,13 @@ func (this *LedgerStoreImp) SubmitBlock(block *types.Block, ccMsg *types.CrossCh
 		if ccMsg.Version != types.CURR_CROSS_STATES_VERSION {
 			return fmt.Errorf("error cross chain msg version excepted:%d actual:%d", types.CURR_CROSS_STATES_VERSION, ccMsg.Version)
 		}
+		root, err := this.stateStore.GetCrossStatesRoot(ccMsg.Height)
+		if err != nil {
+			return fmt.Errorf("get cross states root fail:%s", err)
+		}
+		if root != ccMsg.StatesRoot {
+			return fmt.Errorf("cross state root compare fail, expected:%x actual:%x", ccMsg.StatesRoot, root)
+		}
 		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers); err != nil {
 			return fmt.Errorf("verifyCrossChainMsg error: %s", err)
 		}
@@ -631,6 +638,13 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, ccMsg *types.CrossChain
 		}
 		if ccMsg.Version != types.CURR_CROSS_STATES_VERSION {
 			return fmt.Errorf("error cross chain msg version excepted:%d actual:%d", types.CURR_CROSS_STATES_VERSION, ccMsg.Version)
+		}
+		root, err := this.stateStore.GetCrossStatesRoot(ccMsg.Height)
+		if err != nil {
+			return fmt.Errorf("get cross states root fail:%s", err)
+		}
+		if root != ccMsg.StatesRoot {
+			return fmt.Errorf("cross state root compare fail, expected:%x actual:%x", ccMsg.StatesRoot, root)
 		}
 		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers); err != nil {
 			return fmt.Errorf("verifyCrossChainMsg error: %s", err)
