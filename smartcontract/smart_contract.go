@@ -235,9 +235,13 @@ func (this *SmartContract) checkContractAddress(address common.Address) bool {
 	return false
 }
 
-func TuneGasLimitByHeight(height uint32, gasLimit uint64) uint64 {
+func TuneGasLimitByHeight(height uint32, gasLimit uint64, maxGasLmit uint64) uint64 {
 	gasTuneheight := config.GetGasRoundTuneHeight(config.DefConfig.P2PNode.NetworkId)
 	if height > gasTuneheight {
+		if gasLimit > maxGasLmit {
+			return maxGasLmit
+		}
+
 		if gasLimit > (math.MaxUint64 - neovm.MIN_TRANSACTION_GAS) {
 			return math.MaxUint64
 		}

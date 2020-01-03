@@ -130,9 +130,9 @@ func GetOpcodeUpdateCheckHeight(id uint32) uint32 {
 }
 
 var GAS_ROUND_TUNE_HEIGHT = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    constants.OPCODE_HEIGHT_UPDATE_FIRST_MAINNET, //Network main
-	NETWORK_ID_POLARIS_NET: constants.OPCODE_HEIGHT_UPDATE_FIRST_POLARIS, //Network polaris
-	NETWORK_ID_SOLO_NET:    0,                                            //Network solo
+	NETWORK_ID_MAIN_NET:    constants.GAS_ROUND_TUNE_HEIGHT_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.GAS_ROUND_TUNE_HEIGHT_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    0,                                       //Network solo
 }
 
 func GetGasRoundTuneHeight(id uint32) uint32 {

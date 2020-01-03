@@ -146,11 +146,13 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		newBalance        uint64
 		codeLenGasLimit   uint64
 		availableGasLimit uint64
+		maxAvaGasLimit    uint64
 		minGas            uint64
 		err               error
 	)
 
 	availableGasLimit = tx.GasLimit
+	maxAvaGasLimit = availableGasLimit
 	if isCharge {
 		uintCodeGasPrice, ok := gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]
 		if !ok {
@@ -188,12 +190,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 			return fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
 		}
 
-		maxAvaGasLimit := oldBalance / tx.GasPrice
-
-		gasTuneheight := sysconfig.GetGasRoundTuneHeight(sysconfig.DefConfig.P2PNode.NetworkId)
-		if config.Height > gasTuneheight {
-			maxAvaGasLimit = maxAvaGasLimit - neovm.MIN_TRANSACTION_GAS
-		}
+		maxAvaGasLimit = oldBalance / tx.GasPrice
 
 		if availableGasLimit > maxAvaGasLimit {
 			availableGasLimit = maxAvaGasLimit
@@ -217,7 +214,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	_, err = engine.Invoke()
 
 	costGasLimit = availableGasLimit - sc.Gas
-	costGasLimit = smartcontract.TuneGasLimitByHeight(config.Height, costGasLimit)
+	costGasLimit = smartcontract.TuneGasLimitByHeight(config.Height, costGasLimit, maxAvaGasLimit)
 
 	costGas = costGasLimit * tx.GasPrice
 	if err != nil {
