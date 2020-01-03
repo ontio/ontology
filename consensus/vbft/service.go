@@ -1085,7 +1085,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
 	blk, prevBlkHash := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
 	if blk == nil {
-		log.Errorf("BlockProposal failed to GetPreBlock:%d", msg.GetBlockNum() - 1)
+		log.Errorf("BlockProposal failed to GetPreBlock:%d", msg.GetBlockNum()-1)
 		return
 	}
 
@@ -1101,7 +1101,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	}
 	merkleRoot, err := self.blockPool.getExecMerkleRoot(msgBlkNum - 1)
 	if err != nil {
-		log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, msgBlkNum - 1)
+		log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, msgBlkNum-1)
 		return
 	}
 	if msg.Block.getPrevBlockMerkleRoot() != merkleRoot {

@@ -194,7 +194,7 @@ func (self *Syncer) run() {
 				} else {
 					merkleRoot, err := self.server.blockPool.getExecMerkleRoot(blkNum - 1)
 					if err != nil {
-						log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, blkNum - 1)
+						log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, blkNum-1)
 						break
 					}
 					if blk.getPrevBlockMerkleRoot() != merkleRoot {
