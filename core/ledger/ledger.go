@@ -38,8 +38,8 @@ type Ledger struct {
 	ldgStore store.LedgerStore
 }
 
-func NewLedger(dataDir string, stateHashHeight, crossChainHeight uint32) (*Ledger, error) {
-	ldgStore, err := ledgerstore.NewLedgerStore(dataDir, stateHashHeight, crossChainHeight)
+func NewLedger(dataDir string, stateHashHeight uint32) (*Ledger, error) {
+	ldgStore, err := ledgerstore.NewLedgerStore(dataDir, stateHashHeight)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedgerStore error %s", err)
 	}

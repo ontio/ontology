@@ -235,7 +235,7 @@ func main() {
 	events.Init()
 
 	log.Info("1. Loading the Ledger")
-	database, err := ledger.NewLedger(datadir, 1000000, 0)
+	database, err := ledger.NewLedger(datadir, 1000000)
 	checkErr(err)
 	ledger.DefLedger = database
 	genblock, err := genesis.BuildGenesisBlock(bookkeepers, config.DefConfig.Genesis)

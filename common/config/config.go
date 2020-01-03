@@ -119,16 +119,6 @@ func GetStateHashCheckHeight(id uint32) uint32 {
 	return STATE_HASH_CHECK_HEIGHT[id]
 }
 
-var CROSS_CHAIN_CHECK_HEIGHT = map[uint32]uint32{
-	NETWORK_ID_MAIN_NET:    constants.CROSS_CHAIN_HEIGHT_MAINNET,
-	NETWORK_ID_POLARIS_NET: constants.CROSS_CHAIN_HEIGHT_POLARIS,
-	NETWORK_ID_SOLO_NET:    0,
-}
-
-func GetCrossChainCheckHeight(id uint32) uint32 {
-	return CROSS_CHAIN_CHECK_HEIGHT[id]
-}
-
 var OPCODE_HASKEY_ENABLE_HEIGHT = map[uint32]uint32{
 	NETWORK_ID_MAIN_NET:    constants.OPCODE_HEIGHT_UPDATE_FIRST_MAINNET, //Network main
 	NETWORK_ID_POLARIS_NET: constants.OPCODE_HEIGHT_UPDATE_FIRST_POLARIS, //Network polaris

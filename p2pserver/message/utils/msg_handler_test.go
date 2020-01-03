@@ -72,7 +72,7 @@ func TestMain(m *testing.M) {
 	events.Init()
 	// Initial a ledger
 	var err error
-	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0, 0)
+	ledger.DefLedger, err = ledger.NewLedger(config.DEFAULT_DATA_DIR, 0)
 	if err != nil {
 		log.Fatalf("NewLedger error %s", err)
 	}

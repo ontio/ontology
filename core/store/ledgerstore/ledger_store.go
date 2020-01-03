@@ -71,34 +71,32 @@ var (
 
 //LedgerStoreImp is main store struct fo ledger
 type LedgerStoreImp struct {
-	blockStore            *BlockStore                      //BlockStore for saving block & transaction data
-	stateStore            *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
-	eventStore            *EventStore                      //EventStore for saving log those gen after smart contract executed.
-	crossChainStore       *CrossChainStore                 //crossChainStore for saving cross chain msg.
-	storedIndexCount      uint32                           //record the count of have saved block index
-	currBlockHeight       uint32                           //Current block height
-	currBlockHash         common.Uint256                   //Current block hash
-	headerCache           map[common.Uint256]*types.Header //BlockHash => Header
-	headerIndex           map[uint32]common.Uint256        //Header index, Mapping header height => block hash
-	savingBlockSemaphore  chan bool
-	closing               bool
-	vbftPeerInfoheader    map[string]uint32 //pubInfo save pubkey,peerindex
-	vbftPeerInfoblock     map[string]uint32 //pubInfo save pubkey,peerindex
-	lock                  sync.RWMutex
-	stateHashCheckHeight  uint32
-	crossChainCheckHeight uint32
+	blockStore           *BlockStore                      //BlockStore for saving block & transaction data
+	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
+	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
+	crossChainStore      *CrossChainStore                 //crossChainStore for saving cross chain msg.
+	storedIndexCount     uint32                           //record the count of have saved block index
+	currBlockHeight      uint32                           //Current block height
+	currBlockHash        common.Uint256                   //Current block hash
+	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
+	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
+	savingBlockSemaphore chan bool
+	closing              bool
+	vbftPeerInfoheader   map[string]uint32 //pubInfo save pubkey,peerindex
+	vbftPeerInfoblock    map[string]uint32 //pubInfo save pubkey,peerindex
+	lock                 sync.RWMutex
+	stateHashCheckHeight uint32
 }
 
 //NewLedgerStore return LedgerStoreImp instance
-func NewLedgerStore(dataDir string, stateHashHeight, crossChainHeight uint32) (*LedgerStoreImp, error) {
+func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, error) {
 	ledgerStore := &LedgerStoreImp{
-		headerIndex:           make(map[uint32]common.Uint256),
-		headerCache:           make(map[common.Uint256]*types.Header, 0),
-		vbftPeerInfoheader:    make(map[string]uint32),
-		vbftPeerInfoblock:     make(map[string]uint32),
-		savingBlockSemaphore:  make(chan bool, 1),
-		stateHashCheckHeight:  stateHashHeight,
-		crossChainCheckHeight: crossChainHeight,
+		headerIndex:          make(map[uint32]common.Uint256),
+		headerCache:          make(map[common.Uint256]*types.Header, 0),
+		vbftPeerInfoheader:   make(map[string]uint32),
+		vbftPeerInfoblock:    make(map[string]uint32),
+		savingBlockSemaphore: make(chan bool, 1),
+		stateHashCheckHeight: stateHashHeight,
 	}
 
 	blockStore, err := NewBlockStore(fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirBlock), true)
@@ -107,7 +105,7 @@ func NewLedgerStore(dataDir string, stateHashHeight, crossChainHeight uint32) (*
 	}
 	ledgerStore.blockStore = blockStore
 
-	crossChainStore, err := NewCrossChainStore(dataDir, crossChainHeight)
+	crossChainStore, err := NewCrossChainStore(dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewBlockStore error %s", err)
 	}

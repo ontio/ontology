@@ -33,27 +33,25 @@ const (
 
 //Block store save the data of block & transaction
 type CrossChainStore struct {
-	dbDir                 string                     //The path of store file
-	store                 *leveldbstore.LevelDBStore //block store handler
-	crossChainCheckHeight uint32                     //cross chain start height
+	dbDir string                     //The path of store file
+	store *leveldbstore.LevelDBStore //block store handler
 }
 
 //NewCrossChainStore return cross chain store instance
-func NewCrossChainStore(dataDir string, crossChainHeight uint32) (*CrossChainStore, error) {
+func NewCrossChainStore(dataDir string) (*CrossChainStore, error) {
 	dbDir := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirCrossChain)
 	store, err := leveldbstore.NewLevelDBStore(dbDir)
 	if err != nil {
 		return nil, fmt.Errorf("NewCrossShardStore error %s", err)
 	}
 	return &CrossChainStore{
-		dbDir:                 dbDir,
-		store:                 store,
-		crossChainCheckHeight: crossChainHeight,
+		dbDir: dbDir,
+		store: store,
 	}, nil
 }
 
 func (this *CrossChainStore) SaveMsgToCrossChainStore(crossChainMsg *types.CrossChainMsg) error {
-	if crossChainMsg == nil || crossChainMsg.Height < this.crossChainCheckHeight {
+	if crossChainMsg == nil {
 		return nil
 	}
 	key := this.genCrossChainMsgKey(crossChainMsg.Height)

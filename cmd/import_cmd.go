@@ -63,8 +63,7 @@ func importBlocks(ctx *cli.Context) error {
 	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
 
 	stateHashHeight := config.GetStateHashCheckHeight(cfg.P2PNode.NetworkId)
-	crossChainHeight := config.GetCrossChainCheckHeight(cfg.P2PNode.NetworkId)
-	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight, crossChainHeight)
+	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
 	if err != nil {
 		return fmt.Errorf("NewLedger error:%s", err)
 	}
