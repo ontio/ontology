@@ -95,14 +95,14 @@ func (bd *Header) Deserialization(source *common.ZeroCopySource) error {
 		return err
 	}
 
-	n, _, _, eof := source.NextVarUint()
-	if eof {
+	n, _, irr, eof := source.NextVarUint()
+	if eof || irr {
 		return errors.New("[Header] deserialize bookkeepers length error")
 	}
 
 	for i := 0; i < int(n); i++ {
-		buf, _, _, eof := source.NextVarBytes()
-		if eof {
+		buf, _, irr, eof := source.NextVarBytes()
+		if eof || irr {
 			return errors.New("[Header] deserialize bookkeepers public key error")
 		}
 		pubkey, err := keypair.DeserializePublicKey(buf)
@@ -112,8 +112,8 @@ func (bd *Header) Deserialization(source *common.ZeroCopySource) error {
 		bd.Bookkeepers = append(bd.Bookkeepers, pubkey)
 	}
 
-	m, _, _, eof := source.NextVarUint()
-	if eof {
+	m, _, irr, eof := source.NextVarUint()
+	if eof || irr {
 		return errors.New("[Header] deserialize sigData length error")
 	}
 
