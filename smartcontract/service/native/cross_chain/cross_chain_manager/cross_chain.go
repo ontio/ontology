@@ -78,6 +78,9 @@ func ProcessCrossChainTx(native *native.NativeService) ([]byte, error) {
 
 	//get block header
 	header, err := header_sync.GetHeaderByHeight(native, params.FromChainID, params.Height)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, %d, %d", header.ChainID, header.Height)
+	}
 	if header == nil {
 		header2 := new(ccom.Header)
 		err := header2.Deserialization(common.NewZeroCopySource(params.Header))

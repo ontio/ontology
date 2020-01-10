@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/smartcontract/event"
 
@@ -68,7 +69,8 @@ func GetHeaderByHeight(native *native.NativeService, chainID uint64, height uint
 		return nil, fmt.Errorf("GetHeaderByHeight, get blockHashStore error: %v", err)
 	}
 	if blockHashStore == nil {
-		return nil, fmt.Errorf("GetHeaderByHeight, can not find any index records")
+		log.Errorf("GetHeaderByHeight, can not find any index records")
+		return nil, nil
 	}
 	blockHashBytes, err := cstates.GetValueFromRawStorageItem(blockHashStore)
 	if err != nil {
@@ -80,7 +82,8 @@ func GetHeaderByHeight(native *native.NativeService, chainID uint64, height uint
 		return nil, fmt.Errorf("GetHeaderByHeight, get headerStore error: %v", err)
 	}
 	if headerStore == nil {
-		return nil, fmt.Errorf("GetHeaderByHeight, can not find any header records")
+		log.Errorf("GetHeaderByHeight, can not find any header records")
+		return nil, nil
 	}
 	headerBytes, err := cstates.GetValueFromRawStorageItem(headerStore)
 	if err != nil {
