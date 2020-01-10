@@ -26,11 +26,11 @@ import (
 
 func TestCreateCrossChainTxParam(t *testing.T) {
 	param := CreateCrossChainTxParam{
-		ToChainID: 1,
+		ToChainID:         1,
 		ToContractAddress: []byte{1, 2, 3, 4},
-		Fee: 2,
-		Method: "test",
-		Args: []byte{1, 2, 3, 4},
+		Fee:               2,
+		Method:            "test",
+		Args:              []byte{1, 2, 3, 4},
 	}
 	sink := common.NewZeroCopySink(nil)
 	param.Serialization(sink)
@@ -44,11 +44,11 @@ func TestCreateCrossChainTxParam(t *testing.T) {
 
 func TestProcessCrossChainTxParam(t *testing.T) {
 	param := ProcessCrossChainTxParam{
-		Address: common.ADDRESS_EMPTY,
+		Address:     common.ADDRESS_EMPTY,
 		FromChainID: 1,
-		Height: 2,
-		Proof: "test",
-		Header: []byte{1, 2, 3, 4},
+		Height:      2,
+		Proof:       "test",
+		Header:      []byte{1, 2, 3, 4},
 	}
 
 	sink := common.NewZeroCopySink(nil)
@@ -64,8 +64,8 @@ func TestProcessCrossChainTxParam(t *testing.T) {
 func TestOngUnlockParam(t *testing.T) {
 	param := OngUnlockParam{
 		FromChainID: 1,
-		Address: common.ADDRESS_EMPTY,
-		Amount: 1,
+		Address:     common.ADDRESS_EMPTY,
+		Amount:      1,
 	}
 	sink := common.NewZeroCopySink(nil)
 	param.Serialization(sink)
