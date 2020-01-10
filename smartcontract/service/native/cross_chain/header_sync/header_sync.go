@@ -35,12 +35,11 @@ const (
 	SYNC_BLOCK_HEADER   = "syncBlockHeader"
 
 	//key prefix
-	BLOCK_HEADER                = "blockHeader"
-	CURRENT_HEIGHT              = "currentHeight"
-	HEADER_INDEX                = "headerIndex"
-	CONSENSUS_PEER              = "consensusPeer"
-	CONSENSUS_PEER_BLOCK_HEIGHT = "consensusPeerBlockHeight"
-	KEY_HEIGHTS                 = "keyHeights"
+	BLOCK_HEADER   = "blockHeader"
+	CURRENT_HEIGHT = "currentHeight"
+	HEADER_INDEX   = "headerIndex"
+	CONSENSUS_PEER = "consensusPeer"
+	KEY_HEIGHTS    = "keyHeights"
 )
 
 //Init governance contract address
