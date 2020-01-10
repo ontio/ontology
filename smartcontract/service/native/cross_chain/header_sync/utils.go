@@ -133,10 +133,9 @@ func VerifyHeader(native *native.NativeService, header *ccom.Header) error {
 	if err != nil {
 		return fmt.Errorf("verifyHeader, get ConsensusPeer error:%v", err)
 	}
-	//TODO
-	//if len(header.Bookkeepers)*3 < len(consensusPeer.PeerMap)*2 {
-	//	return fmt.Errorf("verifyHeader, header Bookkeepers num %d must more than 2/3 consensus node num %d", len(header.Bookkeepers), len(consensusPeer.PeerMap))
-	//}
+	if len(header.Bookkeepers)*3 < len(consensusPeer.PeerMap)*2 {
+		return fmt.Errorf("verifyHeader, header Bookkeepers num %d must more than 2/3 consensus node num %d", len(header.Bookkeepers), len(consensusPeer.PeerMap))
+	}
 	for _, bookkeeper := range header.Bookkeepers {
 		pubkey := vconfig.PubkeyID(bookkeeper)
 		_, present := consensusPeer.PeerMap[pubkey]
