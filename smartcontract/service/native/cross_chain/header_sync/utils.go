@@ -21,14 +21,13 @@ package header_sync
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/signature"
-	"github.com/ontio/ontology/smartcontract/event"
-
-	"github.com/ontio/ontology/common"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"
+	"github.com/ontio/ontology/core/signature"
 	cstates "github.com/ontio/ontology/core/states"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -298,4 +297,20 @@ func notifyPutHeader(native *native.NativeService, chainID uint64, height uint32
 			ContractAddress: utils.HeaderSyncContractAddress,
 			States:          []interface{}{chainID, height, blockHash, native.Height},
 		})
+}
+
+func ProcessHeader(native *native.NativeService, header *ccom.Header, h []byte) error {
+	err := VerifyHeader(native, header)
+	if err != nil {
+		return fmt.Errorf("ProcessHeader, verifyHeader error: %v", err)
+	}
+	err = PutBlockHeader(native, header, h)
+	if err != nil {
+		return fmt.Errorf("ProcessHeader, put BlockHeader error: %v", err)
+	}
+	err = UpdateConsensusPeer(native, header)
+	if err != nil {
+		return fmt.Errorf("ProcessHeader, update ConsensusPeer error: %v", err)
+	}
+	return nil
 }

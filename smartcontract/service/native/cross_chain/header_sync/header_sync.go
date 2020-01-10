@@ -105,17 +105,8 @@ func SyncBlockHeader(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, %d, %d", header.ChainID, header.Height)
 		}
 		if h == nil {
-			err = VerifyHeader(native, header)
-			if err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, verifyHeader error: %v", err)
-			}
-			err = PutBlockHeader(native, header, v)
-			if err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, put BlockHeader error: %v", err)
-			}
-			err = UpdateConsensusPeer(native, header)
-			if err != nil {
-				return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, update ConsensusPeer error: %v", err)
+			if err := ProcessHeader(native, header, v); err != nil {
+				return utils.BYTE_FALSE, fmt.Errorf("SyncBlockHeader, error:%s", err)
 			}
 		}
 	}
