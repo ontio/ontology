@@ -63,9 +63,8 @@ type SyncGenesisHeaderParam struct {
 	GenesisHeader []byte
 }
 
-func (this *SyncGenesisHeaderParam) Serialization(sink *common.ZeroCopySink) error {
+func (this *SyncGenesisHeaderParam) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarBytes(sink, this.GenesisHeader)
-	return nil
 }
 
 func (this *SyncGenesisHeaderParam) Deserialization(source *common.ZeroCopySource) error {
