@@ -59,6 +59,18 @@ func HeaderFromRawBytes(raw []byte) (*Header, error) {
 	return header, nil
 }
 
+func (bd *Header) Serialization(sink *common.ZeroCopySink) {
+	bd.serializationUnsigned(sink)
+	sink.WriteVarUint(uint64(len(bd.Bookkeepers)))
+	for _, v := range bd.Bookkeepers {
+		sink.WriteVarBytes(keypair.SerializePublicKey(v))
+	}
+	sink.WriteVarUint(uint64(len(bd.SigData)))
+	for _, sig := range bd.SigData {
+		sink.WriteVarBytes(sig)
+	}
+}
+
 func (bd *Header) serializationUnsigned(sink *common.ZeroCopySink) {
 	if bd.Version > CURR_HEADER_VERSION {
 		panic(fmt.Errorf("invalid header %d over max version:%d", bd.Version, CURR_HEADER_VERSION))
