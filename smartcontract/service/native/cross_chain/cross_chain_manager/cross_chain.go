@@ -38,8 +38,9 @@ const (
 	VERIFY_TO_ONT_PROOF    = "verifyToOntProof"
 
 	//key prefix
-	DONE_TX = "doneTx"
-	REQUEST = "request"
+	DONE_TX        = "doneTx"
+	REQUEST        = "request"
+	CROSS_CHAIN_ID = "crossChainID"
 
 	//ont chain id
 	ONT_CHAIN_ID = 2
@@ -79,7 +80,7 @@ func ProcessCrossChainTx(native *native.NativeService) ([]byte, error) {
 	//get block header
 	header, err := header_sync.GetHeaderByHeight(native, params.FromChainID, params.Height)
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, %d, %d", header.ChainID, header.Height)
+		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, %d, %d", params.FromChainID, params.Height)
 	}
 	if header == nil {
 		header2 := new(ccom.Header)

@@ -28,24 +28,6 @@ type ToMerkleValue struct {
 	MakeTxParam *MakeTxParam
 }
 
-type MakeTxParam struct {
-	TxHash              []byte
-	FromContractAddress []byte
-	ToChainID           uint64
-	ToContractAddress   []byte
-	Method              string
-	Args                []byte
-}
-
-func (this *MakeTxParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.TxHash)
-	sink.WriteVarBytes(this.FromContractAddress)
-	sink.WriteUint64(this.ToChainID)
-	sink.WriteVarBytes(this.ToContractAddress)
-	sink.WriteVarBytes([]byte(this.Method))
-	sink.WriteVarBytes(this.Args)
-}
-
 func (this *ToMerkleValue) Deserialization(source *common.ZeroCopySource) error {
 	txHash, _, irr, eof := source.NextVarBytes()
 	if eof || irr {
@@ -68,10 +50,34 @@ func (this *ToMerkleValue) Deserialization(source *common.ZeroCopySource) error 
 	return nil
 }
 
+type MakeTxParam struct {
+	TxHash              []byte
+	CrossChainID        uint64
+	FromContractAddress []byte
+	ToChainID           uint64
+	ToContractAddress   []byte
+	Method              string
+	Args                []byte
+}
+
+func (this *MakeTxParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.TxHash)
+	sink.WriteVarUint(this.CrossChainID)
+	sink.WriteVarBytes(this.FromContractAddress)
+	sink.WriteUint64(this.ToChainID)
+	sink.WriteVarBytes(this.ToContractAddress)
+	sink.WriteVarBytes([]byte(this.Method))
+	sink.WriteVarBytes(this.Args)
+}
+
 func (this *MakeTxParam) Deserialization(source *common.ZeroCopySource) error {
 	txHash, _, irr, eof := source.NextVarBytes()
 	if eof || irr {
 		return fmt.Errorf("MakeTxParam deserialize txHash error")
+	}
+	crossChainID, _, irr, eof := source.NextVarUint()
+	if eof || irr {
+		return fmt.Errorf("MakeTxParam deserialize crossChainID error")
 	}
 	fromContractAddress, _, irr, eof := source.NextVarBytes()
 	if eof || irr {
@@ -95,6 +101,7 @@ func (this *MakeTxParam) Deserialization(source *common.ZeroCopySource) error {
 	}
 
 	this.TxHash = txHash
+	this.CrossChainID = crossChainID
 	this.FromContractAddress = fromContractAddress
 	this.ToChainID = toChainID
 	this.ToContractAddress = toContractAddress

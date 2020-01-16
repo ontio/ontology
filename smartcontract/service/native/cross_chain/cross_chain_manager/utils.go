@@ -32,23 +32,62 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func putDoneTx(native *native.NativeService, txHash []byte, chainID uint64) error {
+func putCrossChainID(native *native.NativeService, crossChainID uint64) error {
 	contract := utils.CrossChainContractAddress
-	chainIDBytes, err := utils.GetUint64Bytes(chainID)
+	crossChainIDBytes, err := utils.GetUint64Bytes(crossChainID)
 	if err != nil {
-		return fmt.Errorf("putRequestID, get chainIDBytes error: %v", err)
+		return fmt.Errorf("putCrossChainID, get crossChainIDBytes error: %v", err)
 	}
-	native.CacheDB.Put(utils.ConcatKey(contract, []byte(DONE_TX), chainIDBytes, txHash), cstates.GenRawStorageItem(txHash))
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(CROSS_CHAIN_ID)), cstates.GenRawStorageItem(crossChainIDBytes))
 	return nil
 }
 
-func checkDoneTx(native *native.NativeService, txHash []byte, chainID uint64) error {
+func getCrossChainID(native *native.NativeService) (uint64, error) {
 	contract := utils.CrossChainContractAddress
+	var crossChainID uint64 = 0
+	value, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(CROSS_CHAIN_ID)))
+	if err != nil {
+		return 0, fmt.Errorf("getCrossChainID, native.CacheDB.Get error: %v", err)
+	}
+	if value != nil {
+		crossChainIDBytes, err := cstates.GetValueFromRawStorageItem(value)
+		if err != nil {
+			return 0, fmt.Errorf("getCrossChainID, deserialize from raw storage item err:%v", err)
+		}
+		crossChainID, err = utils.GetBytesUint64(crossChainIDBytes)
+		if err != nil {
+			return 0, fmt.Errorf("getCrossChainID, get chainIDBytes error: %v", err)
+		}
+	}
+	return crossChainID, nil
+}
+
+func putDoneTx(native *native.NativeService, crossChainID, chainID uint64) error {
+	contract := utils.CrossChainContractAddress
+	crossChainIDBytes, err := utils.GetUint64Bytes(crossChainID)
+	if err != nil {
+		return fmt.Errorf("putDoneTx, get crossChainIDBytes error: %v", err)
+	}
+	chainIDBytes, err := utils.GetUint64Bytes(chainID)
+	if err != nil {
+		return fmt.Errorf("putDoneTx, get chainIDBytes error: %v", err)
+	}
+	native.CacheDB.Put(utils.ConcatKey(contract, []byte(DONE_TX), chainIDBytes, crossChainIDBytes),
+		cstates.GenRawStorageItem(crossChainIDBytes))
+	return nil
+}
+
+func checkDoneTx(native *native.NativeService, crossChainID, chainID uint64) error {
+	contract := utils.CrossChainContractAddress
+	crossChainIDBytes, err := utils.GetUint64Bytes(crossChainID)
+	if err != nil {
+		return fmt.Errorf("checkDoneTx, get crossChainIDBytes error: %v", err)
+	}
 	chainIDBytes, err := utils.GetUint64Bytes(chainID)
 	if err != nil {
 		return fmt.Errorf("checkDoneTx, get chainIDBytes error: %v", err)
 	}
-	value, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(DONE_TX), chainIDBytes, txHash))
+	value, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(DONE_TX), chainIDBytes, crossChainIDBytes))
 	if err != nil {
 		return fmt.Errorf("checkDoneTx, native.CacheDB.Get error: %v", err)
 	}
@@ -58,21 +97,28 @@ func checkDoneTx(native *native.NativeService, txHash []byte, chainID uint64) er
 	return nil
 }
 
-func putRequest(native *native.NativeService, txHash []byte, chainID uint64, request []byte) error {
+func putRequest(native *native.NativeService, crossChainIDBytes, chainIDBytes, request []byte) error {
 	contract := utils.CrossChainContractAddress
-	chainIDBytes, err := utils.GetUint64Bytes(chainID)
-	if err != nil {
-		return fmt.Errorf("putRequest, get chainIDBytes error: %v", err)
-	}
-	utils.PutBytes(native, utils.ConcatKey(contract, []byte(REQUEST), chainIDBytes, txHash), request)
+	utils.PutBytes(native, utils.ConcatKey(contract, []byte(REQUEST), chainIDBytes, crossChainIDBytes), request)
 	return nil
 }
 
 func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxParam) error {
+	//get cross chain ID
+	crossChainID, err := getCrossChainID(native)
+	if err != nil {
+		return fmt.Errorf("MakeFromOntProof, getCrossChainID error:%s", err)
+	}
+	err = putCrossChainID(native, crossChainID+1)
+	if err != nil {
+		return fmt.Errorf("MakeFromOntProof, putCrossChainID error:%s", err)
+	}
+
 	//record cross chain tx
 	txHash := native.Tx.Hash()
 	merkleValue := &ccom.MakeTxParam{
 		TxHash:              txHash.ToArray(),
+		CrossChainID:        crossChainID,
 		FromContractAddress: native.ContextRef.CallingContext().ContractAddress[:],
 		ToChainID:           params.ToChainID,
 		ToContractAddress:   params.ToContractAddress,
@@ -81,16 +127,20 @@ func MakeFromOntProof(native *native.NativeService, params *CreateCrossChainTxPa
 	}
 	sink := common.NewZeroCopySink(nil)
 	merkleValue.Serialization(sink)
-	err := putRequest(native, merkleValue.TxHash, params.ToChainID, sink.Bytes())
+	crossChainIDBytes, err := utils.GetUint64Bytes(crossChainID)
+	if err != nil {
+		return fmt.Errorf("putRequest, get crossChainIDBytes error: %v", err)
+	}
+	chainIDBytes, err := utils.GetUint64Bytes(params.ToChainID)
+	if err != nil {
+		return fmt.Errorf("putRequest, get chainIDBytes error: %v", err)
+	}
+	err = putRequest(native, crossChainIDBytes, chainIDBytes, sink.Bytes())
 	if err != nil {
 		return fmt.Errorf("MakeFromOntProof, putRequest error:%s", err)
 	}
 	native.PushCrossState(sink.Bytes())
-	chainIDBytes, err := utils.GetUint64Bytes(params.ToChainID)
-	if err != nil {
-		return fmt.Errorf("MakeFromOntProof, get chainIDBytes error: %v", err)
-	}
-	key := hex.EncodeToString(utils.ConcatBytes([]byte(REQUEST), chainIDBytes, merkleValue.TxHash))
+	key := hex.EncodeToString(utils.ConcatBytes([]byte(REQUEST), chainIDBytes, crossChainIDBytes))
 	args := hex.EncodeToString(params.Args)
 	notifyMakeFromOntProof(native, hex.EncodeToString(merkleValue.TxHash), params.ToChainID, key,
 		hex.EncodeToString(merkleValue.FromContractAddress), args)
@@ -110,11 +160,11 @@ func VerifyToOntTx(native *native.NativeService, proof []byte, fromChainid uint6
 	}
 
 	//record done cross chain tx
-	err = checkDoneTx(native, merkleValue.TxHash, fromChainid)
+	err = checkDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainid)
 	if err != nil {
 		return nil, fmt.Errorf("VerifyToOntTx, checkDoneTx error:%s", err)
 	}
-	err = putDoneTx(native, merkleValue.TxHash, fromChainid)
+	err = putDoneTx(native, merkleValue.MakeTxParam.CrossChainID, fromChainid)
 	if err != nil {
 		return nil, fmt.Errorf("VerifyToOntTx, putDoneTx error:%s", err)
 	}
