@@ -52,7 +52,7 @@ func (this *ToMerkleValue) Deserialization(source *common.ZeroCopySource) error 
 
 type MakeTxParam struct {
 	TxHash              []byte
-	CrossChainID        uint64
+	CrossChainID        []byte
 	FromContractAddress []byte
 	ToChainID           uint64
 	ToContractAddress   []byte
@@ -62,7 +62,7 @@ type MakeTxParam struct {
 
 func (this *MakeTxParam) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(this.TxHash)
-	sink.WriteVarUint(this.CrossChainID)
+	sink.WriteVarBytes(this.CrossChainID)
 	sink.WriteVarBytes(this.FromContractAddress)
 	sink.WriteUint64(this.ToChainID)
 	sink.WriteVarBytes(this.ToContractAddress)
@@ -75,7 +75,7 @@ func (this *MakeTxParam) Deserialization(source *common.ZeroCopySource) error {
 	if eof || irr {
 		return fmt.Errorf("MakeTxParam deserialize txHash error")
 	}
-	crossChainID, _, irr, eof := source.NextVarUint()
+	crossChainID, _, irr, eof := source.NextVarBytes()
 	if eof || irr {
 		return fmt.Errorf("MakeTxParam deserialize crossChainID error")
 	}
