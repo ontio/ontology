@@ -48,11 +48,11 @@ const (
 
 //Init governance contract address
 func InitCrossChain() {
-	native.Contracts[utils.CrossChainContractAddress] = RegisterCrossChianContract
+	native.Contracts[utils.CrossChainContractAddress] = RegisterCrossChainContract
 }
 
 //Register methods of governance contract
-func RegisterCrossChianContract(native *native.NativeService) {
+func RegisterCrossChainContract(native *native.NativeService) {
 	native.Register(CREATE_CROSS_CHAIN_TX, CreateCrossChainTx)
 	native.Register(PROCESS_CROSS_CHAIN_TX, ProcessCrossChainTx)
 }
