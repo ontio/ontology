@@ -78,7 +78,7 @@ var (
 			},
 		}
 		payload, _ := json.Marshal(blkInfo)
-		sr, _ := common.Uint256FromHexString("9eb1844022bfa7e04afa4887199c6c96a13d0b472fd922a186dfbc4e152f1a26")
+		sr, _ := common.Uint256FromHexString("8c981a02add5af5c23041eb2debd9fa6e9c921688c6e04fbf7164278b2fdb893")
 
 		for i := uint32(0); i < 2; i++ {
 			bd := &ccom.Header{
@@ -182,7 +182,7 @@ func TestProcessCrossChainTx(t *testing.T) {
 	config.DefConfig.P2PNode.NetworkId = 3
 	p := &ProcessCrossChainTxParam{
 		Height:      1,
-		Proof:       "9020ecd7c8289081775f69322505c0d5a19d3992d01b965eb819744014300966849c000000000000000020400d2249c5fc7435ecbaabf0db5dfc6c0c5004db222c6aa6a89bcc55a79c688b03627463020000000000000014a8a3f92b797ae1e059b8f4681ad949b6ce93771506756e6c6f636b1d14f3b8a17f1f957f60c88f105e32ebff3f022e56a400e1f50500000000",
+		Proof:       "b1200d22525ab7f5e46145c3f78c550e3d062d6b900bfaa53bd669235bba1250f143000000000000000020fd024a4fdc27fe1a0ad7863fdb0f5d32712b046d31fb209b0708ada6538a236020fd024a4fdc27fe1a0ad7863fdb0f5d32712b046d31fb209b0708ada6538a236003627463020000000000000014a8a3f92b797ae1e059b8f4681ad949b6ce93771506756e6c6f636b1d14f3b8a17f1f957f60c88f105e32ebff3f022e56a400e1f50500000000",
 		FromChainID: 4,
 	}
 	sink := common.NewZeroCopySink(nil)
@@ -190,12 +190,18 @@ func TestProcessCrossChainTx(t *testing.T) {
 
 	// put contract invoking into db
 	ns := getNativeFunc(nil)
-	code, _ := hex.DecodeString(contractCode)
-	dc, _ := payload.NewDeployCode(code, payload.NEOVM_TYPE, "", "", "", "", "")
+	code, err := hex.DecodeString(contractCode)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dc, err := payload.NewDeployCode(code, payload.NEOVM_TYPE, "", "", "", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
 	ns.CacheDB.PutContract(dc)
 
 	// put genesis and height 1 header
-	err := putHeaders(ns)
+	err = putHeaders(ns)
 	assert.NoError(t, err)
 	ns.Input = sink.Bytes()
 
