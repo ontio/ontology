@@ -43,7 +43,7 @@ const (
 	CROSS_CHAIN_ID = "crossChainID"
 
 	//ont chain id
-	ONT_CHAIN_ID = 2
+	ONT_CHAIN_ID = 3
 )
 
 //Init governance contract address
