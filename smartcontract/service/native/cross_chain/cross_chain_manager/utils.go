@@ -186,3 +186,11 @@ func notifyVerifyToOntProof(native *native.NativeService, txHash, rawTxHash stri
 			States:          []interface{}{VERIFY_TO_ONT_PROOF, txHash, rawTxHash, fromChainID, native.Height, contract},
 		})
 }
+
+func getUnlockArgs(args []byte, fromContractAddress []byte, fromChainID uint64) []byte {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarBytes(args)
+	sink.WriteVarBytes(fromContractAddress)
+	sink.WriteUint64(fromChainID)
+	return sink.Bytes()
+}

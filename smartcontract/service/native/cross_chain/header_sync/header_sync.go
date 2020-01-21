@@ -22,10 +22,9 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/genesis"
-	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -59,10 +58,11 @@ func SyncGenesisHeader(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("SyncGenesisHeader, contract params deserialize error: %v", err)
 	}
 
-	// get operator from database
-	operatorAddress, err := types.AddressFromBookkeepers(genesis.GenesisBookkeepers)
+	// get admin from database
+	operatorAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
-		return utils.BYTE_FALSE, err
+		return utils.BYTE_FALSE, fmt.Errorf("getAdmin, get admin error: %v", err)
 	}
 
 	//check witness
