@@ -25,14 +25,15 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	cccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/stretchr/testify/assert"
@@ -67,10 +68,6 @@ var (
 				},
 			},
 		}
-	}
-
-	setBKers = func() {
-		genesis.GenesisBookkeepers = []keypair.PublicKey{acct.PublicKey}
 	}
 
 	getGenesisHeader = func() []byte {
@@ -134,7 +131,6 @@ var (
 
 func init() {
 	setAcct()
-	setBKers()
 }
 
 func TestSyncGenesisHeader(t *testing.T) {
@@ -144,7 +140,14 @@ func TestSyncGenesisHeader(t *testing.T) {
 		GenesisHeader: getGenesisHeader(),
 	}
 	p.Serialization(sink)
+
+	bf := common.NewZeroCopySink(nil)
+	utils.EncodeAddress(bf, acct.Address)
+	si := &states.StorageItem{Value: bf.Bytes()}
+
 	ns := getNativeFunc(sink.Bytes(), nil)
+	ns.CacheDB.Put(global_params.GenerateOperatorKey(utils.ParamContractAddress), si.ToArray())
+
 	ok, err := SyncGenesisHeader(ns)
 	assert.NoError(t, err)
 	assert.Equal(t, utils.BYTE_TRUE, ok, "wrong result")
@@ -163,7 +166,14 @@ func TestSyncBlockHeader(t *testing.T) {
 		GenesisHeader: getGenesisHeader(),
 	}
 	p.Serialization(sink)
+
+	bf := common.NewZeroCopySink(nil)
+	utils.EncodeAddress(bf, acct.Address)
+	si := &states.StorageItem{Value: bf.Bytes()}
+
 	ns := getNativeFunc(sink.Bytes(), nil)
+	ns.CacheDB.Put(global_params.GenerateOperatorKey(utils.ParamContractAddress), si.ToArray())
+
 	_, _ = SyncGenesisHeader(ns)
 
 	// 1. next to check normal case

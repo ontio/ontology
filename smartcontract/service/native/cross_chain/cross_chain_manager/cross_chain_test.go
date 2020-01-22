@@ -26,9 +26,9 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/consensus/vbft/config"
-	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/signature"
+	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/core/types"
@@ -37,6 +37,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/storage"
 	"github.com/stretchr/testify/assert"
@@ -63,10 +64,6 @@ var (
 		acct = account.NewAccount("")
 	}
 
-	setBKers = func() {
-		genesis.GenesisBookkeepers = []keypair.PublicKey{acct.PublicKey}
-	}
-
 	getHeaders = func() [][]byte {
 		hdrs := make([][]byte, 0)
 
@@ -78,7 +75,7 @@ var (
 			},
 		}
 		payload, _ := json.Marshal(blkInfo)
-		sr, _ := common.Uint256FromHexString("8c981a02add5af5c23041eb2debd9fa6e9c921688c6e04fbf7164278b2fdb893")
+		sr, _ := common.Uint256FromHexString("61e28237109bc99e53981bf9c4d9326bc764fda9ad1d1f95d7a5d2eb25ec01db")
 
 		for i := uint32(0); i < 2; i++ {
 			bd := &ccom.Header{
@@ -158,7 +155,6 @@ var (
 
 func init() {
 	setAcct()
-	setBKers()
 }
 
 func TestCreateCrossChainTx(t *testing.T) {
@@ -182,14 +178,20 @@ func TestProcessCrossChainTx(t *testing.T) {
 	config.DefConfig.P2PNode.NetworkId = 3
 	p := &ProcessCrossChainTxParam{
 		Height:      1,
-		Proof:       "b1200d22525ab7f5e46145c3f78c550e3d062d6b900bfaa53bd669235bba1250f143000000000000000020fd024a4fdc27fe1a0ad7863fdb0f5d32712b046d31fb209b0708ada6538a236020fd024a4fdc27fe1a0ad7863fdb0f5d32712b046d31fb209b0708ada6538a236003627463020000000000000014a8a3f92b797ae1e059b8f4681ad949b6ce93771506756e6c6f636b1d14f3b8a17f1f957f60c88f105e32ebff3f022e56a400e1f50500000000",
+		Proof:       "b1203e52461bd03325f183d9ed47261d39d24a081b307742545bcc68bfb0aa56d528010000000000000020afe92a7d08e5e8e64a72fbb3da5f51fa07483eb01e18ca6a2c15a5c0fc45120420afe92a7d08e5e8e64a72fbb3da5f51fa07483eb01e18ca6a2c15a5c0fc45120403627463030000000000000014a8a3f92b797ae1e059b8f4681ad949b6ce93771506756e6c6f636b1d14f3b8a17f1f957f60c88f105e32ebff3f022e56a400e1f50500000000",
 		FromChainID: 4,
 	}
 	sink := common.NewZeroCopySink(nil)
 	p.Serialization(sink)
 
 	// put contract invoking into db
-	ns := getNativeFunc(nil)
+	bf := common.NewZeroCopySink(nil)
+	utils.EncodeAddress(bf, acct.Address)
+	si := &states.StorageItem{Value: bf.Bytes()}
+
+	ns := getNativeFunc(sink.Bytes())
+	ns.CacheDB.Put(global_params.GenerateOperatorKey(utils.ParamContractAddress), si.ToArray())
+
 	code, err := hex.DecodeString(contractCode)
 	if err != nil {
 		t.Fatal(err)
