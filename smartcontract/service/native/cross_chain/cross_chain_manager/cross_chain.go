@@ -24,6 +24,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"math/big"
 
+	"bytes"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
@@ -116,16 +117,25 @@ func ProcessCrossChainTx(native *native.NativeService) ([]byte, error) {
 	fromContractAddress := merkleValue.MakeTxParam.FromContractAddress
 	args := merkleValue.MakeTxParam.Args
 
-	res, err := ccom.CrossChainNeoVMCall(native, dest, functionName, args, fromContractAddress, merkleValue.FromChainID)
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, native.NeoVMCall error: %v", err)
-	}
-	v, err := res.(*types.VmValue).AsBigInt()
-	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, result error")
-	}
-	if v.Cmp(new(big.Int).SetUint64(0)) == 0 {
-		return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, res of neo vm call is false")
+	var res interface{}
+	if bytes.Equal(merkleValue.MakeTxParam.ToContractAddress, utils.OntContractAddress[:]) {
+		argsBytes := getUnlockArgs(args, fromContractAddress, merkleValue.FromChainID)
+		_, err = native.NativeCall(utils.OntContractAddress, functionName, argsBytes)
+		if err != nil {
+			return utils.BYTE_FALSE, err
+		}
+	} else {
+		res, err = ccom.CrossChainNeoVMCall(native, dest, functionName, args, fromContractAddress, merkleValue.FromChainID)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, native.NeoVMCall error: %v", err)
+		}
+		v, err := res.(*types.VmValue).AsBigInt()
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, result error")
+		}
+		if v.Cmp(new(big.Int).SetUint64(0)) == 0 {
+			return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, res of neo vm call is false")
+		}
 	}
 	//TODO: miner fee?
 	return utils.BYTE_TRUE, nil
