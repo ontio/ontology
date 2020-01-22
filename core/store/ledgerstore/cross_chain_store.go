@@ -57,8 +57,7 @@ func (this *CrossChainStore) SaveMsgToCrossChainStore(crossChainMsg *types.Cross
 	key := this.genCrossChainMsgKey(crossChainMsg.Height)
 	sink := common.NewZeroCopySink(nil)
 	crossChainMsg.Serialization(sink)
-	this.store.Put(key, sink.Bytes())
-	return nil
+	return this.store.Put(key, sink.Bytes())
 }
 
 func (this *CrossChainStore) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
