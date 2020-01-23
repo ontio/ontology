@@ -197,13 +197,16 @@ func OntApprove(native *native.NativeService) ([]byte, error) {
 
 func OntBind(native *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(native.Input)
-	targetChainId, eof := source.NextUint64()
+	targetChainId, _, irregular, eof := source.NextVarUint()
+	if irregular {
+		return utils.BYTE_FALSE, fmt.Errorf("[OntBind] decode targetChainId NextVarUint error")
+	}
 	if eof {
 		return utils.BYTE_FALSE, fmt.Errorf("[OntBind] decode targetChainId error")
 	}
 	targetChainContractHash, _, irregular, eof := source.NextVarBytes()
 	if irregular {
-		return utils.BYTE_FALSE, fmt.Errorf("[OntBind] decode targetChainContractHash varbytes error")
+		return utils.BYTE_FALSE, fmt.Errorf("[OntBind] decode targetChainContractHash NextVarBytes error")
 	}
 	if eof {
 		return utils.BYTE_FALSE, fmt.Errorf("[OntBind] decode targetChainContractHash error:%s", io.ErrUnexpectedEOF)
