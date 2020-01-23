@@ -170,6 +170,7 @@ func (self *ChainStore) submitBlock(blkNum uint32) error {
 		return nil
 	}
 	if submitBlk, present := self.pendingBlocks[blkNum]; submitBlk != nil && submitBlk.hasSubmitted == false && present {
+		log.Errorf("submitBlock height:%d crosschainmsg:%+v", blkNum, submitBlk.block.CrossChainMsg)
 		err := self.db.SubmitBlock(submitBlk.block.Block, submitBlk.block.CrossChainMsg, *submitBlk.execResult)
 		if err != nil {
 			return fmt.Errorf("ledger add submitBlk (%d, %d, %d) failed: %s", blkNum, self.GetChainedBlockNum(), self.db.GetCurrentBlockHeight(), err)

@@ -21,9 +21,9 @@ package ont
 import (
 	"testing"
 
+	"encoding/hex"
 	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"
-	"encoding/hex"
 )
 
 func TestState_Serialize(t *testing.T) {
@@ -48,12 +48,12 @@ func TestLockParam_Serialize(t *testing.T) {
 	fromAddr, _ := common.AddressFromBase58("709c937270e1d5a490718a2b4a230186bdd06a01")
 	toAddr, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
 	param := LockParam{
-		ToChainID: 0,
+		ToChainID:   0,
 		FromAddress: fromAddr,
-		Fee:1,
-		Args:Args{
+		Fee:         1,
+		Args: Args{
 			ToAddress: toAddr,
-			Value: 1,
+			Value:     1,
 		},
 	}
 	sink := common.NewZeroCopySink(nil)
@@ -67,5 +67,3 @@ func TestLockParam_Serialize(t *testing.T) {
 
 	assert.Equal(t, param, param2)
 }
-
-

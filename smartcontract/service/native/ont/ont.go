@@ -59,7 +59,7 @@ func RegisterOntContract(native *native.NativeService) {
 
 	native.Register(LOCK_NAME, OntLock)
 	native.Register(UNLOCK_NAME, OntUnlock)
-	native.Register(UNLOCK_NAME, OntBind)
+	native.Register(BIND_NAME, OntBind)
 }
 
 func OntInit(native *native.NativeService) ([]byte, error) {
