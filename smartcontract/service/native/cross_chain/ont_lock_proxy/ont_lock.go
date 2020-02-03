@@ -31,6 +31,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/core/types"
 )
 
 func InitOntLock() {
@@ -49,7 +51,16 @@ func OntBindProxyHash(native *native.NativeService) ([]byte, error) {
 
 	var bindParam BindProxyParam
 	if err := bindParam.Deserialization(source); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OntBind] Deserialize BindProxyParam error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[OntBindProxyHash] Deserialize BindProxyParam error:%s", err)
+	}
+	operatorAddress, err := types.AddressFromBookkeepers(genesis.GenesisBookkeepers)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("[OntBindProxyHash] get operator error: %v", err)
+	}
+	//check witness
+	err = utils.ValidateOwner(native, operatorAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("[OntBindProxyHash], checkWitness error: %v", err)
 	}
 	storageItem := utils.GenVarBytesStorageItem(bindParam.TargetHash)
 	native.CacheDB.Put(GenBindProxyKey(utils.OntLockContractAddress, bindParam.TargetChainId), storageItem.ToArray())
@@ -67,7 +78,16 @@ func OntBindAssetHash(native *native.NativeService) ([]byte, error) {
 
 	var bindParam BindAssetParam
 	if err := bindParam.Deserialization(source); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[OntBind] Deserialize BindAssetParam error:%s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[OntBindAssetHash] Deserialize BindAssetParam error:%s", err)
+	}
+	operatorAddress, err := types.AddressFromBookkeepers(genesis.GenesisBookkeepers)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("[OntBindAssetHash] get operator error: %v", err)
+	}
+	//check witness
+	err = utils.ValidateOwner(native, operatorAddress)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("[OntBindAssetHash], checkWitness error: %v", err)
 	}
 	storageItem := utils.GenVarBytesStorageItem(bindParam.TargetAssetHash)
 	native.CacheDB.Put(GenBindAssetKey(utils.OntLockContractAddress, bindParam.SourceAssetHash[:], bindParam.TargetChainId), storageItem.ToArray())
