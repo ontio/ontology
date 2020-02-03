@@ -28,9 +28,10 @@ import (
 )
 
 const (
-	LOCK_NAME   = "lock"
-	UNLOCK_NAME = "unlock"
-	BIND_NAME   = "bind"
+	LOCK_NAME       = "lock"
+	UNLOCK_NAME     = "unlock"
+	BIND_PROXY_NAME = "bindProxy"
+	BIND_ASSET_NAME = "bindAsset"
 )
 
 func AddLockNotifications(native *native.NativeService, contract common.Address, toContract []byte, state *LockParam) {
@@ -67,10 +68,19 @@ func getCreateTxArgs(toChainID uint64, contractHashBytes []byte, fee uint64, met
 	return sink.Bytes()
 }
 
-func GenBindKey(contract common.Address, chainId uint64) []byte {
+func GenBindProxyKey(contract common.Address, chainId uint64) []byte {
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteUint64(chainId)
 	chainIdBytes := sink.Bytes()
-	temp := append(contract[:], []byte(BIND_NAME)...)
+	temp := append(contract[:], []byte(BIND_PROXY_NAME)...)
+	return append(temp, chainIdBytes...)
+}
+
+func GenBindAssetKey(contract common.Address, assetContract []byte, chainId uint64) []byte {
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint64(chainId)
+	chainIdBytes := sink.Bytes()
+	temp := append(contract[:], assetContract...)
+	temp = append(temp, []byte(BIND_ASSET_NAME)...)
 	return append(temp, chainIdBytes...)
 }
