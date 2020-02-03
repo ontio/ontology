@@ -26,11 +26,13 @@ import (
 
 // Args for lock and unlock
 type Args struct {
+	AssetHash []byte // to contract asset hash
 	ToAddress []byte
 	Value     uint64
 }
 
 func (this *Args) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarBytes(sink, this.AssetHash)
 	utils.EncodeVarBytes(sink, this.ToAddress)
 	utils.EncodeVarUint(sink, this.Value)
 
@@ -38,13 +40,17 @@ func (this *Args) Serialization(sink *common.ZeroCopySink) {
 
 func (this *Args) Deserialization(source *common.ZeroCopySource) error {
 	var err error
+	this.AssetHash, err = utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("Args.Deserialization Decode AssetHash error:%s", err)
+	}
 	this.ToAddress, err = utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("Args.Deserialization DecodeVarBytes error:%s", err)
+		return fmt.Errorf("Args.Deserialization Decode ToAddress error:%s", err)
 	}
 	this.Value, err = utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("Args.Deserialization DecodeVarUint error:%s", err)
+		return fmt.Errorf("Args.Deserialization DecodeVarUint Value error:%s", err)
 	}
 	return nil
 }
@@ -80,6 +86,58 @@ func (this *LockParam) Deserialization(source *common.ZeroCopySource) error {
 	err = this.Args.Deserialization(source)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+type BindProxyParam struct {
+	TargetChainId uint64
+	TargetHash    []byte
+}
+
+func (this *BindProxyParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarUint(sink, this.TargetChainId)
+	utils.EncodeVarBytes(sink, this.TargetHash)
+}
+
+func (this *BindProxyParam) Deserialization(source *common.ZeroCopySource) error {
+	var err error
+	this.TargetChainId, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("BindProxyParam.Deserialization DecodeVarUint TargetChainId error:%s", err)
+	}
+	this.TargetHash, err = utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("BindProxyParam.Deserialization DecodeVarBytes TargetAssetHash error:%s", err)
+	}
+	return nil
+}
+
+type BindAssetParam struct {
+	SourceAssetHash common.Address
+	TargetChainId   uint64
+	TargetAssetHash []byte
+}
+
+func (this *BindAssetParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeAddress(sink, this.SourceAssetHash)
+	utils.EncodeVarUint(sink, this.TargetChainId)
+	utils.EncodeVarBytes(sink, this.TargetAssetHash)
+}
+
+func (this *BindAssetParam) Deserialization(source *common.ZeroCopySource) error {
+	var err error
+	this.SourceAssetHash, err = utils.DecodeAddress(source)
+	if err != nil {
+		return fmt.Errorf("BindAssetParam.Deserialization DecodeAddress SourceAssetAddress error:%s", err)
+	}
+	this.TargetChainId, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("BindAssetParam.Deserialization DecodeVarUint TargetChainId error:%s", err)
+	}
+	this.TargetAssetHash, err = utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("BindAssetParam.Deserialization DecodeVarBytes TargetAssetHash error:%s", err)
 	}
 	return nil
 }
