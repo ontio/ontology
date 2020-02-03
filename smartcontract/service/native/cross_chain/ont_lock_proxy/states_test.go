@@ -16,29 +16,36 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ont
+package ont_lock_proxy
 
 import (
 	"testing"
 
+	"encoding/hex"
 	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestState_Serialize(t *testing.T) {
-	state := State{
-		From:  common.AddressFromVmCode([]byte{1, 2, 3}),
-		To:    common.AddressFromVmCode([]byte{4, 5, 6}),
-		Value: 1,
+func TestLockParam_Serialize(t *testing.T) {
+	fromAddr, _ := common.AddressFromBase58("709c937270e1d5a490718a2b4a230186bdd06a01")
+	toAddr, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
+	param := LockParam{
+		ToChainID:   0,
+		FromAddress: fromAddr,
+		Fee:         1,
+		Args: Args{
+			ToAddress: toAddr,
+			Value:     1,
+		},
 	}
 	sink := common.NewZeroCopySink(nil)
-	state.Serialization(sink)
+	param.Serialization(sink)
 
-	state2 := State{}
+	param2 := LockParam{}
 	source := common.NewZeroCopySource(sink.Bytes())
-	if err := state2.Deserialization(source); err != nil {
+	if err := param2.Deserialization(source); err != nil {
 		t.Fatal("state deserialize fail!")
 	}
 
-	assert.Equal(t, state, state2)
+	assert.Equal(t, param, param2)
 }

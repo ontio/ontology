@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -44,9 +43,6 @@ const (
 	TOTALSUPPLY_NAME    = "totalSupply"
 	BALANCEOF_NAME      = "balanceOf"
 	ALLOWANCE_NAME      = "allowance"
-	LOCK_NAME           = "lock"
-	UNLOCK_NAME         = "unlock"
-	BIND_NAME           = "bind"
 )
 
 func AddNotifications(native *native.NativeService, contract common.Address, state *State) {
@@ -59,27 +55,6 @@ func AddNotifications(native *native.NativeService, contract common.Address, sta
 			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
 		})
 }
-func AddLockNotifications(native *native.NativeService, contract common.Address, toContract []byte, state *LockParam) {
-	if !config.DefConfig.Common.EnableEventLog {
-		return
-	}
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			ContractAddress: contract,
-			States:          []interface{}{LOCK_NAME, state.FromAddress.ToBase58(), state.ToChainID, toContract, state.Args},
-		})
-}
-func AddUnLockNotifications(native *native.NativeService, contract common.Address, fromChainId uint64, fromContract []byte, toAddress common.Address, amount uint64) {
-	if !config.DefConfig.Common.EnableEventLog {
-		return
-	}
-	native.Notifications = append(native.Notifications,
-		&event.NotifyEventInfo{
-			ContractAddress: contract,
-			States:          []interface{}{UNLOCK_NAME, fromChainId, fromContract, toAddress.ToBase58(), amount},
-		})
-}
-
 func GetToUInt64StorageItem(toBalance, value uint64) *cstates.StorageItem {
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteUint64(toBalance + value)
@@ -194,25 +169,4 @@ func toTransfer(native *native.NativeService, toKey []byte, value uint64) (uint6
 func genAddressUnboundOffsetKey(contract, address common.Address) []byte {
 	temp := append(contract[:], UNBOUND_TIME_OFFSET...)
 	return append(temp, address[:]...)
-}
-
-func getCreateTxArgs(toChainID uint64, contractHashBytes []byte, fee uint64, method string, argsBytes []byte) []byte {
-	createCrossChainTxParam := &cross_chain_manager.CreateCrossChainTxParam{
-		ToChainID:         toChainID,
-		ToContractAddress: contractHashBytes,
-		Fee:               fee,
-		Method:            method,
-		Args:              argsBytes,
-	}
-	sink := common.NewZeroCopySink(nil)
-	createCrossChainTxParam.Serialization(sink)
-	return sink.Bytes()
-}
-
-func GenBindKey(contract common.Address, chainId uint64) []byte {
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteUint64(chainId)
-	chainIdBytes := sink.Bytes()
-	temp := append(contract[:], []byte(BIND_NAME)...)
-	return append(temp, chainIdBytes...)
 }

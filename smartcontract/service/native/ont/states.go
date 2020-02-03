@@ -19,7 +19,6 @@
 package ont
 
 import (
-	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -111,64 +110,4 @@ func (this *TransferFrom) Deserialization(source *common.ZeroCopySource) error {
 	this.Value, err = utils.DecodeVarUint(source)
 
 	return err
-}
-
-// Args for lock and unlock
-type Args struct {
-	ToAddress []byte
-	Value     uint64
-}
-
-func (this *Args) Serialization(sink *common.ZeroCopySink) {
-	utils.EncodeVarBytes(sink, this.ToAddress)
-	utils.EncodeVarUint(sink, this.Value)
-
-}
-
-func (this *Args) Deserialization(source *common.ZeroCopySource) error {
-	var err error
-	this.ToAddress, err = utils.DecodeVarBytes(source)
-	if err != nil {
-		return fmt.Errorf("Args.Deserialization DecodeVarBytes error:%s", err)
-	}
-	this.Value, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("Args.Deserialization DecodeVarUint error:%s", err)
-	}
-	return nil
-}
-
-type LockParam struct {
-	ToChainID   uint64
-	FromAddress common.Address
-	Fee         uint64
-	Args        Args
-}
-
-func (this *LockParam) Serialization(sink *common.ZeroCopySink) {
-	utils.EncodeVarUint(sink, this.ToChainID)
-	utils.EncodeAddress(sink, this.FromAddress)
-	utils.EncodeVarUint(sink, this.Fee)
-	this.Args.Serialization(sink)
-}
-
-func (this *LockParam) Deserialization(source *common.ZeroCopySource) error {
-	var err error
-	this.ToChainID, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization DecodeVarUint error:%s", err)
-	}
-	this.FromAddress, err = utils.DecodeAddress(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization DecodeAddress error:%s", err)
-	}
-	this.Fee, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization DecodeAddress error:%s", err)
-	}
-	err = this.Args.Deserialization(source)
-	if err != nil {
-		return err
-	}
-	return nil
 }
