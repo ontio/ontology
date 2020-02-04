@@ -43,7 +43,7 @@ func RegisterOntLockContract(native *native.NativeService) {
 	native.Register(LOCK_NAME, OntLock)
 	native.Register(UNLOCK_NAME, OntUnlock)
 	native.Register(BIND_PROXY_NAME, OntBindProxyHash)
-	native.Register(BIND_PROXY_NAME, OntBindAssetHash)
+	native.Register(BIND_ASSET_NAME, OntBindAssetHash)
 }
 
 func OntBindProxyHash(native *native.NativeService) ([]byte, error) {
