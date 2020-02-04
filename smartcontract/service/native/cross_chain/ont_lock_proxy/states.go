@@ -58,7 +58,7 @@ func (this *Args) Deserialization(source *common.ZeroCopySource) error {
 func (this *Args) SerializeForMultiChain(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(this.AssetHash)
 	sink.WriteVarBytes(this.ToAddress)
-	sink.WriteUint64(this.Value)
+	sink.WriteVarUint(this.Value)
 }
 
 func (this *Args) DeserializeForMultiChain(source *common.ZeroCopySource) error {
@@ -78,9 +78,12 @@ func (this *Args) DeserializeForMultiChain(source *common.ZeroCopySource) error 
 		return fmt.Errorf("Args.Deserialization NextVarBytes ToAddress error:%s", io.ErrUnexpectedEOF)
 	}
 
-	value, eof := source.NextUint64()
+	value, _, irregular, eof := source.NextVarUint()
+	if irregular {
+		return fmt.Errorf("Args.Deserialization NextVarUint Value error")
+	}
 	if eof {
-		return fmt.Errorf("Args.Deserialization NextUint64 Value error:%s", io.ErrUnexpectedEOF)
+		return fmt.Errorf("Args.Deserialization NextVarUint Value error:%s", io.ErrUnexpectedEOF)
 	}
 	this.AssetHash = assetHash
 	this.ToAddress = toAddress
