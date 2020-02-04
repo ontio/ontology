@@ -715,7 +715,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	}
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
-	log.Infof("executeBlock:%d\n",  len(result.CrossStates))
+	log.Infof("executeBlock:%d\n", len(result.CrossStates))
 	if len(result.CrossStates) != 0 {
 		result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(result.CrossStates)
 	} else {

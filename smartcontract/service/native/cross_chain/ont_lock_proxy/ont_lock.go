@@ -25,14 +25,14 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
+	"github.com/ontio/ontology/core/genesis"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
-	"github.com/ontio/ontology/core/genesis"
-	"github.com/ontio/ontology/core/types"
 )
 
 func InitOntLock() {
