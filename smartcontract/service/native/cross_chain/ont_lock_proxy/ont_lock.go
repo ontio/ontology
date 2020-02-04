@@ -144,7 +144,7 @@ func OntLock(native *native.NativeService) ([]byte, error) {
 	AddLockNotifications(native, lockContract, toContractAddress, &lockParam)
 
 	sink := common.NewZeroCopySink(nil)
-	lockParam.Args.Serialization(sink)
+	lockParam.Args.SerializeForMultiChain(sink)
 	input := getCreateTxArgs(lockParam.ToChainID, toContractAddress, lockParam.Fee, UNLOCK_NAME, sink.Bytes())
 	_, err = native.NativeCall(utils.CrossChainContractAddress, cross_chain_manager.CREATE_CROSS_CHAIN_TX, input)
 	if err != nil {
@@ -172,7 +172,7 @@ func OntUnlock(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("[OntUnlock] input params varbytes error:%s", io.ErrUnexpectedEOF)
 	}
 	var args Args
-	err := args.Deserialization(common.NewZeroCopySource(paramsBytes))
+	err := args.DeserializeForMultiChain(common.NewZeroCopySource(paramsBytes))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OntUnlock] deserialize args error:%s", err)
 	}

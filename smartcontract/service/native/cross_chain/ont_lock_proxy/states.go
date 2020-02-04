@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
+	"io"
 )
 
 // Args for lock and unlock
@@ -35,7 +36,6 @@ func (this *Args) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarBytes(sink, this.AssetHash)
 	utils.EncodeVarBytes(sink, this.ToAddress)
 	utils.EncodeVarUint(sink, this.Value)
-
 }
 
 func (this *Args) Deserialization(source *common.ZeroCopySource) error {
@@ -52,6 +52,39 @@ func (this *Args) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return fmt.Errorf("Args.Deserialization DecodeVarUint Value error:%s", err)
 	}
+	return nil
+}
+
+func (this *Args) SerializeForMultiChain(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.AssetHash)
+	sink.WriteVarBytes(this.ToAddress)
+	sink.WriteUint64(this.Value)
+}
+
+func (this *Args) DeserializeForMultiChain(source *common.ZeroCopySource) error {
+	assetHash, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return fmt.Errorf("Args.Deserialization NextVarBytes AssetHash error")
+	}
+	if eof {
+		return fmt.Errorf("Args.Deserialization NextVarBytes AssetHash error:%s", io.ErrUnexpectedEOF)
+	}
+
+	toAddress, _, irregular, eof := source.NextVarBytes()
+	if irregular {
+		return fmt.Errorf("Args.Deserialization NextVarBytes ToAddress error")
+	}
+	if eof {
+		return fmt.Errorf("Args.Deserialization NextVarBytes ToAddress error:%s", io.ErrUnexpectedEOF)
+	}
+
+	value, eof := source.NextUint64()
+	if eof {
+		return fmt.Errorf("Args.Deserialization NextUint64 Value error:%s", io.ErrUnexpectedEOF)
+	}
+	this.AssetHash = assetHash
+	this.ToAddress = toAddress
+	this.Value = value
 	return nil
 }
 

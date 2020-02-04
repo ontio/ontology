@@ -23,6 +23,7 @@ import (
 
 	"encoding/hex"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,8 +45,43 @@ func TestLockParam_Serialize(t *testing.T) {
 	param2 := LockParam{}
 	source := common.NewZeroCopySource(sink.Bytes())
 	if err := param2.Deserialization(source); err != nil {
-		t.Fatal("state deserialize fail!")
+		t.Fatal("LockParam deserialize fail!")
 	}
-
 	assert.Equal(t, param, param2)
+}
+
+func TestArgs_Serialize(t *testing.T) {
+	toAddr, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
+	args := Args{
+		AssetHash: utils.OntContractAddress[:],
+		ToAddress: toAddr,
+		Value:     100,
+	}
+	sink := common.NewZeroCopySink(nil)
+	args.Serialization(sink)
+
+	args2 := Args{}
+	source := common.NewZeroCopySource(sink.Bytes())
+	if err := args2.Deserialization(source); err != nil {
+		t.Fatal("Args deserialize fail!")
+	}
+	assert.Equal(t, args, args2)
+}
+
+func TestArgs_SerializeForMultiChain(t *testing.T) {
+	toAddr, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
+	args := Args{
+		AssetHash: utils.OntContractAddress[:],
+		ToAddress: toAddr,
+		Value:     100,
+	}
+	sink := common.NewZeroCopySink(nil)
+	args.SerializeForMultiChain(sink)
+
+	args2 := Args{}
+	source := common.NewZeroCopySource(sink.Bytes())
+	if err := args2.DeserializeForMultiChain(source); err != nil {
+		t.Fatal("Args deserialize fail!")
+	}
+	assert.Equal(t, args, args2)
 }
