@@ -25,6 +25,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
+	"github.com/ontio/ontology/smartcontract/service/native/ont"
 )
 
 const (
@@ -65,6 +66,14 @@ func getCreateTxArgs(toChainID uint64, contractHashBytes []byte, fee uint64, met
 	}
 	sink := common.NewZeroCopySink(nil)
 	createCrossChainTxParam.Serialization(sink)
+	return sink.Bytes()
+}
+
+func getTransferInput(state ont.State) []byte {
+	var transfers ont.Transfers
+	transfers.States = []ont.State{state}
+	sink := common.NewZeroCopySink(nil)
+	transfers.Serialization(sink)
 	return sink.Bytes()
 }
 

@@ -95,7 +95,7 @@ func OntBindAssetHash(native *native.NativeService) ([]byte, error) {
 		native.Notifications = append(native.Notifications,
 			&event.NotifyEventInfo{
 				ContractAddress: utils.OntLockContractAddress,
-				States:          []interface{}{BIND_ASSET_NAME, bindParam.TargetChainId, hex.EncodeToString(bindParam.TargetAssetHash)},
+				States:          []interface{}{BIND_ASSET_NAME, hex.EncodeToString(bindParam.SourceAssetHash[:]), bindParam.TargetChainId, hex.EncodeToString(bindParam.TargetAssetHash)},
 			})
 	}
 	return utils.BYTE_TRUE, nil
@@ -122,12 +122,14 @@ func OntLock(native *native.NativeService) ([]byte, error) {
 	if !bytes.Equal(lockParam.Args.AssetHash, ontContract[:]) {
 		return utils.BYTE_FALSE, fmt.Errorf("[OntLock] only support ont lock, expect:%s, but got:%s", hex.EncodeToString(ontContract[:]), hex.EncodeToString(lockParam.Args.AssetHash))
 	}
-	state := &ont.State{
+
+	state := ont.State{
 		From:  lockParam.FromAddress,
 		To:    lockContract,
 		Value: lockParam.Args.Value,
 	}
-	_, _, err = ont.Transfer(native, ontContract, state)
+	transferInput := getTransferInput(state)
+	_, err = native.NativeCall(utils.OntContractAddress, ont.TRANSFER_NAME, transferInput)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
@@ -142,7 +144,6 @@ func OntLock(native *native.NativeService) ([]byte, error) {
 	AddLockNotifications(native, lockContract, toContractAddress, &lockParam)
 
 	sink := common.NewZeroCopySink(nil)
-
 	lockParam.Args.Serialization(sink)
 	input := getCreateTxArgs(lockParam.ToChainID, toContractAddress, lockParam.Fee, UNLOCK_NAME, sink.Bytes())
 	_, err = native.NativeCall(utils.CrossChainContractAddress, cross_chain_manager.CREATE_CROSS_CHAIN_TX, input)
@@ -209,7 +210,9 @@ func OntUnlock(native *native.NativeService) ([]byte, error) {
 	if args.Value == 0 {
 		return utils.BYTE_TRUE, nil
 	}
-	_, _, err = ont.Transfer(native, ontContract, &ont.State{lockContract, toAddress, args.Value})
+
+	transferInput := getTransferInput(ont.State{lockContract, toAddress, args.Value})
+	_, err = native.NativeCall(utils.OntContractAddress, ont.TRANSFER_NAME, transferInput)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
