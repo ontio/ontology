@@ -94,14 +94,12 @@ func (this *Args) DeserializeForMultiChain(source *common.ZeroCopySource) error 
 type LockParam struct {
 	ToChainID   uint64
 	FromAddress common.Address
-	Fee         uint64
 	Args        Args
 }
 
 func (this *LockParam) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, this.ToChainID)
 	utils.EncodeAddress(sink, this.FromAddress)
-	utils.EncodeVarUint(sink, this.Fee)
 	this.Args.Serialization(sink)
 }
 
@@ -112,10 +110,6 @@ func (this *LockParam) Deserialization(source *common.ZeroCopySource) error {
 		return fmt.Errorf("LockParam.Deserialization DecodeVarUint error:%s", err)
 	}
 	this.FromAddress, err = utils.DecodeAddress(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization DecodeAddress error:%s", err)
-	}
-	this.Fee, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("LockParam.Deserialization DecodeAddress error:%s", err)
 	}

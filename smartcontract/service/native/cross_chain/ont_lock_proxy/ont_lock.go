@@ -145,7 +145,7 @@ func OntLock(native *native.NativeService) ([]byte, error) {
 
 	sink := common.NewZeroCopySink(nil)
 	lockParam.Args.SerializeForMultiChain(sink)
-	input := getCreateTxArgs(lockParam.ToChainID, toContractAddress, lockParam.Fee, UNLOCK_NAME, sink.Bytes())
+	input := getCreateTxArgs(lockParam.ToChainID, toContractAddress, UNLOCK_NAME, sink.Bytes())
 	_, err = native.NativeCall(utils.CrossChainContractAddress, cross_chain_manager.CREATE_CROSS_CHAIN_TX, input)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[OntLock] createCrossChainTx, error:%s", err)

@@ -27,7 +27,6 @@ import (
 type CreateCrossChainTxParam struct {
 	ToChainID         uint64
 	ToContractAddress []byte
-	Fee               uint64
 	Method            string
 	Args              []byte
 }
@@ -35,7 +34,6 @@ type CreateCrossChainTxParam struct {
 func (this *CreateCrossChainTxParam) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, this.ToChainID)
 	utils.EncodeVarBytes(sink, this.ToContractAddress)
-	utils.EncodeVarUint(sink, this.Fee)
 	utils.EncodeString(sink, this.Method)
 	utils.EncodeVarBytes(sink, this.Args)
 }
@@ -49,10 +47,6 @@ func (this *CreateCrossChainTxParam) Deserialization(source *common.ZeroCopySour
 	if err != nil {
 		return fmt.Errorf("CreateCrossChainTxParam deserialize toContractAddress error:%s", err)
 	}
-	fee, err := utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("CreateCrossChainTxParam deserialize fee error:%s", err)
-	}
 	method, err := utils.DecodeString(source)
 	if err != nil {
 		return fmt.Errorf("CreateCrossChainTxParam deserialize method error:%s", err)
@@ -64,7 +58,6 @@ func (this *CreateCrossChainTxParam) Deserialization(source *common.ZeroCopySour
 
 	this.ToChainID = toChainID
 	this.ToContractAddress = toContractAddress
-	this.Fee = fee
 	this.Method = method
 	this.Args = args
 	return nil

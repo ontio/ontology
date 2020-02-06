@@ -56,11 +56,10 @@ func AddUnLockNotifications(native *native.NativeService, contract common.Addres
 		})
 }
 
-func getCreateTxArgs(toChainID uint64, contractHashBytes []byte, fee uint64, method string, argsBytes []byte) []byte {
+func getCreateTxArgs(toChainID uint64, contractHashBytes []byte, method string, argsBytes []byte) []byte {
 	createCrossChainTxParam := &cross_chain_manager.CreateCrossChainTxParam{
 		ToChainID:         toChainID,
 		ToContractAddress: contractHashBytes,
-		Fee:               fee,
 		Method:            method,
 		Args:              argsBytes,
 	}
