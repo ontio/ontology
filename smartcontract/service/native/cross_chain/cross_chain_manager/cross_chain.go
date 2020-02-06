@@ -68,7 +68,6 @@ func CreateCrossChainTx(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("CreateCrossChainTx, MakeOntProof error: %v", err)
 	}
-	//TODO: miner fee?
 	return utils.BYTE_TRUE, nil
 }
 
@@ -137,6 +136,5 @@ func ProcessCrossChainTx(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, fmt.Errorf("ProcessCrossChainTx, res of neo vm call is false")
 		}
 	}
-	//TODO: miner fee?
 	return utils.BYTE_TRUE, nil
 }
