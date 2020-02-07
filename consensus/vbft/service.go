@@ -1082,13 +1082,17 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 }
 
 func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
-	if msg.Block.CrossChainMsg == nil {
-		return true
-	}
 	root, err := self.blockPool.getCrossStatesRoot(msg.Block.CrossChainMsg.Height)
 	if err != nil {
 		log.Errorf("verifyCrossChainMsg:%s", err)
 		return false
+	}
+	//malicious consensus node may create a nil cross chain msg proposal, but it is actual not nil.
+	if root != common.UINT256_EMPTY && msg.Block.CrossChainMsg == nil {
+		return false
+	}
+	if msg.Block.CrossChainMsg == nil {
+		return true
 	}
 	if msg.Block.CrossChainMsg.StatesRoot != root ||
 		msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
