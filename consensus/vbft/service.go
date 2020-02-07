@@ -1082,7 +1082,7 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 }
 
 func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
-	root, err := self.blockPool.getCrossStatesRoot(msg.Block.CrossChainMsg.Height)
+	root, err := self.blockPool.getCrossStatesRoot(msg.Block.Block.Header.Height - 1)
 	if err != nil {
 		log.Errorf("verifyCrossChainMsg:%s", err)
 		return false
