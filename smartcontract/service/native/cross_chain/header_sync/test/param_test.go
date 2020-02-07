@@ -16,61 +16,40 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package header_sync
+package test
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestPeer(t *testing.T) {
-	peer := Peer{
-		Index:      1,
-		PeerPubkey: "testPubkey",
+func TestSyncBlockHeaderParam(t *testing.T) {
+	param := header_sync.SyncBlockHeaderParam{
+		Address: common.ADDRESS_EMPTY,
+		Headers: [][]byte{{1}, {2}, {3}},
 	}
 	sink := common.NewZeroCopySink(nil)
-	peer.Serialization(sink)
+	param.Serialization(sink)
 
-	var p Peer
+	var p header_sync.SyncBlockHeaderParam
 	err := p.Deserialization(common.NewZeroCopySource(sink.Bytes()))
 	assert.NoError(t, err)
-	assert.Equal(t, peer, p)
+
+	assert.Equal(t, p, param)
 }
 
-func TestKeyHeights(t *testing.T) {
-	key := KeyHeights{
-		HeightList: []uint32{1, 2, 3, 4},
+func TestSyncGenesisHeaderParam(t *testing.T) {
+	param := header_sync.SyncGenesisHeaderParam{
+		GenesisHeader: []byte{1, 2, 3},
 	}
 	sink := common.NewZeroCopySink(nil)
-	key.Serialization(sink)
+	param.Serialization(sink)
 
-	var k KeyHeights
-	err := k.Deserialization(common.NewZeroCopySource(sink.Bytes()))
-	assert.NoError(t, err)
-	assert.Equal(t, key, k)
-}
-
-func TestConsensusPeers(t *testing.T) {
-	peers := ConsensusPeers{
-		ChainID: 1,
-		Height:  2,
-		PeerMap: map[string]*Peer{
-			"testPubkey1": {
-				Index:      1,
-				PeerPubkey: "testPubkey1",
-			},
-			"testPubkey2": {
-				Index:      2,
-				PeerPubkey: "testPubkey2",
-			},
-		},
-	}
-	sink := common.NewZeroCopySink(nil)
-	peers.Serialization(sink)
-
-	var p ConsensusPeers
+	var p header_sync.SyncGenesisHeaderParam
 	err := p.Deserialization(common.NewZeroCopySource(sink.Bytes()))
 	assert.NoError(t, err)
-	assert.Equal(t, p, peers)
+
+	assert.Equal(t, p, param)
 }

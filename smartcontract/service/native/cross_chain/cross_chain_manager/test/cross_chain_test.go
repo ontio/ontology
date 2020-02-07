@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cross_chain_manager
+package test
 
 import (
 	"encoding/hex"
@@ -36,6 +36,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/context"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
+	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -158,10 +159,9 @@ func init() {
 }
 
 func TestCreateCrossChainTx(t *testing.T) {
-	p := &CreateCrossChainTxParam{
+	p := &cross_chain_manager.CreateCrossChainTxParam{
 		Method:            "test",
 		Args:              []byte("test"),
-		Fee:               1,
 		ToContractAddress: []byte("btc"),
 		ToChainID:         0,
 	}
@@ -169,14 +169,14 @@ func TestCreateCrossChainTx(t *testing.T) {
 	p.Serialization(sink)
 
 	ns := getNativeFunc(sink.Bytes())
-	ok, err := CreateCrossChainTx(ns)
+	ok, err := cross_chain_manager.CreateCrossChainTx(ns)
 	assert.NoError(t, err)
 	assert.Equal(t, ok, utils.BYTE_TRUE)
 }
 
 func TestProcessCrossChainTx(t *testing.T) {
 	config.DefConfig.P2PNode.NetworkId = 3
-	p := &ProcessCrossChainTxParam{
+	p := &cross_chain_manager.ProcessCrossChainTxParam{
 		Height:      1,
 		Proof:       "b1203e52461bd03325f183d9ed47261d39d24a081b307742545bcc68bfb0aa56d528010000000000000020afe92a7d08e5e8e64a72fbb3da5f51fa07483eb01e18ca6a2c15a5c0fc45120420afe92a7d08e5e8e64a72fbb3da5f51fa07483eb01e18ca6a2c15a5c0fc45120403627463030000000000000014a8a3f92b797ae1e059b8f4681ad949b6ce93771506756e6c6f636b1d14f3b8a17f1f957f60c88f105e32ebff3f022e56a400e1f50500000000",
 		FromChainID: 4,
@@ -208,7 +208,7 @@ func TestProcessCrossChainTx(t *testing.T) {
 	ns.Input = sink.Bytes()
 
 	// invoke func
-	ok, err := ProcessCrossChainTx(ns)
+	ok, err := cross_chain_manager.ProcessCrossChainTx(ns)
 	assert.NoError(t, err)
 	assert.Equal(t, ok, utils.BYTE_TRUE)
 }

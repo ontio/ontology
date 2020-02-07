@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package header_sync
+package test
 
 import (
 	"encoding/hex"
@@ -33,6 +33,7 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	cccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"
+	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/storage"
@@ -136,7 +137,7 @@ func init() {
 func TestSyncGenesisHeader(t *testing.T) {
 	// normal case: with peers
 	sink := common.NewZeroCopySink(nil)
-	p := &SyncGenesisHeaderParam{
+	p := &header_sync.SyncGenesisHeaderParam{
 		GenesisHeader: getGenesisHeader(),
 	}
 	p.Serialization(sink)
@@ -148,13 +149,13 @@ func TestSyncGenesisHeader(t *testing.T) {
 	ns := getNativeFunc(sink.Bytes(), nil)
 	ns.CacheDB.Put(global_params.GenerateOperatorKey(utils.ParamContractAddress), si.ToArray())
 
-	ok, err := SyncGenesisHeader(ns)
+	ok, err := header_sync.SyncGenesisHeader(ns)
 	assert.NoError(t, err)
 	assert.Equal(t, utils.BYTE_TRUE, ok, "wrong result")
 
 	// wrong owner
 	ns.ContextRef.(*smartcontract.SmartContract).Config.Tx.SignedAddr = []common.Address{generateSomeAcct().Address}
-	ok, err = SyncGenesisHeader(ns)
+	ok, err = header_sync.SyncGenesisHeader(ns)
 	assert.EqualError(t, err, "SyncGenesisHeader, checkWitness error: validateOwner, authentication failed!",
 		"not the right error")
 }
@@ -162,7 +163,7 @@ func TestSyncGenesisHeader(t *testing.T) {
 func TestSyncBlockHeader(t *testing.T) {
 	// first, we need to sync genesis header
 	sink := common.NewZeroCopySink(nil)
-	p := &SyncGenesisHeaderParam{
+	p := &header_sync.SyncGenesisHeaderParam{
 		GenesisHeader: getGenesisHeader(),
 	}
 	p.Serialization(sink)
@@ -174,18 +175,18 @@ func TestSyncBlockHeader(t *testing.T) {
 	ns := getNativeFunc(sink.Bytes(), nil)
 	ns.CacheDB.Put(global_params.GenerateOperatorKey(utils.ParamContractAddress), si.ToArray())
 
-	_, _ = SyncGenesisHeader(ns)
+	_, _ = header_sync.SyncGenesisHeader(ns)
 
 	// 1. next to check normal case
 	sink = common.NewZeroCopySink(nil)
-	param := &SyncBlockHeaderParam{
+	param := &header_sync.SyncBlockHeaderParam{
 		Address: acct.Address,
 		Headers: getHeaders(3),
 	}
 	param.Serialization(sink)
 
 	ns.Input = sink.Bytes()
-	ok, err := SyncBlockHeader(ns)
+	ok, err := header_sync.SyncBlockHeader(ns)
 	assert.NoError(t, err)
 	assert.Equal(t, utils.BYTE_TRUE, ok, "wrong result")
 

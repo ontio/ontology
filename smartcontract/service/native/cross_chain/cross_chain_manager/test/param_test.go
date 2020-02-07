@@ -16,26 +16,26 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cross_chain_manager
+package test
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestCreateCrossChainTxParam(t *testing.T) {
-	param := CreateCrossChainTxParam{
+	param := cross_chain_manager.CreateCrossChainTxParam{
 		ToChainID:         1,
 		ToContractAddress: []byte{1, 2, 3, 4},
-		Fee:               2,
 		Method:            "test",
 		Args:              []byte{1, 2, 3, 4},
 	}
 	sink := common.NewZeroCopySink(nil)
 	param.Serialization(sink)
 
-	var p CreateCrossChainTxParam
+	var p cross_chain_manager.CreateCrossChainTxParam
 	err := p.Deserialization(common.NewZeroCopySource(sink.Bytes()))
 	assert.NoError(t, err)
 
@@ -43,7 +43,7 @@ func TestCreateCrossChainTxParam(t *testing.T) {
 }
 
 func TestProcessCrossChainTxParam(t *testing.T) {
-	param := ProcessCrossChainTxParam{
+	param := cross_chain_manager.ProcessCrossChainTxParam{
 		Address:     common.ADDRESS_EMPTY,
 		FromChainID: 1,
 		Height:      2,
@@ -54,7 +54,7 @@ func TestProcessCrossChainTxParam(t *testing.T) {
 	sink := common.NewZeroCopySink(nil)
 	param.Serialization(sink)
 
-	var p ProcessCrossChainTxParam
+	var p cross_chain_manager.ProcessCrossChainTxParam
 	err := p.Deserialization(common.NewZeroCopySource(sink.Bytes()))
 	assert.NoError(t, err)
 
@@ -62,7 +62,7 @@ func TestProcessCrossChainTxParam(t *testing.T) {
 }
 
 func TestOngUnlockParam(t *testing.T) {
-	param := OngUnlockParam{
+	param := cross_chain_manager.OngUnlockParam{
 		FromChainID: 1,
 		Address:     common.ADDRESS_EMPTY,
 		Amount:      1,
@@ -70,7 +70,7 @@ func TestOngUnlockParam(t *testing.T) {
 	sink := common.NewZeroCopySink(nil)
 	param.Serialization(sink)
 
-	var p OngUnlockParam
+	var p cross_chain_manager.OngUnlockParam
 	err := p.Deserialization(common.NewZeroCopySource(sink.Bytes()))
 	assert.NoError(t, err)
 	assert.Equal(t, param, p)
