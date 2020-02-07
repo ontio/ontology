@@ -88,7 +88,7 @@ func GenBindAssetKey(contract common.Address, assetContract []byte, chainId uint
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteUint64(chainId)
 	chainIdBytes := sink.Bytes()
-	temp := append(contract[:], assetContract...)
-	temp = append(temp, []byte(BIND_ASSET_NAME)...)
+	temp := append(contract[:], []byte(BIND_ASSET_NAME)...)
+	temp = append(temp, assetContract...)
 	return append(temp, chainIdBytes...)
 }
