@@ -29,15 +29,13 @@ import (
 
 func TestLockParam_Serialize(t *testing.T) {
 	fromAddr, _ := common.AddressFromBase58("709c937270e1d5a490718a2b4a230186bdd06a01")
-	toAddr, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
+	toAddrBs, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
 	param := LockParam{
-		ToChainID:   0,
-		FromAddress: fromAddr,
-		Fee:         1,
-		Args: Args{
-			ToAddress: toAddr,
-			Value:     1,
-		},
+		SourceAssetHash: utils.OntContractAddress,
+		ToChainID:       0,
+		FromAddress:     fromAddr,
+		ToAddress:       toAddrBs,
+		Value:           1,
 	}
 	sink := common.NewZeroCopySink(nil)
 	param.Serialization(sink)
@@ -53,9 +51,9 @@ func TestLockParam_Serialize(t *testing.T) {
 func TestArgs_Serialize(t *testing.T) {
 	toAddr, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
 	args := Args{
-		AssetHash: utils.OntContractAddress[:],
-		ToAddress: toAddr,
-		Value:     100,
+		TargetAssetHash: utils.OntContractAddress[:],
+		ToAddress:       toAddr,
+		Value:           100,
 	}
 	sink := common.NewZeroCopySink(nil)
 	args.Serialization(sink)
@@ -63,24 +61,6 @@ func TestArgs_Serialize(t *testing.T) {
 	args2 := Args{}
 	source := common.NewZeroCopySource(sink.Bytes())
 	if err := args2.Deserialization(source); err != nil {
-		t.Fatal("Args deserialize fail!")
-	}
-	assert.Equal(t, args, args2)
-}
-
-func TestArgs_SerializeForMultiChain(t *testing.T) {
-	toAddr, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
-	args := Args{
-		AssetHash: utils.OntContractAddress[:],
-		ToAddress: toAddr,
-		Value:     100,
-	}
-	sink := common.NewZeroCopySink(nil)
-	args.SerializeForMultiChain(sink)
-
-	args2 := Args{}
-	source := common.NewZeroCopySource(sink.Bytes())
-	if err := args2.DeserializeForMultiChain(source); err != nil {
 		t.Fatal("Args deserialize fail!")
 	}
 	assert.Equal(t, args, args2)

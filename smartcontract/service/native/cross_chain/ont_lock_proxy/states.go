@@ -27,41 +27,18 @@ import (
 
 // Args for lock and unlock
 type Args struct {
-	AssetHash []byte // to contract asset hash
-	ToAddress []byte
-	Value     uint64
+	TargetAssetHash []byte // to contract asset hash
+	ToAddress       []byte
+	Value           uint64
 }
 
 func (this *Args) Serialization(sink *common.ZeroCopySink) {
-	utils.EncodeVarBytes(sink, this.AssetHash)
-	utils.EncodeVarBytes(sink, this.ToAddress)
-	utils.EncodeVarUint(sink, this.Value)
-}
-
-func (this *Args) Deserialization(source *common.ZeroCopySource) error {
-	var err error
-	this.AssetHash, err = utils.DecodeVarBytes(source)
-	if err != nil {
-		return fmt.Errorf("Args.Deserialization Decode AssetHash error:%s", err)
-	}
-	this.ToAddress, err = utils.DecodeVarBytes(source)
-	if err != nil {
-		return fmt.Errorf("Args.Deserialization Decode ToAddress error:%s", err)
-	}
-	this.Value, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("Args.Deserialization DecodeVarUint Value error:%s", err)
-	}
-	return nil
-}
-
-func (this *Args) SerializeForMultiChain(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.AssetHash)
+	sink.WriteVarBytes(this.TargetAssetHash)
 	sink.WriteVarBytes(this.ToAddress)
 	sink.WriteVarUint(this.Value)
 }
 
-func (this *Args) DeserializeForMultiChain(source *common.ZeroCopySource) error {
+func (this *Args) Deserialization(source *common.ZeroCopySource) error {
 	assetHash, _, irregular, eof := source.NextVarBytes()
 	if irregular {
 		return fmt.Errorf("Args.Deserialization NextVarBytes AssetHash error")
@@ -85,37 +62,50 @@ func (this *Args) DeserializeForMultiChain(source *common.ZeroCopySource) error 
 	if eof {
 		return fmt.Errorf("Args.Deserialization NextVarUint Value error:%s", io.ErrUnexpectedEOF)
 	}
-	this.AssetHash = assetHash
+	this.TargetAssetHash = assetHash
 	this.ToAddress = toAddress
 	this.Value = value
 	return nil
 }
 
 type LockParam struct {
-	ToChainID   uint64
-	FromAddress common.Address
-	Args        Args
+	SourceAssetHash common.Address
+	FromAddress     common.Address
+	ToChainID       uint64
+	ToAddress       []byte
+	Value           uint64
 }
 
 func (this *LockParam) Serialization(sink *common.ZeroCopySink) {
-	utils.EncodeVarUint(sink, this.ToChainID)
+	utils.EncodeAddress(sink, this.SourceAssetHash)
 	utils.EncodeAddress(sink, this.FromAddress)
-	this.Args.Serialization(sink)
+	utils.EncodeVarUint(sink, this.ToChainID)
+	utils.EncodeVarBytes(sink, this.ToAddress)
+	utils.EncodeVarUint(sink, this.Value)
 }
 
 func (this *LockParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	this.ToChainID, err = utils.DecodeVarUint(source)
+
+	this.SourceAssetHash, err = utils.DecodeAddress(source)
 	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization DecodeVarUint error:%s", err)
+		return fmt.Errorf("LockParam.Deserialization SourceAssetHash DecodeAddress error:%s", err)
 	}
 	this.FromAddress, err = utils.DecodeAddress(source)
 	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization DecodeAddress error:%s", err)
+		return fmt.Errorf("LockParam.Deserialization FromAddress DecodeAddress error:%s", err)
 	}
-	err = this.Args.Deserialization(source)
+	this.ToChainID, err = utils.DecodeVarUint(source)
 	if err != nil {
-		return err
+		return fmt.Errorf("LockParam.Deserialization ToChainID DecodeVarUint error:%s", err)
+	}
+	this.ToAddress, err = utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("LockParam.Deserialization ToAddress DecodeVarBytes error:%s", err)
+	}
+	this.Value, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("LockParam.Deserialization Value DecodeVarUint error:%s", err)
 	}
 	return nil
 }

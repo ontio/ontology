@@ -35,24 +35,24 @@ const (
 	BIND_ASSET_NAME = "bindAsset"
 )
 
-func AddLockNotifications(native *native.NativeService, contract common.Address, toContract []byte, state *LockParam) {
+func AddLockNotifications(native *native.NativeService, contract common.Address, toContract []byte, targetAssetHash []byte, state *LockParam) {
 	if !config.DefConfig.Common.EnableEventLog {
 		return
 	}
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			ContractAddress: contract,
-			States:          []interface{}{LOCK_NAME, state.FromAddress.ToBase58(), state.ToChainID, hex.EncodeToString(toContract), hex.EncodeToString(state.Args.ToAddress), state.Args.Value},
+			States:          []interface{}{LOCK_NAME, state.FromAddress.ToBase58(), state.ToChainID, hex.EncodeToString(toContract), hex.EncodeToString(targetAssetHash), hex.EncodeToString(state.ToAddress), state.Value},
 		})
 }
-func AddUnLockNotifications(native *native.NativeService, contract common.Address, fromChainId uint64, fromContract []byte, toAddress common.Address, amount uint64) {
+func AddUnLockNotifications(native *native.NativeService, contract common.Address, fromChainId uint64, fromContract []byte, targetAssetHash []byte, toAddress common.Address, amount uint64) {
 	if !config.DefConfig.Common.EnableEventLog {
 		return
 	}
 	native.Notifications = append(native.Notifications,
 		&event.NotifyEventInfo{
 			ContractAddress: contract,
-			States:          []interface{}{UNLOCK_NAME, fromChainId, hex.EncodeToString(fromContract), toAddress.ToBase58(), amount},
+			States:          []interface{}{UNLOCK_NAME, fromChainId, hex.EncodeToString(fromContract), hex.EncodeToString(targetAssetHash), toAddress.ToBase58(), amount},
 		})
 }
 
