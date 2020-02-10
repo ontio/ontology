@@ -25,28 +25,21 @@ import (
 	"github.com/ontio/wagon/exec"
 )
 
-func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {
-	self := proc.HostData().(*Runtime)
-	self.checkGas(STORAGE_GET_GAS)
-	keybytes, err := ReadWasmMemory(proc, keyPtr, klen)
-	if err != nil {
-		panic(err)
-	}
+func storageRead(service *WasmVmService, keybytes []byte, klen uint32, vlen uint32, offset uint32) ([]byte, uint32, error) {
+	key := serializeStorageKey(service.ContextRef.CurrentContext().ContractAddress, keybytes)
 
-	key := serializeStorageKey(self.Service.ContextRef.CurrentContext().ContractAddress, keybytes)
-
-	raw, err := self.Service.CacheDB.Get(key)
+	raw, err := service.CacheDB.Get(key)
 	if err != nil {
-		panic(err)
+		return []byte{}, 0, err
 	}
 
 	if raw == nil {
-		return math.MaxUint32
+		return []byte{}, math.MaxUint32, nil
 	}
 
 	item, err := states.GetValueFromRawStorageItem(raw)
 	if err != nil {
-		panic(err)
+		return []byte{}, 0, err
 	}
 
 	length := vlen
@@ -56,14 +49,34 @@ func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vle
 	}
 
 	if uint32(len(item)) < offset {
-		panic(errors.New("offset is invalid"))
+		return []byte{}, 0, errors.New("offset is invalid")
 	}
-	_, err = proc.WriteAt(item[offset:offset+length], int64(val))
 
+	return item[offset : offset+length], uint32(len(item)), nil
+}
+
+func StorageRead(proc *exec.Process, keyPtr uint32, klen uint32, val uint32, vlen uint32, offset uint32) uint32 {
+	self := proc.HostData().(*Runtime)
+	self.checkGas(STORAGE_GET_GAS)
+	keybytes, err := ReadWasmMemory(proc, keyPtr, klen)
 	if err != nil {
 		panic(err)
 	}
-	return uint32(len(item))
+
+	itemWrite, originLen, err := storageRead(self.Service, keybytes, klen, vlen, offset)
+	if err != nil {
+		panic(err)
+	}
+
+	if originLen != math.MaxUint32 {
+		_, err = proc.WriteAt(itemWrite[:], int64(val))
+
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return originLen
 }
 
 func StorageWrite(proc *exec.Process, keyPtr uint32, keyLen uint32, valPtr uint32, valLen uint32) {
