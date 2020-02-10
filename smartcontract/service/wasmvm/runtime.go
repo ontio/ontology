@@ -164,25 +164,35 @@ func Debug(proc *exec.Process, ptr uint32, len uint32) {
 		return
 	}
 
-	log.Debugf("[WasmContract]Debug:%s\n", bs)
+	debugLog(bs)
 }
 
-func Notify(proc *exec.Process, ptr uint32, l uint32) {
-	self := proc.HostData().(*Runtime)
-	if l >= neotypes.MAX_NOTIFY_LENGTH {
-		panic("notify length over the uplimit")
+func notify(service *WasmVmService, bs []byte) error {
+	if len(bs) >= neotypes.MAX_NOTIFY_LENGTH {
+		return errors.NewErr("notify length over the uplimit")
 	}
-	bs, err := ReadWasmMemory(proc, ptr, l)
-	if err != nil {
-		panic(err)
-	}
-	notify := &event.NotifyEventInfo{ContractAddress: self.Service.ContextRef.CurrentContext().ContractAddress}
+
+	notify := &event.NotifyEventInfo{ContractAddress: service.ContextRef.CurrentContext().ContractAddress}
 	val := crossvm_codec.DeserializeNotify(bs)
 	notify.States = val
 
 	notifys := make([]*event.NotifyEventInfo, 1)
 	notifys[0] = notify
-	self.Service.ContextRef.PushNotifications(notifys)
+	service.ContextRef.PushNotifications(notifys)
+	return nil
+}
+
+func Notify(proc *exec.Process, ptr uint32, l uint32) {
+	self := proc.HostData().(*Runtime)
+	bs, err := ReadWasmMemory(proc, ptr, l)
+	if err != nil {
+		panic(err)
+	}
+
+	err = notify(self.Service, bs)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func InputLength(proc *exec.Process) uint32 {
@@ -250,114 +260,10 @@ func CallContract(proc *exec.Process, contractAddr uint32, inputPtr uint32, inpu
 		panic(err)
 	}
 
-	contracttype, err := self.getContractType(contractAddress)
+	result, err := callContractInner(self.Service, contractAddress, inputs)
 	if err != nil {
 		panic(err)
 	}
-
-	var result []byte
-
-	switch contracttype {
-	case NATIVE_CONTRACT:
-		source := common.NewZeroCopySource(inputs)
-		ver, eof := source.NextByte()
-		if eof {
-			panic(io.ErrUnexpectedEOF)
-		}
-		method, _, irregular, eof := source.NextString()
-		if irregular {
-			panic(common.ErrIrregularData)
-		}
-		if eof {
-			panic(io.ErrUnexpectedEOF)
-		}
-
-		args, _, irregular, eof := source.NextVarBytes()
-		if irregular {
-			panic(common.ErrIrregularData)
-		}
-		if eof {
-			panic(io.ErrUnexpectedEOF)
-		}
-
-		contract := states.ContractInvokeParam{
-			Version: ver,
-			Address: contractAddress,
-			Method:  method,
-			Args:    args,
-		}
-
-		self.checkGas(NATIVE_INVOKE_GAS)
-		native := &native2.NativeService{
-			CacheDB:     self.Service.CacheDB,
-			InvokeParam: contract,
-			Tx:          self.Service.Tx,
-			Height:      self.Service.Height,
-			Time:        self.Service.Time,
-			ContextRef:  self.Service.ContextRef,
-			ServiceMap:  make(map[string]native2.Handler),
-			PreExec:     self.Service.PreExec,
-		}
-
-		tmpRes, err := native.Invoke()
-		if err != nil {
-			panic(errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error()))
-		}
-
-		result = tmpRes
-
-	case WASMVM_CONTRACT:
-		conParam := states.WasmContractParam{Address: contractAddress, Args: inputs}
-		param := common.SerializeToBytes(&conParam)
-
-		newservice, err := self.Service.ContextRef.NewExecuteEngine(param, types.InvokeWasm)
-		if err != nil {
-			panic(err)
-		}
-
-		tmpRes, err := newservice.Invoke()
-		if err != nil {
-			panic(err)
-		}
-
-		result = tmpRes.([]byte)
-
-	case NEOVM_CONTRACT:
-		evalstack, err := util.GenerateNeoVMParamEvalStack(inputs)
-		if err != nil {
-			panic(err)
-		}
-
-		neoservice, err := self.Service.ContextRef.NewExecuteEngine([]byte{}, types.InvokeNeo)
-		if err != nil {
-			panic(err)
-		}
-
-		err = util.SetNeoServiceParamAndEngine(contractAddress, neoservice, evalstack)
-		if err != nil {
-			panic(err)
-		}
-
-		tmp, err := neoservice.Invoke()
-		if err != nil {
-			panic(err)
-		}
-
-		if tmp != nil {
-			val := tmp.(*neotypes.VmValue)
-			source := common.NewZeroCopySink([]byte{byte(crossvm_codec.VERSION)})
-
-			err = neotypes.BuildResultFromNeo(*val, source)
-			if err != nil {
-				panic(err)
-			}
-			result = source.Bytes()
-		}
-
-	default:
-		panic(errors.NewErr("Not a supported contract type"))
-	}
-
 	self.CallOutPut = result
 	return uint32(len(self.CallOutPut))
 }
@@ -688,12 +594,12 @@ func NewHostModule() *wasm.Module {
 	return m
 }
 
-func (self *Runtime) getContractType(addr common.Address) (ContractType, error) {
+func getContractTypeInner(service *WasmVmService, addr common.Address) (ContractType, error) {
 	if utils.IsNativeContract(addr) {
 		return NATIVE_CONTRACT, nil
 	}
 
-	dep, err := self.Service.CacheDB.GetContract(addr)
+	dep, err := service.CacheDB.GetContract(addr)
 	if err != nil {
 		return UNKOWN_CONTRACT, err
 	}
@@ -705,15 +611,26 @@ func (self *Runtime) getContractType(addr common.Address) (ContractType, error) 
 	}
 
 	return NEOVM_CONTRACT, nil
+}
 
+func (self *Runtime) getContractType(addr common.Address) (ContractType, error) {
+	return getContractTypeInner(self.Service, addr)
+}
+
+func checkGasInner(gasLimit *uint64, cost uint64) error {
+	if *gasLimit >= cost {
+		*gasLimit -= cost
+	} else {
+		return errors.NewErr("[wasm_Service]Insufficient gas limit")
+	}
+
+	return nil
 }
 
 func (self *Runtime) checkGas(gaslimit uint64) {
-	gas := self.Service.vm.ExecMetrics
-	if *gas.GasLimit >= gaslimit {
-		*gas.GasLimit -= gaslimit
-	} else {
-		panic(errors.NewErr("[wasm_Service]Insufficient gas limit"))
+	err := checkGasInner(self.Service.vm.ExecMetrics.GasLimit, gaslimit)
+	if err != nil {
+		panic(err)
 	}
 }
 
@@ -724,4 +641,124 @@ func serializeStorageKey(contractAddress common.Address, key []byte) []byte {
 	bf.Write(key)
 
 	return bf.Bytes()
+}
+
+func debugLog(bs []byte) {
+	log.Debugf("[WasmContract]Debug:%s\n", bs)
+}
+
+func callContractInner(service *WasmVmService, contractAddress common.Address, inputs []byte) ([]byte, error) {
+	contracttype, err := getContractTypeInner(service, contractAddress)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	var result []byte
+
+	switch contracttype {
+	case NATIVE_CONTRACT:
+		source := common.NewZeroCopySource(inputs)
+		ver, eof := source.NextByte()
+		if eof {
+			return []byte{}, io.ErrUnexpectedEOF
+		}
+		method, _, irregular, eof := source.NextString()
+		if irregular {
+			return []byte{}, common.ErrIrregularData
+		}
+		if eof {
+			return []byte{}, io.ErrUnexpectedEOF
+		}
+
+		args, _, irregular, eof := source.NextVarBytes()
+		if irregular {
+			return []byte{}, common.ErrIrregularData
+		}
+		if eof {
+			return []byte{}, io.ErrUnexpectedEOF
+		}
+
+		contract := states.ContractInvokeParam{
+			Version: ver,
+			Address: contractAddress,
+			Method:  method,
+			Args:    args,
+		}
+
+		err = checkGasInner(service.GasLimit, NATIVE_INVOKE_GAS)
+		if err != nil {
+			return []byte{}, errors.NewErr("[wasm_Service]Insufficient gas limit")
+		}
+
+		native := &native2.NativeService{
+			CacheDB:     service.CacheDB,
+			InvokeParam: contract,
+			Tx:          service.Tx,
+			Height:      service.Height,
+			Time:        service.Time,
+			ContextRef:  service.ContextRef,
+			ServiceMap:  make(map[string]native2.Handler),
+			PreExec:     service.PreExec,
+		}
+
+		tmpRes, err := native.Invoke()
+		if err != nil {
+			return []byte{}, errors.NewErr("[nativeInvoke]AppCall failed:" + err.Error())
+		}
+
+		result = tmpRes
+
+	case WASMVM_CONTRACT:
+		conParam := states.WasmContractParam{Address: contractAddress, Args: inputs}
+		param := common.SerializeToBytes(&conParam)
+
+		newservice, err := service.ContextRef.NewExecuteEngine(param, types.InvokeWasm)
+		if err != nil {
+			return []byte{}, err
+		}
+
+		tmpRes, err := newservice.Invoke()
+		if err != nil {
+			return []byte{}, err
+		}
+
+		result = tmpRes.([]byte)
+
+	case NEOVM_CONTRACT:
+		evalstack, err := util.GenerateNeoVMParamEvalStack(inputs)
+		if err != nil {
+			return []byte{}, err
+		}
+
+		neoservice, err := service.ContextRef.NewExecuteEngine([]byte{}, types.InvokeNeo)
+		if err != nil {
+			return []byte{}, err
+		}
+
+		err = util.SetNeoServiceParamAndEngine(contractAddress, neoservice, evalstack)
+		if err != nil {
+			return []byte{}, err
+		}
+
+		tmp, err := neoservice.Invoke()
+		if err != nil {
+			return []byte{}, err
+		}
+
+		if tmp != nil {
+			val := tmp.(*neotypes.VmValue)
+			source := common.NewZeroCopySink([]byte{byte(crossvm_codec.VERSION)})
+
+			err = neotypes.BuildResultFromNeo(*val, source)
+			if err != nil {
+				return []byte{}, err
+			}
+			result = source.Bytes()
+		}
+
+	default:
+		return []byte{}, errors.NewErr("Not a supported contract type")
+	}
+
+	return result, nil
 }

@@ -18,6 +18,8 @@
 package wasmvm
 
 import (
+	"sync"
+
 	"github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/store"
@@ -46,6 +48,8 @@ type WasmVmService struct {
 	ExecStep      *uint64
 	GasFactor     uint64
 	IsTerminate   bool
+	JitMode       bool
+	ServiceIndex  uint64
 	vm            *exec.VM
 }
 
@@ -68,13 +72,53 @@ var (
 	WASM_CALLSTACK_LIMIT        = 1024
 
 	CodeCache *lru.ARCCache
+
+	serviceData        = make(map[uint64]*WasmVmService)
+	nextServiceDataIdx uint64
+	serviceDataMtx     sync.RWMutex
 )
 
 func init() {
 	CodeCache, _ = lru.NewARC(CODE_CACHE_SIZE)
+	nextServiceDataIdx = 1
 	//if err != nil{
 	//	log.Info("NewARC block error %s", err)
 	//}
+}
+
+func GetAddressBuff(addrs []common.Address) ([]byte, int) {
+	sink := common.NewZeroCopySink(nil)
+	for _, addr := range addrs {
+		sink.WriteAddress(addr)
+	}
+
+	return sink.Bytes(), int(sink.Size())
+}
+
+func registerWasmVmService(this *WasmVmService) uint64 {
+	defer func() {
+		nextServiceDataIdx++
+		if nextServiceDataIdx == 0 {
+			nextServiceDataIdx++
+		}
+		serviceDataMtx.Unlock()
+	}()
+	serviceDataMtx.Lock()
+	serviceData[nextServiceDataIdx] = this
+	this.ServiceIndex = nextServiceDataIdx
+	return nextServiceDataIdx
+}
+
+func getWasmVmService(index uint64) *WasmVmService {
+	defer serviceDataMtx.Unlock()
+	serviceDataMtx.Lock()
+	return serviceData[index]
+}
+
+func unregisterWasmVmService(index uint64) {
+	defer serviceDataMtx.Unlock()
+	serviceDataMtx.Lock()
+	delete(serviceData, index)
 }
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
@@ -102,7 +146,25 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, errors.NewErr("not a wasm contract")
 	}
+
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: wasmCode})
+
+	var output []byte
+	if this.JitMode {
+		output, err = invokeJit(this, contract, wasmCode)
+	} else {
+		output, err = invokeInterpreter(this, contract, wasmCode)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	this.ContextRef.PopContext()
+	return output, nil
+}
+
+func invokeInterpreter(this *WasmVmService, contract *states.WasmContractParam, wasmCode []byte) ([]byte, error) {
 	host := &Runtime{Service: this, Input: contract.Args}
 
 	var compiled *exec.CompiledModule
@@ -114,10 +176,11 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	if compiled == nil {
-		compiled, err = ReadWasmModule(wasmCode, false)
+		compiled_t, err := ReadWasmModule(wasmCode, false)
 		if err != nil {
 			return nil, err
 		}
+		compiled = compiled_t
 		CodeCache.Add(contract.Address.ToHexString(), compiled)
 	}
 
@@ -162,9 +225,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 	}
-
-	//pop the current context
-	this.ContextRef.PopContext()
 
 	return host.Output, nil
 }

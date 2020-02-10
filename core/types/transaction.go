@@ -278,7 +278,7 @@ func (self *Sig) Serialization(sink *common.ZeroCopySink) error {
 	return nil
 }
 
-func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
+func (self *Transaction) GetSignatureAddresses() []common.Address {
 	if len(self.SignedAddr) == 0 {
 		addrs := make([]common.Address, 0, len(self.Sigs))
 		for _, prog := range self.Sigs {
@@ -289,7 +289,7 @@ func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
 	//if len(self.SignedAddr) != len(self.Sigs) {
 	//	return nil, errors.New("mismatched sigs and signed address")
 	//}
-	return self.SignedAddr, nil
+	return self.SignedAddr
 }
 
 type TransactionType byte
