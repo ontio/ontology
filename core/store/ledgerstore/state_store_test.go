@@ -36,19 +36,13 @@ func TestStateMerkleRoot(t *testing.T) {
 			diffHashes = append(diffHashes, hash)
 		}
 		db := NewMemStateStore(effectiveStateHashHeight)
-		for h, hash := range diffHashes[:effectiveStateHashHeight] {
-			height := uint32(h)
-			db.NewBatch()
-			err := db.AddStateMerkleTreeRoot(height, hash)
-			assert.Nil(t, err)
-			db.CommitTo()
-			root, _ := db.GetStateMerkleRoot(height)
-			assert.Equal(t, root, common.UINT256_EMPTY)
-		}
 
 		merkleTree := merkle.NewTree(0, nil, nil)
-		for h, hash := range diffHashes[effectiveStateHashHeight:] {
-			height := uint32(h) + effectiveStateHashHeight
+		for h, hash := range diffHashes {
+			height := uint32(h)
+			if uint32(h) >= effectiveStateHashHeight {
+				height = uint32(h) + effectiveStateHashHeight
+			}
 			merkleTree.AppendHash(hash)
 			root1 := db.GetStateMerkleRootWithNewHash(hash)
 			db.NewBatch()

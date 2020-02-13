@@ -209,7 +209,9 @@ func execTxCheckRes(tx *types.Transaction, testCase common3.TestCase, database *
 	checkExecResult(testCase, res, execEnv)
 
 	block, _ := makeBlock(acct, []*types.Transaction{tx})
-	err = database.AddBlock(block, common.UINT256_EMPTY)
+	result, err := database.ExecuteBlock(block)
+	checkErr(err)
+	err = database.SubmitBlock(block, result)
 	checkErr(err)
 }
 
@@ -267,9 +269,10 @@ func main() {
 	}
 
 	block, _ := makeBlock(acct, txes)
-	err = database.AddBlock(block, common.UINT256_EMPTY)
+	result, err := database.ExecuteBlock(block)
 	checkErr(err)
-
+	err = database.SubmitBlock(block, result)
+	checkErr(err)
 	addrMap := make(map[string]common.Address)
 	for file, code := range contract {
 		addrMap[path.Base(file)] = common.AddressFromVmCode(code)

@@ -651,9 +651,7 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
-	if block.Header.Height < this.stateHashCheckHeight {
-		result.MerkleRoot = common.UINT256_EMPTY
-	} else if block.Header.Height == this.stateHashCheckHeight {
+	if block.Header.Height == this.stateHashCheckHeight {
 		res, e := calculateTotalStateHash(overlay)
 		if e != nil {
 			err = e
