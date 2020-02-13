@@ -17,7 +17,7 @@ require (
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/ontio/ontology-crypto v1.0.8
 	github.com/ontio/ontology-eventbus v0.9.1
-	github.com/ontio/wagon v0.4.1
+	github.com/ontio/wagon v0.4.2
 	github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6 // indirect
 	github.com/pborman/uuid v1.2.0
 	github.com/stretchr/testify v1.3.0

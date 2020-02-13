@@ -41,6 +41,6 @@ import:
 - package: golang.org/x/net
   repo: https://github.com/golang/net.git
 - package: github.com/ontio/wagon
-  version: v0.4.1
+  version: v0.4.2
 ignore:
   - golang.org/x/sys/unix
