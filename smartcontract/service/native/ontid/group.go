@@ -35,8 +35,26 @@ type Group struct {
 	Threshold uint          `json:"threshold"`
 }
 
+func parse(g *Group) *Group {
+	gr := &Group{
+		Members:   make([]interface{}, len(g.Members)),
+		Threshold: g.Threshold,
+	}
+	for i := 0; i < len(g.Members); i++ {
+		switch t := g.Members[i].(type) {
+		case []byte:
+			gr.Members[i] = string(t)
+		case *Group:
+			gr.Members[i] = parse(t)
+		default:
+			panic("invlid member type")
+		}
+	}
+	return gr
+}
+
 func (g *Group) ToJson() []byte {
-	j, _ := json.Marshal(g)
+	j, _ := json.Marshal(parse(g))
 	return j
 }
 
