@@ -122,7 +122,7 @@ func ContractCreate(proc *exec.Process,
 	if err != nil {
 		panic(err)
 	}
-	_, err = ReadWasmModule(wasmCode, true)
+	_, err = ReadWasmModule(wasmCode, JitVerifyMethod)
 	if err != nil {
 		panic(err)
 	}
@@ -199,7 +199,7 @@ func ContractMigrate(proc *exec.Process,
 	if err != nil {
 		panic(err)
 	}
-	_, err = ReadWasmModule(wasmCode, true)
+	_, err = ReadWasmModule(wasmCode, JitVerifyMethod)
 	if err != nil {
 		panic(err)
 	}

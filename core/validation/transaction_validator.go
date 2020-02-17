@@ -117,7 +117,7 @@ func checkTransactionPayload(tx *types.Transaction) error {
 	case *payload.DeployCode:
 		deploy := tx.Payload.(*payload.DeployCode)
 		if deploy.VmType() == payload.WASMVM_TYPE {
-			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), true)
+			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), wasmvm.JitVerifyMethod)
 			if err != nil {
 				return err
 			}
@@ -128,5 +128,4 @@ func checkTransactionPayload(tx *types.Transaction) error {
 	default:
 		return errors.New(fmt.Sprint("[txValidator], unimplemented transaction payload type.", pld))
 	}
-	return nil
 }

@@ -79,8 +79,14 @@ func checkOntoWasm(m *wasm.Module) error {
 	return nil
 }
 
-func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
-	m, err := wasm.ReadModule(bytes.NewReader(Code), func(name string) (*wasm.Module, error) {
+type VerifyMethod int
+
+const NoneVerifyMethod = VerifyMethod(0)
+const InterpVerifyMethod = VerifyMethod(1)
+const JitVerifyMethod = VerifyMethod(2)
+
+func ReadWasmModule(code []byte, verify VerifyMethod) (*exec.CompiledModule, error) {
+	m, err := wasm.ReadModule(bytes.NewReader(code), func(name string) (*wasm.Module, error) {
 		switch name {
 		case "env":
 			return NewHostModule(), nil
@@ -91,7 +97,7 @@ func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
 		return nil, err
 	}
 
-	if verify {
+	if verify != NoneVerifyMethod {
 		err = checkOntoWasm(m)
 		if err != nil {
 			return nil, err
@@ -102,9 +108,17 @@ func ReadWasmModule(Code []byte, verify bool) (*exec.CompiledModule, error) {
 			return nil, err
 		}
 
-		err = validate.VerifyWasmCodeFromRust(Code)
-		if err != nil {
-			return nil, err
+		switch verify {
+		case InterpVerifyMethod:
+			err = validate.VerifyWasmCodeFromRust(code)
+			if err != nil {
+				return nil, err
+			}
+		case JitVerifyMethod:
+			err := WasmjitValidate(code)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

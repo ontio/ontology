@@ -176,11 +176,11 @@ func invokeInterpreter(this *WasmVmService, contract *states.WasmContractParam, 
 	}
 
 	if compiled == nil {
-		compiled_t, err := ReadWasmModule(wasmCode, false)
+		module, err := ReadWasmModule(wasmCode, NoneVerifyMethod)
 		if err != nil {
 			return nil, err
 		}
-		compiled = compiled_t
+		compiled = module
 		CodeCache.Add(contract.Address.ToHexString(), compiled)
 	}
 
