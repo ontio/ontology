@@ -80,7 +80,7 @@ The Ontology CLI can run nodes for the MainNet, TestNet and local PrivateNet. Ch
 You can run an Ontology MainNet node built from the source code with:
 
 ```shell
-./ontology                                      # Linux
+./ontology                          # Linux
 ./ontology-darwin-amd64             # MacOS
 start ontology-windows-amd64.exe    # Windows
 ```
@@ -90,7 +90,7 @@ start ontology-windows-amd64.exe    # Windows
 You can run an Ontology TestNet node built from the source code with:
 
 ```shell
-./ontology --networkid 2                                    # Linux
+./ontology --networkid 2                        # Linux
 ./ontology-darwin-amd64 --networkid 2           # MacOS
  start ontology-windows-amd64.exe --networkid 2 # Windows
 ```
@@ -106,7 +106,7 @@ The Ontology CLI allows you to run a local PrivateNet on your computer. Before y
 To start the PrivateNet built from the source code with:
 
 ```shell
-./ontology --testmode                                   # Linux
+./ontology --testmode                       # Linux
 ./ontology-darwin-amd64 --testmode          # MacOS
 start ontology-windows-amd64.exe --testmode # Windows
 ```
