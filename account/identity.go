@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"math/big"
 
-	base58 "github.com/itchyny/base58-go"
+	"github.com/itchyny/base58-go"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/core/types"
 	"golang.org/x/crypto/ripemd160"
@@ -89,10 +89,8 @@ func VerifyID(id string) bool {
 	data := buf[:pos]
 	check := buf[pos:]
 	sum := checksum(data)
-	if !bytes.Equal(sum, check) {
-		return false
-	}
-	return true
+
+	return bytes.Equal(sum, check)
 }
 
 func checksum(data []byte) []byte {

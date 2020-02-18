@@ -231,44 +231,6 @@ func (this *P2PServer) GetPID() *evtActor.PID {
 	return this.pid
 }
 
-//blockSyncFinished compare all nbr peers and self height at beginning
-func (this *P2PServer) blockSyncFinished() bool {
-	peers := this.network.GetNeighbors()
-	if len(peers) == 0 {
-		return false
-	}
-
-	blockHeight := this.ledger.GetCurrentBlockHeight()
-
-	for _, v := range peers {
-		if blockHeight < uint32(v.GetHeight()) {
-			return false
-		}
-	}
-	return true
-}
-
-//WaitForSyncBlkFinish compare the height of self and remote peer in loop
-func (this *P2PServer) WaitForSyncBlkFinish() {
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	if consensusType == "solo" {
-		return
-	}
-
-	for {
-		headerHeight := this.ledger.GetCurrentHeaderHeight()
-		currentBlkHeight := this.ledger.GetCurrentBlockHeight()
-		log.Info("[p2p]WaitForSyncBlkFinish... current block height is ",
-			currentBlkHeight, " ,current header height is ", headerHeight)
-
-		if this.blockSyncFinished() {
-			break
-		}
-
-		<-time.After(time.Second * (time.Duration(common.SYNC_BLK_WAIT)))
-	}
-}
-
 //WaitForPeersStart check whether enough peer linked in loop
 func (this *P2PServer) WaitForPeersStart() {
 	periodTime := config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK

@@ -22,26 +22,6 @@ import (
 	"math/big"
 )
 
-type BigIntSorter []big.Int
-
-func (c BigIntSorter) Len() int {
-	return len(c)
-}
-func (c BigIntSorter) Swap(i, j int) {
-	if i >= 0 && i < len(c) && j >= 0 && j < len(c) {
-		// Unit Test modify
-		c[i], c[j] = c[j], c[i]
-	}
-}
-func (c BigIntSorter) Less(i, j int) bool {
-	if i >= 0 && i < len(c) && j >= 0 && j < len(c) {
-		// Unit Test modify
-		return c[i].Cmp(&c[j]) < 0
-	}
-
-	return false
-}
-
 func ToBigInt(data interface{}) *big.Int {
 	var bi big.Int
 	switch t := data.(type) {
@@ -71,29 +51,6 @@ func ToBigInt(data interface{}) *big.Int {
 		bi = *t
 	}
 	return &bi
-}
-
-func Concat(array1 []byte, array2 []byte) []byte {
-	var r []byte
-	r = append(r, array1...)
-	return append(r, array2...)
-}
-
-func BigIntOp(bi *big.Int, op OpCode) *big.Int {
-	nb := new(big.Int)
-	switch op {
-	case INC:
-		nb.Add(bi, big.NewInt(int64(1)))
-	case DEC:
-		nb.Sub(bi, big.NewInt(int64(1)))
-	case NEGATE:
-		nb.Neg(bi)
-	case ABS:
-		nb.Abs(bi)
-	default:
-		nb.Set(bi)
-	}
-	return nb
 }
 
 func BigIntZip(ints1 *big.Int, ints2 *big.Int, op OpCode) *big.Int {

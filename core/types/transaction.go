@@ -171,7 +171,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 		}
 		tx.Payload = pl
 	default:
-		return fmt.Errorf("unsupported tx type %v", tx.Type())
+		return fmt.Errorf("unsupported tx type %v", tx.TxType)
 	}
 
 	var length uint64
@@ -322,10 +322,6 @@ func (tx *Transaction) ToArray() []byte {
 
 func (tx *Transaction) Hash() common.Uint256 {
 	return tx.hash
-}
-
-func (tx *Transaction) Type() common.InventoryType {
-	return common.TRANSACTION
 }
 
 func (tx *Transaction) Verify() error {

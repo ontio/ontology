@@ -266,7 +266,7 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 	}
 	merkleRoot, err := self.blockPool.getExecMerkleRoot(blkNum - 1)
 	if err != nil {
-		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (blkNum - 1))
+		return nil, fmt.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, blkNum-1)
 	}
 
 	msg := &blockProposalMsg{

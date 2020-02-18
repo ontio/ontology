@@ -63,21 +63,10 @@ func (this *ConsensusPayload) ToArray() []byte {
 	return common.SerializeToBytes(this)
 }
 
-//return inventory type
-func (this *ConsensusPayload) InventoryType() common.InventoryType {
-	return common.CONSENSUS
-}
-
 func (this *ConsensusPayload) GetMessage() []byte {
 	//TODO: GetMessage
 	//return sig.GetHashData(cp)
 	return []byte{}
-}
-
-func (this *ConsensusPayload) Type() common.InventoryType {
-
-	//TODO:Temporary add for Interface signature.SignableData use.
-	return common.CONSENSUS
 }
 
 func (this *ConsensusPayload) Serialization(sink *common.ZeroCopySink) {

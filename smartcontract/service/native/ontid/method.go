@@ -201,7 +201,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	if !isValid(srvc, key) {
 		return utils.BYTE_FALSE, errors.New("add key failed: ID not registered")
 	}
-	var auth bool = false
+	var auth = false
 	rec, _ := getOldRecovery(srvc, key)
 	if len(rec) > 0 {
 		auth = bytes.Equal(rec, arg2)

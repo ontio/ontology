@@ -51,7 +51,7 @@ var (
 	ONGTokenID = ONGToken.Hash()
 )
 
-var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
+var GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME * time.Second
 
 var INIT_PARAM = map[string]string{
 	"gasPrice": "0",

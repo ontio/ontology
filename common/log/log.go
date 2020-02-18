@@ -377,9 +377,9 @@ func GetLogFileSize() (int64, error) {
 
 func GetMaxLogChangeInterval(maxLogSize int64) int64 {
 	if maxLogSize != 0 {
-		return (maxLogSize * BYTE_TO_MB)
+		return maxLogSize * BYTE_TO_MB
 	} else {
-		return (DEFAULT_MAX_LOG_SIZE * BYTE_TO_MB)
+		return DEFAULT_MAX_LOG_SIZE * BYTE_TO_MB
 	}
 }
 

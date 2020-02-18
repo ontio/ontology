@@ -286,7 +286,7 @@ func (self *CompactMerkleTree) subproof(m, n uint32, b bool) []common.Uint256 {
 
 	length := len(hashes)
 	reverse := make([]common.Uint256, length, length)
-	for k, _ := range reverse {
+	for k := range reverse {
 		reverse[k] = hashes[length-k-1]
 	}
 

@@ -54,7 +54,7 @@ func NewTxAttribute(u TransactionAttributeUsage, d []byte) TxAttribute {
 
 func (u *TxAttribute) GetSize() uint32 {
 	if u.Usage == DescriptionUrl {
-		return uint32(len([]byte{(byte(0xff))}) + len([]byte{(byte(0xff))}) + len(u.Data))
+		return uint32(len([]byte{byte(0xff)}) + len([]byte{byte(0xff)}) + len(u.Data))
 	}
 	return 0
 }

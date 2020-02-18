@@ -57,7 +57,7 @@ func (p *ParamsBuilder) EmitPushInteger(data *big.Int) {
 	}
 
 	if data.Cmp(big.NewInt(int64(0))) == 1 && data.Cmp(big.NewInt(int64(16))) == -1 {
-		p.Emit(OpCode((int(PUSH1) - 1 + int(data.Int64()))))
+		p.Emit(OpCode(int(PUSH1) - 1 + int(data.Int64())))
 		return
 	}
 

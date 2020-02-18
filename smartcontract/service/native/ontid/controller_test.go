@@ -227,9 +227,9 @@ func CaseGroupController(t *testing.T, n *native.NativeService) {
 	}
 	// signers
 	signers := []Signer{
-		Signer{[]byte(id0), 1},
-		Signer{[]byte(id1), 1},
-		Signer{[]byte(id2), 1},
+		{[]byte(id0), 1},
+		{[]byte(id1), 1},
+		{[]byte(id2), 1},
 	}
 	// signed addresses
 	addr := []common.Address{a0.Address, a1.Address, a2.Address}
