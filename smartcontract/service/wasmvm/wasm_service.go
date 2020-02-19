@@ -22,6 +22,7 @@ import (
 
 	"github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -176,7 +177,7 @@ func invokeInterpreter(this *WasmVmService, contract *states.WasmContractParam, 
 	}
 
 	if compiled == nil {
-		module, err := ReadWasmModule(wasmCode, NoneVerifyMethod)
+		module, err := ReadWasmModule(wasmCode, config.NoneVerifyMethod)
 		if err != nil {
 			return nil, err
 		}

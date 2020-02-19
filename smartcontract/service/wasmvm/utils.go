@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/wagon/exec"
 	"github.com/ontio/wagon/validate"
 	"github.com/ontio/wagon/wasm"
@@ -79,13 +80,7 @@ func checkOntoWasm(m *wasm.Module) error {
 	return nil
 }
 
-type VerifyMethod int
-
-const NoneVerifyMethod = VerifyMethod(0)
-const InterpVerifyMethod = VerifyMethod(1)
-const JitVerifyMethod = VerifyMethod(2)
-
-func ReadWasmModule(code []byte, verify VerifyMethod) (*exec.CompiledModule, error) {
+func ReadWasmModule(code []byte, verify config.VerifyMethod) (*exec.CompiledModule, error) {
 	m, err := wasm.ReadModule(bytes.NewReader(code), func(name string) (*wasm.Module, error) {
 		switch name {
 		case "env":
@@ -97,7 +92,7 @@ func ReadWasmModule(code []byte, verify VerifyMethod) (*exec.CompiledModule, err
 		return nil, err
 	}
 
-	if verify != NoneVerifyMethod {
+	if verify != config.NoneVerifyMethod {
 		err = checkOntoWasm(m)
 		if err != nil {
 			return nil, err
@@ -109,12 +104,12 @@ func ReadWasmModule(code []byte, verify VerifyMethod) (*exec.CompiledModule, err
 		}
 
 		switch verify {
-		case InterpVerifyMethod:
+		case config.InterpVerifyMethod:
 			err = validate.VerifyWasmCodeFromRust(code)
 			if err != nil {
 				return nil, err
 			}
-		case JitVerifyMethod:
+		case config.JitVerifyMethod:
 			err := WasmjitValidate(code)
 			if err != nil {
 				return nil, err

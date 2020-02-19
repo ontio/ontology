@@ -20,6 +20,7 @@ package wasmvm
 
 import (
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/wagon/exec"
@@ -122,7 +123,7 @@ func ContractCreate(proc *exec.Process,
 	if err != nil {
 		panic(err)
 	}
-	_, err = ReadWasmModule(wasmCode, JitVerifyMethod)
+	_, err = ReadWasmModule(wasmCode, config.DefConfig.Common.WasmVerifyMethod)
 	if err != nil {
 		panic(err)
 	}
@@ -199,7 +200,7 @@ func ContractMigrate(proc *exec.Process,
 	if err != nil {
 		panic(err)
 	}
-	_, err = ReadWasmModule(wasmCode, JitVerifyMethod)
+	_, err = ReadWasmModule(wasmCode, config.DefConfig.Common.WasmVerifyMethod)
 	if err != nil {
 		panic(err)
 	}

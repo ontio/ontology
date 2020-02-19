@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
@@ -117,7 +118,7 @@ func checkTransactionPayload(tx *types.Transaction) error {
 	case *payload.DeployCode:
 		deploy := tx.Payload.(*payload.DeployCode)
 		if deploy.VmType() == payload.WASMVM_TYPE {
-			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), wasmvm.JitVerifyMethod)
+			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), config.DefConfig.Common.WasmVerifyMethod)
 			if err != nil {
 				return err
 			}
