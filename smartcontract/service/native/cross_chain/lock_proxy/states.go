@@ -16,13 +16,14 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ont_lock_proxy
+package lock_proxy
 
 import (
 	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
+	"math/big"
 )
 
 // Args for lock and unlock
@@ -86,26 +87,46 @@ func (this *LockParam) Serialization(sink *common.ZeroCopySink) {
 
 func (this *LockParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
+	if this.SourceAssetHash, err = utils.DecodeAddress(source); err != nil {
+		return fmt.Errorf("LockParam.Deserialization DecodeAddress SourceAssetHash error:%s", err)
+	}
+	if this.FromAddress, err = utils.DecodeAddress(source); err != nil {
+		return fmt.Errorf("LockParam.Deserialization DecodeAddress FromAddress error:%s", err)
+	}
+	if this.ToChainID, err = utils.DecodeVarUint(source); err != nil {
+		return fmt.Errorf("LockParam.Deserialization DecodeVarUint ToChainID error:%s", err)
+	}
+	if this.ToAddress, err = utils.DecodeVarBytes(source); err != nil {
+		return fmt.Errorf("LockParam.Deserialization DecodeVarBytes ToAddress error:%s", err)
+	}
+	if this.Value, err = utils.DecodeVarUint(source); err != nil {
+		return fmt.Errorf("LockParam.Deserialization DecodeVarUint Value error:%s", err)
+	}
+	return nil
+}
 
-	this.SourceAssetHash, err = utils.DecodeAddress(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization SourceAssetHash DecodeAddress error:%s", err)
+type UnlockParam struct {
+	ArgsBs             []byte
+	FromContractHashBs []byte
+	FromChainId        uint64
+}
+
+func (this *UnlockParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarBytes(sink, this.ArgsBs)
+	utils.EncodeVarBytes(sink, this.FromContractHashBs)
+	utils.EncodeVarUint(sink, this.FromChainId)
+}
+
+func (this *UnlockParam) Deserialization(source *common.ZeroCopySource) error {
+	var err error
+	if this.ArgsBs, err = utils.DecodeVarBytes(source); err != nil {
+		return fmt.Errorf("UnlockParam.Deserialization DecodeVarBytes ArgsBs error:%s", err)
 	}
-	this.FromAddress, err = utils.DecodeAddress(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization FromAddress DecodeAddress error:%s", err)
+	if this.FromContractHashBs, err = utils.DecodeVarBytes(source); err != nil {
+		return fmt.Errorf("UnlockParam.Deserialization DecodeVarBytes FromContractHashBs error:%s", err)
 	}
-	this.ToChainID, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization ToChainID DecodeVarUint error:%s", err)
-	}
-	this.ToAddress, err = utils.DecodeVarBytes(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization ToAddress DecodeVarBytes error:%s", err)
-	}
-	this.Value, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("LockParam.Deserialization Value DecodeVarUint error:%s", err)
+	if this.FromChainId, err = utils.DecodeVarUint(source); err != nil {
+		return fmt.Errorf("UnlockParam.Deserialization DecodeVarUint FromChainId error:%s", err)
 	}
 	return nil
 }
@@ -122,42 +143,49 @@ func (this *BindProxyParam) Serialization(sink *common.ZeroCopySink) {
 
 func (this *BindProxyParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	this.TargetChainId, err = utils.DecodeVarUint(source)
-	if err != nil {
+	if this.TargetChainId, err = utils.DecodeVarUint(source); err != nil {
 		return fmt.Errorf("BindProxyParam.Deserialization DecodeVarUint TargetChainId error:%s", err)
 	}
-	this.TargetHash, err = utils.DecodeVarBytes(source)
-	if err != nil {
+	if this.TargetHash, err = utils.DecodeVarBytes(source); err != nil {
 		return fmt.Errorf("BindProxyParam.Deserialization DecodeVarBytes TargetAssetHash error:%s", err)
 	}
 	return nil
 }
 
 type BindAssetParam struct {
-	SourceAssetHash common.Address
-	TargetChainId   uint64
-	TargetAssetHash []byte
+	SourceAssetHash    common.Address
+	TargetChainId      uint64
+	TargetAssetHash    []byte
+	Limit              *big.Int
+	IsTargetChainAsset bool
 }
 
 func (this *BindAssetParam) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeAddress(sink, this.SourceAssetHash)
 	utils.EncodeVarUint(sink, this.TargetChainId)
 	utils.EncodeVarBytes(sink, this.TargetAssetHash)
+	utils.EncodeVarBytes(sink, common.BigIntToNeoBytes(this.Limit))
+	sink.WriteBool(this.IsTargetChainAsset)
 }
 
 func (this *BindAssetParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	this.SourceAssetHash, err = utils.DecodeAddress(source)
-	if err != nil {
+	if this.SourceAssetHash, err = utils.DecodeAddress(source); err != nil {
 		return fmt.Errorf("BindAssetParam.Deserialization DecodeAddress SourceAssetAddress error:%s", err)
 	}
-	this.TargetChainId, err = utils.DecodeVarUint(source)
-	if err != nil {
+	if this.TargetChainId, err = utils.DecodeVarUint(source); err != nil {
 		return fmt.Errorf("BindAssetParam.Deserialization DecodeVarUint TargetChainId error:%s", err)
 	}
-	this.TargetAssetHash, err = utils.DecodeVarBytes(source)
-	if err != nil {
+	if this.TargetAssetHash, err = utils.DecodeVarBytes(source); err != nil {
 		return fmt.Errorf("BindAssetParam.Deserialization DecodeVarBytes TargetAssetHash error:%s", err)
+	}
+	limitNeoBytes, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("BindAssetParam.Deserialization DecodeVarBytes Limit error:%s", err)
+	}
+	this.Limit = common.BigIntFromNeoBytes(limitNeoBytes)
+	if this.IsTargetChainAsset, err = utils.DecodeBool(source); err != nil {
+		return fmt.Errorf("BindAssetParam.Deserialization DecodeBool IsTargetChainAsset error:%s", err)
 	}
 	return nil
 }

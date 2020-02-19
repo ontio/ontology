@@ -16,15 +16,17 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ont_lock_proxy
+package lock_proxy
 
 import (
 	"testing"
 
 	"encoding/hex"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
+	"math/big"
 )
 
 func TestLockParam_Serialize(t *testing.T) {
@@ -48,6 +50,23 @@ func TestLockParam_Serialize(t *testing.T) {
 	assert.Equal(t, param, param2)
 }
 
+func TestUnlockParam_Serialize(t *testing.T) {
+	param := UnlockParam{
+		ArgsBs:             []byte{1, 2, 3, 0, 100},
+		FromContractHashBs: utils.OntContractAddress[:],
+		FromChainId:        2,
+	}
+	sink := common.NewZeroCopySink(nil)
+	param.Serialization(sink)
+
+	param2 := UnlockParam{}
+	source := common.NewZeroCopySource(sink.Bytes())
+	if err := param2.Deserialization(source); err != nil {
+		t.Fatal("LockParam deserialize fail!")
+	}
+	assert.Equal(t, param, param2)
+}
+
 func TestArgs_Serialize(t *testing.T) {
 	toAddr, _ := hex.DecodeString("709c937270e1d5a490718a2b4a230186bdd06a02")
 	args := Args{
@@ -64,4 +83,23 @@ func TestArgs_Serialize(t *testing.T) {
 		t.Fatal("Args deserialize fail!")
 	}
 	assert.Equal(t, args, args2)
+}
+
+func TestBindAssetParam_Serialize(t *testing.T) {
+	bindAssetParam := BindAssetParam{
+		SourceAssetHash:    utils.OntContractAddress,
+		TargetChainId:      uint64(0),
+		TargetAssetHash:    utils.OntContractAddress[:],
+		Limit:              big.NewInt(int64(constants.ONT_TOTAL_SUPPLY)),
+		IsTargetChainAsset: false,
+	}
+	sink := common.NewZeroCopySink(nil)
+	bindAssetParam.Serialization(sink)
+
+	bindAssetParam2 := BindAssetParam{}
+	source := common.NewZeroCopySource(sink.Bytes())
+	if err := bindAssetParam2.Deserialization(source); err != nil {
+		t.Fatal("BindAssetParam deserialize fail!")
+	}
+	assert.Equal(t, bindAssetParam, bindAssetParam2)
 }

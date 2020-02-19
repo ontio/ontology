@@ -189,8 +189,8 @@ func notifyVerifyToOntProof(native *native.NativeService, txHash, rawTxHash stri
 
 func getUnlockArgs(args []byte, fromContractAddress []byte, fromChainID uint64) []byte {
 	sink := common.NewZeroCopySink(nil)
-	sink.WriteVarBytes(args)
-	sink.WriteVarBytes(fromContractAddress)
-	sink.WriteUint64(fromChainID)
+	utils.EncodeVarBytes(sink, args)
+	utils.EncodeVarBytes(sink, fromContractAddress)
+	utils.EncodeVarUint(sink, fromChainID)
 	return sink.Bytes()
 }

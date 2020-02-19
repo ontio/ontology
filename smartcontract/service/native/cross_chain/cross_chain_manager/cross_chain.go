@@ -117,9 +117,9 @@ func ProcessCrossChainTx(native *native.NativeService) ([]byte, error) {
 	args := merkleValue.MakeTxParam.Args
 
 	var res interface{}
-	if bytes.Equal(merkleValue.MakeTxParam.ToContractAddress, utils.OntLockContractAddress[:]) {
+	if bytes.Equal(merkleValue.MakeTxParam.ToContractAddress, utils.LockProxyContractAddress[:]) {
 		argsBytes := getUnlockArgs(args, fromContractAddress, merkleValue.FromChainID)
-		_, err = native.NativeCall(utils.OntLockContractAddress, functionName, argsBytes)
+		_, err = native.NativeCall(utils.LockProxyContractAddress, functionName, argsBytes)
 		if err != nil {
 			return utils.BYTE_FALSE, err
 		}
