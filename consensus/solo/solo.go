@@ -155,7 +155,7 @@ func (self *SoloService) genBlock() error {
 	var msg *types.CrossChainMsg
 	if result.CrossStatesRoot != common.UINT256_EMPTY {
 		msg = &types.CrossChainMsg{
-			Version:    0,
+			Version:    types.CURR_CROSS_STATES_VERSION,
 			Height:     block.Header.Height,
 			StatesRoot: result.CrossStatesRoot,
 		}
