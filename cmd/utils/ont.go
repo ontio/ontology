@@ -535,7 +535,7 @@ func GetNetworkId() (uint32, error) {
 }
 
 func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
-	data, ontErr := sendRpcRequest("getcrosschainmsg", []interface{}{hashOrHeight})
+	data, ontErr := sendRpcRequest("getblock", []interface{}{hashOrHeight})
 	if ontErr != nil {
 		switch ontErr.ErrorCode {
 		case ERROR_INVALID_PARAMS:
