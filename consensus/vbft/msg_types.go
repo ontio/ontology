@@ -66,7 +66,7 @@ func (msg *blockProposalMsg) Type() MsgType {
 
 func (msg *blockProposalMsg) Verify(pub keypair.PublicKey) error {
 	// verify block
-	if len(msg.Block.Block.Header.SigData) == 0 {
+	if len(msg.Block.Block.Header.SigData) == 0 || len(msg.Block.CrossChainMsg.SigData) == 0 {
 		return errors.New("no sigdata in block")
 	}
 	sigdata := msg.Block.Block.Header.SigData[0]
