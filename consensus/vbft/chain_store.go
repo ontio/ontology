@@ -20,7 +20,6 @@ package vbft
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/types"
 
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -28,6 +27,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/store/overlaydb"
+	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/events/message"
 )
 
