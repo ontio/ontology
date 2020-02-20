@@ -619,9 +619,9 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 				if endoresrPk != nil {
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
-				}
-				if block.CrossChainMsg != nil {
-					block.CrossChainMsg.SigData = append(block.CrossChainMsg.SigData, sig.CrossChainMsgSig)
+					if block.CrossChainMsg != nil {
+						block.CrossChainMsg.SigData = append(block.CrossChainMsg.SigData, sig.CrossChainMsgSig)
+					}
 				}
 				break
 			}
