@@ -286,9 +286,6 @@ func (self *Transaction) GetSignatureAddresses() []common.Address {
 		}
 		self.SignedAddr = addrs
 	}
-	//if len(self.SignedAddr) != len(self.Sigs) {
-	//	return nil, errors.New("mismatched sigs and signed address")
-	//}
 	return self.SignedAddr
 }
 

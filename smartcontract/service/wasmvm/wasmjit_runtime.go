@@ -64,14 +64,6 @@ func jitSliceToBytes(slice C.wasmjit_slice_t) []byte {
 	return C.GoBytes((unsafe.Pointer)(slice.data), C.int(slice.len))
 }
 
-func jitSliceWrite(data []byte, slice C.wasmjit_slice_t) {
-	if len(data) == 0 {
-		return
-	}
-
-	C.memcpy(((unsafe.Pointer)(slice.data)), ((unsafe.Pointer)(&data[0])), C.ulong(slice.len))
-}
-
 func jitErr(err error) C.wasmjit_result_t {
 	s := err.Error()
 	ptr := []byte(s)
