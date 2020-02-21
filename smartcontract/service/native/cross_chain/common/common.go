@@ -66,7 +66,7 @@ func CrossChainNeoVMCall(this *native.NativeService, address common.Address, met
 	if err := array.Append(fci); err != nil {
 		return nil, err
 	}
-	if this.ContextRef.CheckUseGas(neovm.NATIVE_INVOKE_GAS) {
+	if !this.ContextRef.CheckUseGas(neovm.NATIVE_INVOKE_GAS) {
 		return nil, fmt.Errorf("[CrossChainNeoVMCall], check use gaslimit insufficient！")
 	}
 	engine, err := this.ContextRef.NewExecuteEngine(dep.GetRawCode(), ctypes.InvokeNeo)

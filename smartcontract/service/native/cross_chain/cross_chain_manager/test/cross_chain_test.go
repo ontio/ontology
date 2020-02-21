@@ -86,7 +86,7 @@ var (
 				Bookkeepers:      []keypair.PublicKey{acct.PublicKey},
 				ConsensusPayload: payload,
 				NextBookkeeper:   acct.Address,
-				CrossStatesRoot:  sr,
+				CrossStateRoot:   sr,
 			}
 
 			hash := bd.Hash()
