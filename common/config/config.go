@@ -35,6 +35,14 @@ import (
 
 var Version = "" //Set value when build project
 
+type VerifyMethod int
+
+const (
+	InterpVerifyMethod VerifyMethod = iota
+	JitVerifyMethod
+	NoneVerifyMethod
+)
+
 const (
 	DEFAULT_CONFIG_FILE_NAME = "./config.json"
 	DEFAULT_WALLET_FILE_NAME = "./wallet.dat"
@@ -480,13 +488,14 @@ type SOLOConfig struct {
 }
 
 type CommonConfig struct {
-	LogLevel       uint
-	NodeType       string
-	EnableEventLog bool
-	SystemFee      map[string]int64
-	GasLimit       uint64
-	GasPrice       uint64
-	DataDir        string
+	LogLevel         uint
+	NodeType         string
+	EnableEventLog   bool
+	SystemFee        map[string]int64
+	GasLimit         uint64
+	GasPrice         uint64
+	DataDir          string
+	WasmVerifyMethod VerifyMethod
 }
 
 type ConsensusConfig struct {
@@ -552,11 +561,12 @@ func NewOntologyConfig() *OntologyConfig {
 	return &OntologyConfig{
 		Genesis: MainNetConfig,
 		Common: &CommonConfig{
-			LogLevel:       DEFAULT_LOG_LEVEL,
-			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
-			SystemFee:      make(map[string]int64),
-			GasLimit:       DEFAULT_GAS_LIMIT,
-			DataDir:        DEFAULT_DATA_DIR,
+			LogLevel:         DEFAULT_LOG_LEVEL,
+			EnableEventLog:   DEFAULT_ENABLE_EVENT_LOG,
+			SystemFee:        make(map[string]int64),
+			GasLimit:         DEFAULT_GAS_LIMIT,
+			DataDir:          DEFAULT_DATA_DIR,
+			WasmVerifyMethod: InterpVerifyMethod,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,
