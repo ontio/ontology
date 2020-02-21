@@ -304,7 +304,6 @@ func (self *Server) constructProposalMsg(blkNum uint32, sysTxs, userTxs []*types
 			CrossChainMsg:       crossChainMsg,
 		},
 	}
-	log.Errorf("constructProposalMsg height:%d CrossChainMsg:%+v", blkNum, crossChainMsg)
 	return msg, nil
 }
 
@@ -351,7 +350,6 @@ func (self *Server) constructEndorseMsg(proposal *blockProposalMsg, forEmpty boo
 		msg.CrossChainMsgEndorserSig = sig
 		msg.CrossChainMsgHash = hash
 	}
-	log.Errorf("constructEndorseMsg  CrossChainMsg:%+v", proposal.Block.CrossChainMsg)
 	return msg, nil
 }
 
@@ -419,7 +417,6 @@ func (self *Server) constructCommitMsg(proposal *blockProposalMsg, endorses []*b
 		}
 		msg.CrossChainMsgCommitterSig = sig
 	}
-	log.Errorf("constructCommitMsg  CrossChainMsg:%+v", proposal.Block.CrossChainMsg)
 	return msg, nil
 }
 
