@@ -321,7 +321,7 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, st
 		return err
 	}
 	params := new(global_params.Params)
-	if err := params.Deserialization(common.NewZeroCopySource(result.([]byte))); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(result)); err != nil {
 		return fmt.Errorf("deserialize global params error:%s", err)
 	}
 	neovm.GAS_TABLE.Range(func(key, value interface{}) bool {
@@ -354,7 +354,7 @@ func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, 
 	if err != nil {
 		return 0, err
 	}
-	return common.BigIntFromNeoBytes(result.([]byte)).Uint64(), nil
+	return common.BigIntFromNeoBytes(result).Uint64(), nil
 }
 
 func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Config, overlay *overlaydb.OverlayDB,

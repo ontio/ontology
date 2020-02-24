@@ -290,7 +290,7 @@ func WithdrawONG(native *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[WithdrawONG] invoke ong contract get allowance error:%s", err)
 	}
-	allowance := common.BigIntFromNeoBytes(allowanceRes.([]byte))
+	allowance := common.BigIntFromNeoBytes(allowanceRes)
 	// transfer ong to toAddress
 	transferFromInput := getTransferFromInput(toAddress, allowance.Uint64())
 	if _, err = native.NativeCall(utils.OngContractAddress, ont.TRANSFERFROM_NAME, transferFromInput); err != nil {

@@ -94,7 +94,7 @@ func (this *NativeService) Invoke() ([]byte, error) {
 	return result, nil
 }
 
-func (this *NativeService) NativeCall(address common.Address, method string, args []byte) (interface{}, error) {
+func (this *NativeService) NativeCall(address common.Address, method string, args []byte) ([]byte, error) {
 	c := states.ContractInvokeParam{
 		Address: address,
 		Method:  method,

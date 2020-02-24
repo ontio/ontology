@@ -183,7 +183,7 @@ func getOngBalance(native *native.NativeService, address common.Address) (uint64
 	if err != nil {
 		return 0, fmt.Errorf("getOngBalance, appCall error: %v", err)
 	}
-	balance := common.BigIntFromNeoBytes(value.([]byte)).Uint64()
+	balance := common.BigIntFromNeoBytes(value).Uint64()
 	return balance, nil
 }
 
@@ -650,7 +650,7 @@ func appCallVerifyToken(native *native.NativeService, contract common.Address, c
 	if err != nil {
 		return fmt.Errorf("appCallVerifyToken, appCall error: %v", err)
 	}
-	if !bytes.Equal(ok.([]byte), utils.BYTE_TRUE) {
+	if !bytes.Equal(ok, utils.BYTE_TRUE) {
 		return fmt.Errorf("appCallVerifyToken, verifyToken failed")
 	}
 	return nil
