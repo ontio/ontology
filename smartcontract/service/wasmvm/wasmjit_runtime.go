@@ -338,6 +338,9 @@ func invokeJit(this *WasmVmService, contract *states.WasmContractParam, wasmCode
 	if jit_ret.res.kind != C.wasmjit_result_kind(wasmjit_result_success) {
 		err := errors.NewErr(C.GoStringN((*C.char)((unsafe.Pointer)(jit_ret.res.msg.data)), C.int(jit_ret.res.msg.len)))
 		destroyWasmjitRet(jit_ret)
+		if jit_ret.res.kind != C.wasmjit_result_kind(wasmjit_result_err_trap) {
+			this.ContextRef.SetInternalErr()
+		}
 		return nil, err
 	}
 

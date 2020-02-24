@@ -51,6 +51,7 @@ type SmartContract struct {
 	WasmExecStep  uint64
 	JitMode       bool
 	PreExec       bool
+	InternelErr   bool
 }
 
 // Config describe smart contract need parameters configuration
@@ -240,4 +241,12 @@ func (this *SmartContract) GetCallerAddress() []common.Address {
 		addrs = append(addrs, ctx.ContractAddress)
 	}
 	return addrs
+}
+
+func (this *SmartContract) SetInternalErr() {
+	this.InternelErr = true
+}
+
+func (this *SmartContract) IsInternalErr() bool {
+	return this.InternelErr
 }
