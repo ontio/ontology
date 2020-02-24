@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
@@ -52,7 +51,6 @@ func NewCrossChainStore(dataDir string) (*CrossChainStore, error) {
 }
 
 func (this *CrossChainStore) SaveMsgToCrossChainStore(crossChainMsg *types.CrossChainMsg) error {
-	log.Infof("SaveMsgToCrossChainStore:%+v\n", crossChainMsg)
 	if crossChainMsg == nil {
 		return nil
 	}
