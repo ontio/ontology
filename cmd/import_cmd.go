@@ -148,6 +148,18 @@ func importBlocks(ctx *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("read block data height:%d error:%s", i, err)
 		}
+		crossMsgSize, err := serialization.ReadUint32(fReader)
+		if err != nil {
+			return fmt.Errorf("read cross chain msg height:%d error:%s", i, err)
+		}
+		var crossMsgCompressData []byte
+		if crossMsgSize != 0 {
+			crossMsgCompressData = make([]byte, size)
+			_, err = io.ReadFull(fReader, crossMsgCompressData)
+			if err != nil {
+				return fmt.Errorf("read block data height:%d error:%s", i, err)
+			}
+		}
 		if i <= currBlockHeight {
 			continue
 		}
@@ -163,20 +175,11 @@ func importBlocks(ctx *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("block height:%d ExecuteBlock error:%s", i, err)
 		}
-		// read cross chain msg
-		size, err = serialization.ReadUint32(fReader)
-		if err != nil {
-			return fmt.Errorf("read cross chain msg height:%d error:%s", i, err)
-		}
+
 		var crossChainMsg *types.CrossChainMsg
-		if size != 0 {
+		if crossMsgSize != 0 {
 			crossChainMsg = new(types.CrossChainMsg)
-			compressData = make([]byte, size)
-			_, err = io.ReadFull(fReader, compressData)
-			if err != nil {
-				return fmt.Errorf("read block data height:%d error:%s", i, err)
-			}
-			crossChainData, err := utils.DecompressBlockData(compressData, metadata.CompressType)
+			crossChainData, err := utils.DecompressBlockData(crossMsgCompressData, metadata.CompressType)
 			if err != nil {
 				return fmt.Errorf("block height:%d decompress error:%s", i, err)
 			}
