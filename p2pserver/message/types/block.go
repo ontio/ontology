@@ -61,9 +61,7 @@ func (this *Block) Deserialization(source *common.ZeroCopySource) error {
 	}
 	hasCCM, irr, eof := source.NextBool()
 	if irr || eof {
-		// to accept old node's block
-		this.CCMsg = new(types.CrossChainMsg)
-		this.CCMsg.SetHash(common.UINT256_EMPTY)
+		// to accept old node's cross msg
 		return nil
 	}
 	var ccMsg *types.CrossChainMsg
