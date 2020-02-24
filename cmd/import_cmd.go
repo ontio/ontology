@@ -139,9 +139,6 @@ func importBlocks(ctx *cli.Context) error {
 	PrintInfoMsg("Start import blocks.")
 
 	for i := startBlockHeight; i <= endBlockHeight; i++ {
-		if i <= currBlockHeight {
-			continue
-		}
 		size, err := serialization.ReadUint32(fReader)
 		if err != nil {
 			return fmt.Errorf("read block size:%d error:%s", i, err)
@@ -151,7 +148,9 @@ func importBlocks(ctx *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("read block data height:%d error:%s", i, err)
 		}
-
+		if i <= currBlockHeight {
+			continue
+		}
 		blockData, err := utils.DecompressBlockData(compressData, metadata.CompressType)
 		if err != nil {
 			return fmt.Errorf("block height:%d decompress error:%s", i, err)
