@@ -20,7 +20,10 @@ package states
 import (
 	"testing"
 
+	"fmt"
+	"github.com/magiconair/properties/assert"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
 func TestContract_Serialize_Deserialize(t *testing.T) {
@@ -40,4 +43,24 @@ func TestContract_Serialize_Deserialize(t *testing.T) {
 	if err := v.Deserialization(source); err != nil {
 		t.Fatalf("ContractInvokeParam deserialize error: %v", err)
 	}
+}
+
+func TestPreExecResult_FromJson(t *testing.T) {
+	evts := make([]*event.NotifyEventInfo, 0)
+	addr, _ := common.AddressFromHexString("10679eac09c4b619685ea29c6cdc301eac8e46ed")
+	evts = append(evts, &event.NotifyEventInfo{addr, "states"})
+	pr := PreExecResult{
+		State:  1,
+		Gas:    20000,
+		Result: "test",
+		Notify: evts,
+	}
+	per, _ := pr.ToJson()
+	fmt.Println(per)
+
+	pr2 := PreExecResult{}
+	pr2.FromJson([]byte(per))
+	fmt.Println(pr2)
+	per2, _ := pr2.ToJson()
+	assert.Equal(t, per, per2)
 }

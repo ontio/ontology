@@ -21,6 +21,7 @@ package states
 import (
 	"io"
 
+	"encoding/json"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/event"
 )
@@ -71,4 +72,49 @@ type PreExecResult struct {
 	Gas    uint64
 	Result interface{}
 	Notify []*event.NotifyEventInfo
+}
+
+type NotifyEventInfo struct {
+	ContractAddress string
+	States          interface{}
+}
+
+type PreExecuteResult struct {
+	State  byte
+	Gas    uint64
+	Result interface{}
+	Notify []NotifyEventInfo
+}
+
+func (self *PreExecResult) ToJson() (string, error) {
+	evts := make([]NotifyEventInfo, 0)
+	for _, v := range self.Notify {
+		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
+	}
+	bs, err := json.Marshal(PreExecuteResult{self.State, self.Gas, self.Result, evts})
+	if err != nil {
+		return "", err
+	}
+	return string(bs), nil
+}
+
+func (self *PreExecResult) FromJson(bs []byte) error {
+	preResult := &PreExecuteResult{}
+	err := json.Unmarshal(bs, &preResult)
+	if err != nil {
+		return err
+	}
+	evts := make([]*event.NotifyEventInfo, 0)
+	for _, v := range preResult.Notify {
+		addr, err := common.AddressFromHexString(v.ContractAddress)
+		if err != nil {
+			return err
+		}
+		evts = append(evts, &event.NotifyEventInfo{addr, v.States})
+	}
+	self.Result = preResult.Result
+	self.Gas = preResult.Gas
+	self.State = preResult.State
+	self.Notify = evts
+	return nil
 }

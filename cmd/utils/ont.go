@@ -460,9 +460,9 @@ func PrepareSendRawTransaction(txData string) (*cstates.PreExecResult, error) {
 		return nil, ontErr.Error
 	}
 	preResult := &cstates.PreExecResult{}
-	err := json.Unmarshal(data, &preResult)
+	err := preResult.FromJson(data)
 	if err != nil {
-		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
+		return nil, fmt.Errorf("FromJson PreExecResult:%s error:%s", string(data), err)
 	}
 	return preResult, nil
 }
