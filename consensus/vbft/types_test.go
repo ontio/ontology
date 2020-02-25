@@ -207,7 +207,7 @@ func TestInitVbftBlock(t *testing.T) {
 	if err != nil {
 		t.Errorf("constructBlock failed: %v", err)
 	}
-	_, err = initVbftBlock(blk.Block, common.Uint256{})
+	_, err = initVbftBlock(blk.Block, nil, common.Uint256{})
 	if err != nil {
 		t.Errorf("initVbftBlock failed: %v", err)
 		return

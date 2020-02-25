@@ -148,10 +148,11 @@ type AppendHeaders struct {
 }
 
 type AppendBlock struct {
-	FromID     uint64       // The peer id
-	BlockSize  uint32       // Block size
-	Block      *types.Block // Block to be added to the ledger
-	MerkleRoot com.Uint256  // MerkleRoot
+	FromID     uint64               // The peer id
+	BlockSize  uint32               // Block size
+	Block      *types.Block         // Block to be added to the ledger
+	CCMsg      *types.CrossChainMsg // Cross chain message in ledger
+	MerkleRoot com.Uint256          // MerkleRoot
 }
 
 //ParseIPAddr return ip address

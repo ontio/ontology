@@ -25,14 +25,16 @@ import (
 	"os"
 
 	"github.com/gosuri/uiprogress"
+	"github.com/urfave/cli"
+
 	"github.com/ontio/ontology/cmd/utils"
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/core/genesis"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
-	"github.com/urfave/cli"
 )
 
 var ImportCommand = cli.Command{
@@ -136,21 +138,31 @@ func importBlocks(ctx *cli.Context) error {
 
 	PrintInfoMsg("Start import blocks.")
 
-	for i := uint32(startBlockHeight); i <= endBlockHeight; i++ {
+	for i := startBlockHeight; i <= endBlockHeight; i++ {
 		size, err := serialization.ReadUint32(fReader)
 		if err != nil {
-			return fmt.Errorf("read block height:%d error:%s", i, err)
+			return fmt.Errorf("read block size:%d error:%s", i, err)
 		}
 		compressData := make([]byte, size)
 		_, err = io.ReadFull(fReader, compressData)
 		if err != nil {
 			return fmt.Errorf("read block data height:%d error:%s", i, err)
 		}
-
+		crossMsgSize, err := serialization.ReadUint32(fReader)
+		if err != nil {
+			return fmt.Errorf("read cross chain msg height:%d error:%s", i, err)
+		}
+		var crossMsgCompressData []byte
+		if crossMsgSize != 0 {
+			crossMsgCompressData = make([]byte, size)
+			_, err = io.ReadFull(fReader, crossMsgCompressData)
+			if err != nil {
+				return fmt.Errorf("read block data height:%d error:%s", i, err)
+			}
+		}
 		if i <= currBlockHeight {
 			continue
 		}
-
 		blockData, err := utils.DecompressBlockData(compressData, metadata.CompressType)
 		if err != nil {
 			return fmt.Errorf("block height:%d decompress error:%s", i, err)
@@ -163,7 +175,19 @@ func importBlocks(ctx *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("block height:%d ExecuteBlock error:%s", i, err)
 		}
-		err = ledger.DefLedger.SubmitBlock(block, execResult)
+
+		var crossChainMsg *types.CrossChainMsg
+		if crossMsgSize != 0 {
+			crossChainMsg = new(types.CrossChainMsg)
+			crossChainData, err := utils.DecompressBlockData(crossMsgCompressData, metadata.CompressType)
+			if err != nil {
+				return fmt.Errorf("block height:%d decompress error:%s", i, err)
+			}
+			if err := crossChainMsg.Deserialization(common.NewZeroCopySource(crossChainData)); err != nil {
+				return fmt.Errorf("block height:%d decompress error:%s", i, err)
+			}
+		}
+		err = ledger.DefLedger.SubmitBlock(block, crossChainMsg, execResult)
 		if err != nil {
 			return fmt.Errorf("SubmitBlock block height:%d error:%s", i, err)
 		}

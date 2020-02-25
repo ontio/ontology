@@ -38,11 +38,12 @@ const (
 	IX_HEADER_HASH_LIST DataEntryPrefix = 0x09 //Block height => block hash key prefix
 
 	//SYSTEM
-	SYS_CURRENT_BLOCK      DataEntryPrefix = 0x10 //Current block key prefix
-	SYS_VERSION            DataEntryPrefix = 0x11 //Store version key prefix
-	SYS_CURRENT_STATE_ROOT DataEntryPrefix = 0x12 //no use
-	SYS_BLOCK_MERKLE_TREE  DataEntryPrefix = 0x13 // Block merkle tree root key prefix
-	SYS_STATE_MERKLE_TREE  DataEntryPrefix = 0x20 // state merkle tree root key prefix
+	SYS_CURRENT_BLOCK        DataEntryPrefix = 0x10 //Current block key prefix
+	SYS_VERSION              DataEntryPrefix = 0x11 //Store version key prefix
+	SYS_CURRENT_CROSS_STATES DataEntryPrefix = 0x12 //Block cross states
+	SYS_BLOCK_MERKLE_TREE    DataEntryPrefix = 0x13 // Block merkle tree root key prefix
+	SYS_STATE_MERKLE_TREE    DataEntryPrefix = 0x20 // state merkle tree root key prefix
+	SYS_CROSS_CHAIN_MSG      DataEntryPrefix = 0x22 // state merkle tree root key prefix
 
 	EVENT_NOTIFY DataEntryPrefix = 0x14 //Event notify key prefix
 )

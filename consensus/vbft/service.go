@@ -1081,6 +1081,26 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 	}
 }
 
+func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
+	root, err := self.blockPool.getCrossStatesRoot(msg.Block.Block.Header.Height - 1)
+	if err != nil {
+		log.Errorf("verifyCrossChainMsg:%s", err)
+		return false
+	}
+	//malicious consensus node may create a nil cross chain msg proposal, but it is actual not nil.
+	if root != common.UINT256_EMPTY && msg.Block.CrossChainMsg == nil {
+		return false
+	}
+	if msg.Block.CrossChainMsg == nil {
+		return true
+	}
+	if msg.Block.CrossChainMsg.StatesRoot != root ||
+		msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
+		return false
+	}
+	return true
+}
+
 func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
 	blk, prevBlkHash := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
@@ -1143,10 +1163,13 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-
+	if !self.verifyCrossChainMsg(msg) {
+		log.Errorf("verify cross chain message error:%+v\n", msg.Block.CrossChainMsg)
+		return
+	}
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
-		height := uint32(msgBlkNum) - 1
+		height := msgBlkNum - 1
 		start, end := self.incrValidator.BlockRange()
 
 		validHeight := height

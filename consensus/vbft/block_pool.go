@@ -41,6 +41,7 @@ type CandidateEndorseSigInfo struct {
 	EndorsedProposer uint32
 	Signature        []byte
 	ForEmpty         bool
+	CrossChainMsgSig []byte
 }
 
 type CandidateInfo struct {
@@ -109,9 +110,7 @@ func (pool *BlockPool) clean() {
 }
 
 func (pool *BlockPool) getCandidateInfoLocked(blkNum uint32) *CandidateInfo {
-
 	// NOTE: call this function only when pool.lock locked
-
 	if candidate, present := pool.candidateBlocks[blkNum]; !present {
 		// new candiateInfo for blockNum
 		candidate = &CandidateInfo{
@@ -154,6 +153,9 @@ func (pool *BlockPool) newBlockProposal(msg *blockProposalMsg) error {
 		EndorsedProposer: proposer,
 		Signature:        msg.Block.Block.Header.SigData[0],
 		ForEmpty:         false,
+	}
+	if msg.Block.Block.Header.Height > 1 && msg.Block.CrossChainMsg != nil {
+		eSig.CrossChainMsgSig = msg.Block.CrossChainMsg.SigData[0]
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), proposer, eSig, false)
 	return nil
@@ -299,6 +301,7 @@ func (pool *BlockPool) newBlockEndorsement(msg *blockEndorseMsg) {
 		EndorsedProposer: msg.EndorsedProposer,
 		Signature:        msg.EndorserSig,
 		ForEmpty:         msg.EndorseForEmpty,
+		CrossChainMsgSig: msg.CrossChainMsgEndorserSig,
 	}
 	pool.addBlockEndorsementLocked(msg.GetBlockNum(), msg.Endorser, eSig, false)
 }
@@ -471,6 +474,9 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
+		if crossChainMsgSig, present := msg.CrossChainMsgEndorserSig[endorser]; present {
+			eSig.CrossChainMsgSig = crossChainMsgSig
+		}
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig, false)
 	}
 
@@ -479,6 +485,7 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 		EndorsedProposer: msg.BlockProposer,
 		Signature:        msg.CommitterSig,
 		ForEmpty:         msg.CommitForEmpty,
+		CrossChainMsgSig: msg.CrossChainMsgCommitterSig,
 	}, true)
 
 	// add msg to commit-msgs
@@ -612,6 +619,9 @@ func (pool *BlockPool) addSignaturesToBlockLocked(block *Block, forEmpty bool) e
 				if endoresrPk != nil {
 					bookkeepers = append(bookkeepers, endoresrPk)
 					sigData = append(sigData, sig.Signature)
+					if block.CrossChainMsg != nil {
+						block.CrossChainMsg.SigData = append(block.CrossChainMsg.SigData, sig.CrossChainMsgSig)
+					}
 				}
 				break
 			}
@@ -649,25 +659,21 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 			return fmt.Errorf("failed to add sig to block: %s", err)
 		}
 	}
-
+	sealedBlock := &Block{
+		Info:                block.Info,
+		PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
+		CrossChainMsg:       block.CrossChainMsg,
+	}
 	if !forEmpty {
 		// remove empty block
-		c.SealedBlock = &Block{
-			Block:               block.Block,
-			Info:                block.Info,
-			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-		}
+		sealedBlock.Block = block.Block
 	} else {
 		// replace with empty block
-		c.SealedBlock = &Block{
-			Block:               block.EmptyBlock,
-			Info:                block.Info,
-			PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-		}
+		sealedBlock.Block = block.EmptyBlock
 	}
-
+	c.SealedBlock = sealedBlock
 	// add block to chain store
-	if err := pool.chainStore.AddBlock(c.SealedBlock); err != nil {
+	if err := pool.chainStore.AddBlock(sealedBlock); err != nil {
 		return fmt.Errorf("failed to seal block (%d) to chainstore: %s", blkNum, err)
 	}
 	stateRoot, err := pool.chainStore.getExecMerkleRoot(pool.chainStore.GetChainedBlockNum())
@@ -783,6 +789,12 @@ func (pool *BlockPool) getExecMerkleRoot(blkNum uint32) (common.Uint256, error) 
 	pool.lock.RLock()
 	defer pool.lock.RUnlock()
 	return pool.chainStore.getExecMerkleRoot(blkNum)
+}
+
+func (pool *BlockPool) getCrossStatesRoot(blkNum uint32) (common.Uint256, error) {
+	pool.lock.RLock()
+	defer pool.lock.RUnlock()
+	return pool.chainStore.getCrossStatesRoot(blkNum)
 }
 
 func (pool *BlockPool) getExecWriteSet(blkNum uint32) *overlaydb.MemDB {

@@ -179,7 +179,6 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 		var block = data.Payload.(*msgTypes.Block)
 		stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
 		if block.Blk.Header.Height >= stateHashHeight && block.MerkleRoot == common.UINT256_EMPTY {
-			log.Info("received block msg with empty merkle root")
 			remotePeer := p2p.GetPeer(data.Id)
 			if remotePeer != nil {
 				remotePeer.Close()
@@ -192,6 +191,7 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 			FromID:     data.Id,
 			BlockSize:  data.PayloadSize,
 			Block:      block.Blk,
+			CCMsg:      block.CCMsg,
 			MerkleRoot: block.MerkleRoot,
 		}
 		pid.Tell(input)
@@ -460,6 +460,18 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				}
 				return
 			}
+			ccMsg, err := ledger.DefLedger.GetCrossChainMsg(block.Header.Height - 1)
+			if err != nil {
+				log.Debugf("[p2p]failed to get cross chain message at height %v, err %v",
+					block.Header.Height-1, err)
+				msg := msgpack.NewNotFound(hash)
+				err := p2p.Send(remotePeer, msg)
+				if err != nil {
+					log.Warn(err)
+					return
+				}
+				return
+			}
 			merkleRoot, err = ledger.DefLedger.GetStateMerkleRoot(block.Header.Height)
 			if err != nil {
 				log.Debugf("[p2p]failed to get state merkel root at height %v, err %v",
@@ -472,7 +484,7 @@ func DataReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 				}
 				return
 			}
-			msg = msgpack.NewBlock(block, merkleRoot)
+			msg = msgpack.NewBlock(block, ccMsg, merkleRoot)
 			saveRespCache(reqID, msg)
 		}
 		err := p2p.Send(remotePeer, msg)

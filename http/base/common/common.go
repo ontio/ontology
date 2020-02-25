@@ -23,6 +23,10 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
@@ -38,9 +42,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	cstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/neovm"
-	"io"
-	"strings"
-	"time"
 )
 
 const MAX_SEARCH_HEIGHT uint32 = 100
@@ -106,6 +107,12 @@ type Sig struct {
 	M       uint16
 	SigData []string
 }
+
+type CrossStatesProof struct {
+	Type      string
+	AuditPath string
+}
+
 type Transactions struct {
 	Version    byte
 	Nonce      uint32
@@ -224,6 +231,20 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	mhash := ptx.Hash()
 	trans.Hash = mhash.ToHexString()
 	return trans
+}
+
+func TransferCrossChainMsg(msg *types.CrossChainMsg, pks []keypair.PublicKey) string {
+	if msg == nil {
+		return ""
+	}
+	sink := common.NewZeroCopySink(nil)
+	msg.Serialization(sink)
+	sink.WriteVarUint(uint64(len(pks)))
+	for _, pk := range pks {
+		key := keypair.SerializePublicKey(pk)
+		sink.WriteVarBytes(key)
+	}
+	return common.ToHexString(sink.Bytes())
 }
 
 func SendTxToPool(txn *types.Transaction) (ontErrors.ErrCode, string) {
