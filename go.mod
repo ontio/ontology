@@ -15,6 +15,7 @@ require (
 	github.com/howeyc/gopass v0.0.0-20190910152052-7cb4b85ec19c
 	github.com/itchyny/base58-go v0.1.0
 	github.com/mattn/go-isatty v0.0.10 // indirect
+	github.com/minio/sha256-simd v0.1.1
 	github.com/ontio/ontology-crypto v1.0.8
 	github.com/ontio/ontology-eventbus v0.9.1
 	github.com/ontio/wagon v0.4.2

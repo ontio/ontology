@@ -18,7 +18,7 @@ ontology: $(SRC_FILES)
 	CGO_ENABLED=1 $(GC)  $(BUILD_NODE_PAR) -o ontology main.go
  
 sigsvr: $(SRC_FILES) abi 
-	$(GC)  $(BUILD_NODE_PAR) -o sigsvr sigsvr.go
+	$(GC)  $(BUILD_NODE_PAR) -o sigsvr cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr $(TOOLS)
 
@@ -44,17 +44,17 @@ ontology-darwin:
 tools-cross: tools-windows tools-linux tools-darwin
 
 tools-windows: abi 
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-windows-amd64.exe sigsvr.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-windows-amd64.exe cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-windows-amd64.exe $(TOOLS)
 
 tools-linux: abi 
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-linux-amd64 sigsvr.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-linux-amd64 cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-linux-amd64 $(TOOLS)
 
 tools-darwin: abi 
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 sigsvr.go
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-darwin-amd64 $(TOOLS)
 
