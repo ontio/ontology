@@ -27,7 +27,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/payload"
 	httpcom "github.com/ontio/ontology/http/base/common"
-	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"strings"
@@ -309,7 +308,7 @@ func invokeContract(ctx *cli.Context) error {
 	PrintInfoMsg("Invoke:%x Params:%s", contractAddr[:], paramData)
 	if ctx.IsSet(utils.GetFlagName(utils.ContractPrepareInvokeFlag)) {
 
-		var preResult *states.PreExecResult
+		var preResult *httpcom.PreExecuteResult
 		if vmtype == payload.NEOVM_TYPE {
 			preResult, err = utils.PrepareInvokeNeoVMContract(contractAddr, params)
 
