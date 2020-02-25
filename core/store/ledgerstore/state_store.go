@@ -342,6 +342,57 @@ func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	return nil
 }
 
+func (self *StateStore) GetCrossStates(height uint32) ([]common.Uint256, error) {
+	key := self.genCrossStatesKey(height)
+	data, err := self.store.Get(key)
+	if err != nil {
+		return []common.Uint256{}, err
+	}
+	source := common.NewZeroCopySource(data)
+	l := len(data) / common.UINT256_SIZE
+	hashes := make([]common.Uint256, 0, l)
+	for i := 0; i < l; i++ {
+		u256, eof := source.NextHash()
+		if eof {
+			return []common.Uint256{}, fmt.Errorf("%s", "Get states hash error!")
+		}
+		hashes = append(hashes, u256)
+	}
+	return hashes, nil
+}
+
+func (self *StateStore) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
+	states, err := self.GetCrossStates(height)
+	if err != nil && err != scom.ErrNotFound {
+		return common.UINT256_EMPTY, err
+	}
+	if err == scom.ErrNotFound {
+		return common.UINT256_EMPTY, nil
+	}
+	return merkle.TreeHasher{}.HashFullTreeWithLeafHash(states), nil
+}
+
+func (self *StateStore) SaveCrossStates(height uint32, crossStates []common.Uint256) error {
+	//save cross states hash
+	if len(crossStates) == 0 {
+		return nil
+	}
+	key := self.genCrossStatesKey(height)
+	sink := common.NewZeroCopySink(make([]byte, 0, len(crossStates)*common.UINT256_SIZE))
+	for _, v := range crossStates {
+		sink.WriteHash(v)
+	}
+	self.store.BatchPut(key, sink.Bytes())
+	return nil
+}
+
+func (self *StateStore) genCrossStatesKey(height uint32) []byte {
+	key := make([]byte, 5)
+	key[0] = byte(scom.SYS_CURRENT_CROSS_STATES)
+	binary.LittleEndian.PutUint32(key[1:], height)
+	return key
+}
+
 func (self *StateStore) getCurrentBlockKey() []byte {
 	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
@@ -349,7 +400,7 @@ func (self *StateStore) getCurrentBlockKey() []byte {
 func (self *StateStore) getBookkeeperKey() ([]byte, error) {
 	key := make([]byte, 1+len(BOOKKEEPER))
 	key[0] = byte(scom.ST_BOOKKEEPER)
-	copy(key[1:], []byte(BOOKKEEPER))
+	copy(key[1:], BOOKKEEPER)
 	return key, nil
 }
 
@@ -357,7 +408,7 @@ func (self *StateStore) getContractStateKey(contractHash common.Address) ([]byte
 	data := contractHash[:]
 	key := make([]byte, 1+len(data))
 	key[0] = byte(scom.ST_CONTRACT)
-	copy(key[1:], []byte(data))
+	copy(key[1:], data)
 	return key, nil
 }
 

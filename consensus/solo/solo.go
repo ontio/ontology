@@ -151,7 +151,23 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 	}
-	err = ledger.DefLedger.SubmitBlock(block, result)
+
+	var msg *types.CrossChainMsg
+	if result.CrossStatesRoot != common.UINT256_EMPTY {
+		msg = &types.CrossChainMsg{
+			Version:    types.CURR_CROSS_STATES_VERSION,
+			Height:     block.Header.Height,
+			StatesRoot: result.CrossStatesRoot,
+		}
+		hash := msg.Hash()
+		sig, err := signature.Sign(self.Account, hash[:])
+		if err != nil {
+			return fmt.Errorf("[Signature],Sign error:%s.", err)
+		}
+		msg.SigData = [][]byte{sig}
+	}
+
+	err = ledger.DefLedger.SubmitBlock(block, msg, result)
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 	}

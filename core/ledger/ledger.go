@@ -64,8 +64,8 @@ func (self *Ledger) AddHeaders(headers []*types.Header) error {
 	return self.ldgStore.AddHeaders(headers)
 }
 
-func (self *Ledger) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
-	err := self.ldgStore.AddBlock(block, stateMerkleRoot)
+func (self *Ledger) AddBlock(block *types.Block, ccMsg *types.CrossChainMsg, stateMerkleRoot common.Uint256) error {
+	err := self.ldgStore.AddBlock(block, ccMsg, stateMerkleRoot)
 	if err != nil {
 		log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
 	}
@@ -76,12 +76,16 @@ func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 	return self.ldgStore.ExecuteBlock(b)
 }
 
-func (self *Ledger) SubmitBlock(b *types.Block, exec store.ExecuteResult) error {
-	return self.ldgStore.SubmitBlock(b, exec)
+func (self *Ledger) SubmitBlock(b *types.Block, crossChainMsg *types.CrossChainMsg, exec store.ExecuteResult) error {
+	return self.ldgStore.SubmitBlock(b, crossChainMsg, exec)
 }
 
 func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, err error) {
 	return self.ldgStore.GetStateMerkleRoot(height)
+}
+
+func (self *Ledger) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
+	return self.ldgStore.GetCrossStatesRoot(height)
 }
 
 func (self *Ledger) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
@@ -189,6 +193,14 @@ func (self *Ledger) GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify,
 
 func (self *Ledger) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error) {
 	return self.ldgStore.GetEventNotifyByBlock(height)
+}
+
+func (self *Ledger) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
+	return self.ldgStore.GetCrossChainMsg(height)
+}
+
+func (self *Ledger) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	return self.ldgStore.GetCrossStatesProof(height, key)
 }
 
 func (self *Ledger) Close() error {

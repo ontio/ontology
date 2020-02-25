@@ -287,3 +287,22 @@ func TestTreeHasher(t *testing.T) {
 		assert.Equal(t, root, tree.Root())
 	}
 }
+
+func TestAudit(t *testing.T) {
+	var hashes []common.Uint256
+	n := 10
+	tree := TreeHasher{}
+	for i := 0; i < n; i++ {
+		hashes = append(hashes, HashLeaf([]byte(fmt.Sprintf("%d", i))))
+	}
+	root := tree.HashFullTreeWithLeafHash(hashes)
+	treeHashes := MerkleHashes(hashes, depth(len(hashes)))
+	assert.Equal(t, root, treeHashes[0][0])
+	for i := 0; i < n; i++ {
+		auditPath, err := MerkleLeafPath([]byte(fmt.Sprintf("%d", i)), hashes)
+		assert.NoError(t, err)
+		value, err := MerkleProve(auditPath, root)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte(fmt.Sprintf("%d", i)), value)
+	}
+}

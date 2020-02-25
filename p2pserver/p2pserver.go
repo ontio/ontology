@@ -206,8 +206,8 @@ func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
 
 // OnBlockReceive adds the block from network
 func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32,
-	block *types.Block, merkleRoot comm.Uint256) {
-	this.blockSync.OnBlockReceive(fromID, blockSize, block, merkleRoot)
+	block *types.Block, ccMsg *types.CrossChainMsg, merkleRoot comm.Uint256) {
+	this.blockSync.OnBlockReceive(fromID, blockSize, block, ccMsg, merkleRoot)
 }
 
 // Todo: remove it if no use

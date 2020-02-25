@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"github.com/ontio/ontology/merkle"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	types2 "github.com/ontio/ontology/vm/neovm/types"
 	"hash"
 	"math"
@@ -78,6 +80,7 @@ type LedgerStoreImp struct {
 	blockStore           *BlockStore                      //BlockStore for saving block & transaction data
 	stateStore           *StateStore                      //StateStore for saving state data, like balance, smart contract execution result, and so on.
 	eventStore           *EventStore                      //EventStore for saving log those gen after smart contract executed.
+	crossChainStore      *CrossChainStore                 //crossChainStore for saving cross chain msg.
 	storedIndexCount     uint32                           //record the count of have saved block index
 	currBlockHeight      uint32                           //Current block height
 	currBlockHash        common.Uint256                   //Current block hash
@@ -107,6 +110,12 @@ func NewLedgerStore(dataDir string, stateHashHeight uint32) (*LedgerStoreImp, er
 		return nil, fmt.Errorf("NewBlockStore error %s", err)
 	}
 	ledgerStore.blockStore = blockStore
+
+	crossChainStore, err := NewCrossChainStore(dataDir)
+	if err != nil {
+		return nil, fmt.Errorf("NewBlockStore error %s", err)
+	}
+	ledgerStore.crossChainStore = crossChainStore
 
 	dbPath := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), DBDirState)
 	merklePath := fmt.Sprintf("%s%s%s", dataDir, string(os.PathSeparator), MerkleTreeStorePath)
@@ -158,7 +167,7 @@ func (this *LedgerStoreImp) InitLedgerStoreWithGenesisBlock(genesisBlock *types.
 		if err != nil {
 			return err
 		}
-		err = this.submitBlock(genesisBlock, result)
+		err = this.submitBlock(genesisBlock, nil, result)
 		if err != nil {
 			return fmt.Errorf("save genesis block error %s", err)
 		}
@@ -490,6 +499,26 @@ func (this *LedgerStoreImp) verifyHeader(header *types.Header, vbftPeerInfo map[
 	return vbftPeerInfo, nil
 }
 
+func (this *LedgerStoreImp) verifyCrossChainMsg(crossChainMsg *types.CrossChainMsg, bookkeepers []keypair.PublicKey) error {
+	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
+	hash := crossChainMsg.Hash()
+	if consensusType == "vbft" {
+		err := signature.VerifyMultiSignature(hash[:], bookkeepers, len(bookkeepers), crossChainMsg.SigData)
+		if err != nil {
+			log.Errorf("vbft VerifyMultiSignature:%s,heigh:%d", err, crossChainMsg.Height)
+			return err
+		}
+	} else {
+		m := len(bookkeepers) - (len(bookkeepers)-1)/3
+		err := signature.VerifyMultiSignature(hash[:], bookkeepers, m, crossChainMsg.SigData)
+		if err != nil {
+			log.Errorf("VerifyMultiSignature:%s,heigh:%d", err, crossChainMsg.Height)
+			return err
+		}
+	}
+	return nil
+}
+
 //AddHeader add header to cache, and add the mapping of block height to block hash. Using in block sync
 func (this *LedgerStoreImp) AddHeader(header *types.Header) error {
 	nextHeaderHeight := this.GetCurrentHeaderHeight() + 1
@@ -544,7 +573,7 @@ func (this *LedgerStoreImp) ExecuteBlock(block *types.Block) (result store.Execu
 	return
 }
 
-func (this *LedgerStoreImp) SubmitBlock(block *types.Block, result store.ExecuteResult) error {
+func (this *LedgerStoreImp) SubmitBlock(block *types.Block, ccMsg *types.CrossChainMsg, result store.ExecuteResult) error {
 	this.getSavingBlockLock()
 	defer this.releaseSavingBlockLock()
 	if this.closing {
@@ -559,13 +588,32 @@ func (this *LedgerStoreImp) SubmitBlock(block *types.Block, result store.Execute
 	if blockHeight != nextBlockHeight {
 		return fmt.Errorf("block height %d not equal next block height %d", blockHeight, nextBlockHeight)
 	}
+
 	var err error
 	this.vbftPeerInfoblock, err = this.verifyHeader(block.Header, this.vbftPeerInfoblock)
 	if err != nil {
 		return fmt.Errorf("verifyHeader error %s", err)
 	}
+	if ccMsg != nil {
+		if ccMsg.Height != currBlockHeight {
+			return fmt.Errorf("cross chain msg height %d not equal next block height %d", blockHeight, ccMsg.Height)
+		}
+		if ccMsg.Version != types.CURR_CROSS_STATES_VERSION {
+			return fmt.Errorf("error cross chain msg version excepted:%d actual:%d", types.CURR_CROSS_STATES_VERSION, ccMsg.Version)
+		}
+		root, err := this.stateStore.GetCrossStatesRoot(ccMsg.Height)
+		if err != nil {
+			return fmt.Errorf("get cross states root fail:%s", err)
+		}
+		if root != ccMsg.StatesRoot {
+			return fmt.Errorf("cross state root compare fail, expected:%x actual:%x", ccMsg.StatesRoot, root)
+		}
+		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers); err != nil {
+			return fmt.Errorf("verifyCrossChainMsg error: %s", err)
+		}
+	}
 
-	err = this.submitBlock(block, result)
+	err = this.submitBlock(block, ccMsg, result)
 	if err != nil {
 		return fmt.Errorf("saveBlock error %s", err)
 	}
@@ -575,7 +623,7 @@ func (this *LedgerStoreImp) SubmitBlock(block *types.Block, result store.Execute
 
 //AddBlock add the block to store.
 //When the block is not the next block, it will be cache. until the missing block arrived
-func (this *LedgerStoreImp) AddBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
+func (this *LedgerStoreImp) AddBlock(block *types.Block, ccMsg *types.CrossChainMsg, stateMerkleRoot common.Uint256) error {
 	currBlockHeight := this.GetCurrentBlockHeight()
 	blockHeight := block.Header.Height
 	if blockHeight <= currBlockHeight {
@@ -590,8 +638,25 @@ func (this *LedgerStoreImp) AddBlock(block *types.Block, stateMerkleRoot common.
 	if err != nil {
 		return fmt.Errorf("verifyHeader error %s", err)
 	}
-
-	err = this.saveBlock(block, stateMerkleRoot)
+	if ccMsg != nil {
+		if ccMsg.Height != currBlockHeight {
+			return fmt.Errorf("cross chain msg height %d not equal next block height %d", blockHeight, ccMsg.Height)
+		}
+		if ccMsg.Version != types.CURR_CROSS_STATES_VERSION {
+			return fmt.Errorf("error cross chain msg version excepted:%d actual:%d", types.CURR_CROSS_STATES_VERSION, ccMsg.Version)
+		}
+		root, err := this.stateStore.GetCrossStatesRoot(ccMsg.Height)
+		if err != nil {
+			return fmt.Errorf("get cross states root fail:%s", err)
+		}
+		if root != ccMsg.StatesRoot {
+			return fmt.Errorf("cross state root compare fail, expected:%x actual:%x", ccMsg.StatesRoot, root)
+		}
+		if err := this.verifyCrossChainMsg(ccMsg, block.Header.Bookkeepers); err != nil {
+			return fmt.Errorf("verifyCrossChainMsg error: %s", err)
+		}
+	}
+	err = this.saveBlock(block, ccMsg, stateMerkleRoot)
 	if err != nil {
 		return fmt.Errorf("saveBlock error %s", err)
 	}
@@ -646,17 +711,22 @@ func (this *LedgerStoreImp) executeBlock(block *types.Block) (result store.Execu
 	cache := storage.NewCacheDB(overlay)
 	for _, tx := range block.Transactions {
 		cache.Reset()
-		notify, e := this.handleTransaction(overlay, cache, gasTable, block, tx)
+		notify, crossStateHashes, e := this.handleTransaction(overlay, cache, gasTable, block, tx)
 		if e != nil {
 			err = e
 			return
 		}
-
 		result.Notify = append(result.Notify, notify)
+		result.CrossStates = append(result.CrossStates, crossStateHashes...)
 	}
-
 	result.Hash = overlay.ChangeHash()
 	result.WriteSet = overlay.GetWriteSet()
+	log.Infof("executeBlock:%d executeBlock height:%d\n", len(result.CrossStates), block.Header.Height)
+	if len(result.CrossStates) != 0 {
+		result.CrossStatesRoot = merkle.TreeHasher{}.HashFullTreeWithLeafHash(result.CrossStates)
+	} else {
+		result.CrossStatesRoot = common.UINT256_EMPTY
+	}
 	if block.Header.Height < this.stateHashCheckHeight {
 		result.MerkleRoot = common.UINT256_EMPTY
 	} else if block.Header.Height == this.stateHashCheckHeight {
@@ -728,6 +798,11 @@ func (this *LedgerStoreImp) saveBlockToStateStore(block *types.Block, result sto
 		return fmt.Errorf("SaveCurrentBlock error %s", err)
 	}
 
+	err = this.stateStore.SaveCrossStates(blockHeight, result.CrossStates)
+	if err != nil {
+		return fmt.Errorf("SaveCrossStates error %s", err)
+	}
+
 	log.Debugf("the state transition hash of block %d is:%s", blockHeight, result.Hash.ToHexString())
 
 	result.WriteSet.ForEach(func(key, val []byte) {
@@ -778,7 +853,7 @@ func (this *LedgerStoreImp) releaseSavingBlockLock() {
 }
 
 //saveBlock do the job of execution samrt contract and commit block to store.
-func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.ExecuteResult) error {
+func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types.CrossChainMsg, result store.ExecuteResult) error {
 	blockHash := block.Hash()
 	blockHeight := block.Header.Height
 	blockRoot := this.GetBlockRootWithNewTxRoots(block.Header.Height, []common.Uint256{block.Header.TransactionsRoot})
@@ -793,6 +868,10 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 	err := this.saveBlockToBlockStore(block)
 	if err != nil {
 		return fmt.Errorf("save to block store height:%d error:%s", blockHeight, err)
+	}
+	err = this.crossChainStore.SaveMsgToCrossChainStore(crossChainMsg)
+	if err != nil {
+		return fmt.Errorf("save to msg cross chain store height:%d error:%s", blockHeight, err)
 	}
 	err = this.saveBlockToStateStore(block, result)
 	if err != nil {
@@ -825,7 +904,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, result store.Execute
 }
 
 //saveBlock do the job of execution samrt contract and commit block to store.
-func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common.Uint256) error {
+func (this *LedgerStoreImp) saveBlock(block *types.Block, ccMsg *types.CrossChainMsg, stateMerkleRoot common.Uint256) error {
 	blockHeight := block.Header.Height
 	if blockHeight > 0 && blockHeight <= this.GetCurrentBlockHeight() {
 		return nil
@@ -850,33 +929,34 @@ func (this *LedgerStoreImp) saveBlock(block *types.Block, stateMerkleRoot common
 			result.MerkleRoot.ToHexString(), stateMerkleRoot.ToHexString())
 	}
 
-	return this.submitBlock(block, result)
+	return this.submitBlock(block, ccMsg, result)
 }
 
-func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64, block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, error) {
+func (this *LedgerStoreImp) handleTransaction(overlay *overlaydb.OverlayDB, cache *storage.CacheDB, gasTable map[string]uint64,
+	block *types.Block, tx *types.Transaction) (*event.ExecuteNotify, []common.Uint256, error) {
 	txHash := tx.Hash()
 	notify := &event.ExecuteNotify{TxHash: txHash, State: event.CONTRACT_STATE_FAIL}
+	var crossStateHashes []common.Uint256
+	var err error
 	switch tx.TxType {
 	case types.Deploy:
-		err := this.stateStore.HandleDeployTransaction(this, overlay, gasTable, cache, tx, block, notify)
+		err = this.stateStore.HandleDeployTransaction(this, overlay, gasTable, cache, tx, block, notify)
 		if overlay.Error() != nil {
-			return nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+			return nil, nil, fmt.Errorf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
 		if err != nil {
 			log.Debugf("HandleDeployTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
 	case types.InvokeNeo, types.InvokeWasm:
-		err := this.stateStore.HandleInvokeTransaction(this, overlay, gasTable, cache, tx, block, notify)
+		crossStateHashes, err = this.stateStore.HandleInvokeTransaction(this, overlay, gasTable, cache, tx, block, notify)
 		if overlay.Error() != nil {
-			return nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
+			return nil, nil, fmt.Errorf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), overlay.Error())
 		}
 		if err != nil {
 			log.Debugf("HandleInvokeTransaction tx %s error %s", txHash.ToHexString(), err)
 		}
-
 	}
-
-	return notify, nil
+	return notify, crossStateHashes, nil
 }
 
 func (this *LedgerStoreImp) saveHeaderIndexList() error {
@@ -931,6 +1011,30 @@ func (this *LedgerStoreImp) GetBlockRootWithNewTxRoots(startHeight uint32, txRoo
 
 	needs := txRoots[this.currBlockHeight+1-startHeight:]
 	return this.stateStore.GetBlockRootWithNewTxRoots(needs)
+}
+
+func (this *LedgerStoreImp) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
+	return this.stateStore.GetCrossStatesRoot(height)
+}
+
+func (this *LedgerStoreImp) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
+	return this.crossChainStore.GetCrossChainMsg(height)
+}
+
+func (this *LedgerStoreImp) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	hashes, err := this.stateStore.GetCrossStates(height)
+	if err != nil {
+		return nil, fmt.Errorf("GetCrossStates:%s", err)
+	}
+	item, err := this.stateStore.GetStorageState(&states.StorageKey{ContractAddress: utils.CrossChainContractAddress, Key: key})
+	if err != nil {
+		return nil, fmt.Errorf("GetStorageState key:%x", key)
+	}
+	path, err := merkle.MerkleLeafPath(item.Value, hashes)
+	if err != nil {
+		return nil, err
+	}
+	return path, nil
 }
 
 //GetBlockHash return the block hash by block height

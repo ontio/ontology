@@ -554,6 +554,27 @@ func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
 	return blockData, nil
 }
 
+func GetCrossChainMsg(height uint32) ([]byte, error) {
+	data, ontErr := sendRpcRequest("getcrosschainmsg", []interface{}{height})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("invalid block hash or block height:%d", height)
+		}
+		return nil, ontErr.Error
+	}
+	hexStr := ""
+	err := json.Unmarshal(data, &hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	crossChainMsg, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	return crossChainMsg, nil
+}
+
 func GetBlockCount() (uint32, error) {
 	data, ontErr := sendRpcRequest("getblockcount", []interface{}{})
 	if ontErr != nil {

@@ -521,7 +521,7 @@ func TestBlockHandle(t *testing.T) {
 
 	mr, err := common.Uint256FromHexString("1b8fa7f242d0eeb4395f89cbb59e4c29634047e33245c4914306e78a88e14ce5")
 	assert.Nil(t, err)
-	buf := msgpack.NewBlock(block, mr)
+	buf := msgpack.NewBlock(block, nil, mr)
 
 	msg := &types.MsgPayload{
 		Id:      testID,

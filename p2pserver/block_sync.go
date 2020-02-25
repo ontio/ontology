@@ -215,9 +215,10 @@ func (this *SyncFlightInfo) GetStartTime() time.Time {
 
 //BlockInfo is used for saving block information in cache
 type BlockInfo struct {
-	nodeID     uint64
-	block      *types.Block
-	merkleRoot common.Uint256
+	nodeID        uint64
+	block         *types.Block
+	crossChainMsg *types.CrossChainMsg
+	merkleRoot    common.Uint256
 }
 
 //BlockSyncMgr is the manager class to deal with block sync
@@ -260,13 +261,14 @@ func NewBlockCache() *BlockCache {
 	}
 }
 
-func (this *BlockCache) addBlock(nodeID uint64, block *types.Block,
+func (this *BlockCache) addBlock(nodeID uint64, block *types.Block, ccMsg *types.CrossChainMsg,
 	merkleRoot common.Uint256) bool {
 	this.delBlockLocked(block.Header.Height)
 	blockInfo := &BlockInfo{
-		nodeID:     nodeID,
-		block:      block,
-		merkleRoot: merkleRoot,
+		nodeID:        nodeID,
+		block:         block,
+		crossChainMsg: ccMsg,
+		merkleRoot:    merkleRoot,
 	}
 	this.blocksCache[block.Header.Height] = blockInfo
 	if block.Header.TransactionsRoot == common.UINT256_EMPTY {
@@ -289,13 +291,13 @@ func (this *BlockCache) clearBlocks(curBlockHeight uint32) {
 	}
 }
 
-func (this *BlockCache) getBlock(blockHeight uint32) (uint64, *types.Block,
+func (this *BlockCache) getBlock(blockHeight uint32) (uint64, *types.Block, *types.CrossChainMsg,
 	common.Uint256) {
 	blockInfo, ok := this.blocksCache[blockHeight]
 	if !ok {
-		return 0, nil, common.UINT256_EMPTY
+		return 0, nil, nil, common.UINT256_EMPTY
 	}
-	return blockInfo.nodeID, blockInfo.block, blockInfo.merkleRoot
+	return blockInfo.nodeID, blockInfo.block, blockInfo.crossChainMsg, blockInfo.merkleRoot
 }
 
 func (this *BlockCache) delBlockLocked(blockHeight uint32) {
@@ -576,7 +578,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 			block := &types.Block{
 				Header: header,
 			}
-			this.addBlockCache(fromID, block, common.UINT256_EMPTY)
+			this.addBlockCache(fromID, block, nil, common.UINT256_EMPTY)
 		}
 	}
 	go this.saveBlock()
@@ -584,7 +586,7 @@ func (this *BlockSyncMgr) OnHeaderReceive(fromID uint64, headers []*types.Header
 }
 
 // OnBlockReceive receive block from net
-func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block *types.Block,
+func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block *types.Block, ccMsg *types.CrossChainMsg,
 	merkleRoot common.Uint256) {
 	height := block.Header.Height
 	blockHash := block.Hash()
@@ -607,7 +609,7 @@ func (this *BlockSyncMgr) OnBlockReceive(fromID uint64, blockSize uint32, block 
 		return
 	}
 
-	this.addBlockCache(fromID, block, merkleRoot)
+	this.addBlockCache(fromID, block, ccMsg, merkleRoot)
 	go this.saveBlock()
 	this.syncBlock()
 }
@@ -671,14 +673,14 @@ func (this *BlockSyncMgr) releaseSyncBlockLock() {
 	this.syncBlockLock = false
 }
 
-func (this *BlockSyncMgr) addBlockCache(nodeID uint64, block *types.Block,
+func (this *BlockSyncMgr) addBlockCache(nodeID uint64, block *types.Block, ccMsg *types.CrossChainMsg,
 	merkleRoot common.Uint256) bool {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	return this.blocksCache.addBlock(nodeID, block, merkleRoot)
+	return this.blocksCache.addBlock(nodeID, block, ccMsg, merkleRoot)
 }
 
-func (this *BlockSyncMgr) getBlockCache(blockHeight uint32) (uint64, *types.Block,
+func (this *BlockSyncMgr) getBlockCache(blockHeight uint32) (uint64, *types.Block, *types.CrossChainMsg,
 	common.Uint256) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -716,11 +718,11 @@ func (this *BlockSyncMgr) saveBlock() {
 	nextBlockHeight := curBlockHeight + 1
 	this.clearBlocks(curBlockHeight)
 	for {
-		fromID, nextBlock, merkleRoot := this.getBlockCache(nextBlockHeight)
+		fromID, nextBlock, ccMsg, merkleRoot := this.getBlockCache(nextBlockHeight)
 		if nextBlock == nil {
 			return
 		}
-		err := this.ledger.AddBlock(nextBlock, merkleRoot)
+		err := this.ledger.AddBlock(nextBlock, ccMsg, merkleRoot)
 		this.delBlockCache(nextBlockHeight)
 		if err != nil {
 			this.addErrorRespCnt(fromID)

@@ -52,6 +52,7 @@ type SmartContract struct {
 	JitMode       bool
 	PreExec       bool
 	internelErr   bool
+	CrossHashes   []common.Uint256
 }
 
 // Config describe smart contract need parameters configuration
@@ -117,6 +118,10 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	}
 	this.Gas -= gas
 	return true
+}
+
+func (this *SmartContract) PutCrossStateHashes(hashes []common.Uint256) {
+	this.CrossHashes = append(this.CrossHashes, hashes...)
 }
 
 func (this *SmartContract) checkContexts() bool {
