@@ -29,6 +29,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
+	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"math/big"
@@ -57,7 +58,9 @@ func BindProxyHash(native *native.NativeService) ([]byte, error) {
 	if err := bindParam.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[BindProxyHash] Deserialize BindProxyParam error:%s", err)
 	}
-	operatorAddress, err := types.AddressFromBookkeepers(genesis.GenesisBookkeepers)
+	// get operator from database
+	operatorAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[BindProxyHash] get operator error:%s", err)
 	}
@@ -82,13 +85,15 @@ func BindAssetHash(native *native.NativeService) ([]byte, error) {
 	if err := bindParam.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[BindAssetHash] Deserialization BindAssetParam error:%s", err)
 	}
-	operatorAddress, err := types.AddressFromBookkeepers(genesis.GenesisBookkeepers)
+	// get operator from database
+	operatorAddress, err := global_params.GetStorageRole(native,
+		global_params.GenerateOperatorKey(utils.ParamContractAddress))
 	if err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[BindAssetHash] get operator error: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[BindAssetHash] get operator error:%s", err)
 	}
 	//check witness
 	if err = utils.ValidateOwner(native, operatorAddress); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("[BindAssetHash] checkWitness error: %s", err)
+		return utils.BYTE_FALSE, fmt.Errorf("[BindAssetHash] checkWitness error:%s", err)
 	}
 	// store the target asset hash
 	native.CacheDB.Put(GenBindAssetHashKey(contract, bindParam.SourceAssetHash, bindParam.TargetChainId), utils.GenVarBytesStorageItem(bindParam.TargetAssetHash).ToArray())
@@ -143,7 +148,7 @@ func Lock(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, nil
 	}
 	// currently, only support ont and ong lock operation
-	if !bytes.Equal(lockParam.SourceAssetHash[:], ontContract[:]) && !bytes.Equal(lockParam.SourceAssetHash[:], ongContract[:]) {
+	if lockParam.SourceAssetHash != ontContract && lockParam.SourceAssetHash != ongContract {
 		return utils.BYTE_FALSE, fmt.Errorf("[Lock] only support ont/ong lock, expect:%s or %s, but got:%s", hex.EncodeToString(ontContract[:]), hex.EncodeToString(ongContract[:]), hex.EncodeToString(lockParam.SourceAssetHash[:]))
 	}
 
