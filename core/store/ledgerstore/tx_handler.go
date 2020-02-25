@@ -209,6 +209,10 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
 
 	_, err = engine.Invoke()
+	if sc.IsInternalErr() {
+		overlay.SetError(fmt.Errorf("[HandleInvokeTransaction] %s", err))
+		return nil
+	}
 
 	costGasLimit = availableGasLimit - sc.Gas
 	if costGasLimit < neovm.MIN_TRANSACTION_GAS {

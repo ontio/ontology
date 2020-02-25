@@ -42,6 +42,8 @@ type ContextRef interface {
 	CheckUseGas(gas uint64) bool
 	CheckExecStep() bool
 	GetCallerAddress() []common.Address
+	SetInternalErr()
+	IsInternalErr() bool
 }
 
 type Engine interface {
