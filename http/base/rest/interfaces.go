@@ -30,6 +30,7 @@ import (
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"strconv"
+	"github.com/ontio/ontology/smartcontract/event"
 )
 
 const TLS_PORT int = 443
@@ -278,7 +279,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 				resp["Result"] = err.Error()
 				return resp
 			}
-			resp["Result"] = bcomn.ConvertPreExecuteResult(rst)
+			resp["Result"] = rst
 			return resp
 		}
 	}
@@ -317,7 +318,7 @@ func GetSmartCodeEventTxsByHeight(cmd map[string]interface{}) map[string]interfa
 		}
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
-	eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))
+	eInfos := make([]*event.ExecuteNotify, 0, len(eventInfos))
 	for _, eventInfo := range eventInfos {
 		_, notify := bcomn.GetExecuteNotify(eventInfo)
 		eInfos = append(eInfos, &notify)
