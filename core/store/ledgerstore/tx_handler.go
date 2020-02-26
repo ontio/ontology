@@ -44,6 +44,26 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
+func tuneGasFeeByHeight(height uint32, gas uint64, gasRound uint64, curBalance uint64) uint64 {
+	gasTuneheight := sysconfig.GetGasRoundTuneHeight(sysconfig.DefConfig.P2PNode.NetworkId)
+	if height > gasTuneheight {
+		t := (gas + gasRound - 1) / gasRound
+		if gas > math.MaxUint64-gasRound {
+			return curBalance
+		}
+
+		newGas := gasRound * t
+
+		if newGas > curBalance {
+			return curBalance
+		}
+
+		return newGas
+	}
+
+	return gas
+}
+
 //HandleDeployTransaction deal with smart contract deploy transaction
 func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
@@ -189,6 +209,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		}
 
 		maxAvaGasLimit := oldBalance / tx.GasPrice
+
 		if availableGasLimit > maxAvaGasLimit {
 			availableGasLimit = maxAvaGasLimit
 		}
@@ -222,6 +243,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	costGas = costGasLimit * tx.GasPrice
 	if err != nil {
 		if isCharge {
+			costGas = tuneGasFeeByHeight(config.Height, costGas, tx.GasPrice*neovm.MIN_TRANSACTION_GAS, oldBalance)
 			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify); err != nil {
 				return nil, err
 			}
@@ -237,12 +259,14 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		}
 
 		if newBalance < costGas {
+			costGas = tuneGasFeeByHeight(config.Height, costGas, tx.GasPrice*neovm.MIN_TRANSACTION_GAS, oldBalance)
 			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify); err != nil {
 				return nil, err
 			}
 			return nil, fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
 		}
 
+		costGas = tuneGasFeeByHeight(config.Height, costGas, tx.GasPrice*neovm.MIN_TRANSACTION_GAS, newBalance)
 		notifies, err = chargeCostGas(tx.Payer, costGas, config, sc.CacheDB, store)
 		if err != nil {
 			return nil, err
