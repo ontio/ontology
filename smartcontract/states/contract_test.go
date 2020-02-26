@@ -20,10 +20,10 @@ package states
 import (
 	"testing"
 
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/event"
 	"encoding/json"
 	"fmt"
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -50,23 +50,23 @@ func TestContractInvokeParam_Deserialization(t *testing.T) {
 	evts := make([]*event.NotifyEventInfo, 0)
 	contractAddr := common.AddressFromVmCode([]byte{0, 1})
 	e := event.NotifyEventInfo{
-		ContractAddress:contractAddr,
-		States:[]interface{}{"tranfer", 10},
+		ContractAddress: contractAddr,
+		States:          []interface{}{"tranfer", 10},
 	}
 	evts = append(evts, &e)
 	per := PreExecResult{
-		State:1,
-		Gas:20000,
-		Result:"result",
-		Notify:evts,
+		State:  1,
+		Gas:    20000,
+		Result: "result",
+		Notify: evts,
 	}
 	bs, _ := json.Marshal(per)
 	fmt.Println(string(bs))
 
-    per2 := PreExecResult{}
+	per2 := PreExecResult{}
 	err := json.Unmarshal(bs, &per2)
 
-    assert.Nil(t, err)
+	assert.Nil(t, err)
 
 	bs2, _ := json.Marshal(per2)
 
