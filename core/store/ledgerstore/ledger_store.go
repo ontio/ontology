@@ -1199,7 +1199,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 			if gasCost < mixGas {
 				gasCost = mixGas
 			}
-			gasCost = TuneGasFeeByHeight(sconfig.Height, gasCost, neovm.MIN_TRANSACTION_GAS, math.MaxUint64)
+			gasCost = tuneGasFeeByHeight(sconfig.Height, gasCost, neovm.MIN_TRANSACTION_GAS, math.MaxUint64)
 		}
 
 		var cv interface{}
