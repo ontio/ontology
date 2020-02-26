@@ -1195,6 +1195,10 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 		gasCost := math.MaxUint64 - sc.Gas
 
 		if preParam.MinGas {
+			mixGas := neovm.MIN_TRANSACTION_GAS
+			if gasCost < mixGas {
+				gasCost = mixGas
+			}
 			gasCost = TuneGasFeeByHeight(sconfig.Height, gasCost, neovm.MIN_TRANSACTION_GAS, math.MaxUint64)
 		}
 
