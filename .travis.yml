@@ -12,4 +12,19 @@ go:
   - 1.12.x
 
 script:
-    - ./.travis.script.bash
+    - bash ./.travis.script.bash
+    - bash ./.travis.deploy.bash
+
+deploy:
+  provider: releases
+  token: "${GITHUB_TOKEN}"
+  file_glob: true
+  file: 
+    - ontology*
+    - tool-*.zip
+  skip_cleanup: true
+  overwrite: true
+  draft: true
+  on:
+    repo: ontio/ontology
+    tags: true
