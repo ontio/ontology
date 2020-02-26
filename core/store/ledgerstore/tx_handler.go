@@ -48,14 +48,17 @@ func TuneGasFeeByHeight(height uint32, gas uint64, gasRound uint64, curBalance u
 	gasTuneheight := sysconfig.GetGasRoundTuneHeight(sysconfig.DefConfig.P2PNode.NetworkId)
 	if height > gasTuneheight {
 		t := (gas + gasRound - 1) / gasRound
-		if t > math.MaxUint64/gasRound {
+		if gas > math.MaxUint64-gasRound {
 			return curBalance
 		}
+
 		newGas := gasRound * t
 
 		if newGas > curBalance {
 			return curBalance
 		}
+
+		return newGas
 	}
 
 	return gas
