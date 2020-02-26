@@ -26,6 +26,5 @@ deploy:
   overwrite: true
   draft: true
   on:
-    repo: laizy/ontology
+    repo: ontio/ontology
     tags: true
-
