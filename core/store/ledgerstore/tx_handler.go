@@ -75,7 +75,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	)
 
 	if deploy.VmType() == payload.WASMVM_TYPE {
-		_, err = wasmvm.ReadWasmModule(deploy.GetRawCode(), sysconfig.DefConfig.Common.WasmVerifyMethod)
+		_, err = wasmvm.ReadWasmModule(deploy.GetRawCode(), wasmvm.GetVerifyMethodByJitLevel(sysconfig.DefConfig.Common.WasmJitLevel))
 		if err != nil {
 			return err
 		}
@@ -223,6 +223,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		GasTable:     gasTable,
 		Gas:          availableGasLimit - codeLenGasLimit,
 		WasmExecStep: sysconfig.DEFAULT_WASM_MAX_STEPCOUNT,
+		JitMode:      wasmvm.GetJitModeByJitLevel(sysconfig.DefConfig.Common.WasmJitLevel, false),
 		PreExec:      false,
 	}
 

@@ -123,7 +123,7 @@ func ContractCreate(proc *exec.Process,
 	if err != nil {
 		panic(err)
 	}
-	_, err = ReadWasmModule(wasmCode, config.DefConfig.Common.WasmVerifyMethod)
+	_, err = ReadWasmModule(wasmCode, GetVerifyMethodByJitLevel(config.DefConfig.Common.WasmJitLevel))
 	if err != nil {
 		panic(err)
 	}
@@ -200,7 +200,7 @@ func ContractMigrate(proc *exec.Process,
 	if err != nil {
 		panic(err)
 	}
-	_, err = ReadWasmModule(wasmCode, config.DefConfig.Common.WasmVerifyMethod)
+	_, err = ReadWasmModule(wasmCode, GetVerifyMethodByJitLevel(config.DefConfig.Common.WasmJitLevel))
 	if err != nil {
 		panic(err)
 	}

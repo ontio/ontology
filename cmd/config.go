@@ -19,7 +19,9 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -62,11 +64,14 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 		}
 	}
 
-	enableWasmJitVerify := ctx.GlobalBool(utils.GetFlagName(utils.WasmVerifyMethodFlag))
-	if enableWasmJitVerify {
-		log.Infof("Enable wasm jit verifier")
-		cfg.Common.WasmVerifyMethod = config.JitVerifyMethod
+	wasmJitLevel := ctx.GlobalInt(utils.GetFlagName(utils.WasmJitLevelFlag))
+
+	if wasmJitLevel > 3 {
+		return nil, errors.New("Error wasmJitLevel, should be (0~3). 0:None 1:Low 2:Mid 3:Heigh")
 	}
+
+	cfg.Common.WasmJitLevel = config.WasmJitLevelType(wasmJitLevel)
+	log.Infof("Wasm Jit Level:%d", cfg.Common.WasmJitLevel)
 
 	return cfg, nil
 }

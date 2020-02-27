@@ -28,6 +28,38 @@ import (
 	"github.com/ontio/wagon/wasm"
 )
 
+type VerifyMethod int
+
+const (
+	InterpVerifyMethod VerifyMethod = iota
+	JitVerifyMethod
+	NoneVerifyMethod
+)
+
+func GetJitModeByJitLevel(l config.WasmJitLevelType, isPre bool) bool {
+	switch l {
+	case config.WasmJitLevelNone, config.WasmJitLevelLow:
+		return false
+	case config.WasmJitLevelMid:
+		if isPre {
+			return true
+		}
+	case config.WasmJitLevelHeigh:
+		return true
+	}
+
+	return false
+}
+
+func GetVerifyMethodByJitLevel(l config.WasmJitLevelType) VerifyMethod {
+	switch l {
+	case config.WasmJitLevelLow, config.WasmJitLevelMid, config.WasmJitLevelHeigh:
+		return JitVerifyMethod
+	default:
+		return InterpVerifyMethod
+	}
+}
+
 func ReadWasmMemory(proc *exec.Process, ptr uint32, len uint32) ([]byte, error) {
 	if uint64(proc.MemSize()) < uint64(ptr)+uint64(len) {
 		return nil, errors.New("contract create len is greater than memory size")
@@ -80,7 +112,7 @@ func checkOntoWasm(m *wasm.Module) error {
 	return nil
 }
 
-func ReadWasmModule(code []byte, verify config.VerifyMethod) (*exec.CompiledModule, error) {
+func ReadWasmModule(code []byte, verify VerifyMethod) (*exec.CompiledModule, error) {
 	m, err := wasm.ReadModule(bytes.NewReader(code), func(name string) (*wasm.Module, error) {
 		switch name {
 		case "env":
@@ -92,7 +124,7 @@ func ReadWasmModule(code []byte, verify config.VerifyMethod) (*exec.CompiledModu
 		return nil, err
 	}
 
-	if verify != config.NoneVerifyMethod {
+	if verify != NoneVerifyMethod {
 		err = checkOntoWasm(m)
 		if err != nil {
 			return nil, err
@@ -104,12 +136,12 @@ func ReadWasmModule(code []byte, verify config.VerifyMethod) (*exec.CompiledModu
 		}
 
 		switch verify {
-		case config.InterpVerifyMethod:
+		case InterpVerifyMethod:
 			err = validate.VerifyWasmCodeFromRust(code)
 			if err != nil {
 				return nil, err
 			}
-		case config.JitVerifyMethod:
+		case JitVerifyMethod:
 			err := WasmjitValidate(code)
 			if err != nil {
 				return nil, err

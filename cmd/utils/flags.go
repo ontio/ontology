@@ -52,9 +52,10 @@ var (
 		Name:  "disable-event-log",
 		Usage: "Discard event log output by smart contract execution",
 	}
-	WasmVerifyMethodFlag = cli.BoolFlag{
-		Name:  "enable-wasmjit-verifier",
-		Usage: "Enable wasmjit verifier to verify wasm contract",
+	WasmJitLevelFlag = cli.UintFlag{
+		Name:  "jitlevel",
+		Usage: "Set the wasm jit level to `<level>` (0~3). 0:None 1:Low 2:Mid 3:Heigh",
+		Value: uint(config.DEFAULT_WASM_JIT_LEVEL),
 	}
 	WalletFileFlag = cli.StringFlag{
 		Name:  "wallet,w",
