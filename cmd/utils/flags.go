@@ -53,7 +53,7 @@ var (
 		Usage: "Discard event log output by smart contract execution",
 	}
 	WasmJitLevelFlag = cli.UintFlag{
-		Name:  "jitlevel",
+		Name:  "wasmjit-level",
 		Usage: "Set the wasm jit level to `<level>` (0~3). 0:None 1:Low 2:Mid 3:Heigh",
 		Value: uint(config.DEFAULT_WASM_JIT_LEVEL),
 	}
