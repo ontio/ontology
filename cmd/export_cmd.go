@@ -129,11 +129,11 @@ func exportBlocks(ctx *cli.Context) error {
 		}
 
 		//save cross chain msg to file
-		crossChainMsg, err := utils.GetCrossChainMsg(i)
+		crossChainMsg, err := utils.GetCrossChainMsg(i - 1)
 		if err != nil {
 			return fmt.Errorf("GetCrossChainMsg:%d error:%s", i, err)
 		}
-		if crossChainMsg == nil {
+		if len(crossChainMsg) == 0 {
 			err = serialization.WriteUint32(fWriter, 0)
 			if err != nil {
 				return fmt.Errorf("write block data height:%d len:%d error:%s", i, uint32(len(data)), err)
@@ -152,6 +152,7 @@ func exportBlocks(ctx *cli.Context) error {
 				return fmt.Errorf("write block data height:%d error:%s", i, err)
 			}
 		}
+
 		if sleepTime > 0 {
 			time.Sleep(sleepTime)
 		}
