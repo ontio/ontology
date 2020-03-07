@@ -20,6 +20,8 @@ package peer
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 	"sync"
 
 	comm "github.com/ontio/ontology/common"
@@ -184,4 +186,23 @@ func (this *NbrPeers) GetNbrNodeCnt() uint32 {
 		}
 	}
 	return count
+}
+
+// GetPeerStringAddr key: peerID value: "192.168.1.1:20338"
+func (nbp *NbrPeers) GetPeerStringAddr() map[uint64]string {
+	nbp.RLock()
+	defer nbp.RUnlock()
+
+	ret := make(map[uint64]string)
+	for _, tn := range nbp.List {
+		if tn.GetState() != common.ESTABLISH {
+			continue
+		}
+		ipAddr, _ := tn.GetAddr16()
+		ip := net.IP(ipAddr[:])
+		addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetPort()))
+		ret[tn.GetID()] = addrString
+	}
+
+	return ret
 }

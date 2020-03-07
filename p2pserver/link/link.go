@@ -187,7 +187,7 @@ func (this *Link) SendRaw(rawPacket []byte) error {
 	if nCount == 0 {
 		nCount = 1
 	}
-	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
+	_ = conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err := conn.Write(rawPacket)
 	if err != nil {
 		log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())

@@ -54,8 +54,8 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.p2p = p2p
 
 	// Register message handler
-	this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
-	this.RegisterMsgHandler(msgCommon.VERACK_TYPE, VerAckHandle)
+	//this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
+	//this.RegisterMsgHandler(msgCommon.VERACK_TYPE, VerAckHandle)
 	this.RegisterMsgHandler(msgCommon.GetADDR_TYPE, AddrReqHandle)
 	this.RegisterMsgHandler(msgCommon.ADDR_TYPE, AddrHandle)
 	this.RegisterMsgHandler(msgCommon.PING_TYPE, PingHandle)
@@ -69,6 +69,9 @@ func (this *MessageRouter) init(p2p p2p.P2P) {
 	this.RegisterMsgHandler(msgCommon.NOT_FOUND_TYPE, NotFoundHandle)
 	this.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
 	this.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, DisconnectHandle)
+
+	this.RegisterMsgHandler(msgCommon.FINDNODE_TYPE, FindNodeHandle)
+	this.RegisterMsgHandler(msgCommon.FINDNODE_RESP_TYPE, FindNodeResponseHandle)
 }
 
 // RegisterMsgHandler registers msg handler with the msg type
@@ -111,8 +114,12 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 						go handler(data, this.p2p, this.pid)
 					}
 				} else {
-					log.Warn("unknown message handler for the msg: ",
-						msgType)
+					if msgType == msgCommon.VERACK_TYPE || msgType == msgCommon.VERSION_TYPE {
+						log.Infof("receive message: %s", msgType)
+					} else {
+						log.Warn("unknown message handler for the msg: ",
+							msgType)
+					}
 				}
 			}
 		case <-stopCh:

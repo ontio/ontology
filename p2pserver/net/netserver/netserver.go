@@ -20,20 +20,22 @@ package netserver
 
 import (
 	"errors"
-	"math/rand"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
+	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/common/set"
-	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
+	"github.com/ontio/ontology/p2pserver/dht"
+	"github.com/ontio/ontology/p2pserver/dht/kbucket"
+	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
@@ -53,6 +55,7 @@ func NewNetServer() p2p.P2P {
 type NetServer struct {
 	base     peer.PeerCom
 	listener net.Listener
+	pid      *evtActor.PID
 	NetChan  chan *types.MsgPayload
 	connectingNodes
 	PeerAddrMap
@@ -61,6 +64,8 @@ type NetServer struct {
 	inConnRecord  InConnectionRecord
 	outConnRecord OutConnectionRecord
 	OwnAddress    string //network`s own address(ip : sync port),which get from version check
+
+	dht *dht.DHT
 }
 
 //InConnectionRecord include all addr connected
@@ -106,18 +111,20 @@ func (this *NetServer) init() error {
 
 	this.base.SetRelay(true)
 
-	rand.Seed(time.Now().UnixNano())
-	id := rand.Uint64()
-
-	this.base.SetID(id)
-
-	log.Infof("[p2p]init peer ID to %d", this.base.GetID())
 	this.Np = &peer.NbrPeers{}
 	this.Np.Init()
 
 	this.connectingNodes.ConnectingAddrs = set.NewStringSet()
 	this.inConnRecord.InConnectingAddrs = set.NewStringSet()
 	this.outConnRecord.OutConnectingAddrs = set.NewStringSet()
+
+	dtable := dht.NewDHT()
+	this.dht = dtable
+
+	this.base.SetID(dtable.GetKadKeyId().Id)
+
+	log.Infof("[p2p]init peer ID to %d", this.base.GetID())
+	this.doRefresh()
 
 	return nil
 }
@@ -137,9 +144,21 @@ func (this *NetServer) GetID() uint64 {
 	return this.base.GetID()
 }
 
+func (this *NetServer) GetKId() kbucket.KadId {
+	return this.base.GetKId()
+}
+
+func (this *NetServer) GetKadKeyId() *kbucket.KadKeyId {
+	return this.dht.GetKadKeyId()
+}
+
 // SetHeight sets the local's height
 func (this *NetServer) SetHeight(height uint64) {
 	this.base.SetHeight(height)
+}
+
+func (this *NetServer) SetPID(pid *evtActor.PID) {
+	this.pid = pid
 }
 
 // GetHeight return peer's heigh
@@ -228,13 +247,13 @@ func (this *NetServer) GetMsgChan() chan *types.MsgPayload {
 	return this.NetChan
 }
 
-//Tx send data buf to peer
+//Tx sendMsg data buf to peer
 func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 	if p != nil {
 		return p.Send(msg)
 	}
-	log.Warn("[p2p]send to a invalid peer")
-	return errors.New("[p2p]send to a invalid peer")
+	log.Warn("[p2p]sendMsg to a invalid peer")
+	return errors.New("[p2p]sendMsg to a invalid peer")
 }
 
 //IsPeerEstablished return the establise state of given peer`s id
@@ -247,6 +266,10 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) Connect(addr string) error {
+	err := checkReservedPeers(addr)
+	if err != nil {
+		return err
+	}
 	if this.IsAddrInOutConnRecord(addr) {
 		log.Debugf("[p2p]Address: %s is in OutConnectionRecord,", addr)
 		return nil
@@ -279,8 +302,6 @@ func (this *NetServer) Connect(addr string) error {
 
 	isTls := config.DefConfig.P2PNode.IsTLS
 	var conn net.Conn
-	var err error
-	var remotePeer *peer.Peer
 	if isTls {
 		conn, err = TLSDial(addr)
 		if err != nil {
@@ -297,25 +318,10 @@ func (this *NetServer) Connect(addr string) error {
 		}
 	}
 
-	addr = conn.RemoteAddr().String()
-	log.Debugf("[p2p]peer %s connect with %s with %s",
-		conn.LocalAddr().String(), conn.RemoteAddr().String(),
-		conn.RemoteAddr().Network())
-
-	this.AddOutConnRecord(addr)
-	remotePeer = peer.NewPeer()
-	this.AddPeerAddress(addr, remotePeer)
-	remotePeer.Link.SetAddr(addr)
-	remotePeer.Link.SetConn(conn)
-	remotePeer.AttachChan(this.NetChan)
-	go remotePeer.Link.Rx()
-	remotePeer.SetState(common.HAND)
-
-	version := msgpack.NewVersion(this, ledger.DefLedger.GetCurrentBlockHeight())
-	err = remotePeer.Send(version)
+	err = HandshakeClient(this, conn)
 	if err != nil {
+		log.Errorf("[p2p] HandshakeClient error: %s", err)
 		this.RemoveFromOutConnRecord(addr)
-		log.Warn(err)
 		return err
 	}
 	return nil
@@ -365,6 +371,47 @@ func (this *NetServer) startNetListening(port uint16) error {
 	return nil
 }
 
+func (this *NetServer) handleClientConnection(conn net.Conn) error {
+	err := checkReservedPeers(conn.RemoteAddr().String())
+	if err != nil {
+		log.Error("[p2p] allow reserved peer connection only ")
+		return err
+	}
+
+	log.Debug("[p2p]remote sync node connect with ", conn.RemoteAddr(), conn.LocalAddr())
+	if !this.AddrValid(conn.RemoteAddr().String()) {
+		err := fmt.Errorf("[p2p]remote %s not in reserved list, close it ", conn.RemoteAddr())
+		log.Warn(err)
+		return err
+	}
+
+	if this.IsAddrInInConnRecord(conn.RemoteAddr().String()) {
+		return errors.New("[p2p] address already in connection record")
+	}
+
+	syncAddrCount := uint(this.GetInConnRecordLen())
+	if syncAddrCount >= config.DefConfig.P2PNode.MaxConnInBound {
+		err := fmt.Errorf("[p2p]SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
+			syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
+		log.Warn(err)
+		return err
+	}
+
+	remoteIp, err := common.ParseIPAddr(conn.RemoteAddr().String())
+	if err != nil {
+		return fmt.Errorf("[p2p]parse ip error %v", err.Error())
+	}
+	connNum := this.GetIpCountInInConnRecord(remoteIp)
+	if connNum >= config.DefConfig.P2PNode.MaxConnInBoundForSingleIP {
+		err := fmt.Errorf("[p2p]SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
+			"conn closed", connNum, remoteIp, config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
+		log.Warn(err)
+		return err
+	}
+
+	return HandshakeServer(this, conn)
+}
+
 //startNetAccept accepts the sync connection from the inbound peer
 func (this *NetServer) startNetAccept(listener net.Listener) {
 	for {
@@ -375,51 +422,10 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 			return
 		}
 
-		log.Debug("[p2p]remote sync node connect with ",
-			conn.RemoteAddr(), conn.LocalAddr())
-		if !this.AddrValid(conn.RemoteAddr().String()) {
-			log.Warnf("[p2p]remote %s not in reserved list, close it ", conn.RemoteAddr())
-			conn.Close()
-			continue
+		if err := this.handleClientConnection(conn); err != nil {
+			log.Errorf("[p2p] handleClientConnection error: %s", err)
+			_ = conn.Close()
 		}
-
-		if this.IsAddrInInConnRecord(conn.RemoteAddr().String()) {
-			conn.Close()
-			continue
-		}
-
-		syncAddrCount := uint(this.GetInConnRecordLen())
-		if syncAddrCount >= config.DefConfig.P2PNode.MaxConnInBound {
-			log.Warnf("[p2p]SyncAccept: total connections(%d) reach the max limit(%d), conn closed",
-				syncAddrCount, config.DefConfig.P2PNode.MaxConnInBound)
-			conn.Close()
-			continue
-		}
-
-		remoteIp, err := common.ParseIPAddr(conn.RemoteAddr().String())
-		if err != nil {
-			log.Warn("[p2p]parse ip error ", err.Error())
-			conn.Close()
-			continue
-		}
-		connNum := this.GetIpCountInInConnRecord(remoteIp)
-		if connNum >= config.DefConfig.P2PNode.MaxConnInBoundForSingleIP {
-			log.Warnf("[p2p]SyncAccept: connections(%d) with ip(%s) has reach the max limit(%d), "+
-				"conn closed", connNum, remoteIp, config.DefConfig.P2PNode.MaxConnInBoundForSingleIP)
-			conn.Close()
-			continue
-		}
-
-		remotePeer := peer.NewPeer()
-		addr := conn.RemoteAddr().String()
-		this.AddInConnRecord(addr)
-
-		this.AddPeerAddress(addr, remotePeer)
-
-		remotePeer.Link.SetAddr(addr)
-		remotePeer.Link.SetConn(conn)
-		remotePeer.AttachChan(this.NetChan)
-		go remotePeer.Link.Rx()
 	}
 }
 
@@ -627,4 +633,63 @@ func (this *NetServer) SetOwnAddress(addr string) {
 		log.Infof("[p2p]set own address %s", addr)
 		this.OwnAddress = addr
 	}
+}
+
+func (ns *NetServer) UpdateDHT(id kbucket.KadId) bool {
+	ns.dht.Update(id)
+	return true
+}
+
+func (ns *NetServer) RemoveDHT(id kbucket.KadId) bool {
+	ns.dht.Remove(id)
+	return true
+}
+
+func (ns *NetServer) BetterPeers(id kbucket.KadId, count int) []kbucket.KadId {
+	return ns.dht.BetterPeers(id, count)
+}
+
+func (ns *NetServer) GetPeerStringAddr() map[uint64]string {
+	return ns.Np.GetPeerStringAddr()
+}
+
+func (ns *NetServer) findSelf() {
+	tick := time.NewTicker(ns.dht.RtRefreshPeriod)
+	defer tick.Stop()
+
+	for {
+		select {
+		case <-tick.C:
+			log.Debug("[dht] start to find myself")
+			closer := ns.dht.BetterPeers(ns.dht.GetKadKeyId().Id, dht.AlphaValue)
+			for _, id := range closer {
+				log.Debugf("[dht] find closr peer %x", id)
+				ns.Send(ns.GetPeer(id.ToUint64()), msgpack.NewFindNodeReq(id))
+			}
+		}
+	}
+}
+
+func (ns *NetServer) refreshCPL() {
+	tick := time.NewTicker(ns.dht.RtRefreshPeriod)
+	defer tick.Stop()
+	for {
+		select {
+		case <-tick.C:
+			for curCPL := range ns.dht.RouteTable().Buckets {
+				log.Debugf("[dht] start to refresh bucket: %d", curCPL)
+				randPeer := ns.dht.RouteTable().GenRandKadId(uint(curCPL))
+				closer := ns.dht.BetterPeers(randPeer, dht.AlphaValue)
+				for _, pid := range closer {
+					log.Debugf("[dht] find closr peer %d", pid)
+					ns.Send(ns.GetPeer(pid.ToUint64()), msgpack.NewFindNodeReq(pid))
+				}
+			}
+		}
+	}
+}
+
+func (ns *NetServer) doRefresh() {
+	go ns.findSelf()
+	go ns.refreshCPL()
 }

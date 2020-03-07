@@ -116,22 +116,25 @@ type PeerAddr struct {
 
 //const channel msg id and type
 const (
-	VERSION_TYPE     = "version"    //peer`s information
-	VERACK_TYPE      = "verack"     //ack msg after version recv
-	GetADDR_TYPE     = "getaddr"    //req nbr address from peer
-	ADDR_TYPE        = "addr"       //nbr address
-	PING_TYPE        = "ping"       //ping  sync height
-	PONG_TYPE        = "pong"       //pong  recv nbr height
-	GET_HEADERS_TYPE = "getheaders" //req blk hdr
-	HEADERS_TYPE     = "headers"    //blk hdr
-	INV_TYPE         = "inv"        //inv payload
-	GET_DATA_TYPE    = "getdata"    //req data from peer
-	BLOCK_TYPE       = "block"      //blk payload
-	TX_TYPE          = "tx"         //transaction
-	CONSENSUS_TYPE   = "consensus"  //consensus payload
-	GET_BLOCKS_TYPE  = "getblocks"  //req blks from peer
-	NOT_FOUND_TYPE   = "notfound"   //peer can`t find blk according to the hash
-	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
+	VERSION_TYPE       = "version"     //peer`s information
+	VERACK_TYPE        = "verack"      //ack msg after version recv
+	GetADDR_TYPE       = "getaddr"     //req nbr address from peer
+	ADDR_TYPE          = "addr"        //nbr address
+	PING_TYPE          = "ping"        //ping  sync height
+	PONG_TYPE          = "pong"        //pong  recv nbr height
+	GET_HEADERS_TYPE   = "getheaders"  //req blk hdr
+	HEADERS_TYPE       = "headers"     //blk hdr
+	INV_TYPE           = "inv"         //inv payload
+	GET_DATA_TYPE      = "getdata"     //req data from peer
+	BLOCK_TYPE         = "block"       //blk payload
+	TX_TYPE            = "tx"          //transaction
+	CONSENSUS_TYPE     = "consensus"   //consensus payload
+	GET_BLOCKS_TYPE    = "getblocks"   //req blks from peer
+	NOT_FOUND_TYPE     = "notfound"    //peer can`t find blk according to the hash
+	DISCONNECT_TYPE    = "disconnect"  //peer disconnect info raise by link
+	FINDNODE_TYPE      = "findnode"    // find node using dht
+	FINDNODE_RESP_TYPE = "findnodeack" // find node using dht
+	UPDATE_KADID_TYPE  = "updatekadid" //update node kadid
 )
 
 type AppendPeerID struct {

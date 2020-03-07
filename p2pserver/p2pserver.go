@@ -224,6 +224,7 @@ func (this *P2PServer) GetTime() int64 {
 func (this *P2PServer) SetPID(pid *evtActor.PID) {
 	this.pid = pid
 	this.msgRouter.SetPID(pid)
+	this.network.SetPID(pid)
 }
 
 // GetPID returns p2p actor
@@ -296,8 +297,9 @@ func (this *P2PServer) connectSeeds() {
 
 	if len(seedConnList) > 0 {
 		rand.Seed(time.Now().UnixNano())
-		index := rand.Intn(len(seedConnList))
-		this.reqNbrList(seedConnList[index])
+		// close NewAddrReq
+		// index := rand.Intn(len(seedConnList))
+		// this.reqNbrList(seedConnList[index])
 		if isSeed && len(seedDisconn) > 0 {
 			index := rand.Intn(len(seedDisconn))
 			go this.network.Connect(seedDisconn[index])

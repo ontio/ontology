@@ -30,7 +30,6 @@ func initTestPeer() *Peer {
 	p.base.port = 10338
 	p.base.relay = true
 	p.base.height = 123355
-	p.base.id = 29357734007
 
 	return p
 }
@@ -80,15 +79,6 @@ func TestGetPeerComInfo(t *testing.T) {
 		p.base.SetHeight(234343497)
 		if p.base.GetHeight() != 234343497 {
 			t.Errorf("PeerCom SetHeight error")
-		}
-	}
-
-	if p.base.GetID() != 29357734007 {
-		t.Errorf("PeerCom GetID error")
-	} else {
-		p.base.SetID(1224322422)
-		if p.base.GetID() != 1224322422 {
-			t.Errorf("PeerCom SetID error")
 		}
 	}
 }
