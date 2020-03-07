@@ -96,8 +96,8 @@ func TestMain(m *testing.M) {
 
 	m.Run()
 
-	ledger.DefLedger.Close()
-	os.RemoveAll(config.DEFAULT_DATA_DIR)
+	_ = ledger.DefLedger.Close()
+	_ = os.RemoveAll(config.DEFAULT_DATA_DIR)
 }
 
 // TestVersionHandle tests Function VersionHandle handling a version message

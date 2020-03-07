@@ -26,7 +26,7 @@ import (
 	"strings"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -35,9 +35,10 @@ import (
 	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
+	"github.com/ontio/ontology/p2pserver/dht"
+	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
 //respCache cache for some response data
@@ -89,9 +90,89 @@ func AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 
 	msg := msgpack.NewAddrs(addrStr)
 	err := p2p.Send(remotePeer, msg)
+
 	if err != nil {
 		log.Warn(err)
 		return
+	}
+}
+
+func FindNodeResponseHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p dht]receive find node response message", data.Addr, data.Id)
+
+	remotePeer := p2p.GetPeer(data.Id)
+	if remotePeer == nil {
+		log.Debug("[p2p dht] remotePeer invalid in FindNodeResponseHandle")
+		return
+	}
+	fresp := data.Payload.(*msgTypes.FindNodeResp)
+	if fresp.Success {
+		log.Debugf("[p2p dht] %s", "find peer success, do nothing")
+		return
+	}
+	// we should connect to closer peer to ask them them where should we go
+	for _, curpa := range fresp.CloserPeers {
+		// already connected
+		if p2p.GetPeer(curpa.PeerID) != nil {
+			continue
+		}
+		// do nothing about
+		if curpa.PeerID == p2p.GetID() {
+			continue
+		}
+		log.Debugf("[dht] try to connect to another peer by dht: %d ==> %s", curpa.PeerID, curpa.Addr)
+		go p2p.Connect(curpa.Addr)
+	}
+}
+
+// FindNodeHandle handles the neighbor address request from peer
+func FindNodeHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
+	log.Trace("[p2p dht]receive find node request message", data.Addr, data.Id)
+
+	// we recv message must from establised peer
+	remotePeer := p2p.GetPeer(data.Id)
+	if remotePeer == nil {
+		log.Debug("[p2p dht]remotePeer invalid in FindNodeHandle")
+		return
+	}
+
+	freq := data.Payload.(*msgTypes.FindNodeReq)
+	var fresp msgTypes.FindNodeResp
+	// check the target is my self
+	log.Debugf("[dht] find node for peerid: %d", freq.TargetID)
+	if freq.TargetID == p2p.GetKadKeyId().Id {
+		fresp.Success = true
+		fresp.TargetID = freq.TargetID
+		// you've already connected with me so there's no need to give you my address
+		// omit the address
+		if err := p2p.Send(remotePeer, &fresp); err != nil {
+			log.Warn(err)
+		}
+		return
+	}
+	// search dht
+	closer := p2p.BetterPeers(freq.TargetID, dht.AlphaValue)
+
+	paddrs := p2p.GetPeerStringAddr()
+	for _, kid := range closer {
+		pid := kid.ToUint64()
+		if addr, ok := paddrs[pid]; ok {
+			curAddr := msgTypes.PeerAddr{
+				Addr:   addr,
+				PeerID: pid,
+			}
+			fresp.CloserPeers = append(fresp.CloserPeers, curAddr)
+
+		}
+	}
+	fresp.TargetID = freq.TargetID
+	log.Debugf("[dht] find %d more closer peers:", len(fresp.CloserPeers))
+	for _, curpa := range fresp.CloserPeers {
+		log.Debugf("    dht: pid: %d, addr: %s", curpa.PeerID, curpa.Addr)
+	}
+
+	if err := p2p.Send(remotePeer, &fresp); err != nil {
+		log.Warn(err)
 	}
 }
 
@@ -183,7 +264,6 @@ func BlockHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args
 			if remotePeer != nil {
 				remotePeer.Close()
 			}
-
 			return
 		}
 
@@ -251,8 +331,7 @@ func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, ar
 		log.Warn(err)
 		return
 	}
-	nodeAddr := addrIp + ":" +
-		strconv.Itoa(int(version.P.SyncPort))
+	nodeAddr := addrIp + ":" + strconv.Itoa(int(version.P.SyncPort))
 	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
 		found := false
 		for _, addr := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
@@ -376,6 +455,8 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 	}
 
 	remotePeer.SetState(msgCommon.ESTABLISH)
+	//p2p.UpdateDHT(data.Id)
+
 	p2p.RemoveFromConnectingList(data.Addr)
 	remotePeer.DumpInfo()
 
@@ -384,9 +465,9 @@ func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, arg
 		p2p.Send(remotePeer, msg)
 	}
 
-	msg := msgpack.NewAddrReq()
-	go p2p.Send(remotePeer, msg)
-
+	// using dht, so no full mesh request
+	// msg := msgpack.NewAddrReq()
+	// go p2p.Send(remotePeer, msg)
 }
 
 // AddrHandle handles the neighbor address response message from peer
@@ -602,6 +683,7 @@ func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID,
 		p2p.RemovePeerAddress(data.Addr)
 		remotePeer.Close()
 	}
+	p2p.RemoveDHT(remotePeer.GetKId())
 }
 
 //get blk hdrs from starthash to stophash
