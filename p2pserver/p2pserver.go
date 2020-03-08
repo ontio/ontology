@@ -366,7 +366,7 @@ func (this *P2PServer) retryInactivePeer() {
 
 	connCount := this.network.GetOutConnRecordLen()
 	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
-		log.Warnf("[p2p]Connect: out connections(%d) reach the max limit(%d)", connCount,
+		log.Warnf("[p2p]Connect: out connections(%d) reach max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
 		return
 	}

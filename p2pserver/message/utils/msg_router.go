@@ -21,69 +21,32 @@ package utils
 import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
-	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/p2pserver/protocols"
 )
 
 // MessageHandler defines the unified api for each net message
-type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{})
+type MessageHandler func(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID)
 
 // MessageRouter mostly route different message type-based to the
 // related message handler
 type MessageRouter struct {
-	msgHandlers map[string]MessageHandler // Msg handler mapped to msg type
-	RecvChan    chan *types.MsgPayload    // The channel to handle sync msg
-	stopRecvCh  chan bool                 // To stop sync channel
-	p2p         p2p.P2P                   // Refer to the p2p network
-	pid         *actor.PID                // P2P actor
+	msgHander  protocols.Protocol
+	RecvChan   chan *types.MsgPayload // The channel to handle sync msg
+	stopRecvCh chan bool              // To stop sync channel
+	p2p        p2p.P2P                // Refer to the p2p network
+	pid        *actor.PID             // P2P actor
 }
 
 // NewMsgRouter returns a message router object
 func NewMsgRouter(p2p p2p.P2P) *MessageRouter {
-	msgRouter := &MessageRouter{}
-	msgRouter.init(p2p)
-	return msgRouter
-}
-
-// init initializes the message router's attributes
-func (this *MessageRouter) init(p2p p2p.P2P) {
-	this.msgHandlers = make(map[string]MessageHandler)
-	this.RecvChan = p2p.GetMsgChan()
-	this.stopRecvCh = make(chan bool)
-	this.p2p = p2p
-
-	// Register message handler
-	//this.RegisterMsgHandler(msgCommon.VERSION_TYPE, VersionHandle)
-	//this.RegisterMsgHandler(msgCommon.VERACK_TYPE, VerAckHandle)
-	this.RegisterMsgHandler(msgCommon.GetADDR_TYPE, AddrReqHandle)
-	this.RegisterMsgHandler(msgCommon.ADDR_TYPE, AddrHandle)
-	this.RegisterMsgHandler(msgCommon.PING_TYPE, PingHandle)
-	this.RegisterMsgHandler(msgCommon.PONG_TYPE, PongHandle)
-	this.RegisterMsgHandler(msgCommon.GET_HEADERS_TYPE, HeadersReqHandle)
-	this.RegisterMsgHandler(msgCommon.HEADERS_TYPE, BlkHeaderHandle)
-	this.RegisterMsgHandler(msgCommon.INV_TYPE, InvHandle)
-	this.RegisterMsgHandler(msgCommon.GET_DATA_TYPE, DataReqHandle)
-	this.RegisterMsgHandler(msgCommon.BLOCK_TYPE, BlockHandle)
-	this.RegisterMsgHandler(msgCommon.CONSENSUS_TYPE, ConsensusHandle)
-	this.RegisterMsgHandler(msgCommon.NOT_FOUND_TYPE, NotFoundHandle)
-	this.RegisterMsgHandler(msgCommon.TX_TYPE, TransactionHandle)
-	this.RegisterMsgHandler(msgCommon.DISCONNECT_TYPE, DisconnectHandle)
-
-	this.RegisterMsgHandler(msgCommon.FINDNODE_TYPE, FindNodeHandle)
-	this.RegisterMsgHandler(msgCommon.FINDNODE_RESP_TYPE, FindNodeResponseHandle)
-}
-
-// RegisterMsgHandler registers msg handler with the msg type
-func (this *MessageRouter) RegisterMsgHandler(key string,
-	handler MessageHandler) {
-	this.msgHandlers[key] = handler
-}
-
-// UnRegisterMsgHandler un-registers the msg handler with
-// the msg type
-func (this *MessageRouter) UnRegisterMsgHandler(key string) {
-	delete(this.msgHandlers, key)
+	router := &MessageRouter{}
+	router.RecvChan = p2p.GetMsgChan()
+	router.stopRecvCh = make(chan bool)
+	router.p2p = p2p
+	router.msgHander = &MsgHandler{}
+	return router
 }
 
 // SetPID sets p2p actor
@@ -104,23 +67,14 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 		select {
 		case data, ok := <-channel:
 			if ok {
-				msgType := data.Payload.CmdType()
-
-				handler, ok := this.msgHandlers[msgType]
-				if ok {
-					if msgType == msgCommon.TX_TYPE {
-						handler(data, this.p2p, this.pid)
-					} else {
-						go handler(data, this.p2p, this.pid)
-					}
-				} else {
-					if msgType == msgCommon.VERACK_TYPE || msgType == msgCommon.VERSION_TYPE {
-						log.Infof("receive message: %s", msgType)
-					} else {
-						log.Warn("unknown message handler for the msg: ",
-							msgType)
-					}
+				sender := this.p2p.GetPeer(data.Id)
+				if sender == nil {
+					log.Warnf("[router] remote peer %d invalid.", data.Id)
+					continue
 				}
+
+				ctx := protocols.NewContext(sender, this.p2p, this.pid, data.PayloadSize)
+				go this.msgHander.HandleMessage(ctx, data.Payload)
 			}
 		case <-stopCh:
 			return
@@ -130,7 +84,6 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 
 // Stop stops the message router's loop
 func (this *MessageRouter) Stop() {
-
 	if this.stopRecvCh != nil {
 		this.stopRecvCh <- true
 	}

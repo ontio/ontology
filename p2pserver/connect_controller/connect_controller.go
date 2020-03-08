@@ -178,6 +178,8 @@ func (self *ConnectController) AcceptConnect(conn net.Conn) (*peer.PeerInfo, net
 	}
 
 	wrapped := self.savePeer(conn, peerInfo, INBOUND_INDEX)
+
+	log.Infof("handshake with inbound peer %s success. peer info:%s", conn.RemoteAddr().String(), peerInfo)
 	return peerInfo, wrapped, nil
 }
 
@@ -212,6 +214,8 @@ func (self *ConnectController) Connect(addr string) (*peer.PeerInfo, net.Conn, e
 	}
 
 	wrapped := self.savePeer(conn, peerInfo, OUTBOUND_INDEX)
+
+	log.Infof("handshake with outbound peer %s success. peer info:%s", conn.RemoteAddr().String(), peerInfo)
 	return peerInfo, wrapped, nil
 }
 
@@ -247,7 +251,7 @@ func (self *ConnectController) beforeHandshakeCheck(addr string, index int) erro
 		}
 		connNum := self.getInboundCountWithIp(remoteIp)
 		if connNum >= self.MaxConnInBoundPerIP {
-			return fmt.Errorf("connections(%d) with ip(%s) has reach the max limit(%d), "+
+			return fmt.Errorf("connections(%d) with ip(%s) has reach max limit(%d), "+
 				"conn closed", connNum, remoteIp, self.MaxConnInBoundPerIP)
 		}
 	}
