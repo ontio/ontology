@@ -36,7 +36,7 @@ type Conn struct {
 
 // Close overwrite net.Conn
 func (self *Conn) Close() error {
-	log.Debugf("closing connection: peer %s, address: %s", self.kid.ToHexString(), self.addr)
+	log.Infof("closing connection: peer %s, address: %s", self.kid.ToHexString(), self.addr)
 
 	self.controller.mutex.Lock()
 	defer self.controller.mutex.Unlock()
@@ -44,7 +44,7 @@ func (self *Conn) Close() error {
 	self.controller.inoutbounds[self.boundIndex].Remove(self.addr)
 
 	p := self.controller.peers[self.kid]
-	if p.peer == nil {
+	if p == nil || p.peer == nil {
 		log.Fatalf("connection %s not in controller", self.kid.ToHexString())
 	} else if p.connectId == self.connectId { // connection not replaced
 		delete(self.controller.peers, self.kid)

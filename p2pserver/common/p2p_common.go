@@ -78,23 +78,16 @@ const (
 
 // The peer state
 const (
-	INIT        = 0 //initial
-	HAND        = 1 //send verion to peer
-	HAND_SHAKE  = 2 //haven`t send verion to peer and receive peer`s version
-	HAND_SHAKED = 3 //send verion to peer and receive peer`s version
-	ESTABLISH   = 4 //receive peer`s verack
-	INACTIVITY  = 5 //link broken
+	INIT       = 0 //initial
+	ESTABLISH  = 4 //receive peer`s verack
+	INACTIVITY = 5 //link broken
 )
 
 //cap flag
-const (
-	HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
-)
+const HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
 
 //actor const
-const (
-	ACTOR_TIMEOUT = 5 //actor request timeout in secs
-)
+const ACTOR_TIMEOUT = 5 //actor request timeout in secs
 
 //recent contact const
 const (

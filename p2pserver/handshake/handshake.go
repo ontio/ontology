@@ -22,6 +22,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/blang/semver"
 	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/kbucket"
@@ -29,7 +30,7 @@ import (
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
-const HANDSHAKE_DURATION = 10 * time.Second // handshake time can not exceed this duration, or will treat as attack.
+var HANDSHAKE_DURATION = 10 * time.Second // handshake time can not exceed this duration, or will treat as attack.
 
 func HandshakeClient(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Conn) (*peer.PeerInfo, error) {
 	version := newVersion(info)
@@ -58,7 +59,7 @@ func HandshakeClient(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 
 	// 3. update kadId
 	kid := kbucket.PseudoKadIdFromUint64(receivedVersion.P.Nonce)
-	if receivedVersion.P.SoftVersion > "v1.9.0" {
+	if useDHT(receivedVersion.P.SoftVersion, info.SoftVersion) {
 		err = sendMsg(conn, &types.UpdateKadId{KadKeyId: selfId})
 		if err != nil {
 			return nil, err
@@ -80,6 +81,16 @@ func HandshakeClient(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 	err = sendMsg(conn, &types.VerACK{})
 	if err != nil {
 		return nil, err
+	}
+
+	msg, _, err = types.ReadMessage(conn)
+	if err != nil {
+		return nil, err
+	}
+
+	// 6. receive verack
+	if _, ok := msg.(*types.VerACK); !ok {
+		return nil, fmt.Errorf("handshake failed, expect verack message, got %s", msg.CmdType())
 	}
 
 	return createPeerInfo(receivedVersion, kid), nil
@@ -112,7 +123,7 @@ func HandshakeServer(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 
 	// 3. read update kadkey id
 	kid := kbucket.PseudoKadIdFromUint64(version.P.Nonce)
-	if version.P.SoftVersion > "v1.9.0" {
+	if useDHT(version.P.SoftVersion, info.SoftVersion) {
 		msg, _, err := types.ReadMessage(conn)
 		if err != nil {
 			return nil, fmt.Errorf("[HandshakeServer] ReadMessage failed, error: %s", err)
@@ -136,6 +147,12 @@ func HandshakeServer(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 	}
 	if msg.CmdType() != common.VERACK_TYPE {
 		return nil, fmt.Errorf("[HandshakeServer] expected version ack message")
+	}
+
+	// 6. sendMsg ack
+	err = sendMsg(conn, &types.VerACK{})
+	if err != nil {
+		return nil, err
 	}
 
 	return createPeerInfo(version, kid), nil
@@ -183,4 +200,27 @@ func newVersion(peerInfo *peer.PeerInfo) *types.Version {
 	}
 
 	return &version
+}
+
+func useDHT(client, server string) bool {
+	// we make this symmetric, because config.Version is depend on compile option, so to avoid the case:
+	// remote version is 1.9.0 and we support DHT, but the config.Version is not valid.
+	// remote will decide to not use DHT, but we will decide to use DHT, lead to handshake failure.
+	return supportDHT(client) && supportDHT(server)
+}
+
+func supportDHT(version string) bool {
+	if version == "" {
+		return false
+	}
+	v1, err := semver.ParseTolerant(version)
+	if err != nil {
+		return false
+	}
+	min, err := semver.ParseTolerant("1.9.0-beta")
+	if err != nil {
+		panic(err) // enforced by testcase
+	}
+
+	return v1.GTE(min)
 }
