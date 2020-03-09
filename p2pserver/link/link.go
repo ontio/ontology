@@ -150,11 +150,10 @@ func (this *Link) disconnectNotify() {
 	log.Debugf("[p2p]call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
 
-	msg, _ := types.MakeEmptyMessage(common.DISCONNECT_TYPE)
 	discMsg := &types.MsgPayload{
 		Id:      this.id,
 		Addr:    this.addr,
-		Payload: msg,
+		Payload: &types.Disconnected{},
 	}
 	this.recvChan <- discMsg
 }

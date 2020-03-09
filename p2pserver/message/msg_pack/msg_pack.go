@@ -19,16 +19,12 @@
 package msgpack
 
 import (
-	"time"
-
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	ct "github.com/ontio/ontology/core/types"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
-	p2pnet "github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
 //Peer address package
@@ -139,51 +135,6 @@ func NewTxn(txn *ct.Transaction) mt.Message {
 	trn.Txn = txn
 
 	return &trn
-}
-
-func NewUpdateKadKeyId(n p2pnet.P2P) mt.Message {
-	log.Trace()
-	upk := &mt.UpdateKadId{
-		KadKeyId: n.GetKadKeyId(),
-	}
-	return upk
-}
-
-//version ack package
-func NewVerAck() mt.Message {
-	log.Trace()
-	var verAck mt.VerACK
-
-	return &verAck
-}
-
-//Version package
-func NewVersion(n p2pnet.P2P, height uint32) mt.Message {
-	log.Trace()
-	var version mt.Version
-	version.P = mt.VersionPayload{
-		Version:      n.GetVersion(),
-		Services:     n.GetServices(),
-		SyncPort:     n.GetPort(),
-		Nonce:        n.GetID(),
-		IsConsensus:  false,
-		HttpInfoPort: n.GetHttpInfoPort(),
-		StartHeight:  uint64(height),
-		TimeStamp:    time.Now().UnixNano(),
-		SoftVersion:  config.Version,
-	}
-
-	if n.GetRelay() {
-		version.P.Relay = 1
-	} else {
-		version.P.Relay = 0
-	}
-	if config.DefConfig.P2PNode.HttpInfoPort > 0 {
-		version.P.Cap[msgCommon.HTTP_INFO_FLAG] = 0x01
-	} else {
-		version.P.Cap[msgCommon.HTTP_INFO_FLAG] = 0x00
-	}
-	return &version
 }
 
 //transaction request package

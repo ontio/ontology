@@ -20,13 +20,13 @@ package netserver
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	"testing"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/peer"
-	"github.com/stretchr/testify/require"
 )
 
 func init() {
@@ -37,11 +37,11 @@ func init() {
 func creatPeers(cnt uint16) []*peer.Peer {
 	np := []*peer.Peer{}
 	var syncport uint16
-	var id uint64
 	var height uint64
 	for i := uint16(0); i < cnt; i++ {
 		syncport = 20224 + i
-		id = 0x7533345 + uint64(i)
+		id := kbucket.PseudoKadIdFromUint64(0x7533345 + uint64(i))
+
 		height = 434923 + uint64(i)
 		p := peer.NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, height, "1.5.2")
@@ -84,8 +84,6 @@ func TestNetServerNbrPeer(t *testing.T) {
 	server.Start()
 	defer server.Halt()
 
-	nm := &peer.NbrPeers{}
-	nm.Init()
 	np := creatPeers(5)
 	for _, v := range np {
 		server.AddNbrNode(v)
@@ -116,72 +114,4 @@ func TestNetServerNbrPeer(t *testing.T) {
 		t.Error("TestNetServerNbrPeer Get/AddPeerConsAddress error")
 	}
 
-}
-
-func TestConnectingNodeAPI(t *testing.T) {
-	a := require.New(t)
-	server := NewNetServer()
-
-	a.Equal(server.GetOutConnectingListLen(), uint(0), "fail to test GetOutConnectingListLen")
-
-	addOK := server.AddOutConnectingList("192.168.1.1:28339")
-	a.Equal(server.GetOutConnectingListLen(), uint(1), "fail to test AddOutConnectingList")
-	a.Equal(addOK, true, "fail to test AddOutConnectingList")
-
-	// add same
-	addOK = server.AddOutConnectingList("192.168.1.1:28339")
-	a.Equal(server.GetOutConnectingListLen(), uint(1), "fail to test AddOutConnectingList")
-	a.Equal(addOK, false, "fail to test AddOutConnectingList")
-
-	// add new
-	server.AddOutConnectingList("192.168.2.2:2")
-	a.Equal(server.GetOutConnectingListLen(), uint(2), "fail to test AddOutConnectingList")
-
-	// test exist
-	a.Equal(server.IsAddrFromConnecting("192.168.2.2:2"), true, "fail to test IsAddrFromConnecting")
-	a.Equal(server.IsAddrFromConnecting("192.168.2.3:3"), false, "fail to test IsAddrFromConnecting")
-
-	server.RemoveFromConnectingList("192.168.2.2:2")
-	a.Equal(server.GetOutConnectingListLen(), uint(1), "fail to test RemoveFromConnectingList")
-}
-
-func TestInConnAPI(t *testing.T) {
-	a := require.New(t)
-	si := NewNetServer()
-	server, ok := si.(*NetServer)
-	a.True(ok, "fail to cast P2PServer")
-
-	a.Equal(server.GetInConnRecordLen(), int(0), "fail to test GetInConnRecordLen")
-	server.AddInConnRecord("192.168.1.1:1024")
-	a.Equal(server.GetInConnRecordLen(), int(1), "fail to test AddInConnRecord")
-	server.AddInConnRecord("192.168.1.1:1024")
-	a.Equal(server.GetInConnRecordLen(), int(1), "fail to test GetInConnRecordLen")
-	server.AddInConnRecord("192.168.1.2:2048")
-	a.Equal(server.GetInConnRecordLen(), int(2), "fail to test AddInConnRecord")
-	server.RemoveFromInConnRecord("192.168.1.2:2048")
-	a.Equal(server.GetInConnRecordLen(), int(1), "fail to test RemoveFromInConnRecord")
-	// same IP, different port
-	server.AddInConnRecord("192.168.1.1:2048")
-	a.Equal(server.GetInConnRecordLen(), int(2), "fail to test RemoveFromInConnRecord")
-
-	a.Equal(server.GetIpCountInInConnRecord("192.168.1.1"), uint(2), "fail to test GetIpCountInInConnRecord")
-}
-
-func TestOutConnAPI(t *testing.T) {
-	a := require.New(t)
-	si := NewNetServer()
-	server, ok := si.(*NetServer)
-	a.True(ok, "fail to case P2PServer")
-
-	a.Equal(server.GetOutConnRecordLen(), int(0), "fail to test GetOutConnRecordLen")
-	server.AddOutConnRecord("192.168.1.1:200")
-	a.Equal(server.GetOutConnRecordLen(), int(1), "fail to test AddOutConnRecord")
-	server.AddOutConnRecord("192.168.1.1:200")
-	a.Equal(server.GetOutConnRecordLen(), int(1), "fail to test AddOutConnRecord")
-	server.AddOutConnRecord("192.168.1.1:300")
-	a.Equal(server.GetOutConnRecordLen(), int(2), "fail to test AddOutConnRecord")
-	server.RemoveFromOutConnRecord("192.168.1.1:300")
-	a.Equal(server.GetOutConnRecordLen(), int(1), "fail to test RemoveFromOutConnRecord")
-	a.Equal(server.IsAddrInOutConnRecord("192.168.1.1:300"), false, "fail to test IsAddrInOutConnRecord")
-	a.Equal(server.IsAddrInOutConnRecord("192.168.1.1:200"), true, "fail to test IsAddrInOutConnRecord")
 }

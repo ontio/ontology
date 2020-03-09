@@ -58,17 +58,17 @@ const (
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
 	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
-	DEFAULT_NODE_PORT                       = uint(20338)
-	DEFAULT_CONSENSUS_PORT                  = uint(20339)
-	DEFAULT_RPC_PORT                        = uint(20336)
-	DEFAULT_RPC_LOCAL_PORT                  = uint(20337)
-	DEFAULT_REST_PORT                       = uint(20334)
-	DEFAULT_WS_PORT                         = uint(20335)
-	DEFAULT_REST_MAX_CONN                   = uint(1024)
-	DEFAULT_MAX_CONN_IN_BOUND               = uint(1024)
-	DEFAULT_MAX_CONN_OUT_BOUND              = uint(1024)
-	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = uint(16)
-	DEFAULT_HTTP_INFO_PORT                  = uint(0)
+	DEFAULT_NODE_PORT                       = 20338
+	DEFAULT_CONSENSUS_PORT                  = 20339
+	DEFAULT_RPC_PORT                        = 20336
+	DEFAULT_RPC_LOCAL_PORT                  = 20337
+	DEFAULT_REST_PORT                       = 20334
+	DEFAULT_WS_PORT                         = 20335
+	DEFAULT_REST_MAX_CONN                   = 1024
+	DEFAULT_MAX_CONN_IN_BOUND               = 1024
+	DEFAULT_MAX_CONN_OUT_BOUND              = 1024
+	DEFAULT_MAX_CONN_IN_BOUND_FOR_SINGLE_IP = 16
+	DEFAULT_HTTP_INFO_PORT                  = 0
 	DEFAULT_MAX_TX_IN_BLOCK                 = 60000
 	DEFAULT_MAX_SYNC_HEADER                 = 500
 	DEFAULT_ENABLE_CONSENSUS                = true
@@ -524,12 +524,12 @@ type P2PNodeConfig struct {
 	NetworkMagic              uint32
 	NetworkId                 uint32
 	NetworkName               string
-	NodePort                  uint
+	NodePort                  uint16
 	IsTLS                     bool
 	CertPath                  string
 	KeyPath                   string
 	CAPath                    string
-	HttpInfoPort              uint
+	HttpInfoPort              uint16
 	MaxHdrSyncReqs            uint
 	MaxConnInBound            uint
 	MaxConnOutBound           uint

@@ -7,7 +7,7 @@ require (
 	github.com/Workiva/go-datastructures v1.0.50 // indirect
 	github.com/btcsuite/btcd v0.20.1-beta // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/ethereum/go-ethereum v1.9.6
+	github.com/ethereum/go-ethereum v1.9.11
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/gosuri/uilive v0.0.3 // indirect
@@ -21,8 +21,9 @@ require (
 	github.com/ontio/wagon v0.4.1
 	github.com/orcaman/concurrent-map v0.0.0-20190826125027-8c72a8bb44f6 // indirect
 	github.com/pborman/uuid v1.2.0
-	github.com/stretchr/testify v1.3.0
-	github.com/syndtr/goleveldb v1.0.0
+	github.com/scylladb/go-set v1.0.2
+	github.com/stretchr/testify v1.4.0
+	github.com/syndtr/goleveldb v1.0.1-0.20190923125748-758128399b1d
 	github.com/urfave/cli v1.22.1
 	github.com/valyala/bytebufferpool v1.0.0
 	golang.org/x/crypto v0.0.0-20191029031824-8986dd9e96cf

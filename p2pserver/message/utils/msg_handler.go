@@ -21,11 +21,6 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"net"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/hashicorp/golang-lru"
 	evtActor "github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common"
@@ -39,6 +34,8 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/protocol"
+	"net"
+	"strconv"
 )
 
 //respCache cache for some response data
@@ -313,163 +310,6 @@ func TransactionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID
 	}
 }
 
-// VersionHandle handles version handshake protocol from peer
-func VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Trace("[p2p]receive version message", data.Addr, data.Id)
-
-	version := data.Payload.(*msgTypes.Version)
-
-	remotePeer := p2p.GetPeerFromAddr(data.Addr)
-	if remotePeer == nil {
-		log.Debug("[p2p]peer is not exist", data.Addr)
-		//peer not exist,just remove list and return
-		p2p.RemoveFromConnectingList(data.Addr)
-		return
-	}
-	addrIp, err := msgCommon.ParseIPAddr(data.Addr)
-	if err != nil {
-		log.Warn(err)
-		return
-	}
-	nodeAddr := addrIp + ":" + strconv.Itoa(int(version.P.SyncPort))
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
-		found := false
-		for _, addr := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
-			if strings.HasPrefix(data.Addr, addr) {
-				log.Debug("[p2p]peer in reserved list", data.Addr)
-				found = true
-				break
-			}
-		}
-		if !found {
-			remotePeer.Close()
-			log.Debug("[p2p]peer not in reserved list,close", data.Addr)
-			return
-		}
-
-	}
-
-	if version.P.Nonce == p2p.GetID() {
-		p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
-		p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-		log.Warn("[p2p]the node handshake with itself", remotePeer.GetAddr())
-		p2p.SetOwnAddress(nodeAddr)
-		remotePeer.Close()
-		return
-	}
-
-	s := remotePeer.GetState()
-	if s != msgCommon.INIT && s != msgCommon.HAND {
-		log.Warnf("[p2p]unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
-		remotePeer.Close()
-		return
-	}
-
-	// Obsolete node
-	p := p2p.GetPeer(version.P.Nonce)
-	if p != nil {
-		ipOld, err := msgCommon.ParseIPAddr(p.GetAddr())
-		if err != nil {
-			log.Warn("[p2p]exist peer %d ip format is wrong %s", version.P.Nonce, p.GetAddr())
-			return
-		}
-		ipNew, err := msgCommon.ParseIPAddr(data.Addr)
-		if err != nil {
-			remotePeer.Close()
-			log.Warn("[p2p]connecting peer %d ip format is wrong %s, close", version.P.Nonce, data.Addr)
-			return
-		}
-		if ipNew == ipOld {
-			//same id and same ip
-			n, delOK := p2p.DelNbrNode(version.P.Nonce)
-			if delOK {
-				log.Infof("[p2p]peer reconnect %d", version.P.Nonce, data.Addr)
-				// Close the connection and release the node source
-				n.Close()
-				if pid != nil {
-					input := &msgCommon.RemovePeerID{
-						ID: version.P.Nonce,
-					}
-					pid.Tell(input)
-				}
-			}
-		} else {
-			log.Warnf("[p2p]same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
-			remotePeer.Close()
-			return
-
-		}
-	}
-
-	if version.P.Cap[msgCommon.HTTP_INFO_FLAG] == 0x01 {
-		remotePeer.SetHttpInfoState(true)
-	} else {
-		remotePeer.SetHttpInfoState(false)
-	}
-	remotePeer.SetHttpInfoPort(version.P.HttpInfoPort)
-
-	remotePeer.UpdateInfo(time.Now(), version.P.Version,
-		version.P.Services, version.P.SyncPort, version.P.Nonce,
-		version.P.Relay, version.P.StartHeight, version.P.SoftVersion)
-	remotePeer.Link.SetID(version.P.Nonce)
-	p2p.AddNbrNode(remotePeer)
-
-	if pid != nil {
-		input := &msgCommon.AppendPeerID{
-			ID: version.P.Nonce,
-		}
-		pid.Tell(input)
-	}
-
-	var msg msgTypes.Message
-	if s == msgCommon.INIT {
-		remotePeer.SetState(msgCommon.HAND_SHAKE)
-		msg = msgpack.NewVersion(p2p, ledger.DefLedger.GetCurrentBlockHeight())
-	} else if s == msgCommon.HAND {
-		remotePeer.SetState(msgCommon.HAND_SHAKED)
-		msg = msgpack.NewVerAck()
-	}
-	err = p2p.Send(remotePeer, msg)
-	if err != nil {
-		log.Warn(err)
-		return
-	}
-}
-
-// VerAckHandle handles the version ack from peer
-func VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
-	log.Trace("[p2p]receive verAck message from ", data.Addr, data.Id)
-
-	//verAck := data.Payload.(*msgTypes.VerACK)
-	remotePeer := p2p.GetPeer(data.Id)
-
-	if remotePeer == nil {
-		log.Warn("[p2p]nbr node is not exist", data.Id, data.Addr)
-		return
-	}
-
-	s := remotePeer.GetState()
-	if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
-		log.Warnf("[p2p]unknown status to received verAck,state:%d,%s\n", s, data.Addr)
-		return
-	}
-
-	remotePeer.SetState(msgCommon.ESTABLISH)
-	//p2p.UpdateDHT(data.Id)
-
-	p2p.RemoveFromConnectingList(data.Addr)
-	remotePeer.DumpInfo()
-
-	if s == msgCommon.HAND_SHAKE {
-		msg := msgpack.NewVerAck()
-		p2p.Send(remotePeer, msg)
-	}
-
-	// using dht, so no full mesh request
-	// msg := msgpack.NewAddrReq()
-	// go p2p.Send(remotePeer, msg)
-}
-
 // AddrHandle handles the neighbor address response message from peer
 func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Trace("[p2p]handle addr message", data.Addr, data.Id)
@@ -493,9 +333,6 @@ func AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args 
 		}
 
 		if v.Port == 0 {
-			continue
-		}
-		if p2p.IsAddrFromConnecting(address) {
 			continue
 		}
 		log.Debug("[p2p]connect ip address:", address)
@@ -670,14 +507,11 @@ func InvHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args .
 // DisconnectHandle handles the disconnect events
 func DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, pid *evtActor.PID, args ...interface{}) {
 	log.Debug("[p2p]receive disconnect message", data.Addr, data.Id)
-	p2p.RemoveFromInConnRecord(data.Addr)
-	p2p.RemoveFromOutConnRecord(data.Addr)
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
 		log.Debug("[p2p]disconnect peer is nil")
 		return
 	}
-	p2p.RemoveFromConnectingList(data.Addr)
 
 	if remotePeer.Link.GetAddr() == data.Addr {
 		p2p.RemovePeerAddress(data.Addr)

@@ -364,7 +364,7 @@ func (this *P2PServer) retryInactivePeer() {
 	np.List = neighborPeers
 	np.Unlock()
 
-	connCount := uint(this.network.GetOutConnRecordLen())
+	connCount := this.network.GetOutConnRecordLen()
 	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
 		log.Warnf("[p2p]Connect: out connections(%d) reach the max limit(%d)", connCount,
 			config.DefConfig.P2PNode.MaxConnOutBound)
@@ -384,7 +384,6 @@ func (this *P2PServer) retryInactivePeer() {
 				list[addr] = v
 			}
 			if v >= common.MAX_RETRY_COUNT {
-				this.network.RemoveFromConnectingList(addr)
 				remotePeer := this.network.GetPeerFromAddr(addr)
 				if remotePeer != nil {
 					if remotePeer.Link.GetAddr() == addr {
@@ -574,7 +573,7 @@ func (this *P2PServer) syncPeerAddr() {
 	netID := config.DefConfig.P2PNode.NetworkMagic
 	for i := 0; i < len(this.recentPeers[netID]); i++ {
 		p := this.network.GetPeerFromAddr(this.recentPeers[netID][i])
-		if p == nil || (p != nil && p.GetState() != common.ESTABLISH) {
+		if p == nil || p.GetState() != common.ESTABLISH {
 			this.recentPeers[netID] = append(this.recentPeers[netID][:i], this.recentPeers[netID][i+1:]...)
 			changed = true
 			i--
