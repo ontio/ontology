@@ -169,8 +169,8 @@ func ParseIPAddr(s string) (string, error) {
 
 //ParseIPPort return ip port
 func ParseIPPort(s string) (string, error) {
-	i := strings.Index(s, ":")
-	if i < 0 {
+	i := strings.LastIndex(s, ":")
+	if i < 0 || i == len(s)-1 {
 		return "", errors.New("[p2p]split ip port error")
 	}
 	port, err := strconv.Atoi(s[i+1:])

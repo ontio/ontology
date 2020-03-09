@@ -20,6 +20,7 @@ package peer
 
 import (
 	"fmt"
+	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	"testing"
 	"time"
 )
@@ -27,11 +28,10 @@ import (
 func createPeers(cnt uint16) []*Peer {
 	np := []*Peer{}
 	var syncport uint16
-	var id uint64
 	var height uint64
 	for i := uint16(0); i < cnt; i++ {
 		syncport = 20224 + i
-		id = 0x7533345 + uint64(i)
+		id := kbucket.PseudoKadIdFromUint64(0x7533345 + uint64(i))
 		height = 434923 + uint64(i)
 		p := NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, height, "1.5.2")
@@ -45,8 +45,7 @@ func createPeers(cnt uint16) []*Peer {
 }
 
 func initTestNbrPeers() *NbrPeers {
-	nm := &NbrPeers{}
-	nm.Init()
+	nm := NewNbrPeers()
 	np := createPeers(5)
 	for _, v := range np {
 		nm.List[v.GetID()] = v
@@ -71,23 +70,6 @@ func TestGetPeer(t *testing.T) {
 	p := nm.GetPeer(0x7533345)
 	if p == nil {
 		t.Fatal("TestGetPeer error")
-	}
-}
-
-func TestAddNbrNode(t *testing.T) {
-	nm := initTestNbrPeers()
-
-	p := NewPeer()
-	p.UpdateInfo(time.Now(), 2, 3, 10335, 0x7123456, 0, 100, "1.5.2")
-	p.SetState(3)
-	p.SetHttpInfoState(true)
-	p.Link.SetAddr("127.0.0.1")
-	nm.AddNbrNode(p)
-	if !nm.NodeExisted(0x7123456) {
-		t.Fatal("0x7123456 should be added in nbr peer")
-	}
-	if len(nm.List) != 6 {
-		t.Fatal("0x7123456 should be added in nbr peer")
 	}
 }
 

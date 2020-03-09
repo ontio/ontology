@@ -52,21 +52,14 @@ type P2P interface {
 	Send(p *peer.Peer, msg types.Message) error
 	GetMsgChan() chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
-	AddOutConnectingList(addr string) (added bool)
-	GetOutConnRecordLen() int
-	RemoveFromConnectingList(addr string)
-	RemoveFromOutConnRecord(addr string)
-	RemoveFromInConnRecord(addr string)
+	GetOutConnRecordLen() uint
 	AddPeerAddress(addr string, p *peer.Peer)
-	GetOutConnectingListLen() (count uint)
 	RemovePeerAddress(addr string)
 	AddNbrNode(*peer.Peer)
 	DelNbrNode(id uint64) (*peer.Peer, bool)
 	NodeEstablished(id uint64) bool
 	Xmit(msg types.Message)
-	SetOwnAddress(addr string)
 	IsOwnAddress(addr string) bool
-	IsAddrFromConnecting(addr string) bool
 
 	UpdateDHT(id kbucket.KadId) bool
 	RemoveDHT(id kbucket.KadId) bool

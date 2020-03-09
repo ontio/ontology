@@ -35,6 +35,12 @@ type NbrPeers struct {
 	List map[uint64]*Peer
 }
 
+func NewNbrPeers() *NbrPeers {
+	return &NbrPeers{
+		List: make(map[uint64]*Peer),
+	}
+}
+
 //Broadcast tranfer msg buffer to all establish peer
 func (this *NbrPeers) Broadcast(msg types.Message) {
 	sink := comm.NewZeroCopySink(nil)
@@ -89,11 +95,6 @@ func (this *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
 	}
 	delete(this.List, id)
 	return n, true
-}
-
-//initialize nbr list
-func (this *NbrPeers) Init() {
-	this.List = make(map[uint64]*Peer)
 }
 
 //NodeEstablished whether peer established according to id
