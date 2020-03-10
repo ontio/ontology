@@ -492,7 +492,12 @@ func (ns *NetServer) findSelf() {
 			closer := ns.dht.BetterPeers(ns.dht.GetKadKeyId().Id, dht.AlphaValue)
 			for _, id := range closer {
 				log.Debugf("[dht] find closr peer %x", id)
-				ns.Send(ns.GetPeer(id.ToUint64()), msgpack.NewFindNodeReq(id))
+
+				if id.IsPseudoKadId() {
+					ns.Send(ns.GetPeer(id.ToUint64()), msgpack.NewAddrReq())
+				} else {
+					ns.Send(ns.GetPeer(id.ToUint64()), msgpack.NewFindNodeReq(id))
+				}
 			}
 		}
 	}
@@ -510,7 +515,11 @@ func (ns *NetServer) refreshCPL() {
 				closer := ns.dht.BetterPeers(randPeer, dht.AlphaValue)
 				for _, pid := range closer {
 					log.Debugf("[dht] find closr peer %d", pid)
-					ns.Send(ns.GetPeer(pid.ToUint64()), msgpack.NewFindNodeReq(pid))
+					if pid.IsPseudoKadId() {
+						ns.Send(ns.GetPeer(pid.ToUint64()), msgpack.NewAddrReq())
+					} else {
+						ns.Send(ns.GetPeer(pid.ToUint64()), msgpack.NewFindNodeReq(pid))
+					}
 				}
 			}
 		}

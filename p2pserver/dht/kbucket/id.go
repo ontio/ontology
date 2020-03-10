@@ -103,7 +103,7 @@ func (self KadId) GenRandKadId(prefix uint) KadId {
 }
 
 func (self KadId) ToUint64() uint64 {
-	if self.isPseudoKadId() {
+	if self.IsPseudoKadId() {
 		nonce := binary.LittleEndian.Uint64(self.val[:8])
 		return nonce
 	}
@@ -113,7 +113,7 @@ func (self KadId) ToUint64() uint64 {
 	return res.Uint64()
 }
 
-func (self KadId) isPseudoKadId() bool {
+func (self KadId) IsPseudoKadId() bool {
 	for i := 8; i < len(self.val); i++ {
 		if self.val[i] != 0 {
 			return false
