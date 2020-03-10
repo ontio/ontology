@@ -134,8 +134,18 @@ func (self *ConnectController) checkReservedPeers(remoteAddr string) error {
 	if len(self.ReservedPeers) == 0 {
 		return nil
 	}
+	rsvIPs := []string{}
 
-	for _, addr := range self.ReservedPeers {
+	// we don't load domain in start because we consider domain's A/AAAA record may change sometimes
+	for _, curIPOrName := range self.ReservedPeers {
+		curIPs, err := net.LookupHost(curIPOrName)
+		if err != nil {
+			continue
+		}
+		rsvIPs = append(rsvIPs, curIPs...)
+	}
+
+	for _, addr := range rsvIPs {
 		if strings.HasPrefix(remoteAddr, addr) {
 			return nil
 		}
