@@ -222,3 +222,17 @@ func checkServer(t *testing.T, client, server *Node, clientConns chan<- net.Conn
 
 	clientConns <- conn
 }
+
+func TestCheckReserveWithDomain(t *testing.T) {
+	a := assert.New(t)
+	dname := "www.baidu.com"
+	gips, err := net.LookupHost(dname)
+	a.Nil(err, "fail to get domain record")
+
+	cc := &ConnectController{}
+	cc.ReservedPeers = []string{dname}
+	for _, ip := range gips {
+		err := cc.checkReservedPeers(ip)
+		a.Nil(err, "fail")
+	}
+}
