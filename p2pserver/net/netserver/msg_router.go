@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils
+package netserver
 
 import (
 	"github.com/ontio/ontology-eventbus/actor"
@@ -74,7 +74,7 @@ func (this *MessageRouter) hookChan(channel chan *types.MsgPayload,
 				}
 
 				ctx := protocols.NewContext(sender, this.p2p, this.pid, data.PayloadSize)
-				go this.msgHander.HandleMessage(ctx, data.Payload)
+				go this.msgHander.HandlePeerMessage(ctx, data.Payload)
 			}
 		case <-stopCh:
 			return

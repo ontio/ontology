@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils
+package netserver
 
 import (
 	"errors"
@@ -35,7 +35,6 @@ import (
 	"github.com/ontio/ontology/p2pserver/dht"
 	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/ontio/ontology/p2pserver/protocols"
 )
 
@@ -48,10 +47,10 @@ var txCache, _ = lru.NewARC(msgCommon.MAX_TX_CACHE_SIZE)
 
 type MsgHandler struct{}
 
-func (self *MsgHandler) PeerConnected(p *peer.PeerInfo)    {}
-func (self *MsgHandler) PeerDisConnected(p *peer.PeerInfo) {}
+func (self *MsgHandler) HandleSystemMessage(ctx *protocols.Context, msg protocols.SystemMessage) {
+}
 
-func (self *MsgHandler) HandleMessage(ctx *protocols.Context, msg msgTypes.Message) {
+func (self *MsgHandler) HandlePeerMessage(ctx *protocols.Context, msg msgTypes.Message) {
 	log.Trace("[p2p]receive message", ctx.Sender().GetAddr(), ctx.Sender().GetID())
 	switch m := msg.(type) {
 	case *msgTypes.AddrReq:

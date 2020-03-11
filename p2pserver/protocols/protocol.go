@@ -72,7 +72,24 @@ func (self *Context) ReceivedBlock(sender kbucket.KadId, block *types.Block) {
 }
 
 type Protocol interface {
-	PeerConnected(p *peer.PeerInfo)
-	PeerDisConnected(p *peer.PeerInfo)
-	HandleMessage(ctx *Context, msg types.Message)
+	HandlePeerMessage(ctx *Context, msg types.Message)
+	HandleSystemMessage(ctx *Context, msg SystemMessage)
+}
+
+type SystemMessage interface {
+	implSystemMessage()
+}
+
+type implSystemMessage struct{}
+
+func (self implSystemMessage) implSystemMessage() {}
+
+type PeerConnected struct {
+	Info *peer.PeerInfo
+	implSystemMessage
+}
+
+type PeerDisConnected struct {
+	Info *peer.PeerInfo
+	implSystemMessage
 }
