@@ -189,7 +189,7 @@ func (self *ConnectController) AcceptConnect(conn net.Conn) (*peer.PeerInfo, net
 
 	wrapped := self.savePeer(conn, peerInfo, INBOUND_INDEX)
 
-	log.Infof("handshake with inbound peer %s success. peer info:%s", conn.RemoteAddr().String(), peerInfo)
+	log.Infof("inbound peer %s connected, %s", conn.RemoteAddr().String(), peerInfo)
 	return peerInfo, wrapped, nil
 }
 
@@ -225,7 +225,7 @@ func (self *ConnectController) Connect(addr string) (*peer.PeerInfo, net.Conn, e
 
 	wrapped := self.savePeer(conn, peerInfo, OUTBOUND_INDEX)
 
-	log.Infof("handshake with outbound peer %s success. peer info:%s", conn.RemoteAddr().String(), peerInfo)
+	log.Infof("outbound peer %s connected. %s", conn.RemoteAddr().String(), peerInfo)
 	return peerInfo, wrapped, nil
 }
 
@@ -276,10 +276,9 @@ func (self *ConnectController) isHandWithSelf(remotePeer *peer.PeerInfo, remoteA
 		return err
 	}
 	nodeAddr := addrIp + ":" + strconv.Itoa(int(remotePeer.Port))
-	if remotePeer.Id == self.selfId.Id {
-		log.Warn("[createPeer]the node handshake with itself:", remoteAddr)
+	if remotePeer.Id.ToUint64() == self.selfId.Id.ToUint64() {
 		self.ownAddr = nodeAddr
-		return fmt.Errorf("[createPeer]the node handshake with itself: %s", remoteAddr)
+		return fmt.Errorf("the node handshake with itself: %s", remoteAddr)
 	}
 
 	return nil

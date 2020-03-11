@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -81,13 +80,7 @@ func NewPeer() *Peer {
 		info:      &PeerInfo{},
 		Link:      conn.NewLink(),
 	}
-	runtime.SetFinalizer(p, rmPeer)
 	return p
-}
-
-//rmPeer print a debug log when peer be finalized by system
-func rmPeer(p *Peer) {
-	log.Debugf("[p2p]Remove unused peer: %d", p.GetID())
 }
 
 func (self *Peer) SetInfo(info *PeerInfo) {
@@ -140,7 +133,7 @@ func (this *Peer) SetState(state uint32) {
 
 //GetPort return peer`s sync port
 func (this *Peer) GetPort() uint16 {
-	return this.Link.GetPort()
+	return this.info.Port
 }
 
 //SendTo call sync link to send buffer
@@ -270,7 +263,6 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	this.info.Height = height
 
 	this.Link.UpdateRXTime(t)
-	this.Link.SetPort(syncPort)
 }
 
 //func NewPeer(t time.Time, version uint32, services uint64,

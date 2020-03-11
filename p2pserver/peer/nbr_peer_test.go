@@ -20,9 +20,10 @@ package peer
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	"testing"
 	"time"
+
+	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 )
 
 func createPeers(cnt uint16) []*Peer {

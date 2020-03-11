@@ -144,12 +144,6 @@ func (this *NetServer) GetHeight() uint64 {
 	return this.base.Height
 }
 
-//GetTime return the last contact time of self peer
-func (this *NetServer) GetTime() int64 {
-	t := time.Now()
-	return t.UnixNano()
-}
-
 //GetServices return the service state of self peer
 func (this *NetServer) GetServices() uint64 {
 	return this.base.Services
@@ -158,11 +152,6 @@ func (this *NetServer) GetServices() uint64 {
 //GetPort return the sync port
 func (this *NetServer) GetPort() uint16 {
 	return this.base.Port
-}
-
-//GetHttpInfoPort return the port support info via http
-func (this *NetServer) GetHttpInfoPort() uint16 {
-	return this.base.HttpInfoPort
 }
 
 //GetRelay return whether net module can relay msg
@@ -218,11 +207,6 @@ func (this *NetServer) NodeEstablished(id uint64) bool {
 //Xmit called by actor, broadcast msg
 func (this *NetServer) Xmit(msg types.Message) {
 	this.Np.Broadcast(msg)
-}
-
-//GetMsgChan return sync or consensus channel when msgrouter need msg input
-func (this *NetServer) GetMsgChan() chan *types.MsgPayload {
-	return this.NetChan
 }
 
 //Tx sendMsg data buf to peer
@@ -312,16 +296,13 @@ func (this *NetServer) Halt() {
 
 //establishing the connection to remote peers and listening for inbound peers
 func (this *NetServer) startListening() error {
-	var err error
-
 	syncPort := this.base.Port
-
 	if syncPort == 0 {
 		log.Error("[p2p]sync port invalid")
 		return errors.New("[p2p]sync port invalid")
 	}
 
-	err = this.startNetListening(syncPort)
+	err := this.startNetListening(syncPort)
 	if err != nil {
 		log.Error("[p2p]start sync listening fail")
 		return err
@@ -346,7 +327,6 @@ func (this *NetServer) startNetListening(port uint16) error {
 func (this *NetServer) handleClientConnection(conn net.Conn) error {
 	peerInfo, conn, err := this.connCtrl.AcceptConnect(conn)
 	if err != nil {
-		log.Error("[p2p] allow reserved peer connection only ")
 		return err
 	}
 	remotePeer := createPeer(peerInfo, conn)
@@ -384,7 +364,7 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 		}
 
 		if err := this.handleClientConnection(conn); err != nil {
-			log.Errorf("[p2p] handleClientConnection error: %s", err)
+			log.Warnf("[p2p] client connect error: %s", err)
 			_ = conn.Close()
 		}
 	}
@@ -541,7 +521,6 @@ func createPeer(info *peer.PeerInfo, conn net.Conn) *peer.Peer {
 	remotePeer.SetInfo(info)
 	remotePeer.SetState(common.ESTABLISH)
 	remotePeer.Link.UpdateRXTime(time.Now())
-	remotePeer.Link.SetPort(info.Port)
 	remotePeer.Link.SetAddr(conn.RemoteAddr().String())
 	remotePeer.Link.SetConn(conn)
 	remotePeer.Link.SetID(info.Id.ToUint64())

@@ -77,16 +77,6 @@ func NewServer() *P2PServer {
 	return p
 }
 
-//GetConnectionCnt return the established connect count
-func (this *P2PServer) GetConnectionCnt() uint32 {
-	return this.network.GetConnectionCnt()
-}
-
-//GetMaxPeerBlockHeight return the established connect count
-func (this *P2PServer) GetMaxPeerBlockHeight() uint64 {
-	return this.network.GetMaxPeerBlockHeight()
-}
-
 //Start create all services
 func (this *P2PServer) Start() error {
 	this.network.Start()
@@ -280,7 +270,7 @@ func (this *P2PServer) reachMinConnection() bool {
 		minCount = config.VBFT_MIN_NODE_NUM
 
 	}
-	return int(this.GetConnectionCnt())+1 >= minCount
+	return int(this.network.GetConnectionCnt())+1 >= minCount
 }
 
 //getNode returns the peer with the id

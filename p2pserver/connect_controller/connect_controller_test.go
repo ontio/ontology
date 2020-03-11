@@ -97,20 +97,24 @@ func NewNode(option ConnCtrlOption) *Node {
 }
 
 func TestConnectController_CanDetectSelfAddress(t *testing.T) {
-	trans := NewTransport(t)
-	server := NewNode(NewConnCtrlOption())
-	assert.Equal(t, server.OwnAddress(), "")
+	versions := []string{"v1.8.0", "v1.7.0", "v1.9.0", "v1.9.0-beta", "v1.20"}
+	for _, version := range versions {
+		trans := NewTransport(t)
+		server := NewNode(NewConnCtrlOption())
+		server.Info.SoftVersion = version
+		assert.Equal(t, server.OwnAddress(), "")
 
-	c, s := trans.Pipe()
-	go func() {
-		_, _ = handshake.HandshakeClient(server.peerInfo, server.Key, c)
-	}()
+		c, s := trans.Pipe()
+		go func() {
+			_, _ = handshake.HandshakeClient(server.peerInfo, server.Key, c)
+		}()
 
-	_, _, err := server.AcceptConnect(s)
-	assert.NotNil(t, err)
-	assert.Contains(t, err.Error(), "handshake with itself")
+		_, _, err := server.AcceptConnect(s)
+		assert.NotNil(t, err)
+		assert.Contains(t, err.Error(), "handshake with itself")
 
-	assert.Equal(t, server.OwnAddress(), "127.0.0.1:20338")
+		assert.Equal(t, server.OwnAddress(), "127.0.0.1:20338")
+	}
 }
 
 func TestConnectController_AcceptConnect_MaxInBound(t *testing.T) {

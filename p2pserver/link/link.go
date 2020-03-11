@@ -36,7 +36,6 @@ type Link struct {
 	id        uint64
 	addr      string                 // The address of the node
 	conn      net.Conn               // Connect socket with the peer node
-	port      uint16                 // The server port of the node
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
@@ -77,16 +76,6 @@ func (this *Link) GetAddr() string {
 //set address
 func (this *Link) SetAddr(addr string) {
 	this.addr = addr
-}
-
-//set port number
-func (this *Link) SetPort(p uint16) {
-	this.port = p
-}
-
-//get port number
-func (this *Link) GetPort() uint16 {
-	return this.port
 }
 
 //get connection
