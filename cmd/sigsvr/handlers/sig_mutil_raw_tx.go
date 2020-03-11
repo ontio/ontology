@@ -21,6 +21,7 @@ package handlers
 import (
 	"encoding/hex"
 	"encoding/json"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"

@@ -21,10 +21,12 @@ package cross_chain_manager
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
 	"math/big"
 
+	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/header_sync"
+
 	"bytes"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	ccom "github.com/ontio/ontology/smartcontract/service/native/cross_chain/common"

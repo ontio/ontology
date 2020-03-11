@@ -21,6 +21,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"strings"
+
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
@@ -28,8 +31,6 @@ import (
 	"github.com/ontio/ontology/core/payload"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	"github.com/urfave/cli"
-	"io/ioutil"
-	"strings"
 )
 
 var (

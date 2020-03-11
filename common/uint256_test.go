@@ -19,8 +19,9 @@ package common
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUint256_Serialize(t *testing.T) {

@@ -19,8 +19,9 @@
 package overlaydb
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestIter(t *testing.T) {

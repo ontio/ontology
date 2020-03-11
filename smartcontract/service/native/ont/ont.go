@@ -20,13 +20,14 @@ package ont
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"math/big"
 )
 
 const (

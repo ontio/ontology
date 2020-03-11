@@ -25,7 +25,7 @@ import (
 
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/consensus/vbft/config"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 )

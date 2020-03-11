@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/states"

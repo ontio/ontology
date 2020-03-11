@@ -20,6 +20,7 @@ package native
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/merkle"
 
 	"github.com/ontio/ontology/common"

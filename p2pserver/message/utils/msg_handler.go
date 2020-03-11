@@ -35,9 +35,9 @@ import (
 	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
 //respCache cache for some response data

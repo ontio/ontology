@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
@@ -37,7 +39,6 @@ import (
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
 	"github.com/ontio/wagon/exec"
 	"github.com/ontio/wagon/wasm"
-	"io"
 )
 
 type ContractType byte

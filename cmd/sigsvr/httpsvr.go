@@ -21,10 +21,11 @@ package sigsvr
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/cmd/sigsvr/common"
-	"github.com/ontio/ontology/common/log"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/ontio/ontology/cmd/sigsvr/common"
+	"github.com/ontio/ontology/common/log"
 )
 
 var DefCliRpcSvr = NewCliRpcServer()

@@ -19,6 +19,7 @@ package handlers
 
 import (
 	"encoding/json"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"

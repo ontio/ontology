@@ -22,15 +22,16 @@ package rpc
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/http/base/common"
-	berr "github.com/ontio/ontology/http/base/error"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base/common"
+	berr "github.com/ontio/ontology/http/base/error"
 )
 
 func init() {

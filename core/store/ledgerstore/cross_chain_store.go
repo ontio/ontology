@@ -20,11 +20,12 @@ package ledgerstore
 import (
 	"encoding/binary"
 	"fmt"
+	"os"
+
 	"github.com/ontio/ontology/common"
 	scom "github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/types"
-	"os"
 )
 
 const (

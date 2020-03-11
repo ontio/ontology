@@ -21,10 +21,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"math/big"
 	"reflect"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 )
 
 func DeserializeNotify(input []byte) interface{} {

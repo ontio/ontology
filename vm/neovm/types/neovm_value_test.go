@@ -20,11 +20,12 @@ package types
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
-	"github.com/stretchr/testify/assert"
 	"math"
 	"math/big"
 	"testing"
+
+	"github.com/ontio/ontology/common"
+	"github.com/stretchr/testify/assert"
 )
 
 func buildStruct(item []VmValue) (*StructValue, error) {

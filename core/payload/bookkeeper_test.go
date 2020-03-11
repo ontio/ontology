@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"encoding/hex"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"

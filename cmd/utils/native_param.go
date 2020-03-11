@@ -22,16 +22,17 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/ontio/ontology/cmd/abi"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	httpcom "github.com/ontio/ontology/http/base/common"
 	svrneovm "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/vm/neovm"
-	"math"
-	"math/big"
-	"strconv"
-	"strings"
 )
 
 func NewNativeInvokeTransaction(gasPrice, gasLimit uint64, contractAddr common.Address, version byte,

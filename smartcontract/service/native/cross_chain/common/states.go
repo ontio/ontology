@@ -19,6 +19,7 @@ package common
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 )
 

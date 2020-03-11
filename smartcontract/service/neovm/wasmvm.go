@@ -19,8 +19,9 @@ package neovm
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/core/utils"
 	"reflect"
+
+	"github.com/ontio/ontology/core/utils"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"

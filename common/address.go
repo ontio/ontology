@@ -24,9 +24,10 @@ import (
 	"fmt"
 	"math/big"
 
+	"io"
+
 	"github.com/itchyny/base58-go"
 	"golang.org/x/crypto/ripemd160"
-	"io"
 )
 
 const ADDR_LEN = 20

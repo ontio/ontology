@@ -22,6 +22,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"sync"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
@@ -29,7 +31,6 @@ import (
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/filter"
 	"github.com/syndtr/goleveldb/leveldb/opt"
-	"sync"
 )
 
 type WalletStore struct {

@@ -19,11 +19,12 @@
 package test
 
 import (
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology/core/types"
 	. "github.com/ontio/ontology/smartcontract"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 func TestInfiniteLoopCrash(t *testing.T) {

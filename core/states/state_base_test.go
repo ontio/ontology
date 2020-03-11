@@ -18,8 +18,9 @@
 package states
 
 import (
-	"github.com/ontio/ontology/common"
 	"testing"
+
+	"github.com/ontio/ontology/common"
 )
 
 func TestStateBase_Serialize_Deserialize(t *testing.T) {

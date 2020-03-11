@@ -20,6 +20,7 @@ package utils
 
 import (
 	"bytes"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"

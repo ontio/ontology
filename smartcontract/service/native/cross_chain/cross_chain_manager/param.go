@@ -20,6 +20,7 @@ package cross_chain_manager
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )

@@ -21,6 +21,8 @@ package lock_proxy
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/smartcontract/event"
@@ -28,7 +30,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/cross_chain/cross_chain_manager"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"math/big"
 )
 
 const (

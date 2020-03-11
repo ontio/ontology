@@ -20,8 +20,9 @@ package common
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLimitedWriter_Write(t *testing.T) {

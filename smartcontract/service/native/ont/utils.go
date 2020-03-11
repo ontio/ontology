@@ -20,6 +20,7 @@ package ont
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	cstates "github.com/ontio/ontology/core/states"

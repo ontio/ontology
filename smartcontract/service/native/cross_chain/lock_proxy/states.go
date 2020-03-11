@@ -20,10 +20,11 @@ package lock_proxy
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"io"
 	"math/big"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 // Args for lock and unlock

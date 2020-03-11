@@ -20,9 +20,10 @@ package testsuite
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"

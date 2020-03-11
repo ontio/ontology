@@ -19,10 +19,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/ontio/ontology/account"
-	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"os"
 	"testing"
+
+	"github.com/ontio/ontology/account"
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 )
 
 func TestExportWallet(t *testing.T) {

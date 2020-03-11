@@ -22,6 +22,7 @@ import (
 	"math/big"
 
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/errors"

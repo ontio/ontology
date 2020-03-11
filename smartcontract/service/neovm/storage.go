@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"

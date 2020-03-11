@@ -21,6 +21,9 @@ package handlers
 import (
 	"encoding/hex"
 	"encoding/json"
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
@@ -30,8 +33,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 var (

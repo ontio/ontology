@@ -23,16 +23,16 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
-	s "github.com/ontio/ontology-crypto/signature"
-	"golang.org/x/crypto/ripemd160"
 	"math"
 	"math/big"
 	"testing"
 
+	"github.com/ontio/ontology-crypto/keypair"
+	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 	"github.com/ontio/ontology/vm/neovm/types"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/ripemd160"
 )
 
 type Value interface{}

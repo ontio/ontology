@@ -22,6 +22,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	cliutil "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
