@@ -9,6 +9,7 @@ if [ $TRAVIS_OS_NAME == 'linux' ]; then
 	env GO111MODULE=on go mod vendor
 	cd ./wasmtest && bash ./run-wasm-tests.sh && cd ../
 	bash ./.travis.check-license.sh
+	bash ./.travis.check-templog.sh
 	bash ./.travis.gofmt.sh
 	bash ./.travis.gotest.sh
 elif [ $TRAVIS_OS_NAME == 'osx' ]; then

@@ -311,6 +311,10 @@ func Fatalf(format string, a ...interface{}) {
 	Log.Fatalf(format, a...)
 }
 
+// used for develop stage and not allowed in production enforced by CI
+var Test = Fatal
+var Testf = Fatalf
+
 func FileOpen(path string) (*os.File, error) {
 	if fi, err := os.Stat(path); err == nil {
 		if !fi.IsDir() {
