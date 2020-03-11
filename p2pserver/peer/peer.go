@@ -45,10 +45,11 @@ type PeerInfo struct {
 	Port         uint16
 	Height       uint64
 	SoftVersion  string
+	Addr         string
 }
 
 func NewPeerInfo(id kbucket.KadId, version uint32, services uint64, relay bool, httpInfoPort uint16,
-	port uint16, height uint64, softVersion string) *PeerInfo {
+	port uint16, height uint64, softVersion string, addr string) *PeerInfo {
 	return &PeerInfo{
 		Id:           id,
 		Version:      version,
@@ -58,6 +59,7 @@ func NewPeerInfo(id kbucket.KadId, version uint32, services uint64, relay bool, 
 		Port:         port,
 		Height:       height,
 		SoftVersion:  softVersion,
+		Addr:         addr,
 	}
 }
 
@@ -101,7 +103,7 @@ func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]Node info:")
 	log.Debug("[p2p]\t linkState = ", this.linkState)
 	log.Debug("[p2p]\t id = ", this.GetID())
-	log.Debug("[p2p]\t addr = ", this.Link.GetAddr())
+	log.Debug("[p2p]\t addr = ", this.info.Addr)
 	log.Debug("[p2p]\t cap = ", this.cap)
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
@@ -195,7 +197,7 @@ func (this *Peer) GetContactTime() time.Time {
 
 //GetAddr return peer`s sync link address
 func (this *Peer) GetAddr() string {
-	return this.Link.GetAddr()
+	return this.info.Addr
 }
 
 //GetAddr16 return peer`s sync link address in []byte

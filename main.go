@@ -314,7 +314,7 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2P
 	}
 	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
 	txpoolSvr.RegisterActor(tc.NetActor, p2pPID)
-	hserver.SetNetServerPID(p2pPID)
+	hserver.SetNetServer(p2p.GetNetWork())
 	p2p.WaitForPeersStart()
 	log.Infof("P2P init success")
 	return p2p, p2pPID, nil

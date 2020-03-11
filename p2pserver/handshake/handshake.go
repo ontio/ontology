@@ -93,7 +93,7 @@ func HandshakeClient(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 		return nil, fmt.Errorf("handshake failed, expect verack message, got %s", msg.CmdType())
 	}
 
-	return createPeerInfo(receivedVersion, kid), nil
+	return createPeerInfo(receivedVersion, kid, conn.RemoteAddr().String()), nil
 }
 
 func HandshakeServer(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Conn) (*peer.PeerInfo, error) {
@@ -155,7 +155,7 @@ func HandshakeServer(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 		return nil, err
 	}
 
-	return createPeerInfo(version, kid), nil
+	return createPeerInfo(version, kid, conn.RemoteAddr().String()), nil
 }
 
 func sendMsg(conn net.Conn, msg types.Message) error {
@@ -169,9 +169,9 @@ func sendMsg(conn net.Conn, msg types.Message) error {
 	return nil
 }
 
-func createPeerInfo(version *types.Version, kid kbucket.KadId) *peer.PeerInfo {
+func createPeerInfo(version *types.Version, kid kbucket.KadId, addr string) *peer.PeerInfo {
 	return peer.NewPeerInfo(kid, version.P.Version, version.P.Services, version.P.Relay != 0, version.P.HttpInfoPort,
-		version.P.SyncPort, version.P.StartHeight, version.P.SoftVersion)
+		version.P.SyncPort, version.P.StartHeight, version.P.SoftVersion, addr)
 }
 
 func newVersion(peerInfo *peer.PeerInfo) *types.Version {

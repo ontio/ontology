@@ -528,15 +528,8 @@ type SyncStatus struct {
 }
 
 func GetSyncStatus() (SyncStatus, error) {
-	var status SyncStatus
-	height, err := bactor.GetMaxPeerBlockHeight()
-	if err != nil {
-		return status, err
-	}
-	cnt, err := bactor.GetConnectionCnt()
-	if err != nil {
-		return status, err
-	}
+	height := bactor.GetMaxPeerBlockHeight()
+	cnt := bactor.GetConnectionCnt()
 	curBlockHeight := bactor.GetCurrentBlockHeight()
 
 	return SyncStatus{

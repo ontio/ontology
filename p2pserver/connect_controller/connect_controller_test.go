@@ -19,7 +19,9 @@ package connect_controller
 
 import (
 	"net"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	"github.com/ontio/ontology/p2pserver/handshake"
@@ -29,6 +31,7 @@ import (
 
 func init() {
 	kbucket.Difficulty = 1
+	handshake.HANDSHAKE_DURATION = 10 * time.Second
 }
 
 type Transport struct {
@@ -116,10 +119,13 @@ func TestConnectController_AcceptConnect_MaxInBound(t *testing.T) {
 	server := NewNode(NewConnCtrlOption().MaxInBound(uint(maxInboud)))
 	client := NewNode(NewConnCtrlOption().MaxOutBound(uint(maxInboud * 2)))
 
-	var clientConns []net.Conn
+	clientConns := make(chan net.Conn, maxInboud)
 	for i := 0; i < maxInboud*2; i++ {
 		conn1, conn2 := trans.Pipe()
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
 		go func(i int) {
+			defer wg.Done()
 			_, err := handshake.HandshakeClient(client.peerInfo, client.Key, conn1)
 			if i < int(maxInboud) {
 				assert.Nil(t, err)
@@ -127,10 +133,12 @@ func TestConnectController_AcceptConnect_MaxInBound(t *testing.T) {
 				assert.NotNil(t, err)
 			}
 		}(i)
-		clientConns = checkServer(t, client, server, clientConns, i, conn2, maxInboud, false)
+		checkServer(t, client, server, clientConns, i, conn2, maxInboud, false)
+		wg.Wait()
 	}
 
-	for _, conn := range clientConns {
+	close(clientConns)
+	for conn := range clientConns {
 		_ = conn.Close()
 	}
 
@@ -142,13 +150,13 @@ func TestConnectController_OutboundsCount(t *testing.T) {
 	server := NewNode(NewConnCtrlOption().MaxInBound(uint(maxOutboud * 2)))
 	client := NewNode(NewConnCtrlOption().MaxOutBound(uint(maxOutboud)))
 
-	var clientConns []net.Conn
+	clientConns := make(chan net.Conn, maxOutboud*2)
 	for i := 0; i < maxOutboud*2; i++ {
 		trans := NewTransport(t)
-		go func(trans *Transport) {
+		go func(i int, trans *Transport) {
 			con := trans.Accept()
-			clientConns = checkServer(t, client, server, clientConns, i, con, maxOutboud, true)
-		}(trans)
+			checkServer(t, client, server, clientConns, i, con, maxOutboud, true)
+		}(i, trans)
 		_, _, err := client.Connect(trans.listenAddr)
 		if i < maxOutboud {
 			assert.Nil(t, err)
@@ -158,24 +166,28 @@ func TestConnectController_OutboundsCount(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, client.boundsCount(OUTBOUND_INDEX), uint(5))
-	for _, conn := range clientConns {
+	assert.Equal(t, client.boundsCount(OUTBOUND_INDEX), uint(maxOutboud))
+	for i := 0; i < maxOutboud; i++ {
+		conn := <-clientConns
 		_ = conn.Close()
 	}
 
-	assert.Equal(t, server.inoutbounds[INBOUND_INDEX].Size(), 0)
+	assert.Equal(t, server.boundsCount(INBOUND_INDEX), uint(0))
 }
 
 func TestConnCtrlOption_MaxInBoundPerIp(t *testing.T) {
 	trans := NewTransport(t)
-	maxInBoundPerIp := 2
+	maxInBoundPerIp := 5
 	server := NewNode(NewConnCtrlOption().MaxInBoundPerIp(uint(maxInBoundPerIp)))
 	client := NewNode(NewConnCtrlOption().MaxInBoundPerIp(uint(maxInBoundPerIp)))
 
-	var clientConns []net.Conn
+	clientConns := make(chan net.Conn, maxInBoundPerIp)
 	for i := 0; i < maxInBoundPerIp*2; i++ {
 		conn1, conn2 := trans.Pipe()
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
 		go func(i int) {
+			defer wg.Done()
 			_, err := handshake.HandshakeClient(client.peerInfo, client.Key, conn1)
 			if i < int(maxInBoundPerIp) {
 				assert.Nil(t, err)
@@ -184,28 +196,29 @@ func TestConnCtrlOption_MaxInBoundPerIp(t *testing.T) {
 			}
 		}(i)
 
-		clientConns = checkServer(t, client, server, clientConns, i, conn2, maxInBoundPerIp, false)
+		checkServer(t, client, server, clientConns, i, conn2, maxInBoundPerIp, false)
+		wg.Wait()
 	}
 
-	for _, conn := range clientConns {
+	close(clientConns)
+	for conn := range clientConns {
 		_ = conn.Close()
 	}
 
 	assert.Equal(t, server.inoutbounds[INBOUND_INDEX].Size(), 0)
 }
 
-func checkServer(t *testing.T, client, server *Node, clientConns []net.Conn, i int, conn2 net.Conn, maxLimit int, isCheck bool) []net.Conn {
+func checkServer(t *testing.T, client, server *Node, clientConns chan<- net.Conn, i int, conn2 net.Conn, maxLimit int, isCheck bool) {
 	info, conn, err := server.AcceptConnect(conn2)
 	if i >= maxLimit && isCheck == false {
 		assert.NotNil(t, err)
 		assert.Contains(t, err.Error(), "reach max limit")
-		return clientConns
+		_ = conn2.Close()
+		return
 	}
 	assert.Nil(t, err)
+	info.Addr = "" // client.Info is not set
 	assert.Equal(t, info, client.Info)
 
-	assert.Equal(t, server.inoutbounds[INBOUND_INDEX].Size(), i+1)
-	assert.Equal(t, server.connecting.Size(), 0)
-	clientConns = append(clientConns, conn)
-	return clientConns
+	clientConns <- conn
 }

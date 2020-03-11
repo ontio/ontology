@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	evtActor "github.com/ontio/ontology-eventbus/actor"
+	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -47,6 +47,7 @@ func NewNetServer() p2p.P2P {
 		Np:      peer.NewNbrPeers(),
 	}
 
+	n.msgRouter = NewMsgRouter(n)
 	n.PeerAddrMap.PeerAddress = make(map[string]*peer.Peer)
 
 	n.init(config.DefConfig)
@@ -55,10 +56,11 @@ func NewNetServer() p2p.P2P {
 
 //NetServer represent all the actions in net layer
 type NetServer struct {
-	base     *peer.PeerInfo
-	listener net.Listener
-	pid      *evtActor.PID
-	NetChan  chan *types.MsgPayload
+	base      *peer.PeerInfo
+	listener  net.Listener
+	msgRouter *MessageRouter
+	pid       *actor.PID
+	NetChan   chan *types.MsgPayload
 	PeerAddrMap
 	Np *peer.NbrPeers
 
@@ -89,7 +91,7 @@ func (this *NetServer) init(conf *config.OntologyConfig) error {
 	}
 
 	this.base = peer.NewPeerInfo(dtable.GetKadKeyId().Id, common.PROTOCOL_VERSION, uint64(service), true, httpInfo,
-		nodePort, 0, config.Version)
+		nodePort, 0, config.Version, "")
 
 	option, err := connect_controller.ConnCtrlOptionFromConfig(conf.P2PNode)
 	if err != nil {
@@ -106,6 +108,7 @@ func (this *NetServer) init(conf *config.OntologyConfig) error {
 //InitListen start listening on the config port
 func (this *NetServer) Start() {
 	this.startListening()
+	this.msgRouter.Start()
 }
 
 //GetVersion return self peer`s version
@@ -131,8 +134,9 @@ func (this *NetServer) SetHeight(height uint64) {
 	this.base.Height = height
 }
 
-func (this *NetServer) SetPID(pid *evtActor.PID) {
+func (this *NetServer) SetPID(pid *actor.PID) {
 	this.pid = pid
+	this.msgRouter.SetPID(pid)
 }
 
 // GetHeight return peer's heigh
@@ -303,6 +307,7 @@ func (this *NetServer) Halt() {
 	if this.listener != nil {
 		this.listener.Close()
 	}
+	this.msgRouter.Stop()
 }
 
 //establishing the connection to remote peers and listening for inbound peers
