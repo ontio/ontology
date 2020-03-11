@@ -36,10 +36,8 @@ type P2P interface {
 	GetKId() kbucket.KadId
 	GetVersion() uint32
 	GetPort() uint16
-	GetHttpInfoPort() uint16
 	GetRelay() bool
 	GetHeight() uint64
-	GetTime() int64
 	GetServices() uint64
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() []common.PeerAddr
@@ -50,7 +48,6 @@ type P2P interface {
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, msg types.Message) error
-	GetMsgChan() chan *types.MsgPayload
 	GetPeerFromAddr(addr string) *peer.Peer
 	GetOutConnRecordLen() uint
 	AddPeerAddress(addr string, p *peer.Peer)

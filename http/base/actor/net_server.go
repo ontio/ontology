@@ -59,14 +59,6 @@ func GetConnectionState() uint32 {
 	return common.INIT
 }
 
-//GetNodeTime from netSever actor
-func GetNodeTime() int64 {
-	if netServer == nil {
-		return 0
-	}
-	return netServer.GetTime()
-}
-
 //GetNodePort from netSever actor
 func GetNodePort() uint16 {
 	if netServer == nil {

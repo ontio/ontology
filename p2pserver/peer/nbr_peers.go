@@ -19,12 +19,12 @@
 package peer
 
 import (
-	"fmt"
 	"net"
 	"strconv"
 	"sync"
 
 	comm "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
@@ -78,7 +78,7 @@ func (this *NbrPeers) AddNbrNode(p *Peer) {
 	defer this.Unlock()
 
 	if this.NodeExisted(p.GetID()) {
-		fmt.Printf("[p2p]insert an existed node\n")
+		log.Errorf("[p2p]insert an existed node\n")
 	} else {
 		this.List[p.GetID()] = p
 	}

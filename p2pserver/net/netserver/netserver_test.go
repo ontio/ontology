@@ -20,9 +20,10 @@ package netserver
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	"testing"
 	"time"
+
+	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -75,8 +76,6 @@ func TestNewNetServer(t *testing.T) {
 	if server.GetPort() != 20338 {
 		t.Error("TestNewNetServer sync port error", server.GetPort())
 	}
-
-	fmt.Printf("lastest server time is %s\n", time.Unix(server.GetTime()/1e9, 0).String())
 }
 
 func TestNetServerNbrPeer(t *testing.T) {

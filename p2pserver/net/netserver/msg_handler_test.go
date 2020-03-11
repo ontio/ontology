@@ -111,7 +111,6 @@ func TestAddrReqHandle(t *testing.T) {
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")
 	remotePeer.Link.SetAddr("127.0.0.1:1234")
-	remotePeer.Link.SetPort(1234)
 
 	network.AddNbrNode(remotePeer)
 	remotePeer.SetState(msgCommon.ESTABLISH)
@@ -160,7 +159,6 @@ func TestAddrReqHandle_maskok(t *testing.T) {
 	remotePeer := peer.NewPeer()
 	remotePeer.SetInfo(info)
 	remotePeer.Link.SetAddr("1.2.3.4:5001")
-	remotePeer.Link.SetPort(5001)
 	network.AddNbrNode(remotePeer)
 	remotePeer.SetState(msgCommon.ESTABLISH)
 
@@ -170,7 +168,6 @@ func TestAddrReqHandle_maskok(t *testing.T) {
 	remotePeer2 := peer.NewPeer()
 	remotePeer2.SetInfo(info2)
 	remotePeer2.Link.SetAddr("1.2.3.5:5002")
-	remotePeer2.Link.SetPort(5002)
 	network.AddNbrNode(remotePeer2)
 	remotePeer2.SetState(msgCommon.ESTABLISH)
 
@@ -229,7 +226,6 @@ func TestAddrReqHandle_unmaskok(t *testing.T) {
 	remotePeer.UpdateInfo(time.Now(), 1, 12345678, 20336,
 		testID, 0, 12345, "1.5.2")
 	remotePeer.Link.SetAddr("1.2.3.4:5001")
-	remotePeer.Link.SetPort(5001)
 
 	network.AddNbrNode(remotePeer)
 	remotePeer.SetState(msgCommon.ESTABLISH)
