@@ -19,6 +19,7 @@
 package event
 
 import (
+	"encoding/json"
 	"github.com/ontio/ontology/common"
 )
 
@@ -33,9 +34,80 @@ type NotifyEventInfo struct {
 	States          interface{}
 }
 
+func (self NotifyEventInfo) MarshalJSON() ([]byte, error) {
+	type Internal struct {
+		ContractAddress string
+		States          interface{}
+	}
+	in := Internal{
+		ContractAddress: self.ContractAddress.ToHexString(),
+		States:          self.States,
+	}
+	return json.Marshal(in)
+}
+
+func (self *NotifyEventInfo) UnmarshalJSON(data []byte) error {
+	type Internal struct {
+		ContractAddress string
+		States          interface{}
+	}
+	in := Internal{}
+	err := json.Unmarshal(data, &in)
+	if err != nil {
+		return err
+	}
+	self.States = in.States
+	contractAddr, err := common.AddressFromHexString(in.ContractAddress)
+	if err != nil {
+		return err
+	}
+	self.ContractAddress = contractAddr
+	return nil
+}
+
 type ExecuteNotify struct {
 	TxHash      common.Uint256
 	State       byte
 	GasConsumed uint64
 	Notify      []*NotifyEventInfo
+}
+
+func (self ExecuteNotify) MarshalJSON() ([]byte, error) {
+	type Internal struct {
+		TxHash      string
+		State       byte
+		GasConsumed uint64
+		Notify      []*NotifyEventInfo
+	}
+	in := Internal{
+		TxHash:      self.TxHash.ToHexString(),
+		State:       self.State,
+		GasConsumed: self.GasConsumed,
+		Notify:      self.Notify,
+	}
+	return json.Marshal(in)
+}
+
+func (self *ExecuteNotify) UnmarshalJSON(data []byte) error {
+	type Internal struct {
+		TxHash      string
+		State       byte
+		GasConsumed uint64
+		Notify      []*NotifyEventInfo
+	}
+
+	in := Internal{}
+	err := json.Unmarshal(data, &in)
+	if err != nil {
+		return err
+	}
+	self.Notify = in.Notify
+	hash, err := common.Uint256FromHexString(in.TxHash)
+	if err != nil {
+		return err
+	}
+	self.TxHash = hash
+	self.GasConsumed = in.GasConsumed
+	self.State = in.State
+	return nil
 }

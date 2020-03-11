@@ -40,7 +40,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	cstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/vm/neovm"
 )
 
@@ -66,25 +65,6 @@ type LogEventArgs struct {
 	TxHash          string
 	ContractAddress string
 	Message         string
-}
-
-type ExecuteNotify struct {
-	TxHash      string
-	State       byte
-	GasConsumed uint64
-	Notify      []NotifyEventInfo
-}
-
-type PreExecuteResult struct {
-	State  byte
-	Gas    uint64
-	Result interface{}
-	Notify []NotifyEventInfo
-}
-
-type NotifyEventInfo struct {
-	ContractAddress string
-	States          interface{}
 }
 
 type TxAttributeInfo struct {
@@ -185,23 +165,14 @@ func GetLogEvent(obj *event.LogEventArgs) (map[string]bool, LogEventArgs) {
 	return contractAddrs, LogEventArgs{hash.ToHexString(), addr, obj.Message}
 }
 
-func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, ExecuteNotify) {
-	evts := []NotifyEventInfo{}
+func GetExecuteNotify(obj *event.ExecuteNotify) (map[string]bool, event.ExecuteNotify) {
+	evts := []*event.NotifyEventInfo{}
 	var contractAddrs = make(map[string]bool)
 	for _, v := range obj.Notify {
-		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
+		evts = append(evts, &event.NotifyEventInfo{v.ContractAddress, v.States})
 		contractAddrs[v.ContractAddress.ToHexString()] = true
 	}
-	txhash := obj.TxHash.ToHexString()
-	return contractAddrs, ExecuteNotify{txhash, obj.State, obj.GasConsumed, evts}
-}
-
-func ConvertPreExecuteResult(obj *cstate.PreExecResult) PreExecuteResult {
-	evts := []NotifyEventInfo{}
-	for _, v := range obj.Notify {
-		evts = append(evts, NotifyEventInfo{v.ContractAddress.ToHexString(), v.States})
-	}
-	return PreExecuteResult{obj.State, obj.Gas, obj.Result, evts}
+	return contractAddrs, event.ExecuteNotify{obj.TxHash, obj.State, obj.GasConsumed, evts}
 }
 
 func TransArryByteToHexString(ptx *types.Transaction) *Transactions {

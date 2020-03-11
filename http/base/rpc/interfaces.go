@@ -30,6 +30,7 @@ import (
 	bactor "github.com/ontio/ontology/http/base/actor"
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -295,7 +296,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 						log.Infof("PreExec: ", err)
 						return responsePack(berr.SMARTCODE_ERROR, err.Error())
 					}
-					return responseSuccess(bcomn.ConvertPreExecuteResult(result))
+					return responseSuccess(result)
 				}
 			}
 		}
@@ -379,7 +380,7 @@ func GetSmartCodeEvent(params []interface{}) map[string]interface{} {
 			}
 			return responsePack(berr.INTERNAL_ERROR, "")
 		}
-		eInfos := make([]*bcomn.ExecuteNotify, 0, len(eventInfos))
+		eInfos := make([]*event.ExecuteNotify, 0, len(eventInfos))
 		for _, eventInfo := range eventInfos {
 			_, notify := bcomn.GetExecuteNotify(eventInfo)
 			eInfos = append(eInfos, &notify)
