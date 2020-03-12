@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package netserver
+package protocols
 
 import (
 	"errors"
@@ -35,7 +35,9 @@ import (
 	"github.com/ontio/ontology/p2pserver/dht"
 	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/protocols"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/p2pserver/protocols/block_sync"
+	"github.com/ontio/ontology/p2pserver/protocols/reconnect"
 )
 
 //respCache cache for some response data
@@ -45,13 +47,45 @@ var respCache *lru.ARCCache
 // thread safe
 var txCache, _ = lru.NewARC(msgCommon.MAX_TX_CACHE_SIZE)
 
-type MsgHandler struct{}
-
-func (self *MsgHandler) HandleSystemMessage(ctx *protocols.Context, msg protocols.SystemMessage) {
-
+type MsgHandler struct {
+	blockSync *block_sync.BlockSyncMgr
+	reconnect *reconnect.ReconnectService
+	ledger    *ledger.Ledger
 }
 
-func (self *MsgHandler) HandlePeerMessage(ctx *protocols.Context, msg msgTypes.Message) {
+func NewMsgHandler(ld *ledger.Ledger) *MsgHandler {
+	return &MsgHandler{ledger: ld}
+}
+
+func (self *MsgHandler) start(net p2p.P2P) {
+	self.blockSync = block_sync.NewBlockSyncMgr(net, self.ledger)
+	self.reconnect = reconnect.NewReconectService(net)
+
+	go self.blockSync.Start()
+	go self.reconnect.Start()
+}
+
+func (self *MsgHandler) stop() {
+	self.blockSync.Close()
+	self.reconnect.Close()
+}
+
+func (self *MsgHandler) HandleSystemMessage(net p2p.P2P, msg SystemMessage) {
+	switch m := msg.(type) {
+	case NetworkStart:
+		self.start(net)
+	case PeerConnected:
+		self.blockSync.OnAddNode(m.Info.Id.ToUint64())
+		self.reconnect.OnAddPeer(m.Info)
+	case PeerDisConnected:
+		self.blockSync.OnDelNode(m.Info.Id.ToUint64())
+		self.reconnect.OnDelPeer(m.Info)
+	case NetworkStop:
+		self.stop()
+	}
+}
+
+func (self *MsgHandler) HandlePeerMessage(ctx *Context, msg msgTypes.Message) {
 	log.Trace("[p2p]receive message", ctx.Sender().GetAddr(), ctx.Sender().GetID())
 	switch m := msg.(type) {
 	case *msgTypes.AddrReq:
@@ -67,9 +101,9 @@ func (self *MsgHandler) HandlePeerMessage(ctx *protocols.Context, msg msgTypes.M
 	case *msgTypes.Pong:
 		PongHandle(ctx, m)
 	case *msgTypes.BlkHeader:
-		BlkHeaderHandle(ctx, m)
+		self.blockSync.OnHeaderReceive(ctx.Sender().GetID(), m.BlkHdr)
 	case *msgTypes.Block:
-		BlockHandle(ctx, m)
+		self.blockHandle(ctx, m)
 	case *msgTypes.Consensus:
 		ConsensusHandle(ctx, m)
 	case *msgTypes.Trn:
@@ -95,7 +129,7 @@ func (self *MsgHandler) HandlePeerMessage(ctx *protocols.Context, msg msgTypes.M
 }
 
 // AddrReqHandle handles the neighbor address request from peer
-func AddrReqHandle(ctx *protocols.Context) {
+func AddrReqHandle(ctx *Context) {
 	remotePeer := ctx.Sender()
 	p2p := ctx.Network()
 
@@ -139,7 +173,7 @@ func AddrReqHandle(ctx *protocols.Context) {
 	}
 }
 
-func FindNodeResponseHandle(ctx *protocols.Context, fresp *msgTypes.FindNodeResp) {
+func FindNodeResponseHandle(ctx *Context, fresp *msgTypes.FindNodeResp) {
 	if fresp.Success {
 		log.Debugf("[p2p dht] %s", "find peer success, do nothing")
 		return
@@ -161,7 +195,7 @@ func FindNodeResponseHandle(ctx *protocols.Context, fresp *msgTypes.FindNodeResp
 }
 
 // FindNodeHandle handles the neighbor address request from peer
-func FindNodeHandle(ctx *protocols.Context, freq *msgTypes.FindNodeReq) {
+func FindNodeHandle(ctx *Context, freq *msgTypes.FindNodeReq) {
 	// we recv message must from establised peer
 	remotePeer := ctx.Sender()
 
@@ -206,7 +240,7 @@ func FindNodeHandle(ctx *protocols.Context, freq *msgTypes.FindNodeReq) {
 }
 
 // HeaderReqHandle handles the header sync req from peer
-func HeadersReqHandle(ctx *protocols.Context, headersReq *msgTypes.HeadersReq) {
+func HeadersReqHandle(ctx *Context, headersReq *msgTypes.HeadersReq) {
 	startHash := headersReq.HashStart
 	stopHash := headersReq.HashEnd
 
@@ -225,7 +259,7 @@ func HeadersReqHandle(ctx *protocols.Context, headersReq *msgTypes.HeadersReq) {
 }
 
 //PingHandle handle ping msg from peer
-func PingHandle(ctx *protocols.Context, ping *msgTypes.Ping) {
+func PingHandle(ctx *Context, ping *msgTypes.Ping) {
 	remotePeer := ctx.Sender()
 	remotePeer.SetHeight(ping.Height)
 	p2p := ctx.Network()
@@ -241,19 +275,13 @@ func PingHandle(ctx *protocols.Context, ping *msgTypes.Ping) {
 }
 
 ///PongHandle handle pong msg from peer
-func PongHandle(ctx *protocols.Context, pong *msgTypes.Pong) {
+func PongHandle(ctx *Context, pong *msgTypes.Pong) {
 	remotePeer := ctx.Network()
 	remotePeer.SetHeight(pong.Height)
 }
 
-// BlkHeaderHandle handles the sync headers from peer
-func BlkHeaderHandle(ctx *protocols.Context, blkHeader *msgTypes.BlkHeader) {
-	sender := ctx.Sender()
-	ctx.ReceivedHeaders(sender.GetKId(), blkHeader.BlkHdr)
-}
-
-// BlockHandle handles the block message from peer
-func BlockHandle(ctx *protocols.Context, block *msgTypes.Block) {
+// blockHandle handles the block message from peer
+func (self *MsgHandler) blockHandle(ctx *Context, block *msgTypes.Block) {
 	stateHashHeight := config.GetStateHashCheckHeight(config.DefConfig.P2PNode.NetworkId)
 	if block.Blk.Header.Height >= stateHashHeight && block.MerkleRoot == common.UINT256_EMPTY {
 		remotePeer := ctx.Sender()
@@ -261,11 +289,11 @@ func BlockHandle(ctx *protocols.Context, block *msgTypes.Block) {
 		return
 	}
 
-	ctx.ReceivedBlock(ctx.Sender().GetKId(), block)
+	self.blockSync.OnBlockReceive(ctx.Sender().GetID(), ctx.msgSize, block.Blk, block.CCMsg, block.MerkleRoot)
 }
 
 // ConsensusHandle handles the consensus message from peer
-func ConsensusHandle(ctx *protocols.Context, consensus *msgTypes.Consensus) {
+func ConsensusHandle(ctx *Context, consensus *msgTypes.Consensus) {
 	if actor.ConsensusPid != nil {
 		if err := consensus.Cons.Verify(); err != nil {
 			log.Warn(err)
@@ -277,7 +305,7 @@ func ConsensusHandle(ctx *protocols.Context, consensus *msgTypes.Consensus) {
 }
 
 // TransactionHandle handles the transaction message from peer
-func TransactionHandle(ctx *protocols.Context, trn *msgTypes.Trn) {
+func TransactionHandle(ctx *Context, trn *msgTypes.Trn) {
 	if !txCache.Contains(trn.Txn.Hash()) {
 		txCache.Add(trn.Txn.Hash(), nil)
 		actor.AddTransaction(trn.Txn)
@@ -287,35 +315,27 @@ func TransactionHandle(ctx *protocols.Context, trn *msgTypes.Trn) {
 }
 
 // AddrHandle handles the neighbor address response message from peer
-func AddrHandle(ctx *protocols.Context, msg *msgTypes.Addr) {
+func AddrHandle(ctx *Context, msg *msgTypes.Addr) {
 	p2p := ctx.Network()
 	for _, v := range msg.NodeAddrs {
+		if v.Port == 0 || v.ID == p2p.GetID() {
+			continue
+		}
 		var ip net.IP
 		ip = v.IpAddr[:]
 		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
-
-		if v.ID == p2p.GetID() {
-			continue
-		}
 
 		if p2p.NodeEstablished(v.ID) {
 			continue
 		}
 
-		if ret := p2p.GetPeerFromAddr(address); ret != nil {
-			continue
-		}
-
-		if v.Port == 0 {
-			continue
-		}
 		log.Debug("[p2p]connect ip address:", address)
 		go p2p.Connect(address)
 	}
 }
 
 // DataReqHandle handles the data req(block/Transaction) from peer
-func DataReqHandle(ctx *protocols.Context, dataReq *msgTypes.DataReq) {
+func DataReqHandle(ctx *Context, dataReq *msgTypes.DataReq) {
 	remotePeer := ctx.Sender()
 	reqType := common.InventoryType(dataReq.DataType)
 	hash := dataReq.Hash
@@ -399,7 +419,7 @@ func DataReqHandle(ctx *protocols.Context, dataReq *msgTypes.DataReq) {
 
 // InvHandle handles the inventory message(block,
 // transaction and consensus) from peer.
-func InvHandle(ctx *protocols.Context, inv *msgTypes.Inv) {
+func InvHandle(ctx *Context, inv *msgTypes.Inv) {
 	remotePeer := ctx.Sender()
 	if len(inv.P.Blk) == 0 {
 		log.Debug("[p2p]empty inv payload in InvHandle")
@@ -463,7 +483,7 @@ func InvHandle(ctx *protocols.Context, inv *msgTypes.Inv) {
 }
 
 // DisconnectHandle handles the disconnect events
-func DisconnectHandle(ctx *protocols.Context) {
+func DisconnectHandle(ctx *Context) {
 	remotePeer := ctx.Sender()
 	p2p := ctx.Network()
 	if remotePeer == nil {

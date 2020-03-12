@@ -22,9 +22,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-
-	com "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 )
 
 //peer capability
@@ -129,27 +126,6 @@ const (
 	FINDNODE_RESP_TYPE = "findnodeack" // find node using dht
 	UPDATE_KADID_TYPE  = "updatekadid" //update node kadid
 )
-
-type AppendPeerID struct {
-	ID uint64 // The peer id
-}
-
-type RemovePeerID struct {
-	ID uint64 // The peer id
-}
-
-type AppendHeaders struct {
-	FromID  uint64          // The peer id
-	Headers []*types.Header // Headers to be added to the ledger
-}
-
-type AppendBlock struct {
-	FromID     uint64               // The peer id
-	BlockSize  uint32               // Block size
-	Block      *types.Block         // Block to be added to the ledger
-	CCMsg      *types.CrossChainMsg // Cross chain message in ledger
-	MerkleRoot com.Uint256          // MerkleRoot
-}
 
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {

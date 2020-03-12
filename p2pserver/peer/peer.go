@@ -64,7 +64,7 @@ func NewPeerInfo(id kbucket.KadId, version uint32, services uint64, relay bool, 
 
 //Peer represent the node in p2p
 type Peer struct {
-	info      *PeerInfo
+	Info      *PeerInfo
 	cap       [32]byte
 	Link      *conn.Link
 	linkState uint32
@@ -77,14 +77,14 @@ type Peer struct {
 func NewPeer() *Peer {
 	p := &Peer{
 		linkState: common.INIT,
-		info:      &PeerInfo{},
+		Info:      &PeerInfo{},
 		Link:      conn.NewLink(),
 	}
 	return p
 }
 
 func (self *Peer) SetInfo(info *PeerInfo) {
-	self.info = info
+	self.Info = info
 }
 
 func (self *PeerInfo) String() string {
@@ -93,10 +93,10 @@ func (self *PeerInfo) String() string {
 
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo() {
-	log.Debug("[p2p]Node info:")
+	log.Debug("[p2p]Node Info:")
 	log.Debug("[p2p]\t linkState = ", this.linkState)
 	log.Debug("[p2p]\t id = ", this.GetID())
-	log.Debug("[p2p]\t addr = ", this.info.Addr)
+	log.Debug("[p2p]\t addr = ", this.Info.Addr)
 	log.Debug("[p2p]\t cap = ", this.cap)
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
@@ -108,17 +108,17 @@ func (this *Peer) DumpInfo() {
 
 //GetVersion return peer`s version
 func (this *Peer) GetVersion() uint32 {
-	return this.info.Version
+	return this.Info.Version
 }
 
 //GetHeight return peer`s block height
 func (this *Peer) GetHeight() uint64 {
-	return this.info.Height
+	return this.Info.Height
 }
 
 //SetHeight set height to peer
 func (this *Peer) SetHeight(height uint64) {
-	this.info.Height = height
+	this.Info.Height = height
 }
 
 //GetState return sync state
@@ -133,7 +133,7 @@ func (this *Peer) SetState(state uint32) {
 
 //GetPort return peer`s sync port
 func (this *Peer) GetPort() uint16 {
-	return this.info.Port
+	return this.Info.Port
 }
 
 //SendTo call sync link to send buffer
@@ -147,35 +147,32 @@ func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
 //Close halt sync connection
 func (this *Peer) Close() {
 	this.SetState(common.INACTIVITY)
-	conn := this.Link.GetConn()
 	this.connLock.Lock()
-	if conn != nil {
-		conn.Close()
-	}
+	this.Link.CloseConn()
 	this.connLock.Unlock()
 }
 
 //GetID return peer`s id
 func (this *Peer) GetID() uint64 {
-	return this.info.Id.ToUint64()
+	return this.Info.Id.ToUint64()
 }
 
 func (this *Peer) GetKId() kbucket.KadId {
-	return this.info.Id
+	return this.Info.Id
 }
 
 func (this *Peer) SetKId(id kbucket.KadId) {
-	this.info.Id = id
+	this.Info.Id = id
 }
 
 //GetRelay return peer`s relay state
 func (this *Peer) GetRelay() bool {
-	return this.info.Relay
+	return this.Info.Relay
 }
 
 //GetServices return peer`s service state
 func (this *Peer) GetServices() uint64 {
-	return this.info.Services
+	return this.Info.Services
 }
 
 //GetTimeStamp return peer`s latest contact time in ticks
@@ -190,7 +187,7 @@ func (this *Peer) GetContactTime() time.Time {
 
 //GetAddr return peer`s sync link address
 func (this *Peer) GetAddr() string {
-	return this.info.Addr
+	return this.Info.Addr
 }
 
 //GetAddr16 return peer`s sync link address in []byte
@@ -211,7 +208,7 @@ func (this *Peer) GetAddr16() ([16]byte, error) {
 }
 
 func (this *Peer) GetSoftVersion() string {
-	return this.info.SoftVersion
+	return this.Info.SoftVersion
 }
 
 //AttachChan set msg chan to sync link
@@ -243,24 +240,24 @@ func (this *Peer) GetHttpInfoState() bool {
 
 //GetHttpInfoPort return peer`s httpinfo port
 func (this *Peer) GetHttpInfoPort() uint16 {
-	return this.info.HttpInfoPort
+	return this.Info.HttpInfoPort
 }
 
 //SetHttpInfoPort set peer`s httpinfo port
 func (this *Peer) SetHttpInfoPort(port uint16) {
-	this.info.HttpInfoPort = port
+	this.Info.HttpInfoPort = port
 }
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 	syncPort uint16, kid kbucket.KadId, relay uint8, height uint64, softVer string) {
-	this.info.Id = kid
-	this.info.Version = version
-	this.info.Services = services
-	this.info.Port = syncPort
-	this.info.SoftVersion = softVer
-	this.info.Relay = relay != 0
-	this.info.Height = height
+	this.Info.Id = kid
+	this.Info.Version = version
+	this.Info.Services = services
+	this.Info.Port = syncPort
+	this.Info.SoftVersion = softVer
+	this.Info.Relay = relay != 0
+	this.Info.Height = height
 
 	this.Link.UpdateRXTime(t)
 }

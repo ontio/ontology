@@ -26,9 +26,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ontio/ontology/p2pserver/protocols"
-
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
@@ -39,37 +36,62 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/types"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
+	"github.com/ontio/ontology/p2pserver/protocols"
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer() p2p.P2P {
+func NewNetServer(protocol protocols.Protocol, conf *config.P2PNodeConfig) (p2p.P2P, error) {
 	n := &NetServer{
 		NetChan:  make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		base:     &peer.PeerInfo{},
 		Np:       peer.NewNbrPeers(),
-		protocol: &MsgHandler{},
+		protocol: protocol,
 	}
 
-	n.msgRouter = NewMsgRouter(n)
 	n.PeerAddrMap.PeerAddress = make(map[string]*peer.Peer)
 
-	n.init(config.DefConfig)
-	return n
+	err := n.init(conf)
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
 }
 
 //NetServer represent all the actions in net layer
 type NetServer struct {
-	base      *peer.PeerInfo
-	listener  net.Listener
-	protocol  protocols.Protocol
-	msgRouter *MessageRouter
-	pid       *actor.PID
-	NetChan   chan *types.MsgPayload
+	base     *peer.PeerInfo
+	listener net.Listener
+	protocol protocols.Protocol
+	NetChan  chan *types.MsgPayload
 	PeerAddrMap
 	Np *peer.NbrPeers
 
 	connCtrl *connect_controller.ConnectController
 	dht      *dht.DHT
+
+	stopRecvCh chan bool // To stop sync channel
+}
+
+// processMessage loops to handle the message from the network
+func (this *NetServer) processMessage(channel chan *types.MsgPayload,
+	stopCh chan bool) {
+	for {
+		select {
+		case data, ok := <-channel:
+			if ok {
+				sender := this.GetPeer(data.Id)
+				if sender == nil {
+					log.Warnf("[router] remote peer %d invalid.", data.Id)
+					continue
+				}
+
+				ctx := protocols.NewContext(sender, this, data.PayloadSize)
+				go this.protocol.HandlePeerMessage(ctx, data.Payload)
+			}
+		case <-stopCh:
+			return
+		}
+	}
 }
 
 //PeerAddrMap include all addr-peer list
@@ -79,45 +101,45 @@ type PeerAddrMap struct {
 }
 
 //init initializes attribute of network server
-func (this *NetServer) init(conf *config.OntologyConfig) error {
+func (this *NetServer) init(conf *config.P2PNodeConfig) error {
 	dtable := dht.NewDHT()
 	this.dht = dtable
 
-	service := common.SERVICE_NODE
-	if conf.Consensus.EnableConsensus {
-		service = common.VERIFY_NODE
-	}
-	httpInfo := conf.P2PNode.HttpInfoPort
-	nodePort := conf.P2PNode.NodePort
+	httpInfo := conf.HttpInfoPort
+	nodePort := conf.NodePort
 	if nodePort == 0 {
 		log.Error("[p2p]link port invalid")
 		return errors.New("[p2p]invalid link port")
 	}
 
-	this.base = peer.NewPeerInfo(dtable.GetKadKeyId().Id, common.PROTOCOL_VERSION, uint64(service), true, httpInfo,
+	this.base = peer.NewPeerInfo(dtable.GetKadKeyId().Id, common.PROTOCOL_VERSION, common.SERVICE_NODE, true, httpInfo,
 		nodePort, 0, config.Version, "")
 
-	option, err := connect_controller.ConnCtrlOptionFromConfig(conf.P2PNode)
+	option, err := connect_controller.ConnCtrlOptionFromConfig(conf)
 	if err != nil {
 		return err
 	}
 	this.connCtrl = connect_controller.NewConnectController(this.base, dtable.GetKadKeyId(), option)
 
 	log.Infof("[p2p]init peer ID to %s", this.base.Id.ToHexString())
-	this.doRefresh()
 
 	return nil
 }
 
 //InitListen start listening on the config port
 func (this *NetServer) Start() {
+	this.protocol.HandleSystemMessage(this, protocols.NetworkStart{})
 	this.startListening()
-	this.msgRouter.Start()
+	go this.processMessage(this.NetChan, this.stopRecvCh)
+
+	this.doRefresh()
+
+	log.Debug("[p2p]MessageRouter start to parse p2p message...")
 }
 
 //GetVersion return self peer`s version
-func (this *NetServer) GetVersion() uint32 {
-	return this.base.Version
+func (this *NetServer) GetHostInfo() *peer.PeerInfo {
+	return this.base
 }
 
 //GetId return peer`s id
@@ -138,29 +160,9 @@ func (this *NetServer) SetHeight(height uint64) {
 	this.base.Height = height
 }
 
-func (this *NetServer) SetPID(pid *actor.PID) {
-	this.pid = pid
-	this.msgRouter.SetPID(pid)
-}
-
 // GetHeight return peer's heigh
 func (this *NetServer) GetHeight() uint64 {
 	return this.base.Height
-}
-
-//GetServices return the service state of self peer
-func (this *NetServer) GetServices() uint64 {
-	return this.base.Services
-}
-
-//GetPort return the sync port
-func (this *NetServer) GetPort() uint16 {
-	return this.base.Port
-}
-
-//GetRelay return whether net module can relay msg
-func (this *NetServer) GetRelay() bool {
-	return this.base.Relay
 }
 
 // GetPeer returns a peer with the peer id
@@ -238,12 +240,8 @@ func (this *NetServer) removeOldPeer(kid kbucket.KadId, remoteAddr string) {
 			log.Infof("[p2p] peer reconnect %s, addr: %s", kid.ToHexString(), remoteAddr)
 			// Close the connection and release the node source
 			n.Close()
-			if this.pid != nil {
-				input := &common.RemovePeerID{
-					ID: kid.ToUint64(),
-				}
-				this.pid.Tell(input)
-			}
+
+			this.protocol.HandleSystemMessage(this, protocols.PeerDisConnected{Info: n.Info})
 		}
 	}
 
@@ -264,26 +262,22 @@ func (this *NetServer) Connect(addr string) error {
 	kid := remotePeer.GetKId()
 	remoteAddr := remotePeer.GetAddr()
 	// Obsolete node
-	netServer := this
 	this.removeOldPeer(kid, remoteAddr)
 
-	if !netServer.UpdateDHT(kid) {
+	if !this.UpdateDHT(kid) {
 		return fmt.Errorf("[HandshakeClient] UpdateDHT failed, kadId: %s", kid.ToHexString())
 	}
 
-	remotePeer.AttachChan(netServer.NetChan)
-	netServer.AddPeerAddress(remoteAddr, remotePeer)
-	netServer.AddNbrNode(remotePeer)
+	remotePeer.AttachChan(this.NetChan)
+	this.AddPeerAddress(remoteAddr, remotePeer)
+	this.AddNbrNode(remotePeer)
 	go remotePeer.Link.Rx()
 
-	if netServer.pid != nil {
-		input := &common.AppendPeerID{
-			ID: kid.ToUint64(),
-		}
-		netServer.pid.Tell(input)
-	}
-
+	this.protocol.HandleSystemMessage(this, protocols.PeerConnected{Info: remotePeer.Info})
 	return nil
+}
+
+func (this *NetServer) notifyPeerConnected(p *peer.PeerInfo) {
 }
 
 //Halt stop all net layer logic
@@ -295,7 +289,11 @@ func (this *NetServer) Halt() {
 	if this.listener != nil {
 		this.listener.Close()
 	}
-	this.msgRouter.Stop()
+
+	if this.stopRecvCh != nil {
+		this.stopRecvCh <- true
+	}
+	this.protocol.HandleSystemMessage(this, protocols.NetworkStop{})
 }
 
 //establishing the connection to remote peers and listening for inbound peers
@@ -306,7 +304,7 @@ func (this *NetServer) startListening() error {
 		return errors.New("[p2p]sync port invalid")
 	}
 
-	err := this.startNetListening(syncPort)
+	err := this.startNetListening(syncPort, config.DefConfig.P2PNode)
 	if err != nil {
 		log.Error("[p2p]start sync listening fail")
 		return err
@@ -315,9 +313,9 @@ func (this *NetServer) startListening() error {
 }
 
 // startNetListening starts a sync listener on the port for the inbound peer
-func (this *NetServer) startNetListening(port uint16) error {
+func (this *NetServer) startNetListening(port uint16, config *config.P2PNodeConfig) error {
 	var err error
-	this.listener, err = connect_controller.NewListener(port, config.DefConfig.P2PNode)
+	this.listener, err = connect_controller.NewListener(port, config)
 	if err != nil {
 		log.Error("[p2p]failed to create sync listener")
 		return errors.New("[p2p]failed to create sync listener")
@@ -347,13 +345,7 @@ func (this *NetServer) handleClientConnection(conn net.Conn) error {
 	this.AddPeerAddress(addr, remotePeer)
 
 	go remotePeer.Link.Rx()
-	if this.pid != nil {
-		input := &common.AppendPeerID{
-			ID: kid.ToUint64(),
-		}
-		this.pid.Tell(input)
-	}
-
+	this.protocol.HandleSystemMessage(this, protocols.PeerConnected{Info: remotePeer.Info})
 	return nil
 }
 
@@ -419,13 +411,6 @@ func (this *NetServer) RemovePeerAddress(addr string) {
 		delete(this.PeerAddress, addr)
 		log.Debugf("[p2p]delete Sync Address %s", addr)
 	}
-}
-
-//GetPeerAddressCount return length of cons addr from peer-addr map
-func (this *NetServer) GetPeerAddressCount() (count uint) {
-	this.PeerAddrMap.RLock()
-	defer this.PeerAddrMap.RUnlock()
-	return uint(len(this.PeerAddress))
 }
 
 //GetOutConnRecordLen return length of outConnRecord
