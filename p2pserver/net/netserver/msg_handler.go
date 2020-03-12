@@ -24,7 +24,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -33,7 +33,7 @@ import (
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht"
-	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/protocols"
 )
@@ -48,6 +48,7 @@ var txCache, _ = lru.NewARC(msgCommon.MAX_TX_CACHE_SIZE)
 type MsgHandler struct{}
 
 func (self *MsgHandler) HandleSystemMessage(ctx *protocols.Context, msg protocols.SystemMessage) {
+
 }
 
 func (self *MsgHandler) HandlePeerMessage(ctx *protocols.Context, msg msgTypes.Message) {
@@ -163,10 +164,6 @@ func FindNodeResponseHandle(ctx *protocols.Context, fresp *msgTypes.FindNodeResp
 func FindNodeHandle(ctx *protocols.Context, freq *msgTypes.FindNodeReq) {
 	// we recv message must from establised peer
 	remotePeer := ctx.Sender()
-	if remotePeer == nil {
-		log.Debug("[p2p dht]remotePeer invalid in FindNodeHandle")
-		return
-	}
 
 	var fresp msgTypes.FindNodeResp
 	// check the target is my self

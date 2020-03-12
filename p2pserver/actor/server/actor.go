@@ -81,7 +81,7 @@ func (this *P2PActor) Receive(ctx actor.Context) {
 func (this *P2PActor) handleTransmitConsensusMsgReq(ctx actor.Context, req *TransmitConsensusMsgReq) {
 	peer := this.server.GetNetWork().GetPeer(req.Target)
 	if peer != nil {
-		this.server.Send(peer, req.Msg, true)
+		this.server.Send(peer, req.Msg)
 	} else {
 		log.Warnf("[p2p]can`t transmit consensus msg:no valid neighbor peer: %d\n", req.Target)
 	}
