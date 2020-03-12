@@ -28,10 +28,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	evtActor "github.com/ontio/ontology-eventbus/actor"
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -43,38 +41,34 @@ import (
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	p2pnet "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
+	"github.com/ontio/ontology/p2pserver/protocols"
 )
 
 //P2PServer control all network activities
 type P2PServer struct {
-	network   p2pnet.P2P
-	pid       *evtActor.PID
-	blockSync *BlockSyncMgr
-	ledger    *ledger.Ledger
-	ReconnectAddrs
+	network     p2pnet.P2P
+	ledger      *ledger.Ledger
 	recentPeers map[uint32][]string
 	quit        chan bool
 }
 
-//ReconnectAddrs contain addr need to reconnect
-type ReconnectAddrs struct {
-	sync.RWMutex
-	RetryAddrs map[string]int
-}
-
 //NewServer return a new p2pserver according to the pubkey
-func NewServer() *P2PServer {
-	n := netserver.NewNetServer()
+func NewServer() (*P2PServer, error) {
+	ld := ledger.DefLedger
+	protocol := protocols.NewMsgHandler(ld)
+	n, err := netserver.NewNetServer(protocol, config.DefConfig.P2PNode)
+	if err != nil {
+		return nil, err
+	}
 
 	p := &P2PServer{
 		network: n,
-		ledger:  ledger.DefLedger,
+		ledger:  ld,
 	}
 
-	p.blockSync = NewBlockSyncMgr(p)
 	p.loadRecentPeers()
 	p.quit = make(chan bool)
-	return p
+	return p, nil
 }
 
 //Start create all services
@@ -83,9 +77,7 @@ func (this *P2PServer) Start() error {
 	this.tryRecentPeers()
 	go this.connectSeedService()
 	go this.syncUpRecentPeers()
-	go this.keepOnlineService()
 	go this.heartBeatService()
-	go this.blockSync.Start()
 	return nil
 }
 
@@ -93,7 +85,6 @@ func (this *P2PServer) Start() error {
 func (this *P2PServer) Stop() {
 	this.network.Halt()
 	this.quit <- true
-	this.blockSync.Close()
 }
 
 // GetNetWork returns the low level netserver
@@ -137,38 +128,6 @@ func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message) error {
 	log.Warnf("[p2p]send to a not ESTABLISH peer %d",
 		p.GetID())
 	return errors.New("[p2p]send to a not ESTABLISH peer")
-}
-
-// OnAddNode adds the peer id to the block sync mgr
-func (this *P2PServer) OnAddNode(id uint64) {
-	this.blockSync.OnAddNode(id)
-}
-
-// OnDelNode removes the peer id from the block sync mgr
-func (this *P2PServer) OnDelNode(id uint64) {
-	this.blockSync.OnDelNode(id)
-}
-
-// OnHeaderReceive adds the header list from network
-func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
-	this.blockSync.OnHeaderReceive(fromID, headers)
-}
-
-// OnBlockReceive adds the block from network
-func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32,
-	block *types.Block, ccMsg *types.CrossChainMsg, merkleRoot comm.Uint256) {
-	this.blockSync.OnBlockReceive(fromID, blockSize, block, ccMsg, merkleRoot)
-}
-
-// SetPID sets p2p actor
-func (this *P2PServer) SetPID(pid *evtActor.PID) {
-	this.pid = pid
-	this.network.SetPID(pid)
-}
-
-// GetPID returns p2p actor
-func (this *P2PServer) GetPID() *evtActor.PID {
-	return this.pid
 }
 
 //WaitForPeersStart check whether enough peer linked in loop
@@ -277,74 +236,6 @@ func (this *P2PServer) getNode(id uint64) *peer.Peer {
 	return this.network.GetPeer(id)
 }
 
-//retryInactivePeer try to connect peer in INACTIVITY state
-func (this *P2PServer) retryInactivePeer() {
-	np := this.network.GetNp()
-	np.Lock()
-	var ip net.IP
-	neighborPeers := make(map[uint64]*peer.Peer)
-	for _, p := range np.List {
-		addr, _ := p.GetAddr16()
-		ip = addr[:]
-		nodeAddr := ip.To16().String() + ":" +
-			strconv.Itoa(int(p.GetPort()))
-		if p.GetState() == common.INACTIVITY {
-			log.Debugf("[p2p] try reconnect %s", nodeAddr)
-			//add addr to retry list
-			this.addToRetryList(nodeAddr)
-			p.Close()
-		} else {
-			//add others to tmp node map
-			this.removeFromRetryList(nodeAddr)
-			neighborPeers[p.GetID()] = p
-		}
-	}
-
-	np.List = neighborPeers
-	np.Unlock()
-
-	connCount := this.network.GetOutConnRecordLen()
-	if connCount >= config.DefConfig.P2PNode.MaxConnOutBound {
-		log.Warnf("[p2p]Connect: out connections(%d) reach max limit(%d)", connCount,
-			config.DefConfig.P2PNode.MaxConnOutBound)
-		return
-	}
-
-	//try connect
-	if len(this.RetryAddrs) > 0 {
-		this.ReconnectAddrs.Lock()
-
-		list := make(map[string]int)
-		addrs := make([]string, 0, len(this.RetryAddrs))
-		for addr, v := range this.RetryAddrs {
-			v += 1
-			addrs = append(addrs, addr)
-			if v < common.MAX_RETRY_COUNT {
-				list[addr] = v
-			}
-			if v >= common.MAX_RETRY_COUNT {
-				remotePeer := this.network.GetPeerFromAddr(addr)
-				if remotePeer != nil {
-					if remotePeer.Link.GetAddr() == addr {
-						this.network.RemovePeerAddress(addr)
-					}
-					this.network.DelNbrNode(remotePeer.GetID())
-				}
-			}
-		}
-
-		this.RetryAddrs = list
-		this.ReconnectAddrs.Unlock()
-		for _, addr := range addrs {
-			rand.Seed(time.Now().UnixNano())
-			log.Debug("[p2p]Try to reconnect peer, peer addr is ", addr)
-			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
-			log.Debug("[p2p]Back off time`s up, start connect node")
-			this.network.Connect(addr)
-		}
-	}
-}
-
 //connectSeedService make sure seed peer be connected
 func (this *P2PServer) connectSeedService() {
 	t := time.NewTimer(time.Second * common.CONN_MONITOR)
@@ -358,22 +249,6 @@ func (this *P2PServer) connectSeedService() {
 			} else {
 				t.Reset(time.Second * common.CONN_MONITOR)
 			}
-		case <-this.quit:
-			t.Stop()
-			return
-		}
-	}
-}
-
-//keepOnline try connect lost peer
-func (this *P2PServer) keepOnlineService() {
-	t := time.NewTimer(time.Second * common.CONN_MONITOR)
-	for {
-		select {
-		case <-t.C:
-			this.retryInactivePeer()
-			t.Stop()
-			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quit:
 			t.Stop()
 			return
@@ -442,31 +317,6 @@ func (this *P2PServer) timeout() {
 				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.Link.GetAddr(), t.String())
 				p.Close()
 			}
-		}
-	}
-}
-
-//addToRetryList add retry address to ReconnectAddrs
-func (this *P2PServer) addToRetryList(addr string) {
-	this.ReconnectAddrs.Lock()
-	defer this.ReconnectAddrs.Unlock()
-	if this.RetryAddrs == nil {
-		this.RetryAddrs = make(map[string]int)
-	}
-	if _, ok := this.RetryAddrs[addr]; ok {
-		delete(this.RetryAddrs, addr)
-	}
-	//alway set retry to 0
-	this.RetryAddrs[addr] = 0
-}
-
-//removeFromRetryList remove connected address from ReconnectAddrs
-func (this *P2PServer) removeFromRetryList(addr string) {
-	this.ReconnectAddrs.Lock()
-	defer this.ReconnectAddrs.Unlock()
-	if len(this.RetryAddrs) > 0 {
-		if _, ok := this.RetryAddrs[addr]; ok {
-			delete(this.RetryAddrs, addr)
 		}
 	}
 }

@@ -84,7 +84,7 @@ func (self *noTlsDialer) Dial(nodeAddr string) (net.Conn, error) {
 }
 
 func NewListener(port uint16, config *config.P2PNodeConfig) (net.Listener, error) {
-	if !config.IsTLS {
+	if config == nil || !config.IsTLS {
 		return net.Listen("tcp", ":"+strconv.Itoa(int(port)))
 	}
 

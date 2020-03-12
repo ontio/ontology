@@ -64,7 +64,7 @@ func GetNodePort() uint16 {
 	if netServer == nil {
 		return 0
 	}
-	return netServer.GetPort()
+	return netServer.GetHostInfo().Port
 }
 
 //GetID from netSever actor
@@ -72,7 +72,7 @@ func GetID() uint64 {
 	if netServer == nil {
 		return 0
 	}
-	return netServer.GetID()
+	return netServer.GetHostInfo().Id.ToUint64()
 }
 
 //GetRelayState from netSever actor
@@ -80,7 +80,7 @@ func GetRelayState() bool {
 	if netServer == nil {
 		return false
 	}
-	return netServer.GetRelay()
+	return netServer.GetHostInfo().Relay
 }
 
 //GetVersion from netSever actor
@@ -88,7 +88,7 @@ func GetVersion() uint32 {
 	if netServer == nil {
 		return 0
 	}
-	return netServer.GetVersion()
+	return netServer.GetHostInfo().Version
 }
 
 //GetNodeType from netSever actor
@@ -96,5 +96,5 @@ func GetNodeType() uint64 {
 	if netServer == nil {
 		return 0
 	}
-	return netServer.GetServices()
+	return netServer.GetHostInfo().Services
 }

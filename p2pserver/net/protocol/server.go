@@ -20,7 +20,6 @@
 package p2p
 
 import (
-	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -32,13 +31,9 @@ type P2P interface {
 	Start()
 	Halt()
 	Connect(addr string) error
+	GetHostInfo() *peer.PeerInfo
 	GetID() uint64
 	GetKId() kbucket.KadId
-	GetVersion() uint32
-	GetPort() uint16
-	GetRelay() bool
-	GetHeight() uint64
-	GetServices() uint64
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() []common.PeerAddr
 	GetConnectionCnt() uint32
@@ -64,5 +59,4 @@ type P2P interface {
 	GetKadKeyId() *kbucket.KadKeyId
 
 	GetPeerStringAddr() map[uint64]string
-	SetPID(pid *actor.PID)
 }
