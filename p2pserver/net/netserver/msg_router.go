@@ -45,7 +45,7 @@ func NewMsgRouter(p2p *NetServer) *MessageRouter {
 	router.RecvChan = p2p.NetChan
 	router.stopRecvCh = make(chan bool)
 	router.p2p = p2p
-	router.protocol = &MsgHandler{}
+	router.protocol = p2p.protocol
 	return router
 }
 
