@@ -33,7 +33,7 @@ import (
 
 //Link used to establish
 type Link struct {
-	id        uint64
+	id        common.PeerId
 	addr      string                 // The address of the node
 	conn      net.Conn               // Connect socket with the peer node
 	time      time.Time              // The latest time the node activity
@@ -49,12 +49,12 @@ func NewLink() *Link {
 }
 
 //SetID set peer id to link
-func (this *Link) SetID(id uint64) {
+func (this *Link) SetID(id common.PeerId) {
 	this.id = id
 }
 
 //GetID return if from peer
-func (this *Link) GetID() uint64 {
+func (this *Link) GetID() common.PeerId {
 	return this.id
 }
 
@@ -167,7 +167,6 @@ func (this *Link) SendRaw(rawPacket []byte) error {
 	if conn == nil {
 		return errors.New("[p2p]tx link invalid")
 	}
-
 	nByteCnt := len(rawPacket)
 	log.Tracef("[p2p]TX buf length: %d\n", nByteCnt)
 

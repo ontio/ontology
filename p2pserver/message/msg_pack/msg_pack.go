@@ -23,7 +23,6 @@ import (
 	"github.com/ontio/ontology/common/log"
 	ct "github.com/ontio/ontology/core/types"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
 )
 
@@ -167,7 +166,7 @@ func NewConsensusDataReq(hash common.Uint256) mt.Message {
 	return &dataReq
 }
 
-func NewFindNodeReq(id kbucket.KadId) mt.Message {
+func NewFindNodeReq(id msgCommon.PeerId) mt.Message {
 	req := mt.FindNodeReq{
 		TargetID: id,
 	}

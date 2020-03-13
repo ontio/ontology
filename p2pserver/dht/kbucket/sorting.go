@@ -21,39 +21,40 @@ package kbucket
 import (
 	"bytes"
 	"container/list"
+	"github.com/ontio/ontology/p2pserver/common"
 	"sort"
 )
 
 // A helper struct to sort peers by their distance to the local node
 type peerDistance struct {
-	p        KadId
-	distance KadId
+	p        common.PeerId
+	distance [20]byte
 }
 
 // peerDistanceSorter implements sort.Interface to sort peers by xor distance
 type peerDistanceSorter struct {
 	peers  []peerDistance
-	target KadId
+	target common.PeerId
 }
 
 func (pds *peerDistanceSorter) Len() int      { return len(pds.peers) }
 func (pds *peerDistanceSorter) Swap(a, b int) { pds.peers[a], pds.peers[b] = pds.peers[b], pds.peers[a] }
 func (pds *peerDistanceSorter) Less(a, b int) bool {
-	return bytes.Compare(pds.peers[a].distance.val[:], pds.peers[b].distance.val[:]) < 0
+	return bytes.Compare(pds.peers[a].distance[:], pds.peers[b].distance[:]) < 0
 }
 
 // Append the peer.ID to the sorter's slice. It may no longer be sorted.
-func (pds *peerDistanceSorter) appendPeer(p KadId) {
+func (pds *peerDistanceSorter) appendPeer(p common.PeerId) {
 	pds.peers = append(pds.peers, peerDistance{
 		p:        p,
-		distance: pds.target.distance(p),
+		distance: pds.target.Distance(p),
 	})
 }
 
 // Append the peer.ID values in the list to the sorter's slice. It may no longer be sorted.
 func (pds *peerDistanceSorter) appendPeersFromList(l *list.List) {
 	for e := l.Front(); e != nil; e = e.Next() {
-		pds.appendPeer(e.Value.(KadId))
+		pds.appendPeer(e.Value.(common.PeerId))
 	}
 }
 

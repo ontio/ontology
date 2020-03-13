@@ -37,10 +37,10 @@ type Message interface {
 
 //MsgPayload in link channel
 type MsgPayload struct {
-	Id          uint64  //peer ID
-	Addr        string  //link address
-	PayloadSize uint32  //payload size
-	Payload     Message //msg payload
+	Id          common.PeerId //peer ID
+	Addr        string        //link address
+	PayloadSize uint32        //payload size
+	Payload     Message       //msg payload
 }
 
 type messageHeader struct {
@@ -184,7 +184,7 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 	case common.FINDNODE_RESP_TYPE:
 		return &FindNodeResp{}, nil
 	case common.UPDATE_KADID_TYPE:
-		return &UpdateKadId{}, nil
+		return &UpdatePeerKeyId{}, nil
 	default:
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}

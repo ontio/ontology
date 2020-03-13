@@ -21,7 +21,6 @@ package p2p
 
 import (
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
@@ -32,14 +31,13 @@ type P2P interface {
 	Halt()
 	Connect(addr string) error
 	GetHostInfo() *peer.PeerInfo
-	GetID() uint64
-	GetKId() kbucket.KadId
+	GetID() common.PeerId
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() []common.PeerAddr
 	GetConnectionCnt() uint32
 	GetMaxPeerBlockHeight() uint64
 	GetNp() *peer.NbrPeers
-	GetPeer(id uint64) *peer.Peer
+	GetPeer(id common.PeerId) *peer.Peer
 	SetHeight(uint64)
 	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, msg types.Message) error
@@ -48,15 +46,15 @@ type P2P interface {
 	AddPeerAddress(addr string, p *peer.Peer)
 	RemovePeerAddress(addr string)
 	AddNbrNode(*peer.Peer)
-	DelNbrNode(id uint64) (*peer.Peer, bool)
-	NodeEstablished(id uint64) bool
+	DelNbrNode(id common.PeerId) (*peer.Peer, bool)
+	NodeEstablished(id common.PeerId) bool
 	Xmit(msg types.Message)
 	IsOwnAddress(addr string) bool
 
-	UpdateDHT(id kbucket.KadId) bool
-	RemoveDHT(id kbucket.KadId) bool
-	BetterPeers(id kbucket.KadId, count int) []kbucket.KadId
-	GetKadKeyId() *kbucket.KadKeyId
+	UpdateDHT(id common.PeerId) bool
+	RemoveDHT(id common.PeerId) bool
+	BetterPeers(id common.PeerId, count int) []common.PeerId
+	GetPeerKeyId() *common.PeerKeyId
 
-	GetPeerStringAddr() map[uint64]string
+	GetPeerStringAddr() map[common.PeerId]string
 }

@@ -36,7 +36,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
-	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
+	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgtypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
 	p2pnet "github.com/ontio/ontology/p2pserver/net/protocol"
@@ -232,7 +232,7 @@ func (this *P2PServer) reachMinConnection() bool {
 }
 
 //getNode returns the peer with the id
-func (this *P2PServer) getNode(id uint64) *peer.Peer {
+func (this *P2PServer) getNode(id common.PeerId) *peer.Peer {
 	return this.network.GetPeer(id)
 }
 
@@ -258,12 +258,12 @@ func (this *P2PServer) connectSeedService() {
 
 //reqNbrList ask the peer for its neighbor list
 func (this *P2PServer) reqNbrList(p *peer.Peer) {
-	id := p.GetKId()
+	id := p.GetID()
 	var msg msgtypes.Message
-	if id.IsPseudoKadId() {
+	if id.IsPseudoPeerId() {
 		msg = msgpack.NewAddrReq()
 	} else {
-		msg = msgpack.NewFindNodeReq(this.GetNetWork().GetKId())
+		msg = msgpack.NewFindNodeReq(this.GetNetWork().GetID())
 	}
 
 	go this.Send(p, msg)

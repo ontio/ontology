@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	ncomm "github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 )
 
 var (
@@ -31,7 +30,7 @@ var (
 )
 
 type FindNodeReq struct {
-	TargetID kbucket.KadId
+	TargetID ncomm.PeerId
 }
 
 // Serialization message payload
@@ -50,12 +49,12 @@ func (req *FindNodeReq) Deserialization(source *common.ZeroCopySource) error {
 }
 
 type PeerAddr struct {
-	PeerID uint64 // peer ID
-	Addr   string // simple "ip:port"
+	PeerID ncomm.PeerId // peer ID
+	Addr   string       // simple "ip:port"
 }
 
 type FindNodeResp struct {
-	TargetID    kbucket.KadId
+	TargetID    ncomm.PeerId
 	Success     bool
 	Address     string
 	CloserPeers []PeerAddr
@@ -68,7 +67,7 @@ func (resp FindNodeResp) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteString(resp.Address)
 	sink.WriteUint32(uint32(len(resp.CloserPeers)))
 	for _, curPeer := range resp.CloserPeers {
-		sink.WriteUint64(curPeer.PeerID)
+		curPeer.PeerID.Serialization(sink)
 		sink.WriteString(curPeer.Addr)
 	}
 }
@@ -104,9 +103,10 @@ func (resp *FindNodeResp) Deserialization(source *common.ZeroCopySource) error {
 
 	for i := 0; i < int(numCloser); i++ {
 		var curpa PeerAddr
-		id, eof := source.NextUint64()
-		if eof {
-			return errRead
+		id := ncomm.PeerId{}
+		err = id.Deserialization(source)
+		if err != nil {
+			return err
 		}
 		curpa.PeerID = id
 		addr, _, _, eof := source.NextString()

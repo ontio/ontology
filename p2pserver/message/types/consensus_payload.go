@@ -26,6 +26,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/errors"
+	common2 "github.com/ontio/ontology/p2pserver/common"
 )
 
 type ConsensusPayload struct {
@@ -37,7 +38,7 @@ type ConsensusPayload struct {
 	Data            []byte
 	Owner           keypair.PublicKey
 	Signature       []byte
-	PeerId          uint64
+	PeerId          common2.PeerId
 	hash            common.Uint256
 }
 

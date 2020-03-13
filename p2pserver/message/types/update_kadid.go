@@ -21,24 +21,23 @@ package types
 import (
 	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 )
 
-type UpdateKadId struct {
+type UpdatePeerKeyId struct {
 	//TODO remove this legecy field when upgrade network layer protocal
-	KadKeyId *kbucket.KadKeyId
+	KadKeyId *common.PeerKeyId
 }
 
 //Serialize message payload
-func (this *UpdateKadId) Serialization(sink *common2.ZeroCopySink) {
+func (this *UpdatePeerKeyId) Serialization(sink *common2.ZeroCopySink) {
 	this.KadKeyId.Serialization(sink)
 }
 
-func (this *UpdateKadId) Deserialization(source *common2.ZeroCopySource) error {
-	this.KadKeyId = &kbucket.KadKeyId{}
+func (this *UpdatePeerKeyId) Deserialization(source *common2.ZeroCopySource) error {
+	this.KadKeyId = &common.PeerKeyId{}
 	return this.KadKeyId.Deserialization(source)
 }
 
-func (this *UpdateKadId) CmdType() string {
+func (this *UpdatePeerKeyId) CmdType() string {
 	return common.UPDATE_KADID_TYPE
 }

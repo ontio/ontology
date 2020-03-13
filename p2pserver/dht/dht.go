@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/p2pserver/common"
 	kb "github.com/ontio/ontology/p2pserver/dht/kbucket"
 )
 
@@ -35,7 +36,7 @@ var KValue = 20
 var AlphaValue = 3
 
 type DHT struct {
-	localKeyId *kb.KadKeyId
+	localKeyId *common.PeerKeyId
 	birth      time.Time // When this peer started up
 
 	bucketSize int
@@ -54,14 +55,14 @@ func (dht *DHT) RouteTable() *kb.RouteTable {
 // NewDHT creates a new DHT with the specified host and options.
 func NewDHT() *DHT {
 	bucketSize := KValue
-	keyId := kb.RandKadKeyId()
+	keyId := common.RandPeerKeyId()
 	rt := kb.NewRoutingTable(bucketSize, keyId.Id)
 
-	rt.PeerAdded = func(p kb.KadId) {
+	rt.PeerAdded = func(p common.PeerId) {
 		log.Debugf("dht: peer: %d added to dht", p)
 	}
 
-	rt.PeerRemoved = func(p kb.KadId) {
+	rt.PeerRemoved = func(p common.PeerId) {
 		log.Debugf("dht: peer: %d removed from dht", p)
 	}
 
@@ -78,22 +79,22 @@ func NewDHT() *DHT {
 
 // Update signals the routeTable to Update its last-seen status
 // on the given peer.
-func (dht *DHT) Update(peer kb.KadId) bool {
+func (dht *DHT) Update(peer common.PeerId) bool {
 	err := dht.routeTable.Update(peer)
 	return err == nil
 }
 
-func (dht *DHT) Remove(peer kb.KadId) {
+func (dht *DHT) Remove(peer common.PeerId) {
 	dht.routeTable.Remove(peer)
 }
 
-func (dht *DHT) GetKadKeyId() *kb.KadKeyId {
+func (dht *DHT) GetPeerKeyId() *common.PeerKeyId {
 	return dht.localKeyId
 }
 
-func (dht *DHT) BetterPeers(id kb.KadId, count int) []kb.KadId {
+func (dht *DHT) BetterPeers(id common.PeerId, count int) []common.PeerId {
 	closer := dht.routeTable.NearestPeers(id, count)
-	filtered := make([]kb.KadId, 0, len(closer))
+	filtered := make([]common.PeerId, 0, len(closer))
 	// don't include self and target id
 	for _, curID := range closer {
 		if curID == dht.localKeyId.Id {

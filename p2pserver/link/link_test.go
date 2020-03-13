@@ -46,9 +46,10 @@ func init() {
 
 	cliLink = NewLink()
 	serverLink = NewLink()
-
-	cliLink.SetID(0x733936)
-	serverLink.SetID(0x8274950)
+	id := common.PseudoPeerIdFromUint64(0x733936)
+	cliLink.SetID(id)
+	id2 := common.PseudoPeerIdFromUint64(0x8274950)
+	serverLink.SetID(id2)
 
 	cliChan = make(chan *mt.MsgPayload, 100)
 	serverChan = make(chan *mt.MsgPayload, 100)
@@ -60,12 +61,12 @@ func init() {
 func TestNewLink(t *testing.T) {
 	id := 0x74936295
 
-	if cliLink.GetID() != 0x733936 {
+	if cliLink.GetID().ToUint64() != 0x733936 {
 		t.Fatal("link GetID failed")
 	}
-
-	cliLink.SetID(uint64(id))
-	if cliLink.GetID() != uint64(id) {
+	i := common.PseudoPeerIdFromUint64(uint64(id))
+	cliLink.SetID(i)
+	if cliLink.GetID().ToUint64() != uint64(id) {
 		t.Fatal("link SetID failed")
 	}
 
@@ -106,9 +107,10 @@ func TestUnpackBufNode(t *testing.T) {
 	case "addr":
 		var newaddrs []common.PeerAddr
 		for i := 0; i < 10000000; i++ {
+			idd := common.PseudoPeerIdFromUint64(uint64(i))
 			newaddrs = append(newaddrs, common.PeerAddr{
 				Time: time.Now().Unix(),
-				ID:   uint64(i),
+				ID:   idd,
 			})
 		}
 		var addr mt.Addr

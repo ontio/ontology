@@ -29,14 +29,13 @@ import (
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	conn "github.com/ontio/ontology/p2pserver/link"
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
 // PeerInfo provides the basic information of a peer
 type PeerInfo struct {
-	Id           kbucket.KadId
+	Id           common.PeerId
 	Version      uint32
 	Services     uint64
 	Relay        bool
@@ -47,7 +46,7 @@ type PeerInfo struct {
 	Addr         string
 }
 
-func NewPeerInfo(id kbucket.KadId, version uint32, services uint64, relay bool, httpInfoPort uint16,
+func NewPeerInfo(id common.PeerId, version uint32, services uint64, relay bool, httpInfoPort uint16,
 	port uint16, height uint64, softVersion string, addr string) *PeerInfo {
 	return &PeerInfo{
 		Id:           id,
@@ -153,16 +152,8 @@ func (this *Peer) Close() {
 }
 
 //GetID return peer`s id
-func (this *Peer) GetID() uint64 {
-	return this.Info.Id.ToUint64()
-}
-
-func (this *Peer) GetKId() kbucket.KadId {
+func (this *Peer) GetID() common.PeerId {
 	return this.Info.Id
-}
-
-func (this *Peer) SetKId(id kbucket.KadId) {
-	this.Info.Id = id
 }
 
 //GetRelay return peer`s relay state
@@ -250,7 +241,7 @@ func (this *Peer) SetHttpInfoPort(port uint16) {
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, kid kbucket.KadId, relay uint8, height uint64, softVer string) {
+	syncPort uint16, kid common.PeerId, relay uint8, height uint64, softVer string) {
 	this.Info.Id = kid
 	this.Info.Version = version
 	this.Info.Services = services
@@ -261,12 +252,3 @@ func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
 
 	this.Link.UpdateRXTime(t)
 }
-
-//func NewPeer(t time.Time, version uint32, services uint64,
-//	syncPort uint16, nonce uint64, relay uint8, height uint64, softVer string) *Peer {
-//		id := kbucket.PseudoKadIdFromUint64(nonce)
-//		peerCom := NewPeerCom(id, version,services, relay,true,syncPort,height,softVer)
-//		return &Peer{
-//
-//		}
-//}
