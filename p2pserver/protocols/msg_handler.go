@@ -24,7 +24,7 @@ import (
 	"net"
 	"strconv"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -32,11 +32,13 @@ import (
 	"github.com/ontio/ontology/core/types"
 	actor "github.com/ontio/ontology/p2pserver/actor/req"
 	msgCommon "github.com/ontio/ontology/p2pserver/common"
-	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
+	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgTypes "github.com/ontio/ontology/p2pserver/message/types"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/protocols/block_sync"
 	"github.com/ontio/ontology/p2pserver/protocols/discovery"
+	"github.com/ontio/ontology/p2pserver/protocols/heatbeat"
+	"github.com/ontio/ontology/p2pserver/protocols/recent_peers"
 	"github.com/ontio/ontology/p2pserver/protocols/reconnect"
 )
 
@@ -48,10 +50,12 @@ var respCache *lru.ARCCache
 var txCache, _ = lru.NewARC(msgCommon.MAX_TX_CACHE_SIZE)
 
 type MsgHandler struct {
-	blockSync *block_sync.BlockSyncMgr
-	reconnect *reconnect.ReconnectService
-	discovery *discovery.Discovery
-	ledger    *ledger.Ledger
+	blockSync                *block_sync.BlockSyncMgr
+	reconnect                *reconnect.ReconnectService
+	discovery                *discovery.Discovery
+	heatBeat                 *heatbeat.HeartBeat
+	persistRecentPeerService *recent_peers.PersistRecentPeerService
+	ledger                   *ledger.Ledger
 }
 
 func NewMsgHandler(ld *ledger.Ledger) *MsgHandler {
@@ -62,15 +66,21 @@ func (self *MsgHandler) start(net p2p.P2P) {
 	self.blockSync = block_sync.NewBlockSyncMgr(net, self.ledger)
 	self.reconnect = reconnect.NewReconectService(net)
 	self.discovery = discovery.NewDiscovery(net)
-
+	self.heatBeat = heatbeat.NewHeartBeat(net, self.ledger)
+	self.persistRecentPeerService = recent_peers.NewPersistRecentPeerService(net)
+	go self.persistRecentPeerService.Start()
 	go self.blockSync.Start()
 	go self.reconnect.Start()
 	go self.discovery.Start()
+	go self.heatBeat.Start()
 }
 
 func (self *MsgHandler) stop() {
 	self.blockSync.Close()
 	self.reconnect.Close()
+	self.discovery.Stop()
+	self.persistRecentPeerService.Stop()
+	self.heatBeat.Stop()
 }
 
 func (self *MsgHandler) HandleSystemMessage(net p2p.P2P, msg p2p.SystemMessage) {
@@ -81,10 +91,12 @@ func (self *MsgHandler) HandleSystemMessage(net p2p.P2P, msg p2p.SystemMessage) 
 		self.blockSync.OnAddNode(m.Info.Id)
 		self.reconnect.OnAddPeer(m.Info)
 		self.discovery.OnAddPeer(m.Info)
+		self.persistRecentPeerService.AddNodeAddr(m.Info.Addr + strconv.Itoa(int(m.Info.Port)))
 	case p2p.PeerDisConnected:
 		self.blockSync.OnDelNode(m.Info.Id)
 		self.reconnect.OnDelPeer(m.Info)
 		self.discovery.OnDelPeer(m.Info)
+		self.persistRecentPeerService.DelNodeAddr(m.Info.Addr + strconv.Itoa(int(m.Info.Port)))
 	case p2p.NetworkStop:
 		self.stop()
 	}
@@ -102,9 +114,9 @@ func (self *MsgHandler) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message
 	case *msgTypes.HeadersReq:
 		HeadersReqHandle(ctx, m)
 	case *msgTypes.Ping:
-		PingHandle(ctx, m)
+		self.heatBeat.PingHandle(ctx, m)
 	case *msgTypes.Pong:
-		PongHandle(ctx, m)
+		self.heatBeat.PongHandle(ctx, m)
 	case *msgTypes.BlkHeader:
 		self.blockSync.OnHeaderReceive(ctx.Sender().GetID(), m.BlkHdr)
 	case *msgTypes.Block:
@@ -195,28 +207,6 @@ func HeadersReqHandle(ctx *p2p.Context, headersReq *msgTypes.HeadersReq) {
 		log.Warn(err)
 		return
 	}
-}
-
-//PingHandle handle ping msg from peer
-func PingHandle(ctx *p2p.Context, ping *msgTypes.Ping) {
-	remotePeer := ctx.Sender()
-	remotePeer.SetHeight(ping.Height)
-	p2p := ctx.Network()
-
-	height := ledger.DefLedger.GetCurrentBlockHeight()
-	p2p.SetHeight(uint64(height))
-	msg := msgpack.NewPongMsg(uint64(height))
-
-	err := remotePeer.Send(msg)
-	if err != nil {
-		log.Warn(err)
-	}
-}
-
-///PongHandle handle pong msg from peer
-func PongHandle(ctx *p2p.Context, pong *msgTypes.Pong) {
-	remotePeer := ctx.Network()
-	remotePeer.SetHeight(pong.Height)
 }
 
 // blockHandle handles the block message from peer
