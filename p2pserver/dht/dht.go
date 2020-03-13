@@ -36,8 +36,8 @@ var KValue = 20
 var AlphaValue = 3
 
 type DHT struct {
-	localKeyId *common.PeerKeyId
-	birth      time.Time // When this peer started up
+	localId common.PeerId
+	birth   time.Time // When this peer started up
 
 	bucketSize int
 	routeTable *kb.RouteTable // Array of routing tables for differently distanced nodes
@@ -53,10 +53,9 @@ func (dht *DHT) RouteTable() *kb.RouteTable {
 }
 
 // NewDHT creates a new DHT with the specified host and options.
-func NewDHT() *DHT {
+func NewDHT(id common.PeerId) *DHT {
 	bucketSize := KValue
-	keyId := common.RandPeerKeyId()
-	rt := kb.NewRoutingTable(bucketSize, keyId.Id)
+	rt := kb.NewRoutingTable(bucketSize, id)
 
 	rt.PeerAdded = func(p common.PeerId) {
 		log.Debugf("dht: peer: %d added to dht", p)
@@ -67,7 +66,7 @@ func NewDHT() *DHT {
 	}
 
 	return &DHT{
-		localKeyId:            keyId,
+		localId:               id,
 		birth:                 time.Now(),
 		routeTable:            rt,
 		bucketSize:            bucketSize,
@@ -88,16 +87,12 @@ func (dht *DHT) Remove(peer common.PeerId) {
 	dht.routeTable.Remove(peer)
 }
 
-func (dht *DHT) GetPeerKeyId() *common.PeerKeyId {
-	return dht.localKeyId
-}
-
 func (dht *DHT) BetterPeers(id common.PeerId, count int) []common.PeerId {
 	closer := dht.routeTable.NearestPeers(id, count)
 	filtered := make([]common.PeerId, 0, len(closer))
 	// don't include self and target id
 	for _, curID := range closer {
-		if curID == dht.localKeyId.Id {
+		if curID == dht.localId {
 			continue
 		}
 		if curID == id {

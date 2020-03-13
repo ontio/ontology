@@ -22,9 +22,10 @@ package kbucket
 import (
 	"errors"
 	"fmt"
-	"github.com/ontio/ontology/p2pserver/common"
 	"sync"
 	"time"
+
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 var ErrPeerRejectedHighLatency = errors.New("peer rejected; latency too high")

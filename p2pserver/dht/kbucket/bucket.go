@@ -20,8 +20,9 @@ package kbucket
 
 import (
 	"container/list"
-	"github.com/ontio/ontology/p2pserver/common"
 	"sync"
+
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 // Bucket holds a list of peers.

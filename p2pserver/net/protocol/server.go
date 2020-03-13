@@ -51,10 +51,5 @@ type P2P interface {
 	Xmit(msg types.Message)
 	IsOwnAddress(addr string) bool
 
-	UpdateDHT(id common.PeerId) bool
-	RemoveDHT(id common.PeerId) bool
-	BetterPeers(id common.PeerId, count int) []common.PeerId
-	GetPeerKeyId() *common.PeerKeyId
-
 	GetPeerStringAddr() map[common.PeerId]string
 }

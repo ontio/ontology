@@ -59,15 +59,13 @@ func (self *ReconnectService) Close() {
 }
 
 func (this *ReconnectService) keepOnlineService() {
-	t := time.NewTimer(time.Second * common.CONN_MONITOR)
+	tick := time.NewTicker(time.Second * common.CONN_MONITOR)
+	defer tick.Stop()
 	for {
 		select {
-		case <-t.C:
+		case <-tick.C:
 			this.retryInactivePeer()
-			t.Stop()
-			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quit:
-			t.Stop()
 			return
 		}
 	}
