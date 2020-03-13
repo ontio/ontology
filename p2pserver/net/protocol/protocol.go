@@ -15,21 +15,20 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-package protocols
+package p2p
 
 import (
 	"github.com/ontio/ontology/p2pserver/message/types"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 type Context struct {
 	sender  *peer.Peer
-	net     p2p.P2P
-	msgSize uint32
+	net     P2P
+	MsgSize uint32
 }
 
-func NewContext(sender *peer.Peer, net p2p.P2P, msgSize uint32) *Context {
+func NewContext(sender *peer.Peer, net P2P, msgSize uint32) *Context {
 	return &Context{sender, net, msgSize}
 }
 
@@ -37,13 +36,13 @@ func (self *Context) Sender() *peer.Peer {
 	return self.sender
 }
 
-func (self *Context) Network() p2p.P2P {
+func (self *Context) Network() P2P {
 	return self.net
 }
 
 type Protocol interface {
 	HandlePeerMessage(ctx *Context, msg types.Message)
-	HandleSystemMessage(net p2p.P2P, msg SystemMessage)
+	HandleSystemMessage(net P2P, msg SystemMessage)
 }
 
 type SystemMessage interface {

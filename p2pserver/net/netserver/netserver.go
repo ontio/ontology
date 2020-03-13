@@ -20,7 +20,6 @@ package netserver
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -30,16 +29,13 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/connect_controller"
-	"github.com/ontio/ontology/p2pserver/dht"
-	"github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
-	"github.com/ontio/ontology/p2pserver/protocols"
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer(protocol protocols.Protocol, conf *config.P2PNodeConfig) (p2p.P2P, error) {
+func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig) (p2p.P2P, error) {
 	n := &NetServer{
 		NetChan:  make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		base:     &peer.PeerInfo{},
@@ -60,13 +56,12 @@ func NewNetServer(protocol protocols.Protocol, conf *config.P2PNodeConfig) (p2p.
 type NetServer struct {
 	base     *peer.PeerInfo
 	listener net.Listener
-	protocol protocols.Protocol
+	protocol p2p.Protocol
 	NetChan  chan *types.MsgPayload
 	PeerAddrMap
 	Np *peer.NbrPeers
 
 	connCtrl *connect_controller.ConnectController
-	dht      *dht.DHT
 
 	stopRecvCh chan bool // To stop sync channel
 }
@@ -84,7 +79,7 @@ func (this *NetServer) processMessage(channel chan *types.MsgPayload,
 					continue
 				}
 
-				ctx := protocols.NewContext(sender, this, data.PayloadSize)
+				ctx := p2p.NewContext(sender, this, data.PayloadSize)
 				go this.protocol.HandlePeerMessage(ctx, data.Payload)
 			}
 		case <-stopCh:
@@ -101,8 +96,7 @@ type PeerAddrMap struct {
 
 //init initializes attribute of network server
 func (this *NetServer) init(conf *config.P2PNodeConfig) error {
-	dtable := dht.NewDHT()
-	this.dht = dtable
+	keyId := common.RandPeerKeyId()
 
 	httpInfo := conf.HttpInfoPort
 	nodePort := conf.NodePort
@@ -111,14 +105,14 @@ func (this *NetServer) init(conf *config.P2PNodeConfig) error {
 		return errors.New("[p2p]invalid link port")
 	}
 
-	this.base = peer.NewPeerInfo(dtable.GetPeerKeyId().Id, common.PROTOCOL_VERSION, common.SERVICE_NODE, true, httpInfo,
+	this.base = peer.NewPeerInfo(keyId.Id, common.PROTOCOL_VERSION, common.SERVICE_NODE, true, httpInfo,
 		nodePort, 0, config.Version, "")
 
 	option, err := connect_controller.ConnCtrlOptionFromConfig(conf)
 	if err != nil {
 		return err
 	}
-	this.connCtrl = connect_controller.NewConnectController(this.base, dtable.GetPeerKeyId(), option)
+	this.connCtrl = connect_controller.NewConnectController(this.base, keyId, option)
 
 	log.Infof("[p2p]init peer ID to %s", this.base.Id.ToHexString())
 
@@ -127,11 +121,9 @@ func (this *NetServer) init(conf *config.P2PNodeConfig) error {
 
 //InitListen start listening on the config port
 func (this *NetServer) Start() {
-	this.protocol.HandleSystemMessage(this, protocols.NetworkStart{})
+	this.protocol.HandleSystemMessage(this, p2p.NetworkStart{})
 	this.startListening()
 	go this.processMessage(this.NetChan, this.stopRecvCh)
-
-	this.doRefresh()
 
 	log.Debug("[p2p]MessageRouter start to parse p2p message...")
 }
@@ -144,10 +136,6 @@ func (this *NetServer) GetHostInfo() *peer.PeerInfo {
 //GetId return peer`s id
 func (this *NetServer) GetID() common.PeerId {
 	return this.base.Id
-}
-
-func (this *NetServer) GetPeerKeyId() *common.PeerKeyId {
-	return this.dht.GetPeerKeyId()
 }
 
 // SetHeight sets the local's height
@@ -236,10 +224,9 @@ func (this *NetServer) removeOldPeer(kid common.PeerId, remoteAddr string) {
 			// Close the connection and release the node source
 			n.Close()
 
-			this.protocol.HandleSystemMessage(this, protocols.PeerDisConnected{Info: n.Info})
+			this.protocol.HandleSystemMessage(this, p2p.PeerDisConnected{Info: n.Info})
 		}
 	}
-
 }
 
 //Connect used to connect net address under sync or cons mode
@@ -259,16 +246,12 @@ func (this *NetServer) Connect(addr string) error {
 	// Obsolete node
 	this.removeOldPeer(kid, remoteAddr)
 
-	if !this.UpdateDHT(kid) {
-		return fmt.Errorf("[HandshakeClient] UpdateDHT failed, kadId: %s", kid.ToHexString())
-	}
-
 	remotePeer.AttachChan(this.NetChan)
 	this.AddPeerAddress(remoteAddr, remotePeer)
 	this.AddNbrNode(remotePeer)
 	go remotePeer.Link.Rx()
 
-	this.protocol.HandleSystemMessage(this, protocols.PeerConnected{Info: remotePeer.Info})
+	this.protocol.HandleSystemMessage(this, p2p.PeerConnected{Info: remotePeer.Info})
 	return nil
 }
 
@@ -288,7 +271,7 @@ func (this *NetServer) Halt() {
 	if this.stopRecvCh != nil {
 		this.stopRecvCh <- true
 	}
-	this.protocol.HandleSystemMessage(this, protocols.NetworkStop{})
+	this.protocol.HandleSystemMessage(this, p2p.NetworkStop{})
 }
 
 //establishing the connection to remote peers and listening for inbound peers
@@ -332,15 +315,13 @@ func (this *NetServer) handleClientConnection(conn net.Conn) error {
 	kid := remotePeer.GetID()
 	this.removeOldPeer(kid, conn.RemoteAddr().String())
 
-	this.dht.Update(kid)
-
 	remotePeer.AttachChan(this.NetChan)
 	addr := conn.RemoteAddr().String()
 	this.AddNbrNode(remotePeer)
 	this.AddPeerAddress(addr, remotePeer)
 
 	go remotePeer.Link.Rx()
-	this.protocol.HandleSystemMessage(this, protocols.PeerConnected{Info: remotePeer.Info})
+	this.protocol.HandleSystemMessage(this, p2p.PeerConnected{Info: remotePeer.Info})
 	return nil
 }
 
@@ -432,72 +413,8 @@ func (this *NetServer) IsOwnAddress(addr string) bool {
 	return addr == this.connCtrl.OwnAddress()
 }
 
-func (ns *NetServer) UpdateDHT(id common.PeerId) bool {
-	ns.dht.Update(id)
-	return true
-}
-
-func (ns *NetServer) RemoveDHT(id common.PeerId) bool {
-	ns.dht.Remove(id)
-	return true
-}
-
-func (ns *NetServer) BetterPeers(id common.PeerId, count int) []common.PeerId {
-	return ns.dht.BetterPeers(id, count)
-}
-
 func (ns *NetServer) GetPeerStringAddr() map[common.PeerId]string {
 	return ns.Np.GetPeerStringAddr()
-}
-
-func (ns *NetServer) findSelf() {
-	tick := time.NewTicker(ns.dht.RtRefreshPeriod)
-	defer tick.Stop()
-
-	for {
-		select {
-		case <-tick.C:
-			log.Debug("[dht] start to find myself")
-			closer := ns.dht.BetterPeers(ns.dht.GetPeerKeyId().Id, dht.AlphaValue)
-			for _, id := range closer {
-				log.Debugf("[dht] find closr peer %x", id)
-
-				if id.IsPseudoPeerId() {
-					ns.Send(ns.GetPeer(id), msgpack.NewAddrReq())
-				} else {
-					ns.Send(ns.GetPeer(id), msgpack.NewFindNodeReq(id))
-				}
-			}
-		}
-	}
-}
-
-func (ns *NetServer) refreshCPL() {
-	tick := time.NewTicker(ns.dht.RtRefreshPeriod)
-	defer tick.Stop()
-	for {
-		select {
-		case <-tick.C:
-			for curCPL := range ns.dht.RouteTable().Buckets {
-				log.Debugf("[dht] start to refresh bucket: %d", curCPL)
-				randPeer := ns.dht.RouteTable().GenRandKadId(uint(curCPL))
-				closer := ns.dht.BetterPeers(randPeer, dht.AlphaValue)
-				for _, pid := range closer {
-					log.Debugf("[dht] find closr peer %d", pid)
-					if pid.IsPseudoPeerId() {
-						ns.Send(ns.GetPeer(pid), msgpack.NewAddrReq())
-					} else {
-						ns.Send(ns.GetPeer(pid), msgpack.NewFindNodeReq(randPeer))
-					}
-				}
-			}
-		}
-	}
-}
-
-func (ns *NetServer) doRefresh() {
-	go ns.findSelf()
-	go ns.refreshCPL()
 }
 
 func createPeer(info *peer.PeerInfo, conn net.Conn) *peer.Peer {
