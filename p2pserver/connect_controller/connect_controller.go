@@ -130,12 +130,12 @@ func (self *ConnectController) removeConnecting(addr string) {
 	self.connecting.Remove(addr)
 }
 
-func (self *ConnectController) checkReservedPeers(remoteAddr string) error {
-	if len(self.ReservedPeers) == 0 {
-		return nil
-	}
-	rsvIPs := []string{}
+func (self *ConnectController) reserveEnabled() bool {
+	return len(self.ReservedPeers) > 0
+}
 
+func (self *ConnectController) inReserveList(remoteAddr string) bool {
+	rsvIPs := []string{}
 	// we don't load domain in start because we consider domain's A/AAAA record may change sometimes
 	for _, curIPOrName := range self.ReservedPeers {
 		curIPs, err := net.LookupHost(curIPOrName)
@@ -147,8 +147,16 @@ func (self *ConnectController) checkReservedPeers(remoteAddr string) error {
 
 	for _, addr := range rsvIPs {
 		if strings.HasPrefix(remoteAddr, addr) {
-			return nil
+			return true
 		}
+	}
+
+	return false
+}
+
+func (self *ConnectController) checkReservedPeers(remoteAddr string) error {
+	if !self.reserveEnabled() || self.inReserveList(remoteAddr) {
+		return nil
 	}
 
 	return fmt.Errorf("the remote addr: %s not in reserved list", remoteAddr)
