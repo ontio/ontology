@@ -530,3 +530,7 @@ func saveRespCache(key string, value interface{}) bool {
 	respCache.Add(key, value)
 	return true
 }
+
+func (mh *MsgHandler) ReconnectService() *reconnect.ReconnectService {
+	return mh.reconnect
+}
