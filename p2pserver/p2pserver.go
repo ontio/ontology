@@ -19,12 +19,9 @@
 package p2pserver
 
 import (
-	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"math/rand"
 	"net"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -55,6 +52,7 @@ type P2PServer struct {
 //NewServer return a new p2pserver according to the pubkey
 func NewServer() (*P2PServer, error) {
 	ld := ledger.DefLedger
+
 	protocol := protocols.NewMsgHandler(ld)
 	n, err := netserver.NewNetServer(protocol, config.DefConfig.P2PNode)
 	if err != nil {
@@ -66,7 +64,6 @@ func NewServer() (*P2PServer, error) {
 		ledger:  ld,
 	}
 
-	p.loadRecentPeers()
 	p.quit = make(chan bool)
 	return p, nil
 }
@@ -74,10 +71,7 @@ func NewServer() (*P2PServer, error) {
 //Start create all services
 func (this *P2PServer) Start() error {
 	this.network.Start()
-	this.tryRecentPeers()
 	go this.connectSeedService()
-	go this.syncUpRecentPeers()
-	go this.heartBeatService()
 	return nil
 }
 
@@ -267,158 +261,4 @@ func (this *P2PServer) reqNbrList(p *peer.Peer) {
 	}
 
 	go this.Send(p, msg)
-}
-
-//heartBeat send ping to nbr peers and check the timeout
-func (this *P2PServer) heartBeatService() {
-	var periodTime uint
-	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
-	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
-
-	for {
-		select {
-		case <-t.C:
-			this.ping()
-			this.timeout()
-		case <-this.quit:
-			t.Stop()
-			return
-		}
-	}
-}
-
-//ping send pkg to get pong msg from others
-func (this *P2PServer) ping() {
-	peers := this.network.GetNeighbors()
-	this.pingTo(peers)
-}
-
-//pings send pkgs to get pong msg from others
-func (this *P2PServer) pingTo(peers []*peer.Peer) {
-	for _, p := range peers {
-		if p.GetState() == common.ESTABLISH {
-			height := this.ledger.GetCurrentBlockHeight()
-			ping := msgpack.NewPingMsg(uint64(height))
-			go this.Send(p, ping)
-		}
-	}
-}
-
-//timeout trace whether some peer be long time no response
-func (this *P2PServer) timeout() {
-	peers := this.network.GetNeighbors()
-	var periodTime uint
-	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
-	for _, p := range peers {
-		if p.GetState() == common.ESTABLISH {
-			t := p.GetContactTime()
-			if t.Before(time.Now().Add(-1 * time.Second *
-				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
-				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.Link.GetAddr(), t.String())
-				p.Close()
-			}
-		}
-	}
-}
-
-func (this *P2PServer) loadRecentPeers() {
-	this.recentPeers = make(map[uint32][]string)
-	if comm.FileExisted(common.RECENT_FILE_NAME) {
-		buf, err := ioutil.ReadFile(common.RECENT_FILE_NAME)
-		if err != nil {
-			log.Warn("[p2p]read %s fail:%s, connect recent peers cancel", common.RECENT_FILE_NAME, err.Error())
-			return
-		}
-
-		err = json.Unmarshal(buf, &this.recentPeers)
-		if err != nil {
-			log.Warn("[p2p]parse recent peer file fail: ", err)
-			return
-		}
-	}
-}
-
-//tryRecentPeers try connect recent contact peer when service start
-func (this *P2PServer) tryRecentPeers() {
-	netID := config.DefConfig.P2PNode.NetworkMagic
-	if len(this.recentPeers[netID]) > 0 {
-		log.Info("[p2p] try to connect recent peer")
-	}
-	for _, v := range this.recentPeers[netID] {
-		go this.network.Connect(v)
-	}
-}
-
-//syncUpRecentPeers sync up recent peers periodically
-func (this *P2PServer) syncUpRecentPeers() {
-	periodTime := common.RECENT_TIMEOUT
-	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
-	for {
-		select {
-		case <-t.C:
-			this.persistRecentPeers()
-		case <-this.quit:
-			t.Stop()
-			return
-		}
-	}
-}
-
-//persistRecentPeers compare snapshot of recent peer with current link,then persist the list
-func (this *P2PServer) persistRecentPeers() {
-	changed := false
-	netID := config.DefConfig.P2PNode.NetworkMagic
-	for i := 0; i < len(this.recentPeers[netID]); i++ {
-		p := this.network.GetPeerFromAddr(this.recentPeers[netID][i])
-		if p == nil || p.GetState() != common.ESTABLISH {
-			this.recentPeers[netID] = append(this.recentPeers[netID][:i], this.recentPeers[netID][i+1:]...)
-			changed = true
-			i--
-		}
-	}
-	left := common.RECENT_LIMIT - len(this.recentPeers[netID])
-	if left > 0 {
-		np := this.network.GetNp()
-		np.Lock()
-		var ip net.IP
-		for _, p := range np.List {
-			addr, _ := p.GetAddr16()
-			ip = addr[:]
-			nodeAddr := ip.To16().String() + ":" + strconv.Itoa(int(p.GetPort()))
-			found := false
-			for i := 0; i < len(this.recentPeers[netID]); i++ {
-				if nodeAddr == this.recentPeers[netID][i] {
-					found = true
-					break
-				}
-			}
-			if !found {
-				this.recentPeers[netID] = append(this.recentPeers[netID], nodeAddr)
-				left--
-				changed = true
-				if left == 0 {
-					break
-				}
-			}
-		}
-		np.Unlock()
-	} else {
-		if left < 0 {
-			left = -left
-			this.recentPeers[netID] = append(this.recentPeers[netID][:0], this.recentPeers[netID][0+left:]...)
-			changed = true
-		}
-
-	}
-	if changed {
-		buf, err := json.Marshal(this.recentPeers)
-		if err != nil {
-			log.Warn("[p2p]package recent peer fail: ", err)
-			return
-		}
-		err = ioutil.WriteFile(common.RECENT_FILE_NAME, buf, os.ModePerm)
-		if err != nil {
-			log.Warn("[p2p]write recent peer fail: ", err)
-		}
-	}
 }
