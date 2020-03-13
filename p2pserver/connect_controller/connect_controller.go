@@ -90,6 +90,12 @@ func (self *ConnectController) OutboundsCount() uint {
 	return uint(self.inoutbounds[OUTBOUND_INDEX].Size())
 }
 
+func (self *ConnectController) InboundsCount() uint {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+	return uint(self.inoutbounds[INBOUND_INDEX].Size())
+}
+
 func (self *ConnectController) isBoundFull(index int) bool {
 	count := self.boundsCount(index)
 	if index == INBOUND_INDEX {
