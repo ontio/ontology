@@ -75,10 +75,10 @@ func (self *MsgHandler) HandleSystemMessage(net p2p.P2P, msg SystemMessage) {
 	case NetworkStart:
 		self.start(net)
 	case PeerConnected:
-		self.blockSync.OnAddNode(m.Info.Id.ToUint64())
+		self.blockSync.OnAddNode(m.Info.Id)
 		self.reconnect.OnAddPeer(m.Info)
 	case PeerDisConnected:
-		self.blockSync.OnDelNode(m.Info.Id.ToUint64())
+		self.blockSync.OnDelNode(m.Info.Id)
 		self.reconnect.OnDelPeer(m.Info)
 	case NetworkStop:
 		self.stop()
@@ -203,7 +203,7 @@ func FindNodeHandle(ctx *Context, freq *msgTypes.FindNodeReq) {
 	// check the target is my self
 	log.Debugf("[dht] find node for peerid: %d", freq.TargetID)
 	p2p := ctx.Network()
-	if freq.TargetID == p2p.GetKadKeyId().Id {
+	if freq.TargetID == p2p.GetPeerKeyId().Id {
 		fresp.Success = true
 		fresp.TargetID = freq.TargetID
 		// you've already connected with me so there's no need to give you my address
@@ -218,7 +218,7 @@ func FindNodeHandle(ctx *Context, freq *msgTypes.FindNodeReq) {
 
 	paddrs := p2p.GetPeerStringAddr()
 	for _, kid := range closer {
-		pid := kid.ToUint64()
+		pid := kid
 		if addr, ok := paddrs[pid]; ok {
 			curAddr := msgTypes.PeerAddr{
 				Addr:   addr,
@@ -495,7 +495,7 @@ func DisconnectHandle(ctx *Context) {
 		p2p.RemovePeerAddress(remotePeer.GetAddr())
 		remotePeer.Close()
 	}
-	p2p.RemoveDHT(remotePeer.GetKId())
+	p2p.RemoveDHT(remotePeer.GetID())
 }
 
 //get blk hdrs from starthash to stophash

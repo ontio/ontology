@@ -25,14 +25,13 @@ import (
 	"github.com/blang/semver"
 	common2 "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
 var HANDSHAKE_DURATION = 10 * time.Second // handshake time can not exceed this duration, or will treat as attack.
 
-func HandshakeClient(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Conn) (*peer.PeerInfo, error) {
+func HandshakeClient(info *peer.PeerInfo, selfId *common.PeerKeyId, conn net.Conn) (*peer.PeerInfo, error) {
 	version := newVersion(info)
 	if err := conn.SetDeadline(time.Now().Add(HANDSHAKE_DURATION)); err != nil {
 		return nil, err
@@ -58,9 +57,9 @@ func HandshakeClient(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 	}
 
 	// 3. update kadId
-	kid := kbucket.PseudoKadIdFromUint64(receivedVersion.P.Nonce)
+	kid := common.PseudoPeerIdFromUint64(receivedVersion.P.Nonce)
 	if useDHT(receivedVersion.P.SoftVersion, info.SoftVersion) {
-		err = sendMsg(conn, &types.UpdateKadId{KadKeyId: selfId})
+		err = sendMsg(conn, &types.UpdatePeerKeyId{KadKeyId: selfId})
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +68,7 @@ func HandshakeClient(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 		if err != nil {
 			return nil, err
 		}
-		kadKeyId, ok := msg.(*types.UpdateKadId)
+		kadKeyId, ok := msg.(*types.UpdatePeerKeyId)
 		if !ok {
 			return nil, fmt.Errorf("handshake failed, expect kad id message, got %s", msg.CmdType())
 		}
@@ -96,7 +95,7 @@ func HandshakeClient(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 	return createPeerInfo(receivedVersion, kid, conn.RemoteAddr().String()), nil
 }
 
-func HandshakeServer(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Conn) (*peer.PeerInfo, error) {
+func HandshakeServer(info *peer.PeerInfo, selfId *common.PeerKeyId, conn net.Conn) (*peer.PeerInfo, error) {
 	ver := newVersion(info)
 	if err := conn.SetDeadline(time.Now().Add(HANDSHAKE_DURATION)); err != nil {
 		return nil, err
@@ -122,19 +121,19 @@ func HandshakeServer(info *peer.PeerInfo, selfId *kbucket.KadKeyId, conn net.Con
 	}
 
 	// 3. read update kadkey id
-	kid := kbucket.PseudoKadIdFromUint64(version.P.Nonce)
+	kid := common.PseudoPeerIdFromUint64(version.P.Nonce)
 	if useDHT(version.P.SoftVersion, info.SoftVersion) {
 		msg, _, err := types.ReadMessage(conn)
 		if err != nil {
 			return nil, fmt.Errorf("[HandshakeServer] ReadMessage failed, error: %s", err)
 		}
-		kadkeyId, ok := msg.(*types.UpdateKadId)
+		kadkeyId, ok := msg.(*types.UpdatePeerKeyId)
 		if !ok {
 			return nil, fmt.Errorf("[HandshakeServer] expected update kadkeyid message")
 		}
 		kid = kadkeyId.KadKeyId.Id
 		// 4. sendMsg update kadkey id
-		err = sendMsg(conn, &types.UpdateKadId{KadKeyId: selfId})
+		err = sendMsg(conn, &types.UpdatePeerKeyId{KadKeyId: selfId})
 		if err != nil {
 			return nil, err
 		}
@@ -169,7 +168,7 @@ func sendMsg(conn net.Conn, msg types.Message) error {
 	return nil
 }
 
-func createPeerInfo(version *types.Version, kid kbucket.KadId, addr string) *peer.PeerInfo {
+func createPeerInfo(version *types.Version, kid common.PeerId, addr string) *peer.PeerInfo {
 	return peer.NewPeerInfo(kid, version.P.Version, version.P.Services, version.P.Relay != 0, version.P.HttpInfoPort,
 		version.P.SyncPort, version.P.StartHeight, version.P.SoftVersion, addr)
 }

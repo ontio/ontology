@@ -19,10 +19,11 @@
 package server
 
 import (
+	"github.com/ontio/ontology/p2pserver/common"
 	ptypes "github.com/ontio/ontology/p2pserver/message/types"
 )
 
 type TransmitConsensusMsgReq struct {
-	Target uint64
+	Target common.PeerId
 	Msg    ptypes.Message
 }

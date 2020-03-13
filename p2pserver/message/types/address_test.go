@@ -43,13 +43,14 @@ func TestAddressSerializationDeserialization(t *testing.T) {
 	ip := net.ParseIP("192.168.0.1")
 	ip.To16()
 	copy(addr[:], ip[:16])
+	id := comm.PseudoPeerIdFromUint64(987654321)
 	nodeAddr := comm.PeerAddr{
 		Time:          12345678,
 		Services:      100,
 		IpAddr:        addr,
 		Port:          8080,
 		ConsensusPort: 8081,
-		ID:            987654321,
+		ID:            id,
 	}
 	msg.NodeAddrs = append(msg.NodeAddrs, nodeAddr)
 

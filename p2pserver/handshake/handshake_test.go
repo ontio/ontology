@@ -24,26 +24,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
+	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	kbucket.Difficulty = 1
+	common.Difficulty = 1
 	HANDSHAKE_DURATION = 1 * time.Second
 }
 
 type Node struct {
-	Id   *kbucket.KadKeyId
+	Id   *common.PeerKeyId
 	Info *peer.PeerInfo
 	Conn net.Conn
 }
 
 func NewNode(conn net.Conn) Node {
 	node := Node{
-		Id:   kbucket.RandKadKeyId(),
+		Id:   common.RandPeerKeyId(),
 		Info: &peer.PeerInfo{},
 		Conn: conn,
 	}

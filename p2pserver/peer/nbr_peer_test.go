@@ -23,8 +23,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
+	"github.com/ontio/ontology/p2pserver/common"
 )
+
+var id45 common.PeerId
+var id46 common.PeerId
+var id47 common.PeerId
+
+func init() {
+	id45 = common.PseudoPeerIdFromUint64(uint64(0x7533345))
+	id46 = common.PseudoPeerIdFromUint64(uint64(0x7533346))
+	id47 = common.PseudoPeerIdFromUint64(uint64(0x7533347))
+}
 
 func createPeers(cnt uint16) []*Peer {
 	np := []*Peer{}
@@ -32,7 +42,7 @@ func createPeers(cnt uint16) []*Peer {
 	var height uint64
 	for i := uint16(0); i < cnt; i++ {
 		syncport = 20224 + i
-		id := kbucket.PseudoKadIdFromUint64(0x7533345 + uint64(i))
+		id := common.PseudoPeerIdFromUint64(0x7533345 + uint64(i))
 		height = 434923 + uint64(i)
 		p := NewPeer()
 		p.UpdateInfo(time.Now(), 2, 3, syncport, id, 0, height, "1.5.2")
@@ -57,18 +67,14 @@ func initTestNbrPeers() *NbrPeers {
 func TestNodeExisted(t *testing.T) {
 	nm := initTestNbrPeers()
 
-	if !nm.NodeExisted(0x7533345) {
+	if !nm.NodeExisted(id45) {
 		t.Fatal("0x7533345 should in nbr peers")
-	}
-	if nm.NodeExisted(0x5533345) {
-		t.Fatal("0x5533345 should not in nbr peers")
 	}
 }
 
 func TestGetPeer(t *testing.T) {
 	nm := initTestNbrPeers()
-
-	p := nm.GetPeer(0x7533345)
+	p := nm.GetPeer(id45)
 	if p == nil {
 		t.Fatal("TestGetPeer error")
 	}
@@ -78,7 +84,7 @@ func TestDelNbrNode(t *testing.T) {
 	nm := initTestNbrPeers()
 
 	cnt := len(nm.List)
-	p, delOK := nm.DelNbrNode(0x7533345)
+	p, delOK := nm.DelNbrNode(id45)
 	if p == nil || !delOK {
 		t.Fatal("TestDelNbrNode err")
 	}
@@ -90,27 +96,24 @@ func TestDelNbrNode(t *testing.T) {
 
 func TestNodeEstablished(t *testing.T) {
 	nm := initTestNbrPeers()
-
-	p := nm.GetPeer(0x7533346)
+	p := nm.GetPeer(id46)
 	if p == nil {
 		t.Fatal("TestNodeEstablished:get peer error")
 	}
 	p.SetState(4)
-	if !nm.NodeEstablished(0x7533346) {
+	if !nm.NodeEstablished(id46) {
 		t.Fatal("TestNodeEstablished error")
 	}
 }
 
 func TestGetNeighborAddrs(t *testing.T) {
 	nm := initTestNbrPeers()
-
-	p := nm.GetPeer(0x7533346)
+	p := nm.GetPeer(id46)
 	if p == nil {
 		t.Fatal("TestGetNeighborAddrs:get peer error")
 	}
 	p.SetState(4)
-
-	p = nm.GetPeer(0x7533347)
+	p = nm.GetPeer(id47)
 	if p == nil {
 		t.Fatal("TestGetNeighborAddrs:get peer error")
 	}
@@ -127,13 +130,14 @@ func TestGetNeighborAddrs(t *testing.T) {
 
 func TestGetNeighborHeights(t *testing.T) {
 	nm := initTestNbrPeers()
-	p := nm.GetPeer(0x7533346)
+
+	p := nm.GetPeer(id46)
 	if p == nil {
 		t.Fatal("TestGetNeighborHeights:get peer error")
 	}
 	p.SetState(4)
 
-	p = nm.GetPeer(0x7533347)
+	p = nm.GetPeer(id47)
 	if p == nil {
 		t.Fatal("TestGetNeighborHeights:get peer error")
 	}
@@ -147,14 +151,13 @@ func TestGetNeighborHeights(t *testing.T) {
 
 func TestGetNeighbors(t *testing.T) {
 	nm := initTestNbrPeers()
-
-	p := nm.GetPeer(0x7533346)
+	p := nm.GetPeer(id46)
 	if p == nil {
 		t.Fatal("TestGetNeighbors:get peer error")
 	}
 	p.SetState(4)
 
-	p = nm.GetPeer(0x7533347)
+	p = nm.GetPeer(id47)
 	if p == nil {
 		t.Fatal("TestGetNeighbors:get peer error")
 	}
@@ -169,13 +172,13 @@ func TestGetNeighbors(t *testing.T) {
 func TestGetNbrNodeCnt(t *testing.T) {
 	nm := initTestNbrPeers()
 
-	p := nm.GetPeer(0x7533346)
+	p := nm.GetPeer(id46)
 	if p == nil {
 		t.Fatal("TestGetNbrNodeCnt:get peer error")
 	}
 	p.SetState(4)
 
-	p = nm.GetPeer(0x7533347)
+	p = nm.GetPeer(id47)
 	if p == nil {
 		t.Fatal("TestGetNbrNodeCnt:get peer error")
 	}

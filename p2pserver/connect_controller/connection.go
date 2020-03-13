@@ -21,14 +21,14 @@ import (
 	"net"
 
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
+	"github.com/ontio/ontology/p2pserver/common"
 )
 
 // Conn is a net.Conn wrapper to do some clean up when Close.
 type Conn struct {
 	net.Conn
 	addr       string
-	kid        kbucket.KadId
+	kid        common.PeerId
 	boundIndex int
 	connectId  uint64
 	controller *ConnectController

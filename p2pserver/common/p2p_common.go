@@ -101,7 +101,7 @@ type PeerAddr struct {
 	Port     uint16   //sync port
 	//todo remove this legecy field
 	ConsensusPort uint16 //consensus port
-	ID            uint64 //Unique ID
+	ID            PeerId //Unique ID
 }
 
 //const channel msg id and type

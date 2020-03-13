@@ -23,14 +23,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/p2pserver/dht/kbucket"
+	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/handshake"
 	"github.com/ontio/ontology/p2pserver/peer"
 	"github.com/stretchr/testify/assert"
 )
 
 func init() {
-	kbucket.Difficulty = 1
+	common.Difficulty = 1
 	handshake.HANDSHAKE_DURATION = 10 * time.Second
 }
 
@@ -78,11 +78,11 @@ func (self *Transport) Pipe() (net.Conn, net.Conn) {
 type Node struct {
 	*ConnectController
 	Info *peer.PeerInfo
-	Key  *kbucket.KadKeyId
+	Key  *common.PeerKeyId
 }
 
 func NewNode(option ConnCtrlOption) *Node {
-	key := kbucket.RandKadKeyId()
+	key := common.RandPeerKeyId()
 	info := &peer.PeerInfo{
 		Id:          key.Id,
 		Port:        20338,

@@ -20,6 +20,7 @@ package kbucket
 
 import (
 	"container/list"
+	"github.com/ontio/ontology/p2pserver/common"
 	"sync"
 )
 
@@ -35,22 +36,22 @@ func newBucket() *Bucket {
 	return b
 }
 
-func (b *Bucket) Peers() []KadId {
+func (b *Bucket) Peers() []common.PeerId {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
-	ps := make([]KadId, 0, b.list.Len())
+	ps := make([]common.PeerId, 0, b.list.Len())
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		id := e.Value.(KadId)
+		id := e.Value.(common.PeerId)
 		ps = append(ps, id)
 	}
 	return ps
 }
 
-func (b *Bucket) Has(id KadId) bool {
+func (b *Bucket) Has(id common.PeerId) bool {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		curr := e.Value.(KadId)
+		curr := e.Value.(common.PeerId)
 		if curr == id {
 			return true
 		}
@@ -58,11 +59,11 @@ func (b *Bucket) Has(id KadId) bool {
 	return false
 }
 
-func (b *Bucket) Remove(id KadId) bool {
+func (b *Bucket) Remove(id common.PeerId) bool {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		curr := e.Value.(KadId)
+		curr := e.Value.(common.PeerId)
 		if curr == id {
 			b.list.Remove(e)
 			return true
@@ -71,18 +72,18 @@ func (b *Bucket) Remove(id KadId) bool {
 	return false
 }
 
-func (b *Bucket) MoveToFront(id KadId) {
+func (b *Bucket) MoveToFront(id common.PeerId) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		curr := e.Value.(KadId)
+		curr := e.Value.(common.PeerId)
 		if curr == id {
 			b.list.MoveToFront(e)
 		}
 	}
 }
 
-func (b *Bucket) PushFront(p KadId) {
+func (b *Bucket) PushFront(p common.PeerId) {
 	b.lk.Lock()
 	b.list.PushFront(p)
 	b.lk.Unlock()
@@ -106,7 +107,7 @@ func (b *Bucket) Len() int {
 // peers with CPL equal to cpl, the returned bucket will have peers with CPL
 // greater than cpl (returned bucket has closer peers)
 // CPL ==> CommonPrefixLen
-func (b *Bucket) Split(cpl int, target KadId) *Bucket {
+func (b *Bucket) Split(cpl int, target common.PeerId) *Bucket {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 
@@ -115,8 +116,8 @@ func (b *Bucket) Split(cpl int, target KadId) *Bucket {
 	newbuck.list = out
 	e := b.list.Front()
 	for e != nil {
-		peerID := e.Value.(KadId)
-		peerCPL := CommonPrefixLen(peerID, target)
+		peerID := e.Value.(common.PeerId)
+		peerCPL := common.CommonPrefixLen(peerID, target)
 		if peerCPL > cpl {
 			cur := e
 			out.PushBack(e.Value)

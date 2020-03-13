@@ -68,11 +68,11 @@ func GetNodePort() uint16 {
 }
 
 //GetID from netSever actor
-func GetID() uint64 {
+func GetID() common.PeerId {
 	if netServer == nil {
-		return 0
+		return common.PeerId{}
 	}
-	return netServer.GetHostInfo().Id.ToUint64()
+	return netServer.GetID()
 }
 
 //GetRelayState from netSever actor

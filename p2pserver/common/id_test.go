@@ -16,7 +16,7 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package kbucket
+package common
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ import (
 func TestConvertPeerID(t *testing.T) {
 	start := time.Now().Unix()
 	fmt.Println("start:", start)
-	RandKadKeyId()
+	RandPeerKeyId()
 
 	end := time.Now().Unix()
 	fmt.Println("end:", end)
@@ -40,8 +40,15 @@ func TestConvertPeerID(t *testing.T) {
 func TestKIdToUint64(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		data := rand.Uint64()
-		id := PseudoKadIdFromUint64(data)
+		id := PseudoPeerIdFromUint64(data)
 		data2 := id.ToUint64()
 		assert.Equal(t, data, data2)
 	}
+}
+
+func TestKadId_IsEmpty(t *testing.T) {
+	id := PeerId{}
+	assert.True(t, id.IsEmpty())
+	kid := RandPeerKeyId()
+	assert.False(t, kid.Id.IsEmpty())
 }

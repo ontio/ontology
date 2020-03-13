@@ -32,12 +32,12 @@ import (
 //NbrPeers: The neigbor list
 type NbrPeers struct {
 	sync.RWMutex
-	List map[uint64]*Peer
+	List map[common.PeerId]*Peer
 }
 
 func NewNbrPeers() *NbrPeers {
 	return &NbrPeers{
-		List: make(map[uint64]*Peer),
+		List: make(map[common.PeerId]*Peer),
 	}
 }
 
@@ -56,13 +56,13 @@ func (this *NbrPeers) Broadcast(msg types.Message) {
 }
 
 //NodeExisted return when peer in nbr list
-func (this *NbrPeers) NodeExisted(uid uint64) bool {
+func (this *NbrPeers) NodeExisted(uid common.PeerId) bool {
 	_, ok := this.List[uid]
 	return ok
 }
 
 //GetPeer return peer according to id
-func (this *NbrPeers) GetPeer(id uint64) *Peer {
+func (this *NbrPeers) GetPeer(id common.PeerId) *Peer {
 	this.Lock()
 	defer this.Unlock()
 	n, exist := this.List[id]
@@ -85,7 +85,7 @@ func (this *NbrPeers) AddNbrNode(p *Peer) {
 }
 
 //DelNbrNode delete peer from nbr list
-func (this *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
+func (this *NbrPeers) DelNbrNode(id common.PeerId) (*Peer, bool) {
 	this.Lock()
 	defer this.Unlock()
 
@@ -98,7 +98,7 @@ func (this *NbrPeers) DelNbrNode(id uint64) (*Peer, bool) {
 }
 
 //NodeEstablished whether peer established according to id
-func (this *NbrPeers) NodeEstablished(id uint64) bool {
+func (this *NbrPeers) NodeEstablished(id common.PeerId) bool {
 	this.RLock()
 	defer this.RUnlock()
 
@@ -133,11 +133,11 @@ func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 }
 
 //GetNeighborHeights return the id-height map of nbr peers
-func (this *NbrPeers) GetNeighborHeights() map[uint64]uint64 {
+func (this *NbrPeers) GetNeighborHeights() map[common.PeerId]uint64 {
 	this.RLock()
 	defer this.RUnlock()
 
-	hm := make(map[uint64]uint64)
+	hm := make(map[common.PeerId]uint64)
 	for _, n := range this.List {
 		if n.GetState() == common.ESTABLISH {
 			hm[n.GetID()] = n.GetHeight()
@@ -190,11 +190,11 @@ func (this *NbrPeers) GetNbrNodeCnt() uint32 {
 }
 
 // GetPeerStringAddr key: peerID value: "192.168.1.1:20338"
-func (nbp *NbrPeers) GetPeerStringAddr() map[uint64]string {
+func (nbp *NbrPeers) GetPeerStringAddr() map[common.PeerId]string {
 	nbp.RLock()
 	defer nbp.RUnlock()
 
-	ret := make(map[uint64]string)
+	ret := make(map[common.PeerId]string)
 	for _, tn := range nbp.List {
 		if tn.GetState() != common.ESTABLISH {
 			continue
