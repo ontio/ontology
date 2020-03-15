@@ -48,16 +48,11 @@ func (req *FindNodeReq) Deserialization(source *common.ZeroCopySource) error {
 	return req.TargetID.Deserialization(source)
 }
 
-type PeerAddr struct {
-	PeerID ncomm.PeerId // peer ID
-	Addr   string       // simple "ip:port"
-}
-
 type FindNodeResp struct {
 	TargetID    ncomm.PeerId
 	Success     bool
 	Address     string
-	CloserPeers []PeerAddr
+	CloserPeers []ncomm.PeerIDAddressPair
 }
 
 // Serialization message payload
@@ -67,8 +62,8 @@ func (resp FindNodeResp) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteString(resp.Address)
 	sink.WriteUint32(uint32(len(resp.CloserPeers)))
 	for _, curPeer := range resp.CloserPeers {
-		curPeer.PeerID.Serialization(sink)
-		sink.WriteString(curPeer.Addr)
+		curPeer.ID.Serialization(sink)
+		sink.WriteString(curPeer.Address)
 	}
 }
 
@@ -102,18 +97,18 @@ func (resp *FindNodeResp) Deserialization(source *common.ZeroCopySource) error {
 	}
 
 	for i := 0; i < int(numCloser); i++ {
-		var curpa PeerAddr
+		var curpa ncomm.PeerIDAddressPair
 		id := ncomm.PeerId{}
 		err = id.Deserialization(source)
 		if err != nil {
 			return err
 		}
-		curpa.PeerID = id
+		curpa.ID = id
 		addr, _, _, eof := source.NextString()
 		if eof {
 			return errRead
 		}
-		curpa.Addr = addr
+		curpa.Address = addr
 
 		resp.CloserPeers = append(resp.CloserPeers, curpa)
 	}

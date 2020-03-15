@@ -37,12 +37,12 @@ func newBucket() *Bucket {
 	return b
 }
 
-func (b *Bucket) Peers() []common.PeerId {
+func (b *Bucket) Peers() []common.PeerIDAddressPair {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
-	ps := make([]common.PeerId, 0, b.list.Len())
+	ps := make([]common.PeerIDAddressPair, 0, b.list.Len())
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		id := e.Value.(common.PeerId)
+		id := e.Value.(common.PeerIDAddressPair)
 		ps = append(ps, id)
 	}
 	return ps
@@ -52,8 +52,8 @@ func (b *Bucket) Has(id common.PeerId) bool {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		curr := e.Value.(common.PeerId)
-		if curr == id {
+		curr := e.Value.(common.PeerIDAddressPair)
+		if curr.ID == id {
 			return true
 		}
 	}
@@ -64,8 +64,8 @@ func (b *Bucket) Remove(id common.PeerId) bool {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		curr := e.Value.(common.PeerId)
-		if curr == id {
+		curr := e.Value.(common.PeerIDAddressPair)
+		if curr.ID == id {
 			b.list.Remove(e)
 			return true
 		}
@@ -77,25 +77,25 @@ func (b *Bucket) MoveToFront(id common.PeerId) {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	for e := b.list.Front(); e != nil; e = e.Next() {
-		curr := e.Value.(common.PeerId)
-		if curr == id {
+		curr := e.Value.(common.PeerIDAddressPair)
+		if curr.ID == id {
 			b.list.MoveToFront(e)
 		}
 	}
 }
 
-func (b *Bucket) PushFront(p common.PeerId) {
+func (b *Bucket) PushFront(p common.PeerIDAddressPair) {
 	b.lk.Lock()
 	b.list.PushFront(p)
 	b.lk.Unlock()
 }
 
-func (b *Bucket) PopBack() uint64 {
+func (b *Bucket) PopBack() common.PeerIDAddressPair {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	last := b.list.Back()
 	b.list.Remove(last)
-	return last.Value.(uint64)
+	return last.Value.(common.PeerIDAddressPair)
 }
 
 func (b *Bucket) Len() int {
@@ -117,8 +117,8 @@ func (b *Bucket) Split(cpl int, target common.PeerId) *Bucket {
 	newbuck.list = out
 	e := b.list.Front()
 	for e != nil {
-		peerID := e.Value.(common.PeerId)
-		peerCPL := common.CommonPrefixLen(peerID, target)
+		pair := e.Value.(common.PeerIDAddressPair)
+		peerCPL := common.CommonPrefixLen(pair.ID, target)
 		if peerCPL > cpl {
 			cur := e
 			out.PushBack(e.Value)

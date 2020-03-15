@@ -28,7 +28,7 @@ import (
 
 // A helper struct to sort peers by their distance to the local node
 type peerDistance struct {
-	p        common.PeerId
+	p        common.PeerIDAddressPair
 	distance [20]byte
 }
 
@@ -45,17 +45,17 @@ func (pds *peerDistanceSorter) Less(a, b int) bool {
 }
 
 // Append the peer.ID to the sorter's slice. It may no longer be sorted.
-func (pds *peerDistanceSorter) appendPeer(p common.PeerId) {
+func (pds *peerDistanceSorter) appendPeer(p common.PeerIDAddressPair) {
 	pds.peers = append(pds.peers, peerDistance{
 		p:        p,
-		distance: pds.target.Distance(p),
+		distance: pds.target.Distance(p.ID),
 	})
 }
 
 // Append the peer.ID values in the list to the sorter's slice. It may no longer be sorted.
 func (pds *peerDistanceSorter) appendPeersFromList(l *list.List) {
 	for e := l.Front(); e != nil; e = e.Next() {
-		pds.appendPeer(e.Value.(common.PeerId))
+		pds.appendPeer(e.Value.(common.PeerIDAddressPair))
 	}
 }
 

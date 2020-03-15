@@ -19,6 +19,8 @@
 package discovery
 
 import (
+	"net"
+	"strconv"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -28,21 +30,24 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/types"
 	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/p2pserver/peer"
+	"github.com/scylladb/go-set/strset"
 )
 
 type Discovery struct {
-	dht  *dht.DHT
-	net  p2p.P2P
-	id   common.PeerId
-	quit chan bool
+	dht     *dht.DHT
+	net     p2p.P2P
+	id      common.PeerId
+	quit    chan bool
+	maskSet *strset.Set
 }
 
-func NewDiscovery(net p2p.P2P) *Discovery {
+func NewDiscovery(net p2p.P2P, maskLst []string) *Discovery {
 	return &Discovery{
-		id:   net.GetID(),
-		dht:  dht.NewDHT(net.GetID()),
-		net:  net,
-		quit: make(chan bool),
+		id:      net.GetID(),
+		dht:     dht.NewDHT(net.GetID()),
+		net:     net,
+		quit:    make(chan bool),
+		maskSet: strset.New(maskLst...),
 	}
 }
 
@@ -56,7 +61,7 @@ func (self *Discovery) Stop() {
 }
 
 func (self *Discovery) OnAddPeer(info *peer.PeerInfo) {
-	self.dht.Update(info.Id)
+	self.dht.Update(info.Id, info.RemoteListenAddress())
 }
 
 func (self *Discovery) OnDelPeer(info *peer.PeerInfo) {
@@ -72,16 +77,16 @@ func (self *Discovery) findSelf() {
 		case <-tick.C:
 			log.Debug("[dht] start to find myself")
 			closer := self.dht.BetterPeers(self.id, dht.AlphaValue)
-			for _, id := range closer {
-				log.Debugf("[dht] find closr peer %x", id)
+			for _, curPair := range closer {
+				log.Debugf("[dht] find closr peer %s", curPair.ID.ToHexString())
 
 				var msg types.Message
-				if id.IsPseudoPeerId() {
+				if curPair.ID.IsPseudoPeerId() {
 					msg = msgpack.NewAddrReq()
 				} else {
-					msg = msgpack.NewFindNodeReq(id)
+					msg = msgpack.NewFindNodeReq(curPair.ID)
 				}
-				self.net.Send(self.net.GetPeer(id), msg)
+				self.net.Send(self.net.GetPeer(curPair.ID), msg)
 			}
 		case <-self.quit:
 			return
@@ -99,15 +104,15 @@ func (self *Discovery) refreshCPL() {
 				log.Debugf("[dht] start to refresh bucket: %d", curCPL)
 				randPeer := self.dht.RouteTable().GenRandKadId(uint(curCPL))
 				closer := self.dht.BetterPeers(randPeer, dht.AlphaValue)
-				for _, pid := range closer {
-					log.Debugf("[dht] find closr peer %d", pid)
+				for _, pair := range closer {
+					log.Debugf("[dht] find closr peer %s", pair.ID.ToHexString())
 					var msg types.Message
-					if pid.IsPseudoPeerId() {
+					if pair.ID.IsPseudoPeerId() {
 						msg = msgpack.NewAddrReq()
 					} else {
 						msg = msgpack.NewFindNodeReq(randPeer)
 					}
-					self.net.Send(self.net.GetPeer(pid), msg)
+					self.net.Send(self.net.GetPeer(pair.ID), msg)
 				}
 			}
 		case <-self.quit:
@@ -123,7 +128,7 @@ func (self *Discovery) FindNodeHandle(ctx *p2p.Context, freq *types.FindNodeReq)
 	var fresp types.FindNodeResp
 	// check the target is my self
 	log.Debugf("[dht] find node for peerid: %d", freq.TargetID)
-	p2p := ctx.Network()
+
 	if freq.TargetID == self.id {
 		fresp.Success = true
 		fresp.TargetID = freq.TargetID
@@ -134,24 +139,39 @@ func (self *Discovery) FindNodeHandle(ctx *p2p.Context, freq *types.FindNodeReq)
 		}
 		return
 	}
-	// search dht
-	closer := self.dht.BetterPeers(freq.TargetID, dht.AlphaValue)
 
-	paddrs := p2p.GetPeerStringAddr()
-	for _, pid := range closer {
-		if addr, ok := paddrs[pid]; ok {
-			curAddr := types.PeerAddr{
-				Addr:   addr,
-				PeerID: pid,
-			}
-			fresp.CloserPeers = append(fresp.CloserPeers, curAddr)
-
-		}
-	}
 	fresp.TargetID = freq.TargetID
+	// search dht
+	fresp.CloserPeers = self.dht.BetterPeers(freq.TargetID, dht.AlphaValue)
+
+	//hide mask node if necessary
+	remoteAddr, _ := remotePeer.GetAddr16()
+	remoteIP := net.IP(remoteAddr[:])
+
+	// mask peer see everyone, but other's will not see mask node
+	// if remotePeer is in msk-list, give them everthing
+	// not in mask set means they are in the other side
+	if self.maskSet.Size() > 0 && !self.maskSet.Has(remoteIP.String()) {
+		mskedAddrs := make([]common.PeerIDAddressPair, 0)
+		// filter out the masked node
+		for _, pair := range fresp.CloserPeers {
+			ip, _, err := net.SplitHostPort(pair.Address)
+			if err != nil {
+				continue
+			}
+			// hide mask node
+			if self.maskSet.Has(ip) {
+				continue
+			}
+			mskedAddrs = append(mskedAddrs, pair)
+		}
+		// replace with masked nodes
+		fresp.CloserPeers = mskedAddrs
+	}
+
 	log.Debugf("[dht] find %d more closer peers:", len(fresp.CloserPeers))
 	for _, curpa := range fresp.CloserPeers {
-		log.Debugf("    dht: pid: %d, addr: %s", curpa.PeerID, curpa.Addr)
+		log.Debugf("    dht: pid: %s, addr: %s", curpa.ID.ToHexString(), curpa.Address)
 	}
 
 	if err := remotePeer.Send(&fresp); err != nil {
@@ -168,14 +188,101 @@ func (self *Discovery) FindNodeResponseHandle(ctx *p2p.Context, fresp *types.Fin
 	// we should connect to closer peer to ask them them where should we go
 	for _, curpa := range fresp.CloserPeers {
 		// already connected
-		if p2p.GetPeer(curpa.PeerID) != nil {
+		if p2p.GetPeer(curpa.ID) != nil {
 			continue
 		}
 		// do nothing about
-		if curpa.PeerID == p2p.GetID() {
+		if curpa.ID == p2p.GetID() {
 			continue
 		}
-		log.Debugf("[dht] try to connect to another peer by dht: %d ==> %s", curpa.PeerID, curpa.Addr)
-		go p2p.Connect(curpa.Addr)
+		log.Debugf("[dht] try to connect to another peer by dht: %s ==> %s", curpa.ID.ToHexString(), curpa.Address)
+		go p2p.Connect(curpa.Address)
+	}
+}
+
+// neighborAddresses get address from dht routing table
+func (self *Discovery) neighborAddresses() []common.PeerAddr {
+	// e.g. ["127.0.0.1:20338"]
+	ipPortAdds := self.dht.RouteTable().ListPeers()
+	ret := []common.PeerAddr{}
+	for _, curIPPort := range ipPortAdds {
+		host, port, err := net.SplitHostPort(curIPPort.Address)
+		if err != nil {
+			continue
+		}
+
+		ipadd := net.ParseIP(host)
+		if ipadd == nil {
+			continue
+		}
+
+		p, err := strconv.Atoi(port)
+		if err != nil {
+			continue
+		}
+
+		curAddr := common.PeerAddr{
+			Port: uint16(p),
+		}
+		copy(curAddr.IpAddr[:], ipadd.To16())
+
+		ret = append(ret, curAddr)
+	}
+
+	return ret
+}
+
+func (self *Discovery) AddrReqHandle(ctx *p2p.Context) {
+	remotePeer := ctx.Sender()
+
+	addrs := self.neighborAddresses()
+
+	// get remote peer IP
+	// if get remotePeerAddr failed, do masking anyway
+	remoteAddr, _ := remotePeer.GetAddr16()
+	remoteIP := net.IP(remoteAddr[:])
+
+	// mask peer see everyone, but other's will not see mask node
+	// if remotePeer is in msk-list, give them everthing
+	// not in mask set means they are in the other side
+	if self.maskSet.Size() > 0 && !self.maskSet.Has(remoteIP.String()) {
+		mskedAddrs := make([]common.PeerAddr, 0)
+		for _, addr := range addrs {
+			ip := net.IP(addr.IpAddr[:])
+			address := ip.To16().String()
+			// hide mask node
+			if self.maskSet.Has(address) {
+				continue
+			}
+			mskedAddrs = append(mskedAddrs, addr)
+		}
+		// replace with mskedAddrs
+		addrs = mskedAddrs
+	}
+
+	msg := msgpack.NewAddrs(addrs)
+	err := remotePeer.Send(msg)
+
+	if err != nil {
+		log.Warn(err)
+		return
+	}
+}
+
+func (self *Discovery) AddrHandle(ctx *p2p.Context, msg *types.Addr) {
+	p2p := ctx.Network()
+	for _, v := range msg.NodeAddrs {
+		if v.Port == 0 || v.ID == p2p.GetID() {
+			continue
+		}
+		ip := net.IP(v.IpAddr[:])
+		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
+
+		if p2p.NodeEstablished(v.ID) {
+			continue
+		}
+
+		log.Debug("[p2p]connect ip address:", address)
+		go p2p.Connect(address)
 	}
 }

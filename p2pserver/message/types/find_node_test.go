@@ -35,10 +35,10 @@ func TestFindNodeResponse(t *testing.T) {
 	resp.TargetID = common.PeerId{}
 	resp.Address = "127.0.0.1:1222"
 	id := common.PseudoPeerIdFromUint64(uint64(0x456))
-	resp.CloserPeers = []PeerAddr{
-		PeerAddr{
-			PeerID: id,
-			Addr:   "127.0.0.1:4222",
+	resp.CloserPeers = []common.PeerIDAddressPair{
+		common.PeerIDAddressPair{
+			ID:      id,
+			Address: "127.0.0.1:4222",
 		},
 	}
 	resp.Success = true

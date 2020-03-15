@@ -21,7 +21,6 @@ package protocols
 import (
 	"errors"
 	"fmt"
-	"net"
 	"strconv"
 
 	"github.com/hashicorp/golang-lru"
@@ -65,7 +64,7 @@ func NewMsgHandler(ld *ledger.Ledger) *MsgHandler {
 func (self *MsgHandler) start(net p2p.P2P) {
 	self.blockSync = block_sync.NewBlockSyncMgr(net, self.ledger)
 	self.reconnect = reconnect.NewReconectService(net)
-	self.discovery = discovery.NewDiscovery(net)
+	self.discovery = discovery.NewDiscovery(net, config.DefConfig.P2PNode.ReservedCfg.MaskPeers)
 	self.heatBeat = heatbeat.NewHeartBeat(net, self.ledger)
 	self.persistRecentPeerService = recent_peers.NewPersistRecentPeerService(net)
 	go self.persistRecentPeerService.Start()
@@ -106,7 +105,7 @@ func (self *MsgHandler) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message
 	log.Trace("[p2p]receive message", ctx.Sender().GetAddr(), ctx.Sender().GetID())
 	switch m := msg.(type) {
 	case *msgTypes.AddrReq:
-		AddrReqHandle(ctx)
+		self.discovery.AddrReqHandle(ctx)
 	case *msgTypes.FindNodeResp:
 		self.discovery.FindNodeResponseHandle(ctx, m)
 	case *msgTypes.FindNodeReq:
@@ -126,7 +125,7 @@ func (self *MsgHandler) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message
 	case *msgTypes.Trn:
 		TransactionHandle(ctx, m)
 	case *msgTypes.Addr:
-		AddrHandle(ctx, m)
+		self.discovery.AddrHandle(ctx, m)
 	case *msgTypes.DataReq:
 		DataReqHandle(ctx, m)
 	case *msgTypes.Inv:
@@ -142,51 +141,6 @@ func (self *MsgHandler) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.Message
 		} else {
 			log.Warn("unknown message handler for the msg: ", msgType)
 		}
-	}
-}
-
-// AddrReqHandle handles the neighbor address request from peer
-func AddrReqHandle(ctx *p2p.Context) {
-	remotePeer := ctx.Sender()
-	p2p := ctx.Network()
-
-	addrStr := p2p.GetNeighborAddrs()
-	//check mask peers
-	mskPeers := config.DefConfig.P2PNode.ReservedCfg.MaskPeers
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(mskPeers) > 0 {
-		mskPeerMap := make(map[string]bool)
-		for _, mskAddr := range mskPeers {
-			mskPeerMap[mskAddr] = true
-		}
-
-		// get remote peer IP
-		// if get remotePeerAddr failed, do masking anyway
-		remoteAddr, _ := remotePeer.GetAddr16()
-		var remoteIp net.IP = remoteAddr[:]
-
-		// remove msk peers from neigh-addr-list
-		// if remotePeer is in msk-list, skip masking
-		if _, isMskPeer := mskPeerMap[remoteIp.String()]; !isMskPeer {
-			mskAddrList := make([]msgCommon.PeerAddr, 0)
-			for _, addr := range addrStr {
-				var ip net.IP
-				ip = addr.IpAddr[:]
-				address := ip.To16().String()
-				if _, present := mskPeerMap[address]; !present {
-					mskAddrList = append(mskAddrList, addr)
-				}
-			}
-			// replace with mskAddrList
-			addrStr = mskAddrList
-		}
-	}
-
-	msg := msgpack.NewAddrs(addrStr)
-	err := remotePeer.Send(msg)
-
-	if err != nil {
-		log.Warn(err)
-		return
 	}
 }
 
@@ -240,26 +194,6 @@ func TransactionHandle(ctx *p2p.Context, trn *msgTypes.Trn) {
 		actor.AddTransaction(trn.Txn)
 	} else {
 		log.Tracef("[p2p]receive duplicate Transaction message, txHash: %x\n", trn.Txn.Hash())
-	}
-}
-
-// AddrHandle handles the neighbor address response message from peer
-func AddrHandle(ctx *p2p.Context, msg *msgTypes.Addr) {
-	p2p := ctx.Network()
-	for _, v := range msg.NodeAddrs {
-		if v.Port == 0 || v.ID == p2p.GetID() {
-			continue
-		}
-		var ip net.IP
-		ip = v.IpAddr[:]
-		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
-
-		if p2p.NodeEstablished(v.ID) {
-			continue
-		}
-
-		log.Debug("[p2p]connect ip address:", address)
-		go p2p.Connect(address)
 	}
 }
 

@@ -115,7 +115,11 @@ func (rt *RouteTable) ResetCplRefreshedAtForID(id common.PeerId, newTime time.Ti
 }
 
 // Update adds or moves the given peer to the front of its respective bucket
-func (rt *RouteTable) Update(peerID common.PeerId) error {
+func (rt *RouteTable) Update(peerID common.PeerId, addr string) error {
+	pair := common.PeerIDAddressPair{
+		ID:      peerID,
+		Address: addr,
+	}
 	cpl := common.CommonPrefixLen(peerID, rt.local)
 	rt.tabLock.Lock()
 	defer rt.tabLock.Unlock()
@@ -137,7 +141,7 @@ func (rt *RouteTable) Update(peerID common.PeerId) error {
 
 	// We have enough space in the bucket (whether spawned or grouped).
 	if bucket.Len() < rt.bucketsize {
-		bucket.PushFront(peerID)
+		bucket.PushFront(pair)
 		// call back notifier
 		rt.PeerAdded(peerID)
 		return nil
@@ -156,7 +160,7 @@ func (rt *RouteTable) Update(peerID common.PeerId) error {
 			// if after all the unfolding, we're unable to find room for this peer, scrap it.
 			return ErrPeerRejectedNoCapacity
 		}
-		bucket.PushFront(peerID)
+		bucket.PushFront(pair)
 		rt.PeerAdded(peerID)
 		return nil
 	}
@@ -201,16 +205,16 @@ func (rt *RouteTable) nextBucket() {
 
 // Find a specific peer by ID or return nil
 
-func (rt *RouteTable) Find(id common.PeerId) (common.PeerId, bool) {
+func (rt *RouteTable) Find(id common.PeerId) (common.PeerIDAddressPair, bool) {
 	srch := rt.NearestPeers(id, 1)
-	if len(srch) == 0 || srch[0] != id {
-		return common.PeerId{}, false
+	if len(srch) == 0 || srch[0].ID != id {
+		return common.PeerIDAddressPair{}, false
 	}
 
 	return srch[0], true
 }
 
-func (rt *RouteTable) NearestPeers(id common.PeerId, count int) []common.PeerId {
+func (rt *RouteTable) NearestPeers(id common.PeerId, count int) []common.PeerIDAddressPair {
 	// This is the number of bits _we_ share with the key. All peers in this
 	// bucket share cpl bits with us and will therefore share at least cpl+1
 	// bits with the given key. +1 because both the target and all peers in
@@ -266,7 +270,7 @@ func (rt *RouteTable) NearestPeers(id common.PeerId, count int) []common.PeerId 
 		pds.peers = pds.peers[:count]
 	}
 
-	out := make([]common.PeerId, 0, pds.Len())
+	out := make([]common.PeerIDAddressPair, 0, pds.Len())
 	for _, p := range pds.peers {
 		out = append(out, p.p)
 	}
@@ -286,8 +290,8 @@ func (rt *RouteTable) Size() int {
 }
 
 // ListPeers takes a RoutingTable and returns a list of all peers from all buckets in the table.
-func (rt *RouteTable) ListPeers() []common.PeerId {
-	var peers []common.PeerId
+func (rt *RouteTable) ListPeers() []common.PeerIDAddressPair {
+	var peers []common.PeerIDAddressPair
 	rt.tabLock.RLock()
 	for _, buck := range rt.Buckets {
 		peers = append(peers, buck.Peers()...)
@@ -306,8 +310,8 @@ func (rt *RouteTable) Print() {
 
 		b.lk.RLock()
 		for e := b.list.Front(); e != nil; e = e.Next() {
-			p := e.Value.(uint64)
-			fmt.Printf("\t\t- %d\n", p)
+			p := e.Value.(common.PeerIDAddressPair)
+			fmt.Printf("\t\t- %s\n", p.ID.ToHexString())
 		}
 		b.lk.RUnlock()
 	}
