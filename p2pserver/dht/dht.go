@@ -78,8 +78,8 @@ func NewDHT(id common.PeerId) *DHT {
 
 // Update signals the routeTable to Update its last-seen status
 // on the given peer.
-func (dht *DHT) Update(peer common.PeerId) bool {
-	err := dht.routeTable.Update(peer)
+func (dht *DHT) Update(peer common.PeerId, addr string) bool {
+	err := dht.routeTable.Update(peer, addr)
 	return err == nil
 }
 
@@ -87,18 +87,18 @@ func (dht *DHT) Remove(peer common.PeerId) {
 	dht.routeTable.Remove(peer)
 }
 
-func (dht *DHT) BetterPeers(id common.PeerId, count int) []common.PeerId {
+func (dht *DHT) BetterPeers(id common.PeerId, count int) []common.PeerIDAddressPair {
 	closer := dht.routeTable.NearestPeers(id, count)
-	filtered := make([]common.PeerId, 0, len(closer))
+	filtered := make([]common.PeerIDAddressPair, 0, len(closer))
 	// don't include self and target id
-	for _, curID := range closer {
-		if curID == dht.localId {
+	for _, curPair := range closer {
+		if curPair.ID == dht.localId {
 			continue
 		}
-		if curID == id {
+		if curPair.ID == id {
 			continue
 		}
-		filtered = append(filtered, curID)
+		filtered = append(filtered, curPair)
 	}
 
 	return filtered

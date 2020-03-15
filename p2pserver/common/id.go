@@ -41,6 +41,11 @@ type PeerId struct {
 	val common.Address
 }
 
+type PeerIDAddressPair struct {
+	ID      PeerId
+	Address string
+}
+
 func (self PeerId) IsEmpty() bool {
 	return self.val == common.ADDRESS_EMPTY
 }
