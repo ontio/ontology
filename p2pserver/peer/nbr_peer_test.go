@@ -94,18 +94,6 @@ func TestDelNbrNode(t *testing.T) {
 	p.DumpInfo()
 }
 
-func TestNodeEstablished(t *testing.T) {
-	nm := initTestNbrPeers()
-	p := nm.GetPeer(id46)
-	if p == nil {
-		t.Fatal("TestNodeEstablished:get peer error")
-	}
-	p.SetState(4)
-	if !nm.NodeEstablished(id46) {
-		t.Fatal("TestNodeEstablished error")
-	}
-}
-
 func TestGetNeighborAddrs(t *testing.T) {
 	nm := initTestNbrPeers()
 	p := nm.GetPeer(id46)

@@ -86,7 +86,7 @@ func (self *Discovery) findSelf() {
 				} else {
 					msg = msgpack.NewFindNodeReq(curPair.ID)
 				}
-				self.net.Send(self.net.GetPeer(curPair.ID), msg)
+				self.net.SendTo(curPair.ID, msg)
 			}
 		case <-self.quit:
 			return
@@ -112,7 +112,7 @@ func (self *Discovery) refreshCPL() {
 					} else {
 						msg = msgpack.NewFindNodeReq(randPeer)
 					}
-					self.net.Send(self.net.GetPeer(pair.ID), msg)
+					self.net.SendTo(pair.ID, msg)
 				}
 			}
 		case <-self.quit:
@@ -278,7 +278,7 @@ func (self *Discovery) AddrHandle(ctx *p2p.Context, msg *types.Addr) {
 		ip := net.IP(v.IpAddr[:])
 		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
 
-		if p2p.NodeEstablished(v.ID) {
+		if self.dht.Contains(v.ID) {
 			continue
 		}
 

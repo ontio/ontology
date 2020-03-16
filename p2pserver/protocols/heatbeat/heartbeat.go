@@ -24,10 +24,9 @@ import (
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
-	"github.com/ontio/ontology/p2pserver/peer"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
 type HeartBeat struct {
@@ -71,19 +70,9 @@ func (this *HeartBeat) heartBeatService() {
 }
 
 func (this *HeartBeat) ping() {
-	peers := this.net.GetNeighbors()
-	this.pingTo(peers)
-}
-
-//pings send pkgs to get pong msg from others
-func (this *HeartBeat) pingTo(peers []*peer.Peer) {
-	for _, p := range peers {
-		if p.GetState() == common.ESTABLISH {
-			height := this.ledger.GetCurrentBlockHeight()
-			ping := msgpack.NewPingMsg(uint64(height))
-			go this.net.Send(p, ping)
-		}
-	}
+	height := this.ledger.GetCurrentBlockHeight()
+	ping := msgpack.NewPingMsg(uint64(height))
+	go this.net.Broadcast(ping)
 }
 
 //timeout trace whether some peer be long time no response

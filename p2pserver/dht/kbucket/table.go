@@ -204,7 +204,6 @@ func (rt *RouteTable) nextBucket() {
 }
 
 // Find a specific peer by ID or return nil
-
 func (rt *RouteTable) Find(id common.PeerId) (common.PeerIDAddressPair, bool) {
 	srch := rt.NearestPeers(id, 1)
 	if len(srch) == 0 || srch[0].ID != id {
