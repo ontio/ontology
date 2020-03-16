@@ -119,10 +119,25 @@ func (this *ConsensusPayload) SerializationUnsigned(sink *common.ZeroCopySink) {
 func (this *ConsensusPayload) DeserializationUnsigned(source *common.ZeroCopySource) error {
 	var irregular, eof bool
 	this.Version, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.PrevHash, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.Height, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.BookkeeperIndex, eof = source.NextUint16()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.Timestamp, eof = source.NextUint32()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.Data, _, irregular, eof = source.NextVarBytes()
 	if eof {
 		return io.ErrUnexpectedEOF

@@ -69,24 +69,60 @@ func (this *Version) CmdType() string {
 func (this *Version) Deserialization(source *comm.ZeroCopySource) error {
 	var irregular, eof bool
 	this.P.Version, eof = source.NextUint32()
-	this.P.Services, eof = source.NextUint64()
-	this.P.TimeStamp, eof = source.NextInt64()
-	this.P.SyncPort, eof = source.NextUint16()
-	this.P.HttpInfoPort, eof = source.NextUint16()
-	this.P.ConsPort, eof = source.NextUint16()
-	var buf []byte
-	buf, eof = source.NextBytes(uint64(len(this.P.Cap[:])))
-	copy(this.P.Cap[:], buf)
-
-	this.P.Nonce, eof = source.NextUint64()
-	this.P.StartHeight, eof = source.NextUint64()
-	this.P.Relay, eof = source.NextUint8()
-	this.P.IsConsensus, irregular, eof = source.NextBool()
 	if eof {
 		return io.ErrUnexpectedEOF
 	}
-	if irregular {
-		return comm.ErrIrregularData
+
+	this.P.Services, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	this.P.TimeStamp, eof = source.NextInt64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	this.P.SyncPort, eof = source.NextUint16()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	this.P.HttpInfoPort, eof = source.NextUint16()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	this.P.ConsPort, eof = source.NextUint16()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	var buf []byte
+	buf, eof = source.NextBytes(uint64(len(this.P.Cap[:])))
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+	copy(this.P.Cap[:], buf)
+
+	this.P.Nonce, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	this.P.StartHeight, eof = source.NextUint64()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	this.P.Relay, eof = source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
+
+	this.P.IsConsensus, irregular, eof = source.NextBool()
+	if eof || irregular {
+		return io.ErrUnexpectedEOF
 	}
 
 	this.P.SoftVersion, _, irregular, eof = source.NextString()

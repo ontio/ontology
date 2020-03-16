@@ -156,7 +156,7 @@ func NewSyncFlightInfo(height uint32, nodeId p2pComm.PeerId) *SyncFlightInfo {
 		Height:      height,
 		nodeId:      nodeId,
 		startTime:   time.Now(),
-		failedNodes: make(map[p2pComm.PeerId]int, 0),
+		failedNodes: make(map[p2pComm.PeerId]int),
 	}
 }
 
@@ -240,13 +240,13 @@ type BlockSyncMgr struct {
 //NewBlockSyncMgr return a BlockSyncMgr instance
 func NewBlockSyncMgr(server p2p.P2P, ld *ledger.Ledger) *BlockSyncMgr {
 	return &BlockSyncMgr{
-		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo, 0),
-		flightHeaders: make(map[uint32]*SyncFlightInfo, 0),
+		flightBlocks:  make(map[common.Uint256][]*SyncFlightInfo),
+		flightHeaders: make(map[uint32]*SyncFlightInfo),
 		blocksCache:   NewBlockCache(),
 		server:        server,
 		ledger:        ld,
 		exitCh:        make(chan interface{}, 1),
-		nodeWeights:   make(map[p2pComm.PeerId]*NodeWeight, 0),
+		nodeWeights:   make(map[p2pComm.PeerId]*NodeWeight),
 	}
 }
 
@@ -258,7 +258,7 @@ type BlockCache struct {
 func NewBlockCache() *BlockCache {
 	return &BlockCache{
 		emptyBlockAmount: 0,
-		blocksCache:      make(map[uint32]*BlockInfo, 0),
+		blocksCache:      make(map[uint32]*BlockInfo),
 	}
 }
 
@@ -344,8 +344,8 @@ func (this *BlockSyncMgr) Start() {
 
 func (this *BlockSyncMgr) checkTimeout() {
 	now := time.Now()
-	headerTimeoutFlights := make(map[uint32]*SyncFlightInfo, 0)
-	blockTimeoutFlights := make(map[common.Uint256][]*SyncFlightInfo, 0)
+	headerTimeoutFlights := make(map[uint32]*SyncFlightInfo)
+	blockTimeoutFlights := make(map[common.Uint256][]*SyncFlightInfo)
 	this.lock.RLock()
 	for height, flightInfo := range this.flightHeaders {
 		if int(now.Sub(flightInfo.startTime).Seconds()) >= SYNC_HEADER_REQUEST_TIMEOUT {
@@ -861,7 +861,7 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 		nodelist = append(nodelist, n.id)
 	}
 	nextNodeIndex := 0
-	triedNode := make(map[p2pComm.PeerId]bool, 0)
+	triedNode := make(map[p2pComm.PeerId]bool)
 	for {
 		var nextNodeId p2pComm.PeerId
 		nextNodeIndex, nextNodeId = getNextNodeId(nextNodeIndex, nodelist)
@@ -890,7 +890,7 @@ func (this *BlockSyncMgr) getNextNode(nextBlockHeight uint32) *peer.Peer {
 func (this *BlockSyncMgr) getNodeWithMinFailedTimes(flightInfo *SyncFlightInfo, curBlockHeight uint32) *peer.Peer {
 	var minFailedTimes = math.MaxInt64
 	var minFailedTimesNode *peer.Peer
-	triedNode := make(map[p2pComm.PeerId]bool, 0)
+	triedNode := make(map[p2pComm.PeerId]bool)
 	for {
 		nextNode := this.getNextNode(curBlockHeight + 1)
 		if nextNode == nil {

@@ -46,7 +46,13 @@ func (this *HeadersReq) CmdType() string {
 func (this *HeadersReq) Deserialization(source *common.ZeroCopySource) error {
 	var eof bool
 	this.Len, eof = source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.HashStart, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.HashEnd, eof = source.NextHash()
 	if eof {
 		return io.ErrUnexpectedEOF

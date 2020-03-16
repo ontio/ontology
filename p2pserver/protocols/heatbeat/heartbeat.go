@@ -53,8 +53,7 @@ func (self *HeartBeat) Stop() {
 	close(self.quit)
 }
 func (this *HeartBeat) heartBeatService() {
-	var periodTime uint
-	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
+	var periodTime uint = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	t := time.NewTicker(time.Second * (time.Duration(periodTime)))
 
 	for {
@@ -78,8 +77,7 @@ func (this *HeartBeat) ping() {
 //timeout trace whether some peer be long time no response
 func (this *HeartBeat) timeout() {
 	peers := this.net.GetNeighbors()
-	var periodTime uint
-	periodTime = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
+	var periodTime uint = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	for _, p := range peers {
 		if p.GetState() == common.ESTABLISH {
 			t := p.GetContactTime()

@@ -154,8 +154,7 @@ func (this *NbrPeers) GetNeighbors() []*Peer {
 	peers := []*Peer{}
 	for _, n := range this.List {
 		if n.GetState() == common.ESTABLISH {
-			node := n
-			peers = append(peers, node)
+			peers = append(peers, n)
 		}
 	}
 	return peers
