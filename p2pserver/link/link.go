@@ -43,7 +43,7 @@ type Link struct {
 
 func NewLink() *Link {
 	link := &Link{
-		reqRecord: make(map[string]int64, 0),
+		reqRecord: make(map[string]int64),
 	}
 	return link
 }

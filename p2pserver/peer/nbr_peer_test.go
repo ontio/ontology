@@ -100,16 +100,16 @@ func TestGetNeighborAddrs(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestGetNeighborAddrs:get peer error")
 	}
-	p.SetState(4)
+	p.SetState(common.ESTABLISH)
 	p = nm.GetPeer(id47)
 	if p == nil {
 		t.Fatal("TestGetNeighborAddrs:get peer error")
 	}
-	p.SetState(4)
+	p.SetState(common.ESTABLISH)
 
 	pList := nm.GetNeighborAddrs()
 	for i := 0; i < len(pList); i++ {
-		fmt.Printf("peer id = %x \n", pList[i].ID)
+		fmt.Printf("peer id = %s \n", pList[i].ID.ToHexString())
 	}
 	if len(pList) != 2 {
 		t.Fatal("TestGetNeighborAddrs error")
@@ -123,17 +123,26 @@ func TestGetNeighborHeights(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestGetNeighborHeights:get peer error")
 	}
-	p.SetState(4)
+	p.SetState(common.ESTABLISH)
+	p.SetHeight(110)
 
 	p = nm.GetPeer(id47)
 	if p == nil {
 		t.Fatal("TestGetNeighborHeights:get peer error")
 	}
-	p.SetState(4)
+	p.SetState(common.ESTABLISH)
+	p.SetHeight(110)
 
 	pMap := nm.GetNeighborHeights()
+	if len(pMap) != 2 {
+		t.Fatalf("expect pmap size to 2, got %d", len(pMap))
+	}
+
 	for k, v := range pMap {
-		fmt.Printf("peer id = %x height = %d \n", k, v)
+		fmt.Printf("peer id = %s height = %d \n", k.ToHexString(), v)
+		if v != 110 {
+			t.Fatalf("expect height is 110, got %d", v)
+		}
 	}
 }
 
@@ -143,15 +152,19 @@ func TestGetNeighbors(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestGetNeighbors:get peer error")
 	}
-	p.SetState(4)
+	p.SetState(common.ESTABLISH)
 
 	p = nm.GetPeer(id47)
 	if p == nil {
 		t.Fatal("TestGetNeighbors:get peer error")
 	}
-	p.SetState(4)
+	p.SetState(common.ESTABLISH)
 
 	pList := nm.GetNeighbors()
+	if len(pList) != 2 {
+		t.Fatalf("expect neigbor size is 2, got %d", len(pList))
+	}
+
 	for _, v := range pList {
 		v.DumpInfo()
 	}
@@ -164,15 +177,15 @@ func TestGetNbrNodeCnt(t *testing.T) {
 	if p == nil {
 		t.Fatal("TestGetNbrNodeCnt:get peer error")
 	}
-	p.SetState(4)
+	p.SetState(common.ESTABLISH)
 
 	p = nm.GetPeer(id47)
 	if p == nil {
 		t.Fatal("TestGetNbrNodeCnt:get peer error")
 	}
-	p.SetState(4)
+	p.SetState(common.ESTABLISH)
 
 	if nm.GetNbrNodeCnt() != 2 {
-		t.Fatal("TestGetNbrNodeCnt error")
+		t.Fatalf("expect 2 neigbors got: %d", nm.GetNbrNodeCnt())
 	}
 }

@@ -46,7 +46,13 @@ func (this *BlocksReq) CmdType() string {
 func (this *BlocksReq) Deserialization(source *comm.ZeroCopySource) error {
 	var eof bool
 	this.HeaderHashCount, eof = source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.HashStart, eof = source.NextHash()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.HashStop, eof = source.NextHash()
 
 	if eof {
