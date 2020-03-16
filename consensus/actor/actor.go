@@ -25,9 +25,6 @@ import (
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
-	netActor "github.com/ontio/ontology/p2pserver/actor/server"
-	"github.com/ontio/ontology/p2pserver/common"
-	ptypes "github.com/ontio/ontology/p2pserver/message/types"
 	txpool "github.com/ontio/ontology/txnpool/common"
 )
 
@@ -63,23 +60,4 @@ func (self *TxPoolActor) VerifyBlock(txs []*types.Transaction, height uint32) er
 	}
 
 	return nil
-}
-
-type P2PActor struct {
-	P2P *actor.PID
-}
-
-func (self *P2PActor) Broadcast(msg interface{}) {
-	self.P2P.Tell(msg)
-}
-
-func (self *P2PActor) Transmit(target common.PeerId, msg ptypes.Message) {
-	self.P2P.Tell(&netActor.TransmitConsensusMsgReq{
-		Target: target,
-		Msg:    msg,
-	})
-}
-
-type LedgerActor struct {
-	Ledger *actor.PID
 }

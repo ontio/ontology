@@ -27,8 +27,6 @@ import (
 
 //P2P represent the net interface of p2p package
 type P2P interface {
-	Start()
-	Halt()
 	Connect(addr string) error
 	GetHostInfo() *peer.PeerInfo
 	GetID() common.PeerId
@@ -39,17 +37,9 @@ type P2P interface {
 	GetNp() *peer.NbrPeers
 	GetPeer(id common.PeerId) *peer.Peer
 	SetHeight(uint64)
-	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, msg types.Message) error
-	GetPeerFromAddr(addr string) *peer.Peer
+	SendTo(p common.PeerId, msg types.Message)
 	GetOutConnRecordLen() uint
-	AddPeerAddress(addr string, p *peer.Peer)
-	RemovePeerAddress(addr string)
-	AddNbrNode(*peer.Peer)
-	DelNbrNode(id common.PeerId) (*peer.Peer, bool)
-	NodeEstablished(id common.PeerId) bool
-	Xmit(msg types.Message)
+	Broadcast(msg types.Message)
 	IsOwnAddress(addr string) bool
-
-	GetPeerStringAddr() map[common.PeerId]string
 }

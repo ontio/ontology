@@ -83,6 +83,11 @@ func (dht *DHT) Update(peer common.PeerId, addr string) bool {
 	return err == nil
 }
 
+func (dht *DHT) Contains(peer common.PeerId) bool {
+	_, ok := dht.routeTable.Find(peer)
+	return ok
+}
+
 func (dht *DHT) Remove(peer common.PeerId) {
 	dht.routeTable.Remove(peer)
 }

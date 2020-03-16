@@ -414,7 +414,7 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	cons := msgpack.NewConsensus(msg)
 	p2pid, present := self.peerPool.getP2pId(peerIdx)
 	if present {
-		self.p2p.Transmit(p2pid, cons)
+		go self.p2p.SendTo(p2pid, cons)
 	} else {
 		log.Errorf("sendToPeer transmit failed index:%d", peerIdx)
 	}
@@ -428,16 +428,16 @@ func (self *Server) broadcast(msg ConsensusMsg) {
 	}
 }
 
-func (self *Server) broadcastToAll(data []byte) error {
-	msg := &p2pmsg.ConsensusPayload{
+func (self *Server) broadcastToAll(data []byte) {
+	payload := &p2pmsg.ConsensusPayload{
 		Data:  data,
 		Owner: self.account.PublicKey,
 	}
 
 	sink := common.NewZeroCopySink(nil)
-	msg.SerializationUnsigned(sink)
-	msg.Signature, _ = signature.Sign(self.account, sink.Bytes())
+	payload.SerializationUnsigned(sink)
+	payload.Signature, _ = signature.Sign(self.account, sink.Bytes())
 
-	self.p2p.Broadcast(msg)
-	return nil
+	msg := msgpack.NewConsensus(payload)
+	go self.p2p.Broadcast(msg)
 }

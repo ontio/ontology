@@ -22,7 +22,6 @@ import (
 	"errors"
 	"net"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/ontio/ontology/common/config"
@@ -35,15 +34,13 @@ import (
 )
 
 //NewNetServer return the net object in p2p
-func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig) (p2p.P2P, error) {
+func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig) (*NetServer, error) {
 	n := &NetServer{
 		NetChan:  make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		base:     &peer.PeerInfo{},
 		Np:       peer.NewNbrPeers(),
 		protocol: protocol,
 	}
-
-	n.PeerAddrMap.PeerAddress = make(map[string]*peer.Peer)
 
 	err := n.init(conf)
 	if err != nil {
@@ -58,8 +55,7 @@ type NetServer struct {
 	listener net.Listener
 	protocol p2p.Protocol
 	NetChan  chan *types.MsgPayload
-	PeerAddrMap
-	Np *peer.NbrPeers
+	Np       *peer.NbrPeers
 
 	connCtrl *connect_controller.ConnectController
 
@@ -86,12 +82,6 @@ func (this *NetServer) processMessage(channel chan *types.MsgPayload,
 			return
 		}
 	}
-}
-
-//PeerAddrMap include all addr-peer list
-type PeerAddrMap struct {
-	sync.RWMutex
-	PeerAddress map[string]*peer.Peer
 }
 
 //init initializes attribute of network server
@@ -188,13 +178,8 @@ func (this *NetServer) GetNeighbors() []*peer.Peer {
 	return this.Np.GetNeighbors()
 }
 
-//NodeEstablished return whether a peer is establish with self according to id
-func (this *NetServer) NodeEstablished(id common.PeerId) bool {
-	return this.Np.NodeEstablished(id)
-}
-
-//Xmit called by actor, broadcast msg
-func (this *NetServer) Xmit(msg types.Message) {
+//Broadcast called by actor, broadcast msg
+func (this *NetServer) Broadcast(msg types.Message) {
 	this.Np.Broadcast(msg)
 }
 
@@ -205,14 +190,6 @@ func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 	}
 	log.Warn("[p2p]sendMsg to a invalid peer")
 	return errors.New("[p2p]sendMsg to a invalid peer")
-}
-
-//IsPeerEstablished return the establise state of given peer`s id
-func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
-	if p == nil {
-		return false
-	}
-	return this.Np.NodeEstablished(p.GetID())
 }
 
 func (this *NetServer) removeOldPeer(kid common.PeerId, remoteAddr string) {
@@ -247,7 +224,6 @@ func (this *NetServer) Connect(addr string) error {
 	this.removeOldPeer(kid, remoteAddr)
 
 	remotePeer.AttachChan(this.NetChan)
-	this.AddPeerAddress(remoteAddr, remotePeer)
 	this.AddNbrNode(remotePeer)
 	go remotePeer.Link.Rx()
 
@@ -258,8 +234,8 @@ func (this *NetServer) Connect(addr string) error {
 func (this *NetServer) notifyPeerConnected(p *peer.PeerInfo) {
 }
 
-//Halt stop all net layer logic
-func (this *NetServer) Halt() {
+//Stop stop all net layer logic
+func (this *NetServer) Stop() {
 	peers := this.Np.GetNeighbors()
 	for _, p := range peers {
 		p.Close()
@@ -316,9 +292,7 @@ func (this *NetServer) handleClientConnection(conn net.Conn) error {
 	this.removeOldPeer(kid, conn.RemoteAddr().String())
 
 	remotePeer.AttachChan(this.NetChan)
-	addr := conn.RemoteAddr().String()
 	this.AddNbrNode(remotePeer)
-	this.AddPeerAddress(addr, remotePeer)
 
 	go remotePeer.Link.Rx()
 	this.protocol.HandleSystemMessage(this, p2p.PeerConnected{Info: remotePeer.Info})
@@ -342,19 +316,6 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 	}
 }
 
-//find exist peer from addr map
-func (this *NetServer) GetPeerFromAddr(addr string) *peer.Peer {
-	var p *peer.Peer
-	this.PeerAddrMap.RLock()
-	defer this.PeerAddrMap.RUnlock()
-
-	p, ok := this.PeerAddress[addr]
-	if ok {
-		return p
-	}
-	return nil
-}
-
 //IsNbrPeerAddr return result whether the address is under connecting
 func (this *NetServer) IsNbrPeerAddr(addr string) bool {
 	var addrNew string
@@ -369,24 +330,6 @@ func (this *NetServer) IsNbrPeerAddr(addr string) bool {
 		}
 	}
 	return false
-}
-
-//AddPeerAddress add sync addr to peer-addr map
-func (this *NetServer) AddPeerAddress(addr string, p *peer.Peer) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
-	log.Debugf("[p2p]AddPeerAddress %s", addr)
-	this.PeerAddress[addr] = p
-}
-
-//RemovePeerAddress remove sync addr from peer-addr map
-func (this *NetServer) RemovePeerAddress(addr string) {
-	this.PeerAddrMap.Lock()
-	defer this.PeerAddrMap.Unlock()
-	if _, ok := this.PeerAddress[addr]; ok {
-		delete(this.PeerAddress, addr)
-		log.Debugf("[p2p]delete Sync Address %s", addr)
-	}
 }
 
 //GetOutConnRecordLen return length of outConnRecord
@@ -413,10 +356,6 @@ func (this *NetServer) IsOwnAddress(addr string) bool {
 	return addr == this.connCtrl.OwnAddress()
 }
 
-func (ns *NetServer) GetPeerStringAddr() map[common.PeerId]string {
-	return ns.Np.GetPeerStringAddr()
-}
-
 func createPeer(info *peer.PeerInfo, conn net.Conn) *peer.Peer {
 	remotePeer := peer.NewPeer()
 	remotePeer.SetInfo(info)
@@ -435,4 +374,11 @@ func (ns *NetServer) ConnectController() *connect_controller.ConnectController {
 
 func (ns *NetServer) Protocol() p2p.Protocol {
 	return ns.protocol
+}
+
+func (this *NetServer) SendTo(p common.PeerId, msg types.Message) {
+	peer := this.GetPeer(p)
+	if peer != nil {
+		this.Send(peer, msg)
+	}
 }

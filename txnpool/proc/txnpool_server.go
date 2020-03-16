@@ -35,6 +35,8 @@ import (
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	httpcom "github.com/ontio/ontology/http/base/common"
+	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"
@@ -79,13 +81,14 @@ type TXPoolServer struct {
 	allPendingTxs         map[common.Uint256]*serverPendingTx // The txs that server is processing
 	pendingBlock          *pendingBlock                       // The block that server is processing
 	actors                map[tc.ActorType]*actor.PID         // The actors running in the server
-	validators            *registerValidators                 // The registered validators
-	stats                 txStats                             // The transaction statstics
-	slots                 chan struct{}                       // The limited slots for the new transaction
-	height                uint32                              // The current block height
-	gasPrice              uint64                              // Gas price to enforce for acceptance into the pool
-	disablePreExec        bool                                // Disbale PreExecute a transaction
-	disableBroadcastNetTx bool                                // Disable broadcast tx from network
+	Net                   p2p.P2P
+	validators            *registerValidators // The registered validators
+	stats                 txStats             // The transaction statstics
+	slots                 chan struct{}       // The limited slots for the new transaction
+	height                uint32              // The current block height
+	gasPrice              uint64              // Gas price to enforce for acceptance into the pool
+	disablePreExec        bool                // Disbale PreExecute a transaction
+	disableBroadcastNetTx bool                // Disable broadcast tx from network
 }
 
 // NewTxPoolServer creates a new tx pool server to schedule workers to
@@ -268,9 +271,9 @@ func (s *TXPoolServer) removePendingTx(hash common.Uint256,
 
 	if err == errors.ErrNoError && ((pt.sender == tc.HttpSender) ||
 		(pt.sender == tc.NetSender && !s.disableBroadcastNetTx)) {
-		pid := s.GetPID(tc.NetActor)
-		if pid != nil {
-			pid.Tell(pt.tx)
+		if s.Net != nil {
+			msg := msgpack.NewTxn(pt.tx)
+			go s.Net.Broadcast(msg)
 		}
 	}
 

@@ -20,6 +20,8 @@ package dbft
 
 import (
 	"fmt"
+	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"reflect"
 	"time"
 
@@ -51,13 +53,13 @@ type DbftService struct {
 	ledger            *ledger.Ledger
 	incrValidator     *increment.IncrementValidator
 	poolActor         *actorTypes.TxPoolActor
-	p2p               *actorTypes.P2PActor
+	p2p               p2p.P2P
 
 	pid *actor.PID
 	sub *events.ActorSubscriber
 }
 
-func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftService, error) {
+func NewDbftService(bkAccount *account.Account, txpool *actor.PID, p2p p2p.P2P) (*DbftService, error) {
 	service := &DbftService{
 		Account:       bkAccount,
 		timer:         time.NewTimer(time.Second * 15),
@@ -65,7 +67,7 @@ func NewDbftService(bkAccount *account.Account, txpool, p2p *actor.PID) (*DbftSe
 		ledger:        ledger.DefLedger,
 		incrValidator: increment.NewIncrementValidator(20),
 		poolActor:     &actorTypes.TxPoolActor{Pool: txpool},
-		p2p:           &actorTypes.P2PActor{P2P: p2p},
+		p2p:           p2p,
 	}
 
 	if !service.timer.Stop() {
@@ -145,7 +147,10 @@ func (this *DbftService) Halt() error {
 
 func (self *DbftService) handleBlockPersistCompleted(block *types.Block) {
 	log.Infof("persist block: %x", block.Hash())
-	self.p2p.Broadcast(block.Hash())
+
+	invPayload := msgpack.NewInvPayload(common.BLOCK, []common.Uint256{block.Hash()})
+	msg := msgpack.NewInv(invPayload)
+	self.p2p.Broadcast(msg)
 
 	self.InitializeConsensus(0)
 }
@@ -154,7 +159,9 @@ func (ds *DbftService) BlockPersistCompleted(v interface{}) {
 	if block, ok := v.(*types.Block); ok {
 		log.Infof("persist block: %x", block.Hash())
 
-		ds.p2p.Broadcast(block.Hash())
+		invPayload := msgpack.NewInvPayload(common.BLOCK, []common.Uint256{block.Hash()})
+		msg := msgpack.NewInv(invPayload)
+		ds.p2p.Broadcast(msg)
 	}
 
 }
@@ -600,7 +607,8 @@ func (ds *DbftService) SignAndRelay(payload *p2pmsg.ConsensusPayload) {
 	payload.SerializationUnsigned(sink)
 	payload.Signature, _ = signature.Sign(ds.Account, sink.Bytes())
 
-	ds.p2p.Broadcast(payload)
+	msg := msgpack.NewConsensus(payload)
+	ds.p2p.Broadcast(msg)
 }
 
 func (ds *DbftService) start() {
