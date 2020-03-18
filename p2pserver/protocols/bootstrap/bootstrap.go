@@ -66,7 +66,7 @@ func (self *BootstrapService) OnDelPeer(info *peer.PeerInfo) {
 
 //connectSeedService make sure seed peer be connected
 func (self *BootstrapService) connectSeedService() {
-	t := time.NewTimer(time.Second * common.CONN_MONITOR)
+	t := time.NewTimer(0) // let it timeout to start connect immediately
 	for {
 		select {
 		case <-t.C:
