@@ -28,7 +28,7 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
 type PersistRecentPeerService struct {

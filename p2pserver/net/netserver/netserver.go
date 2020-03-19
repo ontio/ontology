@@ -21,7 +21,6 @@ package netserver
 import (
 	"errors"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/ontio/ontology/common/config"
@@ -38,7 +37,7 @@ func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig) (*NetServer
 	n := &NetServer{
 		NetChan:    make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		base:       &peer.PeerInfo{},
-		Np:         peer.NewNbrPeers(),
+		Np:         NewNbrPeers(),
 		protocol:   protocol,
 		stopRecvCh: make(chan bool),
 	}
@@ -51,16 +50,15 @@ func NewNetServer(protocol p2p.Protocol, conf *config.P2PNodeConfig) (*NetServer
 }
 
 func NewCustomNetServer(id *common.PeerKeyId, info *peer.PeerInfo, proto p2p.Protocol,
-	listener net.Listener, dialer connect_controller.Dialer) *NetServer {
+	listener net.Listener, opt connect_controller.ConnCtrlOption) *NetServer {
 	n := &NetServer{
 		base:       info,
 		listener:   listener,
 		protocol:   proto,
 		NetChan:    make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
-		Np:         peer.NewNbrPeers(),
+		Np:         NewNbrPeers(),
 		stopRecvCh: make(chan bool),
 	}
-	opt := connect_controller.NewConnCtrlOption().WithDialer(dialer)
 	n.connCtrl = connect_controller.NewConnectController(info, id, opt)
 
 	return n
@@ -72,7 +70,7 @@ type NetServer struct {
 	listener net.Listener
 	protocol p2p.Protocol
 	NetChan  chan *types.MsgPayload
-	Np       *peer.NbrPeers
+	Np       *NbrPeers
 
 	connCtrl *connect_controller.ConnectController
 
@@ -88,7 +86,7 @@ func (this *NetServer) processMessage(channel chan *types.MsgPayload,
 			if ok {
 				sender := this.GetPeer(data.Id)
 				if sender == nil {
-					log.Warnf("[router] remote peer %d invalid.", data.Id)
+					log.Warnf("[router] remote peer %s invalid.", data.Id.ToHexString())
 					continue
 				}
 
@@ -138,13 +136,14 @@ func (this *NetServer) init(conf *config.P2PNodeConfig) error {
 }
 
 //InitListen start listening on the config port
-func (this *NetServer) Start() {
+func (this *NetServer) Start() error {
 	this.protocol.HandleSystemMessage(this, p2p.NetworkStart{})
 	go this.startNetAccept(this.listener)
 	log.Infof("[p2p]start listen on sync port %d", this.base.Port)
 	go this.processMessage(this.NetChan, this.stopRecvCh)
 
 	log.Debug("[p2p]MessageRouter start to parse p2p message...")
+	return nil
 }
 
 //GetVersion return self peer`s version
@@ -172,11 +171,6 @@ func (this *NetServer) GetPeer(id common.PeerId) *peer.Peer {
 	return this.Np.GetPeer(id)
 }
 
-//return nbr peers collection
-func (this *NetServer) GetNp() *peer.NbrPeers {
-	return this.Np
-}
-
 //GetNeighborAddrs return all the nbr peer`s addr
 func (this *NetServer) GetNeighborAddrs() []common.PeerAddr {
 	return this.Np.GetNeighborAddrs()
@@ -192,14 +186,11 @@ func (this *NetServer) GetMaxPeerBlockHeight() uint64 {
 	return this.Np.GetNeighborMostHeight()
 }
 
-//AddNbrNode add peer to nbr peer list
-func (this *NetServer) AddNbrNode(remotePeer *peer.Peer) {
-	this.Np.AddNbrNode(remotePeer)
-}
-
-//DelNbrNode delete nbr peer by id
-func (this *NetServer) DelNbrNode(id common.PeerId) (*peer.Peer, bool) {
-	return this.Np.DelNbrNode(id)
+func (this *NetServer) ReplacePeer(remotePeer *peer.Peer) {
+	old := this.Np.ReplacePeer(remotePeer, this)
+	if old != nil {
+		old.Close()
+	}
 }
 
 //GetNeighbors return all nbr peer
@@ -221,48 +212,24 @@ func (this *NetServer) Send(p *peer.Peer, msg types.Message) error {
 	return errors.New("[p2p]sendMsg to a invalid peer")
 }
 
-func (this *NetServer) removeOldPeer(kid common.PeerId, remoteAddr string) {
-	p := this.GetPeer(kid)
-	if p != nil {
-		n, delOK := this.DelNbrNode(kid)
-		if delOK {
-			log.Infof("[p2p] peer reconnect %s, addr: %s", kid.ToHexString(), remoteAddr)
-			// Close the connection and release the node source
-			n.Close()
-
-			this.protocol.HandleSystemMessage(this, p2p.PeerDisConnected{Info: n.Info})
-		}
-	}
-}
-
 //Connect used to connect net address under sync or cons mode
-func (this *NetServer) Connect(addr string) error {
+func (this *NetServer) Connect(addr string) {
 	err := this.connect(addr)
 	if err != nil {
-		log.Infof("%s connecting to %s failed, err: %s", this.base.Addr, addr, err)
+		log.Debugf("%s connecting to %s failed, err: %s", this.base.Addr, addr, err)
 	}
-	return err
 }
 
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) connect(addr string) error {
-	if this.IsNbrPeerAddr(addr) {
-		return nil
-	}
-
 	peerInfo, conn, err := this.connCtrl.Connect(addr)
 	if err != nil {
 		return err
 	}
 	remotePeer := createPeer(peerInfo, conn)
 
-	kid := remotePeer.GetID()
-	remoteAddr := remotePeer.GetAddr()
-	// Obsolete node
-	this.removeOldPeer(kid, remoteAddr)
-
 	remotePeer.AttachChan(this.NetChan)
-	this.AddNbrNode(remotePeer)
+	this.ReplacePeer(remotePeer)
 	go remotePeer.Link.Rx()
 
 	this.protocol.HandleSystemMessage(this, p2p.PeerConnected{Info: remotePeer.Info})
@@ -270,6 +237,11 @@ func (this *NetServer) connect(addr string) error {
 }
 
 func (this *NetServer) notifyPeerConnected(p *peer.PeerInfo) {
+	this.protocol.HandleSystemMessage(this, p2p.PeerConnected{Info: p})
+}
+
+func (this *NetServer) notifyPeerDisconnected(p *peer.PeerInfo) {
+	this.protocol.HandleSystemMessage(this, p2p.PeerDisConnected{Info: p})
 }
 
 //Stop stop all net layer logic
@@ -278,13 +250,11 @@ func (this *NetServer) Stop() {
 	for _, p := range peers {
 		p.Close()
 	}
-	if this.listener != nil {
-		this.listener.Close()
-	}
 
-	if this.stopRecvCh != nil {
-		this.stopRecvCh <- true
+	if this.listener != nil {
+		_ = this.listener.Close()
 	}
+	this.stopRecvCh <- true
 	this.protocol.HandleSystemMessage(this, p2p.NetworkStop{})
 }
 
@@ -294,13 +264,8 @@ func (this *NetServer) handleClientConnection(conn net.Conn) error {
 		return err
 	}
 	remotePeer := createPeer(peerInfo, conn)
-
-	// Obsolete node
-	kid := remotePeer.GetID()
-	this.removeOldPeer(kid, conn.RemoteAddr().String())
-
 	remotePeer.AttachChan(this.NetChan)
-	this.AddNbrNode(remotePeer)
+	this.ReplacePeer(remotePeer)
 
 	go remotePeer.Link.Rx()
 	this.protocol.HandleSystemMessage(this, p2p.PeerConnected{Info: remotePeer.Info})
@@ -324,39 +289,9 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 	}
 }
 
-//IsNbrPeerAddr return result whether the address is under connecting
-func (this *NetServer) IsNbrPeerAddr(addr string) bool {
-	var addrNew string
-	this.Np.RLock()
-	defer this.Np.RUnlock()
-	for _, p := range this.Np.List {
-		if p.GetState() == common.ESTABLISH {
-			addrNew = p.Link.GetAddr()
-			if strings.Compare(addrNew, addr) == 0 {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 //GetOutConnRecordLen return length of outConnRecord
 func (this *NetServer) GetOutConnRecordLen() uint {
 	return this.connCtrl.OutboundsCount()
-}
-
-//AddrValid whether the addr could be connect or accept
-func (this *NetServer) AddrValid(addr string) bool {
-	if config.DefConfig.P2PNode.ReservedPeersOnly && len(config.DefConfig.P2PNode.ReservedCfg.ReservedPeers) > 0 {
-		for _, ip := range config.DefConfig.P2PNode.ReservedCfg.ReservedPeers {
-			if strings.HasPrefix(addr, ip) {
-				log.Info("[p2p]found reserved peer :", addr)
-				return true
-			}
-		}
-		return false
-	}
-	return true
 }
 
 //check own network address
@@ -367,7 +302,6 @@ func (this *NetServer) IsOwnAddress(addr string) bool {
 func createPeer(info *peer.PeerInfo, conn net.Conn) *peer.Peer {
 	remotePeer := peer.NewPeer()
 	remotePeer.SetInfo(info)
-	remotePeer.SetState(common.ESTABLISH)
 	remotePeer.Link.UpdateRXTime(time.Now())
 	remotePeer.Link.SetAddr(conn.RemoteAddr().String())
 	remotePeer.Link.SetConn(conn)

@@ -79,13 +79,11 @@ func (this *HeartBeat) timeout() {
 	peers := this.net.GetNeighbors()
 	var periodTime uint = config.DEFAULT_GEN_BLOCK_TIME / common.UPDATE_RATE_PER_BLOCK
 	for _, p := range peers {
-		if p.GetState() == common.ESTABLISH {
-			t := p.GetContactTime()
-			if t.Before(time.Now().Add(-1 * time.Second *
-				time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
-				log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.Link.GetAddr(), t.String())
-				p.Close()
-			}
+		t := p.GetContactTime()
+		if t.Before(time.Now().Add(-1 * time.Second *
+			time.Duration(periodTime) * common.KEEPALIVE_TIMEOUT)) {
+			log.Warnf("[p2p]keep alive timeout!!!lost remote peer %d - %s from %s", p.GetID(), p.Link.GetAddr(), t.String())
+			p.Close()
 		}
 	}
 }

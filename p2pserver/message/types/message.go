@@ -175,8 +175,6 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 		return &Consensus{}, nil
 	case common.NOT_FOUND_TYPE:
 		return &NotFound{}, nil
-	case common.DISCONNECT_TYPE:
-		return &Disconnected{}, nil
 	case common.GET_BLOCKS_TYPE:
 		return &BlocksReq{}, nil
 	case common.FINDNODE_TYPE:

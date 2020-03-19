@@ -55,8 +55,7 @@ func NewServer() (*P2PServer, error) {
 
 //Start create all services
 func (this *P2PServer) Start() error {
-	this.network.Start()
-	return nil
+	return this.network.Start()
 }
 
 //Stop halt all service by send signal to channels

@@ -25,7 +25,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	comm "github.com/ontio/ontology/common"
@@ -80,21 +79,16 @@ func (pi *PeerInfo) RemoteListenAddress() string {
 
 //Peer represent the node in p2p
 type Peer struct {
-	Info      *PeerInfo
-	cap       [32]byte
-	Link      *conn.Link
-	linkState uint32
-	txnCnt    uint64
-	rxTxnCnt  uint64
-	connLock  sync.RWMutex
+	Info     *PeerInfo
+	Link     *conn.Link
+	connLock sync.RWMutex
 }
 
 //NewPeer return new peer without publickey initial
 func NewPeer() *Peer {
 	p := &Peer{
-		linkState: common.INIT,
-		Info:      &PeerInfo{},
-		Link:      conn.NewLink(),
+		Info: &PeerInfo{},
+		Link: conn.NewLink(),
 	}
 	return p
 }
@@ -110,10 +104,8 @@ func (self *PeerInfo) String() string {
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo() {
 	log.Debug("[p2p]Node Info:")
-	log.Debug("[p2p]\t linkState = ", this.linkState)
 	log.Debug("[p2p]\t id = ", this.GetID())
 	log.Debug("[p2p]\t addr = ", this.Info.Addr)
-	log.Debug("[p2p]\t cap = ", this.cap)
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
 	log.Debug("[p2p]\t port = ", this.GetPort())
@@ -137,17 +129,7 @@ func (this *Peer) SetHeight(height uint64) {
 	this.Info.Height = height
 }
 
-//GetState return sync state
-func (this *Peer) GetState() uint32 {
-	return this.linkState
-}
-
-//SetState set sync state to peer
-func (this *Peer) SetState(state uint32) {
-	atomic.StoreUint32(&(this.linkState), state)
-}
-
-//GetPort return peer`s sync port
+//GetPort return Peer`s sync port
 func (this *Peer) GetPort() uint16 {
 	return this.Info.Port
 }
@@ -162,7 +144,6 @@ func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
 
 //Close halt sync connection
 func (this *Peer) Close() {
-	this.SetState(common.INACTIVITY)
 	this.connLock.Lock()
 	this.Link.CloseConn()
 	this.connLock.Unlock()
@@ -230,20 +211,6 @@ func (this *Peer) Send(msg types.Message) error {
 	types.WriteMessage(sink, msg)
 
 	return this.SendRaw(msg.CmdType(), sink.Bytes())
-}
-
-//SetHttpInfoState set peer`s httpinfo state
-func (this *Peer) SetHttpInfoState(httpInfo bool) {
-	if httpInfo {
-		this.cap[common.HTTP_INFO_FLAG] = 0x01
-	} else {
-		this.cap[common.HTTP_INFO_FLAG] = 0x00
-	}
-}
-
-//GetHttpInfoState return peer`s httpinfo state
-func (this *Peer) GetHttpInfoState() bool {
-	return this.cap[common.HTTP_INFO_FLAG] == 1
 }
 
 //GetHttpInfoPort return peer`s httpinfo port

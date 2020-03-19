@@ -42,9 +42,8 @@ type DHT struct {
 	bucketSize int
 	routeTable *kb.RouteTable // Array of routing tables for differently distanced nodes
 
-	AutoRefresh           bool
-	RtRefreshQueryTimeout time.Duration
-	RtRefreshPeriod       time.Duration
+	AutoRefresh     bool
+	RtRefreshPeriod time.Duration
 }
 
 // RouteTable return dht's routeTable
@@ -66,13 +65,12 @@ func NewDHT(id common.PeerId) *DHT {
 	}
 
 	return &DHT{
-		localId:               id,
-		birth:                 time.Now(),
-		routeTable:            rt,
-		bucketSize:            bucketSize,
-		AutoRefresh:           true,
-		RtRefreshPeriod:       10 * time.Second,
-		RtRefreshQueryTimeout: 10 * time.Second,
+		localId:         id,
+		birth:           time.Now(),
+		routeTable:      rt,
+		bucketSize:      bucketSize,
+		AutoRefresh:     true,
+		RtRefreshPeriod: 10 * time.Second,
 	}
 }
 

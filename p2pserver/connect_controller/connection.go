@@ -35,6 +35,7 @@ type Conn struct {
 }
 
 // Close overwrite net.Conn
+// warning: this method will try to lock the controller, be carefull to avoid deadlock
 func (self *Conn) Close() error {
 	log.Infof("closing connection: peer %s, address: %s", self.kid.ToHexString(), self.addr)
 

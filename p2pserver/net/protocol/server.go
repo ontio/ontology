@@ -27,14 +27,13 @@ import (
 
 //P2P represent the net interface of p2p package
 type P2P interface {
-	Connect(addr string) error
+	Connect(addr string)
 	GetHostInfo() *peer.PeerInfo
 	GetID() common.PeerId
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() []common.PeerAddr
 	GetConnectionCnt() uint32
 	GetMaxPeerBlockHeight() uint64
-	GetNp() *peer.NbrPeers
 	GetPeer(id common.PeerId) *peer.Peer
 	SetHeight(uint64)
 	Send(p *peer.Peer, msg types.Message) error

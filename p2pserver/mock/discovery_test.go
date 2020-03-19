@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
@@ -40,9 +39,12 @@ func init() {
 }
 
 type DiscoveryProtocol struct {
+	MaskPeers       []string
+	RefleshInterval time.Duration
+	seeds           []string
+
 	discovery *discovery.Discovery
 	bootstrap *bootstrap.BootstrapService
-	seeds     []string
 }
 
 func NewDiscoveryProtocol(seeds []string) *DiscoveryProtocol {
@@ -50,7 +52,7 @@ func NewDiscoveryProtocol(seeds []string) *DiscoveryProtocol {
 }
 
 func (self *DiscoveryProtocol) start(net p2p.P2P) {
-	self.discovery = discovery.NewDiscovery(net, config.DefConfig.P2PNode.ReservedCfg.MaskPeers)
+	self.discovery = discovery.NewDiscovery(net, self.MaskPeers, self.RefleshInterval)
 	self.bootstrap = bootstrap.NewBootstrapService(net, self.seeds)
 	go self.discovery.Start()
 	go self.bootstrap.Start()
@@ -88,7 +90,7 @@ func (self *DiscoveryProtocol) HandlePeerMessage(ctx *p2p.Context, msg msgTypes.
 }
 
 func TestDiscoveryNode(t *testing.T) {
-	N := 4
+	N := 5
 	net := NewNetwork()
 	seedNode := NewDiscoveryNode(nil, net)
 	var nodes []*netserver.NetServer
@@ -102,7 +104,7 @@ func TestDiscoveryNode(t *testing.T) {
 		nodes = append(nodes, node)
 	}
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 1)
 	assert.Equal(t, seedNode.GetConnectionCnt(), uint32(N))
 	for i, node := range nodes {
 		assert.Equal(t, node.GetConnectionCnt(), uint32(1), fmt.Sprintf("node %d", i))
@@ -114,9 +116,9 @@ func TestDiscoveryNode(t *testing.T) {
 			net.AllowConnect(nodes[i].GetHostInfo().Id, nodes[j].GetHostInfo().Id)
 		}
 	}
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 1)
 	for i, node := range nodes {
-		assert.Equal(t, node.GetConnectionCnt(), uint32(N), fmt.Sprintf("node %d", i))
+		assert.True(t, node.GetConnectionCnt() > uint32(N/3), fmt.Sprintf("node %d", i))
 	}
 }
 
@@ -125,5 +127,8 @@ func NewDiscoveryNode(seeds []string, net Network) *netserver.NetServer {
 	info := peer.NewPeerInfo(seedId.Id, 0, 0, true, 0,
 		0, 0, "1.10", "")
 
-	return NewNode(seedId, info, NewDiscoveryProtocol(seeds), net)
+	dis := NewDiscoveryProtocol(seeds)
+	dis.RefleshInterval = time.Millisecond * 10
+
+	return NewNode(seedId, info, dis, net)
 }

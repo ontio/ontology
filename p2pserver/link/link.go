@@ -131,20 +131,7 @@ func (this *Link) Rx() {
 
 	}
 
-	this.disconnectNotify()
-}
-
-//disconnectNotify push disconnect msg to channel
-func (this *Link) disconnectNotify() {
-	log.Debugf("[p2p]call disconnectNotify for %s", this.GetAddr())
 	this.CloseConn()
-
-	discMsg := &types.MsgPayload{
-		Id:      this.id,
-		Addr:    this.addr,
-		Payload: &types.Disconnected{},
-	}
-	this.recvChan <- discMsg
 }
 
 //close connection
@@ -177,8 +164,8 @@ func (this *Link) SendRaw(rawPacket []byte) error {
 	_ = conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
 	_, err := conn.Write(rawPacket)
 	if err != nil {
-		log.Infof("[p2p]error sending messge to %s :%s", this.GetAddr(), err.Error())
-		this.disconnectNotify()
+		log.Infof("[p2p] error sending messge to %s :%s", this.GetAddr(), err.Error())
+		this.CloseConn()
 		return err
 	}
 

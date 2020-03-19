@@ -107,17 +107,13 @@ func (self *BootstrapService) connectSeeds() {
 	}
 
 	connPeers := make(map[string]*peer.Peer)
-	np := self.net.GetNp()
-	np.Lock()
-	for _, tn := range np.List {
+	nps := self.net.GetNeighbors()
+	for _, tn := range nps {
 		ipAddr, _ := tn.GetAddr16()
 		ip := net.IP(ipAddr[:])
 		addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetPort()))
-		if tn.GetState() == common.ESTABLISH {
-			connPeers[addrString] = tn
-		}
+		connPeers[addrString] = tn
 	}
-	np.Unlock()
 
 	seedConnList := make([]*peer.Peer, 0)
 	seedDisconn := make([]string, 0)
