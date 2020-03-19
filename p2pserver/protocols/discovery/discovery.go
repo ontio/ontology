@@ -41,10 +41,14 @@ type Discovery struct {
 	maskSet *strset.Set
 }
 
-func NewDiscovery(net p2p.P2P, maskLst []string) *Discovery {
+func NewDiscovery(net p2p.P2P, maskLst []string, refleshInterval time.Duration) *Discovery {
+	dht := dht.NewDHT(net.GetID())
+	if refleshInterval != 0 {
+		dht.RtRefreshPeriod = refleshInterval
+	}
 	return &Discovery{
 		id:      net.GetID(),
-		dht:     dht.NewDHT(net.GetID()),
+		dht:     dht,
 		net:     net,
 		quit:    make(chan bool),
 		maskSet: strset.New(maskLst...),

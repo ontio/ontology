@@ -48,5 +48,7 @@ func NewNode(keyId *common.PeerKeyId, localInfo *peer.PeerInfo, proto p2p.Protoc
 	localInfo.Addr = addr
 	iport, _ := strconv.Atoi(port)
 	localInfo.Port = uint16(iport)
-	return netserver.NewCustomNetServer(keyId, localInfo, proto, listener, dialer)
+	opt := connect_controller.NewConnCtrlOption().MaxInBoundPerIp(10).
+		MaxInBound(20).MaxOutBound(20).WithDialer(dialer)
+	return netserver.NewCustomNetServer(keyId, localInfo, proto, listener, opt)
 }

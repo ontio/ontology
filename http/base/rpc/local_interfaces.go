@@ -47,7 +47,6 @@ func GetNeighbor(params []interface{}) map[string]interface{} {
 }
 
 func GetNodeState(params []interface{}) map[string]interface{} {
-	state := bactor.GetConnectionState()
 	t := time.Now().UnixNano()
 	port := bactor.GetNodePort()
 	id := bactor.GetID()
@@ -60,7 +59,6 @@ func GetNodeState(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
 	n := common.NodeInfo{
-		NodeState:   uint(state),
 		NodeTime:    t,
 		NodePort:    port,
 		ID:          id,

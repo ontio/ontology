@@ -16,10 +16,14 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package peer
+package netserver
 
 import (
+	"net"
 	"sync"
+	"sync/atomic"
+
+	"github.com/ontio/ontology/p2pserver/peer"
 
 	comm "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -27,19 +31,61 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
+// Conn is a net.Conn wrapper to do some clean up when Close.
+type Conn struct {
+	net.Conn
+	session   uint64
+	id        common.PeerId
+	closed    bool
+	netServer *NetServer
+}
+
+// Close overwrite net.Conn
+func (self *Conn) Close() error {
+	self.netServer.Np.Lock()
+	defer self.netServer.Np.Unlock()
+	if self.closed {
+		return nil
+	}
+
+	n := self.netServer.Np.List[self.id]
+	if n.Peer == nil {
+		log.Fatalf("connection %s not in net server", self.id.ToHexString())
+	} else if n.session == self.session { // connection not replaced
+		delete(self.netServer.Np.List, self.id)
+		// need handle asynchronously since we hold Np.Lock
+		log.Infof("remove peer %s from net server", self.id.ToHexString())
+		go self.netServer.notifyPeerDisconnected(n.Peer.Info)
+	}
+
+	self.closed = true
+	return self.Conn.Close()
+}
+
+type connectedPeer struct {
+	session uint64
+	Peer    *peer.Peer
+}
+
 //NbrPeers: The neigbor list
 type NbrPeers struct {
 	sync.RWMutex
-	List map[common.PeerId]*Peer
+	List map[common.PeerId]connectedPeer
+
+	nextSessionId uint64
+}
+
+func (self *NbrPeers) getSessionId() uint64 {
+	return atomic.AddUint64(&self.nextSessionId, 1)
 }
 
 func NewNbrPeers() *NbrPeers {
 	return &NbrPeers{
-		List: make(map[common.PeerId]*Peer),
+		List: make(map[common.PeerId]connectedPeer),
 	}
 }
 
-//Broadcast tranfer msg buffer to all establish peer
+//Broadcast tranfer msg buffer to all establish Peer
 func (this *NbrPeers) Broadcast(msg types.Message) {
 	sink := comm.NewZeroCopySink(nil)
 	types.WriteMessage(sink, msg)
@@ -47,64 +93,57 @@ func (this *NbrPeers) Broadcast(msg types.Message) {
 	this.RLock()
 	defer this.RUnlock()
 	for _, node := range this.List {
-		if node.linkState == common.ESTABLISH && node.GetRelay() {
-			node.SendRaw(msg.CmdType(), sink.Bytes())
+		if node.Peer.GetRelay() {
+			node.Peer.SendRaw(msg.CmdType(), sink.Bytes())
 		}
 	}
 }
 
-//NodeExisted return when peer in nbr list
+//NodeExisted return when Peer in nbr list
 func (this *NbrPeers) NodeExisted(uid common.PeerId) bool {
 	_, ok := this.List[uid]
 	return ok
 }
 
-//GetPeer return peer according to id
-func (this *NbrPeers) GetPeer(id common.PeerId) *Peer {
+//GetPeer return Peer according to id
+func (this *NbrPeers) GetPeer(id common.PeerId) *peer.Peer {
 	this.Lock()
 	defer this.Unlock()
 	n, exist := this.List[id]
 	if !exist {
 		return nil
 	}
-	return n
+	return n.Peer
 }
 
-//AddNbrNode add peer to nbr list
-func (this *NbrPeers) AddNbrNode(p *Peer) {
-	this.Lock()
-	defer this.Unlock()
+func (self *NbrPeers) ReplacePeer(p *peer.Peer, net *NetServer) *peer.Peer {
+	var result *peer.Peer
+	self.Lock()
+	defer self.Unlock()
 
-	if this.NodeExisted(p.GetID()) {
-		log.Errorf("[p2p]insert an existed node\n")
-	} else {
-		this.List[p.GetID()] = p
+	n := self.List[p.Info.Id]
+	result = n.Peer
+
+	conn := &Conn{
+		Conn:      p.Link.GetConn(),
+		session:   self.getSessionId(),
+		id:        p.Info.Id,
+		netServer: net,
 	}
+	p.Link.SetConn(conn)
+	self.List[p.Info.Id] = connectedPeer{session: conn.session, Peer: p}
+
+	return result
 }
 
-//DelNbrNode delete peer from nbr list
-func (this *NbrPeers) DelNbrNode(id common.PeerId) (*Peer, bool) {
-	this.Lock()
-	defer this.Unlock()
-
-	n, exist := this.List[id]
-	if !exist {
-		return nil, false
-	}
-	delete(this.List, id)
-	return n, true
-}
-
-//GetNeighborAddrs return all establish peer address
+//GetNeighborAddrs return all establish Peer address
 func (this *NbrPeers) GetNeighborAddrs() []common.PeerAddr {
 	this.RLock()
 	defer this.RUnlock()
 
 	var addrs []common.PeerAddr
-	for _, p := range this.List {
-		if p.GetState() != common.ESTABLISH {
-			continue
-		}
+	for _, node := range this.List {
+		p := node.Peer
 		var addr common.PeerAddr
 		addr.IpAddr, _ = p.GetAddr16()
 		addr.Time = p.GetTimeStamp()
@@ -123,10 +162,9 @@ func (this *NbrPeers) GetNeighborHeights() map[common.PeerId]uint64 {
 	defer this.RUnlock()
 
 	hm := make(map[common.PeerId]uint64)
-	for _, n := range this.List {
-		if n.GetState() == common.ESTABLISH {
-			hm[n.GetID()] = n.GetHeight()
-		}
+	for _, p := range this.List {
+		n := p.Peer
+		hm[n.GetID()] = n.GetHeight()
 	}
 	return hm
 }
@@ -136,26 +174,24 @@ func (this *NbrPeers) GetNeighborMostHeight() uint64 {
 	this.RLock()
 	defer this.RUnlock()
 	mostHeight := uint64(0)
-	for _, n := range this.List {
-		if n.GetState() == common.ESTABLISH {
-			height := n.GetHeight()
-			if mostHeight < height {
-				mostHeight = height
-			}
+	for _, p := range this.List {
+		n := p.Peer
+		height := n.GetHeight()
+		if mostHeight < height {
+			mostHeight = height
 		}
 	}
 	return mostHeight
 }
 
 //GetNeighbors return all establish peers in nbr list
-func (this *NbrPeers) GetNeighbors() []*Peer {
+func (this *NbrPeers) GetNeighbors() []*peer.Peer {
 	this.RLock()
 	defer this.RUnlock()
-	peers := []*Peer{}
-	for _, n := range this.List {
-		if n.GetState() == common.ESTABLISH {
-			peers = append(peers, n)
-		}
+	var peers []*peer.Peer
+	for _, p := range this.List {
+		n := p.Peer
+		peers = append(peers, n)
 	}
 	return peers
 }
@@ -164,11 +200,5 @@ func (this *NbrPeers) GetNeighbors() []*Peer {
 func (this *NbrPeers) GetNbrNodeCnt() uint32 {
 	this.RLock()
 	defer this.RUnlock()
-	var count uint32
-	for _, n := range this.List {
-		if n.GetState() == common.ESTABLISH {
-			count++
-		}
-	}
-	return count
+	return uint32(len(this.List))
 }

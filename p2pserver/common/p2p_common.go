@@ -77,13 +77,6 @@ const (
 	RecentPeerElapseLimit = 60
 )
 
-// The peer state
-const (
-	INIT       = 0 //initial
-	ESTABLISH  = 4 //receive peer`s verack
-	INACTIVITY = 5 //link broken
-)
-
 //cap flag
 const HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
 
@@ -125,7 +118,6 @@ const (
 	CONSENSUS_TYPE     = "consensus"   //consensus payload
 	GET_BLOCKS_TYPE    = "getblocks"   //req blks from peer
 	NOT_FOUND_TYPE     = "notfound"    //peer can`t find blk according to the hash
-	DISCONNECT_TYPE    = "disconnect"  //peer disconnect info raise by link
 	FINDNODE_TYPE      = "findnode"    // find node using dht
 	FINDNODE_RESP_TYPE = "findnodeack" // find node using dht
 	UPDATE_KADID_TYPE  = "updatekadid" //update node kadid
