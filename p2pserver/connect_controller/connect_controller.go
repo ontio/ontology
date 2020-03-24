@@ -149,13 +149,11 @@ func (self *ConnectController) inReserveList(remoteAddr string) bool {
 		}
 		rsvIPs = append(rsvIPs, curIPs...)
 	}
-
 	for _, addr := range rsvIPs {
 		if strings.HasPrefix(remoteAddr, addr) {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -163,7 +161,6 @@ func (self *ConnectController) checkReservedPeers(remoteAddr string) error {
 	if !self.reserveEnabled() || self.inReserveList(remoteAddr) {
 		return nil
 	}
-
 	return fmt.Errorf("the remote addr: %s not in reserved list", remoteAddr)
 }
 

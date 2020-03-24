@@ -153,7 +153,7 @@ func (self *Discovery) FindNodeHandle(ctx *p2p.Context, freq *types.FindNodeReq)
 	remoteIP := net.IP(remoteAddr[:])
 
 	// mask peer see everyone, but other's will not see mask node
-	// if remotePeer is in msk-list, give them everthing
+	// if remotePeer is in msk-list, give them everything
 	// not in mask set means they are in the other side
 	if self.maskSet.Size() > 0 && !self.maskSet.Has(remoteIP.String()) {
 		mskedAddrs := make([]common.PeerIDAddressPair, 0)
