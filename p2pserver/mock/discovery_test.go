@@ -47,8 +47,8 @@ type DiscoveryProtocol struct {
 	bootstrap *bootstrap.BootstrapService
 }
 
-func NewDiscoveryProtocol(seeds []string) *DiscoveryProtocol {
-	return &DiscoveryProtocol{seeds: seeds}
+func NewDiscoveryProtocol(seeds []string, maskPeers []string) *DiscoveryProtocol {
+	return &DiscoveryProtocol{seeds: seeds, MaskPeers: maskPeers}
 }
 
 func (self *DiscoveryProtocol) start(net p2p.P2P) {
@@ -127,8 +127,8 @@ func NewDiscoveryNode(seeds []string, net Network) *netserver.NetServer {
 	info := peer.NewPeerInfo(seedId.Id, 0, 0, true, 0,
 		0, 0, "1.10", "")
 
-	dis := NewDiscoveryProtocol(seeds)
+	dis := NewDiscoveryProtocol(seeds, nil)
 	dis.RefleshInterval = time.Millisecond * 10
 
-	return NewNode(seedId, info, dis, net)
+	return NewNode(seedId, info, dis, net, nil)
 }

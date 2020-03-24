@@ -41,7 +41,7 @@ type Network interface {
 	DeliverRate(percent uint)
 }
 
-func NewNode(keyId *common.PeerKeyId, localInfo *peer.PeerInfo, proto p2p.Protocol, nw Network) *netserver.NetServer {
+func NewNode(keyId *common.PeerKeyId, localInfo *peer.PeerInfo, proto p2p.Protocol, nw Network, reservedPeers []string) *netserver.NetServer {
 	addr, listener := nw.NewListener(keyId.Id)
 	host, port, _ := net.SplitHostPort(addr)
 	dialer := nw.NewDialerWithHost(keyId.Id, host)
@@ -49,6 +49,6 @@ func NewNode(keyId *common.PeerKeyId, localInfo *peer.PeerInfo, proto p2p.Protoc
 	iport, _ := strconv.Atoi(port)
 	localInfo.Port = uint16(iport)
 	opt := connect_controller.NewConnCtrlOption().MaxInBoundPerIp(10).
-		MaxInBound(20).MaxOutBound(20).WithDialer(dialer)
+		MaxInBound(20).MaxOutBound(20).WithDialer(dialer).ReservedOnly(reservedPeers)
 	return netserver.NewCustomNetServer(keyId, localInfo, proto, listener, opt)
 }

@@ -23,7 +23,11 @@ import (
 	"encoding/binary"
 	"testing"
 
+	"net"
+
 	"github.com/ontio/ontology/p2pserver/common"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,4 +81,12 @@ func TestNetwork(t *testing.T) {
 	lconn2, err = l.Accept()
 	a.NotNil(err, "closed 'stream' should accept none")
 	a.Nil(lconn2, "should be nil")
+}
+
+func TestNetIP(t *testing.T) {
+	a := require.New(t)
+	ip := net.ParseIP("0.0.0.1")
+	a.Equal(ip.String(), "0.0.0.1")
+	_, err := net.LookupHost("1.0.0.1")
+	assert.Nil(t, err)
 }
