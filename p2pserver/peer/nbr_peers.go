@@ -47,8 +47,8 @@ func (this *NbrPeers) Broadcast(msg types.Message) {
 	}
 }
 
-//NodeExisted return when peer in nbr list
-func (this *NbrPeers) NodeExisted(uid uint64) bool {
+//nodeExisted return when peer in nbr list
+func (this *NbrPeers) nodeExisted(uid uint64) bool {
 	_, ok := this.List[uid]
 	return ok
 }
@@ -69,7 +69,7 @@ func (this *NbrPeers) AddNbrNode(p *Peer) {
 	this.Lock()
 	defer this.Unlock()
 
-	if this.NodeExisted(p.GetID()) {
+	if this.nodeExisted(p.GetID()) {
 		fmt.Printf("[p2p]insert an existed node\n")
 	} else {
 		this.List[p.GetID()] = p

@@ -507,9 +507,7 @@ func (this *P2PServer) addToRetryList(addr string) {
 	if this.RetryAddrs == nil {
 		this.RetryAddrs = make(map[string]int)
 	}
-	if _, ok := this.RetryAddrs[addr]; ok {
-		delete(this.RetryAddrs, addr)
-	}
+	delete(this.RetryAddrs, addr)
 	//alway set retry to 0
 	this.RetryAddrs[addr] = 0
 }
@@ -519,9 +517,7 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 	this.ReconnectAddrs.Lock()
 	defer this.ReconnectAddrs.Unlock()
 	if len(this.RetryAddrs) > 0 {
-		if _, ok := this.RetryAddrs[addr]; ok {
-			delete(this.RetryAddrs, addr)
-		}
+		delete(this.RetryAddrs, addr)
 	}
 }
 
@@ -572,7 +568,7 @@ func (this *P2PServer) syncPeerAddr() {
 	netID := config.DefConfig.P2PNode.NetworkMagic
 	for i := 0; i < len(this.recentPeers[netID]); i++ {
 		p := this.network.GetPeerFromAddr(this.recentPeers[netID][i])
-		if p == nil || (p != nil && p.GetState() != common.ESTABLISH) {
+		if p == nil || p.GetState() != common.ESTABLISH {
 			this.recentPeers[netID] = append(this.recentPeers[netID][:i], this.recentPeers[netID][i+1:]...)
 			changed = true
 			i--
