@@ -38,6 +38,7 @@ type P2P interface {
 	SetHeight(uint64)
 	Send(p *peer.Peer, msg types.Message) error
 	SendTo(p common.PeerId, msg types.Message)
+	SendToAsync(p common.PeerId, msg types.Message)
 	GetOutConnRecordLen() uint
 	Broadcast(msg types.Message)
 	IsOwnAddress(addr string) bool

@@ -21,7 +21,6 @@ package netserver
 import (
 	"errors"
 	"net"
-	"time"
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -226,11 +225,11 @@ func (this *NetServer) connect(addr string) error {
 	if err != nil {
 		return err
 	}
-	remotePeer := createPeer(peerInfo, conn)
+	remotePeer := peer.NewPeer(peerInfo, conn)
 
 	remotePeer.AttachChan(this.NetChan)
 	this.ReplacePeer(remotePeer)
-	go remotePeer.Link.Rx()
+	go remotePeer.Link.StartReadWriteLoop()
 
 	this.protocol.HandleSystemMessage(this, p2p.PeerConnected{Info: remotePeer.Info})
 	return nil
@@ -263,11 +262,11 @@ func (this *NetServer) handleClientConnection(conn net.Conn) error {
 	if err != nil {
 		return err
 	}
-	remotePeer := createPeer(peerInfo, conn)
+	remotePeer := peer.NewPeer(peerInfo, conn)
 	remotePeer.AttachChan(this.NetChan)
 	this.ReplacePeer(remotePeer)
 
-	go remotePeer.Link.Rx()
+	go remotePeer.Link.StartReadWriteLoop()
 	this.protocol.HandleSystemMessage(this, p2p.PeerConnected{Info: remotePeer.Info})
 	return nil
 }
@@ -301,17 +300,6 @@ func (this *NetServer) IsOwnAddress(addr string) bool {
 	return addr == this.connCtrl.OwnAddress()
 }
 
-func createPeer(info *peer.PeerInfo, conn net.Conn) *peer.Peer {
-	remotePeer := peer.NewPeer()
-	remotePeer.SetInfo(info)
-	remotePeer.Link.UpdateRXTime(time.Now())
-	remotePeer.Link.SetAddr(conn.RemoteAddr().String())
-	remotePeer.Link.SetConn(conn)
-	remotePeer.Link.SetID(info.Id)
-
-	return remotePeer
-}
-
 func (ns *NetServer) ConnectController() *connect_controller.ConnectController {
 	return ns.connCtrl
 }
@@ -324,5 +312,12 @@ func (this *NetServer) SendTo(p common.PeerId, msg types.Message) {
 	peer := this.GetPeer(p)
 	if peer != nil {
 		this.Send(peer, msg)
+	}
+}
+
+func (this *NetServer) SendToAsync(p common.PeerId, msg types.Message) {
+	peer := this.GetPeer(p)
+	if peer != nil {
+		peer.SendAsync(msg)
 	}
 }

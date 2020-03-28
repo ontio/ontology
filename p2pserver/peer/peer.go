@@ -85,16 +85,13 @@ type Peer struct {
 }
 
 //NewPeer return new peer without publickey initial
-func NewPeer() *Peer {
+func NewPeer(info *PeerInfo, c net.Conn) *Peer {
 	p := &Peer{
-		Info: &PeerInfo{},
-		Link: conn.NewLink(),
+		Info: info,
+		Link: conn.NewLink(info.Id, c),
 	}
-	return p
-}
 
-func (self *Peer) SetInfo(info *PeerInfo) {
-	self.Info = info
+	return p
 }
 
 func (self *PeerInfo) String() string {
@@ -135,11 +132,17 @@ func (this *Peer) GetPort() uint16 {
 }
 
 //SendTo call sync link to send buffer
-func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
+func (this *Peer) SendRaw(msgPayload []byte) error {
 	if this.Link != nil && this.Link.Valid() {
 		return this.Link.SendRaw(msgPayload)
 	}
 	return errors.New("[p2p]sync link invalid")
+}
+
+func (this *Peer) SendRawAsync(msgPayload []byte) {
+	if this.Link != nil && this.Link.Valid() {
+		_ = this.Link.SendRawAsync(msgPayload)
+	}
 }
 
 //Close halt sync connection
@@ -210,7 +213,13 @@ func (this *Peer) Send(msg types.Message) error {
 	sink := comm.NewZeroCopySink(nil)
 	types.WriteMessage(sink, msg)
 
-	return this.SendRaw(msg.CmdType(), sink.Bytes())
+	return this.SendRaw(sink.Bytes())
+}
+
+func (this *Peer) SendAsync(msg types.Message) {
+	sink := comm.NewZeroCopySink(nil)
+	types.WriteMessage(sink, msg)
+	this.SendRawAsync(sink.Bytes())
 }
 
 //GetHttpInfoPort return peer`s httpinfo port
@@ -221,18 +230,4 @@ func (this *Peer) GetHttpInfoPort() uint16 {
 //SetHttpInfoPort set peer`s httpinfo port
 func (this *Peer) SetHttpInfoPort(port uint16) {
 	this.Info.HttpInfoPort = port
-}
-
-//UpdateInfo update peer`s information
-func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, kid common.PeerId, relay uint8, height uint64, softVer string) {
-	this.Info.Id = kid
-	this.Info.Version = version
-	this.Info.Services = services
-	this.Info.Port = syncPort
-	this.Info.SoftVersion = softVer
-	this.Info.Relay = relay != 0
-	this.Info.Height = height
-
-	this.Link.UpdateRXTime(t)
 }
