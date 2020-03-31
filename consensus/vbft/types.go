@@ -135,8 +135,8 @@ func (blk *Block) Deserialize(data []byte) error {
 	}
 
 	var crossChainMsg *types.CrossChainMsg
-	hasEmptyCCM, irr, eof := source.NextBool()
-	if irr || eof {
+	hasEmptyCCM, irr, _ := source.NextBool()
+	if irr {
 		return fmt.Errorf("read empty-crosschainmsg-bool.")
 	}
 	if hasEmptyCCM {
