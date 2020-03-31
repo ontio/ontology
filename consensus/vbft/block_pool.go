@@ -474,10 +474,8 @@ func (pool *BlockPool) newBlockCommitment(msg *blockCommitMsg) error {
 			Signature:        sig,
 			ForEmpty:         msg.CommitForEmpty,
 		}
-		if msg.CrossChainMsgEndorserSig != nil {
-			if crossChainMsgSig, present := msg.CrossChainMsgEndorserSig[endorser]; present {
-				eSig.CrossChainMsgSig = crossChainMsgSig
-			}
+		if crossChainMsgSig, present := msg.CrossChainMsgEndorserSig[endorser]; present {
+			eSig.CrossChainMsgSig = crossChainMsgSig
 		}
 
 		pool.addBlockEndorsementLocked(blkNum, endorser, eSig, false)
