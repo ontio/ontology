@@ -26,7 +26,7 @@ import (
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/consensus/vbft/config"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
@@ -226,7 +226,7 @@ func (self *Server) constructCrossChainMsg(blkNum uint32) (*types.CrossChainMsg,
 	if err != nil {
 		return nil, err
 	}
-	log.Errorf("submitBlock height:%d statesroot:%+v", blkNum, root)
+	log.Debugf("submitBlock height:%d statesroot:%+v", blkNum, root)
 	if root == common.UINT256_EMPTY {
 		return nil, nil
 	}
