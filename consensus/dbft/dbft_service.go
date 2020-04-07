@@ -20,8 +20,6 @@ package dbft
 
 import (
 	"fmt"
-	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"reflect"
 	"time"
 
@@ -38,7 +36,9 @@ import (
 	"github.com/ontio/ontology/core/vote"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
+	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/validator/increment"
 )
 

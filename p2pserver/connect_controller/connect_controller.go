@@ -140,7 +140,7 @@ func (self *ConnectController) reserveEnabled() bool {
 }
 
 func (self *ConnectController) inReserveList(remoteAddr string) bool {
-	rsvIPs := []string{}
+	var rsvIPs []string
 	// we don't load domain in start because we consider domain's A/AAAA record may change sometimes
 	for _, curIPOrName := range self.ReservedPeers {
 		curIPs, err := net.LookupHost(curIPOrName)

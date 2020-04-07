@@ -117,17 +117,18 @@ func TestHandshakeWrongMsg(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	assert.True(t, supportDHT("1.9.0"))
+	assert.True(t, supportDHT(common.MIN_VERSION_FOR_DHT))
+	assert.True(t, supportDHT("1.9.1"))
 	assert.True(t, supportDHT("v1.10.0"))
 	assert.True(t, supportDHT("v1.10"))
 	assert.True(t, supportDHT("v2.0"))
-	assert.True(t, supportDHT("v1.9.0"))
-	assert.True(t, supportDHT("1.9.0-beta"))
-	assert.True(t, supportDHT("v1.9.0-beta"))
-	assert.True(t, supportDHT("1.9.0-beta-9"))
-	assert.True(t, supportDHT("1.9.0-beta-9-geeaeewwf"))
+	assert.True(t, supportDHT("v1.9.1"))
+	assert.True(t, supportDHT("1.9.1-beta"))
+	assert.True(t, supportDHT("v1.9.1-beta"))
+	assert.True(t, supportDHT("1.9.1-beta-9"))
+	assert.True(t, supportDHT("1.9.1-beta-9-geeaeewwf"))
 
-	assert.False(t, supportDHT("1.9.0-alpha"))
+	assert.False(t, supportDHT("1.9.1-alpha"))
 	assert.False(t, supportDHT("1.8.0-beta-9-geeaeewwf"))
 	assert.False(t, supportDHT("1.8.0"))
 }
