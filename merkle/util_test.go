@@ -18,25 +18,35 @@
 
 package merkle
 
-import "math/bits"
+import "testing"
 
-// return the number of 1 bit
-func countBit(num uint32) uint {
-	return uint(bits.OnesCount32(num))
+func TestBitOp(t *testing.T) {
+	base := uint32(100001)
+	for i := 0; i < 1000; i++ {
+		n := base + uint32(i)
+		if countBit(n) != countBitOld(n) {
+			t.Fatal("countBit check fail", n)
+		}
+		if highBit(n) != highBitOld(n) {
+			t.Fatal("highBit check fail", n)
+		}
+	}
 }
 
-func isPower2(num uint32) bool {
-	return countBit(num) == 1
+func countBitOld(num uint32) uint {
+	var count uint
+	for num != 0 {
+		num &= num - 1
+		count += 1
+	}
+	return count
 }
 
-// return the position of the heightest 1 bit
-// 1-based index
-func highBit(num uint32) uint {
-	return uint(32 - bits.LeadingZeros32(num))
-}
-
-// return the position of the lowest 1 bit
-// 1-based index
-func lowBit(num uint32) uint {
-	return highBit(num & -num)
+func highBitOld(num uint32) uint {
+	var hiBit uint
+	for num != 0 {
+		num >>= 1
+		hiBit += 1
+	}
+	return hiBit
 }
