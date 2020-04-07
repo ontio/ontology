@@ -47,7 +47,7 @@ type SoloService struct {
 	Account          *account.Account
 	poolActor        *actorTypes.TxPoolActor
 	incrValidator    *increment.IncrementValidator
-	existCh          chan interface{}
+	existCh          chan struct{}
 	genBlockInterval time.Duration
 	pid              *actor.PID
 	sub              *events.ActorSubscriber
@@ -93,7 +93,7 @@ func (self *SoloService) Receive(context actor.Context) {
 		self.sub.Subscribe(message.TOPIC_SAVE_BLOCK_COMPLETE)
 
 		timer := time.NewTicker(self.genBlockInterval)
-		self.existCh = make(chan interface{})
+		self.existCh = make(chan struct{})
 		go func() {
 			defer timer.Stop()
 			existCh := self.existCh
