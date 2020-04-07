@@ -40,11 +40,13 @@ type Link struct {
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
+	stopCh    chan struct{}          // close connection indicator
 }
 
 func NewLink() *Link {
 	link := &Link{
 		reqRecord: make(map[string]int64, 0),
+		stopCh:    make(chan struct{}),
 	}
 	return link
 }
@@ -61,6 +63,11 @@ func (this *Link) GetID() uint64 {
 
 //If there is connection return true
 func (this *Link) Valid() bool {
+	select {
+	case <-this.stopCh:
+		return false
+	default:
+	}
 	return this.conn != nil
 }
 
@@ -96,6 +103,8 @@ func (this *Link) GetConn() net.Conn {
 
 //set connection
 func (this *Link) SetConn(conn net.Conn) {
+	// fresh connection, fresh stopCh
+	this.stopCh = make(chan struct{})
 	this.conn = conn
 }
 
@@ -117,7 +126,14 @@ func (this *Link) Rx() {
 
 	reader := bufio.NewReaderSize(conn, common.MAX_BUF_LEN)
 
+loop:
 	for {
+		select {
+		case <-this.stopCh:
+			break loop
+		default:
+		}
+
 		msg, payloadSize, err := types.ReadMessage(reader)
 		if err != nil {
 			log.Infof("[p2p]error read from %s :%s", this.GetAddr(), err.Error())
@@ -165,6 +181,30 @@ func (this *Link) CloseConn() {
 		this.conn.Close()
 		this.conn = nil
 	}
+}
+
+func (l *Link) CloseLink() {
+	select {
+	case <-l.stopCh:
+		return
+	default:
+	}
+	// if we can reach here, the channel is not closed
+	close(l.stopCh)
+
+	// we don't close socket here, we wait Rx to get out from Read
+	// then we will break Rx loop, if Rx sleep on Read for a long time
+	// the p2pserver.retryInactivePeer will try reconnect(because the link state is not ESTABLISH)
+	// when:
+	// 1. reconnect success ==> VersionHandle will delete old peer ==> put old peer to Np.trashCh
+	//    ==> close after 10 minutes
+	// 2. reconnect fail ==> after retry ntimes ==> delete from Np(NbrPeers) ==> put to Np.trashCh
+	//    ==> close after 10 minutes
+	// so the Peer *in* netserver.Np is promise to close when error happend.
+	// but we have to close peer's underline socket immediately if error happend *before*
+	// inserting peer to netserver.Np
+	// because no one manager this connection, after all this peer is already a useless peer
+	// we are unlikely to tranfer any data via this socket
 }
 
 func (this *Link) Send(msg types.Message) error {
