@@ -57,9 +57,7 @@ const (
 	CONSENSUS_TYPE_VBFT = "vbft"
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
-	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
 	DEFAULT_NODE_PORT                       = 20338
-	DEFAULT_CONSENSUS_PORT                  = 20339
 	DEFAULT_RPC_PORT                        = 20336
 	DEFAULT_RPC_LOCAL_PORT                  = 20337
 	DEFAULT_REST_PORT                       = 20334
@@ -71,7 +69,6 @@ const (
 	DEFAULT_HTTP_INFO_PORT                  = 0
 	DEFAULT_MAX_TX_IN_BLOCK                 = 60000
 	DEFAULT_MAX_SYNC_HEADER                 = 500
-	DEFAULT_ENABLE_CONSENSUS                = true
 	DEFAULT_ENABLE_EVENT_LOG                = true
 	DEFAULT_CLI_RPC_PORT                    = uint(20000)
 	DEFUALT_CLI_RPC_ADDRESS                 = "127.0.0.1"

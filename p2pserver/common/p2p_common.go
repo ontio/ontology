@@ -30,6 +30,8 @@ const (
 	SERVICE_NODE = 2 //peer only sync with consensus peer
 )
 
+const MIN_VERSION_FOR_DHT = "1.9.1-beta"
+
 //link and concurrent const
 const (
 	PER_SEND_LEN        = 1024 * 256 //byte len per conn write
@@ -43,15 +45,12 @@ const (
 
 //msg cmd const
 const (
-	MSG_CMD_LEN      = 12               //msg type length in byte
-	CMD_OFFSET       = 4                //cmd type offet in msg hdr
-	CHECKSUM_LEN     = 4                //checksum length in byte
-	MSG_HDR_LEN      = 24               //msg hdr length in byte
-	MAX_BLK_HDR_CNT  = 500              //hdr count once when sync header
-	MAX_INV_HDR_CNT  = 500              //inventory count once when req inv
-	MAX_REQ_BLK_ONCE = 16               //req blk count once from one peer when sync blk
-	MAX_MSG_LEN      = 30 * 1024 * 1024 //the maximum message length
-	MAX_PAYLOAD_LEN  = MAX_MSG_LEN - MSG_HDR_LEN
+	MSG_CMD_LEN     = 12               //msg type length in byte
+	CHECKSUM_LEN    = 4                //checksum length in byte
+	MSG_HDR_LEN     = 24               //msg hdr length in byte
+	MAX_BLK_HDR_CNT = 500              //hdr count once when sync header
+	MAX_MSG_LEN     = 30 * 1024 * 1024 //the maximum message length
+	MAX_PAYLOAD_LEN = MAX_MSG_LEN - MSG_HDR_LEN
 )
 
 //msg type const
@@ -80,14 +79,10 @@ const (
 //cap flag
 const HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
 
-//actor const
-const ACTOR_TIMEOUT = 5 //actor request timeout in secs
-
 //recent contact const
 const (
 	RECENT_TIMEOUT   = 60
 	RECENT_FILE_NAME = "peers.recent"
-	RECENT_LIMIT     = 10 //recent contact list limit
 )
 
 //PeerAddr represent peer`s net information
