@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-
 	"io"
 
 	"github.com/ontio/ontology/common"
