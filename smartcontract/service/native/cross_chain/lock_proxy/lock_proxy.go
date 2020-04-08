@@ -22,6 +22,8 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"math/big"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/genesis"
@@ -32,7 +34,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"math/big"
 )
 
 func InitLockProxy() {

@@ -18,13 +18,14 @@
 package genesis
 
 import (
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 func TestMain(m *testing.M) {

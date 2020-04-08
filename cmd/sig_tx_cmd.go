@@ -20,6 +20,8 @@ package cmd
 import (
 	"encoding/hex"
 	"fmt"
+	"strings"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
@@ -27,7 +29,6 @@ import (
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/core/types"
 	"github.com/urfave/cli"
-	"strings"
 )
 
 var MultiSigAddrCommand = cli.Command{

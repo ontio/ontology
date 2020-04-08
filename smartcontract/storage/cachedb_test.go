@@ -18,12 +18,13 @@
 package storage
 
 import (
+	"math/rand"
+	"testing"
+
 	"github.com/ontio/ontology/core/store/common"
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/stretchr/testify/assert"
-	"math/rand"
-	"testing"
 )
 
 func genRandKeyVal() (string, string) {

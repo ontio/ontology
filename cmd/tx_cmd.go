@@ -20,13 +20,14 @@ package cmd
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
+	"strings"
+
 	cmdcom "github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/urfave/cli"
-	"strconv"
-	"strings"
 )
 
 var SendTxCommand = cli.Command{

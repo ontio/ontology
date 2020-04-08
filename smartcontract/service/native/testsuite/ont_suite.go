@@ -20,7 +20,6 @@ package testsuite
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -31,6 +30,7 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/stretchr/testify/assert"
 )
 
 func RandomAddress() common.Address {

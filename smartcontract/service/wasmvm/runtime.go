@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"reflect"
 
 	"github.com/ontio/ontology/common"
@@ -37,7 +38,6 @@ import (
 	neotypes "github.com/ontio/ontology/vm/neovm/types"
 	"github.com/ontio/wagon/exec"
 	"github.com/ontio/wagon/wasm"
-	"io"
 )
 
 type ContractType byte

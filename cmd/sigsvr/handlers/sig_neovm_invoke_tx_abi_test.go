@@ -19,8 +19,9 @@ package handlers
 
 import (
 	"encoding/json"
-	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"testing"
+
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 )
 
 var testNeovmAbi = `{

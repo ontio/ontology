@@ -20,9 +20,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"testing"
+
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"github.com/ontio/ontology/cmd/utils"
-	"testing"
 )
 
 func TestSigNeoVMInvokeTx(t *testing.T) {

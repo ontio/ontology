@@ -19,8 +19,8 @@ package common
 
 import (
 	"bytes"
-
 	"encoding/json"
+
 	utils2 "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/utils"
@@ -29,7 +29,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	// neovms "github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/vm/neovm"
 )
 

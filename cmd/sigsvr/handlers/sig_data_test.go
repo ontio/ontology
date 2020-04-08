@@ -20,8 +20,9 @@ package handlers
 import (
 	"encoding/hex"
 	"encoding/json"
-	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 	"testing"
+
+	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
 )
 
 func TestSigData(t *testing.T) {

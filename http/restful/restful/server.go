@@ -23,12 +23,6 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
-	cfg "github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/http/base/common"
-	berr "github.com/ontio/ontology/http/base/error"
-	"github.com/ontio/ontology/http/base/rest"
-	"golang.org/x/net/netutil"
 	"io"
 	"net"
 	"net/http"
@@ -36,6 +30,13 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	cfg "github.com/ontio/ontology/common/config"
+	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/http/base/common"
+	berr "github.com/ontio/ontology/http/base/error"
+	"github.com/ontio/ontology/http/base/rest"
+	"golang.org/x/net/netutil"
 )
 
 type handler func(map[string]interface{}) map[string]interface{}

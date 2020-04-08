@@ -20,13 +20,14 @@ package common
 
 import (
 	"fmt"
+	"strconv"
+
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/password"
 	"github.com/urfave/cli"
-	"strconv"
 )
 
 func GetPasswd(ctx *cli.Context) ([]byte, error) {

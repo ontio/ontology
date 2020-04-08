@@ -20,6 +20,8 @@ package handlers
 import (
 	"encoding/hex"
 	"encoding/json"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
@@ -27,7 +29,6 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestSigMutilRawTransaction(t *testing.T) {

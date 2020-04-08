@@ -21,8 +21,8 @@ package cross_chain_manager
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology/common"
 
+	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/merkle"

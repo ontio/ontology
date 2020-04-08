@@ -21,6 +21,9 @@ package ledgerstore
 import (
 	"crypto/sha256"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
@@ -30,8 +33,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
-	"testing"
-	"time"
 )
 
 func TestExtractHeaderHeight(t *testing.T) {

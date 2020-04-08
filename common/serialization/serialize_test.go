@@ -20,12 +20,12 @@ package serialization
 
 import (
 	"bytes"
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"math"
 	"testing"
 
-	"crypto/rand"
 	"github.com/stretchr/testify/assert"
 )
 

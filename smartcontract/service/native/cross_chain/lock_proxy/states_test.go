@@ -19,14 +19,14 @@
 package lock_proxy
 
 import (
+	"encoding/hex"
+	"math/big"
 	"testing"
 
-	"encoding/hex"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/stretchr/testify/assert"
-	"math/big"
 )
 
 func TestLockParam_Serialize(t *testing.T) {

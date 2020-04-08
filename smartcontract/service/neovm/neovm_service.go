@@ -21,6 +21,8 @@ package neovm
 import (
 	"bytes"
 	"fmt"
+	"io"
+
 	scommon "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
@@ -31,7 +33,6 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 	vm "github.com/ontio/ontology/vm/neovm"
 	vmty "github.com/ontio/ontology/vm/neovm/types"
-	"io"
 )
 
 var (

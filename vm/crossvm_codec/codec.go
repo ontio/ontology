@@ -20,10 +20,11 @@ package crossvm_codec
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"math/big"
 	"reflect"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (

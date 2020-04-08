@@ -20,6 +20,7 @@ package rpc
 
 import (
 	"encoding/hex"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"

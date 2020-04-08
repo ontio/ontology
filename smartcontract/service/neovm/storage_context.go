@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	vm "github.com/ontio/ontology/vm/neovm"
 )

@@ -18,6 +18,11 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"runtime"
+	"syscall"
+
 	"github.com/ontio/ontology/cmd"
 	"github.com/ontio/ontology/cmd/abi"
 	cmdsvr "github.com/ontio/ontology/cmd/sigsvr"
@@ -27,10 +32,6 @@ import (
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/urfave/cli"
-	"os"
-	"os/signal"
-	"runtime"
-	"syscall"
 )
 
 func setupSigSvr() *cli.App {

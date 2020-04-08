@@ -22,6 +22,8 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
+	"os"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
@@ -30,7 +32,6 @@ import (
 	"github.com/ontio/ontology/common/password"
 	"github.com/ontio/ontology/core/types"
 	"github.com/urfave/cli"
-	"os"
 )
 
 var (

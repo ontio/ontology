@@ -20,6 +20,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
 )

@@ -23,6 +23,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/rand"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
@@ -37,12 +44,6 @@ import (
 	rpccommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"io"
-	"math/rand"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (

@@ -19,8 +19,9 @@
 package neovm
 
 import (
-	"github.com/ontio/ontology/vm/neovm/types"
 	"testing"
+
+	"github.com/ontio/ontology/vm/neovm/types"
 )
 
 func BenchmarkNewExecutor(b *testing.B) {

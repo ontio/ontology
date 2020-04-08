@@ -21,11 +21,12 @@ package utils
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/payload"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/payload"
 )
 
 const (

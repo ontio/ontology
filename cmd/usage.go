@@ -22,12 +22,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/ontio/ontology/cmd/utils"
-	"github.com/urfave/cli"
 	"io"
 	"sort"
 	"strings"
 	"text/template"
+
+	"github.com/ontio/ontology/cmd/utils"
+	"github.com/urfave/cli"
 )
 
 // AppHelpTemplate is the test template for the default, global app help topic.

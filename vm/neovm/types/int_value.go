@@ -19,13 +19,13 @@
 package types
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/JohnCGriffin/overflow"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm/constants"
 	"github.com/ontio/ontology/vm/neovm/errors"
-	"math"
 )
 
 type IntValue struct {

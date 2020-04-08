@@ -20,9 +20,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/ontio/ontology/account"
 	clisvrcom "github.com/ontio/ontology/cmd/sigsvr/common"
-	"testing"
 )
 
 func TestSigTransferTransaction(t *testing.T) {

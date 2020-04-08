@@ -21,6 +21,7 @@ package header_sync
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	vconfig "github.com/ontio/ontology/consensus/vbft/config"

@@ -19,9 +19,10 @@ package common
 
 import (
 	"encoding/json"
+	"testing"
+
 	"github.com/ontio/ontology/common"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestTestEnv(t *testing.T) {

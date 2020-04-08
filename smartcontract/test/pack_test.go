@@ -19,11 +19,12 @@
 package test
 
 import (
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/vm/neovm"
-	"os"
-	"testing"
 )
 
 func TestPackCrash(t *testing.T) {

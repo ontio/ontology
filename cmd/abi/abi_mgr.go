@@ -21,9 +21,10 @@ package abi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/common/log"
 	"io/ioutil"
 	"strings"
+
+	"github.com/ontio/ontology/common/log"
 )
 
 var DefAbiMgr = NewAbiMgr()

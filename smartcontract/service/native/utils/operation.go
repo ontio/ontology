@@ -21,6 +21,7 @@ package utils
 import (
 	"bytes"
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	"github.com/ontio/ontology/errors"

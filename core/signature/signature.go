@@ -20,6 +20,7 @@ package signature
 
 import (
 	"errors"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 )
