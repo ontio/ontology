@@ -30,10 +30,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ontio/ontology/merkle"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	types2 "github.com/ontio/ontology/vm/neovm/types"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -49,12 +45,15 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
+	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/smartcontract/event"
+	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
 	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 	sstate "github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	types2 "github.com/ontio/ontology/vm/neovm/types"
 )
 
 const (
