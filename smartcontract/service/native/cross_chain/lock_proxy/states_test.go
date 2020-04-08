@@ -19,9 +19,9 @@
 package lock_proxy
 
 import (
-	"testing"
 	"encoding/hex"
 	"math/big"
+	"testing"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"

@@ -21,8 +21,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"reflect"
 	"io"
+	"reflect"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"

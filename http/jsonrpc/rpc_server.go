@@ -20,9 +20,9 @@
 package jsonrpc
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
-	"fmt"
 
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"

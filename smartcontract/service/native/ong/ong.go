@@ -19,8 +19,8 @@
 package ong
 
 import (
-	"math/big"
 	"fmt"
+	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
