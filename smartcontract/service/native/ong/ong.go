@@ -20,7 +20,6 @@ package ong
 
 import (
 	"math/big"
-
 	"fmt"
 
 	"github.com/ontio/ontology/common"

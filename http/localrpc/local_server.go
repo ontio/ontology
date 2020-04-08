@@ -22,7 +22,6 @@ package localrpc
 import (
 	"net/http"
 	"strconv"
-
 	"fmt"
 
 	cfg "github.com/ontio/ontology/common/config"

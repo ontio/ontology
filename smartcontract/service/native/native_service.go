@@ -22,7 +22,6 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/merkle"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"

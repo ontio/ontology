@@ -22,7 +22,6 @@ import (
 	"reflect"
 
 	"github.com/ontio/ontology/core/utils"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"

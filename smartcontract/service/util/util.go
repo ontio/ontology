@@ -19,7 +19,6 @@ package util
 
 import (
 	"bytes"
-
 	"errors"
 
 	"github.com/ontio/ontology/common"

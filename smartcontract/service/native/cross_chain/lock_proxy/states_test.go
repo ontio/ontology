@@ -20,7 +20,6 @@ package lock_proxy
 
 import (
 	"testing"
-
 	"encoding/hex"
 	"math/big"
 

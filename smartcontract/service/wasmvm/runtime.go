@@ -22,7 +22,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"reflect"
-
 	"io"
 
 	"github.com/ontio/ontology/common"
