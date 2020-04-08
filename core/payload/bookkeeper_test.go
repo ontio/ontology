@@ -19,8 +19,8 @@
 package payload
 
 import (
-	"testing"
 	"encoding/hex"
+	"testing"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"

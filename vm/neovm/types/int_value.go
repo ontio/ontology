@@ -19,8 +19,8 @@
 package types
 
 import (
-	"math/big"
 	"math"
+	"math/big"
 
 	"github.com/JohnCGriffin/overflow"
 	"github.com/ontio/ontology/common"

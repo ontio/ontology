@@ -18,8 +18,8 @@
 package common
 
 import (
-	"testing"
 	"bytes"
+	"testing"
 
 	ser "github.com/ontio/ontology/common/serialization"
 	"github.com/stretchr/testify/assert"

@@ -22,8 +22,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"math/big"
 	"io"
+	"math/big"
 
 	"github.com/itchyny/base58-go"
 	"golang.org/x/crypto/ripemd160"
