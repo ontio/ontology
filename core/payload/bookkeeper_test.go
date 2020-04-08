@@ -20,7 +20,6 @@ package payload
 
 import (
 	"testing"
-
 	"encoding/hex"
 
 	"github.com/ontio/ontology-crypto/keypair"

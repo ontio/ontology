@@ -24,7 +24,6 @@ import (
 	"io/ioutil"
 	"math"
 	"testing"
-
 	"crypto/rand"
 
 	"github.com/stretchr/testify/assert"

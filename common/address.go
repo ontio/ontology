@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-
 	"io"
 
 	"github.com/itchyny/base58-go"

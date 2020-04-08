@@ -19,7 +19,6 @@ package common
 
 import (
 	"testing"
-
 	"bytes"
 
 	ser "github.com/ontio/ontology/common/serialization"

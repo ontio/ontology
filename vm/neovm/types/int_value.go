@@ -20,7 +20,6 @@ package types
 
 import (
 	"math/big"
-
 	"math"
 
 	"github.com/JohnCGriffin/overflow"
