@@ -21,7 +21,6 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"os"
 	"os/signal"
 	"runtime"
@@ -52,6 +51,7 @@ import (
 	"github.com/ontio/ontology/http/websocket"
 	"github.com/ontio/ontology/p2pserver"
 	netreqactor "github.com/ontio/ontology/p2pserver/actor/req"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/ontio/ontology/txnpool"
 	tc "github.com/ontio/ontology/txnpool/common"
 	"github.com/ontio/ontology/txnpool/proc"

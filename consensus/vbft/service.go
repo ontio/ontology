@@ -21,7 +21,6 @@ package vbft
 import (
 	"bytes"
 	"fmt"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"math"
 	"reflect"
 	"sync"
@@ -42,6 +41,7 @@ import (
 	"github.com/ontio/ontology/events"
 	"github.com/ontio/ontology/events/message"
 	p2pmsg "github.com/ontio/ontology/p2pserver/message/types"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	gover "github.com/ontio/ontology/smartcontract/service/native/governance"
 	ninit "github.com/ontio/ontology/smartcontract/service/native/init"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
