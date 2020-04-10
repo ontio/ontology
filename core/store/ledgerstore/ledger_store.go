@@ -1220,8 +1220,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 		deploy := tx.Payload.(*payload.DeployCode)
 
 		if deploy.VmType() == payload.WASMVM_TYPE {
-			wasmCode := deploy.GetRawCode()
-			err := wasmvm.WasmjitValidate(wasmCode)
+			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), wasmvm.GetVerifyMethodByJitLevel(config.DefConfig.Common.WasmJitLevel))
 			if err != nil {
 				return stf, err
 			}
@@ -1244,7 +1243,7 @@ func (this *LedgerStoreImp) PreExecuteContractWithParam(tx *types.Transaction, p
 //PreExecuteContract return the result of smart contract execution without commit to store
 func (this *LedgerStoreImp) PreExecuteContract(tx *types.Transaction) (*sstate.PreExecResult, error) {
 	param := PrexecuteParam{
-		JitMode:    false,
+		JitMode:    wasmvm.GetJitModeByJitLevel(config.DefConfig.Common.WasmJitLevel, true),
 		WasmFactor: 0,
 		MinGas:     true,
 	}

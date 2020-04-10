@@ -35,12 +35,13 @@ import (
 
 var Version = "" //Set value when build project
 
-type VerifyMethod int
+type WasmJitLevelType int
 
 const (
-	InterpVerifyMethod VerifyMethod = iota
-	JitVerifyMethod
-	NoneVerifyMethod
+	WasmJitLevelNone WasmJitLevelType = iota
+	WasmJitLevelLow
+	WasmJitLevelMid
+	WasmJitLevelHeigh
 )
 
 const (
@@ -57,6 +58,7 @@ const (
 	CONSENSUS_TYPE_VBFT = "vbft"
 
 	DEFAULT_LOG_LEVEL                       = log.InfoLog
+	DEFAULT_WASM_JIT_LEVEL                  = WasmJitLevelNone
 	DEFAULT_MAX_LOG_SIZE                    = 100 //MByte
 	DEFAULT_NODE_PORT                       = uint(20338)
 	DEFAULT_CONSENSUS_PORT                  = uint(20339)
@@ -498,14 +500,14 @@ type SOLOConfig struct {
 }
 
 type CommonConfig struct {
-	LogLevel         uint
-	NodeType         string
-	EnableEventLog   bool
-	SystemFee        map[string]int64
-	GasLimit         uint64
-	GasPrice         uint64
-	DataDir          string
-	WasmVerifyMethod VerifyMethod
+	LogLevel       uint
+	NodeType       string
+	EnableEventLog bool
+	SystemFee      map[string]int64
+	GasLimit       uint64
+	GasPrice       uint64
+	DataDir        string
+	WasmJitLevel   WasmJitLevelType
 }
 
 type ConsensusConfig struct {
@@ -571,12 +573,12 @@ func NewOntologyConfig() *OntologyConfig {
 	return &OntologyConfig{
 		Genesis: MainNetConfig,
 		Common: &CommonConfig{
-			LogLevel:         DEFAULT_LOG_LEVEL,
-			EnableEventLog:   DEFAULT_ENABLE_EVENT_LOG,
-			SystemFee:        make(map[string]int64),
-			GasLimit:         DEFAULT_GAS_LIMIT,
-			DataDir:          DEFAULT_DATA_DIR,
-			WasmVerifyMethod: InterpVerifyMethod,
+			LogLevel:       DEFAULT_LOG_LEVEL,
+			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
+			SystemFee:      make(map[string]int64),
+			GasLimit:       DEFAULT_GAS_LIMIT,
+			DataDir:        DEFAULT_DATA_DIR,
+			WasmJitLevel:   DEFAULT_WASM_JIT_LEVEL,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,

@@ -88,7 +88,7 @@ func setupAPP() *cli.App {
 		utils.DisableLogFileFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
-		utils.WasmVerifyMethodFlag,
+		utils.WasmJitLevelFlag,
 		//account setting
 		utils.WalletFileFlag,
 		utils.AccountAddressFlag,
