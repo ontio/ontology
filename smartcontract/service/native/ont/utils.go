@@ -31,18 +31,19 @@ import (
 )
 
 const (
-	UNBOUND_TIME_OFFSET = "unboundTimeOffset"
-	TOTAL_SUPPLY_NAME   = "totalSupply"
-	INIT_NAME           = "init"
-	TRANSFER_NAME       = "transfer"
-	APPROVE_NAME        = "approve"
-	TRANSFERFROM_NAME   = "transferFrom"
-	NAME_NAME           = "name"
-	SYMBOL_NAME         = "symbol"
-	DECIMALS_NAME       = "decimals"
-	TOTALSUPPLY_NAME    = "totalSupply"
-	BALANCEOF_NAME      = "balanceOf"
-	ALLOWANCE_NAME      = "allowance"
+	UNBOUND_TIME_OFFSET  = "unboundTimeOffset"
+	TOTAL_SUPPLY_NAME    = "totalSupply"
+	INIT_NAME            = "init"
+	TRANSFER_NAME        = "transfer"
+	APPROVE_NAME         = "approve"
+	TRANSFERFROM_NAME    = "transferFrom"
+	NAME_NAME            = "name"
+	SYMBOL_NAME          = "symbol"
+	DECIMALS_NAME        = "decimals"
+	TOTALSUPPLY_NAME     = "totalSupply"
+	BALANCEOF_NAME       = "balanceOf"
+	ALLOWANCE_NAME       = "allowance"
+	TOTAL_ALLOWANCE_NAME = "totalAllowance"
 )
 
 func AddNotifications(native *native.NativeService, contract common.Address, state *State) {

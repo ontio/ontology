@@ -19,12 +19,15 @@
 package ont
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/ontio/ontology/common/serialization"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
+	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -50,6 +53,7 @@ func RegisterOntContract(native *native.NativeService) {
 	native.Register(TOTALSUPPLY_NAME, OntTotalSupply)
 	native.Register(BALANCEOF_NAME, OntBalanceOf)
 	native.Register(ALLOWANCE_NAME, OntAllowance)
+	native.Register(TOTAL_ALLOWANCE_NAME, OntTotalAllowance)
 }
 
 func OntInit(native *native.NativeService) ([]byte, error) {
@@ -236,6 +240,35 @@ func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[GetBalanceValue] address parse error!")
 	}
 	return common.BigIntToNeoBytes(big.NewInt(int64(amount))), nil
+}
+
+func OntTotalAllowance(native *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(native.Input)
+	from, err := utils.DecodeAddress(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalAllowance] get from address error!")
+	}
+	contract := native.ContextRef.CurrentContext().ContractAddress
+
+	iter := native.CacheDB.NewIterator(utils.ConcatKey(contract, from[:]))
+	defer iter.Release()
+	var r uint64 = 0
+	for has := iter.First(); has; has = iter.Next() {
+		if bytes.Equal(iter.Key(), from[:]) {
+			continue
+		}
+		item := new(cstates.StorageItem)
+		err = item.Deserialization(common.NewZeroCopySource(iter.Value()))
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalAllowance] instance isn't StorageItem!")
+		}
+		v, err := serialization.ReadUint64(bytes.NewBuffer(item.Value))
+		if err != nil {
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalAllowance] get uint64 from value error!")
+		}
+		r = r + v
+	}
+	return common.BigIntToNeoBytes(big.NewInt(int64(r))), nil
 }
 
 func grantOng(native *native.NativeService, contract, address common.Address, balance uint64) error {
