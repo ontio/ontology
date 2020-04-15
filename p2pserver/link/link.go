@@ -25,6 +25,7 @@ import (
 	"io"
 	"net"
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	comm "github.com/ontio/ontology/common"
@@ -32,6 +33,10 @@ import (
 	"github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
+
+const SEND_THROTTLE_SIZE = 512 * 1024
+
+var ErrBufferFull = errors.New("send buffers full")
 
 //Link used to establish
 type Link struct {
@@ -42,17 +47,65 @@ type Link struct {
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqRecord map[string]int64       //Map RequestId to Timestamp, using for rejecting duplicate request in specific time
 
-	sendBuf *LockFreeList
+	sendBuffer *SendBuffer
+}
+
+type buffData struct {
+	data   []byte
+	result chan error
+}
+
+type SendBuffer struct {
+	ThrottleSize uint64 // read only once set
+
+	bufferSize int64 // atomic read/write
+	buffers    *LockFreeList
+}
+
+func (self *SendBuffer) Close() {
+	self.buffers.TakeAndSeal()
+	atomic.StoreInt64(&self.bufferSize, 0)
+}
+
+// return true if exceed throttle size
+func (self *SendBuffer) IncrBuffSize(size int) bool {
+	newVal := atomic.AddInt64(&self.bufferSize, int64(size))
+	return newVal > int64(size)+SEND_THROTTLE_SIZE
+}
+
+func (self *SendBuffer) TryPush(packet []byte) error {
+	if self.IncrBuffSize(len(packet)) {
+		self.IncrBuffSize(-len(packet))
+		return ErrBufferFull
+	}
+	if !self.buffers.Push(buffData{data: packet, result: nil}) {
+		self.IncrBuffSize(-len(packet))
+		return io.ErrClosedPipe
+	}
+
+	return nil
+}
+
+// blocking until data writen to io
+func (self *SendBuffer) Push(packet []byte) error {
+	result := make(chan error)
+	self.IncrBuffSize(len(packet))
+	if !self.buffers.Push(buffData{data: packet, result: result}) {
+		self.IncrBuffSize(-len(packet))
+		return io.ErrClosedPipe
+	}
+
+	return <-result
 }
 
 func NewLink(id common.PeerId, conn net.Conn) *Link {
 	link := &Link{
-		id:        id,
-		sendBuf:   &LockFreeList{},
-		reqRecord: make(map[string]int64),
-		time:      time.Now(),
-		conn:      conn,
-		addr:      conn.RemoteAddr().String(),
+		id:         id,
+		sendBuffer: &SendBuffer{ThrottleSize: SEND_THROTTLE_SIZE, buffers: &LockFreeList{}},
+		reqRecord:  make(map[string]int64),
+		time:       time.Now(),
+		conn:       conn,
+		addr:       conn.RemoteAddr().String(),
 	}
 
 	return link
@@ -135,7 +188,7 @@ func (self *Link) readLoop() {
 
 //close connection
 func (self *Link) CloseConn() {
-	self.sendBuf.TakeAndSeal()
+	self.sendBuffer.Close()
 	if self.conn != nil {
 		_ = self.conn.Close()
 		self.conn = nil
@@ -149,21 +202,22 @@ func (self *Link) Send(msg types.Message) error {
 	return self.SendRaw(sink.Bytes())
 }
 
-func (self *Link) SendAsync(msg types.Message) error {
-	sink := comm.NewZeroCopySink(nil)
-	types.WriteMessage(sink, msg)
-	return self.SendRawAsync(sink.Bytes())
+func (self *Link) TrySendRaw(packet []byte) error {
+	return self.sendBuffer.TryPush(packet)
 }
 
-func (self *Link) SendRawAsync(packet []byte) error {
-	if !self.sendBuf.Push(packet) {
-		return io.ErrClosedPipe
-	}
-
-	return nil
+func (self *Link) TrySend(msg types.Message) error {
+	sink := comm.NewZeroCopySink(nil)
+	types.WriteMessage(sink, msg)
+	return self.TrySendRaw(sink.Bytes())
 }
 
 func (self *Link) SendRaw(rawPacket []byte) error {
+	return self.sendBuffer.Push(rawPacket)
+}
+
+// only called by sendLoop
+func (self *Link) writeToConn(rawPacket []byte) error {
 	conn := self.conn
 	if conn == nil {
 		return errors.New("[p2p]tx link invalid")
@@ -226,21 +280,31 @@ const sendBufSize = 64 * 1024
 
 func (self *Link) sendLoop() {
 	buffers := make([]byte, 0, sendBufSize)
-	buffList := make([][]byte, 0, 64)
+	var results []chan error
+	buffList := make([]buffData, 0, 64)
 	for {
-		owned, sealed := self.sendBuf.Take()
+		owned, sealed := self.sendBuffer.buffers.Take()
 		if sealed {
 			return
 		}
-		buffList = getBuffers(buffList[:0], owned)
+		buffList = getBufferData(buffList[:0], owned)
 		if len(buffList) > 0 {
 			for i := len(buffList) - 1; i >= 0; i -= 1 {
-				buffers = append(buffers, buffList[i]...)
-				if len(buffers) >= sendBufSize/2 {
-					if err := self.SendRaw(buffers); err != nil {
+				buffers = append(buffers, buffList[i].data...)
+				if buffList[i].result != nil {
+					results = append(results, buffList[i].result)
+				}
+				if len(buffers) >= sendBufSize/2 || i == 0 {
+					err := self.writeToConn(buffers)
+					self.sendBuffer.IncrBuffSize(-len(buffers))
+					for _, c := range results {
+						c <- err
+					}
+					if err != nil {
 						return
 					}
 					buffers = buffers[:0]
+					results = results[:0]
 				}
 			}
 		} else {
@@ -250,9 +314,9 @@ func (self *Link) sendLoop() {
 	}
 }
 
-func getBuffers(buffList [][]byte, owned *OwnedList) [][]byte {
+func getBufferData(buffList []buffData, owned *OwnedList) []buffData {
 	for buf := owned.Pop(); buf != nil; buf = owned.Pop() {
-		buffList = append(buffList, buf)
+		buffList = append(buffList, buf.(buffData))
 	}
 
 	return buffList

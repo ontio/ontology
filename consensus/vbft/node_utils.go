@@ -414,7 +414,7 @@ func (self *Server) sendToPeer(peerIdx uint32, data []byte) error {
 	cons := msgpack.NewConsensus(msg)
 	p2pid, present := self.peerPool.getP2pId(peerIdx)
 	if present {
-		self.p2p.SendToAsync(p2pid, cons)
+		return self.p2p.TrySendToAsync(p2pid, cons)
 	} else {
 		log.Errorf("sendToPeer transmit failed index:%d", peerIdx)
 	}

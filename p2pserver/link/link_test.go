@@ -20,6 +20,9 @@ package link
 
 import (
 	"math/rand"
+	"net"
+	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -28,7 +31,9 @@ import (
 	comm "github.com/ontio/ontology/common"
 	ct "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
+	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	mt "github.com/ontio/ontology/p2pserver/message/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUnpackBufNode(t *testing.T) {
@@ -115,4 +120,57 @@ func TestUnpackBufNode(t *testing.T) {
 
 	sink := comm.NewZeroCopySink(nil)
 	mt.WriteMessage(sink, msg)
+}
+
+func TestLink_Send(t *testing.T) {
+	const N = 100
+	const M = 1000
+	reader, writer := net.Pipe()
+	out := NewLink(common.PeerId{}, writer)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		out.sendLoop()
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		wg.Add(2 * N)
+		for i := 0; i < N; i++ {
+			go func() {
+				defer wg.Done()
+				for j := 0; j < M; j++ {
+					for {
+						err := out.TrySend(msgpack.NewPingMsg(1))
+						if err == nil {
+							break
+						}
+						runtime.Gosched()
+					}
+				}
+			}()
+			go func() {
+				defer wg.Done()
+				for j := 0; j < M; j++ {
+					err := out.Send(msgpack.NewPingMsg(1))
+					if err != nil {
+						panic(err)
+					}
+				}
+			}()
+		}
+	}()
+
+	for m := 0; m < 2*N*M; m++ {
+		msg, _, err := mt.ReadMessage(reader)
+		if err != nil {
+			panic(err)
+		}
+
+		assert.Equal(t, msg.(*mt.Ping), msgpack.NewPingMsg(1))
+	}
+	out.CloseConn()
+
+	wg.Wait()
 }

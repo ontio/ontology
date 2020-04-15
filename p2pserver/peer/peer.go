@@ -21,6 +21,7 @@ package peer
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -139,10 +140,11 @@ func (this *Peer) SendRaw(msgPayload []byte) error {
 	return errors.New("[p2p]sync link invalid")
 }
 
-func (this *Peer) SendRawAsync(msgPayload []byte) {
+func (this *Peer) SendRawAsync(msgPayload []byte) error {
 	if this.Link != nil && this.Link.Valid() {
-		_ = this.Link.SendRawAsync(msgPayload)
+		return this.Link.TrySendRaw(msgPayload)
 	}
+	return io.ErrClosedPipe
 }
 
 //Close halt sync connection
@@ -216,10 +218,10 @@ func (this *Peer) Send(msg types.Message) error {
 	return this.SendRaw(sink.Bytes())
 }
 
-func (this *Peer) SendAsync(msg types.Message) {
+func (this *Peer) TrySendAsync(msg types.Message) error {
 	sink := comm.NewZeroCopySink(nil)
 	types.WriteMessage(sink, msg)
-	this.SendRawAsync(sink.Bytes())
+	return this.SendRawAsync(sink.Bytes())
 }
 
 //GetHttpInfoPort return peer`s httpinfo port

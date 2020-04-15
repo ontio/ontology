@@ -36,14 +36,11 @@ type OwnedList struct {
 
 type innerNode struct {
 	next unsafe.Pointer
-	buf  []byte
+	data interface{}
 }
 
-func (self *LockFreeList) Push(data []byte) bool {
-	if len(data) == 0 {
-		return false
-	}
-	node := &innerNode{buf: data}
+func (self *LockFreeList) Push(data interface{}) bool {
+	node := &innerNode{data: data}
 	for {
 		head := atomic.LoadPointer(&self.head)
 		if head == sealed {
@@ -73,7 +70,7 @@ func (self *LockFreeList) Take() (*OwnedList, bool) {
 	return &OwnedList{head: list}, list == sealed
 }
 
-func (self *OwnedList) Pop() []byte {
+func (self *OwnedList) Pop() interface{} {
 	head := self.head
 	if head == nil || head == sealed {
 		return nil
@@ -82,7 +79,7 @@ func (self *OwnedList) Pop() []byte {
 	node := (*innerNode)(head)
 	self.head = node.next
 
-	return node.buf
+	return node.data
 }
 
 func (self *LockFreeList) TakeAndSeal() *OwnedList {

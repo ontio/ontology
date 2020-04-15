@@ -315,9 +315,11 @@ func (this *NetServer) SendTo(p common.PeerId, msg types.Message) {
 	}
 }
 
-func (this *NetServer) SendToAsync(p common.PeerId, msg types.Message) {
+func (this *NetServer) TrySendToAsync(p common.PeerId, msg types.Message) error {
 	peer := this.GetPeer(p)
 	if peer != nil {
-		peer.SendAsync(msg)
+		return peer.TrySendAsync(msg)
 	}
+
+	return nil
 }
