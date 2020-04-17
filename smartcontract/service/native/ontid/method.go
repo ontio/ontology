@@ -32,6 +32,8 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+// deprecated
+// retain for conpatibility
 func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("registerIdWithPublicKey")
 	log.Debug("srvc.Input:", srvc.Input)
