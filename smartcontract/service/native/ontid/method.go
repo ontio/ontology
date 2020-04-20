@@ -22,7 +22,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
@@ -32,38 +31,27 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-// deprecated
-// retain for conpatibility
 func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("registerIdWithPublicKey")
 	log.Debug("srvc.Input:", srvc.Input)
 	// parse arguments
 	source := common.NewZeroCopySource(srvc.Input)
-	// arg0: ID
-	arg0, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("register ONT ID error: parsing argument 0 failed")
-	} else if len(arg0) == 0 {
-		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid length of argument 0")
+	oldParams := new(OldRegIdWithPublicKeyParam)
+	if err := oldParams.Deserialization(source); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("register ONT ID error, contract params deserialize error: %v", err)
 	}
-	log.Debug("arg 0:", hex.EncodeToString(arg0), string(arg0))
-	// arg1: public key
-	arg1, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("register ONT ID error: parsing argument 1 failed")
-	}
+	log.Debug("OntID:", hex.EncodeToString(oldParams.OntID), string(oldParams.OntID))
+	log.Debug("PubKey:", hex.EncodeToString(oldParams.PubKey))
 
-	log.Debug("arg 1:", hex.EncodeToString(arg1))
-
-	if len(arg0) == 0 || len(arg1) == 0 {
+	if len(oldParams.OntID) == 0 || len(oldParams.PubKey) == 0 {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid argument")
 	}
 
-	if !account.VerifyID(string(arg0)) {
+	if !account.VerifyID(string(oldParams.OntID)) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid ID")
 	}
 
-	key, err := encodeID(arg0)
+	key, err := encodeID(oldParams.OntID)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: " + err.Error())
 	}
@@ -72,7 +60,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: already registered")
 	}
 
-	public, err := keypair.DeserializePublicKey(arg1)
+	public, err := keypair.DeserializePublicKey(oldParams.PubKey)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid public key")
 	}
@@ -81,15 +69,30 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: checking witness failed")
 	}
 
-	// insert public key
-	_, err = insertPk(srvc, key, arg1)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
+	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
+		// insert public key
+		_, err = insertPk(srvc, key, oldParams.PubKey)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
+		}
+	} else {
+		params := new(RegIdWithPublicKeyParam)
+		if err := params.Deserialization(source); err != nil {
+			params.OntID = oldParams.OntID
+			params.PubKey = oldParams.PubKey
+		}
+		// insert public key
+		_, err = insertPk_Version1(srvc, key, params.OntID, params.PubKey, params.Access)
+		if err != nil {
+			return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
+		}
+
+		//TODO: add proof
 	}
 	// set flags
 	utils.PutBytes(srvc, key, []byte{flag_valid})
 
-	triggerRegisterEvent(srvc, arg0)
+	triggerRegisterEvent(srvc, oldParams.OntID)
 
 	return utils.BYTE_TRUE, nil
 }

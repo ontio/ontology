@@ -29,7 +29,53 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-const OWNER_TOTAL_SIZE = 1024 * 1024 // 1MB
+const (
+	OWNER_TOTAL_SIZE       = 1024 * 1024 // 1MB
+	NEW_OWNER_BLOCK_HEIGHT = 1000000
+
+	ALL_ACCESS  = "all"
+	CRUD_ACCESS = "crud"
+	USE_ACCESS  = "use"
+)
+
+type publicKey struct {
+	key        []byte
+	controller []byte
+	access     string
+	revoked    bool
+}
+
+func (this *publicKey) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.key)
+	sink.WriteVarBytes(this.controller)
+	sink.WriteString(this.access)
+	sink.WriteBool(this.revoked)
+}
+
+func (this *publicKey) Deserialization(source *common.ZeroCopySource) error {
+	key, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return err
+	}
+	controller, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return err
+	}
+	access, err := utils.DecodeString(source)
+	if err != nil {
+		return err
+	}
+	revoked, err := utils.DecodeBool(source)
+	if err != nil {
+		return err
+	}
+
+	this.key = key
+	this.controller = controller
+	this.access = access
+	this.revoked = revoked
+	return nil
+}
 
 type owner struct {
 	key     []byte
@@ -94,7 +140,7 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 	key := append(encID, FIELD_PK)
 	owners, err := getAllPk(srvc, key)
 	if err != nil {
-		owners = make([]*owner, 0)
+		return 0, err
 	}
 	for _, k := range owners {
 		if bytes.Equal(k.key, pk) {
@@ -104,6 +150,89 @@ func insertPk(srvc *native.NativeService, encID, pk []byte) (uint32, error) {
 	size := len(owners)
 	owners = append(owners, &owner{pk, false})
 	err = putAllPk(srvc, key, owners)
+	if err != nil {
+		return 0, err
+	}
+	return uint32(size + 1), nil
+}
+
+func getAllPk_Version1(srvc *native.NativeService, encID, key []byte) ([]*publicKey, error) {
+	val, err := utils.GetStorageItem(srvc, key)
+	if err != nil {
+		return nil, fmt.Errorf("get storage error, %s", err)
+	}
+	if val == nil {
+		return nil, nil
+	}
+
+	ontid, err := decodeID(encID)
+	if err != nil {
+		return nil, fmt.Errorf("decodeID error, %s", err)
+	}
+	source := common.NewZeroCopySource(val.Value)
+	publicKeys := make([]*publicKey, 0)
+	switch val.StateVersion {
+	case _VERSION_0:
+		for source.Len() > 0 {
+			var t = new(owner)
+			var p = new(publicKey)
+			err = t.Deserialization(source)
+			if err != nil {
+				return nil, fmt.Errorf("deserialize owners error, %s", err)
+			}
+			p.key = t.key
+			p.controller = ontid
+			p.access = ALL_ACCESS
+			p.revoked = t.revoked
+			publicKeys = append(publicKeys, p)
+		}
+	case _VERSION_1:
+		for source.Len() > 0 {
+			var t = new(publicKey)
+			err = t.Deserialization(source)
+			if err != nil {
+				return nil, fmt.Errorf("deserialize owners error, %s", err)
+			}
+			publicKeys = append(publicKeys, t)
+		}
+	}
+
+	return publicKeys, nil
+}
+
+func putAllPk_Version1(srvc *native.NativeService, key []byte, val []*publicKey) error {
+	sink := common.NewZeroCopySink(nil)
+	for _, i := range val {
+		i.Serialization(sink)
+	}
+	var v states.StorageItem
+	v.Value = sink.Bytes()
+	v.StateVersion = _VERSION_1
+	if len(v.Value) > OWNER_TOTAL_SIZE {
+		return errors.New("total key size is out of range")
+	}
+	srvc.CacheDB.Put(key, v.ToArray())
+	return nil
+}
+
+func insertPk_Version1(srvc *native.NativeService, encID, ontid, pk []byte, access string) (uint32, error) {
+	key := append(encID, FIELD_PK)
+	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+	if err != nil {
+		return 0, err
+	}
+	for _, k := range publicKeys {
+		if bytes.Equal(k.key, pk) {
+			return 0, errors.New("the key is already added")
+		}
+	}
+	size := len(publicKeys)
+	a, err := validateAccess(access)
+	if err != nil {
+		return 0, err
+	}
+	publicKeys = append(publicKeys, &publicKey{pk, ontid, a, false})
+	err = putAllPk_Version1(srvc, key, publicKeys)
 	if err != nil {
 		return 0, err
 	}
@@ -184,4 +313,19 @@ func isOwner(srvc *native.NativeService, encID, pub []byte) bool {
 		return false
 	}
 	return kID != 0 && !revoked
+}
+
+func validateAccess(access string) (string, error) {
+	switch access {
+	case "":
+		return ALL_ACCESS, nil
+	case ALL_ACCESS:
+		return ALL_ACCESS, nil
+	case CRUD_ACCESS:
+		return CRUD_ACCESS, nil
+	case USE_ACCESS:
+		return USE_ACCESS, nil
+	default:
+		return "", fmt.Errorf("access type is not supported")
+	}
 }
