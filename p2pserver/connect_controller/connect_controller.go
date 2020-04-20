@@ -20,8 +20,8 @@ package connect_controller
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -66,6 +66,10 @@ func NewConnectController(peerInfo *peer.PeerInfo, keyid *common.PeerKeyId,
 		connecting:     strset.New(),
 		peers:          make(map[common.PeerId]*connectedPeer),
 	}
+	// put domain to the end
+	sort.Slice(control.ReservedPeers, func(i, j int) bool {
+		return net.ParseIP(control.ReservedPeers[i]) != nil
+	})
 
 	return control
 }
@@ -139,21 +143,27 @@ func (self *ConnectController) reserveEnabled() bool {
 	return len(self.ReservedPeers) > 0
 }
 
-func (self *ConnectController) inReserveList(remoteAddr string) bool {
-	var rsvIPs []string
+// remoteAddr format 192.168.1.1:61234
+func (self *ConnectController) inReserveList(remoteIPPort string) bool {
+	// 192.168.1.1 in reserve list, 192.168.1.111:61234 and 192.168.1.11:61234 can connect in if we are using prefix matching
+	// so get this IP to do fully match
+	remoteAddr, _, err := net.SplitHostPort(remoteIPPort)
+	if err != nil {
+		return false
+	}
 	// we don't load domain in start because we consider domain's A/AAAA record may change sometimes
 	for _, curIPOrName := range self.ReservedPeers {
 		curIPs, err := net.LookupHost(curIPOrName)
 		if err != nil {
 			continue
 		}
-		rsvIPs = append(rsvIPs, curIPs...)
-	}
-	for _, addr := range rsvIPs {
-		if strings.HasPrefix(remoteAddr, addr) {
-			return true
+		for _, digIP := range curIPs {
+			if digIP == remoteAddr {
+				return true
+			}
 		}
 	}
+
 	return false
 }
 

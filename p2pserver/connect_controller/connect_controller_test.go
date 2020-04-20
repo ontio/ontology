@@ -18,7 +18,9 @@
 package connect_controller
 
 import (
+	"fmt"
 	"net"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -229,14 +231,31 @@ func checkServer(t *testing.T, client, server *Node, clientConns chan<- net.Conn
 
 func TestCheckReserveWithDomain(t *testing.T) {
 	a := assert.New(t)
-	dname := "www.baidu.com"
+	// this domain only have one A record, so we can assure two lookup below return the same IP
+	// other domain may fail the test sometimes
+	dname := "www.onchain.com"
+
 	gips, err := net.LookupHost(dname)
 	a.Nil(err, "fail to get domain record")
 
 	cc := &ConnectController{}
 	cc.ReservedPeers = []string{dname}
 	for _, ip := range gips {
-		err := cc.checkReservedPeers(ip)
+		err := cc.checkReservedPeers(fmt.Sprintf("%s:1234", ip))
 		a.Nil(err, "fail")
 	}
+
+	cc.ReservedPeers = []string{"192.168.1.111"}
+	cret := cc.inReserveList("192.168.1.1:1234")
+	a.False(cret, "fail")
+	cret = cc.inReserveList("192.168.1.11:1234")
+	a.False(cret, "fail")
+	cret = cc.inReserveList("192.168.1.111:1234")
+	a.True(cret, "fail")
+
+	cc.ReservedPeers = []string{"192.168.1.2", "www.baidu.com", "192.168.1.1"}
+	sort.Slice(cc.ReservedPeers, func(i, j int) bool {
+		return net.ParseIP(cc.ReservedPeers[i]) != nil
+	})
+	a.Equal(cc.ReservedPeers[len(cc.ReservedPeers)-1], "www.baidu.com", "fail")
 }
