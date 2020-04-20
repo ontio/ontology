@@ -431,3 +431,7 @@ func revokeID(srvc *native.NativeService) ([]byte, error) {
 	newEvent(srvc, []interface{}{"Revoke", string(arg0)})
 	return utils.BYTE_TRUE, nil
 }
+
+func update(srvc *native.NativeService) ([]byte, error) {
+	return nil, nil
+}

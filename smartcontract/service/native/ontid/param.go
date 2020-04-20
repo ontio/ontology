@@ -67,3 +67,41 @@ func (this *OldRegIdWithPublicKeyParam) Deserialization(source *common.ZeroCopyS
 	this.PubKey = pubKey
 	return nil
 }
+
+type ProofParam struct {
+	ProofType      string
+	Created        string
+	Creator        string
+	SignatureValue string
+}
+
+func (this *ProofParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteString(this.ProofType)
+	sink.WriteString(this.Created)
+	sink.WriteString(this.Creator)
+	sink.WriteString(this.SignatureValue)
+}
+
+func (this *ProofParam) Deserialization(source *common.ZeroCopySource) error {
+	ProofType, err := utils.DecodeString(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize ontID error: %v", err)
+	}
+	Created, err := utils.DecodeString(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize pubKey error: %v", err)
+	}
+	Creator, err := utils.DecodeString(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize access error: %v", err)
+	}
+	SignatureValue, err := utils.DecodeString(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize proof error: %v", err)
+	}
+	this.ProofType = ProofType
+	this.Created = Created
+	this.Creator = Creator
+	this.SignatureValue = SignatureValue
+	return nil
+}

@@ -58,6 +58,7 @@ func GetPublicKeyByID(srvc *native.NativeService) ([]byte, error) {
 	return pk.key, nil
 }
 
+// deprecated
 func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetDDO")
 	source := common.NewZeroCopySource(srvc.Input)
@@ -213,4 +214,16 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 	} else {
 		return []byte("in use"), nil
 	}
+}
+
+func GetService(srvc *native.NativeService) ([]byte, error) {
+	return nil, nil
+}
+
+func GetController(srvc *native.NativeService) ([]byte, error) {
+	return nil, nil
+}
+
+func GetDocument(srvc *native.NativeService) ([]byte, error) {
+	return nil, nil
 }
