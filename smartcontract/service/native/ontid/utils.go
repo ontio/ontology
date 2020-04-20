@@ -53,10 +53,15 @@ const (
 	FIELD_VERSION byte = 0
 	FLAG_VERSION  byte = 0x01
 
-	FIELD_PK         byte = 1
-	FIELD_ATTR       byte = 2
-	FIELD_RECOVERY   byte = 3
-	FIELD_CONTROLLER byte = 4
+	FIELD_PK             byte = 1
+	FIELD_ATTR           byte = 2
+	FIELD_RECOVERY       byte = 3
+	FIELD_CONTROLLER     byte = 4
+	FIELD_AUTHENTICATION byte = 5
+	FIELD_SERVICE             = 6
+	FIELD_CREATED             = 7
+	FIELD_UPDATED             = 8
+	FIELD_PROOF               = 9
 )
 
 func encodeID(id []byte) ([]byte, error) {
