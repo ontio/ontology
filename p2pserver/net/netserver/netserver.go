@@ -254,7 +254,7 @@ func (this *NetServer) Stop() {
 	if this.listener != nil {
 		_ = this.listener.Close()
 	}
-	this.stopRecvCh <- true
+	close(this.stopRecvCh)
 	this.protocol.HandleSystemMessage(this, p2p.NetworkStop{})
 }
 
@@ -282,10 +282,12 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 			return
 		}
 
-		if err := this.handleClientConnection(conn); err != nil {
-			log.Warnf("[p2p] client connect error: %s", err)
-			_ = conn.Close()
-		}
+		go func() {
+			if err := this.handleClientConnection(conn); err != nil {
+				log.Warnf("[p2p] client connect error: %s", err)
+				_ = conn.Close()
+			}
+		}()
 	}
 }
 

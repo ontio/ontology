@@ -36,9 +36,7 @@ var KValue = 20
 var AlphaValue = 3
 
 type DHT struct {
-	localId common.PeerId
-	birth   time.Time // When this peer started up
-
+	localId    common.PeerId
 	bucketSize int
 	routeTable *kb.RouteTable // Array of routing tables for differently distanced nodes
 
@@ -66,7 +64,6 @@ func NewDHT(id common.PeerId) *DHT {
 
 	return &DHT{
 		localId:         id,
-		birth:           time.Now(),
 		routeTable:      rt,
 		bucketSize:      bucketSize,
 		AutoRefresh:     true,
