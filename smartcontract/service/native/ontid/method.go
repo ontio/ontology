@@ -278,6 +278,18 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func setKeyAccess(srvc *native.NativeService) ([]byte, error) {
+	return nil, nil
+}
+
+func addAuthKey(srvc *native.NativeService) ([]byte, error) {
+	return nil, nil
+}
+
+func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
+	return nil, nil
+}
+
 func addAttributes(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID

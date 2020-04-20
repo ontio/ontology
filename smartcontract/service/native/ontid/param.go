@@ -85,23 +85,68 @@ func (this *ProofParam) Serialization(sink *common.ZeroCopySink) {
 func (this *ProofParam) Deserialization(source *common.ZeroCopySource) error {
 	ProofType, err := utils.DecodeString(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize ontID error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize ProofType error: %v", err)
 	}
 	Created, err := utils.DecodeString(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize pubKey error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
 	}
 	Creator, err := utils.DecodeString(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize access error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize Creator error: %v", err)
 	}
 	SignatureValue, err := utils.DecodeString(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize proof error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize SignatureValue error: %v", err)
 	}
 	this.ProofType = ProofType
 	this.Created = Created
 	this.Creator = Creator
 	this.SignatureValue = SignatureValue
+	return nil
+}
+
+type ServiceParam struct {
+	OntId       []byte
+	ServiceId   []byte
+	ServiceInfo []byte
+	Index       uint32
+	Proof       []byte
+}
+
+func (this *ServiceParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteBytes(this.OntId)
+	sink.WriteBytes(this.ServiceId)
+	sink.WriteBytes(this.ServiceInfo)
+	sink.WriteUint32(this.Index)
+	sink.WriteBytes(this.Proof)
+}
+
+func (this *ServiceParam) Deserialization(source *common.ZeroCopySource) error {
+	OntId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize ProofType error: %v", err)
+	}
+	ServiceId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
+	}
+	ServiceInfo, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Creator error: %v", err)
+	}
+	Index, err := utils.DecodeUint32(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize SignatureValue error: %v", err)
+	}
+	Proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Creator error: %v", err)
+	}
+	this.OntId = OntId
+	this.ServiceId = ServiceId
+	this.ServiceInfo = ServiceInfo
+	this.Index = Index
+	this.Proof = Proof
 	return nil
 }
