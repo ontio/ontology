@@ -185,7 +185,21 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("verification failed, %s", err)
 	}
 
-	index, err := insertPk(srvc, encId, arg1)
+	//decode new field of verison 1
+	controller, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		controller = arg0
+	}
+	access, err := utils.DecodeString(source)
+	if err != nil {
+		access = ALL_ACCESS
+	}
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+
+	index, err := insertPk(srvc, encId, arg1, controller, access, proof)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("insertion failed, %s", err)
 	}
@@ -218,7 +232,13 @@ func removeKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verifying signature failed")
 	}
 
-	pk, err := revokePkByIndex(srvc, encId, uint32(arg1))
+	//decode new field of verison 1
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+
+	pk, err := revokePkByIndex(srvc, encId, uint32(arg1), proof)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}

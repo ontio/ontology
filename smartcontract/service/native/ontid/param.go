@@ -6,65 +6,48 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-type RegIdWithPublicKeyParam struct {
-	OntID  []byte
-	PubKey []byte
-	Access string
-	Proof  []byte
+type SetKeyAccessParam struct {
+	OntId     []byte
+	SetIndex  uint32
+	Access    string
+	SignIndex uint32
+	Proof     []byte
 }
 
-func (this *RegIdWithPublicKeyParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.OntID)
-	sink.WriteVarBytes(this.PubKey)
+func (this *SetKeyAccessParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.OntId)
+	sink.WriteVarUint(uint64(this.SetIndex))
 	sink.WriteString(this.Access)
+	sink.WriteVarUint(uint64(this.SignIndex))
 	sink.WriteVarBytes(this.Proof)
 }
 
-func (this *RegIdWithPublicKeyParam) Deserialization(source *common.ZeroCopySource) error {
-	ontID, err := utils.DecodeVarBytes(source)
+func (this *SetKeyAccessParam) Deserialization(source *common.ZeroCopySource) error {
+	ontId, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("utils.DecodeVarBytes, deserialize ontID error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize ontId error: %v", err)
 	}
-	pubKey, err := utils.DecodeVarBytes(source)
+	setIndex, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("utils.DecodeVarBytes, deserialize pubKey error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize setIndex error: %v", err)
 	}
 	access, err := utils.DecodeString(source)
 	if err != nil {
-		return fmt.Errorf("utils.DecodeString, deserialize access error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize access error: %v", err)
 	}
-	proof, err := utils.DecodeVarBytes(source)
+	signIndex, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("utils.DecodeVarBytes, deserialize proof error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize signIndex error: %v", err)
 	}
-	this.OntID = ontID
-	this.PubKey = pubKey
+	Proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Creator error: %v", err)
+	}
+	this.OntId = ontId
+	this.SetIndex = uint32(setIndex)
 	this.Access = access
-	this.Proof = proof
-	return nil
-}
-
-type OldRegIdWithPublicKeyParam struct {
-	OntID  []byte
-	PubKey []byte
-}
-
-func (this *OldRegIdWithPublicKeyParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.OntID)
-	sink.WriteVarBytes(this.PubKey)
-}
-
-func (this *OldRegIdWithPublicKeyParam) Deserialization(source *common.ZeroCopySource) error {
-	ontID, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		return fmt.Errorf("utils.DecodeVarBytes, deserialize ontID error: %v", err)
-	}
-	pubKey, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		return fmt.Errorf("utils.DecodeVarBytes, deserialize pubKey error: %v", err)
-	}
-	this.OntID = ontID
-	this.PubKey = pubKey
+	this.SignIndex = uint32(signIndex)
+	this.Proof = Proof
 	return nil
 }
 

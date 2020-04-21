@@ -19,6 +19,7 @@ package ontid
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
@@ -58,10 +59,10 @@ const (
 	FIELD_RECOVERY       byte = 3
 	FIELD_CONTROLLER     byte = 4
 	FIELD_AUTHENTICATION byte = 5
-	FIELD_SERVICE             = 6
-	FIELD_CREATED             = 7
-	FIELD_UPDATED             = 8
-	FIELD_PROOF               = 9
+	FIELD_SERVICE        byte = 6
+	FIELD_CREATED        byte = 7
+	FIELD_UPDATED        byte = 8
+	FIELD_PROOF          byte = 9
 )
 
 func encodeID(id []byte) ([]byte, error) {
@@ -111,6 +112,11 @@ func checkWitnessByIndex(srvc *native.NativeService, encID []byte, index uint32)
 		return errors.New("revoked key")
 	}
 
+	//verify access
+	if pk.access == USE_ACCESS {
+		return fmt.Errorf("pk do not have access")
+	}
+
 	return checkWitness(srvc, pk.key)
 }
 
@@ -122,6 +128,21 @@ func deleteID(srvc *native.NativeService, encID []byte) error {
 	srvc.CacheDB.Delete(key)
 
 	key = append(encID, FIELD_RECOVERY)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_AUTHENTICATION)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_SERVICE)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_CREATED)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_UPDATED)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_PROOF)
 	srvc.CacheDB.Delete(key)
 
 	err := deleteAllAttr(srvc, encID)

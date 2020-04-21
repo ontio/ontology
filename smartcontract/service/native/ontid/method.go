@@ -36,22 +36,31 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("srvc.Input:", srvc.Input)
 	// parse arguments
 	source := common.NewZeroCopySource(srvc.Input)
-	oldParams := new(OldRegIdWithPublicKeyParam)
-	if err := oldParams.Deserialization(source); err != nil {
-		return utils.BYTE_FALSE, fmt.Errorf("register ONT ID error, contract params deserialize error: %v", err)
+	// arg0: ID
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ONT ID error: parsing argument 0 failed")
+	} else if len(arg0) == 0 {
+		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid length of argument 0")
 	}
-	log.Debug("OntID:", hex.EncodeToString(oldParams.OntID), string(oldParams.OntID))
-	log.Debug("PubKey:", hex.EncodeToString(oldParams.PubKey))
+	log.Debug("arg 0:", hex.EncodeToString(arg0), string(arg0))
+	// arg1: public key
+	arg1, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ONT ID error: parsing argument 1 failed")
+	}
 
-	if len(oldParams.OntID) == 0 || len(oldParams.PubKey) == 0 {
+	log.Debug("arg 1:", hex.EncodeToString(arg1))
+
+	if len(arg0) == 0 || len(arg1) == 0 {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid argument")
 	}
 
-	if !account.VerifyID(string(oldParams.OntID)) {
+	if !account.VerifyID(string(arg0)) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid ID")
 	}
 
-	key, err := encodeID(oldParams.OntID)
+	key, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: " + err.Error())
 	}
@@ -60,7 +69,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: already registered")
 	}
 
-	public, err := keypair.DeserializePublicKey(oldParams.PubKey)
+	public, err := keypair.DeserializePublicKey(arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: invalid public key")
 	}
@@ -69,30 +78,25 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: checking witness failed")
 	}
 
-	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
-		// insert public key
-		_, err = insertPk(srvc, key, oldParams.PubKey)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
-		}
-	} else {
-		params := new(RegIdWithPublicKeyParam)
-		if err := params.Deserialization(source); err != nil {
-			params.OntID = oldParams.OntID
-			params.PubKey = oldParams.PubKey
-		}
-		// insert public key
-		_, err = insertPk_Version1(srvc, key, params.OntID, params.PubKey, params.Access)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
-		}
+	//decode new field of verison 1
+	access, err := utils.DecodeString(source)
+	if err != nil {
+		access = ALL_ACCESS
+	}
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
 
-		//TODO: add proof
+	// insert public key
+	_, err = insertPk(srvc, key, arg1, arg0, access, proof)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
 	}
 	// set flags
 	utils.PutBytes(srvc, key, []byte{flag_valid})
 
-	triggerRegisterEvent(srvc, oldParams.OntID)
+	triggerRegisterEvent(srvc, arg0)
 
 	return utils.BYTE_TRUE, nil
 }
@@ -152,7 +156,17 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: check witness failed")
 	}
 
-	_, err = insertPk(srvc, key, arg1)
+	//decode new field of verison 1
+	access, err := utils.DecodeString(source)
+	if err != nil {
+		access = ALL_ACCESS
+	}
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+
+	_, err = insertPk(srvc, key, arg1, arg0, access, proof)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
@@ -217,7 +231,21 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 		}
 	}
 
-	keyID, err := insertPk(srvc, key, arg1)
+	//decode new field of verison 1
+	controller, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		controller = arg0
+	}
+	access, err := utils.DecodeString(source)
+	if err != nil {
+		access = ALL_ACCESS
+	}
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+
+	keyID, err := insertPk(srvc, key, arg1, controller, access, proof)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: insert public key error, " + err.Error())
 	}
@@ -268,7 +296,13 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 		}
 	}
 
-	keyID, err := revokePk(srvc, key, arg1)
+	//decode new field of verison 1
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+
+	keyID, err := revokePk(srvc, key, arg1, proof)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: %s", err)
 	}
@@ -279,7 +313,29 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 }
 
 func setKeyAccess(srvc *native.NativeService) ([]byte, error) {
-	return nil, nil
+	params := new(SetKeyAccessParam)
+	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("setKeyAccess error, contract params deserialize error: %v", err)
+	}
+
+	encId, err := encodeID(params.OntId)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("setKeyAccess error, ID not registered")
+	}
+	if err := checkWitnessByIndex(srvc, encId, params.SignIndex); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("setKeyAccess error, checkWitness failed, %s", err)
+	}
+
+	pk, err := setKeyAccessByIndex(srvc, encId, params.SetIndex, params.Access, params.Proof)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("setKeyAccess error, setKeyAccessByIndex error: %v", err)
+	}
+
+	triggerPublicEvent(srvc, "set access", params.OntId, pk, params.SetIndex)
+	return utils.BYTE_TRUE, nil
 }
 
 func addAuthKey(srvc *native.NativeService) ([]byte, error) {
