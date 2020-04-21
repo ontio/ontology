@@ -335,6 +335,20 @@ func (self *ConnectController) savePeer(conn net.Conn, p *peer.PeerInfo, index i
 	}
 }
 
+func (self *ConnectController) removePeer(conn *Conn) {
+	self.mutex.Lock()
+	defer self.mutex.Unlock()
+
+	self.inoutbounds[conn.boundIndex].Remove(conn.addr)
+
+	p := self.peers[conn.kid]
+	if p == nil || p.peer == nil {
+		log.Fatalf("connection %s not in controller", conn.kid.ToHexString())
+	} else if p.connectId == conn.connectId { // connection not replaced
+		delete(self.peers, conn.kid)
+	}
+}
+
 // if connection with peer.Kid exist, but has different IP, return error
 func (self *ConnectController) checkPeerIdAndIP(peer *peer.PeerInfo, addr string) error {
 	oldPeer := self.getPeer(peer.Id)

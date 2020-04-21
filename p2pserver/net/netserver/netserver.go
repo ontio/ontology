@@ -282,10 +282,12 @@ func (this *NetServer) startNetAccept(listener net.Listener) {
 			return
 		}
 
-		if err := this.handleClientConnection(conn); err != nil {
-			log.Warnf("[p2p] client connect error: %s", err)
-			_ = conn.Close()
-		}
+		go func() {
+			if err := this.handleClientConnection(conn); err != nil {
+				log.Warnf("[p2p] client connect error: %s", err)
+				_ = conn.Close()
+			}
+		}()
 	}
 }
 
