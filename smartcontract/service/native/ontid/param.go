@@ -3,6 +3,7 @@ package ontid
 import (
 	"fmt"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -90,19 +91,21 @@ func (this *ProofParam) Deserialization(source *common.ZeroCopySource) error {
 }
 
 type ServiceParam struct {
-	OntId       []byte
-	ServiceId   []byte
-	ServiceInfo []byte
-	Index       uint32
-	Proof       []byte
+	OntId          []byte
+	ServiceId      []byte
+	Type           []byte
+	ServiceEndpint []byte
+	Index          uint32
+	Proof          []byte
 }
 
 func (this *ServiceParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteBytes(this.OntId)
-	sink.WriteBytes(this.ServiceId)
-	sink.WriteBytes(this.ServiceInfo)
-	sink.WriteUint32(this.Index)
-	sink.WriteBytes(this.Proof)
+	sink.WriteVarBytes(this.OntId)
+	sink.WriteVarBytes(this.ServiceId)
+	sink.WriteVarBytes(this.Type)
+	sink.WriteVarBytes(this.ServiceEndpint)
+	sink.WriteVarUint(uint64(this.Index))
+	sink.WriteVarBytes(this.Proof)
 }
 
 func (this *ServiceParam) Deserialization(source *common.ZeroCopySource) error {
@@ -114,11 +117,15 @@ func (this *ServiceParam) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
 	}
-	ServiceInfo, err := utils.DecodeVarBytes(source)
+	Type, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Creator error: %v", err)
+		return fmt.Errorf("serialization.ReadString, deserialize Type error: %v", err)
 	}
-	Index, err := utils.DecodeUint32(source)
+	ServiceEndpint, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize ServiceEndpint error: %v", err)
+	}
+	Index, err := utils.DecodeVarUint(source)
 	if err != nil {
 		return fmt.Errorf("serialization.ReadString, deserialize SignatureValue error: %v", err)
 	}
@@ -128,8 +135,115 @@ func (this *ServiceParam) Deserialization(source *common.ZeroCopySource) error {
 	}
 	this.OntId = OntId
 	this.ServiceId = ServiceId
-	this.ServiceInfo = ServiceInfo
-	this.Index = Index
+	this.Type = Type
+	this.ServiceEndpint = ServiceEndpint
+	this.Index = uint32(Index)
 	this.Proof = Proof
+	return nil
+}
+
+type ServiceRemoveParam struct {
+	OntId     []byte
+	ServiceId []byte
+	Index     uint32
+	Proof     []byte
+}
+
+func (this *ServiceRemoveParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.OntId)
+	sink.WriteVarBytes(this.ServiceId)
+	sink.WriteVarUint(uint64(this.Index))
+	sink.WriteVarBytes(this.Proof)
+}
+
+func (this *ServiceRemoveParam) Deserialization(source *common.ZeroCopySource) error {
+	OntId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize ProofType error: %v", err)
+	}
+	ServiceId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
+	}
+	Index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize SignatureValue error: %v", err)
+	}
+	Proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Creator error: %v", err)
+	}
+	this.OntId = OntId
+	this.ServiceId = ServiceId
+	this.Index = uint32(Index)
+	this.Proof = Proof
+	return nil
+}
+
+type Service struct {
+	ServiceId      []byte
+	Type           []byte
+	ServiceEndpint []byte
+}
+
+func (this *Service) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.ServiceId)
+	sink.WriteVarBytes(this.Type)
+	sink.WriteVarBytes(this.ServiceEndpint)
+}
+
+func (this *Service) Deserialization(source *common.ZeroCopySource) error {
+	ServiceId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
+	}
+	Type, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Type error: %v", err)
+	}
+	ServiceEndpint, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize ServiceEndpint error: %v", err)
+	}
+	this.ServiceId = ServiceId
+	this.Type = Type
+	this.ServiceEndpint = ServiceEndpint
+	return nil
+}
+
+type Services []Service
+
+func (services *Services) Serialization(sink *common.ZeroCopySink) {
+	serviceNum := len(*services)
+	utils.EncodeVarUint(sink, uint64(serviceNum))
+	for _, service := range *services {
+		sink.WriteVarBytes(service.ServiceId)
+		sink.WriteVarBytes(service.Type)
+		sink.WriteVarBytes(service.ServiceEndpint)
+	}
+}
+
+func (services *Services) Deserialization(source *common.ZeroCopySource) error {
+	serviceNum, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize services length error!")
+	}
+	for i := 0; uint64(i) < serviceNum; i++ {
+		service := Service{}
+		var irregular, eof bool
+		service.ServiceId, _, irregular, eof = source.NextVarBytes()
+		if irregular || eof {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("deserialize service id %v error!", service.ServiceId))
+		}
+		service.Type, _, irregular, eof = source.NextVarBytes()
+		if irregular || eof {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("deserialize service type %v error!", service.Type))
+		}
+		service.ServiceEndpint, _, irregular, eof = source.NextVarBytes()
+		if irregular || eof {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("deserialize service endpint%v error!", service.ServiceEndpint))
+		}
+		*services = append(*services, service)
+	}
 	return nil
 }
