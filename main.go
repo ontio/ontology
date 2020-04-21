@@ -173,7 +173,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initP2PNode error: %s", err)
 		return
 	}
-	_, err = initConsensus(ctx, p2pSvr.GetNetWork(), txpool, acc)
+	_, err = initConsensus(ctx, p2pSvr.GetNetwork(), txpool, acc)
 	if err != nil {
 		log.Errorf("initConsensus error: %s", err)
 		return
@@ -309,8 +309,8 @@ func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2P
 		return nil, fmt.Errorf("p2p service start error %s", err)
 	}
 	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
-	txpoolSvr.Net = p2p.GetNetWork()
-	hserver.SetNetServer(p2p.GetNetWork())
+	txpoolSvr.Net = p2p.GetNetwork()
+	hserver.SetNetServer(p2p.GetNetwork())
 	p2p.WaitForPeersStart()
 	log.Infof("P2P init success")
 	return p2p, nil
@@ -407,7 +407,7 @@ func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
 	if config.DefConfig.P2PNode.HttpInfoPort == 0 {
 		return
 	}
-	go nodeinfo.StartServer(p2pSvr.GetNetWork())
+	go nodeinfo.StartServer(p2pSvr.GetNetwork())
 
 	log.Infof("Nodeinfo init success")
 }

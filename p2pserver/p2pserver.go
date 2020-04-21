@@ -63,8 +63,8 @@ func (this *P2PServer) Stop() {
 	this.network.Stop()
 }
 
-// GetNetWork returns the low level netserver
-func (this *P2PServer) GetNetWork() p2pnet.P2P {
+// GetNetwork returns the low level netserver
+func (this *P2PServer) GetNetwork() p2pnet.P2P {
 	return this.network
 }
 

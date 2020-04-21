@@ -254,7 +254,7 @@ func (this *NetServer) Stop() {
 	if this.listener != nil {
 		_ = this.listener.Close()
 	}
-	this.stopRecvCh <- true
+	close(this.stopRecvCh)
 	this.protocol.HandleSystemMessage(this, p2p.NetworkStop{})
 }
 
