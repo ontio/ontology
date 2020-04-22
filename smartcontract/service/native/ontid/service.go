@@ -11,6 +11,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+// TODO update time, proof
 func addService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: addService")
 	params := new(ServiceParam)
@@ -36,6 +37,7 @@ func addService(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+// TODO update time, proof
 func updateService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: updateService")
 	params := new(ServiceParam)
@@ -78,6 +80,7 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_FALSE, nil
 }
 
+// TODO update time, proof
 func removeService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: updateService")
 	params := new(ServiceRemoveParam)
@@ -144,7 +147,7 @@ func storeServices(services *Services, srvc *native.NativeService, key []byte) {
 	services.Serialization(sink)
 	item := states.StorageItem{}
 	item.Value = sink.Bytes()
-	item.StateVersion = _VERSION_1
+	item.StateVersion = _VERSION_0
 	srvc.CacheDB.Put(key, item.ToArray())
 }
 

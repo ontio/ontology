@@ -57,5 +57,7 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("addService", addService)
 	srvc.Register("updateService", updateService)
 	srvc.Register("removeService", removeService)
+	srvc.Register("addContext", addContext)
+	srvc.Register("removeContext", removeContext)
 	return
 }

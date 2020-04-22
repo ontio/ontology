@@ -247,3 +247,80 @@ func (services *Services) Deserialization(source *common.ZeroCopySource) error {
 	}
 	return nil
 }
+
+type Context struct {
+	OntId    []byte
+	Contexts [][]byte
+	Index    uint32
+	Proof    []byte
+}
+
+func (this *Context) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.OntId)
+	contextNum := len(this.Contexts)
+	utils.EncodeVarUint(sink, uint64(contextNum))
+	for _, c := range this.Contexts {
+		sink.WriteVarBytes(c)
+	}
+	utils.EncodeVarUint(sink, uint64(this.Index))
+	sink.WriteVarBytes(this.Proof)
+}
+
+func (this *Context) Deserialization(source *common.ZeroCopySource) error {
+	OntId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
+	}
+	cNum, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize context length error!")
+	}
+	var contexts [][]byte
+	for i := 0; uint64(i) < cNum; i++ {
+		var irregular, eof bool
+		item, _, irregular, eof := source.NextVarBytes()
+		if irregular || eof {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("deserialize context %v error!", item))
+		}
+		contexts = append(contexts, item)
+	}
+	index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize index error: %v", err)
+	}
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("serialization.ReadString, deserialize proof error: %v", err)
+	}
+	this.OntId = OntId
+	this.Contexts = contexts
+	this.Index = uint32(index)
+	this.Proof = proof
+	return nil
+}
+
+type Contexts [][]byte
+
+func (contexts *Contexts) Serialization(sink *common.ZeroCopySink) {
+	contextNum := len(*contexts)
+	utils.EncodeVarUint(sink, uint64(contextNum))
+	for _, c := range *contexts {
+		sink.WriteVarBytes(c)
+	}
+}
+
+func (contexts *Contexts) Deserialization(source *common.ZeroCopySource) error {
+	cNum, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return errors.NewDetailErr(err, errors.ErrNoCode, "deserialize context length error!")
+	}
+	for i := 0; uint64(i) < cNum; i++ {
+		var irregular, eof bool
+		item, _, irregular, eof := source.NextVarBytes()
+		if irregular || eof {
+			return errors.NewDetailErr(err, errors.ErrNoCode, fmt.Sprintf("deserialize context %v error!", item))
+		}
+		*contexts = append(*contexts, item)
+	}
+	return nil
+}

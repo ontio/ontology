@@ -63,6 +63,7 @@ const (
 	FIELD_CREATED        byte = 7
 	FIELD_UPDATED        byte = 8
 	FIELD_PROOF          byte = 9
+	FIELD_CONTEXT        byte = 10
 )
 
 func encodeID(id []byte) ([]byte, error) {
