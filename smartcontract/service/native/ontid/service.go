@@ -74,6 +74,7 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 		if bytes.Equal((*services)[i].ServiceId, service.ServiceId) {
 			(*services)[i] = service
 			storeServices(services, srvc, key)
+			triggerServiceEvent(srvc, "update", params.OntId, params.ServiceId)
 			return utils.BYTE_TRUE, nil
 		}
 	}
@@ -111,6 +112,7 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 		if bytes.Equal((*services)[i].ServiceId, params.ServiceId) {
 			services := append((*services)[:i], (*services)[i+1:]...)
 			storeServices(&services, srvc, key)
+			triggerServiceEvent(srvc, "remove", params.OntId, params.ServiceId)
 			return utils.BYTE_TRUE, nil
 		}
 	}
@@ -175,5 +177,6 @@ func putService(srvc *native.NativeService, encId []byte, params *ServiceParam) 
 
 	*services = append(*services, service)
 	storeServices(services, srvc, key)
+	triggerServiceEvent(srvc, "add", params.OntId, params.ServiceId)
 	return nil
 }
