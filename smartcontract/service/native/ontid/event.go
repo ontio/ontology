@@ -61,3 +61,13 @@ func triggerRecoveryEvent(srvc *native.NativeService, op string, id []byte, addr
 	st := []string{"Recovery", op, string(id), addr.ToHexString()}
 	newEvent(srvc, st)
 }
+
+func triggerContexteEvent(srvc *native.NativeService, op string, id []byte, serviceId []byte) {
+	st := []string{"Service", op, string(id), common.ToHexString(serviceId)}
+	newEvent(srvc, st)
+}
+
+func triggerServiceEvent(srvc *native.NativeService, op string, id []byte, serviceId []byte) {
+	st := []string{"Service", op, string(id), common.ToHexString(serviceId)}
+	newEvent(srvc, st)
+}
