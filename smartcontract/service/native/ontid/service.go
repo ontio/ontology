@@ -16,11 +16,11 @@ func addService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: addService")
 	params := new(ServiceParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: deserialization params error, " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addService error: deserialization params error, " + err.Error())
 	}
 	encId, err := encodeID(params.OntId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addService error: " + err.Error())
 	}
 	if checkIDState(srvc, encId) == flag_not_exist {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: have not registered")
@@ -31,7 +31,7 @@ func addService(srvc *native.NativeService) ([]byte, error) {
 	}
 	err = putService(srvc, encId, params)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("putService failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addService error: putService failed: " + err.Error())
 	}
 	// TODO ADD PROOF
 	return utils.BYTE_TRUE, nil
@@ -42,11 +42,11 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: updateService")
 	params := new(ServiceParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: deserialization params error, " + err.Error())
+		return utils.BYTE_FALSE, errors.New("updateService error: deserialization params error, " + err.Error())
 	}
 	encId, err := encodeID(params.OntId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("updateService error: " + err.Error())
 	}
 	key := append(encId, FIELD_SERVICE)
 	if checkIDState(srvc, encId) == flag_not_exist {
@@ -59,10 +59,10 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 
 	services, err := getServices(srvc, encId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("get service error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("updateService: get service error: " + err.Error())
 	}
 	if services == nil {
-		return utils.BYTE_FALSE, errors.New("get services error: have not registered any service")
+		return utils.BYTE_FALSE, errors.New("updateService: get services error: have not registered any service")
 	}
 
 	service := Service{
@@ -86,15 +86,15 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: updateService")
 	params := new(ServiceRemoveParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: deserialization params error, " + err.Error())
+		return utils.BYTE_FALSE, errors.New("removeService error: deserialization params error, " + err.Error())
 	}
 	encId, err := encodeID(params.OntId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("removeService error: " + err.Error())
 	}
 	key := append(encId, FIELD_SERVICE)
 	if checkIDState(srvc, encId) == flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("updateService error: have not registered")
+		return utils.BYTE_FALSE, errors.New("removeService error: have not registered")
 	}
 
 	if err := checkWitnessByIndex(srvc, encId, params.Index); err != nil {
@@ -103,10 +103,10 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 
 	services, err := getServices(srvc, encId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("get service error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("removeService error: get service error: " + err.Error())
 	}
 	if services == nil {
-		return utils.BYTE_FALSE, errors.New("get services error: have not registered any service")
+		return utils.BYTE_FALSE, errors.New("removeService error: have not registered any service")
 	}
 	for i := 0; i < len(*services); i++ {
 		if bytes.Equal((*services)[i].ServiceId, params.ServiceId) {
@@ -157,7 +157,7 @@ func putService(srvc *native.NativeService, encId []byte, params *ServiceParam) 
 	key := append(encId, FIELD_SERVICE)
 	servicesStore, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
-		return fmt.Errorf("get storage error, %s", err)
+		return fmt.Errorf("putService error: get storage error, %s", err)
 	}
 	source := common.NewZeroCopySource(servicesStore.Value)
 	services := new(Services)

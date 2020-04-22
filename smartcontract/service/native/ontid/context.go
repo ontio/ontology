@@ -17,11 +17,11 @@ var _DefaultContexts = [][]byte{[]byte("https://www.w3.org/ns/did/v1"), []byte("
 func addContext(srvc *native.NativeService) ([]byte, error) {
 	params := new(Context)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: deserialization params error, " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addContext error: deserialization params error, " + err.Error())
 	}
 	encId, err := encodeID(params.OntId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addContext error: " + err.Error())
 	}
 
 	if checkIDState(srvc, encId) == flag_not_exist {
@@ -34,7 +34,7 @@ func addContext(srvc *native.NativeService) ([]byte, error) {
 	key := append(encId, FIELD_CONTEXT)
 
 	if err := putContexts(srvc, key, params); err != nil {
-		return utils.BYTE_FALSE, errors.New("putContexts failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addContext error: putContexts failed: " + err.Error())
 	}
 
 	return utils.BYTE_TRUE, nil
@@ -43,11 +43,11 @@ func addContext(srvc *native.NativeService) ([]byte, error) {
 func removeContext(srvc *native.NativeService) ([]byte, error) {
 	params := new(Context)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: deserialization params error, " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addContext error: deserialization params error, " + err.Error())
 	}
 	encId, err := encodeID(params.OntId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add service error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addContext error: " + err.Error())
 	}
 
 	if checkIDState(srvc, encId) == flag_not_exist {
@@ -60,7 +60,7 @@ func removeContext(srvc *native.NativeService) ([]byte, error) {
 	key := append(encId, FIELD_CONTEXT)
 
 	if err := deleteContexts(srvc, key, params); err != nil {
-		return utils.BYTE_FALSE, errors.New("deleteContexts failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("addContext error: deleteContexts failed: " + err.Error())
 	}
 	return utils.BYTE_TRUE, nil
 }
@@ -68,7 +68,7 @@ func removeContext(srvc *native.NativeService) ([]byte, error) {
 func deleteContexts(srvc *native.NativeService, key []byte, params *Context) error {
 	contexts, err := getContexts(srvc, key)
 	if err != nil {
-		return fmt.Errorf("getContexts error, %s", err)
+		return fmt.Errorf("deleteContexts error: getContexts error, %s", err)
 	}
 	repeat := getRepeatContexts(contexts, params)
 	var remove [][]byte
@@ -81,7 +81,7 @@ func deleteContexts(srvc *native.NativeService, key []byte, params *Context) err
 	triggerContextEvent(srvc, "add", params.OntId, remove)
 	err = storeContexts(contexts, srvc, key)
 	if err != nil {
-		return fmt.Errorf("storeContexts error, %s", err)
+		return fmt.Errorf("deleteContexts error: storeContexts error, %s", err)
 	}
 	return nil
 }
@@ -89,7 +89,7 @@ func deleteContexts(srvc *native.NativeService, key []byte, params *Context) err
 func putContexts(srvc *native.NativeService, key []byte, params *Context) error {
 	contexts, err := getContexts(srvc, key)
 	if err != nil {
-		return fmt.Errorf("getContexts error, %s", err)
+		return fmt.Errorf("putContexts error: getContexts failed, %s", err)
 	}
 	repeat := getRepeatContexts(contexts, params)
 	var add [][]byte
@@ -104,7 +104,7 @@ func putContexts(srvc *native.NativeService, key []byte, params *Context) error 
 	triggerContextEvent(srvc, "add", params.OntId, add)
 	err = storeContexts(contexts, srvc, key)
 	if err != nil {
-		return fmt.Errorf("storeContexts error, %s", err)
+		return fmt.Errorf("putContexts error: storeContexts failed, %s", err)
 	}
 	return nil
 }
@@ -124,7 +124,7 @@ func getRepeatContexts(contexts [][]byte, params *Context) map[string]bool {
 func getContexts(srvc *native.NativeService, key []byte) ([][]byte, error) {
 	contextsStore, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
-		return nil, errors.New("getServices error:" + err.Error())
+		return nil, errors.New("getContexts error:" + err.Error())
 	}
 	if contextsStore == nil {
 		return nil, nil
@@ -139,7 +139,7 @@ func getContexts(srvc *native.NativeService, key []byte) ([][]byte, error) {
 func getContextsWithDefault(srvc *native.NativeService, key []byte) ([][]byte, error) {
 	contexts, err := getContexts(srvc, key)
 	if err != nil {
-		return nil, fmt.Errorf("getContexts error, %s", err)
+		return nil, fmt.Errorf("getContextsWithDefault error, %s", err)
 	}
 	contexts = append(_DefaultContexts, contexts...)
 	return contexts, nil
