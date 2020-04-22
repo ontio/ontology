@@ -18,8 +18,6 @@
 package utils
 
 import (
-	"bytes"
-
 	"github.com/ontio/ontology/common"
 )
 
@@ -36,14 +34,16 @@ var (
 	HeaderSyncContractAddress, _ = common.AddressParseFromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08})
 	CrossChainContractAddress, _ = common.AddressParseFromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x09})
 	LockProxyContractAddress, _  = common.AddressParseFromBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0a})
+	//WARN: when add Contract Here, please update IsNativeContract function bellow.
 )
 
 func IsNativeContract(addr common.Address) bool {
-	return bytes.Compare(addr[:], OntContractAddress[:]) == 0 ||
-		bytes.Compare(addr[:], OngContractAddress[:]) == 0 ||
-		bytes.Compare(addr[:], OntIDContractAddress[:]) == 0 ||
-		bytes.Compare(addr[:], ParamContractAddress[:]) == 0 ||
-		bytes.Compare(addr[:], AuthContractAddress[:]) == 0 ||
-		bytes.Compare(addr[:], GovernanceContractAddress[:]) == 0
-
+	switch addr {
+	case OntContractAddress, OngContractAddress, OntIDContractAddress,
+		ParamContractAddress, AuthContractAddress, GovernanceContractAddress,
+		HeaderSyncContractAddress, CrossChainContractAddress, LockProxyContractAddress:
+		return true
+	default:
+		return false
+	}
 }
