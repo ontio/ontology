@@ -10,6 +10,9 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+//
+var _DefaultContexts = [][]byte{[]byte("https://www.w3.org/ns/did/v1"), []byte("https://ontid.ont.io/did/v1")}
+
 // TODO ADD TIME and PROOF
 func addContext(srvc *native.NativeService) ([]byte, error) {
 	params := new(Context)
@@ -68,11 +71,14 @@ func deleteContexts(srvc *native.NativeService, key []byte, params *Context) err
 		return fmt.Errorf("getContexts error, %s", err)
 	}
 	repeat := getRepeatContexts(contexts, params)
+	var remove [][]byte
 	for i := 0; i < len(params.Contexts); i++ {
 		if _, ok := repeat[common.ToHexString(params.Contexts[i])]; ok {
 			contexts = append(contexts[:i], contexts[i+1:]...)
+			remove = append(remove, params.Contexts[i])
 		}
 	}
+	triggerContextEvent(srvc, "add", params.OntId, remove)
 	err = storeContexts(contexts, srvc, key)
 	if err != nil {
 		return fmt.Errorf("storeContexts error, %s", err)
@@ -86,11 +92,16 @@ func putContexts(srvc *native.NativeService, key []byte, params *Context) error 
 		return fmt.Errorf("getContexts error, %s", err)
 	}
 	repeat := getRepeatContexts(contexts, params)
+	var add [][]byte
 	for i := 0; i < len(params.Contexts); i++ {
 		if _, ok := repeat[common.ToHexString(params.Contexts[i])]; !ok {
-			contexts = append(contexts, params.Contexts[i])
+			if (bytes.Equal(params.Contexts[i], _DefaultContexts[0])) && (bytes.Equal(params.Contexts[i], _DefaultContexts[1])) {
+				contexts = append(contexts, params.Contexts[i])
+				add = append(add, params.Contexts[i])
+			}
 		}
 	}
+	triggerContextEvent(srvc, "add", params.OntId, add)
 	err = storeContexts(contexts, srvc, key)
 	if err != nil {
 		return fmt.Errorf("storeContexts error, %s", err)
@@ -123,6 +134,15 @@ func getContexts(srvc *native.NativeService, key []byte) ([][]byte, error) {
 		return nil, err
 	}
 	return *contexts, nil
+}
+
+func getContextsWithDefault(srvc *native.NativeService, key []byte) ([][]byte, error) {
+	contexts, err := getContexts(srvc, key)
+	if err != nil {
+		return nil, fmt.Errorf("getContexts error, %s", err)
+	}
+	contexts = append(_DefaultContexts, contexts...)
+	return contexts, nil
 }
 
 func storeContexts(contexts Contexts, srvc *native.NativeService, key []byte) error {

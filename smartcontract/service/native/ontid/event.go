@@ -62,8 +62,14 @@ func triggerRecoveryEvent(srvc *native.NativeService, op string, id []byte, addr
 	newEvent(srvc, st)
 }
 
-func triggerContexteEvent(srvc *native.NativeService, op string, id []byte, serviceId []byte) {
-	st := []string{"Service", op, string(id), common.ToHexString(serviceId)}
+func triggerContextEvent(srvc *native.NativeService, op string, id []byte, contexts [][]byte) {
+	t := make([]string, len(contexts))
+	var c interface{}
+	for i := 0; i < len(contexts); i++ {
+		t[i] = hex.EncodeToString(contexts[i])
+	}
+	c = t
+	st := []interface{}{"Context", op, string(id), c}
 	newEvent(srvc, st)
 }
 
