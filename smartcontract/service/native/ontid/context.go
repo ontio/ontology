@@ -78,7 +78,7 @@ func deleteContexts(srvc *native.NativeService, key []byte, params *Context) err
 			remove = append(remove, params.Contexts[i])
 		}
 	}
-	triggerContextEvent(srvc, "add", params.OntId, remove)
+	triggerContextEvent(srvc, "remove", params.OntId, remove)
 	err = storeContexts(contexts, srvc, key)
 	if err != nil {
 		return fmt.Errorf("deleteContexts error: storeContexts error, %s", err)
