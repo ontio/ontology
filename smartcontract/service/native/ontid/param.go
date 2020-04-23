@@ -324,3 +324,88 @@ func (contexts *Contexts) Deserialization(source *common.ZeroCopySource) error {
 	}
 	return nil
 }
+
+type AddAuthKeyParam struct {
+	OntId          []byte
+	IfNewPublicKey bool
+	Index          uint32
+	NewPublicKey   *NewPublicKey
+	SignIndex      uint32
+	Proof          []byte
+}
+
+func (this *AddAuthKeyParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.OntId)
+	sink.WriteBool(this.IfNewPublicKey)
+	sink.WriteVarUint(uint64(this.Index))
+	this.NewPublicKey.Serialization(sink)
+	sink.WriteVarUint(uint64(this.SignIndex))
+	sink.WriteVarBytes(this.Proof)
+}
+
+func (this *AddAuthKeyParam) Deserialization(source *common.ZeroCopySource) error {
+	ontId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarBytes, deserialize ontId error: %v", err)
+	}
+	ifNewPublicKey, err := utils.DecodeBool(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeBool, deserialize ifNewPublicKey error: %v", err)
+	}
+	index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarUint, deserialize index error: %v", err)
+	}
+	newPublicKey := new(NewPublicKey)
+	err = newPublicKey.Deserialization(source)
+	if err != nil {
+		return fmt.Errorf("newPublicKey.Deserialization, deserialize newPublicKey error: %v", err)
+	}
+	signIndex, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarUint, deserialize signIndex error: %v", err)
+	}
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarBytes, deserialize proof error: %v", err)
+	}
+	this.OntId = ontId
+	this.IfNewPublicKey = ifNewPublicKey
+	this.Index = uint32(index)
+	this.NewPublicKey = newPublicKey
+	this.SignIndex = uint32(signIndex)
+	this.Proof = proof
+	return nil
+}
+
+type NewPublicKey struct {
+	key        []byte
+	revoked    bool
+	controller []byte
+}
+
+func (this *NewPublicKey) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.key)
+	sink.WriteBool(this.revoked)
+	sink.WriteVarBytes(this.controller)
+}
+
+func (this *NewPublicKey) Deserialization(source *common.ZeroCopySource) error {
+	key, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return err
+	}
+	revoked, err := utils.DecodeBool(source)
+	if err != nil {
+		return err
+	}
+	controller, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return err
+	}
+
+	this.key = key
+	this.revoked = revoked
+	this.controller = controller
+	return nil
+}

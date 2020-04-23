@@ -89,7 +89,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	// insert public key
-	_, err = insertPk(srvc, key, arg1, arg0, access, proof)
+	_, err = insertPk(srvc, key, arg1, arg0, access, ONLY_PUBLICKEY, proof)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ONT ID error: store public key error, " + err.Error())
 	}
@@ -166,7 +166,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 		proof = []byte{}
 	}
 
-	_, err = insertPk(srvc, key, arg1, arg0, access, proof)
+	_, err = insertPk(srvc, key, arg1, arg0, access, ONLY_PUBLICKEY, proof)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("register ID with attributes error: store pubic key error: " + err.Error())
 	}
@@ -245,7 +245,7 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 		proof = []byte{}
 	}
 
-	keyID, err := insertPk(srvc, key, arg1, controller, access, proof)
+	keyID, err := insertPk(srvc, key, arg1, controller, access, ONLY_PUBLICKEY, proof)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: insert public key error, " + err.Error())
 	}
@@ -336,14 +336,6 @@ func setKeyAccess(srvc *native.NativeService) ([]byte, error) {
 
 	triggerPublicEvent(srvc, "set access", params.OntId, pk, params.SetIndex)
 	return utils.BYTE_TRUE, nil
-}
-
-func addAuthKey(srvc *native.NativeService) ([]byte, error) {
-	return nil, nil
-}
-
-func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
-	return nil, nil
 }
 
 func addAttributes(srvc *native.NativeService) ([]byte, error) {

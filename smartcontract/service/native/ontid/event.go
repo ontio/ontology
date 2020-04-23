@@ -77,3 +77,8 @@ func triggerServiceEvent(srvc *native.NativeService, op string, id []byte, servi
 	st := []string{"Service", op, string(id), common.ToHexString(serviceId)}
 	newEvent(srvc, st)
 }
+
+func triggerAuthKeyEvent(srvc *native.NativeService, op string, id []byte, keyID uint32) {
+	st := []interface{}{"AuthKey", op, string(id), keyID}
+	newEvent(srvc, st)
+}

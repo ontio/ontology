@@ -199,7 +199,7 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 		proof = []byte{}
 	}
 
-	index, err := insertPk(srvc, encId, arg1, controller, access, proof)
+	index, err := insertPk(srvc, encId, arg1, controller, access, ONLY_PUBLICKEY, proof)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("insertion failed, %s", err)
 	}

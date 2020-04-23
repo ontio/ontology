@@ -36,13 +36,18 @@ const (
 	ALL_ACCESS  = "all"
 	CRUD_ACCESS = "crud"
 	USE_ACCESS  = "use"
+
+	ONLY_PUBLICKEY      = 0
+	ONLY_AUTHENTICATION = 1
+	BOTH                = 2
 )
 
 type publicKey struct {
-	key        []byte
-	revoked    bool
-	controller []byte
-	access     string
+	key            []byte
+	revoked        bool
+	controller     []byte
+	access         string
+	authentication uint8
 }
 
 func (this *publicKey) Serialization(sink *common.ZeroCopySink) {
@@ -50,6 +55,7 @@ func (this *publicKey) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteBool(this.revoked)
 	sink.WriteVarBytes(this.controller)
 	sink.WriteString(this.access)
+	sink.WriteByte(this.authentication)
 }
 
 func (this *publicKey) Deserialization(source *common.ZeroCopySource) error {
@@ -69,11 +75,16 @@ func (this *publicKey) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
+	authentication, eof := source.NextByte()
+	if eof {
+		return fmt.Errorf("deserilize authentication error: eof")
+	}
 
 	this.key = key
 	this.revoked = revoked
 	this.controller = controller
 	this.access = access
+	this.authentication = authentication
 	return nil
 }
 
@@ -195,7 +206,8 @@ func putAllPk_Version1(srvc *native.NativeService, key []byte, val []*publicKey)
 	return nil
 }
 
-func insertPk(srvc *native.NativeService, encID, pk, controller []byte, access string, proof []byte) (uint32, error) {
+func insertPk(srvc *native.NativeService, encID, pk, controller []byte, access string, authentication uint8,
+	proof []byte) (uint32, error) {
 	key := append(encID, FIELD_PK)
 	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
 		owners, err := getAllPk(srvc, key)
@@ -230,7 +242,7 @@ func insertPk(srvc *native.NativeService, encID, pk, controller []byte, access s
 		if err != nil {
 			return 0, err
 		}
-		publicKeys = append(publicKeys, &publicKey{pk, false, controller, a})
+		publicKeys = append(publicKeys, &publicKey{pk, false, controller, a, authentication})
 		err = putAllPk_Version1(srvc, key, publicKeys)
 		if err != nil {
 			return 0, err
@@ -239,6 +251,23 @@ func insertPk(srvc *native.NativeService, encID, pk, controller []byte, access s
 		//:TODO update proof
 		return uint32(size + 1), nil
 	}
+}
+
+func changePkAuthentication(srvc *native.NativeService, encID []byte, index uint32, authentication uint8, proof []byte) error {
+	key := append(encID, FIELD_PK)
+
+	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+	if err != nil {
+		return err
+	}
+	publicKeys[index].authentication = authentication
+	err = putAllPk_Version1(srvc, key, publicKeys)
+	if err != nil {
+		return err
+	}
+
+	//:TODO update proof
+	return nil
 }
 
 func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, error) {
@@ -279,6 +308,23 @@ func findPk_Version1(srvc *native.NativeService, encID, pub []byte) (uint32, boo
 		}
 	}
 	return 0, false, nil
+}
+
+func revokeAuthKey(srvc *native.NativeService, encID []byte, index uint32, proof []byte) error {
+	key := append(encID, FIELD_PK)
+
+	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+	if err != nil {
+		return err
+	}
+	publicKeys[index].revoked = true
+	err = putAllPk_Version1(srvc, key, publicKeys)
+	if err != nil {
+		return err
+	}
+
+	//:TODO update proof
+	return nil
 }
 
 func revokePk(srvc *native.NativeService, encID, pub, proof []byte) (uint32, error) {

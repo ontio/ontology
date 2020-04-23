@@ -54,16 +54,15 @@ const (
 	FIELD_VERSION byte = 0
 	FLAG_VERSION  byte = 0x01
 
-	FIELD_PK             byte = 1
-	FIELD_ATTR           byte = 2
-	FIELD_RECOVERY       byte = 3
-	FIELD_CONTROLLER     byte = 4
-	FIELD_AUTHENTICATION byte = 5
-	FIELD_SERVICE        byte = 6
-	FIELD_CREATED        byte = 7
-	FIELD_UPDATED        byte = 8
-	FIELD_PROOF          byte = 9
-	FIELD_CONTEXT        byte = 10
+	FIELD_PK         byte = 1
+	FIELD_ATTR       byte = 2
+	FIELD_RECOVERY   byte = 3
+	FIELD_CONTROLLER byte = 4
+	FIELD_SERVICE    byte = 5
+	FIELD_CREATED    byte = 6
+	FIELD_UPDATED    byte = 7
+	FIELD_PROOF      byte = 8
+	FIELD_CONTEXT    byte = 9
 )
 
 func encodeID(id []byte) ([]byte, error) {
@@ -131,9 +130,6 @@ func deleteID(srvc *native.NativeService, encID []byte) error {
 	key = append(encID, FIELD_RECOVERY)
 	srvc.CacheDB.Delete(key)
 
-	key = append(encID, FIELD_AUTHENTICATION)
-	srvc.CacheDB.Delete(key)
-
 	key = append(encID, FIELD_SERVICE)
 	srvc.CacheDB.Delete(key)
 
@@ -144,6 +140,9 @@ func deleteID(srvc *native.NativeService, encID []byte) error {
 	srvc.CacheDB.Delete(key)
 
 	key = append(encID, FIELD_PROOF)
+	srvc.CacheDB.Delete(key)
+
+	key = append(encID, FIELD_CONTEXT)
 	srvc.CacheDB.Delete(key)
 
 	err := deleteAllAttr(srvc, encID)
