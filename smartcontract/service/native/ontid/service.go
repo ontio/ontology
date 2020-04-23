@@ -33,7 +33,12 @@ func addService(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("addService error: putService failed: " + err.Error())
 	}
-	// TODO ADD PROOF
+	err = updateOrInsertProof(srvc, params.OntId, params.Proof)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("addService error: updateOrInsertProof failed: " + err.Error())
+	}
+	key := append(encId, FIELD_UPDATED)
+	updateTime(srvc, key)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -78,6 +83,12 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 			return utils.BYTE_TRUE, nil
 		}
 	}
+	err = updateOrInsertProof(srvc, params.OntId, params.Proof)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("updateService error: updateOrInsertProof failed: " + err.Error())
+	}
+	key = append(encId, FIELD_UPDATED)
+	updateTime(srvc, key)
 	return utils.BYTE_FALSE, nil
 }
 
@@ -116,6 +127,12 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 			return utils.BYTE_TRUE, nil
 		}
 	}
+	err = updateOrInsertProof(srvc, params.OntId, params.Proof)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("removeService error: updateOrInsertProof failed: " + err.Error())
+	}
+	key = append(encId, FIELD_UPDATED)
+	updateTime(srvc, key)
 	return utils.BYTE_FALSE, nil
 }
 

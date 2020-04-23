@@ -111,27 +111,27 @@ func (this *ServiceParam) Serialization(sink *common.ZeroCopySink) {
 func (this *ServiceParam) Deserialization(source *common.ZeroCopySource) error {
 	OntId, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize ProofType error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize ProofType error: %v", err)
 	}
 	ServiceId, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Created error: %v", err)
 	}
 	Type, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Type error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Type error: %v", err)
 	}
 	ServiceEndpint, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize ServiceEndpint error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize ServiceEndpint error: %v", err)
 	}
 	Index, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize SignatureValue error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarUint, deserialize SignatureValue error: %v", err)
 	}
 	Proof, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Creator error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Creator error: %v", err)
 	}
 	this.OntId = OntId
 	this.ServiceId = ServiceId
@@ -159,19 +159,19 @@ func (this *ServiceRemoveParam) Serialization(sink *common.ZeroCopySink) {
 func (this *ServiceRemoveParam) Deserialization(source *common.ZeroCopySource) error {
 	OntId, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize ProofType error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize ProofType error: %v", err)
 	}
 	ServiceId, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Created error: %v", err)
 	}
 	Index, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize SignatureValue error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarUint, deserialize SignatureValue error: %v", err)
 	}
 	Proof, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Creator error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Creator error: %v", err)
 	}
 	this.OntId = OntId
 	this.ServiceId = ServiceId
@@ -195,15 +195,15 @@ func (this *Service) Serialization(sink *common.ZeroCopySink) {
 func (this *Service) Deserialization(source *common.ZeroCopySource) error {
 	ServiceId, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Created error: %v", err)
 	}
 	Type, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Type error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Type error: %v", err)
 	}
 	ServiceEndpint, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize ServiceEndpint error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize ServiceEndpint error: %v", err)
 	}
 	this.ServiceId = ServiceId
 	this.Type = Type
@@ -269,7 +269,7 @@ func (this *Context) Serialization(sink *common.ZeroCopySink) {
 func (this *Context) Deserialization(source *common.ZeroCopySource) error {
 	OntId, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize Created error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Created error: %v", err)
 	}
 	cNum, err := utils.DecodeVarUint(source)
 	if err != nil {
@@ -286,11 +286,11 @@ func (this *Context) Deserialization(source *common.ZeroCopySource) error {
 	}
 	index, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize index error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarUint, deserialize index error: %v", err)
 	}
 	proof, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.ReadString, deserialize proof error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize proof error: %v", err)
 	}
 	this.OntId = OntId
 	this.Contexts = contexts

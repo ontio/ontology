@@ -36,7 +36,12 @@ func addContext(srvc *native.NativeService) ([]byte, error) {
 	if err := putContexts(srvc, key, params); err != nil {
 		return utils.BYTE_FALSE, errors.New("addContext error: putContexts failed: " + err.Error())
 	}
-
+	err = updateOrInsertProof(srvc, params.OntId, params.Proof)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("addContext error: updateOrInsertProof failed: " + err.Error())
+	}
+	key = append(encId, FIELD_UPDATED)
+	updateTime(srvc, key)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -47,7 +52,7 @@ func removeContext(srvc *native.NativeService) ([]byte, error) {
 	}
 	encId, err := encodeID(params.OntId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("addContext error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("removeContext error: " + err.Error())
 	}
 
 	if checkIDState(srvc, encId) == flag_not_exist {
@@ -60,8 +65,14 @@ func removeContext(srvc *native.NativeService) ([]byte, error) {
 	key := append(encId, FIELD_CONTEXT)
 
 	if err := deleteContexts(srvc, key, params); err != nil {
-		return utils.BYTE_FALSE, errors.New("addContext error: deleteContexts failed: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("removeContext error: deleteContexts failed: " + err.Error())
 	}
+	err = updateOrInsertProof(srvc, params.OntId, params.Proof)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("removeContext error: updateOrInsertProof failed: " + err.Error())
+	}
+	key = append(encId, FIELD_UPDATED)
+	updateTime(srvc, key)
 	return utils.BYTE_TRUE, nil
 }
 
