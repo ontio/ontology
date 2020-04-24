@@ -154,3 +154,9 @@ func deleteID(srvc *native.NativeService, encID []byte) error {
 	utils.PutBytes(srvc, encID, []byte{flag_revoke})
 	return nil
 }
+
+func updateProofAndTime(srvc *native.NativeService, encId, proof []byte) {
+	updateOrInsertProof(srvc, encId, proof)
+	key := append(encId, FIELD_UPDATED)
+	updateTime(srvc, key)
+}

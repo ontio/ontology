@@ -73,8 +73,14 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 
 	key := append(encId, FIELD_CONTROLLER)
 	utils.PutBytes(srvc, key, arg1)
-
 	utils.PutBytes(srvc, encId, []byte{flag_valid})
+
+	//decode new field of verison 1
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+	updateProofAndTime(srvc, encId, proof)
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -153,6 +159,12 @@ func removeController(srvc *native.NativeService) ([]byte, error) {
 	key := append(encId, FIELD_CONTROLLER)
 	srvc.CacheDB.Delete(key)
 
+	//decode new field of verison 1
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+	updateProofAndTime(srvc, encId, proof)
 	newEvent(srvc, []interface{}{"RemoveController", string(arg0)})
 	return utils.BYTE_TRUE, nil
 }
@@ -204,6 +216,7 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("insertion failed, %s", err)
 	}
 
+	updateProofAndTime(srvc, encId, proof)
 	triggerPublicEvent(srvc, "add", arg0, arg1, index)
 	return utils.BYTE_TRUE, nil
 }
@@ -243,6 +256,7 @@ func removeKeyByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
+	updateProofAndTime(srvc, encId, proof)
 	triggerPublicEvent(srvc, "remove", arg0, pk, uint32(arg1))
 	return utils.BYTE_TRUE, nil
 }
@@ -285,6 +299,12 @@ func addAttributesByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("insert attributes error, %s", err)
 	}
 
+	//decode new field of verison 1
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+	updateProofAndTime(srvc, encId, proof)
 	paths := getAttrKeys(arg1)
 	triggerAttributeEvent(srvc, "add", arg0, paths)
 	return utils.BYTE_TRUE, nil
@@ -319,6 +339,12 @@ func removeAttributeByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
+	//decode new field of verison 1
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+	updateProofAndTime(srvc, encId, proof)
 	triggerAttributeEvent(srvc, "remove", arg0, [][]byte{arg1})
 	return utils.BYTE_TRUE, nil
 }

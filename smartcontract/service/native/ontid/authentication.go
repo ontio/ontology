@@ -40,6 +40,8 @@ func addAuthKey(srvc *native.NativeService) ([]byte, error) {
 		}
 		triggerAuthKeyEvent(srvc, "add", params.OntId, params.Index)
 	}
+
+	updateProofAndTime(srvc, encId, params.Proof)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -65,6 +67,8 @@ func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 	if err := revokeAuthKey(srvc, encId, params.Index, params.Proof); err != nil {
 		return utils.BYTE_FALSE, errors.New("remove auth key error, revokeAuthKey failed: " + err.Error())
 	}
+
+	updateProofAndTime(srvc, encId, params.Proof)
 	triggerAuthKeyEvent(srvc, "remove", params.OntId, params.Index)
 	return utils.BYTE_TRUE, nil
 }

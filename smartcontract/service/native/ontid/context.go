@@ -13,7 +13,6 @@ import (
 //
 var _DefaultContexts = [][]byte{[]byte("https://www.w3.org/ns/did/v1"), []byte("https://ontid.ont.io/did/v1")}
 
-// TODO ADD TIME and PROOF
 func addContext(srvc *native.NativeService) ([]byte, error) {
 	params := new(Context)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
@@ -36,12 +35,7 @@ func addContext(srvc *native.NativeService) ([]byte, error) {
 	if err := putContexts(srvc, key, params); err != nil {
 		return utils.BYTE_FALSE, errors.New("addContext error: putContexts failed: " + err.Error())
 	}
-	err = updateOrInsertProof(srvc, params.OntId, params.Proof)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("addContext error: updateOrInsertProof failed: " + err.Error())
-	}
-	key = append(encId, FIELD_UPDATED)
-	updateTime(srvc, key)
+	updateProofAndTime(srvc, encId, params.Proof)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -67,12 +61,7 @@ func removeContext(srvc *native.NativeService) ([]byte, error) {
 	if err := deleteContexts(srvc, key, params); err != nil {
 		return utils.BYTE_FALSE, errors.New("removeContext error: deleteContexts failed: " + err.Error())
 	}
-	err = updateOrInsertProof(srvc, params.OntId, params.Proof)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("removeContext error: updateOrInsertProof failed: " + err.Error())
-	}
-	key = append(encId, FIELD_UPDATED)
-	updateTime(srvc, key)
+	updateProofAndTime(srvc, encId, params.Proof)
 	return utils.BYTE_TRUE, nil
 }
 

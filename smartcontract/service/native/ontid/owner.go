@@ -247,8 +247,6 @@ func insertPk(srvc *native.NativeService, encID, pk, controller []byte, access s
 		if err != nil {
 			return 0, err
 		}
-
-		//:TODO update proof
 		return uint32(size + 1), nil
 	}
 }
@@ -265,8 +263,6 @@ func changePkAuthentication(srvc *native.NativeService, encID []byte, index uint
 	if err != nil {
 		return err
 	}
-
-	//:TODO update proof
 	return nil
 }
 
@@ -322,8 +318,6 @@ func revokeAuthKey(srvc *native.NativeService, encID []byte, index uint32, proof
 	if err != nil {
 		return err
 	}
-
-	//:TODO update proof
 	return nil
 }
 
@@ -347,7 +341,10 @@ func revokePk(srvc *native.NativeService, encID, pub, proof []byte) (uint32, err
 		if index == 0 {
 			return 0, errors.New("revoke failed, public key not found")
 		}
-		putAllPk(srvc, key, owners)
+		err = putAllPk(srvc, key, owners)
+		if err != nil {
+			return 0, err
+		}
 		return index, nil
 	} else {
 		publicKeys, err := getAllPk_Version1(srvc, encID, key)
@@ -367,9 +364,10 @@ func revokePk(srvc *native.NativeService, encID, pub, proof []byte) (uint32, err
 		if index == 0 {
 			return 0, errors.New("revoke failed, public key not found")
 		}
-		putAllPk_Version1(srvc, key, publicKeys)
-
-		//:TODO update proof
+		err = putAllPk_Version1(srvc, key, publicKeys)
+		if err != nil {
+			return 0, err
+		}
 		return index, nil
 	}
 }
@@ -389,7 +387,10 @@ func revokePkByIndex(srvc *native.NativeService, encID []byte, index uint32, pro
 			return nil, errors.New("already revoked")
 		}
 		owners[index].revoked = true
-		putAllPk(srvc, key, owners)
+		err = putAllPk(srvc, key, owners)
+		if err != nil {
+			return nil, err
+		}
 		return owners[index].key, nil
 	} else {
 		publicKeys, err := getAllPk_Version1(srvc, encID, key)
@@ -404,9 +405,10 @@ func revokePkByIndex(srvc *native.NativeService, encID []byte, index uint32, pro
 			return nil, errors.New("already revoked")
 		}
 		publicKeys[index].revoked = true
-		putAllPk_Version1(srvc, key, publicKeys)
-
-		//:TODO update proof
+		err = putAllPk_Version1(srvc, key, publicKeys)
+		if err != nil {
+			return nil, err
+		}
 		return publicKeys[index].key, nil
 	}
 }
@@ -429,9 +431,10 @@ func setKeyAccessByIndex(srvc *native.NativeService, encID []byte, index uint32,
 		return nil, err
 	}
 	publicKeys[index].access = a
-	putAllPk_Version1(srvc, key, publicKeys)
-
-	//:TODO update proof
+	err = putAllPk_Version1(srvc, key, publicKeys)
+	if err != nil {
+		return nil, err
+	}
 	return publicKeys[index].key, nil
 }
 

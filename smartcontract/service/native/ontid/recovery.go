@@ -69,6 +69,12 @@ func setRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("setRecovery: " + err.Error())
 	}
 
+	//decode new field of verison 1
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+	updateProofAndTime(srvc, encId, proof)
 	newEvent(srvc, []interface{}{"recovery", "set", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
@@ -112,6 +118,12 @@ func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("update recovery: " + err.Error())
 	}
 
+	//decode new field of verison 1
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		proof = []byte{}
+	}
+	updateProofAndTime(srvc, key, proof)
 	newEvent(srvc, []interface{}{"Recovery", "update", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
@@ -172,6 +184,7 @@ func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
+	updateProofAndTime(srvc, encId, proof)
 	triggerPublicEvent(srvc, "add", arg0, arg1, index)
 	return utils.BYTE_TRUE, nil
 }
@@ -224,6 +237,7 @@ func removeKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, err
 	}
 
+	updateProofAndTime(srvc, encId, proof)
 	triggerPublicEvent(srvc, "remove", arg0, pk, uint32(arg1))
 	return utils.BYTE_TRUE, nil
 }
