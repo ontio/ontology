@@ -1,6 +1,7 @@
 package ontid
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -71,4 +72,31 @@ func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 	updateProofAndTime(srvc, encId, params.Proof)
 	triggerAuthKeyEvent(srvc, "remove", params.OntId, params.Index)
 	return utils.BYTE_TRUE, nil
+}
+
+type Authentication struct {
+	Authentication []interface{}
+}
+
+func getAuthentication(srvc *native.NativeService, encID []byte) ([]byte, error) {
+	key := append(encID, FIELD_PK)
+	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+	if err != nil {
+		return nil, err
+	}
+	authentication := new(Authentication)
+	for _, p := range publicKeys {
+		if p.authentication == ONLY_AUTHENTICATION {
+			authentication.Authentication = append(authentication.Authentication, p)
+		}
+		if p.authentication == BOTH {
+			authentication.Authentication = append(authentication.Authentication, string(p.key))
+		}
+	}
+
+	r, err := json.Marshal(authentication)
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
 }
