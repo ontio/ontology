@@ -18,10 +18,12 @@
 package ontid
 
 import (
+	"bytes"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
-
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -217,13 +219,129 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 }
 
 func GetService(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetService")
+	params := new(SearchServiceParam)
+	source := common.NewZeroCopySource(srvc.Input)
+	err := params.Deserialization(source)
+	if err != nil {
+		return nil, errors.New("GetService error: deserialization params error, " + err.Error())
+	}
+	encId, err := encodeID(params.OntId)
+	if err != nil {
+		return nil, fmt.Errorf("encodeID failed: %s", err)
+	}
+
+	services, err := getServices(srvc, encId)
+	if err != nil {
+		return nil, errors.New("GetService error: getServices error, " + err.Error())
+	}
+	for i := 0; i < len(*services); i++ {
+		if bytes.Equal((*services)[i].ServiceId, params.ServiceId) {
+			data, err := json.Marshal((*services)[i])
+			if err != nil {
+				return nil, errors.New("GetService error: json.Marshal error, " + err.Error())
+			}
+			return data, nil
+		}
+	}
 	return nil, nil
 }
 
 func GetController(srvc *native.NativeService) ([]byte, error) {
-	return nil, nil
+	log.Debug("GetController")
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, _, irregular, eof := source.NextVarBytes()
+	if irregular || eof {
+		return nil, fmt.Errorf("get key state failed: argument 0 error")
+	}
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return nil, fmt.Errorf("encodeID failed: %s", err)
+	}
+	key := append(encId, FIELD_CONTROLLER)
+	item, err := utils.GetStorageItem(srvc, key)
+	if err != nil {
+		return nil, err
+	} else if item == nil {
+		return nil, errors.New("empty controller storage")
+	}
+
+	if account.VerifyID(string(item.Value)) {
+		return item.Value, nil
+	} else {
+		group, err := deserializeGroup(item.Value)
+		if err != nil {
+			return nil, errors.New("deserializeGroup controller storage")
+		}
+		return json.Marshal(group)
+	}
 }
 
 func GetDocument(srvc *native.NativeService) ([]byte, error) {
-	return nil, nil
+	log.Debug("GetDocument")
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, _, irregular, eof := source.NextVarBytes()
+	if irregular || eof {
+		return nil, fmt.Errorf("get key state failed: argument 0 error")
+	}
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return nil, fmt.Errorf("encodeID failed: %s", err)
+	}
+	contexts, err := getContextsWithDefault(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getContextsWithDefault failed: %s", err)
+	}
+	id := string(arg0)
+	publicKey, err := getAllPkJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getAllPkJson failed: %s", err)
+	}
+	authentication, err := getAuthentication(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getAuthentication failed: %s", err)
+	}
+	controller, err := getController(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getController failed: %s", err)
+	}
+	recovery, err := getRecovery(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getRecovery failed: %s", err)
+	}
+	service, err := getServicesJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getServicesJson failed: %s", err)
+	}
+	attribute, err := getAllAttrJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getAllAttrJson failed: %s", err)
+	}
+	created, err := getCreateTime(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getCreateTime failed: %s", err)
+	}
+	updated, err := getUpdateTime(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getUpdateTime failed: %s", err)
+	}
+	proof, err := getProof(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("getUpdateTime failed: %s", err)
+	}
+	document := new(Document)
+	document.Contexts = contexts
+	document.Id = id
+	document.PublicKey = publicKey
+	document.Authentication = authentication
+	document.Controller = controller
+	document.Recovery = recovery
+	document.Service = service
+	document.Attribute = attribute
+	document.Created = created
+	document.Updated = updated
+	document.Proof = proof
+	return json.Marshal(document)
 }

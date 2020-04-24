@@ -136,13 +136,18 @@ func getContexts(srvc *native.NativeService, key []byte) ([][]byte, error) {
 	return *contexts, nil
 }
 
-func getContextsWithDefault(srvc *native.NativeService, key []byte) ([][]byte, error) {
+func getContextsWithDefault(srvc *native.NativeService, encId []byte) ([]string, error) {
+	key := append(encId, FIELD_CONTEXT)
 	contexts, err := getContexts(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("getContextsWithDefault error, %s", err)
 	}
 	contexts = append(_DefaultContexts, contexts...)
-	return contexts, nil
+	var res []string
+	for i := 0; i < len(contexts); i++ {
+		res = append(res, string(contexts[i]))
+	}
+	return res, nil
 }
 
 func storeContexts(contexts Contexts, srvc *native.NativeService, key []byte) error {

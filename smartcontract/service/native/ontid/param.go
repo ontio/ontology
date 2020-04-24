@@ -409,3 +409,42 @@ func (this *NewPublicKey) Deserialization(source *common.ZeroCopySource) error {
 	this.controller = controller
 	return nil
 }
+
+type SearchServiceParam struct {
+	OntId     []byte `json:"id"`
+	ServiceId []byte `json:"serviceId"`
+}
+
+func (this *SearchServiceParam) Serialization(sink *common.ZeroCopySink) {
+	sink.WriteVarBytes(this.OntId)
+	sink.WriteVarBytes(this.ServiceId)
+}
+
+func (this *SearchServiceParam) Deserialization(source *common.ZeroCopySource) error {
+	OntId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return err
+	}
+	ServiceId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return err
+	}
+
+	this.OntId = OntId
+	this.ServiceId = ServiceId
+	return nil
+}
+
+type Document struct {
+	Contexts       []string         `json:"@context"`
+	Id             string           `json:"id"`
+	PublicKey      []*publicKeyJson `json:"publicKey"`
+	Authentication []interface{}    `json:"authentication"`
+	Controller     interface{}      `json:"controller"`
+	Recovery       *Group           `json:"recovery"`
+	Service        []*serviceJson   `json:"service"`
+	Attribute      []*attributeJson `json:"attribute"`
+	Created        uint32           `json:"created"`
+	Updated        uint32           `json:"updated"`
+	Proof          string           `json:"proof"`
+}

@@ -11,6 +11,12 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
+type serviceJson struct {
+	Id             string `json:"id"`
+	Type           string `json:"type"`
+	ServiceEndpint string `json:"serviceEndpint"`
+}
+
 // TODO update time, proof
 func addService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: addService")
@@ -181,4 +187,25 @@ func putService(srvc *native.NativeService, encId []byte, params *ServiceParam) 
 	storeServices(services, srvc, key)
 	triggerServiceEvent(srvc, "add", params.OntId, params.ServiceId)
 	return nil
+}
+
+func getServicesJson(srvc *native.NativeService, encId []byte) ([]*serviceJson, error) {
+	services, err := getServices(srvc, encId)
+	if err != nil {
+		return nil, err
+	}
+	r := make([]*serviceJson, 0)
+	for _, p := range *services {
+		service := new(serviceJson)
+
+		ontId, err := decodeID(encId)
+		if err != nil {
+			return nil, err
+		}
+		service.Id = fmt.Sprintf("%s#keys", string(ontId))
+		service.Type = string(p.Type)
+		service.ServiceEndpint = string(p.ServiceEndpint)
+		r = append(r, service)
+	}
+	return r, nil
 }
