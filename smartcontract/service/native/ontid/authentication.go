@@ -1,7 +1,6 @@
 package ontid
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -78,7 +77,7 @@ type Authentication struct {
 	Authentication []interface{}
 }
 
-func getAuthentication(srvc *native.NativeService, encID []byte) ([]byte, error) {
+func getAuthentication(srvc *native.NativeService, encID []byte) (*Authentication, error) {
 	key := append(encID, FIELD_PK)
 	publicKeys, err := getAllPk_Version1(srvc, encID, key)
 	if err != nil {
@@ -94,9 +93,5 @@ func getAuthentication(srvc *native.NativeService, encID []byte) ([]byte, error)
 		}
 	}
 
-	r, err := json.Marshal(authentication)
-	if err != nil {
-		return nil, err
-	}
-	return r, nil
+	return authentication, nil
 }
