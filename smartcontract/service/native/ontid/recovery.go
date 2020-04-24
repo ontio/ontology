@@ -242,7 +242,7 @@ func removeKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func putRecovery(srvc *native.NativeService, encID, data []byte) (*Group, error) {
+func putRecovery(srvc *native.NativeService, encId, data []byte) (*Group, error) {
 	rec, err := deserializeGroup(data)
 	if err != nil {
 		return nil, err
@@ -251,7 +251,7 @@ func putRecovery(srvc *native.NativeService, encID, data []byte) (*Group, error)
 	if err != nil {
 		return nil, fmt.Errorf("invalid recovery member, %s", err)
 	}
-	key := append(encID, FIELD_RECOVERY)
+	key := append(encId, FIELD_RECOVERY)
 	item := states.StorageItem{}
 	item.Value = data
 	item.StateVersion = _VERSION_1 // storage version
@@ -259,8 +259,8 @@ func putRecovery(srvc *native.NativeService, encID, data []byte) (*Group, error)
 	return rec, nil
 }
 
-func getRecovery(srvc *native.NativeService, encID []byte) (*Group, error) {
-	key := append(encID, FIELD_RECOVERY)
+func getRecovery(srvc *native.NativeService, encId []byte) (*Group, error) {
+	key := append(encId, FIELD_RECOVERY)
 	item, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
 		return nil, err
@@ -373,8 +373,8 @@ func changeRecovery(srvc *native.NativeService) ([]byte, error) {
 
 // deprecated
 // retain for conpatibility
-func setOldRecovery(srvc *native.NativeService, encID []byte, recovery common.Address) error {
-	key := append(encID, FIELD_RECOVERY)
+func setOldRecovery(srvc *native.NativeService, encId []byte, recovery common.Address) error {
+	key := append(encId, FIELD_RECOVERY)
 	val := states.StorageItem{Value: recovery[:]}
 	val.StateVersion = _VERSION_0
 	srvc.CacheDB.Put(key, val.ToArray())
@@ -383,8 +383,8 @@ func setOldRecovery(srvc *native.NativeService, encID []byte, recovery common.Ad
 
 // deprecated
 // retain for conpatibility
-func getOldRecovery(srvc *native.NativeService, encID []byte) ([]byte, error) {
-	key := append(encID, FIELD_RECOVERY)
+func getOldRecovery(srvc *native.NativeService, encId []byte) ([]byte, error) {
+	key := append(encId, FIELD_RECOVERY)
 	item, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
 		return nil, errors.New("get recovery error: " + err.Error())

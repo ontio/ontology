@@ -2,12 +2,12 @@ package ontid
 
 import (
 	"errors"
+	"fmt"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-// TODO ADD TIME and PROOF
 func addAuthKey(srvc *native.NativeService) ([]byte, error) {
 	params := new(AddAuthKeyParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
@@ -45,7 +45,6 @@ func addAuthKey(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-// TODO ADD TIME and PROOF
 func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 	params := new(Context)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
@@ -73,25 +72,34 @@ func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-type Authentication struct {
-	Authentication []interface{}
-}
-
-func getAuthentication(srvc *native.NativeService, encID []byte) (*Authentication, error) {
-	key := append(encID, FIELD_PK)
-	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+func getAuthentication(srvc *native.NativeService, encId []byte) ([]interface{}, error) {
+	key := append(encId, FIELD_PK)
+	publicKeys, err := getAllPk_Version1(srvc, encId, key)
 	if err != nil {
 		return nil, err
 	}
-	authentication := new(Authentication)
-	for _, p := range publicKeys {
-		if p.authentication == ONLY_AUTHENTICATION {
-			authentication.Authentication = append(authentication.Authentication, p)
-		}
-		if p.authentication == BOTH {
-			authentication.Authentication = append(authentication.Authentication, string(p.key))
+	authentication := make([]interface{}, 0)
+	for index, p := range publicKeys {
+		if !p.revoked {
+			if p.authentication == ONLY_AUTHENTICATION {
+				ontId, err := decodeID(encId)
+				if err != nil {
+					return nil, err
+				}
+				publicKey := new(publicKeyJson)
+				publicKey.Id = fmt.Sprintf("%s#keys-%d", string(ontId), index+1)
+				publicKey.Controller = string(p.controller)
+				publicKey.Type, publicKey.PublicKeyHex, err = keyType(p.key)
+				if err != nil {
+					return nil, err
+				}
+				publicKey.Access = p.access
+				authentication = append(authentication, p)
+			}
+			if p.authentication == BOTH {
+				authentication = append(authentication, string(p.key))
+			}
 		}
 	}
-
 	return authentication, nil
 }

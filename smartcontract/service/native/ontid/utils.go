@@ -29,12 +29,12 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func isValid(srvc *native.NativeService, encID []byte) bool {
-	return checkIDState(srvc, encID) == flag_valid
+func isValid(srvc *native.NativeService, encId []byte) bool {
+	return checkIDState(srvc, encId) == flag_valid
 }
 
-func checkIDState(srvc *native.NativeService, encID []byte) byte {
-	val, err := srvc.CacheDB.Get(encID)
+func checkIDState(srvc *native.NativeService, encId []byte) byte {
+	val, err := srvc.CacheDB.Get(encId)
 	if err == nil {
 		val, err := states.GetValueFromRawStorageItem(val)
 		if err == nil {
@@ -104,8 +104,8 @@ func checkWitness(srvc *native.NativeService, key []byte) error {
 	return errors.New("check witness failed, " + hex.EncodeToString(key))
 }
 
-func checkWitnessByIndex(srvc *native.NativeService, encID []byte, index uint32) error {
-	pk, err := getPk(srvc, encID, index)
+func checkWitnessByIndex(srvc *native.NativeService, encId []byte, index uint32) error {
+	pk, err := getPk(srvc, encId, index)
 	if err != nil {
 		return err
 	} else if pk.revoked {
@@ -120,38 +120,38 @@ func checkWitnessByIndex(srvc *native.NativeService, encID []byte, index uint32)
 	return checkWitness(srvc, pk.key)
 }
 
-func deleteID(srvc *native.NativeService, encID []byte) error {
-	key := append(encID, FIELD_PK)
+func deleteID(srvc *native.NativeService, encId []byte) error {
+	key := append(encId, FIELD_PK)
 	srvc.CacheDB.Delete(key)
 
-	key = append(encID, FIELD_CONTROLLER)
+	key = append(encId, FIELD_CONTROLLER)
 	srvc.CacheDB.Delete(key)
 
-	key = append(encID, FIELD_RECOVERY)
+	key = append(encId, FIELD_RECOVERY)
 	srvc.CacheDB.Delete(key)
 
-	key = append(encID, FIELD_SERVICE)
+	key = append(encId, FIELD_SERVICE)
 	srvc.CacheDB.Delete(key)
 
-	key = append(encID, FIELD_CREATED)
+	key = append(encId, FIELD_CREATED)
 	srvc.CacheDB.Delete(key)
 
-	key = append(encID, FIELD_UPDATED)
+	key = append(encId, FIELD_UPDATED)
 	srvc.CacheDB.Delete(key)
 
-	key = append(encID, FIELD_PROOF)
+	key = append(encId, FIELD_PROOF)
 	srvc.CacheDB.Delete(key)
 
-	key = append(encID, FIELD_CONTEXT)
+	key = append(encId, FIELD_CONTEXT)
 	srvc.CacheDB.Delete(key)
 
-	err := deleteAllAttr(srvc, encID)
+	err := deleteAllAttr(srvc, encId)
 	if err != nil {
 		return err
 	}
 
 	//set flag to revoke
-	utils.PutBytes(srvc, encID, []byte{flag_revoke})
+	utils.PutBytes(srvc, encId, []byte{flag_revoke})
 	return nil
 }
 

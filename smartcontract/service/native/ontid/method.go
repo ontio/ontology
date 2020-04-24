@@ -485,20 +485,20 @@ func revokeID(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
 	}
 
-	encID, err := encodeID(arg0)
+	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
 
-	if !isValid(srvc, encID) {
+	if !isValid(srvc, encId) {
 		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
 	}
 
-	if err := checkWitnessByIndex(srvc, encID, uint32(arg1)); err != nil {
+	if err := checkWitnessByIndex(srvc, encId, uint32(arg1)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("authorization failed, %s", err)
 	}
 
-	err = deleteID(srvc, encID)
+	err = deleteID(srvc, encId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("delete id error, %s", err)
 	}

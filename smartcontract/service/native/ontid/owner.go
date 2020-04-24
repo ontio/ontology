@@ -19,8 +19,10 @@ package ontid
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ontio/ontology-crypto/keypair"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
@@ -41,6 +43,14 @@ const (
 	ONLY_AUTHENTICATION = 1
 	BOTH                = 2
 )
+
+type publicKeyJson struct {
+	Id           string `json:"id"`
+	Type         string `json:"type"`
+	Controller   string `json:"controller"`
+	PublicKeyHex string `json:"publicKeyHex"`
+	Access       string `json:"access"`
+}
 
 type publicKey struct {
 	key            []byte
@@ -133,7 +143,7 @@ func getAllPk(srvc *native.NativeService, key []byte) ([]*owner, error) {
 	return owners, nil
 }
 
-func getAllPk_Version1(srvc *native.NativeService, encID, key []byte) ([]*publicKey, error) {
+func getAllPk_Version1(srvc *native.NativeService, encId, key []byte) ([]*publicKey, error) {
 	val, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
 		return nil, fmt.Errorf("get storage error, %s", err)
@@ -142,7 +152,7 @@ func getAllPk_Version1(srvc *native.NativeService, encID, key []byte) ([]*public
 		return nil, nil
 	}
 
-	ontid, err := decodeID(encID)
+	ontid, err := decodeID(encId)
 	if err != nil {
 		return nil, fmt.Errorf("decodeID error, %s", err)
 	}
@@ -177,6 +187,32 @@ func getAllPk_Version1(srvc *native.NativeService, encID, key []byte) ([]*public
 	return publicKeys, nil
 }
 
+func getAllPkJson(srvc *native.NativeService, encId []byte) ([]*publicKeyJson, error) {
+	key := append(encId, FIELD_PK)
+	publicKeys, err := getAllPk_Version1(srvc, encId, key)
+	if err != nil {
+		return nil, err
+	}
+	r := make([]*publicKeyJson, 0)
+	for index, p := range publicKeys {
+		publicKey := new(publicKeyJson)
+
+		ontId, err := decodeID(encId)
+		if err != nil {
+			return nil, err
+		}
+		publicKey.Id = fmt.Sprintf("%s#keys-%d", string(ontId), index+1)
+		publicKey.Controller = string(p.controller)
+		publicKey.Type, publicKey.PublicKeyHex, err = keyType(p.key)
+		if err != nil {
+			return nil, err
+		}
+		publicKey.Access = p.access
+		r = append(r, publicKey)
+	}
+	return r, nil
+}
+
 func putAllPk(srvc *native.NativeService, key []byte, val []*owner) error {
 	sink := common.NewZeroCopySink(nil)
 	for _, i := range val {
@@ -206,9 +242,9 @@ func putAllPk_Version1(srvc *native.NativeService, key []byte, val []*publicKey)
 	return nil
 }
 
-func insertPk(srvc *native.NativeService, encID, pk, controller []byte, access string, authentication uint8,
+func insertPk(srvc *native.NativeService, encId, pk, controller []byte, access string, authentication uint8,
 	proof []byte) (uint32, error) {
-	key := append(encID, FIELD_PK)
+	key := append(encId, FIELD_PK)
 	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
 		owners, err := getAllPk(srvc, key)
 		if err != nil {
@@ -228,7 +264,7 @@ func insertPk(srvc *native.NativeService, encID, pk, controller []byte, access s
 		return uint32(size + 1), nil
 	} else {
 		var err error
-		publicKeys, err := getAllPk_Version1(srvc, encID, key)
+		publicKeys, err := getAllPk_Version1(srvc, encId, key)
 		if err != nil {
 			return 0, err
 		}
@@ -251,10 +287,10 @@ func insertPk(srvc *native.NativeService, encID, pk, controller []byte, access s
 	}
 }
 
-func changePkAuthentication(srvc *native.NativeService, encID []byte, index uint32, authentication uint8, proof []byte) error {
-	key := append(encID, FIELD_PK)
+func changePkAuthentication(srvc *native.NativeService, encId []byte, index uint32, authentication uint8, proof []byte) error {
+	key := append(encId, FIELD_PK)
 
-	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+	publicKeys, err := getAllPk_Version1(srvc, encId, key)
 	if err != nil {
 		return err
 	}
@@ -266,9 +302,9 @@ func changePkAuthentication(srvc *native.NativeService, encID []byte, index uint
 	return nil
 }
 
-func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, error) {
-	key := append(encID, FIELD_PK)
-	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+func getPk(srvc *native.NativeService, encId []byte, index uint32) (*publicKey, error) {
+	key := append(encId, FIELD_PK)
+	publicKeys, err := getAllPk_Version1(srvc, encId, key)
 	if err != nil {
 		return nil, err
 	}
@@ -278,8 +314,8 @@ func getPk(srvc *native.NativeService, encID []byte, index uint32) (*publicKey, 
 	return publicKeys[index-1], nil
 }
 
-func findPk(srvc *native.NativeService, encID, pub []byte) (uint32, bool, error) {
-	key := append(encID, FIELD_PK)
+func findPk(srvc *native.NativeService, encId, pub []byte) (uint32, bool, error) {
+	key := append(encId, FIELD_PK)
 	owners, err := getAllPk(srvc, key)
 	if err != nil {
 		return 0, false, err
@@ -292,9 +328,9 @@ func findPk(srvc *native.NativeService, encID, pub []byte) (uint32, bool, error)
 	return 0, false, nil
 }
 
-func findPk_Version1(srvc *native.NativeService, encID, pub []byte) (uint32, bool, error) {
-	key := append(encID, FIELD_PK)
-	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+func findPk_Version1(srvc *native.NativeService, encId, pub []byte) (uint32, bool, error) {
+	key := append(encId, FIELD_PK)
+	publicKeys, err := getAllPk_Version1(srvc, encId, key)
 	if err != nil {
 		return 0, false, err
 	}
@@ -306,10 +342,10 @@ func findPk_Version1(srvc *native.NativeService, encID, pub []byte) (uint32, boo
 	return 0, false, nil
 }
 
-func revokeAuthKey(srvc *native.NativeService, encID []byte, index uint32, proof []byte) error {
-	key := append(encID, FIELD_PK)
+func revokeAuthKey(srvc *native.NativeService, encId []byte, index uint32, proof []byte) error {
+	key := append(encId, FIELD_PK)
 
-	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+	publicKeys, err := getAllPk_Version1(srvc, encId, key)
 	if err != nil {
 		return err
 	}
@@ -321,8 +357,8 @@ func revokeAuthKey(srvc *native.NativeService, encID []byte, index uint32, proof
 	return nil
 }
 
-func revokePk(srvc *native.NativeService, encID, pub, proof []byte) (uint32, error) {
-	key := append(encID, FIELD_PK)
+func revokePk(srvc *native.NativeService, encId, pub, proof []byte) (uint32, error) {
+	key := append(encId, FIELD_PK)
 	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
 		owners, err := getAllPk(srvc, key)
 		if err != nil {
@@ -347,7 +383,7 @@ func revokePk(srvc *native.NativeService, encID, pub, proof []byte) (uint32, err
 		}
 		return index, nil
 	} else {
-		publicKeys, err := getAllPk_Version1(srvc, encID, key)
+		publicKeys, err := getAllPk_Version1(srvc, encId, key)
 		if err != nil {
 			return 0, err
 		}
@@ -372,8 +408,8 @@ func revokePk(srvc *native.NativeService, encID, pub, proof []byte) (uint32, err
 	}
 }
 
-func revokePkByIndex(srvc *native.NativeService, encID []byte, index uint32, proof []byte) ([]byte, error) {
-	key := append(encID, FIELD_PK)
+func revokePkByIndex(srvc *native.NativeService, encId []byte, index uint32, proof []byte) ([]byte, error) {
+	key := append(encId, FIELD_PK)
 	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
 		owners, err := getAllPk(srvc, key)
 		if err != nil {
@@ -393,7 +429,7 @@ func revokePkByIndex(srvc *native.NativeService, encID []byte, index uint32, pro
 		}
 		return owners[index].key, nil
 	} else {
-		publicKeys, err := getAllPk_Version1(srvc, encID, key)
+		publicKeys, err := getAllPk_Version1(srvc, encId, key)
 		if err != nil {
 			return nil, err
 		}
@@ -413,9 +449,9 @@ func revokePkByIndex(srvc *native.NativeService, encID []byte, index uint32, pro
 	}
 }
 
-func setKeyAccessByIndex(srvc *native.NativeService, encID []byte, index uint32, access string, proof []byte) ([]byte, error) {
-	key := append(encID, FIELD_PK)
-	publicKeys, err := getAllPk_Version1(srvc, encID, key)
+func setKeyAccessByIndex(srvc *native.NativeService, encId []byte, index uint32, access string, proof []byte) ([]byte, error) {
+	key := append(encId, FIELD_PK)
+	publicKeys, err := getAllPk_Version1(srvc, encId, key)
 	if err != nil {
 		return nil, err
 	}
@@ -438,8 +474,8 @@ func setKeyAccessByIndex(srvc *native.NativeService, encID []byte, index uint32,
 	return publicKeys[index].key, nil
 }
 
-func isOwner(srvc *native.NativeService, encID, pub []byte) bool {
-	kID, revoked, err := findPk_Version1(srvc, encID, pub)
+func isOwner(srvc *native.NativeService, encId, pub []byte) bool {
+	kID, revoked, err := findPk_Version1(srvc, encId, pub)
 	if err != nil {
 		log.Debug(err)
 		return false
@@ -459,5 +495,33 @@ func validateAccess(access string) (string, error) {
 		return USE_ACCESS, nil
 	default:
 		return "", fmt.Errorf("access type is not supported")
+	}
+}
+
+func keyType(publicKey []byte) (string, string, error) {
+	switch keypair.KeyType(publicKey[0]) {
+	case keypair.PK_P256_E, keypair.PK_P256_O, keypair.PK_P256_NC:
+		return "EcdsaSecp256r1VerificationKey2019", hex.EncodeToString(publicKey), nil
+	case keypair.PK_ECDSA:
+		switch publicKey[1] {
+		case keypair.P224:
+			return "EcdsaSecp224r1VerificationKey2019", hex.EncodeToString(publicKey[2:]), nil
+		case keypair.P256:
+			return "EcdsaSecp256r1VerificationKey2019", hex.EncodeToString(publicKey[2:]), nil
+		case keypair.P384:
+			return "EcdsaSecp384r1VerificationKey2019", hex.EncodeToString(publicKey[2:]), nil
+		case keypair.P521:
+			return "EcdsaSecp521r1VerificationKey2019", hex.EncodeToString(publicKey[2:]), nil
+		case keypair.SECP256K1:
+			return "EcdsaSecp256k1VerificationKey2019", hex.EncodeToString(publicKey[2:]), nil
+		default:
+			return "", "", fmt.Errorf("unsupported type 1")
+		}
+	case keypair.PK_EDDSA:
+		return "Ed25519VerificationKey2018", hex.EncodeToString(publicKey[2:]), nil
+	case keypair.PK_SM2:
+		return "SM2VerificationKey2019", hex.EncodeToString(publicKey[2:]), nil
+	default:
+		return "", "", fmt.Errorf("unsupported type 2")
 	}
 }

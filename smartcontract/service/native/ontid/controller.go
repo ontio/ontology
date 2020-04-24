@@ -93,21 +93,21 @@ func revokeIDByController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error")
 	}
 
-	encID, err := encodeID(arg0)
+	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
 
-	if !isValid(srvc, encID) {
+	if !isValid(srvc, encId) {
 		return utils.BYTE_FALSE, fmt.Errorf("%s is not registered or already revoked", string(arg0))
 	}
 
-	err = verifyControllerSignature(srvc, encID, source)
+	err = verifyControllerSignature(srvc, encId, source)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("authorization failed")
 	}
 
-	err = deleteID(srvc, encID)
+	err = deleteID(srvc, encId)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("delete id error, %s", err)
 	}
@@ -360,6 +360,22 @@ func getController(srvc *native.NativeService, encId []byte) (interface{}, error
 
 	if account.VerifyID(string(item.Value)) {
 		return item.Value, nil
+	} else {
+		return deserializeGroup(item.Value)
+	}
+}
+
+func getControllerJson(srvc *native.NativeService, encId []byte) (interface{}, error) {
+	key := append(encId, FIELD_CONTROLLER)
+	item, err := utils.GetStorageItem(srvc, key)
+	if err != nil {
+		return nil, err
+	} else if item == nil {
+		return nil, errors.New("empty controller storage")
+	}
+
+	if account.VerifyID(string(item.Value)) {
+		return string(item.Value), nil
 	} else {
 		return deserializeGroup(item.Value)
 	}
