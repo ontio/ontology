@@ -19,8 +19,9 @@
 package states
 
 import (
-	"github.com/ontio/ontology/common"
 	"io"
+
+	"github.com/ontio/ontology/common"
 )
 
 type StorageKey struct {

@@ -19,8 +19,9 @@ package common
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestHexAndBytesTransfer(t *testing.T) {

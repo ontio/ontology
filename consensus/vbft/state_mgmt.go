@@ -59,6 +59,7 @@ const (
 	UpdatePeerConfig                // notify statemgmt on peer heartbeat
 	UpdatePeerState                 // notify statemgmt on peer heartbeat
 	SyncReadyTimeout
+	ForceCheckSync
 	SyncDone
 	LiveTick
 )
@@ -152,6 +153,9 @@ func (self *StateMgr) run() {
 				} else {
 					self.onPeerDisconnected(evt.peerState.peerIdx)
 				}
+
+			case ForceCheckSync:
+				self.checkStartSyncing(evt.blockNum, true)
 
 			case SyncDone:
 				log.Infof("server %d sync done, curr blkNum: %d", self.server.Index, self.server.GetCurrentBlockNo())

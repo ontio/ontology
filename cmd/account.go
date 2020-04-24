@@ -21,13 +21,14 @@ package cmd
 import (
 	"bufio"
 	"fmt"
+	"strings"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/cmd/common"
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common/config"
 	"github.com/urfave/cli"
-	"strings"
 )
 
 //map info, to get some information easily

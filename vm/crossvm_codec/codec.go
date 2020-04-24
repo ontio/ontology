@@ -20,10 +20,11 @@ package crossvm_codec
 
 import (
 	"fmt"
-	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"math/big"
 	"reflect"
+
+	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/log"
 )
 
 const (
@@ -42,36 +43,7 @@ const (
 )
 
 var ERROR_PARAM_FORMAT = fmt.Errorf("error param format")
-var ERROR_PARAM_TOO_LONG = fmt.Errorf("param length is exceeded")
 var ERROR_PARAM_NOT_SUPPORTED_TYPE = fmt.Errorf("error param format:not supported type")
-
-//input byte array should be the following format
-// version(1byte) + type(1byte) + data...
-func DeserializeInput(input []byte) ([]interface{}, error) {
-	if len(input) == 0 {
-		return nil, ERROR_PARAM_FORMAT
-	}
-	if len(input) > MAX_PARAM_LENGTH {
-		return nil, ERROR_PARAM_TOO_LONG
-	}
-	version := input[0]
-	//current only support "0" version
-	if version != VERSION {
-		return nil, ERROR_PARAM_FORMAT
-	}
-
-	paramlist := make([]interface{}, 0)
-	source := common.NewZeroCopySource(input[1:])
-	for source.Len() != 0 {
-		val, err := DecodeValue(source)
-		if err != nil {
-			return nil, err
-		}
-		paramlist = append(paramlist, val)
-	}
-
-	return paramlist, nil
-}
 
 // currently only used by test case
 func EncodeValue(value interface{}) ([]byte, error) {

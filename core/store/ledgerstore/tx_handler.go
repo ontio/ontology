@@ -44,6 +44,26 @@ import (
 	"github.com/ontio/ontology/smartcontract/storage"
 )
 
+func tuneGasFeeByHeight(height uint32, gas uint64, gasRound uint64, curBalance uint64) uint64 {
+	gasTuneheight := sysconfig.GetGasRoundTuneHeight(sysconfig.DefConfig.P2PNode.NetworkId)
+	if height > gasTuneheight {
+		t := (gas + gasRound - 1) / gasRound
+		if gas > math.MaxUint64-gasRound {
+			return curBalance
+		}
+
+		newGas := gasRound * t
+
+		if newGas > curBalance {
+			return curBalance
+		}
+
+		return newGas
+	}
+
+	return gas
+}
+
 //HandleDeployTransaction deal with smart contract deploy transaction
 func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
 	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
@@ -55,7 +75,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 	)
 
 	if deploy.VmType() == payload.WASMVM_TYPE {
-		_, err = wasmvm.ReadWasmModule(deploy.GetRawCode(), true)
+		_, err = wasmvm.ReadWasmModule(deploy.GetRawCode(), sysconfig.DefConfig.Common.WasmVerifyMethod)
 		if err != nil {
 			return err
 		}
@@ -124,7 +144,7 @@ func (self *StateStore) HandleDeployTransaction(store store.LedgerStore, overlay
 
 //HandleInvokeTransaction deal with smart contract invoke transaction
 func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay *overlaydb.OverlayDB, gasTable map[string]uint64, cache *storage.CacheDB,
-	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) error {
+	tx *types.Transaction, block *types.Block, notify *event.ExecuteNotify) ([]common.Uint256, error) {
 	invoke := tx.Payload.(*payload.InvokeCode)
 	code := invoke.Code
 	sysTransFlag := bytes.Compare(code, ninit.COMMIT_DPOS_BYTES) == 0 || block.Header.Height == 0
@@ -155,40 +175,41 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 		uintCodeGasPrice, ok := gasTable[neovm.UINT_INVOKE_CODE_LEN_NAME]
 		if !ok {
 			overlay.SetError(errors.NewErr("[HandleInvokeTransaction] get UINT_INVOKE_CODE_LEN_NAME gas failed"))
-			return nil
+			return nil, nil
 		}
 
 		oldBalance, err = getBalanceFromNative(config, cache, store, tx.Payer)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		minGas = neovm.MIN_TRANSACTION_GAS * tx.GasPrice
 
 		if oldBalance < minGas {
 			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
-			return fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
+			return nil, fmt.Errorf("balance gas: %d less than min gas: %d", oldBalance, minGas)
 		}
 
 		codeLenGasLimit = calcGasByCodeLen(len(invoke.Code), uintCodeGasPrice)
 
 		if oldBalance < codeLenGasLimit*tx.GasPrice {
 			if err := costInvalidGas(tx.Payer, oldBalance, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
-			return fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
+			return nil, fmt.Errorf("balance gas insufficient: balance:%d < code length need gas:%d", oldBalance, codeLenGasLimit*tx.GasPrice)
 		}
 
 		if tx.GasLimit < codeLenGasLimit {
 			if err := costInvalidGas(tx.Payer, tx.GasLimit*tx.GasPrice, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
-			return fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
+			return nil, fmt.Errorf("invoke transaction gasLimit insufficient: need%d actual:%d", tx.GasLimit, codeLenGasLimit)
 		}
 
 		maxAvaGasLimit := oldBalance / tx.GasPrice
+
 		if availableGasLimit > maxAvaGasLimit {
 			availableGasLimit = maxAvaGasLimit
 		}
@@ -209,6 +230,10 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	engine, _ := sc.NewExecuteEngine(invoke.Code, tx.TxType)
 
 	_, err = engine.Invoke()
+	if sc.IsInternalErr() {
+		overlay.SetError(fmt.Errorf("[HandleInvokeTransaction] %s", err))
+		return nil, nil
+	}
 
 	costGasLimit = availableGasLimit - sc.Gas
 	if costGasLimit < neovm.MIN_TRANSACTION_GAS {
@@ -218,30 +243,33 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	costGas = costGasLimit * tx.GasPrice
 	if err != nil {
 		if isCharge {
+			costGas = tuneGasFeeByHeight(config.Height, costGas, tx.GasPrice*neovm.MIN_TRANSACTION_GAS, oldBalance)
 			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
 		}
-		return err
+		return nil, err
 	}
 
 	var notifies []*event.NotifyEventInfo
 	if isCharge {
 		newBalance, err = getBalanceFromNative(config, cache, store, tx.Payer)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if newBalance < costGas {
+			costGas = tuneGasFeeByHeight(config.Height, costGas, tx.GasPrice*neovm.MIN_TRANSACTION_GAS, oldBalance)
 			if err := costInvalidGas(tx.Payer, costGas, config, overlay, store, notify); err != nil {
-				return err
+				return nil, err
 			}
-			return fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
+			return nil, fmt.Errorf("gas insufficient, balance:%d < costGas:%d", newBalance, costGas)
 		}
 
+		costGas = tuneGasFeeByHeight(config.Height, costGas, tx.GasPrice*neovm.MIN_TRANSACTION_GAS, newBalance)
 		notifies, err = chargeCostGas(tx.Payer, costGas, config, sc.CacheDB, store)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -250,7 +278,7 @@ func (self *StateStore) HandleInvokeTransaction(store store.LedgerStore, overlay
 	notify.GasConsumed = costGas
 	notify.State = event.CONTRACT_STATE_SUCCESS
 	sc.CacheDB.Commit()
-	return nil
+	return sc.CrossHashes, nil
 }
 
 func SaveNotify(eventStore scommon.EventStore, txHash common.Uint256, notify *event.ExecuteNotify) error {
@@ -321,7 +349,7 @@ func refreshGlobalParam(config *smartcontract.Config, cache *storage.CacheDB, st
 		return err
 	}
 	params := new(global_params.Params)
-	if err := params.Deserialization(common.NewZeroCopySource(result.([]byte))); err != nil {
+	if err := params.Deserialization(common.NewZeroCopySource(result)); err != nil {
 		return fmt.Errorf("deserialize global params error:%s", err)
 	}
 	neovm.GAS_TABLE.Range(func(key, value interface{}) bool {
@@ -354,7 +382,7 @@ func getBalanceFromNative(config *smartcontract.Config, cache *storage.CacheDB, 
 	if err != nil {
 		return 0, err
 	}
-	return common.BigIntFromNeoBytes(result.([]byte)).Uint64(), nil
+	return common.BigIntFromNeoBytes(result).Uint64(), nil
 }
 
 func costInvalidGas(address common.Address, gas uint64, config *smartcontract.Config, overlay *overlaydb.OverlayDB,

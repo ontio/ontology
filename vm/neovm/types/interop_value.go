@@ -20,6 +20,7 @@ package types
 
 import (
 	"bytes"
+
 	"github.com/ontio/ontology/vm/neovm/interfaces"
 )
 

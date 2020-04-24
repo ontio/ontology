@@ -24,7 +24,7 @@ import (
 	"io"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/consensus/vbft/config"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/types"
 )
 
@@ -33,6 +33,7 @@ type Block struct {
 	EmptyBlock          *types.Block
 	Info                *vconfig.VbftBlockInfo
 	PrevBlockMerkleRoot common.Uint256
+	CrossChainMsg       *types.CrossChainMsg
 }
 
 func (blk *Block) getProposer() uint32 {
@@ -79,6 +80,10 @@ func (blk *Block) Serialize() []byte {
 		payload.WriteVarBytes(common.SerializeToBytes(blk.EmptyBlock))
 	}
 	payload.WriteHash(blk.PrevBlockMerkleRoot)
+	payload.WriteBool(blk.CrossChainMsg != nil)
+	if blk.CrossChainMsg != nil {
+		blk.CrossChainMsg.Serialization(payload)
+	}
 	return payload.Bytes()
 }
 
@@ -128,14 +133,28 @@ func (blk *Block) Deserialize(data []byte) error {
 	if eof {
 		return fmt.Errorf("block deserialize merkleRoot: %s", io.ErrUnexpectedEOF)
 	}
+
+	var crossChainMsg *types.CrossChainMsg
+	// ignore eof for backward compatibility
+	hasEmptyCCM, irr, _ := source.NextBool()
+	if irr {
+		return fmt.Errorf("read empty-crosschainmsg-bool.")
+	}
+	if hasEmptyCCM {
+		crossChainMsg = new(types.CrossChainMsg)
+		if err := crossChainMsg.Deserialization(source); err != nil {
+			return err
+		}
+	}
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
 	blk.Info = info
 	blk.PrevBlockMerkleRoot = merkleRoot
+	blk.CrossChainMsg = crossChainMsg
 	return nil
 }
 
-func initVbftBlock(block *types.Block, prevMerkleRoot common.Uint256) (*Block, error) {
+func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevMerkleRoot common.Uint256) (*Block, error) {
 	if block == nil {
 		return nil, fmt.Errorf("nil block in initVbftBlock")
 	}
@@ -149,5 +168,6 @@ func initVbftBlock(block *types.Block, prevMerkleRoot common.Uint256) (*Block, e
 		Block:               block,
 		Info:                blkInfo,
 		PrevBlockMerkleRoot: prevMerkleRoot,
+		CrossChainMsg:       ccMsg,
 	}, nil
 }

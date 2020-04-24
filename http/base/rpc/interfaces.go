@@ -20,6 +20,7 @@ package rpc
 
 import (
 	"encoding/hex"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -119,6 +120,17 @@ func GetConnectionCount(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
 	return responseSuccess(count)
+}
+
+//get node connection most height
+func GetSyncStatus(params []interface{}) map[string]interface{} {
+	status, err := bcomn.GetSyncStatus()
+	if err != nil {
+		log.Errorf("GetSyncStatus error:%s", err)
+		return responsePack(berr.INTERNAL_ERROR, false)
+	}
+
+	return responseSuccess(status)
 }
 
 func GetRawMemPool(params []interface{}) map[string]interface{} {
@@ -582,4 +594,51 @@ func GetGrantOng(params []interface{}) map[string]interface{} {
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
 	return responseSuccess(rsp)
+}
+
+//get cross chain message by height
+func GetCrossChainMsg(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	height, ok := (params[0]).(float64)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	msg, err := bactor.GetCrossChainMsg(uint32(height))
+	if err != nil {
+		log.Errorf("GetCrossChainMsg, get cross chain msg from db error:%s", err)
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	header, err := bactor.GetHeaderByHeight(uint32(height) + 1)
+	if err != nil {
+		log.Errorf("GetCrossChainMsg, get block by height from db error:%s", err)
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	return responseSuccess(bcomn.TransferCrossChainMsg(msg, header.Bookkeepers))
+}
+
+//get cross chain state proof
+func GetCrossStatesProof(params []interface{}) map[string]interface{} {
+	if len(params) < 1 {
+		return responsePack(berr.INVALID_PARAMS, nil)
+	}
+	height, ok := params[0].(float64)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	str, ok := params[1].(string)
+	if !ok {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	key, err := hex.DecodeString(str)
+	if err != nil {
+		return responsePack(berr.INVALID_PARAMS, "")
+	}
+	proof, err := bactor.GetCrossStatesProof(uint32(height), key)
+	if err != nil {
+		log.Errorf("GetCrossStatesProof, bactor.GetCrossStatesProof error:%s", err)
+		return responsePack(berr.INTERNAL_ERROR, "")
+	}
+	return responseSuccess(bcomn.CrossStatesProof{"CrossStatesProof", hex.EncodeToString(proof)})
 }

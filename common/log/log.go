@@ -311,6 +311,10 @@ func Fatalf(format string, a ...interface{}) {
 	Log.Fatalf(format, a...)
 }
 
+// used for develop stage and not allowed in production enforced by CI
+var Test = Fatal
+var Testf = Fatalf
+
 func FileOpen(path string) (*os.File, error) {
 	if fi, err := os.Stat(path); err == nil {
 		if !fi.IsDir() {
@@ -364,7 +368,7 @@ func InitLog(logLevel int, a ...interface{}) {
 		}
 	}
 	fileAndStdoutWrite := io.MultiWriter(writers...)
-	Log = New(fileAndStdoutWrite, "", log.Ldate|log.Lmicroseconds, logLevel, logFile)
+	Log = New(fileAndStdoutWrite, "", log.LUTC|log.Ldate|log.Lmicroseconds, logLevel, logFile)
 }
 
 func GetLogFileSize() (int64, error) {
@@ -377,9 +381,9 @@ func GetLogFileSize() (int64, error) {
 
 func GetMaxLogChangeInterval(maxLogSize int64) int64 {
 	if maxLogSize != 0 {
-		return (maxLogSize * BYTE_TO_MB)
+		return maxLogSize * BYTE_TO_MB
 	} else {
-		return (DEFAULT_MAX_LOG_SIZE * BYTE_TO_MB)
+		return DEFAULT_MAX_LOG_SIZE * BYTE_TO_MB
 	}
 }
 

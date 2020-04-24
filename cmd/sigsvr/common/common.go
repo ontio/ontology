@@ -21,6 +21,7 @@ package common
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/cmd/sigsvr/store"
 )

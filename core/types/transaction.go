@@ -171,7 +171,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 		}
 		tx.Payload = pl
 	default:
-		return fmt.Errorf("unsupported tx type %v", tx.Type())
+		return fmt.Errorf("unsupported tx type %v", tx.TxType)
 	}
 
 	var length uint64
@@ -278,7 +278,7 @@ func (self *Sig) Serialization(sink *common.ZeroCopySink) error {
 	return nil
 }
 
-func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
+func (self *Transaction) GetSignatureAddresses() []common.Address {
 	if len(self.SignedAddr) == 0 {
 		addrs := make([]common.Address, 0, len(self.Sigs))
 		for _, prog := range self.Sigs {
@@ -286,10 +286,7 @@ func (self *Transaction) GetSignatureAddresses() ([]common.Address, error) {
 		}
 		self.SignedAddr = addrs
 	}
-	//if len(self.SignedAddr) != len(self.Sigs) {
-	//	return nil, errors.New("mismatched sigs and signed address")
-	//}
-	return self.SignedAddr, nil
+	return self.SignedAddr
 }
 
 type TransactionType byte
@@ -322,10 +319,6 @@ func (tx *Transaction) ToArray() []byte {
 
 func (tx *Transaction) Hash() common.Uint256 {
 	return tx.hash
-}
-
-func (tx *Transaction) Type() common.InventoryType {
-	return common.TRANSACTION
 }
 
 func (tx *Transaction) Verify() error {

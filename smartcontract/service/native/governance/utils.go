@@ -183,7 +183,7 @@ func getOngBalance(native *native.NativeService, address common.Address) (uint64
 	if err != nil {
 		return 0, fmt.Errorf("getOngBalance, appCall error: %v", err)
 	}
-	balance := common.BigIntFromNeoBytes(value.([]byte)).Uint64()
+	balance := common.BigIntFromNeoBytes(value).Uint64()
 	return balance, nil
 }
 
@@ -301,7 +301,7 @@ func putGlobalParam2(native *native.NativeService, contract common.Address, glob
 func validatePeerPubKeyFormat(pubkey string) error {
 	pk, err := vbftconfig.Pubkey(pubkey)
 	if err != nil {
-		return fmt.Errorf("failed to parse pubkey")
+		return fmt.Errorf("failed to parse pubkey, %s", err)
 	}
 	if !vrf.ValidatePublicKey(pk) {
 		return fmt.Errorf("invalid for VRF")
@@ -364,7 +364,7 @@ func CheckVBFTConfig(configuration *config.VBFTConfig) error {
 		}
 		//check peerPubkey
 		if err := validatePeerPubKeyFormat(peer.PeerPubkey); err != nil {
-			return fmt.Errorf("invalid peer pubkey")
+			return fmt.Errorf("invalid peer pubkey, %s", err)
 		}
 		_, err := common.AddressFromBase58(peer.Address)
 		if err != nil {
@@ -650,7 +650,7 @@ func appCallVerifyToken(native *native.NativeService, contract common.Address, c
 	if err != nil {
 		return fmt.Errorf("appCallVerifyToken, appCall error: %v", err)
 	}
-	if !bytes.Equal(ok.([]byte), utils.BYTE_TRUE) {
+	if !bytes.Equal(ok, utils.BYTE_TRUE) {
 		return fmt.Errorf("appCallVerifyToken, verifyToken failed")
 	}
 	return nil

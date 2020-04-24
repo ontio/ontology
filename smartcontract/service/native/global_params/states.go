@@ -20,6 +20,7 @@ package global_params
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"

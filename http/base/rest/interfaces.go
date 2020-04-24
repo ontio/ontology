@@ -19,6 +19,8 @@
 package rest
 
 import (
+	"strconv"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
@@ -29,7 +31,6 @@ import (
 	bcomn "github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"strconv"
 )
 
 const TLS_PORT int = 443
@@ -61,6 +62,16 @@ func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
 		return ResponsePack(berr.INTERNAL_ERROR)
 	}
 	resp["Result"] = count
+	return resp
+}
+
+func GetNodeSyncStatus(cmd map[string]interface{}) map[string]interface{} {
+	resp := ResponsePack(berr.SUCCESS)
+	status, err := bcomn.GetSyncStatus()
+	if err != nil {
+		return ResponsePack(berr.INTERNAL_ERROR)
+	}
+	resp["Result"] = status
 	return resp
 }
 

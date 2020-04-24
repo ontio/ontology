@@ -20,6 +20,7 @@ package types
 
 import (
 	"errors"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 )

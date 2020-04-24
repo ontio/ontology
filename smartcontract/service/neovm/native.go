@@ -20,6 +20,7 @@ package neovm
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/states"
@@ -70,6 +71,7 @@ func NativeInvoke(service *NeoVmService, engine *vm.Executor) error {
 		Time:        service.Time,
 		ContextRef:  service.ContextRef,
 		ServiceMap:  make(map[string]native.Handler),
+		PreExec:     service.PreExec,
 	}
 
 	result, err := nat.Invoke()

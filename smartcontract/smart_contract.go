@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
 	ctypes "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -50,7 +49,10 @@ type SmartContract struct {
 	Gas           uint64
 	ExecStep      int
 	WasmExecStep  uint64
+	JitMode       bool
 	PreExec       bool
+	internelErr   bool
+	CrossHashes   []common.Uint256
 }
 
 // Config describe smart contract need parameters configuration
@@ -118,6 +120,10 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	return true
 }
 
+func (this *SmartContract) PutCrossStateHashes(hashes []common.Uint256) {
+	this.CrossHashes = append(this.CrossHashes, hashes...)
+}
+
 func (this *SmartContract) checkContexts() bool {
 	if len(this.Contexts) > MAX_EXECUTE_ENGINE {
 		return false
@@ -177,6 +183,7 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			ExecStep:   &this.WasmExecStep,
 			GasLimit:   &this.Gas,
 			GasFactor:  gasFactor,
+			JitMode:    this.JitMode,
 		}
 	default:
 		return nil, errors.New("failed to construct execute engine, wrong transaction type")
@@ -197,6 +204,7 @@ func (this *SmartContract) NewNativeService() (*native.NativeService, error) {
 		Height:     this.Config.Height,
 		BlockHash:  this.Config.BlockHash,
 		ServiceMap: make(map[string]native.Handler),
+		PreExec:    this.PreExec,
 	}
 	return service, nil
 }
@@ -213,11 +221,8 @@ func (this *SmartContract) CheckWitness(address common.Address) bool {
 }
 
 func (this *SmartContract) checkAccountAddress(address common.Address) bool {
-	addresses, err := this.Config.Tx.GetSignatureAddresses()
-	if err != nil {
-		log.Errorf("get signature address error:%v", err)
-		return false
-	}
+	addresses := this.Config.Tx.GetSignatureAddresses()
+
 	for _, v := range addresses {
 		if v == address {
 			return true
@@ -231,4 +236,22 @@ func (this *SmartContract) checkContractAddress(address common.Address) bool {
 		return true
 	}
 	return false
+}
+
+func (this *SmartContract) GetCallerAddress() []common.Address {
+	callersNum := len(this.Contexts)
+	addrs := make([]common.Address, 0, callersNum)
+
+	for _, ctx := range this.Contexts {
+		addrs = append(addrs, ctx.ContractAddress)
+	}
+	return addrs
+}
+
+func (this *SmartContract) SetInternalErr() {
+	this.internelErr = true
+}
+
+func (this *SmartContract) IsInternalErr() bool {
+	return this.internelErr
 }

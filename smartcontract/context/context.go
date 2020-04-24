@@ -41,6 +41,10 @@ type ContextRef interface {
 	NewExecuteEngine(code []byte, txtype types.TransactionType) (Engine, error)
 	CheckUseGas(gas uint64) bool
 	CheckExecStep() bool
+	GetCallerAddress() []common.Address
+	SetInternalErr()
+	IsInternalErr() bool
+	PutCrossStateHashes(hashes []common.Uint256)
 }
 
 type Engine interface {

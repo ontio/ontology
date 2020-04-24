@@ -21,10 +21,11 @@ package utils
 import (
 	"bytes"
 	"encoding/hex"
+	"testing"
+
 	"github.com/ontio/ontology/cmd/abi"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/vm/neovm"
-	"testing"
 )
 
 func TestParseNativeParam(t *testing.T) {

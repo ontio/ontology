@@ -19,12 +19,13 @@
 package test
 
 import (
+	"testing"
+
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/smartcontract"
 	"github.com/ontio/ontology/vm/neovm"
 	"github.com/ontio/ontology/vm/neovm/errors"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestAppendOverFlow(t *testing.T) {

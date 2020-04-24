@@ -28,7 +28,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
-	"github.com/ontio/ontology/consensus/vbft/config"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
@@ -51,7 +51,7 @@ var (
 	ONGTokenID = ONGToken.Hash()
 )
 
-var GenBlockTime = (config.DEFAULT_GEN_BLOCK_TIME * time.Second)
+var GenBlockTime = config.DEFAULT_GEN_BLOCK_TIME * time.Second
 
 var INIT_PARAM = map[string]string{
 	"gasPrice": "0",

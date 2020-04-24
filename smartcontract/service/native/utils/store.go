@@ -20,6 +20,7 @@ package utils
 
 import (
 	"bytes"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
@@ -87,4 +88,25 @@ func GenUInt32StorageItem(value uint32) *cstates.StorageItem {
 
 func PutBytes(native *native.NativeService, key []byte, value []byte) {
 	native.CacheDB.Put(key, cstates.GenRawStorageItem(value))
+}
+
+func GetStorageVarBytes(native *native.NativeService, key []byte) ([]byte, error) {
+	item, err := GetStorageItem(native, key)
+	if err != nil {
+		return []byte{}, err
+	}
+	if item == nil {
+		return []byte{}, nil
+	}
+	v, err := serialization.ReadVarBytes(bytes.NewBuffer(item.Value))
+	if err != nil {
+		return []byte{}, err
+	}
+	return v, nil
+}
+
+func GenVarBytesStorageItem(value []byte) *cstates.StorageItem {
+	bf := new(bytes.Buffer)
+	serialization.WriteVarBytes(bf, value)
+	return &cstates.StorageItem{Value: bf.Bytes()}
 }

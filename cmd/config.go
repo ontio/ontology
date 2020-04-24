@@ -20,6 +20,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -61,6 +62,13 @@ func SetOntologyConfig(ctx *cli.Context) (*config.OntologyConfig, error) {
 			cfg.P2PNode.NetworkName = config.GetNetworkName(defNetworkId)
 		}
 	}
+
+	enableWasmJitVerify := ctx.GlobalBool(utils.GetFlagName(utils.WasmVerifyMethodFlag))
+	if enableWasmJitVerify {
+		log.Infof("Enable wasm jit verifier")
+		cfg.Common.WasmVerifyMethod = config.JitVerifyMethod
+	}
+
 	return cfg, nil
 }
 

@@ -20,10 +20,11 @@ package ontid
 import (
 	"errors"
 	"fmt"
+	"io"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	"io"
 )
 
 const (

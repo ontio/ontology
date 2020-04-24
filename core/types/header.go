@@ -256,12 +256,6 @@ func (bd *Header) Hash() common.Uint256 {
 	return hash
 }
 
-func (bd *Header) GetMessage() []byte {
-	sink := common.NewZeroCopySink(nil)
-	bd.serializationUnsigned(sink)
-	return sink.Bytes()
-}
-
 func (bd *Header) ToArray() []byte {
 	sink := common.NewZeroCopySink(nil)
 	bd.Serialization(sink)

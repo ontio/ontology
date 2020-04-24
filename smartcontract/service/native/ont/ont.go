@@ -248,6 +248,9 @@ func grantOng(native *native.NativeService, contract, address common.Address, ba
 	}
 	endOffset := native.Time - constants.GENESIS_BLOCK_TIMESTAMP
 	if endOffset < startOffset {
+		if native.PreExec {
+			return nil
+		}
 		errstr := fmt.Sprintf("grant Ong error: wrong timestamp endOffset: %d < startOffset: %d", endOffset, startOffset)
 		log.Error(errstr)
 		return errors.NewErr(errstr)

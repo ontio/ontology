@@ -35,6 +35,14 @@ import (
 
 var Version = "" //Set value when build project
 
+type VerifyMethod int
+
+const (
+	InterpVerifyMethod VerifyMethod = iota
+	JitVerifyMethod
+	NoneVerifyMethod
+)
+
 const (
 	DEFAULT_CONFIG_FILE_NAME = "./config.json"
 	DEFAULT_WALLET_FILE_NAME = "./wallet.dat"
@@ -137,6 +145,15 @@ var CONTRACT_DESTROY_ENABLE_HEIGHT = map[uint32]uint32{
 
 func GetContractDestroyCheckHeight(id uint32) uint32 {
 	return CONTRACT_DESTROY_ENABLE_HEIGHT[id]
+}
+var GAS_ROUND_TUNE_HEIGHT = map[uint32]uint32{
+	NETWORK_ID_MAIN_NET:    constants.GAS_ROUND_TUNE_HEIGHT_MAINNET, //Network main
+	NETWORK_ID_POLARIS_NET: constants.GAS_ROUND_TUNE_HEIGHT_POLARIS, //Network polaris
+	NETWORK_ID_SOLO_NET:    0,                                       //Network solo
+}
+
+func GetGasRoundTuneHeight(id uint32) uint32 {
+	return GAS_ROUND_TUNE_HEIGHT[id]
 }
 
 func GetNetworkName(id uint32) string {
@@ -490,13 +507,14 @@ type SOLOConfig struct {
 }
 
 type CommonConfig struct {
-	LogLevel       uint
-	NodeType       string
-	EnableEventLog bool
-	SystemFee      map[string]int64
-	GasLimit       uint64
-	GasPrice       uint64
-	DataDir        string
+	LogLevel         uint
+	NodeType         string
+	EnableEventLog   bool
+	SystemFee        map[string]int64
+	GasLimit         uint64
+	GasPrice         uint64
+	DataDir          string
+	WasmVerifyMethod VerifyMethod
 }
 
 type ConsensusConfig struct {
@@ -562,11 +580,12 @@ func NewOntologyConfig() *OntologyConfig {
 	return &OntologyConfig{
 		Genesis: MainNetConfig,
 		Common: &CommonConfig{
-			LogLevel:       DEFAULT_LOG_LEVEL,
-			EnableEventLog: DEFAULT_ENABLE_EVENT_LOG,
-			SystemFee:      make(map[string]int64),
-			GasLimit:       DEFAULT_GAS_LIMIT,
-			DataDir:        DEFAULT_DATA_DIR,
+			LogLevel:         DEFAULT_LOG_LEVEL,
+			EnableEventLog:   DEFAULT_ENABLE_EVENT_LOG,
+			SystemFee:        make(map[string]int64),
+			GasLimit:         DEFAULT_GAS_LIMIT,
+			DataDir:          DEFAULT_DATA_DIR,
+			WasmVerifyMethod: InterpVerifyMethod,
 		},
 		Consensus: &ConsensusConfig{
 			EnableConsensus: true,

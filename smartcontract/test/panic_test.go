@@ -112,7 +112,7 @@ func TestOpReadMemAttack(t *testing.T) {
 	builder.Emit(neovm.SYSCALL)
 	sink := common.NewZeroCopySink(builder.ToArray())
 	builder.EmitPushByteArray([]byte(neovm2.NATIVE_INVOKE_NAME))
-	l := 0X7fffffc7 - 1
+	l := 0x7fffffc7 - 1
 	sink.WriteVarUint(uint64(l))
 	b := make([]byte, 4)
 	sink.WriteBytes(b)

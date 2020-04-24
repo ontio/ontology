@@ -38,7 +38,7 @@ import (
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/p2pserver/common"
-	"github.com/ontio/ontology/p2pserver/message/msg_pack"
+	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
 	msgtypes "github.com/ontio/ontology/p2pserver/message/types"
 	"github.com/ontio/ontology/p2pserver/message/utils"
 	"github.com/ontio/ontology/p2pserver/net/netserver"
@@ -87,6 +87,11 @@ func NewServer() *P2PServer {
 //GetConnectionCnt return the established connect count
 func (this *P2PServer) GetConnectionCnt() uint32 {
 	return this.network.GetConnectionCnt()
+}
+
+//GetMaxPeerBlockHeight return the established connect count
+func (this *P2PServer) GetMaxPeerBlockHeight() uint64 {
+	return this.network.GetMaxPeerBlockHeight()
 }
 
 //Start create all services
@@ -201,8 +206,8 @@ func (this *P2PServer) OnHeaderReceive(fromID uint64, headers []*types.Header) {
 
 // OnBlockReceive adds the block from network
 func (this *P2PServer) OnBlockReceive(fromID uint64, blockSize uint32,
-	block *types.Block, merkleRoot comm.Uint256) {
-	this.blockSync.OnBlockReceive(fromID, blockSize, block, merkleRoot)
+	block *types.Block, ccMsg *types.CrossChainMsg, merkleRoot comm.Uint256) {
+	this.blockSync.OnBlockReceive(fromID, blockSize, block, ccMsg, merkleRoot)
 }
 
 // Todo: remove it if no use
@@ -224,44 +229,6 @@ func (this *P2PServer) SetPID(pid *evtActor.PID) {
 // GetPID returns p2p actor
 func (this *P2PServer) GetPID() *evtActor.PID {
 	return this.pid
-}
-
-//blockSyncFinished compare all nbr peers and self height at beginning
-func (this *P2PServer) blockSyncFinished() bool {
-	peers := this.network.GetNeighbors()
-	if len(peers) == 0 {
-		return false
-	}
-
-	blockHeight := this.ledger.GetCurrentBlockHeight()
-
-	for _, v := range peers {
-		if blockHeight < uint32(v.GetHeight()) {
-			return false
-		}
-	}
-	return true
-}
-
-//WaitForSyncBlkFinish compare the height of self and remote peer in loop
-func (this *P2PServer) WaitForSyncBlkFinish() {
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	if consensusType == "solo" {
-		return
-	}
-
-	for {
-		headerHeight := this.ledger.GetCurrentHeaderHeight()
-		currentBlkHeight := this.ledger.GetCurrentBlockHeight()
-		log.Info("[p2p]WaitForSyncBlkFinish... current block height is ",
-			currentBlkHeight, " ,current header height is ", headerHeight)
-
-		if this.blockSyncFinished() {
-			break
-		}
-
-		<-time.After(time.Second * (time.Duration(common.SYNC_BLK_WAIT)))
-	}
 }
 
 //WaitForPeersStart check whether enough peer linked in loop

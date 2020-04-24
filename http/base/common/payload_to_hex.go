@@ -26,11 +26,6 @@ import (
 
 type PayloadInfo interface{}
 
-//implement PayloadInfo define BookKeepingInfo
-type BookKeepingInfo struct {
-	Nonce uint64
-}
-
 type InvokeCodeInfo struct {
 	Code string
 }
@@ -44,35 +39,11 @@ type DeployCodeInfo struct {
 	Description string
 }
 
-type RecordInfo struct {
-	RecordType string
-	RecordData string
-}
-
 type BookkeeperInfo struct {
 	PubKey     string
 	Action     string
 	Issuer     string
 	Controller string
-}
-
-type DataFileInfo struct {
-	IPFSPath string
-	Filename string
-	Note     string
-	Issuer   string
-}
-
-type PrivacyPayloadInfo struct {
-	PayloadType uint8
-	Payload     string
-	EncryptType uint8
-	EncryptAttr string
-}
-
-type VoteInfo struct {
-	PubKeys []string
-	Voter   string
 }
 
 //get tranasction payload data

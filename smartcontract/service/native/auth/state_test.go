@@ -20,8 +20,9 @@ package auth
 
 import (
 	"bytes"
-	"github.com/ontio/ontology/common"
 	"testing"
+
+	"github.com/ontio/ontology/common"
 )
 
 func TestSerRoleFuncs(t *testing.T) {

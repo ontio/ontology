@@ -19,8 +19,9 @@
 package neovm
 
 import (
-	"github.com/ontio/ontology/common/config"
 	"sync"
+
+	"github.com/ontio/ontology/common/config"
 )
 
 var (
@@ -50,10 +51,10 @@ var (
 	HASH256_GAS                   uint64 = 20
 	OPCODE_GAS                    uint64 = 1
 
-	PER_UNIT_CODE_LEN    int = 1024
-	METHOD_LENGTH_LIMIT  int = 1024
-	DUPLICATE_STACK_SIZE int = 1024 * 2
-	VM_STEP_LIMIT        int = 400000
+	PER_UNIT_CODE_LEN    = 1024
+	METHOD_LENGTH_LIMIT  = 1024
+	DUPLICATE_STACK_SIZE = 1024 * 2
+	VM_STEP_LIMIT        = 400000
 
 	// API Name
 	ATTRIBUTE_GETUSAGE_NAME = "Ontology.Attribute.GetUsage"

@@ -18,9 +18,11 @@
 package wasmvm
 
 import (
-	"github.com/go-interpreter/wagon/exec"
-	"github.com/hashicorp/golang-lru"
+	"sync"
+
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
@@ -28,6 +30,7 @@ import (
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/states"
 	"github.com/ontio/ontology/smartcontract/storage"
+	"github.com/ontio/wagon/exec"
 )
 
 type WasmVmService struct {
@@ -46,6 +49,8 @@ type WasmVmService struct {
 	ExecStep      *uint64
 	GasFactor     uint64
 	IsTerminate   bool
+	JitMode       bool
+	ServiceIndex  uint64
 	vm            *exec.VM
 }
 
@@ -68,13 +73,53 @@ var (
 	WASM_CALLSTACK_LIMIT        = 1024
 
 	CodeCache *lru.ARCCache
+
+	serviceData        = make(map[uint64]*WasmVmService)
+	nextServiceDataIdx uint64
+	serviceDataMtx     sync.RWMutex
 )
 
 func init() {
 	CodeCache, _ = lru.NewARC(CODE_CACHE_SIZE)
+	nextServiceDataIdx = 1
 	//if err != nil{
 	//	log.Info("NewARC block error %s", err)
 	//}
+}
+
+func GetAddressBuff(addrs []common.Address) ([]byte, int) {
+	sink := common.NewZeroCopySink(nil)
+	for _, addr := range addrs {
+		sink.WriteAddress(addr)
+	}
+
+	return sink.Bytes(), int(sink.Size())
+}
+
+func registerWasmVmService(this *WasmVmService) uint64 {
+	defer func() {
+		nextServiceDataIdx++
+		if nextServiceDataIdx == 0 {
+			nextServiceDataIdx++
+		}
+		serviceDataMtx.Unlock()
+	}()
+	serviceDataMtx.Lock()
+	serviceData[nextServiceDataIdx] = this
+	this.ServiceIndex = nextServiceDataIdx
+	return nextServiceDataIdx
+}
+
+func getWasmVmService(index uint64) *WasmVmService {
+	defer serviceDataMtx.Unlock()
+	serviceDataMtx.Lock()
+	return serviceData[index]
+}
+
+func unregisterWasmVmService(index uint64) {
+	defer serviceDataMtx.Unlock()
+	serviceDataMtx.Lock()
+	delete(serviceData, index)
 }
 
 func (this *WasmVmService) Invoke() (interface{}, error) {
@@ -102,10 +147,28 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, errors.NewErr("not a wasm contract")
 	}
+
 	this.ContextRef.PushContext(&context.Context{ContractAddress: contract.Address, Code: wasmCode})
 
 	feature := NewVmFeatureFlag(this.Height)
 	host := &Runtime{Service: this, Input: contract.Args, Feature: feature}
+	var output []byte
+	if this.JitMode {
+		output, err = invokeJit(this, contract, wasmCode)
+	} else {
+		output, err = invokeInterpreter(this, contract, wasmCode)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	this.ContextRef.PopContext()
+	return output, nil
+}
+
+func invokeInterpreter(this *WasmVmService, contract *states.WasmContractParam, wasmCode []byte) ([]byte, error) {
+	host := &Runtime{Service: this, Input: contract.Args}
 
 	var compiled *exec.CompiledModule
 	if CodeCache != nil {
@@ -116,10 +179,11 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	}
 
 	if compiled == nil {
-		compiled, err = ReadWasmModule(wasmCode, false)
+		module, err := ReadWasmModule(wasmCode, config.NoneVerifyMethod)
 		if err != nil {
 			return nil, err
 		}
+		compiled = module
 		CodeCache.Add(contract.Address.ToHexString(), compiled)
 	}
 
@@ -130,7 +194,7 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 
 	vm.HostData = host
 
-	vm.AvaliableGas = &exec.Gas{GasLimit: this.GasLimit, LocalGasCounter: 0, GasPrice: this.GasPrice, GasFactor: this.GasFactor, ExecStep: this.ExecStep}
+	vm.ExecMetrics = &exec.Gas{GasLimit: this.GasLimit, LocalGasCounter: 0, GasPrice: this.GasPrice, GasFactor: this.GasFactor, ExecStep: this.ExecStep}
 	vm.CallStackDepth = uint32(WASM_CALLSTACK_LIMIT)
 	vm.RecoverPanic = true
 
@@ -164,9 +228,6 @@ func (this *WasmVmService) Invoke() (interface{}, error) {
 	if err != nil {
 		return nil, errors.NewErr("[Call]ExecCode error!" + err.Error())
 	}
-
-	//pop the current context
-	this.ContextRef.PopContext()
 
 	return host.Output, nil
 }

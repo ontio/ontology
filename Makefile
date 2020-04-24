@@ -15,10 +15,10 @@ ABI=$(TOOLS)/abi
 NATIVE_ABI_SCRIPT=./cmd/abi/native_abi_script
 
 ontology: $(SRC_FILES)
-	$(GC)  $(BUILD_NODE_PAR) -o ontology main.go
+	CGO_ENABLED=1 $(GC)  $(BUILD_NODE_PAR) -o ontology main.go
  
 sigsvr: $(SRC_FILES) abi 
-	$(GC)  $(BUILD_NODE_PAR) -o sigsvr sigsvr.go
+	$(GC)  $(BUILD_NODE_PAR) -o sigsvr cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr $(TOOLS)
 
@@ -33,28 +33,28 @@ all: ontology tools
 ontology-cross: ontology-windows ontology-linux ontology-darwin
 
 ontology-windows:
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-windows-amd64.exe main.go
+	GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-windows-amd64.exe main.go
 
 ontology-linux:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-linux-amd64 main.go
+	GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-linux-amd64 main.go
 
 ontology-darwin:
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-darwin-amd64 main.go
+	GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o ontology-darwin-amd64 main.go
 
 tools-cross: tools-windows tools-linux tools-darwin
 
 tools-windows: abi 
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-windows-amd64.exe sigsvr.go
+	GOOS=windows GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-windows-amd64.exe cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-windows-amd64.exe $(TOOLS)
 
 tools-linux: abi 
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-linux-amd64 sigsvr.go
+	GOOS=linux GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-linux-amd64 cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-linux-amd64 $(TOOLS)
 
 tools-darwin: abi 
-	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 sigsvr.go
+	GOOS=darwin GOARCH=amd64 $(GC) $(BUILD_NODE_PAR) -o sigsvr-darwin-amd64 cmd-tools/sigsvr/sigsvr.go
 	@if [ ! -d $(TOOLS) ];then mkdir -p $(TOOLS) ;fi
 	@mv sigsvr-darwin-amd64 $(TOOLS)
 

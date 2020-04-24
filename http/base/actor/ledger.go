@@ -89,6 +89,10 @@ func PreExecuteContract(tx *types.Transaction) (*cstate.PreExecResult, error) {
 	return ledger.DefLedger.PreExecuteContract(tx)
 }
 
+func PreExecuteContractBatch(tx []*types.Transaction, atomic bool) ([]*cstate.PreExecResult, uint32, error) {
+	return ledger.DefLedger.PreExecuteContractBatch(tx, atomic)
+}
+
 //GetEventNotifyByTxHash from ledger
 func GetEventNotifyByTxHash(txHash common.Uint256) (*event.ExecuteNotify, error) {
 	return ledger.DefLedger.GetEventNotifyByTx(txHash)
@@ -102,4 +106,12 @@ func GetEventNotifyByHeight(height uint32) ([]*event.ExecuteNotify, error) {
 //GetMerkleProof from ledger
 func GetMerkleProof(proofHeight uint32, rootHeight uint32) ([]common.Uint256, error) {
 	return ledger.DefLedger.GetMerkleProof(proofHeight, rootHeight)
+}
+
+func GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
+	return ledger.DefLedger.GetCrossChainMsg(height)
+}
+
+func GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
+	return ledger.DefLedger.GetCrossStatesProof(height, key)
 }

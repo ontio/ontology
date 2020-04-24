@@ -100,10 +100,6 @@ func (b *Block) Hash() common.Uint256 {
 	return b.Header.Hash()
 }
 
-func (b *Block) Type() common.InventoryType {
-	return common.BLOCK
-}
-
 func (b *Block) RebuildMerkleRoot() {
 	txs := b.Transactions
 	hashes := make([]common.Uint256, 0, len(txs))

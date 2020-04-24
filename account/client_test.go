@@ -20,11 +20,12 @@ package account
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	s "github.com/ontio/ontology-crypto/signature"
 	"github.com/stretchr/testify/assert"
-	"os"
-	"testing"
 )
 
 var (

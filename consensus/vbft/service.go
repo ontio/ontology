@@ -33,7 +33,7 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	actorTypes "github.com/ontio/ontology/consensus/actor"
-	"github.com/ontio/ontology/consensus/vbft/config"
+	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/ledger"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
@@ -1001,7 +1001,10 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 			log.Errorf("invalid msg with blockfetch msg type")
 			return
 		}
-		blk, blkHash := self.blockPool.getSealedBlock(pMsg.BlockNum)
+		blk, blkHash := self.blockPool.getChainedBlock(pMsg.BlockNum)
+		if blk == nil {
+			return
+		}
 		msg := self.constructBlockFetchRespMsg(pMsg.BlockNum, blk, blkHash)
 		log.Infof("server %d, handle blockfetch %d from %d",
 			self.Index, pMsg.BlockNum, peerIdx)
@@ -1078,11 +1081,31 @@ func (self *Server) onConsensusMsg(peerIdx uint32, msg ConsensusMsg, msgHash com
 	}
 }
 
+func (self *Server) verifyCrossChainMsg(msg *blockProposalMsg) bool {
+	root, err := self.blockPool.getCrossStatesRoot(msg.Block.Block.Header.Height - 1)
+	if err != nil {
+		log.Errorf("verifyCrossChainMsg:%s", err)
+		return false
+	}
+	//malicious consensus node may create a nil cross chain msg proposal, but it is actual not nil.
+	if root != common.UINT256_EMPTY && msg.Block.CrossChainMsg == nil {
+		return false
+	}
+	if msg.Block.CrossChainMsg == nil {
+		return true
+	}
+	if msg.Block.CrossChainMsg.StatesRoot != root ||
+		msg.Block.CrossChainMsg.Version != types.CURR_CROSS_STATES_VERSION {
+		return false
+	}
+	return true
+}
+
 func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	msgBlkNum := msg.GetBlockNum()
 	blk, prevBlkHash := self.blockPool.getSealedBlock(msg.GetBlockNum() - 1)
 	if blk == nil {
-		log.Errorf("BlockProposal failed to GetPreBlock:%d", (msg.GetBlockNum() - 1))
+		log.Errorf("BlockProposal failed to GetPreBlock:%d", msg.GetBlockNum()-1)
 		return
 	}
 
@@ -1098,7 +1121,7 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 	}
 	merkleRoot, err := self.blockPool.getExecMerkleRoot(msgBlkNum - 1)
 	if err != nil {
-		log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, (msgBlkNum - 1))
+		log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, msgBlkNum-1)
 		return
 	}
 	if msg.Block.getPrevBlockMerkleRoot() != merkleRoot {
@@ -1140,10 +1163,13 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		self.msgPool.DropMsg(msg)
 		return
 	}
-
+	if !self.verifyCrossChainMsg(msg) {
+		log.Errorf("verify cross chain message error:%+v\n", msg.Block.CrossChainMsg)
+		return
+	}
 	txs := msg.Block.Block.Transactions
 	if len(txs) > 0 && self.nonSystxs(txs, msgBlkNum) {
-		height := uint32(msgBlkNum) - 1
+		height := msgBlkNum - 1
 		start, end := self.incrValidator.BlockRange()
 
 		validHeight := height
@@ -1261,6 +1287,11 @@ func (self *Server) processMsgEvent() error {
 
 				// if had committed for current round, skip the following steps
 				if self.blockPool.committedForBlock(msgBlkNum) {
+					// get more endorse msg after committed, trigger seal-block-timeout
+					if err := self.timer.StartCommitTimer(msgBlkNum); err != nil {
+						log.Errorf("server %d start commit timer for %d(%d), block %d, err: %s",
+							self.Index, pMsg.Endorser, pMsg.EndorsedProposer, msgBlkNum, err)
+					}
 					return nil
 				}
 
@@ -2036,7 +2067,7 @@ func (self *Server) fastForwardBlock(block *Block) error {
 	if self.GetCurrentBlockNo() == block.getBlockNum() {
 		// block from peer syncer, there should only one candidate block
 		flag := false
-		if len(block.Block.Header.SigData) == 0 {
+		if len(block.Block.Header.SigData) <= 1 {
 			flag = true
 		}
 		return self.sealBlock(block, false, flag)
@@ -2509,10 +2540,8 @@ func (self *Server) restartSyncing() {
 	// send sync request to self.sync, go syncing-state immediately
 	// stop all bft timers
 
-	self.stateMgr.checkStartSyncing(self.GetCommittedBlockNo(), true)
-
-}
-
-func (self *Server) checkSyncing() {
-	self.stateMgr.checkStartSyncing(self.GetCommittedBlockNo(), false)
+	self.stateMgr.StateEventC <- &StateEvent{
+		Type:     ForceCheckSync,
+		blockNum: self.GetCommittedBlockNo(),
+	}
 }

@@ -120,7 +120,7 @@ func (worker *txPoolWorker) handleRsp(rsp *types.CheckResponse) {
 			Type:    rsp.Type,
 			ErrCode: rsp.ErrCode,
 		}
-		pt.flag |= (0x1 << rsp.Type)
+		pt.flag |= 0x1 << rsp.Type
 		pt.ret = append(pt.ret, retAttr)
 	}
 

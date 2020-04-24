@@ -20,10 +20,10 @@
 package jsonrpc
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
-	"fmt"
 	cfg "github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/http/base/rpc"
@@ -38,6 +38,7 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getblockcount", rpc.GetBlockCount)
 	rpc.HandleFunc("getblockhash", rpc.GetBlockHash)
 	rpc.HandleFunc("getconnectioncount", rpc.GetConnectionCount)
+	rpc.HandleFunc("getsyncstatus", rpc.GetSyncStatus)
 	//HandleFunc("getrawmempool", GetRawMemPool)
 
 	rpc.HandleFunc("getrawtransaction", rpc.GetRawTransaction)
@@ -59,6 +60,9 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getgasprice", rpc.GetGasPrice)
 	rpc.HandleFunc("getunboundong", rpc.GetUnboundOng)
 	rpc.HandleFunc("getgrantong", rpc.GetGrantOng)
+
+	rpc.HandleFunc("getcrosschainmsg", rpc.GetCrossChainMsg)
+	rpc.HandleFunc("getcrossstatesproof", rpc.GetCrossStatesProof)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {

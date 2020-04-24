@@ -18,7 +18,7 @@
 package wasmvm
 
 var (
-	TIME_STAMP_GAS       uint64 = 1
+	TIMESTAMP_GAS        uint64 = 1
 	BLOCK_HEGHT_GAS      uint64 = 1
 	SELF_ADDRESS_GAS     uint64 = 1
 	CALLER_ADDRESS_GAS   uint64 = 1

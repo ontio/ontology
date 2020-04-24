@@ -21,9 +21,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ontio/ontology/cmd/abi"
 	"strconv"
 	"strings"
+
+	"github.com/ontio/ontology/cmd/abi"
 )
 
 func NewNeovmContractAbi(abiData []byte) (*abi.NeovmContractAbi, error) {

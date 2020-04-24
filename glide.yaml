@@ -3,7 +3,7 @@ import:
 - package: github.com/ontio/ontology-eventbus
   version: v0.9.1
 - package: github.com/ontio/ontology-crypto
-  version: v1.0.5
+  version: v1.0.8
 - package: github.com/howeyc/gopass
 - package: github.com/gorilla/websocket
   version: v1.2.0
@@ -40,8 +40,7 @@ import:
   - unix
 - package: golang.org/x/net
   repo: https://github.com/golang/net.git
-- package: github.com/go-interpreter/wagon
-  repo: https://github.com/ontio/wagon.git
-  version: ef8d35ecd300631b16c7f65e7a7fddd9c06eb336
+- package: github.com/ontio/wagon
+  version: v0.4.2
 ignore:
   - golang.org/x/sys/unix

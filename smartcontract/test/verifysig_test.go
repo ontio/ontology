@@ -20,6 +20,8 @@ package test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
@@ -28,7 +30,6 @@ import (
 	"github.com/ontio/ontology/smartcontract"
 	svm "github.com/ontio/ontology/smartcontract/service/neovm"
 	vtypes "github.com/ontio/ontology/vm/neovm/types"
-	"testing"
 )
 
 func TestVerifySig(t *testing.T) {

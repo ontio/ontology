@@ -21,14 +21,15 @@ package test
 import (
 	"bytes"
 	"fmt"
+	"math/big"
+	"testing"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/merkle"
 	"github.com/ontio/ontology/vm/neovm"
 	"github.com/stretchr/testify/assert"
-	"math/big"
-	"testing"
 )
 
 func TestMerkleVerifier(t *testing.T) {

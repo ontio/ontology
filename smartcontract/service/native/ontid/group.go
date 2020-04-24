@@ -40,6 +40,23 @@ func (g *Group) ToJson() []byte {
 	return j
 }
 
+func (g *Group) Serialize() []byte {
+	sink := common.NewZeroCopySink(nil)
+	utils.EncodeVarUint(sink, uint64(len(g.Members)))
+	for _, m := range g.Members {
+		switch t := m.(type) {
+		case []byte:
+			sink.WriteVarBytes(t)
+		case *Group:
+			sink.WriteVarBytes(t.Serialize())
+		default:
+			panic("invlid member type")
+		}
+	}
+	utils.EncodeVarUint(sink, uint64(g.Threshold))
+	return sink.Bytes()
+}
+
 func rDeserialize(data []byte, depth uint) (*Group, error) {
 	if depth == MAX_DEPTH {
 		return nil, fmt.Errorf("recursion is too deep")
@@ -122,6 +139,16 @@ type Signer struct {
 	index uint32
 }
 
+func SerializeSigners(s []Signer) []byte {
+	sink := common.NewZeroCopySink(nil)
+	utils.EncodeVarUint(sink, uint64(len(s)))
+	for _, v := range s {
+		sink.WriteVarBytes(v.id)
+		utils.EncodeVarUint(sink, uint64(v.index))
+	}
+	return sink.Bytes()
+}
+
 func deserializeSigners(data []byte) ([]Signer, error) {
 	buf := common.NewZeroCopySource(data)
 	num, err := utils.DecodeVarUint(buf)
@@ -185,14 +212,7 @@ func verifyGroupSignature(srvc *native.NativeService, g *Group, signers []Signer
 		if err != nil {
 			return false
 		}
-		pk, err := getPk(srvc, key, signer.index)
-		if err != nil {
-			return false
-		}
-		if pk.revoked {
-			return false
-		}
-		if checkWitness(srvc, pk.key) != nil {
+		if checkWitnessByIndex(srvc, key, signer.index) != nil {
 			return false
 		}
 	}

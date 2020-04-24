@@ -26,7 +26,6 @@ import (
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
@@ -646,11 +645,7 @@ func verifySig(native *native.NativeService, ontID []byte, keyNo uint64) (bool, 
 	if err != nil {
 		return false, err
 	}
-	valid, ok := ret.([]byte)
-	if !ok {
-		return false, errors.NewErr("verifySignature return non-bool value")
-	}
-	if bytes.Compare(valid, utils.BYTE_TRUE) == 0 {
+	if bytes.Compare(ret, utils.BYTE_TRUE) == 0 {
 		return true, nil
 	} else {
 		return false, nil

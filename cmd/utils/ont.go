@@ -23,6 +23,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/rand"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/ontio/ontology-crypto/keypair"
 	sig "github.com/ontio/ontology-crypto/signature"
 	"github.com/ontio/ontology/account"
@@ -37,13 +44,6 @@ import (
 	rpccommon "github.com/ontio/ontology/http/base/common"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
-	cstates "github.com/ontio/ontology/smartcontract/states"
-	"io"
-	"math/rand"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
 )
 
 const (
@@ -454,12 +454,12 @@ func SendRawTransactionData(txData string) (string, error) {
 	return hexHash, nil
 }
 
-func PrepareSendRawTransaction(txData string) (*cstates.PreExecResult, error) {
+func PrepareSendRawTransaction(txData string) (*rpccommon.PreExecuteResult, error) {
 	data, ontErr := sendRpcRequest("sendrawtransaction", []interface{}{txData, 1})
 	if ontErr != nil {
 		return nil, ontErr.Error
 	}
-	preResult := &cstates.PreExecResult{}
+	preResult := &rpccommon.PreExecuteResult{}
 	err := json.Unmarshal(data, &preResult)
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal PreExecResult:%s error:%s", data, err)
@@ -555,6 +555,27 @@ func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
 	return blockData, nil
 }
 
+func GetCrossChainMsg(height uint32) ([]byte, error) {
+	data, ontErr := sendRpcRequest("getcrosschainmsg", []interface{}{height})
+	if ontErr != nil {
+		switch ontErr.ErrorCode {
+		case ERROR_INVALID_PARAMS:
+			return nil, fmt.Errorf("invalid block hash or block height:%d", height)
+		}
+		return nil, ontErr.Error
+	}
+	hexStr := ""
+	err := json.Unmarshal(data, &hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
+	}
+	crossChainMsg, err := hex.DecodeString(hexStr)
+	if err != nil {
+		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
+	}
+	return crossChainMsg, nil
+}
+
 func GetBlockCount() (uint32, error) {
 	data, ontErr := sendRpcRequest("getblockcount", []interface{}{})
 	if ontErr != nil {
@@ -628,7 +649,7 @@ func PrepareDeployContract(
 	cversion,
 	cauthor,
 	cemail,
-	cdesc string) (*cstates.PreExecResult, error) {
+	cdesc string) (*httpcom.PreExecuteResult, error) {
 	c, err := hex.DecodeString(code)
 	if err != nil {
 		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
@@ -693,7 +714,7 @@ func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) 
 func PrepareInvokeNeoVMContract(
 	contractAddress common.Address,
 	params []interface{},
-) (*cstates.PreExecResult, error) {
+) (*rpccommon.PreExecuteResult, error) {
 	mutable, err := httpcom.NewNeovmInvokeTransaction(0, 0, contractAddress, params)
 	if err != nil {
 		return nil, err
@@ -708,7 +729,7 @@ func PrepareInvokeNeoVMContract(
 	return PrepareSendRawTransaction(txData)
 }
 
-func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error) {
+func PrepareInvokeCodeNeoVMContract(code []byte) (*rpccommon.PreExecuteResult, error) {
 	mutable, err := httpcom.NewSmartContractTransaction(0, 0, code)
 	if err != nil {
 		return nil, err
@@ -722,7 +743,7 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*cstates.PreExecResult, error)
 }
 
 //prepare invoke wasm
-func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interface{}) (*cstates.PreExecResult, error) {
+func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interface{}) (*rpccommon.PreExecuteResult, error) {
 	mutable, err := cutils.NewWasmVMInvokeTransaction(0, 0, contractAddress, params)
 	if err != nil {
 		return nil, err
@@ -741,7 +762,7 @@ func PrepareInvokeNativeContract(
 	contractAddress common.Address,
 	version byte,
 	method string,
-	params []interface{}) (*cstates.PreExecResult, error) {
+	params []interface{}) (*httpcom.PreExecuteResult, error) {
 	mutable, err := httpcom.NewNativeInvokeTransaction(0, 0, contractAddress, version, method, params)
 	if err != nil {
 		return nil, err

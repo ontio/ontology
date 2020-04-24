@@ -19,6 +19,8 @@
 package stateful
 
 import (
+	"reflect"
+
 	"github.com/ontio/ontology-eventbus/actor"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/ledger"
@@ -26,7 +28,6 @@ import (
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/validator/db"
 	vatypes "github.com/ontio/ontology/validator/types"
-	"reflect"
 )
 
 // Validator is an interface for tx validation actor

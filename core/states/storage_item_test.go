@@ -18,8 +18,9 @@
 package states
 
 import (
-	"github.com/ontio/ontology/common"
 	"testing"
+
+	"github.com/ontio/ontology/common"
 )
 
 func TestStorageItem_Serialize_Deserialize(t *testing.T) {

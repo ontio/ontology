@@ -110,7 +110,7 @@ func TestSerialization_AssignOntIDs(t *testing.T) {
 		ContractAddr: OntContractAddr,
 		AdminOntID:   admin,
 		Role:         []byte(role),
-		Persons:      [][]byte{[]byte{0x03, 0x04, 0x05, 0x06}, []byte{0x07, 0x08, 0x09, 0x0a}},
+		Persons:      [][]byte{{0x03, 0x04, 0x05, 0x06}, {0x07, 0x08, 0x09, 0x0a}},
 	}
 	bf := common.NewZeroCopySink(nil)
 	param.Serialization(bf)

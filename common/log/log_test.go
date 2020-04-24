@@ -19,11 +19,12 @@ package log
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func logPrint() {
@@ -81,5 +82,5 @@ func TestNewLogFile(t *testing.T) {
 		fmt.Println(err2)
 		return
 	}
-	assert.Equal(t, len(logfileNum1), (len(logfileNum2) - 1))
+	assert.Equal(t, len(logfileNum1), len(logfileNum2)-1)
 }

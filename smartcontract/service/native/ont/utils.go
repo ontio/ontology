@@ -55,7 +55,6 @@ func AddNotifications(native *native.NativeService, contract common.Address, sta
 			States:          []interface{}{TRANSFER_NAME, state.From.ToBase58(), state.To.ToBase58(), state.Value},
 		})
 }
-
 func GetToUInt64StorageItem(toBalance, value uint64) *cstates.StorageItem {
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteUint64(toBalance + value)

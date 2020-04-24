@@ -19,8 +19,8 @@ package common
 
 import (
 	"bytes"
-
 	"encoding/json"
+
 	utils2 "github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/utils"
@@ -29,8 +29,7 @@ import (
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/types"
-	// neovms "github.com/ontio/ontology/smartcontract/service/neovm"
-	neovm "github.com/ontio/ontology/vm/neovm"
+	"github.com/ontio/ontology/vm/neovm"
 )
 
 type TestEnv struct {
@@ -80,9 +79,14 @@ type TestCase struct {
 	Notify      string  `json:"notify"`
 }
 
+type ConAddr struct {
+	File    string
+	Address common.Address
+}
+
 type TestContext struct {
 	Admin   common.Address
-	AddrMap map[string]common.Address
+	AddrMap []ConAddr
 }
 
 func GenWasmTransaction(testCase TestCase, contract common.Address, testConext *TestContext) (*types.Transaction, error) {
@@ -135,7 +139,9 @@ func buildTestConextForNeo(testConext *TestContext) []byte {
 	// construct [admin, map] array
 	builder.EmitPushByteArray(testConext.Admin[:])
 	builder.Emit(neovm.NEWMAP)
-	for file, addr := range addrMap {
+	for _, item := range addrMap {
+		file := item.File
+		addr := item.Address
 		builder.Emit(neovm.DUP)
 		builder.EmitPushByteArray(addr[:])
 		builder.Emit(neovm.SWAP)
@@ -199,7 +205,9 @@ func buildTestConext(testConext *TestContext) []byte {
 
 	bf.WriteAddress(testConext.Admin)
 	bf.WriteVarUint(uint64(len(addrMap)))
-	for file, addr := range addrMap {
+	for _, item := range addrMap {
+		file := item.File
+		addr := item.Address
 		bf.WriteString(file)
 		bf.WriteAddress(addr)
 	}
