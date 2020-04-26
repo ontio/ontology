@@ -664,9 +664,9 @@ func (pool *BlockPool) setBlockSealed(block *Block, forEmpty bool, sigdata bool)
 		}
 	}
 	sealedBlock := &Block{
-		Info:                block.Info,
-		PrevBlockMerkleRoot: block.PrevBlockMerkleRoot,
-		CrossChainMsg:       block.CrossChainMsg,
+		Info:               block.Info,
+		PrevExecMerkleRoot: block.PrevExecMerkleRoot,
+		CrossChainMsg:      block.CrossChainMsg,
 	}
 	if !forEmpty {
 		// remove empty block
