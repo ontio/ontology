@@ -66,6 +66,13 @@ func CaseContext(t *testing.T, n *native.NativeService) {
 		fmt.Println(common.ToHexString(res[i]))
 	}
 
+	contexts = [][]byte{[]byte("https://www.w3.org/ns0/did/v1")}
+	context = &Context{
+		OntId:    []byte(id),
+		Contexts: contexts,
+		Index:    1,
+		Proof:    []byte{0x01, 0x02},
+	}
 	sink = common.NewZeroCopySink(nil)
 	context.Serialization(sink)
 	n.Input = sink.Bytes()
@@ -74,7 +81,6 @@ func CaseContext(t *testing.T, n *native.NativeService) {
 	if err != nil {
 		t.Fatal()
 	}
-
 	res, err = getContexts(n, key)
 	if err != nil {
 		t.Fatal()

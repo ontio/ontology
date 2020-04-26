@@ -70,16 +70,18 @@ func deleteContexts(srvc *native.NativeService, key []byte, params *Context) err
 	if err != nil {
 		return fmt.Errorf("deleteContexts error: getContexts error, %s", err)
 	}
-	repeat := getRepeatContexts(contexts, params)
+	coincidence := getCoincidence(contexts, params)
 	var remove [][]byte
-	for i := 0; i < len(params.Contexts); i++ {
-		if _, ok := repeat[common.ToHexString(params.Contexts[i])]; ok {
-			contexts = append(contexts[:i], contexts[i+1:]...)
-			remove = append(remove, params.Contexts[i])
+	var remain [][]byte
+	for i := 0; i < len(contexts); i++ {
+		if _, ok := coincidence[common.ToHexString(contexts[i])]; !ok {
+			remain = append(remain, contexts[i])
+		} else {
+			remove = append(remove, contexts[i])
 		}
 	}
 	triggerContextEvent(srvc, "remove", params.OntId, remove)
-	err = storeContexts(contexts, srvc, key)
+	err = storeContexts(remain, srvc, key)
 	if err != nil {
 		return fmt.Errorf("deleteContexts error: storeContexts error, %s", err)
 	}
@@ -91,14 +93,12 @@ func putContexts(srvc *native.NativeService, key []byte, params *Context) error 
 	if err != nil {
 		return fmt.Errorf("putContexts error: getContexts failed, %s", err)
 	}
-	repeat := getRepeatContexts(contexts, params)
 	var add [][]byte
+	removeDuplicate(params)
 	for i := 0; i < len(params.Contexts); i++ {
-		if _, ok := repeat[common.ToHexString(params.Contexts[i])]; !ok {
-			if (bytes.Equal(params.Contexts[i], _DefaultContexts[0])) && (bytes.Equal(params.Contexts[i], _DefaultContexts[1])) {
-				contexts = append(contexts, params.Contexts[i])
-				add = append(add, params.Contexts[i])
-			}
+		if (!bytes.Equal(params.Contexts[i], _DefaultContexts[0])) && (!bytes.Equal(params.Contexts[i], _DefaultContexts[1])) {
+			contexts = append(contexts, params.Contexts[i])
+			add = append(add, params.Contexts[i])
 		}
 	}
 	triggerContextEvent(srvc, "add", params.OntId, add)
@@ -109,7 +109,7 @@ func putContexts(srvc *native.NativeService, key []byte, params *Context) error 
 	return nil
 }
 
-func getRepeatContexts(contexts [][]byte, params *Context) map[string]bool {
+func getCoincidence(contexts [][]byte, params *Context) map[string]bool {
 	repeat := make(map[string]bool)
 	for i := 0; i < len(contexts); i++ {
 		for j := 0; j < len(params.Contexts); j++ {
@@ -119,6 +119,18 @@ func getRepeatContexts(contexts [][]byte, params *Context) map[string]bool {
 		}
 	}
 	return repeat
+}
+
+func removeDuplicate(params *Context) {
+	repeat := make(map[string]bool)
+	var res [][]byte
+	for i := 0; i < len(params.Contexts); i++ {
+		if _, ok := repeat[common.ToHexString(params.Contexts[i])]; !ok {
+			res = append(res, params.Contexts[i])
+			repeat[common.ToHexString(params.Contexts[i])] = true
+		}
+	}
+	params.Contexts = res
 }
 
 func getContexts(srvc *native.NativeService, key []byte) ([][]byte, error) {
