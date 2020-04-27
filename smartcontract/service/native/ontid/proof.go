@@ -25,6 +25,9 @@ func getProof(srvc *native.NativeService, encId []byte) (string, error) {
 	if err != nil {
 		return "", errors.New("getProof error:" + err.Error())
 	}
+	if proofStore == nil {
+		return "", nil
+	}
 	source := common.NewZeroCopySource(proofStore.Value)
 	proof, err := utils.DecodeVarBytes(source)
 	if err != nil {
