@@ -16,11 +16,11 @@ type SetKeyAccessParam struct {
 }
 
 func (this *SetKeyAccessParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.OntId)
-	sink.WriteVarUint(uint64(this.SetIndex))
-	sink.WriteString(this.Access)
-	sink.WriteVarUint(uint64(this.SignIndex))
-	sink.WriteVarBytes(this.Proof)
+	utils.EncodeVarBytes(sink, this.OntId)
+	utils.EncodeVarUint(sink, uint64(this.SetIndex))
+	utils.EncodeString(sink, this.Access)
+	utils.EncodeVarUint(sink, uint64(this.SignIndex))
+	utils.EncodeVarBytes(sink, this.Proof)
 }
 
 func (this *SetKeyAccessParam) Deserialization(source *common.ZeroCopySource) error {
@@ -60,10 +60,10 @@ type ProofParam struct {
 }
 
 func (this *ProofParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteString(this.ProofType)
-	sink.WriteString(this.Created)
-	sink.WriteString(this.Creator)
-	sink.WriteString(this.SignatureValue)
+	utils.EncodeString(sink, this.ProofType)
+	utils.EncodeString(sink, this.Created)
+	utils.EncodeString(sink, this.Creator)
+	utils.EncodeString(sink, this.SignatureValue)
 }
 
 func (this *ProofParam) Deserialization(source *common.ZeroCopySource) error {
@@ -100,12 +100,12 @@ type ServiceParam struct {
 }
 
 func (this *ServiceParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.OntId)
-	sink.WriteVarBytes(this.ServiceId)
-	sink.WriteVarBytes(this.Type)
-	sink.WriteVarBytes(this.ServiceEndpint)
-	sink.WriteVarUint(uint64(this.Index))
-	sink.WriteVarBytes(this.Proof)
+	utils.EncodeVarBytes(sink, this.OntId)
+	utils.EncodeVarBytes(sink, this.ServiceId)
+	utils.EncodeVarBytes(sink, this.Type)
+	utils.EncodeVarBytes(sink, this.ServiceEndpint)
+	utils.EncodeVarUint(sink, uint64(this.Index))
+	utils.EncodeVarBytes(sink, this.Proof)
 }
 
 func (this *ServiceParam) Deserialization(source *common.ZeroCopySource) error {
@@ -127,11 +127,11 @@ func (this *ServiceParam) Deserialization(source *common.ZeroCopySource) error {
 	}
 	Index, err := utils.DecodeVarUint(source)
 	if err != nil {
-		return fmt.Errorf("serialization.DecodeVarUint, deserialize SignatureValue error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarUint, deserialize Index error: %v", err)
 	}
 	Proof, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Creator error: %v", err)
+		return fmt.Errorf("serialization.DecodeVarBytes, deserialize Proof error: %v", err)
 	}
 	this.OntId = OntId
 	this.ServiceId = ServiceId
@@ -150,10 +150,10 @@ type ServiceRemoveParam struct {
 }
 
 func (this *ServiceRemoveParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.OntId)
-	sink.WriteVarBytes(this.ServiceId)
-	sink.WriteVarUint(uint64(this.Index))
-	sink.WriteVarBytes(this.Proof)
+	utils.EncodeVarBytes(sink, this.OntId)
+	utils.EncodeVarBytes(sink, this.ServiceId)
+	utils.EncodeVarUint(sink, uint64(this.Index))
+	utils.EncodeVarBytes(sink, this.Proof)
 }
 
 func (this *ServiceRemoveParam) Deserialization(source *common.ZeroCopySource) error {
@@ -187,9 +187,9 @@ type Service struct {
 }
 
 func (this *Service) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.ServiceId)
-	sink.WriteVarBytes(this.Type)
-	sink.WriteVarBytes(this.ServiceEndpint)
+	utils.EncodeVarBytes(sink, this.ServiceId)
+	utils.EncodeVarBytes(sink, this.Type)
+	utils.EncodeVarBytes(sink, this.ServiceEndpint)
 }
 
 func (this *Service) Deserialization(source *common.ZeroCopySource) error {
@@ -217,9 +217,9 @@ func (services *Services) Serialization(sink *common.ZeroCopySink) {
 	serviceNum := len(*services)
 	utils.EncodeVarUint(sink, uint64(serviceNum))
 	for _, service := range *services {
-		sink.WriteVarBytes(service.ServiceId)
-		sink.WriteVarBytes(service.Type)
-		sink.WriteVarBytes(service.ServiceEndpint)
+		utils.EncodeVarBytes(sink, service.ServiceId)
+		utils.EncodeVarBytes(sink, service.Type)
+		utils.EncodeVarBytes(sink, service.ServiceEndpint)
 	}
 }
 
@@ -256,14 +256,14 @@ type Context struct {
 }
 
 func (this *Context) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.OntId)
+	utils.EncodeVarBytes(sink, this.OntId)
 	contextNum := len(this.Contexts)
 	utils.EncodeVarUint(sink, uint64(contextNum))
 	for _, c := range this.Contexts {
-		sink.WriteVarBytes(c)
+		utils.EncodeVarBytes(sink, c)
 	}
 	utils.EncodeVarUint(sink, uint64(this.Index))
-	sink.WriteVarBytes(this.Proof)
+	utils.EncodeVarBytes(sink, this.Proof)
 }
 
 func (this *Context) Deserialization(source *common.ZeroCopySource) error {
@@ -305,7 +305,7 @@ func (contexts *Contexts) Serialization(sink *common.ZeroCopySink) {
 	contextNum := len(*contexts)
 	utils.EncodeVarUint(sink, uint64(contextNum))
 	for _, c := range *contexts {
-		sink.WriteVarBytes(c)
+		utils.EncodeVarBytes(sink, c)
 	}
 }
 
@@ -335,12 +335,12 @@ type AddAuthKeyParam struct {
 }
 
 func (this *AddAuthKeyParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.OntId)
-	sink.WriteBool(this.IfNewPublicKey)
-	sink.WriteVarUint(uint64(this.Index))
+	utils.EncodeVarBytes(sink, this.OntId)
+	utils.EncodeBool(sink, this.IfNewPublicKey)
+	utils.EncodeVarUint(sink, uint64(this.Index))
 	this.NewPublicKey.Serialization(sink)
-	sink.WriteVarUint(uint64(this.SignIndex))
-	sink.WriteVarBytes(this.Proof)
+	utils.EncodeVarUint(sink, uint64(this.SignIndex))
+	utils.EncodeVarBytes(sink, this.Proof)
 }
 
 func (this *AddAuthKeyParam) Deserialization(source *common.ZeroCopySource) error {
@@ -385,9 +385,9 @@ type NewPublicKey struct {
 }
 
 func (this *NewPublicKey) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.key)
-	sink.WriteBool(this.revoked)
-	sink.WriteVarBytes(this.controller)
+	utils.EncodeVarBytes(sink, this.key)
+	utils.EncodeBool(sink, this.revoked)
+	utils.EncodeVarBytes(sink, this.controller)
 }
 
 func (this *NewPublicKey) Deserialization(source *common.ZeroCopySource) error {
@@ -416,8 +416,8 @@ type SearchServiceParam struct {
 }
 
 func (this *SearchServiceParam) Serialization(sink *common.ZeroCopySink) {
-	sink.WriteVarBytes(this.OntId)
-	sink.WriteVarBytes(this.ServiceId)
+	utils.EncodeVarBytes(sink, this.OntId)
+	utils.EncodeVarBytes(sink, this.ServiceId)
 }
 
 func (this *SearchServiceParam) Deserialization(source *common.ZeroCopySource) error {
