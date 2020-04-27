@@ -42,6 +42,9 @@ func EncodeString(sink *common.ZeroCopySink, str string) (size uint64) {
 	return sink.WriteVarBytes([]byte(str))
 }
 
+func EncodeBool(sink *common.ZeroCopySink, value bool) {
+	sink.WriteBool(value)
+}
 func DecodeVarUint(source *common.ZeroCopySource) (uint64, error) {
 	value, _, irregular, eof := source.NextVarBytes()
 	if eof {
