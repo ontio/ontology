@@ -303,7 +303,7 @@ func GetDocument(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getAuthentication failed: %s", err)
 	}
-	controller, err := getController(srvc, encId)
+	controller, err := getControllerJson(srvc, encId)
 	if err != nil {
 		return nil, fmt.Errorf("getController failed: %s", err)
 	}
