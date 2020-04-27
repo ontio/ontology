@@ -63,5 +63,6 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("getDDO", GetDDO)
 	srvc.Register("getService", GetService)
 	srvc.Register("getController", GetController)
+	srvc.Register("getDocument", GetDocument)
 	return
 }

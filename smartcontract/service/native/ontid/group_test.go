@@ -68,13 +68,13 @@ func TestDeserializeGroup(t *testing.T) {
 	srvc.CacheDB = cache
 
 	key, _ := encodeID(id0)
-	insertPk(srvc, key, []byte("test pk"))
+	insertPk(srvc, key, []byte("test pk"), []byte("controller"), "yes", 1, []byte("yes"))
 	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 	key, _ = encodeID(id1)
-	insertPk(srvc, key, []byte("test pk"))
+	insertPk(srvc, key, []byte("test pk"), []byte("controller"), "yes", 1, []byte("yes"))
 	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 	key, _ = encodeID(id2)
-	insertPk(srvc, key, []byte("test pk"))
+	insertPk(srvc, key, []byte("test pk"), []byte("controller"), "yes", 1, []byte("yes"))
 	cache.Put(key, states.GenRawStorageItem([]byte{flag_valid}))
 
 	err = validateMembers(srvc, g)

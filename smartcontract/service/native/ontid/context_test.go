@@ -2,27 +2,11 @@ package ontid
 
 import (
 	"fmt"
-	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"github.com/ontio/ontology/smartcontract/service/native/testsuite"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 	"testing"
 )
-
-//OntId    []byte
-//Contexts [][]byte
-//Index    uint32
-//Proof    []byte
-func testcase(t *testing.T, f func(t *testing.T, n *native.NativeService)) {
-	testsuite.InvokeNativeContract(t, utils.OntIDContractAddress,
-		func(n *native.NativeService) ([]byte, error) {
-			f(t, n)
-			return nil, nil
-		},
-	)
-}
 
 func TestContext(t *testing.T) {
 	testcase(t, CaseContext)
@@ -66,6 +50,12 @@ func CaseContext(t *testing.T, n *native.NativeService) {
 		fmt.Println(common.ToHexString(res[i]))
 	}
 
+	contextsJson, err := getContextsWithDefault(n, encId)
+	if err != nil {
+		t.Fatal()
+	}
+	fmt.Println(contextsJson)
+
 	contexts = [][]byte{[]byte("https://www.w3.org/ns0/did/v1")}
 	context = &Context{
 		OntId:    []byte(id),
@@ -88,18 +78,4 @@ func CaseContext(t *testing.T, n *native.NativeService) {
 	for i := 0; i < len(res); i++ {
 		fmt.Println(common.ToHexString(res[i]))
 	}
-}
-
-func regID(n *native.NativeService, id string, a *account.Account) error {
-	// make arguments
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteVarBytes([]byte(id))
-	pk := keypair.SerializePublicKey(a.PubKey())
-	sink.WriteVarBytes(pk)
-	n.Input = sink.Bytes()
-	// set signing address
-	n.Tx.SignedAddr = []common.Address{a.Address}
-	// call
-	_, err := regIdWithPublicKey(n)
-	return err
 }

@@ -330,7 +330,7 @@ func CaseOwnerSize(t *testing.T, n *native.NativeService) {
 	}
 
 	buf := make([]byte, OWNER_TOTAL_SIZE)
-	_, err = insertPk(n, enc, buf)
+	_, err = insertPk(n, enc, buf, []byte("controller"), "yes", 1, []byte("yes"))
 	if err == nil {
 		t.Fatal("total size of the owner's key should be limited")
 	}

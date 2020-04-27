@@ -95,10 +95,13 @@ func putContexts(srvc *native.NativeService, key []byte, params *Context) error 
 	}
 	var add [][]byte
 	removeDuplicate(params)
+	coincidence := getCoincidence(contexts, params)
 	for i := 0; i < len(params.Contexts); i++ {
 		if (!bytes.Equal(params.Contexts[i], _DefaultContexts[0])) && (!bytes.Equal(params.Contexts[i], _DefaultContexts[1])) {
-			contexts = append(contexts, params.Contexts[i])
-			add = append(add, params.Contexts[i])
+			if _, ok := coincidence[common.ToHexString(params.Contexts[i])]; !ok {
+				contexts = append(contexts, params.Contexts[i])
+				add = append(add, params.Contexts[i])
+			}
 		}
 	}
 	triggerContextEvent(srvc, "add", params.OntId, add)

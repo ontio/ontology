@@ -17,7 +17,6 @@ type serviceJson struct {
 	ServiceEndpint string `json:"serviceEndpint"`
 }
 
-// TODO update time, proof
 func addService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: addService")
 	params := new(ServiceParam)
@@ -43,7 +42,6 @@ func addService(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-// TODO update time, proof
 func updateService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: updateService")
 	params := new(ServiceParam)
@@ -88,7 +86,6 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_FALSE, nil
 }
 
-// TODO update time, proof
 func removeService(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("ID contract: updateService")
 	params := new(ServiceRemoveParam)
@@ -167,11 +164,13 @@ func putService(srvc *native.NativeService, encId []byte, params *ServiceParam) 
 	if err != nil {
 		return fmt.Errorf("putService error: get storage error, %s", err)
 	}
-	source := common.NewZeroCopySource(servicesStore.Value)
 	services := new(Services)
-	err = services.Deserialization(source)
-	if err != nil {
-		return fmt.Errorf("deserialize services error, %s", err)
+	if servicesStore != nil {
+		source := common.NewZeroCopySource(servicesStore.Value)
+		err = services.Deserialization(source)
+		if err != nil {
+			return fmt.Errorf("deserialize services error, %s", err)
+		}
 	}
 
 	service := Service{
