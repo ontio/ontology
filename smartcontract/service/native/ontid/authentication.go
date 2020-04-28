@@ -46,7 +46,7 @@ func addAuthKey(srvc *native.NativeService) ([]byte, error) {
 }
 
 func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
-	params := new(Context)
+	params := new(RemoveAuthKeyParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.New("remove auth key error: deserialization params error, " + err.Error())
 	}
@@ -59,7 +59,7 @@ func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("remove auth key error: have not registered")
 	}
 
-	if err := checkWitnessByIndex(srvc, encId, params.Index); err != nil {
+	if err := checkWitnessByIndex(srvc, encId, params.SignIndex); err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
 	}
 

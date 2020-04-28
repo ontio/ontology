@@ -378,6 +378,44 @@ func (this *AddAuthKeyParam) Deserialization(source *common.ZeroCopySource) erro
 	return nil
 }
 
+type RemoveAuthKeyParam struct {
+	OntId     []byte
+	Index     uint32
+	SignIndex uint32
+	Proof     []byte
+}
+
+func (this *RemoveAuthKeyParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarBytes(sink, this.OntId)
+	utils.EncodeVarUint(sink, uint64(this.Index))
+	utils.EncodeVarUint(sink, uint64(this.SignIndex))
+	utils.EncodeVarBytes(sink, this.Proof)
+}
+
+func (this *RemoveAuthKeyParam) Deserialization(source *common.ZeroCopySource) error {
+	ontId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarBytes, deserialize ontId error: %v", err)
+	}
+	index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarUint, deserialize index error: %v", err)
+	}
+	signIndex, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarUint, deserialize signIndex error: %v", err)
+	}
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarBytes, deserialize proof error: %v", err)
+	}
+	this.OntId = ontId
+	this.Index = uint32(index)
+	this.SignIndex = uint32(signIndex)
+	this.Proof = proof
+	return nil
+}
+
 type NewPublicKey struct {
 	key        []byte
 	revoked    bool
