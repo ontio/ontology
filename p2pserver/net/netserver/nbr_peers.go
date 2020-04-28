@@ -94,7 +94,9 @@ func (this *NbrPeers) Broadcast(msg types.Message) {
 	defer this.RUnlock()
 	for _, node := range this.List {
 		if node.Peer.GetRelay() {
-			go node.Peer.SendRaw(sink.Bytes())
+			// try send and drop message if link is full
+			_ = node.Peer.SendRawAsync(sink.Bytes())
+			//go node.Peer.SendRaw(sink.Bytes())
 		}
 	}
 }
