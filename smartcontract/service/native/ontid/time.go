@@ -35,10 +35,13 @@ func getTime(srvc *native.NativeService, key []byte) (uint32, error) {
 	if err != nil {
 		return 0, errors.New("getTime error:" + err.Error())
 	}
-	source := common.NewZeroCopySource(timeStore.Value)
-	createTime, err := utils.DecodeUint32(source)
-	if err != nil {
-		return 0, errors.New("DecodeUint32 error:" + err.Error())
+	var createTime uint32 = 0
+	if timeStore != nil {
+		source := common.NewZeroCopySource(timeStore.Value)
+		createTime, err = utils.DecodeUint32(source)
+		if err != nil {
+			return 0, errors.New("DecodeUint32 error:" + err.Error())
+		}
 	}
 	return createTime, nil
 }
