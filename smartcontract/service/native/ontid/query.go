@@ -264,7 +264,7 @@ func GetController(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	} else if item == nil {
-		return nil, errors.New("empty controller storage")
+		return nil, nil
 	}
 
 	if account.VerifyID(string(item.Value)) {
@@ -303,7 +303,7 @@ func GetDocument(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getAuthentication failed: %s", err)
 	}
-	controller, err := getControllerJson(srvc, encId)
+	controller, err := getController(srvc, encId)
 	if err != nil {
 		return nil, fmt.Errorf("getController failed: %s", err)
 	}

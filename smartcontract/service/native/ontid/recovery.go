@@ -105,6 +105,9 @@ func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("update recovery: get old recovery error, " + err.Error())
 	}
+	if re == nil {
+		return utils.BYTE_FALSE, errors.New("update recovery: old recovery is not exist")
+	}
 	signers, err := deserializeSigners(arg2)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("update recovery: signers error: " + err.Error())
@@ -159,6 +162,9 @@ func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	rec, err := getRecovery(srvc, encId)
 	if err != nil {
 		return utils.BYTE_FALSE, err
+	}
+	if rec == nil {
+		return utils.BYTE_FALSE, errors.New("recovery is not exist")
 	}
 
 	if !verifyGroupSignature(srvc, rec, signers) {
@@ -221,6 +227,9 @@ func removeKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
+	if rec == nil {
+		return utils.BYTE_FALSE, errors.New("recovery is not exist")
+	}
 
 	if !verifyGroupSignature(srvc, rec, signers) {
 		return utils.BYTE_FALSE, errors.New("verification failed")
@@ -265,7 +274,7 @@ func getRecovery(srvc *native.NativeService, encId []byte) (*Group, error) {
 	if err != nil {
 		return nil, err
 	} else if item == nil {
-		return nil, errors.New("empty storage item")
+		return nil, nil
 	}
 	if item.StateVersion != _VERSION_1 {
 		return nil, errors.New("unexpected storage version")

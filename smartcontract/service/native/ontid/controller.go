@@ -355,27 +355,11 @@ func getController(srvc *native.NativeService, encId []byte) (interface{}, error
 	if err != nil {
 		return nil, err
 	} else if item == nil {
-		return nil, errors.New("empty controller storage")
+		return nil, nil
 	}
 
 	if account.VerifyID(string(item.Value)) {
 		return item.Value, nil
-	} else {
-		return deserializeGroup(item.Value)
-	}
-}
-
-func getControllerJson(srvc *native.NativeService, encId []byte) (interface{}, error) {
-	key := append(encId, FIELD_CONTROLLER)
-	item, err := utils.GetStorageItem(srvc, key)
-	if err != nil {
-		return nil, err
-	} else if item == nil {
-		return nil, errors.New("empty controller storage")
-	}
-
-	if account.VerifyID(string(item.Value)) {
-		return string(item.Value), nil
 	} else {
 		return deserializeGroup(item.Value)
 	}
@@ -414,6 +398,9 @@ func verifyControllerSignature(srvc *native.NativeService, encId []byte, args *c
 	ctrl, err := getController(srvc, encId)
 	if err != nil {
 		return err
+	}
+	if ctrl == nil {
+		return errors.New("controller is not exist")
 	}
 
 	switch t := ctrl.(type) {
