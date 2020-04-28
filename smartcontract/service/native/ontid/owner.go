@@ -294,7 +294,10 @@ func changePkAuthentication(srvc *native.NativeService, encId []byte, index uint
 	if err != nil {
 		return err
 	}
-	publicKeys[index].authentication = authentication
+	if index < 1 || index > uint32(len(publicKeys)) {
+		return errors.New("invalid key index")
+	}
+	publicKeys[index-1].authentication = authentication
 	err = putAllPk_Version1(srvc, key, publicKeys)
 	if err != nil {
 		return err
@@ -307,6 +310,9 @@ func getPk(srvc *native.NativeService, encId []byte, index uint32) (*publicKey, 
 	publicKeys, err := getAllPk_Version1(srvc, encId, key)
 	if err != nil {
 		return nil, err
+	}
+	if len(publicKeys) == 0 {
+		return nil, fmt.Errorf("no record")
 	}
 	if index < 1 || index > uint32(len(publicKeys)) {
 		return nil, errors.New("invalid key index")
@@ -349,7 +355,10 @@ func revokeAuthKey(srvc *native.NativeService, encId []byte, index uint32, proof
 	if err != nil {
 		return err
 	}
-	publicKeys[index].revoked = true
+	if index < 1 || index > uint32(len(publicKeys)) {
+		return errors.New("invalid key index")
+	}
+	publicKeys[index-1].revoked = true
 	err = putAllPk_Version1(srvc, key, publicKeys)
 	if err != nil {
 		return err
