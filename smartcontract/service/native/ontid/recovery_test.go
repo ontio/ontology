@@ -106,7 +106,7 @@ func CaseRecovery(t *testing.T, n *native.NativeService) {
 	}
 
 	// 7. update without enough signature, should fail
-	s[0].id = []byte(id2)
+	s[0].Id = []byte(id2)
 	addr[0] = a2.Address
 	if err := updateRec(n, id0, g, s, addr[1:]); err == nil {
 		t.Error("recovery updated without enough signature")

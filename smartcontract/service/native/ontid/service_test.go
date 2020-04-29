@@ -12,12 +12,6 @@ func TestService(t *testing.T) {
 	testcase(t, CaseService)
 }
 
-//OntId          []byte
-//ServiceId      []byte
-//Type           []byte
-//ServiceEndpint []byte
-//Index          uint32
-//Proof          []byte
 func CaseService(t *testing.T, n *native.NativeService) {
 	id, err := account.GenerateID()
 	if err != nil {
@@ -36,7 +30,6 @@ func CaseService(t *testing.T, n *native.NativeService) {
 		Index:          1,
 		Proof:          []byte("http;;s;s;s;;s"),
 	}
-	// 2a6469643a6f6e743a5458625237696f58725a67456571536e696b3843444a3955666d7757505856584a360b736f6d6553657276696365037373730e687474703b3b733b733b733b3b73010e687474703b3b733b733b733b3b73
 
 	sink := common.NewZeroCopySink(nil)
 	service.Serialization(sink)
