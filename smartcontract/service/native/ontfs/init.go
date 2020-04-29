@@ -59,9 +59,7 @@ func RegisterFsContract(native *native.NativeService) {
 	native.Register(FS_GET_FILE_LIST, FsGetFileHashList)
 
 	native.Register(FS_READ_FILE_PLEDGE, FsReadFilePledge)
-	native.Register(FS_READ_FILE_SETTLE, FsReadFileSettle)
 	native.Register(FS_GET_READ_PLEDGE, FsGetReadPledge)
-	native.Register(FS_CANCEL_FILE_READ, FsCancelFileRead)
 
 	native.Register(FS_CREATE_SPACE, FsCreateSpace)
 	native.Register(FS_DELETE_SPACE, FsDeleteSpace)

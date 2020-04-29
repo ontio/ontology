@@ -42,13 +42,14 @@ type FileInfo struct {
 	CopyNumber     uint64
 	PayAmount      uint64
 	RestAmount     uint64
-	FileCost       uint64
 	FirstPdp       bool
-	PdpInterval    uint64
 	TimeStart      uint64
 	TimeExpired    uint64
+	BeginHeight    uint64
+	ExpiredHeight  uint64
 	PdpParam       []byte
 	ValidFlag      bool
+	CurrFeeRate    uint64
 	StorageType    uint64
 }
 
@@ -69,13 +70,14 @@ func (this *FileInfo) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, this.CopyNumber)
 	utils.EncodeVarUint(sink, this.PayAmount)
 	utils.EncodeVarUint(sink, this.RestAmount)
-	utils.EncodeVarUint(sink, this.FileCost)
 	sink.WriteBool(this.FirstPdp)
-	utils.EncodeVarUint(sink, this.PdpInterval)
 	utils.EncodeVarUint(sink, this.TimeStart)
 	utils.EncodeVarUint(sink, this.TimeExpired)
+	utils.EncodeVarUint(sink, this.BeginHeight)
+	utils.EncodeVarUint(sink, this.ExpiredHeight)
 	sink.WriteVarBytes(this.PdpParam)
 	sink.WriteBool(this.ValidFlag)
+	utils.EncodeVarUint(sink, this.CurrFeeRate)
 	utils.EncodeVarUint(sink, this.StorageType)
 }
 
@@ -113,15 +115,7 @@ func (this *FileInfo) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
-	this.FileCost, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return err
-	}
 	this.FirstPdp, err = DecodeBool(source)
-	if err != nil {
-		return err
-	}
-	this.PdpInterval, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
@@ -133,11 +127,23 @@ func (this *FileInfo) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
+	this.BeginHeight, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
+	this.ExpiredHeight, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
 	this.PdpParam, err = DecodeVarBytes(source)
 	if err != nil {
 		return err
 	}
 	this.ValidFlag, err = DecodeBool(source)
+	if err != nil {
+		return err
+	}
+	this.CurrFeeRate, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
@@ -262,12 +268,18 @@ func getFileInfoFromDb(native *native.NativeService, fileOwner common.Address, f
 			fileInfo.ValidFlag = false
 		} else {
 			fileInfo.TimeExpired = space.TimeExpired
-			if fileInfo.TimeExpired < uint64(native.Time) {
+			if uint64(native.Time) > fileInfo.TimeExpired {
 				fileInfo.ValidFlag = false
+				fileInfo.ExpiredHeight = getExpireHeightByFileExpireTime(native, space.TimeExpired)
 			}
 		}
+	} else if fileInfo.StorageType == FileStorageTypeUseFile {
+		fileInfo.RestAmount = calcFileModeRestAmount(uint64(native.Time), &fileInfo)
+		if uint64(native.Time) > fileInfo.TimeExpired {
+			fileInfo.ValidFlag = false
+			fileInfo.ExpiredHeight = getExpireHeightByFileExpireTime(native, fileInfo.TimeExpired)
+		}
 	}
-
 	return &fileInfo
 }
 
@@ -275,10 +287,6 @@ func getFileRawRealInfo(native *native.NativeService, fileOwner common.Address, 
 	fileInfo := getFileInfoFromDb(native, fileOwner, fileHash)
 	if fileInfo == nil {
 		return nil
-	}
-
-	if uint64(native.Time) > fileInfo.TimeExpired {
-		fileInfo.ValidFlag = false
 	}
 
 	sink := common.NewZeroCopySink(nil)
@@ -331,4 +339,26 @@ func getFileHashList(native *native.NativeService, fileOwner common.Address) *Fi
 	iter.Release()
 
 	return &fileHashList
+}
+
+func getExpireHeightByFileExpireTime(native *native.NativeService, fileTimeExpired uint64) uint64 {
+	if formatUint32TimeToMinute(native.Time) < fileTimeExpired {
+		return 0
+	}
+	if native.Height <= 1 {
+		return 0
+	}
+	for height := native.Height - 1; height > 0; height-- {
+		header, err := native.Store.GetHeaderByHeight(height)
+		if err != nil {
+			return 0
+		}
+		if header == nil {
+			return 0
+		}
+		if uint64(header.Timestamp) < fileTimeExpired {
+			return uint64(height)
+		}
+	}
+	return 0
 }

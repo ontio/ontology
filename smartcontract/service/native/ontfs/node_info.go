@@ -26,14 +26,13 @@ import (
 )
 
 type FsNodeInfo struct {
-	Pledge         uint64
-	Profit         uint64
-	Volume         uint64
-	RestVol        uint64
-	ServiceTime    uint64
-	MinPdpInterval uint64
-	NodeAddr       common.Address
-	NodeNetAddr    []byte
+	Pledge      uint64
+	Profit      uint64
+	Volume      uint64
+	RestVol     uint64
+	ServiceTime uint64
+	NodeAddr    common.Address
+	NodeNetAddr []byte
 }
 
 type FsNodeInfoList struct {
@@ -46,7 +45,6 @@ func (this *FsNodeInfo) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, this.Volume)
 	utils.EncodeVarUint(sink, this.RestVol)
 	utils.EncodeVarUint(sink, this.ServiceTime)
-	utils.EncodeVarUint(sink, this.MinPdpInterval)
 	utils.EncodeAddress(sink, this.NodeAddr)
 	sink.WriteVarBytes(this.NodeNetAddr)
 }
@@ -70,10 +68,6 @@ func (this *FsNodeInfo) Deserialization(source *common.ZeroCopySource) error {
 		return err
 	}
 	this.ServiceTime, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return err
-	}
-	this.MinPdpInterval, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}

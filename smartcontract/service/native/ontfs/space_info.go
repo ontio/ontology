@@ -7,15 +7,15 @@ import (
 )
 
 type SpaceInfo struct {
-	SpaceOwner  common.Address
-	Volume      uint64
-	RestVol     uint64
-	CopyNumber  uint64
-	PayAmount   uint64
-	RestAmount  uint64
-	PdpInterval uint64
+	SpaceOwner common.Address
+	Volume     uint64
+	RestVol    uint64
+	CopyNumber uint64
+	PayAmount  uint64
+	RestAmount uint64
 	TimeStart   uint64
 	TimeExpired uint64
+	CurrFeeRate uint64
 	ValidFlag   bool
 }
 
@@ -26,9 +26,9 @@ func (this *SpaceInfo) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, this.CopyNumber)
 	utils.EncodeVarUint(sink, this.PayAmount)
 	utils.EncodeVarUint(sink, this.RestAmount)
-	utils.EncodeVarUint(sink, this.PdpInterval)
 	utils.EncodeVarUint(sink, this.TimeStart)
 	utils.EncodeVarUint(sink, this.TimeExpired)
+	utils.EncodeVarUint(sink, this.CurrFeeRate)
 	sink.WriteBool(this.ValidFlag)
 }
 
@@ -58,15 +58,15 @@ func (this *SpaceInfo) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
-	this.PdpInterval, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return err
-	}
 	this.TimeStart, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return nil
 	}
 	this.TimeExpired, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
+	this.CurrFeeRate, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
@@ -118,6 +118,9 @@ func getSpaceInfoFromDb(native *native.NativeService, fileOwner common.Address) 
 	if err := spaceInfo.Deserialization(source); err != nil {
 		return nil
 	}
+	if uint64(native.Time) > spaceInfo.TimeExpired {
+		spaceInfo.ValidFlag = false
+	}
 	return &spaceInfo
 }
 
@@ -125,10 +128,6 @@ func getSpaceRawRealInfo(native *native.NativeService, fileOwner common.Address)
 	spaceInfo := getSpaceInfoFromDb(native, fileOwner)
 	if spaceInfo == nil {
 		return nil
-	}
-
-	if uint64(native.Time) > spaceInfo.TimeExpired {
-		spaceInfo.ValidFlag = false
 	}
 
 	sink := common.NewZeroCopySink(nil)
@@ -142,8 +141,7 @@ func getAndUpdateSpaceInfo(native *native.NativeService, fileOwner common.Addres
 		return nil
 	}
 
-	if uint64(native.Time) > spaceInfo.TimeExpired {
-		spaceInfo.ValidFlag = false
+	if !spaceInfo.ValidFlag {
 		addSpaceInfo(native, spaceInfo)
 	}
 

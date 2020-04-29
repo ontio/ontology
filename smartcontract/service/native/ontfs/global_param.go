@@ -26,26 +26,52 @@ import (
 )
 
 type FsGlobalParam struct {
-	MinDownLoadFee           uint64 //min download fee for single task
-	NodeMinVolume            uint64 //min total volume with fsNode
-	NodePerKbPledge          uint64 //fsNode's pledge for participant
-	GasPerKbForRead          uint64 //cost for ontfs-sdk read from fsNode
-	GasPerKbForSaveWithFile  uint64 //cost for ontfs-sdk save from fsNode
-	GasPerKbForSaveWithSpace uint64 //cost for ontfs-sdk save from fsNode
+	MinTimeForFileStorage  uint64
+	ContractInvokeGasFee   uint64
+	ChallengeReward        uint64
+	FilePerServerPdpTimes  uint64
+	PassportExpire         uint64
+	ChallengeInterval      uint64
+	NodeMinVolume          uint64 //min total volume with fsNode
+	NodePerKbPledge        uint64 //fsNode's pledge for participant
+	FeePerBlockForRead     uint64 //cost for ontfs-sdk read from fsNode
+	FileFeePerBlockOneMin  uint64 //cost for ontfs-sdk save from fsNode
+	SpaceFeePerBlockOneMin uint64 //cost for ontfs-sdk save from fsNode
 }
 
 func (this *FsGlobalParam) Serialization(sink *common.ZeroCopySink) {
-	utils.EncodeVarUint(sink, this.MinDownLoadFee)
+	utils.EncodeVarUint(sink, this.MinTimeForFileStorage)
+	utils.EncodeVarUint(sink, this.ContractInvokeGasFee)
+	utils.EncodeVarUint(sink, this.ChallengeReward)
+	utils.EncodeVarUint(sink, this.FilePerServerPdpTimes)
+	utils.EncodeVarUint(sink, this.PassportExpire)
+	utils.EncodeVarUint(sink, this.ChallengeInterval)
 	utils.EncodeVarUint(sink, this.NodeMinVolume)
 	utils.EncodeVarUint(sink, this.NodePerKbPledge)
-	utils.EncodeVarUint(sink, this.GasPerKbForRead)
-	utils.EncodeVarUint(sink, this.GasPerKbForSaveWithFile)
-	utils.EncodeVarUint(sink, this.GasPerKbForSaveWithSpace)
+	utils.EncodeVarUint(sink, this.FeePerBlockForRead)
+	utils.EncodeVarUint(sink, this.FileFeePerBlockOneMin)
+	utils.EncodeVarUint(sink, this.SpaceFeePerBlockOneMin)
 }
 
 func (this *FsGlobalParam) Deserialization(source *common.ZeroCopySource) error {
 	var err error
-	this.MinDownLoadFee, err = utils.DecodeVarUint(source)
+	this.MinTimeForFileStorage, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
+	this.ContractInvokeGasFee, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
+	this.ChallengeReward, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
+	this.FilePerServerPdpTimes, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
+	this.PassportExpire, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
@@ -57,15 +83,15 @@ func (this *FsGlobalParam) Deserialization(source *common.ZeroCopySource) error 
 	if err != nil {
 		return err
 	}
-	this.GasPerKbForRead, err = utils.DecodeVarUint(source)
+	this.FeePerBlockForRead, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
-	this.GasPerKbForSaveWithFile, err = utils.DecodeVarUint(source)
+	this.FileFeePerBlockOneMin, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
-	this.GasPerKbForSaveWithSpace, err = utils.DecodeVarUint(source)
+	this.SpaceFeePerBlockOneMin, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
@@ -89,12 +115,18 @@ func getGlobalParam(native *native.NativeService) (*FsGlobalParam, error) {
 	}
 	if item == nil {
 		globalParam = FsGlobalParam{
-			MinDownLoadFee:           DefaultMinDownLoadFee,
-			NodeMinVolume:            DefaultNodeMinVolume,
-			NodePerKbPledge:          DefaultNodePerKbPledge,
-			GasPerKbForRead:          DefaultGasPerKbForRead,
-			GasPerKbForSaveWithFile:  DefaultGasPerKbForSaveWithFile,
-			GasPerKbForSaveWithSpace: DefaultGasPerKbForSaveWithSpace,
+			MinTimeForFileStorage: DefaultMinTimeForFileStorage,
+			ContractInvokeGasFee:  DefaultContractInvokeGasFee,
+			ChallengeReward:       DefaultChallengeReward,
+			FilePerServerPdpTimes: DefaultFilePerServerPdpTimes,
+			PassportExpire:        DefaultPassportExpire,
+			ChallengeInterval:     DefaultChallengeInterval,
+
+			NodeMinVolume:          DefaultNodeMinVolume,
+			NodePerKbPledge:        DefaultNodePerKbPledge,
+			FeePerBlockForRead:     DefaultGasPerBlockForRead,
+			FileFeePerBlockOneMin:  DefaultFileFeePerBlockOneMin,
+			SpaceFeePerBlockOneMin: DefaultSpaceFeePerBlockOneMin,
 		}
 		return &globalParam, nil
 	}

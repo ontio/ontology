@@ -50,7 +50,7 @@ func FsGetNodeInfoList(native *native.NativeService) ([]byte, error) {
 	for _, addr := range nodeList {
 		nodeInfo := getNodeInfo(native, addr)
 		if nodeInfo == nil {
-			fmt.Errorf("[APP SDK] FsGetNodeInfoList getNodeInfo(%v) error", addr)
+			log.Errorf("[APP SDK] FsGetNodeInfoList getNodeInfo(%v) error", addr)
 			continue
 		}
 		nodesInfoList.NodesInfo = append(nodesInfoList.NodesInfo, *nodeInfo)
@@ -75,6 +75,11 @@ func FsChallenge(native *native.NativeService) ([]byte, error) {
 	challengeData, err := DecodeVarBytes(challengeSrc)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsChallenge DecodeVarBytes error!")
+	}
+
+	globalParam, err := getGlobalParam(native)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsChallenge getGlobalParam error!")
 	}
 
 	source := common.NewZeroCopySource(challengeData)
@@ -106,24 +111,15 @@ func FsChallenge(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsChallenge challenge is already existed!")
 		} else if oldChallenge.State == RepliedButVerifyError {
 			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsChallenge challenge state is RepliedButVerifyError!")
-		} else if oldChallenge.State == Judged && uint64(native.Time) < oldChallenge.ExpiredTime {
-			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsChallenge challenge state is Judged and challenge has not been expired!")
+		} else if oldChallenge.State == Judged {
+			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsChallenge challenge state is Judged!")
 		}
 	}
 
 	challenge.State = NoReplyAndValid
-	challenge.ExpiredTime = uint64(native.Time) + DefaultChallengeInterval
+	challenge.ExpiredTime = formatUint32TimeToMinute(native.Time) + globalParam.ChallengeInterval
 	challenge.ChallengeHeight = uint64(native.Height)
-
-	if fileInfo.StorageType == FileStorageTypeUseSpace {
-		spaceInfo := getAndUpdateSpaceInfo(native, fileInfo.FileOwner)
-		if spaceInfo == nil {
-			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsChallenge getAndUpdateSpaceInfo failed!")
-		}
-		challenge.Reward = calcPerFileOncePdpProfitBySpace(fileInfo, spaceInfo, DefaultGasPerKbForSaveWithSpace)
-	} else if fileInfo.StorageType == FileStorageTypeUseFile {
-		challenge.Reward = calcPerFileOncePdpProfitByFile(fileInfo)
-	}
+	challenge.Reward = globalParam.ChallengeReward + globalParam.ContractInvokeGasFee
 
 	err = appCallTransfer(native, utils.OngContractAddress, challenge.FileOwner, contract, challenge.Reward)
 	if err != nil {
@@ -149,6 +145,11 @@ func FsJudge(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge Deserialization error!")
 	}
 
+	globalParam, err := getGlobalParam(native)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge getGlobalParam error!")
+	}
+
 	if !native.ContextRef.CheckWitness(challengeReq.FileOwner) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge CheckFileOwner failed!")
 	}
@@ -167,11 +168,9 @@ func FsJudge(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge challenge state is NoReplyAndValid!")
 	case Judged:
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge challenge state is Judged!")
-	case FileProveSuccess:
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge challenge state is FileProveSuccess!")
 	}
 
-	//go on when challenge has no reply and is not expired
+	//go on when challenge has no reply and expired
 	nodeInfo := getNodeInfo(native, challenge.NodeAddr)
 	if nodeInfo == nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsJudge getNodeInfo(%v) error", challenge.NodeAddr)
@@ -182,21 +181,21 @@ func FsJudge(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge getFileInfoByHash failed!")
 	}
 
-	if nodeInfo.Profit > fileInfo.PayAmount {
-		nodeInfo.Profit -= fileInfo.PayAmount
-	} else if nodeInfo.Pledge > fileInfo.PayAmount {
-		nodeInfo.Pledge -= fileInfo.PayAmount
+	//two contractInvokeGasFee as client Challenge and Judge gas fee
+	punishAmount := fileInfo.PayAmount + 2 * globalParam.ContractInvokeGasFee
+	if nodeInfo.Profit > punishAmount {
+		nodeInfo.Profit -= punishAmount
+	} else if nodeInfo.Pledge > punishAmount {
+		nodeInfo.Pledge -= punishAmount
 	} else {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge node profit or pledge not enough!")
 	}
 
-	err = appCallTransfer(native, utils.OngContractAddress, contract, challenge.FileOwner,
-		fileInfo.PayAmount+challenge.Reward)
+	challenge.Reward = punishAmount + challenge.Reward
+	err = appCallTransfer(native, utils.OngContractAddress, contract, challenge.FileOwner, challenge.Reward)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge AppCallTransfer, transfer error!")
 	}
-
-	challenge.Reward = 0
 	challenge.State = Judged
 
 	addNodeInfo(native, nodeInfo)
@@ -280,26 +279,23 @@ func FsCreateSpace(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCreateSpace Space has been created!")
 	}
 
-	if spaceInfo.PdpInterval == 0 {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCreateSpace PdpInterval equals zero!")
-	}
-
 	globalParam, err := getGlobalParam(native)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCreateSpace getGlobalParam error!")
 	}
 
-	spaceInfo.ValidFlag = true
-	spaceInfo.TimeStart = uint64(native.Time)
-	spaceInfo.RestVol = spaceInfo.Volume
-
-	if spaceInfo.TimeExpired <= spaceInfo.TimeStart {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCreateSpace TimeExpired less than TimeStart!")
+	if spaceInfo.TimeExpired < uint64(native.Time) + globalParam.MinTimeForFileStorage{
+		err = fmt.Errorf("[APP SDK] FsCreateSpace spaceInfo TimeExpired smaller than Native.Time + %d",
+			globalParam.MinTimeForFileStorage)
+		return  utils.BYTE_FALSE, err
 	}
 
-	spacePdpNeedCount := (spaceInfo.TimeExpired-spaceInfo.TimeStart)/spaceInfo.PdpInterval + 1
-	spaceInfo.PayAmount = spacePdpNeedCount * spaceInfo.Volume * spaceInfo.CopyNumber *
-		globalParam.GasPerKbForSaveWithSpace
+	spaceInfo.ValidFlag = true
+	spaceInfo.RestVol = spaceInfo.Volume
+	spaceInfo.TimeStart = formatUint32TimeToMinute(native.Time)
+	spaceInfo.TimeExpired = formatUint64TimeToMinute(spaceInfo.TimeExpired)
+	spaceInfo.CurrFeeRate = globalParam.SpaceFeePerBlockOneMin
+	spaceInfo.PayAmount = calcTotalPayAmountWithSpace(&spaceInfo)
 	spaceInfo.RestAmount = spaceInfo.PayAmount
 
 	err = appCallTransfer(native, utils.OngContractAddress, spaceInfo.SpaceOwner, contract, spaceInfo.PayAmount)
@@ -323,15 +319,15 @@ func FsDeleteSpace(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsDeleteSpace CheckSpaceOwner failed!")
 	}
 
-	space := getAndUpdateSpaceInfo(native, spaceOwner)
-	if space == nil {
+	spaceInfo := getAndUpdateSpaceInfo(native, spaceOwner)
+	if spaceInfo == nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsDeleteSpace getAndUpdateSpaceInfo error!")
 	}
-	if space.Volume != space.RestVol {
+	if spaceInfo.Volume != spaceInfo.RestVol {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsDeleteSpace not allow, check files!")
 	}
 
-	err = appCallTransfer(native, utils.OngContractAddress, contract, space.SpaceOwner, space.RestAmount)
+	err = appCallTransfer(native, utils.OngContractAddress, contract, spaceInfo.SpaceOwner, spaceInfo.RestAmount)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsDeleteSpace AppCallTransfer, transfer error!")
 	}
@@ -365,15 +361,15 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 
 	globalParam, err := getGlobalParam(native)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace getGlobalParam error!")
+		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCreateSpace getGlobalParam error!")
 	}
 
-	space := getAndUpdateSpaceInfo(native, spaceUpdate.SpaceOwner)
-	if space == nil {
+	spaceInfo := getAndUpdateSpaceInfo(native, spaceUpdate.SpaceOwner)
+	if spaceInfo == nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace getSpaceRawInfo error!")
 	}
 
-	if !space.ValidFlag {
+	if !spaceInfo.ValidFlag {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace space timeExpired! please create space again")
 	}
 
@@ -381,43 +377,51 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace NewTimeExpired error!")
 	}
 
+	if spaceUpdate.NewTimeExpired != 0 {
+		if spaceUpdate.NewTimeExpired < spaceInfo.TimeStart + globalParam.MinTimeForFileStorage{
+			err = fmt.Errorf("[APP SDK] FsUpdateSpace spaceInfo NewTimeExpired smaller than TimeStart + %d",
+				globalParam.MinTimeForFileStorage)
+			return  utils.BYTE_FALSE, err
+		}
+	}
+
 	if spaceUpdate.NewTimeExpired == 0 {
-		spaceUpdate.NewTimeExpired = space.TimeExpired
+		spaceUpdate.NewTimeExpired = spaceInfo.TimeExpired
 	}
 
 	if spaceUpdate.NewVolume == 0 {
-		spaceUpdate.NewVolume = space.Volume
+		spaceUpdate.NewVolume = spaceInfo.Volume
 	}
 
-	if space.Volume-space.RestVol >= spaceUpdate.NewVolume {
+	if spaceInfo.Volume-spaceInfo.RestVol >= spaceUpdate.NewVolume {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace NewVolume is not enough!")
 	}
 
-	newSpacePdpNeedCount := (spaceUpdate.NewTimeExpired-space.TimeStart)/space.PdpInterval + 1
-	newPayAmount := newSpacePdpNeedCount * spaceUpdate.NewVolume * space.CopyNumber * globalParam.GasPerKbForSaveWithSpace
+	spaceInfo.RestVol = spaceUpdate.NewVolume - (spaceInfo.Volume - spaceInfo.RestVol)
+	spaceInfo.Volume = spaceUpdate.NewVolume
+	spaceInfo.TimeExpired = formatUint64TimeToMinute(spaceUpdate.NewTimeExpired)
+
+	newPayAmount := calcTotalPayAmountWithSpace(spaceInfo)
 
 	var newFee uint64
 	var payer, payee common.Address
-	if newPayAmount > space.PayAmount {
-		newFee = newPayAmount - space.PayAmount
+	if newPayAmount > spaceInfo.PayAmount {
+		newFee = newPayAmount - spaceInfo.PayAmount
 		payer = spaceUpdate.Payer
 		payee = contract
-		space.RestAmount += newFee
-	} else if newPayAmount < space.PayAmount {
-		newFee = space.PayAmount - newPayAmount
+		spaceInfo.RestAmount += newFee
+	} else if newPayAmount < spaceInfo.PayAmount {
+		newFee = spaceInfo.PayAmount - newPayAmount
 		payee = spaceUpdate.Payer
 		payer = contract
-		if space.RestAmount < newFee {
+		if spaceInfo.RestAmount < newFee {
 			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace space RestAmount < newFee error!")
 		}
-		space.RestAmount -= newFee
+		spaceInfo.RestAmount -= newFee
 	} else {
 		newFee = 0
 	}
-	space.PayAmount = newPayAmount
-	space.RestVol = spaceUpdate.NewVolume - (space.Volume - space.RestVol)
-	space.Volume = spaceUpdate.NewVolume
-	space.TimeExpired = spaceUpdate.NewTimeExpired
+	spaceInfo.PayAmount = newPayAmount
 
 	if newFee != 0 {
 		err = appCallTransfer(native, utils.OngContractAddress, payer, payee, newFee)
@@ -426,7 +430,7 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 		}
 	}
 
-	addSpaceInfo(native, space)
+	addSpaceInfo(native, spaceInfo)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -473,28 +477,6 @@ func FsStoreFiles(native *native.NativeService) ([]byte, error) {
 			continue
 		}
 
-		if fileInfo.PdpInterval == 0 {
-			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] FsStoreFiles PdpInterval equals zero!")
-			log.Error("[APP SDK] FsStoreFiles PdpInterval equals zero!")
-			continue
-		}
-
-		if fileInfo.TimeExpired < uint64(native.Time) {
-			errInfo := fmt.Sprintf("[APP SDK] FsStoreFiles fileInfo TimeExpired error: %s",
-				" TimeExpired small than Native.Time")
-			errInfos.AddObjectError(string(fileInfo.FileHash), errInfo)
-			log.Error(errInfo)
-			continue
-		}
-
-		if fileInfo.TimeExpired < uint64(native.Time) + DefaultMinFileStoreTime{
-			errInfo := fmt.Sprintf("[APP SDK] FsStoreFiles fileInfo TimeExpired error: %s",
-				" TimeExpired - Native.Time must be longer than 4 hours!")
-			errInfos.AddObjectError(string(fileInfo.FileHash), errInfo)
-			log.Error(errInfo)
-			continue
-		}
-
 		if fileExist := getAndUpdateFileInfo(native, fileInfo.FileOwner, fileInfo.FileHash); fileExist != nil {
 			if !fileExist.ValidFlag {
 				log.Debug("[APP SDK] FsStoreFiles Delete old fileInfo")
@@ -508,34 +490,49 @@ func FsStoreFiles(native *native.NativeService) ([]byte, error) {
 			}
 		}
 
-		fileInfo.FileCost = 0
 		fileInfo.ValidFlag = true
-		fileInfo.TimeStart = uint64(native.Time)
+		fileInfo.BeginHeight = uint64(native.Height)
+		fileInfo.TimeStart = formatUint32TimeToMinute(native.Time)
+		fileInfo.TimeExpired = formatUint64TimeToMinute(fileInfo.TimeExpired)
 
 		log.Debugf("[APP SDK] FsStoreFiles BlockCount:%d, PayAmount :%d\n", fileInfo.FileBlockCount, fileInfo.PayAmount)
 
 		if fileInfo.StorageType == FileStorageTypeUseSpace {
-			space := getAndUpdateSpaceInfo(native, fileInfo.FileOwner)
-			if space == nil {
+			spaceInfo := getAndUpdateSpaceInfo(native, fileInfo.FileOwner)
+			if spaceInfo == nil {
 				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] FsStoreFiles getAndUpdateSpaceInfo error!")
 				continue
 			}
-			if !space.ValidFlag {
+			if !spaceInfo.ValidFlag {
 				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] FsStoreFiles space timeExpired!")
 				continue
 			}
-			if space.RestVol <= fileInfo.FileBlockCount*DefaultPerBlockSize {
+			if spaceInfo.RestVol <= fileInfo.FileBlockCount*DefaultPerBlockSize {
 				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] FsStoreFiles RestVol is not enough error!")
 				continue
 			}
-			space.RestVol -= fileInfo.FileBlockCount * DefaultPerBlockSize
-			fileInfo.PdpInterval = space.PdpInterval
-			addSpaceInfo(native, space)
-		} else if fileInfo.StorageType == FileStorageTypeUseFile {
-			fileInfo.PayAmount = calcTotalFilePayAmountByFile(&fileInfo, globalParam.GasPerKbForSaveWithFile)
-			fileInfo.RestAmount = fileInfo.PayAmount
+			fileInfo.CurrFeeRate = spaceInfo.CurrFeeRate
+			spaceInfo.RestVol -= fileInfo.FileBlockCount * DefaultPerBlockSize
 
-			err = appCallTransfer(native, utils.OngContractAddress, fileInfo.FileOwner, contract, fileInfo.PayAmount)
+			serverPdpGasFee := globalParam.FilePerServerPdpTimes * globalParam.ContractInvokeGasFee * spaceInfo.CopyNumber
+			err = appCallTransfer(native, utils.OngContractAddress, fileInfo.FileOwner, contract, serverPdpGasFee)
+			if err != nil {
+				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] FsStoreFiles AppCallTransfer, transfer error!")
+				continue
+			}
+			addSpaceInfo(native, spaceInfo)
+		} else if fileInfo.StorageType == FileStorageTypeUseFile {
+			if fileInfo.TimeExpired < uint64(native.Time) + globalParam.MinTimeForFileStorage{
+				errInfo := fmt.Sprintf("[APP SDK] FsStoreFiles fileInfo TimeExpired error: " +
+					"TimeExpired smaller than Native.Time + %d", globalParam.MinTimeForFileStorage)
+				errInfos.AddObjectError(string(fileInfo.FileHash), errInfo)
+				log.Error(errInfo)
+				continue
+			}
+			serverPdpGasFee := globalParam.FilePerServerPdpTimes * globalParam.ContractInvokeGasFee * fileInfo.CopyNumber
+			fileInfo.CurrFeeRate = globalParam.FileFeePerBlockOneMin
+			fileInfo.PayAmount = calcTotalPayAmountWithFile(&fileInfo)
+			err = appCallTransfer(native, utils.OngContractAddress, fileInfo.FileOwner, contract, fileInfo.PayAmount+serverPdpGasFee)
 			if err != nil {
 				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] FsStoreFiles AppCallTransfer, transfer error!")
 				continue
@@ -569,11 +566,6 @@ func FsRenewFiles(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsRenewFiles Deserialization error!")
 	}
 
-	globalParam, err := getGlobalParam(native)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsRenewFiles getGlobalParam error!")
-	}
-
 	for _, fileReNew := range filesReNew.FilesReNew {
 		if !native.ContextRef.CheckWitness(fileReNew.Payer) {
 			errInfos.AddObjectError(string(fileReNew.FileHash), "[APP SDK] FsRenewFiles CheckPayer failed!")
@@ -592,8 +584,8 @@ func FsRenewFiles(native *native.NativeService) ([]byte, error) {
 				continue
 			}
 
-			fileInfo.TimeExpired = fileReNew.NewTimeExpired
-			newFee := calcTotalFilePayAmountByFile(fileInfo, globalParam.GasPerKbForSaveWithFile)
+			fileInfo.TimeExpired = formatUint64TimeToMinute(fileReNew.NewTimeExpired)
+			newFee := calcTotalPayAmountWithFile(fileInfo)
 			if newFee < fileInfo.PayAmount {
 				errInfos.AddObjectError(string(fileReNew.FileHash), "[APP SDK] FsRenewFiles newFee < fileInfo.PayAmount")
 				continue
@@ -607,7 +599,6 @@ func FsRenewFiles(native *native.NativeService) ([]byte, error) {
 			}
 
 			fileInfo.PayAmount = newFee
-			fileInfo.RestAmount = fileInfo.RestAmount + renewFee
 			addFileInfo(native, fileInfo)
 		} else {
 			errInfos.AddObjectError(string(fileReNew.FileHash), "[APP SDK] FsRenewFiles StorageType is not FileStorageTypeUseFile!")
@@ -638,6 +629,11 @@ func FsDeleteFiles(native *native.NativeService) ([]byte, error) {
 			continue
 		}
 
+		if !fileInfo.ValidFlag {
+			errInfos.AddObjectError(string(fileDel.FileHash), "[APP SDK] FsDeleteFiles file is invalid")
+			continue
+		}
+
 		if !native.ContextRef.CheckWitness(fileInfo.FileOwner) {
 			errInfos.AddObjectError(string(fileDel.FileHash), "[APP SDK] FsDeleteFiles CheckFileOwner failed!")
 			continue
@@ -654,37 +650,52 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 	pdpRecordList := getPdpRecordList(native, fileInfo.FileHash, fileInfo.FileOwner)
 
 	for _, pdpRecord := range pdpRecordList.PdpRecords {
+		delChallenge(native, pdpRecord.NodeAddr, fileInfo.FileHash)
+
+		if pdpRecord.SettleFlag {
+			continue
+		}
 		nodeInfo := getNodeInfo(native, pdpRecord.NodeAddr)
 		if nodeInfo == nil {
 			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile getNodeInfo error")
-			return false
+			continue
 		}
 
-		if !pdpRecord.SettleFlag {
-			nodeInfo.RestVol += fileInfo.FileBlockCount * DefaultPerBlockSize
-			addNodeInfo(native, nodeInfo)
-			pdpRecord.SettleFlag = true
+		switch fileInfo.StorageType {
+		case FileStorageTypeUseFile:
+			nodeInfo.Profit += calcFileModePerServerProfit(uint64(native.Time), fileInfo)
+		case FileStorageTypeUseSpace:
+			spaceInfo := getSpaceInfoFromDb(native, fileInfo.FileOwner)
+			if spaceInfo == nil {
+				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile getSpaceInfoFromDb error!")
+				continue
+			}
+			nodeInfo.Profit += calcSpaceModePerServerProfit(uint64(native.Time), spaceInfo.TimeExpired, fileInfo)
+		default:
+			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile file StorageType error")
+			continue
 		}
-		delChallenge(native, pdpRecord.NodeAddr, fileInfo.FileHash)
+		nodeInfo.RestVol += fileInfo.FileBlockCount * DefaultPerBlockSize
+		addNodeInfo(native, nodeInfo)
 	}
 
-	if fileInfo.StorageType == FileStorageTypeUseFile {
-		err := appCallTransfer(native, utils.OngContractAddress, contract, fileInfo.FileOwner, fileInfo.RestAmount)
-		if err != nil {
-			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile AppCallTransfer, transfer error!")
+	switch fileInfo.StorageType {
+	case FileStorageTypeUseFile:
+		if fileInfo.RestAmount > 0 {
+			err := appCallTransfer(native, utils.OngContractAddress, contract, fileInfo.FileOwner, fileInfo.RestAmount)
+			if err != nil {
+				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile AppCallTransfer, transfer error!")
+				return false
+			}
+		}
+	case FileStorageTypeUseSpace:
+		spaceInfo := getSpaceInfoFromDb(native, fileInfo.FileOwner)
+		if spaceInfo == nil {
+			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile getSpaceInfoFromDb error!")
 			return false
 		}
-	} else if fileInfo.StorageType == FileStorageTypeUseSpace {
-		space := getAndUpdateSpaceInfo(native, fileInfo.FileOwner)
-		if space == nil {
-			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile getAndUpdateSpaceInfo error!")
-			return false
-		}
-		space.RestVol += fileInfo.FileBlockCount * DefaultPerBlockSize
-		addSpaceInfo(native, space)
-	} else {
-		errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile file StorageType error")
-		return false
+		spaceInfo.RestVol += fileInfo.FileBlockCount * DefaultPerBlockSize
+		addSpaceInfo(native, spaceInfo)
 	}
 
 	delFileInfo(native, fileInfo.FileOwner, fileInfo.FileHash)
@@ -761,7 +772,13 @@ func FsGetFileHashList(native *native.NativeService) ([]byte, error) {
 		return EncRet(false, []byte("[APP SDK] FsGetFileHashList DecodeVarBytes error!")), nil
 	}
 
-	walletAddr, err := CheckPassport(uint64(native.Height), passportData)
+	globalParam, err := getGlobalParam(native)
+	if err != nil {
+		errInfo := fmt.Sprintf("[APP SDK] FsGetFileHashList getGlobalParam error: %s", err.Error())
+		return EncRet(false, []byte(errInfo)), nil
+	}
+
+	walletAddr, err := CheckPassport(uint64(native.Height), globalParam.PassportExpire, passportData)
 	if err != nil {
 		errInfo := fmt.Sprintf("[APP SDK] FsGetFileHashList CheckFileListOwner error: %s", err.Error())
 		return EncRet(false, []byte(errInfo)), nil
@@ -770,7 +787,6 @@ func FsGetFileHashList(native *native.NativeService) ([]byte, error) {
 	fileHashList := getFileHashList(native, walletAddr)
 	sink := common.NewZeroCopySink(nil)
 	fileHashList.Serialization(sink)
-
 	return EncRet(true, sink.Bytes()), nil
 }
 
@@ -850,18 +866,22 @@ func FsReadFilePledge(native *native.NativeService) ([]byte, error) {
 	for index, readPlan := range readPledge.ReadPlans {
 		totalAddMaxBlockNumToRead += readPlan.MaxReadBlockNum
 		readPledge.ReadPlans[index].HaveReadBlockNum = 0
-	}
+		readPledge.ReadPlans[index].NumOfSettlements = 0
 
+	}
+	var samePlanCount = uint64(0)
 	oriPledge, err := getReadPledge(native, readPledge.Downloader, readPledge.FileHash)
 	if err == nil && oriPledge != nil {
 		for _, oriReadPlan := range oriPledge.ReadPlans {
 			foundSamePlan := false
 			for index, readPlan := range readPledge.ReadPlans {
 				if readPlan.NodeAddr == oriReadPlan.NodeAddr {
+					samePlanCount++
 					foundSamePlan = true
 
 					readPledge.ReadPlans[index].MaxReadBlockNum += oriReadPlan.MaxReadBlockNum
 					readPledge.ReadPlans[index].HaveReadBlockNum = oriReadPlan.HaveReadBlockNum
+					readPledge.ReadPlans[index].NumOfSettlements = oriReadPlan.NumOfSettlements
 				}
 			}
 			if !foundSamePlan {
@@ -869,21 +889,16 @@ func FsReadFilePledge(native *native.NativeService) ([]byte, error) {
 			}
 		}
 		readPledge.RestMoney = oriPledge.RestMoney
-		if uint64(native.Height) >= oriPledge.ExpireHeight {
-			readPledge.BlockHeight = uint64(native.Height)
-		} else {
-			readPledge.BlockHeight = oriPledge.BlockHeight
-		}
 	} else {
 		readPledge.RestMoney = 0
-		readPledge.BlockHeight = uint64(native.Height)
 	}
-	readPledge.ExpireHeight = uint64(native.Height) + fileInfo.FileBlockCount + 30
 
-	newPledgeFee := totalAddMaxBlockNumToRead * DefaultPerBlockSize * globalParam.GasPerKbForRead
+	newPledgeFee := totalAddMaxBlockNumToRead * globalParam.FeePerBlockForRead
 	readPledge.RestMoney += newPledgeFee
 
-	err = appCallTransfer(native, utils.OngContractAddress, readPledge.Downloader, contract, newPledgeFee)
+	newPlanCount := uint64(len(readPledge.ReadPlans)) - samePlanCount
+	err = appCallTransfer(native, utils.OngContractAddress, readPledge.Downloader, contract,
+		newPledgeFee + newPlanCount * globalParam.ContractInvokeGasFee)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsReadFilePledge AppCallTransfer, transfer error!")
 	}
@@ -906,7 +921,7 @@ func FsGetReadPledge(native *native.NativeService) ([]byte, error) {
 	return EncRet(true, rawPledge), nil
 }
 
-func FsCancelFileRead(native *native.NativeService) ([]byte, error) {
+func cancelFileRead(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	var getPledge GetReadPledge
@@ -924,10 +939,6 @@ func FsCancelFileRead(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCancelFileRead CheckDownloader failed!")
 	}
 
-	if uint64(native.Height) < readPledge.ExpireHeight {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCancelFileRead FileReadPledge locked!")
-	}
-
 	if readPledge.RestMoney > 0 {
 		err = appCallTransfer(native, utils.OngContractAddress, contract, readPledge.Downloader, readPledge.RestMoney)
 		if err != nil {
@@ -937,4 +948,12 @@ func FsCancelFileRead(native *native.NativeService) ([]byte, error) {
 
 	delReadPledge(native, getPledge.Downloader, getPledge.FileHash)
 	return utils.BYTE_TRUE, nil
+}
+
+func formatUint32TimeToMinute(time uint32) uint64 {
+	return uint64(time - time % 60)
+}
+
+func formatUint64TimeToMinute(time uint64) uint64 {
+	return time - time % 60
 }

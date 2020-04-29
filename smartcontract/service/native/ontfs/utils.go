@@ -54,7 +54,6 @@ const (
 	FS_READ_FILE_PLEDGE      = "FsReadFilePledge"
 	FS_READ_FILE_SETTLE      = "FsReadFileSettle"
 	FS_GET_READ_PLEDGE       = "FsGetReadPledge"
-	FS_CANCEL_FILE_READ      = "FsCancelFileRead"
 	FS_CREATE_SPACE          = "FsCreateSpace"
 	FS_DELETE_SPACE          = "FsDeleteSpace"
 	FS_UPDATE_SPACE          = "FsUpdateSpace"

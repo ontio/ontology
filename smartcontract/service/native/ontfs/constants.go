@@ -19,21 +19,23 @@
 package ontfs
 
 const (
-	DefaultPassportExpire = 9 //block count. passport expire for GetFileHashList
+	DefaultPerBlockSize = 256 //kb.
+)
 
-	DefaultNodeMinVolume   = 1024 * 1024 //kb. min total volume with fsNode
-	DefaultNodePerKbPledge = 1           //fsNode's pledge for participant
+const (
+	DefaultMinTimeForFileStorage = 60   //1minute
+	DefaultContractInvokeGasFee  = 10000000  //0.01ong
+	DefaultChallengeReward       = 100000000 //0.1ong
 
-	DefaultMinFileStoreTime         = 4 * 60 * 60
-	DefaultMinDownLoadFee           = 1 //min download fee for single task*
-	DefaultGasPerKbForRead          = 1 //cost for ontfs-sdk read from fsNode*
-	DefaultGasPerKbForSaveWithFile  = 1 //cost for ontfs-sdk save from fsNode*
-	DefaultGasPerKbForSaveWithSpace = 1 //cost for ontfs-sdk save from fsNode*
+	DefaultFilePerServerPdpTimes = 2
+	DefaultPassportExpire        = 9           //block count. passport expire for GetFileHashList
+	DefaultNodeMinVolume         = 1024 * 1024 //kb. min total volume with single fsNode
+	DefaultChallengeInterval     = 1 * 60 * 60 //1hour
 
-	DefaultChallengeInterval = 4 * 60 * 60
-	DefaultPdpHeightIV       = 8   //pdp challenge height IV
-	DefaultPerBlockSize      = 256 //kb.
-	DefaultPdpBlockNum       = 32
+	DefaultNodePerKbPledge        = 1024 * 100 //fsNode's pledge for participant
+	DefaultFileFeePerBlockOneMin  = 1          //file mode cost of per block save from fsNode for one minute
+	DefaultSpaceFeePerBlockOneMin = 1          //space mode cost of per block save from fsNode for one minute
+	DefaultGasPerBlockForRead     = 256        //cost of per block read from fsNode
 )
 
 //challenge state
@@ -43,5 +45,4 @@ const (
 	NoReplyAndExpire
 	RepliedAndSuccess
 	RepliedButVerifyError
-	FileProveSuccess
 )

@@ -69,7 +69,7 @@ func (this *Passport) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func CheckPassport(currBlockHeight uint64, passportData []byte) (common.Address, error) {
+func CheckPassport(currBlockHeight uint64, passportExpire uint64, passportData []byte) (common.Address, error) {
 	var err error
 	var passport Passport
 	src := common.NewZeroCopySource(passportData)
@@ -77,7 +77,7 @@ func CheckPassport(currBlockHeight uint64, passportData []byte) (common.Address,
 		return common.ADDRESS_EMPTY, fmt.Errorf("CheckPassport Deserialization error")
 	}
 
-	if passport.BlockHeight > currBlockHeight || passport.BlockHeight+DefaultPassportExpire < currBlockHeight {
+	if passport.BlockHeight > currBlockHeight || passport.BlockHeight+passportExpire < currBlockHeight {
 		return passport.WalletAddr, fmt.Errorf("CheckPassport passport expired")
 	}
 

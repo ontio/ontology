@@ -16,44 +16,40 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package main
+package merkle_pdp
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
+	"crypto/rand"
+	"testing"
 )
 
-func main() {
-	data, err := ioutil.ReadFile("vk")
-	if err != nil {
-		fmt.Printf("ReadFile verifying-key error\n")
-		return
+func TestMerkleProof(t *testing.T) {
+	data := make([]byte, 256*1024)
+	rand.Read(data)
+
+	prf := MerkleProof(data, 1)
+	if err := VerifyMerkleProof(prf, prf[len(prf)-1], 1); err != nil {
+		t.Fatal(err.Error())
 	}
-	dataLen := len(data)
+}
 
-	vkFileData := "package ontfs\n\nvar vkData = []byte{"
+func BenchmarkHash(b *testing.B) {
+	data := make([]byte, 256*1024)
+	rand.Read(data)
 
-	var tmp string
-	for i := 0; i < dataLen; i++ {
-		if i%16 == 0 {
-			tmp = "\n\t"
-		} else {
-			tmp = ""
+	for i := 0; i < b.N; i++ {
+		MerkleProof(data, 10)
+	}
+}
+
+func BenchmarkVerify(b *testing.B) {
+	data := make([]byte, 256*1024)
+	rand.Read(data)
+	proof := MerkleProof(data, 10)
+
+	for i := 0; i < b.N; i++ {
+		if err := VerifyMerkleProof(proof, proof[len(proof)-1], 10); err != nil {
+			b.Fatal(err.Error())
 		}
-		if i+1 == dataLen {
-			tmp += fmt.Sprintf("0x%02x}\n", data[i])
-		} else {
-			tmp += fmt.Sprintf("0x%02x, ", data[i])
-		}
-
-		vkFileData = vkFileData + tmp
 	}
-
-	if err = ioutil.WriteFile("vk.go", []byte(vkFileData), 0600); err != nil {
-		fmt.Printf("WriteFile vk.go error\n")
-		return
-	}
-
-	os.Rename("vk.go", "../vk.go")
 }

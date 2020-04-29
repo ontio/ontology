@@ -29,13 +29,12 @@ type ReadPlan struct {
 	NodeAddr         common.Address
 	MaxReadBlockNum  uint64
 	HaveReadBlockNum uint64
+	NumOfSettlements uint64
 }
 
 type ReadPledge struct {
 	FileHash     []byte
 	Downloader   common.Address
-	BlockHeight  uint64
-	ExpireHeight uint64
 	RestMoney    uint64
 	ReadPlans    []ReadPlan
 }
@@ -44,6 +43,7 @@ func (this *ReadPlan) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeAddress(sink, this.NodeAddr)
 	utils.EncodeVarUint(sink, this.MaxReadBlockNum)
 	utils.EncodeVarUint(sink, this.HaveReadBlockNum)
+	utils.EncodeVarUint(sink, this.NumOfSettlements)
 }
 
 func (this *ReadPlan) Deserialization(source *common.ZeroCopySource) error {
@@ -60,14 +60,16 @@ func (this *ReadPlan) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
+	this.NumOfSettlements, err = utils.DecodeVarUint(source)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (this *ReadPledge) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(this.FileHash)
 	utils.EncodeAddress(sink, this.Downloader)
-	utils.EncodeVarUint(sink, this.BlockHeight)
-	utils.EncodeVarUint(sink, this.ExpireHeight)
 	utils.EncodeVarUint(sink, this.RestMoney)
 
 	planCount := uint64(len(this.ReadPlans))
@@ -87,14 +89,6 @@ func (this *ReadPledge) Deserialization(source *common.ZeroCopySource) error {
 		return err
 	}
 	this.Downloader, err = utils.DecodeAddress(source)
-	if err != nil {
-		return err
-	}
-	this.BlockHeight, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return err
-	}
-	this.ExpireHeight, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}

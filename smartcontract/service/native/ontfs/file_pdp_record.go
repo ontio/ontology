@@ -33,9 +33,7 @@ type PdpRecord struct {
 	NodeAddr    common.Address
 	FileHash    []byte
 	FileOwner   common.Address
-	PdpCount    uint64 // pdp times
 	LastPdpTime uint64
-	NextHeight  uint64 //pdp next challenge height
 	SettleFlag  bool
 }
 
@@ -47,9 +45,7 @@ func (this *PdpRecord) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeAddress(sink, this.NodeAddr)
 	sink.WriteVarBytes(this.FileHash)
 	utils.EncodeAddress(sink, this.FileOwner)
-	utils.EncodeVarUint(sink, this.PdpCount)
 	utils.EncodeVarUint(sink, this.LastPdpTime)
-	utils.EncodeVarUint(sink, this.NextHeight)
 	sink.WriteBool(this.SettleFlag)
 }
 
@@ -67,15 +63,7 @@ func (this *PdpRecord) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
-	this.PdpCount, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return err
-	}
 	this.LastPdpTime, err = utils.DecodeVarUint(source)
-	if err != nil {
-		return err
-	}
-	this.NextHeight, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
