@@ -179,7 +179,20 @@ func FsJudge(native *native.NativeService) ([]byte, error) {
 	}
 
 	//two contractInvokeGasFee as client Challenge and Judge gas fee
-	punishAmount := fileInfo.PayAmount + 2 * globalParam.ContractInvokeGasFee
+	var punishAmount uint64
+	switch fileInfo.StorageType {
+	case FileStorageTypeUseFile:
+		punishAmount = fileInfo.PayAmount + 2 * globalParam.ContractInvokeGasFee
+	case FileStorageTypeUseSpace:
+		spaceInfo := getSpaceInfoFromDb(native, fileInfo.FileOwner)
+		if spaceInfo == nil {
+			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge getSpaceRawRealInfo error!")
+		}
+		punishAmount = calcSpaceModePerServerProfit(spaceInfo.TimeExpired, spaceInfo.TimeExpired, fileInfo)
+	default:
+		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge file StorageType error!")
+	}
+
 	if nodeInfo.Profit > punishAmount {
 		nodeInfo.Profit -= punishAmount
 	} else if nodeInfo.Pledge > punishAmount {
@@ -287,6 +300,7 @@ func FsCreateSpace(native *native.NativeService) ([]byte, error) {
 		return  utils.BYTE_FALSE, err
 	}
 
+	spaceInfo.Volume = formatVolumeTimeToBlock(spaceInfo.Volume)
 	spaceInfo.ValidFlag = true
 	spaceInfo.RestVol = spaceInfo.Volume
 	spaceInfo.TimeStart = formatUint32TimeToMinute(native.Time)
@@ -347,6 +361,8 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 	if err := spaceUpdate.Deserialization(source); err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace Deserialization error!")
 	}
+
+	spaceUpdate.NewVolume = formatVolumeTimeToBlock(spaceUpdate.NewVolume)
 
 	if spaceUpdate.NewTimeExpired == 0 && spaceUpdate.NewVolume == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace Param error!")
@@ -953,4 +969,8 @@ func formatUint32TimeToMinute(time uint32) uint64 {
 
 func formatUint64TimeToMinute(time uint64) uint64 {
 	return time - time % 60
+}
+
+func formatVolumeTimeToBlock(volume uint64) uint64 {
+	return volume - volume %DefaultPerBlockSize
 }

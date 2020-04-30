@@ -78,5 +78,5 @@ func calcTotalPayAmountWithSpace(spaceInfo *SpaceInfo) uint64 {
 		return 0
 	}
 	intervalMinute := (sExpired - sStart)/Minute
-	return intervalMinute * spaceInfo.CopyNumber * spaceInfo.Volume * spaceInfo.CurrFeeRate
+	return intervalMinute * spaceInfo.CopyNumber * (spaceInfo.Volume/256) * spaceInfo.CurrFeeRate
 }
