@@ -418,22 +418,16 @@ func (this *RemoveAuthKeyParam) Deserialization(source *common.ZeroCopySource) e
 
 type NewPublicKey struct {
 	key        []byte
-	revoked    bool
 	controller []byte
 }
 
 func (this *NewPublicKey) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarBytes(sink, this.key)
-	utils.EncodeBool(sink, this.revoked)
 	utils.EncodeVarBytes(sink, this.controller)
 }
 
 func (this *NewPublicKey) Deserialization(source *common.ZeroCopySource) error {
 	key, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		return err
-	}
-	revoked, err := utils.DecodeBool(source)
 	if err != nil {
 		return err
 	}
@@ -443,7 +437,6 @@ func (this *NewPublicKey) Deserialization(source *common.ZeroCopySource) error {
 	}
 
 	this.key = key
-	this.revoked = revoked
 	this.controller = controller
 	return nil
 }

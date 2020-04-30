@@ -31,7 +31,6 @@ func CaseAuthentication(t *testing.T, n *native.NativeService) {
 	//Proof          []byte
 	newPublicKey := &NewPublicKey{
 		key:        nil,
-		revoked:    false,
 		controller: nil,
 	}
 	authKeyParam := &AddAuthKeyParam{
