@@ -54,8 +54,7 @@ func FsGetNodeInfoList(native *native.NativeService) ([]byte, error) {
 			continue
 		}
 		nodesInfoList.NodesInfo = append(nodesInfoList.NodesInfo, *nodeInfo)
-		count--
-		if count <= 0 {
+		if uint64(len(nodesInfoList.NodesInfo)) == count {
 			break
 		}
 	}

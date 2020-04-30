@@ -52,9 +52,9 @@ func EncRet(ret bool, info []byte) []byte {
 	return sink.Bytes()
 }
 
-func DecRet(ret []byte) *RetInfo {
+func DecRet(ret []byte) (*RetInfo, error) {
 	var retInfo RetInfo
 	source := common.NewZeroCopySource(ret)
-	retInfo.Deserialization(source)
-	return &retInfo
+	err := retInfo.Deserialization(source)
+	return &retInfo, err
 }

@@ -242,5 +242,4 @@ func delPdpRecordList(native *native.NativeService, fileHash []byte, fileOwner c
 	for _, pdpRecordKey := range pdpRecordKeyList {
 		native.CacheDB.Delete(pdpRecordKey.RecordKey)
 	}
-
 }

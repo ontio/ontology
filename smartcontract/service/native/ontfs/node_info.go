@@ -194,39 +194,3 @@ func getNodeAddrList(native *native.NativeService) []common.Address {
 
 	return fsNodeAddrList
 }
-
-func getNodeInfoList(native *native.NativeService) map[common.Address]*FsNodeInfo {
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	nodeInfoPrefix := GenFsNodeInfoPrefix(contract)
-	nodeInfoPrefixLen := len(nodeInfoPrefix)
-
-	fsNodeInfoList := make(map[common.Address]*FsNodeInfo)
-	iter := native.CacheDB.NewIterator(nodeInfoPrefix[:])
-	for has := iter.First(); has; has = iter.Next() {
-		key := iter.Key()
-		item, err := utils.GetStorageItem(native, iter.Key())
-		if err != nil || item == nil || item.Value == nil {
-			log.Error("getNodeInfoList GetStorageItem ", err)
-			continue
-		}
-
-		nodeAddr, err := common.AddressParseFromBytes(key[nodeInfoPrefixLen:])
-		if err != nil {
-			log.Errorf("getNodeInfoList AddressParseFromBytes error: ", err.Error())
-			continue
-		}
-
-		var fsNodeInfo FsNodeInfo
-		source := common.NewZeroCopySource(item.Value)
-		if err = fsNodeInfo.Deserialization(source); err != nil {
-			log.Errorf("getNodeInfoList Deserialization error: ", err.Error())
-			continue
-		}
-
-		fsNodeInfoList[nodeAddr] = &fsNodeInfo
-	}
-	iter.Release()
-
-	return fsNodeInfoList
-}

@@ -36,7 +36,7 @@ const (
 	FS_NODE_UPDATE           = "FsNodeUpdate"
 	FS_NODE_CANCEL           = "FsNodeCancel"
 	FS_FILE_PROVE            = "FsFileProve"
-	FS_NODE_WITH_DRAW_PROFIT = "FsNodeWithDrawProfit"
+	FS_NODE_WITHDRAW_PROFIT  = "FsNodeWithdrawProfit"
 	FS_CHALLENGE             = "FsChallenge"
 	FS_GET_CHALLENGE         = "FsGetChallenge"
 	FS_GET_FILE_CHALLENGE_LIST    = "FsGetFileChallengeList"

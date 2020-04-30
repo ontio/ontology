@@ -38,7 +38,7 @@ func RegisterFsContract(native *native.NativeService) {
 	native.Register(FS_NODE_UPDATE, FsNodeUpdate)
 	native.Register(FS_NODE_CANCEL, FsNodeCancel)
 	native.Register(FS_FILE_PROVE, FsFileProve)
-	native.Register(FS_NODE_WITH_DRAW_PROFIT, FsNodeWithDrawProfit)
+	native.Register(FS_NODE_WITHDRAW_PROFIT, FsNodeWithdrawProfit)
 
 	native.Register(FS_GET_NODE_LIST, FsGetNodeInfoList)
 	native.Register(FS_GET_PDP_INFO_LIST, FsGetPdpInfoList)

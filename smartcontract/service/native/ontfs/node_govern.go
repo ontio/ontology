@@ -139,7 +139,7 @@ func FsNodeUpdate(native *native.NativeService) ([]byte, error) {
 
 	newNodeInfo.Pledge = newNodePledge
 	newNodeInfo.Profit = oldNodeInfo.Profit
-	newNodeInfo.RestVol = oldNodeInfo.RestVol + newNodeInfo.Volume - oldNodeInfo.Volume
+	newNodeInfo.RestVol = oldNodeInfo.RestVol + (newNodeInfo.Volume - oldNodeInfo.Volume)
 
 	addNodeInfo(native, &newNodeInfo)
 	return utils.BYTE_TRUE, nil
@@ -178,32 +178,32 @@ func FsNodeCancel(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func FsNodeWithDrawProfit(native *native.NativeService) ([]byte, error) {
+func FsNodeWithdrawProfit(native *native.NativeService) ([]byte, error) {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
 	source := common.NewZeroCopySource(native.Input)
 	nodeAddr, err := utils.DecodeAddress(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithDrawProfit DecodeAddress error!")
+		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithdrawProfit DecodeAddress error!")
 	}
 
 	if !native.ContextRef.CheckWitness(nodeAddr) {
-		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithDrawProfit CheckNodeAddr failed!")
+		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithdrawProfit CheckNodeAddr failed!")
 	}
 
 	nodeInfo := getNodeInfo(native, nodeAddr)
 	if nodeInfo == nil {
-		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithDrawProfit getFsNodeInfo error!")
+		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithdrawProfit getFsNodeInfo error!")
 	}
 
 	if nodeInfo.Profit > 0 {
 		err = appCallTransfer(native, utils.OngContractAddress, contract, nodeInfo.NodeAddr, nodeInfo.Profit)
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithDrawProfit appCallTransfer,  transfer error!")
+			return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithdrawProfit appCallTransfer,  transfer error!")
 		}
 		nodeInfo.Profit = 0
 	} else {
-		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithDrawProfit profit = 0 error! ")
+		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeWithdrawProfit profit = 0 error! ")
 	}
 
 	addNodeInfo(native, nodeInfo)

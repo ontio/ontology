@@ -109,6 +109,6 @@ func CheckPassport(currBlockHeight uint64, passportExpire uint64, passportData [
 	if signature.Verify(pubKey, sink.Bytes(), signValue) {
 		return passport.WalletAddr, nil
 	} else {
-		return passport.WalletAddr, fmt.Errorf("CheckPassport Verify error: %s", err.Error())
+		return passport.WalletAddr, fmt.Errorf("CheckPassport Verify failed")
 	}
 }
