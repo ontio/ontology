@@ -161,6 +161,34 @@ func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	return sink.Bytes(), nil
 }
 
+func GetPublicKeysJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetPublicKeysJson")
+	args := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(args)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: invalid argument, %s", err)
+	}
+	if len(did) == 0 {
+		return nil, errors.New("get public keys error: invalid ID")
+	}
+	encId, err := encodeID(did)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: %s", err)
+	}
+	r, err := getAllPkJson(srvc, encId)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: %s", err)
+	} else if r == nil {
+		return nil, nil
+	}
+
+	result, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("json.Marshal error: %s", err)
+	}
+	return result, nil
+}
+
 func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetAttributes")
 	source := common.NewZeroCopySource(srvc.Input)
@@ -181,6 +209,32 @@ func GetAttributes(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	return res, nil
+}
+
+func GetAttributesJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetAttributesJson")
+	source := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: invalid argument, %s", err)
+	}
+	if len(did) == 0 {
+		return nil, errors.New("get attributes error: invalid ID")
+	}
+	key, err := encodeID(did)
+	if err != nil {
+		return nil, fmt.Errorf("get public keys error: %s", err)
+	}
+	res, err := getAllAttrJson(srvc, key)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes error: %s", err)
+	}
+
+	result, err := json.Marshal(res)
+	if err != nil {
+		return nil, fmt.Errorf("json.Marshal error: %s", err)
+	}
+	return result, nil
 }
 
 func GetKeyState(srvc *native.NativeService) ([]byte, error) {
