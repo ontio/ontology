@@ -19,6 +19,7 @@ package ontid
 
 import (
 	"errors"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"

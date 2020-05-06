@@ -18,8 +18,9 @@
 package ontid
 
 import (
-	"github.com/ontio/ontology/smartcontract/service/native"
 	"testing"
+
+	"github.com/ontio/ontology/smartcontract/service/native"
 )
 
 func TestQueryDocument(t *testing.T) {

@@ -19,10 +19,11 @@ package ontid
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
-	"testing"
 )
 
 func TestAuthentication(t *testing.T) {
