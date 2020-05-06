@@ -20,9 +20,6 @@ package ontfs
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
-
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/errors"
@@ -41,10 +38,11 @@ func FsGetNodeInfoList(native *native.NativeService) ([]byte, error) {
 
 	nodeList := getNodeAddrList(native)
 	if nodeList != nil {
-		r := rand.New(rand.NewSource(time.Now().Unix()))
-		r.Shuffle(len(nodeList), func(i, j int) {
-			nodeList[i], nodeList[j] = nodeList[j], nodeList[i]
-		})
+		txHash := native.Tx.Hash()
+		seed := txHash.ToArray()
+		nodeListLen := len(nodeList)
+		randSlice := genRandSlice(uint64(nodeListLen), seed, native.InvokeParam.Address)
+		sortByRandSlice(randSlice, nodeList)
 	}
 
 	for _, addr := range nodeList {
