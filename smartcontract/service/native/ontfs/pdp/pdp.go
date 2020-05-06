@@ -34,7 +34,9 @@ const (
 )
 
 const (
+	VersionLength = 8
 	MaxMerklePdpChallengeBlock = 6
+
 )
 
 type Pdp struct {
@@ -47,13 +49,16 @@ func NewPdp(version uint64) *Pdp {
 
 func (p *Pdp) GenUniqueIdWithFileBlocks(fileBlocks []types.Block) ([]byte, error) {
 	var uniqueId []byte
-	uniqueIdPrefix := make([]byte, 8)
+	uniqueIdPrefix := make([]byte, VersionLength)
 	switch p.Version {
 	case MerklePdp:
 		binary.LittleEndian.PutUint64(uniqueIdPrefix, MerklePdp)
 		uniqueId = append(uniqueId, uniqueIdPrefix...)
 		for _, block := range fileBlocks {
-			rootHash := merkle_pdp.CalcRootHash(block[:])
+			rootHash, err := merkle_pdp.CalcRootHash(block[:])
+			if err != nil {
+				return nil, fmt.Errorf("GenUniqueIdWithFileBlocks error: %s", err.Error())
+			}
 			uniqueId = append(uniqueId, rootHash...)
 		}
 		return uniqueId, nil
@@ -94,14 +99,17 @@ func (p *Pdp) GenChallenge(nodeId [20]byte, blockHash []byte, fileBlockNum uint6
 //BuildProof need parameters
 func (p *Pdp) GenProofWithBlocks(fileBlocks []types.Block, uniqueId []byte, challenge []uint64) ([]byte, error) {
 	var proof []byte
-	proofPrefix := make([]byte, 8)
+	proofPrefix := make([]byte, VersionLength)
 
 	switch p.Version {
 	case MerklePdp:
 		binary.LittleEndian.PutUint64(proofPrefix, MerklePdp)
 		proof = append(proof, proofPrefix...)
 		for _, chl := range challenge {
-			blockProof := merkle_pdp.MerkleProof(fileBlocks[chl], 0)
+			blockProof, err := merkle_pdp.MerkleProof(fileBlocks[chl], 0)
+			if err != nil {
+				return nil, err
+			}
 			merkleProofData, err := json.Marshal(blockProof)
 			if err != nil {
 				return nil, err
@@ -116,20 +124,20 @@ func (p *Pdp) GenProofWithBlocks(fileBlocks []types.Block, uniqueId []byte, chal
 
 //GetPdpVersionFromUniqueId get pdp version from uniqueId data
 func GetPdpVersionFromUniqueId(uniqueId []byte) uint64 {
-	uniqueIdPrefix := uniqueId[0:8]
+	uniqueIdPrefix := uniqueId[0:VersionLength]
 	return binary.LittleEndian.Uint64(uniqueIdPrefix)
 }
 
 //GetPdpVersionFromProof get pdp version from proof data
 func GetPdpVersionFromProof(proof []byte) uint64 {
-	proofPrefix := proof[0:8]
+	proofPrefix := proof[0:VersionLength]
 	return binary.LittleEndian.Uint64(proofPrefix)
 }
 
 //VerifyProof used in consensus algorithm
 func VerifyProofWithUniqueId(uniqueId []byte, proof []byte, challenge []uint64) error {
-	proofPrefix := proof[0:8]
-	uniqueIdPrefix := uniqueId[0:8]
+	proofPrefix := proof[0:VersionLength]
+	uniqueIdPrefix := uniqueId[0:VersionLength]
 	proofPdpVersion := binary.LittleEndian.Uint64(proofPrefix)
 	uniqueIdPdpVersion := binary.LittleEndian.Uint64(uniqueIdPrefix)
 	if proofPdpVersion != uniqueIdPdpVersion {
@@ -139,13 +147,13 @@ func VerifyProofWithUniqueId(uniqueId []byte, proof []byte, challenge []uint64) 
 	case MerklePdp:
 		challengeCount := len(challenge)
 
-		blocksId := uniqueId[8:]
+		blocksId := uniqueId[VersionLength:]
 		blocksIdLen := len(blocksId)
 		if blocksIdLen%merkle_pdp.MerkleRootLen != 0 {
 			return fmt.Errorf("[VerifyProofWithUniqueId] uniqueId length error")
 		}
 
-		merkleProofData := proof[8:]
+		merkleProofData := proof[VersionLength:]
 		merkleProofDataLen := len(merkleProofData)
 
 		if merkleProofDataLen%challengeCount != 0 {

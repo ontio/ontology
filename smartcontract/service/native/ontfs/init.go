@@ -59,6 +59,7 @@ func RegisterFsContract(native *native.NativeService) {
 	native.Register(FS_GET_FILE_LIST, FsGetFileHashList)
 
 	native.Register(FS_READ_FILE_PLEDGE, FsReadFilePledge)
+	native.Register(FS_READ_FILE_SETTLE, FsReadFileSettle)
 	native.Register(FS_GET_READ_PLEDGE, FsGetReadPledge)
 
 	native.Register(FS_CREATE_SPACE, FsCreateSpace)
@@ -67,6 +68,7 @@ func RegisterFsContract(native *native.NativeService) {
 	native.Register(FS_GET_SPACE_INFO, FsGetSpaceInfo)
 }
 
+//To enable administrators to adjust global parameters
 func FsSetGlobalParam(native *native.NativeService) ([]byte, error) {
 	var globalParam FsGlobalParam
 	infoSource := common.NewZeroCopySource(native.Input)

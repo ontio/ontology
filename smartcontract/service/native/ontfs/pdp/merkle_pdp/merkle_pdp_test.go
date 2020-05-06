@@ -27,7 +27,10 @@ func TestMerkleProof(t *testing.T) {
 	data := make([]byte, 256*1024)
 	rand.Read(data)
 
-	prf := MerkleProof(data, 1)
+	prf, err := MerkleProof(data, 1)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 	if err := VerifyMerkleProof(prf, prf[len(prf)-1], 1); err != nil {
 		t.Fatal(err.Error())
 	}
@@ -45,8 +48,10 @@ func BenchmarkHash(b *testing.B) {
 func BenchmarkVerify(b *testing.B) {
 	data := make([]byte, 256*1024)
 	rand.Read(data)
-	proof := MerkleProof(data, 10)
-
+	proof, err := MerkleProof(data, 10)
+	if err != nil {
+		b.Fatal(err.Error())
+	}
 	for i := 0; i < b.N; i++ {
 		if err := VerifyMerkleProof(proof, proof[len(proof)-1], 10); err != nil {
 			b.Fatal(err.Error())

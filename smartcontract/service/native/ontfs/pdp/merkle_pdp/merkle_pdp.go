@@ -46,7 +46,7 @@ func merkleHash(depth, indexA, indexB uint64, nodeA, nodeB []byte, res []byte) [
 	return h.Sum(res)
 }
 
-func MerkleProof(block []byte, c uint64) [][]byte {
+func MerkleProof(block []byte, c uint64) ([][]byte, error) {
 	data := make([]byte, 64)
 	if len(block) < 64 {
 		copy(data, block[:])
@@ -55,7 +55,7 @@ func MerkleProof(block []byte, c uint64) [][]byte {
 	}
 	size := uint64(len(data))
 	if size%32 != 0 {
-		panic("data length should be multiple of 32")
+		return nil, fmt.Errorf("data length should be multiple of 32")
 	}
 
 	res := [][]byte{data[c*32 : (c+1)*32]}
@@ -63,7 +63,7 @@ func MerkleProof(block []byte, c uint64) [][]byte {
 	depth := uint64(0)
 	for ; size > 32; size = size / 2 {
 		if size%64 != 0 {
-			panic("data length should be power of 2")
+			return nil, fmt.Errorf("data length should be power of 2")
 		}
 		tmp := make([]byte, 0, size/2)
 		for pos := uint64(0); pos < size/32; pos += 2 {
@@ -81,7 +81,7 @@ func MerkleProof(block []byte, c uint64) [][]byte {
 	}
 	res = append(res, nodes)
 
-	return res
+	return res, nil
 }
 
 func VerifyMerkleProof(proof [][]byte, uniqueId []byte, i uint64) error {
@@ -108,7 +108,10 @@ func VerifyMerkleProof(proof [][]byte, uniqueId []byte, i uint64) error {
 	return nil
 }
 
-func CalcRootHash(data []byte) []byte {
-	proof := MerkleProof(data, 1)
-	return proof[len(proof)-1]
+func CalcRootHash(data []byte) ([]byte, error) {
+	proof, err := MerkleProof(data, 1)
+	if err != nil {
+		return nil, err
+	}
+	return proof[len(proof)-1], nil
 }

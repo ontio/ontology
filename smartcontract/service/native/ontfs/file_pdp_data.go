@@ -19,7 +19,10 @@
 package ontfs
 
 import (
+	"fmt"
+
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/smartcontract/service/native/ontfs/pdp"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
@@ -30,11 +33,15 @@ type PdpData struct {
 	ChallengeHeight uint64
 }
 
-func (this *PdpData) Serialization(sink *common.ZeroCopySink) {
+func (this *PdpData) Serialization(sink *common.ZeroCopySink) error {
+	if len(this.ProveData) < pdp.VersionLength {
+		return fmt.Errorf("PdpData Serialization error: ProveData length shorter than 8", )
+	}
 	utils.EncodeAddress(sink, this.NodeAddr)
 	sink.WriteVarBytes(this.FileHash)
 	sink.WriteVarBytes(this.ProveData)
 	utils.EncodeVarUint(sink, this.ChallengeHeight)
+	return nil
 }
 
 func (this *PdpData) Deserialization(source *common.ZeroCopySource) error {

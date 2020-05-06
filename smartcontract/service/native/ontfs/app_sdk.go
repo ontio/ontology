@@ -20,6 +20,7 @@ package ontfs
 
 import (
 	"fmt"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/errors"
@@ -932,35 +933,6 @@ func FsGetReadPledge(native *native.NativeService) ([]byte, error) {
 		return EncRet(false, []byte("[APP SDK] FsGetReadPledge getRawReadPledge error!")), nil
 	}
 	return EncRet(true, rawPledge), nil
-}
-
-func cancelFileRead(native *native.NativeService) ([]byte, error) {
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	var getPledge GetReadPledge
-	source := common.NewZeroCopySource(native.Input)
-	if err := getPledge.Deserialization(source); err != nil {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCancelFileRead GetReadPledge Deserialization error!")
-	}
-
-	readPledge, err := getReadPledge(native, getPledge.Downloader, getPledge.FileHash)
-	if err != nil || readPledge == nil {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCancelFileRead getReadFilePledge error!")
-	}
-
-	if !native.ContextRef.CheckWitness(readPledge.Downloader) {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCancelFileRead CheckDownloader failed!")
-	}
-
-	if readPledge.RestMoney > 0 {
-		err = appCallTransfer(native, utils.OngContractAddress, contract, readPledge.Downloader, readPledge.RestMoney)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCancelFileRead AppCallTransfer, transfer error!")
-		}
-	}
-
-	delReadPledge(native, getPledge.Downloader, getPledge.FileHash)
-	return utils.BYTE_TRUE, nil
 }
 
 func formatUint32TimeToMinute(time uint32) uint64 {

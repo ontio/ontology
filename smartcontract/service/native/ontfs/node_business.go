@@ -249,11 +249,7 @@ func FsResponse(native *native.NativeService) ([]byte, error) {
 }
 
 func checkPdpData(native *native.NativeService, pdpData *PdpData, fileInfo *FileInfo) error {
-	blockHeader, err := native.Store.GetHeaderByHeight(uint32(pdpData.ChallengeHeight))
-	if err != nil || blockHeader == nil {
-		return errors.NewErr("[Node Business] checkPdpData GetHeaderByHeight error!")
-	}
-	blockHash := blockHeader.Hash()
+	blockHash := native.Store.GetBlockHash(uint32(pdpData.ChallengeHeight))
 	hexBlockHash := blockHash.ToArray()
 
 	log.Debugf("ChallengeHeight: %d, blockCount: %d, blockHash: %v\n", pdpData.ChallengeHeight,

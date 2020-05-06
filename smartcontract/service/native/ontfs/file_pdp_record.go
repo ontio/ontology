@@ -162,40 +162,6 @@ func getPdpRawRecord(native *native.NativeService, fileHash []byte, fileOwner co
 	return item.Value
 }
 
-func getPdpRecordMap(native *native.NativeService, fileHash []byte, fileOwner common.Address) map[common.Address]*PdpRecord {
-	contract := native.ContextRef.CurrentContext().ContractAddress
-
-	pdpRecordPrefix := GenFsPdpRecordPrefix(contract, fileHash, fileOwner)
-	pdpRecordPrefixLen := len(pdpRecordPrefix)
-
-	pdpRecordList := make(map[common.Address]*PdpRecord)
-	iter := native.CacheDB.NewIterator(pdpRecordPrefix[:])
-	for has := iter.First(); has; has = iter.Next() {
-		key := iter.Key()
-		item, err := utils.GetStorageItem(native, iter.Key())
-		if err != nil || item == nil || item.Value == nil {
-			log.Error("[Pdp Info] GetPdpRecordMap GetStorageItem ", err)
-			continue
-		}
-
-		nodeAddr, err := common.AddressParseFromBytes(key[pdpRecordPrefixLen:])
-		if err != nil {
-			log.Errorf("[Pdp Info] GetPdpRecordMap error: ", err.Error())
-			continue
-		}
-		var pdpRecord PdpRecord
-		source := common.NewZeroCopySource(item.Value)
-		if err := pdpRecord.Deserialization(source); err != nil {
-			log.Errorf("[Pdp Info] GetPdpRecordMap error: ", err.Error())
-			continue
-		}
-		pdpRecordList[nodeAddr] = &pdpRecord
-	}
-	iter.Release()
-
-	return pdpRecordList
-}
-
 func getPdpRecordList(native *native.NativeService, fileHash []byte, fileOwner common.Address) *PdpRecordList {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
