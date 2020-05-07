@@ -28,6 +28,8 @@ import (
 	"syscall"
 	"time"
 
+	"path/filepath"
+
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology-eventbus/actor"
@@ -206,7 +208,8 @@ func initLog(ctx *cli.Context) {
 		log.InitLog(logLevel, log.Stdout)
 	} else {
 		dataDir := ctx.String(utils.GetFlagName(utils.DataDirFlag))
-		log.PATH = dataDir + string(os.PathSeparator) + "Log/"
+		temp := filepath.Join(dataDir, "Log")
+		log.PATH = temp + string(os.PathSeparator)
 		alog.InitLog(log.PATH)
 		log.InitLog(logLevel, log.PATH, log.Stdout)
 	}
