@@ -21,6 +21,10 @@ package cmd
 import (
 	"fmt"
 
+	"path/filepath"
+
+	"os"
+
 	"github.com/ontio/ontology/cmd/utils"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
@@ -136,6 +140,7 @@ func setCommonConfig(ctx *cli.Context, cfg *config.CommonConfig) {
 	cfg.GasLimit = ctx.Uint64(utils.GetFlagName(utils.GasLimitFlag))
 	cfg.GasPrice = ctx.Uint64(utils.GetFlagName(utils.GasPriceFlag))
 	cfg.DataDir = ctx.String(utils.GetFlagName(utils.DataDirFlag))
+	cfg.DataDir = filepath.Join(cfg.DataDir, "Chain") + string(os.PathSeparator)
 }
 
 func setConsensusConfig(ctx *cli.Context, cfg *config.ConsensusConfig) {
