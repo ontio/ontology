@@ -88,7 +88,7 @@ func (self *Discovery) findSelf() {
 				if curPair.ID.IsPseudoPeerId() {
 					msg = msgpack.NewAddrReq()
 				} else {
-					msg = msgpack.NewFindNodeReq(curPair.ID)
+					msg = msgpack.NewFindNodeReq(self.id)
 				}
 				self.net.SendTo(curPair.ID, msg)
 			}
