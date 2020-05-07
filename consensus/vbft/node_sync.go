@@ -116,10 +116,6 @@ func (self *Syncer) run() {
 		case <-self.syncCheckReqC:
 		case req := <-self.blockSyncReqC:
 			if req.targetBlockNum == 0 {
-				// cancel fetcher for peer
-				for _, id := range req.targetPeers {
-					self.cancelFetcherForPeer(self.peers[id])
-				}
 				continue
 			}
 
@@ -258,14 +254,9 @@ func (self *Syncer) blockConsensusDone(blks BlockFromPeers) *Block {
 }
 
 func (self *Syncer) getCurrentTargetBlockNum() uint32 {
-	var targetBlkNum uint32
-	for _, syncer := range self.peers {
-		if syncer.active && syncer.targetBlkNum > targetBlkNum {
-			targetBlkNum = syncer.targetBlkNum
-		}
-	}
-	return targetBlkNum
+	return self.targetBlkNum
 }
+
 func (self *Syncer) blockCheckMerkleRoot(blks BlockFromPeers) *Block {
 	merkleRoot := make(map[common.Uint256]int)
 	for _, blk := range blks {
@@ -302,17 +293,6 @@ func (self *Syncer) startPeerSyncer(syncer *PeerSyncer, targetBlkNum uint32) {
 			syncer.run()
 		}()
 	}
-}
-
-func (self *Syncer) cancelFetcherForPeer(peer *PeerSyncer) {
-	if peer == nil {
-		return
-	}
-
-	peer.lock.Lock()
-	defer peer.lock.Unlock()
-
-	// TODO
 }
 
 func (self *Syncer) onNewBlockSyncReq(req *BlockSyncReq) {
