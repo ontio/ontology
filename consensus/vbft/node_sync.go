@@ -279,18 +279,18 @@ func (self *Syncer) isActive() bool {
 	return self.nextReqBlkNum <= self.targetBlkNum
 }
 
-func (self *Syncer) startPeerSyncer(syncer *PeerSyncer, targetBlkNum uint32) {
+func (self *Syncer) startPeerSyncer(peerSyncer *PeerSyncer, targetBlkNum uint32) {
 
-	syncer.lock.Lock()
-	defer syncer.lock.Unlock()
+	peerSyncer.lock.Lock()
+	defer peerSyncer.lock.Unlock()
 
-	if targetBlkNum > syncer.targetBlkNum {
-		syncer.targetBlkNum = targetBlkNum
+	if targetBlkNum > peerSyncer.targetBlkNum {
+		peerSyncer.targetBlkNum = targetBlkNum
 	}
-	if syncer.targetBlkNum >= syncer.nextReqBlkNum && !syncer.active {
-		syncer.active = true
+	if peerSyncer.targetBlkNum >= peerSyncer.nextReqBlkNum && !peerSyncer.active {
+		peerSyncer.active = true
 		go func() {
-			syncer.run()
+			peerSyncer.run()
 		}()
 	}
 }
