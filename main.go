@@ -205,6 +205,8 @@ func initLog(ctx *cli.Context) {
 	if disableLogFile {
 		log.InitLog(logLevel, log.Stdout)
 	} else {
+		dataDir := ctx.String(utils.GetFlagName(utils.DataDirFlag))
+		log.PATH = dataDir + string(os.PathSeparator) + "Log/"
 		alog.InitLog(log.PATH)
 		log.InitLog(logLevel, log.PATH, log.Stdout)
 	}
