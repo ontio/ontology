@@ -66,6 +66,7 @@ var (
 		TraceLog: Color(Pink, "[TRACE]"),
 	}
 	Stdout = os.Stdout
+	PATH   = "./Log/"
 )
 
 const (
@@ -73,7 +74,6 @@ const (
 	CALL_DEPTH           = 2
 	DEFAULT_MAX_LOG_SIZE = 20
 	BYTE_TO_MB           = 1024 * 1024
-	PATH                 = "./Log/"
 )
 
 func GetGID() uint64 {
