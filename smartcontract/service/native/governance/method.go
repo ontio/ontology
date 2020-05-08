@@ -43,14 +43,16 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("registerCandidate, init pos must >= 1")
 	}
 
-	//check auth of OntID
-	err := appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, uint64(params.KeyNo))
-	if err != nil {
-		return fmt.Errorf("appCallVerifyToken, verifyToken failed: %v", err)
+	if native.Height < NEW_DECENTRALIZE_BLOCK {
+		//check auth of OntID
+		err := appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, uint64(params.KeyNo))
+		if err != nil {
+			return fmt.Errorf("appCallVerifyToken, verifyToken failed: %v", err)
+		}
 	}
 
 	//check witness
-	err = utils.ValidateOwner(native, params.Address)
+	err := utils.ValidateOwner(native, params.Address)
 	if err != nil {
 		return fmt.Errorf("validateOwner, checkWitness error: %v", err)
 	}
@@ -97,16 +99,87 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		InitPos:    uint64(params.InitPos),
 		Status:     RegisterCandidateStatus,
 	}
-	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
-	err = putPeerPoolMap(native, contract, view, peerPoolMap)
-	if err != nil {
-		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
-	}
 
 	//get globalParam
 	globalParam, err := getGlobalParam(native, contract)
 	if err != nil {
 		return fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
+	}
+
+	if native.Height >= NEW_DECENTRALIZE_BLOCK {
+		//check if peerPoolMap full
+		num := 0
+		for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
+			if peerPoolItem.Status == CandidateStatus || peerPoolItem.Status == ConsensusStatus {
+				num = num + 1
+			}
+		}
+		if num >= int(globalParam.CandidateNum) {
+			return fmt.Errorf("registerCandidate, num of candidate node is full")
+		}
+
+		//check initPos
+		if peerPoolItem.InitPos < uint64(globalParam.MinInitStake) {
+			return fmt.Errorf("registerCandidate, initPos must >= %v", globalParam.MinInitStake)
+		}
+
+		//update promise pos
+		promisePos := &PromisePos{
+			PeerPubkey: peerPoolItem.PeerPubkey,
+			PromisePos: peerPoolItem.InitPos,
+		}
+		err = putPromisePos(native, contract, promisePos)
+		if err != nil {
+			return fmt.Errorf("registerCandidate, put promisePos error: %v", err)
+		}
+
+		//check if has index
+		peerPubkeyPrefix, err := hex.DecodeString(peerPoolItem.PeerPubkey)
+		if err != nil {
+			return fmt.Errorf("registerCandidate, peerPubkey format error: %v", err)
+		}
+		indexBytes, err := native.CacheDB.Get(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix))
+		if err != nil {
+			return fmt.Errorf("registerCandidate, get indexBytes error: %v", err)
+		}
+		if indexBytes != nil {
+			value, err := cstates.GetValueFromRawStorageItem(indexBytes)
+			if err != nil {
+				return fmt.Errorf("registerCandidate, get value from raw storage item error:%v", err)
+			}
+			index, err := GetBytesUint32(value)
+			if err != nil {
+				return fmt.Errorf("registerCandidate, get index error: %v", err)
+			}
+			peerPoolItem.Index = index
+		} else {
+			//get candidate index
+			candidateIndex, err := getCandidateIndex(native, contract)
+			if err != nil {
+				return fmt.Errorf("registerCandidate, get candidateIndex error: %v", err)
+			}
+			peerPoolItem.Index = candidateIndex
+
+			//update candidateIndex
+			newCandidateIndex := candidateIndex + 1
+			err = putCandidateIndex(native, contract, newCandidateIndex)
+			if err != nil {
+				return fmt.Errorf("registerCandidate, put candidateIndex error: %v", err)
+			}
+
+			indexBytes, err := GetUint32Bytes(peerPoolItem.Index)
+			if err != nil {
+				return fmt.Errorf("registerCandidate, get indexBytes error: %v", err)
+			}
+			native.CacheDB.Put(utils.ConcatKey(contract, []byte(PEER_INDEX), peerPubkeyPrefix), cstates.GenRawStorageItem(indexBytes))
+		}
+
+		peerPoolItem.Status = CandidateStatus
+	}
+	peerPoolMap.PeerPoolMap[params.PeerPubkey] = peerPoolItem
+	err = putPeerPoolMap(native, contract, view, peerPoolMap)
+	if err != nil {
+		return fmt.Errorf("putPeerPoolMap, put peerPoolMap error: %v", err)
 	}
 
 	switch flag {

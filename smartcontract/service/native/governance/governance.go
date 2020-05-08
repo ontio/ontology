@@ -95,10 +95,11 @@ const (
 	GAS_ADDRESS       = "gasAddress"
 
 	//global
-	PRECISE            = 1000000
-	NEW_VERSION_VIEW   = 6
-	NEW_VERSION_BLOCK  = 414100
-	NEW_WITHDRAW_BLOCK = 2800000
+	PRECISE                = 1000000
+	NEW_VERSION_VIEW       = 6
+	NEW_VERSION_BLOCK      = 414100
+	NEW_WITHDRAW_BLOCK     = 2800000
+	NEW_DECENTRALIZE_BLOCK = 7000000
 )
 
 // candidate fee must >= 1 ONG
@@ -329,6 +330,7 @@ func RegisterCandidateTransferFrom(native *native.NativeService) ([]byte, error)
 	return utils.BYTE_TRUE, nil
 }
 
+// Deprecated
 //Unregister a registered candidate node, will remove node from pool, and unfreeze deposit ont.
 func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(UnRegisterCandidateParam)
@@ -391,6 +393,7 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+// Deprecated
 //Approve a registered candidate node
 //Only approved candidate node can participate in consensus selection and get ong bonus.
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
