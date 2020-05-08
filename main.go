@@ -23,12 +23,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"syscall"
 	"time"
-
-	"path/filepath"
 
 	"github.com/ethereum/go-ethereum/common/fdlimit"
 	"github.com/ontio/ontology-crypto/keypair"
