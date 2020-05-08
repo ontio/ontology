@@ -19,6 +19,7 @@ package testsuite
 
 import (
 	"github.com/ontio/ontology/core/store/common"
+	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 )
 
@@ -44,5 +45,6 @@ func (self *MockDB) BatchDelete(key []byte) {
 }
 
 func NewOverlayDB() *overlaydb.OverlayDB {
-	return overlaydb.NewOverlayDB(&MockDB{nil, make(map[string]string)})
+	store, _ := leveldbstore.NewMemLevelDBStore()
+	return overlaydb.NewOverlayDB(&MockDB{store, make(map[string]string)})
 }

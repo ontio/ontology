@@ -21,12 +21,12 @@ package ont
 import (
 	"bytes"
 	"fmt"
-	"github.com/ontio/ontology/common/serialization"
 	"math/big"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/constants"
 	"github.com/ontio/ontology/common/log"
+	"github.com/ontio/ontology/common/serialization"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -176,7 +176,7 @@ func OntApprove(native *native.NativeService) ([]byte, error) {
 	var state State
 	source := common.NewZeroCopySource(native.Input)
 	if err := state.Deserialization(source); err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OngApprove] state deserialize error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntApprove] state deserialize error!")
 	}
 	if state.Value > constants.ONT_TOTAL_SUPPLY {
 		return utils.BYTE_FALSE, fmt.Errorf("approve ont amount:%d over totalSupply:%d", state.Value, constants.ONT_TOTAL_SUPPLY)
@@ -254,7 +254,7 @@ func OntTotalAllowance(native *native.NativeService) ([]byte, error) {
 	defer iter.Release()
 	var r uint64 = 0
 	for has := iter.First(); has; has = iter.Next() {
-		if bytes.Equal(iter.Key(), from[:]) {
+		if bytes.Equal(iter.Key(), utils.ConcatKey(contract, from[:])) {
 			continue
 		}
 		item := new(cstates.StorageItem)
