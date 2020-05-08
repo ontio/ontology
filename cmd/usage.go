@@ -100,6 +100,7 @@ var AppHelpFlagGroups = []flagGroup{
 		Flags: []cli.Flag{
 			utils.ConfigFlag,
 			utils.LogLevelFlag,
+			utils.LogDirFlag,
 			utils.DisableLogFileFlag,
 			utils.DisableEventLogFlag,
 			utils.DataDirFlag,
