@@ -43,6 +43,9 @@ func (this *DataReq) CmdType() string {
 //Deserialize message payload
 func (this *DataReq) Deserialization(source *common.ZeroCopySource) error {
 	ty, eof := source.NextByte()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.DataType = common.InventoryType(ty)
 
 	this.Hash, eof = source.NextHash()

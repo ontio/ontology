@@ -27,41 +27,18 @@ import (
 
 //P2P represent the net interface of p2p package
 type P2P interface {
-	Start()
-	Halt()
-	Connect(addr string) error
-	GetID() uint64
-	GetVersion() uint32
-	GetPort() uint16
-	GetHttpInfoPort() uint16
-	GetRelay() bool
-	GetHeight() uint64
-	GetTime() int64
-	GetServices() uint64
+	Connect(addr string)
+	GetHostInfo() *peer.PeerInfo
+	GetID() common.PeerId
 	GetNeighbors() []*peer.Peer
 	GetNeighborAddrs() []common.PeerAddr
 	GetConnectionCnt() uint32
 	GetMaxPeerBlockHeight() uint64
-	GetNp() *peer.NbrPeers
-	GetPeer(uint64) *peer.Peer
+	GetPeer(id common.PeerId) *peer.Peer
 	SetHeight(uint64)
-	IsPeerEstablished(p *peer.Peer) bool
 	Send(p *peer.Peer, msg types.Message) error
-	GetMsgChan() chan *types.MsgPayload
-	GetPeerFromAddr(addr string) *peer.Peer
-	AddOutConnectingList(addr string) (added bool)
-	GetOutConnRecordLen() int
-	RemoveFromConnectingList(addr string)
-	RemoveFromOutConnRecord(addr string)
-	RemoveFromInConnRecord(addr string)
-	AddPeerAddress(addr string, p *peer.Peer)
-	GetOutConnectingListLen() (count uint)
-	RemovePeerAddress(addr string)
-	AddNbrNode(*peer.Peer)
-	DelNbrNode(id uint64) (*peer.Peer, bool)
-	NodeEstablished(uint64) bool
-	Xmit(msg types.Message)
-	SetOwnAddress(addr string)
+	SendTo(p common.PeerId, msg types.Message)
+	GetOutConnRecordLen() uint
+	Broadcast(msg types.Message)
 	IsOwnAddress(addr string) bool
-	IsAddrFromConnecting(addr string) bool
 }

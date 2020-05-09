@@ -22,9 +22,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-
-	com "github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/core/types"
 )
 
 //peer capability
@@ -32,6 +29,8 @@ const (
 	VERIFY_NODE  = 1 //peer involved in consensus
 	SERVICE_NODE = 2 //peer only sync with consensus peer
 )
+
+const MIN_VERSION_FOR_DHT = "1.9.1-beta"
 
 //link and concurrent const
 const (
@@ -46,15 +45,12 @@ const (
 
 //msg cmd const
 const (
-	MSG_CMD_LEN      = 12               //msg type length in byte
-	CMD_OFFSET       = 4                //cmd type offet in msg hdr
-	CHECKSUM_LEN     = 4                //checksum length in byte
-	MSG_HDR_LEN      = 24               //msg hdr length in byte
-	MAX_BLK_HDR_CNT  = 500              //hdr count once when sync header
-	MAX_INV_HDR_CNT  = 500              //inventory count once when req inv
-	MAX_REQ_BLK_ONCE = 16               //req blk count once from one peer when sync blk
-	MAX_MSG_LEN      = 30 * 1024 * 1024 //the maximum message length
-	MAX_PAYLOAD_LEN  = MAX_MSG_LEN - MSG_HDR_LEN
+	MSG_CMD_LEN     = 12               //msg type length in byte
+	CHECKSUM_LEN    = 4                //checksum length in byte
+	MSG_HDR_LEN     = 24               //msg hdr length in byte
+	MAX_BLK_HDR_CNT = 500              //hdr count once when sync header
+	MAX_MSG_LEN     = 30 * 1024 * 1024 //the maximum message length
+	MAX_PAYLOAD_LEN = MAX_MSG_LEN - MSG_HDR_LEN
 )
 
 //msg type const
@@ -76,31 +72,17 @@ const (
 	SYNC_BLK_WAIT         = 2     //timespan for blk sync check
 )
 
-// The peer state
 const (
-	INIT        = 0 //initial
-	HAND        = 1 //send verion to peer
-	HAND_SHAKE  = 2 //haven`t send verion to peer and receive peer`s version
-	HAND_SHAKED = 3 //send verion to peer and receive peer`s version
-	ESTABLISH   = 4 //receive peer`s verack
-	INACTIVITY  = 5 //link broken
+	RecentPeerElapseLimit = 60
 )
 
 //cap flag
-const (
-	HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
-)
-
-//actor const
-const (
-	ACTOR_TIMEOUT = 5 //actor request timeout in secs
-)
+const HTTP_INFO_FLAG = 0 //peer`s http info bit in cap field
 
 //recent contact const
 const (
 	RECENT_TIMEOUT   = 60
 	RECENT_FILE_NAME = "peers.recent"
-	RECENT_LIMIT     = 10 //recent contact list limit
 )
 
 //PeerAddr represent peer`s net information
@@ -111,49 +93,30 @@ type PeerAddr struct {
 	Port     uint16   //sync port
 	//todo remove this legecy field
 	ConsensusPort uint16 //consensus port
-	ID            uint64 //Unique ID
+	ID            PeerId //Unique ID
 }
 
 //const channel msg id and type
 const (
-	VERSION_TYPE     = "version"    //peer`s information
-	VERACK_TYPE      = "verack"     //ack msg after version recv
-	GetADDR_TYPE     = "getaddr"    //req nbr address from peer
-	ADDR_TYPE        = "addr"       //nbr address
-	PING_TYPE        = "ping"       //ping  sync height
-	PONG_TYPE        = "pong"       //pong  recv nbr height
-	GET_HEADERS_TYPE = "getheaders" //req blk hdr
-	HEADERS_TYPE     = "headers"    //blk hdr
-	INV_TYPE         = "inv"        //inv payload
-	GET_DATA_TYPE    = "getdata"    //req data from peer
-	BLOCK_TYPE       = "block"      //blk payload
-	TX_TYPE          = "tx"         //transaction
-	CONSENSUS_TYPE   = "consensus"  //consensus payload
-	GET_BLOCKS_TYPE  = "getblocks"  //req blks from peer
-	NOT_FOUND_TYPE   = "notfound"   //peer can`t find blk according to the hash
-	DISCONNECT_TYPE  = "disconnect" //peer disconnect info raise by link
+	VERSION_TYPE       = "version"     //peer`s information
+	VERACK_TYPE        = "verack"      //ack msg after version recv
+	GetADDR_TYPE       = "getaddr"     //req nbr address from peer
+	ADDR_TYPE          = "addr"        //nbr address
+	PING_TYPE          = "ping"        //ping  sync height
+	PONG_TYPE          = "pong"        //pong  recv nbr height
+	GET_HEADERS_TYPE   = "getheaders"  //req blk hdr
+	HEADERS_TYPE       = "headers"     //blk hdr
+	INV_TYPE           = "inv"         //inv payload
+	GET_DATA_TYPE      = "getdata"     //req data from peer
+	BLOCK_TYPE         = "block"       //blk payload
+	TX_TYPE            = "tx"          //transaction
+	CONSENSUS_TYPE     = "consensus"   //consensus payload
+	GET_BLOCKS_TYPE    = "getblocks"   //req blks from peer
+	NOT_FOUND_TYPE     = "notfound"    //peer can`t find blk according to the hash
+	FINDNODE_TYPE      = "findnode"    // find node using dht
+	FINDNODE_RESP_TYPE = "findnodeack" // find node using dht
+	UPDATE_KADID_TYPE  = "updatekadid" //update node kadid
 )
-
-type AppendPeerID struct {
-	ID uint64 // The peer id
-}
-
-type RemovePeerID struct {
-	ID uint64 // The peer id
-}
-
-type AppendHeaders struct {
-	FromID  uint64          // The peer id
-	Headers []*types.Header // Headers to be added to the ledger
-}
-
-type AppendBlock struct {
-	FromID     uint64               // The peer id
-	BlockSize  uint32               // Block size
-	Block      *types.Block         // Block to be added to the ledger
-	CCMsg      *types.CrossChainMsg // Cross chain message in ledger
-	MerkleRoot com.Uint256          // MerkleRoot
-}
 
 //ParseIPAddr return ip address
 func ParseIPAddr(s string) (string, error) {
@@ -166,8 +129,8 @@ func ParseIPAddr(s string) (string, error) {
 
 //ParseIPPort return ip port
 func ParseIPPort(s string) (string, error) {
-	i := strings.Index(s, ":")
-	if i < 0 {
+	i := strings.LastIndex(s, ":")
+	if i < 0 || i == len(s)-1 {
 		return "", errors.New("[p2p]split ip port error")
 	}
 	port, err := strconv.Atoi(s[i+1:])

@@ -16,31 +16,39 @@
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package utils
+package common
 
 import (
+	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
-	"github.com/ontio/ontology/p2pserver/message/types"
-	"github.com/ontio/ontology/p2pserver/net/netserver"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/stretchr/testify/assert"
 )
 
-func testHandler(data *types.MsgPayload, p2p p2p.P2P, pid *actor.PID, args ...interface{}) {
-	log.Info("Test handler")
+func TestConvertPeerID(t *testing.T) {
+	start := time.Now().Unix()
+	fmt.Println("start:", start)
+	RandPeerKeyId()
+
+	end := time.Now().Unix()
+	fmt.Println("end:", end)
+	fmt.Println(end - start)
 }
 
-// TestMsgRouter tests a basic function of a message router
-func TestMsgRouter(t *testing.T) {
-	network := netserver.NewNetServer()
-	msgRouter := NewMsgRouter(network)
-	assert.NotNil(t, msgRouter)
+func TestKIdToUint64(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		data := rand.Uint64()
+		id := PseudoPeerIdFromUint64(data)
+		data2 := id.ToUint64()
+		assert.Equal(t, data, data2)
+	}
+}
 
-	msgRouter.RegisterMsgHandler("test", testHandler)
-	msgRouter.UnRegisterMsgHandler("test")
-	msgRouter.Start()
-	msgRouter.Stop()
+func TestKadId_IsEmpty(t *testing.T) {
+	id := PeerId{}
+	assert.True(t, id.IsEmpty())
+	kid := RandPeerKeyId()
+	assert.False(t, kid.Id.IsEmpty())
 }

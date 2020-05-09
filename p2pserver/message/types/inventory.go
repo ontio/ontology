@@ -59,6 +59,9 @@ func (this Inv) Serialization(sink *common.ZeroCopySink) {
 func (this *Inv) Deserialization(source *common.ZeroCopySource) error {
 	var eof bool
 	invType, eof := source.NextUint8()
+	if eof {
+		return io.ErrUnexpectedEOF
+	}
 	this.P.InvType = common.InventoryType(invType)
 	blkCnt, eof := source.NextUint32()
 	if eof {

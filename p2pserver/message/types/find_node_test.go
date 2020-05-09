@@ -10,7 +10,6 @@
  * The ontology is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
@@ -19,21 +18,30 @@
 package types
 
 import (
-	comm "github.com/ontio/ontology/common"
+	"testing"
+
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
-type Disconnected struct{}
+func TestFindNodeRequest(t *testing.T) {
+	var req FindNodeReq
+	req.TargetID = common.PeerId{}
 
-//Serialize message payload
-func (this Disconnected) Serialization(sink *comm.ZeroCopySink) {
+	MessageTest(t, &req)
 }
 
-func (this Disconnected) CmdType() string {
-	return common.DISCONNECT_TYPE
-}
+func TestFindNodeResponse(t *testing.T) {
+	var resp FindNodeResp
+	resp.TargetID = common.PeerId{}
+	resp.Address = "127.0.0.1:1222"
+	id := common.PseudoPeerIdFromUint64(uint64(0x456))
+	resp.CloserPeers = []common.PeerIDAddressPair{
+		common.PeerIDAddressPair{
+			ID:      id,
+			Address: "127.0.0.1:4222",
+		},
+	}
+	resp.Success = true
 
-//Deserialize message payload
-func (this *Disconnected) Deserialization(source *comm.ZeroCopySource) error {
-	return nil
+	MessageTest(t, &resp)
 }

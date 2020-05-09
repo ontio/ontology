@@ -19,206 +19,77 @@
 package actor
 
 import (
-	"errors"
-	"time"
-
-	"github.com/ontio/ontology-eventbus/actor"
-	"github.com/ontio/ontology/common/log"
-	ac "github.com/ontio/ontology/p2pserver/actor/server"
 	"github.com/ontio/ontology/p2pserver/common"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 )
 
-var netServerPid *actor.PID
+var netServer p2p.P2P
 
-func SetNetServerPID(actr *actor.PID) {
-	netServerPid = actr
-}
-
-//Xmit to netSever actor
-func Xmit(msg interface{}) error {
-	if netServerPid == nil {
-		return nil
-	}
-	netServerPid.Tell(msg)
-	return nil
+func SetNetServer(p2p p2p.P2P) {
+	netServer = p2p
 }
 
 //GetConnectionCnt from netSever actor
-func GetConnectionCnt() (uint32, error) {
-	if netServerPid == nil {
-		return 1, nil
+func GetConnectionCnt() uint32 {
+	if netServer == nil {
+		return 1
 	}
-	future := netServerPid.RequestFuture(&ac.GetConnectionCntReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
-	}
-	r, ok := result.(*ac.GetConnectionCntRsp)
-	if !ok {
-		return 0, errors.New("fail")
-	}
-	return r.Cnt, nil
+
+	return netServer.GetConnectionCnt()
 }
 
 //GetMaxPeerBlockHeight from netSever actor
-func GetMaxPeerBlockHeight() (uint64, error) {
-	if netServerPid == nil {
-		return 1, nil
+func GetMaxPeerBlockHeight() uint64 {
+	if netServer == nil {
+		return 1
 	}
-	future := netServerPid.RequestFuture(&ac.GetMaxPeerBlockHeightReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
-	}
-	r, ok := result.(*ac.GetMaxPeerBlockHeightRsp)
-	if !ok {
-		return 0, errors.New("fail")
-	}
-	return r.MaxPeerBlockHeight, nil
+	return netServer.GetMaxPeerBlockHeight()
 }
 
 //GetNeighborAddrs from netSever actor
 func GetNeighborAddrs() []common.PeerAddr {
-	if netServerPid == nil {
+	if netServer == nil {
 		return []common.PeerAddr{}
 	}
-	future := netServerPid.RequestFuture(&ac.GetNeighborAddrsReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return nil
-	}
-	r, ok := result.(*ac.GetNeighborAddrsRsp)
-	if !ok {
-		return nil
-	}
-	return r.Addrs
-}
-
-//GetConnectionState from netSever actor
-func GetConnectionState() (uint32, error) {
-	if netServerPid == nil {
-		return 0, nil
-	}
-	future := netServerPid.RequestFuture(&ac.GetConnectionStateReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
-	}
-	r, ok := result.(*ac.GetConnectionStateRsp)
-	if !ok {
-		return 0, errors.New("fail")
-	}
-	return r.State, nil
-}
-
-//GetNodeTime from netSever actor
-func GetNodeTime() (int64, error) {
-	if netServerPid == nil {
-		return 0, nil
-	}
-	future := netServerPid.RequestFuture(&ac.GetTimeReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
-	}
-	r, ok := result.(*ac.GetTimeRsp)
-	if !ok {
-		return 0, errors.New("fail")
-	}
-	return r.Time, nil
+	return netServer.GetNeighborAddrs()
 }
 
 //GetNodePort from netSever actor
-func GetNodePort() (uint16, error) {
-	if netServerPid == nil {
-		return 0, nil
+func GetNodePort() uint16 {
+	if netServer == nil {
+		return 0
 	}
-	future := netServerPid.RequestFuture(&ac.GetPortReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
-	}
-	r, ok := result.(*ac.GetPortRsp)
-	if !ok {
-		return 0, errors.New("fail")
-	}
-	return r.SyncPort, nil
+	return netServer.GetHostInfo().Port
 }
 
 //GetID from netSever actor
-func GetID() (uint64, error) {
-	if netServerPid == nil {
-		return 0, nil
+func GetID() common.PeerId {
+	if netServer == nil {
+		return common.PeerId{}
 	}
-	future := netServerPid.RequestFuture(&ac.GetIdReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
-	}
-	r, ok := result.(*ac.GetIdRsp)
-	if !ok {
-		return 0, errors.New("fail")
-	}
-	return r.Id, nil
+	return netServer.GetID()
 }
 
 //GetRelayState from netSever actor
-func GetRelayState() (bool, error) {
-	if netServerPid == nil {
-		return false, nil
+func GetRelayState() bool {
+	if netServer == nil {
+		return false
 	}
-	future := netServerPid.RequestFuture(&ac.GetRelayStateReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return false, err
-	}
-	r, ok := result.(*ac.GetRelayStateRsp)
-	if !ok {
-		return false, errors.New("fail")
-	}
-	return r.Relay, nil
+	return netServer.GetHostInfo().Relay
 }
 
 //GetVersion from netSever actor
-func GetVersion() (uint32, error) {
-	if netServerPid == nil {
-		return 0, nil
+func GetVersion() uint32 {
+	if netServer == nil {
+		return 0
 	}
-	future := netServerPid.RequestFuture(&ac.GetVersionReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
-	}
-	r, ok := result.(*ac.GetVersionRsp)
-	if !ok {
-		return 0, errors.New("fail")
-	}
-	return r.Version, nil
+	return netServer.GetHostInfo().Version
 }
 
 //GetNodeType from netSever actor
-func GetNodeType() (uint64, error) {
-	if netServerPid == nil {
-		return 0, nil
+func GetNodeType() uint64 {
+	if netServer == nil {
+		return 0
 	}
-	future := netServerPid.RequestFuture(&ac.GetNodeTypeReq{}, REQ_TIMEOUT*time.Second)
-	result, err := future.Result()
-	if err != nil {
-		log.Errorf(ERR_ACTOR_COMM, err)
-		return 0, err
-	}
-	r, ok := result.(*ac.GetNodeTypeRsp)
-	if !ok {
-		return 0, errors.New("fail")
-	}
-	return r.NodeType, nil
+	return netServer.GetHostInfo().Services
 }

@@ -15,36 +15,31 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with The ontology.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package p2pserver
+package connect_controller
 
 import (
-	"fmt"
-	"testing"
+	"net"
 
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/p2pserver/common"
 )
 
-func init() {
-	log.InitLog(log.InfoLog, log.Stdout)
-	fmt.Println("Start test the netserver...")
-
+// Conn is a net.Conn wrapper to do some clean up when Close.
+type Conn struct {
+	net.Conn
+	addr       string
+	kid        common.PeerId
+	boundIndex int
+	connectId  uint64
+	controller *ConnectController
 }
-func TestNewP2PServer(t *testing.T) {
-	fmt.Println("Start test new p2pserver...")
 
-	p2p := NewServer()
+// Close overwrite net.Conn
+// warning: this method will try to lock the controller, be carefull to avoid deadlock
+func (self *Conn) Close() error {
+	log.Infof("closing connection: peer %s, address: %s", self.kid.ToHexString(), self.addr)
 
-	if p2p.GetVersion() != common.PROTOCOL_VERSION {
-		t.Error("TestNewP2PServer p2p version error", p2p.GetVersion())
-	}
+	self.controller.removePeer(self)
 
-	if p2p.GetVersion() != common.PROTOCOL_VERSION {
-		t.Error("TestNewP2PServer p2p version error")
-	}
-	sync := p2p.GetPort()
-	if sync != 20338 {
-		t.Error("TestNewP2PServer sync port error")
-	}
+	return self.Conn.Close()
 }

@@ -20,10 +20,11 @@ package peer
 
 import (
 	"errors"
+	"fmt"
 	"net"
-	"runtime"
+	"strconv"
+	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	comm "github.com/ontio/ontology/common"
@@ -33,131 +34,78 @@ import (
 	"github.com/ontio/ontology/p2pserver/message/types"
 )
 
-// PeerCom provides the basic information of a peer
-type PeerCom struct {
-	id           uint64
-	version      uint32
-	services     uint64
-	relay        bool
-	httpInfoPort uint16
-	port         uint16
-	height       uint64
-	softVersion  string
+// PeerInfo provides the basic information of a peer
+type PeerInfo struct {
+	Id           common.PeerId
+	Version      uint32
+	Services     uint64
+	Relay        bool
+	HttpInfoPort uint16
+	Port         uint16
+	Height       uint64
+	SoftVersion  string
+	Addr         string
 }
 
-// SetID sets a peer's id
-func (this *PeerCom) SetID(id uint64) {
-	this.id = id
+func NewPeerInfo(id common.PeerId, version uint32, services uint64, relay bool, httpInfoPort uint16,
+	port uint16, height uint64, softVersion string, addr string) *PeerInfo {
+	return &PeerInfo{
+		Id:           id,
+		Version:      version,
+		Services:     services,
+		Relay:        relay,
+		HttpInfoPort: httpInfoPort,
+		Port:         port,
+		Height:       height,
+		SoftVersion:  softVersion,
+		Addr:         addr,
+	}
 }
 
-// GetID returns a peer's id
-func (this *PeerCom) GetID() uint64 {
-	return this.id
-}
+// RemoteListen get remote service port
+func (pi *PeerInfo) RemoteListenAddress() string {
+	host, _, err := net.SplitHostPort(pi.Addr)
+	if err != nil {
+		return ""
+	}
 
-// SetVersion sets a peer's version
-func (this *PeerCom) SetVersion(version uint32) {
-	this.version = version
-}
+	sb := strings.Builder{}
+	sb.WriteString(host)
+	sb.WriteString(":")
+	sb.WriteString(strconv.Itoa(int(pi.Port)))
 
-// GetVersion returns a peer's version
-func (this *PeerCom) GetVersion() uint32 {
-	return this.version
-}
-
-// SetServices sets a peer's services
-func (this *PeerCom) SetServices(services uint64) {
-	this.services = services
-}
-
-// GetServices returns a peer's services
-func (this *PeerCom) GetServices() uint64 {
-	return this.services
-}
-
-// SerRelay sets a peer's relay
-func (this *PeerCom) SetRelay(relay bool) {
-	this.relay = relay
-}
-
-// GetRelay returns a peer's relay
-func (this *PeerCom) GetRelay() bool {
-	return this.relay
-}
-
-// SetPort sets a peer's sync port
-func (this *PeerCom) SetPort(port uint16) {
-	this.port = port
-}
-
-// GetPort returns a peer's sync port
-func (this *PeerCom) GetPort() uint16 {
-	return this.port
-}
-
-// SetHttpInfoPort sets a peer's http info port
-func (this *PeerCom) SetHttpInfoPort(port uint16) {
-	this.httpInfoPort = port
-}
-
-// GetHttpInfoPort returns a peer's http info port
-func (this *PeerCom) GetHttpInfoPort() uint16 {
-	return this.httpInfoPort
-}
-
-// SetHeight sets a peer's height
-func (this *PeerCom) SetHeight(height uint64) {
-	this.height = height
-}
-
-// GetHeight returns a peer's height
-func (this *PeerCom) GetHeight() uint64 {
-	return this.height
-}
-
-//SetSoftVersion sets a peers's software version
-func (this *PeerCom) SetSoftVersion(softVer string) {
-	this.softVersion = softVer
-}
-
-//GetSoftVersion return a peer's software version
-func (this *PeerCom) GetSoftVersion() string {
-	return this.softVersion
+	return sb.String()
 }
 
 //Peer represent the node in p2p
 type Peer struct {
-	base      PeerCom
-	cap       [32]byte
-	Link      *conn.Link
-	linkState uint32
-	txnCnt    uint64
-	rxTxnCnt  uint64
-	connLock  sync.RWMutex
+	Info     *PeerInfo
+	Link     *conn.Link
+	connLock sync.RWMutex
 }
 
 //NewPeer return new peer without publickey initial
 func NewPeer() *Peer {
 	p := &Peer{
-		linkState: common.INIT,
+		Info: &PeerInfo{},
+		Link: conn.NewLink(),
 	}
-	p.Link = conn.NewLink()
-	runtime.SetFinalizer(p, rmPeer)
 	return p
 }
 
-//rmPeer print a debug log when peer be finalized by system
-func rmPeer(p *Peer) {
-	log.Debugf("[p2p]Remove unused peer: %d", p.GetID())
+func (self *Peer) SetInfo(info *PeerInfo) {
+	self.Info = info
+}
+
+func (self *PeerInfo) String() string {
+	return fmt.Sprintf("id=%s, version=%s", self.Id.ToHexString(), self.SoftVersion)
 }
 
 //DumpInfo print all information of peer
 func (this *Peer) DumpInfo() {
-	log.Debug("[p2p]Node info:")
-	log.Debug("[p2p]\t linkState = ", this.linkState)
+	log.Debug("[p2p]Node Info:")
 	log.Debug("[p2p]\t id = ", this.GetID())
-	log.Debug("[p2p]\t addr = ", this.Link.GetAddr())
-	log.Debug("[p2p]\t cap = ", this.cap)
+	log.Debug("[p2p]\t addr = ", this.Info.Addr)
 	log.Debug("[p2p]\t version = ", this.GetVersion())
 	log.Debug("[p2p]\t services = ", this.GetServices())
 	log.Debug("[p2p]\t port = ", this.GetPort())
@@ -168,32 +116,22 @@ func (this *Peer) DumpInfo() {
 
 //GetVersion return peer`s version
 func (this *Peer) GetVersion() uint32 {
-	return this.base.GetVersion()
+	return this.Info.Version
 }
 
 //GetHeight return peer`s block height
 func (this *Peer) GetHeight() uint64 {
-	return this.base.GetHeight()
+	return this.Info.Height
 }
 
 //SetHeight set height to peer
 func (this *Peer) SetHeight(height uint64) {
-	this.base.SetHeight(height)
+	this.Info.Height = height
 }
 
-//GetState return sync state
-func (this *Peer) GetState() uint32 {
-	return this.linkState
-}
-
-//SetState set sync state to peer
-func (this *Peer) SetState(state uint32) {
-	atomic.StoreUint32(&(this.linkState), state)
-}
-
-//GetPort return peer`s sync port
+//GetPort return Peer`s sync port
 func (this *Peer) GetPort() uint16 {
-	return this.Link.GetPort()
+	return this.Info.Port
 }
 
 //SendTo call sync link to send buffer
@@ -206,28 +144,24 @@ func (this *Peer) SendRaw(msgType string, msgPayload []byte) error {
 
 //Close halt sync connection
 func (this *Peer) Close() {
-	this.SetState(common.INACTIVITY)
-	conn := this.Link.GetConn()
 	this.connLock.Lock()
-	if conn != nil {
-		conn.Close()
-	}
+	this.Link.CloseConn()
 	this.connLock.Unlock()
 }
 
 //GetID return peer`s id
-func (this *Peer) GetID() uint64 {
-	return this.base.GetID()
+func (this *Peer) GetID() common.PeerId {
+	return this.Info.Id
 }
 
 //GetRelay return peer`s relay state
 func (this *Peer) GetRelay() bool {
-	return this.base.GetRelay()
+	return this.Info.Relay
 }
 
 //GetServices return peer`s service state
 func (this *Peer) GetServices() uint64 {
-	return this.base.GetServices()
+	return this.Info.Services
 }
 
 //GetTimeStamp return peer`s latest contact time in ticks
@@ -242,7 +176,7 @@ func (this *Peer) GetContactTime() time.Time {
 
 //GetAddr return peer`s sync link address
 func (this *Peer) GetAddr() string {
-	return this.Link.GetAddr()
+	return this.Info.Addr
 }
 
 //GetAddr16 return peer`s sync link address in []byte
@@ -263,7 +197,7 @@ func (this *Peer) GetAddr16() ([16]byte, error) {
 }
 
 func (this *Peer) GetSoftVersion() string {
-	return this.base.GetSoftVersion()
+	return this.Info.SoftVersion
 }
 
 //AttachChan set msg chan to sync link
@@ -279,45 +213,26 @@ func (this *Peer) Send(msg types.Message) error {
 	return this.SendRaw(msg.CmdType(), sink.Bytes())
 }
 
-//SetHttpInfoState set peer`s httpinfo state
-func (this *Peer) SetHttpInfoState(httpInfo bool) {
-	if httpInfo {
-		this.cap[common.HTTP_INFO_FLAG] = 0x01
-	} else {
-		this.cap[common.HTTP_INFO_FLAG] = 0x00
-	}
-}
-
-//GetHttpInfoState return peer`s httpinfo state
-func (this *Peer) GetHttpInfoState() bool {
-	return this.cap[common.HTTP_INFO_FLAG] == 1
-}
-
 //GetHttpInfoPort return peer`s httpinfo port
 func (this *Peer) GetHttpInfoPort() uint16 {
-	return this.base.GetHttpInfoPort()
+	return this.Info.HttpInfoPort
 }
 
 //SetHttpInfoPort set peer`s httpinfo port
 func (this *Peer) SetHttpInfoPort(port uint16) {
-	this.base.SetHttpInfoPort(port)
+	this.Info.HttpInfoPort = port
 }
 
 //UpdateInfo update peer`s information
 func (this *Peer) UpdateInfo(t time.Time, version uint32, services uint64,
-	syncPort uint16, nonce uint64, relay uint8, height uint64, softVer string) {
+	syncPort uint16, kid common.PeerId, relay uint8, height uint64, softVer string) {
+	this.Info.Id = kid
+	this.Info.Version = version
+	this.Info.Services = services
+	this.Info.Port = syncPort
+	this.Info.SoftVersion = softVer
+	this.Info.Relay = relay != 0
+	this.Info.Height = height
 
 	this.Link.UpdateRXTime(t)
-	this.base.SetID(nonce)
-	this.base.SetVersion(version)
-	this.base.SetServices(services)
-	this.base.SetPort(syncPort)
-	this.base.SetSoftVersion(softVer)
-	this.Link.SetPort(syncPort)
-	if relay == 0 {
-		this.base.SetRelay(false)
-	} else {
-		this.base.SetRelay(true)
-	}
-	this.SetHeight(uint64(height))
 }

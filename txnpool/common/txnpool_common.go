@@ -47,7 +47,6 @@ const (
 	TxActor                  // Actor that handles new transaction
 	TxPoolActor              // Actor that handles consensus msg
 	VerifyRspActor           // Actor that handles the response from valdiators
-	NetActor                 // Actor to send msg to the net actor
 	MaxActor
 )
 

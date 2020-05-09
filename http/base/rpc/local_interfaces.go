@@ -21,6 +21,7 @@ package rpc
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/ontio/ontology/common/log"
 	bactor "github.com/ontio/ontology/http/base/actor"
@@ -46,41 +47,18 @@ func GetNeighbor(params []interface{}) map[string]interface{} {
 }
 
 func GetNodeState(params []interface{}) map[string]interface{} {
-	state, err := bactor.GetConnectionState()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	t, err := bactor.GetNodeTime()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	port, err := bactor.GetNodePort()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	id, err := bactor.GetID()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	ver, err := bactor.GetVersion()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	tpe, err := bactor.GetNodeType()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	relay, err := bactor.GetRelayState()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
+	t := time.Now().UnixNano()
+	port := bactor.GetNodePort()
+	id := bactor.GetID()
+	ver := bactor.GetVersion()
+	tpe := bactor.GetNodeType()
+	relay := bactor.GetRelayState()
 	height := bactor.GetCurrentBlockHeight()
 	txnCnt, err := bactor.GetTxnCount()
 	if err != nil {
 		return responsePack(berr.INTERNAL_ERROR, false)
 	}
 	n := common.NodeInfo{
-		NodeState:   uint(state),
 		NodeTime:    t,
 		NodePort:    port,
 		ID:          id,
