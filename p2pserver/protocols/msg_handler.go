@@ -21,7 +21,6 @@ package protocols
 import (
 	"errors"
 	"fmt"
-	"strconv"
 
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
@@ -97,13 +96,13 @@ func (self *MsgHandler) HandleSystemMessage(net p2p.P2P, msg p2p.SystemMessage) 
 		self.reconnect.OnAddPeer(m.Info)
 		self.discovery.OnAddPeer(m.Info)
 		self.bootstrap.OnAddPeer(m.Info)
-		self.persistRecentPeerService.AddNodeAddr(m.Info.Addr + strconv.Itoa(int(m.Info.Port)))
+		self.persistRecentPeerService.AddNodeAddr(m.Info.RemoteListenAddress())
 	case p2p.PeerDisConnected:
 		self.blockSync.OnDelNode(m.Info.Id)
 		self.reconnect.OnDelPeer(m.Info)
 		self.discovery.OnDelPeer(m.Info)
 		self.bootstrap.OnDelPeer(m.Info)
-		self.persistRecentPeerService.DelNodeAddr(m.Info.Addr + strconv.Itoa(int(m.Info.Port)))
+		self.persistRecentPeerService.DelNodeAddr(m.Info.RemoteListenAddress())
 	case p2p.NetworkStop:
 		self.stop()
 	}
