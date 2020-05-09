@@ -23,7 +23,6 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/smartcontract/context"
@@ -34,7 +33,6 @@ import (
 )
 
 type WasmVmService struct {
-	Store         store.LedgerStore
 	CacheDB       *storage.CacheDB
 	ContextRef    context.ContextRef
 	Notifications []*event.NotifyEventInfo

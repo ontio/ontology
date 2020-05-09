@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ontio/ontology/common/config"
+
 	scommon "github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
@@ -36,59 +38,62 @@ import (
 )
 
 var (
-	// Register all service for smart contract execute
-	ServiceMap = map[string]Service{
-		ATTRIBUTE_GETUSAGE_NAME:              {Execute: AttributeGetUsage},
-		ATTRIBUTE_GETDATA_NAME:               {Execute: AttributeGetData},
-		BLOCK_GETTRANSACTIONCOUNT_NAME:       {Execute: BlockGetTransactionCount},
-		BLOCK_GETTRANSACTIONS_NAME:           {Execute: BlockGetTransactions},
-		BLOCK_GETTRANSACTION_NAME:            {Execute: BlockGetTransaction},
-		BLOCKCHAIN_GETHEIGHT_NAME:            {Execute: BlockChainGetHeight},
-		BLOCKCHAIN_GETHEADER_NAME:            {Execute: BlockChainGetHeader},
-		BLOCKCHAIN_GETBLOCK_NAME:             {Execute: BlockChainGetBlock},
-		BLOCKCHAIN_GETTRANSACTION_NAME:       {Execute: BlockChainGetTransaction},
-		BLOCKCHAIN_GETCONTRACT_NAME:          {Execute: BlockChainGetContract},
-		BLOCKCHAIN_GETTRANSACTIONHEIGHT_NAME: {Execute: BlockChainGetTransactionHeight},
-		HEADER_GETINDEX_NAME:                 {Execute: HeaderGetIndex},
-		HEADER_GETHASH_NAME:                  {Execute: HeaderGetHash},
-		HEADER_GETVERSION_NAME:               {Execute: HeaderGetVersion},
-		HEADER_GETPREVHASH_NAME:              {Execute: HeaderGetPrevHash},
-		HEADER_GETTIMESTAMP_NAME:             {Execute: HeaderGetTimestamp},
-		HEADER_GETCONSENSUSDATA_NAME:         {Execute: HeaderGetConsensusData},
-		HEADER_GETNEXTCONSENSUS_NAME:         {Execute: HeaderGetNextConsensus},
-		HEADER_GETMERKLEROOT_NAME:            {Execute: HeaderGetMerkleRoot},
-		TRANSACTION_GETHASH_NAME:             {Execute: TransactionGetHash},
-		TRANSACTION_GETTYPE_NAME:             {Execute: TransactionGetType},
-		TRANSACTION_GETATTRIBUTES_NAME:       {Execute: TransactionGetAttributes},
-		CONTRACT_CREATE_NAME:                 {Execute: ContractCreate},
-		CONTRACT_MIGRATE_NAME:                {Execute: ContractMigrate},
-		CONTRACT_GETSTORAGECONTEXT_NAME:      {Execute: ContractGetStorageContext},
-		CONTRACT_DESTROY_NAME:                {Execute: ContractDestory},
-		CONTRACT_GETSCRIPT_NAME:              {Execute: ContractGetCode},
-		RUNTIME_GETTIME_NAME:                 {Execute: RuntimeGetTime},
-		RUNTIME_CHECKWITNESS_NAME:            {Execute: RuntimeCheckWitness},
-		RUNTIME_NOTIFY_NAME:                  {Execute: RuntimeNotify},
-		RUNTIME_LOG_NAME:                     {Execute: RuntimeLog},
-		RUNTIME_GETTRIGGER_NAME:              {Execute: RuntimeGetTrigger},
-		RUNTIME_SERIALIZE_NAME:               {Execute: RuntimeSerialize},
-		RUNTIME_DESERIALIZE_NAME:             {Execute: RuntimeDeserialize},
-		RUNTIME_VERIFYMUTISIG_NAME:           {Execute: RuntimeVerifyMutiSig},
-		NATIVE_INVOKE_NAME:                   {Execute: NativeInvoke},
-		WASM_INVOKE_NAME:                     {Execute: WASMInvoke},
-		STORAGE_GET_NAME:                     {Execute: StorageGet},
-		STORAGE_PUT_NAME:                     {Execute: StoragePut},
-		STORAGE_DELETE_NAME:                  {Execute: StorageDelete},
-		STORAGE_GETCONTEXT_NAME:              {Execute: StorageGetContext},
-		STORAGE_GETREADONLYCONTEXT_NAME:      {Execute: StorageGetReadOnlyContext},
-		STORAGECONTEXT_ASREADONLY_NAME:       {Execute: StorageContextAsReadOnly},
-		GETSCRIPTCONTAINER_NAME:              {Execute: GetCodeContainer},
-		GETEXECUTINGSCRIPTHASH_NAME:          {Execute: GetExecutingAddress},
-		GETCALLINGSCRIPTHASH_NAME:            {Execute: GetCallingAddress},
-		GETENTRYSCRIPTHASH_NAME:              {Execute: GetEntryAddress},
+	ServiceMapDeprecated = map[string]ServiceHandler{
+		BLOCKCHAIN_GETTRANSACTIONHEIGHT_NAME: BlockChainGetTransactionHeight,
+		BLOCKCHAIN_GETBLOCK_NAME:             BlockChainGetBlock,
+		BLOCKCHAIN_GETHEADER_NAME:            BlockChainGetHeader,
+		BLOCKCHAIN_GETTRANSACTION_NAME:       BlockChainGetTransaction,
+	}
 
-		RUNTIME_BASE58TOADDRESS_NAME:     {Execute: RuntimeBase58ToAddress},
-		RUNTIME_ADDRESSTOBASE58_NAME:     {Execute: RuntimeAddressToBase58},
-		RUNTIME_GETCURRENTBLOCKHASH_NAME: {Execute: RuntimeGetCurrentBlockHash},
+	// Register all service for smart contract execute
+	ServiceMap = map[string]ServiceHandler{
+		ATTRIBUTE_GETUSAGE_NAME:         AttributeGetUsage,
+		ATTRIBUTE_GETDATA_NAME:          AttributeGetData,
+		BLOCK_GETTRANSACTIONCOUNT_NAME:  BlockGetTransactionCount,
+		BLOCK_GETTRANSACTIONS_NAME:      BlockGetTransactions,
+		BLOCK_GETTRANSACTION_NAME:       BlockGetTransaction,
+		BLOCKCHAIN_GETHEIGHT_NAME:       BlockChainGetHeight,
+		BLOCKCHAIN_GETCONTRACT_NAME:     BlockChainGetContract,
+		HEADER_GETINDEX_NAME:            HeaderGetIndex,
+		HEADER_GETHASH_NAME:             HeaderGetHash,
+		HEADER_GETVERSION_NAME:          HeaderGetVersion,
+		HEADER_GETPREVHASH_NAME:         HeaderGetPrevHash,
+		HEADER_GETTIMESTAMP_NAME:        HeaderGetTimestamp,
+		HEADER_GETCONSENSUSDATA_NAME:    HeaderGetConsensusData,
+		HEADER_GETNEXTCONSENSUS_NAME:    HeaderGetNextConsensus,
+		HEADER_GETMERKLEROOT_NAME:       HeaderGetMerkleRoot,
+		TRANSACTION_GETHASH_NAME:        TransactionGetHash,
+		TRANSACTION_GETTYPE_NAME:        TransactionGetType,
+		TRANSACTION_GETATTRIBUTES_NAME:  TransactionGetAttributes,
+		CONTRACT_CREATE_NAME:            ContractCreate,
+		CONTRACT_MIGRATE_NAME:           ContractMigrate,
+		CONTRACT_GETSTORAGECONTEXT_NAME: ContractGetStorageContext,
+		CONTRACT_DESTROY_NAME:           ContractDestory,
+		CONTRACT_GETSCRIPT_NAME:         ContractGetCode,
+		RUNTIME_GETTIME_NAME:            RuntimeGetTime,
+		RUNTIME_CHECKWITNESS_NAME:       RuntimeCheckWitness,
+		RUNTIME_NOTIFY_NAME:             RuntimeNotify,
+		RUNTIME_LOG_NAME:                RuntimeLog,
+		RUNTIME_GETTRIGGER_NAME:         RuntimeGetTrigger,
+		RUNTIME_SERIALIZE_NAME:          RuntimeSerialize,
+		RUNTIME_DESERIALIZE_NAME:        RuntimeDeserialize,
+		RUNTIME_VERIFYMUTISIG_NAME:      RuntimeVerifyMutiSig,
+		NATIVE_INVOKE_NAME:              NativeInvoke,
+		WASM_INVOKE_NAME:                WASMInvoke,
+		STORAGE_GET_NAME:                StorageGet,
+		STORAGE_PUT_NAME:                StoragePut,
+		STORAGE_DELETE_NAME:             StorageDelete,
+		STORAGE_GETCONTEXT_NAME:         StorageGetContext,
+		STORAGE_GETREADONLYCONTEXT_NAME: StorageGetReadOnlyContext,
+		STORAGECONTEXT_ASREADONLY_NAME:  StorageContextAsReadOnly,
+		GETSCRIPTCONTAINER_NAME:         GetCodeContainer,
+		GETEXECUTINGSCRIPTHASH_NAME:     GetExecutingAddress,
+		GETCALLINGSCRIPTHASH_NAME:       GetCallingAddress,
+		GETENTRYSCRIPTHASH_NAME:         GetEntryAddress,
+
+		RUNTIME_BASE58TOADDRESS_NAME:     RuntimeBase58ToAddress,
+		RUNTIME_ADDRESSTOBASE58_NAME:     RuntimeAddressToBase58,
+		RUNTIME_GETCURRENTBLOCKHASH_NAME: RuntimeGetCurrentBlockHash,
 	}
 )
 
@@ -103,11 +108,11 @@ var (
 )
 
 type (
-	Execute func(service *NeoVmService, engine *vm.Executor) error
+	ServiceHandler func(service *NeoVmService, engine *vm.Executor) error
 )
 
 type Service struct {
-	Execute Execute
+	Execute ServiceHandler
 }
 
 // NeoVmService is a struct for smart contract provide interop service
@@ -244,7 +249,11 @@ func (this *NeoVmService) SystemCall(engine *vm.Executor) error {
 	if err != nil {
 		return err
 	}
-	service, ok := ServiceMap[serviceName]
+	serviceHandler, ok := ServiceMap[serviceName]
+	if !ok && this.Height < config.GetContractApiDeprecateHeight() {
+		serviceHandler, ok = ServiceMapDeprecated[serviceName]
+	}
+
 	if !ok {
 		return errors.NewErr(fmt.Sprintf("[SystemCall] the given service is not supported: %s", serviceName))
 	}
@@ -255,7 +264,7 @@ func (this *NeoVmService) SystemCall(engine *vm.Executor) error {
 	if !this.ContextRef.CheckUseGas(price) {
 		return ERR_GAS_INSUFFICIENT
 	}
-	if err := service.Execute(this, engine); err != nil {
+	if err := serviceHandler(this, engine); err != nil {
 		return errors.NewDetailErr(err, errors.ErrNoCode, "[SystemCall] service execution error!")
 	}
 	return nil

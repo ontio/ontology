@@ -92,7 +92,7 @@ func (this *BlockStore) ContainBlock(blockHash common.Uint256) (bool, error) {
 			return true, nil
 		}
 	}
-	key := this.getHeaderKey(blockHash)
+	key := this.genHeaderKey(blockHash)
 	_, err := this.store.Get(key)
 	if err != nil {
 		if err == scom.ErrNotFound {
@@ -135,7 +135,7 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 }
 
 func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Header, []common.Uint256, error) {
-	key := this.getHeaderKey(blockHash)
+	key := this.genHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
 		return nil, nil, err
@@ -169,7 +169,7 @@ func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Heade
 //SaveHeader persist block header to store
 func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) error {
 	blockHash := block.Hash()
-	key := this.getHeaderKey(blockHash)
+	key := this.genHeaderKey(blockHash)
 	sink := common.NewZeroCopySink(nil)
 	sysFee.Serialization(sink)
 	block.Header.Serialization(sink)
@@ -205,7 +205,7 @@ func (this *BlockStore) GetRawHeader(blockHash common.Uint256) (*types.RawHeader
 
 //GetSysFeeAmount return the sys fee for block by block hash
 func (this *BlockStore) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed64, error) {
-	key := this.getHeaderKey(blockHash)
+	key := this.genHeaderKey(blockHash)
 	data, err := this.store.Get(key)
 	if err != nil {
 		return common.Fixed64(0), err
@@ -234,7 +234,7 @@ func (this *BlockStore) loadHeader(blockHash common.Uint256) (*types.Header, err
 }
 
 func (this *BlockStore) loadRawHeader(blockHash common.Uint256) (*types.RawHeader, error) {
-	key := this.getHeaderKey(blockHash)
+	key := this.genHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
 		return nil, err
@@ -256,7 +256,7 @@ func (this *BlockStore) loadRawHeader(blockHash common.Uint256) (*types.RawHeade
 
 //GetCurrentBlock return the current block hash and current block height
 func (this *BlockStore) GetCurrentBlock() (common.Uint256, uint32, error) {
-	key := this.getCurrentBlockKey()
+	key := genCurrentBlockKey()
 	data, err := this.store.Get(key)
 	if err != nil {
 		return common.Uint256{}, 0, err
@@ -276,7 +276,7 @@ func (this *BlockStore) GetCurrentBlock() (common.Uint256, uint32, error) {
 
 //SaveCurrentBlock persist the current block height and current block hash to store
 func (this *BlockStore) SaveCurrentBlock(height uint32, blockHash common.Uint256) error {
-	key := this.getCurrentBlockKey()
+	key := genCurrentBlockKey()
 	value := common.NewZeroCopySink(nil)
 	value.WriteHash(blockHash)
 	value.WriteUint32(height)
@@ -290,7 +290,7 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) 
 	iter := this.store.NewIterator([]byte{byte(scom.IX_HEADER_HASH_LIST)})
 	defer iter.Release()
 	for iter.Next() {
-		startCount, err := this.getStartHeightByHeaderIndexKey(iter.Key())
+		startCount, err := getStartHeightByHeaderIndexKey(iter.Key())
 		if err != nil {
 			return nil, fmt.Errorf("getStartHeightByHeaderIndexKey error %s", err)
 		}
@@ -317,7 +317,7 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) 
 
 //SaveHeaderIndexList persist header index list to store
 func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList []common.Uint256) {
-	indexKey := this.getHeaderIndexListKey(startIndex)
+	indexKey := genHeaderIndexListKey(startIndex)
 	indexSize := uint32(len(indexList))
 	value := common.NewZeroCopySink(nil)
 	value.WriteUint32(indexSize)
@@ -330,7 +330,7 @@ func (this *BlockStore) SaveHeaderIndexList(startIndex uint32, indexList []commo
 
 //GetBlockHash return block hash by block height
 func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
-	key := this.getBlockHashKey(height)
+	key := genBlockHashKey(height)
 	value, err := this.store.Get(key)
 	if err != nil {
 		return common.UINT256_EMPTY, err
@@ -344,7 +344,7 @@ func (this *BlockStore) GetBlockHash(height uint32) (common.Uint256, error) {
 
 //SaveBlockHash persist block height and block hash to store
 func (this *BlockStore) SaveBlockHash(height uint32, blockHash common.Uint256) {
-	key := this.getBlockHashKey(height)
+	key := genBlockHashKey(height)
 	this.store.BatchPut(key, blockHash.ToArray())
 }
 
@@ -427,7 +427,7 @@ func (this *BlockStore) ContainTransaction(txHash common.Uint256) (bool, error) 
 
 //GetVersion return the version of store
 func (this *BlockStore) GetVersion() (byte, error) {
-	key := this.getVersionKey()
+	key := genVersionKey()
 	value, err := this.store.Get(key)
 	if err != nil {
 		return 0, err
@@ -438,7 +438,7 @@ func (this *BlockStore) GetVersion() (byte, error) {
 
 //SaveVersion persist version to store
 func (this *BlockStore) SaveVersion(ver byte) error {
-	key := this.getVersionKey()
+	key := genVersionKey()
 	return this.store.Put(key, []byte{ver})
 }
 
@@ -473,7 +473,7 @@ func (this *BlockStore) getTransactionKey(txHash common.Uint256) []byte {
 	return key.Bytes()
 }
 
-func (this *BlockStore) getHeaderKey(blockHash common.Uint256) []byte {
+func (this *BlockStore) genHeaderKey(blockHash common.Uint256) []byte {
 	data := blockHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(scom.DATA_HEADER)
@@ -481,33 +481,29 @@ func (this *BlockStore) getHeaderKey(blockHash common.Uint256) []byte {
 	return key
 }
 
-func (this *BlockStore) getBlockHashKey(height uint32) []byte {
+func genBlockHashKey(height uint32) []byte {
 	key := make([]byte, 5, 5)
 	key[0] = byte(scom.DATA_BLOCK)
 	binary.LittleEndian.PutUint32(key[1:], height)
 	return key
 }
 
-func (this *BlockStore) getCurrentBlockKey() []byte {
+func genCurrentBlockKey() []byte {
 	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
 
-func (this *BlockStore) getBlockMerkleTreeKey() []byte {
-	return []byte{byte(scom.SYS_BLOCK_MERKLE_TREE)}
-}
-
-func (this *BlockStore) getVersionKey() []byte {
+func genVersionKey() []byte {
 	return []byte{byte(scom.SYS_VERSION)}
 }
 
-func (this *BlockStore) getHeaderIndexListKey(startHeight uint32) []byte {
+func genHeaderIndexListKey(startHeight uint32) []byte {
 	sink := common.NewZeroCopySink(nil)
 	sink.WriteByte(byte(scom.IX_HEADER_HASH_LIST))
 	sink.WriteUint32(startHeight)
 	return sink.Bytes()
 }
 
-func (this *BlockStore) getStartHeightByHeaderIndexKey(key []byte) (uint32, error) {
+func getStartHeightByHeaderIndexKey(key []byte) (uint32, error) {
 	reader := bytes.NewReader(key[1:])
 	height, err := serialization.ReadUint32(reader)
 	if err != nil {

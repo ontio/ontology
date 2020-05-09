@@ -171,7 +171,6 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 		}
 
 		service = &wasmvm.WasmVmService{
-			Store:      this.Store,
 			CacheDB:    this.CacheDB,
 			ContextRef: this,
 			Code:       code,
