@@ -35,12 +35,6 @@ func setOntBalance(db *storage.CacheDB, addr common.Address, value uint64) {
 	db.Put(balanceKey, item.ToArray())
 }
 
-func setOntAllowance(db *storage.CacheDB, from, to common.Address, value uint64) {
-	approveKey := ont.GenApproveKey(utils.OntContractAddress, from, to)
-	item := utils.GenUInt64StorageItem(value)
-	db.Put(approveKey, item.ToArray())
-}
-
 func ontBalanceOf(native *native.NativeService, addr common.Address) int {
 	sink := common.NewZeroCopySink(nil)
 	utils.EncodeAddress(sink, addr)
@@ -54,7 +48,7 @@ func ontTotalAllowance(native *native.NativeService, addr common.Address) int {
 	sink := common.NewZeroCopySink(nil)
 	utils.EncodeAddress(sink, addr)
 	native.Input = sink.Bytes()
-	buf, _ := ont.OntTotalAllowance(native)
+	buf, _ := ont.TotalAllowance(native)
 	val := common.BigIntFromNeoBytes(buf)
 	return int(val.Uint64())
 }

@@ -155,5 +155,5 @@ func OngAllowance(native *native.NativeService) ([]byte, error) {
 }
 
 func OngTotalAllowance(native *native.NativeService) ([]byte, error) {
-	return ont.OntTotalAllowance(native)
+	return ont.TotalAllowance(native)
 }

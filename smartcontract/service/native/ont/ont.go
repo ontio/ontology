@@ -243,10 +243,14 @@ func GetBalanceValue(native *native.NativeService, flag byte) ([]byte, error) {
 }
 
 func OntTotalAllowance(native *native.NativeService) ([]byte, error) {
+	return TotalAllowance(native)
+}
+
+func TotalAllowance(native *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(native.Input)
 	from, err := utils.DecodeAddress(source)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalAllowance] get from address error!")
+		return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[TotalAllowance] get from address error!")
 	}
 	contract := native.ContextRef.CurrentContext().ContractAddress
 
@@ -260,11 +264,11 @@ func OntTotalAllowance(native *native.NativeService) ([]byte, error) {
 		item := new(cstates.StorageItem)
 		err = item.Deserialization(common.NewZeroCopySource(iter.Value()))
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalAllowance] instance isn't StorageItem!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[TotalAllowance] instance isn't StorageItem!")
 		}
 		v, err := serialization.ReadUint64(bytes.NewBuffer(item.Value))
 		if err != nil {
-			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[OntTotalAllowance] get uint64 from value error!")
+			return utils.BYTE_FALSE, errors.NewDetailErr(err, errors.ErrNoCode, "[TotalAllowance] get uint64 from value error!")
 		}
 		r = r + v
 	}
