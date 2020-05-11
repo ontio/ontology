@@ -282,6 +282,33 @@ func getRecovery(srvc *native.NativeService, encId []byte) (*Group, error) {
 	return deserializeGroup(item.Value)
 }
 
+func getRecoveryJson(srvc *native.NativeService, encId []byte) (*Group, error) {
+	key := append(encId, FIELD_RECOVERY)
+	item, err := utils.GetStorageItem(srvc, key)
+	if err != nil {
+		return nil, err
+	} else if item == nil {
+		return nil, nil
+	}
+	if item.StateVersion != _VERSION_1 {
+		return nil, errors.New("unexpected storage version")
+	}
+	r, err := deserializeGroup(item.Value)
+	if err != nil {
+		return nil, err
+	}
+	members := make([]interface{}, 0)
+	for _, v := range r.Members {
+		member, ok := v.([]byte)
+		if !ok {
+			return nil, errors.New("member is not byte array")
+		}
+		members = append(members, string(member))
+	}
+	r.Members = members
+	return r, nil
+}
+
 // deprecated
 // retain for conpatibility
 func addRecovery(srvc *native.NativeService) ([]byte, error) {

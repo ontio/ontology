@@ -30,9 +30,11 @@ func updateOrInsertProof(srvc *native.NativeService, encId []byte, proof []byte)
 	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
 		return
 	}
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteVarBytes(proof)
 	key := append(encId, FIELD_PROOF)
 	item := states.StorageItem{}
-	item.Value = proof
+	item.Value = sink.Bytes()
 	item.StateVersion = _VERSION_0
 	srvc.CacheDB.Put(key, item.ToArray())
 }

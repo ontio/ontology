@@ -160,3 +160,9 @@ func updateProofAndTime(srvc *native.NativeService, encId, proof []byte) {
 	key := append(encId, FIELD_UPDATED)
 	updateTime(srvc, key)
 }
+
+func createProofAndTime(srvc *native.NativeService, encId, proof []byte) {
+	updateOrInsertProof(srvc, encId, proof)
+	key := append(encId, FIELD_CREATED)
+	updateTime(srvc, key)
+}

@@ -97,7 +97,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	// set flags
 	utils.PutBytes(srvc, key, []byte{flag_valid})
 
-	updateProofAndTime(srvc, key, proof)
+	createProofAndTime(srvc, key, proof)
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -178,7 +178,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	utils.PutBytes(srvc, key, []byte{flag_valid})
-	updateProofAndTime(srvc, key, proof)
+	createProofAndTime(srvc, key, proof)
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }

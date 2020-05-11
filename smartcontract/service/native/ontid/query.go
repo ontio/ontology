@@ -362,7 +362,7 @@ func GetDocument(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getController failed: %s", err)
 	}
-	recovery, err := getRecovery(srvc, encId)
+	recovery, err := getRecoveryJson(srvc, encId)
 	if err != nil {
 		return nil, fmt.Errorf("getRecovery failed: %s", err)
 	}
@@ -384,7 +384,7 @@ func GetDocument(srvc *native.NativeService) ([]byte, error) {
 	}
 	proof, err := getProof(srvc, encId)
 	if err != nil {
-		return nil, fmt.Errorf("getUpdateTime failed: %s", err)
+		return nil, fmt.Errorf("getProof failed: %s", err)
 	}
 	document := new(Document)
 	document.Contexts = contexts

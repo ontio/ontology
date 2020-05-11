@@ -219,7 +219,7 @@ func getServicesJson(srvc *native.NativeService, encId []byte) ([]*serviceJson, 
 		if err != nil {
 			return nil, err
 		}
-		service.Id = fmt.Sprintf("%s#keys", string(ontId))
+		service.Id = fmt.Sprintf("%s#%s", string(ontId), string(p.ServiceId))
 		service.Type = string(p.Type)
 		service.ServiceEndpint = string(p.ServiceEndpint)
 		r = append(r, service)

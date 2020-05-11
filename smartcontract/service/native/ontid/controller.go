@@ -80,7 +80,7 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		proof = []byte{}
 	}
-	updateProofAndTime(srvc, encId, proof)
+	createProofAndTime(srvc, encId, proof)
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }

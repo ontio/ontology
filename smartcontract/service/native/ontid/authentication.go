@@ -99,11 +99,11 @@ func getAuthentication(srvc *native.NativeService, encId []byte) ([]interface{},
 	authentication := make([]interface{}, 0)
 	for index, p := range publicKeys {
 		if !p.revoked {
+			ontId, err := decodeID(encId)
+			if err != nil {
+				return nil, err
+			}
 			if p.authentication == ONLY_AUTHENTICATION {
-				ontId, err := decodeID(encId)
-				if err != nil {
-					return nil, err
-				}
 				publicKey := new(publicKeyJson)
 				publicKey.Id = fmt.Sprintf("%s#keys-%d", string(ontId), index+1)
 				publicKey.Controller = string(p.controller)
@@ -112,10 +112,10 @@ func getAuthentication(srvc *native.NativeService, encId []byte) ([]interface{},
 					return nil, err
 				}
 				publicKey.Access = p.access
-				authentication = append(authentication, p)
+				authentication = append(authentication, publicKey)
 			}
 			if p.authentication == BOTH {
-				authentication = append(authentication, string(p.key))
+				authentication = append(authentication, fmt.Sprintf("%s#keys-%d", string(ontId), index+1))
 			}
 		}
 	}
