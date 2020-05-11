@@ -23,9 +23,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ontio/ontology/common/config"
-
 	scommon "github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
@@ -40,31 +39,45 @@ import (
 var (
 	ServiceMapDeprecated = map[string]ServiceHandler{
 		BLOCKCHAIN_GETTRANSACTIONHEIGHT_NAME: BlockChainGetTransactionHeight,
-		BLOCKCHAIN_GETBLOCK_NAME:             BlockChainGetBlock,
-		BLOCKCHAIN_GETHEADER_NAME:            BlockChainGetHeader,
-		BLOCKCHAIN_GETTRANSACTION_NAME:       BlockChainGetTransaction,
+
+		BLOCKCHAIN_GETBLOCK_NAME:       BlockChainGetBlock,
+		BLOCK_GETTRANSACTIONCOUNT_NAME: BlockGetTransactionCount,
+		BLOCK_GETTRANSACTIONS_NAME:     BlockGetTransactions,
+		BLOCK_GETTRANSACTION_NAME:      BlockGetTransaction,
+
+		BLOCKCHAIN_GETHEADER_NAME:    BlockChainGetHeader,
+		HEADER_GETPREVHASH_NAME:      HeaderGetPrevHash,
+		HEADER_GETVERSION_NAME:       HeaderGetVersion,
+		HEADER_GETNEXTCONSENSUS_NAME: HeaderGetNextConsensus,
+		HEADER_GETMERKLEROOT_NAME:    HeaderGetMerkleRoot,
+		HEADER_GETCONSENSUSDATA_NAME: HeaderGetConsensusData,
+
+		BLOCKCHAIN_GETTRANSACTION_NAME: BlockChainGetTransaction,
+		TRANSACTION_GETATTRIBUTES_NAME: TransactionGetAttributes,
+
+		ATTRIBUTE_GETUSAGE_NAME: AttributeGetUsage,
+		ATTRIBUTE_GETDATA_NAME:  AttributeGetData,
+
+		BLOCKCHAIN_GETHEIGHT_NAME: BlockChainGetHeight,
+	}
+
+	ServiceMapNew = map[string]ServiceHandler{
+		BLOCKCHAIN_GETHEIGHT_NAME: BlockChainGetHeightNew,
+		BLOCKCHAIN_GETHEADER_NAME: BlockChainGetHeaderNew,
 	}
 
 	// Register all service for smart contract execute
 	ServiceMap = map[string]ServiceHandler{
-		ATTRIBUTE_GETUSAGE_NAME:         AttributeGetUsage,
-		ATTRIBUTE_GETDATA_NAME:          AttributeGetData,
-		BLOCK_GETTRANSACTIONCOUNT_NAME:  BlockGetTransactionCount,
-		BLOCK_GETTRANSACTIONS_NAME:      BlockGetTransactions,
-		BLOCK_GETTRANSACTION_NAME:       BlockGetTransaction,
-		BLOCKCHAIN_GETHEIGHT_NAME:       BlockChainGetHeight,
-		BLOCKCHAIN_GETCONTRACT_NAME:     BlockChainGetContract,
-		HEADER_GETINDEX_NAME:            HeaderGetIndex,
-		HEADER_GETHASH_NAME:             HeaderGetHash,
-		HEADER_GETVERSION_NAME:          HeaderGetVersion,
-		HEADER_GETPREVHASH_NAME:         HeaderGetPrevHash,
-		HEADER_GETTIMESTAMP_NAME:        HeaderGetTimestamp,
-		HEADER_GETCONSENSUSDATA_NAME:    HeaderGetConsensusData,
-		HEADER_GETNEXTCONSENSUS_NAME:    HeaderGetNextConsensus,
-		HEADER_GETMERKLEROOT_NAME:       HeaderGetMerkleRoot,
-		TRANSACTION_GETHASH_NAME:        TransactionGetHash,
-		TRANSACTION_GETTYPE_NAME:        TransactionGetType,
-		TRANSACTION_GETATTRIBUTES_NAME:  TransactionGetAttributes,
+		BLOCKCHAIN_GETCONTRACT_NAME: BlockChainGetContract,
+
+		HEADER_GETINDEX_NAME:     HeaderGetIndex,
+		HEADER_GETHASH_NAME:      HeaderGetHash,
+		HEADER_GETTIMESTAMP_NAME: HeaderGetTimestamp,
+
+		GETSCRIPTCONTAINER_NAME:  GetCodeContainer,
+		TRANSACTION_GETHASH_NAME: TransactionGetHash,
+		TRANSACTION_GETTYPE_NAME: TransactionGetType,
+
 		CONTRACT_CREATE_NAME:            ContractCreate,
 		CONTRACT_MIGRATE_NAME:           ContractMigrate,
 		CONTRACT_GETSTORAGECONTEXT_NAME: ContractGetStorageContext,
@@ -86,7 +99,6 @@ var (
 		STORAGE_GETCONTEXT_NAME:         StorageGetContext,
 		STORAGE_GETREADONLYCONTEXT_NAME: StorageGetReadOnlyContext,
 		STORAGECONTEXT_ASREADONLY_NAME:  StorageContextAsReadOnly,
-		GETSCRIPTCONTAINER_NAME:         GetCodeContainer,
 		GETEXECUTINGSCRIPTHASH_NAME:     GetExecutingAddress,
 		GETCALLINGSCRIPTHASH_NAME:       GetCallingAddress,
 		GETENTRYSCRIPTHASH_NAME:         GetEntryAddress,
@@ -107,13 +119,7 @@ var (
 	VM_EXEC_FAULT         = errors.NewErr("[NeoVmService] vm execution encountered a state fault!")
 )
 
-type (
-	ServiceHandler func(service *NeoVmService, engine *vm.Executor) error
-)
-
-type Service struct {
-	Execute ServiceHandler
-}
+type ServiceHandler func(service *NeoVmService, engine *vm.Executor) error
 
 // NeoVmService is a struct for smart contract provide interop service
 type NeoVmService struct {
@@ -250,8 +256,12 @@ func (this *NeoVmService) SystemCall(engine *vm.Executor) error {
 		return err
 	}
 	serviceHandler, ok := ServiceMap[serviceName]
-	if !ok && this.Height < config.GetContractApiDeprecateHeight() {
-		serviceHandler, ok = ServiceMapDeprecated[serviceName]
+	if !ok {
+		if this.Height < config.GetContractApiDeprecateHeight() {
+			serviceHandler, ok = ServiceMapDeprecated[serviceName]
+		} else {
+			serviceHandler, ok = ServiceMapNew[serviceName]
+		}
 	}
 
 	if !ok {

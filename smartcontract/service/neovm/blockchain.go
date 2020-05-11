@@ -19,6 +19,8 @@
 package neovm
 
 import (
+	"math/big"
+
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/errors"
 	vm "github.com/ontio/ontology/vm/neovm"
@@ -26,11 +28,25 @@ import (
 
 // BlockChainGetHeight put blockchain's height to vm stack
 func BlockChainGetHeight(service *NeoVmService, engine *vm.Executor) error {
-	err := engine.EvalStack.PushUint32(service.Height - 1)
+	return engine.EvalStack.PushUint32(service.Height - 1)
+}
+
+func BlockChainGetHeightNew(service *NeoVmService, engine *vm.Executor) error {
+	return engine.EvalStack.PushUint32(service.Height)
+}
+
+func BlockChainGetHeaderNew(service *NeoVmService, engine *vm.Executor) error {
+	data, err := engine.EvalStack.PopAsBytes()
 	if err != nil {
-		return errors.NewDetailErr(err, errors.ErrNoCode, "[BlockChainGetHeight] GetHeight error!.")
+		return err
 	}
-	return nil
+	b := common.BigIntFromNeoBytes(data)
+	if b.Cmp(big.NewInt(int64(service.Height))) != 0 {
+		return errors.NewErr("can only get current block header")
+	}
+
+	header := &HeaderValue{Height: service.Height, Timestamp: service.Time, Hash: service.BlockHash}
+	return engine.EvalStack.PushAsInteropValue(header)
 }
 
 // BlockChainGetContract put blockchain's contract to vm stack

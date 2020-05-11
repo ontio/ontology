@@ -483,7 +483,7 @@ func (this *BlockStore) genHeaderKey(blockHash common.Uint256) []byte {
 
 func genBlockHashKey(height uint32) []byte {
 	key := make([]byte, 5, 5)
-	key[0] = byte(scom.DATA_BLOCK)
+	key[0] = byte(scom.DATA_BLOCK_HASH)
 	binary.LittleEndian.PutUint32(key[1:], height)
 	return key
 }
@@ -510,4 +510,41 @@ func getStartHeightByHeaderIndexKey(key []byte) (uint32, error) {
 		return 0, err
 	}
 	return height, nil
+}
+
+func genBlockPruneHeightKey() []byte {
+	return []byte{byte(scom.DATA_BLOCK_PRUNE_HEIGHT)}
+}
+
+func (this *BlockStore) GetBlockPrunedHeight() (uint32, error) {
+	key := genBlockPruneHeightKey()
+	data, err := this.store.Get(key)
+	if err != nil {
+		if err == scom.ErrNotFound {
+			return 0, nil
+		}
+		return 0, err
+	}
+	height, eof := common.NewZeroCopySource(data).NextUint32()
+	if eof {
+		return 0, io.ErrUnexpectedEOF
+	}
+
+	return height, nil
+}
+
+func (this *BlockStore) SaveBlockPrunedHeight(height uint32) {
+	key := genBlockPruneHeightKey()
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint32(height)
+
+	this.store.BatchPut(key, sink.Bytes())
+}
+
+func (this *BlockStore) PruneBlock(height uint32) {
+	key := genBlockPruneHeightKey()
+	sink := common.NewZeroCopySink(nil)
+	sink.WriteUint32(height)
+
+	this.store.BatchPut(key, sink.Bytes())
 }

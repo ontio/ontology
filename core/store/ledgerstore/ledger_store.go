@@ -92,6 +92,8 @@ type LedgerStoreImp struct {
 	vbftPeerInfoblock    map[string]uint32 //pubInfo save pubkey,peerindex
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
+
+	pruneBlock uint32 // block could be pruned if blockHeight + pruneBlock < currHeight , disable prune if equals 0
 }
 
 //NewLedgerStore return LedgerStoreImp instance
@@ -852,6 +854,32 @@ func (this *LedgerStoreImp) releaseSavingBlockLock() {
 	}
 }
 
+const pruneBatchSize = 10
+
+func (this *LedgerStoreImp) tryPruneBlock(header *types.Header) bool {
+	if this.pruneBlock == 0 {
+		return false
+	}
+	height := this.maxAllowedPruneHeight(header)
+	if height+this.pruneBlock >= header.Height {
+		height = header.Height - this.pruneBlock
+	}
+	pruned, err := this.blockStore.GetBlockPrunedHeight()
+	if err != nil {
+		return false
+	}
+	if pruned+1 >= height {
+		return false
+	}
+
+	pruneHeight := pruned + 1
+	for ; pruneHeight-pruned < pruneBatchSize && pruneHeight < height; pruneHeight++ {
+		this.blockStore.PruneBlock(pruneHeight)
+	}
+	this.blockStore.SaveBlockPrunedHeight(pruneHeight)
+	return true
+}
+
 //saveBlock do the job of execution samrt contract and commit block to store.
 func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types.CrossChainMsg, result store.ExecuteResult) error {
 	blockHash := block.Hash()
@@ -869,6 +897,7 @@ func (this *LedgerStoreImp) submitBlock(block *types.Block, crossChainMsg *types
 	if err != nil {
 		return fmt.Errorf("save to block store height:%d error:%s", blockHeight, err)
 	}
+	this.tryPruneBlock(block.Header)
 	err = this.crossChainStore.SaveMsgToCrossChainStore(crossChainMsg)
 	if err != nil {
 		return fmt.Errorf("save to msg cross chain store height:%d error:%s", blockHeight, err)
@@ -1273,4 +1302,35 @@ func (this *LedgerStoreImp) Close() error {
 		return fmt.Errorf("stateStore close error %s", err)
 	}
 	return nil
+}
+
+const minPruneBlocksBeforeCurr = 1000
+
+func (this *LedgerStoreImp) EnableBlockPrune(numBeforeCurr uint32) {
+	if numBeforeCurr < minPruneBlocksBeforeCurr {
+		numBeforeCurr = minPruneBlocksBeforeCurr
+	}
+	this.getSavingBlockLock()
+	defer this.releaseSavingBlockLock()
+
+	this.pruneBlock = numBeforeCurr
+}
+
+func (this *LedgerStoreImp) maxAllowedPruneHeight(currHeader *types.Header) uint32 {
+	if currHeader.Height <= config.GetContractApiDeprecateHeight() {
+		return 0
+	}
+	info, err := vconfig.VbftBlock(currHeader)
+	if err != nil {
+		return 0
+	}
+	lastReferHeight := info.LastConfigBlockNum
+	if info.NewChainConfig != nil {
+		lastReferHeight = currHeader.Height
+	}
+
+	if lastReferHeight == 0 {
+		return 0
+	}
+	return lastReferHeight - 1
 }
