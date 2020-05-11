@@ -43,7 +43,7 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("registerCandidate, init pos must >= 1")
 	}
 
-	if native.Height < NEW_DECENTRALIZE_BLOCK {
+	if native.Height < BLOCKHEIGHT_SELFGOV_REGISTER {
 		//check auth of OntID
 		err := appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, uint64(params.KeyNo))
 		if err != nil {
@@ -106,7 +106,7 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
 	}
 
-	if native.Height >= NEW_DECENTRALIZE_BLOCK {
+	if native.Height >= BLOCKHEIGHT_SELFGOV_REGISTER {
 		//check if peerPoolMap full
 		num := 0
 		for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
