@@ -45,6 +45,7 @@ func RegisterOngContract(native *native.NativeService) {
 	native.Register(ont.TOTALSUPPLY_NAME, OngTotalSupply)
 	native.Register(ont.BALANCEOF_NAME, OngBalanceOf)
 	native.Register(ont.ALLOWANCE_NAME, OngAllowance)
+	native.Register(ont.TOTAL_ALLOWANCE_NAME, OngTotalAllowance)
 }
 
 func OngInit(native *native.NativeService) ([]byte, error) {
@@ -151,4 +152,8 @@ func OngBalanceOf(native *native.NativeService) ([]byte, error) {
 
 func OngAllowance(native *native.NativeService) ([]byte, error) {
 	return ont.GetBalanceValue(native, ont.APPROVE_FLAG)
+}
+
+func OngTotalAllowance(native *native.NativeService) ([]byte, error) {
+	return ont.TotalAllowance(native)
 }
