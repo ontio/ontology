@@ -91,8 +91,8 @@ type LedgerStoreImp struct {
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
 
-	savingBlockSemaphore chan bool
-	closing              bool
+	savingBlockSemaphore       chan bool
+	closing                    bool
 	preserveBlockHistoryLength uint32 // block could be pruned if blockHeight + preserveBlockHistoryLength < currHeight , disable prune if equals 0
 }
 
