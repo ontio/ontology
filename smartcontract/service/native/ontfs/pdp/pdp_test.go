@@ -36,28 +36,77 @@ func TestPdpVerify(t *testing.T) {
 	fileUniqueId, err := pdp.GenUniqueIdWithFileBlocks(blocks)
 	if err != nil {
 		t.Fatal(err.Error())
+	} else {
+		t.Logf("fileUniqueId: %v", fileUniqueId)
 	}
 
-	var nodeId = [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a}
-	var blockHash = []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+	var nodeId [20]byte
+	rand.Read(nodeId[:])
+
+	blockHash := make([]byte, 32)
+	rand.Read(blockHash[:])
 
 	challenge, err := pdp.GenChallenge(nodeId, blockHash, 1024)
 	if err != nil {
 		t.Fatal(err.Error())
+	} else {
+		t.Logf("challenge: %v", challenge)
 	}
 
 	proof, err := pdp.GenProofWithBlocks(blocks, fileUniqueId, challenge)
 	if err != nil {
 		t.Fatal(err.Error())
+	} else {
+		t.Logf("proof: %v", proof)
 	}
 
 	err = VerifyProofWithUniqueId(fileUniqueId, proof, challenge)
 	if err != nil {
 		t.Fatal(err.Error())
+	}
+}
+
+func TestPdpVerifyCircle(t *testing.T) {
+	var blocks []types.Block
+	var nodeId [20]byte
+	blockHash := make([]byte, 32)
+
+	data := make([]byte, 256*1024)
+	for i := 0; i < 1024; i++ {
+		rand.Read(data)
+		blocks = append(blocks, data)
+	}
+
+	for count := 1; count < 1024; count++ {
+		rand.Read(blockHash[:])
+		rand.Read(nodeId[:])
+
+		pdp := NewPdp(MerklePdp)
+		fileUniqueId, err := pdp.GenUniqueIdWithFileBlocks(blocks)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else {
+			t.Logf("fileUniqueId: %v", fileUniqueId)
+		}
+
+		challenge, err := pdp.GenChallenge(nodeId, blockHash, 1024)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else {
+			t.Logf("challenge: %v", challenge)
+		}
+
+		proof, err := pdp.GenProofWithBlocks(blocks, fileUniqueId, challenge)
+		if err != nil {
+			t.Fatal(err.Error())
+		} else {
+			t.Logf("proof: %v", proof)
+		}
+
+		err = VerifyProofWithUniqueId(fileUniqueId, proof, challenge)
+		if err != nil {
+			t.Fatal(err.Error())
+		}
 	}
 }
 
@@ -92,12 +141,11 @@ func BenchmarkGenProofWithBlocks(b *testing.B) {
 		b.Fatal(err.Error())
 	}
 
-	var nodeId = [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a}
-	var blockHash = []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+	var nodeId [20]byte
+	rand.Read(nodeId[:])
+
+	blockHash := make([]byte, 32)
+	rand.Read(blockHash[:])
 
 	challenge, err := pdp.GenChallenge(nodeId, blockHash, 1024)
 	if err != nil {
@@ -125,12 +173,11 @@ func BenchmarkVerifyProofWithUniqueId(b *testing.B) {
 		b.Fatal(err.Error())
 	}
 
-	var nodeId = [20]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a}
-	var blockHash = []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+	var nodeId [20]byte
+	rand.Read(nodeId[:])
+
+	blockHash := make([]byte, 32)
+	rand.Read(blockHash[:])
 
 	challenge, err := pdp.GenChallenge(nodeId, blockHash, 1024)
 	if err != nil {

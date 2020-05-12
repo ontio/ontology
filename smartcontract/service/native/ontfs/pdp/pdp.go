@@ -35,8 +35,7 @@ const (
 
 const (
 	VersionLength = 8
-	MaxMerklePdpChallengeBlock = 6
-
+	MaxMerklePdpChallengeBlock = 1
 )
 
 type Pdp struct {
@@ -54,13 +53,13 @@ func (p *Pdp) GenUniqueIdWithFileBlocks(fileBlocks []types.Block) ([]byte, error
 	case MerklePdp:
 		binary.LittleEndian.PutUint64(uniqueIdPrefix, MerklePdp)
 		uniqueId = append(uniqueId, uniqueIdPrefix...)
-		for _, block := range fileBlocks {
-			rootHash, err := merkle_pdp.CalcRootHash(block[:])
-			if err != nil {
-				return nil, fmt.Errorf("GenUniqueIdWithFileBlocks error: %s", err.Error())
-			}
-			uniqueId = append(uniqueId, rootHash...)
+
+		rootHash, err := merkle_pdp.CalcRootHash(fileBlocks)
+		if err != nil {
+			return nil, fmt.Errorf("GenUniqueIdWithFileBlocks error: %s", err.Error())
 		}
+		uniqueId = append(uniqueId, rootHash...)
+
 		return uniqueId, nil
 	default:
 		return nil, fmt.Errorf("GenUniqueIdWithFileBlocks pdpVersion error")
@@ -106,7 +105,7 @@ func (p *Pdp) GenProofWithBlocks(fileBlocks []types.Block, uniqueId []byte, chal
 		binary.LittleEndian.PutUint64(proofPrefix, MerklePdp)
 		proof = append(proof, proofPrefix...)
 		for _, chl := range challenge {
-			blockProof, err := merkle_pdp.MerkleProof(fileBlocks[chl], 0)
+			blockProof, err := merkle_pdp.MerkleProof(fileBlocks, chl)
 			if err != nil {
 				return nil, err
 			}
@@ -146,12 +145,7 @@ func VerifyProofWithUniqueId(uniqueId []byte, proof []byte, challenge []uint64) 
 	switch proofPdpVersion {
 	case MerklePdp:
 		challengeCount := len(challenge)
-
-		blocksId := uniqueId[VersionLength:]
-		blocksIdLen := len(blocksId)
-		if blocksIdLen%merkle_pdp.MerkleRootLen != 0 {
-			return fmt.Errorf("[VerifyProofWithUniqueId] uniqueId length error")
-		}
+		rootHash := uniqueId[VersionLength:]
 
 		merkleProofData := proof[VersionLength:]
 		merkleProofDataLen := len(merkleProofData)
@@ -160,15 +154,14 @@ func VerifyProofWithUniqueId(uniqueId []byte, proof []byte, challenge []uint64) 
 			return fmt.Errorf("[VerifyProofWithUniqueId] proof length error")
 		}
 		singleProofLen := merkleProofDataLen / challengeCount
+
 		for index, chl := range challenge {
 			var merkleProof [][]byte
 			blockProof := merkleProofData[index*singleProofLen : (index+1)*singleProofLen]
 			if err := json.Unmarshal(blockProof, &merkleProof); err != nil {
 				return fmt.Errorf("[VerifyProofWithUniqueId] error: %s", err.Error())
 			}
-
-			blockId := blocksId[chl*merkle_pdp.MerkleRootLen : (chl+1)*merkle_pdp.MerkleRootLen]
-			return merkle_pdp.VerifyMerkleProof(merkleProof, blockId, 0)
+			return merkle_pdp.VerifyMerkleProof(merkleProof, rootHash, chl)
 		}
 	default:
 		return fmt.Errorf("[VerifyProofWithUniqueId] pdpVersion error")
