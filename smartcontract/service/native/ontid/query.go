@@ -290,9 +290,9 @@ func GetService(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return nil, errors.New("GetService error: getServices error, " + err.Error())
 	}
-	for i := 0; i < len(*services); i++ {
-		if bytes.Equal((*services)[i].ServiceId, params.ServiceId) {
-			data, err := json.Marshal((*services)[i])
+	for i := 0; i < len(services); i++ {
+		if bytes.Equal(services[i].ServiceId, params.ServiceId) {
+			data, err := json.Marshal(services[i])
 			if err != nil {
 				return nil, errors.New("GetService error: json.Marshal error, " + err.Error())
 			}

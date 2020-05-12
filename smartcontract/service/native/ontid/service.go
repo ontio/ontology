@@ -93,9 +93,9 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 		ServiceEndpint: params.ServiceEndpint,
 	}
 	updateProofAndTime(srvc, encId, params.Proof)
-	for i := 0; i < len(*services); i++ {
-		if bytes.Equal((*services)[i].ServiceId, service.ServiceId) {
-			(*services)[i] = service
+	for i := 0; i < len(services); i++ {
+		if bytes.Equal(services[i].ServiceId, service.ServiceId) {
+			services[i] = service
 			storeServices(services, srvc, key)
 			triggerServiceEvent(srvc, "update", params.OntId, params.ServiceId)
 			return utils.BYTE_TRUE, nil
@@ -131,10 +131,10 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("removeService error: have not registered any service")
 	}
 	updateProofAndTime(srvc, encId, params.Proof)
-	for i := 0; i < len(*services); i++ {
-		if bytes.Equal((*services)[i].ServiceId, params.ServiceId) {
-			services := append((*services)[:i], (*services)[i+1:]...)
-			storeServices(&services, srvc, key)
+	for i := 0; i < len(services); i++ {
+		if bytes.Equal((services)[i].ServiceId, params.ServiceId) {
+			services := append((services)[:i], (services)[i+1:]...)
+			storeServices(services, srvc, key)
 			triggerServiceEvent(srvc, "remove", params.OntId, params.ServiceId)
 			return utils.BYTE_TRUE, nil
 		}
@@ -142,7 +142,7 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_FALSE, nil
 }
 
-func getServices(srvc *native.NativeService, encId []byte) (*Services, error) {
+func getServices(srvc *native.NativeService, encId []byte) (Services, error) {
 	key := append(encId, FIELD_SERVICE)
 	servicesStore, err := utils.GetStorageItem(srvc, key)
 	if err != nil {
@@ -155,7 +155,7 @@ func getServices(srvc *native.NativeService, encId []byte) (*Services, error) {
 	if err := services.Deserialization(common.NewZeroCopySource(servicesStore.Value)); err != nil {
 		return nil, err
 	}
-	return services, nil
+	return *services, nil
 }
 
 func checkServiceExist(services Services, service Service) bool {
@@ -167,7 +167,7 @@ func checkServiceExist(services Services, service Service) bool {
 	return false
 }
 
-func storeServices(services *Services, srvc *native.NativeService, key []byte) {
+func storeServices(services Services, srvc *native.NativeService, key []byte) {
 	sink := common.NewZeroCopySink(nil)
 	services.Serialization(sink)
 	item := states.StorageItem{}
@@ -201,7 +201,7 @@ func putService(srvc *native.NativeService, encId []byte, params *ServiceParam) 
 	}
 
 	*services = append(*services, service)
-	storeServices(services, srvc, key)
+	storeServices(*services, srvc, key)
 	triggerServiceEvent(srvc, "add", params.OntId, params.ServiceId)
 	return nil
 }
@@ -212,7 +212,7 @@ func getServicesJson(srvc *native.NativeService, encId []byte) ([]*serviceJson, 
 		return nil, err
 	}
 	r := make([]*serviceJson, 0)
-	for _, p := range *services {
+	for _, p := range services {
 		service := new(serviceJson)
 
 		ontId, err := decodeID(encId)
