@@ -86,13 +86,13 @@ type LedgerStoreImp struct {
 	currBlockHash        common.Uint256                   //Current block hash
 	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
 	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
-	savingBlockSemaphore chan bool
-	closing              bool
 	vbftPeerInfoheader   map[string]uint32 //pubInfo save pubkey,peerindex
 	vbftPeerInfoblock    map[string]uint32 //pubInfo save pubkey,peerindex
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
 
+	savingBlockSemaphore chan bool
+	closing              bool
 	pruneBlock uint32 // block could be pruned if blockHeight + pruneBlock < currHeight , disable prune if equals 0
 }
 
@@ -874,7 +874,8 @@ func (this *LedgerStoreImp) tryPruneBlock(header *types.Header) bool {
 
 	pruneHeight := pruned + 1
 	for ; pruneHeight-pruned < pruneBatchSize && pruneHeight < height; pruneHeight++ {
-		this.blockStore.PruneBlock(pruneHeight)
+		hash := this.GetBlockHash(pruneHeight)
+		this.blockStore.PruneBlock(hash)
 	}
 	this.blockStore.SaveBlockPrunedHeight(pruneHeight)
 	return true

@@ -92,7 +92,7 @@ func (this *BlockStore) ContainBlock(blockHash common.Uint256) (bool, error) {
 			return true, nil
 		}
 	}
-	key := this.genHeaderKey(blockHash)
+	key := genHeaderKey(blockHash)
 	_, err := this.store.Get(key)
 	if err != nil {
 		if err == scom.ErrNotFound {
@@ -135,7 +135,7 @@ func (this *BlockStore) GetBlock(blockHash common.Uint256) (*types.Block, error)
 }
 
 func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Header, []common.Uint256, error) {
-	key := this.genHeaderKey(blockHash)
+	key := genHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
 		return nil, nil, err
@@ -169,7 +169,7 @@ func (this *BlockStore) loadHeaderWithTx(blockHash common.Uint256) (*types.Heade
 //SaveHeader persist block header to store
 func (this *BlockStore) SaveHeader(block *types.Block, sysFee common.Fixed64) error {
 	blockHash := block.Hash()
-	key := this.genHeaderKey(blockHash)
+	key := genHeaderKey(blockHash)
 	sink := common.NewZeroCopySink(nil)
 	sysFee.Serialization(sink)
 	block.Header.Serialization(sink)
@@ -205,7 +205,7 @@ func (this *BlockStore) GetRawHeader(blockHash common.Uint256) (*types.RawHeader
 
 //GetSysFeeAmount return the sys fee for block by block hash
 func (this *BlockStore) GetSysFeeAmount(blockHash common.Uint256) (common.Fixed64, error) {
-	key := this.genHeaderKey(blockHash)
+	key := genHeaderKey(blockHash)
 	data, err := this.store.Get(key)
 	if err != nil {
 		return common.Fixed64(0), err
@@ -234,7 +234,7 @@ func (this *BlockStore) loadHeader(blockHash common.Uint256) (*types.Header, err
 }
 
 func (this *BlockStore) loadRawHeader(blockHash common.Uint256) (*types.RawHeader, error) {
-	key := this.genHeaderKey(blockHash)
+	key := genHeaderKey(blockHash)
 	value, err := this.store.Get(key)
 	if err != nil {
 		return nil, err
@@ -290,9 +290,9 @@ func (this *BlockStore) GetHeaderIndexList() (map[uint32]common.Uint256, error) 
 	iter := this.store.NewIterator([]byte{byte(scom.IX_HEADER_HASH_LIST)})
 	defer iter.Release()
 	for iter.Next() {
-		startCount, err := getStartHeightByHeaderIndexKey(iter.Key())
+		startCount, err := genStartHeightByHeaderIndexKey(iter.Key())
 		if err != nil {
-			return nil, fmt.Errorf("getStartHeightByHeaderIndexKey error %s", err)
+			return nil, fmt.Errorf("genStartHeightByHeaderIndexKey error %s", err)
 		}
 		reader := bytes.NewReader(iter.Value())
 		count, err := serialization.ReadUint32(reader)
@@ -358,7 +358,7 @@ func (this *BlockStore) SaveTransaction(tx *types.Transaction, height uint32) {
 
 func (this *BlockStore) putTransaction(tx *types.Transaction, height uint32) {
 	txHash := tx.Hash()
-	key := this.getTransactionKey(txHash)
+	key := genTransactionKey(txHash)
 	value := common.NewZeroCopySink(nil)
 	value.WriteUint32(height)
 	tx.Serialization(value)
@@ -377,7 +377,7 @@ func (this *BlockStore) GetTransaction(txHash common.Uint256) (*types.Transactio
 }
 
 func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transaction, uint32, error) {
-	key := this.getTransactionKey(txHash)
+	key := genTransactionKey(txHash)
 
 	var tx *types.Transaction
 	var height uint32
@@ -408,7 +408,7 @@ func (this *BlockStore) loadTransaction(txHash common.Uint256) (*types.Transacti
 
 //IsContainTransaction return whether the transaction is in store
 func (this *BlockStore) ContainTransaction(txHash common.Uint256) (bool, error) {
-	key := this.getTransactionKey(txHash)
+	key := genTransactionKey(txHash)
 
 	if this.enableCache {
 		if this.cache.ContainTransaction(txHash) {
@@ -466,14 +466,14 @@ func (this *BlockStore) Close() error {
 	return this.store.Close()
 }
 
-func (this *BlockStore) getTransactionKey(txHash common.Uint256) []byte {
+func genTransactionKey(txHash common.Uint256) []byte {
 	key := bytes.NewBuffer(nil)
 	key.WriteByte(byte(scom.DATA_TRANSACTION))
 	txHash.Serialize(key)
 	return key.Bytes()
 }
 
-func (this *BlockStore) genHeaderKey(blockHash common.Uint256) []byte {
+func genHeaderKey(blockHash common.Uint256) []byte {
 	data := blockHash.ToArray()
 	key := make([]byte, 1+len(data))
 	key[0] = byte(scom.DATA_HEADER)
@@ -503,7 +503,7 @@ func genHeaderIndexListKey(startHeight uint32) []byte {
 	return sink.Bytes()
 }
 
-func getStartHeightByHeaderIndexKey(key []byte) (uint32, error) {
+func genStartHeightByHeaderIndexKey(key []byte) (uint32, error) {
 	reader := bytes.NewReader(key[1:])
 	height, err := serialization.ReadUint32(reader)
 	if err != nil {
@@ -541,10 +541,15 @@ func (this *BlockStore) SaveBlockPrunedHeight(height uint32) {
 	this.store.BatchPut(key, sink.Bytes())
 }
 
-func (this *BlockStore) PruneBlock(height uint32) {
-	key := genBlockPruneHeightKey()
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteUint32(height)
-
-	this.store.BatchPut(key, sink.Bytes())
+func (this *BlockStore) PruneBlock(hash common.Uint256) {
+	_, txHashes, err := this.loadHeaderWithTx(hash)
+	if err != nil {
+		return
+	}
+	for _, hash := range txHashes {
+		key := genTransactionKey(hash)
+		this.store.BatchDelete(key)
+	}
+	key := genHeaderKey(hash)
+	this.store.BatchDelete(key)
 }
