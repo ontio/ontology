@@ -11,6 +11,14 @@
         {
           "name":"publicKey",
           "type":"ByteArray"
+        },
+        {
+          "name":"access",
+          "type":"String"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
@@ -28,6 +36,18 @@
         },
         {
           "name":"userxPublicKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"controller",
+          "type":"ByteArray"
+        },
+        {
+          "name":"access",
+          "type":"String"
+        },
+        {
+          "name":"proof",
           "type":"ByteArray"
         }
       ],
@@ -47,12 +67,16 @@
         {
           "name":"userPublicKey",
           "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
     },
     {
-      "name":"addRecovery",
+      "name":"setRecovery",
       "parameters":[
         {
           "name":"id",
@@ -60,17 +84,21 @@
         },
         {
           "name":"recovery",
-          "type":"Address"
+          "type":"ByteArray"
         },
         {
-          "name":"userPublicKey",
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
           "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
     },
     {
-      "name":"changeRecovery",
+      "name":"updateRecovery",
       "parameters":[
         {
           "name":"id",
@@ -78,11 +106,15 @@
         },
         {
           "name":"newRecovery",
-          "type":"Address"
+          "type":"ByteArray"
         },
         {
-          "name":"oldRecovery",
-          "type":"Address"
+          "name":"oldRecoverySigner",
+          "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
@@ -121,6 +153,10 @@
               ]
             }
           ]
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
@@ -159,6 +195,10 @@
         {
           "name":"userPublicKey",
           "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
@@ -176,6 +216,239 @@
         },
         {
           "name":"userPublicKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addAuthKey",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"ifNewPublicKey",
+          "type":"Bool"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"newPublicKey",
+          "type":"Struct",
+          "subType":
+          [
+            {
+              "name": "key",
+              "type": "ByteArray"
+            },
+            {
+              "name": "controller",
+              "type": "ByteArray"
+            }
+          ]
+        },
+        {
+          "name":"signIndex",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAuthKey",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signIndex",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addService",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"String"
+        },
+        {
+          "name":"type",
+          "type":"String"
+        },
+        {
+          "name":"serviceEndpint",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"updateService",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"String"
+        },
+        {
+          "name":"type",
+          "type":"String"
+        },
+        {
+          "name":"serviceEndpint",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeService",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addContext",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"contexts",
+          "type":"Array",
+          "subType":
+          [
+            {
+              "name": "",
+              "type": "ByteArray"
+            }
+          ]
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeContext",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"contexts",
+          "type":"Array",
+          "subType":
+          [
+            {
+              "name": "",
+              "type": "ByteArray"
+            }
+          ]
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setKeyAccess",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"setIndex",
+          "type":"Int"
+        },
+        {
+          "name":"access",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
           "type":"ByteArray"
         }
       ],
@@ -216,7 +489,31 @@
       "returnType":"ByteArray"
     },
     {
-      "name":"getDDO",
+      "name":"getService",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getDocument",
       "parameters":[
         {
           "name":"id",
@@ -306,6 +603,64 @@
         {
           "name":"recoveryAddress",
           "type":"Address"
+        }
+      ]
+    },
+    {
+      "name":"Recovery",
+      "parameters":[
+        {
+          "name":"operation",
+          "type":"String"
+        },
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"context",
+          "type":"Array",
+          "subType":
+          [
+            {
+              "name": "",
+              "type": "String"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name":"Service",
+      "parameters":[
+        {
+          "name":"operation",
+          "type":"String"
+        },
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"serviceId",
+          "type":"ByteArray"
+        }
+      ]
+    },
+    {
+      "name":"AuthKey",
+      "parameters":[
+        {
+          "name":"operation",
+          "type":"String"
+        },
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"keyID",
+          "type":"Int"
         }
       ]
     }
