@@ -86,14 +86,14 @@ type LedgerStoreImp struct {
 	currBlockHash        common.Uint256                   //Current block hash
 	headerCache          map[common.Uint256]*types.Header //BlockHash => Header
 	headerIndex          map[uint32]common.Uint256        //Header index, Mapping header height => block hash
-	vbftPeerInfoheader   map[string]uint32 //pubInfo save pubkey,peerindex
-	vbftPeerInfoblock    map[string]uint32 //pubInfo save pubkey,peerindex
+	vbftPeerInfoheader   map[string]uint32                //pubInfo save pubkey,peerindex
+	vbftPeerInfoblock    map[string]uint32                //pubInfo save pubkey,peerindex
 	lock                 sync.RWMutex
 	stateHashCheckHeight uint32
 
 	savingBlockSemaphore chan bool
 	closing              bool
-	pruneBlock uint32 // block could be pruned if blockHeight + pruneBlock < currHeight , disable prune if equals 0
+	preserveBlockHistoryLength uint32 // block could be pruned if blockHeight + preserveBlockHistoryLength < currHeight , disable prune if equals 0
 }
 
 //NewLedgerStore return LedgerStoreImp instance
@@ -857,12 +857,12 @@ func (this *LedgerStoreImp) releaseSavingBlockLock() {
 const pruneBatchSize = 10
 
 func (this *LedgerStoreImp) tryPruneBlock(header *types.Header) bool {
-	if this.pruneBlock == 0 {
+	if this.preserveBlockHistoryLength == 0 {
 		return false
 	}
 	height := this.maxAllowedPruneHeight(header)
-	if height+this.pruneBlock >= header.Height {
-		height = header.Height - this.pruneBlock
+	if height+this.preserveBlockHistoryLength >= header.Height {
+		height = header.Height - this.preserveBlockHistoryLength
 	}
 	pruned, err := this.blockStore.GetBlockPrunedHeight()
 	if err != nil {
@@ -1314,7 +1314,7 @@ func (this *LedgerStoreImp) EnableBlockPrune(numBeforeCurr uint32) {
 	this.getSavingBlockLock()
 	defer this.releaseSavingBlockLock()
 
-	this.pruneBlock = numBeforeCurr
+	this.preserveBlockHistoryLength = numBeforeCurr
 }
 
 func (this *LedgerStoreImp) maxAllowedPruneHeight(currHeader *types.Header) uint32 {
