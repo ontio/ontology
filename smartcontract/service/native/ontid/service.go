@@ -101,7 +101,7 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 			return utils.BYTE_TRUE, nil
 		}
 	}
-	return utils.BYTE_FALSE, nil
+	return utils.BYTE_FALSE, errors.New("updateService: update service error: have not registered such service")
 }
 
 func removeService(srvc *native.NativeService) ([]byte, error) {
