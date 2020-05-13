@@ -24,6 +24,74 @@
       "returnType":"Bool"
     },
     {
+      "name":"regIDWithController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"controller",
+          "type":"ByteArray"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"revokeID",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"revokeIDByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"addKey",
       "parameters":[
         {
@@ -35,7 +103,7 @@
           "type":"ByteArray"
         },
         {
-          "name":"userxPublicKey",
+          "name":"userPublicKey",
           "type":"ByteArray"
         },
         {
@@ -110,6 +178,102 @@
         },
         {
           "name":"oldRecoverySigner",
+          "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"userPublicKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeKeyByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"addKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"userPublicKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        },
+        {
+          "name":"controller",
+          "type":"String"
+        },
+        {
+          "name":"access",
+          "type":"String"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeKeyByRecovery",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
+        },
+        {
+          "name":"signers",
           "type":"ByteArray"
         },
         {
@@ -226,6 +390,50 @@
       "returnType":"Bool"
     },
     {
+      "name":"addAttributesByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"attributePath",
+          "type":"ByteArray"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAttributeByController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"attributePath",
+          "type":"ByteArray"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
+        },
+        {
+          "name":"proof",
+          "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"addAuthKey",
       "parameters":[
         {
@@ -304,7 +512,7 @@
           "type":"String"
         },
         {
-          "name":"serviceEndpint",
+          "name":"serviceEndpoint",
           "type":"String"
         },
         {
@@ -334,7 +542,7 @@
           "type":"String"
         },
         {
-          "name":"serviceEndpint",
+          "name":"serviceEndpoint",
           "type":"String"
         },
         {
