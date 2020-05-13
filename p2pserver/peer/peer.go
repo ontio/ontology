@@ -98,7 +98,16 @@ func (self *Peer) SetInfo(info *PeerInfo) {
 }
 
 func (self *PeerInfo) String() string {
-	return fmt.Sprintf("id=%s, version=%s", self.Id.ToHexString(), self.SoftVersion)
+	return fmt.Sprintf("id=%s, version=%d, services=%d, relay=%v, httpInfoPort=%d, port=%d, height=%d, softVersion=%s, addr=%s",
+		self.Id.ToHexString(),
+		self.Version,
+		self.Services,
+		self.Relay,
+		self.HttpInfoPort,
+		self.Port,
+		self.Height,
+		self.SoftVersion,
+		self.Addr)
 }
 
 //DumpInfo print all information of peer

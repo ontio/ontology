@@ -30,7 +30,7 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/ledger"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
+	"github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -113,12 +113,14 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func peerAddressListHandler(w http.ResponseWriter, r *http.Request) {
+func neighborsHandler(w http.ResponseWriter, r *http.Request) {
 	list := make([]string, 0)
 
 	nbrs := node.GetNeighbors()
 	for _, v := range nbrs {
-		list = append(list, v.GetAddr())
+		if v.Info != nil {
+			list = append(list, v.Info.String())
+		}
 	}
 	bz, _ := json.Marshal(list)
 	io.WriteString(w, string(bz))
@@ -129,7 +131,7 @@ func StartServer(n p2p.P2P) {
 	port := int(config.DefConfig.P2PNode.HttpInfoPort)
 
 	http.HandleFunc("/info", viewHandler)
-	http.HandleFunc("/info/neighborAddress", peerAddressListHandler)
+	http.HandleFunc("/info/neighbors", neighborsHandler)
 
 	// prom related
 	if err := initMetric(); err != nil {
