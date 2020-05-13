@@ -342,7 +342,7 @@ func getFileHashList(native *native.NativeService, fileOwner common.Address) *Fi
 }
 
 func getExpireHeightByFileExpireTime(native *native.NativeService, fileTimeExpired uint64) uint64 {
-	if formatUint32TimeToMinute(native.Time) < fileTimeExpired {
+	if uint64(native.Time) < fileTimeExpired {
 		return 0
 	}
 	if native.Height <= 1 {

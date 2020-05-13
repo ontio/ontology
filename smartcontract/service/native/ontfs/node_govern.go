@@ -48,7 +48,7 @@ func FsNodeRegister(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeRegister getGlobalParam error!")
 	}
 
-	if nodeInfo.ServiceTime < formatUint32TimeToMinute(native.Time) {
+	if nodeInfo.ServiceTime < uint64(native.Time) {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeRegister ServiceTime error!")
 	}
 
@@ -102,7 +102,7 @@ func FsNodeUpdate(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeUpdate getGlobalParam error!")
 	}
 
-	if newNodeInfo.ServiceTime < formatUint32TimeToMinute(native.Time) {
+	if newNodeInfo.ServiceTime < uint64(native.Time) {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeUpdate ServiceTime error!")
 	}
 
@@ -163,7 +163,7 @@ func FsNodeCancel(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeCancel getFsNodeInfo error!")
 	}
 
-	if formatUint32TimeToMinute(native.Time) < nodeInfo.ServiceTime {
+	if uint64(native.Time) < nodeInfo.ServiceTime {
 		return utils.BYTE_FALSE, errors.NewErr("[Node Govern] FsNodeCancel ServiceTime not due!")
 	}
 

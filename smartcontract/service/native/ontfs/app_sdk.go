@@ -116,7 +116,7 @@ func FsChallenge(native *native.NativeService) ([]byte, error) {
 	}
 
 	challenge.State = NoReplyAndValid
-	nativeFormatTime := formatUint32TimeToMinute(native.Time)
+	nativeFormatTime := uint64(native.Time)
 	if err = checkUint64OverflowWithSum(nativeFormatTime, globalParam.ChallengeInterval); err != nil{
 		return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsChallenge error: %s", err.Error())
 	}
@@ -321,12 +321,12 @@ func FsCreateSpace(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCreateSpace space volume smaller than DefaultPerBlockSize(256kb)")
 	}
 
-	spaceInfo.Volume = formatVolumeTimeToBlock(spaceInfo.Volume)
+	spaceInfo.Volume = formatVolumeToBlock(spaceInfo.Volume)
 	spaceInfo.ValidFlag = true
 	spaceInfo.RestVol = spaceInfo.Volume
-	spaceInfo.TimeStart = formatUint32TimeToMinute(native.Time)
-	spaceInfo.TimeExpired = formatUint64TimeToMinute(spaceInfo.TimeExpired)
-	spaceInfo.CurrFeeRate = globalParam.SpaceFeePerBlockOneMin
+	spaceInfo.TimeStart = uint64(native.Time)
+	spaceInfo.TimeExpired = formatUint64TimeToHour(spaceInfo.TimeExpired)
+	spaceInfo.CurrFeeRate = globalParam.SpacePerBlockFeeRate
 	spaceInfo.PayAmount = calcTotalPayAmountWithSpace(&spaceInfo)
 	spaceInfo.RestAmount = spaceInfo.PayAmount
 
@@ -383,7 +383,7 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace Deserialization error!")
 	}
 
-	spaceUpdate.NewVolume = formatVolumeTimeToBlock(spaceUpdate.NewVolume)
+	spaceUpdate.NewVolume = formatVolumeToBlock(spaceUpdate.NewVolume)
 
 	if spaceUpdate.NewTimeExpired == 0 && spaceUpdate.NewVolume == 0 {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace Param error!")
@@ -436,7 +436,7 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 
 	spaceInfo.RestVol = spaceUpdate.NewVolume - (spaceInfo.Volume - spaceInfo.RestVol)
 	spaceInfo.Volume = spaceUpdate.NewVolume
-	spaceInfo.TimeExpired = formatUint64TimeToMinute(spaceUpdate.NewTimeExpired)
+	spaceInfo.TimeExpired = formatUint64TimeToHour(spaceUpdate.NewTimeExpired)
 
 	newPayAmount := calcTotalPayAmountWithSpace(spaceInfo)
 
@@ -532,8 +532,8 @@ func FsStoreFiles(native *native.NativeService) ([]byte, error) {
 
 		fileInfo.ValidFlag = true
 		fileInfo.BeginHeight = uint64(native.Height)
-		fileInfo.TimeStart = formatUint32TimeToMinute(native.Time)
-		fileInfo.TimeExpired = formatUint64TimeToMinute(fileInfo.TimeExpired)
+		fileInfo.TimeStart = uint64(native.Time)
+		fileInfo.TimeExpired = formatUint64TimeToHour(fileInfo.TimeExpired)
 
 		log.Debugf("[APP SDK] FsStoreFiles BlockCount:%d, PayAmount :%d\n", fileInfo.FileBlockCount, fileInfo.PayAmount)
 
@@ -573,7 +573,7 @@ func FsStoreFiles(native *native.NativeService) ([]byte, error) {
 				continue
 			}
 			serverPdpGasFee := globalParam.FilePerServerPdpTimes * globalParam.ContractInvokeGasFee * fileInfo.CopyNumber
-			fileInfo.CurrFeeRate = globalParam.FileFeePerBlockOneMin
+			fileInfo.CurrFeeRate = globalParam.FilePerBlockFeeRate
 			fileInfo.PayAmount = calcTotalPayAmountWithFile(&fileInfo)
 			if err = checkUint64OverflowWithSum(fileInfo.PayAmount, serverPdpGasFee); err != nil{
 				return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsStoreFiles error: %s", err.Error())
@@ -630,7 +630,7 @@ func FsRenewFiles(native *native.NativeService) ([]byte, error) {
 				continue
 			}
 
-			fileInfo.TimeExpired = formatUint64TimeToMinute(fileReNew.NewTimeExpired)
+			fileInfo.TimeExpired = formatUint64TimeToHour(fileReNew.NewTimeExpired)
 			newFee := calcTotalPayAmountWithFile(fileInfo)
 			if newFee < fileInfo.PayAmount {
 				errInfos.AddObjectError(string(fileReNew.FileHash), "[APP SDK] FsRenewFiles newFee < fileInfo.PayAmount")
@@ -996,28 +996,21 @@ func FsGetReadPledge(native *native.NativeService) ([]byte, error) {
 	return EncRet(true, rawPledge), nil
 }
 
-func formatUint32TimeToMinute(time uint32) uint64 {
-	return uint64(time - time % 60)
+func formatUint32TimeToHour(time uint32) uint64 {
+	return uint64(time - time % Hour)
 }
 
-func formatUint64TimeToMinute(time uint64) uint64 {
-	return time - time % 60
+func formatUint64TimeToHour(time uint64) uint64 {
+	return time - time % Hour
 }
 
-func formatVolumeTimeToBlock(volume uint64) uint64 {
+func formatVolumeToBlock(volume uint64) uint64 {
 	return volume - volume %DefaultPerBlockSize
 }
 
 func checkUint64OverflowWithSum(a, b uint64) error {
 	if math.MaxUint64 - a < b {
 		return fmt.Errorf("checkUint64OverflowWithSum (%d, %d)", a, b)
-	}
-	return nil
-}
-
-func checkUint64OverflowWithSub(a, b uint64) error {
-	if a < b {
-		return fmt.Errorf("checkUint64OverflowWithSub (%d, %d)", a, b)
 	}
 	return nil
 }

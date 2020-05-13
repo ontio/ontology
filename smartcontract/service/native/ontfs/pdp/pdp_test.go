@@ -20,8 +20,9 @@ package pdp
 
 import (
 	"crypto/rand"
-	"github.com/ontio/ontology/smartcontract/service/native/ontfs/pdp/types"
 	"testing"
+
+	"github.com/ontio/ontology/smartcontract/service/native/ontfs/pdp/types"
 )
 
 func TestPdpVerify(t *testing.T) {
@@ -58,6 +59,7 @@ func TestPdpVerify(t *testing.T) {
 		t.Fatal(err.Error())
 	} else {
 		t.Logf("proof: %v", proof)
+		t.Logf("proofLen: %v", len(proof))
 	}
 
 	err = VerifyProofWithUniqueId(fileUniqueId, proof, challenge)

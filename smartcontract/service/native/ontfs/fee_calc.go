@@ -18,23 +18,23 @@
 
 package ontfs
 
-const Minute = 60
+const Hour = 3600
 
 func calcFileModeRestAmount(timeNow uint64, fileInfo *FileInfo) uint64 {
-	fTimeNow := formatUint64TimeToMinute(timeNow)
-	fExpired := formatUint64TimeToMinute(fileInfo.TimeExpired)
+	fTimeNow := formatUint64TimeToHour(timeNow)
+	fExpired := formatUint64TimeToHour(fileInfo.TimeExpired)
 
 	if fTimeNow >= fExpired {
 		return 0
 	}
-	restMinute := (fExpired - fTimeNow)/Minute
+	restMinute := (fExpired - fTimeNow)/Hour
 	return restMinute * fileInfo.CopyNumber * fileInfo.FileBlockCount * fileInfo.CurrFeeRate
 }
 
 func calcFileModePerServerProfit(dataClosing uint64, fileInfo *FileInfo) uint64 {
-	fStart := formatUint64TimeToMinute(fileInfo.TimeStart)
-	fExpired := formatUint64TimeToMinute(fileInfo.TimeExpired)
-	dataClosing = formatUint64TimeToMinute(dataClosing)
+	fStart := formatUint64TimeToHour(fileInfo.TimeStart)
+	fExpired := formatUint64TimeToHour(fileInfo.TimeExpired)
+	dataClosing = formatUint64TimeToHour(dataClosing)
 
 	if dataClosing <= fStart {
 		return 0
@@ -42,14 +42,14 @@ func calcFileModePerServerProfit(dataClosing uint64, fileInfo *FileInfo) uint64 
 	if dataClosing >= fExpired {
 		dataClosing = fExpired
 	}
-	intervalMinute := (dataClosing - fStart)/Minute
+	intervalMinute := (dataClosing - fStart)/Hour
 	return intervalMinute * fileInfo.FileBlockCount * fileInfo.CurrFeeRate
 }
 
 func calcSpaceModePerServerProfit(dataClosing uint64, spaceExpired uint64, fileInfo *FileInfo) uint64 {
-	fStart := formatUint64TimeToMinute(fileInfo.TimeStart)
-	sExpired := formatUint64TimeToMinute(spaceExpired)
-	dataClosing = formatUint64TimeToMinute(dataClosing)
+	fStart := formatUint64TimeToHour(fileInfo.TimeStart)
+	sExpired := formatUint64TimeToHour(spaceExpired)
+	dataClosing = formatUint64TimeToHour(dataClosing)
 
 	if dataClosing <= fStart {
 		return 0
@@ -57,26 +57,26 @@ func calcSpaceModePerServerProfit(dataClosing uint64, spaceExpired uint64, fileI
 	if dataClosing < sExpired {
 		dataClosing = sExpired
 	}
-	intervalMinute := (dataClosing - fStart)/Minute
+	intervalMinute := (dataClosing - fStart)/Hour
 	return intervalMinute * fileInfo.FileBlockCount * fileInfo.CurrFeeRate
 }
 
 func calcTotalPayAmountWithFile(fileInfo *FileInfo) uint64 {
-	fStart := formatUint64TimeToMinute(fileInfo.TimeStart)
-	fExpired := formatUint64TimeToMinute(fileInfo.TimeExpired)
+	fStart := formatUint64TimeToHour(fileInfo.TimeStart)
+	fExpired := formatUint64TimeToHour(fileInfo.TimeExpired)
 	if fExpired <= fStart {
 		return 0
 	}
-	intervalMinute := (fExpired - fStart)/Minute
+	intervalMinute := (fExpired - fStart)/Hour
 	return intervalMinute * fileInfo.CopyNumber * fileInfo.FileBlockCount * fileInfo.CurrFeeRate
 }
 
 func calcTotalPayAmountWithSpace(spaceInfo *SpaceInfo) uint64 {
-	sStart := formatUint64TimeToMinute(spaceInfo.TimeStart)
-	sExpired := formatUint64TimeToMinute(spaceInfo.TimeExpired)
+	sStart := formatUint64TimeToHour(spaceInfo.TimeStart)
+	sExpired := formatUint64TimeToHour(spaceInfo.TimeExpired)
 	if sExpired <= sStart {
 		return 0
 	}
-	intervalMinute := (sExpired - sStart)/Minute
+	intervalMinute := (sExpired - sStart)/Hour
 	return intervalMinute * spaceInfo.CopyNumber * (spaceInfo.Volume/256) * spaceInfo.CurrFeeRate
 }

@@ -26,17 +26,17 @@ import (
 )
 
 type FsGlobalParam struct {
-	MinTimeForFileStorage  uint64
-	ContractInvokeGasFee   uint64
-	ChallengeReward        uint64
-	FilePerServerPdpTimes  uint64
-	PassportExpire         uint64
-	ChallengeInterval      uint64
-	NodeMinVolume          uint64 //min total volume with fsNode
-	NodePerKbPledge        uint64 //fsNode's pledge for participant
-	FeePerBlockForRead     uint64 //cost for ontfs-sdk read from fsNode
-	FileFeePerBlockOneMin  uint64 //cost for ontfs-sdk save from fsNode
-	SpaceFeePerBlockOneMin uint64 //cost for ontfs-sdk save from fsNode
+	MinTimeForFileStorage uint64
+	ContractInvokeGasFee  uint64
+	ChallengeReward       uint64
+	FilePerServerPdpTimes uint64
+	PassportExpire        uint64
+	ChallengeInterval     uint64
+	NodeMinVolume         uint64 //min total volume with fsNode
+	NodePerKbPledge       uint64 //fsNode's pledge for participant
+	FeePerBlockForRead    uint64 //cost for ontfs-sdk read from fsNode
+	FilePerBlockFeeRate   uint64 //cost for ontfs-sdk save from fsNode
+	SpacePerBlockFeeRate  uint64 //cost for ontfs-sdk save from fsNode
 }
 
 func (this *FsGlobalParam) Serialization(sink *common.ZeroCopySink) {
@@ -49,8 +49,8 @@ func (this *FsGlobalParam) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarUint(sink, this.NodeMinVolume)
 	utils.EncodeVarUint(sink, this.NodePerKbPledge)
 	utils.EncodeVarUint(sink, this.FeePerBlockForRead)
-	utils.EncodeVarUint(sink, this.FileFeePerBlockOneMin)
-	utils.EncodeVarUint(sink, this.SpaceFeePerBlockOneMin)
+	utils.EncodeVarUint(sink, this.FilePerBlockFeeRate)
+	utils.EncodeVarUint(sink, this.SpacePerBlockFeeRate)
 }
 
 func (this *FsGlobalParam) Deserialization(source *common.ZeroCopySource) error {
@@ -87,11 +87,11 @@ func (this *FsGlobalParam) Deserialization(source *common.ZeroCopySource) error 
 	if err != nil {
 		return err
 	}
-	this.FileFeePerBlockOneMin, err = utils.DecodeVarUint(source)
+	this.FilePerBlockFeeRate, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
-	this.SpaceFeePerBlockOneMin, err = utils.DecodeVarUint(source)
+	this.SpacePerBlockFeeRate, err = utils.DecodeVarUint(source)
 	if err != nil {
 		return err
 	}
@@ -121,12 +121,11 @@ func getGlobalParam(native *native.NativeService) (*FsGlobalParam, error) {
 			FilePerServerPdpTimes: DefaultFilePerServerPdpTimes,
 			PassportExpire:        DefaultPassportExpire,
 			ChallengeInterval:     DefaultChallengeInterval,
-
-			NodeMinVolume:          DefaultNodeMinVolume,
-			NodePerKbPledge:        DefaultNodePerKbPledge,
-			FeePerBlockForRead:     DefaultGasPerBlockForRead,
-			FileFeePerBlockOneMin:  DefaultFileFeePerBlockOneMin,
-			SpaceFeePerBlockOneMin: DefaultSpaceFeePerBlockOneMin,
+			NodeMinVolume:         DefaultNodeMinVolume,
+			NodePerKbPledge:       DefaultNodePerKbPledge,
+			FeePerBlockForRead:    DefaultGasPerBlockForRead,
+			FilePerBlockFeeRate:   DefaultFilePerBlockFeeRate,
+			SpacePerBlockFeeRate:  DefaultSpacePerBlockFeeRate,
 		}
 		return &globalParam, nil
 	}
