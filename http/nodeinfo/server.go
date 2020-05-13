@@ -20,8 +20,10 @@
 package nodeinfo
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"sort"
 	"strconv"
@@ -111,11 +113,24 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func peerAddressListHandler(w http.ResponseWriter, r *http.Request) {
+	list := make([]string, 0)
+
+	nbrs := node.GetNeighbors()
+	for _, v := range nbrs {
+		list = append(list, v.GetAddr())
+	}
+	bz, _ := json.Marshal(list)
+	io.WriteString(w, string(bz))
+}
+
 func StartServer(n p2p.P2P) {
 	node = n
 	port := int(config.DefConfig.P2PNode.HttpInfoPort)
 
 	http.HandleFunc("/info", viewHandler)
+	http.HandleFunc("/info/neighborAddress", peerAddressListHandler)
+
 	// prom related
 	if err := initMetric(); err != nil {
 		panic("init prometheus metrics fail")
