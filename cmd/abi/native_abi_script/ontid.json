@@ -397,8 +397,28 @@
           "type":"String"
         },
         {
-          "name":"attributePath",
-          "type":"ByteArray"
+          "name":"attributes",
+          "type":"Array",
+          "subType":[
+            {
+              "name":"",
+              "type":"Struct",
+              "subType":[
+                {
+                  "name":"path",
+                  "type":"ByteArray"
+                },
+                {
+                  "name":"type",
+                  "type":"ByteArray"
+                },
+                {
+                  "name":"value",
+                  "type":"ByteArray"
+                }
+              ]
+            }
+          ]
         },
         {
           "name":"signers",
