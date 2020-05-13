@@ -108,7 +108,7 @@
         },
         {
           "name":"controller",
-          "type":"ByteArray"
+          "type":"String"
         },
         {
           "name":"access",
@@ -201,6 +201,14 @@
         {
           "name":"signers",
           "type":"ByteArray"
+        },
+        {
+          "name":"controller",
+          "type":"String"
+        },
+        {
+          "name":"access",
+          "type":"String"
         },
         {
           "name":"proof",
