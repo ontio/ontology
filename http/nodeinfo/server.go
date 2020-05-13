@@ -30,7 +30,7 @@ import (
 
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/ledger"
-	"github.com/ontio/ontology/p2pserver/net/protocol"
+	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
