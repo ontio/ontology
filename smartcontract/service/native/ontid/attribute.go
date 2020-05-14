@@ -36,7 +36,7 @@ const (
 )
 
 type attributeJson struct {
-	Id    string `json:"id"`
+	Key   string `json:"key"`
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }
@@ -234,7 +234,7 @@ func getAllAttrJson(srvc *native.NativeService, encId []byte) ([]*attributeJson,
 		if err != nil {
 			return nil, fmt.Errorf("decodeID failed, %s", err)
 		}
-		attrJson.Id = fmt.Sprintf("%s#%s", string(ontId), string(attr.key))
+		attrJson.Key = fmt.Sprintf("%s#%s", string(ontId), string(attr.key))
 		attrJson.Type = string(attr.valueType)
 		attrJson.Value = string(attr.value)
 		res = append(res, attrJson)
