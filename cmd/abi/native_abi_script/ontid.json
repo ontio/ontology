@@ -18,7 +18,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -40,7 +40,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -86,7 +86,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -116,7 +116,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -138,7 +138,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -160,7 +160,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -182,7 +182,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -212,7 +212,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -234,7 +234,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -264,7 +264,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -286,7 +286,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -312,15 +312,15 @@
               "subType":[
                 {
                   "name":"key",
-                  "type":"ByteArray"
+                  "type":"String"
                 },
                 {
                   "name":"type",
-                  "type":"ByteArray"
+                  "type":"String"
                 },
                 {
                   "name":"value",
-                  "type":"ByteArray"
+                  "type":"String"
                 }
               ]
             }
@@ -328,7 +328,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -349,16 +349,16 @@
               "type":"Struct",
               "subType":[
                 {
-                  "name":"path",
-                  "type":"ByteArray"
+                  "name":"key",
+                  "type":"String"
                 },
                 {
                   "name":"type",
-                  "type":"ByteArray"
+                  "type":"String"
                 },
                 {
                   "name":"value",
-                  "type":"ByteArray"
+                  "type":"String"
                 }
               ]
             }
@@ -370,7 +370,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -384,7 +384,7 @@
         },
         {
           "name":"attributePath",
-          "type":"ByteArray"
+          "type":"String"
         },
         {
           "name":"userPublicKey",
@@ -392,7 +392,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -413,16 +413,16 @@
               "type":"Struct",
               "subType":[
                 {
-                  "name":"path",
-                  "type":"ByteArray"
+                  "name":"key",
+                  "type":"String"
                 },
                 {
                   "name":"type",
-                  "type":"ByteArray"
+                  "type":"String"
                 },
                 {
                   "name":"value",
-                  "type":"ByteArray"
+                  "type":"String"
                 }
               ]
             }
@@ -434,7 +434,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -448,7 +448,7 @@
         },
         {
           "name":"attributePath",
-          "type":"ByteArray"
+          "type":"String"
         },
         {
           "name":"signers",
@@ -456,7 +456,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -483,11 +483,11 @@
           [
             {
               "name": "key",
-              "type": "ByteArray"
+              "type": "String"
             },
             {
               "name": "controller",
-              "type": "ByteArray"
+              "type": "String"
             }
           ]
         },
@@ -497,7 +497,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -519,7 +519,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -549,7 +549,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -579,7 +579,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -601,7 +601,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -620,7 +620,7 @@
           [
             {
               "name": "",
-              "type": "ByteArray"
+              "type": "String"
             }
           ]
         },
@@ -630,7 +630,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -649,7 +649,7 @@
           [
             {
               "name": "",
-              "type": "ByteArray"
+              "type": "String"
             }
           ]
         },
@@ -659,7 +659,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -685,7 +685,7 @@
         },
         {
           "name":"proof",
-          "type":"ByteArray"
+          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -768,6 +768,20 @@
         {
           "name":"keyIndex",
           "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"verifyController",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"signers",
+          "type":"ByteArray"
         }
       ],
       "returnType":"Bool"
