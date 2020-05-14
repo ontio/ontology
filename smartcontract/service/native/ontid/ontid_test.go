@@ -419,24 +419,38 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		key:        keypair.SerializePublicKey(a2.PublicKey),
 		controller: []byte(id2),
 	}
-	authKeyParam := &AddAuthKeyParam{
-		OntId:          []byte(id0),
-		IfNewPublicKey: true,
-		Index:          1,
-		NewPublicKey:   newPublicKey,
-		SignIndex:      1,
-		Proof:          []byte("http;;s;s;s;;s"),
+	authKeyParam := &AddNewAuthKeyParam{
+		OntId:        []byte(id0),
+		NewPublicKey: newPublicKey,
+		SignIndex:    1,
+		Proof:        []byte("http;;s;s;s;;s"),
 	}
 
 	sink.Reset()
 	authKeyParam.Serialization(sink)
 	n.Input = sink.Bytes()
 	n.Tx.SignedAddr = []common.Address{a0.Address}
-	if _, err := addAuthKey(n); err != nil {
+	if _, err := addNewAuthKey(n); err != nil {
 		t.Fatal(err)
 	}
 
-	// 7. add service
+	// 7. set auth key
+	setAuthKeyParam := &SetAuthKeyParam{
+		OntId:     []byte(id0),
+		Index:     1,
+		SignIndex: 1,
+		Proof:     []byte("http;;s;s;s;;s"),
+	}
+
+	sink.Reset()
+	setAuthKeyParam.Serialization(sink)
+	n.Input = sink.Bytes()
+	n.Tx.SignedAddr = []common.Address{a0.Address}
+	if _, err := setAuthKey(n); err != nil {
+		t.Fatal(err)
+	}
+
+	// 8. add service
 	service := &ServiceParam{
 		OntId:          []byte(id0),
 		ServiceId:      []byte("someService"),
@@ -455,7 +469,7 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		t.Fatal(err)
 	}
 
-	// 8. get document
+	// 9. get document
 	res, err := GetDocument(n)
 	if err != nil {
 		t.Fatal(err)

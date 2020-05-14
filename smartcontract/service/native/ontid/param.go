@@ -343,36 +343,24 @@ func (contexts *Contexts) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-type AddAuthKeyParam struct {
-	OntId          []byte
-	IfNewPublicKey bool
-	Index          uint32
-	NewPublicKey   *NewPublicKey
-	SignIndex      uint32
-	Proof          []byte
+type AddNewAuthKeyParam struct {
+	OntId        []byte
+	NewPublicKey *NewPublicKey
+	SignIndex    uint32
+	Proof        []byte
 }
 
-func (this *AddAuthKeyParam) Serialization(sink *common.ZeroCopySink) {
+func (this *AddNewAuthKeyParam) Serialization(sink *common.ZeroCopySink) {
 	utils.EncodeVarBytes(sink, this.OntId)
-	utils.EncodeBool(sink, this.IfNewPublicKey)
-	utils.EncodeVarUint(sink, uint64(this.Index))
 	this.NewPublicKey.Serialization(sink)
 	utils.EncodeVarUint(sink, uint64(this.SignIndex))
 	utils.EncodeVarBytes(sink, this.Proof)
 }
 
-func (this *AddAuthKeyParam) Deserialization(source *common.ZeroCopySource) error {
+func (this *AddNewAuthKeyParam) Deserialization(source *common.ZeroCopySource) error {
 	ontId, err := utils.DecodeVarBytes(source)
 	if err != nil {
 		return fmt.Errorf("utils.DecodeVarBytes, deserialize ontId error: %v", err)
-	}
-	ifNewPublicKey, err := utils.DecodeBool(source)
-	if err != nil {
-		return fmt.Errorf("utils.DecodeBool, deserialize ifNewPublicKey error: %v", err)
-	}
-	index, err := utils.DecodeVarUint(source)
-	if err != nil {
-		return fmt.Errorf("utils.DecodeVarUint, deserialize index error: %v", err)
 	}
 	newPublicKey := new(NewPublicKey)
 	err = newPublicKey.Deserialization(source)
@@ -388,9 +376,45 @@ func (this *AddAuthKeyParam) Deserialization(source *common.ZeroCopySource) erro
 		return fmt.Errorf("utils.DecodeVarBytes, deserialize proof error: %v", err)
 	}
 	this.OntId = ontId
-	this.IfNewPublicKey = ifNewPublicKey
-	this.Index = uint32(index)
 	this.NewPublicKey = newPublicKey
+	this.SignIndex = uint32(signIndex)
+	this.Proof = proof
+	return nil
+}
+
+type SetAuthKeyParam struct {
+	OntId     []byte
+	Index     uint32
+	SignIndex uint32
+	Proof     []byte
+}
+
+func (this *SetAuthKeyParam) Serialization(sink *common.ZeroCopySink) {
+	utils.EncodeVarBytes(sink, this.OntId)
+	utils.EncodeVarUint(sink, uint64(this.Index))
+	utils.EncodeVarUint(sink, uint64(this.SignIndex))
+	utils.EncodeVarBytes(sink, this.Proof)
+}
+
+func (this *SetAuthKeyParam) Deserialization(source *common.ZeroCopySource) error {
+	ontId, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarBytes, deserialize ontId error: %v", err)
+	}
+	index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarUint, deserialize index error: %v", err)
+	}
+	signIndex, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarUint, deserialize signIndex error: %v", err)
+	}
+	proof, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return fmt.Errorf("utils.DecodeVarBytes, deserialize proof error: %v", err)
+	}
+	this.OntId = ontId
+	this.Index = uint32(index)
 	this.SignIndex = uint32(signIndex)
 	this.Proof = proof
 	return nil

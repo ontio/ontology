@@ -26,38 +26,58 @@ import (
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func addAuthKey(srvc *native.NativeService) ([]byte, error) {
-	params := new(AddAuthKeyParam)
+func addNewAuthKey(srvc *native.NativeService) ([]byte, error) {
+	params := new(AddNewAuthKeyParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
-		return utils.BYTE_FALSE, errors.New("add auth key error: deserialization params error, " + err.Error())
+		return utils.BYTE_FALSE, errors.New("add new auth key error: deserialization params error, " + err.Error())
 	}
 	encId, err := encodeID(params.OntId)
 	if err != nil {
-		return utils.BYTE_FALSE, errors.New("add auth key error: " + err.Error())
+		return utils.BYTE_FALSE, errors.New("add new auth key error: " + err.Error())
 	}
 
 	if checkIDState(srvc, encId) == flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("add auth key error: have not registered")
+		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
 	}
 
 	if err := checkWitnessByIndex(srvc, encId, params.SignIndex); err != nil {
 		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
 	}
 
-	if params.IfNewPublicKey {
-		index, err := insertPk(srvc, encId, params.NewPublicKey.key, params.NewPublicKey.controller,
-			USE_ACCESS, ONLY_AUTHENTICATION, params.Proof)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("add auth key error, insertPk failed " + err.Error())
-		}
-		triggerAuthKeyEvent(srvc, "add", params.OntId, index)
-	} else {
-		err = changePkAuthentication(srvc, encId, params.Index, BOTH, params.Proof)
-		if err != nil {
-			return utils.BYTE_FALSE, errors.New("add auth key error, changePkAuthentication failed " + err.Error())
-		}
-		triggerAuthKeyEvent(srvc, "add", params.OntId, params.Index)
+	index, err := insertPk(srvc, encId, params.NewPublicKey.key, params.NewPublicKey.controller,
+		USE_ACCESS, ONLY_AUTHENTICATION, params.Proof)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add auth key error, insertPk failed " + err.Error())
 	}
+	triggerAuthKeyEvent(srvc, "add", params.OntId, index)
+
+	updateProofAndTime(srvc, encId, params.Proof)
+	return utils.BYTE_TRUE, nil
+}
+
+func setAuthKey(srvc *native.NativeService) ([]byte, error) {
+	params := new(SetAuthKeyParam)
+	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
+		return utils.BYTE_FALSE, errors.New("set auth key error: deserialization params error, " + err.Error())
+	}
+	encId, err := encodeID(params.OntId)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("set auth key error: " + err.Error())
+	}
+
+	if checkIDState(srvc, encId) == flag_not_exist {
+		return utils.BYTE_FALSE, errors.New("set auth key error: have not registered")
+	}
+
+	if err := checkWitnessByIndex(srvc, encId, params.SignIndex); err != nil {
+		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
+	}
+
+	err = changePkAuthentication(srvc, encId, params.Index, BOTH, params.Proof)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add auth key error, changePkAuthentication failed " + err.Error())
+	}
+	triggerAuthKeyEvent(srvc, "set", params.OntId, params.Index)
 
 	updateProofAndTime(srvc, encId, params.Proof)
 	return utils.BYTE_TRUE, nil

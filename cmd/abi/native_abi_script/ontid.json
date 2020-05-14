@@ -462,19 +462,11 @@
       "returnType":"Bool"
     },
     {
-      "name":"addAuthKey",
+      "name":"addNewAuthKey",
       "parameters":[
         {
           "name":"id",
           "type":"String"
-        },
-        {
-          "name":"ifNewPublicKey",
-          "type":"Bool"
-        },
-        {
-          "name":"index",
-          "type":"Int"
         },
         {
           "name":"newPublicKey",
@@ -490,6 +482,28 @@
               "type": "String"
             }
           ]
+        },
+        {
+          "name":"signIndex",
+          "type":"Int"
+        },
+        {
+          "name":"proof",
+          "type":"String"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"setAuthKey",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"index",
+          "type":"Int"
         },
         {
           "name":"signIndex",
