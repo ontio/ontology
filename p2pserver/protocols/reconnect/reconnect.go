@@ -30,8 +30,8 @@ import (
 	"github.com/ontio/ontology/p2pserver/peer"
 )
 
-type Info struct {
-	count int
+type ReconnectPeerInfo struct {
+	count int // current retry count
 	id    common.PeerId
 }
 
@@ -39,7 +39,7 @@ type Info struct {
 type ReconnectService struct {
 	sync.RWMutex
 	MaxRetryCount uint
-	RetryAddrs    map[string]Info
+	RetryAddrs    map[string]*ReconnectPeerInfo
 	net           p2p.P2P
 	quit          chan bool
 }
@@ -49,7 +49,7 @@ func NewReconectService(net p2p.P2P) *ReconnectService {
 		net:           net,
 		MaxRetryCount: common.MAX_RETRY_COUNT,
 		quit:          make(chan bool),
-		RetryAddrs:    make(map[string]Info),
+		RetryAddrs:    make(map[string]*ReconnectPeerInfo),
 	}
 }
 
@@ -84,7 +84,7 @@ func (self *ReconnectService) OnAddPeer(p *peer.PeerInfo) {
 func (self *ReconnectService) OnDelPeer(p *peer.PeerInfo) {
 	nodeAddr := p.RemoteListenAddress()
 	self.Lock()
-	self.RetryAddrs[nodeAddr] = Info{count: 0, id: p.Id}
+	self.RetryAddrs[nodeAddr] = &ReconnectPeerInfo{count: 0, id: p.Id}
 	self.Unlock()
 }
 
@@ -101,7 +101,7 @@ func (this *ReconnectService) retryInactivePeer() {
 	if len(this.RetryAddrs) > 0 {
 		this.Lock()
 
-		list := make(map[string]Info)
+		list := make(map[string]*ReconnectPeerInfo)
 		addrs := make([]string, 0, len(this.RetryAddrs))
 		for addr, v := range this.RetryAddrs {
 			v.count += 1
