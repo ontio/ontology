@@ -541,10 +541,10 @@ func (this *BlockStore) SaveBlockPrunedHeight(height uint32) {
 	this.store.BatchPut(key, sink.Bytes())
 }
 
-func (this *BlockStore) PruneBlock(hash common.Uint256) {
+func (this *BlockStore) PruneBlock(hash common.Uint256) []common.Uint256 {
 	_, txHashes, err := this.loadHeaderWithTx(hash)
 	if err != nil {
-		return
+		return nil
 	}
 	for _, hash := range txHashes {
 		key := genTransactionKey(hash)
@@ -552,4 +552,5 @@ func (this *BlockStore) PruneBlock(hash common.Uint256) {
 	}
 	key := genHeaderKey(hash)
 	this.store.BatchDelete(key)
+	return txHashes
 }

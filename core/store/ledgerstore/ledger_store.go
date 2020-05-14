@@ -875,7 +875,8 @@ func (this *LedgerStoreImp) tryPruneBlock(header *types.Header) bool {
 	pruneHeight := pruned + 1
 	for ; pruneHeight-pruned < pruneBatchSize && pruneHeight < height; pruneHeight++ {
 		hash := this.GetBlockHash(pruneHeight)
-		this.blockStore.PruneBlock(hash)
+		txHashes := this.blockStore.PruneBlock(hash)
+		this.eventStore.PruneBlock(pruneHeight, txHashes)
 	}
 	this.blockStore.SaveBlockPrunedHeight(pruneHeight)
 	return true
