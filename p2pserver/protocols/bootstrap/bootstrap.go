@@ -20,7 +20,6 @@ package bootstrap
 import (
 	"math/rand"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/ontio/ontology/common/log"
@@ -109,10 +108,8 @@ func (self *BootstrapService) connectSeeds() {
 	connPeers := make(map[string]*peer.Peer)
 	nps := self.net.GetNeighbors()
 	for _, tn := range nps {
-		ipAddr, _ := tn.GetAddr16()
-		ip := net.IP(ipAddr[:])
-		addrString := ip.To16().String() + ":" + strconv.Itoa(int(tn.GetPort()))
-		connPeers[addrString] = tn
+		listenAddr := tn.Info.RemoteListenAddress()
+		connPeers[listenAddr] = tn
 	}
 
 	seedConnList := make([]*peer.Peer, 0)
