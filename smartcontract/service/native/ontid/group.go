@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ontio/ontology/account"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -46,11 +47,14 @@ func (g *Group) Serialize() []byte {
 	for _, m := range g.Members {
 		switch t := m.(type) {
 		case []byte:
+			if !account.VerifyID(string(t)) {
+				panic("invalid ont id format")
+			}
 			sink.WriteVarBytes(t)
 		case *Group:
 			sink.WriteVarBytes(t.Serialize())
 		default:
-			panic("invlid member type")
+			panic("invalid member type")
 		}
 	}
 	utils.EncodeVarUint(sink, uint64(g.Threshold))

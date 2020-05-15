@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -30,6 +31,10 @@ func addNewAuthKey(srvc *native.NativeService) ([]byte, error) {
 	params := new(AddNewAuthKeyParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
 		return utils.BYTE_FALSE, errors.New("add new auth key error: deserialization params error, " + err.Error())
+	}
+	_, err := keypair.DeserializePublicKey(params.NewPublicKey.key)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: invalid key")
 	}
 	encId, err := encodeID(params.OntId)
 	if err != nil {
