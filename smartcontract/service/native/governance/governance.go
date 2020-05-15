@@ -95,11 +95,10 @@ const (
 	GAS_ADDRESS       = "gasAddress"
 
 	//global
-	PRECISE                      = 1000000
-	NEW_VERSION_VIEW             = 6
-	NEW_VERSION_BLOCK            = 414100
-	NEW_WITHDRAW_BLOCK           = 2800000
-	BLOCKHEIGHT_SELFGOV_REGISTER = 7000000
+	PRECISE            = 1000000
+	NEW_VERSION_VIEW   = 6
+	NEW_VERSION_BLOCK  = 414100
+	NEW_WITHDRAW_BLOCK = 2800000
 )
 
 // candidate fee must >= 1 ONG

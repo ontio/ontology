@@ -25,6 +25,7 @@ import (
 	"sort"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
 	cstates "github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -43,7 +44,7 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("registerCandidate, init pos must >= 1")
 	}
 
-	if native.Height < BLOCKHEIGHT_SELFGOV_REGISTER {
+	if native.Height < config.GetSelfGovRegisterHeight() {
 		//check auth of OntID
 		err := appCallVerifyToken(native, contract, params.Caller, REGISTER_CANDIDATE, uint64(params.KeyNo))
 		if err != nil {
@@ -106,7 +107,7 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		return fmt.Errorf("getGlobalParam, getGlobalParam error: %v", err)
 	}
 
-	if native.Height >= BLOCKHEIGHT_SELFGOV_REGISTER {
+	if native.Height >= config.GetSelfGovRegisterHeight() {
 		//check if peerPoolMap full
 		num := 0
 		for _, peerPoolItem := range peerPoolMap.PeerPoolMap {
@@ -142,7 +143,7 @@ func registerCandidate(native *native.NativeService, flag string) error {
 		if err != nil {
 			return fmt.Errorf("registerCandidate, get indexBytes error: %v", err)
 		}
-		if indexBytes != nil {
+		if len(indexBytes) != 0 {
 			value, err := cstates.GetValueFromRawStorageItem(indexBytes)
 			if err != nil {
 				return fmt.Errorf("registerCandidate, get value from raw storage item error:%v", err)
