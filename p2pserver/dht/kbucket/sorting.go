@@ -38,8 +38,10 @@ type peerDistanceSorter struct {
 	target common.PeerId
 }
 
-func (pds *peerDistanceSorter) Len() int      { return len(pds.peers) }
-func (pds *peerDistanceSorter) Swap(a, b int) { pds.peers[a], pds.peers[b] = pds.peers[b], pds.peers[a] }
+func (pds *peerDistanceSorter) Len() int { return len(pds.peers) }
+func (pds *peerDistanceSorter) Swap(a, b int) {
+	pds.peers[a], pds.peers[b] = pds.peers[b], pds.peers[a]
+}
 func (pds *peerDistanceSorter) Less(a, b int) bool {
 	return bytes.Compare(pds.peers[a].distance[:], pds.peers[b].distance[:]) < 0
 }

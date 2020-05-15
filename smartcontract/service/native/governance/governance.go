@@ -329,6 +329,7 @@ func RegisterCandidateTransferFrom(native *native.NativeService) ([]byte, error)
 	return utils.BYTE_TRUE, nil
 }
 
+// Deprecated
 //Unregister a registered candidate node, will remove node from pool, and unfreeze deposit ont.
 func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	params := new(UnRegisterCandidateParam)
@@ -391,6 +392,7 @@ func UnRegisterCandidate(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+// Deprecated
 //Approve a registered candidate node
 //Only approved candidate node can participate in consensus selection and get ong bonus.
 func ApproveCandidate(native *native.NativeService) ([]byte, error) {
