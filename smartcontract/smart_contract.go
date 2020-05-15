@@ -196,6 +196,7 @@ func (this *SmartContract) NewNativeService() (*native.NativeService, error) {
 		return nil, fmt.Errorf("%s", "engine over max limit!")
 	}
 	service := &native.NativeService{
+		Store:      this.Store,
 		CacheDB:    this.CacheDB,
 		ContextRef: this,
 		Tx:         this.Config.Tx,
