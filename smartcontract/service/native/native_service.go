@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/core/store"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	"github.com/ontio/ontology/merkle"
@@ -44,6 +45,7 @@ var (
 // Native service struct
 // Invoke a native smart contract, new a native service
 type NativeService struct {
+	Store         store.LedgerStore
 	CacheDB       *storage.CacheDB
 	ServiceMap    map[string]Handler
 	Notifications []*event.NotifyEventInfo
