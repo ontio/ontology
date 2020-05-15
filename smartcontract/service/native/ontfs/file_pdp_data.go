@@ -35,7 +35,7 @@ type PdpData struct {
 
 func (this *PdpData) Serialization(sink *common.ZeroCopySink) error {
 	if len(this.ProveData) < pdp.VersionLength {
-		return fmt.Errorf("PdpData Serialization error: ProveData length shorter than 8", )
+		return fmt.Errorf("PdpData Serialization error: ProveData length shorter than 8")
 	}
 	utils.EncodeAddress(sink, this.NodeAddr)
 	sink.WriteVarBytes(this.FileHash)

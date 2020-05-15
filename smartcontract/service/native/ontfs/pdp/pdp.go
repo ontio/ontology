@@ -34,7 +34,7 @@ const (
 )
 
 const (
-	VersionLength = 8
+	VersionLength              = 8
 	MaxMerklePdpChallengeBlock = 1
 )
 
@@ -69,8 +69,6 @@ func (p *Pdp) GenUniqueIdWithFileBlocks(fileBlocks []types.Block) ([]byte, error
 //GenChallenge compute the index to choose block
 func (p *Pdp) GenChallenge(nodeId [20]byte, blockHash []byte, fileBlockNum uint64) ([]uint64, error) {
 	var challengeNum uint64
-	var challenge []uint64
-
 	switch p.Version {
 	case MerklePdp:
 		if fileBlockNum > MaxMerklePdpChallengeBlock {
@@ -78,16 +76,28 @@ func (p *Pdp) GenChallenge(nodeId [20]byte, blockHash []byte, fileBlockNum uint6
 		} else {
 			challengeNum = fileBlockNum
 		}
-		challenge = make([]uint64, challengeNum)
 
+		var challenge []uint64
 		blockNum := big.NewInt(int64(fileBlockNum))
 		plant := append(nodeId[:], blockHash...)
 		vAdded := make([]byte, 8)
-		for i := uint64(0); i < challengeNum; i++ {
+		for i := uint64(0); ; i++ {
 			binary.LittleEndian.PutUint64(vAdded, i)
 			hash := sha256.Sum256(append(plant, vAdded...))
 			bigTmp := new(big.Int).SetBytes(hash[:])
-			challenge[i] = bigTmp.Mod(bigTmp, blockNum).Uint64()
+			challengeTmp := bigTmp.Mod(bigTmp, blockNum).Uint64()
+			sameChallenge := false
+			for _, v := range challenge {
+				if v == challengeTmp {
+					sameChallenge = true
+				}
+			}
+			if !sameChallenge {
+				challenge = append(challenge, challengeTmp)
+			}
+			if uint64(len(challenge)) >= challengeNum {
+				break
+			}
 		}
 		return challenge, nil
 	default:
@@ -135,6 +145,12 @@ func GetPdpVersionFromProof(proof []byte) uint64 {
 
 //VerifyProof used in consensus algorithm
 func VerifyProofWithUniqueId(uniqueId []byte, proof []byte, challenge []uint64) error {
+	if len(proof) <= VersionLength {
+		return fmt.Errorf("[VerifyProofWithUniqueId] proof length error")
+	}
+	if len(uniqueId) <= VersionLength {
+		return fmt.Errorf("[VerifyProofWithUniqueId] uniqueId length error")
+	}
 	proofPrefix := proof[0:VersionLength]
 	uniqueIdPrefix := uniqueId[0:VersionLength]
 	proofPdpVersion := binary.LittleEndian.Uint64(proofPrefix)

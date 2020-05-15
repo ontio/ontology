@@ -117,12 +117,12 @@ func FsChallenge(native *native.NativeService) ([]byte, error) {
 
 	challenge.State = NoReplyAndValid
 	nativeFormatTime := uint64(native.Time)
-	if err = checkUint64OverflowWithSum(nativeFormatTime, globalParam.ChallengeInterval); err != nil{
+	if err = checkUint64OverflowWithSum(nativeFormatTime, globalParam.ChallengeInterval); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsChallenge error: %s", err.Error())
 	}
 	challenge.ExpiredTime = nativeFormatTime + globalParam.ChallengeInterval
 	challenge.ChallengeHeight = uint64(native.Height)
-	if err = checkUint64OverflowWithSum(globalParam.ChallengeReward, globalParam.ContractInvokeGasFee); err != nil{
+	if err = checkUint64OverflowWithSum(globalParam.ChallengeReward, globalParam.ContractInvokeGasFee); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsChallenge error: %s", err.Error())
 	}
 	challenge.Reward = globalParam.ChallengeReward + globalParam.ContractInvokeGasFee
@@ -191,10 +191,10 @@ func FsJudge(native *native.NativeService) ([]byte, error) {
 	var punishAmount uint64
 	switch fileInfo.StorageType {
 	case FileStorageTypeUseFile:
-		if err = checkUint64OverflowWithSum(fileInfo.PayAmount, 2 * globalParam.ContractInvokeGasFee); err != nil{
+		if err = checkUint64OverflowWithSum(fileInfo.PayAmount, 2*globalParam.ContractInvokeGasFee); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsJudge error: %s", err.Error())
 		}
-		punishAmount = fileInfo.PayAmount + 2 * globalParam.ContractInvokeGasFee
+		punishAmount = fileInfo.PayAmount + 2*globalParam.ContractInvokeGasFee
 	case FileStorageTypeUseSpace:
 		spaceInfo := getSpaceInfoFromDb(native, fileInfo.FileOwner)
 		if spaceInfo == nil {
@@ -212,7 +212,7 @@ func FsJudge(native *native.NativeService) ([]byte, error) {
 	} else {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsJudge node profit or pledge not enough!")
 	}
-	if err = checkUint64OverflowWithSum(punishAmount, 2 * challenge.Reward); err != nil{
+	if err = checkUint64OverflowWithSum(punishAmount, 2*challenge.Reward); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsJudge error: %s", err.Error())
 	}
 	challenge.Reward = punishAmount + challenge.Reward
@@ -308,14 +308,14 @@ func FsCreateSpace(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCreateSpace getGlobalParam error!")
 	}
 
-	if err = checkUint64OverflowWithSum(uint64(native.Time), globalParam.MinTimeForFileStorage); err != nil{
+	if err = checkUint64OverflowWithSum(uint64(native.Time), globalParam.MinTimeForFileStorage); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsCreateSpace error: %s", err.Error())
 	}
 
-	if spaceInfo.TimeExpired < uint64(native.Time) + globalParam.MinTimeForFileStorage{
+	if spaceInfo.TimeExpired < uint64(native.Time)+globalParam.MinTimeForFileStorage {
 		err = fmt.Errorf("[APP SDK] FsCreateSpace spaceInfo TimeExpired smaller than Native.Time + %d",
 			globalParam.MinTimeForFileStorage)
-		return  utils.BYTE_FALSE, err
+		return utils.BYTE_FALSE, err
 	}
 	if spaceInfo.Volume < DefaultPerBlockSize {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsCreateSpace space volume smaller than DefaultPerBlockSize(256kb)")
@@ -351,9 +351,9 @@ func FsDeleteSpace(native *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsDeleteSpace CheckSpaceOwner failed!")
 	}
 
-	spaceInfo := getAndUpdateSpaceInfo(native, spaceOwner)
+	spaceInfo := getSpaceInfoFromDb(native, spaceOwner)
 	if spaceInfo == nil {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsDeleteSpace getAndUpdateSpaceInfo error!")
+		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsDeleteSpace getSpaceInfoFromDb error!")
 	}
 	if spaceInfo.Volume != spaceInfo.RestVol {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsDeleteSpace not allow, check files!")
@@ -400,7 +400,7 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 
 	spaceInfo := getAndUpdateSpaceInfo(native, spaceUpdate.SpaceOwner)
 	if spaceInfo == nil {
-		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace getSpaceRawInfo error!")
+		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsUpdateSpace getAndUpdateSpaceInfo error!")
 	}
 
 	if !spaceInfo.ValidFlag {
@@ -412,13 +412,13 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 	}
 
 	if spaceUpdate.NewTimeExpired != 0 {
-		if err = checkUint64OverflowWithSum(spaceInfo.TimeStart, globalParam.MinTimeForFileStorage); err != nil{
+		if err = checkUint64OverflowWithSum(spaceInfo.TimeStart, globalParam.MinTimeForFileStorage); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsUpdateSpace error: %s", err.Error())
 		}
-		if spaceUpdate.NewTimeExpired < spaceInfo.TimeStart + globalParam.MinTimeForFileStorage{
+		if spaceUpdate.NewTimeExpired < spaceInfo.TimeStart+globalParam.MinTimeForFileStorage {
 			err = fmt.Errorf("[APP SDK] FsUpdateSpace spaceInfo NewTimeExpired smaller than TimeStart + %d",
 				globalParam.MinTimeForFileStorage)
-			return  utils.BYTE_FALSE, err
+			return utils.BYTE_FALSE, err
 		}
 	}
 
@@ -446,7 +446,7 @@ func FsUpdateSpace(native *native.NativeService) ([]byte, error) {
 		newFee = newPayAmount - spaceInfo.PayAmount
 		payer = spaceUpdate.Payer
 		payee = contract
-		if err = checkUint64OverflowWithSum(spaceInfo.RestAmount, newFee); err != nil{
+		if err = checkUint64OverflowWithSum(spaceInfo.RestAmount, newFee); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsUpdateSpace error: %s", err.Error())
 		}
 		spaceInfo.RestAmount += newFee
@@ -562,11 +562,11 @@ func FsStoreFiles(native *native.NativeService) ([]byte, error) {
 			}
 			addSpaceInfo(native, spaceInfo)
 		} else if fileInfo.StorageType == FileStorageTypeUseFile {
-			if err = checkUint64OverflowWithSum(uint64(native.Time), globalParam.MinTimeForFileStorage); err != nil{
+			if err = checkUint64OverflowWithSum(uint64(native.Time), globalParam.MinTimeForFileStorage); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsStoreFiles error: %s", err.Error())
 			}
-			if fileInfo.TimeExpired < uint64(native.Time) + globalParam.MinTimeForFileStorage{
-				errInfo := fmt.Sprintf("[APP SDK] FsStoreFiles fileInfo TimeExpired error: " +
+			if fileInfo.TimeExpired < uint64(native.Time)+globalParam.MinTimeForFileStorage {
+				errInfo := fmt.Sprintf("[APP SDK] FsStoreFiles fileInfo TimeExpired error: "+
 					"TimeExpired smaller than Native.Time + %d", globalParam.MinTimeForFileStorage)
 				errInfos.AddObjectError(string(fileInfo.FileHash), errInfo)
 				log.Error(errInfo)
@@ -575,7 +575,7 @@ func FsStoreFiles(native *native.NativeService) ([]byte, error) {
 			serverPdpGasFee := globalParam.FilePerServerPdpTimes * globalParam.ContractInvokeGasFee * fileInfo.CopyNumber
 			fileInfo.CurrFeeRate = globalParam.FilePerBlockFeeRate
 			fileInfo.PayAmount = calcTotalPayAmountWithFile(&fileInfo)
-			if err = checkUint64OverflowWithSum(fileInfo.PayAmount, serverPdpGasFee); err != nil{
+			if err = checkUint64OverflowWithSum(fileInfo.PayAmount, serverPdpGasFee); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsStoreFiles error: %s", err.Error())
 			}
 			err = appCallTransfer(native, utils.OngContractAddress, fileInfo.FileOwner, contract, fileInfo.PayAmount+serverPdpGasFee)
@@ -674,12 +674,10 @@ func FsDeleteFiles(native *native.NativeService) ([]byte, error) {
 			errInfos.AddObjectError(string(fileDel.FileHash), "[APP SDK] FsDeleteFiles fileInfo is nil")
 			continue
 		}
-
 		if !fileInfo.ValidFlag {
 			errInfos.AddObjectError(string(fileDel.FileHash), "[APP SDK] FsDeleteFiles file is invalid")
 			continue
 		}
-
 		if !native.ContextRef.CheckWitness(fileInfo.FileOwner) {
 			errInfos.AddObjectError(string(fileDel.FileHash), "[APP SDK] FsDeleteFiles CheckFileOwner failed!")
 			continue
@@ -711,8 +709,8 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 		switch fileInfo.StorageType {
 		case FileStorageTypeUseFile:
 			profit := calcFileModePerServerProfit(uint64(native.Time), fileInfo)
-			if err = checkUint64OverflowWithSum(nodeInfo.Profit, profit); err != nil{
-				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: " + err.Error())
+			if err = checkUint64OverflowWithSum(nodeInfo.Profit, profit); err != nil {
+				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: "+err.Error())
 				continue
 			}
 			nodeInfo.Profit += profit
@@ -723,8 +721,8 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 				continue
 			}
 			profit := calcSpaceModePerServerProfit(uint64(native.Time), spaceInfo.TimeExpired, fileInfo)
-			if err = checkUint64OverflowWithSum(nodeInfo.Profit, profit); err != nil{
-				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: " + err.Error())
+			if err = checkUint64OverflowWithSum(nodeInfo.Profit, profit); err != nil {
+				errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: "+err.Error())
 				continue
 			}
 			nodeInfo.Profit += profit
@@ -733,8 +731,8 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 			continue
 		}
 		fileSize := fileInfo.FileBlockCount * DefaultPerBlockSize
-		if err = checkUint64OverflowWithSum(nodeInfo.RestVol, fileSize); err != nil{
-			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: " + err.Error())
+		if err = checkUint64OverflowWithSum(nodeInfo.RestVol, fileSize); err != nil {
+			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: "+err.Error())
 			continue
 		}
 		nodeInfo.RestVol += fileSize
@@ -757,8 +755,8 @@ func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Erro
 			return false
 		}
 		fileSize := fileInfo.FileBlockCount * DefaultPerBlockSize
-		if err = checkUint64OverflowWithSum(spaceInfo.RestVol, fileSize); err != nil{
-			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: " + err.Error())
+		if err = checkUint64OverflowWithSum(spaceInfo.RestVol, fileSize); err != nil {
+			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile checkUint64OverflowWithSum error: "+err.Error())
 			return false
 		}
 		spaceInfo.RestVol += fileSize
@@ -931,7 +929,7 @@ func FsReadFilePledge(native *native.NativeService) ([]byte, error) {
 	//oriPlan ==> newPlan
 	var totalAddMaxBlockNumToRead uint64
 	for index, readPlan := range readPledge.ReadPlans {
-		if err = checkUint64OverflowWithSum(totalAddMaxBlockNumToRead, readPlan.MaxReadBlockNum); err != nil{
+		if err = checkUint64OverflowWithSum(totalAddMaxBlockNumToRead, readPlan.MaxReadBlockNum); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsReadFilePledge checkUint64OverflowWithSum error: %s", err.Error())
 		}
 		totalAddMaxBlockNumToRead += readPlan.MaxReadBlockNum
@@ -948,7 +946,7 @@ func FsReadFilePledge(native *native.NativeService) ([]byte, error) {
 				if readPlan.NodeAddr == oriReadPlan.NodeAddr {
 					samePlanCount++
 					foundSamePlan = true
-					if err = checkUint64OverflowWithSum(readPledge.ReadPlans[index].MaxReadBlockNum, oriReadPlan.MaxReadBlockNum); err != nil{
+					if err = checkUint64OverflowWithSum(readPledge.ReadPlans[index].MaxReadBlockNum, oriReadPlan.MaxReadBlockNum); err != nil {
 						return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsReadFilePledge checkUint64OverflowWithSum error: %s", err.Error())
 					}
 					readPledge.ReadPlans[index].MaxReadBlockNum += oriReadPlan.MaxReadBlockNum
@@ -966,14 +964,14 @@ func FsReadFilePledge(native *native.NativeService) ([]byte, error) {
 	}
 
 	newPledgeFee := totalAddMaxBlockNumToRead * globalParam.FeePerBlockForRead
-	if err = checkUint64OverflowWithSum(readPledge.RestMoney, newPledgeFee); err != nil{
+	if err = checkUint64OverflowWithSum(readPledge.RestMoney, newPledgeFee); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[APP SDK] FsReadFilePledge checkUint64OverflowWithSum error: %s", err.Error())
 	}
 	readPledge.RestMoney += newPledgeFee
 
 	newPlanCount := uint64(len(readPledge.ReadPlans)) - samePlanCount
 	err = appCallTransfer(native, utils.OngContractAddress, readPledge.Downloader, contract,
-		newPledgeFee + newPlanCount * globalParam.ContractInvokeGasFee)
+		newPledgeFee+newPlanCount*globalParam.ContractInvokeGasFee)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.NewErr("[APP SDK] FsReadFilePledge AppCallTransfer, transfer error!")
 	}
@@ -997,19 +995,19 @@ func FsGetReadPledge(native *native.NativeService) ([]byte, error) {
 }
 
 func formatUint32TimeToHour(time uint32) uint64 {
-	return uint64(time - time % Hour)
+	return uint64(time - time%Hour)
 }
 
 func formatUint64TimeToHour(time uint64) uint64 {
-	return time - time % Hour
+	return time - time%Hour
 }
 
 func formatVolumeToBlock(volume uint64) uint64 {
-	return volume - volume %DefaultPerBlockSize
+	return volume - volume%DefaultPerBlockSize
 }
 
 func checkUint64OverflowWithSum(a, b uint64) error {
-	if math.MaxUint64 - a < b {
+	if math.MaxUint64-a < b {
 		return fmt.Errorf("checkUint64OverflowWithSum (%d, %d)", a, b)
 	}
 	return nil

@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
 	"golang.org/x/crypto/sha3"
 
 	"github.com/ontio/ontology/smartcontract/service/native/ontfs/pdp/types"
@@ -100,7 +101,7 @@ func MerkleProof(blocks []types.Block, c uint64) ([][]byte, error) {
 			if 2*n == c {
 				res = append(res, layerHashes[2*n])
 			}
-			tmp, err  := merkleHash(depth, 2*n, 2*n+1, layerHashes[2*n][:], layerHashes[2*n][:], nil)
+			tmp, err := merkleHash(depth, 2*n, 2*n+1, layerHashes[2*n][:], layerHashes[2*n][:], nil)
 			if err != nil {
 				return nil, fmt.Errorf("MerkleProof error: %s", err.Error())
 			}
@@ -129,7 +130,7 @@ func VerifyMerkleProof(proof [][]byte, uniqueId []byte, i uint64) error {
 
 	n := proof[0]
 	nLen := len(n)
-	if nLen  < 8 {
+	if nLen < 8 {
 		return fmt.Errorf("VerifyMerkleProof proof length error")
 	}
 	challengeIndex := binary.LittleEndian.Uint64(n[nLen-8:])
@@ -147,7 +148,7 @@ func VerifyMerkleProof(proof [][]byte, uniqueId []byte, i uint64) error {
 				return fmt.Errorf("VerifyMerkleProof error: %s", err.Error())
 			}
 		} else {
-			n, err  = merkleHash(depth, c-1, c, s, n, nil)
+			n, err = merkleHash(depth, c-1, c, s, n, nil)
 			if err != nil {
 				return fmt.Errorf("VerifyMerkleProof error: %s", err.Error())
 			}

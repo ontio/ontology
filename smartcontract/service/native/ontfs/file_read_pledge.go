@@ -33,10 +33,10 @@ type ReadPlan struct {
 }
 
 type ReadPledge struct {
-	FileHash     []byte
-	Downloader   common.Address
-	RestMoney    uint64
-	ReadPlans    []ReadPlan
+	FileHash   []byte
+	Downloader common.Address
+	RestMoney  uint64
+	ReadPlans  []ReadPlan
 }
 
 func (this *ReadPlan) Serialization(sink *common.ZeroCopySink) {

@@ -80,7 +80,7 @@ func FsFileProve(native *native.NativeService) ([]byte, error) {
 		}
 		nodeInfo.RestVol -= fileInfo.FileBlockCount * DefaultPerBlockSize
 
-		if err = checkUint64OverflowWithSum(nodeInfo.Profit, globalParam.ContractInvokeGasFee); err != nil{
+		if err = checkUint64OverflowWithSum(nodeInfo.Profit, globalParam.ContractInvokeGasFee); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsFileProve error: %s", err.Error())
 		}
 		nodeInfo.Profit += globalParam.ContractInvokeGasFee
@@ -108,33 +108,32 @@ func FsFileProve(native *native.NativeService) ([]byte, error) {
 	case FileStorageTypeUseFile:
 		fileStoreProfit = calcFileModePerServerProfit(fileInfo.TimeExpired, fileInfo)
 	case FileStorageTypeUseSpace:
-		spaceInfo := getAndUpdateSpaceInfo(native, fileInfo.FileOwner)
+		spaceInfo := getSpaceInfoFromDb(native, fileInfo.FileOwner)
 		if spaceInfo == nil {
-			return utils.BYTE_FALSE, errors.NewErr("[Node Business] FsFileProve getAndUpdateSpaceInfo error!")
+			return utils.BYTE_FALSE, errors.NewErr("[Node Business] FsFileProve getSpaceInfoFromDb error!")
 		}
 		fileStoreProfit = calcSpaceModePerServerProfit(spaceInfo.TimeExpired, spaceInfo.TimeExpired, fileInfo)
 		if spaceInfo.RestAmount < fileStoreProfit {
 			return utils.BYTE_FALSE, errors.NewErr("[Node Business] FsFileProve space RestAmount not enough error!")
 		}
 		spaceInfo.RestAmount -= fileStoreProfit
-		//todo: move it to this unction end
 		addSpaceInfo(native, spaceInfo)
 	default:
 		return utils.BYTE_FALSE, errors.NewErr("[Node Business] FsFileProve file storage type error!")
 	}
 
-	if err = checkUint64OverflowWithSum(nodeInfo.Profit, fileStoreProfit); err != nil{
+	if err = checkUint64OverflowWithSum(nodeInfo.Profit, fileStoreProfit); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsFileProve error: %s", err.Error())
 	}
 	nodeInfo.Profit += fileStoreProfit
 
-	if err = checkUint64OverflowWithSum(nodeInfo.Profit, globalParam.ContractInvokeGasFee); err != nil{
+	if err = checkUint64OverflowWithSum(nodeInfo.Profit, globalParam.ContractInvokeGasFee); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsFileProve error: %s", err.Error())
 	}
 	nodeInfo.Profit += globalParam.ContractInvokeGasFee
 
 	fileSize := fileInfo.FileBlockCount * DefaultPerBlockSize
-	if err = checkUint64OverflowWithSum(nodeInfo.RestVol, fileSize); err != nil{
+	if err = checkUint64OverflowWithSum(nodeInfo.RestVol, fileSize); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsFileProve error: %s", err.Error())
 	}
 	nodeInfo.RestVol += fileSize
@@ -236,7 +235,7 @@ func FsResponse(native *native.NativeService) ([]byte, error) {
 	}
 
 	if err := checkPdpData(native, &pdpData, fileInfo); err != nil {
-		if err = checkUint64OverflowWithSum(fileInfo.PayAmount, globalParam.ContractInvokeGasFee); err != nil{
+		if err = checkUint64OverflowWithSum(fileInfo.PayAmount, globalParam.ContractInvokeGasFee); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsResponse error: %s", err.Error())
 		}
 		punishAmount := fileInfo.PayAmount + globalParam.ContractInvokeGasFee
@@ -247,7 +246,7 @@ func FsResponse(native *native.NativeService) ([]byte, error) {
 		} else {
 			return utils.BYTE_FALSE, errors.NewErr("[Node Business] FsResponse profit or pledge not enough!")
 		}
-		if err = checkUint64OverflowWithSum(punishAmount, challengeInfo.Reward); err != nil{
+		if err = checkUint64OverflowWithSum(punishAmount, challengeInfo.Reward); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsResponse error: %s", err.Error())
 		}
 		err = appCallTransfer(native, utils.OngContractAddress, contract, challengeInfo.FileOwner,
@@ -259,7 +258,7 @@ func FsResponse(native *native.NativeService) ([]byte, error) {
 		challengeInfo.Reward = punishAmount
 		challengeInfo.State = RepliedButVerifyError
 	} else {
-		if err = checkUint64OverflowWithSum(nodeInfo.Profit, challengeInfo.Reward); err != nil{
+		if err = checkUint64OverflowWithSum(nodeInfo.Profit, challengeInfo.Reward); err != nil {
 			return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsResponse error: %s", err.Error())
 		}
 		nodeInfo.Profit += challengeInfo.Reward
@@ -350,16 +349,16 @@ func FsReadFileSettle(native *native.NativeService) ([]byte, error) {
 			return utils.BYTE_FALSE, errors.NewErr("[Node Business] FsReadFileSettle getNodeInfo error!")
 		}
 		if readPledge.ReadPlans[i].NumOfSettlements == 0 {
-			if err = checkUint64OverflowWithSum(readFee, globalParam.ContractInvokeGasFee); err != nil{
+			if err = checkUint64OverflowWithSum(readFee, globalParam.ContractInvokeGasFee); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsReadFileSettle error: %s", err.Error())
 			}
-			if err = checkUint64OverflowWithSum(readFee, readFee + globalParam.ContractInvokeGasFee); err != nil{
+			if err = checkUint64OverflowWithSum(readFee, readFee+globalParam.ContractInvokeGasFee); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsReadFileSettle error: %s", err.Error())
 			}
 			nodeInfo.Profit += readFee + globalParam.ContractInvokeGasFee
 			readPledge.ReadPlans[i].NumOfSettlements++
 		} else {
-			if err = checkUint64OverflowWithSum(nodeInfo.Profit, readFee); err != nil{
+			if err = checkUint64OverflowWithSum(nodeInfo.Profit, readFee); err != nil {
 				return utils.BYTE_FALSE, fmt.Errorf("[Node Business] FsReadFileSettle error: %s", err.Error())
 			}
 			nodeInfo.Profit += readFee

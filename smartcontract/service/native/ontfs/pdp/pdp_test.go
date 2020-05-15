@@ -68,50 +68,6 @@ func TestPdpVerify(t *testing.T) {
 	}
 }
 
-func TestPdpVerifyCircle(t *testing.T) {
-	var blocks []types.Block
-	var nodeId [20]byte
-	blockHash := make([]byte, 32)
-
-	data := make([]byte, 256*1024)
-	for i := 0; i < 1024; i++ {
-		rand.Read(data)
-		blocks = append(blocks, data)
-	}
-
-	for count := 1; count < 1024; count++ {
-		rand.Read(blockHash[:])
-		rand.Read(nodeId[:])
-
-		pdp := NewPdp(MerklePdp)
-		fileUniqueId, err := pdp.GenUniqueIdWithFileBlocks(blocks)
-		if err != nil {
-			t.Fatal(err.Error())
-		} else {
-			t.Logf("fileUniqueId: %v", fileUniqueId)
-		}
-
-		challenge, err := pdp.GenChallenge(nodeId, blockHash, 1024)
-		if err != nil {
-			t.Fatal(err.Error())
-		} else {
-			t.Logf("challenge: %v", challenge)
-		}
-
-		proof, err := pdp.GenProofWithBlocks(blocks, fileUniqueId, challenge)
-		if err != nil {
-			t.Fatal(err.Error())
-		} else {
-			t.Logf("proof: %v", proof)
-		}
-
-		err = VerifyProofWithUniqueId(fileUniqueId, proof, challenge)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-	}
-}
-
 func BenchmarkGenUniqueIdWithFileBlocks(b *testing.B) {
 	data := make([]byte, 256*1024)
 	var blocks []types.Block

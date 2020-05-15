@@ -25,12 +25,12 @@ import (
 )
 
 type SpaceInfo struct {
-	SpaceOwner common.Address
-	Volume     uint64
-	RestVol    uint64
-	CopyNumber uint64
-	PayAmount  uint64
-	RestAmount uint64
+	SpaceOwner  common.Address
+	Volume      uint64
+	RestVol     uint64
+	CopyNumber  uint64
+	PayAmount   uint64
+	RestAmount  uint64
 	TimeStart   uint64
 	TimeExpired uint64
 	CurrFeeRate uint64

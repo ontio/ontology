@@ -34,30 +34,28 @@ func TestMerkleProof(t *testing.T) {
 		blocks = append(blocks, data)
 	}
 
-	for count := 0; count < 5; count++  {
-		rootHash, err := CalcRootHash(blocks)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
+	rootHash, err := CalcRootHash(blocks)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-		//t.Logf("rootHash: %v", rootHash)
+	t.Logf("rootHash: %v", rootHash)
 
-		prf, err := MerkleProof(blocks, 1)
-		if err != nil {
-			t.Fatal(err.Error())
-		}
-		var prfLen int
-		for _, v := range prf {
-			prfLen += len(v)
-		}
+	prf, err := MerkleProof(blocks, 1)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	var prfLen int
+	for _, v := range prf {
+		prfLen += len(v)
+	}
 
-		//t.Logf("prfLen: %v", len(prf))
-		//t.Logf("prfTotalLength: %v", prfLen)
-		//t.Logf("prf: %v", prf)
+	t.Logf("prfLen: %v", len(prf))
+	t.Logf("prfTotalLength: %v", prfLen)
+	t.Logf("prf: %v", prf)
 
-		if err := VerifyMerkleProof(prf, rootHash, 1); err != nil {
-			t.Fatal(err.Error())
-		}
+	if err := VerifyMerkleProof(prf, rootHash, 1); err != nil {
+		t.Fatal(err.Error())
 	}
 }
 
