@@ -1125,9 +1125,9 @@ func (self *Server) processProposalMsg(msg *blockProposalMsg) {
 		log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, msgBlkNum-1)
 		return
 	}
-	if msg.Block.getPrevBlockMerkleRoot() != merkleRoot {
+	if msg.Block.getPrevExecMerkleRoot() != merkleRoot {
 		self.msgPool.DropMsg(msg)
-		msgMerkleRoot := msg.Block.getPrevBlockMerkleRoot()
+		msgMerkleRoot := msg.Block.getPrevExecMerkleRoot()
 		log.Errorf("BlockPrposalMessage check MerkleRoot blocknum:%d,msg MerkleRoot:%s,self MerkleRoot:%s", msg.GetBlockNum(), msgMerkleRoot.ToHexString(), merkleRoot.ToHexString())
 		return
 	}

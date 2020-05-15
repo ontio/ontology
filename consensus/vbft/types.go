@@ -29,11 +29,11 @@ import (
 )
 
 type Block struct {
-	Block               *types.Block
-	EmptyBlock          *types.Block
-	Info                *vconfig.VbftBlockInfo
-	PrevBlockMerkleRoot common.Uint256
-	CrossChainMsg       *types.CrossChainMsg
+	Block              *types.Block
+	EmptyBlock         *types.Block
+	Info               *vconfig.VbftBlockInfo
+	PrevExecMerkleRoot common.Uint256
+	CrossChainMsg      *types.CrossChainMsg
 }
 
 func (blk *Block) getProposer() uint32 {
@@ -56,8 +56,8 @@ func (blk *Block) getNewChainConfig() *vconfig.ChainConfig {
 	return blk.Info.NewChainConfig
 }
 
-func (blk *Block) getPrevBlockMerkleRoot() common.Uint256 {
-	return blk.PrevBlockMerkleRoot
+func (blk *Block) getPrevExecMerkleRoot() common.Uint256 {
+	return blk.PrevExecMerkleRoot
 }
 
 //
@@ -79,7 +79,7 @@ func (blk *Block) Serialize() []byte {
 	if blk.EmptyBlock != nil {
 		payload.WriteVarBytes(common.SerializeToBytes(blk.EmptyBlock))
 	}
-	payload.WriteHash(blk.PrevBlockMerkleRoot)
+	payload.WriteHash(blk.PrevExecMerkleRoot)
 	payload.WriteBool(blk.CrossChainMsg != nil)
 	if blk.CrossChainMsg != nil {
 		blk.CrossChainMsg.Serialization(payload)
@@ -149,12 +149,12 @@ func (blk *Block) Deserialize(data []byte) error {
 	blk.Block = block
 	blk.EmptyBlock = emptyBlock
 	blk.Info = info
-	blk.PrevBlockMerkleRoot = merkleRoot
+	blk.PrevExecMerkleRoot = merkleRoot
 	blk.CrossChainMsg = crossChainMsg
 	return nil
 }
 
-func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevMerkleRoot common.Uint256) (*Block, error) {
+func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevExecMerkleRoot common.Uint256) (*Block, error) {
 	if block == nil {
 		return nil, fmt.Errorf("nil block in initVbftBlock")
 	}
@@ -165,9 +165,9 @@ func initVbftBlock(block *types.Block, ccMsg *types.CrossChainMsg, prevMerkleRoo
 	}
 
 	return &Block{
-		Block:               block,
-		Info:                blkInfo,
-		PrevBlockMerkleRoot: prevMerkleRoot,
-		CrossChainMsg:       ccMsg,
+		Block:              block,
+		Info:               blkInfo,
+		PrevExecMerkleRoot: prevExecMerkleRoot,
+		CrossChainMsg:      ccMsg,
 	}, nil
 }

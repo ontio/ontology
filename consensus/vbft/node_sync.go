@@ -184,7 +184,7 @@ func (self *Syncer) run() {
 					if blk == nil || merkBlk == nil {
 						break
 					}
-					if blk.getPrevBlockMerkleRoot() != merkBlk.getPrevBlockMerkleRoot() {
+					if blk.getPrevExecMerkleRoot() != merkBlk.getPrevExecMerkleRoot() {
 						break
 					}
 				} else {
@@ -193,7 +193,7 @@ func (self *Syncer) run() {
 						log.Errorf("failed to GetExecMerkleRoot: %s,blkNum:%d", err, blkNum-1)
 						break
 					}
-					if blk.getPrevBlockMerkleRoot() != merkleRoot {
+					if blk.getPrevExecMerkleRoot() != merkleRoot {
 						break
 					}
 				}
@@ -260,13 +260,13 @@ func (self *Syncer) getCurrentTargetBlockNum() uint32 {
 func (self *Syncer) blockCheckMerkleRoot(blks BlockFromPeers) *Block {
 	merkleRoot := make(map[common.Uint256]int)
 	for _, blk := range blks {
-		merkleRoot[blk.getPrevBlockMerkleRoot()] += 1
+		merkleRoot[blk.getPrevExecMerkleRoot()] += 1
 	}
 	for merklerootvalue, cnt := range merkleRoot {
 		if cnt > int(self.server.config.C) {
 			// find the block
 			for _, blk := range blks {
-				if blk.getPrevBlockMerkleRoot() == merklerootvalue {
+				if blk.getPrevExecMerkleRoot() == merklerootvalue {
 					return blk
 				}
 			}
