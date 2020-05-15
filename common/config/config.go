@@ -166,6 +166,17 @@ func GetSelfGovRegisterHeight() uint32 {
 	}
 }
 
+func GetNewOntIdHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.BLOCKHEIGHT_NEW_ONTID_MAINNET
+	case NETWORK_ID_POLARIS_NET:
+		return constants.BLOCKHEIGHT_NEW_ONTID_POLARIS
+	default:
+		return 0
+	}
+}
+
 func GetNetworkName(id uint32) string {
 	name, ok := NETWORK_NAME[id]
 	if ok {

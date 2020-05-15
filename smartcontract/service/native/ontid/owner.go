@@ -25,6 +25,7 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
@@ -32,8 +33,7 @@ import (
 )
 
 const (
-	OWNER_TOTAL_SIZE       = 1024 * 1024 // 1MB
-	NEW_OWNER_BLOCK_HEIGHT = 466230
+	OWNER_TOTAL_SIZE = 1024 * 1024 // 1MB
 
 	ALL_ACCESS  = "all"
 	CRUD_ACCESS = "crud"
@@ -244,7 +244,7 @@ func putAllPk_Version1(srvc *native.NativeService, key []byte, val []*publicKey)
 
 func insertPk(srvc *native.NativeService, encId, pk, controller []byte, access string, authentication uint8) (uint32, error) {
 	key := append(encId, FIELD_PK)
-	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
+	if srvc.Height < config.GetNewOntIdHeight() {
 		owners, err := getAllPk(srvc, key)
 		if err != nil {
 			return 0, err
@@ -367,7 +367,7 @@ func revokeAuthKey(srvc *native.NativeService, encId []byte, index uint32, proof
 
 func revokePk(srvc *native.NativeService, encId, pub, proof []byte) (uint32, error) {
 	key := append(encId, FIELD_PK)
-	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
+	if srvc.Height < config.GetNewOntIdHeight() {
 		owners, err := getAllPk(srvc, key)
 		if err != nil {
 			return 0, err
@@ -418,7 +418,7 @@ func revokePk(srvc *native.NativeService, encId, pub, proof []byte) (uint32, err
 
 func revokePkByIndex(srvc *native.NativeService, encId []byte, index uint32, proof []byte) ([]byte, error) {
 	key := append(encId, FIELD_PK)
-	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
+	if srvc.Height < config.GetNewOntIdHeight() {
 		owners, err := getAllPk(srvc, key)
 		if err != nil {
 			return nil, err

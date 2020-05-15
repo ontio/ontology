@@ -21,13 +21,14 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology/common"
+	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 func updateOrInsertProof(srvc *native.NativeService, encId []byte, proof []byte) {
-	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
+	if srvc.Height < config.GetNewOntIdHeight() {
 		return
 	}
 	sink := common.NewZeroCopySink(nil)
