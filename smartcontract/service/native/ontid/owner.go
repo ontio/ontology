@@ -242,8 +242,7 @@ func putAllPk_Version1(srvc *native.NativeService, key []byte, val []*publicKey)
 	return nil
 }
 
-func insertPk(srvc *native.NativeService, encId, pk, controller []byte, access string, authentication uint8,
-	proof []byte) (uint32, error) {
+func insertPk(srvc *native.NativeService, encId, pk, controller []byte, access string, authentication uint8) (uint32, error) {
 	key := append(encId, FIELD_PK)
 	if srvc.Height < NEW_OWNER_BLOCK_HEIGHT {
 		owners, err := getAllPk(srvc, key)
