@@ -144,6 +144,17 @@ func GetGasRoundTuneHeight(id uint32) uint32 {
 	return GAS_ROUND_TUNE_HEIGHT[id]
 }
 
+func GetContractApiDeprecateHeight() uint32 {
+	switch DefConfig.P2PNode.NetworkId {
+	case NETWORK_ID_MAIN_NET:
+		return constants.CONTRACT_DEPRECATE_API_HEIGHT_MAINNET
+	case NETWORK_ID_POLARIS_NET:
+		return constants.CONTRACT_DEPRECATE_API_HEIGHT_POLARIS
+	default:
+		return 0
+	}
+}
+
 func GetNetworkName(id uint32) string {
 	name, ok := NETWORK_NAME[id]
 	if ok {

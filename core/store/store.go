@@ -74,4 +74,5 @@ type LedgerStore interface {
 	GetCrossStatesRoot(height uint32) (common.Uint256, error)
 	GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error)
 	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
+	EnableBlockPrune(numBeforeCurr uint32)
 }

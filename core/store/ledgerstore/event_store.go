@@ -120,6 +120,14 @@ func (this *EventStore) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNo
 	return evtNotifies, nil
 }
 
+func (this *EventStore) PruneBlock(height uint32, hashes []common.Uint256) {
+	key := genEventNotifyByBlockKey(height)
+	this.store.BatchDelete(key)
+	for _, hash := range hashes {
+		this.store.BatchDelete(genEventNotifyByTxKey(hash))
+	}
+}
+
 //CommitTo event store batch to store
 func (this *EventStore) CommitTo() error {
 	return this.store.BatchCommit()
