@@ -47,10 +47,11 @@ type ConnectController struct {
 	selfId   *common.PeerKeyId
 	peerInfo *peer.PeerInfo
 
-	mutex       sync.Mutex
-	inoutbounds [2]*strset.Set // in/outbounds address list
-	connecting  *strset.Set
-	peers       map[common.PeerId]*connectedPeer // all connected peers
+	mutex                sync.Mutex
+	inoutbounds          [2]*strset.Set // in/outbounds address list
+	inboundListenAddress *strset.Set    // in bound listen address
+	connecting           *strset.Set
+	peers                map[common.PeerId]*connectedPeer // all connected peers
 
 	ownAddr       string
 	nextConnectId uint64
@@ -59,12 +60,13 @@ type ConnectController struct {
 func NewConnectController(peerInfo *peer.PeerInfo, keyid *common.PeerKeyId,
 	option ConnCtrlOption) *ConnectController {
 	control := &ConnectController{
-		ConnCtrlOption: option,
-		selfId:         keyid,
-		peerInfo:       peerInfo,
-		inoutbounds:    [2]*strset.Set{strset.New(), strset.New()},
-		connecting:     strset.New(),
-		peers:          make(map[common.PeerId]*connectedPeer),
+		ConnCtrlOption:       option,
+		selfId:               keyid,
+		peerInfo:             peerInfo,
+		inoutbounds:          [2]*strset.Set{strset.New(), strset.New()},
+		inboundListenAddress: strset.New(),
+		connecting:           strset.New(),
+		peers:                make(map[common.PeerId]*connectedPeer),
 	}
 	// put domain to the end
 	sort.Slice(control.ReservedPeers, func(i, j int) bool {
@@ -114,10 +116,12 @@ func (self *ConnectController) boundsCount(index int) uint {
 	return uint(self.inoutbounds[index].Size())
 }
 
-func (self *ConnectController) hasBoundAddr(addr string, index int) bool {
+func (self *ConnectController) hasBoundAddr(addr string) bool {
 	self.mutex.Lock()
 	defer self.mutex.Unlock()
-	return self.inoutbounds[index].Has(addr)
+	has := self.inoutbounds[INBOUND_INDEX].Has(addr) || self.inoutbounds[OUTBOUND_INDEX].Has(addr)
+	has = has || self.inboundListenAddress.Has(addr)
+	return has
 }
 
 func (self *ConnectController) tryAddConnecting(addr string) bool {
@@ -263,7 +267,7 @@ func (self *ConnectController) beforeHandshakeCheck(addr string, index int) erro
 		return err
 	}
 
-	if self.hasBoundAddr(addr, index) {
+	if self.hasBoundAddr(addr) {
 		return fmt.Errorf("peer %s already in connection records", addr)
 	}
 
@@ -317,6 +321,10 @@ func (self *ConnectController) savePeer(conn net.Conn, p *peer.PeerInfo, index i
 
 	addr := conn.RemoteAddr().String()
 	self.inoutbounds[index].Add(addr)
+	listen := p.RemoteListenAddress()
+	if index == INBOUND_INDEX {
+		self.inboundListenAddress.Add(listen)
+	}
 
 	cid := self.getConnectId()
 	self.peers[p.Id] = &connectedPeer{
@@ -330,6 +338,7 @@ func (self *ConnectController) savePeer(conn net.Conn, p *peer.PeerInfo, index i
 		connectId:  cid,
 		kid:        p.Id,
 		addr:       addr,
+		listenAddr: listen,
 		boundIndex: index,
 		controller: self,
 	}
@@ -340,6 +349,9 @@ func (self *ConnectController) removePeer(conn *Conn) {
 	defer self.mutex.Unlock()
 
 	self.inoutbounds[conn.boundIndex].Remove(conn.addr)
+	if conn.boundIndex == INBOUND_INDEX {
+		self.inboundListenAddress.Remove(conn.listenAddr)
+	}
 
 	p := self.peers[conn.kid]
 	if p == nil || p.peer == nil {
