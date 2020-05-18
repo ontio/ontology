@@ -286,7 +286,7 @@ func insertPk(srvc *native.NativeService, encId, pk, controller []byte, access s
 	}
 }
 
-func changePkAuthentication(srvc *native.NativeService, encId []byte, index uint32, authentication uint8, proof []byte) error {
+func changePkAuthentication(srvc *native.NativeService, encId []byte, index uint32, authentication uint8) error {
 	key := append(encId, FIELD_PK)
 
 	publicKeys, err := getAllPk_Version1(srvc, encId, key)
@@ -347,7 +347,7 @@ func findPk_Version1(srvc *native.NativeService, encId, pub []byte) (uint32, boo
 	return 0, false, nil
 }
 
-func revokeAuthKey(srvc *native.NativeService, encId []byte, index uint32, proof []byte) error {
+func revokeAuthKey(srvc *native.NativeService, encId []byte, index uint32) error {
 	key := append(encId, FIELD_PK)
 
 	publicKeys, err := getAllPk_Version1(srvc, encId, key)
@@ -365,7 +365,7 @@ func revokeAuthKey(srvc *native.NativeService, encId []byte, index uint32, proof
 	return nil
 }
 
-func revokePk(srvc *native.NativeService, encId, pub, proof []byte) (uint32, error) {
+func revokePk(srvc *native.NativeService, encId, pub []byte) (uint32, error) {
 	key := append(encId, FIELD_PK)
 	if srvc.Height < config.GetNewOntIdHeight() {
 		owners, err := getAllPk(srvc, key)
@@ -416,7 +416,7 @@ func revokePk(srvc *native.NativeService, encId, pub, proof []byte) (uint32, err
 	}
 }
 
-func revokePkByIndex(srvc *native.NativeService, encId []byte, index uint32, proof []byte) ([]byte, error) {
+func revokePkByIndex(srvc *native.NativeService, encId []byte, index uint32) ([]byte, error) {
 	key := append(encId, FIELD_PK)
 	if srvc.Height < config.GetNewOntIdHeight() {
 		owners, err := getAllPk(srvc, key)
@@ -457,7 +457,7 @@ func revokePkByIndex(srvc *native.NativeService, encId []byte, index uint32, pro
 	}
 }
 
-func setKeyAccessByIndex(srvc *native.NativeService, encId []byte, index uint32, access string, proof []byte) ([]byte, error) {
+func setKeyAccessByIndex(srvc *native.NativeService, encId []byte, index uint32, access string) ([]byte, error) {
 	key := append(encId, FIELD_PK)
 	publicKeys, err := getAllPk_Version1(srvc, encId, key)
 	if err != nil {

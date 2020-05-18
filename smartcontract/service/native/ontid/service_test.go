@@ -46,7 +46,6 @@ func CaseService(t *testing.T, n *native.NativeService) {
 		Type:           []byte("sss"),
 		ServiceEndpint: []byte("http;;s;s;s;;s"),
 		Index:          1,
-		Proof:          []byte("http;;s;s;s;;s"),
 	}
 
 	sink := common.NewZeroCopySink(nil)
@@ -72,7 +71,6 @@ func CaseService(t *testing.T, n *native.NativeService) {
 		Type:           []byte("sss"),
 		ServiceEndpint: []byte("http;;s;s;s;;ssssss"),
 		Index:          1,
-		Proof:          []byte("http;;s;s;s;;s"),
 	}
 	sink = common.NewZeroCopySink(nil)
 	service.Serialization(sink)
@@ -96,7 +94,6 @@ func CaseService(t *testing.T, n *native.NativeService) {
 		OntId:     []byte(id),
 		ServiceId: []byte("someService"),
 		Index:     1,
-		Proof:     []byte("http;;s;s;s;;s"),
 	}
 	sink = common.NewZeroCopySink(nil)
 	serviceRemove.Serialization(sink)

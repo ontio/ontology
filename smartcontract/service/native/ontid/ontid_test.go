@@ -386,7 +386,6 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		OntId:    []byte(id0),
 		Contexts: contexts,
 		Index:    1,
-		Proof:    []byte{0x01, 0x02},
 	}
 	sink.Reset()
 	context.Serialization(sink)
@@ -423,7 +422,6 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		OntId:        []byte(id0),
 		NewPublicKey: newPublicKey,
 		SignIndex:    1,
-		Proof:        []byte("http;;s;s;s;;s"),
 	}
 
 	sink.Reset()
@@ -439,7 +437,6 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		OntId:     []byte(id0),
 		Index:     1,
 		SignIndex: 1,
-		Proof:     []byte("http;;s;s;s;;s"),
 	}
 
 	sink.Reset()
@@ -457,7 +454,6 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 		Type:           []byte("sss"),
 		ServiceEndpint: []byte("http;;s;s;s;;s"),
 		Index:          1,
-		Proof:          []byte("http;;s;s;s;;s"),
 	}
 
 	sink.Reset()
@@ -470,7 +466,7 @@ func CaseGetDocument(t *testing.T, n *native.NativeService) {
 	}
 
 	// 9. get document
-	res, err := GetDocument(n)
+	res, err := GetDocumentJson(n)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -45,7 +45,6 @@ func CaseContext(t *testing.T, n *native.NativeService) {
 		OntId:    []byte(id),
 		Contexts: contexts,
 		Index:    1,
-		Proof:    []byte{0x01, 0x02},
 	}
 	sink := common.NewZeroCopySink(nil)
 	context.Serialization(sink)
@@ -79,7 +78,6 @@ func CaseContext(t *testing.T, n *native.NativeService) {
 		OntId:    []byte(id),
 		Contexts: contexts,
 		Index:    1,
-		Proof:    []byte{0x01, 0x02},
 	}
 	sink = common.NewZeroCopySink(nil)
 	context.Serialization(sink)

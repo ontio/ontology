@@ -69,12 +69,7 @@ func setRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("setRecovery: " + err.Error())
 	}
 
-	//decode new field of verison 1
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
-	updateProofAndTime(srvc, encId, proof)
+	updateTimeAndClearProof(srvc, encId)
 	newEvent(srvc, []interface{}{"recovery", "set", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
@@ -121,12 +116,7 @@ func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("update recovery: " + err.Error())
 	}
 
-	//decode new field of verison 1
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
-	updateProofAndTime(srvc, key, proof)
+	updateTimeAndClearProof(srvc, key)
 	newEvent(srvc, []interface{}{"Recovery", "update", string(arg0), re.ToJson()})
 	return utils.BYTE_TRUE, nil
 }
@@ -180,17 +170,13 @@ func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		access = ALL_ACCESS
 	}
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
 
 	index, err := insertPk(srvc, encId, arg1, controller, access, ONLY_PUBLICKEY)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
 
-	updateProofAndTime(srvc, encId, proof)
+	updateTimeAndClearProof(srvc, encId)
 	triggerPublicEvent(srvc, "add", arg0, arg1, index)
 	return utils.BYTE_TRUE, nil
 }
@@ -235,18 +221,12 @@ func removeKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("verification failed")
 	}
 
-	//decode new field of verison 1
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
-
-	pk, err := revokePkByIndex(srvc, encId, uint32(arg1), proof)
+	pk, err := revokePkByIndex(srvc, encId, uint32(arg1))
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
 
-	updateProofAndTime(srvc, encId, proof)
+	updateTimeAndClearProof(srvc, encId)
 	triggerPublicEvent(srvc, "remove", arg0, pk, uint32(arg1))
 	return utils.BYTE_TRUE, nil
 }

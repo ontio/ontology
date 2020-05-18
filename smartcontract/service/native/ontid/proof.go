@@ -21,23 +21,17 @@ import (
 	"errors"
 
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/config"
-	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/smartcontract/service/native"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
-func updateOrInsertProof(srvc *native.NativeService, encId []byte, proof []byte) {
-	if srvc.Height < config.GetNewOntIdHeight() {
-		return
-	}
-	sink := common.NewZeroCopySink(nil)
-	sink.WriteVarBytes(proof)
+func addProof(srvc *native.NativeService) ([]byte, error) {
+	return utils.BYTE_FALSE, errors.New("addProof error: add proof is not supported yet")
+}
+
+func clearProof(srvc *native.NativeService, encId []byte) {
 	key := append(encId, FIELD_PROOF)
-	item := states.StorageItem{}
-	item.Value = sink.Bytes()
-	item.StateVersion = _VERSION_0
-	srvc.CacheDB.Put(key, item.ToArray())
+	srvc.CacheDB.Delete(key)
 }
 
 func getProof(srvc *native.NativeService, encId []byte) (string, error) {

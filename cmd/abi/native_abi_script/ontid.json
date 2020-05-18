@@ -15,10 +15,6 @@
         {
           "name":"access",
           "type":"String"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -37,10 +33,6 @@
         {
           "name":"signers",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -83,10 +75,6 @@
         {
           "name":"index",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -113,10 +101,6 @@
         {
           "name":"access",
           "type":"String"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -135,10 +119,6 @@
         {
           "name":"userPublicKey",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -157,10 +137,6 @@
         {
           "name":"userPublicKeyIndex",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -179,10 +155,6 @@
         {
           "name":"oldRecoverySigner",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -209,10 +181,6 @@
         {
           "name":"access",
           "type":"String"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -231,10 +199,6 @@
         {
           "name":"signers",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -261,10 +225,6 @@
         {
           "name":"access",
           "type":"String"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -283,10 +243,6 @@
         {
           "name":"signers",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -325,10 +281,6 @@
               ]
             }
           ]
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -367,10 +319,6 @@
         {
           "name":"userPublicKey",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -389,10 +337,6 @@
         {
           "name":"userPublicKey",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -431,10 +375,6 @@
         {
           "name":"signers",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -453,10 +393,6 @@
         {
           "name":"signers",
           "type":"ByteArray"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -486,10 +422,6 @@
         {
           "name":"signIndex",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -508,10 +440,6 @@
         {
           "name":"signIndex",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -530,10 +458,6 @@
         {
           "name":"signIndex",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -560,10 +484,6 @@
         {
           "name":"index",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -590,10 +510,6 @@
         {
           "name":"index",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -612,10 +528,6 @@
         {
           "name":"index",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -641,10 +553,6 @@
         {
           "name":"index",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -670,10 +578,6 @@
         {
           "name":"index",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -696,10 +600,6 @@
         {
           "name":"index",
           "type":"Int"
-        },
-        {
-          "name":"proof",
-          "type":"String"
         }
       ],
       "returnType":"Bool"
@@ -739,7 +639,31 @@
       "returnType":"ByteArray"
     },
     {
-      "name":"getService",
+      "name":"getAttributesJson",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getAttributeByKey",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"key",
+          "type":"String"
+        }
+      ],
+      "returnType":"ByteArray"
+    },
+    {
+      "name":"getServiceJson",
       "parameters":[
         {
           "name":"id",
@@ -753,7 +677,7 @@
       "returnType":"ByteArray"
     },
     {
-      "name":"getController",
+      "name":"getControllerJson",
       "parameters":[
         {
           "name":"id",
@@ -763,7 +687,7 @@
       "returnType":"ByteArray"
     },
     {
-      "name":"getDocument",
+      "name":"getDocumentJson",
       "parameters":[
         {
           "name":"id",
@@ -774,6 +698,20 @@
     },
     {
       "name":"verifySignature",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"keyIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"verifySignatureWithEditAccess",
       "parameters":[
         {
           "name":"id",

@@ -53,7 +53,7 @@ func addContext(srvc *native.NativeService) ([]byte, error) {
 	if err := putContexts(srvc, key, params); err != nil {
 		return utils.BYTE_FALSE, errors.New("addContext error: putContexts failed: " + err.Error())
 	}
-	updateProofAndTime(srvc, encId, params.Proof)
+	updateTimeAndClearProof(srvc, encId)
 	return utils.BYTE_TRUE, nil
 }
 
@@ -79,7 +79,7 @@ func removeContext(srvc *native.NativeService) ([]byte, error) {
 	if err := deleteContexts(srvc, key, params); err != nil {
 		return utils.BYTE_FALSE, errors.New("removeContext error: deleteContexts failed: " + err.Error())
 	}
-	updateProofAndTime(srvc, encId, params.Proof)
+	updateTimeAndClearProof(srvc, encId)
 	return utils.BYTE_TRUE, nil
 }
 

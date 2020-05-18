@@ -55,6 +55,7 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("removeService", removeService)
 	srvc.Register("addContext", addContext)
 	srvc.Register("removeContext", removeContext)
+	srvc.Register("addProof", addProof)
 	srvc.Register("verifySignature", verifySignature)
 	srvc.Register("verifySignatureWithEditAccess", verifySignatureWithEditAccess)
 	srvc.Register("verifyController", verifyController)

@@ -84,10 +84,6 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		access = ALL_ACCESS
 	}
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
 
 	// insert public key
 	_, err = insertPk(srvc, key, arg1, arg0, access, ONLY_PUBLICKEY)
@@ -97,7 +93,7 @@ func regIdWithPublicKey(srvc *native.NativeService) ([]byte, error) {
 	// set flags
 	utils.PutBytes(srvc, key, []byte{flag_valid})
 
-	createProofAndTime(srvc, key, proof)
+	createTimeAndClearProof(srvc, key)
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -162,10 +158,6 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		access = ALL_ACCESS
 	}
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
 
 	_, err = insertPk(srvc, key, arg1, arg0, access, ONLY_PUBLICKEY)
 	if err != nil {
@@ -178,7 +170,7 @@ func regIdWithAttributes(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	utils.PutBytes(srvc, key, []byte{flag_valid})
-	createProofAndTime(srvc, key, proof)
+	createTimeAndClearProof(srvc, key)
 	triggerRegisterEvent(srvc, arg0)
 	return utils.BYTE_TRUE, nil
 }
@@ -242,17 +234,13 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		access = ALL_ACCESS
 	}
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
 
 	keyID, err := insertPk(srvc, key, arg1, controller, access, ONLY_PUBLICKEY)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add key failed: insert public key error, " + err.Error())
 	}
 
-	updateProofAndTime(srvc, key, proof)
+	updateTimeAndClearProof(srvc, key)
 	triggerPublicEvent(srvc, "add", arg0, arg1, keyID)
 	return utils.BYTE_TRUE, nil
 }
@@ -298,18 +286,12 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 		}
 	}
 
-	//decode new field of verison 1
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
-
-	keyID, err := revokePk(srvc, key, arg1, proof)
+	keyID, err := revokePk(srvc, key, arg1)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: %s", err)
 	}
 
-	updateProofAndTime(srvc, key, proof)
+	updateTimeAndClearProof(srvc, key)
 	triggerPublicEvent(srvc, "remove", arg0, arg1, keyID)
 	return utils.BYTE_TRUE, nil
 }
@@ -331,12 +313,12 @@ func setKeyAccess(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("setKeyAccess error, checkWitness failed, %s", err)
 	}
 
-	pk, err := setKeyAccessByIndex(srvc, encId, params.SetIndex, params.Access, params.Proof)
+	pk, err := setKeyAccessByIndex(srvc, encId, params.SetIndex, params.Access)
 	if err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("setKeyAccess error, setKeyAccessByIndex error: %v", err)
 	}
 
-	updateProofAndTime(srvc, encId, params.Proof)
+	updateTimeAndClearProof(srvc, encId)
 	triggerPublicEvent(srvc, "set access", params.OntId, pk, params.SetIndex)
 	return utils.BYTE_TRUE, nil
 }
@@ -390,12 +372,7 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
 	}
 
-	//decode new field of verison 1
-	proof, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		proof = []byte{}
-	}
-	updateProofAndTime(srvc, key, proof)
+	updateTimeAndClearProof(srvc, key)
 	paths := getAttrKeys(arg1)
 	triggerAttributeEvent(srvc, "add", arg0, paths)
 	return utils.BYTE_TRUE, nil
@@ -439,12 +416,7 @@ func removeAttribute(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: " + err.Error())
 	}
 
-	//decode new field of verison 1
-	proof, err := utils.DecodeVarBytes(args)
-	if err != nil {
-		proof = []byte{}
-	}
-	updateProofAndTime(srvc, key, proof)
+	updateTimeAndClearProof(srvc, key)
 	triggerAttributeEvent(srvc, "remove", arg0, [][]byte{arg1})
 	return utils.BYTE_TRUE, nil
 }
@@ -529,8 +501,4 @@ func revokeID(srvc *native.NativeService) ([]byte, error) {
 	}
 	newEvent(srvc, []interface{}{"Revoke", string(arg0)})
 	return utils.BYTE_TRUE, nil
-}
-
-func update(srvc *native.NativeService) ([]byte, error) {
-	return nil, nil
 }

@@ -171,14 +171,14 @@ func deleteID(srvc *native.NativeService, encId []byte) error {
 	return nil
 }
 
-func updateProofAndTime(srvc *native.NativeService, encId, proof []byte) {
-	updateOrInsertProof(srvc, encId, proof)
+func updateTimeAndClearProof(srvc *native.NativeService, encId []byte) {
+	clearProof(srvc, encId)
 	key := append(encId, FIELD_UPDATED)
 	updateTime(srvc, key)
 }
 
-func createProofAndTime(srvc *native.NativeService, encId, proof []byte) {
-	updateOrInsertProof(srvc, encId, proof)
+func createTimeAndClearProof(srvc *native.NativeService, encId []byte) {
+	clearProof(srvc, encId)
 	key := append(encId, FIELD_CREATED)
 	updateTime(srvc, key)
 }
