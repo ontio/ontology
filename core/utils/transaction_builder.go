@@ -24,12 +24,10 @@ import (
 	"math"
 	"math/big"
 	"reflect"
-	"time"
 
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
-	"github.com/ontio/ontology/smartcontract/states"
 	vm "github.com/ontio/ontology/vm/neovm"
 )
 
@@ -44,6 +42,7 @@ func NewDeployTransaction(code []byte, name, version, author, email, desp string
 	}
 	return &types.MutableTransaction{
 		TxType:  types.Deploy,
+		SystemId: 1,
 		Payload: depCode,
 	}, nil
 }
@@ -57,6 +56,7 @@ func NewInvokeTransaction(code []byte) *types.MutableTransaction {
 
 	return &types.MutableTransaction{
 		TxType:  types.InvokeNeo,
+		SystemId: 1,
 		Payload: invokeCodePayload,
 	}
 }
@@ -181,96 +181,4 @@ func BuildNeoVMParam(builder *vm.ParamsBuilder, smartContractParams []interface{
 		}
 	}
 	return nil
-}
-
-//build param bytes for wasm contract
-func BuildWasmVMInvokeCode(contractAddress common.Address, params []interface{}) ([]byte, error) {
-	contract := &states.WasmContractParam{}
-	contract.Address = contractAddress
-	//bf := bytes.NewBuffer(nil)
-	argbytes, err := BuildWasmContractParam(params)
-	if err != nil {
-		return nil, fmt.Errorf("build wasm contract param failed:%s", err)
-	}
-	contract.Args = argbytes
-
-	return common.SerializeToBytes(contract), nil
-}
-
-//build param bytes for wasm contract
-func BuildWasmContractParam(params []interface{}) ([]byte, error) {
-	bf := common.NewZeroCopySink(nil)
-	for _, param := range params {
-		switch val := param.(type) {
-		case string:
-			bf.WriteString(val)
-		case int:
-			bf.WriteI128(common.I128FromInt64(int64(val)))
-		case int64:
-			bf.WriteI128(common.I128FromInt64(int64(val)))
-		case uint16:
-			bf.WriteI128(common.I128FromUint64(uint64(val)))
-		case uint32:
-			bf.WriteI128(common.I128FromUint64(uint64(val)))
-		case uint64:
-			bf.WriteI128(common.I128FromUint64(uint64(val)))
-		case *big.Int:
-			bint, err := common.I128FromBigInt(val)
-			if err != nil {
-				return nil, err
-			}
-			bf.WriteI128(bint)
-		case big.Int:
-			bint, err := common.I128FromBigInt(&val)
-			if err != nil {
-				return nil, err
-			}
-			bf.WriteI128(bint)
-		case []byte:
-			bf.WriteVarBytes(val)
-		case common.Uint256:
-			bf.WriteHash(val)
-		case common.Address:
-			bf.WriteAddress(val)
-		case byte:
-			bf.WriteByte(val)
-		case bool:
-			bf.WriteBool(val)
-		case []interface{}:
-			// actually if different type will pass tuple to wasm. or will pass array.
-			vnum := len(val)
-			bf.WriteVarUint(uint64(vnum))
-			value, err := BuildWasmContractParam(val)
-			if err != nil {
-				return nil, err
-			}
-			bf.WriteBytes(value)
-		default:
-			return nil, fmt.Errorf("not a supported type :%v\n", param)
-		}
-	}
-	return bf.Bytes(), nil
-}
-
-func NewWasmVMInvokeTransaction(gasPrice, gasLimit uint64, contractAddress common.Address, params []interface{}) (*types.MutableTransaction, error) {
-	invokeCode, err := BuildWasmVMInvokeCode(contractAddress, params)
-	if err != nil {
-		return nil, err
-	}
-	return NewWasmSmartContractTransaction(gasPrice, gasLimit, invokeCode)
-}
-
-func NewWasmSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (*types.MutableTransaction, error) {
-	invokePayload := &payload.InvokeCode{
-		Code: invokeCode,
-	}
-	tx := &types.MutableTransaction{
-		GasPrice: gasPrice,
-		GasLimit: gasLimit,
-		TxType:   types.InvokeWasm,
-		Nonce:    uint32(time.Now().Unix()),
-		Payload:  invokePayload,
-		Sigs:     nil,
-	}
-	return tx, nil
 }

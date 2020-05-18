@@ -183,7 +183,6 @@ func (self *WsServer) registryMethod() {
 		"getsmartcodeeventbyheight": {handler: rest.GetSmartCodeEventTxsByHeight},
 		"getcontract":               {handler: rest.GetContractState},
 		"getbalance":                {handler: rest.GetBalance},
-		"getconnectioncount":        {handler: rest.GetConnectionCount},
 		"getblockbyheight":          {handler: rest.GetBlockByHeight},
 		"getblockhash":              {handler: rest.GetBlockHash},
 		"getblockbyhash":            {handler: rest.GetBlockByHash},
@@ -203,7 +202,6 @@ func (self *WsServer) registryMethod() {
 		"getmempooltxstate":         {handler: rest.GetMemPoolTxState},
 		"getversion":                {handler: rest.GetNodeVersion},
 		"getnetworkid":              {handler: rest.GetNetworkId},
-
 		"getsessioncount": {handler: getsessioncount},
 	}
 	self.ActionMap = actionMap

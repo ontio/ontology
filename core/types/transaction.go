@@ -36,6 +36,7 @@ const MAX_TX_SIZE = 1024 * 1024 // The max size of a transaction to prevent DOS 
 type Transaction struct {
 	Version  byte
 	TxType   TransactionType
+	SystemId uint32
 	Nonce    uint32
 	GasPrice uint64
 	GasLimit uint64
@@ -121,6 +122,7 @@ func (tx *Transaction) IntoMutable() (*MutableTransaction, error) {
 	mutable := &MutableTransaction{
 		Version:  tx.Version,
 		TxType:   tx.TxType,
+		SystemId: tx.SystemId,
 		Nonce:    tx.Nonce,
 		GasPrice: tx.GasPrice,
 		GasLimit: tx.GasLimit,
@@ -145,6 +147,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	var txtype byte
 	txtype, eof = source.NextByte()
 	tx.TxType = TransactionType(txtype)
+	tx.SystemId, eof = source.NextUint32()
 	tx.Nonce, eof = source.NextUint32()
 	tx.GasPrice, eof = source.NextUint64()
 	tx.GasLimit, eof = source.NextUint64()
@@ -156,7 +159,7 @@ func (tx *Transaction) deserializationUnsigned(source *common.ZeroCopySource) er
 	copy(tx.Payer[:], buf)
 
 	switch tx.TxType {
-	case InvokeNeo, InvokeWasm:
+	case InvokeNeo:
 		pl := new(payload.InvokeCode)
 		err := pl.Deserialization(source)
 		if err != nil {
@@ -295,7 +298,6 @@ const (
 	Bookkeeper TransactionType = 0x02
 	Deploy     TransactionType = 0xd0
 	InvokeNeo  TransactionType = 0xd1
-	InvokeWasm TransactionType = 0xd2 //add for wasm invoke
 )
 
 // Payload define the func for loading the payload data

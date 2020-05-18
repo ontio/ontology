@@ -128,18 +128,18 @@ func exportBlocks(ctx *cli.Context) error {
 			return fmt.Errorf("write block data height:%d error:%s", i, err)
 		}
 
-		//save cross chain msg to file
-		crossChainMsg, err := utils.GetCrossChainMsg(i - 1)
+		//save layer2 state msg to file
+		Layer2State, err := utils.GetLayer2State(i - 1)
 		if err != nil {
 			return fmt.Errorf("GetCrossChainMsg:%d error:%s", i, err)
 		}
-		if len(crossChainMsg) == 0 {
+		if len(Layer2State) == 0 {
 			err = serialization.WriteUint32(fWriter, 0)
 			if err != nil {
 				return fmt.Errorf("write block data height:%d len:%d error:%s", i, uint32(len(data)), err)
 			}
 		} else {
-			data, err := utils.CompressBlockData(crossChainMsg, metadata.CompressType)
+			data, err := utils.CompressBlockData(Layer2State, metadata.CompressType)
 			if err != nil {
 				return fmt.Errorf("CompressBlockData height:%d error:%s", i, err)
 			}

@@ -51,6 +51,8 @@ type SoloService struct {
 	genBlockInterval time.Duration
 	pid              *actor.PID
 	sub              *events.ActorSubscriber
+	counter          int
+	genEmptyBlock    int
 }
 
 func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService, error) {
@@ -59,6 +61,8 @@ func NewSoloService(bkAccount *account.Account, txpool *actor.PID) (*SoloService
 		poolActor:        &actorTypes.TxPoolActor{Pool: txpool},
 		incrValidator:    increment.NewIncrementValidator(20),
 		genBlockInterval: time.Duration(config.DefConfig.Genesis.SOLO.GenBlockTime) * time.Second,
+		counter: 0,
+		genEmptyBlock: 0,
 	}
 
 	props := actor.FromProducer(func() actor.Actor {
@@ -146,26 +150,26 @@ func (self *SoloService) genBlock() error {
 	if err != nil {
 		return fmt.Errorf("makeBlock error %s", err)
 	}
+	if block == nil {
+		return nil
+	}
 
 	result, err := ledger.DefLedger.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("genBlock DefLedgerPid.RequestFuture Height:%d error:%s", block.Header.Height, err)
 	}
 
-	var msg *types.CrossChainMsg
-	if result.CrossStatesRoot != common.UINT256_EMPTY {
-		msg = &types.CrossChainMsg{
-			Version:    types.CURR_CROSS_STATES_VERSION,
-			Height:     block.Header.Height,
-			StatesRoot: result.CrossStatesRoot,
-		}
-		hash := msg.Hash()
-		sig, err := signature.Sign(self.Account, hash[:])
-		if err != nil {
-			return fmt.Errorf("[Signature],Sign error:%s.", err)
-		}
-		msg.SigData = [][]byte{sig}
+	msg := &types.Layer2State{
+		Version:    types.CURR_LAYER2_STATE_VERSION,
+		Height:     block.Header.Height,
+		StatesRoot: result.UpdatedAccountStateRoot,
 	}
+	hash := msg.Hash()
+	sig, err := signature.Sign(self.Account, hash[:])
+	if err != nil {
+		return fmt.Errorf("[Signature],Sign error:%s.", err)
+	}
+	msg.SigData = [][]byte{sig}
 
 	err = ledger.DefLedger.SubmitBlock(block, msg, result)
 	if err != nil {
@@ -198,7 +202,21 @@ func (self *SoloService) makeBlock() (*types.Block, error) {
 	log.Infof("current block height %v, increment validator block cache range: [%d, %d)", height, start, end)
 
 	txs := self.poolActor.GetTxnPool(true, validHeight)
-
+	// todo
+	if len(txs) == 0 && self.counter < 3600 && self.genEmptyBlock == 0 {
+		self.counter ++
+		log.Infof("The count of tx is too small or timer is not out")
+		return nil, nil
+	} else if len(txs) > 0 {
+		self.genEmptyBlock = 3
+		self.counter = 0
+	} else if self.genEmptyBlock > 0 {
+		self.genEmptyBlock --
+		self.counter = 0
+	} else {
+		self.counter = 0
+	}
+	log.Infof("counter: %d", self.counter)
 	transactions := make([]*types.Transaction, 0, len(txs))
 	for _, txEntry := range txs {
 		// TODO optimize to use height in txentry

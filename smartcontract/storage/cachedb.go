@@ -49,6 +49,10 @@ func (self *CacheDB) Reset() {
 	self.memdb.Reset()
 }
 
+func (self *CacheDB) GetMemDb() *overlaydb.MemDB {
+	return self.memdb
+}
+
 func ensureBuffer(b []byte, n int) []byte {
 	if cap(b) < n {
 		return make([]byte, n)

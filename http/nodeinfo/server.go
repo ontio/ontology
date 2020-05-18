@@ -111,18 +111,3 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func StartServer(n p2p.P2P) {
-	node = n
-	port := int(config.DefConfig.P2PNode.HttpInfoPort)
-
-	http.HandleFunc("/info", viewHandler)
-	// prom related
-	if err := initMetric(); err != nil {
-		panic("init prometheus metrics fail")
-	}
-
-	http.Handle("/metrics", promhttp.Handler())
-	go updateMetric(n)
-
-	http.ListenAndServe(":"+strconv.Itoa(port), nil)
-}

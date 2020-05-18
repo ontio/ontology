@@ -33,8 +33,8 @@ type ExecuteResult struct {
 	WriteSet        *overlaydb.MemDB
 	Hash            common.Uint256
 	MerkleRoot      common.Uint256
-	CrossStates     []common.Uint256
-	CrossStatesRoot common.Uint256
+	UpdatedAccountState     []common.Uint256
+	UpdatedAccountStateRoot common.Uint256
 	Notify          []*event.ExecuteNotify
 }
 
@@ -42,10 +42,8 @@ type ExecuteResult struct {
 type LedgerStore interface {
 	InitLedgerStoreWithGenesisBlock(genesisblock *types.Block, defaultBookkeeper []keypair.PublicKey) error
 	Close() error
-	AddHeaders(headers []*types.Header) error
-	AddBlock(block *types.Block, ccMsg *types.CrossChainMsg, stateMerkleRoot common.Uint256) error
 	ExecuteBlock(b *types.Block) (ExecuteResult, error)                                       // called by consensus
-	SubmitBlock(b *types.Block, crossChainMsg *types.CrossChainMsg, exec ExecuteResult) error // called by consensus
+	SubmitBlock(b *types.Block, crossChainMsg *types.Layer2State, exec ExecuteResult) error // called by consensus
 	GetStateMerkleRoot(height uint32) (result common.Uint256, err error)
 	GetCurrentBlockHash() common.Uint256
 	GetCurrentBlockHeight() uint32
@@ -69,9 +67,7 @@ type LedgerStore interface {
 	PreExecuteContractBatch(txes []*types.Transaction, atomic bool) ([]*cstates.PreExecResult, uint32, error)
 	GetEventNotifyByTx(tx common.Uint256) (*event.ExecuteNotify, error)
 	GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify, error)
-
-	//cross chain states root
-	GetCrossStatesRoot(height uint32) (common.Uint256, error)
-	GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error)
-	GetCrossStatesProof(height uint32, key []byte) ([]byte, error)
+	//layer2 state states root
+	GetLayer2State(height uint32) (*types.Layer2State, error)
+	GetLayer2StateProof(height uint32, key []byte) ([]byte, error)
 }

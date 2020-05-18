@@ -58,10 +58,6 @@ var (
 		Name:  "disable-event-log",
 		Usage: "Discard event log output by smart contract execution",
 	}
-	WasmVerifyMethodFlag = cli.BoolFlag{
-		Name:  "enable-wasmjit-verifier",
-		Usage: "Enable wasmjit verifier to verify wasm contract",
-	}
 	WalletFileFlag = cli.StringFlag{
 		Name:  "wallet,w",
 		Value: config.DEFAULT_WALLET_FILE_NAME,
@@ -104,6 +100,12 @@ var (
 		Value: config.DEFAULT_GAS_PRICE,
 	}
 
+	MinOngLimitFlag = cli.Uint64Flag{
+		Name:  "minonglimit",
+		Usage: "Min withdraw and transfer Ong `<value>`.",
+		Value: config.DEFAULT_MIN_ONG_LIMIT,
+	}
+
 	//Test Mode setting
 	EnableTestModeFlag = cli.BoolFlag{
 		Name:  "testmode",
@@ -128,7 +130,7 @@ var (
 	NetworkIdFlag = cli.UintFlag{
 		Name:  "networkid",
 		Usage: "Network id `<number>`. 1=ontology main net, 2=polaris test net, 3=testmode, and other for custom network",
-		Value: config.NETWORK_ID_MAIN_NET,
+		Value: config.NETWORK_ID_SOLO_NET,
 	}
 	NodePortFlag = cli.UintFlag{
 		Name:  "nodeport",
@@ -286,7 +288,7 @@ var (
 	}
 	ContractVmTypeFlag = cli.UintFlag{
 		Name:  "vmtype",
-		Usage: "The Contract type: 1 for Neovm ,3 for Wasmvm",
+		Usage: "The Contract type: 1 for Neovm",
 		Value: 1,
 	}
 	ContractCodeFileFlag = cli.StringFlag{

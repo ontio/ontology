@@ -30,7 +30,7 @@ type VmType byte
 
 const (
 	NEOVM_TYPE  VmType = 1
-	WASMVM_TYPE VmType = 3
+
 )
 
 func VmTypeFromByte(ty byte) (VmType, error) {
@@ -45,7 +45,7 @@ func VmTypeFromByte(ty byte) (VmType, error) {
 // DeployCode is an implementation of transaction payload for deploy smartcontract
 type DeployCode struct {
 	code []byte
-	//0, 1 means NEOVM_TYPE, 3 means WASMVM_TYPE
+	//0, 1 means NEOVM_TYPE
 	vmFlags     byte
 	Name        string
 	Version     string
@@ -84,14 +84,6 @@ func (dc *DeployCode) GetRawCode() []byte {
 	return dc.code
 }
 
-func (dc *DeployCode) GetWasmCode() ([]byte, error) {
-	if dc.VmType() == WASMVM_TYPE {
-		return dc.code, nil
-	} else {
-		return nil, errors.NewErr("not wasm contract")
-	}
-}
-
 func (dc *DeployCode) GetNeoCode() ([]byte, error) {
 	if dc.VmType() == NEOVM_TYPE {
 		return dc.code, nil
@@ -113,8 +105,6 @@ func (dc *DeployCode) VmType() VmType {
 	switch dc.vmFlags {
 	case 0, 1:
 		return NEOVM_TYPE
-	case 3:
-		return WASMVM_TYPE
 	default:
 		panic("unreachable")
 	}
@@ -182,22 +172,14 @@ func (dc *DeployCode) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-const maxWasmCodeSize = 512 * 1024
-
 func validateDeployCode(dep *DeployCode) error {
 	err := checkVmFlags(dep.vmFlags)
 	if err != nil {
 		return err
 	}
 
-	if dep.VmType() == WASMVM_TYPE {
-		if len(dep.code) > maxWasmCodeSize {
-			return errors.NewErr("[contract] Code too long!")
-		}
-	} else {
-		if len(dep.code) > 1024*1024 {
-			return errors.NewErr("[contract] Code too long!")
-		}
+	if len(dep.code) > 1024*1024 {
+		return errors.NewErr("[contract] Code too long!")
 	}
 
 	if len(dep.Name) > 252 {

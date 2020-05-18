@@ -31,7 +31,6 @@ import (
 	"github.com/ontio/ontology/core/signature"
 	"github.com/ontio/ontology/core/types"
 	ontErrors "github.com/ontio/ontology/errors"
-	"github.com/ontio/ontology/smartcontract/service/wasmvm"
 )
 
 // VerifyTransaction verifys received single transaction
@@ -116,13 +115,6 @@ func checkTransactionPayload(tx *types.Transaction) error {
 
 	switch pld := tx.Payload.(type) {
 	case *payload.DeployCode:
-		deploy := tx.Payload.(*payload.DeployCode)
-		if deploy.VmType() == payload.WASMVM_TYPE {
-			_, err := wasmvm.ReadWasmModule(deploy.GetRawCode(), config.DefConfig.Common.WasmVerifyMethod)
-			if err != nil {
-				return err
-			}
-		}
 		return nil
 	case *payload.InvokeCode:
 		return nil

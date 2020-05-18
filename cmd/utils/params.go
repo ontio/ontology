@@ -220,58 +220,8 @@ func ParseReturnValue(rawValue interface{}, rawReturnTypeStr string, vmtype payl
 	if !ok {
 		rawValues = append(rawValues, rawValue)
 	}
-	if vmtype == payload.NEOVM_TYPE {
-		return parseReturnNeoValueArray(rawValues, returnTypes)
-	} else {
-		return parasReturnValueWasmArray(rawValues, returnTypes)
-	}
 
-}
-
-func parasReturnValueWasmArray(rawValues []interface{}, returnTypes []interface{}) ([]interface{}, error) {
-	values := make([]interface{}, 0)
-	for i := 0; i < len(rawValues); i++ {
-		rawValue := rawValues[i]
-		if i == len(returnTypes) {
-			return values, nil
-		}
-		valueType := returnTypes[i]
-
-		var err error
-		switch v := rawValue.(type) {
-		case string:
-			var value interface{}
-			vType := valueType.(string)
-			switch strings.ToLower(vType) {
-			case PARAM_TYPE_BYTE_ARRAY:
-				value, err = ParseWasmVMContractReturnTypeByteArray(v)
-			case PARAM_TYPE_STRING:
-				value, err = ParseWasmVMContractReturnTypeString(v)
-			case PARAM_TYPE_INTEGER:
-				value, err = ParseWasmVMContractReturnTypeInteger(v)
-			case PARAM_TYPE_BOOLEAN:
-				value, err = ParseWasmVMContractReturnTypeBool(v)
-			default:
-				return nil, fmt.Errorf("unknown return type:%s", v)
-			}
-			values = append(values, value)
-			if err != nil {
-				return nil, fmt.Errorf("parse return value:%s type:byte array error:%s", v, err)
-			}
-		case []interface{}:
-			valueTypes, ok := valueType.([]interface{})
-			if !ok {
-				return nil, fmt.Errorf("parse return value:%+v types:%s failed, types doesnot match", v, valueType)
-			}
-			values, err := parasReturnValueWasmArray(v, valueTypes)
-			if err != nil {
-				return nil, fmt.Errorf("parese return values:%+v types:%s error:%s", values, valueType, err)
-			}
-		default:
-			return nil, fmt.Errorf("unknown return type:%s", reflect.TypeOf(rawValue))
-		}
-	}
-	return values, nil
+	return parseReturnNeoValueArray(rawValues, returnTypes)
 }
 
 func parseReturnNeoValueArray(rawValues []interface{}, returnTypes []interface{}) ([]interface{}, error) {

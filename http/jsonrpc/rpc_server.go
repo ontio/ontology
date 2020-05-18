@@ -37,15 +37,12 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getblock", rpc.GetBlock)
 	rpc.HandleFunc("getblockcount", rpc.GetBlockCount)
 	rpc.HandleFunc("getblockhash", rpc.GetBlockHash)
-	rpc.HandleFunc("getconnectioncount", rpc.GetConnectionCount)
-	rpc.HandleFunc("getsyncstatus", rpc.GetSyncStatus)
 	//HandleFunc("getrawmempool", GetRawMemPool)
 
 	rpc.HandleFunc("getrawtransaction", rpc.GetRawTransaction)
 	rpc.HandleFunc("sendrawtransaction", rpc.SendRawTransaction)
 	rpc.HandleFunc("getstorage", rpc.GetStorage)
 	rpc.HandleFunc("getversion", rpc.GetNodeVersion)
-	rpc.HandleFunc("getnetworkid", rpc.GetNetworkId)
 
 	rpc.HandleFunc("getcontractstate", rpc.GetContractState)
 	rpc.HandleFunc("getmempooltxcount", rpc.GetMemPoolTxCount)
@@ -61,8 +58,8 @@ func StartRPCServer() error {
 	rpc.HandleFunc("getunboundong", rpc.GetUnboundOng)
 	rpc.HandleFunc("getgrantong", rpc.GetGrantOng)
 
-	rpc.HandleFunc("getcrosschainmsg", rpc.GetCrossChainMsg)
-	rpc.HandleFunc("getcrossstatesproof", rpc.GetCrossStatesProof)
+	rpc.HandleFunc("getlayer2state", rpc.GetLayer2State)
+	rpc.HandleFunc("getlayer2stateproof", rpc.GetLayer2StateProof)
 
 	err := http.ListenAndServe(":"+strconv.Itoa(int(cfg.DefConfig.Rpc.HttpJsonPort)), nil)
 	if err != nil {

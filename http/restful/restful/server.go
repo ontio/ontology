@@ -54,8 +54,6 @@ type restServer struct {
 }
 
 const (
-	GET_CONN_COUNT        = "/api/v1/node/connectioncount"
-	GET_SYNC_STATUS       = "/api/v1/node/syncstatus"
 	GET_BLK_TXS_BY_HEIGHT = "/api/v1/block/transactions/height/:height"
 	GET_BLK_BY_HEIGHT     = "/api/v1/block/details/height/:height"
 	GET_BLK_BY_HASH       = "/api/v1/block/details/hash/:hash"
@@ -77,7 +75,6 @@ const (
 	GET_MEMPOOL_TXSTATE   = "/api/v1/mempool/txstate/:hash"
 	GET_VERSION           = "/api/v1/version"
 	GET_NETWORKID         = "/api/v1/networkid"
-
 	POST_RAW_TX = "/api/v1/transaction"
 )
 
@@ -135,8 +132,6 @@ func (this *restServer) Start() error {
 func (this *restServer) registryMethod() {
 
 	getMethodMap := map[string]Action{
-		GET_CONN_COUNT:        {name: "getconnectioncount", handler: rest.GetConnectionCount},
-		GET_SYNC_STATUS:       {name: "getsyncstatus", handler: rest.GetNodeSyncStatus},
 		GET_BLK_TXS_BY_HEIGHT: {name: "getblocktxsbyheight", handler: rest.GetBlockTxsByHeight},
 		GET_BLK_BY_HEIGHT:     {name: "getblockbyheight", handler: rest.GetBlockByHeight},
 		GET_BLK_BY_HASH:       {name: "getblockbyhash", handler: rest.GetBlockByHash},
@@ -207,7 +202,6 @@ func (this *restServer) getPath(url string) string {
 //get request params
 func (this *restServer) getParams(r *http.Request, url string, req map[string]interface{}) map[string]interface{} {
 	switch url {
-	case GET_CONN_COUNT:
 	case GET_BLK_TXS_BY_HEIGHT:
 		req["Height"] = getParam(r, "height")
 	case GET_BLK_BY_HEIGHT:

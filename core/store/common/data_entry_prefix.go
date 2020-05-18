@@ -40,7 +40,7 @@ const (
 	//SYSTEM
 	SYS_CURRENT_BLOCK        DataEntryPrefix = 0x10 //Current block key prefix
 	SYS_VERSION              DataEntryPrefix = 0x11 //Store version key prefix
-	SYS_CURRENT_CROSS_STATES DataEntryPrefix = 0x12 //Block cross states
+	SYS_CURRENT_LAYER2_STATES DataEntryPrefix = 0x12 //Block layer2 state
 	SYS_BLOCK_MERKLE_TREE    DataEntryPrefix = 0x13 // Block merkle tree root key prefix
 	SYS_STATE_MERKLE_TREE    DataEntryPrefix = 0x20 // state merkle tree root key prefix
 	SYS_CROSS_CHAIN_MSG      DataEntryPrefix = 0x22 // state merkle tree root key prefix

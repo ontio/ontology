@@ -19,11 +19,9 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -292,6 +290,7 @@ func NewInvokeTransaction(gasPrice, gasLimit uint64, invokeCode []byte) *types.M
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.InvokeNeo,
+		SystemId: 1,
 		Nonce:    rand.Uint32(),
 		Payload:  invokePayload,
 		Sigs:     make([]types.Sig, 0, 0),
@@ -555,8 +554,8 @@ func GetBlockData(hashOrHeight interface{}) ([]byte, error) {
 	return blockData, nil
 }
 
-func GetCrossChainMsg(height uint32) ([]byte, error) {
-	data, ontErr := sendRpcRequest("getcrosschainmsg", []interface{}{height})
+func GetLayer2State(height uint32) ([]byte, error) {
+	data, ontErr := sendRpcRequest("getlayer2state", []interface{}{height})
 	if ontErr != nil {
 		switch ontErr.ErrorCode {
 		case ERROR_INVALID_PARAMS:
@@ -569,11 +568,11 @@ func GetCrossChainMsg(height uint32) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("json.Unmarshal error:%s", err)
 	}
-	crossChainMsg, err := hex.DecodeString(hexStr)
+	Layer2State, err := hex.DecodeString(hexStr)
 	if err != nil {
 		return nil, fmt.Errorf("hex.DecodeString error:%s", err)
 	}
-	return crossChainMsg, nil
+	return Layer2State, nil
 }
 
 func GetBlockCount() (uint32, error) {
@@ -680,20 +679,6 @@ func InvokeNeoVMContract(
 	return InvokeSmartContract(signer, tx)
 }
 
-//Invoke wasm vm smart contract. if isPreExec is true, the invoke will not really execute
-func InvokeWasmVMContract(
-	gasPrice,
-	gasLimit uint64,
-	signer *account.Account,
-	smartcodeAddress common.Address,
-	params []interface{}) (string, error) {
-	tx, err := cutils.NewWasmVMInvokeTransaction(gasPrice, gasLimit, smartcodeAddress, params)
-	if err != nil {
-		return "", err
-	}
-	return InvokeSmartContract(signer, tx)
-}
-
 //InvokeSmartContract is low level method to invoke contact.
 func InvokeSmartContract(signer *account.Account, tx *types.MutableTransaction) (string, error) {
 	err := SignTransaction(signer, tx)
@@ -742,22 +727,6 @@ func PrepareInvokeCodeNeoVMContract(code []byte) (*rpccommon.PreExecuteResult, e
 	return PrepareSendRawTransaction(txData)
 }
 
-//prepare invoke wasm
-func PrepareInvokeWasmVMContract(contractAddress common.Address, params []interface{}) (*rpccommon.PreExecuteResult, error) {
-	mutable, err := cutils.NewWasmVMInvokeTransaction(0, 0, contractAddress, params)
-	if err != nil {
-		return nil, err
-	}
-
-	tx, err := mutable.IntoImmutable()
-	if err != nil {
-		return nil, err
-	}
-
-	txData := hex.EncodeToString(common.SerializeToBytes(tx))
-	return PrepareSendRawTransaction(txData)
-}
-
 func PrepareInvokeNativeContract(
 	contractAddress common.Address,
 	version byte,
@@ -786,6 +755,7 @@ func NewDeployCodeTransaction(gasPrice, gasLimit uint64, code []byte, vmType pay
 	tx := &types.MutableTransaction{
 		Version:  VERSION_TRANSACTION,
 		TxType:   types.Deploy,
+		SystemId: 1,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  deployPayload,
 		GasPrice: gasPrice,
@@ -821,58 +791,4 @@ func ParseNeoVMContractReturnTypeString(hexStr string) (string, error) {
 		return "", fmt.Errorf("hex.DecodeString:%s error:%s", hexStr, err)
 	}
 	return string(data), nil
-}
-
-func ParseWasmVMContractReturnTypeByteArray(hexStr string) (string, error) {
-	hexbs, err := common.HexToBytes(hexStr)
-	if err != nil {
-		return "", fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
-	}
-	source := common.NewZeroCopySource(hexbs)
-	bs, _, irregular, eof := source.NextVarBytes()
-	if irregular {
-		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, common.ErrIrregularData)
-	}
-	if eof {
-		return "", fmt.Errorf("ParseWasmVMContractReturnTypeByteArray:%s error:%s", hexStr, io.ErrUnexpectedEOF)
-	}
-	return common.ToHexString(bs), nil
-}
-
-//ParseWasmVMContractReturnTypeString return string value of smart contract execute code.
-func ParseWasmVMContractReturnTypeString(hexStr string) (string, error) {
-	hexbs, err := common.HexToBytes(hexStr)
-	if err != nil {
-		return "", fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
-	}
-	source := common.NewZeroCopySource(hexbs)
-	data, _, irregular, eof := source.NextString()
-	if irregular {
-		return "", common.ErrIrregularData
-	}
-	if eof {
-		return "", io.ErrUnexpectedEOF
-	}
-	return data, nil
-}
-
-//ParseWasmVMContractReturnTypeInteger return integer value of smart contract execute code.
-func ParseWasmVMContractReturnTypeInteger(hexStr string) (int64, error) {
-	hexbs, err := common.HexToBytes(hexStr)
-	if err != nil {
-		return 0, fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
-	}
-	bf := bytes.NewBuffer(hexbs)
-	res, err := serialization.ReadUint64(bf)
-	return int64(res), err
-}
-
-//ParseWasmVMContractReturnTypeBool return bool value of smart contract execute code.
-func ParseWasmVMContractReturnTypeBool(hexStr string) (bool, error) {
-	hexbs, err := common.HexToBytes(hexStr)
-	if err != nil {
-		return false, fmt.Errorf("common.HexToBytes:%s error:%s", hexStr, err)
-	}
-	bf := bytes.NewBuffer(hexbs)
-	return serialization.ReadBool(bf)
 }

@@ -28,12 +28,10 @@ import (
 	"github.com/ontio/ontology/common"
 	"github.com/ontio/ontology/common/config"
 	"github.com/ontio/ontology/common/constants"
-	vconfig "github.com/ontio/ontology/consensus/vbft/config"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/core/utils"
 	"github.com/ontio/ontology/smartcontract/service/native/global_params"
-	"github.com/ontio/ontology/smartcontract/service/native/governance"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	"github.com/ontio/ontology/smartcontract/service/neovm"
@@ -67,18 +65,8 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	if err != nil {
 		return nil, fmt.Errorf("[Block],BuildGenesisBlock err with GetBookkeeperAddress: %s", err)
 	}
-	conf := common.NewZeroCopySink(nil)
-	if genesisConfig.VBFT != nil {
-		err := genesisConfig.VBFT.Serialization(conf)
-		if err != nil {
-			return nil, err
-		}
-	}
-	govConfig := newGoverConfigInit(conf.Bytes())
-	consensusPayload, err := vconfig.GenesisConsensusPayload(govConfig.Hash(), 0)
-	if err != nil {
-		return nil, fmt.Errorf("consensus genesis init failed: %s", err)
-	}
+	//conf := common.NewZeroCopySink(nil)
+	//govConfig := newGoverConfigInit(conf.Bytes())
 	//blockdata
 	genesisHeader := &types.Header{
 		Version:          BlockVersion,
@@ -88,7 +76,7 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 		Height:           uint32(0),
 		ConsensusData:    GenesisNonce,
 		NextBookkeeper:   nextBookkeeper,
-		ConsensusPayload: consensusPayload,
+		ConsensusPayload: nil,
 
 		Bookkeepers: nil,
 		SigData:     nil,
@@ -98,9 +86,9 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 	ont := newGoverningToken()
 	ong := newUtilityToken()
 	param := newParamContract()
-	oid := deployOntIDContract()
+	//oid := deployOntIDContract()
 	auth := deployAuthContract()
-	govConfigTx := newGovConfigTx()
+	//govConfigTx := newGovConfigTx()
 
 	genesisBlock := &types.Block{
 		Header: genesisHeader,
@@ -108,13 +96,13 @@ func BuildGenesisBlock(defaultBookkeeper []keypair.PublicKey, genesisConfig *con
 			ont,
 			ong,
 			param,
-			oid,
+			//oid,
 			auth,
-			govConfigTx,
+			//govConfigTx,
 			newGoverningInit(),
 			newUtilityInit(),
 			newParamInit(),
-			govConfig,
+			//govConfig,
 		},
 	}
 	genesisBlock.RebuildMerkleRoot()
@@ -161,6 +149,7 @@ func newParamContract() *types.Transaction {
 	return tx
 }
 
+/*
 func newGovConfigTx() *types.Transaction {
 	mutable, err := utils.NewDeployTransaction(nutils.GovernanceContractAddress[:], "CONFIG", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Consensus Config", payload.NEOVM_TYPE)
@@ -173,7 +162,7 @@ func newGovConfigTx() *types.Transaction {
 	}
 	return tx
 }
-
+*/
 func deployAuthContract() *types.Transaction {
 	mutable, err := utils.NewDeployTransaction(nutils.AuthContractAddress[:], "AuthContract", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network Authorization Contract", payload.NEOVM_TYPE)
@@ -186,7 +175,7 @@ func deployAuthContract() *types.Transaction {
 	}
 	return tx
 }
-
+/*
 func deployOntIDContract() *types.Transaction {
 	mutable, err := utils.NewDeployTransaction(nutils.OntIDContractAddress[:], "OID", "1.0",
 		"Ontology Team", "contact@ont.io", "Ontology Network ONT ID", payload.NEOVM_TYPE)
@@ -199,6 +188,7 @@ func deployOntIDContract() *types.Transaction {
 	}
 	return tx
 }
+*/
 
 func newGoverningInit() *types.Transaction {
 	bookkeepers, _ := config.DefConfig.GetBookkeepers()
@@ -286,6 +276,7 @@ func newParamInit() *types.Transaction {
 	return tx
 }
 
+/*
 func newGoverConfigInit(config []byte) *types.Transaction {
 	mutable := utils.BuildNativeTransaction(nutils.GovernanceContractAddress, governance.INIT_CONFIG, config)
 	tx, err := mutable.IntoImmutable()
@@ -294,3 +285,4 @@ func newGoverConfigInit(config []byte) *types.Transaction {
 	}
 	return tx
 }
+*/

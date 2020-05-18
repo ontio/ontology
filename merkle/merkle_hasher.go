@@ -168,6 +168,38 @@ func MerkleLeafPath(data []byte, hashes []common.Uint256) ([]byte, error) {
 	return sink.Bytes(), nil
 }
 
+func MerklePath(hash common.Uint256, hashes []common.Uint256) ([]byte, error) {
+	size := len(hashes)*(common.UINT256_SIZE+1) + 8
+	if size > MAX_SIZE {
+		return nil, fmt.Errorf("data length over max value:%d", MAX_SIZE)
+	}
+	index := getIndex(hash, hashes)
+	if index < 0 {
+		return nil, fmt.Errorf("%s", "values doesn't exist!")
+	}
+	sink := common.NewZeroCopySink(make([]byte, 0, size))
+	d := depth(len(hashes))
+	merkleTree := MerkleHashes(hashes, d)
+	for i := d; i > 0; i-- {
+		subTree := merkleTree[i]
+		subLen := len(subTree)
+		nIndex := index / 2
+		if index == subLen-1 && subLen%2 != 0 {
+			index = nIndex
+			continue
+		}
+		if index%2 != 0 {
+			sink.WriteByte(LEFT)
+			sink.WriteHash(subTree[index-1])
+		} else {
+			sink.WriteByte(RIGHT)
+			sink.WriteHash(subTree[index+1])
+		}
+		index = nIndex
+	}
+	return sink.Bytes(), nil
+}
+
 func MerkleHashes(preLeaves []common.Uint256, depth int) [][]common.Uint256 {
 	levels := make([][]common.Uint256, depth+1, depth+1)
 	levels[depth] = preLeaves

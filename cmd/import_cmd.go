@@ -56,15 +56,15 @@ var ImportCommand = cli.Command{
 func importBlocks(ctx *cli.Context) error {
 	log.InitLog(log.InfoLog)
 
-	cfg, err := SetOntologyConfig(ctx)
+	_, err := SetOntologyConfig(ctx)
 	if err != nil {
 		PrintErrorMsg("SetOntologyConfig error:%s", err)
 		cli.ShowSubcommandHelp(ctx)
 		return nil
 	}
-	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
+	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.NETWORK_NAME_SOLO_NET)
 
-	stateHashHeight := config.GetStateHashCheckHeight(cfg.P2PNode.NetworkId)
+	stateHashHeight := config.GetStateHashCheckHeight(config.NETWORK_ID_SOLO_NET)
 	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
 	if err != nil {
 		return fmt.Errorf("NewLedger error:%s", err)
@@ -150,7 +150,7 @@ func importBlocks(ctx *cli.Context) error {
 		}
 		crossMsgSize, err := serialization.ReadUint32(fReader)
 		if err != nil {
-			return fmt.Errorf("read cross chain msg height:%d error:%s", i, err)
+			return fmt.Errorf("read layer2 state msg height:%d error:%s", i, err)
 		}
 		var crossMsgCompressData []byte
 		if crossMsgSize != 0 {
@@ -176,9 +176,9 @@ func importBlocks(ctx *cli.Context) error {
 			return fmt.Errorf("block height:%d ExecuteBlock error:%s", i, err)
 		}
 
-		var crossChainMsg *types.CrossChainMsg
+		var crossChainMsg *types.Layer2State
 		if crossMsgSize != 0 {
-			crossChainMsg = new(types.CrossChainMsg)
+			crossChainMsg = new(types.Layer2State)
 			crossChainData, err := utils.DecompressBlockData(crossMsgCompressData, metadata.CompressType)
 			if err != nil {
 				return fmt.Errorf("block height:%d decompress error:%s", i, err)

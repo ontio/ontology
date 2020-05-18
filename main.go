@@ -89,7 +89,6 @@ func setupAPP() *cli.App {
 		utils.DisableLogFileFlag,
 		utils.DisableEventLogFlag,
 		utils.DataDirFlag,
-		utils.WasmVerifyMethodFlag,
 		//account setting
 		utils.WalletFileFlag,
 		utils.AccountAddressFlag,
@@ -100,6 +99,7 @@ func setupAPP() *cli.App {
 		//txpool setting
 		utils.GasPriceFlag,
 		utils.GasLimitFlag,
+		utils.MinOngLimitFlag,
 		utils.TxpoolPreExecDisableFlag,
 		utils.DisableSyncVerifyTxFlag,
 		utils.DisableBroadcastNetTxFlag,
@@ -149,7 +149,7 @@ func startOntology(ctx *cli.Context) {
 
 	setMaxOpenFiles()
 
-	cfg, err := initConfig(ctx)
+	_, err := initConfig(ctx)
 	if err != nil {
 		log.Errorf("initConfig error: %s", err)
 		return
@@ -159,7 +159,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initWallet error: %s", err)
 		return
 	}
-	stateHashHeight := config.GetStateHashCheckHeight(cfg.P2PNode.NetworkId)
+	stateHashHeight := config.GetStateHashCheckHeight(config.NETWORK_ID_SOLO_NET)
 	ldg, err := initLedger(ctx, stateHashHeight)
 	if err != nil {
 		log.Errorf("%s", err)
@@ -170,12 +170,7 @@ func startOntology(ctx *cli.Context) {
 		log.Errorf("initTxPool error: %s", err)
 		return
 	}
-	p2pSvr, err := initP2PNode(ctx, txpool)
-	if err != nil {
-		log.Errorf("initP2PNode error: %s", err)
-		return
-	}
-	_, err = initConsensus(ctx, p2pSvr.GetNetwork(), txpool, acc)
+	_, err = initConsensus(ctx, txpool, acc)
 	if err != nil {
 		log.Errorf("initConsensus error: %s", err)
 		return
@@ -192,7 +187,6 @@ func startOntology(ctx *cli.Context) {
 	}
 	initRestful(ctx)
 	initWs(ctx)
-	initNodeInfo(ctx, p2pSvr)
 
 	go logCurrBlockHeight()
 	waitToExit(ldg)
@@ -206,10 +200,8 @@ func initLog(ctx *cli.Context) {
 	if disableLogFile {
 		log.InitLog(logLevel, log.Stdout)
 	} else {
-		logFileDir := ctx.GlobalString(utils.GetFlagName(utils.LogDirFlag))
-		logFileDir = filepath.Join(logFileDir, "") + string(os.PathSeparator)
-		alog.InitLog(logFileDir)
-		log.InitLog(logLevel, logFileDir, log.Stdout)
+		alog.InitLog(log.PATH)
+		log.InitLog(logLevel, log.PATH, log.Stdout)
 	}
 }
 
@@ -239,7 +231,7 @@ func initAccount(ctx *cli.Context) (*account.Account, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get account error: %s", err)
 	}
-	log.Infof("Using account: %s", acc.Address.ToBase58())
+	log.Infof("Using account: %s, This is layer2 mode, so this is the operator address.", acc.Address.ToBase58())
 
 	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
 		curPk := hex.EncodeToString(keypair.SerializePublicKey(acc.PublicKey))
@@ -254,7 +246,7 @@ func initLedger(ctx *cli.Context, stateHashHeight uint32) (*ledger.Ledger, error
 	events.Init() //Init event hub
 
 	var err error
-	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.DefConfig.P2PNode.NetworkName)
+	dbDir := utils.GetStoreDirPath(config.DefConfig.Common.DataDir, config.NETWORK_NAME_SOLO_NET)
 	ledger.DefLedger, err = ledger.NewLedger(dbDir, stateHashHeight)
 	if err != nil {
 		return nil, fmt.Errorf("NewLedger error: %s", err)
@@ -299,41 +291,17 @@ func initTxPool(ctx *cli.Context) (*proc.TXPoolServer, error) {
 	return txPoolServer, nil
 }
 
-func initP2PNode(ctx *cli.Context, txpoolSvr *proc.TXPoolServer) (*p2pserver.P2PServer, error) {
-	if config.DefConfig.Genesis.ConsensusType == config.CONSENSUS_TYPE_SOLO {
-		return nil, nil
-	}
-	p2p, err := p2pserver.NewServer()
-	if err != nil {
-		return nil, err
-	}
-
-	err = p2p.Start()
-	if err != nil {
-		return nil, fmt.Errorf("p2p service start error %s", err)
-	}
-	netreqactor.SetTxnPoolPid(txpoolSvr.GetPID(tc.TxActor))
-	txpoolSvr.Net = p2p.GetNetwork()
-	hserver.SetNetServer(p2p.GetNetwork())
-	p2p.WaitForPeersStart()
-	log.Infof("P2P init success")
-	return p2p, nil
-}
-
-func initConsensus(ctx *cli.Context, net p2p.P2P, txpoolSvr *proc.TXPoolServer, acc *account.Account) (consensus.ConsensusService, error) {
+func initConsensus(ctx *cli.Context, txpoolSvr *proc.TXPoolServer, acc *account.Account) (consensus.ConsensusService, error) {
 	if !config.DefConfig.Consensus.EnableConsensus {
 		return nil, nil
 	}
 	pool := txpoolSvr.GetPID(tc.TxPoolActor)
 
-	consensusType := strings.ToLower(config.DefConfig.Genesis.ConsensusType)
-	consensusService, err := consensus.NewConsensusService(consensusType, acc, pool, nil, net)
+	consensusService, err := consensus.NewConsensusService(acc, pool, nil)
 	if err != nil {
-		return nil, fmt.Errorf("NewConsensusService %s error: %s", consensusType, err)
+		return nil, fmt.Errorf("NewConsensusService error: %s", err)
 	}
 	consensusService.Start()
-
-	netreqactor.SetConsensusPid(consensusService.GetPID())
 	hserver.SetConsensusPid(consensusService.GetPID())
 
 	log.Infof("Consensus init success")
@@ -405,15 +373,6 @@ func initWs(ctx *cli.Context) {
 	websocket.StartServer()
 
 	log.Infof("Ws init success")
-}
-
-func initNodeInfo(ctx *cli.Context, p2pSvr *p2pserver.P2PServer) {
-	if config.DefConfig.P2PNode.HttpInfoPort == 0 {
-		return
-	}
-	go nodeinfo.StartServer(p2pSvr.GetNetwork())
-
-	log.Infof("Nodeinfo init success")
 }
 
 func logCurrBlockHeight() {

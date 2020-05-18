@@ -314,9 +314,6 @@ func invokeContract(ctx *cli.Context) error {
 			preResult, err = utils.PrepareInvokeNeoVMContract(contractAddr, params)
 
 		}
-		if vmtype == payload.WASMVM_TYPE {
-			preResult, err = utils.PrepareInvokeWasmVMContract(contractAddr, params)
-		}
 
 		if err != nil {
 			return fmt.Errorf("PrepareInvokeNeoVMSmartContact error:%s", err)
@@ -364,12 +361,6 @@ func invokeContract(ctx *cli.Context) error {
 	var txHash string
 	if vmtype == payload.NEOVM_TYPE {
 		txHash, err = utils.InvokeNeoVMContract(gasPrice, gasLimit, signer, contractAddr, params)
-		if err != nil {
-			return fmt.Errorf("invoke NeoVM contract error:%s", err)
-		}
-	}
-	if vmtype == payload.WASMVM_TYPE {
-		txHash, err = utils.InvokeWasmVMContract(gasPrice, gasLimit, signer, contractAddr, params)
 		if err != nil {
 			return fmt.Errorf("invoke NeoVM contract error:%s", err)
 		}

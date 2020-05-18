@@ -112,23 +112,6 @@ func GetBlockHash(params []interface{}) map[string]interface{} {
 	}
 }
 
-//get node connection count
-func GetConnectionCount(params []interface{}) map[string]interface{} {
-	count := bactor.GetConnectionCnt()
-	return responseSuccess(count)
-}
-
-//get node connection most height
-func GetSyncStatus(params []interface{}) map[string]interface{} {
-	status, err := bcomn.GetSyncStatus()
-	if err != nil {
-		log.Errorf("GetSyncStatus error:%s", err)
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-
-	return responseSuccess(status)
-}
-
 func GetRawMemPool(params []interface{}) map[string]interface{} {
 	txs := []*bcomn.Transactions{}
 	txpool := bactor.GetTxsFromPool(false)
@@ -283,7 +266,7 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 		}
 		hash = txn.Hash()
 		log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
-		if txn.TxType == types.InvokeNeo || txn.TxType == types.Deploy || txn.TxType == types.InvokeWasm {
+		if txn.TxType == types.InvokeNeo || txn.TxType == types.Deploy {
 			if len(params) > 1 {
 				preExec, ok := params[1].(float64)
 				if ok && preExec == 1 {
@@ -312,11 +295,6 @@ func SendRawTransaction(params []interface{}) map[string]interface{} {
 //get node version
 func GetNodeVersion(params []interface{}) map[string]interface{} {
 	return responseSuccess(config.Version)
-}
-
-// get networkid
-func GetNetworkId(params []interface{}) map[string]interface{} {
-	return responseSuccess(config.DefConfig.P2PNode.NetworkId)
 }
 
 //get contract state
@@ -592,8 +570,8 @@ func GetGrantOng(params []interface{}) map[string]interface{} {
 	return responseSuccess(rsp)
 }
 
-//get cross chain message by height
-func GetCrossChainMsg(params []interface{}) map[string]interface{} {
+//get layer2 message by height
+func GetLayer2State(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
@@ -601,21 +579,21 @@ func GetCrossChainMsg(params []interface{}) map[string]interface{} {
 	if !ok {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	msg, err := bactor.GetCrossChainMsg(uint32(height))
+	msg, err := bactor.GetLayer2State(uint32(height))
 	if err != nil {
-		log.Errorf("GetCrossChainMsg, get cross chain msg from db error:%s", err)
+		log.Errorf("GetLayer2State, get layer2 state msg from db error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
 	header, err := bactor.GetHeaderByHeight(uint32(height) + 1)
 	if err != nil {
-		log.Errorf("GetCrossChainMsg, get block by height from db error:%s", err)
+		log.Errorf("GetLayer2State, get block by height from db error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
-	return responseSuccess(bcomn.TransferCrossChainMsg(msg, header.Bookkeepers))
+	return responseSuccess(bcomn.TransferLayer2State(msg, header.Bookkeepers))
 }
 
-//get cross chain state proof
-func GetCrossStatesProof(params []interface{}) map[string]interface{} {
+//get layer2 state proof
+func GetLayer2StateProof(params []interface{}) map[string]interface{} {
 	if len(params) < 1 {
 		return responsePack(berr.INVALID_PARAMS, nil)
 	}
@@ -631,10 +609,10 @@ func GetCrossStatesProof(params []interface{}) map[string]interface{} {
 	if err != nil {
 		return responsePack(berr.INVALID_PARAMS, "")
 	}
-	proof, err := bactor.GetCrossStatesProof(uint32(height), key)
+	proof, err := bactor.GetLayer2StateProof(uint32(height), key)
 	if err != nil {
-		log.Errorf("GetCrossStatesProof, bactor.GetCrossStatesProof error:%s", err)
+		log.Errorf("GetLayer2StateProof, bactor.GetLayer2StateProof error:%s", err)
 		return responsePack(berr.INTERNAL_ERROR, "")
 	}
-	return responseSuccess(bcomn.CrossStatesProof{"CrossStatesProof", hex.EncodeToString(proof)})
+	return responseSuccess(bcomn.Layer2StateProof{"Layer2StateProof", hex.EncodeToString(proof)})
 }

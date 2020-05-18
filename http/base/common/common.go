@@ -37,7 +37,6 @@ import (
 	cutils "github.com/ontio/ontology/core/utils"
 	ontErrors "github.com/ontio/ontology/errors"
 	bactor "github.com/ontio/ontology/http/base/actor"
-	common2 "github.com/ontio/ontology/p2pserver/common"
 	"github.com/ontio/ontology/smartcontract/event"
 	"github.com/ontio/ontology/smartcontract/service/native/ont"
 	"github.com/ontio/ontology/smartcontract/service/native/utils"
@@ -109,7 +108,7 @@ type Sig struct {
 	SigData []string
 }
 
-type CrossStatesProof struct {
+type Layer2StateProof struct {
 	Type      string
 	AuditPath string
 }
@@ -153,8 +152,9 @@ type BlockInfo struct {
 }
 
 type NodeInfo struct {
-	NodePort    uint16         // The nodes's port
-	ID          common2.PeerId // The nodes's id
+	NodeState   uint   // node status
+	NodePort    uint16 // The nodes's port
+	ID          uint64 // The nodes's id
 	NodeTime    int64
 	NodeVersion uint32   // The network protocol the node used
 	NodeType    uint64   // The services the node supplied
@@ -233,7 +233,7 @@ func TransArryByteToHexString(ptx *types.Transaction) *Transactions {
 	return trans
 }
 
-func TransferCrossChainMsg(msg *types.CrossChainMsg, pks []keypair.PublicKey) string {
+func TransferLayer2State(msg *types.Layer2State, pks []keypair.PublicKey) string {
 	if msg == nil {
 		return ""
 	}
@@ -491,6 +491,7 @@ func NewSmartContractTransaction(gasPrice, gasLimit uint64, invokeCode []byte) (
 		GasPrice: gasPrice,
 		GasLimit: gasLimit,
 		TxType:   types.InvokeNeo,
+		SystemId: 1,
 		Nonce:    uint32(time.Now().Unix()),
 		Payload:  invokePayload,
 		Sigs:     nil,
@@ -519,22 +520,4 @@ func GetAddress(str string) (common.Address, error) {
 		address, err = common.AddressFromBase58(str)
 	}
 	return address, err
-}
-
-type SyncStatus struct {
-	CurrentBlockHeight uint32
-	ConnectCount       uint32
-	MaxPeerBlockHeight uint64
-}
-
-func GetSyncStatus() (SyncStatus, error) {
-	height := bactor.GetMaxPeerBlockHeight()
-	cnt := bactor.GetConnectionCnt()
-	curBlockHeight := bactor.GetCurrentBlockHeight()
-
-	return SyncStatus{
-		CurrentBlockHeight: curBlockHeight,
-		ConnectCount:       cnt,
-		MaxPeerBlockHeight: height,
-	}, nil
 }

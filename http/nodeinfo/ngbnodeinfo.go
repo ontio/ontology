@@ -21,12 +21,12 @@ package nodeinfo
 import "strings"
 
 type NgbNodeInfo struct {
-	NgbId        string //neighbor node id
-	NgbType      string
-	NgbAddr      string
-	HttpInfoAddr string
-	HttpInfoPort uint16
-	NgbVersion   string
+	NgbId         string //neighbor node id
+	NgbType       string
+	NgbAddr       string
+	HttpInfoAddr  string
+	HttpInfoPort  uint16
+	NgbVersion    string
 }
 
 type NgbNodeInfoSlice []NgbNodeInfo

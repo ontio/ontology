@@ -50,25 +50,7 @@ func GetNodeVersion(cmd map[string]interface{}) map[string]interface{} {
 // get networkid
 func GetNetworkId(cmd map[string]interface{}) map[string]interface{} {
 	resp := ResponsePack(berr.SUCCESS)
-	resp["Result"] = config.DefConfig.P2PNode.NetworkId
-	return resp
-}
-
-//get connection node count
-func GetConnectionCount(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(berr.SUCCESS)
-	count := bactor.GetConnectionCnt()
-	resp["Result"] = count
-	return resp
-}
-
-func GetNodeSyncStatus(cmd map[string]interface{}) map[string]interface{} {
-	resp := ResponsePack(berr.SUCCESS)
-	status, err := bcomn.GetSyncStatus()
-	if err != nil {
-		return ResponsePack(berr.INTERNAL_ERROR)
-	}
-	resp["Result"] = status
+	resp["Result"] = config.NETWORK_ID_SOLO_NET
 	return resp
 }
 
@@ -267,7 +249,7 @@ func SendRawTransaction(cmd map[string]interface{}) map[string]interface{} {
 	var hash common.Uint256
 	hash = txn.Hash()
 	log.Debugf("SendRawTransaction recv %s", hash.ToHexString())
-	if txn.TxType == types.InvokeNeo || txn.TxType == types.InvokeWasm || txn.TxType == types.Deploy {
+	if txn.TxType == types.InvokeNeo || txn.TxType == types.Deploy {
 		if preExec, ok := cmd["PreExec"].(string); ok && preExec == "1" {
 			rst, err := bactor.PreExecuteContract(txn)
 			if err != nil {

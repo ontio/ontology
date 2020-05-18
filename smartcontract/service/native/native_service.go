@@ -52,10 +52,12 @@ type NativeService struct {
 	Tx            *types.Transaction
 	Height        uint32
 	Time          uint32
+	MinOngLimit   uint64
 	BlockHash     common.Uint256
 	ContextRef    context.ContextRef
 	PreExec       bool
 	CrossHashes   []common.Uint256
+	Operator      bool
 }
 
 func (this *NativeService) Register(methodName string, handler Handler) {
@@ -65,6 +67,15 @@ func (this *NativeService) Register(methodName string, handler Handler) {
 func (this *NativeService) Invoke() ([]byte, error) {
 	contract := this.InvokeParam
 	services, ok := Contracts[contract.Address]
+	operatorPublicKeyBytes,_ := hex.DecodeString(config.DefConfig.Genesis.SOLO.Bookkeepers[0])
+	operatorPublicKey,_ := keypair.DeserializePublicKey(operatorPublicKeyBytes)
+	operatorAddress := types.AddressFromPubKey(operatorPublicKey)
+	player := this.Tx.Payer.ToBase58()
+	//log.Infof("player: %s, operator: %s", player, operatorAddress.ToBase58())
+	if player == operatorAddress.ToBase58() {
+		this.Operator = true
+	}
+	this.MinOngLimit = config.DefConfig.Common.MinOngLimit
 	if !ok {
 		return BYTE_FALSE, fmt.Errorf("Native contract address %x haven't been registered.", contract.Address)
 	}
@@ -87,7 +98,6 @@ func (this *NativeService) Invoke() ([]byte, error) {
 	}
 	this.ContextRef.PopContext()
 	this.ContextRef.PushNotifications(this.Notifications)
-	this.ContextRef.PutCrossStateHashes(this.CrossHashes)
 	this.Notifications = notifications
 	this.Input = args
 	this.CrossHashes = hashes

@@ -23,7 +23,6 @@ import (
 
 	"github.com/ontio/ontology-crypto/keypair"
 	"github.com/ontio/ontology/common"
-	"github.com/ontio/ontology/common/log"
 	"github.com/ontio/ontology/core/payload"
 	"github.com/ontio/ontology/core/states"
 	"github.com/ontio/ontology/core/store"
@@ -61,32 +60,16 @@ func (self *Ledger) Init(defaultBookkeeper []keypair.PublicKey, genesisBlock *ty
 	return nil
 }
 
-func (self *Ledger) AddHeaders(headers []*types.Header) error {
-	return self.ldgStore.AddHeaders(headers)
-}
-
-func (self *Ledger) AddBlock(block *types.Block, ccMsg *types.CrossChainMsg, stateMerkleRoot common.Uint256) error {
-	err := self.ldgStore.AddBlock(block, ccMsg, stateMerkleRoot)
-	if err != nil {
-		log.Errorf("Ledger AddBlock BlockHeight:%d BlockHash:%x error:%s", block.Header.Height, block.Hash(), err)
-	}
-	return err
-}
-
 func (self *Ledger) ExecuteBlock(b *types.Block) (store.ExecuteResult, error) {
 	return self.ldgStore.ExecuteBlock(b)
 }
 
-func (self *Ledger) SubmitBlock(b *types.Block, crossChainMsg *types.CrossChainMsg, exec store.ExecuteResult) error {
+func (self *Ledger) SubmitBlock(b *types.Block, crossChainMsg *types.Layer2State, exec store.ExecuteResult) error {
 	return self.ldgStore.SubmitBlock(b, crossChainMsg, exec)
 }
 
 func (self *Ledger) GetStateMerkleRoot(height uint32) (result common.Uint256, err error) {
 	return self.ldgStore.GetStateMerkleRoot(height)
-}
-
-func (self *Ledger) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
-	return self.ldgStore.GetCrossStatesRoot(height)
 }
 
 func (self *Ledger) GetBlockRootWithNewTxRoots(startHeight uint32, txRoots []common.Uint256) common.Uint256 {
@@ -196,12 +179,12 @@ func (self *Ledger) GetEventNotifyByBlock(height uint32) ([]*event.ExecuteNotify
 	return self.ldgStore.GetEventNotifyByBlock(height)
 }
 
-func (self *Ledger) GetCrossChainMsg(height uint32) (*types.CrossChainMsg, error) {
-	return self.ldgStore.GetCrossChainMsg(height)
+func (self *Ledger) GetLayer2State(height uint32) (*types.Layer2State, error) {
+	return self.ldgStore.GetLayer2State(height)
 }
 
-func (self *Ledger) GetCrossStatesProof(height uint32, key []byte) ([]byte, error) {
-	return self.ldgStore.GetCrossStatesProof(height, key)
+func (self *Ledger) GetLayer2StateProof(height uint32, key []byte) ([]byte, error) {
+	return self.ldgStore.GetLayer2StateProof(height, key)
 }
 
 func (self *Ledger) Close() error {

@@ -21,11 +21,8 @@ package rpc
 import (
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/ontio/ontology/common/log"
-	bactor "github.com/ontio/ontology/http/base/actor"
-	"github.com/ontio/ontology/http/base/common"
 	berr "github.com/ontio/ontology/http/base/error"
 )
 
@@ -39,50 +36,6 @@ func getCurrentDirectory() string {
 		log.Fatal(err)
 	}
 	return dir
-}
-
-func GetNeighbor(params []interface{}) map[string]interface{} {
-	addr := bactor.GetNeighborAddrs()
-	return responseSuccess(addr)
-}
-
-func GetNodeState(params []interface{}) map[string]interface{} {
-	t := time.Now().UnixNano()
-	port := bactor.GetNodePort()
-	id := bactor.GetID()
-	ver := bactor.GetVersion()
-	tpe := bactor.GetNodeType()
-	relay := bactor.GetRelayState()
-	height := bactor.GetCurrentBlockHeight()
-	txnCnt, err := bactor.GetTxnCount()
-	if err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	n := common.NodeInfo{
-		NodeTime:    t,
-		NodePort:    port,
-		ID:          id,
-		NodeVersion: ver,
-		NodeType:    tpe,
-		Relay:       relay,
-		Height:      height,
-		TxnCnt:      txnCnt,
-	}
-	return responseSuccess(n)
-}
-
-func StartConsensus(params []interface{}) map[string]interface{} {
-	if err := bactor.ConsensusSrvStart(); err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	return responsePack(berr.SUCCESS, true)
-}
-
-func StopConsensus(params []interface{}) map[string]interface{} {
-	if err := bactor.ConsensusSrvHalt(); err != nil {
-		return responsePack(berr.INTERNAL_ERROR, false)
-	}
-	return responsePack(berr.SUCCESS, true)
 }
 
 func SetDebugInfo(params []interface{}) map[string]interface{} {

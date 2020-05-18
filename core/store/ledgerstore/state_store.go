@@ -21,7 +21,6 @@ package ledgerstore
 import (
 	"bytes"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"io"
 
@@ -34,8 +33,6 @@ import (
 	"github.com/ontio/ontology/core/store/leveldbstore"
 	"github.com/ontio/ontology/core/store/overlaydb"
 	"github.com/ontio/ontology/merkle"
-	"github.com/ontio/ontology/smartcontract/service/native/ontid"
-	"github.com/ontio/ontology/smartcontract/service/native/utils"
 )
 
 var (
@@ -342,57 +339,6 @@ func (self *StateStore) SaveCurrentBlock(height uint32, blockHash common.Uint256
 	return nil
 }
 
-func (self *StateStore) GetCrossStates(height uint32) ([]common.Uint256, error) {
-	key := self.genCrossStatesKey(height)
-	data, err := self.store.Get(key)
-	if err != nil {
-		return []common.Uint256{}, err
-	}
-	source := common.NewZeroCopySource(data)
-	l := len(data) / common.UINT256_SIZE
-	hashes := make([]common.Uint256, 0, l)
-	for i := 0; i < l; i++ {
-		u256, eof := source.NextHash()
-		if eof {
-			return []common.Uint256{}, fmt.Errorf("%s", "Get states hash error!")
-		}
-		hashes = append(hashes, u256)
-	}
-	return hashes, nil
-}
-
-func (self *StateStore) GetCrossStatesRoot(height uint32) (common.Uint256, error) {
-	states, err := self.GetCrossStates(height)
-	if err != nil && err != scom.ErrNotFound {
-		return common.UINT256_EMPTY, err
-	}
-	if err == scom.ErrNotFound {
-		return common.UINT256_EMPTY, nil
-	}
-	return merkle.TreeHasher{}.HashFullTreeWithLeafHash(states), nil
-}
-
-func (self *StateStore) SaveCrossStates(height uint32, crossStates []common.Uint256) error {
-	//save cross states hash
-	if len(crossStates) == 0 {
-		return nil
-	}
-	key := self.genCrossStatesKey(height)
-	sink := common.NewZeroCopySink(make([]byte, 0, len(crossStates)*common.UINT256_SIZE))
-	for _, v := range crossStates {
-		sink.WriteHash(v)
-	}
-	self.store.BatchPut(key, sink.Bytes())
-	return nil
-}
-
-func (self *StateStore) genCrossStatesKey(height uint32) []byte {
-	key := make([]byte, 5)
-	key[0] = byte(scom.SYS_CURRENT_CROSS_STATES)
-	binary.LittleEndian.PutUint32(key[1:], height)
-	return key
-}
-
 func (self *StateStore) getCurrentBlockKey() []byte {
 	return []byte{byte(scom.SYS_CURRENT_BLOCK)}
 }
@@ -464,46 +410,53 @@ func (self *StateStore) Close() error {
 	return self.store.Close()
 }
 
-func (self *StateStore) CheckStorage() error {
-	db := self.store
-
-	prefix := append([]byte{byte(scom.ST_STORAGE)}, utils.OntIDContractAddress[:]...) //prefix of new storage key
-	flag := append(prefix, ontid.FIELD_VERSION)
-	val, err := db.Get(flag)
-	if err == nil {
-		item := &states.StorageItem{}
-		source := common.NewZeroCopySource(val)
-		err := item.Deserialization(source)
-		if err == nil && item.Value[0] == ontid.FLAG_VERSION {
-			return nil
-		} else if err == nil {
-			return errors.New("check ontid storage: invalid version flag")
-		} else {
-			return err
-		}
-	}
-
-	prefix1 := []byte{byte(scom.ST_STORAGE), 0x2a, 0x64, 0x69, 0x64} //prefix of old storage key
-
-	iter := db.NewIterator(prefix1)
-	db.NewBatch()
-	for ok := iter.First(); ok; ok = iter.Next() {
-		key := append(prefix, iter.Key()[1:]...)
-		db.BatchPut(key, iter.Value())
-		db.BatchDelete(iter.Key())
-	}
-	iter.Release()
-	err = iter.Error()
+func (self *StateStore) GetLayer2States(height uint32) ([]common.Uint256, error) {
+	key := self.genLayer2StatesKey(height)
+	data, err := self.store.Get(key)
 	if err != nil {
-		return err
+		return []common.Uint256{}, err
 	}
+	source := common.NewZeroCopySource(data)
+	l := len(data) / common.UINT256_SIZE
+	hashes := make([]common.Uint256, 0, l)
+	for i := 0; i < l; i++ {
+		u256, eof := source.NextHash()
+		if eof {
+			return []common.Uint256{}, fmt.Errorf("%s", "Get states hash error!")
+		}
+		hashes = append(hashes, u256)
+	}
+	return hashes, nil
+}
 
-	tag := states.StorageItem{}
-	tag.Value = []byte{ontid.FLAG_VERSION}
-	buf := common.NewZeroCopySink(nil)
-	tag.Serialization(buf)
-	db.BatchPut(flag, buf.Bytes())
-	err = db.BatchCommit()
+func (self *StateStore) GetLayer2StatesRoot(height uint32) (common.Uint256, error) {
+	states, err := self.GetLayer2States(height)
+	if err != nil && err != scom.ErrNotFound {
+		return common.UINT256_EMPTY, err
+	}
+	if err == scom.ErrNotFound {
+		return common.UINT256_EMPTY, nil
+	}
+	return merkle.TreeHasher{}.HashFullTreeWithLeafHash(states), nil
+}
 
-	return err
+func (self *StateStore) SaveLayer2States(height uint32, layer2States []common.Uint256) error {
+	//save cross states hash
+	if len(layer2States) == 0 {
+		return nil
+	}
+	key := self.genLayer2StatesKey(height)
+	sink := common.NewZeroCopySink(make([]byte, 0, len(layer2States)*common.UINT256_SIZE))
+	for _, v := range layer2States {
+		sink.WriteHash(v)
+	}
+	self.store.BatchPut(key, sink.Bytes())
+	return nil
+}
+
+func (self *StateStore) genLayer2StatesKey(height uint32) []byte {
+	key := make([]byte, 5)
+	key[0] = byte(scom.SYS_CURRENT_LAYER2_STATES)
+	binary.LittleEndian.PutUint32(key[1:], height)
+	return key
 }
