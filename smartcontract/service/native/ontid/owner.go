@@ -35,13 +35,9 @@ import (
 const (
 	OWNER_TOTAL_SIZE = 1024 * 1024 // 1MB
 
-	ALL_ACCESS  = "all"
-	CRUD_ACCESS = "crud"
-	USE_ACCESS  = "use"
-
-	ONLY_PUBLICKEY      = 0
-	ONLY_AUTHENTICATION = 1
-	BOTH                = 2
+	ONLY_PUBLICKEY      = 1
+	ONLY_AUTHENTICATION = 2
+	BOTH                = 3
 )
 
 type publicKeyJson struct {
@@ -49,14 +45,12 @@ type publicKeyJson struct {
 	Type         string `json:"type"`
 	Controller   string `json:"controller"`
 	PublicKeyHex string `json:"publicKeyHex"`
-	Access       string `json:"access"`
 }
 
 type publicKey struct {
 	key            []byte
 	revoked        bool
 	controller     []byte
-	access         string
 	authentication uint8
 }
 
@@ -64,7 +58,6 @@ func (this *publicKey) Serialization(sink *common.ZeroCopySink) {
 	sink.WriteVarBytes(this.key)
 	sink.WriteBool(this.revoked)
 	sink.WriteVarBytes(this.controller)
-	sink.WriteString(this.access)
 	sink.WriteByte(this.authentication)
 }
 
@@ -81,10 +74,6 @@ func (this *publicKey) Deserialization(source *common.ZeroCopySource) error {
 	if err != nil {
 		return err
 	}
-	access, err := utils.DecodeString(source)
-	if err != nil {
-		return err
-	}
 	authentication, eof := source.NextByte()
 	if eof {
 		return fmt.Errorf("deserilize authentication error: eof")
@@ -93,7 +82,6 @@ func (this *publicKey) Deserialization(source *common.ZeroCopySource) error {
 	this.key = key
 	this.revoked = revoked
 	this.controller = controller
-	this.access = access
 	this.authentication = authentication
 	return nil
 }
@@ -169,7 +157,7 @@ func getAllPk_Version1(srvc *native.NativeService, encId, key []byte) ([]*public
 			}
 			p.key = t.key
 			p.controller = ontid
-			p.access = ALL_ACCESS
+			p.authentication = BOTH
 			p.revoked = t.revoked
 			publicKeys = append(publicKeys, p)
 		}
@@ -208,7 +196,6 @@ func getAllPkJson(srvc *native.NativeService, encId []byte) ([]*publicKeyJson, e
 			if err != nil {
 				return nil, err
 			}
-			publicKey.Access = p.access
 			r = append(r, publicKey)
 		}
 	}
@@ -244,7 +231,7 @@ func putAllPk_Version1(srvc *native.NativeService, key []byte, val []*publicKey)
 	return nil
 }
 
-func insertPk(srvc *native.NativeService, encId, pk, controller []byte, access string, authentication uint8) (uint32, error) {
+func insertPk(srvc *native.NativeService, encId, pk, controller []byte, authentication uint8) (uint32, error) {
 	key := append(encId, FIELD_PK)
 	if srvc.Height < config.GetNewOntIdHeight() {
 		owners, err := getAllPk(srvc, key)
@@ -275,11 +262,7 @@ func insertPk(srvc *native.NativeService, encId, pk, controller []byte, access s
 			}
 		}
 		size := len(publicKeys)
-		a, err := validateAccess(access)
-		if err != nil {
-			return 0, err
-		}
-		publicKeys = append(publicKeys, &publicKey{pk, false, controller, a, authentication})
+		publicKeys = append(publicKeys, &publicKey{pk, false, controller, authentication})
 		err = putAllPk_Version1(srvc, key, publicKeys)
 		if err != nil {
 			return 0, err
@@ -345,7 +328,7 @@ func findPk_Version1(srvc *native.NativeService, encId, pub []byte) (uint32, boo
 		return 0, false, err
 	}
 	for i, v := range publicKeys {
-		if bytes.Equal(pub, v.key) && v.access != USE_ACCESS {
+		if bytes.Equal(pub, v.key) && v.authentication != ONLY_PUBLICKEY {
 			return uint32(i + 1), v.revoked, nil
 		}
 	}
@@ -462,31 +445,6 @@ func revokePkByIndex(srvc *native.NativeService, encId []byte, index uint32) ([]
 	}
 }
 
-func setKeyAccessByIndex(srvc *native.NativeService, encId []byte, index uint32, access string) ([]byte, error) {
-	key := append(encId, FIELD_PK)
-	publicKeys, err := getAllPk_Version1(srvc, encId, key)
-	if err != nil {
-		return nil, err
-	}
-	if uint32(len(publicKeys)) < index {
-		return nil, errors.New("no such key")
-	}
-	index -= 1
-	if publicKeys[index].revoked {
-		return nil, errors.New("already revoked")
-	}
-	a, err := validateAccess(access)
-	if err != nil {
-		return nil, err
-	}
-	publicKeys[index].access = a
-	err = putAllPk_Version1(srvc, key, publicKeys)
-	if err != nil {
-		return nil, err
-	}
-	return publicKeys[index].key, nil
-}
-
 func isOwner(srvc *native.NativeService, encId, pub []byte) bool {
 	kID, revoked, err := findPk_Version1(srvc, encId, pub)
 	if err != nil {
@@ -494,21 +452,6 @@ func isOwner(srvc *native.NativeService, encId, pub []byte) bool {
 		return false
 	}
 	return kID != 0 && !revoked
-}
-
-func validateAccess(access string) (string, error) {
-	switch access {
-	case "":
-		return ALL_ACCESS, nil
-	case ALL_ACCESS:
-		return ALL_ACCESS, nil
-	case CRUD_ACCESS:
-		return CRUD_ACCESS, nil
-	case USE_ACCESS:
-		return USE_ACCESS, nil
-	default:
-		return "", fmt.Errorf("access type is not supported")
-	}
 }
 
 func keyType(publicKey []byte) (string, string, error) {

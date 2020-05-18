@@ -50,7 +50,7 @@ func addNewAuthKey(srvc *native.NativeService) ([]byte, error) {
 	}
 
 	index, err := insertPk(srvc, encId, params.NewPublicKey.key, params.NewPublicKey.controller,
-		USE_ACCESS, ONLY_AUTHENTICATION)
+		ONLY_AUTHENTICATION)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add auth key error, insertPk failed " + err.Error())
 	}
@@ -136,7 +136,6 @@ func getAuthentication(srvc *native.NativeService, encId []byte) ([]interface{},
 				if err != nil {
 					return nil, err
 				}
-				publicKey.Access = p.access
 				authentication = append(authentication, publicKey)
 			}
 			if p.authentication == BOTH {
