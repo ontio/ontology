@@ -605,7 +605,12 @@
       "returnType":"Bool"
     },
     {
-      "name":"getPublicKeys",
+      "name":"addProof",
+      "parameters":[],
+      "returnType":"Bool"
+    },
+    {
+      "name":"getPublicKeysJson",
       "parameters":[
         {
           "name":"id",
