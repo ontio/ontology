@@ -274,7 +274,6 @@ func getFileInfoFromDb(native *native.NativeService, fileOwner common.Address, f
 			}
 		}
 	} else if fileInfo.StorageType == FileStorageTypeUseFile {
-		fileInfo.RestAmount = calcFileModeRestAmount(uint64(native.Time), &fileInfo)
 		if uint64(native.Time) > fileInfo.TimeExpired {
 			fileInfo.ValidFlag = false
 			fileInfo.ExpiredHeight = getExpireHeightByFileExpireTime(native, fileInfo.TimeExpired)
@@ -288,7 +287,9 @@ func getFileRawRealInfo(native *native.NativeService, fileOwner common.Address, 
 	if fileInfo == nil {
 		return nil
 	}
-
+	if fileInfo.StorageType == FileStorageTypeUseFile {
+		fileInfo.RestAmount = calcFileModeRestAmount(uint64(native.Time), fileInfo)
+	}
 	sink := common.NewZeroCopySink(nil)
 	fileInfo.Serialization(sink)
 	return sink.Bytes()

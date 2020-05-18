@@ -107,6 +107,11 @@ func FsFileProve(native *native.NativeService) ([]byte, error) {
 	switch fileInfo.StorageType {
 	case FileStorageTypeUseFile:
 		fileStoreProfit = calcFileModePerServerProfit(fileInfo.TimeExpired, fileInfo)
+		if fileInfo.RestAmount < fileStoreProfit {
+			return utils.BYTE_FALSE, errors.NewErr("[Node Business] FsFileProve file RestAmount not enough error!")
+		}
+		fileInfo.RestAmount -= fileStoreProfit
+		addFileInfo(native, fileInfo)
 	case FileStorageTypeUseSpace:
 		spaceInfo := getSpaceInfoFromDb(native, fileInfo.FileOwner)
 		if spaceInfo == nil {
