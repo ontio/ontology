@@ -203,6 +203,29 @@ func getAllAttr(srvc *native.NativeService, encId []byte) ([]byte, error) {
 	return res.Bytes(), nil
 }
 
+func getAttrByKey(srvc *native.NativeService, encId []byte, item []byte) ([]byte, error) {
+	key := append(encId, FIELD_ATTR)
+
+	res := common.NewZeroCopySink(nil)
+
+	node, err := utils.LinkedlistGetItem(srvc, key, item)
+	if err != nil {
+		return nil, fmt.Errorf("get storage item error, %s", err)
+	} else if node == nil {
+		return nil, fmt.Errorf("storage item not exists, %v", item)
+	}
+
+	var attr attribute
+	err = attr.SetValue(node.GetPayload())
+	if err != nil {
+		return nil, fmt.Errorf("parse attribute failed, %s", err)
+	}
+	attr.key = item
+	attr.Serialization(res)
+
+	return res.Bytes(), nil
+}
+
 func getAllAttrJson(srvc *native.NativeService, encId []byte) ([]*attributeJson, error) {
 	key := append(encId, FIELD_ATTR)
 	item, err := utils.LinkedlistGetHead(srvc, key)

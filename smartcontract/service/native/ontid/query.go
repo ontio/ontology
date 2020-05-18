@@ -91,7 +91,7 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	sink.WriteVarBytes(var0)
 
 	// attributes
-	var1, err := GetAttributes(srvc)
+	var1, err := GetAllAttributes(srvc)
 	if err != nil {
 		return nil, fmt.Errorf("get attribute error, %s", err)
 	}
@@ -190,23 +190,49 @@ func GetPublicKeysJson(srvc *native.NativeService) ([]byte, error) {
 	return result, nil
 }
 
-func GetAttributes(srvc *native.NativeService) ([]byte, error) {
-	log.Debug("GetAttributes")
+func GetAllAttributes(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetAllAttributes")
 	source := common.NewZeroCopySource(srvc.Input)
 	did, err := utils.DecodeVarBytes(source)
 	if err != nil {
-		return nil, fmt.Errorf("get public keys error: invalid argument, %s", err)
+		return nil, fmt.Errorf("get all attributes error: invalid argument, %s", err)
 	}
 	if len(did) == 0 {
-		return nil, errors.New("get attributes error: invalid ID")
+		return nil, errors.New("get all attributes error: invalid ID")
 	}
 	key, err := encodeID(did)
 	if err != nil {
-		return nil, fmt.Errorf("get public keys error: %s", err)
+		return nil, fmt.Errorf("get all attributes error: %s", err)
 	}
 	res, err := getAllAttr(srvc, key)
 	if err != nil {
-		return nil, fmt.Errorf("get attributes error: %s", err)
+		return nil, fmt.Errorf("get all attributes error: %s", err)
+	}
+
+	return res, nil
+}
+
+func GetAttributeByKey(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetAttributeByKey")
+	source := common.NewZeroCopySource(srvc.Input)
+	did, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes by key error: invalid argument1, %s", err)
+	}
+	if len(did) == 0 {
+		return nil, errors.New("get attributes by key error: invalid ID")
+	}
+	key, err := encodeID(did)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes by key error: %s", err)
+	}
+	item, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes by key error: invalid argument2, %s", err)
+	}
+	res, err := getAttrByKey(srvc, key, item)
+	if err != nil {
+		return nil, fmt.Errorf("get attributes by key error: %s", err)
 	}
 
 	return res, nil

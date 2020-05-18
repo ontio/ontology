@@ -61,6 +61,8 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("getPublicKeys", GetPublicKeysJson)
 	srvc.Register("getKeyState", GetKeyState)
 	srvc.Register("getAttributes", GetAttributesJson)
+	srvc.Register("getAllAttributes", GetAllAttributes)
+	srvc.Register("getAttributeByKey", GetAttributeByKey)
 	srvc.Register("getDDO", GetDDO)
 	srvc.Register("getService", GetService)
 	srvc.Register("getController", GetController)
