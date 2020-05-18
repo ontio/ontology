@@ -35,8 +35,6 @@ import (
 	tx "github.com/ontio/ontology/core/types"
 	"github.com/ontio/ontology/errors"
 	httpcom "github.com/ontio/ontology/http/base/common"
-	msgpack "github.com/ontio/ontology/p2pserver/message/msg_pack"
-	p2p "github.com/ontio/ontology/p2pserver/net/protocol"
 	params "github.com/ontio/ontology/smartcontract/service/native/global_params"
 	nutils "github.com/ontio/ontology/smartcontract/service/native/utils"
 	tc "github.com/ontio/ontology/txnpool/common"

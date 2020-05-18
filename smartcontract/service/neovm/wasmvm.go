@@ -19,7 +19,7 @@ package neovm
 
 import (
 	"fmt"
-	vm "github.com/ontio/layer2/node/vm/neovm"
+	vm "github.com/ontio/ontology/vm/neovm"
 )
 
 //neovm contract call wasmvm contract
