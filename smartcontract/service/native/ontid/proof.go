@@ -26,7 +26,7 @@ import (
 )
 
 func addProof(srvc *native.NativeService) ([]byte, error) {
-	return utils.BYTE_FALSE, errors.New("addProof error: add proof is not supported yet")
+	return utils.BYTE_FALSE, errors.New("property \"proof\" in ONT ID document is not supported yet")
 }
 
 func clearProof(srvc *native.NativeService, encId []byte) {
