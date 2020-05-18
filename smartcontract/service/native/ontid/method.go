@@ -590,30 +590,6 @@ func verifySignature(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
-func verifySignatureWithEditAccess(srvc *native.NativeService) ([]byte, error) {
-	source := common.NewZeroCopySource(srvc.Input)
-	// arg0: ID
-	arg0, err := utils.DecodeVarBytes(source)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: argument 0 error, error: " + err.Error())
-	}
-	// arg1: index of public key
-	arg1, err := utils.DecodeVarUint(source)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: argument 1 error, " + err.Error())
-	}
-
-	key, err := encodeID(arg0)
-	if err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature error: " + err.Error())
-	}
-	if err := checkWitnessByIndex(srvc, key, uint32(arg1)); err != nil {
-		return utils.BYTE_FALSE, errors.New("verify signature failed: " + err.Error())
-	}
-
-	return utils.BYTE_TRUE, nil
-}
-
 func revokeID(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id

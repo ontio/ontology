@@ -40,9 +40,8 @@ func addNewAuthKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("add new auth key error: " + err.Error())
 	}
-
-	if checkIDState(srvc, encId) == flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("addNewAuthKey error: have not registered")
 	}
 
 	if err := checkWitnessByIndex(srvc, encId, params.SignIndex); err != nil {
@@ -60,6 +59,106 @@ func addNewAuthKey(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func addNewAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: id
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 0 error")
+	}
+	// arg1: new public key key
+	key, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+	// arg2: new public key controller
+	controller, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+	// arg3: signers
+	arg2, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 2 error")
+	}
+
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+	}
+
+	signers, err := deserializeSigners(arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("signers error, %s", err)
+	}
+
+	rec, err := getRecovery(srvc, encId)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if rec == nil {
+		return utils.BYTE_FALSE, errors.New("recovery is not exist")
+	}
+
+	if !verifyGroupSignature(srvc, rec, signers) {
+		return utils.BYTE_FALSE, errors.New("verification failed")
+	}
+
+	index, err := insertPk(srvc, encId, key, controller, ONLY_AUTHENTICATION)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add auth key error, insertPk failed " + err.Error())
+	}
+	triggerAuthKeyEvent(srvc, "add", arg0, index)
+
+	updateTimeAndClearProof(srvc, encId)
+	return utils.BYTE_TRUE, nil
+}
+
+func addNewAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: id
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 0")
+	}
+
+	// arg1: new public key key
+	key, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+	// arg2: new public key controller
+	controller, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New(err.Error())
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+	}
+
+	err = verifyControllerSignature(srvc, encId, source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("verifying signature failed")
+	}
+
+	index, err := insertPk(srvc, encId, key, controller, ONLY_AUTHENTICATION)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add auth key error, insertPk failed " + err.Error())
+	}
+	triggerAuthKeyEvent(srvc, "add", arg0, index)
+
+	updateTimeAndClearProof(srvc, encId)
+	return utils.BYTE_TRUE, nil
+}
+
 func setAuthKey(srvc *native.NativeService) ([]byte, error) {
 	params := new(SetAuthKeyParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
@@ -69,9 +168,8 @@ func setAuthKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("set auth key error: " + err.Error())
 	}
-
-	if checkIDState(srvc, encId) == flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("set auth key error: have not registered")
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("setAuthKey error: have not registered")
 	}
 
 	if err := checkWitnessByIndex(srvc, encId, params.SignIndex); err != nil {
@@ -88,6 +186,96 @@ func setAuthKey(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func setAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: id
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 0 error")
+	}
+	// arg1: index
+	index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+	// arg2: signers
+	arg2, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 2 error")
+	}
+
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+	}
+
+	signers, err := deserializeSigners(arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("signers error, %s", err)
+	}
+
+	rec, err := getRecovery(srvc, encId)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if rec == nil {
+		return utils.BYTE_FALSE, errors.New("recovery is not exist")
+	}
+
+	if !verifyGroupSignature(srvc, rec, signers) {
+		return utils.BYTE_FALSE, errors.New("verification failed")
+	}
+
+	err = changePkAuthentication(srvc, encId, uint32(index), BOTH)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add auth key error, changePkAuthentication failed " + err.Error())
+	}
+	triggerAuthKeyEvent(srvc, "set", arg0, uint32(index))
+
+	updateTimeAndClearProof(srvc, encId)
+	return utils.BYTE_TRUE, nil
+}
+
+func setAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: id
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 0")
+	}
+
+	// arg1: index
+	index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New(err.Error())
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+	}
+
+	err = verifyControllerSignature(srvc, encId, source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("verifying signature failed")
+	}
+
+	err = changePkAuthentication(srvc, encId, uint32(index), BOTH)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add auth key error, changePkAuthentication failed " + err.Error())
+	}
+	triggerAuthKeyEvent(srvc, "set", arg0, uint32(index))
+
+	updateTimeAndClearProof(srvc, encId)
+	return utils.BYTE_TRUE, nil
+}
+
 func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 	params := new(RemoveAuthKeyParam)
 	if err := params.Deserialization(common.NewZeroCopySource(srvc.Input)); err != nil {
@@ -97,9 +285,8 @@ func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("remove auth key error: " + err.Error())
 	}
-
-	if checkIDState(srvc, encId) == flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("remove auth key error: have not registered")
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("removeAuthKey error: have not registered")
 	}
 
 	if err := checkWitnessByIndex(srvc, encId, params.SignIndex); err != nil {
@@ -112,6 +299,94 @@ func removeAuthKey(srvc *native.NativeService) ([]byte, error) {
 
 	updateTimeAndClearProof(srvc, encId)
 	triggerAuthKeyEvent(srvc, "remove", params.OntId, params.Index)
+	return utils.BYTE_TRUE, nil
+}
+
+func removeAuthKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: id
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 0 error")
+	}
+	// arg1: index
+	index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+	// arg2: signers
+	arg2, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 2 error")
+	}
+
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+	}
+
+	signers, err := deserializeSigners(arg2)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("signers error, %s", err)
+	}
+
+	rec, err := getRecovery(srvc, encId)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if rec == nil {
+		return utils.BYTE_FALSE, errors.New("recovery is not exist")
+	}
+
+	if !verifyGroupSignature(srvc, rec, signers) {
+		return utils.BYTE_FALSE, errors.New("verification failed")
+	}
+
+	if err := revokeAuthKey(srvc, encId, uint32(index)); err != nil {
+		return utils.BYTE_FALSE, errors.New("remove auth key error, revokeAuthKey failed: " + err.Error())
+	}
+
+	updateTimeAndClearProof(srvc, encId)
+	triggerAuthKeyEvent(srvc, "remove", arg0, uint32(index))
+	return utils.BYTE_TRUE, nil
+}
+
+func removeAuthKeyByController(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: id
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 0")
+	}
+
+	// arg1: index
+	index, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("argument 1 error")
+	}
+
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New(err.Error())
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("add new auth key error: have not registered")
+	}
+
+	err = verifyControllerSignature(srvc, encId, source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("verifying signature failed")
+	}
+
+	if err := revokeAuthKey(srvc, encId, uint32(index)); err != nil {
+		return utils.BYTE_FALSE, errors.New("remove auth key error, revokeAuthKey failed: " + err.Error())
+	}
+
+	updateTimeAndClearProof(srvc, encId)
+	triggerAuthKeyEvent(srvc, "remove", arg0, uint32(index))
 	return utils.BYTE_TRUE, nil
 }
 

@@ -44,7 +44,6 @@ func regIdWithController(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
-
 	if checkIDState(srvc, encId) != flag_not_exist {
 		return utils.BYTE_FALSE, fmt.Errorf("%s already registered", string(arg0))
 	}
@@ -119,12 +118,15 @@ func verifyController(srvc *native.NativeService) ([]byte, error) {
 		return utils.BYTE_FALSE, fmt.Errorf("argument 0 error, %s", err)
 	}
 
-	key, err := encodeID(arg0)
+	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("verifyController error: have not registered")
+	}
 
-	err = verifyControllerSignature(srvc, key, source)
+	err = verifyControllerSignature(srvc, encId, source)
 	if err == nil {
 		return utils.BYTE_TRUE, nil
 	} else {
@@ -147,6 +149,9 @@ func removeController(srvc *native.NativeService) ([]byte, error) {
 	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("removeController error: have not registered")
 	}
 	if err := checkWitnessByIndex(srvc, encId, uint32(arg1)); err != nil {
 		return utils.BYTE_FALSE, fmt.Errorf("checkWitness failed, %s", err)
@@ -180,6 +185,9 @@ func addKeyByController(srvc *native.NativeService) ([]byte, error) {
 	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("addKeyByController error: have not registered")
 	}
 
 	err = verifyControllerSignature(srvc, encId, source)
@@ -220,6 +228,9 @@ func removeKeyByController(srvc *native.NativeService) ([]byte, error) {
 	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New(err.Error())
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("removeKeyByController error: have not registered")
 	}
 
 	err = verifyControllerSignature(srvc, encId, source)
@@ -264,6 +275,9 @@ func addAttributesByController(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, err
 	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("addAttributesByController error: have not registered")
+	}
 
 	err = verifyControllerSignature(srvc, encId, source)
 	if err != nil {
@@ -298,6 +312,9 @@ func removeAttributeByController(srvc *native.NativeService) ([]byte, error) {
 	encId, err := encodeID(arg0)
 	if err != nil {
 		return utils.BYTE_FALSE, err
+	}
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("removeAttributeByController error: have not registered")
 	}
 
 	err = verifyControllerSignature(srvc, encId, source)

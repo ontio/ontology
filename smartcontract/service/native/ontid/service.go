@@ -45,8 +45,8 @@ func addService(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("addService error: " + err.Error())
 	}
-	if checkIDState(srvc, encId) == flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("register ONT ID error: have not registered")
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("addService error: have not registered")
 	}
 
 	if err := checkWitnessByIndex(srvc, encId, params.Index); err != nil {
@@ -70,8 +70,7 @@ func updateService(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("updateService error: " + err.Error())
 	}
-
-	if checkIDState(srvc, encId) == flag_not_exist {
+	if !isValid(srvc, encId) {
 		return utils.BYTE_FALSE, errors.New("updateService error: have not registered")
 	}
 
@@ -115,7 +114,7 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("removeService error: " + err.Error())
 	}
-	if checkIDState(srvc, encId) == flag_not_exist {
+	if !isValid(srvc, encId) {
 		return utils.BYTE_FALSE, errors.New("removeService error: have not registered")
 	}
 

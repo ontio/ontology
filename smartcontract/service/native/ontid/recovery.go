@@ -121,6 +121,34 @@ func updateRecovery(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func removeRecovery(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("updateRecovery: argument 0 error")
+	}
+	// arg1: public key index
+	arg1, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("argument 1 error")
+	}
+
+	encId, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, err
+	}
+	if err := checkWitnessByIndex(srvc, encId, uint32(arg1)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("checkWitness failed, %s", err)
+	}
+	key := append(encId, FIELD_RECOVERY)
+	srvc.CacheDB.Delete(key)
+
+	updateTimeAndClearProof(srvc, encId)
+	newEvent(srvc, []interface{}{"Recovery", "remove", string(arg0)})
+	return utils.BYTE_TRUE, nil
+}
+
 func addKeyByRecovery(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id

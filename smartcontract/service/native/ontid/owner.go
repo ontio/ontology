@@ -345,7 +345,15 @@ func revokeAuthKey(srvc *native.NativeService, encId []byte, index uint32) error
 	if index < 1 || index > uint32(len(publicKeys)) {
 		return errors.New("invalid key index")
 	}
-	publicKeys[index-1].revoked = true
+	if publicKeys[index-1].authentication == BOTH {
+		publicKeys[index-1].authentication = ONLY_PUBLICKEY
+	}
+	if publicKeys[index-1].authentication == ONLY_PUBLICKEY {
+		return errors.New("key is not auth key")
+	}
+	if publicKeys[index-1].authentication == ONLY_AUTHENTICATION {
+		publicKeys[index-1].revoked = true
+	}
 	err = putAllPk_Version1(srvc, key, publicKeys)
 	if err != nil {
 		return err

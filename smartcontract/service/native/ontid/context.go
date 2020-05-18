@@ -40,9 +40,8 @@ func addContext(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("addContext error: " + err.Error())
 	}
-
-	if checkIDState(srvc, encId) == flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("register ONT ID error: have not registered")
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("addContext error: have not registered")
 	}
 
 	if err := checkWitnessByIndex(srvc, encId, params.Index); err != nil {
@@ -66,9 +65,8 @@ func removeContext(srvc *native.NativeService) ([]byte, error) {
 	if err != nil {
 		return utils.BYTE_FALSE, errors.New("removeContext error: " + err.Error())
 	}
-
-	if checkIDState(srvc, encId) == flag_not_exist {
-		return utils.BYTE_FALSE, errors.New("register ONT ID error: have not registered")
+	if !isValid(srvc, encId) {
+		return utils.BYTE_FALSE, errors.New("removeContext error: have not registered")
 	}
 
 	if err := checkWitnessByIndex(srvc, encId, params.Index); err != nil {
