@@ -140,7 +140,7 @@ func removeService(srvc *native.NativeService) ([]byte, error) {
 			return utils.BYTE_TRUE, nil
 		}
 	}
-	return utils.BYTE_FALSE, nil
+	return utils.BYTE_FALSE, errors.New("removeService: remove service error: have not registered such service")
 }
 
 func getServices(srvc *native.NativeService, encId []byte) (Services, error) {
