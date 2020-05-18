@@ -685,13 +685,33 @@ func FsDeleteFiles(native *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func deleteChallenge(native *native.NativeService, nodeAddress common.Address, fileInfo *FileInfo) error {
+	contract := native.ContextRef.CurrentContext().ContractAddress
+	chl := getChallenge(native, nodeAddress, fileInfo.FileHash)
+	if chl == nil {
+		return nil
+	}
+
+	switch chl.State {
+	case NoReplyAndValid, NoReplyAndExpire:
+		if err := appCallTransfer(native, utils.OngContractAddress, contract, fileInfo.FileOwner, chl.Reward); err != nil {
+			return fmt.Errorf("deleteChallenge AppCallTransfer, transfer error: %s", err.Error())
+		}
+	}
+	delChallenge(native, nodeAddress, fileInfo.FileHash)
+	return nil
+}
+
 func deleteFile(native *native.NativeService, fileInfo *FileInfo, errInfos *Errors) bool {
 	contract := native.ContextRef.CurrentContext().ContractAddress
 	pdpRecordList := getPdpRecordList(native, fileInfo.FileHash, fileInfo.FileOwner)
 
 	var err error
 	for _, pdpRecord := range pdpRecordList.PdpRecords {
-		delChallenge(native, pdpRecord.NodeAddr, fileInfo.FileHash)
+		if err = deleteChallenge(native, pdpRecord.NodeAddr, fileInfo); err != nil {
+			errInfos.AddObjectError(string(fileInfo.FileHash), "[APP SDK] DeleteFile deleteChallenge error")
+			continue
+		}
 
 		if pdpRecord.SettleFlag {
 			continue
