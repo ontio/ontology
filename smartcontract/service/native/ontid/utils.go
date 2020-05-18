@@ -120,6 +120,22 @@ func checkWitnessByIndex(srvc *native.NativeService, encId []byte, index uint32)
 	return checkWitness(srvc, pk.key)
 }
 
+func checkWitnessWithAllAndUseAccess(srvc *native.NativeService, encId []byte, index uint32) error {
+	pk, err := getPk(srvc, encId, index)
+	if err != nil {
+		return err
+	} else if pk.revoked {
+		return errors.New("revoked key")
+	}
+
+	//verify access
+	if pk.access == CRUD_ACCESS {
+		return fmt.Errorf("pk access is not ALL or USE")
+	}
+
+	return checkWitness(srvc, pk.key)
+}
+
 func deleteID(srvc *native.NativeService, encId []byte) error {
 	key := append(encId, FIELD_PK)
 	srvc.CacheDB.Delete(key)
