@@ -91,7 +91,7 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	sink.WriteVarBytes(var0)
 
 	// attributes
-	var1, err := GetAllAttributes(srvc)
+	var1, err := GetAttributes(srvc)
 	if err != nil {
 		return nil, fmt.Errorf("get attribute error, %s", err)
 	}
@@ -190,8 +190,8 @@ func GetPublicKeysJson(srvc *native.NativeService) ([]byte, error) {
 	return result, nil
 }
 
-func GetAllAttributes(srvc *native.NativeService) ([]byte, error) {
-	log.Debug("GetAllAttributes")
+func GetAttributes(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetAttributes")
 	source := common.NewZeroCopySource(srvc.Input)
 	did, err := utils.DecodeVarBytes(source)
 	if err != nil {
@@ -299,8 +299,8 @@ func GetKeyState(srvc *native.NativeService) ([]byte, error) {
 	}
 }
 
-func GetService(srvc *native.NativeService) ([]byte, error) {
-	log.Debug("GetService")
+func GetServiceJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetServiceJson")
 	params := new(SearchServiceParam)
 	source := common.NewZeroCopySource(srvc.Input)
 	err := params.Deserialization(source)
@@ -332,8 +332,8 @@ func GetService(srvc *native.NativeService) ([]byte, error) {
 	return nil, nil
 }
 
-func GetController(srvc *native.NativeService) ([]byte, error) {
-	log.Debug("GetController")
+func GetControllerJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetControllerJson")
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
 	arg0, _, irregular, eof := source.NextVarBytes()
@@ -363,8 +363,8 @@ func GetController(srvc *native.NativeService) ([]byte, error) {
 	}
 }
 
-func GetDocument(srvc *native.NativeService) ([]byte, error) {
-	log.Debug("GetDocument")
+func GetDocumentJson(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("GetDocumentJson")
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
 	arg0, _, irregular, eof := source.NextVarBytes()
