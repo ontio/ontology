@@ -106,6 +106,32 @@
       "returnType":"Bool"
     },
     {
+      "name":"addKeyByIndex",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"newPublicKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        },
+        {
+          "name":"controller",
+          "type":"String"
+        },
+        {
+          "name":"access",
+          "type":"String"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"removeKey",
       "parameters":[
         {
@@ -119,6 +145,24 @@
         {
           "name":"userPublicKey",
           "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeKeyByIndex",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"removedKey",
+          "type":"ByteArray"
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
         }
       ],
       "returnType":"Bool"
@@ -324,6 +368,44 @@
       "returnType":"Bool"
     },
     {
+      "name":"addAttributesByIndex",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"attributes",
+          "type":"Array",
+          "subType":[
+            {
+              "name":"",
+              "type":"Struct",
+              "subType":[
+                {
+                  "name":"key",
+                  "type":"String"
+                },
+                {
+                  "name":"type",
+                  "type":"String"
+                },
+                {
+                  "name":"value",
+                  "type":"String"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
       "name":"removeAttribute",
       "parameters":[
         {
@@ -337,6 +419,24 @@
         {
           "name":"userPublicKey",
           "type":"ByteArray"
+        }
+      ],
+      "returnType":"Bool"
+    },
+    {
+      "name":"removeAttributeByIndex",
+      "parameters":[
+        {
+          "name":"id",
+          "type":"String"
+        },
+        {
+          "name":"attributePath",
+          "type":"String"
+        },
+        {
+          "name":"userPublicKeyIndex",
+          "type":"Int"
         }
       ],
       "returnType":"Bool"

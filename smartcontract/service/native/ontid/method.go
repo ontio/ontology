@@ -245,6 +245,65 @@ func addKey(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func addKeyByIndex(srvc *native.NativeService) ([]byte, error) {
+	log.Debug("ID contract: AddKeyByIndex")
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: id
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add key failed: argument 0 error, " + err.Error())
+	}
+	log.Debug("arg 0:", hex.EncodeToString(arg0))
+
+	// arg1: public key
+	arg1, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add key failed: argument 1 error, " + err.Error())
+	}
+	log.Debug("arg 1:", hex.EncodeToString(arg1))
+	_, err = keypair.DeserializePublicKey(arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add key error: invalid key")
+	}
+
+	// arg2: operator's public key index
+	arg2, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add key failed: argument 2 error, " + err.Error())
+	}
+	log.Debug("arg 2:", arg2)
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add key failed: " + err.Error())
+	}
+	if !isValid(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("add key failed: ID not registered")
+	}
+	if err = checkWitnessByIndex(srvc, key, uint32(arg2)); err != nil {
+		return utils.BYTE_FALSE, errors.New("add key failed: check witness failed, " + err.Error())
+	}
+
+	//decode new field of verison 1
+	controller, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		controller = arg0
+	}
+	access, err := utils.DecodeString(source)
+	if err != nil {
+		access = ALL_ACCESS
+	}
+
+	keyID, err := insertPk(srvc, key, arg1, controller, access, ONLY_PUBLICKEY)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("add key failed: insert public key error, " + err.Error())
+	}
+
+	updateTimeAndClearProof(srvc, key)
+	triggerPublicEvent(srvc, "add", arg0, arg1, keyID)
+	return utils.BYTE_TRUE, nil
+}
+
 func removeKey(srvc *native.NativeService) ([]byte, error) {
 	source := common.NewZeroCopySource(srvc.Input)
 	// arg0: id
@@ -284,6 +343,47 @@ func removeKey(srvc *native.NativeService) ([]byte, error) {
 		if !isOwner(srvc, key, arg2) {
 			return utils.BYTE_FALSE, errors.New("remove key failed: operator has no authorization")
 		}
+	}
+
+	keyID, err := revokePk(srvc, key, arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: %s", err)
+	}
+
+	updateTimeAndClearProof(srvc, key)
+	triggerPublicEvent(srvc, "remove", arg0, arg1, keyID)
+	return utils.BYTE_TRUE, nil
+}
+
+func removeKeyByIndex(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: id
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 0 error, %s", err)
+	}
+
+	// arg1: public key
+	arg1, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 1 error, %s", err)
+	}
+
+	// arg2: operator's public key
+	arg2, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: argument 2 error, %s", err)
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: %s", err)
+	}
+	if !isValid(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("remove key failed: ID not registered")
+	}
+	if err = checkWitnessByIndex(srvc, key, uint32(arg2)); err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("remove key failed: check witness failed, %s", err)
 	}
 
 	keyID, err := revokePk(srvc, key, arg1)
@@ -378,6 +478,58 @@ func addAttributes(srvc *native.NativeService) ([]byte, error) {
 	return utils.BYTE_TRUE, nil
 }
 
+func addAttributesByIndex(srvc *native.NativeService) ([]byte, error) {
+	source := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, err := utils.DecodeVarBytes(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 0, error: %s", err)
+	}
+	// arg1: attributes
+	// first get number
+	num, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
+	}
+	// next parse each attribute
+	var arg1 = make([]attribute, 0)
+	for i := 0; i < int(num); i++ {
+		var v attribute
+		err = v.Deserialization(source)
+		if err != nil {
+			return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 1 error: %s", err)
+		}
+		arg1 = append(arg1, v)
+	}
+	// arg2: opperator's public key index
+	arg2, err := utils.DecodeVarUint(source)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, argument 2, error: %s", err)
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed: %s", err)
+	}
+	if !isValid(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("add attributes failed, ID not registered")
+	}
+	err = checkWitnessByIndex(srvc, key, uint32(arg2))
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
+	}
+
+	err = batchInsertAttr(srvc, key, arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, fmt.Errorf("add attributes failed, %s", err)
+	}
+
+	updateTimeAndClearProof(srvc, key)
+	paths := getAttrKeys(arg1)
+	triggerAttributeEvent(srvc, "add", arg0, paths)
+	return utils.BYTE_TRUE, nil
+}
+
 func removeAttribute(srvc *native.NativeService) ([]byte, error) {
 	args := common.NewZeroCopySource(srvc.Input)
 	// arg0: ID
@@ -409,6 +561,46 @@ func removeAttribute(srvc *native.NativeService) ([]byte, error) {
 	}
 	if !isOwner(srvc, key, arg2) {
 		return utils.BYTE_FALSE, errors.New("remove attribute failed: no authorization")
+	}
+
+	err = deleteAttr(srvc, key, arg1)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("remove attribute failed: " + err.Error())
+	}
+
+	updateTimeAndClearProof(srvc, key)
+	triggerAttributeEvent(srvc, "remove", arg0, [][]byte{arg1})
+	return utils.BYTE_TRUE, nil
+}
+
+func removeAttributeByIndex(srvc *native.NativeService) ([]byte, error) {
+	args := common.NewZeroCopySource(srvc.Input)
+	// arg0: ID
+	arg0, err := utils.DecodeVarBytes(args)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("remove attribute failed: argument 0 error")
+	}
+	// arg1: path
+	arg1, err := utils.DecodeVarBytes(args)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("remove attribute failed: argument 1 error")
+	}
+	// arg2: operator's public key index
+	arg2, err := utils.DecodeVarUint(args)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("remove attribute failed: argument 2 error")
+	}
+
+	key, err := encodeID(arg0)
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("remove attribute failed: " + err.Error())
+	}
+	if !isValid(srvc, key) {
+		return utils.BYTE_FALSE, errors.New("remove attribute failed: ID not registered")
+	}
+	err = checkWitnessByIndex(srvc, key, uint32(arg2))
+	if err != nil {
+		return utils.BYTE_FALSE, errors.New("remove attribute failed: " + err.Error())
 	}
 
 	err = deleteAttr(srvc, key, arg1)
