@@ -64,6 +64,7 @@ func RegisterIDContract(srvc *native.NativeService) {
 	srvc.Register("verifySignatureWithEditAccess", verifySignatureWithEditAccess)
 	srvc.Register("verifyController", verifyController)
 	srvc.Register("setKeyAccess", setKeyAccess)
+	srvc.Register("getPublicKeys", GetPublicKeys)
 	srvc.Register("getPublicKeysJson", GetPublicKeysJson)
 	srvc.Register("getKeyState", GetKeyState)
 	srvc.Register("getAttributesJson", GetAttributesJson)

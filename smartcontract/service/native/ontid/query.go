@@ -128,6 +128,7 @@ func GetDDO(srvc *native.NativeService) ([]byte, error) {
 	return res, nil
 }
 
+// Deprecated
 func GetPublicKeys(srvc *native.NativeService) ([]byte, error) {
 	log.Debug("GetPublicKeys")
 	args := common.NewZeroCopySource(srvc.Input)

@@ -249,7 +249,7 @@ func insertPk(srvc *native.NativeService, encId, pk, controller []byte, access s
 	if srvc.Height < config.GetNewOntIdHeight() {
 		owners, err := getAllPk(srvc, key)
 		if err != nil {
-			return 0, err
+			owners = make([]*owner, 0)
 		}
 		for _, k := range owners {
 			if bytes.Equal(k.key, pk) {
