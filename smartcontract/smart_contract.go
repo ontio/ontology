@@ -51,7 +51,6 @@ type SmartContract struct {
 	JitMode       bool
 	PreExec       bool
 	internelErr   bool
-	CrossHashes   []common.Uint256
 }
 
 // Config describe smart contract need parameters configuration
@@ -119,10 +118,6 @@ func (this *SmartContract) CheckUseGas(gas uint64) bool {
 	return true
 }
 
-func (this *SmartContract) PutCrossStateHashes(hashes []common.Uint256) {
-	this.CrossHashes = append(this.CrossHashes, hashes...)
-}
-
 func (this *SmartContract) checkContexts() bool {
 	if len(this.Contexts) > MAX_EXECUTE_ENGINE {
 		return false
@@ -132,7 +127,7 @@ func (this *SmartContract) checkContexts() bool {
 
 func NewVmFeatureFlag(blockHeight uint32) vm.VmFeatureFlag {
 	var feature vm.VmFeatureFlag
-	enableHeight := config.GetOpcodeUpdateCheckHeight(config.DefConfig.P2PNode.NetworkId)
+	enableHeight := config.GetOpcodeUpdateCheckHeight(config.NETWORK_ID_SOLO_NET)
 	feature.DisableHasKey = blockHeight <= enableHeight
 	feature.AllowReaderEOF = blockHeight <= enableHeight
 
@@ -162,27 +157,6 @@ func (this *SmartContract) NewExecuteEngine(code []byte, txtype ctypes.Transacti
 			BlockHash:  this.Config.BlockHash,
 			Engine:     vm.NewExecutor(code, feature),
 			PreExec:    this.PreExec,
-		}
-	case ctypes.InvokeWasm:
-		gasFactor := this.GasTable[config.WASM_GAS_FACTOR]
-		if gasFactor == 0 {
-			gasFactor = config.DEFAULT_WASM_GAS_FACTOR
-		}
-
-		service = &wasmvm.WasmVmService{
-			Store:      this.Store,
-			CacheDB:    this.CacheDB,
-			ContextRef: this,
-			Code:       code,
-			Tx:         this.Config.Tx,
-			Time:       this.Config.Time,
-			Height:     this.Config.Height,
-			BlockHash:  this.Config.BlockHash,
-			PreExec:    this.PreExec,
-			ExecStep:   &this.WasmExecStep,
-			GasLimit:   &this.Gas,
-			GasFactor:  gasFactor,
-			JitMode:    this.JitMode,
 		}
 	default:
 		return nil, errors.New("failed to construct execute engine, wrong transaction type")
